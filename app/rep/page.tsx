@@ -80,8 +80,10 @@ export default function RepPage() {
       };
       recorder.start(1000);
 
-      // Level meter
+      // Level meter. iOS Safari creates AudioContexts suspended even
+      // inside a user gesture — resume explicitly.
       const ctx = new AudioContext();
+      void ctx.resume().catch(() => {});
       const src = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 1024;

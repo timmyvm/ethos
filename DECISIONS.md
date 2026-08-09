@@ -19,6 +19,10 @@ Locked means locked. Reopen only with user data or Timothy's explicit call.
 12. 2026-08-09 · Supply layer: one word/phrase upgrade per rep from user's own transcript → personal lexicon · Wellspoken users' most-praised feature; measurement + supply = coaching
 13. 2026-08-09 · Boss modes (Cold Topic, Debate, Hostile Q&A) are premium weekly content, not the daily loop · protects the 5-minute habit
 14. 2026-08-09 · No pay-to-win; freezes capped at 2 equipped · currency buys convenience and challenge, never truth
+15. 2026-08-09 · WPM zone: 125–165 = "in the zone", below = "strolling", above = "sprinting" · prototype reference; conversational-speech norms; calibrate wording in beta only
+16. 2026-08-09 · Pause bar rendering: composed (pre-sentence) held pause = amber pill; mid-sentence held pause = stone pill; beats = dots; speech = ~2s ticks · amber stays earned-only — mid-sentence silence is shown, not celebrated
+17. 2026-08-09 · Coach layer is best-effort: LLM output that fails voice/grounding validation retries twice then falls back to a deterministic coach line built from metrics · the numbers are the product; the LLM never blocks or invents them
+18. 2026-08-09 · Engine LLM: claude-opus-5, strict JSON schema, low effort, server-side refusal fallback · one call per rep; latency inside a ≤5-min loop
 
 ## Open queue (research-once, decide, move up)
 

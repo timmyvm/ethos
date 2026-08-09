@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PauseBar } from "@/components/PauseBar";
 import { Stars } from "@/components/Stars";
+import { todaysDrill } from "@/lib/drills";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 
 const MAX_SECONDS = 90;
@@ -49,6 +50,7 @@ export default function RepPage() {
       const form = new FormData();
       const ext = blob.type.includes("mp4") ? "mp4" : "webm";
       form.append("audio", blob, `rep.${ext}`);
+      form.append("lessonId", todaysDrill().id);
       const res = await fetch("/api/analyze", { method: "POST", body: form });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? `Analysis failed (${res.status})`);
@@ -139,18 +141,17 @@ export default function RepPage() {
 
   if (phase === "results" && result) return <Results result={result} />;
 
+  const drill = todaysDrill();
+
   return (
     <main className="flex min-h-dvh flex-col px-5 pb-8 pt-7">
       <Link href="/" className="self-start text-sm text-stone-500">
         ← back
       </Link>
-      <div className="label-data mt-6">Filler Elimination</div>
-      <h1 className="font-display mt-1.5 text-2xl font-bold">
-        The baseline rep
-      </h1>
+      <div className="label-data mt-6">{drill.unit}</div>
+      <h1 className="font-display mt-1.5 text-2xl font-bold">{drill.title}</h1>
       <p className="mt-2.5 text-[15px] leading-relaxed text-stone-500">
-        Introduce yourself and what you&apos;re building — 60 seconds, no
-        notes.
+        {drill.prompt}
       </p>
 
       <div className="flex flex-1 flex-col items-center justify-center gap-6">

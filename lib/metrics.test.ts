@@ -216,4 +216,32 @@ describe("computeMetrics", () => {
     expect(m.durationS).toBe(30);
     expect(m.wpm).toBe(4);
   });
+
+  it("handles whisper-shaped input: unpunctuated words + segments", () => {
+    // whisper-1 word timestamps often strip punctuation entirely; sentence
+    // structure then comes only from segments. Two sentences, a held pause
+    // between them (pre), a held pause inside the second one (mid), and a
+    // filler whisper kept verbatim.
+    const words = w(
+      ["My", 0.0, 0.2],
+      ["name", 0.25, 0.5],
+      ["is", 0.55, 0.7],
+      ["Tim", 0.75, 1.1],
+      // 1.3s held pause across the sentence boundary
+      ["um", 2.4, 2.6],
+      ["I", 2.7, 2.8],
+      ["build", 2.85, 3.2],
+      // 0.9s held pause mid-sentence
+      ["apps", 4.1, 4.5]
+    );
+    const segments: Segment[] = [
+      { start: 0.0, end: 1.1, text: " My name is Tim." },
+      { start: 2.4, end: 4.5, text: " um I build apps" },
+    ];
+    const m = computeMetrics(words, 4.5, segments);
+    expect(m.fillerCounts).toEqual({ um: 1 });
+    expect(m.composedPauses).toBe(1);
+    expect(m.midSentencePauses).toBe(1);
+    expect(m.pauses.map((p) => p.kind)).toEqual(["pre", "mid"]);
+  });
 });

@@ -19,7 +19,10 @@ npm test                     # metrics engine unit tests
   against a project to store reps; without them nothing persists.
 
 Phone testing needs HTTPS for mic access — deploy to Vercel (set the same
-env vars there) or tunnel localhost.
+env vars there) or tunnel localhost. Once deployed, "Add to Home Screen"
+installs it as a PWA. Note: the Claude↔Vercel integration currently lacks
+project-create permission, so the first deploy is manual (`npx vercel` in
+this folder) or grant the integration access in Vercel settings.
 
 ## Start a build session (Cowork / Claude Code)
 

@@ -38,6 +38,14 @@ export async function transcribe(
   form.append("response_format", "verbose_json");
   form.append("timestamp_granularities[]", "word");
   form.append("timestamp_granularities[]", "segment");
+  // Whisper cleans disfluencies out of transcripts by default, which would
+  // gut the filler count — the product's core number. A prompt written in
+  // the style we want transcribed biases it toward verbatim output.
+  form.append(
+    "prompt",
+    "So, um, I was thinking... like, you know, it's kind of, uh, basically the idea."
+  );
+  form.append("temperature", "0");
 
   const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
     method: "POST",

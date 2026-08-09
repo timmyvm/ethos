@@ -23,6 +23,7 @@ export const metadata: Metadata = {
   title: "Ethos — a daily gym for speech",
   description:
     "Five minutes of reps a day until speaking clearly under pressure is a trait, not a performance.",
+  icons: { apple: "/apple-touch-icon.png" },
 };
 
 export const viewport: Viewport = {

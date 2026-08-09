@@ -2,8 +2,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { NextRequest } from "next/server";
 
 vi.mock("@/lib/transcribe", () => ({ transcribe: vi.fn() }));
-vi.mock("@/lib/coach", () => ({ coachRep: vi.fn() }));
-vi.mock("@/lib/db", () => ({ saveRep: vi.fn(async () => null) }));
+vi.mock("@/lib/coach", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/coach")>()),
+  coachRep: vi.fn(),
+}));
+vi.mock("@/lib/db", () => ({
+  saveRep: vi.fn(async () => null),
+  getUserFromAuthHeader: vi.fn(async () => null),
+  previousEthosIndex: vi.fn(async () => null),
+}));
 
 import { POST } from "@/app/api/analyze/route";
 import { coachRep } from "@/lib/coach";
@@ -67,12 +74,24 @@ describe("POST /api/analyze", () => {
     expect(res.status).toBe(502);
   });
 
-  it("returns deterministic metrics with coach output", async () => {
+  it("returns metrics, tier-1 scores, and the /1000 index with coach output", async () => {
     vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    const dim = {
+      score: 60,
+      citedMoment: '"my name is Tim"',
+      improve: "Open with the claim.",
+    };
     vi.mocked(coachRep).mockResolvedValue({
       focus: "Kill 'um' — 1 filler.",
+      strength: "Held 1 pause.",
       supply: { original: "um", upgrade: "(pause)", note: "Silence reads as thought." },
       coachLine: "1 filler in 60 seconds.",
+      dimensions: {
+        structure: dim,
+        credibility: dim,
+        engagement: dim,
+        confidence: dim,
+      },
     });
     const res = await post(audioForm());
     expect(res.status).toBe(200);
@@ -80,9 +99,14 @@ describe("POST /api/analyze", () => {
     expect(body.metrics.fillerCount).toBe(1);
     expect(body.metrics.wpm).toBe(6);
     expect(body.coach.coachLine).toBe("1 filler in 60 seconds.");
+    expect(body.tier1.fillers).toBeGreaterThan(0);
+    expect(body.anchors).toEqual({ hedgeCount: 0, restartCount: 0 });
+    // All four judged dims at 60 → tier-2 half contributes 300 exactly.
+    expect(body.ethosIndex).toBeGreaterThan(300);
+    expect(body.ethosIndex).toBeLessThanOrEqual(1000);
   });
 
-  it("still returns the numbers when the coach layer fails", async () => {
+  it("still returns the numbers when the coach layer fails — no partial index", async () => {
     vi.mocked(transcribe).mockResolvedValue(FIXTURE);
     vi.mocked(coachRep).mockRejectedValue(new Error("api down"));
     const res = await post(audioForm());
@@ -90,5 +114,7 @@ describe("POST /api/analyze", () => {
     const body = await res.json();
     expect(body.metrics.fillerCount).toBe(1);
     expect(body.coach).toBeNull();
+    expect(body.ethosIndex).toBeNull();
+    expect(body.tier1.pause).toBeGreaterThan(0);
   });
 });

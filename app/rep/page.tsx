@@ -3,9 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { DimensionList } from "@/components/DimensionList";
 import { PauseBar } from "@/components/PauseBar";
 import { Stars } from "@/components/Stars";
 import { todaysDrill } from "@/lib/drills";
+import { ensureSession } from "@/lib/supabase-browser";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 
 const MAX_SECONDS = 90;
@@ -51,7 +53,14 @@ export default function RepPage() {
       const ext = blob.type.includes("mp4") ? "mp4" : "webm";
       form.append("audio", blob, `rep.${ext}`);
       form.append("lessonId", todaysDrill().id);
-      const res = await fetch("/api/analyze", { method: "POST", body: form });
+      // Anonymous-first (DECISIONS #15): attribute the rep if a session
+      // exists or can be minted; never block the rep on auth.
+      const token = await ensureSession();
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        body: form,
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? `Analysis failed (${res.status})`);
       setResult(data as AnalyzeResponse);
@@ -224,15 +233,20 @@ function fmt(s: number) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
-// ─── Results — ported from prototype: numbers are the hero ─────────
+// ─── Results — leads with the Index delta and the ONE focus ────────
 function Results({ result }: { result: AnalyzeResponse }) {
-  const { metrics: m, coach } = result;
+  const { metrics: m, coach, tier1, anchors, ethosIndex, previousIndex } =
+    result;
   const zone =
-    m.wpm >= 125 && m.wpm <= 165
+    m.wpm >= 130 && m.wpm <= 160
       ? "in the zone"
-      : m.wpm > 165
+      : m.wpm > 160
         ? "sprinting"
         : "strolling";
+  const delta =
+    ethosIndex !== null && previousIndex !== null
+      ? ethosIndex - previousIndex
+      : null;
 
   // Coach layer is best-effort; the deterministic fallback keeps the
   // register (short, numbers, no hype) when it's unavailable.
@@ -246,21 +260,86 @@ function Results({ result }: { result: AnalyzeResponse }) {
     <main className="px-5 pb-10 pt-7">
       <div className="label-data">Rep complete</div>
 
-      <div className="mt-3 flex items-baseline gap-3.5">
-        <div className="font-display text-[64px] font-bold leading-none">
-          {m.fillerCount}
-        </div>
-        <div>
-          <div className="text-[15px] font-semibold">
-            filler{m.fillerCount === 1 ? "" : "s"}
+      {ethosIndex !== null ? (
+        <div className="mt-3 flex items-baseline gap-3.5">
+          <div className="font-display text-[64px] font-bold leading-none">
+            {ethosIndex}
           </div>
-          <div className="text-[13px] text-stone-500">
-            {m.fillersPerMin}/min
+          <div>
+            <div className="text-[15px] font-semibold">
+              your Ethos{" "}
+              <span className="font-normal text-stone-500">/1000</span>
+            </div>
+            {delta !== null && delta !== 0 && (
+              <div
+                className={`text-[13px] font-semibold ${
+                  delta > 0 ? "text-amber-500" : "text-stone-500"
+                }`}
+              >
+                {delta > 0 ? "▲ +" : "▼ "}
+                {delta} since last rep
+              </div>
+            )}
+          </div>
+          <div className="ml-auto">
+            <Stars n={m.stars} size={22} />
           </div>
         </div>
-        <div className="ml-auto">
-          <Stars n={m.stars} size={22} />
+      ) : (
+        <div className="mt-3 flex items-baseline gap-3.5">
+          <div className="font-display text-[64px] font-bold leading-none">
+            {m.fillerCount}
+          </div>
+          <div>
+            <div className="text-[15px] font-semibold">
+              filler{m.fillerCount === 1 ? "" : "s"}
+            </div>
+            <div className="text-[13px] text-stone-500">
+              {m.fillersPerMin}/min
+            </div>
+          </div>
+          <div className="ml-auto">
+            <Stars n={m.stars} size={22} />
+          </div>
         </div>
+      )}
+
+      <div className="mt-4 flex items-end gap-3">
+        <Image
+          src="/demos.webp"
+          alt="Demos"
+          width={62}
+          height={62}
+          className="w-[62px] rounded-[14px] border border-sand bg-white"
+        />
+        <div className="rounded-[14px] rounded-bl-[4px] bg-terracotta-50 px-4 py-3 text-sm leading-relaxed">
+          <div className="label-data !text-terracotta-600 mb-0.5">Demos</div>
+          {coachLine}
+          {coach?.focus && (
+            <div className="mt-1.5 text-[13px] text-stone-600">
+              Tomorrow: {coach.focus}
+            </div>
+          )}
+          {coach?.strength && (
+            <div className="mt-1 text-[13px] text-stone-500">
+              Kept: {coach.strength}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <PauseBar pauses={m.pauses} durationS={m.durationS} />
+      </div>
+
+      <div className="mt-4">
+        <div className="label-data mb-2">The eight · tap for why</div>
+        <DimensionList
+          tier1={tier1}
+          anchors={anchors}
+          metrics={m}
+          coach={coach}
+        />
       </div>
 
       <div className="mt-4 flex gap-3">
@@ -276,29 +355,6 @@ function Results({ result }: { result: AnalyzeResponse }) {
           value={`${Math.round(m.durationS)}s`}
           note="target 60–90"
         />
-      </div>
-
-      <div className="mt-4">
-        <PauseBar pauses={m.pauses} durationS={m.durationS} />
-      </div>
-
-      <div className="mt-4 flex items-end gap-3">
-        <Image
-          src="/demos.webp"
-          alt="Demos"
-          width={62}
-          height={62}
-          className="w-[62px] rounded-[14px] border border-sand bg-white"
-        />
-        <div className="rounded-[14px] rounded-bl-[4px] bg-terracotta-50 px-4 py-3 text-sm leading-relaxed">
-          <div className="label-data !text-terracotta-600 mb-0.5">Demos</div>
-          {coachLine}
-          {coach?.focus && (
-            <div className="mt-1.5 text-[13px] text-stone-500">
-              Tomorrow&apos;s focus: {coach.focus}
-            </div>
-          )}
-        </div>
       </div>
 
       {coach?.supply && (

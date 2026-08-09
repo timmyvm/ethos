@@ -25,7 +25,7 @@ import { computeMetrics, type RepMetrics } from "@/lib/metrics";
 import { transcribe } from "@/lib/transcribe";
 
 export const runtime = "nodejs";
-export const maxDuration = 120;
+export const maxDuration = 60; // Vercel Hobby cap
 
 export interface AnalyzeResponse {
   transcript: string;
@@ -91,12 +91,15 @@ export async function POST(req: NextRequest) {
   const tier1 = tier1Scores(metrics, transcription.words, transcription.segments);
   const anchors = tier2Anchors(transcription.words, transcription.text);
 
-  // Coach layer is best-effort — never blocks the numbers.
+  // Coach layer is best-effort — never blocks the numbers. A near-silent
+  // rep has nothing to coach or judge; skip the call instead of burning it.
   let coach: CoachOutput | null = null;
-  try {
-    coach = await coachRep(transcription.text, metrics, tier1, anchors);
-  } catch {
-    coach = null;
+  if (metrics.wordCount >= 5) {
+    try {
+      coach = await coachRep(transcription.text, metrics, tier1, anchors);
+    } catch {
+      coach = null;
+    }
   }
 
   const index = ethosIndex(tier1, coach ? tier2Scores(coach) : null);

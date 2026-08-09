@@ -31,7 +31,7 @@ export default function Home() {
           </Link>
         </div>
         <Image
-          src="/demos.png"
+          src="/demos.webp"
           alt="Demos"
           width={150}
           height={150}

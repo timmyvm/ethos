@@ -37,7 +37,7 @@ Locked means locked. Reopen only with user data or Timothy's explicit call.
 - Exact pricing — one research pass vs Elevate/Yoodli/Duolingo Super AUD pricing
 - PWA vs native wrap (Capacitor) — decide after engine works; mic reliability is the deciding factor
 - Stress-mod pricing/earn rates — after economy exists
-- Demos pose set (celebrate/listen/asleep/speaking) — generate from Higgsfield ref when step 3 needs them
+- ~~Demos pose set~~ — DELIVERED 9 Aug (assets/demos-{speaking,celebrate,listening,asleep,workout}.png). Speaking is live in the results coach bubble; the rest wire in at their step-3 moments (celebrate = streak/star, asleep = missed-day, listening = recording), never as furniture
 - Landing page symptom-first headline — write 5, test on the persona
 - "Frame" step before recording (30s think time, optional notes) — trains think-before-you-speak; decide after dogfood
 - Upload real recordings (meetings) — post-MVP

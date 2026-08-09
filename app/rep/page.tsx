@@ -306,7 +306,7 @@ function Results({ result }: { result: AnalyzeResponse }) {
 
       <div className="mt-4 flex items-end gap-3">
         <Image
-          src="/demos.webp"
+          src="/demos-speaking.webp"
           alt="Demos"
           width={62}
           height={62}

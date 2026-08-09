@@ -1,7 +1,10 @@
 # BUILD-PLAN.md — Step 1: the engine
 
 Goal of the first session: a user records 60–90s in the browser and gets
-back real numbers. Nothing else. No auth polish, no path, no shop.
+back real numbers. Anonymous-first auth (Supabase) so reps persist —
+signup gate at "save progress," after rep 1. No path, no shop, no
+leaderboard yet (XP events are logged from day one; the league UI is
+step 3).
 
 ## Pipeline
 
@@ -21,9 +24,18 @@ back real numbers. Nothing else. No auth polish, no path, no shop.
      **pre-sentence** (next word starts a segment) vs **mid-sentence**
      (composed vs panic) — this classification IS the pause-bar data.
    - `stars`: fillers/min < 3 → 3★, < 6 → 2★, else 1★
+   - Tier-1 Index dimensions (mechanics.md "Ethos Index"): pause /100,
+     fillers /100, pace /100, range /100 — pure functions, unit-tested.
+   - Deterministic anchors for Tier 2: hedge-word count, restart/
+     self-correction count (passed into the LLM call as ground truth).
 4. **LLM layer** — one Claude call, JSON out, strict schema:
    - `focus`: ONE thing for tomorrow, must reference a metric
    - `supply`: ONE word/phrase swap quoting the user's own transcript
+   - `strength`: ONE thing that measurably went well, metric-traced
+   - Tier-2 Index dimensions: structure, credibility, engagement,
+     confidence — each { score, citedMoment, improve }; reject + re-run
+     if any citedMoment is missing (DECISIONS #19)
+   - `ethosIndex`: weighted sum /1000 computed server-side from all 8
    - `coachLine`: ≤ 2 sentences, coach register (brand.md voice — short,
      specific numbers, zero hype)
    Reject/retry any output that violates voice rules or invents claims
@@ -39,6 +51,9 @@ back real numbers. Nothing else. No auth polish, no path, no shop.
   stars, focus, supply, audio_path
 - `lexicon`: id, user_id, original, upgrade, rep_id, created_at
 - `streaks`: user_id, current, longest, last_rep_date, freezes_equipped
+- `profiles`: user_id, display_name, created_at
+- `xp_events`: id, user_id, amount, source (rep|boss|mod), rep_id, created_at
+- `league_members` (step 3): league_id, user_id, week_start, xp_total
 
 ## Definition of done for step 1
 

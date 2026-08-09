@@ -39,7 +39,54 @@ to any lesson — crowd noise, tighter timer, mid-rep interruption,
 "no notes" mode. Harder run = star multiplier. Stress is something the
 user OPTS INTO for reward; the app never imposes it.
 
-## Streaks & economy
+## Scoring — the Ethos Index (/1000)
+
+The composite: **"Your Ethos: 612/1000."** The score IS the brand — you
+train your ethos. Big denominator makes small progress visible (+12
+feels real). Eight dimensions in two integrity tiers; weights sum to 1000.
+
+### Tier 1 — measured (deterministic, from timestamps + transcript; no AI judgment)
+
+- **Pause /100 · weight 150** — our signature, weighted at the top.
+  v1 sketch: baseline 60; +8 per held pre-sentence pause (0.8–2.5s,
+  cap 5); −10 per mid-sentence panic gap >1.5s; small bonus for pause
+  before the final sentence (landing the ending). Calibrate in beta.
+- **Fillers /100 · weight 150** — fillers/min curve: 0 fpm = 100,
+  ≥8 fpm = 0.
+- **Pace /100 · weight 100** — distance from the 130–160 WPM zone,
+  plus variance bonus (pace that moves beats monotone pace).
+- **Range /100 · weight 100** — repetition inverted: distinct-word
+  ratio, repeated n-gram phrases, crutch-word density ("really",
+  "very", "good", "thing").
+
+### Tier 2 — judged (LLM-scored against defined criteria; MUST cite ≥1 quoted moment or timestamp per score, else the output is rejected and re-run)
+
+- **Structure /100 · weight 150** — clear opening claim, ordered
+  points, an ending that lands (not a trail-off).
+- **Credibility /100 · weight 150** — "sounds like you know what
+  you're talking about": specificity over vagueness, concrete examples,
+  commitment to claims. Anchored by a deterministic input: hedge-word
+  density ("I guess", "maybe", "sort of", "I feel like") is counted,
+  not vibes-judged.
+- **Engagement /100 · weight 100** — hook quality, imagery/analogy
+  use, sentence variety, direct address. (Absorbs "entertaining" —
+  same underlying behaviors; two scores would double-count.)
+- **Confidence /100 · weight 100** — hybrid: restarts and
+  self-corrections (measured), hedge density (measured), delivery
+  steadiness; the LLM only labels tone and must cite the moment.
+
+### Display rules
+
+- Results screen leads with the Index delta ("+18") and the ONE focus —
+  never a wall of eight numbers.
+- Each dimension is tappable → why this score (cited moments) + one way
+  to improve. (The explainability pattern users love in Wellspoken.)
+- Free tier: Index + Tier 1 breakdown. Premium: full eight + history
+  per dimension.
+- Stars stay lesson-level (per-unit thresholds); the Index is the
+  across-time number. XP stays effort. Three currencies, three jobs,
+  never mixed.
+
 
 - **Daily streak** advances on any completed rep. Boss modes multiply.
 - **Currency** (name TBD — earn via stars, streaks, boss wins)
@@ -51,7 +98,28 @@ user OPTS INTO for reward; the app never imposes it.
 - Freezes capped (e.g. 2 equipped max) — infinite freezes kill the
   loss aversion that makes streaks work.
 
-## Notifications
+## Accounts, XP, leaderboard, history (added 9 Aug 2026)
+
+- **Accounts:** Supabase auth (email OTP + Google/Apple). Anonymous-first:
+  the user completes rep 1 BEFORE any signup; the account gate appears at
+  "save your progress," never before the first rep. (Wellspoken's
+  quiz-wall lesson applied to auth.)
+- **XP — effort currency.** Earned per completed rep; boss modes and
+  stress mods multiply it. XP feeds levels and the leaderboard.
+  CRITICAL separation of concerns: XP measures showing up (volume);
+  stars measure quality (thresholds). They never mix, and XP can never
+  be bought — the no-pay-to-win rule applies.
+- **Leaderboard:** weekly XP league of ~20 users (Duolingo league
+  pattern), resets Monday. Display names only, no real names surfaced.
+  Because it ranks XP (effort) not stars (quality), competing hard
+  can't corrupt the scores — grinding reps is exactly the behavior we
+  want the leaderboard to reward.
+- **History:** the training log (design-direction layout B, repurposed
+  as a secondary screen). Every rep is a row — date, drill, stars,
+  fillers, WPM, held pauses — tapping opens full results including the
+  pause bar. Free tier: last 7 days. Premium: full history +
+  day-1-vs-day-N comparison cards.
+
 
 Coach register only (brand.md voice). Loss-aversion framing is
 allowed ("streak ends in 3h"); guilt and insecurity are not
@@ -132,6 +200,45 @@ onboarding) is confirmed correct; never add a quiz-wall.
 What we have that they don't: game layer (path/stars/streaks/shop),
 a mascot with warmth, pause-as-a-scored-skill, boss modes, and a
 Gen Z register vs their professional-in-meetings framing.
+
+### Hands-on teardown (Timothy, Aug 2026)
+
+Positioning correction: they are more playful and consumer-polished than
+their marketing suggests — homepage runs 4 daily tasks (daily 60s, clear
+thinking, lexicon flash, Echo check-in) with strong hierarchy, plus
+optional modes (drills, roleplay, mock interviews, thought partner,
+upload-and-analyze a real meeting). "We're the fun one" is NOT a
+sufficient differentiator. Ours is: true progression (path/stars/boss/
+economy vs their task checklist), pause-as-skill, persona/register,
+and distribution speed.
+
+Mechanisms observed, with implications:
+- **Topic roulette wheel before recording** — randomness as ritual;
+  variable anticipation makes prompt selection an experience, not a
+  dropdown. We differ deliberately (curated path serves thresholds),
+  but the lesson stands: the moment before recording deserves design.
+- **Notes + structure tips pre-recording** — scaffolding lowers
+  activation energy and teaches structure implicitly. Open queue:
+  a "frame" step (30s think time, optional notes) — this literally
+  trains think-before-you-speak, the founding desire.
+- **Score out of 1000** — big denominators feel substantial and make
+  small progress visible (+12 points feels real; 4.2→4.3 doesn't).
+  Strengthens the case for an eventual composite index (still held
+  until loop retains).
+- **Per-category drill-down: why this score + how to improve** —
+  explainability = trust. Confirms our no-horoscope rule is the
+  converting behavior, not just ethics.
+- **Genuine strengths named** — honest praise for what measurably went
+  well. ADOPTED: coach output schema gains one strength line, metric-
+  traced (true praise is measurement, not flattery).
+- **Retakes** — low-friction mastery loop; we already have retries.
+- **Upload real recordings (meetings)** — real-stakes data is powerful;
+  open queue for post-MVP.
+
+Discipline note: admiration is not a roadmap. Their 4-task homepage and
+mode buffet is v2+ territory; our engine + single-rep loop ships first.
+Product thoughtfulness will be table stakes between two small teams —
+the race is decided by distribution and iteration speed.
 
 ## Open items
 

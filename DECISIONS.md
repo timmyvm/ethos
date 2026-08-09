@@ -19,14 +19,19 @@ Locked means locked. Reopen only with user data or Timothy's explicit call.
 12. 2026-08-09 · Supply layer: one word/phrase upgrade per rep from user's own transcript → personal lexicon · Wellspoken users' most-praised feature; measurement + supply = coaching
 13. 2026-08-09 · Boss modes (Cold Topic, Debate, Hostile Q&A) are premium weekly content, not the daily loop · protects the 5-minute habit
 14. 2026-08-09 · No pay-to-win; freezes capped at 2 equipped · currency buys convenience and challenge, never truth
-15. 2026-08-09 · WPM zone: 125–165 = "in the zone", below = "strolling", above = "sprinting" · prototype reference; conversational-speech norms; calibrate wording in beta only
-16. 2026-08-09 · Pause bar rendering: composed (pre-sentence) held pause = amber pill; mid-sentence held pause = stone pill; beats = dots; speech = ~2s ticks · amber stays earned-only — mid-sentence silence is shown, not celebrated
-17. 2026-08-09 · Coach layer is best-effort: LLM output that fails voice/grounding validation retries twice then falls back to a deterministic coach line built from metrics · the numbers are the product; the LLM never blocks or invents them
-18. 2026-08-09 · Engine LLM: claude-opus-5, strict JSON schema, low effort, server-side refusal fallback · one call per rep; latency inside a ≤5-min loop
+15. 2026-08-09 · Accounts: Supabase auth, anonymous-first — rep 1 before signup, gate at "save progress" · quiz-wall lesson applied to auth
+16. 2026-08-09 · XP = effort currency (reps, boss/mod multipliers) feeding weekly ~20-person leagues; stars remain the ONLY quality signal; XP unbuyable · leaderboard rewards grinding without corrupting scores
+17. 2026-08-09 · History = training-log layout (design direction B); free 7 days, premium full archive + comparison cards
+18. 2026-08-09 · Ethos Index /1000: 8 dimensions, two tiers — measured (Pause 150, Fillers 150, Pace 100, Range 100) + judged (Structure 150, Credibility 150, Engagement 100, Confidence 100) · the score IS the brand ("your Ethos"); big denominator makes progress visible
+19. 2026-08-09 · Judged scores must cite ≥1 quoted moment/timestamp or the LLM output is rejected and re-run; Credibility and Confidence get deterministic anchors (hedge/restart counts) · no-horoscope rule enforced in schema, not just prose
+20. 2026-08-09 · "Entertaining" folded into Engagement · same underlying behaviors; separate scores would double-count
+21. 2026-08-09 · WPM zone: 130–160 = "in the zone", below = "strolling", above = "sprinting" · aligned to the Index pace dimension (mechanics.md); one zone everywhere
+22. 2026-08-09 · Pause bar rendering: composed (pre-sentence) held pause = amber pill; mid-sentence held pause = stone pill; beats = dots; speech = ~2s ticks · amber stays earned-only — mid-sentence silence is shown, not celebrated
+23. 2026-08-09 · Coach layer is best-effort: LLM output that fails voice/grounding validation retries twice then falls back to a deterministic coach line built from metrics · the numbers are the product; the LLM never blocks or invents them
+24. 2026-08-09 · Engine LLM: claude-opus-5, strict JSON schema, low effort, server-side refusal fallback · one call per rep; latency inside a ≤5-min loop
 
 ## Open queue (research-once, decide, move up)
 
-- Composite score (single index number) — hold until loop retains; stars/streak may be enough
 - Currency name — after launch copywriting pass
 - Star thresholds per unit — calibrate on real beta recordings
 - Exact pricing — one research pass vs Elevate/Yoodli/Duolingo Super AUD pricing
@@ -34,3 +39,5 @@ Locked means locked. Reopen only with user data or Timothy's explicit call.
 - Stress-mod pricing/earn rates — after economy exists
 - Demos pose set (celebrate/listen/asleep/speaking) — generate from Higgsfield ref when step 3 needs them
 - Landing page symptom-first headline — write 5, test on the persona
+- "Frame" step before recording (30s think time, optional notes) — trains think-before-you-speak; decide after dogfood
+- Upload real recordings (meetings) — post-MVP

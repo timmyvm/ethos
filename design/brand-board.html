@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brand Board — Speech Gym</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap');
+
+:root{
+  --t50:#FDF3EF; --t100:#FBE5DC; --t200:#F6C8B7; --t300:#F0A98F;
+  --t400:#EB8A6B; --t500:#E76F51; --t600:#D5563A; --t700:#B2432C;
+  --t800:#8F3524; --t900:#752C1F;
+  --a400:#FBBF24; --a500:#F59E0B; --a600:#D97706;
+  --cream:#FAF7F2; --sand:#F5F0E8; --s300:#D6D3D1; --s500:#78716C;
+  --s800:#292524; --s900:#1C1917;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--cream);color:var(--s800);padding:40px 20px 80px;max-width:1000px;margin:0 auto}
+h1,h2,h3{font-family:'Space Grotesk',sans-serif}
+h1{font-size:clamp(28px,5vw,44px);letter-spacing:-0.02em}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--t600);margin-bottom:8px}
+.sub{color:var(--s500);margin-top:10px;max-width:56ch;line-height:1.55}
+section{margin-top:64px}
+h2{font-size:22px;margin-bottom:6px}
+.note{font-size:14px;color:var(--s500);margin-bottom:20px;max-width:60ch;line-height:1.5}
+
+/* palette */
+.ramp{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:8px;margin-bottom:22px}
+.swatch{border-radius:10px;overflow:hidden;cursor:pointer;border:1px solid rgba(0,0,0,.05);transition:transform .12s}
+.swatch:hover{transform:translateY(-2px)}
+.swatch .chip{height:64px}
+.swatch .meta{background:#fff;padding:7px 9px;font-size:11px;line-height:1.5}
+.swatch .meta b{display:block;font-weight:600}
+.swatch .meta span{color:var(--s500);font-family:ui-monospace,monospace}
+.copied{outline:2px solid var(--t500)}
+.rampline{font-size:13px;font-weight:600;margin-bottom:8px;color:var(--s800)}
+
+/* mascots */
+.mascots{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+.card{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:14px}
+.card.lead{border:2px solid var(--t500)}
+.stage{background:var(--sand);border-radius:12px;display:flex;align-items:center;justify-content:center;padding:18px;min-height:190px}
+.tag{align-self:flex-start;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--t600);background:var(--t50);padding:4px 10px;border-radius:99px}
+.card h3{font-size:17px}
+.card p{font-size:13.5px;color:var(--s500);line-height:1.55}
+
+/* mini UI proof */
+.proof{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:16px;padding:26px;display:flex;flex-direction:column;gap:18px;max-width:420px}
+.proof .metric{font-family:'Space Grotesk';font-size:48px;font-weight:700;line-height:1}
+.proof .metric small{font-size:14px;font-weight:500;color:var(--s500);font-family:'Inter';display:block;margin-top:6px}
+.delta{color:var(--t600);font-weight:600;font-size:14px}
+.streak{display:inline-flex;align-items:center;gap:6px;background:var(--sand);border-radius:99px;padding:6px 12px;font-size:13px;font-weight:600;width:max-content}
+.streak svg{width:14px;height:14px}
+.cta{background:var(--t500);color:#fff;border:none;font-family:'Inter';font-weight:600;font-size:15px;padding:14px 22px;border-radius:12px;cursor:pointer;width:100%;transition:background .15s}
+.cta:hover{background:var(--t600)}
+.cta:focus-visible{outline:3px solid var(--a500);outline-offset:2px}
+footer{margin-top:70px;font-size:12px;color:var(--s500)}
+@media (prefers-reduced-motion: reduce){.swatch:hover{transform:none}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Brand board · v1 · per brand.md</div>
+  <h1>Calm orange, loud results.</h1>
+  <p class="sub">Terracotta commands, cream calms, amber celebrates. Orange appears only where a tap is wanted — scarcity is what makes it a command color. Tap any swatch to copy its hex.</p>
+</header>
+
+<section>
+  <h2>Palette</h2>
+  <p class="note">Tailwind-ready. Primary ramp is terracotta (500 = the CTA), amber is the celebration accent (streaks, stars — sparingly), stone/cream are the room everything sits in. No pure black, no pure white, no cool grays.</p>
+
+  <div class="rampline">Terracotta — primary</div>
+  <div class="ramp" id="r1"></div>
+  <div class="rampline">Amber — celebration accent</div>
+  <div class="ramp" id="r2"></div>
+  <div class="rampline">Warm neutrals — the room</div>
+  <div class="ramp" id="r3"></div>
+</section>
+
+<section>
+  <h2>Mascot — Red Panda</h2>
+  <p class="note">Cartoon style: no outlines, bold flat colors, clear shapes, on white. He wears the entire brand palette natively — terracotta coat, cream face, dark rust limbs, ringed tail. Drawn mid-speech with amber arcs. Per vision.md: he coaches, he never guilt-trips.</p>
+  <div class="mascots">
+
+    <div class="card lead">
+      <span class="tag">Full character</span>
+      <div class="stage" style="background:#fff">
+        <svg viewBox="0 0 250 220" width="215" role="img" aria-label="Flat cartoon red panda speaking, amber sound arcs">
+          <defs><clipPath id="tailclip"><rect x="188" y="86" width="44" height="122" rx="22"/></clipPath></defs>
+          <!-- tail -->
+          <g clip-path="url(#tailclip)">
+            <rect x="188" y="86" width="44" height="122" fill="#E76F51"/>
+            <rect x="188" y="108" width="44" height="18" fill="#FBE5DC"/>
+            <rect x="188" y="144" width="44" height="18" fill="#FBE5DC"/>
+            <rect x="188" y="180" width="44" height="18" fill="#FBE5DC"/>
+          </g>
+          <!-- body -->
+          <ellipse cx="122" cy="168" rx="56" ry="44" fill="#E76F51"/>
+          <ellipse cx="122" cy="184" rx="32" ry="26" fill="#752C1F"/>
+          <ellipse cx="96" cy="206" rx="14" ry="9" fill="#752C1F"/>
+          <ellipse cx="148" cy="206" rx="14" ry="9" fill="#752C1F"/>
+          <!-- ears -->
+          <path d="M66 54 L78 20 L102 40 Z" fill="#B2432C"/>
+          <path d="M74 48 L82 30 L94 40 Z" fill="#FBE5DC"/>
+          <path d="M170 54 L158 20 L134 40 Z" fill="#B2432C"/>
+          <path d="M162 48 L154 30 L142 40 Z" fill="#FBE5DC"/>
+          <!-- head -->
+          <ellipse cx="118" cy="82" rx="58" ry="48" fill="#E76F51"/>
+          <circle cx="72" cy="98" r="19" fill="#FDF3EF"/>
+          <circle cx="164" cy="98" r="19" fill="#FDF3EF"/>
+          <ellipse cx="118" cy="102" rx="32" ry="24" fill="#FDF3EF"/>
+          <!-- brow spots -->
+          <ellipse cx="96" cy="54" rx="8" ry="6" fill="#FDF3EF"/>
+          <ellipse cx="140" cy="54" rx="8" ry="6" fill="#FDF3EF"/>
+          <!-- tear streaks -->
+          <path d="M94 88 q-3 12 -11 17 q4 -12 6 -18 z" fill="#EB8A6B"/>
+          <path d="M142 88 q3 12 11 17 q-4 -12 -6 -18 z" fill="#EB8A6B"/>
+          <!-- eyes -->
+          <circle cx="98" cy="76" r="7" fill="#1C1917"/><circle cx="100" cy="74" r="2" fill="#fff"/>
+          <circle cx="138" cy="76" r="7" fill="#1C1917"/><circle cx="140" cy="74" r="2" fill="#fff"/>
+          <!-- nose + open mouth (speaking) -->
+          <path d="M111 94 q7 -6 14 0 q-3 8 -7 8 q-4 0 -7 -8 z" fill="#1C1917"/>
+          <ellipse cx="118" cy="112" rx="7" ry="5" fill="#1C1917"/>
+          <!-- sound arcs -->
+          <path d="M188 60 q10 12 0 24" fill="none" stroke="#F59E0B" stroke-width="5" stroke-linecap="round"/>
+          <path d="M200 50 q18 22 0 44" fill="none" stroke="#F59E0B" stroke-width="5" stroke-linecap="round" opacity=".55"/>
+          <path d="M212 40 q26 32 0 64" fill="none" stroke="#F59E0B" stroke-width="5" stroke-linecap="round" opacity=".3"/>
+        </svg>
+      </div>
+      <h3>The coach, mid-rep</h3>
+      <p>Open mouth + arcs: the mark depicts speaking. Warm, a little smug, extremely merch-able and sticker-able — content fuel Wellspoken's corporate-clean brand can't match.</p>
+    </div>
+
+    <div class="card">
+      <span class="tag">Head mark</span>
+      <div class="stage" style="background:#fff">
+        <svg viewBox="0 0 210 160" width="185" role="img" aria-label="Red panda head logo mark">
+          <path d="M42 60 L54 22 L80 44 Z" fill="#B2432C"/>
+          <path d="M50 54 L58 32 L72 44 Z" fill="#FBE5DC"/>
+          <path d="M158 60 L146 22 L120 44 Z" fill="#B2432C"/>
+          <path d="M150 54 L142 32 L128 44 Z" fill="#FBE5DC"/>
+          <ellipse cx="100" cy="90" rx="62" ry="52" fill="#E76F51"/>
+          <circle cx="50" cy="108" r="20" fill="#FDF3EF"/>
+          <circle cx="150" cy="108" r="20" fill="#FDF3EF"/>
+          <ellipse cx="100" cy="112" rx="34" ry="26" fill="#FDF3EF"/>
+          <ellipse cx="76" cy="60" rx="8" ry="6" fill="#FDF3EF"/>
+          <ellipse cx="124" cy="60" rx="8" ry="6" fill="#FDF3EF"/>
+          <circle cx="78" cy="84" r="8" fill="#1C1917"/><circle cx="80" cy="82" r="2.4" fill="#fff"/>
+          <circle cx="122" cy="84" r="8" fill="#1C1917"/><circle cx="124" cy="82" r="2.4" fill="#fff"/>
+          <path d="M92 102 q8 -7 16 0 q-4 9 -8 9 q-4 0 -8 -9 z" fill="#1C1917"/>
+          <ellipse cx="100" cy="122" rx="8" ry="5.5" fill="#1C1917"/>
+          <path d="M176 70 q9 11 0 22" fill="none" stroke="#F59E0B" stroke-width="5" stroke-linecap="round"/>
+          <path d="M188 62 q15 19 0 38" fill="none" stroke="#F59E0B" stroke-width="5" stroke-linecap="round" opacity=".5"/>
+        </svg>
+      </div>
+      <h3>Logo over white</h3>
+      <p>The app-icon and social-avatar crop. Reads at a glance: ears, mask, arcs. Mono and dark variants derive from this later.</p>
+    </div>
+
+    <div class="card">
+      <span class="tag">Scale check</span>
+      <div class="stage" style="background:#fff;gap:14px">
+        <svg viewBox="0 0 210 160" width="110" aria-hidden="true"><use href="#hm"/><path d="M42 60 L54 22 L80 44 Z" fill="#B2432C"/><path d="M158 60 L146 22 L120 44 Z" fill="#B2432C"/><ellipse cx="100" cy="90" rx="62" ry="52" fill="#E76F51"/><circle cx="50" cy="108" r="20" fill="#FDF3EF"/><circle cx="150" cy="108" r="20" fill="#FDF3EF"/><ellipse cx="100" cy="112" rx="34" ry="26" fill="#FDF3EF"/><circle cx="78" cy="84" r="8" fill="#1C1917"/><circle cx="122" cy="84" r="8" fill="#1C1917"/><path d="M92 102 q8 -7 16 0 q-4 9 -8 9 q-4 0 -8 -9 z" fill="#1C1917"/><ellipse cx="100" cy="122" rx="8" ry="5.5" fill="#1C1917"/></svg>
+        <svg viewBox="0 0 210 160" width="60" aria-hidden="true"><path d="M42 60 L54 22 L80 44 Z" fill="#B2432C"/><path d="M158 60 L146 22 L120 44 Z" fill="#B2432C"/><ellipse cx="100" cy="90" rx="62" ry="52" fill="#E76F51"/><circle cx="50" cy="108" r="20" fill="#FDF3EF"/><circle cx="150" cy="108" r="20" fill="#FDF3EF"/><ellipse cx="100" cy="112" rx="34" ry="26" fill="#FDF3EF"/><circle cx="78" cy="84" r="8" fill="#1C1917"/><circle cx="122" cy="84" r="8" fill="#1C1917"/><ellipse cx="100" cy="122" rx="8" ry="5.5" fill="#1C1917"/></svg>
+        <svg viewBox="0 0 210 160" width="30" aria-hidden="true"><path d="M42 60 L54 22 L80 44 Z" fill="#B2432C"/><path d="M158 60 L146 22 L120 44 Z" fill="#B2432C"/><ellipse cx="100" cy="90" rx="62" ry="52" fill="#E76F51"/><circle cx="50" cy="108" r="20" fill="#FDF3EF"/><circle cx="150" cy="108" r="20" fill="#FDF3EF"/><ellipse cx="100" cy="112" rx="34" ry="26" fill="#FDF3EF"/><circle cx="78" cy="84" r="8" fill="#1C1917"/><circle cx="122" cy="84" r="8" fill="#1C1917"/><ellipse cx="100" cy="122" rx="8" ry="5.5" fill="#1C1917"/></svg>
+      </div>
+      <h3>Still a red panda at 32px</h3>
+      <p>Bold shapes survive the favicon test — ears + mask stay legible with the arcs and details dropped at small sizes.</p>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <h2>Tokens in use</h2>
+  <p class="note">Proof the one-orange-per-screen rule holds: stone carries the data, amber celebrates, terracotta appears exactly once — on the tap.</p>
+  <div class="proof">
+    <span class="streak"><svg viewBox="0 0 16 17"><path d="M8 1 q4 4 4 8.5 a4 4 0 0 1 -8 0 Q4 5 8 1z" fill="#F59E0B"/></svg> 12-day streak</span>
+    <div class="metric">7 <small>fillers today</small></div>
+    <div class="delta">▼ down from 19 on day one</div>
+    <button class="cta">Start today's rep</button>
+  </div>
+</section>
+
+<footer>Palette + mascot concepts per vision.md / brand.md constraints · tap swatches to copy</footer>
+
+<script>
+const ramps = {
+  r1: [["50","#FDF3EF"],["100","#FBE5DC"],["200","#F6C8B7"],["300","#F0A98F"],["400","#EB8A6B"],["500 · CTA","#E76F51"],["600 · hover","#D5563A"],["700","#B2432C"],["800","#8F3524"],["900","#752C1F"]],
+  r2: [["400","#FBBF24"],["500 · accent","#F59E0B"],["600","#D97706"]],
+  r3: [["cream · bg","#FAF7F2"],["sand · surface","#F5F0E8"],["stone-300","#D6D3D1"],["stone-500","#78716C"],["stone-800 · text","#292524"],["stone-900","#1C1917"]]
+};
+for (const [id, colors] of Object.entries(ramps)) {
+  const el = document.getElementById(id);
+  for (const [name, hex] of colors) {
+    const d = document.createElement('div');
+    d.className = 'swatch';
+    d.innerHTML = `<div class="chip" style="background:${hex}"></div><div class="meta"><b>${name}</b><span>${hex}</span></div>`;
+    d.onclick = () => {
+      navigator.clipboard && navigator.clipboard.writeText(hex);
+      d.classList.add('copied');
+      setTimeout(()=>d.classList.remove('copied'), 700);
+    };
+    el.appendChild(d);
+  }
+}
+</script>
+</body>
+</html>

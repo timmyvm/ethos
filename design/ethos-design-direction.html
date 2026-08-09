@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ethos — Design Direction v1</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap');
+:root{
+  --t500:#E76F51; --t600:#D5563A; --t700:#B2432C; --t900:#752C1F;
+  --t100:#FBE5DC; --t50:#FDF3EF;
+  --a500:#F59E0B; --a400:#FBBF24;
+  --cream:#FAF7F2; --sand:#F5F0E8; --s300:#D6D3D1; --s500:#78716C;
+  --s800:#292524; --s900:#1C1917;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--s800);max-width:1040px;margin:0 auto;padding:44px 20px 90px}
+.mono{font-family:'Space Mono',monospace}
+.eyebrow{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--t600)}
+h1{font-family:'Space Grotesk';font-size:clamp(30px,5vw,48px);letter-spacing:-.02em;margin:8px 0 10px}
+.lede{color:var(--s500);max-width:58ch;line-height:1.6}
+section{margin-top:70px}
+h2{font-family:'Space Grotesk';font-size:22px;margin:6px 0 14px}
+.note{font-size:14px;color:var(--s500);line-height:1.55;max-width:62ch;margin-bottom:22px}
+
+/* keywords */
+.kw{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.kw span{background:#fff;border:1px solid rgba(0,0,0,.07);border-radius:99px;padding:8px 16px;font-size:13px;font-weight:600}
+
+/* palette */
+.pal{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.pc{border-radius:12px;overflow:hidden;border:1px solid rgba(0,0,0,.05);cursor:pointer}
+.pc .b{height:74px}
+.pc .m{background:#fff;padding:8px 10px;font-size:11px;line-height:1.5}
+.pc .m b{display:block}
+.pc .m span{font-family:'Space Mono',monospace;color:var(--s500);font-size:10.5px}
+.copied{outline:2px solid var(--t500)}
+
+/* type */
+.spec{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:16px;padding:30px;display:flex;flex-direction:column;gap:26px}
+.spec .row{display:flex;flex-direction:column;gap:4px;border-bottom:1px solid var(--sand);padding-bottom:22px}
+.spec .row:last-child{border:none;padding-bottom:0}
+.lab{font-family:'Space Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--s500)}
+.d1{font-family:'Space Grotesk';font-weight:700;font-size:clamp(44px,8vw,76px);line-height:1;letter-spacing:-.02em}
+.d1 small{font-family:'Inter';font-weight:500;font-size:15px;color:var(--s500);letter-spacing:0;display:block;margin-top:8px}
+.d2{font-family:'Space Grotesk';font-weight:700;font-size:26px}
+.bodycopy{font-size:15px;line-height:1.65;max-width:54ch}
+.datum{font-family:'Space Mono',monospace;font-size:13px}
+
+/* signature */
+.sig{background:var(--s900);border-radius:16px;padding:34px 30px;color:var(--cream)}
+.sig h3{font-family:'Space Grotesk';font-size:19px;margin-bottom:6px}
+.sig p{font-size:13.5px;color:#A8A29E;max-width:56ch;line-height:1.55;margin-bottom:26px}
+.wave{display:flex;align-items:center;gap:3px;height:74px}
+.wave i{display:block;width:5px;border-radius:3px;background:#57534E}
+.wave .p{background:var(--a500);width:26px;height:14px;border-radius:7px;position:relative}
+.wave .p em{position:absolute;top:-24px;left:50%;transform:translateX(-50%);font-family:'Space Mono',monospace;font-style:normal;font-size:10px;color:var(--a400);white-space:nowrap}
+.sigfoot{margin-top:22px;font-family:'Space Mono',monospace;font-size:11px;color:#78716C}
+
+/* layouts */
+.lay{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.lc{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:14px}
+.lc.rec{border:2px solid var(--t500)}
+.tag{align-self:flex-start;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--t600);background:var(--t50);padding:4px 10px;border-radius:99px}
+.wf{background:var(--sand);border-radius:10px;padding:12px;height:170px;display:flex;gap:8px}
+.blk{background:var(--s300);border-radius:6px;opacity:.75}
+.blk.hi{background:var(--t500);opacity:1}
+.blk.am{background:var(--a500);opacity:1}
+.lc h3{font-family:'Space Grotesk';font-size:16px}
+.lc p{font-size:13px;color:var(--s500);line-height:1.55}
+
+/* components */
+.comps{display:flex;flex-wrap:wrap;gap:14px;align-items:center;background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:16px;padding:26px}
+.cta{background:var(--t500);color:#fff;border:none;font-family:'Inter';font-weight:600;font-size:15px;padding:14px 24px;border-radius:12px;cursor:pointer}
+.cta:hover{background:var(--t600)}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--sand);border-radius:99px;padding:7px 13px;font-size:13px;font-weight:600}
+.stars{font-size:19px;color:var(--a500);letter-spacing:2px}
+.stars .off{color:var(--s300)}
+.coach{background:var(--t50);border-radius:12px 12px 12px 3px;padding:12px 16px;font-size:13.5px;max-width:290px;line-height:1.5}
+.coach b{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--t600);display:block;margin-bottom:4px}
+
+/* rules */
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.rl{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:16px;padding:22px}
+.rl h3{font-family:'Space Grotesk';font-size:15px;margin-bottom:12px}
+.rl ul{list-style:none;display:flex;flex-direction:column;gap:9px;font-size:13.5px;line-height:1.5}
+.rl li::before{content:"— ";color:var(--t500);font-weight:700}
+footer{margin-top:80px;font-family:'Space Mono',monospace;font-size:11px;color:var(--s500)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Ethos · design direction · v1 · not the website — the look</div>
+  <h1>Gym at 6am,<br>not a webinar.</h1>
+  <p class="lede">The room is calm — cream, warm stone, quiet. The work is loud — one terracotta command per screen, numbers set like weight plates, and silence drawn in amber like it's something you earned. Because here, it is.</p>
+  <div class="kw"><span>Warm, not soft</span><span>Measured, not clinical</span><span>Confident, not loud</span></div>
+</header>
+
+<section>
+  <div class="eyebrow">01</div>
+  <h2>Palette</h2>
+  <p class="note">Locked per brand.md. Tap to copy. The rule that makes it work: terracotta appears once per screen — on the tap. Everything else is the room.</p>
+  <div class="pal" id="pal"></div>
+</section>
+
+<section>
+  <div class="eyebrow">02</div>
+  <h2>Type system</h2>
+  <p class="note">Three voices. Space Grotesk carries the numbers — they're the hero, set like plates on a bar. Inter does the talking. Space Mono is the training log: timestamps, labels, data. The mono is what keeps warm-and-cream from drifting into wellness-app softness.</p>
+  <div class="spec">
+    <div class="row">
+      <span class="lab">Display · Space Grotesk 700 · the metric is the headline</span>
+      <div class="d1">7 fillers<small>down from 19 on day one</small></div>
+    </div>
+    <div class="row">
+      <span class="lab">Heading · Space Grotesk 700 · 26/32</span>
+      <div class="d2">Today's rep: the 60-second breakdown</div>
+    </div>
+    <div class="row">
+      <span class="lab">Body · Inter 400 · 15/1.65</span>
+      <p class="bodycopy">Explain why cities exist, in sixty seconds, to someone smart who's never thought about it. You'll be scored on structure, pace, and what you do with silence.</p>
+    </div>
+    <div class="row">
+      <span class="lab">Data · Space Mono 400 · labels, timestamps, log lines</span>
+      <span class="datum">REP 047 · 01:12 · WPM 148 · PAUSE 3× HELD</span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">03</div>
+  <h2>Signature element: the pause bar</h2>
+  <p class="note">Every audio product draws sound and hides silence. Ethos inverts it. In our waveforms, held pauses render as solid amber — the gaps are the achievement. This is the product's core insight (silence, scored as a skill) made visible, and no competitor has it.</p>
+  <div class="sig">
+    <h3>Rep 047 — playback</h3>
+    <p>Stone bars are speech. Amber blocks are pauses you held on purpose. The longer you hold, the brighter it earns.</p>
+    <div class="wave" id="wave"></div>
+    <div class="sigfoot">3 HELD PAUSES · LONGEST 1.8s · ZERO PANIC GAPS</div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">04</div>
+  <h2>Layout scheme — three directions</h2>
+  <p class="note">Schematics, not screens. Terracotta block = the one CTA. Amber = streak/pause moments. Gray = everything that stays quiet.</p>
+  <div class="lay">
+
+    <div class="lc rec">
+      <span class="tag">A · The Floor — recommended</span>
+      <div class="wf" style="flex-direction:column">
+        <div class="blk" style="height:16px;width:44%"></div>
+        <div class="blk hi" style="height:64px;width:100%"></div>
+        <div style="display:flex;gap:8px;flex:1">
+          <div class="blk am" style="width:26%"></div>
+          <div class="blk" style="width:37%"></div>
+          <div class="blk" style="width:37%"></div>
+        </div>
+      </div>
+      <h3>One thing on stage</h3>
+      <p>Today's rep is a single dominant card mid-screen — you're handed the floor the moment you open the app. Streak and history recede below. Matches "one orange per screen" perfectly and makes the daily loop unmissable. Best for habit.</p>
+    </div>
+
+    <div class="lc">
+      <span class="tag">B · Training log</span>
+      <div class="wf" style="flex-direction:column">
+        <div style="display:flex;gap:8px;height:30px"><div class="blk am" style="width:30%"></div><div class="blk" style="width:70%"></div></div>
+        <div class="blk" style="height:26px"></div>
+        <div class="blk hi" style="height:26px"></div>
+        <div class="blk" style="height:26px"></div>
+        <div class="blk" style="height:26px"></div>
+      </div>
+      <h3>The feed of reps</h3>
+      <p>Chronological log, every rep a row with its numbers — feels like a lifting app's history. Strong for progress-obsessives, but the daily action competes with the scroll.</p>
+    </div>
+
+    <div class="lc">
+      <span class="tag">C · Coach rail</span>
+      <div class="wf">
+        <div style="display:flex;flex-direction:column;gap:8px;width:32%">
+          <div class="blk am" style="height:34px"></div>
+          <div class="blk" style="flex:1"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;flex:1">
+          <div class="blk" style="height:22px"></div>
+          <div class="blk hi" style="flex:1"></div>
+        </div>
+      </div>
+      <h3>Demos alongside</h3>
+      <p>Persistent mascot rail with coach lines; content on the right. Warmest and most character-led, but risks classroom energy and eats mobile width. Save Demos for moments, not furniture.</p>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">05</div>
+  <h2>Components in the voice</h2>
+  <div class="comps">
+    <button class="cta">Start today's rep</button>
+    <span class="chip">🔥 12-day streak</span>
+    <span class="stars">★★<span class="off">★</span></span>
+    <div class="coach"><b>Demos</b>11 fillers. Down from 19. Tomorrow we kill "like."</div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">06</div>
+  <h2>Rules of the room</h2>
+  <div class="rules">
+    <div class="rl">
+      <h3>Always</h3>
+      <ul>
+        <li>One terracotta action per screen</li>
+        <li>Numbers in Space Grotesk, set big, hero position</li>
+        <li>Amber only for earned things: streaks, stars, held pauses</li>
+        <li>Warm neutrals — stone and cream, never gray or pure black</li>
+        <li>Coach register: short sentences, specific numbers</li>
+      </ul>
+    </div>
+    <div class="rl">
+      <h3>Never</h3>
+      <ul>
+        <li>Orange as decoration or background wash</li>
+        <li>Gradients, glassmorphism, purple anything</li>
+        <li>Sad mascot states or guilt notifications</li>
+        <li>Hype copy — "unlock", "transform", "potential"</li>
+        <li>Demos as permanent furniture — he appears at moments</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>ETHOS · DIRECTION v1 · PER VISION.MD / BRAND.MD / MECHANICS.MD</footer>
+
+<script>
+const colors=[["Terracotta 500 · the tap","#E76F51"],["Terracotta 600 · hover","#D5563A"],["Terracotta 700 · deep","#B2432C"],["Dark rust 900 · mascot limbs","#752C1F"],["Amber 500 · earned","#F59E0B"],["Cream · background","#FAF7F2"],["Sand · surface","#F5F0E8"],["Stone 300 · lines","#D6D3D1"],["Stone 500 · secondary","#78716C"],["Stone 800 · text","#292524"],["Stone 900 · stage dark","#1C1917"]];
+const pal=document.getElementById('pal');
+for(const [n,h] of colors){
+  const d=document.createElement('div');d.className='pc';
+  d.innerHTML=`<div class="b" style="background:${h}"></div><div class="m"><b>${n}</b><span>${h}</span></div>`;
+  d.onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText(h);d.classList.add('copied');setTimeout(()=>d.classList.remove('copied'),700)};
+  pal.appendChild(d);
+}
+const wave=document.getElementById('wave');
+const heights=[18,34,52,40,58,30,46,62,38,26];
+let seq=[];
+for(let g=0;g<3;g++){
+  heights.forEach(h=>seq.push(h+Math.round(Math.random()*10)));
+  seq.push('P');
+}
+heights.slice(0,6).forEach(h=>seq.push(h));
+let pl=[ '0.9s hold','1.8s hold','1.2s hold'];let pi=0;
+for(const s of seq){
+  if(s==='P'){const p=document.createElement('span');p.className='p';p.innerHTML=`<em>${pl[pi++]}</em>`;wave.appendChild(p);}
+  else{const i=document.createElement('i');i.style.height=Math.min(s,68)+'px';wave.appendChild(i);}
+}
+</script>
+</body>
+</html>

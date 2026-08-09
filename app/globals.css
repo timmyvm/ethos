@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+/*
+ * Brand tokens — docs/brand.md. Warm neutrals only: no pure black,
+ * no pure white surfaces except the logo tile, no cool grays.
+ * Orange appears only where a tap is wanted (one CTA per screen).
+ */
+@theme {
+  --color-terracotta-50: #fdf3ef;
+  --color-terracotta-100: #fbe5dc;
+  --color-terracotta-200: #f6c8b7;
+  --color-terracotta-300: #f0a98f;
+  --color-terracotta-400: #eb8a6b;
+  --color-terracotta-500: #e76f51;
+  --color-terracotta-600: #d5563a;
+  --color-terracotta-700: #b2432c;
+  --color-terracotta-800: #8f3524;
+  --color-terracotta-900: #752c1f;
+
+  --color-cream: #faf7f2;
+  --color-sand: #f5f0e8;
+
+  --font-display: var(--font-space-grotesk), sans-serif;
+  --font-body: var(--font-inter), sans-serif;
+  --font-data: var(--font-space-mono), monospace;
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-stone-800);
+  font-family: var(--font-body);
+}
+
+/* Data labels: Space Mono, uppercase, tracked out — the training-log register */
+.label-data {
+  font-family: var(--font-data);
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-stone-500);
+}

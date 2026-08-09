@@ -19,7 +19,11 @@
 
   --color-cream: #faf7f2;
   --color-sand: #f5f0e8;
+}
 
+/* Font tokens reference next/font variables (scoped to <body>), so they
+ * must be inline — a :root-level var() to them computes to invalid. */
+@theme inline {
   --font-display: var(--font-space-grotesk), sans-serif;
   --font-body: var(--font-inter), sans-serif;
   --font-data: var(--font-space-mono), monospace;
@@ -28,12 +32,12 @@
 body {
   background: var(--color-cream);
   color: var(--color-stone-800);
-  font-family: var(--font-body);
+  font-family: var(--font-inter), sans-serif;
 }
 
 /* Data labels: Space Mono, uppercase, tracked out — the training-log register */
 .label-data {
-  font-family: var(--font-data);
+  font-family: var(--font-space-mono), monospace;
   font-size: 0.6875rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;

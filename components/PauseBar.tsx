@@ -19,13 +19,22 @@ export function PauseBar({
   durationS: number;
 }) {
   const segs: Seg[] = [];
+  // Speech runs render as ticks sized so the whole rep fits one row,
+  // with height varied deterministically for texture.
+  const tick = Math.max(1.6, durationS / 34);
+  const speech = (len: number) => {
+    const ticks = Math.max(1, Math.round(len / tick));
+    for (let i = 0; i < ticks; i++) {
+      segs.push({ type: "speech", len: 2 + Math.sin(segs.length * 2.7) });
+    }
+  };
   let cursor = 0;
   for (const p of pauses) {
-    if (p.t > cursor) segs.push({ type: "speech", len: p.t - cursor });
+    if (p.t > cursor) speech(p.t - cursor);
     segs.push({ type: "pause", len: p.len, kind: p.kind });
     cursor = p.t + p.len;
   }
-  if (durationS > cursor) segs.push({ type: "speech", len: durationS - cursor });
+  if (durationS > cursor) speech(durationS - cursor);
 
   return (
     <div className="rounded-2xl bg-stone-900 px-4 pb-3.5 pt-4">
@@ -39,7 +48,7 @@ export function PauseBar({
               <span
                 key={i}
                 className="shrink-0 rounded-[3px] bg-stone-600"
-                style={{ width: 5, height: 14 + Math.min(36, s.len * 5) }}
+                style={{ width: 5, height: 16 + Math.min(34, s.len * 11) }}
               />
             );
           }

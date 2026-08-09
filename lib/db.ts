@@ -26,6 +26,7 @@ export async function saveRep(params: {
   transcript: string;
   metrics: RepMetrics;
   coach: CoachOutput | null;
+  whisperRaw?: unknown;
   userId?: string;
   lessonId?: string;
 }): Promise<SavedRep | null> {
@@ -56,6 +57,7 @@ export async function saveRep(params: {
       focus: coach?.focus ?? null,
       supply: coach?.supply ?? null,
       audio_path: audioPath,
+      whisper_raw: params.whisperRaw ?? null,
     })
     .select("id")
     .single();

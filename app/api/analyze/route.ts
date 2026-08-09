@@ -86,6 +86,7 @@ export async function POST(req: NextRequest) {
       transcript: transcription.text,
       metrics,
       coach,
+      whisperRaw: transcription.raw,
       lessonId: (form.get("lessonId") as string) || undefined,
     });
     repId = saved?.id ?? null;

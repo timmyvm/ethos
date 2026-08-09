@@ -15,7 +15,8 @@ create table if not exists reps (
   stars smallint not null check (stars between 1 and 3),
   focus text,
   supply jsonb, -- {original, upgrade, note}
-  audio_path text
+  audio_path text,
+  whisper_raw jsonb -- verbose_json as returned; lets metrics be recomputed as the engine tunes
 );
 
 create index if not exists reps_user_created_idx on reps (user_id, created_at desc);

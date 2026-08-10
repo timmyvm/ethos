@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk, Space_Mono } from "next/font/google";
+import { Nav } from "@/components/Nav";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -42,6 +43,7 @@ export default function RootLayout({
         className={`${spaceGrotesk.variable} ${inter.variable} ${spaceMono.variable} antialiased`}
       >
         <div className="mx-auto min-h-dvh max-w-[430px]">{children}</div>
+        <Nav />
       </body>
     </html>
   );

@@ -1,8 +1,11 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Paywall } from "@/components/Paywall";
+import { ShareCard } from "@/components/ShareCard";
+import { achievements } from "@/lib/achievements";
 import {
   fetchLexicon,
   fetchReps,
@@ -54,7 +57,12 @@ export default function YouPage() {
 
   return (
     <main className="px-5 pb-24 pt-7">
-      <h1 className="font-display text-2xl font-bold">You</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="font-display text-2xl font-bold">You</h1>
+        <Link href="/settings" className="text-[13px] font-semibold text-stone-500">
+          Settings
+        </Link>
+      </div>
 
       <div className="mt-4 rounded-[18px] border border-black/5 bg-white p-5">
         <div className="flex items-center gap-4">
@@ -157,6 +165,44 @@ export default function YouPage() {
               {lexicon.length - FREE_LEXICON === 1 ? "" : "s"} in your archive
             </button>
           )}
+        </>
+      )}
+
+      {/* Badges — every one names the number that unlocked it. */}
+      <div className="label-data mt-7">Earned</div>
+      <div className="mt-2 grid grid-cols-2 gap-2.5">
+        {achievements(reps).map((a) => (
+          <div
+            key={a.id}
+            className={`rounded-[18px] border p-4 ${
+              a.earned
+                ? "border-amber-500/30 bg-white"
+                : "border-black/5 bg-white opacity-60"
+            }`}
+          >
+            <div className="flex items-baseline justify-between">
+              <span className="text-[13.5px] font-semibold">{a.name}</span>
+              {a.earned && <span className="text-amber-500">●</span>}
+            </div>
+            <p className="mt-1 text-[11.5px] leading-relaxed text-stone-500">
+              {a.requirement}
+            </p>
+            {!a.earned && a.progress > 0 && (
+              <div className="mt-2 h-1 overflow-hidden rounded-full bg-sand">
+                <div
+                  className="h-full rounded-full bg-stone-400"
+                  style={{ width: `${Math.round(a.progress * 100)}%` }}
+                />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {reps.length >= 2 && (
+        <>
+          <div className="label-data mt-7">Day 1 vs now</div>
+          <ShareCard reps={reps} />
         </>
       )}
 

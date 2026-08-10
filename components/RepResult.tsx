@@ -21,6 +21,7 @@ export interface ResultView {
   ethosIndex: number | null;
   previousIndex: number | null;
   accuracy?: AccuracyResult | null;
+  scorable?: boolean;
 }
 
 /**
@@ -79,6 +80,24 @@ export function RepResult({
           </div>
           <div className="ml-auto">
             <Stars n={m.stars} size={22} />
+          </div>
+        </div>
+      ) : result.scorable === false ? (
+        /* Not a score of zero — no score. Saying "I don't know" over and
+           over has no fillers and a fine pace; reporting those numbers as
+           an achievement would be the app lying to you. */
+        <div className="mt-3 rounded-[18px] border border-black/5 bg-white lift p-5">
+          <div className="font-display text-[22px] font-bold leading-tight">
+            Not enough to score.
+          </div>
+          <p className="mt-2 text-[13.5px] leading-relaxed text-stone-500">
+            {m.substance.wordCount < 20
+              ? `${m.substance.wordCount} word${m.substance.wordCount === 1 ? "" : "s"} isn't a rep yet. Aim for 60–90 seconds of actually saying something.`
+              : "Almost all of that was the same few words repeated. Say something you'd have to think about."}
+          </p>
+          <div className="mt-3 flex items-center gap-2">
+            <Stars n={1} size={18} />
+            <span className="label-data">1 star · nothing measured</span>
           </div>
         </div>
       ) : (
@@ -194,14 +213,17 @@ export function RepResult({
         </div>
       )}
 
-      <details className="mt-4 rounded-[18px] border border-black/5 bg-white lift px-5 py-4">
-        <summary className="label-data cursor-pointer select-none">
-          Transcript
-        </summary>
+      {/* Open, not hidden behind a disclosure. Every score on this screen
+          is a claim about these words — you should be able to read them
+          without going looking. */}
+      <div className="mt-4 rounded-[18px] border border-black/5 bg-white lift px-5 py-4">
+        <div className="label-data">
+          What you said · {m.substance?.wordCount ?? 0} words
+        </div>
         <p className="mt-2 text-sm leading-relaxed text-stone-600">
-          {result.transcript}
+          {result.transcript || "Nothing was picked up."}
         </p>
-      </details>
+      </div>
     </>
   );
 }

@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  MIN_WORDS_TO_SCORE,
   computeMetrics,
   detectFillers,
   detectPauses,
+  isScorable,
   normalizeWord,
   starsForFillerRate,
+  substance,
   type Segment,
   type Word,
 } from "./metrics";
@@ -181,7 +184,10 @@ describe("computeMetrics", () => {
 
   it("a clean rep earns 3 stars", () => {
     const m = computeMetrics(
-      flow("today I want to explain how compound interest works over time"),
+      flow(
+        "today I want to explain how compound interest works over time and why " +
+          "starting early matters more than the rate you eventually get paid on it"
+      ),
       60
     );
     expect(m.fillerCount).toBe(0);
@@ -203,11 +209,12 @@ describe("computeMetrics", () => {
     expect(m.midSentencePauses).toBe(1);
   });
 
-  it("survives an empty transcript", () => {
+  it("survives an empty transcript, and scores it as nothing", () => {
     const m = computeMetrics([], 0);
     expect(m.wpm).toBe(0);
     expect(m.fillerCount).toBe(0);
-    expect(m.stars).toBe(3); // 0 fillers/min — thresholds stay objective
+    // Silence has a perfect filler rate. It is not a perfect rep.
+    expect(m.stars).toBe(1);
   });
 
   it("falls back to last word end when duration is missing", () => {
@@ -243,5 +250,54 @@ describe("computeMetrics", () => {
     expect(m.composedPauses).toBe(1);
     expect(m.midSentencePauses).toBe(1);
     expect(m.pauses.map((p) => p.kind)).toEqual(["pre", "mid"]);
+  });
+});
+
+/**
+ * The bug this suite exists for: stars were computed from filler rate
+ * alone, so saying "I don't know" eight times scored zero fillers, a
+ * clean pace and THREE STARS. Reported by Timothy, 10 Aug — and visible
+ * in a production test rep before that, which I read past.
+ */
+describe("substance gate", () => {
+  const say = (text: string, dur = 60) => computeMetrics(flow(text), dur);
+  const dunno = "I don't know. ".repeat(8);
+
+  it("refuses to award stars for saying nothing", () => {
+    const m = say(dunno);
+    expect(m.fillerCount).toBe(0); // still true
+    expect(m.stars).toBe(1); // no longer 3
+  });
+
+  it("marks a no-substance rep unscorable", () => {
+    expect(isScorable(substance(dunno))).toBe(false);
+    expect(isScorable(substance(""))).toBe(false);
+    expect(isScorable(substance("um um um um um um um um um um"))).toBe(false);
+  });
+
+  it("scores a real rep normally", () => {
+    const real =
+      "compound interest is the reason starting at twenty beats starting at " +
+      "thirty even if the second person saves twice as much every month";
+    expect(isScorable(substance(real))).toBe(true);
+    expect(say(real).stars).toBe(3);
+  });
+
+  it("measures repetition as a share of the rep", () => {
+    expect(substance(dunno).repeatShare).toBeGreaterThan(0.4);
+    expect(substance(dunno).distinctRatio).toBeLessThan(0.3);
+  });
+
+  it("caps but never inflates — variety cannot buy a star", () => {
+    // Rich vocabulary, but 10 fillers a minute is still a one-star rep.
+    const filler = "um you know like " .repeat(10);
+    const m = say(`${filler} the mechanism of compound growth is exponential`, 60);
+    expect(m.stars).toBe(1);
+  });
+
+  it("treats a short but varied answer as unscorable, not as a win", () => {
+    const short = "yes I agree with that entirely";
+    expect(substance(short).wordCount).toBeLessThan(MIN_WORDS_TO_SCORE);
+    expect(say(short).stars).toBe(1);
   });
 });

@@ -41,17 +41,36 @@ function audioForm(): FormData {
   return form;
 }
 
+const WORDS =
+  "So um my name is Tim and I am building a speech gym called Ethos " +
+  "which measures the fillers pauses and pace in every rep you record";
+
+// A realistic rep: enough varied speech to clear the substance gate, so
+// the coach layer actually runs. A six-word fixture is (correctly) not
+// scorable any more.
 const FIXTURE = {
-  text: "So um my name is Tim",
+  text: WORDS,
   durationS: 60,
-  words: [
-    { word: "So", start: 0, end: 0.2 },
-    { word: " um", start: 0.3, end: 0.5 },
-    { word: " my", start: 0.6, end: 0.7 },
-    { word: " name", start: 0.8, end: 1.0 },
-    { word: " is", start: 1.1, end: 1.2 },
-    { word: " Tim", start: 1.3, end: 59.5 },
-  ],
+  words: WORDS.split(" ").map((word, i) => ({
+    word: i === 0 ? word : ` ${word}`,
+    start: i * 0.3,
+    end: i === WORDS.split(" ").length - 1 ? 59.5 : i * 0.3 + 0.28,
+  })),
+  segments: [],
+  raw: {},
+};
+
+/** Nothing said: zero fillers, clean pace, and no rep to score. */
+const EMPTY_FIXTURE = {
+  text: "I don't know. I don't know. I don't know. I don't know.",
+  durationS: 60,
+  words: "I don't know I don't know I don't know I don't know"
+    .split(" ")
+    .map((word, i) => ({
+      word: i === 0 ? word : ` ${word}`,
+      start: i * 0.5,
+      end: i * 0.5 + 0.4,
+    })),
   segments: [],
   raw: {},
 };
@@ -107,7 +126,7 @@ describe("POST /api/analyze", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.metrics.fillerCount).toBe(1);
-    expect(body.metrics.wpm).toBe(6);
+    expect(body.metrics.wpm).toBe(27);
     expect(body.coach.coachLine).toBe("1 filler in 60 seconds.");
     expect(body.tier1.fillers).toBeGreaterThan(0);
     expect(body.anchors).toEqual({ hedgeCount: 0, restartCount: 0 });
@@ -160,6 +179,19 @@ describe("POST /api/analyze", () => {
     expect(body.xpMultiplier).toBe(1.5);
     expect(body.accuracy.score).toBe(25);
     expect(vi.mocked(judgeAccuracy).mock.calls[0][1].id).toBe("crispr");
+  });
+
+  it("refuses to score a rep with nothing in it", async () => {
+    // The reported bug: "I don't know" on repeat has zero fillers and a
+    // clean pace, and used to come back three stars and a mid-500s Index.
+    vi.mocked(transcribe).mockResolvedValue(EMPTY_FIXTURE);
+    const body = await (await post(audioForm())).json();
+    expect(body.scorable).toBe(false);
+    expect(body.ethosIndex).toBeNull();
+    expect(body.metrics.stars).toBe(1);
+    expect(body.metrics.fillerCount).toBe(0); // still true, just not a win
+    // No point burning an LLM call on it either.
+    expect(coachRep).not.toHaveBeenCalled();
   });
 
   it("does not fact-check a daily rep", async () => {

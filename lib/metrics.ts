@@ -54,6 +54,8 @@ export interface RepMetrics {
   composedPauses: number; // kind === "pre"
   midSentencePauses: number; // kind === "mid"
   stars: 1 | 2 | 3;
+  /** Was there a rep here at all — length and variety, not opinion. */
+  substance: Substance;
 }
 
 export const BEAT_MIN_S = 0.3;
@@ -229,6 +231,78 @@ export function starsForFillerRate(fillersPerMin: number): 1 | 2 | 3 {
   return 1;
 }
 
+/**
+ * Substance — is there actually a rep here to score?
+ *
+ * Filler rate alone is a trap: say "I don't know" eight times and you
+ * have zero fillers, a clean pace and three stars. That is exactly the
+ * flattery DECISIONS #10 exists to prevent, and it makes every other
+ * number on the screen a lie.
+ *
+ * Deterministic, no LLM — the same rule as every other metric here.
+ */
+export interface Substance {
+  wordCount: number;
+  /** Type-token ratio: distinct words / total words. */
+  distinctRatio: number;
+  /** Largest share of the rep taken up by one repeated phrase. */
+  repeatShare: number;
+}
+
+const WORD_RE = /[a-z0-9']+/g;
+
+export function substance(text: string): Substance {
+  const tokens = (text.toLowerCase().match(WORD_RE) ?? []).filter(Boolean);
+  const wordCount = tokens.length;
+  if (wordCount === 0) {
+    return { wordCount: 0, distinctRatio: 0, repeatShare: 1 };
+  }
+  const distinctRatio = new Set(tokens).size / wordCount;
+
+  // How much of the rep is one phrase said over and over.
+  const trigrams = new Map<string, number>();
+  for (let i = 0; i + 2 < tokens.length; i++) {
+    const k = `${tokens[i]} ${tokens[i + 1]} ${tokens[i + 2]}`;
+    trigrams.set(k, (trigrams.get(k) ?? 0) + 1);
+  }
+  const topCount = Math.max(0, ...trigrams.values());
+  const repeatShare =
+    tokens.length > 3 ? Math.min(1, (topCount * 3) / tokens.length) : 0;
+
+  return {
+    wordCount,
+    distinctRatio: Math.round(distinctRatio * 1000) / 1000,
+    repeatShare: Math.round(repeatShare * 1000) / 1000,
+  };
+}
+
+/** Below this there is no rep to score, only noise. */
+export const MIN_WORDS_TO_SCORE = 20;
+
+/**
+ * The ceiling substance puts on stars. It can only ever LOWER the star
+ * count — a varied vocabulary never buys a star that the filler rate
+ * didn't earn.
+ */
+export function substanceStarCap(s: Substance): 1 | 2 | 3 {
+  if (s.wordCount < MIN_WORDS_TO_SCORE) return 1;
+  if (s.distinctRatio < 0.3 || s.repeatShare > 0.4) return 1;
+  if (s.distinctRatio < 0.45 || s.repeatShare > 0.2) return 2;
+  return 3;
+}
+
+/** True when there is enough real speech for the Index to mean anything. */
+export function isScorable(s: Substance): boolean {
+  return s.wordCount >= MIN_WORDS_TO_SCORE && s.distinctRatio >= 0.3;
+}
+
+export function starsFor(fillersPerMin: number, s: Substance): 1 | 2 | 3 {
+  return Math.min(starsForFillerRate(fillersPerMin), substanceStarCap(s)) as
+    | 1
+    | 2
+    | 3;
+}
+
 export function computeMetrics(
   words: Word[],
   durationS: number,
@@ -251,6 +325,11 @@ export function computeMetrics(
   const composedPauses = pauses.filter((p) => p.kind === "pre").length;
   const midSentencePauses = pauses.filter((p) => p.kind === "mid").length;
 
+  // Stars are capped by whether anything was actually said. Reading the
+  // words back off the token stream keeps this in step with the
+  // transcript even when no separate text is handed in.
+  const sub = substance(words.map((w) => w.word).join(" "));
+
   return {
     durationS: round2(dur),
     wordCount: words.length,
@@ -264,7 +343,8 @@ export function computeMetrics(
     heldPauses: composedPauses + midSentencePauses,
     composedPauses,
     midSentencePauses,
-    stars: starsForFillerRate(fillersPerMin),
+    stars: starsFor(fillersPerMin, sub),
+    substance: sub,
   };
 }
 

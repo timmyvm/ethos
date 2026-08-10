@@ -28,7 +28,7 @@ import {
   type Tier1Scores,
   type Tier2Anchors,
 } from "@/lib/index-score";
-import { computeMetrics, type RepMetrics } from "@/lib/metrics";
+import { computeMetrics, isScorable, type RepMetrics } from "@/lib/metrics";
 import { BOSS_XP_BASE } from "@/lib/rep-config";
 import { modIds, parseMods, xpMultiplier } from "@/lib/stress-mods";
 import { transcribe } from "@/lib/transcribe";
@@ -45,6 +45,8 @@ export interface AnalyzeResponse {
   ethosIndex: number | null;
   previousIndex: number | null;
   repId: string | null;
+  /** False when there wasn't enough real speech to score. */
+  scorable: boolean;
   accuracy: AccuracyResult | null;
   mode: "daily" | "boss";
   mods: string[];
@@ -120,9 +122,16 @@ export async function POST(req: NextRequest) {
   // rep has nothing to coach or judge; skip the call instead of burning it.
   // Boss reps additionally get fact-checked; the two calls are
   // independent so a failed check still returns full coaching.
+  // A rep with nothing in it gets no Index and no coaching. Saying "I
+  // don't know" eight times has zero fillers and a clean pace, and used
+  // to come back three stars and a mid-500s Index — every number true in
+  // isolation and the whole screen a lie. If there is no speech to
+  // measure we say so instead of scoring the silence around it.
+  const scorable = isScorable(metrics.substance);
+
   let coach: CoachOutput | null = null;
   let accuracy: AccuracyResult | null = null;
-  if (metrics.wordCount >= 5) {
+  if (scorable) {
     const [coachResult, accuracyResult] = await Promise.allSettled([
       coachRep(transcription.text, metrics, tier1, anchors),
       bossTopic
@@ -134,7 +143,10 @@ export async function POST(req: NextRequest) {
       accuracyResult.status === "fulfilled" ? accuracyResult.value : null;
   }
 
-  const index = ethosIndex(tier1, coach ? tier2Scores(coach) : null);
+  // No substance, no Index — not a partial score, no score.
+  const index = scorable
+    ? ethosIndex(tier1, coach ? tier2Scores(coach) : null)
+    : null;
 
   const previousIndex = userId
     ? await previousEthosIndex(userId).catch(() => null)
@@ -174,6 +186,7 @@ export async function POST(req: NextRequest) {
     ethosIndex: index,
     previousIndex,
     repId,
+    scorable,
     accuracy,
     mode,
     mods: modIds(mods),

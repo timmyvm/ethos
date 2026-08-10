@@ -61,6 +61,9 @@ Locked means locked. Reopen only with user data or Timothy's explicit call.
 51. 2026-08-10 · Mondays, the 1st and Jan 1 get fresh-start framing, pointing forward only · Dai, Milkman & Riis 2014: temporal landmarks open a new mental accounting period (+33% exercise at week start). The mechanism is the CLOSED chapter, so the copy never mentions what was missed (asserted in tests)
 52. 2026-08-10 · Every results screen ends on something true and good — the streak-end rule · PNAS, 14,383 volunteers over 1.97M tasks: people weight the END of a sequence disproportionately when deciding whether to return, and hard endings drive quitting. `endNote()` always returns a moment and never ends on a criticism
 53. 2026-08-10 · Personal bests compare against a snapshot captured BEFORE the rep, never a post-rep list minus its last row · the slice looks equivalent and isn't: when a rep fails to persist it silently discards a real prior rep and understates the record
+54. 2026-08-10 · Stars are capped by SUBSTANCE (word count, distinct-word ratio, repeated-phrase share) before the filler rate is consulted · reported by Timothy: "I don't know" eight times has zero fillers, a clean pace and used to score three stars. Filler rate alone measures how cleanly you said nothing. Substance can only ever LOWER stars — variety never buys one the filler rate didn't earn
+55. 2026-08-10 · Below the substance floor there is NO Ethos Index and no coach call — "Not enough to score", not a low score · a partial number over an empty rep makes every other number on the screen a lie; and the LLM has nothing to judge
+56. 2026-08-10 · The transcript is shown open on the results screen, never behind a disclosure · every score is a claim about those words, so they have to be readable without going looking for them
 
 ## Open queue (research-once, decide, move up)
 

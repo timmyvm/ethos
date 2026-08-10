@@ -50,6 +50,12 @@ Locked means locked. Reopen only with user data or Timothy's explicit call.
 41. 2026-08-10 · The server recomputes mods and the XP multiplier from the account's entitlement; the client's claim is advisory · a hand-edited URL can change how hard your rep is, never what it pays
 42. 2026-08-10 · Settings names the reminder's real scheduling tier (OS-scheduled / tab-only / unsupported) · a reminder that silently never fires is worse than no reminder
 
+43. 2026-08-10 · The path lives on the first screen, directly under the rep card · Amabile & Kramer (12,000 diary entries): nothing moves motivation like visible progress in meaningful work. The Floor keeps its one dominant action; the rail answers "where am I" underneath it
+44. 2026-08-10 · Milestones are ordered by PROXIMITY, nearest first, always with an exact "N to go" · goal-gradient — perceived closeness is what raises effort, so the ordering is the feature, not a detail (asserted in tests)
+45. 2026-08-10 · Endowed progress via one honest pre-filled node ("Showed up"), worth zero stars · Nunes & Drèze 2006 got 34% vs 19% completion with a head start customers could see was free — the reframe from "not begun" to "underway" does the work, not concealment. No free stars, ever
+46. 2026-08-10 · Every reward names the number it measures — a milestone with no number does not ship · SDT gamification meta-analysis (35 studies, ~2,500 people): rewards lift motivation when INFORMATIONAL, undermine it when controlling, and did not improve competence satisfaction at all. Hattie & Timperley rank self-level praise among the least effective feedback. Reward often; never reward emptily
+47. 2026-08-10 · Perceived progress must never exceed real progress · rejected the "hook them even if it isn't real" framing after the research pass: fluency illusion raises felt learning without raising learning, and for a speech gym the illusion is discovered in public. Also protects the comparison card, which works because both recordings are real (docs/progression-research.md)
+
 ## Open queue (research-once, decide, move up)
 
 - Currency name — after launch copywriting pass

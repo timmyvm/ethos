@@ -5,12 +5,16 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ComparisonCard } from "@/components/ComparisonCard";
 import { ModPicker } from "@/components/ModPicker";
+import { NextUp } from "@/components/NextUp";
+import { PathRail } from "@/components/PathRail";
 import { Paywall } from "@/components/Paywall";
 import { StreakBadge } from "@/components/StreakBadge";
-import { fetchProfile, fetchReps, type RepRow } from "@/lib/client-data";
+import { achievements } from "@/lib/achievements";
+import { fetchProfile, fetchReps, fetchXp, type RepRow } from "@/lib/client-data";
 import { todaysDrill } from "@/lib/drills";
 import { syncFreezes } from "@/lib/freeze-sync";
 import { nextLesson, starsByLesson } from "@/lib/path";
+import { nextMilestones } from "@/lib/progress";
 import { repHref } from "@/lib/rep-config";
 import { armReminder } from "@/lib/reminders";
 import { computeStreak, type StreakState } from "@/lib/streak";
@@ -32,10 +36,15 @@ export default function Home() {
   const [mods, setMods] = useState<string[]>([]);
   const [showMods, setShowMods] = useState(false);
   const [paywall, setPaywall] = useState<string | null>(null);
+  const [xp, setXp] = useState(0);
+  const [freezes, setFreezes] = useState(0);
 
   useEffect(() => {
     fetchProfile()
       .then((p) => setPremium(p?.premium ?? false))
+      .catch(() => {});
+    fetchXp()
+      .then((x) => setXp(x.total))
       .catch(() => {});
 
     fetchReps()
@@ -49,6 +58,7 @@ export default function Home() {
           const sync = await syncFreezes(dates);
           setStreak(sync.streak);
           setRescued(sync.rescued.length);
+          setFreezes(sync.equipped);
           void armReminder({
             streak: sync.streak.current,
             didToday: sync.streak.didToday,
@@ -68,6 +78,15 @@ export default function Home() {
 
   // mechanics.md: the paywall waits for the day-3 progress card.
   const showDay3 = history.length >= 3;
+
+  const milestones = nextMilestones({
+    reps: history,
+    starMap,
+    streak,
+    xp,
+    freezesEquipped: freezes,
+    achievements: achievements(history),
+  });
 
   return (
     <main className="px-5 pb-24 pt-7">
@@ -117,9 +136,15 @@ export default function Home() {
         />
       </div>
 
+      {/* The path, directly under the floor. The rep card stays the one
+          dominant action (DECISIONS #9); this answers "where am I". */}
+      <div className="mt-6">
+        <PathRail starMap={starMap} hasAnyRep={history.length > 0} />
+      </div>
+
       <button
         onClick={() => setShowMods((v) => !v)}
-        className="mt-3 text-[13px] font-semibold text-stone-500"
+        className="mt-5 text-[13px] font-semibold text-stone-500"
       >
         {showMods
           ? "Hide mods"
@@ -158,6 +183,10 @@ export default function Home() {
           />
         </div>
       )}
+
+      <div className="mt-6">
+        <NextUp milestones={milestones} />
+      </div>
 
       {showDay3 && (
         <div className="mt-4">

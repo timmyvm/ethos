@@ -11,12 +11,15 @@ import {
   useRef,
   useState,
 } from "react";
+import { GainsRow } from "@/components/GainsRow";
 import { RepResult } from "@/components/RepResult";
 import { StreakCelebration } from "@/components/StreakCelebration";
 import { fetchProfile, fetchReps } from "@/lib/client-data";
 import { startCrowdNoise, type CrowdNoise } from "@/lib/crowd-noise";
 import { syncFreezes } from "@/lib/freeze-sync";
+import { starsByLesson, totalStars, unitStates } from "@/lib/path";
 import { buzz, readPrefs } from "@/lib/prefs";
+import { repGains, type RepGain } from "@/lib/progress";
 import { resolveRepConfig, type RepConfig } from "@/lib/rep-config";
 import { ensureSession } from "@/lib/supabase-browser";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
@@ -80,6 +83,30 @@ function RepScreen() {
   const [error, setError] = useState<string | null>(null);
   const [celebrate, setCelebrate] = useState<number | null>(null);
   const [interruption, setInterruption] = useState<string | null>(null);
+  const [gains, setGains] = useState<RepGain[]>([]);
+
+  /**
+   * Snapshot of where the user stood BEFORE this rep, captured on
+   * mount. Without it the results screen can't say what changed, and
+   * "what changed" is the only reward worth showing (DECISIONS #46).
+   */
+  const baselineRef = useRef<{ stars: number; unitsOpen: string[] } | null>(
+    null
+  );
+
+  useEffect(() => {
+    fetchReps()
+      .then((rows) => {
+        const map = starsByLesson(rows);
+        baselineRef.current = {
+          stars: totalStars(map),
+          unitsOpen: unitStates(map)
+            .filter((u) => !u.locked)
+            .map((u) => u.name),
+        };
+      })
+      .catch(() => {});
+  }, []);
 
   const recRef = useRef<{
     recorder: MediaRecorder;
@@ -147,12 +174,32 @@ function RepScreen() {
       setPhase("results");
       // Streak is derived from stored reps, so read it back rather than
       // guessing — a rep that failed to persist shouldn't celebrate.
+      const analyzed = data as AnalyzeResponse;
       fetchReps()
         .then(async (reps) => {
           const { streak } = await syncFreezes(
             reps.map((x) => new Date(x.created_at))
           );
           if (streak.current > 0) setCelebrate(streak.current);
+
+          const before = baselineRef.current;
+          if (before) {
+            const map = starsByLesson(reps);
+            const openNow = unitStates(map)
+              .filter((u) => !u.locked)
+              .map((u) => u.name);
+            setGains(
+              repGains({
+                starsBefore: before.stars,
+                starsAfter: totalStars(map),
+                indexBefore: analyzed.previousIndex,
+                indexAfter: analyzed.ethosIndex,
+                streakAfter: streak.current,
+                unlockedUnit:
+                  openNow.find((n) => !before.unitsOpen.includes(n)) ?? null,
+              })
+            );
+          }
         })
         .catch(() => {});
     } catch (e) {
@@ -296,7 +343,7 @@ function RepScreen() {
   if (phase === "results" && result) {
     return (
       <>
-        <Results result={result} config={config} />
+        <Results result={result} config={config} gains={gains} />
         {celebrate !== null && (
           <StreakCelebration
             streak={celebrate}
@@ -483,15 +530,18 @@ function fmt(s: number) {
 function Results({
   result,
   config,
+  gains,
 }: {
   result: AnalyzeResponse;
   config: RepConfig;
+  gains: RepGain[];
 }) {
   return (
     <main className="px-5 pb-10 pt-7">
       <div className="label-data">
         {config.kind === "boss" ? "Boss complete" : "Rep complete"}
       </div>
+      <GainsRow gains={gains} />
       <RepResult result={result} topic={config.topic} />
       <Link
         href="/"

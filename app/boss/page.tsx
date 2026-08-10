@@ -198,7 +198,7 @@ export default function BossPage() {
               alt=""
               width={140}
               height={140}
-              className="w-[140px]"
+              className="demos w-[140px]"
             />
             <p className="mt-4 max-w-[280px] text-[15px] leading-relaxed text-stone-500">
               Notes are gone. Ninety seconds, from memory. Wrong claims

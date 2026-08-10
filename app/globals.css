@@ -78,11 +78,44 @@ body {
  * (400 quietest → 700 loudest) while clearing contrast.
  */
 :root[data-theme="dark"] {
+  /*
+   * The 50/100 tints are LIGHT washes by construction — a cream card
+   * with terracotta text. On a dark ground they invert the hierarchy
+   * and the text on them becomes unreadable, so the tints become dark
+   * washes of the same hue. The 500s (the ones that carry meaning) are
+   * untouched.
+   */
+  --color-terracotta-50: #2a1a14;
+  --color-terracotta-100: #3a241b;
+  --color-terracotta-200: #4d2f23;
+  --color-amber-50: #2a2113;
+
   --color-stone-300: #6b5f55;
   --color-stone-400: #9c8f84;
   --color-stone-500: #b3a79c;
   --color-stone-600: #c9bdb2;
   --color-stone-700: #ded4ca;
+}
+
+/*
+ * Demos ships as WebP with an opaque light background, so on a dark
+ * ground he arrives inside a white rectangle. Until the art is re-cut
+ * with alpha, he sits on a deliberate cream tile — a sticker, which
+ * reads as intentional where a stray white box reads as broken.
+ */
+:root[data-theme="dark"] .demos {
+  background: #faf7f2;
+  border-radius: 14px;
+}
+
+/*
+ * ...except where he PEEKS past a card edge. There a tile is just a
+ * white block cutting the corner, so on dark he sits this one out.
+ * He still appears at the real moments — celebration, boss, results —
+ * which is where vision.md wants him anyway.
+ */
+:root[data-theme="dark"] .demos-peek {
+  display: none;
 }
 
 /* Grain is a light-mode trick; over a dark ground it reads as noise. */

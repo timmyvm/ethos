@@ -9,7 +9,7 @@ export default function NotFound() {
         alt=""
         width={140}
         height={140}
-        className="w-[140px]"
+        className="demos w-[140px]"
       />
       <div className="font-display mt-4 text-[22px] font-bold">
         Nothing here.

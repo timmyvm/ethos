@@ -4,30 +4,21 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ComparisonCard } from "@/components/ComparisonCard";
 import { ModPicker } from "@/components/ModPicker";
-import { NextUp } from "@/components/NextUp";
-import { PathRail } from "@/components/PathRail";
 import { Paywall } from "@/components/Paywall";
 import { StreakBadge } from "@/components/StreakBadge";
 import { TopicRoulette } from "@/components/TopicRoulette";
-import { achievements } from "@/lib/achievements";
 import {
   fetchProfile,
   fetchReps,
-  fetchXp,
   type RepRow,
 } from "@/lib/client-data";
 import { spin, type Topic } from "@/lib/topics";
 import { todaysDrill } from "@/lib/drills";
 import { syncFreezes } from "@/lib/freeze-sync";
-import { nextLesson, starsByLesson } from "@/lib/path";
-import { nextMilestones } from "@/lib/progress";
+import { MAX_STARS, nextLesson, starsByLesson, totalStars } from "@/lib/path";
 import { repHref } from "@/lib/rep-config";
 import { armReminder } from "@/lib/reminders";
-import { freshStart, nearMisses, openLoop } from "@/lib/rewards";
-import { Moment } from "@/components/Moment";
-import { UNITS } from "@/lib/path";
 import { decayNote, nextFocus } from "@/lib/schedule";
 import { computeStreak, type StreakState } from "@/lib/streak";
 
@@ -49,16 +40,11 @@ export default function Home() {
   const [mods, setMods] = useState<string[]>([]);
   const [showMods, setShowMods] = useState(false);
   const [paywall, setPaywall] = useState<string | null>(null);
-  const [xp, setXp] = useState(0);
-  const [freezes, setFreezes] = useState(0);
   const [topic, setTopic] = useState<Topic | null>(null);
 
   useEffect(() => {
     fetchProfile()
       .then((p) => setPremium(p?.premium ?? false))
-      .catch(() => {});
-    fetchXp()
-      .then((x) => setXp(x.total))
       .catch(() => {});
 
     fetchReps()
@@ -72,7 +58,6 @@ export default function Home() {
           const sync = await syncFreezes(dates);
           setStreak(sync.streak);
           setRescued(sync.rescued.length);
-          setFreezes(sync.equipped);
           void armReminder({
             streak: sync.streak.current,
             didToday: sync.streak.didToday,
@@ -90,19 +75,8 @@ export default function Home() {
   const drill = next?.lesson ?? todaysDrill();
   const unitName = next?.unit.name ?? drill.unit;
 
-  // mechanics.md: the paywall waits for the day-3 progress card.
-  const showDay3 = history.length >= 3;
 
-  const milestones = nextMilestones({
-    reps: history,
-    starMap,
-    streak,
-    xp,
-    freezesEquipped: freezes,
-    achievements: achievements(history),
-  });
 
-  // Fresh-start framing beats the open loop on a landmark day; the rest
   // of the week, the unfinished lesson is the stronger pull (Zeigarnik).
   const scored = history.filter((r) => r.ethos_index !== null);
   const lastIndex = scored[scored.length - 1]?.ethos_index ?? null;
@@ -116,21 +90,6 @@ export default function Home() {
   const focus = nextFocus(history);
   const gap = decayNote(history);
 
-  const almost = nearMisses(milestones);
-  // Priority: a milestone one rep away beats a landmark, which beats an
-  // unfinished lesson. Exactly one of them reaches the screen.
-  const topMoment =
-    almost.length > 0 && !streak.didToday
-      ? {
-          headline: `${almost[0].label} — ${almost[0].remainingLabel}`,
-          detail: `${almost[0].detail}. One rep could do it.`,
-          tone: "amber" as const,
-        }
-      : (freshStart() ??
-        openLoop(
-          starMap,
-          UNITS.flatMap((u) => u.lessons)
-        ));
 
   return (
     <main className="px-5 pb-24 pt-7">
@@ -168,23 +127,6 @@ export default function Home() {
           open loop. It renders as a quiet rule-and-text line, not a
           filled card, so the only filled colour on this screen is the
           button. */}
-      {gap && (
-        <div className="mt-5 border-l-2 border-stone-300 pl-3.5 text-[12.5px] leading-relaxed text-stone-500">
-          {gap}
-        </div>
-      )}
-
-      {!gap && topMoment && history.length > 0 && (
-        <div className="mt-5 border-l-2 border-amber-500 pl-3.5">
-          <div className="font-display text-[15px] font-bold leading-tight">
-            {topMoment.headline}
-          </div>
-          <div className="mt-0.5 text-[12.5px] leading-relaxed text-stone-500">
-            {topMoment.detail}
-          </div>
-        </div>
-      )}
-
       <div className="label-data mt-7">
         {topic
           ? "Roulette"
@@ -197,9 +139,9 @@ export default function Home() {
        * idea over our four measured skills — and the reason always
        * carries the number that chose it, so the call is checkable.
        */}
-      {!topic && focus.strength !== null && (
-        <p className="mt-1 text-[12.5px] leading-relaxed text-stone-500">
-          {focus.reason}
+      {!topic && (gap || focus.strength !== null) && (
+        <p className="mt-1.5 max-w-[92%] text-[13px] leading-relaxed text-stone-500">
+          {gap ?? focus.reason}
         </p>
       )}
       {/*
@@ -252,7 +194,7 @@ export default function Home() {
               width={150}
               height={150}
               priority
-              className="pointer-events-none absolute -bottom-5 -right-4 w-[128px] opacity-95"
+              className="demos-peek pointer-events-none absolute -bottom-5 -right-4 w-[128px] opacity-95"
             />
           </div>
           <button
@@ -295,7 +237,7 @@ export default function Home() {
                 </div>
               )}
             </div>
-            <div className="shrink-0 space-y-2 text-right">
+            <div className="shrink-0 space-y-2.5 text-right">
               <div>
                 <div className="font-display text-[20px] font-bold leading-none">
                   {history.length}
@@ -304,19 +246,31 @@ export default function Home() {
               </div>
               <div>
                 <div className="font-display text-[20px] font-bold leading-none">
-                  {streak.longest}
+                  {totalStars(starMap)}
                 </div>
-                <div className="label-data !text-stone-500">best</div>
+                <div className="label-data !text-stone-500">stars</div>
               </div>
             </div>
           </div>
+
+          {/* Path progress as one line rather than a whole rail — the
+              Path tab owns the rail, and home was rendering both. */}
+          <Link
+            href="/path"
+            className="press mt-4 flex items-center gap-3 border-t border-white/10 pt-3.5"
+          >
+            <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-amber-500"
+                style={{ width: `${Math.max(2, (totalStars(starMap) / MAX_STARS) * 100)}%` }}
+              />
+            </div>
+            <span className="label-data !text-stone-500 shrink-0">
+              the path →
+            </span>
+          </Link>
         </section>
       )}
-
-      {/* TIER 3 — where am I. Quiet by design; it supports the floor. */}
-      <div className="mt-7">
-        <PathRail starMap={starMap} hasAnyRep={history.length > 0} />
-      </div>
 
       <button
         onClick={() => setShowMods((v) => !v)}
@@ -346,24 +300,6 @@ export default function Home() {
         </p>
       )}
 
-      {/* Skip whatever the moment line already said at the top of the
-          screen — showing the same milestone twice reads as a bug and
-          halves the information on the page. */}
-      <div className="mt-6">
-        <NextUp
-          milestones={milestones.filter(
-            (m) => !topMoment || !topMoment.headline.startsWith(m.label)
-          )}
-          limit={2}
-        />
-      </div>
-
-      {showDay3 && (
-        <div className="mt-4">
-          <ComparisonCard reps={history} />
-        </div>
-      )}
-
       <Link
         href="/boss"
         className="mt-4 flex w-full items-center gap-3 rounded-[18px] border border-terracotta-100 bg-terracotta-50 p-4 text-left"
@@ -373,7 +309,7 @@ export default function Home() {
           alt=""
           width={40}
           height={40}
-          className="w-10 shrink-0"
+          className="demos w-10 shrink-0"
         />
         <span className="flex-1">
           <span className="block text-[14.5px] font-semibold">

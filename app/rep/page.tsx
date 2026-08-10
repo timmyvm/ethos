@@ -565,7 +565,7 @@ function RepScreen() {
             alt=""
             width={84}
             height={84}
-            className="w-[84px] opacity-90"
+            className="demos w-[84px] opacity-90"
           />
         )}
 
@@ -627,7 +627,7 @@ function RepScreen() {
               alt=""
               width={36}
               height={36}
-              className="w-9 shrink-0"
+              className="demos w-9 shrink-0"
             />
             <span className="font-display text-[17px] font-bold">
               {interruption}

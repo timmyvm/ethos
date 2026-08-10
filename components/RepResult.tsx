@@ -125,7 +125,7 @@ export function RepResult({
           alt="Demos"
           width={62}
           height={62}
-          className="w-[62px] rounded-[14px] border border-sand bg-surface"
+          className="demos w-[62px] rounded-[14px] border border-sand bg-surface"
         />
         <div className="rounded-[14px] rounded-bl-[4px] bg-terracotta-50 px-4 py-3 text-sm leading-relaxed">
           <div className="label-data !text-terracotta-600 mb-0.5">Demos</div>

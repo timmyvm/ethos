@@ -73,7 +73,7 @@ export default function About() {
           alt="Demos, the Ethos coach"
           width={120}
           height={120}
-          className="pointer-events-none absolute -bottom-4 -right-4 w-[120px] opacity-95"
+          className="demos pointer-events-none absolute -bottom-4 -right-4 w-[120px] opacity-95"
         />
       </div>
 

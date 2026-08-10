@@ -49,7 +49,7 @@ export function StreakCelebration({
         width={200}
         height={200}
         priority
-        className="w-[200px]"
+        className="demos w-[200px]"
       />
       <div className="font-display mt-4 text-[64px] font-bold leading-none text-amber-500">
         {streak}

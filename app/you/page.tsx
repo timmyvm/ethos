@@ -102,7 +102,7 @@ export default function YouPage() {
             alt=""
             width={56}
             height={56}
-            className="w-14 shrink-0"
+            className="demos w-14 shrink-0"
           />
           <div className="flex-1">
             <div className="label-data">Level</div>

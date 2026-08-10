@@ -41,7 +41,7 @@ export default function HistoryPage() {
             alt=""
             width={110}
             height={110}
-            className="mx-auto w-[110px]"
+            className="demos mx-auto w-[110px]"
           />
           <p className="mt-2 text-[14px] font-semibold">Nothing logged yet.</p>
           <p className="mt-1 text-[13px] text-stone-500">

@@ -30,6 +30,17 @@ Locked means locked. Reopen only with user data or Timothy's explicit call.
 23. 2026-08-09 · Coach layer is best-effort: LLM output that fails voice/grounding validation retries twice then falls back to a deterministic coach line built from metrics · the numbers are the product; the LLM never blocks or invents them
 24. 2026-08-09 · Engine LLM: claude-opus-5, strict JSON schema, low effort, server-side refusal fallback · one call per rep; latency inside a ≤5-min loop
 
+25. 2026-08-09 · Bottom nav = Today / Path / Log / You, label-only, hidden on the floor and marketing · icons would compete with the one terracotta tap; the rep screen stays undistracted
+26. 2026-08-09 · Streak: a day counts once; today keeps yesterday's streak alive but 'at risk' until the rep lands · loss-aversion framing allowed, guilt is not — no sad mascot, no shame state
+27. 2026-08-09 · XP curve: each level costs 50 more than the last (L2 50, L3 150, L4 300) · first level-up inside week one at 10 XP/rep, then a real grind; calibrate in beta
+28. 2026-08-09 · Unit unlocks gate on cumulative stars (Pace 4, Pause 8, Cold Topic 12) · progression earned by measured quality, never by attendance
+29. 2026-08-09 · Achievements name the number that unlocked them · a badge without a number is a participation trophy
+30. 2026-08-09 · Insights are pure arithmetic over stored reps, never an LLM call · cross-rep claims must be as checkable as single-rep ones
+31. 2026-08-09 · Free tier: 7 days of log, 3 lexicon entries; premium unlocks archive, boss modes, full pause analytics · mechanics.md monetisation, paywall still only after the day-3 card
+32. 2026-08-09 · Audio replay marks fillers and held pauses on the timeline, tap to seek · the user hears the evidence instead of taking our word for it
+33. 2026-08-09 · Service worker caches shell + assets; /api/analyze and Supabase never cached · a rep that can't reach the engine fails honestly rather than showing stale numbers
+34. 2026-08-09 · One celebration moment per rep (streak count, amber, ~2s, dismissible) · Demos celebrates there and nowhere else in the loop
+
 ## Open queue (research-once, decide, move up)
 
 - Currency name — after launch copywriting pass

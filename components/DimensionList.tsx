@@ -88,7 +88,7 @@ export function DimensionList({
     : [];
 
   return (
-    <div className="rounded-[18px] border border-black/5 bg-white lift px-5 py-2">
+    <div className="rounded-[18px] border border-hairline bg-surface lift px-5 py-2">
       {[...measured, ...judged].map((row) => (
         <details key={row.name} className="group border-b border-sand py-3 last:border-b-0">
           <summary className="flex cursor-pointer select-none items-center gap-3">

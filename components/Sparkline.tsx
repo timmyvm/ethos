@@ -17,7 +17,7 @@ export function Sparkline({
 }) {
   if (values.length < 2) {
     return (
-      <div className="rounded-[18px] border border-black/5 bg-white lift p-5">
+      <div className="rounded-[18px] border border-hairline bg-surface lift p-5">
         <div className="label-data">{label}</div>
         <p className="mt-2 text-[13px] text-stone-500">
           Two reps and this becomes a line. One more to go.
@@ -45,7 +45,7 @@ export function Sparkline({
   const [lx, ly] = pts[pts.length - 1];
 
   return (
-    <div className="rounded-[18px] border border-black/5 bg-white lift p-5">
+    <div className="rounded-[18px] border border-hairline bg-surface lift p-5">
       <div className="flex items-baseline justify-between">
         <div className="label-data">{label}</div>
         <div

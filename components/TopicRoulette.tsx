@@ -47,7 +47,7 @@ export function TopicRoulette({
   const shape = TOPIC_SHAPES[topic.shape];
 
   return (
-    <div className="rounded-[26px] border border-black/[0.06] bg-white p-6 lift-hero">
+    <div className="rounded-[26px] border border-hairline bg-surface p-6 lift-hero">
       <div className="flex items-baseline justify-between">
         <div className="label-data">Roulette · you don&apos;t pick</div>
         <div className="label-data !text-amber-500">{shape.label}</div>
@@ -65,7 +65,7 @@ export function TopicRoulette({
         <button
           onClick={doSpin}
           disabled={rolling}
-          className="press shrink-0 rounded-[15px] border border-black/10 bg-white px-5 py-4 text-[15px] font-semibold disabled:opacity-60"
+          className="press shrink-0 rounded-[15px] border border-black/10 bg-surface px-5 py-4 text-[15px] font-semibold disabled:opacity-60"
         >
           Spin
         </button>

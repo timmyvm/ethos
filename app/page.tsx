@@ -28,6 +28,7 @@ import { armReminder } from "@/lib/reminders";
 import { freshStart, nearMisses, openLoop } from "@/lib/rewards";
 import { Moment } from "@/components/Moment";
 import { UNITS } from "@/lib/path";
+import { decayNote, nextFocus } from "@/lib/schedule";
 import { computeStreak, type StreakState } from "@/lib/streak";
 
 const EMPTY: StreakState = {
@@ -112,6 +113,9 @@ export default function Home() {
       ? lastIndex - (scored[0].ethos_index as number)
       : null;
 
+  const focus = nextFocus(history);
+  const gap = decayNote(history);
+
   const almost = nearMisses(milestones);
   // Priority: a milestone one rep away beats a landmark, which beats an
   // unfinished lesson. Exactly one of them reaches the screen.
@@ -144,7 +148,7 @@ export default function Home() {
       </div>
 
       {rescued > 0 && (
-        <div className="mt-4 rounded-[18px] border border-amber-500/30 bg-white px-4 py-3 text-[13px] leading-relaxed">
+        <div className="mt-4 rounded-[18px] border border-amber-500/30 bg-surface px-4 py-3 text-[13px] leading-relaxed">
           <span className="font-semibold">
             A freeze covered {rescued === 1 ? "a day" : `${rescued} days`} you
             missed.
@@ -164,7 +168,13 @@ export default function Home() {
           open loop. It renders as a quiet rule-and-text line, not a
           filled card, so the only filled colour on this screen is the
           button. */}
-      {topMoment && history.length > 0 && (
+      {gap && (
+        <div className="mt-5 border-l-2 border-stone-300 pl-3.5 text-[12.5px] leading-relaxed text-stone-500">
+          {gap}
+        </div>
+      )}
+
+      {!gap && topMoment && history.length > 0 && (
         <div className="mt-5 border-l-2 border-amber-500 pl-3.5">
           <div className="font-display text-[15px] font-bold leading-tight">
             {topMoment.headline}
@@ -180,6 +190,18 @@ export default function Home() {
           ? "Roulette"
           : `${streak.didToday ? "Extra rep" : "Today's rep"} · ${unitName}`}
       </div>
+      {/*
+       * Why THIS, today. Duolingo's published answer to "why come back"
+       * is half-life regression (Settles & Meeder, ACL 2016): the app
+       * models what you're about to lose and schedules against it. Same
+       * idea over our four measured skills — and the reason always
+       * carries the number that chose it, so the call is checkable.
+       */}
+      {!topic && focus.strength !== null && (
+        <p className="mt-1 text-[12.5px] leading-relaxed text-stone-500">
+          {focus.reason}
+        </p>
+      )}
       {/*
        * TIER 1 — The Floor (DECISIONS #9). It has to win the screen on
        * size alone: a 32px title against 14.5px body and 11px labels is
@@ -207,7 +229,7 @@ export default function Home() {
         </div>
       ) : (
         <>
-          <div className="relative mt-2.5 overflow-hidden rounded-[26px] border border-black/[0.06] bg-white p-6 pb-[4.75rem] lift-hero">
+          <div className="relative mt-2.5 overflow-hidden rounded-[26px] border border-hairline bg-surface p-6 pb-[4.75rem] lift-hero">
             <h1 className="font-display max-w-[74%] text-[32px] font-bold leading-[1.06]">
               {drill.title}
             </h1>

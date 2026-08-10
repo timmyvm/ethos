@@ -33,6 +33,7 @@ import {
   personalBests,
   type RewardMoment,
 } from "@/lib/rewards";
+import { nextFocus, type NextFocus } from "@/lib/schedule";
 import { computeStreak } from "@/lib/streak";
 import { resolveRepConfig, type RepConfig } from "@/lib/rep-config";
 import { ensureSession } from "@/lib/supabase-browser";
@@ -103,6 +104,7 @@ function RepScreen() {
   const [closing, setClosing] = useState<RewardMoment | null>(null);
   const [bests, setBests] = useState<RewardMoment[]>([]);
   const [notes, setNotes] = useState("");
+  const [tomorrow, setTomorrow] = useState<NextFocus | null>(null);
 
   /**
    * Snapshot of where the user stood BEFORE this rep, captured on
@@ -242,6 +244,7 @@ function RepScreen() {
             );
             // Streak-end rule: the last thing on screen decides whether
             // they come back, so it is always something true and good.
+            setTomorrow(nextFocus(reps));
             setClosing(
               endNote({
                 gains: nextGains,
@@ -416,6 +419,7 @@ function RepScreen() {
           gains={gains}
           bests={bests}
           closing={closing}
+          tomorrow={tomorrow}
           onRetake={retake}
         />
         {celebrate !== null && (
@@ -483,7 +487,7 @@ function RepScreen() {
             {/* Structure tips, by the SHAPE of answer the prompt asks
                 for. We know that much honestly; we don't know what
                 you're going to say, so we don't pretend to. */}
-            <div className="mt-4 rounded-[18px] border border-black/5 bg-white lift p-4">
+            <div className="mt-4 rounded-[18px] border border-hairline bg-surface lift p-4">
               <div className="label-data">Shape it like this</div>
               <ul className="mt-2 space-y-1.5">
                 {config.tips.map((tip, i) => (
@@ -505,7 +509,7 @@ function RepScreen() {
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               placeholder="Notes — first line, last line, one example…"
-              className="mt-3 w-full rounded-[18px] border border-black/10 bg-white p-4 text-[14px] leading-relaxed outline-none placeholder:text-stone-300 focus:border-stone-300"
+              className="mt-3 w-full rounded-[18px] border border-black/10 bg-surface p-4 text-[14px] leading-relaxed outline-none placeholder:text-stone-300 focus:border-stone-300"
             />
             <p className="mt-1.5 text-[11.5px] text-stone-400">
               Notes stay on this screen. They disappear when you record —
@@ -584,7 +588,7 @@ function RepScreen() {
         )}
 
         {phase === "error" && (
-          <div className="w-full rounded-[18px] border border-black/5 bg-white lift p-5 text-center">
+          <div className="w-full rounded-[18px] border border-hairline bg-surface lift p-5 text-center">
             <div className="font-semibold">Rep didn&apos;t score.</div>
             <p className="mt-1.5 text-sm text-stone-500">{error}</p>
           </div>
@@ -608,7 +612,7 @@ function RepScreen() {
         {phase === "frame" && (
           <button
             onClick={() => void startRep()}
-            className="rounded-[14px] border border-black/10 bg-white px-6 py-3.5 text-[15px] font-semibold"
+            className="rounded-[14px] border border-black/10 bg-surface px-6 py-3.5 text-[15px] font-semibold"
           >
             I&apos;m ready
           </button>
@@ -647,6 +651,7 @@ function Results({
   gains,
   bests,
   closing,
+  tomorrow,
   onRetake,
 }: {
   result: AnalyzeResponse;
@@ -654,6 +659,7 @@ function Results({
   gains: RepGain[];
   bests: RewardMoment[];
   closing: RewardMoment | null;
+  tomorrow: NextFocus | null;
   onRetake: () => void;
 }) {
   return (
@@ -681,9 +687,28 @@ function Results({
         </div>
       )}
 
+      {/*
+       * The hook for tomorrow. Half-life regression (Settles & Meeder,
+       * ACL 2016) is Duolingo's real answer to "why come back" — the app
+       * holds a model of what you're about to lose and schedules against
+       * it. This is the same idea over the four measured skills, and it
+       * always shows the number that made the call.
+       */}
+      {tomorrow && tomorrow.strength !== null && (
+        <div className="mt-5 rounded-[18px] border border-hairline bg-surface lift p-5">
+          <div className="label-data">Tomorrow</div>
+          <div className="font-display mt-1 text-[22px] font-bold leading-tight">
+            {tomorrow.label}
+          </div>
+          <p className="mt-1.5 text-[13px] leading-relaxed text-stone-500">
+            {tomorrow.reason}
+          </p>
+        </div>
+      )}
+
       <button
         onClick={onRetake}
-        className="press mt-5 w-full rounded-[15px] border border-black/10 bg-white px-6 py-4 text-[15px] font-semibold"
+        className="press mt-5 w-full rounded-[15px] border border-black/10 bg-surface px-6 py-4 text-[15px] font-semibold"
       >
         Retake this one
       </button>

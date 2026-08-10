@@ -8,7 +8,9 @@ import {
   readPrefs,
   writePrefs,
   type Prefs,
+  type Theme,
 } from "@/lib/prefs";
+import { applyTheme } from "@/components/Theme";
 import {
   armReminder,
   cancelReminder,
@@ -123,7 +125,7 @@ export default function SettingsPage() {
       <h1 className="font-display mt-4 text-2xl font-bold">Settings</h1>
 
       <div className="label-data mt-7">Daily reminder</div>
-      <div className="mt-2 rounded-[18px] border border-black/5 bg-white lift p-5">
+      <div className="mt-2 rounded-[18px] border border-hairline bg-surface lift p-5">
         <p className="text-[13px] leading-relaxed text-stone-500">
           One notification a day, maximum. It names the streak, never
           scolds you for missing it.
@@ -177,8 +179,36 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      <div className="label-data mt-7">Appearance</div>
+      <div className="mt-2 rounded-[18px] border border-hairline bg-surface lift p-5">
+        <div className="flex gap-2">
+          {(["system", "light", "dark"] as Theme[]).map((t) => (
+            <button
+              key={t}
+              onClick={() => {
+                update({ theme: t });
+                applyTheme(t);
+              }}
+              className={`press flex-1 rounded-[12px] px-3 py-2.5 text-[13px] font-semibold capitalize ${
+                prefs.theme === t
+                  ? "bg-terracotta-500 text-cream"
+                  : "bg-sand text-stone-600"
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+        <p className="mt-3 text-[12.5px] leading-relaxed text-stone-500">
+          Dark keeps the same warm neutrals — no cool greys, no pure
+          black. Terracotta and amber never change: they mean &ldquo;tap
+          this&rdquo; and &ldquo;you earned this&rdquo;, and a colour that
+          carries meaning has to read the same in both.
+        </p>
+      </div>
+
       <div className="label-data mt-7">The rep</div>
-      <div className="mt-2 divide-y divide-sand rounded-[18px] border border-black/5 bg-white lift">
+      <div className="mt-2 divide-y divide-sand rounded-[18px] border border-hairline bg-surface lift">
         <Toggle
           label="Frame step"
           note="30 seconds of think-time before the clock starts. Trains deciding before speaking."
@@ -206,7 +236,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="label-data mt-7">Account</div>
-      <div className="mt-2 rounded-[18px] border border-black/5 bg-white lift p-5">
+      <div className="mt-2 rounded-[18px] border border-hairline bg-surface lift p-5">
         <div className="text-[14px] font-semibold">
           {email ?? "Anonymous — this device only"}
         </div>
@@ -264,7 +294,7 @@ function Toggle({
         role="switch"
       >
         <span
-          className={`block h-5 w-5 rounded-full bg-white transition-transform ${
+          className={`block h-5 w-5 rounded-full bg-surface transition-transform ${
             on ? "translate-x-4" : ""
           }`}
         />

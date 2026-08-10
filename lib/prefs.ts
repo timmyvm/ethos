@@ -5,6 +5,8 @@
  * first paint without a round trip.
  */
 
+export type Theme = "system" | "light" | "dark";
+
 export interface Prefs {
   /** Local hour 0–23 for the one daily reminder, or null for off. */
   reminderHour: number | null;
@@ -16,6 +18,8 @@ export interface Prefs {
   frameStep: boolean;
   /** Honour prefers-reduced-motion overrides for the celebration. */
   reducedMotion: boolean;
+  /** Light, dark, or follow the OS. */
+  theme: Theme;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -26,6 +30,7 @@ export const DEFAULT_PREFS: Prefs = {
   verbatim: true,
   frameStep: false,
   reducedMotion: false,
+  theme: "system",
 };
 
 const KEY = "ethos.prefs";

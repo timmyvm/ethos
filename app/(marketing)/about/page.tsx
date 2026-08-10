@@ -40,30 +40,30 @@ export default function About() {
         60 seconds. No signup until you&apos;ve done one.
       </p>
 
-      <div className="relative mt-12 overflow-hidden rounded-[18px] border border-black/5 bg-white lift p-6">
+      <div className="relative mt-12 overflow-hidden rounded-[18px] border border-hairline bg-surface lift p-6">
         <h2 className="font-display text-[20px] font-bold">The daily loop</h2>
         <ol className="mt-3 space-y-3 text-[14.5px] leading-relaxed text-stone-600">
           <li>
-            <span className="font-semibold text-stone-800">One prompt.</span>{" "}
+            <span className="font-semibold text-ink">One prompt.</span>{" "}
             Impromptu, explain-it, argue-against-yourself. It changes daily.
           </li>
           <li>
-            <span className="font-semibold text-stone-800">
+            <span className="font-semibold text-ink">
               Sixty seconds.
             </span>{" "}
             You talk. That&apos;s the whole ask.
           </li>
           <li>
-            <span className="font-semibold text-stone-800">Hard numbers.</span>{" "}
+            <span className="font-semibold text-ink">Hard numbers.</span>{" "}
             Filler count with timestamps, words per minute, and a pause map
             that separates composure from panic.
           </li>
           <li>
-            <span className="font-semibold text-stone-800">One focus.</span>{" "}
+            <span className="font-semibold text-ink">One focus.</span>{" "}
             Not five. One thing for tomorrow, tied to a number.
           </li>
           <li>
-            <span className="font-semibold text-stone-800">One supply.</span>{" "}
+            <span className="font-semibold text-ink">One supply.</span>{" "}
             A better word, pulled from your own transcript. They collect into
             a lexicon that&apos;s actually yours.
           </li>

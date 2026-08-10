@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk, Space_Mono } from "next/font/google";
 import { Nav } from "@/components/Nav";
 import { ServiceWorker } from "@/components/ServiceWorker";
+import { ThemeSync, themeBootScript } from "@/components/Theme";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -39,13 +40,18 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Before paint, or a dark-mode user gets a white flash. */}
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+      </head>
       <body
         className={`${spaceGrotesk.variable} ${inter.variable} ${spaceMono.variable} antialiased`}
       >
         <div className="mx-auto min-h-dvh max-w-[430px]">{children}</div>
         <Nav />
         <ServiceWorker />
+        <ThemeSync />
       </body>
     </html>
   );

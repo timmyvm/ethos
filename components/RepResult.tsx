@@ -86,7 +86,7 @@ export function RepResult({
         /* Not a score of zero — no score. Saying "I don't know" over and
            over has no fillers and a fine pace; reporting those numbers as
            an achievement would be the app lying to you. */
-        <div className="mt-3 rounded-[18px] border border-black/5 bg-white lift p-5">
+        <div className="mt-3 rounded-[18px] border border-hairline bg-surface lift p-5">
           <div className="font-display text-[22px] font-bold leading-tight">
             Not enough to score.
           </div>
@@ -125,7 +125,7 @@ export function RepResult({
           alt="Demos"
           width={62}
           height={62}
-          className="w-[62px] rounded-[14px] border border-sand bg-white"
+          className="w-[62px] rounded-[14px] border border-sand bg-surface"
         />
         <div className="rounded-[14px] rounded-bl-[4px] bg-terracotta-50 px-4 py-3 text-sm leading-relaxed">
           <div className="label-data !text-terracotta-600 mb-0.5">Demos</div>
@@ -177,7 +177,7 @@ export function RepResult({
       </div>
 
       {coach?.supply && (
-        <div className="mt-4 rounded-[18px] border border-black/5 bg-white lift p-5">
+        <div className="mt-4 rounded-[18px] border border-hairline bg-surface lift p-5">
           <div className="label-data">Supply · one upgrade, yours to keep</div>
           <div className="mt-2.5 flex items-center gap-3 text-[15px]">
             <span className="text-stone-500 line-through">
@@ -195,7 +195,7 @@ export function RepResult({
       )}
 
       {m.fillers.length > 0 && (
-        <div className="mt-4 rounded-[18px] border border-black/5 bg-white lift p-5">
+        <div className="mt-4 rounded-[18px] border border-hairline bg-surface lift p-5">
           <div className="label-data">Every filler, with its timestamp</div>
           <div className="mt-2.5 flex flex-wrap gap-1.5">
             {m.fillers.map((f, i) => (
@@ -216,7 +216,7 @@ export function RepResult({
       {/* Open, not hidden behind a disclosure. Every score on this screen
           is a claim about these words — you should be able to read them
           without going looking. */}
-      <div className="mt-4 rounded-[18px] border border-black/5 bg-white lift px-5 py-4">
+      <div className="mt-4 rounded-[18px] border border-hairline bg-surface lift px-5 py-4">
         <div className="label-data">
           What you said · {m.substance?.wordCount ?? 0} words
         </div>
@@ -240,7 +240,7 @@ function Metric({
   amber?: boolean;
 }) {
   return (
-    <div className="flex-1 rounded-[18px] border border-black/5 bg-white lift p-3.5">
+    <div className="flex-1 rounded-[18px] border border-hairline bg-surface lift p-3.5">
       <div className="label-data">{label}</div>
       <div
         className={`font-display text-[26px] font-bold ${amber ? "text-amber-500" : ""}`}

@@ -25,7 +25,7 @@ export function Moment({
       className={`rounded-[18px] border p-4 ${
         amber
           ? "border-amber-500/25 bg-amber-50/50"
-          : "border-black/5 bg-white"
+          : "border-hairline bg-surface"
       }`}
     >
       <div

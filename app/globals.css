@@ -19,6 +19,21 @@
 
   --color-cream: #faf7f2;
   --color-sand: #f5f0e8;
+
+  /*
+   * Semantic surfaces. Everything paints through these three so a theme
+   * swap is a token change, not a rewrite:
+   *   ground  — the room
+   *   surface — cards sitting in it
+   *   ink     — text
+   * brand.md said dark mode comes after the loop retains; Timothy asked
+   * for it, so it ships behind an explicit toggle rather than as the
+   * default (DECISIONS #64).
+   */
+  --color-ground: #faf7f2;
+  --color-surface: #ffffff;
+  --color-ink: #292524;
+  --color-hairline: rgba(0, 0, 0, 0.06);
   /* "Stage dark" from the design direction — the surface the signature
    * moments sit on (pause bar, comparison card). Warm, never #000. */
   --color-stage: #1c1917;
@@ -33,9 +48,54 @@
 }
 
 body {
-  background: var(--color-cream);
-  color: var(--color-stone-800);
+  background: var(--color-ground);
+  color: var(--color-ink);
   font-family: var(--font-inter), sans-serif;
+}
+
+/*
+ * Dark. Still warm — no cool greys, no pure black (brand.md). Terracotta
+ * and amber are unchanged: they carry meaning (the one tap, and earned
+ * things), so they must read identically in both themes.
+ */
+:root[data-theme="dark"] {
+  --color-ground: #17130f;
+  --color-surface: #221c17;
+  --color-sand: #2c241d;
+  --color-stage: #100d0b;
+  --color-ink: #f0e9e1;
+  --color-hairline: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="dark"] .label-data {
+  color: #9b8e82;
+}
+
+/*
+ * Secondary text. The stone mid-tones are tuned for dark-on-cream; left
+ * alone they sit at roughly 2:1 against a dark ground, which is unreadable
+ * rather than merely subtle. Lifted to warm greys that keep the hierarchy
+ * (400 quietest → 700 loudest) while clearing contrast.
+ */
+:root[data-theme="dark"] {
+  --color-stone-300: #6b5f55;
+  --color-stone-400: #9c8f84;
+  --color-stone-500: #b3a79c;
+  --color-stone-600: #c9bdb2;
+  --color-stone-700: #ded4ca;
+}
+
+/* Grain is a light-mode trick; over a dark ground it reads as noise. */
+:root[data-theme="dark"] body::after {
+  opacity: 0.02;
+}
+
+/* Shadows do nothing on a dark ground — depth comes from the surface
+ * step instead, so the borders carry it. */
+:root[data-theme="dark"] .lift,
+:root[data-theme="dark"] .lift-hero {
+  box-shadow: none;
+  border-color: var(--color-hairline);
 }
 
 /* Data labels: Space Mono, uppercase, tracked out — the training-log register */

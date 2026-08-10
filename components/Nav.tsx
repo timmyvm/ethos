@@ -23,7 +23,7 @@ export function Nav() {
   if (BARE.some((b) => path === b || path.startsWith(`${b}/`))) return null;
 
   return (
-    <nav className="fixed bottom-0 left-1/2 z-20 w-full max-w-[430px] -translate-x-1/2 border-t border-sand bg-white">
+    <nav className="fixed bottom-0 left-1/2 z-20 w-full max-w-[430px] -translate-x-1/2 border-t border-sand bg-surface">
       <div className="flex">
         {TABS.map((t) => {
           const active = t.href === "/" ? path === "/" : path.startsWith(t.href);

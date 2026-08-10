@@ -39,7 +39,7 @@ export function StreakCelebration({
   return (
     <div
       onClick={onDone}
-      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-cream ${
+      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-ground ${
         calm ? "" : "transition-opacity duration-500"
       } ${leaving ? "opacity-0" : "opacity-100"}`}
     >

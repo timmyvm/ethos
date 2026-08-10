@@ -32,7 +32,7 @@ export function LexiconFlash({
   const last = i === cards.length - 1;
 
   return (
-    <div className="rounded-[18px] border border-black/5 bg-white lift p-5">
+    <div className="rounded-[18px] border border-hairline bg-surface lift p-5">
       <div className="flex items-baseline justify-between">
         <div className="label-data">Lexicon flash</div>
         <div className="label-data">
@@ -64,7 +64,7 @@ export function LexiconFlash({
               setI(i + 1);
               setShown(false);
             }}
-            className="press mt-4 w-full rounded-[14px] border border-black/10 bg-white px-4 py-3 text-[14px] font-semibold"
+            className="press mt-4 w-full rounded-[14px] border border-black/10 bg-surface px-4 py-3 text-[14px] font-semibold"
           >
             {last ? "Done" : "Next"}
           </button>

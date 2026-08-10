@@ -87,8 +87,8 @@ export function PathRail({
                         : step.stars > 0
                           ? "bg-amber-50 text-amber-600 ring-1 ring-amber-500/40"
                           : isCurrent
-                            ? "bg-white text-stone-700 ring-2 ring-terracotta-500"
-                            : "bg-white text-stone-300 ring-1 ring-black/5"
+                            ? "bg-surface text-stone-700 ring-2 ring-terracotta-500"
+                            : "bg-surface text-stone-300 ring-1 ring-black/5"
                 }`}
               >
                 {step.endowed

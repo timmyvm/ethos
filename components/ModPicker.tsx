@@ -45,7 +45,7 @@ export function ModPicker({
   const full = selected.length >= MAX_STACKED_MODS;
 
   return (
-    <div className="rounded-[18px] border border-black/5 bg-white lift p-5">
+    <div className="rounded-[18px] border border-hairline bg-surface lift p-5">
       <div className="flex items-baseline justify-between">
         <div className="label-data">Stress mods · optional</div>
         {multiplier > 1 && (
@@ -71,8 +71,8 @@ export function ModPicker({
                 on
                   ? "border-stone-900 bg-stone-900 text-cream"
                   : disabled
-                    ? "border-black/5 bg-white opacity-40"
-                    : "border-black/10 bg-white"
+                    ? "border-hairline bg-surface opacity-40"
+                    : "border-black/10 bg-surface"
               }`}
             >
               <span className="flex-1">

@@ -35,7 +35,7 @@ export default function PathPage() {
         Stars are earned by numbers, never by showing up.
       </p>
 
-      <div className="mt-4 flex items-center gap-3 rounded-[18px] border border-black/5 bg-white lift p-4">
+      <div className="mt-4 flex items-center gap-3 rounded-[18px] border border-hairline bg-surface lift p-4">
         <Stars n={3} size={17} />
         <div className="flex-1">
           <div className="h-1.5 overflow-hidden rounded-full bg-sand">
@@ -104,10 +104,10 @@ export default function PathPage() {
                   <Stars n={stars} />
                 </>
               );
-              const cls = `flex w-full items-center gap-3.5 rounded-[18px] border bg-white p-4 text-left ${
+              const cls = `flex w-full items-center gap-3.5 rounded-[18px] border bg-surface p-4 text-left ${
                 isNext
                   ? "border-terracotta-500 border-2"
-                  : "border-black/5"
+                  : "border-hairline"
               } ${u.locked && !u.boss ? "opacity-55" : ""}`;
 
               return locked ? (

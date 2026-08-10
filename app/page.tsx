@@ -93,6 +93,15 @@ export default function Home() {
 
   // Fresh-start framing beats the open loop on a landmark day; the rest
   // of the week, the unfinished lesson is the stronger pull (Zeigarnik).
+  const scored = history.filter((r) => r.ethos_index !== null);
+  const lastIndex = scored[scored.length - 1]?.ethos_index ?? null;
+  // Against the FIRST scored rep, not the previous one — the headline
+  // number on the home screen is the arc, not the last delta.
+  const indexDelta =
+    lastIndex !== null && scored.length > 1
+      ? lastIndex - (scored[0].ethos_index as number)
+      : null;
+
   const almost = nearMisses(milestones);
   // Priority: a milestone one rep away beats a landmark, which beats an
   // unfinished lesson. Exactly one of them reaches the screen.
@@ -111,23 +120,16 @@ export default function Home() {
 
   return (
     <main className="px-5 pb-24 pt-7">
-      {/* Brand lockup. Demos' head reads at this size (brand.md: ears +
-          mask + tail must survive 32px), and the mark earns the
-          wordmark a bit of weight it didn't have on its own. */}
+      {/* Wordmark only, for now. brand.md wants a head mark beside it —
+          ears and face mask reading at 32px — but the only Demos asset
+          we have is a full-body render, and shrinking it to 32px gives a
+          white tile with a sliver of face in it, which reads as a broken
+          image rather than a brand. Better nothing than that until the
+          real head mark lands. */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Image
-            src="/demos.webp"
-            alt=""
-            width={32}
-            height={32}
-            priority
-            className="h-8 w-8 shrink-0 object-contain"
-          />
-          <span className="font-display text-[22px] font-bold tracking-tight">
-            ethos
-          </span>
-        </div>
+        <span className="font-display text-[21px] font-bold tracking-[-0.03em]">
+          ethos
+        </span>
         <StreakBadge streak={streak} />
       </div>
 
@@ -163,17 +165,20 @@ export default function Home() {
         </div>
       )}
 
-      <div className="label-data mt-8">
+      <div className="label-data mt-7">
         {streak.didToday ? "Extra rep" : "Today's rep"} · {unitName}
       </div>
-      {/* The Floor. This is the one card that gets hero elevation and a
-          wider radius — the hierarchy has to be visible before it's
-          read, or every card reads as equally important. */}
-      <div className="relative mt-2.5 overflow-hidden rounded-[24px] border border-black/[0.06] bg-white p-6 pb-[4.5rem] lift-hero">
-        <h1 className="font-display max-w-[76%] text-[26px] font-bold leading-[1.12]">
+      {/*
+       * TIER 1 — The Floor (DECISIONS #9). It has to win the screen on
+       * size alone: a 32px title against 14.5px body and 11px labels is
+       * a real jump, where the old 26/15/13 scale was one grey mush and
+       * gave the eye nowhere to land first.
+       */}
+      <div className="relative mt-2.5 overflow-hidden rounded-[26px] border border-black/[0.06] bg-white p-6 pb-[4.75rem] lift-hero">
+        <h1 className="font-display max-w-[74%] text-[32px] font-bold leading-[1.06]">
           {drill.title}
         </h1>
-        <p className="mt-2.5 max-w-[70%] text-[14.5px] leading-relaxed text-stone-500">
+        <p className="mt-3 max-w-[68%] text-[14.5px] leading-relaxed text-stone-400">
           {drill.prompt}
         </p>
         <div className="relative z-10 mt-5">
@@ -196,9 +201,57 @@ export default function Home() {
         />
       </div>
 
-      {/* The path, directly under the floor. The rep card stays the one
-          dominant action (DECISIONS #9); this answers "where am I". */}
-      <div className="mt-6">
+      {/*
+       * TIER 2 — the score. "The score IS the brand" (DECISIONS #18) and
+       * brand.md sets the numbers as the hero, but this was a 26px stat
+       * card at the bottom, indistinguishable from rep count. It gets
+       * the second focal point: a different MATERIAL (stage dark against
+       * white and cream) so it pulls the eye without competing with the
+       * floor for first place, and it absorbs the three identical stat
+       * cards that used to sit here saying nothing in particular.
+       */}
+      {history.length > 0 && (
+        <section className="mt-5 rounded-[26px] bg-stage p-5 text-cream lift-stage">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="label-data !text-stone-500">Your Ethos</div>
+              <div className="mt-1 flex items-baseline gap-1.5">
+                <span className="font-display text-[56px] font-bold leading-[0.85]">
+                  {lastIndex ?? "—"}
+                </span>
+                <span className="text-[13px] text-stone-500">/1000</span>
+              </div>
+              {indexDelta !== null && indexDelta !== 0 && (
+                <div
+                  className={`mt-2 text-[12.5px] font-semibold ${
+                    indexDelta > 0 ? "text-amber-500" : "text-stone-400"
+                  }`}
+                >
+                  {indexDelta > 0 ? "▲ +" : "▼ "}
+                  {indexDelta} since your first rep
+                </div>
+              )}
+            </div>
+            <div className="shrink-0 space-y-2 text-right">
+              <div>
+                <div className="font-display text-[20px] font-bold leading-none">
+                  {history.length}
+                </div>
+                <div className="label-data !text-stone-500">reps</div>
+              </div>
+              <div>
+                <div className="font-display text-[20px] font-bold leading-none">
+                  {streak.longest}
+                </div>
+                <div className="label-data !text-stone-500">best</div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* TIER 3 — where am I. Quiet by design; it supports the floor. */}
+      <div className="mt-7">
         <PathRail starMap={starMap} hasAnyRep={history.length > 0} />
       </div>
 
@@ -224,24 +277,10 @@ export default function Home() {
         </div>
       )}
 
-      {history.length === 0 ? (
-        <p className="mt-5 text-center text-[13px] text-stone-500">
+      {history.length === 0 && (
+        <p className="mt-5 text-center text-[13px] text-stone-400">
           60–90 seconds. Pauses are allowed — they&apos;re scored in your favor.
         </p>
-      ) : (
-        <div className="mt-4 flex gap-3">
-          <Stat
-            label="Last Ethos"
-            value={history[history.length - 1]?.ethos_index?.toString() ?? "—"}
-            note="/1000"
-          />
-          <Stat label="Reps" value={String(history.length)} note="logged" />
-          <Stat
-            label="Best streak"
-            value={String(streak.longest)}
-            note="days"
-          />
-        </div>
       )}
 
       <div className="mt-6">
@@ -281,25 +320,5 @@ export default function Home() {
 
       {paywall && <Paywall reason={paywall} onClose={() => setPaywall(null)} />}
     </main>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  note,
-}: {
-  label: string;
-  value: string;
-  note: string;
-}) {
-  return (
-    <div className="flex-1 rounded-[18px] border border-black/5 bg-white lift p-3.5">
-      <div className="label-data">{label}</div>
-      <div className="font-display text-[26px] font-bold leading-tight">
-        {value}
-      </div>
-      <div className="text-[11.5px] text-stone-500">{note}</div>
-    </div>
   );
 }

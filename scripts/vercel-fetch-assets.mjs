@@ -1,33 +1,50 @@
-// Deploy bridge: file-upload deploys to Vercel can't carry the full tree
-// efficiently, so binary assets — and any source file missing from the
-// upload — are pulled from the project's public Supabase bucket at build
-// time. Files already present (git-linked deploys ship everything) are
-// never overwritten, so this is a no-op outside bridge deploys.
+// Deploy bridge. The MCP file-upload deploy path can't carry a full
+// Next.js tree (size limits, and binaries base64-inflate), so the
+// source bundle and brand assets are pulled from the project's public
+// Supabase bucket at build time.
+//
+// Anything already on disk wins — a git-linked deploy ships the real
+// tree and this becomes a no-op.
 import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { dirname } from "path";
 
 const BASE =
   "https://dthjdyitvieyufufkkly.supabase.co/storage/v1/object/public/brand";
 
-const FILES = [
-  ["public/demos.webp", "demos.webp"],
-  ["public/demos-speaking.webp", "demos-speaking.webp"],
-  ["public/icon-192.webp", "icon-192.webp"],
-  ["public/icon-512.webp", "icon-512.webp"],
-  ["public/apple-touch-icon.png", "apple-touch-icon.png"],
-  ["lib/coach.ts", "src/lib/coach.ts"],
-  ["app/rep/page.tsx", "src/app/rep/page.tsx"],
-  ["app/api/analyze/route.ts", "src/app/api/analyze/route.ts"],
-  ["components/PauseBar.tsx", "src/components/PauseBar.tsx"],
-  ["components/Stars.tsx", "src/components/Stars.tsx"],
-  ["components/DimensionList.tsx", "src/components/DimensionList.tsx"],
+const BINARIES = [
+  "demos.webp",
+  "demos-speaking.webp",
+  "demos-listening.webp",
+  "demos-celebrate.webp",
+  "demos-workout.webp",
+  "demos-asleep.webp",
+  "icon-192.webp",
+  "icon-512.webp",
+  "apple-touch-icon.png",
 ];
 
-for (const [local, remote] of FILES) {
-  if (existsSync(local)) continue;
-  const res = await fetch(`${BASE}/${remote}`);
-  if (!res.ok) throw new Error(`${remote}: HTTP ${res.status}`);
-  mkdirSync(dirname(local), { recursive: true });
-  writeFileSync(local, Buffer.from(await res.arrayBuffer()));
-  console.log("fetched", local);
+function write(path, data) {
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, data);
 }
+
+for (const name of BINARIES) {
+  const local = `public/${name}`;
+  if (existsSync(local)) continue;
+  const res = await fetch(`${BASE}/${name}`);
+  if (!res.ok) throw new Error(`${name}: HTTP ${res.status}`);
+  write(local, Buffer.from(await res.arrayBuffer()));
+  console.log("asset", local);
+}
+
+// Source bundle: { "app/page.tsx": "...", ... }
+const res = await fetch(`${BASE}/src-bundle.json`);
+if (!res.ok) throw new Error(`src-bundle: HTTP ${res.status}`);
+const bundle = await res.json();
+let restored = 0;
+for (const [path, contents] of Object.entries(bundle)) {
+  if (existsSync(path)) continue;
+  write(path, contents);
+  restored++;
+}
+console.log(`restored ${restored} source files from bundle`);

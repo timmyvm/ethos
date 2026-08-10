@@ -5,12 +5,24 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { RepResult } from "@/components/RepResult";
+import { StreakCelebration } from "@/components/StreakCelebration";
+import { fetchReps } from "@/lib/client-data";
+import { computeStreak } from "@/lib/streak";
 import { DRILLS, todaysDrill } from "@/lib/drills";
 import { ensureSession } from "@/lib/supabase-browser";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 
 const MAX_SECONDS = 90;
 const METER_BARS = 36;
+
+/** Haptics — opt-out lives in settings; silently absent on desktop. */
+function buzz(pattern: number | number[]) {
+  try {
+    const raw = localStorage.getItem("ethos.prefs");
+    if (raw && JSON.parse(raw).haptics === false) return;
+    navigator.vibrate?.(pattern);
+  } catch {}
+}
 
 type Phase = "idle" | "recording" | "analyzing" | "results" | "error";
 
@@ -32,6 +44,7 @@ function RepScreen() {
   const [levels, setLevels] = useState<number[]>(Array(METER_BARS).fill(0.05));
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [celebrate, setCelebrate] = useState<number | null>(null);
 
   const recRef = useRef<{
     recorder: MediaRecorder;
@@ -48,6 +61,7 @@ function RepScreen() {
   const stopRep = useCallback(async () => {
     const r = recRef.current;
     if (!r || phaseRef.current !== "recording") return;
+    buzz([20, 40, 20]);
     setPhase("analyzing");
 
     const blob = await new Promise<Blob>((resolve) => {
@@ -78,6 +92,14 @@ function RepScreen() {
       if (!res.ok) throw new Error(data.error ?? `Analysis failed (${res.status})`);
       setResult(data as AnalyzeResponse);
       setPhase("results");
+      // Streak is derived from stored reps, so read it back rather than
+      // guessing — a rep that failed to persist shouldn't celebrate.
+      fetchReps()
+        .then((reps) => {
+          const s = computeStreak(reps.map((r) => new Date(r.created_at)));
+          if (s.current > 0) setCelebrate(s.current);
+        })
+        .catch(() => {});
     } catch (e) {
       setError(e instanceof Error ? e.message : "Analysis failed.");
       setPhase("error");
@@ -127,6 +149,7 @@ function RepScreen() {
 
       recRef.current = { recorder, stream, ctx, raf: 0, chunks };
       recRef.current.raf = requestAnimationFrame(tick);
+      buzz(30);
       setPhase("recording");
     } catch {
       setError(
@@ -163,7 +186,19 @@ function RepScreen() {
     };
   }, []);
 
-  if (phase === "results" && result) return <Results result={result} />;
+  if (phase === "results" && result) {
+    return (
+      <>
+        <Results result={result} />
+        {celebrate !== null && (
+          <StreakCelebration
+            streak={celebrate}
+            onDone={() => setCelebrate(null)}
+          />
+        )}
+      </>
+    );
+  }
 
   return (
     <main className="flex min-h-dvh flex-col px-5 pb-8 pt-7">
@@ -179,7 +214,11 @@ function RepScreen() {
       <div className="flex flex-1 flex-col items-center justify-center gap-6">
         {phase === "recording" && (
           <>
-            <div className="font-display text-[54px] font-bold leading-none">
+            <div
+              className={`font-display text-[54px] font-bold leading-none ${
+                MAX_SECONDS - seconds <= 10 ? "text-terracotta-600" : ""
+              }`}
+            >
               {fmt(seconds)}
               <span className="font-body text-[15px] font-medium text-stone-500">
                 {" "}
@@ -205,6 +244,9 @@ function RepScreen() {
             </div>
             <p className="mt-2 text-sm text-stone-500">
               Transcribing, counting, measuring silence.
+            </p>
+            <p className="mt-1 text-[12.5px] text-stone-400">
+              Ten seconds or so. The numbers are computed, not guessed.
             </p>
           </div>
         )}

@@ -54,7 +54,7 @@ export function ComparisonCard({ reps }: { reps: RepRow[] }) {
   }
 
   return (
-    <div className="rounded-2xl bg-stone-900 p-5 text-cream">
+    <div className="rounded-2xl bg-stage p-5 text-cream lift-stage">
       <div className="label-data !text-stone-400">
         Day 1 → day {days} · your training log
       </div>

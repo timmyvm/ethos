@@ -35,7 +35,7 @@ export default function PathPage() {
         Stars are earned by numbers, never by showing up.
       </p>
 
-      <div className="mt-4 flex items-center gap-3 rounded-[18px] border border-black/5 bg-white p-4">
+      <div className="mt-4 flex items-center gap-3 rounded-[18px] border border-black/5 bg-white lift p-4">
         <Stars n={3} size={17} />
         <div className="flex-1">
           <div className="h-1.5 overflow-hidden rounded-full bg-sand">

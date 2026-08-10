@@ -93,7 +93,7 @@ export default function YouPage() {
         </Link>
       </div>
 
-      <div className="mt-4 rounded-[18px] border border-black/5 bg-white p-5">
+      <div className="mt-4 rounded-[18px] border border-black/5 bg-white lift p-5">
         <div className="flex items-center gap-4">
           <Image
             src="/demos-listening.webp"
@@ -139,7 +139,7 @@ export default function YouPage() {
 
       {/* Freezes — earned by streak, never bought (non-negotiable). */}
       <div className="label-data mt-7">Streak freezes</div>
-      <div className="mt-2 rounded-[18px] border border-black/5 bg-white p-5">
+      <div className="mt-2 rounded-[18px] border border-black/5 bg-white lift p-5">
         <div className="flex items-center gap-2">
           {Array.from({ length: MAX_EQUIPPED_FREEZES }).map((_, i) => (
             <span
@@ -177,7 +177,7 @@ export default function YouPage() {
 
       {/* Weekly league — the roster fills once there are other trainees. */}
       <div className="label-data mt-7">Weekly league</div>
-      <div className="mt-2 rounded-[18px] border border-black/5 bg-white p-5">
+      <div className="mt-2 rounded-[18px] border border-black/5 bg-white lift p-5">
         <div className="flex items-center justify-between">
           <div>
             <div className="text-[14.5px] font-semibold">Stone League</div>
@@ -211,7 +211,7 @@ export default function YouPage() {
             {lexicon.slice(0, FREE_LEXICON).map((l) => (
               <div
                 key={l.id}
-                className="flex items-center gap-3 rounded-[18px] border border-black/5 bg-white px-4 py-3 text-[14px]"
+                className="flex items-center gap-3 rounded-[18px] border border-black/5 bg-white lift px-4 py-3 text-[14px]"
               >
                 <span className="text-stone-500 line-through">
                   {l.original}
@@ -325,7 +325,7 @@ function Stat({
   note: string;
 }) {
   return (
-    <div className="flex-1 rounded-[18px] border border-black/5 bg-white p-3.5">
+    <div className="flex-1 rounded-[18px] border border-black/5 bg-white lift p-3.5">
       <div className="label-data">{label}</div>
       <div className="font-display text-[26px] font-bold leading-tight">
         {value}

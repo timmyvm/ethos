@@ -54,7 +54,7 @@ export function Paywall({
           </div>
           <span className="label-data !text-terracotta-600">save 55%</span>
         </div>
-        <div className="mt-2.5 flex items-center justify-between rounded-[18px] border border-black/5 bg-white p-4">
+        <div className="mt-2.5 flex items-center justify-between rounded-[18px] border border-black/5 bg-white lift p-4">
           <div>
             <div className="text-[15px] font-bold">Monthly</div>
             <div className="text-[12.5px] text-stone-500">A$14.99/mo</div>
@@ -63,7 +63,7 @@ export function Paywall({
 
         <button
           onClick={onClose}
-          className="mt-4 w-full rounded-[14px] bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream"
+          className="mt-4 w-full rounded-[14px] bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream press"
         >
           Start with annual
         </button>

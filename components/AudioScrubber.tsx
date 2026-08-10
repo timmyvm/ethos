@@ -60,7 +60,7 @@ export function AudioScrubber({
   const pct = (n: number) => (durationS > 0 ? (n / durationS) * 100 : 0);
 
   return (
-    <div className="rounded-[18px] border border-black/5 bg-white p-5">
+    <div className="rounded-[18px] border border-black/5 bg-white lift p-5">
       <div className="label-data">Hear it back</div>
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <audio ref={ref} src={src} preload="metadata" />

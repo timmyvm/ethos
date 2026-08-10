@@ -35,7 +35,7 @@ export default function HistoryPage() {
     return (
       <main className="px-5 pb-24 pt-7">
         <h1 className="font-display text-2xl font-bold">The log</h1>
-        <div className="mt-6 rounded-[18px] border border-black/5 bg-white p-6 text-center">
+        <div className="mt-6 rounded-[18px] border border-black/5 bg-white lift p-6 text-center">
           <Image
             src="/demos-asleep.webp"
             alt=""
@@ -92,7 +92,7 @@ export default function HistoryPage() {
             {insights(reps).map((i) => (
               <div
                 key={i.id}
-                className="rounded-[18px] border border-black/5 bg-white p-5"
+                className="rounded-[18px] border border-black/5 bg-white lift p-5"
               >
                 <div className="text-[14.5px] font-semibold">{i.headline}</div>
                 <p className="mt-1 text-[13px] leading-relaxed text-stone-500">
@@ -123,7 +123,7 @@ export default function HistoryPage() {
             <Link
               key={r.id}
               href={`/rep/${r.id}`}
-              className="flex items-center gap-3 rounded-[18px] border border-black/5 bg-white p-4"
+              className="flex items-center gap-3 rounded-[18px] border border-black/5 bg-white lift p-4"
             >
               <div className="w-[52px] shrink-0">
                 <div className="label-data !text-stone-400">

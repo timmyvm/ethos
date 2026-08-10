@@ -37,7 +37,7 @@ export function PauseBar({
   if (durationS > cursor) speech(durationS - cursor);
 
   return (
-    <div className="rounded-2xl bg-stone-900 px-4 pb-3.5 pt-4">
+    <div className="rounded-2xl bg-stage px-4 pb-3.5 pt-4 lift-stage">
       <div className="label-data !text-stone-400">
         Pause bar · amber = silence you held
       </div>

@@ -123,7 +123,7 @@ export default function SettingsPage() {
       <h1 className="font-display mt-4 text-2xl font-bold">Settings</h1>
 
       <div className="label-data mt-7">Daily reminder</div>
-      <div className="mt-2 rounded-[18px] border border-black/5 bg-white p-5">
+      <div className="mt-2 rounded-[18px] border border-black/5 bg-white lift p-5">
         <p className="text-[13px] leading-relaxed text-stone-500">
           One notification a day, maximum. It names the streak, never
           scolds you for missing it.
@@ -178,7 +178,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="label-data mt-7">The rep</div>
-      <div className="mt-2 divide-y divide-sand rounded-[18px] border border-black/5 bg-white">
+      <div className="mt-2 divide-y divide-sand rounded-[18px] border border-black/5 bg-white lift">
         <Toggle
           label="Frame step"
           note="30 seconds of think-time before the clock starts. Trains deciding before speaking."
@@ -206,7 +206,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="label-data mt-7">Account</div>
-      <div className="mt-2 rounded-[18px] border border-black/5 bg-white p-5">
+      <div className="mt-2 rounded-[18px] border border-black/5 bg-white lift p-5">
         <div className="text-[14px] font-semibold">
           {email ?? "Anonymous — this device only"}
         </div>

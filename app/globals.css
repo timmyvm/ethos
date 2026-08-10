@@ -19,6 +19,9 @@
 
   --color-cream: #faf7f2;
   --color-sand: #f5f0e8;
+  /* "Stage dark" from the design direction — the surface the signature
+   * moments sit on (pause bar, comparison card). Warm, never #000. */
+  --color-stage: #1c1917;
 }
 
 /* Font tokens reference next/font variables (scoped to <body>), so they
@@ -42,4 +45,83 @@ body {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-stone-500);
+}
+
+/*
+ * Numbers are the brand (brand.md). At display sizes Space Grotesk's
+ * default tracking reads loose and web-default; pulling it in and
+ * setting tabular figures makes a metric look struck rather than typed,
+ * and stops the streak count jittering as digits change.
+ */
+.font-display {
+  letter-spacing: -0.022em;
+  /*
+   * No tnum. Tabular figures are the obvious choice for a metric that
+   * changes ("11" shouldn't reflow to "12"), but Space Grotesk's tnum
+   * gives "1" a narrower advance than the glyph actually occupies, so
+   * consecutive ones overlap — 11, 1189 and 111 all render as mush.
+   * Verified by A/B on the live element at 4x. Its proportional figures
+   * are near-uniform in width anyway, so the jitter this would have
+   * prevented is not visible in practice.
+   */
+}
+
+/*
+ * Elevation. The direction bans gradients and glassmorphism, so depth
+ * comes from a warm-tinted shadow over cream — a gray shadow on a warm
+ * background is the exact thing that reads "unstyled Tailwind".
+ * Two tiers only: the one thing you're meant to touch, and everything
+ * else holding the room.
+ */
+.lift {
+  box-shadow:
+    0 1px 2px rgba(70, 45, 30, 0.04),
+    0 4px 12px rgba(70, 45, 30, 0.05);
+}
+
+.lift-hero {
+  box-shadow:
+    0 2px 4px rgba(70, 45, 30, 0.05),
+    0 12px 28px -6px rgba(70, 45, 30, 0.12),
+    0 1px 0 rgba(255, 255, 255, 0.6) inset;
+}
+
+.lift-stage {
+  box-shadow:
+    0 2px 6px rgba(28, 25, 23, 0.16),
+    0 16px 32px -8px rgba(28, 25, 23, 0.28);
+}
+
+/*
+ * Paper grain. Two per-cent of noise over the whole app is the
+ * difference between "warm room" and "flat #FAF7F2". Fixed, inert, and
+ * invisible to pointer events.
+ */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Press feedback — a tap should feel like it landed. */
+@media (hover: none) {
+  .press:active {
+    transform: scale(0.985);
+  }
+}
+.press {
+  transition:
+    transform 120ms ease,
+    background-color 120ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .press,
+  .press:active {
+    transform: none;
+  }
 }

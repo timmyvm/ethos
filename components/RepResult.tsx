@@ -158,7 +158,7 @@ export function RepResult({
       </div>
 
       {coach?.supply && (
-        <div className="mt-4 rounded-[18px] border border-black/5 bg-white p-5">
+        <div className="mt-4 rounded-[18px] border border-black/5 bg-white lift p-5">
           <div className="label-data">Supply · one upgrade, yours to keep</div>
           <div className="mt-2.5 flex items-center gap-3 text-[15px]">
             <span className="text-stone-500 line-through">
@@ -176,7 +176,7 @@ export function RepResult({
       )}
 
       {m.fillers.length > 0 && (
-        <div className="mt-4 rounded-[18px] border border-black/5 bg-white p-5">
+        <div className="mt-4 rounded-[18px] border border-black/5 bg-white lift p-5">
           <div className="label-data">Every filler, with its timestamp</div>
           <div className="mt-2.5 flex flex-wrap gap-1.5">
             {m.fillers.map((f, i) => (
@@ -194,7 +194,7 @@ export function RepResult({
         </div>
       )}
 
-      <details className="mt-4 rounded-[18px] border border-black/5 bg-white px-5 py-4">
+      <details className="mt-4 rounded-[18px] border border-black/5 bg-white lift px-5 py-4">
         <summary className="label-data cursor-pointer select-none">
           Transcript
         </summary>
@@ -218,7 +218,7 @@ function Metric({
   amber?: boolean;
 }) {
   return (
-    <div className="flex-1 rounded-[18px] border border-black/5 bg-white p-3.5">
+    <div className="flex-1 rounded-[18px] border border-black/5 bg-white lift p-3.5">
       <div className="label-data">{label}</div>
       <div
         className={`font-display text-[26px] font-bold ${amber ? "text-amber-500" : ""}`}

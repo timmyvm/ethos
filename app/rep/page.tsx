@@ -535,7 +535,7 @@ function RepScreen() {
         )}
 
         {phase === "error" && (
-          <div className="w-full rounded-[18px] border border-black/5 bg-white p-5 text-center">
+          <div className="w-full rounded-[18px] border border-black/5 bg-white lift p-5 text-center">
             <div className="font-semibold">Rep didn&apos;t score.</div>
             <p className="mt-1.5 text-sm text-stone-500">{error}</p>
           </div>
@@ -568,7 +568,7 @@ function RepScreen() {
 
       {interruption && (
         <div className="pointer-events-none fixed inset-x-0 bottom-24 z-40 flex justify-center px-5">
-          <div className="flex max-w-[340px] items-center gap-3 rounded-[18px] bg-stone-900 px-4 py-3 text-cream shadow-lg">
+          <div className="flex max-w-[340px] items-center gap-3 rounded-[18px] bg-stage px-4 py-3 text-cream lift-stage">
             <Image
               src="/demos-speaking.webp"
               alt=""
@@ -632,7 +632,7 @@ function Results({
 
       <Link
         href="/"
-        className="mt-5 block w-full rounded-[14px] bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-cream transition-colors hover:bg-terracotta-600"
+        className="mt-5 block w-full rounded-[14px] bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-cream transition-colors hover:bg-terracotta-600 press"
       >
         Done — same time tomorrow
       </Link>

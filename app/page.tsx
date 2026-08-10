@@ -93,18 +93,41 @@ export default function Home() {
 
   // Fresh-start framing beats the open loop on a landmark day; the rest
   // of the week, the unfinished lesson is the stronger pull (Zeigarnik).
-  const banner =
-    freshStart() ??
-    openLoop(
-      starMap,
-      UNITS.flatMap((u) => u.lessons)
-    );
   const almost = nearMisses(milestones);
+  // Priority: a milestone one rep away beats a landmark, which beats an
+  // unfinished lesson. Exactly one of them reaches the screen.
+  const topMoment =
+    almost.length > 0 && !streak.didToday
+      ? {
+          headline: `${almost[0].label} — ${almost[0].remainingLabel}`,
+          detail: `${almost[0].detail}. One rep could do it.`,
+          tone: "amber" as const,
+        }
+      : (freshStart() ??
+        openLoop(
+          starMap,
+          UNITS.flatMap((u) => u.lessons)
+        ));
 
   return (
     <main className="px-5 pb-24 pt-7">
+      {/* Brand lockup. Demos' head reads at this size (brand.md: ears +
+          mask + tail must survive 32px), and the mark earns the
+          wordmark a bit of weight it didn't have on its own. */}
       <div className="flex items-center justify-between">
-        <div className="font-display text-[22px] font-bold">ethos</div>
+        <div className="flex items-center gap-2">
+          <Image
+            src="/demos.webp"
+            alt=""
+            width={32}
+            height={32}
+            priority
+            className="h-8 w-8 shrink-0 object-contain"
+          />
+          <span className="font-display text-[22px] font-bold tracking-tight">
+            ethos
+          </span>
+        </div>
         <StreakBadge streak={streak} />
       </div>
 
@@ -121,50 +144,55 @@ export default function Home() {
         </div>
       )}
 
-      {almost.length > 0 && !streak.didToday && (
-        <div className="mt-4">
-          <Moment
-            moment={{
-              headline: `${almost[0].label} — ${almost[0].remainingLabel}`,
-              detail: `${almost[0].detail}. One rep could do it.`,
-              tone: "amber",
-            }}
-            emphasis
-          />
-        </div>
-      )}
-
-      {banner && history.length > 0 && (
-        <div className="mt-4">
-          <Moment moment={banner} />
+      {/* ONE moment above the floor, never two.
+          brand.md bans orange as decoration — scarcity is what makes the
+          terracotta tap command the screen, and two amber-filled cards
+          stacked over the CTA is exactly the wash it warns about. The
+          near-miss wins when there is one; otherwise the landmark or the
+          open loop. It renders as a quiet rule-and-text line, not a
+          filled card, so the only filled colour on this screen is the
+          button. */}
+      {topMoment && history.length > 0 && (
+        <div className="mt-5 border-l-2 border-amber-500 pl-3.5">
+          <div className="font-display text-[15px] font-bold leading-tight">
+            {topMoment.headline}
+          </div>
+          <div className="mt-0.5 text-[12.5px] leading-relaxed text-stone-500">
+            {topMoment.detail}
+          </div>
         </div>
       )}
 
       <div className="label-data mt-8">
         {streak.didToday ? "Extra rep" : "Today's rep"} · {unitName}
       </div>
-      <div className="relative mt-2.5 overflow-hidden rounded-[18px] border border-black/5 bg-white p-5 pb-16">
-        <h1 className="font-display max-w-[78%] text-[22px] font-bold leading-tight">
+      {/* The Floor. This is the one card that gets hero elevation and a
+          wider radius — the hierarchy has to be visible before it's
+          read, or every card reads as equally important. */}
+      <div className="relative mt-2.5 overflow-hidden rounded-[24px] border border-black/[0.06] bg-white p-6 pb-[4.5rem] lift-hero">
+        <h1 className="font-display max-w-[76%] text-[26px] font-bold leading-[1.12]">
           {drill.title}
         </h1>
-        <p className="mt-2.5 max-w-[72%] text-[14.5px] leading-relaxed text-stone-500">
+        <p className="mt-2.5 max-w-[70%] text-[14.5px] leading-relaxed text-stone-500">
           {drill.prompt}
         </p>
-        <div className="relative z-10 mt-4">
+        <div className="relative z-10 mt-5">
           <Link
             href={repHref({ lesson: next?.lesson.id, mods })}
-            className="block w-full rounded-[14px] bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-cream transition-colors hover:bg-terracotta-600"
+            className="press block w-full rounded-[15px] bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
           >
             {streak.didToday ? "Go again" : "Take the floor"}
           </Link>
         </div>
+        {/* Demos peeks in at the corner rather than being cropped
+            through the middle — he's at a moment, not furniture. */}
         <Image
           src={streak.didToday ? "/demos-celebrate.webp" : "/demos.webp"}
-          alt="Demos"
+          alt=""
           width={150}
           height={150}
           priority
-          className="pointer-events-none absolute -bottom-9 -right-7 w-[150px]"
+          className="pointer-events-none absolute -bottom-5 -right-4 w-[128px] opacity-95"
         />
       </div>
 
@@ -266,7 +294,7 @@ function Stat({
   note: string;
 }) {
   return (
-    <div className="flex-1 rounded-[18px] border border-black/5 bg-white p-3.5">
+    <div className="flex-1 rounded-[18px] border border-black/5 bg-white lift p-3.5">
       <div className="label-data">{label}</div>
       <div className="font-display text-[26px] font-bold leading-tight">
         {value}

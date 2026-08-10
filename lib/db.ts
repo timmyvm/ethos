@@ -6,6 +6,7 @@
  */
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { AccuracyResult } from "./accuracy";
 import type { CoachOutput } from "./coach";
 import type { Tier1Scores, Tier2Anchors } from "./index-score";
 import type { RepMetrics } from "./metrics";
@@ -46,6 +47,21 @@ export async function previousEthosIndex(
   return (data?.ethos_index as number | undefined) ?? null;
 }
 
+/** Entitlement gate. No processor yet — one boolean, one place. */
+export async function isPremium(userId: string | null): Promise<boolean> {
+  if (!userId) return false;
+  const db = supabaseAdmin();
+  if (!db) return false;
+  const { data } = await db
+    .from("profiles")
+    .select("premium, premium_until")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!data?.premium) return false;
+  const until = data.premium_until as string | null;
+  return !until || new Date(until) > new Date();
+}
+
 /** XP is the effort currency (DECISIONS #16) — logged from day one. */
 const XP_PER_REP = 10;
 
@@ -66,6 +82,11 @@ export async function saveRep(params: {
   whisperRaw?: unknown;
   userId?: string;
   lessonId?: string;
+  mode?: "daily" | "boss";
+  mods?: string[];
+  xpMultiplier?: number;
+  bossTopicId?: string | null;
+  accuracy?: AccuracyResult | null;
 }): Promise<SavedRep | null> {
   const db = supabaseAdmin();
   if (!db) return null;
@@ -103,6 +124,11 @@ export async function saveRep(params: {
       },
       audio_path: audioPath,
       whisper_raw: params.whisperRaw ?? null,
+      mode: params.mode ?? "daily",
+      mods: params.mods ?? [],
+      xp_multiplier: params.xpMultiplier ?? 1,
+      boss_topic_id: params.bossTopicId ?? null,
+      accuracy: params.accuracy ?? null,
     })
     .select("id")
     .single();
@@ -120,10 +146,18 @@ export async function saveRep(params: {
   }
 
   if (params.userId) {
+    // Difficulty multiplies EFFORT credit only. Stars and the Index are
+    // untouched by mods (DECISIONS #10, #16).
+    const multiplier = params.xpMultiplier ?? 1;
     await db.from("xp_events").insert({
       user_id: params.userId,
-      amount: XP_PER_REP,
-      source: "rep",
+      amount: Math.max(1, Math.round(XP_PER_REP * multiplier)),
+      source:
+        params.mode === "boss"
+          ? "boss"
+          : (params.mods?.length ?? 0) > 0
+            ? "mod"
+            : "rep",
       rep_id: data.id,
     });
   }

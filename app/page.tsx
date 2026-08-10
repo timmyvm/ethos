@@ -4,24 +4,61 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ComparisonCard } from "@/components/ComparisonCard";
+import { ModPicker } from "@/components/ModPicker";
+import { Paywall } from "@/components/Paywall";
 import { StreakBadge } from "@/components/StreakBadge";
-import { fetchReps, type RepRow } from "@/lib/client-data";
+import { fetchProfile, fetchReps, type RepRow } from "@/lib/client-data";
 import { todaysDrill } from "@/lib/drills";
+import { syncFreezes } from "@/lib/freeze-sync";
 import { nextLesson, starsByLesson } from "@/lib/path";
+import { repHref } from "@/lib/rep-config";
+import { armReminder } from "@/lib/reminders";
 import { computeStreak, type StreakState } from "@/lib/streak";
+
+const EMPTY: StreakState = {
+  current: 0,
+  longest: 0,
+  atRisk: false,
+  didToday: false,
+  frozenInRun: 0,
+};
 
 // "The Floor" (DECISIONS #9) — one dominant rep card, one terracotta tap.
 export default function Home() {
   const [reps, setReps] = useState<RepRow[] | null>(null);
+  const [streak, setStreak] = useState<StreakState>(EMPTY);
+  const [rescued, setRescued] = useState(0);
+  const [premium, setPremium] = useState(false);
+  const [mods, setMods] = useState<string[]>([]);
+  const [showMods, setShowMods] = useState(false);
+  const [paywall, setPaywall] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchReps().then(setReps).catch(() => setReps([]));
+    fetchProfile()
+      .then((p) => setPremium(p?.premium ?? false))
+      .catch(() => {});
+
+    fetchReps()
+      .then(async (rows) => {
+        setReps(rows);
+        const dates = rows.map((r) => new Date(r.created_at));
+        // Optimistic: show the unfrozen streak immediately, then
+        // reconcile freezes (which may involve a write).
+        setStreak(computeStreak(dates));
+        try {
+          const sync = await syncFreezes(dates);
+          setStreak(sync.streak);
+          setRescued(sync.rescued.length);
+          void armReminder({
+            streak: sync.streak.current,
+            didToday: sync.streak.didToday,
+          });
+        } catch {}
+      })
+      .catch(() => setReps([]));
   }, []);
 
   const history = reps ?? [];
-  const streak: StreakState = computeStreak(
-    history.map((r) => new Date(r.created_at))
-  );
   const starMap = starsByLesson(history);
   const next = nextLesson(starMap);
   // The path decides what to train; the daily rotation is the fallback
@@ -39,6 +76,19 @@ export default function Home() {
         <StreakBadge streak={streak} />
       </div>
 
+      {rescued > 0 && (
+        <div className="mt-4 rounded-[18px] border border-amber-500/30 bg-white px-4 py-3 text-[13px] leading-relaxed">
+          <span className="font-semibold">
+            A freeze covered {rescued === 1 ? "a day" : `${rescued} days`} you
+            missed.
+          </span>{" "}
+          <span className="text-stone-500">
+            The streak held. It didn&apos;t grow — you only count days you
+            spoke.
+          </span>
+        </div>
+      )}
+
       <div className="label-data mt-8">
         {streak.didToday ? "Extra rep" : "Today's rep"} · {unitName}
       </div>
@@ -51,7 +101,7 @@ export default function Home() {
         </p>
         <div className="relative z-10 mt-4">
           <Link
-            href="/rep"
+            href={repHref({ lesson: next?.lesson.id, mods })}
             className="block w-full rounded-[14px] bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-cream transition-colors hover:bg-terracotta-600"
           >
             {streak.didToday ? "Go again" : "Take the floor"}
@@ -67,6 +117,28 @@ export default function Home() {
         />
       </div>
 
+      <button
+        onClick={() => setShowMods((v) => !v)}
+        className="mt-3 text-[13px] font-semibold text-stone-500"
+      >
+        {showMods
+          ? "Hide mods"
+          : mods.length > 0
+            ? `${mods.length} mod${mods.length === 1 ? "" : "s"} on · edit`
+            : "Make it harder"}
+      </button>
+
+      {showMods && (
+        <div className="mt-2">
+          <ModPicker
+            selected={mods}
+            onChange={setMods}
+            premium={premium}
+            onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
+          />
+        </div>
+      )}
+
       {history.length === 0 ? (
         <p className="mt-5 text-center text-[13px] text-stone-500">
           60–90 seconds. Pauses are allowed — they&apos;re scored in your favor.
@@ -75,16 +147,10 @@ export default function Home() {
         <div className="mt-4 flex gap-3">
           <Stat
             label="Last Ethos"
-            value={
-              history[history.length - 1]?.ethos_index?.toString() ?? "—"
-            }
+            value={history[history.length - 1]?.ethos_index?.toString() ?? "—"}
             note="/1000"
           />
-          <Stat
-            label="Reps"
-            value={String(history.length)}
-            note={history.length === 1 ? "logged" : "logged"}
-          />
+          <Stat label="Reps" value={String(history.length)} note="logged" />
           <Stat
             label="Best streak"
             value={String(streak.longest)}
@@ -112,14 +178,19 @@ export default function Home() {
         />
         <span className="flex-1">
           <span className="block text-[14.5px] font-semibold">
-            Sunday boss: Cold Topic
+            This week&apos;s boss: Cold Topic
           </span>
           <span className="block text-[12.5px] text-stone-500">
-            A topic you&apos;ve never studied. 4 min research, 90s to explain.
+            A topic you&apos;ve never studied. 4 min research, 90s to explain,
+            fact-checked.
           </span>
         </span>
-        <span className="text-[13px]">🔒</span>
+        <span className="text-[13px] text-stone-400" aria-hidden>
+          →
+        </span>
       </Link>
+
+      {paywall && <Paywall reason={paywall} onClose={() => setPaywall(null)} />}
     </main>
   );
 }

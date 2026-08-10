@@ -12,8 +12,15 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { judgeAccuracy, type AccuracyResult } from "@/lib/accuracy";
 import { coachRep, tier2Scores, type CoachOutput } from "@/lib/coach";
-import { getUserFromAuthHeader, previousEthosIndex, saveRep } from "@/lib/db";
+import { COLD_TOPICS } from "@/lib/cold-topics";
+import {
+  getUserFromAuthHeader,
+  isPremium,
+  previousEthosIndex,
+  saveRep,
+} from "@/lib/db";
 import {
   ethosIndex,
   tier1Scores,
@@ -22,6 +29,8 @@ import {
   type Tier2Anchors,
 } from "@/lib/index-score";
 import { computeMetrics, type RepMetrics } from "@/lib/metrics";
+import { BOSS_XP_BASE } from "@/lib/rep-config";
+import { modIds, parseMods, xpMultiplier } from "@/lib/stress-mods";
 import { transcribe } from "@/lib/transcribe";
 
 export const runtime = "nodejs";
@@ -36,6 +45,10 @@ export interface AnalyzeResponse {
   ethosIndex: number | null;
   previousIndex: number | null;
   repId: string | null;
+  accuracy: AccuracyResult | null;
+  mode: "daily" | "boss";
+  mods: string[];
+  xpMultiplier: number;
 }
 
 export async function POST(req: NextRequest) {
@@ -71,6 +84,18 @@ export async function POST(req: NextRequest) {
     req.headers.get("authorization")
   ).catch(() => null);
 
+  // The client sends what it *ran*; the multiplier is recomputed here
+  // from the mods this account is actually entitled to. A hand-edited
+  // URL or a forged form field can change the difficulty of your rep,
+  // never the XP it pays.
+  const premium = await isPremium(userId).catch(() => false);
+  const mods = parseMods(form.get("mods") as string | null, { premium });
+  const bossTopic =
+    COLD_TOPICS.find((t) => t.id === (form.get("bossTopicId") as string)) ??
+    null;
+  const mode: "daily" | "boss" = bossTopic ? "boss" : "daily";
+  const multiplier = xpMultiplier(mods, bossTopic ? BOSS_XP_BASE : 1);
+
   let transcription;
   try {
     transcription = await transcribe(audio, filename);
@@ -93,13 +118,20 @@ export async function POST(req: NextRequest) {
 
   // Coach layer is best-effort — never blocks the numbers. A near-silent
   // rep has nothing to coach or judge; skip the call instead of burning it.
+  // Boss reps additionally get fact-checked; the two calls are
+  // independent so a failed check still returns full coaching.
   let coach: CoachOutput | null = null;
+  let accuracy: AccuracyResult | null = null;
   if (metrics.wordCount >= 5) {
-    try {
-      coach = await coachRep(transcription.text, metrics, tier1, anchors);
-    } catch {
-      coach = null;
-    }
+    const [coachResult, accuracyResult] = await Promise.allSettled([
+      coachRep(transcription.text, metrics, tier1, anchors),
+      bossTopic
+        ? judgeAccuracy(transcription.text, bossTopic)
+        : Promise.resolve(null),
+    ]);
+    coach = coachResult.status === "fulfilled" ? coachResult.value : null;
+    accuracy =
+      accuracyResult.status === "fulfilled" ? accuracyResult.value : null;
   }
 
   const index = ethosIndex(tier1, coach ? tier2Scores(coach) : null);
@@ -122,6 +154,11 @@ export async function POST(req: NextRequest) {
       whisperRaw: transcription.raw,
       userId: userId ?? undefined,
       lessonId: (form.get("lessonId") as string) || undefined,
+      mode,
+      mods: modIds(mods),
+      xpMultiplier: multiplier,
+      bossTopicId: bossTopic?.id ?? null,
+      accuracy,
     });
     repId = saved?.id ?? null;
   } catch {
@@ -137,6 +174,10 @@ export async function POST(req: NextRequest) {
     ethosIndex: index,
     previousIndex,
     repId,
+    accuracy,
+    mode,
+    mods: modIds(mods),
+    xpMultiplier: multiplier,
   };
   return NextResponse.json(body);
 }

@@ -10,10 +10,17 @@ vi.mock("@/lib/db", () => ({
   saveRep: vi.fn(async () => null),
   getUserFromAuthHeader: vi.fn(async () => null),
   previousEthosIndex: vi.fn(async () => null),
+  isPremium: vi.fn(async () => false),
+}));
+vi.mock("@/lib/accuracy", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/accuracy")>()),
+  judgeAccuracy: vi.fn(async () => null),
 }));
 
 import { POST } from "@/app/api/analyze/route";
+import { judgeAccuracy } from "@/lib/accuracy";
 import { coachRep } from "@/lib/coach";
+import { saveRep } from "@/lib/db";
 import { transcribe } from "@/lib/transcribe";
 
 function post(form: FormData | null): Promise<Response> {
@@ -52,6 +59,9 @@ const FIXTURE = {
 beforeEach(() => {
   vi.mocked(transcribe).mockReset();
   vi.mocked(coachRep).mockReset();
+  vi.mocked(judgeAccuracy).mockReset();
+  vi.mocked(judgeAccuracy).mockResolvedValue(null);
+  vi.mocked(saveRep).mockClear();
 });
 
 describe("POST /api/analyze", () => {
@@ -116,5 +126,60 @@ describe("POST /api/analyze", () => {
     expect(body.coach).toBeNull();
     expect(body.ethosIndex).toBeNull();
     expect(body.tier1.pause).toBeGreaterThan(0);
+  });
+
+  it("recomputes the XP multiplier server-side and ignores the client's", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(coachRep).mockResolvedValue(null);
+    const form = audioForm();
+    // A forged form: premium mods this anonymous rep isn't entitled to,
+    // plus a multiplier the client made up.
+    form.append("mods", "tight,crowd,interrupt");
+    form.append("xpMultiplier", "9");
+    const body = await (await post(form)).json();
+    expect(body.mods).toEqual([]);
+    expect(body.xpMultiplier).toBe(1);
+    expect(body.mode).toBe("daily");
+  });
+
+  it("fact-checks a boss rep and pays the boss multiplier", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(coachRep).mockResolvedValue(null);
+    vi.mocked(judgeAccuracy).mockResolvedValue({
+      claims: [],
+      covered: [0],
+      score: 25,
+      coverage: 0.25,
+      confidentlyWrong: 0,
+      missed: [],
+    });
+    const form = audioForm();
+    form.append("bossTopicId", "crispr");
+    const body = await (await post(form)).json();
+    expect(body.mode).toBe("boss");
+    expect(body.xpMultiplier).toBe(1.5);
+    expect(body.accuracy.score).toBe(25);
+    expect(vi.mocked(judgeAccuracy).mock.calls[0][1].id).toBe("crispr");
+  });
+
+  it("does not fact-check a daily rep", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(coachRep).mockResolvedValue(null);
+    const body = await (await post(audioForm())).json();
+    expect(judgeAccuracy).not.toHaveBeenCalled();
+    expect(body.accuracy).toBeNull();
+  });
+
+  it("survives a fact-check failure without losing the rep", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(coachRep).mockResolvedValue(null);
+    vi.mocked(judgeAccuracy).mockRejectedValue(new Error("api down"));
+    const form = audioForm();
+    form.append("bossTopicId", "crispr");
+    const res = await post(form);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.accuracy).toBeNull();
+    expect(body.metrics.fillerCount).toBe(1);
   });
 });

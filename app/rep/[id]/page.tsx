@@ -6,6 +6,8 @@ import { AudioScrubber } from "@/components/AudioScrubber";
 import { RepResult, type ResultView } from "@/components/RepResult";
 import { fetchRep, repAudioUrl, type RepRow } from "@/lib/client-data";
 import { computeMetrics } from "@/lib/metrics";
+import { topicFromLessonId } from "@/lib/rep-config";
+import { modById } from "@/lib/stress-mods";
 
 /** One rep from the log, rebuilt from its stored row. */
 export default function RepDetail({
@@ -83,9 +85,11 @@ export default function RepDetail({
         : null,
     ethosIndex: rep.ethos_index,
     previousIndex: null,
+    accuracy: rep.accuracy,
   };
 
   const d = new Date(rep.created_at);
+  const topic = topicFromLessonId(rep.lesson_id);
 
   return (
     <main className="px-5 pb-24 pt-7">
@@ -98,8 +102,22 @@ export default function RepDetail({
           day: "numeric",
           month: "long",
         })}
+        {rep.mode === "boss" && " · boss"}
       </div>
-      <RepResult result={view} />
+      {rep.mods?.length > 0 && (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {rep.mods.map((id) => (
+            <span
+              key={id}
+              className="rounded-full bg-stone-900 px-2.5 py-1 text-[11.5px] font-semibold text-cream"
+            >
+              {modById(id)?.name ?? id}
+            </span>
+          ))}
+          <span className="label-data">×{rep.xp_multiplier} XP</span>
+        </div>
+      )}
+      <RepResult result={view} topic={topic} />
       {audio && (
         <div className="mt-4">
           <AudioScrubber

@@ -2,43 +2,44 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { fetchLexicon, fetchReps } from "@/lib/client-data";
+import {
+  DEFAULT_PREFS,
+  readPrefs,
+  writePrefs,
+  type Prefs,
+} from "@/lib/prefs";
+import {
+  armReminder,
+  cancelReminder,
+  nextFireTime,
+  reminderTier,
+  reminderTierNote,
+  type ReminderTier,
+} from "@/lib/reminders";
+import { computeStreak } from "@/lib/streak";
 import { supabaseBrowser } from "@/lib/supabase-browser";
-
-interface Prefs {
-  reminderHour: number | null;
-  quietFrom: number;
-  quietTo: number;
-  haptics: boolean;
-  verbatim: boolean;
-}
-
-const DEFAULTS: Prefs = {
-  reminderHour: null,
-  quietFrom: 22,
-  quietTo: 7,
-  haptics: true,
-  verbatim: true,
-};
-
-const KEY = "ethos.prefs";
 
 /**
  * Settings. mechanics.md notification rules are enforced here, not left
  * to copy: one reminder a day maximum, quiet hours default 10pm–7am,
  * and the reminder text is coach register — loss-aversion is allowed,
  * guilt is not.
+ *
+ * The reminder card states which scheduling tier the browser actually
+ * gives us. A reminder that silently never fires is worse than none.
  */
 export default function SettingsPage() {
-  const [prefs, setPrefs] = useState<Prefs>(DEFAULTS);
+  const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
   const [perm, setPerm] = useState<string>("default");
+  const [tier, setTier] = useState<ReminderTier>("unsupported");
   const [email, setEmail] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) setPrefs({ ...DEFAULTS, ...JSON.parse(raw) });
-    } catch {}
+    setPrefs(readPrefs());
     if (typeof Notification !== "undefined") setPerm(Notification.permission);
+    setTier(reminderTier());
     supabaseBrowser()
       ?.auth.getUser()
       .then(({ data }) => setEmail(data.user?.email ?? null))
@@ -46,11 +47,25 @@ export default function SettingsPage() {
   }, []);
 
   function update(patch: Partial<Prefs>) {
-    const next = { ...prefs, ...patch };
-    setPrefs(next);
-    try {
-      localStorage.setItem(KEY, JSON.stringify(next));
-    } catch {}
+    setPrefs(writePrefs(patch));
+  }
+
+  async function setHour(h: number | null) {
+    update({ reminderHour: h });
+    if (h === null) {
+      cancelReminder();
+      return;
+    }
+    if (typeof Notification !== "undefined" && Notification.permission !== "granted") {
+      return;
+    }
+    await rearm();
+  }
+
+  async function rearm() {
+    const reps = await fetchReps().catch(() => []);
+    const s = computeStreak(reps.map((r) => new Date(r.created_at)));
+    await armReminder({ streak: s.current, didToday: s.didToday });
   }
 
   async function askPermission() {
@@ -61,8 +76,44 @@ export default function SettingsPage() {
       new Notification("Ethos", {
         body: "That's the reminder. One a day, never more.",
       });
+      await rearm();
     }
   }
+
+  /**
+   * Everything the app knows about you, as one JSON file. No account
+   * needed to leave with your own data.
+   */
+  async function exportData() {
+    setExporting(true);
+    try {
+      const [reps, lexicon] = await Promise.all([
+        fetchReps(1000).catch(() => []),
+        fetchLexicon(1000).catch(() => []),
+      ]);
+      const blob = new Blob(
+        [
+          JSON.stringify(
+            { exportedAt: new Date().toISOString(), reps, lexicon },
+            null,
+            2
+          ),
+        ],
+        { type: "application/json" }
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ethos-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  const fireAt =
+    prefs.reminderHour !== null ? nextFireTime(prefs.reminderHour, new Date(), prefs) : null;
 
   return (
     <main className="px-5 pb-24 pt-7">
@@ -81,7 +132,7 @@ export default function SettingsPage() {
           {[null, 7, 8, 12, 18, 20, 21].map((h) => (
             <button
               key={String(h)}
-              onClick={() => update({ reminderHour: h })}
+              onClick={() => void setHour(h)}
               className={`rounded-full px-3.5 py-2 text-[13px] font-semibold ${
                 prefs.reminderHour === h
                   ? "bg-terracotta-500 text-cream"
@@ -92,9 +143,10 @@ export default function SettingsPage() {
             </button>
           ))}
         </div>
+
         {prefs.reminderHour !== null && perm !== "granted" && (
           <button
-            onClick={askPermission}
+            onClick={() => void askPermission()}
             className="mt-3 w-full rounded-[14px] border border-terracotta-200 bg-terracotta-50 px-4 py-3 text-[13.5px] font-semibold"
           >
             {perm === "denied"
@@ -102,6 +154,22 @@ export default function SettingsPage() {
               : "Allow notifications"}
           </button>
         )}
+
+        {prefs.reminderHour !== null && perm === "granted" && (
+          <div className="mt-3 rounded-[14px] bg-sand px-4 py-3 text-[12.5px] leading-relaxed text-stone-600">
+            <span className="font-semibold">
+              {fireAt
+                ? `Next: ${fireAt.toLocaleString(undefined, {
+                    weekday: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}.`
+                : "That hour falls inside your quiet hours — nothing will fire."}
+            </span>{" "}
+            {reminderTierNote(tier)}
+          </div>
+        )}
+
         <div className="mt-3 border-t border-sand pt-3 text-[12.5px] text-stone-500">
           Quiet hours {String(prefs.quietFrom).padStart(2, "0")}:00 –{" "}
           {String(prefs.quietTo).padStart(2, "0")}:00. Nothing fires inside
@@ -111,6 +179,12 @@ export default function SettingsPage() {
 
       <div className="label-data mt-7">The rep</div>
       <div className="mt-2 divide-y divide-sand rounded-[18px] border border-black/5 bg-white">
+        <Toggle
+          label="Frame step"
+          note="30 seconds of think-time before the clock starts. Trains deciding before speaking."
+          on={prefs.frameStep}
+          onChange={(v) => update({ frameStep: v })}
+        />
         <Toggle
           label="Haptics"
           note="A tap when recording starts and stops."
@@ -123,6 +197,12 @@ export default function SettingsPage() {
           on={prefs.verbatim}
           onChange={(v) => update({ verbatim: v })}
         />
+        <Toggle
+          label="Reduced motion"
+          note="Skip the streak celebration animation. Your OS setting is honoured either way."
+          on={prefs.reducedMotion}
+          onChange={(v) => update({ reducedMotion: v })}
+        />
       </div>
 
       <div className="label-data mt-7">Account</div>
@@ -134,6 +214,16 @@ export default function SettingsPage() {
           {email
             ? "Your reps follow this email anywhere."
             : "Add an email on the You screen and your reps follow you anywhere."}
+        </p>
+        <button
+          onClick={() => void exportData()}
+          disabled={exporting}
+          className="mt-3 w-full rounded-[14px] border border-black/10 px-4 py-3 text-[13.5px] font-semibold disabled:opacity-50"
+        >
+          {exporting ? "Building your file…" : "Export everything as JSON"}
+        </button>
+        <p className="mt-1.5 text-[11.5px] text-stone-400">
+          Every rep, transcript, score and lexicon entry. Yours to take.
         </p>
       </div>
 

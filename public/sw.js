@@ -4,13 +4,15 @@
  * /api/analyze is never cached — a rep that can't reach the engine
  * should fail honestly rather than return stale numbers.
  */
-const CACHE = "ethos-v1";
+const CACHE = "ethos-v2";
 
 const SHELL = [
   "/",
   "/path",
   "/history",
   "/you",
+  "/boss",
+  "/settings",
   "/demos.webp",
   "/demos-speaking.webp",
   "/demos-listening.webp",
@@ -38,6 +40,28 @@ self.addEventListener("activate", (e) => {
         Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
       )
       .then(() => self.clients.claim())
+  );
+});
+
+/**
+ * A tapped reminder goes straight to the rep — the notification exists
+ * to start one, so it can't land on a menu.
+ */
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || "/rep";
+  e.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((list) => {
+        for (const client of list) {
+          if ("focus" in client) {
+            if ("navigate" in client) client.navigate(url);
+            return client.focus();
+          }
+        }
+        return self.clients.openWindow(url);
+      })
   );
 });
 

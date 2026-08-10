@@ -20,6 +20,11 @@ function rep(over: Partial<RepRow> = {}): RepRow {
     ethos_index: 600,
     audio_path: null,
     dimensions: null,
+    mode: "daily",
+    mods: [],
+    xp_multiplier: 1,
+    boss_topic_id: null,
+    accuracy: null,
     ...over,
   };
 }

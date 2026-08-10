@@ -13,11 +13,24 @@ import {
   type LexiconRow,
   type RepRow,
 } from "@/lib/client-data";
+import { syncFreezes } from "@/lib/freeze-sync";
 import { levelFromXp } from "@/lib/level";
-import { computeStreak } from "@/lib/streak";
+import {
+  computeStreak,
+  MAX_EQUIPPED_FREEZES,
+  type StreakState,
+} from "@/lib/streak";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 
 const FREE_LEXICON = 3; // free tier gets today's swap, not the archive
+
+const EMPTY_STREAK: StreakState = {
+  current: 0,
+  longest: 0,
+  atRisk: false,
+  didToday: false,
+  frozenInRun: 0,
+};
 
 export default function YouPage() {
   const [reps, setReps] = useState<RepRow[]>([]);
@@ -27,9 +40,25 @@ export default function YouPage() {
   const [paywall, setPaywall] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const [streak, setStreak] = useState<StreakState>(EMPTY_STREAK);
+  const [freezes, setFreezes] = useState({ equipped: 0, used: 0 });
 
   useEffect(() => {
-    fetchReps().then(setReps).catch(() => {});
+    fetchReps()
+      .then(async (rows) => {
+        setReps(rows);
+        const dates = rows.map((r) => new Date(r.created_at));
+        setStreak(computeStreak(dates));
+        try {
+          const sync = await syncFreezes(dates);
+          setStreak(sync.streak);
+          setFreezes({
+            equipped: sync.equipped,
+            used: sync.frozenDays.length,
+          });
+        } catch {}
+      })
+      .catch(() => {});
     fetchLexicon().then(setLexicon).catch(() => {});
     fetchXp().then(setXp).catch(() => {});
     const db = supabaseBrowser();
@@ -40,7 +69,7 @@ export default function YouPage() {
   }, []);
 
   const level = levelFromXp(xp.total);
-  const streak = computeStreak(reps.map((r) => new Date(r.created_at)));
+  const toNextFreeze = 7 - (streak.longest % 7);
 
   // "Save your progress" gate — appears only after there IS progress
   // (DECISIONS #15: never before the first rep).
@@ -106,6 +135,44 @@ export default function YouPage() {
         <Stat label="Streak" value={String(streak.current)} note="days" />
         <Stat label="Longest" value={String(streak.longest)} note="days" />
         <Stat label="This week" value={String(xp.week)} note="xp" />
+      </div>
+
+      {/* Freezes — earned by streak, never bought (non-negotiable). */}
+      <div className="label-data mt-7">Streak freezes</div>
+      <div className="mt-2 rounded-[18px] border border-black/5 bg-white p-5">
+        <div className="flex items-center gap-2">
+          {Array.from({ length: MAX_EQUIPPED_FREEZES }).map((_, i) => (
+            <span
+              key={i}
+              className={`flex h-9 w-9 items-center justify-center rounded-full text-[15px] ${
+                i < freezes.equipped
+                  ? "bg-amber-50 text-amber-500"
+                  : "bg-sand text-stone-300"
+              }`}
+              aria-label={i < freezes.equipped ? "freeze ready" : "empty slot"}
+            >
+              ❄
+            </span>
+          ))}
+          <div className="ml-2 flex-1 text-[13px] leading-relaxed text-stone-500">
+            {freezes.equipped > 0
+              ? "Miss a day and one of these covers it automatically."
+              : `${toNextFreeze} more consecutive day${toNextFreeze === 1 ? "" : "s"} earns one.`}
+          </div>
+        </div>
+        <p className="mt-3 border-t border-sand pt-3 text-[12.5px] leading-relaxed text-stone-500">
+          One freeze per full week of streak, two maximum. Earned by
+          speaking, never bought — and a frozen day keeps your streak
+          without counting toward it.
+          {freezes.used > 0 && (
+            <>
+              {" "}
+              <span className="text-stone-600">
+                {freezes.used} spent so far.
+              </span>
+            </>
+          )}
+        </p>
       </div>
 
       {/* Weekly league — the roster fills once there are other trainees. */}

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { computeStreak } from "./streak";
+import {
+  computeStreak,
+  freezeBalance,
+  freezesEarned,
+  rescuableDays,
+} from "./streak";
 import { levelFromXp, weekStart, xpForLevel } from "./level";
 
 const d = (y: number, m: number, day: number, h = 12) =>
@@ -12,6 +17,7 @@ describe("computeStreak", () => {
       longest: 0,
       atRisk: false,
       didToday: false,
+      frozenInRun: 0,
     });
   });
 
@@ -54,6 +60,68 @@ describe("computeStreak", () => {
     );
     expect(s.longest).toBe(4);
     expect(s.current).toBe(2);
+  });
+});
+
+describe("freezes", () => {
+  it("bridges a missed day without counting it", () => {
+    // Reps Mon/Tue/Thu, Wednesday frozen.
+    const s = computeStreak(
+      [d(2026, 8, 3), d(2026, 8, 4), d(2026, 8, 6)],
+      d(2026, 8, 6, 20),
+      [d(2026, 8, 5)]
+    );
+    expect(s.current).toBe(3); // three days SPOKEN
+    expect(s.frozenInRun).toBe(1);
+    expect(s.didToday).toBe(true);
+  });
+
+  it("does not let a freeze alone claim today", () => {
+    const s = computeStreak(
+      [d(2026, 8, 3), d(2026, 8, 4)],
+      d(2026, 8, 5, 20),
+      [d(2026, 8, 5)]
+    );
+    expect(s.didToday).toBe(false);
+    expect(s.atRisk).toBe(true);
+  });
+
+  it("still breaks when the gap is wider than the freezes held", () => {
+    const s = computeStreak(
+      [d(2026, 8, 3), d(2026, 8, 4)],
+      d(2026, 8, 9),
+      [d(2026, 8, 5)]
+    );
+    expect(s.current).toBe(0);
+  });
+
+  it("offers yesterday to a freeze, never today", () => {
+    // Last rep Friday, now Sunday → Saturday is rescuable.
+    const days = rescuableDays([d(2026, 8, 7)], [], 2, d(2026, 8, 9, 10));
+    expect(days).toHaveLength(1);
+    expect(days[0].getDate()).toBe(8);
+  });
+
+  it("refuses to half-bridge a gap it cannot close", () => {
+    // Three days missed, one freeze — spending it would waste it.
+    expect(rescuableDays([d(2026, 8, 4)], [], 1, d(2026, 8, 8))).toEqual([]);
+  });
+
+  it("has nothing to rescue while the streak is merely at risk", () => {
+    expect(rescuableDays([d(2026, 8, 8)], [], 2, d(2026, 8, 9))).toEqual([]);
+  });
+
+  it("earns one freeze per full week, capped at two", () => {
+    expect(freezesEarned(6)).toBe(0);
+    expect(freezesEarned(7)).toBe(1);
+    expect(freezesEarned(20)).toBe(2);
+    expect(freezesEarned(200)).toBe(2);
+  });
+
+  it("derives the balance from earned minus spent", () => {
+    expect(freezeBalance(14, 0)).toBe(2);
+    expect(freezeBalance(14, 1)).toBe(1);
+    expect(freezeBalance(7, 3)).toBe(0);
   });
 });
 

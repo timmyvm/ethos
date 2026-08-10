@@ -3,28 +3,43 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { RepResult } from "@/components/RepResult";
 import { StreakCelebration } from "@/components/StreakCelebration";
-import { fetchReps } from "@/lib/client-data";
-import { computeStreak } from "@/lib/streak";
-import { DRILLS, todaysDrill } from "@/lib/drills";
+import { fetchProfile, fetchReps } from "@/lib/client-data";
+import { startCrowdNoise, type CrowdNoise } from "@/lib/crowd-noise";
+import { syncFreezes } from "@/lib/freeze-sync";
+import { buzz, readPrefs } from "@/lib/prefs";
+import { resolveRepConfig, type RepConfig } from "@/lib/rep-config";
 import { ensureSession } from "@/lib/supabase-browser";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 
-const MAX_SECONDS = 90;
 const METER_BARS = 36;
+const FRAME_SECONDS = 30;
 
-/** Haptics — opt-out lives in settings; silently absent on desktop. */
-function buzz(pattern: number | number[]) {
-  try {
-    const raw = localStorage.getItem("ethos.prefs");
-    if (raw && JSON.parse(raw).haptics === false) return;
-    navigator.vibrate?.(pattern);
-  } catch {}
-}
+/** Demos' one interruption. Short, specific, never insulting. */
+const INTERRUPTIONS = [
+  "So what?",
+  "Says who?",
+  "Give me an example.",
+  "Why does that matter?",
+  "Get to the point.",
+];
 
-type Phase = "idle" | "recording" | "analyzing" | "results" | "error";
+type Phase =
+  | "idle"
+  | "frame"
+  | "recording"
+  | "analyzing"
+  | "results"
+  | "error";
 
 export default function RepPage() {
   return (
@@ -36,15 +51,35 @@ export default function RepPage() {
 
 function RepScreen() {
   const searchParams = useSearchParams();
-  // The path can request a specific lesson; otherwise the daily rotation.
-  const lessonId = searchParams.get("lesson");
-  const drill = DRILLS.find((d) => d.id === lessonId) ?? todaysDrill();
+  const [premium, setPremium] = useState(false);
+
+  useEffect(() => {
+    fetchProfile()
+      .then((p) => setPremium(p?.premium ?? false))
+      .catch(() => {});
+  }, []);
+
+  // The path can request a lesson, the boss screen a topic, and either
+  // can stack stress mods. One resolver answers all of it.
+  const config = useMemo(
+    () =>
+      resolveRepConfig({
+        lesson: searchParams.get("lesson"),
+        boss: searchParams.get("boss"),
+        mods: searchParams.get("mods"),
+        premium,
+      }),
+    [searchParams, premium]
+  );
+
   const [phase, setPhase] = useState<Phase>("idle");
   const [seconds, setSeconds] = useState(0);
+  const [frameLeft, setFrameLeft] = useState(FRAME_SECONDS);
   const [levels, setLevels] = useState<number[]>(Array(METER_BARS).fill(0.05));
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [celebrate, setCelebrate] = useState<number | null>(null);
+  const [interruption, setInterruption] = useState<string | null>(null);
 
   const recRef = useRef<{
     recorder: MediaRecorder;
@@ -52,17 +87,32 @@ function RepScreen() {
     ctx: AudioContext;
     raf: number;
     chunks: Blob[];
+    crowd: CrowdNoise | null;
+    interruptTimer: ReturnType<typeof setTimeout> | null;
   } | null>(null);
   const phaseRef = useRef<Phase>("idle");
   phaseRef.current = phase;
-  const drillRef = useRef(drill);
-  drillRef.current = drill;
+  const configRef = useRef<RepConfig>(config);
+  configRef.current = config;
+
+  const teardown = useCallback(() => {
+    const r = recRef.current;
+    if (!r) return;
+    cancelAnimationFrame(r.raf);
+    if (r.interruptTimer) clearTimeout(r.interruptTimer);
+    r.crowd?.stop();
+    r.stream.getTracks().forEach((t) => t.stop());
+    // The context outlives the fade-out of the crowd bed by design.
+    setTimeout(() => void r.ctx.close().catch(() => {}), 400);
+    recRef.current = null;
+  }, []);
 
   const stopRep = useCallback(async () => {
     const r = recRef.current;
     if (!r || phaseRef.current !== "recording") return;
     buzz([20, 40, 20]);
     setPhase("analyzing");
+    setInterruption(null);
 
     const blob = await new Promise<Blob>((resolve) => {
       r.recorder.onstop = () =>
@@ -70,16 +120,18 @@ function RepScreen() {
       r.recorder.stop();
     });
 
-    cancelAnimationFrame(r.raf);
-    r.stream.getTracks().forEach((t) => t.stop());
-    void r.ctx.close().catch(() => {});
-    recRef.current = null;
+    const cfg = configRef.current;
+    teardown();
 
     try {
       const form = new FormData();
       const ext = blob.type.includes("mp4") ? "mp4" : "webm";
       form.append("audio", blob, `rep.${ext}`);
-      form.append("lessonId", drillRef.current.id);
+      form.append("lessonId", cfg.lessonId);
+      form.append("mode", cfg.kind);
+      form.append("mods", cfg.mods.map((m) => m.id).join(","));
+      form.append("xpMultiplier", String(cfg.xpMultiplier));
+      if (cfg.topic) form.append("bossTopicId", cfg.topic.id);
       // Anonymous-first (DECISIONS #15): attribute the rep if a session
       // exists or can be minted; never block the rep on auth.
       const token = await ensureSession();
@@ -89,26 +141,30 @@ function RepScreen() {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? `Analysis failed (${res.status})`);
+      if (!res.ok)
+        throw new Error(data.error ?? `Analysis failed (${res.status})`);
       setResult(data as AnalyzeResponse);
       setPhase("results");
       // Streak is derived from stored reps, so read it back rather than
       // guessing — a rep that failed to persist shouldn't celebrate.
       fetchReps()
-        .then((reps) => {
-          const s = computeStreak(reps.map((r) => new Date(r.created_at)));
-          if (s.current > 0) setCelebrate(s.current);
+        .then(async (reps) => {
+          const { streak } = await syncFreezes(
+            reps.map((x) => new Date(x.created_at))
+          );
+          if (streak.current > 0) setCelebrate(streak.current);
         })
         .catch(() => {});
     } catch (e) {
       setError(e instanceof Error ? e.message : "Analysis failed.");
       setPhase("error");
     }
-  }, []);
+  }, [teardown]);
 
   const startRep = useCallback(async () => {
     setError(null);
     setSeconds(0);
+    const cfg = configRef.current;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
@@ -147,29 +203,78 @@ function RepScreen() {
         }
       };
 
-      recRef.current = { recorder, stream, ctx, raf: 0, chunks };
+      const crowd = cfg.crowdNoise ? startCrowdNoise(ctx) : null;
+
+      recRef.current = {
+        recorder,
+        stream,
+        ctx,
+        raf: 0,
+        chunks,
+        crowd,
+        interruptTimer: null,
+      };
       recRef.current.raf = requestAnimationFrame(tick);
+
+      if (cfg.interrupt) {
+        // Somewhere in the middle third — early enough to recover from,
+        // late enough that you're committed to a thread.
+        const at = Math.round(cfg.maxSeconds * (0.4 + Math.random() * 0.2));
+        recRef.current.interruptTimer = setTimeout(() => {
+          if (phaseRef.current !== "recording") return;
+          setInterruption(
+            INTERRUPTIONS[Math.floor(Math.random() * INTERRUPTIONS.length)]
+          );
+          buzz([40, 60, 40]);
+          setTimeout(() => setInterruption(null), 2600);
+        }, at * 1000);
+      }
+
       buzz(30);
       setPhase("recording");
     } catch {
-      setError(
-        "Mic unavailable. Check browser permissions and try again."
-      );
+      setError("Mic unavailable. Check browser permissions and try again.");
       setPhase("error");
     }
   }, []);
 
-  // Timer + 90s hard cap
+  /** Frame step (DECISIONS #35): opt-in think time before the clock. */
+  const begin = useCallback(() => {
+    if (readPrefs().frameStep) {
+      setFrameLeft(FRAME_SECONDS);
+      setPhase("frame");
+    } else {
+      void startRep();
+    }
+  }, [startRep]);
+
+  // Frame countdown
+  useEffect(() => {
+    if (phase !== "frame") return;
+    const t = setInterval(() => {
+      setFrameLeft((s) => {
+        if (s <= 1) {
+          setPhase("idle");
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+  }, [phase]);
+
+  // Timer + hard cap (90s, or 45s with the tight-timer mod)
   useEffect(() => {
     if (phase !== "recording") return;
+    const cap = config.maxSeconds;
     const t = setInterval(() => {
       setSeconds((s) => {
-        if (s + 1 >= MAX_SECONDS) void stopRep();
+        if (s + 1 >= cap) void stopRep();
         return s + 1;
       });
     }, 1000);
     return () => clearInterval(t);
-  }, [phase, stopRep]);
+  }, [phase, stopRep, config.maxSeconds]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -180,6 +285,8 @@ function RepScreen() {
           r.recorder.stop();
         } catch {}
         cancelAnimationFrame(r.raf);
+        if (r.interruptTimer) clearTimeout(r.interruptTimer);
+        r.crowd?.stop();
         r.stream.getTracks().forEach((t) => t.stop());
         void r.ctx.close().catch(() => {});
       }
@@ -189,7 +296,7 @@ function RepScreen() {
   if (phase === "results" && result) {
     return (
       <>
-        <Results result={result} />
+        <Results result={result} config={config} />
         {celebrate !== null && (
           <StreakCelebration
             streak={celebrate}
@@ -200,29 +307,73 @@ function RepScreen() {
     );
   }
 
+  const capLabel = fmt(config.maxSeconds);
+  const promptHidden = config.hidePrompt && phase !== "idle";
+
   return (
     <main className="flex min-h-dvh flex-col px-5 pb-8 pt-7">
-      <Link href="/" className="self-start text-sm text-stone-500">
+      <Link href={config.kind === "boss" ? "/boss" : "/"} className="self-start text-sm text-stone-500">
         ← back
       </Link>
-      <div className="label-data mt-6">{drill.unit}</div>
-      <h1 className="font-display mt-1.5 text-2xl font-bold">{drill.title}</h1>
-      <p className="mt-2.5 text-[15px] leading-relaxed text-stone-500">
-        {drill.prompt}
-      </p>
+      <div className="label-data mt-6">{config.unit}</div>
+      <h1 className="font-display mt-1.5 text-2xl font-bold">{config.title}</h1>
+
+      {promptHidden ? (
+        <p className="mt-2.5 text-[15px] italic leading-relaxed text-stone-400">
+          Prompt hidden — that&apos;s the mod.
+        </p>
+      ) : (
+        <p className="mt-2.5 text-[15px] leading-relaxed text-stone-500">
+          {config.prompt}
+        </p>
+      )}
+
+      {config.mods.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          {config.mods.map((m) => (
+            <span
+              key={m.id}
+              className="rounded-full bg-stone-900 px-2.5 py-1 text-[11.5px] font-semibold text-cream"
+            >
+              {m.name}
+            </span>
+          ))}
+          <span className="label-data">×{config.xpMultiplier} XP</span>
+        </div>
+      )}
+
+      {config.crowdNoise && phase === "idle" && (
+        <p className="mt-2 text-[12.5px] text-stone-500">
+          Headphones on — through speakers the café bleeds into your mic and
+          the transcript stops being yours.
+        </p>
+      )}
 
       <div className="flex flex-1 flex-col items-center justify-center gap-6">
+        {phase === "frame" && (
+          <div className="text-center">
+            <div className="font-display text-[54px] font-bold leading-none">
+              {frameLeft}
+            </div>
+            <div className="label-data mt-1">seconds to think</div>
+            <p className="mt-3 max-w-[280px] text-[13.5px] leading-relaxed text-stone-500">
+              Decide your first sentence and your last one. The middle
+              takes care of itself.
+            </p>
+          </div>
+        )}
+
         {phase === "recording" && (
           <>
             <div
               className={`font-display text-[54px] font-bold leading-none ${
-                MAX_SECONDS - seconds <= 10 ? "text-terracotta-600" : ""
+                config.maxSeconds - seconds <= 10 ? "text-terracotta-600" : ""
               }`}
             >
               {fmt(seconds)}
               <span className="font-body text-[15px] font-medium text-stone-500">
                 {" "}
-                / 1:30
+                / {capLabel}
               </span>
             </div>
             <div className="flex h-12 items-end gap-[3px]" aria-hidden>
@@ -243,7 +394,9 @@ function RepScreen() {
               Scoring the rep…
             </div>
             <p className="mt-2 text-sm text-stone-500">
-              Transcribing, counting, measuring silence.
+              {config.kind === "boss"
+                ? "Transcribing, measuring, checking your claims."
+                : "Transcribing, counting, measuring silence."}
             </p>
             <p className="mt-1 text-[12.5px] text-stone-400">
               Ten seconds or so. The numbers are computed, not guessed.
@@ -263,8 +416,9 @@ function RepScreen() {
 
         {phase === "idle" && (
           <p className="max-w-[260px] text-center text-[13.5px] text-stone-500">
-            Aim for 60–90 seconds. Pauses are allowed — they&apos;re scored in
-            your favor.
+            {config.maxSeconds < 60
+              ? `${config.maxSeconds} seconds. Pauses still score in your favor — spend them deliberately.`
+              : "Aim for 60–90 seconds. Pauses are allowed — they're scored in your favor."}
           </p>
         )}
 
@@ -275,9 +429,11 @@ function RepScreen() {
           </div>
         )}
 
-        {phase !== "analyzing" && (
+        {phase !== "analyzing" && phase !== "frame" && (
           <button
-            onClick={phase === "recording" ? () => void stopRep() : () => void startRep()}
+            onClick={
+              phase === "recording" ? () => void stopRep() : () => begin()
+            }
             className={`h-24 w-24 rounded-full text-[15px] font-bold text-cream transition-colors ${
               phase === "recording"
                 ? "bg-stone-900 ring-[10px] ring-terracotta-100"
@@ -287,7 +443,33 @@ function RepScreen() {
             {phase === "recording" ? "Stop" : "Rec"}
           </button>
         )}
+
+        {phase === "frame" && (
+          <button
+            onClick={() => void startRep()}
+            className="rounded-[14px] border border-black/10 bg-white px-6 py-3.5 text-[15px] font-semibold"
+          >
+            I&apos;m ready
+          </button>
+        )}
       </div>
+
+      {interruption && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-24 z-40 flex justify-center px-5">
+          <div className="flex max-w-[340px] items-center gap-3 rounded-[18px] bg-stone-900 px-4 py-3 text-cream shadow-lg">
+            <Image
+              src="/demos-speaking.webp"
+              alt=""
+              width={36}
+              height={36}
+              className="w-9 shrink-0"
+            />
+            <span className="font-display text-[17px] font-bold">
+              {interruption}
+            </span>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
@@ -298,11 +480,19 @@ function fmt(s: number) {
 
 // Results — the shared view, so a fresh rep and a logged rep are
 // literally the same screen.
-function Results({ result }: { result: AnalyzeResponse }) {
+function Results({
+  result,
+  config,
+}: {
+  result: AnalyzeResponse;
+  config: RepConfig;
+}) {
   return (
     <main className="px-5 pb-10 pt-7">
-      <div className="label-data">Rep complete</div>
-      <RepResult result={result} />
+      <div className="label-data">
+        {config.kind === "boss" ? "Boss complete" : "Rep complete"}
+      </div>
+      <RepResult result={result} topic={config.topic} />
       <Link
         href="/"
         className="mt-6 block w-full rounded-[14px] bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-cream transition-colors hover:bg-terracotta-600"

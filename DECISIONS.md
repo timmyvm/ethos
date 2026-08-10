@@ -41,6 +41,15 @@ Locked means locked. Reopen only with user data or Timothy's explicit call.
 33. 2026-08-09 · Service worker caches shell + assets; /api/analyze and Supabase never cached · a rep that can't reach the engine fails honestly rather than showing stale numbers
 34. 2026-08-09 · One celebration moment per rep (streak count, amber, ~2s, dismissible) · Demos celebrates there and nowhere else in the loop
 
+35. 2026-08-10 · "Frame" step ships as an opt-in setting, 30s, OFF by default · moved up from the open queue; trains think-before-speak without taxing the ≤5-min loop for people who don't want it
+36. 2026-08-10 · Boss: free gets this week's Cold Topic once; premium unlocks the library (any topic, any time) · keeps DECISIONS #13's intent — premium buys depth and repeats, not the first taste; a locked button nobody can press is not a monetisation strategy
+37. 2026-08-10 · Stress mods multiply XP, never stars · corrects the original stress-mods note, which contradicted #10 and #16 — difficulty buys effort credit, quality stays measured
+38. 2026-08-10 · Freezes are EARNED (one per full week of streak, 2 max), auto-spend on the gap, and bridge a day without counting toward the streak · money never buys streaks; a frozen day protected you, it didn't train you
+39. 2026-08-10 · A freeze is only spent when it can close the WHOLE gap · half-bridging leaves the streak broken anyway, so spending would be theft
+40. 2026-08-10 · Boss accuracy = coverage of ground truth − penalty for wrong claims (18 confident, 6 hedged) · arithmetic over cited verdicts, so the number is re-derivable from the stored report; hedging a wrong claim costs less than asserting it
+41. 2026-08-10 · The server recomputes mods and the XP multiplier from the account's entitlement; the client's claim is advisory · a hand-edited URL can change how hard your rep is, never what it pays
+42. 2026-08-10 · Settings names the reminder's real scheduling tier (OS-scheduled / tab-only / unsupported) · a reminder that silently never fires is worse than no reminder
+
 ## Open queue (research-once, decide, move up)
 
 - Currency name — after launch copywriting pass
@@ -50,5 +59,7 @@ Locked means locked. Reopen only with user data or Timothy's explicit call.
 - Stress-mod pricing/earn rates — after economy exists
 - ~~Demos pose set~~ — DELIVERED 9 Aug (assets/demos-{speaking,celebrate,listening,asleep,workout}.png). Speaking is live in the results coach bubble; the rest wire in at their step-3 moments (celebrate = streak/star, asleep = missed-day, listening = recording), never as furniture
 - Landing page symptom-first headline — write 5, test on the persona
-- "Frame" step before recording (30s think time, optional notes) — trains think-before-you-speak; decide after dogfood
+- ~~"Frame" step before recording~~ — DECIDED 10 Aug as #35 (opt-in, off by default)
 - Upload real recordings (meetings) — post-MVP
+- Payment processor — the `profiles.premium` flag is the only gate; wiring Stripe is a webhook that sets one boolean
+- Crowd-noise realism — synthesised café bed ships now; revisit only if dogfood says it doesn't distract

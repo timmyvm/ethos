@@ -1,10 +1,13 @@
 "use client";
 
 import Image from "next/image";
+import { AccuracyCard } from "@/components/AccuracyCard";
 import { DimensionList } from "@/components/DimensionList";
 import { PauseBar } from "@/components/PauseBar";
 import { Stars } from "@/components/Stars";
+import type { AccuracyResult } from "@/lib/accuracy";
 import type { CoachOutput } from "@/lib/coach";
+import type { ColdTopic } from "@/lib/cold-topics";
 import type { Tier1Scores, Tier2Anchors } from "@/lib/index-score";
 import type { RepMetrics } from "@/lib/metrics";
 
@@ -16,6 +19,7 @@ export interface ResultView {
   coach: CoachOutput | null;
   ethosIndex: number | null;
   previousIndex: number | null;
+  accuracy?: AccuracyResult | null;
 }
 
 /**
@@ -23,7 +27,13 @@ export interface ResultView {
  * log. Leads with the Index delta and the ONE focus (mechanics.md
  * display rules) — never a wall of eight numbers.
  */
-export function RepResult({ result }: { result: ResultView }) {
+export function RepResult({
+  result,
+  topic = null,
+}: {
+  result: ResultView;
+  topic?: ColdTopic | null;
+}) {
   const { metrics: m, coach, tier1, anchors, ethosIndex, previousIndex } =
     result;
   const zone =
@@ -111,6 +121,10 @@ export function RepResult({ result }: { result: ResultView }) {
           )}
         </div>
       </div>
+
+      {result.accuracy && (
+        <AccuracyCard accuracy={result.accuracy} topic={topic} />
+      )}
 
       <div className="mt-4">
         <PauseBar pauses={m.pauses} durationS={m.durationS} />

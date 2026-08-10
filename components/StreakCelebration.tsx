@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { prefersReducedMotion } from "@/lib/prefs";
 
 /**
  * The one celebration moment. Duolingo earns its streak screen by
@@ -20,24 +21,27 @@ export function StreakCelebration({
   onDone: () => void;
 }) {
   const [leaving, setLeaving] = useState(false);
+  // Read once: the reference must not change mid-celebration.
+  const calm = useMemo(() => prefersReducedMotion(), []);
 
   useEffect(() => {
-    const a = setTimeout(() => setLeaving(true), 1800);
-    const b = setTimeout(onDone, 2300);
+    const hold = calm ? 1200 : 1800;
+    const a = setTimeout(() => setLeaving(true), hold);
+    const b = setTimeout(onDone, hold + (calm ? 100 : 500));
     return () => {
       clearTimeout(a);
       clearTimeout(b);
     };
-  }, [onDone]);
+  }, [onDone, calm]);
 
   const milestone = streak === 7 || streak === 14 || streak === 30;
 
   return (
     <div
       onClick={onDone}
-      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-cream transition-opacity duration-500 ${
-        leaving ? "opacity-0" : "opacity-100"
-      }`}
+      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-cream ${
+        calm ? "" : "transition-opacity duration-500"
+      } ${leaving ? "opacity-0" : "opacity-100"}`}
     >
       <Image
         src="/demos-celebrate.webp"

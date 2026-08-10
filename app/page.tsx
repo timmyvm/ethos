@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ComparisonCard } from "@/components/ComparisonCard";
-import { Paywall } from "@/components/Paywall";
 import { StreakBadge } from "@/components/StreakBadge";
 import { fetchReps, type RepRow } from "@/lib/client-data";
 import { todaysDrill } from "@/lib/drills";
@@ -14,7 +13,6 @@ import { computeStreak, type StreakState } from "@/lib/streak";
 // "The Floor" (DECISIONS #9) — one dominant rep card, one terracotta tap.
 export default function Home() {
   const [reps, setReps] = useState<RepRow[] | null>(null);
-  const [paywall, setPaywall] = useState<string | null>(null);
 
   useEffect(() => {
     fetchReps().then(setReps).catch(() => setReps([]));
@@ -101,8 +99,8 @@ export default function Home() {
         </div>
       )}
 
-      <button
-        onClick={() => setPaywall("Sunday boss · locked")}
+      <Link
+        href="/boss"
         className="mt-4 flex w-full items-center gap-3 rounded-[18px] border border-terracotta-100 bg-terracotta-50 p-4 text-left"
       >
         <Image
@@ -121,11 +119,7 @@ export default function Home() {
           </span>
         </span>
         <span className="text-[13px]">🔒</span>
-      </button>
-
-      {paywall && (
-        <Paywall reason={paywall} onClose={() => setPaywall(null)} />
-      )}
+      </Link>
     </main>
   );
 }

@@ -15,9 +15,12 @@ const TABS = [
  * for the single tap that matters, and an icon row competes with the
  * rep card for attention. The active tab is terracotta text only.
  */
+/** Screens that own the whole viewport: the floor, onboarding, marketing. */
+const BARE = ["/rep", "/welcome", "/about", "/boss"];
+
 export function Nav() {
   const path = usePathname();
-  if (path === "/rep") return null; // the floor is undistracted
+  if (BARE.some((b) => path === b || path.startsWith(`${b}/`))) return null;
 
   return (
     <nav className="fixed bottom-0 left-1/2 z-20 w-full max-w-[430px] -translate-x-1/2 border-t border-sand bg-white">

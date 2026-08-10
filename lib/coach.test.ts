@@ -148,6 +148,79 @@ describe("validateCoachOutput", () => {
   });
 });
 
+/**
+ * Regression: a real rep (10 Aug, 35.58s, 11 "you know"s → 18.55/min)
+ * came back with no Ethos Index. The coach was shown durationS 35.58
+ * and fillersPerMin 18.55, then told those numbers were invented,
+ * because only the ROUNDED values were on the allowlist. Three
+ * rejections, coach null, no Index.
+ */
+describe("numbers the coach was handed are citable", () => {
+  // 96 words in 35.58s (≈162 wpm) with 11 "you know" bigrams → 18.55/min.
+  // "you" and "know" must be separate tokens: that's how Whisper emits
+  // them and how the bigram detector sees them.
+  const tokens: string[] = [];
+  for (let i = 0; i < 11; i++) {
+    for (let j = 0; j < 6; j++) tokens.push(`word${i}${j}`);
+    tokens.push("you", "know");
+  }
+  while (tokens.length < 96) tokens.push(`tail${tokens.length}`);
+  const step = 35.58 / tokens.length;
+  const words: Word[] = tokens.map((t, i) => ({
+    word: (i === 0 ? "" : " ") + t,
+    start: i * step,
+    end: i * step + step * 0.8,
+  }));
+  const metrics = computeMetrics(words, 35.58);
+  const transcript = words.map((w) => w.word).join("").trim();
+  const tier1 = tier1Scores(metrics, words, []);
+  const anchors = tier2Anchors(words, transcript);
+
+  const withLine = (coachLine: string): CoachOutput => ({
+    focus: `Kill "you know" — ${metrics.fillerCount} of them.`,
+    strength: `Held ${metrics.heldPauses} pauses.`,
+    supply: { original: "you know", upgrade: "(pause)", note: "Silence reads as thought." },
+    coachLine,
+    dimensions: {
+      structure: { score: 55, citedMoment: `"${transcript.slice(0, 20)}"`, improve: "Open with the claim." },
+      credibility: { score: 55, citedMoment: "0:12", improve: "One concrete detail." },
+      engagement: { score: 55, citedMoment: "0:20", improve: "One image." },
+      confidence: { score: 55, citedMoment: "0:30", improve: "Land the ending." },
+    },
+  });
+
+  const check = (line: string) =>
+    validateCoachOutput(withLine(line), transcript, metrics, tier1, anchors).filter(
+      (p) => p.includes("cites number")
+    );
+
+  it("exposes the fractional metrics it will be quoted on", () => {
+    expect(metrics.durationS).toBe(35.58);
+    expect(metrics.fillersPerMin).toBeCloseTo(18.55, 1);
+  });
+
+  it("accepts the exact fractional value it was given", () => {
+    expect(check(`${metrics.fillerCount} fillers. ${metrics.fillersPerMin} a minute.`)).toEqual([]);
+  });
+
+  it("accepts the floored duration — 35 seconds, not just 36", () => {
+    expect(check(`${metrics.fillerCount} fillers in 35 seconds.`)).toEqual([]);
+  });
+
+  it("accepts the rounded duration too", () => {
+    expect(check(`${metrics.fillerCount} fillers in 36 seconds.`)).toEqual([]);
+  });
+
+  it("still rejects a number that came from nowhere", () => {
+    expect(check("You improved 42 percent this week.")).toHaveLength(1);
+  });
+
+  it("reads a decimal as one number, not two integers", () => {
+    // "18.55" must not be parsed as 18 and 55 — 55 is not a metric.
+    expect(check("18.55 a minute.")).toEqual([]);
+  });
+});
+
 describe("tier2Scores", () => {
   it("extracts the four judged scores", () => {
     expect(tier2Scores(out())).toEqual({

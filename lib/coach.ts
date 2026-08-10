@@ -190,7 +190,7 @@ function allowedNumbers(
   metrics: RepMetrics,
   tier1: Tier1Scores,
   anchors: Tier2Anchors
-): Set<string> {
+): Set<number> {
   const nums = [
     metrics.wpm,
     metrics.fillerCount,
@@ -198,14 +198,33 @@ function allowedNumbers(
     metrics.composedPauses,
     metrics.midSentencePauses,
     metrics.stars,
-    Math.round(metrics.durationS),
-    Math.round(metrics.fillersPerMin),
+    metrics.durationS,
+    metrics.fillersPerMin,
     ...Object.values(metrics.fillerCounts),
     ...Object.values(tier1),
     anchors.hedgeCount,
     anchors.restartCount,
   ];
-  return new Set(nums.map((n) => String(n)));
+  // A fractional metric is citable in every honest form: 35.58 seconds
+  // may be written 35.58, 35 or 36. Allowing only the rounded value
+  // made the coach's own source numbers look invented, which failed
+  // validation three times and cost the rep its Ethos Index.
+  const allowed = new Set<number>();
+  for (const n of nums) {
+    allowed.add(n);
+    allowed.add(Math.floor(n));
+    allowed.add(Math.round(n));
+    allowed.add(Math.ceil(n));
+  }
+  return allowed;
+}
+
+/** Numbers in coaching copy, including decimals — "18.55" is one number. */
+const NUMBER_RE = /\d+(?:\.\d+)?/g;
+
+function isCitable(token: string, allowed: Set<number>): boolean {
+  const n = Number(token);
+  return Number.isFinite(n) && allowed.has(n);
 }
 
 const METRIC_WORDS = [
@@ -226,14 +245,12 @@ const METRIC_WORDS = [
 function referencesMetric(
   text: string,
   metrics: RepMetrics,
-  allowed: Set<string>
+  allowed: Set<number>
 ): boolean {
   const lower = text.toLowerCase();
   return (
     METRIC_WORDS.some((w) => lower.includes(w)) ||
-    (text.match(/\d+/g) ?? []).some((n) =>
-      allowed.has(String(parseInt(n, 10)))
-    ) ||
+    (text.match(NUMBER_RE) ?? []).some((n) => isCitable(n, allowed)) ||
     (metrics.topFiller !== null &&
       lower.includes(metrics.topFiller.toLowerCase()))
   );
@@ -300,8 +317,8 @@ export function validateCoachOutput(
   const numberCopy = [out.focus, out.strength, out.supply.note, out.coachLine]
     .join(" ")
     .toLowerCase();
-  for (const n of numberCopy.match(/\d+/g) ?? []) {
-    if (!allowed.has(String(parseInt(n, 10)))) {
+  for (const n of numberCopy.match(NUMBER_RE) ?? []) {
+    if (!isCitable(n, allowed)) {
       problems.push(`cites number ${n}, which is not in the metrics`);
     }
   }
@@ -396,6 +413,15 @@ export async function coachRep(
       anchors
     );
     if (problems.length === 0) return parsed;
+
+    if (attempt === MAX_ATTEMPTS) {
+      // Giving up costs the rep its Ethos Index, so say why. Without
+      // this the failure is invisible in production and the only
+      // symptom is a missing number.
+      console.warn(
+        `[coach] gave up after ${MAX_ATTEMPTS} attempts: ${problems.join("; ")}`
+      );
+    }
 
     messages.push(
       { role: "assistant", content: response.content },

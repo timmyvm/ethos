@@ -75,6 +75,7 @@ Locked means locked. Reopen only with user data or Timothy's explicit call.
 65. 2026-08-10 · Terracotta and amber are IDENTICAL in both themes · they carry meaning ("tap this", "you earned this"); a colour that means something has to read the same everywhere. Only the neutrals swap
 66. 2026-08-10 · Tomorrow's focus is chosen by per-skill decay, and the reason always names the number · Duolingo's published answer to "why come back" is half-life regression (Settles & Meeder, ACL 2016, 45%+ error reduction): the app holds a model of what YOU are about to lose and schedules against it. Ours runs over the four MEASURED Index dimensions, so it stays arithmetic (DECISIONS #30). Half-life of 7 days is a guess — Duolingo FITS theirs from millions of traces; calibrate on real reps
 62. 2026-08-10 · NO pronunciation score · Wellspoken scores it, but Whisper gives us words and timings, not phonemes — we cannot measure it, so scoring it would be the exact fabrication the no-horoscope rule exists to prevent
+67. 2026-08-10 · Demos ships with a real alpha channel, cut from the 1024² masters and downscaled to 512² · shipping him on an opaque background forced a theme workaround per placement — a cream tile in dark, and no Demos at all on the floor card, which is the one screen he's meant to be on. Transparency is the fix at the asset, not in CSS; `scripts/cut-demos-alpha.mjs` re-runs it, always from `assets/`, never from the already-cut `public/` copies
 
 ## Open queue (research-once, decide, move up)
 

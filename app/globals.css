@@ -98,24 +98,15 @@ body {
 }
 
 /*
- * Demos ships as WebP with an opaque light background, so on a dark
- * ground he arrives inside a white rectangle. Until the art is re-cut
- * with alpha, he sits on a deliberate cream tile — a sticker, which
- * reads as intentional where a stray white box reads as broken.
+ * Demos. The art ships as WebP with a real alpha channel, so he composites
+ * onto whatever surface he lands on — no tile, no theme special-casing.
+ * The only rule he needs is not behaving like a downloadable asset: a
+ * long-press on the mascot offering "Save image" is a papercut, and he's
+ * decoration, not content.
  */
-:root[data-theme="dark"] .demos {
-  background: #faf7f2;
-  border-radius: 14px;
-}
-
-/*
- * ...except where he PEEKS past a card edge. There a tile is just a
- * white block cutting the corner, so on dark he sits this one out.
- * He still appears at the real moments — celebration, boss, results —
- * which is where vision.md wants him anyway.
- */
-:root[data-theme="dark"] .demos-peek {
-  display: none;
+.demos {
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 /* Grain is a light-mode trick; over a dark ground it reads as noise. */

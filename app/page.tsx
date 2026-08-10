@@ -194,12 +194,12 @@ export default function Home() {
               width={150}
               height={150}
               priority
-              className="demos-peek pointer-events-none absolute -bottom-5 -right-4 w-[128px] opacity-95"
+              className="demos pointer-events-none absolute -bottom-5 -right-4 w-[128px] opacity-95"
             />
           </div>
           <button
             onClick={() => setTopic(spin(null))}
-            className="press mt-3 text-[13px] font-semibold text-stone-500"
+            className="press mt-3 block text-[13px] font-semibold text-stone-500"
           >
             Don&apos;t like it? Spin a random topic →
           </button>
@@ -274,7 +274,7 @@ export default function Home() {
 
       <button
         onClick={() => setShowMods((v) => !v)}
-        className="mt-5 text-[13px] font-semibold text-stone-500"
+        className="mt-5 block text-[13px] font-semibold text-stone-500"
       >
         {showMods
           ? "Hide mods"

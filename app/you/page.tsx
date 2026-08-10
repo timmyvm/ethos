@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Paywall } from "@/components/Paywall";
+import { LexiconFlash } from "@/components/LexiconFlash";
 import { ShareCard } from "@/components/ShareCard";
 import { achievements } from "@/lib/achievements";
 import {
@@ -41,6 +42,7 @@ export default function YouPage() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [streak, setStreak] = useState<StreakState>(EMPTY_STREAK);
+  const [flashing, setFlashing] = useState(false);
   const [freezes, setFreezes] = useState({ equipped: 0, used: 0 });
 
   useEffect(() => {
@@ -223,6 +225,24 @@ export default function YouPage() {
               </div>
             ))}
           </div>
+          {lexicon.length >= 3 && !flashing && (
+            <button
+              onClick={() => setFlashing(true)}
+              className="press mt-2.5 w-full rounded-[18px] border border-black/10 bg-white p-4 text-[13.5px] font-semibold lift"
+            >
+              Test yourself on these →
+            </button>
+          )}
+
+          {flashing && (
+            <div className="mt-2.5">
+              <LexiconFlash
+                lexicon={lexicon}
+                onDone={() => setFlashing(false)}
+              />
+            </div>
+          )}
+
           {lexicon.length > FREE_LEXICON && (
             <button
               onClick={() => setPaywall("Full lexicon · premium")}

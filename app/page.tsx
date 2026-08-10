@@ -10,21 +10,14 @@ import { NextUp } from "@/components/NextUp";
 import { PathRail } from "@/components/PathRail";
 import { Paywall } from "@/components/Paywall";
 import { StreakBadge } from "@/components/StreakBadge";
-import { CoachCheckIn } from "@/components/CoachCheckIn";
-import { DailyTasks } from "@/components/DailyTasks";
-import { LexiconFlash } from "@/components/LexiconFlash";
 import { TopicRoulette } from "@/components/TopicRoulette";
 import { achievements } from "@/lib/achievements";
 import {
-  fetchLexicon,
   fetchProfile,
   fetchReps,
   fetchXp,
-  type LexiconRow,
   type RepRow,
 } from "@/lib/client-data";
-import { dailyProgress, dailySet, markDone, type DailyTaskId } from "@/lib/daily";
-import { insights } from "@/lib/insights";
 import { spin, type Topic } from "@/lib/topics";
 import { todaysDrill } from "@/lib/drills";
 import { syncFreezes } from "@/lib/freeze-sync";
@@ -57,10 +50,7 @@ export default function Home() {
   const [paywall, setPaywall] = useState<string | null>(null);
   const [xp, setXp] = useState(0);
   const [freezes, setFreezes] = useState(0);
-  const [lexicon, setLexicon] = useState<LexiconRow[]>([]);
-  const [openTask, setOpenTask] = useState<DailyTaskId | null>(null);
   const [topic, setTopic] = useState<Topic | null>(null);
-  const [tick, setTick] = useState(0);
 
   useEffect(() => {
     fetchProfile()
@@ -68,9 +58,6 @@ export default function Home() {
       .catch(() => {});
     fetchXp()
       .then((x) => setXp(x.total))
-      .catch(() => {});
-    fetchLexicon()
-      .then(setLexicon)
       .catch(() => {});
 
     fetchReps()
@@ -124,11 +111,6 @@ export default function Home() {
     lastIndex !== null && scored.length > 1
       ? lastIndex - (scored[0].ethos_index as number)
       : null;
-
-  const tasks = dailySet({ reps: history, lexicon, streak });
-  const taskProgress = dailyProgress(tasks);
-  const trend = insights(history);
-  void tick; // re-render after a task is ticked off in localStorage
 
   const almost = nearMisses(milestones);
   // Priority: a milestone one rep away beats a landmark, which beats an
@@ -307,49 +289,6 @@ export default function Home() {
             </div>
           </div>
         </section>
-      )}
-
-      {/*
-       * The daily set. Four rows, one of which is the rep above — so
-       * this is what's LEFT, not a menu competing with the floor.
-       * vision.md still caps the loop at five minutes, which is why
-       * only one of these records anything.
-       */}
-      <div className="mt-6">
-        <DailyTasks
-          tasks={tasks}
-          progress={taskProgress}
-          onOpen={(id) => {
-            if (id === "rep" || id === "listen") return; // they navigate
-            setOpenTask(openTask === id ? null : id);
-          }}
-        />
-      </div>
-
-      {openTask === "flash" && lexicon.length >= 3 && (
-        <div className="mt-3">
-          <LexiconFlash
-            lexicon={lexicon}
-            onDone={() => {
-              markDone("flash");
-              setOpenTask(null);
-              setTick((n) => n + 1);
-            }}
-          />
-        </div>
-      )}
-
-      {openTask === "checkin" && trend.length > 0 && (
-        <div className="mt-3">
-          <CoachCheckIn
-            insights={trend}
-            onDone={() => {
-              markDone("checkin");
-              setOpenTask(null);
-              setTick((n) => n + 1);
-            }}
-          />
-        </div>
       )}
 
       {/* TIER 3 — where am I. Quiet by design; it supports the floor. */}

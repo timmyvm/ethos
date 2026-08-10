@@ -83,6 +83,7 @@ function RepScreen() {
       resolveRepConfig({
         lesson: searchParams.get("lesson"),
         boss: searchParams.get("boss"),
+        topic: searchParams.get("topic"),
         mods: searchParams.get("mods"),
         premium,
       }),
@@ -101,6 +102,7 @@ function RepScreen() {
   const [anticipate, setAnticipate] = useState<RewardMoment | null>(null);
   const [closing, setClosing] = useState<RewardMoment | null>(null);
   const [bests, setBests] = useState<RewardMoment[]>([]);
+  const [notes, setNotes] = useState("");
 
   /**
    * Snapshot of where the user stood BEFORE this rep, captured on
@@ -334,6 +336,22 @@ function RepScreen() {
     }
   }, []);
 
+  /**
+   * Retake — same prompt, clean slate. The rep that just happened is
+   * already stored and still counts; this is another attempt at the
+   * same thing, not an undo.
+   */
+  const retake = useCallback(() => {
+    setResult(null);
+    setGains([]);
+    setBests([]);
+    setClosing(null);
+    setCelebrate(null);
+    setSeconds(0);
+    setLevels(Array(METER_BARS).fill(0.05));
+    setPhase("idle");
+  }, []);
+
   /** Frame step (DECISIONS #35): opt-in think time before the clock. */
   const begin = useCallback(() => {
     if (readPrefs().frameStep) {
@@ -398,6 +416,7 @@ function RepScreen() {
           gains={gains}
           bests={bests}
           closing={closing}
+          onRetake={retake}
         />
         {celebrate !== null && (
           <StreakCelebration
@@ -453,14 +472,44 @@ function RepScreen() {
 
       <div className="flex flex-1 flex-col items-center justify-center gap-6">
         {phase === "frame" && (
-          <div className="text-center">
-            <div className="font-display text-[54px] font-bold leading-none">
-              {frameLeft}
+          <div className="w-full">
+            <div className="flex items-baseline justify-between">
+              <div className="font-display text-[40px] font-bold leading-none">
+                {frameLeft}
+              </div>
+              <div className="label-data">seconds to think</div>
             </div>
-            <div className="label-data mt-1">seconds to think</div>
-            <p className="mt-3 max-w-[280px] text-[13.5px] leading-relaxed text-stone-500">
-              Decide your first sentence and your last one. The middle
-              takes care of itself.
+
+            {/* Structure tips, by the SHAPE of answer the prompt asks
+                for. We know that much honestly; we don't know what
+                you're going to say, so we don't pretend to. */}
+            <div className="mt-4 rounded-[18px] border border-black/5 bg-white lift p-4">
+              <div className="label-data">Shape it like this</div>
+              <ul className="mt-2 space-y-1.5">
+                {config.tips.map((tip, i) => (
+                  <li
+                    key={i}
+                    className="flex gap-2 text-[13.5px] leading-relaxed text-stone-600"
+                  >
+                    <span className="label-data mt-0.5 shrink-0 !text-amber-500">
+                      {i + 1}
+                    </span>
+                    {tip}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              placeholder="Notes — first line, last line, one example…"
+              className="mt-3 w-full rounded-[18px] border border-black/10 bg-white p-4 text-[14px] leading-relaxed outline-none placeholder:text-stone-300 focus:border-stone-300"
+            />
+            <p className="mt-1.5 text-[11.5px] text-stone-400">
+              Notes stay on this screen. They disappear when you record —
+              you can&apos;t read and speak at the same time.
             </p>
           </div>
         )}
@@ -598,12 +647,14 @@ function Results({
   gains,
   bests,
   closing,
+  onRetake,
 }: {
   result: AnalyzeResponse;
   config: RepConfig;
   gains: RepGain[];
   bests: RewardMoment[];
   closing: RewardMoment | null;
+  onRetake: () => void;
 }) {
   return (
     <main className="px-5 pb-10 pt-7">
@@ -630,9 +681,15 @@ function Results({
         </div>
       )}
 
+      <button
+        onClick={onRetake}
+        className="press mt-5 w-full rounded-[15px] border border-black/10 bg-white px-6 py-4 text-[15px] font-semibold"
+      >
+        Retake this one
+      </button>
       <Link
         href="/"
-        className="mt-5 block w-full rounded-[14px] bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-cream transition-colors hover:bg-terracotta-600 press"
+        className="press mt-3 block w-full rounded-[15px] bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
       >
         Done — same time tomorrow
       </Link>

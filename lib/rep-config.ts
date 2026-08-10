@@ -11,6 +11,7 @@
 
 import { COLD_TOPICS, weeklyTopic, type ColdTopic } from "./cold-topics";
 import { DRILLS, todaysDrill } from "./drills";
+import { topicById, TOPIC_SHAPES, type Topic } from "./topics";
 import {
   parseMods,
   xpMultiplier,
@@ -36,6 +37,10 @@ export interface RepConfig {
   mods: StressMod[];
   xpMultiplier: number;
   topic: ColdTopic | null;
+  /** Structure tips for the shape of answer being asked for. */
+  tips: string[];
+  /** The roulette topic, when this rep came from a spin. */
+  rouletteTopic: Topic | null;
   /** no-notes: the prompt vanishes the moment recording starts. */
   hidePrompt: boolean;
   crowdNoise: boolean;
@@ -45,6 +50,8 @@ export interface RepConfig {
 export interface RepConfigInput {
   lesson?: string | null;
   boss?: string | null;
+  /** A roulette topic id — the user span for it rather than choosing. */
+  topic?: string | null;
   mods?: string | null;
   premium?: boolean;
 }
@@ -92,6 +99,25 @@ export function resolveRepConfig(
       maxSeconds: tight ? TIGHT_MAX_SECONDS : DAILY_MAX_SECONDS,
       xpMultiplier: xpMultiplier(mods, BOSS_XP_BASE),
       topic,
+      tips: TOPIC_SHAPES.explain.tips,
+      rouletteTopic: null,
+    };
+  }
+
+  const roulette = topicById(input.topic);
+  if (roulette) {
+    return {
+      ...base,
+      kind: "daily",
+      lessonId: `topic:${roulette.id}`,
+      unit: `Roulette · ${TOPIC_SHAPES[roulette.shape].label}`,
+      title: roulette.prompt,
+      prompt: "You didn't pick this one. Sixty to ninety seconds.",
+      maxSeconds: tight ? TIGHT_MAX_SECONDS : DAILY_MAX_SECONDS,
+      xpMultiplier: xpMultiplier(mods),
+      topic: null,
+      tips: TOPIC_SHAPES[roulette.shape].tips,
+      rouletteTopic: roulette,
     };
   }
 
@@ -107,6 +133,8 @@ export function resolveRepConfig(
     maxSeconds: tight ? TIGHT_MAX_SECONDS : DAILY_MAX_SECONDS,
     xpMultiplier: xpMultiplier(mods),
     topic: null,
+    tips: TOPIC_SHAPES.explain.tips,
+    rouletteTopic: null,
   };
 }
 
@@ -114,10 +142,12 @@ export function resolveRepConfig(
 export function repHref(opts: {
   lesson?: string;
   boss?: string;
+  topic?: string;
   mods?: string[];
 }): string {
   const q = new URLSearchParams();
   if (opts.boss) q.set("boss", opts.boss);
+  else if (opts.topic) q.set("topic", opts.topic);
   else if (opts.lesson) q.set("lesson", opts.lesson);
   if (opts.mods?.length) q.set("mods", opts.mods.join(","));
   const s = q.toString();

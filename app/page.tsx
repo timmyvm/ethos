@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ComparisonCard } from "@/components/ComparisonCard";
 import { ModPicker } from "@/components/ModPicker";
@@ -9,8 +10,22 @@ import { NextUp } from "@/components/NextUp";
 import { PathRail } from "@/components/PathRail";
 import { Paywall } from "@/components/Paywall";
 import { StreakBadge } from "@/components/StreakBadge";
+import { CoachCheckIn } from "@/components/CoachCheckIn";
+import { DailyTasks } from "@/components/DailyTasks";
+import { LexiconFlash } from "@/components/LexiconFlash";
+import { TopicRoulette } from "@/components/TopicRoulette";
 import { achievements } from "@/lib/achievements";
-import { fetchProfile, fetchReps, fetchXp, type RepRow } from "@/lib/client-data";
+import {
+  fetchLexicon,
+  fetchProfile,
+  fetchReps,
+  fetchXp,
+  type LexiconRow,
+  type RepRow,
+} from "@/lib/client-data";
+import { dailyProgress, dailySet, markDone, type DailyTaskId } from "@/lib/daily";
+import { insights } from "@/lib/insights";
+import { spin, type Topic } from "@/lib/topics";
 import { todaysDrill } from "@/lib/drills";
 import { syncFreezes } from "@/lib/freeze-sync";
 import { nextLesson, starsByLesson } from "@/lib/path";
@@ -32,6 +47,7 @@ const EMPTY: StreakState = {
 
 // "The Floor" (DECISIONS #9) — one dominant rep card, one terracotta tap.
 export default function Home() {
+  const router = useRouter();
   const [reps, setReps] = useState<RepRow[] | null>(null);
   const [streak, setStreak] = useState<StreakState>(EMPTY);
   const [rescued, setRescued] = useState(0);
@@ -41,6 +57,10 @@ export default function Home() {
   const [paywall, setPaywall] = useState<string | null>(null);
   const [xp, setXp] = useState(0);
   const [freezes, setFreezes] = useState(0);
+  const [lexicon, setLexicon] = useState<LexiconRow[]>([]);
+  const [openTask, setOpenTask] = useState<DailyTaskId | null>(null);
+  const [topic, setTopic] = useState<Topic | null>(null);
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
     fetchProfile()
@@ -48,6 +68,9 @@ export default function Home() {
       .catch(() => {});
     fetchXp()
       .then((x) => setXp(x.total))
+      .catch(() => {});
+    fetchLexicon()
+      .then(setLexicon)
       .catch(() => {});
 
     fetchReps()
@@ -101,6 +124,11 @@ export default function Home() {
     lastIndex !== null && scored.length > 1
       ? lastIndex - (scored[0].ethos_index as number)
       : null;
+
+  const tasks = dailySet({ reps: history, lexicon, streak });
+  const taskProgress = dailyProgress(tasks);
+  const trend = insights(history);
+  void tick; // re-render after a task is ticked off in localStorage
 
   const almost = nearMisses(milestones);
   // Priority: a milestone one rep away beats a landmark, which beats an
@@ -166,40 +194,71 @@ export default function Home() {
       )}
 
       <div className="label-data mt-7">
-        {streak.didToday ? "Extra rep" : "Today's rep"} · {unitName}
+        {topic
+          ? "Roulette"
+          : `${streak.didToday ? "Extra rep" : "Today's rep"} · ${unitName}`}
       </div>
       {/*
        * TIER 1 — The Floor (DECISIONS #9). It has to win the screen on
        * size alone: a 32px title against 14.5px body and 11px labels is
        * a real jump, where the old 26/15/13 scale was one grey mush and
        * gave the eye nowhere to land first.
+       *
+       * The roulette REPLACES the card rather than sitting beside it.
+       * A second card would mean a second terracotta button, and
+       * brand.md allows exactly one tap per screen — scarcity is what
+       * makes it command.
        */}
-      <div className="relative mt-2.5 overflow-hidden rounded-[26px] border border-black/[0.06] bg-white p-6 pb-[4.75rem] lift-hero">
-        <h1 className="font-display max-w-[74%] text-[32px] font-bold leading-[1.06]">
-          {drill.title}
-        </h1>
-        <p className="mt-3 max-w-[68%] text-[14.5px] leading-relaxed text-stone-400">
-          {drill.prompt}
-        </p>
-        <div className="relative z-10 mt-5">
-          <Link
-            href={repHref({ lesson: next?.lesson.id, mods })}
-            className="press block w-full rounded-[15px] bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+      {topic ? (
+        <div className="mt-2.5">
+          <TopicRoulette
+            topic={topic}
+            onSpin={setTopic}
+            onTake={(t) => router.push(repHref({ topic: t.id, mods }))}
+          />
+          <button
+            onClick={() => setTopic(null)}
+            className="mt-3 text-[13px] font-semibold text-stone-500"
           >
-            {streak.didToday ? "Go again" : "Take the floor"}
-          </Link>
+            ← Back to today&apos;s drill
+          </button>
         </div>
-        {/* Demos peeks in at the corner rather than being cropped
-            through the middle — he's at a moment, not furniture. */}
-        <Image
-          src={streak.didToday ? "/demos-celebrate.webp" : "/demos.webp"}
-          alt=""
-          width={150}
-          height={150}
-          priority
-          className="pointer-events-none absolute -bottom-5 -right-4 w-[128px] opacity-95"
-        />
-      </div>
+      ) : (
+        <>
+          <div className="relative mt-2.5 overflow-hidden rounded-[26px] border border-black/[0.06] bg-white p-6 pb-[4.75rem] lift-hero">
+            <h1 className="font-display max-w-[74%] text-[32px] font-bold leading-[1.06]">
+              {drill.title}
+            </h1>
+            <p className="mt-3 max-w-[68%] text-[14.5px] leading-relaxed text-stone-400">
+              {drill.prompt}
+            </p>
+            <div className="relative z-10 mt-5">
+              <Link
+                href={repHref({ lesson: next?.lesson.id, mods })}
+                className="press block w-full rounded-[15px] bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+              >
+                {streak.didToday ? "Go again" : "Take the floor"}
+              </Link>
+            </div>
+            {/* Demos peeks in at the corner rather than being cropped
+                through the middle — he's at a moment, not furniture. */}
+            <Image
+              src={streak.didToday ? "/demos-celebrate.webp" : "/demos.webp"}
+              alt=""
+              width={150}
+              height={150}
+              priority
+              className="pointer-events-none absolute -bottom-5 -right-4 w-[128px] opacity-95"
+            />
+          </div>
+          <button
+            onClick={() => setTopic(spin(null))}
+            className="press mt-3 text-[13px] font-semibold text-stone-500"
+          >
+            Don&apos;t like it? Spin a random topic →
+          </button>
+        </>
+      )}
 
       {/*
        * TIER 2 — the score. "The score IS the brand" (DECISIONS #18) and
@@ -250,6 +309,49 @@ export default function Home() {
         </section>
       )}
 
+      {/*
+       * The daily set. Four rows, one of which is the rep above — so
+       * this is what's LEFT, not a menu competing with the floor.
+       * vision.md still caps the loop at five minutes, which is why
+       * only one of these records anything.
+       */}
+      <div className="mt-6">
+        <DailyTasks
+          tasks={tasks}
+          progress={taskProgress}
+          onOpen={(id) => {
+            if (id === "rep" || id === "listen") return; // they navigate
+            setOpenTask(openTask === id ? null : id);
+          }}
+        />
+      </div>
+
+      {openTask === "flash" && lexicon.length >= 3 && (
+        <div className="mt-3">
+          <LexiconFlash
+            lexicon={lexicon}
+            onDone={() => {
+              markDone("flash");
+              setOpenTask(null);
+              setTick((n) => n + 1);
+            }}
+          />
+        </div>
+      )}
+
+      {openTask === "checkin" && trend.length > 0 && (
+        <div className="mt-3">
+          <CoachCheckIn
+            insights={trend}
+            onDone={() => {
+              markDone("checkin");
+              setOpenTask(null);
+              setTick((n) => n + 1);
+            }}
+          />
+        </div>
+      )}
+
       {/* TIER 3 — where am I. Quiet by design; it supports the floor. */}
       <div className="mt-7">
         <PathRail starMap={starMap} hasAnyRep={history.length > 0} />
@@ -283,8 +385,16 @@ export default function Home() {
         </p>
       )}
 
+      {/* Skip whatever the moment line already said at the top of the
+          screen — showing the same milestone twice reads as a bug and
+          halves the information on the page. */}
       <div className="mt-6">
-        <NextUp milestones={milestones} />
+        <NextUp
+          milestones={milestones.filter(
+            (m) => !topMoment || !topMoment.headline.startsWith(m.label)
+          )}
+          limit={2}
+        />
       </div>
 
       {showDay3 && (

@@ -65,6 +65,13 @@ Locked means locked. Reopen only with user data or Timothy's explicit call.
 55. 2026-08-10 · Below the substance floor there is NO Ethos Index and no coach call — "Not enough to score", not a low score · a partial number over an empty rep makes every other number on the screen a lie; and the LLM has nothing to judge
 56. 2026-08-10 · The transcript is shown open on the results screen, never behind a disclosure · every score is a claim about those words, so they have to be readable without going looking for them
 
+57. 2026-08-10 · Home is a four-task daily set, one of which records · Wellspoken's checklist home is the thing that makes it feel designed (researched 10 Aug). Ethos copies the SHAPE, not the contents: vision.md still caps the loop at 5 minutes and DECISIONS #9 keeps the rep dominant, so the other three tasks are under a minute and none of them record
+58. 2026-08-10 · Every task in the set must be completable for real, or it shows why it's locked · a checklist row that can't be ticked is worse than three that can; an unavailable task is never counted as done
+59. 2026-08-10 · Topic roulette REPLACES the floor card rather than sitting beside it · a second card means a second terracotta button, and brand.md allows exactly one tap per screen. The mechanic earns its place because choosing your own topic lets you quietly rehearse while deciding — the one thing a cold-open drill can't allow
+60. 2026-08-10 · Structure tips are per SHAPE (opinion / story / explain / pitch), never per topic · we honestly know what shape of answer the prompt asks for and nothing more; per-topic advice would be invention
+61. 2026-08-10 · The daily check-in is one arithmetic line from stored reps, not a chat · Wellspoken's is an AI coach conversation; a conversation invites generated encouragement, which is the horoscope feedback vision.md bans (DECISIONS #30 already forbids LLM cross-rep claims)
+62. 2026-08-10 · NO pronunciation score · Wellspoken scores it, but Whisper gives us words and timings, not phonemes — we cannot measure it, so scoring it would be the exact fabrication the no-horoscope rule exists to prevent
+
 ## Open queue (research-once, decide, move up)
 
 - Currency name — after launch copywriting pass

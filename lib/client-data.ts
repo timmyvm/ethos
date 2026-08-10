@@ -24,6 +24,7 @@ export interface RepRow {
   strength: string | null;
   supply: { original: string; upgrade: string; note: string } | null;
   ethos_index: number | null;
+  audio_path: string | null;
   dimensions: {
     tier1: Tier1Scores;
     anchors: Tier2Anchors;
@@ -35,7 +36,7 @@ export interface RepRow {
 }
 
 const REP_COLUMNS =
-  "id, lesson_id, created_at, duration_s, transcript, wpm, filler_count, fillers, pauses, stars, focus, strength, supply, ethos_index, dimensions";
+  "id, lesson_id, created_at, duration_s, transcript, wpm, filler_count, fillers, pauses, stars, focus, strength, supply, ethos_index, dimensions, audio_path";
 
 export async function fetchReps(limit = 90): Promise<RepRow[]> {
   const db = supabaseBrowser();
@@ -96,4 +97,13 @@ export async function fetchXp(): Promise<{ total: number; week: number }> {
     .filter((r) => new Date(r.created_at) >= monday)
     .reduce((a, r) => a + r.amount, 0);
   return { total, week };
+}
+
+/** Short-lived signed URL for a rep's audio (the bucket stays private). */
+export async function repAudioUrl(path: string | null): Promise<string | null> {
+  if (!path) return null;
+  const db = supabaseBrowser();
+  if (!db) return null;
+  const { data } = await db.storage.from("audio").createSignedUrl(path, 3600);
+  return data?.signedUrl ?? null;
 }

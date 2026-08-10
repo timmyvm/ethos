@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
+import { AudioScrubber } from "@/components/AudioScrubber";
 import { RepResult, type ResultView } from "@/components/RepResult";
-import { fetchRep, type RepRow } from "@/lib/client-data";
+import { fetchRep, repAudioUrl, type RepRow } from "@/lib/client-data";
 import { computeMetrics } from "@/lib/metrics";
 
 /** One rep from the log, rebuilt from its stored row. */
@@ -14,10 +15,14 @@ export default function RepDetail({
 }) {
   const { id } = use(params);
   const [rep, setRep] = useState<RepRow | null | undefined>(undefined);
+  const [audio, setAudio] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRep(id)
-      .then(setRep)
+      .then((r) => {
+        setRep(r);
+        if (r?.audio_path) repAudioUrl(r.audio_path).then(setAudio).catch(() => {});
+      })
       .catch(() => setRep(null));
   }, [id]);
 
@@ -95,6 +100,16 @@ export default function RepDetail({
         })}
       </div>
       <RepResult result={view} />
+      {audio && (
+        <div className="mt-4">
+          <AudioScrubber
+            src={audio}
+            durationS={rep.duration_s}
+            fillers={rep.fillers ?? []}
+            pauses={rep.pauses ?? []}
+          />
+        </div>
+      )}
     </main>
   );
 }

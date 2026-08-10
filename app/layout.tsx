@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk, Space_Mono } from "next/font/google";
 import { Nav } from "@/components/Nav";
+import { ServiceWorker } from "@/components/ServiceWorker";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -44,6 +45,7 @@ export default function RootLayout({
       >
         <div className="mx-auto min-h-dvh max-w-[430px]">{children}</div>
         <Nav />
+        <ServiceWorker />
       </body>
     </html>
   );

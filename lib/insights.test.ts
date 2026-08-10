@@ -18,6 +18,7 @@ function rep(over: Partial<RepRow> = {}): RepRow {
     strength: null,
     supply: null,
     ethos_index: 600,
+    audio_path: null,
     dimensions: null,
     ...over,
   };

@@ -4,10 +4,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ComparisonCard } from "@/components/ComparisonCard";
+import { FillerHeatmap } from "@/components/FillerHeatmap";
 import { Paywall } from "@/components/Paywall";
 import { Sparkline } from "@/components/Sparkline";
 import { Stars } from "@/components/Stars";
 import { fetchReps, type RepRow } from "@/lib/client-data";
+import { insights } from "@/lib/insights";
 
 const FREE_DAYS = 7; // mechanics.md: free tier sees the last 7 days
 
@@ -81,6 +83,29 @@ export default function HistoryPage() {
           <Sparkline values={indexSeries} label="Ethos Index" />
         )}
         <Sparkline values={fillerSeries} label="Fillers / min" invert />
+      </div>
+
+      {insights(reps).length > 0 && (
+        <>
+          <div className="label-data mt-7">What the reps say</div>
+          <div className="mt-2 space-y-2.5">
+            {insights(reps).map((i) => (
+              <div
+                key={i.id}
+                className="rounded-[18px] border border-black/5 bg-white p-5"
+              >
+                <div className="text-[14.5px] font-semibold">{i.headline}</div>
+                <p className="mt-1 text-[13px] leading-relaxed text-stone-500">
+                  {i.detail}
+                </p>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      <div className="mt-3">
+        <FillerHeatmap reps={reps} />
       </div>
 
       {reps.length >= 2 && (

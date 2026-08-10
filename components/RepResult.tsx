@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { AccuracyCard } from "@/components/AccuracyCard";
+import { CountUp } from "@/components/CountUp";
 import { DimensionList } from "@/components/DimensionList";
 import { PauseBar } from "@/components/PauseBar";
 import { Stars } from "@/components/Stars";
@@ -57,9 +58,10 @@ export function RepResult({
     <>
       {ethosIndex !== null ? (
         <div className="mt-3 flex items-baseline gap-3.5">
-          <div className="font-display text-[64px] font-bold leading-none">
-            {ethosIndex}
-          </div>
+          <CountUp
+            value={ethosIndex}
+            className="font-display text-[64px] font-bold leading-none"
+          />
           <div>
             <div className="text-[15px] font-semibold">
               your Ethos <span className="font-normal text-stone-500">/1000</span>

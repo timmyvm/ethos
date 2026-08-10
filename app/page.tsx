@@ -17,6 +17,9 @@ import { nextLesson, starsByLesson } from "@/lib/path";
 import { nextMilestones } from "@/lib/progress";
 import { repHref } from "@/lib/rep-config";
 import { armReminder } from "@/lib/reminders";
+import { freshStart, nearMisses, openLoop } from "@/lib/rewards";
+import { Moment } from "@/components/Moment";
+import { UNITS } from "@/lib/path";
 import { computeStreak, type StreakState } from "@/lib/streak";
 
 const EMPTY: StreakState = {
@@ -88,6 +91,16 @@ export default function Home() {
     achievements: achievements(history),
   });
 
+  // Fresh-start framing beats the open loop on a landmark day; the rest
+  // of the week, the unfinished lesson is the stronger pull (Zeigarnik).
+  const banner =
+    freshStart() ??
+    openLoop(
+      starMap,
+      UNITS.flatMap((u) => u.lessons)
+    );
+  const almost = nearMisses(milestones);
+
   return (
     <main className="px-5 pb-24 pt-7">
       <div className="flex items-center justify-between">
@@ -105,6 +118,25 @@ export default function Home() {
             The streak held. It didn&apos;t grow — you only count days you
             spoke.
           </span>
+        </div>
+      )}
+
+      {almost.length > 0 && !streak.didToday && (
+        <div className="mt-4">
+          <Moment
+            moment={{
+              headline: `${almost[0].label} — ${almost[0].remainingLabel}`,
+              detail: `${almost[0].detail}. One rep could do it.`,
+              tone: "amber",
+            }}
+            emphasis
+          />
+        </div>
+      )}
+
+      {banner && history.length > 0 && (
+        <div className="mt-4">
+          <Moment moment={banner} />
         </div>
       )}
 

@@ -12,14 +12,28 @@ import {
   useState,
 } from "react";
 import { GainsRow } from "@/components/GainsRow";
+import { Moment } from "@/components/Moment";
 import { RepResult } from "@/components/RepResult";
 import { StreakCelebration } from "@/components/StreakCelebration";
-import { fetchProfile, fetchReps } from "@/lib/client-data";
+import { achievements } from "@/lib/achievements";
+import {
+  fetchProfile,
+  fetchReps,
+  fetchXp,
+  type RepRow,
+} from "@/lib/client-data";
 import { startCrowdNoise, type CrowdNoise } from "@/lib/crowd-noise";
 import { syncFreezes } from "@/lib/freeze-sync";
 import { starsByLesson, totalStars, unitStates } from "@/lib/path";
 import { buzz, readPrefs } from "@/lib/prefs";
-import { repGains, type RepGain } from "@/lib/progress";
+import { nextMilestones, repGains, type RepGain } from "@/lib/progress";
+import {
+  anticipation,
+  endNote,
+  personalBests,
+  type RewardMoment,
+} from "@/lib/rewards";
+import { computeStreak } from "@/lib/streak";
 import { resolveRepConfig, type RepConfig } from "@/lib/rep-config";
 import { ensureSession } from "@/lib/supabase-browser";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
@@ -84,26 +98,47 @@ function RepScreen() {
   const [celebrate, setCelebrate] = useState<number | null>(null);
   const [interruption, setInterruption] = useState<string | null>(null);
   const [gains, setGains] = useState<RepGain[]>([]);
+  const [anticipate, setAnticipate] = useState<RewardMoment | null>(null);
+  const [closing, setClosing] = useState<RewardMoment | null>(null);
+  const [bests, setBests] = useState<RewardMoment[]>([]);
 
   /**
    * Snapshot of where the user stood BEFORE this rep, captured on
    * mount. Without it the results screen can't say what changed, and
    * "what changed" is the only reward worth showing (DECISIONS #46).
    */
-  const baselineRef = useRef<{ stars: number; unitsOpen: string[] } | null>(
-    null
-  );
+  const baselineRef = useRef<{
+    stars: number;
+    unitsOpen: string[];
+    reps: RepRow[];
+  } | null>(null);
 
   useEffect(() => {
     fetchReps()
-      .then((rows) => {
+      .then(async (rows) => {
         const map = starsByLesson(rows);
         baselineRef.current = {
           stars: totalStars(map),
           unitsOpen: unitStates(map)
             .filter((u) => !u.locked)
             .map((u) => u.name),
+          reps: rows,
         };
+        const streak = computeStreak(rows.map((r) => new Date(r.created_at)));
+        const xp = await fetchXp().catch(() => ({ total: 0, week: 0 }));
+        setAnticipate(
+          anticipation(
+            nextMilestones({
+              reps: rows,
+              starMap: map,
+              streak,
+              xp: xp.total,
+              freezesEquipped: 0,
+              achievements: achievements(rows),
+            }),
+            streak
+          )
+        );
       })
       .catch(() => {});
   }, []);
@@ -188,15 +223,29 @@ function RepScreen() {
             const openNow = unitStates(map)
               .filter((u) => !u.locked)
               .map((u) => u.name);
-            setGains(
-              repGains({
-                starsBefore: before.stars,
-                starsAfter: totalStars(map),
-                indexBefore: analyzed.previousIndex,
-                indexAfter: analyzed.ethosIndex,
-                streakAfter: streak.current,
-                unlockedUnit:
-                  openNow.find((n) => !before.unitsOpen.includes(n)) ?? null,
+            const nextGains = repGains({
+              starsBefore: before.stars,
+              starsAfter: totalStars(map),
+              indexBefore: analyzed.previousIndex,
+              indexAfter: analyzed.ethosIndex,
+              streakAfter: streak.current,
+              unlockedUnit:
+                openNow.find((n) => !before.unitsOpen.includes(n)) ?? null,
+            });
+            setGains(nextGains);
+            // before.reps is the history captured on mount — the true
+            // "before", independent of whether this rep persisted.
+            setBests(
+              personalBests(before.reps, analyzed.metrics, analyzed.ethosIndex)
+            );
+            // Streak-end rule: the last thing on screen decides whether
+            // they come back, so it is always something true and good.
+            setClosing(
+              endNote({
+                gains: nextGains,
+                metrics: analyzed.metrics,
+                streak,
+                repCount: reps.length,
               })
             );
           }
@@ -343,7 +392,13 @@ function RepScreen() {
   if (phase === "results" && result) {
     return (
       <>
-        <Results result={result} config={config} gains={gains} />
+        <Results
+          result={result}
+          config={config}
+          gains={gains}
+          bests={bests}
+          closing={closing}
+        />
         {celebrate !== null && (
           <StreakCelebration
             streak={celebrate}
@@ -462,11 +517,21 @@ function RepScreen() {
         )}
 
         {phase === "idle" && (
-          <p className="max-w-[260px] text-center text-[13.5px] text-stone-500">
-            {config.maxSeconds < 60
-              ? `${config.maxSeconds} seconds. Pauses still score in your favor — spend them deliberately.`
-              : "Aim for 60–90 seconds. Pauses are allowed — they're scored in your favor."}
-          </p>
+          <>
+            {/* Anticipation cue — what this rep is about to earn. The
+                reward-prediction literature treats this as its own
+                driver, not a preview of the reward. */}
+            {anticipate && (
+              <div className="w-full">
+                <Moment moment={anticipate} emphasis />
+              </div>
+            )}
+            <p className="max-w-[260px] text-center text-[13.5px] text-stone-500">
+              {config.maxSeconds < 60
+                ? `${config.maxSeconds} seconds. Pauses still score in your favor — spend them deliberately.`
+                : "Aim for 60–90 seconds. Pauses are allowed — they're scored in your favor."}
+            </p>
+          </>
         )}
 
         {phase === "error" && (
@@ -531,10 +596,14 @@ function Results({
   result,
   config,
   gains,
+  bests,
+  closing,
 }: {
   result: AnalyzeResponse;
   config: RepConfig;
   gains: RepGain[];
+  bests: RewardMoment[];
+  closing: RewardMoment | null;
 }) {
   return (
     <main className="px-5 pb-10 pt-7">
@@ -543,9 +612,27 @@ function Results({
       </div>
       <GainsRow gains={gains} />
       <RepResult result={result} topic={config.topic} />
+
+      {bests.length > 0 && (
+        <div className="mt-4 space-y-2">
+          <div className="label-data">Records broken</div>
+          {bests.map((b, i) => (
+            <Moment key={i} moment={b} />
+          ))}
+        </div>
+      )}
+
+      {/* The ending carries disproportionate weight when someone decides
+          whether to come back (streak-end rule), so it goes last. */}
+      {closing && (
+        <div className="mt-5">
+          <Moment moment={closing} emphasis />
+        </div>
+      )}
+
       <Link
         href="/"
-        className="mt-6 block w-full rounded-[14px] bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-cream transition-colors hover:bg-terracotta-600"
+        className="mt-5 block w-full rounded-[14px] bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-cream transition-colors hover:bg-terracotta-600"
       >
         Done — same time tomorrow
       </Link>

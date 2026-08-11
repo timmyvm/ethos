@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   dimensionPoints,
   INDEX_WEIGHTS,
+  REPAIR_ZERO_AT,
+  repairScore,
   countHedges,
   countRestarts,
   ethosIndex,
@@ -47,7 +49,7 @@ describe("pauseScore", () => {
 });
 
 describe("fillerScore", () => {
-  it("maps the disfluency curve: 0 → 100, 4 → 50, ≥8 → 0", () => {
+  it("maps the filler curve: 0 → 100, 4 → 50, ≥8 → 0", () => {
     expect(fillerScore(0)).toBe(100);
     expect(fillerScore(4)).toBe(50);
     expect(fillerScore(8)).toBe(0);
@@ -139,8 +141,8 @@ describe("tier-2 anchors", () => {
 });
 
 describe("ethosIndex", () => {
-  it("weights all eight dimensions to /1000", () => {
-    const tier1 = { pause: 100, fillers: 100, pace: 100, range: 100 };
+  it("weights every dimension to /1000", () => {
+    const tier1 = { pause: 100, fillers: 100, repairs: 100, pace: 100, range: 100 };
     const tier2 = {
       structure: 100,
       credibility: 100,
@@ -150,7 +152,7 @@ describe("ethosIndex", () => {
     expect(ethosIndex(tier1, tier2)).toBe(1000);
     expect(
       ethosIndex(
-        { pause: 50, fillers: 50, pace: 50, range: 50 },
+        { pause: 50, fillers: 50, repairs: 50, pace: 50, range: 50 },
         { structure: 50, credibility: 50, engagement: 50, confidence: 50 }
       )
     ).toBe(500);
@@ -160,7 +162,7 @@ describe("ethosIndex", () => {
     // Only pause at 100, everything else 0 → 150/1000.
     expect(
       ethosIndex(
-        { pause: 100, fillers: 0, pace: 0, range: 0 },
+        { pause: 100, fillers: 0, repairs: 0, pace: 0, range: 0 },
         { structure: 0, credibility: 0, engagement: 0, confidence: 0 }
       )
     ).toBe(150);
@@ -168,7 +170,10 @@ describe("ethosIndex", () => {
 
   it("returns null without judged scores — no partial index", () => {
     expect(
-      ethosIndex({ pause: 100, fillers: 100, pace: 100, range: 100 }, null)
+      ethosIndex(
+        { pause: 100, fillers: 100, repairs: 100, pace: 100, range: 100 },
+        null
+      )
     ).toBeNull();
   });
 });
@@ -182,7 +187,7 @@ describe("ethosIndex", () => {
  */
 describe("the parts add up to the whole", () => {
   it("matches the sum of the per-dimension points exactly", () => {
-    const tier1 = { pause: 83, fillers: 67, pace: 86, range: 95 };
+    const tier1 = { pause: 83, fillers: 67, repairs: 50, pace: 86, range: 95 };
     const tier2 = {
       structure: 72,
       credibility: 71,
@@ -193,6 +198,7 @@ describe("the parts add up to the whole", () => {
     const parts =
       dimensionPoints(tier1.pause, INDEX_WEIGHTS.pause) +
       dimensionPoints(tier1.fillers, INDEX_WEIGHTS.fillers) +
+      dimensionPoints(tier1.repairs, INDEX_WEIGHTS.repairs) +
       dimensionPoints(tier1.pace, INDEX_WEIGHTS.pace) +
       dimensionPoints(tier1.range, INDEX_WEIGHTS.range) +
       dimensionPoints(tier2.structure, INDEX_WEIGHTS.structure) +
@@ -203,7 +209,7 @@ describe("the parts add up to the whole", () => {
   });
 
   it("holds on awkward scores that round in different directions", () => {
-    const tier1 = { pause: 33, fillers: 67, pace: 1, range: 99 };
+    const tier1 = { pause: 33, fillers: 67, repairs: 33, pace: 1, range: 99 };
     const tier2 = {
       structure: 33,
       credibility: 67,
@@ -220,9 +226,63 @@ describe("the parts add up to the whole", () => {
   it("still tops out at 1000 with every dimension perfect", () => {
     expect(
       ethosIndex(
-        { pause: 100, fillers: 100, pace: 100, range: 100 },
+        { pause: 100, fillers: 100, repairs: 100, pace: 100, range: 100 },
         { structure: 100, credibility: 100, engagement: 100, confidence: 100 }
       )
     ).toBe(1000);
+  });
+});
+
+/**
+ * Fillers and self-corrections were briefly one blended score. They are
+ * different problems with different fixes — an "um" is a gap you filled,
+ * a repair is a sentence you abandoned — so they are scored apart, and
+ * the 150 they used to share is split rather than grown.
+ */
+describe("fillers and repairs are scored apart", () => {
+  it("splits the old 150 without changing the total", () => {
+    expect(INDEX_WEIGHTS.fillers + INDEX_WEIGHTS.repairs).toBe(150);
+    const total = Object.values(INDEX_WEIGHTS).reduce((a, b) => a + b, 0);
+    expect(total).toBe(1000);
+  });
+
+  it("runs the repair scale out at 3/min, not 8", () => {
+    expect(repairScore(0)).toBe(100);
+    expect(repairScore(1)).toBe(67);
+    expect(repairScore(REPAIR_ZERO_AT)).toBe(0);
+    expect(repairScore(9)).toBe(0);
+  });
+
+  it("costs a repair more per occurrence than a filler", () => {
+    const fillerLoss =
+      dimensionPoints(fillerScore(0), INDEX_WEIGHTS.fillers) -
+      dimensionPoints(fillerScore(1), INDEX_WEIGHTS.fillers);
+    const repairLoss =
+      dimensionPoints(repairScore(0), INDEX_WEIGHTS.repairs) -
+      dimensionPoints(repairScore(1), INDEX_WEIGHTS.repairs);
+    expect(repairLoss).toBeGreaterThan(fillerLoss);
+  });
+
+  it("lets a clean-of-fillers rep still lose points for restarting", () => {
+    const clean = { pause: 80, fillers: 100, repairs: 100, pace: 80, range: 80 };
+    const restarting = { ...clean, repairs: repairScore(2) };
+    const judged = {
+      structure: 70,
+      credibility: 70,
+      engagement: 70,
+      confidence: 70,
+    };
+    expect(ethosIndex(restarting, judged)!).toBeLessThan(
+      ethosIndex(clean, judged)!
+    );
+  });
+
+  it("returns null for a rep stored before the split rather than guessing", () => {
+    expect(
+      ethosIndex(
+        { pause: 80, fillers: 80, pace: 80, range: 80 },
+        { structure: 70, credibility: 70, engagement: 70, confidence: 70 }
+      )
+    ).toBeNull();
   });
 });

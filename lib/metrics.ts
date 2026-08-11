@@ -54,7 +54,12 @@ export interface RepMetrics {
    * A listener hears one of these exactly the way they hear an "um".
    */
   repairCount: number;
-  /** Fillers + repairs. This is what the fillers dimension and stars read. */
+  repairsPerMin: number;
+  /**
+   * Fillers + repairs. Scored SEPARATELY in the Index — they are
+   * different problems with different fixes — but stars need one
+   * number, and to a listener both are the same kind of stumble.
+   */
   disfluenciesPerMin: number;
   pauses: Pause[];
   heldPauses: number;
@@ -377,6 +382,7 @@ export function computeMetrics(
   const fillerCount = fillers.length;
   const fillersPerMin = minutes > 0 ? fillerCount / minutes : 0;
   const repairCount = detectRepairs(words);
+  const repairsPerMin = minutes > 0 ? repairCount / minutes : 0;
   const disfluenciesPerMin =
     minutes > 0 ? (fillerCount + repairCount) / minutes : 0;
   const topFiller =
@@ -402,6 +408,7 @@ export function computeMetrics(
     fillerCounts,
     topFiller,
     repairCount,
+    repairsPerMin: round2(repairsPerMin),
     disfluenciesPerMin: round2(disfluenciesPerMin),
     pauses,
     heldPauses: composedPauses + midSentencePauses,

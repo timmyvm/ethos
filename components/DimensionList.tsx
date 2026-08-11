@@ -47,11 +47,34 @@ export function DimensionList({
         : `${metrics.composedPauses} before a sentence, ${metrics.midSentencePauses} mid-sentence.`,
     },
     {
-      name: "Fillers & repairs",
+      name: "Fillers",
       score: tier1.fillers,
-      weight: 150,
-      detail: `${metrics.fillerCount} filler${metrics.fillerCount === 1 ? "" : "s"} and ${metrics.repairCount ?? 0} self-correction${(metrics.repairCount ?? 0) === 1 ? "" : "s"} — ${metrics.disfluenciesPerMin ?? metrics.fillersPerMin}/min together. 0/min scores 100; 8/min scores 0.`,
+      weight: 100,
+      detail: `${metrics.fillerCount} filler${metrics.fillerCount === 1 ? "" : "s"} — ${metrics.fillersPerMin}/min. 0/min scores 100; 8/min scores 0.${
+        metrics.topFiller ? ` Most of them were "${metrics.topFiller}".` : ""
+      }`,
+      improve:
+        metrics.fillerCount > 0
+          ? "Replace it with silence, not with a different word. A gap you leave open is the fix."
+          : undefined,
     },
+    // Scored separately from fillers because they're separate problems
+    // with separate fixes. Reps recorded before the split have no
+    // repairs score, and get no row rather than an invented one.
+    ...(typeof tier1.repairs === "number"
+      ? [
+          {
+            name: "Self-corrections",
+            score: tier1.repairs,
+            weight: 50,
+            detail: `${metrics.repairCount ?? 0} restarted phrase${(metrics.repairCount ?? 0) === 1 ? "" : "s"} — ${metrics.repairsPerMin ?? 0}/min. Rarer than fillers and costlier, so the scale runs out at 3/min.`,
+            improve:
+              (metrics.repairCount ?? 0) > 0
+                ? "Finish the sentence you started, then say the better one. Restarting mid-phrase makes a listener drop the thread and re-follow you."
+                : undefined,
+          },
+        ]
+      : []),
     {
       name: "Pace",
       score: tier1.pace,

@@ -120,6 +120,10 @@ Locked means locked. Reopen only with user data or Timothy's explicit call.
 106. 2026-08-11 · Counters say "recordings"; "rep" stays the verb · reported by Timothy: "what does reps even mean — is 60 seconds one rep, or is everything between two pauses a rep". As a label on a number it left the unit ambiguous. The counter now names the thing it counts, and no explanatory text was added to do it
 107. 2026-08-11 · The favicon is Demos, trimmed to the head · `scripts/make-favicon.mjs`. The trim is the whole trick — untrimmed, the full-body render at 16px is a beige smudge with a fleck of face in it, which is why home still has no head mark. From `public/demos.webp` so it keeps its alpha; the iOS icon is flattened because iOS composites alpha onto black
 
+108. 2026-08-11 · Fillers and self-corrections are scored SEPARATELY — Fillers /100, Self-corrections /50 · they were briefly one blended "disfluency" score, and blending them hid which one you were actually doing. Different problems, different fixes: an "um" is a gap you filled and the cure is silence; a repair is a sentence you abandoned and the cure is finishing the one you started. The old 150 SPLITS rather than grows, so every other dimension keeps its weight and the total stays /1000 (asserted in tests). **Amends #18's eight** — the measured tier is five now, and the results label counts the rows instead of claiming a number
+109. 2026-08-11 · The repair curve runs out at 3/min where fillers run out at 8 · repairs are rarer and cost more when they land — an "um" is half a second of nothing, an abandoned sentence makes a listener drop the thread and re-follow you. One repair a minute already costs a third of its dimension
+110. 2026-08-11 · Stars keep reading the COMBINED rate · stars are one 1–3 signal and need one number, and to a listener both are the same kind of stumble. The Index is where the two come apart, because that's the surface with room to say which
+
 ## Open queue (research-once, decide, move up)
 
 - Currency name — after launch copywriting pass

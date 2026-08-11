@@ -184,11 +184,12 @@ export function RepResult({
 
       {show("numbers") && (
       <div className="mt-4">
-        {/* Says four when there are four. The old label read "The eight"
-            on every rep, including the ones where the coach layer never
-            ran and only the measured half existed. */}
+        {/* Counted, not asserted. The label read "The eight" on every
+            rep — including ones where the coach layer never ran and only
+            the measured half existed, and now including reps recorded
+            before fillers and self-corrections were scored apart. */}
         <div className="label-data mb-2">
-          {coach ? "The eight" : "The four measured"} · tap for why
+          {coach ? "Every dimension" : "The measured dimensions"} · tap for why
         </div>
         <DimensionList
           tier1={tier1}

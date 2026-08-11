@@ -21,7 +21,19 @@ import { pauseReport } from "./pause-quality";
 export const INDEX_WEIGHTS = {
   // Tier 1 — measured
   pause: 150,
-  fillers: 150,
+  /*
+   * Fillers and repairs were one blended "disfluency" score for about an
+   * hour. Blending them hid which one you were actually doing, and they
+   * are different problems with different fixes: an "um" is a gap you
+   * filled, a repair is a sentence you abandoned and ran again. One is
+   * cured by silence, the other by finishing the sentence you started.
+   *
+   * The 150 splits rather than grows, so every other dimension keeps its
+   * weight and the total stays /1000. Fillers keep the larger share —
+   * they are far more frequent and far more noticed.
+   */
+  fillers: 100,
+  repairs: 50,
   pace: 100,
   range: 100,
   // Tier 2 — judged (LLM, citation-required)
@@ -31,7 +43,12 @@ export const INDEX_WEIGHTS = {
   confidence: 100,
 } as const;
 
-export type Tier1Dimension = "pause" | "fillers" | "pace" | "range";
+export type Tier1Dimension =
+  | "pause"
+  | "fillers"
+  | "repairs"
+  | "pace"
+  | "range";
 export type Tier2Dimension =
   | "structure"
   | "credibility"
@@ -41,6 +58,8 @@ export type Tier2Dimension =
 export interface Tier1Scores {
   pause: number;
   fillers: number;
+  /** Optional: reps stored before the split have no repairs score. */
+  repairs?: number;
   pace: number;
   range: number;
 }
@@ -65,13 +84,24 @@ export function pauseScore(
   return pauseReport({ pauses, words, fillers, durationS }).score;
 }
 
+/** Fillers /100 — linear on fillers per minute: 0 = 100, ≥8 = 0. */
+export function fillerScore(fillersPerMin: number): number {
+  return clamp(Math.round(100 * (1 - fillersPerMin / 8)));
+}
+
 /**
- * Fillers /100 — linear on DISFLUENCIES per minute (fillers plus
- * self-corrections): 0 = 100, ≥8 = 0. A restarted sentence lands on a
- * listener the same way an "um" does, so it is counted the same way.
+ * Self-corrections /100 — a steeper curve than fillers, on purpose.
+ *
+ * Repairs are rarer and cost more when they land: an "um" is half a
+ * second of nothing, an abandoned sentence makes a listener drop the
+ * thread and re-follow you. Eight a minute would be unlistenable, so the
+ * scale runs out at three — one repair a minute already costs a third of
+ * the dimension.
  */
-export function fillerScore(disfluenciesPerMin: number): number {
-  return clamp(Math.round(100 * (1 - disfluenciesPerMin / 8)));
+export const REPAIR_ZERO_AT = 3;
+
+export function repairScore(repairsPerMin: number): number {
+  return clamp(Math.round(100 * (1 - repairsPerMin / REPAIR_ZERO_AT)));
 }
 
 /**
@@ -158,7 +188,8 @@ export function tier1Scores(
 ): Tier1Scores {
   return {
     pause: pauseScore(metrics.pauses, metrics.durationS, words, metrics.fillers),
-    fillers: fillerScore(metrics.disfluenciesPerMin),
+    fillers: fillerScore(metrics.fillersPerMin),
+    repairs: repairScore(metrics.repairsPerMin),
     pace: paceScore(metrics.wpm, words, segments),
     range: rangeScore(words),
   };

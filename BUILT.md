@@ -57,7 +57,7 @@ twice, once `target: production`.)
 | Pause quality | `lib/pause-quality.ts` | **The pause dimension.** Classifies every held pause by where it landed — landing / opening / hesitation / filled / dead — per the juncture-vs-hesitation research. Placement is a ratio, so good and bad pauses cancel. 14 tests over real word streams. |
 | Deterministic metrics | `lib/metrics.ts` | Fillers with "like" disambiguation, WPM, pause classification (beat / pre / mid). No LLM. |
 | Substance gate | `lib/metrics.ts` | Stars are `min(fillerRate, substanceCap)`. Under 20 words, or too repetitive, caps at 1 star. Without it, "I don't know" eight times scored 3 stars — fluency measured on an empty answer. |
-| Ethos Index tier 1 | `lib/index-score.ts` | Pause, fillers, pace, range → /100 each. Weighted into /1000. |
+| Ethos Index tier 1 | `lib/index-score.ts` | Pause, fillers, self-corrections, pace, range → /100 each. Weighted into /1000; fillers and repairs split the old 150 (100/50) rather than growing it. |
 | Tier-2 anchors | `lib/index-score.ts` | Hedge and restart counts fed to the judge as ground truth. |
 | Coach + judge call | `lib/coach.ts` | One Claude call per rep: focus, strength, supply, coachLine, and four judged dimensions. Citation-required or rejected and re-run. |
 | Boss fact-check | `lib/accuracy.ts` | Second, independent Claude call on boss reps: extracts each claim verbatim, marks it against the topic's ground truth. Score is arithmetic over the verdicts. |
@@ -160,7 +160,12 @@ four are now closed and struck through.
   `disfluenciesPerMin` (fillers + self-corrections) rather than fillers
   alone, at the same 3/6 cut points. That is deliberate — a repair sounds
   like an "um" — but it makes three stars meaningfully harder than the
-  numbers were tuned for, and it is the first thing to recalibrate.
+  numbers were tuned for, and it is the first thing to recalibrate. The
+  Index scores the two apart (100/50); only stars blend them.
+- **Reps stored before 11 Aug have no `repairs` score.** `ethosIndex`
+  returns null rather than inventing one, and the results screen drops
+  the row instead of showing a zero. Old rows keep the Index they were
+  given; nothing is retro-scored.
 - **Boss topics are a hand-written list of seven.** Fine for two months
   of weeklies; the supply layer for topics is not built.
 - **Presence has never been pointed at a real body.** The engine is

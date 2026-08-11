@@ -124,6 +124,10 @@ Locked means locked. Reopen only with user data or Timothy's explicit call.
 109. 2026-08-11 · The repair curve runs out at 3/min where fillers run out at 8 · repairs are rarer and cost more when they land — an "um" is half a second of nothing, an abandoned sentence makes a listener drop the thread and re-follow you. One repair a minute already costs a third of its dimension
 110. 2026-08-11 · Stars keep reading the COMBINED rate · stars are one 1–3 signal and need one number, and to a listener both are the same kind of stumble. The Index is where the two come apart, because that's the surface with room to say which
 
+111. 2026-08-11 · Loading states are skeletons, and a skeleton is NEVER an empty state · `/you` and `/path` initialised to `[]` and `0`, so for a few hundred milliseconds they rendered "Level 1 · 0 XP · 0 coins · 0-day streak" to someone who might have a hundred reps. That is the app breaking its own rule (client-data: honest empty states, never fake numbers) in the one place nobody thinks to check. State is `null` while in flight, `[]` when the fetch lands empty, and only `null` gets a shimmer — a permanent skeleton would be a lie in the other direction
+112. 2026-08-11 · A skeleton has to match what replaces it, and locally-known content never gets one · the floor card on home comes out of `todaysDrill()` with no round trip, so it paints immediately; covering it would make the app feel slower than it is. Shapes match heights and radii so arriving content doesn't shove the page — a placeholder that causes the shift it was meant to prevent is worse than the pop
+113. 2026-08-11 · The shimmer is built from `sand` and `surface`, and stops under `prefers-reduced-motion` · inherits the dark theme's redefinition of both without a second rule, and stays low-contrast on purpose: a placeholder that pulses hard competes with the content it stands in for. Reduced motion keeps the block and drops the sweep
+
 ## Open queue (research-once, decide, move up)
 
 - Currency name — after launch copywriting pass

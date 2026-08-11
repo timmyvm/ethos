@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Coin } from "@/components/Coin";
+import { Skeleton, SkeletonStat } from "@/components/Skeleton";
 import { Paywall } from "@/components/Paywall";
 import { LexiconFlash } from "@/components/LexiconFlash";
 import { ShareCard } from "@/components/ShareCard";
@@ -39,7 +40,13 @@ const EMPTY_STREAK: StreakState = {
 };
 
 export default function YouPage() {
-  const [reps, setReps] = useState<RepRow[]>([]);
+  /**
+   * `null` until the fetch lands, NOT `[]`. Starting empty meant this
+   * page rendered "Level 1 · 0 XP · 0 coins · 0-day streak" for a few
+   * hundred milliseconds to someone who might have a hundred reps —
+   * numbers that were not true. Skeletons hold the space instead.
+   */
+  const [reps, setReps] = useState<RepRow[] | null>(null);
   const [lexicon, setLexicon] = useState<LexiconRow[]>([]);
   const [xp, setXp] = useState({ total: 0, week: 0 });
   const [anon, setAnon] = useState<boolean | null>(null);
@@ -67,7 +74,7 @@ export default function YouPage() {
           setCoins((await syncCoins(dates)).balance);
         } catch {}
       })
-      .catch(() => {});
+      .catch(() => setReps([]));
     fetchLexicon().then(setLexicon).catch(() => {});
     fetchXp().then(setXp).catch(() => {});
     const db = supabaseBrowser();
@@ -77,12 +84,14 @@ export default function YouPage() {
       .catch(() => setAnon(null));
   }, []);
 
+  const loading = reps === null;
+  const history = reps ?? [];
   const level = levelFromXp(xp.total);
   const toNextFreeze = 7 - (streak.longest % 7);
 
   // "Save your progress" gate — appears only after there IS progress
   // (DECISIONS #15: never before the first rep).
-  const showGate = anon === true && reps.length >= 1;
+  const showGate = anon === true && history.length >= 1;
 
   return (
     <main className="px-5 pb-24 pt-7">
@@ -104,15 +113,23 @@ export default function YouPage() {
           />
           <div className="flex-1">
             <div className="label-data">Level</div>
-            <div className="font-display text-[30px] font-bold leading-none">
-              {level.level}
-            </div>
+            {loading ? (
+              <Skeleton className="mt-1.5 h-7 w-10" />
+            ) : (
+              <div className="font-display text-[30px] font-bold leading-none">
+                {level.level}
+              </div>
+            )}
           </div>
           <div className="text-right">
             <div className="label-data">Total XP</div>
-            <div className="font-display text-[22px] font-bold">
-              {xp.total}
-            </div>
+            {loading ? (
+              <Skeleton className="mt-1.5 ml-auto h-5 w-14" />
+            ) : (
+              <div className="font-display text-[22px] font-bold">
+                {xp.total}
+              </div>
+            )}
           </div>
         </div>
         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-sand">
@@ -124,17 +141,31 @@ export default function YouPage() {
           />
         </div>
         <div className="mt-1.5 flex justify-between">
-          <span className="label-data">
-            {level.intoLevel}/{level.forNext} to level {level.level + 1}
-          </span>
+          {loading ? (
+            <Skeleton className="h-2.5 w-28" />
+          ) : (
+            <span className="label-data">
+              {level.intoLevel}/{level.forNext} to level {level.level + 1}
+            </span>
+          )}
           <span className="label-data">XP = reps, never money</span>
         </div>
       </div>
 
       <div className="mt-3 flex gap-3">
-        <Stat label="Streak" value={String(streak.current)} note="days" />
-        <Stat label="Longest" value={String(streak.longest)} note="days" />
-        <Stat label="This week" value={String(xp.week)} note="xp" />
+        {loading ? (
+          <>
+            <SkeletonStat />
+            <SkeletonStat />
+            <SkeletonStat />
+          </>
+        ) : (
+          <>
+            <Stat label="Streak" value={String(streak.current)} note="days" />
+            <Stat label="Longest" value={String(streak.longest)} note="days" />
+            <Stat label="This week" value={String(xp.week)} note="xp" />
+          </>
+        )}
       </div>
 
       {/*
@@ -146,20 +177,26 @@ export default function YouPage() {
       <div className="label-data mt-7">Coins</div>
       <div className="mt-2 rounded-[18px] border border-hairline bg-surface lift p-5">
         <div className="flex items-center gap-4">
-          <Coin variant={coins > 0 ? "stack" : "empty"} size={44} />
+          <Coin variant={!loading && coins > 0 ? "stack" : "empty"} size={44} />
           <div className="flex-1">
-            <div className="font-display text-[30px] font-bold leading-none">
-              {coins}
-            </div>
-            <div className="label-data mt-1">
-              1 per day you speak
-            </div>
+            {loading ? (
+              <Skeleton className="h-7 w-12" />
+            ) : (
+              <div className="font-display text-[30px] font-bold leading-none">
+                {coins}
+              </div>
+            )}
+            <div className="label-data mt-1">1 per day you speak</div>
           </div>
           <div className="text-right">
             <div className="label-data">To the first item</div>
-            <div className="font-display text-[22px] font-bold">
-              {towardFirstItem(coins).toGo}
-            </div>
+            {loading ? (
+              <Skeleton className="mt-1.5 ml-auto h-5 w-8" />
+            ) : (
+              <div className="font-display text-[22px] font-bold">
+                {towardFirstItem(coins).toGo}
+              </div>
+            )}
           </div>
         </div>
         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-sand">
@@ -296,7 +333,7 @@ export default function YouPage() {
       {/* Badges — every one names the number that unlocked it. */}
       <div className="label-data mt-7">Earned</div>
       <div className="mt-2 grid grid-cols-2 gap-2.5">
-        {achievements(reps).map((a) => (
+        {achievements(history).map((a) => (
           <div
             key={a.id}
             className={`rounded-[18px] border p-4 ${
@@ -324,10 +361,10 @@ export default function YouPage() {
         ))}
       </div>
 
-      {reps.length >= 2 && (
+      {history.length >= 2 && (
         <>
           <div className="label-data mt-7">Day 1 vs now</div>
-          <ShareCard reps={reps} />
+          <ShareCard reps={history} />
         </>
       )}
 
@@ -335,7 +372,7 @@ export default function YouPage() {
         <div className="mt-7 rounded-[18px] border border-terracotta-100 bg-terracotta-50 p-5">
           <div className="text-[14.5px] font-semibold">Save your progress</div>
           <p className="mt-1 text-[13px] leading-relaxed text-stone-600">
-            {reps.length} rep{reps.length === 1 ? "" : "s"}
+            {history.length} recording{history.length === 1 ? "" : "s"}
             {streak.current > 0 && ` and a ${streak.current}-day streak`} live
             on this device. An account attaches to them where they already are
             — nothing moves, so nothing can go missing.

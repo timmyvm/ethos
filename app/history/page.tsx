@@ -7,6 +7,11 @@ import { ComparisonCard } from "@/components/ComparisonCard";
 import { FillerHeatmap } from "@/components/FillerHeatmap";
 import { Paywall } from "@/components/Paywall";
 import { Sparkline } from "@/components/Sparkline";
+import {
+  Skeleton,
+  SkeletonRegion,
+  SkeletonRow,
+} from "@/components/Skeleton";
 import { Stars } from "@/components/Stars";
 import { fetchProfile, fetchReps, type RepRow } from "@/lib/client-data";
 import { limit } from "@/lib/entitlement";
@@ -31,7 +36,29 @@ export default function HistoryPage() {
     return (
       <main className="px-5 pb-24 pt-7">
         <h1 className="font-display text-2xl font-bold">The log</h1>
-        <p className="mt-2 text-[13.5px] text-stone-500">Loading…</p>
+        <SkeletonRegion label="Loading your training log">
+          <Skeleton className="mt-2 h-3 w-52" />
+          <div className="mt-4 space-y-3">
+            {[0, 1].map((i) => (
+              <div
+                key={i}
+                className="rounded-[18px] border border-hairline bg-surface lift p-5"
+              >
+                <div className="flex items-baseline justify-between">
+                  <Skeleton className="h-2.5 w-24" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
+                <Skeleton className="mt-3 h-16 w-full" rounded="rounded-[8px]" />
+              </div>
+            ))}
+          </div>
+          <Skeleton className="mt-7 h-2.5 w-24" />
+          <div className="mt-2 space-y-2.5">
+            {[0, 1, 2, 3].map((i) => (
+              <SkeletonRow key={i} />
+            ))}
+          </div>
+        </SkeletonRegion>
       </main>
     );
   }

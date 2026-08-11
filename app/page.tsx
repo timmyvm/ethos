@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DayTrail } from "@/components/DayTrail";
 import { ModPicker } from "@/components/ModPicker";
+import { SkeletonScoreCard } from "@/components/Skeleton";
 import { Paywall } from "@/components/Paywall";
 import { StreakBadge } from "@/components/StreakBadge";
 import { TopicRoulette } from "@/components/TopicRoulette";
@@ -218,6 +219,11 @@ export default function Home() {
        * floor for first place, and it absorbs the three identical stat
        * cards that used to sit here saying nothing in particular.
        */}
+      {/* The floor card above needs no round trip — `todaysDrill()` is
+          local — so it paints immediately. This one is fetched, and used
+          to pop in under it. */}
+      {reps === null && <SkeletonScoreCard />}
+
       {history.length > 0 && (
         <section className="mt-5 rounded-[26px] bg-stage p-5 text-cream lift-stage">
           <div className="flex items-start justify-between gap-4">

@@ -209,3 +209,42 @@ body::after {
     transform: none;
   }
 }
+
+/*
+ * Skeletons. Warm neutrals only, like everything else — a cool grey
+ * shimmer over cream reads as a broken image rather than a placeholder.
+ *
+ * The sweep is built from `sand` and `surface` so it inherits the dark
+ * theme's redefinition of both without a second rule, and it sits at low
+ * contrast on purpose: a placeholder that pulses hard competes with the
+ * content it is standing in for.
+ */
+.skeleton {
+  background-color: var(--color-sand);
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--color-surface) 70%, transparent) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: skeleton-sweep 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-sweep {
+  from {
+    background-position: -120% 0;
+  }
+  to {
+    background-position: 220% 0;
+  }
+}
+
+/* Still a visible placeholder, just a still one. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background-image: none;
+  }
+}

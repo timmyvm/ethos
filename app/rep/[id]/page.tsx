@@ -7,6 +7,11 @@ import { Paywall } from "@/components/Paywall";
 import { PresenceDetail, PresenceScore } from "@/components/PresenceCard";
 import { RepResult, type ResultView } from "@/components/RepResult";
 import {
+  Skeleton,
+  SkeletonRegion,
+  SkeletonStat,
+} from "@/components/Skeleton";
+import {
   fetchProfile,
   fetchRep,
   repAudioUrl,
@@ -44,7 +49,27 @@ export default function RepDetail({
   if (rep === undefined) {
     return (
       <main className="px-5 pb-24 pt-7">
-        <p className="text-[13.5px] text-stone-500">Loading…</p>
+        <Skeleton className="h-3 w-16" />
+        <SkeletonRegion label="Loading this rep" className="mt-4">
+          <Skeleton className="h-2.5 w-40" />
+          <div className="mt-3 flex items-baseline gap-3.5">
+            <Skeleton className="h-14 w-28" />
+            <div className="flex-1">
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="mt-2 h-3 w-20" />
+            </div>
+          </div>
+          <div className="mt-4 flex items-end gap-3">
+            <Skeleton className="h-[62px] w-[62px]" rounded="rounded-[14px]" />
+            <Skeleton className="h-20 flex-1" rounded="rounded-[14px]" />
+          </div>
+          <Skeleton className="mt-4 h-24 w-full" rounded="rounded-2xl" />
+          <div className="mt-4 flex gap-3">
+            <SkeletonStat />
+            <SkeletonStat />
+            <SkeletonStat />
+          </div>
+        </SkeletonRegion>
       </main>
     );
   }

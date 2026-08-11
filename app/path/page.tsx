@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Paywall } from "@/components/Paywall";
+import { Skeleton } from "@/components/Skeleton";
 import { Stars } from "@/components/Stars";
 import { fetchReps, type RepRow } from "@/lib/client-data";
 import {
@@ -16,14 +17,17 @@ import {
 // Duolingo-shaped path, Ethos-flavoured: stars come from metrics only
 // (DECISIONS #10), so the copy says so out loud.
 export default function PathPage() {
-  const [reps, setReps] = useState<RepRow[]>([]);
+  // `null` while loading, so the star total isn't rendered as 0/24 to
+  // someone who has earned most of them.
+  const [reps, setReps] = useState<RepRow[] | null>(null);
   const [paywall, setPaywall] = useState<string | null>(null);
 
   useEffect(() => {
     fetchReps().then(setReps).catch(() => setReps([]));
   }, []);
 
-  const starMap = starsByLesson(reps);
+  const loading = reps === null;
+  const starMap = starsByLesson(reps ?? []);
   const total = totalStars(starMap);
   const units = unitStates(starMap);
   const next = nextLesson(starMap);
@@ -40,15 +44,19 @@ export default function PathPage() {
         <div className="flex-1">
           <div className="h-1.5 overflow-hidden rounded-full bg-sand">
             <div
-              className="h-full rounded-full bg-amber-500"
-              style={{ width: `${(total / MAX_STARS) * 100}%` }}
+              className="h-full rounded-full bg-amber-500 transition-[width] duration-500"
+              style={{ width: loading ? "0%" : `${(total / MAX_STARS) * 100}%` }}
             />
           </div>
         </div>
-        <span className="font-display text-[15px] font-bold">
-          {total}
-          <span className="font-normal text-stone-500">/{MAX_STARS}</span>
-        </span>
+        {loading ? (
+          <Skeleton className="h-4 w-10" />
+        ) : (
+          <span className="font-display text-[15px] font-bold">
+            {total}
+            <span className="font-normal text-stone-500">/{MAX_STARS}</span>
+          </span>
+        )}
       </div>
 
       {units.map((u) => (
@@ -58,9 +66,13 @@ export default function PathPage() {
               {u.icon} {u.name}
               {u.boss ? " · weekly boss" : ""}
             </div>
-            <div className="label-data">
-              {u.earned}/{u.possible}
-            </div>
+            {loading ? (
+              <Skeleton className="h-2.5 w-8" />
+            ) : (
+              <div className="label-data">
+                {u.earned}/{u.possible}
+              </div>
+            )}
           </div>
           <p className="mt-1 text-[12.5px] leading-relaxed text-stone-500">
             {u.blurb}

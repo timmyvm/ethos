@@ -94,6 +94,7 @@ twice, once `target: production`.)
 | Achievements | `lib/achievements.ts` | Trivial. Self-contained. |
 | Training log | `app/history/page.tsx` | Medium — this is the retention asset. |
 | Sparklines | `components/Sparkline.tsx` | Trivial. |
+| Skeletons | `components/Skeleton.tsx`, `.skeleton` in `globals.css` | Low. Loading placeholders for home, the log, a rep, /you and /path. They exist for correctness, not polish — /you used to render zeroes before its fetch landed. |
 | Insights | `lib/insights.ts` | Trivial to cut, genuinely differentiating to keep. |
 | Decay scheduler | `lib/schedule.ts` | **Don't cut.** This is the answer to "why come back tomorrow". Half-life regression over the four measured dimensions; the reason always names the number. Half-life of 7 days is a guess (DECISIONS #66). |
 | Reward layer | `lib/rewards.ts`, `lib/progress.ts`, `components/Moment.tsx`, `NextUp.tsx`, `GainsRow.tsx`, `CountUp.tsx` | Medium. Anticipation, near-misses, open loops, fresh starts, personal bests, milestones sorted by proximity. Researched in `docs/progression-research.md`. |

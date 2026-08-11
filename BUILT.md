@@ -5,12 +5,20 @@ Reverse-planning sprint, 9–10 Aug 2026. Everything below is pushed to
 This file is a menu for pruning, not a brag list — each entry says what
 it is, where it lives, and what depends on it.
 
-**Deploying is `git push origin main`.** The Vercel project
-(`prj_sJBrm6kaPGBRUBV1t0AhnkucG9Jc`, team `timmyvms-projects`) is linked to
-`timmyvm/ethos`. Each push to `main` produces two builds from the same SHA
-— a preview on the branch alias, and a production one that takes
-`ethos-tau.vercel.app` and `ethos-timmyvms-projects.vercel.app`. There is
-no separate deploy step.
+**Deploying is a git push — but production does NOT track `main`.** The
+Vercel project (`prj_sJBrm6kaPGBRUBV1t0AhnkucG9Jc`, team
+`timmyvms-projects`) is linked to `timmyvm/ethos` with its production
+branch set to `claude/markdown-session-7w1o76`. So:
+
+- push that branch → **production** build, takes `ethos-tau.vercel.app`
+  and `ethos-timmyvms-projects.vercel.app`
+- push `main` → preview build only, `target: null`, branch alias only
+
+Every deployment in the history follows this: `main` never once produced a
+production build. Push both, or production silently falls behind the
+default branch. Worth fixing in Vercel project settings — point the
+production branch at `main` — but until someone does, the branch is what
+ships.
 
 **The Supabase asset bridge is vestigial — do not treat it as required.**
 `scripts/vercel-fetch-assets.mjs` and `scripts/push-brand-assets.mjs` date
@@ -153,11 +161,12 @@ are not.
   they are redefined as dark washes of the same hue, or any card using
   them stays cream with unreadable text on it.
 - **Don't read deploy state off `get_project`.** Its `latestDeployment` is
-  the *preview* build — `target: null`, aliased only to the branch — so it
-  looks like production never updated. Every SHA appears twice in
-  `list_deployments`; the one that matters is `target: "production"`.
-  Fastest honest check is to curl the production host and diff what it
-  serves against the working tree.
+  whichever build finished last — usually the `main` *preview*
+  (`target: null`, branch alias only) — so production looks stale when it
+  isn't. Every SHA appears twice in `list_deployments`; check
+  `target: "production"` **and** its `githubCommitRef`, which is the
+  session branch, not `main`. Fastest honest check is to curl the
+  production host and diff what it serves against the working tree.
 
 ## Test coverage
 

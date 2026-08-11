@@ -42,9 +42,14 @@ export function DimensionList({
       name: "Pause",
       score: tier1.pause,
       weight: 150,
-      detail: pauseDetail
-        ? pauseDetail
-        : `${metrics.composedPauses} before a sentence, ${metrics.midSentencePauses} mid-sentence.`,
+      detail: `${
+        pauseDetail ??
+        `${metrics.composedPauses} before a sentence, ${metrics.midSentencePauses} mid-sentence.`
+      }${
+        (metrics.unvoicedHesitations ?? 0) >= 3
+          ? ` Plus ${metrics.unvoicedHesitations} short mid-sentence gaps — silent hesitation, under the length a held pause needs. Nobody else counts these and they're the tell that you're composing mid-clause.`
+          : ""
+      }`,
     },
     {
       name: "Fillers",
@@ -52,10 +57,6 @@ export function DimensionList({
       weight: 100,
       detail: `${metrics.fillerCount} filler${metrics.fillerCount === 1 ? "" : "s"} — ${metrics.fillersPerMin}/min. 0/min scores 100; 8/min scores 0.${
         metrics.topFiller ? ` Most of them were "${metrics.topFiller}".` : ""
-      }${
-        (metrics.unvoicedHesitations ?? 0) >= 3
-          ? ` Note: ${metrics.unvoicedHesitations} mid-sentence gaps of around a second — that's where an "um" usually hides. Transcription drops them, so this count may be reading a cleaner rep than you recorded.`
-          : ""
       }`,
       improve:
         metrics.fillerCount > 0

@@ -365,13 +365,13 @@ describe("substance gate", () => {
 });
 
 /**
- * The transcription-fidelity diagnostic. Reading the first nine stored
- * reps: six had zero "um"/"uh" between them, and one 53s rep carried ten
- * mid-clause held pauses averaging 1.18s. A second of nothing inside a
- * clause is a hesitation, not rhetoric — and the rep whose fillers WERE
- * captured ("you know", a phrase Whisper keeps) had none of them.
+ * Silent hesitation — mid-clause gaps under the 0.8s held threshold,
+ * which no dimension can otherwise see. Originally added believing these
+ * were "um"s Whisper had deleted; the experiment on 11 Aug refuted that
+ * (the prompt recovers every filler), and the measure was kept because
+ * the 0.3–0.8s mid-clause band is genuinely unmeasured elsewhere.
  */
-describe("unvoiced hesitations", () => {
+describe("silent hesitations", () => {
   it("flags mid-clause gaps in the range a swallowed um leaves", () => {
     expect(
       countUnvoicedHesitations([

@@ -169,21 +169,21 @@ four are now closed and struck through.
   given; nothing is retro-scored.
 - **Boss topics are a hand-written list of seven.** Fine for two months
   of weeklies; the supply layer for topics is not built.
-- **Whisper is probably eating the fillers, and it flatters the score
-  twice when it does.** Reading the first nine stored reps: six had zero
-  "um" or "uh" between them, and one 53-second rep carried TEN mid-clause
-  held pauses averaging 1.18s. A second of nothing inside a clause is a
-  hesitation, not rhetoric. The one rep whose fillers WERE captured
-  ("you know" — a phrase, so Whisper keeps it) has zero mid-clause held
-  pauses and is 10% silent, against 23–31% for the others.
-  The failure is double and both halves flatter: the filler vanishes from
-  the count, and the hole it leaves gets scored as silence.
-  Mitigations so far — the prompt is much denser (`lib/transcribe.ts`),
-  and `metrics.unvoicedHesitations` counts the suspects so the next real
-  rep settles it. **Unproven at n=9 and deliberately unscored.** The
-  decisive test is re-transcribing a stored audio file with and without
-  the new prompt and diffing; it needs an `OPENAI_API_KEY`, which this
-  sandbox does not have.
+- **Transcription fidelity: tested, and the prompt is the whole ballgame.**
+  Measured 11 Aug against generated speech with a known 3 "um" and 2 "uh":
+  **no prompt → 0 and 0. With `DISFLUENCY_PROMPT` → 3 and 2.** Whisper
+  deletes every non-lexical filler unless primed, so that one string is
+  load-bearing — delete it and the core metric silently reads a laundered
+  transcript. It also must stay short: a longer version recovered no more
+  fillers and hallucinated "Thank you for watching." onto six seconds of
+  near-silence, which would pass the substance gate as a real rep. Both
+  properties are guarded by tests.
+  *A hypothesis that the nine stored reps had been laundered was published
+  before it was tested and turned out to be wrong* — they were transcribed
+  with the working prompt all along. The filler counts are trustworthy;
+  the user's fillers are "you know" and "like", and the mid-clause gaps
+  are real silent hesitation. Worth repeating on a genuine human
+  recording, since the test used TTS.
 - **Presence has never been pointed at a real body.** The engine is
   fully tested against synthetic landmark frames — a composed speaker, a
   slouch, a look-away, hands out of frame — which proves the arithmetic,

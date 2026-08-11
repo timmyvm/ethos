@@ -287,26 +287,24 @@ export function detectRepairs(words: Word[]): number {
 }
 
 /**
- * Gaps that are probably a filler Whisper deleted.
+ * SILENT hesitation: a mid-clause gap too short to be a held pause.
  *
- * Reading the first nine stored reps on 11 Aug: six had zero "um" or
- * "uh" between them, and one 53-second rep carried TEN mid-clause held
- * pauses averaging 1.18s. A full second of nothing in the middle of a
- * clause is not rhetoric — it is a hesitation, and hesitations are
- * usually voiced. Whisper is trained on cleaned subtitles and drops
- * non-lexical fillers; the time they occupied stays in the timeline as
- * a gap. That is why the one rep whose fillers WERE captured ("you
- * know" — a phrase, so Whisper keeps it) has zero mid-clause held
- * pauses, while the ones reporting a clean transcript are full of them.
+ * This was added on 11 Aug under a theory that turned out to be wrong —
+ * that these gaps were "um"s Whisper had deleted, leaving holes. The
+ * experiment refuted it: with the disfluency prompt in `transcribe.ts`,
+ * Whisper recovers every filler (3/3 "um", 2/2 "uh" on a known sample).
+ * Nothing is being swallowed. The gaps are real silence.
  *
- * The consequence was a double error, both flattering: the filler
- * vanished from the count, and the hole it left got scored as silence.
+ * Which makes them worth keeping for a better reason. The held-pause
+ * threshold is 0.8s, so a 0.3–0.8s gap in the middle of a clause is
+ * currently invisible to every dimension — and that band is exactly
+ * where someone composing mid-sentence lives. It is a genuine speech
+ * pattern (hesitating in silence rather than filling), and this is the
+ * only place it gets counted.
  *
- * This counts the suspects so the next real rep can settle it. It is
- * deliberately NOT scored — the hypothesis is well-supported but
- * unproven at n=9, and acting on it would double-penalise gaps the
- * pause dimension already judges. Make it visible first, score it once
- * a recording with known "um"s has been through the engine.
+ * Still NOT scored: the pause dimension already judges everything over
+ * 0.8s, and scoring the short band too needs a calibration nobody has
+ * earned yet. Shown, so it can be calibrated against real reps.
  */
 export const UNVOICED_MIN_S = 0.3;
 export const UNVOICED_MAX_S = 1.2;

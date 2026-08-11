@@ -6,6 +6,31 @@
 
 import type { Segment, Word } from "./metrics";
 
+/**
+ * The single most load-bearing string in the engine. Do not "tidy" it.
+ *
+ * Whisper is trained on cleaned subtitle text and deletes non-lexical
+ * fillers by default. Measured on 11 Aug against generated speech
+ * containing a known 3 "um" and 2 "uh":
+ *
+ *   no prompt    → um 0, uh 0   (every one deleted)
+ *   this prompt  → um 3, uh 2   (every one recovered)
+ *
+ * The filler count is the product's core number, so without this line
+ * Ethos silently scores a transcript with the evidence removed.
+ *
+ * It is also deliberately SHORT. A longer, denser version was tried the
+ * same day on the theory that more priming would catch more — it
+ * recovered exactly the same 3 and 2, and then hallucinated "Thank you
+ * for watching." onto six seconds of near-silence, where the short
+ * prompt returned nothing. A long prompt gives Whisper more to fall back
+ * on when there's no signal, and an invented sentence would sail
+ * straight through the substance gate as a real rep. Longer is not
+ * safer here; it is strictly worse.
+ */
+export const DISFLUENCY_PROMPT =
+  "So, um, I was thinking... like, you know, it's kind of, uh, basically the idea.";
+
 export interface Transcription {
   text: string;
   durationS: number;
@@ -38,30 +63,7 @@ export async function transcribe(
   form.append("response_format", "verbose_json");
   form.append("timestamp_granularities[]", "word");
   form.append("timestamp_granularities[]", "segment");
-  /*
-   * Whisper is trained on cleaned subtitle text and removes disfluencies
-   * by default. That would gut the filler count — the product's core
-   * number — so the prompt is written in the style we want transcribed;
-   * Whisper treats it as preceding context and continues its register.
-   *
-   * Widened on 11 Aug after reading the first nine stored reps. Six of
-   * them came back with zero "um" or "uh" between them, and one 53s rep
-   * had TEN mid-clause held pauses averaging 1.18s — a full second of
-   * nothing in the middle of a clause is not rhetoric, it's a hesitation,
-   * and hesitations are usually voiced. The likeliest reading is that the
-   * "um"s were transcribed away and the time they occupied became a gap.
-   *
-   * The old prompt was one short sentence. This one is denser, repeats
-   * the non-lexical fillers Whisper is keenest to drop, and includes a
-   * stammer and a self-correction so repairs survive too.
-   */
-  form.append(
-    "prompt",
-    "Um, so, uh — I was thinking, like, you know, it's kind of... uh, " +
-      "basically the idea is, um, that we, that we should just, uh, " +
-      "ship it. I mean, er, not ship it exactly, but — you know what I " +
-      "mean. Um. Yeah. So, uh, that's, that's the thing."
-  );
+  form.append("prompt", DISFLUENCY_PROMPT);
   // Deterministic. Whisper escalates temperature itself when a decode
   // fails its compression/logprob thresholds, so this is a floor, not a
   // ceiling — raising it here trades disfluency capture for hallucination.

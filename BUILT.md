@@ -5,11 +5,23 @@ Reverse-planning sprint, 9–10 Aug 2026. Everything below is pushed to
 This file is a menu for pruning, not a brag list — each entry says what
 it is, where it lives, and what depends on it.
 
-**Deploys do not follow git.** The Vercel project is not git-linked: the
-build pulls source from `src-bundle.json` and binaries from the Supabase
-`brand` bucket (`scripts/vercel-fetch-assets.mjs`, and anything already on
-disk wins). So a pushed commit is NOT a deployed commit, and a changed
-image is not deployed until `scripts/push-brand-assets.mjs` has run.
+**Deploying is `git push origin main`.** The Vercel project
+(`prj_sJBrm6kaPGBRUBV1t0AhnkucG9Jc`, team `timmyvms-projects`) is linked to
+`timmyvm/ethos`. Each push to `main` produces two builds from the same SHA
+— a preview on the branch alias, and a production one that takes
+`ethos-tau.vercel.app` and `ethos-timmyvms-projects.vercel.app`. There is
+no separate deploy step.
+
+**The Supabase asset bridge is vestigial — do not treat it as required.**
+`scripts/vercel-fetch-assets.mjs` and `scripts/push-brand-assets.mjs` date
+from before the git link, when deploys went through MCP file upload and
+binaries had to come from the `brand` bucket. `package.json`'s build is
+plain `next build`, so the fetch script is not wired into the build and the
+bucket is not read at deploy time; `public/` ships from git. Keep them as a
+fallback if the git link is ever removed, but a changed image needs only a
+commit. (An earlier version of this file claimed the opposite. It was
+wrong — verified against the deployment list, where every SHA appears
+twice, once `target: production`.)
 
 ## Engine (build-order step 1) — keep, this is the product
 
@@ -140,6 +152,12 @@ are not.
 - **The 50/100 colour tints are light washes by construction.** In dark
   they are redefined as dark washes of the same hue, or any card using
   them stays cream with unreadable text on it.
+- **Don't read deploy state off `get_project`.** Its `latestDeployment` is
+  the *preview* build — `target: null`, aliased only to the branch — so it
+  looks like production never updated. Every SHA appears twice in
+  `list_deployments`; the one that matters is `target: "production"`.
+  Fastest honest check is to curl the production host and diff what it
+  serves against the working tree.
 
 ## Test coverage
 

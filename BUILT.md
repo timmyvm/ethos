@@ -116,6 +116,8 @@ twice, once `target: production`.)
 | Boss mode | `app/boss/page.tsx`, `lib/cold-topics.ts` | Records through the real engine and gets fact-checked. Free = this week's topic once; premium = the library. |
 | Stress mods | `lib/stress-mods.ts`, `components/ModPicker.tsx` | Four mods with real effects. Medium — the picker appears on home and boss. |
 | Crowd-noise synth | `lib/crowd-noise.ts` | Trivial. Self-contained WebAudio, no asset. |
+| Shop | `app/shop/page.tsx`, `lib/shop.ts` | Streak freeze (14) + 3 Demos poses (8/8/12). Coins only, never money. Nothing on it buys a star, a streak or a point of Ethos (DECISIONS #125, #131). Spend goes through the `spend_coins` RPC so two taps can't spend the same coin. |
+| Coin economy | `lib/coins.ts`, `lib/coin-sync.ts`, `coin_ledger` | 1/day you speak. Derived from the ledger, never incremented, so re-syncing is free. **Was silently broken until 11 Aug** — see Traps. |
 
 ## Brand and shell (step 5)
 
@@ -126,6 +128,9 @@ twice, once `target: production`.)
 | Accounts | `lib/auth.ts`, `app/signup`, `app/signin`, `app/auth/{forgot,reset,callback}` | Core now. Email + password, no social. The anonymous upgrade attaches credentials to the same auth user, so nothing migrates and nothing can be lost migrating. |
 | Transactional email | `supabase/auth-email-templates/`, `docs/email.md` | Templates + the dashboard config they assume. Sends from `hello@speakethos.com`, reply-to the same, never `noreply@`. |
 | Frame step | `app/rep/page.tsx`, `lib/prefs.ts` | Trivial. Opt-in 30s think-time, off by default. |
+| Pose skeleton overlay | `components/PoseSkeleton.tsx` | Trivial to cut, and the cheapest thing in the product for what it returns: MediaPipe's landmarks were already computed for Presence and thrown away. Cream when the ring is clean, stone on a nudge. |
+| Live hold counter | `app/rep/page.tsx` (`HOLD_REVEAL_S`) | The screen's only positive live signal — seconds the ring has stayed clean, reset to zero by any nudge. Amber, because it's earned (DECISIONS #127). |
+| Live tips | `lib/live-tips.ts` | Timed to the arc of a rep, ≤42 chars, yields to a nudge. Tested. |
 | Settings + reminders | `app/settings/page.tsx`, `lib/reminders.ts` | Medium. Reminders really schedule; the card names which tier the browser gave you. |
 | Data export | `app/settings/page.tsx` | Trivial. One JSON file, every rep and lexicon entry. |
 | Error + 404 screens | `app/error.tsx`, `app/not-found.tsx` | Trivial. |
@@ -150,6 +155,18 @@ four are now closed and struck through.
   plain words rather than implying an alarm that won't ring. A real
   cross-platform reminder needs web push (a server) or a native wrap.
 - **The league has no roster.** It shows your own weekly XP and says so.
+- **The shop's cosmetics are three poses and an equip switch.** Buying one
+  swaps the Demos on the floor card, and the pick lives in localStorage
+  (the ledger proves what you *own*; the pref only chooses between things
+  it proves, so a hand-edited value falls back to the default). It does
+  not sync across devices. Nobody has bought one yet, so the price curve
+  — 8/8/12 against 14 for the freeze — is a guess in the same bucket as
+  every other calibration constant.
+- **Coins earned before 11 Aug were never actually granted.** The grant
+  had been failing silently since it shipped (see Traps). `syncCoins` is
+  derived from rep dates rather than incremented, so the *next* load
+  after the fix back-pays every unpaid day — nothing was lost, but no
+  balance was real until then either.
 - **Premium isn't purchasable.** `profiles.premium` is the gate every
   check reads, and it works — but nothing sets it except SQL. No Stripe.
 - **Every calibration constant is a v1 guess.** Star thresholds, the Index
@@ -226,6 +243,24 @@ are not.
   correctly, and in direct contradiction of the promise printed on the
   same screen. `app/rep/page.tsx` splits an audio-only MediaStream for
   the upload and keeps a second, local-only recorder for playback.
+- **`ON CONFLICT` must name the columns of a FULL unique index, not a
+  partial one.** `coin_ledger` had `... unique (user_id, earned_on)
+  where kind = 'earned'`, and the client upserted with that exact
+  target. Postgres answers 42P10 — "no unique or exclusion constraint
+  matching the ON CONFLICT specification" — because a partial index
+  can't be inferred. The error was caught and dropped, `grantCoins`
+  returned 0, and **nobody earned a coin from the day it shipped until
+  11 Aug**, with no symptom except a balance that stayed at zero.
+  Migration 0005 replaces it with a full index on
+  `(user_id, reason, earned_on)`. The lesson that generalises: a
+  swallowed write error on a derived value is invisible, because the
+  derivation looks like it's working.
+- **A `next start` you forgot about will serve stale chunks.** Same
+  failure as the one below and it looks identical (`ChunkLoadError`,
+  then the error boundary with no CSS), but it survives changing ports:
+  every server shares one `.next`, so rebuilding under any of them
+  breaks all of them. Kill every server before rebuilding, not just the
+  one on the port you're using.
 - **Never `npm run build` while `next dev` is running.** It overwrites
   `.next` chunks under the running server, the page JS silently fails to
   execute, and the browser renders a day-zero empty state. This gets

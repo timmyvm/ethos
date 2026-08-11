@@ -74,10 +74,11 @@ export function unpaidDays(repDates: Date[], ledger: CoinRow[]): string[] {
 }
 
 /**
- * Progress toward the first thing worth buying. The shop doesn't exist,
- * so this is the honest framing of the balance — a number going
- * somewhere, with the destination named — rather than a pile with no
- * meaning attached to it.
+ * Progress toward the first thing worth buying. Written when the shop
+ * was still deferred, to keep the balance from being a pile with no
+ * meaning; it survives the shop opening because the framing was never
+ * about the shop's absence — a number going somewhere named beats a
+ * number going nowhere either way.
  */
 export function towardFirstItem(current: number): {
   price: number;

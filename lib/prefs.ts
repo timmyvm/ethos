@@ -29,6 +29,14 @@ export interface Prefs {
   reducedMotion: boolean;
   /** Light, dark, or follow the OS. */
   theme: Theme;
+  /**
+   * Which bought Demos pose sits on the floor card, or null for the
+   * default. Device-local on purpose and consistent with the rest of
+   * this file: what a cosmetic *is* lives on the server (the ledger
+   * proves you bought it), what you're currently looking at is a
+   * property of the screen you're looking at.
+   */
+  pose: string | null;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -47,6 +55,7 @@ export const DEFAULT_PREFS: Prefs = {
   frameStep: false,
   reducedMotion: false,
   theme: "system",
+  pose: null,
 };
 
 const KEY = "ethos.prefs";

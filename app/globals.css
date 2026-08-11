@@ -122,6 +122,30 @@ body {
   border-color: var(--color-hairline);
 }
 
+/*
+ * Section titles.
+ *
+ * These were `.label-data` — Space Mono, uppercase, tracked 0.1em —
+ * which put a page's headings in the exact same voice as the captions
+ * printed *inside* the cards they introduce ("1 per day you speak").
+ * Two levels of hierarchy set identically is no hierarchy: "Coins"
+ * and "to the first item" arrived with equal weight, so the eye had
+ * nowhere to land and the page read as one continuous receipt.
+ *
+ * Linear's discipline is the reference — a heading earns its rank from
+ * weight and colour, not from decoration. So: the display serif at
+ * reading size, sentence case, full ink. Mono keeps the job it's good
+ * at, labelling a number, and stops pretending to be a title.
+ */
+.section-title {
+  font-family: var(--font-display-face), Georgia, serif;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.006em;
+  color: var(--color-ink);
+}
+
 /* Data labels: Space Mono, uppercase, tracked out — the training-log register */
 .label-data {
   font-family: var(--font-space-mono), monospace;

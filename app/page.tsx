@@ -11,6 +11,7 @@ import { Paywall } from "@/components/Paywall";
 import { StreakBadge } from "@/components/StreakBadge";
 import { TopicRoulette } from "@/components/TopicRoulette";
 import {
+  fetchCoinLedger,
   fetchProfile,
   fetchReps,
   type RepRow,
@@ -20,7 +21,9 @@ import { dayTrail } from "@/lib/days";
 import { todaysDrill } from "@/lib/drills";
 import { syncFreezes } from "@/lib/freeze-sync";
 import { MAX_STARS, nextLesson, starsByLesson, totalStars } from "@/lib/path";
+import { readPrefs } from "@/lib/prefs";
 import { repHref } from "@/lib/rep-config";
+import { ownedFrom, poseArt } from "@/lib/shop";
 import { armReminder } from "@/lib/reminders";
 import { decayNote, nextFocus } from "@/lib/schedule";
 import { computeStreak, type StreakState } from "@/lib/streak";
@@ -44,10 +47,17 @@ export default function Home() {
   const [showMods, setShowMods] = useState(false);
   const [paywall, setPaywall] = useState<string | null>(null);
   const [topic, setTopic] = useState<Topic | null>(null);
+  const [demos, setDemos] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProfile()
       .then((p) => setPremium(p?.premium ?? false))
+      .catch(() => {});
+
+    /* A bought pose, if there is one. `null` until the ledger answers,
+       so the default never flashes over the thing someone paid for. */
+    fetchCoinLedger()
+      .then((l) => setDemos(poseArt(readPrefs().pose, ownedFrom(l))))
       .catch(() => {});
 
     fetchReps()
@@ -193,7 +203,11 @@ export default function Home() {
             {/* Demos peeks in at the corner rather than being cropped
                 through the middle — he's at a moment, not furniture. */}
             <Image
-              src={streak.didToday ? "/demos-celebrate.webp" : "/demos.webp"}
+              src={
+                streak.didToday
+                  ? "/demos-celebrate.webp"
+                  : (demos ?? "/demos.webp")
+              }
               alt=""
               width={150}
               height={150}

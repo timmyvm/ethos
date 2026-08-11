@@ -3,6 +3,7 @@ import {
   computeStreak,
   freezeBalance,
   freezesEarned,
+  MAX_EQUIPPED_FREEZES,
   rescuableDays,
 } from "./streak";
 import { levelFromXp, weekStart, xpForLevel } from "./level";
@@ -122,6 +123,19 @@ describe("freezes", () => {
     expect(freezeBalance(14, 0)).toBe(2);
     expect(freezeBalance(14, 1)).toBe(1);
     expect(freezeBalance(7, 3)).toBe(0);
+  });
+
+  it("counts bought freezes alongside earned ones", () => {
+    // A bought freeze has to survive the next sync, which recomputes the
+    // balance from scratch — so it joins the derivation rather than
+    // incrementing a counter the derivation would overwrite.
+    expect(freezeBalance(0, 0, 1)).toBe(1);
+    expect(freezeBalance(7, 0, 1)).toBe(2);
+    expect(freezeBalance(7, 1, 1)).toBe(1);
+  });
+
+  it("still caps at the maximum however they were acquired", () => {
+    expect(freezeBalance(21, 0, 3)).toBe(MAX_EQUIPPED_FREEZES);
   });
 });
 

@@ -169,14 +169,19 @@ export default function YouPage() {
       </div>
 
       {/*
-       * Coins. There is deliberately no shop (§4) — so the balance is
-       * shown against the price of the first thing it will buy, rather
-       * than as a pile with no meaning. A number going somewhere named
-       * is honest; a number going nowhere is decoration.
+       * Coins. §4 shipped this without a shop on purpose, so the balance
+       * was shown against the price of the first thing it would one day
+       * buy. The shop is open now (DECISIONS #125) and the framing is
+       * unchanged — a number going somewhere named, now with somewhere
+       * to go.
        */}
-      <div className="label-data mt-7">Coins</div>
+      <div className="section-title mt-7">Coins</div>
       <div className="mt-2 rounded-[18px] border border-hairline bg-surface lift p-5">
-        <div className="flex items-center gap-4">
+        {/* Number over caption on both sides, and both captions kept
+            short enough not to wrap. "1 per day you speak" wrapped to
+            two lines in the middle column and collided with the balance
+            — a mono caption is a caption, so it has to fit on one. */}
+        <div className="flex items-end gap-4">
           <Coin variant={!loading && coins > 0 ? "stack" : "empty"} size={44} />
           <div className="flex-1">
             {loading ? (
@@ -186,17 +191,17 @@ export default function YouPage() {
                 {coins}
               </div>
             )}
-            <div className="label-data mt-1">1 per day you speak</div>
+            <div className="label-data mt-1.5">1 a day</div>
           </div>
-          <div className="text-right">
-            <div className="label-data">To the first item</div>
+          <div className="shrink-0 text-right">
             {loading ? (
-              <Skeleton className="mt-1.5 ml-auto h-5 w-8" />
+              <Skeleton className="ml-auto h-5 w-8" />
             ) : (
-              <div className="font-display text-[22px] font-bold">
+              <div className="font-display text-[22px] font-bold leading-none">
                 {towardFirstItem(coins).toGo}
               </div>
             )}
+            <div className="label-data mt-1.5">to the first item</div>
           </div>
         </div>
         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-sand">
@@ -206,16 +211,22 @@ export default function YouPage() {
           />
         </div>
         <p className="mt-3 border-t border-sand pt-3 text-[12.5px] leading-relaxed text-stone-500">
-          There&apos;s nothing to spend these on yet. The shop is a separate
-          decision — what matters now is that the rate is fixed against a
-          price, so the first thing worth buying costs about two weeks of
-          practice instead of nothing at all. A day you spoke pays once,
-          however many reps you did.
+          A day you spoke pays once, however many reps you did — which is
+          why the shop can only sell you convenience and decoration. It
+          can&apos;t sell you a streak, a star or a point of your Ethos.
         </p>
+        <Link
+          href="/shop"
+          className="press mt-3 flex items-center justify-between rounded-[13px] border border-black/10 px-4 py-3 text-[14px] font-semibold"
+        >
+          <span>Open the shop</span>
+          <span className="text-stone-400">→</span>
+        </Link>
       </div>
 
-      {/* Freezes — earned by streak, never bought (non-negotiable). */}
-      <div className="label-data mt-7">Streak freezes</div>
+      {/* Freezes — earned by speaking, or bought with coins earned by
+          speaking. Never bought with money (non-negotiable). */}
+      <div className="section-title mt-7">Streak freezes</div>
       <div className="mt-2 rounded-[18px] border border-hairline bg-surface lift p-5">
         <div className="flex items-center gap-2">
           {Array.from({ length: MAX_EQUIPPED_FREEZES }).map((_, i) => (
@@ -238,9 +249,10 @@ export default function YouPage() {
           </div>
         </div>
         <p className="mt-3 border-t border-sand pt-3 text-[12.5px] leading-relaxed text-stone-500">
-          One freeze per full week of streak, two maximum. Earned by
-          speaking, never bought — and a frozen day keeps your streak
-          without counting toward it.
+          One freeze per full week of streak, two maximum — or 14 coins in
+          the shop, which is two weeks of speaking either way. Never
+          money. A frozen day keeps your streak without counting toward
+          it.
           {freezes.used > 0 && (
             <>
               {" "}
@@ -253,7 +265,7 @@ export default function YouPage() {
       </div>
 
       {/* Weekly league — the roster fills once there are other trainees. */}
-      <div className="label-data mt-7">Weekly league</div>
+      <div className="section-title mt-7">Weekly league</div>
       <div className="mt-2 rounded-[18px] border border-hairline bg-surface lift p-5">
         <div className="flex items-center justify-between">
           <div>
@@ -276,7 +288,7 @@ export default function YouPage() {
       </div>
 
       {/* Personal lexicon — the supply layer's archive (DECISIONS #12) */}
-      <div className="label-data mt-7">Your lexicon</div>
+      <div className="section-title mt-7">Your lexicon</div>
       {lexicon.length === 0 ? (
         <p className="mt-2 text-[13px] text-stone-500">
           Every rep gives you one upgrade drawn from your own words. They
@@ -331,7 +343,7 @@ export default function YouPage() {
       )}
 
       {/* Badges — every one names the number that unlocked it. */}
-      <div className="label-data mt-7">Earned</div>
+      <div className="section-title mt-7">Earned</div>
       <div className="mt-2 grid grid-cols-2 gap-2.5">
         {achievements(history).map((a) => (
           <div
@@ -363,7 +375,7 @@ export default function YouPage() {
 
       {history.length >= 2 && (
         <>
-          <div className="label-data mt-7">Day 1 vs now</div>
+          <div className="section-title mt-7">Day 1 vs now</div>
           <ShareCard reps={history} />
         </>
       )}

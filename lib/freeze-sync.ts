@@ -13,6 +13,7 @@ import {
   fetchFrozenDays,
   fetchStreakRow,
   grantFreezes,
+  purchasedFreezes,
   spendFreezes,
 } from "./client-data";
 import {
@@ -51,7 +52,11 @@ export async function syncFreezes(
 
   const streak = computeStreak(repDates, now, frozenDays);
 
-  const target = freezeBalance(streak.longest, frozenDays.length);
+  const target = freezeBalance(
+    streak.longest,
+    frozenDays.length,
+    await purchasedFreezes().catch(() => 0)
+  );
   if (target !== equipped) {
     const granted = await grantFreezes(target).catch(() => equipped);
     equipped = granted || equipped;

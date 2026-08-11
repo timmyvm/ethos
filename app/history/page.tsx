@@ -147,7 +147,7 @@ export default function HistoryPage() {
 
       {insights(reps).length > 0 && (
         <>
-          <div className="label-data mt-7">What the reps say</div>
+          <div className="section-title mt-7">What the reps say</div>
           <div className="mt-2 space-y-2.5">
             {insights(reps).map((i) => (
               <div
@@ -174,7 +174,7 @@ export default function HistoryPage() {
         </div>
       )}
 
-      <div className="label-data mt-7">Every rep</div>
+      <div className="section-title mt-7">Every rep</div>
       <div className="mt-2 space-y-2.5">
         {newestFirst.map((r) => {
           const d = new Date(r.created_at);

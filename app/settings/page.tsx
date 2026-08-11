@@ -125,7 +125,7 @@ export default function SettingsPage() {
       </Link>
       <h1 className="font-display mt-4 text-2xl font-bold">Settings</h1>
 
-      <div className="label-data mt-7">Daily reminder</div>
+      <div className="section-title mt-7">Daily reminder</div>
       <div className="mt-2 rounded-[18px] border border-hairline bg-surface lift p-5">
         <p className="text-[13px] leading-relaxed text-stone-500">
           One notification a day, maximum. It names the streak, never
@@ -180,7 +180,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="label-data mt-7">Appearance</div>
+      <div className="section-title mt-7">Appearance</div>
       <div className="mt-2 rounded-[18px] border border-hairline bg-surface lift p-5">
         <div className="flex gap-2">
           {(["system", "light", "dark"] as Theme[]).map((t) => (
@@ -208,7 +208,7 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <div className="label-data mt-7">The rep</div>
+      <div className="section-title mt-7">The rep</div>
       <div className="mt-2 divide-y divide-sand rounded-[18px] border border-hairline bg-surface lift">
         <Toggle
           label="Frame step"
@@ -236,7 +236,7 @@ export default function SettingsPage() {
         />
       </div>
 
-      <div className="label-data mt-7">Account</div>
+      <div className="section-title mt-7">Account</div>
       <div className="mt-2 rounded-[18px] border border-hairline bg-surface lift p-5">
         <div className="text-[14px] font-semibold">
           {email ?? "Anonymous — this device only"}

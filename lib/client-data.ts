@@ -257,11 +257,45 @@ export async function grantCoins(days: string[]): Promise<number> {
         reason: "streak_day",
         earned_on: d,
       })),
-      { onConflict: "user_id,earned_on", ignoreDuplicates: true }
+      // Must match `coin_ledger_earn_uniq` exactly. The original target
+      // was (user_id, earned_on) against a PARTIAL index, which Postgres
+      // refuses with 42P10 — so every grant failed silently and nobody
+      // ever earned a coin (migration 0005).
+      { onConflict: "user_id,reason,earned_on", ignoreDuplicates: true }
     )
     .select("id");
-  if (error) return 0;
+  if (error) {
+    // Silent failure here is how the coin bug survived: grantCoins
+    // returned 0, syncCoins caught nothing, and the balance just stayed
+    // at zero forever with no symptom.
+    console.warn("[coins] grant failed:", error.message);
+    return 0;
+  }
   return data?.length ?? 0;
+}
+
+/**
+ * Buy something. Balance is checked and the row written inside one
+ * locked transaction (`spend_coins`), so two taps can't both spend the
+ * same coin — a policy-level check would race against itself.
+ */
+export async function spendCoins(
+  reason: string,
+  amount: number
+): Promise<{ ok: boolean; balance: number; detail: string }> {
+  const db = supabaseBrowser();
+  if (!db) return { ok: false, balance: 0, detail: "offline" };
+  const { data, error } = await db.rpc("spend_coins", {
+    p_reason: reason,
+    p_amount: amount,
+  });
+  if (error) return { ok: false, balance: 0, detail: error.message };
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    ok: !!row?.ok,
+    balance: row?.balance ?? 0,
+    detail: row?.detail ?? "",
+  };
 }
 
 /** Top the user's equipped freezes up to what their streak has earned. */
@@ -278,4 +312,16 @@ export async function grantFreezes(target: number): Promise<number> {
       { onConflict: "user_id" }
     );
   return error ? 0 : target;
+}
+
+/** How many freezes were bought in the shop, for the freeze derivation. */
+export async function purchasedFreezes(): Promise<number> {
+  const db = supabaseBrowser();
+  if (!db) return 0;
+  const { data } = await db
+    .from("coin_ledger")
+    .select("id")
+    .eq("kind", "spent")
+    .eq("reason", "shop:streak_freeze");
+  return data?.length ?? 0;
 }

@@ -16,6 +16,7 @@ import { GainsRow } from "@/components/GainsRow";
 import { ModeToggle } from "@/components/ModeToggle";
 import { Moment } from "@/components/Moment";
 import { Paywall } from "@/components/Paywall";
+import { PoseSkeleton } from "@/components/PoseSkeleton";
 import { PresenceDetail, PresenceScore } from "@/components/PresenceCard";
 import { RepResult } from "@/components/RepResult";
 import { StreakCelebration } from "@/components/StreakCelebration";
@@ -35,11 +36,13 @@ import {
 import { startCrowdNoise, type CrowdNoise } from "@/lib/crowd-noise";
 import { syncFreezes } from "@/lib/freeze-sync";
 import { starsByLesson, totalStars, unitStates } from "@/lib/path";
+import { liveTipAt } from "@/lib/live-tips";
 import { loadPose, samplePose, type PoseSampler } from "@/lib/pose-client";
 import {
   ringNote,
   ringState,
   scorePresence,
+  type PoseFrame,
   type PresenceResult,
   type RingState,
 } from "@/lib/presence";
@@ -68,17 +71,25 @@ const METER_BARS = 36;
 const FRAME_SECONDS = 30;
 
 /**
- * The live ring's nudge colour, per §2 ("the ring goes amber on slouch,
+ * The live ring's nudge colour (§2: "the ring goes amber on slouch,
  * hands leaving frame, eyes dropping").
  *
- * Flagged rather than silently applied: DECISIONS #65 locks amber as
- * earned-only, because a colour that means something has to mean the
- * same thing everywhere, and everywhere else in Ethos amber means "you
- * earned this". Here it means "look at this". One constant to reverse
- * if that trade isn't wanted — `ring-stone-400` keeps the nudge visible
- * without spending the colour.
+ * It was amber, flagged in place as the one screen where the colour
+ * carried attention rather than achievement — the exact trade DECISIONS
+ * #65 warned about. #127 takes the other side of it: the nudge gives up
+ * amber and the hold counter takes it, so the colour means "you earned
+ * this" everywhere without exception. Visibility didn't depend on the
+ * hue anyway; it depends on the ring going 2px → 4px, the skeleton
+ * dimming, and the note appearing under it.
  */
-const RING_TONE = "ring-amber-500";
+const RING_TONE = "ring-stone-400";
+
+/**
+ * Seconds of a clean ring before the hold counter appears. Below this
+ * it would flicker on and off through normal movement, which reads as a
+ * broken indicator rather than an achievement.
+ */
+const HOLD_REVEAL_S = 4;
 
 /** Demos' one interruption. Short, specific, never insulting. */
 const INTERRUPTIONS = [
@@ -130,6 +141,17 @@ function RepScreen() {
   );
 
   const [phase, setPhase] = useState<Phase>("idle");
+  /**
+   * "Next lesson" links to /rep?lesson=… — the SAME route, so Next.js
+   * keeps this component mounted and every piece of state with it. The
+   * URL changed, `phase` stayed "results", and the screen sat there
+   * showing the rep you just finished. Reported by Timothy as "the next
+   * lesson button doesn't take you to the next lesson".
+   *
+   * Resetting on lessonId is what makes the navigation real.
+   */
+  const lessonKey = `${searchParams.get("lesson") ?? ""}|${searchParams.get("topic") ?? ""}|${searchParams.get("boss") ?? ""}`;
+  const lessonKeyRef = useRef(lessonKey);
   const [seconds, setSeconds] = useState(0);
   const [frameLeft, setFrameLeft] = useState(FRAME_SECONDS);
   const [levels, setLevels] = useState<number[]>(Array(METER_BARS).fill(0.05));
@@ -149,6 +171,16 @@ function RepScreen() {
   const [captureMode, setCaptureMode] = useState<CaptureMode>("voice");
   const [poseReady, setPoseReady] = useState<boolean | null>(null);
   const [ring, setRing] = useState<RingState>("ok");
+  /**
+   * The sampler's live frame array, handed over once when sampling
+   * starts. Held rather than copied: it's mutated in place at 30fps and
+   * the overlay reads the last entry inside its own draw loop, so
+   * pushing frames through React state would be 30 renders a second to
+   * paint one canvas.
+   */
+  const [poseFrames, setPoseFrames] = useState<PoseFrame[] | null>(null);
+  /** Seconds the ring has been clean. The live "you're doing it" signal. */
+  const [heldS, setHeldS] = useState(0);
   const [presence, setPresence] = useState<PresenceResult | null>(null);
   const [clipUrl, setClipUrl] = useState<string | null>(null);
   const [paywall, setPaywall] = useState<string | null>(null);
@@ -503,9 +535,11 @@ function RepScreen() {
         if (video && landmarker) {
           video.srcObject = stream;
           await video.play().catch(() => {});
-          recRef.current.sampler = samplePose(video, landmarker, (frames) =>
+          const sampler = samplePose(video, landmarker, (frames) =>
             setRing(ringState(frames))
           );
+          recRef.current.sampler = sampler;
+          setPoseFrames(sampler.frames);
         }
       }
 
@@ -546,6 +580,8 @@ function RepScreen() {
     setLevels(Array(METER_BARS).fill(0.05));
     setPresence(null);
     setRing("ok");
+    setPoseFrames(null);
+    setHeldS(0);
     setClipUrl((url) => {
       if (url) URL.revokeObjectURL(url);
       return null;
@@ -563,6 +599,30 @@ function RepScreen() {
     }
   }, [startRep]);
 
+  useEffect(() => {
+    if (lessonKeyRef.current === lessonKey) return;
+    lessonKeyRef.current = lessonKey;
+    setResult(null);
+    setPresence(null);
+    setGains([]);
+    setBests([]);
+    setClosing(null);
+    setCelebrate(null);
+    setCoined(false);
+    setSeconds(0);
+    setRing("ok");
+    setPoseFrames(null);
+    setHeldS(0);
+    setNotes("");
+    setLevels(Array(METER_BARS).fill(0.05));
+    setClipUrl((url) => {
+      if (url) URL.revokeObjectURL(url);
+      return null;
+    });
+    setPhase("idle");
+    window.scrollTo({ top: 0 });
+  }, [lessonKey]);
+
   // Frame countdown
   useEffect(() => {
     if (phase !== "frame") return;
@@ -577,6 +637,32 @@ function RepScreen() {
     }, 1000);
     return () => clearInterval(t);
   }, [phase]);
+
+  /**
+   * How long the ring has been clean, in seconds.
+   *
+   * This is the screen's active indicator of *success*, and it exists
+   * because the rep screen only ever spoke up to complain: the ring went
+   * amber on a slouch and said nothing at all when you were holding it
+   * together, which teaches you what failure looks like and nothing
+   * about what to keep doing.
+   *
+   * Resetting to zero on any nudge is the point — losing a run you were
+   * accumulating is a stronger, quieter signal than a warning colour,
+   * and it's the same mechanic as the streak one screen up.
+   */
+  useEffect(() => {
+    if (phase !== "recording" || captureMode !== "voice_video" || ring !== "ok") {
+      setHeldS(0);
+      return;
+    }
+    const from = Date.now();
+    const t = setInterval(
+      () => setHeldS(Math.floor((Date.now() - from) / 1000)),
+      250
+    );
+    return () => clearInterval(t);
+  }, [phase, captureMode, ring]);
 
   // Timer + hard cap (90s, or 45s with the tight-timer mod)
   useEffect(() => {
@@ -650,6 +736,16 @@ function RepScreen() {
 
   const capLabel = fmt(config.maxSeconds);
   const promptHidden = config.hidePrompt && phase !== "idle";
+  /*
+   * A tip yields to a live nudge: the nudge is about this second of this
+   * rep, the tip is general advice, and stacking them means neither gets
+   * read. `seconds` already ticks once a second, so this recomputes at
+   * exactly the rate it needs to and no faster.
+   */
+  const liveTip =
+    ring === "ok"
+      ? liveTipAt(seconds, config.maxSeconds, captureMode === "voice_video")
+      : null;
 
   return (
     <main className="flex min-h-dvh flex-col px-5 pb-8 pt-7">
@@ -805,6 +901,21 @@ function RepScreen() {
                 />
               ))}
             </div>
+            {/*
+             * One tip, at the moment it applies (lib/live-tips.ts). It
+             * yields to a live nudge — two messages at once is one
+             * message nobody reads — and the row keeps its height
+             * either way so the meter never jumps.
+             */}
+            <div className="flex h-[18px] items-center">
+              <span
+                className={`text-[12.5px] leading-none text-stone-400 transition-opacity duration-500 ${
+                  liveTip ? "opacity-100" : "opacity-0"
+                }`}
+              >
+                {liveTip ?? ""}
+              </span>
+            </div>
           </>
         )}
 
@@ -825,14 +936,22 @@ function RepScreen() {
         )}
 
         {/*
-         * Self-view with the live ring. Free for everyone (§2) — local
-         * compute, zero marginal cost, and the part that feels like
-         * magic before anyone has paid anything.
+         * Self-view with the live ring and the tracked limbs drawn over
+         * it. Free for everyone (§2) — local compute, zero marginal
+         * cost, and the part that feels like magic before anyone has
+         * paid anything.
          *
-         * The ring is amber on a nudge, as specified in §2. Worth
-         * knowing: DECISIONS #65 locks amber as earned-only, so this is
-         * the one place the colour carries attention rather than
-         * achievement. Flip RING_TONE to reverse it.
+         * The amber is REVERSED from §2's first pass (DECISIONS #127).
+         * It used to mark the nudge, which was flagged in code as the
+         * one place amber meant "look at this" rather than "you earned
+         * this" — a colour that means two things means neither. Now the
+         * nudge is stone and the hold counter is amber, so amber is
+         * earned-only everywhere, including here.
+         *
+         * A nudge stays unmissable on three channels at once: the ring
+         * thickens, the skeleton dims to stone, the note appears — and
+         * the hold counter you were building resets to nothing, which is
+         * the loudest of the four.
          */}
         <div
           className={`${
@@ -854,12 +973,23 @@ function RepScreen() {
               playsInline
               className="block w-[220px] -scale-x-100 bg-stage"
             />
+            {poseFrames && <PoseSkeleton frames={poseFrames} ring={ring} />}
+            {/* The held run, in the video's own corner — close enough
+                that the eye doesn't leave your face to find it, off to
+                the side so it isn't sitting on your hands. `nowrap`
+                because the pill is narrower than the label wants to be
+                and wrapping put "12s" across the skeleton's chest. */}
+            {ring === "ok" && heldS >= HOLD_REVEAL_S && (
+              <div className="absolute bottom-2 right-2 rounded-full bg-stage/80 px-2.5 py-1">
+                <span className="label-data whitespace-nowrap !text-amber-400">
+                  holding {heldS}s
+                </span>
+              </div>
+            )}
           </div>
-          {ring !== "ok" && (
-            <div className="mt-2 text-center text-[13px] font-semibold text-amber-500">
-              {ringNote(ring)}
-            </div>
-          )}
+          <div className="mt-2 h-[18px] text-center text-[13px] font-semibold text-stone-600">
+            {ring !== "ok" ? ringNote(ring) : ""}
+          </div>
         </div>
 
         {phase === "recording" && captureMode !== "voice_video" && (

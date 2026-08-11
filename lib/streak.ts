@@ -152,7 +152,15 @@ export function freezesEarned(longestStreak: number): number {
  * everything already spent, clamped to the cap. Derived rather than
  * incremented so a lost write or a second device can't double-grant.
  */
-export function freezeBalance(longestStreak: number, spent: number): number {
-  const earned = Math.floor(longestStreak / 7);
+export function freezeBalance(
+  longestStreak: number,
+  spent: number,
+  purchased = 0
+): number {
+  // Purchased freezes join the derivation rather than incrementing a
+  // counter, for the same reason the earned ones do: re-running has to
+  // be a no-op, and a bought freeze would otherwise be wiped by the very
+  // next sync.
+  const earned = Math.floor(longestStreak / 7) + purchased;
   return Math.max(0, Math.min(MAX_EQUIPPED_FREEZES, earned - spent));
 }

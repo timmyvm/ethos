@@ -61,7 +61,7 @@ twice, once `target: production`.)
 | Tier-2 anchors | `lib/index-score.ts` | Hedge and restart counts fed to the judge as ground truth. |
 | Coach + judge call | `lib/coach.ts` | One Claude call per rep: focus, strength, supply, coachLine, and four judged dimensions. Citation-required or rejected and re-run. |
 | Boss fact-check | `lib/accuracy.ts` | Second, independent Claude call on boss reps: extracts each claim verbatim, marks it against the topic's ground truth. Score is arithmetic over the verdicts. |
-| Whisper transcription | `lib/transcribe.ts` | verbose_json, word timestamps, disfluency-biased prompt. |
+| Whisper transcription | `lib/transcribe.ts` | verbose_json, word timestamps, disfluency-biased prompt (widened 11 Aug — see the fidelity gap below). |
 | Rep resolver | `lib/rep-config.ts` | One pure function answers "what is this rep" — prompt, cap, mods, multiplier — for the screen, the route and the log. |
 | Analyze route | `app/api/analyze/route.ts` | Pipeline + persistence. Coach and fact-check run in parallel; either failing never blocks the numbers. Recomputes the XP multiplier from server-side entitlement, and meters the judged tier. |
 | Presence engine | `lib/presence.ts` | Pose landmarks → gesture rate, posture drift, head stability, eye-line % → Presence /1000 (4 × 250, same shape as the Index). Plus timestamped moments and the live ring state. Pure, no LLM, 21 tests. |
@@ -169,6 +169,21 @@ four are now closed and struck through.
   given; nothing is retro-scored.
 - **Boss topics are a hand-written list of seven.** Fine for two months
   of weeklies; the supply layer for topics is not built.
+- **Whisper is probably eating the fillers, and it flatters the score
+  twice when it does.** Reading the first nine stored reps: six had zero
+  "um" or "uh" between them, and one 53-second rep carried TEN mid-clause
+  held pauses averaging 1.18s. A second of nothing inside a clause is a
+  hesitation, not rhetoric. The one rep whose fillers WERE captured
+  ("you know" — a phrase, so Whisper keeps it) has zero mid-clause held
+  pauses and is 10% silent, against 23–31% for the others.
+  The failure is double and both halves flatter: the filler vanishes from
+  the count, and the hole it leaves gets scored as silence.
+  Mitigations so far — the prompt is much denser (`lib/transcribe.ts`),
+  and `metrics.unvoicedHesitations` counts the suspects so the next real
+  rep settles it. **Unproven at n=9 and deliberately unscored.** The
+  decisive test is re-transcribing a stored audio file with and without
+  the new prompt and diffing; it needs an `OPENAI_API_KEY`, which this
+  sandbox does not have.
 - **Presence has never been pointed at a real body.** The engine is
   fully tested against synthetic landmark frames — a composed speaker, a
   slouch, a look-away, hands out of frame — which proves the arithmetic,

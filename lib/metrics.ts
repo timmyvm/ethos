@@ -56,6 +56,12 @@ export interface RepMetrics {
   repairCount: number;
   repairsPerMin: number;
   /**
+   * Mid-clause gaps short enough to be a swallowed "um" rather than a
+   * deliberate silence. A diagnostic, not a score — see
+   * `countUnvoicedHesitations`.
+   */
+  unvoicedHesitations: number;
+  /**
    * Fillers + repairs. Scored SEPARATELY in the Index — they are
    * different problems with different fixes — but stars need one
    * number, and to a listener both are the same kind of stumble.
@@ -281,6 +287,40 @@ export function detectRepairs(words: Word[]): number {
 }
 
 /**
+ * Gaps that are probably a filler Whisper deleted.
+ *
+ * Reading the first nine stored reps on 11 Aug: six had zero "um" or
+ * "uh" between them, and one 53-second rep carried TEN mid-clause held
+ * pauses averaging 1.18s. A full second of nothing in the middle of a
+ * clause is not rhetoric — it is a hesitation, and hesitations are
+ * usually voiced. Whisper is trained on cleaned subtitles and drops
+ * non-lexical fillers; the time they occupied stays in the timeline as
+ * a gap. That is why the one rep whose fillers WERE captured ("you
+ * know" — a phrase, so Whisper keeps it) has zero mid-clause held
+ * pauses, while the ones reporting a clean transcript are full of them.
+ *
+ * The consequence was a double error, both flattering: the filler
+ * vanished from the count, and the hole it left got scored as silence.
+ *
+ * This counts the suspects so the next real rep can settle it. It is
+ * deliberately NOT scored — the hypothesis is well-supported but
+ * unproven at n=9, and acting on it would double-penalise gaps the
+ * pause dimension already judges. Make it visible first, score it once
+ * a recording with known "um"s has been through the engine.
+ */
+export const UNVOICED_MIN_S = 0.3;
+export const UNVOICED_MAX_S = 1.2;
+
+export function countUnvoicedHesitations(pauses: Pause[]): number {
+  return pauses.filter(
+    (p) =>
+      p.kind !== "pre" &&
+      p.len >= UNVOICED_MIN_S &&
+      p.len <= UNVOICED_MAX_S
+  ).length;
+}
+
+/**
  * Star thresholds — DECISIONS.md #10: objective metrics only.
  *
  * Reads the DISFLUENCY rate, not the filler rate: an "um" and a
@@ -382,6 +422,7 @@ export function computeMetrics(
   const fillerCount = fillers.length;
   const fillersPerMin = minutes > 0 ? fillerCount / minutes : 0;
   const repairCount = detectRepairs(words);
+  const unvoicedHesitations = countUnvoicedHesitations(pauses);
   const repairsPerMin = minutes > 0 ? repairCount / minutes : 0;
   const disfluenciesPerMin =
     minutes > 0 ? (fillerCount + repairCount) / minutes : 0;
@@ -409,6 +450,7 @@ export function computeMetrics(
     topFiller,
     repairCount,
     repairsPerMin: round2(repairsPerMin),
+    unvoicedHesitations,
     disfluenciesPerMin: round2(disfluenciesPerMin),
     pauses,
     heldPauses: composedPauses + midSentencePauses,

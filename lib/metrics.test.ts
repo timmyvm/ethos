@@ -6,6 +6,7 @@ import {
   detectPauses,
   isScorable,
   normalizeWord,
+  countUnvoicedHesitations,
   detectRepairs,
   starsForDisfluencyRate,
   substance,
@@ -360,5 +361,79 @@ describe("substance gate", () => {
     const short = "yes I agree with that entirely";
     expect(substance(short).wordCount).toBeLessThan(MIN_WORDS_TO_SCORE);
     expect(say(short).stars).toBe(1);
+  });
+});
+
+/**
+ * The transcription-fidelity diagnostic. Reading the first nine stored
+ * reps: six had zero "um"/"uh" between them, and one 53s rep carried ten
+ * mid-clause held pauses averaging 1.18s. A second of nothing inside a
+ * clause is a hesitation, not rhetoric — and the rep whose fillers WERE
+ * captured ("you know", a phrase Whisper keeps) had none of them.
+ */
+describe("unvoiced hesitations", () => {
+  it("flags mid-clause gaps in the range a swallowed um leaves", () => {
+    expect(
+      countUnvoicedHesitations([
+        { t: 1, len: 0.5, kind: "beat" },
+        { t: 5, len: 1.0, kind: "mid" },
+        { t: 9, len: 0.9, kind: "mid" },
+      ])
+    ).toBe(3);
+  });
+
+  it("ignores silence taken at a sentence boundary", () => {
+    // A held pause after a full stop is the deliberate kind. Counting it
+    // here would turn the product's best behaviour into a warning.
+    expect(
+      countUnvoicedHesitations([
+        { t: 1, len: 1.0, kind: "pre" },
+        { t: 5, len: 1.5, kind: "pre" },
+      ])
+    ).toBe(0);
+  });
+
+  it("ignores gaps too long to be a swallowed word", () => {
+    expect(
+      countUnvoicedHesitations([{ t: 1, len: 2.5, kind: "mid" }])
+    ).toBe(0);
+  });
+
+  it("ignores gaps too short to hide anything", () => {
+    expect(
+      countUnvoicedHesitations([{ t: 1, len: 0.1, kind: "mid" }])
+    ).toBe(0);
+  });
+
+  /**
+   * Deliberately NOT scored. The hypothesis is well-supported at n=9 and
+   * unproven, and the pause dimension already judges these gaps — so
+   * scoring them here would penalise the same second twice.
+   */
+  it("does not change the score", () => {
+    const text =
+      "the honest answer here is that most teams already know what their " +
+      "real problem is and the hard part is saying it in a room";
+    const smooth = text.split(" ").map((word, i) => ({
+      word,
+      start: i * 0.4,
+      end: i * 0.4 + 0.35,
+    }));
+    // Same words, same duration — but with second-long holes mid-clause,
+    // which is what a transcript looks like after an "um" is removed.
+    const gappy = text.split(" ").map((word, i) => {
+      const drift = Math.floor(i / 5) * 1.0;
+      return { word, start: i * 0.4 + drift, end: i * 0.4 + drift + 0.35 };
+    });
+
+    const a = computeMetrics(smooth, 60);
+    const b = computeMetrics(gappy, 60);
+
+    expect(a.unvoicedHesitations).toBe(0);
+    expect(b.unvoicedHesitations).toBeGreaterThan(2);
+    // The diagnostic moved; nothing that scores did.
+    expect(b.stars).toBe(a.stars);
+    expect(b.disfluenciesPerMin).toBe(a.disfluenciesPerMin);
+    expect(b.fillerCount).toBe(a.fillerCount);
   });
 });

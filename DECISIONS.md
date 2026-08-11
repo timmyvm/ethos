@@ -131,6 +131,9 @@ Locked means locked. Reopen only with user data or Timothy's explicit call.
 114. 2026-08-11 · Display face is **Fraunces** (600/700), tabular figures on, tracking −0.008em · **Amends #5**, on Timothy's explicit call, which is the one way that file allows a locked decision to reopen. Space Grotesk's "1" carries a narrower advance than its glyph, so "11", "12", "31" and "118" collided on every screen in the app — and a display face whose numerals are its weakest feature cannot serve a product whose whole identity is numbers. Fraunces keeps the character, reads warm against the terracotta and cream instead of techy, and suits a name meaning credibility earned rather than claimed. Body stays Inter, data labels stay Space Mono — serif display over sans body is the classic pairing and only the display face was wrong
 115. 2026-08-11 · Tabular figures are ON, reversing the workaround in #5's era · they were refused because Space Grotesk's tnum made the overlap worse. Fraunces has no such fault, so a live metric stops reflowing as its digits change — which is the entire point of tabular figures and what a screen full of counting numbers wants
 
+116. 2026-08-11 · Transcription fidelity is a first-order product risk, and the engine now instruments it · six of the first nine stored reps came back with zero "um"/"uh", while one 53s rep carried ten mid-clause held pauses averaging 1.18s. Whisper is trained on cleaned subtitles and drops non-lexical fillers; the time they occupied stays in the timeline as a gap. So the error is DOUBLE and both halves flatter — the filler leaves the count, and the hole it leaves is scored as silence. The rep whose fillers survived ("you know", a phrase Whisper keeps) has zero mid-clause held pauses, which is the control this hypothesis wanted
+117. 2026-08-11 · `unvoicedHesitations` is measured and shown, never scored · mid-clause gaps of 0.3–1.2s are counted and surfaced on the Fillers row past a threshold of 3, so a suspect transcript announces itself. Not scored, for two reasons: the hypothesis is unproven at n=9, and the pause dimension already judges those same gaps — scoring here would penalise one second twice. Score it once a recording with known "um"s has been through the engine
+
 ## Open queue (research-once, decide, move up)
 
 - Currency name — after launch copywriting pass
@@ -139,6 +142,10 @@ Locked means locked. Reopen only with user data or Timothy's explicit call.
   locked decision; early boss access and score retries both compete with
   Pro. The price of the first item is fixed at 14 regardless (#78) — what
   is undecided is *what* it is
+- **Transcription fidelity (#116)** — re-transcribe a stored audio file
+  with the old and new prompts and diff the "um" counts. Needs an
+  `OPENAI_API_KEY`. Until that runs, every filler count and every star in
+  the product is measuring a transcript that may already be laundered
 - **Presence calibration** — every constant in `lib/presence.ts` is a v1
   guess in the same bucket as the star thresholds and `HALF_LIFE_DAYS`:
   the 8–26/min gesture zone, the posture and head bands, the 0.06

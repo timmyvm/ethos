@@ -61,7 +61,7 @@ twice, once `target: production`.)
 | Tier-2 anchors | `lib/index-score.ts` | Hedge and restart counts fed to the judge as ground truth. |
 | Coach + judge call | `lib/coach.ts` | One Claude call per rep: focus, strength, supply, coachLine, and four judged dimensions. Citation-required or rejected and re-run. |
 | Boss fact-check | `lib/accuracy.ts` | Second, independent Claude call on boss reps: extracts each claim verbatim, marks it against the topic's ground truth. Score is arithmetic over the verdicts. |
-| Whisper transcription | `lib/transcribe.ts` | verbose_json, word timestamps, disfluency-biased prompt (widened 11 Aug — see the fidelity gap below). |
+| Whisper transcription | `lib/transcribe.ts` | verbose_json, word timestamps, and `DISFLUENCY_PROMPT` — load-bearing, measured, guarded by tests. Without it Whisper deletes 100% of um/uh. |
 | Rep resolver | `lib/rep-config.ts` | One pure function answers "what is this rep" — prompt, cap, mods, multiplier — for the screen, the route and the log. |
 | Analyze route | `app/api/analyze/route.ts` | Pipeline + persistence. Coach and fact-check run in parallel; either failing never blocks the numbers. Recomputes the XP multiplier from server-side entitlement, and meters the judged tier. |
 | Presence engine | `lib/presence.ts` | Pose landmarks → gesture rate, posture drift, head stability, eye-line % → Presence /1000 (4 × 250, same shape as the Index). Plus timestamped moments and the live ring state. Pure, no LLM, 21 tests. |

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { tier2Scores, validateCoachOutput, type CoachOutput } from "./coach";
+import {
+  repairCoachOutput,
+  splitProblems,
+  splitSentences,
+  tier2Scores,
+  validateCoachOutput,
+  type CoachOutput,
+} from "./coach";
 import { tier1Scores, tier2Anchors } from "./index-score";
 import { computeMetrics, type Word } from "./metrics";
 
@@ -229,5 +236,82 @@ describe("tier2Scores", () => {
       engagement: 62,
       confidence: 62,
     });
+  });
+});
+
+/**
+ * Observed in production on 11 Aug, from the runtime logs:
+ *
+ *   [coach] gave up after 3 attempts: coachLine has 3 sentences; max is 2
+ *
+ * Two bugs behind one symptom. The sentence splitter counted the point in
+ * a decimal as a sentence end — and every coachLine is REQUIRED to cite a
+ * metric, half of which are decimals — so ordinary two-sentence lines
+ * read as three. And a style violation then cost the rep its entire
+ * Ethos Index, the product's headline number.
+ */
+describe("sentence counting survives the numbers", () => {
+  it("does not count a decimal point as a sentence end", () => {
+    expect(splitSentences("1.5 fillers a minute. Kill the 'um'.")).toHaveLength(2);
+    expect(splitSentences("You held 2.4s of silence at 0:47.")).toHaveLength(1);
+    expect(splitSentences("17.84 per minute is high.")).toHaveLength(1);
+  });
+
+  it("still counts real sentences", () => {
+    expect(splitSentences("One. Two. Three.")).toHaveLength(3);
+    expect(splitSentences("Clean rep! Now hold a pause?")).toHaveLength(2);
+  });
+
+  it("handles a number ending a sentence", () => {
+    expect(splitSentences("Your pace was 132. Hold it there.")).toHaveLength(2);
+  });
+});
+
+describe("style never costs the rep its score", () => {
+  it("treats a long coachLine as soft and everything else as hard", () => {
+    const { hard, soft } = splitProblems([
+      "coachLine has 3 sentences; max is 2",
+      'supply.original "x" is not a verbatim quote from the transcript',
+      "cites number 47, which is not in the metrics",
+    ]);
+    expect(soft).toHaveLength(1);
+    expect(hard).toHaveLength(2);
+  });
+
+  /**
+   * The no-horoscope rule (DECISIONS #19) stays worth failing over. Only
+   * house style is repairable.
+   */
+  it("keeps grounding failures hard", () => {
+    const { hard, soft } = splitProblems([
+      "structure cites no quoted moment or timestamp",
+    ]);
+    expect(hard).toHaveLength(1);
+    expect(soft).toHaveLength(0);
+  });
+
+  it("trims an over-long coachLine to house style", () => {
+    const out = {
+      focus: "f",
+      strength: "s",
+      supply: { original: "a", upgrade: "b", note: "n" },
+      coachLine: "First point. Second point. Third flourish.",
+      dimensions: {} as never,
+    };
+    const fixed = repairCoachOutput(out as never);
+    expect(splitSentences(fixed.coachLine)).toHaveLength(2);
+    expect(fixed.coachLine).toContain("First point");
+    expect(fixed.coachLine).not.toContain("Third flourish");
+  });
+
+  it("leaves a compliant line alone", () => {
+    const out = {
+      focus: "f",
+      strength: "s",
+      supply: { original: "a", upgrade: "b", note: "n" },
+      coachLine: "1.5 fillers a minute. Kill the 'um'.",
+      dimensions: {} as never,
+    };
+    expect(repairCoachOutput(out as never).coachLine).toBe(out.coachLine);
   });
 });

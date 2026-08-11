@@ -268,6 +268,60 @@ function citesEvidence(citedMoment: string, transcript: string): boolean {
   );
 }
 
+export const MAX_COACH_SENTENCES = 2;
+
+/**
+ * Sentence split that survives the numbers this app insists on.
+ *
+ * The old version was `split(/[.!?]+/)`, which counts the point in
+ * "1.5 fillers a minute" as a sentence end. Every coachLine is REQUIRED
+ * to cite a metric and half the metrics are decimals, so a two-sentence
+ * line reading "1.5 fillers a minute. Kill the 'um'." counted as three
+ * and was rejected — three times, and then the rep lost its Ethos Index.
+ * Observed in production on 11 Aug.
+ *
+ * A terminator only ends a sentence when it isn't sitting between two
+ * digits.
+ */
+export function splitSentences(text: string): string[] {
+  return text
+    .split(/(?<!\d)[.!?]+(?!\d)|(?<=\d)[.!?]+(?=\s|$)/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Split violations into the ones that must never reach a user and the
+ * ones that are only style.
+ *
+ * HARD problems are false claims: a quote that isn't in the transcript,
+ * a number that isn't in the metrics, a judged score with nothing cited.
+ * Those are the no-horoscope rule (DECISIONS #19) and they are worth
+ * failing the whole rep over.
+ *
+ * SOFT problems are house style. Losing the Ethos Index — the headline
+ * number, "the score IS the brand" — because a line of copy ran to three
+ * sentences is wildly disproportionate, and it is what production was
+ * doing. Soft problems are repaired and the rep is kept.
+ */
+export function splitProblems(problems: string[]): {
+  hard: string[];
+  soft: string[];
+} {
+  const soft = problems.filter((p) => p.startsWith("coachLine has"));
+  return { hard: problems.filter((p) => !soft.includes(p)), soft };
+}
+
+/** Trim the coachLine back to house style rather than binning the rep. */
+export function repairCoachOutput(out: CoachOutput): CoachOutput {
+  const sentences = splitSentences(out.coachLine);
+  if (sentences.length <= MAX_COACH_SENTENCES) return out;
+  // Keep the first two and their terminators; the third is almost always
+  // an extra flourish, which is exactly what the rule exists to remove.
+  const kept = sentences.slice(0, MAX_COACH_SENTENCES).join(". ");
+  return { ...out, coachLine: `${kept}.` };
+}
+
 /**
  * Voice + grounding validation. Returns a list of violations
  * (empty = pass) so retries can quote what went wrong.
@@ -295,13 +349,12 @@ export function validateCoachOutput(
     if (copy.includes(w)) problems.push(`banned/hype phrase used: "${w}"`);
   }
 
-  // coachLine: ≤ 2 sentences
-  const sentences = out.coachLine
-    .split(/[.!?]+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-  if (sentences.length > 2) {
-    problems.push(`coachLine has ${sentences.length} sentences; max is 2`);
+  // coachLine: ≤ 2 sentences. SOFT — see `splitProblems`.
+  const sentences = splitSentences(out.coachLine);
+  if (sentences.length > MAX_COACH_SENTENCES) {
+    problems.push(
+      `coachLine has ${sentences.length} sentences; max is ${MAX_COACH_SENTENCES}`
+    );
   }
 
   // supply.original must be a verbatim quote from the transcript
@@ -413,6 +466,21 @@ export async function coachRep(
       anchors
     );
     if (problems.length === 0) return parsed;
+
+    const { hard, soft } = splitProblems(problems);
+
+    /*
+     * Style alone never costs the rep its score. If everything left is
+     * soft, repair it and keep the rep — the judged dimensions are the
+     * valuable part, and binning them because a line ran long would
+     * trade the product's headline number for a copy rule.
+     */
+    if (hard.length === 0) {
+      if (attempt > 1) {
+        console.warn(`[coach] repaired style on attempt ${attempt}: ${soft.join("; ")}`);
+      }
+      return repairCoachOutput(parsed);
+    }
 
     if (attempt === MAX_ATTEMPTS) {
       // Giving up costs the rep its Ethos Index, so say why. Without

@@ -238,6 +238,14 @@ are not.
   face is Fraunces as of 11 Aug and tabular figures are ON, which is what
   a screen of changing metrics wanted all along. Verified at 4x on
   `1111`, `1118` and `1189`.
+- **Never let a style rule fail the whole coach call.** Caught in
+  production 11 Aug: `coachLine has 3 sentences; max is 2` three times in
+  a row, and the rep lost its Ethos Index entirely. Two causes — the
+  sentence splitter counted the point in "1.5 fillers a minute" as a
+  sentence end (and every coachLine is required to cite a metric), and a
+  copy rule was treated as fatal. `splitProblems` now separates false
+  claims (fail) from house style (repair). If you add a validation rule,
+  decide which side it is on.
 - **The coach's number allowlist must include raw *and* rounded forms.**
   The judge is shown `durationS: 35.58`; if only `36` is allowlisted, an
   honest citation is rejected as invention, all three attempts fail, and

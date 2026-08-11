@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { DayTrail } from "@/components/DayTrail";
 import { ModPicker } from "@/components/ModPicker";
 import { Paywall } from "@/components/Paywall";
 import { StreakBadge } from "@/components/StreakBadge";
@@ -14,6 +15,7 @@ import {
   type RepRow,
 } from "@/lib/client-data";
 import { spin, type Topic } from "@/lib/topics";
+import { dayTrail } from "@/lib/days";
 import { todaysDrill } from "@/lib/drills";
 import { syncFreezes } from "@/lib/freeze-sync";
 import { MAX_STARS, nextLesson, starsByLesson, totalStars } from "@/lib/path";
@@ -89,6 +91,7 @@ export default function Home() {
 
   const focus = nextFocus(history);
   const gap = decayNote(history);
+  const trail = dayTrail(history);
 
 
   return (
@@ -252,6 +255,15 @@ export default function Home() {
               </div>
             </div>
           </div>
+
+          {/*
+           * The day counter and its line. The streak above is the
+           * pressure; this is the memory — it never resets, so the
+           * morning after a missed day still opens on a number that
+           * went up. It also gets better with time by construction:
+           * one day is a number, thirty is a shape.
+           */}
+          <DayTrail trail={trail} />
 
           {/* Path progress as one line rather than a whole rail — the
               Path tab owns the rail, and home was rendering both. */}

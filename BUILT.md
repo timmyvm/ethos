@@ -67,6 +67,7 @@ twice, once `target: production`.)
 | Streaks | `lib/streak.ts`, `components/StreakBadge.tsx` | Low to remove, high to re-earn. |
 | Streak freezes | `lib/streak.ts`, `lib/freeze-sync.ts` | Low. Earned per 7-day week, auto-spent, bridges without counting. Cutting means deleting one table. |
 | Streak celebration | `components/StreakCelebration.tsx` | Trivial to cut. |
+| Day counter + trail | `lib/days.ts`, `components/DayTrail.tsx` | Trivial to cut, cheap to keep. The number that never resets, plus an Index-by-day line inside the home score card. Gets better with time by construction. |
 | Coins | `lib/coins.ts`, `lib/coin-sync.ts`, `components/Coin.tsx`, `public/coin/*.svg` | Low. Append-only ledger, 1/day-spoken, no shop. The earn rate is enforced by a DB constraint + partial unique index, so cutting the client doesn't unmeter it. |
 | XP + levels | `lib/level.ts` | Low — nothing else reads it. |
 | Weekly league | inside `app/you/page.tsx` | Trivial — it's a placeholder card until 20 users exist. |

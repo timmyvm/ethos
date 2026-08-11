@@ -103,6 +103,10 @@ Locked means locked. Reopen only with user data or Timothy's explicit call.
 91. 2026-08-11 · Correction happens right AFTER the rep, never mid-sentence · cutting someone off mid-sentence is bad coaching, and it is expensive streaming infrastructure for the privilege. Mid-rep interruption is not built and is not to be built (the Hostile Q&A mod's interjection is a stress mod, not a correction)
 92. 2026-08-11 · The service worker never caches `/pose/` · ~25MB of WASM plus a 5.5MB model would blow the quota on a mid-range phone and take the shell down with it on eviction. The browser's HTTP cache handles repeats; a first video rep in a tunnel honestly reports the mode unavailable
 
+93. 2026-08-11 · Home carries a DAY COUNTER — "Day 12", counting distinct days you spoke — beside the streak, plus a bare trendline of the Ethos Index by day · the streak is the right pressure and the wrong memory: it resets, so the morning after a missed day opens on the number that says you failed. This one only goes up and never resets, and it can't overstate (#47) because it counts days containing a real rep, not days since signup — miss a month and you return to Day 12, not Day 43
+94. 2026-08-11 · The day trail lives INSIDE the existing score card, not in a card of its own · #9 gives the floor the screen and brand.md allows one tap; a third card would be the "not average, but best" protocol losing to feature-adding. The Log owns real charts, so this is a 34px strip
+95. 2026-08-11 · A day's score is its BEST rep, and the trail's chip says "best day yet" rather than restating the arc · best-of matches how `starsByLesson` already summarises a lesson (a warm-up after a good rep shouldn't erase it). The chip was originally "+143 across 12 scored days", which sat directly under the card's "+95 since your first rep" — two numbers about the same thing, computed differently (day-bests vs rep-to-rep), disagreeing on one card. Caught by screenshotting it. "Best day yet" is strictly-greater-than, so matching your old best is holding rather than beating it
+
 ## Open queue (research-once, decide, move up)
 
 - Currency name — after launch copywriting pass

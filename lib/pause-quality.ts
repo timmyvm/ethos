@@ -29,13 +29,14 @@
  * Deterministic, no LLM, every verdict traceable to a timestamp.
  */
 
+import { calibrate, classifyGap, type Envelope } from "./envelope";
 import type { FillerHit, Pause, Segment, Word } from "./metrics";
 
 export type PauseVerdict =
   | "landing" // held, at a boundary, after a real sentence — the good one
   | "opening" // held, before the first word — composure before you start
   | "hesitation" // held, mid-clause — searching
-  | "filled" // held, but a filler is leaning against it
+  | "filled" // a sound in it: a filler beside it, or one we HEARD in it
   | "dead" // held far too long — lost, not composed
   | "beat"; // under the held threshold — rhythm, not scored
 
@@ -110,9 +111,12 @@ export function judgePauses(params: {
   fillers: FillerHit[];
   durationS: number;
   segments?: Segment[];
+  envelope?: Envelope | null;
 }): JudgedPause[] {
-  const { pauses, words, fillers, durationS } = params;
+  const { pauses, words, fillers, durationS, envelope } = params;
   const firstWordAt = words[0]?.start ?? 0;
+  // Calibrate once for the whole rep, not per gap.
+  const floor = envelope ? calibrate(envelope) : undefined;
 
   return pauses.map((p): JudgedPause => {
     if (p.kind === "beat") {
@@ -126,11 +130,30 @@ export function judgePauses(params: {
         Math.abs(f.t - (p.t + p.len)) <= FILLER_ADJACENCY_S
     );
 
+    /*
+     * And the case the transcript cannot show: the microphone heard a
+     * sound in this gap. Whisper deletes non-lexical fillers, so a
+     * swallowed "um" arrives here as an empty stretch of timeline — and
+     * before this check it was being scored as composure. Silence you
+     * made a noise in is not silence.
+     */
+    const heard = envelope
+      ? classifyGap(envelope, p.t, p.t + p.len, floor)
+      : "unknown";
+
     if (p.len > DEAD_AIR_S) {
       return {
         ...p,
         verdict: "dead",
         note: `${clock(p.t)} — ${p.len.toFixed(1)}s of dead air. Past about ${DEAD_AIR_S}s a pause stops reading as composure.`,
+      };
+    }
+
+    if (heard === "voiced") {
+      return {
+        ...p,
+        verdict: "filled",
+        note: `${clock(p.t)} — ${p.len.toFixed(1)}s with a sound in it, not silence. The mic heard it even though the transcript didn't.`,
       };
     }
 
@@ -197,6 +220,7 @@ export function pauseReport(params: {
   fillers: FillerHit[];
   durationS: number;
   segments?: Segment[];
+  envelope?: Envelope | null;
 }): PauseReport {
   const judged = judgePauses(params);
   const { durationS } = params;
@@ -276,7 +300,7 @@ function headline(counts: {
     return `${dead} pause${dead === 1 ? "" : "s"} ran past ${DEAD_AIR_S}s into dead air. A pause lands at one to two seconds; past that a listener starts wondering if you're lost.`;
   }
   if (filled > 0) {
-    return `${filled} of your silences had a filler leaning on them. The swap is silence INSTEAD of the "um" — the pause is already right, the "um" is the part to drop.`;
+    return `${filled} of your "pauses" had a sound in them. The swap is silence INSTEAD of the "um" — the gap is already the right length, the noise is the part to drop.`;
   }
   if (hesitations > landings) {
     return `${hesitations} of your pauses were mid-sentence and ${landings} landed after a finished point. Same silence, opposite read: one is thinking, one is composure.`;

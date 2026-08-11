@@ -191,3 +191,74 @@ describe("the headline", () => {
     expect(r.headline).toContain("landed after a finished point");
   });
 });
+
+/**
+ * The microphone's own account of a gap.
+ *
+ * Whisper deletes non-lexical fillers, so a swallowed "um" reaches the
+ * engine as an empty stretch of timeline — and was being scored as
+ * composure. The envelope closes that: silence you made a noise in is
+ * not silence, whatever the transcript says.
+ */
+describe("gaps the mic heard a sound in", () => {
+  const parts = [SENTENCE_A, 1.4, SENTENCE_B, 1.4, SENTENCE_C];
+
+  function withEnvelope(gapWasVoiced: boolean) {
+    const { words, durationS } = speech(parts);
+    const pauses = detectPauses(words);
+    // Loud speech throughout, with a floor of real silence so the rep
+    // has dynamic range to calibrate against.
+    const rate = 20;
+    const levels = new Array(Math.ceil(durationS * rate) + 40).fill(0.5);
+    for (let i = levels.length - 40; i < levels.length; i++) levels[i] = 0.02;
+    // Every held gap gets the same treatment — one loud gap in an
+    // otherwise silent set would make this test about the wrong thing.
+    for (const p of pauses.filter((x) => x.kind !== "beat")) {
+      const from = Math.round(p.t * rate);
+      const to = Math.round((p.t + p.len) * rate);
+      for (let i = from; i < to; i++) levels[i] = gapWasVoiced ? 0.3 : 0.02;
+    }
+    return pauseReport({
+      pauses,
+      words,
+      fillers: [],
+      durationS,
+      envelope: { levels, rate },
+    });
+  }
+
+  it("credits a gap the mic confirms was silent", () => {
+    const r = withEnvelope(false);
+    expect(r.landings).toBeGreaterThan(0);
+    expect(r.filled).toBe(0);
+  });
+
+  it("refuses to credit a gap that had a sound in it", () => {
+    const r = withEnvelope(true);
+    expect(r.filled).toBeGreaterThan(0);
+    expect(r.pauses.find((p) => p.verdict === "filled")?.note).toContain(
+      "the transcript didn't"
+    );
+  });
+
+  it("scores the voiced version lower than the silent one", () => {
+    expect(withEnvelope(true).score).toBeLessThan(withEnvelope(false).score);
+  });
+
+  /**
+   * Without an envelope the engine must behave exactly as before rather
+   * than assuming silence — every rep recorded before this shipped, and
+   * every browser that can't sample, still has to score the same way.
+   */
+  it("changes nothing when there is no envelope", () => {
+    const { words, durationS } = speech(parts);
+    const base = pauseReport({
+      pauses: detectPauses(words),
+      words,
+      fillers: [],
+      durationS,
+    });
+    expect(base.filled).toBe(0);
+    expect(base.landings).toBeGreaterThan(0);
+  });
+});

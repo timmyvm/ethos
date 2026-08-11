@@ -27,6 +27,11 @@ import {
   type RepRow,
 } from "@/lib/client-data";
 import { syncCoins } from "@/lib/coin-sync";
+import {
+  ENVELOPE_RATE,
+  serializeEnvelope,
+  type Envelope,
+} from "@/lib/envelope";
 import { startCrowdNoise, type CrowdNoise } from "@/lib/crowd-noise";
 import { syncFreezes } from "@/lib/freeze-sync";
 import { starsByLesson, totalStars, unitStates } from "@/lib/path";
@@ -229,6 +234,13 @@ function RepScreen() {
     videoRecorder: MediaRecorder | null;
     videoChunks: Blob[];
     sampler: PoseSampler | null;
+    /**
+     * Loudness envelope. The meter already computes RMS every frame;
+     * this keeps it at a fixed rate so the engine can ask whether a gap
+     * between two words was actually silent (lib/envelope.ts).
+     */
+    envelope: number[];
+    envelopeAt: number;
   } | null>(null);
   const videoElRef = useRef<HTMLVideoElement | null>(null);
   const phaseRef = useRef<Phase>("idle");
@@ -264,6 +276,11 @@ function RepScreen() {
       r.recorder.stop();
     });
 
+    // The loudness envelope, captured alongside the meter. This is what
+    // lets the engine tell a silent gap from one the mic heard a sound
+    // in — i.e. an "um" the transcript dropped.
+    const envelope: Envelope = { levels: [...r.envelope], rate: ENVELOPE_RATE };
+
     // Score the body before tearing the camera down. Everything below
     // this line is five numbers and a list of timestamps — the frames
     // themselves are dropped with the sampler.
@@ -295,6 +312,9 @@ function RepScreen() {
       form.append("mods", cfg.mods.map((m) => m.id).join(","));
       form.append("xpMultiplier", String(cfg.xpMultiplier));
       form.append("captureMode", mode);
+      if (envelope.levels.length > 0) {
+        form.append("envelope", serializeEnvelope(envelope));
+      }
       // The judged-tier allowance resets on the user's own calendar day,
       // not on UTC's (§3).
       form.append("tzOffset", String(new Date().getTimezoneOffset()));
@@ -442,8 +462,17 @@ function RepScreen() {
         }
         rms = Math.sqrt(rms / data.length);
         setLevels((prev) => [...prev.slice(1), Math.min(1, rms * 4)]);
-        if (recRef.current) {
-          recRef.current.raf = requestAnimationFrame(tick);
+        const r = recRef.current;
+        if (r) {
+          // Fixed-rate sample for the envelope. rAF is 60Hz and varies
+          // with load; the engine needs an even timebase to line samples
+          // up against word timestamps.
+          const now = performance.now();
+          if (now - r.envelopeAt >= 1000 / ENVELOPE_RATE) {
+            r.envelopeAt = now;
+            r.envelope.push(Math.min(1, rms * 4));
+          }
+          r.raf = requestAnimationFrame(tick);
         }
       };
 
@@ -460,6 +489,8 @@ function RepScreen() {
         videoRecorder,
         videoChunks,
         sampler: null,
+        envelope: [],
+        envelopeAt: 0,
       };
       recRef.current.raf = requestAnimationFrame(tick);
 

@@ -136,6 +136,10 @@ Locked means locked. Reopen only with user data or Timothy's explicit call.
 118. 2026-08-11 · ⚠ **Correction — the swallowed-filler hypothesis was WRONG.** Nine stored reps showing near-zero "um" looked like Whisper eating them, and the pattern was suggestive: the one rep whose fillers survived ("you know", a phrase Whisper keeps) had zero mid-clause held pauses, against up to ten for the others. The experiment refuted it — those reps were transcribed WITH the working prompt, so nothing was being swallowed. The stored filler counts are probably accurate: the user's fillers are "you know" and "like", not "um", and the mid-clause gaps are real silent hesitation. Kept here because the reasoning was published before it was tested, and the correction is more useful than the deletion
 119. 2026-08-11 · `unvoicedHesitations` survives its own refuted premise, for a better reason · it was added to catch swallowed "um"s and there are none to catch. But the held-pause threshold is 0.8s, so a 0.3–0.8s mid-clause gap is invisible to every dimension — and that band is exactly where someone composing mid-sentence lives. Shown on the Pause row (not Fillers, which was the wrong home and carried a claim now known to be false), still unscored: the pause dimension already judges everything above the threshold, and scoring the short band needs a calibration nobody has earned
 
+120. 2026-08-11 · The engine measures the GAPS acoustically, not just lexically — `lib/envelope.ts` · the filler count rested entirely on one string in a Whisper prompt, and a vendor's editorial habits are a fragile place for the product's core number to live. The recorder already runs an AnalyserNode for the level meter, so sampling RMS at 20Hz costs nothing and gives every inter-word gap a checkable property: energy in it = a sound you made that wasn't a word; genuinely quiet = real silence. ~7KB per rep, rides along with the audio POST
+121. 2026-08-11 · A gap the mic heard a sound in can never score as composure · this is the half of the swallowed-filler problem that survived the refutation. Whisper deleting an "um" leaves an empty stretch of timeline, and the pause dimension was scoring it as silence — so the same hesitation was rewarded rather than counted. Transcribed fillers and voiced gaps cannot double-count: if Whisper wrote the "um" down, the word occupies that time and there is no gap there to classify
+122. 2026-08-11 · The envelope self-calibrates per rep against its own 5th/90th percentile, and returns "unknown" rather than guessing · a quiet sofa and a loud tram must give the same verdicts with no setting to touch, and "we checked and it was silent" has to stay distinguishable from "we couldn't check" — only the first is evidence. A rep with no dynamic range, or no envelope at all, scores exactly as it did before this shipped
+
 ## Open queue (research-once, decide, move up)
 
 - Currency name — after launch copywriting pass
@@ -148,6 +152,10 @@ Locked means locked. Reopen only with user data or Timothy's explicit call.
   drops 100% of um/uh unprompted and recovers 100% with the existing
   prompt. Filler counts are trustworthy. Still worth repeating against a
   real human recording, since the test used generated speech
+- **`VOICED_THRESHOLD` (#120)** — 0.18 of the rep's speech-to-floor
+  range is a guess. Record a rep with hand-counted "um"s and check the
+  voiced-gap count against it; this is now the cheapest calibration in
+  the product because the answer is countable by ear
 - **Presence calibration** — every constant in `lib/presence.ts` is a v1
   guess in the same bucket as the star thresholds and `HALF_LIFE_DAYS`:
   the 8–26/min gesture zone, the posture and head bands, the 0.06

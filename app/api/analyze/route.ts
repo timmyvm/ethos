@@ -35,6 +35,7 @@ import {
   type Tier2Anchors,
 } from "@/lib/index-score";
 import { computeMetrics, isScorable, type RepMetrics } from "@/lib/metrics";
+import { parseEnvelope } from "@/lib/envelope";
 import { pauseReport } from "@/lib/pause-quality";
 import { BOSS_XP_BASE } from "@/lib/rep-config";
 import { modIds, parseMods, xpMultiplier } from "@/lib/stress-mods";
@@ -153,12 +154,17 @@ export async function POST(req: NextRequest) {
   // pause list itself — `JudgedPause` is a `Pause` with a verdict and a
   // note, so the stored column, the pause bar and the results screen all
   // read the same rows.
+  // The mic's own account of the gaps. Independent of Whisper, which
+  // deletes non-lexical fillers — so a gap the transcript shows as empty
+  // can still have had a sound in it.
+  const envelope = parseEnvelope(form.get("envelope") as string | null);
   const pauses = pauseReport({
     pauses: metrics.pauses,
     words: transcription.words,
     fillers: metrics.fillers,
     durationS: metrics.durationS,
     segments: transcription.segments,
+    envelope,
   });
   metrics.pauses = pauses.pauses;
   const tier1 = tier1Scores(metrics, transcription.words, transcription.segments);

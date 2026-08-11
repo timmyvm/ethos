@@ -54,6 +54,7 @@ twice, once `target: production`.)
 
 | What | Where | Notes |
 |---|---|---|
+| Loudness envelope | `lib/envelope.ts` | The mic's own account of every gap, sampled at 20Hz off the meter's existing AnalyserNode. Lets the engine tell "silent" from "there was a sound in it", independent of Whisper. Self-calibrating per rep; says "unknown" rather than guessing. 14 tests. |
 | Pause quality | `lib/pause-quality.ts` | **The pause dimension.** Classifies every held pause by where it landed — landing / opening / hesitation / filled / dead — per the juncture-vs-hesitation research. Placement is a ratio, so good and bad pauses cancel. 14 tests over real word streams. |
 | Deterministic metrics | `lib/metrics.ts` | Fillers with "like" disambiguation, WPM, pause classification (beat / pre / mid). No LLM. |
 | Substance gate | `lib/metrics.ts` | Stars are `min(fillerRate, substanceCap)`. Under 20 words, or too repetitive, caps at 1 star. Without it, "I don't know" eight times scored 3 stars — fluency measured on an empty answer. |
@@ -169,6 +170,14 @@ four are now closed and struck through.
   given; nothing is retro-scored.
 - **Boss topics are a hand-written list of seven.** Fine for two months
   of weeklies; the supply layer for topics is not built.
+- **The filler count no longer rests on Whisper alone.** `lib/envelope.ts`
+  samples loudness during the rep and classifies each inter-word gap as
+  voiced or silent, so a filler the transcript dropped still costs: a gap
+  the mic heard a sound in can never be scored as composure. The two
+  signals can't double-count — if Whisper *did* transcribe the "um", the
+  word occupies that time and there is no gap to classify.
+  **`VOICED_THRESHOLD = 0.18` is a v1 guess** and the first thing to
+  calibrate against a recording with hand-counted "um"s.
 - **Transcription fidelity: tested, and the prompt is the whole ballgame.**
   Measured 11 Aug against generated speech with a known 3 "um" and 2 "uh":
   **no prompt → 0 and 0. With `DISFLUENCY_PROMPT` → 3 and 2.** Whisper

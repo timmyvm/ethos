@@ -5,46 +5,39 @@ Reverse-planning sprint, 9–10 Aug 2026. Everything below is pushed to
 This file is a menu for pruning, not a brag list — each entry says what
 it is, where it lives, and what depends on it.
 
-**Deploying is a git push — but production does NOT track `main`.** The
-Vercel project (`prj_sJBrm6kaPGBRUBV1t0AhnkucG9Jc`, team
-`timmyvms-projects`) is linked to `timmyvm/ethos` with its production
-branch set to `claude/markdown-session-7w1o76`. So:
+**Deploying is a git push to `main`.** The Vercel project
+(`prj_sJBrm6kaPGBRUBV1t0AhnkucG9Jc`, team `timmyvms-projects`) is linked
+to `timmyvm/ethos` and its production branch is **`main`**. Push it and
+`speakethos.com`, `ethos-tau.vercel.app` and
+`ethos-timmyvms-projects.vercel.app` all follow. Every other branch
+builds a preview.
 
-- push that branch → **production** build, takes `ethos-tau.vercel.app`
-  and `ethos-timmyvms-projects.vercel.app`
-- push `main` → preview build only, `target: null`, branch alias only
+*This paragraph said the opposite until 11 Aug, and the wrong version was
+read and repeated as fact.* Production did track
+`claude/markdown-session-7w1o76` for the 9–10 Aug sessions, and the note
+was correct when written; it went stale when the setting changed, and a
+stale operational note is worse than none because it gets trusted. The
+evidence for the current state is `dpl_JDYptummJtMit3STJBzrAESbSfsa` —
+`githubCommitRef: main`, `target: production` — and the live host
+serving that build.
 
-Every deployment in the history follows this: `main` never once produced a
-production build. Push both, or production silently falls behind the
-default branch. Worth fixing in Vercel project settings — point the
-production branch at `main` — but until someone does, the branch is what
-ships.
+`claude/markdown-session-7w1o76` is now a dead ref that builds previews.
+Deleting it is safe. This sandbox's git proxy returns 403 on ref
+deletion, so it has to go from the GitHub UI.
 
-**Push the production branch FIRST, and only ever a SHA it hasn't seen.**
-Learned the hard way on 11 Aug. Vercel deduplicates by commit: push a SHA
-to a preview branch, then push that *same* SHA to the production branch,
-and it reuses the existing build instead of making a production one. The
-second deployment comes back `target: null` and production silently stays
-on the old code, while every branch in the repo reads as up to date and
-green. Nothing in the deployment list looks wrong — you have to curl the
-production host to notice.
+**Never conclude a deploy from the deployment list alone — curl the
+host.** Vercel reuses an existing build when a SHA it has already built
+arrives on another branch, and the reused record comes back
+`target: null`. So a green list and three branches at the same commit can
+all sit above a production host still serving old code. The check that
+does not lie:
 
-So the order matters: `git push origin main:claude/markdown-session-7w1o76`
-first, `git push origin main` second. If a SHA has already been built and
-production still needs it, a fresh commit is the cheapest fix.
+    curl -s https://speakethos.com/about | grep -o "<title>[^<]*</title>"
 
-**Verify with the host, never with the deployment list.** `curl -s
-https://speakethos.com/about | grep -o "<title>[^<]*</title>"` — the
-title changed on 11 Aug, so an old title means old code, whatever Vercel
-says.
-
-**The branches are all one commit as of 11 Aug.** `main` and
-`claude/markdown-session-7w1o76` both point at the same place, and the
-old session branches are dead refs that just haven't been deleted — this
-sandbox's git proxy returns 403 on ref deletion, so they need removing
-from the GitHub UI. Deleting `claude/markdown-session-7w1o76` is the one
-that is NOT safe until the production branch is repointed at `main`:
-delete it first and production stops deploying entirely.
+The title changed on 11 Aug to "practice being worth listening to", so
+anything else means old code whatever the dashboard says. If a SHA has
+already been built elsewhere and production still needs it, one fresh
+commit is the cheapest fix.
 
 **The Supabase asset bridge is vestigial — do not treat it as required.**
 `scripts/vercel-fetch-assets.mjs` and `scripts/push-brand-assets.mjs` date

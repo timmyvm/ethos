@@ -20,6 +20,32 @@ default branch. Worth fixing in Vercel project settings — point the
 production branch at `main` — but until someone does, the branch is what
 ships.
 
+**Push the production branch FIRST, and only ever a SHA it hasn't seen.**
+Learned the hard way on 11 Aug. Vercel deduplicates by commit: push a SHA
+to a preview branch, then push that *same* SHA to the production branch,
+and it reuses the existing build instead of making a production one. The
+second deployment comes back `target: null` and production silently stays
+on the old code, while every branch in the repo reads as up to date and
+green. Nothing in the deployment list looks wrong — you have to curl the
+production host to notice.
+
+So the order matters: `git push origin main:claude/markdown-session-7w1o76`
+first, `git push origin main` second. If a SHA has already been built and
+production still needs it, a fresh commit is the cheapest fix.
+
+**Verify with the host, never with the deployment list.** `curl -s
+https://speakethos.com/about | grep -o "<title>[^<]*</title>"` — the
+title changed on 11 Aug, so an old title means old code, whatever Vercel
+says.
+
+**The branches are all one commit as of 11 Aug.** `main` and
+`claude/markdown-session-7w1o76` both point at the same place, and the
+old session branches are dead refs that just haven't been deleted — this
+sandbox's git proxy returns 403 on ref deletion, so they need removing
+from the GitHub UI. Deleting `claude/markdown-session-7w1o76` is the one
+that is NOT safe until the production branch is repointed at `main`:
+delete it first and production stops deploying entirely.
+
 **The Supabase asset bridge is vestigial — do not treat it as required.**
 `scripts/vercel-fetch-assets.mjs` and `scripts/push-brand-assets.mjs` date
 from before the git link, when deploys went through MCP file upload and

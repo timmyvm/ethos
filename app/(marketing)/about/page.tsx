@@ -3,9 +3,12 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Ethos — a daily gym for speech",
+  title: "Ethos — practice being worth listening to",
+  // §8: the acquisition line. Clarity converts at zero awareness —
+  // "practice" says gym rather than one-off, and "worth listening to"
+  // names the thing being trained without dragging in fear of the podium.
   description:
-    "Five minutes of reps a day until speaking clearly under pressure is a trait, not a performance.",
+    "Practice being worth listening to. Five minutes of reps a day, measured against timestamps, not vibes.",
 };
 
 /**
@@ -28,6 +31,9 @@ export default function About() {
         Not nerves. Not a lack of ideas. Just no reps. Courses teach theory,
         coaches cost $150 an hour, and neither gives you the one thing that
         builds a skill: doing it daily and being measured honestly.
+      </p>
+      <p className="mt-3 text-[16px] font-semibold leading-relaxed">
+        Practice being worth listening to.
       </p>
 
       <Link
@@ -100,6 +106,43 @@ export default function About() {
           If we can&apos;t point at a timestamp, we don&apos;t say it.
         </p>
       </div>
+
+      {/*
+       * §7 — the differentiator is FORMAT, not features. Yoodli already
+       * does body language and eye contact over webcam, and it is not a
+       * small player: $40M Series B in Dec 2025 at a $300M valuation,
+       * Google and Databricks as enterprise clients, a Toastmasters
+       * partnership covering ~300k members. Claiming nobody does body
+       * language would be false and checkable, which is the fastest way
+       * to lose the one thing this product sells.
+       */}
+      <h2 className="font-display mt-12 text-[20px] font-bold">
+        Rehearsal tools exist. This isn&apos;t one.
+      </h2>
+      <p className="mt-3 text-[15px] leading-relaxed text-stone-600">
+        There are good tools for the week before an interview — Yoodli will
+        watch you over a webcam and read your body language, and it&apos;s
+        genuinely strong at it. You go there before the thing, do a session,
+        and leave. There are daily speaking apps too, and they listen to your
+        voice and nothing else.
+      </p>
+      <p className="mt-3 text-[15px] leading-relaxed text-stone-600">
+        Nobody is doing daily, streak-driven, gamified reps with video. Five
+        minutes, every day, scored on what you said{" "}
+        <span className="font-semibold text-ink">and</span> how you held
+        yourself while you said it. That&apos;s the gap this sits in.
+      </p>
+
+      <h2 className="font-display mt-12 text-[20px] font-bold">
+        The camera is optional, and it stays here.
+      </h2>
+      <p className="mt-3 text-[15px] leading-relaxed text-stone-600">
+        Every rep is voice or voice + video, your call, remembered per drill.
+        When video is on, posture, gesture, head movement and eye line are
+        read <span className="font-semibold text-ink">on your device</span> at
+        about thirty frames a second. The video is never uploaded and never
+        stored. Five numbers are — the same five you can read on the screen.
+      </p>
 
       <h2 className="font-display mt-12 text-[20px] font-bold">
         What this refuses to be

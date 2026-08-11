@@ -25,8 +25,10 @@ const STEPS = [
   },
   {
     art: "/demos-celebrate.webp",
-    title: "Silence is scored in your favour.",
-    body: "Pauses you hold before a sentence read as composure. Nobody else measures that. It's the whole point.",
+    // §8's hero line. It translates the name: ethos in Aristotle is
+    // credibility earned through character, not claimed.
+    title: "Earn the room.",
+    body: "Silence is scored in your favour here — pauses you hold before a sentence read as composure. Nobody else measures that. It's the whole point.",
   },
 ];
 

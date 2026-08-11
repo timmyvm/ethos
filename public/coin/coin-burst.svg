@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" role="img" aria-label="An Ethos coin, earned">
+  <!--
+    The earn frame. Rays are flat wedges, not a gradient glow — the
+    celebration is one moment, roughly two seconds, and it has to read at
+    a glance on a phone (DECISIONS #34). Larger viewBox so the burst has
+    room without shrinking the coin.
+  -->
+  <g fill="#FBBF24" opacity="0.55">
+    <path d="M48 0l4 14h-8z"/>
+    <path d="M48 96l4-14h-8z"/>
+    <path d="M0 48l14-4v8z"/>
+    <path d="M96 48l-14-4v8z"/>
+  </g>
+  <g fill="#F59E0B" opacity="0.4">
+    <path d="M14 14l12 6-6 6z"/>
+    <path d="M82 14l-12 6 6 6z"/>
+    <path d="M14 82l12-6-6-6z"/>
+    <path d="M82 82l-12-6 6-6z"/>
+  </g>
+  <circle cx="48" cy="48" r="30" fill="#F59E0B"/>
+  <path d="M48 78a30 30 0 0 0 29.4-24A30 30 0 0 1 48 78Z" fill="#B45309"/>
+  <circle cx="48" cy="46.5" r="23" fill="#FBBF24"/>
+  <path d="M38 36h20a4 4 0 0 1 4 4v11a4 4 0 0 1-4 4H47l-7 6v-6h-2a4 4 0 0 1-4-4V40a4 4 0 0 1 4-4Z" fill="#D97706"/>
+</svg>

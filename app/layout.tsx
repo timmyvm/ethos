@@ -23,9 +23,11 @@ const spaceMono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ethos — a daily gym for speech",
+  // §8 — the acquisition line goes anywhere a stranger meets Ethos
+  // first. Clarity converts at zero awareness.
+  title: "Ethos — practice being worth listening to",
   description:
-    "Five minutes of reps a day until speaking clearly under pressure is a trait, not a performance.",
+    "Practice being worth listening to. Five minutes of reps a day, measured against timestamps, not vibes.",
   icons: { apple: "/apple-touch-icon.png" },
 };
 

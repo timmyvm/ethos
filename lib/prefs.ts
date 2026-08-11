@@ -7,7 +7,16 @@
 
 export type Theme = "system" | "light" | "dark";
 
+/** Voice, or Voice + Video (decisions 11 Aug, §1). */
+export type CaptureMode = "voice" | "voice_video";
+
 export interface Prefs {
+  /**
+   * Sticky per drill type, remembered separately for daily drills and
+   * boss modes — the two have opposite right answers, so one shared
+   * setting would be wrong half the time.
+   */
+  captureMode: Record<"daily" | "boss", CaptureMode>;
   /** Local hour 0–23 for the one daily reminder, or null for off. */
   reminderHour: number | null;
   quietFrom: number;
@@ -23,6 +32,13 @@ export interface Prefs {
 }
 
 export const DEFAULT_PREFS: Prefs = {
+  /**
+   * Daily drill defaults to video OFF: the value of the daily loop is
+   * that it works on a tram with headphones, and nagging for a camera
+   * there costs the habit. Boss modes default ON — being watched is the
+   * point of a boss.
+   */
+  captureMode: { daily: "voice", boss: "voice_video" },
   reminderHour: null,
   quietFrom: 22,
   quietTo: 7,
@@ -52,6 +68,34 @@ export function writePrefs(patch: Partial<Prefs>): Prefs {
     localStorage.setItem(KEY, JSON.stringify(next));
   } catch {}
   return next;
+}
+
+export function readCaptureMode(kind: "daily" | "boss"): CaptureMode {
+  return readPrefs().captureMode?.[kind] ?? DEFAULT_PREFS.captureMode[kind];
+}
+
+export function writeCaptureMode(
+  kind: "daily" | "boss",
+  mode: CaptureMode
+): void {
+  const current = readPrefs().captureMode ?? DEFAULT_PREFS.captureMode;
+  writePrefs({ captureMode: { ...current, [kind]: mode } });
+}
+
+/**
+ * Rep 1 is audio, always — whatever the toggle says.
+ *
+ * Camera permission before someone has felt the product work is the
+ * most expensive ask in the funnel. Voice + Video is offered on rep 2,
+ * where it reads as the thing no other daily app gives you rather than
+ * as a cost of entry.
+ */
+export function captureModeFor(
+  kind: "daily" | "boss",
+  repCount: number
+): CaptureMode {
+  if (repCount < 1) return "voice";
+  return readCaptureMode(kind);
 }
 
 /** Haptics — opt-out lives in settings; silently absent on desktop. */

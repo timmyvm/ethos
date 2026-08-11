@@ -10,7 +10,14 @@ vi.mock("@/lib/db", () => ({
   saveRep: vi.fn(async () => null),
   getUserFromAuthHeader: vi.fn(async () => null),
   previousEthosIndex: vi.fn(async () => null),
+  previousPresence: vi.fn(async () => null),
   isPremium: vi.fn(async () => false),
+  readMeterState: vi.fn(async () => ({
+    balance: 1,
+    accruedOn: null,
+    usedAt: null,
+  })),
+  writeMeterState: vi.fn(async () => {}),
 }));
 vi.mock("@/lib/accuracy", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/accuracy")>()),
@@ -20,7 +27,13 @@ vi.mock("@/lib/accuracy", async (importOriginal) => ({
 import { POST } from "@/app/api/analyze/route";
 import { judgeAccuracy } from "@/lib/accuracy";
 import { coachRep } from "@/lib/coach";
-import { saveRep } from "@/lib/db";
+import {
+  getUserFromAuthHeader,
+  isPremium,
+  readMeterState,
+  saveRep,
+  writeMeterState,
+} from "@/lib/db";
 import { transcribe } from "@/lib/transcribe";
 
 function post(form: FormData | null): Promise<Response> {
@@ -81,7 +94,37 @@ beforeEach(() => {
   vi.mocked(judgeAccuracy).mockReset();
   vi.mocked(judgeAccuracy).mockResolvedValue(null);
   vi.mocked(saveRep).mockClear();
+  vi.mocked(writeMeterState).mockClear();
+  vi.mocked(getUserFromAuthHeader).mockResolvedValue(null);
+  vi.mocked(isPremium).mockResolvedValue(false);
+  vi.mocked(readMeterState).mockResolvedValue({
+    balance: 1,
+    accruedOn: null,
+    usedAt: null,
+  });
 });
+
+/** A rep good enough to be judged, with the coach layer stubbed out. */
+function coachedFixture() {
+  const dim = {
+    score: 60,
+    citedMoment: '"my name is Tim"',
+    improve: "Open with the claim.",
+  };
+  vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+  vi.mocked(coachRep).mockResolvedValue({
+    focus: "Kill 'um' — 1 filler.",
+    strength: "Held 1 pause.",
+    supply: { original: "um", upgrade: "(pause)", note: "Silence reads as thought." },
+    coachLine: "1 filler in 60 seconds.",
+    dimensions: {
+      structure: dim,
+      credibility: dim,
+      engagement: dim,
+      confidence: dim,
+    },
+  });
+}
 
 describe("POST /api/analyze", () => {
   it("rejects a request without an audio field", async () => {
@@ -213,5 +256,162 @@ describe("POST /api/analyze", () => {
     const body = await res.json();
     expect(body.accuracy).toBeNull();
     expect(body.metrics.fillerCount).toBe(1);
+  });
+});
+
+/**
+ * §3 — meter the judged tier, never the rep. The tests that matter here
+ * are the two guardrails: the cap must never break a streak, and it must
+ * never quietly bill someone for an analysis they didn't receive.
+ */
+describe("judged-analysis metering", () => {
+  it("returns the measured tier and no coach once the cap is hit", async () => {
+    coachedFixture();
+    vi.mocked(readMeterState).mockResolvedValue({
+      balance: 0,
+      accruedOn: "2026-08-11",
+      usedAt: "2026-08-11T09:00:00.000Z",
+    });
+    const body = await (await post(audioForm())).json();
+
+    expect(coachRep).not.toHaveBeenCalled();
+    expect(body.judged).toMatchObject({ ran: false, capped: true });
+    // Every rep returns something. Fillers, WPM, pauses and the
+    // transcript are free forever.
+    expect(body.metrics.fillerCount).toBe(1);
+    expect(body.transcript).toBeTruthy();
+    expect(body.tier1.pause).toBeGreaterThan(0);
+    // No judged half means no Index — a partial /1000 would be a lie.
+    expect(body.ethosIndex).toBeNull();
+  });
+
+  it("still stores the rep when the analysis is capped, so the streak stands", async () => {
+    coachedFixture();
+    vi.mocked(readMeterState).mockResolvedValue({
+      balance: 0,
+      accruedOn: "2026-08-11",
+      usedAt: null,
+    });
+    await post(audioForm());
+    expect(saveRep).toHaveBeenCalledTimes(1);
+  });
+
+  it("spends one and reports what is left", async () => {
+    coachedFixture();
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue("user-1");
+    vi.mocked(readMeterState).mockResolvedValue({
+      balance: 2,
+      accruedOn: "2026-08-11",
+      usedAt: null,
+    });
+    const body = await (await post(audioForm())).json();
+    expect(body.judged).toMatchObject({ ran: true, remaining: 1 });
+    expect(writeMeterState).toHaveBeenCalledWith(
+      "user-1",
+      expect.objectContaining({ balance: 1 })
+    );
+  });
+
+  it("never charges for an analysis the coach layer failed to deliver", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(coachRep).mockRejectedValue(new Error("api down"));
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue("user-1");
+    const body = await (await post(audioForm())).json();
+    expect(body.coach).toBeNull();
+    expect(writeMeterState).not.toHaveBeenCalled();
+  });
+
+  it("never spends one on a rep with nothing in it", async () => {
+    vi.mocked(transcribe).mockResolvedValue(EMPTY_FIXTURE);
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue("user-1");
+    await post(audioForm());
+    expect(writeMeterState).not.toHaveBeenCalled();
+  });
+
+  it("does not meter premium at all", async () => {
+    coachedFixture();
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue("user-1");
+    vi.mocked(isPremium).mockResolvedValue(true);
+    vi.mocked(readMeterState).mockResolvedValue({
+      balance: 0,
+      accruedOn: "2026-08-11",
+      usedAt: null,
+    });
+    const body = await (await post(audioForm())).json();
+    expect(body.judged).toMatchObject({ ran: true, unlimited: true });
+    expect(writeMeterState).not.toHaveBeenCalled();
+  });
+});
+
+describe("delivery metrics", () => {
+  it("defaults to voice and stores no delivery numbers", async () => {
+    coachedFixture();
+    const body = await (await post(audioForm())).json();
+    expect(body.captureMode).toBe("voice");
+    expect(body.delivery).toBeNull();
+  });
+
+  it("accepts the five derived numbers and clamps them", async () => {
+    coachedFixture();
+    const form = audioForm();
+    form.append("captureMode", "voice_video");
+    form.append(
+      "delivery",
+      JSON.stringify({
+        metrics: {
+          gestureRate: 14,
+          postureDrift: 0.04,
+          headStability: 0.02,
+          eyeLinePct: 250,
+          presenceScore: 4000,
+        },
+        moments: [{ t: 47, seconds: 6, kind: "eyes-down", note: "0:47 — …" }],
+      })
+    );
+    const body = await (await post(form)).json();
+    expect(body.captureMode).toBe("voice_video");
+    expect(body.delivery.eyeLinePct).toBe(100);
+    expect(body.delivery.presenceScore).toBe(1000);
+    expect(body.deliveryMoments).toHaveLength(1);
+  });
+
+  it("drops a malformed delivery payload rather than storing half of it", async () => {
+    coachedFixture();
+    const form = audioForm();
+    form.append("captureMode", "voice_video");
+    form.append("delivery", "{not json");
+    const body = await (await post(form)).json();
+    expect(body.delivery).toBeNull();
+    expect(body.deliveryMoments).toEqual([]);
+  });
+
+  /**
+   * Presence is a SECOND score. If it ever leaks into the Index the
+   * trendline stops being comparable across modes, which is the whole
+   * reason there are two numbers.
+   */
+  it("keeps Presence out of the Ethos Index", async () => {
+    coachedFixture();
+    const voice = await (await post(audioForm())).json();
+
+    const form = audioForm();
+    form.append("captureMode", "voice_video");
+    form.append(
+      "delivery",
+      JSON.stringify({
+        metrics: {
+          gestureRate: 14,
+          postureDrift: 0.04,
+          headStability: 0.02,
+          eyeLinePct: 95,
+          presenceScore: 910,
+        },
+        moments: [],
+      })
+    );
+    const video = await (await post(form)).json();
+
+    expect(video.ethosIndex).toBe(voice.ethosIndex);
+    expect(video.delivery.presenceScore).toBe(910);
   });
 });

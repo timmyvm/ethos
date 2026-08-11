@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="No coins yet">
+  <!--
+    The empty state. Identical geometry to coin.svg in a warm neutral, so
+    an empty balance reads as the same object unfilled rather than as a
+    different picture. Amber is earned-only (brand.md) — an unearned coin
+    must not carry it.
+
+    Fixed warm grey here because a standalone file can't see the theme;
+    inside the app the Coin component draws this variant with
+    currentColor so it works in both.
+  -->
+  <circle cx="32" cy="32" r="30" fill="#9C8F84" opacity="0.28"/>
+  <circle cx="32" cy="30.5" r="23" fill="#9C8F84" opacity="0.22"/>
+  <path d="M22 20h20a4 4 0 0 1 4 4v11a4 4 0 0 1-4 4H31l-7 6v-6h-2a4 4 0 0 1-4-4V24a4 4 0 0 1 4-4Z" fill="#9C8F84" opacity="0.34"/>
+</svg>

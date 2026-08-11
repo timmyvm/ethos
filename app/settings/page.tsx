@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { signOut } from "@/lib/auth";
 import { fetchLexicon, fetchReps } from "@/lib/client-data";
 import {
   DEFAULT_PREFS,
@@ -243,8 +244,16 @@ export default function SettingsPage() {
         <p className="mt-1 text-[12.5px] text-stone-500">
           {email
             ? "Your reps follow this email anywhere."
-            : "Add an email on the You screen and your reps follow you anywhere."}
+            : "Everything you've recorded lives on this device. An account attaches to it where it already is — nothing moves, so nothing can go missing."}
         </p>
+        {!email && (
+          <Link
+            href="/signup"
+            className="press mt-3 block w-full rounded-[14px] bg-terracotta-500 px-4 py-3 text-center text-[13.5px] font-semibold text-cream"
+          >
+            Create an account
+          </Link>
+        )}
         <button
           onClick={() => void exportData()}
           disabled={exporting}
@@ -255,6 +264,24 @@ export default function SettingsPage() {
         <p className="mt-1.5 text-[11.5px] text-stone-400">
           Every rep, transcript, score and lexicon entry. Yours to take.
         </p>
+
+        {email && (
+          <>
+            <button
+              onClick={async () => {
+                await signOut();
+                window.location.href = "/";
+              }}
+              className="mt-3 w-full rounded-[14px] border border-black/10 px-4 py-3 text-[13.5px] font-semibold"
+            >
+              Sign out
+            </button>
+            <p className="mt-1.5 text-[11.5px] text-stone-400">
+              Signing out leaves this device with no reps on it until you sign
+              back in. Nothing is deleted.
+            </p>
+          </>
+        )}
       </div>
 
       <p className="mt-7 text-center text-[11.5px] text-stone-400">

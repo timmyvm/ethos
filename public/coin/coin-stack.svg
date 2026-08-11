@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="A stack of Ethos coins">
+  <!-- Three coins seen head-on and stepped, deepest at the back. Same
+       four tones as the single coin; the front face carries the mark. -->
+  <ellipse cx="32" cy="52" rx="27" ry="9" fill="#B45309"/>
+  <ellipse cx="32" cy="48" rx="27" ry="9" fill="#D97706"/>
+  <ellipse cx="32" cy="43" rx="27" ry="9" fill="#F59E0B"/>
+  <circle cx="32" cy="25" r="21" fill="#F59E0B"/>
+  <circle cx="32" cy="24" r="16" fill="#FBBF24"/>
+  <path d="M25 16h14a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-8l-5 4v-4h-1a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3Z" fill="#D97706"/>
+</svg>

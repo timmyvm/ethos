@@ -27,3 +27,8 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# On-device pose runtime — ~20MB of WASM copied out of node_modules plus
+# a 5.5MB model downloaded at build time. Staged by
+# scripts/fetch-pose-assets.mjs (npm run pose:assets), never committed.
+/public/pose/

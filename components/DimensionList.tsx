@@ -78,7 +78,12 @@ export function DimensionList({
           improve: coach.dimensions.engagement.improve,
         },
         {
-          name: "Confidence",
+          // The dimension's key stays `confidence` in the schema, the
+          // prompt and every stored row — this is a LABEL change, so no
+          // migration and no re-scoring. §8 bans the word from copy, and
+          // "Steadiness" is closer to what the anchors actually count
+          // (hedges and restarts) than the word it replaces.
+          name: "Steadiness",
           score: coach.dimensions.confidence.score,
           weight: 100,
           detail: `${coach.dimensions.confidence.citedMoment} (${anchors.hedgeCount} hedges, ${anchors.restartCount} restarts — counted, not judged.)`,
@@ -113,7 +118,7 @@ export function DimensionList({
       ))}
       {!coach && (
         <p className="py-3 text-[12px] text-stone-500">
-          Judged dimensions (structure, credibility, engagement, confidence)
+          Judged dimensions (structure, credibility, engagement, steadiness)
           need the coach layer — measured scores above are complete.
         </p>
       )}

@@ -3,10 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Coin } from "@/components/Coin";
 import { Paywall } from "@/components/Paywall";
 import { LexiconFlash } from "@/components/LexiconFlash";
 import { ShareCard } from "@/components/ShareCard";
 import { achievements } from "@/lib/achievements";
+import { syncCoins } from "@/lib/coin-sync";
+import { towardFirstItem } from "@/lib/coins";
 import {
   fetchLexicon,
   fetchReps,
@@ -39,8 +42,7 @@ export default function YouPage() {
   const [xp, setXp] = useState({ total: 0, week: 0 });
   const [anon, setAnon] = useState<boolean | null>(null);
   const [paywall, setPaywall] = useState<string | null>(null);
-  const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
+  const [coins, setCoins] = useState(0);
   const [streak, setStreak] = useState<StreakState>(EMPTY_STREAK);
   const [flashing, setFlashing] = useState(false);
   const [freezes, setFreezes] = useState({ equipped: 0, used: 0 });
@@ -59,6 +61,9 @@ export default function YouPage() {
             used: sync.frozenDays.length,
           });
         } catch {}
+        try {
+          setCoins((await syncCoins(dates)).balance);
+        } catch {}
       })
       .catch(() => {});
     fetchLexicon().then(setLexicon).catch(() => {});
@@ -76,15 +81,6 @@ export default function YouPage() {
   // "Save your progress" gate — appears only after there IS progress
   // (DECISIONS #15: never before the first rep).
   const showGate = anon === true && reps.length >= 1;
-
-  async function saveProgress(e: React.FormEvent) {
-    e.preventDefault();
-    const db = supabaseBrowser();
-    if (!db || !email) return;
-    // Links the email to the SAME anonymous user — history is kept.
-    const { error } = await db.auth.updateUser({ email });
-    if (!error) setSent(true);
-  }
 
   return (
     <main className="px-5 pb-24 pt-7">
@@ -137,6 +133,46 @@ export default function YouPage() {
         <Stat label="Streak" value={String(streak.current)} note="days" />
         <Stat label="Longest" value={String(streak.longest)} note="days" />
         <Stat label="This week" value={String(xp.week)} note="xp" />
+      </div>
+
+      {/*
+       * Coins. There is deliberately no shop (§4) — so the balance is
+       * shown against the price of the first thing it will buy, rather
+       * than as a pile with no meaning. A number going somewhere named
+       * is honest; a number going nowhere is decoration.
+       */}
+      <div className="label-data mt-7">Coins</div>
+      <div className="mt-2 rounded-[18px] border border-hairline bg-surface lift p-5">
+        <div className="flex items-center gap-4">
+          <Coin variant={coins > 0 ? "stack" : "empty"} size={44} />
+          <div className="flex-1">
+            <div className="font-display text-[30px] font-bold leading-none">
+              {coins}
+            </div>
+            <div className="label-data mt-1">
+              1 per day you speak
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="label-data">To the first item</div>
+            <div className="font-display text-[22px] font-bold">
+              {towardFirstItem(coins).toGo}
+            </div>
+          </div>
+        </div>
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-sand">
+          <div
+            className="h-full rounded-full bg-amber-500"
+            style={{ width: `${towardFirstItem(coins).fraction * 100}%` }}
+          />
+        </div>
+        <p className="mt-3 border-t border-sand pt-3 text-[12.5px] leading-relaxed text-stone-500">
+          There&apos;s nothing to spend these on yet. The shop is a separate
+          decision — what matters now is that the rate is fixed against a
+          price, so the first thing worth buying costs about two weeks of
+          practice instead of nothing at all. A day you spoke pays once,
+          however many reps you did.
+        </p>
       </div>
 
       {/* Freezes — earned by streak, never bought (non-negotiable). */}
@@ -295,36 +331,25 @@ export default function YouPage() {
 
       {showGate && (
         <div className="mt-7 rounded-[18px] border border-terracotta-100 bg-terracotta-50 p-5">
-          <div className="text-[14.5px] font-semibold">
-            Save your progress
-          </div>
+          <div className="text-[14.5px] font-semibold">Save your progress</div>
           <p className="mt-1 text-[13px] leading-relaxed text-stone-600">
-            {reps.length} rep{reps.length === 1 ? "" : "s"} and a{" "}
-            {streak.current}-day streak live on this device. Add an email and
-            they follow you anywhere.
+            {reps.length} rep{reps.length === 1 ? "" : "s"}
+            {streak.current > 0 && ` and a ${streak.current}-day streak`} live
+            on this device. An account attaches to them where they already are
+            — nothing moves, so nothing can go missing.
           </p>
-          {sent ? (
-            <p className="mt-3 text-[13px] font-semibold text-terracotta-600">
-              Check your inbox to confirm.
-            </p>
-          ) : (
-            <form onSubmit={saveProgress} className="mt-3 flex gap-2">
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@email.com"
-                className="min-w-0 flex-1 rounded-[12px] border border-black/10 bg-surface px-3 py-2.5 text-[14px]"
-              />
-              <button
-                type="submit"
-                className="shrink-0 rounded-[12px] bg-terracotta-500 px-4 py-2.5 text-[14px] font-semibold text-cream"
-              >
-                Save
-              </button>
-            </form>
-          )}
+          <Link
+            href="/signup"
+            className="press mt-3 block w-full rounded-[13px] bg-terracotta-500 px-4 py-3 text-center text-[15px] font-semibold text-cream"
+          >
+            Create my account
+          </Link>
+          <Link
+            href="/signin"
+            className="mt-2.5 block text-center text-[12.5px] font-semibold text-terracotta-600"
+          >
+            I already have one
+          </Link>
         </div>
       )}
 

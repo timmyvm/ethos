@@ -3,9 +3,17 @@
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { AudioScrubber } from "@/components/AudioScrubber";
+import { Paywall } from "@/components/Paywall";
+import { PresenceDetail, PresenceScore } from "@/components/PresenceCard";
 import { RepResult, type ResultView } from "@/components/RepResult";
-import { fetchRep, repAudioUrl, type RepRow } from "@/lib/client-data";
+import {
+  fetchProfile,
+  fetchRep,
+  repAudioUrl,
+  type RepRow,
+} from "@/lib/client-data";
 import { computeMetrics } from "@/lib/metrics";
+import { fromRow } from "@/lib/presence";
 import { topicFromLessonId } from "@/lib/rep-config";
 import { modById } from "@/lib/stress-mods";
 
@@ -18,6 +26,8 @@ export default function RepDetail({
   const { id } = use(params);
   const [rep, setRep] = useState<RepRow | null | undefined>(undefined);
   const [audio, setAudio] = useState<string | null>(null);
+  const [premium, setPremium] = useState(false);
+  const [paywall, setPaywall] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRep(id)
@@ -26,6 +36,9 @@ export default function RepDetail({
         if (r?.audio_path) repAudioUrl(r.audio_path).then(setAudio).catch(() => {});
       })
       .catch(() => setRep(null));
+    fetchProfile()
+      .then((p) => setPremium(p?.premium ?? false))
+      .catch(() => {});
   }, [id]);
 
   if (rep === undefined) {
@@ -90,6 +103,7 @@ export default function RepDetail({
 
   const d = new Date(rep.created_at);
   const topic = topicFromLessonId(rep.lesson_id);
+  const delivery = fromRow(rep.delivery_metrics);
 
   return (
     <main className="px-5 pb-24 pt-7">
@@ -118,6 +132,31 @@ export default function RepDetail({
         </div>
       )}
       <RepResult result={view} topic={topic} />
+
+      {/*
+       * Presence, if this rep was recorded on camera. There is no
+       * playback here and there never will be: the clip existed in the
+       * tab that recorded it and nowhere else. What survives is the five
+       * numbers and the timestamps.
+       */}
+      {delivery && (
+        <div className="mt-6 border-t border-sand pt-5">
+          <PresenceScore
+            score={delivery.presenceScore}
+            previous={null}
+            premium={premium}
+            onUpgrade={() => setPaywall("Presence · premium")}
+          />
+          <PresenceDetail
+            metrics={delivery}
+            moments={rep.delivery_moments ?? []}
+            premium={premium}
+            videoUrl={null}
+            onUpgrade={() => setPaywall("Delivery readout · premium")}
+          />
+        </div>
+      )}
+
       {audio && (
         <div className="mt-4">
           <AudioScrubber
@@ -128,6 +167,8 @@ export default function RepDetail({
           />
         </div>
       )}
+
+      {paywall && <Paywall reason={paywall} onClose={() => setPaywall(null)} />}
     </main>
   );
 }

@@ -19,8 +19,14 @@ import {
   getUserFromAuthHeader,
   isPremium,
   previousEthosIndex,
+  previousPresence,
+  readMeterState,
   saveRep,
+  writeMeterState,
 } from "@/lib/db";
+import { localDate, meter } from "@/lib/metering";
+import type { DeliveryMetrics, DeliveryMoment } from "@/lib/presence";
+import type { CaptureMode } from "@/lib/prefs";
 import {
   ethosIndex,
   tier1Scores,
@@ -51,6 +57,19 @@ export interface AnalyzeResponse {
   mode: "daily" | "boss";
   mods: string[];
   xpMultiplier: number;
+  captureMode: CaptureMode;
+  /** Null for Voice reps, and for a Voice + Video rep with no body in it. */
+  delivery: DeliveryMetrics | null;
+  deliveryMoments: DeliveryMoment[];
+  previousPresence: number | null;
+  /** What the judged tier did, and what's left of it (§3). */
+  judged: {
+    ran: boolean;
+    unlimited: boolean;
+    remaining: number;
+    /** True when the rep was measured but not judged, because of the cap. */
+    capped: boolean;
+  };
 }
 
 export async function POST(req: NextRequest) {
@@ -98,6 +117,17 @@ export async function POST(req: NextRequest) {
   const mode: "daily" | "boss" = bossTopic ? "boss" : "daily";
   const multiplier = xpMultiplier(mods, bossTopic ? BOSS_XP_BASE : 1);
 
+  const captureMode: CaptureMode =
+    form.get("captureMode") === "voice_video" ? "voice_video" : "voice";
+  // Presence is computed on the device from landmarks that never leave
+  // it, so unlike the mods (DECISIONS #41) the server cannot recompute
+  // it and does not try. That is safe precisely because Presence feeds
+  // nothing else: not the Ethos Index, not stars, not XP, not the
+  // league. A forged Presence lies only to the person who forged it.
+  const { delivery, deliveryMoments } = parseDelivery(
+    form.get("delivery") as string | null
+  );
+
   let transcription;
   try {
     transcription = await transcribe(audio, filename);
@@ -129,9 +159,30 @@ export async function POST(req: NextRequest) {
   // measure we say so instead of scoring the silence around it.
   const scorable = isScorable(metrics.substance);
 
+  /*
+   * Judged-tier metering (§3). The measured tier above has already run
+   * and is free forever; what's rationed is the Claude call below.
+   *
+   * Two things this deliberately does NOT do: it does not block the rep
+   * (the rep is stored either way, so the streak is untouched — streaks
+   * count reps, not analyses), and it does not spend an analysis on a
+   * rep with nothing in it. A near-silent rep has nothing to judge, so
+   * burning the day's one analysis on it would be theft.
+   */
+  const meterState = await readMeterState(userId).catch(() => null);
+  const decision =
+    scorable && meterState
+      ? meter({
+          state: meterState,
+          now: localDate(new Date(), numberOrNull(form.get("tzOffset"))),
+          premium,
+        })
+      : null;
+  const judgedAllowed = decision?.allowed ?? scorable;
+
   let coach: CoachOutput | null = null;
   let accuracy: AccuracyResult | null = null;
-  if (scorable) {
+  if (scorable && judgedAllowed) {
     const [coachResult, accuracyResult] = await Promise.allSettled([
       coachRep(transcription.text, metrics, tier1, anchors),
       bossTopic
@@ -143,14 +194,23 @@ export async function POST(req: NextRequest) {
       accuracyResult.status === "fulfilled" ? accuracyResult.value : null;
   }
 
+  // Only commit the spend once the call has actually happened. An
+  // analysis the user never received must not cost them one.
+  if (userId && decision && !decision.unlimited && coach) {
+    await writeMeterState(userId, decision.state).catch(() => {});
+  }
+
   // No substance, no Index — not a partial score, no score.
   const index = scorable
     ? ethosIndex(tier1, coach ? tier2Scores(coach) : null)
     : null;
 
-  const previousIndex = userId
-    ? await previousEthosIndex(userId).catch(() => null)
-    : null;
+  const [previousIndex, prevPresence] = userId
+    ? await Promise.all([
+        previousEthosIndex(userId).catch(() => null),
+        previousPresence(userId).catch(() => null),
+      ])
+    : [null, null];
 
   let repId: string | null = null;
   try {
@@ -171,6 +231,9 @@ export async function POST(req: NextRequest) {
       xpMultiplier: multiplier,
       bossTopicId: bossTopic?.id ?? null,
       accuracy,
+      captureMode,
+      delivery,
+      deliveryMoments,
     });
     repId = saved?.id ?? null;
   } catch {
@@ -191,6 +254,58 @@ export async function POST(req: NextRequest) {
     mode,
     mods: modIds(mods),
     xpMultiplier: multiplier,
+    captureMode,
+    delivery,
+    deliveryMoments,
+    previousPresence: prevPresence,
+    judged: {
+      ran: coach !== null,
+      unlimited: decision?.unlimited ?? false,
+      remaining: decision && !decision.unlimited ? decision.remaining : 0,
+      capped: scorable && decision !== null && !decision.allowed,
+    },
   };
   return NextResponse.json(body);
+}
+
+function numberOrNull(v: FormDataEntryValue | null): number | null {
+  const n = Number(v);
+  return typeof v === "string" && v !== "" && Number.isFinite(n) ? n : null;
+}
+
+/**
+ * The client sends five numbers and a list of timestamped moments —
+ * never frames, never pixels. Anything malformed is dropped rather than
+ * stored half-parsed.
+ */
+function parseDelivery(raw: string | null): {
+  delivery: DeliveryMetrics | null;
+  deliveryMoments: DeliveryMoment[];
+} {
+  if (!raw) return { delivery: null, deliveryMoments: [] };
+  try {
+    const parsed = JSON.parse(raw) as {
+      metrics?: Partial<DeliveryMetrics>;
+      moments?: DeliveryMoment[];
+    };
+    const m = parsed.metrics;
+    if (!m || typeof m.presenceScore !== "number") {
+      return { delivery: null, deliveryMoments: [] };
+    }
+    const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+    return {
+      delivery: {
+        gestureRate: num(m.gestureRate),
+        postureDrift: num(m.postureDrift),
+        headStability: num(m.headStability),
+        eyeLinePct: Math.max(0, Math.min(100, num(m.eyeLinePct))),
+        presenceScore: Math.max(0, Math.min(1000, Math.round(m.presenceScore))),
+      },
+      deliveryMoments: Array.isArray(parsed.moments)
+        ? parsed.moments.slice(0, 40)
+        : [],
+    };
+  } catch {
+    return { delivery: null, deliveryMoments: [] };
+  }
 }

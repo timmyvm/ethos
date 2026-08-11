@@ -9,7 +9,10 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { AccuracyResult } from "./accuracy";
 import type { CoachOutput } from "./coach";
 import type { Tier1Scores, Tier2Anchors } from "./index-score";
+import type { MeterState } from "./metering";
 import type { RepMetrics } from "./metrics";
+import { toRow, type DeliveryMetrics, type DeliveryMoment } from "./presence";
+import type { CaptureMode } from "./prefs";
 
 export function supabaseAdmin(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -45,6 +48,69 @@ export async function previousEthosIndex(
     .limit(1)
     .maybeSingle();
   return (data?.ethos_index as number | undefined) ?? null;
+}
+
+/** The user's latest stored Presence, for the second trendline. */
+export async function previousPresence(
+  userId: string
+): Promise<number | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const { data } = await db
+    .from("reps")
+    .select("presence_score")
+    .eq("user_id", userId)
+    .not("presence_score", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data?.presence_score as number | undefined) ?? null;
+}
+
+/**
+ * Judged-analysis metering (§3), server side. The client can ask for a
+ * judged analysis; only this decides whether it gets one.
+ */
+export async function readMeterState(
+  userId: string | null
+): Promise<MeterState> {
+  const fresh: MeterState = { balance: 1, accruedOn: null, usedAt: null };
+  if (!userId) return fresh;
+  const db = supabaseAdmin();
+  if (!db) return fresh;
+  const { data } = await db
+    .from("profiles")
+    .select("judged_rollover, judged_accrued_on, judged_analysis_used_at")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!data) return fresh;
+  return {
+    balance: (data.judged_rollover as number | null) ?? 1,
+    accruedOn: (data.judged_accrued_on as string | null) ?? null,
+    usedAt: (data.judged_analysis_used_at as string | null) ?? null,
+  };
+}
+
+/**
+ * Persist the balance after a judged rep. Upserts because an
+ * anonymous-first user may not have a profile row until they save
+ * progress, and metering can't wait for that.
+ */
+export async function writeMeterState(
+  userId: string,
+  state: MeterState
+): Promise<void> {
+  const db = supabaseAdmin();
+  if (!db) return;
+  await db.from("profiles").upsert(
+    {
+      user_id: userId,
+      judged_rollover: state.balance,
+      judged_accrued_on: state.accruedOn,
+      judged_analysis_used_at: state.usedAt,
+    },
+    { onConflict: "user_id" }
+  );
 }
 
 /** Entitlement gate. No processor yet — one boolean, one place. */
@@ -87,6 +153,10 @@ export async function saveRep(params: {
   xpMultiplier?: number;
   bossTopicId?: string | null;
   accuracy?: AccuracyResult | null;
+  captureMode?: CaptureMode;
+  /** Derived numbers only — raw video never reaches this process. */
+  delivery?: DeliveryMetrics | null;
+  deliveryMoments?: DeliveryMoment[] | null;
 }): Promise<SavedRep | null> {
   const db = supabaseAdmin();
   if (!db) return null;
@@ -129,6 +199,12 @@ export async function saveRep(params: {
       xp_multiplier: params.xpMultiplier ?? 1,
       boss_topic_id: params.bossTopicId ?? null,
       accuracy: params.accuracy ?? null,
+      capture_mode: params.captureMode ?? "voice",
+      // Voice-mode reps store null, so the results screen branches on
+      // whether presence exists rather than on which mode was picked.
+      delivery_metrics: params.delivery ? toRow(params.delivery) : null,
+      presence_score: params.delivery?.presenceScore ?? null,
+      delivery_moments: params.deliveryMoments ?? null,
     })
     .select("id")
     .single();

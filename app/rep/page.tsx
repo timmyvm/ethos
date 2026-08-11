@@ -11,8 +11,12 @@ import {
   useRef,
   useState,
 } from "react";
+import { Coin } from "@/components/Coin";
 import { GainsRow } from "@/components/GainsRow";
+import { ModeToggle } from "@/components/ModeToggle";
 import { Moment } from "@/components/Moment";
+import { Paywall } from "@/components/Paywall";
+import { PresenceDetail, PresenceScore } from "@/components/PresenceCard";
 import { RepResult } from "@/components/RepResult";
 import { StreakCelebration } from "@/components/StreakCelebration";
 import { achievements } from "@/lib/achievements";
@@ -22,10 +26,25 @@ import {
   fetchXp,
   type RepRow,
 } from "@/lib/client-data";
+import { syncCoins } from "@/lib/coin-sync";
 import { startCrowdNoise, type CrowdNoise } from "@/lib/crowd-noise";
 import { syncFreezes } from "@/lib/freeze-sync";
 import { starsByLesson, totalStars, unitStates } from "@/lib/path";
-import { buzz, readPrefs } from "@/lib/prefs";
+import { loadPose, samplePose, type PoseSampler } from "@/lib/pose-client";
+import {
+  ringNote,
+  ringState,
+  scorePresence,
+  type PresenceResult,
+  type RingState,
+} from "@/lib/presence";
+import {
+  buzz,
+  captureModeFor,
+  readPrefs,
+  writeCaptureMode,
+  type CaptureMode,
+} from "@/lib/prefs";
 import { nextMilestones, repGains, type RepGain } from "@/lib/progress";
 import {
   anticipation,
@@ -41,6 +60,19 @@ import type { AnalyzeResponse } from "@/app/api/analyze/route";
 
 const METER_BARS = 36;
 const FRAME_SECONDS = 30;
+
+/**
+ * The live ring's nudge colour, per §2 ("the ring goes amber on slouch,
+ * hands leaving frame, eyes dropping").
+ *
+ * Flagged rather than silently applied: DECISIONS #65 locks amber as
+ * earned-only, because a colour that means something has to mean the
+ * same thing everywhere, and everywhere else in Ethos amber means "you
+ * earned this". Here it means "look at this". One constant to reverse
+ * if that trade isn't wanted — `ring-stone-400` keeps the nudge visible
+ * without spending the colour.
+ */
+const RING_TONE = "ring-amber-500";
 
 /** Demos' one interruption. Short, specific, never insulting. */
 const INTERRUPTIONS = [
@@ -105,6 +137,27 @@ function RepScreen() {
   const [bests, setBests] = useState<RewardMoment[]>([]);
   const [notes, setNotes] = useState("");
   const [tomorrow, setTomorrow] = useState<NextFocus | null>(null);
+  const [coined, setCoined] = useState(false);
+
+  // --- delivery feedback (§1) ---------------------------------------
+  const [captureMode, setCaptureMode] = useState<CaptureMode>("voice");
+  const [poseReady, setPoseReady] = useState<boolean | null>(null);
+  const [ring, setRing] = useState<RingState>("ok");
+  const [presence, setPresence] = useState<PresenceResult | null>(null);
+  const [clipUrl, setClipUrl] = useState<string | null>(null);
+  const [paywall, setPaywall] = useState<string | null>(null);
+  const [repCount, setRepCount] = useState<number | null>(null);
+
+  /**
+   * Sticky per drill type, with one override: rep 1 is audio, always.
+   * Camera permission before someone has felt the product work is the
+   * most expensive ask in the funnel, so Voice + Video is offered on
+   * rep 2 as the thing no other daily app gives you.
+   */
+  useEffect(() => {
+    if (repCount === null) return;
+    setCaptureMode(captureModeFor(config.kind, repCount));
+  }, [config.kind, repCount]);
 
   /**
    * Snapshot of where the user stood BEFORE this rep, captured on
@@ -117,9 +170,25 @@ function RepScreen() {
     reps: RepRow[];
   } | null>(null);
 
+  /**
+   * Is on-device pose actually available here? Asked once, before the
+   * toggle is drawn, so Voice + Video is never offered by a browser
+   * that can't measure anything.
+   */
+  useEffect(() => {
+    let live = true;
+    loadPose()
+      .then((p) => live && setPoseReady(p !== null))
+      .catch(() => live && setPoseReady(false));
+    return () => {
+      live = false;
+    };
+  }, []);
+
   useEffect(() => {
     fetchReps()
       .then(async (rows) => {
+        setRepCount(rows.length);
         const map = starsByLesson(rows);
         baselineRef.current = {
           stars: totalStars(map),
@@ -155,17 +224,25 @@ function RepScreen() {
     chunks: Blob[];
     crowd: CrowdNoise | null;
     interruptTimer: ReturnType<typeof setTimeout> | null;
+    /** Local-only video recorder. Its blob never touches the network. */
+    videoRecorder: MediaRecorder | null;
+    videoChunks: Blob[];
+    sampler: PoseSampler | null;
   } | null>(null);
+  const videoElRef = useRef<HTMLVideoElement | null>(null);
   const phaseRef = useRef<Phase>("idle");
   phaseRef.current = phase;
   const configRef = useRef<RepConfig>(config);
   configRef.current = config;
+  const captureModeRef = useRef<CaptureMode>(captureMode);
+  captureModeRef.current = captureMode;
 
   const teardown = useCallback(() => {
     const r = recRef.current;
     if (!r) return;
     cancelAnimationFrame(r.raf);
     if (r.interruptTimer) clearTimeout(r.interruptTimer);
+    r.sampler?.stop();
     r.crowd?.stop();
     r.stream.getTracks().forEach((t) => t.stop());
     // The context outlives the fade-out of the crowd bed by design.
@@ -186,7 +263,26 @@ function RepScreen() {
       r.recorder.stop();
     });
 
+    // Score the body before tearing the camera down. Everything below
+    // this line is five numbers and a list of timestamps — the frames
+    // themselves are dropped with the sampler.
+    const frames = r.sampler?.stop() ?? [];
+    const scored = frames.length > 0 ? scorePresence(frames) : null;
+    setPresence(scored?.scorable ? scored : null);
+
+    // The local clip, for Pro playback with markers. Held as an object
+    // URL in this tab and nowhere else — never uploaded, never stored.
+    if (r.videoRecorder && r.videoRecorder.state !== "inactive") {
+      const clip = await new Promise<Blob>((resolve) => {
+        r.videoRecorder!.onstop = () =>
+          resolve(new Blob(r.videoChunks, { type: r.videoRecorder!.mimeType }));
+        r.videoRecorder!.stop();
+      });
+      if (clip.size > 0) setClipUrl(URL.createObjectURL(clip));
+    }
+
     const cfg = configRef.current;
+    const mode = captureModeRef.current;
     teardown();
 
     try {
@@ -197,6 +293,16 @@ function RepScreen() {
       form.append("mode", cfg.kind);
       form.append("mods", cfg.mods.map((m) => m.id).join(","));
       form.append("xpMultiplier", String(cfg.xpMultiplier));
+      form.append("captureMode", mode);
+      // The judged-tier allowance resets on the user's own calendar day,
+      // not on UTC's (§3).
+      form.append("tzOffset", String(new Date().getTimezoneOffset()));
+      if (scored?.scorable) {
+        form.append(
+          "delivery",
+          JSON.stringify({ metrics: scored.metrics, moments: scored.moments })
+        );
+      }
       if (cfg.topic) form.append("bossTopicId", cfg.topic.id);
       // Anonymous-first (DECISIONS #15): attribute the rep if a session
       // exists or can be minted; never block the rep on auth.
@@ -216,10 +322,15 @@ function RepScreen() {
       const analyzed = data as AnalyzeResponse;
       fetchReps()
         .then(async (reps) => {
-          const { streak } = await syncFreezes(
-            reps.map((x) => new Date(x.created_at))
-          );
+          const dates = reps.map((x) => new Date(x.created_at));
+          const { streak } = await syncFreezes(dates);
           if (streak.current > 0) setCelebrate(streak.current);
+
+          // One coin per day you spoke (§4). Granted from the stored
+          // reps, so it heals rather than double-paying.
+          syncCoins(dates)
+            .then((c) => setCoined(c.granted.length > 0))
+            .catch(() => {});
 
           const before = baselineRef.current;
           if (before) {
@@ -266,13 +377,28 @@ function RepScreen() {
     setError(null);
     setSeconds(0);
     const cfg = configRef.current;
+    const wantsVideo = captureModeRef.current === "voice_video";
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: wantsVideo
+          ? { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" }
+          : false,
+      });
+
+      /*
+       * The uploaded blob is built from the AUDIO TRACKS ONLY, never
+       * from `stream`. This is the line that makes "video never leaves
+       * your device" true rather than aspirational: recording the whole
+       * stream would quietly ship a video file to Supabase storage the
+       * moment someone flipped the toggle.
+       */
+      const audioOnly = new MediaStream(stream.getAudioTracks());
       const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
         ? "audio/webm;codecs=opus"
         : undefined;
       const recorder = new MediaRecorder(
-        stream,
+        audioOnly,
         mime ? { mimeType: mime } : undefined
       );
       const chunks: Blob[] = [];
@@ -280,6 +406,22 @@ function RepScreen() {
         if (e.data.size > 0) chunks.push(e.data);
       };
       recorder.start(1000);
+
+      // A second, local-only recorder for playback with markers. Its
+      // blob is held as an object URL and dropped when you leave.
+      let videoRecorder: MediaRecorder | null = null;
+      const videoChunks: Blob[] = [];
+      if (wantsVideo && stream.getVideoTracks().length > 0) {
+        try {
+          videoRecorder = new MediaRecorder(stream);
+          videoRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) videoChunks.push(e.data);
+          };
+          videoRecorder.start(1000);
+        } catch {
+          videoRecorder = null; // playback is a bonus, never the rep
+        }
+      }
 
       // Level meter. iOS Safari creates AudioContexts suspended even
       // inside a user gesture — resume explicitly.
@@ -314,8 +456,26 @@ function RepScreen() {
         chunks,
         crowd,
         interruptTimer: null,
+        videoRecorder,
+        videoChunks,
+        sampler: null,
       };
       recRef.current.raf = requestAnimationFrame(tick);
+
+      // Pose sampling + the live ring. Free for everyone (§2): it's
+      // local compute at zero marginal cost, and it's the part that
+      // feels like magic in the first thirty seconds.
+      if (wantsVideo && stream.getVideoTracks().length > 0) {
+        const video = videoElRef.current;
+        const landmarker = await loadPose();
+        if (video && landmarker) {
+          video.srcObject = stream;
+          await video.play().catch(() => {});
+          recRef.current.sampler = samplePose(video, landmarker, (frames) =>
+            setRing(ringState(frames))
+          );
+        }
+      }
 
       if (cfg.interrupt) {
         // Somewhere in the middle third — early enough to recover from,
@@ -352,6 +512,12 @@ function RepScreen() {
     setCelebrate(null);
     setSeconds(0);
     setLevels(Array(METER_BARS).fill(0.05));
+    setPresence(null);
+    setRing("ok");
+    setClipUrl((url) => {
+      if (url) URL.revokeObjectURL(url);
+      return null;
+    });
     setPhase("idle");
   }, []);
 
@@ -400,15 +566,25 @@ function RepScreen() {
       if (r) {
         try {
           r.recorder.stop();
+          r.videoRecorder?.stop();
         } catch {}
         cancelAnimationFrame(r.raf);
         if (r.interruptTimer) clearTimeout(r.interruptTimer);
+        r.sampler?.stop();
         r.crowd?.stop();
         r.stream.getTracks().forEach((t) => t.stop());
         void r.ctx.close().catch(() => {});
       }
     };
   }, []);
+
+  // The local clip is the one artefact that could outlive the screen.
+  // Revoking it on unmount is what makes "leave and it's gone" true.
+  useEffect(() => {
+    return () => {
+      if (clipUrl) URL.revokeObjectURL(clipUrl);
+    };
+  }, [clipUrl]);
 
   if (phase === "results" && result) {
     return (
@@ -420,6 +596,11 @@ function RepScreen() {
           bests={bests}
           closing={closing}
           tomorrow={tomorrow}
+          presence={presence}
+          clipUrl={clipUrl}
+          premium={premium}
+          coined={coined}
+          onUpgrade={setPaywall}
           onRetake={retake}
         />
         {celebrate !== null && (
@@ -427,6 +608,9 @@ function RepScreen() {
             streak={celebrate}
             onDone={() => setCelebrate(null)}
           />
+        )}
+        {paywall && (
+          <Paywall reason={paywall} onClose={() => setPaywall(null)} />
         )}
       </>
     );
@@ -465,6 +649,29 @@ function RepScreen() {
           ))}
           <span className="label-data">×{config.xpMultiplier} XP</span>
         </div>
+      )}
+
+      {phase === "idle" && repCount !== null && repCount >= 1 && (
+        <ModeToggle
+          mode={captureMode}
+          available={poseReady === true}
+          reason={
+            poseReady === null
+              ? "Checking whether this browser can do on-device pose detection…"
+              : undefined
+          }
+          onChange={(m) => {
+            setCaptureMode(m);
+            writeCaptureMode(config.kind, m);
+          }}
+        />
+      )}
+
+      {phase === "idle" && repCount === 0 && (
+        <p className="mt-4 text-[12.5px] leading-relaxed text-stone-500">
+          This one&apos;s audio. Get a rep in your legs first — video is on the
+          table from the next one.
+        </p>
       )}
 
       {config.crowdNoise && phase === "idle" && (
@@ -559,7 +766,45 @@ function RepScreen() {
           </div>
         )}
 
-        {phase === "recording" && (
+        {/*
+         * Self-view with the live ring. Free for everyone (§2) — local
+         * compute, zero marginal cost, and the part that feels like
+         * magic before anyone has paid anything.
+         *
+         * The ring is amber on a nudge, as specified in §2. Worth
+         * knowing: DECISIONS #65 locks amber as earned-only, so this is
+         * the one place the colour carries attention rather than
+         * achievement. Flip RING_TONE to reverse it.
+         */}
+        <div
+          className={`${
+            captureMode === "voice_video" && phase === "recording"
+              ? "block"
+              : "hidden"
+          }`}
+        >
+          <div
+            className={`relative overflow-hidden rounded-[22px] transition-shadow ${
+              ring === "ok"
+                ? "ring-2 ring-hairline"
+                : `ring-4 ${RING_TONE}`
+            }`}
+          >
+            <video
+              ref={videoElRef}
+              muted
+              playsInline
+              className="block w-[220px] -scale-x-100 bg-stage"
+            />
+          </div>
+          {ring !== "ok" && (
+            <div className="mt-2 text-center text-[13px] font-semibold text-amber-500">
+              {ringNote(ring)}
+            </div>
+          )}
+        </div>
+
+        {phase === "recording" && captureMode !== "voice_video" && (
           <Image
             src="/demos-listening.webp"
             alt=""
@@ -652,6 +897,11 @@ function Results({
   bests,
   closing,
   tomorrow,
+  presence,
+  clipUrl,
+  premium,
+  coined,
+  onUpgrade,
   onRetake,
 }: {
   result: AnalyzeResponse;
@@ -660,15 +910,90 @@ function Results({
   bests: RewardMoment[];
   closing: RewardMoment | null;
   tomorrow: NextFocus | null;
+  presence: PresenceResult | null;
+  clipUrl: string | null;
+  premium: boolean;
+  coined: boolean;
+  onUpgrade: (reason: string) => void;
   onRetake: () => void;
 }) {
   return (
     <main className="px-5 pb-10 pt-7">
-      <div className="label-data">
-        {config.kind === "boss" ? "Boss complete" : "Rep complete"}
+      <div className="flex items-center justify-between">
+        <div className="label-data">
+          {config.kind === "boss" ? "Boss complete" : "Rep complete"}
+        </div>
+        {coined && (
+          <span className="flex items-center gap-1.5 text-[13px] font-semibold text-amber-500">
+            <Coin size={18} /> +1
+          </span>
+        )}
       </div>
       <GainsRow gains={gains} />
       <RepResult result={result} topic={config.topic} />
+
+      {/*
+       * Presence — a SECOND score, beside the Index at the same size.
+       * The Index above is audio-only and stays that way, so the
+       * trendline and the leagues remain comparable whichever mode was
+       * picked that day.
+       */}
+      {presence && (
+        <div className="mt-6 border-t border-sand pt-5">
+          <PresenceScore
+            score={presence.metrics.presenceScore}
+            previous={result.previousPresence}
+            premium={premium}
+            onUpgrade={() => onUpgrade("Presence · premium")}
+          />
+          <PresenceDetail
+            metrics={presence.metrics}
+            moments={presence.moments}
+            premium={premium}
+            videoUrl={clipUrl}
+            onUpgrade={() => onUpgrade("Delivery readout · premium")}
+          />
+        </div>
+      )}
+
+      {/*
+       * The judged tier ran out (§3). Said plainly, with what comes back
+       * and when — and never framed as a failed rep, because the rep
+       * counted, the streak stands, and every measured number above is
+       * real.
+       */}
+      {result.judged.capped && (
+        <div className="mt-5 rounded-[18px] border border-hairline bg-surface lift p-5">
+          <div className="font-display text-[19px] font-bold leading-tight">
+            Measured, not judged.
+          </div>
+          <p className="mt-2 text-[13.5px] leading-relaxed text-stone-500">
+            Everything above is counted from the recording. What&apos;s
+            missing is the read on it — the cited moments, the word upgrade,
+            and Demos&apos;s take. That&apos;s one a day on the free tier, and
+            yours is back tomorrow.
+          </p>
+          <p className="mt-2 text-[12.5px] leading-relaxed text-stone-400">
+            The rep still counted. Your streak counts reps, never analyses.
+          </p>
+          <button
+            onClick={() => onUpgrade("Unlimited analysis · premium")}
+            className="press mt-3 w-full rounded-[13px] border border-black/10 bg-surface px-4 py-3 text-[14px] font-semibold"
+          >
+            Or read every rep
+          </button>
+        </div>
+      )}
+
+      {!result.judged.capped &&
+        !result.judged.unlimited &&
+        result.judged.ran &&
+        result.judged.remaining > 0 && (
+          <p className="mt-3 text-[12px] text-stone-400">
+            {result.judged.remaining} judged analys
+            {result.judged.remaining === 1 ? "is" : "es"} banked.
+          </p>
+        )}
 
       {bests.length > 0 && (
         <div className="mt-4 space-y-2">

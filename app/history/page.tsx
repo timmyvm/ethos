@@ -8,7 +8,7 @@ import { FillerHeatmap } from "@/components/FillerHeatmap";
 import { Paywall } from "@/components/Paywall";
 import { Sparkline } from "@/components/Sparkline";
 import { Stars } from "@/components/Stars";
-import { fetchReps, type RepRow } from "@/lib/client-data";
+import { fetchProfile, fetchReps, type RepRow } from "@/lib/client-data";
 import { insights } from "@/lib/insights";
 
 const FREE_DAYS = 7; // mechanics.md: free tier sees the last 7 days
@@ -17,9 +17,13 @@ const FREE_DAYS = 7; // mechanics.md: free tier sees the last 7 days
 export default function HistoryPage() {
   const [reps, setReps] = useState<RepRow[] | null>(null);
   const [paywall, setPaywall] = useState<string | null>(null);
+  const [premium, setPremium] = useState(false);
 
   useEffect(() => {
     fetchReps().then(setReps).catch(() => setReps([]));
+    fetchProfile()
+      .then((p) => setPremium(p?.premium ?? false))
+      .catch(() => {});
   }, []);
 
   if (reps === null) {
@@ -69,6 +73,12 @@ export default function HistoryPage() {
   const fillerSeries = reps.map((r) =>
     r.duration_s > 0 ? (r.filler_count / (r.duration_s / 60)) : 0
   );
+  // Presence has its own history, separate from the Index — two scores,
+  // two trendlines. Only video reps appear in it, which is why it can't
+  // share the Index's line: the gaps would read as a collapse.
+  const presenceSeries = reps
+    .filter((r) => r.presence_score !== null)
+    .map((r) => r.presence_score as number);
 
   return (
     <main className="px-5 pb-24 pt-7">
@@ -83,6 +93,25 @@ export default function HistoryPage() {
           <Sparkline values={indexSeries} label="Ethos Index" />
         )}
         <Sparkline values={fillerSeries} label="Fillers / min" invert />
+
+        {/* Week-over-week Presence is a Pro surface (§2), so the free
+            tier sees that it exists and how many reps are in it — never
+            a padlock over an empty box. */}
+        {presenceSeries.length >= 2 &&
+          (premium ? (
+            <Sparkline values={presenceSeries} label="Presence" />
+          ) : (
+            <button
+              onClick={() => setPaywall("Presence trendline · premium")}
+              className="press w-full rounded-[18px] border border-hairline bg-surface lift p-4 text-left"
+            >
+              <div className="label-data">Presence</div>
+              <div className="mt-1 text-[13px] text-stone-500">
+                {presenceSeries.length} video reps measured. Tap to see the
+                line.
+              </div>
+            </button>
+          ))}
       </div>
 
       {insights(reps).length > 0 && (

@@ -43,7 +43,10 @@ twice, once `target: production`.)
 | Boss fact-check | `lib/accuracy.ts` | Second, independent Claude call on boss reps: extracts each claim verbatim, marks it against the topic's ground truth. Score is arithmetic over the verdicts. |
 | Whisper transcription | `lib/transcribe.ts` | verbose_json, word timestamps, disfluency-biased prompt. |
 | Rep resolver | `lib/rep-config.ts` | One pure function answers "what is this rep" — prompt, cap, mods, multiplier — for the screen, the route and the log. |
-| Analyze route | `app/api/analyze/route.ts` | Pipeline + persistence. Coach and fact-check run in parallel; either failing never blocks the numbers. Recomputes the XP multiplier from server-side entitlement. |
+| Analyze route | `app/api/analyze/route.ts` | Pipeline + persistence. Coach and fact-check run in parallel; either failing never blocks the numbers. Recomputes the XP multiplier from server-side entitlement, and meters the judged tier. |
+| Presence engine | `lib/presence.ts` | Pose landmarks → gesture rate, posture drift, head stability, eye-line % → Presence /1000 (4 × 250, same shape as the Index). Plus timestamped moments and the live ring state. Pure, no LLM, 21 tests. |
+| Pose sampling | `lib/pose-client.ts`, `scripts/fetch-pose-assets.mjs` | MediaPipe Pose as a WASM task, ~30fps, self-hosted from `public/pose/` (staged at build, gitignored). Load failure is honest: the mode toggle says unavailable. |
+| Judged metering | `lib/metering.ts` | Free 1/day, rollover capped at 3, premium unlimited. Local-date reset from a clamped client offset. Pure, 15 tests. |
 
 ## Loop (step 2)
 
@@ -53,6 +56,8 @@ twice, once `target: production`.)
 | Recording screen | `app/rep/page.tsx` | Core. |
 | Results view | `components/RepResult.tsx` | Core. Shared with the log. |
 | Topic roulette | `lib/topics.ts`, `components/TopicRoulette.tsx` | Low. 20 prompts across 4 shapes; structure tips are per shape, never per topic (DECISIONS #60). Replaces the floor card rather than adding a second CTA. |
+| Voice / Voice + Video | `components/ModeToggle.tsx`, `lib/prefs.ts` | Low to hide, medium to remove. Sticky per drill type, daily off / boss on, rep 1 always audio (DECISIONS #68). |
+| Presence results | `components/PresenceCard.tsx` | Medium. Score beside the Index, Pro readout, moments, local playback with markers. |
 
 ## Progression (step 3) — most prunable layer
 
@@ -62,6 +67,7 @@ twice, once `target: production`.)
 | Streaks | `lib/streak.ts`, `components/StreakBadge.tsx` | Low to remove, high to re-earn. |
 | Streak freezes | `lib/streak.ts`, `lib/freeze-sync.ts` | Low. Earned per 7-day week, auto-spent, bridges without counting. Cutting means deleting one table. |
 | Streak celebration | `components/StreakCelebration.tsx` | Trivial to cut. |
+| Coins | `lib/coins.ts`, `lib/coin-sync.ts`, `components/Coin.tsx`, `public/coin/*.svg` | Low. Append-only ledger, 1/day-spoken, no shop. The earn rate is enforced by a DB constraint + partial unique index, so cutting the client doesn't unmeter it. |
 | XP + levels | `lib/level.ts` | Low — nothing else reads it. |
 | Weekly league | inside `app/you/page.tsx` | Trivial — it's a placeholder card until 20 users exist. |
 | Achievements | `lib/achievements.ts` | Trivial. Self-contained. |
@@ -83,6 +89,7 @@ twice, once `target: production`.)
 | Paywall sheet | `components/Paywall.tsx` | Prices are placeholders pending the research pass. |
 | Free-tier limits | `app/history` (7 days), `app/you` (3 lexicon), boss library | Constants at the top of each file. |
 | Entitlement gate | `profiles.premium`, `lib/db.ts` `isPremium()` | Every premium check reads this one boolean. Wiring a processor is a webhook that sets it. |
+| Judged-tier cap | `app/api/analyze/route.ts`, `lib/metering.ts` | Free 1/day, rollover 3. Server-enforced; the client can ask, only the route decides. |
 | Boss mode | `app/boss/page.tsx`, `lib/cold-topics.ts` | Records through the real engine and gets fact-checked. Free = this week's topic once; premium = the library. |
 | Stress mods | `lib/stress-mods.ts`, `components/ModPicker.tsx` | Four mods with real effects. Medium — the picker appears on home and boss. |
 | Crowd-noise synth | `lib/crowd-noise.ts` | Trivial. Self-contained WebAudio, no asset. |
@@ -93,6 +100,8 @@ twice, once `target: production`.)
 |---|---|---|
 | Landing page | `app/(marketing)/about/page.tsx` | Standalone. |
 | Onboarding | `app/welcome/page.tsx` | Standalone, three screens, no quiz. |
+| Accounts | `lib/auth.ts`, `app/signup`, `app/signin`, `app/auth/{forgot,reset,callback}` | Core now. Email + password, no social. The anonymous upgrade attaches credentials to the same auth user, so nothing migrates and nothing can be lost migrating. |
+| Transactional email | `supabase/auth-email-templates/`, `docs/email.md` | Templates + the dashboard config they assume. Sends from `hello@speakethos.com`, reply-to the same, never `noreply@`. |
 | Frame step | `app/rep/page.tsx`, `lib/prefs.ts` | Trivial. Opt-in 30s think-time, off by default. |
 | Settings + reminders | `app/settings/page.tsx`, `lib/reminders.ts` | Medium. Reminders really schedule; the card names which tier the browser gave you. |
 | Data export | `app/settings/page.tsx` | Trivial. One JSON file, every rep and lexicon entry. |
@@ -128,6 +137,23 @@ four are now closed and struck through.
   typed.
 - **Boss topics are a hand-written list of seven.** Fine for two months
   of weeklies; the supply layer for topics is not built.
+- **Presence has never been pointed at a real body.** The engine is
+  fully tested against synthetic landmark frames — a composed speaker, a
+  slouch, a look-away, hands out of frame — which proves the arithmetic,
+  not the thresholds. Every constant in `lib/presence.ts` is a v1 guess
+  in the same bucket as the star thresholds. Dogfood before trusting a
+  Presence number in front of anyone.
+- **The pose runtime is ~30MB and downloaded at build time.**
+  `npm run pose:assets` copies the WASM out of `node_modules` and fetches
+  the 5.5MB model. It runs in `prebuild`, and it is deliberately
+  non-fatal: a build with no network ships an app that reports Voice +
+  Video unavailable rather than failing. If the toggle is greyed out on
+  a deploy, check that first.
+- **Supabase custom SMTP is not verified from here.** `docs/email.md`
+  has the settings; the auth flows assume "Confirm email" is on and the
+  redirect allow-list includes the deploy host. Both are dashboard
+  settings nobody has ticked yet, and signup silently does nothing
+  useful until they are.
 - **The Supabase secret key needs rotating.** It transited chat during the
   10 Aug session. It lives only in `.env.local` (gitignored) and Vercel env
   settings, but it should be rolled.
@@ -137,6 +163,13 @@ four are now closed and struck through.
 Each of these cost real time on 10 Aug. They look like product bugs and
 are not.
 
+- **The uploaded rep blob must be built from `stream.getAudioTracks()`,
+  never from the camera stream.** In Voice + Video the MediaRecorder has
+  a video track available, and recording `stream` directly ships a video
+  file to Supabase storage the moment someone flips the toggle — quietly,
+  correctly, and in direct contradiction of the promise printed on the
+  same screen. `app/rep/page.tsx` splits an audio-only MediaStream for
+  the upload and keeps a second, local-only recorder for playback.
 - **Never `npm run build` while `next dev` is running.** It overwrites
   `.next` chunks under the running server, the page JS silently fails to
   execute, and the browser renders a day-zero empty state. This gets
@@ -170,14 +203,22 @@ are not.
 
 ## Test coverage
 
-207 tests across metrics and the substance gate, index scoring, coach
+317 tests across metrics and the substance gate, index scoring, coach
 validation, boss accuracy, rep configuration, stress mods, drills, path,
 streak and freezes, level, achievements, insights, reminders, scheduling,
-rewards, and the analyze route. Run with `npm test`.
+rewards, the analyze route, Presence, judged metering, coins, auth rules
+and the copy bans. Run with `npm test`.
 
 The engine tests that matter most: the analyze route proves a forged
 form can't buy XP, that a boss rep is fact-checked and a daily one isn't,
-and that a failed fact-check still returns the rep.
+that a failed fact-check still returns the rep, that a capped rep is
+still stored (so the streak stands) and is never charged for an analysis
+it didn't get, and that Presence never moves the Ethos Index.
+
+`lib/copy.test.ts` is a linter, not a unit test: it scans every `.tsx`
+under `app/` and `components/` for the banned word and asserts the two
+positioning claims. A ban that lives only in a document comes back the
+first time someone writes a paywall headline in a hurry.
 
 Two tests had encoded a bug rather than a requirement — an empty
 transcript asserting 3 stars ("thresholds stay objective") and an 11-word

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Ethos coin">
+  <!--
+    Ethos coin — flat, no outlines, four warm tones.
+    Amber ramp is the brand's earned-only colour; the rust crescent is
+    Demos's limb tone, so the currency reads as this app rather than
+    generic game gold. The embossed mark is a speech bubble: what the
+    coin is for is the thing you had to say out loud.
+  -->
+  <circle cx="32" cy="32" r="30" fill="#F59E0B"/>
+  <path d="M32 62a30 30 0 0 0 29.4-24A30 30 0 0 1 32 62Z" fill="#B45309"/>
+  <circle cx="32" cy="30.5" r="23" fill="#FBBF24"/>
+  <path d="M22 20h20a4 4 0 0 1 4 4v11a4 4 0 0 1-4 4H31l-7 6v-6h-2a4 4 0 0 1-4-4V24a4 4 0 0 1 4-4Z" fill="#D97706"/>
+</svg>

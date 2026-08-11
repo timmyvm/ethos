@@ -49,8 +49,8 @@ export function AccuracyCard({
           {accuracy.confidentlyWrong > 0 ? (
             <div className="text-terracotta-600">
               {accuracy.confidentlyWrong} claim
-              {accuracy.confidentlyWrong === 1 ? "" : "s"} stated confidently
-              and wrong
+              {accuracy.confidentlyWrong === 1 ? "" : "s"} stated as fact and
+              wrong
             </div>
           ) : (
             <div>Nothing asserted that wasn&apos;t true.</div>

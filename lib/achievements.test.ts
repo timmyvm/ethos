@@ -25,6 +25,10 @@ function rep(over: Partial<RepRow> = {}): RepRow {
     xp_multiplier: 1,
     boss_topic_id: null,
     accuracy: null,
+    capture_mode: "voice",
+    delivery_metrics: null,
+    presence_score: null,
+    delivery_moments: null,
     ...over,
   };
 }

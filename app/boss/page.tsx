@@ -202,7 +202,7 @@ export default function BossPage() {
             />
             <p className="mt-4 max-w-[280px] text-[15px] leading-relaxed text-stone-500">
               Notes are gone. Ninety seconds, from memory. Wrong claims
-              stated confidently cost more than saying you&apos;re unsure.
+              stated as fact cost more than saying you&apos;re unsure.
             </p>
             {mods.length > 0 && (
               <div className="mt-3 flex flex-wrap justify-center gap-1.5">

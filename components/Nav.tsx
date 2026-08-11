@@ -15,8 +15,20 @@ const TABS = [
  * for the single tap that matters, and an icon row competes with the
  * rep card for attention. The active tab is terracotta text only.
  */
-/** Screens that own the whole viewport: the floor, onboarding, marketing. */
-const BARE = ["/rep", "/welcome", "/about", "/boss"];
+/**
+ * Screens that own the whole viewport: the floor, onboarding, marketing,
+ * and the account screens — a tab bar under a sign-up form invites people
+ * to wander off mid-form.
+ */
+const BARE = [
+  "/rep",
+  "/welcome",
+  "/about",
+  "/boss",
+  "/signup",
+  "/signin",
+  "/auth",
+];
 
 export function Nav() {
   const path = usePathname();

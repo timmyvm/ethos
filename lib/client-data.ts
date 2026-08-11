@@ -7,8 +7,11 @@
 import { supabaseBrowser } from "./supabase-browser";
 import type { AccuracyResult } from "./accuracy";
 import type { JudgedDimension } from "./coach";
+import type { CoinRow } from "./coins";
 import type { Tier1Scores, Tier2Anchors } from "./index-score";
 import type { Pause } from "./metrics";
+import type { DeliveryMoment } from "./presence";
+import type { CaptureMode } from "./prefs";
 
 export interface RepRow {
   id: string;
@@ -39,10 +42,15 @@ export interface RepRow {
   xp_multiplier: number;
   boss_topic_id: string | null;
   accuracy: AccuracyResult | null;
+  capture_mode: CaptureMode;
+  /** Null on every Voice rep — the results screen branches on this. */
+  delivery_metrics: Record<string, number> | null;
+  presence_score: number | null;
+  delivery_moments: DeliveryMoment[] | null;
 }
 
 const REP_COLUMNS =
-  "id, lesson_id, created_at, duration_s, transcript, wpm, filler_count, fillers, pauses, stars, focus, strength, supply, ethos_index, dimensions, audio_path, mode, mods, xp_multiplier, boss_topic_id, accuracy";
+  "id, lesson_id, created_at, duration_s, transcript, wpm, filler_count, fillers, pauses, stars, focus, strength, supply, ethos_index, dimensions, audio_path, mode, mods, xp_multiplier, boss_topic_id, accuracy, capture_mode, delivery_metrics, presence_score, delivery_moments";
 
 export async function fetchReps(limit = 90): Promise<RepRow[]> {
   const db = supabaseBrowser();
@@ -201,6 +209,47 @@ export async function spendFreezes(
       );
   }
   return spent;
+}
+
+/** The coin ledger — append-only, read whole (DECISIONS: §4, 11 Aug). */
+export async function fetchCoinLedger(limit = 400): Promise<CoinRow[]> {
+  const db = supabaseBrowser();
+  if (!db) return [];
+  const { data } = await db
+    .from("coin_ledger")
+    .select("id, kind, amount, reason, earned_on, created_at")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data as CoinRow[] | null) ?? [];
+}
+
+/**
+ * Pay out the streak-day coins for days that haven't been paid. Returns
+ * how many rows were actually written — the partial unique index means a
+ * double-tap or a second tab collapses to one, so re-running is free.
+ */
+export async function grantCoins(days: string[]): Promise<number> {
+  const db = supabaseBrowser();
+  if (!db || days.length === 0) return 0;
+  const { data: session } = await db.auth.getSession();
+  const userId = session.session?.user.id;
+  if (!userId) return 0;
+
+  const { data, error } = await db
+    .from("coin_ledger")
+    .upsert(
+      days.map((d) => ({
+        user_id: userId,
+        kind: "earned" as const,
+        amount: 1,
+        reason: "streak_day",
+        earned_on: d,
+      })),
+      { onConflict: "user_id,earned_on", ignoreDuplicates: true }
+    )
+    .select("id");
+  if (error) return 0;
+  return data?.length ?? 0;
 }
 
 /** Top the user's equipped freezes up to what their streak has earned. */

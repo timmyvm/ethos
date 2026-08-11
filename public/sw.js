@@ -4,7 +4,7 @@
  * /api/analyze is never cached — a rep that can't reach the engine
  * should fail honestly rather than return stale numbers.
  */
-const CACHE = "ethos-v2";
+const CACHE = "ethos-v3";
 
 const SHELL = [
   "/",
@@ -21,6 +21,10 @@ const SHELL = [
   "/demos-asleep.webp",
   "/icon-192.webp",
   "/icon-512.webp",
+  "/coin/coin.svg",
+  "/coin/coin-stack.svg",
+  "/coin/coin-burst.svg",
+  "/coin/coin-empty.svg",
 ];
 
 self.addEventListener("install", (e) => {
@@ -72,6 +76,16 @@ self.addEventListener("fetch", (e) => {
   if (url.pathname.startsWith("/api/") || url.hostname.includes("supabase")) {
     return;
   }
+
+  /*
+   * The on-device pose runtime is ~25MB of WASM plus a 5.5MB model.
+   * Left to the rules below it would land in the cache whole — a
+   * quota error on a mid-range phone, and an eviction that takes the
+   * shell down with it. The browser's own HTTP cache handles repeat
+   * loads perfectly well; a first video rep in a tunnel simply reports
+   * Voice + Video as unavailable, which is the honest answer.
+   */
+  if (url.pathname.startsWith("/pose/")) return;
 
   // Network-first for pages so a deploy is picked up immediately;
   // cache-first for static assets.

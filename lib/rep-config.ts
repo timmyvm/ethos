@@ -95,7 +95,7 @@ export function resolveRepConfig(
       lessonId: bossLessonId(topic.id),
       unit: "Weekly boss · Cold Topic",
       title: topic.title,
-      prompt: `Explain ${topic.title} from memory. Wrong claims stated confidently cost more than saying you're unsure.`,
+      prompt: `Explain ${topic.title} from memory. Wrong claims stated as fact cost more than saying you're unsure.`,
       maxSeconds: tight ? TIGHT_MAX_SECONDS : DAILY_MAX_SECONDS,
       xpMultiplier: xpMultiplier(mods, BOSS_XP_BASE),
       topic,

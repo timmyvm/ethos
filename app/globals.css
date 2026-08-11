@@ -42,7 +42,7 @@
 /* Font tokens reference next/font variables (scoped to <body>), so they
  * must be inline — a :root-level var() to them computes to invalid. */
 @theme inline {
-  --font-display: var(--font-space-grotesk), sans-serif;
+  --font-display: var(--font-display-face), Georgia, serif;
   --font-body: var(--font-inter), sans-serif;
   --font-data: var(--font-space-mono), monospace;
 }
@@ -138,16 +138,21 @@ body {
  * and stops the streak count jittering as digits change.
  */
 .font-display {
-  letter-spacing: -0.022em;
   /*
-   * No tnum. Tabular figures are the obvious choice for a metric that
-   * changes ("11" shouldn't reflow to "12"), but Space Grotesk's tnum
-   * gives "1" a narrower advance than the glyph actually occupies, so
-   * consecutive ones overlap — 11, 1189 and 111 all render as mush.
-   * Verified by A/B on the live element at 4x. Its proportional figures
-   * are near-uniform in width anyway, so the jitter this would have
-   * prevented is not visible in practice.
+   * Serifs need far less tightening than a grotesque — the old −0.022em
+   * was tuned for Space Grotesk and closes Fraunces up until the serifs
+   * touch.
    */
+  letter-spacing: -0.008em;
+  /*
+   * Tabular figures, finally. This was abandoned under Space Grotesk
+   * because its tnum gave "1" a narrower advance than the glyph occupied
+   * and consecutive ones overlapped. Fraunces has no such problem, so a
+   * changing metric can stop reflowing as its digits change — which is
+   * what tabular figures are for and what a screen full of live numbers
+   * wants.
+   */
+  font-variant-numeric: tabular-nums;
 }
 
 /*

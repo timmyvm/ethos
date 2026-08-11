@@ -1,14 +1,26 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Space_Grotesk, Space_Mono } from "next/font/google";
+import { Fraunces, Inter, Space_Mono } from "next/font/google";
 import { Nav } from "@/components/Nav";
 import { ServiceWorker } from "@/components/ServiceWorker";
 import { ThemeSync, themeBootScript } from "@/components/Theme";
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({
+/*
+ * Display face. Space Grotesk held this until 11 Aug and had to go for a
+ * specific, checkable reason: its "1" carries a narrower advance than the
+ * glyph occupies, so "11", "12", "31" and "118" render as collided mush.
+ * That was documented as a trap and worked around by refusing tabular
+ * figures — but this app's whole identity is numbers, and a display face
+ * whose numerals are its weakest feature is the wrong face.
+ *
+ * Fraunces reads warm and editorial against the terracotta and cream,
+ * which suits a product named for credibility earned rather than
+ * claimed, and its numerals are unambiguous at every size we use.
+ */
+const fraunces = Fraunces({
   subsets: ["latin"],
-  weight: ["500", "700"],
-  variable: "--font-space-grotesk",
+  weight: ["600", "700"],
+  variable: "--font-display-face",
 });
 
 const inter = Inter({
@@ -48,7 +60,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
       <body
-        className={`${spaceGrotesk.variable} ${inter.variable} ${spaceMono.variable} antialiased`}
+        className={`${fraunces.variable} ${inter.variable} ${spaceMono.variable} antialiased`}
       >
         <div className="mx-auto min-h-dvh max-w-[430px]">{children}</div>
         <Nav />

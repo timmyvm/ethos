@@ -207,10 +207,13 @@ are not.
   execute, and the browser renders a day-zero empty state. This gets
   misdiagnosed as broken auth or a broken session every time. Stop the dev
   server first, or use a separate output dir.
-- **Do not set `tnum` on `.font-display`.** Tabular figures are the obvious
-  choice for a changing metric, but Space Grotesk gives "1" a narrower
-  advance than the glyph occupies, so "11", "111" and "1189" render as
-  overlapping mush. Verified by A/B on the live element at 4x.
+- ~~Do not set `tnum` on `.font-display`.~~ **Fixed by replacing the
+  face.** This trap was real under Space Grotesk, whose "1" carried a
+  narrower advance than its glyph, so "11", "111" and "1189" overlapped —
+  and it collided proportionally too, not only with `tnum`. The display
+  face is Fraunces as of 11 Aug and tabular figures are ON, which is what
+  a screen of changing metrics wanted all along. Verified at 4x on
+  `1111`, `1118` and `1189`.
 - **The coach's number allowlist must include raw *and* rounded forms.**
   The judge is shown `durationS: 35.58`; if only `36` is allowlisted, an
   honest citation is rejected as invention, all three attempts fail, and

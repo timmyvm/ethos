@@ -27,6 +27,11 @@ const BOSS_LESSONS: Drill[] = [
     title: "Boss: unknown territory",
     prompt:
       "A topic you've never studied. 4 minutes to research, 90 seconds to explain it — scored on delivery AND accuracy.",
+    tips: [
+      "Say what you know and flag what you don't. A wrong claim stated as fact costs three times what an admitted unknown does.",
+      "Structure beats coverage: one definition, one mechanism, one example.",
+      "Hedge honestly — \"I think\" in front of a shaky claim is cheaper than being confidently wrong.",
+    ],
   },
   {
     id: "b2",
@@ -34,6 +39,11 @@ const BOSS_LESSONS: Drill[] = [
     title: "Boss: hostile Q&A",
     prompt:
       "Give a 60-second take. Demos interrupts with skeptical questions. Scored on composure and pause quality under pressure.",
+    tips: [
+      "When the interruption lands, pause before answering. The pause is the answer to \"are you rattled\".",
+      "Answer the question asked, then return to your point. Abandoning the point is what makes people sound beaten.",
+      "One breath before you resume. Restarting mid-sentence reads as flustered and is scored as a repair.",
+    ],
   },
 ];
 

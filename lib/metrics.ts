@@ -49,6 +49,13 @@ export interface RepMetrics {
   fillers: FillerHit[];
   fillerCounts: Record<string, number>;
   topFiller: string | null;
+  /**
+   * Self-corrections: a phrase restarted with a different landing.
+   * A listener hears one of these exactly the way they hear an "um".
+   */
+  repairCount: number;
+  /** Fillers + repairs. This is what the fillers dimension and stars read. */
+  disfluenciesPerMin: number;
   pauses: Pause[];
   heldPauses: number;
   composedPauses: number; // kind === "pre"
@@ -224,10 +231,62 @@ export function detectPauses(words: Word[], segments?: Segment[]): Pause[] {
   return pauses;
 }
 
-/** Star thresholds — DECISIONS.md #10: objective metrics only. */
-export function starsForFillerRate(fillersPerMin: number): 1 | 2 | 3 {
-  if (fillersPerMin < 3) return 3;
-  if (fillersPerMin < 6) return 2;
+/**
+ * Self-corrections: a phrase run again with a different landing —
+ * "ease the days rest", then "ease the days problems". The run-up
+ * repeats, the ending changes.
+ *
+ * Only near-adjacent repeats count. Saying the same phrase again a
+ * paragraph later is a vocabulary question, and `rangeScore` already
+ * owns that.
+ */
+const REPAIR_MAX_NGRAM = 4;
+const REPAIR_MAX_GAP = 2;
+
+export function detectRepairs(words: Word[]): number {
+  const tokens = words.map((w) => normalizeWord(w.word)).filter(Boolean);
+  let count = 0;
+  const claimed = new Set<number>();
+
+  // Longest run-up first, so "ease the days" is one repair rather than
+  // also counting "ease the" and "the days" nested inside it.
+  for (let k = REPAIR_MAX_NGRAM; k >= 1; k--) {
+    for (let i = 0; i + k <= tokens.length; i++) {
+      if (claimed.has(i)) continue;
+      for (let j = i + 1; j <= i + k + REPAIR_MAX_GAP && j + k <= tokens.length; j++) {
+        if (claimed.has(j)) continue;
+        let same = true;
+        for (let n = 0; n < k; n++) {
+          if (tokens[i + n] !== tokens[j + n]) {
+            same = false;
+            break;
+          }
+        }
+        if (!same) continue;
+        count++;
+        for (let n = 0; n < k; n++) {
+          claimed.add(i + n);
+          claimed.add(j + n);
+        }
+        break;
+      }
+    }
+  }
+  return count;
+}
+
+/**
+ * Star thresholds — DECISIONS.md #10: objective metrics only.
+ *
+ * Reads the DISFLUENCY rate, not the filler rate: an "um" and a
+ * restarted sentence are the same event to whoever is listening, and
+ * counting only one of them was how a rep with audible self-corrections
+ * came back three stars. Cut points are unchanged and now measure more,
+ * so they are due a recalibration on real recordings.
+ */
+export function starsForDisfluencyRate(perMin: number): 1 | 2 | 3 {
+  if (perMin < 3) return 3;
+  if (perMin < 6) return 2;
   return 1;
 }
 
@@ -296,11 +355,11 @@ export function isScorable(s: Substance): boolean {
   return s.wordCount >= MIN_WORDS_TO_SCORE && s.distinctRatio >= 0.3;
 }
 
-export function starsFor(fillersPerMin: number, s: Substance): 1 | 2 | 3 {
-  return Math.min(starsForFillerRate(fillersPerMin), substanceStarCap(s)) as
-    | 1
-    | 2
-    | 3;
+export function starsFor(disfluenciesPerMin: number, s: Substance): 1 | 2 | 3 {
+  return Math.min(
+    starsForDisfluencyRate(disfluenciesPerMin),
+    substanceStarCap(s)
+  ) as 1 | 2 | 3;
 }
 
 export function computeMetrics(
@@ -317,6 +376,9 @@ export function computeMetrics(
 
   const fillerCount = fillers.length;
   const fillersPerMin = minutes > 0 ? fillerCount / minutes : 0;
+  const repairCount = detectRepairs(words);
+  const disfluenciesPerMin =
+    minutes > 0 ? (fillerCount + repairCount) / minutes : 0;
   const topFiller =
     Object.entries(fillerCounts).sort(
       (a, b) => b[1] - a[1] || a[0].localeCompare(b[0])
@@ -339,11 +401,13 @@ export function computeMetrics(
     fillers,
     fillerCounts,
     topFiller,
+    repairCount,
+    disfluenciesPerMin: round2(disfluenciesPerMin),
     pauses,
     heldPauses: composedPauses + midSentencePauses,
     composedPauses,
     midSentencePauses,
-    stars: starsFor(fillersPerMin, sub),
+    stars: starsFor(disfluenciesPerMin, sub),
     substance: sub,
   };
 }

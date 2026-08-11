@@ -7,7 +7,16 @@
  * against real recordings, never against vibes.
  */
 
-import { normalizeWord, type Pause, type RepMetrics, type Segment, type Word } from "./metrics";
+import {
+  detectRepairs,
+  normalizeWord,
+  type FillerHit,
+  type Pause,
+  type RepMetrics,
+  type Segment,
+  type Word,
+} from "./metrics";
+import { pauseReport } from "./pause-quality";
 
 export const INDEX_WEIGHTS = {
   // Tier 1 — measured
@@ -43,26 +52,26 @@ export interface Tier2Anchors {
 }
 
 /**
- * Pause /100 — the signature. Baseline 60; +8 per composed pre-sentence
- * pause of 0.8–2.5s (cap 5 counted); −10 per mid-sentence gap >1.5s;
- * +5 when a composed pause lands in the final fifth (landing the ending).
+ * Pause /100 — the signature dimension. Placement, not presence: see
+ * `pause-quality.ts` for what the silence has to actually do to score.
+ * This wrapper exists so the Index has one shape per dimension.
  */
-export function pauseScore(pauses: Pause[], durationS: number): number {
-  let score = 60;
-  const composed = pauses.filter(
-    (p) => p.kind === "pre" && p.len >= 0.8 && p.len <= 2.5
-  );
-  score += 8 * Math.min(5, composed.length);
-  score -= 10 * pauses.filter((p) => p.kind === "mid" && p.len > 1.5).length;
-  if (durationS > 0 && composed.some((p) => p.t >= durationS * 0.8)) {
-    score += 5;
-  }
-  return clamp(score);
+export function pauseScore(
+  pauses: Pause[],
+  durationS: number,
+  words: Word[] = [],
+  fillers: FillerHit[] = []
+): number {
+  return pauseReport({ pauses, words, fillers, durationS }).score;
 }
 
-/** Fillers /100 — linear on fillers/min: 0 fpm = 100, ≥8 fpm = 0. */
-export function fillerScore(fillersPerMin: number): number {
-  return clamp(Math.round(100 * (1 - fillersPerMin / 8)));
+/**
+ * Fillers /100 — linear on DISFLUENCIES per minute (fillers plus
+ * self-corrections): 0 = 100, ≥8 = 0. A restarted sentence lands on a
+ * listener the same way an "um" does, so it is counted the same way.
+ */
+export function fillerScore(disfluenciesPerMin: number): number {
+  return clamp(Math.round(100 * (1 - disfluenciesPerMin / 8)));
 }
 
 /**
@@ -148,8 +157,8 @@ export function tier1Scores(
   segments: Segment[]
 ): Tier1Scores {
   return {
-    pause: pauseScore(metrics.pauses, metrics.durationS),
-    fillers: fillerScore(metrics.fillersPerMin),
+    pause: pauseScore(metrics.pauses, metrics.durationS, words, metrics.fillers),
+    fillers: fillerScore(metrics.disfluenciesPerMin),
     pace: paceScore(metrics.wpm, words, segments),
     range: rangeScore(words),
   };
@@ -168,17 +177,24 @@ export function countHedges(transcript: string): number {
 }
 
 /**
- * Restarts / self-corrections: immediate word repeats ("I— I went",
- * "the the") plus explicit correction markers. v1 — tune on real reps.
+ * Restarts / self-corrections.
+ *
+ * The v1 version only caught a doubled word ("the the") and a handful of
+ * explicit markers, which misses the commonest repair by far: you say a
+ * phrase, hear it come out wrong, and run the phrase again with one word
+ * swapped. Reported by Timothy — "ease the days rest", then immediately
+ * "ease the days problems" — which scored as clean speech because
+ * nothing was literally doubled.
+ *
+ * So this looks for a repeated n-gram whose two occurrences sit almost
+ * on top of each other. That is what a repair sounds like: the run-up
+ * repeats, the landing changes. Distant repetition is a different thing
+ * (`rangeScore` handles that) and is deliberately not counted here.
  */
 const CORRECTION_MARKERS = ["i mean", "wait no", "sorry"];
 
 export function countRestarts(words: Word[], transcript: string): number {
-  const tokens = words.map((w) => normalizeWord(w.word)).filter(Boolean);
-  let count = 0;
-  for (let i = 1; i < tokens.length; i++) {
-    if (tokens[i] === tokens[i - 1]) count++;
-  }
+  let count = detectRepairs(words);
   const t = ` ${transcript.toLowerCase().replace(/[^a-z' ]/g, " ")} `;
   for (const marker of CORRECTION_MARKERS) {
     count += t.split(` ${marker} `).length - 1;
@@ -208,9 +224,23 @@ export function ethosIndex(
   for (const [dim, weight] of Object.entries(INDEX_WEIGHTS)) {
     const score = all[dim];
     if (typeof score !== "number" || Number.isNaN(score)) return null;
-    total += (clamp(score) / 100) * weight;
+    total += dimensionPoints(clamp(score), weight);
   }
-  return Math.round(total);
+  return total;
+}
+
+/**
+ * One dimension's contribution, rounded HERE rather than at the end.
+ *
+ * The results screen lists each dimension against its own denominator
+ * (132/150, not 88/100) so the eight numbers visibly add up to the
+ * Index. Rounding once at the end instead of per dimension made the
+ * displayed parts miss the displayed total by a point or two — a score
+ * that doesn't add up in front of you is worse than no breakdown at
+ * all. Both sides call this, so they agree by construction.
+ */
+export function dimensionPoints(score: number, weight: number): number {
+  return Math.round((clamp(score) / 100) * weight);
 }
 
 function clamp(n: number): number {

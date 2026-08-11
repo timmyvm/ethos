@@ -245,7 +245,13 @@ export default function Home() {
                 <div className="font-display text-[20px] font-bold leading-none">
                   {history.length}
                 </div>
-                <div className="label-data !text-stone-500">reps</div>
+                {/* "reps" is the brand word for the ACT — you take the
+                    floor and do one. As the label on a counter it left
+                    the unit ambiguous (a 60-second take? everything
+                    between two pauses?). The counter names the thing it
+                    counts; the verb stays "rep" everywhere it's obvious
+                    from context. */}
+                <div className="label-data !text-stone-500">recordings</div>
               </div>
               <div>
                 <div className="font-display text-[20px] font-bold leading-none">

@@ -9,6 +9,7 @@ import { LexiconFlash } from "@/components/LexiconFlash";
 import { ShareCard } from "@/components/ShareCard";
 import { achievements } from "@/lib/achievements";
 import { syncCoins } from "@/lib/coin-sync";
+import { limit } from "@/lib/entitlement";
 import { towardFirstItem } from "@/lib/coins";
 import {
   fetchLexicon,
@@ -26,7 +27,8 @@ import {
 } from "@/lib/streak";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 
-const FREE_LEXICON = 3; // free tier gets today's swap, not the archive
+// Free tier gets today's swap, not the archive — when the paywall is on.
+const FREE_LEXICON = 3;
 
 const EMPTY_STREAK: StreakState = {
   current: 0,
@@ -246,7 +248,7 @@ export default function YouPage() {
       ) : (
         <>
           <div className="mt-2 space-y-2">
-            {lexicon.slice(0, FREE_LEXICON).map((l) => (
+            {lexicon.slice(0, limit(FREE_LEXICON) ?? lexicon.length).map((l) => (
               <div
                 key={l.id}
                 className="flex items-center gap-3 rounded-[18px] border border-hairline bg-surface lift px-4 py-3 text-[14px]"
@@ -279,7 +281,7 @@ export default function YouPage() {
             </div>
           )}
 
-          {lexicon.length > FREE_LEXICON && (
+          {limit(FREE_LEXICON) !== null && lexicon.length > FREE_LEXICON && (
             <button
               onClick={() => setPaywall("Full lexicon · premium")}
               className="mt-2.5 w-full rounded-[18px] border border-terracotta-100 bg-terracotta-50 p-4 text-[13.5px] font-semibold"

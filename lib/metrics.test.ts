@@ -6,7 +6,8 @@ import {
   detectPauses,
   isScorable,
   normalizeWord,
-  starsForFillerRate,
+  detectRepairs,
+  starsForDisfluencyRate,
   substance,
   type Segment,
   type Word,
@@ -141,14 +142,74 @@ describe("detectPauses", () => {
   });
 });
 
-describe("starsForFillerRate", () => {
+describe("starsForDisfluencyRate", () => {
   it("applies BUILD-PLAN thresholds", () => {
-    expect(starsForFillerRate(0)).toBe(3);
-    expect(starsForFillerRate(2.99)).toBe(3);
-    expect(starsForFillerRate(3)).toBe(2);
-    expect(starsForFillerRate(5.99)).toBe(2);
-    expect(starsForFillerRate(6)).toBe(1);
-    expect(starsForFillerRate(20)).toBe(1);
+    expect(starsForDisfluencyRate(0)).toBe(3);
+    expect(starsForDisfluencyRate(2.99)).toBe(3);
+    expect(starsForDisfluencyRate(3)).toBe(2);
+    expect(starsForDisfluencyRate(5.99)).toBe(2);
+    expect(starsForDisfluencyRate(6)).toBe(1);
+    expect(starsForDisfluencyRate(20)).toBe(1);
+  });
+});
+
+describe("detectRepairs", () => {
+  /**
+   * The reported case: a phrase run again with a different landing.
+   * Nothing is literally doubled, so the old doubled-word check saw
+   * clean speech and the rep scored accordingly.
+   */
+  it("catches a phrase restarted with a different ending", () => {
+    expect(detectRepairs(flow("ease the days rest ease the days problems"))).toBe(1);
+  });
+
+  it("still catches a plain doubled word", () => {
+    expect(detectRepairs(flow("I went to the the shop"))).toBe(1);
+  });
+
+  it("counts a long run-up once, not once per nested phrase", () => {
+    // "ease the days" must not also score for "ease the" and "the days".
+    expect(detectRepairs(flow("ease the days rest ease the days problems"))).toBe(1);
+  });
+
+  it("leaves clean speech alone", () => {
+    expect(
+      detectRepairs(flow("the honest answer here is simpler than it looks"))
+    ).toBe(0);
+  });
+
+  /**
+   * Saying a phrase again much later is vocabulary range, not a repair
+   * — rangeScore already owns that, and double-counting it here would
+   * punish someone twice for one thing.
+   */
+  it("ignores repetition far enough apart to be a callback", () => {
+    expect(
+      detectRepairs(
+        flow(
+          "ease the days problems and that is what we should be building for people ease the days problems"
+        )
+      )
+    ).toBe(0);
+  });
+});
+
+describe("disfluencies", () => {
+  it("counts a repair against you the way an um is", () => {
+    const clean = computeMetrics(flow("ease the days problems for everyone here"), 60);
+    const repaired = computeMetrics(
+      flow("ease the days rest ease the days problems for everyone here"),
+      60
+    );
+    expect(clean.repairCount).toBe(0);
+    expect(repaired.repairCount).toBe(1);
+    expect(repaired.disfluenciesPerMin).toBeGreaterThan(clean.disfluenciesPerMin);
+  });
+
+  it("keeps the raw filler count honest and separate", () => {
+    const m = computeMetrics(flow("ease the days rest ease the days problems"), 60);
+    expect(m.fillerCount).toBe(0);
+    expect(m.repairCount).toBe(1);
   });
 });
 

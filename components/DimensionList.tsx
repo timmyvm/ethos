@@ -1,5 +1,5 @@
 import type { CoachOutput } from "@/lib/coach";
-import type { Tier1Scores, Tier2Anchors } from "@/lib/index-score";
+import { dimensionPoints, type Tier1Scores, type Tier2Anchors } from "@/lib/index-score";
 import type { RepMetrics } from "@/lib/metrics";
 
 interface Row {
@@ -11,34 +11,46 @@ interface Row {
 }
 
 /**
- * The eight Index dimensions as tappable rows (mechanics.md display
- * rules: never a wall of numbers — each row expands to why + how).
- * Judged rows carry the cited moment; measured rows carry the numbers
- * behind them. Explainability = trust.
+ * The Index dimensions as tappable rows (mechanics.md display rules:
+ * never a wall of numbers — each row expands to why + how). Judged rows
+ * carry the cited moment; measured rows carry the numbers behind them.
+ * Explainability = trust.
+ *
+ * Each row shows its WEIGHTED contribution against its own denominator
+ * — 132/150, not 88/100 — because the dimensions aren't worth the same
+ * and pretending they are made the /1000 total look like it didn't add
+ * up. Now it visibly does: the eight numbers on this list sum to the
+ * Ethos Index above it. The bar fills to the same fraction, so half a
+ * bar means half the points.
  */
 export function DimensionList({
   tier1,
   anchors,
   metrics,
   coach,
+  pauseDetail,
 }: {
   tier1: Tier1Scores;
   anchors: Tier2Anchors;
   metrics: RepMetrics;
   coach: CoachOutput | null;
+  /** The pause report's own line, when the results screen has one. */
+  pauseDetail?: string;
 }) {
   const measured: Row[] = [
     {
       name: "Pause",
       score: tier1.pause,
       weight: 150,
-      detail: `${metrics.composedPauses} composed before a sentence, ${metrics.midSentencePauses} mid-sentence.`,
+      detail: pauseDetail
+        ? pauseDetail
+        : `${metrics.composedPauses} before a sentence, ${metrics.midSentencePauses} mid-sentence.`,
     },
     {
-      name: "Fillers",
+      name: "Fillers & repairs",
       score: tier1.fillers,
       weight: 150,
-      detail: `${metrics.fillerCount} fillers — ${metrics.fillersPerMin}/min. 0/min scores 100; 8/min scores 0.`,
+      detail: `${metrics.fillerCount} filler${metrics.fillerCount === 1 ? "" : "s"} and ${metrics.repairCount ?? 0} self-correction${(metrics.repairCount ?? 0) === 1 ? "" : "s"} — ${metrics.disfluenciesPerMin ?? metrics.fillersPerMin}/min together. 0/min scores 100; 8/min scores 0.`,
     },
     {
       name: "Pace",
@@ -92,34 +104,70 @@ export function DimensionList({
       ]
     : [];
 
+  const rows = [...measured, ...judged];
+  // Same rounding the Index uses, so the list adds up to the number
+  // printed above it rather than to something a point or two off.
+  const earned = rows.reduce(
+    (sum, r) => sum + dimensionPoints(r.score, r.weight),
+    0
+  );
+  const available = rows.reduce((sum, r) => sum + r.weight, 0);
+
   return (
     <div className="rounded-[18px] border border-hairline bg-surface lift px-5 py-2">
-      {[...measured, ...judged].map((row) => (
-        <details key={row.name} className="group border-b border-sand py-3 last:border-b-0">
-          <summary className="flex cursor-pointer select-none items-center gap-3">
-            <span className="w-24 text-[13.5px] font-semibold">{row.name}</span>
-            <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-sand">
-              <span
-                className="block h-full rounded-full bg-stone-800"
-                style={{ width: `${row.score}%` }}
-              />
-            </span>
-            <span className="font-display w-9 text-right text-[15px] font-bold">
-              {row.score}
-            </span>
-          </summary>
-          <div className="mt-2 pl-0 text-[13px] leading-relaxed text-stone-500">
-            {row.detail}
-            {row.improve && (
-              <div className="mt-1 text-stone-600">↳ {row.improve}</div>
-            )}
-          </div>
-        </details>
-      ))}
+      {rows.map((row) => {
+        const points = dimensionPoints(row.score, row.weight);
+        return (
+          <details
+            key={row.name}
+            className="group border-b border-sand py-3 last:border-b-0"
+          >
+            <summary className="flex cursor-pointer select-none items-center gap-3">
+              <span className="w-[104px] shrink-0 text-[13.5px] font-semibold leading-tight">
+                {row.name}
+              </span>
+              <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-sand">
+                <span
+                  className="block h-full rounded-full bg-amber-500"
+                  style={{ width: `${(points / row.weight) * 100}%` }}
+                />
+              </span>
+              <span className="w-[62px] shrink-0 text-right">
+                <span className="font-display text-[15px] font-bold">
+                  {points}
+                </span>
+                <span className="text-[12px] text-stone-500">/{row.weight}</span>
+              </span>
+            </summary>
+            <div className="mt-2 pl-0 text-[13px] leading-relaxed text-stone-500">
+              {row.detail}
+              {row.improve && (
+                <div className="mt-1 text-stone-600">↳ {row.improve}</div>
+              )}
+            </div>
+          </details>
+        );
+      })}
+
+      {/* The sum, stated. Every number above adds to this one, and this
+          one is the Ethos Index — so the score is checkable by hand
+          rather than taken on trust. */}
+      <div className="flex items-center justify-between py-3 text-[13px]">
+        <span className="label-data">
+          {rows.length} dimension{rows.length === 1 ? "" : "s"} · added up
+        </span>
+        <span>
+          <span className="font-display text-[15px] font-bold">{earned}</span>
+          <span className="text-[12px] text-stone-500">/{available}</span>
+        </span>
+      </div>
+
       {!coach && (
-        <p className="py-3 text-[12px] text-stone-500">
-          Judged dimensions (structure, credibility, engagement, steadiness)
-          need the coach layer — measured scores above are complete.
+        <p className="border-t border-sand py-3 text-[12px] leading-relaxed text-stone-500">
+          These are the four measured dimensions, worth {available} of the
+          1000. The judged four (structure, credibility, engagement,
+          steadiness) need the coach layer, and it didn&apos;t run on this
+          rep — so there is no Ethos Index rather than a partial one.
         </p>
       )}
     </div>

@@ -8,6 +8,7 @@ import { supabaseBrowser } from "./supabase-browser";
 import type { AccuracyResult } from "./accuracy";
 import type { JudgedDimension } from "./coach";
 import type { CoinRow } from "./coins";
+import { isUnlocked } from "./entitlement";
 import type { Tier1Scores, Tier2Anchors } from "./index-score";
 import type { Pause } from "./metrics";
 import type { DeliveryMoment } from "./presence";
@@ -128,6 +129,11 @@ export interface ProfileRow {
   premium_until: string | null;
 }
 
+/**
+ * Every screen reads its entitlement from here, so `isUnlocked` is
+ * applied once rather than in eight components. The stored flag is left
+ * untouched underneath — this is a view of it, not a write.
+ */
 export async function fetchProfile(): Promise<ProfileRow | null> {
   const db = supabaseBrowser();
   if (!db) return null;
@@ -135,7 +141,13 @@ export async function fetchProfile(): Promise<ProfileRow | null> {
     .from("profiles")
     .select("display_name, premium, premium_until")
     .maybeSingle();
-  return (data as ProfileRow | null) ?? null;
+  const row = (data as ProfileRow | null) ?? null;
+  const stored = row?.premium ?? false;
+  return {
+    display_name: row?.display_name ?? null,
+    premium: isUnlocked(stored),
+    premium_until: row?.premium_until ?? null,
+  };
 }
 
 export interface StreakRow {

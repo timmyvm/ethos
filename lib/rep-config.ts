@@ -133,7 +133,9 @@ export function resolveRepConfig(
     maxSeconds: tight ? TIGHT_MAX_SECONDS : DAILY_MAX_SECONDS,
     xpMultiplier: xpMultiplier(mods),
     topic: null,
-    tips: TOPIC_SHAPES.explain.tips,
+    // The lesson's own technique, not the generic shape tips: a drill
+    // that names a target without saying how to hit it is a test.
+    tips: drill.tips,
     rouletteTopic: null,
   };
 }

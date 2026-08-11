@@ -8,6 +8,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { AccuracyResult } from "./accuracy";
 import type { CoachOutput } from "./coach";
+import { isUnlocked } from "./entitlement";
 import type { Tier1Scores, Tier2Anchors } from "./index-score";
 import type { MeterState } from "./metering";
 import type { RepMetrics } from "./metrics";
@@ -113,8 +114,19 @@ export async function writeMeterState(
   );
 }
 
-/** Entitlement gate. No processor yet — one boolean, one place. */
+/**
+ * Entitlement gate. No processor yet — one boolean, one place.
+ *
+ * Runs through `isUnlocked`, which is currently answering yes to
+ * everyone (`EVERYTHING_FREE`). The stored flag is still read and still
+ * respected underneath, so turning the paywall back on is one constant.
+ */
 export async function isPremium(userId: string | null): Promise<boolean> {
+  const stored = await storedPremium(userId);
+  return isUnlocked(stored);
+}
+
+async function storedPremium(userId: string | null): Promise<boolean> {
   if (!userId) return false;
   const db = supabaseAdmin();
   if (!db) return false;

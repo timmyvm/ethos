@@ -54,7 +54,8 @@ import {
 } from "@/lib/rewards";
 import { nextFocus, type NextFocus } from "@/lib/schedule";
 import { computeStreak } from "@/lib/streak";
-import { resolveRepConfig, type RepConfig } from "@/lib/rep-config";
+import { nextDrill } from "@/lib/drills";
+import { repHref, resolveRepConfig, type RepConfig } from "@/lib/rep-config";
 import { ensureSession } from "@/lib/supabase-browser";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 
@@ -681,6 +682,32 @@ function RepScreen() {
         </p>
       )}
 
+      {/*
+       * How to do the drill, before the drill. This was only ever
+       * visible inside the opt-in Frame step, which is off by default —
+       * so in practice a lesson named a target and never said how to
+       * hit it. Each tip maps to something the engine measures, so the
+       * feedback afterwards is about the same thing the tip was about.
+       */}
+      {phase === "idle" && config.tips.length > 0 && (
+        <div className="mt-4 rounded-[18px] border border-hairline bg-surface lift p-4">
+          <div className="label-data">How to do this one</div>
+          <ul className="mt-2 space-y-1.5">
+            {config.tips.map((tip, i) => (
+              <li
+                key={i}
+                className="flex gap-2 text-[13px] leading-relaxed text-stone-600"
+              >
+                <span className="label-data mt-0.5 shrink-0 !text-amber-500">
+                  {i + 1}
+                </span>
+                {tip}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="flex flex-1 flex-col items-center justify-center gap-6">
         {phase === "frame" && (
           <div className="w-full">
@@ -888,8 +915,25 @@ function fmt(s: number) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
-// Results — the shared view, so a fresh rep and a logged rep are
-// literally the same screen.
+/*
+ * Results, walked one screen at a time.
+ *
+ * The old version put the score, eight dimensions, every filler
+ * timestamp, the transcript, records, tomorrow's focus and two buttons
+ * in a single scroll — so the top was read and the rest was scrolled
+ * past on the way to "Done". Three steps, one job each, and no way out
+ * until the last one: you finish the debrief, then you leave.
+ *
+ * Nothing is hidden by this; the log renders the same component with
+ * section="all", because a stored rep is reference rather than a
+ * debrief.
+ */
+const STEPS = [
+  { key: "score", label: "The score" },
+  { key: "numbers", label: "The numbers" },
+  { key: "words", label: "Your words" },
+] as const;
+
 function Results({
   result,
   config,
@@ -917,132 +961,167 @@ function Results({
   onUpgrade: (reason: string) => void;
   onRetake: () => void;
 }) {
+  const [step, setStep] = useState(0);
+  const section = STEPS[step].key;
+  const last = step === STEPS.length - 1;
+  const next = nextDrill(config.lessonId);
+
+  // Each step starts at the top. Landing halfway down the next screen
+  // because the last one was long is how a step gets skipped.
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [step]);
+
   return (
-    <main className="px-5 pb-10 pt-7">
+    <main className="flex min-h-dvh flex-col px-5 pb-8 pt-7">
       <div className="flex items-center justify-between">
         <div className="label-data">
           {config.kind === "boss" ? "Boss complete" : "Rep complete"}
         </div>
-        {coined && (
+        {coined && step === 0 && (
           <span className="flex items-center gap-1.5 text-[13px] font-semibold text-amber-500">
             <Coin size={18} /> +1
           </span>
         )}
       </div>
-      <GainsRow gains={gains} />
-      <RepResult result={result} topic={config.topic} />
 
-      {/*
-       * Presence — a SECOND score, beside the Index at the same size.
-       * The Index above is audio-only and stays that way, so the
-       * trendline and the leagues remain comparable whichever mode was
-       * picked that day.
-       */}
-      {presence && (
-        <div className="mt-6 border-t border-sand pt-5">
-          <PresenceScore
-            score={presence.metrics.presenceScore}
-            previous={result.previousPresence}
-            premium={premium}
-            onUpgrade={() => onUpgrade("Presence · premium")}
+      {/* Where you are and how much is left. Three dots is a promise
+          you can see the end of; a scrollbar is not. */}
+      <div className="mt-3 flex items-center gap-2">
+        {STEPS.map((s, i) => (
+          <span
+            key={s.key}
+            className={`h-1 flex-1 rounded-full transition-colors ${
+              i <= step ? "bg-terracotta-500" : "bg-sand"
+            }`}
           />
+        ))}
+        <span className="label-data ml-1 shrink-0">{STEPS[step].label}</span>
+      </div>
+
+      <div className="flex-1">
+        {step === 0 && <GainsRow gains={gains} />}
+        <RepResult result={result} topic={config.topic} section={section} />
+
+        {/*
+         * Presence — a SECOND score, beside the Index at the same size.
+         * The Index is audio-only and stays that way, so the trendline
+         * and the leagues remain comparable whichever mode was picked.
+         */}
+        {section === "score" && presence && (
+          <div className="mt-6 border-t border-sand pt-5">
+            <PresenceScore
+              score={presence.metrics.presenceScore}
+              previous={result.previousPresence}
+              premium={premium}
+              onUpgrade={() => onUpgrade("Presence")}
+            />
+          </div>
+        )}
+        {section === "numbers" && presence && (
           <PresenceDetail
             metrics={presence.metrics}
             moments={presence.moments}
             premium={premium}
             videoUrl={clipUrl}
-            onUpgrade={() => onUpgrade("Delivery readout · premium")}
+            onUpgrade={() => onUpgrade("Delivery readout")}
           />
-        </div>
-      )}
-
-      {/*
-       * The judged tier ran out (§3). Said plainly, with what comes back
-       * and when — and never framed as a failed rep, because the rep
-       * counted, the streak stands, and every measured number above is
-       * real.
-       */}
-      {result.judged.capped && (
-        <div className="mt-5 rounded-[18px] border border-hairline bg-surface lift p-5">
-          <div className="font-display text-[19px] font-bold leading-tight">
-            Measured, not judged.
-          </div>
-          <p className="mt-2 text-[13.5px] leading-relaxed text-stone-500">
-            Everything above is counted from the recording. What&apos;s
-            missing is the read on it — the cited moments, the word upgrade,
-            and Demos&apos;s take. That&apos;s one a day on the free tier, and
-            yours is back tomorrow.
-          </p>
-          <p className="mt-2 text-[12.5px] leading-relaxed text-stone-400">
-            The rep still counted. Your streak counts reps, never analyses.
-          </p>
-          <button
-            onClick={() => onUpgrade("Unlimited analysis · premium")}
-            className="press mt-3 w-full rounded-[13px] border border-black/10 bg-surface px-4 py-3 text-[14px] font-semibold"
-          >
-            Or read every rep
-          </button>
-        </div>
-      )}
-
-      {!result.judged.capped &&
-        !result.judged.unlimited &&
-        result.judged.ran &&
-        result.judged.remaining > 0 && (
-          <p className="mt-3 text-[12px] text-stone-400">
-            {result.judged.remaining} judged analys
-            {result.judged.remaining === 1 ? "is" : "es"} banked.
-          </p>
         )}
 
-      {bests.length > 0 && (
-        <div className="mt-4 space-y-2">
-          <div className="label-data">Records broken</div>
-          {bests.map((b, i) => (
-            <Moment key={i} moment={b} />
-          ))}
-        </div>
-      )}
+        {/*
+         * The judged tier ran out (§3). Said plainly, never framed as a
+         * failed rep — the rep counted, the streak stands, and every
+         * measured number is real.
+         */}
+        {section === "score" && result.judged.capped && (
+          <div className="mt-5 rounded-[18px] border border-hairline bg-surface lift p-5">
+            <div className="font-display text-[19px] font-bold leading-tight">
+              Measured, not judged.
+            </div>
+            <p className="mt-2 text-[13.5px] leading-relaxed text-stone-500">
+              Everything here is counted from the recording. What&apos;s
+              missing is the read on it — the cited moments, the word
+              upgrade, and Demos&apos;s take. Yours is back tomorrow.
+            </p>
+            <p className="mt-2 text-[12.5px] leading-relaxed text-stone-400">
+              The rep still counted. Your streak counts reps, never analyses.
+            </p>
+          </div>
+        )}
 
-      {/* The ending carries disproportionate weight when someone decides
-          whether to come back (streak-end rule), so it goes last. */}
-      {closing && (
-        <div className="mt-5">
-          <Moment moment={closing} emphasis />
-        </div>
-      )}
+        {section === "words" && bests.length > 0 && (
+          <div className="mt-4 space-y-2">
+            <div className="label-data">Records broken</div>
+            {bests.map((b, i) => (
+              <Moment key={i} moment={b} />
+            ))}
+          </div>
+        )}
+
+        {/* The ending carries disproportionate weight when someone
+            decides whether to come back (streak-end rule), so it lands
+            on the last screen rather than halfway down the first. */}
+        {last && closing && (
+          <div className="mt-5">
+            <Moment moment={closing} emphasis />
+          </div>
+        )}
+
+        {/*
+         * The hook for tomorrow. Half-life regression (Settles &
+         * Meeder, ACL 2016) is Duolingo's real answer to "why come
+         * back" — the app holds a model of what you're about to lose
+         * and schedules against it. Same idea over the four measured
+         * skills, and it always shows the number that made the call.
+         */}
+        {last && tomorrow && tomorrow.strength !== null && (
+          <div className="mt-5 rounded-[18px] border border-hairline bg-surface lift p-5">
+            <div className="label-data">Tomorrow</div>
+            <div className="font-display mt-1 text-[22px] font-bold leading-tight">
+              {tomorrow.label}
+            </div>
+            <p className="mt-1.5 text-[13px] leading-relaxed text-stone-500">
+              {tomorrow.reason}
+            </p>
+          </div>
+        )}
+      </div>
 
       {/*
-       * The hook for tomorrow. Half-life regression (Settles & Meeder,
-       * ACL 2016) is Duolingo's real answer to "why come back" — the app
-       * holds a model of what you're about to lose and schedules against
-       * it. This is the same idea over the four measured skills, and it
-       * always shows the number that made the call.
+       * One way forward per screen. There is deliberately no exit until
+       * the debrief is finished — the numbers are the product, and a
+       * "Done" button beside the first screen means most of them are
+       * never seen.
        */}
-      {tomorrow && tomorrow.strength !== null && (
-        <div className="mt-5 rounded-[18px] border border-hairline bg-surface lift p-5">
-          <div className="label-data">Tomorrow</div>
-          <div className="font-display mt-1 text-[22px] font-bold leading-tight">
-            {tomorrow.label}
-          </div>
-          <p className="mt-1.5 text-[13px] leading-relaxed text-stone-500">
-            {tomorrow.reason}
-          </p>
+      {last ? (
+        <div className="mt-6">
+          <Link
+            href={repHref({ lesson: next.id })}
+            className="press block w-full rounded-[15px] bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+          >
+            Next lesson · {next.title}
+          </Link>
+          <button
+            onClick={onRetake}
+            className="press mt-3 w-full rounded-[15px] border border-black/10 bg-surface px-6 py-4 text-[15px] font-semibold"
+          >
+            Retake this one
+          </button>
+          <Link
+            href="/"
+            className="mt-3 block py-2 text-center text-[13.5px] font-semibold text-stone-500"
+          >
+            Done for today
+          </Link>
         </div>
+      ) : (
+        <button
+          onClick={() => setStep((n) => n + 1)}
+          className="press mt-6 w-full rounded-[15px] bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+        >
+          {STEPS[step + 1].label} →
+        </button>
       )}
-
-      <button
-        onClick={onRetake}
-        className="press mt-5 w-full rounded-[15px] border border-black/10 bg-surface px-6 py-4 text-[15px] font-semibold"
-      >
-        Retake this one
-      </button>
-      <Link
-        href="/"
-        className="press mt-3 block w-full rounded-[15px] bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
-      >
-        Done — same time tomorrow
-      </Link>
     </main>
   );
 }

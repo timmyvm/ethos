@@ -54,6 +54,7 @@ twice, once `target: production`.)
 
 | What | Where | Notes |
 |---|---|---|
+| Pause quality | `lib/pause-quality.ts` | **The pause dimension.** Classifies every held pause by where it landed — landing / opening / hesitation / filled / dead — per the juncture-vs-hesitation research. Placement is a ratio, so good and bad pauses cancel. 14 tests over real word streams. |
 | Deterministic metrics | `lib/metrics.ts` | Fillers with "like" disambiguation, WPM, pause classification (beat / pre / mid). No LLM. |
 | Substance gate | `lib/metrics.ts` | Stars are `min(fillerRate, substanceCap)`. Under 20 words, or too repetitive, caps at 1 star. Without it, "I don't know" eight times scored 3 stars — fluency measured on an empty answer. |
 | Ethos Index tier 1 | `lib/index-score.ts` | Pause, fillers, pace, range → /100 each. Weighted into /1000. |
@@ -108,7 +109,7 @@ twice, once `target: production`.)
 |---|---|---|
 | Paywall sheet | `components/Paywall.tsx` | Prices are placeholders pending the research pass. |
 | Free-tier limits | `app/history` (7 days), `app/you` (3 lexicon), boss library | Constants at the top of each file. |
-| Entitlement gate | `profiles.premium`, `lib/db.ts` `isPremium()` | Every premium check reads this one boolean. Wiring a processor is a webhook that sets it. |
+| Entitlement gate | `lib/entitlement.ts`, `profiles.premium` | **Everything is free right now** — `EVERYTHING_FREE` in `lib/entitlement.ts` is the single switch (DECISIONS #96). The tiers underneath are intact, tested, and still read the stored flag, so turning the paywall back on is one boolean. |
 | Judged-tier cap | `app/api/analyze/route.ts`, `lib/metering.ts` | Free 1/day, rollover 3. Server-enforced; the client can ask, only the route decides. |
 | Boss mode | `app/boss/page.tsx`, `lib/cold-topics.ts` | Records through the real engine and gets fact-checked. Free = this week's topic once; premium = the library. |
 | Stress mods | `lib/stress-mods.ts`, `components/ModPicker.tsx` | Four mods with real effects. Medium — the picker appears on home and boss. |
@@ -152,9 +153,14 @@ four are now closed and struck through.
 - **Every calibration constant is a v1 guess.** Star thresholds, the Index
   curve, the boss accuracy penalties (18 confident / 6 hedged), the XP
   multipliers, the substance gate (20 words / 0.3 distinct / 0.4 repeat),
-  and `HALF_LIFE_DAYS = 7`. All need real recordings (open queue). Duolingo
-  *fits* their half-life from millions of traces; ours is a number someone
-  typed.
+  `HALF_LIFE_DAYS = 7`, and everything in `pause-quality.ts` and
+  `presence.ts`. All need real recordings (open queue). Duolingo *fits*
+  their half-life from millions of traces; ours is a number someone typed.
+- **The star thresholds now measure more than they did.** Stars read
+  `disfluenciesPerMin` (fillers + self-corrections) rather than fillers
+  alone, at the same 3/6 cut points. That is deliberate — a repair sounds
+  like an "um" — but it makes three stars meaningfully harder than the
+  numbers were tuned for, and it is the first thing to recalibrate.
 - **Boss topics are a hand-written list of seven.** Fine for two months
   of weeklies; the supply layer for topics is not built.
 - **Presence has never been pointed at a real body.** The engine is

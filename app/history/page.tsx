@@ -9,6 +9,7 @@ import { Paywall } from "@/components/Paywall";
 import { Sparkline } from "@/components/Sparkline";
 import { Stars } from "@/components/Stars";
 import { fetchProfile, fetchReps, type RepRow } from "@/lib/client-data";
+import { limit } from "@/lib/entitlement";
 import { insights } from "@/lib/insights";
 
 const FREE_DAYS = 7; // mechanics.md: free tier sees the last 7 days
@@ -62,7 +63,10 @@ export default function HistoryPage() {
     );
   }
 
-  const cutoff = Date.now() - FREE_DAYS * 86_400_000;
+  // The 7-day window used to apply to everyone, premium included — the
+  // limit was a constant rather than a gate. It reads the entitlement now.
+  const days = limit(FREE_DAYS);
+  const cutoff = days === null ? -Infinity : Date.now() - days * 86_400_000;
   const visible = reps.filter((r) => new Date(r.created_at).getTime() >= cutoff);
   const hidden = reps.length - visible.length;
   const newestFirst = [...visible].reverse();
@@ -84,8 +88,8 @@ export default function HistoryPage() {
     <main className="px-5 pb-24 pt-7">
       <h1 className="font-display text-2xl font-bold">The log</h1>
       <p className="mt-1 text-[13.5px] text-stone-500">
-        {reps.length} rep{reps.length === 1 ? "" : "s"}. Tap any row for the
-        full result.
+        {reps.length} recording{reps.length === 1 ? "" : "s"}, one row each.
+        Tap any of them for the full result.
       </p>
 
       <div className="mt-4 space-y-3">
@@ -187,8 +191,8 @@ export default function HistoryPage() {
           onClick={() => setPaywall("Full history · premium")}
           className="mt-3 w-full rounded-[18px] border border-terracotta-100 bg-terracotta-50 p-4 text-[13.5px] font-semibold"
         >
-          {hidden} older rep{hidden === 1 ? "" : "s"} archived — unlock full
-          history
+          {hidden} older recording{hidden === 1 ? "" : "s"} archived — unlock
+          full history
         </button>
       )}
 

@@ -35,6 +35,7 @@ import {
   type Tier2Anchors,
 } from "@/lib/index-score";
 import { computeMetrics, isScorable, type RepMetrics } from "@/lib/metrics";
+import { pauseReport } from "@/lib/pause-quality";
 import { BOSS_XP_BASE } from "@/lib/rep-config";
 import { modIds, parseMods, xpMultiplier } from "@/lib/stress-mods";
 import { transcribe } from "@/lib/transcribe";
@@ -53,6 +54,8 @@ export interface AnalyzeResponse {
   repId: string | null;
   /** False when there wasn't enough real speech to score. */
   scorable: boolean;
+  /** One line on what the silences actually did. */
+  pauseHeadline: string | null;
   accuracy: AccuracyResult | null;
   mode: "daily" | "boss";
   mods: string[];
@@ -145,6 +148,19 @@ export async function POST(req: NextRequest) {
     transcription.durationS,
     transcription.segments
   );
+
+  // Judge every silence by where it landed, and keep the verdicts on the
+  // pause list itself — `JudgedPause` is a `Pause` with a verdict and a
+  // note, so the stored column, the pause bar and the results screen all
+  // read the same rows.
+  const pauses = pauseReport({
+    pauses: metrics.pauses,
+    words: transcription.words,
+    fillers: metrics.fillers,
+    durationS: metrics.durationS,
+    segments: transcription.segments,
+  });
+  metrics.pauses = pauses.pauses;
   const tier1 = tier1Scores(metrics, transcription.words, transcription.segments);
   const anchors = tier2Anchors(transcription.words, transcription.text);
 
@@ -250,6 +266,7 @@ export async function POST(req: NextRequest) {
     previousIndex,
     repId,
     scorable,
+    pauseHeadline: pauses.headline,
     accuracy,
     mode,
     mods: modIds(mods),

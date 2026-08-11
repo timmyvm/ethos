@@ -22,7 +22,20 @@ export interface ResultView {
   previousIndex: number | null;
   accuracy?: AccuracyResult | null;
   scorable?: boolean;
+  /** The pause report's one line — what the silences actually did. */
+  pauseHeadline?: string | null;
 }
+
+/**
+ * Which slice of the feedback to render.
+ *
+ * A finished rep walks these in order across separate screens rather
+ * than dumping all of it at once — the old single page put the score,
+ * eight dimensions, every filler timestamp and the transcript in one
+ * scroll, which meant most of it was never read. The log renders "all"
+ * because a stored rep is reference, not a debrief.
+ */
+export type ResultSection = "score" | "numbers" | "words" | "all";
 
 /**
  * The results view, shared by a just-finished rep and any row in the
@@ -32,10 +45,13 @@ export interface ResultView {
 export function RepResult({
   result,
   topic = null,
+  section = "all",
 }: {
   result: ResultView;
   topic?: ColdTopic | null;
+  section?: ResultSection;
 }) {
+  const show = (s: ResultSection) => section === "all" || section === s;
   const { metrics: m, coach, tier1, anchors, ethosIndex, previousIndex } =
     result;
   const zone =
@@ -57,7 +73,7 @@ export function RepResult({
 
   return (
     <>
-      {ethosIndex !== null ? (
+      {show("score") && (ethosIndex !== null ? (
         <div className="mt-3 flex items-baseline gap-3.5">
           <CountUp
             value={ethosIndex}
@@ -117,8 +133,9 @@ export function RepResult({
             <Stars n={m.stars} size={22} />
           </div>
         </div>
-      )}
+      ))}
 
+      {show("score") && (
       <div className="mt-4 flex items-end gap-3">
         <Image
           src="/demos-speaking.webp"
@@ -143,30 +160,53 @@ export function RepResult({
         </div>
       </div>
 
-      {result.accuracy && (
+      )}
+
+      {show("score") && result.accuracy && (
         <AccuracyCard accuracy={result.accuracy} topic={topic} />
       )}
 
-      <div className="mt-4">
-        <PauseBar pauses={m.pauses} durationS={m.durationS} />
-      </div>
+      {show("numbers") && (
+        <>
+          <div className="mt-4">
+            <PauseBar pauses={m.pauses} durationS={m.durationS} />
+          </div>
 
+          {/* What the silences actually DID. The bar shows where they
+              fell; this says whether they were earned. */}
+          {result.pauseHeadline && (
+            <p className="mt-2 text-[13px] leading-relaxed text-stone-600">
+              {result.pauseHeadline}
+            </p>
+          )}
+        </>
+      )}
+
+      {show("numbers") && (
       <div className="mt-4">
-        <div className="label-data mb-2">The eight · tap for why</div>
+        {/* Says four when there are four. The old label read "The eight"
+            on every rep, including the ones where the coach layer never
+            ran and only the measured half existed. */}
+        <div className="label-data mb-2">
+          {coach ? "The eight" : "The four measured"} · tap for why
+        </div>
         <DimensionList
           tier1={tier1}
           anchors={anchors}
           metrics={m}
           coach={coach}
+          pauseDetail={result.pauseHeadline ?? undefined}
         />
       </div>
+      )}
 
+      {show("numbers") && (
       <div className="mt-4 flex gap-3">
         <Metric label="WPM" value={String(m.wpm)} note={zone} />
         <Metric
           label="Held pauses"
           value={String(m.heldPauses)}
-          note="≥0.8s, on purpose"
+          note="≥0.8s, good and bad"
           amber
         />
         <Metric
@@ -175,8 +215,9 @@ export function RepResult({
           note="target 60–90"
         />
       </div>
+      )}
 
-      {coach?.supply && (
+      {show("words") && coach?.supply && (
         <div className="mt-4 rounded-[18px] border border-hairline bg-surface lift p-5">
           <div className="label-data">Supply · one upgrade, yours to keep</div>
           <div className="mt-2.5 flex items-center gap-3 text-[15px]">
@@ -194,7 +235,7 @@ export function RepResult({
         </div>
       )}
 
-      {m.fillers.length > 0 && (
+      {show("numbers") && m.fillers.length > 0 && (
         <div className="mt-4 rounded-[18px] border border-hairline bg-surface lift p-5">
           <div className="label-data">Every filler, with its timestamp</div>
           <div className="mt-2.5 flex flex-wrap gap-1.5">
@@ -216,6 +257,7 @@ export function RepResult({
       {/* Open, not hidden behind a disclosure. Every score on this screen
           is a claim about these words — you should be able to read them
           without going looking. */}
+      {show("words") && (
       <div className="mt-4 rounded-[18px] border border-hairline bg-surface lift px-5 py-4">
         <div className="label-data">
           What you said · {m.substance?.wordCount ?? 0} words
@@ -224,6 +266,7 @@ export function RepResult({
           {result.transcript || "Nothing was picked up."}
         </p>
       </div>
+      )}
     </>
   );
 }

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  dimensionPoints,
+  INDEX_WEIGHTS,
   countHedges,
   countRestarts,
   ethosIndex,
@@ -13,33 +15,39 @@ import type { Pause, Segment, Word } from "./metrics";
 const pre = (t: number, len = 1.2): Pause => ({ t, len, kind: "pre" });
 const mid = (t: number, len = 2.0): Pause => ({ t, len, kind: "mid" });
 
+/**
+ * These five tests used to assert the 60-point baseline, +8 per
+ * pre-sentence gap, and no penalty for a mid-sentence gap under 1.5s.
+ * They were encoding the reported bug rather than a requirement: a rep
+ * of five slow starts scored the same 100 as a rep of five landed
+ * points, because the score asked whether a pause existed and never
+ * whether it was earned. Placement lives in `pause-quality.ts` now and
+ * is tested there against real word streams; what stays here is the
+ * contract the Index depends on.
+ */
 describe("pauseScore", () => {
-  it("starts at the 60 baseline with no held pauses", () => {
-    expect(pauseScore([], 60)).toBe(60);
+  it("does not hand out a baseline for silence that never happened", () => {
+    expect(pauseScore([], 60)).toBeLessThan(40);
   });
 
-  it("rewards composed pauses at +8 each, capped at 5", () => {
-    expect(pauseScore([pre(10)], 60)).toBe(68);
-    const seven = [10, 15, 20, 25, 30, 35, 40].map((t) => pre(t));
-    expect(pauseScore(seven, 60)).toBe(100); // 60 + 40, clamped
+  it("cannot credit a pause without the words around it", () => {
+    // No word stream means no sentence boundaries to land against, so a
+    // bare pre-flagged gap earns nothing. Better a low score than a
+    // confident one built on an assumption.
+    expect(pauseScore([pre(10)], 60, [], [])).toBeLessThan(60);
   });
 
-  it("punishes long mid-sentence gaps at -10", () => {
-    expect(pauseScore([mid(10, 2.0)], 60)).toBe(50);
-    expect(pauseScore([mid(10, 1.2)], 60)).toBe(60); // ≤1.5s mid gap: no hit
-  });
-
-  it("bonuses a composed pause that lands the ending", () => {
-    expect(pauseScore([pre(55)], 60)).toBe(73); // 60 + 8 + 5 (t ≥ 80% of 60)
-  });
-
-  it("ignores held pauses beyond 2.5s for the composed reward", () => {
-    expect(pauseScore([pre(10, 3.0)], 60)).toBe(60);
+  it("stays inside 0–100 whatever it is handed", () => {
+    const many = [10, 15, 20, 25, 30, 35, 40].map((t) => pre(t));
+    const s = pauseScore(many, 60);
+    expect(s).toBeGreaterThanOrEqual(0);
+    expect(s).toBeLessThanOrEqual(100);
+    expect(pauseScore([mid(10, 2.0)], 60)).toBeGreaterThanOrEqual(0);
   });
 });
 
 describe("fillerScore", () => {
-  it("maps the fpm curve: 0 → 100, 4 → 50, ≥8 → 0", () => {
+  it("maps the disfluency curve: 0 → 100, 4 → 50, ≥8 → 0", () => {
     expect(fillerScore(0)).toBe(100);
     expect(fillerScore(4)).toBe(50);
     expect(fillerScore(8)).toBe(0);
@@ -162,5 +170,59 @@ describe("ethosIndex", () => {
     expect(
       ethosIndex({ pause: 100, fillers: 100, pace: 100, range: 100 }, null)
     ).toBeNull();
+  });
+});
+
+/**
+ * The results screen lists each dimension against its own denominator so
+ * the breakdown visibly adds up to the Index. If the two round
+ * differently the user sees eight numbers that miss the total — the
+ * exact "800 should be the max, why doesn't this add up" problem the
+ * breakdown exists to answer.
+ */
+describe("the parts add up to the whole", () => {
+  it("matches the sum of the per-dimension points exactly", () => {
+    const tier1 = { pause: 83, fillers: 67, pace: 86, range: 95 };
+    const tier2 = {
+      structure: 72,
+      credibility: 71,
+      engagement: 72,
+      confidence: 73,
+    };
+    const total = ethosIndex(tier1, tier2);
+    const parts =
+      dimensionPoints(tier1.pause, INDEX_WEIGHTS.pause) +
+      dimensionPoints(tier1.fillers, INDEX_WEIGHTS.fillers) +
+      dimensionPoints(tier1.pace, INDEX_WEIGHTS.pace) +
+      dimensionPoints(tier1.range, INDEX_WEIGHTS.range) +
+      dimensionPoints(tier2.structure, INDEX_WEIGHTS.structure) +
+      dimensionPoints(tier2.credibility, INDEX_WEIGHTS.credibility) +
+      dimensionPoints(tier2.engagement, INDEX_WEIGHTS.engagement) +
+      dimensionPoints(tier2.confidence, INDEX_WEIGHTS.confidence);
+    expect(total).toBe(parts);
+  });
+
+  it("holds on awkward scores that round in different directions", () => {
+    const tier1 = { pause: 33, fillers: 67, pace: 1, range: 99 };
+    const tier2 = {
+      structure: 33,
+      credibility: 67,
+      engagement: 1,
+      confidence: 99,
+    };
+    const parts = Object.entries(INDEX_WEIGHTS).reduce((sum, [dim, w]) => {
+      const all: Record<string, number> = { ...tier1, ...tier2 };
+      return sum + dimensionPoints(all[dim], w);
+    }, 0);
+    expect(ethosIndex(tier1, tier2)).toBe(parts);
+  });
+
+  it("still tops out at 1000 with every dimension perfect", () => {
+    expect(
+      ethosIndex(
+        { pause: 100, fillers: 100, pace: 100, range: 100 },
+        { structure: 100, credibility: 100, engagement: 100, confidence: 100 }
+      )
+    ).toBe(1000);
   });
 });

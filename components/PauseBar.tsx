@@ -1,21 +1,32 @@
 import type { Pause } from "@/lib/metrics";
+import type { PauseVerdict } from "@/lib/pause-quality";
+
+/** Stored rows carry a verdict once they've been judged. */
+type MaybeJudged = Pause & { verdict?: PauseVerdict };
 
 interface Seg {
   type: "speech" | "pause";
   len: number;
   kind?: Pause["kind"];
+  verdict?: PauseVerdict;
 }
 
 /**
  * The signature element (DECISIONS.md #8): silence rendered amber as
- * achievement. Amber pills = held pauses before a sentence (composed);
- * stone pills = held pauses mid-sentence; dots = beats.
+ * achievement.
+ *
+ * Amber is EARNED, so it now follows the verdict rather than the raw
+ * kind. A pre-sentence pause with an "um" leaning on it, or one that ran
+ * into dead air, is still a pre-sentence pause — but it isn't an
+ * achievement, and painting it gold was the same flattery the pause
+ * score itself was guilty of. Rows recorded before the verdicts existed
+ * fall back to the old kind check.
  */
 export function PauseBar({
   pauses,
   durationS,
 }: {
-  pauses: Pause[];
+  pauses: MaybeJudged[];
   durationS: number;
 }) {
   const segs: Seg[] = [];
@@ -31,7 +42,7 @@ export function PauseBar({
   let cursor = 0;
   for (const p of pauses) {
     if (p.t > cursor) speech(p.t - cursor);
-    segs.push({ type: "pause", len: p.len, kind: p.kind });
+    segs.push({ type: "pause", len: p.len, kind: p.kind, verdict: p.verdict });
     cursor = p.t + p.len;
   }
   if (durationS > cursor) speech(durationS - cursor);
@@ -39,7 +50,7 @@ export function PauseBar({
   return (
     <div className="rounded-2xl bg-stage px-4 pb-3.5 pt-4 lift-stage">
       <div className="label-data !text-stone-400">
-        Pause bar · amber = silence you held
+        Pause bar · amber = silence you earned
       </div>
       <div className="mt-3 flex h-14 items-center gap-[3px] overflow-hidden">
         {segs.slice(0, 48).map((s, i) => {
@@ -60,11 +71,14 @@ export function PauseBar({
               />
             );
           }
+          const earned = s.verdict
+            ? s.verdict === "landing" || s.verdict === "opening"
+            : s.kind === "pre";
           return (
             <span
               key={i}
               className={`h-3 shrink-0 rounded-full ${
-                s.kind === "pre" ? "bg-amber-500" : "bg-stone-400"
+                earned ? "bg-amber-500" : "bg-stone-400"
               }`}
               style={{ width: Math.min(34, 12 + s.len * 10) }}
             />
@@ -72,8 +86,8 @@ export function PauseBar({
         })}
       </div>
       <div className="mt-2 flex gap-4">
-        <span className="label-data !text-amber-500">● before a sentence</span>
-        <span className="label-data !text-stone-400">● mid-sentence</span>
+        <span className="label-data !text-amber-500">● landed a point</span>
+        <span className="label-data !text-stone-400">● searching</span>
       </div>
     </div>
   );

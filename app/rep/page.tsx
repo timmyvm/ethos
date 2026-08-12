@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Suspense,
   useCallback,
@@ -34,7 +34,14 @@ import {
   type Envelope,
 } from "@/lib/envelope";
 import { startCrowdNoise, type CrowdNoise } from "@/lib/crowd-noise";
+import { sessionState } from "@/lib/auth";
 import { syncFreezes } from "@/lib/freeze-sync";
+import {
+  gateMoment,
+  gatesShown,
+  markGateShown,
+  type GateMoment,
+} from "@/lib/onboarding";
 import { starsByLesson, totalStars, unitStates } from "@/lib/path";
 import { liveTipAt } from "@/lib/live-tips";
 import { loadPose, samplePose, type PoseSampler } from "@/lib/pose-client";
@@ -51,8 +58,10 @@ import {
   captureModeFor,
   readPrefs,
   writeCaptureMode,
+  writePrefs,
   type CaptureMode,
 } from "@/lib/prefs";
+import { armReminder } from "@/lib/reminders";
 import { nextMilestones, repGains, type RepGain } from "@/lib/progress";
 import {
   anticipation,
@@ -185,6 +194,14 @@ function RepScreen() {
   const [clipUrl, setClipUrl] = useState<string | null>(null);
   const [paywall, setPaywall] = useState<string | null>(null);
   const [repCount, setRepCount] = useState<number | null>(null);
+  /**
+   * For the save-progress wall (DECISIONS #134). Anonymity is read
+   * AFTER the analysis, not on mount — rep 1 has no session until the
+   * upload mints one, so a mount-time check would say "not anonymous"
+   * on exactly the rep the wall exists for.
+   */
+  const [anon, setAnon] = useState(false);
+  const [streakNow, setStreakNow] = useState(0);
 
   /**
    * Sticky per drill type, with one override: rep 1 is audio, always.
@@ -378,6 +395,12 @@ function RepScreen() {
           const dates = reps.map((x) => new Date(x.created_at));
           const { streak } = await syncFreezes(dates);
           if (streak.current > 0) setCelebrate(streak.current);
+          setStreakNow(streak.current);
+          // The upload minted the session if there wasn't one, so this
+          // is the earliest moment the answer is real.
+          sessionState()
+            .then((s) => setAnon(s.signedIn && s.anonymous))
+            .catch(() => {});
 
           // One coin per day you spoke (§4). Granted from the stored
           // reps, so it heals rather than double-paying.
@@ -718,6 +741,9 @@ function RepScreen() {
           clipUrl={clipUrl}
           premium={premium}
           coined={coined}
+          anonymous={anon}
+          repCountBefore={repCount}
+          streakNow={streakNow}
           onUpgrade={setPaywall}
           onRetake={retake}
         />
@@ -795,10 +821,18 @@ function RepScreen() {
         />
       )}
 
+      {/*
+       * Rep 1's two honest disclosures, one line each: why there's no
+       * video toggle yet (#68), and what tapping the button will ask
+       * for. Permission asks primed at the moment of use run 2–3× the
+       * grant rate of cold ones (DECISIONS #135) — and "only while you
+       * record" is a promise the teardown() code actually keeps.
+       */}
       {phase === "idle" && repCount === 0 && (
         <p className="mt-4 text-[12.5px] leading-relaxed text-stone-500">
           This one&apos;s audio. Get a rep in your legs first — video is on the
-          table from the next one.
+          table from the next one. The button will ask for your mic; it&apos;s
+          live only while you record.
         </p>
       )}
 
@@ -1106,6 +1140,9 @@ function Results({
   clipUrl,
   premium,
   coined,
+  anonymous,
+  repCountBefore,
+  streakNow,
   onUpgrade,
   onRetake,
 }: {
@@ -1119,19 +1156,53 @@ function Results({
   clipUrl: string | null;
   premium: boolean;
   coined: boolean;
+  anonymous: boolean;
+  repCountBefore: number | null;
+  streakNow: number;
   onUpgrade: (reason: string) => void;
   onRetake: () => void;
 }) {
+  const router = useRouter();
   const [step, setStep] = useState(0);
   const section = STEPS[step].key;
   const last = step === STEPS.length - 1;
   const next = nextDrill(config.lessonId);
+
+  /*
+   * The save-progress wall (DECISIONS #134). The exits route through
+   * it rather than it replacing the last screen: the debrief stays a
+   * debrief, #105's ending stays "Next lesson", and the decline
+   * continues to exactly the destination that was tapped — a wall that
+   * eats the tap it intercepted reads as a bait-and-switch.
+   */
+  const [gateTo, setGateTo] = useState<string | null>(null);
+  const gate = gateMoment({
+    anonymous,
+    repCountBefore,
+    streakNow,
+    shown: gatesShown(),
+  });
+  const exit = (href: string) => {
+    if (gate) setGateTo(href);
+    else router.push(href);
+  };
 
   // Each step starts at the top. Landing halfway down the next screen
   // because the last one was long is how a step gets skipped.
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [step]);
+
+  if (gateTo !== null && gate !== null) {
+    return (
+      <SaveGate
+        moment={gate}
+        index={result.ethosIndex}
+        streak={streakNow}
+        onSkip={() => router.push(gateTo)}
+      />
+    );
+  }
 
   return (
     <main className="flex min-h-dvh flex-col px-5 pb-8 pt-7">
@@ -1162,7 +1233,12 @@ function Results({
 
       <div className="flex-1">
         {step === 0 && <GainsRow gains={gains} />}
-        <RepResult result={result} topic={config.topic} section={section} />
+        <RepResult
+          result={result}
+          topic={config.topic}
+          section={section}
+          baseline={repCountBefore === 0}
+        />
 
         {/*
          * Presence — a SECOND score, beside the Index at the same size.
@@ -1246,6 +1322,8 @@ function Results({
             </p>
           </div>
         )}
+
+        {last && <PlanChips streak={streakNow} />}
       </div>
 
       {/*
@@ -1256,24 +1334,26 @@ function Results({
        */}
       {last ? (
         <div className="mt-6">
-          <Link
-            href={repHref({ lesson: next.id })}
+          {/* Buttons, not Links: the exits go through exit(), which
+              may route via the save-progress wall first (#134). */}
+          <button
+            onClick={() => exit(repHref({ lesson: next.id }))}
             className="press block w-full rounded-[15px] bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
           >
             Next lesson · {next.title}
-          </Link>
+          </button>
           <button
             onClick={onRetake}
             className="press mt-3 w-full rounded-[15px] border border-black/10 bg-surface px-6 py-4 text-[15px] font-semibold"
           >
             Retake this one
           </button>
-          <Link
-            href="/"
-            className="mt-3 block py-2 text-center text-[13.5px] font-semibold text-stone-500"
+          <button
+            onClick={() => exit("/")}
+            className="mt-3 block w-full py-2 text-center text-[13.5px] font-semibold text-stone-500"
           >
             Done for today
-          </Link>
+          </button>
         </div>
       ) : (
         <button
@@ -1284,5 +1364,154 @@ function Results({
         </button>
       )}
     </main>
+  );
+}
+
+/**
+ * The save-progress wall (DECISIONS #134) — the gate #15 always
+ * specified, at the moment the product has visibly worked. It stakes
+ * the thing just made, asks to save it, and declines quietly: Duolingo
+ * measured both halves — "save your progress" walls built their +20%
+ * DAU result, and a loud "Discard my progress" decline drove people
+ * away. There is no Demos here: the number is the argument, the button
+ * is a door (#131's logic).
+ */
+function SaveGate({
+  moment,
+  index,
+  streak,
+  onSkip,
+}: {
+  moment: GateMoment;
+  index: number | null;
+  streak: number;
+  onSkip: () => void;
+}) {
+  // Shown is shown, whatever gets tapped — the flag is what makes
+  // "exactly twice per browser" true across remounts.
+  useEffect(() => {
+    markGateShown(moment);
+  }, [moment]);
+
+  const days = Math.max(streak, 1);
+
+  return (
+    <main className="flex min-h-dvh flex-col px-5 pb-8 pt-7">
+      <div className="label-data">Before you go</div>
+
+      <div className="flex flex-1 flex-col justify-center">
+        {index !== null && (
+          <div className="flex items-baseline gap-2">
+            <span className="font-display text-[56px] font-bold leading-none">
+              {index}
+            </span>
+            <span className="text-[13px] text-stone-500">
+              /1000{moment === "rep1" && " · your baseline"}
+            </span>
+          </div>
+        )}
+        <h1 className="font-display mt-4 text-[30px] font-bold leading-tight">
+          {moment === "rep1"
+            ? "Day 1 is on the board."
+            : `${days} days on the board.`}
+        </h1>
+        <p className="mt-3 max-w-[92%] text-[15px] leading-relaxed text-stone-500">
+          {moment === "rep1"
+            ? "That rep — the score, the transcript, the streak it starts — lives in this browser and nowhere else. "
+            : `A ${days}-day streak and every number behind it live in this browser and nowhere else. `}
+          An account attaches them to you, so a cleared cache or a new phone
+          can&apos;t take them. Nothing moves — nothing can go missing.
+        </p>
+      </div>
+
+      <Link
+        href="/signup"
+        className="press block w-full rounded-[15px] bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+      >
+        Save my progress
+      </Link>
+      <button
+        onClick={onSkip}
+        className="mt-3 block w-full py-2 text-center text-[13.5px] font-semibold text-stone-500"
+      >
+        Not now
+      </button>
+    </main>
+  );
+}
+
+/**
+ * The when-plan (DECISIONS #136). Implementation intentions — a
+ * concrete when, not a pledge — are the largest effect in the
+ * onboarding research pass (d = 0.65, Gollwitzer & Sheeran), and the
+ * tap doubles as the notification-permission primer: the OS dialog
+ * only ever appears after the user picks a time, so the reminder is
+ * theirs, not ours. Renders only while no reminder hour is set, and
+ * disappears for good once one is.
+ */
+const PLAN_HOURS = [
+  { h: 8, label: "Morning · 8:00" },
+  { h: 12, label: "Lunch · 12:00" },
+  { h: 18, label: "Evening · 18:00" },
+];
+
+function PlanChips({ streak }: { streak: number }) {
+  const [hour, setHour] = useState<number | null>(
+    () => readPrefs().reminderHour
+  );
+  const [granted, setGranted] = useState<boolean | null>(null);
+  const [picked, setPicked] = useState(false);
+
+  async function pick(h: number) {
+    writePrefs({ reminderHour: h });
+    setHour(h);
+    setPicked(true);
+    if (typeof Notification === "undefined") {
+      setGranted(false);
+      return;
+    }
+    const p =
+      Notification.permission === "default"
+        ? await Notification.requestPermission()
+        : Notification.permission;
+    setGranted(p === "granted");
+    if (p === "granted") {
+      await armReminder({ streak, didToday: true });
+    }
+  }
+
+  // Already planned on an earlier day — the settings card owns it now.
+  if (hour !== null && !picked) return null;
+
+  return (
+    <div className="mt-5 rounded-[18px] border border-hairline bg-surface lift p-5">
+      <div className="label-data">Tomorrow&apos;s rep · when?</div>
+      {picked ? (
+        <p className="mt-2 text-[13px] leading-relaxed text-stone-600">
+          {String(hour).padStart(2, "0")}:00.{" "}
+          {granted
+            ? "Demos will nudge you once — never more."
+            : "Noted. Notifications are off in this browser; Settings names the fix."}
+        </p>
+      ) : (
+        <>
+          <p className="mt-1.5 text-[13px] leading-relaxed text-stone-500">
+            Reps with a time happen. Pick one and Demos reminds you — once a
+            day, never in quiet hours.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {PLAN_HOURS.map((p) => (
+              <button
+                key={p.h}
+                onClick={() => void pick(p.h)}
+                className="press rounded-full bg-sand px-3.5 py-2 text-[13px] font-semibold text-stone-600"
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   );
 }

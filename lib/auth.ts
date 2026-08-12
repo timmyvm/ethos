@@ -203,6 +203,18 @@ function humanise(message: string): string {
     // confirmed — the exact wall #142 exists to route around.
     return "Confirm your email first — the link in your inbox does it.";
   }
+  if (
+    m.includes("deadline") ||
+    m.includes("timed out") ||
+    m.includes("timeout") ||
+    m.includes("504")
+  ) {
+    // Measured 12 Aug: the auth server sends the confirmation mail
+    // synchronously, and a hung SMTP connection eats its whole 10s
+    // budget — the request often completes AFTER this error reached
+    // the user, so "check your inbox anyway" is honest advice.
+    return "The email server took too long. Check your inbox anyway — the mail sometimes lands after this error — or wait a minute and try again.";
+  }
   if (m.includes("weak") || m.includes("password should be")) {
     return `${MIN_PASSWORD} characters or more. Length beats punctuation.`;
   }

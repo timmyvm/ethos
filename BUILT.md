@@ -222,11 +222,16 @@ four are now closed and struck through.
   non-fatal: a build with no network ships an app that reports Voice +
   Video unavailable rather than failing. If the toggle is greyed out on
   a deploy, check that first.
-- **Supabase custom SMTP is not verified from here.** `docs/email.md`
-  has the settings; the auth flows assume "Confirm email" is on and the
-  redirect allow-list includes the deploy host. Both are dashboard
-  settings nobody has ticked yet, and signup silently does nothing
-  useful until they are.
+- **Supabase custom SMTP is misconfigured, measured 12 Aug.** The
+  email-attach call (`PUT /user`) hangs for exactly GoTrue's 10s
+  deadline and returns 504 — the signature of an SMTP connection that
+  never opens (wrong port/host; a wrong password fails fast instead).
+  Every other auth call completes in 3–40ms. Fix is in the dashboard:
+  Auth → Emails → SMTP Settings, expect port 587 + STARTTLS, or toggle
+  custom SMTP off to fall back to the rate-limited built-in sender for
+  testing. `docs/email.md` has the intended settings. Note the sends
+  often COMPLETE after the timeout has already been returned, so the
+  mail may land even when the user saw an error.
 - **The Supabase secret key needs rotating.** It transited chat during the
   10 Aug session. It lives only in `.env.local` (gitignored) and Vercel env
   settings, but it should be rolled.

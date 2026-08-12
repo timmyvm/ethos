@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DayTrail } from "@/components/DayTrail";
 import { ModPicker } from "@/components/ModPicker";
+import { PathRoad } from "@/components/PathRoad";
 import { SkeletonScoreCard } from "@/components/Skeleton";
 import { Paywall } from "@/components/Paywall";
 import { StreakBadge } from "@/components/StreakBadge";
@@ -22,7 +23,7 @@ import { dayTrail } from "@/lib/days";
 import { todaysDrill } from "@/lib/drills";
 import { syncFreezes } from "@/lib/freeze-sync";
 import { firstRun, markWelcomed } from "@/lib/onboarding";
-import { MAX_STARS, nextLesson, starsByLesson, totalStars } from "@/lib/path";
+import { nextLesson, starsByLesson, totalStars } from "@/lib/path";
 import { readPrefs } from "@/lib/prefs";
 import { repHref } from "@/lib/rep-config";
 import { ownedFrom, poseArt } from "@/lib/shop";
@@ -311,22 +312,6 @@ export default function Home() {
            */}
           <DayTrail trail={trail} />
 
-          {/* Path progress as one line rather than a whole rail — the
-              Path tab owns the rail, and home was rendering both. */}
-          <Link
-            href="/path"
-            className="press mt-4 flex items-center gap-3 border-t border-white/10 pt-3.5"
-          >
-            <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full rounded-full bg-amber-500"
-                style={{ width: `${Math.max(2, (totalStars(starMap) / MAX_STARS) * 100)}%` }}
-              />
-            </div>
-            <span className="label-data !text-stone-500 shrink-0">
-              the path →
-            </span>
-          </Link>
         </section>
       )}
 
@@ -400,6 +385,11 @@ export default function Home() {
           <span className="font-semibold text-stone-500">keep them →</span>
         </Link>
       )}
+
+      {/* The road (#141): the whole path, winding down from here. It
+          goes LAST so the floor keeps the first screen (#9) — the road
+          is what scrolling reveals, all of it, without a tab switch. */}
+      <PathRoad starMap={starMap} hasAnyRep={history.length > 0} />
 
       {paywall && <Paywall reason={paywall} onClose={() => setPaywall(null)} />}
     </main>

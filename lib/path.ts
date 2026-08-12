@@ -85,6 +85,35 @@ export const UNITS: Unit[] = [
     boss: true,
     lessons: BOSS_LESSONS,
   },
+  /*
+   * The back half of the road (#141) — the three units mechanics.md
+   * always named and nobody had built. The gates keep #28's ladder
+   * spacing: each opens on stars the previous units can actually pay.
+   */
+  {
+    id: "structure",
+    name: "Structure",
+    icon: "🧱",
+    blurb: "Claim, points, landing. An argument you can see the shape of.",
+    unlocksAt: 16,
+    lessons: lessonsFor("Structure"),
+  },
+  {
+    id: "compression",
+    name: "Compression",
+    icon: "🗜️",
+    blurb: "Half the words, all of the point.",
+    unlocksAt: 24,
+    lessons: lessonsFor("Compression"),
+  },
+  {
+    id: "fire",
+    name: "Thinking Under Fire",
+    icon: "⚡",
+    blurb: "No script, no warm-up, still clear.",
+    unlocksAt: 32,
+    lessons: lessonsFor("Thinking Under Fire"),
+  },
 ];
 
 export const TOTAL_LESSONS = UNITS.flatMap((u) => u.lessons).length;

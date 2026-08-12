@@ -8,7 +8,8 @@ describe("todaysDrill", () => {
 
   it("rotates one drill per day", () => {
     expect(todaysDrill(new Date(2026, 7, 10)).id).toBe("f2");
-    expect(todaysDrill(new Date(2026, 7, 15)).id).toBe("h2");
+    // Day 6 of the rotation — p3 since the road grew (#141).
+    expect(todaysDrill(new Date(2026, 7, 15)).id).toBe("p3");
   });
 
   it("wraps around after the full rotation", () => {

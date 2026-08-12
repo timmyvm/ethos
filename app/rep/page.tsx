@@ -70,6 +70,7 @@ import {
   type RewardMoment,
 } from "@/lib/rewards";
 import { nextFocus, type NextFocus } from "@/lib/schedule";
+import { unlockSfx } from "@/lib/sfx";
 import { computeStreak } from "@/lib/streak";
 import { nextDrill } from "@/lib/drills";
 import { repHref, resolveRepConfig, type RepConfig } from "@/lib/rep-config";
@@ -452,6 +453,10 @@ function RepScreen() {
   const startRep = useCallback(async () => {
     setError(null);
     setSeconds(0);
+    // The Rec tap is the gesture that licenses audio for the whole
+    // session — the celebration chime minutes from now rides on it.
+    // The chime itself never plays while the mic is hot (lib/sfx.ts).
+    unlockSfx();
     const cfg = configRef.current;
     const wantsVideo = captureModeRef.current === "voice_video";
     try {

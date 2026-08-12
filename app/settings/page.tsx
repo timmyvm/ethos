@@ -223,6 +223,12 @@ export default function SettingsPage() {
           onChange={(v) => update({ haptics: v })}
         />
         <Toggle
+          label="Sound"
+          note="One synthesized chime at the streak celebration. Never while you record — the mic would hear it."
+          on={prefs.sound}
+          onChange={(v) => update({ sound: v })}
+        />
+        <Toggle
           label="Verbatim transcripts"
           note="Keep every 'um' in the transcript. Off makes it prettier and the filler count wrong."
           on={prefs.verbatim}

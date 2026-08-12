@@ -10,38 +10,52 @@
  * would be scored as a sound you made. The only call site is the
  * celebration overlay, which exists only in the results phase.
  *
- * Warmth comes from fundamentals, not brightness: sine waves, a rising
- * major triad in the C5 octave (rising pitch reads as success; the
- * major triad is the most consonant "done" there is), fast attack and
- * a long exponential decay like a struck instrument rather than a
- * beep. Every constant is a v1 guess in the same bucket as the star
- * thresholds — calibrate by ear on a real phone speaker.
+ * The voice is from the sound-design research pass (#138–#139,
+ * docs/sound-research.md): earcon guidelines say instrument-like
+ * timbres beat raw tones, so each note is a triangle fundamental
+ * (+3 cents, the detune fakes a struck mallet's complexity) with a
+ * quiet sine an octave up, through a 180–2200 Hz band. D major, low
+ * register — warm on a phone speaker, and deliberately not Duolingo's
+ * F# grammar. Rising contour and major mode are the replicated
+ * positive-valence findings; the fail sound doesn't exist because
+ * failure states don't either.
+ *
+ * The daily chime is the rising triad, left OPEN on the fifth — the
+ * copy under it says "Same time tomorrow". Milestones (7/14/30) land
+ * the octave: resolved, longer, and capped at the same peak — a
+ * milestone says more, never shouts more (the slot-machine literature
+ * is what louder-on-bigger trains people into).
  */
 
 import { readPrefs } from "./prefs";
 
 export interface ChimeNote {
-  /** Hz. Kept inside ~500–1100 — warm on a phone speaker, never shrill. */
+  /** Fundamental, Hz. Kept inside 250–1200 — the phone-speaker band. */
   freq: number;
   /** Seconds after the chime starts. */
   at: number;
-  /** Peak gain for this note; the sum stays well under clipping. */
+  /** Peak gain for this note, pre-master. */
   peak: number;
-  /** Exponential decay time to silence, seconds. */
+  /** Exponential decay to silence, seconds. */
   decay: number;
 }
 
-/** C5 → E5 → G5. A struck triad, done inside half a second. */
+/** One knob scales everything — ≈ −12 dB, under speech, over silence. */
+export const MASTER_GAIN = 0.25;
+
+/** D4 → F#4 → A4. The daily chime: rising, open, done in half a second. */
 export const CHIME: ChimeNote[] = [
-  { freq: 523.25, at: 0, peak: 0.14, decay: 0.4 },
-  { freq: 659.25, at: 0.09, peak: 0.14, decay: 0.4 },
-  { freq: 783.99, at: 0.18, peak: 0.16, decay: 0.5 },
+  { freq: 293.66, at: 0, peak: 0.4, decay: 0.25 },
+  { freq: 369.99, at: 0.09, peak: 0.45, decay: 0.25 },
+  { freq: 440.0, at: 0.18, peak: 0.5, decay: 0.35 },
 ];
 
-/** Milestones (7/14/30) land the octave on top. Longer, never louder. */
+/** Milestones land D5 — resolved and longer, never louder. */
 export const MILESTONE_CHIME: ChimeNote[] = [
-  ...CHIME,
-  { freq: 1046.5, at: 0.3, peak: 0.16, decay: 0.6 },
+  { freq: 293.66, at: 0, peak: 0.4, decay: 0.25 },
+  { freq: 369.99, at: 0.09, peak: 0.45, decay: 0.25 },
+  { freq: 440.0, at: 0.18, peak: 0.5, decay: 0.25 },
+  { freq: 587.33, at: 0.32, peak: 0.5, decay: 0.6 },
 ];
 
 /** Total length of a chime, for anyone timing UI against it. */
@@ -88,26 +102,44 @@ export function playCelebration(milestone: boolean): void {
   const t0 = c.currentTime + 0.02;
 
   const master = c.createGain();
-  master.gain.value = 0.5;
-  // A touch of lowpass keeps the triad woody rather than glassy.
-  const warmth = c.createBiquadFilter();
-  warmth.type = "lowpass";
-  warmth.frequency.value = 2600;
-  master.connect(warmth).connect(c.destination);
+  master.gain.value = MASTER_GAIN;
+  // The band a phone speaker can actually say: lows it can't move
+  // stripped at 180, the shrill region shelved at 2200.
+  const low = c.createBiquadFilter();
+  low.type = "highpass";
+  low.frequency.value = 180;
+  const high = c.createBiquadFilter();
+  high.type = "lowpass";
+  high.frequency.value = 2200;
+  high.Q.value = 0.7;
+  master.connect(low).connect(high).connect(c.destination);
 
   for (const n of notes) {
-    const osc = c.createOscillator();
-    osc.type = "sine";
-    osc.frequency.value = n.freq;
-    const g = c.createGain();
     const at = t0 + n.at;
+    const g = c.createGain();
     // Struck, not switched: 8ms to peak, then the long fall.
     g.gain.setValueAtTime(0.0001, at);
     g.gain.linearRampToValueAtTime(n.peak, at + 0.008);
     g.gain.exponentialRampToValueAtTime(0.0001, at + n.decay);
-    osc.connect(g).connect(master);
-    osc.start(at);
-    osc.stop(at + n.decay + 0.05);
+    g.connect(master);
+
+    // Fundamental, nudged +3 cents — dead-on pitch reads synthetic.
+    const fundamental = c.createOscillator();
+    fundamental.type = "triangle";
+    fundamental.frequency.value = n.freq * Math.pow(2, 3 / 1200);
+    fundamental.connect(g);
+    fundamental.start(at);
+    fundamental.stop(at + n.decay + 0.05);
+
+    // A quiet octave partial — the difference between a tone and a bell.
+    const partial = c.createOscillator();
+    partial.type = "sine";
+    partial.frequency.value = n.freq * 2;
+    const pg = c.createGain();
+    pg.gain.value = 0.25;
+    partial.connect(pg).connect(g);
+    partial.start(at);
+    partial.stop(at + n.decay + 0.05);
   }
 
   const total = chimeDuration(notes);

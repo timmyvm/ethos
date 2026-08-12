@@ -17,9 +17,11 @@ import {
   type RepRow,
 } from "@/lib/client-data";
 import { spin, type Topic } from "@/lib/topics";
+import { sessionState } from "@/lib/auth";
 import { dayTrail } from "@/lib/days";
 import { todaysDrill } from "@/lib/drills";
 import { syncFreezes } from "@/lib/freeze-sync";
+import { firstRun, markWelcomed } from "@/lib/onboarding";
 import { MAX_STARS, nextLesson, starsByLesson, totalStars } from "@/lib/path";
 import { readPrefs } from "@/lib/prefs";
 import { repHref } from "@/lib/rep-config";
@@ -48,8 +50,26 @@ export default function Home() {
   const [paywall, setPaywall] = useState<string | null>(null);
   const [topic, setTopic] = useState<Topic | null>(null);
   const [demos, setDemos] = useState<string | null>(null);
+  const [anon, setAnon] = useState<boolean | null>(null);
 
   useEffect(() => {
+    /*
+     * A fresh browser gets the introduction (DECISIONS #133) — the
+     * three screens existed and nothing routed a first visit into
+     * them. Checked synchronously before any fetch: the fetches mint
+     * an anonymous session, which would make this device stop looking
+     * fresh before the decision was made.
+     */
+    if (firstRun()) {
+      router.replace("/welcome");
+      return;
+    }
+    markWelcomed();
+
+    sessionState()
+      .then((s) => setAnon(s.signedIn && s.anonymous))
+      .catch(() => {});
+
     fetchProfile()
       .then((p) => setPremium(p?.premium ?? false))
       .catch(() => {});
@@ -362,6 +382,24 @@ export default function Home() {
           →
         </span>
       </Link>
+
+      {/*
+       * The standing soft-wall surface (DECISIONS #137). The loud ask
+       * already happened in the rep flow; this is the persistent honest
+       * statement of risk for everyone who declined it, kept at the
+       * volume of "Make it harder" so the floor's one terracotta tap
+       * stays uncontested.
+       */}
+      {anon === true && history.length > 0 && (
+        <Link
+          href="/signup"
+          className="press mt-5 block text-center text-[13px] leading-relaxed text-stone-400"
+        >
+          {history.length} recording{history.length === 1 ? "" : "s"} live only
+          in this browser ·{" "}
+          <span className="font-semibold text-stone-500">keep them →</span>
+        </Link>
+      )}
 
       {paywall && <Paywall reason={paywall} onClose={() => setPaywall(null)} />}
     </main>

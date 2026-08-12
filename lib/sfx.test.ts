@@ -8,10 +8,11 @@ import {
 import { DEFAULT_PREFS } from "./prefs";
 
 /**
- * The chime's contract (DECISIONS #138–#139): short enough to finish
+ * The chime's contract (DECISIONS #138–#140): short enough to finish
  * inside the reduced-motion celebration hold, inside the band a phone
- * speaker can say, rising, and the milestone variant is longer and
- * resolved — never louder.
+ * speaker can say, rising, escalating for milestones — and only ever
+ * attached to a real, earned event (the half of the casino playbook
+ * that stays banned; the arousal half is the fanfare itself).
  */
 
 describe("the celebration chime", () => {
@@ -35,24 +36,23 @@ describe("the celebration chime", () => {
   });
 
   /**
-   * A milestone says more, never shouts more. The slot-machine
-   * literature is what louder-on-bigger trains people into, and the
-   * researched spec's louder accent note is the one part deliberately
-   * not adopted (#139).
+   * #140: milestones escalate — longer, higher, and allowed to be
+   * louder — but the accent has a hard ceiling and the mix can never
+   * clip. Arousal scales with the REAL win; the ceiling is what keeps
+   * "bigger" from drifting into "screaming".
    */
-  it("keeps the milestone variant longer, never louder", () => {
+  it("escalates the milestone fanfare without clipping", () => {
     expect(chimeDuration(MILESTONE_CHIME)).toBeGreaterThan(
       chimeDuration(CHIME)
     );
-    const maxPeak = Math.max(...CHIME.map((n) => n.peak));
-    for (const n of MILESTONE_CHIME) {
-      expect(n.peak).toBeLessThanOrEqual(maxPeak);
+    expect(MILESTONE_CHIME.length).toBeGreaterThan(CHIME.length);
+    for (const n of [...CHIME, ...MILESTONE_CHIME]) {
+      expect(n.peak).toBeLessThanOrEqual(0.7);
     }
-  });
-
-  it("stays under speech after the master gain, even summed", () => {
-    const summed = MILESTONE_CHIME.reduce((a, n) => a + n.peak, 0);
-    expect(summed * MASTER_GAIN).toBeLessThanOrEqual(0.5);
+    for (const notes of [CHIME, MILESTONE_CHIME]) {
+      const summed = notes.reduce((a, n) => a + n.peak, 0);
+      expect(summed * MASTER_GAIN).toBeLessThanOrEqual(1);
+    }
   });
 
   it("ships on by default, with the opt-out in settings", () => {

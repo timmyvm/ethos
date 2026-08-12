@@ -20,11 +20,14 @@
  * positive-valence findings; the fail sound doesn't exist because
  * failure states don't either.
  *
- * The daily chime is the rising triad, left OPEN on the fifth — the
- * copy under it says "Same time tomorrow". Milestones (7/14/30) land
- * the octave: resolved, longer, and capped at the same peak — a
- * milestone says more, never shouts more (the slot-machine literature
- * is what louder-on-bigger trains people into).
+ * The daily chime is the full researched figure — rising triad landing
+ * the octave, accent at 0.70 (#140 restored the spec's peak). Milestones
+ * (7/14/30) escalate to a fanfare: a fast two-octave arpeggio landing
+ * D6, the arousal profile of a real win celebrated like one. The line
+ * that never moves, whatever the gains here: sound fires only on a
+ * real, earned event. The slot-machine harm Dixon et al. measured is
+ * the jingle on a LOSS — so "not enough to score" is silent, a rescued
+ * streak is silent, and nothing unearned ever chimes (#140).
  */
 
 import { readPrefs } from "./prefs";
@@ -43,19 +46,30 @@ export interface ChimeNote {
 /** One knob scales everything — ≈ −12 dB, under speech, over silence. */
 export const MASTER_GAIN = 0.25;
 
-/** D4 → F#4 → A4. The daily chime: rising, open, done in half a second. */
+/**
+ * The daily chime — the researched Ember figure at full spec: rising
+ * D-major triad landing the octave, the accent carrying the hit.
+ */
 export const CHIME: ChimeNote[] = [
   { freq: 293.66, at: 0, peak: 0.4, decay: 0.25 },
   { freq: 369.99, at: 0.09, peak: 0.45, decay: 0.25 },
-  { freq: 440.0, at: 0.18, peak: 0.5, decay: 0.35 },
+  { freq: 440.0, at: 0.18, peak: 0.5, decay: 0.25 },
+  { freq: 587.33, at: 0.32, peak: 0.7, decay: 0.6 },
 ];
 
-/** Milestones land D5 — resolved and longer, never louder. */
+/**
+ * The milestone fanfare (#140) — a two-octave arpeggio run at jackpot
+ * tempo, landing high D. D6's octave partial sits past the lowpass, so
+ * the top note arrives bright but rounded rather than shrill.
+ */
 export const MILESTONE_CHIME: ChimeNote[] = [
-  { freq: 293.66, at: 0, peak: 0.4, decay: 0.25 },
-  { freq: 369.99, at: 0.09, peak: 0.45, decay: 0.25 },
-  { freq: 440.0, at: 0.18, peak: 0.5, decay: 0.25 },
-  { freq: 587.33, at: 0.32, peak: 0.5, decay: 0.6 },
+  { freq: 293.66, at: 0, peak: 0.4, decay: 0.2 },
+  { freq: 369.99, at: 0.065, peak: 0.45, decay: 0.2 },
+  { freq: 440.0, at: 0.13, peak: 0.48, decay: 0.2 },
+  { freq: 587.33, at: 0.195, peak: 0.52, decay: 0.22 },
+  { freq: 739.99, at: 0.26, peak: 0.55, decay: 0.22 },
+  { freq: 880.0, at: 0.325, peak: 0.6, decay: 0.25 },
+  { freq: 1174.66, at: 0.39, peak: 0.7, decay: 0.7 },
 ];
 
 /** Total length of a chime, for anyone timing UI against it. */

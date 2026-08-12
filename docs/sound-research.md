@@ -63,6 +63,12 @@ final accent note more peak (0.70 vs 0.50). Not adopted — the accent
 is carried by register and length instead, because louder-on-bigger is
 the slot-machine pattern the same brief documents (#139).
 
+**Amended same day by #140, on Timothy's explicit call**: the cap
+reversed — the daily chime restored the researched 0.70 accent and
+milestones escalated to a two-octave fanfare landing D6. The
+only-real-events line is unchanged: the harm Dixon et al. measured is
+celebration on *losses*, and no sound here ever fires on a non-win.
+
 **Not built, defined for later**: a one-note tick in the same voice
 (A5, ~120 ms, quieter) if star/coin moments ever earn a sound — same
 timbre family, one-note grammar for small events, the figure reserved

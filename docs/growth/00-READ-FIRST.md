@@ -19,6 +19,9 @@ you rule on it. Two items outrank everything else in all seven documents:
 2. **The armed reminder can fire after the day's rep is done** (07 §0.2.2 —
    `scheduled` tier ignores `didToday`). A wrong push teaches users to disable
    the channel. Small fix, protects the whole channel.
+   **→ FIXED 12 Aug** (DECISIONS #143): `nextFireTime` now arms tomorrow's
+   hour when the day's rep is done, at every tier; Settings' "Next:" line
+   follows.
 
 ---
 

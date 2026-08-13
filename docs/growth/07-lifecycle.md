@@ -89,6 +89,7 @@ Consequences this document is built on:
    fastest possible way to teach someone to disable the channel. Fix: when
    `didToday`, arm for tomorrow's occurrence, not the next one. Small, and it
    protects the entire channel. (For founder review; documents-only run.)
+   **→ FIXED 12 Aug** (DECISIONS #143), exactly as specced above.
 
 ---
 

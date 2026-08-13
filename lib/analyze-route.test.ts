@@ -34,6 +34,7 @@ import {
   saveRep,
   writeMeterState,
 } from "@/lib/db";
+import { dateKey } from "@/lib/metering";
 import { transcribe } from "@/lib/transcribe";
 
 function post(form: FormData | null): Promise<Response> {
@@ -267,9 +268,12 @@ describe("POST /api/analyze", () => {
 describe("judged-analysis metering", () => {
   it("returns the measured tier and no coach once the cap is hit", async () => {
     coachedFixture();
+    // accruedOn must be the route's own "today": a hardcoded date lets
+    // the meter accrue a fresh grant once the real clock passes it, and
+    // the cap silently stops being hit.
     vi.mocked(readMeterState).mockResolvedValue({
       balance: 0,
-      accruedOn: "2026-08-11",
+      accruedOn: dateKey(new Date()),
       usedAt: "2026-08-11T09:00:00.000Z",
     });
     const body = await (await post(audioForm())).json();
@@ -289,7 +293,7 @@ describe("judged-analysis metering", () => {
     coachedFixture();
     vi.mocked(readMeterState).mockResolvedValue({
       balance: 0,
-      accruedOn: "2026-08-11",
+      accruedOn: dateKey(new Date()),
       usedAt: null,
     });
     await post(audioForm());
@@ -301,7 +305,7 @@ describe("judged-analysis metering", () => {
     vi.mocked(getUserFromAuthHeader).mockResolvedValue("user-1");
     vi.mocked(readMeterState).mockResolvedValue({
       balance: 2,
-      accruedOn: "2026-08-11",
+      accruedOn: dateKey(new Date()),
       usedAt: null,
     });
     const body = await (await post(audioForm())).json();

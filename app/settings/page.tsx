@@ -38,6 +38,7 @@ export default function SettingsPage() {
   const [tier, setTier] = useState<ReminderTier>("unsupported");
   const [email, setEmail] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [didToday, setDidToday] = useState(false);
 
   useEffect(() => {
     setPrefs(readPrefs());
@@ -46,6 +47,13 @@ export default function SettingsPage() {
     supabaseBrowser()
       ?.auth.getUser()
       .then(({ data }) => setEmail(data.user?.email ?? null))
+      .catch(() => {});
+    fetchReps()
+      .then((reps) =>
+        setDidToday(
+          computeStreak(reps.map((r) => new Date(r.created_at))).didToday
+        )
+      )
       .catch(() => {});
   }, []);
 
@@ -68,6 +76,7 @@ export default function SettingsPage() {
   async function rearm() {
     const reps = await fetchReps().catch(() => []);
     const s = computeStreak(reps.map((r) => new Date(r.created_at)));
+    setDidToday(s.didToday);
     await armReminder({ streak: s.current, didToday: s.didToday });
   }
 
@@ -116,7 +125,9 @@ export default function SettingsPage() {
   }
 
   const fireAt =
-    prefs.reminderHour !== null ? nextFireTime(prefs.reminderHour, new Date(), prefs) : null;
+    prefs.reminderHour !== null
+      ? nextFireTime(prefs.reminderHour, new Date(), prefs, didToday)
+      : null;
 
   return (
     <main className="px-5 pb-24 pt-7">

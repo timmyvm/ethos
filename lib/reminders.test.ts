@@ -39,6 +39,20 @@ describe("nextFireTime", () => {
   it("refuses to schedule inside quiet hours", () => {
     expect(nextFireTime(23, at(9, 12), DEFAULT_PREFS)).toBeNull();
   });
+
+  // A reminder for a day whose rep is already done is wrong however it
+  // fires — the OS tier can't check at fire time, so the day is chosen
+  // here. Repping at 9am with an 8pm hour must arm tomorrow's 8pm.
+  it("arms tomorrow's hour when today's rep is already done", () => {
+    const t = nextFireTime(20, at(9, 12), DEFAULT_PREFS, true)!;
+    expect(t.getDate()).toBe(10);
+    expect(t.getHours()).toBe(20);
+  });
+
+  it("does not double-skip when the hour has passed AND the rep is done", () => {
+    const t = nextFireTime(8, at(9, 12), DEFAULT_PREFS, true)!;
+    expect(t.getDate()).toBe(10);
+  });
 });
 
 describe("reminderBody", () => {

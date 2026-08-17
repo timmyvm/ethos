@@ -20,6 +20,7 @@ import { PoseSkeleton } from "@/components/PoseSkeleton";
 import { PresenceDetail, PresenceScore } from "@/components/PresenceCard";
 import { RepResult } from "@/components/RepResult";
 import { StreakCelebration } from "@/components/StreakCelebration";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { achievements } from "@/lib/achievements";
 import {
   fetchProfile,
@@ -110,6 +111,9 @@ const INTERRUPTIONS = [
   "Get to the point.",
 ];
 
+/** A failure we already have words for. Anything else gets the generic. */
+class ScoringFailure extends Error {}
+
 type Phase =
   | "idle"
   | "frame"
@@ -167,6 +171,11 @@ function RepScreen() {
   const [levels, setLevels] = useState<number[]>(Array(METER_BARS).fill(0.05));
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /**
+   * The recording that failed to score, held so "Score it again" can
+   * mean it. Cleared the moment a result lands.
+   */
+  const pendingRef = useRef<FormData | null>(null);
   const [celebrate, setCelebrate] = useState<number | null>(null);
   const [interruption, setInterruption] = useState<string | null>(null);
   const [gains, setGains] = useState<RepGain[]>([]);
@@ -313,68 +322,19 @@ function RepScreen() {
     recRef.current = null;
   }, []);
 
-  const stopRep = useCallback(async () => {
-    const r = recRef.current;
-    if (!r || phaseRef.current !== "recording") return;
-    buzz([20, 40, 20]);
+  /**
+   * Send a recording to be scored.
+   *
+   * Split out of `stopRep` and handed a built form on purpose: a failure
+   * can then offer the only thing worth offering, which is the same audio
+   * sent again. Losing ninety seconds of speaking to one bad minute of
+   * wifi is the worst failure in the product, and until now the error
+   * card named the breakage and left you to record it from scratch.
+   */
+  const score = useCallback(async (form: FormData) => {
     setPhase("analyzing");
-    setInterruption(null);
-
-    const blob = await new Promise<Blob>((resolve) => {
-      r.recorder.onstop = () =>
-        resolve(new Blob(r.chunks, { type: r.recorder.mimeType }));
-      r.recorder.stop();
-    });
-
-    // The loudness envelope, captured alongside the meter. This is what
-    // lets the engine tell a silent gap from one the mic heard a sound
-    // in — i.e. an "um" the transcript dropped.
-    const envelope: Envelope = { levels: [...r.envelope], rate: ENVELOPE_RATE };
-
-    // Score the body before tearing the camera down. Everything below
-    // this line is five numbers and a list of timestamps — the frames
-    // themselves are dropped with the sampler.
-    const frames = r.sampler?.stop() ?? [];
-    const scored = frames.length > 0 ? scorePresence(frames) : null;
-    setPresence(scored?.scorable ? scored : null);
-
-    // The local clip, for Pro playback with markers. Held as an object
-    // URL in this tab and nowhere else — never uploaded, never stored.
-    if (r.videoRecorder && r.videoRecorder.state !== "inactive") {
-      const clip = await new Promise<Blob>((resolve) => {
-        r.videoRecorder!.onstop = () =>
-          resolve(new Blob(r.videoChunks, { type: r.videoRecorder!.mimeType }));
-        r.videoRecorder!.stop();
-      });
-      if (clip.size > 0) setClipUrl(URL.createObjectURL(clip));
-    }
-
-    const cfg = configRef.current;
-    const mode = captureModeRef.current;
-    teardown();
-
+    setError(null);
     try {
-      const form = new FormData();
-      const ext = blob.type.includes("mp4") ? "mp4" : "webm";
-      form.append("audio", blob, `rep.${ext}`);
-      form.append("lessonId", cfg.lessonId);
-      form.append("mode", cfg.kind);
-      form.append("mods", cfg.mods.map((m) => m.id).join(","));
-      form.append("xpMultiplier", String(cfg.xpMultiplier));
-      form.append("captureMode", mode);
-      if (envelope.levels.length > 0) {
-        form.append("envelope", serializeEnvelope(envelope));
-      }
-      // The judged-tier allowance resets on the user's own calendar day,
-      // not on UTC's (§3).
-      form.append("tzOffset", String(new Date().getTimezoneOffset()));
-      if (scored?.scorable) {
-        form.append(
-          "delivery",
-          JSON.stringify({ metrics: scored.metrics, moments: scored.moments })
-        );
-      }
-      if (cfg.topic) form.append("bossTopicId", cfg.topic.id);
       // Anonymous-first (DECISIONS #15): attribute the rep if a session
       // exists or can be minted; never block the rep on auth.
       const token = await ensureSession();
@@ -383,11 +343,21 @@ function RepScreen() {
         body: form,
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
-      const data = await res.json();
-      if (!res.ok)
-        throw new Error(data.error ?? `Analysis failed (${res.status})`);
+      // A gateway's 502 is HTML, and parsing it threw inside the catch
+      // below, so the JSON parser's complaint ("Unexpected token <")
+      // became the sentence the user read. Ours are the only words that
+      // reach them.
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data) {
+        throw new ScoringFailure(
+          res.status === 503
+            ? "Scoring is offline right now."
+            : "The scoring server didn't answer."
+        );
+      }
       setResult(data as AnalyzeResponse);
       setPhase("results");
+      pendingRef.current = null;
       // Streak is derived from stored reps, so read it back rather than
       // guessing — a rep that failed to persist shouldn't celebrate.
       const analyzed = data as AnalyzeResponse;
@@ -445,10 +415,84 @@ function RepScreen() {
         })
         .catch(() => {});
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Analysis failed.");
+      // The audio stays in hand, which is what makes the retry real.
+      pendingRef.current = form;
+      const lead =
+        e instanceof ScoringFailure
+          ? e.message
+          : typeof navigator !== "undefined" && navigator.onLine === false
+            ? "You're offline."
+            : "The scoring server didn't answer.";
+      setError(`${lead} The recording is still on this device.`);
       setPhase("error");
     }
-  }, [teardown]);
+  }, []);
+
+  const stopRep = useCallback(async () => {
+    const r = recRef.current;
+    if (!r || phaseRef.current !== "recording") return;
+    buzz([20, 40, 20]);
+    setPhase("analyzing");
+    setInterruption(null);
+
+    const blob = await new Promise<Blob>((resolve) => {
+      r.recorder.onstop = () =>
+        resolve(new Blob(r.chunks, { type: r.recorder.mimeType }));
+      r.recorder.stop();
+    });
+
+    // The loudness envelope, captured alongside the meter. This is what
+    // lets the engine tell a silent gap from one the mic heard a sound
+    // in — i.e. an "um" the transcript dropped.
+    const envelope: Envelope = { levels: [...r.envelope], rate: ENVELOPE_RATE };
+
+    // Score the body before tearing the camera down. Everything below
+    // this line is five numbers and a list of timestamps — the frames
+    // themselves are dropped with the sampler.
+    const frames = r.sampler?.stop() ?? [];
+    const scored = frames.length > 0 ? scorePresence(frames) : null;
+    setPresence(scored?.scorable ? scored : null);
+
+    // The local clip, for Pro playback with markers. Held as an object
+    // URL in this tab and nowhere else — never uploaded, never stored.
+    if (r.videoRecorder && r.videoRecorder.state !== "inactive") {
+      const clip = await new Promise<Blob>((resolve) => {
+        r.videoRecorder!.onstop = () =>
+          resolve(new Blob(r.videoChunks, { type: r.videoRecorder!.mimeType }));
+        r.videoRecorder!.stop();
+      });
+      if (clip.size > 0) setClipUrl(URL.createObjectURL(clip));
+    }
+
+    const cfg = configRef.current;
+    const mode = captureModeRef.current;
+    teardown();
+
+    {
+      const form = new FormData();
+      const ext = blob.type.includes("mp4") ? "mp4" : "webm";
+      form.append("audio", blob, `rep.${ext}`);
+      form.append("lessonId", cfg.lessonId);
+      form.append("mode", cfg.kind);
+      form.append("mods", cfg.mods.map((m) => m.id).join(","));
+      form.append("xpMultiplier", String(cfg.xpMultiplier));
+      form.append("captureMode", mode);
+      if (envelope.levels.length > 0) {
+        form.append("envelope", serializeEnvelope(envelope));
+      }
+      // The judged-tier allowance resets on the user's own calendar day,
+      // not on UTC's (§3).
+      form.append("tzOffset", String(new Date().getTimezoneOffset()));
+      if (scored?.scorable) {
+        form.append(
+          "delivery",
+          JSON.stringify({ metrics: scored.metrics, moments: scored.moments })
+        );
+      }
+      if (cfg.topic) form.append("bossTopicId", cfg.topic.id);
+      await score(form);
+    }
+  }, [teardown, score]);
 
   const startRep = useCallback(async () => {
     setError(null);
@@ -1060,10 +1104,17 @@ function RepScreen() {
         )}
 
         {phase === "error" && (
-          <div className="w-full rounded-[18px] border border-hairline bg-surface lift p-5 text-center">
-            <div className="font-semibold">Rep didn&apos;t score.</div>
-            <p className="mt-1.5 text-sm text-stone-500">{error}</p>
-          </div>
+          <ErrorState
+            className="w-full"
+            title="That rep didn't score."
+            body={error ?? "The scoring server didn't answer."}
+            onRetry={
+              pendingRef.current
+                ? () => void score(pendingRef.current as FormData)
+                : undefined
+            }
+            retryLabel="Score it again"
+          />
         )}
 
         {phase !== "analyzing" && phase !== "frame" && (

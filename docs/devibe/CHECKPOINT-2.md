@@ -70,13 +70,28 @@ eight bordered cards to one, and two explanatory paragraphs to none.
   screen, the existing "confidence" ban)
 - `npx next build` — clean
 
+## Round two (17 Aug, same day)
+
+Timothy's call on top of the passes above:
+
+- **Zero em dashes**, replacing the budget of one (#154). The sweep
+  covered the content libraries this time, so `lib/drills.ts`,
+  `lib/pause-quality.ts` and `lib/presence.ts` are clean too, and the ban
+  is in the coach's system prompt so generated copy obeys it.
+- **Everything shorter.** 27 drills lost their long-form tips; the rep,
+  settings, boss, log, profile and marketing screens each lost a
+  paragraph's worth of prose. The rule under it: someone opened this app
+  to speak, and every sentence they read first is one they didn't spend
+  speaking.
+- **The badges became a shelf** (#153): ranked by difficulty with no tier
+  labels, a mark on each, and every row a link to the drill that earns
+  it. Order is asserted in `achievements.test.ts`.
+
+That closes item 3 of the list below, which was going to be the next
+content pass.
+
 ## Next, in order
 
 1. Timothy's ruling on the seven unit marks (`needs-judgment.md` §1).
 2. The desktop shell (§2) — the last big visual lift.
-3. The content libraries: `lib/drills.ts`, `lib/coach.ts` and
-   `lib/pause-quality.ts` hold the app's remaining em dashes. The copy
-   test covers screen files only, so a drill tip and a milestone line can
-   still both land on one screen with a dash each. Sweeping the tip
-   library is a content pass, not a code one.
-4. Paywall prices (open queue since §4).
+3. Paywall prices (open queue since §4).

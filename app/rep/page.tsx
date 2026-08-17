@@ -1095,8 +1095,8 @@ function RepScreen() {
             )}
             <p className="max-w-[260px] text-center text-[13.5px] text-stone-500">
               {config.maxSeconds < 60
-                ? `${config.maxSeconds} seconds. Pauses still score in your favor, so spend them deliberately.`
-                : "Aim for 60–90 seconds. Pauses are allowed, and they're scored in your favor."}
+                ? `${config.maxSeconds} seconds. Spend your pauses deliberately.`
+                : "60 to 90 seconds. Pauses score in your favor."}
             </p>
           </>
         )}

@@ -104,7 +104,7 @@ export function RepResult({
             )}
             {delta === null && baseline && (
               <div className="text-[13px] font-semibold text-stone-500">
-                Day 0 — every rep after this has a number to beat.
+                Day 0. Every rep after this has a number to beat.
               </div>
             )}
           </div>

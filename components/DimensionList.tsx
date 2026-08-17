@@ -126,7 +126,7 @@ export function DimensionList({
           name: "Steadiness",
           score: coach.dimensions.confidence.score,
           weight: 100,
-          detail: `${coach.dimensions.confidence.citedMoment} (${anchors.hedgeCount} hedges, ${anchors.restartCount} restarts — counted, not judged.)`,
+          detail: `${coach.dimensions.confidence.citedMoment} (${anchors.hedgeCount} hedges, ${anchors.restartCount} restarts · counted, not judged.)`,
           improve: coach.dimensions.confidence.improve,
         },
       ]

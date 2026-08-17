@@ -111,7 +111,7 @@ export default function PathPage() {
 
           {u.locked && (
             <p className="mt-2 text-[12.5px] font-semibold text-stone-500">
-              Opens at {u.unlocksAt} stars — {u.unlocksAt - total} to go.
+              Opens at {u.unlocksAt} stars · {u.unlocksAt - total} to go.
             </p>
           )}
 

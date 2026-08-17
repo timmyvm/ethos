@@ -107,7 +107,7 @@ function ResetScreen() {
       ) : (
         <>
           <h1 className="font-display mt-8 text-[30px] font-bold leading-tight">
-            {first ? "Last step — pick your password." : "Pick a new password."}
+            {first ? "Last step. Pick your password." : "Pick a new password."}
           </h1>
           {first && (
             <p className="mt-2 text-[13.5px] leading-relaxed text-stone-500">

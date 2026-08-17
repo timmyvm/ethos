@@ -5,11 +5,16 @@ user-facing string.
 
 ## Budgets (hard limits per screen)
 
-- One em dash. The rest become commas, periods, or get cut.
+- **Zero em dashes.** Not one. Commas, full stops and colons do the same
+  work in fewer characters, and the dash was the tell (asserted in
+  `lib/copy.test.ts`, and written into the coach's prompt so generated
+  copy obeys it too).
+- Say it in as few words as you can. Someone opened this app to speak,
+  not to read: one line beats three, and a number beats a line.
 - One "X, not Y" / negation construction. It's the brand's favorite move,
   which is exactly why it can't appear five times.
-- One mantra appearance. "Never money" is a principle, not a chorus — say it
-  once where it lands hardest, trust the reader after that.
+- One mantra appearance. "Never money" is a principle, not a chorus. Say
+  it once where it lands hardest and trust the reader after that.
 - Section captions: one sentence. If a mechanic needs more, it doesn't belong
   here (see placement rules).
 - Zero rhetorical fragments used as sentences ("No guessing." "Just reps.")
@@ -35,7 +40,7 @@ user-facing string.
 - Clever lines are a spice: max one per screen, earned placements only
   (empty states, milestones, the welcome carousel). A settings toggle never
   needs wit.
-- Banned constructions (the AI tells): "— which is why …", "It's not X,
+- Banned constructions (the AI tells): "which is why …", "It's not X,
   it's Y", chained fragments ("Not A. Not B. Just C."), tailing negations
   ("…, no guessing"), explaining a feature by what it ISN'T.
 - Numbers speak for themselves. "17 reps" beats any sentence about

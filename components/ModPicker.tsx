@@ -53,8 +53,8 @@ export function ModPicker({
         )}
       </div>
       <p className="mt-1.5 text-[12.5px] leading-relaxed text-stone-500">
-        Harder conditions, same measurement. A mod multiplies the XP you
-        earn for showing up — it never moves a star or the Index.
+        Harder conditions, same measurement. A mod multiplies XP, never a
+        star or the Index.
       </p>
 
       <div className="mt-3 space-y-2">

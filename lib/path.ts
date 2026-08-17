@@ -26,11 +26,11 @@ const BOSS_LESSONS: Drill[] = [
     unit: "Cold Topic",
     title: "Boss: unknown territory",
     prompt:
-      "A topic you've never studied. 4 minutes to research, 90 seconds to explain it — scored on delivery AND accuracy.",
+      "A topic you've never studied. 4 minutes to research, 90 seconds to explain. Scored on delivery and accuracy.",
     tips: [
       "Say what you know and flag what you don't. A wrong claim stated as fact costs three times what an admitted unknown does.",
       "Structure beats coverage: one definition, one mechanism, one example.",
-      "Hedge honestly — \"I think\" in front of a shaky claim is cheaper than being confidently wrong.",
+      "Hedge honestly. \"I think\" in front of a shaky claim is cheaper than being wrong.",
     ],
   },
   {

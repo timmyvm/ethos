@@ -90,8 +90,7 @@ export function AuthForm({
           </p>
         )}
         <p className="mt-5 text-[13px] leading-relaxed text-stone-400">
-          That address is a real inbox, not a no-reply. If something looks
-          wrong, replying is the fastest way to tell us.
+          That address is a real inbox. Reply to it if something looks wrong.
         </p>
         <Link
           href="/"
@@ -113,8 +112,7 @@ export function AuthForm({
             {progress.streak > 0 && ` and a ${progress.streak}-day streak`}.{" "}
             {mode === "signup" ? (
               <>
-                They stay exactly where they are — the account attaches to them,
-                not the other way round.
+                They stay where they are. The account attaches to them.
               </>
             ) : (
               <>

@@ -49,7 +49,7 @@ export function reminderTier(): ReminderTier {
 export function reminderTierNote(tier: ReminderTier): string {
   switch (tier) {
     case "scheduled":
-      return "Scheduled with your OS — it fires whether Ethos is open or not.";
+      return "Scheduled with your OS. It fires whether Ethos is open or not.";
     case "open-tab":
       return "Your browser can only fire this while Ethos is open in a tab. Install it to the home screen for a real alarm.";
     case "unsupported":

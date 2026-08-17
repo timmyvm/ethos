@@ -27,7 +27,7 @@ export function Paywall({
           Ethos Premium
         </h2>
         <ul className="mt-3 space-y-1.5 text-[14px] leading-relaxed text-stone-600">
-          <li>· Full pause analytics — the silence scores</li>
+          <li>· Full pause analytics, the silence scores</li>
           <li>· Complete history + day-1-vs-day-30 cards</li>
           <li>· Your whole lexicon, not just today&apos;s swap</li>
           <li>· Boss modes: Cold Topic, Debate, Hostile Q&amp;A</li>

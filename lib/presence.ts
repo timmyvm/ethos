@@ -370,9 +370,9 @@ export function scorePresence(frames: PoseFrame[]): PresenceResult {
       value: `${gestureRate}/min`,
       note:
         gestureRate < GESTURE_ZONE[0]
-          ? `${gestureRate} gestures a minute — hands were mostly parked.`
+          ? `${gestureRate} gestures a minute. Hands mostly parked.`
           : gestureRate > GESTURE_ZONE[1]
-            ? `${gestureRate} gestures a minute — busier than the words needed.`
+            ? `${gestureRate} gestures a minute. Busier than the words needed.`
             : `${gestureRate} gestures a minute, inside the ${GESTURE_ZONE[0]}–${GESTURE_ZONE[1]} zone.`,
     },
     {
@@ -421,7 +421,7 @@ function findMoments(geo: FrameGeometry[]): DeliveryMoment[] {
         t: from,
         seconds: Math.round(seconds),
         kind: "eyes-down",
-        note: `${clock(from)} — eyes left the camera for ${Math.round(seconds)}s.`,
+        note: `${clock(from)} · eyes left the camera for ${Math.round(seconds)}s.`,
       });
     }
   });
@@ -433,7 +433,7 @@ function findMoments(geo: FrameGeometry[]): DeliveryMoment[] {
         t: from,
         seconds: Math.round(seconds),
         kind: "hands-gone",
-        note: `${clock(from)} — hands out of frame for ${Math.round(seconds)}s.`,
+        note: `${clock(from)} · hands out of frame for ${Math.round(seconds)}s.`,
       });
     }
   });
@@ -451,7 +451,7 @@ function findMoments(geo: FrameGeometry[]): DeliveryMoment[] {
           t: from,
           seconds: Math.round(seconds),
           kind: "slouch",
-          note: `${clock(from)} — you sank below where you started and stayed there ${Math.round(seconds)}s.`,
+          note: `${clock(from)} · you sank below your start line for ${Math.round(seconds)}s.`,
         });
       }
     }
@@ -468,7 +468,7 @@ function findMoments(geo: FrameGeometry[]): DeliveryMoment[] {
       t: from,
       seconds: Math.round(to - from),
       kind: "stillness",
-      note: `${clock(from)} — hands didn't move for ${Math.round(to - from)}s.`,
+      note: `${clock(from)} · hands still for ${Math.round(to - from)}s.`,
     });
   });
 

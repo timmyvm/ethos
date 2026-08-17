@@ -99,8 +99,8 @@ export default function ShopPage() {
       if (item.kind === "cosmetic") equip(item.id);
       setNote(
         item.kind === "cosmetic"
-          ? `${item.name} — bought and on your card.`
-          : `${item.name} — bought.`
+          ? `${item.name} bought, and on your card.`
+          : `${item.name} bought.`
       );
       await refresh();
     } else {
@@ -109,7 +109,7 @@ export default function ShopPage() {
       setNote(
         res.detail === "not enough coins"
           ? "Not enough coins yet."
-          : "That didn't go through. Your coins are untouched — try again."
+          : "That didn't go through. Your coins are untouched."
       );
     }
     setBusy(null);

@@ -187,7 +187,7 @@ function humanise(message: string): string {
     return "That email and password don't match. Try again, or reset it below.";
   }
   if (m.includes("email not confirmed")) {
-    return "Confirm the link in your inbox first — then this will work.";
+    return "Confirm the link in your inbox first. Then this will work.";
   }
   if (m.includes("already registered") || m.includes("already been registered")) {
     return "That email already has an Ethos account. Sign in instead.";
@@ -201,7 +201,7 @@ function humanise(message: string): string {
   if (m.includes("anonymous user")) {
     // Only reachable if a password update runs before the email is
     // confirmed — the exact wall #142 exists to route around.
-    return "Confirm your email first — the link in your inbox does it.";
+    return "Confirm your email first. The link in your inbox does it.";
   }
   if (
     m.includes("deadline") ||
@@ -213,7 +213,7 @@ function humanise(message: string): string {
     // synchronously, and a hung SMTP connection eats its whole 10s
     // budget — the request often completes AFTER this error reached
     // the user, so "check your inbox anyway" is honest advice.
-    return "The email server took too long. Check your inbox anyway — the mail sometimes lands after this error — or wait a minute and try again.";
+    return "The email server took too long. Check your inbox anyway; the mail often lands after this error.";
   }
   if (m.includes("weak") || m.includes("password should be")) {
     return `${MIN_PASSWORD} characters or more. Length beats punctuation.`;

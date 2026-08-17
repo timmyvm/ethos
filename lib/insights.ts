@@ -110,7 +110,7 @@ export function insights(reps: RepRow[]): Insight[] {
       out.push({
         id: "filler-cluster",
         headline: `Most fillers land in ${where} of a rep`,
-        detail: `${share}% of them. ${peak === 0 ? "Openings are where you're still finding the sentence — plan the first line before you hit record." : "Worth knowing where the wobble sits."}`,
+        detail: `${share}% of them. ${peak === 0 ? "Openings are where you are still finding the sentence. Plan the first line before you record." : "Worth knowing where the wobble sits."}`,
       });
     }
   }
@@ -153,7 +153,7 @@ export function insights(reps: RepRow[]): Insight[] {
     out.push({
       id: "best-hour",
       headline: `You speak cleanest around ${label}`,
-      detail: `${best.fpm.toFixed(1)} fillers a minute in that window — your lowest. Worth putting the rep there.`,
+      detail: `${best.fpm.toFixed(1)} fillers a minute in that window, your lowest. Worth putting the rep there.`,
     });
   }
 

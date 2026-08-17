@@ -212,10 +212,8 @@ export default function SettingsPage() {
           ))}
         </div>
         <p className="mt-3 text-[12.5px] leading-relaxed text-stone-500">
-          Dark keeps the same warm neutrals: no cool greys, no pure
-          black. Terracotta and amber never change: they mean &ldquo;tap
-          this&rdquo; and &ldquo;you earned this&rdquo;, and a colour that
-          carries meaning has to read the same in both.
+          Same warm neutrals, no cool greys. Terracotta and amber never
+          change: they carry meaning.
         </p>
       </div>
 
@@ -261,7 +259,7 @@ export default function SettingsPage() {
         <p className="mt-1 text-[12.5px] text-stone-500">
           {email
             ? "Your reps follow this email anywhere."
-            : "Everything you've recorded lives on this device. An account attaches to it where it already is — nothing moves, so nothing can go missing."}
+            : "Everything you've recorded lives on this device. An account attaches to it where it is."}
         </p>
         {!email && (
           <Link

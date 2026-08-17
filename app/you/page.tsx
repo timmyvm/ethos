@@ -360,8 +360,7 @@ export default function YouPage() {
       <div className="section-title mt-7">Your lexicon</div>
       {lexicon.length === 0 ? (
         <p className="mt-2 text-[13px] leading-relaxed text-stone-500">
-          Every rep gives you one upgrade drawn from your own words. They
-          collect here.
+          One upgrade a rep, drawn from your own words.
         </p>
       ) : (
         <>

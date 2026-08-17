@@ -79,7 +79,7 @@ describe("a pause is judged by where it lands", () => {
     const r = report(["Right. So.", 1.5, SENTENCE_A]);
     expect(r.landings).toBe(0);
     expect(r.pauses.find((p) => p.verdict === "hesitation")?.note).toContain(
-      "wasn't a point there to land"
+      "No point to land"
     );
   });
 

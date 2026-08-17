@@ -120,7 +120,7 @@ export function judgePauses(params: {
 
   return pauses.map((p): JudgedPause => {
     if (p.kind === "beat") {
-      return { ...p, verdict: "beat", note: `${clock(p.t)} — a beat.` };
+      return { ...p, verdict: "beat", note: `${clock(p.t)} · a beat.` };
     }
 
     // A filler leaning on either side means the silence was bought back
@@ -145,7 +145,7 @@ export function judgePauses(params: {
       return {
         ...p,
         verdict: "dead",
-        note: `${clock(p.t)} — ${p.len.toFixed(1)}s of dead air. Past about ${DEAD_AIR_S}s a pause stops reading as composure.`,
+        note: `${clock(p.t)} · ${p.len.toFixed(1)}s of dead air. Past ${DEAD_AIR_S}s it stops reading as composure.`,
       };
     }
 
@@ -153,7 +153,7 @@ export function judgePauses(params: {
       return {
         ...p,
         verdict: "filled",
-        note: `${clock(p.t)} — ${p.len.toFixed(1)}s with a sound in it, not silence. The mic heard it even though the transcript didn't.`,
+        note: `${clock(p.t)} · ${p.len.toFixed(1)}s with a sound in it. The mic heard it, the transcript didn't.`,
       };
     }
 
@@ -161,7 +161,7 @@ export function judgePauses(params: {
       return {
         ...p,
         verdict: "filled",
-        note: `${clock(p.t)} — silence with a filler leaning on it. The technique is silence INSTEAD of the "um", not either side of it.`,
+        note: `${clock(p.t)} · silence with a filler leaning on it. The swap is silence INSTEAD of the "um".`,
       };
     }
 
@@ -169,20 +169,20 @@ export function judgePauses(params: {
       return {
         ...p,
         verdict: "hesitation",
-        note: `${clock(p.t)} — ${p.len.toFixed(1)}s mid-sentence. That's searching for the next word, and it reads that way.`,
+        note: `${clock(p.t)} · ${p.len.toFixed(1)}s mid-sentence. That reads as searching for the word.`,
       };
     }
 
     // Pre-sentence and long enough to be deliberate.
     if (p.len < RHETORICAL_MIN_S) {
-      return { ...p, verdict: "beat", note: `${clock(p.t)} — a breath.` };
+      return { ...p, verdict: "beat", note: `${clock(p.t)} · a breath.` };
     }
 
     if (p.t <= firstWordAt + 0.5) {
       return {
         ...p,
         verdict: "opening",
-        note: `${clock(p.t)} — you took the room before you spoke.`,
+        note: `${clock(p.t)} · you took the room before you spoke.`,
       };
     }
 
@@ -191,7 +191,7 @@ export function judgePauses(params: {
       return {
         ...p,
         verdict: "hesitation",
-        note: `${clock(p.t)} — a pause after only ${closed} word${closed === 1 ? "" : "s"}. There wasn't a point there to land yet.`,
+        note: `${clock(p.t)} · a pause after ${closed} word${closed === 1 ? "" : "s"}. No point to land yet.`,
       };
     }
 
@@ -200,8 +200,8 @@ export function judgePauses(params: {
       ...p,
       verdict: "landing",
       note: late
-        ? `${clock(p.t)} — you let the ending land instead of trailing off.`
-        : `${clock(p.t)} — ${p.len.toFixed(1)}s after a finished point. That's the one.`,
+        ? `${clock(p.t)} · you let the ending land.`
+        : `${clock(p.t)} · ${p.len.toFixed(1)}s after a finished point. That's the one.`,
     };
   });
 }
@@ -294,19 +294,19 @@ function headline(counts: {
 }): string | null {
   const { held, landings, hesitations, filled, dead } = counts;
   if (held === 0) {
-    return "No held pauses at all. Silence is the one tool here nobody else scores — try one after your first real point.";
+    return "No held pauses yet. Try one after your first real point.";
   }
   if (dead > 0) {
     return `${dead} pause${dead === 1 ? "" : "s"} ran past ${DEAD_AIR_S}s into dead air. A pause lands at one to two seconds; past that a listener starts wondering if you're lost.`;
   }
   if (filled > 0) {
-    return `${filled} of your "pauses" had a sound in them. The swap is silence INSTEAD of the "um" — the gap is already the right length, the noise is the part to drop.`;
+    return `${filled} of your "pauses" had a sound in them. Silence INSTEAD of the "um", not either side of it.`;
   }
   if (hesitations > landings) {
     return `${hesitations} of your pauses were mid-sentence and ${landings} landed after a finished point. Same silence, opposite read: one is thinking, one is composure.`;
   }
   if (landings === 0) {
-    return "Nothing landed after a finished point yet. Say the thing, then stop for a second — that second is what makes it sound decided.";
+    return "Nothing landed after a finished point yet. Say the thing, then stop for a second.";
   }
   return `${landings} pause${landings === 1 ? "" : "s"} landed after a finished point.`;
 }

@@ -69,10 +69,10 @@ export function readFailure(subject: string): { title: string; body: string } {
   return offline
     ? {
         title: `${subject} needs a connection.`,
-        body: "You're offline. Nothing is lost — it loads when you're back.",
+        body: "You're offline. It loads when you're back.",
       }
     : {
         title: `${subject} didn't load.`,
-        body: "The server didn't answer. Your reps are safe where they are.",
+        body: "The server didn't answer. Your reps are safe.",
       };
 }

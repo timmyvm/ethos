@@ -149,8 +149,8 @@ export default function HistoryPage() {
     <main className="px-5 pb-24 pt-7">
       <h1 className="font-display text-2xl font-bold">The log</h1>
       <p className="mt-1 text-[13.5px] text-stone-500">
-        {reps.length} recording{reps.length === 1 ? "" : "s"}, one row each.
-        Tap any of them for the full result.
+        {reps.length} recording{reps.length === 1 ? "" : "s"}. Tap one for the
+        full result.
       </p>
 
       <div className="mt-4 space-y-3">
@@ -252,7 +252,7 @@ export default function HistoryPage() {
           onClick={() => setPaywall("Full history · premium")}
           className="mt-3 w-full rounded-[18px] border border-terracotta-100 bg-terracotta-50 p-4 text-[13.5px] font-semibold"
         >
-          {hidden} older recording{hidden === 1 ? "" : "s"} archived — unlock
+          {hidden} older recording{hidden === 1 ? "" : "s"} archived. Unlock
           full history
         </button>
       )}

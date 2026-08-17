@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Ethos — practice being worth listening to",
+  title: "Ethos: practice being worth listening to",
   // §8: the acquisition line. Clarity converts at zero awareness —
   // "practice" says gym rather than one-off, and "worth listening to"
   // names the thing being trained without dragging in fear of the podium.
@@ -70,8 +70,8 @@ export default function About() {
           </li>
           <li>
             <span className="font-semibold text-ink">One supply.</span>{" "}
-            A better word, pulled from your own transcript. They collect into
-            a lexicon that&apos;s actually yours.
+            A better word from your own transcript. They collect into a
+            lexicon that is actually yours.
           </li>
         </ol>
         <Image
@@ -88,19 +88,16 @@ export default function About() {
       </h2>
       <p className="mt-3 text-[15px] leading-relaxed text-stone-600">
         Every other app treats a pause as dead air. We time yours and ask
-        where it landed. Before a sentence, it reads as composure: you
-        thought, then spoke. Inside one, it reads as searching. That single
-        distinction is the difference between sounding certain and sounding
-        lost, and no competitor measures it.
+        where it landed. Before a sentence it reads as composure. Inside one
+        it reads as searching. Nobody else measures the difference.
       </p>
 
       <div className="mt-6 rounded-2xl bg-stage p-6 text-cream lift-stage">
         <div className="label-data !text-stone-400">Your Ethos · /1000</div>
         <p className="mt-3 text-[14.5px] leading-relaxed text-stone-300">
-          Eight dimensions. Four measured straight from the timestamps:
-          pause, fillers, pace, range. Four judged against your actual words,
-          and every judged score has to quote the moment it came from or it
-          gets thrown out and re-run.
+          Eight dimensions. Four measured from the timestamps: pause,
+          fillers, pace, range. Four judged against your words, and a judged
+          score without a quoted moment gets thrown out and re-run.
         </p>
         <p className="mt-3 text-[14.5px] font-semibold">
           If we can&apos;t point at a timestamp, we don&apos;t say it.
@@ -120,11 +117,10 @@ export default function About() {
         Rehearsal tools exist. This isn&apos;t one.
       </h2>
       <p className="mt-3 text-[15px] leading-relaxed text-stone-600">
-        There are good tools for the week before an interview. Yoodli will
-        watch you over a webcam and read your body language, and it&apos;s
-        genuinely strong at it. You go there before the thing, do a session,
-        and leave. There are daily speaking apps too, and they listen to your
-        voice and nothing else.
+        There are good tools for the week before an interview. Yoodli reads
+        your body language over a webcam and is genuinely strong at it. You go
+        before the thing, do a session, and leave. The daily speaking apps
+        listen to your voice and nothing else.
       </p>
       <p className="mt-3 text-[15px] leading-relaxed text-stone-600">
         Nobody is doing daily, streak-driven, gamified reps with video. Five
@@ -137,12 +133,11 @@ export default function About() {
         The camera is optional, and it stays here.
       </h2>
       <p className="mt-3 text-[15px] leading-relaxed text-stone-600">
-        Every rep is voice or voice + video, your call, remembered per drill.
-        When video is on, posture, gesture, head movement and eye line are
-        read <span className="font-semibold text-ink">on your device</span> at
-        about thirty frames a second. The video is never uploaded and never
-        stored. Five numbers are, and they are the same five you can read on
-        the screen.
+        Voice or voice + video, your call, remembered per drill. With video
+        on, posture, gesture, head movement and eye line are read{" "}
+        <span className="font-semibold text-ink">on your device</span> at
+        thirty frames a second. The video is never uploaded. Five numbers are,
+        the same five on your screen.
       </p>
 
       <h2 className="font-display mt-12 text-[20px] font-bold">
@@ -163,8 +158,8 @@ export default function About() {
         Start your first rep
       </Link>
       <p className="mt-6 text-center text-[12px] text-stone-400">
-        Ethos, from Aristotle&apos;s three modes of persuasion. Logos is
-        logic, pathos is emotion, ethos is the credibility of the speaker.
+        Ethos, from Aristotle. Logos is logic, pathos is emotion, ethos is
+        the credibility of the speaker.
       </p>
     </main>
   );

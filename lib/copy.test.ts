@@ -54,53 +54,65 @@ describe("banned words", () => {
 /**
  * COPY-RULES.md, asserted rather than remembered.
  *
- * The em dash is the house's favourite punctuation mark and that is
- * exactly the problem: at one per screen it's a hinge, at five it's a
- * tic, and a tic is what "written by a language model" reads like. Same
- * argument for the mantra — "never money" is a principle, and a
- * principle repeated three times a screen is a slogan.
+ * **No em dash reaches the user.** It was the house's favourite mark and
+ * that was the problem: thirteen of them on the rep screen alone, which
+ * is a tic, and a tic is what "written by a language model" reads like.
+ * Zero is a rule anyone can check; "one per screen" was a rule that
+ * needed a spreadsheet. Full stops, commas and colons do the work, and
+ * they're shorter (DECISIONS #154).
  *
- * Counting is deliberately conservative: comments are stripped (the
- * reason for a rule has to be writable next to the code enforcing it),
- * and a dash only counts when prose surrounds it, so `{coins ?? "—"}`
- * — a number nobody could read — isn't a copy violation.
+ * The same ban is written into the coach's system prompt, since half the
+ * copy in a finished rep is generated.
+ *
+ * Counting is conservative. Comments come out, including trailing ones,
+ * because the reason for a rule has to be writable next to the code
+ * enforcing it. And a dash only counts as prose when whitespace and a
+ * word surround it, so `{coins ?? "—"}` stays legal: a number nobody
+ * could read is a dash in every style guide there is.
  */
 const PROSE_EM_DASH = /[A-Za-z0-9,;:)"'’]\s+—\s+\S/g;
 
-/**
- * Screens allowed more than one, each for a reason that isn't "we liked
- * it there". The budget is per SCREEN; these files hold several.
- */
-const DASH_ALLOWANCE: Record<string, number> = {
-  // Three carousel slides, one dash each (DECISIONS #133).
-  "app/welcome/page.tsx": 3,
-};
+/** Copy lives in lib too: drills, coaching, the pause notes. */
+const COPY_ROOTS = ["app", "components", "lib"];
 
-describe("copy budgets", () => {
-  const files = ROOTS.flatMap(tsxFiles);
+function sourceFiles(dir: string): string[] {
+  return readdirSync(dir).flatMap((entry) => {
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) return sourceFiles(full);
+    if (full.endsWith(".test.ts") || full.endsWith(".test.tsx")) return [];
+    return full.endsWith(".tsx") || full.endsWith(".ts") ? [full] : [];
+  });
+}
+
+/** `copyOnly`, plus trailing `// …` comments on a line of code. */
+function proseOnly(source: string): string {
+  return copyOnly(source).replace(/\s+\/\/(?![^\n]*["'`]).*$/gm, "");
+}
+
+describe("copy rules", () => {
+  const files = COPY_ROOTS.flatMap(sourceFiles);
+
+  it("has files to check (so a bad glob can't pass silently)", () => {
+    expect(files.length).toBeGreaterThan(60);
+  });
 
   for (const file of files) {
-    it(`keeps ${file} inside its em-dash budget`, () => {
-      const found = copyOnly(readFileSync(file, "utf8")).match(PROSE_EM_DASH);
-      expect(found?.length ?? 0).toBeLessThanOrEqual(
-        DASH_ALLOWANCE[file] ?? 1
-      );
+    it(`keeps em dashes out of ${file}`, () => {
+      const found = proseOnly(readFileSync(file, "utf8")).match(PROSE_EM_DASH);
+      expect(found ?? []).toEqual([]);
     });
   }
-
-  it("never explains a design decision with “which is why”", () => {
-    for (const file of files) {
-      expect(copyOnly(readFileSync(file, "utf8"))).not.toMatch(
-        /—\s*which is why/i
-      );
-    }
-  });
 
   it("says the mantra once per screen or not at all", () => {
     for (const file of files) {
       const hits = copyOnly(readFileSync(file, "utf8")).match(/never money/gi);
       expect(hits?.length ?? 0).toBeLessThanOrEqual(1);
     }
+  });
+
+  it("tells the coach the same thing", () => {
+    const prompt = readFileSync("lib/coach.ts", "utf8");
+    expect(prompt).toMatch(/NEVER use an em dash/);
   });
 });
 

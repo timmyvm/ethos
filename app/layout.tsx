@@ -37,7 +37,7 @@ const spaceMono = Space_Mono({
 export const metadata: Metadata = {
   // §8 — the acquisition line goes anywhere a stranger meets Ethos
   // first. Clarity converts at zero awareness.
-  title: "Ethos — practice being worth listening to",
+  title: "Ethos: practice being worth listening to",
   description:
     "Practice being worth listening to. Five minutes of reps a day, measured against timestamps, not vibes.",
   icons: { apple: "/apple-touch-icon.png" },

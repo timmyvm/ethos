@@ -364,7 +364,7 @@ export default function Home() {
 
       {reps !== null && history.length === 0 && (
         <p className="mt-5 text-center text-[13px] text-stone-400">
-          60–90 seconds. Pauses are allowed — they&apos;re scored in your favor.
+          60 to 90 seconds. Pauses score in your favor.
         </p>
       )}
 

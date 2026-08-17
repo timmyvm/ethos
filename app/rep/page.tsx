@@ -879,16 +879,14 @@ function RepScreen() {
        */}
       {phase === "idle" && repCount === 0 && (
         <p className="mt-4 text-[12.5px] leading-relaxed text-stone-500">
-          This one&apos;s audio. Get a rep in your legs first; video is on the
-          table from the next one. The button will ask for your mic; it&apos;s
-          live only while you record.
+          Audio for rep one, video from the next. The mic is live only while
+          you record.
         </p>
       )}
 
       {config.crowdNoise && phase === "idle" && (
         <p className="mt-2 text-[12.5px] text-stone-500">
-          Headphones on. Through speakers the café bleeds into your mic and the
-          transcript stops being yours.
+          Headphones on, or the café bleeds into your mic.
         </p>
       )}
 
@@ -956,8 +954,8 @@ function RepScreen() {
               className="mt-3 w-full rounded-[18px] border border-black/10 bg-surface p-4 text-[14px] leading-relaxed placeholder:text-stone-300 focus:border-stone-300"
             />
             <p className="mt-1.5 text-[11.5px] text-stone-400">
-              Notes stay on this screen. They disappear when you record, because
-              you can&apos;t read and speak at the same time.
+              They disappear when you record. You can&apos;t read and speak at
+              once.
             </p>
           </div>
         )}
@@ -1337,9 +1335,8 @@ function Results({
               Measured, not judged.
             </div>
             <p className="mt-2 text-[13.5px] leading-relaxed text-stone-500">
-              Everything here is counted from the recording. What&apos;s missing is
-              the read on it: the cited moments, the word upgrade, and
-              Demos&apos;s take. Yours is back tomorrow.
+              These are counted from the recording. The cited moments, the word
+              upgrade and Demos&apos;s take are back tomorrow.
             </p>
             <p className="mt-2 text-[12.5px] leading-relaxed text-stone-400">
               The rep still counted. Your streak counts reps, never analyses.

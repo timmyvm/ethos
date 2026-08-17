@@ -53,7 +53,7 @@ export async function transcribe(
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error(
-      "OPENAI_API_KEY is not set — transcription unavailable. Add it to .env.local."
+      "OPENAI_API_KEY is not set. Transcription is unavailable; add it to .env.local."
     );
   }
 

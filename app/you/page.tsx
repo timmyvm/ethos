@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Coin } from "@/components/Coin";
-import { IconFreeze } from "@/components/Icon";
+import { AchievementMark, IconFreeze } from "@/components/Icon";
 import { ErrorLine, ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton, SkeletonStatBare } from "@/components/ui/Skeleton";
 import { Paywall } from "@/components/Paywall";
@@ -130,6 +130,8 @@ export default function YouPage() {
   const history = reps ?? [];
   const dates = history.map((r) => new Date(r.created_at));
   const level = levelFromXp(xp.total);
+  const badges = achievements(history);
+  const earnedCount = badges.filter((b) => b.earned).length;
   const toNextFreeze = 7 - (streak.longest % 7);
 
   // "Save your progress" gate — appears only after there IS progress
@@ -410,47 +412,57 @@ export default function YouPage() {
       )}
 
       {/*
-       * Badges — every one names the number that unlocked it. Two
-       * columns of ruled entries rather than twelve boxes, and an earned
-       * badge is marked by ink and an amber rule where it used to be a
-       * card at 60% opacity, which reads as broken rather than not yet
-       * (Checkpoint 1, finding 8).
+       * The shelf. A ladder, not a grid: hardest last, no tier labels,
+       * because the position is the claim. Every row is a link to the
+       * drill that produces its number — a locked badge that only
+       * describes itself is a taunt (DECISIONS #153).
        */}
-      <div className="section-title mt-7">Earned</div>
-      <div className="mt-2 grid grid-cols-2 gap-x-5 gap-y-4">
-        {achievements(history).map((a) => (
-          <div
+      <div className="section-title mt-7">
+        Earned{" "}
+        <span className="label-data ml-1">
+          {earnedCount}/{badges.length}
+        </span>
+      </div>
+      <div className="mt-2">
+        {badges.map((a) => (
+          <Link
             key={a.id}
-            className={`border-t pt-2.5 ${
-              a.earned ? "border-amber-500/50" : "border-hairline"
-            }`}
+            href={a.href}
+            className="press flex min-h-14 items-center gap-3.5 border-b border-hairline py-3"
           >
-            <div className="flex items-baseline justify-between gap-2">
+            <span
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                a.earned
+                  ? "bg-amber-50 text-amber-500"
+                  : "bg-sand text-stone-300"
+              }`}
+            >
+              <AchievementMark name={a.icon} size={20} />
+            </span>
+            <span className="min-w-0 flex-1">
               <span
-                className={`text-[13.5px] font-semibold ${
+                className={`block text-[14px] font-semibold ${
                   a.earned ? "" : "text-stone-500"
                 }`}
               >
                 {a.name}
               </span>
-              {a.earned && (
-                <span aria-hidden className="text-[10px] text-amber-500">
-                  ●
+              <span className="mt-0.5 block text-[12px] text-stone-400">
+                {a.requirement}
+              </span>
+              {!a.earned && a.progress > 0 && (
+                <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-sand">
+                  <span
+                    className="block h-full rounded-full bg-stone-400"
+                    style={{ width: `${Math.round(a.progress * 100)}%` }}
+                  />
                 </span>
               )}
-            </div>
-            <p className="mt-0.5 text-[11.5px] leading-relaxed text-stone-400">
-              {a.requirement}
-            </p>
-            {!a.earned && a.progress > 0 && (
-              <div className="mt-2 h-1 overflow-hidden rounded-full bg-sand">
-                <div
-                  className="h-full rounded-full bg-stone-400"
-                  style={{ width: `${Math.round(a.progress * 100)}%` }}
-                />
-              </div>
-            )}
-          </div>
+            </span>
+            <span aria-hidden className="shrink-0 text-stone-300">
+              →
+            </span>
+          </Link>
         ))}
       </div>
 

@@ -14,6 +14,8 @@
  * not a title in here.
  */
 
+import type { AchievementIcon } from "@/lib/achievements";
+
 function Glyph({
   size = 24,
   children,
@@ -101,12 +103,98 @@ export function IconFreeze({ size }: { size?: number }) {
   );
 }
 
-/** The weekly boss — a flame, drawn rather than typed. */
+/** The weekly boss. A shield, so the flame can mean streak everywhere. */
 export function IconBoss({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="M12 3.5 19.5 6v6c0 4-3.1 6.9-7.5 8.5C7.6 18.9 4.5 16 4.5 12V6z" />
+      <path d="m9.4 12.1 1.9 1.9 3.4-3.5" />
+    </Glyph>
+  );
+}
+
+/* ---- Achievement marks. Keyed by what they measure, not by badge:
+   two streak badges share the flame, two score badges share the line. */
+
+/** Reps. */
+export function IconMic({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <rect x="9" y="3" width="6" height="11" rx="3" />
+      <path d="M5.75 11.75a6.25 6.25 0 0 0 12.5 0" />
+      <path d="M12 18v3" />
+    </Glyph>
+  );
+}
+
+/** Streaks. */
+export function IconFlame({ size }: { size?: number }) {
   return (
     <Glyph size={size}>
       <path d="M12 3.5c.6 2.4 2 3.5 3.4 5 1.4 1.5 2.1 3 2.1 4.7a5.5 5.5 0 0 1-11 0c0-1.6.6-2.9 1.8-4" />
       <path d="M12 20.2a2.9 2.9 0 0 1-2.9-2.9c0-1.6 1.4-2.4 2.9-4.6 1.5 2.2 2.9 3 2.9 4.6a2.9 2.9 0 0 1-2.9 2.9z" />
     </Glyph>
   );
+}
+
+/** Fillers: the voice itself, metered. */
+export function IconWave({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="M3.5 11v2M8 7.5v9M12 4.5v15M16 8v8M20.5 11v2" />
+    </Glyph>
+  );
+}
+
+/** Pauses. The signature element, and it looks like one. */
+export function IconPause({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="M9 5v14M15 5v14" />
+    </Glyph>
+  );
+}
+
+/** Pace. */
+export function IconGauge({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="M4 17.5a8 8 0 1 1 16 0" />
+      <path d="m12 17.5 3.6-5.2" />
+    </Glyph>
+  );
+}
+
+/** The Ethos Index. */
+export function IconTrend({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="m3.5 16.5 5.25-5.25 3.5 3.5L20.5 6.5" />
+      <path d="M20.5 11.25V6.5H15.75" />
+    </Glyph>
+  );
+}
+
+/** The mark for an achievement, chosen by what it measures. */
+export function AchievementMark({
+  name,
+  size,
+}: {
+  name: AchievementIcon;
+  size?: number;
+}) {
+  switch (name) {
+    case "mic":
+      return <IconMic size={size} />;
+    case "flame":
+      return <IconFlame size={size} />;
+    case "wave":
+      return <IconWave size={size} />;
+    case "pause":
+      return <IconPause size={size} />;
+    case "gauge":
+      return <IconGauge size={size} />;
+    case "trend":
+      return <IconTrend size={size} />;
+  }
 }

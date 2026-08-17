@@ -75,7 +75,7 @@ function ResetScreen() {
           </h1>
           <p className="mt-3 text-[15px] leading-relaxed text-stone-500">
             {first
-              ? "Account live, password saved. Your reps, your streak and your lexicon are attached — on this device and any other you sign in on."
+              ? "Account live, password saved. Your reps, your streak and your lexicon are attached on this device and any other you sign in on."
               : "New password saved. Your reps, your streak and your lexicon are exactly where you left them."}
           </p>
           <Link
@@ -92,8 +92,8 @@ function ResetScreen() {
           </h1>
           <p className="mt-3 text-[15px] leading-relaxed text-stone-500">
             {first
-              ? "Save links last an hour and work once. Your reps are still on your device — send yourself a fresh one."
-              : "Reset links last an hour and work once. Nothing has happened to your account — ask for a fresh one."}
+              ? "Save links last an hour and work once. Your reps are still on your device, so send yourself a fresh one."
+              : "Reset links last an hour and work once. Nothing has happened to your account, so ask for a fresh one."}
           </p>
           <Link
             /* An unconfirmed email can't receive a reset mail — the

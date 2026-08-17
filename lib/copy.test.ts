@@ -51,6 +51,59 @@ describe("banned words", () => {
   }
 });
 
+/**
+ * COPY-RULES.md, asserted rather than remembered.
+ *
+ * The em dash is the house's favourite punctuation mark and that is
+ * exactly the problem: at one per screen it's a hinge, at five it's a
+ * tic, and a tic is what "written by a language model" reads like. Same
+ * argument for the mantra — "never money" is a principle, and a
+ * principle repeated three times a screen is a slogan.
+ *
+ * Counting is deliberately conservative: comments are stripped (the
+ * reason for a rule has to be writable next to the code enforcing it),
+ * and a dash only counts when prose surrounds it, so `{coins ?? "—"}`
+ * — a number nobody could read — isn't a copy violation.
+ */
+const PROSE_EM_DASH = /[A-Za-z0-9,;:)"'’]\s+—\s+\S/g;
+
+/**
+ * Screens allowed more than one, each for a reason that isn't "we liked
+ * it there". The budget is per SCREEN; these files hold several.
+ */
+const DASH_ALLOWANCE: Record<string, number> = {
+  // Three carousel slides, one dash each (DECISIONS #133).
+  "app/welcome/page.tsx": 3,
+};
+
+describe("copy budgets", () => {
+  const files = ROOTS.flatMap(tsxFiles);
+
+  for (const file of files) {
+    it(`keeps ${file} inside its em-dash budget`, () => {
+      const found = copyOnly(readFileSync(file, "utf8")).match(PROSE_EM_DASH);
+      expect(found?.length ?? 0).toBeLessThanOrEqual(
+        DASH_ALLOWANCE[file] ?? 1
+      );
+    });
+  }
+
+  it("never explains a design decision with “which is why”", () => {
+    for (const file of files) {
+      expect(copyOnly(readFileSync(file, "utf8"))).not.toMatch(
+        /—\s*which is why/i
+      );
+    }
+  });
+
+  it("says the mantra once per screen or not at all", () => {
+    for (const file of files) {
+      const hits = copyOnly(readFileSync(file, "utf8")).match(/never money/gi);
+      expect(hits?.length ?? 0).toBeLessThanOrEqual(1);
+    }
+  });
+});
+
 describe("the two headlines", () => {
   it("puts the clarity line on acquisition surfaces", () => {
     const line = "Practice being worth listening to";

@@ -88,7 +88,7 @@ export default function About() {
       </h2>
       <p className="mt-3 text-[15px] leading-relaxed text-stone-600">
         Every other app treats a pause as dead air. We time yours and ask
-        where it landed. Before a sentence, it reads as composure — you
+        where it landed. Before a sentence, it reads as composure: you
         thought, then spoke. Inside one, it reads as searching. That single
         distinction is the difference between sounding certain and sounding
         lost, and no competitor measures it.
@@ -97,7 +97,7 @@ export default function About() {
       <div className="mt-6 rounded-2xl bg-stage p-6 text-cream lift-stage">
         <div className="label-data !text-stone-400">Your Ethos · /1000</div>
         <p className="mt-3 text-[14.5px] leading-relaxed text-stone-300">
-          Eight dimensions. Four measured straight from the timestamps —
+          Eight dimensions. Four measured straight from the timestamps:
           pause, fillers, pace, range. Four judged against your actual words,
           and every judged score has to quote the moment it came from or it
           gets thrown out and re-run.
@@ -120,7 +120,7 @@ export default function About() {
         Rehearsal tools exist. This isn&apos;t one.
       </h2>
       <p className="mt-3 text-[15px] leading-relaxed text-stone-600">
-        There are good tools for the week before an interview — Yoodli will
+        There are good tools for the week before an interview. Yoodli will
         watch you over a webcam and read your body language, and it&apos;s
         genuinely strong at it. You go there before the thing, do a session,
         and leave. There are daily speaking apps too, and they listen to your
@@ -141,7 +141,8 @@ export default function About() {
         When video is on, posture, gesture, head movement and eye line are
         read <span className="font-semibold text-ink">on your device</span> at
         about thirty frames a second. The video is never uploaded and never
-        stored. Five numbers are — the same five you can read on the screen.
+        stored. Five numbers are, and they are the same five you can read on
+        the screen.
       </p>
 
       <h2 className="font-display mt-12 text-[20px] font-bold">
@@ -162,7 +163,7 @@ export default function About() {
         Start your first rep
       </Link>
       <p className="mt-6 text-center text-[12px] text-stone-400">
-        Ethos — from Aristotle&apos;s three modes of persuasion. Logos is
+        Ethos, from Aristotle&apos;s three modes of persuasion. Logos is
         logic, pathos is emotion, ethos is the credibility of the speaker.
       </p>
     </main>

@@ -178,7 +178,7 @@ export default function SettingsPage() {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}.`
-                : "That hour falls inside your quiet hours — nothing will fire."}
+                : "That hour falls inside your quiet hours, so nothing will fire."}
             </span>{" "}
             {reminderTierNote(tier)}
           </div>
@@ -212,7 +212,7 @@ export default function SettingsPage() {
           ))}
         </div>
         <p className="mt-3 text-[12.5px] leading-relaxed text-stone-500">
-          Dark keeps the same warm neutrals — no cool greys, no pure
+          Dark keeps the same warm neutrals: no cool greys, no pure
           black. Terracotta and amber never change: they mean &ldquo;tap
           this&rdquo; and &ldquo;you earned this&rdquo;, and a colour that
           carries meaning has to read the same in both.
@@ -235,7 +235,7 @@ export default function SettingsPage() {
         />
         <Toggle
           label="Sound"
-          note="One synthesized chime at the streak celebration. Never while you record — the mic would hear it."
+          note="One synthesized chime at the streak celebration. Never while you record, since the mic would hear it."
           on={prefs.sound}
           onChange={(v) => update({ sound: v })}
         />
@@ -256,7 +256,7 @@ export default function SettingsPage() {
       <div className="section-title mt-7">Account</div>
       <div className="mt-2 rounded-[18px] border border-hairline bg-surface lift p-5">
         <div className="text-[14px] font-semibold">
-          {email ?? "Anonymous — this device only"}
+          {email ?? "Anonymous · this device only"}
         </div>
         <p className="mt-1 text-[12.5px] text-stone-500">
           {email

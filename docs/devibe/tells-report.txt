@@ -1,6 +1,6 @@
 == [A] indigo/purple/violet/fuchsia classes — 0 hit(s)
 
-== [A] raw hex colors in components — 52 hit(s)
+== [A] raw hex colors in components — 48 hit(s)
 app/globals.css:9:  --color-terracotta-50: #fdf3ef;
 app/globals.css:10:  --color-terracotta-100: #fbe5dc;
 app/globals.css:11:  --color-terracotta-200: #f6c8b7;
@@ -36,23 +36,19 @@ app/globals.css:210: * difference between "warm room" and "flat #FAF7F2". Fixed,
 app/manifest.ts:13:    background_color: "#FAF7F2",
 app/manifest.ts:14:    theme_color: "#FAF7F2",
 app/layout.tsx:47:  themeColor: "#FAF7F2",
-components/PoseSkeleton.tsx:50:const OK_JOINT = "#FAF7F2";
-components/PoseSkeleton.tsx:52:const NUDGE_JOINT = "#A8A29E";
-components/Sparkline.tsx:68:        <path d={area} fill="#F5F0E8" />
-components/Sparkline.tsx:69:        <path d={d} fill="none" stroke="#78716C" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-components/Sparkline.tsx:70:        <circle cx={lx} cy={ly} r="4" fill="#F59E0B" />
-components/DayTrail.tsx:87:          stroke="#A8A29E"
-components/DayTrail.tsx:93:        <circle cx={lx} cy={ly} r="3.5" fill="#F59E0B" />
-components/ShareCard.tsx:45:      g.fillStyle = "#FAF7F2";
-components/ShareCard.tsx:48:      g.fillStyle = "#292524";
-components/ShareCard.tsx:52:      g.fillStyle = "#78716C";
-components/ShareCard.tsx:88:        g.fillStyle = "#78716C";
-components/ShareCard.tsx:93:        g.fillStyle = "#D6D3D1";
-components/ShareCard.tsx:97:        g.fillStyle = "#A8A29E";
-components/ShareCard.tsx:101:        g.fillStyle = better ? "#F59E0B" : "#292524";
-components/ShareCard.tsx:109:      g.fillStyle = "#78716C";
-components/ShareCard.tsx:113:      g.fillStyle = "#E76F51";
+components/PoseSkeleton.tsx:58:const OK_JOINT = "#FAF7F2";
+components/PoseSkeleton.tsx:60:const NUDGE_JOINT = "#A8A29E";
+components/ShareCard.tsx:50:      g.fillStyle = "#FAF7F2";
+components/ShareCard.tsx:53:      g.fillStyle = "#292524";
+components/ShareCard.tsx:57:      g.fillStyle = "#78716C";
+components/ShareCard.tsx:93:        g.fillStyle = "#78716C";
+components/ShareCard.tsx:98:        g.fillStyle = "#D6D3D1";
+components/ShareCard.tsx:102:        g.fillStyle = "#A8A29E";
+components/ShareCard.tsx:106:        g.fillStyle = better ? "#F59E0B" : "#292524";
+components/ShareCard.tsx:114:      g.fillStyle = "#78716C";
+components/ShareCard.tsx:118:      g.fillStyle = "#E76F51";
 components/Theme.tsx:24:    ?.setAttribute("content", resolved === "dark" ? "#17130f" : "#FAF7F2");
+components/Theme.tsx:57:  if (m) m.setAttribute('content', t === 'dark' ? '#17130f' : '#FAF7F2');
 
 == [B] background gradients — 0 hit(s)
 
@@ -72,33 +68,30 @@ components/Theme.tsx:24:    ?.setAttribute("content", resolved === "dark" ? "#17
 
 == [C] eyebrow pill badges / sparkles — 0 hit(s)
 
-== [C] emoji in JSX text — 51 hit(s)
+== [C] emoji in JSX text — 48 hit(s)
 app/(marketing)/about/page.tsx:98:        <div className="label-data !text-stone-400">Your Ethos · /1000</div>
-app/(marketing)/about/page.tsx:151:        <li>· No manufactured insecurity. You already know your gap.</li>
-app/(marketing)/about/page.tsx:152:        <li>· No alpha talk. This serves ambition, not contempt.</li>
-app/(marketing)/about/page.tsx:153:        <li>· No horoscope feedback. Every claim traces to a number.</li>
-app/(marketing)/about/page.tsx:154:        <li>· No pay-to-win. Money never buys stars, streaks, or scores.</li>
-app/(marketing)/about/page.tsx:155:        <li>· No deadline cram. It&apos;s a gym, not a rescue.</li>
+app/(marketing)/about/page.tsx:152:        <li>· No manufactured insecurity. You already know your gap.</li>
+app/(marketing)/about/page.tsx:153:        <li>· No alpha talk. This serves ambition, not contempt.</li>
+app/(marketing)/about/page.tsx:154:        <li>· No horoscope feedback. Every claim traces to a number.</li>
+app/(marketing)/about/page.tsx:155:        <li>· No pay-to-win. Money never buys stars, streaks, or scores.</li>
+app/(marketing)/about/page.tsx:156:        <li>· No deadline cram. It&apos;s a gym, not a rescue.</li>
 app/rep/[id]/page.tsx:156:          <span className="label-data">×{rep.xp_multiplier} XP</span>
 app/rep/[id]/page.tsx:173:            onUpgrade={() => setPaywall("Presence · premium")}
 app/rep/[id]/page.tsx:180:            onUpgrade={() => setPaywall("Delivery readout · premium")}
-app/rep/page.tsx:809:          <span className="label-data">×{config.xpMultiplier} XP</span>
-app/rep/page.tsx:1493:      <div className="label-data">Tomorrow&apos;s rep · when?</div>
-app/history/page.tsx:136:              onClick={() => setPaywall("Presence trendline · premium")}
-app/history/page.tsx:218:          onClick={() => setPaywall("Full history · premium")}
+app/rep/page.tsx:853:          <span className="label-data">×{config.xpMultiplier} XP</span>
+app/rep/page.tsx:1549:      <div className="label-data">Tomorrow&apos;s rep · when?</div>
+app/history/page.tsx:170:              onClick={() => setPaywall("Presence trendline · premium")}
+app/history/page.tsx:252:          onClick={() => setPaywall("Full history · premium")}
 app/auth/callback/page.tsx:35:        <p className="text-[15px] text-stone-500">Confirming…</p>
-app/you/page.tsx:223:          <span className="text-stone-400">→</span>
-app/you/page.tsx:335:              onClick={() => setPaywall("Full lexicon · premium")}
-app/you/page.tsx:359:              {a.earned && <span className="text-amber-500">●</span>}
-app/page.tsx:279:                  {indexDelta > 0 ? "▲ +" : "▼ "}
-app/page.tsx:335:            onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
-app/page.tsx:385:          <span className="font-semibold text-stone-500">keep them →</span>
+app/you/page.tsx:402:              onClick={() => setPaywall("Full lexicon · premium")}
+app/page.tsx:304:                  {indexDelta > 0 ? "▲ +" : "▼ "}
+app/page.tsx:360:            onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
+app/page.tsx:410:          <span className="font-semibold text-stone-500">keep them →</span>
 app/signin/page.tsx:20:          <span className="mx-2 text-stone-300">·</span>
 app/boss/page.tsx:89:      <div className="label-data mt-6">Weekly boss · Cold Topic</div>
 app/boss/page.tsx:111:                <li key={i}>· {t}</li>
 app/boss/page.tsx:154:              onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
 app/boss/page.tsx:179:                <li key={i}>· {t}</li>
-app/path/page.tsx:99:                    {locked ? "🔒" : stars > 0 ? "✓" : i + 1}
 components/StreakBadge.tsx:24:        <span className="font-normal text-stone-500">· today&apos;s open</span>
 components/ModPicker.tsx:50:        <div className="label-data">Stress mods · optional</div>
 components/ModPicker.tsx:52:          <div className="label-data !text-amber-500">×{multiplier} XP</div>
@@ -107,19 +100,19 @@ components/PresenceCard.tsx:126:          <div className="label-data">Delivery �
 components/PresenceCard.tsx:185:      <div className="label-data">Playback · this device only</div>
 components/PauseBar.tsx:89:        <span className="label-data !text-amber-500">● landed a point</span>
 components/PauseBar.tsx:90:        <span className="label-data !text-stone-400">● searching</span>
-components/Sparkline.tsx:73:        <span className="label-data">rep 1 · {Math.round(first)}</span>
-components/Sparkline.tsx:74:        <span className="label-data">now · {Math.round(last)}</span>
+components/Sparkline.tsx:78:        <span className="label-data">rep 1 · {Math.round(first)}</span>
+components/Sparkline.tsx:79:        <span className="label-data">now · {Math.round(last)}</span>
 components/RepResult.tsx:101:                {delta > 0 ? "▲ +" : "▼ "}
 components/RepResult.tsx:130:            <span className="label-data">1 star · nothing measured</span>
 components/RepResult.tsx:237:          <div className="label-data">Supply · one upgrade, yours to keep</div>
 components/RepResult.tsx:242:            <span aria-hidden>→</span>
 components/TopicRoulette.tsx:52:        <div className="label-data">Roulette · you don&apos;t pick</div>
 components/NextUp.tsx:28:      <div className="label-data">Next up · closest first</div>
-components/Paywall.tsx:41:          <li>· Full pause analytics — the silence scores</li>
-components/Paywall.tsx:42:          <li>· Complete history + day-1-vs-day-30 cards</li>
-components/Paywall.tsx:43:          <li>· Your whole lexicon, not just today&apos;s swap</li>
-components/Paywall.tsx:44:          <li>· Boss modes: Cold Topic, Debate, Hostile Q&amp;A</li>
-components/Paywall.tsx:45:          <li>· Stress mods and unlimited retries</li>
+components/Paywall.tsx:30:          <li>· Full pause analytics — the silence scores</li>
+components/Paywall.tsx:31:          <li>· Complete history + day-1-vs-day-30 cards</li>
+components/Paywall.tsx:32:          <li>· Your whole lexicon, not just today&apos;s swap</li>
+components/Paywall.tsx:33:          <li>· Boss modes: Cold Topic, Debate, Hostile Q&amp;A</li>
+components/Paywall.tsx:34:          <li>· Stress mods and unlimited retries</li>
 components/DimensionList.tsx:173:                <div className="mt-1 text-stone-600">↳ {row.improve}</div>
 components/AccuracyCard.tsx:39:      <div className="label-data">Accuracy · the other half of the boss</div>
 components/AccuracyCard.tsx:90:              <li key={i}>· {m}</li>
@@ -128,29 +121,30 @@ components/ComparisonCard.tsx:68:            <span className="text-stone-600">�
 == [C] inline motion durations (not motion.ts) — 0 hit(s)
 
 == [C] bounce/elastic easing — 3 hit(s)
-app/rep/page.tsx:173:  const [anticipate, setAnticipate] = useState<RewardMoment | null>(null);
-app/rep/page.tsx:1049:            {anticipate && (
-app/rep/page.tsx:1051:                <Moment moment={anticipate} emphasis />
+app/rep/page.tsx:182:  const [anticipate, setAnticipate] = useState<RewardMoment | null>(null);
+app/rep/page.tsx:1093:            {anticipate && (
+app/rep/page.tsx:1095:                <Moment moment={anticipate} emphasis />
 
 == [D] generic SaaS copy — 0 hit(s)
 
-== [E] TODO/FIXME left in UI — 17 hit(s)
-app/rep/page.tsx:911:              placeholder="Notes — first line, last line, one example…"
-app/rep/page.tsx:912:              className="mt-3 w-full rounded-[18px] border border-black/10 bg-surface p-4 text-[14px] leading-relaxed outline-none placeholder:text-stone-300 focus:border-stone-300"
+== [E] TODO/FIXME left in UI — 18 hit(s)
+app/rep/page.tsx:955:              placeholder="Notes: first line, last line, one example…"
+app/rep/page.tsx:956:              className="mt-3 w-full rounded-[18px] border border-black/10 bg-surface p-4 text-[14px] leading-relaxed placeholder:text-stone-300 focus:border-stone-300"
 app/auth/forgot/page.tsx:57:            placeholder="you@email.com"
-app/auth/forgot/page.tsx:58:            className="mt-1.5 w-full rounded-[14px] border border-black/10 bg-surface px-4 py-3.5 text-[16px] outline-none placeholder:text-stone-300 focus:border-stone-300"
+app/auth/forgot/page.tsx:58:            className="mt-1.5 w-full rounded-[14px] border border-black/10 bg-surface px-4 py-3.5 text-[16px] placeholder:text-stone-300 focus:border-stone-300"
 app/auth/reset/page.tsx:129:              placeholder="8 characters or more"
-app/auth/reset/page.tsx:130:              className="mt-1.5 w-full rounded-[14px] border border-black/10 bg-surface px-4 py-3.5 text-[16px] outline-none placeholder:text-stone-300 focus:border-stone-300"
-app/globals.css:244: * shimmer over cream reads as a broken image rather than a placeholder.
-app/globals.css:248: * contrast on purpose: a placeholder that pulses hard competes with the
-app/globals.css:273:/* Still a visible placeholder, just a still one. */
+app/auth/reset/page.tsx:130:              className="mt-1.5 w-full rounded-[14px] border border-black/10 bg-surface px-4 py-3.5 text-[16px] placeholder:text-stone-300 focus:border-stone-300"
+app/globals.css:269: * shimmer over cream reads as a broken image rather than a placeholder.
+app/globals.css:273: * contrast on purpose: a placeholder that pulses hard competes with the
+app/globals.css:298:/* Still a visible placeholder, just a still one. */
 components/ui/Skeleton.tsx:2: * Loading placeholders.
 components/ui/Skeleton.tsx:22: *    placeholder that causes the shift it was meant to prevent is worse
 components/ui/Skeleton.tsx:27: * immediately — putting a placeholder over locally-known content just
+components/ui/Skeleton.tsx:65: * rather than three cards (DECISIONS #151) — so its placeholder is three
 components/AuthForm.tsx:145:          placeholder="you@email.com"
-components/AuthForm.tsx:146:          className="mt-1.5 w-full rounded-[14px] border border-black/10 bg-surface px-4 py-3.5 text-[16px] outline-none placeholder:text-stone-300 focus:border-stone-300"
+components/AuthForm.tsx:146:          className="mt-1.5 w-full rounded-[14px] border border-black/10 bg-surface px-4 py-3.5 text-[16px] placeholder:text-stone-300 focus:border-stone-300"
 components/AuthForm.tsx:163:              placeholder={
-components/AuthForm.tsx:166:              className="mt-1.5 w-full rounded-[14px] border border-black/10 bg-surface px-4 py-3.5 text-[16px] outline-none placeholder:text-stone-300 focus:border-stone-300"
+components/AuthForm.tsx:166:              className="mt-1.5 w-full rounded-[14px] border border-black/10 bg-surface px-4 py-3.5 text-[16px] placeholder:text-stone-300 focus:border-stone-300"
 components/Paywall.tsx:9: * Prices are placeholders until the research pass (open queue).
 
 == [E] div with onClick (a11y) — 0 hit(s)

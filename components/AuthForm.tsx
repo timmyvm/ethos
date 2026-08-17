@@ -85,7 +85,7 @@ export function AuthForm({
         {carrying && (
           <p className="mt-3 text-[13.5px] leading-relaxed text-stone-500">
             Your {progress.reps} rep{progress.reps === 1 ? "" : "s"} are already
-            attached to it — the link just confirms the address and asks what
+            attached to it. The link just confirms the address and asks what
             password you&apos;ll sign in with.
           </p>
         )}

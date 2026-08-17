@@ -93,8 +93,8 @@ export default function BossPage() {
         <>
           <p className="mt-3 text-[15px] leading-relaxed text-stone-500">
             Four minutes to read. Then the notes disappear and you explain
-            it for 90 seconds from memory — scored on delivery and on
-            whether the claims are actually true.
+            it for 90 seconds from memory, scored on delivery and on whether
+            the claims are actually true.
           </p>
 
           {locked && (

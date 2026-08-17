@@ -165,7 +165,7 @@ export default function Home() {
             missed.
           </span>{" "}
           <span className="text-stone-500">
-            The streak held. It didn&apos;t grow — you only count days you
+            The streak held. It didn&apos;t grow: you only count days you
             spoke.
           </span>
         </div>

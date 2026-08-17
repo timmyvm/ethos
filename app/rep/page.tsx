@@ -832,7 +832,7 @@ function RepScreen() {
 
       {promptHidden ? (
         <p className="mt-2.5 text-[15px] italic leading-relaxed text-stone-400">
-          Prompt hidden — that&apos;s the mod.
+          Prompt hidden. That&apos;s the mod.
         </p>
       ) : (
         <p className="mt-2.5 text-[15px] leading-relaxed text-stone-500">
@@ -879,7 +879,7 @@ function RepScreen() {
        */}
       {phase === "idle" && repCount === 0 && (
         <p className="mt-4 text-[12.5px] leading-relaxed text-stone-500">
-          This one&apos;s audio. Get a rep in your legs first — video is on the
+          This one&apos;s audio. Get a rep in your legs first; video is on the
           table from the next one. The button will ask for your mic; it&apos;s
           live only while you record.
         </p>
@@ -887,8 +887,8 @@ function RepScreen() {
 
       {config.crowdNoise && phase === "idle" && (
         <p className="mt-2 text-[12.5px] text-stone-500">
-          Headphones on — through speakers the café bleeds into your mic and
-          the transcript stops being yours.
+          Headphones on. Through speakers the café bleeds into your mic and the
+          transcript stops being yours.
         </p>
       )}
 
@@ -952,11 +952,11 @@ function RepScreen() {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              placeholder="Notes — first line, last line, one example…"
+              placeholder="Notes: first line, last line, one example…"
               className="mt-3 w-full rounded-[18px] border border-black/10 bg-surface p-4 text-[14px] leading-relaxed placeholder:text-stone-300 focus:border-stone-300"
             />
             <p className="mt-1.5 text-[11.5px] text-stone-400">
-              Notes stay on this screen. They disappear when you record —
+              Notes stay on this screen. They disappear when you record, because
               you can&apos;t read and speak at the same time.
             </p>
           </div>
@@ -1097,8 +1097,8 @@ function RepScreen() {
             )}
             <p className="max-w-[260px] text-center text-[13.5px] text-stone-500">
               {config.maxSeconds < 60
-                ? `${config.maxSeconds} seconds. Pauses still score in your favor — spend them deliberately.`
-                : "Aim for 60–90 seconds. Pauses are allowed — they're scored in your favor."}
+                ? `${config.maxSeconds} seconds. Pauses still score in your favor, so spend them deliberately.`
+                : "Aim for 60–90 seconds. Pauses are allowed, and they're scored in your favor."}
             </p>
           </>
         )}
@@ -1337,9 +1337,9 @@ function Results({
               Measured, not judged.
             </div>
             <p className="mt-2 text-[13.5px] leading-relaxed text-stone-500">
-              Everything here is counted from the recording. What&apos;s
-              missing is the read on it — the cited moments, the word
-              upgrade, and Demos&apos;s take. Yours is back tomorrow.
+              Everything here is counted from the recording. What&apos;s missing is
+              the read on it: the cited moments, the word upgrade, and
+              Demos&apos;s take. Yours is back tomorrow.
             </p>
             <p className="mt-2 text-[12.5px] leading-relaxed text-stone-400">
               The rep still counted. Your streak counts reps, never analyses.
@@ -1478,10 +1478,10 @@ function SaveGate({
         </h1>
         <p className="mt-3 max-w-[92%] text-[15px] leading-relaxed text-stone-500">
           {moment === "rep1"
-            ? "That rep — the score, the transcript, the streak it starts — lives in this browser and nowhere else. "
+            ? "That rep, and the score and transcript and streak it starts, lives in this browser and nowhere else. "
             : `A ${days}-day streak and every number behind it live in this browser and nowhere else. `}
           An account attaches them to you, so a cleared cache or a new phone
-          can&apos;t take them. Nothing moves — nothing can go missing.
+          can&apos;t take them. Nothing moves, so nothing can go missing.
         </p>
       </div>
 
@@ -1551,14 +1551,14 @@ function PlanChips({ streak }: { streak: number }) {
         <p className="mt-2 text-[13px] leading-relaxed text-stone-600">
           {String(hour).padStart(2, "0")}:00.{" "}
           {granted
-            ? "Demos will nudge you once — never more."
+            ? "Demos will nudge you once, never more."
             : "Noted. Notifications are off in this browser; Settings names the fix."}
         </p>
       ) : (
         <>
           <p className="mt-1.5 text-[13px] leading-relaxed text-stone-500">
-            Reps with a time happen. Pick one and Demos reminds you — once a
-            day, never in quiet hours.
+            Reps with a time happen. Pick one and Demos reminds you once a day,
+            never in quiet hours.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {PLAN_HOURS.map((p) => (

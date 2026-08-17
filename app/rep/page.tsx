@@ -953,7 +953,7 @@ function RepScreen() {
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               placeholder="Notes — first line, last line, one example…"
-              className="mt-3 w-full rounded-[18px] border border-black/10 bg-surface p-4 text-[14px] leading-relaxed outline-none placeholder:text-stone-300 focus:border-stone-300"
+              className="mt-3 w-full rounded-[18px] border border-black/10 bg-surface p-4 text-[14px] leading-relaxed placeholder:text-stone-300 focus:border-stone-300"
             />
             <p className="mt-1.5 text-[11.5px] text-stone-400">
               Notes stay on this screen. They disappear when you record —
@@ -1121,6 +1121,11 @@ function RepScreen() {
           <button
             onClick={
               phase === "recording" ? () => void stopRep() : () => begin()
+            }
+            aria-label={
+              phase === "recording"
+                ? "Stop recording and score this rep"
+                : "Start recording"
             }
             className={`h-24 w-24 rounded-full text-[15px] font-bold text-cream transition-colors ${
               phase === "recording"

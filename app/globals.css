@@ -220,6 +220,31 @@ body::after {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
+/*
+ * Focus.
+ *
+ * There was not one focus-visible rule in the app: inputs killed the
+ * outline and shifted a border instead, and every button, link and tab
+ * showed nothing at all, so a keyboard user could not see where they
+ * were. `:focus-visible` rather than `:focus` is the whole trick — the
+ * ring appears for keyboard and assistive navigation and stays off for
+ * the tap that already told you where you are.
+ *
+ * Terracotta, because the ring has to be found on cream and on stage
+ * dark alike, and it's the one colour that reads on both. Offset so it
+ * sits clear of the control rather than eating its edge.
+ */
+:focus-visible {
+  outline: 2px solid var(--color-terracotta-500);
+  outline-offset: 2px;
+}
+
+/* On the dark stage the offset gap shows ground, not stage — the ring
+   hugs the control there instead. */
+.on-stage :focus-visible {
+  outline-offset: 1px;
+}
+
 /* Press feedback — a tap should feel like it landed. */
 @media (hover: none) {
   .press:active {

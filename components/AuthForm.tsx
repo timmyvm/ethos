@@ -143,7 +143,7 @@ export function AuthForm({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@email.com"
-          className="mt-1.5 w-full rounded-[14px] border border-black/10 bg-surface px-4 py-3.5 text-[16px] outline-none placeholder:text-stone-300 focus:border-stone-300"
+          className="mt-1.5 w-full rounded-[14px] border border-black/10 bg-surface px-4 py-3.5 text-[16px] placeholder:text-stone-300 focus:border-stone-300"
         />
 
         {!emailOnly && (
@@ -163,7 +163,7 @@ export function AuthForm({
               placeholder={
                 mode === "signup" ? "8 characters or more" : "••••••••"
               }
-              className="mt-1.5 w-full rounded-[14px] border border-black/10 bg-surface px-4 py-3.5 text-[16px] outline-none placeholder:text-stone-300 focus:border-stone-300"
+              className="mt-1.5 w-full rounded-[14px] border border-black/10 bg-surface px-4 py-3.5 text-[16px] placeholder:text-stone-300 focus:border-stone-300"
             />
             {mode === "signup" && (
               <p className="mt-1.5 text-[12px] text-stone-400">

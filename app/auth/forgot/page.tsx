@@ -55,7 +55,7 @@ export default function ForgotPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@email.com"
-            className="mt-1.5 w-full rounded-[14px] border border-black/10 bg-surface px-4 py-3.5 text-[16px] outline-none placeholder:text-stone-300 focus:border-stone-300"
+            className="mt-1.5 w-full rounded-[14px] border border-black/10 bg-surface px-4 py-3.5 text-[16px] placeholder:text-stone-300 focus:border-stone-300"
           />
           {error && (
             <p className="mt-4 rounded-[14px] bg-terracotta-50 px-4 py-3 text-[13.5px] text-terracotta-700">

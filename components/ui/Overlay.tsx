@@ -28,6 +28,7 @@ export function Overlay({
   onClose,
   variant = "sheet",
   className = "",
+  style,
   children,
 }: {
   /** Names the dialog for screen readers. */
@@ -36,6 +37,8 @@ export function Overlay({
   /** `sheet` rises from the bottom edge; `full` owns the viewport. */
   variant?: "sheet" | "full";
   className?: string;
+  /** For the one value a class can't carry: a duration from motion.ts. */
+  style?: React.CSSProperties;
   children: React.ReactNode;
 }) {
   const panel = useRef<HTMLDivElement>(null);
@@ -103,6 +106,7 @@ export function Overlay({
       <div
         ref={panel}
         tabIndex={-1}
+        style={style}
         onClick={(e) => e.stopPropagation()}
         className={`outline-none ${className}`}
       >

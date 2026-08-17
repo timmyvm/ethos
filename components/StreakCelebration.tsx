@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
+import { Overlay } from "@/components/ui/Overlay";
+import { DURATION } from "@/lib/motion";
 import { prefersReducedMotion } from "@/lib/prefs";
 import { playCelebration } from "@/lib/sfx";
 
@@ -49,11 +51,14 @@ export function StreakCelebration({
   }, [onDone, calm]);
 
   return (
-    <div
-      onClick={onDone}
-      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-ground ${
-        calm ? "" : "transition-opacity duration-500"
+    <Overlay
+      label={`${streak} day${streak === 1 ? "" : "s"} in a row`}
+      onClose={onDone}
+      variant="full"
+      className={`flex h-full w-full flex-col items-center justify-center bg-ground ${
+        calm ? "" : "transition-opacity"
       } ${leaving ? "opacity-0" : "opacity-100"}`}
+      style={calm ? undefined : { transitionDuration: `${DURATION.celebrate}ms` }}
     >
       <Image
         src="/demos-celebrate.webp"
@@ -76,6 +81,6 @@ export function StreakCelebration({
             ? `${streak} straight. That's not motivation any more, that's a habit.`
             : "Same time tomorrow."}
       </p>
-    </div>
+    </Overlay>
   );
 }

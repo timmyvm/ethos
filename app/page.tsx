@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { DayTrail } from "@/components/DayTrail";
 import { ModPicker } from "@/components/ModPicker";
 import { PathRoad } from "@/components/PathRoad";
-import { SkeletonScoreCard } from "@/components/Skeleton";
+import { SkeletonScoreCard } from "@/components/ui/Skeleton";
 import { Paywall } from "@/components/Paywall";
 import { StreakBadge } from "@/components/StreakBadge";
 import { TopicRoulette } from "@/components/TopicRoulette";

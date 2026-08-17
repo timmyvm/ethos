@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Coin } from "@/components/Coin";
-import { Skeleton, SkeletonRegion } from "@/components/Skeleton";
+import { Skeleton, SkeletonRegion } from "@/components/ui/Skeleton";
 import {
   fetchCoinLedger,
   fetchReps,

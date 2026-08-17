@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Paywall } from "@/components/Paywall";
-import { Skeleton } from "@/components/Skeleton";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { Stars } from "@/components/Stars";
 import { fetchReps, type RepRow } from "@/lib/client-data";
 import {

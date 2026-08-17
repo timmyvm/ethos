@@ -11,7 +11,7 @@ import {
   Skeleton,
   SkeletonRegion,
   SkeletonRow,
-} from "@/components/Skeleton";
+} from "@/components/ui/Skeleton";
 import { Stars } from "@/components/Stars";
 import { fetchProfile, fetchReps, type RepRow } from "@/lib/client-data";
 import { limit } from "@/lib/entitlement";

@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Coin } from "@/components/Coin";
-import { Skeleton, SkeletonStat } from "@/components/Skeleton";
+import { Skeleton, SkeletonStat } from "@/components/ui/Skeleton";
 import { Paywall } from "@/components/Paywall";
 import { LexiconFlash } from "@/components/LexiconFlash";
 import { ShareCard } from "@/components/ShareCard";

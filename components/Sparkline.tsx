@@ -2,6 +2,11 @@
  * Progress chart — SVG, no library. Numbers are the brand (brand.md),
  * so the line is quiet stone and only the newest point is amber: the
  * chart shows the trend, the last rep is the event.
+ *
+ * The three colours are read from the theme rather than written down.
+ * They were hexes tuned for cream — a sand fill and a stone-500 line —
+ * which in dark mode drew a pale slab and a near-invisible trace over a
+ * dark card: a chart is UI, and half the app is dark.
  */
 export function Sparkline({
   values,
@@ -65,9 +70,9 @@ export function Sparkline({
         role="img"
         aria-label={`${label}: ${values.map((v) => Math.round(v)).join(", ")}`}
       >
-        <path d={area} fill="#F5F0E8" />
-        <path d={d} fill="none" stroke="#78716C" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-        <circle cx={lx} cy={ly} r="4" fill="#F59E0B" />
+        <path d={area} fill="var(--color-sand)" />
+        <path d={d} fill="none" stroke="var(--color-stone-500)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+        <circle cx={lx} cy={ly} r="4" fill="var(--color-amber-500)" />
       </svg>
       <div className="mt-1 flex justify-between">
         <span className="label-data">rep 1 · {Math.round(first)}</span>

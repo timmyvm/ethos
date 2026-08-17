@@ -14,6 +14,10 @@ import type { DayTrail as Trail } from "@/lib/days";
  * rule the Log's sparkline uses: the trend is the shape, the last day is
  * the event, and amber stays the colour of something earned.
  *
+ * Its colours come from the theme, like every other visual: this one
+ * lives on the stage card, which is dark in both themes, so the values
+ * happen not to change — but a hex here is a hex the next chart copies.
+ *
  * It gets better with time by construction. One day is a number, two is
  * a line, thirty is a shape you can read at a glance — the reward for
  * staying is that the thing on your home screen becomes more worth
@@ -84,13 +88,13 @@ function Line({ trail }: { trail: Trail }) {
         <path
           d={d}
           fill="none"
-          stroke="#A8A29E"
+          stroke="var(--color-stone-400)"
           strokeWidth="2"
           strokeLinejoin="round"
           strokeLinecap="round"
           vectorEffect="non-scaling-stroke"
         />
-        <circle cx={lx} cy={ly} r="3.5" fill="#F59E0B" />
+        <circle cx={lx} cy={ly} r="3.5" fill="var(--color-amber-500)" />
       </svg>
       <div className="flex justify-between">
         <span className="label-data !text-stone-500">day {firstDay}</span>

@@ -192,7 +192,7 @@ export function nextFocus(reps: RepRow[], now = new Date()): NextFocus {
     label: weakest.label,
     unitId: meta.unitId,
     lessonId: unit?.lessons[0]?.id ?? null,
-    reason: `${parts.join(", ")} — your weakest right now.`,
+    reason: `${parts.join(", ")}, your weakest right now.`,
     strength: weakest.strength,
   };
 }
@@ -209,5 +209,5 @@ export function decayNote(reps: RepRow[], now = new Date()): string | null {
   const days = daysBetween(new Date(last.created_at), now);
   if (days < 3) return null;
   const pct = Math.round((1 - decay(days)) * 100);
-  return `${days} days since your last rep. On our curve that's about ${pct}% off every score — one rep re-measures it.`;
+  return `${days} days since your last rep. On our curve that's about ${pct}% off every score; one rep re-measures it.`;
 }

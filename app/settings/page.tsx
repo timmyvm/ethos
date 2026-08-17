@@ -38,6 +38,7 @@ export default function SettingsPage() {
   const [tier, setTier] = useState<ReminderTier>("unsupported");
   const [email, setEmail] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [didToday, setDidToday] = useState(false);
 
   useEffect(() => {
     setPrefs(readPrefs());
@@ -46,6 +47,13 @@ export default function SettingsPage() {
     supabaseBrowser()
       ?.auth.getUser()
       .then(({ data }) => setEmail(data.user?.email ?? null))
+      .catch(() => {});
+    fetchReps()
+      .then((reps) =>
+        setDidToday(
+          computeStreak(reps.map((r) => new Date(r.created_at))).didToday
+        )
+      )
       .catch(() => {});
   }, []);
 
@@ -68,6 +76,7 @@ export default function SettingsPage() {
   async function rearm() {
     const reps = await fetchReps().catch(() => []);
     const s = computeStreak(reps.map((r) => new Date(r.created_at)));
+    setDidToday(s.didToday);
     await armReminder({ streak: s.current, didToday: s.didToday });
   }
 
@@ -116,7 +125,9 @@ export default function SettingsPage() {
   }
 
   const fireAt =
-    prefs.reminderHour !== null ? nextFireTime(prefs.reminderHour, new Date(), prefs) : null;
+    prefs.reminderHour !== null
+      ? nextFireTime(prefs.reminderHour, new Date(), prefs, didToday)
+      : null;
 
   return (
     <main className="px-5 pb-24 pt-7">
@@ -167,7 +178,7 @@ export default function SettingsPage() {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}.`
-                : "That hour falls inside your quiet hours — nothing will fire."}
+                : "That hour falls inside your quiet hours, so nothing will fire."}
             </span>{" "}
             {reminderTierNote(tier)}
           </div>
@@ -201,10 +212,8 @@ export default function SettingsPage() {
           ))}
         </div>
         <p className="mt-3 text-[12.5px] leading-relaxed text-stone-500">
-          Dark keeps the same warm neutrals — no cool greys, no pure
-          black. Terracotta and amber never change: they mean &ldquo;tap
-          this&rdquo; and &ldquo;you earned this&rdquo;, and a colour that
-          carries meaning has to read the same in both.
+          Same warm neutrals, no cool greys. Terracotta and amber never
+          change: they carry meaning.
         </p>
       </div>
 
@@ -223,6 +232,12 @@ export default function SettingsPage() {
           onChange={(v) => update({ haptics: v })}
         />
         <Toggle
+          label="Sound"
+          note="One synthesized chime at the streak celebration. Never while you record, since the mic would hear it."
+          on={prefs.sound}
+          onChange={(v) => update({ sound: v })}
+        />
+        <Toggle
           label="Verbatim transcripts"
           note="Keep every 'um' in the transcript. Off makes it prettier and the filler count wrong."
           on={prefs.verbatim}
@@ -239,12 +254,12 @@ export default function SettingsPage() {
       <div className="section-title mt-7">Account</div>
       <div className="mt-2 rounded-[18px] border border-hairline bg-surface lift p-5">
         <div className="text-[14px] font-semibold">
-          {email ?? "Anonymous — this device only"}
+          {email ?? "Anonymous · this device only"}
         </div>
         <p className="mt-1 text-[12.5px] text-stone-500">
           {email
             ? "Your reps follow this email anywhere."
-            : "Everything you've recorded lives on this device. An account attaches to it where it already is — nothing moves, so nothing can go missing."}
+            : "Everything you've recorded lives on this device. An account attaches to it where it is."}
         </p>
         {!email && (
           <Link

@@ -46,6 +46,14 @@ const JOINTS: (keyof PoseFrame)[] = [
   "rightWrist",
 ];
 
+/*
+ * These four are the app's only sanctioned literal colours, and the
+ * reason is what they're drawn ON: a camera feed, not a surface. The
+ * theme doesn't reach a live video frame, so cream lines over your own
+ * picture read the same at midnight and at noon — swapping them for
+ * theme tokens would draw a dark skeleton over a dark room. Flagged in
+ * the Checkpoint 1 audit as a dark-mode bug; it isn't one.
+ */
 const OK_STROKE = "rgba(250, 247, 242, 0.92)";
 const OK_JOINT = "#FAF7F2";
 const NUDGE_STROKE = "rgba(168, 162, 158, 0.95)";

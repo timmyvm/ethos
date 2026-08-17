@@ -60,7 +60,23 @@ export function SkeletonRegion({
   );
 }
 
-/** A card the size of the stat tiles on /you and the results screen. */
+/**
+ * The stat row on /you, which is three labelled numbers on the ground
+ * rather than three cards (DECISIONS #151) — so its placeholder is three
+ * bars on the ground too. A skeleton that draws furniture the content
+ * doesn't have is the layout shift it exists to prevent.
+ */
+export function SkeletonStatBare() {
+  return (
+    <div className="flex-1">
+      <Skeleton className="h-2.5 w-12" />
+      <Skeleton className="mt-2 h-6 w-10" />
+      <Skeleton className="mt-2 h-2.5 w-10" />
+    </div>
+  );
+}
+
+/** A card the size of the stat tiles on the results screen. */
 export function SkeletonStat() {
   return (
     <div className="flex-1 rounded-[18px] border border-hairline bg-surface lift p-3.5">

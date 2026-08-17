@@ -49,6 +49,13 @@ export function AuthForm({
   }, []);
 
   const carrying = session?.anonymous === true && progress.reps > 0;
+  /*
+   * An anonymous upgrade collects EMAIL ONLY (#142): GoTrue refuses a
+   * password on an anonymous user, so the password is set on the page
+   * the confirmation link lands on. Showing a field the flow can't use
+   * was how the upgrade shipped broken and stayed broken.
+   */
+  const emailOnly = mode === "signup" && session?.anonymous === true;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -71,18 +78,19 @@ export function AuthForm({
           We&apos;ve sent a confirmation link to{" "}
           <span className="font-semibold text-ink">{email}</span> from{" "}
           <span className="font-semibold text-ink">hello@speakethos.com</span>.
-          Open it and your account is live.
+          {emailOnly
+            ? " Open it, set your password, and the account is live."
+            : " Open it and your account is live."}
         </p>
         {carrying && (
           <p className="mt-3 text-[13.5px] leading-relaxed text-stone-500">
             Your {progress.reps} rep{progress.reps === 1 ? "" : "s"} are already
-            attached to it. Nothing is waiting on the email except the address
-            itself.
+            attached to it. The link just confirms the address and asks what
+            password you&apos;ll sign in with.
           </p>
         )}
         <p className="mt-5 text-[13px] leading-relaxed text-stone-400">
-          That address is a real inbox, not a no-reply. If something looks
-          wrong, replying is the fastest way to tell us.
+          That address is a real inbox. Reply to it if something looks wrong.
         </p>
         <Link
           href="/"
@@ -104,8 +112,7 @@ export function AuthForm({
             {progress.streak > 0 && ` and a ${progress.streak}-day streak`}.{" "}
             {mode === "signup" ? (
               <>
-                They stay exactly where they are — the account attaches to them,
-                not the other way round.
+                They stay where they are. The account attaches to them.
               </>
             ) : (
               <>
@@ -134,26 +141,40 @@ export function AuthForm({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@email.com"
-          className="mt-1.5 w-full rounded-[14px] border border-black/10 bg-surface px-4 py-3.5 text-[16px] outline-none placeholder:text-stone-300 focus:border-stone-300"
+          className="mt-1.5 w-full rounded-[14px] border border-black/10 bg-surface px-4 py-3.5 text-[16px] placeholder:text-stone-300 focus:border-stone-300"
         />
 
-        <label className="label-data mt-4 block" htmlFor="password">
-          Password
-        </label>
-        <input
-          id="password"
-          type="password"
-          autoComplete={mode === "signup" ? "new-password" : "current-password"}
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder={mode === "signup" ? "8 characters or more" : "••••••••"}
-          className="mt-1.5 w-full rounded-[14px] border border-black/10 bg-surface px-4 py-3.5 text-[16px] outline-none placeholder:text-stone-300 focus:border-stone-300"
-        />
-        {mode === "signup" && (
-          <p className="mt-1.5 text-[12px] text-stone-400">
-            Length beats punctuation. A phrase you&apos;ll remember is a better
-            password than one you won&apos;t.
+        {!emailOnly && (
+          <>
+            <label className="label-data mt-4 block" htmlFor="password">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              autoComplete={
+                mode === "signup" ? "new-password" : "current-password"
+              }
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={
+                mode === "signup" ? "8 characters or more" : "••••••••"
+              }
+              className="mt-1.5 w-full rounded-[14px] border border-black/10 bg-surface px-4 py-3.5 text-[16px] placeholder:text-stone-300 focus:border-stone-300"
+            />
+            {mode === "signup" && (
+              <p className="mt-1.5 text-[12px] text-stone-400">
+                Length beats punctuation. A phrase you&apos;ll remember is a
+                better password than one you won&apos;t.
+              </p>
+            )}
+          </>
+        )}
+        {emailOnly && (
+          <p className="mt-2 text-[12px] leading-relaxed text-stone-400">
+            Two steps: the link confirms this address, then you pick the
+            password you&apos;ll sign in with.
           </p>
         )}
 

@@ -92,15 +92,14 @@ export default function BossPage() {
       {phase === "brief" && (
         <>
           <p className="mt-3 text-[15px] leading-relaxed text-stone-500">
-            Four minutes to read. Then the notes disappear and you explain
-            it for 90 seconds from memory — scored on delivery and on
-            whether the claims are actually true.
+            Four minutes to read. Then 90 seconds from memory, scored on
+            delivery and on whether the claims are true.
           </p>
 
           {locked && (
             <div className="mt-4 rounded-[18px] border border-hairline bg-surface lift p-4 text-[13px] leading-relaxed text-stone-500">
-              You&apos;ve already taken this week&apos;s boss. It resets
-              Monday — or premium opens the whole library now.
+              You&apos;ve taken this week&apos;s boss. It resets Monday, or
+              premium opens the library now.
             </div>
           )}
 

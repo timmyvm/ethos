@@ -237,6 +237,8 @@ export interface JourneyStep {
   unitName: string;
   /** True for the leading "you showed up" node (endowed progress). */
   endowed: boolean;
+  /** Boss lessons live on /boss, not /rep?lesson=. */
+  boss: boolean;
   lessonId: string | null;
 }
 
@@ -260,6 +262,7 @@ export function journeySteps(
       locked: false,
       unitName: "Start",
       endowed: true,
+      boss: false,
       lessonId: null,
     },
   ];
@@ -276,6 +279,7 @@ export function journeySteps(
         locked: unit.locked,
         unitName: unit.name,
         endowed: false,
+        boss: unit.boss ?? false,
         lessonId: lesson.id,
       });
     }

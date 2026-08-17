@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ComparisonCard } from "@/components/ComparisonCard";
 import { FillerHeatmap } from "@/components/FillerHeatmap";
 import { Paywall } from "@/components/Paywall";
@@ -11,26 +11,57 @@ import {
   Skeleton,
   SkeletonRegion,
   SkeletonRow,
-} from "@/components/Skeleton";
+} from "@/components/ui/Skeleton";
 import { Stars } from "@/components/Stars";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { fetchProfile, fetchReps, type RepRow } from "@/lib/client-data";
 import { limit } from "@/lib/entitlement";
 import { insights } from "@/lib/insights";
+import { readable, readFailure } from "@/lib/load";
 
 const FREE_DAYS = 7; // mechanics.md: free tier sees the last 7 days
 
 /** The training log (design direction B) — every rep is a row. */
 export default function HistoryPage() {
   const [reps, setReps] = useState<RepRow[] | null>(null);
+  const [failed, setFailed] = useState(false);
   const [paywall, setPaywall] = useState<string | null>(null);
   const [premium, setPremium] = useState(false);
 
+  const load = useCallback(async () => {
+    setFailed(false);
+    setReps(null);
+    const read = await readable(fetchReps);
+    if (read.ok) setReps(read.data);
+    else setFailed(true);
+  }, []);
+
   useEffect(() => {
-    fetchReps().then(setReps).catch(() => setReps([]));
+    void load();
     fetchProfile()
       .then((p) => setPremium(p?.premium ?? false))
       .catch(() => {});
-  }, []);
+  }, [load]);
+
+  /*
+   * The failure and the empty state have to be different screens. They
+   * were the same one: a dead connection rendered "Nothing logged yet"
+   * over a sleeping Demos, which tells someone with sixty recordings
+   * that they have none.
+   */
+  if (failed) {
+    return (
+      <main className="px-5 pb-24 pt-7">
+        <h1 className="font-display text-2xl font-bold">The log</h1>
+        <ErrorState
+          className="mt-4"
+          {...readFailure("The log")}
+          onRetry={() => void load()}
+        />
+      </main>
+    );
+  }
 
   if (reps === null) {
     return (
@@ -67,25 +98,28 @@ export default function HistoryPage() {
     return (
       <main className="px-5 pb-24 pt-7">
         <h1 className="font-display text-2xl font-bold">The log</h1>
-        <div className="mt-6 rounded-[18px] border border-hairline bg-surface lift p-6 text-center">
-          <Image
-            src="/demos-asleep.webp"
-            alt=""
-            width={110}
-            height={110}
-            className="demos mx-auto w-[110px]"
-          />
-          <p className="mt-2 text-[14px] font-semibold">Nothing logged yet.</p>
-          <p className="mt-1 text-[13px] text-stone-500">
-            One rep and this page becomes a training log.
-          </p>
-          <Link
-            href="/rep"
-            className="mt-4 block w-full rounded-[14px] bg-terracotta-500 px-6 py-3.5 text-[15px] font-semibold text-cream"
-          >
-            Take the floor
-          </Link>
-        </div>
+        <EmptyState
+          className="mt-6"
+          art={
+            <Image
+              src="/demos-asleep.webp"
+              alt=""
+              width={110}
+              height={110}
+              className="demos mx-auto w-[110px]"
+            />
+          }
+          title="Nothing logged yet."
+          body="One rep and this page becomes a training log."
+          action={
+            <Link
+              href="/rep"
+              className="press block min-h-11 w-full rounded-[14px] bg-terracotta-500 px-6 py-3.5 text-[15px] font-semibold text-cream hover:bg-terracotta-600"
+            >
+              Take the floor
+            </Link>
+          }
+        />
       </main>
     );
   }
@@ -115,8 +149,8 @@ export default function HistoryPage() {
     <main className="px-5 pb-24 pt-7">
       <h1 className="font-display text-2xl font-bold">The log</h1>
       <p className="mt-1 text-[13.5px] text-stone-500">
-        {reps.length} recording{reps.length === 1 ? "" : "s"}, one row each.
-        Tap any of them for the full result.
+        {reps.length} recording{reps.length === 1 ? "" : "s"}. Tap one for the
+        full result.
       </p>
 
       <div className="mt-4 space-y-3">
@@ -218,7 +252,7 @@ export default function HistoryPage() {
           onClick={() => setPaywall("Full history · premium")}
           className="mt-3 w-full rounded-[18px] border border-terracotta-100 bg-terracotta-50 p-4 text-[13.5px] font-semibold"
         >
-          {hidden} older recording{hidden === 1 ? "" : "s"} archived — unlock
+          {hidden} older recording{hidden === 1 ? "" : "s"} archived. Unlock
           full history
         </button>
       )}

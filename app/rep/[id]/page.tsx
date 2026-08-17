@@ -10,7 +10,7 @@ import {
   Skeleton,
   SkeletonRegion,
   SkeletonStat,
-} from "@/components/Skeleton";
+} from "@/components/ui/Skeleton";
 import {
   fetchProfile,
   fetchRep,

@@ -26,6 +26,8 @@ const badge = (over: Partial<Achievement> = {}): Achievement => ({
   requirement: "7-day streak",
   earned: false,
   progress: 0.5,
+  href: "/rep",
+  icon: "flame",
   ...over,
 });
 

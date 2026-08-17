@@ -42,6 +42,11 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
       if (!g) return;
 
       // Cream ground, brand.md — no pure white, no pure black.
+      //
+      // Literal, and staying literal: this canvas leaves the app. A
+      // shared image is a piece of Ethos in someone else's feed, so it
+      // wears the brand's light palette whatever theme the phone that
+      // made it was in (Checkpoint 1, finding 3 — deliberate).
       g.fillStyle = "#FAF7F2";
       g.fillRect(0, 0, W, H);
 

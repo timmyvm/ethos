@@ -2,7 +2,10 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
+import { Overlay } from "@/components/ui/Overlay";
+import { DURATION } from "@/lib/motion";
 import { prefersReducedMotion } from "@/lib/prefs";
+import { playCelebration } from "@/lib/sfx";
 
 /**
  * The one celebration moment. Duolingo earns its streak screen by
@@ -24,6 +27,19 @@ export function StreakCelebration({
   // Read once: the reference must not change mid-celebration.
   const calm = useMemo(() => prefersReducedMotion(), []);
 
+  const milestone = streak === 7 || streak === 14 || streak === 30;
+
+  /*
+   * The one sound in the product plays here, because this is the one
+   * celebration (#34, #138). Mount-only: a re-render must not re-ring
+   * it. Reduced motion quiets the animation, not the chime — the sound
+   * has its own switch in settings.
+   */
+  useEffect(() => {
+    playCelebration(milestone);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     const hold = calm ? 1200 : 1800;
     const a = setTimeout(() => setLeaving(true), hold);
@@ -34,14 +50,15 @@ export function StreakCelebration({
     };
   }, [onDone, calm]);
 
-  const milestone = streak === 7 || streak === 14 || streak === 30;
-
   return (
-    <div
-      onClick={onDone}
-      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-ground ${
-        calm ? "" : "transition-opacity duration-500"
+    <Overlay
+      label={`${streak} day${streak === 1 ? "" : "s"} in a row`}
+      onClose={onDone}
+      variant="full"
+      className={`flex h-full w-full flex-col items-center justify-center bg-ground ${
+        calm ? "" : "transition-opacity"
       } ${leaving ? "opacity-0" : "opacity-100"}`}
+      style={calm ? undefined : { transitionDuration: `${DURATION.celebrate}ms` }}
     >
       <Image
         src="/demos-celebrate.webp"
@@ -64,6 +81,6 @@ export function StreakCelebration({
             ? `${streak} straight. That's not motivation any more, that's a habit.`
             : "Same time tomorrow."}
       </p>
-    </div>
+    </Overlay>
   );
 }

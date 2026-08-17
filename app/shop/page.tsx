@@ -2,9 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Coin } from "@/components/Coin";
-import { Skeleton, SkeletonRegion } from "@/components/Skeleton";
+import { IconFreeze } from "@/components/Icon";
+import { Skeleton, SkeletonRegion } from "@/components/ui/Skeleton";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { readable, readFailure } from "@/lib/load";
 import {
   fetchCoinLedger,
   fetchReps,
@@ -36,24 +39,43 @@ import { buzz, readPrefs, writePrefs } from "@/lib/prefs";
 export default function ShopPage() {
   const [ledger, setLedger] = useState<CoinRow[] | null>(null);
   const [equipped, setEquipped] = useState(0);
+  const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [pose, setPose] = useState<string | null>(null);
 
-  async function refresh() {
-    const reps: RepRow[] = await fetchReps().catch(() => []);
-    const dates = reps.map((r) => new Date(r.created_at));
+  /*
+   * A balance is the one number in the app that must never be guessed:
+   * every button on this screen is priced against it, and an unread
+   * ledger used to fall back to zero — which sold "not enough coins" to
+   * someone holding thirty.
+   */
+  const refresh = useCallback(async () => {
+    setFailed(false);
+    const reps = await readable(fetchReps);
+    if (!reps.ok) {
+      setLedger(null);
+      setFailed(true);
+      return;
+    }
+    const dates = reps.data.map((r: RepRow) => new Date(r.created_at));
     // Pay out anything owed before showing a balance to spend.
-    await syncCoins(dates).catch(() => {});
-    setLedger(await fetchCoinLedger().catch(() => []));
-    const f = await syncFreezes(dates).catch(() => null);
-    if (f) setEquipped(f.equipped);
-  }
+    await readable(() => syncCoins(dates));
+    const rows = await readable(fetchCoinLedger);
+    if (!rows.ok) {
+      setLedger(null);
+      setFailed(true);
+      return;
+    }
+    setLedger(rows.data);
+    const f = await readable(() => syncFreezes(dates));
+    if (f.ok) setEquipped(f.data.equipped);
+  }, []);
 
   useEffect(() => {
     setPose(readPrefs().pose);
     void refresh();
-  }, []);
+  }, [refresh]);
 
   /** Equipping is free and reversible — the coins bought the option. */
   function equip(id: string | null) {
@@ -77,15 +99,17 @@ export default function ShopPage() {
       if (item.kind === "cosmetic") equip(item.id);
       setNote(
         item.kind === "cosmetic"
-          ? `${item.name} — bought and on your card.`
-          : `${item.name} — bought.`
+          ? `${item.name} bought, and on your card.`
+          : `${item.name} bought.`
       );
       await refresh();
     } else {
+      // The server's own words used to land here verbatim ("PGRST301",
+      // "JWT expired"), which is a stack trace with better manners.
       setNote(
         res.detail === "not enough coins"
           ? "Not enough coins yet."
-          : `Couldn't buy that: ${res.detail}`
+          : "That didn't go through. Your coins are untouched."
       );
     }
     setBusy(null);
@@ -104,7 +128,15 @@ export default function ShopPage() {
         <span className="flex items-center gap-2">
           <Coin variant={coins > 0 ? "coin" : "empty"} size={26} />
           {ledger === null ? (
-            <Skeleton className="h-6 w-10" />
+            failed ? (
+              /* Not a zero. A balance nobody could read is unknown, and
+                 unknown is a dash. */
+              <span className="font-display text-[24px] font-bold leading-none text-stone-400">
+                —
+              </span>
+            ) : (
+              <Skeleton className="h-6 w-10" />
+            )
           ) : (
             <span className="font-display text-[24px] font-bold leading-none">
               {coins}
@@ -112,8 +144,13 @@ export default function ShopPage() {
           )}
         </span>
       </div>
+      {/* The earning rule moved here from under the balance on /you: a
+          day you spoke pays once however many reps you did, which is the
+          fact that makes the prices below mean something. The claim that
+          nothing here buys a score is made once, at the bottom, where
+          the shelf has already made its case. */}
       <p className="mt-1.5 text-[13.5px] leading-relaxed text-stone-500">
-        One coin per day you speak. Nothing here buys a score.
+        One coin a day you speak, however many reps you did.
       </p>
 
       {note && (
@@ -122,7 +159,13 @@ export default function ShopPage() {
         </p>
       )}
 
-      {ledger === null ? (
+      {failed ? (
+        <ErrorState
+          className="mt-5"
+          {...readFailure("Your coins")}
+          onRetry={() => void refresh()}
+        />
+      ) : ledger === null ? (
         <SkeletonRegion label="Loading the shop" className="mt-5 space-y-3">
           {[0, 1, 2].map((i) => (
             <div
@@ -165,8 +208,8 @@ export default function ShopPage() {
                       className="demos h-[62px] w-[62px] shrink-0 object-contain"
                     />
                   ) : (
-                    <span className="flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-[14px] bg-amber-50 text-[26px] text-amber-500">
-                      ❄
+                    <span className="flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-[14px] bg-amber-50 text-amber-500">
+                      <IconFreeze size={28} />
                     </span>
                   )}
                   <div className="min-w-0 flex-1">
@@ -236,9 +279,8 @@ export default function ShopPage() {
       )}
 
       <p className="mt-6 text-center text-[12px] leading-relaxed text-stone-400">
-        Coins come from days you spoke, never from money. The shop can sell
-        you convenience and decoration — it can&apos;t sell you a streak, a
-        star or a point of your Ethos.
+        The shop sells convenience and decoration. It can&apos;t sell you a
+        streak, a star or a point of your Ethos.
       </p>
     </main>
   );

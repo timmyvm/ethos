@@ -46,7 +46,7 @@ export const SHOP: ShopItem[] = [
     blurb:
       "Covers one missed day automatically. Two is the most you can hold.",
     honest:
-      "It protects the streak, it never grows it — a frozen day still isn't a day you spoke.",
+      "It protects the streak, it never grows it. A frozen day still isn't a day you spoke.",
   },
   {
     id: "pose_speaking",

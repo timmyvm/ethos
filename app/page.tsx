@@ -3,11 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { DayTrail } from "@/components/DayTrail";
 import { ModPicker } from "@/components/ModPicker";
-import { SkeletonScoreCard } from "@/components/Skeleton";
+import { PathRoad } from "@/components/PathRoad";
+import { SkeletonScoreCard } from "@/components/ui/Skeleton";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { Paywall } from "@/components/Paywall";
+import { readable, readFailure } from "@/lib/load";
 import { StreakBadge } from "@/components/StreakBadge";
 import { TopicRoulette } from "@/components/TopicRoulette";
 import {
@@ -17,10 +20,12 @@ import {
   type RepRow,
 } from "@/lib/client-data";
 import { spin, type Topic } from "@/lib/topics";
+import { sessionState } from "@/lib/auth";
 import { dayTrail } from "@/lib/days";
 import { todaysDrill } from "@/lib/drills";
 import { syncFreezes } from "@/lib/freeze-sync";
-import { MAX_STARS, nextLesson, starsByLesson, totalStars } from "@/lib/path";
+import { firstRun, markWelcomed } from "@/lib/onboarding";
+import { nextLesson, starsByLesson, totalStars } from "@/lib/path";
 import { readPrefs } from "@/lib/prefs";
 import { repHref } from "@/lib/rep-config";
 import { ownedFrom, poseArt } from "@/lib/shop";
@@ -48,8 +53,58 @@ export default function Home() {
   const [paywall, setPaywall] = useState<string | null>(null);
   const [topic, setTopic] = useState<Topic | null>(null);
   const [demos, setDemos] = useState<string | null>(null);
+  const [anon, setAnon] = useState<boolean | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  /**
+   * The history read, on its own so the retry can mean it. It used to
+   * end `.catch(() => setReps([]))`, which drew the home screen of
+   * someone with no reps for someone whose reps merely didn't arrive —
+   * the day counter reset, the score card vanished, and nothing on
+   * screen said why.
+   */
+  const load = useCallback(async () => {
+    setFailed(false);
+    setReps(null);
+    const read = await readable(fetchReps);
+    if (!read.ok) {
+      setFailed(true);
+      return;
+    }
+    const rows = read.data;
+    setReps(rows);
+    const dates = rows.map((r) => new Date(r.created_at));
+    // Optimistic: show the unfrozen streak immediately, then reconcile
+    // freezes (which may involve a write).
+    setStreak(computeStreak(dates));
+    const sync = await readable(() => syncFreezes(dates));
+    if (!sync.ok) return;
+    setStreak(sync.data.streak);
+    setRescued(sync.data.rescued.length);
+    void armReminder({
+      streak: sync.data.streak.current,
+      didToday: sync.data.streak.didToday,
+    });
+  }, []);
 
   useEffect(() => {
+    /*
+     * A fresh browser gets the introduction (DECISIONS #133) — the
+     * three screens existed and nothing routed a first visit into
+     * them. Checked synchronously before any fetch: the fetches mint
+     * an anonymous session, which would make this device stop looking
+     * fresh before the decision was made.
+     */
+    if (firstRun()) {
+      router.replace("/welcome");
+      return;
+    }
+    markWelcomed();
+
+    sessionState()
+      .then((s) => setAnon(s.signedIn && s.anonymous))
+      .catch(() => {});
+
     fetchProfile()
       .then((p) => setPremium(p?.premium ?? false))
       .catch(() => {});
@@ -60,25 +115,8 @@ export default function Home() {
       .then((l) => setDemos(poseArt(readPrefs().pose, ownedFrom(l))))
       .catch(() => {});
 
-    fetchReps()
-      .then(async (rows) => {
-        setReps(rows);
-        const dates = rows.map((r) => new Date(r.created_at));
-        // Optimistic: show the unfrozen streak immediately, then
-        // reconcile freezes (which may involve a write).
-        setStreak(computeStreak(dates));
-        try {
-          const sync = await syncFreezes(dates);
-          setStreak(sync.streak);
-          setRescued(sync.rescued.length);
-          void armReminder({
-            streak: sync.streak.current,
-            didToday: sync.streak.didToday,
-          });
-        } catch {}
-      })
-      .catch(() => setReps([]));
-  }, []);
+    void load();
+  }, [load, router]);
 
   const history = reps ?? [];
   const starMap = starsByLesson(history);
@@ -127,7 +165,7 @@ export default function Home() {
             missed.
           </span>{" "}
           <span className="text-stone-500">
-            The streak held. It didn&apos;t grow — you only count days you
+            The streak held. It didn&apos;t grow: you only count days you
             spoke.
           </span>
         </div>
@@ -236,7 +274,15 @@ export default function Home() {
       {/* The floor card above needs no round trip — `todaysDrill()` is
           local — so it paints immediately. This one is fetched, and used
           to pop in under it. */}
-      {reps === null && <SkeletonScoreCard />}
+      {reps === null && !failed && <SkeletonScoreCard />}
+
+      {failed && (
+        <ErrorState
+          className="mt-5"
+          {...readFailure("Your score")}
+          onRetry={() => void load()}
+        />
+      )}
 
       {history.length > 0 && (
         <section className="mt-5 rounded-[26px] bg-stage p-5 text-cream lift-stage">
@@ -291,22 +337,6 @@ export default function Home() {
            */}
           <DayTrail trail={trail} />
 
-          {/* Path progress as one line rather than a whole rail — the
-              Path tab owns the rail, and home was rendering both. */}
-          <Link
-            href="/path"
-            className="press mt-4 flex items-center gap-3 border-t border-white/10 pt-3.5"
-          >
-            <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full rounded-full bg-amber-500"
-                style={{ width: `${Math.max(2, (totalStars(starMap) / MAX_STARS) * 100)}%` }}
-              />
-            </div>
-            <span className="label-data !text-stone-500 shrink-0">
-              the path →
-            </span>
-          </Link>
         </section>
       )}
 
@@ -332,9 +362,9 @@ export default function Home() {
         </div>
       )}
 
-      {history.length === 0 && (
+      {reps !== null && history.length === 0 && (
         <p className="mt-5 text-center text-[13px] text-stone-400">
-          60–90 seconds. Pauses are allowed — they&apos;re scored in your favor.
+          60 to 90 seconds. Pauses score in your favor.
         </p>
       )}
 
@@ -362,6 +392,33 @@ export default function Home() {
           →
         </span>
       </Link>
+
+      {/*
+       * The standing soft-wall surface (DECISIONS #137). The loud ask
+       * already happened in the rep flow; this is the persistent honest
+       * statement of risk for everyone who declined it, kept at the
+       * volume of "Make it harder" so the floor's one terracotta tap
+       * stays uncontested.
+       */}
+      {anon === true && history.length > 0 && (
+        <Link
+          href="/signup"
+          className="press mt-5 block text-center text-[13px] leading-relaxed text-stone-400"
+        >
+          {history.length} recording{history.length === 1 ? "" : "s"} live only
+          in this browser ·{" "}
+          <span className="font-semibold text-stone-500">keep them →</span>
+        </Link>
+      )}
+
+      {/* The road (#141): the whole path, winding down from here. It
+          goes LAST so the floor keeps the first screen (#9) — the road
+          is what scrolling reveals, all of it, without a tab switch. */}
+      {/* Only once the reps are in hand: a road drawn from an unread
+          history shows nought stars to someone who has earned twenty. */}
+      {reps !== null && (
+        <PathRoad starMap={starMap} hasAnyRep={history.length > 0} />
+      )}
 
       {paywall && <Paywall reason={paywall} onClose={() => setPaywall(null)} />}
     </main>

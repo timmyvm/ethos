@@ -22,7 +22,7 @@ export const COLD_TOPICS: ColdTopic[] = [
     truth: [
       "People with low ability at a task overestimate their ability",
       "The original 1999 Kruger & Dunning studies covered humour, grammar, logic",
-      "It is about metacognition — the skill needed to judge competence is the same skill being measured",
+      "It is about metacognition: judging competence takes the same skill being measured",
       "Commonly misstated as 'stupid people think they're geniuses'; the real curve is subtler",
     ],
     reading: "en.wikipedia.org/wiki/Dunning–Kruger_effect",
@@ -76,7 +76,7 @@ export const COLD_TOPICS: ColdTopic[] = [
     title: "Containerisation",
     truth: [
       "Malcolm McLean's standardised steel box, first voyage 1956",
-      "Collapsed loading costs — the dominant cost in shipping was port labour, not distance",
+      "Collapsed loading costs: the dominant cost in shipping was port labour, not distance",
       "Forced redesign of ports, ships, trucks and rail around one standard",
       "Widely credited as a major driver of late-20th-century globalisation",
     ],
@@ -89,7 +89,7 @@ export const COLD_TOPICS: ColdTopic[] = [
       "Selection pressure: antibiotics kill susceptible bacteria, resistant ones survive and reproduce",
       "Resistance genes spread horizontally between bacteria via plasmids",
       "Driven by over-prescription and agricultural use, not by individuals 'building immunity'",
-      "The person doesn't become resistant — the bacterial population does",
+      "The person does not become resistant; the bacterial population does",
     ],
     reading: "en.wikipedia.org/wiki/Antimicrobial_resistance",
   },

@@ -54,14 +54,14 @@ export function anticipation(
       // nouns of every shape ("Ethos 700", "3★ on Kill 'like'") and
       // splicing them mid-sentence reads as broken copy.
       detail: closest
-        ? `Closest after that: ${closest.label} — ${closest.remainingLabel}.`
+        ? `Closest after that: ${closest.label}, ${closest.remainingLabel}.`
         : "One rep. Five minutes.",
       tone: "amber",
     };
   }
   if (!closest) return null;
   return {
-    headline: `${closest.label} — ${closest.remainingLabel}`,
+    headline: `${closest.label} · ${closest.remainingLabel}`,
     detail: closest.detail,
     tone: "amber",
   };

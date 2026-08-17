@@ -2,9 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Coin } from "@/components/Coin";
-import { Skeleton, SkeletonStat } from "@/components/Skeleton";
+import { AchievementMark, IconFreeze } from "@/components/Icon";
+import { ErrorLine, ErrorState } from "@/components/ui/ErrorState";
+import { Skeleton, SkeletonStatBare } from "@/components/ui/Skeleton";
 import { Paywall } from "@/components/Paywall";
 import { LexiconFlash } from "@/components/LexiconFlash";
 import { ShareCard } from "@/components/ShareCard";
@@ -21,6 +23,7 @@ import {
 } from "@/lib/client-data";
 import { syncFreezes } from "@/lib/freeze-sync";
 import { levelFromXp } from "@/lib/level";
+import { readable, readFailure } from "@/lib/load";
 import {
   computeStreak,
   MAX_EQUIPPED_FREEZES,
@@ -39,42 +42,81 @@ const EMPTY_STREAK: StreakState = {
   frozenInRun: 0,
 };
 
+/**
+ * The profile.
+ *
+ * Two passes shaped what's here. The structural pass took the boxes
+ * away: every block on this page was a bordered, lifted card, so eight
+ * cards gave eight things equal rank and the eye had nowhere to land
+ * first. Only the level card is furniture now; everything under it is a
+ * section title and its numbers, sitting on the ground (DECISIONS #151).
+ *
+ * The copy pass took the paragraphs away. Coin economics live in the
+ * shop, freeze rules live at the moment a freeze is earned or spent, and
+ * "never money" is said once, where it lands hardest — under the XP bar
+ * (COPY-RULES.md, DECISIONS #150).
+ */
 export default function YouPage() {
   /**
    * `null` until the fetch lands, NOT `[]`. Starting empty meant this
    * page rendered "Level 1 · 0 XP · 0 coins · 0-day streak" for a few
    * hundred milliseconds to someone who might have a hundred reps —
-   * numbers that were not true. Skeletons hold the space instead.
+   * numbers that were not true. Skeletons hold the space instead, and
+   * `lib/load` is what lets them end.
    */
   const [reps, setReps] = useState<RepRow[] | null>(null);
+  const [failed, setFailed] = useState(false);
   const [lexicon, setLexicon] = useState<LexiconRow[]>([]);
   const [xp, setXp] = useState({ total: 0, week: 0 });
   const [anon, setAnon] = useState<boolean | null>(null);
   const [paywall, setPaywall] = useState<string | null>(null);
-  const [coins, setCoins] = useState(0);
+  /** `null` is a balance nobody could read. It renders as a dash. */
+  const [coins, setCoins] = useState<number | null>(null);
   const [streak, setStreak] = useState<StreakState>(EMPTY_STREAK);
   const [flashing, setFlashing] = useState(false);
-  const [freezes, setFreezes] = useState({ equipped: 0, used: 0 });
+  const [freezes, setFreezes] = useState<{
+    equipped: number;
+    used: number;
+  } | null>(null);
+
+  /** The coins half, on its own so its retry doesn't reload the page. */
+  const loadCoins = useCallback(async (dates: Date[]) => {
+    const read = await readable(() => syncCoins(dates));
+    setCoins(read.ok ? read.data.balance : null);
+  }, []);
+
+  /** Same for freezes: one dead sync shouldn't blank the profile. */
+  const loadFreezes = useCallback(async (dates: Date[]) => {
+    const read = await readable(() => syncFreezes(dates));
+    if (!read.ok) {
+      setFreezes(null);
+      return;
+    }
+    setStreak(read.data.streak);
+    setFreezes({
+      equipped: read.data.equipped,
+      used: read.data.frozenDays.length,
+    });
+  }, []);
+
+  const load = useCallback(async () => {
+    setFailed(false);
+    setReps(null);
+    const read = await readable(fetchReps);
+    if (!read.ok) {
+      setFailed(true);
+      return;
+    }
+    const rows = read.data;
+    setReps(rows);
+    const dates = rows.map((r) => new Date(r.created_at));
+    setStreak(computeStreak(dates));
+    void loadFreezes(dates);
+    void loadCoins(dates);
+  }, [loadCoins, loadFreezes]);
 
   useEffect(() => {
-    fetchReps()
-      .then(async (rows) => {
-        setReps(rows);
-        const dates = rows.map((r) => new Date(r.created_at));
-        setStreak(computeStreak(dates));
-        try {
-          const sync = await syncFreezes(dates);
-          setStreak(sync.streak);
-          setFreezes({
-            equipped: sync.equipped,
-            used: sync.frozenDays.length,
-          });
-        } catch {}
-        try {
-          setCoins((await syncCoins(dates)).balance);
-        } catch {}
-      })
-      .catch(() => setReps([]));
+    void load();
     fetchLexicon().then(setLexicon).catch(() => {});
     fetchXp().then(setXp).catch(() => {});
     const db = supabaseBrowser();
@@ -82,26 +124,56 @@ export default function YouPage() {
       .getUser()
       .then(({ data }) => setAnon(data.user?.is_anonymous ?? null))
       .catch(() => setAnon(null));
-  }, []);
+  }, [load]);
 
   const loading = reps === null;
   const history = reps ?? [];
+  const dates = history.map((r) => new Date(r.created_at));
   const level = levelFromXp(xp.total);
+  const badges = achievements(history);
+  const earnedCount = badges.filter((b) => b.earned).length;
   const toNextFreeze = 7 - (streak.longest % 7);
 
   // "Save your progress" gate — appears only after there IS progress
   // (DECISIONS #15: never before the first rep).
   const showGate = anon === true && history.length >= 1;
 
+  const header = (
+    <div className="flex items-center justify-between">
+      <h1 className="font-display text-2xl font-bold">You</h1>
+      <Link
+        href="/settings"
+        className="text-[13px] font-semibold text-stone-500"
+      >
+        Settings
+      </Link>
+    </div>
+  );
+
+  /*
+   * Every number on this page is derived from the reps, so an unread
+   * history can't be drawn as a profile — it would be someone else's
+   * profile, made of zeroes.
+   */
+  if (failed) {
+    return (
+      <main className="px-5 pb-24 pt-7">
+        {header}
+        <ErrorState
+          className="mt-4"
+          {...readFailure("Your numbers")}
+          onRetry={() => void load()}
+        />
+      </main>
+    );
+  }
+
   return (
     <main className="px-5 pb-24 pt-7">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold">You</h1>
-        <Link href="/settings" className="text-[13px] font-semibold text-stone-500">
-          Settings
-        </Link>
-      </div>
+      {header}
 
+      {/* The one card on the page. It holds the two numbers that answer
+          "how far in am I", so it keeps the furniture. */}
       <div className="mt-4 rounded-[18px] border border-hairline bg-surface lift p-5">
         <div className="flex items-center gap-4">
           <Image
@@ -148,16 +220,17 @@ export default function YouPage() {
               {level.intoLevel}/{level.forNext} to level {level.level + 1}
             </span>
           )}
+          {/* The page's one mantra, on the one bar money can't move. */}
           <span className="label-data">XP = reps, never money</span>
         </div>
       </div>
 
-      <div className="mt-3 flex gap-3">
+      <div className="mt-5 flex gap-3">
         {loading ? (
           <>
-            <SkeletonStat />
-            <SkeletonStat />
-            <SkeletonStat />
+            <SkeletonStatBare />
+            <SkeletonStatBare />
+            <SkeletonStatBare />
           </>
         ) : (
           <>
@@ -169,26 +242,25 @@ export default function YouPage() {
       </div>
 
       {/*
-       * Coins. §4 shipped this without a shop on purpose, so the balance
-       * was shown against the price of the first thing it would one day
-       * buy. The shop is open now (DECISIONS #125) and the framing is
-       * unchanged — a number going somewhere named, now with somewhere
-       * to go.
+       * Coins. The balance is shown against the price of the first thing
+       * it buys — a number going somewhere named. What used to sit under
+       * it was three lines arguing why the shop can only sell
+       * convenience; that argument belongs in the shop, where somebody is
+       * about to spend (COPY-RULES: explain a mechanic where it happens).
        */}
       <div className="section-title mt-7">Coins</div>
-      <div className="mt-2 rounded-[18px] border border-hairline bg-surface lift p-5">
-        {/* Number over caption on both sides, and both captions kept
-            short enough not to wrap. "1 per day you speak" wrapped to
-            two lines in the middle column and collided with the balance
-            — a mono caption is a caption, so it has to fit on one. */}
+      <div className="mt-2">
         <div className="flex items-end gap-4">
-          <Coin variant={!loading && coins > 0 ? "stack" : "empty"} size={44} />
+          <Coin
+            variant={coins !== null && coins > 0 ? "stack" : "empty"}
+            size={44}
+          />
           <div className="flex-1">
             {loading ? (
               <Skeleton className="h-7 w-12" />
             ) : (
               <div className="font-display text-[30px] font-bold leading-none">
-                {coins}
+                {coins ?? "—"}
               </div>
             )}
             <div className="label-data mt-1.5">1 a day</div>
@@ -198,7 +270,7 @@ export default function YouPage() {
               <Skeleton className="ml-auto h-5 w-8" />
             ) : (
               <div className="font-display text-[22px] font-bold leading-none">
-                {towardFirstItem(coins).toGo}
+                {coins === null ? "—" : towardFirstItem(coins).toGo}
               </div>
             )}
             <div className="label-data mt-1.5">to the first item</div>
@@ -207,100 +279,96 @@ export default function YouPage() {
         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-sand">
           <div
             className="h-full rounded-full bg-amber-500"
-            style={{ width: `${towardFirstItem(coins).fraction * 100}%` }}
+            style={{
+              width: `${coins === null ? 0 : towardFirstItem(coins).fraction * 100}%`,
+            }}
           />
         </div>
-        <p className="mt-3 border-t border-sand pt-3 text-[12.5px] leading-relaxed text-stone-500">
-          A day you spoke pays once, however many reps you did — which is
-          why the shop can only sell you convenience and decoration. It
-          can&apos;t sell you a streak, a star or a point of your Ethos.
-        </p>
+        {!loading && coins === null && (
+          <ErrorLine className="mt-2" onRetry={() => void loadCoins(dates)}>
+            Your balance didn&apos;t load.
+          </ErrorLine>
+        )}
         <Link
           href="/shop"
-          className="press mt-3 flex items-center justify-between rounded-[13px] border border-black/10 px-4 py-3 text-[14px] font-semibold"
+          className="press mt-3 flex min-h-11 items-center justify-between rounded-[13px] border border-black/10 px-4 py-3 text-[14px] font-semibold hover:bg-sand"
         >
           <span>Open the shop</span>
-          <span className="text-stone-400">→</span>
+          <span aria-hidden className="text-stone-400">
+            →
+          </span>
         </Link>
       </div>
 
-      {/* Freezes — earned by speaking, or bought with coins earned by
-          speaking. Never bought with money (non-negotiable). */}
+      {/* Freezes. The rules that were printed here in full — how they're
+          earned, what they cost, what a frozen day does to the streak —
+          now appear at the two moments they're true: when one is spent
+          (the home screen says so) and when you have one to spend. */}
       <div className="section-title mt-7">Streak freezes</div>
-      <div className="mt-2 rounded-[18px] border border-hairline bg-surface lift p-5">
-        <div className="flex items-center gap-2">
-          {Array.from({ length: MAX_EQUIPPED_FREEZES }).map((_, i) => (
+      <div className="mt-2 flex items-center gap-2">
+        {Array.from({ length: MAX_EQUIPPED_FREEZES }).map((_, i) => {
+          const ready = (freezes?.equipped ?? 0) > i;
+          return (
             <span
               key={i}
-              className={`flex h-9 w-9 items-center justify-center rounded-full text-[15px] ${
-                i < freezes.equipped
-                  ? "bg-amber-50 text-amber-500"
-                  : "bg-sand text-stone-300"
+              className={`flex h-9 w-9 items-center justify-center rounded-full ${
+                ready ? "bg-amber-50 text-amber-500" : "bg-sand text-stone-300"
               }`}
-              aria-label={i < freezes.equipped ? "freeze ready" : "empty slot"}
             >
-              ❄
+              <IconFreeze size={17} />
             </span>
-          ))}
-          <div className="ml-2 flex-1 text-[13px] leading-relaxed text-stone-500">
-            {freezes.equipped > 0
+          );
+        })}
+        <p className="ml-2 flex-1 text-[13px] leading-relaxed text-stone-500">
+          {freezes === null
+            ? "Two slots. Each one covers a day you miss."
+            : freezes.equipped > 0
               ? "Miss a day and one of these covers it automatically."
               : `${toNextFreeze} more consecutive day${toNextFreeze === 1 ? "" : "s"} earns one.`}
-          </div>
-        </div>
-        <p className="mt-3 border-t border-sand pt-3 text-[12.5px] leading-relaxed text-stone-500">
-          One freeze per full week of streak, two maximum — or 14 coins in
-          the shop, which is two weeks of speaking either way. Never
-          money. A frozen day keeps your streak without counting toward
-          it.
-          {freezes.used > 0 && (
-            <>
-              {" "}
-              <span className="text-stone-600">
-                {freezes.used} spent so far.
-              </span>
-            </>
-          )}
         </p>
       </div>
+      {freezes !== null && freezes.used > 0 && (
+        <p className="mt-2 text-[12.5px] text-stone-500">
+          {freezes.used} spent so far.
+        </p>
+      )}
+      {!loading && freezes === null && (
+        <ErrorLine className="mt-2" onRetry={() => void loadFreezes(dates)}>
+          Your freezes didn&apos;t load.
+        </ErrorLine>
+      )}
 
       {/* Weekly league — the roster fills once there are other trainees. */}
       <div className="section-title mt-7">Weekly league</div>
-      <div className="mt-2 rounded-[18px] border border-hairline bg-surface lift p-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-[14.5px] font-semibold">Stone League</div>
-            <div className="text-[12.5px] text-stone-500">
-              Resets Monday · ranks effort, not scores
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="font-display text-[22px] font-bold">
-              {xp.week}
-            </div>
-            <div className="label-data">your xp</div>
-          </div>
+      <div className="mt-2 flex items-start justify-between">
+        <div>
+          <div className="text-[14.5px] font-semibold">Stone League</div>
+          <div className="text-[12.5px] text-stone-500">Resets Monday</div>
         </div>
-        <p className="mt-3 border-t border-sand pt-3 text-[12.5px] text-stone-500">
-          Leagues open when there are 20 trainees to rank. Until then the
-          only person to beat is last week&apos;s you.
-        </p>
+        <div className="text-right">
+          <div className="font-display text-[22px] font-bold leading-none">
+            {xp.week}
+          </div>
+          <div className="label-data mt-1">your xp</div>
+        </div>
       </div>
+      <p className="mt-2 text-[12.5px] text-stone-500">
+        Opens once there are 20 trainees to rank.
+      </p>
 
       {/* Personal lexicon — the supply layer's archive (DECISIONS #12) */}
       <div className="section-title mt-7">Your lexicon</div>
       {lexicon.length === 0 ? (
-        <p className="mt-2 text-[13px] text-stone-500">
-          Every rep gives you one upgrade drawn from your own words. They
-          collect here.
+        <p className="mt-2 text-[13px] leading-relaxed text-stone-500">
+          One upgrade a rep, drawn from your own words.
         </p>
       ) : (
         <>
-          <div className="mt-2 space-y-2">
+          <div className="mt-1">
             {lexicon.slice(0, limit(FREE_LEXICON) ?? lexicon.length).map((l) => (
               <div
                 key={l.id}
-                className="flex items-center gap-3 rounded-[18px] border border-hairline bg-surface lift px-4 py-3 text-[14px]"
+                className="flex items-center gap-3 border-b border-hairline py-3 text-[14px]"
               >
                 <span className="text-stone-500 line-through">
                   {l.original}
@@ -315,7 +383,7 @@ export default function YouPage() {
           {lexicon.length >= 3 && !flashing && (
             <button
               onClick={() => setFlashing(true)}
-              className="press mt-2.5 w-full rounded-[18px] border border-black/10 bg-surface p-4 text-[13.5px] font-semibold lift"
+              className="press mt-3 min-h-11 w-full rounded-[13px] border border-black/10 px-4 py-3 text-[13.5px] font-semibold hover:bg-sand"
             >
               Test yourself on these →
             </button>
@@ -333,7 +401,7 @@ export default function YouPage() {
           {limit(FREE_LEXICON) !== null && lexicon.length > FREE_LEXICON && (
             <button
               onClick={() => setPaywall("Full lexicon · premium")}
-              className="mt-2.5 w-full rounded-[18px] border border-terracotta-100 bg-terracotta-50 p-4 text-[13.5px] font-semibold"
+              className="mt-2.5 min-h-11 w-full rounded-[13px] border border-terracotta-100 bg-terracotta-50 px-4 py-3 text-[13.5px] font-semibold"
             >
               {lexicon.length - FREE_LEXICON} more upgrade
               {lexicon.length - FREE_LEXICON === 1 ? "" : "s"} in your archive
@@ -342,34 +410,58 @@ export default function YouPage() {
         </>
       )}
 
-      {/* Badges — every one names the number that unlocked it. */}
-      <div className="section-title mt-7">Earned</div>
-      <div className="mt-2 grid grid-cols-2 gap-2.5">
-        {achievements(history).map((a) => (
-          <div
+      {/*
+       * The shelf. A ladder, not a grid: hardest last, no tier labels,
+       * because the position is the claim. Every row is a link to the
+       * drill that produces its number — a locked badge that only
+       * describes itself is a taunt (DECISIONS #153).
+       */}
+      <div className="section-title mt-7">
+        Earned{" "}
+        <span className="label-data ml-1">
+          {earnedCount}/{badges.length}
+        </span>
+      </div>
+      <div className="mt-2">
+        {badges.map((a) => (
+          <Link
             key={a.id}
-            className={`rounded-[18px] border p-4 ${
-              a.earned
-                ? "border-amber-500/30 bg-surface"
-                : "border-hairline bg-surface opacity-60"
-            }`}
+            href={a.href}
+            className="press flex min-h-14 items-center gap-3.5 border-b border-hairline py-3"
           >
-            <div className="flex items-baseline justify-between">
-              <span className="text-[13.5px] font-semibold">{a.name}</span>
-              {a.earned && <span className="text-amber-500">●</span>}
-            </div>
-            <p className="mt-1 text-[11.5px] leading-relaxed text-stone-500">
-              {a.requirement}
-            </p>
-            {!a.earned && a.progress > 0 && (
-              <div className="mt-2 h-1 overflow-hidden rounded-full bg-sand">
-                <div
-                  className="h-full rounded-full bg-stone-400"
-                  style={{ width: `${Math.round(a.progress * 100)}%` }}
-                />
-              </div>
-            )}
-          </div>
+            <span
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                a.earned
+                  ? "bg-amber-50 text-amber-500"
+                  : "bg-sand text-stone-300"
+              }`}
+            >
+              <AchievementMark name={a.icon} size={20} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span
+                className={`block text-[14px] font-semibold ${
+                  a.earned ? "" : "text-stone-500"
+                }`}
+              >
+                {a.name}
+              </span>
+              <span className="mt-0.5 block text-[12px] text-stone-400">
+                {a.requirement}
+              </span>
+              {!a.earned && a.progress > 0 && (
+                <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-sand">
+                  <span
+                    className="block h-full rounded-full bg-stone-400"
+                    style={{ width: `${Math.round(a.progress * 100)}%` }}
+                  />
+                </span>
+              )}
+            </span>
+            <span aria-hidden className="shrink-0 text-stone-300">
+              →
+            </span>
+          </Link>
         ))}
       </div>
 
@@ -386,12 +478,12 @@ export default function YouPage() {
           <p className="mt-1 text-[13px] leading-relaxed text-stone-600">
             {history.length} recording{history.length === 1 ? "" : "s"}
             {streak.current > 0 && ` and a ${streak.current}-day streak`} live
-            on this device. An account attaches to them where they already are
-            — nothing moves, so nothing can go missing.
+            on this device. An account attaches to them where they already are,
+            so nothing has to move.
           </p>
           <Link
             href="/signup"
-            className="press mt-3 block w-full rounded-[13px] bg-terracotta-500 px-4 py-3 text-center text-[15px] font-semibold text-cream"
+            className="press mt-3 block min-h-11 w-full rounded-[13px] bg-terracotta-500 px-4 py-3 text-center text-[15px] font-semibold text-cream hover:bg-terracotta-600"
           >
             Create my account
           </Link>
@@ -411,6 +503,7 @@ export default function YouPage() {
   );
 }
 
+/** A labelled number on the ground. No box: the label is the container. */
 function Stat({
   label,
   value,
@@ -421,7 +514,7 @@ function Stat({
   note: string;
 }) {
   return (
-    <div className="flex-1 rounded-[18px] border border-hairline bg-surface lift p-3.5">
+    <div className="flex-1">
       <div className="label-data">{label}</div>
       <div className="font-display text-[26px] font-bold leading-tight">
         {value}

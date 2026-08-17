@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { IconLocked } from "@/components/Icon";
 import { Paywall } from "@/components/Paywall";
-import { Skeleton } from "@/components/Skeleton";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { Stars } from "@/components/Stars";
 import { fetchReps, type RepRow } from "@/lib/client-data";
+import { readable, readFailure } from "@/lib/load";
 import {
   MAX_STARS,
   nextLesson,
@@ -20,11 +23,39 @@ export default function PathPage() {
   // `null` while loading, so the star total isn't rendered as 0/24 to
   // someone who has earned most of them.
   const [reps, setReps] = useState<RepRow[] | null>(null);
+  const [failed, setFailed] = useState(false);
   const [paywall, setPaywall] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchReps().then(setReps).catch(() => setReps([]));
+  const load = useCallback(async () => {
+    setFailed(false);
+    setReps(null);
+    const read = await readable(fetchReps);
+    if (read.ok) setReps(read.data);
+    else setFailed(true);
   }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  /*
+   * A failed read can't be papered over with the lesson list: which
+   * units are open, which lesson is next and how many stars are to go
+   * are all derived from the reps, so an unread history would lock a
+   * path someone has already walked.
+   */
+  if (failed) {
+    return (
+      <main className="px-5 pb-24 pt-7">
+        <h1 className="font-display text-2xl font-bold">The path</h1>
+        <ErrorState
+          className="mt-4"
+          {...readFailure("Your stars")}
+          onRetry={() => void load()}
+        />
+      </main>
+    );
+  }
 
   const loading = reps === null;
   const starMap = starsByLesson(reps ?? []);
@@ -80,7 +111,7 @@ export default function PathPage() {
 
           {u.locked && (
             <p className="mt-2 text-[12.5px] font-semibold text-stone-500">
-              Opens at {u.unlocksAt} stars — {u.unlocksAt - total} to go.
+              Opens at {u.unlocksAt} stars · {u.unlocksAt - total} to go.
             </p>
           )}
 
@@ -96,7 +127,13 @@ export default function PathPage() {
                       stars > 0 ? "bg-terracotta-50" : "bg-sand"
                     }`}
                   >
-                    {locked ? "🔒" : stars > 0 ? "✓" : i + 1}
+                    {locked ? (
+                      <IconLocked size={17} />
+                    ) : stars > 0 ? (
+                      "✓"
+                    ) : (
+                      i + 1
+                    )}
                   </span>
                   <span className="flex-1">
                     <span className="block text-[14.5px] font-semibold">

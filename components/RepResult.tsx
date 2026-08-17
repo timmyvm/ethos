@@ -46,10 +46,19 @@ export function RepResult({
   result,
   topic = null,
   section = "all",
+  baseline = false,
 }: {
   result: ResultView;
   topic?: ColdTopic | null;
   section?: ResultSection;
+  /**
+   * Rep 1 only (DECISIONS #135): frame the first score as the floor
+   * the graph grows from, in the slot the delta occupies from rep 2
+   * on. Novices tune out on verdict-framed feedback; the number stays
+   * exactly as measured, what changes is what it claims to be. The log
+   * never sets this — a stored rep is reference, not a first meeting.
+   */
+  baseline?: boolean;
 }) {
   const show = (s: ResultSection) => section === "all" || section === s;
   const { metrics: m, coach, tier1, anchors, ethosIndex, previousIndex } =
@@ -91,6 +100,11 @@ export function RepResult({
               >
                 {delta > 0 ? "▲ +" : "▼ "}
                 {delta} since last rep
+              </div>
+            )}
+            {delta === null && baseline && (
+              <div className="text-[13px] font-semibold text-stone-500">
+                Day 0. Every rep after this has a number to beat.
               </div>
             )}
           </div>

@@ -207,9 +207,8 @@ function VideoWithMarkers({
         </div>
       )}
       <p className="mt-2.5 text-[12px] leading-relaxed text-stone-500">
-        This clip never left your device and was never uploaded. Leave this
-        screen and it&apos;s gone — the five numbers above are all that was
-        kept.
+        This clip never left your device. Leave the screen and it&apos;s
+        gone; the five numbers stay.
       </p>
     </div>
   );

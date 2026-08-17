@@ -68,7 +68,7 @@ describe("anticipation", () => {
 
   it("falls back to the closest milestone", () => {
     const a = anticipation([ms()], streak({ current: 0 }));
-    expect(a?.headline).toBe("Unlock Pace Control — 1 to go");
+    expect(a?.headline).toBe("Unlock Pace Control · 1 to go");
     expect(a?.detail).toBe("4 total stars");
   });
 

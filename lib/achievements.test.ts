@@ -85,3 +85,40 @@ describe("achievements", () => {
     expect(byId(reps, "thirty").progress).toBeCloseTo(0.5);
   });
 });
+
+/**
+ * The shelf is a ladder (DECISIONS #153). Order carries the difficulty
+ * claim because nothing on screen says "hard", so a reordering has to be
+ * a decision someone makes here rather than a line that drifted.
+ */
+describe("the shelf", () => {
+  it("runs easiest to hardest, ending on the north star", () => {
+    expect(achievements([]).map((a) => a.id)).toEqual([
+      "first",
+      "clean",
+      "silence",
+      "seven",
+      "zone",
+      "held",
+      "week",
+      "eight",
+      "thirty",
+      "fortnight",
+    ]);
+  });
+
+  it("gives every badge somewhere to go and a mark", () => {
+    for (const a of achievements([])) {
+      expect(a.href.startsWith("/rep")).toBe(true);
+      expect(a.icon).toBeTruthy();
+    }
+  });
+
+  it("never states its own difficulty", () => {
+    for (const a of achievements([])) {
+      expect(`${a.name} ${a.requirement}`).not.toMatch(
+        /easy|hard|advanced|beginner|tier|level \d/i
+      );
+    }
+  });
+});

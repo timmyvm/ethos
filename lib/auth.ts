@@ -7,9 +7,15 @@
  * progress SURVIVES the upgrade. No lost reps, no lost streak.
  *
  * The mechanism is that there is no migration: `updateUser` attaches an
- * email and a password to the SAME auth user the anonymous session
- * already had, so every rep, XP event, freeze and coin keeps pointing at
- * the same id. Nothing is copied, so nothing can be dropped in the copy.
+ * email to the SAME auth user the anonymous session already had, so
+ * every rep, XP event, freeze and coin keeps pointing at the same id.
+ * Nothing is copied, so nothing can be dropped in the copy.
+ *
+ * The password comes LAST, on the page the confirmation link lands on
+ * (DECISIONS #142): GoTrue refuses to put a password on an anonymous
+ * user with no email, so the order isn't a style choice — attach email,
+ * prove ownership from the inbox, then set the password on an identity
+ * that can carry it.
  *
  * Email and password only. No social login — one less dependency and one
  * less consent screen.
@@ -90,25 +96,34 @@ export async function createAccount(
   const db = supabaseBrowser();
   if (!db) return { ok: false, error: "Accounts aren't configured yet." };
 
-  const problem = emailProblem(email) ?? passwordProblem(password);
-  if (problem) return { ok: false, error: problem };
-
   const { data } = await db.auth.getUser();
   const anonymous = data.user?.is_anonymous ?? false;
 
   if (anonymous) {
-    // Password first: if the email confirmation is the step that fails,
-    // the account still has credentials to sign back in with.
-    const pw = await db.auth.updateUser({ password });
-    if (pw.error) return { ok: false, error: humanise(pw.error.message) };
+    /*
+     * Email only — no password is collected on this path (#142). The
+     * original order set the password first ("so a failed confirmation
+     * still leaves credentials"), and GoTrue rejected it every single
+     * time: a password cannot attach to an anonymous user with no
+     * email. The upgrade therefore never worked until 12 Aug. This is
+     * Supabase's documented convert sequence instead: attach the
+     * email, prove ownership via the inbox, and the landing page
+     * (/auth/reset?first=1 — straight there, no callback race, #82)
+     * collects the password once there's an identity to hang it on.
+     */
+    const problem = emailProblem(email);
+    if (problem) return { ok: false, error: problem };
 
     const upgrade = await db.auth.updateUser(
       { email: email.trim() },
-      { emailRedirectTo: `${siteUrl()}/auth/callback` }
+      { emailRedirectTo: `${siteUrl()}/auth/reset?first=1` }
     );
     if (upgrade.error) return { ok: false, error: humanise(upgrade.error.message) };
     return { ok: true, checkInbox: true };
   }
+
+  const problem = emailProblem(email) ?? passwordProblem(password);
+  if (problem) return { ok: false, error: problem };
 
   const { error } = await db.auth.signUp({
     email: email.trim(),
@@ -172,7 +187,7 @@ function humanise(message: string): string {
     return "That email and password don't match. Try again, or reset it below.";
   }
   if (m.includes("email not confirmed")) {
-    return "Confirm the link in your inbox first — then this will work.";
+    return "Confirm the link in your inbox first. Then this will work.";
   }
   if (m.includes("already registered") || m.includes("already been registered")) {
     return "That email already has an Ethos account. Sign in instead.";
@@ -182,6 +197,23 @@ function humanise(message: string): string {
   }
   if (m.includes("rate limit") || m.includes("too many")) {
     return "Too many tries in a row. Give it a minute.";
+  }
+  if (m.includes("anonymous user")) {
+    // Only reachable if a password update runs before the email is
+    // confirmed — the exact wall #142 exists to route around.
+    return "Confirm your email first. The link in your inbox does it.";
+  }
+  if (
+    m.includes("deadline") ||
+    m.includes("timed out") ||
+    m.includes("timeout") ||
+    m.includes("504")
+  ) {
+    // Measured 12 Aug: the auth server sends the confirmation mail
+    // synchronously, and a hung SMTP connection eats its whole 10s
+    // budget — the request often completes AFTER this error reached
+    // the user, so "check your inbox anyway" is honest advice.
+    return "The email server took too long. Check your inbox anyway; the mail often lands after this error.";
   }
   if (m.includes("weak") || m.includes("password should be")) {
     return `${MIN_PASSWORD} characters or more. Length beats punctuation.`;

@@ -14,6 +14,13 @@ Read, in order:
    locked decision; never contradict one silently.
 5. `design/ethos-design-direction.html` — the look (open it, actually look)
 
+Before any UI work, also read `DESIGN-RULES.md` — the design constitution
+(tokens, banned tells, the per-screen Definition of Done, motion, a11y).
+Before writing any user-facing string, read `COPY-RULES.md` — the budgets
+(one em dash, one negation, one mantra per screen) and the placement rule:
+a mechanic is explained where it happens, or not at all. Both are
+non-negotiable; a deviation needs a DECISIONS.md entry.
+
 If generated output conflicts with these files, the output is wrong.
 
 ## The "not average, but best" protocol
@@ -60,6 +67,12 @@ is the flow reference — port its structure, replace its simulations.
 
 ## Non-negotiables (from vision.md — enforce in code review too)
 
+- Never act on the words modern, sleek, clean, beautiful or premium as
+  instructions — they summon the training-data median, which is the
+  vibe-code look itself. Name the concrete change instead. Every visual
+  change traces to a DESIGN-RULES.md rule, a COPY-RULES.md budget, or a
+  `docs/devibe/DEVIBE-PLAYBOOK.md` phase; when a decision isn't covered,
+  stop and add it to `docs/devibe/needs-judgment.md` rather than choosing
 - No manufactured insecurity, no manosphere language, no guilt mechanics
 - No pay-to-win: money never buys stars, streaks, or scores
 - No horoscope feedback: every claim traces to a timestamp or number

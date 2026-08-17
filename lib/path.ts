@@ -26,11 +26,11 @@ const BOSS_LESSONS: Drill[] = [
     unit: "Cold Topic",
     title: "Boss: unknown territory",
     prompt:
-      "A topic you've never studied. 4 minutes to research, 90 seconds to explain it — scored on delivery AND accuracy.",
+      "A topic you've never studied. 4 minutes to research, 90 seconds to explain. Scored on delivery and accuracy.",
     tips: [
       "Say what you know and flag what you don't. A wrong claim stated as fact costs three times what an admitted unknown does.",
       "Structure beats coverage: one definition, one mechanism, one example.",
-      "Hedge honestly — \"I think\" in front of a shaky claim is cheaper than being confidently wrong.",
+      "Hedge honestly. \"I think\" in front of a shaky claim is cheaper than being wrong.",
     ],
   },
   {
@@ -84,6 +84,35 @@ export const UNITS: Unit[] = [
     unlocksAt: 12,
     boss: true,
     lessons: BOSS_LESSONS,
+  },
+  /*
+   * The back half of the road (#141) — the three units mechanics.md
+   * always named and nobody had built. The gates keep #28's ladder
+   * spacing: each opens on stars the previous units can actually pay.
+   */
+  {
+    id: "structure",
+    name: "Structure",
+    icon: "🧱",
+    blurb: "Claim, points, landing. An argument you can see the shape of.",
+    unlocksAt: 16,
+    lessons: lessonsFor("Structure"),
+  },
+  {
+    id: "compression",
+    name: "Compression",
+    icon: "🗜️",
+    blurb: "Half the words, all of the point.",
+    unlocksAt: 24,
+    lessons: lessonsFor("Compression"),
+  },
+  {
+    id: "fire",
+    name: "Thinking Under Fire",
+    icon: "⚡",
+    blurb: "No script, no warm-up, still clear.",
+    unlocksAt: 32,
+    lessons: lessonsFor("Thinking Under Fire"),
   },
 ];
 

@@ -50,5 +50,10 @@ export const themeBootScript = `
     t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
   document.documentElement.setAttribute('data-theme', t);
+  // The browser chrome is part of the room. Setting it here rather than
+  // after hydration is the difference between a dark app under a cream
+  // status bar for one frame and never seeing it at all.
+  var m = document.querySelector('meta[name="theme-color"]');
+  if (m) m.setAttribute('content', t === 'dark' ? '#17130f' : '#FAF7F2');
 }catch(e){}})();
 `;

@@ -47,7 +47,7 @@ export function ModeToggle({
           ? (reason ??
             "Voice + Video needs a camera and on-device pose detection this browser doesn't have.")
           : mode === "voice_video"
-            ? "Your camera reads posture, gesture and eye line as you speak. It runs on this device — the video is never uploaded and never stored, only five numbers are."
+            ? "Your camera reads posture, gesture and eye line on this device. The video is never uploaded, only five numbers."
             : "Audio only. Works on a tram with headphones, which is the point of a daily rep."}
       </p>
     </div>

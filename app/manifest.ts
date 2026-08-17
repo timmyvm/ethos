@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     // An install prompt is an acquisition surface — §8's clarity line,
     // not the hero line.
-    name: "Ethos — practice being worth listening to",
+    name: "Ethos: practice being worth listening to",
     short_name: "Ethos",
     description:
       "Practice being worth listening to. Five minutes of reps a day, measured against timestamps, not vibes.",

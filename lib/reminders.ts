@@ -49,7 +49,7 @@ export function reminderTier(): ReminderTier {
 export function reminderTierNote(tier: ReminderTier): string {
   switch (tier) {
     case "scheduled":
-      return "Scheduled with your OS — it fires whether Ethos is open or not.";
+      return "Scheduled with your OS. It fires whether Ethos is open or not.";
     case "open-tab":
       return "Your browser can only fire this while Ethos is open in a tab. Install it to the home screen for a real alarm.";
     case "unsupported":
@@ -57,11 +57,18 @@ export function reminderTierNote(tier: ReminderTier): string {
   }
 }
 
-/** Next occurrence of `hour` in local time, skipping quiet hours. */
+/**
+ * Next occurrence of `hour` in local time, skipping quiet hours.
+ *
+ * When today's rep is already done, today's occurrence would ask for a
+ * thing that already happened — a wrong reminder teaches people to
+ * disable the channel — so the next honest occurrence is tomorrow's.
+ */
 export function nextFireTime(
   hour: number,
   now = new Date(),
-  prefs: Prefs = readPrefs()
+  prefs: Prefs = readPrefs(),
+  didToday = false
 ): Date | null {
   if (insideQuietHours(hour, prefs)) return null;
   const next = new Date(
@@ -74,6 +81,7 @@ export function nextFireTime(
     0
   );
   if (next.getTime() <= now.getTime()) next.setDate(next.getDate() + 1);
+  else if (didToday) next.setDate(next.getDate() + 1);
   return next;
 }
 
@@ -92,16 +100,19 @@ export function reminderBody(ctx: ReminderContext): string {
   return "Five minutes. One prompt. Take the floor.";
 }
 
+function sameLocalDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
 function firedToday(now: Date): boolean {
   try {
     const raw = localStorage.getItem(LAST_KEY);
     if (!raw) return false;
-    const last = new Date(raw);
-    return (
-      last.getFullYear() === now.getFullYear() &&
-      last.getMonth() === now.getMonth() &&
-      last.getDate() === now.getDate()
-    );
+    return sameLocalDay(new Date(raw), now);
   } catch {
     return false;
   }
@@ -150,7 +161,9 @@ export async function armReminder(
   if (typeof Notification === "undefined") return "unsupported";
   if (Notification.permission !== "granted") return null;
 
-  const fireAt = nextFireTime(prefs.reminderHour, now, prefs);
+  // ctx.didToday matters at the OS tier too: a scheduled notification
+  // can't check anything at fire time, so the honest day is chosen here.
+  const fireAt = nextFireTime(prefs.reminderHour, now, prefs, ctx.didToday);
   if (!fireAt) return null;
 
   const tier = reminderTier();
@@ -182,7 +195,9 @@ export async function armReminder(
   openTabTimer = setTimeout(() => {
     const at = new Date();
     if (firedToday(at)) return;
-    if (ctx.didToday) return;
+    // didToday was true of the ARM day; a timer that lives into
+    // tomorrow (fireAt is tomorrow's hour) is firing about a new day.
+    if (ctx.didToday && sameLocalDay(at, now)) return;
     try {
       new Notification("Ethos", payload);
       markFired(at);

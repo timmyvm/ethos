@@ -22,6 +22,8 @@ export interface Prefs {
   quietFrom: number;
   quietTo: number;
   haptics: boolean;
+  /** Synthesized celebration sound (lib/sfx.ts). Never fires mid-rep. */
+  sound: boolean;
   verbatim: boolean;
   /** Optional 30s think-time before the rep (DECISIONS #35). */
   frameStep: boolean;
@@ -51,6 +53,7 @@ export const DEFAULT_PREFS: Prefs = {
   quietFrom: 22,
   quietTo: 7,
   haptics: true,
+  sound: true,
   verbatim: true,
   frameStep: false,
   reducedMotion: false,

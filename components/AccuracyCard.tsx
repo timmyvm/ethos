@@ -73,7 +73,7 @@ export function AccuracyCard({
                 {c.verdict === "contradicted" && c.hedged && (
                   <span className="text-stone-400">
                     {" "}
-                    — you flagged the doubt, which cost less.
+                    You flagged the doubt, which cost less.
                   </span>
                 )}
               </span>

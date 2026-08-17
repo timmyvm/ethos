@@ -3,12 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { DayTrail } from "@/components/DayTrail";
 import { ModPicker } from "@/components/ModPicker";
 import { PathRoad } from "@/components/PathRoad";
 import { SkeletonScoreCard } from "@/components/ui/Skeleton";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { Paywall } from "@/components/Paywall";
+import { readable, readFailure } from "@/lib/load";
 import { StreakBadge } from "@/components/StreakBadge";
 import { TopicRoulette } from "@/components/TopicRoulette";
 import {
@@ -52,6 +54,38 @@ export default function Home() {
   const [topic, setTopic] = useState<Topic | null>(null);
   const [demos, setDemos] = useState<string | null>(null);
   const [anon, setAnon] = useState<boolean | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  /**
+   * The history read, on its own so the retry can mean it. It used to
+   * end `.catch(() => setReps([]))`, which drew the home screen of
+   * someone with no reps for someone whose reps merely didn't arrive —
+   * the day counter reset, the score card vanished, and nothing on
+   * screen said why.
+   */
+  const load = useCallback(async () => {
+    setFailed(false);
+    setReps(null);
+    const read = await readable(fetchReps);
+    if (!read.ok) {
+      setFailed(true);
+      return;
+    }
+    const rows = read.data;
+    setReps(rows);
+    const dates = rows.map((r) => new Date(r.created_at));
+    // Optimistic: show the unfrozen streak immediately, then reconcile
+    // freezes (which may involve a write).
+    setStreak(computeStreak(dates));
+    const sync = await readable(() => syncFreezes(dates));
+    if (!sync.ok) return;
+    setStreak(sync.data.streak);
+    setRescued(sync.data.rescued.length);
+    void armReminder({
+      streak: sync.data.streak.current,
+      didToday: sync.data.streak.didToday,
+    });
+  }, []);
 
   useEffect(() => {
     /*
@@ -81,25 +115,8 @@ export default function Home() {
       .then((l) => setDemos(poseArt(readPrefs().pose, ownedFrom(l))))
       .catch(() => {});
 
-    fetchReps()
-      .then(async (rows) => {
-        setReps(rows);
-        const dates = rows.map((r) => new Date(r.created_at));
-        // Optimistic: show the unfrozen streak immediately, then
-        // reconcile freezes (which may involve a write).
-        setStreak(computeStreak(dates));
-        try {
-          const sync = await syncFreezes(dates);
-          setStreak(sync.streak);
-          setRescued(sync.rescued.length);
-          void armReminder({
-            streak: sync.streak.current,
-            didToday: sync.streak.didToday,
-          });
-        } catch {}
-      })
-      .catch(() => setReps([]));
-  }, []);
+    void load();
+  }, [load, router]);
 
   const history = reps ?? [];
   const starMap = starsByLesson(history);
@@ -257,7 +274,15 @@ export default function Home() {
       {/* The floor card above needs no round trip — `todaysDrill()` is
           local — so it paints immediately. This one is fetched, and used
           to pop in under it. */}
-      {reps === null && <SkeletonScoreCard />}
+      {reps === null && !failed && <SkeletonScoreCard />}
+
+      {failed && (
+        <ErrorState
+          className="mt-5"
+          {...readFailure("Your score")}
+          onRetry={() => void load()}
+        />
+      )}
 
       {history.length > 0 && (
         <section className="mt-5 rounded-[26px] bg-stage p-5 text-cream lift-stage">
@@ -337,7 +362,7 @@ export default function Home() {
         </div>
       )}
 
-      {history.length === 0 && (
+      {reps !== null && history.length === 0 && (
         <p className="mt-5 text-center text-[13px] text-stone-400">
           60–90 seconds. Pauses are allowed — they&apos;re scored in your favor.
         </p>
@@ -389,7 +414,11 @@ export default function Home() {
       {/* The road (#141): the whole path, winding down from here. It
           goes LAST so the floor keeps the first screen (#9) — the road
           is what scrolling reveals, all of it, without a tab switch. */}
-      <PathRoad starMap={starMap} hasAnyRep={history.length > 0} />
+      {/* Only once the reps are in hand: a road drawn from an unread
+          history shows nought stars to someone who has earned twenty. */}
+      {reps !== null && (
+        <PathRoad starMap={starMap} hasAnyRep={history.length > 0} />
+      )}
 
       {paywall && <Paywall reason={paywall} onClose={() => setPaywall(null)} />}
     </main>

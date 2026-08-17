@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Coin } from "@/components/Coin";
+import { IconFreeze } from "@/components/Icon";
 import { Skeleton, SkeletonRegion } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { readable, readFailure } from "@/lib/load";
@@ -143,8 +144,13 @@ export default function ShopPage() {
           )}
         </span>
       </div>
+      {/* The earning rule moved here from under the balance on /you: a
+          day you spoke pays once however many reps you did, which is the
+          fact that makes the prices below mean something. The claim that
+          nothing here buys a score is made once, at the bottom, where
+          the shelf has already made its case. */}
       <p className="mt-1.5 text-[13.5px] leading-relaxed text-stone-500">
-        One coin per day you speak. Nothing here buys a score.
+        One coin a day you speak, however many reps you did.
       </p>
 
       {note && (
@@ -202,8 +208,8 @@ export default function ShopPage() {
                       className="demos h-[62px] w-[62px] shrink-0 object-contain"
                     />
                   ) : (
-                    <span className="flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-[14px] bg-amber-50 text-[26px] text-amber-500">
-                      ❄
+                    <span className="flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-[14px] bg-amber-50 text-amber-500">
+                      <IconFreeze size={28} />
                     </span>
                   )}
                   <div className="min-w-0 flex-1">
@@ -273,9 +279,8 @@ export default function ShopPage() {
       )}
 
       <p className="mt-6 text-center text-[12px] leading-relaxed text-stone-400">
-        Coins come from days you spoke, never from money. The shop can sell
-        you convenience and decoration — it can&apos;t sell you a streak, a
-        star or a point of your Ethos.
+        The shop sells convenience and decoration. It can&apos;t sell you a
+        streak, a star or a point of your Ethos.
       </p>
     </main>
   );

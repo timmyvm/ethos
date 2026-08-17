@@ -91,6 +91,16 @@ export function IconLocked({ size }: { size?: number }) {
   );
 }
 
+/** A streak freeze. One earned week of speaking, or 14 coins. */
+export function IconFreeze({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="M12 3.5v17M4.65 7.75l14.7 8.5M19.35 7.75l-14.7 8.5" />
+      <path d="M10.25 5.15 12 6.9l1.75-1.75M10.25 18.85 12 17.1l1.75 1.75" />
+    </Glyph>
+  );
+}
+
 /** The weekly boss — a flame, drawn rather than typed. */
 export function IconBoss({ size }: { size?: number }) {
   return (

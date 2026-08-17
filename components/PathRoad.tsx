@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { IconBoss, IconLocked } from "@/components/Icon";
 import { journeySteps, journeySummary } from "@/lib/progress";
 import { UNITS } from "@/lib/path";
 import { repHref } from "@/lib/rep-config";
@@ -78,15 +79,17 @@ export function PathRoad({
                           : "bg-surface text-stone-300 ring-1 ring-black/5"
               }`}
             >
-              {step.endowed
-                ? "✓"
-                : step.locked
-                  ? (unit?.icon ?? "·")
-                  : step.stars > 0
-                    ? `★${step.stars}`
-                    : step.boss
-                      ? "🔥"
-                      : i}
+              {step.endowed ? (
+                "✓"
+              ) : step.locked ? (
+                <IconLocked size={18} />
+              ) : step.stars > 0 ? (
+                `★${step.stars}`
+              ) : step.boss ? (
+                <IconBoss size={18} />
+              ) : (
+                i
+              )}
             </span>
           );
 

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { IconLocked } from "@/components/Icon";
 import { Paywall } from "@/components/Paywall";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -126,7 +127,13 @@ export default function PathPage() {
                       stars > 0 ? "bg-terracotta-50" : "bg-sand"
                     }`}
                   >
-                    {locked ? "🔒" : stars > 0 ? "✓" : i + 1}
+                    {locked ? (
+                      <IconLocked size={17} />
+                    ) : stars > 0 ? (
+                      "✓"
+                    ) : (
+                      i + 1
+                    )}
                   </span>
                   <span className="flex-1">
                     <span className="block text-[14.5px] font-semibold">

@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Ethos: practice being worth listening to",
     short_name: "Ethos",
     description:
-      "Practice being worth listening to. Five minutes of reps a day, measured against timestamps, not vibes.",
+      "Practice being worth listening to. Five minutes of practice a day, measured against timestamps, not vibes.",
     start_url: "/",
     display: "standalone",
     background_color: "#FAF7F2",

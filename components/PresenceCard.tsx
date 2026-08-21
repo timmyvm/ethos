@@ -69,7 +69,7 @@ export function PresenceScore({
             }`}
           >
             {delta > 0 ? "▲ +" : "▼ "}
-            {delta} since last video rep
+            {delta} since last video
           </div>
         )}
       </div>
@@ -99,7 +99,7 @@ export function PresenceDetail({
         </div>
         <p className="mt-2 text-[13.5px] leading-relaxed text-stone-600">
           Your camera measured posture, gesture, head movement and eye line
-          for the whole rep, on this device.{" "}
+          for the whole recording, on this device.{" "}
           {moments.length > 0 && (
             <>
               There {moments.length === 1 ? "is" : "are"} {moments.length}{" "}

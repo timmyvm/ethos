@@ -180,11 +180,6 @@ export function PathRoad({
                     {unit.icon} {unit.name}
                     {unit.boss ? " · weekly boss" : ""}
                   </div>
-                  {/* The unit's one-liner, moved here from the retired
-                      /path list (#155) so the merge loses nothing. */}
-                  <p className="mx-auto mt-1 max-w-[250px] text-[12.5px] leading-relaxed text-stone-500">
-                    {unit.blurb}
-                  </p>
                   {step.locked && (
                     /* Why it's closed, with the exact distance (#44). */
                     <div className="mt-1 text-[11.5px] font-semibold text-stone-400">
@@ -222,8 +217,7 @@ export function PathRoad({
           {summary.totalLessons} lessons, end to end.
         </div>
         <p className="mt-1.5 text-[13px] leading-relaxed text-stone-500">
-          About {weeks} weeks at one a day. Every star is a number you hit,
-          never attendance.
+          About {weeks} weeks at one a day.
         </p>
       </div>
     </section>

@@ -181,7 +181,7 @@ export default function Home() {
       <div className="label-data mt-7">
         {topic
           ? "Roulette"
-          : `${streak.didToday ? "Extra rep" : "Today's rep"} · ${unitName}`}
+          : `${streak.didToday ? "Extra lesson" : "Today's lesson"} · ${unitName}`}
       </div>
       {/*
        * Why THIS, today. Duolingo's published answer to "why come back"
@@ -301,7 +301,7 @@ export default function Home() {
                   }`}
                 >
                   {indexDelta > 0 ? "▲ +" : "▼ "}
-                  {indexDelta} since your first rep
+                  {indexDelta} since day one
                 </div>
               )}
             </div>
@@ -359,12 +359,6 @@ export default function Home() {
             onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
           />
         </div>
-      )}
-
-      {reps !== null && history.length === 0 && (
-        <p className="mt-5 text-center text-[13px] text-stone-400">
-          60 to 90 seconds. Pauses score in your favor.
-        </p>
       )}
 
       {/* The boss card moved to /games (DECISIONS #158): the road keeps

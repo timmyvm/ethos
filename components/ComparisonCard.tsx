@@ -77,7 +77,7 @@ export function ComparisonCard({ reps }: { reps: RepRow[] }) {
         ))}
       </div>
       <div className="mt-4 border-t border-stone-700 pt-3 text-[12px] text-stone-400">
-        {reps.length} reps. Every number measured, none of them awarded.
+        {reps.length} recordings. Every number measured, none awarded.
       </div>
     </div>
   );

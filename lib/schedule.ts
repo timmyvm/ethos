@@ -164,7 +164,7 @@ export function nextFocus(reps: RepRow[], now = new Date()): NextFocus {
       label: "Fillers",
       unitId: "filler",
       lessonId: UNITS.find((u) => u.id === "filler")?.lessons[0]?.id ?? null,
-      reason: "First rep sets your baseline. Nothing to aim at yet.",
+      reason: "The first recording sets your baseline.",
       strength: null,
     };
   }
@@ -180,7 +180,7 @@ export function nextFocus(reps: RepRow[], now = new Date()): NextFocus {
   const parts = [`${weakest.label} scored ${weakest.score}/100`];
   if (weakest.delta !== null && weakest.delta !== 0) {
     parts.push(
-      `${weakest.delta > 0 ? "up" : "down"} ${Math.abs(weakest.delta)} on the rep before`
+      `${weakest.delta > 0 ? "up" : "down"} ${Math.abs(weakest.delta)} on the one before`
     );
   }
   if ((weakest.daysSince ?? 0) >= 2) {
@@ -209,5 +209,5 @@ export function decayNote(reps: RepRow[], now = new Date()): string | null {
   const days = daysBetween(new Date(last.created_at), now);
   if (days < 3) return null;
   const pct = Math.round((1 - decay(days)) * 100);
-  return `${days} days since your last rep. On our curve that's about ${pct}% off every score; one rep re-measures it.`;
+  return `${days} days since you spoke: about ${pct}% off every score by now. One lesson re-measures it.`;
 }

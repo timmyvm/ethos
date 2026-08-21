@@ -28,8 +28,6 @@ export interface ShopItem {
   price: number;
   kind: ShopKind;
   blurb: string;
-  /** What it does NOT do — stated on the card, not buried. */
-  honest: string;
 }
 
 /** Ledger reason for a purchase. Matches the `^shop:[a-z0-9_-]+$` guard. */
@@ -45,8 +43,6 @@ export const SHOP: ShopItem[] = [
     kind: "utility",
     blurb:
       "Covers one missed day automatically. Two is the most you can hold.",
-    honest:
-      "It protects the streak, it never grows it. A frozen day still isn't a day you spoke.",
   },
   {
     id: "pose_speaking",
@@ -54,7 +50,6 @@ export const SHOP: ShopItem[] = [
     price: 8,
     kind: "cosmetic",
     blurb: "Swaps the Demos on your floor card for the speaking pose.",
-    honest: "Decoration. Nothing you're measured on moves.",
   },
   {
     id: "pose_workout",
@@ -62,7 +57,6 @@ export const SHOP: ShopItem[] = [
     price: 8,
     kind: "cosmetic",
     blurb: "The gym pose, for the floor card.",
-    honest: "Also decoration. Your Ethos won't notice.",
   },
   {
     id: "pose_celebrate",
@@ -70,8 +64,6 @@ export const SHOP: ShopItem[] = [
     price: 12,
     kind: "cosmetic",
     blurb: "The one he normally saves for a streak milestone.",
-    honest:
-      "Costs more because he's showing off, not because it does more.",
   },
 ];
 

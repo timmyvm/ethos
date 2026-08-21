@@ -26,7 +26,7 @@ export const DRILLS: Drill[] = [
   {
     id: "f1",
     unit: "Filler Elimination",
-    title: "The baseline rep",
+    title: "The baseline",
     prompt: "Introduce yourself and what you're building. 60 seconds, no notes.",
     tips: [
       "Decide your first sentence before you start. Most fillers land in the first five seconds.",
@@ -130,7 +130,7 @@ export const DRILLS: Drill[] = [
     tips: [
       "Know your last sentence before you start.",
       "Stop on the full stop. The silence is the summary.",
-      "A held pause in the last fifth of the rep scores on its own.",
+      "A held pause in the last fifth scores on its own.",
     ],
   },
   {

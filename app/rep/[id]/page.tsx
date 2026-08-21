@@ -50,7 +50,7 @@ export default function RepDetail({
     return (
       <main className="px-5 pb-24 pt-7">
         <Skeleton className="h-3 w-16" />
-        <SkeletonRegion label="Loading this rep" className="mt-4">
+        <SkeletonRegion label="Loading this recording" className="mt-4">
           <Skeleton className="h-2.5 w-40" />
           <div className="mt-3 flex items-baseline gap-3.5">
             <Skeleton className="h-14 w-28" />
@@ -80,7 +80,7 @@ export default function RepDetail({
         <Link href="/history" className="text-sm text-stone-500">
           ← the log
         </Link>
-        <p className="mt-6 text-[14px] font-semibold">Rep not found.</p>
+        <p className="mt-6 text-[14px] font-semibold">Recording not found.</p>
       </main>
     );
   }

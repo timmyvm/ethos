@@ -102,7 +102,7 @@ export function dayTrail(reps: RepLike[]): DayTrail {
       bestYet: false,
       pending:
         points.length === 0
-          ? "Nothing has scored yet. One rep with something in it draws the first point."
+          ? "Nothing has scored yet. One real recording draws the first point."
           : "Day 2 draws the line.",
     };
   }

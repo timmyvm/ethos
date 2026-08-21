@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   // first. Clarity converts at zero awareness.
   title: "Ethos: practice being worth listening to",
   description:
-    "Practice being worth listening to. Five minutes of reps a day, measured against timestamps, not vibes.",
+    "Practice being worth listening to. Five minutes of practice a day, measured against timestamps, not vibes.",
   icons: { apple: "/apple-touch-icon.png" },
 };
 

@@ -75,8 +75,8 @@ function ResetScreen() {
           </h1>
           <p className="mt-3 text-[15px] leading-relaxed text-stone-500">
             {first
-              ? "Account live, password saved. Your reps, your streak and your lexicon are attached on this device and any other you sign in on."
-              : "New password saved. Your reps, your streak and your lexicon are exactly where you left them."}
+              ? "Account live, password saved. Your recordings, your streak and your lexicon are attached on this device and any other you sign in on."
+              : "New password saved. Your recordings, your streak and your lexicon are exactly where you left them."}
           </p>
           <Link
             href="/"
@@ -92,7 +92,7 @@ function ResetScreen() {
           </h1>
           <p className="mt-3 text-[15px] leading-relaxed text-stone-500">
             {first
-              ? "Save links last an hour and work once. Your reps are still on your device, so send yourself a fresh one."
+              ? "Save links last an hour and work once. Your recordings are still on your device, so send yourself a fresh one."
               : "Reset links last an hour and work once. Nothing has happened to your account, so ask for a fresh one."}
           </p>
           <Link
@@ -111,7 +111,7 @@ function ResetScreen() {
           </h1>
           {first && (
             <p className="mt-2 text-[13.5px] leading-relaxed text-stone-500">
-              Email confirmed, reps attached. This is what signs you in
+              Email confirmed, recordings attached. This is what signs you in
               anywhere.
             </p>
           )}

@@ -52,7 +52,7 @@ export const STRESS_MODS: StressMod[] = [
   },
   {
     id: "interrupt",
-    name: "Mid-rep interruption",
+    name: "Interruption",
     blurb: "Demos cuts in once. Recover and keep the thread.",
     xpMultiplier: 2,
     premium: true,

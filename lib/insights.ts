@@ -89,7 +89,7 @@ export function insights(reps: RepRow[]): Insight[] {
       out.push({
         id: "dominant-filler",
         headline: `"${word}" is ${share}% of your fillers`,
-        detail: `${count} of ${total} across ${reps.length} reps. Killing one word moves the number more than trimming five.`,
+        detail: `${count} of ${total} across ${reps.length} recordings. Killing one word moves the number more than trimming five.`,
       });
     }
   }
@@ -109,7 +109,7 @@ export function insights(reps: RepRow[]): Insight[] {
     if (share >= 30) {
       out.push({
         id: "filler-cluster",
-        headline: `Most fillers land in ${where} of a rep`,
+        headline: `Most fillers land in ${where} of a recording`,
         detail: `${share}% of them. ${peak === 0 ? "Openings are where you are still finding the sentence. Plan the first line before you record." : "Worth knowing where the wobble sits."}`,
       });
     }
@@ -130,7 +130,7 @@ export function insights(reps: RepRow[]): Insight[] {
       out.push({
         id: "pace-fast",
         headline: "You're sprinting",
-        detail: `${Math.round(b)} wpm across your last ${recent.length} reps. Above 160 the words arrive faster than the point does.`,
+        detail: `${Math.round(b)} wpm across your last ${recent.length} recordings. Above 160 the words arrive faster than the point does.`,
       });
     }
   }
@@ -142,7 +142,7 @@ export function insights(reps: RepRow[]): Insight[] {
     out.push({
       id: "silence-up",
       headline: "You're holding more silence",
-      detail: `${heldEarly.toFixed(1)} held pauses a rep early on, ${heldRecent.toFixed(1)} now. That's the hardest habit on the list and it's moving.`,
+      detail: `${heldEarly.toFixed(1)} held pauses per recording early on, ${heldRecent.toFixed(1)} now. That's the hardest habit on the list and it's moving.`,
     });
   }
 
@@ -153,7 +153,7 @@ export function insights(reps: RepRow[]): Insight[] {
     out.push({
       id: "best-hour",
       headline: `You speak cleanest around ${label}`,
-      detail: `${best.fpm.toFixed(1)} fillers a minute in that window, your lowest. Worth putting the rep there.`,
+      detail: `${best.fpm.toFixed(1)} fillers a minute in that window, your lowest. Worth practicing there.`,
     });
   }
 
@@ -166,7 +166,7 @@ export function insights(reps: RepRow[]): Insight[] {
       out.push({
         id: "consistent",
         headline: "Your floor is rising, not just your best day",
-        detail: `Fillers stay within ${sd.toFixed(1)}/min of ${m.toFixed(1)} across every rep. Consistency is the part that survives pressure.`,
+        detail: `Fillers stay within ${sd.toFixed(1)}/min of ${m.toFixed(1)} in every recording. Consistency is the part that survives pressure.`,
       });
     }
   }

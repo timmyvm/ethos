@@ -49,13 +49,13 @@ export function anticipation(
   const closest = milestones[0];
   if (!streak.didToday && streak.current > 0) {
     return {
-      headline: `This rep keeps a ${streak.current}-day streak alive`,
+      headline: `This one keeps a ${streak.current}-day streak alive`,
       // Two clauses, not one forced sentence: milestone labels are
       // nouns of every shape ("Ethos 700", "3★ on Kill 'like'") and
       // splicing them mid-sentence reads as broken copy.
       detail: closest
         ? `Closest after that: ${closest.label}, ${closest.remainingLabel}.`
-        : "One rep. Five minutes.",
+        : "Five minutes, in and out.",
       tone: "amber",
     };
   }
@@ -116,19 +116,19 @@ export function freshStart(now = new Date()): RewardMoment | null {
     case "year":
       return {
         headline: "First day of the year",
-        detail: "New page. The reps start counting again today.",
+        detail: "New page. Counting starts fresh today.",
         tone: "amber",
       };
     case "month":
       return {
         headline: `First of ${now.toLocaleDateString(undefined, { month: "long" })}`,
-        detail: "Clean month. One rep opens it.",
+        detail: "Clean month. One lesson opens it.",
         tone: "amber",
       };
     case "monday":
       return {
         headline: "Monday",
-        detail: "New week, new league. Take the first rep in it.",
+        detail: "New week, new league. Take the first lesson.",
         tone: "amber",
       };
     default:
@@ -182,7 +182,7 @@ export function endNote(params: {
     };
   }
   return {
-    headline: `Rep ${repCount} logged`,
+    headline: `Recording ${repCount} logged`,
     detail: "Recorded, measured, kept. Same time tomorrow.",
     tone: "neutral",
   };
@@ -220,7 +220,7 @@ export function personalBests(
   const bestFpm = Math.min(...prior.map(fpmOf));
   if (Number.isFinite(bestFpm) && current.fillersPerMin < bestFpm) {
     out.push({
-      headline: "Cleanest rep yet",
+      headline: "Cleanest recording yet",
       detail: `${current.fillersPerMin}/min, under your ${Math.round(bestFpm * 100) / 100}`,
       tone: "amber",
     });

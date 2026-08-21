@@ -194,7 +194,7 @@ export function DimensionList({
           measured tier grew once already and this line didn't notice. */}
       {!coach && (
         <p className="border-t border-sand py-3 text-[12px] leading-relaxed text-stone-500">
-          The coach didn&apos;t run on this rep. These {rows.length} measured
+          The coach didn&apos;t run this time. These {rows.length} measured
           dimensions cover {available} of the 1000; without the judged ones
           there is no Ethos Index.
         </p>

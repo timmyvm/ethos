@@ -95,7 +95,7 @@ export interface ReminderContext {
  * shame state (DECISIONS #26).
  */
 export function reminderBody(ctx: ReminderContext): string {
-  if (ctx.streak >= 2) return `${ctx.streak} days. One rep keeps it.`;
+  if (ctx.streak >= 2) return `${ctx.streak} days. Five minutes keeps it.`;
   if (ctx.streak === 1) return "Day two is the one that makes it a habit.";
   return "Five minutes. One prompt. Take the floor.";
 }

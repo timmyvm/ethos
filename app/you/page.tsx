@@ -309,8 +309,6 @@ export default function YouPage() {
               {level.intoLevel}/{level.forNext} to level {level.level + 1}
             </span>
           )}
-          {/* The page's one mantra, on the one bar money can't move. */}
-          <span className="label-data">XP = reps, never money</span>
         </div>
       </div>
 
@@ -338,10 +336,6 @@ export default function YouPage() {
        * bottom, the shelf's grammar (#153): the position is the claim.
        */}
       <div className="section-title mt-7">Traits</div>
-      <p className="mt-1 text-[12.5px] leading-relaxed text-stone-500">
-        Each rep&apos;s best dimension levels up at 70% of its points, twice
-        at 90%.
-      </p>
       <div className="mt-2.5 space-y-2.5">
         {loading ? (
           <>
@@ -463,13 +457,11 @@ export default function YouPage() {
             </span>
           );
         })}
-        <p className="ml-2 flex-1 text-[13px] leading-relaxed text-stone-500">
-          {freezes === null
-            ? "Two slots. Each one covers a day you miss."
-            : freezes.equipped > 0
-              ? "Miss a day and one of these covers it automatically."
-              : `${toNextFreeze} more consecutive day${toNextFreeze === 1 ? "" : "s"} earns one.`}
-        </p>
+        {freezes !== null && freezes.equipped === 0 && (
+          <p className="ml-2 flex-1 text-[13px] leading-relaxed text-stone-500">
+            {toNextFreeze} more day{toNextFreeze === 1 ? "" : "s"} earns one.
+          </p>
+        )}
       </div>
       {freezes !== null && freezes.used > 0 && (
         <p className="mt-2 text-[12.5px] text-stone-500">
@@ -504,7 +496,7 @@ export default function YouPage() {
       <div className="section-title mt-7">Your lexicon</div>
       {lexicon.length === 0 ? (
         <p className="mt-2 text-[13px] leading-relaxed text-stone-500">
-          One upgrade a rep, drawn from your own words.
+          Upgrades from your own recordings collect here.
         </p>
       ) : (
         <>

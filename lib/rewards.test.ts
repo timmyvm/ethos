@@ -189,7 +189,7 @@ describe("endNote", () => {
       metrics: metrics({ wpm: 210, fillerCount: 22, composedPauses: 0 }),
       streak: streak({ current: 1 }),
     });
-    expect(e.headline).toBe("Rep 1 logged");
+    expect(e.headline).toBe("Recording 1 logged");
     expect(e.detail).toMatch(/\w/);
   });
 

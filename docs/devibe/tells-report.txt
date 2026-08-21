@@ -79,20 +79,20 @@ app/rep/[id]/page.tsx:156:          <span className="label-data">×{rep.xp_multi
 app/rep/[id]/page.tsx:173:            onUpgrade={() => setPaywall("Presence · premium")}
 app/rep/[id]/page.tsx:180:            onUpgrade={() => setPaywall("Delivery readout · premium")}
 app/rep/page.tsx:855:          <span className="label-data">×{config.xpMultiplier} XP</span>
-app/rep/page.tsx:1548:      <div className="label-data">Tomorrow&apos;s rep · when?</div>
+app/rep/page.tsx:1548:      <div className="label-data">Tomorrow · when?</div>
 app/history/page.tsx:170:              onClick={() => setPaywall("Presence trendline · premium")}
 app/history/page.tsx:252:          onClick={() => setPaywall("Full history · premium")}
 app/auth/callback/page.tsx:35:        <p className="text-[15px] text-stone-500">Confirming…</p>
-app/you/page.tsx:547:              onClick={() => setPaywall("Full lexicon · premium")}
+app/you/page.tsx:539:              onClick={() => setPaywall("Full lexicon · premium")}
 app/page.tsx:303:                  {indexDelta > 0 ? "▲ +" : "▼ "}
 app/page.tsx:359:            onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
-app/page.tsx:388:          <span className="font-semibold text-stone-500">keep them →</span>
+app/page.tsx:382:          <span className="font-semibold text-stone-500">keep them →</span>
 app/signin/page.tsx:20:          <span className="mx-2 text-stone-300">·</span>
 app/boss/page.tsx:89:      <div className="label-data mt-6">Weekly boss · Cold Topic</div>
 app/boss/page.tsx:110:                <li key={i}>· {t}</li>
 app/boss/page.tsx:153:              onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
 app/boss/page.tsx:178:                <li key={i}>· {t}</li>
-app/games/page.tsx:97:                <span className="label-data shrink-0">×{mult} XP</span>
+app/games/page.tsx:94:                <span className="label-data shrink-0">×{mult} XP</span>
 components/StreakBadge.tsx:24:        <span className="font-normal text-stone-500">· today&apos;s open</span>
 components/ModPicker.tsx:50:        <div className="label-data">Stress mods · optional</div>
 components/ModPicker.tsx:52:          <div className="label-data !text-amber-500">×{multiplier} XP</div>
@@ -101,7 +101,7 @@ components/PresenceCard.tsx:126:          <div className="label-data">Delivery �
 components/PresenceCard.tsx:185:      <div className="label-data">Playback · this device only</div>
 components/PauseBar.tsx:89:        <span className="label-data !text-amber-500">● landed a point</span>
 components/PauseBar.tsx:90:        <span className="label-data !text-stone-400">● searching</span>
-components/Sparkline.tsx:78:        <span className="label-data">rep 1 · {Math.round(first)}</span>
+components/Sparkline.tsx:78:        <span className="label-data">first · {Math.round(first)}</span>
 components/Sparkline.tsx:79:        <span className="label-data">now · {Math.round(last)}</span>
 components/RepResult.tsx:119:                {delta > 0 ? "▲ +" : "▼ "}
 components/RepResult.tsx:148:            <span className="label-data">1 star · nothing measured</span>

@@ -49,7 +49,7 @@ export default function CallbackPage() {
           </h1>
           <p className="mt-3 max-w-[300px] text-[15px] leading-relaxed text-stone-500">
             {email ? `${email} is confirmed.` : "Your email is confirmed."}{" "}
-            Every rep you&apos;ve already done came with you.
+            Everything you&apos;ve already recorded came with you.
           </p>
           <Link
             href="/"

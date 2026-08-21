@@ -116,6 +116,51 @@ describe("copy rules", () => {
   });
 });
 
+/**
+ * DECISIONS #164 — "rep" left the interface. Timothy's call: the word
+ * was gym-brand shorthand the user had to be taught, and the teaching
+ * text went with it (#163). Lessons, recordings and plain time do the
+ * naming now; the identifiers (repHref, RepRow) keep the word because
+ * nobody reads them aloud.
+ *
+ * Scans prose only: string literals and JSX text that contain a space,
+ * skipping path-like strings ("/rep?lesson=f1" is a URL, not copy).
+ */
+describe("retired vocabulary", () => {
+  const files = COPY_ROOTS.flatMap(sourceFiles);
+
+  function proseStrings(source: string): string[] {
+    const src = copyOnly(source);
+    const out: string[] = [];
+    const literal = /(["'`])((?:\\.|(?!\1)[\s\S])*?)\1/g;
+    // JSX text runs are bounded by tags OR interpolation braces, so
+    // "{reps.length} reps." can't hide its tail behind the expression.
+    const jsxText = /[>}]\s*([^<>{}]+?)\s*[<{]/g;
+    for (const re of [literal, jsxText]) {
+      let m;
+      while ((m = re.exec(src))) {
+        // Interpolations read as one word of prose ("${n} reps" is
+        // prose); code fragments the JSX regex catches are rejected by
+        // their punctuation. A copy string carrying `=` or parens slips
+        // this net, which is the accepted cost of no false alarms.
+        const s = (m[2] ?? m[1]).trim().replace(/\$\{[^}]*\}/g, "N");
+        if (!s.includes(" ") || /[(){};=[\]<]|&&|\?\./.test(s)) continue;
+        if (!s.includes("/")) out.push(s);
+      }
+    }
+    return out;
+  }
+
+  for (const file of files) {
+    it(`keeps "rep" out of ${file}`, () => {
+      const hits = proseStrings(readFileSync(file, "utf8")).filter((s) =>
+        /\breps?\b/i.test(s)
+      );
+      expect(hits).toEqual([]);
+    });
+  }
+});
+
 describe("the two headlines", () => {
   it("puts the clarity line on acquisition surfaces", () => {
     const line = "Practice being worth listening to";
@@ -138,6 +183,9 @@ describe("the two headlines", () => {
   it("never claims nobody does body language", () => {
     const marketing = readFileSync("app/(marketing)/about/page.tsx", "utf8");
     expect(marketing).toMatch(/Yoodli/);
-    expect(marketing).toMatch(/daily, streak-driven, gamified reps with video/);
+    // #164 reworded #85's claim; the honesty it guards is unchanged.
+    expect(marketing).toMatch(
+      /daily, streak-driven, gamified practice with video/
+    );
   });
 });

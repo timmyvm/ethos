@@ -113,7 +113,7 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
       // Footer: the honest line.
       g.fillStyle = "#78716C";
       g.font = "400 32px 'Space Mono', monospace";
-      g.fillText(`${reps.length} REPS · EVERY NUMBER MEASURED`, 90, H - 140);
+      g.fillText(`${reps.length} RECORDINGS · EVERY NUMBER MEASURED`, 90, H - 140);
 
       g.fillStyle = "#E76F51";
       g.fillRect(90, H - 100, 120, 8);

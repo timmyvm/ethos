@@ -97,9 +97,9 @@ describe("poseArt", () => {
 describe("the shop's non-negotiable", () => {
   it("sells nothing that buys a number", () => {
     // Money never buys stars, streaks, or scores — and neither do coins.
+    // (#163 removed the printed disclaimers; the MECHANIC stays tested.)
     for (const item of SHOP) {
       expect(["utility", "cosmetic"]).toContain(item.kind);
-      expect(item.honest.length).toBeGreaterThan(0);
     }
     // The one utility is the freeze, which protects a streak but can
     // never grow one.

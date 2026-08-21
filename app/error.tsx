@@ -24,7 +24,7 @@ export default function Error({
         That screen didn&apos;t load.
       </div>
       <p className="mt-2 max-w-[300px] text-[14px] leading-relaxed text-stone-500">
-        Your reps are stored. Nothing here was lost.
+        Your recordings are stored. Nothing was lost.
       </p>
       {error.digest && (
         <p className="label-data mt-3">reference {error.digest}</p>

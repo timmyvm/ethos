@@ -38,7 +38,7 @@ export default function ForgotPage() {
             . The link works once and expires in an hour.
           </p>
           <p className="mt-4 text-[13px] leading-relaxed text-stone-400">
-            Nothing about your reps or your streak changes while you sort this
+            Nothing about your recordings or your streak changes while you sort this
             out.
           </p>
         </>

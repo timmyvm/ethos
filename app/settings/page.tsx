@@ -217,7 +217,7 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <div className="section-title mt-7">The rep</div>
+      <div className="section-title mt-7">Recording</div>
       <div className="mt-2 divide-y divide-sand rounded-[18px] border border-hairline bg-surface lift">
         <Toggle
           label="Frame step"
@@ -258,7 +258,7 @@ export default function SettingsPage() {
         </div>
         <p className="mt-1 text-[12.5px] text-stone-500">
           {email
-            ? "Your reps follow this email anywhere."
+            ? "Your recordings follow this email anywhere."
             : "Everything you've recorded lives on this device. An account attaches to it where it is."}
         </p>
         {!email && (
@@ -277,7 +277,7 @@ export default function SettingsPage() {
           {exporting ? "Building your file…" : "Export everything as JSON"}
         </button>
         <p className="mt-1.5 text-[11.5px] text-stone-400">
-          Every rep, transcript, score and lexicon entry. Yours to take.
+          Every recording, transcript, score and lexicon entry. Yours to take.
         </p>
 
         {email && (
@@ -292,7 +292,7 @@ export default function SettingsPage() {
               Sign out
             </button>
             <p className="mt-1.5 text-[11.5px] text-stone-400">
-              Signing out leaves this device with no reps on it until you sign
+              Signing out empties this device until you sign
               back in. Nothing is deleted.
             </p>
           </>

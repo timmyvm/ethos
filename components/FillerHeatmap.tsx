@@ -16,7 +16,7 @@ export function FillerHeatmap({ reps }: { reps: RepRow[] }) {
 
   return (
     <div className="rounded-[18px] border border-hairline bg-surface lift p-5">
-      <div className="label-data">Where fillers land in a rep</div>
+      <div className="label-data">Where your fillers land</div>
       <div className="mt-3 flex h-20 items-end gap-1.5">
         {heat.map((n, i) => (
           <div key={i} className="flex flex-1 flex-col items-center gap-1.5">

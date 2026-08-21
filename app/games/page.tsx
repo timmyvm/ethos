@@ -45,9 +45,6 @@ export default function GamesPage() {
   return (
     <main className="px-5 pb-24 pt-7">
       <h1 className="font-display text-2xl font-bold">Games</h1>
-      <p className="mt-1 text-[13.5px] text-stone-500">
-        Every game is a real rep under harder conditions.
-      </p>
 
       <Link
         href="/boss"
@@ -100,10 +97,6 @@ export default function GamesPage() {
           );
         })}
       </div>
-
-      <p className="mt-5 text-[12.5px] leading-relaxed text-stone-400">
-        The conditions multiply XP. Scoring stays the same.
-      </p>
 
       {paywall && <Paywall reason={paywall} onClose={() => setPaywall(null)} />}
     </main>

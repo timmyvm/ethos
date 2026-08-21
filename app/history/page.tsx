@@ -110,7 +110,7 @@ export default function HistoryPage() {
             />
           }
           title="Nothing logged yet."
-          body="One rep and this page becomes a training log."
+          body="One recording and this becomes a training log."
           action={
             <Link
               href="/rep"
@@ -172,7 +172,7 @@ export default function HistoryPage() {
             >
               <div className="label-data">Presence</div>
               <div className="mt-1 text-[13px] text-stone-500">
-                {presenceSeries.length} video reps measured. Tap to see the
+                {presenceSeries.length} video recordings measured. Tap to see the
                 line.
               </div>
             </button>
@@ -181,7 +181,7 @@ export default function HistoryPage() {
 
       {insights(reps).length > 0 && (
         <>
-          <div className="section-title mt-7">What the reps say</div>
+          <div className="section-title mt-7">What the numbers say</div>
           <div className="mt-2 space-y-2.5">
             {insights(reps).map((i) => (
               <div
@@ -208,7 +208,7 @@ export default function HistoryPage() {
         </div>
       )}
 
-      <div className="section-title mt-7">Every rep</div>
+      <div className="section-title mt-7">Every recording</div>
       <div className="mt-2 space-y-2.5">
         {newestFirst.map((r) => {
           const d = new Date(r.created_at);

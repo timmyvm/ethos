@@ -881,7 +881,7 @@ function RepScreen() {
        */}
       {phase === "idle" && repCount === 0 && (
         <p className="mt-4 text-[12.5px] leading-relaxed text-stone-500">
-          Audio for rep one, video from the next. The mic is live only while
+          Audio for your first recording, video from the next. The mic is live only while
           you record.
         </p>
       )}
@@ -1005,7 +1005,7 @@ function RepScreen() {
         {phase === "analyzing" && (
           <div className="text-center">
             <div className="font-display text-xl font-bold">
-              Scoring the rep…
+              Scoring…
             </div>
             <p className="mt-2 text-sm text-stone-500">
               {config.kind === "boss"
@@ -1106,7 +1106,7 @@ function RepScreen() {
         {phase === "error" && (
           <ErrorState
             className="w-full"
-            title="That rep didn't score."
+            title="That recording didn't score."
             body={error ?? "The scoring server didn't answer."}
             onRetry={
               pendingRef.current
@@ -1124,7 +1124,7 @@ function RepScreen() {
             }
             aria-label={
               phase === "recording"
-                ? "Stop recording and score this rep"
+                ? "Stop and score this recording"
                 : "Start recording"
             }
             className={`h-24 w-24 rounded-full text-[15px] font-bold text-cream transition-colors ${
@@ -1269,7 +1269,7 @@ function Results({
     <main className="flex min-h-dvh flex-col px-5 pb-8 pt-7">
       <div className="flex items-center justify-between">
         <div className="label-data">
-          {config.kind === "boss" ? "Boss complete" : "Rep complete"}
+          {config.kind === "boss" ? "Boss complete" : "Lesson complete"}
         </div>
         {coined && step === 0 && (
           <span className="flex items-center gap-1.5 text-[13px] font-semibold text-amber-500">
@@ -1341,7 +1341,7 @@ function Results({
               upgrade and Demos&apos;s take are back tomorrow.
             </p>
             <p className="mt-2 text-[12.5px] leading-relaxed text-stone-400">
-              The rep still counted. Your streak counts reps, never analyses.
+              It still counted toward your streak.
             </p>
           </div>
         )}
@@ -1477,7 +1477,7 @@ function SaveGate({
         </h1>
         <p className="mt-3 max-w-[92%] text-[15px] leading-relaxed text-stone-500">
           {moment === "rep1"
-            ? "That rep, and the score and transcript and streak it starts, lives in this browser and nowhere else. "
+            ? "This recording, its score and the streak it starts live in this browser and nowhere else. "
             : `A ${days}-day streak and every number behind it live in this browser and nowhere else. `}
           An account attaches them to you, so a cleared cache or a new phone
           can&apos;t take them. Nothing moves, so nothing can go missing.
@@ -1545,7 +1545,7 @@ function PlanChips({ streak }: { streak: number }) {
 
   return (
     <div className="mt-5 rounded-[18px] border border-hairline bg-surface lift p-5">
-      <div className="label-data">Tomorrow&apos;s rep · when?</div>
+      <div className="label-data">Tomorrow · when?</div>
       {picked ? (
         <p className="mt-2 text-[13px] leading-relaxed text-stone-600">
           {String(hour).padStart(2, "0")}:00.{" "}
@@ -1556,8 +1556,8 @@ function PlanChips({ streak }: { streak: number }) {
       ) : (
         <>
           <p className="mt-1.5 text-[13px] leading-relaxed text-stone-500">
-            Reps with a time happen. Pick one and Demos reminds you once a day,
-            never in quiet hours.
+            Practice with a time happens. Demos reminds you once a day, never in
+            quiet hours.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {PLAN_HOURS.map((p) => (

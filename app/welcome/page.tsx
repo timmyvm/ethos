@@ -28,7 +28,7 @@ const STEPS = [
   {
     art: "/demos-listening.webp",
     title: "You already know the gap.",
-    body: "The point was in your head and the sentence lost it. You need reps, not convincing.",
+    body: "The point was in your head and the sentence lost it. You need practice, not convincing.",
   },
   {
     art: "/demos-speaking.webp",

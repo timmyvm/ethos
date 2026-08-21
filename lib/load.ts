@@ -73,6 +73,6 @@ export function readFailure(subject: string): { title: string; body: string } {
       }
     : {
         title: `${subject} didn't load.`,
-        body: "The server didn't answer. Your reps are safe.",
+        body: "The server didn't answer. Your recordings are safe.",
       };
 }

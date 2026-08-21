@@ -150,7 +150,7 @@ export default function ShopPage() {
           nothing here buys a score is made once, at the bottom, where
           the shelf has already made its case. */}
       <p className="mt-1.5 text-[13.5px] leading-relaxed text-stone-500">
-        One coin a day you speak, however many reps you did.
+        One coin a day you speak.
       </p>
 
       {note && (
@@ -227,9 +227,6 @@ export default function ShopPage() {
                     <p className="mt-1 text-[13px] leading-relaxed text-stone-600">
                       {item.blurb}
                     </p>
-                    <p className="mt-1 text-[12px] leading-relaxed text-stone-400">
-                      {item.honest}
-                    </p>
                   </div>
                 </div>
                 {isOwned ? (
@@ -278,10 +275,6 @@ export default function ShopPage() {
         </div>
       )}
 
-      <p className="mt-6 text-center text-[12px] leading-relaxed text-stone-400">
-        The shop sells convenience and decoration. It can&apos;t sell you a
-        streak, a star or a point of your Ethos.
-      </p>
     </main>
   );
 }

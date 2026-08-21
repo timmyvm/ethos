@@ -71,7 +71,7 @@ export function achievements(reps: RepRow[]): Achievement[] {
   return [
     {
       id: "first",
-      name: "First rep",
+      name: "First recording",
       requirement: "Take the floor once",
       earned: reps.length >= 1,
       progress: Math.min(1, reps.length),
@@ -81,7 +81,7 @@ export function achievements(reps: RepRow[]): Achievement[] {
     {
       id: "clean",
       name: "Clean run",
-      requirement: "A rep under 3 fillers a minute",
+      requirement: "Under 3 fillers a minute",
       earned: cleanest < 3,
       progress:
         cleanest === Infinity ? 0 : Math.min(1, 3 / Math.max(cleanest, 0.01)),
@@ -91,7 +91,7 @@ export function achievements(reps: RepRow[]): Achievement[] {
     {
       id: "silence",
       name: "Comfortable silence",
-      requirement: "5 composed pauses in one rep",
+      requirement: "5 composed pauses in one recording",
       earned: best(composed) >= 5,
       progress: Math.min(1, best(composed) / 5),
       href: "/rep?lesson=h1",
@@ -109,7 +109,7 @@ export function achievements(reps: RepRow[]): Achievement[] {
     {
       id: "zone",
       name: "In the zone",
-      requirement: "5 reps at 130 to 160 wpm",
+      requirement: "5 recordings at 130 to 160 wpm",
       earned: inZone >= 5,
       progress: Math.min(1, inZone / 5),
       href: "/rep?lesson=p1",
@@ -118,7 +118,7 @@ export function achievements(reps: RepRow[]): Achievement[] {
     {
       id: "held",
       name: "Held the room",
-      requirement: "8 held pauses in one rep",
+      requirement: "8 held pauses in one recording",
       earned: best(heldPauses) >= 8,
       progress: Math.min(1, best(heldPauses) / 8),
       href: "/rep?lesson=h4",
@@ -144,8 +144,8 @@ export function achievements(reps: RepRow[]): Achievement[] {
     },
     {
       id: "thirty",
-      name: "Thirty reps",
-      requirement: "30 reps logged",
+      name: "Thirty recordings",
+      requirement: "30 recordings logged",
       earned: reps.length >= 30,
       progress: Math.min(1, reps.length / 30),
       href: "/rep",

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   // "practice" says gym rather than one-off, and "worth listening to"
   // names the thing being trained without dragging in fear of the podium.
   description:
-    "Practice being worth listening to. Five minutes of reps a day, measured against timestamps, not vibes.",
+    "Practice being worth listening to. Five minutes of practice a day, measured against timestamps, not vibes.",
 };
 
 /**
@@ -28,7 +28,7 @@ export default function About() {
         It came out fuzzy.
       </h1>
       <p className="mt-4 text-[16px] leading-relaxed text-stone-600">
-        That&apos;s a reps problem. Courses teach theory, coaches cost $150 an
+        That&apos;s a practice problem. Courses teach theory, coaches cost $150 an
         hour, and you build a skill the boring way: daily, with honest
         measurement.
       </p>
@@ -43,7 +43,7 @@ export default function About() {
         Take the floor
       </Link>
       <p className="mt-2.5 text-center text-[12.5px] text-stone-500">
-        60 seconds. No signup until you&apos;ve done one.
+        60 seconds. No signup until you&apos;ve spoken.
       </p>
 
       <div className="relative mt-12 overflow-hidden rounded-[18px] border border-hairline bg-surface lift p-6">
@@ -123,7 +123,7 @@ export default function About() {
         speaking apps listen to your voice and stop there.
       </p>
       <p className="mt-3 text-[15px] leading-relaxed text-stone-600">
-        Nobody is doing daily, streak-driven, gamified reps with video. Five
+        Nobody is doing daily, streak-driven, gamified practice with video. Five
         minutes a day, scored on what you said{" "}
         <span className="font-semibold text-ink">and</span> how you held
         yourself saying it. That&apos;s the gap.
@@ -155,7 +155,7 @@ export default function About() {
         href="/welcome"
         className="mt-10 block w-full rounded-[14px] bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-cream press"
       >
-        Start your first rep
+        Take the floor
       </Link>
       <p className="mt-6 text-center text-[12px] text-stone-400">
         Ethos, from Aristotle. Logos is logic, pathos is emotion, ethos is

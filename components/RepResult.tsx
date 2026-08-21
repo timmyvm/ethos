@@ -84,7 +84,7 @@ export function RepResult({
     coach?.coachLine ??
     `${m.fillerCount} filler${m.fillerCount === 1 ? "" : "s"} in ${Math.round(
       m.durationS
-    )}s.${m.topFiller ? ` Tomorrow: kill "${m.topFiller}."` : " Clean rep."}`;
+    )}s.${m.topFiller ? ` Tomorrow: kill "${m.topFiller}."` : " Clean take."}`;
 
   /*
    * The trait this rep leveled (DECISIONS #160) — this rep's best
@@ -117,12 +117,12 @@ export function RepResult({
                 }`}
               >
                 {delta > 0 ? "▲ +" : "▼ "}
-                {delta} since last rep
+                {delta} since last time
               </div>
             )}
             {delta === null && baseline && (
               <div className="text-[13px] font-semibold text-stone-500">
-                Day 0. Every rep after this has a number to beat.
+                Day 0. Everything after this has a number to beat.
               </div>
             )}
           </div>
@@ -140,7 +140,7 @@ export function RepResult({
           </div>
           <p className="mt-2 text-[13.5px] leading-relaxed text-stone-500">
             {m.substance.wordCount < 20
-              ? `${m.substance.wordCount} word${m.substance.wordCount === 1 ? "" : "s"} isn't a rep yet. Give it 60 to 90 seconds and a real answer.`
+              ? `${m.substance.wordCount} word${m.substance.wordCount === 1 ? "" : "s"} isn't enough yet. Give it 60 to 90 seconds and a real answer.`
               : "Almost all of that was the same few words repeated. Say something you'd have to think about."}
           </p>
           <div className="mt-3 flex items-center gap-2">
@@ -171,7 +171,7 @@ export function RepResult({
         <p className="mt-2.5 text-[12.5px] font-semibold text-stone-500">
           {gain.name} leveled {gain.levels === 2 ? "twice" : "up"} ·{" "}
           {dimensionPoints(gain.score, INDEX_WEIGHTS[gain.key])}/
-          {INDEX_WEIGHTS[gain.key]} this rep
+          {INDEX_WEIGHTS[gain.key]}
         </p>
       )}
 

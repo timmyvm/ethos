@@ -20,7 +20,20 @@ user-facing string.
 - Zero rhetorical fragments used as sentences ("No guessing." "Just reps.")
   outside of marketing pages, where at most one is allowed.
 
+## Vocabulary
+
+- **"Rep" never reaches the interface** (#164, asserted in
+  `lib/copy.test.ts`). The artifact is a recording, the path unit is a
+  lesson, the habit is practice, and time does the rest ("since last
+  time"). Identifiers and routes keep the word; nobody reads them aloud.
+
 ## Placement: explain at the moment it matters, or not at all
+
+- **Default to no explanation** (#163). If a mechanic is legible from its
+  numbers, labels and states, let people infer it. People know what XP
+  is, what a streak freeze does, what a locked door means. Printed
+  mantras and per-card disclaimers are gone; the mechanic is the message,
+  and the tests on the mechanic are where the principles live.
 
 - Mechanics text lives where the mechanic HAPPENS, first time only:
   freeze rules appear when a freeze is earned or spent, not permanently on

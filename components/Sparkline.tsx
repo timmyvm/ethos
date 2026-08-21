@@ -25,7 +25,7 @@ export function Sparkline({
       <div className="rounded-[18px] border border-hairline bg-surface lift p-5">
         <div className="label-data">{label}</div>
         <p className="mt-2 text-[13px] text-stone-500">
-          Two reps and this becomes a line. One more to go.
+          Two scores and this becomes a line. One more to go.
         </p>
       </div>
     );
@@ -59,7 +59,7 @@ export function Sparkline({
           }`}
         >
           {delta > 0 ? "+" : ""}
-          {Math.round(delta * 10) / 10} since rep 1
+          {Math.round(delta * 10) / 10} since day one
         </div>
       </div>
       <svg
@@ -75,7 +75,7 @@ export function Sparkline({
         <circle cx={lx} cy={ly} r="4" fill="var(--color-amber-500)" />
       </svg>
       <div className="mt-1 flex justify-between">
-        <span className="label-data">rep 1 · {Math.round(first)}</span>
+        <span className="label-data">first · {Math.round(first)}</span>
         <span className="label-data">now · {Math.round(last)}</span>
       </div>
     </div>

@@ -28,19 +28,19 @@ const STEPS = [
   {
     art: "/demos-listening.webp",
     title: "You already know the gap.",
-    body: "The sentence that came out fuzzy. The point you had and lost. You need reps, not convincing.",
+    body: "The point was in your head and the sentence lost it. You need reps, not convincing.",
   },
   {
     art: "/demos-speaking.webp",
     title: "Sixty seconds a day.",
-    body: "One prompt, one recording. The engine counts every filler, times every pause, and hands back real numbers.",
+    body: "One prompt, one recording. The engine counts every filler, times every pause, and hands back numbers.",
   },
   {
     art: "/demos-celebrate.webp",
     // §8's hero line. It translates the name: ethos in Aristotle is
     // credibility earned through character, not claimed.
     title: "Earn the room.",
-    body: "Silence scores in your favour here. A pause you hold before a sentence reads as composure, and nobody else measures that.",
+    body: "A pause held before a sentence scores as composure here. Nobody else measures that.",
   },
 ];
 

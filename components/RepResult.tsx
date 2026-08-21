@@ -140,7 +140,7 @@ export function RepResult({
           </div>
           <p className="mt-2 text-[13.5px] leading-relaxed text-stone-500">
             {m.substance.wordCount < 20
-              ? `${m.substance.wordCount} word${m.substance.wordCount === 1 ? "" : "s"} isn't a rep yet. Aim for 60–90 seconds of actually saying something.`
+              ? `${m.substance.wordCount} word${m.substance.wordCount === 1 ? "" : "s"} isn't a rep yet. Give it 60 to 90 seconds and a real answer.`
               : "Almost all of that was the same few words repeated. Say something you'd have to think about."}
           </p>
           <div className="mt-3 flex items-center gap-2">

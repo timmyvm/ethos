@@ -84,9 +84,9 @@ app/history/page.tsx:170:              onClick={() => setPaywall("Presence trend
 app/history/page.tsx:252:          onClick={() => setPaywall("Full history · premium")}
 app/auth/callback/page.tsx:35:        <p className="text-[15px] text-stone-500">Confirming…</p>
 app/you/page.tsx:547:              onClick={() => setPaywall("Full lexicon · premium")}
-app/page.tsx:304:                  {indexDelta > 0 ? "▲ +" : "▼ "}
-app/page.tsx:360:            onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
-app/page.tsx:389:          <span className="font-semibold text-stone-500">keep them →</span>
+app/page.tsx:303:                  {indexDelta > 0 ? "▲ +" : "▼ "}
+app/page.tsx:359:            onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
+app/page.tsx:388:          <span className="font-semibold text-stone-500">keep them →</span>
 app/signin/page.tsx:20:          <span className="mx-2 text-stone-300">·</span>
 app/boss/page.tsx:89:      <div className="label-data mt-6">Weekly boss · Cold Topic</div>
 app/boss/page.tsx:110:                <li key={i}>· {t}</li>

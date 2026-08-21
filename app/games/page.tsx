@@ -102,8 +102,7 @@ export default function GamesPage() {
       </div>
 
       <p className="mt-5 text-[12.5px] leading-relaxed text-stone-400">
-        Stars and scores come from the same measurements as always. The
-        conditions multiply XP.
+        The conditions multiply XP. Scoring stays the same.
       </p>
 
       {paywall && <Paywall reason={paywall} onClose={() => setPaywall(null)} />}

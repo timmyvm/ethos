@@ -28,9 +28,9 @@ export default function About() {
         It came out fuzzy.
       </h1>
       <p className="mt-4 text-[16px] leading-relaxed text-stone-600">
-        Not nerves. Not a lack of ideas. Just no reps. Courses teach theory,
-        coaches cost $150 an hour, and neither gives you the one thing that
-        builds a skill: doing it daily and being measured honestly.
+        That&apos;s a reps problem. Courses teach theory, coaches cost $150 an
+        hour, and you build a skill the boring way: daily, with honest
+        measurement.
       </p>
       <p className="mt-3 text-[16px] font-semibold leading-relaxed">
         Practice being worth listening to.
@@ -70,8 +70,8 @@ export default function About() {
           </li>
           <li>
             <span className="font-semibold text-ink">One supply.</span>{" "}
-            A better word from your own transcript. They collect into a
-            lexicon that is actually yours.
+            A better word from your own transcript, collected into your own
+            lexicon.
           </li>
         </ol>
         <Image
@@ -87,17 +87,18 @@ export default function About() {
         We score silence.
       </h2>
       <p className="mt-3 text-[15px] leading-relaxed text-stone-600">
-        Every other app treats a pause as dead air. We time yours and ask
-        where it landed. Before a sentence it reads as composure. Inside one
-        it reads as searching. Nobody else measures the difference.
+        Most apps treat a pause as dead air. Ethos times yours and asks where
+        it landed: before a sentence it reads as composure, inside one it
+        reads as searching. The difference is measurable, so we measure it.
       </p>
 
       <div className="mt-6 rounded-2xl bg-stage p-6 text-cream lift-stage">
         <div className="label-data !text-stone-400">Your Ethos · /1000</div>
         <p className="mt-3 text-[14.5px] leading-relaxed text-stone-300">
-          Eight dimensions. Four measured from the timestamps: pause,
-          fillers, pace, range. Four judged against your words, and a judged
-          score without a quoted moment gets thrown out and re-run.
+          Nine dimensions. Five measured straight off the timestamps: pause,
+          fillers, self-corrections, pace, range. Four judged against your
+          words, and a judged score with no quoted moment is thrown out and
+          re-run.
         </p>
         <p className="mt-3 text-[14.5px] font-semibold">
           If we can&apos;t point at a timestamp, we don&apos;t say it.
@@ -117,16 +118,15 @@ export default function About() {
         Rehearsal tools exist. This isn&apos;t one.
       </h2>
       <p className="mt-3 text-[15px] leading-relaxed text-stone-600">
-        There are good tools for the week before an interview. Yoodli reads
-        your body language over a webcam and is genuinely strong at it. You go
-        before the thing, do a session, and leave. The daily speaking apps
-        listen to your voice and nothing else.
+        Yoodli is a strong one: it reads your body language over a webcam,
+        you run a session before the big thing, and you leave. The daily
+        speaking apps listen to your voice and stop there.
       </p>
       <p className="mt-3 text-[15px] leading-relaxed text-stone-600">
         Nobody is doing daily, streak-driven, gamified reps with video. Five
-        minutes, every day, scored on what you said{" "}
+        minutes a day, scored on what you said{" "}
         <span className="font-semibold text-ink">and</span> how you held
-        yourself while you said it. That&apos;s the gap this sits in.
+        yourself saying it. That&apos;s the gap.
       </p>
 
       <h2 className="font-display mt-12 text-[20px] font-bold">
@@ -134,10 +134,10 @@ export default function About() {
       </h2>
       <p className="mt-3 text-[15px] leading-relaxed text-stone-600">
         Voice or voice + video, your call, remembered per drill. With video
-        on, posture, gesture, head movement and eye line are read{" "}
-        <span className="font-semibold text-ink">on your device</span> at
-        thirty frames a second. The video is never uploaded. Five numbers are,
-        the same five on your screen.
+        on, your posture, gestures and eye line are read{" "}
+        <span className="font-semibold text-ink">on your device</span>. The
+        video is never uploaded. Five numbers are, the same five on your
+        screen.
       </p>
 
       <h2 className="font-display mt-12 text-[20px] font-bold">

@@ -222,8 +222,7 @@ export function PathRoad({
           {summary.totalLessons} lessons, end to end.
         </div>
         <p className="mt-1.5 text-[13px] leading-relaxed text-stone-500">
-          At one a day that&apos;s about {weeks} weeks of training, and three
-          stars on everything takes longer. Every star is a measured number,
+          About {weeks} weeks at one a day. Every star is a number you hit,
           never attendance.
         </p>
       </div>

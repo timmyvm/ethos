@@ -198,8 +198,7 @@ export function AuthForm({
       </div>
 
       <p className="mt-8 text-center text-[12px] leading-relaxed text-stone-400">
-        {action} with an email address. No social sign-in, so nothing about
-        this is shared with anyone else.
+        {action} with an email address. There is no social sign-in.
       </p>
     </Shell>
   );

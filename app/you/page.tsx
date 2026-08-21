@@ -622,8 +622,7 @@ export default function YouPage() {
           <p className="mt-1 text-[13px] leading-relaxed text-stone-600">
             {history.length} recording{history.length === 1 ? "" : "s"}
             {streak.current > 0 && ` and a ${streak.current}-day streak`} live
-            on this device. An account attaches to them where they already are,
-            so nothing has to move.
+            on this device. An account keeps them.
           </p>
           <Link
             href="/signup"

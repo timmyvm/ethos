@@ -47,7 +47,7 @@ export function DimensionList({
         `${metrics.composedPauses} before a sentence, ${metrics.midSentencePauses} mid-sentence.`
       }${
         (metrics.unvoicedHesitations ?? 0) >= 3
-          ? ` Plus ${metrics.unvoicedHesitations} short mid-sentence gaps: silent hesitation, under the length a held pause needs. Nobody else counts these and they're the tell that you're composing mid-clause.`
+          ? ` Plus ${metrics.unvoicedHesitations} short mid-sentence gaps, under the held-pause bar: quiet hesitation.`
           : ""
       }`,
     },
@@ -60,7 +60,7 @@ export function DimensionList({
       }`,
       improve:
         metrics.fillerCount > 0
-          ? "Replace it with silence, not with a different word. A gap you leave open is the fix."
+          ? "Replace it with silence, not a different word."
           : undefined,
     },
     // Scored separately from fillers because they're separate problems
@@ -72,10 +72,10 @@ export function DimensionList({
             name: "Self-corrections",
             score: tier1.repairs,
             weight: 50,
-            detail: `${metrics.repairCount ?? 0} restarted phrase${(metrics.repairCount ?? 0) === 1 ? "" : "s"} · ${metrics.repairsPerMin ?? 0}/min. Rarer than fillers and costlier, so the scale runs out at 3/min.`,
+            detail: `${metrics.repairCount ?? 0} restarted phrase${(metrics.repairCount ?? 0) === 1 ? "" : "s"} · ${metrics.repairsPerMin ?? 0}/min. 0/min scores 100; 3/min scores 0.`,
             improve:
               (metrics.repairCount ?? 0) > 0
-                ? "Finish the sentence you started, then say the better one. Restarting mid-phrase makes a listener drop the thread and re-follow you."
+                ? "Finish the sentence, then say the better one. A restart makes the listener re-follow you."
                 : undefined,
           },
         ]
@@ -190,12 +190,13 @@ export function DimensionList({
         </span>
       </div>
 
+      {/* Counts the rows rather than claiming a number (#102): the
+          measured tier grew once already and this line didn't notice. */}
       {!coach && (
         <p className="border-t border-sand py-3 text-[12px] leading-relaxed text-stone-500">
-          These are the four measured dimensions, worth {available} of the
-          1000. The judged four (structure, credibility, engagement,
-          steadiness) need the coach layer, and it didn&apos;t run on this
-          rep, so there is no Ethos Index rather than a partial one.
+          The coach didn&apos;t run on this rep. These {rows.length} measured
+          dimensions cover {available} of the 1000; without the judged ones
+          there is no Ethos Index.
         </p>
       )}
     </div>

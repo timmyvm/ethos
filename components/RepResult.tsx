@@ -9,8 +9,14 @@ import { Stars } from "@/components/Stars";
 import type { AccuracyResult } from "@/lib/accuracy";
 import type { CoachOutput } from "@/lib/coach";
 import type { ColdTopic } from "@/lib/cold-topics";
-import type { Tier1Scores, Tier2Anchors } from "@/lib/index-score";
+import {
+  dimensionPoints,
+  INDEX_WEIGHTS,
+  type Tier1Scores,
+  type Tier2Anchors,
+} from "@/lib/index-score";
 import type { RepMetrics } from "@/lib/metrics";
+import { repTraitGain } from "@/lib/traits";
 
 export interface ResultView {
   transcript: string;
@@ -80,6 +86,18 @@ export function RepResult({
       m.durationS
     )}s.${m.topFiller ? ` Tomorrow: kill "${m.topFiller}."` : " Clean rep."}`;
 
+  /*
+   * The trait this rep leveled (DECISIONS #160) — this rep's best
+   * dimension, when it cleared the bar. One quiet line in the points
+   * grammar the dimension list uses, never a second celebration (#34):
+   * the streak moment stays the only one. Derived, so the log's copy of
+   * this rep says the same thing forever.
+   */
+  const gain = repTraitGain({
+    transcript: result.transcript,
+    dimensions: { tier1, tier2: coach?.dimensions ?? null },
+  });
+
   return (
     <>
       {show("score") && (ethosIndex !== null ? (
@@ -148,6 +166,14 @@ export function RepResult({
           </div>
         </div>
       ))}
+
+      {show("score") && gain && (
+        <p className="mt-2.5 text-[12.5px] font-semibold text-stone-500">
+          {gain.name} leveled {gain.levels === 2 ? "twice" : "up"} ·{" "}
+          {dimensionPoints(gain.score, INDEX_WEIGHTS[gain.key])}/
+          {INDEX_WEIGHTS[gain.key]} this rep
+        </p>
+      )}
 
       {show("score") && (
       <div className="mt-4 flex items-end gap-3">

@@ -150,6 +150,30 @@ export async function fetchProfile(): Promise<ProfileRow | null> {
   };
 }
 
+/** Display names cap at 24 characters: the league row is the widest place one shows. */
+export const MAX_DISPLAY_NAME = 24;
+
+/**
+ * The one profile field the user types. Trimmed and capped here as well
+ * as at the input, and an empty string clears the name rather than
+ * storing "". The row is upserted because profiles are created lazily.
+ */
+export async function updateDisplayName(name: string): Promise<boolean> {
+  const db = supabaseBrowser();
+  if (!db) return false;
+  const { data } = await db.auth.getUser();
+  const uid = data.user?.id;
+  if (!uid) return false;
+  const clean = name.trim().slice(0, MAX_DISPLAY_NAME);
+  const { error } = await db
+    .from("profiles")
+    .upsert(
+      { user_id: uid, display_name: clean || null },
+      { onConflict: "user_id" }
+    );
+  return !error;
+}
+
 export interface StreakRow {
   freezes_equipped: number;
 }

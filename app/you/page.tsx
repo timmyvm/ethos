@@ -16,11 +16,15 @@ import { limit } from "@/lib/entitlement";
 import { towardFirstItem } from "@/lib/coins";
 import {
   fetchLexicon,
+  fetchProfile,
   fetchReps,
   fetchXp,
+  MAX_DISPLAY_NAME,
+  updateDisplayName,
   type LexiconRow,
   type RepRow,
 } from "@/lib/client-data";
+import { rankedTraits, traitLevels } from "@/lib/traits";
 import { syncFreezes } from "@/lib/freeze-sync";
 import { levelFromXp } from "@/lib/level";
 import { readable, readFailure } from "@/lib/load";
@@ -78,6 +82,25 @@ export default function YouPage() {
     equipped: number;
     used: number;
   } | null>(null);
+  /** `null` until the profile answers, so "Add your name" can't flash
+      over a name that merely hasn't arrived. */
+  const [name, setName] = useState<string | null>(null);
+  const [nameKnown, setNameKnown] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [nameFailed, setNameFailed] = useState(false);
+
+  async function saveName() {
+    const next = draft.trim().slice(0, MAX_DISPLAY_NAME);
+    setNameFailed(false);
+    const ok = await updateDisplayName(next);
+    if (!ok) {
+      setNameFailed(true);
+      return;
+    }
+    setName(next || null);
+    setEditingName(false);
+  }
 
   /** The coins half, on its own so its retry doesn't reload the page. */
   const loadCoins = useCallback(async (dates: Date[]) => {
@@ -119,6 +142,12 @@ export default function YouPage() {
     void load();
     fetchLexicon().then(setLexicon).catch(() => {});
     fetchXp().then(setXp).catch(() => {});
+    fetchProfile()
+      .then((p) => {
+        setName(p?.display_name ?? null);
+        setNameKnown(true);
+      })
+      .catch(() => {});
     const db = supabaseBrowser();
     db?.auth
       .getUser()
@@ -175,6 +204,66 @@ export default function YouPage() {
       {/* The one card on the page. It holds the two numbers that answer
           "how far in am I", so it keeps the furniture. */}
       <div className="mt-4 rounded-[18px] border border-hairline bg-surface lift p-5">
+        {/* The name: the one profile field you type rather than earn.
+            League rows show it, so it caps where they'd truncate. */}
+        {editingName ? (
+          <form
+            className="mb-4 flex items-center gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void saveName();
+            }}
+          >
+            <input
+              autoFocus
+              aria-label="Display name"
+              maxLength={MAX_DISPLAY_NAME}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="Your name"
+              className="min-h-11 w-full min-w-0 flex-1 rounded-[13px] border border-black/10 bg-surface px-3.5 text-[15px] font-semibold placeholder:text-stone-300 focus:border-stone-300"
+            />
+            <button
+              type="submit"
+              className="press min-h-11 shrink-0 rounded-[13px] border border-black/10 px-3.5 text-[13.5px] font-semibold hover:bg-sand"
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditingName(false)}
+              className="press min-h-11 shrink-0 px-1 text-[13px] font-semibold text-stone-500"
+            >
+              Cancel
+            </button>
+          </form>
+        ) : (
+          <div className="mb-4 flex items-baseline justify-between gap-3">
+            {name && (
+              <span className="font-display min-w-0 truncate text-[22px] font-bold">
+                {name}
+              </span>
+            )}
+            {nameKnown && (
+              <button
+                onClick={() => {
+                  setDraft(name ?? "");
+                  setNameFailed(false);
+                  setEditingName(true);
+                }}
+                className={`press min-h-11 shrink-0 text-[13px] font-semibold text-stone-500 ${name ? "" : "text-left"}`}
+              >
+                {name ? "Edit" : "Add your name →"}
+              </button>
+            )}
+            {!nameKnown && <Skeleton className="h-5 w-28" />}
+          </div>
+        )}
+        {nameFailed && (
+          <ErrorLine className="mb-3" onRetry={() => void saveName()}>
+            Your name didn&apos;t save.
+          </ErrorLine>
+        )}
         <div className="flex items-center gap-4">
           <Image
             src="/demos-listening.webp"
@@ -238,6 +327,61 @@ export default function YouPage() {
             <Stat label="Longest" value={String(streak.longest)} note="days" />
             <Stat label="This week" value={String(xp.week)} note="xp" />
           </>
+        )}
+      </div>
+
+      {/*
+       * Traits (DECISIONS #159) — the nine Index dimensions as levels,
+       * best first, derived from the reps on every load. A mirror, not
+       * a currency: they gate nothing and feed nothing. Amber goes to
+       * the leader only; a trait that hasn't leveled sits dimmed at the
+       * bottom, the shelf's grammar (#153): the position is the claim.
+       */}
+      <div className="section-title mt-7">Traits</div>
+      <p className="mt-1 text-[12.5px] leading-relaxed text-stone-500">
+        Each rep&apos;s best dimension levels up at 70% of its points, twice
+        at 90%.
+      </p>
+      <div className="mt-2.5 space-y-2.5">
+        {loading ? (
+          <>
+            <Skeleton className="h-5 w-full" />
+            <Skeleton className="h-5 w-full" />
+            <Skeleton className="h-5 w-full" />
+          </>
+        ) : (
+          (() => {
+            const ranked = rankedTraits(traitLevels(history));
+            const top = Math.max(1, ranked[0]?.level ?? 0);
+            return ranked.map((t, i) => (
+              <div key={t.key} className="flex items-center gap-3">
+                <span
+                  className={`w-[112px] shrink-0 text-[13.5px] font-semibold leading-tight ${
+                    t.level > 0 ? "" : "text-stone-400"
+                  }`}
+                >
+                  {t.name}
+                </span>
+                <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-sand">
+                  {t.level > 0 && (
+                    <span
+                      className={`block h-full rounded-full ${
+                        i === 0 ? "bg-amber-500" : "bg-stone-400"
+                      }`}
+                      style={{ width: `${(t.level / top) * 100}%` }}
+                    />
+                  )}
+                </span>
+                <span
+                  className={`w-[34px] shrink-0 text-right font-display text-[15px] font-bold ${
+                    t.level > 0 ? "" : "text-stone-300"
+                  }`}
+                >
+                  {t.level}
+                </span>
+              </div>
+            ));
+          })()
         )}
       </div>
 

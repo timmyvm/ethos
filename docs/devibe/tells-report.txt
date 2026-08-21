@@ -83,7 +83,7 @@ app/rep/page.tsx:1548:      <div className="label-data">Tomorrow&apos;s rep · w
 app/history/page.tsx:170:              onClick={() => setPaywall("Presence trendline · premium")}
 app/history/page.tsx:252:          onClick={() => setPaywall("Full history · premium")}
 app/auth/callback/page.tsx:35:        <p className="text-[15px] text-stone-500">Confirming…</p>
-app/you/page.tsx:403:              onClick={() => setPaywall("Full lexicon · premium")}
+app/you/page.tsx:547:              onClick={() => setPaywall("Full lexicon · premium")}
 app/page.tsx:304:                  {indexDelta > 0 ? "▲ +" : "▼ "}
 app/page.tsx:360:            onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
 app/page.tsx:389:          <span className="font-semibold text-stone-500">keep them →</span>
@@ -103,10 +103,10 @@ components/PauseBar.tsx:89:        <span className="label-data !text-amber-500">
 components/PauseBar.tsx:90:        <span className="label-data !text-stone-400">● searching</span>
 components/Sparkline.tsx:78:        <span className="label-data">rep 1 · {Math.round(first)}</span>
 components/Sparkline.tsx:79:        <span className="label-data">now · {Math.round(last)}</span>
-components/RepResult.tsx:101:                {delta > 0 ? "▲ +" : "▼ "}
-components/RepResult.tsx:130:            <span className="label-data">1 star · nothing measured</span>
-components/RepResult.tsx:237:          <div className="label-data">Supply · one upgrade, yours to keep</div>
-components/RepResult.tsx:242:            <span aria-hidden>→</span>
+components/RepResult.tsx:119:                {delta > 0 ? "▲ +" : "▼ "}
+components/RepResult.tsx:148:            <span className="label-data">1 star · nothing measured</span>
+components/RepResult.tsx:263:          <div className="label-data">Supply · one upgrade, yours to keep</div>
+components/RepResult.tsx:268:            <span aria-hidden>→</span>
 components/TopicRoulette.tsx:52:        <div className="label-data">Roulette · you don&apos;t pick</div>
 components/NextUp.tsx:28:      <div className="label-data">Next up · closest first</div>
 components/Paywall.tsx:30:          <li>· Full pause analytics, the silence scores</li>
@@ -128,7 +128,7 @@ app/rep/page.tsx:1095:                <Moment moment={anticipate} emphasis />
 
 == [D] generic SaaS copy — 0 hit(s)
 
-== [E] TODO/FIXME left in UI — 18 hit(s)
+== [E] TODO/FIXME left in UI — 20 hit(s)
 app/rep/page.tsx:955:              placeholder="Notes: first line, last line, one example…"
 app/rep/page.tsx:956:              className="mt-3 w-full rounded-[18px] border border-black/10 bg-surface p-4 text-[14px] leading-relaxed placeholder:text-stone-300 focus:border-stone-300"
 app/auth/forgot/page.tsx:57:            placeholder="you@email.com"
@@ -138,6 +138,8 @@ app/auth/reset/page.tsx:130:              className="mt-1.5 w-full rounded-[14px
 app/globals.css:269: * shimmer over cream reads as a broken image rather than a placeholder.
 app/globals.css:273: * contrast on purpose: a placeholder that pulses hard competes with the
 app/globals.css:298:/* Still a visible placeholder, just a still one. */
+app/you/page.tsx:223:              placeholder="Your name"
+app/you/page.tsx:224:              className="min-h-11 w-full min-w-0 flex-1 rounded-[13px] border border-black/10 bg-surface px-3.5 text-[15px] font-semibold placeholder:text-stone-300 focus:border-stone-300"
 components/ui/Skeleton.tsx:2: * Loading placeholders.
 components/ui/Skeleton.tsx:22: *    placeholder that causes the shift it was meant to prevent is worse
 components/ui/Skeleton.tsx:27: * immediately — putting a placeholder over locally-known content just

@@ -84,7 +84,7 @@ twice, once `target: production`.)
 
 | What | Where | Cut cost |
 |---|---|---|
-| Path, units, star gating | `lib/path.ts`, `app/path/page.tsx` | Medium — home falls back to daily rotation cleanly. |
+| Path, units, star gating | `lib/path.ts`, `components/PathRoad.tsx` (home) | Medium — home falls back to daily rotation cleanly. The tab is gone (DECISIONS #155): `/path` is a redirect, the road on home is the whole surface, unit gates included (#156). |
 | Streaks | `lib/streak.ts`, `components/StreakBadge.tsx` | Low to remove, high to re-earn. |
 | Streak freezes | `lib/streak.ts`, `lib/freeze-sync.ts` | Low. Earned per 7-day week, auto-spent, bridges without counting. Cutting means deleting one table. |
 | Streak celebration | `components/StreakCelebration.tsx` | Trivial to cut. |
@@ -134,7 +134,8 @@ twice, once `target: production`.)
 | Settings + reminders | `app/settings/page.tsx`, `lib/reminders.ts` | Medium. Reminders really schedule; the card names which tier the browser gave you. |
 | Data export | `app/settings/page.tsx` | Trivial. One JSON file, every rep and lexicon entry. |
 | Error + 404 screens | `app/error.tsx`, `app/not-found.tsx` | Trivial. |
-| Bottom nav | `components/Nav.tsx` | Cutting it strands /path, /history, /you. |
+| Bottom nav | `components/Nav.tsx` | Cutting it strands /games, /history, /you. |
+| Games | `app/games/page.tsx`, `lib/games.ts` | Low. Three staged-condition reps (Q&A, Speed rush, Interview) plus the weekly boss headliner; everything runs through the normal engine (DECISIONS #157). |
 | Service worker | `public/sw.js` | Trivial to cut. Also routes a tapped reminder to /rep. |
 | Demos poses | `public/demos-*.webp` | 6 poses, each at one moment. Real alpha, cut from `assets/*.png` by `scripts/cut-demos-alpha.mjs` — re-cut from the masters, never from `public/` (DECISIONS #67). |
 | Dark mode | `app/globals.css`, `components/Theme.tsx` | Medium. Semantic tokens (`ground` / `surface` / `ink` / `stage` / `hairline`) — a theme swap is a token change, not a rewrite. Opt-in toggle, light stays default (DECISIONS #64). Terracotta and amber are identical in both themes because they carry meaning (#65). |

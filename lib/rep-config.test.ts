@@ -107,6 +107,11 @@ describe("repHref", () => {
     expect(repHref({ boss: "crispr", lesson: "f1" })).toBe("/rep?boss=crispr");
   });
 
+  it("links a game with its drawn question", () => {
+    expect(repHref({ game: "qa", q: "qa3" })).toBe("/rep?game=qa&q=qa3");
+    expect(repHref({ game: "rush", topic: "t1" })).toBe("/rep?game=rush");
+  });
+
   it("carries mods", () => {
     expect(repHref({ lesson: "f1", mods: ["no-notes", "tight"] })).toBe(
       "/rep?lesson=f1&mods=no-notes%2Ctight"

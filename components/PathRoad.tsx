@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { IconBoss, IconLocked } from "@/components/Icon";
+import { IconBoss } from "@/components/Icon";
 import { journeySteps, journeySummary } from "@/lib/progress";
 import { UNITS } from "@/lib/path";
 import { repHref } from "@/lib/rep-config";
@@ -20,10 +20,67 @@ import { repHref } from "@/lib/rep-config";
  * only on earned stars, locked units name the exact stars to go, and
  * the ONE terracotta ring sits on the current node — the same rep the
  * floor card's button serves, so the screen still has one orange tap.
+ *
+ * Since #155 this is the ONLY path surface: the tab is gone, and each
+ * unit boundary is a gate (#156) that opens on stars and nothing else.
+ * #89's line holds: progress-gating is earned and free; there is no
+ * time-lock and no paid key, and, unlike Duolingo's "JUMP HERE", no
+ * skipping past a closed door (#28: gates open on measured stars).
  */
 
 /** The wind: node x-offsets cycling down the screen. */
 const WIND = [0, 34, 52, 34, 0, -34, -52, -34];
+
+/**
+ * The gate (DECISIONS #156) — every unit past the first stands behind a
+ * door across the road. Closed until the star total opens it, open
+ * forever after; the two states are geometry, not animation. Drawn in
+ * the icon grammar (1.5px stroke, currentColor, no fills) so it can
+ * never carry a colour the theme doesn't know. It is decoration in the
+ * strict sense, aria-hidden, because the line under it says everything
+ * it means: which unit, and exactly how many stars away the handle is.
+ *
+ * The door is the road's one lock symbol. The lessons behind it stay
+ * visible and dimmed (Duolingo's greyed future path), but they no
+ * longer wear padlocks each: a mechanic is explained where it happens,
+ * once, and it happens at the gate.
+ */
+function Gate({ open }: { open: boolean }) {
+  const frame = (
+    <>
+      <path d="M6 66 H90" />
+      <path d="M26 66 V32 a22 22 0 0 1 44 0 V66" />
+    </>
+  );
+  return (
+    <svg
+      width={108}
+      height={81}
+      viewBox="0 0 96 72"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      focusable="false"
+    >
+      {frame}
+      {open ? (
+        <>
+          <path d="M26 66 12 59.5 V27.5 L26 33.5" />
+          <path d="M70 66 84 59.5 V27.5 L70 33.5" />
+        </>
+      ) : (
+        <>
+          <path d="M48 66 V10.5" />
+          <circle cx="43.5" cy="42" r="1.4" />
+          <circle cx="52.5" cy="42" r="1.4" />
+        </>
+      )}
+    </svg>
+  );
+}
 
 export function PathRoad({
   starMap,
@@ -81,12 +138,10 @@ export function PathRoad({
             >
               {step.endowed ? (
                 "✓"
-              ) : step.locked ? (
-                <IconLocked size={18} />
-              ) : step.stars > 0 ? (
-                `★${step.stars}`
               ) : step.boss ? (
                 <IconBoss size={18} />
+              ) : step.stars > 0 ? (
+                `★${step.stars}`
               ) : (
                 i
               )}
@@ -111,14 +166,28 @@ export function PathRoad({
           return (
             <div key={step.id}>
               {unitHeader && unit && (
-                <div className="mb-3 mt-6 text-center">
-                  <div className="label-data">
+                <div className="mb-3 mt-7 text-center">
+                  {unit.unlocksAt > 0 && (
+                    <div
+                      className={`flex justify-center ${
+                        step.locked ? "text-stone-500" : "text-stone-300"
+                      }`}
+                    >
+                      <Gate open={!step.locked} />
+                    </div>
+                  )}
+                  <div className={unit.unlocksAt > 0 ? "label-data mt-2" : "label-data"}>
                     {unit.icon} {unit.name}
                     {unit.boss ? " · weekly boss" : ""}
                   </div>
+                  {/* The unit's one-liner, moved here from the retired
+                      /path list (#155) so the merge loses nothing. */}
+                  <p className="mx-auto mt-1 max-w-[250px] text-[12.5px] leading-relaxed text-stone-500">
+                    {unit.blurb}
+                  </p>
                   {step.locked && (
-                    /* Why it's locked, with the exact distance (#44). */
-                    <div className="mt-0.5 text-[11.5px] text-stone-400">
+                    /* Why it's closed, with the exact distance (#44). */
+                    <div className="mt-1 text-[11.5px] font-semibold text-stone-400">
                       opens at {unit.unlocksAt} stars ·{" "}
                       {unit.unlocksAt - summary.stars} to go
                     </div>

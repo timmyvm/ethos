@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  IconGames,
   IconLog,
-  IconPath,
   IconToday,
   IconYou,
 } from "@/components/Icon";
@@ -24,9 +24,16 @@ import {
  * pill, no filled icon, no indicator bar. brand.md's one-tap rule is
  * about filled colour, and this is a colour swap on a 13px label.
  */
+/*
+ * Path lost its tab when the merge finished (DECISIONS #155): home has
+ * carried the whole road since #141, so the tab was a second door to
+ * the same room. Duolingo's precedent, from the other direction: their
+ * 2022 redesign folded the tree INTO home and cut a tab doing it. The
+ * freed slot is Games (#157), in Elevate's word for the same surface.
+ */
 const TABS = [
   { href: "/", label: "Today", Icon: IconToday },
-  { href: "/path", label: "Path", Icon: IconPath },
+  { href: "/games", label: "Games", Icon: IconGames },
   { href: "/history", label: "Log", Icon: IconLog },
   { href: "/you", label: "You", Icon: IconYou },
 ];

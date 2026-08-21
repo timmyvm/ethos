@@ -148,6 +148,8 @@ function RepScreen() {
         lesson: searchParams.get("lesson"),
         boss: searchParams.get("boss"),
         topic: searchParams.get("topic"),
+        game: searchParams.get("game"),
+        q: searchParams.get("q"),
         mods: searchParams.get("mods"),
         premium,
       }),
@@ -164,7 +166,7 @@ function RepScreen() {
    *
    * Resetting on lessonId is what makes the navigation real.
    */
-  const lessonKey = `${searchParams.get("lesson") ?? ""}|${searchParams.get("topic") ?? ""}|${searchParams.get("boss") ?? ""}`;
+  const lessonKey = `${searchParams.get("lesson") ?? ""}|${searchParams.get("topic") ?? ""}|${searchParams.get("boss") ?? ""}|${searchParams.get("game") ?? ""}:${searchParams.get("q") ?? ""}`;
   const lessonKeyRef = useRef(lessonKey);
   const [seconds, setSeconds] = useState(0);
   const [frameLeft, setFrameLeft] = useState(FRAME_SECONDS);

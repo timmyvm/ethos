@@ -368,30 +368,9 @@ export default function Home() {
         </p>
       )}
 
-      <Link
-        href="/boss"
-        className="mt-4 flex w-full items-center gap-3 rounded-[18px] border border-terracotta-100 bg-terracotta-50 p-4 text-left"
-      >
-        <Image
-          src="/demos-workout.webp"
-          alt=""
-          width={40}
-          height={40}
-          className="demos w-10 shrink-0"
-        />
-        <span className="flex-1">
-          <span className="block text-[14.5px] font-semibold">
-            This week&apos;s boss: Cold Topic
-          </span>
-          <span className="block text-[12.5px] text-stone-500">
-            A topic you&apos;ve never studied. 4 min research, 90s to explain,
-            fact-checked.
-          </span>
-        </span>
-        <span className="text-[13px] text-stone-400" aria-hidden>
-          →
-        </span>
-      </Link>
+      {/* The boss card moved to /games (DECISIONS #158): the road keeps
+          its checkpoint, the games tab keeps the weekly headliner, and
+          the floor's scroll goes floor, score, road with nothing between. */}
 
       {/*
        * The standing soft-wall surface (DECISIONS #137). The loud ask

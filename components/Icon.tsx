@@ -52,13 +52,14 @@ export function IconToday({ size }: { size?: number }) {
   );
 }
 
-/** Path — two stops on a winding road. */
-export function IconPath({ size }: { size?: number }) {
+/** Games — a die: the same reps, rolled conditions. */
+export function IconGames({ size }: { size?: number }) {
   return (
     <Glyph size={size}>
-      <circle cx="6.5" cy="5.5" r="1.75" />
-      <circle cx="17.5" cy="18.5" r="1.75" />
-      <path d="M8.2 6.4c3.1 1 4.3 2.9 3.6 5.6-.7 2.7.6 4.6 4 5.8" />
+      <rect x="4.25" y="4.25" width="15.5" height="15.5" rx="3.5" />
+      <circle cx="8.9" cy="8.9" r="0.9" />
+      <circle cx="12" cy="12" r="0.9" />
+      <circle cx="15.1" cy="15.1" r="0.9" />
     </Glyph>
   );
 }
@@ -79,16 +80,6 @@ export function IconYou({ size }: { size?: number }) {
     <Glyph size={size}>
       <circle cx="12" cy="8" r="3.5" />
       <path d="M5.5 19.5c1.2-3.1 3.5-4.7 6.5-4.7s5.3 1.6 6.5 4.7" />
-    </Glyph>
-  );
-}
-
-/** Locked — on path nodes that a star count hasn't opened yet. */
-export function IconLocked({ size }: { size?: number }) {
-  return (
-    <Glyph size={size}>
-      <rect x="4.75" y="10.5" width="14.5" height="9.25" rx="2.25" />
-      <path d="M8.25 10.5V7.75a3.75 3.75 0 0 1 7.5 0v2.75" />
     </Glyph>
   );
 }

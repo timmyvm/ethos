@@ -11,6 +11,12 @@
 
 import { COLD_TOPICS, weeklyTopic, type ColdTopic } from "./cold-topics";
 import { DRILLS, todaysDrill } from "./drills";
+import {
+  dailyQuestion,
+  gameById,
+  gameLessonId,
+  questionById,
+} from "./games";
 import { topicById, TOPIC_SHAPES, type Topic } from "./topics";
 import {
   parseMods,
@@ -52,6 +58,9 @@ export interface RepConfigInput {
   boss?: string | null;
   /** A roulette topic id — the user span for it rather than choosing. */
   topic?: string | null;
+  /** A game id from the Games tab, with `q` naming the drawn question. */
+  game?: string | null;
+  q?: string | null;
   mods?: string | null;
   premium?: boolean;
 }
@@ -104,6 +113,45 @@ export function resolveRepConfig(
     };
   }
 
+  /*
+   * A game IS its conditions. Its mods are staged first so a stacked
+   * extra can never squeeze one out of the two-mod cap, and if the
+   * entitlement drops any of them the rep falls through to the ordinary
+   * resolution below: it never wears a game's name over conditions it
+   * didn't run.
+   */
+  const game = gameById(input.game);
+  if (game) {
+    const staged = parseMods(
+      [...game.modIds, ...(input.mods ?? "").split(",")].join(","),
+      { premium: input.premium }
+    );
+    const ran = (id: string) => staged.some((m) => m.id === id);
+    if (game.modIds.every(ran)) {
+      const q = questionById(game, input.q) ?? dailyQuestion(game, now);
+      const stagedHas = (effect: StressMod["effect"]) =>
+        staged.some((m) => m.effect === effect);
+      return {
+        mods: staged,
+        hidePrompt: stagedHas("hide-prompt"),
+        crowdNoise: stagedHas("crowd-noise"),
+        interrupt: stagedHas("interrupt"),
+        kind: "daily",
+        lessonId: gameLessonId(game, q),
+        unit: `Games · ${game.name}`,
+        title: q.prompt,
+        prompt: game.direction,
+        maxSeconds: stagedHas("tight-timer")
+          ? TIGHT_MAX_SECONDS
+          : DAILY_MAX_SECONDS,
+        xpMultiplier: xpMultiplier(staged),
+        topic: null,
+        tips: game.tips,
+        rouletteTopic: null,
+      };
+    }
+  }
+
   const roulette = topicById(input.topic);
   if (roulette) {
     return {
@@ -145,11 +193,17 @@ export function repHref(opts: {
   lesson?: string;
   boss?: string;
   topic?: string;
+  game?: string;
+  /** The drawn question, so a shared game link repeats the same rep. */
+  q?: string;
   mods?: string[];
 }): string {
   const q = new URLSearchParams();
   if (opts.boss) q.set("boss", opts.boss);
-  else if (opts.topic) q.set("topic", opts.topic);
+  else if (opts.game) {
+    q.set("game", opts.game);
+    if (opts.q) q.set("q", opts.q);
+  } else if (opts.topic) q.set("topic", opts.topic);
   else if (opts.lesson) q.set("lesson", opts.lesson);
   if (opts.mods?.length) q.set("mods", opts.mods.join(","));
   const s = q.toString();

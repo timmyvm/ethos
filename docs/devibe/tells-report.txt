@@ -68,30 +68,31 @@ components/Theme.tsx:57:  if (m) m.setAttribute('content', t === 'dark' ? '#1713
 
 == [C] eyebrow pill badges / sparkles — 0 hit(s)
 
-== [C] emoji in JSX text — 48 hit(s)
-app/(marketing)/about/page.tsx:98:        <div className="label-data !text-stone-400">Your Ethos · /1000</div>
-app/(marketing)/about/page.tsx:152:        <li>· No manufactured insecurity. You already know your gap.</li>
-app/(marketing)/about/page.tsx:153:        <li>· No alpha talk. This serves ambition, not contempt.</li>
-app/(marketing)/about/page.tsx:154:        <li>· No horoscope feedback. Every claim traces to a number.</li>
-app/(marketing)/about/page.tsx:155:        <li>· No pay-to-win. Money never buys stars, streaks, or scores.</li>
-app/(marketing)/about/page.tsx:156:        <li>· No deadline cram. It&apos;s a gym, not a rescue.</li>
+== [C] emoji in JSX text — 49 hit(s)
+app/(marketing)/about/page.tsx:96:        <div className="label-data !text-stone-400">Your Ethos · /1000</div>
+app/(marketing)/about/page.tsx:147:        <li>· No manufactured insecurity. You already know your gap.</li>
+app/(marketing)/about/page.tsx:148:        <li>· No alpha talk. This serves ambition, not contempt.</li>
+app/(marketing)/about/page.tsx:149:        <li>· No horoscope feedback. Every claim traces to a number.</li>
+app/(marketing)/about/page.tsx:150:        <li>· No pay-to-win. Money never buys stars, streaks, or scores.</li>
+app/(marketing)/about/page.tsx:151:        <li>· No deadline cram. It&apos;s a gym, not a rescue.</li>
 app/rep/[id]/page.tsx:156:          <span className="label-data">×{rep.xp_multiplier} XP</span>
 app/rep/[id]/page.tsx:173:            onUpgrade={() => setPaywall("Presence · premium")}
 app/rep/[id]/page.tsx:180:            onUpgrade={() => setPaywall("Delivery readout · premium")}
-app/rep/page.tsx:853:          <span className="label-data">×{config.xpMultiplier} XP</span>
-app/rep/page.tsx:1549:      <div className="label-data">Tomorrow&apos;s rep · when?</div>
+app/rep/page.tsx:855:          <span className="label-data">×{config.xpMultiplier} XP</span>
+app/rep/page.tsx:1548:      <div className="label-data">Tomorrow&apos;s rep · when?</div>
 app/history/page.tsx:170:              onClick={() => setPaywall("Presence trendline · premium")}
 app/history/page.tsx:252:          onClick={() => setPaywall("Full history · premium")}
 app/auth/callback/page.tsx:35:        <p className="text-[15px] text-stone-500">Confirming…</p>
-app/you/page.tsx:402:              onClick={() => setPaywall("Full lexicon · premium")}
+app/you/page.tsx:403:              onClick={() => setPaywall("Full lexicon · premium")}
 app/page.tsx:304:                  {indexDelta > 0 ? "▲ +" : "▼ "}
 app/page.tsx:360:            onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
-app/page.tsx:410:          <span className="font-semibold text-stone-500">keep them →</span>
+app/page.tsx:389:          <span className="font-semibold text-stone-500">keep them →</span>
 app/signin/page.tsx:20:          <span className="mx-2 text-stone-300">·</span>
 app/boss/page.tsx:89:      <div className="label-data mt-6">Weekly boss · Cold Topic</div>
-app/boss/page.tsx:111:                <li key={i}>· {t}</li>
-app/boss/page.tsx:154:              onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
-app/boss/page.tsx:179:                <li key={i}>· {t}</li>
+app/boss/page.tsx:110:                <li key={i}>· {t}</li>
+app/boss/page.tsx:153:              onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
+app/boss/page.tsx:178:                <li key={i}>· {t}</li>
+app/games/page.tsx:97:                <span className="label-data shrink-0">×{mult} XP</span>
 components/StreakBadge.tsx:24:        <span className="font-normal text-stone-500">· today&apos;s open</span>
 components/ModPicker.tsx:50:        <div className="label-data">Stress mods · optional</div>
 components/ModPicker.tsx:52:          <div className="label-data !text-amber-500">×{multiplier} XP</div>
@@ -108,7 +109,7 @@ components/RepResult.tsx:237:          <div className="label-data">Supply · one
 components/RepResult.tsx:242:            <span aria-hidden>→</span>
 components/TopicRoulette.tsx:52:        <div className="label-data">Roulette · you don&apos;t pick</div>
 components/NextUp.tsx:28:      <div className="label-data">Next up · closest first</div>
-components/Paywall.tsx:30:          <li>· Full pause analytics — the silence scores</li>
+components/Paywall.tsx:30:          <li>· Full pause analytics, the silence scores</li>
 components/Paywall.tsx:31:          <li>· Complete history + day-1-vs-day-30 cards</li>
 components/Paywall.tsx:32:          <li>· Your whole lexicon, not just today&apos;s swap</li>
 components/Paywall.tsx:33:          <li>· Boss modes: Cold Topic, Debate, Hostile Q&amp;A</li>
@@ -121,7 +122,7 @@ components/ComparisonCard.tsx:68:            <span className="text-stone-600">�
 == [C] inline motion durations (not motion.ts) — 0 hit(s)
 
 == [C] bounce/elastic easing — 3 hit(s)
-app/rep/page.tsx:182:  const [anticipate, setAnticipate] = useState<RewardMoment | null>(null);
+app/rep/page.tsx:184:  const [anticipate, setAnticipate] = useState<RewardMoment | null>(null);
 app/rep/page.tsx:1093:            {anticipate && (
 app/rep/page.tsx:1095:                <Moment moment={anticipate} emphasis />
 
@@ -141,10 +142,10 @@ components/ui/Skeleton.tsx:2: * Loading placeholders.
 components/ui/Skeleton.tsx:22: *    placeholder that causes the shift it was meant to prevent is worse
 components/ui/Skeleton.tsx:27: * immediately — putting a placeholder over locally-known content just
 components/ui/Skeleton.tsx:65: * rather than three cards (DECISIONS #151) — so its placeholder is three
-components/AuthForm.tsx:145:          placeholder="you@email.com"
-components/AuthForm.tsx:146:          className="mt-1.5 w-full rounded-[14px] border border-black/10 bg-surface px-4 py-3.5 text-[16px] placeholder:text-stone-300 focus:border-stone-300"
-components/AuthForm.tsx:163:              placeholder={
-components/AuthForm.tsx:166:              className="mt-1.5 w-full rounded-[14px] border border-black/10 bg-surface px-4 py-3.5 text-[16px] placeholder:text-stone-300 focus:border-stone-300"
+components/AuthForm.tsx:143:          placeholder="you@email.com"
+components/AuthForm.tsx:144:          className="mt-1.5 w-full rounded-[14px] border border-black/10 bg-surface px-4 py-3.5 text-[16px] placeholder:text-stone-300 focus:border-stone-300"
+components/AuthForm.tsx:161:              placeholder={
+components/AuthForm.tsx:164:              className="mt-1.5 w-full rounded-[14px] border border-black/10 bg-surface px-4 py-3.5 text-[16px] placeholder:text-stone-300 focus:border-stone-300"
 components/Paywall.tsx:9: * Prices are placeholders until the research pass (open queue).
 
 == [E] div with onClick (a11y) — 0 hit(s)

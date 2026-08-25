@@ -16,6 +16,7 @@ import { GainsRow } from "@/components/GainsRow";
 import { ModeToggle } from "@/components/ModeToggle";
 import { Moment } from "@/components/Moment";
 import { Paywall } from "@/components/Paywall";
+import { PermissionHelp } from "@/components/PermissionHelp";
 import { PoseSkeleton } from "@/components/PoseSkeleton";
 import { PresenceDetail, PresenceScore } from "@/components/PresenceCard";
 import { RepResult } from "@/components/RepResult";
@@ -183,6 +184,11 @@ function RepScreen() {
   const [levels, setLevels] = useState<number[]>(Array(METER_BARS).fill(0.05));
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** The mic (or camera) was refused or absent; owns the error phase. */
+  const [micBlock, setMicBlock] = useState<null | {
+    video: boolean;
+    missing: boolean;
+  }>(null);
   /**
    * The recording that failed to score, held so "Score it again" can
    * mean it. Cleared the moment a result lands.
@@ -559,6 +565,7 @@ function RepScreen() {
 
   const startRep = useCallback(async () => {
     setError(null);
+    setMicBlock(null);
     setSeconds(0);
     // The Rec tap is the gesture that licenses audio for the whole
     // session — the celebration chime minutes from now rides on it.
@@ -694,8 +701,20 @@ function RepScreen() {
 
       buzz(30);
       setPhase("recording");
-    } catch {
-      setError("Mic unavailable. Check browser permissions and try again.");
+    } catch (e) {
+      // A refusal and a missing device get the dedicated explainer
+      // (browser-specific steps, a re-check button) rather than a
+      // sentence and a shrug.
+      const name = e instanceof DOMException ? e.name : "";
+      const missing =
+        name === "NotFoundError" ||
+        name === "DevicesNotFoundError" ||
+        name === "OverconstrainedError";
+      setMicBlock({
+        video: captureModeRef.current === "voice_video",
+        missing,
+      });
+      setError(null);
       setPhase("error");
     }
   }, []);
@@ -1172,24 +1191,31 @@ function RepScreen() {
           </>
         )}
 
-        {phase === "error" && (
-          <ErrorState
-            className="w-full"
-            title="That recording didn't score."
-            body={error ?? "The scoring server didn't answer."}
-            onRetry={
-              pendingRef.current
-                ? () => {
-                    const p = pendingRef.current!;
-                    void score(p.form, p.outboxId);
-                  }
-                : undefined
-            }
-            retryLabel="Score it again"
-          />
-        )}
+        {phase === "error" &&
+          (micBlock ? (
+            <PermissionHelp
+              video={micBlock.video}
+              missing={micBlock.missing}
+              onRecheck={() => void startRep()}
+            />
+          ) : (
+            <ErrorState
+              className="w-full"
+              title="That recording didn't score."
+              body={error ?? "The scoring server didn't answer."}
+              onRetry={
+                pendingRef.current
+                  ? () => {
+                      const p = pendingRef.current!;
+                      void score(p.form, p.outboxId);
+                    }
+                  : undefined
+              }
+              retryLabel="Score it again"
+            />
+          ))}
 
-        {phase !== "analyzing" && phase !== "frame" && (
+        {phase !== "analyzing" && phase !== "frame" && !micBlock && (
           <button
             onClick={
               phase === "recording" ? () => void stopRep() : () => begin()

@@ -161,6 +161,16 @@ export default function About() {
         Ethos, from Aristotle. Logos is logic, pathos is emotion, ethos is
         the credibility of the speaker.
       </p>
+      <p className="mt-4 text-center text-[12px] text-stone-400">
+        <Link href="/privacy" className="font-semibold text-stone-500">
+          Privacy
+        </Link>{" "}
+        ·{" "}
+        <Link href="/terms" className="font-semibold text-stone-500">
+          Terms
+        </Link>{" "}
+        · hello@speakethos.com
+      </p>
     </main>
   );
 }

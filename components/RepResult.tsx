@@ -197,6 +197,9 @@ export function RepResult({
               Kept: {coach.strength}
             </div>
           )}
+          <div className="mt-1.5 text-[11px] text-stone-400">
+            AI-generated feedback
+          </div>
         </div>
       </div>
 

@@ -1161,6 +1161,14 @@ function RepScreen() {
                 ? `${config.maxSeconds} seconds. Spend your pauses deliberately.`
                 : "60 to 90 seconds. Pauses score in your favor."}
             </p>
+            {/* The consent line: what recording does with the audio,
+                said where it's about to happen (COPY-RULES placement). */}
+            <p className="mt-1.5 text-center text-[11.5px] text-stone-400">
+              Audio uploads for scoring; your camera never does ·{" "}
+              <Link href="/privacy" className="font-semibold text-stone-500">
+                privacy
+              </Link>
+            </p>
           </>
         )}
 

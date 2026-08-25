@@ -47,6 +47,8 @@ const BARE = [
   "/rep",
   "/welcome",
   "/about",
+  "/privacy",
+  "/terms",
   "/boss",
   "/signup",
   "/signin",

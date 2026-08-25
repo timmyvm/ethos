@@ -170,8 +170,8 @@ export async function armReminder(
   const payload = {
     tag: TAG,
     body: reminderBody(ctx),
-    icon: "/icon-192.webp",
-    badge: "/icon-192.webp",
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
     data: { url: "/rep" },
   };
 

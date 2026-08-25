@@ -4,7 +4,7 @@
  * /api/analyze is never cached — a rep that can't reach the engine
  * should fail honestly rather than return stale numbers.
  */
-const CACHE = "ethos-v4";
+const CACHE = "ethos-v5";
 
 const SHELL = [
   "/",
@@ -19,8 +19,8 @@ const SHELL = [
   "/demos-celebrate.webp",
   "/demos-workout.webp",
   "/demos-asleep.webp",
-  "/icon-192.webp",
-  "/icon-512.webp",
+  "/icon-192.png",
+  "/icon-512.png",
   "/coin/coin.svg",
   "/coin/coin-stack.svg",
   "/coin/coin-burst.svg",

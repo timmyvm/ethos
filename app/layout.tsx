@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Caprasimo, Figtree } from "next/font/google";
 import { Nav } from "@/components/Nav";
+import { OutboxRetry } from "@/components/OutboxRetry";
 import { ServiceWorker } from "@/components/ServiceWorker";
 import { ThemeSync, themeBootScript } from "@/components/Theme";
 import "./globals.css";
@@ -57,6 +58,7 @@ export default function RootLayout({
         <Nav />
         <ServiceWorker />
         <ThemeSync />
+        <OutboxRetry />
       </body>
     </html>
   );

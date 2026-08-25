@@ -75,6 +75,16 @@ import { unlockSfx } from "@/lib/sfx";
 import { computeStreak } from "@/lib/streak";
 import { nextDrill } from "@/lib/drills";
 import { repHref, resolveRepConfig, type RepConfig } from "@/lib/rep-config";
+import {
+  clearInFlight,
+  markInFlight,
+  newOutboxId,
+  outboxDelete,
+  outboxPut,
+  replayForm,
+  sendWithRetry,
+  type OutboxRep,
+} from "@/lib/rep-outbox";
 import { ensureSession } from "@/lib/supabase-browser";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 
@@ -177,7 +187,9 @@ function RepScreen() {
    * The recording that failed to score, held so "Score it again" can
    * mean it. Cleared the moment a result lands.
    */
-  const pendingRef = useRef<FormData | null>(null);
+  const pendingRef = useRef<{ form: FormData; outboxId: string | null } | null>(
+    null
+  );
   const [celebrate, setCelebrate] = useState<number | null>(null);
   const [interruption, setInterruption] = useState<string | null>(null);
   const [gains, setGains] = useState<RepGain[]>([]);
@@ -333,30 +345,35 @@ function RepScreen() {
    * wifi is the worst failure in the product, and until now the error
    * card named the breakage and left you to record it from scratch.
    */
-  const score = useCallback(async (form: FormData) => {
+  const score = useCallback(async (form: FormData, outboxId: string | null) => {
     setPhase("analyzing");
     setError(null);
+    if (outboxId) markInFlight(outboxId);
     try {
       // Anonymous-first (DECISIONS #15): attribute the rep if a session
       // exists or can be minted; never block the rep on auth.
       const token = await ensureSession();
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        body: form,
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
-      // A gateway's 502 is HTML, and parsing it threw inside the catch
-      // below, so the JSON parser's complaint ("Unexpected token <")
-      // became the sentence the user read. Ours are the only words that
-      // reach them.
-      const data = await res.json().catch(() => null);
-      if (!res.ok || !data) {
+      // Three retries with backoff for the failures waiting can fix
+      // (network drops, gateway 5xx). The blob is already in the outbox,
+      // so even a closed tab loses nothing (lib/rep-outbox.ts).
+      // A gateway's 502 is HTML, and parsing it used to throw, so the
+      // JSON parser's complaint ("Unexpected token <") became the
+      // sentence the user read. Ours are the only words that reach them.
+      const outcome = await sendWithRetry(form, token);
+      if (!outcome.ok || !outcome.data) {
         throw new ScoringFailure(
-          res.status === 503
+          outcome.status === 503
             ? "Scoring is offline right now."
-            : "The scoring server didn't answer."
+            : outcome.status === 429
+              ? ((outcome.data as { error?: string } | null)?.error ??
+                "That's the practice limit for now.")
+              : "The scoring server didn't answer."
         );
       }
+      const data = outcome.data;
+      // The outbox copy leaves only once the server confirmed the rep
+      // is stored (or nothing was ever going to store it: local mode).
+      if (outboxId && outcome.settled) void outboxDelete(outboxId);
       setResult(data as AnalyzeResponse);
       setPhase("results");
       pendingRef.current = null;
@@ -417,18 +434,40 @@ function RepScreen() {
         })
         .catch(() => {});
     } catch (e) {
-      // The audio stays in hand, which is what makes the retry real.
-      pendingRef.current = form;
-      const lead =
-        e instanceof ScoringFailure
+      // The audio stays in hand AND in IndexedDB, which is what makes
+      // the retry real even across a closed tab.
+      pendingRef.current = { form, outboxId };
+      const offline =
+        typeof navigator !== "undefined" && navigator.onLine === false;
+      const lead = offline
+        ? "You're offline."
+        : e instanceof ScoringFailure
           ? e.message
-          : typeof navigator !== "undefined" && navigator.onLine === false
-            ? "You're offline."
-            : "The scoring server didn't answer.";
-      setError(`${lead} The recording is still on this device.`);
+          : "The scoring server didn't answer.";
+      setError(
+        offline
+          ? `${lead} The recording is saved on this device and sends itself when you're back.`
+          : `${lead} The recording is saved on this device.`
+      );
       setPhase("error");
+    } finally {
+      if (outboxId) clearInFlight(outboxId);
     }
   }, []);
+
+  /*
+   * Back online with a failed recording on screen: send it without
+   * being asked. The button stays for the impatient.
+   */
+  useEffect(() => {
+    if (phase !== "error") return;
+    const retry = () => {
+      const p = pendingRef.current;
+      if (p) void score(p.form, p.outboxId);
+    };
+    window.addEventListener("online", retry);
+    return () => window.removeEventListener("online", retry);
+  }, [phase, score]);
 
   const stopRep = useCallback(async () => {
     const r = recRef.current;
@@ -471,28 +510,41 @@ function RepScreen() {
     teardown();
 
     {
-      const form = new FormData();
       const ext = blob.type.includes("mp4") ? "mp4" : "webm";
-      form.append("audio", blob, `rep.${ext}`);
-      form.append("lessonId", cfg.lessonId);
-      form.append("mode", cfg.kind);
-      form.append("mods", cfg.mods.map((m) => m.id).join(","));
-      form.append("xpMultiplier", String(cfg.xpMultiplier));
-      form.append("captureMode", mode);
+      const fields: Record<string, string> = {
+        lessonId: cfg.lessonId,
+        mode: cfg.kind,
+        mods: cfg.mods.map((m) => m.id).join(","),
+        xpMultiplier: String(cfg.xpMultiplier),
+        captureMode: mode,
+        // The judged-tier allowance resets on the user's own calendar
+        // day, not on UTC's (§3) — captured now, so a resumed upload
+        // still lands on the day it was spoken.
+        tzOffset: String(new Date().getTimezoneOffset()),
+      };
       if (envelope.levels.length > 0) {
-        form.append("envelope", serializeEnvelope(envelope));
+        fields.envelope = serializeEnvelope(envelope);
       }
-      // The judged-tier allowance resets on the user's own calendar day,
-      // not on UTC's (§3).
-      form.append("tzOffset", String(new Date().getTimezoneOffset()));
       if (scored?.scorable) {
-        form.append(
-          "delivery",
-          JSON.stringify({ metrics: scored.metrics, moments: scored.moments })
-        );
+        fields.delivery = JSON.stringify({
+          metrics: scored.metrics,
+          moments: scored.moments,
+        });
       }
-      if (cfg.topic) form.append("bossTopicId", cfg.topic.id);
-      await score(form);
+      if (cfg.topic) fields.bossTopicId = cfg.topic.id;
+
+      // Into the outbox BEFORE the first upload attempt: from here the
+      // recording survives a dead network, a killed tab, everything
+      // short of clearing site data.
+      const rep: OutboxRep = {
+        id: newOutboxId(cfg.lessonId),
+        createdAt: Date.now(),
+        audio: blob,
+        filename: `rep.${ext}`,
+        fields,
+      };
+      const held = await outboxPut(rep);
+      await score(replayForm(rep), held ? rep.id : null);
     }
   }, [teardown, score]);
 
@@ -1110,7 +1162,10 @@ function RepScreen() {
             body={error ?? "The scoring server didn't answer."}
             onRetry={
               pendingRef.current
-                ? () => void score(pendingRef.current as FormData)
+                ? () => {
+                    const p = pendingRef.current!;
+                    void score(p.form, p.outboxId);
+                  }
                 : undefined
             }
             retryLabel="Score it again"

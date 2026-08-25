@@ -39,6 +39,31 @@ export interface AuthResult {
   error?: string;
   /** True when the next step is in their inbox rather than on screen. */
   checkInbox?: boolean;
+  /** Quiet caveat under the check-inbox headline (slow email server). */
+  note?: string;
+}
+
+/**
+ * The auth server sends confirmation mail synchronously, and a hung
+ * SMTP connection eats its whole 10s budget before returning 504
+ * (measured 12 Aug, BUILT.md). The send usually completes AFTER the
+ * error, so a timeout is routed to the check-inbox screen with this
+ * caveat instead of stranding the user on the form. The real fix is
+ * the dashboard's SMTP settings; this is the honest handling of the
+ * failure until then, and the console line is what makes it visible.
+ */
+const SLOW_EMAIL_NOTE =
+  "The email server was slow, so the mail may take a few minutes. Nothing there after that? Send it again.";
+
+function emailTimedOut(message: string): boolean {
+  const m = message.toLowerCase();
+  return (
+    m.includes("deadline") ||
+    m.includes("timed out") ||
+    m.includes("timeout") ||
+    m.includes("504") ||
+    m.includes("gateway")
+  );
 }
 
 /**
@@ -118,7 +143,16 @@ export async function createAccount(
       { email: email.trim() },
       { emailRedirectTo: `${siteUrl()}/auth/reset?first=1` }
     );
-    if (upgrade.error) return { ok: false, error: humanise(upgrade.error.message) };
+    if (upgrade.error) {
+      if (emailTimedOut(upgrade.error.message)) {
+        console.error(
+          "auth: email attach timed out (SMTP misconfig, BUILT.md):",
+          upgrade.error.message
+        );
+        return { ok: true, checkInbox: true, note: SLOW_EMAIL_NOTE };
+      }
+      return { ok: false, error: humanise(upgrade.error.message) };
+    }
     return { ok: true, checkInbox: true };
   }
 
@@ -130,7 +164,13 @@ export async function createAccount(
     password,
     options: { emailRedirectTo: `${siteUrl()}/auth/callback` },
   });
-  if (error) return { ok: false, error: humanise(error.message) };
+  if (error) {
+    if (emailTimedOut(error.message)) {
+      console.error("auth: signup email timed out:", error.message);
+      return { ok: true, checkInbox: true, note: SLOW_EMAIL_NOTE };
+    }
+    return { ok: false, error: humanise(error.message) };
+  }
   return { ok: true, checkInbox: true };
 }
 
@@ -158,7 +198,13 @@ export async function sendReset(email: string): Promise<AuthResult> {
     // race between the link being read and the page deciding what it is.
     redirectTo: `${siteUrl()}/auth/reset`,
   });
-  if (error) return { ok: false, error: humanise(error.message) };
+  if (error) {
+    if (emailTimedOut(error.message)) {
+      console.error("auth: reset email timed out:", error.message);
+      return { ok: true, checkInbox: true, note: SLOW_EMAIL_NOTE };
+    }
+    return { ok: false, error: humanise(error.message) };
+  }
   return { ok: true, checkInbox: true };
 }
 

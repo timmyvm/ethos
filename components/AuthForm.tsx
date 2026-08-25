@@ -35,6 +35,7 @@ export function AuthForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
   const [session, setSession] = useState<SessionState | null>(null);
   const [progress, setProgress] = useState({ reps: 0, streak: 0 });
 
@@ -67,8 +68,10 @@ export function AuthForm({
       setError(result.error ?? "That didn't work.");
       return;
     }
-    if (result.checkInbox) setSent(true);
-    else window.location.href = "/";
+    if (result.checkInbox) {
+      setNote(result.note ?? null);
+      setSent(true);
+    } else window.location.href = "/";
   }
 
   if (sent) {
@@ -87,6 +90,11 @@ export function AuthForm({
             Your {progress.reps} rep{progress.reps === 1 ? "" : "s"} are already
             attached to it. The link just confirms the address and asks what
             password you&apos;ll sign in with.
+          </p>
+        )}
+        {note && (
+          <p className="mt-3 text-[13.5px] leading-relaxed text-stone-500">
+            {note}
           </p>
         )}
         <p className="mt-5 text-[13px] leading-relaxed text-stone-400">

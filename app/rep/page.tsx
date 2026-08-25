@@ -386,6 +386,15 @@ function RepScreen() {
           const { streak } = await syncFreezes(dates);
           if (streak.current > 0) setCelebrate(streak.current);
           setStreakNow(streak.current);
+          // Re-arm the reminder now that today's practice is DONE. A
+          // reminder armed this morning is still scheduled for this
+          // evening; arming again cancels it and books tomorrow's
+          // instead (lib/reminders.ts) — a nudge to do a thing you
+          // already did teaches people to kill the channel.
+          void armReminder({
+            streak: streak.current,
+            didToday: streak.didToday,
+          });
           // The upload minted the session if there wasn't one, so this
           // is the earliest moment the answer is real.
           sessionState()

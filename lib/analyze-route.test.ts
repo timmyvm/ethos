@@ -19,6 +19,14 @@ vi.mock("@/lib/db", () => ({
   })),
   writeMeterState: vi.fn(async () => {}),
 }));
+vi.mock("@/lib/rate-limit", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/rate-limit")>()),
+  consumeRateLimit: vi.fn(async () => ({
+    allowed: true,
+    window: null,
+    retryAfterS: 0,
+  })),
+}));
 vi.mock("@/lib/accuracy", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/accuracy")>()),
   judgeAccuracy: vi.fn(async () => null),
@@ -35,6 +43,7 @@ import {
   writeMeterState,
 } from "@/lib/db";
 import { dateKey } from "@/lib/metering";
+import { consumeRateLimit } from "@/lib/rate-limit";
 import { transcribe } from "@/lib/transcribe";
 
 function post(form: FormData | null): Promise<Response> {
@@ -97,6 +106,11 @@ beforeEach(() => {
   vi.mocked(saveRep).mockClear();
   vi.mocked(writeMeterState).mockClear();
   vi.mocked(getUserFromAuthHeader).mockResolvedValue(null);
+  vi.mocked(consumeRateLimit).mockResolvedValue({
+    allowed: true,
+    window: null,
+    retryAfterS: 0,
+  });
   vi.mocked(isPremium).mockResolvedValue(false);
   vi.mocked(readMeterState).mockResolvedValue({
     balance: 1,
@@ -302,7 +316,7 @@ describe("judged-analysis metering", () => {
 
   it("spends one and reports what is left", async () => {
     coachedFixture();
-    vi.mocked(getUserFromAuthHeader).mockResolvedValue("user-1");
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "user-1", anonymous: false });
     vi.mocked(readMeterState).mockResolvedValue({
       balance: 2,
       accruedOn: dateKey(new Date()),
@@ -319,7 +333,7 @@ describe("judged-analysis metering", () => {
   it("never charges for an analysis the coach layer failed to deliver", async () => {
     vi.mocked(transcribe).mockResolvedValue(FIXTURE);
     vi.mocked(coachRep).mockRejectedValue(new Error("api down"));
-    vi.mocked(getUserFromAuthHeader).mockResolvedValue("user-1");
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "user-1", anonymous: false });
     const body = await (await post(audioForm())).json();
     expect(body.coach).toBeNull();
     expect(writeMeterState).not.toHaveBeenCalled();
@@ -327,14 +341,14 @@ describe("judged-analysis metering", () => {
 
   it("never spends one on a rep with nothing in it", async () => {
     vi.mocked(transcribe).mockResolvedValue(EMPTY_FIXTURE);
-    vi.mocked(getUserFromAuthHeader).mockResolvedValue("user-1");
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "user-1", anonymous: false });
     await post(audioForm());
     expect(writeMeterState).not.toHaveBeenCalled();
   });
 
   it("does not meter premium at all", async () => {
     coachedFixture();
-    vi.mocked(getUserFromAuthHeader).mockResolvedValue("user-1");
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "user-1", anonymous: false });
     vi.mocked(isPremium).mockResolvedValue(true);
     vi.mocked(readMeterState).mockResolvedValue({
       balance: 0,
@@ -417,5 +431,47 @@ describe("delivery metrics", () => {
 
     expect(video.ethosIndex).toBe(voice.ethosIndex);
     expect(video.delivery.presenceScore).toBe(910);
+  });
+});
+
+describe("rate limiting", () => {
+  it("returns 429 with the friendly body before any Whisper call", async () => {
+    vi.mocked(consumeRateLimit).mockResolvedValue({
+      allowed: false,
+      window: "hour",
+      retryAfterS: 1200,
+    });
+    const res = await post(audioForm());
+    expect(res.status).toBe(429);
+    const body = await res.json();
+    expect(body.rateLimited).toBe(true);
+    expect(body.retryAfterS).toBe(1200);
+    expect(body.error).toContain("reopens in about 20 minutes");
+    expect(res.headers.get("Retry-After")).toBe("1200");
+    // The whole point: the spend never happens.
+    expect(transcribe).not.toHaveBeenCalled();
+  });
+
+  it("keys real accounts to the user tier and visitors to the anon tier", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(coachRep).mockResolvedValue(null);
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({
+      id: "user-1",
+      anonymous: false,
+    });
+    await post(audioForm());
+    expect(consumeRateLimit).toHaveBeenLastCalledWith("u:user-1", "user");
+
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({
+      id: "anon-1",
+      anonymous: true,
+    });
+    await post(audioForm());
+    expect(consumeRateLimit).toHaveBeenLastCalledWith("u:anon-1", "anon");
+
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue(null);
+    await post(audioForm());
+    expect(vi.mocked(consumeRateLimit).mock.lastCall?.[0]).toMatch(/^ip:/);
+    expect(vi.mocked(consumeRateLimit).mock.lastCall?.[1]).toBe("anon");
   });
 });

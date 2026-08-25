@@ -25,6 +25,11 @@ import {
   writeMeterState,
 } from "@/lib/db";
 import { localDate, meter } from "@/lib/metering";
+import {
+  clientIp,
+  consumeRateLimit,
+  limitMessage,
+} from "@/lib/rate-limit";
 import type { DeliveryMetrics, DeliveryMoment } from "@/lib/presence";
 import type { CaptureMode } from "@/lib/prefs";
 import {
@@ -105,9 +110,33 @@ export async function POST(req: NextRequest) {
     audio instanceof File && audio.name ? audio.name : "rep.webm";
 
   // Anonymous-first: a valid token attributes the rep; absence never blocks.
-  const userId = await getUserFromAuthHeader(
+  const auth = await getUserFromAuthHeader(
     req.headers.get("authorization")
   ).catch(() => null);
+  const userId = auth?.id ?? null;
+
+  /*
+   * The throttle, BEFORE anything that costs money (Whisper runs on
+   * every upload). Real accounts train hard; anonymous sessions and
+   * sessionless callers get the visitor allowance (lib/rate-limit.ts).
+   */
+  const verdict = await consumeRateLimit(
+    auth ? `u:${auth.id}` : `ip:${clientIp(req.headers)}`,
+    auth && !auth.anonymous ? "user" : "anon"
+  );
+  if (!verdict.allowed) {
+    return NextResponse.json(
+      {
+        error: limitMessage(verdict),
+        rateLimited: true,
+        retryAfterS: verdict.retryAfterS,
+      },
+      {
+        status: 429,
+        headers: { "Retry-After": String(verdict.retryAfterS) },
+      }
+    );
+  }
 
   // The client sends what it *ran*; the multiplier is recomputed here
   // from the mods this account is actually entitled to. A hand-edited

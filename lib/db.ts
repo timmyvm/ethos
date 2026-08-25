@@ -22,16 +22,23 @@ export function supabaseAdmin(): SupabaseClient | null {
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
-/** Resolve a Supabase access token to a user id; null on anything else. */
+export interface AuthedUser {
+  id: string;
+  /** Anonymous-first sessions are real users on a shorter leash: the
+   *  rate limiter (lib/rate-limit.ts) gives them the visitor tier. */
+  anonymous: boolean;
+}
+
+/** Resolve a Supabase access token to a user; null on anything else. */
 export async function getUserFromAuthHeader(
   header: string | null
-): Promise<string | null> {
+): Promise<AuthedUser | null> {
   if (!header?.startsWith("Bearer ")) return null;
   const db = supabaseAdmin();
   if (!db) return null;
   const { data, error } = await db.auth.getUser(header.slice(7));
   if (error || !data.user) return null;
-  return data.user.id;
+  return { id: data.user.id, anonymous: data.user.is_anonymous ?? false };
 }
 
 /** The user's latest stored index — powers the "+18" delta display. */

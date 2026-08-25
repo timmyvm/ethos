@@ -4,6 +4,10 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Terms · Ethos",
   description: "The deal between you and Ethos, in plain words.",
+  openGraph: {
+    title: "Terms · Ethos",
+    description: "The deal between you and Ethos, in plain words.",
+  },
 };
 
 export default function Terms() {

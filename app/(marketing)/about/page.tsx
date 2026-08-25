@@ -9,6 +9,11 @@ export const metadata: Metadata = {
   // names the thing being trained without dragging in fear of the podium.
   description:
     "Practice being worth listening to. Five minutes of practice a day, measured against timestamps, not vibes.",
+  openGraph: {
+    title: "Ethos: practice being worth listening to",
+    description:
+      "Courses teach theory. Ethos is the daily gym: one prompt, sixty seconds, every number measured.",
+  },
 };
 
 /**

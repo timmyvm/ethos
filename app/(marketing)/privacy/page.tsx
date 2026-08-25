@@ -5,6 +5,11 @@ export const metadata: Metadata = {
   title: "Privacy · Ethos",
   description:
     "What Ethos records, where it goes, and what never leaves your device.",
+  openGraph: {
+    title: "Privacy · Ethos",
+    description:
+      "What Ethos records, where it goes, and what never leaves your device.",
+  },
 };
 
 /*

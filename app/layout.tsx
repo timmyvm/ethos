@@ -29,10 +29,34 @@ const figtree = Figtree({
 export const metadata: Metadata = {
   // §8 — the acquisition line goes anywhere a stranger meets Ethos
   // first. Clarity converts at zero awareness.
+  metadataBase: new URL("https://speakethos.com"),
   title: "Ethos: practice being worth listening to",
   description:
     "Practice being worth listening to. Five minutes of practice a day, measured against timestamps, not vibes.",
   icons: { apple: "/apple-touch-icon.png" },
+  openGraph: {
+    siteName: "Ethos",
+    type: "website",
+    url: "/",
+    title: "Ethos: practice being worth listening to",
+    description:
+      "Five minutes of practice a day, measured against timestamps, not vibes.",
+    images: [
+      {
+        url: "/og.png",
+        width: 1200,
+        height: 630,
+        alt: "Ethos. Practice being worth listening to.",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Ethos: practice being worth listening to",
+    description:
+      "Five minutes of practice a day, measured against timestamps, not vibes.",
+    images: ["/og.png"],
+  },
 };
 
 export const viewport: Viewport = {

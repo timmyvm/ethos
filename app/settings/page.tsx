@@ -1,8 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { signOut } from "@/lib/auth";
+import { deleteAccount, signOut } from "@/lib/auth";
 import { fetchLexicon, fetchReps } from "@/lib/client-data";
 import {
   DEFAULT_PREFS,
@@ -39,6 +40,37 @@ export default function SettingsPage() {
   const [email, setEmail] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [didToday, setDidToday] = useState(false);
+  const [arming, setArming] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleted, setDeleted] = useState(false);
+
+  async function runDelete() {
+    setDeleting(true);
+    setDeleteError(null);
+    const result = await deleteAccount();
+    if (!result.ok) {
+      setDeleteError(result.error ?? "That didn't go through.");
+      setDeleting(false);
+      return;
+    }
+    // The server side is gone; empty the device to match. A fresh
+    // visit should be a genuinely fresh start.
+    cancelReminder();
+    try {
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith("ethos"))
+        .forEach((k) => localStorage.removeItem(k));
+    } catch {}
+    try {
+      indexedDB.deleteDatabase("ethos-outbox");
+    } catch {}
+    setDeleted(true);
+    setTimeout(() => {
+      window.location.href = "/about";
+    }, 3500);
+  }
 
   useEffect(() => {
     setPrefs(readPrefs());
@@ -128,6 +160,33 @@ export default function SettingsPage() {
     prefs.reminderHour !== null
       ? nextFireTime(prefs.reminderHour, new Date(), prefs, didToday)
       : null;
+
+  // The goodbye. Brief, warm, and it means it: by the time this
+  // renders, the server holds nothing and the device is being emptied.
+  if (deleted) {
+    return (
+      <main className="flex min-h-dvh flex-col items-center justify-center px-8 pb-24 text-center">
+        <Image
+          src="/demos-asleep.webp"
+          alt=""
+          width={160}
+          height={160}
+          className="demos w-[160px]"
+        />
+        <h1 className="font-display mt-5 text-[27px]">All gone.</h1>
+        <p className="mt-2 max-w-[280px] text-[14px] leading-relaxed text-stone-500">
+          Recordings, scores, streaks, account: deleted. Thanks for
+          speaking with us.
+        </p>
+        <Link
+          href="/about"
+          className="press mt-6 text-[13.5px] font-semibold text-terracotta-700"
+        >
+          The door stays open →
+        </Link>
+      </main>
+    );
+  }
 
   return (
     <main className="px-5 pb-24 pt-7">
@@ -278,6 +337,60 @@ export default function SettingsPage() {
         <p className="mt-1.5 text-[11.5px] text-stone-400">
           Every recording, transcript, score and lexicon entry. Yours to take.
         </p>
+        {!arming ? (
+          <button
+            onClick={() => {
+              setArming(true);
+              setConfirmText("");
+              setDeleteError(null);
+            }}
+            className="mt-3 w-full rounded-full border border-stone-200 px-4 py-3 text-[13.5px] font-semibold text-terracotta-700"
+          >
+            Delete my account
+          </button>
+        ) : (
+          <div className="mt-3 rounded-[20px] bg-sand px-4 py-4">
+            <p className="text-[13px] font-semibold leading-relaxed">
+              This deletes every recording, transcript, score, streak and the
+              account itself. There is no undo.
+            </p>
+            <label
+              className="label-data mt-3 block"
+              htmlFor="delete-confirm"
+            >
+              Type DELETE to confirm
+            </label>
+            <input
+              id="delete-confirm"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              autoComplete="off"
+              placeholder="DELETE"
+              className="mt-1.5 w-full rounded-full border border-stone-200 bg-surface px-4 py-2.5 text-[14px] font-semibold placeholder:text-stone-300 focus:border-stone-300"
+            />
+            {deleteError && (
+              <p className="mt-2 text-[12.5px] font-semibold text-terracotta-700">
+                {deleteError}
+              </p>
+            )}
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={() => void runDelete()}
+                disabled={confirmText.trim() !== "DELETE" || deleting}
+                className="flex-1 rounded-full border border-terracotta-200 px-4 py-2.5 text-[13.5px] font-bold text-terracotta-700 disabled:opacity-40"
+              >
+                {deleting ? "Deleting…" : "Delete everything"}
+              </button>
+              <button
+                onClick={() => setArming(false)}
+                disabled={deleting}
+                className="flex-1 rounded-full border border-stone-200 px-4 py-2.5 text-[13.5px] font-semibold"
+              >
+                Keep it
+              </button>
+            </div>
+          </div>
+        )}
 
         {email && (
           <>

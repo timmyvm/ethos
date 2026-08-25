@@ -223,6 +223,46 @@ export async function signOut(): Promise<void> {
 }
 
 /**
+ * The end of the road: /api/account deletes the audio, every row and
+ * the auth user itself (in that order, so a partial failure strands
+ * nothing). Anonymous sessions qualify too; their token authorises
+ * deleting exactly themselves. On success the local session is signed
+ * out here; the caller clears the rest of the device.
+ */
+export async function deleteAccount(): Promise<AuthResult> {
+  const db = supabaseBrowser();
+  if (!db) return { ok: false, error: "Accounts aren't configured yet." };
+  const { data } = await db.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) {
+    return { ok: false, error: "There's no signed-in session to delete." };
+  }
+  let res: Response;
+  try {
+    res = await fetch("/api/account", {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch {
+    return {
+      ok: false,
+      error: "The server didn't answer. Nothing was deleted; try again.",
+    };
+  }
+  const body = (await res.json().catch(() => null)) as {
+    error?: string;
+  } | null;
+  if (!res.ok) {
+    return {
+      ok: false,
+      error: body?.error ?? "That didn't go through. Nothing was deleted.",
+    };
+  }
+  await db.auth.signOut().catch(() => {});
+  return { ok: true };
+}
+
+/**
  * Supabase's messages are written for developers. These are the ones a
  * user can actually hit, in the register the rest of the app uses:
  * short, specific, no apology, no blame.

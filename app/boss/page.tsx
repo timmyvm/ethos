@@ -97,13 +97,13 @@ export default function BossPage() {
           </p>
 
           {locked && (
-            <div className="mt-4 rounded-[18px] border border-hairline bg-surface lift p-4 text-[13px] leading-relaxed text-stone-500">
+            <div className="mt-4 rounded-[24px] border border-hairline bg-surface lift p-4 text-[13px] leading-relaxed text-stone-500">
               You&apos;ve taken this week&apos;s boss. It resets Monday, or
               premium opens the library now.
             </div>
           )}
 
-          <div className="mt-5 rounded-[18px] border border-hairline bg-surface lift p-5">
+          <div className="mt-5 rounded-[24px] border border-hairline bg-surface lift p-5">
             <div className="label-data">What a correct answer covers</div>
             <ul className="mt-2 space-y-1.5 text-[13.5px] leading-relaxed text-stone-600">
               {topic.truth.map((t, i) => (
@@ -135,7 +135,7 @@ export default function BossPage() {
                   }}
                   className={`rounded-full px-3 py-1.5 text-[12.5px] font-semibold ${
                     t.id === topic.id
-                      ? "bg-stone-900 text-cream"
+                      ? "bg-ink text-ground"
                       : "bg-sand text-stone-600"
                   }`}
                 >
@@ -157,7 +157,7 @@ export default function BossPage() {
           <div className="flex-1" />
           <button
             onClick={() => setPhase("research")}
-            className="mt-5 w-full rounded-[14px] bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream press"
+            className="mt-5 w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream press"
           >
             Start the 4 minutes
           </button>
@@ -172,7 +172,7 @@ export default function BossPage() {
             </div>
             <div className="label-data mt-1">reading time left</div>
           </div>
-          <div className="mt-5 rounded-[18px] border border-hairline bg-surface lift p-5">
+          <div className="mt-5 rounded-[24px] border border-hairline bg-surface lift p-5">
             <ul className="space-y-2 text-[14px] leading-relaxed text-stone-700">
               {topic.truth.map((t, i) => (
                 <li key={i}>· {t}</li>
@@ -182,7 +182,7 @@ export default function BossPage() {
           <div className="flex-1" />
           <button
             onClick={() => setPhase("ready")}
-            className="w-full rounded-[14px] border border-black/10 bg-surface px-6 py-4 text-base font-semibold"
+            className="w-full rounded-full border border-stone-200 bg-surface px-6 py-4 text-base font-semibold"
           >
             I&apos;m ready early
           </button>
@@ -208,7 +208,7 @@ export default function BossPage() {
                 {mods.map((id) => (
                   <span
                     key={id}
-                    className="rounded-full bg-stone-900 px-2.5 py-1 text-[11.5px] font-semibold text-cream"
+                    className="rounded-full bg-ink px-2.5 py-1 text-[11.5px] font-semibold text-ground"
                   >
                     {id}
                   </span>
@@ -218,7 +218,7 @@ export default function BossPage() {
           </div>
           <button
             onClick={takeTheFloor}
-            className="w-full rounded-[14px] bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream press"
+            className="w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream press"
           >
             Take the floor
           </button>

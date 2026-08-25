@@ -88,7 +88,7 @@ const FRAME_SECONDS = 30;
  * It was amber, flagged in place as the one screen where the colour
  * carried attention rather than achievement — the exact trade DECISIONS
  * #65 warned about. #127 takes the other side of it: the nudge gives up
- * amber and the hold counter takes it, so the colour means "you earned
+ * the earned colour (sage since #165) and the hold counter takes it, so it means "you earned
  * this" everywhere without exception. Visibility didn't depend on the
  * hue anyway; it depends on the ring going 2px → 4px, the skeleton
  * dimming, and the note appearing under it.
@@ -847,7 +847,7 @@ function RepScreen() {
           {config.mods.map((m) => (
             <span
               key={m.id}
-              className="rounded-full bg-stone-900 px-2.5 py-1 text-[11.5px] font-semibold text-cream"
+              className="rounded-full bg-ink px-2.5 py-1 text-[11.5px] font-semibold text-ground"
             >
               {m.name}
             </span>
@@ -900,7 +900,7 @@ function RepScreen() {
        * feedback afterwards is about the same thing the tip was about.
        */}
       {phase === "idle" && config.tips.length > 0 && (
-        <div className="mt-4 rounded-[18px] border border-hairline bg-surface lift p-4">
+        <div className="mt-4 rounded-[24px] border border-hairline bg-surface lift p-4">
           <div className="label-data">How to do this one</div>
           <ul className="mt-2 space-y-1.5">
             {config.tips.map((tip, i) => (
@@ -908,7 +908,7 @@ function RepScreen() {
                 key={i}
                 className="flex gap-2 text-[13px] leading-relaxed text-stone-600"
               >
-                <span className="label-data mt-0.5 shrink-0 !text-amber-500">
+                <span className="label-data mt-0.5 shrink-0 !text-sage-700">
                   {i + 1}
                 </span>
                 {tip}
@@ -931,7 +931,7 @@ function RepScreen() {
             {/* Structure tips, by the SHAPE of answer the prompt asks
                 for. We know that much honestly; we don't know what
                 you're going to say, so we don't pretend to. */}
-            <div className="mt-4 rounded-[18px] border border-hairline bg-surface lift p-4">
+            <div className="mt-4 rounded-[24px] border border-hairline bg-surface lift p-4">
               <div className="label-data">Shape it like this</div>
               <ul className="mt-2 space-y-1.5">
                 {config.tips.map((tip, i) => (
@@ -939,7 +939,7 @@ function RepScreen() {
                     key={i}
                     className="flex gap-2 text-[13.5px] leading-relaxed text-stone-600"
                   >
-                    <span className="label-data mt-0.5 shrink-0 !text-amber-500">
+                    <span className="label-data mt-0.5 shrink-0 !text-sage-700">
                       {i + 1}
                     </span>
                     {tip}
@@ -953,7 +953,7 @@ function RepScreen() {
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               placeholder="Notes: first line, last line, one example…"
-              className="mt-3 w-full rounded-[18px] border border-black/10 bg-surface p-4 text-[14px] leading-relaxed placeholder:text-stone-300 focus:border-stone-300"
+              className="mt-3 w-full rounded-[24px] border border-stone-200 bg-surface p-4 text-[14px] leading-relaxed placeholder:text-stone-300 focus:border-stone-300"
             />
             <p className="mt-1.5 text-[11.5px] text-stone-400">
               They disappear when you record. You can&apos;t read and speak at
@@ -1028,8 +1028,8 @@ function RepScreen() {
          * It used to mark the nudge, which was flagged in code as the
          * one place amber meant "look at this" rather than "you earned
          * this" — a colour that means two things means neither. Now the
-         * nudge is stone and the hold counter is amber, so amber is
-         * earned-only everywhere, including here.
+         * nudge is stone and the hold counter wears the earned colour
+         * (sage since #165), earned-only everywhere, including here.
          *
          * A nudge stays unmissable on three channels at once: the ring
          * thickens, the skeleton dims to stone, the note appears — and
@@ -1064,7 +1064,7 @@ function RepScreen() {
                 and wrapping put "12s" across the skeleton's chest. */}
             {ring === "ok" && heldS >= HOLD_REVEAL_S && (
               <div className="absolute bottom-2 right-2 rounded-full bg-stage/80 px-2.5 py-1">
-                <span className="label-data whitespace-nowrap !text-amber-400">
+                <span className="label-data whitespace-nowrap !text-sage-mist">
                   holding {heldS}s
                 </span>
               </div>
@@ -1127,10 +1127,10 @@ function RepScreen() {
                 ? "Stop and score this recording"
                 : "Start recording"
             }
-            className={`h-24 w-24 rounded-full text-[15px] font-bold text-cream transition-colors ${
+            className={`h-24 w-24 rounded-full text-[15px] font-bold transition-colors ${
               phase === "recording"
-                ? "bg-stone-900 ring-[10px] ring-terracotta-100"
-                : "bg-terracotta-500 hover:bg-terracotta-600"
+                ? "bg-ink text-ground ring-[10px] ring-terracotta-100"
+                : "bg-terracotta-500 text-cream hover:bg-terracotta-600"
             }`}
           >
             {phase === "recording" ? "Stop" : "Rec"}
@@ -1140,7 +1140,7 @@ function RepScreen() {
         {phase === "frame" && (
           <button
             onClick={() => void startRep()}
-            className="rounded-[14px] border border-black/10 bg-surface px-6 py-3.5 text-[15px] font-semibold"
+            className="rounded-full border border-stone-200 bg-surface px-6 py-3.5 text-[15px] font-semibold"
           >
             I&apos;m ready
           </button>
@@ -1149,7 +1149,7 @@ function RepScreen() {
 
       {interruption && (
         <div className="pointer-events-none fixed inset-x-0 bottom-24 z-40 flex justify-center px-5">
-          <div className="flex max-w-[340px] items-center gap-3 rounded-[18px] bg-stage px-4 py-3 text-cream lift-stage">
+          <div className="flex max-w-[340px] items-center gap-3 rounded-[24px] bg-stage px-4 py-3 text-cream lift-stage">
             <Image
               src="/demos-speaking.webp"
               alt=""
@@ -1272,7 +1272,7 @@ function Results({
           {config.kind === "boss" ? "Boss complete" : "Lesson complete"}
         </div>
         {coined && step === 0 && (
-          <span className="flex items-center gap-1.5 text-[13px] font-semibold text-amber-500">
+          <span className="flex items-center gap-1.5 text-[13px] font-semibold text-sage-700">
             <Coin size={18} /> +1
           </span>
         )}
@@ -1332,7 +1332,7 @@ function Results({
          * measured number is real.
          */}
         {section === "score" && result.judged.capped && (
-          <div className="mt-5 rounded-[18px] border border-hairline bg-surface lift p-5">
+          <div className="mt-5 rounded-[24px] border border-hairline bg-surface lift p-5">
             <div className="font-display text-[19px] font-bold leading-tight">
               Measured, not judged.
             </div>
@@ -1372,7 +1372,7 @@ function Results({
          * skills, and it always shows the number that made the call.
          */}
         {last && tomorrow && tomorrow.strength !== null && (
-          <div className="mt-5 rounded-[18px] border border-hairline bg-surface lift p-5">
+          <div className="mt-5 rounded-[24px] border border-hairline bg-surface lift p-5">
             <div className="label-data">Tomorrow</div>
             <div className="font-display mt-1 text-[22px] font-bold leading-tight">
               {tomorrow.label}
@@ -1398,13 +1398,13 @@ function Results({
               may route via the save-progress wall first (#134). */}
           <button
             onClick={() => exit(repHref({ lesson: next.id }))}
-            className="press block w-full rounded-[15px] bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+            className="press block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
           >
             Next lesson · {next.title}
           </button>
           <button
             onClick={onRetake}
-            className="press mt-3 w-full rounded-[15px] border border-black/10 bg-surface px-6 py-4 text-[15px] font-semibold"
+            className="press mt-3 w-full rounded-full border border-stone-200 bg-surface px-6 py-4 text-[15px] font-semibold"
           >
             Retake this one
           </button>
@@ -1418,7 +1418,7 @@ function Results({
       ) : (
         <button
           onClick={() => setStep((n) => n + 1)}
-          className="press mt-6 w-full rounded-[15px] bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+          className="press mt-6 w-full rounded-full bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
         >
           {STEPS[step + 1].label} →
         </button>
@@ -1486,7 +1486,7 @@ function SaveGate({
 
       <Link
         href="/signup"
-        className="press block w-full rounded-[15px] bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+        className="press block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
       >
         Save my progress
       </Link>
@@ -1544,7 +1544,7 @@ function PlanChips({ streak }: { streak: number }) {
   if (hour !== null && !picked) return null;
 
   return (
-    <div className="mt-5 rounded-[18px] border border-hairline bg-surface lift p-5">
+    <div className="mt-5 rounded-[24px] border border-hairline bg-surface lift p-5">
       <div className="label-data">Tomorrow · when?</div>
       {picked ? (
         <p className="mt-2 text-[13px] leading-relaxed text-stone-600">

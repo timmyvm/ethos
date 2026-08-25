@@ -12,7 +12,10 @@ Read, in order:
 3. `docs/mechanics.md` — progression, economy, pricing, competitor intel
 4. `DECISIONS.md` — everything already decided. Never re-litigate a
    locked decision; never contradict one silently.
-5. `design/ethos-design-direction.html` — the look (open it, actually look)
+5. `design/organic-redesign/README.md` + `ethos-remake.dc.html` — the look
+   (the Organic reskin, DECISIONS #165; open the mock, actually look).
+   `design/ethos-design-direction.html` is the pre-reskin direction, kept
+   for history
 
 Before any UI work, also read `DESIGN-RULES.md` — the design constitution
 (tokens, banned tells, the per-screen Definition of Done, motion, a11y).

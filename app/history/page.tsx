@@ -73,7 +73,7 @@ export default function HistoryPage() {
             {[0, 1].map((i) => (
               <div
                 key={i}
-                className="rounded-[18px] border border-hairline bg-surface lift p-5"
+                className="rounded-[24px] border border-hairline bg-surface lift p-5"
               >
                 <div className="flex items-baseline justify-between">
                   <Skeleton className="h-2.5 w-24" />
@@ -114,7 +114,7 @@ export default function HistoryPage() {
           action={
             <Link
               href="/rep"
-              className="press block min-h-11 w-full rounded-[14px] bg-terracotta-500 px-6 py-3.5 text-[15px] font-semibold text-cream hover:bg-terracotta-600"
+              className="press block min-h-11 w-full rounded-full bg-terracotta-500 px-6 py-3.5 text-[15px] font-semibold text-cream hover:bg-terracotta-600"
             >
               Take the floor
             </Link>
@@ -168,7 +168,7 @@ export default function HistoryPage() {
           ) : (
             <button
               onClick={() => setPaywall("Presence trendline · premium")}
-              className="press w-full rounded-[18px] border border-hairline bg-surface lift p-4 text-left"
+              className="press w-full rounded-[24px] border border-hairline bg-surface lift p-4 text-left"
             >
               <div className="label-data">Presence</div>
               <div className="mt-1 text-[13px] text-stone-500">
@@ -186,7 +186,7 @@ export default function HistoryPage() {
             {insights(reps).map((i) => (
               <div
                 key={i.id}
-                className="rounded-[18px] border border-hairline bg-surface lift p-5"
+                className="rounded-[24px] border border-hairline bg-surface lift p-5"
               >
                 <div className="text-[14.5px] font-semibold">{i.headline}</div>
                 <p className="mt-1 text-[13px] leading-relaxed text-stone-500">
@@ -217,7 +217,7 @@ export default function HistoryPage() {
             <Link
               key={r.id}
               href={`/rep/${r.id}`}
-              className="flex items-center gap-3 rounded-[18px] border border-hairline bg-surface lift p-4"
+              className="flex items-center gap-3 rounded-[24px] border border-hairline bg-surface lift p-4"
             >
               <div className="w-[52px] shrink-0">
                 <div className="label-data !text-stone-400">
@@ -250,7 +250,7 @@ export default function HistoryPage() {
       {hidden > 0 && (
         <button
           onClick={() => setPaywall("Full history · premium")}
-          className="mt-3 w-full rounded-[18px] border border-terracotta-100 bg-terracotta-50 p-4 text-[13.5px] font-semibold"
+          className="mt-3 w-full rounded-[24px] border border-terracotta-100 bg-terracotta-50 p-4 text-[13.5px] font-semibold"
         >
           {hidden} older recording{hidden === 1 ? "" : "s"} archived. Unlock
           full history

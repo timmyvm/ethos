@@ -21,7 +21,7 @@ import {
 } from "@/lib/client-data";
 import { spin, type Topic } from "@/lib/topics";
 import { sessionState } from "@/lib/auth";
-import { dayTrail } from "@/lib/days";
+import { dayTrail, pebbleDays } from "@/lib/days";
 import { todaysDrill } from "@/lib/drills";
 import { syncFreezes } from "@/lib/freeze-sync";
 import { firstRun, markWelcomed } from "@/lib/onboarding";
@@ -47,6 +47,7 @@ export default function Home() {
   const [reps, setReps] = useState<RepRow[] | null>(null);
   const [streak, setStreak] = useState<StreakState>(EMPTY);
   const [rescued, setRescued] = useState(0);
+  const [frozen, setFrozen] = useState<Date[]>([]);
   const [premium, setPremium] = useState(false);
   const [mods, setMods] = useState<string[]>([]);
   const [showMods, setShowMods] = useState(false);
@@ -81,6 +82,7 @@ export default function Home() {
     if (!sync.ok) return;
     setStreak(sync.data.streak);
     setRescued(sync.data.rescued.length);
+    setFrozen(sync.data.frozenDays);
     void armReminder({
       streak: sync.data.streak.current,
       didToday: sync.data.streak.didToday,
@@ -141,6 +143,7 @@ export default function Home() {
   const focus = nextFocus(history);
   const gap = decayNote(history);
   const trail = dayTrail(history);
+  const pebbles = pebbleDays(history, frozen);
 
 
   return (
@@ -152,14 +155,12 @@ export default function Home() {
           image rather than a brand. Better nothing than that until the
           real head mark lands. */}
       <div className="flex items-center justify-between">
-        <span className="font-display text-[21px] font-bold tracking-[-0.03em]">
-          ethos
-        </span>
+        <span className="font-display text-[25px]">ethos</span>
         <StreakBadge streak={streak} />
       </div>
 
       {rescued > 0 && (
-        <div className="mt-4 rounded-[18px] border border-amber-500/30 bg-surface px-4 py-3 text-[13px] leading-relaxed">
+        <div className="mt-4 rounded-[24px] border-[1.5px] border-sage-300 bg-surface px-4 py-3 text-[13px] leading-relaxed">
           <span className="font-semibold">
             A freeze covered {rescued === 1 ? "a day" : `${rescued} days`} you
             missed.
@@ -172,13 +173,13 @@ export default function Home() {
 
       {/* ONE moment above the floor, never two.
           brand.md bans orange as decoration — scarcity is what makes the
-          terracotta tap command the screen, and two amber-filled cards
+          terracotta tap command the screen, and two filled accent cards
           stacked over the CTA is exactly the wash it warns about. The
           near-miss wins when there is one; otherwise the landmark or the
           open loop. It renders as a quiet rule-and-text line, not a
           filled card, so the only filled colour on this screen is the
           button. */}
-      <div className="label-data mt-7">
+      <div className="label-data mt-7 !text-sage-700">
         {topic
           ? "Roulette"
           : `${streak.didToday ? "Extra lesson" : "Today's lesson"} · ${unitName}`}
@@ -222,17 +223,17 @@ export default function Home() {
         </div>
       ) : (
         <>
-          <div className="relative mt-2.5 overflow-hidden rounded-[26px] border border-hairline bg-surface p-6 pb-[4.75rem] lift-hero">
-            <h1 className="font-display max-w-[74%] text-[32px] font-bold leading-[1.06]">
+          <div className="relative mt-2.5 overflow-hidden rounded-[28px] border border-hairline bg-surface px-6 pb-[84px] pt-[26px] lift-hero">
+            <h1 className="font-display max-w-[76%] text-[31px] leading-[1.08]">
               {drill.title}
             </h1>
-            <p className="mt-3 max-w-[68%] text-[14.5px] leading-relaxed text-stone-400">
+            <p className="mt-3 max-w-[66%] text-[14px] leading-[1.55] text-stone-500">
               {drill.prompt}
             </p>
             <div className="relative z-10 mt-5">
               <Link
                 href={repHref({ lesson: next?.lesson.id, mods })}
-                className="press block w-full rounded-[15px] bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+                className="press lift-cta block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[16.5px] font-bold text-cream transition-colors hover:bg-terracotta-600"
               >
                 {streak.didToday ? "Go again" : "Take the floor"}
               </Link>
@@ -249,14 +250,14 @@ export default function Home() {
               width={150}
               height={150}
               priority
-              className="demos pointer-events-none absolute -bottom-5 -right-4 w-[128px] opacity-95"
+              className="demos pointer-events-none absolute -bottom-3.5 -right-1.5 w-[126px]"
             />
           </div>
           <button
             onClick={() => setTopic(spin(null))}
             className="press mt-3 block text-[13px] font-semibold text-stone-500"
           >
-            Don&apos;t like it? Spin a random topic →
+            Not feeling it? Spin a new topic →
           </button>
         </>
       )}
@@ -265,10 +266,10 @@ export default function Home() {
        * TIER 2 — the score. "The score IS the brand" (DECISIONS #18) and
        * brand.md sets the numbers as the hero, but this was a 26px stat
        * card at the bottom, indistinguishable from rep count. It gets
-       * the second focal point: a different MATERIAL (stage dark against
-       * white and cream) so it pulls the eye without competing with the
-       * floor for first place, and it absorbs the three identical stat
-       * cards that used to sit here saying nothing in particular.
+       * the second focal point: a different MATERIAL (deep sage against
+       * the cream room, #165) so it pulls the eye without competing with
+       * the floor for first place, and it absorbs the three identical
+       * stat cards that used to sit here saying nothing in particular.
        */}
       {/* The floor card above needs no round trip — `todaysDrill()` is
           local — so it paints immediately. This one is fetched, and used
@@ -284,20 +285,20 @@ export default function Home() {
       )}
 
       {history.length > 0 && (
-        <section className="mt-5 rounded-[26px] bg-stage p-5 text-cream lift-stage">
+        <section className="card-sage mt-5 rounded-[28px] p-[22px] pb-5 text-cream">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <div className="label-data !text-stone-500">Your Ethos</div>
+              <div className="label-data !text-sage-mist">Your Ethos</div>
               <div className="mt-1 flex items-baseline gap-1.5">
-                <span className="font-display text-[56px] font-bold leading-[0.85]">
+                <span className="font-display text-[58px] leading-[0.9]">
                   {lastIndex ?? "—"}
                 </span>
-                <span className="text-[13px] text-stone-500">/1000</span>
+                <span className="text-[13px] text-sage-mist">/1000</span>
               </div>
               {indexDelta !== null && indexDelta !== 0 && (
                 <div
-                  className={`mt-2 text-[12.5px] font-semibold ${
-                    indexDelta > 0 ? "text-amber-500" : "text-stone-400"
+                  className={`mt-2 text-[12.5px] font-bold ${
+                    indexDelta > 0 ? "text-terracotta-300" : "text-sage-mist"
                   }`}
                 >
                   {indexDelta > 0 ? "▲ +" : "▼ "}
@@ -305,9 +306,9 @@ export default function Home() {
                 </div>
               )}
             </div>
-            <div className="shrink-0 space-y-2.5 text-right">
+            <div className="shrink-0 space-y-3 text-right">
               <div>
-                <div className="font-display text-[20px] font-bold leading-none">
+                <div className="font-display text-[21px] leading-none">
                   {history.length}
                 </div>
                 {/* "reps" is the brand word for the ACT — you take the
@@ -316,13 +317,13 @@ export default function Home() {
                     between two pauses?). The counter names the thing it
                     counts; the verb stays "rep" everywhere it's obvious
                     from context. */}
-                <div className="label-data !text-stone-500">recordings</div>
+                <div className="label-data !text-sage-mist">recordings</div>
               </div>
               <div>
-                <div className="font-display text-[20px] font-bold leading-none">
+                <div className="font-display text-[21px] leading-none">
                   {totalStars(starMap)}
                 </div>
-                <div className="label-data !text-stone-500">stars</div>
+                <div className="label-data !text-sage-mist">stars</div>
               </div>
             </div>
           </div>
@@ -334,7 +335,7 @@ export default function Home() {
            * went up. It also gets better with time by construction:
            * one day is a number, thirty is a shape.
            */}
-          <DayTrail trail={trail} />
+          <DayTrail trail={trail} pebbles={pebbles} />
 
         </section>
       )}

@@ -60,9 +60,9 @@ export function Nav() {
   return (
     <nav
       aria-label="Sections"
-      className="fixed bottom-0 left-1/2 z-20 w-full max-w-[430px] -translate-x-1/2 border-t border-sand bg-surface"
+      className="fixed bottom-0 left-1/2 z-20 w-full max-w-[430px] -translate-x-1/2 border-t-[1.5px] border-hairline bg-surface"
     >
-      <div className="flex">
+      <div className="flex px-2 pb-4 pt-2.5">
         {TABS.map((t) => {
           const active = t.href === "/" ? path === "/" : path.startsWith(t.href);
           return (
@@ -70,11 +70,13 @@ export function Nav() {
               key={t.href}
               href={t.href}
               aria-current={active ? "page" : undefined}
-              className={`flex flex-1 flex-col items-center gap-1 py-2.5 pb-[14px] text-[13px] font-semibold ${
-                active ? "text-terracotta-600" : "text-stone-500"
+              className={`flex flex-1 flex-col items-center gap-1 py-1 text-[12px] ${
+                active
+                  ? "font-bold text-terracotta-700"
+                  : "font-semibold text-stone-500"
               }`}
             >
-              <t.Icon size={22} />
+              <t.Icon size={21} />
               {t.label}
             </Link>
           );

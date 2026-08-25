@@ -53,7 +53,7 @@ export default function CallbackPage() {
           </p>
           <Link
             href="/"
-            className="press mt-7 w-full max-w-[320px] rounded-[15px] bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-cream"
+            className="press mt-7 w-full max-w-[320px] rounded-full bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-cream"
           >
             Back to the floor
           </Link>
@@ -71,7 +71,7 @@ export default function CallbackPage() {
           </p>
           <Link
             href="/signin"
-            className="press mt-7 w-full max-w-[320px] rounded-[15px] bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-cream"
+            className="press mt-7 w-full max-w-[320px] rounded-full bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-cream"
           >
             Sign in
           </Link>

@@ -31,7 +31,7 @@ export interface RewardMoment {
   headline: string;
   /** The number underneath it. Always present. */
   detail: string;
-  tone: "amber" | "neutral";
+  tone: "earned" | "neutral";
 }
 
 /** A milestone this close counts as within reach of one rep. */
@@ -56,14 +56,14 @@ export function anticipation(
       detail: closest
         ? `Closest after that: ${closest.label}, ${closest.remainingLabel}.`
         : "Five minutes, in and out.",
-      tone: "amber",
+      tone: "earned",
     };
   }
   if (!closest) return null;
   return {
     headline: `${closest.label} · ${closest.remainingLabel}`,
     detail: closest.detail,
-    tone: "amber",
+    tone: "earned",
   };
 }
 
@@ -117,19 +117,19 @@ export function freshStart(now = new Date()): RewardMoment | null {
       return {
         headline: "First day of the year",
         detail: "New page. Counting starts fresh today.",
-        tone: "amber",
+        tone: "earned",
       };
     case "month":
       return {
         headline: `First of ${now.toLocaleDateString(undefined, { month: "long" })}`,
         detail: "Clean month. One lesson opens it.",
-        tone: "amber",
+        tone: "earned",
       };
     case "monday":
       return {
         headline: "Monday",
         detail: "New week, new league. Take the first lesson.",
-        tone: "amber",
+        tone: "earned",
       };
     default:
       return null;
@@ -157,28 +157,28 @@ export function endNote(params: {
     return {
       headline: `${m.composedPauses} composed pause${m.composedPauses === 1 ? "" : "s"}`,
       detail: "Silence you chose, before a new point. That's the hard one.",
-      tone: "amber",
+      tone: "earned",
     };
   }
   if (m.fillerCount === 0) {
     return {
       headline: "Zero fillers",
       detail: `${Math.round(m.durationS)} seconds, clean.`,
-      tone: "amber",
+      tone: "earned",
     };
   }
   if (m.wpm >= 130 && m.wpm <= 160) {
     return {
       headline: `${m.wpm} words a minute`,
       detail: "Dead in the zone.",
-      tone: "amber",
+      tone: "earned",
     };
   }
   if (streak.current > 1) {
     return {
       headline: `${streak.current} days running`,
       detail: "You showed up again. That's the whole mechanism.",
-      tone: "amber",
+      tone: "earned",
     };
   }
   return {
@@ -211,7 +211,7 @@ export function personalBests(
     out.push({
       headline: "Best Ethos yet",
       detail: `${currentIndex}, past your ${bestIndex}`,
-      tone: "amber",
+      tone: "earned",
     });
   }
 
@@ -222,7 +222,7 @@ export function personalBests(
     out.push({
       headline: "Cleanest recording yet",
       detail: `${current.fillersPerMin}/min, under your ${Math.round(bestFpm * 100) / 100}`,
-      tone: "amber",
+      tone: "earned",
     });
   }
 
@@ -233,7 +233,7 @@ export function personalBests(
     out.push({
       headline: "Most silence you've held",
       detail: `${current.heldPauses} held pauses, past ${bestHeld}`,
-      tone: "amber",
+      tone: "earned",
     });
   }
 

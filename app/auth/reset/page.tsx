@@ -80,7 +80,7 @@ function ResetScreen() {
           </p>
           <Link
             href="/"
-            className="press mt-6 block w-full rounded-[15px] bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream"
+            className="press mt-6 block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream"
           >
             Back to the floor
           </Link>
@@ -99,7 +99,7 @@ function ResetScreen() {
             /* An unconfirmed email can't receive a reset mail — the
                fresh link for the first-password flow is a fresh save. */
             href={first ? "/signup" : "/auth/forgot"}
-            className="press mt-6 block w-full rounded-[15px] bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream"
+            className="press mt-6 block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream"
           >
             Send a new link
           </Link>
@@ -127,17 +127,17 @@ function ResetScreen() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="8 characters or more"
-              className="mt-1.5 w-full rounded-[14px] border border-black/10 bg-surface px-4 py-3.5 text-[16px] placeholder:text-stone-300 focus:border-stone-300"
+              className="mt-1.5 w-full rounded-full border border-stone-200 bg-surface px-5 py-3.5 text-[16px] placeholder:text-stone-300 focus:border-stone-300"
             />
             {error && (
-              <p className="mt-4 rounded-[14px] bg-terracotta-50 px-4 py-3 text-[13.5px] text-terracotta-700">
+              <p className="mt-4 rounded-[20px] bg-terracotta-50 px-4 py-3 text-[13.5px] text-terracotta-700">
                 {error}
               </p>
             )}
             <button
               type="submit"
               disabled={busy || ready === null}
-              className="press mt-5 w-full rounded-[15px] bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-cream disabled:opacity-60"
+              className="press mt-5 w-full rounded-full bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-cream disabled:opacity-60"
             >
               {busy ? "Saving…" : "Save it"}
             </button>

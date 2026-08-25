@@ -122,23 +122,21 @@ export default function ShopPage() {
       </Link>
 
       <div className="mt-4 flex items-end justify-between">
-        <h1 className="font-display text-[30px] font-bold leading-tight">
-          Shop
-        </h1>
+        <h1 className="font-display text-[29px] leading-tight">Shop</h1>
         <span className="flex items-center gap-2">
-          <Coin variant={coins > 0 ? "coin" : "empty"} size={26} />
+          <Coin variant={coins > 0 ? "coin" : "empty"} size={24} />
           {ledger === null ? (
             failed ? (
               /* Not a zero. A balance nobody could read is unknown, and
                  unknown is a dash. */
-              <span className="font-display text-[24px] font-bold leading-none text-stone-400">
+              <span className="font-display text-[23px] leading-none text-stone-400">
                 —
               </span>
             ) : (
               <Skeleton className="h-6 w-10" />
             )
           ) : (
-            <span className="font-display text-[24px] font-bold leading-none">
+            <span className="font-display text-[23px] leading-none">
               {coins}
             </span>
           )}
@@ -154,7 +152,7 @@ export default function ShopPage() {
       </p>
 
       {note && (
-        <p className="mt-4 rounded-[14px] bg-terracotta-50 px-4 py-3 text-[13.5px] font-semibold text-terracotta-700">
+        <p className="mt-4 rounded-[20px] bg-terracotta-50 px-4 py-3 text-[13.5px] font-semibold text-terracotta-700">
           {note}
         </p>
       )}
@@ -170,11 +168,11 @@ export default function ShopPage() {
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className="rounded-[18px] border border-hairline bg-surface lift p-5"
+              className="rounded-[26px] border border-hairline bg-surface lift p-5"
             >
               <Skeleton className="h-4 w-32" />
               <Skeleton className="mt-2.5 h-3 w-full" />
-              <Skeleton className="mt-3 h-9 w-full" rounded="rounded-[13px]" />
+              <Skeleton className="mt-3 h-9 w-full" rounded="rounded-full" />
             </div>
           ))}
         </SkeletonRegion>
@@ -193,7 +191,7 @@ export default function ShopPage() {
             return (
               <div
                 key={item.id}
-                className="rounded-[18px] border border-hairline bg-surface lift p-5"
+                className="rounded-[26px] border border-hairline bg-surface lift p-[18px]"
               >
                 {/* You can see what you're buying. A cosmetic sold as a
                     name and a price is a cosmetic bought blind, which is
@@ -205,26 +203,26 @@ export default function ShopPage() {
                       alt=""
                       width={128}
                       height={128}
-                      className="demos h-[62px] w-[62px] shrink-0 object-contain"
+                      className="demos h-[58px] w-[58px] shrink-0 object-contain"
                     />
                   ) : (
-                    <span className="flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-[14px] bg-amber-50 text-amber-500">
-                      <IconFreeze size={28} />
+                    <span className="flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-[20px] bg-sage-100 text-sage-700">
+                      <IconFreeze size={26} />
                     </span>
                   )}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-3">
-                      <span className="text-[15px] font-semibold">
+                      <span className="text-[15px] font-extrabold">
                         {item.name}
                       </span>
                       <span className="flex shrink-0 items-center gap-1.5">
-                        <Coin variant={isOwned ? "empty" : "coin"} size={16} />
-                        <span className="font-display text-[16px] font-bold">
+                        <Coin variant={isOwned ? "empty" : "coin"} size={15} />
+                        <span className="font-display text-[16px]">
                           {item.price}
                         </span>
                       </span>
                     </div>
-                    <p className="mt-1 text-[13px] leading-relaxed text-stone-600">
+                    <p className="mt-1 text-[12.5px] leading-relaxed text-stone-500">
                       {item.blurb}
                     </p>
                   </div>
@@ -235,10 +233,10 @@ export default function ShopPage() {
                      your card. */
                   <button
                     onClick={() => equip(pose === item.id ? null : item.id)}
-                    className={`press mt-3 w-full rounded-[13px] px-4 py-3 text-[14.5px] font-semibold transition-colors ${
+                    className={`press mt-3.5 w-full rounded-full px-5 py-3 text-[14px] font-extrabold transition-colors ${
                       pose === item.id
-                        ? "bg-amber-50 text-amber-600"
-                        : "border border-black/10 text-stone-600"
+                        ? "bg-sage-100 text-sage-800"
+                        : "border-2 border-sage-300 text-sage-800 hover:bg-sage-100"
                     }`}
                   >
                     {pose === item.id ? "On your card" : "Put it on the card"}
@@ -256,10 +254,10 @@ export default function ShopPage() {
                      * that refuses to sell you a score shouldn't make.
                      * The price is the argument; the button is a door.
                      */
-                    className={`press mt-3 w-full rounded-[13px] border px-4 py-3 text-[14.5px] font-semibold transition-colors ${
+                    className={`press mt-3.5 w-full rounded-full px-5 py-3 text-[14px] font-extrabold transition-colors ${
                       state.ok
-                        ? "border-stone-300 text-ink hover:bg-sand"
-                        : "border-black/10 text-stone-400"
+                        ? "bg-sage-500 text-sage-ink hover:bg-sage-600"
+                        : "border-2 border-sage-300 text-sage-800"
                     }`}
                   >
                     {busy === item.id

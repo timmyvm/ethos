@@ -33,7 +33,7 @@ export function ErrorState({
   return (
     <div
       role="alert"
-      className={`rounded-[18px] border border-hairline bg-surface lift p-5 ${className}`}
+      className={`rounded-[24px] border border-hairline bg-surface lift p-5 ${className}`}
     >
       <p className="text-[14px] font-semibold">{title}</p>
       <p className="mt-1 text-[13px] leading-relaxed text-stone-500">{body}</p>
@@ -41,7 +41,7 @@ export function ErrorState({
         <button
           type="button"
           onClick={onRetry}
-          className="press mt-3 min-h-11 w-full rounded-[13px] border border-black/10 px-4 py-3 text-[14px] font-semibold hover:bg-sand"
+          className="press mt-3 min-h-11 w-full rounded-full border border-stone-200 px-4 py-3 text-[14px] font-semibold hover:bg-sand"
         >
           {retryLabel}
         </button>

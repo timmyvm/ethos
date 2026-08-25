@@ -14,15 +14,23 @@
   animation duration inline.** If a token is missing, add the token first,
   then use it. The semantic three are `ground` (the room), `surface`
   (cards in it) and `ink` (text); `stage` is the dark material the
-  signature moments sit on.
-- Terracotta is the one tap per screen. Amber is earned-only. Stone is
-  everything holding the room. Neither of the first two is ever
-  decoration.
+  rep-loop signature moments sit on, and the score card sits on deep
+  sage (`sage-900`, DECISIONS #165).
+- Terracotta is the one tap per screen. Sage is earned-only (amber is
+  retired, #165). Stone is everything holding the room. Neither accent
+  is ever decoration.
+- Shape is over-rounded (#165): cards 24–28px radius, buttons and
+  inputs are full pills, nodes and day dots are pebbles (circles).
 - One icon set only: the line set in `components/Icon.tsx` — 24px grid,
-  1.5px stroke, `currentColor`, no fills. No emoji as icons, no second
-  icon library (DECISIONS #152).
-- Typography is locked (#5, amended #135): Fraunces display, Inter body,
-  Space Mono for data labels. No new faces.
+  2.75px stroke (#165), `currentColor`, no fills. No emoji as icons, no
+  second icon library (DECISIONS #152).
+- Typography is locked (#166): Caprasimo display (weight 400 ONLY —
+  never fake-bold it; globals.css enforces this), Figtree body, and
+  `.label-data` in Figtree 700 uppercase for data labels. No new faces.
+- Dark theme drops all shadows; depth is surface steps plus 1.5px
+  hairline borders. Surfaces that stay dark in both themes (stage, the
+  score card) use non-swapping text tokens — cream opacities or
+  `sage-mist` — never the stone ramp (#167).
 
 ## Banned (the vibe-code tells)
 

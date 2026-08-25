@@ -7,7 +7,7 @@ const VERDICT: Record<
   AccuracyResult["claims"][number]["verdict"],
   { label: string; className: string }
 > = {
-  supported: { label: "checks out", className: "bg-amber-50 text-amber-600" },
+  supported: { label: "checks out", className: "bg-sage-100 text-sage-800" },
   contradicted: {
     label: "wrong",
     className: "bg-terracotta-50 text-terracotta-600",
@@ -35,7 +35,7 @@ export function AccuracyCard({
   const total = topic?.truth.length ?? coveredCount + accuracy.missed.length;
 
   return (
-    <div className="mt-4 rounded-[18px] border border-hairline bg-surface lift p-5">
+    <div className="mt-4 rounded-[24px] border border-hairline bg-surface lift p-5">
       <div className="label-data">Accuracy · the other half of the boss</div>
 
       <div className="mt-2.5 flex items-baseline gap-3">

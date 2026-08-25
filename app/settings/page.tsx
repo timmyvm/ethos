@@ -137,7 +137,7 @@ export default function SettingsPage() {
       <h1 className="font-display mt-4 text-2xl font-bold">Settings</h1>
 
       <div className="section-title mt-7">Daily reminder</div>
-      <div className="mt-2 rounded-[18px] border border-hairline bg-surface lift p-5">
+      <div className="mt-2 rounded-[24px] border border-hairline bg-surface lift p-5">
         <p className="text-[13px] leading-relaxed text-stone-500">
           One notification a day, maximum. It names the streak, never
           scolds you for missing it.
@@ -161,7 +161,7 @@ export default function SettingsPage() {
         {prefs.reminderHour !== null && perm !== "granted" && (
           <button
             onClick={() => void askPermission()}
-            className="mt-3 w-full rounded-[14px] border border-terracotta-200 bg-terracotta-50 px-4 py-3 text-[13.5px] font-semibold"
+            className="mt-3 w-full rounded-full border border-terracotta-200 bg-terracotta-50 px-4 py-3 text-[13.5px] font-semibold"
           >
             {perm === "denied"
               ? "Notifications blocked in your browser"
@@ -170,7 +170,7 @@ export default function SettingsPage() {
         )}
 
         {prefs.reminderHour !== null && perm === "granted" && (
-          <div className="mt-3 rounded-[14px] bg-sand px-4 py-3 text-[12.5px] leading-relaxed text-stone-600">
+          <div className="mt-3 rounded-[20px] bg-sand px-4 py-3 text-[12.5px] leading-relaxed text-stone-600">
             <span className="font-semibold">
               {fireAt
                 ? `Next: ${fireAt.toLocaleString(undefined, {
@@ -192,7 +192,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="section-title mt-7">Appearance</div>
-      <div className="mt-2 rounded-[18px] border border-hairline bg-surface lift p-5">
+      <div className="mt-2 rounded-[24px] border border-hairline bg-surface lift p-5">
         <div className="flex gap-2">
           {(["system", "light", "dark"] as Theme[]).map((t) => (
             <button
@@ -212,13 +212,12 @@ export default function SettingsPage() {
           ))}
         </div>
         <p className="mt-3 text-[12.5px] leading-relaxed text-stone-500">
-          Same warm neutrals, no cool greys. Terracotta and amber never
-          change: they carry meaning.
+          Same warm neutrals, no cool greys.
         </p>
       </div>
 
       <div className="section-title mt-7">Recording</div>
-      <div className="mt-2 divide-y divide-sand rounded-[18px] border border-hairline bg-surface lift">
+      <div className="mt-2 divide-y divide-sand rounded-[24px] border border-hairline bg-surface lift">
         <Toggle
           label="Frame step"
           note="30 seconds of think-time before the clock starts. Trains deciding before speaking."
@@ -252,7 +251,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="section-title mt-7">Account</div>
-      <div className="mt-2 rounded-[18px] border border-hairline bg-surface lift p-5">
+      <div className="mt-2 rounded-[24px] border border-hairline bg-surface lift p-5">
         <div className="text-[14px] font-semibold">
           {email ?? "Anonymous · this device only"}
         </div>
@@ -264,7 +263,7 @@ export default function SettingsPage() {
         {!email && (
           <Link
             href="/signup"
-            className="press mt-3 block w-full rounded-[14px] bg-terracotta-500 px-4 py-3 text-center text-[13.5px] font-semibold text-cream"
+            className="press mt-3 block w-full rounded-full bg-terracotta-500 px-4 py-3 text-center text-[13.5px] font-semibold text-cream"
           >
             Create an account
           </Link>
@@ -272,7 +271,7 @@ export default function SettingsPage() {
         <button
           onClick={() => void exportData()}
           disabled={exporting}
-          className="mt-3 w-full rounded-[14px] border border-black/10 px-4 py-3 text-[13.5px] font-semibold disabled:opacity-50"
+          className="mt-3 w-full rounded-full border border-stone-200 px-4 py-3 text-[13.5px] font-semibold disabled:opacity-50"
         >
           {exporting ? "Building your file…" : "Export everything as JSON"}
         </button>
@@ -287,7 +286,7 @@ export default function SettingsPage() {
                 await signOut();
                 window.location.href = "/";
               }}
-              className="mt-3 w-full rounded-[14px] border border-black/10 px-4 py-3 text-[13.5px] font-semibold"
+              className="mt-3 w-full rounded-full border border-stone-200 px-4 py-3 text-[13.5px] font-semibold"
             >
               Sign out
             </button>

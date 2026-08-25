@@ -2,7 +2,7 @@
  * The celebration chime, synthesised — same doctrine as crowd-noise.ts:
  * no audio asset to ship, no CDN request, works offline.
  *
- * Sound follows amber's rule (DECISIONS #65): it means "you earned
+ * Sound follows the earned colour's rule (DECISIONS #65): it means "you earned
  * this", so it fires at the streak celebration and nowhere else — one
  * sound per rep, mirroring the one celebration per rep (#34). Nothing
  * here may ever run while the mic is hot: the envelope samples every

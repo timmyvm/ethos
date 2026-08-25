@@ -60,7 +60,7 @@ export function AudioScrubber({
   const pct = (n: number) => (durationS > 0 ? (n / durationS) * 100 : 0);
 
   return (
-    <div className="rounded-[18px] border border-hairline bg-surface lift p-5">
+    <div className="rounded-[24px] border border-hairline bg-surface lift p-5">
       <div className="label-data">Hear it back</div>
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <audio ref={ref} src={src} preload="metadata" />
@@ -83,7 +83,7 @@ export function AudioScrubber({
                 <span
                   key={`p${i}`}
                   className={`absolute top-0 h-full ${
-                    p.kind === "pre" ? "bg-amber-500/35" : "bg-stone-400/30"
+                    p.kind === "pre" ? "bg-sage-500/40" : "bg-stone-400/30"
                   }`}
                   style={{ left: `${pct(p.t)}%`, width: `${pct(p.len)}%` }}
                 />
@@ -99,7 +99,7 @@ export function AudioScrubber({
               />
             ))}
             <span
-              className="absolute top-0 h-full w-[2px] bg-stone-900"
+              className="absolute top-0 h-full w-[2px] bg-ink"
               style={{ left: `${pct(t)}%` }}
             />
           </div>

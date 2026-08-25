@@ -34,7 +34,7 @@ export function Paywall({
           <li>· Stress mods and unlimited retries</li>
         </ul>
 
-        <div className="mt-4 flex items-center justify-between rounded-[18px] border-2 border-terracotta-500 bg-surface p-4">
+        <div className="mt-4 flex items-center justify-between rounded-[24px] border-2 border-terracotta-500 bg-surface p-4">
           <div>
             <div className="text-[15px] font-bold">Annual</div>
             <div className="text-[12.5px] text-stone-500">
@@ -43,7 +43,7 @@ export function Paywall({
           </div>
           <span className="label-data !text-terracotta-600">save 55%</span>
         </div>
-        <div className="mt-2.5 flex items-center justify-between rounded-[18px] border border-hairline bg-surface lift p-4">
+        <div className="mt-2.5 flex items-center justify-between rounded-[24px] border border-hairline bg-surface lift p-4">
           <div>
             <div className="text-[15px] font-bold">Monthly</div>
             <div className="text-[12.5px] text-stone-500">A$14.99/mo</div>
@@ -52,7 +52,7 @@ export function Paywall({
 
         <button
           onClick={onClose}
-          className="press mt-4 min-h-11 w-full rounded-[14px] bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream hover:bg-terracotta-600"
+          className="press mt-4 min-h-11 w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream hover:bg-terracotta-600"
         >
           Start with annual
         </button>

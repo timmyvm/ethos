@@ -45,11 +45,11 @@ export function ModPicker({
   const full = selected.length >= MAX_STACKED_MODS;
 
   return (
-    <div className="rounded-[18px] border border-hairline bg-surface lift p-5">
+    <div className="rounded-[24px] border border-hairline bg-surface lift p-5">
       <div className="flex items-baseline justify-between">
         <div className="label-data">Stress mods · optional</div>
         {multiplier > 1 && (
-          <div className="label-data !text-amber-500">×{multiplier} XP</div>
+          <div className="label-data !text-sage-700">×{multiplier} XP</div>
         )}
       </div>
       <p className="mt-1.5 text-[12.5px] leading-relaxed text-stone-500">
@@ -67,12 +67,12 @@ export function ModPicker({
               key={mod.id}
               onClick={() => toggle(mod)}
               disabled={disabled}
-              className={`flex w-full items-start gap-3 rounded-[14px] border p-3.5 text-left transition-colors ${
+              className={`flex w-full items-start gap-3 rounded-[20px] border p-3.5 text-left transition-colors ${
                 on
-                  ? "border-stone-900 bg-stone-900 text-cream"
+                  ? "border-ink bg-ink text-ground"
                   : disabled
                     ? "border-hairline bg-surface opacity-40"
-                    : "border-black/10 bg-surface"
+                    : "border-stone-200 bg-surface"
               }`}
             >
               <span className="flex-1">
@@ -93,7 +93,7 @@ export function ModPicker({
                 </span>
               </span>
               <span
-                className={`label-data shrink-0 ${on ? "!text-amber-400" : ""}`}
+                className={`label-data shrink-0 ${on ? "!text-sage-700" : ""}`}
               >
                 ×{mod.xpMultiplier}
               </span>

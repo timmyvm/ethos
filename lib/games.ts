@@ -30,6 +30,8 @@ export interface GameQuestion {
 export interface Game {
   id: string;
   name: string;
+  /** The Caprasimo character in the menu row's pebble badge. */
+  glyph?: string;
   /** One line on the menu card. */
   blurb: string;
   /** One line of stage direction on the rep screen, under the question. */
@@ -44,6 +46,7 @@ export const GAMES: Game[] = [
   {
     id: "qa",
     name: "Q&A",
+    glyph: "?",
     blurb: "Give your take. Demos cuts in with a question.",
     direction: "Take a side and hold it. Demos will cut in once.",
     modIds: ["interrupt"],
@@ -66,6 +69,7 @@ export const GAMES: Game[] = [
   {
     id: "rush",
     name: "Speed rush",
+    glyph: "45",
     blurb: "The whole answer in 45 seconds.",
     direction: "45 seconds. Land the ending before the clock does.",
     modIds: ["tight"],
@@ -88,6 +92,7 @@ export const GAMES: Game[] = [
   {
     id: "interview",
     name: "Interview",
+    glyph: "\u201c",
     blurb: "Classic questions, answered cold.",
     direction: "Answer like they asked you in the room. Sixty to ninety seconds.",
     modIds: [],

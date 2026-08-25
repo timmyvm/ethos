@@ -12,7 +12,7 @@ interface Seg {
 }
 
 /**
- * The signature element (DECISIONS.md #8): silence rendered amber as
+ * The signature element (DECISIONS.md #8): silence rendered sage as
  * achievement.
  *
  * Amber is EARNED, so it now follows the verdict rather than the raw
@@ -48,9 +48,9 @@ export function PauseBar({
   if (durationS > cursor) speech(durationS - cursor);
 
   return (
-    <div className="rounded-2xl bg-stage px-4 pb-3.5 pt-4 lift-stage">
-      <div className="label-data !text-stone-400">
-        Pause bar · amber = silence you earned
+    <div className="rounded-[24px] bg-stage px-4 pb-3.5 pt-4 lift-stage">
+      <div className="label-data !text-cream/60">
+        Pause bar · sage = silence you earned
       </div>
       <div className="mt-3 flex h-14 items-center gap-[3px] overflow-hidden">
         {segs.slice(0, 48).map((s, i) => {
@@ -58,7 +58,7 @@ export function PauseBar({
             return (
               <span
                 key={i}
-                className="shrink-0 rounded-[3px] bg-stone-600"
+                className="shrink-0 rounded-[3px] bg-cream/40"
                 style={{ width: 5, height: 16 + Math.min(34, s.len * 11) }}
               />
             );
@@ -67,7 +67,7 @@ export function PauseBar({
             return (
               <span
                 key={i}
-                className="h-1.5 w-1.5 shrink-0 rounded-full bg-stone-600"
+                className="h-1.5 w-1.5 shrink-0 rounded-full bg-cream/40"
               />
             );
           }
@@ -78,7 +78,7 @@ export function PauseBar({
             <span
               key={i}
               className={`h-3 shrink-0 rounded-full ${
-                earned ? "bg-amber-500" : "bg-stone-400"
+                earned ? "bg-sage-500" : "bg-cream/30"
               }`}
               style={{ width: Math.min(34, 12 + s.len * 10) }}
             />
@@ -86,8 +86,8 @@ export function PauseBar({
         })}
       </div>
       <div className="mt-2 flex gap-4">
-        <span className="label-data !text-amber-500">● landed a point</span>
-        <span className="label-data !text-stone-400">● searching</span>
+        <span className="label-data !text-sage-mist">● landed a point</span>
+        <span className="label-data !text-cream/60">● searching</span>
       </div>
     </div>
   );

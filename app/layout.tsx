@@ -1,37 +1,28 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Inter, Space_Mono } from "next/font/google";
+import { Caprasimo, Figtree } from "next/font/google";
 import { Nav } from "@/components/Nav";
 import { ServiceWorker } from "@/components/ServiceWorker";
 import { ThemeSync, themeBootScript } from "@/components/Theme";
 import "./globals.css";
 
 /*
- * Display face. Space Grotesk held this until 11 Aug and had to go for a
- * specific, checkable reason: its "1" carries a narrower advance than the
- * glyph occupies, so "11", "12", "31" and "118" render as collided mush.
- * That was documented as a trap and worked around by refusing tabular
- * figures — but this app's whole identity is numbers, and a display face
- * whose numerals are its weakest feature is the wrong face.
- *
- * Fraunces reads warm and editorial against the terracotta and cream,
- * which suits a product named for credibility earned rather than
- * claimed, and its numerals are unambiguous at every size we use.
+ * Display face — Caprasimo (DECISIONS #166, the Organic redesign). It
+ * carries one weight, 400, and is never fake-bolded: globals.css pins
+ * the weight on `.font-display`. Its numerals are wide, round and
+ * unambiguous at every size we use, which is what a product whose
+ * identity is numbers needs from its display face.
  */
-const fraunces = Fraunces({
+const caprasimo = Caprasimo({
   subsets: ["latin"],
-  weight: ["600", "700"],
+  weight: "400",
   variable: "--font-display-face",
 });
 
-const inter = Inter({
+/* Body face. 400/600 for prose, 700 for the data-label register
+ * (Space Mono retired with the redesign), 800 for row titles. */
+const figtree = Figtree({
   subsets: ["latin"],
-  variable: "--font-inter",
-});
-
-const spaceMono = Space_Mono({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-space-mono",
+  variable: "--font-figtree",
 });
 
 export const metadata: Metadata = {
@@ -44,7 +35,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#FAF7F2",
+  themeColor: "#f5ead8",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -60,7 +51,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
       <body
-        className={`${fraunces.variable} ${inter.variable} ${spaceMono.variable} antialiased`}
+        className={`${caprasimo.variable} ${figtree.variable} antialiased`}
       >
         <div className="mx-auto min-h-dvh max-w-[430px]">{children}</div>
         <Nav />

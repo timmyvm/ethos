@@ -1,6 +1,6 @@
 /**
  * Progress chart — SVG, no library. Numbers are the brand (brand.md),
- * so the line is quiet stone and only the newest point is amber: the
+ * so the line is quiet stone and only the newest point is sage: the
  * chart shows the trend, the last rep is the event.
  *
  * The three colours are read from the theme rather than written down.
@@ -22,7 +22,7 @@ export function Sparkline({
 }) {
   if (values.length < 2) {
     return (
-      <div className="rounded-[18px] border border-hairline bg-surface lift p-5">
+      <div className="rounded-[24px] border border-hairline bg-surface lift p-5">
         <div className="label-data">{label}</div>
         <p className="mt-2 text-[13px] text-stone-500">
           Two scores and this becomes a line. One more to go.
@@ -50,12 +50,12 @@ export function Sparkline({
   const [lx, ly] = pts[pts.length - 1];
 
   return (
-    <div className="rounded-[18px] border border-hairline bg-surface lift p-5">
+    <div className="rounded-[24px] border border-hairline bg-surface lift p-5">
       <div className="flex items-baseline justify-between">
         <div className="label-data">{label}</div>
         <div
           className={`text-[13px] font-semibold ${
-            delta === 0 ? "text-stone-500" : better ? "text-amber-500" : "text-stone-500"
+            delta === 0 ? "text-stone-500" : better ? "text-sage-700" : "text-stone-500"
           }`}
         >
           {delta > 0 ? "+" : ""}
@@ -72,7 +72,7 @@ export function Sparkline({
       >
         <path d={area} fill="var(--color-sand)" />
         <path d={d} fill="none" stroke="var(--color-stone-500)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-        <circle cx={lx} cy={ly} r="4" fill="var(--color-amber-500)" />
+        <circle cx={lx} cy={ly} r="4" fill="var(--color-sage-500)" />
       </svg>
       <div className="mt-1 flex justify-between">
         <span className="label-data">first · {Math.round(first)}</span>

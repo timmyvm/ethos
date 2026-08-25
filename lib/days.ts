@@ -83,6 +83,49 @@ export interface DayTrail {
   pending: string | null;
 }
 
+export type PebbleState = "spoken" | "frozen" | "missed";
+
+/**
+ * The pebble trail (DECISIONS #165): one dot per recent calendar day —
+ * spoken, frozen, or missed. The window ends today and never reaches
+ * back before the first day you spoke, so a brand-new trainee sees two
+ * pebbles, not two pebbles and twelve accusations. It grows to
+ * `window` and stays there: the strip gets better with time by
+ * construction, the same property the day counter has.
+ */
+export function pebbleDays(
+  reps: RepLike[],
+  frozenDays: Date[],
+  now = new Date(),
+  window = 14
+): PebbleState[] {
+  const spoken = new Set(trainedDays(reps).map((d) => d.date));
+  if (spoken.size === 0) return [];
+  const frozen = new Set(frozenDays.map((d) => dayKey(d)));
+
+  const days: PebbleState[] = [];
+  for (let back = window - 1; back >= 0; back--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - back);
+    const key = dayKey(d);
+    days.push(
+      spoken.has(key) ? "spoken" : frozen.has(key) ? "frozen" : "missed"
+    );
+  }
+  // Trim the days before day one — they were nothing, not misses.
+  const first = [...spoken].sort()[0];
+  const start = new Date(now);
+  start.setDate(start.getDate() - (window - 1));
+  let skip = 0;
+  for (let i = 0; i < days.length; i++) {
+    const d = new Date(start);
+    d.setDate(d.getDate() + i);
+    if (dayKey(d) >= first) break;
+    skip++;
+  }
+  return days.slice(skip);
+}
+
 export function dayTrail(reps: RepLike[]): DayTrail {
   const days = trainedDays(reps);
   const points = days.filter((d) => d.index !== null);

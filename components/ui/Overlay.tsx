@@ -92,7 +92,7 @@ export function Overlay({
 
   const position =
     variant === "sheet"
-      ? "flex items-end justify-center bg-stone-900/45"
+      ? "flex items-end justify-center bg-stage/60"
       : "flex flex-col items-center justify-center";
 
   return (

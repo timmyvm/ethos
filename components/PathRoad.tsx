@@ -16,8 +16,8 @@ import { repHref } from "@/lib/rep-config";
  * the summit.
  *
  * It inherits the rail's settled grammar: the endowed "Showed up" node
- * opens it (#45, stone because it's given, not earned), amber appears
- * only on earned stars, locked units name the exact stars to go, and
+ * opens it (#45, ink because it's given, not earned), sage appears
+ * only on earned stars (#165), locked units name the exact stars to go, and
  * the ONE terracotta ring sits on the current node — the same rep the
  * floor card's button serves, so the screen still has one orange tap.
  *
@@ -29,7 +29,7 @@ import { repHref } from "@/lib/rep-config";
  */
 
 /** The wind: node x-offsets cycling down the screen. */
-const WIND = [0, 34, 52, 34, 0, -34, -52, -34];
+const WIND = [-40, 8, 46, 6, -38, -6, 40, -8];
 
 /**
  * The gate (DECISIONS #156) — every unit past the first stands behind a
@@ -39,6 +39,7 @@ const WIND = [0, 34, 52, 34, 0, -34, -52, -34];
  * never carry a colour the theme doesn't know. It is decoration in the
  * strict sense, aria-hidden, because the line under it says everything
  * it means: which unit, and exactly how many stars away the handle is.
+ * Drawn at the set's 2.75 stroke (#165).
  *
  * The door is the road's one lock symbol. The lessons behind it stay
  * visible and dimmed (Duolingo's greyed future path), but they no
@@ -54,12 +55,12 @@ function Gate({ open }: { open: boolean }) {
   );
   return (
     <svg
-      width={108}
-      height={81}
+      width={96}
+      height={72}
       viewBox="0 0 96 72"
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.5}
+      strokeWidth={2.75}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
@@ -101,7 +102,7 @@ export function PathRoad({
   return (
     <section className="mt-8">
       <div className="flex items-baseline justify-between">
-        <div className="label-data">The road</div>
+        <div className="label-data !text-sage-700">The road</div>
         <span className="text-[12.5px] text-stone-500">
           {summary.stars} of {summary.maxStars} stars
         </span>
@@ -117,23 +118,26 @@ export function PathRoad({
 
           const node = (
             <span
-              className={`flex items-center justify-center rounded-full font-bold ${
+              className={`flex items-center justify-center rounded-full font-extrabold ${
                 isCurrent
-                  ? "h-14 w-14 text-[15px] ring-2 ring-terracotta-500 bg-surface text-stone-700"
-                  : "h-12 w-12 text-[13px]"
+                  ? // A border, not a ring: lift-style shadows paint on the
+                    // same box-shadow channel ring utilities use, and plain
+                    // `lift` would also hairline this border in dark.
+                    "h-14 w-14 text-[14px] border-[2.5px] border-terracotta-500 bg-surface text-ink lift-node"
+                  : "h-[46px] w-[46px] text-[13px]"
               } ${
                 step.endowed
-                  ? // Given, not earned — stone, never amber (#45).
-                    "bg-stone-900 text-cream"
+                  ? // Given, not earned — ink, never sage (#45).
+                    "bg-ink text-ground"
                   : step.locked
                     ? "bg-sand text-stone-300"
                     : step.stars === 3
-                      ? "bg-amber-500 text-cream"
+                      ? "bg-sage-500 text-sage-ink"
                       : step.stars > 0
-                        ? "bg-amber-50 text-amber-600 ring-1 ring-amber-500/40"
+                        ? "bg-sage-200 text-sage-800"
                         : isCurrent
                           ? ""
-                          : "bg-surface text-stone-300 ring-1 ring-black/5"
+                          : "bg-surface text-stone-300 border-[1.5px] border-hairline"
               }`}
             >
               {step.endowed ? (
@@ -155,9 +159,9 @@ export function PathRoad({
             >
               {node}
               {isCurrent && (
-                <span className="mt-1.5 max-w-[140px] text-center text-[11px] font-semibold leading-tight text-stone-700">
+                <span className="mt-1.5 max-w-[140px] text-center text-[11px] font-bold leading-[1.3] text-ink">
                   {step.label}
-                  <span className="block text-terracotta-600">up next</span>
+                  <span className="block text-terracotta-700">up next</span>
                 </span>
               )}
             </div>
@@ -176,13 +180,15 @@ export function PathRoad({
                       <Gate open={!step.locked} />
                     </div>
                   )}
+                  {/* The unit's emoji left with the redesign (#165):
+                      one icon set, and the gate is the road's mark. */}
                   <div className={unit.unlocksAt > 0 ? "label-data mt-2" : "label-data"}>
-                    {unit.icon} {unit.name}
+                    {unit.name}
                     {unit.boss ? " · weekly boss" : ""}
                   </div>
                   {step.locked && (
                     /* Why it's closed, with the exact distance (#44). */
-                    <div className="mt-1 text-[11.5px] font-semibold text-stone-400">
+                    <div className="mt-1 text-[11px] font-bold text-stone-400">
                       opens at {unit.unlocksAt} stars ·{" "}
                       {unit.unlocksAt - summary.stars} to go
                     </div>
@@ -212,8 +218,8 @@ export function PathRoad({
        * is the point — #90's objection inverted: with real content, the
        * distance is the pitch, and it names its numbers (#46).
        */}
-      <div className="mt-6 rounded-[18px] border border-hairline bg-surface lift p-5 text-center">
-        <div className="font-display text-[22px] font-bold leading-tight">
+      <div className="mt-6 rounded-[28px] border border-hairline bg-surface lift p-5 text-center">
+        <div className="font-display text-[22px] leading-tight">
           {summary.totalLessons} lessons, end to end.
         </div>
         <p className="mt-1.5 text-[13px] leading-relaxed text-stone-500">

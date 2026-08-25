@@ -27,7 +27,7 @@ export function ModeToggle({
       <div
         role="radiogroup"
         aria-label="Recording mode"
-        className="flex gap-1.5 rounded-[15px] bg-sand p-1.5"
+        className="flex gap-1.5 rounded-full bg-sand p-1.5"
       >
         <Option
           label="Voice"

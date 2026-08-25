@@ -50,7 +50,7 @@ export function TopicRoulette({
     <div className="rounded-[26px] border border-hairline bg-surface p-6 lift-hero">
       <div className="flex items-baseline justify-between">
         <div className="label-data">Roulette · you don&apos;t pick</div>
-        <div className="label-data !text-amber-500">{shape.label}</div>
+        <div className="label-data !text-sage-700">{shape.label}</div>
       </div>
 
       <div
@@ -65,14 +65,14 @@ export function TopicRoulette({
         <button
           onClick={doSpin}
           disabled={rolling}
-          className="press shrink-0 rounded-[15px] border border-black/10 bg-surface px-5 py-4 text-[15px] font-semibold disabled:opacity-60"
+          className="press shrink-0 rounded-full border border-stone-200 bg-surface px-5 py-4 text-[15px] font-semibold disabled:opacity-60"
         >
           Spin
         </button>
         <button
           onClick={() => onTake(topic)}
           disabled={rolling}
-          className="press flex-1 rounded-[15px] bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600 disabled:opacity-60"
+          className="press flex-1 rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600 disabled:opacity-60"
         >
           Take this one
         </button>

@@ -1,9 +1,10 @@
 /**
  * The icon set. One set, drawn here, and no library (DECISIONS #152).
  *
- * Everything is on the same 24px grid at 1.5px stroke in `currentColor`,
- * with no fills — so an icon inherits its colour from the text beside it
- * and can never introduce a hue the theme doesn't know about. The four
+ * Everything is on the same 24px grid at 2.75px stroke in `currentColor`
+ * (the Organic redesign's chunky line weight, DECISIONS #165), with no
+ * fills — so an icon inherits its colour from the text beside it and
+ * can never introduce a hue the theme doesn't know about. The four
  * tab marks are drawn for their own words rather than borrowed from a
  * generic set: Today is a sun over the floor line, because taking the
  * floor is what the tab is for.
@@ -30,7 +31,7 @@ function Glyph({
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.5}
+      strokeWidth={2.75}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden

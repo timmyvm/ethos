@@ -42,20 +42,25 @@ Rejected (violates vision.md language constraints): Command.
 Calm orange = comfort + command. Achieved by low-saturation terracotta,
 not high-vis orange, and by SCARCITY.
 
-Full ramps (Tailwind-ready) live in brand-board.html. Core tokens:
+Full ramps live in `app/globals.css` (the source of truth since the
+Organic reskin, DECISIONS #165, 25 Aug). Core tokens:
 
 | Role            | Value      | Tailwind ref     | Use |
 |-----------------|------------|------------------|-----|
-| CTA / primary   | #E76F51    | terracotta-500   | Buttons, the ONE tap per screen |
-| CTA hover       | #D5563A    | terracotta-600   | Hover/pressed |
-| Accent          | #F59E0B    | amber-500        | Streak flame, stars, progress fills — sparingly |
-| Text            | #292524    | stone-800        | All body/headings |
-| Background      | #FAF7F2    | custom cream     | App + site background |
-| Surface         | #F5F0E8    | warm sand        | Cards, inputs |
+| CTA / primary   | #C67139    | terracotta-500   | Buttons, the ONE tap per screen |
+| CTA hover       | #B2432C    | terracotta-600   | Hover/pressed |
+| Earned          | #7A8A5E    | sage-500         | Stars, XP, held pauses, freezes, trail pebbles |
+| Text            | #201E1D    | ink              | All body/headings |
+| Background      | #F5EAD8    | ground           | App + site background |
+| Surface         | #FAF3E3    | surface          | Cards, nav |
+| Track           | #ECDFC4    | sand             | Progress troughs, empty slots |
+| Score card      | #2F3624    | sage-900         | The "Your ethos" card, both themes |
 
-Terracotta ramp: 50 #FDF3EF · 100 #FBE5DC · 200 #F6C8B7 · 300 #F0A98F ·
-400 #EB8A6B · 500 #E76F51 · 600 #D5563A · 700 #B2432C · 800 #8F3524 ·
-900 #752C1F
+*Was terracotta #E76F51 with amber #F59E0B as the earned accent until
+25 Aug.* The Organic reskin (#165) softened the tap colour and moved
+everything earned onto sage, so terracotta means exactly one thing:
+tap here. Amber is retired. The full sage ramp and the dark theme's
+step-lifted remaps live in `app/globals.css`.
 
 ## Mascot — DECIDED: Red Panda
 

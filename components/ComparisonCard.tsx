@@ -54,21 +54,21 @@ export function ComparisonCard({ reps }: { reps: RepRow[] }) {
   }
 
   return (
-    <div className="rounded-2xl bg-stage p-5 text-cream lift-stage">
-      <div className="label-data !text-stone-400">
+    <div className="rounded-[24px] bg-stage p-5 text-cream lift-stage">
+      <div className="label-data !text-cream/60">
         Day 1 → day {days} · your training log
       </div>
       <div className="mt-4 space-y-3">
         {rows.map((r) => (
           <div key={r.label} className="flex items-baseline gap-3">
-            <span className="w-28 text-[13px] text-stone-400">{r.label}</span>
-            <span className="font-display text-[20px] font-bold text-stone-500">
+            <span className="w-28 text-[13px] text-cream/60">{r.label}</span>
+            <span className="font-display text-[20px] text-cream/45">
               {r.a}
             </span>
-            <span className="text-stone-600">→</span>
+            <span className="text-cream/40">→</span>
             <span
               className={`font-display text-[24px] font-bold ${
-                r.better ? "text-amber-500" : "text-cream"
+                r.better ? "text-sage-mist" : "text-cream"
               }`}
             >
               {r.b}
@@ -76,7 +76,7 @@ export function ComparisonCard({ reps }: { reps: RepRow[] }) {
           </div>
         ))}
       </div>
-      <div className="mt-4 border-t border-stone-700 pt-3 text-[12px] text-stone-400">
+      <div className="mt-4 border-t border-cream/15 pt-3 text-[12px] text-cream/60">
         {reps.length} recordings. Every number measured, none awarded.
       </div>
     </div>

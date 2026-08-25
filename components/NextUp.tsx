@@ -30,7 +30,7 @@ export function NextUp({
         {shown.map((m) => (
           <div
             key={m.id}
-            className="rounded-[18px] border border-hairline bg-surface lift p-4"
+            className="rounded-[24px] border border-hairline bg-surface lift p-4"
           >
             <div className="flex items-baseline justify-between gap-3">
               <span className="text-[14px] font-semibold">{m.label}</span>
@@ -38,7 +38,7 @@ export function NextUp({
             </div>
             <div className="mt-2 h-1 overflow-hidden rounded-full bg-sand">
               <div
-                className="h-full rounded-full bg-amber-500 transition-[width] duration-700"
+                className="h-full rounded-full bg-sage-500 transition-[width] duration-700"
                 style={{ width: `${Math.max(3, m.progress * 100)}%` }}
               />
             </div>

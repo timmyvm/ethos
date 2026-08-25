@@ -28,7 +28,7 @@ export function EmptyState({
 }) {
   return (
     <div
-      className={`rounded-[18px] border border-hairline bg-surface lift p-6 text-center ${className}`}
+      className={`rounded-[24px] border border-hairline bg-surface lift p-6 text-center ${className}`}
     >
       {art}
       <p className="mt-2 text-[14px] font-semibold">{title}</p>

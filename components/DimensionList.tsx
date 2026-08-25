@@ -142,7 +142,7 @@ export function DimensionList({
   const available = rows.reduce((sum, r) => sum + r.weight, 0);
 
   return (
-    <div className="rounded-[18px] border border-hairline bg-surface lift px-5 py-2">
+    <div className="rounded-[24px] border border-hairline bg-surface lift px-5 py-2">
       {rows.map((row) => {
         const points = dimensionPoints(row.score, row.weight);
         return (
@@ -156,7 +156,7 @@ export function DimensionList({
               </span>
               <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-sand">
                 <span
-                  className="block h-full rounded-full bg-amber-500"
+                  className="block h-full rounded-full bg-sage-500"
                   style={{ width: `${(points / row.weight) * 100}%` }}
                 />
               </span>

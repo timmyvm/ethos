@@ -79,7 +79,7 @@ export function SkeletonStatBare() {
 /** A card the size of the stat tiles on the results screen. */
 export function SkeletonStat() {
   return (
-    <div className="flex-1 rounded-[18px] border border-hairline bg-surface lift p-3.5">
+    <div className="flex-1 rounded-[24px] border border-hairline bg-surface lift p-3.5">
       <Skeleton className="h-2.5 w-12" />
       <Skeleton className="mt-2 h-6 w-10" />
       <Skeleton className="mt-2 h-2.5 w-14" />
@@ -90,7 +90,7 @@ export function SkeletonStat() {
 /** One row of the training log. */
 export function SkeletonRow() {
   return (
-    <div className="flex items-center gap-3 rounded-[18px] border border-hairline bg-surface lift p-4">
+    <div className="flex items-center gap-3 rounded-[24px] border border-hairline bg-surface lift p-4">
       <div className="w-[52px] shrink-0">
         <Skeleton className="h-2.5 w-8" />
         <Skeleton className="mt-1.5 h-5 w-7" />
@@ -103,23 +103,23 @@ export function SkeletonRow() {
   );
 }
 
-/** The dark score card on home, and anything shaped like it. */
+/** The deep sage score card on home, and anything shaped like it. */
 export function SkeletonScoreCard() {
   return (
-    <section className="mt-5 rounded-[26px] bg-stage p-5 lift-stage">
+    <section className="card-sage mt-5 rounded-[28px] p-[22px] pb-5">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <Skeleton className="h-2.5 w-20 !bg-white/10" />
-          <Skeleton className="mt-2.5 h-12 w-32 !bg-white/10" />
-          <Skeleton className="mt-3 h-3 w-40 !bg-white/10" />
+          <Skeleton className="h-2.5 w-20 !bg-cream/10" />
+          <Skeleton className="mt-2.5 h-12 w-32 !bg-cream/10" />
+          <Skeleton className="mt-3 h-3 w-40 !bg-cream/10" />
         </div>
         <div className="shrink-0 space-y-3">
-          <Skeleton className="h-5 w-10 !bg-white/10" />
-          <Skeleton className="h-5 w-10 !bg-white/10" />
+          <Skeleton className="h-5 w-10 !bg-cream/10" />
+          <Skeleton className="h-5 w-10 !bg-cream/10" />
         </div>
       </div>
-      <div className="mt-4 border-t border-white/10 pt-3.5">
-        <Skeleton className="h-1 w-full !bg-white/10" />
+      <div className="mt-4 border-t border-cream/10 pt-4">
+        <Skeleton className="h-1 w-full !bg-cream/10" />
       </div>
     </section>
   );

@@ -169,7 +169,7 @@ export default function YouPage() {
 
   const header = (
     <div className="flex items-center justify-between">
-      <h1 className="font-display text-2xl font-bold">You</h1>
+      <h1 className="font-display text-[27px]">You</h1>
       <Link
         href="/settings"
         className="text-[13px] font-semibold text-stone-500"
@@ -203,7 +203,7 @@ export default function YouPage() {
 
       {/* The one card on the page. It holds the two numbers that answer
           "how far in am I", so it keeps the furniture. */}
-      <div className="mt-4 rounded-[18px] border border-hairline bg-surface lift p-5">
+      <div className="mt-4 rounded-[28px] border border-hairline bg-surface lift p-5">
         {/* The name: the one profile field you type rather than earn.
             League rows show it, so it caps where they'd truncate. */}
         {editingName ? (
@@ -221,11 +221,11 @@ export default function YouPage() {
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder="Your name"
-              className="min-h-11 w-full min-w-0 flex-1 rounded-[13px] border border-black/10 bg-surface px-3.5 text-[15px] font-semibold placeholder:text-stone-300 focus:border-stone-300"
+              className="min-h-11 w-full min-w-0 flex-1 rounded-full border border-stone-200 bg-surface px-4 text-[15px] font-semibold placeholder:text-stone-300 focus:border-stone-300"
             />
             <button
               type="submit"
-              className="press min-h-11 shrink-0 rounded-[13px] border border-black/10 px-3.5 text-[13.5px] font-semibold hover:bg-sand"
+              className="press min-h-11 shrink-0 rounded-full border border-stone-200 px-4 text-[13.5px] font-semibold hover:bg-sand"
             >
               Save
             </button>
@@ -240,7 +240,7 @@ export default function YouPage() {
         ) : (
           <div className="mb-4 flex items-baseline justify-between gap-3">
             {name && (
-              <span className="font-display min-w-0 truncate text-[22px] font-bold">
+              <span className="font-display min-w-0 truncate text-[21px]">
                 {name}
               </span>
             )}
@@ -265,19 +265,23 @@ export default function YouPage() {
           </ErrorLine>
         )}
         <div className="flex items-center gap-4">
-          <Image
-            src="/demos-listening.webp"
-            alt=""
-            width={56}
-            height={56}
-            className="demos w-14 shrink-0"
-          />
+          {/* Demos peers out of a sage pebble — the wash is earned-tone
+              because being here at all is (#165). */}
+          <span className="flex h-16 w-16 shrink-0 items-end justify-center overflow-hidden rounded-full bg-sage-100">
+            <Image
+              src="/demos-listening.webp"
+              alt=""
+              width={54}
+              height={54}
+              className="demos w-[54px]"
+            />
+          </span>
           <div className="flex-1">
-            <div className="label-data">Level</div>
+            <div className="label-data !text-sage-700">Level</div>
             {loading ? (
               <Skeleton className="mt-1.5 h-7 w-10" />
             ) : (
-              <div className="font-display text-[30px] font-bold leading-none">
+              <div className="font-display text-[30px] leading-none">
                 {level.level}
               </div>
             )}
@@ -287,15 +291,13 @@ export default function YouPage() {
             {loading ? (
               <Skeleton className="mt-1.5 ml-auto h-5 w-14" />
             ) : (
-              <div className="font-display text-[22px] font-bold">
-                {xp.total}
-              </div>
+              <div className="font-display text-[21px]">{xp.total}</div>
             )}
           </div>
         </div>
-        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-sand">
+        <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-sand">
           <div
-            className="h-full rounded-full bg-amber-500"
+            className="h-full rounded-full bg-sage-500"
             style={{
               width: `${(level.intoLevel / level.forNext) * 100}%`,
             }}
@@ -350,24 +352,24 @@ export default function YouPage() {
             return ranked.map((t, i) => (
               <div key={t.key} className="flex items-center gap-3">
                 <span
-                  className={`w-[112px] shrink-0 text-[13.5px] font-semibold leading-tight ${
+                  className={`w-[112px] shrink-0 text-[13px] font-bold leading-tight ${
                     t.level > 0 ? "" : "text-stone-400"
                   }`}
                 >
                   {t.name}
                 </span>
-                <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-sand">
+                <span className="h-2 flex-1 overflow-hidden rounded-full bg-sand">
                   {t.level > 0 && (
                     <span
                       className={`block h-full rounded-full ${
-                        i === 0 ? "bg-amber-500" : "bg-stone-400"
+                        i === 0 ? "bg-sage-500" : "bg-sage-300"
                       }`}
                       style={{ width: `${(t.level / top) * 100}%` }}
                     />
                   )}
                 </span>
                 <span
-                  className={`w-[34px] shrink-0 text-right font-display text-[15px] font-bold ${
+                  className={`w-[34px] shrink-0 text-right font-display text-[15px] ${
                     t.level > 0 ? "" : "text-stone-300"
                   }`}
                 >
@@ -397,7 +399,7 @@ export default function YouPage() {
             {loading ? (
               <Skeleton className="h-7 w-12" />
             ) : (
-              <div className="font-display text-[30px] font-bold leading-none">
+              <div className="font-display text-[27px] leading-none">
                 {coins ?? "—"}
               </div>
             )}
@@ -407,16 +409,18 @@ export default function YouPage() {
             {loading ? (
               <Skeleton className="ml-auto h-5 w-8" />
             ) : (
-              <div className="font-display text-[22px] font-bold leading-none">
+              <div className="font-display text-[19px] leading-none">
                 {coins === null ? "—" : towardFirstItem(coins).toGo}
               </div>
             )}
             <div className="label-data mt-1.5">to the first item</div>
           </div>
         </div>
-        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-sand">
+        {/* Terracotta on purpose, the screen's one warm bar: it points
+            at the next buyable thing, and it isn't a tap. */}
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-sand">
           <div
-            className="h-full rounded-full bg-amber-500"
+            className="h-full rounded-full bg-terracotta-500"
             style={{
               width: `${coins === null ? 0 : towardFirstItem(coins).fraction * 100}%`,
             }}
@@ -429,7 +433,7 @@ export default function YouPage() {
         )}
         <Link
           href="/shop"
-          className="press mt-3 flex min-h-11 items-center justify-between rounded-[13px] border border-black/10 px-4 py-3 text-[14px] font-semibold hover:bg-sand"
+          className="press mt-3 flex min-h-11 items-center justify-between rounded-full border border-stone-200 px-5 py-3 text-[14px] font-semibold hover:bg-sand"
         >
           <span>Open the shop</span>
           <span aria-hidden className="text-stone-400">
@@ -449,8 +453,8 @@ export default function YouPage() {
           return (
             <span
               key={i}
-              className={`flex h-9 w-9 items-center justify-center rounded-full ${
-                ready ? "bg-amber-50 text-amber-500" : "bg-sand text-stone-300"
+              className={`flex h-[38px] w-[38px] items-center justify-center rounded-full ${
+                ready ? "bg-sage-100 text-sage-700" : "bg-sand text-stone-300"
               }`}
             >
               <IconFreeze size={17} />
@@ -482,7 +486,7 @@ export default function YouPage() {
           <div className="text-[12.5px] text-stone-500">Resets Monday</div>
         </div>
         <div className="text-right">
-          <div className="font-display text-[22px] font-bold leading-none">
+          <div className="font-display text-[21px] leading-none">
             {xp.week}
           </div>
           <div className="label-data mt-1">your xp</div>
@@ -506,20 +510,20 @@ export default function YouPage() {
                 key={l.id}
                 className="flex items-center gap-3 border-b border-hairline py-3 text-[14px]"
               >
-                <span className="text-stone-500 line-through">
+                <span className="text-stone-400 line-through">
                   {l.original}
                 </span>
-                <span aria-hidden className="text-stone-400">
+                <span aria-hidden className="text-stone-300">
                   →
                 </span>
-                <span className="font-semibold">{l.upgrade}</span>
+                <span className="font-extrabold">{l.upgrade}</span>
               </div>
             ))}
           </div>
           {lexicon.length >= 3 && !flashing && (
             <button
               onClick={() => setFlashing(true)}
-              className="press mt-3 min-h-11 w-full rounded-[13px] border border-black/10 px-4 py-3 text-[13.5px] font-semibold hover:bg-sand"
+              className="press mt-3 min-h-11 w-full rounded-full border-2 border-sage-300 px-5 py-3 text-[13.5px] font-extrabold text-sage-800 hover:bg-sage-100"
             >
               Test yourself on these →
             </button>
@@ -537,7 +541,7 @@ export default function YouPage() {
           {limit(FREE_LEXICON) !== null && lexicon.length > FREE_LEXICON && (
             <button
               onClick={() => setPaywall("Full lexicon · premium")}
-              className="mt-2.5 min-h-11 w-full rounded-[13px] border border-terracotta-100 bg-terracotta-50 px-4 py-3 text-[13.5px] font-semibold"
+              className="mt-2.5 min-h-11 w-full rounded-full border border-terracotta-100 bg-terracotta-50 px-5 py-3 text-[13.5px] font-semibold"
             >
               {lexicon.length - FREE_LEXICON} more upgrade
               {lexicon.length - FREE_LEXICON === 1 ? "" : "s"} in your archive
@@ -568,7 +572,7 @@ export default function YouPage() {
             <span
               className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
                 a.earned
-                  ? "bg-amber-50 text-amber-500"
+                  ? "bg-sage-100 text-sage-700"
                   : "bg-sand text-stone-300"
               }`}
             >
@@ -609,7 +613,7 @@ export default function YouPage() {
       )}
 
       {showGate && (
-        <div className="mt-7 rounded-[18px] border border-terracotta-100 bg-terracotta-50 p-5">
+        <div className="mt-7 rounded-[26px] border border-terracotta-100 bg-terracotta-50 p-5">
           <div className="text-[14.5px] font-semibold">Save your progress</div>
           <p className="mt-1 text-[13px] leading-relaxed text-stone-600">
             {history.length} recording{history.length === 1 ? "" : "s"}
@@ -618,13 +622,13 @@ export default function YouPage() {
           </p>
           <Link
             href="/signup"
-            className="press mt-3 block min-h-11 w-full rounded-[13px] bg-terracotta-500 px-4 py-3 text-center text-[15px] font-semibold text-cream hover:bg-terracotta-600"
+            className="press mt-3 block min-h-11 w-full rounded-full bg-terracotta-500 px-5 py-3 text-center text-[15px] font-bold text-cream hover:bg-terracotta-600"
           >
             Create my account
           </Link>
           <Link
             href="/signin"
-            className="mt-2.5 block text-center text-[12.5px] font-semibold text-terracotta-600"
+            className="mt-2.5 block text-center text-[12.5px] font-semibold text-terracotta-700"
           >
             I already have one
           </Link>
@@ -651,7 +655,7 @@ function Stat({
   return (
     <div className="flex-1">
       <div className="label-data">{label}</div>
-      <div className="font-display text-[26px] font-bold leading-tight">
+      <div className="font-display text-[25px] leading-tight">
         {value}
       </div>
       <div className="text-[11.5px] text-stone-500">{note}</div>

@@ -38,7 +38,7 @@ export default function About() {
 
       <Link
         href="/welcome"
-        className="mt-6 block w-full rounded-[14px] bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-cream press"
+        className="mt-6 block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-cream press"
       >
         Take the floor
       </Link>
@@ -46,7 +46,7 @@ export default function About() {
         60 seconds. No signup until you&apos;ve spoken.
       </p>
 
-      <div className="relative mt-12 overflow-hidden rounded-[18px] border border-hairline bg-surface lift p-6">
+      <div className="relative mt-12 overflow-hidden rounded-[24px] border border-hairline bg-surface lift p-6">
         <h2 className="font-display text-[20px] font-bold">The daily loop</h2>
         <ol className="mt-3 space-y-3 text-[14.5px] leading-relaxed text-stone-600">
           <li>
@@ -92,9 +92,9 @@ export default function About() {
         reads as searching. The difference is measurable, so we measure it.
       </p>
 
-      <div className="mt-6 rounded-2xl bg-stage p-6 text-cream lift-stage">
-        <div className="label-data !text-stone-400">Your Ethos · /1000</div>
-        <p className="mt-3 text-[14.5px] leading-relaxed text-stone-300">
+      <div className="mt-6 rounded-[24px] bg-stage p-6 text-cream lift-stage">
+        <div className="label-data !text-cream/60">Your Ethos · /1000</div>
+        <p className="mt-3 text-[14.5px] leading-relaxed text-cream/75">
           Nine dimensions. Five measured straight off the timestamps: pause,
           fillers, self-corrections, pace, range. Four judged against your
           words, and a judged score with no quoted moment is thrown out and
@@ -153,7 +153,7 @@ export default function About() {
 
       <Link
         href="/welcome"
-        className="mt-10 block w-full rounded-[14px] bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-cream press"
+        className="mt-10 block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-cream press"
       >
         Take the floor
       </Link>

@@ -10,8 +10,8 @@ export default function manifest(): MetadataRoute.Manifest {
       "Practice being worth listening to. Five minutes of practice a day, measured against timestamps, not vibes.",
     start_url: "/",
     display: "standalone",
-    background_color: "#FAF7F2",
-    theme_color: "#FAF7F2",
+    background_color: "#f5ead8",
+    theme_color: "#f5ead8",
     icons: [
       { src: "/icon-192.webp", sizes: "192x192", type: "image/webp" },
       { src: "/icon-512.webp", sizes: "512x512", type: "image/webp" },

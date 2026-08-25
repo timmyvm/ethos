@@ -47,15 +47,15 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
       // shared image is a piece of Ethos in someone else's feed, so it
       // wears the brand's light palette whatever theme the phone that
       // made it was in (Checkpoint 1, finding 3 — deliberate).
-      g.fillStyle = "#FAF7F2";
+      g.fillStyle = "#f5ead8";
       g.fillRect(0, 0, W, H);
 
-      g.fillStyle = "#292524";
-      g.font = "700 64px 'Space Grotesk', sans-serif";
+      g.fillStyle = "#201e1d";
+      g.font = "400 64px Caprasimo, Georgia, serif";
       g.fillText("ethos", 90, 200);
 
-      g.fillStyle = "#78716C";
-      g.font = "400 38px 'Space Mono', monospace";
+      g.fillStyle = "#75706a";
+      g.font = "700 38px Figtree, sans-serif";
       g.fillText(`DAY 1  →  DAY ${days}`, 90, 300);
 
       // The two numbers, big.
@@ -90,32 +90,33 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
 
       let y = 480;
       for (const [label, a, b, better] of rows) {
-        g.fillStyle = "#78716C";
-        g.font = "400 34px 'Space Mono', monospace";
+        g.fillStyle = "#75706a";
+        g.font = "700 34px Figtree, sans-serif";
         g.fillText(label.toUpperCase(), 90, y);
 
-        g.font = "700 110px 'Space Grotesk', sans-serif";
-        g.fillStyle = "#D6D3D1";
+        g.font = "400 110px Caprasimo, Georgia, serif";
+        g.fillStyle = "#b7ae9f";
         g.fillText(a, 90, y + 120);
         const aw = g.measureText(a).width;
 
-        g.fillStyle = "#A8A29E";
-        g.font = "400 60px 'Space Grotesk', sans-serif";
+        g.fillStyle = "#a49a8b";
+        g.font = "400 60px Figtree, sans-serif";
         g.fillText("→", 90 + aw + 40, y + 120);
 
-        g.fillStyle = better ? "#F59E0B" : "#292524";
-        g.font = "700 110px 'Space Grotesk', sans-serif";
+        // Sage = earned, on the card exactly as in the app (#165).
+        g.fillStyle = better ? "#7a8a5e" : "#201e1d";
+        g.font = "400 110px Caprasimo, Georgia, serif";
         g.fillText(b, 90 + aw + 130, y + 120);
 
         y += 300;
       }
 
       // Footer: the honest line.
-      g.fillStyle = "#78716C";
-      g.font = "400 32px 'Space Mono', monospace";
+      g.fillStyle = "#75706a";
+      g.font = "700 32px Figtree, sans-serif";
       g.fillText(`${reps.length} RECORDINGS · EVERY NUMBER MEASURED`, 90, H - 140);
 
-      g.fillStyle = "#E76F51";
+      g.fillStyle = "#c67139";
       g.fillRect(90, H - 100, 120, 8);
 
       setUrl(c.toDataURL("image/png"));
@@ -127,13 +128,13 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
   return (
     <div className="mt-4">
       {url ? (
-        <div className="rounded-[18px] border border-hairline bg-surface lift p-4">
+        <div className="rounded-[24px] border border-hairline bg-surface lift p-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={url} alt="Your progress card" className="w-full rounded-xl" />
+          <img src={url} alt="Your progress card" className="w-full rounded-[20px]" />
           <a
             href={url}
             download="ethos-progress.png"
-            className="mt-3 block w-full rounded-[14px] bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-semibold text-cream"
+            className="mt-3 block w-full rounded-full bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-semibold text-cream"
           >
             Save the card
           </a>
@@ -141,7 +142,7 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
       ) : (
         <button
           onClick={draw}
-          className="w-full rounded-[18px] border border-hairline bg-surface lift p-4 text-[13.5px] font-semibold"
+          className="w-full rounded-[24px] border border-hairline bg-surface lift p-4 text-[13.5px] font-semibold"
         >
           Make a shareable card →
         </button>

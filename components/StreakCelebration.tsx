@@ -9,7 +9,7 @@ import { playCelebration } from "@/lib/sfx";
 
 /**
  * The one celebration moment. Duolingo earns its streak screen by
- * making it brief and specific; ours stays inside brand rules — amber
+ * making it brief and specific; ours stays inside brand rules — sage
  * only, one line of copy, no confetti storm, and it never blocks: it
  * fades and the results are underneath.
  *
@@ -68,7 +68,7 @@ export function StreakCelebration({
         priority
         className="demos w-[200px]"
       />
-      <div className="font-display mt-4 text-[64px] font-bold leading-none text-amber-500">
+      <div className="font-display mt-4 text-[64px] leading-none text-sage-500">
         {streak}
       </div>
       <div className="mt-1 text-[15px] font-semibold">

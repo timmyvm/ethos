@@ -1,24 +1,55 @@
 @import "tailwindcss";
 
 /*
- * Brand tokens — docs/brand.md. Warm neutrals only: no pure black,
- * no pure white surfaces except the logo tile, no cool grays.
- * Orange appears only where a tap is wanted (one CTA per screen).
+ * Brand tokens — docs/brand.md as amended by the Organic redesign
+ * (DECISIONS #165). Warm neutrals only: no pure black, no pure white,
+ * no cool grays. Two accents with fixed jobs: terracotta is "tap here"
+ * and nothing else; sage is "you earned this" and nothing else. Amber
+ * is retired.
  */
 @theme {
-  --color-terracotta-50: #fdf3ef;
-  --color-terracotta-100: #fbe5dc;
-  --color-terracotta-200: #f6c8b7;
-  --color-terracotta-300: #f0a98f;
-  --color-terracotta-400: #eb8a6b;
-  --color-terracotta-500: #e76f51;
-  --color-terracotta-600: #d5563a;
-  --color-terracotta-700: #b2432c;
-  --color-terracotta-800: #8f3524;
-  --color-terracotta-900: #752c1f;
+  /*
+   * Terracotta. 500 is the one tap per screen, 600 its hover. 700 is
+   * accent TEXT (active tab, "up next") and 800 is text on the 100 wash
+   * — both remapped in dark so the roles keep their contrast. 300 is
+   * the warm highlight that reads on the deep sage score card in both
+   * themes, so it never swaps.
+   */
+  --color-terracotta-50: #fbeee1;
+  --color-terracotta-100: #f6ddc9;
+  --color-terracotta-200: #eec7a8;
+  --color-terracotta-300: #e6b48c;
+  --color-terracotta-400: #d69056;
+  --color-terracotta-500: #c67139;
+  --color-terracotta-600: #b2432c;
+  --color-terracotta-700: #8f4d24;
+  --color-terracotta-800: #7c4220;
+  --color-terracotta-900: #5f331a;
 
-  --color-cream: #faf7f2;
-  --color-sand: #f5f0e8;
+  /*
+   * Sage — the earned colour (stars, XP, held pauses, freezes ready,
+   * the trait leader). 900 is the "Your ethos" score card. `sage-ink`
+   * is the text that sits ON a sage-500 fill.
+   */
+  --color-sage-50: #f4f5ea;
+  --color-sage-100: #eef0e2;
+  --color-sage-200: #dde3cb;
+  --color-sage-300: #c3cda6;
+  --color-sage-400: #9dab7d;
+  --color-sage-500: #7a8a5e;
+  --color-sage-600: #6b7a51;
+  --color-sage-700: #4c573a;
+  --color-sage-800: #3d4630;
+  --color-sage-900: #2f3624;
+  --color-sage-ink: #fdf6e7;
+  /* Captions ON the deep sage score card. The card is deep sage in both
+   * themes, so this one never swaps — no dark override on purpose. */
+  --color-sage-mist: #b6c19c;
+
+  /* Text on a terracotta or sage fill. */
+  --color-cream: #fdf6e7;
+  /* Progress-bar troughs, empty freeze slots, quiet washes. */
+  --color-sand: #ecdfc4;
 
   /*
    * Semantic surfaces. Everything paints through these three so a theme
@@ -26,75 +57,88 @@
    *   ground  — the room
    *   surface — cards sitting in it
    *   ink     — text
-   * brand.md said dark mode comes after the loop retains; Timothy asked
-   * for it, so it ships behind an explicit toggle rather than as the
-   * default (DECISIONS #64).
    */
-  --color-ground: #faf7f2;
-  --color-surface: #ffffff;
-  --color-ink: #292524;
-  --color-hairline: rgba(0, 0, 0, 0.06);
-  /* "Stage dark" from the design direction — the surface the signature
-   * moments sit on (pause bar, comparison card). Warm, never #000. */
-  --color-stage: #1c1917;
+  --color-ground: #f5ead8;
+  --color-surface: #faf3e3;
+  --color-ink: #201e1d;
+  --color-hairline: rgba(32, 30, 29, 0.08);
+  /* The dark material the rep-loop signature moments sit on (pause bar,
+   * comparison card). Warm, never #000. The score card is NOT stage any
+   * more — it sits on sage-900. */
+  --color-stage: #211a13;
+
+  /*
+   * Stone: the neutrals holding the room, as translucent ink so they
+   * read the same on ground and surface and re-derive themselves when
+   * the dark theme swaps ink.
+   */
+  --color-stone-100: rgba(32, 30, 29, 0.07);
+  --color-stone-200: rgba(32, 30, 29, 0.14);
+  --color-stone-300: rgba(32, 30, 29, 0.3);
+  --color-stone-400: rgba(32, 30, 29, 0.45);
+  --color-stone-500: rgba(32, 30, 29, 0.55);
+  --color-stone-600: rgba(32, 30, 29, 0.68);
+  --color-stone-700: rgba(32, 30, 29, 0.8);
+  --color-stone-800: rgba(32, 30, 29, 0.88);
+  --color-stone-900: #201e1d;
 }
 
 /* Font tokens reference next/font variables (scoped to <body>), so they
  * must be inline — a :root-level var() to them computes to invalid. */
 @theme inline {
   --font-display: var(--font-display-face), Georgia, serif;
-  --font-body: var(--font-inter), sans-serif;
-  --font-data: var(--font-space-mono), monospace;
+  --font-body: var(--font-figtree), sans-serif;
 }
 
 body {
   background: var(--color-ground);
   color: var(--color-ink);
-  font-family: var(--font-inter), sans-serif;
+  font-family: var(--font-figtree), sans-serif;
 }
 
 /*
- * Dark. Still warm — no cool greys, no pure black (brand.md). Terracotta
- * and amber are unchanged: they carry meaning (the one tap, and earned
- * things), so they must read identically in both themes.
+ * Dark. Still warm — never pure black, never cool grey. Terracotta 500
+ * and sage 500's JOB are unchanged; the washes and text steps remap so
+ * the same class keeps its contrast on the dark ground.
  */
 :root[data-theme="dark"] {
-  --color-ground: #17130f;
-  --color-surface: #221c17;
-  --color-sand: #2c241d;
-  --color-stage: #100d0b;
-  --color-ink: #f0e9e1;
-  --color-hairline: rgba(255, 255, 255, 0.08);
-}
+  --color-ground: #211a13;
+  --color-surface: #2d241b;
+  --color-sand: #3b2f22;
+  --color-stage: #1a1410;
+  --color-ink: #f3ecdd;
+  --color-hairline: rgba(243, 236, 221, 0.08);
 
-:root[data-theme="dark"] .label-data {
-  color: #9b8e82;
-}
+  /* Light washes become dark washes of the same hue; the accent-text
+   * steps lift to the peach that reads on them. */
+  --color-terracotta-50: #33200f;
+  --color-terracotta-100: #3f2716;
+  --color-terracotta-200: #4d2f1a;
+  --color-terracotta-700: #e6b48c;
+  --color-terracotta-800: #e6b48c;
 
-/*
- * Secondary text. The stone mid-tones are tuned for dark-on-cream; left
- * alone they sit at roughly 2:1 against a dark ground, which is unreadable
- * rather than merely subtle. Lifted to warm greys that keep the hierarchy
- * (400 quietest → 700 loudest) while clearing contrast.
- */
-:root[data-theme="dark"] {
-  /*
-   * The 50/100 tints are LIGHT washes by construction — a cream card
-   * with terracotta text. On a dark ground they invert the hierarchy
-   * and the text on them becomes unreadable, so the tints become dark
-   * washes of the same hue. The 500s (the ones that carry meaning) are
-   * untouched.
-   */
-  --color-terracotta-50: #2a1a14;
-  --color-terracotta-100: #3a241b;
-  --color-terracotta-200: #4d2f23;
-  --color-amber-50: #2a2113;
+  /* Earned things lift one step so sage stays legible on dark. */
+  --color-sage-50: #2c331e;
+  --color-sage-100: #343c27;
+  --color-sage-200: #343c27;
+  --color-sage-300: #4a5536;
+  --color-sage-400: #6c7a52;
+  --color-sage-500: #8a9b6b;
+  --color-sage-600: #98aa77;
+  --color-sage-700: #aab88a;
+  --color-sage-800: #c3cda6;
+  --color-sage-900: #313a24;
+  --color-sage-ink: #211a13;
 
-  --color-stone-300: #6b5f55;
-  --color-stone-400: #9c8f84;
-  --color-stone-500: #b3a79c;
-  --color-stone-600: #c9bdb2;
-  --color-stone-700: #ded4ca;
+  --color-stone-100: rgba(243, 236, 221, 0.07);
+  --color-stone-200: rgba(243, 236, 221, 0.14);
+  --color-stone-300: rgba(243, 236, 221, 0.3);
+  --color-stone-400: rgba(243, 236, 221, 0.45);
+  --color-stone-500: rgba(243, 236, 221, 0.55);
+  --color-stone-600: rgba(243, 236, 221, 0.68);
+  --color-stone-700: rgba(243, 236, 221, 0.8);
+  --color-stone-800: rgba(243, 236, 221, 0.88);
+  --color-stone-900: #f3ecdd;
 }
 
 /*
@@ -115,99 +159,105 @@ body {
 }
 
 /* Shadows do nothing on a dark ground — depth comes from the surface
- * step instead, so the borders carry it. */
+ * step instead, so the borders carry it (1.5px hairline). */
 :root[data-theme="dark"] .lift,
-:root[data-theme="dark"] .lift-hero {
+:root[data-theme="dark"] .lift-hero,
+:root[data-theme="dark"] .lift-cta {
   box-shadow: none;
   border-color: var(--color-hairline);
 }
 
 /*
- * Section titles.
- *
- * These were `.label-data` — Space Mono, uppercase, tracked 0.1em —
- * which put a page's headings in the exact same voice as the captions
- * printed *inside* the cards they introduce ("1 per day you speak").
- * Two levels of hierarchy set identically is no hierarchy: "Coins"
- * and "to the first item" arrived with equal weight, so the eye had
- * nowhere to land and the page read as one continuous receipt.
- *
- * Linear's discipline is the reference — a heading earns its rank from
- * weight and colour, not from decoration. So: the display serif at
- * reading size, sentence case, full ink. Mono keeps the job it's good
- * at, labelling a number, and stops pretending to be a title.
+ * Section titles: the display face at reading size, sentence case, full
+ * ink. A heading earns its rank from weight and colour, not decoration
+ * (Linear's discipline); mono-register labels keep the job they're good
+ * at — labelling a number — and stop pretending to be titles.
  */
 .section-title {
   font-family: var(--font-display-face), Georgia, serif;
-  font-size: 1.0625rem;
-  font-weight: 600;
+  font-size: 1.03125rem;
+  font-weight: 400;
   line-height: 1.25;
-  letter-spacing: -0.006em;
   color: var(--color-ink);
 }
 
-/* Data labels: Space Mono, uppercase, tracked out — the training-log register */
+/* Data labels — the training-log register. Figtree now (Space Mono
+ * retired with the type change): 700, uppercase, tracked wide. */
 .label-data {
-  font-family: var(--font-space-mono), monospace;
+  font-family: var(--font-figtree), sans-serif;
   font-size: 0.6875rem;
-  letter-spacing: 0.1em;
+  font-weight: 700;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
-  color: var(--color-stone-500);
+  color: var(--color-stone-400);
 }
 
 /*
- * Numbers are the brand (brand.md). At display sizes Space Grotesk's
- * default tracking reads loose and web-default; pulling it in and
- * setting tabular figures makes a metric look struck rather than typed,
- * and stops the streak count jittering as digits change.
+ * Numbers are the brand (brand.md). Caprasimo carries one weight — 400 —
+ * and faking bold smears its forms, so the display face pins its weight
+ * here, over any `font-bold` a component adds. Tabular figures stay on:
+ * a changing metric must not reflow as its digits change.
  */
-.font-display {
-  /*
-   * Serifs need far less tightening than a grotesque — the old −0.022em
-   * was tuned for Space Grotesk and closes Fraunces up until the serifs
-   * touch.
-   */
-  letter-spacing: -0.008em;
-  /*
-   * Tabular figures, finally. This was abandoned under Space Grotesk
-   * because its tnum gave "1" a narrower advance than the glyph occupied
-   * and consecutive ones overlapped. Fraunces has no such problem, so a
-   * changing metric can stop reflowing as its digits change — which is
-   * what tabular figures are for and what a screen full of live numbers
-   * wants.
-   */
+.font-display,
+.section-title {
+  font-weight: 400;
+  letter-spacing: 0;
   font-variant-numeric: tabular-nums;
 }
 
 /*
  * Elevation. The direction bans gradients and glassmorphism, so depth
- * comes from a warm-tinted shadow over cream — a gray shadow on a warm
- * background is the exact thing that reads "unstyled Tailwind".
- * Two tiers only: the one thing you're meant to touch, and everything
- * else holding the room.
+ * comes from a soft warm shadow over cream. Two tiers, plus the one
+ * glow the CTA earns.
  */
 .lift {
-  box-shadow:
-    0 1px 2px rgba(70, 45, 30, 0.04),
-    0 4px 12px rgba(70, 45, 30, 0.05);
+  box-shadow: 0 2px 6px rgba(122, 90, 50, 0.12);
 }
 
 .lift-hero {
-  box-shadow:
-    0 2px 4px rgba(70, 45, 30, 0.05),
-    0 12px 28px -6px rgba(70, 45, 30, 0.12),
-    0 1px 0 rgba(255, 255, 255, 0.6) inset;
+  box-shadow: 0 6px 18px rgba(122, 90, 50, 0.1);
+}
+
+/* The one tap per screen gets the one glow in the app. */
+.lift-cta {
+  box-shadow: 0 6px 16px -4px rgba(198, 113, 57, 0.55);
+}
+
+/* `.lift` for elements that carry their own border colour (the current
+ * road node's terracotta): the same shadow, but dark mode only drops it
+ * rather than repainting the border to hairline. */
+.lift-node {
+  box-shadow: 0 2px 6px rgba(122, 90, 50, 0.12);
+}
+
+:root[data-theme="dark"] .lift-node {
+  box-shadow: none;
 }
 
 .lift-stage {
   box-shadow:
-    0 2px 6px rgba(28, 25, 23, 0.16),
-    0 16px 32px -8px rgba(28, 25, 23, 0.28);
+    0 2px 6px rgba(33, 26, 19, 0.16),
+    0 16px 32px -8px rgba(33, 26, 19, 0.28);
+}
+
+/*
+ * The score card's material: deep sage in both themes (#165 — the
+ * second focal point is sage now, not near-black stage). In dark the
+ * ground closes in on it, so it gets the redesign's hairline treatment
+ * in the sage-dim step instead of a shadow.
+ */
+.card-sage {
+  background: var(--color-sage-900);
+  border: 1.5px solid transparent;
+}
+
+:root[data-theme="dark"] .card-sage {
+  border-color: var(--color-sage-300);
 }
 
 /*
  * Paper grain. Two per-cent of noise over the whole app is the
- * difference between "warm room" and "flat #FAF7F2". Fixed, inert, and
+ * difference between "warm room" and a flat hex. Fixed, inert, and
  * invisible to pointer events.
  */
 body::after {
@@ -223,16 +273,10 @@ body::after {
 /*
  * Focus.
  *
- * There was not one focus-visible rule in the app: inputs killed the
- * outline and shifted a border instead, and every button, link and tab
- * showed nothing at all, so a keyboard user could not see where they
- * were. `:focus-visible` rather than `:focus` is the whole trick — the
- * ring appears for keyboard and assistive navigation and stays off for
- * the tap that already told you where you are.
- *
- * Terracotta, because the ring has to be found on cream and on stage
- * dark alike, and it's the one colour that reads on both. Offset so it
- * sits clear of the control rather than eating its edge.
+ * `:focus-visible` rather than `:focus` is the whole trick — the ring
+ * appears for keyboard and assistive navigation and stays off for the
+ * tap that already told you where you are. Terracotta, because the ring
+ * has to be found on cream and on the deep cards alike.
  */
 :focus-visible {
   outline: 2px solid var(--color-terracotta-500);

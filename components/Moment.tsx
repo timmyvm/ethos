@@ -19,19 +19,19 @@ export function Moment({
   emphasis?: boolean;
 }) {
   if (!moment) return null;
-  const amber = moment.tone === "amber";
+  const earned = moment.tone === "earned";
   return (
     <div
-      className={`rounded-[18px] border p-4 ${
-        amber
-          ? "border-amber-500/25 bg-amber-50/50"
+      className={`rounded-[24px] border p-4 ${
+        earned
+          ? "border-sage-500/25 bg-sage-50/50"
           : "border-hairline bg-surface"
       }`}
     >
       <div
         className={`font-display font-bold leading-tight ${
           emphasis ? "text-[19px]" : "text-[15px]"
-        } ${amber ? "text-amber-600" : ""}`}
+        } ${earned ? "text-sage-700" : ""}`}
       >
         {moment.headline}
       </div>

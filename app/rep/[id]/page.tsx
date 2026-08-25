@@ -60,10 +60,10 @@ export default function RepDetail({
             </div>
           </div>
           <div className="mt-4 flex items-end gap-3">
-            <Skeleton className="h-[62px] w-[62px]" rounded="rounded-[14px]" />
-            <Skeleton className="h-20 flex-1" rounded="rounded-[14px]" />
+            <Skeleton className="h-[58px] w-[58px]" rounded="rounded-[20px]" />
+            <Skeleton className="h-20 flex-1" rounded="rounded-[20px]" />
           </div>
-          <Skeleton className="mt-4 h-24 w-full" rounded="rounded-2xl" />
+          <Skeleton className="mt-4 h-24 w-full" rounded="rounded-[24px]" />
           <div className="mt-4 flex gap-3">
             <SkeletonStat />
             <SkeletonStat />
@@ -148,7 +148,7 @@ export default function RepDetail({
           {rep.mods.map((id) => (
             <span
               key={id}
-              className="rounded-full bg-stone-900 px-2.5 py-1 text-[11.5px] font-semibold text-cream"
+              className="rounded-full bg-ink px-2.5 py-1 text-[11.5px] font-semibold text-ground"
             >
               {modById(id)?.name ?? id}
             </span>

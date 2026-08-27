@@ -86,12 +86,20 @@ export default function HostilePage() {
     timer: ReturnType<typeof setInterval>;
   } | null>(null);
   const lastBlob = useRef<Blob | null>(null);
+  /** Live mic level 0–1 (#193): the proof on screen that it's
+   *  listening. Reported by Timothy: a bare countdown read as
+   *  think-time, and he prepped silently into a hot mic. */
+  const audioCtx = useRef<AudioContext | null>(null);
+  const [level, setLevel] = useState(0);
 
   const isTake = take.current === null;
   const cap = isTake ? TAKE_SECONDS : ANSWER_SECONDS;
 
   const teardown = useCallback(() => {
     const r = rec.current;
+    void audioCtx.current?.close().catch(() => {});
+    audioCtx.current = null;
+    setLevel(0);
     if (!r) return;
     rec.current = null;
     clearInterval(r.timer);
@@ -285,6 +293,40 @@ export default function HostilePage() {
         });
       }, 1000);
       rec.current = { recorder, stream, chunks, timer };
+
+      // The live level (#193). The dot and bar move with the actual
+      // mic, which is the one signal a countdown can't fake.
+      try {
+        const ctx = new AudioContext();
+        ctx.createMediaStreamSource(stream).connect(
+          (() => {
+            const an = ctx.createAnalyser();
+            an.fftSize = 512;
+            const data = new Uint8Array(an.frequencyBinCount);
+            let last = 0;
+            const loop = () => {
+              if (!rec.current) return;
+              requestAnimationFrame(loop);
+              const now = performance.now();
+              if (now - last < 90) return;
+              last = now;
+              an.getByteTimeDomainData(data);
+              let sum = 0;
+              for (let i = 0; i < data.length; i++) {
+                const d = (data[i] - 128) / 128;
+                sum += d * d;
+              }
+              setLevel(Math.min(1, Math.sqrt(sum / data.length) * 4));
+            };
+            requestAnimationFrame(loop);
+            return an;
+          })()
+        );
+        audioCtx.current = ctx;
+      } catch {
+        // The meter is an affordance; its absence never blocks the boss.
+      }
+
       buzz(20);
       setPhase("recording");
     } catch {
@@ -298,6 +340,9 @@ export default function HostilePage() {
     const r = rec.current;
     if (!r) return;
     rec.current = null;
+    void audioCtx.current?.close().catch(() => {});
+    audioCtx.current = null;
+    setLevel(0);
     clearInterval(r.timer);
     const blob = await new Promise<Blob>((resolve) => {
       r.recorder.onstop = () =>
@@ -350,7 +395,7 @@ export default function HostilePage() {
                 onClick={() => void startRecording()}
                 className="press flex-1 rounded-full bg-terracotta-500 px-6 py-4 text-center text-[16.5px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
               >
-                Take the floor · 60s
+                Record my take · 60s
               </button>
             </div>
           </div>
@@ -374,10 +419,33 @@ export default function HostilePage() {
             {isTake ? prompt.claim : (pending?.question ?? "")}
           </h1>
           <div className="flex flex-1 flex-col items-center justify-center">
-            <div className="font-display text-[64px] leading-none tabular-nums">
+            {/* The mic is HOT and the screen has to say so (#193): a
+                bare countdown read as think-time. The dot and bar are
+                driven by the live level, so they move when you speak,
+                which is the only proof of listening a screen can give. */}
+            <div className="flex items-center gap-2">
+              <span
+                aria-hidden
+                className="h-2.5 w-2.5 rounded-full bg-terracotta-600"
+                style={{
+                  transform: `scale(${1 + level * 1.4})`,
+                  opacity: 0.55 + level * 0.45,
+                }}
+              />
+              <span className="label-data !text-terracotta-600">
+                recording
+              </span>
+            </div>
+            <div className="font-display mt-3 text-[64px] leading-none tabular-nums">
               {Math.max(0, cap - seconds)}
             </div>
             <div className="label-data mt-2">seconds left</div>
+            <div className="mt-4 h-1.5 w-full max-w-[220px] overflow-hidden rounded-full bg-sand">
+              <div
+                className="h-full rounded-full bg-terracotta-500"
+                style={{ width: `${Math.round(level * 100)}%` }}
+              />
+            </div>
           </div>
           <button
             onClick={() => void stopRecording()}
@@ -443,7 +511,7 @@ export default function HostilePage() {
             onClick={() => void startRecording()}
             className="press w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream"
           >
-            Answer · {ANSWER_SECONDS}s
+            Record my answer · {ANSWER_SECONDS}s
           </button>
         </div>
       )}

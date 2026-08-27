@@ -63,19 +63,19 @@ export interface DeliveryMetrics {
   eyeLinePct: number;
   /**
    * Median height of the nose above the shoulder line, in
-   * shoulder-widths. This is the SLUMP signal (#188): wander metrics
-   * cannot see a slouch that is held still — the first real calibration
-   * session proved it by scoring a motionless slump above an animated
-   * upright take. Null on rows stored before it existed.
+   * shoulder-widths. The FIRST slump candidate (#188), retired from
+   * scoring (#189, #192): shoulder width moves with arm position, and
+   * the neck gap out-separated it 3.7x to 2.9x on raw frames. Still
+   * measured and persisted so future sessions stay comparable.
    */
   headLift: number | null;
   /**
    * Median mouth-to-shoulder-line gap in INTER-EYE units (#191,
-   * Timothy's "neck visibility" idea): how much neck is showing.
-   * Face geometry is rigid, so this normalizer can't be moved by arm
-   * position or torso turn — the failure that unscored headLift (#189).
-   * Measured on roughly-frontal frames only; unscored until a session
-   * shows it separates. Null before it existed or when never frontal.
+   * Timothy's "neck visibility" idea): how much neck is showing. Face
+   * geometry is rigid, so arm position and torso turn can't move the
+   * normalizer. Frontal frames only. SCORED since #192: it separated a
+   * committed slouch at 3.7x the frame noise and feeds the posture
+   * dimension's slump half. Null before it existed or never frontal.
    */
   neckGap: number | null;
   /** The composite, /1000. */
@@ -118,8 +118,11 @@ export interface PresenceResult {
 /** Under this many usable frames there is no Presence score, not a low one. */
 export const MIN_USABLE_FRAMES = 45;
 
-/** Gestures per minute that read as engaged rather than static or fidgety. */
-export const GESTURE_ZONE: [number, number] = [8, 26];
+/** Gestures per minute that read as engaged rather than static or
+ *  fidgety. Top raised 26→34 (#192): the hardened detector measured a
+ *  genuinely animated speaker at 26.9/min in both clean sessions, and
+ *  the ceiling was folklore where the floor has literature behind it. */
+export const GESTURE_ZONE: [number, number] = [8, 34];
 
 /** Wrist travel per second (shoulder-widths) that counts as a gesture. */
 const GESTURE_SPEED = 0.55;
@@ -151,16 +154,15 @@ const HEAD_BAD = 0.469;
 const EYE_GOOD = 85;
 const EYE_BAD = 30;
 /**
- * Head carried high vs sunk into the shoulders (#188) — MEASURED AND
- * UNSCORED (#189, the #119 precedent). The first clean session showed
- * shoulder-width is an unstable normalizer (pockets narrow it,
- * gesturing widens it, turning foreshortens it), so lift did not
- * separate a slouch from composed. It keeps being measured, persisted
- * and shown on the bench; it moves no score until raw-frame analysis
- * finds a signal that separates.
+ * The slump band, in NECK GAP units (#192): mouth-to-shoulder-line
+ * distance over the speaker's own inter-eye gap. Fitted from the
+ * raw-frame analysis of Timothy's committed session — composed 1.90,
+ * slouch 1.00, separation 3.7x the frame noise (lift managed 2.9x, and
+ * zero on the shallow-slouch control session, which is why neck won
+ * the candidacy #191 set up). n=1, provisional, and honestly earned.
  */
-const SLUMP_GOOD = 0.85;
-const SLUMP_BAD = 0.6;
+const NECK_GOOD = 1.7;
+const NECK_BAD = 1.05;
 
 /**
  * The tunable set, exported READ-ONLY for the calibration page (#187)
@@ -175,8 +177,8 @@ export const PRESENCE_CONSTANTS = {
   headBad: HEAD_BAD,
   eyeGood: EYE_GOOD,
   eyeBad: EYE_BAD,
-  slumpGood: SLUMP_GOOD,
-  slumpBad: SLUMP_BAD,
+  neckGood: NECK_GOOD,
+  neckBad: NECK_BAD,
 } as const;
 
 /**
@@ -505,7 +507,7 @@ export function scorePresence(frames: PoseFrame[]): PresenceResult {
       value: `${eyeLinePct}%`,
       note: `Head up and facing the camera in ${eyeLinePct}% of frames.`,
     },
-    postureDimension(postureDrift, headLift),
+    postureDimension(postureDrift, neckGap),
     {
       key: "gesture",
       label: "Gesture",
@@ -552,25 +554,28 @@ export function scorePresence(frames: PoseFrame[]): PresenceResult {
 }
 
 /**
- * Posture scores WANDER only, for now. The slump half (#188) is
- * measured and persisted but unscored (#189): the first clean
- * calibration session showed `headLift` swinging with arm position and
- * torso turn rather than with the slouch it was built to catch, and a
- * dimension that punishes everyone is worse than one that misses a
- * slump. Same call as #119: shown where honest, scored only once a
- * calibration is earned.
+ * Posture is the WORSE of two claims (#188, scored via the neck gap
+ * since #192): how much the torso wandered, and how far the head sank
+ * toward the shoulders. Either alone lies — wander misses a held
+ * slump, slump misses restlessness. A take whose face never measured
+ * frontally falls back to wander alone rather than guessing.
  */
 function postureDimension(
   postureDrift: number,
-  headLift: number | null
+  neckGap: number | null
 ): PresenceDimension {
-  void headLift; // measured, surfaced on the bench, not yet scored (#189)
+  const wander = band(postureDrift, POSTURE_GOOD, POSTURE_BAD);
+  const slump = neckGap === null ? null : band(neckGap, NECK_GOOD, NECK_BAD);
+  const score = slump === null ? wander : Math.min(wander, slump);
+  const slumped = slump !== null && slump < wander;
   return {
     key: "posture",
     label: "Posture",
-    score: band(postureDrift, POSTURE_GOOD, POSTURE_BAD),
-    value: postureDrift.toFixed(2),
-    note: `Torso wandered ${postureDrift.toFixed(2)} shoulder-widths from centre on average.`,
+    score,
+    value: slumped ? neckGap!.toFixed(2) : postureDrift.toFixed(2),
+    note: slumped
+      ? `Head sank toward your shoulders: ${neckGap!.toFixed(2)} eye-widths of neck showing. Sit tall and it rises.`
+      : `Torso wandered ${postureDrift.toFixed(2)} shoulder-widths from centre on average.`,
   };
 }
 

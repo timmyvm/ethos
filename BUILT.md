@@ -214,13 +214,13 @@ four are now closed and struck through.
   the user's fillers are "you know" and "like", and the mid-clause gaps
   are real silent hesitation. Worth repeating on a genuine human
   recording, since the test used TTS.
-- **Presence has never been pointed at a real body — and the bench for
-  fixing that now exists.** The engine is fully tested against synthetic
-  landmark frames, which proves the arithmetic, not the thresholds.
-  `/calibrate` (#187, linked from settings) runs four labeled takes
-  through the real sampler and proposes the constant set; until Timothy
-  does those twenty minutes, every constant in `lib/presence.ts` remains
-  a v1 guess.
+- **Presence is calibrated on a real body as of 27 Aug** (#188–#192):
+  Timothy ran `/calibrate` (settings-linked), the raw-frame downloads
+  drove three structural fixes (slump via the neck gap, the
+  profile-view eye hole, gesture jitter gates) and the adopted bands
+  are fitted from his committed session. Still n=1 and marked
+  provisional in `lib/presence.ts`; the bench refits in twenty minutes
+  whenever another body shows up.
 - **The pose runtime is ~30MB and downloaded at build time.**
   `npm run pose:assets` copies the WASM out of `node_modules` and fetches
   the 5.5MB model. It runs in `prebuild`, and it is deliberately

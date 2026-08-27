@@ -184,8 +184,8 @@ export default function CalibratePage() {
         `const HEAD_BAD = ${proposal.headBad};`,
         `const EYE_GOOD = ${proposal.eyeGood};`,
         `const EYE_BAD = ${proposal.eyeBad};`,
-        `const SLUMP_GOOD = ${proposal.slumpGood};`,
-        `const SLUMP_BAD = ${proposal.slumpBad};`,
+        `const NECK_GOOD = ${proposal.neckGood};`,
+        `const NECK_BAD = ${proposal.neckBad};`,
       ].join("\n")
     : "";
 

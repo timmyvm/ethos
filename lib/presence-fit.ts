@@ -34,8 +34,8 @@ export interface ProposedConstants {
   headBad: number;
   eyeGood: number;
   eyeBad: number;
-  slumpGood: number;
-  slumpBad: number;
+  neckGood: number;
+  neckBad: number;
   /** Honest caveats: which parts the takes couldn't separate. */
   warnings: string[];
 }
@@ -99,26 +99,26 @@ export function proposeConstants(
   const headGood = Math.max(0.005, round3(composed.headStability * 1.3));
   const headBad = round3(headGood * (cur.headBad / cur.headGood));
 
-  // Slump (#188): composed says where YOUR head sits when you're
-  // upright, the slouch take says where it sinks to. This is the pair
-  // these two takes exist to separate.
-  let slumpGood: number = cur.slumpGood;
-  let slumpBad: number = cur.slumpBad;
-  const cLift = composed.headLift;
-  const sLift = m.slouch?.headLift;
-  if (cLift === null || cLift === undefined) {
+  // The slump band, in neck-gap units (#192): composed says how much
+  // neck shows when YOU sit tall, the slouch take says where it
+  // collapses to. This is the pair those two takes exist to separate.
+  let neckGood: number = cur.neckGood;
+  let neckBad: number = cur.neckBad;
+  const cNeck = composed.neckGap;
+  const sNeck = m.slouch?.neckGap;
+  if (cNeck === null || cNeck === undefined) {
     warnings.push(
-      "The composed take never tracked a nose, so the slump band was left as-is."
+      "The composed take never measured a frontal face, so the neck band was left as-is."
     );
   } else {
-    slumpGood = round3(cLift * 0.92);
-    if (sLift !== null && sLift !== undefined && sLift < slumpGood - 0.05) {
-      slumpBad = round3(Math.min(sLift * 1.05, slumpGood - 0.05));
+    neckGood = round3(cNeck * 0.9);
+    if (sNeck !== null && sNeck !== undefined && sNeck < neckGood - 0.1) {
+      neckBad = round3(Math.min(sNeck * 1.05, neckGood - 0.1));
     } else {
-      slumpBad = round3(slumpGood * (cur.slumpBad / cur.slumpGood));
-      if (sLift !== null && sLift !== undefined) {
+      neckBad = round3(neckGood * (cur.neckBad / cur.neckGood));
+      if (sNeck !== null && sNeck !== undefined) {
         warnings.push(
-          "The slouch take's head sat about as high as the composed one's; the slump band kept the current ratio. Slouch harder on the redo, or the dimension can't bite."
+          "The slouch take's neck gap sat about as open as the composed one's; the neck band kept the current ratio. Slouch harder on the redo, or the dimension can't bite."
         );
       }
     }
@@ -171,8 +171,8 @@ export function proposeConstants(
     headBad,
     eyeGood,
     eyeBad,
-    slumpGood,
-    slumpBad,
+    neckGood,
+    neckBad,
     warnings,
   };
 }

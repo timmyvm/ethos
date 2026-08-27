@@ -20,7 +20,7 @@ function takes(): LabeledTake[] {
     { label: "composed", metrics: metrics({}) },
     {
       label: "slouch",
-      metrics: metrics({ postureDrift: 0.11, headLift: 0.66 }),
+      metrics: metrics({ postureDrift: 0.11, headLift: 0.66, neckGap: 1.0 }),
     },
     { label: "look-away", metrics: metrics({ eyeLinePct: 18 }) },
     { label: "hands-hidden", metrics: metrics({ gestureRate: 1 }) },
@@ -89,16 +89,16 @@ describe("proposeConstants", () => {
     expect(p.warnings.join(" ")).toContain("gesture");
   });
 
-  it("fits the slump band between the composed and slouch head heights", () => {
+  it("fits the neck band between the composed and slouch gaps", () => {
     const p = proposeConstants(takes())!;
-    expect(p.slumpGood).toBeLessThan(0.93);
-    expect(p.slumpBad).toBeGreaterThanOrEqual(0.66);
-    expect(p.slumpGood).toBeGreaterThan(p.slumpBad);
+    expect(p.neckGood).toBeLessThan(2.9);
+    expect(p.neckBad).toBeGreaterThanOrEqual(1.0);
+    expect(p.neckGood).toBeGreaterThan(p.neckBad);
   });
 
-  it("warns when the slouch take's head sat as high as the composed one's", () => {
+  it("warns when the slouch take's neck stayed as open as the composed one's", () => {
     const shallow = takes().map((t) =>
-      t.label === "slouch" ? { ...t, metrics: metrics({ headLift: 0.91 }) } : t
+      t.label === "slouch" ? { ...t, metrics: metrics({ neckGap: 2.8 }) } : t
     );
     const p = proposeConstants(shallow)!;
     expect(p.warnings.join(" ")).toContain("Slouch harder");

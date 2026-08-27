@@ -39,8 +39,9 @@ function frames(opts: {
     const shoulderY = 0.7 + sink;
     // A slouch drops the head MORE than the shoulders — that gap closing
     // is the slump signal (#188). Same-distance sinking would be the
-    // whole body sliding down frame with perfect posture.
-    const noseY = 0.42 + (sink > 0 ? sink + 0.1 : 0);
+    // whole body sliding down frame with perfect posture. Deep enough
+    // that the mouth nearly meets the shoulder line, like a real hunch.
+    const noseY = 0.42 + (sink > 0 ? sink + 0.2 : 0);
 
     const down =
       typeof opts.lookingDown === "function"
@@ -208,19 +209,16 @@ describe("posture and hands", () => {
  * failure gets its regression here.
  */
 describe("what the first real camera session taught (#188)", () => {
-  it("measures a slouch held from the first frame, without scoring it (#189)", () => {
-    // No transition, no wander. The lift signal SEES the held slump —
-    // and deliberately moves no score until a calibration separates it
-    // from arm position and torso turn (the #119 pattern: measured,
-    // surfaced, unscored).
+  it("scores a slouch held from the very first frame (#192)", () => {
+    // No transition, no wander — the purely movement-based score gave
+    // this a perfect 100. The neck gap earned its calibration on raw
+    // frames (3.7x separation), so a held slump now costs.
     const r = scorePresence(
       frames({ seconds: 90, gestureEvery: 40, slouchFrom: 0 })
     );
-    const upright = scorePresence(frames({ seconds: 90, gestureEvery: 40 }));
-    expect(r.metrics.headLift).not.toBeNull();
-    expect(r.metrics.headLift!).toBeLessThan(upright.metrics.headLift!);
     const posture = r.dimensions.find((d) => d.key === "posture");
-    expect(posture!.score).toBe(100);
+    expect(posture!.score).toBeLessThan(50);
+    expect(posture!.note).toContain("neck");
   });
 
   it("keeps an upright animated speaker's posture score high", () => {
@@ -242,10 +240,9 @@ describe("what the first real camera session taught (#188)", () => {
     const upright = scorePresence(frames({ seconds: 90, gestureEvery: 40 }));
     expect(upright.metrics.neckGap).not.toBeNull();
     expect(slouched.metrics.neckGap!).toBeLessThan(upright.metrics.neckGap!);
-    // Candidate signal: measured, benched, unscored (#189's rule).
-    expect(
-      slouched.dimensions.find((d) => d.key === "posture")!.score
-    ).toBe(100);
+    // headLift is still measured for comparability, retired from
+    // scoring (#192): the neck gap out-separated it on raw frames.
+    expect(slouched.metrics.headLift).not.toBeNull();
   });
 
   it("refuses to measure the neck on a turned head", () => {

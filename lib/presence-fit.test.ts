@@ -9,6 +9,7 @@ function metrics(over: Partial<DeliveryMetrics>): DeliveryMetrics {
     headStability: 0.012,
     eyeLinePct: 88,
     headLift: 0.93,
+    neckGap: 2.9,
     presenceScore: 700,
     ...over,
   };

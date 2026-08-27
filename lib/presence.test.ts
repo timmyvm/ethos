@@ -67,6 +67,8 @@ function frames(opts: {
         ? { x: 0.43, y: noseY - 0.02, visibility: 0.2 }
         : p(0.43, noseY - 0.02),
       rightEar: p(0.57, noseY - 0.02),
+      mouthLeft: p(turned ? 0.53 : 0.475, noseY + 0.045),
+      mouthRight: p(turned ? 0.56 : 0.525, noseY + 0.045),
       leftShoulder: opts.noShoulders ? null : p(0.35, shoulderY),
       rightShoulder: opts.noShoulders ? null : p(0.65, shoulderY),
       leftWrist: gone ? null : p(0.4 - wristDx, 0.95 + sink),
@@ -233,6 +235,28 @@ describe("what the first real camera session taught (#188)", () => {
     expect(r.metrics.eyeLinePct).toBe(0);
   });
 
+  it("the neck gap (#191) sees a held slump in face-sized units", () => {
+    const slouched = scorePresence(
+      frames({ seconds: 90, gestureEvery: 40, slouchFrom: 0 })
+    );
+    const upright = scorePresence(frames({ seconds: 90, gestureEvery: 40 }));
+    expect(upright.metrics.neckGap).not.toBeNull();
+    expect(slouched.metrics.neckGap!).toBeLessThan(upright.metrics.neckGap!);
+    // Candidate signal: measured, benched, unscored (#189's rule).
+    expect(
+      slouched.dimensions.find((d) => d.key === "posture")!.score
+    ).toBe(100);
+  });
+
+  it("refuses to measure the neck on a turned head", () => {
+    // A turned head forshortens the eye gap; the ratio would inflate,
+    // so the frontal gate returns nothing instead of a wrong number.
+    const r = scorePresence(
+      frames({ seconds: 90, gestureEvery: 40, turned: true })
+    );
+    expect(r.metrics.neckGap).toBeNull();
+  });
+
   it("wrists estimated outside the frame cannot gesture", () => {
     const moving = frames({ seconds: 90, gestureEvery: 4 }).map((f) => ({
       ...f,
@@ -282,6 +306,7 @@ describe("what persists", () => {
       "gesture_rate",
       "head_lift",
       "head_stability",
+      "neck_gap",
       "posture_drift",
       "presence_score",
     ]);

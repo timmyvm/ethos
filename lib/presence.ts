@@ -41,6 +41,10 @@ export interface PoseFrame {
   rightEye: Point | null;
   leftEar: Point | null;
   rightEar: Point | null;
+  /** Mouth corners (#191): the chin-to-shoulder "neck gap" needs the
+   *  bottom of the face. Null on frames captured before they existed. */
+  mouthLeft?: Point | null;
+  mouthRight?: Point | null;
   leftShoulder: Point | null;
   rightShoulder: Point | null;
   leftWrist: Point | null;
@@ -65,6 +69,15 @@ export interface DeliveryMetrics {
    * upright take. Null on rows stored before it existed.
    */
   headLift: number | null;
+  /**
+   * Median mouth-to-shoulder-line gap in INTER-EYE units (#191,
+   * Timothy's "neck visibility" idea): how much neck is showing.
+   * Face geometry is rigid, so this normalizer can't be moved by arm
+   * position or torso turn — the failure that unscored headLift (#189).
+   * Measured on roughly-frontal frames only; unscored until a session
+   * shows it separates. Null before it existed or when never frontal.
+   */
+  neckGap: number | null;
   /** The composite, /1000. */
   presenceScore: number;
 }
@@ -261,6 +274,9 @@ interface FrameGeometry {
   /** Nose height above the shoulder line, in shoulder-widths; null when
    *  the nose wasn't trackable this frame. The slump signal (#188). */
   lift: number | null;
+  /** Mouth-to-shoulder gap in inter-eye units, frontal frames only
+   *  (#191). Null when the face wasn't frontal or wasn't tracked. */
+  neck: number | null;
   eyeLine: boolean;
 }
 
@@ -325,6 +341,29 @@ export function geometry(f: PoseFrame): FrameGeometry | null {
       ? { x: (w.x - torsoX) / shoulderWidth, y: (w.y - torsoY) / shoulderWidth }
       : null;
 
+  /*
+   * The neck gap (#191): how far the mouth sits above the shoulder
+   * line, in units of the speaker's own inter-eye distance. The face is
+   * rigid, so unlike shoulder width this normalizer can't be moved by
+   * arm position or torso turn. Frontal frames only — a turned head
+   * foreshortens the eye gap and would inflate the ratio.
+   */
+  let neck: number | null = null;
+  const le = f.leftEye;
+  const re = f.rightEye;
+  const ml = f.mouthLeft ?? null;
+  const mr = f.mouthRight ?? null;
+  if (nose && visible(le) && visible(re) && visible(ml) && visible(mr)) {
+    const eyeGap = Math.hypot(le.x - re.x, le.y - re.y);
+    const xGap = Math.abs(le.x - re.x);
+    if (eyeGap > 0.005 && xGap > 0.005) {
+      const noseOff = Math.abs(nose.x - (le.x + re.x) / 2) / xGap;
+      if (noseOff <= 0.35) {
+        neck = (torsoY - (ml.y + mr.y) / 2) / eyeGap;
+      }
+    }
+  }
+
   return {
     t: f.t,
     torsoX,
@@ -335,6 +374,7 @@ export function geometry(f: PoseFrame): FrameGeometry | null {
     leftHand: wrist(f.leftWrist),
     rightHand: wrist(f.rightWrist),
     lift: nose ? (torsoY - nose.y) / shoulderWidth : null,
+    neck,
     eyeLine: eyeLineUp(f, shoulderWidth),
   };
 }
@@ -393,6 +433,7 @@ export function scorePresence(frames: PoseFrame[]): PresenceResult {
       headStability: 0,
       eyeLinePct: 0,
       headLift: null,
+      neckGap: null,
       presenceScore: 0,
     },
     dimensions: [],
@@ -446,6 +487,10 @@ export function scorePresence(frames: PoseFrame[]): PresenceResult {
     .map((g) => g.lift)
     .filter((l): l is number => l !== null);
   const headLift = lifts.length > 0 ? round3(median(lifts)) : null;
+  const necks = geo
+    .map((g) => g.neck)
+    .filter((n): n is number => n !== null);
+  const neckGap = necks.length > 0 ? round3(median(necks)) : null;
 
   // --- eye line ------------------------------------------------------
   const eyeLinePct = Math.round(
@@ -496,6 +541,7 @@ export function scorePresence(frames: PoseFrame[]): PresenceResult {
       headStability,
       eyeLinePct,
       headLift,
+      neckGap,
       presenceScore,
     },
     dimensions,
@@ -693,6 +739,7 @@ export function toRow(m: DeliveryMetrics) {
     head_stability: m.headStability,
     eye_line_pct: m.eyeLinePct,
     head_lift: m.headLift,
+    neck_gap: m.neckGap,
     presence_score: m.presenceScore,
   };
 }
@@ -706,8 +753,9 @@ export function fromRow(
     postureDrift: row.posture_drift ?? 0,
     headStability: row.head_stability ?? 0,
     eyeLinePct: row.eye_line_pct ?? 0,
-    // Rows stored before the slump signal existed stay honestly null.
+    // Rows stored before these signals existed stay honestly null.
     headLift: row.head_lift ?? null,
+    neckGap: row.neck_gap ?? null,
     presenceScore: row.presence_score ?? 0,
   };
 }

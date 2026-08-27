@@ -321,6 +321,7 @@ export default function CalibratePage() {
                   <th className="label-data pb-1.5 pr-3 font-normal">head</th>
                   <th className="label-data pb-1.5 pr-3 font-normal">eyes %</th>
                   <th className="label-data pb-1.5 pr-3 font-normal">lift</th>
+                  <th className="label-data pb-1.5 pr-3 font-normal">neck</th>
                   <th className="label-data pb-1.5 pr-3 font-normal">score</th>
                   <th className="pb-1.5" aria-label="Redo" />
                 </tr>
@@ -343,6 +344,9 @@ export default function CalibratePage() {
                     </td>
                     <td className="py-2 pr-3 tabular-nums">
                       {d.result.metrics.headLift ?? "—"}
+                    </td>
+                    <td className="py-2 pr-3 tabular-nums">
+                      {d.result.metrics.neckGap ?? "—"}
                     </td>
                     <td className="py-2 pr-3 tabular-nums">
                       {d.result.metrics.presenceScore}

@@ -357,6 +357,10 @@ function parseDelivery(raw: string | null): {
           typeof m.headLift === "number" && Number.isFinite(m.headLift)
             ? m.headLift
             : null,
+        neckGap:
+          typeof m.neckGap === "number" && Number.isFinite(m.neckGap)
+            ? m.neckGap
+            : null,
         presenceScore: Math.max(0, Math.min(1000, Math.round(m.presenceScore))),
       },
       deliveryMoments: Array.isArray(parsed.moments)

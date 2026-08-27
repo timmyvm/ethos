@@ -24,6 +24,9 @@ function frames(opts: {
   /** Frames between gesture bursts. 0 = hands never move. */
   gestureEvery?: number;
   noShoulders?: boolean;
+  /** Head turned well away: eyes foreshortened, nose past the near eye,
+   *  far ear lost to tracking — the profile case (#188). */
+  turned?: boolean;
 }): PoseFrame[] {
   const fps = opts.fps ?? 10;
   const seconds = opts.seconds ?? 90;
@@ -34,7 +37,10 @@ function frames(opts: {
     const t = i / fps;
     const sink = opts.slouchFrom !== undefined && t >= opts.slouchFrom ? 0.05 : 0;
     const shoulderY = 0.7 + sink;
-    const noseY = 0.42 + sink;
+    // A slouch drops the head MORE than the shoulders — that gap closing
+    // is the slump signal (#188). Same-distance sinking would be the
+    // whole body sliding down frame with perfect posture.
+    const noseY = 0.42 + (sink > 0 ? sink + 0.1 : 0);
 
     const down =
       typeof opts.lookingDown === "function"
@@ -51,12 +57,15 @@ function frames(opts: {
     const wristDx = inBurst ? 0.02 * (i % every) : 0;
 
     const p = (x: number, y: number) => ({ x, y, visibility: 1 });
+    const turned = !!opts.turned;
     out.push({
       t,
-      nose: p(0.5, noseY),
-      leftEye: p(0.46, eyeY),
-      rightEye: p(0.54, eyeY),
-      leftEar: p(0.43, noseY - 0.02),
+      nose: p(turned ? 0.545 : 0.5, noseY),
+      leftEye: p(turned ? 0.49 : 0.46, eyeY),
+      rightEye: p(turned ? 0.52 : 0.54, eyeY),
+      leftEar: turned
+        ? { x: 0.43, y: noseY - 0.02, visibility: 0.2 }
+        : p(0.43, noseY - 0.02),
       rightEar: p(0.57, noseY - 0.02),
       leftShoulder: opts.noShoulders ? null : p(0.35, shoulderY),
       rightShoulder: opts.noShoulders ? null : p(0.65, shoulderY),
@@ -190,6 +199,48 @@ describe("posture and hands", () => {
   });
 });
 
+/*
+ * The first real calibration session (#188): a held slump out-scored an
+ * animated upright take, a 20-second look-away read as 100% eye
+ * contact, and hands in pockets registered 77 gestures a minute. Each
+ * failure gets its regression here.
+ */
+describe("what the first real camera session taught (#188)", () => {
+  it("sees a slouch that was held from the very first frame", () => {
+    // No transition, no wander — the old, purely movement-based posture
+    // score gave this a perfect 100.
+    const r = scorePresence(
+      frames({ seconds: 90, gestureEvery: 40, slouchFrom: 0 })
+    );
+    const posture = r.dimensions.find((d) => d.key === "posture");
+    expect(posture!.score).toBeLessThan(50);
+    expect(r.metrics.headLift).not.toBeNull();
+    expect(r.metrics.headLift!).toBeLessThan(0.8);
+  });
+
+  it("keeps an upright animated speaker's posture score high", () => {
+    const r = scorePresence(frames({ seconds: 90, gestureEvery: 40 }));
+    expect(r.dimensions.find((d) => d.key === "posture")!.score).toBe(100);
+  });
+
+  it("a profile turn is not eye contact, even with the far ear untracked", () => {
+    const r = scorePresence(
+      frames({ seconds: 90, gestureEvery: 40, turned: true })
+    );
+    expect(r.metrics.eyeLinePct).toBe(0);
+  });
+
+  it("wrists estimated outside the frame cannot gesture", () => {
+    const moving = frames({ seconds: 90, gestureEvery: 4 }).map((f) => ({
+      ...f,
+      leftWrist: f.leftWrist && { ...f.leftWrist, y: 1.08 },
+      rightWrist: f.rightWrist && { ...f.rightWrist, y: 1.08 },
+    }));
+    const r = scorePresence(moving);
+    expect(r.metrics.gestureRate).toBe(0);
+  });
+});
+
 describe("the live ring (free tier)", () => {
   it("stays quiet on a composed speaker", () => {
     expect(ringState(frames({ seconds: 10, gestureEvery: 40 }))).toBe("ok");
@@ -226,6 +277,7 @@ describe("what persists", () => {
     expect(Object.keys(row).sort()).toEqual([
       "eye_line_pct",
       "gesture_rate",
+      "head_lift",
       "head_stability",
       "posture_drift",
       "presence_score",

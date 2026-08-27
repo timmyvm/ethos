@@ -47,7 +47,7 @@ export interface PoseFrame {
   rightWrist: Point | null;
 }
 
-/** The five numbers that persist. Nothing else about the video does. */
+/** The six numbers that persist. Nothing else about the video does. */
 export interface DeliveryMetrics {
   /** Distinct hand gestures per minute. */
   gestureRate: number;
@@ -57,6 +57,14 @@ export interface DeliveryMetrics {
   headStability: number;
   /** Share of frames with the eye-line up and facing the camera, 0–100. */
   eyeLinePct: number;
+  /**
+   * Median height of the nose above the shoulder line, in
+   * shoulder-widths. This is the SLUMP signal (#188): wander metrics
+   * cannot see a slouch that is held still — the first real calibration
+   * session proved it by scoring a motionless slump above an animated
+   * upright take. Null on rows stored before it existed.
+   */
+  headLift: number | null;
   /** The composite, /1000. */
   presenceScore: number;
 }
@@ -123,6 +131,11 @@ const HEAD_GOOD = 0.015;
 const HEAD_BAD = 0.08;
 const EYE_GOOD = 85;
 const EYE_BAD = 30;
+/** Head carried high vs sunk into the shoulders (#188). The calibration
+ *  bench fits these from the composed and slouch takes; until real
+ *  takes land they are guesses like everything else here. */
+const SLUMP_GOOD = 0.85;
+const SLUMP_BAD = 0.6;
 
 /**
  * The tunable set, exported READ-ONLY for the calibration page (#187)
@@ -137,6 +150,8 @@ export const PRESENCE_CONSTANTS = {
   headBad: HEAD_BAD,
   eyeGood: EYE_GOOD,
   eyeBad: EYE_BAD,
+  slumpGood: SLUMP_GOOD,
+  slumpBad: SLUMP_BAD,
 } as const;
 
 /**
@@ -149,6 +164,18 @@ export const PRESENCE_CONSTANTS = {
 const PITCH_FLOOR = 0.06;
 /** How far the head can turn off-axis before it stops being eye-line. */
 const YAW_TOLERANCE = 0.34;
+/**
+ * Yaw from the face itself (#188): frontal puts the nose midway between
+ * the eyes; a turned head walks it onto the near eye while the eye gap
+ * forshortens, so nose-offset-over-eye-gap grows exactly when it
+ * matters. Unlike the ear check this cannot self-disable — the first
+ * real calibration session scored a full 20s look-away as 100% eye
+ * contact because turning far enough hides the far ear, which switched
+ * the ear check off.
+ */
+const NOSE_OFF_MAX = 0.6;
+/** Losing an ear already implies yaw, so the tolerance halves. */
+const NOSE_OFF_MAX_ONE_EAR = 0.35;
 
 /** A look-away has to last this long before it's worth a timestamp. */
 const EYES_DOWN_MIN_S = 3;
@@ -219,6 +246,9 @@ interface FrameGeometry {
    */
   leftHand: Hand | null;
   rightHand: Hand | null;
+  /** Nose height above the shoulder line, in shoulder-widths; null when
+   *  the nose wasn't trackable this frame. The slump signal (#188). */
+  lift: number | null;
   eyeLine: boolean;
 }
 
@@ -270,8 +300,16 @@ export function geometry(f: PoseFrame): FrameGeometry | null {
   const headX = nose ? (nose.x - torsoX) / shoulderWidth : 0;
   const headY = nose ? (nose.y - torsoY) / shoulderWidth : 0;
 
+  /*
+   * A wrist estimated OUTSIDE the frame is the tracker guessing at an
+   * arm it cannot see, and it guesses restlessly — the first real
+   * calibration session counted 77 "gestures" a minute on a
+   * hands-in-pockets take (#188). Off-frame is unmeasurable, not slow.
+   */
+  const inFrame = (w: Point) =>
+    w.x >= -0.02 && w.x <= 1.02 && w.y >= -0.02 && w.y <= 1.02;
   const wrist = (w: Point | null): Hand | null =>
-    visible(w, 0.6)
+    visible(w, 0.6) && inFrame(w)
       ? { x: (w.x - torsoX) / shoulderWidth, y: (w.y - torsoY) / shoulderWidth }
       : null;
 
@@ -284,6 +322,7 @@ export function geometry(f: PoseFrame): FrameGeometry | null {
     headY,
     leftHand: wrist(f.leftWrist),
     rightHand: wrist(f.rightWrist),
+    lift: nose ? (torsoY - nose.y) / shoulderWidth : null,
     eyeLine: eyeLineUp(f, shoulderWidth),
   };
 }
@@ -309,10 +348,21 @@ export function eyeLineUp(f: PoseFrame, shoulderWidth: number): boolean {
 
   const lear = f.leftEar;
   const rear = f.rightEar;
-  if (visible(lear, 0.4) && visible(rear, 0.4)) {
+  const bothEars = visible(lear, 0.4) && visible(rear, 0.4);
+  if (bothEars) {
     const yaw =
-      (Math.abs(nose.x - lear.x) - Math.abs(nose.x - rear.x)) / shoulderWidth;
+      (Math.abs(nose.x - lear!.x) - Math.abs(nose.x - rear!.x)) / shoulderWidth;
     if (Math.abs(yaw) > YAW_TOLERANCE) return false;
+  }
+
+  // The check that survives a profile view (#188): the ear test above
+  // goes blind exactly when the head turns far, this one gets sharper.
+  const eyeGap = Math.abs(le.x - re.x);
+  if (eyeGap > 0.0001) {
+    const noseOff = Math.abs(nose.x - (le.x + re.x) / 2) / eyeGap;
+    if (noseOff > (bothEars ? NOSE_OFF_MAX : NOSE_OFF_MAX_ONE_EAR)) {
+      return false;
+    }
   }
   return true;
 }
@@ -330,6 +380,7 @@ export function scorePresence(frames: PoseFrame[]): PresenceResult {
       postureDrift: 0,
       headStability: 0,
       eyeLinePct: 0,
+      headLift: null,
       presenceScore: 0,
     },
     dimensions: [],
@@ -377,6 +428,13 @@ export function scorePresence(frames: PoseFrame[]): PresenceResult {
       meanAbsDeviation(geo.map((g) => g.headY))
   );
 
+  // The slump signal (#188): where the head is CARRIED, not how much it
+  // moved. Wander metrics score a motionless slouch as perfect posture.
+  const lifts = geo
+    .map((g) => g.lift)
+    .filter((l): l is number => l !== null);
+  const headLift = lifts.length > 0 ? round3(median(lifts)) : null;
+
   // --- eye line ------------------------------------------------------
   const eyeLinePct = Math.round(
     (geo.filter((g) => g.eyeLine).length / geo.length) * 100
@@ -390,13 +448,7 @@ export function scorePresence(frames: PoseFrame[]): PresenceResult {
       value: `${eyeLinePct}%`,
       note: `Head up and facing the camera in ${eyeLinePct}% of frames.`,
     },
-    {
-      key: "posture",
-      label: "Posture",
-      score: band(postureDrift, POSTURE_GOOD, POSTURE_BAD),
-      value: postureDrift.toFixed(2),
-      note: `Torso wandered ${postureDrift.toFixed(2)} shoulder-widths from centre on average.`,
-    },
+    postureDimension(postureDrift, headLift),
     {
       key: "gesture",
       label: "Gesture",
@@ -431,12 +483,38 @@ export function scorePresence(frames: PoseFrame[]): PresenceResult {
       postureDrift,
       headStability,
       eyeLinePct,
+      headLift,
       presenceScore,
     },
     dimensions,
     moments: findMoments(geo),
     usableFrames: geo.length,
     scorable: true,
+  };
+}
+
+/**
+ * Posture is the WORSE of two claims: how much the torso wandered, and
+ * how the head was carried (#188). Either alone lies — wander misses a
+ * held slump, slump misses restlessness. A rep whose nose never tracked
+ * falls back to wander alone rather than guessing.
+ */
+function postureDimension(
+  postureDrift: number,
+  headLift: number | null
+): PresenceDimension {
+  const wander = band(postureDrift, POSTURE_GOOD, POSTURE_BAD);
+  const slump = headLift === null ? null : band(headLift, SLUMP_GOOD, SLUMP_BAD);
+  const score = slump === null ? wander : Math.min(wander, slump);
+  const slumped = slump !== null && slump < wander;
+  return {
+    key: "posture",
+    label: "Posture",
+    score,
+    value: slumped ? headLift!.toFixed(2) : postureDrift.toFixed(2),
+    note: slumped
+      ? `Head carried at ${headLift!.toFixed(2)} shoulder-widths above the shoulders. Sit up and it rises.`
+      : `Torso wandered ${postureDrift.toFixed(2)} shoulder-widths from centre on average.`,
   };
 }
 
@@ -597,19 +675,20 @@ export function ringNote(state: RingState): string {
 
 // --- persistence shape -----------------------------------------------
 
-/** Row shape for `reps.delivery_metrics`. Snake case, five numbers, done. */
+/** Row shape for `reps.delivery_metrics`. Snake case, six numbers, done. */
 export function toRow(m: DeliveryMetrics) {
   return {
     gesture_rate: m.gestureRate,
     posture_drift: m.postureDrift,
     head_stability: m.headStability,
     eye_line_pct: m.eyeLinePct,
+    head_lift: m.headLift,
     presence_score: m.presenceScore,
   };
 }
 
 export function fromRow(
-  row: Record<string, number> | null | undefined
+  row: Record<string, number | null> | null | undefined
 ): DeliveryMetrics | null {
   if (!row) return null;
   return {
@@ -617,6 +696,8 @@ export function fromRow(
     postureDrift: row.posture_drift ?? 0,
     headStability: row.head_stability ?? 0,
     eyeLinePct: row.eye_line_pct ?? 0,
+    // Rows stored before the slump signal existed stay honestly null.
+    headLift: row.head_lift ?? null,
     presenceScore: row.presence_score ?? 0,
   };
 }

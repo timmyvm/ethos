@@ -351,6 +351,12 @@ function parseDelivery(raw: string | null): {
         postureDrift: num(m.postureDrift),
         headStability: num(m.headStability),
         eyeLinePct: Math.max(0, Math.min(100, num(m.eyeLinePct))),
+        // Nullable on purpose (#188): "the nose never tracked" is a
+        // different claim from "carried at zero height".
+        headLift:
+          typeof m.headLift === "number" && Number.isFinite(m.headLift)
+            ? m.headLift
+            : null,
         presenceScore: Math.max(0, Math.min(1000, Math.round(m.presenceScore))),
       },
       deliveryMoments: Array.isArray(parsed.moments)

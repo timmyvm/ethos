@@ -8,6 +8,7 @@ function metrics(over: Partial<DeliveryMetrics>): DeliveryMetrics {
     postureDrift: 0.018,
     headStability: 0.012,
     eyeLinePct: 88,
+    headLift: 0.93,
     presenceScore: 700,
     ...over,
   };
@@ -16,7 +17,10 @@ function metrics(over: Partial<DeliveryMetrics>): DeliveryMetrics {
 function takes(): LabeledTake[] {
   return [
     { label: "composed", metrics: metrics({}) },
-    { label: "slouch", metrics: metrics({ postureDrift: 0.11 }) },
+    {
+      label: "slouch",
+      metrics: metrics({ postureDrift: 0.11, headLift: 0.66 }),
+    },
     { label: "look-away", metrics: metrics({ eyeLinePct: 18 }) },
     { label: "hands-hidden", metrics: metrics({ gestureRate: 1 }) },
   ];
@@ -82,6 +86,21 @@ describe("proposeConstants", () => {
     );
     const p = proposeConstants(stiff)!;
     expect(p.warnings.join(" ")).toContain("gesture");
+  });
+
+  it("fits the slump band between the composed and slouch head heights", () => {
+    const p = proposeConstants(takes())!;
+    expect(p.slumpGood).toBeLessThan(0.93);
+    expect(p.slumpBad).toBeGreaterThanOrEqual(0.66);
+    expect(p.slumpGood).toBeGreaterThan(p.slumpBad);
+  });
+
+  it("warns when the slouch take's head sat as high as the composed one's", () => {
+    const shallow = takes().map((t) =>
+      t.label === "slouch" ? { ...t, metrics: metrics({ headLift: 0.91 }) } : t
+    );
+    const p = proposeConstants(shallow)!;
+    expect(p.warnings.join(" ")).toContain("Slouch harder");
   });
 
   it("calls out a handheld camera instead of fitting to the shake", () => {

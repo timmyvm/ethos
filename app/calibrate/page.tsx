@@ -184,6 +184,8 @@ export default function CalibratePage() {
         `const HEAD_BAD = ${proposal.headBad};`,
         `const EYE_GOOD = ${proposal.eyeGood};`,
         `const EYE_BAD = ${proposal.eyeBad};`,
+        `const SLUMP_GOOD = ${proposal.slumpGood};`,
+        `const SLUMP_BAD = ${proposal.slumpBad};`,
       ].join("\n")
     : "";
 
@@ -318,6 +320,7 @@ export default function CalibratePage() {
                   <th className="label-data pb-1.5 pr-3 font-normal">drift</th>
                   <th className="label-data pb-1.5 pr-3 font-normal">head</th>
                   <th className="label-data pb-1.5 pr-3 font-normal">eyes %</th>
+                  <th className="label-data pb-1.5 pr-3 font-normal">lift</th>
                   <th className="label-data pb-1.5 pr-3 font-normal">score</th>
                   <th className="pb-1.5" aria-label="Redo" />
                 </tr>
@@ -337,6 +340,9 @@ export default function CalibratePage() {
                     </td>
                     <td className="py-2 pr-3 tabular-nums">
                       {d.result.metrics.eyeLinePct}
+                    </td>
+                    <td className="py-2 pr-3 tabular-nums">
+                      {d.result.metrics.headLift ?? "—"}
                     </td>
                     <td className="py-2 pr-3 tabular-nums">
                       {d.result.metrics.presenceScore}

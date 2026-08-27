@@ -96,10 +96,17 @@ export default function CalibratePage() {
         return;
       }
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(() => {});
+      const video = videoRef.current;
+      if (!video) {
+        // Shouldn't happen now the element is always mounted; refusing
+        // beats a bench that records nothing and blames your framing.
+        stream.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+        setStatus("unavailable");
+        return;
       }
+      video.srcObject = stream;
+      await video.play().catch(() => {});
       setStatus("ready");
     } catch {
       setStatus("unavailable");
@@ -132,8 +139,12 @@ export default function CalibratePage() {
     const result = scorePresence(frames);
     setStatus("ready");
     if (!result.scorable) {
+      // Zero RAW frames is our failure (the video never delivered), not
+      // the user's framing. Say which one happened.
       setNote(
-        `Only ${result.usableFrames} usable frames. Fill the frame (head and shoulders) and go again.`
+        frames.length === 0
+          ? "The camera stream never reached the engine. Reload the page and try again."
+          : `Only ${result.usableFrames} usable frames. Fill the frame (head and shoulders) and go again.`
       );
       return;
     }
@@ -224,17 +235,24 @@ export default function CalibratePage() {
         </p>
       )}
 
+      {/* Always mounted: startCamera attaches the stream to this ref,
+          and an element that only renders AFTER the camera opens is an
+          element that wasn't there to attach to — no preview, and the
+          sampler reads a dead video as zero frames. Hidden, not absent,
+          until the stream is up. */}
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        playsInline
+        className={`mt-5 w-full -scale-x-100 rounded-[24px] border border-hairline ${
+          status === "ready" || status === "recording" ? "" : "hidden"
+        }`}
+      />
+
       {(status === "ready" || status === "recording") && (
         <>
-          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-          <video
-            ref={videoRef}
-            autoPlay
-            muted
-            playsInline
-            className="mt-5 w-full -scale-x-100 rounded-[24px] border border-hairline"
-          />
-
           {done.length < TAKES.length && (
             <div className="mt-4 rounded-[24px] border border-hairline bg-surface lift p-5">
               <div className="label-data">

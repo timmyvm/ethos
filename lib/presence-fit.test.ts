@@ -104,9 +104,11 @@ describe("proposeConstants", () => {
   });
 
   it("calls out a handheld camera instead of fitting to the shake", () => {
+    // Above the whole scoring band (which #189 widened to real-body
+    // values), the way an actual handheld session measured.
     const handheld = takes().map((t) =>
       t.label === "composed"
-        ? { ...t, metrics: metrics({ postureDrift: 0.13 }) }
+        ? { ...t, metrics: metrics({ postureDrift: 0.3 }) }
         : t
     );
     const p = proposeConstants(handheld)!;

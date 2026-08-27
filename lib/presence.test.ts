@@ -206,16 +206,19 @@ describe("posture and hands", () => {
  * failure gets its regression here.
  */
 describe("what the first real camera session taught (#188)", () => {
-  it("sees a slouch that was held from the very first frame", () => {
-    // No transition, no wander — the old, purely movement-based posture
-    // score gave this a perfect 100.
+  it("measures a slouch held from the first frame, without scoring it (#189)", () => {
+    // No transition, no wander. The lift signal SEES the held slump —
+    // and deliberately moves no score until a calibration separates it
+    // from arm position and torso turn (the #119 pattern: measured,
+    // surfaced, unscored).
     const r = scorePresence(
       frames({ seconds: 90, gestureEvery: 40, slouchFrom: 0 })
     );
-    const posture = r.dimensions.find((d) => d.key === "posture");
-    expect(posture!.score).toBeLessThan(50);
+    const upright = scorePresence(frames({ seconds: 90, gestureEvery: 40 }));
     expect(r.metrics.headLift).not.toBeNull();
-    expect(r.metrics.headLift!).toBeLessThan(0.8);
+    expect(r.metrics.headLift!).toBeLessThan(upright.metrics.headLift!);
+    const posture = r.dimensions.find((d) => d.key === "posture");
+    expect(posture!.score).toBe(100);
   });
 
   it("keeps an upright animated speaker's posture score high", () => {

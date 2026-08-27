@@ -125,15 +125,27 @@ const GESTURE_MIN_FRAMES = 4;
  *  side of a dropout aren't consecutive motion. */
 const MAX_SAMPLE_GAP_S = 0.25;
 
-const POSTURE_GOOD = 0.02;
-const POSTURE_BAD = 0.12;
-const HEAD_GOOD = 0.015;
-const HEAD_BAD = 0.08;
+/**
+ * Posture and head bands fitted from the first clean calibration
+ * session (Timothy, propped phone, 27 Aug — #189). n=1, so still
+ * provisional, but measured beats typed: the v1 guesses scored his
+ * ordinary head movement at 18/100.
+ */
+const POSTURE_GOOD = 0.038;
+const POSTURE_BAD = 0.228;
+const HEAD_GOOD = 0.088;
+const HEAD_BAD = 0.469;
 const EYE_GOOD = 85;
 const EYE_BAD = 30;
-/** Head carried high vs sunk into the shoulders (#188). The calibration
- *  bench fits these from the composed and slouch takes; until real
- *  takes land they are guesses like everything else here. */
+/**
+ * Head carried high vs sunk into the shoulders (#188) — MEASURED AND
+ * UNSCORED (#189, the #119 precedent). The first clean session showed
+ * shoulder-width is an unstable normalizer (pockets narrow it,
+ * gesturing widens it, turning foreshortens it), so lift did not
+ * separate a slouch from composed. It keeps being measured, persisted
+ * and shown on the bench; it moves no score until raw-frame analysis
+ * finds a signal that separates.
+ */
 const SLUMP_GOOD = 0.85;
 const SLUMP_BAD = 0.6;
 
@@ -494,27 +506,25 @@ export function scorePresence(frames: PoseFrame[]): PresenceResult {
 }
 
 /**
- * Posture is the WORSE of two claims: how much the torso wandered, and
- * how the head was carried (#188). Either alone lies — wander misses a
- * held slump, slump misses restlessness. A rep whose nose never tracked
- * falls back to wander alone rather than guessing.
+ * Posture scores WANDER only, for now. The slump half (#188) is
+ * measured and persisted but unscored (#189): the first clean
+ * calibration session showed `headLift` swinging with arm position and
+ * torso turn rather than with the slouch it was built to catch, and a
+ * dimension that punishes everyone is worse than one that misses a
+ * slump. Same call as #119: shown where honest, scored only once a
+ * calibration is earned.
  */
 function postureDimension(
   postureDrift: number,
   headLift: number | null
 ): PresenceDimension {
-  const wander = band(postureDrift, POSTURE_GOOD, POSTURE_BAD);
-  const slump = headLift === null ? null : band(headLift, SLUMP_GOOD, SLUMP_BAD);
-  const score = slump === null ? wander : Math.min(wander, slump);
-  const slumped = slump !== null && slump < wander;
+  void headLift; // measured, surfaced on the bench, not yet scored (#189)
   return {
     key: "posture",
     label: "Posture",
-    score,
-    value: slumped ? headLift!.toFixed(2) : postureDrift.toFixed(2),
-    note: slumped
-      ? `Head carried at ${headLift!.toFixed(2)} shoulder-widths above the shoulders. Sit up and it rises.`
-      : `Torso wandered ${postureDrift.toFixed(2)} shoulder-widths from centre on average.`,
+    score: band(postureDrift, POSTURE_GOOD, POSTURE_BAD),
+    value: postureDrift.toFixed(2),
+    note: `Torso wandered ${postureDrift.toFixed(2)} shoulder-widths from centre on average.`,
   };
 }
 

@@ -44,7 +44,7 @@ export default function GamesPage() {
 
   return (
     <main className="px-5 pb-24 pt-7">
-      <h1 className="font-display text-[27px]">Games</h1>
+      <h1 className="font-display text-[27px]">Tools</h1>
 
       <Link
         href="/boss"
@@ -114,6 +114,48 @@ export default function GamesPage() {
             </button>
           );
         })}
+      </div>
+
+      {/* The second boss and the analyzer: doors, same grammar. */}
+      <div className="mt-6 space-y-2.5">
+        <Link
+          href="/hostile"
+          className="press flex w-full items-center gap-3.5 rounded-[24px] border-[1.5px] border-hairline bg-surface p-4 text-left"
+        >
+          <span
+            className="font-display flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-sage-100 text-[17px] text-sage-800"
+            aria-hidden
+          >
+            ?
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[14.5px] font-extrabold">
+              Hostile Q&amp;A
+            </span>
+            <span className="block mt-0.5 text-[12.5px] leading-[1.45] text-stone-500">
+              Demos interrogates your take. Two questions, no notes.
+            </span>
+          </span>
+        </Link>
+        <Link
+          href="/upload"
+          className="press flex w-full items-center gap-3.5 rounded-[24px] border-[1.5px] border-hairline bg-surface p-4 text-left"
+        >
+          <span
+            className="font-display flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-terracotta-100 text-[17px] text-terracotta-800"
+            aria-hidden
+          >
+            ↑
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[14.5px] font-extrabold">
+              Upload a recording
+            </span>
+            <span className="block mt-0.5 text-[12.5px] leading-[1.45] text-stone-500">
+              A real meeting or a voice memo, through the same engine.
+            </span>
+          </span>
+        </Link>
       </div>
 
       {paywall && <Paywall reason={paywall} onClose={() => setPaywall(null)} />}

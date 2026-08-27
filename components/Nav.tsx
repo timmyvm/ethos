@@ -31,9 +31,16 @@ import {
  * 2022 redesign folded the tree INTO home and cut a tab doing it. The
  * freed slot is Games (#157), in Elevate's word for the same surface.
  */
+/*
+ * "Games" became "Tools" on 27 Aug (#184): with upload-and-analyze in
+ * the menu the tab stopped being only games, and Tools is the honest
+ * name for a room of drills, bosses and analyzers. The /games route and
+ * the icon identifiers keep their names: nobody reads code aloud and
+ * bookmarks live (#164's rule).
+ */
 const TABS = [
   { href: "/", label: "Today", Icon: IconToday },
-  { href: "/games", label: "Games", Icon: IconGames },
+  { href: "/games", label: "Tools", Icon: IconGames },
   { href: "/history", label: "Log", Icon: IconLog },
   { href: "/you", label: "You", Icon: IconYou },
 ];

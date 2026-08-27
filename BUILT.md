@@ -237,6 +237,15 @@ four are now closed and struck through.
 
 ## Traps — read this before debugging
 
+- **MediaPipe's `detectForVideo` timestamps are monotonic per LANDMARKER,
+  not per session — and the landmarker is a page singleton.** A sampler
+  that restarts its clock at zero hands the cached detector times it has
+  already seen; every call throws, the catch swallows it, and the session
+  produces zero frames with no symptom but an unscorable take. Found on
+  /calibrate's second take (27 Aug); the detect stamp now lives at module
+  level in `lib/pose-client.ts`. If pose ever reads zero frames on a
+  second session of anything, look here first.
+
 Each of these cost real time on 10 Aug. They look like product bugs and
 are not.
 

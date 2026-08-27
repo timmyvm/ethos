@@ -103,6 +103,17 @@ export interface PoseSampler {
  * running frame list so the live ring can read a trailing window without
  * a second detection pass.
  */
+/*
+ * detectForVideo demands timestamps that only ever increase for the
+ * LIFETIME OF THE LANDMARKER, and the landmarker is a page singleton.
+ * The stamp therefore lives here, at module level: a second sampler
+ * session that restarted its clock at zero handed the detector times it
+ * had already seen, every call threw into the catch below, and the
+ * session silently produced zero frames. First hit on /calibrate's
+ * second take; the same failure awaited any second video rep in a tab.
+ */
+let lastDetectStamp = -1;
+
 export function samplePose(
   video: HTMLVideoElement,
   landmarker: Landmarker,
@@ -113,9 +124,6 @@ export function samplePose(
   let raf = 0;
   let lastAt = -Infinity;
   let stopped = false;
-  // detectForVideo rejects a timestamp it has already seen, and rAF can
-  // fire twice inside one millisecond on a high-refresh display.
-  let lastStamp = -1;
 
   const tick = () => {
     if (stopped) return;
@@ -126,8 +134,12 @@ export function samplePose(
     if (video.readyState < 2) return;
     lastAt = now;
 
-    const stamp = Math.max(lastStamp + 1, Math.round(now - startedAt));
-    lastStamp = stamp;
+    // Page-monotonic for the detector (the +1 guards rAF firing twice
+    // inside one millisecond on a high-refresh display); the frame's
+    // own `t` stays relative to this session, which is what
+    // presence.ts means by "seconds since the rep started".
+    const stamp = Math.max(lastDetectStamp + 1, Math.round(now));
+    lastDetectStamp = stamp;
 
     let result: LandmarkerResult;
     try {
@@ -137,7 +149,7 @@ export function samplePose(
     }
 
     const lm = result.landmarks?.[0];
-    const t = stamp / 1000;
+    const t = Math.max(0, now - startedAt) / 1000;
     // A frame with nobody in it is still a frame — recorded as empty so
     // "you walked out of shot" is measurable rather than invisible.
     frames.push(

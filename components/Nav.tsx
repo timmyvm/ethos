@@ -52,6 +52,8 @@ const TABS = [
  */
 const BARE = [
   "/rep",
+  "/hostile",
+  "/calibrate",
   "/welcome",
   "/about",
   "/privacy",

@@ -318,6 +318,14 @@ export default function SettingsPage() {
           onChange={(v) => update({ reducedMotion: v })}
         />
       </div>
+      {/* The Presence bench (#187): four labeled takes tune the camera
+          score's thresholds to a real body. */}
+      <Link
+        href="/calibrate"
+        className="press mt-2.5 block text-[13px] font-semibold text-stone-500"
+      >
+        Calibrate the camera score →
+      </Link>
 
       <div className="section-title mt-7">Account</div>
       <div className="mt-2 rounded-[24px] border border-hairline bg-surface lift p-5">

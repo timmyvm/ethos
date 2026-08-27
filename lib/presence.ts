@@ -113,6 +113,21 @@ const EYE_GOOD = 85;
 const EYE_BAD = 30;
 
 /**
+ * The tunable set, exported READ-ONLY for the calibration page (#187)
+ * so it can print "measured vs current" without duplicating values.
+ * Tuning still happens here, in one place.
+ */
+export const PRESENCE_CONSTANTS = {
+  gestureZone: GESTURE_ZONE,
+  postureGood: POSTURE_GOOD,
+  postureBad: POSTURE_BAD,
+  headGood: HEAD_GOOD,
+  headBad: HEAD_BAD,
+  eyeGood: EYE_GOOD,
+  eyeBad: EYE_BAD,
+} as const;
+
+/**
  * Nose-below-eyes distance, in shoulder-widths, under which the head has
  * tipped far enough forward to read as looking down. Absolute rather
  * than relative to the user's own baseline on purpose: calibrating

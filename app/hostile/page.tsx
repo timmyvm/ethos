@@ -54,9 +54,15 @@ interface VerdictView {
 }
 
 export default function HostilePage() {
-  const [prompt, setPrompt] = useState<HostilePrompt>(
-    () => HOSTILE_PROMPTS[Math.floor(Math.random() * HOSTILE_PROMPTS.length)]
-  );
+  // Deterministic first render (the server prerenders this component),
+  // then a random claim on mount — a random initializer would hydrate
+  // against a different server pick.
+  const [prompt, setPrompt] = useState<HostilePrompt>(HOSTILE_PROMPTS[0]);
+  useEffect(() => {
+    setPrompt(
+      HOSTILE_PROMPTS[Math.floor(Math.random() * HOSTILE_PROMPTS.length)]
+    );
+  }, []);
   const [phase, setPhase] = useState<Phase>("intro");
   const [seconds, setSeconds] = useState(0);
   const [error, setError] = useState<string | null>(null);

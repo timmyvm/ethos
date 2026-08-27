@@ -22,11 +22,10 @@ import {
   ANSWER_SECONDS,
   FALLBACK_QUESTIONS,
   HOSTILE_ROUNDS,
-  hostileQuestion,
-  hostileVerdict,
   promptById,
   type HostileContext,
 } from "@/lib/hostile";
+import { hostileQuestion, hostileVerdict } from "@/lib/hostile-server";
 import { isPremium } from "@/lib/db";
 import { computeMetrics } from "@/lib/metrics";
 import { weekStart } from "@/lib/level";

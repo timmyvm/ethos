@@ -9,7 +9,7 @@ import {
   type ProgressInput,
 } from "./progress";
 import { MAX_STARS } from "./path";
-import type { StreakState } from "./streak";
+import { MAX_EQUIPPED_FREEZES, type StreakState } from "./streak";
 
 const streak = (over: Partial<StreakState> = {}): StreakState => ({
   current: 0,
@@ -143,9 +143,16 @@ describe("nextMilestones", () => {
     ).toBe("Ethos 700");
   });
 
-  it("stops offering freezes once both slots are full", () => {
-    const ms = nextMilestones(input({ freezesEquipped: 2 }));
+  it("stops offering freezes once every slot is full", () => {
+    const ms = nextMilestones(input({ freezesEquipped: MAX_EQUIPPED_FREEZES }));
     expect(ms.find((m) => m.kind === "freeze")).toBeUndefined();
+  });
+
+  it("keeps offering a freeze while a slot is open", () => {
+    const ms = nextMilestones(
+      input({ freezesEquipped: MAX_EQUIPPED_FREEZES - 1 })
+    );
+    expect(ms.find((m) => m.kind === "freeze")).toBeDefined();
   });
 });
 

@@ -16,7 +16,6 @@ export default function SignUpPage() {
     <AuthForm
       mode="signup"
       title="Keep what you've earned."
-      action="Signing up"
       submitLabel="Create my account"
       onSubmit={createAccount}
       footer={

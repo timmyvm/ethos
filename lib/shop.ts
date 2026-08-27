@@ -42,7 +42,7 @@ export const SHOP: ShopItem[] = [
     price: 14,
     kind: "utility",
     blurb:
-      "Covers one missed day automatically. Two is the most you can hold.",
+      "Covers one missed day automatically. Three is the most you can hold.",
   },
   {
     id: "pose_speaking",

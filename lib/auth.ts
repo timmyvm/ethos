@@ -17,8 +17,11 @@
  * prove ownership from the inbox, then set the password on an identity
  * that can carry it.
  *
- * Email and password only. No social login — one less dependency and one
- * less consent screen.
+ * Email + password, plus Google (27 Aug, Timothy's call — the provider
+ * is configured in the Supabase dashboard). The anonymous promise holds
+ * on the Google path too: an anonymous session with recordings LINKS the
+ * Google identity to the same auth user rather than signing into a new
+ * one, so nothing migrates and nothing can be lost migrating.
  */
 
 import { supabaseBrowser } from "./supabase-browser";
@@ -174,6 +177,43 @@ export async function createAccount(
   return { ok: true, checkInbox: true };
 }
 
+/**
+ * Google, both jobs. On /signup an anonymous session with progress
+ * LINKS the Google identity to the user its reps already point at —
+ * signing in fresh there would orphan them. On /signin the intent is
+ * "get into my existing account", so it's a plain OAuth sign-in and the
+ * form's warning about this device's recordings covers the trade.
+ *
+ * Both calls navigate away to Google on success, so `ok: true` here
+ * means "the redirect is happening", not "signed in".
+ */
+export async function signInWithGoogle(
+  mode: "signup" | "signin"
+): Promise<AuthResult> {
+  const db = supabaseBrowser();
+  if (!db) return { ok: false, error: "Accounts aren't configured yet." };
+
+  const redirectTo = `${siteUrl()}/auth/callback`;
+  if (mode === "signup") {
+    const { data } = await db.auth.getUser();
+    if (data.user?.is_anonymous) {
+      const { error } = await db.auth.linkIdentity({
+        provider: "google",
+        options: { redirectTo },
+      });
+      if (error) return { ok: false, error: humanise(error.message) };
+      return { ok: true };
+    }
+  }
+
+  const { error } = await db.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo },
+  });
+  if (error) return { ok: false, error: humanise(error.message) };
+  return { ok: true };
+}
+
 export async function signIn(
   email: string,
   password: string
@@ -283,6 +323,14 @@ function humanise(message: string): string {
   }
   if (m.includes("rate limit") || m.includes("too many")) {
     return "Too many tries in a row. Give it a minute.";
+  }
+  if (m.includes("manual linking")) {
+    // linkIdentity needs the dashboard's manual-linking toggle. The
+    // person on this screen can't flip it, so offer the path that works.
+    return "Google can't attach to this device's recordings yet. Save with your email instead.";
+  }
+  if (m.includes("identity is already linked")) {
+    return "That Google account already belongs to another Ethos account. Sign in with it instead.";
   }
   if (m.includes("anonymous user")) {
     // Only reachable if a password update runs before the email is

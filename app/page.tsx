@@ -107,14 +107,16 @@ export default function Home() {
       .then((s) => setAnon(s.signedIn && s.anonymous))
       .catch(() => {});
 
-    fetchProfile()
-      .then((p) => setPremium(p?.premium ?? false))
-      .catch(() => {});
-
-    /* A bought pose, if there is one. `null` until the ledger answers,
-       so the default never flashes over the thing someone paid for. */
-    fetchCoinLedger()
-      .then((l) => setDemos(poseArt(readPrefs().pose, ownedFrom(l))))
+    /* A bought pose, if there is one. `null` until both the ledger and
+       the profile answer, so the default never flashes over the thing
+       someone paid for. The account's equipped pose wins over the
+       device's copy — it's what follows a purchase to a new phone. */
+    Promise.all([fetchProfile(), fetchCoinLedger()])
+      .then(([p, l]) => {
+        setPremium(p?.premium ?? false);
+        const pose = p?.equipped_pose ?? readPrefs().pose;
+        setDemos(poseArt(pose, ownedFrom(l)));
+      })
       .catch(() => {});
 
     void load();
@@ -156,7 +158,18 @@ export default function Home() {
           real head mark lands. */}
       <div className="flex items-center justify-between">
         <span className="font-display text-[25px]">ethos</span>
-        <StreakBadge streak={streak} />
+        <div className="flex items-center gap-2">
+          {/* Earned stars, beside the streak — the two standing scores
+              (27 Aug, Timothy's call: stars were buried in the score
+              card). Sage because earned; a wash, never a tap. */}
+          {totalStars(starMap) > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-sage-100 px-[13px] py-1.5 text-[13.5px] font-bold text-sage-800">
+              <span aria-hidden>★</span>
+              {totalStars(starMap)}
+            </span>
+          )}
+          <StreakBadge streak={streak} />
+        </div>
       </div>
 
       {rescued > 0 && (

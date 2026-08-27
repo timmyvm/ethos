@@ -127,6 +127,9 @@ export interface ProfileRow {
   display_name: string | null;
   premium: boolean;
   premium_until: string | null;
+  /** Which owned Demos pose sits on the floor card. Synced since 27 Aug
+   *  so a bought cosmetic follows the account across devices. */
+  equipped_pose: string | null;
 }
 
 /**
@@ -139,7 +142,7 @@ export async function fetchProfile(): Promise<ProfileRow | null> {
   if (!db) return null;
   const { data } = await db
     .from("profiles")
-    .select("display_name, premium, premium_until")
+    .select("display_name, premium, premium_until, equipped_pose")
     .maybeSingle();
   const row = (data as ProfileRow | null) ?? null;
   const stored = row?.premium ?? false;
@@ -147,7 +150,29 @@ export async function fetchProfile(): Promise<ProfileRow | null> {
     display_name: row?.display_name ?? null,
     premium: isUnlocked(stored),
     premium_until: row?.premium_until ?? null,
+    equipped_pose: row?.equipped_pose ?? null,
   };
+}
+
+/**
+ * Which owned pose sits on the floor card. Upserted like the display
+ * name (profiles are created lazily); `null` puts the default back.
+ * localStorage keeps a copy so the card paints right on first render,
+ * but the account is the truth — this is what makes a cosmetic follow
+ * its owner to the next device.
+ */
+export async function updateEquippedPose(
+  pose: string | null
+): Promise<boolean> {
+  const db = supabaseBrowser();
+  if (!db) return false;
+  const { data } = await db.auth.getUser();
+  const uid = data.user?.id;
+  if (!uid) return false;
+  const { error } = await db
+    .from("profiles")
+    .upsert({ user_id: uid, equipped_pose: pose }, { onConflict: "user_id" });
+  return !error;
 }
 
 /** Display names cap at 24 characters: the league row is the widest place one shows. */

@@ -116,7 +116,8 @@ describe("freezes", () => {
     expect(freezesEarned(6)).toBe(0);
     expect(freezesEarned(7)).toBe(1);
     expect(freezesEarned(20)).toBe(2);
-    expect(freezesEarned(200)).toBe(2);
+    // Capped at the equip maximum (3 since 27 Aug), however long the run.
+    expect(freezesEarned(200)).toBe(3);
   });
 
   it("derives the balance from earned minus spent", () => {

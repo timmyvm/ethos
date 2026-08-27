@@ -84,25 +84,21 @@ Hard rules:
   Orange as decoration is banned — scarcity is what makes it command.
 - Warm neutrals only. No pure black (#000), no pure white (#FFF),
   no cool grays. Stone scale, not slate/gray.
-- Dark mode later; do not design it before the loop retains (vision.md
-  build order applies to brand work too).
+- Dark mode SHIPPED (#64, semantic tokens; #167 ramp-step accent swaps).
+  Light stays the default; the old "dark mode later" hold is done.
 
 ## Typography
 
-- Headings / numbers: **Fraunces**, weights 600/700, tabular figures on.
-  NOT Inter, NOT the Tailwind default stack for display. The metrics
-  (filler count, WPM, streak) are the hero — set them big.
-  *Was "a characterful grotesk — Space Grotesk or General Sans" until
-  11 Aug.* The grotesk brief was right about character and wrong about
-  what carries it here: Space Grotesk's "1" has a narrower advance than
-  its glyph, so "11", "12", "31" and "1189" collide, and tabular figures
-  made it worse rather than better. A display face whose numerals are its
-  weakest feature cannot serve a product whose identity is numbers.
-  Fraunces keeps the character, reads warm against the terracotta and
-  cream rather than techy, and suits a name that means credibility earned
-  rather than claimed. Serifs need far less tracking than a grotesque —
-  −0.008em, not −0.022em.
-- Body: clean system-adjacent sans is fine (Inter acceptable here only).
+- Headings / numbers: **Caprasimo**, weight 400 ONLY (it ships one
+  weight — never fake-bold it; globals.css pins this), tabular figures
+  on (DECISIONS #166, the Organic reskin handoff). The metrics (filler
+  count, WPM, streak) are the hero — set them big.
+  *Was Fraunces 600/700 from 11–25 Aug, and Space Grotesk before that*
+  (#114, then #166): the grotesk's numerals collided, the serif carried
+  the warmth, and Caprasimo keeps that warmth at the reskin's rounder,
+  friendlier register.
+- Body: **Figtree**; `.label-data` is Figtree 700 uppercase for data
+  labels. Space Mono is retired (#166). No new faces.
 - Numbers are the brand. Day-1 vs day-30 comparisons should look like
   a training log, not a report card.
 

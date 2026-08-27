@@ -9,7 +9,6 @@ export default function SignInPage() {
     <AuthForm
       mode="signin"
       title="Welcome back."
-      action="Signing in"
       submitLabel="Sign in"
       onSubmit={signIn}
       footer={

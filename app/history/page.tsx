@@ -126,7 +126,7 @@ export default function HistoryPage() {
 
   // The 7-day window used to apply to everyone, premium included — the
   // limit was a constant rather than a gate. It reads the entitlement now.
-  const days = limit(FREE_DAYS);
+  const days = limit(FREE_DAYS, premium);
   const cutoff = days === null ? -Infinity : Date.now() - days * 86_400_000;
   const visible = reps.filter((r) => new Date(r.created_at).getTime() >= cutoff);
   const hidden = reps.length - visible.length;

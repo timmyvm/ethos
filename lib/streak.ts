@@ -10,8 +10,10 @@
  * not a 3-day streak you didn't do.
  */
 
-/** DECISIONS #14 — two equipped, maximum. */
-export const MAX_EQUIPPED_FREEZES = 2;
+/** Three equipped, maximum (27 Aug, Timothy's call — raised from #14's
+ *  two; the cap exists so infinite freezes can't kill the loss aversion
+ *  that makes streaks work, and three still can't bridge a real absence). */
+export const MAX_EQUIPPED_FREEZES = 3;
 
 export interface StreakState {
   current: number;

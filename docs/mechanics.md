@@ -90,12 +90,13 @@ feels real). Eight dimensions in two integrity tiers; weights sum to 1000.
 
 - **Daily streak** advances on any completed rep. Boss modes multiply.
 - **Currency** (name TBD — earn via stars, streaks, boss wins)
-- **Shop:** streak freezes, lesson retries (re-record without losing
-  the attempt log), stress mods, cosmetic progress-card themes
+- **Shop:** streak freezes and cosmetics (Demos poses). Retakes are
+  free for everyone (27 Aug — retries left the shop, #170 era call);
+  stress mods ship free with XP multipliers rather than as purchases.
 - **Hard rule — no pay-to-win:** currency and money can NEVER buy
   stars, streak length, or score improvements. The numbers are the
   product; sell convenience and challenge, never the truth.
-- Freezes capped (e.g. 2 equipped max) — infinite freezes kill the
+- Freezes capped (3 equipped max, #174) — infinite freezes kill the
   loss aversion that makes streaks work.
 
 ## Accounts, XP, leaderboard, history (added 9 Aug 2026)
@@ -109,11 +110,11 @@ feels real). Eight dimensions in two integrity tiers; weights sum to 1000.
   CRITICAL separation of concerns: XP measures showing up (volume);
   stars measure quality (thresholds). They never mix, and XP can never
   be bought — the no-pay-to-win rule applies.
-- **Leaderboard:** weekly XP league of ~20 users (Duolingo league
-  pattern), resets Monday. Display names only, no real names surfaced.
-  Because it ranks XP (effort) not stars (quality), competing hard
-  can't corrupt the scores — grinding reps is exactly the behavior we
-  want the leaderboard to reward.
+- **Leaderboard:** SHELVED 27 Aug (#173) until there are users to rank.
+  The design when it returns: weekly XP league of ~20 users (Duolingo
+  league pattern), resets Monday, display names only. Because it ranks
+  XP (effort) not stars (quality), competing hard can't corrupt the
+  scores. XP and `xp_events` keep accruing meanwhile.
 - **History:** the training log (design-direction layout B, repurposed
   as a secondary screen). Every rep is a row — date, drill, stars,
   fillers, WPM, held pauses — tapping opens full results including the
@@ -124,7 +125,9 @@ feels real). Eight dimensions in two integrity tiers; weights sum to 1000.
 Coach register only (brand.md voice). Loss-aversion framing is
 allowed ("streak ends in 3h"); guilt and insecurity are not
 (no sad mascots, no "you're falling behind everyone").
-One notification per day max. Quiet hours default 10pm–7am.
+The 1/day cap is lifted (#179). Two rules survive it and are not
+negotiable: quiet hours (default 10pm–7am) bind every send, and a
+reminder never fires about a day whose practice is already done (#143).
 
 ## Monetization
 
@@ -142,8 +145,7 @@ Premium:
 - Personal lexicon: full history of word swaps and base phrases
   (free tier gets the daily swap, not the archive)
 - All boss modes (Cold Topic, Debate, Hostile Q&A)
-- Stress mods unlocked for purchase
-- Unlimited retries
+- Unlimited judged analyses (free meters at 1/day, rollover 3)
 
 Pricing — placeholder until one research pass (competitor scan:
 Elevate, Yoodli, Duolingo Super, AUD app-store norms):

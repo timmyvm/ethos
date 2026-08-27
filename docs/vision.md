@@ -83,8 +83,9 @@ gets rejected regardless of how well it converts.
    ~5 minutes is fighting the habit loop and loses.
 4. **Progress must be visible.** Day 1 vs day 30 comparison is the core
    retention asset and the core marketing asset. Same artifact.
-5. **The founder is user zero.** If the loop doesn't hold Timothy for 14
-   straight days, nothing ships wider. Dogfood is the QA.
+5. **The founder is user zero.** The 14-day gate is WAIVED (Timothy,
+   27 Aug — DECISIONS #178); dogfood remains the QA wherever a
+   calibration constant needs a real recording.
 
 ## Voice & tone
 

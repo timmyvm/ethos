@@ -111,7 +111,7 @@ twice, once `target: production`.)
 |---|---|---|
 | Paywall sheet | `components/Paywall.tsx` | Prices are placeholders pending the research pass. |
 | Free-tier limits | `app/history` (7 days), `app/you` (3 lexicon), boss library | Constants at the top of each file. |
-| Entitlement gate | `lib/entitlement.ts`, `profiles.premium` | **Everything is free right now** — `EVERYTHING_FREE` in `lib/entitlement.ts` is the single switch (DECISIONS #96). The tiers underneath are intact, tested, and still read the stored flag, so turning the paywall back on is one boolean. |
+| Entitlement gate | `lib/entitlement.ts`, `profiles.premium` | **Premium is LIVE as of 27 Aug** (#170) — `EVERYTHING_FREE` is off, `/api/redeem` sets `profiles.premium` from an invite code in `PREMIUM_UNLOCK_CODE` (server env; must be set in Vercel or codes 503). `limit()` is account-aware now. |
 | Judged-tier cap | `app/api/analyze/route.ts`, `lib/metering.ts` | Free 1/day, rollover 3. Server-enforced; the client can ask, only the route decides. |
 | Boss mode | `app/boss/page.tsx`, `lib/cold-topics.ts` | Records through the real engine and gets fact-checked. Free = this week's topic once; premium = the library. |
 | Stress mods | `lib/stress-mods.ts`, `components/ModPicker.tsx` | Four mods with real effects. Medium — the picker appears on home and boss. |
@@ -155,21 +155,24 @@ four are now closed and struck through.
   there we can only fire while a tab is open — settings says so in
   plain words rather than implying an alarm that won't ring. A real
   cross-platform reminder needs web push (a server) or a native wrap.
-- **The league has no roster.** It shows your own weekly XP and says so.
+- ~~The league has no roster.~~ **Shelved 27 Aug (#173).** The card is
+  off /you; XP and `xp_events` keep accruing for whenever it returns.
 - **The shop's cosmetics are three poses and an equip switch.** Buying one
-  swaps the Demos on the floor card, and the pick lives in localStorage
-  (the ledger proves what you *own*; the pref only chooses between things
-  it proves, so a hand-edited value falls back to the default). It does
-  not sync across devices. Nobody has bought one yet, so the price curve
-  — 8/8/12 against 14 for the freeze — is a guess in the same bucket as
-  every other calibration constant.
+  swaps the Demos on the floor card. The pick syncs via
+  `profiles.equipped_pose` since 27 Aug (#175, migration 0007), with
+  localStorage as the first-paint cache; the ledger still proves what you
+  *own*, so a hand-edited value falls back to the default. Nobody has
+  bought one yet, so the price curve — 8/8/12 against 14 for the freeze —
+  is a guess in the same bucket as every other calibration constant.
 - **Coins earned before 11 Aug were never actually granted.** The grant
   had been failing silently since it shipped (see Traps). `syncCoins` is
   derived from rep dates rather than incremented, so the *next* load
   after the fix back-pays every unpaid day — nothing was lost, but no
   balance was real until then either.
-- **Premium isn't purchasable.** `profiles.premium` is the gate every
-  check reads, and it works — but nothing sets it except SQL. No Stripe.
+- **Premium is code-unlocked, not purchasable.** `profiles.premium` is
+  the gate every check reads; `/api/redeem` sets it from an invite code
+  (#170). Still no Stripe — the paywall's plan cards route to the code
+  path and say so.
 - **Every calibration constant is a v1 guess.** Star thresholds, the Index
   curve, the boss accuracy penalties (18 confident / 6 hedged), the XP
   multipliers, the substance gate (20 words / 0.3 distinct / 0.4 repeat),
@@ -223,16 +226,10 @@ four are now closed and struck through.
   non-fatal: a build with no network ships an app that reports Voice +
   Video unavailable rather than failing. If the toggle is greyed out on
   a deploy, check that first.
-- **Supabase custom SMTP is misconfigured, measured 12 Aug.** The
-  email-attach call (`PUT /user`) hangs for exactly GoTrue's 10s
-  deadline and returns 504 — the signature of an SMTP connection that
-  never opens (wrong port/host; a wrong password fails fast instead).
-  Every other auth call completes in 3–40ms. Fix is in the dashboard:
-  Auth → Emails → SMTP Settings, expect port 587 + STARTTLS, or toggle
-  custom SMTP off to fall back to the rate-limited built-in sender for
-  testing. `docs/email.md` has the intended settings. Note the sends
-  often COMPLETE after the timeout has already been returned, so the
-  mail may land even when the user saw an error.
+- ~~Supabase custom SMTP is misconfigured.~~ **Fixed in the dashboard,
+  27 Aug (Timothy).** The client-side timeout handling in `lib/auth.ts`
+  (route a 504 to check-inbox with the slow-mail caveat) stays, because
+  it is the honest handling of any future SMTP wobble.
 - **The Supabase secret key needs rotating.** It transited chat during the
   10 Aug session. It lives only in `.env.local` (gitignored) and Vercel env
   settings, but it should be rolled.
@@ -311,7 +308,7 @@ are not.
 
 ## Test coverage
 
-317 tests across metrics and the substance gate, index scoring, coach
+750 tests (27 Aug) across metrics and the substance gate, index scoring, coach
 validation, boss accuracy, rep configuration, stress mods, drills, path,
 streak and freezes, level, achievements, insights, reminders, scheduling,
 rewards, the analyze route, Presence, judged metering, coins, auth rules

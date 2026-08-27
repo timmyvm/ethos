@@ -86,6 +86,7 @@ export default function YouPage() {
       over a name that merely hasn't arrived. */
   const [name, setName] = useState<string | null>(null);
   const [nameKnown, setNameKnown] = useState(false);
+  const [premium, setPremium] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [draft, setDraft] = useState("");
   const [nameFailed, setNameFailed] = useState(false);
@@ -146,6 +147,7 @@ export default function YouPage() {
       .then((p) => {
         setName(p?.display_name ?? null);
         setNameKnown(true);
+        setPremium(p?.premium ?? false);
       })
       .catch(() => {});
     const db = supabaseBrowser();
@@ -478,23 +480,9 @@ export default function YouPage() {
         </ErrorLine>
       )}
 
-      {/* Weekly league — the roster fills once there are other trainees. */}
-      <div className="section-title mt-7">Weekly league</div>
-      <div className="mt-2 flex items-start justify-between">
-        <div>
-          <div className="text-[14.5px] font-semibold">Stone League</div>
-          <div className="text-[12.5px] text-stone-500">Resets Monday</div>
-        </div>
-        <div className="text-right">
-          <div className="font-display text-[21px] leading-none">
-            {xp.week}
-          </div>
-          <div className="label-data mt-1">your xp</div>
-        </div>
-      </div>
-      <p className="mt-2 text-[12.5px] text-stone-500">
-        Opens once there are 20 trainees to rank.
-      </p>
+      {/* The league card sat here until 27 Aug — shelved (Timothy's
+          call) until there are users to rank. lib/level.ts and xp_events
+          stay; a future league reads them unchanged. */}
 
       {/* Personal lexicon — the supply layer's archive (DECISIONS #12) */}
       <div className="section-title mt-7">Your lexicon</div>
@@ -505,7 +493,7 @@ export default function YouPage() {
       ) : (
         <>
           <div className="mt-1">
-            {lexicon.slice(0, limit(FREE_LEXICON) ?? lexicon.length).map((l) => (
+            {lexicon.slice(0, limit(FREE_LEXICON, premium) ?? lexicon.length).map((l) => (
               <div
                 key={l.id}
                 className="flex items-center gap-3 border-b border-hairline py-3 text-[14px]"
@@ -538,7 +526,7 @@ export default function YouPage() {
             </div>
           )}
 
-          {limit(FREE_LEXICON) !== null && lexicon.length > FREE_LEXICON && (
+          {limit(FREE_LEXICON, premium) !== null && lexicon.length > FREE_LEXICON && (
             <button
               onClick={() => setPaywall("Full lexicon · premium")}
               className="mt-2.5 min-h-11 w-full rounded-full border border-terracotta-100 bg-terracotta-50 px-5 py-3 text-[13.5px] font-semibold"

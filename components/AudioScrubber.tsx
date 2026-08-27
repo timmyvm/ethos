@@ -136,7 +136,7 @@ export function AudioScrubber({
         ))}
       </div>
       <p className="mt-2 text-[11.5px] text-stone-400">
-        Amber bands are silence you held. Tap a word to hear the moment.
+        Sage bands are silence you held. Tap a word to hear the moment.
       </p>
     </div>
   );

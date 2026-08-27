@@ -10,8 +10,10 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { readable, readFailure } from "@/lib/load";
 import {
   fetchCoinLedger,
+  fetchProfile,
   fetchReps,
   spendCoins,
+  updateEquippedPose,
   type RepRow,
 } from "@/lib/client-data";
 import { balance, type CoinRow } from "@/lib/coins";
@@ -73,7 +75,14 @@ export default function ShopPage() {
   }, []);
 
   useEffect(() => {
+    // The local copy paints first; the account's answer wins when it
+    // lands, because the account is what follows you to a new device.
     setPose(readPrefs().pose);
+    fetchProfile()
+      .then((p) => {
+        if (p) setPose(p.equipped_pose ?? null);
+      })
+      .catch(() => {});
     void refresh();
   }, [refresh]);
 
@@ -81,6 +90,7 @@ export default function ShopPage() {
   function equip(id: string | null) {
     writePrefs({ pose: id });
     setPose(id);
+    void updateEquippedPose(id);
     buzz(15);
   }
 

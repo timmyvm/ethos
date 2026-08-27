@@ -11,6 +11,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { AudioScrubber } from "@/components/AudioScrubber";
 import { Coin } from "@/components/Coin";
 import { GainsRow } from "@/components/GainsRow";
 import { ModeToggle } from "@/components/ModeToggle";
@@ -222,6 +223,8 @@ function RepScreen() {
   const [heldS, setHeldS] = useState(0);
   const [presence, setPresence] = useState<PresenceResult | null>(null);
   const [clipUrl, setClipUrl] = useState<string | null>(null);
+  /** The recording itself, held locally so the debrief can replay it. */
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [paywall, setPaywall] = useState<string | null>(null);
   const [repCount, setRepCount] = useState<number | null>(null);
   /**
@@ -496,6 +499,7 @@ function RepScreen() {
         resolve(new Blob(r.chunks, { type: r.recorder.mimeType }));
       r.recorder.stop();
     });
+    setAudioUrl(URL.createObjectURL(blob));
 
     // The loudness envelope, captured alongside the meter. This is what
     // lets the engine tell a silent gap from one the mic heard a sound
@@ -857,6 +861,11 @@ function RepScreen() {
       if (clipUrl) URL.revokeObjectURL(clipUrl);
     };
   }, [clipUrl]);
+  useEffect(() => {
+    return () => {
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+    };
+  }, [audioUrl]);
 
   if (phase === "results" && result) {
     return (
@@ -870,6 +879,7 @@ function RepScreen() {
           tomorrow={tomorrow}
           presence={presence}
           clipUrl={clipUrl}
+          audioUrl={audioUrl}
           premium={premium}
           coined={coined}
           anonymous={anon}
@@ -1297,6 +1307,7 @@ function Results({
   tomorrow,
   presence,
   clipUrl,
+  audioUrl,
   premium,
   coined,
   anonymous,
@@ -1313,6 +1324,7 @@ function Results({
   tomorrow: NextFocus | null;
   presence: PresenceResult | null;
   clipUrl: string | null;
+  audioUrl: string | null;
   premium: boolean;
   coined: boolean;
   anonymous: boolean;
@@ -1441,6 +1453,21 @@ function Results({
             <p className="mt-2 text-[12.5px] leading-relaxed text-stone-400">
               It still counted toward your streak.
             </p>
+          </div>
+        )}
+
+        {/* Hear it back, right under the words it produced. The most
+            honest feedback in the product: the evidence, replayable,
+            with every filler tappable (vision.md: claims trace to
+            timestamps). Local object URL, dropped when you leave. */}
+        {section === "words" && audioUrl && (
+          <div className="mt-4">
+            <AudioScrubber
+              src={audioUrl}
+              durationS={result.metrics.durationS}
+              fillers={result.metrics.fillers}
+              pauses={result.metrics.pauses}
+            />
           </div>
         )}
 

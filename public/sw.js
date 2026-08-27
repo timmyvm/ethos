@@ -4,7 +4,7 @@
  * /api/analyze is never cached — a rep that can't reach the engine
  * should fail honestly rather than return stale numbers.
  */
-const CACHE = "ethos-v5";
+const CACHE = "ethos-v6";
 
 const SHELL = [
   "/",
@@ -12,6 +12,8 @@ const SHELL = [
   "/history",
   "/you",
   "/boss",
+  "/hostile",
+  "/upload",
   "/settings",
   "/demos.webp",
   "/demos-speaking.webp",
@@ -44,6 +46,31 @@ self.addEventListener("activate", (e) => {
         Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
       )
       .then(() => self.clients.claim())
+  );
+});
+
+/**
+ * A server-sent reminder (web push). The payload carries the words; the
+ * server already decided the honest day and hour (/api/push/cron), so
+ * this only has to show it.
+ */
+self.addEventListener("push", (e) => {
+  let payload = {
+    title: "Ethos",
+    body: "Five minutes. One prompt. Take the floor.",
+    url: "/rep",
+  };
+  try {
+    payload = { ...payload, ...e.data.json() };
+  } catch {}
+  e.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      tag: "ethos-daily",
+      data: { url: payload.url },
+    })
   );
 });
 

@@ -1,0 +1,20 @@
+# The reminder scheduler (DECISIONS #186). Vercel Hobby crons are
+# daily-only, so GitHub fires the hourly tick instead: the endpoint does
+# all the deciding (local hour, quiet hours, already-practiced days) and
+# a tick where nobody qualifies sends nothing. Requires the CRON_SECRET
+# repository secret to match the Vercel env var of the same name.
+name: push-cron
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Tick the reminder cron
+        run: |
+          curl -sS --fail-with-body --max-time 55 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://speakethos.com/api/push/cron"

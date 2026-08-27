@@ -17,6 +17,12 @@ npm test                     # metrics engine unit tests
   rep still returns real numbers with a deterministic coach line.
 - Supabase vars — optional. Run `supabase/migrations/0001_schema_v1.sql`
   against a project to store reps; without them nothing persists.
+- `PREMIUM_UNLOCK_CODE` — the invite code `/api/redeem` accepts while
+  there's no payment processor. Unset = codes are off.
+- VAPID + `CRON_SECRET` vars — real (server-sent) reminders. Generate the
+  keypair with `npx web-push generate-vapid-keys`, set all three in
+  Vercel, and add `CRON_SECRET` as a GitHub repo secret so
+  `.github/workflows/push-cron.yml` can tick `/api/push/cron` hourly.
 
 Phone testing needs HTTPS for mic access — deploy to Vercel (set the same
 env vars there) or tunnel localhost. Once deployed, "Add to Home Screen"

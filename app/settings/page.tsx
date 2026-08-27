@@ -16,6 +16,8 @@ import { applyTheme } from "@/components/Theme";
 import {
   armReminder,
   cancelReminder,
+  currentTier,
+  disarmPush,
   nextFireTime,
   reminderTier,
   reminderTierNote,
@@ -75,7 +77,12 @@ export default function SettingsPage() {
   useEffect(() => {
     setPrefs(readPrefs());
     if (typeof Notification !== "undefined") setPerm(Notification.permission);
+    // Capability now, then the tier that's ACTUALLY live (push needs an
+    // async look at the subscription) when it answers.
     setTier(reminderTier());
+    currentTier()
+      .then(setTier)
+      .catch(() => {});
     supabaseBrowser()
       ?.auth.getUser()
       .then(({ data }) => setEmail(data.user?.email ?? null))
@@ -97,6 +104,8 @@ export default function SettingsPage() {
     update({ reminderHour: h });
     if (h === null) {
       cancelReminder();
+      void disarmPush();
+      setTier(reminderTier());
       return;
     }
     if (typeof Notification !== "undefined" && Notification.permission !== "granted") {
@@ -109,7 +118,8 @@ export default function SettingsPage() {
     const reps = await fetchReps().catch(() => []);
     const s = computeStreak(reps.map((r) => new Date(r.created_at)));
     setDidToday(s.didToday);
-    await armReminder({ streak: s.current, didToday: s.didToday });
+    const armed = await armReminder({ streak: s.current, didToday: s.didToday });
+    if (armed) setTier(armed);
   }
 
   async function askPermission() {

@@ -76,6 +76,7 @@ import { nextFocus, type NextFocus } from "@/lib/schedule";
 import { unlockSfx } from "@/lib/sfx";
 import { computeStreak } from "@/lib/streak";
 import { nextDrill } from "@/lib/drills";
+import { draw, gameById } from "@/lib/games";
 import { repHref, resolveRepConfig, type RepConfig } from "@/lib/rep-config";
 import {
   clearInFlight,
@@ -1338,6 +1339,11 @@ function Results({
   const section = STEPS[step].key;
   const last = step === STEPS.length - 1;
   const next = nextDrill(config.lessonId);
+  // `game:<gameId>:<questionId>` — a game rep keeps its game identity
+  // through the debrief (#194).
+  const game = config.lessonId.startsWith("game:")
+    ? gameById(config.lessonId.split(":")[1])
+    : null;
 
   /*
    * The save-progress wall (DECISIONS #134). The exits route through
@@ -1520,13 +1526,31 @@ function Results({
       {last ? (
         <div className="mt-6">
           {/* Buttons, not Links: the exits go through exit(), which
-              may route via the save-progress wall first (#134). */}
-          <button
-            onClick={() => exit(repHref({ lesson: next.id }))}
-            className="press block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
-          >
-            Next lesson · {next.title}
-          </button>
+              may route via the save-progress wall first (#134). A game
+              ends as a game (#194): another round or back to Tools,
+              never a push onto the path's next lesson. */}
+          {game ? (
+            <button
+              onClick={() =>
+                exit(
+                  repHref({
+                    game: game.id,
+                    q: draw(game, config.lessonId.split(":")[2] ?? null).id,
+                  })
+                )
+              }
+              className="press block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+            >
+              Another round · {game.name}
+            </button>
+          ) : (
+            <button
+              onClick={() => exit(repHref({ lesson: next.id }))}
+              className="press block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+            >
+              Next lesson · {next.title}
+            </button>
+          )}
           <button
             onClick={onRetake}
             className="press mt-3 w-full rounded-full border border-stone-200 bg-surface px-6 py-4 text-[15px] font-semibold"
@@ -1534,10 +1558,10 @@ function Results({
             Retake this one
           </button>
           <button
-            onClick={() => exit("/")}
+            onClick={() => exit(game ? "/games" : "/")}
             className="mt-3 block w-full py-2 text-center text-[13.5px] font-semibold text-stone-500"
           >
-            Done for today
+            {game ? "Back to Tools" : "Done for today"}
           </button>
         </div>
       ) : (

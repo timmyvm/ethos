@@ -113,7 +113,7 @@ export function RepResult({
             {delta !== null && delta !== 0 && (
               <div
                 className={`text-[13px] font-semibold ${
-                  delta > 0 ? "text-sage-700" : "text-stone-500"
+                  delta > 0 ? "text-sage-700" : "text-terracotta-600"
                 }`}
               >
                 {delta > 0 ? "▲ +" : "▼ "}

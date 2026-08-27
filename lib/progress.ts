@@ -328,6 +328,9 @@ export function journeySummary(
 export interface RepGain {
   label: string;
   detail: string;
+  /** False when the number moved the wrong way (#195): the chip wears
+   *  terracotta instead of sage. Absent = a gain. */
+  good?: boolean;
 }
 
 export function repGains(params: {
@@ -352,6 +355,7 @@ export function repGains(params: {
       gains.push({
         label: `${d > 0 ? "+" : ""}${d} Ethos`,
         detail: `${params.indexBefore} → ${params.indexAfter}`,
+        ...(d < 0 ? { good: false } : {}),
       });
     }
   }

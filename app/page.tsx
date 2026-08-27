@@ -308,10 +308,12 @@ export default function Home() {
                 </span>
                 <span className="text-[13px] text-sage-mist">/1000</span>
               </div>
+              {/* Green up, red down (#195). This was BACKWARDS: a
+                  rising index printed terracotta, a falling one sage. */}
               {indexDelta !== null && indexDelta !== 0 && (
                 <div
                   className={`mt-2 text-[12.5px] font-bold ${
-                    indexDelta > 0 ? "text-terracotta-300" : "text-sage-mist"
+                    indexDelta > 0 ? "text-sage-mist" : "text-terracotta-300"
                   }`}
                 >
                   {indexDelta > 0 ? "▲ +" : "▼ "}

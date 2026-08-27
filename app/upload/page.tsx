@@ -22,6 +22,36 @@ import type { AnalyzeResponse } from "@/app/api/analyze/route";
  */
 
 const MAX_MB = 25;
+/**
+ * The scoring function has 60 seconds of wall time (Vercel Hobby), and
+ * Whisper on a long meeting blows straight through it — reported live
+ * as "the scoring server didn't answer" on a meeting upload. Gate by
+ * DURATION before spending the upload, with the honest reason.
+ */
+const MAX_MINUTES = 6;
+
+/** Read a media file's duration without uploading it. Null = unknown
+ *  (some webm containers report Infinity); unknown proceeds. */
+function readDuration(file: File): Promise<number | null> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const a = new Audio();
+    const done = (v: number | null) => {
+      URL.revokeObjectURL(url);
+      resolve(v);
+    };
+    const timer = setTimeout(() => done(null), 5000);
+    a.onloadedmetadata = () => {
+      clearTimeout(timer);
+      done(Number.isFinite(a.duration) ? a.duration : null);
+    };
+    a.onerror = () => {
+      clearTimeout(timer);
+      done(null);
+    };
+    a.src = url;
+  });
+}
 
 export default function UploadPage() {
   const [phase, setPhase] = useState<"pick" | "analyzing" | "done">("pick");
@@ -36,6 +66,13 @@ export default function UploadPage() {
     setError(null);
     if (file.size > MAX_MB * 1024 * 1024) {
       setError(`That file is over ${MAX_MB}MB. Trim it and try again.`);
+      return;
+    }
+    const duration = await readDuration(file);
+    if (duration !== null && duration > MAX_MINUTES * 60) {
+      setError(
+        `That's ${Math.round(duration / 60)} minutes. Scoring tops out around ${MAX_MINUTES}; trim it to the part you spoke and try again.`
+      );
       return;
     }
     setPhase("analyzing");
@@ -55,7 +92,12 @@ export default function UploadPage() {
         | (AnalyzeResponse & { error?: string })
         | null;
       if (!res.ok || !data || data.error) {
-        throw new Error(data?.error ?? "The scoring server didn't answer.");
+        throw new Error(
+          data?.error ??
+            (res.status === 504 || res.status === 502
+              ? `Scoring timed out. Files under about ${MAX_MINUTES} minutes work; trim it and try again.`
+              : "The scoring server didn't answer.")
+        );
       }
       setResult(data);
       setAudioUrl(URL.createObjectURL(file));
@@ -78,8 +120,9 @@ export default function UploadPage() {
             pauses, the Index.
           </p>
           <p className="mt-2 text-[12.5px] leading-relaxed text-stone-400">
-            Up to {MAX_MB}MB, best under five minutes. It banks to your log
-            as today&apos;s speaking.
+            Up to {MAX_MB}MB and {MAX_MINUTES} minutes. It banks to your
+            log as today&apos;s speaking. A long meeting? Trim it to the
+            part where you talk.
           </p>
 
           <input

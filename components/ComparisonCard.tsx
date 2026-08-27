@@ -68,7 +68,7 @@ export function ComparisonCard({ reps }: { reps: RepRow[] }) {
             <span className="text-cream/40">→</span>
             <span
               className={`font-display text-[24px] font-bold ${
-                r.better ? "text-sage-mist" : "text-cream"
+                r.better ? "text-sage-mist" : "text-terracotta-300"
               }`}
             >
               {r.b}

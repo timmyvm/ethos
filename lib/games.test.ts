@@ -67,7 +67,7 @@ describe("a game rep through the resolver", () => {
 
   it("runs speed rush on the tight clock", () => {
     const c = resolveRepConfig({ game: "rush", q: "ru2", premium: true }, NOW);
-    expect(c.maxSeconds).toBe(45);
+    expect(c.maxSeconds).toBe(30);
     expect(c.xpMultiplier).toBe(1.5);
   });
 
@@ -89,10 +89,23 @@ describe("a game rep through the resolver", () => {
    * the account can't run resolves as an ordinary rep, not as the game
    * with its defining condition quietly missing.
    */
-  it("never wears the game's name over conditions it didn't run", () => {
+  it("a game's conditions come WITH it, whatever the entitlement (#194)", () => {
+    // The old contract dropped premium-staged mods for free accounts,
+    // which silently killed the interruption AND the game's identity —
+    // reported live as "Demos doesn't cut in" plus a game ending like a
+    // lesson. Premium gates the mod picker, never the games.
     const c = resolveRepConfig({ game: "qa", q: "qa3", premium: false }, NOW);
-    expect(c.lessonId.startsWith("game:")).toBe(false);
-    expect(c.interrupt).toBe(false);
+    expect(c.lessonId.startsWith("game:")).toBe(true);
+    expect(c.interrupt).toBe(true);
+  });
+
+  it("a free account's stacked EXTRAS still respect the entitlement", () => {
+    const c = resolveRepConfig(
+      { game: "qa", q: "qa3", mods: "crowd", premium: false },
+      NOW
+    );
+    expect(c.interrupt).toBe(true);
+    expect(c.crowdNoise).toBe(false);
   });
 
   it("keeps the game's mods when an extra is stacked on top", () => {

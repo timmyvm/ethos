@@ -69,9 +69,9 @@ export const GAMES: Game[] = [
   {
     id: "rush",
     name: "Speed rush",
-    glyph: "45",
-    blurb: "The whole answer in 45 seconds.",
-    direction: "45 seconds. Land the ending before the clock does.",
+    glyph: "30",
+    blurb: "The whole answer in 30 seconds.",
+    direction: "30 seconds. Land the ending before the clock does.",
     modIds: ["tight"],
     questions: [
       { id: "ru1", prompt: "Explain what you do all day" },

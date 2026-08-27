@@ -37,7 +37,7 @@ export const STRESS_MODS: StressMod[] = [
   {
     id: "tight",
     name: "Tight timer",
-    blurb: "45 seconds instead of 90. Compress or get cut off.",
+    blurb: "30 seconds instead of 90. Compress or get cut off.",
     xpMultiplier: 1.5,
     premium: true,
     effect: "tight-timer",

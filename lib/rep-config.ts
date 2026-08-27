@@ -25,7 +25,9 @@ import {
 } from "./stress-mods";
 
 export const DAILY_MAX_SECONDS = 90;
-export const TIGHT_MAX_SECONDS = 45;
+/** 30 since 27 Aug (#194, Timothy's call) — 45 wasn't tight enough to
+ *  force the compression the mod exists to train. */
+export const TIGHT_MAX_SECONDS = 30;
 
 /** Boss reps earn more XP for the same stars — effort, not quality. */
 export const BOSS_XP_BASE = 1.5;
@@ -114,17 +116,23 @@ export function resolveRepConfig(
   }
 
   /*
-   * A game IS its conditions. Its mods are staged first so a stacked
-   * extra can never squeeze one out of the two-mod cap, and if the
-   * entitlement drops any of them the rep falls through to the ordinary
-   * resolution below: it never wears a game's name over conditions it
-   * didn't run.
+   * A game IS its conditions, and its conditions come WITH it (#194):
+   * the staged mods are parsed as entitled, because premium gates the
+   * mod PICKER, not the games — reported live as "Demos doesn't cut in"
+   * plus the game losing its name and ending like a lesson, both from
+   * the entitlement (or its fetch race) silently dropping the staged
+   * interruption. User-added extras still respect the entitlement.
+   * Staged first so a stacked extra can never squeeze one out of the
+   * two-mod cap; the name still never outruns the conditions.
    */
   const game = gameById(input.game);
   if (game) {
     const staged = parseMods(
-      [...game.modIds, ...(input.mods ?? "").split(",")].join(","),
-      { premium: input.premium }
+      [
+        ...game.modIds,
+        ...parseMods(input.mods, { premium: input.premium }).map((m) => m.id),
+      ].join(","),
+      { premium: true }
     );
     const ran = (id: string) => staged.some((m) => m.id === id);
     if (game.modIds.every(ran)) {

@@ -18,9 +18,15 @@ export function GainsRow({ gains }: { gains: RepGain[] }) {
       {gains.map((g, i) => (
         <div
           key={i}
-          className="shrink-0 rounded-[24px] border border-sage-500/30 bg-surface px-3.5 py-2.5"
+          className={`shrink-0 rounded-[24px] border bg-surface px-3.5 py-2.5 ${
+            g.good === false ? "border-terracotta-500/30" : "border-sage-500/30"
+          }`}
         >
-          <div className="font-display text-[17px] leading-none text-sage-700">
+          <div
+            className={`font-display text-[17px] leading-none ${
+              g.good === false ? "text-terracotta-600" : "text-sage-700"
+            }`}
+          >
             {g.label}
           </div>
           <div className="mt-1 text-[11.5px] text-stone-500">{g.detail}</div>

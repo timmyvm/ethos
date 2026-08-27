@@ -53,9 +53,16 @@ export function Sparkline({
     <div className="rounded-[24px] border border-hairline bg-surface lift p-5">
       <div className="flex items-baseline justify-between">
         <div className="label-data">{label}</div>
+        {/* Green = improving, red = regressing, whichever way the
+            metric runs (#195): fillers falling is sage, rising is
+            terracotta. Neutral only when genuinely flat. */}
         <div
           className={`text-[13px] font-semibold ${
-            delta === 0 ? "text-stone-500" : better ? "text-sage-700" : "text-stone-500"
+            delta === 0
+              ? "text-stone-500"
+              : better
+                ? "text-sage-700"
+                : "text-terracotta-600"
           }`}
         >
           {delta > 0 ? "+" : ""}
@@ -72,7 +79,16 @@ export function Sparkline({
       >
         <path d={area} fill="var(--color-sand)" />
         <path d={d} fill="none" stroke="var(--color-stone-500)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-        <circle cx={lx} cy={ly} r="4" fill="var(--color-sage-500)" />
+        <circle
+          cx={lx}
+          cy={ly}
+          r="4"
+          fill={
+            delta === 0 || better
+              ? "var(--color-sage-500)"
+              : "var(--color-terracotta-500)"
+          }
+        />
       </svg>
       <div className="mt-1 flex justify-between">
         <span className="label-data">first · {Math.round(first)}</span>

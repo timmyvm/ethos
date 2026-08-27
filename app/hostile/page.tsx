@@ -13,6 +13,7 @@ import {
   type HostilePrompt,
 } from "@/lib/hostile";
 import { buzz } from "@/lib/prefs";
+import type { AnalyzeResponse } from "@/app/api/analyze/route";
 
 /**
  * Hostile Q&A — the interrogation (DECISIONS #183). Sixty seconds on a
@@ -73,6 +74,9 @@ export default function HostilePage() {
   } | null>(null);
   const [verdict, setVerdict] = useState<VerdictView | null>(null);
   const [banked, setBanked] = useState(false);
+  /** The take's full engine result — the speech numbers the daily
+   *  debrief gets, reported missing here by Timothy. */
+  const [takeResult, setTakeResult] = useState<AnalyzeResponse | null>(null);
 
   const take = useRef<string | null>(null);
   const rounds = useRef<RoundState[]>([]);
@@ -126,7 +130,13 @@ export default function HostilePage() {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
           body: form,
         });
-        if (res.ok) setBanked(true);
+        if (res.ok) {
+          setBanked(true);
+          const data = (await res.json().catch(() => null)) as
+            | AnalyzeResponse
+            | null;
+          if (data?.metrics) setTakeResult(data);
+        }
       } catch {
         // The interrogation stands on its own; a failed bank only means
         // the log shows nothing, and the debrief doesn't claim it does.
@@ -446,6 +456,13 @@ export default function HostilePage() {
                 style={{ width: `${Math.round(level * 100)}%` }}
               />
             </div>
+            <Image
+              src="/demos-listening.webp"
+              alt="Demos is listening"
+              width={72}
+              height={72}
+              className="demos mt-6 w-[72px]"
+            />
           </div>
           <button
             onClick={() => void stopRecording()}
@@ -458,8 +475,12 @@ export default function HostilePage() {
 
       {(phase === "thinking" || phase === "judging") && (
         <div className="flex flex-1 flex-col items-center justify-center text-center">
+          {/* Demos's sprite matches what he's DOING (#194): listening
+              while you speak, working while he thinks. There is no
+              thinking pose in the set; the workout is the honest
+              stand-in, and it's the gym's idea of thinking anyway. */}
           <Image
-            src="/demos-listening.webp"
+            src="/demos-workout.webp"
             alt=""
             width={140}
             height={140}
@@ -548,9 +569,48 @@ export default function HostilePage() {
             </div>
           </div>
 
+          {/* The speech numbers the daily debrief gets (#194): the take
+              ran the full engine, so its measurements belong here too. */}
+          {takeResult && (
+            <div className="mt-4 rounded-[24px] border border-hairline bg-surface lift p-4">
+              <div className="label-data">Your take, measured</div>
+              <div className="mt-3 flex gap-3">
+                <TakeStat
+                  label="Fillers"
+                  value={String(takeResult.metrics.fillerCount)}
+                  note={`${takeResult.metrics.fillersPerMin}/min`}
+                />
+                <TakeStat
+                  label="WPM"
+                  value={String(takeResult.metrics.wpm)}
+                  note="target 130-160"
+                />
+                <TakeStat
+                  label="Held pauses"
+                  value={String(takeResult.metrics.heldPauses)}
+                  note="≥0.8s"
+                  earned
+                />
+                {takeResult.ethosIndex !== null && (
+                  <TakeStat
+                    label="Ethos"
+                    value={String(takeResult.ethosIndex)}
+                    note="/1000"
+                  />
+                )}
+              </div>
+              <Link
+                href="/history"
+                className="mt-3 block text-[13px] font-semibold text-terracotta-600"
+              >
+                Full debrief in the log →
+              </Link>
+            </div>
+          )}
+
           <p className="mt-4 text-[12.5px] leading-relaxed text-stone-400">
             {banked
-              ? "Your take banked to the log as a recording. This debrief lives here only."
+              ? "Your take banked to the log as a recording."
               : "This debrief lives here only."}
           </p>
 
@@ -583,6 +643,30 @@ export default function HostilePage() {
 
       {paywall && <Paywall reason={paywall} onClose={() => setPaywall(null)} />}
     </main>
+  );
+}
+
+function TakeStat({
+  label,
+  value,
+  note,
+  earned = false,
+}: {
+  label: string;
+  value: string;
+  note: string;
+  earned?: boolean;
+}) {
+  return (
+    <div className="min-w-0 flex-1">
+      <div className="label-data">{label}</div>
+      <div
+        className={`font-display text-[24px] leading-tight ${earned ? "text-sage-700" : ""}`}
+      >
+        {value}
+      </div>
+      <div className="text-[11px] text-stone-500">{note}</div>
+    </div>
   );
 }
 

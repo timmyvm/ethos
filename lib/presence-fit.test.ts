@@ -84,6 +84,16 @@ describe("proposeConstants", () => {
     expect(p.warnings.join(" ")).toContain("gesture");
   });
 
+  it("calls out a handheld camera instead of fitting to the shake", () => {
+    const handheld = takes().map((t) =>
+      t.label === "composed"
+        ? { ...t, metrics: metrics({ postureDrift: 0.13 }) }
+        : t
+    );
+    const p = proposeConstants(handheld)!;
+    expect(p.warnings.join(" ")).toContain("CAMERA");
+  });
+
   it("flags a hands-hidden take that still reads as gesturing", () => {
     const noisy = takes().map((t) =>
       t.label === "hands-hidden"

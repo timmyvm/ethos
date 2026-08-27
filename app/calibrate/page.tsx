@@ -153,7 +153,20 @@ export default function CalibratePage() {
       ...d.filter((x) => x.label !== take.label),
       { label: take.label, result, frames },
     ]);
+    // Wander this size on ANY take usually means the phone moved, and a
+    // handheld take poisons the fit. Said now, while redoing is cheap.
+    if (result.metrics.postureDrift > 0.08) {
+      setNote(
+        `That take's torso wander (${result.metrics.postureDrift}) usually means the phone itself moved. Prop it and redo the take.`
+      );
+    }
     if (current < TAKES.length - 1) setCurrent(current + 1);
+  }
+
+  function redo(label: TakeLabel) {
+    setDone((d) => d.filter((x) => x.label !== label));
+    setCurrent(TAKES.findIndex((t) => t.label === label));
+    setNote(null);
   }
 
   const labeled: LabeledTake[] = done.map((d) => ({
@@ -216,6 +229,18 @@ export default function CalibratePage() {
         it measures become the proposed thresholds for the Presence score.
         Nothing recorded here leaves this page.
       </p>
+
+      {/* The model assumes a static camera. The first real session was
+          shot handheld and every number came out polluted, so the setup
+          is stated before the mic, not diagnosed after. */}
+      <div className="mt-4 rounded-[24px] border border-hairline bg-surface lift p-4">
+        <div className="label-data">Set up first</div>
+        <ul className="mt-1.5 space-y-1 text-[13px] leading-relaxed text-stone-600">
+          <li>· Prop the phone at face height. Never in your hand.</li>
+          <li>· Step back until head, shoulders and both hands are in frame.</li>
+          <li>· Look-away notes go somewhere that isn&apos;t the phone.</li>
+        </ul>
+      </div>
 
       {status === "idle" && (
         <button
@@ -293,7 +318,8 @@ export default function CalibratePage() {
                   <th className="label-data pb-1.5 pr-3 font-normal">drift</th>
                   <th className="label-data pb-1.5 pr-3 font-normal">head</th>
                   <th className="label-data pb-1.5 pr-3 font-normal">eyes %</th>
-                  <th className="label-data pb-1.5 font-normal">score</th>
+                  <th className="label-data pb-1.5 pr-3 font-normal">score</th>
+                  <th className="pb-1.5" aria-label="Redo" />
                 </tr>
               </thead>
               <tbody>
@@ -312,8 +338,16 @@ export default function CalibratePage() {
                     <td className="py-2 pr-3 tabular-nums">
                       {d.result.metrics.eyeLinePct}
                     </td>
-                    <td className="py-2 tabular-nums">
+                    <td className="py-2 pr-3 tabular-nums">
                       {d.result.metrics.presenceScore}
+                    </td>
+                    <td className="py-2">
+                      <button
+                        onClick={() => redo(d.label)}
+                        className="press min-h-11 px-1 text-[12px] font-semibold text-stone-500"
+                      >
+                        redo
+                      </button>
                     </td>
                   </tr>
                 ))}

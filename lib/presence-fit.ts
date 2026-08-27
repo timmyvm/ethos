@@ -63,6 +63,19 @@ export function proposeConstants(
   const cur = PRESENCE_CONSTANTS;
   const warnings: string[] = [];
 
+  /*
+   * The whole model assumes a STATIC camera. A composed take whose
+   * torso "wandered" past the entire scoring band is almost always the
+   * phone moving in a hand, and every number downstream of that is
+   * polluted — so this warning leads, and the proposal below it should
+   * not be adopted until the takes are redone propped.
+   */
+  if (composed.postureDrift > cur.postureBad) {
+    warnings.push(
+      "The composed take's torso wander is beyond the entire scoring band. That much motion is usually the CAMERA moving. Prop the phone, re-record all four takes, and don't adopt these numbers."
+    );
+  }
+
   // Posture: your natural sway must score cleanly, with headroom.
   const postureGood = Math.max(0.01, round3(composed.postureDrift * 1.25));
   // The slouch take bounds "bad" when it actually drifted more; a held

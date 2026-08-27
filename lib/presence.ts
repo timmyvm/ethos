@@ -102,8 +102,20 @@ export const GESTURE_ZONE: [number, number] = [8, 26];
 
 /** Wrist travel per second (shoulder-widths) that counts as a gesture. */
 const GESTURE_SPEED = 0.55;
-/** A gesture has to last this long to be one, not a twitch. */
-const GESTURE_MIN_FRAMES = 2;
+/**
+ * Above this, it isn't a hand, it's the tracker teleporting — a
+ * barely-visible wrist re-estimating at the frame edge. Real vigorous
+ * gestures peak well under this. (First real-camera session, 27 Aug:
+ * jitter counted 77–104 "gestures" a minute on every take, including
+ * hands-in-pockets.)
+ */
+const GESTURE_SPEED_MAX = 6;
+/** A gesture has to last this long to be one, not a twitch. Was 2 —
+ *  66ms at 30fps, which the same session showed is jitter territory. */
+const GESTURE_MIN_FRAMES = 4;
+/** A sampling gap longer than this breaks a burst: the frames either
+ *  side of a dropout aren't consecutive motion. */
+const MAX_SAMPLE_GAP_S = 0.25;
 
 const POSTURE_GOOD = 0.02;
 const POSTURE_BAD = 0.12;
@@ -333,12 +345,19 @@ export function scorePresence(frames: PoseFrame[]): PresenceResult {
   let gestures = 0;
   let burst = 0;
   for (let i = 1; i < geo.length; i++) {
-    const speed = handSpeed(geo[i - 1], geo[i], geo[i].t - geo[i - 1].t);
+    const dt = geo[i].t - geo[i - 1].t;
+    if (dt > MAX_SAMPLE_GAP_S) {
+      burst = 0;
+      continue;
+    }
+    const speed = handSpeed(geo[i - 1], geo[i], dt);
     if (speed === null) {
       burst = 0;
       continue;
     }
-    if (speed >= GESTURE_SPEED) {
+    // Bounded on both sides: slower is a resting hand, faster is the
+    // tracker glitching, and neither is a gesture.
+    if (speed >= GESTURE_SPEED && speed <= GESTURE_SPEED_MAX) {
       burst++;
       if (burst === GESTURE_MIN_FRAMES) gestures++;
     } else {

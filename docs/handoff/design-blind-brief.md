@@ -253,7 +253,7 @@ length ("29 lessons... about 4 weeks").
 
 - **Cold Topic (boss):** a spinning wheel assigns an unfamiliar topic
   (free: the week's headliner plus two re-rolls; premium: spin freely or
-  pick from a 50-topic library). Lobby → timed research window where the
+  pick from a searchable library of 50+ topics). Lobby → timed research window where the
   study sheet lives (the cold open is the point) → 90-second explanation
   from memory → scored on delivery AND accuracy, with each claim quoted
   and marked true, hedged, or wrong.
@@ -287,7 +287,332 @@ price is the argument, the button is a door.
 
 ## 5. The screens
 
-<!-- SCREEN-INVENTORY -->
+Ground truth from the shipped app. Copy in quotes is real and current;
+keep its voice even where you rewrite it. "The one action" names the
+single control per screen that wears the action accent.
+
+### Shell
+
+- One mobile column (~430px max), installable PWA.
+- Bottom tab bar, four tabs: **Today** (home), **Tools**, **Log**, **You**.
+  Icon plus label. The tab bar hides on focused flows: recording, bosses,
+  onboarding, auth, marketing pages.
+- Recordings that fail to upload wait in a local outbox and re-send
+  silently on reconnect; error copy promises this ("The recording is
+  saved on this device") and the app keeps the promise.
+
+### Home ("the floor")
+
+Job: hand the user the floor. One dominant lesson card, the standing
+score, the whole path beneath.
+
+- Wordmark; header chips: total stars (hidden at zero) and the streak
+  badge ("Day 1 starts today" at zero; "{n} days" plus an "at risk"
+  dimming until today's recording lands).
+- Conditional banner when a freeze auto-spent: "A freeze covered 2 days
+  you missed. The streak held."
+- Eyebrow over the lesson card: "Today's lesson · The Pause" (or "Extra
+  lesson" once today is done), plus a one-line reason naming a number:
+  "Fillers scored 62/100, down 8 on the one before, and it's been 3
+  days, your weakest right now." After an absence, the decay note: "5
+  days since you spoke: about 39% off every score by now. One lesson
+  re-measures it."
+- **Lesson card:** title, prompt, Demos in the corner (the equipped shop
+  pose; celebrating once today's recording is done). The one action:
+  "Take the floor" (later "Go again").
+- Under it: "Not feeling it? Spin a new topic" swaps the lesson card for
+  the roulette (shape label like "Take a side", prompt, Spin, "Take this
+  one", a back link). "Make it harder" opens the stress-mod picker.
+- **Score card:** "Your Ethos" with the last Index /1000, delta since
+  day one (direction-aware), recordings count, stars count, and the day
+  trail: one dot per recent day, spoken / frozen / missed each distinct,
+  caption "Day 12 of speaking", a "best day yet" marker when earned.
+  Hidden entirely on day zero.
+- Anonymous notice, one quiet line: "6 recordings live only in this
+  browser · keep them".
+- **The road:** the whole path as a winding vertical line of lesson
+  nodes. An endowed first node ("Showed up", zero stars), star counts on
+  cleared nodes, the current node ringed (it launches the same recording
+  as the lesson card), a boss checkpoint mid-road, unit gates drawn as
+  doors with exact distance ("opens at 16 stars · 4 to go"), locked
+  lessons visible but dimmed past the door, and a closing card: "29
+  lessons, end to end. About 4 weeks at one a day."
+- States: the lesson card paints instantly (local data); the score card
+  skeletons while loading; a failed read shows "Your score didn't load.
+  The server didn't answer. Your recordings are safe." with retry, and is
+  never confused with the day-zero state.
+
+### Recording
+
+Job: deliver one configured prompt, capture 60 to 90 seconds.
+
+- Idle: back link, unit label, lesson title, prompt, mod chips with an
+  "×2 XP" badge, Voice / Voice + Video toggle (from recording 2 on; the
+  first is always audio and says so), "How to do this one" with three
+  numbered technique tips, an anticipation card naming what this
+  recording is about to earn ("This one keeps a 6-day streak alive"),
+  the length line ("60 to 90 seconds. Pauses score in your favor."),
+  a consent line ("Audio uploads for scoring; your camera never does"),
+  and the one action: a big round **Rec** button.
+- Optional frame step (off by default): 30-second think countdown, shape
+  tips, a notes field, "They disappear when you record. You can't read
+  and speak at once.", and "I'm ready".
+- Recording: timer "m:ss / 1:30" (30s cap with the tight-timer mod;
+  urgent treatment in the last 10 seconds; hard stop at the cap), a
+  ~36-bar live level meter moving with the actual mic, one timed tip at
+  a time ("Start with one beat of silence." / "An 'um' coming? Close
+  your mouth." / "Last line is the one they keep."), each yielding to a
+  live nudge. Voice mode shows listening Demos. Video mode shows a
+  mirrored self-view with the user's own pose skeleton drawn over it, a
+  live ring (clean vs nudge), nudge notes ("Eyes down", "Sinking",
+  "Hands out of frame"), and a "holding 12s" counter that appears after
+  4 clean seconds and resets on any nudge. The interruption mod cuts in
+  once, mid-take, with a Demos card: "So what?" / "Says who?" / "Give me
+  an example."
+- Analyzing: "Scoring…" / "Transcribing, counting, measuring silence." /
+  "Ten seconds or so. The numbers are computed, not guessed."
+- Errors: a designed mic-permission helper (why, browser-specific steps,
+  "Check again"); scoring failures keep the audio and offer "Score it
+  again" with the same recording, auto-retrying when back online.
+
+### The results walk (three forced steps)
+
+Header "Lesson complete" with a "+1" coin chip when earned, a
+three-segment step bar. No exit until step three.
+
+1. **The score:** a gains row of chips ("+2★ · 4 of 45 stars", "+31
+   Ethos · 612 → 643", "6-day streak · kept alive", "Compression
+   unlocked"; drops shown, not hidden). The big count-up Index with "▲
+   +31 since last time" (recording 1 instead: "Day 0. Everything after
+   this has a number to beat."). Stars of three. A trait line
+   ("Structure leveled up · 118/150"). The Demos coach card: coach line,
+   "Tomorrow: {focus}", "Kept: {strength}", footer "AI-generated
+   feedback". Boss recordings add the accuracy card; video recordings
+   add the Presence score at the same size as the Index. When the judged
+   tier is metered out: "Measured, not judged." with "It still counted
+   toward your streak." When the substance gate fails: "Not enough to
+   score." and one star, nothing measured, no fake zero.
+2. **The numbers:** the pause map with its verdict legend ("landed a
+   point" / "searching") and a headline sentence; the dimension list
+   ("Every dimension · tap for why"), each row expanding to the cited
+   moment and "↳ one way to improve", footer summing the rows to the
+   printed Index; three stat tiles (WPM with "in the zone" /
+   "sprinting" / "strolling", held pauses, length); every filler with
+   its timestamp.
+3. **Your words:** the supply card ("Supply · one upgrade, yours to
+   keep": original struck through, the upgrade, a note), the full open
+   transcript, the audio scrubber (tappable filler ticks, held-pause
+   bands, "Tap a word to hear the moment"), records broken ("Best Ethos
+   yet", "Most silence you've held"), a closing note that is always true
+   and good ("5 composed pauses. Silence you chose, before a new point.
+   That's the hard one."), tomorrow's focus with the number that chose
+   it, and one-tap reminder chips ("Tomorrow · when?" Morning / Lunch /
+   Evening) that arm the notification and only then trigger the OS
+   permission ask.
+
+The one action on step three: "Next lesson · {title}". Secondary:
+"Retake this one", "Done for today". Game recordings end as games:
+"Another round", "Back to Tools". The streak celebration overlays once
+here: celebrating Demos, the streak number, one line ("Day one is the
+hard one. It's done." / "7 straight. That's not motivation any more,
+that's a habit."), auto-dismissing in about two seconds.
+
+Exits may interpose the **save gate** (anonymous users, after recording
+1 and once more at streak 3): the just-made Index large, "Day 1 is on
+the board.", the honest stake ("This recording, its score and the streak
+it starts live in this browser and nowhere else."), primary "Save my
+progress", quiet "Not now" that continues to wherever the user was
+going.
+
+### The log (history)
+
+Job: the training log. Proof over time.
+
+- "The log" and "{n} recordings. Tap one for the full result."
+- Sparklines for the Index and fillers/min (direction-aware: falling
+  fillers read as improvement), "first · 512 / now · 643", "+131 since
+  day one". Below two data points: "Two scores and this becomes a line.
+  One more to go."
+- "What the numbers say": derived insight cards, pure arithmetic
+  ("'like' is 46% of your fillers", "Most fillers land in the opening
+  third", "You speak cleanest around 9am", "Your floor is rising, not
+  just your best day").
+- A filler heatmap across the arc of a recording plus a top-words tally.
+- The comparison card (two or more recordings): day 1 → day N rows for
+  Ethos, fillers/min, words/min, held pauses, footer "34 recordings.
+  Every number measured, none awarded." Deliberately screenshot-shaped;
+  a share variant renders it as a 1080×1920 image with "DAY 1 → DAY 34".
+- "Every recording", newest first: date, Index, stars, "{n} fillers ·
+  {wpm} wpm · {held} held · {len}s". Rows open the stored recording
+  (everything from the walk on one scroll, plus playback; never video,
+  which only ever lived on the device).
+- Free tier shows the last 7 days; "12 older recordings archived.
+  Unlock full history" opens the paywall.
+- Empty state: sleeping Demos, "Nothing logged yet. One recording and
+  this becomes a training log.", one action: "Take the floor".
+
+### You (profile)
+
+Job: everything earned, one place.
+
+- The page's only card: level, editable display name, Demos avatar,
+  total XP, progress into the next level. Below it, bare stats on the
+  ground: streak, longest, this week's XP.
+- Traits: the nine dimensions as ranked bars, best first, leader
+  highlighted, unleveled dimmed.
+- Coins: balance, "1 a day", progress toward the first 14-coin item,
+  "Open the shop". A failed read shows a dash, never zero.
+- Freeze slots: three, filled or empty, "{n} more days earns one."
+- The lexicon: original → upgrade rows, a flash-review drill from three
+  entries up ("You said this. What did you swap it for?"), free cap of
+  three with "{n} more upgrades in your archive" opening the paywall.
+- The badge shelf: "Earned 4/10", ranked easiest to hardest, no tier
+  labels (position is the claim), every badge naming its number ("Clean
+  run · under 3 fillers a minute") and linking to the drill that
+  produces it; unearned rows carry a progress bar.
+- Day 1 vs now share card; the anonymous save-progress card when
+  relevant.
+
+### Tools
+
+Job: a menu of doors. No primary action on this screen by design.
+
+- A standout headliner: "This week's boss: Cold Topic. A topic you've
+  never studied. 4 min research, 90s to explain, fact-checked."
+- Rows with an XP-multiplier chip where staged mods apply: Q&A ("Give
+  your take. Demos cuts in with a question." ×2), Speed rush ("The
+  whole answer in 30 seconds." ×1.5), Interview ("Classic questions,
+  answered cold."), Hostile Q&A ("Demos interrogates your take. Two
+  questions, no notes."), Upload a recording ("A real meeting or a
+  voice memo, through the same engine.").
+- Questions are drawn on tap, never listed: the cold open is the
+  training.
+
+### Boss: Cold Topic (lobby → research → ready)
+
+- Lobby: "Weekly boss · Cold Topic", "Explain what you haven't
+  studied.", record line ("3 taken · best 641"), the wheel showing the
+  topic title only (study material is withheld until the clock runs),
+  "{n} spins left" for free users, "Pick a topic instead" (premium:
+  searchable library of 50+ topics; free: paywall), the mod picker, and
+  the weekly-taken state ("It resets Monday, or premium opens the
+  library now.").
+- Research: the topic, a 4:00 countdown, "What a correct answer covers"
+  bullets, a source link, "I'm ready early".
+- Ready: Demos in the workout pose, "Notes are gone. Ninety seconds,
+  from memory. Wrong claims stated as fact cost more than saying you're
+  unsure.", then "Take the floor" into the standard recording screen.
+- Boss results add the accuracy card: score, "{n} of {m} points
+  covered", each claim quoted verbatim and marked checks out / wrong /
+  unverified ("You flagged the doubt, which cost less." when hedged),
+  plus a "never mentioned" list.
+
+### Boss: Hostile Q&A (take → two questions → verdict)
+
+- Intro: "Hold a claim while Demos comes at it.", a claim card ("The
+  claim · argue either side", re-rollable), "Record my take · 60s".
+- While recording: a live level dot and bar that move with the voice
+  (the screen's proof the mic is hot), a large seconds-left number,
+  listening Demos. Between phases, thinking Demos ("Demos is weighing
+  it up.").
+- Each question quotes the speaker: "You said: '…'", then the skeptical
+  question, and "He's arguing with the take, never with you." Answer
+  cap 45s.
+- Verdict: three scores of 100 (Held the claim / Answered the question /
+  Stayed steady), each citing a session quote with an improve line, the
+  take's own speech numbers (fillers, WPM, held pauses, Index), and
+  "Your take banked to the log as a recording."
+- Free tier: once a week, then the paywall.
+
+### Upload
+
+"A meeting, a voice memo, a run-through from your camera roll. The
+engine reads it like anything recorded here." Limits stated up front
+(25MB, ~6 minutes, "trim it to the part where you talk"), honest
+specific failures, then the full result plus playback. Banks as today's
+speaking.
+
+### Shop
+
+- Coin balance ("One coin a day you speak"), four items with art, name,
+  price, blurb: the streak freeze (14) and three Demos poses (8/8/12).
+- Buy buttons are quiet by design: never the action accent. Owned poses
+  switch to "Put it on the card" / "On your card"; the equipped pose
+  follows the account.
+- Specific failure copy: "Not enough coins yet." / "That didn't go
+  through. Your coins are untouched."
+
+### Paywall (sheet)
+
+- Opens only after visible progress or a deliberate tap on locked
+  content; its eyebrow names the reason ("Full history · premium",
+  "The boss library").
+- "The whole gym." and five benefits ("Full pause analytics, the
+  silence scores", "Complete history and day-1-vs-day-30 cards", "Your
+  whole lexicon, not just today's swap", "Every boss topic, any week,
+  plus Hostile Q&A", "Unlimited judged analyses").
+- Annual pushed ("billed A$79.99, A$6.67 a month · save 55%"), monthly
+  A$14.99. Checkout isn't live: both plans open an invite-code field
+  with the honest line "Checkout opens soon. Right now premium is by
+  invite code."
+- Decline is "Not yet". Standing footer, its one appearance in the app:
+  "Money never buys stars, streaks, or scores."
+
+### Welcome (three screens, no quiz)
+
+1. Listening Demos: "You already know the gap." / "The point was in
+   your head and the sentence lost it. You need practice, not
+   convincing."
+2. Speaking Demos: "Sixty seconds a day." / "One prompt, one recording.
+   The engine counts every filler, times every pause, and hands back
+   numbers."
+3. Celebrating Demos: "Earn the room." / "A pause held before a
+   sentence scores as composure here. Nobody else measures that."
+
+Progress dots, "Next" then "Take the floor" (straight into lesson one),
+"I already have an account" on screen one, "Skip" after.
+
+### Auth
+
+- Signup "Keep what you've earned." / signin "Welcome back." A device
+  card stakes what exists ("6 recordings and a 4-day streak."), and the
+  signin variant warns that a different account leaves them behind.
+  Google button, then email. Sent state: "Check your inbox", from a real
+  reply-to address ("That address is a real inbox. Reply to it if
+  something looks wrong.").
+- Password hint: "Length beats punctuation. A phrase you'll remember is
+  a better password than one you won't."
+
+### Settings
+
+Reminder hour chips with the honest scheduling tier spelled out ("Sent
+from our server. It rings on this device with Ethos closed." vs "Your
+browser can only fire this while Ethos is open in a tab."), quiet hours
+(22:00 to 07:00), theme choice, recording toggles (frame step, haptics,
+sound, verbatim transcripts with "Off makes it prettier and the filler
+count wrong.", reduced motion), account section, JSON export ("Every
+recording, transcript, score and lexicon entry. Yours to take."), and
+delete with a typed confirm ("There is no undo."). Goodbye state:
+sleeping Demos, "All gone." / "The door stays open".
+
+### Marketing landing
+
+"You had the point. It came out fuzzy." → "That's a practice problem."
+The daily loop in five beats, the silence-scoring claim, a dark score
+panel explaining the Index's two tiers ("a judged score with no quoted
+moment is thrown out and re-run"), the named-competitor honesty ("Rehearsal
+tools exist. This isn't one."), the camera privacy stance, the refuses-to-be
+list, "Take the floor" with "60 seconds. No signup until you've spoken."
+
+### System states
+
+- 404: sleeping Demos, "Nothing here." / "Demos checked. Twice."
+- Error boundary: "That screen didn't load. Your recordings are stored.
+  Nothing was lost."
+- Every failed read names its subject and the user's stake: "Your
+  numbers didn't load. The server didn't answer. Your recordings are
+  safe." Every page read times out at 8 seconds so no skeleton is
+  permanent.
 
 ## 6. Voice (write all mock copy in it)
 
@@ -371,7 +696,8 @@ High-visualization concept mocks, mobile-first, both themes.
 
 **Second ring (if the system has more to say):** welcome carousel, boss
 lobby with the wheel, Tools menu, shop, the streak celebration moment,
-a designed empty state, dark theme passes of ring one.
+a designed empty state, the marketing landing, dark theme passes of
+ring one.
 
 Invent freely: the wordmark, iconography, illustration and mascot style,
 the motion language, the celebration. Everything except the mechanics,

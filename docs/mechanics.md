@@ -147,12 +147,18 @@ Premium:
 - All boss modes (Cold Topic, Debate, Hostile Q&A)
 - Unlimited judged analyses (free meters at 1/day, rollover 3)
 
-Pricing — placeholder until one research pass (competitor scan:
-Elevate, Yoodli, Duolingo Super, AUD app-store norms):
-- Monthly: ~A$14.99
-- Annual: ~A$79.99 (~55% saving, headline plan)
+Pricing — DECIDED 31 Aug (DECISIONS #197), comparables-checked against
+Elevate, Yoodli, Duolingo Super and the A$150/hr human coach:
+- Monthly: A$14.99
+- Annual: A$79.99 (shown as A$6.67/mo, ~55% saving, headline plan)
+- The first price test, when real cohorts exist, runs upward
+  (vs A$19.99 / A$119.99), never downward. No lifetime, no weekly
+  plan, no decoy tier, no time-limited trial (the free tier is the
+  permanent trial).
 - Paywall moment: after the day-3 progress card, not at install —
-  let the first visible improvement sell it.
+  let the first visible improvement sell it. Built 31 Aug (#198):
+  the day-3 progress moment, the cap-moment line (day 3 on), and the
+  standing /you row. Streak surfaces never carry an offer.
 
 ## Retention lifecycle (the honest model)
 

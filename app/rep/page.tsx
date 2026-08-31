@@ -16,7 +16,8 @@ import { Coin } from "@/components/Coin";
 import { GainsRow } from "@/components/GainsRow";
 import { ModeToggle } from "@/components/ModeToggle";
 import { Moment } from "@/components/Moment";
-import { Paywall } from "@/components/Paywall";
+import { ComparisonCard } from "@/components/ComparisonCard";
+import { Paywall, type PaywallAsk } from "@/components/Paywall";
 import { PermissionHelp } from "@/components/PermissionHelp";
 import { PoseSkeleton } from "@/components/PoseSkeleton";
 import { PresenceDetail, PresenceScore } from "@/components/PresenceCard";
@@ -39,12 +40,19 @@ import {
 import { startCrowdNoise, type CrowdNoise } from "@/lib/crowd-noise";
 import { sessionState } from "@/lib/auth";
 import { syncFreezes } from "@/lib/freeze-sync";
+import { trainedDays } from "@/lib/days";
 import {
   gateMoment,
   gatesShown,
   markGateShown,
   type GateMoment,
 } from "@/lib/onboarding";
+import {
+  markProMomentShown,
+  PRO_MOMENT_DAYS,
+  proMomentDue,
+  proMomentShown,
+} from "@/lib/pro-moment";
 import { starsByLesson, totalStars, unitStates } from "@/lib/path";
 import { liveTipAt } from "@/lib/live-tips";
 import { loadPose, samplePose, type PoseSampler } from "@/lib/pose-client";
@@ -226,8 +234,11 @@ function RepScreen() {
   const [clipUrl, setClipUrl] = useState<string | null>(null);
   /** The recording itself, held locally so the debrief can replay it. */
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [paywall, setPaywall] = useState<string | null>(null);
+  const [paywall, setPaywall] = useState<PaywallAsk | null>(null);
   const [repCount, setRepCount] = useState<number | null>(null);
+  /** The stored list AFTER this recording landed, for the debrief's
+   *  day-3 progress moment (the comparison card needs both ends). */
+  const [repsNow, setRepsNow] = useState<RepRow[]>([]);
   /**
    * For the save-progress wall (DECISIONS #134). Anonymity is read
    * AFTER the analysis, not on mount — rep 1 has no session until the
@@ -392,6 +403,7 @@ function RepScreen() {
       const analyzed = data as AnalyzeResponse;
       fetchReps()
         .then(async (reps) => {
+          setRepsNow(reps);
           const dates = reps.map((x) => new Date(x.created_at));
           const { streak } = await syncFreezes(dates);
           if (streak.current > 0) setCelebrate(streak.current);
@@ -886,6 +898,7 @@ function RepScreen() {
           anonymous={anon}
           repCountBefore={repCount}
           streakNow={streakNow}
+          repsNow={repsNow}
           onUpgrade={setPaywall}
           onRetake={retake}
         />
@@ -896,7 +909,11 @@ function RepScreen() {
           />
         )}
         {paywall && (
-          <Paywall reason={paywall} onClose={() => setPaywall(null)} />
+          <Paywall
+            reason={paywall.reason}
+            headline={paywall.headline}
+            onClose={() => setPaywall(null)}
+          />
         )}
       </>
     );
@@ -1314,6 +1331,7 @@ function Results({
   anonymous,
   repCountBefore,
   streakNow,
+  repsNow,
   onUpgrade,
   onRetake,
 }: {
@@ -1331,7 +1349,8 @@ function Results({
   anonymous: boolean;
   repCountBefore: number | null;
   streakNow: number;
-  onUpgrade: (reason: string) => void;
+  repsNow: RepRow[];
+  onUpgrade: (ask: PaywallAsk) => void;
   onRetake: () => void;
 }) {
   const router = useRouter();
@@ -1359,8 +1378,23 @@ function Results({
     streakNow,
     shown: gatesShown(),
   });
+
+  /*
+   * The day-3 progress moment (DECISIONS #11's placement, lib/pro-moment).
+   * The save wall outranks it: the account ask comes before the money
+   * ask, and a deferred moment stays due for a later exit.
+   */
+  const [proTo, setProTo] = useState<string | null>(null);
+  const daysSpoken = trainedDays(repsNow).length;
+  const proDue = proMomentDue({
+    premium,
+    daysSpoken,
+    repCount: repsNow.length,
+    shown: proMomentShown(),
+  });
   const exit = (href: string) => {
     if (gate) setGateTo(href);
+    else if (proDue) setProTo(href);
     else router.push(href);
   };
 
@@ -1377,6 +1411,16 @@ function Results({
         index={result.ethosIndex}
         streak={streakNow}
         onSkip={() => router.push(gateTo)}
+      />
+    );
+  }
+
+  if (proTo !== null) {
+    return (
+      <ProgressMoment
+        reps={repsNow}
+        days={daysSpoken}
+        onSkip={() => router.push(proTo)}
       />
     );
   }
@@ -1428,7 +1472,12 @@ function Results({
               score={presence.metrics.presenceScore}
               previous={result.previousPresence}
               premium={premium}
-              onUpgrade={() => onUpgrade("Presence")}
+              onUpgrade={() =>
+                onUpgrade({
+                  reason: "Presence · premium",
+                  headline: "See what the camera measured.",
+                })
+              }
             />
           </div>
         )}
@@ -1438,7 +1487,12 @@ function Results({
             moments={presence.moments}
             premium={premium}
             videoUrl={clipUrl}
-            onUpgrade={() => onUpgrade("Delivery readout")}
+            onUpgrade={() =>
+              onUpgrade({
+                reason: "Delivery readout · premium",
+                headline: "See what the camera measured.",
+              })
+            }
           />
         )}
 
@@ -1459,6 +1513,22 @@ function Results({
             <p className="mt-2 text-[12.5px] leading-relaxed text-stone-400">
               It still counted toward your streak.
             </p>
+            {/* The map's #1 surface (docs/growth/04 §1.1): came back for
+                a second read the same day, right after finished work.
+                One quiet line, day 3 on; before that, meter state only. */}
+            {daysSpoken >= PRO_MOMENT_DAYS && (
+              <button
+                onClick={() =>
+                  onUpgrade({
+                    reason: "The judged read · 1 a day free",
+                    headline: "Keep the coaching coming.",
+                  })
+                }
+                className="press mt-3 min-h-11 text-left text-[13px] font-semibold text-stone-600"
+              >
+                Premium gets the full read, every time →
+              </button>
+            )}
           </div>
         )}
 
@@ -1645,6 +1715,68 @@ function SaveGate({
       >
         Not now
       </button>
+    </main>
+  );
+}
+
+/**
+ * The day-3 progress moment — the paywall's one proactive placement
+ * (DECISIONS #11: "after the day-3 progress card"), finally built where
+ * it was specced. The card is seen in full first, always; the sheet is
+ * one deliberate tap behind it; declining is quiet and final, and the
+ * decline continues to exactly the destination that was tapped, the
+ * save wall's own no-bait rule. The streak is never mentioned here:
+ * this sells the archive and the coaching, never the loss of a habit.
+ */
+function ProgressMoment({
+  reps,
+  days,
+  onSkip,
+}: {
+  reps: RepRow[];
+  days: number;
+  onSkip: () => void;
+}) {
+  const [sheet, setSheet] = useState(false);
+
+  // Shown is shown, whatever gets tapped — once per browser, like the
+  // save wall. Declining is final; the sheet never proactively returns.
+  useEffect(() => {
+    markProMomentShown();
+  }, []);
+
+  return (
+    <main className="flex min-h-dvh flex-col px-5 pb-8 pt-7">
+      <div className="label-data">Since day one</div>
+
+      <div className="flex flex-1 flex-col justify-center">
+        <ComparisonCard reps={reps} />
+        <p className="mt-3 text-[13px] leading-relaxed text-stone-500">
+          Free shows the last 7 days and reads one recording a day. Premium
+          opens all of it.
+        </p>
+      </div>
+
+      <button
+        onClick={() => setSheet(true)}
+        className="press block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+      >
+        Keep every number
+      </button>
+      <button
+        onClick={onSkip}
+        className="mt-3 block w-full py-2 text-center text-[13.5px] font-semibold text-stone-500"
+      >
+        Not now
+      </button>
+
+      {sheet && (
+        <Paywall
+          reason={`Day ${days} of speaking`}
+          headline={`${days} days of numbers. Keep all of them.`}
+          onClose={() => setSheet(false)}
+        />
+      )}
     </main>
   );
 }

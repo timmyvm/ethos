@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { AudioScrubber } from "@/components/AudioScrubber";
-import { Paywall } from "@/components/Paywall";
+import { Paywall, type PaywallAsk } from "@/components/Paywall";
 import { PresenceDetail, PresenceScore } from "@/components/PresenceCard";
 import { RepResult, type ResultView } from "@/components/RepResult";
 import {
@@ -32,7 +32,7 @@ export default function RepDetail({
   const [rep, setRep] = useState<RepRow | null | undefined>(undefined);
   const [audio, setAudio] = useState<string | null>(null);
   const [premium, setPremium] = useState(false);
-  const [paywall, setPaywall] = useState<string | null>(null);
+  const [paywall, setPaywall] = useState<PaywallAsk | null>(null);
 
   useEffect(() => {
     fetchRep(id)
@@ -170,14 +170,24 @@ export default function RepDetail({
             score={delivery.presenceScore}
             previous={null}
             premium={premium}
-            onUpgrade={() => setPaywall("Presence · premium")}
+            onUpgrade={() =>
+              setPaywall({
+                reason: "Presence · premium",
+                headline: "See what the camera measured.",
+              })
+            }
           />
           <PresenceDetail
             metrics={delivery}
             moments={rep.delivery_moments ?? []}
             premium={premium}
             videoUrl={null}
-            onUpgrade={() => setPaywall("Delivery readout · premium")}
+            onUpgrade={() =>
+              setPaywall({
+                reason: "Delivery readout · premium",
+                headline: "See what the camera measured.",
+              })
+            }
           />
         </div>
       )}
@@ -193,7 +203,13 @@ export default function RepDetail({
         </div>
       )}
 
-      {paywall && <Paywall reason={paywall} onClose={() => setPaywall(null)} />}
+      {paywall && (
+        <Paywall
+          reason={paywall.reason}
+          headline={paywall.headline}
+          onClose={() => setPaywall(null)}
+        />
+      )}
     </main>
   );
 }

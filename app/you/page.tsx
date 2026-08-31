@@ -7,7 +7,7 @@ import { Coin } from "@/components/Coin";
 import { AchievementMark, IconFreeze } from "@/components/Icon";
 import { ErrorLine, ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton, SkeletonStatBare } from "@/components/ui/Skeleton";
-import { Paywall } from "@/components/Paywall";
+import { Paywall, type PaywallAsk } from "@/components/Paywall";
 import { LexiconFlash } from "@/components/LexiconFlash";
 import { ShareCard } from "@/components/ShareCard";
 import { achievements } from "@/lib/achievements";
@@ -73,7 +73,7 @@ export default function YouPage() {
   const [lexicon, setLexicon] = useState<LexiconRow[]>([]);
   const [xp, setXp] = useState({ total: 0, week: 0 });
   const [anon, setAnon] = useState<boolean | null>(null);
-  const [paywall, setPaywall] = useState<string | null>(null);
+  const [paywall, setPaywall] = useState<PaywallAsk | null>(null);
   /** `null` is a balance nobody could read. It renders as a dash. */
   const [coins, setCoins] = useState<number | null>(null);
   const [streak, setStreak] = useState<StreakState>(EMPTY_STREAK);
@@ -528,7 +528,12 @@ export default function YouPage() {
 
           {limit(FREE_LEXICON, premium) !== null && lexicon.length > FREE_LEXICON && (
             <button
-              onClick={() => setPaywall("Full lexicon · premium")}
+              onClick={() =>
+                setPaywall({
+                  reason: "Full lexicon · premium",
+                  headline: "Every word you've earned, kept.",
+                })
+              }
               className="mt-2.5 min-h-11 w-full rounded-full border border-terracotta-100 bg-terracotta-50 px-5 py-3 text-[13.5px] font-semibold"
             >
               {lexicon.length - FREE_LEXICON} more upgrade
@@ -623,8 +628,32 @@ export default function YouPage() {
         </div>
       )}
 
+      {/* The one standing door to the sheet (docs/growth/04 §4.1): a
+          quiet row, last on the page, never a card. A premium account
+          sees its state instead — the only place the app says it. */}
+      {!loading &&
+        (premium ? (
+          <p className="mt-7 text-[12.5px] text-stone-400">
+            Premium is on this account.
+          </p>
+        ) : (
+          <button
+            onClick={() => setPaywall({ reason: "Ethos Premium" })}
+            className="press mt-7 flex min-h-11 w-full items-center justify-between rounded-full border border-stone-200 px-5 py-3 text-[14px] font-semibold hover:bg-sand"
+          >
+            <span>Ethos Premium</span>
+            <span aria-hidden className="text-stone-400">
+              →
+            </span>
+          </button>
+        ))}
+
       {paywall && (
-        <Paywall reason={paywall} onClose={() => setPaywall(null)} />
+        <Paywall
+          reason={paywall.reason}
+          headline={paywall.headline}
+          onClose={() => setPaywall(null)}
+        />
       )}
     </main>
   );

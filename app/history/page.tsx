@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ComparisonCard } from "@/components/ComparisonCard";
 import { FillerHeatmap } from "@/components/FillerHeatmap";
-import { Paywall } from "@/components/Paywall";
+import { Paywall, type PaywallAsk } from "@/components/Paywall";
 import { Sparkline } from "@/components/Sparkline";
 import {
   Skeleton,
@@ -17,16 +17,42 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { fetchProfile, fetchReps, type RepRow } from "@/lib/client-data";
 import { limit } from "@/lib/entitlement";
+import { dimensionPoints, INDEX_WEIGHTS } from "@/lib/index-score";
 import { insights } from "@/lib/insights";
 import { readable, readFailure } from "@/lib/load";
+import { TRAITS, type TraitKey } from "@/lib/traits";
 
 const FREE_DAYS = 7; // mechanics.md: free tier sees the last 7 days
+
+/**
+ * History per dimension — the premium display rule mechanics.md always
+ * named and nothing ever rendered. One series per skill, in the same
+ * weighted points the debrief's dimension list speaks (#101), skipping
+ * reps that never carried the dimension (no judge ran, an old row with
+ * no repairs score). Pure arithmetic over stored reps (#30).
+ */
+function skillSeries(reps: RepRow[]) {
+  return TRAITS.map((t) => {
+    const values: number[] = [];
+    for (const r of reps) {
+      const d = r.dimensions;
+      if (!d) continue;
+      const tier1 = d.tier1 as Partial<Record<TraitKey, number>>;
+      const tier2 = d.tier2 as Partial<Record<TraitKey, { score: number }>> | null;
+      const raw = tier1[t.key] ?? tier2?.[t.key]?.score;
+      if (typeof raw === "number") {
+        values.push(dimensionPoints(raw, INDEX_WEIGHTS[t.key]));
+      }
+    }
+    return { ...t, values, weight: INDEX_WEIGHTS[t.key] };
+  }).filter((s) => s.values.length >= 2);
+}
 
 /** The training log (design direction B) — every rep is a row. */
 export default function HistoryPage() {
   const [reps, setReps] = useState<RepRow[] | null>(null);
   const [failed, setFailed] = useState(false);
-  const [paywall, setPaywall] = useState<string | null>(null);
+  const [paywall, setPaywall] = useState<PaywallAsk | null>(null);
   const [premium, setPremium] = useState(false);
 
   const load = useCallback(async () => {
@@ -144,6 +170,7 @@ export default function HistoryPage() {
   const presenceSeries = reps
     .filter((r) => r.presence_score !== null)
     .map((r) => r.presence_score as number);
+  const skills = skillSeries(reps);
 
   return (
     <main className="px-5 pb-24 pt-7">
@@ -167,7 +194,12 @@ export default function HistoryPage() {
             <Sparkline values={presenceSeries} label="Presence" />
           ) : (
             <button
-              onClick={() => setPaywall("Presence trendline · premium")}
+              onClick={() =>
+                setPaywall({
+                  reason: "Presence trendline · premium",
+                  headline: "See what the camera measured.",
+                })
+              }
               className="press w-full rounded-[24px] border border-hairline bg-surface lift p-4 text-left"
             >
               <div className="label-data">Presence</div>
@@ -178,6 +210,40 @@ export default function HistoryPage() {
             </button>
           ))}
       </div>
+
+      {/* One line per skill (mechanics.md: "history per dimension" is
+          the premium tier's display rule). Same honesty pattern as the
+          Presence teaser: free sees what exists and how much of it. */}
+      {skills.length > 0 && (
+        <>
+          <div className="section-title mt-7">Every skill</div>
+          {premium ? (
+            <div className="mt-2 space-y-2.5">
+              {skills.map((s) => (
+                <Sparkline
+                  key={s.key}
+                  values={s.values}
+                  label={`${s.name} · of ${s.weight}`}
+                  height={44}
+                />
+              ))}
+            </div>
+          ) : (
+            <button
+              onClick={() =>
+                setPaywall({ reason: "Skill trendlines · premium" })
+              }
+              className="press mt-2 w-full rounded-[24px] border border-hairline bg-surface lift p-4 text-left"
+            >
+              <div className="text-[13px] text-stone-500">
+                {skills.length} skill{skills.length === 1 ? "" : "s"} tracked
+                across {reps.length} recording{reps.length === 1 ? "" : "s"}.
+                Tap to see the lines.
+              </div>
+            </button>
+          )}
+        </>
+      )}
 
       {insights(reps).length > 0 && (
         <>
@@ -249,16 +315,29 @@ export default function HistoryPage() {
 
       {hidden > 0 && (
         <button
-          onClick={() => setPaywall("Full history · premium")}
+          onClick={() =>
+            setPaywall({
+              reason: "Full history · premium",
+              headline: "Your first recording is still here.",
+            })
+          }
           className="mt-3 w-full rounded-[24px] border border-terracotta-100 bg-terracotta-50 p-4 text-[13.5px] font-semibold"
         >
-          {hidden} older recording{hidden === 1 ? "" : "s"} archived. Unlock
-          full history
+          {hidden} older recording{hidden === 1 ? "" : "s"} held since{" "}
+          {new Date(reps[0].created_at).toLocaleDateString(undefined, {
+            day: "numeric",
+            month: "short",
+          })}
+          . Unlock full history
         </button>
       )}
 
       {paywall && (
-        <Paywall reason={paywall} onClose={() => setPaywall(null)} />
+        <Paywall
+          reason={paywall.reason}
+          headline={paywall.headline}
+          onClose={() => setPaywall(null)}
+        />
       )}
     </main>
   );

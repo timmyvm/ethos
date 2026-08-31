@@ -109,7 +109,7 @@ twice, once `target: production`.)
 
 | What | Where | Cut cost |
 |---|---|---|
-| Paywall sheet | `components/Paywall.tsx` | Prices are placeholders pending the research pass. |
+| Paywall sheet | `components/Paywall.tsx` | Pricing DECIDED (#197): A$14.99 / A$79.99, comparables-checked. Plans pickable (annual default), the opening surface sets the headline. Timed asks: day-3 progress moment, cap-moment line, /you row (#198); `lib/pro-moment.ts` owns the once-only day-3 flag. Still code-unlocked, no Stripe. |
 | Free-tier limits | `app/history` (7 days), `app/you` (3 lexicon), boss library | Constants at the top of each file. |
 | Entitlement gate | `lib/entitlement.ts`, `profiles.premium` | **Premium is LIVE as of 27 Aug** (#170) — `EVERYTHING_FREE` is off, `/api/redeem` sets `profiles.premium` from an invite code in `PREMIUM_UNLOCK_CODE` (server env; must be set in Vercel or codes 503). `limit()` is account-aware now. |
 | Judged-tier cap | `app/api/analyze/route.ts`, `lib/metering.ts` | Free 1/day, rollover 3. Server-enforced; the client can ask, only the route decides. |

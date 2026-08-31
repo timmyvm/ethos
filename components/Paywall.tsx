@@ -6,25 +6,44 @@ import { supabaseBrowser } from "@/lib/supabase-browser";
 
 /**
  * Premium sheet. mechanics.md: annual pushed hard, monthly present,
- * and it only ever appears AFTER visible progress (day-3 card) or on a
- * deliberate tap into locked content — never at install, never a quiz.
- * Prices are placeholders until the research pass (open queue).
+ * and it only ever appears AFTER visible progress (the day-3 moment) or
+ * on a deliberate tap into locked content — never at install, never a
+ * quiz. Pricing is DECIDED (candidate B, the comparables pass in
+ * docs/growth/04 §5): A$14.99 monthly, A$79.99 annual.
  *
  * The sheet wears the deep-sage material (the score card's, #165): the
  * most premium surface the system owns, so the ask looks like the thing
  * it's asking for. One terracotta tap, per brand.md.
  *
+ * The list is ordered by expected demand (04 §4.2): the judged read
+ * first, because the person most likely to be reading this just spent
+ * their day's read. Every line names a concrete thing, no adjectives.
+ *
  * No checkout exists yet, so the primary tap tells the truth and opens
  * the real unlock: an invite code, checked by /api/redeem against a
  * server env var. The button is never dead.
  */
+/** What a surface asks the sheet to say: its name, and what continues. */
+export interface PaywallAsk {
+  reason: string;
+  headline?: string;
+}
+
 export function Paywall({
   reason,
+  headline = "The whole gym.",
   onClose,
 }: {
   reason: string;
+  /**
+   * Names what continues or deepens, keyed to the surface that opened
+   * the sheet — the cap moment talks about coaching, the archive about
+   * the recording it holds. Never about what the user lacks.
+   */
+  headline?: string;
   onClose: () => void;
 }) {
+  const [plan, setPlan] = useState<"annual" | "monthly">("annual");
   const [askingCode, setAskingCode] = useState(false);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -81,17 +100,17 @@ export function Paywall({
 
   return (
     <Overlay label="Ethos Premium" onClose={onClose}>
-      <div className="card-sage w-full max-w-[430px] rounded-t-[28px] px-6 pb-8 pt-7 text-cream">
+      <div className="card-sage max-h-[92dvh] w-full max-w-[430px] overflow-y-auto rounded-t-[28px] px-6 pb-8 pt-7 text-cream">
         <div className="label-data !text-sage-mist">{reason}</div>
         <h2 className="font-display mt-1.5 text-[30px] leading-[1.05]">
-          The whole gym.
+          {headline}
         </h2>
         <ul className="mt-4 space-y-2 text-[14px] leading-relaxed text-cream/80">
-          <li>Full pause analytics, the silence scores</li>
-          <li>Complete history and day-1-vs-day-30 cards</li>
-          <li>Your whole lexicon, not just today&apos;s swap</li>
-          <li>Every boss topic, any week, plus Hostile Q&amp;A</li>
-          <li>Unlimited judged analyses</li>
+          <li>Demos&apos;s full read on every recording. Free covers 1 a day</li>
+          <li>Presence on video: the score, its moments, the trendline</li>
+          <li>Your whole history, with a line for each of the nine skills</li>
+          <li>Your whole lexicon, every word you&apos;ve earned</li>
+          <li>The boss library: any topic any week, Hostile Q&amp;A at will</li>
         </ul>
 
         {unlocked ? (
@@ -103,11 +122,22 @@ export function Paywall({
           </div>
         ) : (
           <>
-            <div className="mt-5 flex items-center justify-between rounded-[24px] border-[1.5px] border-cream/35 bg-cream/10 p-4">
+            {/* Two plans, one selected. The annual card leads with the
+                per-month figure and keeps the honest total beside it,
+                always: persuasion by arithmetic, never by concealment. */}
+            <button
+              onClick={() => setPlan("annual")}
+              aria-pressed={plan === "annual"}
+              className={`press mt-5 flex w-full items-center justify-between rounded-[24px] p-4 text-left transition-colors ${
+                plan === "annual"
+                  ? "border-[1.5px] border-cream/40 bg-cream/10"
+                  : "border border-cream/15"
+              }`}
+            >
               <div>
                 <div className="text-[15px] font-bold">Annual</div>
                 <div className="text-[12.5px] text-cream/60">
-                  billed A$79.99
+                  billed A$79.99 a year
                 </div>
               </div>
               <div className="text-right">
@@ -118,13 +148,24 @@ export function Paywall({
                   a month · save 55%
                 </div>
               </div>
-            </div>
-            <div className="mt-2.5 flex items-center justify-between rounded-[24px] border border-cream/15 p-4">
+            </button>
+            <button
+              onClick={() => setPlan("monthly")}
+              aria-pressed={plan === "monthly"}
+              className={`press mt-2.5 flex w-full items-center justify-between rounded-[24px] p-4 text-left transition-colors ${
+                plan === "monthly"
+                  ? "border-[1.5px] border-cream/40 bg-cream/10"
+                  : "border border-cream/15"
+              }`}
+            >
               <div className="text-[15px] font-bold text-cream/80">Monthly</div>
-              <span className="font-display text-[20px] leading-none text-cream/80">
-                A$14.99
-              </span>
-            </div>
+              <div className="text-right">
+                <span className="font-display text-[20px] leading-none text-cream/80">
+                  A$14.99
+                </span>
+                <div className="label-data mt-0.5 !text-cream/50">a month</div>
+              </div>
+            </button>
 
             {!askingCode ? (
               <>
@@ -132,7 +173,7 @@ export function Paywall({
                   onClick={openCode}
                   className="press mt-5 min-h-11 w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream transition-colors hover:bg-terracotta-600"
                 >
-                  Start with annual
+                  {plan === "annual" ? "Start with annual" : "Start with monthly"}
                 </button>
                 <button
                   onClick={openCode}

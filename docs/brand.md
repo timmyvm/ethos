@@ -114,7 +114,8 @@ Hard rules:
 ## Locked business decisions (reference)
 
 - **Model: freemium** (Duolingo / Elevate pattern).
-  Free: one daily rep + basic metrics (fillers, WPM).
-  Paid: pause analytics, full history, day-vs-day comparisons,
-  Cold Topic drill archive. Exact price point → mechanics.md
-  after one research pass.
+  Free: the daily loop, every measured metric, one judged read a day.
+  Paid: unlimited judged reads, the Presence readout, full history
+  with per-dimension trendlines, the full lexicon, the boss library.
+  Pricing decided (DECISIONS #197): A$14.99 monthly / A$79.99 annual.
+  Details in mechanics.md.

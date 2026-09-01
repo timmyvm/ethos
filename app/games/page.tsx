@@ -46,7 +46,7 @@ export default function GamesPage() {
     <main className="px-5 pb-24 pt-7">
       <h1 className="font-display text-[24px] font-extrabold">Tools</h1>
 
-      {/* The one amber element on the screen: the weekly headliner,
+      {/* The one terracotta element on the screen: the weekly headliner,
           wearing the current-item border (#201), never a fill. */}
       <Link
         href="/boss"
@@ -104,7 +104,7 @@ export default function GamesPage() {
                 </span>
               </span>
               {/* The staged conditions pay effort credit, never stars
-                  (#37) — so the chip names XP and nothing else. Olive
+                  (#37) — so the chip names XP and nothing else. Sage
                   outline: a multiplier is earned by taking the harder
                   conditions, and the chip is the one pill in the set. */}
               {mult > 1 && (

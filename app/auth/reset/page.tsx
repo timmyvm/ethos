@@ -80,7 +80,7 @@ function ResetScreen() {
           </p>
           <Link
             href="/"
-            className="press mt-6 block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-stage"
+            className="press mt-6 block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream"
           >
             Back to the floor
           </Link>
@@ -99,7 +99,7 @@ function ResetScreen() {
             /* An unconfirmed email can't receive a reset mail — the
                fresh link for the first-password flow is a fresh save. */
             href={first ? "/signup" : "/auth/forgot"}
-            className="press mt-6 block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-stage"
+            className="press mt-6 block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream"
           >
             Send a new link
           </Link>
@@ -137,7 +137,7 @@ function ResetScreen() {
             <button
               type="submit"
               disabled={busy || ready === null}
-              className="press mt-5 w-full rounded-full bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-stage disabled:opacity-60"
+              className="press mt-5 w-full rounded-full bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-cream disabled:opacity-60"
             >
               {busy ? "Saving…" : "Save it"}
             </button>

@@ -138,7 +138,7 @@ export default function UploadPage() {
           />
           <label
             htmlFor="upload-file"
-            className="press mt-6 block w-full cursor-pointer rounded-full bg-terracotta-500 px-6 py-4 text-center text-[16.5px] font-semibold text-stage transition-colors hover:bg-terracotta-600"
+            className="press mt-6 block w-full cursor-pointer rounded-full bg-terracotta-500 px-6 py-4 text-center text-[16.5px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
           >
             Choose a file
           </label>
@@ -188,7 +188,7 @@ export default function UploadPage() {
             </button>
             <Link
               href="/history"
-              className="press flex-1 rounded-full bg-terracotta-500 px-5 py-3.5 text-center text-[15px] font-semibold text-stage"
+              className="press flex-1 rounded-full bg-terracotta-500 px-5 py-3.5 text-center text-[15px] font-semibold text-cream"
             >
               See the log
             </Link>

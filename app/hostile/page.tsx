@@ -403,7 +403,7 @@ export default function HostilePage() {
               </button>
               <button
                 onClick={() => void startRecording()}
-                className="press flex-1 rounded-full bg-terracotta-500 px-6 py-4 text-center text-[16.5px] font-semibold text-stage transition-colors hover:bg-terracotta-600"
+                className="press flex-1 rounded-full bg-terracotta-500 px-6 py-4 text-center text-[16.5px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
               >
                 Record my take · 60s
               </button>
@@ -466,7 +466,7 @@ export default function HostilePage() {
           </div>
           <button
             onClick={() => void stopRecording()}
-            className="press w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-stage"
+            className="press w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream"
           >
             Done
           </button>
@@ -530,7 +530,7 @@ export default function HostilePage() {
           <div className="flex-1" />
           <button
             onClick={() => void startRecording()}
-            className="press w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-stage"
+            className="press w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream"
           >
             Record my answer · {ANSWER_SECONDS}s
           </button>
@@ -617,7 +617,7 @@ export default function HostilePage() {
           <div className="flex-1" />
           <Link
             href="/"
-            className="press mt-6 block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-stage"
+            className="press mt-6 block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-cream"
           >
             Done
           </Link>
@@ -634,7 +634,7 @@ export default function HostilePage() {
               if (lastBlob.current) void submit(lastBlob.current);
               else setPhase("intro");
             }}
-            className="press mt-6 w-full max-w-[320px] rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-stage"
+            className="press mt-6 w-full max-w-[320px] rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream"
           >
             Try again
           </button>

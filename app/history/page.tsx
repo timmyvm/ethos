@@ -140,7 +140,7 @@ export default function HistoryPage() {
           action={
             <Link
               href="/rep"
-              className="press font-display block min-h-11 w-full rounded-xl bg-terracotta-500 px-6 py-3.5 text-[15px] font-bold text-stage hover:bg-terracotta-600"
+              className="press font-display block min-h-11 w-full rounded-xl bg-terracotta-500 px-6 py-3.5 text-[15px] font-bold text-cream hover:bg-terracotta-600"
             >
               Take the floor
             </Link>

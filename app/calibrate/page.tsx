@@ -247,7 +247,7 @@ export default function CalibratePage() {
       {status === "idle" && (
         <button
           onClick={() => void startCamera()}
-          className="press mt-6 w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-stage"
+          className="press mt-6 w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream"
         >
           Start the camera
         </button>
@@ -294,7 +294,7 @@ export default function CalibratePage() {
               {status === "ready" ? (
                 <button
                   onClick={() => void record()}
-                  className="press mt-4 w-full rounded-full bg-terracotta-500 px-6 py-3.5 text-[15px] font-semibold text-stage"
+                  className="press mt-4 w-full rounded-full bg-terracotta-500 px-6 py-3.5 text-[15px] font-semibold text-cream"
                 >
                   Record {TAKE_SECONDS}s
                 </button>

@@ -218,7 +218,7 @@ export default function SettingsPage() {
               onClick={() => void setHour(h)}
               className={`rounded-full px-3.5 py-2 text-[13px] font-semibold ${
                 prefs.reminderHour === h
-                  ? "bg-terracotta-500 text-stage"
+                  ? "bg-terracotta-500 text-cream"
                   : "bg-sand text-stone-600"
               }`}
             >
@@ -272,7 +272,7 @@ export default function SettingsPage() {
               }}
               className={`press flex-1 rounded-[12px] px-3 py-2.5 text-[13px] font-semibold capitalize ${
                 prefs.theme === t
-                  ? "bg-terracotta-500 text-stage"
+                  ? "bg-terracotta-500 text-cream"
                   : "bg-sand text-stone-600"
               }`}
             >
@@ -340,7 +340,7 @@ export default function SettingsPage() {
         {!email && (
           <Link
             href="/signup"
-            className="press mt-3 block w-full rounded-full bg-terracotta-500 px-4 py-3 text-center text-[13.5px] font-semibold text-stage"
+            className="press mt-3 block w-full rounded-full bg-terracotta-500 px-4 py-3 text-center text-[13.5px] font-semibold text-cream"
           >
             Create an account
           </Link>

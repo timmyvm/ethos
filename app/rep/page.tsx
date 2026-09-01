@@ -236,6 +236,11 @@ function RepScreen() {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [paywall, setPaywall] = useState<PaywallAsk | null>(null);
   const [repCount, setRepCount] = useState<number | null>(null);
+  /* The tips disclosure (#204): `null` until a tap decides, so the
+     default can follow the recording count — open for someone who has
+     never recorded, folded for everyone who has. */
+  const [tipsOpen, setTipsOpen] = useState<boolean | null>(null);
+  const showTips = tipsOpen ?? repCount === 0;
   /** The stored list AFTER this recording landed, for the debrief's
    *  day-3 progress moment (the comparison card needs both ends). */
   const [repsNow, setRepsNow] = useState<RepRow[]>([]);
@@ -1001,28 +1006,40 @@ function RepScreen() {
       )}
 
       {/*
-       * How to do the drill, before the drill. This was only ever
-       * visible inside the opt-in Frame step, which is off by default —
-       * so in practice a lesson named a target and never said how to
-       * hit it. Each tip maps to something the engine measures, so the
-       * feedback afterwards is about the same thing the tip was about.
+       * How to do the drill, before the drill (#104) — folded behind a
+       * disclosure since the declutter (#204): open on the first ever
+       * recording, when nobody has seen a technique yet, one tap away
+       * after that. Each tip maps to something the engine measures, so
+       * the feedback afterwards is about the same thing the tip was
+       * about.
        */}
       {phase === "idle" && config.tips.length > 0 && (
-        <div className="mt-4 rounded-[24px] border border-hairline bg-surface p-4">
-          <div className="label-data">How to do this one</div>
-          <ul className="mt-2 space-y-1.5">
-            {config.tips.map((tip, i) => (
-              <li
-                key={i}
-                className="flex gap-2 text-[13px] leading-relaxed text-stone-600"
-              >
-                <span className="label-data mt-0.5 shrink-0 !text-sage-700">
-                  {i + 1}
-                </span>
-                {tip}
-              </li>
-            ))}
-          </ul>
+        <div className="mt-4 border-y border-hairline">
+          <button
+            onClick={() => setTipsOpen(!showTips)}
+            aria-expanded={showTips}
+            className="press flex min-h-11 w-full items-center justify-between py-2 text-left"
+          >
+            <span className="label-data">How to do this one</span>
+            <span aria-hidden className="text-[15px] leading-none text-stone-400">
+              {showTips ? "–" : "+"}
+            </span>
+          </button>
+          {showTips && (
+            <ul className="space-y-1.5 pb-3">
+              {config.tips.map((tip, i) => (
+                <li
+                  key={i}
+                  className="flex gap-2 text-[13px] leading-relaxed text-stone-600"
+                >
+                  <span className="label-data mt-0.5 shrink-0 !text-sage-700">
+                    {i + 1}
+                  </span>
+                  {tip}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 
@@ -1195,13 +1212,20 @@ function RepScreen() {
 
         {phase === "idle" && (
           <>
-            {/* Anticipation cue — what this rep is about to earn. The
-                reward-prediction literature treats this as its own
-                driver, not a preview of the reward. */}
+            {/* Anticipation cue — what this rep is about to earn (#48).
+                One line since the declutter (#204): the headline already
+                names its number (#46), and a filled card here was the
+                loudest thing on a screen whose one job is the Rec tap. */}
             {anticipate && (
-              <div className="w-full">
-                <Moment moment={anticipate} emphasis />
-              </div>
+              <p
+                className={`max-w-[280px] text-center text-[13px] font-semibold ${
+                  anticipate.tone === "earned"
+                    ? "text-sage-700"
+                    : "text-stone-600"
+                }`}
+              >
+                {anticipate.headline}
+              </p>
             )}
             <p className="max-w-[260px] text-center text-[13.5px] text-stone-500">
               {config.maxSeconds < 60
@@ -1209,13 +1233,17 @@ function RepScreen() {
                 : "60 to 90 seconds. Pauses score in your favor."}
             </p>
             {/* The consent line: what recording does with the audio,
-                said where it's about to happen (COPY-RULES placement). */}
-            <p className="mt-1.5 text-center text-[11.5px] text-stone-400">
-              Audio uploads for scoring; your camera never does ·{" "}
-              <Link href="/privacy" className="font-semibold text-stone-500">
-                privacy
-              </Link>
-            </p>
+                said where it's about to happen (COPY-RULES placement) —
+                and only while it's news: the first recording, or
+                whenever the camera is in play (#204). */}
+            {(repCount === 0 || captureMode === "voice_video") && (
+              <p className="mt-1.5 text-center text-[11.5px] text-stone-400">
+                Audio uploads for scoring; your camera never does ·{" "}
+                <Link href="/privacy" className="font-semibold text-stone-500">
+                  privacy
+                </Link>
+              </p>
+            )}
           </>
         )}
 
@@ -1256,7 +1284,7 @@ function RepScreen() {
             className={`h-24 w-24 rounded-full text-[15px] font-bold transition-colors ${
               phase === "recording"
                 ? "bg-ink text-ground ring-[10px] ring-terracotta-100"
-                : "bg-terracotta-500 text-stage hover:bg-terracotta-600"
+                : "bg-terracotta-500 text-cream hover:bg-terracotta-600"
             }`}
           >
             {phase === "recording" ? "Stop" : "Rec"}
@@ -1609,14 +1637,14 @@ function Results({
                   })
                 )
               }
-              className="press block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-stage transition-colors hover:bg-terracotta-600"
+              className="press block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
             >
               Another round · {game.name}
             </button>
           ) : (
             <button
               onClick={() => exit(repHref({ lesson: next.id }))}
-              className="press block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-stage transition-colors hover:bg-terracotta-600"
+              className="press block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
             >
               Next lesson · {next.title}
             </button>
@@ -1637,7 +1665,7 @@ function Results({
       ) : (
         <button
           onClick={() => setStep((n) => n + 1)}
-          className="press mt-6 w-full rounded-full bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-stage transition-colors hover:bg-terracotta-600"
+          className="press mt-6 w-full rounded-full bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
         >
           {STEPS[step + 1].label} →
         </button>
@@ -1705,7 +1733,7 @@ function SaveGate({
 
       <Link
         href="/signup"
-        className="press block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-stage transition-colors hover:bg-terracotta-600"
+        className="press block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
       >
         Save my progress
       </Link>
@@ -1759,7 +1787,7 @@ function ProgressMoment({
 
       <button
         onClick={() => setSheet(true)}
-        className="press block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-stage transition-colors hover:bg-terracotta-600"
+        className="press block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
       >
         Keep every number
       </button>

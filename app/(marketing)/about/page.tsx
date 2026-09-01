@@ -43,7 +43,7 @@ export default function About() {
 
       <Link
         href="/welcome"
-        className="mt-6 block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-stage press"
+        className="mt-6 block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-cream press"
       >
         Take the floor
       </Link>
@@ -158,7 +158,7 @@ export default function About() {
 
       <Link
         href="/welcome"
-        className="mt-10 block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-stage press"
+        className="mt-10 block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-cream press"
       >
         Take the floor
       </Link>

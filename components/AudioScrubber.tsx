@@ -68,7 +68,7 @@ export function AudioScrubber({
       <div className="mt-3 flex items-center gap-3">
         <button
           onClick={toggle}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-terracotta-500 text-stage"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-terracotta-500 text-cream"
           aria-label={playing ? "Pause" : "Play"}
         >
           {playing ? "❚❚" : "▶"}

@@ -417,7 +417,7 @@ export default function YouPage() {
             </div>
           </div>
         </div>
-        {/* Amber on purpose, the ONLY amber on this screen: it points
+        {/* Terracotta on purpose, the ONLY terracotta on this screen: it points
             at the next buyable thing, and it isn't a tap (#165's flag,
             carried into #201). */}
         <div className="mt-2.5 h-[5px] overflow-hidden bg-sand">
@@ -638,7 +638,7 @@ export default function YouPage() {
           </p>
           <Link
             href="/signup"
-            className="press font-display mt-3 block min-h-11 w-full rounded-xl bg-terracotta-500 px-5 py-3 text-center text-[15px] font-bold text-stage hover:bg-terracotta-600"
+            className="press font-display mt-3 block min-h-11 w-full rounded-xl bg-terracotta-500 px-5 py-3 text-center text-[15px] font-bold text-cream hover:bg-terracotta-600"
           >
             Create my account
           </Link>

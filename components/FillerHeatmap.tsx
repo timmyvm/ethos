@@ -2,9 +2,9 @@ import { fillerHeatmap, fillerTally } from "@/lib/insights";
 import type { RepRow } from "@/lib/client-data";
 
 /**
- * Where fillers land inside a rep, and which words they are. Amber is
- * the tap and olive is earned, so the hotspot draws in rust: this is a
- * thing to fix, not a thing to celebrate.
+ * Where fillers land inside a rep, and which words they are. Sage is
+ * earned-only, so the hotspot is terracotta-toned: this is a thing to
+ * fix, not a thing to celebrate.
  */
 export function FillerHeatmap({ reps }: { reps: RepRow[] }) {
   const heat = fillerHeatmap(reps);
@@ -22,7 +22,7 @@ export function FillerHeatmap({ reps }: { reps: RepRow[] }) {
           <div key={i} className="flex flex-1 flex-col items-center gap-1.5">
             <div className="flex w-full flex-1 items-end">
               <div
-                className="w-full bg-rust/60"
+                className="w-full bg-terracotta-300"
                 style={{
                   height: `${peak ? Math.max(4, (n / peak) * 100) : 4}%`,
                 }}

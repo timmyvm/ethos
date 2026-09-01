@@ -72,7 +72,7 @@ export function TopicRoulette({
         <button
           onClick={() => onTake(topic)}
           disabled={rolling}
-          className="press font-display flex-1 rounded-xl bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-stage transition-colors hover:bg-terracotta-600 disabled:opacity-60"
+          className="press font-display flex-1 rounded-xl bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-cream transition-colors hover:bg-terracotta-600 disabled:opacity-60"
         >
           Take this one
         </button>

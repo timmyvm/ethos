@@ -189,10 +189,10 @@ export default function Home() {
       {/*
        * TIER 1 — The Floor (DECISIONS #9). Instrument grammar (#201):
        * no card at all — the lesson sits on the paper under a hairline,
-       * and the only filled colour on the screen is the one amber tap.
+       * and the only filled colour on the screen is the one terracotta tap.
        *
        * The roulette REPLACES the block rather than sitting beside it.
-       * A second block would mean a second amber button, and brand.md
+       * A second block would mean a second terracotta button, and brand.md
        * allows exactly one tap per screen — scarcity is what makes it
        * command.
        */}
@@ -241,7 +241,7 @@ export default function Home() {
             <div className="mt-4 flex items-center gap-3">
               <Link
                 href={repHref({ lesson: next?.lesson.id, mods })}
-                className="press font-display block flex-1 rounded-xl bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-stage transition-colors hover:bg-terracotta-600"
+                className="press font-display block flex-1 rounded-xl bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-cream transition-colors hover:bg-terracotta-600"
               >
                 {streak.didToday ? "Go again" : "Take the floor"}
               </Link>
@@ -379,7 +379,7 @@ export default function Home() {
        * The standing soft-wall surface (DECISIONS #137). The loud ask
        * already happened in the rep flow; this is the persistent honest
        * statement of risk for everyone who declined it, kept quiet so
-       * the floor's one amber tap stays uncontested — the link alone
+       * the floor's one terracotta tap stays uncontested — the link alone
        * wears the action text.
        */}
       {anon === true && history.length > 0 && (

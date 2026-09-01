@@ -52,14 +52,14 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
         getComputedStyle(document.body)
           .getPropertyValue("--font-display-face")
           .trim() || "Outfit";
-      g.fillStyle = "#faf8f3";
+      g.fillStyle = "#f5ead8";
       g.fillRect(0, 0, W, H);
 
-      g.fillStyle = "#191713";
+      g.fillStyle = "#201e1d";
       g.font = `800 64px ${face}, sans-serif`;
       g.fillText("ETHOS", 90, 200);
 
-      g.fillStyle = "#8a8272";
+      g.fillStyle = "#75706a";
       g.font = "700 38px Figtree, sans-serif";
       g.fillText(`DAY 1  →  DAY ${days}`, 90, 300);
 
@@ -95,21 +95,21 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
 
       let y = 480;
       for (const [label, a, b, better] of rows) {
-        g.fillStyle = "#8a8272";
+        g.fillStyle = "#75706a";
         g.font = "700 34px Figtree, sans-serif";
         g.fillText(label.toUpperCase(), 90, y);
 
         g.font = `800 110px ${face}, sans-serif`;
-        g.fillStyle = "#a39b88";
+        g.fillStyle = "#b7ae9f";
         g.fillText(a, 90, y + 120);
         const aw = g.measureText(a).width;
 
-        g.fillStyle = "#a39b88";
+        g.fillStyle = "#a49a8b";
         g.font = "400 60px Figtree, sans-serif";
         g.fillText("→", 90 + aw + 40, y + 120);
 
-        // Olive = earned, on the card exactly as in the app (#201).
-        g.fillStyle = better ? "#47572f" : "#191713";
+        // Sage = earned, on the card exactly as in the app (#165).
+        g.fillStyle = better ? "#7a8a5e" : "#201e1d";
         g.font = `800 110px ${face}, sans-serif`;
         g.fillText(b, 90 + aw + 130, y + 120);
 
@@ -117,11 +117,11 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
       }
 
       // Footer: the honest line.
-      g.fillStyle = "#8a8272";
+      g.fillStyle = "#75706a";
       g.font = "700 32px Figtree, sans-serif";
       g.fillText(`${reps.length} RECORDINGS · EVERY NUMBER MEASURED`, 90, H - 140);
 
-      g.fillStyle = "#e0a800";
+      g.fillStyle = "#c67139";
       g.fillRect(90, H - 100, 120, 8);
 
       setUrl(c.toDataURL("image/png"));
@@ -139,7 +139,7 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
           <a
             href={url}
             download="ethos-progress.png"
-            className="press font-display mt-3 block w-full rounded-xl bg-terracotta-500 px-6 py-3 text-center text-[15px] font-bold text-stage"
+            className="press font-display mt-3 block w-full rounded-xl bg-terracotta-500 px-6 py-3 text-center text-[15px] font-bold text-cream"
           >
             Save the card
           </a>

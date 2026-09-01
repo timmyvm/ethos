@@ -39,37 +39,35 @@ Rejected (violates vision.md language constraints): Command.
 
 ## Color system
 
-Quiet paper + one command colour. Command comes from SCARCITY: amber
-appears exactly once per screen, and everything else is paper, ink and
-hairlines.
+Calm orange = comfort + command. Achieved by low-saturation terracotta,
+not high-vis orange, and by SCARCITY: terracotta appears exactly once
+per screen, and everything else is warm cream, ink and hairlines.
 
-Full ramps live in `app/globals.css` (the source of truth since the
-Instrument reskin, DECISIONS #201, 1 Sep — the Tailwind ramp NAMES stay
-`terracotta-*`/`sage-*` for diff-hygiene; the values are amber and
-olive). Core tokens:
+Full ramps live in `app/globals.css` (the source of truth). The values
+are the Organic palette (DECISIONS #165), carried on the Instrument
+layout (#201's structure, #203's colours). Core tokens:
 
 | Role            | Value      | Tailwind ref     | Use |
 |-----------------|------------|------------------|-----|
-| Action / CTA    | #E0A800    | terracotta-500   | The ONE tap per screen; ink text on it, never white |
-| Action text     | #8A6A10    | terracotta-700   | Amber-family text links ("keep them →") |
-| Earned          | #47572F    | sage-500         | Stars, streak, earned fills, leader trait bar, Buy |
+| CTA / primary   | #C67139    | terracotta-500   | The ONE tap per screen; cream text on it |
+| CTA hover       | #B2432C    | terracotta-600   | Hover/pressed; also wrong-direction deltas (`rust`) |
+| Accent text     | #8F4D24    | terracotta-700   | Warm text links ("keep them →") |
+| Earned          | #7A8A5E    | sage-500         | Stars, streak, earned fills, leader trait bar, Buy |
 | Earned dim      | #9DAB7D    | sage-400         | Non-leader trait bars |
-| Earned border   | #C3CDA6    | sage-300         | Olive outline buttons, XP chips |
-| Text            | #191713    | ink              | All body/headings; also the score-card fill |
-| Ground + cards  | #FAF8F3    | ground/surface   | ONE paper — hairlines separate, not fills |
-| Raised          | #FFFDF8    | raised           | Nav bar, the current (amber-ringed) card |
-| Hairline        | #E7E2D7    | hairline         | Row separators |
-| Card outline    | #E0DACC    | edge             | 1px card borders |
-| Track           | #ECE6D9    | sand             | Progress troughs (square-cornered) |
-| Score card      | #191713    | stage            | The "Your ethos" card, both themes |
-| Mascot          | #B05038    | rust             | Demos's fur; wrong-direction deltas (#195) |
+| Earned border   | #C3CDA6    | sage-300         | Sage outline buttons, XP chips |
+| Text            | #201E1D    | ink              | All body/headings |
+| Ground          | #F5EAD8    | ground           | The room; layout cards sit on it behind 1px edges |
+| Raised          | #FAF3E3    | surface/raised   | Nav bar, sheets, the current (terracotta-ringed) card |
+| Hairline        | rgba(ink,.08) | hairline      | Row separators |
+| Card outline    | rgba(ink,.14) | edge          | 1px card borders |
+| Track           | #ECDFC4    | sand             | Progress troughs (square-cornered, #201) |
+| Score card      | #2F3624    | sage-900         | The "Your ethos" card, both themes |
 
-*Was terracotta #C67139 with sage earned (the Organic reskin, #165,
-25 Aug); terracotta #E76F51 with amber earned before that.* The
-Instrument reskin (#201) inverts amber's old meaning: amber IS the tap
-now, olive carries everything earned, terracotta survives only as the
-mascot's fur and the wrong-direction delta. The dark theme's remaps
-live in `app/globals.css`, derived pending a designed dark pass.
+*Amber #E0A800 was the tap for exactly one commit (the Instrument
+handoff, #201) and was reverted on Timothy's call (#203): the layout
+stayed, the colours came home.* Terracotta means exactly one thing:
+tap here. The dark theme's step-lifted remaps live in
+`app/globals.css`.
 
 ## Mascot — DECIDED: Red Panda
 

@@ -65,7 +65,7 @@ export default function ForgotPage() {
           <button
             type="submit"
             disabled={busy}
-            className="press mt-5 w-full rounded-full bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-stage disabled:opacity-60"
+            className="press mt-5 w-full rounded-full bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-cream disabled:opacity-60"
           >
             {busy ? "Sending…" : "Send the link"}
           </button>

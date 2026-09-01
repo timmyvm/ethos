@@ -171,7 +171,7 @@ export function Paywall({
               <>
                 <button
                   onClick={openCode}
-                  className="press mt-5 min-h-11 w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-stage transition-colors hover:bg-terracotta-600"
+                  className="press mt-5 min-h-11 w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream transition-colors hover:bg-terracotta-600"
                 >
                   {plan === "annual" ? "Start with annual" : "Start with monthly"}
                 </button>
@@ -205,7 +205,7 @@ export function Paywall({
                   <button
                     type="submit"
                     disabled={busy || !code.trim()}
-                    className="press min-h-11 shrink-0 rounded-full bg-terracotta-500 px-6 py-3.5 text-[15px] font-semibold text-stage transition-colors hover:bg-terracotta-600 disabled:opacity-50"
+                    className="press min-h-11 shrink-0 rounded-full bg-terracotta-500 px-6 py-3.5 text-[15px] font-semibold text-cream transition-colors hover:bg-terracotta-600 disabled:opacity-50"
                   >
                     {busy ? "One moment" : "Unlock"}
                   </button>

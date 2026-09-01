@@ -13,10 +13,11 @@ Read, in order:
 4. `DECISIONS.md` — everything already decided. Never re-litigate a
    locked decision; never contradict one silently.
 5. `design/instrument-redesign/README.md` + `ethos-instrument.dc.html` —
-   the look (the Instrument reskin, DECISIONS #201; open the mock,
-   actually look). `design/organic-redesign/` is the previous system and
-   `design/ethos-design-direction.html` the pre-reskin direction, kept
-   for history
+   the LAYOUT (the Instrument reskin, DECISIONS #201; open the mock,
+   actually look) — but the COLOURS are the Organic palette per #203
+   and brand.md, not the mock's amber. `design/organic-redesign/` is
+   the previous system and `design/ethos-design-direction.html` the
+   pre-reskin direction, kept for history
 
 Before any UI work, also read `DESIGN-RULES.md` — the design constitution
 (tokens, banned tells, the per-screen Definition of Done, motion, a11y).

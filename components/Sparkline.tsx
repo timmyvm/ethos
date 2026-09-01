@@ -6,10 +6,9 @@
  * way, rust when it didn't).
  *
  * The strokes are read from the theme rather than written down: a chart
- * is UI, and half the app is dark. Two voices per the handoff (#201):
- * the hero series draws in olive, an inverted series (fillers — lower
- * is better) in the quiet on-dark grey, so falling never looks like
- * fading.
+ * is UI, and half the app is dark. Two voices (#201's grammar): the
+ * hero series draws in sage, an inverted series (fillers — lower is
+ * better) in quiet stone, so falling never looks like fading.
  */
 export function Sparkline({
   values,
@@ -78,7 +77,7 @@ export function Sparkline({
         <path
           d={d}
           fill="none"
-          stroke={invert ? "var(--color-sage-mist)" : "var(--color-sage-700)"}
+          stroke={invert ? "var(--color-stone-400)" : "var(--color-sage-700)"}
           strokeWidth="2"
           strokeLinejoin="round"
           strokeLinecap="round"

@@ -16,9 +16,9 @@ import { repHref } from "@/lib/rep-config";
  *
  * Instrument grammar (#201): a vertical LIST, not winding nodes.
  * Completed lessons are rows with an olive number and their stars;
- * the current lesson sits in the one amber-bordered card (the same
- * recording the floor button serves, so the screen still has one amber
- * tap); future lessons wait at 40%; and each unit boundary is a
+ * the current lesson sits in the one terracotta-bordered card (the
+ * same recording the floor button serves, so the screen still has one
+ * terracotta tap); future lessons wait at 40%; and each unit boundary is a
  * checkpoint between two ink rules. The endowed "Showed up" row still
  * opens it (#45, ink because it's given, not earned).
  *
@@ -108,7 +108,7 @@ export function PathRoad({
           const done = !step.endowed && step.stars > 0;
 
           const row = isCurrent ? (
-            /* The current lesson: the screen's amber element, on the
+            /* The current lesson: the screen's terracotta element, on the
                raised paper. Same recording as the floor button above. */
             <span className="-mx-3.5 flex items-center gap-3.5 rounded-xl border-[1.5px] border-terracotta-500 bg-raised px-3.5 py-2.5">
               <span className="font-display w-[30px] shrink-0 text-[12px] font-extrabold tabular-nums">

@@ -73,7 +73,7 @@ export function PermissionHelp({
 
       <button
         onClick={onRecheck}
-        className="press mt-5 w-full rounded-full bg-terracotta-500 px-5 py-3.5 text-[15px] font-bold text-stage transition-colors hover:bg-terracotta-600"
+        className="press mt-5 w-full rounded-full bg-terracotta-500 px-5 py-3.5 text-[15px] font-bold text-cream transition-colors hover:bg-terracotta-600"
       >
         Check again
       </button>

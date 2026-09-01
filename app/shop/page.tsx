@@ -134,7 +134,7 @@ export default function ShopPage() {
         <h1 className="font-display text-[24px] font-extrabold leading-tight">
           Shop
         </h1>
-        {/* The balance wears the coin as a drawn amber ring — the shop
+        {/* The balance wears the coin as a drawn terracotta ring; the shop
             is where a coin is about to become something, so the ring
             points at the number, not at a tap. */}
         <span className="flex items-baseline gap-2">
@@ -270,9 +270,9 @@ export default function ShopPage() {
                     onClick={() => void buy(item)}
                     disabled={!state.ok || busy !== null}
                     /*
-                     * Deliberately NOT amber, even though it's the
+                     * Deliberately NOT terracotta, even though it's the
                      * primary action on its card. Two reasons pointing
-                     * the same way: brand.md allows one amber tap per
+                     * the same way: brand.md allows one terracotta tap per
                      * screen and a shop has four, and painting "Buy" in
                      * the attention colour is the exact nudge a store
                      * that refuses to sell you a score shouldn't make.

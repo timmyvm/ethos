@@ -109,7 +109,7 @@ export function PresenceDetail({
         </p>
         <button
           onClick={onUpgrade}
-          className="press mt-3 w-full rounded-full bg-terracotta-500 px-4 py-3 text-[15px] font-semibold text-stage"
+          className="press mt-3 w-full rounded-full bg-terracotta-500 px-4 py-3 text-[15px] font-semibold text-cream"
         >
           See the readout
         </button>

@@ -231,7 +231,7 @@ export default function BossPage() {
               <button
                 onClick={() => setPhase("research")}
                 disabled={rolling}
-                className="press flex-1 rounded-full bg-terracotta-500 px-6 py-4 text-center text-[16.5px] font-semibold text-stage transition-colors hover:bg-terracotta-600 disabled:opacity-60"
+                className="press flex-1 rounded-full bg-terracotta-500 px-6 py-4 text-center text-[16.5px] font-semibold text-cream transition-colors hover:bg-terracotta-600 disabled:opacity-60"
               >
                 Start the 4 minutes
               </button>
@@ -378,7 +378,7 @@ export default function BossPage() {
           </div>
           <button
             onClick={takeTheFloor}
-            className="w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-stage press"
+            className="w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream press"
           >
             Take the floor
           </button>

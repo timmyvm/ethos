@@ -117,7 +117,7 @@ export function AuthForm({
         </p>
         <Link
           href="/"
-          className="press mt-6 block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-stage"
+          className="press mt-6 block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream"
         >
           Back to the floor
         </Link>
@@ -231,7 +231,7 @@ export function AuthForm({
         <button
           type="submit"
           disabled={busy}
-          className="press mt-5 w-full rounded-full bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-stage transition-colors hover:bg-terracotta-600 disabled:opacity-60"
+          className="press mt-5 w-full rounded-full bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600 disabled:opacity-60"
         >
           {busy ? "One moment…" : submitLabel}
         </button>

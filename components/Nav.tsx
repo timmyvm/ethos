@@ -22,8 +22,8 @@ import {
  *
  * Instrument grammar (#201): the bar sits on the raised paper behind a
  * hairline; the active tab is ink at 800, inactive tabs faint — no
- * accent colour, no pill, no indicator bar. The one amber on a screen
- * is its tap, and a tab you are already on is not one.
+ * accent colour, no pill, no indicator bar. The one terracotta on a
+ * screen is its tap, and a tab you are already on is not one.
  */
 /*
  * Path lost its tab when the merge finished (DECISIONS #155): home has

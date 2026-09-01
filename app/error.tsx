@@ -31,7 +31,7 @@ export default function Error({
       )}
       <button
         onClick={reset}
-        className="mt-6 w-full max-w-[300px] rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-stage press"
+        className="mt-6 w-full max-w-[300px] rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream press"
       >
         Try again
       </button>

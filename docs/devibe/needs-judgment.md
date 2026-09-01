@@ -62,27 +62,18 @@ content. Both are decisions about how much to trust a stale answer.
 
 ## 2. Instrument reskin: the three derived values (DECISIONS #202)
 
-**Status:** shipped with placeholders, one token each to change.
-
-The handoff (`design/instrument-redesign/`) says "ask the designer
-before inventing new accents". Three spots needed a value the mock
-doesn't define, and each got the most mechanical derivation available:
-
-- **Amber pressed/hover** — `--color-terracotta-600: #c79500`, the
-  action darkened one step. The mock defines no interactive states;
-  DESIGN-RULES' Definition of Done requires them.
-- **The dark theme** — designed light only. The dark block in
-  `app/globals.css` carries the Organic era's warm darks forward with
-  the accent ramps remapped to the amber/olive families so the shipped
-  toggle stays honest. Replace wholesale when dark is designed.
-- **`--color-rust-lit: #d98a74`** — DECISIONS #195 (olive when a number
-  moved the right way, rust when it didn't) needs a wrong-direction
-  colour that reads on the ink score card. Lifted mascot rust, same
-  construction as `sage-lit`.
+**Status:** RESOLVED by #203 — the palette reverted to the Organic
+values, so every colour is a designed one again. The only survivors
+from #201's token additions are `edge` (old stone-200 doing the
+card-outline job) and `sage-lit` #a9c37f (the day-trail bars, kept
+because it reads on the deep sage card); `rust`/`rust-lit` now resolve
+to the old terracotta-600/-300, i.e. #195's original delta colours.
 
 ## 3. Instrument reskin: two mock lines refused by the copy law
 
 **Status:** needs Timothy's ruling only if he wants the mock's version.
+(Still relevant after #203 — both are layout-era copy questions, not
+colour ones.)
 
 - The shop footer "Nothing here buys a star, a streak, or a score." is
   in the mock; #163 removed exactly this disclaimer (the rule lives in

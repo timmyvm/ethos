@@ -37,7 +37,6 @@ export const INDEX_BANDS = [500, 600, 700, 800, 900];
 
 export type MilestoneKind =
   | "star"
-  | "unit"
   | "streak"
   | "level"
   | "freeze"
@@ -98,23 +97,21 @@ export interface ProgressInput {
  */
 export function nextMilestones(input: ProgressInput): Milestone[] {
   const { reps, starMap, streak, xp, freezesEquipped, achievements } = input;
-  const stars = totalStars(starMap);
   const out: (Milestone | null)[] = [];
 
-  // Next unit unlock — the biggest structural reward available.
-  const lockedUnit = unitStates(starMap).find((u) => u.locked);
-  if (lockedUnit) {
-    out.push(
-      milestone({
-        id: `unit-${lockedUnit.id}`,
-        kind: "unit",
-        label: `Unlock ${lockedUnit.name}`,
-        detail: `${lockedUnit.unlocksAt} total stars`,
-        current: stars,
-        target: lockedUnit.unlocksAt,
-      })
-    );
-  }
+  /*
+   * The next unit unlock is NOT a milestone (#215, Timothy's call).
+   *
+   * It was here as the biggest structural reward available, and as the
+   * closest by proximity it won the pre-record cue almost every time,
+   * so the last line before the Record tap read "Unlock Pace Control ·
+   * 4 to go": a unit you are not in, four stars away, on the one screen
+   * whose whole job is the next sixty seconds. The road already carries
+   * the gate and its star cost, which is where somebody choosing what
+   * to train is actually looking (#44, #156). Anticipation keeps its
+   * surface (#48); what it names is now something this recording can
+   * actually move.
+   */
 
   // Next star on a lesson that isn't maxed — the smallest real win.
   for (const unit of unitStates(starMap)) {

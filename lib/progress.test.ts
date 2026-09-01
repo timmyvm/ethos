@@ -105,16 +105,20 @@ describe("nextMilestones", () => {
 
   it("states a countable gap as a count", () => {
     const ms = nextMilestones(input({ starMap: { f1: 3 } }));
-    expect(ms.find((m) => m.kind === "unit")?.remainingLabel).toBe("1 to go");
+    expect(ms.find((m) => m.kind === "star")?.remainingLabel).toBe("1 to go");
   });
 
-  it("surfaces the next locked unit with its star cost", () => {
+  /**
+   * #215 — the unit unlock is not a milestone. As the closest by
+   * proximity it won the pre-record cue nearly every time, so the last
+   * line before the Record tap named a unit four stars away instead of
+   * the sixty seconds about to happen. The road still carries the gate
+   * and its star cost, where it belongs.
+   */
+  it("never offers a unit unlock as a milestone", () => {
     const ms = nextMilestones(input({ starMap: { f1: 3 } }));
-    const unit = ms.find((m) => m.kind === "unit");
-    expect(unit?.label).toBe("Unlock Pace Control");
-    expect(unit?.current).toBe(3);
-    expect(unit?.target).toBe(4);
-    expect(unit?.remaining).toBe(1);
+    expect(ms.map((m) => m.kind)).not.toContain("unit");
+    expect(ms.map((m) => m.label).join(" ")).not.toContain("Unlock");
   });
 
   it("offers only the closest badge, not a wall of locked ones", () => {

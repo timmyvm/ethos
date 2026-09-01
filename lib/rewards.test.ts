@@ -22,14 +22,17 @@ const streak = (over: Partial<StreakState> = {}): StreakState => ({
   ...over,
 });
 
+/* A star milestone since #215 retired the unit unlock: these tests are
+   about how `anticipation` frames a milestone, not about which kinds
+   exist. */
 const ms = (over: Partial<Milestone> = {}): Milestone => ({
   id: "m",
-  kind: "unit",
-  label: "Unlock Pace Control",
-  detail: "4 total stars",
-  current: 3,
-  target: 4,
-  progress: 0.75,
+  kind: "star",
+  label: "3★ on The baseline",
+  detail: "best so far is 2★",
+  current: 2,
+  target: 3,
+  progress: 0.66,
   remaining: 1,
   remainingLabel: "1 to go",
   ...over,
@@ -68,8 +71,8 @@ describe("anticipation", () => {
 
   it("falls back to the closest milestone", () => {
     const a = anticipation([ms()], streak({ current: 0 }));
-    expect(a?.headline).toBe("Unlock Pace Control · 1 to go");
-    expect(a?.detail).toBe("4 total stars");
+    expect(a?.headline).toBe("3★ on The baseline · 1 to go");
+    expect(a?.detail).toBe("best so far is 2★");
   });
 
   it("keeps milestone labels intact rather than splicing them", () => {

@@ -1,93 +1,83 @@
 == [A] indigo/purple/violet/fuchsia classes — 0 hit(s)
 
-== [A] raw hex colors in components — 87 hit(s)
-app/globals.css:25:  --color-terracotta-50: #faf4dd;
-app/globals.css:26:  --color-terracotta-100: #f4e8bd;
-app/globals.css:27:  --color-terracotta-200: #eed37d;
-app/globals.css:28:  --color-terracotta-300: #e7bd3d;
-app/globals.css:29:  --color-terracotta-400: #e3b01c;
-app/globals.css:30:  --color-terracotta-500: #e0a800;
-app/globals.css:31:  --color-terracotta-600: #c79500;
-app/globals.css:32:  --color-terracotta-700: #8a6a10;
-app/globals.css:33:  --color-terracotta-800: #8a6a10;
-app/globals.css:34:  --color-terracotta-900: #5f4a0b;
-app/globals.css:43:  --color-sage-50: #f4f6ec;
-app/globals.css:44:  --color-sage-100: #eef0e2;
-app/globals.css:45:  --color-sage-200: #dde3c8;
-app/globals.css:46:  --color-sage-300: #c3cda6;
-app/globals.css:47:  --color-sage-400: #9dab7d;
-app/globals.css:48:  --color-sage-500: #47572f;
-app/globals.css:49:  --color-sage-600: #3a4726;
-app/globals.css:50:  --color-sage-700: #47572f;
-app/globals.css:51:  --color-sage-800: #3c4a28;
-app/globals.css:52:  --color-sage-900: #2c3620;
-app/globals.css:53:  --color-sage-ink: #faf8f3;
-app/globals.css:56:  --color-sage-mist: #9a927f;
-app/globals.css:59:  --color-sage-lit: #a9c37f;
-app/globals.css:65:  --color-rust: #b05038;
-app/globals.css:66:  --color-rust-lit: #d98a74;
-app/globals.css:69:  --color-cream: #faf8f3;
-app/globals.css:71:  --color-sand: #ece6d9;
-app/globals.css:79:  --color-ground: #faf8f3;
-app/globals.css:80:  --color-surface: #faf8f3;
-app/globals.css:81:  --color-raised: #fffdf8;
-app/globals.css:82:  --color-ink: #191713;
-app/globals.css:84:  --color-hairline: #e7e2d7;
-app/globals.css:86:  --color-edge: #e0dacc;
-app/globals.css:89:  --color-stage: #191713;
-app/globals.css:98:  --color-stone-100: #efeade;
-app/globals.css:99:  --color-stone-200: #d5cfc0;
-app/globals.css:100:  --color-stone-300: #a39b88;
-app/globals.css:101:  --color-stone-400: #8a8272;
-app/globals.css:102:  --color-stone-500: #6d675b;
-app/globals.css:103:  --color-stone-600: #4c463c;
-app/globals.css:104:  --color-stone-700: #37332b;
-app/globals.css:105:  --color-stone-800: #262218;
-app/globals.css:106:  --color-stone-900: #191713;
-app/globals.css:129:  --color-ground: #211a13;
-app/globals.css:130:  --color-surface: #211a13;
-app/globals.css:131:  --color-raised: #2d241b;
-app/globals.css:132:  --color-sand: #3b2f22;
-app/globals.css:133:  --color-stage: #1a1410;
-app/globals.css:134:  --color-ink: #f3ecdd;
-app/globals.css:140:  --color-terracotta-50: #2e2610;
-app/globals.css:141:  --color-terracotta-100: #3a3013;
-app/globals.css:142:  --color-terracotta-200: #4a3d14;
-app/globals.css:143:  --color-terracotta-700: #e6c95f;
-app/globals.css:144:  --color-terracotta-800: #e6c95f;
-app/globals.css:147:  --color-sage-50: #2c331e;
-app/globals.css:148:  --color-sage-100: #343c27;
-app/globals.css:149:  --color-sage-200: #343c27;
-app/globals.css:150:  --color-sage-300: #4a5536;
-app/globals.css:151:  --color-sage-400: #6c7a52;
-app/globals.css:152:  --color-sage-500: #8a9b6b;
-app/globals.css:153:  --color-sage-600: #98aa77;
-app/globals.css:154:  --color-sage-700: #aab88a;
-app/globals.css:155:  --color-sage-800: #c3cda6;
-app/globals.css:156:  --color-sage-900: #313a24;
-app/globals.css:157:  --color-sage-ink: #211a13;
-app/globals.css:159:  --color-rust: #d08b74;
-app/globals.css:169:  --color-stone-900: #f3ecdd;
-app/manifest.ts:13:    background_color: "#faf8f3",
-app/manifest.ts:14:    theme_color: "#faf8f3",
-app/layout.tsx:61:  themeColor: "#faf8f3",
+== [A] raw hex colors in components — 77 hit(s)
+app/globals.css:18:  --color-terracotta-50: #fbeee1;
+app/globals.css:19:  --color-terracotta-100: #f6ddc9;
+app/globals.css:20:  --color-terracotta-200: #eec7a8;
+app/globals.css:21:  --color-terracotta-300: #e6b48c;
+app/globals.css:22:  --color-terracotta-400: #d69056;
+app/globals.css:23:  --color-terracotta-500: #c67139;
+app/globals.css:24:  --color-terracotta-600: #b2432c;
+app/globals.css:25:  --color-terracotta-700: #8f4d24;
+app/globals.css:26:  --color-terracotta-800: #7c4220;
+app/globals.css:27:  --color-terracotta-900: #5f331a;
+app/globals.css:36:  --color-sage-50: #f4f5ea;
+app/globals.css:37:  --color-sage-100: #eef0e2;
+app/globals.css:38:  --color-sage-200: #dde3cb;
+app/globals.css:39:  --color-sage-300: #c3cda6;
+app/globals.css:40:  --color-sage-400: #9dab7d;
+app/globals.css:41:  --color-sage-500: #7a8a5e;
+app/globals.css:42:  --color-sage-600: #6b7a51;
+app/globals.css:43:  --color-sage-700: #4c573a;
+app/globals.css:44:  --color-sage-800: #3d4630;
+app/globals.css:45:  --color-sage-900: #2f3624;
+app/globals.css:46:  --color-sage-ink: #fdf6e7;
+app/globals.css:50:  --color-sage-mist: #b6c19c;
+app/globals.css:53:  --color-sage-lit: #a9c37f;
+app/globals.css:58:  --color-rust: #b2432c;
+app/globals.css:59:  --color-rust-lit: #e6b48c;
+app/globals.css:62:  --color-cream: #fdf6e7;
+app/globals.css:64:  --color-sand: #ecdfc4;
+app/globals.css:72:  --color-ground: #f5ead8;
+app/globals.css:73:  --color-surface: #faf3e3;
+app/globals.css:74:  --color-raised: #faf3e3;
+app/globals.css:75:  --color-ink: #201e1d;
+app/globals.css:83:  --color-stage: #211a13;
+app/globals.css:100:  --color-stone-900: #201e1d;
+app/globals.css:122:  --color-ground: #211a13;
+app/globals.css:123:  --color-surface: #2d241b;
+app/globals.css:124:  --color-raised: #2d241b;
+app/globals.css:125:  --color-sand: #3b2f22;
+app/globals.css:126:  --color-stage: #1a1410;
+app/globals.css:127:  --color-ink: #f3ecdd;
+app/globals.css:133:  --color-terracotta-50: #33200f;
+app/globals.css:134:  --color-terracotta-100: #3f2716;
+app/globals.css:135:  --color-terracotta-200: #4d2f1a;
+app/globals.css:136:  --color-terracotta-700: #e6b48c;
+app/globals.css:137:  --color-terracotta-800: #e6b48c;
+app/globals.css:140:  --color-sage-50: #2c331e;
+app/globals.css:141:  --color-sage-100: #343c27;
+app/globals.css:142:  --color-sage-200: #343c27;
+app/globals.css:143:  --color-sage-300: #4a5536;
+app/globals.css:144:  --color-sage-400: #6c7a52;
+app/globals.css:145:  --color-sage-500: #8a9b6b;
+app/globals.css:146:  --color-sage-600: #98aa77;
+app/globals.css:147:  --color-sage-700: #aab88a;
+app/globals.css:148:  --color-sage-800: #c3cda6;
+app/globals.css:149:  --color-sage-900: #313a24;
+app/globals.css:150:  --color-sage-ink: #211a13;
+app/globals.css:152:  --color-rust: #e6b48c;
+app/globals.css:162:  --color-stone-900: #f3ecdd;
+app/manifest.ts:13:    background_color: "#f5ead8",
+app/manifest.ts:14:    theme_color: "#f5ead8",
+app/layout.tsx:61:  themeColor: "#f5ead8",
 components/PoseSkeleton.tsx:58:const OK_JOINT = "#FAF7F2";
 components/PoseSkeleton.tsx:60:const NUDGE_JOINT = "#A8A29E";
 components/AuthForm.tsx:253:        fill="#EA4335"
 components/AuthForm.tsx:257:        fill="#4285F4"
 components/AuthForm.tsx:261:        fill="#FBBC05"
 components/AuthForm.tsx:265:        fill="#34A853"
-components/ShareCard.tsx:55:      g.fillStyle = "#faf8f3";
-components/ShareCard.tsx:58:      g.fillStyle = "#191713";
-components/ShareCard.tsx:62:      g.fillStyle = "#8a8272";
-components/ShareCard.tsx:98:        g.fillStyle = "#8a8272";
-components/ShareCard.tsx:103:        g.fillStyle = "#a39b88";
-components/ShareCard.tsx:107:        g.fillStyle = "#a39b88";
-components/ShareCard.tsx:112:        g.fillStyle = better ? "#47572f" : "#191713";
-components/ShareCard.tsx:120:      g.fillStyle = "#8a8272";
-components/ShareCard.tsx:124:      g.fillStyle = "#e0a800";
-components/Theme.tsx:24:    ?.setAttribute("content", resolved === "dark" ? "#211a13" : "#faf8f3");
-components/Theme.tsx:57:  if (m) m.setAttribute('content', t === 'dark' ? '#211a13' : '#faf8f3');
+components/ShareCard.tsx:55:      g.fillStyle = "#f5ead8";
+components/ShareCard.tsx:58:      g.fillStyle = "#201e1d";
+components/ShareCard.tsx:62:      g.fillStyle = "#75706a";
+components/ShareCard.tsx:98:        g.fillStyle = "#75706a";
+components/ShareCard.tsx:103:        g.fillStyle = "#b7ae9f";
+components/ShareCard.tsx:107:        g.fillStyle = "#a49a8b";
+components/ShareCard.tsx:112:        g.fillStyle = better ? "#7a8a5e" : "#201e1d";
+components/ShareCard.tsx:120:      g.fillStyle = "#75706a";
+components/ShareCard.tsx:124:      g.fillStyle = "#c67139";
+components/Theme.tsx:24:    ?.setAttribute("content", resolved === "dark" ? "#211a13" : "#f5ead8");
+components/Theme.tsx:57:  if (m) m.setAttribute('content', t === 'dark' ? '#211a13' : '#f5ead8');
 
 == [B] background gradients — 0 hit(s)
 
@@ -116,9 +106,9 @@ app/(marketing)/about/page.tsx:154:        <li>· No horoscope feedback. Every c
 app/(marketing)/about/page.tsx:155:        <li>· No pay-to-win. Money never buys stars, streaks, or scores.</li>
 app/(marketing)/about/page.tsx:156:        <li>· No deadline cram. It&apos;s a gym, not a rescue.</li>
 app/rep/[id]/page.tsx:156:          <span className="label-data">×{rep.xp_multiplier} XP</span>
-app/rep/page.tsx:963:          <span className="label-data">×{config.xpMultiplier} XP</span>
-app/rep/page.tsx:1361:  // `game:<gameId>:<questionId>` — a game rep keeps its game identity
-app/rep/page.tsx:1829:      <div className="label-data">Tomorrow · when?</div>
+app/rep/page.tsx:968:          <span className="label-data">×{config.xpMultiplier} XP</span>
+app/rep/page.tsx:1389:  // `game:<gameId>:<questionId>` — a game rep keeps its game identity
+app/rep/page.tsx:1857:      <div className="label-data">Tomorrow · when?</div>
 app/auth/callback/page.tsx:35:        <p className="text-[15px] text-stone-500">Confirming…</p>
 app/calibrate/page.tsx:241:          <li>· Prop the phone at face height. Never in your hand.</li>
 app/calibrate/page.tsx:242:          <li>· Step back until head, shoulders and both hands are in frame.</li>
@@ -155,27 +145,28 @@ components/ComparisonCard.tsx:68:            <span className="text-cream/40">→
 
 == [C] inline motion durations (not motion.ts) — 0 hit(s)
 
-== [C] bounce/elastic easing — 3 hit(s)
+== [C] bounce/elastic easing — 4 hit(s)
 app/rep/page.tsx:212:  const [anticipate, setAnticipate] = useState<RewardMoment | null>(null);
-app/rep/page.tsx:1201:            {anticipate && (
-app/rep/page.tsx:1203:                <Moment moment={anticipate} emphasis />
+app/rep/page.tsx:1219:            {anticipate && (
+app/rep/page.tsx:1222:                  anticipate.tone === "earned"
+app/rep/page.tsx:1227:                {anticipate.headline}
 
 == [D] generic SaaS copy — 0 hit(s)
 
 == [E] TODO/FIXME left in UI — 25 hit(s)
-app/rep/page.tsx:1063:              placeholder="Notes: first line, last line, one example…"
-app/rep/page.tsx:1064:              className="mt-3 w-full rounded-[24px] border border-stone-200 bg-surface p-4 text-[14px] leading-relaxed placeholder:text-stone-300 focus:border-stone-300"
+app/rep/page.tsx:1080:              placeholder="Notes: first line, last line, one example…"
+app/rep/page.tsx:1081:              className="mt-3 w-full rounded-[24px] border border-stone-200 bg-surface p-4 text-[14px] leading-relaxed placeholder:text-stone-300 focus:border-stone-300"
 app/auth/forgot/page.tsx:57:            placeholder="you@email.com"
 app/auth/forgot/page.tsx:58:            className="mt-1.5 w-full rounded-full border border-stone-200 bg-surface px-5 py-3.5 text-[16px] placeholder:text-stone-300 focus:border-stone-300"
 app/auth/reset/page.tsx:129:              placeholder="8 characters or more"
 app/auth/reset/page.tsx:130:              className="mt-1.5 w-full rounded-full border border-stone-200 bg-surface px-5 py-3.5 text-[16px] placeholder:text-stone-300 focus:border-stone-300"
-app/globals.css:280: * shimmer over paper reads as a broken image rather than a placeholder.
-app/globals.css:284: * contrast on purpose: a placeholder that pulses hard competes with the
-app/globals.css:309:/* Still a visible placeholder, just a still one. */
+app/globals.css:295: * shimmer over paper reads as a broken image rather than a placeholder.
+app/globals.css:299: * contrast on purpose: a placeholder that pulses hard competes with the
+app/globals.css:324:/* Still a visible placeholder, just a still one. */
 app/you/page.tsx:224:              placeholder="Your name"
 app/you/page.tsx:225:              className="min-h-11 w-full min-w-0 flex-1 rounded-[10px] border border-stone-200 bg-raised px-4 text-[15px] font-semibold placeholder:text-stone-300 focus:border-stone-300"
-app/settings/page.tsx:386:              placeholder="DELETE"
-app/settings/page.tsx:387:              className="mt-1.5 w-full rounded-full border border-stone-200 bg-surface px-4 py-2.5 text-[14px] font-semibold placeholder:text-stone-300 focus:border-stone-300"
+app/settings/page.tsx:453:              placeholder="DELETE"
+app/settings/page.tsx:454:              className="mt-1.5 w-full rounded-[10px] border border-stone-200 bg-raised px-4 py-2.5 text-[14px] font-semibold placeholder:text-stone-300 focus:border-stone-300"
 app/boss/page.tsx:259:                placeholder={`Search ${COLD_TOPICS.length} topics`}
 app/boss/page.tsx:260:                className="w-full rounded-full border border-stone-200 bg-surface px-5 py-3 text-[15px] placeholder:text-stone-300 focus:border-stone-300"
 components/ui/Skeleton.tsx:2: * Loading placeholders.

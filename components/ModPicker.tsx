@@ -69,7 +69,7 @@ export function ModPicker({
               disabled={disabled}
               className={`flex w-full items-start gap-3 rounded-[10px] border p-3 text-left transition-colors ${
                 on
-                  ? "border-stage bg-stage text-cream"
+                  ? "border-ink bg-ink text-ground"
                   : disabled
                     ? "border-hairline opacity-40"
                     : "border-stone-200"
@@ -86,7 +86,7 @@ export function ModPicker({
                 </span>
                 <span
                   className={`mt-0.5 block text-[12.5px] leading-relaxed ${
-                    on ? "text-cream/70" : "text-stone-500"
+                    on ? "text-ground/70" : "text-stone-500"
                   }`}
                 >
                   {mod.blurb}

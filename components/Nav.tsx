@@ -49,10 +49,13 @@ const TABS = [
 /**
  * Screens that own the whole viewport: the floor, onboarding, marketing,
  * and the account screens — a tab bar under a sign-up form invites people
- * to wander off mid-form.
+ * to wander off mid-form. The unit intro (#210) joins them for the same
+ * reason the recording screen is here: it is one instruction and one
+ * button, and a tab row under the button is three ways to not press it.
  */
 const BARE = [
   "/rep",
+  "/lesson",
   "/hostile",
   "/calibrate",
   "/welcome",

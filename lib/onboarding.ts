@@ -17,6 +17,38 @@
 
 export const WELCOMED_KEY = "ethos.welcomed";
 
+/**
+ * The three introduction screens, docs/voice.md Part 3, verbatim
+ * (DECISIONS #209).
+ *
+ * The warmth is on screen 1, the positioning on screen 2, the promise
+ * on screen 3, and not one of them explains anything. Screen 1 opens on
+ * an acknowledgement rather than a claim about the reader: "I know why
+ * you're here" says something about us, where "you already know the
+ * gap" told the reader something about themselves, which is a
+ * horoscope. The promise stays deliberately small, because a small
+ * specific claim outsells a grand one.
+ *
+ * Here rather than in the page so the budget test can read it.
+ */
+export const WELCOME_STEPS = [
+  {
+    art: "/demos-listening.webp",
+    title: "Hey. I know why you're here.",
+    line: "You can already talk. You just want to be better at it.",
+  },
+  {
+    art: "/demos-speaking.webp",
+    title: "A coach costs $5,000.",
+    line: "This is sixty seconds a day.",
+  },
+  {
+    art: "/demos-celebrate.webp",
+    title: "That's the whole ask.",
+    line: "You won't notice it working. Other people will.",
+  },
+] as const;
+
 /** Supabase-js persists its session under `sb-<project-ref>-auth-token`. */
 const SB_SESSION = /^sb-.+-auth-token$/;
 

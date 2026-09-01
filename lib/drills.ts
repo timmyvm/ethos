@@ -27,11 +27,13 @@ export const DRILLS: Drill[] = [
     id: "f1",
     unit: "Filler Elimination",
     title: "The baseline",
-    prompt: "Introduce yourself and what you're building. 60 seconds, no notes.",
+    /* docs/voice.md Part 3, verbatim (DECISIONS #209). The old first
+       tip was two sentences in one bullet; voice.md splits it, which is
+       what makes the pair readable in the second nobody spends on it. */
+    prompt: "Introduce yourself and what you're building. Sixty seconds, no notes.",
     tips: [
-      "Decide your first sentence before you start. Most fillers land in the first five seconds.",
-      "One idea per sentence. Long ones run out of road.",
-      "Land on a full stop, not on \"yeah, so\".",
+      "Decide your first sentence before you start.",
+      "Most fillers land in the first five seconds.",
     ],
   },
   {

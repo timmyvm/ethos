@@ -1,6 +1,9 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { DRILLS } from "./drills";
+import { WELCOME_STEPS } from "./onboarding";
+import { UNITS } from "./path";
 
 /**
  * Copy rules, asserted rather than remembered (decisions 11 Aug, §8).
@@ -169,10 +172,21 @@ describe("the two headlines", () => {
     }
   });
 
-  it("puts the brand line in onboarding", () => {
-    expect(readFileSync("app/welcome/page.tsx", "utf8")).toContain(
-      "Earn the room."
-    );
+  /**
+   * #86 gave onboarding "Earn the room."; #209 took it back out.
+   * Timothy's own voice guide is the reason: the line names no action
+   * and no number, so it can't be cashed out ("what does earn the room
+   * even mean?"), and the screen it sat on now opens on an
+   * acknowledgement instead. The clarity line above is unaffected and
+   * still holds the acquisition surfaces.
+   *
+   * What replaces the assertion is the thing worth protecting: the
+   * approved opening, verbatim from docs/voice.md.
+   */
+  it("opens onboarding on the approved line", () => {
+    expect(WELCOME_STEPS[0].title).toBe("Hey. I know why you're here.");
+    const welcome = readFileSync("app/welcome/page.tsx", "utf8");
+    expect(welcome).not.toContain("Earn the room.");
   });
 
   /**
@@ -187,5 +201,84 @@ describe("the two headlines", () => {
     expect(marketing).toMatch(
       /daily, streak-driven, gamified practice with video/
     );
+  });
+});
+
+/**
+ * The screen template (DECISIONS #209, docs/voice.md Part 2).
+ *
+ * Two rules, both of them structural, because the failure mode they
+ * guard against is not malice: it is the next session deciding a screen
+ * "needs a bit more context" and adding one helpful sentence. One
+ * sentence is how the last version of these screens got to three
+ * paragraphs, and by then nobody was reading any of them.
+ */
+describe("the screen template", () => {
+  const WORDS = 15;
+  const count = (s: string) => s.trim().split(/\s+/).filter(Boolean).length;
+
+  /**
+   * The prose block budget. Scoped to the copy this pass approved —
+   * onboarding, the unit intros and the baseline — because those are
+   * the strings voice.md governs. The rest of the drill library has
+   * three strings at 16 words, listed in the handoff report rather
+   * than rewritten here: rewriting copy is exactly what this pass was
+   * told not to do.
+   */
+  it("keeps every approved string inside the word budget", () => {
+    const over: string[] = [];
+
+    for (const step of WELCOME_STEPS) {
+      for (const s of [step.title, step.line]) {
+        if (count(s) > WORDS) over.push(s);
+      }
+    }
+
+    for (const unit of UNITS) {
+      if (!unit.intro) continue;
+      for (const s of [unit.intro.title, unit.intro.line, ...unit.intro.howTo]) {
+        if (count(s) > WORDS) over.push(s);
+      }
+    }
+
+    const baseline = DRILLS.find((d) => d.id === "f1")!;
+    for (const s of [baseline.prompt, ...baseline.tips]) {
+      if (count(s) > WORDS) over.push(s);
+    }
+
+    expect(over).toEqual([]);
+  });
+
+  /** 2 to 3 tactics. A fourth bullet is a paragraph with dots on it. */
+  it("keeps the how-to lists to three tactics", () => {
+    for (const unit of UNITS) {
+      if (!unit.intro) continue;
+      expect(unit.intro.howTo.length).toBeLessThanOrEqual(3);
+      expect(unit.intro.howTo.length).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  /**
+   * The component must stay incapable of rendering a paragraph. A
+   * `children` or `description` prop is the whole distance between this
+   * template and the screens it replaced, so the ban is asserted rather
+   * than remembered. Prose has one home, the `why` disclosure, and it
+   * opens closed.
+   */
+  it("gives LessonScreen no way to render prose", () => {
+    const source = readFileSync("components/LessonScreen.tsx", "utf8");
+    // The public surface only. `WhyThisWorks` below it takes children
+    // on purpose: it IS the one place prose is allowed to live, and it
+    // is not exported.
+    const api = source
+      .slice(0, source.indexOf("function WhyThisWorks"))
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/^\s*\/\/.*$/gm, "");
+    expect(api).not.toMatch(/\bchildren\b/);
+    expect(api).not.toMatch(/\bdescription\b/);
+    // The disclosure starts closed on every mount, and is never read
+    // back from storage.
+    expect(source).toMatch(/useState\(false\)/);
+    expect(source).not.toMatch(/localStorage/);
   });
 });

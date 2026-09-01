@@ -10,13 +10,14 @@ import type { StreakState } from "@/lib/streak";
  * beside it. The uppercase comes from the CSS, not the copy.
  */
 export function StreakBadge({ streak }: { streak: StreakState }) {
-  if (streak.current === 0) {
-    return (
-      <span className="font-display text-[13px] font-semibold uppercase tracking-[0.02em] text-stone-400">
-        Day 1 starts today
-      </span>
-    );
-  }
+  /*
+   * Nothing on day zero (#209). This corner used to read "Day 1 starts
+   * today" and now the floor's headline says it, in voice.md's words,
+   * at four times the size. Saying it twice on one screen makes it a
+   * slogan instead of a fact, and the smaller copy is the one that
+   * loses.
+   */
+  if (streak.current === 0) return null;
 
   return (
     <span className="font-display text-[13px] font-semibold uppercase tracking-[0.02em] text-sage-700 tabular-nums">

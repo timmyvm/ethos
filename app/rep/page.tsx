@@ -14,6 +14,7 @@ import {
 import { AudioScrubber } from "@/components/AudioScrubber";
 import { Coin } from "@/components/Coin";
 import { GainsRow } from "@/components/GainsRow";
+import { LessonBody } from "@/components/LessonScreen";
 import { ModeToggle } from "@/components/ModeToggle";
 import { Moment } from "@/components/Moment";
 import { ComparisonCard } from "@/components/ComparisonCard";
@@ -236,11 +237,9 @@ function RepScreen() {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [paywall, setPaywall] = useState<PaywallAsk | null>(null);
   const [repCount, setRepCount] = useState<number | null>(null);
-  /* The tips disclosure (#204): `null` until a tap decides, so the
-     default can follow the recording count — open for someone who has
-     never recorded, folded for everyone who has. */
-  const [tipsOpen, setTipsOpen] = useState<boolean | null>(null);
-  const showTips = tipsOpen ?? repCount === 0;
+  /* The tips disclosure is gone (#209): the tactics are the screen's
+     content now, not a fold, because the four blocks of prose they were
+     competing with are what left. */
   /** The stored list AFTER this recording landed, for the debrief's
    *  day-3 progress moment (the comparison card needs both ends). */
   const [repsNow, setRepsNow] = useState<RepRow[]>([]);
@@ -254,15 +253,13 @@ function RepScreen() {
   const [streakNow, setStreakNow] = useState(0);
 
   /**
-   * Sticky per drill type, with one override: rep 1 is audio, always.
-   * Camera permission before someone has felt the product work is the
-   * most expensive ask in the funnel, so Voice + Video is offered on
-   * rep 2 as the thing no other daily app gives you.
+   * Sticky per drill type, and that is the whole rule now (#211): the
+   * recording-one audio override is gone, so this no longer waits on
+   * the history read to know what mode the screen is in.
    */
   useEffect(() => {
-    if (repCount === null) return;
-    setCaptureMode(captureModeFor(config.kind, repCount));
-  }, [config.kind, repCount]);
+    setCaptureMode(captureModeFor(config.kind));
+  }, [config.kind]);
 
   /**
    * Snapshot of where the user stood BEFORE this rep, captured on
@@ -942,18 +939,26 @@ function RepScreen() {
       <Link href={config.kind === "boss" ? "/boss" : "/"} className="self-start text-sm text-stone-500">
         ← back
       </Link>
-      <div className="label-data mt-6">{config.unit}</div>
-      <h1 className="font-display mt-1.5 text-2xl font-bold">{config.title}</h1>
-
-      {promptHidden ? (
-        <p className="mt-2.5 text-[15px] italic leading-relaxed text-stone-400">
-          Prompt hidden. That&apos;s the mod.
-        </p>
-      ) : (
-        <p className="mt-2.5 text-[15px] leading-relaxed text-stone-500">
-          {config.prompt}
-        </p>
-      )}
+      {/*
+       * The template (docs/voice.md Part 2) via <LessonBody>: the
+       * instruction, one line of what it is, and the tactics — nothing
+       * else. The tactics are back ON the screen rather than folded
+       * behind the disclosure #204 put them in: the disclosure existed
+       * because this screen carried four other blocks of prose, and
+       * those are what left (DECISIONS #209). They show while the
+       * screen is idle and yield to the live tips once the clock runs,
+       * because you cannot read and speak at the same time.
+       */}
+      <div className="mt-6">
+        <LessonBody
+          eyebrow={config.unit}
+          title={config.title}
+          line={
+            promptHidden ? "Prompt hidden. That's the mod." : config.prompt
+          }
+          howTo={phase === "idle" ? config.tips : undefined}
+        />
+      </div>
 
       {config.mods.length > 0 && (
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
@@ -969,7 +974,15 @@ function RepScreen() {
         </div>
       )}
 
-      {phase === "idle" && repCount !== null && repCount >= 1 && (
+      {/*
+       * Voice or Voice + Video, from the first recording (DECISIONS
+       * #211, amending #68). The old rule locked recording one to audio
+       * and had to be explained on the screen it applied to; deleting
+       * the rule deletes the sentence, which is the actual win. The
+       * camera is still OFF by default on a daily drill, so nothing is
+       * asked for that nobody chose.
+       */}
+      {phase === "idle" && (
         <ModeToggle
           mode={captureMode}
           available={poseReady === true}
@@ -985,62 +998,10 @@ function RepScreen() {
         />
       )}
 
-      {/*
-       * Rep 1's two honest disclosures, one line each: why there's no
-       * video toggle yet (#68), and what tapping the button will ask
-       * for. Permission asks primed at the moment of use run 2–3× the
-       * grant rate of cold ones (DECISIONS #135) — and "only while you
-       * record" is a promise the teardown() code actually keeps.
-       */}
-      {phase === "idle" && repCount === 0 && (
-        <p className="mt-4 text-[12.5px] leading-relaxed text-stone-500">
-          Audio for your first recording, video from the next. The mic is live only while
-          you record.
-        </p>
-      )}
-
       {config.crowdNoise && phase === "idle" && (
-        <p className="mt-2 text-[12.5px] text-stone-500">
+        <p className="mt-2 text-caption text-stone-500">
           Headphones on, or the café bleeds into your mic.
         </p>
-      )}
-
-      {/*
-       * How to do the drill, before the drill (#104) — folded behind a
-       * disclosure since the declutter (#204): open on the first ever
-       * recording, when nobody has seen a technique yet, one tap away
-       * after that. Each tip maps to something the engine measures, so
-       * the feedback afterwards is about the same thing the tip was
-       * about.
-       */}
-      {phase === "idle" && config.tips.length > 0 && (
-        <div className="mt-4 border-y border-hairline">
-          <button
-            onClick={() => setTipsOpen(!showTips)}
-            aria-expanded={showTips}
-            className="press flex min-h-11 w-full items-center justify-between py-2 text-left"
-          >
-            <span className="label-data">How to do this one</span>
-            <span aria-hidden className="text-[15px] leading-none text-stone-400">
-              {showTips ? "–" : "+"}
-            </span>
-          </button>
-          {showTips && (
-            <ul className="space-y-1.5 pb-3">
-              {config.tips.map((tip, i) => (
-                <li
-                  key={i}
-                  className="flex gap-2 text-[13px] leading-relaxed text-stone-600"
-                >
-                  <span className="label-data mt-0.5 shrink-0 !text-sage-700">
-                    {i + 1}
-                  </span>
-                  {tip}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
       )}
 
       <div className="flex flex-1 flex-col items-center justify-center gap-6">
@@ -1218,30 +1179,13 @@ function RepScreen() {
                 loudest thing on a screen whose one job is the Rec tap. */}
             {anticipate && (
               <p
-                className={`max-w-[280px] text-center text-[13px] font-semibold ${
+                className={`max-w-[280px] text-center text-caption font-semibold ${
                   anticipate.tone === "earned"
                     ? "text-sage-700"
                     : "text-stone-600"
                 }`}
               >
                 {anticipate.headline}
-              </p>
-            )}
-            <p className="max-w-[260px] text-center text-[13.5px] text-stone-500">
-              {config.maxSeconds < 60
-                ? `${config.maxSeconds} seconds. Spend your pauses deliberately.`
-                : "60 to 90 seconds. Pauses score in your favor."}
-            </p>
-            {/* The consent line: what recording does with the audio,
-                said where it's about to happen (COPY-RULES placement) —
-                and only while it's news: the first recording, or
-                whenever the camera is in play (#204). */}
-            {(repCount === 0 || captureMode === "voice_video") && (
-              <p className="mt-1.5 text-center text-[11.5px] text-stone-400">
-                Audio uploads for scoring; your camera never does ·{" "}
-                <Link href="/privacy" className="font-semibold text-stone-500">
-                  privacy
-                </Link>
               </p>
             )}
           </>
@@ -1287,8 +1231,31 @@ function RepScreen() {
                 : "bg-terracotta-500 text-cream hover:bg-terracotta-600"
             }`}
           >
-            {phase === "recording" ? "Stop" : "Rec"}
+            {phase === "recording" ? "Stop" : "Record"}
           </button>
+        )}
+
+        {/*
+         * The fine print, under the action, which is where the template
+         * puts it (docs/voice.md Part 2). The duration line went with
+         * the copy pass: the prompt already names the length and the
+         * timer counts it down. What survives is the promise
+         * `teardown()` actually keeps, said one line above the tap that
+         * makes it matter, which is what primes a permission ask
+         * (DECISIONS #135). The camera's own claim lives on the toggle,
+         * at the moment somebody turns it on.
+         *
+         * Shown only while it is news, which is #204's rule for the
+         * line it replaces: the first recording, or whenever the camera
+         * is in play. A promise repeated daily stops being read.
+         */}
+        {phase === "idle" && (repCount === 0 || captureMode === "voice_video") && (
+          <p className="max-w-[280px] text-center text-caption text-stone-400">
+            Mic is only on while you&apos;re recording.{" "}
+            <Link href="/privacy" className="font-semibold text-stone-500">
+              privacy
+            </Link>
+          </p>
         )}
 
         {phase === "frame" && (

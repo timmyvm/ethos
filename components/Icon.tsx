@@ -167,6 +167,19 @@ export function IconTrend({ size }: { size?: number }) {
   );
 }
 
+/**
+ * The disclosure chevron. Points down when closed and is rotated by the
+ * caller when open, so the mark itself stays one shape: a control that
+ * swaps glyphs mid-tap reads as two controls.
+ */
+export function IconChevron({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="m6 9.5 6 6 6-6" />
+    </Glyph>
+  );
+}
+
 /** The mark for an achievement, chosen by what it measures. */
 export function AchievementMark({
   name,

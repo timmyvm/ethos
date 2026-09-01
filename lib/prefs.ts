@@ -95,18 +95,17 @@ export function writeCaptureMode(
 }
 
 /**
- * Rep 1 is audio, always — whatever the toggle says.
+ * What the toggle says, from the first recording (DECISIONS #211).
  *
- * Camera permission before someone has felt the product work is the
- * most expensive ask in the funnel. Voice + Video is offered on rep 2,
- * where it reads as the thing no other daily app gives you rather than
- * as a cost of entry.
+ * There used to be an override here forcing recording one to audio, on
+ * the theory that camera permission before the product has visibly
+ * worked is the most expensive ask in the funnel. The ask was never the
+ * problem: the RULE was, because a rule has to be explained, and the
+ * sentence explaining it sat on the screen whose one job is the Record
+ * tap. The default already does the protecting — a daily drill starts
+ * on Voice, so nothing asks for a camera nobody chose.
  */
-export function captureModeFor(
-  kind: "daily" | "boss",
-  repCount: number
-): CaptureMode {
-  if (repCount < 1) return "voice";
+export function captureModeFor(kind: "daily" | "boss"): CaptureMode {
   return readCaptureMode(kind);
 }
 

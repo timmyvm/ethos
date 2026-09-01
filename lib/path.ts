@@ -9,6 +9,20 @@
 
 import { DRILLS, type Drill } from "./drills";
 
+/**
+ * A unit's teaching screen, shown once when the unit opens (#210).
+ * Optional: a unit without approved copy skips straight to its first
+ * lesson rather than showing a screen we'd have had to write.
+ */
+export interface UnitIntro {
+  /** 2 to 4 words. */
+  title: string;
+  /** ONE sentence. */
+  line: string;
+  /** 2 to 3 tactics. */
+  howTo: string[];
+}
+
 export interface Unit {
   id: string;
   name: string;
@@ -18,6 +32,7 @@ export interface Unit {
   unlocksAt: number;
   boss?: boolean;
   lessons: Drill[];
+  intro?: UnitIntro;
 }
 
 const BOSS_LESSONS: Drill[] = [
@@ -59,6 +74,18 @@ export const UNITS: Unit[] = [
     blurb: "Cut the noise. Every 'um' you drop is a second of authority back.",
     unlocksAt: 0,
     lessons: lessonsFor("Filler Elimination"),
+    /* docs/voice.md Part 3, verbatim. The third tactic is the one only
+       somebody who has actually done the drill would say, and it does
+       the work the old paragraph was reaching for. */
+    intro: {
+      title: "No fillers",
+      line: "No ums, no ahs. You pause instead.",
+      howTo: [
+        "Know your first sentence before you hit record.",
+        'When you feel an "um" coming, just close your mouth.',
+        "The silence always feels longer to you than it does to anyone listening.",
+      ],
+    },
   },
   {
     id: "pace",
@@ -162,4 +189,30 @@ export function nextLesson(
     }
   }
   return null;
+}
+
+export function unitById(id: string | undefined): Unit | null {
+  return UNITS.find((u) => u.id === id) ?? null;
+}
+
+/**
+ * Does this unit still owe its teaching screen (#210)?
+ *
+ * Once, on the way into a unit nobody has scored in yet — Duolingo's
+ * unit header, which is shown when the unit opens and never again. A
+ * unit with stars in it has been taught by the doing, and a technique
+ * screen in front of every lesson would be a paragraph a day.
+ */
+export function introDue(
+  unit: Unit | null,
+  starMap: Record<string, number>
+): boolean {
+  if (!unit?.intro) return false;
+  return unit.lessons.every((l) => (starMap[l.id] ?? 0) === 0);
+}
+
+/** The unit intro's route. */
+export function introHref(unitId: string, mods: string[] = []): string {
+  const q = mods.length > 0 ? `?mods=${mods.join(",")}` : "";
+  return `/lesson/${unitId}${q}`;
 }

@@ -77,7 +77,7 @@ twice, once `target: production`.)
 | Recording screen | `app/rep/page.tsx` | Core. |
 | Results view | `components/RepResult.tsx` | Core. Shared with the log. |
 | Topic roulette | `lib/topics.ts`, `components/TopicRoulette.tsx` | Low. 20 prompts across 4 shapes; structure tips are per shape, never per topic (DECISIONS #60). Replaces the floor card rather than adding a second CTA. |
-| Voice / Voice + Video | `components/ModeToggle.tsx`, `lib/prefs.ts` | Low to hide, medium to remove. Sticky per drill type, daily off / boss on, rep 1 always audio (DECISIONS #68). |
+| Voice / Voice + Video | `components/ModeToggle.tsx`, `lib/prefs.ts` | Low to hide, medium to remove. Sticky per drill type, daily off / boss on, and offered from the first recording since #211 amended #68: the default is what protects the funnel, not a rule that had to be explained on the screen. |
 | Presence results | `components/PresenceCard.tsx` | Medium. Score beside the Index, Pro readout, moments, local playback with markers. |
 
 ## Progression (step 3) — most prunable layer
@@ -124,7 +124,9 @@ twice, once `target: production`.)
 | What | Where | Cut cost |
 |---|---|---|
 | Landing page | `app/(marketing)/about/page.tsx` | Standalone. |
-| Onboarding | `app/welcome/page.tsx` | Standalone, three screens, no quiz. |
+| Onboarding | `app/welcome/page.tsx`, `WELCOME_STEPS` in `lib/onboarding.ts` | Standalone, three screens, no quiz. Copy is `docs/voice.md` verbatim (#209); it lives in lib so the word-budget test can read it. |
+| Screen template | `components/LessonScreen.tsx` | Cutting it un-templates four screens. `<LessonScreen>` is the whole screen (onboarding, the unit intro); `<LessonBody>` is the text block, composed by the floor and the recording screen, which are more than an explanation. Neither can render a paragraph: no `children`, no `description` (#210). |
+| Unit intro | `app/lesson/[unit]/page.tsx`, `intro` on `lib/path.ts` | Trivial. One teaching screen per unit, shown on the way into a unit with no stars in it and never again. Only Filler Elimination has approved copy; the rest link straight to their first lesson. |
 | Accounts | `lib/auth.ts`, `app/signup`, `app/signin`, `app/auth/{forgot,reset,callback}` | Core now. Email + password, no social. The anonymous upgrade attaches credentials to the same auth user, so nothing migrates and nothing can be lost migrating. |
 | Transactional email | `supabase/auth-email-templates/`, `docs/email.md` | Templates + the dashboard config they assume. Sends from `hello@speakethos.com`, reply-to the same, never `noreply@`. |
 | Frame step | `app/rep/page.tsx`, `lib/prefs.ts` | Trivial. Opt-in 30s think-time, off by default. |
@@ -318,7 +320,7 @@ are not.
 
 ## Test coverage
 
-750 tests (27 Aug) across metrics and the substance gate, index scoring, coach
+836 tests (1 Sep) across metrics and the substance gate, index scoring, coach
 validation, boss accuracy, rep configuration, stress mods, drills, path,
 streak and freezes, level, achievements, insights, reminders, scheduling,
 rewards, the analyze route, Presence, judged metering, coins, auth rules
@@ -331,9 +333,13 @@ still stored (so the streak stands) and is never charged for an analysis
 it didn't get, and that Presence never moves the Ethos Index.
 
 `lib/copy.test.ts` is a linter, not a unit test: it scans every `.tsx`
-under `app/` and `components/` for the banned word and asserts the two
-positioning claims. A ban that lives only in a document comes back the
-first time someone writes a paywall headline in a hurry.
+under `app/` and `components/` for the banned word and asserts the
+positioning claims. Since the copy pass (#209) it also holds the screen
+template to its own rules: approved strings stay inside a 15-word
+budget, how-to lists stay at two or three tactics, and `<LessonScreen>`
+keeps no `children` or `description` prop. A ban that lives only in a
+document comes back the first time someone writes a paywall headline in
+a hurry.
 
 Two tests had encoded a bug rather than a requirement — an empty
 transcript asserting 3 stars ("thresholds stay objective") and an 11-word

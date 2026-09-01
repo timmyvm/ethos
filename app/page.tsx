@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { DayTrail } from "@/components/DayTrail";
+import { LessonBody } from "@/components/LessonScreen";
 import { ModPicker } from "@/components/ModPicker";
 import { PathRoad } from "@/components/PathRoad";
 import { SkeletonScoreCard } from "@/components/ui/Skeleton";
@@ -25,7 +26,13 @@ import { dayTrail, pebbleDays } from "@/lib/days";
 import { todaysDrill } from "@/lib/drills";
 import { syncFreezes } from "@/lib/freeze-sync";
 import { firstRun, markWelcomed } from "@/lib/onboarding";
-import { nextLesson, starsByLesson, totalStars } from "@/lib/path";
+import {
+  introDue,
+  introHref,
+  nextLesson,
+  starsByLesson,
+  totalStars,
+} from "@/lib/path";
 import { readPrefs } from "@/lib/prefs";
 import { repHref } from "@/lib/rep-config";
 import { ownedFrom, poseArt } from "@/lib/shop";
@@ -147,6 +154,27 @@ export default function Home() {
   const trail = dayTrail(history);
   const pebbles = pebbleDays(history, frozen);
 
+  /*
+   * The floor's title. docs/voice.md Part 3 approves the day-one line
+   * and nothing else, so every other day carries the placeholder rather
+   * than a sentence written here: "Day forty-one starts today." is a
+   * paraphrase, and a paraphrase in this slot is how the voice drifts
+   * back to the median. Listed in the handoff report as the one string
+   * the copy pass still owes.
+   */
+  const dayLine =
+    history.length === 0 ? "Day one starts today." : "TODO: copy";
+
+  /*
+   * A unit nobody has scored in yet gets its teaching screen on the way
+   * in (#210, Duolingo's unit header); every other tap goes straight to
+   * the recording, because a technique screen in front of every lesson
+   * is a paragraph a day.
+   */
+  const floorHref =
+    next && introDue(next.unit, starMap)
+      ? introHref(next.unit.id, mods)
+      : repHref({ lesson: next?.lesson.id, mods });
 
   return (
     <main className="px-5 pb-24 pt-7">
@@ -175,7 +203,7 @@ export default function Home() {
       </div>
 
       {rescued > 0 && (
-        <div className="mt-4 rounded-xl border border-sage-300 bg-raised px-4 py-3 text-[13px] leading-relaxed">
+        <div className="mt-4 rounded-xl border border-sage-300 bg-raised px-4 py-3 text-body">
           <span className="font-semibold">
             A freeze covered {rescued === 1 ? "a day" : `${rescued} days`} you
             missed.
@@ -197,10 +225,15 @@ export default function Home() {
        * command.
        */}
       <div className="mt-5 border-t border-hairline pt-4">
+        {/* The unit moved out of this label and into the line under the
+            title, where voice.md puts it: the eyebrow names the slot,
+            the body names the thing. */}
         <div className="label-data">
           {topic
             ? "Roulette"
-            : `${streak.didToday ? "Extra lesson" : "Today's lesson"} · ${unitName}`}
+            : streak.didToday
+              ? "Extra lesson"
+              : "Today's lesson"}
         </div>
 
         {topic ? (
@@ -219,31 +252,31 @@ export default function Home() {
           </div>
         ) : (
           <>
-            <h1 className="font-display mt-1.5 text-[26px] font-bold leading-[1.15] tracking-[-0.01em]">
-              {drill.title}
-            </h1>
-            <p className="mt-1.5 text-[14px] leading-[1.5] text-stone-500">
-              {drill.prompt}
-            </p>
             {/*
-             * Why THIS, today. Duolingo's published answer to "why come
-             * back" is half-life regression (Settles & Meeder, ACL
-             * 2016): the app models what you're about to lose and
-             * schedules against it. Same idea over our measured skills —
-             * and the reason always carries the number that chose it,
-             * so the call is checkable.
+             * The floor's copy is the template (docs/voice.md Part 2)
+             * via <LessonBody>, and the PROMPT is gone from it
+             * (DECISIONS #209): it was the same sentence the recording
+             * screen shows a tap later, so reading it here bought
+             * nothing and taught people that the words on this screen
+             * are skippable.
+             *
+             * The `note` is the caption level: why THIS, today.
+             * Duolingo's published answer to "why come back" is
+             * half-life regression (Settles & Meeder, ACL 2016), and
+             * the reason always carries the number that chose it, so
+             * the call stays checkable.
              */}
-            {(gap || focus.strength !== null) && (
-              <p className="mt-1 text-[12.5px] leading-relaxed text-stone-400">
-                {gap ?? focus.reason}
-              </p>
-            )}
+            <LessonBody
+              title={dayLine}
+              line={unitName}
+              note={gap ?? (focus.strength !== null ? focus.reason : undefined)}
+            />
             <div className="mt-4 flex items-center gap-3">
               <Link
-                href={repHref({ lesson: next?.lesson.id, mods })}
+                href={floorHref}
                 className="press font-display block flex-1 rounded-xl bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-cream transition-colors hover:bg-terracotta-600"
               >
-                {streak.didToday ? "Go again" : "Take the floor"}
+                {drill.title} →
               </Link>
               {/* Demos beside the tap, at a moment, never furniture. */}
               <Image

@@ -235,7 +235,7 @@ export default function CalibratePage() {
       {/* The model assumes a static camera. The first real session was
           shot handheld and every number came out polluted, so the setup
           is stated before the mic, not diagnosed after. */}
-      <div className="mt-4 rounded-[24px] border border-hairline bg-surface lift p-4">
+      <div className="mt-4 rounded-[24px] border border-hairline bg-surface p-4">
         <div className="label-data">Set up first</div>
         <ul className="mt-1.5 space-y-1 text-[13px] leading-relaxed text-stone-600">
           <li>· Prop the phone at face height. Never in your hand.</li>
@@ -247,7 +247,7 @@ export default function CalibratePage() {
       {status === "idle" && (
         <button
           onClick={() => void startCamera()}
-          className="press mt-6 w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream"
+          className="press mt-6 w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-stage"
         >
           Start the camera
         </button>
@@ -281,7 +281,7 @@ export default function CalibratePage() {
       {(status === "ready" || status === "recording") && (
         <>
           {done.length < TAKES.length && (
-            <div className="mt-4 rounded-[24px] border border-hairline bg-surface lift p-5">
+            <div className="mt-4 rounded-[24px] border border-hairline bg-surface p-5">
               <div className="label-data">
                 Take {current + 1} of {TAKES.length} · {take.name}
               </div>
@@ -294,7 +294,7 @@ export default function CalibratePage() {
               {status === "ready" ? (
                 <button
                   onClick={() => void record()}
-                  className="press mt-4 w-full rounded-full bg-terracotta-500 px-6 py-3.5 text-[15px] font-semibold text-cream"
+                  className="press mt-4 w-full rounded-full bg-terracotta-500 px-6 py-3.5 text-[15px] font-semibold text-stage"
                 >
                   Record {TAKE_SECONDS}s
                 </button>
@@ -320,7 +320,7 @@ export default function CalibratePage() {
                   <th className="label-data pb-1.5 pr-3 font-normal">drift</th>
                   <th className="label-data pb-1.5 pr-3 font-normal">head</th>
                   <th className="label-data pb-1.5 pr-3 font-normal">eyes %</th>
-                  <th className="label-data pb-1.5 pr-3 font-normal">lift</th>
+                  <th className="label-data pb-1.5 pr-3 font-normal"></th>
                   <th className="label-data pb-1.5 pr-3 font-normal">neck</th>
                   <th className="label-data pb-1.5 pr-3 font-normal">score</th>
                   <th className="pb-1.5" aria-label="Redo" />

@@ -384,7 +384,7 @@ export default function HostilePage() {
             held, whether you answered, and how steady it sounded.
           </p>
 
-          <div className="mt-5 rounded-[26px] border border-hairline bg-surface p-6 lift-hero">
+          <div className="mt-5 rounded-[26px] border border-hairline bg-surface p-6">
             <div className="label-data">The claim · argue either side</div>
             <div className="font-display mt-3 min-h-[4.2rem] text-[26px] leading-[1.12]">
               {prompt.claim}
@@ -403,7 +403,7 @@ export default function HostilePage() {
               </button>
               <button
                 onClick={() => void startRecording()}
-                className="press flex-1 rounded-full bg-terracotta-500 px-6 py-4 text-center text-[16.5px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+                className="press flex-1 rounded-full bg-terracotta-500 px-6 py-4 text-center text-[16.5px] font-semibold text-stage transition-colors hover:bg-terracotta-600"
               >
                 Record my take · 60s
               </button>
@@ -466,7 +466,7 @@ export default function HostilePage() {
           </div>
           <button
             onClick={() => void stopRecording()}
-            className="press w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream"
+            className="press w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-stage"
           >
             Done
           </button>
@@ -530,7 +530,7 @@ export default function HostilePage() {
           <div className="flex-1" />
           <button
             onClick={() => void startRecording()}
-            className="press w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream"
+            className="press w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-stage"
           >
             Record my answer · {ANSWER_SECONDS}s
           </button>
@@ -572,7 +572,7 @@ export default function HostilePage() {
           {/* The speech numbers the daily debrief gets (#194): the take
               ran the full engine, so its measurements belong here too. */}
           {takeResult && (
-            <div className="mt-4 rounded-[24px] border border-hairline bg-surface lift p-4">
+            <div className="mt-4 rounded-[24px] border border-hairline bg-surface p-4">
               <div className="label-data">Your take, measured</div>
               <div className="mt-3 flex gap-3">
                 <TakeStat
@@ -617,7 +617,7 @@ export default function HostilePage() {
           <div className="flex-1" />
           <Link
             href="/"
-            className="press mt-6 block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-cream"
+            className="press mt-6 block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-stage"
           >
             Done
           </Link>
@@ -634,7 +634,7 @@ export default function HostilePage() {
               if (lastBlob.current) void submit(lastBlob.current);
               else setPhase("intro");
             }}
-            className="press mt-6 w-full max-w-[320px] rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream"
+            className="press mt-6 w-full max-w-[320px] rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-stage"
           >
             Try again
           </button>
@@ -672,7 +672,7 @@ function TakeStat({
 
 function VerdictRow({ name, dim }: { name: string; dim: VerdictDim }) {
   return (
-    <div className="rounded-[24px] border border-hairline bg-surface lift p-4">
+    <div className="rounded-[24px] border border-hairline bg-surface p-4">
       <div className="flex items-baseline justify-between">
         <div className="text-[14.5px] font-semibold">{name}</div>
         <div className="font-display text-[22px] leading-none">

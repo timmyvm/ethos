@@ -8,29 +8,39 @@
 
 ## Identity (decided — do not re-decide)
 
-- Brand: **Ethos** — calm orange, warmth + command. Mascot: Demos the red panda.
+- Brand: **Ethos** — a quiet instrument: paper, hairlines, tabular
+  digits. Mascot: Demos the red panda.
 - All colour, spacing, radius and motion values come from the tokens in
   `app/globals.css` and `lib/motion.ts`. **Never invent a hex value or an
   animation duration inline.** If a token is missing, add the token first,
-  then use it. The semantic three are `ground` (the room), `surface`
-  (cards in it) and `ink` (text); `stage` is the dark material the
-  rep-loop signature moments sit on, and the score card sits on deep
-  sage (`sage-900`, DECISIONS #165).
-- Terracotta is the one tap per screen. Sage is earned-only (amber is
-  retired, #165). Stone is everything holding the room. Neither accent
-  is ever decoration.
-- Shape is over-rounded (#165): cards 24–28px radius, buttons and
-  inputs are full pills, nodes and day dots are pebbles (circles).
+  then use it. Ground and surface are the SAME paper (#201) — surfaces
+  separate by hairline and border, never by fill; `raised` is the one
+  step up (nav, current cards); `stage` is the ink material the score
+  card, the paywall sheet and the rep-loop signature moments sit on.
+- Amber (`terracotta-500` — the ramp keeps its old name, #201) is the
+  one tap per screen, with INK text on it, never white. Olive (`sage-*`)
+  is earned-only. Stone is everything holding the room. Neither accent
+  is ever decoration. Rust is Demos's fur and the wrong-direction delta
+  (#195), nothing else.
+- Shape (#201): cards 12–16px radius with a 1px `edge` outline; buttons
+  are 10–12px rectangles, NOT pills (the XP/PRO chips are the only
+  pills); progress bars and the day trail are square-cornered. The
+  current/highlighted item is a 1.5px amber border on `raised`. Lists
+  are hairline-separated rows on the ground, not boxed cards.
+- **No shadows anywhere, in either theme** (#201). Depth is the border,
+  the hairline, or the raised step. Press feedback may shift a border
+  colour, never cast a shadow.
 - One icon set only: the line set in `components/Icon.tsx` — 24px grid,
-  2.75px stroke (#165), `currentColor`, no fills. No emoji as icons, no
-  second icon library (DECISIONS #152).
-- Typography is locked (#166): Caprasimo display (weight 400 ONLY —
-  never fake-bold it; globals.css enforces this), Figtree body, and
-  `.label-data` in Figtree 700 uppercase for data labels. No new faces.
-- Dark theme drops all shadows; depth is surface steps plus 1.5px
-  hairline borders. Surfaces that stay dark in both themes (stage, the
-  score card) use non-swapping text tokens — cream opacities or
-  `sage-mist` — never the stone ramp (#167).
+  `currentColor`, no fills. No emoji as icons, no second icon library
+  (DECISIONS #152).
+- Typography is locked (#201): Outfit for numbers and UI (600/700/800;
+  every numeral tabular — globals.css enforces it), Figtree 400–700 for
+  body copy only. Eyebrow labels (`.section-title`, `.label-data`) are
+  Outfit 11px/700, tracked 0.14em, uppercase, muted. Hero digits are
+  Outfit 800 with −0.02em tracking. No new faces.
+- Surfaces that are ink in both themes (stage, the score card) use
+  non-swapping text tokens — cream opacities, `sage-mist`, `sage-lit`,
+  `rust-lit` — never the stone ramp (#167's rule, carried forward).
 
 ## Banned (the vibe-code tells)
 
@@ -106,8 +116,9 @@ A screen is not finished until all of these exist and are hand-checked:
   decorative SVGs `aria-hidden`.
 - Modals: `role="dialog"`, `aria-modal`, focus trap, Escape handler —
   which is what `<Overlay>` is for. Don't hand-roll a second one.
-- Text contrast ≥ 4.5:1 against its surface (check terracotta-on-cream
-  and every stone mid-tone in BOTH themes).
+- Text contrast ≥ 4.5:1 against its surface (check action-text amber on
+  paper and every stone mid-tone in BOTH themes; on an amber fill the
+  text is ink, never white — #201).
 - Data visuals read their colours from the theme, never from a hex — a
   chart is UI, and half the app is dark.
 

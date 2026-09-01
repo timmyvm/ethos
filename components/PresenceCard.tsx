@@ -34,7 +34,7 @@ export function PresenceScore({
     return (
       <button
         onClick={onUpgrade}
-        className="press mt-3 flex w-full items-baseline gap-3.5 rounded-[24px] border border-hairline bg-surface lift p-4 text-left"
+        className="press mt-3 flex w-full items-baseline gap-3.5 rounded-[24px] border border-hairline bg-surface p-4 text-left"
       >
         <div className="font-display text-[44px] font-bold leading-none text-stone-300">
           ···
@@ -109,7 +109,7 @@ export function PresenceDetail({
         </p>
         <button
           onClick={onUpgrade}
-          className="press mt-3 w-full rounded-full bg-terracotta-500 px-4 py-3 text-[15px] font-semibold text-cream"
+          className="press mt-3 w-full rounded-full bg-terracotta-500 px-4 py-3 text-[15px] font-semibold text-stage"
         >
           See the readout
         </button>
@@ -122,7 +122,7 @@ export function PresenceDetail({
       {videoUrl && <VideoWithMarkers url={videoUrl} moments={moments} />}
 
       {moments.length > 0 && (
-        <div className="mt-4 rounded-[24px] border border-hairline bg-surface lift p-5">
+        <div className="mt-4 rounded-[24px] border border-hairline bg-surface p-5">
           <div className="label-data">Delivery · with timestamps</div>
           <ul className="mt-2.5 space-y-2">
             {moments.map((m, i) => (
@@ -181,7 +181,7 @@ function VideoWithMarkers({
   }, []);
 
   return (
-    <div className="mt-4 rounded-[24px] border border-hairline bg-surface lift p-4">
+    <div className="mt-4 rounded-[24px] border border-hairline bg-surface p-4">
       <div className="label-data">Playback · this device only</div>
       <video
         ref={ref}
@@ -224,7 +224,7 @@ function Stat({
   note: string;
 }) {
   return (
-    <div className="flex-1 rounded-[24px] border border-hairline bg-surface lift p-3.5">
+    <div className="flex-1 rounded-[24px] border border-hairline bg-surface p-3.5">
       <div className="label-data">{label}</div>
       <div className="font-display text-[26px] font-bold">{value}</div>
       <div className="text-[11.5px] text-stone-500">{note}</div>

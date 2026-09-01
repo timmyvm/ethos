@@ -41,20 +41,25 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
       const g = c.getContext("2d");
       if (!g) return;
 
-      // Cream ground, brand.md — no pure white, no pure black.
+      // Paper ground, brand.md — no pure white, no pure black.
       //
       // Literal, and staying literal: this canvas leaves the app. A
       // shared image is a piece of Ethos in someone else's feed, so it
       // wears the brand's light palette whatever theme the phone that
-      // made it was in (Checkpoint 1, finding 3 — deliberate).
-      g.fillStyle = "#f5ead8";
+      // made it was in (Checkpoint 1, finding 3 — deliberate). The
+      // values are the Instrument set (#201).
+      const face =
+        getComputedStyle(document.body)
+          .getPropertyValue("--font-display-face")
+          .trim() || "Outfit";
+      g.fillStyle = "#faf8f3";
       g.fillRect(0, 0, W, H);
 
-      g.fillStyle = "#201e1d";
-      g.font = "400 64px Caprasimo, Georgia, serif";
-      g.fillText("ethos", 90, 200);
+      g.fillStyle = "#191713";
+      g.font = `800 64px ${face}, sans-serif`;
+      g.fillText("ETHOS", 90, 200);
 
-      g.fillStyle = "#75706a";
+      g.fillStyle = "#8a8272";
       g.font = "700 38px Figtree, sans-serif";
       g.fillText(`DAY 1  →  DAY ${days}`, 90, 300);
 
@@ -90,33 +95,33 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
 
       let y = 480;
       for (const [label, a, b, better] of rows) {
-        g.fillStyle = "#75706a";
+        g.fillStyle = "#8a8272";
         g.font = "700 34px Figtree, sans-serif";
         g.fillText(label.toUpperCase(), 90, y);
 
-        g.font = "400 110px Caprasimo, Georgia, serif";
-        g.fillStyle = "#b7ae9f";
+        g.font = `800 110px ${face}, sans-serif`;
+        g.fillStyle = "#a39b88";
         g.fillText(a, 90, y + 120);
         const aw = g.measureText(a).width;
 
-        g.fillStyle = "#a49a8b";
+        g.fillStyle = "#a39b88";
         g.font = "400 60px Figtree, sans-serif";
         g.fillText("→", 90 + aw + 40, y + 120);
 
-        // Sage = earned, on the card exactly as in the app (#165).
-        g.fillStyle = better ? "#7a8a5e" : "#201e1d";
-        g.font = "400 110px Caprasimo, Georgia, serif";
+        // Olive = earned, on the card exactly as in the app (#201).
+        g.fillStyle = better ? "#47572f" : "#191713";
+        g.font = `800 110px ${face}, sans-serif`;
         g.fillText(b, 90 + aw + 130, y + 120);
 
         y += 300;
       }
 
       // Footer: the honest line.
-      g.fillStyle = "#75706a";
+      g.fillStyle = "#8a8272";
       g.font = "700 32px Figtree, sans-serif";
       g.fillText(`${reps.length} RECORDINGS · EVERY NUMBER MEASURED`, 90, H - 140);
 
-      g.fillStyle = "#c67139";
+      g.fillStyle = "#e0a800";
       g.fillRect(90, H - 100, 120, 8);
 
       setUrl(c.toDataURL("image/png"));
@@ -128,13 +133,13 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
   return (
     <div className="mt-4">
       {url ? (
-        <div className="rounded-[24px] border border-hairline bg-surface lift p-4">
+        <div className="rounded-[14px] border border-edge p-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={url} alt="Your progress card" className="w-full rounded-[20px]" />
+          <img src={url} alt="Your progress card" className="w-full rounded-[10px]" />
           <a
             href={url}
             download="ethos-progress.png"
-            className="mt-3 block w-full rounded-full bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-semibold text-cream"
+            className="press font-display mt-3 block w-full rounded-xl bg-terracotta-500 px-6 py-3 text-center text-[15px] font-bold text-stage"
           >
             Save the card
           </a>
@@ -142,7 +147,7 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
       ) : (
         <button
           onClick={draw}
-          className="w-full rounded-[24px] border border-hairline bg-surface lift p-4 text-[13.5px] font-semibold"
+          className="press font-display w-full rounded-[10px] border border-stone-200 px-4 py-[11px] text-[13.5px] font-bold"
         >
           Make a shareable card →
         </button>

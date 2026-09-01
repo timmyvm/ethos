@@ -47,14 +47,14 @@ export function TopicRoulette({
   const shape = TOPIC_SHAPES[topic.shape];
 
   return (
-    <div className="rounded-[26px] border border-hairline bg-surface p-6 lift-hero">
+    <div className="rounded-[14px] border border-edge bg-raised p-5">
       <div className="flex items-baseline justify-between">
         <div className="label-data">Roulette · you don&apos;t pick</div>
         <div className="label-data !text-sage-700">{shape.label}</div>
       </div>
 
       <div
-        className={`font-display mt-3 min-h-[5.5rem] text-[26px] font-bold leading-[1.12] transition-opacity ${
+        className={`font-display mt-3 min-h-[5rem] text-[24px] font-bold leading-[1.15] tracking-[-0.01em] transition-opacity ${
           rolling ? "opacity-40" : "opacity-100"
         }`}
       >
@@ -65,14 +65,14 @@ export function TopicRoulette({
         <button
           onClick={doSpin}
           disabled={rolling}
-          className="press shrink-0 rounded-full border border-stone-200 bg-surface px-5 py-4 text-[15px] font-semibold disabled:opacity-60"
+          className="press font-display shrink-0 rounded-[10px] border border-stone-200 px-5 py-3.5 text-[14px] font-bold disabled:opacity-60"
         >
           Spin
         </button>
         <button
           onClick={() => onTake(topic)}
           disabled={rolling}
-          className="press flex-1 rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600 disabled:opacity-60"
+          className="press font-display flex-1 rounded-xl bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-stage transition-colors hover:bg-terracotta-600 disabled:opacity-60"
         >
           Take this one
         </button>

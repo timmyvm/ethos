@@ -206,7 +206,7 @@ export default function SettingsPage() {
       <h1 className="font-display mt-4 text-2xl font-bold">Settings</h1>
 
       <div className="section-title mt-7">Daily reminder</div>
-      <div className="mt-2 rounded-[24px] border border-hairline bg-surface lift p-5">
+      <div className="mt-2 rounded-[24px] border border-hairline bg-surface p-5">
         <p className="text-[13px] leading-relaxed text-stone-500">
           One notification a day, maximum. It names the streak, never
           scolds you for missing it.
@@ -218,7 +218,7 @@ export default function SettingsPage() {
               onClick={() => void setHour(h)}
               className={`rounded-full px-3.5 py-2 text-[13px] font-semibold ${
                 prefs.reminderHour === h
-                  ? "bg-terracotta-500 text-cream"
+                  ? "bg-terracotta-500 text-stage"
                   : "bg-sand text-stone-600"
               }`}
             >
@@ -261,7 +261,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="section-title mt-7">Appearance</div>
-      <div className="mt-2 rounded-[24px] border border-hairline bg-surface lift p-5">
+      <div className="mt-2 rounded-[24px] border border-hairline bg-surface p-5">
         <div className="flex gap-2">
           {(["system", "light", "dark"] as Theme[]).map((t) => (
             <button
@@ -272,7 +272,7 @@ export default function SettingsPage() {
               }}
               className={`press flex-1 rounded-[12px] px-3 py-2.5 text-[13px] font-semibold capitalize ${
                 prefs.theme === t
-                  ? "bg-terracotta-500 text-cream"
+                  ? "bg-terracotta-500 text-stage"
                   : "bg-sand text-stone-600"
               }`}
             >
@@ -286,7 +286,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="section-title mt-7">Recording</div>
-      <div className="mt-2 divide-y divide-sand rounded-[24px] border border-hairline bg-surface lift">
+      <div className="mt-2 divide-y divide-sand rounded-[24px] border border-hairline bg-surface">
         <Toggle
           label="Frame step"
           note="30 seconds of think-time before the clock starts. Trains deciding before speaking."
@@ -328,7 +328,7 @@ export default function SettingsPage() {
       </Link>
 
       <div className="section-title mt-7">Account</div>
-      <div className="mt-2 rounded-[24px] border border-hairline bg-surface lift p-5">
+      <div className="mt-2 rounded-[24px] border border-hairline bg-surface p-5">
         <div className="text-[14px] font-semibold">
           {email ?? "Anonymous · this device only"}
         </div>
@@ -340,7 +340,7 @@ export default function SettingsPage() {
         {!email && (
           <Link
             href="/signup"
-            className="press mt-3 block w-full rounded-full bg-terracotta-500 px-4 py-3 text-center text-[13.5px] font-semibold text-cream"
+            className="press mt-3 block w-full rounded-full bg-terracotta-500 px-4 py-3 text-center text-[13.5px] font-semibold text-stage"
           >
             Create an account
           </Link>

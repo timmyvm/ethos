@@ -57,3 +57,36 @@ screen that reads it would be noise, and retrying silently risks a
 flicker of locks. The honest options are a cached last-known entitlement
 in local storage, or a single quiet line on the screens that gate
 content. Both are decisions about how much to trust a stale answer.
+
+---
+
+## 2. Instrument reskin: the three derived values (DECISIONS #202)
+
+**Status:** shipped with placeholders, one token each to change.
+
+The handoff (`design/instrument-redesign/`) says "ask the designer
+before inventing new accents". Three spots needed a value the mock
+doesn't define, and each got the most mechanical derivation available:
+
+- **Amber pressed/hover** — `--color-terracotta-600: #c79500`, the
+  action darkened one step. The mock defines no interactive states;
+  DESIGN-RULES' Definition of Done requires them.
+- **The dark theme** — designed light only. The dark block in
+  `app/globals.css` carries the Organic era's warm darks forward with
+  the accent ramps remapped to the amber/olive families so the shipped
+  toggle stays honest. Replace wholesale when dark is designed.
+- **`--color-rust-lit: #d98a74`** — DECISIONS #195 (olive when a number
+  moved the right way, rust when it didn't) needs a wrong-direction
+  colour that reads on the ink score card. Lifted mascot rust, same
+  construction as `sage-lit`.
+
+## 3. Instrument reskin: two mock lines refused by the copy law
+
+**Status:** needs Timothy's ruling only if he wants the mock's version.
+
+- The shop footer "Nothing here buys a star, a streak, or a score." is
+  in the mock; #163 removed exactly this disclaimer (the rule lives in
+  the ledger and `shop.test.ts`). Shipped without it.
+- The Tools eyebrow "GAMES · REAL REPS, ROLLED CONDITIONS" says "reps",
+  which #164 bans from the interface and `lib/copy.test.ts` enforces.
+  Shipped as "GAMES".

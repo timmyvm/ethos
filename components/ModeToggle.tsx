@@ -74,7 +74,7 @@ function Option({
       onClick={onSelect}
       className={`flex-1 rounded-[11px] px-3 py-2.5 text-[13.5px] font-semibold transition-colors ${
         selected
-          ? "bg-surface text-ink lift"
+          ? "bg-surface text-ink"
           : "text-stone-500 hover:text-stone-600"
       } ${disabled ? "opacity-40" : ""}`}
     >

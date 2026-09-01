@@ -134,7 +134,7 @@ export function RepResult({
         /* Not a score of zero — no score. Saying "I don't know" over and
            over has no fillers and a fine pace; reporting those numbers as
            an achievement would be the app lying to you. */
-        <div className="mt-3 rounded-[24px] border border-hairline bg-surface lift p-5">
+        <div className="mt-3 rounded-[24px] border border-hairline bg-surface p-5">
           <div className="font-display text-[22px] font-bold leading-tight">
             Not enough to score.
           </div>
@@ -262,7 +262,7 @@ export function RepResult({
       )}
 
       {show("words") && coach?.supply && (
-        <div className="mt-4 rounded-[24px] border border-hairline bg-surface lift p-5">
+        <div className="mt-4 rounded-[24px] border border-hairline bg-surface p-5">
           <div className="label-data">Supply · one upgrade, yours to keep</div>
           <div className="mt-2.5 flex items-center gap-3 text-[15px]">
             <span className="text-stone-500 line-through">
@@ -280,7 +280,7 @@ export function RepResult({
       )}
 
       {show("numbers") && m.fillers.length > 0 && (
-        <div className="mt-4 rounded-[24px] border border-hairline bg-surface lift p-5">
+        <div className="mt-4 rounded-[24px] border border-hairline bg-surface p-5">
           <div className="label-data">Every filler, with its timestamp</div>
           <div className="mt-2.5 flex flex-wrap gap-1.5">
             {m.fillers.map((f, i) => (
@@ -302,7 +302,7 @@ export function RepResult({
           is a claim about these words — you should be able to read them
           without going looking. */}
       {show("words") && (
-      <div className="mt-4 rounded-[24px] border border-hairline bg-surface lift px-5 py-4">
+      <div className="mt-4 rounded-[24px] border border-hairline bg-surface px-5 py-4">
         <div className="label-data">
           What you said · {m.substance?.wordCount ?? 0} words
         </div>
@@ -327,7 +327,7 @@ function Metric({
   earned?: boolean;
 }) {
   return (
-    <div className="flex-1 rounded-[24px] border border-hairline bg-surface lift p-3.5">
+    <div className="flex-1 rounded-[24px] border border-hairline bg-surface p-3.5">
       <div className="label-data">{label}</div>
       <div
         className={`font-display text-[26px] font-bold ${earned ? "text-sage-700" : ""}`}

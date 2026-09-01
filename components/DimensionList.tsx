@@ -142,7 +142,7 @@ export function DimensionList({
   const available = rows.reduce((sum, r) => sum + r.weight, 0);
 
   return (
-    <div className="rounded-[24px] border border-hairline bg-surface lift px-5 py-2">
+    <div className="rounded-[24px] border border-hairline bg-surface px-5 py-2">
       {rows.map((row) => {
         const points = dimensionPoints(row.score, row.weight);
         return (

@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { Coin } from "@/components/Coin";
 import { IconFreeze } from "@/components/Icon";
 import { Skeleton, SkeletonRegion } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -127,26 +126,34 @@ export default function ShopPage() {
 
   return (
     <main className="px-5 pb-24 pt-7">
-      <Link href="/you" className="text-sm text-stone-500">
-        ← you
+      <Link href="/you" className="text-[13px] font-semibold text-stone-400">
+        ← You
       </Link>
 
       <div className="mt-4 flex items-end justify-between">
-        <h1 className="font-display text-[29px] leading-tight">Shop</h1>
-        <span className="flex items-center gap-2">
-          <Coin variant={coins > 0 ? "coin" : "empty"} size={24} />
+        <h1 className="font-display text-[24px] font-extrabold leading-tight">
+          Shop
+        </h1>
+        {/* The balance wears the coin as a drawn amber ring — the shop
+            is where a coin is about to become something, so the ring
+            points at the number, not at a tap. */}
+        <span className="flex items-baseline gap-2">
+          <span
+            aria-hidden
+            className="inline-block h-[18px] w-[18px] shrink-0 self-center rounded-full border-2 border-terracotta-500"
+          />
           {ledger === null ? (
             failed ? (
               /* Not a zero. A balance nobody could read is unknown, and
                  unknown is a dash. */
-              <span className="font-display text-[23px] leading-none text-stone-400">
+              <span className="font-display text-[20px] font-extrabold leading-none text-stone-400">
                 —
               </span>
             ) : (
               <Skeleton className="h-6 w-10" />
             )
           ) : (
-            <span className="font-display text-[23px] leading-none">
+            <span className="font-display text-[20px] font-extrabold leading-none tabular-nums">
               {coins}
             </span>
           )}
@@ -154,15 +161,13 @@ export default function ShopPage() {
       </div>
       {/* The earning rule moved here from under the balance on /you: a
           day you spoke pays once however many reps you did, which is the
-          fact that makes the prices below mean something. The claim that
-          nothing here buys a score is made once, at the bottom, where
-          the shelf has already made its case. */}
-      <p className="mt-1.5 text-[13.5px] leading-relaxed text-stone-500">
+          fact that makes the prices below mean something. */}
+      <p className="mt-1.5 text-[13px] leading-relaxed text-stone-500">
         One coin a day you speak.
       </p>
 
       {note && (
-        <p className="mt-4 rounded-[20px] bg-terracotta-50 px-4 py-3 text-[13.5px] font-semibold text-terracotta-700">
+        <p className="mt-4 rounded-[10px] border border-edge bg-raised px-4 py-3 text-[13px] font-semibold">
           {note}
         </p>
       )}
@@ -178,11 +183,11 @@ export default function ShopPage() {
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className="rounded-[26px] border border-hairline bg-surface lift p-5"
+              className="rounded-[14px] border border-edge p-4"
             >
               <Skeleton className="h-4 w-32" />
               <Skeleton className="mt-2.5 h-3 w-full" />
-              <Skeleton className="mt-3 h-9 w-full" rounded="rounded-full" />
+              <Skeleton className="mt-3 h-9 w-full" rounded="rounded-[10px]" />
             </div>
           ))}
         </SkeletonRegion>
@@ -201,7 +206,7 @@ export default function ShopPage() {
             return (
               <div
                 key={item.id}
-                className="rounded-[26px] border border-hairline bg-surface lift p-[18px]"
+                className="rounded-[14px] border border-edge p-4"
               >
                 {/* You can see what you're buying. A cosmetic sold as a
                     name and a price is a cosmetic bought blind, which is
@@ -213,21 +218,30 @@ export default function ShopPage() {
                       alt=""
                       width={128}
                       height={128}
-                      className="demos h-[58px] w-[58px] shrink-0 object-contain"
+                      className="demos h-[46px] w-[46px] shrink-0 object-contain"
                     />
                   ) : (
-                    <span className="flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-[20px] bg-sage-100 text-sage-700">
-                      <IconFreeze size={26} />
+                    <span className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl border border-sage-300 text-sage-700">
+                      <IconFreeze size={20} />
                     </span>
                   )}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-3">
-                      <span className="text-[15px] font-extrabold">
+                      <span className="font-display text-[15px] font-extrabold">
                         {item.name}
                       </span>
-                      <span className="flex shrink-0 items-center gap-1.5">
-                        <Coin variant={isOwned ? "empty" : "coin"} size={15} />
-                        <span className="font-display text-[16px]">
+                      {/* The price wears the coin as a small ring; an
+                          already-owned price fades to faint. */}
+                      <span
+                        className={`flex shrink-0 items-baseline gap-1.5 ${
+                          isOwned ? "text-stone-300" : ""
+                        }`}
+                      >
+                        <span
+                          aria-hidden
+                          className="inline-block h-[7px] w-[7px] shrink-0 rounded-full border-[1.5px] border-current"
+                        />
+                        <span className="font-display text-[15px] font-extrabold tabular-nums">
                           {item.price}
                         </span>
                       </span>
@@ -243,10 +257,10 @@ export default function ShopPage() {
                      your card. */
                   <button
                     onClick={() => equip(pose === item.id ? null : item.id)}
-                    className={`press mt-3.5 w-full rounded-full px-5 py-3 text-[14px] font-extrabold transition-colors ${
+                    className={`press font-display mt-3 w-full rounded-[10px] px-5 py-2.5 text-[13px] font-bold transition-colors ${
                       pose === item.id
-                        ? "bg-sage-100 text-sage-800"
-                        : "border-2 border-sage-300 text-sage-800 hover:bg-sage-100"
+                        ? "border border-sage-300 bg-sage-100 text-sage-700"
+                        : "border border-sage-300 text-sage-700 hover:bg-sage-100"
                     }`}
                   >
                     {pose === item.id ? "On your card" : "Put it on the card"}
@@ -256,18 +270,20 @@ export default function ShopPage() {
                     onClick={() => void buy(item)}
                     disabled={!state.ok || busy !== null}
                     /*
-                     * Deliberately NOT terracotta, even though it's the
+                     * Deliberately NOT amber, even though it's the
                      * primary action on its card. Two reasons pointing
-                     * the same way: brand.md allows one terracotta tap
-                     * per screen and a shop has four, and painting "Buy"
-                     * in the attention colour is the exact nudge a store
+                     * the same way: brand.md allows one amber tap per
+                     * screen and a shop has four, and painting "Buy" in
+                     * the attention colour is the exact nudge a store
                      * that refuses to sell you a score shouldn't make.
-                     * The price is the argument; the button is a door.
+                     * The price is the argument; the button is a door —
+                     * olive-filled when it opens, an outline when the
+                     * coins aren't there yet (#131, #201).
                      */
-                    className={`press mt-3.5 w-full rounded-full px-5 py-3 text-[14px] font-extrabold transition-colors ${
+                    className={`press font-display mt-3 w-full rounded-[10px] px-5 py-2.5 text-[13px] font-bold transition-colors ${
                       state.ok
                         ? "bg-sage-500 text-sage-ink hover:bg-sage-600"
-                        : "border-2 border-sage-300 text-sage-800"
+                        : "border border-stone-200 text-stone-400"
                     }`}
                   >
                     {busy === item.id

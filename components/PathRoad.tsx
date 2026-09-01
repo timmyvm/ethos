@@ -7,46 +7,37 @@ import { UNITS } from "@/lib/path";
 import { repHref } from "@/lib/rep-config";
 
 /**
- * The road (DECISIONS #141) — the whole path, vertical and winding, on
- * the first screen. #90 deferred this because a 12-node road advertised
- * how little content existed; the fix was the content, and now the
- * point IS the length: every node visible without leaving home, ending
- * on an honest count of how far there is to go. Goal-gradient (#44)
- * says proximity moves effort — the road shows both the next step and
- * the summit.
+ * The road (DECISIONS #141) — the whole path on the first screen. #90
+ * deferred this because a 12-node road advertised how little content
+ * existed; the fix was the content, and now the point IS the length:
+ * every lesson visible without leaving home, ending on an honest count
+ * of how far there is to go. Goal-gradient (#44) says proximity moves
+ * effort — the road shows both the next step and the summit.
  *
- * It inherits the rail's settled grammar: the endowed "Showed up" node
- * opens it (#45, ink because it's given, not earned), sage appears
- * only on earned stars (#165), locked units name the exact stars to go, and
- * the ONE terracotta ring sits on the current node — the same rep the
- * floor card's button serves, so the screen still has one orange tap.
+ * Instrument grammar (#201): a vertical LIST, not winding nodes.
+ * Completed lessons are rows with an olive number and their stars;
+ * the current lesson sits in the one amber-bordered card (the same
+ * recording the floor button serves, so the screen still has one amber
+ * tap); future lessons wait at 40%; and each unit boundary is a
+ * checkpoint between two ink rules. The endowed "Showed up" row still
+ * opens it (#45, ink because it's given, not earned).
  *
  * Since #155 this is the ONLY path surface: the tab is gone, and each
- * unit boundary is a gate (#156) that opens on stars and nothing else.
- * #89's line holds: progress-gating is earned and free; there is no
- * time-lock and no paid key, and, unlike Duolingo's "JUMP HERE", no
- * skipping past a closed door (#28: gates open on measured stars).
+ * gate opens on stars and nothing else. #89's line holds: progress-
+ * gating is earned and free; there is no time-lock and no paid key,
+ * and, unlike Duolingo's "JUMP HERE", no skipping past a closed door
+ * (#28: gates open on measured stars).
  */
-
-/** The wind: node x-offsets cycling down the screen. */
-const WIND = [-40, 8, 46, 6, -38, -6, 40, -8];
 
 /**
  * The gate (DECISIONS #156) — every unit past the first stands behind a
- * door across the road. Closed until the star total opens it, open
- * forever after; the two states are geometry, not animation. Drawn in
- * the icon grammar (1.5px stroke, currentColor, no fills) so it can
- * never carry a colour the theme doesn't know. It is decoration in the
- * strict sense, aria-hidden, because the line under it says everything
- * it means: which unit, and exactly how many stars away the handle is.
- * Drawn at the set's 2.75 stroke (#165).
- *
- * The door is the road's one lock symbol. The lessons behind it stay
- * visible and dimmed (Duolingo's greyed future path), but they no
- * longer wear padlocks each: a mechanic is explained where it happens,
- * once, and it happens at the gate.
+ * door. Closed until the star total opens it, open forever after; the
+ * two states are geometry, not animation. Drawn in the icon grammar
+ * (currentColor, no fills) so it can never carry a colour the theme
+ * doesn't know, sized to the checkpoint row it marks, with the stroke
+ * compensated so it renders at the set's visual weight.
  */
-function Gate({ open }: { open: boolean }) {
+function Gate({ open, width = 96 }: { open: boolean; width?: number }) {
   const frame = (
     <>
       <path d="M6 66 H90" />
@@ -55,12 +46,12 @@ function Gate({ open }: { open: boolean }) {
   );
   return (
     <svg
-      width={96}
-      height={72}
+      width={width}
+      height={(width * 72) / 96}
       viewBox="0 0 96 72"
       fill="none"
       stroke="currentColor"
-      strokeWidth={2.75}
+      strokeWidth={2.75 * (96 / Math.max(width, 1)) * 0.55}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
@@ -83,6 +74,11 @@ function Gate({ open }: { open: boolean }) {
   );
 }
 
+/** The 18px thread between rows — the road, drawn as a line. */
+function Connector() {
+  return <div aria-hidden className="ml-3.5 h-[18px] border-l border-edge" />;
+}
+
 export function PathRoad({
   starMap,
   hasAnyRep,
@@ -100,114 +96,99 @@ export function PathRoad({
   let lastUnit: string | null = null;
 
   return (
-    <section className="mt-8">
-      <div className="flex items-baseline justify-between">
-        <div className="label-data !text-sage-700">The road</div>
-        <span className="text-[12.5px] text-stone-500">
-          {summary.stars} of {summary.maxStars} stars
-        </span>
-      </div>
+    <section className="mt-7 border-t border-hairline pt-4">
+      <div className="label-data">The road</div>
 
-      <div className="mt-2">
+      <div className="mt-3 flex flex-col">
         {steps.map((step, i) => {
           const isCurrent = i === currentIndex;
           const unitHeader = step.unitName !== lastUnit && !step.endowed;
           lastUnit = step.endowed ? lastUnit : step.unitName;
           const unit = UNITS.find((u) => u.name === step.unitName);
-          const x = WIND[i % WIND.length];
+          const done = !step.endowed && step.stars > 0;
 
-          const node = (
+          const row = isCurrent ? (
+            /* The current lesson: the screen's amber element, on the
+               raised paper. Same recording as the floor button above. */
+            <span className="-mx-3.5 flex items-center gap-3.5 rounded-xl border-[1.5px] border-terracotta-500 bg-raised px-3.5 py-2.5">
+              <span className="font-display w-[30px] shrink-0 text-[12px] font-extrabold tabular-nums">
+                {i}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="font-display block text-[14px] font-bold">
+                  {step.label}
+                </span>
+                <span className="mt-px block text-[12px] text-stone-400">
+                  Today · same recording as the card
+                </span>
+              </span>
+            </span>
+          ) : (
             <span
-              className={`flex items-center justify-center rounded-full font-extrabold ${
-                isCurrent
-                  ? // A border, not a ring: lift-style shadows paint on the
-                    // same box-shadow channel ring utilities use, and plain
-                    // `lift` would also hairline this border in dark.
-                    "h-14 w-14 text-[14px] border-[2.5px] border-terracotta-500 bg-surface text-ink lift-node"
-                  : "h-[46px] w-[46px] text-[13px]"
-              } ${
-                step.endowed
-                  ? // Given, not earned — ink, never sage (#45).
-                    "bg-ink text-ground"
-                  : step.locked
-                    ? "bg-sand text-stone-300"
-                    : step.stars === 3
-                      ? "bg-sage-500 text-sage-ink"
-                      : step.stars > 0
-                        ? "bg-sage-200 text-sage-800"
-                        : isCurrent
-                          ? ""
-                          : "bg-surface text-stone-300 border-[1.5px] border-hairline"
+              className={`flex items-center gap-3.5 px-0.5 ${
+                done || step.endowed ? "" : "opacity-40"
               }`}
             >
-              {step.endowed ? (
-                "✓"
-              ) : step.boss ? (
-                <IconBoss size={18} />
-              ) : step.stars > 0 ? (
-                `★${step.stars}`
-              ) : (
-                i
+              <span
+                className={`font-display w-[30px] shrink-0 text-[12px] font-bold tabular-nums ${
+                  done ? "text-sage-700" : ""
+                }`}
+              >
+                {step.endowed ? "✓" : step.boss ? <IconBoss size={15} /> : i}
+              </span>
+              <span className="font-display min-w-0 flex-1 truncate text-left text-[14px] font-semibold">
+                {step.label}
+              </span>
+              {done && (
+                <span className="font-display shrink-0 text-[12px] font-bold text-sage-700 tabular-nums">
+                  {step.stars}★
+                </span>
               )}
             </span>
           );
 
-          const wrapped = (
-            <div
-              className="flex flex-col items-center"
-              style={{ transform: `translateX(${x}px)` }}
-            >
-              {node}
-              {isCurrent && (
-                <span className="mt-1.5 max-w-[140px] text-center text-[11px] font-bold leading-[1.3] text-ink">
-                  {step.label}
-                  <span className="block text-terracotta-700">up next</span>
-                </span>
-              )}
-            </div>
-          );
-
           return (
-            <div key={step.id}>
+            <div key={step.id} className="flex flex-col">
               {unitHeader && unit && (
-                <div className="mb-3 mt-7 text-center">
-                  {unit.unlocksAt > 0 && (
-                    <div
-                      className={`flex justify-center ${
+                <>
+                  {i > 0 && <Connector />}
+                  {/* The checkpoint: a unit boundary between two ink
+                      rules. The door is the road's one lock symbol
+                      (#156); the distance keeps #44's exact count. */}
+                  <div className="flex items-center gap-3.5 border-y border-ink py-2.5">
+                    <span
+                      className={`flex w-[30px] shrink-0 justify-center ${
                         step.locked ? "text-stone-500" : "text-stone-300"
                       }`}
                     >
-                      <Gate open={!step.locked} />
-                    </div>
-                  )}
-                  {/* The unit's emoji left with the redesign (#165):
-                      one icon set, and the gate is the road's mark. */}
-                  <div className={unit.unlocksAt > 0 ? "label-data mt-2" : "label-data"}>
-                    {unit.name}
-                    {unit.boss ? " · weekly boss" : ""}
+                      {unit.unlocksAt > 0 ? (
+                        <Gate open={!step.locked} width={26} />
+                      ) : null}
+                    </span>
+                    <span className="font-display min-w-0 flex-1 text-[13.5px] font-bold">
+                      {unit.name}
+                      {unit.boss ? " · weekly boss" : ""}
+                    </span>
+                    {step.locked && (
+                      <span className="shrink-0 text-[12px] text-stone-500 tabular-nums">
+                        {unit.unlocksAt}★ · {unit.unlocksAt - summary.stars} to
+                        go
+                      </span>
+                    )}
                   </div>
-                  {step.locked && (
-                    /* Why it's closed, with the exact distance (#44). */
-                    <div className="mt-1 text-[11px] font-bold text-stone-400">
-                      opens at {unit.unlocksAt} stars ·{" "}
-                      {unit.unlocksAt - summary.stars} to go
-                    </div>
-                  )}
-                </div>
+                </>
               )}
-
-              <div className="flex justify-center py-2.5">
-                {step.locked || step.endowed || !step.lessonId ? (
-                  wrapped
-                ) : (
-                  <Link
-                    href={step.boss ? "/boss" : repHref({ lesson: step.lessonId })}
-                    className="press"
-                  >
-                    {wrapped}
-                  </Link>
-                )}
-              </div>
+              {(i > 0 || unitHeader) && <Connector />}
+              {step.locked || step.endowed || !step.lessonId ? (
+                row
+              ) : (
+                <Link
+                  href={step.boss ? "/boss" : repHref({ lesson: step.lessonId })}
+                  className="press block"
+                >
+                  {row}
+                </Link>
+              )}
             </div>
           );
         })}
@@ -218,14 +199,10 @@ export function PathRoad({
        * is the point — #90's objection inverted: with real content, the
        * distance is the pitch, and it names its numbers (#46).
        */}
-      <div className="mt-6 rounded-[28px] border border-hairline bg-surface lift p-5 text-center">
-        <div className="font-display text-[22px] leading-tight">
-          {summary.totalLessons} lessons, end to end.
-        </div>
-        <p className="mt-1.5 text-[13px] leading-relaxed text-stone-500">
-          About {weeks} weeks at one a day.
-        </p>
-      </div>
+      <p className="mt-4 text-[12px] text-stone-400">
+        {summary.totalLessons} lessons, end to end. About {weeks} weeks at one
+        a day.
+      </p>
     </section>
   );
 }

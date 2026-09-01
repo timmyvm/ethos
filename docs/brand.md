@@ -39,28 +39,37 @@ Rejected (violates vision.md language constraints): Command.
 
 ## Color system
 
-Calm orange = comfort + command. Achieved by low-saturation terracotta,
-not high-vis orange, and by SCARCITY.
+Quiet paper + one command colour. Command comes from SCARCITY: amber
+appears exactly once per screen, and everything else is paper, ink and
+hairlines.
 
 Full ramps live in `app/globals.css` (the source of truth since the
-Organic reskin, DECISIONS #165, 25 Aug). Core tokens:
+Instrument reskin, DECISIONS #201, 1 Sep — the Tailwind ramp NAMES stay
+`terracotta-*`/`sage-*` for diff-hygiene; the values are amber and
+olive). Core tokens:
 
 | Role            | Value      | Tailwind ref     | Use |
 |-----------------|------------|------------------|-----|
-| CTA / primary   | #C67139    | terracotta-500   | Buttons, the ONE tap per screen |
-| CTA hover       | #B2432C    | terracotta-600   | Hover/pressed |
-| Earned          | #7A8A5E    | sage-500         | Stars, XP, held pauses, freezes, trail pebbles |
-| Text            | #201E1D    | ink              | All body/headings |
-| Background      | #F5EAD8    | ground           | App + site background |
-| Surface         | #FAF3E3    | surface          | Cards, nav |
-| Track           | #ECDFC4    | sand             | Progress troughs, empty slots |
-| Score card      | #2F3624    | sage-900         | The "Your ethos" card, both themes |
+| Action / CTA    | #E0A800    | terracotta-500   | The ONE tap per screen; ink text on it, never white |
+| Action text     | #8A6A10    | terracotta-700   | Amber-family text links ("keep them →") |
+| Earned          | #47572F    | sage-500         | Stars, streak, earned fills, leader trait bar, Buy |
+| Earned dim      | #9DAB7D    | sage-400         | Non-leader trait bars |
+| Earned border   | #C3CDA6    | sage-300         | Olive outline buttons, XP chips |
+| Text            | #191713    | ink              | All body/headings; also the score-card fill |
+| Ground + cards  | #FAF8F3    | ground/surface   | ONE paper — hairlines separate, not fills |
+| Raised          | #FFFDF8    | raised           | Nav bar, the current (amber-ringed) card |
+| Hairline        | #E7E2D7    | hairline         | Row separators |
+| Card outline    | #E0DACC    | edge             | 1px card borders |
+| Track           | #ECE6D9    | sand             | Progress troughs (square-cornered) |
+| Score card      | #191713    | stage            | The "Your ethos" card, both themes |
+| Mascot          | #B05038    | rust             | Demos's fur; wrong-direction deltas (#195) |
 
-*Was terracotta #E76F51 with amber #F59E0B as the earned accent until
-25 Aug.* The Organic reskin (#165) softened the tap colour and moved
-everything earned onto sage, so terracotta means exactly one thing:
-tap here. Amber is retired. The full sage ramp and the dark theme's
-step-lifted remaps live in `app/globals.css`.
+*Was terracotta #C67139 with sage earned (the Organic reskin, #165,
+25 Aug); terracotta #E76F51 with amber earned before that.* The
+Instrument reskin (#201) inverts amber's old meaning: amber IS the tap
+now, olive carries everything earned, terracotta survives only as the
+mascot's fur and the wrong-direction delta. The dark theme's remaps
+live in `app/globals.css`, derived pending a designed dark pass.
 
 ## Mascot — DECIDED: Red Panda
 
@@ -89,16 +98,18 @@ Hard rules:
 
 ## Typography
 
-- Headings / numbers: **Caprasimo**, weight 400 ONLY (it ships one
-  weight — never fake-bold it; globals.css pins this), tabular figures
-  on (DECISIONS #166, the Organic reskin handoff). The metrics (filler
-  count, WPM, streak) are the hero — set them big.
-  *Was Fraunces 600/700 from 11–25 Aug, and Space Grotesk before that*
-  (#114, then #166): the grotesk's numerals collided, the serif carried
-  the warmth, and Caprasimo keeps that warmth at the reskin's rounder,
-  friendlier register.
-- Body: **Figtree**; `.label-data` is Figtree 700 uppercase for data
-  labels. Space Mono is retired (#166). No new faces.
+- Numbers + UI: **Outfit**, weights 600/700/800, every numeral
+  `tabular-nums` (DECISIONS #201, the Instrument reskin handoff). The
+  metrics (filler count, WPM, streak) are the hero — set them big, 800,
+  tracked −0.02em.
+  *Was Caprasimo 400 from 25 Aug (#166), Fraunces 600/700 from 11–25
+  Aug (#114), Space Grotesk before that (#5)*: the grotesk's numerals
+  collided, the serif carried warmth, Caprasimo rounded it — and the
+  Instrument direction trades that warmth for a training-log's
+  precision, which Outfit's geometric tabular digits deliver.
+- Body copy only: **Figtree** 400–700. Eyebrow labels (`.label-data`,
+  `.section-title`) are Outfit 11px/700 uppercase, tracked 0.14em.
+  No new faces.
 - Numbers are the brand. Day-1 vs day-30 comparisons should look like
   a training log, not a report card.
 

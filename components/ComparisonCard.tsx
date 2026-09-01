@@ -54,7 +54,7 @@ export function ComparisonCard({ reps }: { reps: RepRow[] }) {
   }
 
   return (
-    <div className="rounded-[24px] bg-stage p-5 text-cream lift-stage">
+    <div className="rounded-2xl bg-stage p-5 text-cream">
       <div className="label-data !text-cream/60">
         Day 1 → day {days} · your training log
       </div>
@@ -68,7 +68,7 @@ export function ComparisonCard({ reps }: { reps: RepRow[] }) {
             <span className="text-cream/40">→</span>
             <span
               className={`font-display text-[24px] font-bold ${
-                r.better ? "text-sage-mist" : "text-terracotta-300"
+                r.better ? "text-sage-lit" : "text-rust-lit"
               }`}
             >
               {r.b}

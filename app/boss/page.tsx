@@ -192,7 +192,7 @@ export default function BossPage() {
           )}
 
           {locked && (
-            <div className="mt-4 rounded-[24px] border border-hairline bg-surface lift p-4 text-[13px] leading-relaxed text-stone-500">
+            <div className="mt-4 rounded-[24px] border border-hairline bg-surface p-4 text-[13px] leading-relaxed text-stone-500">
               You&apos;ve taken this week&apos;s boss. It resets Monday, or
               premium opens the library now.
             </div>
@@ -200,7 +200,7 @@ export default function BossPage() {
 
           {/* The wheel. Topic title only — the study sheet waits for the
               clock (#182). */}
-          <div className="mt-5 rounded-[26px] border border-hairline bg-surface p-6 lift-hero">
+          <div className="mt-5 rounded-[26px] border border-hairline bg-surface p-6">
             <div className="flex items-baseline justify-between">
               <div className="label-data">
                 {topic.id === weeklyTopic().id
@@ -231,7 +231,7 @@ export default function BossPage() {
               <button
                 onClick={() => setPhase("research")}
                 disabled={rolling}
-                className="press flex-1 rounded-full bg-terracotta-500 px-6 py-4 text-center text-[16.5px] font-semibold text-cream transition-colors hover:bg-terracotta-600 disabled:opacity-60"
+                className="press flex-1 rounded-full bg-terracotta-500 px-6 py-4 text-center text-[16.5px] font-semibold text-stage transition-colors hover:bg-terracotta-600 disabled:opacity-60"
               >
                 Start the 4 minutes
               </button>
@@ -299,7 +299,7 @@ export default function BossPage() {
               no terracotta, the room's one tap stays on the wheel. */}
           <Link
             href="/hostile"
-            className="press mt-5 flex items-center justify-between rounded-[24px] border border-hairline bg-surface lift p-4"
+            className="press mt-5 flex items-center justify-between rounded-[24px] border border-hairline bg-surface p-4"
           >
             <div>
               <div className="text-[14.5px] font-semibold">
@@ -326,7 +326,7 @@ export default function BossPage() {
             </div>
             <div className="label-data mt-1">reading time left</div>
           </div>
-          <div className="mt-5 rounded-[24px] border border-hairline bg-surface lift p-5">
+          <div className="mt-5 rounded-[24px] border border-hairline bg-surface p-5">
             <div className="label-data">What a correct answer covers</div>
             <ul className="mt-2 space-y-2 text-[14px] leading-relaxed text-stone-700">
               {topic.truth.map((t, i) => (
@@ -378,7 +378,7 @@ export default function BossPage() {
           </div>
           <button
             onClick={takeTheFloor}
-            className="w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream press"
+            className="w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-stage press"
           >
             Take the floor
           </button>

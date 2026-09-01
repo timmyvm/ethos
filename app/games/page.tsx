@@ -44,70 +44,71 @@ export default function GamesPage() {
 
   return (
     <main className="px-5 pb-24 pt-7">
-      <h1 className="font-display text-[27px]">Tools</h1>
+      <h1 className="font-display text-[24px] font-extrabold">Tools</h1>
 
+      {/* The one amber element on the screen: the weekly headliner,
+          wearing the current-item border (#201), never a fill. */}
       <Link
         href="/boss"
-        className="press lift mt-5 flex w-full items-center gap-3.5 rounded-[26px] border-[1.5px] border-transparent bg-terracotta-100 p-4 text-left"
+        className="press mt-4 flex w-full items-center gap-3.5 rounded-[14px] border-[1.5px] border-terracotta-500 bg-raised p-4 text-left"
       >
         <Image
           src="/demos-workout.webp"
           alt=""
-          width={52}
-          height={52}
-          className="demos w-[52px] shrink-0"
+          width={92}
+          height={92}
+          className="demos w-[46px] shrink-0"
         />
         <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-extrabold">
-            This week&apos;s boss: Cold Topic
+          <span className="label-data block !text-terracotta-700">
+            This week&apos;s boss
           </span>
-          <span className="block mt-0.5 text-[12.5px] leading-[1.45] text-terracotta-800">
+          <span className="font-display mt-0.5 block text-[15.5px] font-extrabold">
+            Cold Topic
+          </span>
+          <span className="mt-0.5 block text-[12.5px] leading-[1.45] text-stone-500">
             A topic you&apos;ve never studied. 4 min research, 90s to explain,
             fact-checked.
           </span>
         </span>
         <span
-          className="shrink-0 text-[15px] font-bold text-terracotta-800"
+          className="shrink-0 text-[16px] font-extrabold text-terracotta-700"
           aria-hidden
         >
           →
         </span>
       </Link>
 
-      <div className="mt-6 space-y-2.5">
-        {GAMES.map((g, i) => {
+      <div className="mt-6">
+        <div className="label-data pb-2">Games</div>
+        {GAMES.map((g) => {
           const mult = gameMultiplier(g);
-          // The row badges alternate the two washes so neither accent
-          // reads as a rank — a menu is a room of doors.
-          const warm = i % 2 === 0;
           return (
             <button
               key={g.id}
               onClick={() => play(g)}
-              className="press flex w-full items-center gap-3.5 rounded-[24px] border-[1.5px] border-hairline bg-surface p-4 text-left"
+              className="press flex w-full items-center gap-3.5 border-t border-hairline px-0.5 py-3 text-left"
             >
               <span
-                className={`font-display flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full text-[17px] ${
-                  warm
-                    ? "bg-terracotta-100 text-terracotta-800"
-                    : "bg-sage-100 text-sage-800"
-                }`}
+                className="font-display flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[10px] border border-stone-200 text-[16px] font-extrabold"
                 aria-hidden
               >
                 {g.glyph}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[14.5px] font-extrabold">
+                <span className="font-display block text-[14.5px] font-bold">
                   {g.name}
                 </span>
-                <span className="block mt-0.5 text-[12.5px] leading-[1.45] text-stone-500">
+                <span className="mt-0.5 block text-[12.5px] leading-[1.45] text-stone-500">
                   {g.blurb}
                 </span>
               </span>
               {/* The staged conditions pay effort credit, never stars
-                  (#37) — so the chip names XP and nothing else. */}
+                  (#37) — so the chip names XP and nothing else. Olive
+                  outline: a multiplier is earned by taking the harder
+                  conditions, and the chip is the one pill in the set. */}
               {mult > 1 && (
-                <span className="shrink-0 rounded-full bg-sage-100 px-[11px] py-[5px] text-[11.5px] font-extrabold tracking-[0.04em] text-sage-800">
+                <span className="font-display shrink-0 rounded-full border border-sage-300 px-2 py-[3px] text-[11px] font-bold uppercase text-sage-700 tabular-nums">
                   ×{mult} xp
                 </span>
               )}
@@ -117,43 +118,50 @@ export default function GamesPage() {
       </div>
 
       {/* The second boss and the analyzer: doors, same grammar. */}
-      <div className="mt-6 space-y-2.5">
+      <div className="mt-6">
+        <div className="label-data pb-2">More doors</div>
         <Link
           href="/hostile"
-          className="press flex w-full items-center gap-3.5 rounded-[24px] border-[1.5px] border-hairline bg-surface p-4 text-left"
+          className="press flex w-full items-center gap-3.5 border-t border-hairline px-0.5 py-3 text-left"
         >
           <span
-            className="font-display flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-sage-100 text-[17px] text-sage-800"
+            className="font-display flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[10px] border border-stone-200 text-[16px] font-extrabold"
             aria-hidden
           >
-            ?
+            !
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[14.5px] font-extrabold">
+            <span className="font-display block text-[14.5px] font-bold">
               Hostile Q&amp;A
             </span>
-            <span className="block mt-0.5 text-[12.5px] leading-[1.45] text-stone-500">
+            <span className="mt-0.5 block text-[12.5px] leading-[1.45] text-stone-500">
               Demos interrogates your take. Two questions, no notes.
             </span>
+          </span>
+          <span aria-hidden className="shrink-0 text-stone-300">
+            →
           </span>
         </Link>
         <Link
           href="/upload"
-          className="press flex w-full items-center gap-3.5 rounded-[24px] border-[1.5px] border-hairline bg-surface p-4 text-left"
+          className="press flex w-full items-center gap-3.5 border-y border-hairline px-0.5 py-3 text-left"
         >
           <span
-            className="font-display flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-terracotta-100 text-[17px] text-terracotta-800"
+            className="font-display flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[10px] border border-stone-200 text-[16px] font-extrabold"
             aria-hidden
           >
             ↑
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[14.5px] font-extrabold">
+            <span className="font-display block text-[14.5px] font-bold">
               Upload a recording
             </span>
-            <span className="block mt-0.5 text-[12.5px] leading-[1.45] text-stone-500">
+            <span className="mt-0.5 block text-[12.5px] leading-[1.45] text-stone-500">
               A real meeting or a voice memo, through the same engine.
             </span>
+          </span>
+          <span aria-hidden className="shrink-0 text-stone-300">
+            →
           </span>
         </Link>
       </div>

@@ -3,8 +3,8 @@ import type { RepRow } from "@/lib/client-data";
 
 /**
  * Where fillers land inside a rep, and which words they are. Amber is
- * earned-only elsewhere, so the hotspot here is terracotta-toned: this
- * is a thing to fix, not a thing to celebrate.
+ * the tap and olive is earned, so the hotspot draws in rust: this is a
+ * thing to fix, not a thing to celebrate.
  */
 export function FillerHeatmap({ reps }: { reps: RepRow[] }) {
   const heat = fillerHeatmap(reps);
@@ -15,14 +15,14 @@ export function FillerHeatmap({ reps }: { reps: RepRow[] }) {
   const tallyTotal = tally.reduce((a, [, n]) => a + n, 0);
 
   return (
-    <div className="rounded-[24px] border border-hairline bg-surface lift p-5">
+    <div className="rounded-xl border border-edge px-4 py-3.5">
       <div className="label-data">Where your fillers land</div>
       <div className="mt-3 flex h-20 items-end gap-1.5">
         {heat.map((n, i) => (
           <div key={i} className="flex flex-1 flex-col items-center gap-1.5">
             <div className="flex w-full flex-1 items-end">
               <div
-                className="w-full rounded-t-md bg-terracotta-300"
+                className="w-full bg-rust/60"
                 style={{
                   height: `${peak ? Math.max(4, (n / peak) * 100) : 4}%`,
                 }}
@@ -37,7 +37,7 @@ export function FillerHeatmap({ reps }: { reps: RepRow[] }) {
         <span className="label-data">end</span>
       </div>
 
-      <div className="mt-4 border-t border-sand pt-3">
+      <div className="mt-4 border-t border-hairline pt-3">
         <div className="label-data">Your words</div>
         <div className="mt-2 space-y-1.5">
           {tally.map(([word, n]) => (
@@ -45,9 +45,9 @@ export function FillerHeatmap({ reps }: { reps: RepRow[] }) {
               <span className="w-20 shrink-0 text-[13px] font-semibold">
                 {word}
               </span>
-              <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-sand">
+              <span className="h-[5px] flex-1 overflow-hidden bg-sand">
                 <span
-                  className="block h-full rounded-full bg-stone-400"
+                  className="block h-full bg-stone-400"
                   style={{ width: `${(n / tallyTotal) * 100}%` }}
                 />
               </span>

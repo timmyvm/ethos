@@ -14,15 +14,16 @@ import {
  *
  * It was label-only, on the argument that an icon row competes with the
  * rep card for attention. It doesn't — the icons are stone line marks at
- * 22px, the same weight as the words under them, while the floor card
- * carries a 32px headline and the only filled colour on the screen. What
+ * 21px, the same weight as the words under them, while the floor card
+ * carries a 26px headline and the only filled colour on the screen. What
  * the icons buy is the thing labels alone can't: a shape to aim at.
  * Four words in identical grey are four identical targets, and the tab
  * bar is the one control people hit without reading (DECISIONS #152).
  *
- * The active tab is still terracotta, and still text-and-mark only — no
- * pill, no filled icon, no indicator bar. brand.md's one-tap rule is
- * about filled colour, and this is a colour swap on a 13px label.
+ * Instrument grammar (#201): the bar sits on the raised paper behind a
+ * hairline; the active tab is ink at 800, inactive tabs faint — no
+ * accent colour, no pill, no indicator bar. The one amber on a screen
+ * is its tap, and a tab you are already on is not one.
  */
 /*
  * Path lost its tab when the merge finished (DECISIONS #155): home has
@@ -71,7 +72,7 @@ export function Nav() {
   return (
     <nav
       aria-label="Sections"
-      className="fixed bottom-0 left-1/2 z-20 w-full max-w-[430px] -translate-x-1/2 border-t-[1.5px] border-hairline bg-surface"
+      className="fixed bottom-0 left-1/2 z-20 w-full max-w-[430px] -translate-x-1/2 border-t border-hairline bg-raised"
     >
       <div className="flex px-2 pb-4 pt-2.5">
         {TABS.map((t) => {
@@ -81,10 +82,10 @@ export function Nav() {
               key={t.href}
               href={t.href}
               aria-current={active ? "page" : undefined}
-              className={`flex flex-1 flex-col items-center gap-1 py-1 text-[12px] ${
+              className={`font-display flex flex-1 flex-col items-center gap-1 py-1 text-[11px] uppercase tracking-[0.06em] ${
                 active
-                  ? "font-bold text-terracotta-700"
-                  : "font-semibold text-stone-500"
+                  ? "font-extrabold text-ink"
+                  : "font-semibold text-stone-300"
               }`}
             >
               <t.Icon size={21} />

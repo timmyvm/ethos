@@ -1,92 +1,115 @@
 @import "tailwindcss";
 
 /*
- * Brand tokens — docs/brand.md as amended by the Organic redesign
- * (DECISIONS #165). Warm neutrals only: no pure black, no pure white,
- * no cool grays. Two accents with fixed jobs: terracotta is "tap here"
- * and nothing else; sage is "you earned this" and nothing else. Amber
- * is retired.
+ * Brand tokens — docs/brand.md as amended by the Instrument reskin
+ * (DECISIONS #201, design_handoff_instrument). Quiet paper, hairline
+ * rules, tabular digits, no shadows anywhere. Two accents with fixed
+ * jobs: amber is "tap here" and nothing else; olive is "you earned
+ * this" and nothing else. Terracotta is retired to the mascot's fur.
+ *
+ * The ramp NAMES stay `terracotta-*` and `sage-*` even though the
+ * values are amber and olive now — the same rule that kept /games as a
+ * route when the tab became Tools (#164): nobody reads code aloud, and
+ * renaming every className would bury the reskin diff in churn. The
+ * comments say what each step means today.
  */
 @theme {
   /*
-   * Terracotta. 500 is the one tap per screen, 600 its hover. 700 is
-   * accent TEXT (active tab, "up next") and 800 is text on the 100 wash
-   * — both remapped in dark so the roles keep their contrast. 300 is
-   * the warm highlight that reads on the deep sage score card in both
-   * themes, so it never swaps.
+   * The ACTION ramp (amber). 500 is the one tap per screen, 600 its
+   * hover (derived — the mock defines no hover; flagged in
+   * docs/devibe/needs-judgment.md). 700/800 are action TEXT ("keep
+   * them →", "Unlock full history →"), 900 its hover. Ink text sits on
+   * a 500 fill, never white. 50/100 are quiet washes for surfaces the
+   * handoff hasn't redesigned yet.
    */
-  --color-terracotta-50: #fbeee1;
-  --color-terracotta-100: #f6ddc9;
-  --color-terracotta-200: #eec7a8;
-  --color-terracotta-300: #e6b48c;
-  --color-terracotta-400: #d69056;
-  --color-terracotta-500: #c67139;
-  --color-terracotta-600: #b2432c;
-  --color-terracotta-700: #8f4d24;
-  --color-terracotta-800: #7c4220;
-  --color-terracotta-900: #5f331a;
+  --color-terracotta-50: #faf4dd;
+  --color-terracotta-100: #f4e8bd;
+  --color-terracotta-200: #eed37d;
+  --color-terracotta-300: #e7bd3d;
+  --color-terracotta-400: #e3b01c;
+  --color-terracotta-500: #e0a800;
+  --color-terracotta-600: #c79500;
+  --color-terracotta-700: #8a6a10;
+  --color-terracotta-800: #8a6a10;
+  --color-terracotta-900: #5f4a0b;
 
   /*
-   * Sage — the earned colour (stars, XP, held pauses, freezes ready,
-   * the trait leader). 900 is the "Your ethos" score card. `sage-ink`
-   * is the text that sits ON a sage-500 fill.
+   * The EARNED ramp (olive) — stars, streak, earned fills, the leader
+   * trait bar, the shop's Buy. 400 is earned-dim (non-leader bars),
+   * 300 earned-border (outline buttons, XP chips), 100 earned-wash
+   * ("On your card"). `sage-ink` is the text that sits ON a 500 fill —
+   * paper, per the handoff, not cream-of-old.
    */
-  --color-sage-50: #f4f5ea;
+  --color-sage-50: #f4f6ec;
   --color-sage-100: #eef0e2;
-  --color-sage-200: #dde3cb;
+  --color-sage-200: #dde3c8;
   --color-sage-300: #c3cda6;
   --color-sage-400: #9dab7d;
-  --color-sage-500: #7a8a5e;
-  --color-sage-600: #6b7a51;
-  --color-sage-700: #4c573a;
-  --color-sage-800: #3d4630;
-  --color-sage-900: #2f3624;
-  --color-sage-ink: #fdf6e7;
-  /* Captions ON the deep sage score card. The card is deep sage in both
-   * themes, so this one never swaps — no dark override on purpose. */
-  --color-sage-mist: #b6c19c;
+  --color-sage-500: #47572f;
+  --color-sage-600: #3a4726;
+  --color-sage-700: #47572f;
+  --color-sage-800: #3c4a28;
+  --color-sage-900: #2c3620;
+  --color-sage-ink: #faf8f3;
+  /* Captions ON the ink score card. The card is ink in both themes, so
+   * this one never swaps — no dark override on purpose. */
+  --color-sage-mist: #9a927f;
+  /* The ▲ delta and the day-trail bars on the ink score card — the one
+   * green that reads on it. Never swaps, same reason. */
+  --color-sage-lit: #a9c37f;
 
-  /* Text on a terracotta or sage fill. */
-  --color-cream: #fdf6e7;
-  /* Progress-bar troughs, empty freeze slots, quiet washes. */
-  --color-sand: #ecdfc4;
+  /* Demos's fur, and the one colour allowed to say "wrong direction"
+   * on a data delta (#195) now that the tap colour is amber. `rust-lit`
+   * is its on-dark step for the ink surfaces (score card, comparison
+   * card) — never swaps, like sage-lit. */
+  --color-rust: #b05038;
+  --color-rust-lit: #d98a74;
 
-  /*
-   * Semantic surfaces. Everything paints through these three so a theme
-   * swap is a token change, not a rewrite:
-   *   ground  — the room
-   *   surface — cards sitting in it
-   *   ink     — text
-   */
-  --color-ground: #f5ead8;
-  --color-surface: #faf3e3;
-  --color-ink: #201e1d;
-  --color-hairline: rgba(32, 30, 29, 0.08);
-  /* The dark material the rep-loop signature moments sit on (pause bar,
-   * comparison card). Warm, never #000. The score card is NOT stage any
-   * more — it sits on sage-900. */
-  --color-stage: #211a13;
+  /* Text on an olive or ink fill: paper, not white. */
+  --color-cream: #faf8f3;
+  /* Progress-bar troughs, empty slots. Square-cornered now. */
+  --color-sand: #ece6d9;
 
   /*
-   * Stone: the neutrals holding the room, as translucent ink so they
-   * read the same on ground and surface and re-derive themselves when
-   * the dark theme swaps ink.
+   * Semantic surfaces. Ground and surface are the SAME paper on
+   * purpose: Instrument separates surfaces with hairlines and borders,
+   * not fill changes. `raised` is the step up — the nav bar and the
+   * current (amber-ringed) cards.
    */
-  --color-stone-100: rgba(32, 30, 29, 0.07);
-  --color-stone-200: rgba(32, 30, 29, 0.14);
-  --color-stone-300: rgba(32, 30, 29, 0.3);
-  --color-stone-400: rgba(32, 30, 29, 0.45);
-  --color-stone-500: rgba(32, 30, 29, 0.55);
-  --color-stone-600: rgba(32, 30, 29, 0.68);
-  --color-stone-700: rgba(32, 30, 29, 0.8);
-  --color-stone-800: rgba(32, 30, 29, 0.88);
-  --color-stone-900: #201e1d;
+  --color-ground: #faf8f3;
+  --color-surface: #faf8f3;
+  --color-raised: #fffdf8;
+  --color-ink: #191713;
+  /* Row separators. */
+  --color-hairline: #e7e2d7;
+  /* Card outlines — one step firmer than a hairline. */
+  --color-edge: #e0dacc;
+  /* The ink material the score card and the rep-loop signature moments
+   * sit on (pause bar, comparison card, paywall sheet). */
+  --color-stage: #191713;
+
+  /*
+   * Stone: the neutrals holding the room. Opaque now — ground and
+   * surface are one paper, so translucency bought nothing. 200 doubles
+   * as border-strong (glyph tiles, neutral buttons, unearned stars),
+   * 300 is faint (inactive nav, locked), 400 muted (eyebrows,
+   * captions), 500 secondary (body copy).
+   */
+  --color-stone-100: #efeade;
+  --color-stone-200: #d5cfc0;
+  --color-stone-300: #a39b88;
+  --color-stone-400: #8a8272;
+  --color-stone-500: #6d675b;
+  --color-stone-600: #4c463c;
+  --color-stone-700: #37332b;
+  --color-stone-800: #262218;
+  --color-stone-900: #191713;
 }
 
 /* Font tokens reference next/font variables (scoped to <body>), so they
  * must be inline — a :root-level var() to them computes to invalid. */
 @theme inline {
-  --font-display: var(--font-display-face), Georgia, serif;
+  --font-display: var(--font-display-face), sans-serif;
   --font-body: var(--font-figtree), sans-serif;
 }
 
@@ -97,27 +120,30 @@ body {
 }
 
 /*
- * Dark. Still warm — never pure black, never cool grey. Terracotta 500
- * and sage 500's JOB are unchanged; the washes and text steps remap so
- * the same class keeps its contrast on the dark ground.
+ * Dark. NOT designed by the Instrument handoff (light is the only
+ * designed theme so far) — these overrides keep the shipped toggle
+ * honest by carrying the old warm darks forward with the accent ramps
+ * lifted to read on them. A designer pass replaces this block.
  */
 :root[data-theme="dark"] {
   --color-ground: #211a13;
-  --color-surface: #2d241b;
+  --color-surface: #211a13;
+  --color-raised: #2d241b;
   --color-sand: #3b2f22;
   --color-stage: #1a1410;
   --color-ink: #f3ecdd;
-  --color-hairline: rgba(243, 236, 221, 0.08);
+  --color-hairline: rgba(243, 236, 221, 0.1);
+  --color-edge: rgba(243, 236, 221, 0.16);
 
-  /* Light washes become dark washes of the same hue; the accent-text
-   * steps lift to the peach that reads on them. */
-  --color-terracotta-50: #33200f;
-  --color-terracotta-100: #3f2716;
-  --color-terracotta-200: #4d2f1a;
-  --color-terracotta-700: #e6b48c;
-  --color-terracotta-800: #e6b48c;
+  /* Light washes become dark washes of the same hue; the action-text
+   * steps lift to an amber that reads on them. */
+  --color-terracotta-50: #2e2610;
+  --color-terracotta-100: #3a3013;
+  --color-terracotta-200: #4a3d14;
+  --color-terracotta-700: #e6c95f;
+  --color-terracotta-800: #e6c95f;
 
-  /* Earned things lift one step so sage stays legible on dark. */
+  /* Earned things lift so olive stays legible on dark. */
   --color-sage-50: #2c331e;
   --color-sage-100: #343c27;
   --color-sage-200: #343c27;
@@ -130,12 +156,14 @@ body {
   --color-sage-900: #313a24;
   --color-sage-ink: #211a13;
 
+  --color-rust: #d08b74;
+
   --color-stone-100: rgba(243, 236, 221, 0.07);
-  --color-stone-200: rgba(243, 236, 221, 0.14);
-  --color-stone-300: rgba(243, 236, 221, 0.3);
+  --color-stone-200: rgba(243, 236, 221, 0.16);
+  --color-stone-300: rgba(243, 236, 221, 0.32);
   --color-stone-400: rgba(243, 236, 221, 0.45);
-  --color-stone-500: rgba(243, 236, 221, 0.55);
-  --color-stone-600: rgba(243, 236, 221, 0.68);
+  --color-stone-500: rgba(243, 236, 221, 0.58);
+  --color-stone-600: rgba(243, 236, 221, 0.7);
   --color-stone-700: rgba(243, 236, 221, 0.8);
   --color-stone-800: rgba(243, 236, 221, 0.88);
   --color-stone-900: #f3ecdd;
@@ -153,121 +181,57 @@ body {
   -webkit-user-drag: none;
 }
 
-/* Grain is a light-mode trick; over a dark ground it reads as noise. */
-:root[data-theme="dark"] body::after {
-  opacity: 0.02;
-}
-
-/* Shadows do nothing on a dark ground — depth comes from the surface
- * step instead, so the borders carry it (1.5px hairline). */
-:root[data-theme="dark"] .lift,
-:root[data-theme="dark"] .lift-hero,
-:root[data-theme="dark"] .lift-cta {
-  box-shadow: none;
-  border-color: var(--color-hairline);
-}
-
 /*
- * Section titles: the display face at reading size, sentence case, full
- * ink. A heading earns its rank from weight and colour, not decoration
- * (Linear's discipline); mono-register labels keep the job they're good
- * at — labelling a number — and stop pretending to be titles.
+ * Section eyebrows — the Instrument register: 11px, 700, tracked wide,
+ * uppercase, muted. `.section-title` and `.label-data` converge on it
+ * on purpose: the handoff has ONE label voice, and a section heading
+ * earns its rank from the hairline above it and the space around it.
+ * Both keep their names so the reskin is a restyle, not a rename.
  */
-.section-title {
-  font-family: var(--font-display-face), Georgia, serif;
-  font-size: 1.03125rem;
-  font-weight: 400;
-  line-height: 1.25;
-  color: var(--color-ink);
-}
-
-/* Data labels — the training-log register. Figtree now (Space Mono
- * retired with the type change): 700, uppercase, tracked wide. */
+.section-title,
 .label-data {
-  font-family: var(--font-figtree), sans-serif;
+  font-family: var(--font-display-face), sans-serif;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.13em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-stone-400);
-}
-
-/*
- * Numbers are the brand (brand.md). Caprasimo carries one weight — 400 —
- * and faking bold smears its forms, so the display face pins its weight
- * here, over any `font-bold` a component adds. Tabular figures stay on:
- * a changing metric must not reflow as its digits change.
- */
-.font-display,
-.section-title {
-  font-weight: 400;
-  letter-spacing: 0;
   font-variant-numeric: tabular-nums;
 }
 
 /*
- * Elevation. The direction bans gradients and glassmorphism, so depth
- * comes from a soft warm shadow over cream. Two tiers, plus the one
- * glow the CTA earns.
+ * Numbers are the brand (brand.md). Outfit now (#201): every numeral
+ * tabular, heroes at 800 with tight tracking set per-element. The
+ * weight sits in the base layer so `font-bold`/`font-extrabold`
+ * utilities can still choose; bare `font-display` reads as a 700 title.
  */
-.lift {
-  box-shadow: 0 2px 6px rgba(122, 90, 50, 0.12);
-}
-
-.lift-hero {
-  box-shadow: 0 6px 18px rgba(122, 90, 50, 0.1);
-}
-
-/* The one tap per screen gets the one glow in the app. */
-.lift-cta {
-  box-shadow: 0 6px 16px -4px rgba(198, 113, 57, 0.55);
-}
-
-/* `.lift` for elements that carry their own border colour (the current
- * road node's terracotta): the same shadow, but dark mode only drops it
- * rather than repainting the border to hairline. */
-.lift-node {
-  box-shadow: 0 2px 6px rgba(122, 90, 50, 0.12);
-}
-
-:root[data-theme="dark"] .lift-node {
-  box-shadow: none;
-}
-
-.lift-stage {
-  box-shadow:
-    0 2px 6px rgba(33, 26, 19, 0.16),
-    0 16px 32px -8px rgba(33, 26, 19, 0.28);
+@layer base {
+  .font-display {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 /*
- * The score card's material: deep sage in both themes (#165 — the
- * second focal point is sage now, not near-black stage). In dark the
- * ground closes in on it, so it gets the redesign's hairline treatment
- * in the sage-dim step instead of a shadow.
+ * Elevation: none. The Instrument system has NO shadows anywhere in-app
+ * — depth is a 1px `edge` outline, a hairline, or the `raised` surface
+ * step, and the current item is a 1.5px amber border on raised. The
+ * old `.lift*` shadow tiers are gone rather than zeroed so a stray
+ * usage does nothing.
  */
-.card-sage {
-  background: var(--color-sage-900);
-  border: 1.5px solid transparent;
-}
-
-:root[data-theme="dark"] .card-sage {
-  border-color: var(--color-sage-300);
-}
 
 /*
- * Paper grain. Two per-cent of noise over the whole app is the
- * difference between "warm room" and a flat hex. Fixed, inert, and
- * invisible to pointer events.
+ * The score card's material: ink, in both themes (#201 — the second
+ * focal point is the instrument's dark face now, not deep sage). In
+ * dark the ground closes in on it, so it gets a hairline instead.
  */
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  pointer-events: none;
-  opacity: 0.035;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+.card-score {
+  background: var(--color-stage);
+  border: 1px solid transparent;
+}
+
+:root[data-theme="dark"] .card-score {
+  border-color: var(--color-hairline);
 }
 
 /*
@@ -275,21 +239,23 @@ body::after {
  *
  * `:focus-visible` rather than `:focus` is the whole trick — the ring
  * appears for keyboard and assistive navigation and stays off for the
- * tap that already told you where you are. Terracotta, because the ring
- * has to be found on cream and on the deep cards alike.
+ * tap that already told you where you are. Amber, because the ring has
+ * to be found on paper and on the ink card alike.
  */
 :focus-visible {
   outline: 2px solid var(--color-terracotta-500);
   outline-offset: 2px;
 }
 
-/* On the dark stage the offset gap shows ground, not stage — the ring
+/* On the ink stage the offset gap shows ground, not stage — the ring
    hugs the control there instead. */
 .on-stage :focus-visible {
   outline-offset: 1px;
 }
 
-/* Press feedback — a tap should feel like it landed. */
+/* Press feedback — a tap should feel like it landed. The lift half of
+ * the old pair is retired with the shadows; a pressed card darkens its
+ * border instead (set border-color per element — it animates here). */
 @media (hover: none) {
   .press:active {
     transform: scale(0.985);
@@ -298,7 +264,8 @@ body::after {
 .press {
   transition:
     transform 120ms ease,
-    background-color 120ms ease;
+    background-color 120ms ease,
+    border-color 120ms ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -310,9 +277,9 @@ body::after {
 
 /*
  * Skeletons. Warm neutrals only, like everything else — a cool grey
- * shimmer over cream reads as a broken image rather than a placeholder.
+ * shimmer over paper reads as a broken image rather than a placeholder.
  *
- * The sweep is built from `sand` and `surface` so it inherits the dark
+ * The sweep is built from `sand` and `raised` so it inherits the dark
  * theme's redefinition of both without a second rule, and it sits at low
  * contrast on purpose: a placeholder that pulses hard competes with the
  * content it is standing in for.
@@ -322,7 +289,7 @@ body::after {
   background-image: linear-gradient(
     90deg,
     transparent 0%,
-    color-mix(in srgb, var(--color-surface) 70%, transparent) 50%,
+    color-mix(in srgb, var(--color-raised) 70%, transparent) 50%,
     transparent 100%
   );
   background-size: 200% 100%;

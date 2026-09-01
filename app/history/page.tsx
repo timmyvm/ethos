@@ -79,7 +79,7 @@ export default function HistoryPage() {
   if (failed) {
     return (
       <main className="px-5 pb-24 pt-7">
-        <h1 className="font-display text-2xl font-bold">The log</h1>
+        <h1 className="font-display text-[24px] font-extrabold">The log</h1>
         <ErrorState
           className="mt-4"
           {...readFailure("The log")}
@@ -92,14 +92,14 @@ export default function HistoryPage() {
   if (reps === null) {
     return (
       <main className="px-5 pb-24 pt-7">
-        <h1 className="font-display text-2xl font-bold">The log</h1>
+        <h1 className="font-display text-[24px] font-extrabold">The log</h1>
         <SkeletonRegion label="Loading your training log">
           <Skeleton className="mt-2 h-3 w-52" />
           <div className="mt-4 space-y-3">
             {[0, 1].map((i) => (
               <div
                 key={i}
-                className="rounded-[24px] border border-hairline bg-surface lift p-5"
+                className="rounded-xl border border-edge px-4 py-3.5"
               >
                 <div className="flex items-baseline justify-between">
                   <Skeleton className="h-2.5 w-24" />
@@ -123,7 +123,7 @@ export default function HistoryPage() {
   if (reps.length === 0) {
     return (
       <main className="px-5 pb-24 pt-7">
-        <h1 className="font-display text-2xl font-bold">The log</h1>
+        <h1 className="font-display text-[24px] font-extrabold">The log</h1>
         <EmptyState
           className="mt-6"
           art={
@@ -140,7 +140,7 @@ export default function HistoryPage() {
           action={
             <Link
               href="/rep"
-              className="press block min-h-11 w-full rounded-full bg-terracotta-500 px-6 py-3.5 text-[15px] font-semibold text-cream hover:bg-terracotta-600"
+              className="press font-display block min-h-11 w-full rounded-xl bg-terracotta-500 px-6 py-3.5 text-[15px] font-bold text-stage hover:bg-terracotta-600"
             >
               Take the floor
             </Link>
@@ -174,8 +174,8 @@ export default function HistoryPage() {
 
   return (
     <main className="px-5 pb-24 pt-7">
-      <h1 className="font-display text-2xl font-bold">The log</h1>
-      <p className="mt-1 text-[13.5px] text-stone-500">
+      <h1 className="font-display text-[24px] font-extrabold">The log</h1>
+      <p className="mt-1 text-[13px] text-stone-400">
         {reps.length} recording{reps.length === 1 ? "" : "s"}. Tap one for the
         full result.
       </p>
@@ -200,13 +200,18 @@ export default function HistoryPage() {
                   headline: "See what the camera measured.",
                 })
               }
-              className="press w-full rounded-[24px] border border-hairline bg-surface lift p-4 text-left"
+              className="press flex w-full items-center justify-between gap-3 rounded-xl border border-edge px-4 py-3.5 text-left"
             >
-              <div className="label-data">Presence</div>
-              <div className="mt-1 text-[13px] text-stone-500">
-                {presenceSeries.length} video recordings measured. Tap to see the
-                line.
-              </div>
+              <span className="min-w-0">
+                <span className="label-data block">Presence</span>
+                <span className="mt-1 block text-[12.5px] text-stone-500">
+                  {presenceSeries.length} video recordings measured. Tap to see
+                  the line.
+                </span>
+              </span>
+              <span className="font-display shrink-0 rounded-full border border-stone-200 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.06em] text-stone-400">
+                Pro
+              </span>
             </button>
           ))}
       </div>
@@ -233,9 +238,9 @@ export default function HistoryPage() {
               onClick={() =>
                 setPaywall({ reason: "Skill trendlines · premium" })
               }
-              className="press mt-2 w-full rounded-[24px] border border-hairline bg-surface lift p-4 text-left"
+              className="press mt-2 w-full rounded-xl border border-edge px-4 py-3.5 text-left"
             >
-              <div className="text-[13px] text-stone-500">
+              <div className="text-[12.5px] text-stone-500">
                 {skills.length} skill{skills.length === 1 ? "" : "s"} tracked
                 across {reps.length} recording{reps.length === 1 ? "" : "s"}.
                 Tap to see the lines.
@@ -246,22 +251,21 @@ export default function HistoryPage() {
       )}
 
       {insights(reps).length > 0 && (
-        <>
-          <div className="section-title mt-7">What the numbers say</div>
-          <div className="mt-2 space-y-2.5">
+        <div className="mt-6 border-t border-hairline pt-3.5">
+          <div className="label-data">What the numbers say</div>
+          {/* Plain prose on the paper — arithmetic doesn't need a box. */}
+          <div className="mt-1.5 space-y-2">
             {insights(reps).map((i) => (
-              <div
+              <p
                 key={i.id}
-                className="rounded-[24px] border border-hairline bg-surface lift p-5"
+                className="text-[13.5px] leading-[1.5] text-stone-600"
               >
-                <div className="text-[14.5px] font-semibold">{i.headline}</div>
-                <p className="mt-1 text-[13px] leading-relaxed text-stone-500">
-                  {i.detail}
-                </p>
-              </div>
+                <span className="font-semibold text-ink">{i.headline}</span>{" "}
+                {i.detail}
+              </p>
             ))}
           </div>
-        </>
+        </div>
       )}
 
       <div className="mt-3">
@@ -274,8 +278,8 @@ export default function HistoryPage() {
         </div>
       )}
 
-      <div className="section-title mt-7">Every recording</div>
-      <div className="mt-2 space-y-2.5">
+      <div className="label-data mt-6 pb-1.5">Every recording</div>
+      <div>
         {newestFirst.map((r) => {
           const d = new Date(r.created_at);
           const held = (r.pauses ?? []).filter((p) => p.kind !== "beat").length;
@@ -283,31 +287,31 @@ export default function HistoryPage() {
             <Link
               key={r.id}
               href={`/rep/${r.id}`}
-              className="flex items-center gap-3 rounded-[24px] border border-hairline bg-surface lift p-4"
+              className="press flex items-center gap-3.5 border-t border-hairline px-0.5 py-2.5"
             >
-              <div className="w-[52px] shrink-0">
-                <div className="label-data !text-stone-400">
+              <div className="w-11 shrink-0">
+                <div className="font-display text-[10px] font-bold uppercase tracking-[0.1em] text-stone-300">
                   {d.toLocaleDateString(undefined, { month: "short" })}
                 </div>
-                <div className="font-display text-[20px] font-bold leading-none">
-                  {d.getDate()}
+                <div className="font-display text-[18px] font-extrabold leading-none tabular-nums">
+                  {String(d.getDate()).padStart(2, "0")}
                 </div>
               </div>
-              <div className="flex-1">
-                <div className="flex items-baseline gap-2">
-                  <span className="font-display text-[17px] font-bold">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="font-display text-[16px] font-extrabold tabular-nums">
                     {r.ethos_index ?? "—"}
                   </span>
-                  <span className="text-[11.5px] text-stone-500">/1000</span>
-                  <span className="ml-auto">
-                    <Stars n={r.stars} size={12} />
-                  </span>
+                  <span className="text-[11px] text-stone-400">/1000</span>
                 </div>
-                <div className="mt-0.5 text-[12px] text-stone-500">
+                <div className="mt-px text-[12px] text-stone-400">
                   {r.filler_count} filler{r.filler_count === 1 ? "" : "s"} ·{" "}
                   {r.wpm} wpm · {held} held · {Math.round(r.duration_s)}s
                 </div>
               </div>
+              <span className="shrink-0">
+                <Stars n={r.stars} size={12} />
+              </span>
             </Link>
           );
         })}
@@ -321,14 +325,19 @@ export default function HistoryPage() {
               headline: "Your first recording is still here.",
             })
           }
-          className="mt-3 w-full rounded-[24px] border border-terracotta-100 bg-terracotta-50 p-4 text-[13.5px] font-semibold"
+          className="press flex w-full items-center justify-between gap-3 border-y border-hairline px-0.5 py-3 text-left"
         >
-          {hidden} older recording{hidden === 1 ? "" : "s"} held since{" "}
-          {new Date(reps[0].created_at).toLocaleDateString(undefined, {
-            day: "numeric",
-            month: "short",
-          })}
-          . Unlock full history
+          <span className="text-[13px] font-semibold text-stone-500">
+            {hidden} older recording{hidden === 1 ? "" : "s"} held since{" "}
+            {new Date(reps[0].created_at).toLocaleDateString(undefined, {
+              day: "numeric",
+              month: "short",
+            })}
+            .
+          </span>
+          <span className="font-display shrink-0 text-[13px] font-bold text-terracotta-700">
+            Unlock full history →
+          </span>
         </button>
       )}
 

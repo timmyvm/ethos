@@ -40,7 +40,7 @@ export default function Privacy() {
         your voice, so here is exactly what happens to them, in plain words.
       </p>
 
-      <div className="mt-6 rounded-[24px] border border-hairline bg-surface lift p-5">
+      <div className="mt-6 rounded-[24px] border border-hairline bg-surface p-5">
         <h2 className="font-display text-[19px]">Your camera never uploads</h2>
         <p className="mt-2 text-[14px] leading-relaxed text-stone-600">
           Body-language analysis runs entirely on your device, using MediaPipe

@@ -156,15 +156,17 @@ export default function Home() {
           white tile with a sliver of face in it, which reads as a broken
           image rather than a brand. Better nothing than that until the
           real head mark lands. */}
-      <div className="flex items-center justify-between">
-        <span className="font-display text-[25px]">ethos</span>
-        <div className="flex items-center gap-2">
+      <div className="flex items-baseline justify-between">
+        <span className="font-display text-[19px] font-extrabold uppercase tracking-[0.02em]">
+          ethos
+        </span>
+        <div className="flex items-baseline gap-3.5">
           {/* Earned stars, beside the streak — the two standing scores
-              (27 Aug, Timothy's call: stars were buried in the score
-              card). Sage because earned; a wash, never a tap. */}
+              (27 Aug, Timothy's call). Plain olive text now (#201):
+              earned, never a pill, never a tap. */}
           {totalStars(starMap) > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-sage-100 px-[13px] py-1.5 text-[13.5px] font-bold text-sage-800">
-              <span aria-hidden>★</span>
+            <span className="font-display text-[13px] font-semibold text-sage-700 tabular-nums">
+              <span aria-hidden>★ </span>
               {totalStars(starMap)}
             </span>
           )}
@@ -173,7 +175,7 @@ export default function Home() {
       </div>
 
       {rescued > 0 && (
-        <div className="mt-4 rounded-[24px] border-[1.5px] border-sage-300 bg-surface px-4 py-3 text-[13px] leading-relaxed">
+        <div className="mt-4 rounded-xl border border-sage-300 bg-raised px-4 py-3 text-[13px] leading-relaxed">
           <span className="font-semibold">
             A freeze covered {rescued === 1 ? "a day" : `${rescued} days`} you
             missed.
@@ -184,96 +186,110 @@ export default function Home() {
         </div>
       )}
 
-      {/* ONE moment above the floor, never two.
-          brand.md bans orange as decoration — scarcity is what makes the
-          terracotta tap command the screen, and two filled accent cards
-          stacked over the CTA is exactly the wash it warns about. The
-          near-miss wins when there is one; otherwise the landmark or the
-          open loop. It renders as a quiet rule-and-text line, not a
-          filled card, so the only filled colour on this screen is the
-          button. */}
-      <div className="label-data mt-7 !text-sage-700">
-        {topic
-          ? "Roulette"
-          : `${streak.didToday ? "Extra lesson" : "Today's lesson"} · ${unitName}`}
-      </div>
       {/*
-       * Why THIS, today. Duolingo's published answer to "why come back"
-       * is half-life regression (Settles & Meeder, ACL 2016): the app
-       * models what you're about to lose and schedules against it. Same
-       * idea over our four measured skills — and the reason always
-       * carries the number that chose it, so the call is checkable.
-       */}
-      {!topic && (gap || focus.strength !== null) && (
-        <p className="mt-1.5 max-w-[92%] text-[13px] leading-relaxed text-stone-500">
-          {gap ?? focus.reason}
-        </p>
-      )}
-      {/*
-       * TIER 1 — The Floor (DECISIONS #9). It has to win the screen on
-       * size alone: a 32px title against 14.5px body and 11px labels is
-       * a real jump, where the old 26/15/13 scale was one grey mush and
-       * gave the eye nowhere to land first.
+       * TIER 1 — The Floor (DECISIONS #9). Instrument grammar (#201):
+       * no card at all — the lesson sits on the paper under a hairline,
+       * and the only filled colour on the screen is the one amber tap.
        *
-       * The roulette REPLACES the card rather than sitting beside it.
-       * A second card would mean a second terracotta button, and
-       * brand.md allows exactly one tap per screen — scarcity is what
-       * makes it command.
+       * The roulette REPLACES the block rather than sitting beside it.
+       * A second block would mean a second amber button, and brand.md
+       * allows exactly one tap per screen — scarcity is what makes it
+       * command.
        */}
-      {topic ? (
-        <div className="mt-2.5">
-          <TopicRoulette
-            topic={topic}
-            onSpin={setTopic}
-            onTake={(t) => router.push(repHref({ topic: t.id, mods }))}
-          />
-          <button
-            onClick={() => setTopic(null)}
-            className="mt-3 text-[13px] font-semibold text-stone-500"
-          >
-            ← Back to today&apos;s drill
-          </button>
+      <div className="mt-5 border-t border-hairline pt-4">
+        <div className="label-data">
+          {topic
+            ? "Roulette"
+            : `${streak.didToday ? "Extra lesson" : "Today's lesson"} · ${unitName}`}
         </div>
-      ) : (
-        <>
-          <div className="relative mt-2.5 overflow-hidden rounded-[28px] border border-hairline bg-surface px-6 pb-[84px] pt-[26px] lift-hero">
-            <h1 className="font-display max-w-[76%] text-[31px] leading-[1.08]">
+
+        {topic ? (
+          <div className="mt-2.5">
+            <TopicRoulette
+              topic={topic}
+              onSpin={setTopic}
+              onTake={(t) => router.push(repHref({ topic: t.id, mods }))}
+            />
+            <button
+              onClick={() => setTopic(null)}
+              className="press mt-3 text-[13px] font-semibold text-stone-500"
+            >
+              ← Back to today&apos;s drill
+            </button>
+          </div>
+        ) : (
+          <>
+            <h1 className="font-display mt-1.5 text-[26px] font-bold leading-[1.15] tracking-[-0.01em]">
               {drill.title}
             </h1>
-            <p className="mt-3 max-w-[66%] text-[14px] leading-[1.55] text-stone-500">
+            <p className="mt-1.5 text-[14px] leading-[1.5] text-stone-500">
               {drill.prompt}
             </p>
-            <div className="relative z-10 mt-5">
+            {/*
+             * Why THIS, today. Duolingo's published answer to "why come
+             * back" is half-life regression (Settles & Meeder, ACL
+             * 2016): the app models what you're about to lose and
+             * schedules against it. Same idea over our measured skills —
+             * and the reason always carries the number that chose it,
+             * so the call is checkable.
+             */}
+            {(gap || focus.strength !== null) && (
+              <p className="mt-1 text-[12.5px] leading-relaxed text-stone-400">
+                {gap ?? focus.reason}
+              </p>
+            )}
+            <div className="mt-4 flex items-center gap-3">
               <Link
                 href={repHref({ lesson: next?.lesson.id, mods })}
-                className="press lift-cta block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[16.5px] font-bold text-cream transition-colors hover:bg-terracotta-600"
+                className="press font-display block flex-1 rounded-xl bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-stage transition-colors hover:bg-terracotta-600"
               >
                 {streak.didToday ? "Go again" : "Take the floor"}
               </Link>
+              {/* Demos beside the tap, at a moment, never furniture. */}
+              <Image
+                src={
+                  streak.didToday
+                    ? "/demos-celebrate.webp"
+                    : (demos ?? "/demos.webp")
+                }
+                alt=""
+                width={104}
+                height={104}
+                priority
+                className="demos pointer-events-none w-[52px] shrink-0"
+              />
             </div>
-            {/* Demos peeks in at the corner rather than being cropped
-                through the middle — he's at a moment, not furniture. */}
-            <Image
-              src={
-                streak.didToday
-                  ? "/demos-celebrate.webp"
-                  : (demos ?? "/demos.webp")
-              }
-              alt=""
-              width={150}
-              height={150}
-              priority
-              className="demos pointer-events-none absolute -bottom-3.5 -right-1.5 w-[126px]"
-            />
-          </div>
-          <button
-            onClick={() => setTopic(spin(null))}
-            className="press mt-3 block text-[13px] font-semibold text-stone-500"
-          >
-            Not feeling it? Spin a new topic →
-          </button>
-        </>
-      )}
+            <div className="mt-2.5 flex items-baseline justify-between gap-3">
+              <button
+                onClick={() => setTopic(spin(null))}
+                className="press text-[13px] font-semibold text-terracotta-700"
+              >
+                Not feeling it? Spin a new topic →
+              </button>
+              <button
+                onClick={() => setShowMods((v) => !v)}
+                className="press shrink-0 text-[13px] font-semibold text-terracotta-700"
+              >
+                {showMods
+                  ? "Hide mods"
+                  : mods.length > 0
+                    ? `${mods.length} mod${mods.length === 1 ? "" : "s"} on · edit`
+                    : "Make it harder"}
+              </button>
+            </div>
+            {showMods && (
+              <div className="mt-2">
+                <ModPicker
+                  selected={mods}
+                  onChange={setMods}
+                  premium={premium}
+                  onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
+                />
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       {/*
        * TIER 2 — the score. "The score IS the brand" (DECISIONS #18) and
@@ -298,32 +314,32 @@ export default function Home() {
       )}
 
       {history.length > 0 && (
-        <section className="card-sage mt-5 rounded-[28px] p-[22px] pb-5 text-cream">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="label-data !text-sage-mist">Your Ethos</div>
-              <div className="mt-1 flex items-baseline gap-1.5">
-                <span className="font-display text-[58px] leading-[0.9]">
-                  {lastIndex ?? "—"}
-                </span>
-                <span className="text-[13px] text-sage-mist">/1000</span>
+        <section className="card-score mt-5 rounded-2xl p-5 text-cream">
+          <div className="flex items-baseline justify-between gap-3">
+            <div className="label-data !text-sage-mist">Your Ethos</div>
+            {/* Green up, red down (#195). Top-right, said in the label
+                register — the arc is the card's second claim. */}
+            {indexDelta !== null && indexDelta !== 0 && (
+              <div
+                className={`font-display text-[13px] font-semibold uppercase tracking-[0.02em] tabular-nums ${
+                  indexDelta > 0 ? "text-sage-lit" : "text-rust-lit"
+                }`}
+              >
+                {indexDelta > 0 ? "▲ +" : "▼ "}
+                {indexDelta} since day one
               </div>
-              {/* Green up, red down (#195). This was BACKWARDS: a
-                  rising index printed terracotta, a falling one sage. */}
-              {indexDelta !== null && indexDelta !== 0 && (
-                <div
-                  className={`mt-2 text-[12.5px] font-bold ${
-                    indexDelta > 0 ? "text-sage-mist" : "text-terracotta-300"
-                  }`}
-                >
-                  {indexDelta > 0 ? "▲ +" : "▼ "}
-                  {indexDelta} since day one
-                </div>
-              )}
+            )}
+          </div>
+          <div className="flex items-end justify-between gap-4">
+            <div className="flex min-w-0 items-baseline gap-1.5">
+              <span className="font-display text-[58px] font-extrabold leading-none tracking-[-0.02em]">
+                {lastIndex ?? "—"}
+              </span>
+              <span className="text-[15px] text-sage-mist">/ 1000</span>
             </div>
-            <div className="shrink-0 space-y-3 text-right">
+            <div className="shrink-0 space-y-2 text-right tabular-nums">
               <div>
-                <div className="font-display text-[21px] leading-none">
+                <div className="font-display text-[19px] font-extrabold leading-none">
                   {history.length}
                 </div>
                 {/* "reps" is the brand word for the ACT — you take the
@@ -335,7 +351,7 @@ export default function Home() {
                 <div className="label-data !text-sage-mist">recordings</div>
               </div>
               <div>
-                <div className="font-display text-[21px] leading-none">
+                <div className="font-display text-[19px] font-extrabold leading-none">
                   {totalStars(starMap)}
                 </div>
                 <div className="label-data !text-sage-mist">stars</div>
@@ -355,28 +371,6 @@ export default function Home() {
         </section>
       )}
 
-      <button
-        onClick={() => setShowMods((v) => !v)}
-        className="mt-5 block text-[13px] font-semibold text-stone-500"
-      >
-        {showMods
-          ? "Hide mods"
-          : mods.length > 0
-            ? `${mods.length} mod${mods.length === 1 ? "" : "s"} on · edit`
-            : "Make it harder"}
-      </button>
-
-      {showMods && (
-        <div className="mt-2">
-          <ModPicker
-            selected={mods}
-            onChange={setMods}
-            premium={premium}
-            onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
-          />
-        </div>
-      )}
-
       {/* The boss card moved to /games (DECISIONS #158): the road keeps
           its checkpoint, the games tab keeps the weekly headliner, and
           the floor's scroll goes floor, score, road with nothing between. */}
@@ -384,18 +378,18 @@ export default function Home() {
       {/*
        * The standing soft-wall surface (DECISIONS #137). The loud ask
        * already happened in the rep flow; this is the persistent honest
-       * statement of risk for everyone who declined it, kept at the
-       * volume of "Make it harder" so the floor's one terracotta tap
-       * stays uncontested.
+       * statement of risk for everyone who declined it, kept quiet so
+       * the floor's one amber tap stays uncontested — the link alone
+       * wears the action text.
        */}
       {anon === true && history.length > 0 && (
         <Link
           href="/signup"
-          className="press mt-5 block text-center text-[13px] leading-relaxed text-stone-400"
+          className="press mt-5 block text-center text-[12px] leading-relaxed text-stone-400"
         >
           {history.length} recording{history.length === 1 ? "" : "s"} live only
           in this browser ·{" "}
-          <span className="font-semibold text-stone-500">keep them →</span>
+          <span className="font-semibold text-terracotta-700">keep them →</span>
         </Link>
       )}
 

@@ -33,7 +33,7 @@ export function PermissionHelp({
   const thing = video ? "mic and camera" : "mic";
 
   return (
-    <div className="w-full rounded-[24px] border border-hairline bg-surface lift p-5">
+    <div className="w-full rounded-[24px] border border-hairline bg-surface p-5">
       <div className="flex items-center gap-3.5">
         <Image
           src="/demos-listening.webp"
@@ -73,7 +73,7 @@ export function PermissionHelp({
 
       <button
         onClick={onRecheck}
-        className="press mt-5 w-full rounded-full bg-terracotta-500 px-5 py-3.5 text-[15px] font-bold text-cream transition-colors hover:bg-terracotta-600"
+        className="press mt-5 w-full rounded-full bg-terracotta-500 px-5 py-3.5 text-[15px] font-bold text-stage transition-colors hover:bg-terracotta-600"
       >
         Check again
       </button>

@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { Coin } from "@/components/Coin";
 import { AchievementMark, IconFreeze } from "@/components/Icon";
 import { ErrorLine, ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton, SkeletonStatBare } from "@/components/ui/Skeleton";
@@ -171,10 +170,10 @@ export default function YouPage() {
 
   const header = (
     <div className="flex items-center justify-between">
-      <h1 className="font-display text-[27px]">You</h1>
+      <h1 className="font-display text-[24px] font-extrabold">You</h1>
       <Link
         href="/settings"
-        className="text-[13px] font-semibold text-stone-500"
+        className="text-[13px] font-semibold text-stone-400"
       >
         Settings
       </Link>
@@ -205,7 +204,7 @@ export default function YouPage() {
 
       {/* The one card on the page. It holds the two numbers that answer
           "how far in am I", so it keeps the furniture. */}
-      <div className="mt-4 rounded-[28px] border border-hairline bg-surface lift p-5">
+      <div className="mt-4 rounded-[14px] border border-edge p-[18px]">
         {/* The name: the one profile field you type rather than earn.
             League rows show it, so it caps where they'd truncate. */}
         {editingName ? (
@@ -223,11 +222,11 @@ export default function YouPage() {
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder="Your name"
-              className="min-h-11 w-full min-w-0 flex-1 rounded-full border border-stone-200 bg-surface px-4 text-[15px] font-semibold placeholder:text-stone-300 focus:border-stone-300"
+              className="min-h-11 w-full min-w-0 flex-1 rounded-[10px] border border-stone-200 bg-raised px-4 text-[15px] font-semibold placeholder:text-stone-300 focus:border-stone-300"
             />
             <button
               type="submit"
-              className="press min-h-11 shrink-0 rounded-full border border-stone-200 px-4 text-[13.5px] font-semibold hover:bg-sand"
+              className="press min-h-11 shrink-0 rounded-[10px] border border-stone-200 px-4 text-[13.5px] font-semibold hover:bg-sand"
             >
               Save
             </button>
@@ -242,7 +241,7 @@ export default function YouPage() {
         ) : (
           <div className="mb-4 flex items-baseline justify-between gap-3">
             {name && (
-              <span className="font-display min-w-0 truncate text-[21px]">
+              <span className="font-display min-w-0 truncate text-[18px] font-extrabold">
                 {name}
               </span>
             )}
@@ -253,7 +252,7 @@ export default function YouPage() {
                   setNameFailed(false);
                   setEditingName(true);
                 }}
-                className={`press min-h-11 shrink-0 text-[13px] font-semibold text-stone-500 ${name ? "" : "text-left"}`}
+                className={`press min-h-11 shrink-0 text-[12.5px] font-semibold text-stone-400 ${name ? "" : "text-left"}`}
               >
                 {name ? "Edit" : "Add your name →"}
               </button>
@@ -269,21 +268,19 @@ export default function YouPage() {
         <div className="flex items-center gap-4">
           {/* Demos peers out of a sage pebble — the wash is earned-tone
               because being here at all is (#165). */}
-          <span className="flex h-16 w-16 shrink-0 items-end justify-center overflow-hidden rounded-full bg-sage-100">
-            <Image
-              src="/demos-listening.webp"
-              alt=""
-              width={54}
-              height={54}
-              className="demos w-[54px]"
-            />
-          </span>
+          <Image
+            src="/demos-listening.webp"
+            alt=""
+            width={96}
+            height={96}
+            className="demos w-12 shrink-0"
+          />
           <div className="flex-1">
             <div className="label-data !text-sage-700">Level</div>
             {loading ? (
               <Skeleton className="mt-1.5 h-7 w-10" />
             ) : (
-              <div className="font-display text-[30px] leading-none">
+              <div className="font-display text-[30px] font-extrabold leading-none tabular-nums">
                 {level.level}
               </div>
             )}
@@ -293,13 +290,13 @@ export default function YouPage() {
             {loading ? (
               <Skeleton className="mt-1.5 ml-auto h-5 w-14" />
             ) : (
-              <div className="font-display text-[21px]">{xp.total}</div>
+              <div className="font-display text-[20px] font-extrabold tabular-nums">{xp.total.toLocaleString()}</div>
             )}
           </div>
         </div>
-        <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-sand">
+        <div className="mt-4 h-1.5 overflow-hidden bg-sand">
           <div
-            className="h-full rounded-full bg-sage-500"
+            className="h-full bg-sage-500"
             style={{
               width: `${(level.intoLevel / level.forNext) * 100}%`,
             }}
@@ -339,48 +336,52 @@ export default function YouPage() {
        * the leader only; a trait that hasn't leveled sits dimmed at the
        * bottom, the shelf's grammar (#153): the position is the claim.
        */}
-      <div className="section-title mt-7">Traits</div>
-      <div className="mt-2.5 space-y-2.5">
-        {loading ? (
-          <>
-            <Skeleton className="h-5 w-full" />
-            <Skeleton className="h-5 w-full" />
-            <Skeleton className="h-5 w-full" />
-          </>
-        ) : (
-          (() => {
-            const ranked = rankedTraits(traitLevels(history));
-            const top = Math.max(1, ranked[0]?.level ?? 0);
-            return ranked.map((t, i) => (
-              <div key={t.key} className="flex items-center gap-3">
-                <span
-                  className={`w-[112px] shrink-0 text-[13px] font-bold leading-tight ${
-                    t.level > 0 ? "" : "text-stone-400"
-                  }`}
-                >
-                  {t.name}
-                </span>
-                <span className="h-2 flex-1 overflow-hidden rounded-full bg-sand">
-                  {t.level > 0 && (
-                    <span
-                      className={`block h-full rounded-full ${
-                        i === 0 ? "bg-sage-500" : "bg-sage-300"
-                      }`}
-                      style={{ width: `${(t.level / top) * 100}%` }}
-                    />
-                  )}
-                </span>
-                <span
-                  className={`w-[34px] shrink-0 text-right font-display text-[15px] ${
-                    t.level > 0 ? "" : "text-stone-300"
-                  }`}
-                >
-                  {t.level}
-                </span>
-              </div>
-            ));
-          })()
-        )}
+      <div className="mt-6 border-t border-hairline pt-3.5">
+        <div className="label-data">Traits</div>
+        <div className="mt-2.5 space-y-2.5">
+          {loading ? (
+            <>
+              <Skeleton className="h-5 w-full" />
+              <Skeleton className="h-5 w-full" />
+              <Skeleton className="h-5 w-full" />
+            </>
+          ) : (
+            (() => {
+              const ranked = rankedTraits(traitLevels(history));
+              const top = Math.max(1, ranked[0]?.level ?? 0);
+              return ranked.map((t, i) => (
+                <div key={t.key} className="flex items-center gap-3">
+                  <span
+                    className={`font-display w-[92px] shrink-0 text-[13px] font-bold leading-tight ${
+                      t.level > 0 ? "" : "text-stone-300"
+                    }`}
+                  >
+                    {t.name}
+                  </span>
+                  <span className="h-[5px] flex-1 overflow-hidden bg-sand">
+                    {t.level > 0 && (
+                      /* The leader wears the earned olive; the rest sit
+                         one step dimmer (#201) — position is the claim. */
+                      <span
+                        className={`block h-full ${
+                          i === 0 ? "bg-sage-500" : "bg-sage-400"
+                        }`}
+                        style={{ width: `${(t.level / top) * 100}%` }}
+                      />
+                    )}
+                  </span>
+                  <span
+                    className={`font-display w-6 shrink-0 text-right text-[14px] font-extrabold tabular-nums ${
+                      t.level > 0 ? "" : "text-stone-300"
+                    }`}
+                  >
+                    {t.level}
+                  </span>
+                </div>
+              ));
+            })()
+          )}
+        </div>
       </div>
 
       {/*
@@ -390,39 +391,38 @@ export default function YouPage() {
        * convenience; that argument belongs in the shop, where somebody is
        * about to spend (COPY-RULES: explain a mechanic where it happens).
        */}
-      <div className="section-title mt-7">Coins</div>
-      <div className="mt-2">
-        <div className="flex items-end gap-4">
-          <Coin
-            variant={coins !== null && coins > 0 ? "stack" : "empty"}
-            size={44}
-          />
+      <div className="mt-6 border-t border-hairline pt-3.5">
+        <div className="label-data">Coins</div>
+        <div className="mt-2.5 flex items-end gap-4">
           <div className="flex-1">
             {loading ? (
               <Skeleton className="h-7 w-12" />
             ) : (
-              <div className="font-display text-[27px] leading-none">
+              <div className="font-display text-[26px] font-extrabold leading-none tabular-nums">
                 {coins ?? "—"}
               </div>
             )}
-            <div className="label-data mt-1.5">1 a day</div>
+            <div className="label-data mt-1.5 !tracking-[0.1em]">1 a day</div>
           </div>
           <div className="shrink-0 text-right">
             {loading ? (
               <Skeleton className="ml-auto h-5 w-8" />
             ) : (
-              <div className="font-display text-[19px] leading-none">
+              <div className="font-display text-[18px] font-extrabold leading-none tabular-nums">
                 {coins === null ? "—" : towardFirstItem(coins).toGo}
               </div>
             )}
-            <div className="label-data mt-1.5">to the first item</div>
+            <div className="label-data mt-1.5 !tracking-[0.1em]">
+              to the first item
+            </div>
           </div>
         </div>
-        {/* Terracotta on purpose, the screen's one warm bar: it points
-            at the next buyable thing, and it isn't a tap. */}
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-sand">
+        {/* Amber on purpose, the ONLY amber on this screen: it points
+            at the next buyable thing, and it isn't a tap (#165's flag,
+            carried into #201). */}
+        <div className="mt-2.5 h-[5px] overflow-hidden bg-sand">
           <div
-            className="h-full rounded-full bg-terracotta-500"
+            className="h-full bg-terracotta-500"
             style={{
               width: `${coins === null ? 0 : towardFirstItem(coins).fraction * 100}%`,
             }}
@@ -435,10 +435,10 @@ export default function YouPage() {
         )}
         <Link
           href="/shop"
-          className="press mt-3 flex min-h-11 items-center justify-between rounded-full border border-stone-200 px-5 py-3 text-[14px] font-semibold hover:bg-sand"
+          className="press font-display mt-3 flex min-h-11 items-center justify-between rounded-[10px] border border-stone-200 px-4 py-[11px] text-[13.5px] font-bold hover:bg-sand"
         >
           <span>Open the shop</span>
-          <span aria-hidden className="text-stone-400">
+          <span aria-hidden className="text-stone-300">
             →
           </span>
         </Link>
@@ -448,15 +448,21 @@ export default function YouPage() {
           earned, what they cost, what a frozen day does to the streak —
           now appear at the two moments they're true: when one is spent
           (the home screen says so) and when you have one to spend. */}
-      <div className="section-title mt-7">Streak freezes</div>
+      <div className="label-data mt-6 border-t border-hairline pt-3.5">
+        Streak freezes
+      </div>
       <div className="mt-2 flex items-center gap-2">
         {Array.from({ length: MAX_EQUIPPED_FREEZES }).map((_, i) => {
           const ready = (freezes?.equipped ?? 0) > i;
           return (
+            /* Bordered tiles, not washes (#201): a ready freeze wears
+               the earned outline, an empty slot the neutral one. */
             <span
               key={i}
-              className={`flex h-[38px] w-[38px] items-center justify-center rounded-full ${
-                ready ? "bg-sage-100 text-sage-700" : "bg-sand text-stone-300"
+              className={`flex h-[38px] w-[38px] items-center justify-center rounded-[10px] border ${
+                ready
+                  ? "border-sage-300 text-sage-700"
+                  : "border-stone-200 text-stone-300"
               }`}
             >
               <IconFreeze size={17} />
@@ -485,7 +491,9 @@ export default function YouPage() {
           stay; a future league reads them unchanged. */}
 
       {/* Personal lexicon — the supply layer's archive (DECISIONS #12) */}
-      <div className="section-title mt-7">Your lexicon</div>
+      <div className="label-data mt-6 border-t border-hairline pt-3.5">
+        Your lexicon
+      </div>
       {lexicon.length === 0 ? (
         <p className="mt-2 text-[13px] leading-relaxed text-stone-500">
           Upgrades from your own recordings collect here.
@@ -496,22 +504,22 @@ export default function YouPage() {
             {lexicon.slice(0, limit(FREE_LEXICON, premium) ?? lexicon.length).map((l) => (
               <div
                 key={l.id}
-                className="flex items-center gap-3 border-b border-hairline py-3 text-[14px]"
+                className="flex items-center gap-2.5 border-b border-hairline py-2.5 text-[13.5px]"
               >
-                <span className="text-stone-400 line-through">
+                <span className="text-stone-300 line-through">
                   {l.original}
                 </span>
-                <span aria-hidden className="text-stone-300">
+                <span aria-hidden className="text-stone-200">
                   →
                 </span>
-                <span className="font-extrabold">{l.upgrade}</span>
+                <span className="font-bold">{l.upgrade}</span>
               </div>
             ))}
           </div>
           {lexicon.length >= 3 && !flashing && (
             <button
               onClick={() => setFlashing(true)}
-              className="press mt-3 min-h-11 w-full rounded-full border-2 border-sage-300 px-5 py-3 text-[13.5px] font-extrabold text-sage-800 hover:bg-sage-100"
+              className="press font-display mt-3 min-h-11 w-full rounded-[10px] border border-sage-300 px-5 py-2.5 text-[13px] font-bold text-sage-700 hover:bg-sage-100"
             >
               Test yourself on these →
             </button>
@@ -534,10 +542,19 @@ export default function YouPage() {
                   headline: "Every word you've earned, kept.",
                 })
               }
-              className="mt-2.5 min-h-11 w-full rounded-full border border-terracotta-100 bg-terracotta-50 px-5 py-3 text-[13.5px] font-semibold"
+              className="press mt-2.5 flex min-h-11 w-full items-center justify-between gap-3 border-b border-hairline px-0.5 py-3 text-left text-[13px] font-semibold text-stone-500"
             >
-              {lexicon.length - FREE_LEXICON} more upgrade
-              {lexicon.length - FREE_LEXICON === 1 ? "" : "s"} in your archive
+              <span>
+                {lexicon.length - FREE_LEXICON} more upgrade
+                {lexicon.length - FREE_LEXICON === 1 ? "" : "s"} in your
+                archive
+              </span>
+              <span
+                aria-hidden
+                className="font-display shrink-0 font-bold text-terracotta-700"
+              >
+                →
+              </span>
             </button>
           )}
         </>
@@ -549,31 +566,33 @@ export default function YouPage() {
        * drill that produces its number — a locked badge that only
        * describes itself is a taunt (DECISIONS #153).
        */}
-      <div className="section-title mt-7">
+      <div className="label-data mt-6 border-t border-hairline pt-3.5">
         Earned{" "}
-        <span className="label-data ml-1">
+        <span className="ml-1 text-stone-300">
           {earnedCount}/{badges.length}
         </span>
       </div>
-      <div className="mt-2">
+      <div className="mt-1">
         {badges.map((a) => (
           <Link
             key={a.id}
             href={a.href}
             className="press flex min-h-14 items-center gap-3.5 border-b border-hairline py-3"
           >
+            {/* Bordered tiles, not washes (#201): earned wears the
+                olive outline, not-yet the neutral one. */}
             <span
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border ${
                 a.earned
-                  ? "bg-sage-100 text-sage-700"
-                  : "bg-sand text-stone-300"
+                  ? "border-sage-300 text-sage-700"
+                  : "border-stone-200 text-stone-300"
               }`}
             >
-              <AchievementMark name={a.icon} size={20} />
+              <AchievementMark name={a.icon} size={18} />
             </span>
             <span className="min-w-0 flex-1">
               <span
-                className={`block text-[14px] font-semibold ${
+                className={`font-display block text-[13.5px] font-bold ${
                   a.earned ? "" : "text-stone-500"
                 }`}
               >
@@ -583,9 +602,9 @@ export default function YouPage() {
                 {a.requirement}
               </span>
               {!a.earned && a.progress > 0 && (
-                <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-sand">
+                <span className="mt-1.5 block h-1 overflow-hidden bg-sand">
                   <span
-                    className="block h-full rounded-full bg-stone-400"
+                    className="block h-full bg-stone-400"
                     style={{ width: `${Math.round(a.progress * 100)}%` }}
                   />
                 </span>
@@ -600,22 +619,26 @@ export default function YouPage() {
 
       {history.length >= 2 && (
         <>
-          <div className="section-title mt-7">Day 1 vs now</div>
+          <div className="label-data mt-6 border-t border-hairline pt-3.5">
+            Day 1 vs now
+          </div>
           <ShareCard reps={history} />
         </>
       )}
 
       {showGate && (
-        <div className="mt-7 rounded-[26px] border border-terracotta-100 bg-terracotta-50 p-5">
-          <div className="text-[14.5px] font-semibold">Save your progress</div>
-          <p className="mt-1 text-[13px] leading-relaxed text-stone-600">
+        <div className="mt-7 rounded-[14px] border border-edge p-4">
+          <div className="font-display text-[14.5px] font-bold">
+            Save your progress
+          </div>
+          <p className="mt-1 text-[13px] leading-relaxed text-stone-500">
             {history.length} recording{history.length === 1 ? "" : "s"}
             {streak.current > 0 && ` and a ${streak.current}-day streak`} live
             on this device. An account keeps them.
           </p>
           <Link
             href="/signup"
-            className="press mt-3 block min-h-11 w-full rounded-full bg-terracotta-500 px-5 py-3 text-center text-[15px] font-bold text-cream hover:bg-terracotta-600"
+            className="press font-display mt-3 block min-h-11 w-full rounded-xl bg-terracotta-500 px-5 py-3 text-center text-[15px] font-bold text-stage hover:bg-terracotta-600"
           >
             Create my account
           </Link>
@@ -639,10 +662,10 @@ export default function YouPage() {
         ) : (
           <button
             onClick={() => setPaywall({ reason: "Ethos Premium" })}
-            className="press mt-7 flex min-h-11 w-full items-center justify-between rounded-full border border-stone-200 px-5 py-3 text-[14px] font-semibold hover:bg-sand"
+            className="press font-display mt-7 flex min-h-11 w-full items-center justify-between rounded-[10px] border border-stone-200 px-4 py-[11px] text-[13.5px] font-bold hover:bg-sand"
           >
             <span>Ethos Premium</span>
-            <span aria-hidden className="text-stone-400">
+            <span aria-hidden className="text-stone-300">
               →
             </span>
           </button>
@@ -672,10 +695,10 @@ function Stat({
   return (
     <div className="flex-1">
       <div className="label-data">{label}</div>
-      <div className="font-display text-[25px] leading-tight">
+      <div className="font-display text-[24px] font-extrabold leading-tight tabular-nums">
         {value}
       </div>
-      <div className="text-[11.5px] text-stone-500">{note}</div>
+      <div className="text-[11.5px] text-stone-400">{note}</div>
     </div>
   );
 }

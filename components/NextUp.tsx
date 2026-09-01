@@ -30,7 +30,7 @@ export function NextUp({
         {shown.map((m) => (
           <div
             key={m.id}
-            className="rounded-[24px] border border-hairline bg-surface lift p-4"
+            className="rounded-[24px] border border-hairline bg-surface p-4"
           >
             <div className="flex items-baseline justify-between gap-3">
               <span className="text-[14px] font-semibold">{m.label}</span>

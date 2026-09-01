@@ -60,7 +60,7 @@ export function AudioScrubber({
   const pct = (n: number) => (durationS > 0 ? (n / durationS) * 100 : 0);
 
   return (
-    <div className="rounded-[24px] border border-hairline bg-surface lift p-5">
+    <div className="rounded-[24px] border border-hairline bg-surface p-5">
       <div className="label-data">Hear it back</div>
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <audio ref={ref} src={src} preload="metadata" />
@@ -68,7 +68,7 @@ export function AudioScrubber({
       <div className="mt-3 flex items-center gap-3">
         <button
           onClick={toggle}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-terracotta-500 text-cream"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-terracotta-500 text-stage"
           aria-label={playing ? "Pause" : "Play"}
         >
           {playing ? "❚❚" : "▶"}

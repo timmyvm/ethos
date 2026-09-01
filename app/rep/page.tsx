@@ -1008,7 +1008,7 @@ function RepScreen() {
        * feedback afterwards is about the same thing the tip was about.
        */}
       {phase === "idle" && config.tips.length > 0 && (
-        <div className="mt-4 rounded-[24px] border border-hairline bg-surface lift p-4">
+        <div className="mt-4 rounded-[24px] border border-hairline bg-surface p-4">
           <div className="label-data">How to do this one</div>
           <ul className="mt-2 space-y-1.5">
             {config.tips.map((tip, i) => (
@@ -1039,7 +1039,7 @@ function RepScreen() {
             {/* Structure tips, by the SHAPE of answer the prompt asks
                 for. We know that much honestly; we don't know what
                 you're going to say, so we don't pretend to. */}
-            <div className="mt-4 rounded-[24px] border border-hairline bg-surface lift p-4">
+            <div className="mt-4 rounded-[24px] border border-hairline bg-surface p-4">
               <div className="label-data">Shape it like this</div>
               <ul className="mt-2 space-y-1.5">
                 {config.tips.map((tip, i) => (
@@ -1256,7 +1256,7 @@ function RepScreen() {
             className={`h-24 w-24 rounded-full text-[15px] font-bold transition-colors ${
               phase === "recording"
                 ? "bg-ink text-ground ring-[10px] ring-terracotta-100"
-                : "bg-terracotta-500 text-cream hover:bg-terracotta-600"
+                : "bg-terracotta-500 text-stage hover:bg-terracotta-600"
             }`}
           >
             {phase === "recording" ? "Stop" : "Rec"}
@@ -1275,7 +1275,7 @@ function RepScreen() {
 
       {interruption && (
         <div className="pointer-events-none fixed inset-x-0 bottom-24 z-40 flex justify-center px-5">
-          <div className="flex max-w-[340px] items-center gap-3 rounded-[24px] bg-stage px-4 py-3 text-cream lift-stage">
+          <div className="flex max-w-[340px] items-center gap-3 rounded-[24px] bg-stage px-4 py-3 text-cream">
             <Image
               src="/demos-speaking.webp"
               alt=""
@@ -1502,7 +1502,7 @@ function Results({
          * measured number is real.
          */}
         {section === "score" && result.judged.capped && (
-          <div className="mt-5 rounded-[24px] border border-hairline bg-surface lift p-5">
+          <div className="mt-5 rounded-[24px] border border-hairline bg-surface p-5">
             <div className="font-display text-[19px] font-bold leading-tight">
               Measured, not judged.
             </div>
@@ -1573,7 +1573,7 @@ function Results({
          * skills, and it always shows the number that made the call.
          */}
         {last && tomorrow && tomorrow.strength !== null && (
-          <div className="mt-5 rounded-[24px] border border-hairline bg-surface lift p-5">
+          <div className="mt-5 rounded-[24px] border border-hairline bg-surface p-5">
             <div className="label-data">Tomorrow</div>
             <div className="font-display mt-1 text-[22px] font-bold leading-tight">
               {tomorrow.label}
@@ -1609,14 +1609,14 @@ function Results({
                   })
                 )
               }
-              className="press block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+              className="press block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-stage transition-colors hover:bg-terracotta-600"
             >
               Another round · {game.name}
             </button>
           ) : (
             <button
               onClick={() => exit(repHref({ lesson: next.id }))}
-              className="press block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+              className="press block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-stage transition-colors hover:bg-terracotta-600"
             >
               Next lesson · {next.title}
             </button>
@@ -1637,7 +1637,7 @@ function Results({
       ) : (
         <button
           onClick={() => setStep((n) => n + 1)}
-          className="press mt-6 w-full rounded-full bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+          className="press mt-6 w-full rounded-full bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-stage transition-colors hover:bg-terracotta-600"
         >
           {STEPS[step + 1].label} →
         </button>
@@ -1705,7 +1705,7 @@ function SaveGate({
 
       <Link
         href="/signup"
-        className="press block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+        className="press block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-stage transition-colors hover:bg-terracotta-600"
       >
         Save my progress
       </Link>
@@ -1759,7 +1759,7 @@ function ProgressMoment({
 
       <button
         onClick={() => setSheet(true)}
-        className="press block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+        className="press block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-stage transition-colors hover:bg-terracotta-600"
       >
         Keep every number
       </button>
@@ -1825,7 +1825,7 @@ function PlanChips({ streak }: { streak: number }) {
   if (hour !== null && !picked) return null;
 
   return (
-    <div className="mt-5 rounded-[24px] border border-hairline bg-surface lift p-5">
+    <div className="mt-5 rounded-[24px] border border-hairline bg-surface p-5">
       <div className="label-data">Tomorrow · when?</div>
       {picked ? (
         <p className="mt-2 text-[13px] leading-relaxed text-stone-600">

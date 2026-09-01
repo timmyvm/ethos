@@ -3,18 +3,17 @@
 import type { DayTrail as Trail, PebbleState } from "@/lib/days";
 
 /**
- * The day counter and its pebble trail, sitting inside the score card
- * on home.
+ * The day counter and its trail, sitting inside the score card on home.
  *
  * Deliberately not a third card: DECISIONS #9 gives the floor the screen
  * and brand.md allows one tap, so this earns its place by living in
- * furniture that already exists. One 14px pebble per recent day —
- * Demosthenes' training prop, the redesign's motif (DECISIONS #165):
- * a spoken day is a sage pebble, a frozen day is an outline, a missed
- * day barely registers. Sage because a spoken day is earned; nothing
- * here is a tap.
+ * furniture that already exists. One square bar per recent day — the
+ * Instrument reading of a training log (#201, replacing #168's
+ * pebbles): a spoken day is a lit bar, a frozen day an outline, a
+ * missed day barely registers, and today stands taller with an offset
+ * outline. Nothing here is a tap.
  *
- * It gets better with time by construction. One day is a dot, fourteen
+ * It gets better with time by construction. One day is a mark, fourteen
  * is a shape you can read at a glance — the reward for staying is that
  * the thing on your home screen becomes more worth looking at.
  */
@@ -31,7 +30,7 @@ export function DayTrail({
   const frozen = pebbles.filter((p) => p === "frozen").length;
 
   return (
-    <div className="mt-4 border-t border-cream/10 pt-4">
+    <div className="mt-4 flex items-center justify-between gap-3 border-t border-cream/10 pt-3.5">
       {pebbles.length > 0 && (
         <div
           className="flex items-center gap-[5px]"
@@ -40,32 +39,31 @@ export function DayTrail({
             frozen > 0 ? `, ${frozen} frozen` : ""
           }`}
         >
-          {pebbles.map((p, i) => (
-            <span
-              key={i}
-              className={`h-3.5 w-3.5 shrink-0 rounded-full ${
-                p === "spoken"
-                  ? "bg-sage-500"
-                  : p === "frozen"
-                    ? "border-[1.5px] border-sage-mist"
-                    : "bg-cream/15"
-              }`}
-            />
-          ))}
+          {pebbles.map((p, i) => {
+            const today = i === pebbles.length - 1;
+            return (
+              <span
+                key={i}
+                className={`w-2 shrink-0 ${
+                  today ? "h-[22px] outline outline-1 outline-offset-2" : "h-4"
+                } ${
+                  p === "spoken"
+                    ? "bg-sage-lit outline-sage-lit"
+                    : p === "frozen"
+                      ? "border border-sage-lit outline-sage-lit"
+                      : "bg-cream/15 outline-cream/25"
+                }`}
+              />
+            );
+          })}
         </div>
       )}
-      <div className="mt-2 flex items-baseline justify-between gap-3">
-        <p className="text-[11.5px] text-sage-mist">
-          Day {trail.count} of speaking. The pebbles are adding up.
-        </p>
+      <p className="shrink-0 text-right text-[12px] text-sage-mist">
+        Day {trail.count} of speaking
         {/* Only when earned, and only for something the card above
             doesn't already say (#95). */}
-        {trail.bestYet && (
-          <span className="shrink-0 text-[12px] font-semibold text-sage-mist">
-            best day yet
-          </span>
-        )}
-      </div>
+        {trail.bestYet && " · best day yet"}
+      </p>
     </div>
   );
 }

@@ -90,14 +90,14 @@ export default function Welcome() {
       {last ? (
         <Link
           href={FIRST_REP}
-          className="block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-cream press"
+          className="block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-stage press"
         >
           Take the floor
         </Link>
       ) : (
         <button
           onClick={() => setI(i + 1)}
-          className="w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream press"
+          className="w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-stage press"
         >
           Next
         </button>

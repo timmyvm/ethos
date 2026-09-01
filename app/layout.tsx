@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Caprasimo, Figtree } from "next/font/google";
+import { Figtree, Outfit } from "next/font/google";
 import { Nav } from "@/components/Nav";
 import { OutboxRetry } from "@/components/OutboxRetry";
 import { ServiceWorker } from "@/components/ServiceWorker";
@@ -7,20 +7,18 @@ import { ThemeSync, themeBootScript } from "@/components/Theme";
 import "./globals.css";
 
 /*
- * Display face — Caprasimo (DECISIONS #166, the Organic redesign). It
- * carries one weight, 400, and is never fake-bolded: globals.css pins
- * the weight on `.font-display`. Its numerals are wide, round and
- * unambiguous at every size we use, which is what a product whose
- * identity is numbers needs from its display face.
+ * Display face — Outfit (DECISIONS #201, the Instrument reskin): the
+ * numbers-and-UI voice. Variable, so 600/700/800 are real weights, and
+ * every numeral sets tabular (globals.css) — a changing metric must not
+ * reflow as its digits change.
  */
-const caprasimo = Caprasimo({
+const outfit = Outfit({
   subsets: ["latin"],
-  weight: "400",
   variable: "--font-display-face",
 });
 
-/* Body face. 400/600 for prose, 700 for the data-label register
- * (Space Mono retired with the redesign), 800 for row titles. */
+/* Body face — prose only in the Instrument system; labels, numbers and
+ * row titles all speak Outfit. */
 const figtree = Figtree({
   subsets: ["latin"],
   variable: "--font-figtree",
@@ -60,7 +58,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f5ead8",
+  themeColor: "#faf8f3",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -76,7 +74,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
       <body
-        className={`${caprasimo.variable} ${figtree.variable} antialiased`}
+        className={`${outfit.variable} ${figtree.variable} antialiased`}
       >
         <div className="mx-auto min-h-dvh max-w-[430px]">{children}</div>
         <Nav />

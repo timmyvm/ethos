@@ -155,15 +155,25 @@ export default function Home() {
   const pebbles = pebbleDays(history, frozen);
 
   /*
-   * The floor's title. docs/voice.md Part 3 approves the day-one line
-   * and nothing else, so every other day carries the placeholder rather
-   * than a sentence written here: "Day forty-one starts today." is a
-   * paraphrase, and a paraphrase in this slot is how the voice drifts
-   * back to the median. Listed in the handoff report as the one string
-   * the copy pass still owes.
+   * The floor's headline, and which of the two things names the lesson
+   * (#214).
+   *
+   * docs/voice.md approves "Day one starts today." and nothing for the
+   * days after it, and "Day forty-one starts today." is a paraphrase,
+   * which is the one thing the copy pass may not write. So on every
+   * other day the headline is the LESSON NAME, which is approved copy
+   * already, and the button drops back to #9's "Take the floor".
+   * Exactly one of the two names the lesson at any time: with the
+   * day-one line up the button carries the name, and without it the
+   * headline does. Neither ever says it twice.
+   *
+   * `reps !== null` is what stops the day-one line flashing over the
+   * floor of someone with forty recordings on every cold open: until
+   * the history lands nobody is on day one. The lesson name needs no
+   * round trip, so the card still paints immediately.
    */
-  const dayLine =
-    history.length === 0 ? "Day one starts today." : "TODO: copy";
+  const dayOne = reps !== null && history.length === 0;
+  const dayLine = dayOne ? "Day one starts today." : drill.title;
 
   /*
    * A unit nobody has scored in yet gets its teaching screen on the way
@@ -302,7 +312,11 @@ export default function Home() {
               href={floorHref}
               className="press font-display mt-2 block w-full rounded-xl bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-cream transition-colors hover:bg-terracotta-600"
             >
-              {drill.title} →
+              {dayOne
+                ? `${drill.title} →`
+                : streak.didToday
+                  ? "Go again"
+                  : "Take the floor"}
             </Link>
             <div className="mt-2.5 flex items-baseline justify-between gap-3">
               <button

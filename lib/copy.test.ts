@@ -280,6 +280,24 @@ describe("the screen template", () => {
   });
 
   /**
+   * The placeholder never reaches a screen (#214).
+   *
+   * `TODO: copy` is the handoff's marker for a string the copy pass
+   * could not source from docs/voice.md, and it did its job: it made
+   * the gap impossible to miss in the report. What it could not do was
+   * stop itself shipping, and it went to production on the floor's
+   * headline. This is the half that was missing. Leaving the marker in
+   * during a pass is still right; leaving it in is now a red test
+   * rather than a live screen reading TODO.
+   */
+  it("never ships a copy placeholder", () => {
+    const offenders = ["app", "components"]
+      .flatMap(tsxFiles)
+      .filter((f) => /TODO:\s*copy/i.test(copyOnly(readFileSync(f, "utf8"))));
+    expect(offenders).toEqual([]);
+  });
+
+  /**
    * #213 — the log's day-zero screen never shows the sleeping mascot.
    * A sad Demos on the one screen that says "you have not started" is
    * the shame state brand.md bans, and it was the art on it.

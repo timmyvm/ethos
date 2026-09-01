@@ -114,10 +114,10 @@ app/calibrate/page.tsx:241:          <li>· Prop the phone at face height. Never
 app/calibrate/page.tsx:242:          <li>· Step back until head, shoulders and both hands are in frame.</li>
 app/calibrate/page.tsx:243:          <li>· Look-away notes go somewhere that isn&apos;t the phone.</li>
 app/calibrate/page.tsx:256:        <p className="mt-6 text-[14px] text-stone-500">Opening the camera…</p>
-app/page.tsx:197:              <span aria-hidden>★ </span>
-app/page.tsx:331:                  onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
-app/page.tsx:373:                {indexDelta > 0 ? "▲ +" : "▼ "}
-app/page.tsx:437:          <span className="font-semibold text-terracotta-700">keep them →</span>
+app/page.tsx:207:              <span aria-hidden>★ </span>
+app/page.tsx:345:                  onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
+app/page.tsx:387:                {indexDelta > 0 ? "▲ +" : "▼ "}
+app/page.tsx:451:          <span className="font-semibold text-terracotta-700">keep them →</span>
 app/signin/page.tsx:19:          <span className="mx-2 text-stone-300">·</span>
 app/boss/page.tsx:173:          <div className="label-data mt-6">Weekly boss · Cold Topic</div>
 app/boss/page.tsx:294:              onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
@@ -153,7 +153,7 @@ app/rep/page.tsx:1189:                {anticipate.headline}
 
 == [D] generic SaaS copy — 0 hit(s)
 
-== [E] TODO/FIXME left in UI — 27 hit(s)
+== [E] TODO/FIXME left in UI — 25 hit(s)
 app/rep/page.tsx:1042:              placeholder="Notes: first line, last line, one example…"
 app/rep/page.tsx:1043:              className="mt-3 w-full rounded-[24px] border border-stone-200 bg-surface p-4 text-[14px] leading-relaxed placeholder:text-stone-300 focus:border-stone-300"
 app/auth/forgot/page.tsx:57:            placeholder="you@email.com"
@@ -165,8 +165,6 @@ app/globals.css:365: * contrast on purpose: a placeholder that pulses hard compe
 app/globals.css:390:/* Still a visible placeholder, just a still one. */
 app/you/page.tsx:224:              placeholder="Your name"
 app/you/page.tsx:225:              className="min-h-11 w-full min-w-0 flex-1 rounded-[10px] border border-stone-200 bg-raised px-4 text-[15px] font-semibold placeholder:text-stone-300 focus:border-stone-300"
-app/page.tsx:159:   * and nothing else, so every other day carries the placeholder rather
-app/page.tsx:166:    history.length === 0 ? "Day one starts today." : "TODO: copy";
 app/settings/page.tsx:453:              placeholder="DELETE"
 app/settings/page.tsx:454:              className="mt-1.5 w-full rounded-[10px] border border-stone-200 bg-raised px-4 py-2.5 text-[14px] font-semibold placeholder:text-stone-300 focus:border-stone-300"
 app/boss/page.tsx:259:                placeholder={`Search ${COLD_TOPICS.length} topics`}

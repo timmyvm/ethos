@@ -227,8 +227,9 @@ export default function Home() {
       <div className="mt-5 border-t border-hairline pt-4">
         {/* The unit moved out of this label and into the line under the
             title, where voice.md puts it: the eyebrow names the slot,
-            the body names the thing. */}
-        <div className="label-data">
+            the body names the thing. Centred with the rest of the card
+            (#212): one announcement over one tap. */}
+        <div className={`label-data ${topic ? "" : "text-center"}`}>
           {topic
             ? "Roulette"
             : streak.didToday
@@ -267,18 +268,23 @@ export default function Home() {
              * the call stays checkable.
              */}
             <LessonBody
+              align="center"
               title={dayLine}
               line={unitName}
               note={gap ?? (focus.strength !== null ? focus.reason : undefined)}
             />
-            <div className="mt-4 flex items-center gap-3">
-              <Link
-                href={floorHref}
-                className="press font-display block flex-1 rounded-xl bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-cream transition-colors hover:bg-terracotta-600"
-              >
-                {drill.title} →
-              </Link>
-              {/* Demos beside the tap, at a moment, never furniture. */}
+            {/*
+             * Demos peeks in from the right, just above the tap.
+             *
+             * He was beside the button, which pushed the one terracotta
+             * thing off the screen's axis under a centred headline. He
+             * cannot simply move to the middle either: the default mark
+             * (#7's side profile) is drawn cropped into the corner of
+             * its frame, so centred it reads as a broken image and
+             * anchored to an edge it reads as intended. Edge it is, and
+             * the button underneath gets the full width and the centre.
+             */}
+            <div className="mt-2 flex justify-end pr-1">
               <Image
                 src={
                   streak.didToday
@@ -289,9 +295,15 @@ export default function Home() {
                 width={104}
                 height={104}
                 priority
-                className="demos pointer-events-none w-[52px] shrink-0"
+                className="demos pointer-events-none -mb-1 w-[58px]"
               />
             </div>
+            <Link
+              href={floorHref}
+              className="press font-display mt-2 block w-full rounded-xl bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-cream transition-colors hover:bg-terracotta-600"
+            >
+              {drill.title} →
+            </Link>
             <div className="mt-2.5 flex items-baseline justify-between gap-3">
               <button
                 onClick={() => setTopic(spin(null))}

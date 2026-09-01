@@ -125,7 +125,7 @@ twice, once `target: production`.)
 |---|---|---|
 | Landing page | `app/(marketing)/about/page.tsx` | Standalone. |
 | Onboarding | `app/welcome/page.tsx`, `WELCOME_STEPS` in `lib/onboarding.ts` | Standalone, three screens, no quiz. Copy is `docs/voice.md` verbatim (#209); it lives in lib so the word-budget test can read it. |
-| Screen template | `components/LessonScreen.tsx` | Cutting it un-templates four screens. `<LessonScreen>` is the whole screen (onboarding, the unit intro); `<LessonBody>` is the text block, composed by the floor and the recording screen, which are more than an explanation. Neither can render a paragraph: no `children`, no `description` (#210). |
+| Screen template | `components/LessonScreen.tsx` | Cutting it un-templates four screens. `<LessonScreen>` is the whole screen (onboarding, the unit intro); `<LessonBody>` is the text block, composed by the floor and the recording screen, which are more than an explanation. Neither can render a paragraph: no `children`, no `description` (#210). `lead` picks the hero — the tactics on a lesson screen, the name on the floor (#212). |
 | Unit intro | `app/lesson/[unit]/page.tsx`, `intro` on `lib/path.ts` | Trivial. One teaching screen per unit, shown on the way into a unit with no stars in it and never again. Only Filler Elimination has approved copy; the rest link straight to their first lesson. |
 | Accounts | `lib/auth.ts`, `app/signup`, `app/signin`, `app/auth/{forgot,reset,callback}` | Core now. Email + password, no social. The anonymous upgrade attaches credentials to the same auth user, so nothing migrates and nothing can be lost migrating. |
 | Transactional email | `supabase/auth-email-templates/`, `docs/email.md` | Templates + the dashboard config they assume. Sends from `hello@speakethos.com`, reply-to the same, never `noreply@`. |
@@ -320,7 +320,7 @@ are not.
 
 ## Test coverage
 
-836 tests (1 Sep) across metrics and the substance gate, index scoring, coach
+838 tests (1 Sep) across metrics and the substance gate, index scoring, coach
 validation, boss accuracy, rep configuration, stress mods, drills, path,
 streak and freezes, level, achievements, insights, reminders, scheduling,
 rewards, the analyze route, Presence, judged metering, coins, auth rules

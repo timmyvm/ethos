@@ -34,30 +34,30 @@ app/globals.css:74:  --color-raised: #faf3e3;
 app/globals.css:75:  --color-ink: #201e1d;
 app/globals.css:83:  --color-stage: #211a13;
 app/globals.css:100:  --color-stone-900: #201e1d;
-app/globals.css:153:  --color-ground: #211a13;
-app/globals.css:154:  --color-surface: #2d241b;
-app/globals.css:155:  --color-raised: #2d241b;
-app/globals.css:156:  --color-sand: #3b2f22;
-app/globals.css:157:  --color-stage: #1a1410;
-app/globals.css:158:  --color-ink: #f3ecdd;
-app/globals.css:164:  --color-terracotta-50: #33200f;
-app/globals.css:165:  --color-terracotta-100: #3f2716;
-app/globals.css:166:  --color-terracotta-200: #4d2f1a;
-app/globals.css:167:  --color-terracotta-700: #e6b48c;
-app/globals.css:168:  --color-terracotta-800: #e6b48c;
-app/globals.css:171:  --color-sage-50: #2c331e;
-app/globals.css:172:  --color-sage-100: #343c27;
-app/globals.css:173:  --color-sage-200: #343c27;
-app/globals.css:174:  --color-sage-300: #4a5536;
-app/globals.css:175:  --color-sage-400: #6c7a52;
-app/globals.css:176:  --color-sage-500: #8a9b6b;
-app/globals.css:177:  --color-sage-600: #98aa77;
-app/globals.css:178:  --color-sage-700: #aab88a;
-app/globals.css:179:  --color-sage-800: #c3cda6;
-app/globals.css:180:  --color-sage-900: #313a24;
-app/globals.css:181:  --color-sage-ink: #211a13;
-app/globals.css:183:  --color-rust: #e6b48c;
-app/globals.css:193:  --color-stone-900: #f3ecdd;
+app/globals.css:167:  --color-ground: #211a13;
+app/globals.css:168:  --color-surface: #2d241b;
+app/globals.css:169:  --color-raised: #2d241b;
+app/globals.css:170:  --color-sand: #3b2f22;
+app/globals.css:171:  --color-stage: #1a1410;
+app/globals.css:172:  --color-ink: #f3ecdd;
+app/globals.css:178:  --color-terracotta-50: #33200f;
+app/globals.css:179:  --color-terracotta-100: #3f2716;
+app/globals.css:180:  --color-terracotta-200: #4d2f1a;
+app/globals.css:181:  --color-terracotta-700: #e6b48c;
+app/globals.css:182:  --color-terracotta-800: #e6b48c;
+app/globals.css:185:  --color-sage-50: #2c331e;
+app/globals.css:186:  --color-sage-100: #343c27;
+app/globals.css:187:  --color-sage-200: #343c27;
+app/globals.css:188:  --color-sage-300: #4a5536;
+app/globals.css:189:  --color-sage-400: #6c7a52;
+app/globals.css:190:  --color-sage-500: #8a9b6b;
+app/globals.css:191:  --color-sage-600: #98aa77;
+app/globals.css:192:  --color-sage-700: #aab88a;
+app/globals.css:193:  --color-sage-800: #c3cda6;
+app/globals.css:194:  --color-sage-900: #313a24;
+app/globals.css:195:  --color-sage-ink: #211a13;
+app/globals.css:197:  --color-rust: #e6b48c;
+app/globals.css:207:  --color-stone-900: #f3ecdd;
 app/manifest.ts:13:    background_color: "#f5ead8",
 app/manifest.ts:14:    theme_color: "#f5ead8",
 app/layout.tsx:61:  themeColor: "#f5ead8",
@@ -106,18 +106,18 @@ app/(marketing)/about/page.tsx:154:        <li>· No horoscope feedback. Every c
 app/(marketing)/about/page.tsx:155:        <li>· No pay-to-win. Money never buys stars, streaks, or scores.</li>
 app/(marketing)/about/page.tsx:156:        <li>· No deadline cram. It&apos;s a gym, not a rescue.</li>
 app/rep/[id]/page.tsx:156:          <span className="label-data">×{rep.xp_multiplier} XP</span>
-app/rep/page.tsx:973:          <span className="label-data">×{config.xpMultiplier} XP</span>
-app/rep/page.tsx:1356:  // `game:<gameId>:<questionId>` — a game rep keeps its game identity
-app/rep/page.tsx:1824:      <div className="label-data">Tomorrow · when?</div>
+app/rep/page.tsx:974:          <span className="label-data">×{config.xpMultiplier} XP</span>
+app/rep/page.tsx:1357:  // `game:<gameId>:<questionId>` — a game rep keeps its game identity
+app/rep/page.tsx:1825:      <div className="label-data">Tomorrow · when?</div>
 app/auth/callback/page.tsx:35:        <p className="text-[15px] text-stone-500">Confirming…</p>
 app/calibrate/page.tsx:241:          <li>· Prop the phone at face height. Never in your hand.</li>
 app/calibrate/page.tsx:242:          <li>· Step back until head, shoulders and both hands are in frame.</li>
 app/calibrate/page.tsx:243:          <li>· Look-away notes go somewhere that isn&apos;t the phone.</li>
 app/calibrate/page.tsx:256:        <p className="mt-6 text-[14px] text-stone-500">Opening the camera…</p>
 app/page.tsx:197:              <span aria-hidden>★ </span>
-app/page.tsx:319:                  onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
-app/page.tsx:361:                {indexDelta > 0 ? "▲ +" : "▼ "}
-app/page.tsx:425:          <span className="font-semibold text-terracotta-700">keep them →</span>
+app/page.tsx:331:                  onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
+app/page.tsx:373:                {indexDelta > 0 ? "▲ +" : "▼ "}
+app/page.tsx:437:          <span className="font-semibold text-terracotta-700">keep them →</span>
 app/signin/page.tsx:19:          <span className="mx-2 text-stone-300">·</span>
 app/boss/page.tsx:173:          <div className="label-data mt-6">Weekly boss · Cold Topic</div>
 app/boss/page.tsx:294:              onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
@@ -147,22 +147,22 @@ components/ComparisonCard.tsx:68:            <span className="text-cream/40">→
 
 == [C] bounce/elastic easing — 4 hit(s)
 app/rep/page.tsx:213:  const [anticipate, setAnticipate] = useState<RewardMoment | null>(null);
-app/rep/page.tsx:1180:            {anticipate && (
-app/rep/page.tsx:1183:                  anticipate.tone === "earned"
-app/rep/page.tsx:1188:                {anticipate.headline}
+app/rep/page.tsx:1181:            {anticipate && (
+app/rep/page.tsx:1184:                  anticipate.tone === "earned"
+app/rep/page.tsx:1189:                {anticipate.headline}
 
 == [D] generic SaaS copy — 0 hit(s)
 
 == [E] TODO/FIXME left in UI — 27 hit(s)
-app/rep/page.tsx:1041:              placeholder="Notes: first line, last line, one example…"
-app/rep/page.tsx:1042:              className="mt-3 w-full rounded-[24px] border border-stone-200 bg-surface p-4 text-[14px] leading-relaxed placeholder:text-stone-300 focus:border-stone-300"
+app/rep/page.tsx:1042:              placeholder="Notes: first line, last line, one example…"
+app/rep/page.tsx:1043:              className="mt-3 w-full rounded-[24px] border border-stone-200 bg-surface p-4 text-[14px] leading-relaxed placeholder:text-stone-300 focus:border-stone-300"
 app/auth/forgot/page.tsx:57:            placeholder="you@email.com"
 app/auth/forgot/page.tsx:58:            className="mt-1.5 w-full rounded-full border border-stone-200 bg-surface px-5 py-3.5 text-[16px] placeholder:text-stone-300 focus:border-stone-300"
 app/auth/reset/page.tsx:129:              placeholder="8 characters or more"
 app/auth/reset/page.tsx:130:              className="mt-1.5 w-full rounded-full border border-stone-200 bg-surface px-5 py-3.5 text-[16px] placeholder:text-stone-300 focus:border-stone-300"
-app/globals.css:347: * shimmer over paper reads as a broken image rather than a placeholder.
-app/globals.css:351: * contrast on purpose: a placeholder that pulses hard competes with the
-app/globals.css:376:/* Still a visible placeholder, just a still one. */
+app/globals.css:361: * shimmer over paper reads as a broken image rather than a placeholder.
+app/globals.css:365: * contrast on purpose: a placeholder that pulses hard competes with the
+app/globals.css:390:/* Still a visible placeholder, just a still one. */
 app/you/page.tsx:224:              placeholder="Your name"
 app/you/page.tsx:225:              className="min-h-11 w-full min-w-0 flex-1 rounded-[10px] border border-stone-200 bg-raised px-4 text-[15px] font-semibold placeholder:text-stone-300 focus:border-stone-300"
 app/page.tsx:159:   * and nothing else, so every other day carries the placeholder rather

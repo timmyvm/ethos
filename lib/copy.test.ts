@@ -249,13 +249,45 @@ describe("the screen template", () => {
     expect(over).toEqual([]);
   });
 
-  /** 2 to 3 tactics. A fourth bullet is a paragraph with dots on it. */
+  /**
+   * 2 to 3 tactics. A fourth bullet is a paragraph with dots on it, and
+   * fewer than two is not a list. Since #212 the tactics are the hero of
+   * a lesson screen, so a lesson that quietly drops to one line loses
+   * the block the screen is built around.
+   */
   it("keeps the how-to lists to three tactics", () => {
     for (const unit of UNITS) {
       if (!unit.intro) continue;
       expect(unit.intro.howTo.length).toBeLessThanOrEqual(3);
       expect(unit.intro.howTo.length).toBeGreaterThanOrEqual(2);
     }
+    for (const drill of DRILLS) {
+      expect(drill.tips.length).toBeLessThanOrEqual(3);
+      expect(drill.tips.length).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  /**
+   * The hero is decided by `lead`, and the two lesson screens have to
+   * pass it: without it the lesson NAME wins the screen on size while
+   * the only actionable text sits under it in grey, which is the exact
+   * thing #212 fixed.
+   */
+  it("gives the lesson screens their tactics as the hero", () => {
+    for (const file of ["app/rep/page.tsx", "app/lesson/[unit]/page.tsx"]) {
+      expect(readFileSync(file, "utf8")).toMatch(/lead="howTo"/);
+    }
+  });
+
+  /**
+   * #213 — the log's day-zero screen never shows the sleeping mascot.
+   * A sad Demos on the one screen that says "you have not started" is
+   * the shame state brand.md bans, and it was the art on it.
+   */
+  it("keeps the sad mascot off the empty log", () => {
+    expect(readFileSync("app/history/page.tsx", "utf8")).not.toContain(
+      "demos-asleep"
+    );
   });
 
   /**

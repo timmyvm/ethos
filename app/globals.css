@@ -101,18 +101,28 @@
 }
 
 /*
- * The three text roles (DECISIONS #208). Named for the JOB, not the
- * size, and there is no fourth: a screen that wants one is a screen
+ * The text roles (DECISIONS #208, #212). Named for the JOB, not the
+ * size, and a screen that wants a level beyond its three is a screen
  * with too much on it.
  *
- *   title    the instruction. Largest and heaviest thing on screen.
- *   body     one line of what it is. Muted against the title.
+ *   title    the instruction, when the SCREEN NAME is the instruction
+ *            (the floor, onboarding). Largest and heaviest.
+ *   lead     the instruction, when the TACTICS are the instruction
+ *            (a lesson screen). Three short lines in ink that together
+ *            outweigh the name of the lesson above them.
+ *   body     one line of what it is. Muted against whichever leads.
  *   caption  fine print. Smallest, most muted.
  *
- * The steps are sized for the greyscale test: strip the colour and the
- * title still dominates, because 26/15/12.5 at 700/400/400 is a
- * hierarchy in weight and mass, not in hue. Colour reinforces the
- * order here; it never carries it.
+ * Four tokens, still three levels on any one screen (#212): a lesson
+ * screen runs lead / body / caption and the floor runs title / body /
+ * caption. Which of the two heroes a screen uses is a statement about
+ * what the reader is there to do. On a lesson screen they are there to
+ * do the thing, not to learn its name, so the name gets out of the way.
+ *
+ * The steps are sized for the greyscale test: strip the colour, blur
+ * to 5px, and the hero still dominates, because the separation is
+ * weight and MASS rather than hue. Mass is why `lead` can win at 19px
+ * against a 15px name above it: three ink lines outweigh one.
  *
  * These sit alongside the locked display scale (#201) rather than
  * replacing it: hero digits, eyebrows and the `.label-data` register
@@ -123,6 +133,10 @@
   --text-title--line-height: 1.15;
   --text-title--letter-spacing: -0.01em;
   --text-title--font-weight: 700;
+
+  --text-lead: 1.1875rem;
+  --text-lead--line-height: 1.4;
+  --text-lead--letter-spacing: -0.005em;
 
   --text-body: 0.9375rem;
   --text-body--line-height: 1.5;

@@ -11,8 +11,9 @@ import { IconChevron } from "@/components/Icon";
  *   One line of what it is.  one sentence, and no second sentence
  *
  *   How to do this
- *   · tactic
- *   · tactic
+ *   1  tactic
+ *   2  tactic
+ *   3  tactic
  *
  *   [ACTION]
  *
@@ -25,11 +26,14 @@ import { IconChevron } from "@/components/Icon";
  * is that they held three of them each. Longer theory has exactly one
  * home, the `why` disclosure, and it starts closed every single time.
  *
- * Three type roles and no fourth (globals.css, DECISIONS #208): the
- * title is `text-title`, the line and the tactics are `text-body`, and
- * the eyebrow, the list label and the fine print share the caption
- * step. Strip the colour and the order still reads, because size and
- * weight carry it.
+ * Three type levels on any one screen (globals.css, #208/#212), and
+ * `lead` decides WHICH block is the hero. On the floor and in
+ * onboarding the screen name is the instruction, so it takes
+ * `text-title`. On a lesson screen it isn't — nobody opens the app to
+ * find out this one is called The baseline — so the tactics take
+ * `text-lead` in ink and the name drops to a bold body line above
+ * them. Either way, strip the colour and blur it and the hero is still
+ * the biggest mass on the screen.
  */
 
 /** A destination renders a real link; a handler renders a button. */
@@ -41,12 +45,22 @@ export type LessonAction = { label: string } & (
 export interface LessonBodyProps {
   /** The label register above the title: the unit, or "Today's lesson". */
   eyebrow?: string;
-  /** 2 to 4 words. The largest, heaviest thing on the screen. */
+  /** 2 to 4 words. The name of the thing. */
   title: string;
   /** ONE sentence of what this is. */
   line?: string;
   /** Tactics, 2 to 3. The technique, not encouragement. */
   howTo?: string[];
+  /**
+   * Which block is the hero (#212).
+   *
+   * "title" on the floor and in onboarding, where the screen NAME is
+   * the instruction. "howTo" on a lesson screen, where it isn't: you
+   * are not there to learn that this one is called The baseline, you
+   * are there to do it, so the tactics take the ink and the name steps
+   * back to a label above them.
+   */
+  lead?: "title" | "howTo";
   /** Defaults to voice.md's own label. */
   howToLabel?: string;
   /**
@@ -57,6 +71,13 @@ export interface LessonBodyProps {
   why?: ReactNode;
   /** A caption under the title block: the reason, carrying its number. */
   note?: string;
+  /**
+   * Centre the text block. The floor's card takes it (#212, Timothy's
+   * call): that card is one announcement over one button, and a
+   * left-ragged stack above a full-width tap reads as the top of a list
+   * rather than as the thing you came to press.
+   */
+  align?: "left" | "center";
 }
 
 /**
@@ -77,35 +98,85 @@ export function LessonBody({
   howToLabel = "How to do this",
   why,
   note,
+  lead = "title",
+  align = "left",
 }: LessonBodyProps) {
+  const tactics = howTo?.length ? howTo : null;
+  /* The hero only moves when there is something to move it to: a
+     lesson screen mid-recording has no tactics, and a name shrunk in
+     favour of nothing is just a smaller name. */
+  const howToLeads = lead === "howTo" && tactics !== null;
+  const centred = align === "center";
+
   return (
-    <>
+    <div className={centred ? "text-center" : undefined}>
       {eyebrow && <div className="label-data">{eyebrow}</div>}
 
-      <h1 className="font-display mt-1.5 text-title">{title}</h1>
+      <h1
+        className={
+          howToLeads
+            ? "font-display mt-1.5 text-body font-bold"
+            : "font-display mt-1.5 text-title"
+        }
+      >
+        {title}
+      </h1>
 
-      {line && <p className="mt-2 text-body text-stone-500">{line}</p>}
+      {line && (
+        <p
+          className={`text-body text-stone-500 ${howToLeads ? "mt-1" : "mt-2"} ${
+            centred ? "mx-auto" : ""
+          }`}
+        >
+          {line}
+        </p>
+      )}
 
       {note && <p className="mt-1.5 text-caption text-stone-400">{note}</p>}
 
-      {howTo && howTo.length > 0 && (
-        <div className="mt-6">
+      {tactics && (
+        <div className={howToLeads ? "mt-7" : "mt-6"}>
           <div className="label-data">{howToLabel}</div>
-          <ul className="mt-2 space-y-2">
-            {howTo.map((tactic) => (
-              <li key={tactic} className="flex gap-2.5 text-body">
-                <span aria-hidden className="shrink-0 text-stone-300">
-                  ·
-                </span>
-                <span>{tactic}</span>
-              </li>
-            ))}
-          </ul>
+          {howToLeads ? (
+            /*
+             * The hero block. Each tactic is one ink line at `lead`,
+             * numbered in olive on its own column so the eye can count
+             * three things before it reads any of them, and the rows
+             * are separated by air rather than bullets. Three of these
+             * outweigh the lesson name by mass, which is the point:
+             * mass is what survives a blur, and what the reader is
+             * here to act on should be what survives.
+             */
+            <ol className="mt-3 space-y-4">
+              {tactics.map((tactic, i) => (
+                <li key={tactic} className="flex gap-3.5">
+                  <span
+                    aria-hidden
+                    className="font-display mt-1 w-4 shrink-0 text-[13px] font-extrabold text-sage-700 tabular-nums"
+                  >
+                    {i + 1}
+                  </span>
+                  <span className="text-lead">{tactic}</span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <ul className="mt-2 space-y-2">
+              {tactics.map((tactic) => (
+                <li key={tactic} className="flex gap-2.5 text-body">
+                  <span aria-hidden className="shrink-0 text-stone-300">
+                    ·
+                  </span>
+                  <span>{tactic}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 
       <WhyThisWorks>{why}</WhyThisWorks>
-    </>
+    </div>
   );
 }
 

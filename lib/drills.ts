@@ -29,11 +29,15 @@ export const DRILLS: Drill[] = [
     title: "The baseline",
     /* docs/voice.md Part 3, verbatim (DECISIONS #209). The old first
        tip was two sentences in one bullet; voice.md splits it, which is
-       what makes the pair readable in the second nobody spends on it. */
+       what makes the pair readable in the second nobody spends on it.
+       The third is this drill's own retired tip, put back so the hero
+       block runs three lines like every other lesson (#212): it is
+       existing approved copy, not a sentence written to fill a slot. */
     prompt: "Introduce yourself and what you're building. Sixty seconds, no notes.",
     tips: [
       "Decide your first sentence before you start.",
       "Most fillers land in the first five seconds.",
+      "One idea per sentence. Long ones run out of road.",
     ],
   },
   {

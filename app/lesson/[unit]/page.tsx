@@ -59,6 +59,7 @@ function LessonIntro() {
       title={unit.intro.title}
       line={unit.intro.line}
       howTo={unit.intro.howTo}
+      lead="howTo"
       action={{
         label: "Start",
         href: repHref({

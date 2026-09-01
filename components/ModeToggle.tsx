@@ -9,6 +9,15 @@ import type { CaptureMode } from "@/lib/prefs";
  * copy. Both halves are a real choice — the Presence readout is what
  * Pro buys, not the camera, and a padlock here would sell the wrong
  * thing and make the free tier feel like a demo.
+ *
+ * The shape is #206's, which already decided this: a segmented set
+ * fills its selected option with `stage` ink, not terracotta (the one
+ * terracotta on a screen is its tap, and this is not the tap), and #201
+ * squares the corners. It used to be a sand-filled pill with a floating
+ * cream lozenge inside it, which read as a switch someone had half
+ * pushed: the selected half was the LIGHTEST thing in the control, so
+ * the eye landed on the option you had not chosen. Ink on cream, both
+ * halves the same size, and there is nothing to misread.
  */
 export function ModeToggle({
   mode,
@@ -27,7 +36,7 @@ export function ModeToggle({
       <div
         role="radiogroup"
         aria-label="Recording mode"
-        className="flex gap-1.5 rounded-full bg-sand p-1.5"
+        className="flex gap-2"
       >
         <Option
           label="Voice"
@@ -42,7 +51,7 @@ export function ModeToggle({
         />
       </div>
 
-      <p className="mt-2 text-[12px] leading-relaxed text-stone-500">
+      <p className="mt-2 text-caption text-stone-500">
         {!available
           ? (reason ??
             "Voice + Video needs a camera and on-device pose detection this browser doesn't have.")
@@ -72,10 +81,10 @@ function Option({
       aria-checked={selected}
       disabled={disabled}
       onClick={onSelect}
-      className={`flex-1 rounded-[11px] px-3 py-2.5 text-[13.5px] font-semibold transition-colors ${
+      className={`press font-display min-h-11 flex-1 rounded-[10px] border px-3 text-[13.5px] font-bold transition-colors ${
         selected
-          ? "bg-surface text-ink"
-          : "text-stone-500 hover:text-stone-600"
+          ? "border-ink bg-ink text-ground"
+          : "border-stone-200 text-stone-600 hover:bg-sand"
       } ${disabled ? "opacity-40" : ""}`}
     >
       {label}

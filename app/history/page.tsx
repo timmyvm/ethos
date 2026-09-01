@@ -13,13 +13,13 @@ import {
   SkeletonRow,
 } from "@/components/ui/Skeleton";
 import { Stars } from "@/components/Stars";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { fetchProfile, fetchReps, type RepRow } from "@/lib/client-data";
 import { limit } from "@/lib/entitlement";
 import { dimensionPoints, INDEX_WEIGHTS } from "@/lib/index-score";
 import { insights } from "@/lib/insights";
 import { readable, readFailure } from "@/lib/load";
+import { UNITS } from "@/lib/path";
 import { TRAITS, type TraitKey } from "@/lib/traits";
 
 const FREE_DAYS = 7; // mechanics.md: free tier sees the last 7 days
@@ -121,31 +121,122 @@ export default function HistoryPage() {
   }
 
   if (reps.length === 0) {
+    /*
+     * Day zero on the log (#213, Timothy's call: "make it appealing to
+     * start something").
+     *
+     * The old version was a sentence and a sleeping mascot, which said
+     * the space was empty without ever showing it. This shows it: the
+     * real score card, the real trendline slots and the first four rows
+     * of the road, all drawn and all unfilled. An absence you can SEE is
+     * what makes starting feel worth doing, and the dashes are honest
+     * about what is missing rather than manufacturing a feeling about
+     * it (vision.md: no manufactured insecurity, no guilt mechanics; a
+     * dash where a number goes is loss aversion, a scolding is not).
+     *
+     * Demos is awake here. The asleep pose on the one screen that says
+     * "you have not started" is the sad-mascot state brand.md bans.
+     */
     return (
       <main className="px-5 pb-24 pt-7">
         <h1 className="font-display text-[24px] font-extrabold">The log</h1>
-        <EmptyState
-          className="mt-6"
-          art={
-            <Image
-              src="/demos-asleep.webp"
-              alt=""
-              width={110}
-              height={110}
-              className="demos mx-auto w-[110px]"
-            />
-          }
-          title="Nothing logged yet."
-          body="One recording and this becomes a training log."
-          action={
-            <Link
-              href="/rep"
-              className="press font-display block min-h-11 w-full rounded-xl bg-terracotta-500 px-6 py-3.5 text-[15px] font-bold text-cream hover:bg-terracotta-600"
+
+        {/*
+         * The hero is the count, not the Index: zero recordings is a
+         * true number, where 0/1000 would claim you scored nothing and
+         * a 58px em dash renders as a redaction bar. The Index keeps its
+         * honest dash at the size a dash can carry.
+         */}
+        <section className="card-score mt-5 rounded-2xl p-5 text-cream">
+          <div className="label-data !text-sage-mist">Your Ethos</div>
+          <div className="mt-1 flex items-end justify-between gap-4">
+            <div className="flex min-w-0 items-baseline gap-1.5">
+              <span className="font-display text-[58px] font-extrabold leading-none tracking-[-0.02em]">
+                0
+              </span>
+              <span className="text-[15px] text-sage-mist">recordings</span>
+            </div>
+            <div className="shrink-0 space-y-2 text-right tabular-nums">
+              <div>
+                <div className="font-display text-[19px] font-extrabold leading-none">
+                  &mdash; / 1000
+                </div>
+                <div className="label-data !text-sage-mist">index</div>
+              </div>
+              <div>
+                <div className="font-display text-[19px] font-extrabold leading-none">
+                  0
+                </div>
+                <div className="label-data !text-sage-mist">stars</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* The slots the trendlines will occupy, at the height they will
+            occupy, so the first recording fills a shape that was already
+            on the screen rather than pushing one in. */}
+        <div className="mt-4 space-y-3">
+          {["Ethos Index", "Fillers / min"].map((label) => (
+            <div
+              key={label}
+              className="rounded-[14px] border border-edge px-4 py-2.5"
             >
-              Take the floor
-            </Link>
-          }
-        />
+              <div className="label-data">{label}</div>
+              <div className="mt-2 flex h-6 items-end gap-1" aria-hidden>
+                {Array.from({ length: 14 }).map((_, i) => (
+                  <span key={i} className="h-1.5 flex-1 bg-sand" />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-6">
+          <div className="label-data pb-2">Waiting to be logged</div>
+          {UNITS[0].lessons.slice(0, 3).map((lesson, i) => (
+            <div
+              key={lesson.id}
+              className="flex items-center gap-3.5 border-t border-hairline py-2.5"
+            >
+              <span
+                aria-hidden
+                className="font-display w-4 shrink-0 text-[13px] font-extrabold text-stone-300 tabular-nums"
+              >
+                {i + 1}
+              </span>
+              <span className="font-display flex-1 text-[14.5px] font-bold text-stone-300">
+                {lesson.title}
+              </span>
+              <span
+                aria-hidden
+                className="text-[13px] text-stone-200 tabular-nums"
+              >
+                &mdash;&mdash;&mdash;
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-6 flex items-center gap-3.5">
+          <Image
+            src="/demos-speaking.webp"
+            alt=""
+            width={104}
+            height={104}
+            className="demos pointer-events-none w-[56px] shrink-0"
+          />
+          <p className="text-body text-stone-500">
+            One recording and this becomes a training log.
+          </p>
+        </div>
+
+        <Link
+          href="/rep"
+          className="press font-display mt-4 block min-h-11 w-full rounded-xl bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-cream hover:bg-terracotta-600"
+        >
+          Take the floor
+        </Link>
       </main>
     );
   }

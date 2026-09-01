@@ -957,6 +957,7 @@ function RepScreen() {
             promptHidden ? "Prompt hidden. That's the mod." : config.prompt
           }
           howTo={phase === "idle" ? config.tips : undefined}
+          lead="howTo"
         />
       </div>
 

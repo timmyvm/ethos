@@ -22,6 +22,13 @@ import { repHref } from "@/lib/rep-config";
  * Every row launches a REAL rep through the real engine. The question
  * is drawn on tap, not shown here: a cold open is the training, same
  * reason the roulette spins instead of listing.
+ *
+ * Type is the three roles (#208, #212): the screen name takes `title`,
+ * every door's name takes `body` at 700, and every blurb takes
+ * `caption`. This screen had five ad-hoc sizes between 11 and 24px, so
+ * a door's name and its description differed by two points and the list
+ * read as one grey block you scrolled past. The strings are unchanged —
+ * they are already inside the budget, the widest at nine words.
  */
 export default function GamesPage() {
   const router = useRouter();
@@ -44,7 +51,7 @@ export default function GamesPage() {
 
   return (
     <main className="px-5 pb-24 pt-7">
-      <h1 className="font-display text-[24px] font-extrabold">Tools</h1>
+      <h1 className="font-display text-title">Tools</h1>
 
       {/* The one terracotta element on the screen: the weekly headliner,
           wearing the current-item border (#201), never a fill. */}
@@ -63,10 +70,10 @@ export default function GamesPage() {
           <span className="label-data block !text-terracotta-700">
             This week&apos;s boss
           </span>
-          <span className="font-display mt-0.5 block text-[15.5px] font-extrabold">
+          <span className="font-display mt-0.5 block text-body font-extrabold">
             Cold Topic
           </span>
-          <span className="mt-0.5 block text-[12.5px] leading-[1.45] text-stone-500">
+          <span className="mt-0.5 block text-caption text-stone-500">
             A topic you&apos;ve never studied. 4 min research, 90s to explain,
             fact-checked.
           </span>
@@ -96,10 +103,10 @@ export default function GamesPage() {
                 {g.glyph}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="font-display block text-[14.5px] font-bold">
+                <span className="font-display block text-body font-bold">
                   {g.name}
                 </span>
-                <span className="mt-0.5 block text-[12.5px] leading-[1.45] text-stone-500">
+                <span className="mt-0.5 block text-caption text-stone-500">
                   {g.blurb}
                 </span>
               </span>
@@ -131,10 +138,10 @@ export default function GamesPage() {
             !
           </span>
           <span className="min-w-0 flex-1">
-            <span className="font-display block text-[14.5px] font-bold">
+            <span className="font-display block text-body font-bold">
               Hostile Q&amp;A
             </span>
-            <span className="mt-0.5 block text-[12.5px] leading-[1.45] text-stone-500">
+            <span className="mt-0.5 block text-caption text-stone-500">
               Demos interrogates your take. Two questions, no notes.
             </span>
           </span>
@@ -153,10 +160,10 @@ export default function GamesPage() {
             ↑
           </span>
           <span className="min-w-0 flex-1">
-            <span className="font-display block text-[14.5px] font-bold">
+            <span className="font-display block text-body font-bold">
               Upload a recording
             </span>
-            <span className="mt-0.5 block text-[12.5px] leading-[1.45] text-stone-500">
+            <span className="mt-0.5 block text-caption text-stone-500">
               A real meeting or a voice memo, through the same engine.
             </span>
           </span>

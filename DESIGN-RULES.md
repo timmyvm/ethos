@@ -13,9 +13,12 @@
 - All colour, spacing, radius and motion values come from the tokens in
   `app/globals.css` and `lib/motion.ts`. **Never invent a hex value or an
   animation duration inline.** If a token is missing, add the token first,
-  then use it. `ground` is the room; layout cards mostly sit transparent
-  on it behind hairlines and 1px `edge` borders (#201's grammar);
-  `surface`/`raised` is the one step up (nav, sheets, current cards);
+  then use it. `ground` is the room; `surface`/`raised` is the one step up, and
+  every box stands on it: a card is `raised` with a 1px `edge` outline,
+  a secondary control is `surface` with a `stone-200` outline, and
+  **nothing outlined is transparent** (#218, Timothy's call). A
+  hairline with no fill is a rule between rows, never the edge of a
+  box;
   `stage` is the dark material the rep-loop signature moments sit on,
   and the score card sits on deep sage (`sage-900`, #165/#203).
 - Terracotta is the one tap per screen, with cream text on it. Sage is

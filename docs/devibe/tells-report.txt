@@ -83,6 +83,8 @@ components/Theme.tsx:57:  if (m) m.setAttribute('content', t === 'dark' ? '#211a
 
 == [B] gradient text — 0 hit(s)
 
+== [B] outlined box with no fill (#218) — 0 hit(s)
+
 == [B] glassmorphism (backdrop-blur) — 0 hit(s)
 
 == [B] decorative blur orbs — 0 hit(s)

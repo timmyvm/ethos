@@ -204,7 +204,7 @@ export default function YouPage() {
 
       {/* The one card on the page. It holds the two numbers that answer
           "how far in am I", so it keeps the furniture. */}
-      <div className="mt-4 rounded-[14px] border border-edge p-[18px]">
+      <div className="mt-4 rounded-[14px] border border-edge bg-raised p-[18px]">
         {/* The name: the one profile field you type rather than earn.
             League rows show it, so it caps where they'd truncate. */}
         {editingName ? (
@@ -226,7 +226,7 @@ export default function YouPage() {
             />
             <button
               type="submit"
-              className="press min-h-11 shrink-0 rounded-[10px] border border-stone-200 px-4 text-[13.5px] font-semibold hover:bg-sand"
+              className="press min-h-11 shrink-0 rounded-[10px] border border-stone-200 bg-surface px-4 text-[13.5px] font-semibold hover:bg-sand"
             >
               Save
             </button>
@@ -435,7 +435,7 @@ export default function YouPage() {
         )}
         <Link
           href="/shop"
-          className="press font-display mt-3 flex min-h-11 items-center justify-between rounded-[10px] border border-stone-200 px-4 py-[11px] text-[13.5px] font-bold hover:bg-sand"
+          className="press font-display mt-3 flex min-h-11 items-center justify-between rounded-[10px] border border-stone-200 bg-surface px-4 py-[11px] text-[13.5px] font-bold hover:bg-sand"
         >
           <span>Open the shop</span>
           <span aria-hidden className="text-stone-300">
@@ -461,8 +461,8 @@ export default function YouPage() {
               key={i}
               className={`flex h-[38px] w-[38px] items-center justify-center rounded-[10px] border ${
                 ready
-                  ? "border-sage-300 text-sage-700"
-                  : "border-stone-200 text-stone-300"
+                  ? "border-sage-300 bg-surface text-sage-700"
+                  : "border-stone-200 bg-surface text-stone-300"
               }`}
             >
               <IconFreeze size={17} />
@@ -584,8 +584,8 @@ export default function YouPage() {
             <span
               className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border ${
                 a.earned
-                  ? "border-sage-300 text-sage-700"
-                  : "border-stone-200 text-stone-300"
+                  ? "border-sage-300 bg-surface text-sage-700"
+                  : "border-stone-200 bg-surface text-stone-300"
               }`}
             >
               <AchievementMark name={a.icon} size={18} />
@@ -627,7 +627,7 @@ export default function YouPage() {
       )}
 
       {showGate && (
-        <div className="mt-7 rounded-[14px] border border-edge p-4">
+        <div className="mt-7 rounded-[14px] border border-edge bg-raised p-4">
           <div className="font-display text-[14.5px] font-bold">
             Save your progress
           </div>
@@ -662,7 +662,7 @@ export default function YouPage() {
         ) : (
           <button
             onClick={() => setPaywall({ reason: "Ethos Premium" })}
-            className="press font-display mt-7 flex min-h-11 w-full items-center justify-between rounded-[10px] border border-stone-200 px-4 py-[11px] text-[13.5px] font-bold hover:bg-sand"
+            className="press font-display mt-7 flex min-h-11 w-full items-center justify-between rounded-[10px] border border-stone-200 bg-surface px-4 py-[11px] text-[13.5px] font-bold hover:bg-sand"
           >
             <span>Ethos Premium</span>
             <span aria-hidden className="text-stone-300">

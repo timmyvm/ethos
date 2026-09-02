@@ -358,7 +358,7 @@ export default function SettingsPage() {
           <div className="py-3">
             <Link
               href="/signup"
-              className="press font-display flex min-h-11 w-full items-center justify-between rounded-[10px] border border-stone-200 px-4 py-[11px] text-[13.5px] font-bold hover:bg-sand"
+              className="press font-display flex min-h-11 w-full items-center justify-between rounded-[10px] border border-stone-200 bg-surface px-4 py-[11px] text-[13.5px] font-bold hover:bg-sand"
             >
               <span>Create an account</span>
               <span aria-hidden className="text-stone-300">
@@ -373,7 +373,7 @@ export default function SettingsPage() {
                 await signOut();
                 window.location.href = "/";
               }}
-              className="press font-display min-h-11 w-full rounded-[10px] border border-stone-200 px-4 py-[11px] text-[13.5px] font-bold hover:bg-sand"
+              className="press font-display min-h-11 w-full rounded-[10px] border border-stone-200 bg-surface px-4 py-[11px] text-[13.5px] font-bold hover:bg-sand"
             >
               Sign out
             </button>
@@ -390,7 +390,7 @@ export default function SettingsPage() {
           <button
             onClick={() => void exportData()}
             disabled={exporting}
-            className="press font-display min-h-11 w-full rounded-[10px] border border-stone-200 px-4 py-[11px] text-[13.5px] font-bold hover:bg-sand disabled:opacity-50"
+            className="press font-display min-h-11 w-full rounded-[10px] border border-stone-200 bg-surface px-4 py-[11px] text-[13.5px] font-bold hover:bg-sand disabled:opacity-50"
           >
             {exporting ? "Building your file…" : "Export everything as JSON"}
           </button>
@@ -432,12 +432,12 @@ export default function SettingsPage() {
               setConfirmText("");
               setDeleteError(null);
             }}
-            className="press font-display min-h-11 w-full rounded-[10px] border border-stone-200 px-4 py-[11px] text-[13.5px] font-bold text-rust hover:bg-sand"
+            className="press font-display min-h-11 w-full rounded-[10px] border border-stone-200 bg-surface px-4 py-[11px] text-[13.5px] font-bold text-rust hover:bg-sand"
           >
             Delete my account
           </button>
         ) : (
-          <div className="rounded-[14px] border border-edge p-4">
+          <div className="rounded-[14px] border border-edge bg-raised p-4">
             <p className="text-[13px] font-semibold leading-relaxed">
               This deletes every recording, transcript, score, streak and the
               account itself. There is no undo.
@@ -462,14 +462,14 @@ export default function SettingsPage() {
               <button
                 onClick={() => void runDelete()}
                 disabled={confirmText.trim() !== "DELETE" || deleting}
-                className="press font-display min-h-11 flex-1 rounded-[10px] border border-stone-200 px-4 py-2.5 text-[13px] font-bold text-rust disabled:opacity-40"
+                className="press font-display min-h-11 flex-1 rounded-[10px] border border-stone-200 bg-surface px-4 py-2.5 text-[13px] font-bold text-rust disabled:opacity-40"
               >
                 {deleting ? "Deleting…" : "Delete everything"}
               </button>
               <button
                 onClick={() => setArming(false)}
                 disabled={deleting}
-                className="press font-display min-h-11 flex-1 rounded-[10px] border border-stone-200 px-4 py-2.5 text-[13px] font-bold hover:bg-sand"
+                className="press font-display min-h-11 flex-1 rounded-[10px] border border-stone-200 bg-surface px-4 py-2.5 text-[13px] font-bold hover:bg-sand"
               >
                 Keep it
               </button>
@@ -583,7 +583,7 @@ function Choice({
       className={`press font-display min-h-11 rounded-[10px] border px-3.5 text-[13px] font-bold tabular-nums transition-colors ${
         selected
           ? "border-ink bg-ink text-ground"
-          : "border-stone-200 text-stone-600 hover:bg-sand"
+          : "border-stone-200 bg-surface text-stone-600 hover:bg-sand"
       } ${className}`}
     >
       {children}

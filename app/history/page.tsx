@@ -468,7 +468,7 @@ function TeaserRow({
       <span className="col-span-3 text-right text-[12px] text-stone-400">
         {note}
       </span>
-      <span className="font-display justify-self-end rounded-full border border-stone-200 px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.06em] text-stone-400">
+      <span className="font-display justify-self-end rounded-full border border-stone-200 bg-surface px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.06em] text-stone-400">
         Pro
       </span>
     </button>

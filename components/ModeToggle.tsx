@@ -84,7 +84,7 @@ function Option({
       className={`press font-display min-h-11 flex-1 rounded-[10px] border px-3 text-[13.5px] font-bold transition-colors ${
         selected
           ? "border-ink bg-ink text-ground"
-          : "border-stone-200 text-stone-600 hover:bg-sand"
+          : "border-stone-200 bg-surface text-stone-600 hover:bg-sand"
       } ${disabled ? "opacity-40" : ""}`}
     >
       {label}

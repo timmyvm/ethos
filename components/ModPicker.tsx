@@ -71,8 +71,8 @@ export function ModPicker({
                 on
                   ? "border-ink bg-ink text-ground"
                   : disabled
-                    ? "border-hairline opacity-40"
-                    : "border-stone-200"
+                    ? "border-hairline bg-surface opacity-40"
+                    : "border-stone-200 bg-surface"
               }`}
             >
               <span className="flex-1">

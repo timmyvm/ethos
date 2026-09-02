@@ -183,7 +183,7 @@ export default function ShopPage() {
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className="rounded-[14px] border border-edge p-4"
+              className="rounded-[14px] border border-edge bg-raised p-4"
             >
               <Skeleton className="h-4 w-32" />
               <Skeleton className="mt-2.5 h-3 w-full" />
@@ -206,7 +206,7 @@ export default function ShopPage() {
             return (
               <div
                 key={item.id}
-                className="rounded-[14px] border border-edge p-4"
+                className="rounded-[14px] border border-edge bg-raised p-4"
               >
                 {/* You can see what you're buying. A cosmetic sold as a
                     name and a price is a cosmetic bought blind, which is
@@ -283,7 +283,7 @@ export default function ShopPage() {
                     className={`press font-display mt-3 w-full rounded-[10px] px-5 py-2.5 text-[13px] font-bold transition-colors ${
                       state.ok
                         ? "bg-sage-500 text-sage-ink hover:bg-sage-600"
-                        : "border border-stone-200 text-stone-400"
+                        : "border border-stone-200 bg-surface text-stone-400"
                     }`}
                   >
                     {busy === item.id

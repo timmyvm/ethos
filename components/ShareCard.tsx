@@ -133,7 +133,7 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
   return (
     <div className="mt-4">
       {url ? (
-        <div className="rounded-[14px] border border-edge p-4">
+        <div className="rounded-[14px] border border-edge bg-raised p-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={url} alt="Your progress card" className="w-full rounded-[10px]" />
           <a
@@ -147,7 +147,7 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
       ) : (
         <button
           onClick={draw}
-          className="press font-display w-full rounded-[10px] border border-stone-200 px-4 py-[11px] text-[13.5px] font-bold"
+          className="press font-display w-full rounded-[10px] border border-stone-200 bg-surface px-4 py-[11px] text-[13.5px] font-bold"
         >
           Make a shareable card →
         </button>

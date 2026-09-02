@@ -65,9 +65,9 @@
 
   /*
    * Semantic surfaces. `ground` is the room; `surface` and `raised`
-   * are the step up it — cards on the layout's hairline-and-border
-   * grammar mostly sit transparent on the ground, so the step appears
-   * only where it means something (nav, the current card, sheets).
+   * are the step up it, and every outlined box stands on that step
+   * (#218): cards on `raised`, secondary controls on `surface`. An
+   * outline with nothing inside it is not a box, it's a diagram.
    */
   --color-ground: #f5ead8;
   --color-surface: #faf3e3;

@@ -97,7 +97,7 @@ export default function GamesPage() {
               className="press flex w-full items-center gap-3.5 border-t border-hairline px-0.5 py-3 text-left"
             >
               <span
-                className="font-display flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[10px] border border-stone-200 text-[16px] font-extrabold"
+                className="font-display flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[10px] border border-stone-200 bg-surface text-[16px] font-extrabold"
                 aria-hidden
               >
                 {g.glyph}
@@ -132,7 +132,7 @@ export default function GamesPage() {
           className="press flex w-full items-center gap-3.5 border-t border-hairline px-0.5 py-3 text-left"
         >
           <span
-            className="font-display flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[10px] border border-stone-200 text-[16px] font-extrabold"
+            className="font-display flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[10px] border border-stone-200 bg-surface text-[16px] font-extrabold"
             aria-hidden
           >
             !
@@ -154,7 +154,7 @@ export default function GamesPage() {
           className="press flex w-full items-center gap-3.5 border-y border-hairline px-0.5 py-3 text-left"
         >
           <span
-            className="font-display flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[10px] border border-stone-200 text-[16px] font-extrabold"
+            className="font-display flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[10px] border border-stone-200 bg-surface text-[16px] font-extrabold"
             aria-hidden
           >
             ↑

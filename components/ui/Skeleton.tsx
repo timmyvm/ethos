@@ -79,7 +79,7 @@ export function SkeletonStatBare() {
 /** A card the size of the stat tiles on the results screen. */
 export function SkeletonStat() {
   return (
-    <div className="flex-1 rounded-xl border border-edge p-3.5">
+    <div className="flex-1 rounded-xl border border-edge bg-raised p-3.5">
       <Skeleton className="h-2.5 w-12" />
       <Skeleton className="mt-2 h-6 w-10" />
       <Skeleton className="mt-2 h-2.5 w-14" />

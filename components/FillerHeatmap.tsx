@@ -15,7 +15,7 @@ export function FillerHeatmap({ reps }: { reps: RepRow[] }) {
   const tallyTotal = tally.reduce((a, [, n]) => a + n, 0);
 
   return (
-    <div className="rounded-xl border border-edge px-4 py-3.5">
+    <div className="rounded-xl border border-edge bg-raised px-4 py-3.5">
       <div className="label-data">Where your fillers land</div>
       <div className="mt-3 flex h-20 items-end gap-1.5">
         {heat.map((n, i) => (

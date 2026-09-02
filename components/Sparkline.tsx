@@ -43,7 +43,7 @@ export function Sparkline({
 
   if (values.length < 2) {
     return (
-      <div className="rounded-xl border border-edge px-4 py-3.5">
+      <div className="rounded-xl border border-edge bg-raised px-4 py-3.5">
         <div className="label-data">{label}</div>
         <p className="mt-2 text-[13px] text-stone-500">
           Two scores and this becomes a line. One more to go.
@@ -59,7 +59,7 @@ export function Sparkline({
   const fmt = (v: number) => String(Math.round(v * 10) / 10);
 
   return (
-    <div className="rounded-xl border border-edge px-4 py-3.5">
+    <div className="rounded-xl border border-edge bg-raised px-4 py-3.5">
       <div className="flex items-baseline justify-between">
         <div className="label-data">{label}</div>
         <div

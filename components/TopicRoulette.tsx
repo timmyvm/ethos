@@ -65,7 +65,7 @@ export function TopicRoulette({
         <button
           onClick={doSpin}
           disabled={rolling}
-          className="press font-display shrink-0 rounded-[10px] border border-stone-200 px-5 py-3.5 text-[14px] font-bold disabled:opacity-60"
+          className="press font-display shrink-0 rounded-[10px] border border-stone-200 bg-surface px-5 py-3.5 text-[14px] font-bold disabled:opacity-60"
         >
           Spin
         </button>

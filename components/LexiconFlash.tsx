@@ -64,7 +64,7 @@ export function LexiconFlash({
               setI(i + 1);
               setShown(false);
             }}
-            className="press font-display mt-4 w-full rounded-[10px] border border-stone-200 px-4 py-2.5 text-[13px] font-bold"
+            className="press font-display mt-4 w-full rounded-[10px] border border-stone-200 bg-surface px-4 py-2.5 text-[13px] font-bold"
           >
             {last ? "Done" : "Next"}
           </button>

@@ -273,7 +273,7 @@ export default function CalibratePage() {
         autoPlay
         muted
         playsInline
-        className={`mt-5 w-full -scale-x-100 rounded-[24px] border border-hairline ${
+        className={`mt-5 w-full -scale-x-100 rounded-[24px] border border-hairline bg-surface ${
           status === "ready" || status === "recording" ? "" : "hidden"
         }`}
       />

@@ -12,11 +12,16 @@ mkdir -p docs/devibe
 
 TOTAL=0
 
-scan() { # scan <section> <label> <pattern>
-  local section="$1" label="$2" pattern="$3"
+scan() { # scan <section> <label> <pattern> [exclude-pattern]
+  local section="$1" label="$2" pattern="$3" exclude="${4:-}"
   local hits
   hits=$(grep -rEn --include='*.tsx' --include='*.ts' --include='*.jsx' --include='*.css' \
     "$pattern" $DIRS 2>/dev/null | grep -v node_modules)
+  # ERE has no negative lookahead, so a tell that is "X without Y" is
+  # X here and Y as the exclusion.
+  if [ -n "$exclude" ]; then
+    hits=$(printf '%s' "$hits" | grep -vE "$exclude" || true)
+  fi
   local count
   count=$(printf '%s' "$hits" | grep -c . || true)
   TOTAL=$((TOTAL + count))
@@ -38,6 +43,7 @@ scan A "raw hex colors in components"              '#[0-9a-fA-F]{6}\b'
 # B — gradient/glow/glass decoration
 scan B "background gradients"                      'bg-gradient-to-'
 scan B "gradient text"                             'bg-clip-text'
+scan B "outlined box with no fill (#218)"          'rounded[^"]*border border-(edge|stone-200)|border border-(edge|stone-200)[^"]*rounded' '(^|[^:[:alnum:]_-])bg-'
 scan B "glassmorphism (backdrop-blur)"             'backdrop-blur'
 scan B "decorative blur orbs"                      'blur-(2xl|3xl)'
 scan B "glow / colored shadows"                    'shadow-\[0_0|shadow-(brand|ember|orange|indigo|purple)'

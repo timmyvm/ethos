@@ -52,14 +52,14 @@ export function PauseBar({
       <div className="label-data !text-cream/60">
         Pause bar · sage = silence you earned
       </div>
-      <div className="mt-3 flex h-14 items-center gap-[3px] overflow-hidden">
+      <div className="forced-color-adjust-none mt-3 flex h-14 items-center gap-[3px] overflow-hidden">
         {segs.slice(0, 48).map((s, i) => {
           if (s.type === "speech") {
             return (
               <span
                 key={i}
-                className="shrink-0 rounded-[3px] bg-cream/40"
-                style={{ width: 5, height: 16 + Math.min(34, s.len * 11) }}
+                className="min-w-[2px] shrink rounded-[3px] bg-cream/40"
+                style={{ flex: "0 1 5px", height: 16 + Math.min(34, s.len * 11) }}
               />
             );
           }
@@ -67,7 +67,8 @@ export function PauseBar({
             return (
               <span
                 key={i}
-                className="h-1.5 w-1.5 shrink-0 rounded-full bg-cream/40"
+                className="h-1.5 min-w-[3px] shrink rounded-full bg-cream/40"
+                style={{ flex: "0 1 6px" }}
               />
             );
           }
@@ -77,10 +78,10 @@ export function PauseBar({
           return (
             <span
               key={i}
-              className={`h-3 shrink-0 rounded-full ${
+              className={`h-3 min-w-[8px] shrink rounded-full ${
                 earned ? "bg-sage-500" : "bg-cream/30"
               }`}
-              style={{ width: Math.min(34, 12 + s.len * 10) }}
+              style={{ flex: `0 1 ${Math.min(34, 12 + s.len * 10)}px` }}
             />
           );
         })}

@@ -1,0 +1,32 @@
+✓ [C-1] viewport meta has no maximum-scale {"meta":"width=device-width, initial-scale=1"}
+✓ [C-1] axe meta-viewport gone on /welcome {"violations":["color-contrast"]}
+✓ [M-6] welcome CTA goes through the unit intro {"href":"/lesson/filler"}
+✓ [M-4] rep back link ≥ 44px tall {"x":20,"y":28,"width":49,"height":44}
+✓ [M-10] focus lands on the step button after the celebration {"tag":"BUTTON","text":"The numbers →","inMain":true}
+✓ [H-1] pause bar fits its row at 390 {"scrollWidth":318,"clientWidth":318,"maxRight":354.234375,"rowRight":354,"n":41}
+✓ [H-3] rep-1 debrief: path's answer, no duplicate Retake {"exits":["Evening · 18:00","Go again · The baseline","Done for today"]}
+✓ [M-7] signup says recording, not rep {"line":"1 recording and a 1-day streak. They stay where they are. The account attaches to them."}
+✓ [M-7] check-inbox agrees in number {"line":"Your 1 recording is already attached to it. The link just confirms the address and asks what password you'll sign in with."}
+✓ [L-2] score card singulars {"snippet":"YOUR ETHOS | 361 | / 1000 | 1 | RECORDING | 1 | STAR |  | Day 1 of speaking |  | 1 recording lives only in thi"}
+✓ [L-2] anon line agrees {"line":"1 recording lives only in this browser · keep it →"}
+✓ [H-3] home floor agrees with the debrief (The baseline) 
+✗ [M-4] home text buttons and road rows ≥ 44px {"small":[{"tag":"BUTTON","text":"Not feeling it? Spin a new top","w":207,"h":44},{"tag":"BUTTON","text":"Make it harder","w":87,"h":44}]}
+✓ [M-3] stored recording counts its words {"line":"WHAT YOU SAID · 112 WORDS"}
+✓ [M-2] unjudged detail has no AI caption {"hasCaption":true,"hasCoach":true}
+✓ [404] 404 has an h1 
+✓ [H-2] home: a 500 shows the error card, not day one {"head":"ETHOS | TODAY'S LESSON | The baseline |  | Filler Elimination |  | Take the floor | Not feeling it? Spin a new topic → | Make it harder | "}
+✓ [H-2] log: a 500 shows the error card, not 0 recordings {"head":"The log |  | The log didn't load. |  | The server didn't answer. Your recordings are safe. |  | Try again | TODAY | TOOLS | LOG | YOU"}
+✓ [H-2] retry recovers the log 
+✗ [M-8] gated games wear the premium chip {"rows":["Q&Apremium\nGive your take. Demos cuts in with a question.","Speed rushpremium\nThe whole answer in 30 seconds.","Q&A\nDemos interrogates your take. T
+✓ [M-2] capped recording has no AI caption 
+✓ [H-4] day-3 moment shows 
+✓ [H-4] after Unlock the exit continues home (no empty Record screen) {"landed":"http://localhost:3000/"}
+✓ [H-4] premium is on after the continuation 
+✓ [M-1] second attempt says Still trying {"line":"Still trying. The recording is safe on this device."}
+FAIL locator.waitFor: Timeout 90000ms exceeded.
+Call log:
+[2m  - waiting for getByText(/didn't score/) to be visible[22m
+
+    at /tmp/claude-0/-home-user-ethos/ddc3548b-0864-54f6-b45b-cbd85287b0f8/scratchpad/audit/scripts/p7-verify.js:122:40 {
+  name: 'TimeoutError'
+}

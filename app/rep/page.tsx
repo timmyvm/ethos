@@ -56,7 +56,7 @@ import {
   proMomentDue,
   proMomentShown,
 } from "@/lib/pro-moment";
-import { starsByLesson, totalStars, unitStates } from "@/lib/path";
+import { nextLesson, starsByLesson, totalStars, unitStates } from "@/lib/path";
 import { liveTipAt } from "@/lib/live-tips";
 import {
   loadPose,
@@ -186,6 +186,8 @@ function RepScreen() {
   );
 
   const [phase, setPhase] = useState<Phase>("idle");
+  /** Which upload attempt is in flight, so the wait can say so. */
+  const [attempt, setAttempt] = useState(0);
   /**
    * "Next lesson" links to /rep?lesson=… — the SAME route, so Next.js
    * keeps this component mounted and every piece of state with it. The
@@ -414,6 +416,7 @@ function RepScreen() {
   const score = useCallback(async (form: FormData, outboxId: string | null) => {
     setPhase("analyzing");
     setError(null);
+    setAttempt(0);
     if (outboxId) markInFlight(outboxId);
     try {
       // Anonymous-first (DECISIONS #15): attribute the rep if a session
@@ -425,7 +428,7 @@ function RepScreen() {
       // A gateway's 502 is HTML, and parsing it used to throw, so the
       // JSON parser's complaint ("Unexpected token <") became the
       // sentence the user read. Ours are the only words that reach them.
-      const outcome = await sendWithRetry(form, token);
+      const outcome = await sendWithRetry(form, token, setAttempt);
       if (!outcome.ok || !outcome.data) {
         throw new ScoringFailure(
           outcome.status === 503
@@ -965,7 +968,17 @@ function RepScreen() {
         {celebrate !== null && (
           <StreakCelebration
             streak={celebrate}
-            onDone={() => setCelebrate(null)}
+            onDone={() => {
+              setCelebrate(null);
+              // The overlay hands focus back to its opener, and the
+              // opener (Stop) is gone: land on the step button so a
+              // keyboard does not restart from the top of the page.
+              requestAnimationFrame(() =>
+                document
+                  .querySelector<HTMLElement>("main button.press")
+                  ?.focus()
+              );
+            }}
           />
         )}
         {paywall && (
@@ -973,6 +986,10 @@ function RepScreen() {
             reason={paywall.reason}
             headline={paywall.headline}
             onClose={() => setPaywall(null)}
+            onUnlocked={() => {
+              setPremium(true);
+              setPaywall(null);
+            }}
           />
         )}
       </>
@@ -994,7 +1011,7 @@ function RepScreen() {
 
   return (
     <main className="flex min-h-dvh flex-col px-5 pb-8 pt-7">
-      <Link href={config.kind === "boss" ? "/boss" : "/"} className="self-start text-sm text-stone-500">
+      <Link href={config.kind === "boss" ? "/boss" : "/"} className="inline-flex min-h-11 items-center self-start text-sm text-stone-500">
         ← back
       </Link>
       {/*
@@ -1151,7 +1168,9 @@ function RepScreen() {
                 : "Transcribing, counting, measuring silence."}
             </p>
             <p className="mt-1 text-[12.5px] text-stone-400">
-              Ten seconds or so. The numbers are computed, not guessed.
+              {attempt > 0
+                ? "Still trying. The recording is safe on this device."
+                : "Ten seconds or so. The numbers are computed, not guessed."}
             </p>
           </div>
         )}
@@ -1277,7 +1296,7 @@ function RepScreen() {
                 ? "Stop and score this recording"
                 : "Start recording"
             }
-            className={`h-24 w-24 rounded-full text-[15px] font-bold transition-colors ${
+            className={`h-24 w-24 rounded-full border border-transparent text-[15px] font-bold transition-colors ${
               phase === "recording"
                 ? "bg-ink text-ground ring-[10px] ring-terracotta-100"
                 : "bg-terracotta-500 text-cream hover:bg-terracotta-600"
@@ -1344,6 +1363,11 @@ function fmt(s: number) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
+/** "An 8-day streak", "An 11-day", "An 18-day", "An 80-day"; "A" otherwise. */
+function article(n: number): string {
+  return /^(8|11|18|8\d)$/.test(String(n)) ? "An" : "A";
+}
+
 /*
  * Results, walked one screen at a time.
  *
@@ -1404,7 +1428,16 @@ function Results({
   const [step, setStep] = useState(0);
   const section = STEPS[step].key;
   const last = step === STEPS.length - 1;
-  const next = nextDrill(config.lessonId);
+  // One answer to "what next": the path's (DECISIONS #220). Home's
+  // floor and the road read nextLesson, so the debrief does too. Before
+  // the history lands, or once every lesson holds three stars, the
+  // rotation stands in.
+  const pathNext =
+    repsNow.length > 0
+      ? nextLesson(starsByLesson(repsNow))?.lesson
+      : undefined;
+  const next = pathNext ?? nextDrill(config.lessonId);
+  const again = next.id === config.lessonId;
   // `game:<gameId>:<questionId>` — a game rep keeps its game identity
   // through the debrief (#194).
   const game = config.lessonId.startsWith("game:")
@@ -1656,24 +1689,26 @@ function Results({
                   })
                 )
               }
-              className="press block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+              className="press block w-full rounded-full border border-transparent bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
             >
               Another round · {game.name}
             </button>
           ) : (
             <button
               onClick={() => exit(repHref({ lesson: next.id }))}
-              className="press block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+              className="press block w-full rounded-full border border-transparent bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
             >
-              Next lesson · {next.title}
+              {again ? "Go again" : "Next lesson"} · {next.title}
             </button>
           )}
-          <button
-            onClick={onRetake}
-            className="press mt-3 w-full rounded-full border border-stone-200 bg-surface px-6 py-4 text-[15px] font-semibold"
-          >
-            Retake this one
-          </button>
+          {!again && (
+            <button
+              onClick={onRetake}
+              className="press mt-3 w-full rounded-full border border-stone-200 bg-surface px-6 py-4 text-[15px] font-semibold"
+            >
+              Retake this one
+            </button>
+          )}
           <button
             onClick={() => exit(game ? "/games" : "/")}
             className="mt-3 block w-full py-2 text-center text-[13.5px] font-semibold text-stone-500"
@@ -1684,7 +1719,7 @@ function Results({
       ) : (
         <button
           onClick={() => setStep((n) => n + 1)}
-          className="press mt-6 w-full rounded-full bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+          className="press mt-6 w-full rounded-full border border-transparent bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
         >
           {STEPS[step + 1].label} →
         </button>
@@ -1744,7 +1779,7 @@ function SaveGate({
         <p className="mt-3 max-w-[92%] text-[15px] leading-relaxed text-stone-500">
           {moment === "rep1"
             ? "This recording, its score and the streak it starts live in this browser and nowhere else. "
-            : `A ${days}-day streak and every number behind it live in this browser and nowhere else. `}
+            : `${article(days)} ${days}-day streak and every number behind it live in this browser and nowhere else. `}
           An account attaches them to you, so a cleared cache or a new phone
           can&apos;t take them. Nothing moves, so nothing can go missing.
         </p>
@@ -1822,6 +1857,7 @@ function ProgressMoment({
           reason={`Day ${days} of speaking`}
           headline={`${days} days of numbers. Keep all of them.`}
           onClose={() => setSheet(false)}
+          onUnlocked={onSkip}
         />
       )}
     </main>

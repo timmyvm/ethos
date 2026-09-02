@@ -102,7 +102,7 @@ export function AuthForm({
         </p>
         {carrying && (
           <p className="mt-3 text-[13.5px] leading-relaxed text-stone-500">
-            Your {progress.reps} rep{progress.reps === 1 ? "" : "s"} are already
+            Your {progress.reps} recording{progress.reps === 1 ? " is" : "s are"} already
             attached to it. The link just confirms the address and asks what
             password you&apos;ll sign in with.
           </p>
@@ -131,8 +131,10 @@ export function AuthForm({
         <div className="mt-4 rounded-[24px] border border-hairline bg-surface p-4">
           <div className="label-data">On this device</div>
           <p className="mt-1.5 text-[13.5px] leading-relaxed text-stone-600">
-            {progress.reps} rep{progress.reps === 1 ? "" : "s"}
-            {progress.streak > 0 && ` and a ${progress.streak}-day streak`}.{" "}
+            {progress.reps} recording{progress.reps === 1 ? "" : "s"}
+            {progress.streak > 0 &&
+              ` and ${/^(8|11|18|8\d)$/.test(String(progress.streak)) ? "an" : "a"} ${progress.streak}-day streak`}
+            .{" "}
             {mode === "signup" ? (
               <>
                 They stay where they are. The account attaches to them.
@@ -278,7 +280,7 @@ function Shell({
 }) {
   return (
     <main className="flex min-h-dvh flex-col px-5 pb-10 pt-7">
-      <Link href="/" className="self-start text-sm text-stone-500">
+      <Link href="/" className="inline-flex min-h-11 items-center self-start text-sm text-stone-500">
         ← back
       </Link>
       <h1 className="font-display mt-8 text-[30px] font-bold leading-tight">

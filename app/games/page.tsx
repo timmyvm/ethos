@@ -105,6 +105,13 @@ export default function GamesPage() {
               <span className="min-w-0 flex-1">
                 <span className="font-display block text-body font-bold">
                   {g.name}
+                  {/* The same chip the mod picker wears: a door that opens
+                      the sheet says so before the tap. */}
+                  {needsPremium(g) && !premium && (
+                    <span className="ml-1.5 text-[11.5px] font-normal text-stone-500">
+                      premium
+                    </span>
+                  )}
                 </span>
                 <span className="mt-0.5 block text-caption text-stone-500">
                   {g.blurb}

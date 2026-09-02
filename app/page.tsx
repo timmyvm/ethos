@@ -311,7 +311,7 @@ export default function Home() {
             </div>
             <Link
               href={floorHref}
-              className="press font-display mt-2 block w-full rounded-xl bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-cream transition-colors hover:bg-terracotta-600"
+              className="press font-display mt-2 block w-full rounded-xl border border-transparent bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-cream transition-colors hover:bg-terracotta-600"
             >
               {dayOne
                 ? `${drill.title} →`
@@ -322,13 +322,13 @@ export default function Home() {
             <div className="mt-2.5 flex items-baseline justify-between gap-3">
               <button
                 onClick={() => setTopic(spin(null))}
-                className="press text-[13px] font-semibold text-terracotta-700"
+                className="press -my-3 inline-flex min-h-11 items-center text-[13px] font-semibold text-terracotta-700"
               >
                 Not feeling it? Spin a new topic →
               </button>
               <button
                 onClick={() => setShowMods((v) => !v)}
-                className="press shrink-0 text-[13px] font-semibold text-terracotta-700"
+                className="press -my-3 inline-flex min-h-11 shrink-0 items-center text-[13px] font-semibold text-terracotta-700"
               >
                 {showMods
                   ? "Hide mods"
@@ -405,11 +405,13 @@ export default function Home() {
       {anon === true && history.length > 0 && (
         <Link
           href="/signup"
-          className="press mt-5 block text-center text-[12px] leading-relaxed text-stone-400"
+          className="press mt-2 block py-3 text-center text-[12px] leading-relaxed text-stone-400"
         >
-          {history.length} recording{history.length === 1 ? "" : "s"} live only
+          {history.length} recording{history.length === 1 ? " lives" : "s live"} only
           in this browser ·{" "}
-          <span className="font-semibold text-terracotta-700">keep them →</span>
+          <span className="font-semibold text-terracotta-700">
+            keep {history.length === 1 ? "it" : "them"} →
+          </span>
         </Link>
       )}
 

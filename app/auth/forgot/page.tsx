@@ -22,7 +22,7 @@ export default function ForgotPage() {
 
   return (
     <main className="flex min-h-dvh flex-col px-5 pb-10 pt-7">
-      <Link href="/signin" className="self-start text-sm text-stone-500">
+      <Link href="/signin" className="inline-flex min-h-11 items-center self-start text-sm text-stone-500">
         ← back
       </Link>
       <h1 className="font-display mt-8 text-[30px] font-bold leading-tight">

@@ -33,6 +33,7 @@ export function Paywall({
   reason,
   headline = "The whole gym.",
   onClose,
+  onUnlocked,
 }: {
   reason: string;
   /**
@@ -42,6 +43,14 @@ export function Paywall({
    */
   headline?: string;
   onClose: () => void;
+  /**
+   * After a successful unlock. The default reloads, so every premium
+   * read behind the sheet refreshes. A surface mid-flow (the debrief,
+   * the day-3 moment) passes its own continuation instead: a reload
+   * on /rep threw the debrief away and landed on an empty Record
+   * screen (DECISIONS #220).
+   */
+  onUnlocked?: () => void;
 }) {
   const [plan, setPlan] = useState<"annual" | "monthly">("annual");
   const [askingCode, setAskingCode] = useState(false);
@@ -90,7 +99,7 @@ export function Paywall({
       setUnlocked(true);
       // Every premium read on the page behind this sheet is stale now;
       // a reload is the honest refresh.
-      setTimeout(() => window.location.reload(), 900);
+      setTimeout(() => (onUnlocked ? onUnlocked() : window.location.reload()), 900);
     } catch {
       setError("The server didn't answer. Try again.");
     } finally {

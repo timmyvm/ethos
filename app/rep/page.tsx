@@ -15,6 +15,7 @@ import { AudioScrubber } from "@/components/AudioScrubber";
 import { Coin } from "@/components/Coin";
 import { GainsRow } from "@/components/GainsRow";
 import { LessonBody } from "@/components/LessonScreen";
+import { LevelMeter } from "@/components/LevelMeter";
 import { ModeToggle } from "@/components/ModeToggle";
 import { Moment } from "@/components/Moment";
 import { ComparisonCard } from "@/components/ComparisonCard";
@@ -23,6 +24,7 @@ import { PermissionHelp } from "@/components/PermissionHelp";
 import { PoseSkeleton } from "@/components/PoseSkeleton";
 import { PresenceDetail, PresenceScore } from "@/components/PresenceCard";
 import { RepResult } from "@/components/RepResult";
+import { ScoringWave } from "@/components/ScoringWave";
 import { StreakCelebration } from "@/components/StreakCelebration";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { achievements } from "@/lib/achievements";
@@ -197,7 +199,18 @@ function RepScreen() {
   const lessonKeyRef = useRef(lessonKey);
   const [seconds, setSeconds] = useState(0);
   const [frameLeft, setFrameLeft] = useState(FRAME_SECONDS);
-  const [levels, setLevels] = useState<number[]>(Array(METER_BARS).fill(0.05));
+  /*
+   * The meter's one number per frame (#219). A ref, not state: the
+   * LevelMeter reads it on its own animation frame and moves the bars
+   * through transforms, so the rep screen never re-renders for audio.
+   * `peak` and `floor` track this rep's own loud and quiet so ordinary
+   * speech fills the meter on any mic, in any room.
+   */
+  const meterLevel = useRef(0);
+  const meterPeak = useRef(0);
+  const meterFloor = useRef(1);
+  /** The envelope of the recording being scored, drawn during the wait. */
+  const [scoringWave, setScoringWave] = useState<number[]>([]);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   /** The mic (or camera) was refused or absent; owns the error phase. */
@@ -550,6 +563,7 @@ function RepScreen() {
     // lets the engine tell a silent gap from one the mic heard a sound
     // in — i.e. an "um" the transcript dropped.
     const envelope: Envelope = { levels: [...r.envelope], rate: ENVELOPE_RATE };
+    setScoringWave(envelope.levels);
 
     // Score the body before tearing the camera down. Everything below
     // this line is five numbers and a list of timestamps — the frames
@@ -684,7 +698,17 @@ function RepScreen() {
           rms += v * v;
         }
         rms = Math.sqrt(rms / data.length);
-        setLevels((prev) => [...prev.slice(1), Math.min(1, rms * 4)]);
+        // Adaptive gain for the DISPLAY only: the loudest moment so far
+        // (decaying, so a shout does not flatten the next minute) sets
+        // full scale and the quietest sets the floor. The envelope
+        // below keeps the engine's fixed gain, which lib/envelope.ts
+        // calibrates against itself.
+        meterPeak.current = Math.max(meterPeak.current * 0.985, rms);
+        meterFloor.current = Math.min(meterFloor.current * 1.01 + 0.0005, rms);
+        const span = Math.max(meterPeak.current - meterFloor.current, 0.03);
+        meterLevel.current = Math.sqrt(
+          Math.min(1, Math.max(0, (rms - meterFloor.current) / span))
+        );
         const r = recRef.current;
         if (r) {
           // Fixed-rate sample for the envelope. rAF is 60Hz and varies
@@ -780,7 +804,9 @@ function RepScreen() {
     setClosing(null);
     setCelebrate(null);
     setSeconds(0);
-    setLevels(Array(METER_BARS).fill(0.05));
+    meterLevel.current = 0;
+    meterPeak.current = 0;
+    meterFloor.current = 1;
     setPresence(null);
     setRing("ok");
     setPoseFrames(null);
@@ -817,7 +843,9 @@ function RepScreen() {
     setPoseFrames(null);
     setHeldS(0);
     setNotes("");
-    setLevels(Array(METER_BARS).fill(0.05));
+    meterLevel.current = 0;
+    meterPeak.current = 0;
+    meterFloor.current = 1;
     setClipUrl((url) => {
       if (url) URL.revokeObjectURL(url);
       return null;
@@ -1092,15 +1120,7 @@ function RepScreen() {
                 / {capLabel}
               </span>
             </div>
-            <div className="flex h-12 items-end gap-[3px]" aria-hidden>
-              {levels.map((v, i) => (
-                <span
-                  key={i}
-                  className="w-1 rounded-full bg-stone-400"
-                  style={{ height: `${Math.max(8, v * 100)}%` }}
-                />
-              ))}
-            </div>
+            <LevelMeter level={meterLevel} bars={METER_BARS} />
             {/*
              * One tip, at the moment it applies (lib/live-tips.ts). It
              * yields to a live nudge — two messages at once is one
@@ -1120,8 +1140,9 @@ function RepScreen() {
         )}
 
         {phase === "analyzing" && (
-          <div className="text-center">
-            <div className="font-display text-xl font-bold">
+          <div className="w-full text-center" role="status">
+            <ScoringWave levels={scoringWave} />
+            <div className="font-display mt-4 text-xl font-bold">
               Scoring…
             </div>
             <p className="mt-2 text-sm text-stone-500">

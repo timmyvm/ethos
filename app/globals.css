@@ -394,3 +394,28 @@ body::after {
     background-image: none;
   }
 }
+
+/*
+ * The scoring wait's scan line (#219): a full-width box whose right
+ * edge is the line, walked across by transform alone. Same 1.5s loop
+ * as the skeleton sweep, so the two waits share one tempo.
+ */
+.scoring-cursor {
+  animation: scoring-sweep 1.5s ease-in-out infinite;
+}
+
+@keyframes scoring-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scoring-cursor {
+    animation: none;
+    opacity: 0;
+  }
+}

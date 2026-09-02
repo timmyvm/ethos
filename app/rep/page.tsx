@@ -56,7 +56,12 @@ import {
 } from "@/lib/pro-moment";
 import { starsByLesson, totalStars, unitStates } from "@/lib/path";
 import { liveTipAt } from "@/lib/live-tips";
-import { loadPose, samplePose, type PoseSampler } from "@/lib/pose-client";
+import {
+  loadPose,
+  poseCapable,
+  samplePose,
+  type PoseSampler,
+} from "@/lib/pose-client";
 import {
   ringNote,
   ringState,
@@ -273,19 +278,44 @@ function RepScreen() {
   } | null>(null);
 
   /**
-   * Is on-device pose actually available here? Asked once, before the
-   * toggle is drawn, so Voice + Video is never offered by a browser
-   * that can't measure anything.
+   * Can this browser do on-device pose? Feature detection, answered the
+   * moment the toggle is drawn (#216). This used to await the whole
+   * runtime, so the toggle sat greyed behind "Checking…" for as long as
+   * ~15MB took to arrive, on every cold open, for people who were about
+   * to record audio.
    */
   useEffect(() => {
+    setPoseReady(poseCapable());
+  }, []);
+
+  /**
+   * The runtime itself loads only once Voice + Video is the mode, and
+   * it loads HERE, while the screen is being read, rather than after
+   * the Rec tap. Same shared promise the recorder awaits, so a load
+   * still in flight at Rec is joined, never repeated. If the load fails
+   * (assets not staged, WASM blocked), the toggle reports it and the
+   * mode drops back to Voice for this screen without touching the
+   * saved preference, since the same person on a capable browser has
+   * not changed their mind.
+   */
+  useEffect(() => {
+    if (poseReady !== true || captureMode !== "voice_video") return;
     let live = true;
     loadPose()
-      .then((p) => live && setPoseReady(p !== null))
-      .catch(() => live && setPoseReady(false));
+      .then((p) => {
+        if (!live || p) return;
+        setPoseReady(false);
+        setCaptureMode("voice");
+      })
+      .catch(() => {
+        if (!live) return;
+        setPoseReady(false);
+        setCaptureMode("voice");
+      });
     return () => {
       live = false;
     };
-  }, []);
+  }, [poseReady, captureMode]);
 
   useEffect(() => {
     fetchReps()

@@ -10,6 +10,12 @@
  * Load is lazy and failure is honest: if the assets aren't staged (see
  * scripts/fetch-pose-assets.mjs) the mode toggle reports Voice + Video
  * as unavailable rather than recording video it can't measure.
+ *
+ * Two questions, two costs (#216). "Can this browser do it" is
+ * `poseCapable`, answered from feature detection in a microsecond.
+ * "Load the runtime" is `loadPose`, ~15MB of WASM and model plus a
+ * delegate warm-up, and it is only paid once somebody has picked Voice
+ * + Video. The toggle used to wait on the second to answer the first.
  */
 
 import type { PoseFrame, Point } from "./presence";
@@ -30,6 +36,7 @@ const LM = {
 } as const;
 
 const ASSET_BASE = "/pose";
+const MODEL_FILE = "pose_landmarker_lite.task";
 const TARGET_FPS = 30;
 
 export type PoseAvailability = "ready" | "loading" | "unavailable";
@@ -52,28 +59,85 @@ interface Landmarker {
 
 let cached: Promise<Landmarker | null> | null = null;
 
+/** What the capability probe reads. Split out so the rule is testable. */
+export interface PoseEnvironment {
+  hasWindow: boolean;
+  hasUserMedia: boolean;
+  hasWasm: boolean;
+}
+
+/**
+ * The rule behind `poseCapable`, with its inputs handed in. WASM is the
+ * one hard requirement: the runtime is a WASM task and there is no JS
+ * fallback to load. A camera API with nothing to hand the frames to is
+ * not a capability either. The GPU is deliberately NOT on the list,
+ * because `loadPose` falls back to the CPU delegate when the GPU one
+ * refuses, so a missing WebGL context costs frame rate, not the mode.
+ */
+export function poseCapableIn(env: PoseEnvironment): boolean {
+  return env.hasWindow && env.hasUserMedia && env.hasWasm;
+}
+
+/**
+ * Can this browser do on-device pose at all? Synchronous and free:
+ * feature detection only, no bytes fetched. This is what the mode
+ * toggle asks, so it answers as soon as it is drawn. A true here can
+ * still turn into a null from `loadPose` (assets not staged, WASM
+ * blocked by policy), and the caller handles that flip.
+ */
+export function poseCapable(): boolean {
+  return poseCapableIn({
+    hasWindow: typeof window !== "undefined",
+    hasUserMedia:
+      typeof navigator !== "undefined" &&
+      typeof navigator.mediaDevices?.getUserMedia === "function",
+    hasWasm:
+      typeof WebAssembly === "object" &&
+      typeof WebAssembly.instantiate === "function",
+  });
+}
+
 /**
  * Load the task once per page. Repeated calls share the promise, and a
  * failed load is remembered as a failure rather than retried on every
  * rep — a browser without WASM support won't grow it mid-session.
+ *
+ * The model is fetched in parallel with the runtime import and the
+ * WASM, then handed over as bytes: the three downloads used to run one
+ * after another because the model URL was only opened inside
+ * `createFromOptions`, after everything else had landed.
  */
 export function loadPose(): Promise<Landmarker | null> {
   if (cached) return cached;
   cached = (async () => {
     try {
-      const vision = await import("@mediapipe/tasks-vision");
-      const fileset = await vision.FilesetResolver.forVisionTasks(ASSET_BASE);
-      const landmarker = await vision.PoseLandmarker.createFromOptions(fileset, {
-        baseOptions: {
-          modelAssetPath: `${ASSET_BASE}/pose_landmarker_lite.task`,
-          delegate: "GPU",
-        },
-        runningMode: "VIDEO",
-        numPoses: 1,
-        minPoseDetectionConfidence: 0.5,
-        minPosePresenceConfidence: 0.5,
-        minTrackingConfidence: 0.5,
+      const modelBytes = fetch(`${ASSET_BASE}/${MODEL_FILE}`).then(async (r) => {
+        if (!r.ok) throw new Error(`pose model ${r.status}`);
+        return new Uint8Array(await r.arrayBuffer());
       });
+      const [vision, model] = await Promise.all([
+        import("@mediapipe/tasks-vision"),
+        modelBytes,
+      ]);
+      const fileset = await vision.FilesetResolver.forVisionTasks(ASSET_BASE);
+      const create = (delegate: "GPU" | "CPU") =>
+        vision.PoseLandmarker.createFromOptions(fileset, {
+          baseOptions: { modelAssetBuffer: model, delegate },
+          runningMode: "VIDEO",
+          numPoses: 1,
+          minPoseDetectionConfidence: 0.5,
+          minPosePresenceConfidence: 0.5,
+          minTrackingConfidence: 0.5,
+        });
+      // GPU first for the frame rate; CPU when there is no usable WebGL
+      // context (a policy-locked desktop, some in-app browsers). Slower
+      // is a mode that works, and null was a mode that didn't exist.
+      let landmarker: Awaited<ReturnType<typeof create>>;
+      try {
+        landmarker = await create("GPU");
+      } catch {
+        landmarker = await create("CPU");
+      }
       return landmarker as unknown as Landmarker;
     } catch {
       return null;
@@ -82,10 +146,9 @@ export function loadPose(): Promise<Landmarker | null> {
   return cached;
 }
 
-/** Is on-device pose actually available here? Asked before offering it. */
+/** Is on-device pose actually available here, runtime and all? */
 export async function poseAvailable(): Promise<boolean> {
-  if (typeof window === "undefined") return false;
-  if (!navigator.mediaDevices?.getUserMedia) return false;
+  if (!poseCapable()) return false;
   return (await loadPose()) !== null;
 }
 

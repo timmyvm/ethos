@@ -97,7 +97,7 @@ components/Theme.tsx:57:  if (m) m.setAttribute('content', t === 'dark' ? '#211a
 
 == [C] eyebrow pill badges / sparkles — 0 hit(s)
 
-== [C] emoji in JSX text — 44 hit(s)
+== [C] emoji in JSX text — 45 hit(s)
 app/(marketing)/privacy/page.tsx:75:        <li>· Your progress: streaks, freezes, XP, coins, and the word
 app/(marketing)/about/page.tsx:101:        <div className="label-data !text-cream/60">Your Ethos · /1000</div>
 app/(marketing)/about/page.tsx:152:        <li>· No manufactured insecurity. You already know your gap.</li>
@@ -106,18 +106,18 @@ app/(marketing)/about/page.tsx:154:        <li>· No horoscope feedback. Every c
 app/(marketing)/about/page.tsx:155:        <li>· No pay-to-win. Money never buys stars, streaks, or scores.</li>
 app/(marketing)/about/page.tsx:156:        <li>· No deadline cram. It&apos;s a gym, not a rescue.</li>
 app/rep/[id]/page.tsx:156:          <span className="label-data">×{rep.xp_multiplier} XP</span>
-app/rep/page.tsx:974:          <span className="label-data">×{config.xpMultiplier} XP</span>
-app/rep/page.tsx:1357:  // `game:<gameId>:<questionId>` — a game rep keeps its game identity
-app/rep/page.tsx:1825:      <div className="label-data">Tomorrow · when?</div>
+app/rep/page.tsx:1004:          <span className="label-data">×{config.xpMultiplier} XP</span>
+app/rep/page.tsx:1387:  // `game:<gameId>:<questionId>` — a game rep keeps its game identity
+app/rep/page.tsx:1855:      <div className="label-data">Tomorrow · when?</div>
+app/history/page.tsx:245:              onTap={() => setPaywall({ reason: "Skill trendlines · premium" })}
 app/auth/callback/page.tsx:35:        <p className="text-[15px] text-stone-500">Confirming…</p>
 app/calibrate/page.tsx:241:          <li>· Prop the phone at face height. Never in your hand.</li>
 app/calibrate/page.tsx:242:          <li>· Step back until head, shoulders and both hands are in frame.</li>
 app/calibrate/page.tsx:243:          <li>· Look-away notes go somewhere that isn&apos;t the phone.</li>
 app/calibrate/page.tsx:256:        <p className="mt-6 text-[14px] text-stone-500">Opening the camera…</p>
-app/page.tsx:207:              <span aria-hidden>★ </span>
-app/page.tsx:345:                  onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
-app/page.tsx:387:                {indexDelta > 0 ? "▲ +" : "▼ "}
-app/page.tsx:451:          <span className="font-semibold text-terracotta-700">keep them →</span>
+app/page.tsx:208:              <span aria-hidden>★ </span>
+app/page.tsx:346:                  onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
+app/page.tsx:412:          <span className="font-semibold text-terracotta-700">keep them →</span>
 app/signin/page.tsx:19:          <span className="mx-2 text-stone-300">·</span>
 app/boss/page.tsx:173:          <div className="label-data mt-6">Weekly boss · Cold Topic</div>
 app/boss/page.tsx:294:              onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
@@ -132,6 +132,7 @@ components/PresenceCard.tsx:126:          <div className="label-data">Delivery �
 components/PresenceCard.tsx:185:      <div className="label-data">Playback · this device only</div>
 components/PauseBar.tsx:89:        <span className="label-data !text-sage-mist">● landed a point</span>
 components/PauseBar.tsx:90:        <span className="label-data !text-cream/60">● searching</span>
+components/ScoreCard.tsx:44:            {delta > 0 ? "▲ +" : "▼ "}
 components/RepResult.tsx:119:                {delta > 0 ? "▲ +" : "▼ "}
 components/RepResult.tsx:148:            <span className="label-data">1 star · nothing measured</span>
 components/RepResult.tsx:266:          <div className="label-data">Supply · one upgrade, yours to keep</div>
@@ -146,16 +147,16 @@ components/ComparisonCard.tsx:68:            <span className="text-cream/40">→
 == [C] inline motion durations (not motion.ts) — 0 hit(s)
 
 == [C] bounce/elastic easing — 4 hit(s)
-app/rep/page.tsx:213:  const [anticipate, setAnticipate] = useState<RewardMoment | null>(null);
-app/rep/page.tsx:1181:            {anticipate && (
-app/rep/page.tsx:1184:                  anticipate.tone === "earned"
-app/rep/page.tsx:1189:                {anticipate.headline}
+app/rep/page.tsx:218:  const [anticipate, setAnticipate] = useState<RewardMoment | null>(null);
+app/rep/page.tsx:1211:            {anticipate && (
+app/rep/page.tsx:1214:                  anticipate.tone === "earned"
+app/rep/page.tsx:1219:                {anticipate.headline}
 
 == [D] generic SaaS copy — 0 hit(s)
 
 == [E] TODO/FIXME left in UI — 25 hit(s)
-app/rep/page.tsx:1042:              placeholder="Notes: first line, last line, one example…"
-app/rep/page.tsx:1043:              className="mt-3 w-full rounded-[24px] border border-stone-200 bg-surface p-4 text-[14px] leading-relaxed placeholder:text-stone-300 focus:border-stone-300"
+app/rep/page.tsx:1072:              placeholder="Notes: first line, last line, one example…"
+app/rep/page.tsx:1073:              className="mt-3 w-full rounded-[24px] border border-stone-200 bg-surface p-4 text-[14px] leading-relaxed placeholder:text-stone-300 focus:border-stone-300"
 app/auth/forgot/page.tsx:57:            placeholder="you@email.com"
 app/auth/forgot/page.tsx:58:            className="mt-1.5 w-full rounded-full border border-stone-200 bg-surface px-5 py-3.5 text-[16px] placeholder:text-stone-300 focus:border-stone-300"
 app/auth/reset/page.tsx:129:              placeholder="8 characters or more"

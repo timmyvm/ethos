@@ -42,6 +42,12 @@
 - Surfaces that are dark in both themes (stage, the score card) use
   non-swapping text tokens — cream opacities, `sage-mist`, `sage-lit`,
   `rust-lit` — never the stone ramp (#167's rule, carried forward).
+- A data screen has one hero (the score card, `components/ScoreCard.tsx`,
+  never a chart), and every metric on its summary shares one row
+  grammar: label, then, now, signed change, trend track (#217). A delta
+  is printed, never implied; units are stated once, in a header; the
+  empty state is the populated layout with dashes. Anything that needs
+  its own shape is detail, one tap down from the row it explains.
 
 ## Banned (the vibe-code tells)
 

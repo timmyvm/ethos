@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { DayTrail } from "@/components/DayTrail";
+import { ScoreCard } from "@/components/ScoreCard";
 import { LessonBody } from "@/components/LessonScreen";
 import { ModPicker } from "@/components/ModPicker";
 import { PathRoad } from "@/components/PathRoad";
@@ -373,51 +374,12 @@ export default function Home() {
       )}
 
       {history.length > 0 && (
-        <section className="card-score mt-5 rounded-2xl p-5 text-cream">
-          <div className="flex items-baseline justify-between gap-3">
-            <div className="label-data !text-sage-mist">Your Ethos</div>
-            {/* Green up, red down (#195). Top-right, said in the label
-                register — the arc is the card's second claim. */}
-            {indexDelta !== null && indexDelta !== 0 && (
-              <div
-                className={`font-display text-[13px] font-semibold uppercase tracking-[0.02em] tabular-nums ${
-                  indexDelta > 0 ? "text-sage-lit" : "text-rust-lit"
-                }`}
-              >
-                {indexDelta > 0 ? "▲ +" : "▼ "}
-                {indexDelta} since day one
-              </div>
-            )}
-          </div>
-          <div className="flex items-end justify-between gap-4">
-            <div className="flex min-w-0 items-baseline gap-1.5">
-              <span className="font-display text-[58px] font-extrabold leading-none tracking-[-0.02em]">
-                {lastIndex ?? "—"}
-              </span>
-              <span className="text-[15px] text-sage-mist">/ 1000</span>
-            </div>
-            <div className="shrink-0 space-y-2 text-right tabular-nums">
-              <div>
-                <div className="font-display text-[19px] font-extrabold leading-none">
-                  {history.length}
-                </div>
-                {/* "reps" is the brand word for the ACT — you take the
-                    floor and do one. As the label on a counter it left
-                    the unit ambiguous (a 60-second take? everything
-                    between two pauses?). The counter names the thing it
-                    counts; the verb stays "rep" everywhere it's obvious
-                    from context. */}
-                <div className="label-data !text-sage-mist">recordings</div>
-              </div>
-              <div>
-                <div className="font-display text-[19px] font-extrabold leading-none">
-                  {totalStars(starMap)}
-                </div>
-                <div className="label-data !text-sage-mist">stars</div>
-              </div>
-            </div>
-          </div>
-
+        <ScoreCard
+          index={lastIndex}
+          delta={indexDelta}
+          recordings={history.length}
+          stars={totalStars(starMap)}
+        >
           {/*
            * The day counter and its line. The streak above is the
            * pressure; this is the memory — it never resets, so the
@@ -426,8 +388,7 @@ export default function Home() {
            * one day is a number, thirty is a shape.
            */}
           <DayTrail trail={trail} pebbles={pebbles} />
-
-        </section>
+        </ScoreCard>
       )}
 
       {/* The boss card moved to /games (DECISIONS #158): the road keeps

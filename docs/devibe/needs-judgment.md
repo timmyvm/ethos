@@ -81,3 +81,41 @@ colour ones.)
 - The Tools eyebrow "GAMES · REAL REPS, ROLLED CONDITIONS" says "reps",
   which #164 bans from the interface and `lib/copy.test.ts` enforces.
   Shipped as "GAMES".
+
+---
+
+## 4. The contrast floor vs the Organic values (UX audit, 2 Sep)
+
+**Status:** needs Timothy's ruling. DESIGN-RULES asks for ≥ 4.5:1 "against
+its surface (check terracotta-on-cream and every stone mid-tone in BOTH
+themes)" and the shipped tokens miss it on every screen (axe serious ×20).
+Measured on the cream ground: stone-300 2.39:1 (the road's future rows,
+inactive nav tabs 1.88:1, month labels 1.86:1), stone-400 2.72:1 (every
+eyebrow label and caption), stone-500 3.57:1 (the prompt under the lesson
+title, the back links), cream on terracotta-500 3.35:1 (the one tap per
+screen, 15px bold). Dark: 3.41 / 3.99, nav 2.45, the CTA 3.35.
+
+The fix is a palette pass and #165/#203 lock the values, so nothing was
+changed. Options: (a) raise stone-400/500 to ≈ ink at 62% / 72% and use
+stone-400 wherever stone-300 carries words; (b) the CTA either darkens its
+fill toward terracotta-600 or sets its text in ink (brand.md says cream).
+Either way it is one token pass; the audit report has the per-element list.
+
+## 5. Which lesson is "next" (UX audit, 2 Sep)
+
+**Status:** the contradiction is fixed (#220: the debrief now reads the
+path's `nextLesson`, like the floor and the road). What still wants a
+ruling is the rule itself: `nextLesson` pins the floor to the first lesson
+under three stars, so a beginner who scores 1★ on The baseline is asked to
+"Go again" on it every morning, and a day-7 user with six starred lessons
+is still sent to lesson 1. mechanics.md gates units on cumulative stars
+and never says a lesson must reach 3★ before the next one opens. If the
+intent is "advance on any star, revisit for the missing ones", the change
+is one line in `lib/path.ts` plus its test.
+
+## 6. The bought pose vs the celebrate pose (UX audit, 2 Sep)
+
+**Status:** needs a ruling. `app/page.tsx` shows `demos-celebrate.webp`
+whenever today's practice is done, which hides a pose bought minutes
+earlier ("bought, and on your card"). Either the equipped pose wins when
+one is set, or the shop copy says when it appears.

@@ -164,7 +164,7 @@ export default function BossPage() {
 
   return (
     <main className="flex min-h-dvh flex-col px-5 pb-24 pt-7">
-      <Link href="/" className="self-start text-sm text-stone-500">
+      <Link href="/" className="inline-flex min-h-11 items-center self-start text-sm text-stone-500">
         ← back
       </Link>
 

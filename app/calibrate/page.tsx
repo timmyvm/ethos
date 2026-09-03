@@ -222,7 +222,7 @@ export default function CalibratePage() {
 
   return (
     <main className="px-5 pb-16 pt-7">
-      <Link href="/settings" className="text-sm text-stone-500">
+      <Link href="/settings" className="inline-flex min-h-11 items-center text-sm text-stone-500">
         ← settings
       </Link>
       <h1 className="font-display mt-5 text-[27px]">Calibrate the camera</h1>

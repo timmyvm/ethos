@@ -368,7 +368,7 @@ export default function HostilePage() {
 
   return (
     <main className="flex min-h-dvh flex-col px-5 pb-10 pt-7">
-      <Link href="/boss" className="self-start text-sm text-stone-500">
+      <Link href="/boss" className="inline-flex min-h-11 items-center self-start text-sm text-stone-500">
         ← back
       </Link>
 

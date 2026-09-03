@@ -117,7 +117,7 @@ export function RepResult({
                 }`}
               >
                 {delta > 0 ? "▲ +" : "▼ "}
-                {delta} since last time
+                {Math.abs(delta)} since last time
               </div>
             )}
             {delta === null && baseline && (
@@ -197,9 +197,14 @@ export function RepResult({
               Kept: {coach.strength}
             </div>
           )}
-          <div className="mt-1.5 text-[11px] text-stone-400">
-            AI-generated feedback
-          </div>
+          {/* Only when a coach actually ran: the fallback line above is
+              computed from the metrics, and calling it AI-generated on a
+              capped recording was the one untrue caption on the screen. */}
+          {coach && (
+            <div className="mt-1.5 text-[11px] text-stone-400">
+              AI-generated feedback
+            </div>
+          )}
         </div>
       </div>
 

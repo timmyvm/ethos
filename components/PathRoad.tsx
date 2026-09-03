@@ -184,7 +184,7 @@ export function PathRoad({
               ) : (
                 <Link
                   href={step.boss ? "/boss" : repHref({ lesson: step.lessonId })}
-                  className="press block"
+                  className="press -my-3 block py-3"
                 >
                   {row}
                 </Link>

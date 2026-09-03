@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { LessonScreen } from "@/components/LessonScreen";
 import { markWelcomed, WELCOME_STEPS } from "@/lib/onboarding";
-import { nextLesson } from "@/lib/path";
+import { introDue, introHref, nextLesson, UNITS } from "@/lib/path";
 import { repHref } from "@/lib/rep-config";
 
 /**
@@ -15,7 +15,13 @@ import { repHref } from "@/lib/rep-config";
  * introduction just promised a baseline, so the button delivers one.
  * An empty star map resolves to the first lesson of the first unit.
  */
-const FIRST_REP = repHref({ lesson: nextLesson({})?.lesson.id });
+// The same door the floor opens for the same state: a unit nobody has
+// scored in yet owes its teaching screen first (#210); only the skippers
+// used to see it.
+const FIRST_UNIT = UNITS[0];
+const FIRST_REP = introDue(FIRST_UNIT, {})
+  ? introHref(FIRST_UNIT.id)
+  : repHref({ lesson: nextLesson({})?.lesson.id });
 
 /**
  * Onboarding — three screens, no quiz, no account. Wellspoken's

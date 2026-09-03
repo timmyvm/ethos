@@ -126,7 +126,7 @@ export default function ShopPage() {
 
   return (
     <main className="px-5 pb-24 pt-7">
-      <Link href="/you" className="text-[13px] font-semibold text-stone-400">
+      <Link href="/you" className="inline-flex min-h-11 items-center text-[13px] font-semibold text-stone-400">
         ← You
       </Link>
 

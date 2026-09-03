@@ -1,0 +1,2742 @@
+{
+ "axe": {
+  "/@390": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 53,
+    "sample": [
+     {
+      "html": "<div class=\"label-data text-center\">Extra lesson</div>",
+      "target": ".text-center.label-data",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     },
+     {
+      "html": "<p class=\"text-body text-stone-500 mt-2 mx-auto\">Filler Elimination</p>",
+      "target": ".text-body",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 11.3pt (15px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<p class=\"mt-1.5 text-caption text-stone-400\">Pace scored 78/100, up 14 on the one before, your weakest right now.</p>",
+      "target": ".text-caption",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 9.4pt (12.5px), font weight: normal). Expected contrast ra"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/@1440": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 53,
+    "sample": [
+     {
+      "html": "<div class=\"label-data text-center\">Extra lesson</div>",
+      "target": ".text-center.label-data",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     },
+     {
+      "html": "<p class=\"text-body text-stone-500 mt-2 mx-auto\">Filler Elimination</p>",
+      "target": ".text-body",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 11.3pt (15px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<p class=\"mt-1.5 text-caption text-stone-400\">Pace scored 78/100, up 14 on the one before, your weakest right now.</p>",
+      "target": ".text-caption",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 9.4pt (12.5px), font weight: normal). Expected contrast ra"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/history@390": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 32,
+    "sample": [
+     {
+      "html": "<p class=\"mt-1 text-[13px] text-stone-400\">8 recordings since 26 Aug. Tap one for the full result.</p>",
+      "target": ".mt-1",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 9.8pt (13px), font weight: normal). Expected contrast rati"
+     },
+     {
+      "html": "<div class=\"label-data pb-1.5\">What moved</div>",
+      "target": ".mt-6 > .pb-1\\.5.label-data",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     },
+     {
+      "html": "<span class=\"label-data !text-[9.5px] \">metric</span>",
+      "target": ".mt-6 > .border-b.border-edge.pb-1\\.5 > .\\!text-\\[9\\.5px\\].label-data:nth-child(1)",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 7.1pt (9.5px), font weight: bold). Expected contrast ratio"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/history@1440": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 32,
+    "sample": [
+     {
+      "html": "<p class=\"mt-1 text-[13px] text-stone-400\">8 recordings since 26 Aug. Tap one for the full result.</p>",
+      "target": ".mt-1",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 9.8pt (13px), font weight: normal). Expected contrast rati"
+     },
+     {
+      "html": "<div class=\"label-data pb-1.5\">What moved</div>",
+      "target": ".mt-6 > .pb-1\\.5.label-data",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     },
+     {
+      "html": "<span class=\"label-data !text-[9.5px] \">metric</span>",
+      "target": ".mt-6 > .border-b.border-edge.pb-1\\.5 > .\\!text-\\[9\\.5px\\].label-data:nth-child(1)",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 7.1pt (9.5px), font weight: bold). Expected contrast ratio"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/you@390": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 48,
+    "sample": [
+     {
+      "html": "<a class=\"text-[13px] font-semibold text-stone-400\" href=\"/settings\">Settings</a>",
+      "target": "a[href$=\"settings\"]",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 9.8pt (13px), font weight: normal). Expected contrast rati"
+     },
+     {
+      "html": "<button class=\"press min-h-11 shrink-0 text-[12.5px] font-semibold text-stone-400 \">Edit</button>",
+      "target": ".mb-4 > .text-\\[12\\.5px\\]",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.76 (foreground color: #98938a, background color: #faf3e3, font size: 9.4pt (12.5px), font weight: normal). Expected contrast ra"
+     },
+     {
+      "html": "<div class=\"label-data\">Total XP</div>",
+      "target": ".gap-4.items-center.flex > .text-right > .label-data",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.76 (foreground color: #98938a, background color: #faf3e3, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/you@1440": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 48,
+    "sample": [
+     {
+      "html": "<a class=\"text-[13px] font-semibold text-stone-400\" href=\"/settings\">Settings</a>",
+      "target": "a[href$=\"settings\"]",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 9.8pt (13px), font weight: normal). Expected contrast rati"
+     },
+     {
+      "html": "<button class=\"press min-h-11 shrink-0 text-[12.5px] font-semibold text-stone-400 \">Edit</button>",
+      "target": ".mb-4 > .text-\\[12\\.5px\\]",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.76 (foreground color: #98938a, background color: #faf3e3, font size: 9.4pt (12.5px), font weight: normal). Expected contrast ra"
+     },
+     {
+      "html": "<div class=\"label-data\">Total XP</div>",
+      "target": ".gap-4.items-center.flex > .text-right > .label-data",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.76 (foreground color: #98938a, background color: #faf3e3, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/games@390": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 11,
+    "sample": [
+     {
+      "html": "<span class=\"mt-0.5 block text-caption text-stone-500\">A topic you've never studied. 4 min research, 90s to explain, fact-checked.</span>",
+      "target": ".mt-4 > .min-w-0.flex-1 > .text-caption.text-stone-500.mt-0\\.5",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.65 (foreground color: #827e76, background color: #faf3e3, font size: 9.4pt (12.5px), font weight: normal). Expected contrast ra"
+     },
+     {
+      "html": "<div class=\"label-data pb-2\">Games</div>",
+      "target": ".mt-6:nth-child(3) > .pb-2.label-data",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     },
+     {
+      "html": "<span class=\"mt-0.5 block text-caption text-stone-500\">Give your take. Demos cuts in with a question.</span>",
+      "target": "button:nth-child(2) > .min-w-0.flex-1 > .text-caption.text-stone-500.mt-0\\.5",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 9.4pt (12.5px), font weight: normal). Expected contrast ra"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/games@1440": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 11,
+    "sample": [
+     {
+      "html": "<span class=\"mt-0.5 block text-caption text-stone-500\">A topic you've never studied. 4 min research, 90s to explain, fact-checked.</span>",
+      "target": ".mt-4 > .min-w-0.flex-1 > .text-caption.text-stone-500.mt-0\\.5",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.65 (foreground color: #827e76, background color: #faf3e3, font size: 9.4pt (12.5px), font weight: normal). Expected contrast ra"
+     },
+     {
+      "html": "<div class=\"label-data pb-2\">Games</div>",
+      "target": ".mt-6:nth-child(3) > .pb-2.label-data",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     },
+     {
+      "html": "<span class=\"mt-0.5 block text-caption text-stone-500\">Give your take. Demos cuts in with a question.</span>",
+      "target": "button:nth-child(2) > .min-w-0.flex-1 > .text-caption.text-stone-500.mt-0\\.5",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 9.4pt (12.5px), font weight: normal). Expected contrast ra"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/shop@390": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 12,
+    "sample": [
+     {
+      "html": "<a class=\"text-[13px] font-semibold text-stone-400\" href=\"/you\">← You</a>",
+      "target": ".text-stone-400[href$=\"you\"]",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 9.8pt (13px), font weight: normal). Expected contrast rati"
+     },
+     {
+      "html": "<p class=\"mt-1.5 text-[13px] leading-relaxed text-stone-500\">One coin a day you speak.</p>",
+      "target": ".mt-1\\.5",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 9.8pt (13px), font weight: normal). Expected contrast rati"
+     },
+     {
+      "html": "<p class=\"mt-1 text-[12.5px] leading-relaxed text-stone-500\">Covers one missed day automatically. Three is the most you can hold.</p>",
+      "target": ".rounded-\\[14px\\].border-edge.p-4:nth-child(1) > .gap-3\\.5.flex > .min-w-0.flex-1 > .mt-1.text-\\[12\\.5px\\]",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.65 (foreground color: #827e76, background color: #faf3e3, font size: 9.4pt (12.5px), font weight: normal). Expected contrast ra"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/shop@1440": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 12,
+    "sample": [
+     {
+      "html": "<a class=\"text-[13px] font-semibold text-stone-400\" href=\"/you\">← You</a>",
+      "target": ".text-stone-400[href$=\"you\"]",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 9.8pt (13px), font weight: normal). Expected contrast rati"
+     },
+     {
+      "html": "<p class=\"mt-1.5 text-[13px] leading-relaxed text-stone-500\">One coin a day you speak.</p>",
+      "target": ".mt-1\\.5",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 9.8pt (13px), font weight: normal). Expected contrast rati"
+     },
+     {
+      "html": "<p class=\"mt-1 text-[12.5px] leading-relaxed text-stone-500\">Covers one missed day automatically. Three is the most you can hold.</p>",
+      "target": ".rounded-\\[14px\\].border-edge.p-4:nth-child(1) > .gap-3\\.5.flex > .min-w-0.flex-1 > .mt-1.text-\\[12\\.5px\\]",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.65 (foreground color: #827e76, background color: #faf3e3, font size: 9.4pt (12.5px), font weight: normal). Expected contrast ra"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/settings@390": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 24,
+    "sample": [
+     {
+      "html": "<a class=\"text-[13px] font-semibold text-stone-400\" href=\"/you\">← You</a>",
+      "target": ".text-stone-400.font-semibold[href$=\"you\"]",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 9.8pt (13px), font weight: normal). Expected contrast rati"
+     },
+     {
+      "html": "<h2 class=\"label-data border-t border-hairline pb-1 pt-3.5\">Reminders</h2>",
+      "target": "section:nth-child(3) > h2",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     },
+     {
+      "html": "<p class=\"pb-2.5 text-[12.5px] leading-relaxed text-stone-500\">One notification a day, maximum. It names the streak, never scolds you for missing it.</p>",
+      "target": ".pb-2\\.5",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 9.4pt (12.5px), font weight: normal). Expected contrast ra"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/settings@1440": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 24,
+    "sample": [
+     {
+      "html": "<a class=\"text-[13px] font-semibold text-stone-400\" href=\"/you\">← You</a>",
+      "target": ".text-stone-400.font-semibold[href$=\"you\"]",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 9.8pt (13px), font weight: normal). Expected contrast rati"
+     },
+     {
+      "html": "<h2 class=\"label-data border-t border-hairline pb-1 pt-3.5\">Reminders</h2>",
+      "target": "section:nth-child(3) > h2",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     },
+     {
+      "html": "<p class=\"pb-2.5 text-[12.5px] leading-relaxed text-stone-500\">One notification a day, maximum. It names the streak, never scolds you for missing it.</p>",
+      "target": ".pb-2\\.5",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 9.4pt (12.5px), font weight: normal). Expected contrast ra"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/rep?lesson=f2@390": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 6,
+    "sample": [
+     {
+      "html": "<a class=\"self-start text-sm text-stone-500\" href=\"/\">← back</a>",
+      "target": "a",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<div class=\"label-data\">Filler Elimination</div>",
+      "target": ".mt-6 > div > .label-data",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     },
+     {
+      "html": "<p class=\"text-body text-stone-500 mt-1 \">Explain your favorite app to someone who's never used a phone.</p>",
+      "target": ".text-body:nth-child(3)",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 11.3pt (15px), font weight: normal). Expected contrast rat"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/rep?lesson=f2@1440": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 6,
+    "sample": [
+     {
+      "html": "<a class=\"self-start text-sm text-stone-500\" href=\"/\">← back</a>",
+      "target": "a",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<div class=\"label-data\">Filler Elimination</div>",
+      "target": ".mt-6 > div > .label-data",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     },
+     {
+      "html": "<p class=\"text-body text-stone-500 mt-1 \">Explain your favorite app to someone who's never used a phone.</p>",
+      "target": ".text-body:nth-child(3)",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 11.3pt (15px), font weight: normal). Expected contrast rat"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/boss@390": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 16,
+    "sample": [
+     {
+      "html": "<a class=\"self-start text-sm text-stone-500\" href=\"/\">← back</a>",
+      "target": ".text-sm",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<div class=\"label-data mt-6\">Weekly boss · Cold Topic</div>",
+      "target": ".mt-6",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     },
+     {
+      "html": "<p class=\"mt-2.5 text-[14px] leading-relaxed text-stone-500\">Four minutes to read. Ninety seconds from memory. Two scores: the engine reads your delivery, a fac",
+      "target": ".mt-2\\.5",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/boss@1440": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 16,
+    "sample": [
+     {
+      "html": "<a class=\"self-start text-sm text-stone-500\" href=\"/\">← back</a>",
+      "target": ".text-sm",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<div class=\"label-data mt-6\">Weekly boss · Cold Topic</div>",
+      "target": ".mt-6",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     },
+     {
+      "html": "<p class=\"mt-2.5 text-[14px] leading-relaxed text-stone-500\">Four minutes to read. Ninety seconds from memory. Two scores: the engine reads your delivery, a fac",
+      "target": ".mt-2\\.5",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/hostile@390": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 5,
+    "sample": [
+     {
+      "html": "<a class=\"self-start text-sm text-stone-500\" href=\"/boss\">← back</a>",
+      "target": "a",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<div class=\"label-data mt-6\">Boss · Hostile Q&amp;A</div>",
+      "target": ".mt-6",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     },
+     {
+      "html": "<p class=\"mt-2.5 text-[14px] leading-relaxed text-stone-500\">Sixty seconds on the claim. Then two questions about what you actually said, 45 seconds each. Score",
+      "target": "p",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/hostile@1440": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 5,
+    "sample": [
+     {
+      "html": "<a class=\"self-start text-sm text-stone-500\" href=\"/boss\">← back</a>",
+      "target": "a",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<div class=\"label-data mt-6\">Boss · Hostile Q&amp;A</div>",
+      "target": ".mt-6",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     },
+     {
+      "html": "<p class=\"mt-2.5 text-[14px] leading-relaxed text-stone-500\">Sixty seconds on the claim. Then two questions about what you actually said, 45 seconds each. Score",
+      "target": "p",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/upload@390": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 7,
+    "sample": [
+     {
+      "html": "<p class=\"mt-2.5 text-[14px] leading-relaxed text-stone-500\">A meeting, a voice memo, a run-through from your camera roll. The engine reads it like anything rec",
+      "target": ".mt-2\\.5",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<p class=\"mt-2 text-[12.5px] leading-relaxed text-stone-400\">Up to <!-- -->25<!-- -->MB and <!-- -->6<!-- --> minutes. It banks to your log as today's speaking.",
+      "target": ".mt-2",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 9.4pt (12.5px), font weight: normal). Expected contrast ra"
+     },
+     {
+      "html": "<label for=\"upload-file\" class=\"press mt-6 block w-full cursor-pointer rounded-full bg-terracotta-500 px-6 py-4 text-center text-[16.5px] font-semibold text-cre",
+      "target": "label",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.35 (foreground color: #fdf6e7, background color: #c67139, font size: 12.4pt (16.5px), font weight: normal). Expected contrast r"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/upload@1440": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 7,
+    "sample": [
+     {
+      "html": "<p class=\"mt-2.5 text-[14px] leading-relaxed text-stone-500\">A meeting, a voice memo, a run-through from your camera roll. The engine reads it like anything rec",
+      "target": ".mt-2\\.5",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<p class=\"mt-2 text-[12.5px] leading-relaxed text-stone-400\">Up to <!-- -->25<!-- -->MB and <!-- -->6<!-- --> minutes. It banks to your log as today's speaking.",
+      "target": ".mt-2",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 9.4pt (12.5px), font weight: normal). Expected contrast ra"
+     },
+     {
+      "html": "<label for=\"upload-file\" class=\"press mt-6 block w-full cursor-pointer rounded-full bg-terracotta-500 px-6 py-4 text-center text-[16.5px] font-semibold text-cre",
+      "target": "label",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.35 (foreground color: #fdf6e7, background color: #c67139, font size: 12.4pt (16.5px), font weight: normal). Expected contrast r"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/lesson/filler@390": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 4,
+    "sample": [
+     {
+      "html": "<div class=\"label-data\">Filler Elimination</div>",
+      "target": ".flex-1 > div > .label-data",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     },
+     {
+      "html": "<p class=\"text-body text-stone-500 mt-1 \">No ums, no ahs. You pause instead.</p>",
+      "target": "p",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 11.3pt (15px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<div class=\"label-data\">How to do this</div>",
+      "target": ".mt-7 > .label-data",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/lesson/filler@1440": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 4,
+    "sample": [
+     {
+      "html": "<div class=\"label-data\">Filler Elimination</div>",
+      "target": ".flex-1 > div > .label-data",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     },
+     {
+      "html": "<p class=\"text-body text-stone-500 mt-1 \">No ums, no ahs. You pause instead.</p>",
+      "target": "p",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 11.3pt (15px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<div class=\"label-data\">How to do this</div>",
+      "target": ".mt-7 > .label-data",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/signup@390": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 8,
+    "sample": [
+     {
+      "html": "<a class=\"self-start text-sm text-stone-500\" href=\"/\">← back</a>",
+      "target": ".self-start",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<div class=\"label-data\">On this device</div>",
+      "target": ".rounded-\\[24px\\] > .label-data",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.76 (foreground color: #98938a, background color: #faf3e3, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     },
+     {
+      "html": "<p class=\"mt-2 text-center text-[12px] text-stone-400\">Your recordings attach to it the same way.</p>",
+      "target": ".mt-2.text-center",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 9.0pt (12px), font weight: normal). Expected contrast rati"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/signup@1440": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 8,
+    "sample": [
+     {
+      "html": "<a class=\"self-start text-sm text-stone-500\" href=\"/\">← back</a>",
+      "target": ".self-start",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<div class=\"label-data\">On this device</div>",
+      "target": ".rounded-\\[24px\\] > .label-data",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.76 (foreground color: #98938a, background color: #faf3e3, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     },
+     {
+      "html": "<p class=\"mt-2 text-center text-[12px] text-stone-400\">Your recordings attach to it the same way.</p>",
+      "target": ".mt-2.text-center",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 9.0pt (12px), font weight: normal). Expected contrast rati"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/signin@390": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 6,
+    "sample": [
+     {
+      "html": "<a class=\"self-start text-sm text-stone-500\" href=\"/\">← back</a>",
+      "target": ".self-start",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<div class=\"label-data\">On this device</div>",
+      "target": ".rounded-\\[24px\\] > .label-data",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.76 (foreground color: #98938a, background color: #faf3e3, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     },
+     {
+      "html": "<span class=\"text-[12px] text-stone-400\">or with email</span>",
+      "target": ".text-\\[12px\\]",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 9.0pt (12px), font weight: normal). Expected contrast rati"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/signin@1440": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 6,
+    "sample": [
+     {
+      "html": "<a class=\"self-start text-sm text-stone-500\" href=\"/\">← back</a>",
+      "target": ".self-start",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<div class=\"label-data\">On this device</div>",
+      "target": ".rounded-\\[24px\\] > .label-data",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.76 (foreground color: #98938a, background color: #faf3e3, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     },
+     {
+      "html": "<span class=\"text-[12px] text-stone-400\">or with email</span>",
+      "target": ".text-\\[12px\\]",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 9.0pt (12px), font weight: normal). Expected contrast rati"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/auth/forgot@390": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 3,
+    "sample": [
+     {
+      "html": "<a class=\"self-start text-sm text-stone-500\" href=\"/signin\">← back</a>",
+      "target": "a",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<label class=\"label-data\" for=\"email\">Email</label>",
+      "target": "label",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     },
+     {
+      "html": "<button type=\"submit\" class=\"press mt-5 w-full rounded-full bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-cream disabled:opacity-60\">Send the link<",
+      "target": "button",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.35 (foreground color: #fdf6e7, background color: #c67139, font size: 12.8pt (17px), font weight: normal). Expected contrast rat"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/auth/forgot@1440": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 3,
+    "sample": [
+     {
+      "html": "<a class=\"self-start text-sm text-stone-500\" href=\"/signin\">← back</a>",
+      "target": "a",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<label class=\"label-data\" for=\"email\">Email</label>",
+      "target": "label",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     },
+     {
+      "html": "<button type=\"submit\" class=\"press mt-5 w-full rounded-full bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-cream disabled:opacity-60\">Send the link<",
+      "target": "button",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.35 (foreground color: #fdf6e7, background color: #c67139, font size: 12.8pt (17px), font weight: normal). Expected contrast rat"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/about@390": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 7,
+    "sample": [
+     {
+      "html": "<a class=\"mt-6 block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-cream press\" href=\"/welcome\">Take the floor</a>",
+      "target": ".block.w-full.rounded-full:nth-child(5)",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.35 (foreground color: #fdf6e7, background color: #c67139, font size: 12.0pt (16px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<p class=\"mt-2.5 text-center text-[12.5px] text-stone-500\">60 seconds. No signup until you've spoken.</p>",
+      "target": ".mt-2\\.5",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 9.4pt (12.5px), font weight: normal). Expected contrast ra"
+     },
+     {
+      "html": "<a class=\"mt-10 block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-cream press\" href=\"/welcome\">Take the floor</a>",
+      "target": ".mt-10.block.w-full",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.35 (foreground color: #fdf6e7, background color: #c67139, font size: 12.0pt (16px), font weight: normal). Expected contrast rat"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/about@1440": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 7,
+    "sample": [
+     {
+      "html": "<a class=\"mt-6 block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-cream press\" href=\"/welcome\">Take the floor</a>",
+      "target": ".block.w-full.rounded-full:nth-child(5)",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.35 (foreground color: #fdf6e7, background color: #c67139, font size: 12.0pt (16px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<p class=\"mt-2.5 text-center text-[12.5px] text-stone-500\">60 seconds. No signup until you've spoken.</p>",
+      "target": ".mt-2\\.5",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 9.4pt (12.5px), font weight: normal). Expected contrast ra"
+     },
+     {
+      "html": "<a class=\"mt-10 block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-cream press\" href=\"/welcome\">Take the floor</a>",
+      "target": ".mt-10.block.w-full",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.35 (foreground color: #fdf6e7, background color: #c67139, font size: 12.0pt (16px), font weight: normal). Expected contrast rat"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/privacy@390": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 4,
+    "sample": [
+     {
+      "html": "<a class=\"text-sm text-stone-500\" href=\"/about\">← ethos</a>",
+      "target": ".text-sm",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<p class=\"mt-2 text-[12.5px] text-stone-400\">Last updated 25 August 2026</p>",
+      "target": ".text-\\[12\\.5px\\].text-stone-400.mt-2",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 9.4pt (12.5px), font weight: normal). Expected contrast ra"
+     },
+     {
+      "html": "<a class=\"font-semibold text-stone-500\" href=\"/terms\">Terms</a>",
+      "target": "a[href$=\"terms\"]",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 9.4pt (12.5px), font weight: normal). Expected contrast ra"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/privacy@1440": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 4,
+    "sample": [
+     {
+      "html": "<a class=\"text-sm text-stone-500\" href=\"/about\">← ethos</a>",
+      "target": ".text-sm",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<p class=\"mt-2 text-[12.5px] text-stone-400\">Last updated 25 August 2026</p>",
+      "target": ".text-\\[12\\.5px\\].text-stone-400.mt-2",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 9.4pt (12.5px), font weight: normal). Expected contrast ra"
+     },
+     {
+      "html": "<a class=\"font-semibold text-stone-500\" href=\"/terms\">Terms</a>",
+      "target": "a[href$=\"terms\"]",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 9.4pt (12.5px), font weight: normal). Expected contrast ra"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/terms@390": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 4,
+    "sample": [
+     {
+      "html": "<a class=\"text-sm text-stone-500\" href=\"/about\">← ethos</a>",
+      "target": ".text-sm",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<p class=\"mt-2 text-[12.5px] text-stone-400\">Last updated 25 August 2026</p>",
+      "target": ".text-\\[12\\.5px\\].text-stone-400.mt-2",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 9.4pt (12.5px), font weight: normal). Expected contrast ra"
+     },
+     {
+      "html": "<a class=\"font-semibold text-stone-500\" href=\"/privacy\">Privacy</a>",
+      "target": ".text-stone-500.font-semibold[href$=\"privacy\"]",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 9.4pt (12.5px), font weight: normal). Expected contrast ra"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/terms@1440": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 4,
+    "sample": [
+     {
+      "html": "<a class=\"text-sm text-stone-500\" href=\"/about\">← ethos</a>",
+      "target": ".text-sm",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<p class=\"mt-2 text-[12.5px] text-stone-400\">Last updated 25 August 2026</p>",
+      "target": ".text-\\[12\\.5px\\].text-stone-400.mt-2",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.72 (foreground color: #958e84, background color: #f5ead8, font size: 9.4pt (12.5px), font weight: normal). Expected contrast ra"
+     },
+     {
+      "html": "<a class=\"font-semibold text-stone-500\" href=\"/privacy\">Privacy</a>",
+      "target": ".text-stone-500.font-semibold[href$=\"privacy\"]",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 9.4pt (12.5px), font weight: normal). Expected contrast ra"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/calibrate@390": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 4,
+    "sample": [
+     {
+      "html": "<a class=\"text-sm text-stone-500\" href=\"/settings\">← settings</a>",
+      "target": "a",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<p class=\"mt-2 text-[14px] leading-relaxed text-stone-500\">Four takes, 20 seconds each, through the real engine. The numbers it measures become the proposed thr",
+      "target": "p",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<div class=\"label-data\">Set up first</div>",
+      "target": ".label-data",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.76 (foreground color: #98938a, background color: #faf3e3, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/calibrate@1440": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 4,
+    "sample": [
+     {
+      "html": "<a class=\"text-sm text-stone-500\" href=\"/settings\">← settings</a>",
+      "target": "a",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<p class=\"mt-2 text-[14px] leading-relaxed text-stone-500\">Four takes, 20 seconds each, through the real engine. The numbers it measures become the proposed thr",
+      "target": "p",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<div class=\"label-data\">Set up first</div>",
+      "target": ".label-data",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.76 (foreground color: #98938a, background color: #faf3e3, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio "
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/welcome@390": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 3,
+    "sample": [
+     {
+      "html": "<p class=\"text-body text-stone-500 mt-2 \">You can already talk. You just want to be better at it.</p>",
+      "target": "p",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 11.3pt (15px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<button type=\"button\" class=\"press font-display block w-full rounded-xl bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-cream transition-co",
+      "target": "button",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.35 (foreground color: #fdf6e7, background color: #c67139, font size: 11.3pt (15px), font weight: bold). Expected contrast ratio"
+     },
+     {
+      "html": "<a class=\"mt-3 block text-center text-caption text-stone-500\" href=\"/signin\">I already have an account</a>",
+      "target": "a",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 9.4pt (12.5px), font weight: normal). Expected contrast ra"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/welcome@1440": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 3,
+    "sample": [
+     {
+      "html": "<p class=\"text-body text-stone-500 mt-2 \">You can already talk. You just want to be better at it.</p>",
+      "target": "p",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 11.3pt (15px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<button type=\"button\" class=\"press font-display block w-full rounded-xl bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-cream transition-co",
+      "target": "button",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.35 (foreground color: #fdf6e7, background color: #c67139, font size: 11.3pt (15px), font weight: bold). Expected contrast ratio"
+     },
+     {
+      "html": "<a class=\"mt-3 block text-center text-caption text-stone-500\" href=\"/signin\">I already have an account</a>",
+      "target": "a",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 9.4pt (12.5px), font weight: normal). Expected contrast ra"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   }
+  ],
+  "/nope-404@390": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 6,
+    "sample": [
+     {
+      "html": "<p class=\"mt-2 max-w-[280px] text-[14px] leading-relaxed text-stone-500\">Demos checked. Twice.</p>",
+      "target": "p",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<a class=\"mt-6 w-full max-w-[300px] rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream press\" href=\"/\">Back to today</a>",
+      "target": ".mt-6",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.35 (foreground color: #fdf6e7, background color: #c67139, font size: 12.0pt (16px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<a class=\"font-display flex flex-1 flex-col items-center gap-1 py-1 text-[11px] uppercase tracking-[0.06em] font-semibold text-stone-300\" href=\"/\">",
+      "target": ".flex-1.gap-1[href=\"/\"]",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 1.88 (foreground color: #b9b3a8, background color: #faf3e3, font size: 8.3pt (11px), font weight: normal). Expected contrast rati"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   },
+   {
+    "id": "page-has-heading-one",
+    "impact": "moderate",
+    "help": "Page should contain a level-one heading",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<html lang=\"en\" data-theme=\"light\">",
+      "target": "html",
+      "summary": "Fix all of the following:\n  Page must have a level-one heading"
+     }
+    ]
+   }
+  ],
+  "/nope-404@1440": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 6,
+    "sample": [
+     {
+      "html": "<p class=\"mt-2 max-w-[280px] text-[14px] leading-relaxed text-stone-500\">Demos checked. Twice.</p>",
+      "target": "p",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.57 (foreground color: #807a71, background color: #f5ead8, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<a class=\"mt-6 w-full max-w-[300px] rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream press\" href=\"/\">Back to today</a>",
+      "target": ".mt-6",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.35 (foreground color: #fdf6e7, background color: #c67139, font size: 12.0pt (16px), font weight: normal). Expected contrast rat"
+     },
+     {
+      "html": "<a class=\"font-display flex flex-1 flex-col items-center gap-1 py-1 text-[11px] uppercase tracking-[0.06em] font-semibold text-stone-300\" href=\"/\">",
+      "target": ".flex-1.gap-1[href=\"/\"]",
+      "summary": "Fix any of the following:\n  Element has insufficient color contrast of 1.88 (foreground color: #b9b3a8, background color: #faf3e3, font size: 8.3pt (11px), font weight: normal). Expected contrast rati"
+     }
+    ]
+   },
+   {
+    "id": "meta-viewport",
+    "impact": "critical",
+    "help": "Zooming and scaling must not be disabled",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">",
+      "target": "meta[name=\"viewport\"]",
+      "summary": "Fix any of the following:\n  maximum-scale on <meta> tag disables zooming on mobile devices"
+     }
+    ]
+   },
+   {
+    "id": "page-has-heading-one",
+    "impact": "moderate",
+    "help": "Page should contain a level-one heading",
+    "nodes": 1,
+    "sample": [
+     {
+      "html": "<html lang=\"en\" data-theme=\"light\">",
+      "target": "html",
+      "summary": "Fix all of the following:\n  Page must have a level-one heading"
+     }
+    ]
+   }
+  ]
+ },
+ "layout": {
+  "/@390": {
+   "hs": false,
+   "overflow": [
+    {
+     "tag": "SECTION",
+     "cls": "mt-7 border-t border-hairline pt-4",
+     "scrollWidth": 364,
+     "clientWidth": 350
+    },
+    {
+     "tag": "DIV",
+     "cls": "mt-3 flex flex-col",
+     "scrollWidth": 364,
+     "clientWidth": 350
+    },
+    {
+     "tag": "DIV",
+     "cls": "flex flex-col",
+     "scrollWidth": 364,
+     "clientWidth": 350
+    },
+    {
+     "tag": "A",
+     "cls": "press block",
+     "scrollWidth": 364,
+     "clientWidth": 350
+    }
+   ],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "BUTTON",
+     "text": "Not feeling it? Spin a new top",
+     "w": 207,
+     "h": 20
+    },
+    {
+     "tag": "BUTTON",
+     "text": "Make it harder",
+     "w": 87,
+     "h": 20
+    },
+    {
+     "tag": "A",
+     "text": "8 recordings live only in this",
+     "w": 350,
+     "h": 20
+    },
+    {
+     "tag": "A",
+     "text": "2\nKill 'like'\n1★",
+     "w": 350,
+     "h": 21
+    },
+    {
+     "tag": "A",
+     "text": "3\nSilence beats 'um'\n1★",
+     "w": 350,
+     "h": 21
+    },
+    {
+     "tag": "A",
+     "text": "4\nThe clean minute\n2★",
+     "w": 350,
+     "h": 21
+    },
+    {
+     "tag": "A",
+     "text": "5\nThe 140 zone\n3★",
+     "w": 350,
+     "h": 21
+    },
+    {
+     "tag": "A",
+     "text": "6\nSlow is smooth\n3★",
+     "w": 350,
+     "h": 21
+    },
+    {
+     "tag": "A",
+     "text": "7\nMove the pace\n2★",
+     "w": 350,
+     "h": 21
+    },
+    {
+     "tag": "A",
+     "text": "8\nThe steady state\n2★",
+     "w": 350,
+     "h": 21
+    },
+    {
+     "tag": "A",
+     "text": "9\nHold one second",
+     "w": 350,
+     "h": 21
+    },
+    {
+     "tag": "A",
+     "text": "10\nLand the ending",
+     "w": 350,
+     "h": 21
+    },
+    {
+     "tag": "A",
+     "text": "11\nOpen with silence",
+     "w": 350,
+     "h": 21
+    },
+    {
+     "tag": "A",
+     "text": "12\nPunctuate with silence",
+     "w": 350,
+     "h": 21
+    },
+    {
+     "tag": "A",
+     "text": "Boss: unknown territory",
+     "w": 350,
+     "h": 21
+    },
+    {
+     "tag": "A",
+     "text": "Boss: hostile Q&A",
+     "w": 350,
+     "h": 21
+    }
+   ]
+  },
+  "/@1440": {
+   "hs": false,
+   "overflow": [
+    {
+     "tag": "SECTION",
+     "cls": "mt-7 border-t border-hairline pt-4",
+     "scrollWidth": 404,
+     "clientWidth": 390
+    },
+    {
+     "tag": "DIV",
+     "cls": "mt-3 flex flex-col",
+     "scrollWidth": 404,
+     "clientWidth": 390
+    },
+    {
+     "tag": "DIV",
+     "cls": "flex flex-col",
+     "scrollWidth": 404,
+     "clientWidth": 390
+    },
+    {
+     "tag": "A",
+     "cls": "press block",
+     "scrollWidth": 404,
+     "clientWidth": 390
+    }
+   ],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "BUTTON",
+     "text": "Not feeling it? Spin a new top",
+     "w": 207,
+     "h": 20
+    },
+    {
+     "tag": "BUTTON",
+     "text": "Make it harder",
+     "w": 87,
+     "h": 20
+    },
+    {
+     "tag": "A",
+     "text": "8 recordings live only in this",
+     "w": 390,
+     "h": 20
+    },
+    {
+     "tag": "A",
+     "text": "2\nKill 'like'\n1★",
+     "w": 390,
+     "h": 21
+    },
+    {
+     "tag": "A",
+     "text": "3\nSilence beats 'um'\n1★",
+     "w": 390,
+     "h": 21
+    },
+    {
+     "tag": "A",
+     "text": "4\nThe clean minute\n2★",
+     "w": 390,
+     "h": 21
+    },
+    {
+     "tag": "A",
+     "text": "5\nThe 140 zone\n3★",
+     "w": 390,
+     "h": 21
+    },
+    {
+     "tag": "A",
+     "text": "6\nSlow is smooth\n3★",
+     "w": 390,
+     "h": 21
+    },
+    {
+     "tag": "A",
+     "text": "7\nMove the pace\n2★",
+     "w": 390,
+     "h": 21
+    },
+    {
+     "tag": "A",
+     "text": "8\nThe steady state\n2★",
+     "w": 390,
+     "h": 21
+    },
+    {
+     "tag": "A",
+     "text": "9\nHold one second",
+     "w": 390,
+     "h": 21
+    },
+    {
+     "tag": "A",
+     "text": "10\nLand the ending",
+     "w": 390,
+     "h": 21
+    },
+    {
+     "tag": "A",
+     "text": "11\nOpen with silence",
+     "w": 390,
+     "h": 21
+    },
+    {
+     "tag": "A",
+     "text": "12\nPunctuate with silence",
+     "w": 390,
+     "h": 21
+    },
+    {
+     "tag": "A",
+     "text": "Boss: unknown territory",
+     "w": 390,
+     "h": 21
+    },
+    {
+     "tag": "A",
+     "text": "Boss: hostile Q&A",
+     "w": 390,
+     "h": 21
+    }
+   ]
+  },
+  "/history@390": {
+   "hs": false,
+   "overflow": [
+    {
+     "tag": "SPAN",
+     "cls": "font-display whitespace-nowrap text-right text-[12px] font-b",
+     "scrollWidth": 61,
+     "clientWidth": 58
+    }
+   ],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "BUTTON",
+     "text": "Presence\n1 video recording\nPRO",
+     "w": 350,
+     "h": 41
+    },
+    {
+     "tag": "BUTTON",
+     "text": "Every skill\n9 tracked\nPRO",
+     "w": 350,
+     "h": 41
+    }
+   ]
+  },
+  "/history@1440": {
+   "hs": false,
+   "overflow": [
+    {
+     "tag": "SPAN",
+     "cls": "font-display whitespace-nowrap text-right text-[12px] font-b",
+     "scrollWidth": 61,
+     "clientWidth": 58
+    }
+   ],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "BUTTON",
+     "text": "Presence\n1 video recording\nPRO",
+     "w": 390,
+     "h": 41
+    },
+    {
+     "tag": "BUTTON",
+     "text": "Every skill\n9 tracked\nPRO",
+     "w": 390,
+     "h": 41
+    }
+   ]
+  },
+  "/you@390": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "Settings",
+     "w": 53,
+     "h": 20
+    },
+    {
+     "tag": "BUTTON",
+     "text": "Edit",
+     "w": 24,
+     "h": 44
+    },
+    {
+     "tag": "A",
+     "text": "I already have one",
+     "w": 316,
+     "h": 19
+    }
+   ]
+  },
+  "/you@1440": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "Settings",
+     "w": 53,
+     "h": 20
+    },
+    {
+     "tag": "BUTTON",
+     "text": "Edit",
+     "w": 24,
+     "h": 44
+    },
+    {
+     "tag": "A",
+     "text": "I already have one",
+     "w": 356,
+     "h": 19
+    }
+   ]
+  },
+  "/games@390": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": []
+  },
+  "/games@1440": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": []
+  },
+  "/shop@390": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "← You",
+     "w": 38,
+     "h": 15
+    },
+    {
+     "tag": "BUTTON",
+     "text": "6 more to go",
+     "w": 316,
+     "h": 42
+    },
+    {
+     "tag": "BUTTON",
+     "text": "Buy",
+     "w": 316,
+     "h": 40
+    },
+    {
+     "tag": "BUTTON",
+     "text": "Buy",
+     "w": 316,
+     "h": 40
+    },
+    {
+     "tag": "BUTTON",
+     "text": "4 more to go",
+     "w": 316,
+     "h": 42
+    }
+   ]
+  },
+  "/shop@1440": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "← You",
+     "w": 38,
+     "h": 15
+    },
+    {
+     "tag": "BUTTON",
+     "text": "6 more to go",
+     "w": 356,
+     "h": 42
+    },
+    {
+     "tag": "BUTTON",
+     "text": "Buy",
+     "w": 356,
+     "h": 40
+    },
+    {
+     "tag": "BUTTON",
+     "text": "Buy",
+     "w": 356,
+     "h": 40
+    },
+    {
+     "tag": "BUTTON",
+     "text": "4 more to go",
+     "w": 356,
+     "h": 42
+    }
+   ]
+  },
+  "/settings@390": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "← You",
+     "w": 38,
+     "h": 15
+    }
+   ]
+  },
+  "/settings@1440": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "← You",
+     "w": 38,
+     "h": 15
+    }
+   ]
+  },
+  "/rep?lesson=f2@390": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "← back",
+     "w": 49,
+     "h": 20
+    }
+   ]
+  },
+  "/rep?lesson=f2@1440": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "← back",
+     "w": 49,
+     "h": 20
+    }
+   ]
+  },
+  "/boss@390": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "← back",
+     "w": 49,
+     "h": 20
+    },
+    {
+     "tag": "BUTTON",
+     "text": "Pick a topic instead",
+     "w": 119,
+     "h": 20
+    }
+   ]
+  },
+  "/boss@1440": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "← back",
+     "w": 49,
+     "h": 20
+    },
+    {
+     "tag": "BUTTON",
+     "text": "Pick a topic instead",
+     "w": 119,
+     "h": 20
+    }
+   ]
+  },
+  "/hostile@390": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "← back",
+     "w": 49,
+     "h": 20
+    }
+   ]
+  },
+  "/hostile@1440": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "← back",
+     "w": 49,
+     "h": 20
+    }
+   ]
+  },
+  "/upload@390": {
+   "hs": false,
+   "overflow": [
+    {
+     "tag": "INPUT",
+     "cls": "sr-only",
+     "scrollWidth": 197,
+     "clientWidth": 1
+    }
+   ],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "INPUT",
+     "text": "",
+     "w": 1,
+     "h": 1
+    }
+   ]
+  },
+  "/upload@1440": {
+   "hs": false,
+   "overflow": [
+    {
+     "tag": "INPUT",
+     "cls": "sr-only",
+     "scrollWidth": 197,
+     "clientWidth": 1
+    }
+   ],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "INPUT",
+     "text": "",
+     "w": 1,
+     "h": 1
+    }
+   ]
+  },
+  "/lesson/filler@390": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": []
+  },
+  "/lesson/filler@1440": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": []
+  },
+  "/signup@390": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "← back",
+     "w": 49,
+     "h": 20
+    },
+    {
+     "tag": "A",
+     "text": "Sign in",
+     "w": 42,
+     "h": 16
+    }
+   ]
+  },
+  "/signup@1440": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "← back",
+     "w": 49,
+     "h": 20
+    },
+    {
+     "tag": "A",
+     "text": "Sign in",
+     "w": 42,
+     "h": 16
+    }
+   ]
+  },
+  "/signin@390": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "← back",
+     "w": 49,
+     "h": 20
+    },
+    {
+     "tag": "A",
+     "text": "Keep them instead",
+     "w": 297,
+     "h": 38
+    },
+    {
+     "tag": "A",
+     "text": "Forgot your password?",
+     "w": 151,
+     "h": 16
+    },
+    {
+     "tag": "A",
+     "text": "Create an account",
+     "w": 124,
+     "h": 16
+    }
+   ]
+  },
+  "/signin@1440": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "← back",
+     "w": 49,
+     "h": 20
+    },
+    {
+     "tag": "A",
+     "text": "Keep them instead",
+     "w": 125,
+     "h": 16
+    },
+    {
+     "tag": "A",
+     "text": "Forgot your password?",
+     "w": 151,
+     "h": 16
+    },
+    {
+     "tag": "A",
+     "text": "Create an account",
+     "w": 124,
+     "h": 16
+    }
+   ]
+  },
+  "/auth/forgot@390": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "← back",
+     "w": 49,
+     "h": 20
+    }
+   ]
+  },
+  "/auth/forgot@1440": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "← back",
+     "w": 49,
+     "h": 20
+    }
+   ]
+  },
+  "/about@390": {
+   "hs": false,
+   "overflow": [
+    {
+     "tag": "DIV",
+     "cls": "relative mt-12 overflow-hidden rounded-[24px] border border-",
+     "scrollWidth": 364,
+     "clientWidth": 348
+    }
+   ],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "Privacy",
+     "w": 43,
+     "h": 14
+    },
+    {
+     "tag": "A",
+     "text": "Terms",
+     "w": 37,
+     "h": 14
+    }
+   ]
+  },
+  "/about@1440": {
+   "hs": false,
+   "overflow": [
+    {
+     "tag": "DIV",
+     "cls": "relative mt-12 overflow-hidden rounded-[24px] border border-",
+     "scrollWidth": 404,
+     "clientWidth": 388
+    }
+   ],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "Privacy",
+     "w": 43,
+     "h": 14
+    },
+    {
+     "tag": "A",
+     "text": "Terms",
+     "w": 37,
+     "h": 14
+    }
+   ]
+  },
+  "/privacy@390": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "← ethos",
+     "w": 54,
+     "h": 17
+    },
+    {
+     "tag": "A",
+     "text": "hello@speakethos.com",
+     "w": 159,
+     "h": 17
+    },
+    {
+     "tag": "A",
+     "text": "Terms",
+     "w": 37,
+     "h": 15
+    }
+   ]
+  },
+  "/privacy@1440": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "← ethos",
+     "w": 54,
+     "h": 17
+    },
+    {
+     "tag": "A",
+     "text": "hello@speakethos.com",
+     "w": 159,
+     "h": 17
+    },
+    {
+     "tag": "A",
+     "text": "Terms",
+     "w": 37,
+     "h": 15
+    }
+   ]
+  },
+  "/terms@390": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "← ethos",
+     "w": 54,
+     "h": 17
+    },
+    {
+     "tag": "A",
+     "text": "privacy policy",
+     "w": 94,
+     "h": 17
+    },
+    {
+     "tag": "A",
+     "text": "hello@speakethos.com",
+     "w": 159,
+     "h": 17
+    },
+    {
+     "tag": "A",
+     "text": "Privacy",
+     "w": 43,
+     "h": 15
+    }
+   ]
+  },
+  "/terms@1440": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "← ethos",
+     "w": 54,
+     "h": 17
+    },
+    {
+     "tag": "A",
+     "text": "privacy policy",
+     "w": 94,
+     "h": 17
+    },
+    {
+     "tag": "A",
+     "text": "hello@speakethos.com",
+     "w": 159,
+     "h": 17
+    },
+    {
+     "tag": "A",
+     "text": "Privacy",
+     "w": 43,
+     "h": 15
+    }
+   ]
+  },
+  "/calibrate@390": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "← settings",
+     "w": 70,
+     "h": 17
+    }
+   ]
+  },
+  "/calibrate@1440": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "← settings",
+     "w": 70,
+     "h": 17
+    }
+   ]
+  },
+  "/welcome@390": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "I already have an account",
+     "w": 350,
+     "h": 18
+    }
+   ]
+  },
+  "/welcome@1440": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": [
+    {
+     "tag": "A",
+     "text": "I already have an account",
+     "w": 390,
+     "h": 18
+    }
+   ]
+  },
+  "/nope-404@390": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": []
+  },
+  "/nope-404@1440": {
+   "hs": false,
+   "overflow": [],
+   "clipped": [],
+   "stacks": [],
+   "small": []
+  }
+ },
+ "perf": {
+  "unthrottled": {
+   "lcp": 172,
+   "cls": 0.01,
+   "inp": 0,
+   "ttfb": 7,
+   "dcl": 50,
+   "load": 67
+  },
+  "throttled60ms": {
+   "lcp": 164,
+   "cls": 0.01,
+   "inp": 0,
+   "ttfb": 9,
+   "dcl": 33,
+   "load": 83
+  }
+ },
+ "console": {
+  "/@390": {
+   "errors": [],
+   "warnings": []
+  },
+  "/@1440": {
+   "errors": [],
+   "warnings": []
+  },
+  "/history@390": {
+   "errors": [],
+   "warnings": []
+  },
+  "/history@1440": {
+   "errors": [],
+   "warnings": []
+  },
+  "/you@390": {
+   "errors": [],
+   "warnings": []
+  },
+  "/you@1440": {
+   "errors": [],
+   "warnings": []
+  },
+  "/games@390": {
+   "errors": [],
+   "warnings": []
+  },
+  "/games@1440": {
+   "errors": [],
+   "warnings": []
+  },
+  "/shop@390": {
+   "errors": [],
+   "warnings": []
+  },
+  "/shop@1440": {
+   "errors": [],
+   "warnings": []
+  },
+  "/settings@390": {
+   "errors": [],
+   "warnings": []
+  },
+  "/settings@1440": {
+   "errors": [],
+   "warnings": []
+  },
+  "/rep?lesson=f2@390": {
+   "errors": [],
+   "warnings": []
+  },
+  "/rep?lesson=f2@1440": {
+   "errors": [],
+   "warnings": []
+  },
+  "/boss@390": {
+   "errors": [],
+   "warnings": []
+  },
+  "/boss@1440": {
+   "errors": [],
+   "warnings": []
+  },
+  "/hostile@390": {
+   "errors": [],
+   "warnings": []
+  },
+  "/hostile@1440": {
+   "errors": [],
+   "warnings": []
+  },
+  "/upload@390": {
+   "errors": [],
+   "warnings": []
+  },
+  "/upload@1440": {
+   "errors": [],
+   "warnings": []
+  },
+  "/lesson/filler@390": {
+   "errors": [],
+   "warnings": []
+  },
+  "/lesson/filler@1440": {
+   "errors": [],
+   "warnings": []
+  },
+  "/signup@390": {
+   "errors": [],
+   "warnings": []
+  },
+  "/signup@1440": {
+   "errors": [],
+   "warnings": []
+  },
+  "/signin@390": {
+   "errors": [],
+   "warnings": []
+  },
+  "/signin@1440": {
+   "errors": [],
+   "warnings": []
+  },
+  "/auth/forgot@390": {
+   "errors": [],
+   "warnings": []
+  },
+  "/auth/forgot@1440": {
+   "errors": [],
+   "warnings": []
+  },
+  "/about@390": {
+   "errors": [],
+   "warnings": []
+  },
+  "/about@1440": {
+   "errors": [],
+   "warnings": []
+  },
+  "/privacy@390": {
+   "errors": [],
+   "warnings": []
+  },
+  "/privacy@1440": {
+   "errors": [],
+   "warnings": []
+  },
+  "/terms@390": {
+   "errors": [],
+   "warnings": []
+  },
+  "/terms@1440": {
+   "errors": [],
+   "warnings": []
+  },
+  "/calibrate@390": {
+   "errors": [],
+   "warnings": []
+  },
+  "/calibrate@1440": {
+   "errors": [],
+   "warnings": []
+  },
+  "/welcome@390": {
+   "errors": [],
+   "warnings": []
+  },
+  "/welcome@1440": {
+   "errors": [],
+   "warnings": []
+  },
+  "/nope-404@390": {
+   "errors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+   ],
+   "warnings": []
+  },
+  "/nope-404@1440": {
+   "errors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+   ],
+   "warnings": []
+  }
+ }
+}

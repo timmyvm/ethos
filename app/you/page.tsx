@@ -633,7 +633,9 @@ export default function YouPage() {
           </div>
           <p className="mt-1 text-[13px] leading-relaxed text-stone-500">
             {history.length} recording{history.length === 1 ? "" : "s"}
-            {streak.current > 0 && ` and a ${streak.current}-day streak`} live
+            {streak.current > 0 &&
+              ` and ${/^(8|11|18|8\d)$/.test(String(streak.current)) ? "an" : "a"} ${streak.current}-day streak`}{" "}
+            live
             on this device. An account keeps them.
           </p>
           <Link

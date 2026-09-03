@@ -58,22 +58,28 @@ export async function fetchReps(limit = 90): Promise<RepRow[]> {
   if (!db) return [];
   const { data: session } = await db.auth.getSession();
   if (!session.session) return [];
-  const { data } = await db
+  const { data, error } = await db
     .from("reps")
     .select(REP_COLUMNS)
     .order("created_at", { ascending: true })
     .limit(limit);
+  // An answered error (500, an expired JWT's 401) used to come back as
+  // [], and every screen drew its zero state over a read that never
+  // happened. "Nothing yet" and "didn't load" are different screens
+  // (DECISIONS #147); only a throw reaches the error card.
+  if (error) throw error;
   return (data as RepRow[] | null) ?? [];
 }
 
 export async function fetchRep(id: string): Promise<RepRow | null> {
   const db = supabaseBrowser();
   if (!db) return null;
-  const { data } = await db
+  const { data, error } = await db
     .from("reps")
     .select(REP_COLUMNS)
     .eq("id", id)
     .maybeSingle();
+  if (error) throw error;
   return (data as RepRow | null) ?? null;
 }
 

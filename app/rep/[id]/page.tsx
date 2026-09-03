@@ -17,7 +17,7 @@ import {
   repAudioUrl,
   type RepRow,
 } from "@/lib/client-data";
-import { computeMetrics } from "@/lib/metrics";
+import { computeMetrics, substance } from "@/lib/metrics";
 import { fromRow } from "@/lib/presence";
 import { topicFromLessonId } from "@/lib/rep-config";
 import { modById } from "@/lib/stress-mods";
@@ -77,7 +77,7 @@ export default function RepDetail({
   if (!rep) {
     return (
       <main className="px-5 pb-24 pt-7">
-        <Link href="/history" className="text-sm text-stone-500">
+        <Link href="/history" className="inline-flex min-h-11 items-center text-sm text-stone-500">
           ← the log
         </Link>
         <p className="mt-6 text-[14px] font-semibold">Recording not found.</p>
@@ -103,6 +103,9 @@ export default function RepDetail({
     midSentencePauses: (rep.pauses ?? []).filter((p) => p.kind === "mid")
       .length,
     stars: rep.stars as 1 | 2 | 3,
+    // Length and variety, from the stored words: the row has no word
+    // count column and the screen printed "0 words" over the transcript.
+    substance: substance(rep.transcript),
   };
 
   const dims = rep.dimensions;
@@ -132,7 +135,7 @@ export default function RepDetail({
 
   return (
     <main className="px-5 pb-24 pt-7">
-      <Link href="/history" className="text-sm text-stone-500">
+      <Link href="/history" className="inline-flex min-h-11 items-center text-sm text-stone-500">
         ← the log
       </Link>
       <div className="label-data mt-4">

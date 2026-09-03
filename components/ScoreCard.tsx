@@ -70,14 +70,18 @@ export function ScoreCard({
               </div>
               {/* "recordings", not "reps": the counter names the thing
                   it counts (#164). */}
-              <div className="label-data !text-sage-mist">recordings</div>
+              <div className="label-data !text-sage-mist">
+                {recordings === 1 ? "recording" : "recordings"}
+              </div>
             </div>
           )}
           <div>
             <div className="font-display text-[19px] font-extrabold leading-none">
               {stars}
             </div>
-            <div className="label-data !text-sage-mist">stars</div>
+            <div className="label-data !text-sage-mist">
+              {stars === 1 ? "star" : "stars"}
+            </div>
           </div>
         </div>
       </div>

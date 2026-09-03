@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 export default function Privacy() {
   return (
     <main className="px-5 pb-24 pt-10">
-      <Link href="/about" className="text-sm text-stone-500">
+      <Link href="/about" className="inline-flex min-h-11 items-center text-sm text-stone-500">
         ← ethos
       </Link>
       <h1 className="font-display mt-6 text-[34px] leading-[1.15]">Privacy</h1>

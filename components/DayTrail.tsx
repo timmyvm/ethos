@@ -33,7 +33,7 @@ export function DayTrail({
     <div className="mt-4 flex items-center justify-between gap-3 border-t border-cream/10 pt-3.5">
       {pebbles.length > 0 && (
         <div
-          className="flex items-center gap-[5px]"
+          className="forced-color-adjust-none flex items-center gap-[5px]"
           role="img"
           aria-label={`Last ${pebbles.length} days: ${spoken} spoken${
             frozen > 0 ? `, ${frozen} frozen` : ""

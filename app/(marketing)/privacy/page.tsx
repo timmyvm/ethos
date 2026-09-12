@@ -35,7 +35,7 @@ export default function Privacy() {
       </p>
 
       <p className="mt-5 text-[15px] leading-relaxed text-stone-600">
-        Ethos is a speaking gym: you record yourself, the recording gets
+        Ethos is speaking practice: you record yourself, the recording gets
         measured, you get feedback. That only works if we handle recordings of
         your voice, so here is exactly what happens to them, in plain words.
       </p>

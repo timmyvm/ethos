@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Ethos: practice being worth listening to",
     description:
-      "Courses teach theory. Ethos is the daily gym: one prompt, sixty seconds, every number measured.",
+      "Courses teach theory. Ethos is daily practice: one prompt, sixty seconds, every number measured.",
   },
 };
 
@@ -153,7 +153,7 @@ export default function About() {
         <li>· No alpha talk. This serves ambition, not contempt.</li>
         <li>· No horoscope feedback. Every claim traces to a number.</li>
         <li>· No pay-to-win. Money never buys stars, streaks, or scores.</li>
-        <li>· No deadline cram. It&apos;s a gym, not a rescue.</li>
+        <li>· No deadline cram. It&apos;s practice, not a rescue.</li>
       </ul>
 
       <Link

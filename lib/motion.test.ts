@@ -31,7 +31,7 @@ describe("motion tokens", () => {
     expect(token("default-transition-duration")).toBe(`${DURATION.fast}ms`);
   });
 
-  it("keeps every duration inside DESIGN-RULES", () => {
+  it("keeps every duration inside the motion rules", () => {
     expect(DURATION.fast).toBeLessThanOrEqual(DURATION.base);
     expect(DURATION.base).toBeLessThanOrEqual(DURATION.max);
     // Nothing past 300ms except a celebration, which may take 600.
@@ -41,7 +41,7 @@ describe("motion tokens", () => {
 });
 
 /**
- * DESIGN-RULES: never invent an animation duration inline. A Tailwind
+ * Never invent an animation duration inline (DESIGN.md, tokens). A Tailwind
  * `duration-500` on a component is exactly that, so the sweep looks
  * for one; `.dur-fast/base/max` are the classes that read the tokens.
  */

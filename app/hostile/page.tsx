@@ -478,7 +478,7 @@ export default function HostilePage() {
           {/* Demos's sprite matches what he's DOING (#194): listening
               while you speak, working while he thinks. There is no
               thinking pose in the set; the workout is the honest
-              stand-in, and it's the gym's idea of thinking anyway. */}
+              stand-in, and it's the app's idea of thinking anyway. */}
           <Image
             src="/demos-workout.webp"
             alt=""

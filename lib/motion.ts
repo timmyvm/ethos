@@ -1,5 +1,5 @@
 /**
- * The only source of durations and easings (DESIGN-RULES.md, motion).
+ * The only source of durations and easings (DESIGN.md, continuity).
  *
  * Ethos animates in CSS — there is no animation library in the stack and
  * nothing here wants one — so these are milliseconds and cubic-bezier

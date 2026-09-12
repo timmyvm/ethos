@@ -31,7 +31,7 @@ export interface PaywallAsk {
 
 export function Paywall({
   reason,
-  headline = "The whole gym.",
+  headline = "All of it.",
   onClose,
   onUnlocked,
 }: {

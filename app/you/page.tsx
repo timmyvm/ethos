@@ -27,9 +27,10 @@ import { rankedTraits, traitLevels } from "@/lib/traits";
 import { syncFreezes } from "@/lib/freeze-sync";
 import { levelFromXp } from "@/lib/level";
 import { readable, readFailure } from "@/lib/load";
-import { starsByLesson, totalStars, UNITS } from "@/lib/path";
-import { goalById, readProfile, type Goal } from "@/lib/profile";
-import { syncProfile } from "@/lib/profile-sync";
+import { starsByLesson, totalStars } from "@/lib/path";
+import { readOnboarding, type OnboardingState } from "@/lib/answers";
+import { syncOnboarding } from "@/lib/answers-sync";
+import { buildPortfolio } from "@/lib/portfolio";
 import {
   computeStreak,
   MAX_EQUIPPED_FREEZES,
@@ -89,8 +90,8 @@ export default function YouPage() {
   const [name, setName] = useState<string | null>(null);
   const [nameKnown, setNameKnown] = useState(false);
   const [premium, setPremium] = useState(false);
-  /** The self-diagnosis (#231): undefined until the device has been read. */
-  const [goal, setGoal] = useState<Goal | null | undefined>(undefined);
+  /** The introduction's answers (#232): undefined until the device has been read. */
+  const [onboarding, setOnboarding] = useState<OnboardingState | undefined>(undefined);
   const [editingName, setEditingName] = useState(false);
   const [draft, setDraft] = useState("");
   const [nameFailed, setNameFailed] = useState(false);
@@ -147,13 +148,13 @@ export default function YouPage() {
     void load();
     fetchLexicon().then(setLexicon).catch(() => {});
     fetchXp().then(setXp).catch(() => {});
-    setGoal(readProfile().goal);
+    setOnboarding(readOnboarding());
     fetchProfile()
       .then((p) => {
         setName(p?.display_name ?? null);
         setNameKnown(true);
         setPremium(p?.premium ?? false);
-        return syncProfile(p).then((prof) => setGoal(prof.goal));
+        return syncOnboarding().then(setOnboarding);
       })
       .catch(() => {});
     const db = supabaseBrowser();
@@ -211,7 +212,7 @@ export default function YouPage() {
 
       {/* The one card on the page. It holds the two numbers that answer
           "how far in am I", so it keeps the furniture. */}
-      <div className="mt-4 rounded-[14px] border border-edge bg-raised p-[18px]">
+      <div className="mt-4 rounded-card border border-edge bg-raised p-[18px]">
         {/* The name: the one profile field you type rather than earn.
             League rows show it, so it caps where they'd truncate. */}
         {editingName ? (
@@ -229,11 +230,11 @@ export default function YouPage() {
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder="Your name"
-              className="min-h-11 w-full min-w-0 flex-1 rounded-[10px] border border-stone-200 bg-raised px-4 text-[15px] font-semibold placeholder:text-stone-300 focus:border-stone-300"
+              className="min-h-11 w-full min-w-0 flex-1 rounded-control border border-stone-200 bg-raised px-4 text-[15px] font-semibold placeholder:text-stone-400 focus:border-stone-300"
             />
             <button
               type="submit"
-              className="press min-h-11 shrink-0 rounded-[10px] border border-stone-200 bg-surface px-4 text-[13.5px] font-semibold hover:bg-sand"
+              className="press min-h-11 shrink-0 rounded-control border border-stone-200 bg-surface px-4 text-[13.5px] font-semibold hover:bg-sand"
             >
               Save
             </button>
@@ -324,11 +325,11 @@ export default function YouPage() {
         </div>
       </div>
 
-      {/* What you said you notice, and the unit for it with the road's
-          own gate (#231). A row, not a card (#151), and a tap, because
-          a self-diagnosis is allowed to change. */}
-      {goal !== undefined && (
-        <FocusRow goal={goal} stars={reps ? totalStars(starsByLesson(reps)) : null} />
+      {/* The plan (#232): its headline, the unit for what was noticed,
+          and how far the road's gate is. A row, not a card (#151), and a
+          tap, because an answer is allowed to change. */}
+      {onboarding !== undefined && (
+        <PlanRow state={onboarding} stars={reps ? totalStars(starsByLesson(reps)) : null} />
       )}
 
       <div className="mt-5 flex gap-3">
@@ -371,7 +372,7 @@ export default function YouPage() {
                 <div key={t.key} className="flex items-center gap-3">
                   <span
                     className={`font-display w-[92px] shrink-0 text-[13px] font-bold leading-tight ${
-                      t.level > 0 ? "" : "text-stone-300"
+                      t.level > 0 ? "" : "text-stone-400"
                     }`}
                   >
                     {t.name}
@@ -390,7 +391,7 @@ export default function YouPage() {
                   </span>
                   <span
                     className={`font-display w-6 shrink-0 text-right text-[14px] font-extrabold tabular-nums ${
-                      t.level > 0 ? "" : "text-stone-300"
+                      t.level > 0 ? "" : "text-stone-400"
                     }`}
                   >
                     {t.level}
@@ -455,7 +456,7 @@ export default function YouPage() {
         )}
         <Link
           href="/shop"
-          className="press font-display mt-3 flex min-h-11 items-center justify-between rounded-[10px] border border-stone-200 bg-surface px-4 py-[11px] text-[13.5px] font-bold hover:bg-sand"
+          className="press font-display mt-3 flex min-h-11 items-center justify-between rounded-control border border-stone-200 bg-surface px-4 py-[11px] text-[13.5px] font-bold hover:bg-sand"
         >
           <span>Open the shop</span>
           <span aria-hidden className="text-stone-300">
@@ -479,10 +480,10 @@ export default function YouPage() {
                the earned outline, an empty slot the neutral one. */
             <span
               key={i}
-              className={`flex h-[38px] w-[38px] items-center justify-center rounded-[10px] border ${
+              className={`flex h-[38px] w-[38px] items-center justify-center rounded-control border ${
                 ready
                   ? "border-sage-300 bg-surface text-sage-700"
-                  : "border-stone-200 bg-surface text-stone-300"
+                  : "border-stone-200 bg-surface text-stone-400"
               }`}
             >
               <IconFreeze size={17} />
@@ -526,7 +527,7 @@ export default function YouPage() {
                 key={l.id}
                 className="flex items-center gap-2.5 border-b border-hairline py-2.5 text-[13.5px]"
               >
-                <span className="text-stone-300 line-through">
+                <span className="text-stone-400 line-through">
                   {l.original}
                 </span>
                 <span aria-hidden className="text-stone-200">
@@ -539,7 +540,7 @@ export default function YouPage() {
           {lexicon.length >= 3 && !flashing && (
             <button
               onClick={() => setFlashing(true)}
-              className="press font-display mt-3 min-h-11 w-full rounded-[10px] border border-sage-300 px-5 py-2.5 text-[13px] font-bold text-sage-700 hover:bg-sage-100"
+              className="press font-display mt-3 min-h-11 w-full rounded-control border border-sage-300 px-5 py-2.5 text-[13px] font-bold text-sage-700 hover:bg-sage-100"
             >
               Test yourself on these →
             </button>
@@ -588,7 +589,7 @@ export default function YouPage() {
        */}
       <div className="label-data mt-6 border-t border-hairline pt-3.5">
         Earned{" "}
-        <span className="ml-1 text-stone-300">
+        <span className="ml-1 text-stone-400">
           {earnedCount}/{badges.length}
         </span>
       </div>
@@ -602,10 +603,10 @@ export default function YouPage() {
             {/* Bordered tiles, not washes (#201): earned wears the
                 olive outline, not-yet the neutral one. */}
             <span
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border ${
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-control border ${
                 a.earned
                   ? "border-sage-300 bg-surface text-sage-700"
-                  : "border-stone-200 bg-surface text-stone-300"
+                  : "border-stone-200 bg-surface text-stone-400"
               }`}
             >
               <AchievementMark name={a.icon} size={18} />
@@ -647,7 +648,7 @@ export default function YouPage() {
       )}
 
       {showGate && (
-        <div className="mt-7 rounded-[14px] border border-edge bg-raised p-4">
+        <div className="mt-7 rounded-card border border-edge bg-raised p-4">
           <div className="font-display text-[14.5px] font-bold">
             Save your progress
           </div>
@@ -660,7 +661,7 @@ export default function YouPage() {
           </p>
           <Link
             href="/signup"
-            className="press font-display mt-3 block min-h-11 w-full rounded-xl bg-terracotta-500 px-5 py-3 text-center text-[15px] font-bold text-cream hover:bg-terracotta-600"
+            className="press font-display mt-3 block min-h-11 w-full rounded-control bg-terracotta-500 px-5 py-3 text-center text-[15px] font-bold text-on-accent hover:bg-terracotta-600"
           >
             Create my account
           </Link>
@@ -684,7 +685,7 @@ export default function YouPage() {
         ) : (
           <button
             onClick={() => setPaywall({ reason: "Ethos Premium" })}
-            className="press font-display mt-7 flex min-h-11 w-full items-center justify-between rounded-[10px] border border-stone-200 bg-surface px-4 py-[11px] text-[13.5px] font-bold hover:bg-sand"
+            className="press font-display mt-7 flex min-h-11 w-full items-center justify-between rounded-control border border-stone-200 bg-surface px-4 py-[11px] text-[13.5px] font-bold hover:bg-sand"
           >
             <span>Ethos Premium</span>
             <span aria-hidden className="text-stone-300">
@@ -726,33 +727,49 @@ function Stat({
 }
 
 /**
- * The focus row (#231): the answer in their words, the unit that trains
- * it, and how far the road's gate is. Opens the question screen to
- * change it; the plan updates from the same answer everywhere.
+ * The plan row (#232): the portfolio's headline, the unit that trains
+ * what was noticed, and how far its gate is. Opens the plan to change
+ * an answer; a walk never taken opens the first question.
  */
-function FocusRow({ goal, stars }: { goal: Goal | null; stars: number | null }) {
-  const g = goalById(goal);
-  const unit = g ? UNITS.find((u) => u.id === g.unitId) : null;
-  const toGo = unit && stars !== null ? Math.max(0, unit.unlocksAt - stars) : null;
+function PlanRow({ state, stars }: { state: OnboardingState; stars: number | null }) {
+  if (!state.done) {
+    return (
+      <Link
+        href="/welcome?step=ageBand"
+        className="press mt-5 flex min-h-11 items-center justify-between gap-3 border-y border-hairline py-3"
+      >
+        <span>
+          <span className="label-data">Your plan</span>
+          <span className="font-display mt-0.5 block text-[14px] font-bold">
+            Five questions, then a first month.
+          </span>
+        </span>
+        <span className="shrink-0 text-[12px] text-stone-500">Build it →</span>
+      </Link>
+    );
+  }
+  const plan = buildPortfolio(state.answers);
+  const toGo =
+    plan.focus && stars !== null ? Math.max(0, plan.focus.unlocksAt - stars) : null;
   return (
     <Link
-      href="/welcome?step=goal"
+      href="/welcome?step=plan"
       className="press mt-5 flex min-h-11 items-center justify-between gap-3 border-y border-hairline py-3"
     >
       <span className="min-w-0">
-        <span className="label-data">Focus</span>
+        <span className="label-data">Your plan</span>
         <span className="font-display mt-0.5 block truncate text-[14px] font-bold">
-          {g ? g.said[0].toUpperCase() + g.said.slice(1) : "Not set"}
+          {plan.headline}
         </span>
       </span>
       <span className="shrink-0 text-right text-[12px] text-stone-500 tabular-nums">
-        {unit
+        {plan.focus
           ? toGo === null
-            ? unit.name
+            ? plan.focus.unitName
             : toGo === 0
-              ? `${unit.name} · open`
-              : `${unit.name} · ${toGo}★ to go`
-          : "Pick one →"}
+              ? `${plan.focus.unitName} · open`
+              : `${plan.focus.unitName} · ${toGo}★ to go`
+          : "The road, one unit at a time"}
       </span>
     </Link>
   );

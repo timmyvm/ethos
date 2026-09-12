@@ -21,7 +21,7 @@ export function applyTheme(theme: Theme): void {
   document.documentElement.setAttribute("data-theme", resolved);
   document
     .querySelector('meta[name="theme-color"]')
-    ?.setAttribute("content", resolved === "dark" ? "#211a13" : "#f5ead8");
+    ?.setAttribute("content", resolved === "dark" ? "#1a1410" : "#f5ead8");
 }
 
 /**
@@ -81,6 +81,6 @@ export const themeBootScript = `
   // after hydration is the difference between a dark app under a cream
   // status bar for one frame and never seeing it at all.
   var m = document.querySelector('meta[name="theme-color"]');
-  if (m) m.setAttribute('content', t === 'dark' ? '#211a13' : '#f5ead8');
+  if (m) m.setAttribute('content', t === 'dark' ? '#1a1410' : '#f5ead8');
 }catch(e){}})();
 `;

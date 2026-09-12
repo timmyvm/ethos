@@ -26,6 +26,8 @@ import { PresenceDetail, PresenceScore } from "@/components/PresenceCard";
 import { RepResult } from "@/components/RepResult";
 import { ScoringWave } from "@/components/ScoringWave";
 import { StreakCelebration } from "@/components/StreakCelebration";
+import { readOnboarding } from "@/lib/answers";
+import { buildPortfolio } from "@/lib/portfolio";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { achievements } from "@/lib/achievements";
 import {
@@ -1093,7 +1095,7 @@ function RepScreen() {
             {/* Structure tips, by the SHAPE of answer the prompt asks
                 for. We know that much honestly; we don't know what
                 you're going to say, so we don't pretend to. */}
-            <div className="mt-4 rounded-[24px] border border-hairline bg-surface p-4">
+            <div className="mt-4 rounded-card border border-hairline bg-surface p-4">
               <div className="label-data">Shape it like this</div>
               <ul className="mt-2 space-y-1.5">
                 {config.tips.map((tip, i) => (
@@ -1115,7 +1117,7 @@ function RepScreen() {
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               placeholder="Notes: first line, last line, one example…"
-              className="mt-3 w-full rounded-[24px] border border-stone-200 bg-surface p-4 text-[14px] leading-relaxed placeholder:text-stone-300 focus:border-stone-300"
+              className="mt-3 w-full rounded-card border border-stone-200 bg-surface p-4 text-[14px] leading-relaxed placeholder:text-stone-400 focus:border-stone-300"
             />
             <p className="mt-1.5 text-[11.5px] text-stone-400">
               They disappear when you record. You can&apos;t read and speak at
@@ -1201,7 +1203,7 @@ function RepScreen() {
           }`}
         >
           <div
-            className={`relative overflow-hidden rounded-[22px] transition-shadow ${
+            className={`relative overflow-hidden rounded-sheet transition-shadow ${
               ring === "ok"
                 ? "ring-2 ring-hairline"
                 : `ring-4 ${RING_TONE}`
@@ -1308,7 +1310,7 @@ function RepScreen() {
               className={`relative h-24 w-24 rounded-full border border-transparent text-[15px] font-bold transition-colors dur-base ${
                 phase === "recording"
                   ? "bg-ink text-ground"
-                  : "bg-terracotta-500 text-cream hover:bg-terracotta-600"
+                  : "bg-terracotta-500 text-on-accent hover:bg-terracotta-600"
               }`}
             >
               {phase === "recording" ? "Stop" : "Record"}
@@ -1342,7 +1344,7 @@ function RepScreen() {
         {phase === "frame" && (
           <button
             onClick={() => void startRep()}
-            className="rounded-full border border-stone-200 bg-surface px-6 py-3.5 text-[15px] font-semibold"
+            className="rounded-control border border-stone-200 bg-surface px-6 py-3.5 text-[15px] font-semibold"
           >
             I&apos;m ready
           </button>
@@ -1351,7 +1353,7 @@ function RepScreen() {
 
       {interruption && (
         <div className="pointer-events-none fixed inset-x-0 bottom-24 z-40 flex justify-center px-5">
-          <div className="arrive flex max-w-[340px] items-center gap-3 rounded-[24px] bg-stage px-4 py-3 text-cream">
+          <div className="arrive flex max-w-[340px] items-center gap-3 rounded-card bg-stage px-4 py-3 text-cream">
             <Image
               src="/demos-speaking.webp"
               alt=""
@@ -1597,7 +1599,7 @@ function Results({
          * measured number is real.
          */}
         {section === "score" && result.judged.capped && (
-          <div className="mt-5 rounded-[24px] border border-hairline bg-surface p-5">
+          <div className="mt-5 rounded-card border border-hairline bg-surface p-5">
             <div className="font-display text-[19px] font-bold leading-tight">
               Measured, not judged.
             </div>
@@ -1668,7 +1670,7 @@ function Results({
          * skills, and it always shows the number that made the call.
          */}
         {last && tomorrow && tomorrow.strength !== null && (
-          <div className="mt-5 rounded-[24px] border border-hairline bg-surface p-5">
+          <div className="mt-5 rounded-card border border-hairline bg-surface p-5">
             <div className="label-data">Tomorrow</div>
             <div className="font-display mt-1 text-[22px] font-bold leading-tight">
               {tomorrow.label}
@@ -1704,14 +1706,14 @@ function Results({
                   })
                 )
               }
-              className="press block w-full rounded-full border border-transparent bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+              className="press block w-full rounded-control border border-transparent bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-on-accent transition-colors hover:bg-terracotta-600"
             >
               Another round · {game.name}
             </button>
           ) : (
             <button
               onClick={() => exit(repHref({ lesson: next.id }))}
-              className="press block w-full rounded-full border border-transparent bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+              className="press block w-full rounded-control border border-transparent bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-on-accent transition-colors hover:bg-terracotta-600"
             >
               {again ? "Go again" : "Next lesson"} · {next.title}
             </button>
@@ -1719,7 +1721,7 @@ function Results({
           {!again && (
             <button
               onClick={onRetake}
-              className="press mt-3 w-full rounded-full border border-stone-200 bg-surface px-6 py-4 text-[15px] font-semibold"
+              className="press mt-3 w-full rounded-control border border-stone-200 bg-surface px-6 py-4 text-[15px] font-semibold"
             >
               Retake this one
             </button>
@@ -1734,7 +1736,7 @@ function Results({
       ) : (
         <button
           onClick={() => setStep((n) => n + 1)}
-          className="press mt-6 w-full rounded-full border border-transparent bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+          className="press mt-6 w-full rounded-control border border-transparent bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-on-accent transition-colors hover:bg-terracotta-600"
         >
           {STEPS[step + 1].label} →
         </button>
@@ -1802,7 +1804,7 @@ function SaveGate({
 
       <Link
         href="/signup"
-        className="press block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+        className="press block w-full rounded-control bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-on-accent transition-colors hover:bg-terracotta-600"
       >
         Save my progress
       </Link>
@@ -1847,7 +1849,11 @@ function ProgressMoment({
       <div className="label-data">Since day one</div>
 
       <div className="flex flex-1 flex-col justify-center">
-        <ComparisonCard reps={reps} />
+        {/* Leads with the number they said they'd watch (#232). */}
+        <ComparisonCard
+          reps={reps}
+          lead={buildPortfolio(readOnboarding().answers).focus?.metric}
+        />
         <p className="mt-3 text-[13px] leading-relaxed text-stone-500">
           Free shows the last 7 days and reads one recording a day. Premium
           opens all of it.
@@ -1856,7 +1862,7 @@ function ProgressMoment({
 
       <button
         onClick={() => setSheet(true)}
-        className="press block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+        className="press block w-full rounded-control bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-on-accent transition-colors hover:bg-terracotta-600"
       >
         Keep every number
       </button>
@@ -1923,7 +1929,7 @@ function PlanChips({ streak }: { streak: number }) {
   if (hour !== null && !picked) return null;
 
   return (
-    <div className="mt-5 rounded-[24px] border border-hairline bg-surface p-5">
+    <div className="mt-5 rounded-card border border-hairline bg-surface p-5">
       <div className="label-data">Tomorrow · when?</div>
       {picked ? (
         <p className="mt-2 text-[13px] leading-relaxed text-stone-600">
@@ -1943,7 +1949,7 @@ function PlanChips({ streak }: { streak: number }) {
               <button
                 key={p.h}
                 onClick={() => void pick(p.h)}
-                className="press rounded-full bg-sand px-3.5 py-2 text-[13px] font-semibold text-stone-600"
+                className="press rounded-control bg-sand px-3.5 py-2 text-[13px] font-semibold text-stone-600"
               >
                 {p.label}
               </button>

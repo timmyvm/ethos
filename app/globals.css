@@ -58,8 +58,18 @@
   --color-rust: #b2432c;
   --color-rust-lit: #e6b48c;
 
-  /* Text on a terracotta or sage fill. */
+  /* The mascot's own accent (brand.md: amber sound arcs, sparkles).
+   * Drawn, never a tap, never earned; the only amber in the product. */
+  --color-amber: #e0a800;
+  /* Cream: the light text on the deep surfaces (score card, stage). */
   --color-cream: #fdf6e7;
+  /*
+   * The label on the one tap (#231). Ink, not cream: cream on
+   * terracotta-500 is 3.35:1 and fails AA at the button's size, ink on
+   * the same fill is 4.6:1. Never swaps with the theme, because the
+   * fill doesn't either.
+   */
+  --color-on-accent: #201e1d;
   /* Progress-bar troughs, empty slots. Square-cornered (#201). */
   --color-sand: #ecdfc4;
 
@@ -91,13 +101,27 @@
    */
   --color-stone-100: rgba(32, 30, 29, 0.07);
   --color-stone-200: rgba(32, 30, 29, 0.14);
+  /* 300 is FAINT and never carries words (#231): inactive glyphs,
+   * disabled fills, dividers. 2.4:1 is fine for a shape, not a label. */
   --color-stone-300: rgba(32, 30, 29, 0.3);
-  --color-stone-400: rgba(32, 30, 29, 0.45);
-  --color-stone-500: rgba(32, 30, 29, 0.55);
-  --color-stone-600: rgba(32, 30, 29, 0.68);
-  --color-stone-700: rgba(32, 30, 29, 0.8);
-  --color-stone-800: rgba(32, 30, 29, 0.88);
+  /* The text roles, re-pinned to clear AA on ground and raised (#231,
+   * resolving needs-judgment #4): muted 0.66 (5.0:1), secondary 0.72
+   * (6.0:1). Same classes, same jobs, one alpha pass. */
+  --color-stone-400: rgba(32, 30, 29, 0.66);
+  --color-stone-500: rgba(32, 30, 29, 0.72);
+  --color-stone-600: rgba(32, 30, 29, 0.8);
+  --color-stone-700: rgba(32, 30, 29, 0.86);
+  --color-stone-800: rgba(32, 30, 29, 0.92);
   --color-stone-900: #201e1d;
+
+  /*
+   * Shape (#201, one scale in #231): controls 10, cards 12, sheets and
+   * the largest surfaces 16. Chips are the only pills. `rounded-control`,
+   * `rounded-card`, `rounded-sheet`; never a bracketed pixel radius.
+   */
+  --radius-control: 10px;
+  --radius-card: 12px;
+  --radius-sheet: 16px;
 
   /*
    * Motion (DESIGN-RULES, motion; DECISIONS #221). These mirror
@@ -177,14 +201,21 @@ body {
  * the same class keeps its contrast on the dark ground (#64, #167).
  */
 :root[data-theme="dark"] {
-  --color-ground: #211a13;
-  --color-surface: #2d241b;
-  --color-raised: #2d241b;
+  /*
+   * Three visible steps (#231): ground, then surface for rows and
+   * controls, then raised for cards, sheets and the nav. `surface` and
+   * `raised` used to be the same hex, so a card on the dark ground had
+   * no step under it. Stage sits below the room, as it does in light.
+   */
+  --color-ground: #1a1410;
+  --color-surface: #241c15;
+  --color-raised: #2e251c;
   --color-sand: #3b2f22;
-  --color-stage: #1a1410;
+  --color-stage: #120e0b;
   --color-ink: #f3ecdd;
   --color-hairline: rgba(243, 236, 221, 0.08);
-  --color-edge: rgba(243, 236, 221, 0.14);
+  /* One notch firmer than light: an outline on dark needs it. */
+  --color-edge: rgba(243, 236, 221, 0.16);
 
   /* Light washes become dark washes of the same hue; the accent-text
    * steps lift to the peach that reads on them. */
@@ -212,11 +243,12 @@ body {
   --color-stone-100: rgba(243, 236, 221, 0.07);
   --color-stone-200: rgba(243, 236, 221, 0.14);
   --color-stone-300: rgba(243, 236, 221, 0.3);
-  --color-stone-400: rgba(243, 236, 221, 0.45);
-  --color-stone-500: rgba(243, 236, 221, 0.55);
-  --color-stone-600: rgba(243, 236, 221, 0.68);
-  --color-stone-700: rgba(243, 236, 221, 0.8);
-  --color-stone-800: rgba(243, 236, 221, 0.88);
+  /* Muted 0.60 (6.2:1 on ground), secondary 0.72 (8.5:1). */
+  --color-stone-400: rgba(243, 236, 221, 0.6);
+  --color-stone-500: rgba(243, 236, 221, 0.72);
+  --color-stone-600: rgba(243, 236, 221, 0.8);
+  --color-stone-700: rgba(243, 236, 221, 0.86);
+  --color-stone-800: rgba(243, 236, 221, 0.92);
   --color-stone-900: #f3ecdd;
 }
 
@@ -361,6 +393,12 @@ body::after {
 .dur-max {
   transition-duration: var(--duration-max);
   animation-duration: var(--duration-max);
+}
+
+/* The bottom inset (#231): the nav and every bottom-anchored tap sit
+ * above the home indicator, never under it. */
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
 
 /* Press feedback: a tap should feel like it landed. The lift half of
@@ -522,11 +560,11 @@ body::after {
 }
 
 /*
- * The onboarding art idles (DECISIONS #232): a slow float, transform
- * only, on the introduction's Demos and nowhere else. The one loop the
- * product allows outside a live recording indicator, and it is allowed
- * here because the introduction is the one place he IS the screen
- * rather than a moment on it. Alternating, so it never snaps back.
+ * The introduction's Demos loops (DECISIONS #233): one per pose,
+ * transform and opacity only, on the symmetric curve, alternating so
+ * nothing ever snaps back. The one place the product loops outside a
+ * live recording indicator, because on these screens he IS the screen
+ * rather than a moment on it. No in-app surface borrows these.
  */
 @keyframes idle {
   from {
@@ -536,10 +574,86 @@ body::after {
     transform: translateY(-5px) scale(1.015);
   }
 }
+@keyframes sway {
+  from {
+    transform: rotate(-3deg);
+  }
+  to {
+    transform: rotate(3deg);
+  }
+}
+@keyframes bob {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-6px);
+  }
+}
+@keyframes tilt {
+  from {
+    transform: rotate(-2deg);
+  }
+  to {
+    transform: rotate(2deg);
+  }
+}
+@keyframes breath {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.02);
+  }
+}
+@keyframes arc-in {
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+  40%,
+  70% {
+    opacity: 1;
+  }
+}
+@keyframes twinkle {
+  from {
+    opacity: 0.35;
+    transform: scale(0.75);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
 .demos-idle {
   animation: idle 2.4s var(--ease-in-out) infinite alternate;
 }
-:root[data-motion="reduce"] .demos-idle {
+.demos-sway {
+  transform-origin: 50% 100%;
+  animation: sway 1.6s var(--ease-in-out) infinite alternate;
+}
+.demos-bob {
+  animation: bob 1.2s var(--ease-in-out) infinite alternate;
+}
+.demos-tilt {
+  transform-origin: 50% 60%;
+  animation: tilt 2.4s var(--ease-in-out) infinite alternate;
+}
+.demos-breath {
+  transform-origin: 50% 100%;
+  animation: breath 2.4s var(--ease-in-out) infinite alternate;
+}
+.arc {
+  animation: arc-in 1.8s var(--ease-in-out) infinite;
+  animation-delay: calc(var(--i, 0) * 0.3s);
+}
+.spark {
+  animation: twinkle 1.2s var(--ease-in-out) infinite alternate;
+  animation-delay: calc(var(--i, 0) * 0.4s);
+}
+:root[data-motion="reduce"]
+  :is(.demos-idle, .demos-sway, .demos-bob, .demos-tilt, .demos-breath, .arc, .spark) {
   animation: none;
 }
 

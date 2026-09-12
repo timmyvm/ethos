@@ -57,7 +57,7 @@ export default function GamesPage() {
           wearing the current-item border (#201), never a fill. */}
       <Link
         href="/boss"
-        className="press mt-4 flex w-full items-center gap-3.5 rounded-[14px] border-[1.5px] border-terracotta-500 bg-raised p-4 text-left"
+        className="press mt-4 flex w-full items-center gap-3.5 rounded-card border-[1.5px] border-terracotta-500 bg-raised p-4 text-left"
       >
         <Image
           src="/demos-workout.webp"
@@ -97,7 +97,7 @@ export default function GamesPage() {
               className="press flex w-full items-center gap-3.5 border-t border-hairline px-0.5 py-3 text-left"
             >
               <span
-                className="font-display flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[10px] border border-stone-200 bg-surface text-[16px] font-extrabold"
+                className="font-display flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-control border border-stone-200 bg-surface text-[16px] font-extrabold"
                 aria-hidden
               >
                 {g.glyph}
@@ -122,7 +122,7 @@ export default function GamesPage() {
                   outline: a multiplier is earned by taking the harder
                   conditions, and the chip is the one pill in the set. */}
               {mult > 1 && (
-                <span className="font-display shrink-0 rounded-full border border-sage-300 px-2 py-[3px] text-[11px] font-bold uppercase text-sage-700 tabular-nums">
+                <span className="font-display shrink-0 rounded-control border border-sage-300 px-2 py-[3px] text-[11px] font-bold uppercase text-sage-700 tabular-nums">
                   ×{mult} xp
                 </span>
               )}
@@ -139,7 +139,7 @@ export default function GamesPage() {
           className="press flex w-full items-center gap-3.5 border-t border-hairline px-0.5 py-3 text-left"
         >
           <span
-            className="font-display flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[10px] border border-stone-200 bg-surface text-[16px] font-extrabold"
+            className="font-display flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-control border border-stone-200 bg-surface text-[16px] font-extrabold"
             aria-hidden
           >
             !
@@ -161,7 +161,7 @@ export default function GamesPage() {
           className="press flex w-full items-center gap-3.5 border-y border-hairline px-0.5 py-3 text-left"
         >
           <span
-            className="font-display flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[10px] border border-stone-200 bg-surface text-[16px] font-extrabold"
+            className="font-display flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-control border border-stone-200 bg-surface text-[16px] font-extrabold"
             aria-hidden
           >
             ↑

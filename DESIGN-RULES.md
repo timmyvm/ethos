@@ -21,16 +21,21 @@
   box;
   `stage` is the dark material the rep-loop signature moments sit on,
   and the score card sits on deep sage (`sage-900`, #165/#203).
-- Terracotta is the one tap per screen, with cream text on it. Sage is
+- Terracotta is the one tap per screen, with ink text on it (`on-accent`,
+  #231; cream on the fill was 3.35:1). Sage is
   earned-only (amber is retired — #165, re-affirmed #203). Stone is
   everything holding the room. Neither accent is ever decoration. Rust
   (terracotta-600's twin) is the wrong-direction delta (#195), nothing
   else.
-- Shape (#201): cards 12–16px radius with a 1px `edge` outline; buttons
-  are 10–12px rectangles, NOT pills (the XP/PRO chips are the only
-  pills); progress bars and the day trail are square-cornered. The
-  current/highlighted item is a 1.5px terracotta border on `raised`.
-  Lists are hairline-separated rows on the ground, not boxed cards.
+- Shape (#201, one scale in #231): three radius tokens and nothing
+  else. `rounded-control` (10px) for buttons, inputs and segmented
+  options; `rounded-card` (12px) for cards and tiles; `rounded-sheet`
+  (16px) for sheets, the score card and media frames. Chips and tags
+  are the only pills, and the Record button is the only circle; progress
+  bars and the day trail are square-cornered. Never a bracketed pixel
+  radius. The current/highlighted item is a 1.5px terracotta border on
+  `raised`. Lists are hairline-separated rows on the ground, not boxed
+  cards.
 - **No shadows anywhere, in either theme** (#201). Depth is the border,
   the hairline, or the raised step. Press feedback may shift a border
   colour, never cast a shadow.
@@ -94,7 +99,9 @@ A screen is not finished until all of these exist and are hand-checked:
 6. **Keyboard** — screen is fully operable by keyboard; Escape closes
    overlays; focus is trapped in modals and returned on close (`<Overlay>`).
 7. **Mobile** — layout reconfigures (doesn't squish); touch targets
-   ≥ 44px; nothing depends on hover.
+   ≥ 44px, the screen's primary tap 48px, 8px between two taps; the
+   primary tap is bottom-anchored in the thumb zone above `pb-safe`
+   (the home-indicator inset); nothing depends on hover.
 8. **Reduced motion** — all animation collapses to simple opacity fades
    under `data-motion="reduce"` (the OS preference or the Settings
    switch; see Motion rules).
@@ -148,8 +155,11 @@ A screen is not finished until all of these exist and are hand-checked:
   decorative SVGs `aria-hidden`.
 - Modals: `role="dialog"`, `aria-modal`, focus trap, Escape handler —
   which is what `<Overlay>` is for. Don't hand-roll a second one.
-- Text contrast ≥ 4.5:1 against its surface (check terracotta-on-cream
-  and every stone mid-tone in BOTH themes).
+- Text contrast ≥ 4.5:1 against its surface, which the text roles now
+  clear by construction (#231): `stone-500` is secondary (0.72), `stone-400`
+  is muted (0.66 light, 0.60 dark), and `stone-300` is faint and NEVER
+  carries words (glyphs, disabled fills, dividers only). Words on a fill
+  use `on-accent` (terracotta) or `sage-ink` on `sage-700` (sage).
 - Data visuals read their colours from the theme, never from a hex — a
   chart is UI, and half the app is dark.
 

@@ -235,7 +235,7 @@ export default function CalibratePage() {
       {/* The model assumes a static camera. The first real session was
           shot handheld and every number came out polluted, so the setup
           is stated before the mic, not diagnosed after. */}
-      <div className="mt-4 rounded-[24px] border border-hairline bg-surface p-4">
+      <div className="mt-4 rounded-card border border-hairline bg-surface p-4">
         <div className="label-data">Set up first</div>
         <ul className="mt-1.5 space-y-1 text-[13px] leading-relaxed text-stone-600">
           <li>· Prop the phone at face height. Never in your hand.</li>
@@ -247,7 +247,7 @@ export default function CalibratePage() {
       {status === "idle" && (
         <button
           onClick={() => void startCamera()}
-          className="press mt-6 w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream"
+          className="press mt-6 w-full rounded-control bg-terracotta-500 px-6 py-4 text-base font-semibold text-on-accent"
         >
           Start the camera
         </button>
@@ -256,7 +256,7 @@ export default function CalibratePage() {
         <p className="mt-6 text-[14px] text-stone-500">Opening the camera…</p>
       )}
       {status === "unavailable" && (
-        <p className="mt-6 rounded-[20px] bg-terracotta-50 px-4 py-3 text-[13.5px] leading-relaxed text-terracotta-700">
+        <p className="mt-6 rounded-card bg-terracotta-50 px-4 py-3 text-[13.5px] leading-relaxed text-terracotta-700">
           The camera or the pose engine didn&apos;t load. Check the
           permission, or try Chrome.
         </p>
@@ -273,7 +273,7 @@ export default function CalibratePage() {
         autoPlay
         muted
         playsInline
-        className={`mt-5 w-full -scale-x-100 rounded-[24px] border border-hairline bg-surface ${
+        className={`mt-5 w-full -scale-x-100 rounded-card border border-hairline bg-surface ${
           status === "ready" || status === "recording" ? "" : "hidden"
         }`}
       />
@@ -281,7 +281,7 @@ export default function CalibratePage() {
       {(status === "ready" || status === "recording") && (
         <>
           {done.length < TAKES.length && (
-            <div className="mt-4 rounded-[24px] border border-hairline bg-surface p-5">
+            <div className="mt-4 rounded-card border border-hairline bg-surface p-5">
               <div className="label-data">
                 Take {current + 1} of {TAKES.length} · {take.name}
               </div>
@@ -294,7 +294,7 @@ export default function CalibratePage() {
               {status === "ready" ? (
                 <button
                   onClick={() => void record()}
-                  className="press mt-4 w-full rounded-full bg-terracotta-500 px-6 py-3.5 text-[15px] font-semibold text-cream"
+                  className="press mt-4 w-full rounded-control bg-terracotta-500 px-6 py-3.5 text-[15px] font-semibold text-on-accent"
                 >
                   Record {TAKE_SECONDS}s
                 </button>
@@ -373,12 +373,12 @@ export default function CalibratePage() {
           {proposal.warnings.map((w, i) => (
             <p
               key={i}
-              className="mt-2 rounded-[20px] bg-terracotta-50 px-4 py-3 text-[13px] leading-relaxed text-terracotta-700"
+              className="mt-2 rounded-card bg-terracotta-50 px-4 py-3 text-[13px] leading-relaxed text-terracotta-700"
             >
               {w}
             </p>
           ))}
-          <pre className="mt-3 overflow-x-auto rounded-[20px] bg-ink p-4 text-[12px] leading-relaxed text-ground">
+          <pre className="mt-3 overflow-x-auto rounded-card bg-ink p-4 text-[12px] leading-relaxed text-ground">
             {proposalText}
           </pre>
           <div className="mt-3 flex gap-2.5">
@@ -389,13 +389,13 @@ export default function CalibratePage() {
                   .then(() => setCopied(true))
                   .catch(() => {});
               }}
-              className="press flex-1 rounded-full border border-stone-200 bg-surface px-5 py-3 text-[14px] font-semibold"
+              className="press flex-1 rounded-control border border-stone-200 bg-surface px-5 py-3 text-[14px] font-semibold"
             >
               {copied ? "Copied" : "Copy for lib/presence.ts"}
             </button>
             <button
               onClick={download}
-              className="press flex-1 rounded-full border border-stone-200 bg-surface px-5 py-3 text-[14px] font-semibold"
+              className="press flex-1 rounded-control border border-stone-200 bg-surface px-5 py-3 text-[14px] font-semibold"
             >
               Download takes
             </button>

@@ -77,7 +77,7 @@ export function Nav() {
       aria-label="Sections"
       className="fixed bottom-0 left-1/2 z-20 w-full max-w-[430px] -translate-x-1/2 border-t border-hairline bg-raised"
     >
-      <div className="flex px-2 pb-4 pt-2.5">
+      <div className="pb-safe flex px-2 pt-2.5">
         {TABS.map((t) => {
           const active = t.href === "/" ? path === "/" : path.startsWith(t.href);
           return (
@@ -85,10 +85,10 @@ export function Nav() {
               key={t.href}
               href={t.href}
               aria-current={active ? "page" : undefined}
-              className={`font-display flex flex-1 flex-col items-center gap-1 py-1 text-[11px] uppercase tracking-[0.06em] transition-colors ${
+              className={`font-display flex min-h-11 flex-1 flex-col items-center justify-center gap-1 py-1 text-[11px] uppercase tracking-[0.06em] transition-colors ${
                 active
                   ? "font-extrabold text-ink"
-                  : "font-semibold text-stone-300"
+                  : "font-semibold text-stone-400"
               }`}
             >
               <t.Icon size={21} />

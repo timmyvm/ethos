@@ -80,29 +80,38 @@ If something doesn't fit this template, it isn't copy — it's a tooltip, a coll
 
 *(Three screens, twenty-eight words total. The warmth is in screen 1, the positioning is in screen 2, the promise is in screen 3. None of them explain anything.)*
 
-### Onboarding, the questions and the plan (12 Sep, DECISIONS #231; proposed, not from the transcript)
+### Onboarding, the questions and the plan (12 Sep, DECISIONS #232; proposed, not from the transcript)
 
-> ### What do you notice?
-> When you talk. Pick one.
-> `Um, like, you know` · `I rush` · `I lose the thread` · `I freeze on the spot`
+Five screens after the three above, one question each, every answer a tap. The button holds "Next" until an answer on the essential four; "Skip" sits under it on every one. The options live in `content/portfolio.ts`.
 
 > ### How old are you?
-> It shapes the prompts, nothing else.
-> `Under 18` · `18 to 24` · `25 to 34` · `35 and up`
+> It changes the prompts you get, nothing else.
 
-> ### Your first month.
-> Built from what you noticed.
+> ### What do you want this for?
+> Pick the closest.
+
+> ### What do you notice when you talk?
+> Up to three.
+
+> ### How much have you practised?
+> Roughly.
+
+> ### Where does it matter most?
+> Optional.
+
+The plan, built from the answers (the goal's headline; the lines from the table):
+
+> ### Hold the room.
+> Built from what you told me.
 >
-> **The plan**
+> **Your first month**
 > 1  Day 1: The baseline. Sixty seconds, measured.
-> 2  Then Filler Elimination: 5 lessons, about 5 days.
+> 2  First number: words per minute against the 130 to 160 zone.
 > 3  Then Pace Control, the unit for rushing. Opens at 4 stars.
 >
 > [ Take the floor ]
 >
-> <sub>Every number on it is measured, none awarded.</sub>
-
-The button on a question screen says "Skip" until something is picked, then "Next". The plan's third line is the road's own gate for whatever was picked; with nothing picked it reads "Then the road, one unit at a time."
+> <sub>Your boss, when you're ready: Cold Topic.</sub>
 
 ---
 

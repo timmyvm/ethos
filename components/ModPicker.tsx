@@ -45,7 +45,7 @@ export function ModPicker({
   const full = selected.length >= MAX_STACKED_MODS;
 
   return (
-    <div className="rounded-[14px] border border-edge bg-raised p-4">
+    <div className="rounded-card border border-edge bg-raised p-4">
       <div className="flex items-baseline justify-between">
         <div className="label-data">Stress mods · optional</div>
         {multiplier > 1 && (
@@ -67,7 +67,7 @@ export function ModPicker({
               key={mod.id}
               onClick={() => toggle(mod)}
               disabled={disabled}
-              className={`flex w-full items-start gap-3 rounded-[10px] border p-3 text-left transition-colors ${
+              className={`flex w-full items-start gap-3 rounded-control border p-3 text-left transition-colors ${
                 on
                   ? "border-ink bg-ink text-ground"
                   : disabled

@@ -38,8 +38,8 @@ import { IconChevron } from "@/components/Icon";
 
 /** A destination renders a real link; a handler renders a button. */
 export type LessonAction = { label: string } & (
-  | { href: string; onPress?: never }
-  | { onPress: () => void; href?: never }
+  | { href: string; onPress?: never; disabled?: never }
+  | { onPress: () => void; href?: never; disabled?: boolean }
 );
 
 export interface LessonBodyProps {
@@ -188,6 +188,7 @@ export function LessonScreen({
   footer,
   center = false,
   stepKey,
+  onBack,
   ...body
 }: LessonBodyProps & {
   /** The one terracotta tap (brand.md: exactly one per screen). */
@@ -221,9 +222,20 @@ export function LessonScreen({
    * direction of travel (DECISIONS #223) instead of swapping in place.
    */
   stepKey?: string | number;
+  /** A walk's way back one step. Renders the rep screen's back link. */
+  onBack?: () => void;
 }) {
   return (
-    <main className="flex min-h-dvh flex-col px-5 pb-10 pt-7">
+    <main className="pb-safe flex min-h-dvh flex-col px-5 pt-7">
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex min-h-11 items-center self-start text-sm text-stone-500"
+        >
+          ← back
+        </button>
+      )}
       <div
         className={`flex flex-1 flex-col ${center ? "justify-center" : ""}`}
       >
@@ -239,7 +251,7 @@ export function LessonScreen({
         </div>
       </div>
 
-      <div className="mt-8">
+      <div className="mt-8 pb-6">
         {aside && <div className="mb-5">{aside}</div>}
 
         {action.href !== undefined ? (
@@ -250,7 +262,8 @@ export function LessonScreen({
           <button
             type="button"
             onClick={action.onPress}
-            className={ACTION_CLASS}
+            disabled={action.disabled}
+            className={`${ACTION_CLASS} disabled:opacity-40`}
           >
             {action.label}
           </button>
@@ -270,7 +283,7 @@ export function LessonScreen({
 
 /** #201's button grammar: a 12px rectangle, cream on terracotta, no pill. */
 const ACTION_CLASS =
-  "press font-display block w-full rounded-xl bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-cream transition-colors hover:bg-terracotta-600";
+  "press font-display block min-h-12 w-full rounded-control bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-on-accent transition-colors hover:bg-terracotta-600";
 
 /**
  * The theory slot.

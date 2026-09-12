@@ -14,12 +14,18 @@
  * we know what shape of answer the prompt asks for, and nothing more.
  */
 
+import type { Pool } from "@/content/portfolio";
+
 export type TopicShape = "opinion" | "story" | "explain" | "pitch";
 
 export interface Topic {
   id: string;
   prompt: string;
   shape: TopicShape;
+  /** Pools this prompt doesn't fit (content/portfolio.ts): a school
+   *  pool drops the job prompts, because a prompt you can't answer
+   *  wastes the recording. */
+  not?: Pool[];
 }
 
 export const TOPIC_SHAPES: Record<
@@ -70,15 +76,15 @@ export const TOPICS: Topic[] = [
   { id: "t7", prompt: "The last time you were genuinely nervous", shape: "story" },
   { id: "t8", prompt: "How you met someone who matters to you", shape: "story" },
   { id: "t9", prompt: "A decision you nearly didn't make", shape: "story" },
-  { id: "t10", prompt: "The worst job you've ever done", shape: "story" },
-  { id: "t11", prompt: "Explain your work to a ten-year-old", shape: "explain" },
+  { id: "t10", prompt: "The worst job you've ever done", shape: "story", not: ["school"] },
+  { id: "t11", prompt: "Explain your work to a ten-year-old", shape: "explain", not: ["school"] },
   { id: "t12", prompt: "Explain how interest works to someone who's never had a bank account", shape: "explain" },
   { id: "t13", prompt: "Explain why the sky changes colour at sunset", shape: "explain" },
   { id: "t14", prompt: "Explain a hobby of yours to someone who finds it boring", shape: "explain" },
   { id: "t15", prompt: "Explain what makes a good friend", shape: "explain" },
   { id: "t16", prompt: "Pitch your city to someone deciding where to move", shape: "pitch" },
   { id: "t17", prompt: "Pitch a book or film you love, without spoiling it", shape: "pitch" },
-  { id: "t18", prompt: "Pitch yourself for a job you're not qualified for", shape: "pitch" },
+  { id: "t18", prompt: "Pitch yourself for a job you're not qualified for", shape: "pitch", not: ["school"] },
   { id: "t19", prompt: "Pitch a change your workplace or school should make", shape: "pitch" },
   { id: "t20", prompt: "Pitch the last thing you spent real money on", shape: "pitch" },
 ];

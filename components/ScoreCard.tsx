@@ -32,7 +32,7 @@ export function ScoreCard({
 }) {
   const empty = recordings === 0;
   return (
-    <section className="card-score mt-5 rounded-2xl p-5 text-cream">
+    <section className="card-score mt-5 rounded-sheet p-5 text-cream">
       <div className="flex items-baseline justify-between gap-3">
         <div className="label-data !text-sage-mist">Your Ethos</div>
         {delta !== null && delta !== 0 && (

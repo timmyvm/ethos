@@ -49,7 +49,7 @@ layout (#201's structure, #203's colours). Core tokens:
 
 | Role            | Value      | Tailwind ref     | Use |
 |-----------------|------------|------------------|-----|
-| CTA / primary   | #C67139    | terracotta-500   | The ONE tap per screen; cream text on it |
+| CTA / primary   | #C67139    | terracotta-500   | The ONE tap per screen; ink text on it (`on-accent`, #231: cream failed AA) |
 | CTA hover       | #B2432C    | terracotta-600   | Hover/pressed; also wrong-direction deltas (`rust`) |
 | Accent text     | #8F4D24    | terracotta-700   | Warm text links ("keep them →") |
 | Earned          | #7A8A5E    | sage-500         | Stars, streak, earned fills, leader trait bar, Buy |
@@ -58,6 +58,7 @@ layout (#201's structure, #203's colours). Core tokens:
 | Text            | #201E1D    | ink              | All body/headings |
 | Ground          | #F5EAD8    | ground           | The room; layout cards sit on it behind 1px edges |
 | Raised          | #FAF3E3    | surface/raised   | Nav bar, sheets, the current (terracotta-ringed) card |
+| Dark ground     | #1A1410    | ground (dark)    | Three visible steps in dark (#231): ground, surface #241C15, raised #2E251C |
 | Hairline        | rgba(ink,.08) | hairline      | Row separators |
 | Card outline    | rgba(ink,.14) | edge          | 1px card borders |
 | Track           | #ECDFC4    | sand             | Progress troughs (square-cornered, #201) |
@@ -67,7 +68,8 @@ layout (#201's structure, #203's colours). Core tokens:
 handoff, #201) and was reverted on Timothy's call (#203): the layout
 stayed, the colours came home.* Terracotta means exactly one thing:
 tap here. The dark theme's step-lifted remaps live in
-`app/globals.css`.
+`app/globals.css`. Light stays the default; dark is the same system on
+three visibly separated layers (#231).
 
 ## Mascot — DECIDED: Red Panda
 

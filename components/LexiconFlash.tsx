@@ -32,7 +32,7 @@ export function LexiconFlash({
   const last = i === cards.length - 1;
 
   return (
-    <div className="rounded-[14px] border border-edge bg-raised p-4">
+    <div className="rounded-card border border-edge bg-raised p-4">
       <div className="flex items-baseline justify-between">
         <div className="label-data">Lexicon flash</div>
         <div className="label-data">
@@ -64,7 +64,7 @@ export function LexiconFlash({
               setI(i + 1);
               setShown(false);
             }}
-            className="press font-display mt-4 w-full rounded-[10px] border border-stone-200 bg-surface px-4 py-2.5 text-[13px] font-bold"
+            className="press font-display mt-4 w-full rounded-control border border-stone-200 bg-surface px-4 py-2.5 text-[13px] font-bold"
           >
             {last ? "Done" : "Next"}
           </button>
@@ -72,7 +72,7 @@ export function LexiconFlash({
       ) : (
         <button
           onClick={() => setShown(true)}
-          className="press font-display mt-4 w-full rounded-[10px] bg-sand px-4 py-2.5 text-[13px] font-bold"
+          className="press font-display mt-4 w-full rounded-control bg-sand px-4 py-2.5 text-[13px] font-bold"
         >
           Show it
         </button>

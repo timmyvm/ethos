@@ -280,7 +280,7 @@ export default function HistoryPage() {
           ? UNITS[0].lessons.slice(0, 3).map((lesson, i) => (
               <div
                 key={lesson.id}
-                className={`${RECORD_GRID} items-center border-t border-hairline py-2.5 text-stone-300`}
+                className={`${RECORD_GRID} items-center border-t border-hairline py-2.5 text-stone-400`}
               >
                 <span className="font-display text-[16px] font-extrabold leading-none tabular-nums">
                   {i + 1}
@@ -305,7 +305,7 @@ export default function HistoryPage() {
                   className={`press ${RECORD_GRID} items-center border-t border-hairline py-2.5`}
                 >
                   <span className="leading-none">
-                    <span className="font-display block text-[9px] font-bold uppercase tracking-[0.1em] text-stone-300">
+                    <span className="font-display block text-[9px] font-bold uppercase tracking-[0.1em] text-stone-400">
                       {d.toLocaleDateString(undefined, { month: "short" })}
                     </span>
                     <span className="font-display block text-[16px] font-extrabold tabular-nums">
@@ -368,7 +368,7 @@ export default function HistoryPage() {
           </div>
           <Link
             href="/rep"
-            className="press font-display mt-4 block min-h-11 w-full rounded-xl bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-cream hover:bg-terracotta-600"
+            className="press font-display mt-4 block min-h-11 w-full rounded-control bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-on-accent hover:bg-terracotta-600"
           >
             Take the floor
           </Link>
@@ -424,7 +424,7 @@ function MetricRow({ row, dim = false }: { row: MovedRow; dim?: boolean }) {
   return (
     <div
       className={`${MOVED_GRID} items-center border-t border-hairline py-2.5 ${
-        dim ? "text-stone-300" : ""
+        dim ? "text-stone-400" : ""
       }`}
     >
       <span className="font-display truncate text-[13px] font-bold">

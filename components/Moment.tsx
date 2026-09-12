@@ -22,7 +22,7 @@ export function Moment({
   const earned = moment.tone === "earned";
   return (
     <div
-      className={`rounded-[24px] border p-4 ${
+      className={`rounded-card border p-4 ${
         earned
           ? "border-sage-500/25 bg-sage-50/50"
           : "border-hairline bg-surface"

@@ -136,9 +136,6 @@ export interface ProfileRow {
   /** Which owned Demos pose sits on the floor card. Synced since 27 Aug
    *  so a bought cosmetic follows the account across devices. */
   equipped_pose: string | null;
-  /** The self-diagnosis (DECISIONS #231), validated by lib/profile. */
-  goal: string | null;
-  age_band: string | null;
 }
 
 /**
@@ -151,7 +148,7 @@ export async function fetchProfile(): Promise<ProfileRow | null> {
   if (!db) return null;
   const { data } = await db
     .from("profiles")
-    .select("display_name, premium, premium_until, equipped_pose, goal, age_band")
+    .select("display_name, premium, premium_until, equipped_pose")
     .maybeSingle();
   const row = (data as ProfileRow | null) ?? null;
   const stored = row?.premium ?? false;
@@ -160,28 +157,50 @@ export async function fetchProfile(): Promise<ProfileRow | null> {
     premium: isUnlocked(stored),
     premium_until: row?.premium_until ?? null,
     equipped_pose: row?.equipped_pose ?? null,
-    goal: row?.goal ?? null,
-    age_band: row?.age_band ?? null,
   };
 }
 
 /**
- * The self-diagnosis, onto the account (DECISIONS #231). Upserted like
- * the pose: profiles are created lazily, and the answers may predate
- * the row. Closed sets on both ends (migration 0009 checks them too).
+ * The introduction's answers and the plan built from them (DECISIONS
+ * #232, migration 0009). One row per user, upserted; the answers exist
+ * before the row does, so the client keeps a copy (lib/answers.ts) and
+ * lib/answers-sync.ts decides which way they travel.
  */
-export async function updateSelfDiagnosis(
-  goal: string | null,
-  ageBand: string | null
-): Promise<boolean> {
+export interface OnboardingRow {
+  age_band: string | null;
+  goal: string | null;
+  pains: string[];
+  level: string | null;
+  context: string | null;
+  portfolio: unknown;
+  rules_version: number;
+}
+
+export async function fetchOnboarding(): Promise<OnboardingRow | null> {
+  const db = supabaseBrowser();
+  if (!db) return null;
+  const { data: session } = await db.auth.getSession();
+  if (!session.session) return null;
+  const { data, error } = await db
+    .from("onboarding")
+    .select("age_band, goal, pains, level, context, portfolio, rules_version")
+    .maybeSingle();
+  if (error) throw error;
+  return (data as OnboardingRow | null) ?? null;
+}
+
+export async function upsertOnboarding(row: OnboardingRow): Promise<boolean> {
   const db = supabaseBrowser();
   if (!db) return false;
   const { data } = await db.auth.getUser();
   const uid = data.user?.id;
   if (!uid) return false;
   const { error } = await db
-    .from("profiles")
-    .upsert({ user_id: uid, goal, age_band: ageBand }, { onConflict: "user_id" });
+    .from("onboarding")
+    .upsert(
+      { user_id: uid, ...row, updated_at: new Date().toISOString() },
+      { onConflict: "user_id" }
+    );
   return !error;
 }
 

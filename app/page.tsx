@@ -35,8 +35,9 @@ import {
   totalStars,
 } from "@/lib/path";
 import { readPrefs } from "@/lib/prefs";
-import { dayOneNote, readProfile, spinForProfile, type Goal } from "@/lib/profile";
-import { syncProfile } from "@/lib/profile-sync";
+import { readOnboarding, type Answers, EMPTY_ANSWERS } from "@/lib/answers";
+import { syncOnboarding } from "@/lib/answers-sync";
+import { dayOneNote, spinForAnswers } from "@/lib/portfolio";
 import { repHref } from "@/lib/rep-config";
 import { ownedFrom, poseArt } from "@/lib/shop";
 import { armReminder } from "@/lib/reminders";
@@ -66,8 +67,9 @@ export default function Home() {
   const [demos, setDemos] = useState<string | null>(null);
   const [anon, setAnon] = useState<boolean | null>(null);
   const [failed, setFailed] = useState(false);
-  /** What they said they notice (#231). Read after paint, never at render. */
-  const [goal, setGoal] = useState<Goal | null>(null);
+  /** The introduction's answers (#232). Read after paint, never at render. */
+  const [answers, setAnswers] = useState<Answers>(EMPTY_ANSWERS);
+  const [skipIntros, setSkipIntros] = useState(false);
 
   /**
    * The history read, on its own so the retry can mean it. It used to
@@ -119,7 +121,8 @@ export default function Home() {
       .then((s) => setAnon(s.signedIn && s.anonymous))
       .catch(() => {});
 
-    setGoal(readProfile().goal);
+    setAnswers(readOnboarding().answers);
+    setSkipIntros(readPrefs().skipIntros);
 
     /* A bought pose, if there is one. `null` until both the ledger and
        the profile answer, so the default never flashes over the thing
@@ -130,9 +133,9 @@ export default function Home() {
         setPremium(p?.premium ?? false);
         const pose = p?.equipped_pose ?? readPrefs().pose;
         setDemos(poseArt(pose, ownedFrom(l)));
-        // The self-diagnosis follows the account (#231): push an
-        // unsynced answer up, or take the account's down.
-        return syncProfile(p).then((prof) => setGoal(prof.goal));
+        // The introduction's answers follow the account (#232): a
+        // finished walk goes up, or the account's answers come down.
+        return syncOnboarding().then((s) => setAnswers(s.answers));
       })
       .catch(() => {});
 
@@ -192,7 +195,7 @@ export default function Home() {
    * is a paragraph a day.
    */
   const floorHref =
-    next && introDue(next.unit, starMap)
+    next && !skipIntros && introDue(next.unit, starMap)
       ? introHref(next.unit.id, mods)
       : repHref({ lesson: next?.lesson.id, mods });
 
@@ -223,7 +226,7 @@ export default function Home() {
       </div>
 
       {rescued > 0 && (
-        <div className="mt-4 rounded-xl border border-sage-300 bg-raised px-4 py-3 text-body">
+        <div className="mt-4 rounded-card border border-sage-300 bg-raised px-4 py-3 text-body">
           <span className="font-semibold">
             A freeze covered {rescued === 1 ? "a day" : `${rescued} days`} you
             missed.
@@ -295,7 +298,7 @@ export default function Home() {
                  words (#231); after that the number decides the line. */
               note={
                 dayOne
-                  ? dayOneNote(goal)
+                  ? dayOneNote(answers)
                   : (gap ?? (focus.strength !== null ? focus.reason : undefined))
               }
             />
@@ -326,7 +329,7 @@ export default function Home() {
             </div>
             <Link
               href={floorHref}
-              className="press font-display mt-2 block w-full rounded-xl border border-transparent bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-cream transition-colors hover:bg-terracotta-600"
+              className="press font-display mt-2 block w-full rounded-control border border-transparent bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-on-accent transition-colors hover:bg-terracotta-600"
             >
               {dayOne
                 ? `${drill.title} →`
@@ -336,7 +339,7 @@ export default function Home() {
             </Link>
             <div className="mt-2.5 flex items-baseline justify-between gap-3">
               <button
-                onClick={() => setTopic(spinForProfile(null))}
+                onClick={() => setTopic(spinForAnswers(null))}
                 className="press -my-3 inline-flex min-h-11 items-center text-[13px] font-semibold text-terracotta-700"
               >
                 Not feeling it? Spin a new topic →

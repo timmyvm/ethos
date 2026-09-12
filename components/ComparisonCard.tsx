@@ -5,7 +5,18 @@ import type { RepRow } from "@/lib/client-data";
  * asset, same artifact (vision.md principle 4). Deliberately built to
  * be screenshot-shaped: dark, dense, one claim per row, no chrome.
  */
-export function ComparisonCard({ reps }: { reps: RepRow[] }) {
+export function ComparisonCard({
+  reps,
+  lead,
+}: {
+  reps: RepRow[];
+  /**
+   * The measured dimension the introduction's answers point at (#232:
+   * the portfolio's focus metric). Its row goes first, above the Index,
+   * so the card opens on the number they said they'd watch.
+   */
+  lead?: string;
+}) {
   if (reps.length < 2) return null;
 
   const first = reps[0];
@@ -53,8 +64,19 @@ export function ComparisonCard({ reps }: { reps: RepRow[] }) {
     });
   }
 
+  const LEAD_LABEL: Record<string, string> = {
+    fillers: "Fillers / min",
+    wpm: "Words / min",
+    pause: "Held pauses",
+  };
+  const leadLabel = lead ? LEAD_LABEL[lead] : undefined;
+  if (leadLabel) {
+    const at = rows.findIndex((r) => r.label === leadLabel);
+    if (at > 0) rows.unshift(rows.splice(at, 1)[0]);
+  }
+
   return (
-    <div className="rounded-2xl bg-stage p-5 text-cream">
+    <div className="rounded-sheet bg-stage p-5 text-cream">
       <div className="label-data !text-cream/60">
         Day 1 → day {days} · your training log
       </div>

@@ -148,7 +148,7 @@ export function RepResult({
         /* Not a score of zero — no score. Saying "I don't know" over and
            over has no fillers and a fine pace; reporting those numbers as
            an achievement would be the app lying to you. */
-        <div className="mt-3 rounded-[24px] border border-hairline bg-surface p-5">
+        <div className="mt-3 rounded-card border border-hairline bg-surface p-5">
           <div className="font-display text-[22px] font-bold leading-tight">
             Not enough to score.
           </div>
@@ -196,9 +196,9 @@ export function RepResult({
           alt="Demos"
           width={62}
           height={62}
-          className="demos w-[62px] rounded-[20px] border border-sand bg-surface"
+          className="demos w-[62px] rounded-card border border-sand bg-surface"
         />
-        <div className="rounded-[20px] rounded-bl-[6px] bg-terracotta-50 px-4 py-3 text-sm leading-relaxed">
+        <div className="rounded-card rounded-bl-[4px] bg-terracotta-50 px-4 py-3 text-sm leading-relaxed">
           <div className="label-data !text-terracotta-600 mb-0.5">Demos</div>
           {coachLine}
           {coach?.focus && (
@@ -282,7 +282,7 @@ export function RepResult({
       )}
 
       {show("words") && coach?.supply && (
-        <div className="mt-4 rounded-[24px] border border-hairline bg-surface p-5">
+        <div className="mt-4 rounded-card border border-hairline bg-surface p-5">
           <div className="label-data">Supply · one upgrade, yours to keep</div>
           <div className="mt-2.5 flex items-center gap-3 text-[15px]">
             <span className="text-stone-500 line-through">
@@ -300,7 +300,7 @@ export function RepResult({
       )}
 
       {show("numbers") && m.fillers.length > 0 && (
-        <div className="mt-4 rounded-[24px] border border-hairline bg-surface p-5">
+        <div className="mt-4 rounded-card border border-hairline bg-surface p-5">
           <div className="label-data">Every filler, with its timestamp</div>
           <div className="mt-2.5 flex flex-wrap gap-1.5">
             {m.fillers.map((f, i) => (
@@ -322,7 +322,7 @@ export function RepResult({
           is a claim about these words — you should be able to read them
           without going looking. */}
       {show("words") && (
-      <div className="mt-4 rounded-[24px] border border-hairline bg-surface px-5 py-4">
+      <div className="mt-4 rounded-card border border-hairline bg-surface px-5 py-4">
         <div className="label-data">
           What you said · {m.substance?.wordCount ?? 0} words
         </div>
@@ -347,7 +347,7 @@ function Metric({
   earned?: boolean;
 }) {
   return (
-    <div className="flex-1 rounded-[24px] border border-hairline bg-surface p-3.5">
+    <div className="flex-1 rounded-card border border-hairline bg-surface p-3.5">
       <div className="label-data">{label}</div>
       <div
         className={`font-display text-[26px] font-bold ${earned ? "text-sage-700" : ""}`}

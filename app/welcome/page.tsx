@@ -1,72 +1,73 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { DemosArt, type Pose } from "@/components/DemosArt";
 import { LessonScreen } from "@/components/LessonScreen";
+import { AGE_BANDS, CONTEXTS, GOALS, LEVELS, PAINS } from "@/content/portfolio";
+import {
+  EMPTY_ANSWERS,
+  MAX_PAINS,
+  readOnboarding,
+  writeOnboarding,
+  type Answers,
+} from "@/lib/answers";
 import {
   markWelcomed,
   PLAN_COPY,
   QUESTIONS,
   WELCOME_STEPS,
+  type QuestionId,
 } from "@/lib/onboarding";
 import { introDue, introHref, nextLesson, UNITS } from "@/lib/path";
-import {
-  AGE_BANDS,
-  GOALS,
-  planFor,
-  readProfile,
-  writeProfile,
-  type AgeBand,
-  type Goal,
-} from "@/lib/profile";
+import { buildPortfolio } from "@/lib/portfolio";
+import { readPrefs, writePrefs } from "@/lib/prefs";
 import { repHref } from "@/lib/rep-config";
 
 /**
- * Where "Take the floor" lands. Bare /rep serves the daily ROTATION —
- * whatever drill today's date rotates to — but a first recording has to
- * be the path's first lesson, "The baseline" (DECISIONS #135): the
- * introduction just promised a baseline, so the button delivers one.
- * An empty star map resolves to the first lesson of the first unit.
- */
-// The same door the floor opens for the same state: a unit nobody has
-// scored in yet owes its teaching screen first (#210); only the skippers
-// used to see it.
-const FIRST_UNIT = UNITS[0];
-const FIRST_REP = introDue(FIRST_UNIT, {})
-  ? introHref(FIRST_UNIT.id)
-  : repHref({ lesson: nextLesson({})?.lesson.id });
-
-/**
- * The walk (DECISIONS #133, #231): three screens that say the thing,
- * two questions answered by tap, and the plan built from the answers.
- * Six screens, one tap each, Skip on every one, no account, no quiz
- * wall (#11): the mic is never more than a tap away.
+ * The walk (DECISIONS #133, #232): three screens that say the thing,
+ * five questions answered by tap, and the plan built from the answers.
+ * Nine screens, one tap each, a way back on every one, Skip on every
+ * question, no account, no quiz wall (#11): the mic is never more than
+ * a tap away, and a refresh lands where it left off.
  */
 type Step =
   | { kind: "intro"; index: number }
-  | { kind: "goal" }
-  | { kind: "age" }
+  | { kind: "question"; id: QuestionId }
   | { kind: "plan" };
 
 const STEPS: Step[] = [
   ...WELCOME_STEPS.map((_, index): Step => ({ kind: "intro", index })),
-  { kind: "goal" },
-  { kind: "age" },
+  ...QUESTIONS.map((q): Step => ({ kind: "question", id: q.id })),
   { kind: "plan" },
 ];
+const LAST = STEPS.length - 1;
+const FIRST_QUESTION = STEPS.findIndex((s) => s.kind === "question");
 
-/** Demos while he asks, and while he tells you the plan (#233's set). */
-const ASKING_ART = "/demos-onboard-listening.webp";
-const PLAN_ART = "/demos-onboard-speaking.webp";
+/** Which pose asks which question (#233). */
+const INTRO_POSES: Pose[] = ["wave", "speaking", "celebrate"];
+const QUESTION_POSES: Record<QuestionId, Pose> = {
+  ageBand: "fingers",
+  goal: "telescope",
+  pains: "listening",
+  level: "dumbbell",
+  context: "headphones",
+};
 
 /**
- * Onboarding — no quiz-wall, no account. Wellspoken's quiz-wall is a
- * documented resentment point (DECISIONS #11), so the intro copy is
- * WELCOME_STEPS (lib/onboarding), docs/voice.md verbatim, and the two
- * questions after it are the person's own diagnosis, not ours.
+ * Where "Take the floor" lands. Bare /rep serves the daily ROTATION;
+ * a first recording has to be the path's first lesson, "The baseline"
+ * (DECISIONS #135). A unit nobody has scored in yet owes its teaching
+ * screen first (#210) unless the introduction turned intros off (#232).
  */
+function firstRep(skipIntros: boolean): string {
+  const unit = UNITS[0];
+  return !skipIntros && introDue(unit, {})
+    ? introHref(unit.id)
+    : repHref({ lesson: nextLesson({})?.lesson.id });
+}
+
 export default function Welcome() {
   return (
     <Suspense fallback={<main className="px-5 pt-7" />}>
@@ -77,56 +78,62 @@ export default function Welcome() {
 
 function Walk() {
   const params = useSearchParams();
-  // `?step=goal` opens the questions directly: the Focus row on /you
-  // comes here to change an answer, and leaves back to /you.
+  // `?step=<question id | plan>` opens a screen directly: the plan row
+  // on /you comes here to change an answer, and leaves back to /you.
   const asked = params.get("step");
   const editing = asked !== null;
-  const [i, setI] = useState(() =>
-    Math.max(
-      0,
-      STEPS.findIndex((s) => s.kind === asked)
-    )
-  );
-  const [goal, setGoal] = useState<Goal | null>(null);
-  const [age, setAge] = useState<AgeBand | null>(null);
+  const [i, setI] = useState(0);
+  const [answers, setAnswers] = useState<Answers>(EMPTY_ANSWERS);
+  const [floor, setFloor] = useState(() => firstRep(false));
+  const [ready, setReady] = useState(false);
 
-  // Seen once is seen — set on mount so neither finishing nor skipping
-  // is needed to stop the floor routing back here (DECISIONS #133).
-  // The answers come from the device, after paint, so a returning
-  // visit opens on what was said.
+  /*
+   * Seen once is seen (#133): set on mount, so neither finishing nor
+   * skipping is needed to stop the floor routing back here. Then the
+   * device's answers and step, after paint: a refresh resumes, a
+   * finished walk opens on its plan, a deep link opens where it asked.
+   */
   useEffect(() => {
     markWelcomed();
-    const p = readProfile();
-    setGoal(p.goal);
-    setAge(p.ageBand);
-  }, []);
+    const saved = readOnboarding();
+    setAnswers(saved.answers);
+    const deep = STEPS.findIndex(
+      (s) => (s.kind === "question" && s.id === asked) || (s.kind === "plan" && asked === "plan")
+    );
+    setI(deep >= 0 ? deep : saved.done ? LAST : Math.min(saved.step, LAST));
+    setFloor(firstRep(readPrefs().skipIntros));
+    setReady(true);
+  }, [asked]);
 
   const step = STEPS[i];
-  const advance = () => setI((n) => Math.min(n + 1, STEPS.length - 1));
 
-  const dots = (
-    <div className="flex gap-1.5">
-      {STEPS.map((_, n) => (
-        <span
-          key={n}
-          className={`h-1.5 ${
-            n === i ? "w-6 bg-terracotta-500" : "w-1.5 bg-stone-300"
-          }`}
-        />
-      ))}
-    </div>
-  );
+  const go = (n: number) => {
+    const next = Math.max(0, Math.min(n, LAST));
+    setI(next);
+    writeOnboarding({ step: next });
+  };
+  const answer = (patch: Partial<Answers>) => {
+    const next = { ...answers, ...patch };
+    setAnswers(next);
+    writeOnboarding({ answers: next });
+  };
 
-  const art = (src: string) => (
-    <Image
-      src={src}
-      alt=""
-      width={180}
-      height={180}
-      priority
-      className="demos demos-idle mx-auto mb-6 w-[180px]"
-    />
-  );
+  /*
+   * Reaching the plan finishes the walk: the answers are final for
+   * now, the two defaults the level sets are applied, and the sync
+   * (lib/answers-sync.ts) carries it to the account once one exists.
+   */
+  useEffect(() => {
+    if (!ready || step.kind !== "plan") return;
+    const p = buildPortfolio(answers);
+    writeOnboarding({ done: true, step: LAST });
+    if (answers.level !== null) {
+      writePrefs({ frameStep: p.settings.frameStep, skipIntros: !p.settings.intros });
+      setFloor(firstRep(!p.settings.intros));
+    }
+  }, [ready, step, answers]);
+
+  if (!ready) return <main className="px-5 pt-7" />;
 
   if (step.kind === "intro") {
     const s = WELCOME_STEPS[step.index];
@@ -134,30 +141,30 @@ function Walk() {
       <LessonScreen
         center
         stepKey={i}
+        onBack={i > 0 ? () => go(i - 1) : undefined}
         title={s.title}
         line={s.line}
-        action={{ label: "Next", onPress: advance }}
-        art={art(s.art)}
-        aside={dots}
+        art={<DemosArt pose={INTRO_POSES[step.index]} />}
+        aside={<Dots count={WELCOME_STEPS.length} at={step.index} />}
+        action={{ label: "Next", onPress: () => go(i + 1) }}
         footer={
           /*
            * Screen 1 carries the returning-user door (Duolingo's splash
            * pattern, DECISIONS #133): a new device belonging to an
-           * existing account should sign in BEFORE recording anonymously,
-           * because recordings made first would strand on this device.
+           * existing account should sign in BEFORE recording anonymously.
            * Later screens keep Skip, which skips the questions too.
            */
           step.index === 0 ? (
             <Link
               href="/signin"
-              className="mt-3 block text-center text-caption text-stone-500"
+              className="mt-3 block min-h-11 py-3 text-center text-caption text-stone-500"
             >
               I already have an account
             </Link>
           ) : (
             <Link
               href="/"
-              className="mt-3 block text-center text-caption text-stone-500"
+              className="mt-3 block min-h-11 py-3 text-center text-caption text-stone-500"
             >
               Skip
             </Link>
@@ -167,106 +174,191 @@ function Walk() {
     );
   }
 
-  if (step.kind === "goal" || step.kind === "age") {
-    const copy = QUESTIONS[step.kind];
-    const picked = step.kind === "goal" ? goal : age;
+  if (step.kind === "question") {
+    const q = QUESTIONS.find((x) => x.id === step.id)!;
+    const n = i - FIRST_QUESTION + 1;
+    const picked = has(answers, step.id);
     return (
       <LessonScreen
-        center
         stepKey={i}
-        title={copy.title}
-        line={copy.line}
-        art={art(ASKING_ART)}
+        onBack={() => go(i - 1)}
+        title={q.title}
+        line={q.line}
+        art={<DemosArt pose={QUESTION_POSES[step.id]} size={120} />}
         aside={
           <div className="space-y-5">
-            {dots}
-            {step.kind === "goal" ? (
-              <Options
-                label={copy.title}
-                options={GOALS}
-                value={goal}
-                onPick={(g) => {
-                  setGoal(g);
-                  writeProfile({ goal: g });
-                }}
-              />
-            ) : (
-              <Options
-                label={copy.title}
-                options={AGE_BANDS}
-                value={age}
-                onPick={(a) => {
-                  setAge(a);
-                  writeProfile({ ageBand: a });
-                }}
-              />
-            )}
+            <Progress n={n} of={QUESTIONS.length} />
+            <Choices id={step.id} answers={answers} onAnswer={answer} />
           </div>
         }
-        /* One button, and what it says is the truth about the tap:
-           nothing picked, it skips; something picked, it continues. */
-        action={{ label: picked ? "Next" : "Skip", onPress: advance }}
+        /* Essential questions wait for an answer; the optional one
+           doesn't. Skip is a link under the button on every one. */
+        action={{
+          label: "Next",
+          onPress: () => go(i + 1),
+          disabled: q.essential && !picked,
+        }}
+        footer={
+          <button
+            type="button"
+            onClick={() => go(i + 1)}
+            className="mt-3 block min-h-11 w-full py-3 text-center text-caption text-stone-500"
+          >
+            Skip
+          </button>
+        }
       />
     );
   }
 
+  const plan = buildPortfolio(answers);
   return (
     <LessonScreen
       stepKey={i}
-      title={PLAN_COPY.title}
-      line={PLAN_COPY.line}
-      howTo={planFor(goal)}
+      onBack={() => go(i - 1)}
+      title={plan.headline}
+      line={plan.line}
+      howTo={plan.lines}
       howToLabel={PLAN_COPY.label}
       lead="howTo"
-      art={art(PLAN_ART)}
+      art={<DemosArt pose="clipboard" size={150} />}
       action={
         editing
-          ? { label: "Done", href: "/you" }
-          : { label: "Take the floor", href: FIRST_REP }
+          ? { label: PLAN_COPY.done, href: "/you" }
+          : { label: PLAN_COPY.action, href: floor }
       }
-      fineprint={editing ? undefined : "Every number on it is measured, none awarded."}
+      fineprint={plan.boss ? plan.boss.line : undefined}
     />
   );
 }
 
+function has(a: Answers, id: QuestionId): boolean {
+  return id === "pains" ? a.pains.length > 0 : a[id] !== null;
+}
+
+/** The intro's pagination, unchanged (#133). */
+function Dots({ count, at }: { count: number; at: number }) {
+  return (
+    <div className="flex gap-1.5">
+      {Array.from({ length: count }, (_, n) => (
+        <span
+          key={n}
+          className={`h-1.5 ${n === at ? "w-6 bg-terracotta-500" : "w-1.5 bg-stone-300"}`}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Where you are in the questions: the debrief's segment grammar. */
+function Progress({ n, of }: { n: number; of: number }) {
+  return (
+    <div className="flex items-center gap-2">
+      {Array.from({ length: of }, (_, k) => (
+        <span
+          key={k}
+          className={`h-1 flex-1 ${k < n ? "bg-terracotta-500" : "bg-sand"}`}
+        />
+      ))}
+      <span className="label-data ml-1 shrink-0 tabular-nums">
+        {n} of {of}
+      </span>
+    </div>
+  );
+}
+
 /**
- * One tappable answer per row: a radio set in the segmented control's
- * grammar (#206, ModeToggle): the chosen row fills with ink, the rest
- * stand on `surface` with the `stone-200` outline (#218). Tapping picks;
- * the screen's one button moves on.
+ * One tappable answer per row, in the segmented control's grammar
+ * (#206, ModeToggle): the chosen row fills with ink, the rest stand on
+ * `surface` with the `stone-200` outline (#218). Single answers are a
+ * radio set; the pains are checkboxes, three at most.
  */
-function Options<T extends string>({
-  label,
-  options,
-  value,
-  onPick,
+function Choices({
+  id,
+  answers,
+  onAnswer,
 }: {
+  id: QuestionId;
+  answers: Answers;
+  onAnswer: (patch: Partial<Answers>) => void;
+}) {
+  if (id === "pains") {
+    const full = answers.pains.length >= MAX_PAINS;
+    return (
+      <div role="group" aria-label="What you notice" className="space-y-2">
+        {PAINS.map((o) => {
+          const on = answers.pains.includes(o.id);
+          return (
+            <Row
+              key={o.id}
+              role="checkbox"
+              on={on}
+              disabled={!on && full}
+              label={o.label}
+              onPress={() =>
+                onAnswer({
+                  pains: on
+                    ? answers.pains.filter((p) => p !== o.id)
+                    : [...answers.pains, o.id],
+                })
+              }
+            />
+          );
+        })}
+      </div>
+    );
+  }
+  const options =
+    id === "ageBand"
+      ? AGE_BANDS
+      : id === "goal"
+        ? GOALS
+        : id === "level"
+          ? LEVELS
+          : CONTEXTS;
+  const value = answers[id];
+  return (
+    <div role="radiogroup" aria-label={QUESTIONS.find((q) => q.id === id)!.title} className="space-y-2">
+      {options.map((o) => (
+        <Row
+          key={o.id}
+          role="radio"
+          on={value === o.id}
+          label={o.label}
+          onPress={() => onAnswer({ [id]: o.id } as Partial<Answers>)}
+        />
+      ))}
+    </div>
+  );
+}
+
+function Row({
+  role,
+  on,
+  disabled = false,
+  label,
+  onPress,
+}: {
+  role: "radio" | "checkbox";
+  on: boolean;
+  disabled?: boolean;
   label: string;
-  options: readonly { id: T; label: string }[];
-  value: T | null;
-  onPick: (id: T) => void;
+  onPress: () => void;
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className="space-y-2">
-      {options.map((o) => {
-        const on = value === o.id;
-        return (
-          <button
-            key={o.id}
-            type="button"
-            role="radio"
-            aria-checked={on}
-            onClick={() => onPick(o.id)}
-            className={`press font-display flex min-h-12 w-full items-center rounded-[10px] border px-4 text-left text-[14.5px] font-bold transition-colors ${
-              on
-                ? "border-ink bg-ink text-ground"
-                : "border-stone-200 bg-surface hover:bg-sand"
-            }`}
-          >
-            {o.label}
-          </button>
-        );
-      })}
-    </div>
+    <button
+      type="button"
+      role={role}
+      aria-checked={on}
+      disabled={disabled}
+      onClick={onPress}
+      className={`press font-display flex min-h-11 w-full items-center rounded-control border px-4 text-left text-[14.5px] font-bold transition-colors ${
+        on
+          ? "border-ink bg-ink text-ground"
+          : "border-stone-200 bg-surface hover:bg-sand"
+      } ${disabled ? "opacity-40" : ""}`}
+    >
+      {label}
+    </button>
   );
 }

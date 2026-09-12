@@ -50,27 +50,50 @@ export const WELCOME_STEPS = [
 ] as const;
 
 /**
- * The two questions and the plan that follow the introduction
- * (DECISIONS #231). Same template, same budget, tap-only answers
- * (lib/profile.ts holds them): the persona self-diagnoses, so the app
- * asks what they noticed and shows the road in their words. Every
- * screen has the mic one tap away; none has a paywall behind it.
+ * The five questions after the introduction (DECISIONS #232), one per
+ * screen, every answer a tap, Skip on every one. Same template, same
+ * budget (lib/copy.test.ts reads these). The answers and what they do
+ * live in lib/answers.ts and content/portfolio.ts.
  */
-export const QUESTIONS = {
-  goal: {
-    title: "What do you notice?",
-    line: "When you talk. Pick one.",
-  },
-  age: {
+export const QUESTIONS = [
+  {
+    id: "ageBand",
     title: "How old are you?",
-    line: "It shapes the prompts, nothing else.",
+    line: "It changes the prompts you get, nothing else.",
+    essential: true,
   },
-} as const;
+  {
+    id: "goal",
+    title: "What do you want this for?",
+    line: "Pick the closest.",
+    essential: true,
+  },
+  {
+    id: "pains",
+    title: "What do you notice when you talk?",
+    line: "Up to three.",
+    essential: true,
+  },
+  {
+    id: "level",
+    title: "How much have you practised?",
+    line: "Roughly.",
+    essential: true,
+  },
+  {
+    id: "context",
+    title: "Where does it matter most?",
+    line: "Optional.",
+    essential: false,
+  },
+] as const;
+
+export type QuestionId = (typeof QUESTIONS)[number]["id"];
 
 export const PLAN_COPY = {
-  title: "Your first month.",
-  line: "Built from what you noticed.",
-  label: "The plan",
+  label: "Your first month",
+  action: "Take the floor",
+  done: "Done",
 } as const;
 
 /** Supabase-js persists its session under `sb-<project-ref>-auth-token`. */

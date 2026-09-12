@@ -27,6 +27,9 @@ export interface Prefs {
   verbatim: boolean;
   /** Optional 30s think-time before the rep (DECISIONS #35). */
   frameStep: boolean;
+  /** Skip a unit's teaching screen on the way in (#232: set by the
+   *  introduction for people who already present often). */
+  skipIntros: boolean;
   /** Honour prefers-reduced-motion overrides for the celebration. */
   reducedMotion: boolean;
   /** Light, dark, or follow the OS. */
@@ -56,6 +59,7 @@ export const DEFAULT_PREFS: Prefs = {
   sound: true,
   verbatim: true,
   frameStep: false,
+  skipIntros: false,
   reducedMotion: false,
   theme: "system",
   pose: null,

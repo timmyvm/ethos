@@ -22,6 +22,7 @@ The road is a list, rows sit on the ground under hairlines, and the eyebrow regi
 - Motion: 200ms ease-out default, 600 for celebration. Classes `.arrive`, `.arrive-x`, `.reveal`, `.fill`, `.star-land`, `.sheet-panel`, `.sheet-scrim`, `.rec-ring`, `.dur-*`. Reduced motion is `data-motion="reduce"` on `<html>`. `.press` scales 0.985 and veils the fill on every pointer type.
 - Elevation: `--shadow-1/2/3` and `.elev-1/2/3`. Type: two uppercase registers, `.label-data` (section eyebrow) and `.label-micro` (column heads, chips, tile labels, the nav). Text sizes are body 15, caption 12.5, row title and control label 14/700, text link 13/600; numbers keep the display scale at 800, tabular.
 - Rhythm, owned by the parent: section `mt-7`, eyebrow to content `mt-3`, row `py-3`, card to card `gap-3`, card `p-4`, hero `p-5`, screen `px-5 pt-7 pb-22`. Shared components carry no outer margin.
+- Unit marks: `public/unit/<id>.webp`, one Demos pose per unit, cut and normalised by `scripts/cut-unit-marks.mjs` from `assets/demos-unit-*.png`. The road shows one, on the unit you are in.
 - Icons: `components/Icon.tsx`, 24px line set. Primitives: `components/ui/` (EmptyState, ErrorState, Overlay, Skeleton), plus ScoreCard, Nav, PathRoad, DayTrail.
 
 ## Screens
@@ -32,7 +33,6 @@ Today `/`, Tools `/games`, Log `/history`, You `/you`, Shop `/shop`, the recordi
 
 - The one tap is a rectangle at 12. A pill primary is the reference read (Headspace) and would be the only shape of its kind on Today; #201 chose rectangles. Worth one experiment.
 - Desktop shell: same stage, constrained, side rail with Demos, streak and day trail.
-- The seven unit marks on the road are still emoji: seven Demos poses.
 - Carousel dots: the active dot slides along the row.
 - Home card shows the celebrate pose over a pose just bought: the equipped pose wins.
 - `nextLesson` pins the floor to the first lesson under three stars: advance on any star, revisit for the missing ones.

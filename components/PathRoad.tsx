@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { IconBoss } from "@/components/Icon";
 import { journeySteps, journeySummary } from "@/lib/progress";
@@ -111,6 +112,9 @@ export function PathRoad({
         {steps.map((step, i) => {
           const isCurrent = i === currentIndex;
           const unitHeader = step.unitName !== lastUnit && !step.endowed;
+          /** The unit the current lesson sits in: the one you are on. */
+          const here =
+            currentIndex >= 0 && step.unitName === steps[currentIndex]?.unitName;
           lastUnit = step.endowed ? lastUnit : step.unitName;
           const unit = UNITS.find((u) => u.name === step.unitName);
           const done = !step.endowed && step.stars > 0;
@@ -166,13 +170,36 @@ export function PathRoad({
                       being outlined boxes (#234), so they drop to the
                       `edge` rule. The door is the road's one lock
                       symbol (#156); the distance keeps #44's count. */}
-                  <div className="mt-1 flex items-center gap-3.5 border-y border-edge py-3.5">
+                  <div className="mt-1 flex items-center gap-3.5 border-y border-edge py-3">
+                    {/*
+                     * Three states, each carrying its own information
+                     * (#248). A locked unit shows the door, which is the
+                     * road's one lock symbol (#156). Every other unit
+                     * shows the door open. And the unit you are actually
+                     * IN shows Demos doing the thing it trains.
+                     *
+                     * Only that one. Seven poses exist, one per unit, and
+                     * putting them all on the road turns the character
+                     * into wallpaper down a 5000px scroll — vision.md is
+                     * explicit that Demos appears at moments and never as
+                     * furniture. One pose, at the checkpoint you are
+                     * standing on, IS the moment: it says you are here.
+                     * Static, because nothing on the road moves.
+                     */}
                     <span
-                      className={`flex w-[30px] shrink-0 justify-center ${
+                      className={`flex w-11 shrink-0 justify-center ${
                         step.locked ? "text-stone-500" : "text-stone-300"
                       }`}
                     >
-                      {unit.unlocksAt > 0 ? (
+                      {here ? (
+                        <Image
+                          src={`/unit/${unit.id}.webp`}
+                          alt=""
+                          width={128}
+                          height={128}
+                          className="demos pointer-events-none w-11"
+                        />
+                      ) : unit.unlocksAt > 0 ? (
                         <Gate open={!step.locked} width={26} />
                       ) : null}
                     </span>

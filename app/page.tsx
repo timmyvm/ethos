@@ -434,9 +434,12 @@ export default function Home() {
         </div>
       )}
 
+      {/* The failure is a card the read produced, same as the score
+          card would have been, so it arrives rather than appearing
+          where the skeleton was standing. */}
       {failed && (
         <ErrorState
-          className="mt-7"
+          className="arrive mt-7"
           {...readFailure("Your score")}
           onRetry={() => void load()}
         />

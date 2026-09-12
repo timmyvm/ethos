@@ -203,7 +203,7 @@ export default function ShopPage() {
 
       {failed ? (
         <ErrorState
-          className="mt-7"
+          className="arrive mt-7"
           {...readFailure("Your coins")}
           onRetry={() => void refresh()}
         />

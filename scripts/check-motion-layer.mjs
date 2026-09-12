@@ -99,8 +99,12 @@ ok(
 );
 
 // ---- 3. Press drops one level and springs back ---------------------------
+// On /rep, because the Record button is the app's clearest case of a
+// control that is both levelled and tappable.
+await page.goto(`${BASE}/rep?lesson=h4`);
+await page.waitForSelector('button[aria-label="Start recording"]');
 const pressed = await page.evaluate(async () => {
-  const el = document.querySelector(".press.elev-2, .press.elev-1");
+  const el = document.querySelector(".press.elev-3, .press.elev-2, .press.elev-1");
   if (!el) return null;
   const before = getComputedStyle(el).boxShadow;
   const r = el.getBoundingClientRect();
@@ -175,8 +179,16 @@ const gone = await page
 ok("a long pull closes it", gone);
 
 // ---- 6. Reduced motion collapses all of it -------------------------------
-await page.goto(`${BASE}/settings`);
-await page.getByRole("switch", { name: /Reduced motion/ }).click();
+// The fixture seed writes `ethos.prefs` on every navigation, so flipping
+// the switch and then navigating puts it straight back. Later init
+// scripts run last, so this one has the final word.
+await context.addInitScript(() => {
+  const prefs = JSON.parse(localStorage.getItem("ethos.prefs") ?? "{}");
+  localStorage.setItem(
+    "ethos.prefs",
+    JSON.stringify({ ...prefs, reducedMotion: true })
+  );
+});
 await page.goto(`${BASE}/`);
 await page.waitForSelector("main");
 await sleep(500);

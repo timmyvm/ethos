@@ -110,6 +110,17 @@ const context = await browser.newContext({
 });
 await context.route("http://supabase.local/**", supabase);
 await context.route("**/api/analyze", async (route) => { await sleep(1400); reps.push(repRow); await route.fulfill(json(analyze)); });
+/*
+ * The dev tools button is labelled "Next", so `getByRole("button", {
+ * name: "Next" })` matches it as well as the carousel's own control and
+ * the run dies on a strict-mode violation. Hiding the overlay also stops
+ * its portal swallowing pointer events whenever a route fails to build.
+ */
+await context.addInitScript(() => {
+  const css = document.createElement("style");
+  css.textContent = "nextjs-portal{display:none!important}";
+  document.addEventListener("DOMContentLoaded", () => document.head.appendChild(css));
+});
 const page = await context.newPage();
 page.on("pageerror", (e) => console.log("PAGEERROR", page.url(), e.message.slice(0, 80)));
 

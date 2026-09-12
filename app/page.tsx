@@ -269,7 +269,10 @@ export default function Home() {
        */}
       <section className="mt-7">
         {topic ? (
-          <>
+          /* The roulette block rises into the floor's place as ONE
+             thing (#242): eyebrow, card and the way back on the same
+             300ms lift, because they all arrived from the same tap. */
+          <div key="roulette" className="arrive-lift">
             {/* The unit moved out of this label and into the line under
                 the title, where voice.md puts it: the eyebrow names the
                 slot, the body names the thing. */}
@@ -289,102 +292,113 @@ export default function Home() {
                 }}
                 className="press -mb-3 mt-1 inline-flex min-h-11 items-center text-[13px] font-semibold text-stone-500"
               >
-                ← Back to today&apos;s drill
+                ← Back to today&apos;s lesson
               </button>
             </div>
-          </>
+          </div>
         ) : (
           <>
+            {/* Coming BACK from the roulette, the floor rises into its
+                own place the same way the roulette rose into it: the
+                card and the two lines under it on one lift. On a cold
+                open the wrapper carries no class and the floor paints
+                instantly, which is the rule it has had since #224. */}
+            {/* The keys are what make the two states two elements
+                (#242). Both branches are a <div> in the same slot, so
+                without them React keeps the node, the class string
+                never changes, and the entrance simply does not run —
+                the floor came back by cutting. */}
             <div
-              className={`elev-2 rounded-sheet border border-card-edge bg-raised p-5 ${
-                floorReturned ? "arrive-lift" : ""
-              }`}
+              key="floor"
+              className={floorReturned ? "arrive-lift" : undefined}
             >
-              {/* Centred with the rest of the card (#212): one
+              <div className="elev-2 rounded-sheet border border-card-edge bg-raised p-5">
+                {/* Centred with the rest of the card (#212): one
                   announcement over one tap. */}
-              <div className="label-data mb-3 text-center">
-                {streak.didToday ? "Extra lesson" : "Today's lesson"}
-              </div>
-              {/*
-               * The floor's copy is the template (docs/voice.md Part 2)
-               * via <LessonBody>, and the PROMPT is gone from it
-               * (DECISIONS #209): it was the same sentence the recording
-               * screen shows a tap later, so reading it here bought
-               * nothing and taught people that the words on this screen
-               * are skippable.
-               *
-               * The `note` is the caption level: why THIS, today.
-               * Duolingo's published answer to "why come back" is
-               * half-life regression (Settles & Meeder, ACL 2016), and
-               * the reason always carries the number that chose it, so
-               * the call stays checkable.
-               */}
-              <LessonBody
-                align="center"
-                title={dayLine}
-                line={unitName}
-                /* Day one carries what they said they notice, in their
+                <div className="label-data mb-3 text-center">
+                  {streak.didToday ? "Extra lesson" : "Today's lesson"}
+                </div>
+                {/*
+                 * The floor's copy is the template (docs/voice.md Part 2)
+                 * via <LessonBody>, and the PROMPT is gone from it
+                 * (DECISIONS #209): it was the same sentence the recording
+                 * screen shows a tap later, so reading it here bought
+                 * nothing and taught people that the words on this screen
+                 * are skippable.
+                 *
+                 * The `note` is the caption level: why THIS, today.
+                 * Duolingo's published answer to "why come back" is
+                 * half-life regression (Settles & Meeder, ACL 2016), and
+                 * the reason always carries the number that chose it, so
+                 * the call stays checkable.
+                 */}
+                <LessonBody
+                  align="center"
+                  title={dayLine}
+                  line={unitName}
+                  /* Day one carries what they said they notice, in their
                  words (#231); after that the number decides the line. */
-                note={
-                  dayOne
-                    ? dayOneNote(answers)
-                    : (gap ??
-                      (focus.strength !== null ? focus.reason : undefined))
-                }
-              />
-              {/*
-               * Demos peeks in from the right, just above the tap.
-               *
-               * He was beside the button, which pushed the one terracotta
-               * thing off the screen's axis under a centred headline. He
-               * cannot simply move to the middle either: the default mark
-               * (#7's side profile) is drawn cropped into the corner of
-               * its frame, so centred it reads as a broken image and
-               * anchored to an edge it reads as intended. Edge it is, and
-               * the button underneath gets the full width and the centre.
-               */}
-              <div className="-mr-3 mt-2 flex justify-end">
-                <Image
-                  src={
-                    streak.didToday
-                      ? "/demos-celebrate.webp"
-                      : (demos ?? "/demos.webp")
+                  note={
+                    dayOne
+                      ? dayOneNote(answers)
+                      : (gap ??
+                        (focus.strength !== null ? focus.reason : undefined))
                   }
-                  alt=""
-                  width={104}
-                  height={104}
-                  priority
-                  className="demos pointer-events-none -mb-1 w-[58px]"
                 />
-              </div>
-              {/* The one tap, in the one declaration every screen shares
+                {/*
+                 * Demos peeks in from the right, just above the tap.
+                 *
+                 * He was beside the button, which pushed the one terracotta
+                 * thing off the screen's axis under a centred headline. He
+                 * cannot simply move to the middle either: the default mark
+                 * (#7's side profile) is drawn cropped into the corner of
+                 * its frame, so centred it reads as a broken image and
+                 * anchored to an edge it reads as intended. Edge it is, and
+                 * the button underneath gets the full width and the centre.
+                 */}
+                <div className="-mr-3 mt-2 flex justify-end">
+                  <Image
+                    src={
+                      streak.didToday
+                        ? "/demos-celebrate.webp"
+                        : (demos ?? "/demos.webp")
+                    }
+                    alt=""
+                    width={104}
+                    height={104}
+                    priority
+                    className="demos pointer-events-none -mb-1 w-[58px]"
+                  />
+                </div>
+                {/* The one tap, in the one declaration every screen shares
                 (#234): the colour is the lift, so it takes no border
                 and no shadow. */}
-              <Link href={floorHref} className={`${ACTION_CLASS} mt-3`}>
-                {dayOne
-                  ? `${drill.title} →`
-                  : streak.didToday
-                    ? "Go again"
-                    : "Take the floor"}
-              </Link>
-            </div>
-            <div className="mt-5 flex items-baseline justify-between gap-3">
-              <button
-                onClick={() => setTopic(spinForAnswers(null))}
-                className="press -my-3 inline-flex min-h-11 items-center text-[13px] font-semibold text-terracotta-700"
-              >
-                Not feeling it? Spin a new topic →
-              </button>
-              <button
-                onClick={() => setShowMods((v) => !v)}
-                className="press -my-3 inline-flex min-h-11 shrink-0 items-center text-[13px] font-semibold text-terracotta-700"
-              >
-                {showMods
-                  ? "Hide mods"
-                  : mods.length > 0
-                    ? `${mods.length} mod${mods.length === 1 ? "" : "s"} on · edit`
-                    : "Make it harder"}
-              </button>
+                <Link href={floorHref} className={`${ACTION_CLASS} mt-3`}>
+                  {dayOne
+                    ? `${drill.title} →`
+                    : streak.didToday
+                      ? "Go again"
+                      : "Take the floor"}
+                </Link>
+              </div>
+              <div className="mt-5 flex items-baseline justify-between gap-3">
+                <button
+                  onClick={() => setTopic(spinForAnswers(null))}
+                  className="press -my-3 inline-flex min-h-11 items-center text-[13px] font-semibold text-terracotta-700"
+                >
+                  Not feeling it? Spin a new topic →
+                </button>
+                <button
+                  onClick={() => setShowMods((v) => !v)}
+                  className="press -my-3 inline-flex min-h-11 shrink-0 items-center text-[13px] font-semibold text-terracotta-700"
+                >
+                  {showMods
+                    ? "Hide mods"
+                    : mods.length > 0
+                      ? `${mods.length} mod${mods.length === 1 ? "" : "s"} on · edit`
+                      : "Make it harder"}
+                </button>
+              </div>
             </div>
             {showMods && (
               <div className="reveal mt-3">

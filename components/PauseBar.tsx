@@ -48,7 +48,7 @@ export function PauseBar({
   if (durationS > cursor) speech(durationS - cursor);
 
   return (
-    <div className="elev-1 rounded-card border border-transparent bg-stage px-4 pb-3.5 pt-4">
+    <div className="card-stage elev-1 rounded-card px-4 pb-3.5 pt-4">
       <div className="label-data !text-cream/60">
         Pause bar · sage = silence you earned
       </div>

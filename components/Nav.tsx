@@ -35,7 +35,7 @@ import {
 /*
  * "Games" became "Tools" on 27 Aug (#184): with upload-and-analyze in
  * the menu the tab stopped being only games, and Tools is the honest
- * name for a room of drills, bosses and analyzers. The /games route and
+ * name for a room of lessons, bosses and analyzers. The /games route and
  * the icon identifiers keep their names: nobody reads code aloud and
  * bookmarks live (#164's rule).
  */

@@ -5,7 +5,7 @@
  *
  * Checkpoint 1 found the opposite everywhere: pages caught their fetch
  * failures and said nothing, so a dead connection looked like an empty
- * training log — the one lie vision.md doesn't allow, since it reads as
+ * log — the one lie vision.md doesn't allow, since it reads as
  * "you have done nothing" to someone who has done plenty.
  *
  * Rules: name what didn't load, say what it means for their data, always

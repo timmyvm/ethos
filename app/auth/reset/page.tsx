@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { FIELD_CLASS, FormError } from "@/components/AuthForm";
 import { ACTION_CLASS } from "@/components/LessonScreen";
+import { DISABLED_CLASS } from "@/lib/ui";
 import { sessionState, setNewPassword } from "@/lib/auth";
 
 /**
@@ -135,7 +136,7 @@ function ResetScreen() {
             <button
               type="submit"
               disabled={busy || ready === null}
-              className={`${ACTION_CLASS} mt-5 disabled:opacity-40`}
+              className={`${ACTION_CLASS} ${DISABLED_CLASS} mt-5`}
             >
               {busy ? "Saving…" : "Save it"}
             </button>

@@ -76,7 +76,15 @@ export default function YouPage() {
   const [reps, setReps] = useState<RepRow[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [lexicon, setLexicon] = useState<LexiconRow[]>([]);
-  const [xp, setXp] = useState({ total: 0, week: 0 });
+  /**
+   * `null` until the XP read lands, for the same reason `reps` is: the
+   * level card and "this week" are derived from it, and a zero that has
+   * not arrived yet renders as Level 1 / 0 XP / 0 xp — numbers that are
+   * not true, and now numbers that would COUNT UP to the truth a moment
+   * later. A failed read still resolves to zeroes, which is what the
+   * page has always shown.
+   */
+  const [xp, setXp] = useState<{ total: number; week: number } | null>(null);
   const [anon, setAnon] = useState<boolean | null>(null);
   const [paywall, setPaywall] = useState<PaywallAsk | null>(null);
   /** `null` is a balance nobody could read. It renders as a dash. */
@@ -149,7 +157,9 @@ export default function YouPage() {
   useEffect(() => {
     void load();
     fetchLexicon().then(setLexicon).catch(() => {});
-    fetchXp().then(setXp).catch(() => {});
+    fetchXp()
+      .then(setXp)
+      .catch(() => setXp({ total: 0, week: 0 }));
     setOnboarding(readOnboarding());
     fetchProfile()
       .then((p) => {
@@ -167,9 +177,11 @@ export default function YouPage() {
   }, [load]);
 
   const loading = reps === null;
+  /** The level card and the stat trio wait on BOTH reads (see `xp`). */
+  const counting = loading || xp === null;
   const history = reps ?? [];
   const dates = history.map((r) => new Date(r.created_at));
-  const level = levelFromXp(xp.total);
+  const level = levelFromXp(xp?.total ?? 0);
   const badges = achievements(history);
   const earnedCount = badges.filter((b) => b.earned).length;
   const toNextFreeze = 7 - (streak.longest % 7);
@@ -291,7 +303,7 @@ export default function YouPage() {
                 the section eyebrow is one per SECTION, and this card has
                 three labels in it. */}
             <div className="label-micro !text-sage-700">Level</div>
-            {loading ? (
+            {counting ? (
               <Skeleton className="mt-1.5 h-7 w-10" />
             ) : (
               <div className="font-display text-[30px] font-extrabold leading-none tabular-nums">
@@ -301,9 +313,13 @@ export default function YouPage() {
           </div>
           <div className="text-right">
             <div className="label-micro">Total XP</div>
-            {loading ? (
+            {counting ? (
               <Skeleton className="mt-1.5 ml-auto h-5 w-14" />
             ) : (
+              /* Not a CountUp: this is the one number on the page with a
+                 thousands separator, and CountUp renders a bare integer,
+                 so ticking it would print 1195 where the page says
+                 1,195. Reported rather than degraded. */
               <div className="font-display text-[20px] font-extrabold tabular-nums">{xp.total.toLocaleString()}</div>
             )}
           </div>
@@ -311,7 +327,7 @@ export default function YouPage() {
         {/* The trough paints at once; the bar fills when the number it
             reports has landed (#225), never over a skeleton. */}
         <div className="mt-4 h-1.5 overflow-hidden bg-sand">
-          {!loading && (
+          {!counting && (
             <div
               className="fill h-full bg-sage-500"
               style={{
@@ -321,7 +337,7 @@ export default function YouPage() {
           )}
         </div>
         <div className="mt-1.5 flex justify-between">
-          {loading ? (
+          {counting ? (
             <Skeleton className="h-2.5 w-28" />
           ) : (
             <span className="label-micro">
@@ -339,7 +355,7 @@ export default function YouPage() {
       )}
 
       <div className="mt-7 flex gap-3">
-        {loading ? (
+        {counting ? (
           <>
             <SkeletonStatBare />
             <SkeletonStatBare />
@@ -349,7 +365,7 @@ export default function YouPage() {
           <>
             <Stat label="Streak" value={streak.current} note="days" />
             <Stat label="Longest" value={streak.longest} note="days" />
-            <Stat label="This week" value={xp.week} note="xp" />
+            <Stat label="This week" value={xp?.week ?? 0} note="xp" />
           </>
         )}
       </div>
@@ -605,7 +621,7 @@ export default function YouPage() {
       {/*
        * The shelf. A ladder, not a grid: hardest last, no tier labels,
        * because the position is the claim. Every row is a link to the
-       * drill that produces its number — a locked badge that only
+       * lesson that produces its number — a locked badge that only
        * describes itself is a taunt (DECISIONS #153).
        */}
       <div className="label-data mt-7 border-t border-hairline pt-3">

@@ -13,7 +13,7 @@ import {
  *
  * The multiplier shown is XP, and the card says so: mods buy effort
  * credit, never stars (DECISIONS #10, #16). Two at a time; a third
- * stacked mod is a stunt, not training.
+ * stacked mod is a stunt, not practice.
  */
 export function ModPicker({
   selected,

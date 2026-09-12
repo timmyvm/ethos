@@ -31,12 +31,20 @@ export function Sparkline({
 }) {
   if (bare) {
     return (
+      /*
+       * `.fill`: the track unrolls left to right as the row's "now"
+       * cell counts, so the series and the number it summarises land
+       * on the same clock instead of the line simply being there. It
+       * is the same event as the count (#225), transform-only, and it
+       * collapses to nothing under reduced motion like every other
+       * fill.
+       */
       <Trace
         values={values}
         label={label}
         invert={invert}
         height={height}
-        className="w-full"
+        className="fill w-full"
         stroke={1.5}
       />
     );

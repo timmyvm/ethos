@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { IconChevron } from "@/components/Icon";
+import { ACTION_CLASS, DISABLED_CLASS } from "@/lib/ui";
 
 /**
  * The one shape every explanation screen takes (docs/voice.md, Part 2).
@@ -261,7 +262,7 @@ export function LessonScreen({
             type="button"
             onClick={action.onPress}
             disabled={action.disabled}
-            className={`${ACTION_CLASS} disabled:opacity-40`}
+            className={`${ACTION_CLASS} ${DISABLED_CLASS}`}
           >
             {action.label}
           </button>
@@ -289,9 +290,7 @@ export function LessonScreen({
  * it: a transparent 1px border and no min-height on the floor, neither
  * on the roulette, and this one here. One constant, one button.
  */
-export const ACTION_CLASS =
-  "press font-display block min-h-12 w-full rounded-control bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-on-accent transition-colors hover:bg-terracotta-600";
-
+export 
 /**
  * The theory slot.
  *
@@ -329,3 +328,8 @@ function WhyThisWorks({ children }: { children?: ReactNode }) {
     </div>
   );
 }
+
+/* Re-exported so the seven screens importing it from here keep
+   working; the string itself lives in lib/ui.ts, which a server
+   component can read. */
+export { ACTION_CLASS };

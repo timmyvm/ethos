@@ -1,11 +1,7 @@
 import Image from "next/image";
+import { ACTION_CLASS as BACK_TO_TODAY } from "@/lib/ui";
 import Link from "next/link";
 
-/* `ACTION_CLASS` (components/LessonScreen.tsx), copied: that module is
-   a client component, and a string imported from one into a server page
-   arrives as a client reference rather than the class. */
-const BACK_TO_TODAY =
-  "press font-display block min-h-12 w-full rounded-control bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-on-accent transition-colors hover:bg-terracotta-600";
 
 export default function NotFound() {
   return (

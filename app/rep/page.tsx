@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { ACTION_CLASS as PRIMARY } from "@/lib/ui";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -276,7 +277,7 @@ function RepScreen() {
   const [streakNow, setStreakNow] = useState(0);
 
   /**
-   * Sticky per drill type, and that is the whole rule now (#211): the
+   * Sticky per lesson type, and that is the whole rule now (#211): the
    * recording-one audio override is gone, so this no longer waits on
    * the history read to know what mode the screen is in.
    */
@@ -1058,7 +1059,7 @@ function RepScreen() {
        * #211, amending #68). The old rule locked recording one to audio
        * and had to be explained on the screen it applied to; deleting
        * the rule deletes the sentence, which is the actual win. The
-       * camera is still OFF by default on a daily drill, so nothing is
+       * camera is still OFF by default on a daily lesson, so nothing is
        * asked for that nobody chose.
        */}
       {phase === "idle" && (
@@ -1396,13 +1397,6 @@ function article(n: number): string {
  * section="all", because a stored rep is reference rather than a
  * debrief.
  */
-/**
- * The one tap (SYSTEM.md §4): terracotta-500, ink label, no border, no
- * shadow, 15/700 on the display face. Every forward exit in the loop
- * wears it, so the debrief has exactly one of them per screen.
- */
-const PRIMARY =
-  "press font-display block min-h-12 w-full rounded-control bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-on-accent transition-colors hover:bg-terracotta-600";
 
 const STEPS = [
   { key: "score", label: "The score" },

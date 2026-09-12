@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { FIELD_CLASS, FormError } from "@/components/AuthForm";
 import { ACTION_CLASS } from "@/components/LessonScreen";
+import { DISABLED_CLASS } from "@/lib/ui";
 import { sendReset } from "@/lib/auth";
 
 export default function ForgotPage() {
@@ -70,7 +71,7 @@ export default function ForgotPage() {
           <button
             type="submit"
             disabled={busy}
-            className={`${ACTION_CLASS} mt-5 disabled:opacity-40`}
+            className={`${ACTION_CLASS} ${DISABLED_CLASS} mt-5`}
           >
             {busy ? "Sending…" : "Send the link"}
           </button>

@@ -26,7 +26,7 @@ import { repHref } from "@/lib/rep-config";
  * gets a reason to be opened weekly.
  *
  * Every row launches a REAL rep through the real engine. The question
- * is drawn on tap, not shown here: a cold open is the training, same
+ * is drawn on tap, not shown here: a cold open is the practice, same
  * reason the roulette spins instead of listing.
  *
  * Type is the three roles (#208, #212, collapsed in #234): the screen

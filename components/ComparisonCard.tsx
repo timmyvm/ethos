@@ -76,7 +76,7 @@ export function ComparisonCard({
   }
 
   return (
-    <div className="elev-1 rounded-sheet bg-stage p-5 text-cream">
+    <div className="card-stage elev-1 rounded-sheet p-5 text-cream">
       <div className="label-data !text-cream/60">
         Day 1 → day {days} · your log
       </div>

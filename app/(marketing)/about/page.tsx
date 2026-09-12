@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { ACTION_CLASS as TAKE_THE_FLOOR } from "@/lib/ui";
 import Link from "next/link";
 import type { Metadata } from "next";
 
@@ -22,15 +23,6 @@ export const metadata: Metadata = {
  * no-manufactured-insecurity rule: name the felt moment honestly, never
  * imply the reader is inadequate, never sell fear.
  */
-/*
- * The one tap, spelled exactly as `ACTION_CLASS` in
- * components/LessonScreen.tsx. It is copied rather than imported
- * because that module is a client component: importing a string from
- * one into a server page hands back a client reference, not the string,
- * and the button renders as bare text. The two must stay in step.
- */
-const TAKE_THE_FLOOR =
-  "press font-display block min-h-12 w-full rounded-control bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-on-accent transition-colors hover:bg-terracotta-600";
 
 export default function About() {
   return (

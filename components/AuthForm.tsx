@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ACTION_CLASS } from "@/components/LessonScreen";
+import { DISABLED_CLASS } from "@/lib/ui";
 import { fetchReps } from "@/lib/client-data";
 import { computeStreak } from "@/lib/streak";
 import {
@@ -242,7 +243,7 @@ export function AuthForm({
           <button
             type="submit"
             disabled={busy}
-            className={`${ACTION_CLASS} mt-5 disabled:opacity-40`}
+            className={`${ACTION_CLASS} ${DISABLED_CLASS} mt-5`}
           >
             {busy ? "One moment…" : submitLabel}
           </button>

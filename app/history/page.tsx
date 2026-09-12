@@ -40,7 +40,7 @@ const MOVED_GRID = "grid grid-cols-[minmax(0,1fr)_36px_42px_74px_44px] gap-2";
 const RECORD_GRID = "grid grid-cols-[34px_minmax(0,1fr)_44px_36px_36px_36px] gap-1.5";
 
 /**
- * The training log (#17, rebuilt to #217): one hero, one row grammar,
+ * The log (#17, rebuilt to #217): one hero, one row grammar,
  * and the empty state is the populated state with the numbers missing.
  *
  * Three bands. The score card Home already draws, so the shape is
@@ -159,8 +159,11 @@ export default function HistoryPage() {
           and rows 40ms apart. It REPLACES the block's `.arrive` — a row
           that both fades with its parent and fades on its own clock
           arrives twice and reads as neither. */}
+      {/* Outside the arrival on purpose: the loading state draws this
+          exact h1, so fading it in with the read would take a title
+          that is already on the screen down to nothing and back. */}
+      <h1 className="font-display text-[24px] font-extrabold">The log</h1>
       <div className="arrive">
-        <h1 className="font-display text-[24px] font-extrabold">The log</h1>
         <p className="mt-1 text-caption text-stone-400">
           {empty
             ? "0 recordings."

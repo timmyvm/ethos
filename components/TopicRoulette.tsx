@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ACTION_CLASS } from "@/components/LessonScreen";
+import { DISABLED_CLASS } from "@/lib/ui";
 import { buzz, prefersReducedMotion } from "@/lib/prefs";
 import { spinForAnswers as spin } from "@/lib/portfolio";
 import { TOPIC_SHAPES, type Topic } from "@/lib/topics";
@@ -11,7 +12,7 @@ import { TOPIC_SHAPES, type Topic } from "@/lib/topics";
  *
  * The point isn't novelty — it's that picking your own topic quietly
  * lets you rehearse while you decide, which is the one thing a cold-open
- * drill can't allow. It also kills the "what do I even talk about"
+ * lesson can't allow. It also kills the "what do I even talk about"
  * stall that ends a session before it starts.
  */
 export function TopicRoulette({
@@ -50,9 +51,14 @@ export function TopicRoulette({
 
   /* In roulette mode this IS the floor, so it wears the floor's lift:
      the one raised card on the screen (#234), at the sheet radius the
-     floor card takes. */
+     floor card takes.
+     The ARRIVAL moved up to the block on Today (#242): the eyebrow and
+     the way back are part of what replaces the floor, and a card that
+     rose under a label already sitting at full opacity was two
+     entrances for one tap. The card keeps the elevation; the block
+     does the rising. */
   return (
-    <div className="arrive-lift elev-2 rounded-sheet border border-card-edge bg-raised p-5">
+    <div className="elev-2 rounded-sheet border border-card-edge bg-raised p-5">
       <div className="flex items-baseline justify-between">
         <div className="label-data">Roulette · you don&apos;t pick</div>
         <div className="label-micro !text-sage-700">{shape.label}</div>
@@ -83,7 +89,7 @@ export function TopicRoulette({
         <button
           onClick={() => onTake(topic)}
           disabled={rolling}
-          className={`${ACTION_CLASS} flex-1 disabled:opacity-40`}
+          className={`${ACTION_CLASS} ${DISABLED_CLASS} flex-1`}
         >
           Take this one
         </button>

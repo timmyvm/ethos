@@ -87,7 +87,7 @@ export function SkeletonStat() {
   );
 }
 
-/** One row of the training log — a hairline row, like the real one. */
+/** One row of the log — a hairline row, like the real one. */
 export function SkeletonRow() {
   return (
     <div className="flex items-center gap-3.5 border-t border-hairline py-3">

@@ -262,7 +262,12 @@ body {
   --color-sage-900: #313a24;
   --color-sage-ink: #211a13;
 
-  --color-rust: #e6b48c;
+  /* Rust was #e6b48c in dark — the same hex as terracotta-700, so a
+   * form error and an accent link were indistinguishable, and the one
+   * colour allowed to say "wrong direction" said "tap here" instead.
+   * Redder and more saturated than the accent peach, 7.4:1 on the dark
+   * ground (#244). */
+  --color-rust: #e08a6a;
 
   --color-stone-100: rgba(243, 236, 221, 0.07);
   --color-stone-200: rgba(243, 236, 221, 0.14);
@@ -462,6 +467,21 @@ body {
 
 :root[data-theme="dark"] .card-score {
   border-color: var(--color-sage-300);
+}
+
+/*
+ * The other deep material: the pause bar and the comparison card. On
+ * cream it separates itself; on the dark ground #120e0b against #1a1410
+ * is 1.6:1, which is a panel you have to go looking for. Same trick as
+ * the score card, one step of cream.
+ */
+.card-stage {
+  background: var(--color-stage);
+  border: 1px solid transparent;
+}
+
+:root[data-theme="dark"] .card-stage {
+  border-color: var(--color-card-edge);
 }
 
 /*

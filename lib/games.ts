@@ -146,7 +146,7 @@ export function draw(
 
 /**
  * The fallback when a link arrives with no question: rotate by day, the
- * same shape as the daily drill, so a bare URL is still a real rep and
+ * same shape as the daily lesson, so a bare URL is still a real rep and
  * two people sharing it the same day get the same question.
  */
 export function dailyQuestion(game: Game, now = new Date()): GameQuestion {

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { ACTION_CLASS } from "@/components/LessonScreen";
+import { DISABLED_CLASS } from "@/lib/ui";
 import { ModPicker } from "@/components/ModPicker";
 import { Paywall } from "@/components/Paywall";
 import { fetchProfile, fetchReps } from "@/lib/client-data";
@@ -254,7 +255,7 @@ export default function BossPage() {
               <button
                 onClick={() => setPhase("research")}
                 disabled={rolling}
-                className={`${ACTION_CLASS} flex-1 disabled:opacity-40`}
+                className={`${ACTION_CLASS} ${DISABLED_CLASS} flex-1`}
               >
                 Start the 4 minutes
               </button>

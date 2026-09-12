@@ -133,8 +133,24 @@ describe("copy rules", () => {
 describe("retired vocabulary", () => {
   const files = COPY_ROOTS.flatMap(sourceFiles);
 
+  /**
+   * JSX entities carry a semicolon (`today&apos;s`), and the code filter
+   * below rejects anything holding one — so every apostrophe in the
+   * interface was hiding its whole sentence from these tests. That is
+   * how "← Back to today's drill" sat on the floor through two passes
+   * that were looking for exactly that word.
+   */
+  function decode(s: string): string {
+    return s
+      .replace(/&apos;|&#39;/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;/g, "&")
+      .replace(/&mdash;|&ndash;/g, "-")
+      .replace(/&nbsp;/g, " ");
+  }
+
   function proseStrings(source: string): string[] {
-    const src = copyOnly(source);
+    const src = decode(copyOnly(source));
     const out: string[] = [];
     const literal = /(["'`])((?:\\.|(?!\1)[\s\S])*?)\1/g;
     // JSX text runs are bounded by tags OR interpolation braces, so
@@ -177,6 +193,25 @@ describe("retired vocabulary", () => {
    * talking about, and no reader hears a gym in it.
    */
   const GYM = /\b(gyms?|workouts?|drills?|training)\b/i;
+
+  /*
+   * The prompts too (CLAUDE.md: not in the interface, the docs, the
+   * marketing, THE PROMPTS, or your own reasoning). Half the copy in a
+   * finished recording is generated, so a model told it works for "a
+   * daily speech gym" writes gym copy back into the product — which is
+   * exactly what `lib/hostile-server.ts` had been doing.
+   */
+  it("never tells a model that Ethos is a gym", () => {
+    for (const file of ["lib/coach.ts", "lib/accuracy.ts", "lib/hostile-server.ts"]) {
+      const source = readFileSync(file, "utf8");
+      // Prompts are template literals; the ban is on what they SAY.
+      const prompts = [...source.matchAll(/`([^`]{120,})`/g)].map((m) => m[1]);
+      expect(prompts.length).toBeGreaterThan(0);
+      for (const prompt of prompts) {
+        expect([file, prompt.match(GYM)?.[0] ?? null]).toEqual([file, null]);
+      }
+    }
+  });
 
   for (const file of files) {
     it(`keeps the gym out of ${file}`, () => {

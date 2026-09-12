@@ -74,17 +74,32 @@ async function shootTheme(theme) {
     await page.screenshot({ path: `${OUT}${name}-${TAG}-${theme}.png`, fullPage: opts.fullPage ?? true });
     console.log(`shot  ${name}-${TAG}-${theme}`);
   };
+  /*
+   * A screen is ready when its skeletons are gone. Waiting on a selector
+   * that exists before the read (an eyebrow, a heading) photographed
+   * /you mid-load, all placeholders — and a gallery of placeholders is a
+   * gallery of the wrong app.
+   */
+  const settled = async () => {
+    await page
+      .waitForFunction(() => document.querySelectorAll(".skeleton").length === 0, null, {
+        timeout: 12000,
+      })
+      .catch(() => console.log("SKELETONS-REMAIN", page.url()));
+  };
+
   const go = async (path, waitFor) => {
     await page.goto(`${BASE}${path}`).catch(async () => { await sleep(500); await page.goto(`${BASE}${path}`); });
     if (waitFor) await page.waitForSelector(waitFor, { timeout: 15000 }).catch(() => console.log("WAIT-TIMEOUT", path, waitFor));
+    await settled();
   };
 
   const step = async (fn) => { try { await fn(); } catch (e) { console.log("STEP-FAILED", theme, String(e.message ?? e).split("\n")[0]); } };
   await step(async () => { await go("/", "main .arrive");
   await shot("today"); });
   await step(async () => { await go("/history", "main .arrive"); await shot("log"); });
-  await step(async () => { await go("/you", "main .label-data"); await sleep(800); await shot("you"); });
-  await step(async () => { await go("/shop", 'button:has-text("Buy"), button:has-text("On your card")'); await shot("shop"); });
+  await step(async () => { await go("/you", "main .label-data"); await shot("you"); });
+  await step(async () => { await go("/shop", "main"); await shot("shop"); });
   await step(async () => { await go("/games", "main .label-data"); await shot("games"); });
   await step(async () => { await go("/settings", "main .label-data"); await shot("settings"); });
   await step(async () => { await go("/rep/rep-22", "main .label-data"); await shot("rep-detail"); });

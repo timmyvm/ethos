@@ -9,6 +9,7 @@
  *   node scripts/look.mjs after             # docs/look/<screen>-after-{light,dark}.png
  *   node scripts/look.mjs after today you   # a subset of screens
  *   LOOK_OUT=docs/look/x node scripts/look.mjs after   # somewhere else
+ *   LOOK_BLUR=6 node scripts/look.mjs squint today     # the squint test
  *
  * Screens: today, rep-idle, rep-recording, rep-results, log, you, shop,
  * plus rep-detail (the stored result the log links to), games and
@@ -25,6 +26,8 @@ const OUT = (process.env.LOOK_OUT ?? new URL("../docs/look/", import.meta.url).p
 mkdirSync(OUT, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const want = (name) => ONLY.length === 0 || ONLY.includes(name);
+/** Squint mode: LOOK_BLUR=6 blurs the page so only mass and colour survive. */
+const BLUR = Number(process.env.LOOK_BLUR ?? 0) || 0;
 
 // ---- Fixtures: three weeks of practice ------------------------------------
 const day = (n, h = 18) => {
@@ -206,11 +209,15 @@ async function shootTheme(theme) {
   // Full-page shots: the dev badge goes, and the fixed nav sits where
   // the page ends rather than where the first viewport did.
   await page.addStyleTag({ content: "" }).catch(() => {});
-  await context.addInitScript(() => {
+  await context.addInitScript((blur) => {
     const css = document.createElement("style");
-    css.textContent = 'nextjs-portal{display:none!important} body{position:relative} nav[aria-label="Sections"]{position:absolute!important}';
+    css.textContent =
+      'nextjs-portal{display:none!important} body{position:relative} nav[aria-label="Sections"]{position:absolute!important}' +
+      // The squint test (DESIGN.md, elevation): blur the whole page, and
+      // the thing that matters should still be the thing you land on.
+      (blur ? ` html{filter:blur(${blur}px)}` : "");
     document.addEventListener("DOMContentLoaded", () => document.head.appendChild(css));
-  });
+  }, BLUR);
   page.on("pageerror", (e) => console.log("PAGEERROR", page.url(), e.message.slice(0, 160), (e.stack ?? "").split("\n").slice(1, 4).join(" | ")));
   page.on("console", (m) => { if (m.type() === "error") console.log("CONSOLE", page.url(), m.text().slice(0, 200)); });
   page.on("response", (r) => { if (r.status() >= 400 && !/supabase\.local/.test(r.url())) console.log("HTTP", r.status(), r.url()); });

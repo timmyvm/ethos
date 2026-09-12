@@ -151,6 +151,9 @@
    */
   --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  /* Overshoots ~6% and settles: the curve a finger expects on release
+   * (lib/motion.ts EASE_SPRING; the test keeps the two equal). */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --default-transition-duration: 120ms;
   --default-transition-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
 }
@@ -375,6 +378,16 @@ body {
   --shadow-3: 0 4px 10px rgba(0, 0, 0, 0.45), 0 24px 48px rgba(0, 0, 0, 0.55);
 }
 
+/*
+ * Level 0 is the ground and needs no class: the room, a hairline, a
+ * list row, a bar in its trough. `.elev-0` exists anyway, because a
+ * pressed level 1 has to have somewhere to drop TO, and because a
+ * surface that deliberately sits flat beside lifted ones (the score
+ * card on Today) should be able to say so.
+ */
+.elev-0 {
+  box-shadow: none;
+}
 .elev-1 {
   box-shadow: var(--shadow-1);
 }
@@ -386,15 +399,65 @@ body {
 }
 
 /*
+ * Press drops one level, release springs back (#240).
+ *
+ * This is the whole "it responds to your hand" feeling in four rules:
+ * under a finger a card is pushed toward the paper, and when the finger
+ * leaves it comes back past where it started and settles. Down is
+ * 60ms on the plain curve, because contact is not an animation; up is
+ * the base duration on the spring.
+ *
+ * A control at level 0 has nothing to drop, so the scale and the veil
+ * are its whole press. That is deliberate: a text link that cast a
+ * shadow on release would be inventing depth it never had.
+ */
+.press.elev-3:active {
+  box-shadow: var(--shadow-2);
+}
+.press.elev-2:active {
+  box-shadow: var(--shadow-1);
+}
+.press.elev-1:active {
+  box-shadow: none;
+}
+
+/*
+ * Arrival for a level 2 surface: it comes in from 6px below AND from
+ * 1.5% small, so the thing that matters on a screen appears to rise
+ * into place rather than slide into it. Everything else keeps the
+ * plain `.arrive`; two things rising at once is nothing rising.
+ */
+@keyframes arrive-lift {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+}
+
+.arrive-lift {
+  animation: arrive-lift var(--duration-max) var(--ease-spring) backwards;
+}
+
+/*
  * The score card's material: deep sage in both themes (#165 — the
  * second focal point is sage, restored with the palette in #203; the
  * paywall sheet wears it too, #171). In dark the ground closes in on
  * it, so it gets a hairline in the sage-dim step instead.
  */
+/*
+ * The score card is level 2 (Job 2's brief names it): the number IS the
+ * brand, so the surface carrying it is important wherever it lands —
+ * the second focal point on Today, the hero of the log.
+ *
+ * Two level-2 surfaces on Today does not break "one loud thing",
+ * because they are not competing in the same channel: the floor card is
+ * lifted PAPER and this is a different MATERIAL, deep sage against the
+ * cream room. The rule that matters is that only one of them is white.
+ */
 .card-score {
   background: var(--color-sage-900);
   border: 1px solid transparent;
-  box-shadow: var(--shadow-1);
+  box-shadow: var(--shadow-2);
 }
 
 :root[data-theme="dark"] .card-score {
@@ -513,15 +576,28 @@ body::after {
 
 .press {
   transition:
-    transform var(--duration-fast) var(--ease-out),
+    transform var(--duration-base) var(--ease-spring),
+    box-shadow var(--duration-base) var(--ease-spring),
     background-color var(--duration-fast) var(--ease-out),
-    box-shadow var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out);
+}
+
+/* Down is contact, not animation. */
+.press:active {
+  transition-duration: 60ms;
+  transition-timing-function: var(--ease-out);
 }
 
 :root[data-motion="reduce"] .press,
 :root[data-motion="reduce"] .press:active {
   transform: none;
+}
+
+/* Reduced motion keeps the drop — it is a state, and the state is
+ * true — but lands it instantly instead of easing to it. */
+:root[data-motion="reduce"] .press {
+  transition-property: background-color, border-color, box-shadow;
+  transition-duration: 0s;
 }
 
 /*
@@ -770,7 +846,7 @@ body::after {
 /* Reduced motion: every entrance is a fade, every value is already
  * there, and nothing slides (DESIGN-RULES, Definition of Done #8). */
 :root[data-motion="reduce"]
-  :is(.arrive, .arrive-x, .reveal, .sheet-panel, .star-land) {
+  :is(.arrive, .arrive-x, .arrive-lift, .reveal, .sheet-panel, .star-land) {
   animation-name: fade-in;
   animation-delay: 0ms;
 }

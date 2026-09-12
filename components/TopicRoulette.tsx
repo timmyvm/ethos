@@ -52,7 +52,7 @@ export function TopicRoulette({
      the one raised card on the screen (#234), at the sheet radius the
      floor card takes. */
   return (
-    <div className="elev-2 rounded-sheet border border-card-edge bg-raised p-5">
+    <div className="arrive-lift elev-2 rounded-sheet border border-card-edge bg-raised p-5">
       <div className="flex items-baseline justify-between">
         <div className="label-data">Roulette · you don&apos;t pick</div>
         <div className="label-micro !text-sage-700">{shape.label}</div>

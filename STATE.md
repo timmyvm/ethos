@@ -41,7 +41,7 @@ Today `/`, Tools `/games`, Log `/history`, You `/you`, Shop `/shop`, the recordi
 
 ## Checks
 
-`npx tsc --noEmit`, `npx vitest run`, `npx next build`. `scripts/audit-tells.sh` is retired; the look loop replaced it.
+`npx tsc --noEmit`, `npx vitest run`, `npx next build`. Build with `NEXT_DIST_DIR=.next-build` while a dev server is up, or the build takes the running server's chunks with it. `scripts/audit-tells.sh` is retired; the look loop replaced it.
 
 The look loop has a camera: `scripts/look.mjs`. Start a dev server with the Supabase host mocked, then shoot every screen at 390px in both themes against three weeks of fixture practice.
 

@@ -158,7 +158,7 @@ export function PathRoad({
                       being outlined boxes (#234), so they drop to the
                       `edge` rule. The door is the road's one lock
                       symbol (#156); the distance keeps #44's count. */}
-                  <div className="flex items-center gap-3.5 border-y border-edge py-2.5">
+                  <div className="mt-1 flex items-center gap-3.5 border-y border-edge py-3.5">
                     <span
                       className={`flex w-[30px] shrink-0 justify-center ${
                         step.locked ? "text-stone-500" : "text-stone-300"
@@ -168,7 +168,7 @@ export function PathRoad({
                         <Gate open={!step.locked} width={26} />
                       ) : null}
                     </span>
-                    <span className="font-display min-w-0 flex-1 text-[14px] font-bold">
+                    <span className="font-display min-w-0 flex-1 text-[14px] font-extrabold">
                       {unit.name}
                       {unit.boss ? " · weekly boss" : ""}
                     </span>

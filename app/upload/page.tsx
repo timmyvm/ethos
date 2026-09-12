@@ -109,7 +109,7 @@ export default function UploadPage() {
   }
 
   return (
-    <main className="px-5 pb-24 pt-7">
+    <main className="px-5 pb-22 pt-7">
       <h1 className="font-display text-[27px]">Upload a recording</h1>
 
       {phase === "pick" && (

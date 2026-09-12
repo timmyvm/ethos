@@ -250,6 +250,14 @@ async function shootTheme(theme) {
     await page.waitForSelector('[role="dialog"]', { state: "detached", timeout: 8000 }).catch(() => {});
     await sleep(1600);
     await shot("rep-results", { settle: 200 });
+    // The walk has three steps and the camera only ever saw the first.
+    for (const [name, label] of [["rep-numbers", /The numbers/], ["rep-words", /Your words/]]) {
+      const button = page.getByRole("button", { name: label });
+      if (!(await button.count())) break;
+      await button.first().click();
+      await sleep(500);
+      await shot(name, { settle: 400 });
+    }
   }
   });
   await context.close();

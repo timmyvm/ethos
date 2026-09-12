@@ -298,10 +298,19 @@ export default function ShopPage() {
                      * olive-filled when it opens, an outline when the
                      * coins aren't there yet (#131, #201).
                      */
-                    className={`press font-display mt-3 min-h-11 w-full rounded-control px-5 py-2.5 text-[14px] font-bold transition-colors ${
+                    /*
+                     * A door you cannot walk through is not drawn as a
+                     * door (#234's look loop). "3 more to go" and
+                     * "You're holding the maximum 3" wore the same
+                     * full-width bordered box as Buy, so two of the four
+                     * cards advertised a tap that does nothing. They are
+                     * states, so they read as a line: same slot, same
+                     * height, no frame.
+                     */
+                    className={`font-display mt-3 min-h-11 w-full rounded-control px-5 py-2.5 text-[14px] font-bold transition-colors ${
                       filled
-                        ? "bg-sage-700 text-sage-ink hover:bg-sage-800"
-                        : "border border-edge bg-surface text-stone-400"
+                        ? "press bg-sage-700 text-sage-ink hover:bg-sage-800"
+                        : "text-stone-400"
                     }`}
                   >
                     {busy === item.id

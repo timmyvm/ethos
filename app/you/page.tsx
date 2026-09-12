@@ -534,7 +534,7 @@ export default function YouPage() {
                 <span className="text-stone-400 line-through">
                   {l.original}
                 </span>
-                <span aria-hidden className="text-stone-200">
+                <span aria-hidden className="text-stone-300">
                   →
                 </span>
                 <span className="font-bold">{l.upgrade}</span>

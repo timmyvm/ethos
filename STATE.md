@@ -4,17 +4,24 @@ Read this instead of `DECISIONS.md`. When the system changes, update this file; 
 
 ## Visual system
 
-Instrument layout wearing Organic colours. The layout is the 1 Sep handoff (`design/instrument-redesign/`): hairline rows on the ground, 1px-edge cards with a fill, rectangles over pills, square progress bars, the road as a list, one eyebrow register (Outfit 11px/700, 0.14em, uppercase). The colours came back the same day (#203): terracotta #C67139 as the tap, the sage #7a8a5e ramp as earned, cream ground #f5ead8, surface and raised #faf3e3, deep sage score card, warm near-black stage.
+One system, since #234: Instrument's structure carrying Organic's warmth, designed as one thing rather than layered. `docs/look/SYSTEM.md` is the spec, `docs/look/` holds the before and after gallery it was judged against.
 
-Nobody has yet designed the two as one system. That pass is open and it is the highest-value visual task in the repo.
+- **Depth is a step plus a tinted shadow.** Light: ground #f5ead8, surface #fbf4e6 (controls, tiles, inputs), raised #fffaf1 (cards). Dark: #1a1410, #241c15, #2e251c. `.elev-1` a card, `.elev-2` the ONE lifted thing on a screen, `.elev-3` floating. Shadows tint from the ground's 37° hue in light and go black in dark.
+- **Two border jobs, two tokens.** `card-edge` (.09/.12) is a card's hairline under its shadow; `edge` (.14/.16) is a rule, a connector, an input's boundary; `hairline` (.08) separates list rows.
+- **Rectangles over pills.** Chips are the only pills, Record the only circle, the nav the only square edge. Bars are square, trough and fill.
+- **Colour** unchanged from #203: terracotta #C67139 is the one tap per screen, the sage ramp is earned, deep sage is the score card and the paywall, warm near-black is the stage.
+
+The road is a list, rows sit on the ground under hairlines, and the eyebrow register is Outfit 11/700/0.10em uppercase.
 
 ## Tokens (`app/globals.css`, `lib/motion.ts`)
 
-- Radius: `rounded-control` 10, `rounded-card` 12, `rounded-sheet` 16.
+- Radius: `rounded-control` 12, `rounded-card` 16, `rounded-sheet` 20. No concentric arithmetic: a control keeps 12 wherever it sits.
 - Dark: ground #1A1410, surface #241C15, raised #2E251C, stage #120E0B.
 - Text: `stone-500` secondary, `stone-400` muted, `stone-300` glyphs and dividers. `on-accent` is ink on terracotta.
 - Type: Outfit 600/700/800 for numbers and UI, Figtree 400 to 700 for body. Roles: title 26/700, body 15/400, caption 12.5/400.
-- Motion: 200ms ease-out default, 600 for celebration. Classes `.arrive`, `.arrive-x`, `.reveal`, `.fill`, `.star-land`, `.sheet-panel`, `.sheet-scrim`, `.rec-ring`, `.dur-*`. Reduced motion is `data-motion="reduce"` on `<html>`.
+- Motion: 200ms ease-out default, 600 for celebration. Classes `.arrive`, `.arrive-x`, `.reveal`, `.fill`, `.star-land`, `.sheet-panel`, `.sheet-scrim`, `.rec-ring`, `.dur-*`. Reduced motion is `data-motion="reduce"` on `<html>`. `.press` scales 0.985 and veils the fill on every pointer type.
+- Elevation: `--shadow-1/2/3` and `.elev-1/2/3`. Type: two uppercase registers, `.label-data` (section eyebrow) and `.label-micro` (column heads, chips, tile labels, the nav). Text sizes are body 15, caption 12.5, row title and control label 14/700, text link 13/600; numbers keep the display scale at 800, tabular.
+- Rhythm, owned by the parent: section `mt-7`, eyebrow to content `mt-3`, row `py-3`, card to card `gap-3`, card `p-4`, hero `p-5`, screen `px-5 pt-7 pb-22`. Shared components carry no outer margin.
 - Icons: `components/Icon.tsx`, 24px line set. Primitives: `components/ui/` (EmptyState, ErrorState, Overlay, Skeleton), plus ScoreCard, Nav, PathRoad, DayTrail.
 
 ## Screens
@@ -23,7 +30,7 @@ Today `/`, Tools `/games`, Log `/history`, You `/you`, Shop `/shop`, the recordi
 
 ## Open, with the leaning answer. Take it unless Timothy says otherwise.
 
-- Design the hybrid as one system, five screens, one pass.
+- The one tap is a rectangle at 12. A pill primary is the reference read (Headspace) and would be the only shape of its kind on Today; #201 chose rectangles. Worth one experiment.
 - Desktop shell: same stage, constrained, side rail with Demos, streak and day trail.
 - The seven unit marks on the road are still emoji: seven Demos poses.
 - Carousel dots: the active dot slides along the row.
@@ -35,3 +42,10 @@ Today `/`, Tools `/games`, Log `/history`, You `/you`, Shop `/shop`, the recordi
 ## Checks
 
 `npx tsc --noEmit`, `npx vitest run`, `npx next build`. `scripts/audit-tells.sh` is retired; the look loop replaced it.
+
+The look loop has a camera: `scripts/look.mjs`. Start a dev server with the Supabase host mocked, then shoot every screen at 390px in both themes against three weeks of fixture practice.
+
+```
+NEXT_PUBLIC_SUPABASE_URL=http://supabase.local NEXT_PUBLIC_SUPABASE_ANON_KEY=anon npx next dev -p 3123
+PLAYWRIGHT_MODULE=/opt/node22/lib/node_modules/playwright/index.mjs node scripts/look.mjs after today log
+```

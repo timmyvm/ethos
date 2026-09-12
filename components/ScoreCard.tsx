@@ -37,8 +37,8 @@ export function ScoreCard({
         <div className="label-data !text-sage-mist">Your Ethos</div>
         {delta !== null && delta !== 0 && (
           <div
-            className={`font-display text-[13px] font-semibold uppercase tracking-[0.02em] tabular-nums ${
-              delta > 0 ? "text-sage-lit" : "text-rust-lit"
+            className={`label-data ${
+              delta > 0 ? "!text-sage-lit" : "!text-rust-lit"
             }`}
           >
             {delta > 0 ? "▲ +" : "▼ "}

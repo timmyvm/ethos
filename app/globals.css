@@ -662,6 +662,13 @@ body::after {
   transform: none;
 }
 
+/* In dark, terracotta-100 is #3f2716 — against the #1a1410 ground that
+ * is a muddy hole, not a ring. One step up is the recording state
+ * legible at a glance. */
+:root[data-theme="dark"] .rec-ring {
+  border-color: var(--color-terracotta-200);
+}
+
 /*
  * The introduction's Demos loops (DECISIONS #233): one per pose,
  * transform and opacity only, on the symmetric curve, alternating so

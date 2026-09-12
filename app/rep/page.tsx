@@ -1557,7 +1557,11 @@ function Results({
           header and the step bar above stay put, so the walk reads as
           one screen turning pages rather than three screens. */}
       <div key={step} className="arrive-x flex-1">
-        {step === 0 && <GainsRow gains={gains} />}
+        {step === 0 && (
+          <div className="mt-4">
+            <GainsRow gains={gains} />
+          </div>
+        )}
         <RepResult
           result={result}
           topic={config.topic}

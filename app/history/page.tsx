@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { CountUp } from "@/components/CountUp";
 import { FillerHeatmap } from "@/components/FillerHeatmap";
 import { Paywall, type PaywallAsk } from "@/components/Paywall";
 import { ScoreCard } from "@/components/ScoreCard";
@@ -17,6 +18,7 @@ import { Stars } from "@/components/Stars";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { fetchProfile, fetchReps, type RepRow } from "@/lib/client-data";
 import { limit } from "@/lib/entitlement";
+import { DURATION } from "@/lib/motion";
 import { fillerHeatmap, insights } from "@/lib/insights";
 import { readable, readFailure } from "@/lib/load";
 import {
@@ -30,6 +32,8 @@ import { starsByLesson, totalStars, UNITS } from "@/lib/path";
 
 const FREE_DAYS = 7; // mechanics.md: free tier sees the last 7 days
 const DASH = "—";
+/** A formatted value CountUp can tick: whole digits, no decimal point. */
+const WHOLE = /^-?\d+$/;
 
 /** The two grids, shared by header and rows so the columns line up. */
 const MOVED_GRID = "grid grid-cols-[minmax(0,1fr)_36px_42px_74px_44px] gap-2";
@@ -149,37 +153,42 @@ export default function HistoryPage() {
 
   return (
     <main className="px-5 pb-22 pt-7">
-      {/* The read landing is one event, so one arrival (#224): the
-          populated log fades in over the skeleton that held its shape. */}
+      {/* One entrance per band (#243). The read landing is still one
+          event, but the two tables are lists, and a list assembles
+          itself: `.stagger` ladders each section's eyebrow, column head
+          and rows 40ms apart. It REPLACES the block's `.arrive` — a row
+          that both fades with its parent and fades on its own clock
+          arrives twice and reads as neither. */}
       <div className="arrive">
-      <h1 className="font-display text-[24px] font-extrabold">The log</h1>
-      <p className="mt-1 text-caption text-stone-400">
-        {empty
-          ? "0 recordings."
-          : `${reps.length} recording${reps.length === 1 ? "" : "s"} since ${since}. Tap one for the full result.`}
-      </p>
+        <h1 className="font-display text-[24px] font-extrabold">The log</h1>
+        <p className="mt-1 text-caption text-stone-400">
+          {empty
+            ? "0 recordings."
+            : `${reps.length} recording${reps.length === 1 ? "" : "s"} since ${since}. Tap one for the full result.`}
+        </p>
 
-      {/*
-       * Band one: the hero (#217). The card Home draws, so the log is
-       * no longer the one data screen without a landing point, and the
-       * day-zero card (#213) finally has the populated twin it was
-       * drawn against. The footer anchors the delta without a second
-       * card.
-       */}
-      <div className="mt-7">
-        <ScoreCard
-          index={lastIndex}
-          delta={indexDelta}
-          recordings={reps.length}
-          stars={totalStars(starMap)}
-          foot={
-            empty
-              ? "Day 1 sets the number to beat."
-              : indexDelta !== null
-                ? `Day 1 scored ${firstIndex}.`
-                : undefined
-          }
-        />
+        {/*
+         * Band one: the hero (#217). The card Home draws, so the log is
+         * no longer the one data screen without a landing point, and the
+         * day-zero card (#213) finally has the populated twin it was
+         * drawn against. The footer anchors the delta without a second
+         * card.
+         */}
+        <div className="mt-7">
+          <ScoreCard
+            index={lastIndex}
+            delta={indexDelta}
+            recordings={reps.length}
+            stars={totalStars(starMap)}
+            foot={
+              empty
+                ? "Day 1 sets the number to beat."
+                : indexDelta !== null
+                  ? `Day 1 scored ${firstIndex}.`
+                  : undefined
+            }
+          />
+        </div>
       </div>
 
       {/*
@@ -187,7 +196,7 @@ export default function HistoryPage() {
        * cards, the comparison card and a column of insight prose. The
        * change column is what the reader used to compute.
        */}
-      <section className="mt-7">
+      <section className="stagger mt-7">
         <div className="label-data">What moved</div>
         <div className={`${MOVED_GRID} mt-3 border-b border-edge pb-1.5`}>
           <ColumnHead>metric</ColumnHead>
@@ -212,7 +221,10 @@ export default function HistoryPage() {
                 <MetricRow row={row} dim={empty} />
               </button>
               {showFillers && (
-                <div className="py-3">
+                /* `.reveal`: the panel drops out of the row that opened
+                   it, rather than being there the instant the row is
+                   tapped (the before strip was five identical frames). */
+                <div className="reveal py-3">
                   <FillerHeatmap reps={reps} />
                 </div>
               )}
@@ -269,7 +281,7 @@ export default function HistoryPage() {
        * the eye runs down the fillers column and sees the trend
        * without a chart. Duration lives on the full result.
        */}
-      <section className="mt-7">
+      <section className="stagger mt-7">
         <div className="label-data">
           {empty ? "Waiting to be logged" : "Every recording"}
         </div>
@@ -328,7 +340,14 @@ export default function HistoryPage() {
                     <Stars n={r.stars} size={9} />
                   </span>
                   <span className="font-display text-right text-[16px] font-extrabold tabular-nums">
-                    {r.ethos_index ?? DASH}
+                    {r.ethos_index === null ? (
+                      DASH
+                    ) : (
+                      /* `max`, not `celebrate`: a row in a table is a
+                         value arriving, not a rep landing, and 600ms
+                         seven rows deep is a loading bar. */
+                      <CountUp value={r.ethos_index} durationMs={DURATION.max} />
+                    )}
                   </span>
                   <Cell>{r.filler_count}</Cell>
                   <Cell>{r.wpm}</Cell>
@@ -362,7 +381,7 @@ export default function HistoryPage() {
           one screen that says "you have not started" is the sad-mascot
           state brand.md bans. */}
       {empty && (
-        <>
+        <div className="arrive">
           <div className="mt-7 flex items-center gap-3.5">
             <Image
               src="/demos-speaking.webp"
@@ -381,9 +400,8 @@ export default function HistoryPage() {
           >
             Take the floor
           </Link>
-        </>
+        </div>
       )}
-      </div>
 
       {paywall && (
         <Paywall
@@ -447,7 +465,16 @@ function MetricRow({ row, dim = false }: { row: MovedRow; dim?: boolean }) {
         {row.then ?? DASH}
       </span>
       <span className="font-display text-right text-[17px] font-extrabold tabular-nums">
-        {row.now ?? DASH}
+        {/* `now` is already formatted (lib/log), so a row that prints a
+            decimal — "2.8" fillers a minute — cannot count: CountUp
+            renders integers, and rounding a number the user reads to
+            make it tick would animate a value the app does not report.
+            Those rows land whole; the rest tick. */}
+        {WHOLE.test(row.now ?? "") ? (
+          <CountUp value={Number(row.now)} durationMs={DURATION.max} />
+        ) : (
+          (row.now ?? DASH)
+        )}
       </span>
       <span
         className={`font-display whitespace-nowrap text-right text-caption font-extrabold tabular-nums ${

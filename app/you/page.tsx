@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { AchievementMark, IconFreeze } from "@/components/Icon";
+import { CountUp } from "@/components/CountUp";
 import { ErrorLine, ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton, SkeletonStatBare } from "@/components/ui/Skeleton";
 import { Paywall, type PaywallAsk } from "@/components/Paywall";
@@ -12,6 +13,7 @@ import { ShareCard } from "@/components/ShareCard";
 import { achievements } from "@/lib/achievements";
 import { syncCoins } from "@/lib/coin-sync";
 import { limit } from "@/lib/entitlement";
+import { DURATION } from "@/lib/motion";
 import { towardFirstItem } from "@/lib/coins";
 import {
   fetchLexicon,
@@ -181,7 +183,7 @@ export default function YouPage() {
       <h1 className="font-display text-[24px] font-extrabold">You</h1>
       <Link
         href="/settings"
-        className="text-[13px] font-semibold text-stone-400"
+        className="press text-[13px] font-semibold text-stone-400"
       >
         Settings
       </Link>
@@ -293,7 +295,7 @@ export default function YouPage() {
               <Skeleton className="mt-1.5 h-7 w-10" />
             ) : (
               <div className="font-display text-[30px] font-extrabold leading-none tabular-nums">
-                {level.level}
+                <CountUp value={level.level} durationMs={DURATION.max} />
               </div>
             )}
           </div>
@@ -345,9 +347,9 @@ export default function YouPage() {
           </>
         ) : (
           <>
-            <Stat label="Streak" value={String(streak.current)} note="days" />
-            <Stat label="Longest" value={String(streak.longest)} note="days" />
-            <Stat label="This week" value={String(xp.week)} note="xp" />
+            <Stat label="Streak" value={streak.current} note="days" />
+            <Stat label="Longest" value={streak.longest} note="days" />
+            <Stat label="This week" value={xp.week} note="xp" />
           </>
         )}
       </div>
@@ -400,7 +402,7 @@ export default function YouPage() {
                       t.level > 0 ? "" : "text-stone-400"
                     }`}
                   >
-                    {t.level}
+                    <CountUp value={t.level} durationMs={DURATION.max} />
                   </span>
                 </div>
               ));
@@ -424,7 +426,11 @@ export default function YouPage() {
               <Skeleton className="h-7 w-12" />
             ) : (
               <div className="font-display text-[26px] font-extrabold leading-none tabular-nums">
-                {coins ?? "—"}
+                {coins === null ? (
+                  "—"
+                ) : (
+                  <CountUp value={coins} durationMs={DURATION.max} />
+                )}
               </div>
             )}
             <div className="label-micro mt-1.5">1 a day</div>
@@ -434,7 +440,14 @@ export default function YouPage() {
               <Skeleton className="ml-auto h-5 w-8" />
             ) : (
               <div className="font-display text-[18px] font-extrabold leading-none tabular-nums">
-                {coins === null ? "—" : towardFirstItem(coins).toGo}
+                {coins === null ? (
+                  "—"
+                ) : (
+                  <CountUp
+                    value={towardFirstItem(coins).toGo}
+                    durationMs={DURATION.max}
+                  />
+                )}
               </div>
             )}
             <div className="label-micro mt-1.5">to the first item</div>
@@ -444,7 +457,7 @@ export default function YouPage() {
             at the next buyable thing, and it isn't a tap (#165's flag,
             carried into #201). */}
         <div className="mt-3 h-[5px] overflow-hidden bg-sand">
-          {coins !== null && (
+          {!loading && coins !== null && (
             <div
               className="fill h-full bg-terracotta-500"
               style={{
@@ -525,7 +538,11 @@ export default function YouPage() {
         </p>
       ) : (
         <>
-          <div className="mt-1">
+          {/* The archive is a list, so it assembles itself (#243): one
+              row every 40ms, capped at the eighth. Nothing above it
+              carries an `.arrive`, so this is the block's one
+              entrance. */}
+          <div className="stagger mt-1">
             {lexicon.slice(0, limit(FREE_LEXICON, premium) ?? lexicon.length).map((l) => (
               <div
                 key={l.id}
@@ -597,7 +614,7 @@ export default function YouPage() {
           {earnedCount}/{badges.length}
         </span>
       </div>
-      <div className="mt-1">
+      <div className="stagger mt-1">
         {badges.map((a) => (
           <Link
             key={a.id}
@@ -628,8 +645,12 @@ export default function YouPage() {
               </span>
               {!a.earned && a.progress > 0 && (
                 <span className="mt-1.5 block h-1 overflow-hidden bg-sand">
+                  {/* The trough is drawn by the row; the bar only exists
+                      once there is progress to report, so its `.fill`
+                      runs on the read landing and never over a
+                      placeholder (#225). */}
                   <span
-                    className="block h-full bg-stone-300"
+                    className="fill block h-full bg-stone-300"
                     style={{ width: `${Math.round(a.progress * 100)}%` }}
                   />
                 </span>
@@ -671,7 +692,7 @@ export default function YouPage() {
           </Link>
           <Link
             href="/signin"
-            className="mt-3 block text-center text-[13px] font-semibold text-terracotta-700"
+            className="press mt-3 block text-center text-[13px] font-semibold text-terracotta-700"
           >
             I already have one
           </Link>
@@ -709,14 +730,21 @@ export default function YouPage() {
   );
 }
 
-/** A labelled number on the ground. No box: the label is the container. */
+/**
+ * A labelled number on the ground. No box: the label is the container.
+ *
+ * The value is a number rather than a string so it can COUNT: these
+ * three only ever mount once the reps have landed (the skeletons hold
+ * the space until then), so the tick is the measurement arriving, never
+ * a re-run over a figure that was already on the screen.
+ */
 function Stat({
   label,
   value,
   note,
 }: {
   label: string;
-  value: string;
+  value: number;
   note: string;
 }) {
   return (
@@ -725,7 +753,7 @@ function Stat({
           here, and at 10px the label lost to the 12.5px note under it. */}
       <div className="label-data">{label}</div>
       <div className="font-display text-[24px] font-extrabold leading-tight tabular-nums">
-        {value}
+        <CountUp value={value} durationMs={DURATION.max} />
       </div>
       <div className="text-caption text-stone-400">{note}</div>
     </div>

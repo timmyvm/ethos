@@ -6,7 +6,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Paywall } from "@/components/Paywall";
 import { fetchProfile } from "@/lib/client-data";
-import { draw, GAMES, gameMultiplier, needsPremium, type Game } from "@/lib/games";
+import {
+  draw,
+  GAMES,
+  gameMultiplier,
+  needsPremium,
+  type Game,
+} from "@/lib/games";
 import { repHref } from "@/lib/rep-config";
 
 /**
@@ -52,7 +58,9 @@ export default function GamesPage() {
 
   return (
     <main className="px-5 pb-22 pt-7">
-      <h1 className="font-display text-[24px] font-extrabold leading-tight">Tools</h1>
+      <h1 className="font-display text-[24px] font-extrabold leading-tight">
+        Tools
+      </h1>
 
       {/* The one terracotta element on the screen: the weekly headliner,
           wearing the current-item border (#201), never a fill. */}
@@ -87,7 +95,17 @@ export default function GamesPage() {
         </span>
       </Link>
 
-      <div className="mt-7">
+      {/*
+       * The doors, as ONE staggered list (#242). Games and More doors
+       * are two sections but one column, and two staggers started
+       * together would land the first door of the lower section beside
+       * the first door of the upper one — a list that assembles across
+       * the page instead of down it. Flattened, every child is the next
+       * thing you read: eyebrow, three games, eyebrow, two doors, 40ms
+       * apart. The boss card above takes no entrance of its own; it is
+       * the thing that is already there when the screen arrives.
+       */}
+      <div className="stagger mt-7">
         <div className="label-data pb-3">Games</div>
         {GAMES.map((g, i) => {
           const mult = gameMultiplier(g);
@@ -132,11 +150,9 @@ export default function GamesPage() {
             </button>
           );
         })}
-      </div>
 
-      {/* The second boss and the analyzer: doors, same grammar. */}
-      <div className="mt-7">
-        <div className="label-data pb-3">More doors</div>
+        {/* The second boss and the analyzer: doors, same grammar. */}
+        <div className="label-data mt-7 pb-3">More doors</div>
         <Link
           href="/hostile"
           className="press flex w-full items-center gap-3.5 border-t border-hairline py-3 text-left"

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ACTION_CLASS } from "@/components/LessonScreen";
 import { Paywall } from "@/components/Paywall";
 import { ensureSession } from "@/lib/supabase-browser";
 import {
@@ -367,27 +368,34 @@ export default function HostilePage() {
   const answeredSoFar = rounds.current.length;
 
   return (
-    <main className="flex min-h-dvh flex-col px-5 pb-10 pt-7">
-      <Link href="/boss" className="inline-flex min-h-11 items-center self-start text-sm text-stone-500">
+    <main className="pb-safe flex min-h-dvh flex-col px-5 pt-7">
+      <Link
+        href="/boss"
+        className="press inline-flex min-h-11 items-center self-start text-[13px] font-semibold text-stone-500"
+      >
         ← back
       </Link>
 
       {phase === "intro" && (
         <>
-          <div className="label-data mt-6">Boss · Hostile Q&amp;A</div>
-          <h1 className="font-display mt-1.5 text-[27px] leading-tight">
+          <div className="label-data mt-4">Boss · Hostile Q&amp;A</div>
+          <h1 className="font-display mt-1.5 text-title">
             Hold a claim while Demos comes at it.
           </h1>
-          <p className="mt-2.5 text-[14px] leading-relaxed text-stone-500">
+          <p className="mt-2 text-body text-stone-500">
             Sixty seconds on the claim. Then two questions about what you
             actually said, 45 seconds each. Scored on whether the position
             held, whether you answered, and how steady it sounded.
           </p>
 
-          <div className="mt-5 rounded-sheet border border-hairline bg-surface p-6">
+          {/* The claim card holds the tap, so it is this screen's one
+              lifted thing: the wheel's grammar on /boss, to the class. */}
+          <div className="elev-2 mt-5 rounded-sheet border border-card-edge bg-raised p-5">
             <div className="label-data">The claim · argue either side</div>
-            <div className="font-display mt-3 min-h-[4.2rem] text-[26px] leading-[1.12]">
-              {prompt.claim}
+            <div className="font-display mt-3 min-h-[3.75rem] text-title">
+              <span key={prompt.id} className="arrive dur-fast block">
+                {prompt.claim}
+              </span>
             </div>
             <div className="mt-4 flex gap-2.5">
               <button
@@ -397,35 +405,34 @@ export default function HostilePage() {
                     return pool[Math.floor(Math.random() * pool.length)] ?? p;
                   })
                 }
-                className="press shrink-0 rounded-control border border-stone-200 bg-surface px-5 py-4 text-[15px] font-semibold"
+                className="press font-display min-h-12 shrink-0 rounded-control border border-edge bg-surface px-4 text-[14px] font-bold"
               >
                 Another
               </button>
               <button
                 onClick={() => void startRecording()}
-                className="press flex-1 rounded-control bg-terracotta-500 px-6 py-4 text-center text-[16.5px] font-semibold text-on-accent transition-colors hover:bg-terracotta-600"
+                className={`${ACTION_CLASS} flex-1 !px-4`}
               >
                 Record my take · 60s
               </button>
             </div>
           </div>
 
-          {error && (
-            <p className="mt-3 rounded-card bg-terracotta-50 px-4 py-3 text-[13.5px] leading-relaxed text-terracotta-700">
-              {error}
-            </p>
-          )}
+          <ErrorNote>{error}</ErrorNote>
         </>
       )}
 
       {phase === "recording" && (
         <div className="flex flex-1 flex-col">
-          <div className="label-data mt-6">
+          <div className="label-data mt-4">
             {isTake
               ? "Your take"
               : `Answer ${answeredSoFar + 1} of ${HOSTILE_ROUNDS}`}
           </div>
-          <h1 className="font-display mt-1.5 text-[22px] leading-tight">
+          {/* The clock is the hero while the mic is hot, so the claim
+              steps back to the bold body line LessonBody uses when the
+              name isn't the instruction. */}
+          <h1 className="font-display mt-1.5 text-body font-bold">
             {isTake ? prompt.claim : (pending?.question ?? "")}
           </h1>
           <div className="flex flex-1 flex-col items-center justify-center">
@@ -436,23 +443,26 @@ export default function HostilePage() {
             <div className="flex items-center gap-2">
               <span
                 aria-hidden
-                className="h-2.5 w-2.5 rounded-full bg-terracotta-600"
+                className="h-2.5 w-2.5 rounded-full bg-terracotta-700"
                 style={{
                   transform: `scale(${1 + level * 1.4})`,
                   opacity: 0.55 + level * 0.45,
                 }}
               />
-              <span className="label-data !text-terracotta-600">
+              <span className="label-micro !text-terracotta-700">
                 recording
               </span>
             </div>
-            <div className="font-display mt-3 text-[64px] leading-none tabular-nums">
+            <div className="font-display mt-3 text-[54px] font-extrabold leading-none tracking-[-0.02em] tabular-nums">
               {Math.max(0, cap - seconds)}
             </div>
-            <div className="label-data mt-2">seconds left</div>
-            <div className="mt-4 h-1.5 w-full max-w-[220px] overflow-hidden rounded-full bg-sand">
+            <div className="label-micro mt-2">seconds left</div>
+            {/* Bars are square, trough and fill (#234), and the level
+                reads in the loop's own meter colour: terracotta-500 is
+                the one tap on this screen and it is the Done button. */}
+            <div className="mt-5 h-1.5 w-full max-w-[220px] overflow-hidden bg-sand">
               <div
-                className="h-full rounded-control bg-terracotta-500"
+                className="h-full bg-stone-400"
                 style={{ width: `${Math.round(level * 100)}%` }}
               />
             </div>
@@ -461,12 +471,12 @@ export default function HostilePage() {
               alt="Demos is listening"
               width={72}
               height={72}
-              className="demos mt-6 w-[72px]"
+              className="demos mt-7 w-[72px]"
             />
           </div>
           <button
             onClick={() => void stopRecording()}
-            className="press w-full rounded-control bg-terracotta-500 px-6 py-4 text-base font-semibold text-on-accent"
+            className={`${ACTION_CLASS} mt-7`}
           >
             Done
           </button>
@@ -477,7 +487,7 @@ export default function HostilePage() {
         <div className="flex flex-1 flex-col items-center justify-center text-center">
           {/* Demos's sprite matches what he's DOING (#194): listening
               while you speak, working while he thinks. There is no
-              thinking pose in the set; the workout is the honest
+              thinking pose in the set; the working pose is the honest
               stand-in, and it's the app's idea of thinking anyway. */}
           <Image
             src="/demos-workout.webp"
@@ -486,7 +496,7 @@ export default function HostilePage() {
             height={140}
             className="demos w-[140px]"
           />
-          <p className="mt-4 text-[15px] text-stone-500">
+          <p className="mt-4 text-body text-stone-500">
             {phase === "judging"
               ? "Demos is weighing it up."
               : "Demos is thinking."}
@@ -496,41 +506,38 @@ export default function HostilePage() {
 
       {phase === "question" && pending && (
         <div className="flex flex-1 flex-col">
-          <div className="label-data mt-6">
+          <div className="label-data mt-4">
             Question {answeredSoFar + 1} of {HOSTILE_ROUNDS}
           </div>
           {pending.quoted && (
-            <p className="mt-4 text-[14px] leading-relaxed text-stone-500">
+            <p className="mt-3 text-body text-stone-500">
               You said:{" "}
               <span className="font-semibold text-ink">
                 &ldquo;{pending.quoted}&rdquo;
               </span>
             </p>
           )}
-          <h1 className="font-display mt-3 text-[26px] leading-[1.15]">
-            {pending.question}
-          </h1>
-          {error && (
-            <p className="mt-3 rounded-card bg-terracotta-50 px-4 py-3 text-[13.5px] leading-relaxed text-terracotta-700">
-              {error}
-            </p>
-          )}
-          <div className="mt-5 flex items-end gap-3">
+          <h1 className="font-display mt-3 text-title">{pending.question}</h1>
+          <ErrorNote>{error}</ErrorNote>
+          {/* Demos composites onto the ground: the art ships with a real
+              alpha channel, and the tile it sat in was a box around a
+              mascot (globals.css, `.demos`). */}
+          <div className="mt-7 flex items-end gap-3">
             <Image
               src="/demos-speaking.webp"
               alt="Demos"
               width={62}
               height={62}
-              className="demos w-[62px] rounded-card border border-sand bg-surface"
+              className="demos w-[62px] shrink-0"
             />
-            <p className="text-[12.5px] leading-relaxed text-stone-400">
+            <p className="text-caption leading-relaxed text-stone-400">
               He&apos;s arguing with the take, never with you.
             </p>
           </div>
           <div className="flex-1" />
           <button
             onClick={() => void startRecording()}
-            className="press w-full rounded-control bg-terracotta-500 px-6 py-4 text-base font-semibold text-on-accent"
+            className={`${ACTION_CLASS} mt-7`}
           >
             Record my answer · {ANSWER_SECONDS}s
           </button>
@@ -539,31 +546,35 @@ export default function HostilePage() {
 
       {phase === "verdict" && verdict && (
         <>
-          <div className="label-data mt-6">The verdict</div>
-          <h1 className="font-display mt-1.5 text-[27px] leading-tight">
-            {prompt.claim}
-          </h1>
+          <div className="label-data mt-4">The verdict</div>
+          <h1 className="font-display mt-1.5 text-title">{prompt.claim}</h1>
 
-          <div className="mt-4 space-y-3">
+          {/* Three judged dimensions, so the dimension card's grammar:
+              one card, rows under hairlines (#234). Three separate cards
+              at 12px was the 12px pile the results screen lost. */}
+          <div className="elev-2 arrive-lift mt-7 rounded-card border border-card-edge bg-raised px-4 py-1">
             <VerdictRow name="Held the claim" dim={verdict.held} />
             <VerdictRow name="Answered the question" dim={verdict.answered} />
             <VerdictRow name="Stayed steady" dim={verdict.composed} />
           </div>
 
-          <div className="mt-5 flex items-end gap-3">
+          {/* The coach bubble, exactly as the debrief draws it
+              (components/RepResult.tsx): no tile behind Demos, no
+              bracketed corner, the label at terracotta-700. */}
+          <div className="mt-7 flex items-end gap-3">
             <Image
               src="/demos-speaking.webp"
               alt="Demos"
               width={62}
               height={62}
-              className="demos w-[62px] rounded-card border border-sand bg-surface"
+              className="demos w-[62px] shrink-0"
             />
-            <div className="rounded-card rounded-bl-[4px] bg-terracotta-50 px-4 py-3 text-sm leading-relaxed">
-              <div className="label-data !text-terracotta-600 mb-0.5">
+            <div className="rounded-card bg-terracotta-50 p-4 text-body leading-relaxed">
+              <div className="label-data !text-terracotta-700 mb-1.5">
                 Demos
               </div>
               {verdict.coachLine}
-              <div className="mt-1.5 text-[11px] text-stone-400">
+              <div className="mt-2.5 text-caption text-stone-400">
                 AI-generated feedback
               </div>
             </div>
@@ -572,7 +583,7 @@ export default function HostilePage() {
           {/* The speech numbers the daily debrief gets (#194): the take
               ran the full engine, so its measurements belong here too. */}
           {takeResult && (
-            <div className="mt-4 rounded-card border border-hairline bg-surface p-4">
+            <div className="elev-1 mt-7 rounded-card border border-card-edge bg-raised p-4">
               <div className="label-data">Your take, measured</div>
               <div className="mt-3 flex gap-3">
                 <TakeStat
@@ -601,24 +612,21 @@ export default function HostilePage() {
               </div>
               <Link
                 href="/history"
-                className="mt-3 block text-[13px] font-semibold text-terracotta-600"
+                className="press mt-3 inline-flex min-h-11 items-center text-[13px] font-semibold text-terracotta-700"
               >
                 Full debrief in the log →
               </Link>
             </div>
           )}
 
-          <p className="mt-4 text-[12.5px] leading-relaxed text-stone-400">
+          <p className="mt-3 text-caption leading-relaxed text-stone-400">
             {banked
               ? "Your take banked to the log as a recording."
               : "This debrief lives here only."}
           </p>
 
           <div className="flex-1" />
-          <Link
-            href="/"
-            className="press mt-6 block w-full rounded-control bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-on-accent"
-          >
+          <Link href="/" className={`${ACTION_CLASS} mt-7`}>
             Done
           </Link>
         </>
@@ -626,15 +634,13 @@ export default function HostilePage() {
 
       {phase === "error" && (
         <div className="flex flex-1 flex-col items-center justify-center text-center">
-          <p className="max-w-[300px] text-[15px] leading-relaxed text-stone-600">
-            {error}
-          </p>
+          <p className="max-w-[300px] text-body text-stone-600">{error}</p>
           <button
             onClick={() => {
               if (lastBlob.current) void submit(lastBlob.current);
               else setPhase("intro");
             }}
-            className="press mt-6 w-full max-w-[320px] rounded-control bg-terracotta-500 px-6 py-4 text-base font-semibold text-on-accent"
+            className={`${ACTION_CLASS} mt-7 max-w-[320px]`}
           >
             Try again
           </button>
@@ -646,6 +652,25 @@ export default function HostilePage() {
   );
 }
 
+/**
+ * A failure, in the card grammar rather than a terracotta wash: that
+ * wash is the coach bubble's material (#234), and an error wearing it
+ * reads as Demos talking.
+ */
+function ErrorNote({ children }: { children: string | null }) {
+  if (!children) return null;
+  return (
+    <p
+      role="alert"
+      className="elev-1 mt-3 rounded-card border border-card-edge bg-raised p-4 text-caption leading-relaxed text-terracotta-700"
+    >
+      {children}
+    </p>
+  );
+}
+
+/** A tile's label inside a card is the micro register, and its column
+ *  reserves two lines so four numbers share one baseline. */
 function TakeStat({
   label,
   value,
@@ -659,31 +684,39 @@ function TakeStat({
 }) {
   return (
     <div className="min-w-0 flex-1">
-      <div className="label-data">{label}</div>
+      <div className="label-micro block min-h-[26px] leading-[1.3]">
+        {label}
+      </div>
       <div
-        className={`font-display text-[24px] leading-tight ${earned ? "text-sage-700" : ""}`}
+        className={`font-display mt-1 text-[20px] font-extrabold leading-none tabular-nums ${earned ? "text-sage-700" : ""}`}
       >
         {value}
       </div>
-      <div className="text-[11px] text-stone-500">{note}</div>
+      {/* The note reserves two lines so a wrapping one ("target
+          130-160") doesn't leave the row of four ragged. */}
+      <div className="mt-1.5 min-h-[34px] text-caption leading-snug text-stone-500">
+        {note}
+      </div>
     </div>
   );
 }
 
 function VerdictRow({ name, dim }: { name: string; dim: VerdictDim }) {
   return (
-    <div className="rounded-card border border-hairline bg-surface p-4">
-      <div className="flex items-baseline justify-between">
-        <div className="text-[14.5px] font-semibold">{name}</div>
-        <div className="font-display text-[22px] leading-none">
+    <div className="border-b border-hairline py-3 last:border-b-0">
+      <div className="flex items-baseline justify-between gap-3">
+        <div className="font-display text-[14px] font-bold leading-tight">
+          {name}
+        </div>
+        <div className="font-display shrink-0 text-[24px] font-extrabold leading-none tabular-nums">
           {dim.score}
-          <span className="text-[12px] text-stone-400">/100</span>
+          <span className="text-caption font-bold text-stone-400">/100</span>
         </div>
       </div>
-      <p className="mt-1.5 text-[13px] leading-relaxed text-stone-500">
+      <p className="mt-2 text-caption leading-relaxed text-stone-500">
         {dim.citedMoment}
       </p>
-      <p className="mt-1 text-[13px] leading-relaxed text-stone-600">
+      <p className="mt-1 text-caption leading-relaxed text-stone-600">
         {dim.improve}
       </p>
     </div>

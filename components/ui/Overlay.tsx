@@ -52,6 +52,18 @@ export function Overlay({
 }) {
   const panel = useRef<HTMLDivElement>(null);
   const [closing, setClosing] = useState(false);
+  /*
+   * The drag (DECISIONS #242). A sheet you can pull down is the
+   * difference between a thing that appeared on your screen and a thing
+   * you are holding: while the pointer is down the panel tracks it
+   * exactly, with no easing, because a panel that lags your thumb is a
+   * panel you are not dragging.
+   */
+  const drag = useRef<{ id: number; from: number; at: number; y: number } | null>(
+    null
+  );
+  const [dragging, setDragging] = useState(false);
+  const [settling, setSettling] = useState(false);
   // The latest handler, read at close time: the parent passes a fresh
   // arrow every render, and re-running the setup effect for each one
   // re-focused the panel mid-form.
@@ -128,6 +140,70 @@ export function Overlay({
     };
   }, [requestClose]);
 
+  /** Only from the top of the panel's own scroll, or a long list can
+   *  never be scrolled up. */
+  function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    if (!sheet || closing) return;
+    const el = panel.current;
+    if (!el) return;
+    // A pointer that started on a control is that control's, not the
+    // sheet's: a drag must not swallow the tap on "Start with annual".
+    if ((e.target as HTMLElement).closest("input, textarea, select")) return;
+    /*
+     * The panel itself rarely scrolls — the paywall puts its own
+     * `overflow-y-auto` on the card inside it — so the check walks from
+     * whatever was touched up to the panel looking for anything already
+     * scrolled. Dragging a sheet whose content is scrolled down is how
+     * you close a sheet you were trying to read.
+     */
+    for (
+      let node: HTMLElement | null = e.target as HTMLElement;
+      node && node !== el.parentElement;
+      node = node.parentElement
+    ) {
+      if (node.scrollTop > 0) return;
+    }
+    drag.current = { id: e.pointerId, from: e.clientY, at: Date.now(), y: 0 };
+  }
+
+  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    const d = drag.current;
+    if (!d || d.id !== e.pointerId) return;
+    const dy = e.clientY - d.from;
+    // Down only. Up is where the sheet already is.
+    if (dy <= 0 && d.y === 0) return;
+    d.y = Math.max(0, dy);
+    if (!dragging && d.y > 4) {
+      setDragging(true);
+      panel.current?.setPointerCapture(e.pointerId);
+    }
+    if (panel.current) {
+      panel.current.style.transform = `translateY(${d.y}px)`;
+    }
+  }
+
+  function endDrag(e: React.PointerEvent<HTMLDivElement>) {
+    const d = drag.current;
+    if (!d || d.id !== e.pointerId) return;
+    drag.current = null;
+    const el = panel.current;
+    const travelled = d.y;
+    const speed = travelled / Math.max(1, Date.now() - d.at);
+    setDragging(false);
+    if (!el) return;
+    // A flick counts as much as a haul: past a fifth of the panel, or
+    // faster than half a pixel a millisecond, and it goes.
+    if (travelled > el.offsetHeight * 0.2 || speed > 0.5) {
+      el.style.transform = "";
+      requestClose();
+      return;
+    }
+    // Otherwise it springs home.
+    setSettling(true);
+    el.style.transform = "";
+    setTimeout(() => setSettling(false), DURATION.base);
+  }
+
   const sheet = variant === "sheet";
   const position = sheet
     ? "sheet-scrim flex items-end justify-center bg-stage/50 backdrop-blur-[2px]"
@@ -147,7 +223,13 @@ export function Overlay({
         tabIndex={-1}
         style={style}
         data-closing={closing || undefined}
+        data-dragging={dragging || undefined}
+        data-settling={settling || undefined}
         onClick={(e) => e.stopPropagation()}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
         onAnimationEnd={(e) => {
           if (closing && e.target === panel.current) finish();
         }}

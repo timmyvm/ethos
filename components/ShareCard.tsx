@@ -133,7 +133,9 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
   return (
     <div className="mt-3">
       {url ? (
-        <div className="elev-1 rounded-card border border-card-edge bg-raised p-4">
+        /* The card the tap produced: it arrives over the button it
+           replaced, rather than cutting in when the canvas finishes. */
+        <div className="arrive elev-1 rounded-card border border-card-edge bg-raised p-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={url} alt="Your progress card" className="w-full rounded-control" />
           <a

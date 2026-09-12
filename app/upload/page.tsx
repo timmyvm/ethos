@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { AudioScrubber } from "@/components/AudioScrubber";
+import { ACTION_CLASS } from "@/components/LessonScreen";
 import { RepResult } from "@/components/RepResult";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ensureSession } from "@/lib/supabase-browser";
@@ -109,17 +110,17 @@ export default function UploadPage() {
   }
 
   return (
-    <main className="px-5 pb-22 pt-7">
-      <h1 className="font-display text-[27px]">Upload a recording</h1>
+    <main className="flex min-h-dvh flex-col px-5 pb-22 pt-7">
+      <h1 className="font-display text-title">Upload a recording</h1>
 
       {phase === "pick" && (
         <>
-          <p className="mt-2.5 text-[14px] leading-relaxed text-stone-500">
+          <p className="mt-2 text-body text-stone-500">
             A meeting, a voice memo, a run-through from your camera roll.
             The engine reads it like anything recorded here: fillers, pace,
             pauses, the Index.
           </p>
-          <p className="mt-2 text-[12.5px] leading-relaxed text-stone-400">
+          <p className="mt-1.5 text-caption leading-relaxed text-stone-400">
             Up to {MAX_MB}MB and {MAX_MINUTES} minutes. It banks to your
             log as today&apos;s speaking. A long meeting? Trim it to the
             part where you talk.
@@ -136,15 +137,23 @@ export default function UploadPage() {
               if (f) void analyze(f);
             }}
           />
+          {/* The tap sits at the bottom of the phone, where every
+              other single-action screen puts it. */}
+          <div className="flex-1" />
           <label
             htmlFor="upload-file"
-            className="press mt-6 block w-full cursor-pointer rounded-control bg-terracotta-500 px-6 py-4 text-center text-[16.5px] font-semibold text-on-accent transition-colors hover:bg-terracotta-600"
+            className={`${ACTION_CLASS} mt-7 cursor-pointer`}
           >
             Choose a file
           </label>
 
+          {/* A failure keeps the card grammar: the terracotta wash is
+              the coach bubble's material, not an error's (#234). */}
           {error && (
-            <p className="mt-4 rounded-card bg-terracotta-50 px-4 py-3 text-[13.5px] leading-relaxed text-terracotta-700">
+            <p
+              role="alert"
+              className="elev-1 mt-4 rounded-card border border-card-edge bg-raised p-4 text-caption leading-relaxed text-terracotta-700"
+            >
               {error}
             </p>
           )}
@@ -152,12 +161,14 @@ export default function UploadPage() {
       )}
 
       {phase === "analyzing" && (
-        <div className="mt-6 space-y-3">
-          <p className="text-[14px] text-stone-500">
+        <div className="mt-7 space-y-3" role="status">
+          <p className="text-body text-stone-500">
             Reading it. A few minutes of audio takes a little while.
           </p>
-          <Skeleton className="h-24 rounded-card" />
-          <Skeleton className="h-40 rounded-card" />
+          {/* A skeleton carries the shadow of what replaces it (#234):
+              the debrief's cards land at level 1. */}
+          <Skeleton rounded="rounded-card" className="elev-1 h-24" />
+          <Skeleton rounded="rounded-card" className="elev-1 h-40" />
         </div>
       )}
 
@@ -165,7 +176,7 @@ export default function UploadPage() {
         <>
           <RepResult result={result} section="all" />
           {audioUrl && (
-            <div className="mt-4">
+            <div className="mt-7">
               <AudioScrubber
                 src={audioUrl}
                 durationS={result.metrics.durationS}
@@ -174,7 +185,7 @@ export default function UploadPage() {
               />
             </div>
           )}
-          <div className="mt-6 flex gap-2.5">
+          <div className="mt-7 flex gap-2.5">
             <button
               onClick={() => {
                 setPhase("pick");
@@ -182,14 +193,11 @@ export default function UploadPage() {
                 if (audioUrl) URL.revokeObjectURL(audioUrl);
                 setAudioUrl(null);
               }}
-              className="press flex-1 rounded-control border border-stone-200 bg-surface px-5 py-3.5 text-[15px] font-semibold"
+              className="press font-display min-h-12 flex-1 rounded-control border border-edge bg-surface px-4 text-[14px] font-bold"
             >
               Another file
             </button>
-            <Link
-              href="/history"
-              className="press flex-1 rounded-control bg-terracotta-500 px-5 py-3.5 text-center text-[15px] font-semibold text-on-accent"
-            >
+            <Link href="/history" className={`${ACTION_CLASS} flex-1`}>
               See the log
             </Link>
           </div>

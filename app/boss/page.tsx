@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { ACTION_CLASS } from "@/components/LessonScreen";
 import { ModPicker } from "@/components/ModPicker";
 import { Paywall } from "@/components/Paywall";
 import { fetchProfile, fetchReps } from "@/lib/client-data";
@@ -11,6 +12,7 @@ import { COLD_TOPICS, weeklyTopic, type ColdTopic } from "@/lib/cold-topics";
 import { weekStart } from "@/lib/level";
 import { buzz, prefersReducedMotion } from "@/lib/prefs";
 import { repHref } from "@/lib/rep-config";
+import { modById } from "@/lib/stress-mods";
 
 const RESEARCH_SECONDS = 240; // 4 minutes (mechanics.md: 3–5 min window)
 
@@ -52,7 +54,7 @@ function writeSpins(week: string, used: number): void {
  *
  * The study sheet moved (#182): the truth bullets show only inside the
  * research window. They used to sit on the pre-clock screen, which was
- * unlimited free study time before a drill whose whole point is the
+ * unlimited free study time before a boss whose whole point is the
  * cold open.
  */
 export default function BossPage() {
@@ -163,75 +165,96 @@ export default function BossPage() {
   }
 
   return (
-    <main className="flex min-h-dvh flex-col px-5 pb-24 pt-7">
-      <Link href="/" className="inline-flex min-h-11 items-center self-start text-sm text-stone-500">
+    <main className="pb-safe flex min-h-dvh flex-col px-5 pt-7">
+      <Link
+        href="/"
+        className="press inline-flex min-h-11 items-center self-start text-[13px] font-semibold text-stone-500"
+      >
         ← back
       </Link>
 
       {phase === "lobby" && (
         <>
-          <div className="label-data mt-6">Weekly boss · Cold Topic</div>
-          <h1 className="font-display mt-1.5 text-[27px] leading-tight">
+          <div className="label-data mt-4">Weekly boss · Cold Topic</div>
+          <h1 className="font-display mt-1.5 text-title">
             Explain what you haven&apos;t studied.
           </h1>
-          <p className="mt-2.5 text-[14px] leading-relaxed text-stone-500">
+          <p className="mt-2 text-body text-stone-500">
             Four minutes to read. Ninety seconds from memory. Two scores:
             the engine reads your delivery, a fact-check reads your claims.
           </p>
 
+          {/* The record, in the numbers' own weight: a count and the
+              best Index, the second in the earned colour. */}
           {bossCount > 0 && (
-            <p className="mt-2 text-[13px] font-semibold text-stone-500">
-              {bossCount} taken
+            <p className="mt-2.5 text-caption font-semibold text-stone-500">
+              <span className="font-display font-extrabold tabular-nums">
+                {bossCount}
+              </span>{" "}
+              taken
               {bossBest !== null && (
                 <>
                   {" "}
-                  · best <span className="text-sage-700">{bossBest}</span>
+                  · best{" "}
+                  <span className="font-display font-extrabold text-sage-700 tabular-nums">
+                    {bossBest}
+                  </span>
                 </>
               )}
             </p>
           )}
 
           {locked && (
-            <div className="mt-4 rounded-card border border-hairline bg-surface p-4 text-[13px] leading-relaxed text-stone-500">
+            <div className="elev-1 mt-4 rounded-card border border-card-edge bg-raised p-4 text-caption leading-relaxed text-stone-500">
               You&apos;ve taken this week&apos;s boss. It resets Monday, or
               premium opens the library now.
             </div>
           )}
 
           {/* The wheel. Topic title only — the study sheet waits for the
-              clock (#182). */}
-          <div className="mt-5 rounded-sheet border border-hairline bg-surface p-6">
-            <div className="flex items-baseline justify-between">
+              clock (#182).
+
+              This is the screen's one lifted thing (#234/#240): it holds
+              the tap, so it takes the floor card's grammar — raised
+              paper at the sheet radius, a card-edge hairline, `elev-2`.
+              It used to be `surface` under a hairline, which put the
+              headliner a step BELOW the mods card underneath it. */}
+          <div className="elev-2 mt-5 rounded-sheet border border-card-edge bg-raised p-5">
+            <div className="flex items-baseline justify-between gap-3">
               <div className="label-data">
                 {topic.id === weeklyTopic().id
                   ? "This week's headliner"
                   : "The wheel says"}
               </div>
               {!premium && (
-                <div className="label-data !text-sage-700">
+                <div className="label-micro shrink-0 !text-sage-700">
                   {spinsLeft} spin{spinsLeft === 1 ? "" : "s"} left
                 </div>
               )}
             </div>
             <div
-              className={`font-display mt-3 min-h-[4.2rem] text-[26px] leading-[1.12] transition-opacity ${
+              className={`font-display mt-3 min-h-[3.75rem] text-title transition-opacity ${
                 rolling ? "opacity-40" : "opacity-100"
               }`}
             >
-              {topic.title}
+              {/* Keyed on the topic so every draw mounts fresh and rolls
+                  in from below, the way the roulette draws. */}
+              <span key={topic.id} className="arrive dur-fast block">
+                {topic.title}
+              </span>
             </div>
             <div className="mt-4 flex gap-2.5">
               <button
                 onClick={spinWheel}
                 disabled={rolling}
-                className="press shrink-0 rounded-control border border-stone-200 bg-surface px-5 py-4 text-[15px] font-semibold disabled:opacity-60"
+                className="press font-display min-h-12 shrink-0 rounded-control border border-edge bg-surface px-5 text-[14px] font-bold disabled:opacity-40"
               >
                 Spin
               </button>
               <button
                 onClick={() => setPhase("research")}
                 disabled={rolling}
-                className="press flex-1 rounded-control bg-terracotta-500 px-6 py-4 text-center text-[16.5px] font-semibold text-on-accent transition-colors hover:bg-terracotta-600 disabled:opacity-60"
+                className={`${ACTION_CLASS} flex-1 disabled:opacity-40`}
               >
                 Start the 4 minutes
               </button>
@@ -242,7 +265,7 @@ export default function BossPage() {
             onClick={() =>
               premium ? setLibrary((v) => !v) : setPaywall("The boss library")
             }
-            className="mt-3 self-start text-[13px] font-semibold text-terracotta-600"
+            className="press mt-1 inline-flex min-h-11 items-center self-start text-[13px] font-semibold text-terracotta-700"
           >
             {library ? "Hide the library" : "Pick a topic instead"}
           </button>
@@ -257,9 +280,14 @@ export default function BossPage() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={`Search ${COLD_TOPICS.length} topics`}
-                className="w-full rounded-control border border-stone-200 bg-surface px-5 py-3 text-[15px] placeholder:text-stone-400 focus:border-stone-300"
+                className="w-full rounded-control border border-edge bg-surface px-4 py-2.5 text-[14px] font-semibold transition-colors placeholder:text-stone-400 focus:border-terracotta-500"
               />
-              <div className="mt-2.5 flex flex-wrap gap-1.5">
+              {/* Chips, so pills: the neutral chip for the pool, and the
+                  picked one lifted onto raised paper rather than wearing
+                  the retired ink block. Sentence case at caption stays —
+                  `.label-micro` is 10px uppercase, and a topic title is
+                  a sentence, not a column head. */}
+              <div className="mt-3 flex flex-wrap gap-1.5">
                 {results.map((t) => (
                   <button
                     key={t.id}
@@ -268,17 +296,17 @@ export default function BossPage() {
                       setLibrary(false);
                       setQuery("");
                     }}
-                    className={`rounded-control px-3 py-1.5 text-[12.5px] font-semibold ${
+                    className={`press rounded-full px-3 py-1.5 text-caption font-semibold ${
                       t.id === topic.id
-                        ? "bg-ink text-ground"
-                        : "bg-sand text-stone-600"
+                        ? "elev-1 border border-card-edge bg-raised text-ink"
+                        : "bg-stone-100 text-stone-600"
                     }`}
                   >
                     {t.title}
                   </button>
                 ))}
                 {results.length === 0 && (
-                  <p className="text-[13px] text-stone-500">
+                  <p className="text-caption text-stone-500">
                     Nothing with that name. Spin instead?
                   </p>
                 )}
@@ -299,17 +327,17 @@ export default function BossPage() {
               no terracotta, the room's one tap stays on the wheel. */}
           <Link
             href="/hostile"
-            className="press mt-5 flex items-center justify-between rounded-card border border-hairline bg-surface p-4"
+            className="press elev-1 mt-3 flex items-center gap-3 rounded-card border border-card-edge bg-raised p-4"
           >
-            <div>
-              <div className="text-[14.5px] font-semibold">
+            <div className="min-w-0 flex-1">
+              <div className="font-display text-[14px] font-bold">
                 Hostile Q&amp;A
               </div>
-              <div className="mt-0.5 text-[12.5px] text-stone-500">
+              <div className="mt-0.5 text-caption leading-relaxed text-stone-500">
                 Demos interrogates your take. Two questions, no notes.
               </div>
             </div>
-            <span aria-hidden className="text-stone-400">
+            <span aria-hidden className="shrink-0 text-stone-400">
               →
             </span>
           </Link>
@@ -318,29 +346,37 @@ export default function BossPage() {
 
       {phase === "research" && (
         <>
-          <div className="label-data mt-6">Cold Topic</div>
-          <h1 className="font-display mt-1.5 text-2xl">{topic.title}</h1>
-          <div className="mt-6 flex flex-col items-center">
-            <div className="font-display text-[54px] leading-none">
+          <div className="label-data mt-4">Cold Topic</div>
+          <h1 className="font-display mt-1.5 text-title">{topic.title}</h1>
+          {/* The clock is the recording loop's clock, to the pixel:
+              54/800, tabular, tracked in. Its unit drops to the micro
+              register so the screen keeps one section eyebrow. */}
+          <div className="mt-7 flex flex-col items-center">
+            <div className="font-display text-[54px] font-extrabold leading-none tracking-[-0.02em] tabular-nums">
               {mins}:{secs}
             </div>
-            <div className="label-data mt-1">reading time left</div>
+            <div className="label-micro mt-2">reading time left</div>
           </div>
-          <div className="mt-5 rounded-card border border-hairline bg-surface p-5">
+          <div className="elev-2 mt-7 rounded-card border border-card-edge bg-raised p-4">
             <div className="label-data">What a correct answer covers</div>
-            <ul className="mt-2 space-y-2 text-[14px] leading-relaxed text-stone-700">
+            <ul className="mt-3 space-y-2.5 text-body text-stone-700">
               {topic.truth.map((t, i) => (
-                <li key={i}>· {t}</li>
+                <li key={i} className="flex gap-2.5">
+                  <span aria-hidden className="shrink-0 text-stone-300">
+                    ·
+                  </span>
+                  <span>{t}</span>
+                </li>
               ))}
             </ul>
-            <div className="mt-3 border-t border-sand pt-3 text-[12.5px] text-stone-500">
+            <div className="mt-3 border-t border-hairline pt-3 text-caption text-stone-500">
               Read more: {topic.reading}
             </div>
           </div>
           <div className="flex-1" />
           <button
             onClick={() => setPhase("ready")}
-            className="w-full rounded-control border border-stone-200 bg-surface px-6 py-4 text-base font-semibold"
+            className="press font-display mt-7 min-h-12 w-full rounded-control border border-edge bg-surface text-[14px] font-bold"
           >
             I&apos;m ready early
           </button>
@@ -349,8 +385,8 @@ export default function BossPage() {
 
       {phase === "ready" && (
         <>
-          <div className="label-data mt-6">Cold Topic</div>
-          <h1 className="font-display mt-1.5 text-2xl">{topic.title}</h1>
+          <div className="label-data mt-4">Cold Topic</div>
+          <h1 className="font-display mt-1.5 text-title">{topic.title}</h1>
           <div className="flex flex-1 flex-col items-center justify-center text-center">
             <Image
               src="/demos-workout.webp"
@@ -359,27 +395,27 @@ export default function BossPage() {
               height={140}
               className="demos w-[140px]"
             />
-            <p className="mt-4 max-w-[280px] text-[15px] leading-relaxed text-stone-500">
+            <p className="mt-4 max-w-[280px] text-body text-stone-500">
               Notes are gone. Ninety seconds, from memory. Wrong claims
               stated as fact cost more than saying you&apos;re unsure.
             </p>
+            {/* The mods you're carrying, in the chip register the log
+                and the recording screen already use — and under their
+                names, which is what the same chip says everywhere else. */}
             {mods.length > 0 && (
-              <div className="mt-3 flex flex-wrap justify-center gap-1.5">
+              <div className="mt-4 flex flex-wrap justify-center gap-1.5">
                 {mods.map((id) => (
                   <span
                     key={id}
-                    className="rounded-full bg-ink px-2.5 py-1 text-[11.5px] font-semibold text-ground"
+                    className="label-micro rounded-full bg-stone-100 px-2.5 py-1 !text-ink"
                   >
-                    {id}
+                    {modById(id)?.name ?? id}
                   </span>
                 ))}
               </div>
             )}
           </div>
-          <button
-            onClick={takeTheFloor}
-            className="w-full rounded-control bg-terracotta-500 px-6 py-4 text-base font-semibold text-on-accent press"
-          >
+          <button onClick={takeTheFloor} className={`${ACTION_CLASS} mt-7`}>
             Take the floor
           </button>
         </>

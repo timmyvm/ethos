@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { CountUp } from "@/components/CountUp";
+import { DURATION } from "@/lib/motion";
 import { DayTrail } from "@/components/DayTrail";
 import { ScoreCard } from "@/components/ScoreCard";
 import { ACTION_CLASS, LessonBody } from "@/components/LessonScreen";
@@ -64,6 +66,14 @@ export default function Home() {
   const [showMods, setShowMods] = useState(false);
   const [paywall, setPaywall] = useState<string | null>(null);
   const [topic, setTopic] = useState<Topic | null>(null);
+  /*
+   * Whether the floor is coming BACK from the roulette (#242's motion
+   * pass). The roulette rises into the floor's place with `arrive-lift`,
+   * so the floor has to rise back into its own when the way out is
+   * taken; on a cold open it must still paint instantly, which is why
+   * this is a flag and not a class on the card.
+   */
+  const [floorReturned, setFloorReturned] = useState(false);
   const [demos, setDemos] = useState<string | null>(null);
   const [anon, setAnon] = useState<boolean | null>(null);
   const [failed, setFailed] = useState(false);
@@ -216,15 +226,23 @@ export default function Home() {
           {totalStars(starMap) > 0 && (
             <span className="font-display text-[13px] font-bold text-sage-700 tabular-nums">
               <span aria-hidden>★ </span>
-              {totalStars(starMap)}
+              {/* The total LANDS with the history read — the corner is
+                  empty until then — so it counts up rather than
+                  appearing already counted. Not the celebration length:
+                  nothing was earned here, a read landed. */}
+              <CountUp value={totalStars(starMap)} durationMs={DURATION.max} />
             </span>
           )}
           <StreakBadge streak={streak} />
         </div>
       </div>
 
+      {/* The freeze reconciliation is its own read, landing after the
+          history: the banner is a card the app produced, so it arrives
+          from 6px below rather than pushing the floor down out of
+          nowhere. */}
       {rescued > 0 && (
-        <div className="elev-1 mt-7 rounded-card border border-sage-300 bg-raised p-4 text-body">
+        <div className="arrive elev-1 mt-7 rounded-card border border-sage-300 bg-raised p-4 text-body">
           <span className="font-semibold">
             A freeze covered {rescued === 1 ? "a day" : `${rescued} days`} you
             missed.
@@ -265,7 +283,10 @@ export default function Home() {
               {/* The way back, at the 44px target its two siblings
                   under the floor card already carry. */}
               <button
-                onClick={() => setTopic(null)}
+                onClick={() => {
+                  setTopic(null);
+                  setFloorReturned(true);
+                }}
                 className="press -mb-3 mt-1 inline-flex min-h-11 items-center text-[13px] font-semibold text-stone-500"
               >
                 ← Back to today&apos;s drill
@@ -274,7 +295,11 @@ export default function Home() {
           </>
         ) : (
           <>
-            <div className="elev-2 rounded-sheet border border-card-edge bg-raised p-5">
+            <div
+              className={`elev-2 rounded-sheet border border-card-edge bg-raised p-5 ${
+                floorReturned ? "arrive-lift" : ""
+              }`}
+            >
               {/* Centred with the rest of the card (#212): one
                   announcement over one tap. */}
               <div className="label-data mb-3 text-center">
@@ -404,57 +429,64 @@ export default function Home() {
       )}
 
       {/*
-       * Everything the history read paints, in one arrival (DECISIONS
-       * #224): the score card over its skeleton, the save line, the
-       * road. One fade for one event, the read landing; the floor
-       * above needs no round trip and never fades.
+       * What the history read paints, in one arrival (DECISIONS #224):
+       * the score card over its skeleton and the save line under it.
+       * One fade for one event, the read landing; the floor above needs
+       * no round trip and never fades.
+       *
+       * The road left this wrapper in the motion pass (#242): it is a
+       * list, so it assembles itself row by row, and a block fade over
+       * a stagger is two entrances on one thing. One block, one
+       * entrance — the score lands, then the road builds under it.
        */}
       {reps !== null && (
-        <div className="arrive">
-          {history.length > 0 && (
-            <div className="mt-7">
-              <ScoreCard
-                index={lastIndex}
-                delta={indexDelta}
-                recordings={history.length}
-                stars={totalStars(starMap)}
-              >
-                {/*
-                 * The day counter and its line. The streak above is the
-                 * pressure; this is the memory — it never resets, so the
-                 * morning after a missed day still opens on a number that
-                 * went up. It also gets better with time by construction:
-                 * one day is a number, thirty is a shape.
-                 */}
-                <DayTrail trail={trail} pebbles={pebbles} />
-              </ScoreCard>
-            </div>
-          )}
+        <>
+          <div className="arrive">
+            {history.length > 0 && (
+              <div className="mt-7">
+                <ScoreCard
+                  index={lastIndex}
+                  delta={indexDelta}
+                  recordings={history.length}
+                  stars={totalStars(starMap)}
+                >
+                  {/*
+                   * The day counter and its line. The streak above is the
+                   * pressure; this is the memory — it never resets, so the
+                   * morning after a missed day still opens on a number that
+                   * went up. It also gets better with time by construction:
+                   * one day is a number, thirty is a shape.
+                   */}
+                  <DayTrail trail={trail} pebbles={pebbles} />
+                </ScoreCard>
+              </div>
+            )}
 
-          {/* The boss card moved to /games (DECISIONS #158): the road keeps
+            {/* The boss card moved to /games (DECISIONS #158): the road keeps
           its checkpoint, the games tab keeps the weekly headliner, and
           the floor's scroll goes floor, score, road with nothing between. */}
 
-          {/*
-           * The standing soft-wall surface (DECISIONS #137). The loud ask
-           * already happened in the rep flow; this is the persistent honest
-           * statement of risk for everyone who declined it, kept quiet so
-           * the floor's one terracotta tap stays uncontested — the link alone
-           * wears the action text.
-           */}
-          {anon === true && history.length > 0 && (
-            <Link
-              href="/signup"
-              className="press mt-3 block py-3 text-center text-caption leading-relaxed text-stone-400"
-            >
-              {history.length} recording
-              {history.length === 1 ? " lives" : "s live"} only in this browser
-              ·{" "}
-              <span className="font-semibold text-terracotta-700">
-                keep {history.length === 1 ? "it" : "them"} →
-              </span>
-            </Link>
-          )}
+            {/*
+             * The standing soft-wall surface (DECISIONS #137). The loud ask
+             * already happened in the rep flow; this is the persistent honest
+             * statement of risk for everyone who declined it, kept quiet so
+             * the floor's one terracotta tap stays uncontested — the link alone
+             * wears the action text.
+             */}
+            {anon === true && history.length > 0 && (
+              <Link
+                href="/signup"
+                className="press mt-3 block py-3 text-center text-caption leading-relaxed text-stone-400"
+              >
+                {history.length} recording
+                {history.length === 1 ? " lives" : "s live"} only in this
+                browser ·{" "}
+                <span className="font-semibold text-terracotta-700">
+                  keep {history.length === 1 ? "it" : "them"} →
+                </span>
+              </Link>
+            )}
+          </div>
 
           {/* The road (#141): the whole path, winding down from here. It
           goes LAST so the floor keeps the first screen (#9) — the road
@@ -462,7 +494,7 @@ export default function Home() {
           {/* Only once the reps are in hand: a road drawn from an unread
           history shows nought stars to someone who has earned twenty. */}
           <PathRoad starMap={starMap} hasAnyRep={history.length > 0} />
-        </div>
+        </>
       )}
 
       {paywall && <Paywall reason={paywall} onClose={() => setPaywall(null)} />}

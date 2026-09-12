@@ -173,7 +173,9 @@ await page.waitForSelector('button[aria-label="Start recording"]');
 let ring = await anim(page, ".rec-ring");
 ok("ring is hidden before recording", ring.opacity === "0", ring.opacity);
 await sleep(600);
-await page.click('button[aria-label="Start recording"]');
+// The Record button breathes while it waits (#242), so the
+// actionability check would wait for a stillness that never comes.
+await page.click('button[aria-label="Start recording"]', { force: true });
 await page.waitForSelector('button[aria-label="Stop and score this recording"]');
 await sleep(350);
 ring = await anim(page, '.rec-ring[data-on="true"]');
@@ -181,7 +183,7 @@ ok("ring grows out of the button on Record", ring.opacity === "1" && (ring.trans
 a = await anim(page, "main .arrive");
 ok("recording phase arrives as one block", a.name === "arrive", a.name);
 await sleep(3000);
-await page.click('button[aria-label="Stop and score this recording"]');
+await page.click('button[aria-label="Stop and score this recording"]', { force: true });
 await page.waitForSelector('[role="status"].arrive');
 ok("scoring wait arrives", true);
 const dialogP = page.waitForSelector('[role="dialog"][aria-label="1 day in a row"]', { timeout: 8000 });

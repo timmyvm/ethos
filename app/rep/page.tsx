@@ -15,6 +15,7 @@ import { AudioScrubber } from "@/components/AudioScrubber";
 import { Coin } from "@/components/Coin";
 import { GainsRow } from "@/components/GainsRow";
 import { LessonBody } from "@/components/LessonScreen";
+import { DemosListening } from "@/components/DemosListening";
 import { LevelMeter } from "@/components/LevelMeter";
 import { ModeToggle } from "@/components/ModeToggle";
 import { Moment } from "@/components/Moment";
@@ -1234,14 +1235,16 @@ function RepScreen() {
           </div>
         </div>
 
+        {/*
+         * Demos hears you (DECISIONS #243). He used to be a still WebP
+         * beside a live meter, which says the numbers are alive and the
+         * character is a sticker — on a speaking app, of all things.
+         * Now he runs off the same level the meter reads: ears up with
+         * volume, eyes tracking the waveform, a lean in when speech
+         * starts and a settle when it stops.
+         */}
         {phase === "recording" && captureMode !== "voice_video" && (
-          <Image
-            src="/demos-listening.webp"
-            alt=""
-            width={84}
-            height={84}
-            className="demos w-[84px] opacity-90"
-          />
+          <DemosListening level={meterLevel} size={104} />
         )}
 
         {phase === "idle" && (
@@ -1310,7 +1313,7 @@ function RepScreen() {
               className={`press font-display elev-3 relative h-24 w-24 rounded-full text-[15px] font-bold transition-colors dur-base ${
                 phase === "recording"
                   ? "bg-terracotta-600 text-cream"
-                  : "bg-terracotta-500 text-on-accent hover:bg-terracotta-600"
+                  : "rec-wait bg-terracotta-500 text-on-accent hover:bg-terracotta-600"
               }`}
             >
               {phase === "recording" ? "Stop" : "Record"}

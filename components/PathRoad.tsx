@@ -99,7 +99,15 @@ export function PathRoad({
     <section className="mt-7 border-t border-hairline pt-4">
       <div className="label-data">The road</div>
 
-      <div className="mt-3 flex flex-col">
+      {/*
+       * The road assembles itself (#242): every row is a direct child of
+       * this container, so `.stagger` lands on the ROWS — each one is a
+       * `<div>` holding an optional checkpoint, its connector and the
+       * row — and they come in 40ms apart, capped at the eighth. The
+       * parent block no longer fades on Today, because a fade over a
+       * stagger is the same entrance twice.
+       */}
+      <div className="stagger mt-3 flex flex-col">
         {steps.map((step, i) => {
           const isCurrent = i === currentIndex;
           const unitHeader = step.unitName !== lastUnit && !step.endowed;

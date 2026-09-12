@@ -32,7 +32,9 @@ export function LexiconFlash({
   const last = i === cards.length - 1;
 
   return (
-    <div className="elev-1 rounded-card border border-card-edge bg-raised p-4">
+    /* The card is produced by a tap (the button above it is replaced),
+       so it arrives from 6px below rather than appearing (#221). */
+    <div className="arrive elev-1 rounded-card border border-card-edge bg-raised p-4">
       <div className="flex items-baseline justify-between">
         <div className="label-data">Lexicon flash</div>
         <div className="label-micro">
@@ -40,43 +42,53 @@ export function LexiconFlash({
         </div>
       </div>
 
-      <p className="mt-3 text-caption text-stone-500">
-        You said this. What did you swap it for?
-      </p>
-      <div className="font-display mt-1 text-[24px] font-bold leading-tight">
-        &ldquo;{card.original}&rdquo;
-      </div>
+      {/*
+       * Advancing is a step of a walk, so the next card comes in from
+       * the direction of travel (`.arrive-x`, the pattern LessonScreen
+       * uses). Card one is already arriving with the card itself: two
+       * entrances on the same pixels is neither, so the class waits for
+       * the first Next.
+       */}
+      <div key={i} className={i > 0 ? "arrive-x" : undefined}>
+        <p className="mt-3 text-caption text-stone-500">
+          You said this. What did you swap it for?
+        </p>
+        <div className="font-display mt-1 text-[24px] font-bold leading-tight">
+          &ldquo;{card.original}&rdquo;
+        </div>
 
-      {shown ? (
-        <>
-          <div className="mt-3 border-t border-hairline pt-3">
-            <div className="label-micro">The upgrade</div>
-            <div className="font-display mt-0.5 text-[20px] font-bold text-sage-700">
-              {card.upgrade}
+        {shown ? (
+          <>
+            {/* The answer drops out of the row that revealed it. */}
+            <div className="reveal mt-3 border-t border-hairline pt-3">
+              <div className="label-micro">The upgrade</div>
+              <div className="font-display mt-0.5 text-[20px] font-bold text-sage-700">
+                {card.upgrade}
+              </div>
             </div>
-          </div>
+            <button
+              onClick={() => {
+                if (last) {
+                  onDone();
+                  return;
+                }
+                setI(i + 1);
+                setShown(false);
+              }}
+              className="press font-display mt-4 min-h-11 w-full rounded-control border border-edge bg-surface px-4 py-3 text-[14px] font-bold"
+            >
+              {last ? "Done" : "Next"}
+            </button>
+          </>
+        ) : (
           <button
-            onClick={() => {
-              if (last) {
-                onDone();
-                return;
-              }
-              setI(i + 1);
-              setShown(false);
-            }}
+            onClick={() => setShown(true)}
             className="press font-display mt-4 min-h-11 w-full rounded-control border border-edge bg-surface px-4 py-3 text-[14px] font-bold"
           >
-            {last ? "Done" : "Next"}
+            Show it
           </button>
-        </>
-      ) : (
-        <button
-          onClick={() => setShown(true)}
-          className="press font-display mt-4 min-h-11 w-full rounded-control border border-edge bg-surface px-4 py-3 text-[14px] font-bold"
-        >
-          Show it
-        </button>
-      )}
+        )}
+      </div>
     </div>
   );
 }

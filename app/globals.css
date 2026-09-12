@@ -653,6 +653,99 @@ body::after {
 }
 
 /*
+ * The page push (#242). Nothing cuts: a screen arrives from the
+ * direction you travelled, so the app has a left and a right and you
+ * always know which way you went.
+ *
+ * It is a push rather than a cross-fade because a fade says "something
+ * replaced this" and a push says "you moved". The outgoing screen is
+ * already gone by the time React paints the new one, so what ships is
+ * the incoming half: 24px of travel with the opacity ramp finished in
+ * the first third, which reads as motion rather than as a dissolve.
+ */
+@keyframes push-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  40% {
+    opacity: 1;
+  }
+}
+@keyframes push-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+.push-right {
+  animation: push-from-right var(--duration-max) var(--ease-out) backwards;
+}
+.push-left {
+  animation: push-from-left var(--duration-max) var(--ease-out) backwards;
+}
+
+/*
+ * Lists mount with a stagger (#242): the rows land one after another,
+ * 40ms apart, so a list assembles itself instead of appearing whole.
+ *
+ * The step is capped at the eighth child. The road is 29 rows and a
+ * true stagger down all of them would take 1.2 seconds, by which point
+ * it is not an entrance, it is a loading bar.
+ *
+ * `nth-child` rather than a `--i` on every row, because a stagger that
+ * needs an inline style on each child is a stagger nobody applies to
+ * the second list.
+ */
+.stagger > * {
+  animation: arrive var(--duration-base) var(--ease-out) backwards;
+}
+.stagger > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.stagger > *:nth-child(2) {
+  animation-delay: 40ms;
+}
+.stagger > *:nth-child(3) {
+  animation-delay: 80ms;
+}
+.stagger > *:nth-child(4) {
+  animation-delay: 120ms;
+}
+.stagger > *:nth-child(5) {
+  animation-delay: 160ms;
+}
+.stagger > *:nth-child(6) {
+  animation-delay: 200ms;
+}
+.stagger > *:nth-child(7) {
+  animation-delay: 240ms;
+}
+.stagger > *:nth-child(n + 8) {
+  animation-delay: 280ms;
+}
+
+/*
+ * A sheet the finger is dragging (#242). While a pointer is down the
+ * panel follows it exactly — no easing, no duration, because a thing
+ * that lags your thumb by 200ms is a thing that is not being dragged.
+ * On release the class comes off and `.sheet-panel`'s own transition
+ * takes it home, or `data-closing` plays it out.
+ */
+.sheet-panel[data-dragging="true"] {
+  animation: none;
+  transition: none;
+}
+.sheet-panel[data-settling="true"] {
+  animation: none;
+  transition: transform var(--duration-base) var(--ease-spring);
+}
+
+/*
  * Sheets (DECISIONS #222). The panel rises from the bottom edge, the
  * scrim fades in on its own clock, and on close both go back the way
  * they came: `<Overlay>` keeps the sheet mounted with `data-closing`
@@ -743,6 +836,35 @@ body::after {
  * legible at a glance. */
 :root[data-theme="dark"] .rec-ring {
   border-color: var(--color-terracotta-200);
+}
+
+/*
+ * The Record button, waiting (#242).
+ *
+ * The one ambient loop in the app outside the introduction and a live
+ * recording, and it earns its place the way the others do: it is the
+ * screen's only job, sitting there asking to be pressed. A 2% breath on
+ * a 2.6s cycle, which is slower than a resting heart rate and about
+ * half the amplitude of the mascot's — enough to read as alive at the
+ * edge of vision, not enough to notice while reading the tactics above
+ * it. It stops the instant recording starts, because then the meter is
+ * the thing that moves.
+ */
+@keyframes rec-wait {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.02);
+  }
+}
+
+.rec-wait {
+  animation: rec-wait 2.6s var(--ease-in-out) infinite alternate;
+}
+
+:root[data-motion="reduce"] .rec-wait {
+  animation: none;
 }
 
 /*
@@ -846,7 +968,16 @@ body::after {
 /* Reduced motion: every entrance is a fade, every value is already
  * there, and nothing slides (DESIGN-RULES, Definition of Done #8). */
 :root[data-motion="reduce"]
-  :is(.arrive, .arrive-x, .arrive-lift, .reveal, .sheet-panel, .star-land) {
+  :is(
+    .arrive,
+    .arrive-x,
+    .arrive-lift,
+    .push-right,
+    .push-left,
+    .reveal,
+    .sheet-panel,
+    .star-land
+  ) {
   animation-name: fade-in;
   animation-delay: 0ms;
 }
@@ -907,6 +1038,12 @@ body::after {
   to {
     background-position: 220% 0;
   }
+}
+
+/* Reduced motion: a list arrives all at once, without the ladder. */
+:root[data-motion="reduce"] .stagger > * {
+  animation-name: fade-in;
+  animation-delay: 0ms;
 }
 
 /* Still a visible placeholder, just a still one. */

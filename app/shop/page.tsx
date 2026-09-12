@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { CountUp } from "@/components/CountUp";
 import { IconFreeze } from "@/components/Icon";
 import { Skeleton, SkeletonRegion } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -26,6 +27,7 @@ import {
   SHOP,
   type ShopItem,
 } from "@/lib/shop";
+import { DURATION } from "@/lib/motion";
 import { MAX_EQUIPPED_FREEZES } from "@/lib/streak";
 import { buzz, readPrefs, writePrefs } from "@/lib/prefs";
 
@@ -44,6 +46,16 @@ export default function ShopPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [pose, setPose] = useState<string | null>(null);
+  /*
+   * The item bought in this visit (#242). A purchase swaps the card's
+   * button for a different one in the same slot — "Buy" becomes "On
+   * your card", or the last freeze turns the door into a state line —
+   * and a swap in place is the one thing that has to come from
+   * somewhere. The new button arrives from 6px below, out of the tap
+   * that produced it; a card whose button was already in that state
+   * when the screen opened stays still.
+   */
+  const [bought, setBought] = useState<string | null>(null);
 
   /*
    * A balance is the one number in the app that must never be guessed:
@@ -103,13 +115,14 @@ export default function ShopPage() {
     const res = await spendCoins(reasonFor(item), item.price);
     if (res.ok) {
       buzz([20, 40, 20]);
+      setBought(item.id);
       // A cosmetic that changes nothing until you find a second switch
       // is a cosmetic that reads as broken. Buying equips it.
       if (item.kind === "cosmetic") equip(item.id);
       setNote(
         item.kind === "cosmetic"
           ? `${item.name} bought, and on your card.`
-          : `${item.name} bought.`
+          : `${item.name} bought.`,
       );
       await refresh();
     } else {
@@ -118,7 +131,7 @@ export default function ShopPage() {
       setNote(
         res.detail === "not enough coins"
           ? "Not enough coins yet."
-          : "That didn't go through. Your coins are untouched."
+          : "That didn't go through. Your coins are untouched.",
       );
     }
     setBusy(null);
@@ -126,7 +139,13 @@ export default function ShopPage() {
 
   return (
     <main className="px-5 pb-22 pt-7">
-      <Link href="/you" className="inline-flex min-h-11 items-center text-[13px] font-semibold text-stone-400">
+      {/* A 44px target with no pressed state is a target that reads as
+          dead, so the way back answers the finger like every other tap
+          (#240). */}
+      <Link
+        href="/you"
+        className="press inline-flex min-h-11 items-center text-[13px] font-semibold text-stone-400"
+      >
         ← You
       </Link>
 
@@ -154,7 +173,12 @@ export default function ShopPage() {
             )
           ) : (
             <span className="font-display text-[20px] font-extrabold leading-none tabular-nums">
-              {coins}
+              {/* The balance LANDS: the ledger read replaces a skeleton
+                  here, and every price below is an argument against
+                  this number, so it counts up into place rather than
+                  appearing already counted. It also re-counts after a
+                  purchase, which is where the coins went. */}
+              <CountUp value={coins} durationMs={DURATION.max} />
             </span>
           )}
         </span>
@@ -197,26 +221,36 @@ export default function ShopPage() {
             >
               <Skeleton className="h-4 w-32" />
               <Skeleton className="mt-2.5 h-3 w-full" />
-              <Skeleton className="mt-3 h-11 w-full" rounded="rounded-control" />
+              <Skeleton
+                className="mt-3 h-11 w-full"
+                rounded="rounded-control"
+              />
             </div>
           ))}
         </SkeletonRegion>
       ) : (
-        <div className="mt-7 flex flex-col gap-3">
+        /* The four cards replace the skeleton on one read, so they
+           assemble rather than appear whole (#242): 40ms apart, top
+           down, the order they are priced in. */
+        <div className="stagger mt-7 flex flex-col gap-3">
           {SHOP.map((item) => {
             const state = canBuy(
               item,
               coins,
               owned,
               equipped,
-              MAX_EQUIPPED_FREEZES
+              MAX_EQUIPPED_FREEZES,
             );
-            const isOwned =
-              item.kind === "cosmetic" && owned.ids.has(item.id);
+            const isOwned = item.kind === "cosmetic" && owned.ids.has(item.id);
             /* A purchase in flight disables every other door, so those
                doors have to LOOK shut: one disabled value, and a button
                that is not tappable never wears the earned fill (#234). */
             const filled = state.ok && (busy === null || busy === item.id);
+            /* The tap this button came out of, if it was one. The key
+               goes with it so the element mounts fresh and the arrival
+               plays; without it React keeps the old node and the label
+               simply changes under the finger. */
+            const justBought = bought === item.id;
             return (
               <div
                 key={item.id}
@@ -274,8 +308,11 @@ export default function ShopPage() {
                      only thing left to decide: whether it's the one on
                      your card. */
                   <button
+                    key={justBought ? "equip-bought" : "equip"}
                     onClick={() => equip(pose === item.id ? null : item.id)}
                     className={`press font-display mt-3 min-h-11 w-full rounded-control border border-sage-300 px-5 py-2.5 text-[14px] font-bold text-sage-700 transition-colors ${
+                      justBought ? "arrive " : ""
+                    }${
                       pose === item.id
                         ? "bg-sage-100"
                         : "bg-surface hover:bg-sage-100"
@@ -285,6 +322,7 @@ export default function ShopPage() {
                   </button>
                 ) : (
                   <button
+                    key={justBought ? "buy-bought" : "buy"}
                     onClick={() => void buy(item)}
                     disabled={!state.ok || busy !== null}
                     /*
@@ -308,6 +346,8 @@ export default function ShopPage() {
                      * height, no frame.
                      */
                     className={`font-display mt-3 min-h-11 w-full rounded-control px-5 py-2.5 text-[14px] font-bold transition-colors ${
+                      justBought ? "arrive " : ""
+                    }${
                       filled
                         ? "press bg-sage-700 text-sage-ink hover:bg-sage-800"
                         : "text-stone-400"
@@ -325,7 +365,6 @@ export default function ShopPage() {
           })}
         </div>
       )}
-
     </main>
   );
 }

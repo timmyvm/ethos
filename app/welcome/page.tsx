@@ -157,14 +157,14 @@ function Walk() {
           step.index === 0 ? (
             <Link
               href="/signin"
-              className="mt-3 block min-h-11 py-3 text-center text-caption text-stone-500"
+              className="press mt-3 block min-h-11 py-3 text-center text-[13px] font-semibold text-stone-500"
             >
               I already have an account
             </Link>
           ) : (
             <Link
               href="/"
-              className="mt-3 block min-h-11 py-3 text-center text-caption text-stone-500"
+              className="press mt-3 block min-h-11 py-3 text-center text-[13px] font-semibold text-stone-500"
             >
               Skip
             </Link>
@@ -202,7 +202,7 @@ function Walk() {
           <button
             type="button"
             onClick={() => go(i + 1)}
-            className="mt-3 block min-h-11 w-full py-3 text-center text-caption text-stone-500"
+            className="press mt-3 block min-h-11 w-full py-3 text-center text-[13px] font-semibold text-stone-500"
           >
             Skip
           </button>
@@ -243,7 +243,7 @@ function Dots({ count, at }: { count: number; at: number }) {
       {Array.from({ length: count }, (_, n) => (
         <span
           key={n}
-          className={`h-1.5 ${n === at ? "w-6 bg-terracotta-500" : "w-1.5 bg-stone-300"}`}
+          className={`h-1.5 ${n === at ? "w-6 bg-terracotta-500" : "w-1.5 bg-sand"}`}
         />
       ))}
     </div>
@@ -260,7 +260,7 @@ function Progress({ n, of }: { n: number; of: number }) {
           className={`h-1 flex-1 ${k < n ? "bg-terracotta-500" : "bg-sand"}`}
         />
       ))}
-      <span className="label-data ml-1 shrink-0 tabular-nums">
+      <span className="label-micro ml-1 shrink-0 tabular-nums">
         {n} of {of}
       </span>
     </div>
@@ -270,8 +270,9 @@ function Progress({ n, of }: { n: number; of: number }) {
 /**
  * One tappable answer per row, in the segmented control's grammar
  * (#206, ModeToggle): the chosen row fills with ink, the rest stand on
- * `surface` with the `stone-200` outline (#218). Single answers are a
- * radio set; the pains are checkboxes, three at most.
+ * `surface` behind the `edge` boundary every control in the app now
+ * carries. Single answers are a radio set; the pains are checkboxes,
+ * three at most.
  */
 function Choices({
   id,
@@ -352,11 +353,11 @@ function Row({
       aria-checked={on}
       disabled={disabled}
       onClick={onPress}
-      className={`press font-display flex min-h-11 w-full items-center rounded-control border px-4 text-left text-[14.5px] font-bold transition-colors ${
+      className={`press font-display flex min-h-12 w-full items-center rounded-control border px-4 text-left text-[14px] font-bold transition-colors ${
         on
           ? "border-ink bg-ink text-ground"
-          : "border-stone-200 bg-surface hover:bg-sand"
-      } ${disabled ? "opacity-40" : ""}`}
+          : "border-edge bg-surface hover:bg-sand"
+      } ${disabled ? "!text-stone-400" : ""}`}
     >
       {label}
     </button>

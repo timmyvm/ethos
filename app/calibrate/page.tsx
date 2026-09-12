@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ACTION_CLASS } from "@/components/LessonScreen";
 import { loadPose, samplePose, type PoseSampler } from "@/lib/pose-client";
 import {
   PRESENCE_CONSTANTS,
@@ -222,11 +223,14 @@ export default function CalibratePage() {
 
   return (
     <main className="px-5 pb-16 pt-7">
-      <Link href="/settings" className="inline-flex min-h-11 items-center text-sm text-stone-500">
+      <Link
+        href="/settings"
+        className="press inline-flex min-h-11 items-center text-[13px] font-semibold text-stone-500"
+      >
         ← settings
       </Link>
-      <h1 className="font-display mt-5 text-[27px]">Calibrate the camera</h1>
-      <p className="mt-2 text-[14px] leading-relaxed text-stone-500">
+      <h1 className="font-display mt-4 text-title">Calibrate the camera</h1>
+      <p className="mt-2 text-body text-stone-500">
         Four takes, 20 seconds each, through the real engine. The numbers
         it measures become the proposed thresholds for the Presence score.
         Nothing recorded here leaves this page.
@@ -235,28 +239,50 @@ export default function CalibratePage() {
       {/* The model assumes a static camera. The first real session was
           shot handheld and every number came out polluted, so the setup
           is stated before the mic, not diagnosed after. */}
-      <div className="mt-4 rounded-card border border-hairline bg-surface p-4">
+      <div className="elev-1 mt-7 rounded-card border border-card-edge bg-raised p-4">
         <div className="label-data">Set up first</div>
-        <ul className="mt-1.5 space-y-1 text-[13px] leading-relaxed text-stone-600">
-          <li>· Prop the phone at face height. Never in your hand.</li>
-          <li>· Step back until head, shoulders and both hands are in frame.</li>
-          <li>· Look-away notes go somewhere that isn&apos;t the phone.</li>
+        <ul className="mt-3 space-y-2 text-caption leading-relaxed text-stone-600">
+          <li className="flex gap-2.5">
+            <span aria-hidden className="shrink-0 text-stone-300">
+              ·
+            </span>
+            <span>Prop the phone at face height. Never in your hand.</span>
+          </li>
+          <li className="flex gap-2.5">
+            <span aria-hidden className="shrink-0 text-stone-300">
+              ·
+            </span>
+            <span>
+              Step back until head, shoulders and both hands are in frame.
+            </span>
+          </li>
+          <li className="flex gap-2.5">
+            <span aria-hidden className="shrink-0 text-stone-300">
+              ·
+            </span>
+            <span>Look-away notes go somewhere that isn&apos;t the phone.</span>
+          </li>
         </ul>
       </div>
 
       {status === "idle" && (
         <button
           onClick={() => void startCamera()}
-          className="press mt-6 w-full rounded-control bg-terracotta-500 px-6 py-4 text-base font-semibold text-on-accent"
+          className={`${ACTION_CLASS} mt-7`}
         >
           Start the camera
         </button>
       )}
       {status === "starting" && (
-        <p className="mt-6 text-[14px] text-stone-500">Opening the camera…</p>
+        <p role="status" className="mt-7 text-body text-stone-500">
+          Opening the camera…
+        </p>
       )}
       {status === "unavailable" && (
-        <p className="mt-6 rounded-card bg-terracotta-50 px-4 py-3 text-[13.5px] leading-relaxed text-terracotta-700">
+        <p
+          role="alert"
+          className="elev-1 mt-7 rounded-card border border-card-edge bg-raised p-4 text-caption leading-relaxed text-terracotta-700"
+        >
           The camera or the pose engine didn&apos;t load. Check the
           permission, or try Chrome.
         </p>
@@ -268,12 +294,14 @@ export default function CalibratePage() {
           sampler reads a dead video as zero frames. Hidden, not absent,
           until the stream is up. */}
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      {/* The self-view wears the recording screen's frame: the stage
+          behind it, a hairline ring, the sheet radius. */}
       <video
         ref={videoRef}
         autoPlay
         muted
         playsInline
-        className={`mt-5 w-full -scale-x-100 rounded-card border border-hairline bg-surface ${
+        className={`mt-7 block w-full -scale-x-100 rounded-sheet bg-stage ring-2 ring-hairline ${
           status === "ready" || status === "recording" ? "" : "hidden"
         }`}
       />
@@ -281,25 +309,28 @@ export default function CalibratePage() {
       {(status === "ready" || status === "recording") && (
         <>
           {done.length < TAKES.length && (
-            <div className="mt-4 rounded-card border border-hairline bg-surface p-5">
+            <div className="elev-2 mt-3 rounded-card border border-card-edge bg-raised p-4">
               <div className="label-data">
                 Take {current + 1} of {TAKES.length} · {take.name}
               </div>
-              <p className="mt-1.5 text-[14px] leading-relaxed text-stone-600">
-                {take.brief}
-              </p>
+              <p className="mt-3 text-body text-stone-600">{take.brief}</p>
               {note && (
-                <p className="mt-2 text-[13px] text-terracotta-700">{note}</p>
+                <p
+                  role="alert"
+                  className="mt-2 text-caption leading-relaxed text-terracotta-700"
+                >
+                  {note}
+                </p>
               )}
               {status === "ready" ? (
                 <button
                   onClick={() => void record()}
-                  className="press mt-4 w-full rounded-control bg-terracotta-500 px-6 py-3.5 text-[15px] font-semibold text-on-accent"
+                  className={`${ACTION_CLASS} mt-4`}
                 >
                   Record {TAKE_SECONDS}s
                 </button>
               ) : (
-                <div className="font-display mt-4 text-center text-[40px] tabular-nums">
+                <div className="font-display mt-4 text-center text-[54px] font-extrabold leading-none tracking-[-0.02em] tabular-nums">
                   {left}
                 </div>
               )}
@@ -309,52 +340,56 @@ export default function CalibratePage() {
       )}
 
       {done.length > 0 && (
-        <div className="mt-6">
-          <div className="section-title">Measured</div>
-          <div className="mt-2 overflow-x-auto">
-            <table className="w-full text-[12.5px]">
+        <div className="mt-7">
+          <div className="label-data">Measured</div>
+          {/* Column heads are the micro register: at 11/0.10em these
+              were wider than the numbers under them (#234). */}
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full text-caption">
               <thead>
                 <tr className="text-left">
-                  <th className="label-data pb-1.5 pr-3 font-normal">take</th>
-                  <th className="label-data pb-1.5 pr-3 font-normal">gest/min</th>
-                  <th className="label-data pb-1.5 pr-3 font-normal">drift</th>
-                  <th className="label-data pb-1.5 pr-3 font-normal">head</th>
-                  <th className="label-data pb-1.5 pr-3 font-normal">eyes %</th>
-                  <th className="label-data pb-1.5 pr-3 font-normal"></th>
-                  <th className="label-data pb-1.5 pr-3 font-normal">neck</th>
-                  <th className="label-data pb-1.5 pr-3 font-normal">score</th>
-                  <th className="pb-1.5" aria-label="Redo" />
+                  <th className="label-micro pb-2 pr-3">take</th>
+                  <th className="label-micro pb-2 pr-3">gest/min</th>
+                  <th className="label-micro pb-2 pr-3">drift</th>
+                  <th className="label-micro pb-2 pr-3">head</th>
+                  <th className="label-micro pb-2 pr-3">eyes %</th>
+                  <th className="label-micro pb-2 pr-3"></th>
+                  <th className="label-micro pb-2 pr-3">neck</th>
+                  <th className="label-micro pb-2 pr-3">score</th>
+                  <th className="pb-2" aria-label="Redo" />
                 </tr>
               </thead>
               <tbody>
                 {done.map((d) => (
                   <tr key={d.label} className="border-t border-hairline">
-                    <td className="py-2 pr-3 font-semibold">{d.label}</td>
-                    <td className="py-2 pr-3 tabular-nums">
+                    <td className="font-display py-3 pr-3 font-bold">
+                      {d.label}
+                    </td>
+                    <td className="py-3 pr-3 tabular-nums">
                       {d.result.metrics.gestureRate}
                     </td>
-                    <td className="py-2 pr-3 tabular-nums">
+                    <td className="py-3 pr-3 tabular-nums">
                       {d.result.metrics.postureDrift}
                     </td>
-                    <td className="py-2 pr-3 tabular-nums">
+                    <td className="py-3 pr-3 tabular-nums">
                       {d.result.metrics.headStability}
                     </td>
-                    <td className="py-2 pr-3 tabular-nums">
+                    <td className="py-3 pr-3 tabular-nums">
                       {d.result.metrics.eyeLinePct}
                     </td>
-                    <td className="py-2 pr-3 tabular-nums">
+                    <td className="py-3 pr-3 tabular-nums">
                       {d.result.metrics.headLift ?? "—"}
                     </td>
-                    <td className="py-2 pr-3 tabular-nums">
+                    <td className="py-3 pr-3 tabular-nums">
                       {d.result.metrics.neckGap ?? "—"}
                     </td>
-                    <td className="py-2 pr-3 tabular-nums">
+                    <td className="font-display py-3 pr-3 font-extrabold tabular-nums">
                       {d.result.metrics.presenceScore}
                     </td>
-                    <td className="py-2">
+                    <td className="py-3">
                       <button
                         onClick={() => redo(d.label)}
-                        className="press min-h-11 px-1 text-[12px] font-semibold text-stone-500"
+                        className="press min-h-11 px-1 text-[13px] font-semibold text-stone-500"
                       >
                         redo
                       </button>
@@ -368,17 +403,20 @@ export default function CalibratePage() {
       )}
 
       {proposal && (
-        <div className="mt-6">
-          <div className="section-title">Proposed constants</div>
+        <div className="mt-7">
+          <div className="label-data">Proposed constants</div>
           {proposal.warnings.map((w, i) => (
             <p
               key={i}
-              className="mt-2 rounded-card bg-terracotta-50 px-4 py-3 text-[13px] leading-relaxed text-terracotta-700"
+              role="alert"
+              className="elev-1 mt-3 rounded-card border border-card-edge bg-raised p-4 text-caption leading-relaxed text-terracotta-700"
             >
               {w}
             </p>
           ))}
-          <pre className="mt-3 overflow-x-auto rounded-card bg-ink p-4 text-[12px] leading-relaxed text-ground">
+          {/* Code is the deep material the loop uses for its own panels:
+              stage, never ink-on-ground. */}
+          <pre className="elev-1 mt-3 overflow-x-auto rounded-card bg-stage p-4 text-[12px] leading-relaxed text-cream">
             {proposalText}
           </pre>
           <div className="mt-3 flex gap-2.5">
@@ -389,18 +427,18 @@ export default function CalibratePage() {
                   .then(() => setCopied(true))
                   .catch(() => {});
               }}
-              className="press flex-1 rounded-control border border-stone-200 bg-surface px-5 py-3 text-[14px] font-semibold"
+              className="press font-display min-h-12 flex-1 rounded-control border border-edge bg-surface px-4 text-[14px] font-bold"
             >
               {copied ? "Copied" : "Copy for lib/presence.ts"}
             </button>
             <button
               onClick={download}
-              className="press flex-1 rounded-control border border-stone-200 bg-surface px-5 py-3 text-[14px] font-semibold"
+              className="press font-display min-h-12 flex-1 rounded-control border border-edge bg-surface px-4 text-[14px] font-bold"
             >
               Download takes
             </button>
           </div>
-          <p className="mt-3 text-[12.5px] leading-relaxed text-stone-400">
+          <p className="mt-3 text-caption leading-relaxed text-stone-400">
             Paste the block over the constants in lib/presence.ts, or hand
             the download to a build session. The raw frames are included,
             so candidate constants can be re-scored offline.

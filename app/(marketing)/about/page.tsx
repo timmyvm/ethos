@@ -22,38 +22,45 @@ export const metadata: Metadata = {
  * no-manufactured-insecurity rule: name the felt moment honestly, never
  * imply the reader is inadequate, never sell fear.
  */
+/*
+ * The one tap, spelled exactly as `ACTION_CLASS` in
+ * components/LessonScreen.tsx. It is copied rather than imported
+ * because that module is a client component: importing a string from
+ * one into a server page hands back a client reference, not the string,
+ * and the button renders as bare text. The two must stay in step.
+ */
+const TAKE_THE_FLOOR =
+  "press font-display block min-h-12 w-full rounded-control bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-on-accent transition-colors hover:bg-terracotta-600";
+
 export default function About() {
   return (
     <main className="px-5 pb-24 pt-10">
-      <div className="font-display text-[22px] font-bold">ethos</div>
+      <div className="font-display text-lead font-extrabold">ethos</div>
 
       <h1 className="font-display mt-10 text-[34px] font-bold leading-[1.15]">
         You had the point.
         <br />
         It came out fuzzy.
       </h1>
-      <p className="mt-4 text-[16px] leading-relaxed text-stone-600">
+      <p className="mt-4 text-body leading-relaxed text-stone-600">
         That&apos;s a practice problem. Courses teach theory, coaches cost $150 an
         hour, and you build a skill the boring way: daily, with honest
         measurement.
       </p>
-      <p className="mt-3 text-[16px] font-semibold leading-relaxed">
+      <p className="mt-3 text-body font-semibold leading-relaxed">
         Practice being worth listening to.
       </p>
 
-      <Link
-        href="/welcome"
-        className="mt-6 block w-full rounded-control bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-on-accent press"
-      >
+      <Link href="/welcome" className={`${TAKE_THE_FLOOR} mt-6`}>
         Take the floor
       </Link>
-      <p className="mt-2.5 text-center text-[12.5px] text-stone-500">
+      <p className="mt-3 text-center text-caption text-stone-500">
         60 seconds. No signup until you&apos;ve spoken.
       </p>
 
-      <div className="relative mt-12 overflow-hidden rounded-card border border-hairline bg-surface p-6">
-        <h2 className="font-display text-[20px] font-bold">The daily loop</h2>
-        <ol className="mt-3 space-y-3 text-[14.5px] leading-relaxed text-stone-600">
+      <div className="elev-2 relative mt-12 overflow-hidden rounded-card border border-card-edge bg-raised p-5 pb-20">
+        <h2 className="font-display text-lead">The daily loop</h2>
+        <ol className="mt-3 space-y-3 text-body leading-relaxed text-stone-600">
           <li>
             <span className="font-semibold text-ink">One prompt.</span>{" "}
             Impromptu, explain-it, argue-against-yourself. It changes daily.
@@ -79,33 +86,33 @@ export default function About() {
             lexicon.
           </li>
         </ol>
+        {/* He stands in the card's bottom band, not on its last two
+            lines: the card carries the padding that clears him. */}
         <Image
           src="/demos-speaking.webp"
           alt="Demos, the Ethos coach"
-          width={120}
-          height={120}
-          className="demos pointer-events-none absolute -bottom-4 -right-4 w-[120px] opacity-95"
+          width={104}
+          height={104}
+          className="demos pointer-events-none absolute -bottom-3 -right-3 w-[104px]"
         />
       </div>
 
-      <h2 className="font-display mt-12 text-[20px] font-bold">
-        We score silence.
-      </h2>
-      <p className="mt-3 text-[15px] leading-relaxed text-stone-600">
+      <h2 className="font-display mt-12 text-lead">We score silence.</h2>
+      <p className="mt-3 text-body leading-relaxed text-stone-600">
         Most apps treat a pause as dead air. Ethos times yours and asks where
         it landed: before a sentence it reads as composure, inside one it
         reads as searching. The difference is measurable, so we measure it.
       </p>
 
-      <div className="mt-6 rounded-card bg-stage p-6 text-cream">
+      <div className="elev-1 mt-6 rounded-card border border-card-edge bg-stage p-5 text-cream">
         <div className="label-data !text-cream/60">Your Ethos · /1000</div>
-        <p className="mt-3 text-[14.5px] leading-relaxed text-cream/75">
+        <p className="mt-3 text-body leading-relaxed text-cream/75">
           Nine dimensions. Five measured straight off the timestamps: pause,
           fillers, self-corrections, pace, range. Four judged against your
           words, and a judged score with no quoted moment is thrown out and
           re-run.
         </p>
-        <p className="mt-3 text-[14.5px] font-semibold">
+        <p className="mt-3 text-body font-semibold">
           If we can&apos;t point at a timestamp, we don&apos;t say it.
         </p>
       </div>
@@ -119,25 +126,25 @@ export default function About() {
        * language would be false and checkable, which is the fastest way
        * to lose the one thing this product sells.
        */}
-      <h2 className="font-display mt-12 text-[20px] font-bold">
+      <h2 className="font-display mt-12 text-lead">
         Rehearsal tools exist. This isn&apos;t one.
       </h2>
-      <p className="mt-3 text-[15px] leading-relaxed text-stone-600">
+      <p className="mt-3 text-body leading-relaxed text-stone-600">
         Yoodli is a strong one: it reads your body language over a webcam,
         you run a session before the big thing, and you leave. The daily
         speaking apps listen to your voice and stop there.
       </p>
-      <p className="mt-3 text-[15px] leading-relaxed text-stone-600">
+      <p className="mt-3 text-body leading-relaxed text-stone-600">
         Nobody is doing daily, streak-driven, gamified practice with video. Five
         minutes a day, scored on what you said{" "}
         <span className="font-semibold text-ink">and</span> how you held
         yourself saying it. That&apos;s the gap.
       </p>
 
-      <h2 className="font-display mt-12 text-[20px] font-bold">
+      <h2 className="font-display mt-12 text-lead">
         The camera is optional, and it stays here.
       </h2>
-      <p className="mt-3 text-[15px] leading-relaxed text-stone-600">
+      <p className="mt-3 text-body leading-relaxed text-stone-600">
         Voice or voice + video, your call, remembered per lesson. With video
         on, your posture, gestures and eye line are read{" "}
         <span className="font-semibold text-ink">on your device</span>. The
@@ -145,10 +152,8 @@ export default function About() {
         screen.
       </p>
 
-      <h2 className="font-display mt-12 text-[20px] font-bold">
-        What this refuses to be
-      </h2>
-      <ul className="mt-3 space-y-2 text-[14.5px] leading-relaxed text-stone-600">
+      <h2 className="font-display mt-12 text-lead">What this refuses to be</h2>
+      <ul className="mt-3 space-y-2 text-body leading-relaxed text-stone-600">
         <li>· No manufactured insecurity. You already know your gap.</li>
         <li>· No alpha talk. This serves ambition, not contempt.</li>
         <li>· No horoscope feedback. Every claim traces to a number.</li>
@@ -156,17 +161,14 @@ export default function About() {
         <li>· No deadline cram. It&apos;s practice, not a rescue.</li>
       </ul>
 
-      <Link
-        href="/welcome"
-        className="mt-10 block w-full rounded-control bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-on-accent press"
-      >
+      <Link href="/welcome" className={`${TAKE_THE_FLOOR} mt-10`}>
         Take the floor
       </Link>
-      <p className="mt-6 text-center text-[12px] text-stone-400">
+      <p className="mt-6 text-center text-caption text-stone-400">
         Ethos, from Aristotle. Logos is logic, pathos is emotion, ethos is
         the credibility of the speaker.
       </p>
-      <p className="mt-4 text-center text-[12px] text-stone-400">
+      <p className="mt-4 text-center text-caption text-stone-400">
         <Link href="/privacy" className="font-semibold text-stone-500">
           Privacy
         </Link>{" "}

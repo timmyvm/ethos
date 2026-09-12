@@ -163,6 +163,29 @@ describe("retired vocabulary", () => {
       expect(hits).toEqual([]);
     });
   }
+
+  /*
+   * The whole gym register, not just the one word (CLAUDE.md, the one
+   * banned thing). Ethos is not a gym, a workout, a drill or training:
+   * the words are practice, lesson, recording, session, the road, the
+   * floor. "rep" already had a test and the other four did not, so they
+   * came back one at a time — a "training log" in the log's empty
+   * state, a "not training" in the mod picker, a shop item called
+   * "in training". Same prose-only scan, same reason.
+   *
+   * "Model training" survives: it is what the privacy page is actually
+   * talking about, and no reader hears a gym in it.
+   */
+  const GYM = /\b(gyms?|workouts?|drills?|training)\b/i;
+
+  for (const file of files) {
+    it(`keeps the gym out of ${file}`, () => {
+      const hits = proseStrings(readFileSync(file, "utf8"))
+        .filter((s) => !/model training/i.test(s))
+        .filter((s) => GYM.test(s));
+      expect(hits).toEqual([]);
+    });
+  }
 });
 
 describe("the two headlines", () => {

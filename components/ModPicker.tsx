@@ -79,7 +79,7 @@ export function ModPicker({
                 <span className="font-display block text-[14px] font-bold">
                   {mod.name}
                   {locked && (
-                    <span className="ml-1.5 text-[11.5px] font-normal opacity-70">
+                    <span className="ml-1.5 text-caption font-normal text-stone-400">
                       premium
                     </span>
                   )}
@@ -104,7 +104,7 @@ export function ModPicker({
 
       {full && (
         <p className="mt-2.5 text-caption text-stone-400">
-          Two at a time. Anything more is a stunt, not training.
+          Two at a time. Anything more is a stunt.
         </p>
       )}
     </div>

@@ -195,7 +195,7 @@ export default function YouPage() {
    */
   if (failed) {
     return (
-      <main className="px-5 pb-24 pt-7">
+      <main className="px-5 pb-22 pt-7">
         {header}
         <ErrorState
           className="mt-4"
@@ -207,12 +207,13 @@ export default function YouPage() {
   }
 
   return (
-    <main className="px-5 pb-24 pt-7">
+    <main className="px-5 pb-22 pt-7">
       {header}
 
-      {/* The one card on the page. It holds the two numbers that answer
-          "how far in am I", so it keeps the furniture. */}
-      <div className="mt-4 rounded-card border border-edge bg-raised p-[18px]">
+      {/* The ONE lifted thing on this screen (#234). It holds the two
+          numbers that answer "how far in am I", so it keeps the
+          furniture, and nothing below it carries a shadow above elev-1. */}
+      <div className="elev-2 mt-5 rounded-card border border-card-edge bg-raised p-4">
         {/* The name: the one profile field you type rather than earn.
             League rows show it, so it caps where they'd truncate. */}
         {editingName ? (
@@ -230,11 +231,11 @@ export default function YouPage() {
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder="Your name"
-              className="min-h-11 w-full min-w-0 flex-1 rounded-control border border-stone-200 bg-raised px-4 text-[15px] font-semibold placeholder:text-stone-400 focus:border-stone-300"
+              className="min-h-11 w-full min-w-0 flex-1 rounded-control border border-edge bg-surface px-4 text-[15px] font-semibold placeholder:text-stone-400 focus:border-terracotta-500"
             />
             <button
               type="submit"
-              className="press min-h-11 shrink-0 rounded-control border border-stone-200 bg-surface px-4 text-[13.5px] font-semibold hover:bg-sand"
+              className="press font-display min-h-11 shrink-0 rounded-control border border-edge bg-surface px-4 text-[14px] font-bold hover:bg-sand"
             >
               Save
             </button>
@@ -260,7 +261,7 @@ export default function YouPage() {
                   setNameFailed(false);
                   setEditingName(true);
                 }}
-                className={`press min-h-11 shrink-0 text-[12.5px] font-semibold text-stone-400 ${name ? "" : "text-left"}`}
+                className={`press min-h-11 shrink-0 text-caption font-semibold text-stone-400 ${name ? "" : "text-left"}`}
               >
                 {name ? "Edit" : "Add your name →"}
               </button>
@@ -284,7 +285,10 @@ export default function YouPage() {
             className="demos w-12 shrink-0"
           />
           <div className="flex-1">
-            <div className="label-data !text-sage-700">Level</div>
+            {/* Tile labels inside a card take the micro register (#234):
+                the section eyebrow is one per SECTION, and this card has
+                three labels in it. */}
+            <div className="label-micro !text-sage-700">Level</div>
             {loading ? (
               <Skeleton className="mt-1.5 h-7 w-10" />
             ) : (
@@ -294,7 +298,7 @@ export default function YouPage() {
             )}
           </div>
           <div className="text-right">
-            <div className="label-data">Total XP</div>
+            <div className="label-micro">Total XP</div>
             {loading ? (
               <Skeleton className="mt-1.5 ml-auto h-5 w-14" />
             ) : (
@@ -318,7 +322,7 @@ export default function YouPage() {
           {loading ? (
             <Skeleton className="h-2.5 w-28" />
           ) : (
-            <span className="label-data">
+            <span className="label-micro">
               {level.intoLevel}/{level.forNext} to level {level.level + 1}
             </span>
           )}
@@ -332,7 +336,7 @@ export default function YouPage() {
         <PlanRow state={onboarding} stars={reps ? totalStars(starsByLesson(reps)) : null} />
       )}
 
-      <div className="mt-5 flex gap-3">
+      <div className="mt-7 flex gap-3">
         {loading ? (
           <>
             <SkeletonStatBare />
@@ -355,9 +359,9 @@ export default function YouPage() {
        * the leader only; a trait that hasn't leveled sits dimmed at the
        * bottom, the shelf's grammar (#153): the position is the claim.
        */}
-      <div className="mt-6 border-t border-hairline pt-3.5">
+      <div className="mt-7 border-t border-hairline pt-3">
         <div className="label-data">Traits</div>
-        <div className="mt-2.5 space-y-2.5">
+        <div className="mt-3 space-y-2.5">
           {loading ? (
             <>
               <Skeleton className="h-5 w-full" />
@@ -370,8 +374,10 @@ export default function YouPage() {
               const top = Math.max(1, ranked[0]?.level ?? 0);
               return ranked.map((t, i) => (
                 <div key={t.key} className="flex items-center gap-3">
+                  {/* 600, not 700: nine equally bold lines read as nine
+                      headings and the section loses its leader (#234). */}
                   <span
-                    className={`font-display w-[92px] shrink-0 text-[13px] font-bold leading-tight ${
+                    className={`font-display w-[116px] shrink-0 text-[14px] font-semibold leading-tight ${
                       t.level > 0 ? "" : "text-stone-400"
                     }`}
                   >
@@ -410,9 +416,9 @@ export default function YouPage() {
        * convenience; that argument belongs in the shop, where somebody is
        * about to spend (COPY-RULES: explain a mechanic where it happens).
        */}
-      <div className="mt-6 border-t border-hairline pt-3.5">
+      <div className="mt-7 border-t border-hairline pt-3">
         <div className="label-data">Coins</div>
-        <div className="mt-2.5 flex items-end gap-4">
+        <div className="mt-3 flex items-end gap-4">
           <div className="flex-1">
             {loading ? (
               <Skeleton className="h-7 w-12" />
@@ -421,7 +427,7 @@ export default function YouPage() {
                 {coins ?? "—"}
               </div>
             )}
-            <div className="label-data mt-1.5 !tracking-[0.1em]">1 a day</div>
+            <div className="label-micro mt-1.5">1 a day</div>
           </div>
           <div className="shrink-0 text-right">
             {loading ? (
@@ -431,15 +437,13 @@ export default function YouPage() {
                 {coins === null ? "—" : towardFirstItem(coins).toGo}
               </div>
             )}
-            <div className="label-data mt-1.5 !tracking-[0.1em]">
-              to the first item
-            </div>
+            <div className="label-micro mt-1.5">to the first item</div>
           </div>
         </div>
         {/* Terracotta on purpose, the ONLY terracotta on this screen: it points
             at the next buyable thing, and it isn't a tap (#165's flag,
             carried into #201). */}
-        <div className="mt-2.5 h-[5px] overflow-hidden bg-sand">
+        <div className="mt-3 h-[5px] overflow-hidden bg-sand">
           {coins !== null && (
             <div
               className="fill h-full bg-terracotta-500"
@@ -456,7 +460,7 @@ export default function YouPage() {
         )}
         <Link
           href="/shop"
-          className="press font-display mt-3 flex min-h-11 items-center justify-between rounded-control border border-stone-200 bg-surface px-4 py-[11px] text-[13.5px] font-bold hover:bg-sand"
+          className="press font-display mt-3 flex min-h-11 items-center justify-between rounded-control border border-edge bg-surface px-4 py-3 text-[14px] font-bold hover:bg-sand"
         >
           <span>Open the shop</span>
           <span aria-hidden className="text-stone-300">
@@ -469,21 +473,21 @@ export default function YouPage() {
           earned, what they cost, what a frozen day does to the streak —
           now appear at the two moments they're true: when one is spent
           (the home screen says so) and when you have one to spend. */}
-      <div className="label-data mt-6 border-t border-hairline pt-3.5">
+      <div className="label-data mt-7 border-t border-hairline pt-3">
         Streak freezes
       </div>
-      <div className="mt-2 flex items-center gap-2">
+      <div className="mt-3 flex items-center gap-2">
         {Array.from({ length: MAX_EQUIPPED_FREEZES }).map((_, i) => {
           const ready = (freezes?.equipped ?? 0) > i;
           return (
             /* Bordered tiles, not washes (#201): a ready freeze wears
-               the earned outline, an empty slot the neutral one. */
+               the earned outline, an empty slot the rule (#234). */
             <span
               key={i}
               className={`flex h-[38px] w-[38px] items-center justify-center rounded-control border ${
                 ready
                   ? "border-sage-300 bg-surface text-sage-700"
-                  : "border-stone-200 bg-surface text-stone-400"
+                  : "border-edge bg-surface text-stone-400"
               }`}
             >
               <IconFreeze size={17} />
@@ -491,13 +495,13 @@ export default function YouPage() {
           );
         })}
         {freezes !== null && freezes.equipped === 0 && (
-          <p className="ml-2 flex-1 text-[13px] leading-relaxed text-stone-500">
+          <p className="ml-2 flex-1 text-caption text-stone-500">
             {toNextFreeze} more day{toNextFreeze === 1 ? "" : "s"} earns one.
           </p>
         )}
       </div>
       {freezes !== null && freezes.used > 0 && (
-        <p className="mt-2 text-[12.5px] text-stone-500">
+        <p className="mt-3 text-caption text-stone-500">
           {freezes.used} spent so far.
         </p>
       )}
@@ -512,11 +516,11 @@ export default function YouPage() {
           stay; a future league reads them unchanged. */}
 
       {/* Personal lexicon — the supply layer's archive (DECISIONS #12) */}
-      <div className="label-data mt-6 border-t border-hairline pt-3.5">
+      <div className="label-data mt-7 border-t border-hairline pt-3">
         Your lexicon
       </div>
       {lexicon.length === 0 ? (
-        <p className="mt-2 text-[13px] leading-relaxed text-stone-500">
+        <p className="mt-3 text-caption text-stone-500">
           Upgrades from your own recordings collect here.
         </p>
       ) : (
@@ -525,7 +529,7 @@ export default function YouPage() {
             {lexicon.slice(0, limit(FREE_LEXICON, premium) ?? lexicon.length).map((l) => (
               <div
                 key={l.id}
-                className="flex items-center gap-2.5 border-b border-hairline py-2.5 text-[13.5px]"
+                className="flex items-center gap-2.5 border-b border-hairline py-3 text-[14px]"
               >
                 <span className="text-stone-400 line-through">
                   {l.original}
@@ -540,14 +544,14 @@ export default function YouPage() {
           {lexicon.length >= 3 && !flashing && (
             <button
               onClick={() => setFlashing(true)}
-              className="press font-display mt-3 min-h-11 w-full rounded-control border border-sage-300 px-5 py-2.5 text-[13px] font-bold text-sage-700 hover:bg-sage-100"
+              className="press font-display mt-3 min-h-11 w-full rounded-control border border-sage-300 bg-surface px-5 py-3 text-[14px] font-bold text-sage-700 hover:bg-sage-100"
             >
               Test yourself on these →
             </button>
           )}
 
           {flashing && (
-            <div className="mt-2.5">
+            <div className="mt-3">
               <LexiconFlash
                 lexicon={lexicon}
                 onDone={() => setFlashing(false)}
@@ -563,7 +567,7 @@ export default function YouPage() {
                   headline: "Every word you've earned, kept.",
                 })
               }
-              className="press mt-2.5 flex min-h-11 w-full items-center justify-between gap-3 border-b border-hairline px-0.5 py-3 text-left text-[13px] font-semibold text-stone-500"
+              className="press mt-3 flex min-h-11 w-full items-center justify-between gap-3 px-0.5 py-3 text-left text-[14px] font-semibold text-stone-500"
             >
               <span>
                 {lexicon.length - FREE_LEXICON} more upgrade
@@ -587,9 +591,9 @@ export default function YouPage() {
        * drill that produces its number — a locked badge that only
        * describes itself is a taunt (DECISIONS #153).
        */}
-      <div className="label-data mt-6 border-t border-hairline pt-3.5">
+      <div className="label-data mt-7 border-t border-hairline pt-3">
         Earned{" "}
-        <span className="ml-1 text-stone-400">
+        <span className="ml-1.5 text-stone-600">
           {earnedCount}/{badges.length}
         </span>
       </div>
@@ -598,34 +602,34 @@ export default function YouPage() {
           <Link
             key={a.id}
             href={a.href}
-            className="press flex min-h-14 items-center gap-3.5 border-b border-hairline py-3"
+            className="press flex min-h-14 items-center gap-3.5 border-b border-hairline py-3 last:border-b-0"
           >
             {/* Bordered tiles, not washes (#201): earned wears the
-                olive outline, not-yet the neutral one. */}
+                olive outline, not-yet the rule (#234). */}
             <span
               className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-control border ${
                 a.earned
                   ? "border-sage-300 bg-surface text-sage-700"
-                  : "border-stone-200 bg-surface text-stone-400"
+                  : "border-edge bg-surface text-stone-400"
               }`}
             >
               <AchievementMark name={a.icon} size={18} />
             </span>
             <span className="min-w-0 flex-1">
               <span
-                className={`font-display block text-[13.5px] font-bold ${
+                className={`font-display block text-[14px] font-bold ${
                   a.earned ? "" : "text-stone-500"
                 }`}
               >
                 {a.name}
               </span>
-              <span className="mt-0.5 block text-[12px] text-stone-400">
+              <span className="mt-0.5 block text-caption text-stone-400">
                 {a.requirement}
               </span>
               {!a.earned && a.progress > 0 && (
                 <span className="mt-1.5 block h-1 overflow-hidden bg-sand">
                   <span
-                    className="block h-full bg-stone-400"
+                    className="block h-full bg-stone-300"
                     style={{ width: `${Math.round(a.progress * 100)}%` }}
                   />
                 </span>
@@ -640,7 +644,7 @@ export default function YouPage() {
 
       {history.length >= 2 && (
         <>
-          <div className="label-data mt-6 border-t border-hairline pt-3.5">
+          <div className="label-data mt-7 border-t border-hairline pt-3">
             Day 1 vs now
           </div>
           <ShareCard reps={history} />
@@ -648,11 +652,11 @@ export default function YouPage() {
       )}
 
       {showGate && (
-        <div className="mt-7 rounded-card border border-edge bg-raised p-4">
-          <div className="font-display text-[14.5px] font-bold">
+        <div className="elev-1 mt-7 rounded-card border border-card-edge bg-raised p-4">
+          <div className="font-display text-[14px] font-bold">
             Save your progress
           </div>
-          <p className="mt-1 text-[13px] leading-relaxed text-stone-500">
+          <p className="mt-1 text-caption text-stone-500">
             {history.length} recording{history.length === 1 ? "" : "s"}
             {streak.current > 0 &&
               ` and ${/^(8|11|18|8\d)$/.test(String(streak.current)) ? "an" : "a"} ${streak.current}-day streak`}{" "}
@@ -667,7 +671,7 @@ export default function YouPage() {
           </Link>
           <Link
             href="/signin"
-            className="mt-2.5 block text-center text-[12.5px] font-semibold text-terracotta-700"
+            className="mt-3 block text-center text-[13px] font-semibold text-terracotta-700"
           >
             I already have one
           </Link>
@@ -679,13 +683,13 @@ export default function YouPage() {
           sees its state instead — the only place the app says it. */}
       {!loading &&
         (premium ? (
-          <p className="mt-7 text-[12.5px] text-stone-400">
+          <p className="mt-7 text-caption text-stone-400">
             Premium is on this account.
           </p>
         ) : (
           <button
             onClick={() => setPaywall({ reason: "Ethos Premium" })}
-            className="press font-display mt-7 flex min-h-11 w-full items-center justify-between rounded-control border border-stone-200 bg-surface px-4 py-[11px] text-[13.5px] font-bold hover:bg-sand"
+            className="press font-display mt-7 flex min-h-11 w-full items-center justify-between rounded-control border border-edge bg-surface px-4 py-3 text-[14px] font-bold hover:bg-sand"
           >
             <span>Ethos Premium</span>
             <span aria-hidden className="text-stone-300">
@@ -717,11 +721,13 @@ function Stat({
 }) {
   return (
     <div className="flex-1">
+      {/* The section eyebrow, not micro: each stat IS its own section
+          here, and at 10px the label lost to the 12.5px note under it. */}
       <div className="label-data">{label}</div>
       <div className="font-display text-[24px] font-extrabold leading-tight tabular-nums">
         {value}
       </div>
-      <div className="text-[11.5px] text-stone-400">{note}</div>
+      <div className="text-caption text-stone-400">{note}</div>
     </div>
   );
 }
@@ -736,7 +742,7 @@ function PlanRow({ state, stars }: { state: OnboardingState; stars: number | nul
     return (
       <Link
         href="/welcome?step=ageBand"
-        className="press mt-5 flex min-h-11 items-center justify-between gap-3 border-y border-hairline py-3"
+        className="press mt-7 flex min-h-11 items-center justify-between gap-3 border-t border-hairline py-3"
       >
         <span>
           <span className="label-data">Your plan</span>
@@ -744,7 +750,7 @@ function PlanRow({ state, stars }: { state: OnboardingState; stars: number | nul
             Five questions, then a first month.
           </span>
         </span>
-        <span className="shrink-0 text-[12px] text-stone-500">Build it →</span>
+        <span className="shrink-0 text-caption text-stone-500">Build it →</span>
       </Link>
     );
   }
@@ -754,7 +760,7 @@ function PlanRow({ state, stars }: { state: OnboardingState; stars: number | nul
   return (
     <Link
       href="/welcome?step=plan"
-      className="press mt-5 flex min-h-11 items-center justify-between gap-3 border-y border-hairline py-3"
+      className="press mt-7 flex min-h-11 items-center justify-between gap-3 border-t border-hairline py-3"
     >
       <span className="min-w-0">
         <span className="label-data">Your plan</span>
@@ -762,7 +768,7 @@ function PlanRow({ state, stars }: { state: OnboardingState; stars: number | nul
           {plan.headline}
         </span>
       </span>
-      <span className="shrink-0 text-right text-[12px] text-stone-500 tabular-nums">
+      <span className="shrink-0 text-right text-caption text-stone-500 tabular-nums">
         {plan.focus
           ? toGo === null
             ? plan.focus.unitName

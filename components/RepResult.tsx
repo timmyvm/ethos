@@ -110,10 +110,10 @@ export function RepResult({
   return (
     <>
       {show("score") && (ethosIndex !== null ? (
-        <div className="mt-3 flex items-baseline gap-3.5">
+        <div className="mt-5 flex items-baseline gap-3.5">
           <CountUp
             value={ethosIndex}
-            className="font-display text-[64px] font-bold leading-none"
+            className="font-display text-[64px] font-extrabold leading-none tracking-[-0.02em]"
           />
           <div>
             <div className="text-[15px] font-semibold">
@@ -122,7 +122,7 @@ export function RepResult({
             {delta !== null && delta !== 0 && (
               <div
                 className={`text-[13px] font-semibold ${
-                  delta > 0 ? "text-sage-700" : "text-terracotta-600"
+                  delta > 0 ? "text-sage-700" : "text-rust"
                 }`}
               >
                 {delta > 0 ? "▲ +" : "▼ "}
@@ -148,23 +148,23 @@ export function RepResult({
         /* Not a score of zero — no score. Saying "I don't know" over and
            over has no fillers and a fine pace; reporting those numbers as
            an achievement would be the app lying to you. */
-        <div className="mt-3 rounded-card border border-hairline bg-surface p-5">
+        <div className="mt-5">
           <div className="font-display text-[22px] font-bold leading-tight">
             Not enough to score.
           </div>
-          <p className="mt-2 text-[13.5px] leading-relaxed text-stone-500">
+          <p className="mt-2 text-[14px] leading-relaxed text-stone-500">
             {m.substance.wordCount < 20
               ? `${m.substance.wordCount} word${m.substance.wordCount === 1 ? "" : "s"} isn't enough yet. Give it 60 to 90 seconds and a real answer.`
               : "Almost all of that was the same few words repeated. Say something you'd have to think about."}
           </p>
           <div className="mt-3 flex items-center gap-2">
             <Stars n={1} size={18} />
-            <span className="label-data">1 star · nothing measured</span>
+            <span className="label-micro">1 star · nothing measured</span>
           </div>
         </div>
       ) : (
-        <div className="mt-3 flex items-baseline gap-3.5">
-          <div className="font-display text-[64px] font-bold leading-none">
+        <div className="mt-5 flex items-baseline gap-3.5">
+          <div className="font-display text-[64px] font-extrabold leading-none tracking-[-0.02em]">
             {m.fillerCount}
           </div>
           <div>
@@ -182,7 +182,7 @@ export function RepResult({
       ))}
 
       {show("score") && gain && (
-        <p className="mt-2.5 text-[12.5px] font-semibold text-stone-500">
+        <p className="mt-2.5 text-caption font-semibold text-stone-500">
           {gain.name} leveled {gain.levels === 2 ? "twice" : "up"} ·{" "}
           {dimensionPoints(gain.score, INDEX_WEIGHTS[gain.key])}/
           {INDEX_WEIGHTS[gain.key]}
@@ -190,24 +190,24 @@ export function RepResult({
       )}
 
       {show("score") && (
-      <div className="mt-4 flex items-end gap-3">
+      <div className="mt-7 flex items-end gap-3">
         <Image
           src="/demos-speaking.webp"
           alt="Demos"
           width={62}
           height={62}
-          className="demos w-[62px] rounded-card border border-sand bg-surface"
+          className="demos w-[62px] shrink-0"
         />
-        <div className="rounded-card rounded-bl-[4px] bg-terracotta-50 px-4 py-3 text-sm leading-relaxed">
-          <div className="label-data !text-terracotta-600 mb-0.5">Demos</div>
+        <div className="rounded-card bg-terracotta-50 p-4 text-body leading-relaxed">
+          <div className="label-data !text-terracotta-700 mb-1.5">Demos</div>
           {coachLine}
           {coach?.focus && (
-            <div className="mt-1.5 text-[13px] text-stone-600">
+            <div className="mt-2 text-[13px] text-stone-600">
               Tomorrow: {coach.focus}
             </div>
           )}
           {coach?.strength && (
-            <div className="mt-1 text-[13px] text-stone-500">
+            <div className="mt-1.5 text-[13px] text-stone-500">
               Kept: {coach.strength}
             </div>
           )}
@@ -215,7 +215,7 @@ export function RepResult({
               computed from the metrics, and calling it AI-generated on a
               capped recording was the one untrue caption on the screen. */}
           {coach && (
-            <div className="mt-1.5 text-[11px] text-stone-400">
+            <div className="mt-2.5 text-caption text-stone-400">
               AI-generated feedback
             </div>
           )}
@@ -230,14 +230,14 @@ export function RepResult({
 
       {show("numbers") && (
         <>
-          <div className="mt-4">
+          <div className="mt-7">
             <PauseBar pauses={m.pauses} durationS={m.durationS} />
           </div>
 
           {/* What the silences actually DID. The bar shows where they
               fell; this says whether they were earned. */}
           {result.pauseHeadline && (
-            <p className="mt-2 text-[13px] leading-relaxed text-stone-600">
+            <p className="mt-2.5 text-[14px] leading-relaxed text-stone-600">
               {result.pauseHeadline}
             </p>
           )}
@@ -245,12 +245,12 @@ export function RepResult({
       )}
 
       {show("numbers") && (
-      <div className="mt-4">
+      <div className="mt-7">
         {/* Counted, not asserted. The label read "The eight" on every
             rep — including ones where the coach layer never ran and only
             the measured half existed, and now including reps recorded
             before fillers and self-corrections were scored apart. */}
-        <div className="label-data mb-2">
+        <div className="label-data mb-3">
           {coach ? "Every dimension" : "The measured dimensions"} · tap for why
         </div>
         <DimensionList
@@ -265,7 +265,7 @@ export function RepResult({
       )}
 
       {show("numbers") && (
-      <div className="mt-4 flex gap-3">
+      <div className="mt-3 flex gap-3">
         <Metric label="WPM" value={String(m.wpm)} note={zone} />
         <Metric
           label="Held pauses"
@@ -282,54 +282,56 @@ export function RepResult({
       )}
 
       {show("words") && coach?.supply && (
-        <div className="mt-4 rounded-card border border-hairline bg-surface p-5">
+        <section className="mt-7 border-t border-hairline pt-4">
           <div className="label-data">Supply · one upgrade, yours to keep</div>
-          <div className="mt-2.5 flex items-center gap-3 text-[15px]">
+          <div className="mt-3 flex items-center gap-3 text-body">
             <span className="text-stone-500 line-through">
               {coach.supply.original}
             </span>
-            <span aria-hidden>→</span>
+            <span aria-hidden className="text-stone-400">
+              →
+            </span>
             <span className="font-semibold">{coach.supply.upgrade}</span>
           </div>
           {coach.supply.note && (
-            <p className="mt-1.5 text-[13px] text-stone-500">
+            <p className="mt-1.5 text-caption text-stone-500">
               {coach.supply.note}
             </p>
           )}
-        </div>
+        </section>
       )}
 
       {show("numbers") && m.fillers.length > 0 && (
-        <div className="mt-4 rounded-card border border-hairline bg-surface p-5">
+        <section className="mt-7 border-t border-hairline pt-4">
           <div className="label-data">Every filler, with its timestamp</div>
-          <div className="mt-2.5 flex flex-wrap gap-1.5">
+          <div className="mt-3 flex flex-wrap gap-1.5">
             {m.fillers.map((f, i) => (
               <span
                 key={i}
-                className="rounded-full bg-sand px-2.5 py-1 text-[12.5px]"
+                className="rounded-full bg-stone-100 px-2.5 py-1 text-caption text-ink"
               >
                 {f.word}{" "}
-                <span className="text-stone-500">
+                <span className="tabular-nums text-stone-500">
                   {Math.floor(f.t / 60)}:{String(Math.floor(f.t % 60)).padStart(2, "0")}
                 </span>
               </span>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
       {/* Open, not hidden behind a disclosure. Every score on this screen
           is a claim about these words — you should be able to read them
           without going looking. */}
       {show("words") && (
-      <div className="mt-4 rounded-card border border-hairline bg-surface px-5 py-4">
+      <section className="mt-7 border-t border-hairline pt-4">
         <div className="label-data">
           What you said · {m.substance?.wordCount ?? 0} words
         </div>
-        <p className="mt-2 text-sm leading-relaxed text-stone-600">
+        <p className="mt-3 text-body leading-relaxed text-stone-600">
           {result.transcript || "Nothing was picked up."}
         </p>
-      </div>
+      </section>
       )}
     </>
   );
@@ -347,14 +349,18 @@ function Metric({
   earned?: boolean;
 }) {
   return (
-    <div className="flex-1 rounded-card border border-hairline bg-surface p-3.5">
-      <div className="label-data">{label}</div>
+    <div className="elev-1 flex-1 rounded-card border border-card-edge bg-raised p-4">
+      <div className="label-micro block min-h-[30px] leading-[1.5]">
+        {label}
+      </div>
       <div
-        className={`font-display text-[26px] font-bold ${earned ? "text-sage-700" : ""}`}
+        className={`font-display mt-1.5 text-[26px] font-extrabold leading-none ${earned ? "text-sage-700" : ""}`}
       >
         {value}
       </div>
-      <div className="text-[11.5px] text-stone-500">{note}</div>
+      <div className="mt-1.5 text-caption leading-snug text-stone-500">
+        {note}
+      </div>
     </div>
   );
 }

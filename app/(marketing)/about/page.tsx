@@ -138,7 +138,7 @@ export default function About() {
         The camera is optional, and it stays here.
       </h2>
       <p className="mt-3 text-[15px] leading-relaxed text-stone-600">
-        Voice or voice + video, your call, remembered per drill. With video
+        Voice or voice + video, your call, remembered per lesson. With video
         on, your posture, gestures and eye line are read{" "}
         <span className="font-semibold text-ink">on your device</span>. The
         video is never uploaded. Five numbers are, the same five on your

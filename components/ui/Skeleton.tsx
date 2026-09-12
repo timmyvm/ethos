@@ -70,8 +70,8 @@ export function SkeletonStatBare() {
   return (
     <div className="flex-1">
       <Skeleton className="h-2.5 w-12" />
-      <Skeleton className="mt-2 h-6 w-10" />
-      <Skeleton className="mt-2 h-2.5 w-10" />
+      <Skeleton className="mt-1.5 h-7 w-10" />
+      <Skeleton className="mt-1.5 h-3 w-10" />
     </div>
   );
 }
@@ -90,7 +90,7 @@ export function SkeletonStat() {
 /** One row of the training log — a hairline row, like the real one. */
 export function SkeletonRow() {
   return (
-    <div className="flex items-center gap-3.5 border-t border-hairline px-0.5 py-3">
+    <div className="flex items-center gap-3.5 border-t border-hairline py-3">
       <div className="w-11 shrink-0">
         <Skeleton className="h-2.5 w-8" />
         <Skeleton className="mt-1.5 h-5 w-7" />

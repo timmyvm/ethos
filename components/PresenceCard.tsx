@@ -34,9 +34,9 @@ export function PresenceScore({
     return (
       <button
         onClick={onUpgrade}
-        className="press mt-3 flex w-full items-baseline gap-3.5 rounded-card border border-hairline bg-surface p-4 text-left"
+        className="press elev-1 flex w-full items-baseline gap-3.5 rounded-card border border-card-edge bg-raised p-4 text-left"
       >
-        <div className="font-display text-[44px] font-bold leading-none text-stone-300">
+        <div className="font-display text-[44px] font-extrabold leading-none text-stone-300">
           ···
         </div>
         <div>
@@ -53,10 +53,10 @@ export function PresenceScore({
   }
 
   return (
-    <div className="mt-3 flex items-baseline gap-3.5">
+    <div className="flex items-baseline gap-3.5">
       <CountUp
         value={score}
-        className="font-display text-[64px] font-bold leading-none"
+        className="font-display text-[64px] font-extrabold leading-none tracking-[-0.02em]"
       />
       <div>
         <div className="text-[15px] font-semibold">
@@ -93,11 +93,11 @@ export function PresenceDetail({
 }) {
   if (!premium) {
     return (
-      <div className="mt-4 rounded-card border border-terracotta-100 bg-terracotta-50 p-5">
-        <div className="label-data !text-terracotta-600">
+      <div className="mt-7 rounded-card bg-terracotta-50 p-4">
+        <div className="label-data !text-terracotta-700">
           Delivery · measured, not yet read out
         </div>
-        <p className="mt-2 text-[13.5px] leading-relaxed text-stone-600">
+        <p className="mt-2.5 text-[14px] leading-relaxed text-stone-600">
           Your camera measured posture, gesture, head movement and eye line
           for the whole recording, on this device.{" "}
           {moments.length > 0 && (
@@ -109,7 +109,7 @@ export function PresenceDetail({
         </p>
         <button
           onClick={onUpgrade}
-          className="press mt-3 w-full rounded-control bg-terracotta-500 px-4 py-3 text-[15px] font-semibold text-on-accent"
+          className="press font-display mt-4 min-h-12 w-full rounded-control bg-terracotta-500 px-4 py-3 text-[15px] font-bold text-on-accent transition-colors hover:bg-terracotta-600"
         >
           See the readout
         </button>
@@ -122,19 +122,19 @@ export function PresenceDetail({
       {videoUrl && <VideoWithMarkers url={videoUrl} moments={moments} />}
 
       {moments.length > 0 && (
-        <div className="mt-4 rounded-card border border-hairline bg-surface p-5">
+        <section className="mt-7 border-t border-hairline pt-4">
           <div className="label-data">Delivery · with timestamps</div>
-          <ul className="mt-2.5 space-y-2">
+          <ul className="mt-3 space-y-2">
             {moments.map((m, i) => (
-              <li key={i} className="text-[13.5px] leading-relaxed text-stone-600">
+              <li key={i} className="text-[14px] leading-relaxed text-stone-600">
                 {m.note}
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       )}
 
-      <div className="mt-4 flex gap-3">
+      <div className="mt-3 flex gap-3">
         <Stat
           label="Eye line"
           value={`${metrics.eyeLinePct}%`}
@@ -181,17 +181,17 @@ function VideoWithMarkers({
   }, []);
 
   return (
-    <div className="mt-4 rounded-card border border-hairline bg-surface p-4">
+    <div className="elev-1 mt-7 rounded-card border border-card-edge bg-raised p-4">
       <div className="label-data">Playback · this device only</div>
       <video
         ref={ref}
         src={url}
         controls
         playsInline
-        className="mt-2.5 w-full rounded-card bg-stage"
+        className="mt-3 w-full rounded-control bg-stage"
       />
       {duration > 0 && moments.length > 0 && (
-        <div className="relative mt-2 h-2 rounded-full bg-sand">
+        <div className="relative mt-3 h-2 bg-sand">
           {moments.map((m, i) => (
             <button
               key={i}
@@ -200,13 +200,13 @@ function VideoWithMarkers({
               }}
               aria-label={m.note}
               title={m.note}
-              className="absolute top-1/2 h-3.5 w-1.5 -translate-y-1/2 rounded-full bg-sage-500"
+              className="absolute top-1/2 h-3.5 w-1.5 -translate-y-1/2 bg-sage-500"
               style={{ left: `${Math.min(99, (m.t / duration) * 100)}%` }}
             />
           ))}
         </div>
       )}
-      <p className="mt-2.5 text-[12px] leading-relaxed text-stone-500">
+      <p className="mt-3 text-caption leading-relaxed text-stone-500">
         This clip never left your device. Leave the screen and it&apos;s
         gone; the five numbers stay.
       </p>
@@ -224,10 +224,16 @@ function Stat({
   note: string;
 }) {
   return (
-    <div className="flex-1 rounded-card border border-hairline bg-surface p-3.5">
-      <div className="label-data">{label}</div>
-      <div className="font-display text-[26px] font-bold">{value}</div>
-      <div className="text-[11.5px] text-stone-500">{note}</div>
+    <div className="elev-1 flex-1 rounded-card border border-card-edge bg-raised p-4">
+      <div className="label-micro block min-h-[30px] leading-[1.5]">
+        {label}
+      </div>
+      <div className="font-display mt-1.5 text-[26px] font-extrabold leading-none">
+        {value}
+      </div>
+      <div className="mt-1.5 text-caption leading-snug text-stone-500">
+        {note}
+      </div>
     </div>
   );
 }

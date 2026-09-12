@@ -32,7 +32,7 @@ const FREE_DAYS = 7; // mechanics.md: free tier sees the last 7 days
 const DASH = "—";
 
 /** The two grids, shared by header and rows so the columns line up. */
-const MOVED_GRID = "grid grid-cols-[minmax(0,1fr)_38px_42px_58px_44px] gap-2";
+const MOVED_GRID = "grid grid-cols-[minmax(0,1fr)_36px_42px_74px_44px] gap-2";
 const RECORD_GRID = "grid grid-cols-[34px_minmax(0,1fr)_44px_36px_36px_36px] gap-1.5";
 
 /**
@@ -76,7 +76,7 @@ export default function HistoryPage() {
    */
   if (failed) {
     return (
-      <main className="px-5 pb-24 pt-7">
+      <main className="px-5 pb-22 pt-7">
         <h1 className="font-display text-[24px] font-extrabold">The log</h1>
         <ErrorState
           className="mt-4"
@@ -89,19 +89,23 @@ export default function HistoryPage() {
 
   if (reps === null) {
     return (
-      <main className="px-5 pb-24 pt-7">
+      <main className="px-5 pb-22 pt-7">
         <h1 className="font-display text-[24px] font-extrabold">The log</h1>
-        <SkeletonRegion label="Loading your training log">
+        <SkeletonRegion label="Loading your log">
           <Skeleton className="mt-2 h-3 w-52" />
-          <SkeletonScoreCard />
-          <Skeleton className="mt-6 h-2.5 w-24" />
-          <div className="mt-2 space-y-2.5">
+          {/* The score card carries no outer margin any more (#234), so
+              the placeholder holds the same 28 the real card sits on. */}
+          <div className="mt-7">
+            <SkeletonScoreCard />
+          </div>
+          <Skeleton className="mt-7 h-2.5 w-24" />
+          <div className="mt-3">
             {[0, 1, 2, 3].map((i) => (
               <SkeletonRow key={i} />
             ))}
           </div>
           <Skeleton className="mt-7 h-2.5 w-28" />
-          <div className="mt-2 space-y-2.5">
+          <div className="mt-3">
             {[0, 1, 2].map((i) => (
               <SkeletonRow key={i} />
             ))}
@@ -144,12 +148,12 @@ export default function HistoryPage() {
       });
 
   return (
-    <main className="px-5 pb-24 pt-7">
+    <main className="px-5 pb-22 pt-7">
       {/* The read landing is one event, so one arrival (#224): the
           populated log fades in over the skeleton that held its shape. */}
       <div className="arrive">
       <h1 className="font-display text-[24px] font-extrabold">The log</h1>
-      <p className="mt-1 text-[13px] text-stone-400">
+      <p className="mt-1 text-caption text-stone-400">
         {empty
           ? "0 recordings."
           : `${reps.length} recording${reps.length === 1 ? "" : "s"} since ${since}. Tap one for the full result.`}
@@ -162,28 +166,30 @@ export default function HistoryPage() {
        * drawn against. The footer anchors the delta without a second
        * card.
        */}
-      <ScoreCard
-        index={lastIndex}
-        delta={indexDelta}
-        recordings={reps.length}
-        stars={totalStars(starMap)}
-        foot={
-          empty
-            ? "Day 1 sets the number to beat."
-            : indexDelta !== null
-              ? `Day 1 scored ${firstIndex}.`
-              : undefined
-        }
-      />
+      <div className="mt-7">
+        <ScoreCard
+          index={lastIndex}
+          delta={indexDelta}
+          recordings={reps.length}
+          stars={totalStars(starMap)}
+          foot={
+            empty
+              ? "Day 1 sets the number to beat."
+              : indexDelta !== null
+                ? `Day 1 scored ${firstIndex}.`
+                : undefined
+          }
+        />
+      </div>
 
       {/*
        * Band two: what moved. One table in place of five sparkline
        * cards, the comparison card and a column of insight prose. The
        * change column is what the reader used to compute.
        */}
-      <section className="mt-6">
-        <div className="label-data pb-1.5">What moved</div>
-        <div className={`${MOVED_GRID} border-b border-edge pb-1.5`}>
+      <section className="mt-7">
+        <div className="label-data">What moved</div>
+        <div className={`${MOVED_GRID} mt-3 border-b border-edge pb-1.5`}>
           <ColumnHead>metric</ColumnHead>
           <ColumnHead right>day 1</ColumnHead>
           <ColumnHead right>now</ColumnHead>
@@ -206,7 +212,7 @@ export default function HistoryPage() {
                 <MetricRow row={row} dim={empty} />
               </button>
               {showFillers && (
-                <div className="py-2.5">
+                <div className="py-3">
                   <FillerHeatmap reps={reps} />
                 </div>
               )}
@@ -250,7 +256,7 @@ export default function HistoryPage() {
           ))}
 
         {top && (
-          <p className="mt-3 text-caption text-stone-600">
+          <p className="border-t border-hairline pt-3 text-caption text-stone-600">
             <span className="font-semibold text-ink">{top.headline}</span>{" "}
             {top.detail}
           </p>
@@ -264,10 +270,10 @@ export default function HistoryPage() {
        * without a chart. Duration lives on the full result.
        */}
       <section className="mt-7">
-        <div className="label-data pb-1.5">
+        <div className="label-data">
           {empty ? "Waiting to be logged" : "Every recording"}
         </div>
-        <div className={`${RECORD_GRID} border-b border-edge pb-1.5`}>
+        <div className={`${RECORD_GRID} mt-3 border-b border-edge pb-1.5`}>
           <ColumnHead>date</ColumnHead>
           <ColumnHead>lesson</ColumnHead>
           <ColumnHead right>index</ColumnHead>
@@ -280,16 +286,19 @@ export default function HistoryPage() {
           ? UNITS[0].lessons.slice(0, 3).map((lesson, i) => (
               <div
                 key={lesson.id}
-                className={`${RECORD_GRID} items-center border-t border-hairline py-2.5 text-stone-400`}
+                className={`${RECORD_GRID} items-center border-t border-hairline py-3 text-stone-400`}
               >
                 <span className="font-display text-[16px] font-extrabold leading-none tabular-nums">
                   {i + 1}
                 </span>
-                <span className="font-display truncate text-[13.5px] font-bold">
+                <span className="font-display truncate text-[14px] font-bold">
                   {lesson.title}
                 </span>
                 {[0, 1, 2, 3].map((c) => (
-                  <span key={c} className="text-right text-[13px] tabular-nums">
+                  <span
+                    key={c}
+                    className="font-display text-right text-caption font-extrabold tabular-nums"
+                  >
                     {DASH}
                   </span>
                 ))}
@@ -302,18 +311,18 @@ export default function HistoryPage() {
                 <Link
                   key={r.id}
                   href={`/rep/${r.id}`}
-                  className={`press ${RECORD_GRID} items-center border-t border-hairline py-2.5`}
+                  className={`press ${RECORD_GRID} items-center border-t border-hairline py-3`}
                 >
                   <span className="leading-none">
-                    <span className="font-display block text-[9px] font-bold uppercase tracking-[0.1em] text-stone-400">
+                    <span className="label-micro block">
                       {d.toLocaleDateString(undefined, { month: "short" })}
                     </span>
-                    <span className="font-display block text-[16px] font-extrabold tabular-nums">
+                    <span className="font-display mt-0.5 block text-[16px] font-extrabold tabular-nums">
                       {String(d.getDate()).padStart(2, "0")}
                     </span>
                   </span>
                   <span className="min-w-0">
-                    <span className="font-display block truncate text-[13.5px] font-bold">
+                    <span className="font-display block truncate text-[14px] font-bold">
                       {recordingName(r)}
                     </span>
                     <Stars n={r.stars} size={9} />
@@ -336,13 +345,13 @@ export default function HistoryPage() {
                 headline: "Your first recording is still here.",
               })
             }
-            className="press flex w-full items-center justify-between gap-3 border-y border-hairline px-0.5 py-3 text-left"
+            className="press flex w-full items-center justify-between gap-3 border-t border-hairline py-3 text-left"
           >
-            <span className="text-[13px] font-semibold text-stone-500">
+            <span className="text-caption text-stone-500">
               {hidden} older recording{hidden === 1 ? "" : "s"} held since{" "}
               {since}.
             </span>
-            <span className="font-display shrink-0 text-[13px] font-bold text-terracotta-700">
+            <span className="font-display shrink-0 text-[13px] font-semibold text-terracotta-700">
               Unlock full history →
             </span>
           </button>
@@ -354,7 +363,7 @@ export default function HistoryPage() {
           state brand.md bans. */}
       {empty && (
         <>
-          <div className="mt-6 flex items-center gap-3.5">
+          <div className="mt-7 flex items-center gap-3.5">
             <Image
               src="/demos-speaking.webp"
               alt=""
@@ -363,7 +372,7 @@ export default function HistoryPage() {
               className="demos pointer-events-none w-[56px] shrink-0"
             />
             <p className="text-body text-stone-500">
-              One recording and this becomes a training log.
+              One recording and every number here fills in.
             </p>
           </div>
           <Link
@@ -395,7 +404,7 @@ function ColumnHead({
   right?: boolean;
 }) {
   return (
-    <span className={`label-data !text-[9.5px] ${right ? "text-right" : ""}`}>
+    <span className={`label-micro ${right ? "text-right" : ""}`}>
       {children}
     </span>
   );
@@ -403,7 +412,7 @@ function ColumnHead({
 
 function Cell({ children }: { children: number }) {
   return (
-    <span className="text-right text-[13px] font-semibold text-stone-600 tabular-nums">
+    <span className="font-display text-right text-caption font-extrabold text-stone-600 tabular-nums">
       {children}
     </span>
   );
@@ -423,15 +432,15 @@ function MetricRow({ row, dim = false }: { row: MovedRow; dim?: boolean }) {
         : "text-stone-400";
   return (
     <div
-      className={`${MOVED_GRID} items-center border-t border-hairline py-2.5 ${
+      className={`${MOVED_GRID} items-center border-t border-hairline py-3 ${
         dim ? "text-stone-400" : ""
       }`}
     >
-      <span className="font-display truncate text-[13px] font-bold">
+      <span className="font-display truncate text-[14px] font-bold">
         {row.label}
       </span>
       <span
-        className={`font-display text-right text-[13px] font-semibold tabular-nums ${
+        className={`font-display text-right text-caption font-extrabold tabular-nums ${
           dim ? "" : "text-stone-400"
         }`}
       >
@@ -441,7 +450,7 @@ function MetricRow({ row, dim = false }: { row: MovedRow; dim?: boolean }) {
         {row.now ?? DASH}
       </span>
       <span
-        className={`font-display whitespace-nowrap text-right text-[12px] font-bold tabular-nums ${
+        className={`font-display whitespace-nowrap text-right text-caption font-extrabold tabular-nums ${
           dim ? "" : tone
         }`}
       >
@@ -466,13 +475,13 @@ function TeaserRow({
     <button
       type="button"
       onClick={onTap}
-      className={`press ${MOVED_GRID} w-full items-center border-t border-hairline py-2.5 text-left`}
+      className={`press ${MOVED_GRID} w-full items-center border-t border-hairline py-3 text-left`}
     >
-      <span className="font-display truncate text-[13px] font-bold">{label}</span>
-      <span className="col-span-3 text-right text-[12px] text-stone-400">
+      <span className="font-display truncate text-[14px] font-bold">{label}</span>
+      <span className="col-span-3 text-right text-caption text-stone-400">
         {note}
       </span>
-      <span className="font-display justify-self-end rounded-full border border-stone-200 bg-surface px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.06em] text-stone-400">
+      <span className="label-micro justify-self-end rounded-full bg-stone-100 px-2 py-0.5">
         Pro
       </span>
     </button>

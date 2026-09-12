@@ -32,15 +32,15 @@ export function LexiconFlash({
   const last = i === cards.length - 1;
 
   return (
-    <div className="rounded-card border border-edge bg-raised p-4">
+    <div className="elev-1 rounded-card border border-card-edge bg-raised p-4">
       <div className="flex items-baseline justify-between">
         <div className="label-data">Lexicon flash</div>
-        <div className="label-data">
+        <div className="label-micro">
           {i + 1}/{cards.length}
         </div>
       </div>
 
-      <p className="mt-3 text-[12.5px] text-stone-500">
+      <p className="mt-3 text-caption text-stone-500">
         You said this. What did you swap it for?
       </p>
       <div className="font-display mt-1 text-[24px] font-bold leading-tight">
@@ -50,7 +50,7 @@ export function LexiconFlash({
       {shown ? (
         <>
           <div className="mt-3 border-t border-hairline pt-3">
-            <div className="label-data">The upgrade</div>
+            <div className="label-micro">The upgrade</div>
             <div className="font-display mt-0.5 text-[20px] font-bold text-sage-700">
               {card.upgrade}
             </div>
@@ -64,7 +64,7 @@ export function LexiconFlash({
               setI(i + 1);
               setShown(false);
             }}
-            className="press font-display mt-4 w-full rounded-control border border-stone-200 bg-surface px-4 py-2.5 text-[13px] font-bold"
+            className="press font-display mt-4 min-h-11 w-full rounded-control border border-edge bg-surface px-4 py-3 text-[14px] font-bold"
           >
             {last ? "Done" : "Next"}
           </button>
@@ -72,7 +72,7 @@ export function LexiconFlash({
       ) : (
         <button
           onClick={() => setShown(true)}
-          className="press font-display mt-4 w-full rounded-control bg-sand px-4 py-2.5 text-[13px] font-bold"
+          className="press font-display mt-4 min-h-11 w-full rounded-control border border-edge bg-surface px-4 py-3 text-[14px] font-bold"
         >
           Show it
         </button>

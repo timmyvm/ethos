@@ -236,9 +236,7 @@ export function LessonScreen({
           ← back
         </button>
       )}
-      <div
-        className={`flex flex-1 flex-col ${center ? "justify-center" : ""}`}
-      >
+      <div className={`flex flex-1 flex-col ${center ? "justify-center" : ""}`}>
         {/* A flex column like its parent, so the art and the text block
             stay flex items (the art centres with `mx-auto`) whether or
             not the wrapper is animating. */}
@@ -281,8 +279,17 @@ export function LessonScreen({
   );
 }
 
-/** #201's button grammar: a 12px rectangle, cream on terracotta, no pill. */
-const ACTION_CLASS =
+/**
+ * The one tap, in one place (#201's grammar, #234's numbers): a
+ * `rounded-control` rectangle, ink on terracotta, 48px tall, no border
+ * and no shadow — the colour is the lift.
+ *
+ * Exported because Today and the roulette declare the same button
+ * outside this template, and they had drifted into three spellings of
+ * it: a transparent 1px border and no min-height on the floor, neither
+ * on the roulette, and this one here. One constant, one button.
+ */
+export const ACTION_CLASS =
   "press font-display block min-h-12 w-full rounded-control bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-on-accent transition-colors hover:bg-terracotta-600";
 
 /**

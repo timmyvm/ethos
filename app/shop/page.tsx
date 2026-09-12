@@ -125,7 +125,7 @@ export default function ShopPage() {
   }
 
   return (
-    <main className="px-5 pb-24 pt-7">
+    <main className="px-5 pb-22 pt-7">
       <Link href="/you" className="inline-flex min-h-11 items-center text-[13px] font-semibold text-stone-400">
         ← You
       </Link>
@@ -162,14 +162,16 @@ export default function ShopPage() {
       {/* The earning rule moved here from under the balance on /you: a
           day you spoke pays once however many reps you did, which is the
           fact that makes the prices below mean something. */}
-      <p className="mt-1.5 text-[13px] leading-relaxed text-stone-500">
+      <p className="mt-1.5 text-caption text-stone-500">
         One coin a day you speak.
       </p>
 
+      {/* The note is a card, not an outlined strip: it says the same
+          thing the items say, so it stands on the same step (#234). */}
       {note && (
         <p
           key={note}
-          className="arrive mt-4 rounded-control border border-edge bg-raised px-4 py-3 text-[13px] font-semibold"
+          className="arrive elev-1 mt-7 rounded-card border border-card-edge bg-raised p-4 text-[14px] font-bold"
         >
           {note}
         </p>
@@ -177,25 +179,30 @@ export default function ShopPage() {
 
       {failed ? (
         <ErrorState
-          className="mt-5"
+          className="mt-7"
           {...readFailure("Your coins")}
           onRetry={() => void refresh()}
         />
       ) : ledger === null ? (
-        <SkeletonRegion label="Loading the shop" className="mt-5 space-y-3">
+        /* The skeleton carries the card's shadow and the button's full
+           44px, or it is the layout shift it exists to prevent. */
+        <SkeletonRegion
+          label="Loading the shop"
+          className="mt-7 flex flex-col gap-3"
+        >
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className="rounded-card border border-edge bg-raised p-4"
+              className="elev-1 rounded-card border border-card-edge bg-raised p-4"
             >
               <Skeleton className="h-4 w-32" />
               <Skeleton className="mt-2.5 h-3 w-full" />
-              <Skeleton className="mt-3 h-9 w-full" rounded="rounded-control" />
+              <Skeleton className="mt-3 h-11 w-full" rounded="rounded-control" />
             </div>
           ))}
         </SkeletonRegion>
       ) : (
-        <div className="mt-5 space-y-3">
+        <div className="mt-7 flex flex-col gap-3">
           {SHOP.map((item) => {
             const state = canBuy(
               item,
@@ -206,10 +213,14 @@ export default function ShopPage() {
             );
             const isOwned =
               item.kind === "cosmetic" && owned.ids.has(item.id);
+            /* A purchase in flight disables every other door, so those
+               doors have to LOOK shut: one disabled value, and a button
+               that is not tappable never wears the earned fill (#234). */
+            const filled = state.ok && (busy === null || busy === item.id);
             return (
               <div
                 key={item.id}
-                className="rounded-card border border-edge bg-raised p-4"
+                className="elev-1 rounded-card border border-card-edge bg-raised p-4"
               >
                 {/* You can see what you're buying. A cosmetic sold as a
                     name and a price is a cosmetic bought blind, which is
@@ -224,13 +235,17 @@ export default function ShopPage() {
                       className="demos h-[46px] w-[46px] shrink-0 object-contain"
                     />
                   ) : (
-                    <span className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-card border border-sage-300 text-sage-700">
+                    /* An earned tile, so it is a CONTROL at 12 on the
+                       surface step. At 16 it matched the card's own
+                       radius, and an outline at the same radius inside
+                       an outlined card is a double line (#234). */
+                    <span className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-control border border-sage-300 bg-surface text-sage-700">
                       <IconFreeze size={20} />
                     </span>
                   )}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-3">
-                      <span className="font-display text-[15px] font-extrabold">
+                      <span className="font-display text-[14px] font-bold">
                         {item.name}
                       </span>
                       {/* The price wears the coin as a small ring; an
@@ -244,12 +259,12 @@ export default function ShopPage() {
                           aria-hidden
                           className="inline-block h-[7px] w-[7px] shrink-0 rounded-full border-[1.5px] border-current"
                         />
-                        <span className="font-display text-[15px] font-extrabold tabular-nums">
+                        <span className="font-display text-[14px] font-extrabold tabular-nums">
                           {item.price}
                         </span>
                       </span>
                     </div>
-                    <p className="mt-1 text-[12.5px] leading-relaxed text-stone-500">
+                    <p className="mt-1 text-caption text-stone-500">
                       {item.blurb}
                     </p>
                   </div>
@@ -260,10 +275,10 @@ export default function ShopPage() {
                      your card. */
                   <button
                     onClick={() => equip(pose === item.id ? null : item.id)}
-                    className={`press font-display mt-3 w-full rounded-control px-5 py-2.5 text-[13px] font-bold transition-colors ${
+                    className={`press font-display mt-3 min-h-11 w-full rounded-control border border-sage-300 px-5 py-2.5 text-[14px] font-bold text-sage-700 transition-colors ${
                       pose === item.id
-                        ? "border border-sage-300 bg-sage-100 text-sage-700"
-                        : "border border-sage-300 text-sage-700 hover:bg-sage-100"
+                        ? "bg-sage-100"
+                        : "bg-surface hover:bg-sage-100"
                     }`}
                   >
                     {pose === item.id ? "On your card" : "Put it on the card"}
@@ -283,10 +298,10 @@ export default function ShopPage() {
                      * olive-filled when it opens, an outline when the
                      * coins aren't there yet (#131, #201).
                      */
-                    className={`press font-display mt-3 w-full rounded-control px-5 py-2.5 text-[13px] font-bold transition-colors ${
-                      state.ok
+                    className={`press font-display mt-3 min-h-11 w-full rounded-control px-5 py-2.5 text-[14px] font-bold transition-colors ${
+                      filled
                         ? "bg-sage-700 text-sage-ink hover:bg-sage-800"
-                        : "border border-stone-200 bg-surface text-stone-400"
+                        : "border border-edge bg-surface text-stone-400"
                     }`}
                   >
                     {busy === item.id

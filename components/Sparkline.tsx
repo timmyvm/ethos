@@ -37,15 +37,16 @@ export function Sparkline({
         invert={invert}
         height={height}
         className="w-full"
+        stroke={1.5}
       />
     );
   }
 
   if (values.length < 2) {
     return (
-      <div className="rounded-card border border-edge bg-raised px-4 py-3.5">
+      <div className="elev-1 rounded-card border border-card-edge bg-raised p-4">
         <div className="label-data">{label}</div>
-        <p className="mt-2 text-[13px] text-stone-500">
+        <p className="mt-3 text-caption text-stone-500">
           Two scores and this becomes a line. One more to go.
         </p>
       </div>
@@ -59,11 +60,11 @@ export function Sparkline({
   const fmt = (v: number) => String(Math.round(v * 10) / 10);
 
   return (
-    <div className="rounded-card border border-edge bg-raised px-4 py-3.5">
+    <div className="elev-1 rounded-card border border-card-edge bg-raised p-4">
       <div className="flex items-baseline justify-between">
         <div className="label-data">{label}</div>
         <div
-          className={`font-display text-[13px] font-bold tabular-nums ${
+          className={`font-display text-caption font-extrabold tabular-nums ${
             delta === 0
               ? "text-stone-500"
               : better
@@ -79,7 +80,7 @@ export function Sparkline({
         label={label}
         invert={invert}
         height={height}
-        className="mt-2 w-full"
+        className="mt-3 w-full"
       />
     </div>
   );
@@ -96,12 +97,15 @@ function Trace({
   invert,
   height,
   className,
+  stroke = 2,
 }: {
   values: number[];
   label: string;
   invert: boolean;
   height: number;
   className: string;
+  /** 1.5 in a 44px row track, where 2px of ink reads as hatching. */
+  stroke?: number;
 }) {
   if (values.length < 2) {
     return (
@@ -139,7 +143,7 @@ function Trace({
         d={d}
         fill="none"
         stroke={invert ? "var(--color-stone-400)" : "var(--color-sage-700)"}
-        strokeWidth="2"
+        strokeWidth={stroke}
         strokeLinejoin="round"
         strokeLinecap="round"
         vectorEffect="non-scaling-stroke"

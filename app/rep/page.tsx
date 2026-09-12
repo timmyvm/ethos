@@ -1013,7 +1013,7 @@ function RepScreen() {
 
   return (
     <main className="flex min-h-dvh flex-col px-5 pb-8 pt-7">
-      <Link href={config.kind === "boss" ? "/boss" : "/"} className="inline-flex min-h-11 items-center self-start text-sm text-stone-500">
+      <Link href={config.kind === "boss" ? "/boss" : "/"} className="press inline-flex min-h-11 items-center self-start text-[13px] font-semibold text-stone-500">
         ← back
       </Link>
       {/*
@@ -1043,12 +1043,12 @@ function RepScreen() {
           {config.mods.map((m) => (
             <span
               key={m.id}
-              className="rounded-full bg-ink px-2.5 py-1 text-[11.5px] font-semibold text-ground"
+              className="label-micro rounded-full bg-stone-100 px-2.5 py-1 !text-ink"
             >
               {m.name}
             </span>
           ))}
-          <span className="label-data">×{config.xpMultiplier} XP</span>
+          <span className="label-micro">×{config.xpMultiplier} XP</span>
         </div>
       )}
 
@@ -1086,7 +1086,7 @@ function RepScreen() {
         {phase === "frame" && (
           <div className="arrive w-full">
             <div className="flex items-baseline justify-between">
-              <div className="font-display text-[40px] font-bold leading-none">
+              <div className="font-display text-[40px] font-extrabold leading-none">
                 {frameLeft}
               </div>
               <div className="label-data">seconds to think</div>
@@ -1095,15 +1095,15 @@ function RepScreen() {
             {/* Structure tips, by the SHAPE of answer the prompt asks
                 for. We know that much honestly; we don't know what
                 you're going to say, so we don't pretend to. */}
-            <div className="mt-4 rounded-card border border-hairline bg-surface p-4">
+            <div className="elev-1 mt-5 rounded-card border border-card-edge bg-raised p-4">
               <div className="label-data">Shape it like this</div>
-              <ul className="mt-2 space-y-1.5">
+              <ul className="mt-3 space-y-2">
                 {config.tips.map((tip, i) => (
                   <li
                     key={i}
-                    className="flex gap-2 text-[13.5px] leading-relaxed text-stone-600"
+                    className="flex gap-2.5 text-[14px] leading-relaxed text-stone-600"
                   >
-                    <span className="label-data mt-0.5 shrink-0 !text-sage-700">
+                    <span className="label-micro mt-1 shrink-0 !text-sage-700">
                       {i + 1}
                     </span>
                     {tip}
@@ -1117,9 +1117,9 @@ function RepScreen() {
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               placeholder="Notes: first line, last line, one example…"
-              className="mt-3 w-full rounded-card border border-stone-200 bg-surface p-4 text-[14px] leading-relaxed placeholder:text-stone-400 focus:border-stone-300"
+              className="mt-3 w-full rounded-control border border-edge bg-surface p-4 text-[14px] leading-relaxed transition-colors placeholder:text-stone-400 focus:border-terracotta-500"
             />
-            <p className="mt-1.5 text-[11.5px] text-stone-400">
+            <p className="mt-2 text-caption text-stone-400">
               They disappear when you record. You can&apos;t read and speak at
               once.
             </p>
@@ -1129,8 +1129,8 @@ function RepScreen() {
         {phase === "recording" && (
           <div className="arrive flex w-full flex-col items-center gap-6">
             <div
-              className={`font-display text-[54px] font-bold leading-none transition-colors ${
-                config.maxSeconds - seconds <= 10 ? "text-terracotta-600" : ""
+              className={`font-display text-[54px] font-extrabold leading-none tracking-[-0.02em] transition-colors ${
+                config.maxSeconds - seconds <= 10 ? "text-terracotta-700" : ""
               }`}
             >
               {fmt(seconds)}
@@ -1148,7 +1148,7 @@ function RepScreen() {
              */}
             <div className="flex h-[18px] items-center">
               <span
-                className={`text-[12.5px] leading-none text-stone-400 transition-opacity dur-max ${
+                className={`text-caption leading-none text-stone-400 transition-opacity dur-max ${
                   liveTip ? "opacity-100" : "opacity-0"
                 }`}
               >
@@ -1161,15 +1161,15 @@ function RepScreen() {
         {phase === "analyzing" && (
           <div className="arrive w-full text-center" role="status">
             <ScoringWave levels={scoringWave} />
-            <div className="font-display mt-4 text-xl font-bold">
+            <div className="font-display mt-5 text-[19px] font-extrabold">
               Scoring…
             </div>
-            <p className="mt-2 text-sm text-stone-500">
+            <p className="mt-2 text-body text-stone-500">
               {config.kind === "boss"
                 ? "Transcribing, measuring, checking your claims."
                 : "Transcribing, counting, measuring silence."}
             </p>
-            <p className="mt-1 text-[12.5px] text-stone-400">
+            <p className="mt-1.5 text-caption text-stone-400">
               {attempt > 0
                 ? "Still trying. The recording is safe on this device."
                 : "Ten seconds or so. The numbers are computed, not guessed."}
@@ -1229,7 +1229,7 @@ function RepScreen() {
               </div>
             )}
           </div>
-          <div className="mt-2 h-[18px] text-center text-[13px] font-semibold text-stone-600">
+          <div className="mt-2.5 h-[18px] text-center text-[13px] font-semibold text-stone-600">
             {ring !== "ok" ? ringNote(ring) : ""}
           </div>
         </div>
@@ -1307,9 +1307,9 @@ function RepScreen() {
                   ? "Stop and score this recording"
                   : "Start recording"
               }
-              className={`relative h-24 w-24 rounded-full border border-transparent text-[15px] font-bold transition-colors dur-base ${
+              className={`press font-display elev-3 relative h-24 w-24 rounded-full text-[15px] font-bold transition-colors dur-base ${
                 phase === "recording"
-                  ? "bg-ink text-ground"
+                  ? "bg-terracotta-600 text-cream"
                   : "bg-terracotta-500 text-on-accent hover:bg-terracotta-600"
               }`}
             >
@@ -1344,7 +1344,7 @@ function RepScreen() {
         {phase === "frame" && (
           <button
             onClick={() => void startRep()}
-            className="rounded-control border border-stone-200 bg-surface px-6 py-3.5 text-[15px] font-semibold"
+            className="press font-display min-h-12 rounded-control border border-edge bg-surface px-6 py-3.5 text-[15px] font-bold"
           >
             I&apos;m ready
           </button>
@@ -1353,7 +1353,7 @@ function RepScreen() {
 
       {interruption && (
         <div className="pointer-events-none fixed inset-x-0 bottom-24 z-40 flex justify-center px-5">
-          <div className="arrive flex max-w-[340px] items-center gap-3 rounded-card bg-stage px-4 py-3 text-cream">
+          <div className="arrive elev-3 flex max-w-[340px] items-center gap-3 rounded-card bg-stage px-4 py-3 text-cream">
             <Image
               src="/demos-speaking.webp"
               alt=""
@@ -1361,7 +1361,7 @@ function RepScreen() {
               height={36}
               className="demos w-9 shrink-0"
             />
-            <span className="font-display text-[17px] font-bold">
+            <span className="font-display text-[17px] font-extrabold">
               {interruption}
             </span>
           </div>
@@ -1393,6 +1393,14 @@ function article(n: number): string {
  * section="all", because a stored rep is reference rather than a
  * debrief.
  */
+/**
+ * The one tap (SYSTEM.md §4): terracotta-500, ink label, no border, no
+ * shadow, 15/700 on the display face. Every forward exit in the loop
+ * wears it, so the debrief has exactly one of them per screen.
+ */
+const PRIMARY =
+  "press font-display block min-h-12 w-full rounded-control bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-on-accent transition-colors hover:bg-terracotta-600";
+
 const STEPS = [
   { key: "score", label: "The score" },
   { key: "numbers", label: "The numbers" },
@@ -1532,16 +1540,16 @@ function Results({
 
       {/* Where you are and how much is left. Three dots is a promise
           you can see the end of; a scrollbar is not. */}
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-4 flex items-center gap-2">
         {STEPS.map((s, i) => (
           <span
             key={s.key}
-            className={`h-1 flex-1 rounded-full transition-colors ${
+            className={`h-1 flex-1 transition-colors ${
               i <= step ? "bg-terracotta-500" : "bg-sand"
             }`}
           />
         ))}
-        <span className="label-data ml-1 shrink-0">{STEPS[step].label}</span>
+        <span className="label-micro ml-1 shrink-0">{STEPS[step].label}</span>
       </div>
 
       {/* Keyed on the step: the next screen of the walk comes in from
@@ -1564,7 +1572,7 @@ function Results({
          * and the leagues remain comparable whichever mode was picked.
          */}
         {section === "score" && presence && (
-          <div className="mt-6 border-t border-sand pt-5">
+          <div className="mt-7 border-t border-hairline pt-4">
             <PresenceScore
               score={presence.metrics.presenceScore}
               previous={result.previousPresence}
@@ -1599,15 +1607,15 @@ function Results({
          * measured number is real.
          */}
         {section === "score" && result.judged.capped && (
-          <div className="mt-5 rounded-card border border-hairline bg-surface p-5">
+          <section className="mt-7 border-t border-hairline pt-4">
             <div className="font-display text-[19px] font-bold leading-tight">
               Measured, not judged.
             </div>
-            <p className="mt-2 text-[13.5px] leading-relaxed text-stone-500">
+            <p className="mt-2 text-[14px] leading-relaxed text-stone-500">
               These are counted from the recording. The cited moments, the word
               upgrade and Demos&apos;s take are back tomorrow.
             </p>
-            <p className="mt-2 text-[12.5px] leading-relaxed text-stone-400">
+            <p className="mt-2 text-caption leading-relaxed text-stone-400">
               It still counted toward your streak.
             </p>
             {/* The map's #1 surface (docs/growth/04 §1.1): came back for
@@ -1621,12 +1629,12 @@ function Results({
                     headline: "Keep the coaching coming.",
                   })
                 }
-                className="press mt-3 min-h-11 text-left text-[13px] font-semibold text-stone-600"
+                className="press mt-2 min-h-11 text-left text-[13px] font-semibold text-stone-600"
               >
                 Premium gets the full read, every time →
               </button>
             )}
-          </div>
+          </section>
         )}
 
         {/* Hear it back, right under the words it produced. The most
@@ -1634,7 +1642,7 @@ function Results({
             with every filler tappable (vision.md: claims trace to
             timestamps). Local object URL, dropped when you leave. */}
         {section === "words" && audioUrl && (
-          <div className="mt-4">
+          <div className="mt-7">
             <AudioScrubber
               src={audioUrl}
               durationS={result.metrics.durationS}
@@ -1645,7 +1653,7 @@ function Results({
         )}
 
         {section === "words" && bests.length > 0 && (
-          <div className="mt-4 space-y-2">
+          <div className="mt-7 space-y-3">
             <div className="label-data">Records broken</div>
             {bests.map((b, i) => (
               <Moment key={i} moment={b} />
@@ -1657,7 +1665,7 @@ function Results({
             decides whether to come back (streak-end rule), so it lands
             on the last screen rather than halfway down the first. */}
         {last && closing && (
-          <div className="mt-5">
+          <div className="mt-3">
             <Moment moment={closing} emphasis />
           </div>
         )}
@@ -1670,15 +1678,15 @@ function Results({
          * skills, and it always shows the number that made the call.
          */}
         {last && tomorrow && tomorrow.strength !== null && (
-          <div className="mt-5 rounded-card border border-hairline bg-surface p-5">
+          <section className="mt-7 border-t border-hairline pt-4">
             <div className="label-data">Tomorrow</div>
-            <div className="font-display mt-1 text-[22px] font-bold leading-tight">
+            <div className="font-display mt-2 text-[22px] font-bold leading-tight">
               {tomorrow.label}
             </div>
-            <p className="mt-1.5 text-[13px] leading-relaxed text-stone-500">
+            <p className="mt-1.5 text-[14px] leading-relaxed text-stone-500">
               {tomorrow.reason}
             </p>
-          </div>
+          </section>
         )}
 
         {last && <PlanChips streak={streakNow} />}
@@ -1691,7 +1699,7 @@ function Results({
        * never seen.
        */}
       {last ? (
-        <div className="mt-6">
+        <div className="mt-7">
           {/* Buttons, not Links: the exits go through exit(), which
               may route via the save-progress wall first (#134). A game
               ends as a game (#194): another round or back to Tools,
@@ -1706,14 +1714,14 @@ function Results({
                   })
                 )
               }
-              className="press block w-full rounded-control border border-transparent bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-on-accent transition-colors hover:bg-terracotta-600"
+              className={PRIMARY}
             >
               Another round · {game.name}
             </button>
           ) : (
             <button
               onClick={() => exit(repHref({ lesson: next.id }))}
-              className="press block w-full rounded-control border border-transparent bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-on-accent transition-colors hover:bg-terracotta-600"
+              className={PRIMARY}
             >
               {again ? "Go again" : "Next lesson"} · {next.title}
             </button>
@@ -1721,14 +1729,14 @@ function Results({
           {!again && (
             <button
               onClick={onRetake}
-              className="press mt-3 w-full rounded-control border border-stone-200 bg-surface px-6 py-4 text-[15px] font-semibold"
+              className="press font-display mt-3 min-h-12 w-full rounded-control border border-edge bg-surface px-6 py-3.5 text-[15px] font-bold"
             >
               Retake this one
             </button>
           )}
           <button
             onClick={() => exit(game ? "/games" : "/")}
-            className="mt-3 block w-full py-2 text-center text-[13.5px] font-semibold text-stone-500"
+            className="press mt-3 block min-h-11 w-full py-2 text-center text-[13px] font-semibold text-stone-500"
           >
             {game ? "Back to Tools" : "Done for today"}
           </button>
@@ -1736,7 +1744,7 @@ function Results({
       ) : (
         <button
           onClick={() => setStep((n) => n + 1)}
-          className="press mt-6 w-full rounded-control border border-transparent bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-on-accent transition-colors hover:bg-terracotta-600"
+          className={`${PRIMARY} mt-7`}
         >
           {STEPS[step + 1].label} →
         </button>
@@ -1780,7 +1788,7 @@ function SaveGate({
       <div className="flex flex-1 flex-col justify-center">
         {index !== null && (
           <div className="flex items-baseline gap-2">
-            <span className="font-display text-[56px] font-bold leading-none">
+            <span className="font-display text-[56px] font-extrabold leading-none tracking-[-0.02em]">
               {index}
             </span>
             <span className="text-[13px] text-stone-500">
@@ -1793,7 +1801,7 @@ function SaveGate({
             ? "Day 1 is on the board."
             : `${days} days on the board.`}
         </h1>
-        <p className="mt-3 max-w-[92%] text-[15px] leading-relaxed text-stone-500">
+        <p className="mt-3 max-w-[92%] text-body leading-relaxed text-stone-500">
           {moment === "rep1"
             ? "This recording, its score and the streak it starts live in this browser and nowhere else. "
             : `${article(days)} ${days}-day streak and every number behind it live in this browser and nowhere else. `}
@@ -1802,15 +1810,12 @@ function SaveGate({
         </p>
       </div>
 
-      <Link
-        href="/signup"
-        className="press block w-full rounded-control bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-on-accent transition-colors hover:bg-terracotta-600"
-      >
+      <Link href="/signup" className={PRIMARY}>
         Save my progress
       </Link>
       <button
         onClick={onSkip}
-        className="mt-3 block w-full py-2 text-center text-[13.5px] font-semibold text-stone-500"
+        className="press mt-3 block min-h-11 w-full py-2 text-center text-[13px] font-semibold text-stone-500"
       >
         Not now
       </button>
@@ -1854,21 +1859,18 @@ function ProgressMoment({
           reps={reps}
           lead={buildPortfolio(readOnboarding().answers).focus?.metric}
         />
-        <p className="mt-3 text-[13px] leading-relaxed text-stone-500">
+        <p className="mt-4 text-[14px] leading-relaxed text-stone-500">
           Free shows the last 7 days and reads one recording a day. Premium
           opens all of it.
         </p>
       </div>
 
-      <button
-        onClick={() => setSheet(true)}
-        className="press block w-full rounded-control bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-on-accent transition-colors hover:bg-terracotta-600"
-      >
+      <button onClick={() => setSheet(true)} className={PRIMARY}>
         Keep every number
       </button>
       <button
         onClick={onSkip}
-        className="mt-3 block w-full py-2 text-center text-[13.5px] font-semibold text-stone-500"
+        className="press mt-3 block min-h-11 w-full py-2 text-center text-[13px] font-semibold text-stone-500"
       >
         Not now
       </button>
@@ -1929,10 +1931,10 @@ function PlanChips({ streak }: { streak: number }) {
   if (hour !== null && !picked) return null;
 
   return (
-    <div className="mt-5 rounded-card border border-hairline bg-surface p-5">
+    <section className="mt-7 border-t border-hairline pt-4">
       <div className="label-data">Tomorrow · when?</div>
       {picked ? (
-        <p className="mt-2 text-[13px] leading-relaxed text-stone-600">
+        <p className="mt-2.5 text-[14px] leading-relaxed text-stone-600">
           {String(hour).padStart(2, "0")}:00.{" "}
           {granted
             ? "Demos will nudge you once, never more."
@@ -1940,7 +1942,7 @@ function PlanChips({ streak }: { streak: number }) {
         </p>
       ) : (
         <>
-          <p className="mt-1.5 text-[13px] leading-relaxed text-stone-500">
+          <p className="mt-2 text-[14px] leading-relaxed text-stone-500">
             Practice with a time happens. Demos reminds you once a day, never in
             quiet hours.
           </p>
@@ -1949,7 +1951,7 @@ function PlanChips({ streak }: { streak: number }) {
               <button
                 key={p.h}
                 onClick={() => void pick(p.h)}
-                className="press rounded-control bg-sand px-3.5 py-2 text-[13px] font-semibold text-stone-600"
+                className="press font-display min-h-11 rounded-control border border-edge bg-surface px-3.5 py-2 text-[14px] font-bold"
               >
                 {p.label}
               </button>
@@ -1957,6 +1959,6 @@ function PlanChips({ streak }: { streak: number }) {
           </div>
         </>
       )}
-    </div>
+    </section>
   );
 }

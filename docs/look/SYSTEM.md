@@ -93,7 +93,7 @@ was the one hero at 700.
 | Row inside a card | card | `hairline` above | none |
 | Segmented control: track | `surface` | `edge` | none |
 | Segmented control: selected | `raised` | none | `shadow-card` |
-| Disabled | `surface` | `edge` | none, text `stone-300` |
+| Disabled | `surface` | `edge` | none, text `stone-400` |
 | The one tap | `terracotta-500`, ink label | none | none |
 | Coach bubble | `terracotta-50` | none | none |
 
@@ -103,7 +103,10 @@ Rules that fall out of it:
   sage on cream is already the second-loudest object on the page. Results: nothing is lifted, the
   64px number sits on the ground. The road's current lesson and the Tools boss card keep their
   1.5px terracotta edge and take no shadow.
-- **Disabled is one value**, not the three in the tree (opacity-40, opacity-60, stone-400 text).
+- **Disabled is one value**, not the three in the tree (opacity-40, opacity-60, stone-400 text). The
+  label stays `stone-400`: `stone-300` is the faint token and globals.css already says it never
+  carries words, and on a 310px control a 14/700 label in it measured fainter than the 12.5px blurb
+  above it.
 - **Pressed is visible.** `.press` animated `border-color`, and cards no longer have a border to
   darken, so it would have shipped with no pressed state at all. It now veils the fill:
   `background-image: linear-gradient(var(--press-veil), var(--press-veil))` on `:active`, which

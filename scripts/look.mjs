@@ -11,7 +11,8 @@
  *   LOOK_OUT=docs/look/x node scripts/look.mjs after   # somewhere else
  *
  * Screens: today, rep-idle, rep-recording, rep-results, log, you, shop,
- * plus rep-detail (the stored result the log links to) and games.
+ * plus rep-detail (the stored result the log links to), games and
+ * settings.
  * Full-page shots; the nav is fixed so it appears where the viewport
  * would show it.
  */
@@ -228,9 +229,10 @@ async function shootTheme(theme) {
   await step(async () => { await go("/", "main .arrive");
   await shot("today"); });
   await step(async () => { await go("/history", "main .arrive"); await shot("log"); });
-  await step(async () => { await go("/you", "main"); await sleep(800); await shot("you"); });
-  await step(async () => { await go("/shop", "main"); await shot("shop"); });
-  await step(async () => { await go("/games", "main"); await shot("games"); });
+  await step(async () => { await go("/you", "main .label-data"); await sleep(800); await shot("you"); });
+  await step(async () => { await go("/shop", 'button:has-text("Buy"), button:has-text("On your card")'); await shot("shop"); });
+  await step(async () => { await go("/games", "main .label-data"); await shot("games"); });
+  await step(async () => { await go("/settings", "main .label-data"); await shot("settings"); });
   await step(async () => { await go("/rep/rep-22", "main .label-data"); await shot("rep-detail"); });
 
   // The loop: idle, recording, results (live, via the scoring mock).

@@ -19,7 +19,7 @@ import { repHref } from "@/lib/rep-config";
  * the current lesson sits in the one terracotta-bordered card (the
  * same recording the floor button serves, so the screen still has one
  * terracotta tap); future lessons wait at 40%; and each unit boundary is a
- * checkpoint between two ink rules. The endowed "Showed up" row still
+ * checkpoint between two hairline rules. The endowed "Showed up" row still
  * opens it (#45, ink because it's given, not earned).
  *
  * Since #155 this is the ONLY path surface: the tab is gone, and each
@@ -89,7 +89,7 @@ export function PathRoad({
   const steps = journeySteps(starMap, hasAnyRep);
   const summary = journeySummary(starMap);
   const currentIndex = steps.findIndex(
-    (s) => !s.endowed && !s.locked && !s.boss && s.stars < 3
+    (s) => !s.endowed && !s.locked && !s.boss && s.stars < 3,
   );
   const weeks = Math.round(summary.totalLessons / 7);
 
@@ -111,14 +111,14 @@ export function PathRoad({
             /* The current lesson: the screen's terracotta element, on the
                raised paper. Same recording as the floor button above. */
             <span className="-mx-3.5 flex items-center gap-3.5 rounded-card border-[1.5px] border-terracotta-500 bg-raised px-3.5 py-2.5">
-              <span className="font-display w-[30px] shrink-0 text-[12px] font-extrabold tabular-nums">
+              <span className="font-display w-[30px] shrink-0 text-caption font-extrabold tabular-nums">
                 {i}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="font-display block text-[14px] font-bold">
                   {step.label}
                 </span>
-                <span className="mt-px block text-[12px] text-stone-400">
+                <span className="mt-px block text-caption text-stone-400">
                   Today · same recording as the card
                 </span>
               </span>
@@ -130,7 +130,7 @@ export function PathRoad({
               }`}
             >
               <span
-                className={`font-display w-[30px] shrink-0 text-[12px] font-bold tabular-nums ${
+                className={`font-display w-[30px] shrink-0 text-caption font-extrabold tabular-nums ${
                   done ? "text-sage-700" : ""
                 }`}
               >
@@ -140,7 +140,7 @@ export function PathRoad({
                 {step.label}
               </span>
               {done && (
-                <span className="font-display shrink-0 text-[12px] font-bold text-sage-700 tabular-nums">
+                <span className="font-display shrink-0 text-caption font-extrabold text-sage-700 tabular-nums">
                   {step.stars}★
                 </span>
               )}
@@ -152,10 +152,13 @@ export function PathRoad({
               {unitHeader && unit && (
                 <>
                   {i > 0 && <Connector />}
-                  {/* The checkpoint: a unit boundary between two ink
-                      rules. The door is the road's one lock symbol
-                      (#156); the distance keeps #44's exact count. */}
-                  <div className="flex items-center gap-3.5 border-y border-ink py-2.5">
+                  {/* The checkpoint: a unit boundary between two
+                      rules. They were full ink — eight pairs of them,
+                      the loudest lines on Today once the cards stopped
+                      being outlined boxes (#234), so they drop to the
+                      `edge` rule. The door is the road's one lock
+                      symbol (#156); the distance keeps #44's count. */}
+                  <div className="flex items-center gap-3.5 border-y border-edge py-2.5">
                     <span
                       className={`flex w-[30px] shrink-0 justify-center ${
                         step.locked ? "text-stone-500" : "text-stone-300"
@@ -165,12 +168,12 @@ export function PathRoad({
                         <Gate open={!step.locked} width={26} />
                       ) : null}
                     </span>
-                    <span className="font-display min-w-0 flex-1 text-[13.5px] font-bold">
+                    <span className="font-display min-w-0 flex-1 text-[14px] font-bold">
                       {unit.name}
                       {unit.boss ? " · weekly boss" : ""}
                     </span>
                     {step.locked && (
-                      <span className="shrink-0 text-[12px] text-stone-500 tabular-nums">
+                      <span className="shrink-0 text-caption text-stone-500 tabular-nums">
                         {unit.unlocksAt}★ · {unit.unlocksAt - summary.stars} to
                         go
                       </span>
@@ -183,7 +186,9 @@ export function PathRoad({
                 row
               ) : (
                 <Link
-                  href={step.boss ? "/boss" : repHref({ lesson: step.lessonId })}
+                  href={
+                    step.boss ? "/boss" : repHref({ lesson: step.lessonId })
+                  }
                   className="press -my-3 block py-3"
                 >
                   {row}
@@ -199,9 +204,9 @@ export function PathRoad({
        * is the point — #90's objection inverted: with real content, the
        * distance is the pitch, and it names its numbers (#46).
        */}
-      <p className="mt-4 text-[12px] text-stone-400">
-        {summary.totalLessons} lessons, end to end. About {weeks} weeks at one
-        a day.
+      <p className="mt-4 text-caption text-stone-400">
+        {summary.totalLessons} lessons, end to end. About {weeks} weeks at one a
+        day.
       </p>
     </section>
   );

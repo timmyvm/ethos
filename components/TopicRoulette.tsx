@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ACTION_CLASS } from "@/components/LessonScreen";
 import { buzz, prefersReducedMotion } from "@/lib/prefs";
 import { spinForAnswers as spin } from "@/lib/portfolio";
 import { TOPIC_SHAPES, type Topic } from "@/lib/topics";
@@ -47,15 +48,18 @@ export function TopicRoulette({
 
   const shape = TOPIC_SHAPES[topic.shape];
 
+  /* In roulette mode this IS the floor, so it wears the floor's lift:
+     the one raised card on the screen (#234), at the sheet radius the
+     floor card takes. */
   return (
-    <div className="rounded-card border border-edge bg-raised p-5">
+    <div className="elev-2 rounded-sheet border border-card-edge bg-raised p-5">
       <div className="flex items-baseline justify-between">
         <div className="label-data">Roulette · you don&apos;t pick</div>
-        <div className="label-data !text-sage-700">{shape.label}</div>
+        <div className="label-micro !text-sage-700">{shape.label}</div>
       </div>
 
       <div
-        className={`font-display mt-3 min-h-[5rem] text-[24px] font-bold leading-[1.15] tracking-[-0.01em] transition-opacity ${
+        className={`font-display mt-3 min-h-[5.75rem] text-title transition-opacity ${
           rolling ? "opacity-40" : "opacity-100"
         }`}
       >
@@ -67,17 +71,19 @@ export function TopicRoulette({
       </div>
 
       <div className="mt-4 flex gap-2.5">
+        {/* Secondary: surface, a rule edge, no shadow (#234). */}
         <button
           onClick={doSpin}
           disabled={rolling}
-          className="press font-display shrink-0 rounded-control border border-stone-200 bg-surface px-5 py-3.5 text-[14px] font-bold disabled:opacity-60"
+          className="press font-display min-h-12 shrink-0 rounded-control border border-edge bg-surface px-5 text-[14px] font-bold disabled:opacity-40"
         >
           Spin
         </button>
+        {/* The same one tap the floor and every lesson screen declare. */}
         <button
           onClick={() => onTake(topic)}
           disabled={rolling}
-          className="press font-display flex-1 rounded-control bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-on-accent transition-colors hover:bg-terracotta-600 disabled:opacity-60"
+          className={`${ACTION_CLASS} flex-1 disabled:opacity-40`}
         >
           Take this one
         </button>

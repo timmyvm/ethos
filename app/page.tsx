@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { DayTrail } from "@/components/DayTrail";
 import { ScoreCard } from "@/components/ScoreCard";
-import { LessonBody } from "@/components/LessonScreen";
+import { ACTION_CLASS, LessonBody } from "@/components/LessonScreen";
 import { ModPicker } from "@/components/ModPicker";
 import { PathRoad } from "@/components/PathRoad";
 import { SkeletonScoreCard } from "@/components/ui/Skeleton";
@@ -150,8 +150,6 @@ export default function Home() {
   const drill = next?.lesson ?? todaysDrill();
   const unitName = next?.unit.name ?? drill.unit;
 
-
-
   // of the week, the unfinished lesson is the stronger pull (Zeigarnik).
   const scored = history.filter((r) => r.ethos_index !== null);
   const lastIndex = scored[scored.length - 1]?.ethos_index ?? null;
@@ -200,7 +198,7 @@ export default function Home() {
       : repHref({ lesson: next?.lesson.id, mods });
 
   return (
-    <main className="px-5 pb-24 pt-7">
+    <main className="px-5 pb-22 pt-7">
       {/* Wordmark only, for now. brand.md wants a head mark beside it —
           ears and face mask reading at 32px — but the only Demos asset
           we have is a full-body render, and shrinking it to 32px gives a
@@ -216,7 +214,7 @@ export default function Home() {
               (27 Aug, Timothy's call). Plain olive text now (#201):
               earned, never a pill, never a tap. */}
           {totalStars(starMap) > 0 && (
-            <span className="font-display text-[13px] font-semibold text-sage-700 tabular-nums">
+            <span className="font-display text-[13px] font-bold text-sage-700 tabular-nums">
               <span aria-hidden>★ </span>
               {totalStars(starMap)}
             </span>
@@ -226,7 +224,7 @@ export default function Home() {
       </div>
 
       {rescued > 0 && (
-        <div className="mt-4 rounded-card border border-sage-300 bg-raised px-4 py-3 text-body">
+        <div className="elev-1 mt-7 rounded-card border border-sage-300 bg-raised p-4 text-body">
           <span className="font-semibold">
             A freeze covered {rescued === 1 ? "a day" : `${rescued} days`} you
             missed.
@@ -238,106 +236,114 @@ export default function Home() {
       )}
 
       {/*
-       * TIER 1 — The Floor (DECISIONS #9). Instrument grammar (#201):
-       * no card at all — the lesson sits on the paper under a hairline,
-       * and the only filled colour on the screen is the one terracotta tap.
+       * TIER 1 — The Floor (DECISIONS #9), and the ONE lifted card on
+       * this screen (the one-system pass, #234): raised paper, a
+       * card-edge hairline and `elev-2`. It sat bare on the ground under
+       * a hairline, which put the screen's first object at the same
+       * depth as its list rows; the score card below stays FLAT because
+       * deep sage on cream is already the second focal point, and two
+       * lifted things is no lift at all.
        *
-       * The roulette REPLACES the block rather than sitting beside it.
-       * A second block would mean a second terracotta button, and brand.md
-       * allows exactly one tap per screen — scarcity is what makes it
-       * command.
+       * The roulette REPLACES the block rather than sitting beside it,
+       * and wears the lift in its place. A second block would mean a
+       * second terracotta button, and brand.md allows exactly one tap
+       * per screen — scarcity is what makes it command.
        */}
-      <div className="mt-5 border-t border-hairline pt-4">
-        {/* The unit moved out of this label and into the line under the
-            title, where voice.md puts it: the eyebrow names the slot,
-            the body names the thing. Centred with the rest of the card
-            (#212): one announcement over one tap. */}
-        <div className={`label-data ${topic ? "" : "text-center"}`}>
-          {topic
-            ? "Roulette"
-            : streak.didToday
-              ? "Extra lesson"
-              : "Today's lesson"}
-        </div>
-
+      <section className="mt-7">
         {topic ? (
-          <div className="mt-2.5">
-            <TopicRoulette
-              topic={topic}
-              onSpin={setTopic}
-              onTake={(t) => router.push(repHref({ topic: t.id, mods }))}
-            />
-            <button
-              onClick={() => setTopic(null)}
-              className="press mt-3 text-[13px] font-semibold text-stone-500"
-            >
-              ← Back to today&apos;s drill
-            </button>
-          </div>
+          <>
+            {/* The unit moved out of this label and into the line under
+                the title, where voice.md puts it: the eyebrow names the
+                slot, the body names the thing. */}
+            <div className="label-data">Roulette</div>
+            <div className="mt-3">
+              <TopicRoulette
+                topic={topic}
+                onSpin={setTopic}
+                onTake={(t) => router.push(repHref({ topic: t.id, mods }))}
+              />
+              {/* The way back, at the 44px target its two siblings
+                  under the floor card already carry. */}
+              <button
+                onClick={() => setTopic(null)}
+                className="press -mb-3 mt-1 inline-flex min-h-11 items-center text-[13px] font-semibold text-stone-500"
+              >
+                ← Back to today&apos;s drill
+              </button>
+            </div>
+          </>
         ) : (
           <>
-            {/*
-             * The floor's copy is the template (docs/voice.md Part 2)
-             * via <LessonBody>, and the PROMPT is gone from it
-             * (DECISIONS #209): it was the same sentence the recording
-             * screen shows a tap later, so reading it here bought
-             * nothing and taught people that the words on this screen
-             * are skippable.
-             *
-             * The `note` is the caption level: why THIS, today.
-             * Duolingo's published answer to "why come back" is
-             * half-life regression (Settles & Meeder, ACL 2016), and
-             * the reason always carries the number that chose it, so
-             * the call stays checkable.
-             */}
-            <LessonBody
-              align="center"
-              title={dayLine}
-              line={unitName}
-              /* Day one carries what they said they notice, in their
+            <div className="elev-2 rounded-sheet border border-card-edge bg-raised p-5">
+              {/* Centred with the rest of the card (#212): one
+                  announcement over one tap. */}
+              <div className="label-data mb-3 text-center">
+                {streak.didToday ? "Extra lesson" : "Today's lesson"}
+              </div>
+              {/*
+               * The floor's copy is the template (docs/voice.md Part 2)
+               * via <LessonBody>, and the PROMPT is gone from it
+               * (DECISIONS #209): it was the same sentence the recording
+               * screen shows a tap later, so reading it here bought
+               * nothing and taught people that the words on this screen
+               * are skippable.
+               *
+               * The `note` is the caption level: why THIS, today.
+               * Duolingo's published answer to "why come back" is
+               * half-life regression (Settles & Meeder, ACL 2016), and
+               * the reason always carries the number that chose it, so
+               * the call stays checkable.
+               */}
+              <LessonBody
+                align="center"
+                title={dayLine}
+                line={unitName}
+                /* Day one carries what they said they notice, in their
                  words (#231); after that the number decides the line. */
-              note={
-                dayOne
-                  ? dayOneNote(answers)
-                  : (gap ?? (focus.strength !== null ? focus.reason : undefined))
-              }
-            />
-            {/*
-             * Demos peeks in from the right, just above the tap.
-             *
-             * He was beside the button, which pushed the one terracotta
-             * thing off the screen's axis under a centred headline. He
-             * cannot simply move to the middle either: the default mark
-             * (#7's side profile) is drawn cropped into the corner of
-             * its frame, so centred it reads as a broken image and
-             * anchored to an edge it reads as intended. Edge it is, and
-             * the button underneath gets the full width and the centre.
-             */}
-            <div className="mt-2 flex justify-end pr-1">
-              <Image
-                src={
-                  streak.didToday
-                    ? "/demos-celebrate.webp"
-                    : (demos ?? "/demos.webp")
+                note={
+                  dayOne
+                    ? dayOneNote(answers)
+                    : (gap ??
+                      (focus.strength !== null ? focus.reason : undefined))
                 }
-                alt=""
-                width={104}
-                height={104}
-                priority
-                className="demos pointer-events-none -mb-1 w-[58px]"
               />
+              {/*
+               * Demos peeks in from the right, just above the tap.
+               *
+               * He was beside the button, which pushed the one terracotta
+               * thing off the screen's axis under a centred headline. He
+               * cannot simply move to the middle either: the default mark
+               * (#7's side profile) is drawn cropped into the corner of
+               * its frame, so centred it reads as a broken image and
+               * anchored to an edge it reads as intended. Edge it is, and
+               * the button underneath gets the full width and the centre.
+               */}
+              <div className="-mr-3 mt-2 flex justify-end">
+                <Image
+                  src={
+                    streak.didToday
+                      ? "/demos-celebrate.webp"
+                      : (demos ?? "/demos.webp")
+                  }
+                  alt=""
+                  width={104}
+                  height={104}
+                  priority
+                  className="demos pointer-events-none -mb-1 w-[58px]"
+                />
+              </div>
+              {/* The one tap, in the one declaration every screen shares
+                (#234): the colour is the lift, so it takes no border
+                and no shadow. */}
+              <Link href={floorHref} className={`${ACTION_CLASS} mt-3`}>
+                {dayOne
+                  ? `${drill.title} →`
+                  : streak.didToday
+                    ? "Go again"
+                    : "Take the floor"}
+              </Link>
             </div>
-            <Link
-              href={floorHref}
-              className="press font-display mt-2 block w-full rounded-control border border-transparent bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-on-accent transition-colors hover:bg-terracotta-600"
-            >
-              {dayOne
-                ? `${drill.title} →`
-                : streak.didToday
-                  ? "Go again"
-                  : "Take the floor"}
-            </Link>
-            <div className="mt-2.5 flex items-baseline justify-between gap-3">
+            <div className="mt-5 flex items-baseline justify-between gap-3">
               <button
                 onClick={() => setTopic(spinForAnswers(null))}
                 className="press -my-3 inline-flex min-h-11 items-center text-[13px] font-semibold text-terracotta-700"
@@ -356,7 +362,7 @@ export default function Home() {
               </button>
             </div>
             {showMods && (
-              <div className="reveal mt-2">
+              <div className="reveal mt-3">
                 <ModPicker
                   selected={mods}
                   onChange={setMods}
@@ -367,7 +373,7 @@ export default function Home() {
             )}
           </>
         )}
-      </div>
+      </section>
 
       {/*
        * TIER 2 — the score. "The score IS the brand" (DECISIONS #18) and
@@ -381,11 +387,17 @@ export default function Home() {
       {/* The floor card above needs no round trip — `todaysDrill()` is
           local — so it paints immediately. This one is fetched, and used
           to pop in under it. */}
-      {reps === null && !failed && <SkeletonScoreCard />}
+      {/* The gap belongs to the parent (#234): the card and its
+          skeleton carry no outer margin, so both sit at the same 28. */}
+      {reps === null && !failed && (
+        <div className="mt-7">
+          <SkeletonScoreCard />
+        </div>
+      )}
 
       {failed && (
         <ErrorState
-          className="mt-5"
+          className="mt-7"
           {...readFailure("Your score")}
           onRetry={() => void load()}
         />
@@ -398,56 +410,59 @@ export default function Home() {
        * above needs no round trip and never fades.
        */}
       {reps !== null && (
-      <div className="arrive">
-      {history.length > 0 && (
-        <ScoreCard
-          index={lastIndex}
-          delta={indexDelta}
-          recordings={history.length}
-          stars={totalStars(starMap)}
-        >
-          {/*
-           * The day counter and its line. The streak above is the
-           * pressure; this is the memory — it never resets, so the
-           * morning after a missed day still opens on a number that
-           * went up. It also gets better with time by construction:
-           * one day is a number, thirty is a shape.
-           */}
-          <DayTrail trail={trail} pebbles={pebbles} />
-        </ScoreCard>
-      )}
+        <div className="arrive">
+          {history.length > 0 && (
+            <div className="mt-7">
+              <ScoreCard
+                index={lastIndex}
+                delta={indexDelta}
+                recordings={history.length}
+                stars={totalStars(starMap)}
+              >
+                {/*
+                 * The day counter and its line. The streak above is the
+                 * pressure; this is the memory — it never resets, so the
+                 * morning after a missed day still opens on a number that
+                 * went up. It also gets better with time by construction:
+                 * one day is a number, thirty is a shape.
+                 */}
+                <DayTrail trail={trail} pebbles={pebbles} />
+              </ScoreCard>
+            </div>
+          )}
 
-      {/* The boss card moved to /games (DECISIONS #158): the road keeps
+          {/* The boss card moved to /games (DECISIONS #158): the road keeps
           its checkpoint, the games tab keeps the weekly headliner, and
           the floor's scroll goes floor, score, road with nothing between. */}
 
-      {/*
-       * The standing soft-wall surface (DECISIONS #137). The loud ask
-       * already happened in the rep flow; this is the persistent honest
-       * statement of risk for everyone who declined it, kept quiet so
-       * the floor's one terracotta tap stays uncontested — the link alone
-       * wears the action text.
-       */}
-      {anon === true && history.length > 0 && (
-        <Link
-          href="/signup"
-          className="press mt-2 block py-3 text-center text-[12px] leading-relaxed text-stone-400"
-        >
-          {history.length} recording{history.length === 1 ? " lives" : "s live"} only
-          in this browser ·{" "}
-          <span className="font-semibold text-terracotta-700">
-            keep {history.length === 1 ? "it" : "them"} →
-          </span>
-        </Link>
-      )}
+          {/*
+           * The standing soft-wall surface (DECISIONS #137). The loud ask
+           * already happened in the rep flow; this is the persistent honest
+           * statement of risk for everyone who declined it, kept quiet so
+           * the floor's one terracotta tap stays uncontested — the link alone
+           * wears the action text.
+           */}
+          {anon === true && history.length > 0 && (
+            <Link
+              href="/signup"
+              className="press mt-3 block py-3 text-center text-caption leading-relaxed text-stone-400"
+            >
+              {history.length} recording
+              {history.length === 1 ? " lives" : "s live"} only in this browser
+              ·{" "}
+              <span className="font-semibold text-terracotta-700">
+                keep {history.length === 1 ? "it" : "them"} →
+              </span>
+            </Link>
+          )}
 
-      {/* The road (#141): the whole path, winding down from here. It
+          {/* The road (#141): the whole path, winding down from here. It
           goes LAST so the floor keeps the first screen (#9) — the road
           is what scrolling reveals, all of it, without a tab switch. */}
-      {/* Only once the reps are in hand: a road drawn from an unread
+          {/* Only once the reps are in hand: a road drawn from an unread
           history shows nought stars to someone who has earned twenty. */}
-      <PathRoad starMap={starMap} hasAnyRep={history.length > 0} />
-      </div>
+          <PathRoad starMap={starMap} hasAnyRep={history.length > 0} />
+        </div>
       )}
 
       {paywall && <Paywall reason={paywall} onClose={() => setPaywall(null)} />}

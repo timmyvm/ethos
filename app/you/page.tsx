@@ -27,6 +27,9 @@ import { rankedTraits, traitLevels } from "@/lib/traits";
 import { syncFreezes } from "@/lib/freeze-sync";
 import { levelFromXp } from "@/lib/level";
 import { readable, readFailure } from "@/lib/load";
+import { starsByLesson, totalStars, UNITS } from "@/lib/path";
+import { goalById, readProfile, type Goal } from "@/lib/profile";
+import { syncProfile } from "@/lib/profile-sync";
 import {
   computeStreak,
   MAX_EQUIPPED_FREEZES,
@@ -86,6 +89,8 @@ export default function YouPage() {
   const [name, setName] = useState<string | null>(null);
   const [nameKnown, setNameKnown] = useState(false);
   const [premium, setPremium] = useState(false);
+  /** The self-diagnosis (#231): undefined until the device has been read. */
+  const [goal, setGoal] = useState<Goal | null | undefined>(undefined);
   const [editingName, setEditingName] = useState(false);
   const [draft, setDraft] = useState("");
   const [nameFailed, setNameFailed] = useState(false);
@@ -142,11 +147,13 @@ export default function YouPage() {
     void load();
     fetchLexicon().then(setLexicon).catch(() => {});
     fetchXp().then(setXp).catch(() => {});
+    setGoal(readProfile().goal);
     fetchProfile()
       .then((p) => {
         setName(p?.display_name ?? null);
         setNameKnown(true);
         setPremium(p?.premium ?? false);
+        return syncProfile(p).then((prof) => setGoal(prof.goal));
       })
       .catch(() => {});
     const db = supabaseBrowser();
@@ -316,6 +323,13 @@ export default function YouPage() {
           )}
         </div>
       </div>
+
+      {/* What you said you notice, and the unit for it with the road's
+          own gate (#231). A row, not a card (#151), and a tap, because
+          a self-diagnosis is allowed to change. */}
+      {goal !== undefined && (
+        <FocusRow goal={goal} stars={reps ? totalStars(starsByLesson(reps)) : null} />
+      )}
 
       <div className="mt-5 flex gap-3">
         {loading ? (
@@ -708,5 +722,38 @@ function Stat({
       </div>
       <div className="text-[11.5px] text-stone-400">{note}</div>
     </div>
+  );
+}
+
+/**
+ * The focus row (#231): the answer in their words, the unit that trains
+ * it, and how far the road's gate is. Opens the question screen to
+ * change it; the plan updates from the same answer everywhere.
+ */
+function FocusRow({ goal, stars }: { goal: Goal | null; stars: number | null }) {
+  const g = goalById(goal);
+  const unit = g ? UNITS.find((u) => u.id === g.unitId) : null;
+  const toGo = unit && stars !== null ? Math.max(0, unit.unlocksAt - stars) : null;
+  return (
+    <Link
+      href="/welcome?step=goal"
+      className="press mt-5 flex min-h-11 items-center justify-between gap-3 border-y border-hairline py-3"
+    >
+      <span className="min-w-0">
+        <span className="label-data">Focus</span>
+        <span className="font-display mt-0.5 block truncate text-[14px] font-bold">
+          {g ? g.said[0].toUpperCase() + g.said.slice(1) : "Not set"}
+        </span>
+      </span>
+      <span className="shrink-0 text-right text-[12px] text-stone-500 tabular-nums">
+        {unit
+          ? toGo === null
+            ? unit.name
+            : toGo === 0
+              ? `${unit.name} · open`
+              : `${unit.name} · ${toGo}★ to go`
+          : "Pick one →"}
+      </span>
+    </Link>
   );
 }

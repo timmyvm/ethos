@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { DRILLS } from "./drills";
-import { WELCOME_STEPS } from "./onboarding";
+import { PLAN_COPY, QUESTIONS, WELCOME_STEPS } from "./onboarding";
 import { UNITS } from "./path";
 
 /**
@@ -232,6 +232,18 @@ describe("the screen template", () => {
       for (const s of [step.title, step.line]) {
         if (count(s) > WORDS) over.push(s);
       }
+    }
+
+    // The questions and the plan (#231) walk the same template.
+    for (const s of [
+      QUESTIONS.goal.title,
+      QUESTIONS.goal.line,
+      QUESTIONS.age.title,
+      QUESTIONS.age.line,
+      PLAN_COPY.title,
+      PLAN_COPY.line,
+    ]) {
+      if (count(s) > WORDS) over.push(s);
     }
 
     for (const unit of UNITS) {

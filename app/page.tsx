@@ -21,7 +21,7 @@ import {
   fetchReps,
   type RepRow,
 } from "@/lib/client-data";
-import { spin, type Topic } from "@/lib/topics";
+import { type Topic } from "@/lib/topics";
 import { sessionState } from "@/lib/auth";
 import { dayTrail, pebbleDays } from "@/lib/days";
 import { todaysDrill } from "@/lib/drills";
@@ -35,6 +35,8 @@ import {
   totalStars,
 } from "@/lib/path";
 import { readPrefs } from "@/lib/prefs";
+import { dayOneNote, readProfile, spinForProfile, type Goal } from "@/lib/profile";
+import { syncProfile } from "@/lib/profile-sync";
 import { repHref } from "@/lib/rep-config";
 import { ownedFrom, poseArt } from "@/lib/shop";
 import { armReminder } from "@/lib/reminders";
@@ -64,6 +66,8 @@ export default function Home() {
   const [demos, setDemos] = useState<string | null>(null);
   const [anon, setAnon] = useState<boolean | null>(null);
   const [failed, setFailed] = useState(false);
+  /** What they said they notice (#231). Read after paint, never at render. */
+  const [goal, setGoal] = useState<Goal | null>(null);
 
   /**
    * The history read, on its own so the retry can mean it. It used to
@@ -115,6 +119,8 @@ export default function Home() {
       .then((s) => setAnon(s.signedIn && s.anonymous))
       .catch(() => {});
 
+    setGoal(readProfile().goal);
+
     /* A bought pose, if there is one. `null` until both the ledger and
        the profile answer, so the default never flashes over the thing
        someone paid for. The account's equipped pose wins over the
@@ -124,6 +130,9 @@ export default function Home() {
         setPremium(p?.premium ?? false);
         const pose = p?.equipped_pose ?? readPrefs().pose;
         setDemos(poseArt(pose, ownedFrom(l)));
+        // The self-diagnosis follows the account (#231): push an
+        // unsynced answer up, or take the account's down.
+        return syncProfile(p).then((prof) => setGoal(prof.goal));
       })
       .catch(() => {});
 
@@ -282,7 +291,13 @@ export default function Home() {
               align="center"
               title={dayLine}
               line={unitName}
-              note={gap ?? (focus.strength !== null ? focus.reason : undefined)}
+              /* Day one carries what they said they notice, in their
+                 words (#231); after that the number decides the line. */
+              note={
+                dayOne
+                  ? dayOneNote(goal)
+                  : (gap ?? (focus.strength !== null ? focus.reason : undefined))
+              }
             />
             {/*
              * Demos peeks in from the right, just above the tap.
@@ -321,7 +336,7 @@ export default function Home() {
             </Link>
             <div className="mt-2.5 flex items-baseline justify-between gap-3">
               <button
-                onClick={() => setTopic(spin(null))}
+                onClick={() => setTopic(spinForProfile(null))}
                 className="press -my-3 inline-flex min-h-11 items-center text-[13px] font-semibold text-terracotta-700"
               >
                 Not feeling it? Spin a new topic →

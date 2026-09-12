@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { buzz, prefersReducedMotion } from "@/lib/prefs";
-import { spin, TOPIC_SHAPES, type Topic } from "@/lib/topics";
+import { spinForProfile as spin } from "@/lib/profile";
+import { TOPIC_SHAPES, type Topic } from "@/lib/topics";
 
 /**
  * The roulette. Spin, get a topic you didn't choose, speak on it cold.

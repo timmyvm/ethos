@@ -33,21 +33,45 @@ export const WELCOMED_KEY = "ethos.welcomed";
  */
 export const WELCOME_STEPS = [
   {
-    art: "/demos-listening.webp",
+    art: "/demos-onboard-listening.webp",
     title: "Hey. I know why you're here.",
     line: "You can already talk. You just want to be better at it.",
   },
   {
-    art: "/demos-speaking.webp",
+    art: "/demos-onboard-speaking.webp",
     title: "A coach costs $5,000.",
     line: "This is sixty seconds a day.",
   },
   {
-    art: "/demos-celebrate.webp",
+    art: "/demos-onboard-celebrate.webp",
     title: "That's the whole ask.",
     line: "You won't notice it working. Other people will.",
   },
 ] as const;
+
+/**
+ * The two questions and the plan that follow the introduction
+ * (DECISIONS #231). Same template, same budget, tap-only answers
+ * (lib/profile.ts holds them): the persona self-diagnoses, so the app
+ * asks what they noticed and shows the road in their words. Every
+ * screen has the mic one tap away; none has a paywall behind it.
+ */
+export const QUESTIONS = {
+  goal: {
+    title: "What do you notice?",
+    line: "When you talk. Pick one.",
+  },
+  age: {
+    title: "How old are you?",
+    line: "It shapes the prompts, nothing else.",
+  },
+} as const;
+
+export const PLAN_COPY = {
+  title: "Your first month.",
+  line: "Built from what you noticed.",
+  label: "The plan",
+} as const;
 
 /** Supabase-js persists its session under `sb-<project-ref>-auth-token`. */
 const SB_SESSION = /^sb-.+-auth-token$/;

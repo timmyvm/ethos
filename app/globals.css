@@ -521,6 +521,28 @@ body::after {
   transform: none;
 }
 
+/*
+ * The onboarding art idles (DECISIONS #232): a slow float, transform
+ * only, on the introduction's Demos and nowhere else. The one loop the
+ * product allows outside a live recording indicator, and it is allowed
+ * here because the introduction is the one place he IS the screen
+ * rather than a moment on it. Alternating, so it never snaps back.
+ */
+@keyframes idle {
+  from {
+    transform: translateY(0) scale(1);
+  }
+  to {
+    transform: translateY(-5px) scale(1.015);
+  }
+}
+.demos-idle {
+  animation: idle 2.4s var(--ease-in-out) infinite alternate;
+}
+:root[data-motion="reduce"] .demos-idle {
+  animation: none;
+}
+
 /* Reduced motion: every entrance is a fade, every value is already
  * there, and nothing slides (DESIGN-RULES, Definition of Done #8). */
 :root[data-motion="reduce"]

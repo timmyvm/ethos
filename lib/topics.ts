@@ -91,9 +91,11 @@ export const TOPICS: Topic[] = [
  */
 export function spin(
   exclude: string | null = null,
-  rand: () => number = Math.random
+  rand: () => number = Math.random,
+  /** The pool to draw from; the profile narrows it (lib/profile.ts). */
+  from: Topic[] = TOPICS
 ): Topic {
-  const pool = exclude ? TOPICS.filter((t) => t.id !== exclude) : TOPICS;
+  const pool = exclude ? from.filter((t) => t.id !== exclude) : from;
   return pool[Math.floor(rand() * pool.length) % pool.length];
 }
 

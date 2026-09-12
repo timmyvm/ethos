@@ -125,6 +125,8 @@ A screen is not finished until all of these exist and are hand-checked:
   from an edge.
 - A value already on the screen never re-arrives: the log, the road and
   a stored recording render still.
+- Nothing loops except a live recording indicator and the introduction's
+  Demos (`.demos-idle`, #232). No in-app surface borrows that class.
 - Reduced motion is `data-motion="reduce"` on `<html>` (set before paint
   from the OS preference and the Settings switch). Every rule that moves
   something has its collapse under that attribute, never a media query

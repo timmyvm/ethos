@@ -320,11 +320,11 @@ are not.
 
 ## Test coverage
 
-944 tests (12 Sep) across metrics and the substance gate, index scoring, coach
+959 tests (12 Sep) across metrics and the substance gate, index scoring, coach
 validation, boss accuracy, rep configuration, stress mods, drills, path,
 streak and freezes, level, achievements, insights, reminders, scheduling,
 rewards, the analyze route, Presence, judged metering, coins, auth rules,
-the copy bans and the motion tokens. Run with `npm test`.
+the copy bans, the motion tokens and the self-diagnosis. Run with `npm test`.
 
 The engine tests that matter most: the analyze route proves a forged
 form can't buy XP, that a boss rep is fact-checked and a daily one isn't,

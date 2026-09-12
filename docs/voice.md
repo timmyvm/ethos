@@ -80,6 +80,30 @@ If something doesn't fit this template, it isn't copy — it's a tooltip, a coll
 
 *(Three screens, twenty-eight words total. The warmth is in screen 1, the positioning is in screen 2, the promise is in screen 3. None of them explain anything.)*
 
+### Onboarding, the questions and the plan (12 Sep, DECISIONS #231; proposed, not from the transcript)
+
+> ### What do you notice?
+> When you talk. Pick one.
+> `Um, like, you know` · `I rush` · `I lose the thread` · `I freeze on the spot`
+
+> ### How old are you?
+> It shapes the prompts, nothing else.
+> `Under 18` · `18 to 24` · `25 to 34` · `35 and up`
+
+> ### Your first month.
+> Built from what you noticed.
+>
+> **The plan**
+> 1  Day 1: The baseline. Sixty seconds, measured.
+> 2  Then Filler Elimination: 5 lessons, about 5 days.
+> 3  Then Pace Control, the unit for rushing. Opens at 4 stars.
+>
+> [ Take the floor ]
+>
+> <sub>Every number on it is measured, none awarded.</sub>
+
+The button on a question screen says "Skip" until something is picked, then "Next". The plan's third line is the road's own gate for whatever was picked; with nothing picked it reads "Then the road, one unit at a time."
+
 ---
 
 ### Home

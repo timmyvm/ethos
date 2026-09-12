@@ -1,6 +1,6 @@
 # Ethos copy rules
 
-Add to CLAUDE.md's reading list next to DESIGN-RULES.md. These govern every
+Third on CLAUDE.md's reading list, after STATE.md and DESIGN.md. These govern every
 user-facing string.
 
 ## Budgets (hard limits per screen)

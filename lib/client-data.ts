@@ -161,6 +161,50 @@ export async function fetchProfile(): Promise<ProfileRow | null> {
 }
 
 /**
+ * The introduction's answers and the plan built from them (DECISIONS
+ * #232, migration 0009). One row per user, upserted; the answers exist
+ * before the row does, so the client keeps a copy (lib/answers.ts) and
+ * lib/answers-sync.ts decides which way they travel.
+ */
+export interface OnboardingRow {
+  age_band: string | null;
+  goal: string | null;
+  pains: string[];
+  level: string | null;
+  context: string | null;
+  portfolio: unknown;
+  rules_version: number;
+}
+
+export async function fetchOnboarding(): Promise<OnboardingRow | null> {
+  const db = supabaseBrowser();
+  if (!db) return null;
+  const { data: session } = await db.auth.getSession();
+  if (!session.session) return null;
+  const { data, error } = await db
+    .from("onboarding")
+    .select("age_band, goal, pains, level, context, portfolio, rules_version")
+    .maybeSingle();
+  if (error) throw error;
+  return (data as OnboardingRow | null) ?? null;
+}
+
+export async function upsertOnboarding(row: OnboardingRow): Promise<boolean> {
+  const db = supabaseBrowser();
+  if (!db) return false;
+  const { data } = await db.auth.getUser();
+  const uid = data.user?.id;
+  if (!uid) return false;
+  const { error } = await db
+    .from("onboarding")
+    .upsert(
+      { user_id: uid, ...row, updated_at: new Date().toISOString() },
+      { onConflict: "user_id" }
+    );
+  return !error;
+}
+
+/**
  * Which owned pose sits on the floor card. Upserted like the display
  * name (profiles are created lazily); `null` puts the default back.
  * localStorage keeps a copy so the card paints right on first render,

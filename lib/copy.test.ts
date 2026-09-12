@@ -2,7 +2,8 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { DRILLS } from "./drills";
-import { WELCOME_STEPS } from "./onboarding";
+import { QUESTIONS, WELCOME_STEPS } from "./onboarding";
+import { AGE_BANDS, CONTEXTS, GOALS, LEVELS, PAINS } from "@/content/portfolio";
 import { UNITS } from "./path";
 
 /**
@@ -232,6 +233,14 @@ describe("the screen template", () => {
       for (const s of [step.title, step.line]) {
         if (count(s) > WORDS) over.push(s);
       }
+    }
+
+    // The questions and every tappable answer (#232) walk the same template.
+    for (const q of QUESTIONS) {
+      for (const s of [q.title, q.line]) if (count(s) > WORDS) over.push(s);
+    }
+    for (const list of [AGE_BANDS, GOALS, PAINS, LEVELS, CONTEXTS]) {
+      for (const o of list) if (count(o.label) > WORDS) over.push(o.label);
     }
 
     for (const unit of UNITS) {

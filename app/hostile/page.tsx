@@ -384,7 +384,7 @@ export default function HostilePage() {
             held, whether you answered, and how steady it sounded.
           </p>
 
-          <div className="mt-5 rounded-[26px] border border-hairline bg-surface p-6">
+          <div className="mt-5 rounded-sheet border border-hairline bg-surface p-6">
             <div className="label-data">The claim · argue either side</div>
             <div className="font-display mt-3 min-h-[4.2rem] text-[26px] leading-[1.12]">
               {prompt.claim}
@@ -397,13 +397,13 @@ export default function HostilePage() {
                     return pool[Math.floor(Math.random() * pool.length)] ?? p;
                   })
                 }
-                className="press shrink-0 rounded-full border border-stone-200 bg-surface px-5 py-4 text-[15px] font-semibold"
+                className="press shrink-0 rounded-control border border-stone-200 bg-surface px-5 py-4 text-[15px] font-semibold"
               >
                 Another
               </button>
               <button
                 onClick={() => void startRecording()}
-                className="press flex-1 rounded-full bg-terracotta-500 px-6 py-4 text-center text-[16.5px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+                className="press flex-1 rounded-control bg-terracotta-500 px-6 py-4 text-center text-[16.5px] font-semibold text-on-accent transition-colors hover:bg-terracotta-600"
               >
                 Record my take · 60s
               </button>
@@ -411,7 +411,7 @@ export default function HostilePage() {
           </div>
 
           {error && (
-            <p className="mt-3 rounded-[20px] bg-terracotta-50 px-4 py-3 text-[13.5px] leading-relaxed text-terracotta-700">
+            <p className="mt-3 rounded-card bg-terracotta-50 px-4 py-3 text-[13.5px] leading-relaxed text-terracotta-700">
               {error}
             </p>
           )}
@@ -452,7 +452,7 @@ export default function HostilePage() {
             <div className="label-data mt-2">seconds left</div>
             <div className="mt-4 h-1.5 w-full max-w-[220px] overflow-hidden rounded-full bg-sand">
               <div
-                className="h-full rounded-full bg-terracotta-500"
+                className="h-full rounded-control bg-terracotta-500"
                 style={{ width: `${Math.round(level * 100)}%` }}
               />
             </div>
@@ -466,7 +466,7 @@ export default function HostilePage() {
           </div>
           <button
             onClick={() => void stopRecording()}
-            className="press w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream"
+            className="press w-full rounded-control bg-terracotta-500 px-6 py-4 text-base font-semibold text-on-accent"
           >
             Done
           </button>
@@ -478,7 +478,7 @@ export default function HostilePage() {
           {/* Demos's sprite matches what he's DOING (#194): listening
               while you speak, working while he thinks. There is no
               thinking pose in the set; the workout is the honest
-              stand-in, and it's the gym's idea of thinking anyway. */}
+              stand-in, and it's the app's idea of thinking anyway. */}
           <Image
             src="/demos-workout.webp"
             alt=""
@@ -511,7 +511,7 @@ export default function HostilePage() {
             {pending.question}
           </h1>
           {error && (
-            <p className="mt-3 rounded-[20px] bg-terracotta-50 px-4 py-3 text-[13.5px] leading-relaxed text-terracotta-700">
+            <p className="mt-3 rounded-card bg-terracotta-50 px-4 py-3 text-[13.5px] leading-relaxed text-terracotta-700">
               {error}
             </p>
           )}
@@ -521,7 +521,7 @@ export default function HostilePage() {
               alt="Demos"
               width={62}
               height={62}
-              className="demos w-[62px] rounded-[20px] border border-sand bg-surface"
+              className="demos w-[62px] rounded-card border border-sand bg-surface"
             />
             <p className="text-[12.5px] leading-relaxed text-stone-400">
               He&apos;s arguing with the take, never with you.
@@ -530,7 +530,7 @@ export default function HostilePage() {
           <div className="flex-1" />
           <button
             onClick={() => void startRecording()}
-            className="press w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream"
+            className="press w-full rounded-control bg-terracotta-500 px-6 py-4 text-base font-semibold text-on-accent"
           >
             Record my answer · {ANSWER_SECONDS}s
           </button>
@@ -556,9 +556,9 @@ export default function HostilePage() {
               alt="Demos"
               width={62}
               height={62}
-              className="demos w-[62px] rounded-[20px] border border-sand bg-surface"
+              className="demos w-[62px] rounded-card border border-sand bg-surface"
             />
-            <div className="rounded-[20px] rounded-bl-[6px] bg-terracotta-50 px-4 py-3 text-sm leading-relaxed">
+            <div className="rounded-card rounded-bl-[4px] bg-terracotta-50 px-4 py-3 text-sm leading-relaxed">
               <div className="label-data !text-terracotta-600 mb-0.5">
                 Demos
               </div>
@@ -572,7 +572,7 @@ export default function HostilePage() {
           {/* The speech numbers the daily debrief gets (#194): the take
               ran the full engine, so its measurements belong here too. */}
           {takeResult && (
-            <div className="mt-4 rounded-[24px] border border-hairline bg-surface p-4">
+            <div className="mt-4 rounded-card border border-hairline bg-surface p-4">
               <div className="label-data">Your take, measured</div>
               <div className="mt-3 flex gap-3">
                 <TakeStat
@@ -617,7 +617,7 @@ export default function HostilePage() {
           <div className="flex-1" />
           <Link
             href="/"
-            className="press mt-6 block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-cream"
+            className="press mt-6 block w-full rounded-control bg-terracotta-500 px-6 py-4 text-center text-base font-semibold text-on-accent"
           >
             Done
           </Link>
@@ -634,7 +634,7 @@ export default function HostilePage() {
               if (lastBlob.current) void submit(lastBlob.current);
               else setPhase("intro");
             }}
-            className="press mt-6 w-full max-w-[320px] rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream"
+            className="press mt-6 w-full max-w-[320px] rounded-control bg-terracotta-500 px-6 py-4 text-base font-semibold text-on-accent"
           >
             Try again
           </button>
@@ -672,7 +672,7 @@ function TakeStat({
 
 function VerdictRow({ name, dim }: { name: string; dim: VerdictDim }) {
   return (
-    <div className="rounded-[24px] border border-hairline bg-surface p-4">
+    <div className="rounded-card border border-hairline bg-surface p-4">
       <div className="flex items-baseline justify-between">
         <div className="text-[14.5px] font-semibold">{name}</div>
         <div className="font-display text-[22px] leading-none">

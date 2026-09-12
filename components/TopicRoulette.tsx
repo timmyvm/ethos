@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { buzz, prefersReducedMotion } from "@/lib/prefs";
-import { spin, TOPIC_SHAPES, type Topic } from "@/lib/topics";
+import { spinForAnswers as spin } from "@/lib/portfolio";
+import { TOPIC_SHAPES, type Topic } from "@/lib/topics";
 
 /**
  * The roulette. Spin, get a topic you didn't choose, speak on it cold.
@@ -47,7 +48,7 @@ export function TopicRoulette({
   const shape = TOPIC_SHAPES[topic.shape];
 
   return (
-    <div className="rounded-[14px] border border-edge bg-raised p-5">
+    <div className="rounded-card border border-edge bg-raised p-5">
       <div className="flex items-baseline justify-between">
         <div className="label-data">Roulette · you don&apos;t pick</div>
         <div className="label-data !text-sage-700">{shape.label}</div>
@@ -58,21 +59,25 @@ export function TopicRoulette({
           rolling ? "opacity-40" : "opacity-100"
         }`}
       >
-        {topic.prompt}
+        {/* Keyed on the topic so every draw mounts fresh and rolls in
+            from below at the press step (#230): a reel, not a swap. */}
+        <span key={topic.id} className="arrive dur-fast block">
+          {topic.prompt}
+        </span>
       </div>
 
       <div className="mt-4 flex gap-2.5">
         <button
           onClick={doSpin}
           disabled={rolling}
-          className="press font-display shrink-0 rounded-[10px] border border-stone-200 bg-surface px-5 py-3.5 text-[14px] font-bold disabled:opacity-60"
+          className="press font-display shrink-0 rounded-control border border-stone-200 bg-surface px-5 py-3.5 text-[14px] font-bold disabled:opacity-60"
         >
           Spin
         </button>
         <button
           onClick={() => onTake(topic)}
           disabled={rolling}
-          className="press font-display flex-1 rounded-xl bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-cream transition-colors hover:bg-terracotta-600 disabled:opacity-60"
+          className="press font-display flex-1 rounded-control bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-on-accent transition-colors hover:bg-terracotta-600 disabled:opacity-60"
         >
           Take this one
         </button>

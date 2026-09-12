@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { DURATION } from "@/lib/motion";
 import { prefersReducedMotion } from "@/lib/prefs";
 
 /**
@@ -12,10 +13,13 @@ import { prefersReducedMotion } from "@/lib/prefs";
  * value is real either way; only the reveal is animated.
  *
  * Honours reduced motion by rendering the final number immediately.
+ * The default length is the celebration ceiling (DESIGN-RULES, motion):
+ * the score landing is the rep-complete moment, and nothing else in
+ * the product may take this long.
  */
 export function CountUp({
   value,
-  durationMs = 900,
+  durationMs = DURATION.celebrate,
   className,
 }: {
   value: number;

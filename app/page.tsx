@@ -21,7 +21,7 @@ import {
   fetchReps,
   type RepRow,
 } from "@/lib/client-data";
-import { spin, type Topic } from "@/lib/topics";
+import { type Topic } from "@/lib/topics";
 import { sessionState } from "@/lib/auth";
 import { dayTrail, pebbleDays } from "@/lib/days";
 import { todaysDrill } from "@/lib/drills";
@@ -35,6 +35,9 @@ import {
   totalStars,
 } from "@/lib/path";
 import { readPrefs } from "@/lib/prefs";
+import { readOnboarding, type Answers, EMPTY_ANSWERS } from "@/lib/answers";
+import { syncOnboarding } from "@/lib/answers-sync";
+import { dayOneNote, spinForAnswers } from "@/lib/portfolio";
 import { repHref } from "@/lib/rep-config";
 import { ownedFrom, poseArt } from "@/lib/shop";
 import { armReminder } from "@/lib/reminders";
@@ -64,6 +67,9 @@ export default function Home() {
   const [demos, setDemos] = useState<string | null>(null);
   const [anon, setAnon] = useState<boolean | null>(null);
   const [failed, setFailed] = useState(false);
+  /** The introduction's answers (#232). Read after paint, never at render. */
+  const [answers, setAnswers] = useState<Answers>(EMPTY_ANSWERS);
+  const [skipIntros, setSkipIntros] = useState(false);
 
   /**
    * The history read, on its own so the retry can mean it. It used to
@@ -115,6 +121,9 @@ export default function Home() {
       .then((s) => setAnon(s.signedIn && s.anonymous))
       .catch(() => {});
 
+    setAnswers(readOnboarding().answers);
+    setSkipIntros(readPrefs().skipIntros);
+
     /* A bought pose, if there is one. `null` until both the ledger and
        the profile answer, so the default never flashes over the thing
        someone paid for. The account's equipped pose wins over the
@@ -124,6 +133,9 @@ export default function Home() {
         setPremium(p?.premium ?? false);
         const pose = p?.equipped_pose ?? readPrefs().pose;
         setDemos(poseArt(pose, ownedFrom(l)));
+        // The introduction's answers follow the account (#232): a
+        // finished walk goes up, or the account's answers come down.
+        return syncOnboarding().then((s) => setAnswers(s.answers));
       })
       .catch(() => {});
 
@@ -183,7 +195,7 @@ export default function Home() {
    * is a paragraph a day.
    */
   const floorHref =
-    next && introDue(next.unit, starMap)
+    next && !skipIntros && introDue(next.unit, starMap)
       ? introHref(next.unit.id, mods)
       : repHref({ lesson: next?.lesson.id, mods });
 
@@ -214,7 +226,7 @@ export default function Home() {
       </div>
 
       {rescued > 0 && (
-        <div className="mt-4 rounded-xl border border-sage-300 bg-raised px-4 py-3 text-body">
+        <div className="mt-4 rounded-card border border-sage-300 bg-raised px-4 py-3 text-body">
           <span className="font-semibold">
             A freeze covered {rescued === 1 ? "a day" : `${rescued} days`} you
             missed.
@@ -282,7 +294,13 @@ export default function Home() {
               align="center"
               title={dayLine}
               line={unitName}
-              note={gap ?? (focus.strength !== null ? focus.reason : undefined)}
+              /* Day one carries what they said they notice, in their
+                 words (#231); after that the number decides the line. */
+              note={
+                dayOne
+                  ? dayOneNote(answers)
+                  : (gap ?? (focus.strength !== null ? focus.reason : undefined))
+              }
             />
             {/*
              * Demos peeks in from the right, just above the tap.
@@ -311,7 +329,7 @@ export default function Home() {
             </div>
             <Link
               href={floorHref}
-              className="press font-display mt-2 block w-full rounded-xl border border-transparent bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-cream transition-colors hover:bg-terracotta-600"
+              className="press font-display mt-2 block w-full rounded-control border border-transparent bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-on-accent transition-colors hover:bg-terracotta-600"
             >
               {dayOne
                 ? `${drill.title} →`
@@ -321,7 +339,7 @@ export default function Home() {
             </Link>
             <div className="mt-2.5 flex items-baseline justify-between gap-3">
               <button
-                onClick={() => setTopic(spin(null))}
+                onClick={() => setTopic(spinForAnswers(null))}
                 className="press -my-3 inline-flex min-h-11 items-center text-[13px] font-semibold text-terracotta-700"
               >
                 Not feeling it? Spin a new topic →
@@ -338,7 +356,7 @@ export default function Home() {
               </button>
             </div>
             {showMods && (
-              <div className="mt-2">
+              <div className="reveal mt-2">
                 <ModPicker
                   selected={mods}
                   onChange={setMods}
@@ -373,6 +391,14 @@ export default function Home() {
         />
       )}
 
+      {/*
+       * Everything the history read paints, in one arrival (DECISIONS
+       * #224): the score card over its skeleton, the save line, the
+       * road. One fade for one event, the read landing; the floor
+       * above needs no round trip and never fades.
+       */}
+      {reps !== null && (
+      <div className="arrive">
       {history.length > 0 && (
         <ScoreCard
           index={lastIndex}
@@ -420,8 +446,8 @@ export default function Home() {
           is what scrolling reveals, all of it, without a tab switch. */}
       {/* Only once the reps are in hand: a road drawn from an unread
           history shows nought stars to someone who has earned twenty. */}
-      {reps !== null && (
-        <PathRoad starMap={starMap} hasAnyRep={history.length > 0} />
+      <PathRoad starMap={starMap} hasAnyRep={history.length > 0} />
+      </div>
       )}
 
       {paywall && <Paywall reason={paywall} onClose={() => setPaywall(null)} />}

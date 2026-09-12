@@ -138,13 +138,13 @@ export default function UploadPage() {
           />
           <label
             htmlFor="upload-file"
-            className="press mt-6 block w-full cursor-pointer rounded-full bg-terracotta-500 px-6 py-4 text-center text-[16.5px] font-semibold text-cream transition-colors hover:bg-terracotta-600"
+            className="press mt-6 block w-full cursor-pointer rounded-control bg-terracotta-500 px-6 py-4 text-center text-[16.5px] font-semibold text-on-accent transition-colors hover:bg-terracotta-600"
           >
             Choose a file
           </label>
 
           {error && (
-            <p className="mt-4 rounded-[20px] bg-terracotta-50 px-4 py-3 text-[13.5px] leading-relaxed text-terracotta-700">
+            <p className="mt-4 rounded-card bg-terracotta-50 px-4 py-3 text-[13.5px] leading-relaxed text-terracotta-700">
               {error}
             </p>
           )}
@@ -156,8 +156,8 @@ export default function UploadPage() {
           <p className="text-[14px] text-stone-500">
             Reading it. A few minutes of audio takes a little while.
           </p>
-          <Skeleton className="h-24 rounded-[24px]" />
-          <Skeleton className="h-40 rounded-[24px]" />
+          <Skeleton className="h-24 rounded-card" />
+          <Skeleton className="h-40 rounded-card" />
         </div>
       )}
 
@@ -182,13 +182,13 @@ export default function UploadPage() {
                 if (audioUrl) URL.revokeObjectURL(audioUrl);
                 setAudioUrl(null);
               }}
-              className="press flex-1 rounded-full border border-stone-200 bg-surface px-5 py-3.5 text-[15px] font-semibold"
+              className="press flex-1 rounded-control border border-stone-200 bg-surface px-5 py-3.5 text-[15px] font-semibold"
             >
               Another file
             </button>
             <Link
               href="/history"
-              className="press flex-1 rounded-full bg-terracotta-500 px-5 py-3.5 text-center text-[15px] font-semibold text-cream"
+              className="press flex-1 rounded-control bg-terracotta-500 px-5 py-3.5 text-center text-[15px] font-semibold text-on-accent"
             >
               See the log
             </Link>

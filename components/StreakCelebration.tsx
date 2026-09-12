@@ -4,8 +4,8 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { Overlay } from "@/components/ui/Overlay";
 import { DURATION } from "@/lib/motion";
-import { prefersReducedMotion } from "@/lib/prefs";
-import { playCelebration } from "@/lib/sfx";
+import { buzz, prefersReducedMotion } from "@/lib/prefs";
+import { CHIME, MILESTONE_CHIME, playCelebration } from "@/lib/sfx";
 
 /**
  * The one celebration moment. Duolingo earns its streak screen by
@@ -15,6 +15,12 @@ import { playCelebration } from "@/lib/sfx";
  *
  * Demos celebrates here and nowhere else in the loop (vision.md:
  * moments, never furniture).
+ *
+ * The number is the event (DECISIONS #226). It opens on yesterday's
+ * count and rolls up to today's on the chime's landing note, with the
+ * one haptic of the moment under it, so sound, motion and touch say
+ * the same thing at the same instant: the streak just grew. Reduced
+ * motion shows today's number and only fades.
  */
 export function StreakCelebration({
   streak,
@@ -68,9 +74,7 @@ export function StreakCelebration({
         priority
         className="demos w-[200px]"
       />
-      <div className="font-display mt-4 text-[64px] leading-none text-sage-500">
-        {streak}
-      </div>
+      <StreakRoll streak={streak} milestone={milestone} calm={calm} />
       <div className="mt-1 text-[15px] font-semibold">
         day{streak === 1 ? "" : "s"} in a row
       </div>
@@ -82,5 +86,58 @@ export function StreakCelebration({
             : "Same time tomorrow."}
       </p>
     </Overlay>
+  );
+}
+
+/** The 64px line the number lives on; the roll is exactly one of these. */
+const LINE = 64;
+
+/**
+ * Yesterday's count, then today's, in a one-line window: the column
+ * slides up one line at the moment the chime lands. `translateY` on
+ * the column and nothing else moves (DESIGN-RULES, motion). The dialog
+ * already names the final count for assistive tech, so the rolling
+ * digits are decoration to a screen reader and hidden from one.
+ */
+function StreakRoll({
+  streak,
+  milestone,
+  calm,
+}: {
+  streak: number;
+  milestone: boolean;
+  calm: boolean;
+}) {
+  const [rolled, setRolled] = useState(calm);
+
+  useEffect(() => {
+    if (calm) return;
+    const notes = milestone ? MILESTONE_CHIME : CHIME;
+    const landing = notes[notes.length - 1].at * 1000;
+    const t = setTimeout(() => {
+      setRolled(true);
+      buzz(30);
+    }, landing);
+    return () => clearTimeout(t);
+  }, [calm, milestone]);
+
+  return (
+    <div
+      aria-hidden
+      className="font-display mt-4 overflow-hidden text-[64px] leading-none text-sage-500 tabular-nums"
+      style={{ height: LINE }}
+    >
+      <div
+        className={`flex flex-col ${calm ? "" : "transition-transform dur-max ease-out"}`}
+        style={{ transform: rolled ? `translateY(-${LINE}px)` : "none" }}
+      >
+        <span className="block" style={{ height: LINE }}>
+          {rolled && calm ? streak : streak - 1}
+        </span>
+        <span className="block" style={{ height: LINE }}>
+          {streak}
+        </span>
+      </div>
+    </div>
   );
 }

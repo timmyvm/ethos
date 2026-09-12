@@ -56,7 +56,7 @@ export const SHOP: ShopItem[] = [
     name: "Demos, in training",
     price: 8,
     kind: "cosmetic",
-    blurb: "The gym pose, for the floor card.",
+    blurb: "The practice pose, for the floor card.",
   },
   {
     id: "pose_celebrate",

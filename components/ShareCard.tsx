@@ -133,13 +133,13 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
   return (
     <div className="mt-4">
       {url ? (
-        <div className="rounded-[14px] border border-edge bg-raised p-4">
+        <div className="rounded-card border border-edge bg-raised p-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={url} alt="Your progress card" className="w-full rounded-[10px]" />
+          <img src={url} alt="Your progress card" className="w-full rounded-control" />
           <a
             href={url}
             download="ethos-progress.png"
-            className="press font-display mt-3 block w-full rounded-xl bg-terracotta-500 px-6 py-3 text-center text-[15px] font-bold text-cream"
+            className="press font-display mt-3 block w-full rounded-control bg-terracotta-500 px-6 py-3 text-center text-[15px] font-bold text-on-accent"
           >
             Save the card
           </a>
@@ -147,7 +147,7 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
       ) : (
         <button
           onClick={draw}
-          className="press font-display w-full rounded-[10px] border border-stone-200 bg-surface px-4 py-[11px] text-[13.5px] font-bold"
+          className="press font-display w-full rounded-control border border-stone-200 bg-surface px-4 py-[11px] text-[13.5px] font-bold"
         >
           Make a shareable card →
         </button>

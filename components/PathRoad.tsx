@@ -110,7 +110,7 @@ export function PathRoad({
           const row = isCurrent ? (
             /* The current lesson: the screen's terracotta element, on the
                raised paper. Same recording as the floor button above. */
-            <span className="-mx-3.5 flex items-center gap-3.5 rounded-xl border-[1.5px] border-terracotta-500 bg-raised px-3.5 py-2.5">
+            <span className="-mx-3.5 flex items-center gap-3.5 rounded-card border-[1.5px] border-terracotta-500 bg-raised px-3.5 py-2.5">
               <span className="font-display w-[30px] shrink-0 text-[12px] font-extrabold tabular-nums">
                 {i}
               </span>

@@ -21,19 +21,42 @@ export function applyTheme(theme: Theme): void {
   document.documentElement.setAttribute("data-theme", resolved);
   document
     .querySelector('meta[name="theme-color"]')
-    ?.setAttribute("content", resolved === "dark" ? "#211a13" : "#f5ead8");
+    ?.setAttribute("content", resolved === "dark" ? "#1a1410" : "#f5ead8");
+}
+
+/**
+ * The one answer to "less movement?", stamped on <html> as
+ * `data-motion` so CSS can read it (DECISIONS #221). The OS preference
+ * and the switch in Settings both say yes; the media-query rules the
+ * stylesheet used to carry could only hear the first.
+ */
+export function applyMotion(reduced: boolean): void {
+  if (typeof document === "undefined") return;
+  const os = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  document.documentElement.setAttribute(
+    "data-motion",
+    reduced || os ? "reduce" : "full"
+  );
 }
 
 export function ThemeSync() {
   useEffect(() => {
     const prefs = readPrefs();
     applyTheme(prefs.theme);
-    if (prefs.theme !== "system") return;
+    applyMotion(prefs.reducedMotion);
     // Following the OS means following it when it changes, too.
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () => applyTheme("system");
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const onMotion = () => applyMotion(readPrefs().reducedMotion);
+    motion.addEventListener("change", onMotion);
+    const theme = window.matchMedia("(prefers-color-scheme: dark)");
+    const onTheme = () => {
+      if (readPrefs().theme === "system") applyTheme("system");
+    };
+    theme.addEventListener("change", onTheme);
+    return () => {
+      motion.removeEventListener("change", onMotion);
+      theme.removeEventListener("change", onTheme);
+    };
   }, []);
   return null;
 }
@@ -50,10 +73,14 @@ export const themeBootScript = `
     t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
   document.documentElement.setAttribute('data-theme', t);
+  // Motion answers before paint too, or the first sheet slides for
+  // someone who asked it not to.
+  var r = !!p.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.documentElement.setAttribute('data-motion', r ? 'reduce' : 'full');
   // The browser chrome is part of the room. Setting it here rather than
   // after hydration is the difference between a dark app under a cream
   // status bar for one frame and never seeing it at all.
   var m = document.querySelector('meta[name="theme-color"]');
-  if (m) m.setAttribute('content', t === 'dark' ? '#211a13' : '#f5ead8');
+  if (m) m.setAttribute('content', t === 'dark' ? '#1a1410' : '#f5ead8');
 }catch(e){}})();
 `;

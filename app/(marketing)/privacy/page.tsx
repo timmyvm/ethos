@@ -35,12 +35,12 @@ export default function Privacy() {
       </p>
 
       <p className="mt-5 text-[15px] leading-relaxed text-stone-600">
-        Ethos is a speaking gym: you record yourself, the recording gets
+        Ethos is speaking practice: you record yourself, the recording gets
         measured, you get feedback. That only works if we handle recordings of
         your voice, so here is exactly what happens to them, in plain words.
       </p>
 
-      <div className="mt-6 rounded-[24px] border border-hairline bg-surface p-5">
+      <div className="mt-6 rounded-card border border-hairline bg-surface p-5">
         <h2 className="font-display text-[19px]">Your camera never uploads</h2>
         <p className="mt-2 text-[14px] leading-relaxed text-stone-600">
           Body-language analysis runs entirely on your device, using MediaPipe

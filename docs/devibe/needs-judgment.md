@@ -119,3 +119,16 @@ is one line in `lib/path.ts` plus its test.
 whenever today's practice is done, which hides a pose bought minutes
 earlier ("bought, and on your card"). Either the equipped pose wins when
 one is set, or the shop copy says when it appears.
+
+## 7. The welcome carousel's dots (motion pass, 12 Sep)
+
+**Status:** needs a ruling. #223 turns the carousel's pages from the
+direction of travel; the three pagination dots under them still cut
+(the active one is 24px wide, the rest 6px). Sliding the active state
+along the row is the premium version (Headspace's carousels do it) and
+it means one of two things the rules refuse: animating `width`, or
+rebuilding the dots as a fixed track with a moving marker, which is
+more structure than a three-step carousel seen once should carry.
+Options: (a) leave them cutting, which is where it shipped; (b) allow
+`width` here as a recorded exception; (c) the moving marker. Nothing
+else waits on it.

@@ -33,7 +33,7 @@ this folder) or grant the integration access in Vercel settings.
 ## Start a build session (Cowork / Claude Code)
 
 Drop this folder in as the project root and say:
-"Read CLAUDE.md and start on BUILD-PLAN.md step 1."
+"Read CLAUDE.md, then STATE.md, then DESIGN.md."
 Step 1 (engine: record → Whisper → deterministic metrics → coach) is built;
 next is dogfood on a real phone, then step 2+ per docs/vision.md.
 
@@ -41,7 +41,9 @@ next is dogfood on a real phone, then step 2+ per docs/vision.md.
 
 - CLAUDE.md            — session rules + the not-average-but-best protocol
 - DECISIONS.md         — 14 locked decisions + the open queue
-- BUILD-PLAN.md        — step 1 engine spec (start here)
+- STATE.md             — the current system on one page (start here)
+- DESIGN.md            — how the app should look and feel, and the look loop
+- docs/archive/        — BUILD-PLAN, BUILT and DESIGN-RULES, kept for history
 - docs/vision.md       — what this is, hard constraints
 - docs/brand.md        — name, palette, type, Demos, voice
 - docs/mechanics.md    — path, stars, economy, pricing, competitor intel

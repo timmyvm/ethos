@@ -21,16 +21,21 @@
   box;
   `stage` is the dark material the rep-loop signature moments sit on,
   and the score card sits on deep sage (`sage-900`, #165/#203).
-- Terracotta is the one tap per screen, with cream text on it. Sage is
+- Terracotta is the one tap per screen, with ink text on it (`on-accent`,
+  #231; cream on the fill was 3.35:1). Sage is
   earned-only (amber is retired — #165, re-affirmed #203). Stone is
   everything holding the room. Neither accent is ever decoration. Rust
   (terracotta-600's twin) is the wrong-direction delta (#195), nothing
   else.
-- Shape (#201): cards 12–16px radius with a 1px `edge` outline; buttons
-  are 10–12px rectangles, NOT pills (the XP/PRO chips are the only
-  pills); progress bars and the day trail are square-cornered. The
-  current/highlighted item is a 1.5px terracotta border on `raised`.
-  Lists are hairline-separated rows on the ground, not boxed cards.
+- Shape (#201, one scale in #231): three radius tokens and nothing
+  else. `rounded-control` (10px) for buttons, inputs and segmented
+  options; `rounded-card` (12px) for cards and tiles; `rounded-sheet`
+  (16px) for sheets, the score card and media frames. Chips and tags
+  are the only pills, and the Record button is the only circle; progress
+  bars and the day trail are square-cornered. Never a bracketed pixel
+  radius. The current/highlighted item is a 1.5px terracotta border on
+  `raised`. Lists are hairline-separated rows on the ground, not boxed
+  cards.
 - **No shadows anywhere, in either theme** (#201). Depth is the border,
   the hairline, or the raised step. Press feedback may shift a border
   colour, never cast a shadow.
@@ -94,21 +99,45 @@ A screen is not finished until all of these exist and are hand-checked:
 6. **Keyboard** — screen is fully operable by keyboard; Escape closes
    overlays; focus is trapped in modals and returned on close (`<Overlay>`).
 7. **Mobile** — layout reconfigures (doesn't squish); touch targets
-   ≥ 44px; nothing depends on hover.
+   ≥ 44px, the screen's primary tap 48px, 8px between two taps; the
+   primary tap is bottom-anchored in the thumb zone above `pb-safe`
+   (the home-indicator inset); nothing depends on hover.
 8. **Reduced motion** — all animation collapses to simple opacity fades
-   under `prefers-reduced-motion`.
+   under `data-motion="reduce"` (the OS preference or the Settings
+   switch; see Motion rules).
 
 ## Motion rules
 
 - Durations and easings come from `lib/motion.ts` only. Default: 200ms,
-  ease-out.
+  ease-out. The same numbers live in `app/globals.css` as `--duration-*`
+  and `--ease-*` (`lib/motion.test.ts` keeps the two copies equal and
+  fails on any `duration-N` typed into a component); in markup use
+  `.dur-fast` / `.dur-base` / `.dur-max` and the named classes below,
+  never a number.
 - Nothing animates longer than 300ms except celebration moments (rep
   complete, streak milestone), which may go to 600ms.
 - **Never animate keyboard-initiated or high-frequency actions** (list
-  navigation, tab switches inside the rep loop).
+  navigation, tab switches inside the rep loop, the tab bar).
 - Animate only `transform` and `opacity`.
 - Motion must communicate something (origin, causality, success).
-  Decoration-only motion is banned.
+  Decoration-only motion is banned. Nothing teleports either (#221): a
+  state change on screen shows where the new state came from, what
+  caused it, or what was earned. The named classes are those three
+  jobs: `.arrive` / `.arrive-x` for something that was not there
+  (fetched content over its skeleton, the next step of a walk, a phase
+  of the recording screen); `.reveal` for a disclosure's content
+  dropping out of the row that opened it; `.fill`, `.star-land` and
+  `<CountUp>` for a measured value landing, in a live debrief only.
+  Sheets rise and leave through `<Overlay>`; nothing else slides in
+  from an edge.
+- A value already on the screen never re-arrives: the log, the road and
+  a stored recording render still.
+- Nothing loops except a live recording indicator and the introduction's
+  Demos (`.demos-idle`, #232). No in-app surface borrows that class.
+- Reduced motion is `data-motion="reduce"` on `<html>` (set before paint
+  from the OS preference and the Settings switch). Every rule that moves
+  something has its collapse under that attribute, never a media query
+  of its own.
 
 ## Speed rules (the #1 premium signal)
 
@@ -126,8 +155,11 @@ A screen is not finished until all of these exist and are hand-checked:
   decorative SVGs `aria-hidden`.
 - Modals: `role="dialog"`, `aria-modal`, focus trap, Escape handler —
   which is what `<Overlay>` is for. Don't hand-roll a second one.
-- Text contrast ≥ 4.5:1 against its surface (check terracotta-on-cream
-  and every stone mid-tone in BOTH themes).
+- Text contrast ≥ 4.5:1 against its surface, which the text roles now
+  clear by construction (#231): `stone-500` is secondary (0.72), `stone-400`
+  is muted (0.66 light, 0.60 dark), and `stone-300` is faint and NEVER
+  carries words (glyphs, disabled fills, dividers only). Words on a fill
+  use `on-accent` (terracotta) or `sage-ink` on `sage-700` (sage).
 - Data visuals read their colours from the theme, never from a hex — a
   chart is UI, and half the app is dark.
 

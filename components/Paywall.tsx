@@ -31,7 +31,7 @@ export interface PaywallAsk {
 
 export function Paywall({
   reason,
-  headline = "The whole gym.",
+  headline = "All of it.",
   onClose,
   onUnlocked,
 }: {
@@ -109,7 +109,7 @@ export function Paywall({
 
   return (
     <Overlay label="Ethos Premium" onClose={onClose}>
-      <div className="card-score max-h-[92dvh] w-full max-w-[430px] overflow-y-auto rounded-t-[28px] px-6 pb-8 pt-7 text-cream">
+      <div className="card-score max-h-[92dvh] w-full max-w-[430px] overflow-y-auto rounded-t-sheet px-6 pb-8 pt-7 text-cream">
         <div className="label-data !text-sage-mist">{reason}</div>
         <h2 className="font-display mt-1.5 text-[30px] leading-[1.05]">
           {headline}
@@ -123,7 +123,7 @@ export function Paywall({
         </ul>
 
         {unlocked ? (
-          <div className="mt-6 rounded-[24px] bg-cream/10 p-5 text-center">
+          <div className="arrive mt-6 rounded-card bg-cream/10 p-5 text-center">
             <div className="font-display text-[24px]">Unlocked.</div>
             <p className="mt-1 text-[13.5px] text-cream/70">
               Premium is on this account now.
@@ -137,7 +137,7 @@ export function Paywall({
             <button
               onClick={() => setPlan("annual")}
               aria-pressed={plan === "annual"}
-              className={`press mt-5 flex w-full items-center justify-between rounded-[24px] p-4 text-left transition-colors ${
+              className={`press mt-5 flex w-full items-center justify-between rounded-card p-4 text-left transition-colors ${
                 plan === "annual"
                   ? "border-[1.5px] border-cream/40 bg-cream/10"
                   : "border border-cream/15"
@@ -161,7 +161,7 @@ export function Paywall({
             <button
               onClick={() => setPlan("monthly")}
               aria-pressed={plan === "monthly"}
-              className={`press mt-2.5 flex w-full items-center justify-between rounded-[24px] p-4 text-left transition-colors ${
+              className={`press mt-2.5 flex w-full items-center justify-between rounded-card p-4 text-left transition-colors ${
                 plan === "monthly"
                   ? "border-[1.5px] border-cream/40 bg-cream/10"
                   : "border border-cream/15"
@@ -180,7 +180,7 @@ export function Paywall({
               <>
                 <button
                   onClick={openCode}
-                  className="press mt-5 min-h-11 w-full rounded-full bg-terracotta-500 px-6 py-4 text-base font-semibold text-cream transition-colors hover:bg-terracotta-600"
+                  className="press mt-5 min-h-11 w-full rounded-control bg-terracotta-500 px-6 py-4 text-base font-semibold text-on-accent transition-colors hover:bg-terracotta-600"
                 >
                   {plan === "annual" ? "Start with annual" : "Start with monthly"}
                 </button>
@@ -192,7 +192,7 @@ export function Paywall({
                 </button>
               </>
             ) : (
-              <form onSubmit={redeem} className="mt-5">
+              <form onSubmit={redeem} className="reveal mt-5">
                 <p className="text-[13px] leading-relaxed text-cream/70">
                   Checkout opens soon. Right now premium is by invite code.
                 </p>
@@ -209,12 +209,12 @@ export function Paywall({
                     autoCapitalize="off"
                     spellCheck={false}
                     placeholder="Your code"
-                    className="min-w-0 flex-1 rounded-full border border-cream/25 bg-cream/10 px-5 py-3.5 text-[16px] text-cream placeholder:text-cream/40 focus:border-cream/50"
+                    className="min-w-0 flex-1 rounded-control border border-cream/25 bg-cream/10 px-5 py-3.5 text-[16px] text-cream placeholder:text-cream/40 focus:border-cream/50"
                   />
                   <button
                     type="submit"
                     disabled={busy || !code.trim()}
-                    className="press min-h-11 shrink-0 rounded-full bg-terracotta-500 px-6 py-3.5 text-[15px] font-semibold text-cream transition-colors hover:bg-terracotta-600 disabled:opacity-50"
+                    className="press min-h-11 shrink-0 rounded-control bg-terracotta-500 px-6 py-3.5 text-[15px] font-semibold text-on-accent transition-colors hover:bg-terracotta-600 disabled:opacity-50"
                   >
                     {busy ? "One moment" : "Unlock"}
                   </button>

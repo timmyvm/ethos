@@ -60,10 +60,10 @@ export default function RepDetail({
             </div>
           </div>
           <div className="mt-4 flex items-end gap-3">
-            <Skeleton className="h-[58px] w-[58px]" rounded="rounded-[20px]" />
-            <Skeleton className="h-20 flex-1" rounded="rounded-[20px]" />
+            <Skeleton className="h-[58px] w-[58px]" rounded="rounded-card" />
+            <Skeleton className="h-20 flex-1" rounded="rounded-card" />
           </div>
-          <Skeleton className="mt-4 h-24 w-full" rounded="rounded-[24px]" />
+          <Skeleton className="mt-4 h-24 w-full" rounded="rounded-card" />
           <div className="mt-4 flex gap-3">
             <SkeletonStat />
             <SkeletonStat />

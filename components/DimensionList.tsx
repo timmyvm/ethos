@@ -29,6 +29,7 @@ export function DimensionList({
   metrics,
   coach,
   pauseDetail,
+  fill = false,
 }: {
   tier1: Tier1Scores;
   anchors: Tier2Anchors;
@@ -36,6 +37,11 @@ export function DimensionList({
   coach: CoachOutput | null;
   /** The pause report's own line, when the results screen has one. */
   pauseDetail?: string;
+  /**
+   * The debrief only (DECISIONS #225): the bars fill from nothing as
+   * the numbers arrive. A stored recording's bars are already there.
+   */
+  fill?: boolean;
 }) {
   const measured: Row[] = [
     {
@@ -142,7 +148,7 @@ export function DimensionList({
   const available = rows.reduce((sum, r) => sum + r.weight, 0);
 
   return (
-    <div className="rounded-[24px] border border-hairline bg-surface px-5 py-2">
+    <div className="rounded-card border border-hairline bg-surface px-5 py-2">
       {rows.map((row) => {
         const points = dimensionPoints(row.score, row.weight);
         return (
@@ -156,7 +162,7 @@ export function DimensionList({
               </span>
               <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-sand">
                 <span
-                  className="block h-full rounded-full bg-sage-500"
+                  className={`block h-full rounded-control bg-sage-500 ${fill ? "fill" : ""}`}
                   style={{ width: `${(points / row.weight) * 100}%` }}
                 />
               </span>
@@ -167,7 +173,10 @@ export function DimensionList({
                 <span className="text-[12px] text-stone-500">/{row.weight}</span>
               </span>
             </summary>
-            <div className="mt-2 pl-0 text-[13px] leading-relaxed text-stone-500">
+            {/* The why drops out of the row that opened it (#227); a
+                closed <details> doesn't render it, so it plays on every
+                open and never on the page's load. */}
+            <div className="reveal mt-2 pl-0 text-[13px] leading-relaxed text-stone-500">
               {row.detail}
               {row.improve && (
                 <div className="mt-1 text-stone-600">↳ {row.improve}</div>

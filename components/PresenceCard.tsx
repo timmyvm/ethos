@@ -34,7 +34,7 @@ export function PresenceScore({
     return (
       <button
         onClick={onUpgrade}
-        className="press mt-3 flex w-full items-baseline gap-3.5 rounded-[24px] border border-hairline bg-surface p-4 text-left"
+        className="press mt-3 flex w-full items-baseline gap-3.5 rounded-card border border-hairline bg-surface p-4 text-left"
       >
         <div className="font-display text-[44px] font-bold leading-none text-stone-300">
           ···
@@ -93,7 +93,7 @@ export function PresenceDetail({
 }) {
   if (!premium) {
     return (
-      <div className="mt-4 rounded-[24px] border border-terracotta-100 bg-terracotta-50 p-5">
+      <div className="mt-4 rounded-card border border-terracotta-100 bg-terracotta-50 p-5">
         <div className="label-data !text-terracotta-600">
           Delivery · measured, not yet read out
         </div>
@@ -109,7 +109,7 @@ export function PresenceDetail({
         </p>
         <button
           onClick={onUpgrade}
-          className="press mt-3 w-full rounded-full bg-terracotta-500 px-4 py-3 text-[15px] font-semibold text-cream"
+          className="press mt-3 w-full rounded-control bg-terracotta-500 px-4 py-3 text-[15px] font-semibold text-on-accent"
         >
           See the readout
         </button>
@@ -122,7 +122,7 @@ export function PresenceDetail({
       {videoUrl && <VideoWithMarkers url={videoUrl} moments={moments} />}
 
       {moments.length > 0 && (
-        <div className="mt-4 rounded-[24px] border border-hairline bg-surface p-5">
+        <div className="mt-4 rounded-card border border-hairline bg-surface p-5">
           <div className="label-data">Delivery · with timestamps</div>
           <ul className="mt-2.5 space-y-2">
             {moments.map((m, i) => (
@@ -181,14 +181,14 @@ function VideoWithMarkers({
   }, []);
 
   return (
-    <div className="mt-4 rounded-[24px] border border-hairline bg-surface p-4">
+    <div className="mt-4 rounded-card border border-hairline bg-surface p-4">
       <div className="label-data">Playback · this device only</div>
       <video
         ref={ref}
         src={url}
         controls
         playsInline
-        className="mt-2.5 w-full rounded-[12px] bg-stage"
+        className="mt-2.5 w-full rounded-card bg-stage"
       />
       {duration > 0 && moments.length > 0 && (
         <div className="relative mt-2 h-2 rounded-full bg-sand">
@@ -224,7 +224,7 @@ function Stat({
   note: string;
 }) {
   return (
-    <div className="flex-1 rounded-[24px] border border-hairline bg-surface p-3.5">
+    <div className="flex-1 rounded-card border border-hairline bg-surface p-3.5">
       <div className="label-data">{label}</div>
       <div className="font-display text-[26px] font-bold">{value}</div>
       <div className="text-[11.5px] text-stone-500">{note}</div>

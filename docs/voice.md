@@ -80,6 +80,39 @@ If something doesn't fit this template, it isn't copy — it's a tooltip, a coll
 
 *(Three screens, twenty-eight words total. The warmth is in screen 1, the positioning is in screen 2, the promise is in screen 3. None of them explain anything.)*
 
+### Onboarding, the questions and the plan (12 Sep, DECISIONS #232; proposed, not from the transcript)
+
+Five screens after the three above, one question each, every answer a tap. The button holds "Next" until an answer on the essential four; "Skip" sits under it on every one. The options live in `content/portfolio.ts`.
+
+> ### How old are you?
+> It changes the prompts you get, nothing else.
+
+> ### What do you want this for?
+> Pick the closest.
+
+> ### What do you notice when you talk?
+> Up to three.
+
+> ### How much have you practised?
+> Roughly.
+
+> ### Where does it matter most?
+> Optional.
+
+The plan, built from the answers (the goal's headline; the lines from the table):
+
+> ### Hold the room.
+> Built from what you told me.
+>
+> **Your first month**
+> 1  Day 1: The baseline. Sixty seconds, measured.
+> 2  First number: words per minute against the 130 to 160 zone.
+> 3  Then Pace Control, the unit for rushing. Opens at 4 stars.
+>
+> [ Take the floor ]
+>
+> <sub>Your boss, when you're ready: Cold Topic.</sub>
+
 ---
 
 ### Home

@@ -124,7 +124,7 @@ twice, once `target: production`.)
 | What | Where | Cut cost |
 |---|---|---|
 | Landing page | `app/(marketing)/about/page.tsx` | Standalone. |
-| Onboarding | `app/welcome/page.tsx`, `WELCOME_STEPS` in `lib/onboarding.ts` | Standalone, three screens, no quiz. Copy is `docs/voice.md` verbatim (#209); it lives in lib so the word-budget test can read it. |
+| Onboarding | `app/welcome/page.tsx`, `lib/onboarding.ts`, `lib/answers.ts`, `lib/portfolio.ts`, `content/portfolio.ts` | Three intro screens (copy `docs/voice.md` verbatim, #209), five tap-only questions and the plan built from them (#232). Answers and the step persist on the device (`ethos.onboarding`) and sync to `public.onboarding` (migration 0009) via `lib/answers-sync.ts`. `content/portfolio.ts` is the ONE editable mapping; `lib/portfolio.test.ts` holds it to the road and the copy budget. Demos poses and loops in `components/DemosArt.tsx` (#233). |
 | Screen template | `components/LessonScreen.tsx` | Cutting it un-templates four screens. `<LessonScreen>` is the whole screen (onboarding, the unit intro); `<LessonBody>` is the text block, composed by the floor and the recording screen, which are more than an explanation. Neither can render a paragraph: no `children`, no `description` (#210). `lead` picks the hero — the tactics on a lesson screen, the name on the floor (#212). |
 | Unit intro | `app/lesson/[unit]/page.tsx`, `intro` on `lib/path.ts` | Trivial. One teaching screen per unit, shown on the way into a unit with no stars in it and never again. Only Filler Elimination has approved copy; the rest link straight to their first lesson. |
 | Accounts | `lib/auth.ts`, `app/signup`, `app/signin`, `app/auth/{forgot,reset,callback}` | Core now. Email + password, no social. The anonymous upgrade attaches credentials to the same auth user, so nothing migrates and nothing can be lost migrating. |
@@ -320,17 +320,21 @@ are not.
 
 ## Test coverage
 
-838 tests (1 Sep) across metrics and the substance gate, index scoring, coach
+973 tests (12 Sep) across metrics and the substance gate, index scoring, coach
 validation, boss accuracy, rep configuration, stress mods, drills, path,
 streak and freezes, level, achievements, insights, reminders, scheduling,
-rewards, the analyze route, Presence, judged metering, coins, auth rules
-and the copy bans. Run with `npm test`.
+rewards, the analyze route, Presence, judged metering, coins, auth rules,
+the copy bans, the motion tokens, the introduction's answers and the portfolio mapping. Run with `npm test`.
 
 The engine tests that matter most: the analyze route proves a forged
 form can't buy XP, that a boss rep is fact-checked and a daily one isn't,
 that a failed fact-check still returns the rep, that a capped rep is
 still stored (so the streak stands) and is never charged for an analysis
 it didn't get, and that Presence never moves the Ethos Index.
+
+`lib/motion.test.ts` is a linter too (#221): it holds `app/globals.css`'s
+`--duration-*` and `--ease-*` equal to `lib/motion.ts` and fails on any
+`duration-N` typed into a component.
 
 `lib/copy.test.ts` is a linter, not a unit test: it scans every `.tsx`
 under `app/` and `components/` for the banned word and asserts the

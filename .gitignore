@@ -32,3 +32,6 @@ yarn-error.log*
 # a 5.5MB model downloaded at build time. Staged by
 # scripts/fetch-pose-assets.mjs (npm run pose:assets), never committed.
 /public/pose/
+
+# The motion check writes its video, screenshot and findings here (scripts/check-motion.mjs).
+docs/devibe/motion-check/

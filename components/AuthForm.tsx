@@ -117,7 +117,7 @@ export function AuthForm({
         </p>
         <Link
           href="/"
-          className="press mt-6 block w-full rounded-full bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-cream"
+          className="press mt-6 block w-full rounded-control bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-on-accent"
         >
           Back to the floor
         </Link>
@@ -128,7 +128,7 @@ export function AuthForm({
   return (
     <Shell title={title}>
       {carrying && (
-        <div className="mt-4 rounded-[24px] border border-hairline bg-surface p-4">
+        <div className="mt-4 rounded-card border border-hairline bg-surface p-4">
           <div className="label-data">On this device</div>
           <p className="mt-1.5 text-[13.5px] leading-relaxed text-stone-600">
             {progress.reps} recording{progress.reps === 1 ? "" : "s"}
@@ -158,7 +158,7 @@ export function AuthForm({
         type="button"
         onClick={() => void google()}
         disabled={busy}
-        className="press mt-5 flex min-h-11 w-full items-center justify-center gap-2.5 rounded-full border border-stone-200 bg-surface px-6 py-3.5 text-[15.5px] font-semibold transition-colors hover:border-stone-300 disabled:opacity-60"
+        className="press mt-5 flex min-h-11 w-full items-center justify-center gap-2.5 rounded-control border border-stone-200 bg-surface px-6 py-3.5 text-[15.5px] font-semibold transition-colors hover:border-stone-300 disabled:opacity-60"
       >
         <GoogleMark />
         Continue with Google
@@ -187,7 +187,7 @@ export function AuthForm({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@email.com"
-          className="mt-1.5 w-full rounded-full border border-stone-200 bg-surface px-5 py-3.5 text-[16px] placeholder:text-stone-300 focus:border-stone-300"
+          className="mt-1.5 w-full rounded-control border border-stone-200 bg-surface px-5 py-3.5 text-[16px] placeholder:text-stone-400 focus:border-stone-300"
         />
 
         {!emailOnly && (
@@ -207,7 +207,7 @@ export function AuthForm({
               placeholder={
                 mode === "signup" ? "8 characters or more" : "••••••••"
               }
-              className="mt-1.5 w-full rounded-full border border-stone-200 bg-surface px-5 py-3.5 text-[16px] placeholder:text-stone-300 focus:border-stone-300"
+              className="mt-1.5 w-full rounded-control border border-stone-200 bg-surface px-5 py-3.5 text-[16px] placeholder:text-stone-400 focus:border-stone-300"
             />
             {mode === "signup" && (
               <p className="mt-1.5 text-[12px] text-stone-400">
@@ -225,7 +225,7 @@ export function AuthForm({
         )}
 
         {error && (
-          <p className="mt-4 rounded-[20px] bg-terracotta-50 px-4 py-3 text-[13.5px] leading-relaxed text-terracotta-700">
+          <p className="mt-4 rounded-card bg-terracotta-50 px-4 py-3 text-[13.5px] leading-relaxed text-terracotta-700">
             {error}
           </p>
         )}
@@ -233,7 +233,7 @@ export function AuthForm({
         <button
           type="submit"
           disabled={busy}
-          className="press mt-5 w-full rounded-full bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-cream transition-colors hover:bg-terracotta-600 disabled:opacity-60"
+          className="press mt-5 w-full rounded-control bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-on-accent transition-colors hover:bg-terracotta-600 disabled:opacity-60"
         >
           {busy ? "One moment…" : submitLabel}
         </button>

@@ -1,5 +1,5 @@
 /**
- * The only source of durations and easings (DESIGN-RULES.md, motion).
+ * The only source of durations and easings (DESIGN.md, continuity).
  *
  * Ethos animates in CSS — there is no animation library in the stack and
  * nothing here wants one — so these are milliseconds and cubic-bezier
@@ -15,6 +15,12 @@
  * Anything that reads a duration from here must also honour
  * `prefersReducedMotion()` (lib/prefs) — collapse to an opacity fade, or
  * to nothing.
+ *
+ * The same numbers live in app/globals.css as `--duration-*` and
+ * `--ease-*`, for the animations CSS drives (the `.arrive`, `.reveal`,
+ * `.fill`, `.star-land` and sheet classes; DECISIONS #221), and
+ * lib/motion.test.ts asserts the two copies match. Reduced motion on
+ * the CSS side is `data-motion="reduce"` on <html> (components/Theme).
  */
 
 export const DURATION = {

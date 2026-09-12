@@ -167,7 +167,10 @@ export default function ShopPage() {
       </p>
 
       {note && (
-        <p className="mt-4 rounded-[10px] border border-edge bg-raised px-4 py-3 text-[13px] font-semibold">
+        <p
+          key={note}
+          className="arrive mt-4 rounded-control border border-edge bg-raised px-4 py-3 text-[13px] font-semibold"
+        >
           {note}
         </p>
       )}
@@ -183,11 +186,11 @@ export default function ShopPage() {
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className="rounded-[14px] border border-edge bg-raised p-4"
+              className="rounded-card border border-edge bg-raised p-4"
             >
               <Skeleton className="h-4 w-32" />
               <Skeleton className="mt-2.5 h-3 w-full" />
-              <Skeleton className="mt-3 h-9 w-full" rounded="rounded-[10px]" />
+              <Skeleton className="mt-3 h-9 w-full" rounded="rounded-control" />
             </div>
           ))}
         </SkeletonRegion>
@@ -206,7 +209,7 @@ export default function ShopPage() {
             return (
               <div
                 key={item.id}
-                className="rounded-[14px] border border-edge bg-raised p-4"
+                className="rounded-card border border-edge bg-raised p-4"
               >
                 {/* You can see what you're buying. A cosmetic sold as a
                     name and a price is a cosmetic bought blind, which is
@@ -221,7 +224,7 @@ export default function ShopPage() {
                       className="demos h-[46px] w-[46px] shrink-0 object-contain"
                     />
                   ) : (
-                    <span className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl border border-sage-300 text-sage-700">
+                    <span className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-card border border-sage-300 text-sage-700">
                       <IconFreeze size={20} />
                     </span>
                   )}
@@ -234,7 +237,7 @@ export default function ShopPage() {
                           already-owned price fades to faint. */}
                       <span
                         className={`flex shrink-0 items-baseline gap-1.5 ${
-                          isOwned ? "text-stone-300" : ""
+                          isOwned ? "text-stone-400" : ""
                         }`}
                       >
                         <span
@@ -257,7 +260,7 @@ export default function ShopPage() {
                      your card. */
                   <button
                     onClick={() => equip(pose === item.id ? null : item.id)}
-                    className={`press font-display mt-3 w-full rounded-[10px] px-5 py-2.5 text-[13px] font-bold transition-colors ${
+                    className={`press font-display mt-3 w-full rounded-control px-5 py-2.5 text-[13px] font-bold transition-colors ${
                       pose === item.id
                         ? "border border-sage-300 bg-sage-100 text-sage-700"
                         : "border border-sage-300 text-sage-700 hover:bg-sage-100"
@@ -280,9 +283,9 @@ export default function ShopPage() {
                      * olive-filled when it opens, an outline when the
                      * coins aren't there yet (#131, #201).
                      */
-                    className={`press font-display mt-3 w-full rounded-[10px] px-5 py-2.5 text-[13px] font-bold transition-colors ${
+                    className={`press font-display mt-3 w-full rounded-control px-5 py-2.5 text-[13px] font-bold transition-colors ${
                       state.ok
-                        ? "bg-sage-500 text-sage-ink hover:bg-sage-600"
+                        ? "bg-sage-700 text-sage-ink hover:bg-sage-800"
                         : "border border-stone-200 bg-surface text-stone-400"
                     }`}
                   >

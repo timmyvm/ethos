@@ -33,21 +33,68 @@ export const WELCOMED_KEY = "ethos.welcomed";
  */
 export const WELCOME_STEPS = [
   {
-    art: "/demos-listening.webp",
+    art: "/demos-onboard-listening.webp",
     title: "Hey. I know why you're here.",
     line: "You can already talk. You just want to be better at it.",
   },
   {
-    art: "/demos-speaking.webp",
+    art: "/demos-onboard-speaking.webp",
     title: "A coach costs $5,000.",
     line: "This is sixty seconds a day.",
   },
   {
-    art: "/demos-celebrate.webp",
+    art: "/demos-onboard-celebrate.webp",
     title: "That's the whole ask.",
     line: "You won't notice it working. Other people will.",
   },
 ] as const;
+
+/**
+ * The five questions after the introduction (DECISIONS #232), one per
+ * screen, every answer a tap, Skip on every one. Same template, same
+ * budget (lib/copy.test.ts reads these). The answers and what they do
+ * live in lib/answers.ts and content/portfolio.ts.
+ */
+export const QUESTIONS = [
+  {
+    id: "ageBand",
+    title: "How old are you?",
+    line: "It changes the prompts you get, nothing else.",
+    essential: true,
+  },
+  {
+    id: "goal",
+    title: "What do you want this for?",
+    line: "Pick the closest.",
+    essential: true,
+  },
+  {
+    id: "pains",
+    title: "What do you notice when you talk?",
+    line: "Up to three.",
+    essential: true,
+  },
+  {
+    id: "level",
+    title: "How much have you practised?",
+    line: "Roughly.",
+    essential: true,
+  },
+  {
+    id: "context",
+    title: "Where does it matter most?",
+    line: "Optional.",
+    essential: false,
+  },
+] as const;
+
+export type QuestionId = (typeof QUESTIONS)[number]["id"];
+
+export const PLAN_COPY = {
+  label: "Your first month",
+  action: "Take the floor",
+  done: "Done",
+} as const;
 
 /** Supabase-js persists its session under `sb-<project-ref>-auth-token`. */
 const SB_SESSION = /^sb-.+-auth-token$/;

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { CountUp } from "@/components/CountUp";
+import { IconChevron } from "@/components/Icon";
 import { FillerHeatmap } from "@/components/FillerHeatmap";
 import { Paywall, type PaywallAsk } from "@/components/Paywall";
 import { ScoreCard } from "@/components/ScoreCard";
@@ -33,7 +34,19 @@ import { starsByLesson, totalStars, UNITS } from "@/lib/path";
 const FREE_DAYS = 7; // mechanics.md: free tier sees the last 7 days
 const DASH = "—";
 /** A formatted value CountUp can tick: whole digits, no decimal point. */
-const WHOLE = /^-?\d+$/;
+/** A cell the count can drive: a plain number, with or without a decimal. */
+const NUMERIC = /^-?\d+(\.\d+)?$/;
+
+/**
+ * Count a value back in the shape the table already printed it: the
+ * running number keeps the same number of decimal places as the final
+ * one, so a row never changes width mid-tick and never shows the user a
+ * precision the app does not claim.
+ */
+function decimalsOf(printed: string): (value: number) => string {
+  const places = printed.split(".")[1]?.length ?? 0;
+  return (value: number) => value.toFixed(places);
+}
 
 /** The two grids, shared by header and rows so the columns line up. */
 const MOVED_GRID = "grid grid-cols-[minmax(0,1fr)_36px_42px_74px_44px] gap-2";
@@ -153,7 +166,7 @@ export default function HistoryPage() {
 
   return (
     <main className="px-5 pb-22 pt-7">
-      {/* One entrance per band (#243). The read landing is still one
+      {/* One entrance per band (#245). The read landing is still one
           event, but the two tables are lists, and a list assembles
           itself: `.stagger` ladders each section's eyebrow, column head
           and rows 40ms apart. It REPLACES the block's `.arrive` — a row
@@ -221,7 +234,7 @@ export default function HistoryPage() {
                 onClick={() => setShowFillers((v) => !v)}
                 className="press block w-full text-left"
               >
-                <MetricRow row={row} dim={empty} />
+                <MetricRow row={row} dim={empty} open={showFillers} />
               </button>
               {showFillers && (
                 /* `.reveal`: the panel drops out of the row that opened
@@ -444,7 +457,22 @@ function Cell({ children }: { children: number }) {
  * the number moved the right way, rust when it didn't, stone when it
  * hasn't moved or has nowhere to move from yet.
  */
-function MetricRow({ row, dim = false }: { row: MovedRow; dim?: boolean }) {
+function MetricRow({
+  row,
+  dim = false,
+  open,
+}: {
+  row: MovedRow;
+  dim?: boolean;
+  /**
+   * Present only on the row that opens the heatmap. The chevron is the
+   * app's disclosure grammar (LessonScreen's "Why this works"): one
+   * glyph that turns over in 120ms, so the tap is answered before the
+   * panel has finished dropping, and the row says it opens before
+   * anyone taps it.
+   */
+  open?: boolean;
+}) {
   const tone =
     row.direction === "up"
       ? "text-sage-700"
@@ -457,8 +485,17 @@ function MetricRow({ row, dim = false }: { row: MovedRow; dim?: boolean }) {
         dim ? "text-stone-400" : ""
       }`}
     >
-      <span className="font-display truncate text-[14px] font-bold">
-        {row.label}
+      <span className="font-display flex min-w-0 items-center gap-1 text-[14px] font-bold">
+        <span className="truncate">{row.label}</span>
+        {open !== undefined && (
+          <span
+            aria-hidden
+            data-open={open}
+            className="disclosure-mark shrink-0 text-stone-300"
+          >
+            <IconChevron size={14} />
+          </span>
+        )}
       </span>
       <span
         className={`font-display text-right text-caption font-extrabold tabular-nums ${
@@ -468,13 +505,17 @@ function MetricRow({ row, dim = false }: { row: MovedRow; dim?: boolean }) {
         {row.then ?? DASH}
       </span>
       <span className="font-display text-right text-[17px] font-extrabold tabular-nums">
-        {/* `now` is already formatted (lib/log), so a row that prints a
-            decimal — "2.8" fillers a minute — cannot count: CountUp
-            renders integers, and rounding a number the user reads to
-            make it tick would animate a value the app does not report.
-            Those rows land whole; the rest tick. */}
-        {WHOLE.test(row.now ?? "") ? (
-          <CountUp value={Number(row.now)} durationMs={DURATION.max} />
+        {/* `now` is already formatted (lib/log), so the count has to
+            print it back the same way: a row reading "2.8" fillers a
+            minute keeps its decimal on every frame, and a row reading
+            "155" stays whole. Rounding a number the user reads, to make
+            it tick, would animate a value the app does not report. */}
+        {NUMERIC.test(row.now ?? "") ? (
+          <CountUp
+            value={Number(row.now)}
+            durationMs={DURATION.max}
+            format={decimalsOf(row.now!)}
+          />
         ) : (
           (row.now ?? DASH)
         )}

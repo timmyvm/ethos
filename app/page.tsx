@@ -332,19 +332,35 @@ export default function Home() {
                  * the reason always carries the number that chose it, so
                  * the call stays checkable.
                  */}
-                <LessonBody
-                  align="center"
-                  title={dayLine}
-                  line={unitName}
-                  /* Day one carries what they said they notice, in their
+                {/*
+                 * The lesson NAME is the one thing on this card that
+                 * changes after a read: `todaysDrill()` paints instantly,
+                 * then the history says which lesson is actually next,
+                 * and three lines of type swapped in place (#242's strip
+                 * caught it between 160 and 240ms). Keyed on the lesson,
+                 * so the settled name rises its 6px instead of flicking
+                 * over the placeholder — and unkeyed until the read
+                 * lands, so a cold open still paints the floor with no
+                 * entrance at all (#224).
+                 */}
+                <div
+                  key={reps === null ? "floor-pending" : drill.id}
+                  className={reps === null ? undefined : "arrive dur-fast"}
+                >
+                  <LessonBody
+                    align="center"
+                    title={dayLine}
+                    line={unitName}
+                    /* Day one carries what they said they notice, in their
                  words (#231); after that the number decides the line. */
-                  note={
-                    dayOne
-                      ? dayOneNote(answers)
-                      : (gap ??
-                        (focus.strength !== null ? focus.reason : undefined))
-                  }
-                />
+                    note={
+                      dayOne
+                        ? dayOneNote(answers)
+                        : (gap ??
+                          (focus.strength !== null ? focus.reason : undefined))
+                    }
+                  />
+                </div>
                 {/*
                  * Demos peeks in from the right, just above the tap.
                  *

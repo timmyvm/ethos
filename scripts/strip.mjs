@@ -7,13 +7,16 @@
  * The strip is composed in the browser that took it — five data URLs in
  * a flex row, screenshotted — which is why this needs no image library.
  *
- *   node scripts/strip.mjs <name> <url> <selector> [--dark] [--full]
+ *   node scripts/strip.mjs <name> <url> <selector> [--dark] [--full] [--wall]
  *   node scripts/strip.mjs tab-log / 'nav a[href="/history"]'
  *   node scripts/strip.mjs mods / 'button:has-text("Make it harder")'
  *
  * Writes docs/look/strips/<name>-{light,dark}.png. The selector is
  * tapped; if it is the literal string "load" the strip is the page's own
- * first 400ms instead.
+ * first 400ms instead. Frames after the first are SEEKED through the Web
+ * Animations API rather than waited for, because a screenshot costs
+ * longer than the animation being photographed; `--wall` waits in real
+ * time instead, for anything JavaScript drives frame by frame.
  */
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -92,10 +95,51 @@ if (SELECTOR === "load") {
   await target.dispatchEvent("click");
 }
 
+/*
+ * The frames are SEEKED, not waited for. A `page.screenshot()` round
+ * trip costs 450 to 700ms on this machine, so sleeping 80ms between
+ * shutters put the "80ms" caption at about 700ms and the "400ms" one
+ * past two seconds — every transition under 300ms looked finished by
+ * frame two, and a strip that cannot photograph a 200ms animation
+ * cannot answer the question it exists to answer.
+ *
+ * The Web Animations API gives the exact frame instead: let the tap
+ * start everything, pause every running animation and transition, then
+ * set each one's clock to the moment we want and shoot. Deterministic,
+ * and free of whatever else the box is doing.
+ *
+ * `--wall` keeps the old behaviour for anything JavaScript drives on its
+ * own animation frame (the count-ups), which has no clock to seek.
+ */
+const WALL = FLAGS.includes("--wall");
+
+if (!WALL) {
+  // Let React paint and the animations be created, then stop the world.
+  await sleep(30);
+  await page.evaluate(() => {
+    window.__strip = document.getAnimations();
+    for (const a of window.__strip) a.pause();
+  });
+}
+
 let last = 0;
 for (const at of AT.slice(1)) {
-  await sleep(at - last);
-  last = at;
+  if (WALL) {
+    await sleep(at - last);
+    last = at;
+  } else {
+    await page.evaluate((t) => {
+      for (const a of window.__strip ?? []) {
+        try {
+          a.currentTime = t;
+        } catch {
+          // A finished or cancelled animation has no settable clock.
+        }
+      }
+    }, at);
+    // One frame for the compositor to draw the seeked state.
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  }
   await shoot();
 }
 

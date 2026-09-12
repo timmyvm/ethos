@@ -1,3 +1,7 @@
+"use client";
+
+import { CountUp } from "@/components/CountUp";
+import { DURATION } from "@/lib/motion";
 import type { StreakState } from "@/lib/streak";
 
 /**
@@ -21,7 +25,8 @@ export function StreakBadge({ streak }: { streak: StreakState }) {
 
   return (
     <span className="font-display text-[13px] font-bold uppercase tracking-[0.02em] text-sage-700 tabular-nums">
-      Streak {streak.current}
+      Streak{" "}
+      <CountUp value={streak.current} durationMs={DURATION.max} />
       {streak.atRisk && (
         <span className="normal-case opacity-70"> · today&apos;s open</span>
       )}

@@ -822,6 +822,23 @@ body::after {
   transform-origin: left center;
   animation: fill var(--duration-max) var(--ease-out) backwards;
 }
+
+/*
+ * The same landing for a bar that grows UP rather than along: the
+ * filler heatmap's columns stand on a baseline, so `scaleX` from the
+ * left had nothing to say to them and they were the one set of bars in
+ * the app that could not fill (#247).
+ */
+@keyframes fill-y {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+.fill-y {
+  transform-origin: center bottom;
+  animation: fill-y var(--duration-max) var(--ease-out) backwards;
+}
 .star-land {
   display: inline-block;
   animation: star-land var(--duration-max) var(--ease-out) backwards;
@@ -1004,7 +1021,7 @@ body::after {
 :root[data-motion="reduce"] .sheet-panel[data-closing="true"] {
   animation-name: fade-out;
 }
-:root[data-motion="reduce"] :is(.fill, .rec-ring) {
+:root[data-motion="reduce"] :is(.fill, .fill-y, .rec-ring) {
   animation: none;
   transition: none;
   transform: none;

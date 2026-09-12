@@ -136,8 +136,18 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
         /* The card the tap produced: it arrives over the button it
            replaced, rather than cutting in when the canvas finishes. */
         <div className="arrive elev-1 rounded-card border border-card-edge bg-raised p-4">
+          {/* The story ratio, stated: the canvas is 1080x1920 and a data
+              URL has no intrinsic size until it decodes, so without this
+              the card arrives at one height and grows to another
+              mid-animation. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={url} alt="Your progress card" className="w-full rounded-control" />
+          <img
+            src={url}
+            alt="Your progress card"
+            width={1080}
+            height={1920}
+            className="aspect-[1080/1920] w-full rounded-control"
+          />
           <a
             href={url}
             download="ethos-progress.png"

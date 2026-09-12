@@ -214,9 +214,12 @@ export default function ShopPage() {
           label="Loading the shop"
           className="mt-7 flex flex-col gap-3"
         >
-          {[0, 1, 2].map((i) => (
+          {/* One skeleton card per item, not three for four: a
+              placeholder that reserves the wrong height IS the layout
+              shift it exists to prevent (#234). */}
+          {SHOP.map((item) => (
             <div
-              key={i}
+              key={item.id}
               className="elev-1 rounded-card border border-card-edge bg-raised p-4"
             >
               <Skeleton className="h-4 w-32" />

@@ -21,10 +21,19 @@ export function CountUp({
   value,
   durationMs = DURATION.celebrate,
   className,
+  format = round,
 }: {
   value: number;
   durationMs?: number;
   className?: string;
+  /**
+   * How the running value is written. The default rounds, which is
+   * right for a score and wrong for the two numbers it was quietly
+   * refusing to animate: total XP reads 1,195 with a separator and
+   * fillers-per-minute reads 2.8 with a decimal, and a tick that
+   * degrades the number underneath it is worse than no tick.
+   */
+  format?: (value: number) => string;
 }) {
   const [shown, setShown] = useState(value);
   const raf = useRef(0);
@@ -35,7 +44,7 @@ export function CountUp({
       return;
     }
     // Start low enough to feel like a climb without a silly long count.
-    const from = Math.max(0, Math.round(value * 0.82));
+    const from = Math.max(0, value * 0.82);
     const start = performance.now();
     setShown(from);
 
@@ -43,12 +52,19 @@ export function CountUp({
       const t = Math.min(1, (now - start) / durationMs);
       // Ease-out: fast then settling, so the last digits land softly.
       const eased = 1 - Math.pow(1 - t, 3);
-      setShown(Math.round(from + (value - from) * eased));
+      // Carried as a float and rounded by `format`, so a decimal can
+      // count without the component deciding it is an integer.
+      setShown(t < 1 ? from + (value - from) * eased : value);
       if (t < 1) raf.current = requestAnimationFrame(tick);
     };
     raf.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf.current);
   }, [value, durationMs]);
 
-  return <span className={className}>{shown}</span>;
+  return <span className={className}>{format(shown)}</span>;
+}
+
+/** The default: a whole number, which is what most of them are. */
+function round(value: number): string {
+  return String(Math.round(value));
 }

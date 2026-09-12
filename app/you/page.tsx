@@ -75,7 +75,14 @@ export default function YouPage() {
    */
   const [reps, setReps] = useState<RepRow[] | null>(null);
   const [failed, setFailed] = useState(false);
-  const [lexicon, setLexicon] = useState<LexiconRow[]>([]);
+  /**
+   * `null` until the read lands, like `reps` and `xp`. Starting at `[]`
+   * printed "Upgrades from your own recordings collect here." to
+   * someone with forty upgrades for as long as the fetch took, and then
+   * laddered the real rows in over that correction. A placeholder row
+   * holds the space instead.
+   */
+  const [lexicon, setLexicon] = useState<LexiconRow[] | null>(null);
   /**
    * `null` until the XP read lands, for the same reason `reps` is: the
    * level card and "this week" are derived from it, and a zero that has
@@ -156,7 +163,9 @@ export default function YouPage() {
 
   useEffect(() => {
     void load();
-    fetchLexicon().then(setLexicon).catch(() => {});
+    fetchLexicon()
+      .then(setLexicon)
+      .catch(() => setLexicon([]));
     fetchXp()
       .then(setXp)
       .catch(() => setXp({ total: 0, week: 0 }));
@@ -316,11 +325,16 @@ export default function YouPage() {
             {counting ? (
               <Skeleton className="mt-1.5 ml-auto h-5 w-14" />
             ) : (
-              /* Not a CountUp: this is the one number on the page with a
-                 thousands separator, and CountUp renders a bare integer,
-                 so ticking it would print 1195 where the page says
-                 1,195. Reported rather than degraded. */
-              <div className="font-display text-[20px] font-extrabold tabular-nums">{xp.total.toLocaleString()}</div>
+              /* The separator survives the tick: `format` writes every
+                 frame the way the page writes the final number, so this
+                 never flashes 1195 on its way to 1,195. */
+              <div className="font-display text-[20px] font-extrabold tabular-nums">
+                <CountUp
+                  value={xp.total}
+                  durationMs={DURATION.max}
+                  format={(v) => Math.round(v).toLocaleString()}
+                />
+              </div>
             )}
           </div>
         </div>
@@ -548,13 +562,26 @@ export default function YouPage() {
       <div className="label-data mt-7 border-t border-hairline pt-3">
         Your lexicon
       </div>
-      {lexicon.length === 0 ? (
+      {lexicon === null ? (
+        /* Three rows, the free tier's share, at the height of the real
+           ones so the shelf under them doesn't move when they land. */
+        <div className="mt-1" aria-busy="true">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="flex items-center border-b border-hairline py-3"
+            >
+              <Skeleton className="h-5 w-48" />
+            </div>
+          ))}
+        </div>
+      ) : lexicon.length === 0 ? (
         <p className="mt-3 text-caption text-stone-500">
           Upgrades from your own recordings collect here.
         </p>
       ) : (
         <>
-          {/* The archive is a list, so it assembles itself (#243): one
+          {/* The archive is a list, so it assembles itself (#245): one
               row every 40ms, capped at the eighth. Nothing above it
               carries an `.arrive`, so this is the block's one
               entrance. */}

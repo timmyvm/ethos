@@ -26,7 +26,7 @@ export function FillerHeatmap({ reps }: { reps: RepRow[] }) {
           <div key={i} className="flex flex-1 flex-col items-center gap-1.5">
             <div className="flex w-full flex-1 items-end">
               <div
-                className="w-full bg-terracotta-300"
+                className="fill-y w-full bg-terracotta-300"
                 style={{
                   height: `${peak ? Math.max(4, (n / peak) * 100) : 4}%`,
                 }}
@@ -51,7 +51,7 @@ export function FillerHeatmap({ reps }: { reps: RepRow[] }) {
               </span>
               <span className="h-[5px] flex-1 overflow-hidden bg-sand">
                 <span
-                  className="block h-full bg-stone-400"
+                  className="fill block h-full bg-stone-400"
                   style={{ width: `${(n / tallyTotal) * 100}%` }}
                 />
               </span>

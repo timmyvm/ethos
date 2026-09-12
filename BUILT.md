@@ -320,17 +320,21 @@ are not.
 
 ## Test coverage
 
-838 tests (1 Sep) across metrics and the substance gate, index scoring, coach
+944 tests (12 Sep) across metrics and the substance gate, index scoring, coach
 validation, boss accuracy, rep configuration, stress mods, drills, path,
 streak and freezes, level, achievements, insights, reminders, scheduling,
-rewards, the analyze route, Presence, judged metering, coins, auth rules
-and the copy bans. Run with `npm test`.
+rewards, the analyze route, Presence, judged metering, coins, auth rules,
+the copy bans and the motion tokens. Run with `npm test`.
 
 The engine tests that matter most: the analyze route proves a forged
 form can't buy XP, that a boss rep is fact-checked and a daily one isn't,
 that a failed fact-check still returns the rep, that a capped rep is
 still stored (so the streak stands) and is never charged for an analysis
 it didn't get, and that Presence never moves the Ethos Index.
+
+`lib/motion.test.ts` is a linter too (#221): it holds `app/globals.css`'s
+`--duration-*` and `--ease-*` equal to `lib/motion.ts` and fails on any
+`duration-N` typed into a component.
 
 `lib/copy.test.ts` is a linter, not a unit test: it scans every `.tsx`
 under `app/` and `components/` for the banned word and asserts the

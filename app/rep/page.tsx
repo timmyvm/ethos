@@ -1082,7 +1082,7 @@ function RepScreen() {
 
       <div className="flex flex-1 flex-col items-center justify-center gap-6">
         {phase === "frame" && (
-          <div className="w-full">
+          <div className="arrive w-full">
             <div className="flex items-baseline justify-between">
               <div className="font-display text-[40px] font-bold leading-none">
                 {frameLeft}
@@ -1125,9 +1125,9 @@ function RepScreen() {
         )}
 
         {phase === "recording" && (
-          <>
+          <div className="arrive flex w-full flex-col items-center gap-6">
             <div
-              className={`font-display text-[54px] font-bold leading-none ${
+              className={`font-display text-[54px] font-bold leading-none transition-colors ${
                 config.maxSeconds - seconds <= 10 ? "text-terracotta-600" : ""
               }`}
             >
@@ -1146,18 +1146,18 @@ function RepScreen() {
              */}
             <div className="flex h-[18px] items-center">
               <span
-                className={`text-[12.5px] leading-none text-stone-400 transition-opacity duration-500 ${
+                className={`text-[12.5px] leading-none text-stone-400 transition-opacity dur-max ${
                   liveTip ? "opacity-100" : "opacity-0"
                 }`}
               >
                 {liveTip ?? ""}
               </span>
             </div>
-          </>
+          </div>
         )}
 
         {phase === "analyzing" && (
-          <div className="w-full text-center" role="status">
+          <div className="arrive w-full text-center" role="status">
             <ScoringWave levels={scoringWave} />
             <div className="font-display mt-4 text-xl font-bold">
               Scoring…
@@ -1287,23 +1287,33 @@ function RepScreen() {
           ))}
 
         {phase !== "analyzing" && phase !== "frame" && !micBlock && (
-          <button
-            onClick={
-              phase === "recording" ? () => void stopRep() : () => begin()
-            }
-            aria-label={
-              phase === "recording"
-                ? "Stop and score this recording"
-                : "Start recording"
-            }
-            className={`h-24 w-24 rounded-full border border-transparent text-[15px] font-bold transition-colors ${
-              phase === "recording"
-                ? "bg-ink text-ground ring-[10px] ring-terracotta-100"
-                : "bg-terracotta-500 text-cream hover:bg-terracotta-600"
-            }`}
-          >
-            {phase === "recording" ? "Stop" : "Record"}
-          </button>
+          <div className="relative">
+            {/* The ring is its own element so it can grow out of the
+                button by transform alone (#228): a Tailwind ring is a
+                box-shadow, which neither animates nor belongs here. */}
+            <span
+              aria-hidden
+              className="rec-ring"
+              data-on={phase === "recording" || undefined}
+            />
+            <button
+              onClick={
+                phase === "recording" ? () => void stopRep() : () => begin()
+              }
+              aria-label={
+                phase === "recording"
+                  ? "Stop and score this recording"
+                  : "Start recording"
+              }
+              className={`relative h-24 w-24 rounded-full border border-transparent text-[15px] font-bold transition-colors dur-base ${
+                phase === "recording"
+                  ? "bg-ink text-ground"
+                  : "bg-terracotta-500 text-cream hover:bg-terracotta-600"
+              }`}
+            >
+              {phase === "recording" ? "Stop" : "Record"}
+            </button>
+          </div>
         )}
 
         {/*
@@ -1341,7 +1351,7 @@ function RepScreen() {
 
       {interruption && (
         <div className="pointer-events-none fixed inset-x-0 bottom-24 z-40 flex justify-center px-5">
-          <div className="flex max-w-[340px] items-center gap-3 rounded-[24px] bg-stage px-4 py-3 text-cream">
+          <div className="arrive flex max-w-[340px] items-center gap-3 rounded-[24px] bg-stage px-4 py-3 text-cream">
             <Image
               src="/demos-speaking.webp"
               alt=""
@@ -1532,13 +1542,18 @@ function Results({
         <span className="label-data ml-1 shrink-0">{STEPS[step].label}</span>
       </div>
 
-      <div className="flex-1">
+      {/* Keyed on the step: the next screen of the walk comes in from
+          the right, where the button pointed (DECISIONS #223). The
+          header and the step bar above stay put, so the walk reads as
+          one screen turning pages rather than three screens. */}
+      <div key={step} className="arrive-x flex-1">
         {step === 0 && <GainsRow gains={gains} />}
         <RepResult
           result={result}
           topic={config.topic}
           section={section}
           baseline={repCountBefore === 0}
+          live
         />
 
         {/*

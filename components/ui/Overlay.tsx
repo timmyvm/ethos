@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { DURATION } from "@/lib/motion";
 
 /**
  * Every layer that sits over the app: the paywall sheet, the mods sheet,
@@ -18,6 +19,14 @@ import { useEffect, useRef } from "react";
  *    whatever opened it on close — a keyboard user who dismisses a sheet
  *    lands back on the button they pressed, not at the top of the page
  *  - the page behind stops scrolling
+ *
+ * And the motion (DECISIONS #222): a sheet rises from the bottom edge
+ * and goes back the way it came. Every way of closing (Escape, the
+ * scrim, a button inside) goes through `requestClose`, which plays the
+ * exit with the sheet still mounted and only then calls `onClose`, so
+ * the parent's conditional render unmounts a sheet that has already
+ * left. A full-screen layer fades in and leaves on its own terms (the
+ * celebration owns its slow fade), so it closes at once.
  */
 
 const FOCUSABLE =
@@ -42,6 +51,35 @@ export function Overlay({
   children: React.ReactNode;
 }) {
   const panel = useRef<HTMLDivElement>(null);
+  const [closing, setClosing] = useState(false);
+  // The latest handler, read at close time: the parent passes a fresh
+  // arrow every render, and re-running the setup effect for each one
+  // re-focused the panel mid-form.
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  const closed = useRef(false);
+
+  const finish = useCallback(() => {
+    if (closed.current) return;
+    closed.current = true;
+    closeRef.current();
+  }, []);
+
+  const requestClose = useCallback(() => {
+    if (variant !== "sheet") {
+      finish();
+      return;
+    }
+    setClosing(true);
+  }, [variant, finish]);
+
+  // The exit's end is the animation's end; the timer is the floor under
+  // it, for the one browser that never fires the event.
+  useEffect(() => {
+    if (!closing) return;
+    const t = setTimeout(finish, DURATION.base + 80);
+    return () => clearTimeout(t);
+  }, [closing, finish]);
 
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
@@ -49,7 +87,7 @@ export function Overlay({
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
         e.stopPropagation();
-        onClose();
+        requestClose();
         return;
       }
       if (e.key !== "Tab" || !panel.current) return;
@@ -88,17 +126,18 @@ export function Overlay({
       document.body.style.overflow = previousOverflow;
       opener?.focus?.();
     };
-  }, [onClose]);
+  }, [requestClose]);
 
-  const position =
-    variant === "sheet"
-      ? "flex items-end justify-center bg-stage/60"
-      : "flex flex-col items-center justify-center";
+  const sheet = variant === "sheet";
+  const position = sheet
+    ? "sheet-scrim flex items-end justify-center bg-stage/60"
+    : "flex flex-col items-center justify-center";
 
   return (
     <div
       className={`fixed inset-0 z-50 ${position}`}
-      onClick={onClose}
+      data-closing={closing || undefined}
+      onClick={requestClose}
       role="dialog"
       aria-modal="true"
       aria-label={label}
@@ -107,8 +146,12 @@ export function Overlay({
         ref={panel}
         tabIndex={-1}
         style={style}
+        data-closing={closing || undefined}
         onClick={(e) => e.stopPropagation()}
-        className={`outline-none ${className}`}
+        onAnimationEnd={(e) => {
+          if (closing && e.target === panel.current) finish();
+        }}
+        className={`outline-none ${sheet ? "sheet-panel" : "arrive"} ${className}`}
       >
         {children}
       </div>

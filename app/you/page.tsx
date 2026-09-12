@@ -294,13 +294,17 @@ export default function YouPage() {
             )}
           </div>
         </div>
+        {/* The trough paints at once; the bar fills when the number it
+            reports has landed (#225), never over a skeleton. */}
         <div className="mt-4 h-1.5 overflow-hidden bg-sand">
-          <div
-            className="h-full bg-sage-500"
-            style={{
-              width: `${(level.intoLevel / level.forNext) * 100}%`,
-            }}
-          />
+          {!loading && (
+            <div
+              className="fill h-full bg-sage-500"
+              style={{
+                width: `${(level.intoLevel / level.forNext) * 100}%`,
+              }}
+            />
+          )}
         </div>
         <div className="mt-1.5 flex justify-between">
           {loading ? (
@@ -363,7 +367,7 @@ export default function YouPage() {
                       /* The leader wears the earned olive; the rest sit
                          one step dimmer (#201) — position is the claim. */
                       <span
-                        className={`block h-full ${
+                        className={`fill block h-full ${
                           i === 0 ? "bg-sage-500" : "bg-sage-400"
                         }`}
                         style={{ width: `${(t.level / top) * 100}%` }}
@@ -421,12 +425,14 @@ export default function YouPage() {
             at the next buyable thing, and it isn't a tap (#165's flag,
             carried into #201). */}
         <div className="mt-2.5 h-[5px] overflow-hidden bg-sand">
-          <div
-            className="h-full bg-terracotta-500"
-            style={{
-              width: `${coins === null ? 0 : towardFirstItem(coins).fraction * 100}%`,
-            }}
-          />
+          {coins !== null && (
+            <div
+              className="fill h-full bg-terracotta-500"
+              style={{
+                width: `${towardFirstItem(coins).fraction * 100}%`,
+              }}
+            />
+          )}
         </div>
         {!loading && coins === null && (
           <ErrorLine className="mt-2" onRetry={() => void loadCoins(dates)}>

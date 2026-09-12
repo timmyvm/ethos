@@ -338,7 +338,7 @@ export default function Home() {
               </button>
             </div>
             {showMods && (
-              <div className="mt-2">
+              <div className="reveal mt-2">
                 <ModPicker
                   selected={mods}
                   onChange={setMods}
@@ -373,6 +373,14 @@ export default function Home() {
         />
       )}
 
+      {/*
+       * Everything the history read paints, in one arrival (DECISIONS
+       * #224): the score card over its skeleton, the save line, the
+       * road. One fade for one event, the read landing; the floor
+       * above needs no round trip and never fades.
+       */}
+      {reps !== null && (
+      <div className="arrive">
       {history.length > 0 && (
         <ScoreCard
           index={lastIndex}
@@ -420,8 +428,8 @@ export default function Home() {
           is what scrolling reveals, all of it, without a tab switch. */}
       {/* Only once the reps are in hand: a road drawn from an unread
           history shows nought stars to someone who has earned twenty. */}
-      {reps !== null && (
-        <PathRoad starMap={starMap} hasAnyRep={history.length > 0} />
+      <PathRoad starMap={starMap} hasAnyRep={history.length > 0} />
+      </div>
       )}
 
       {paywall && <Paywall reason={paywall} onClose={() => setPaywall(null)} />}

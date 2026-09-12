@@ -43,6 +43,7 @@ export default function Welcome() {
   return (
     <LessonScreen
       center
+      stepKey={i}
       title={step.title}
       line={step.line}
       action={

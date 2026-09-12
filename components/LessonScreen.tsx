@@ -187,6 +187,7 @@ export function LessonScreen({
   aside,
   footer,
   center = false,
+  stepKey,
   ...body
 }: LessonBodyProps & {
   /** The one terracotta tap (brand.md: exactly one per screen). */
@@ -214,14 +215,28 @@ export function LessonScreen({
    * what it weighs.
    */
   center?: boolean;
+  /**
+   * For a screen that walks steps (the welcome carousel): the step's
+   * identity. When it changes, the art and text come in from the
+   * direction of travel (DECISIONS #223) instead of swapping in place.
+   */
+  stepKey?: string | number;
 }) {
   return (
     <main className="flex min-h-dvh flex-col px-5 pb-10 pt-7">
       <div
         className={`flex flex-1 flex-col ${center ? "justify-center" : ""}`}
       >
-        {art}
-        <LessonBody {...body} />
+        {/* A flex column like its parent, so the art and the text block
+            stay flex items (the art centres with `mx-auto`) whether or
+            not the wrapper is animating. */}
+        <div
+          key={stepKey}
+          className={`flex flex-col ${stepKey !== undefined ? "arrive-x" : ""}`}
+        >
+          {art}
+          <LessonBody {...body} />
+        </div>
       </div>
 
       <div className="mt-8">
@@ -287,7 +302,10 @@ function WhyThisWorks({ children }: { children?: ReactNode }) {
           <IconChevron size={18} />
         </span>
       </button>
-      {open && <div className="pb-3 text-body text-stone-600">{children}</div>}
+      {/* The theory drops out of the row that opened it (#227). */}
+      {open && (
+        <div className="reveal pb-3 text-body text-stone-600">{children}</div>
+      )}
     </div>
   );
 }

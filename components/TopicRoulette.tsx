@@ -58,7 +58,11 @@ export function TopicRoulette({
           rolling ? "opacity-40" : "opacity-100"
         }`}
       >
-        {topic.prompt}
+        {/* Keyed on the topic so every draw mounts fresh and rolls in
+            from below at the press step (#230): a reel, not a swap. */}
+        <span key={topic.id} className="arrive dur-fast block">
+          {topic.prompt}
+        </span>
       </div>
 
       <div className="mt-4 flex gap-2.5">

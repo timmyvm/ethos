@@ -85,7 +85,7 @@ export function Nav() {
               key={t.href}
               href={t.href}
               aria-current={active ? "page" : undefined}
-              className={`font-display flex flex-1 flex-col items-center gap-1 py-1 text-[11px] uppercase tracking-[0.06em] ${
+              className={`font-display flex flex-1 flex-col items-center gap-1 py-1 text-[11px] uppercase tracking-[0.06em] transition-colors ${
                 active
                   ? "font-extrabold text-ink"
                   : "font-semibold text-stone-300"

@@ -98,6 +98,19 @@
   --color-stone-700: rgba(32, 30, 29, 0.8);
   --color-stone-800: rgba(32, 30, 29, 0.88);
   --color-stone-900: #201e1d;
+
+  /*
+   * Motion (DESIGN-RULES, motion; DECISIONS #221). These mirror
+   * lib/motion.ts and lib/motion.test.ts asserts the mirror, so the
+   * two sources of truth cannot drift. `--ease-out` replaces
+   * Tailwind's own, so every `ease-out` utility is the token, and the
+   * transition defaults make a bare `transition-colors` the 120ms
+   * press step rather than Tailwind's 150ms.
+   */
+  --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --default-transition-duration: 120ms;
+  --default-transition-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 /*
@@ -313,9 +326,46 @@ body::after {
   outline-offset: 1px;
 }
 
-/* Press feedback — a tap should feel like it landed. The lift half of
+/*
+ * Motion (DECISIONS #221). Nothing on screen teleports: a state change
+ * shows where the new state came from, what caused it, or what was
+ * earned, and never anything else. Only transform and opacity move.
+ *
+ * The durations are the CSS side of lib/motion.ts (the test keeps
+ * them equal). `.dur-*` sets a transition's or animation's length
+ * from a token, so no duration is ever typed inline.
+ *
+ * Reduced motion is ONE attribute, `data-motion="reduce"` on <html>,
+ * set before paint by the boot script from the OS preference OR the
+ * switch in Settings, and kept in step by <ThemeSync>. The old
+ * media-query rules could not see the in-app switch, so it only ever
+ * reached the JavaScript animations; now every rule below reads the
+ * same answer. Under it every entrance is a plain fade, every value
+ * lands already there, and nothing slides.
+ */
+:root {
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-max: 300ms;
+  --duration-celebrate: 600ms;
+}
+
+.dur-fast {
+  transition-duration: var(--duration-fast);
+  animation-duration: var(--duration-fast);
+}
+.dur-base {
+  transition-duration: var(--duration-base);
+  animation-duration: var(--duration-base);
+}
+.dur-max {
+  transition-duration: var(--duration-max);
+  animation-duration: var(--duration-max);
+}
+
+/* Press feedback: a tap should feel like it landed. The lift half of
  * the old pair is retired with the shadows; a pressed card darkens its
- * border instead (set border-color per element — it animates here). */
+ * border instead (set border-color per element; it animates here). */
 @media (hover: none) {
   .press:active {
     transform: scale(0.985);
@@ -323,16 +373,168 @@ body::after {
 }
 .press {
   transition:
-    transform 120ms ease,
-    background-color 120ms ease,
-    border-color 120ms ease;
+    transform var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .press,
-  .press:active {
-    transform: none;
+:root[data-motion="reduce"] .press,
+:root[data-motion="reduce"] .press:active {
+  transform: none;
+}
+
+/*
+ * Arrivals. A block that was not on the screen a moment ago (fetched
+ * content over its skeleton, the next phase of the recording screen,
+ * a card the user's tap produced) comes in from 6px below; the next
+ * step of a walk (the debrief, the welcome carousel) comes in from
+ * the direction of travel; a disclosure's content drops out of the
+ * row that opened it. One of these per screen state, never a
+ * cascade (DESIGN-RULES: entrance fade-ins on more than one element
+ * per screen are the tell).
+ */
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
   }
+}
+@keyframes arrive-x {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+.arrive {
+  animation: arrive var(--duration-base) var(--ease-out) backwards;
+}
+.arrive-x {
+  animation: arrive-x var(--duration-base) var(--ease-out) backwards;
+}
+.reveal {
+  animation: reveal var(--duration-base) var(--ease-out) backwards;
+}
+.fade-in {
+  animation: fade-in var(--duration-base) var(--ease-out) backwards;
+}
+
+/*
+ * Sheets (DECISIONS #222). The panel rises from the bottom edge, the
+ * scrim fades in on its own clock, and on close both go back the way
+ * they came: `<Overlay>` keeps the sheet mounted with `data-closing`
+ * until the exit finishes. In at the ceiling (300ms, ease-out: quick
+ * off the edge, gentle landing), out at the default (200ms, the
+ * symmetric curve, because it is leaving).
+ */
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes sheet-out {
+  to {
+    transform: translateY(100%);
+  }
+}
+
+.sheet-scrim {
+  animation: fade-in var(--duration-base) var(--ease-out) backwards;
+}
+.sheet-scrim[data-closing="true"] {
+  animation: fade-out var(--duration-base) var(--ease-in-out) forwards;
+}
+.sheet-panel {
+  animation: sheet-in var(--duration-max) var(--ease-out) backwards;
+}
+.sheet-panel[data-closing="true"] {
+  animation: sheet-out var(--duration-base) var(--ease-in-out) forwards;
+}
+
+/*
+ * Values landing (DECISIONS #225). A bar fills from nothing to the
+ * fraction it reports, by scale rather than width so only transform
+ * moves; a star lands with a scale from small, one after another
+ * (`--i`), after whatever it waits on (`--land-after`, the count-up).
+ * The count-up itself is components/CountUp.tsx. These are the
+ * measurement arriving, the same event as the number counting, and
+ * they never run for a value already on the screen.
+ */
+@keyframes fill {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes star-land {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+
+.fill {
+  transform-origin: left center;
+  animation: fill var(--duration-max) var(--ease-out) backwards;
+}
+.star-land {
+  display: inline-block;
+  animation: star-land var(--duration-max) var(--ease-out) backwards;
+  animation-delay: calc(var(--land-after, 0ms) + var(--i, 0) * 120ms);
+}
+
+/*
+ * The recording ring (DECISIONS #228). The terracotta-100 ring around
+ * the Stop button used to appear with the button's colour swap; it now
+ * grows out of the button when the mic opens and shrinks back into it
+ * on Stop, so the ring says where recording came from.
+ */
+.rec-ring {
+  position: absolute;
+  inset: -10px;
+  border-radius: 9999px;
+  border: 10px solid var(--color-terracotta-100);
+  opacity: 0;
+  transform: scale(0.8);
+  pointer-events: none;
+  transition:
+    transform var(--duration-base) var(--ease-out),
+    opacity var(--duration-base) var(--ease-out);
+}
+.rec-ring[data-on="true"] {
+  opacity: 1;
+  transform: none;
+}
+
+/* Reduced motion: every entrance is a fade, every value is already
+ * there, and nothing slides (DESIGN-RULES, Definition of Done #8). */
+:root[data-motion="reduce"]
+  :is(.arrive, .arrive-x, .reveal, .sheet-panel, .star-land) {
+  animation-name: fade-in;
+  animation-delay: 0ms;
+}
+:root[data-motion="reduce"] .sheet-panel[data-closing="true"] {
+  animation-name: fade-out;
+}
+:root[data-motion="reduce"] :is(.fill, .rec-ring) {
+  animation: none;
+  transition: none;
+  transform: none;
 }
 
 /*
@@ -344,16 +546,14 @@ body::after {
  */
 .disclosure-mark {
   display: inline-flex;
-  transition: transform 120ms cubic-bezier(0.25, 1, 0.5, 1);
+  transition: transform var(--duration-fast) var(--ease-out);
 }
 .disclosure-mark[data-open="true"] {
   transform: rotate(180deg);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .disclosure-mark {
-    transition: none;
-  }
+:root[data-motion="reduce"] .disclosure-mark {
+  transition: none;
 }
 
 /*
@@ -388,11 +588,9 @@ body::after {
 }
 
 /* Still a visible placeholder, just a still one. */
-@media (prefers-reduced-motion: reduce) {
-  .skeleton {
-    animation: none;
-    background-image: none;
-  }
+:root[data-motion="reduce"] .skeleton {
+  animation: none;
+  background-image: none;
 }
 
 /*
@@ -413,9 +611,7 @@ body::after {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .scoring-cursor {
-    animation: none;
-    opacity: 0;
-  }
+:root[data-motion="reduce"] .scoring-cursor {
+  animation: none;
+  opacity: 0;
 }

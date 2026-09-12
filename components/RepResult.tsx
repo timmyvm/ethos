@@ -4,6 +4,7 @@ import Image from "next/image";
 import { AccuracyCard } from "@/components/AccuracyCard";
 import { CountUp } from "@/components/CountUp";
 import { DimensionList } from "@/components/DimensionList";
+import { DURATION } from "@/lib/motion";
 import { PauseBar } from "@/components/PauseBar";
 import { Stars } from "@/components/Stars";
 import type { AccuracyResult } from "@/lib/accuracy";
@@ -53,10 +54,18 @@ export function RepResult({
   topic = null,
   section = "all",
   baseline = false,
+  live = false,
 }: {
   result: ResultView;
   topic?: ColdTopic | null;
   section?: ResultSection;
+  /**
+   * A recording that just finished, as opposed to one opened from the
+   * log (DECISIONS #225). Live, the values LAND: the Index counts up,
+   * then the stars come in one at a time, and on the numbers step the
+   * dimension bars fill. Reference renders them already there.
+   */
+  live?: boolean;
   /**
    * Rep 1 only (DECISIONS #135): frame the first score as the floor
    * the graph grows from, in the slot the delta occupies from rep 2
@@ -127,7 +136,12 @@ export function RepResult({
             )}
           </div>
           <div className="ml-auto">
-            <Stars n={m.stars} size={22} />
+            <Stars
+              n={m.stars}
+              size={22}
+              land={live}
+              landAfterMs={DURATION.celebrate}
+            />
           </div>
         </div>
       ) : result.scorable === false ? (
@@ -162,7 +176,7 @@ export function RepResult({
             </div>
           </div>
           <div className="ml-auto">
-            <Stars n={m.stars} size={22} />
+            <Stars n={m.stars} size={22} land={live} />
           </div>
         </div>
       ))}
@@ -245,6 +259,7 @@ export function RepResult({
           metrics={m}
           coach={coach}
           pauseDetail={result.pauseHeadline ?? undefined}
+          fill={live}
         />
       </div>
       )}

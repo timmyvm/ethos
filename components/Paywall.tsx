@@ -123,7 +123,7 @@ export function Paywall({
         </ul>
 
         {unlocked ? (
-          <div className="mt-6 rounded-[24px] bg-cream/10 p-5 text-center">
+          <div className="arrive mt-6 rounded-[24px] bg-cream/10 p-5 text-center">
             <div className="font-display text-[24px]">Unlocked.</div>
             <p className="mt-1 text-[13.5px] text-cream/70">
               Premium is on this account now.
@@ -192,7 +192,7 @@ export function Paywall({
                 </button>
               </>
             ) : (
-              <form onSubmit={redeem} className="mt-5">
+              <form onSubmit={redeem} className="reveal mt-5">
                 <p className="text-[13px] leading-relaxed text-cream/70">
                   Checkout opens soon. Right now premium is by invite code.
                 </p>

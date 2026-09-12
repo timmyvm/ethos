@@ -12,7 +12,7 @@ import {
   type Prefs,
   type Theme,
 } from "@/lib/prefs";
-import { applyTheme } from "@/components/Theme";
+import { applyMotion, applyTheme } from "@/components/Theme";
 import {
   armReminder,
   cancelReminder,
@@ -339,9 +339,12 @@ export default function SettingsPage() {
         </div>
         <Toggle
           label="Reduced motion"
-          note="Skip the streak celebration animation. Your OS setting is honoured either way."
+          note="Every animation becomes a plain fade. Your OS setting is honoured either way."
           on={prefs.reducedMotion}
-          onChange={(v) => update({ reducedMotion: v })}
+          onChange={(v) => {
+            update({ reducedMotion: v });
+            applyMotion(v);
+          }}
         />
       </Section>
 

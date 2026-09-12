@@ -145,6 +145,9 @@ export default function HistoryPage() {
 
   return (
     <main className="px-5 pb-24 pt-7">
+      {/* The read landing is one event, so one arrival (#224): the
+          populated log fades in over the skeleton that held its shape. */}
+      <div className="arrive">
       <h1 className="font-display text-[24px] font-extrabold">The log</h1>
       <p className="mt-1 text-[13px] text-stone-400">
         {empty
@@ -371,6 +374,7 @@ export default function HistoryPage() {
           </Link>
         </>
       )}
+      </div>
 
       {paywall && (
         <Paywall

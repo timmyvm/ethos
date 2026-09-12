@@ -167,7 +167,10 @@ export default function ShopPage() {
       </p>
 
       {note && (
-        <p className="mt-4 rounded-[10px] border border-edge bg-raised px-4 py-3 text-[13px] font-semibold">
+        <p
+          key={note}
+          className="arrive mt-4 rounded-[10px] border border-edge bg-raised px-4 py-3 text-[13px] font-semibold"
+        >
           {note}
         </p>
       )}

@@ -22,6 +22,36 @@ Colour, radius and motion live in `app/globals.css` and `lib/motion.ts`. Radius:
 
 `docs/refs/` holds phone screenshots of apps that feel the way Ethos should: Instagram (continuity), Headspace (warmth), Duolingo (celebration), Linear mobile (type). Timothy adds them. If the folder is empty, say so in the first line of your reply and run the loop against the app alone.
 
+## The tools the loop runs on
+
+Three scripts, all against a dev server with the Supabase host mocked and three weeks of
+practice in the fixtures (`scripts/look-fixtures.mjs`, shared so every tool photographs the
+same app).
+
+```
+NEXT_PUBLIC_SUPABASE_URL=http://supabase.local NEXT_PUBLIC_SUPABASE_ANON_KEY=anon npx next dev -p 3123
+export PLAYWRIGHT_MODULE=/opt/node22/lib/node_modules/playwright/index.mjs
+
+node scripts/look.mjs after today log          # stills, 390px, light and dark
+LOOK_BLUR=7 node scripts/look.mjs squint today # the squint test
+node scripts/strip.mjs mods / 'button:has-text("Make it harder")'   # a frame strip
+node scripts/check-motion-layer.mjs            # the motion layer, asserted
+node scripts/check-motion.mjs                  # the older motion layer, asserted
+```
+
+The **squint test** blurs the document before the shot. At 7px nothing survives but mass and
+colour, so a hierarchy that only works because you can read the words fails immediately. It is
+the cheapest honest test in the repo.
+
+A **frame strip** taps something and lays 0, 80, 160, 240 and 400ms side by side in one image.
+Frame 0 is the moment BEFORE the tap; a screenshot takes 40 to 80ms to come back, so a zero
+frame shot after the click is really the sixty frame. Five identical frames mean the change cut.
+
+Two gotchas, both learned the hard way. `next build` writes into the directory `next dev`
+serves, so build with `NEXT_DIST_DIR=.next-build` while a server is up or every shot comes back
+a 404 page. And an ambient loop on a control (the Record button breathes) makes Playwright's
+click wait forever for it to hold still: those clicks need `{ force: true }`.
+
 ## The look loop, every UI task
 
 1. **Before.** Playwright at 390px, light and dark, the screen you are about to touch. Save to `docs/look/<screen>-before-{light,dark}.png`.

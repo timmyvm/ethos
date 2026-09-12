@@ -29,7 +29,7 @@ const BASE = process.env.LOOK_BASE ?? "http://localhost:3123";
 const OUT = new URL("../docs/look/strips/", import.meta.url).pathname;
 mkdirSync(OUT, { recursive: true });
 
-/** The five moments DESIGN.md names. */
+/** The five moments DESIGN.md names. 0 is the frame before the tap. */
 const AT = [0, 80, 160, 240, 400];
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -74,18 +74,26 @@ const shoot = async () => {
   frames.push(`data:image/png;base64,${buf.toString("base64")}`);
 };
 
+/*
+ * Frame 0 is shot BEFORE the tap, not after it. A screenshot takes forty
+ * to eighty milliseconds to come back, so a "0ms" frame captured after
+ * the click is really the 60ms frame — which made every strip open on a
+ * transition that had already happened and look like a cut.
+ */
+await shoot();
+
 if (SELECTOR === "load") {
   await page.reload({ waitUntil: "commit" });
 } else {
   const target = page.locator(SELECTOR).first();
   await target.waitFor({ timeout: 10000 });
-  // Not `click()`: Playwright waits for stability, which is exactly the
-  // window we are trying to photograph.
+  // Not `click()`: Playwright waits for the element to hold still, which
+  // is exactly the window we are trying to photograph.
   await target.dispatchEvent("click");
 }
 
 let last = 0;
-for (const at of AT) {
+for (const at of AT.slice(1)) {
   await sleep(at - last);
   last = at;
   await shoot();

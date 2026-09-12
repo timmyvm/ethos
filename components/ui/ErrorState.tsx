@@ -33,15 +33,15 @@ export function ErrorState({
   return (
     <div
       role="alert"
-      className={`rounded-card border border-edge bg-raised p-5 ${className}`}
+      className={`elev-1 rounded-card border border-card-edge bg-raised p-4 ${className}`}
     >
-      <p className="text-[14px] font-semibold">{title}</p>
-      <p className="mt-1 text-[13px] leading-relaxed text-stone-500">{body}</p>
+      <p className="font-display text-[14px] font-bold">{title}</p>
+      <p className="mt-1 text-caption leading-relaxed text-stone-500">{body}</p>
       {onRetry && (
         <button
           type="button"
           onClick={onRetry}
-          className="press font-display mt-3 min-h-11 w-full rounded-control border border-stone-200 bg-surface px-4 py-2.5 text-[13px] font-bold hover:bg-sand"
+          className="press font-display mt-3 min-h-11 w-full rounded-control border border-edge bg-surface px-4 py-2.5 text-[14px] font-bold"
         >
           {retryLabel}
         </button>
@@ -65,7 +65,7 @@ export function ErrorLine({
   className?: string;
 }) {
   return (
-    <p role="alert" className={`text-[13px] text-stone-500 ${className}`}>
+    <p role="alert" className={`text-caption text-stone-500 ${className}`}>
       {children}{" "}
       <button
         type="button"

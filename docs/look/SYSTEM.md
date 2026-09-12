@@ -1,119 +1,158 @@
-# One system, five screens (Job 1 draft, 12 Sep 2026)
+# One system, five screens (Job 1)
 
-The starting point was Instrument layout wearing Organic colours. What the before shots show is
-not two systems but one system with its seams open: an ink outline around every box on a
-paper that is almost the same colour as the ground, three border colours doing one job, six
-bracketed text sizes doing three, and no rule for where the eye should land first. The pass
-below closes the seams. It changes tokens first and classes second, and nothing about
-mechanics, copy or routes.
+Instrument layout wearing Organic colours was the starting point. What the before shots show is
+one system with its seams open: a step between ground and card of 1.11:1 (four RGB units, then
+masked by the grain), three border colours doing one job, five uppercase micro-registers, six
+bracketed text sizes around three tokens, and no rule for which thing on a screen is lifted.
 
-## The five choices
+Every value below is measured, not asserted. Two independent critiques attacked the first draft
+against the references and against the code; what survived is here.
 
-### 1. Depth is a step and a soft warm shadow, never an ink outline
+## 1. Depth is a real step plus a tinted shadow
 
-- Light: `ground` #f5ead8 → `surface` #f9f1e1 (rows, controls, chips) → `raised` #fdf7e9
-  (cards). The steps are now visible, which they were not (`surface` and `raised` were one hex).
-- A card is `raised` + `border-edge` at 0.07 alpha (a hairline, not an outline) + `shadow-card`,
-  a shadow tinted with the theme's ink (`rgba(70, 45, 22, …)` in light). One shadow for now; Job 2
-  turns it into the four-level scale (0 rest, 1 card, 2 important, 3 floating), so the token is
-  named for level 1 and level 2 already exists for the three things that hold the primary action
-  (today's lesson, the score card, the results hero).
-- Dark: the step is the depth (`#1a1410` → `#241c15` → `#2e251c`) plus the same shadow at low
-  alpha so the card still detaches. The edge lifts to 0.10 alpha because a dark step needs it.
-- The 1px `stone-200` outline is retired from every control and tile. `edge` is the only
-  neutral border. The two semantic borders stay: `sage-300` on earned tiles and buttons,
-  `terracotta-500` 1.5px on the road's current lesson.
-- Deep surfaces keep their material: the score card and the paywall on `sage-900`, the pause
-  bar and comparison card on `stage`.
+**Light**
 
-### 2. Radius: 10 / 14 / 20, chips are pills, Record is a circle
+| Token | Was | Now | Against ground |
+| --- | --- | --- | --- |
+| `ground` | #f5ead8 | #f5ead8 | — |
+| `surface` (controls, tiles) | #faf3e3 | #fbf4e6 | 1.07:1 |
+| `raised` (cards) | #faf3e3 | #fffaf1 | 1.14:1 |
 
-`rounded-control` 10 (buttons, inputs, tiles), `rounded-card` 14 (every card), `rounded-sheet`
-20 (the score card, sheets, the results hero card). One step softer than 10/12/16: the Organic
-warmth is in the corners as much as the colour, and 12 next to 16 read as two sizes of the same
-thing rather than two ranks. Nested things use the next size down: a button inside a card is a
-control, a card inside a sheet is a card.
+`surface` and `raised` were the same hex, so a card on the ground had no step under it at all.
+Now a control is one step up and a card is two, and the two are told apart before they are read.
 
-### 3. Type: one eyebrow, three text jobs, the locked display scale
+**Dark** keeps #1a1410 → #241c15 → #2e251c: those steps already measure 1.09 and 1.12, which is
+why dark read as the more finished theme.
 
-- The eyebrow is `.label-data`: Outfit 11 / 700 / 0.14em / uppercase / `stone-400`. No size
-  overrides anywhere (`!text-[9.5px]`, `!tracking-[0.1em]` go). Colour overrides only where the
-  surface demands it: `sage-mist` on the deep sage card, `sage-700` on an earned label.
-- Three text jobs, three sizes, no other bracketed sizes for UI text:
-  - `text-body` 15 / Figtree 400 for prose, `text-caption` 12.5 / 400 for fine print.
-  - Row titles and control labels: Outfit 14 / 700. Primary button 15 / 700. Text links 13 / 600.
-  - Row meta and blurbs: Figtree 12.5 / `stone-500`.
-- Numbers keep the locked display scale (58 score-card hero, 64 results hero, 54 clock, 30 / 26
-  / 24 / 20 / 19 stats), Outfit 800, tabular.
-- The wordmark, the tab labels and the coach's name are not eyebrows and keep their own sizes.
+**Shadows, with numbers.** Tinted from the ground's own hue (37°), never grey-black:
 
-### 4. Fills say what a thing is
+```
+--shadow-card: 0 1px 2px rgba(52,40,20,.05), 0 6px 16px rgba(52,40,20,.08)
+--shadow-lift: 0 2px 4px rgba(52,40,20,.06), 0 14px 32px rgba(52,40,20,.12)
+```
+
+In dark both become black (`rgba(0,0,0,.35)` / `.5`): rgb(52,40,20) has a higher luminance than
+the dark ground, so a warm shadow there is a glow.
+
+**Edges split.** The one `edge` token was doing two jobs: the hairline around a card, and the
+road's thread, the log's column rules, an input's boundary. Dropping it for cards would have
+erased the rules.
+
+- `card-edge` rgba(ink, .09) light, rgba(cream, .12) dark: the hairline on a card, under the shadow.
+- `edge` rgba(ink, .14) / .16 unchanged: rules, connectors, inputs.
+- `hairline` .08 unchanged: list-row separators.
+
+Light uses fill + shadow + a faint card-edge. Dark uses fill + card-edge and a black shadow, because
+a step on dark carries more than a shadow does. The 1px `stone-200` outline is retired from every
+box; it survives only as a glyph colour (unearned stars, the lexicon arrow).
+
+## 2. Radius: 12 / 16 / 20
+
+`rounded-control` 12, `rounded-card` 16, `rounded-sheet` 20. Chips are pills, Record is a circle,
+the Nav is square. One step warmer than 10/12/16, where 12 beside 16 read as two sizes of the same
+thing rather than two ranks.
+
+No concentric arithmetic: a control keeps 12 wherever it sits, a card inside a sheet keeps 16.
+Fixed tiles (38px glyph and freeze tiles, the 36px earned tiles, the shop's 46px art tile) are all
+controls at 12. **Bars are square**, trough and fill, everywhere: the instrument against the soft
+corners, and today they are square in five places and pill in three.
+
+## 3. Two uppercase registers, not five
+
+The tree had the eyebrow at 11/0.14em, the log's month at 9/0.1em, the PRO chip at 9.5/0.06em, the
+heatmap heads at 9px and the Nav at 11/0.06em: five sizes of the same idea, which reads as a broken
+eyebrow rather than five registers.
+
+- `.label-data`, the section eyebrow: Outfit 11 / 700 / **0.10em** / uppercase / `stone-400`. One
+  per section. No size overrides anywhere.
+- `.label-micro`, everything smaller: Outfit 10 / 700 / 0.08em / uppercase. Column heads, chips,
+  the log's month, the heatmap heads, Nav labels, tile labels inside a card.
+
+Text sizes collapse onto four: 13.5 and 14.5 → **14/700** (row titles, control labels); 11.5 and
+12 → **12.5** (`text-caption`, row meta); body stays 15; the primary button 15/700; text links
+13/600. Numbers keep the display scale at **800** and tabular, including the results hero, which
+was the one hero at 700.
+
+## 4. Fills say what a thing is
 
 | Thing | Fill | Edge | Shadow |
 | --- | --- | --- | --- |
-| Card | `raised` | `edge` | `shadow-card` |
-| Card holding the primary action (today's lesson, results hero) | `raised` | `edge` | `shadow-lift` |
-| Score card, paywall | `sage-900` | none (dark: `sage-300`) | `shadow-lift` |
-| Secondary button, input, neutral tile | `surface` | `edge` | none |
-| Earned button (outline) / earned tile | `surface` | `sage-300` | none |
-| Earned button (filled), the shop's Buy | `sage-700` | none | none |
-| Equipped / earned wash | `sage-100` | `sage-300` | none |
-| Chip (mod, PRO, filler timestamp) | `stone-100` | none | none |
+| Card | `raised` | `card-edge` | `shadow-card` |
+| The one lifted card per screen | `raised` | `card-edge` | `shadow-lift` |
+| Score card, paywall | `sage-900` | none (dark `sage-300`) | `shadow-card` |
+| Deep panel (pause bar, comparison card) | `stage` | none (dark `card-edge`) | `shadow-card` |
+| Secondary button, tile, input | `surface` | `edge` | none |
+| Input focus | `surface` | `terracotta-500` | none |
+| Earned outline button / earned tile | `surface` | `sage-300` | none |
+| Earned fill (the shop's Buy) | `sage-700` | none | none |
+| Equipped wash | `sage-100` | `sage-300` | none |
+| Neutral chip | `stone-100` | none | none |
+| Earned chip (XP, ×2) | `sage-100` | `sage-300` | none |
+| Timestamp chip | `stone-100` | none | none |
 | List row | ground | `hairline` above | none |
-| The one tap | `terracotta-500`, ink label | none | `shadow-lift` (light only) |
-| Demos speaking (the coach bubble) | `terracotta-50` | none | none |
+| Row inside a card | card | `hairline` above | none |
+| Segmented control: track | `surface` | `edge` | none |
+| Segmented control: selected | `raised` | none | `shadow-card` |
+| Disabled | `surface` | `edge` | none, text `stone-300` |
+| The one tap | `terracotta-500`, ink label | none | none |
+| Coach bubble | `terracotta-50` | none | none |
 
-`bg-surface` on a card and `bg-raised` on a control were both in the tree. Now a card is always
-`raised` and a control is always `surface`, so the step tells you which is which before you read it.
+Rules that fall out of it:
 
-### 5. Rhythm: 28 between sections, 12 inside, 16 in a card
+- **One lifted thing per screen.** Today: the floor card. The score card stays flat, because deep
+  sage on cream is already the second-loudest object on the page. Results: nothing is lifted, the
+  64px number sits on the ground. The road's current lesson and the Tools boss card keep their
+  1.5px terracotta edge and take no shadow.
+- **Disabled is one value**, not the three in the tree (opacity-40, opacity-60, stone-400 text).
+- **Pressed is visible.** `.press` animated `border-color`, and cards no longer have a border to
+  darken, so it would have shipped with no pressed state at all. It now veils the fill:
+  `background-image: linear-gradient(var(--press-veil), var(--press-veil))` on `:active`, which
+  layers over any background without touching the card's shadow, plus the 0.985 scale on every
+  pointer type rather than touch only.
+- **The coach bubble's label** moves from `terracotta-600` (2.8:1 on the dark wash, because only
+  700 and 800 remap in dark) to `terracotta-700`.
+- **Skeletons carry the shadow of what replaces them**, or they are the layout shift they exist
+  to prevent.
 
-- Screen: `px-5 pt-7 pb-24`.
-- Section to section: `mt-7`. A section that opens with an eyebrow puts `border-t border-hairline
-  pt-4` above it when it sits on the ground, and nothing when a card carries it.
-- Eyebrow to content: `mt-3`. Row to row: hairline, `py-3`. Card to card: `gap-3`.
-- Card padding: `p-4` (16). Hero cards (score card, floor, results hero): `p-5` (20).
-- Buttons: primary `min-h-12`, everything else `min-h-11`. The bottom-anchored primary sits above
-  the safe area.
+## 5. Rhythm, owned by the parent
 
-## What changes on each screen
+- Screen: `px-5 pt-7 pb-22`. The 96px bottom pad sat 24px below a 72px nav.
+- Section to section: `mt-7` (28). **Components carry no outer margin**: `ScoreCard` hard-coded
+  `mt-5`, so Today ran 20 into the score card and 28 out of it. Parents set the gap.
+- Eyebrow to content 12, row `py-3`, card to card `gap-3` (12), card padding 16, hero padding 20.
+- A stack of eyebrow-headed cards is a stack of sections at 28, not a 12px pile. This is what the
+  results screen was.
+- The road's unit checkpoints drop `border-y border-ink` for `border-edge`: eight pairs of full-ink
+  rules would become the loudest lines on Today once cards lose their outlines.
+- The day trail's caption gets to wrap. `shrink-0 text-right` on it is what pushed the home page to
+  808px wide at a 390px viewport.
 
-**Today.** The floor becomes a card: today's lesson, its line and note, Demos and the tap, on
-`raised` at `rounded-sheet` with `shadow-lift`, so the first thing on the screen is the thing that
-is lifted. The score card keeps deep sage and moves to the same radius; the day trail's caption
-wraps under the bars instead of overflowing the card (the page rendered 808px wide at 390). The
-road's current lesson keeps its terracotta edge on `raised`; the checkpoints keep their ink rules.
-Spin and Make-it-harder stay text links.
+## What each screen loses
 
-**The recording loop.** Idle: the mode toggle stops being an ink block (the loudest thing on a
-screen whose one job is Record) and becomes a segmented control on `surface` with a `raised`
-thumb. Record stays the circle, with `shadow-lift`. Recording: unchanged except the step in the
-timer's secondary text. Results: the Index, the stars and the gain chips sit in one `raised`
-hero card at `rounded-sheet` with `shadow-lift`; the coach bubble keeps the terracotta wash and
-loses its 4px corner in favour of the card radius; Demos loses the bordered tile; the metric
-tiles, supply card and transcript card are cards (`raised`, `edge`, `shadow-card`), not `surface`
-boxes with hairlines; the step bar's label is the eyebrow.
+**Today.** The floor becomes the one lifted card. The road quiets: hairline checkpoints, current
+lesson unchanged. The trail stops overflowing.
 
-**Log.** The score card as on Today. The tables keep hairline rows; the column heads take the
-eyebrow at its one size and the grids widen to fit. The PRO chip and the archive gate use the
-chip and row grammar above. The stored result (`/rep/[id]`) inherits the results changes.
+**The loop.** Idle: the mode toggle stops being an ink block on a screen whose one job is Record,
+and becomes a segmented control with a lifted thumb. Results: six cards at 12px spacing become the
+hero on the ground, the coach bubble, the dimension card, one row of three tiles, then supply,
+fillers and transcript as ground sections under eyebrows.
 
-**You.** The level card is a card (`raised`, `edge`, `shadow-lift`: it is the screen's hero).
-Every `stone-200` outline goes: Open the shop, Ethos Premium and Test yourself are secondary
-buttons on `surface` + `edge` (Test yourself keeps `sage-300`); freeze and earned tiles are
-`surface` + `edge`, earned ones `sage-300`. The sections keep their hairlines and move to the 28
-rhythm. The save-progress card and the name form use the card and input grammar.
+**Log.** Column heads take `.label-micro`, which gives the grids their slack back ("INDEX" at
+11/0.14em was 44px in a 44px column). Score card flat, rows unchanged.
 
-**Shop.** Item cards are cards: `raised`, `edge`, `shadow-card`, `p-4`, `gap-3`. The freeze tile
-keeps its `sage-300` edge; the double outline is gone because the card around it no longer has
-one. Buy is `sage-700`; not-yet is `surface` + `edge`; On your card is the `sage-100` wash;
-Put it on the card is the `sage-300` outline. The note toast is a card.
+**You.** The level card is the lifted one. Every `stone-200` outline becomes `edge`. Sections move
+to the 28 rhythm.
 
-**Shared.** `Nav` on `raised` with a hairline (unchanged). `ErrorState` and `EmptyState` are cards.
-`Skeleton` tiles match the new radii. `Paywall` on `sage-900` at `rounded-t-sheet` 20. `Overlay`
-unchanged. Tools (`/games`) and the boss card follow the same table without a separate pass.
+**Shop.** Item cards get the card grammar, so the freeze tile's outline inside an outlined card
+stops being a double line.
 
 ## Not in this job
 
-Elevation levels 0 to 3 as a scale, press-drop and release-spring (Job 2). Motion (Job 3).
-Demos (Job 4). Copy stays as it is.
+The elevation scale as levels 0 to 3, press-drop and release-spring (Job 2). Motion (Job 3).
+Demos (Job 4). Copy is untouched.
+
+## Open, for Timothy
+
+The one tap stays a rectangle at 12. The reference read says Headspace puts its warmth in a pill
+primary, and a pill would be the only shape of its kind on Today, which is what "one thing is
+loud" wants. #201 chose rectangles over pills. Worth one experiment if you want it.

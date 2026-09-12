@@ -130,7 +130,7 @@ export function Overlay({
 
   const sheet = variant === "sheet";
   const position = sheet
-    ? "sheet-scrim flex items-end justify-center bg-stage/60"
+    ? "sheet-scrim flex items-end justify-center bg-stage/50 backdrop-blur-[2px]"
     : "flex flex-col items-center justify-center";
 
   return (

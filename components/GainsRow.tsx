@@ -18,18 +18,18 @@ export function GainsRow({ gains }: { gains: RepGain[] }) {
       {gains.map((g, i) => (
         <div
           key={i}
-          className={`shrink-0 rounded-card border bg-surface px-3.5 py-2.5 ${
-            g.good === false ? "border-terracotta-500/30" : "border-sage-500/30"
+          className={`elev-1 shrink-0 rounded-card border bg-raised px-3.5 py-2.5 ${
+            g.good === false ? "border-card-edge" : "border-sage-300"
           }`}
         >
           <div
-            className={`font-display text-[17px] leading-none ${
-              g.good === false ? "text-terracotta-600" : "text-sage-700"
+            className={`font-display text-[19px] font-extrabold leading-none ${
+              g.good === false ? "text-rust" : "text-sage-700"
             }`}
           >
             {g.label}
           </div>
-          <div className="mt-1 text-[11.5px] text-stone-500">{g.detail}</div>
+          <div className="mt-1.5 text-caption text-stone-500">{g.detail}</div>
         </div>
       ))}
     </div>

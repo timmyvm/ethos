@@ -30,10 +30,10 @@ export function DayTrail({
   const frozen = pebbles.filter((p) => p === "frozen").length;
 
   return (
-    <div className="mt-4 flex items-center justify-between gap-3 border-t border-cream/10 pt-3.5">
+    <div className="mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5 border-t border-cream/10 pt-3.5">
       {pebbles.length > 0 && (
         <div
-          className="forced-color-adjust-none flex items-center gap-[5px]"
+          className="forced-color-adjust-none flex min-w-0 shrink items-center gap-[5px]"
           role="img"
           aria-label={`Last ${pebbles.length} days: ${spoken} spoken${
             frozen > 0 ? `, ${frozen} frozen` : ""
@@ -58,7 +58,7 @@ export function DayTrail({
           })}
         </div>
       )}
-      <p className="shrink-0 text-right text-[12px] text-sage-mist">
+      <p className="min-w-0 text-caption text-sage-mist">
         Day {trail.count} of speaking
         {/* Only when earned, and only for something the card above
             doesn't already say (#95). */}

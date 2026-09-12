@@ -33,10 +33,17 @@ export function ModeToggle({
 }) {
   return (
     <div className="mt-4">
+      {/*
+       * A segmented control, not two buttons (#234). The selected half
+       * used to be an ink block — the single loudest object on a screen
+       * whose one job is the Record tap — and the unselected half a
+       * bordered box, so the two halves read as two different controls.
+       * Now they share one track and the chosen one is LIFTED off it.
+       */}
       <div
         role="radiogroup"
         aria-label="Recording mode"
-        className="flex gap-2"
+        className="flex gap-1 rounded-control border border-edge bg-surface p-1"
       >
         <Option
           label="Voice"
@@ -81,11 +88,9 @@ function Option({
       aria-checked={selected}
       disabled={disabled}
       onClick={onSelect}
-      className={`press font-display min-h-11 flex-1 rounded-control border px-3 text-[13.5px] font-bold transition-colors ${
-        selected
-          ? "border-ink bg-ink text-ground"
-          : "border-stone-200 bg-surface text-stone-600 hover:bg-sand"
-      } ${disabled ? "opacity-40" : ""}`}
+      className={`press font-display min-h-11 flex-1 rounded-control px-3 text-[14px] font-bold transition-colors ${
+        selected ? "elev-1 bg-raised text-ink" : "text-stone-500"
+      } ${disabled ? "!text-stone-300" : ""}`}
     >
       {label}
     </button>

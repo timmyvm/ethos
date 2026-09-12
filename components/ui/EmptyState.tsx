@@ -28,11 +28,11 @@ export function EmptyState({
 }) {
   return (
     <div
-      className={`rounded-card border border-edge bg-raised p-6 text-center ${className}`}
+      className={`elev-1 rounded-card border border-card-edge bg-raised p-5 text-center ${className}`}
     >
       {art}
-      <p className="mt-2 text-[14px] font-semibold">{title}</p>
-      <p className="mx-auto mt-1 max-w-[30ch] text-[13px] leading-relaxed text-stone-500">
+      <p className="font-display mt-2 text-[14px] font-bold">{title}</p>
+      <p className="mx-auto mt-1 max-w-[30ch] text-caption leading-relaxed text-stone-500">
         {body}
       </p>
       {action && <div className="mt-4">{action}</div>}

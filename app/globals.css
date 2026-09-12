@@ -80,13 +80,21 @@
    * outline with nothing inside it is not a box, it's a diagram.
    */
   --color-ground: #f5ead8;
-  --color-surface: #faf3e3;
-  --color-raised: #faf3e3;
+  --color-surface: #fbf4e6;
+  --color-raised: #fffaf1;
   --color-ink: #201e1d;
   /* Row separators. */
   --color-hairline: rgba(32, 30, 29, 0.08);
-  /* Card outlines — one step firmer than a hairline. */
+  /*
+   * Two border jobs, two tokens (the one-system pass, #234). `edge` is
+   * a RULE: the road's thread, the log's column rules, an input's
+   * boundary. `card-edge` is the hairline ON a card, under its shadow —
+   * fainter, because the shadow and the surface step are already saying
+   * "this is lifted" and a third signal on a 350px card is the "too
+   * much" read.
+   */
   --color-edge: rgba(32, 30, 29, 0.14);
+  --color-card-edge: rgba(32, 30, 29, 0.09);
   /* The dark material the rep-loop signature moments sit on (pause
    * bar, comparison card). Warm, never #000. The score card is NOT
    * stage — it sits on sage-900. */
@@ -115,13 +123,23 @@
   --color-stone-900: #201e1d;
 
   /*
-   * Shape (#201, one scale in #231): controls 10, cards 12, sheets and
-   * the largest surfaces 16. Chips are the only pills. `rounded-control`,
-   * `rounded-card`, `rounded-sheet`; never a bracketed pixel radius.
+   * Shape (#201, one scale in #231, one step warmer in #234): controls
+   * 12, cards 16, sheets and the largest surfaces 20. Chips are the only
+   * pills, Record is the only circle, the nav is the only square edge.
+   * `rounded-control`, `rounded-card`, `rounded-sheet`; never a bracketed
+   * pixel radius.
+   *
+   * No concentric arithmetic: a control keeps 12 wherever it sits and a
+   * card inside a sheet keeps 16. Computing inner = outer − inset gives
+   * 0 at every one of this app's paddings, which is how the 4px corner
+   * on the coach bubble happened.
+   *
+   * Bars are the exception and they are SQUARE, trough and fill: the
+   * instrument reading against the soft corners (#201).
    */
-  --radius-control: 10px;
-  --radius-card: 12px;
-  --radius-sheet: 16px;
+  --radius-control: 12px;
+  --radius-card: 16px;
+  --radius-sheet: 20px;
 
   /*
    * Motion (DESIGN-RULES, motion; DECISIONS #221). These mirror
@@ -214,8 +232,11 @@ body {
   --color-stage: #120e0b;
   --color-ink: #f3ecdd;
   --color-hairline: rgba(243, 236, 221, 0.08);
-  /* One notch firmer than light: an outline on dark needs it. */
+  /* One notch firmer than light: an outline on dark needs it. Dark
+   * leans on the edge harder than light does, because a black shadow on
+   * a near-black ground carries less than a surface step. */
   --color-edge: rgba(243, 236, 221, 0.16);
+  --color-card-edge: rgba(243, 236, 221, 0.12);
 
   /* Light washes become dark washes of the same hue; the accent-text
    * steps lift to the peach that reads on them. */
@@ -265,18 +286,40 @@ body {
 }
 
 /*
- * Section eyebrows — the Instrument register: 11px, 700, tracked wide,
+ * Section eyebrows — the Instrument register: 11px, 700, tracked,
  * uppercase, muted. `.section-title` and `.label-data` converge on it
  * on purpose: the handoff has ONE label voice, and a section heading
  * earns its rank from the hairline above it and the space around it.
  * Both keep their names so the reskin is a restyle, not a rename.
+ *
+ * TWO registers now, not five (#234). The tree had this at 11/0.14em,
+ * the log's month at 9/0.1em, the PRO chip at 9.5/0.06em, the heatmap
+ * heads at 9px and the nav at 11/0.06em: five sizes of one idea, which
+ * reads as a broken eyebrow rather than five voices. `.label-data` is
+ * the SECTION eyebrow, one per section; `.label-micro` is everything
+ * smaller — column heads, chips, the log's month, nav labels, a tile's
+ * label inside a card.
+ *
+ * Tracking drops from 0.14em to 0.10em. At 11px, 0.14em is spec-sheet
+ * tracking: it put "INDEX" at 44px inside a 44px column and wrapped
+ * "HELD PAUSES" onto two lines in a tile 84px wide.
  */
 .section-title,
 .label-data {
   font-family: var(--font-display-face), sans-serif;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-stone-400);
+  font-variant-numeric: tabular-nums;
+}
+
+.label-micro {
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-stone-400);
   font-variant-numeric: tabular-nums;
@@ -296,12 +339,51 @@ body {
 }
 
 /*
- * Elevation: none. The Instrument system has NO shadows anywhere in-app
- * — depth is a 1px `edge` outline, a hairline, or the `raised` surface
- * step, and the current item is a 1.5px terracotta border on raised. The
- * old `.lift*` shadow tiers are gone rather than zeroed so a stray
- * usage does nothing.
+ * Elevation (#234). The Instrument system had NO shadows and depth was a
+ * 1px outline on a `raised` step — except `raised` and `surface` were
+ * the same hex, so the step measured 1.00:1 and every box on every
+ * screen was an ink rectangle on paper. That is the whole "not premium"
+ * read: an outline says "here is a boundary", a shadow says "this is
+ * nearer to you", and only one of those is depth.
+ *
+ * Three levels, named for the job. Job 2 extends this to the full 0-3
+ * scale with press-drop; these are its first three rungs.
+ *
+ *   .elev-1  a card, sitting on the ground
+ *   .elev-2  the ONE lifted thing on a screen: today's lesson, the
+ *            level card, anything holding the primary action
+ *   .elev-3  floating: sheets, the Record button, toasts
+ *
+ * Tinted from the ground's own hue (37°), never grey-black: a neutral
+ * shadow on cream reads as dirt. In dark they go black, because
+ * rgb(52,40,20) has a HIGHER luminance than the #1a1410 ground — a warm
+ * shadow there is a glow, which is the opposite of depth.
+ *
+ * Plain custom properties rather than @theme entries on purpose: the
+ * dark theme has to be able to redefine them, and a `shadow-*` utility
+ * can inline its value at build time.
  */
+:root {
+  --shadow-1: 0 1px 2px rgba(52, 40, 20, 0.05), 0 6px 16px rgba(52, 40, 20, 0.08);
+  --shadow-2: 0 2px 4px rgba(52, 40, 20, 0.06), 0 14px 32px rgba(52, 40, 20, 0.12);
+  --shadow-3: 0 4px 8px rgba(52, 40, 20, 0.08), 0 24px 48px rgba(52, 40, 20, 0.16);
+}
+
+:root[data-theme="dark"] {
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35), 0 6px 16px rgba(0, 0, 0, 0.3);
+  --shadow-2: 0 2px 6px rgba(0, 0, 0, 0.4), 0 14px 32px rgba(0, 0, 0, 0.45);
+  --shadow-3: 0 4px 10px rgba(0, 0, 0, 0.45), 0 24px 48px rgba(0, 0, 0, 0.55);
+}
+
+.elev-1 {
+  box-shadow: var(--shadow-1);
+}
+.elev-2 {
+  box-shadow: var(--shadow-2);
+}
+.elev-3 {
+  box-shadow: var(--shadow-3);
+}
 
 /*
  * The score card's material: deep sage in both themes (#165 — the
@@ -312,6 +394,7 @@ body {
 .card-score {
   background: var(--color-sage-900);
   border: 1px solid transparent;
+  box-shadow: var(--shadow-1);
 }
 
 :root[data-theme="dark"] .card-score {
@@ -401,18 +484,38 @@ body::after {
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
 
-/* Press feedback: a tap should feel like it landed. The lift half of
- * the old pair is retired with the shadows; a pressed card darkens its
- * border instead (set border-color per element; it animates here). */
-@media (hover: none) {
-  .press:active {
-    transform: scale(0.985);
-  }
+/*
+ * Press feedback: a tap should feel like it landed (#234).
+ *
+ * This used to be a 0.985 scale on touch devices only, plus an animated
+ * `border-color` "a pressed card darkens its border" — and once cards
+ * stopped being outlined boxes there was no border left to darken, so
+ * the pressed state was invisible on exactly the surfaces people press.
+ *
+ * The veil is a background-IMAGE rather than a background-color or a
+ * box-shadow on purpose: it layers over whatever fill the element
+ * already has (terracotta, sage, raised, nothing at all), it is clipped
+ * by the element's own radius, and it leaves the card's box-shadow
+ * alone. The scale now runs on every pointer type, because a mouse
+ * deserves to feel it land too.
+ */
+:root {
+  --press-veil: rgba(32, 30, 29, 0.05);
 }
+:root[data-theme="dark"] {
+  --press-veil: rgba(243, 236, 221, 0.06);
+}
+
+.press:active {
+  transform: scale(0.985);
+  background-image: linear-gradient(var(--press-veil), var(--press-veil));
+}
+
 .press {
   transition:
     transform var(--duration-fast) var(--ease-out),
     background-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out);
 }
 

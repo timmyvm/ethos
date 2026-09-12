@@ -148,35 +148,35 @@ export function DimensionList({
   const available = rows.reduce((sum, r) => sum + r.weight, 0);
 
   return (
-    <div className="rounded-card border border-hairline bg-surface px-5 py-2">
+    <div className="elev-1 rounded-card border border-card-edge bg-raised px-4 py-1">
       {rows.map((row) => {
         const points = dimensionPoints(row.score, row.weight);
         return (
           <details
             key={row.name}
-            className="group border-b border-sand py-3 last:border-b-0"
+            className="group border-b border-hairline py-3 last:border-b-0"
           >
             <summary className="flex cursor-pointer select-none items-center gap-3">
-              <span className="w-[104px] shrink-0 text-[13.5px] font-semibold leading-tight">
+              <span className="font-display w-[104px] shrink-0 text-[14px] font-bold leading-tight">
                 {row.name}
               </span>
-              <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-sand">
+              <span className="h-1.5 flex-1 overflow-hidden bg-sand">
                 <span
-                  className={`block h-full rounded-control bg-sage-500 ${fill ? "fill" : ""}`}
+                  className={`block h-full bg-sage-500 ${fill ? "fill" : ""}`}
                   style={{ width: `${(points / row.weight) * 100}%` }}
                 />
               </span>
               <span className="w-[62px] shrink-0 text-right">
-                <span className="font-display text-[15px] font-bold">
+                <span className="font-display text-[15px] font-extrabold">
                   {points}
                 </span>
-                <span className="text-[12px] text-stone-500">/{row.weight}</span>
+                <span className="text-caption text-stone-500">/{row.weight}</span>
               </span>
             </summary>
             {/* The why drops out of the row that opened it (#227); a
                 closed <details> doesn't render it, so it plays on every
                 open and never on the page's load. */}
-            <div className="reveal mt-2 pl-0 text-[13px] leading-relaxed text-stone-500">
+            <div className="reveal mt-2 pl-0 text-caption leading-relaxed text-stone-500">
               {row.detail}
               {row.improve && (
                 <div className="mt-1 text-stone-600">↳ {row.improve}</div>
@@ -189,20 +189,20 @@ export function DimensionList({
       {/* The sum, stated. Every number above adds to this one, and this
           one is the Ethos Index — so the score is checkable by hand
           rather than taken on trust. */}
-      <div className="flex items-center justify-between py-3 text-[13px]">
-        <span className="label-data">
+      <div className="flex items-center justify-between border-t border-hairline py-3 text-[13px]">
+        <span className="label-micro">
           {rows.length} dimension{rows.length === 1 ? "" : "s"} · added up
         </span>
         <span>
-          <span className="font-display text-[15px] font-bold">{earned}</span>
-          <span className="text-[12px] text-stone-500">/{available}</span>
+          <span className="font-display text-[15px] font-extrabold">{earned}</span>
+          <span className="text-caption text-stone-500">/{available}</span>
         </span>
       </div>
 
       {/* Counts the rows rather than claiming a number (#102): the
           measured tier grew once already and this line didn't notice. */}
       {!coach && (
-        <p className="border-t border-sand py-3 text-[12px] leading-relaxed text-stone-500">
+        <p className="border-t border-hairline py-3 text-caption leading-relaxed text-stone-500">
           The coach didn&apos;t run this time. These {rows.length} measured
           dimensions cover {available} of the 1000; without the judged ones
           there is no Ethos Index.

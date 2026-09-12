@@ -76,20 +76,20 @@ export function ComparisonCard({
   }
 
   return (
-    <div className="rounded-sheet bg-stage p-5 text-cream">
+    <div className="elev-1 rounded-sheet bg-stage p-5 text-cream">
       <div className="label-data !text-cream/60">
         Day 1 → day {days} · your training log
       </div>
       <div className="mt-4 space-y-3">
         {rows.map((r) => (
           <div key={r.label} className="flex items-baseline gap-3">
-            <span className="w-28 text-[13px] text-cream/60">{r.label}</span>
-            <span className="font-display text-[20px] text-cream/45">
+            <span className="w-28 text-caption text-cream/60">{r.label}</span>
+            <span className="font-display text-[20px] font-extrabold text-cream/45">
               {r.a}
             </span>
             <span className="text-cream/40">→</span>
             <span
-              className={`font-display text-[24px] font-bold ${
+              className={`font-display text-[24px] font-extrabold ${
                 r.better ? "text-sage-lit" : "text-rust-lit"
               }`}
             >
@@ -98,7 +98,7 @@ export function ComparisonCard({
           </div>
         ))}
       </div>
-      <div className="mt-4 border-t border-cream/15 pt-3 text-[12px] text-cream/60">
+      <div className="mt-4 border-t border-cream/15 pt-3 text-caption text-cream/60">
         {reps.length} recordings. Every number measured, none awarded.
       </div>
     </div>

@@ -79,7 +79,7 @@ export function SkeletonStatBare() {
 /** A card the size of the stat tiles on the results screen. */
 export function SkeletonStat() {
   return (
-    <div className="flex-1 rounded-card border border-edge bg-raised p-3.5">
+    <div className="elev-1 flex-1 rounded-card border border-card-edge bg-raised p-4">
       <Skeleton className="h-2.5 w-12" />
       <Skeleton className="mt-2 h-6 w-10" />
       <Skeleton className="mt-2 h-2.5 w-14" />
@@ -106,7 +106,7 @@ export function SkeletonRow() {
 /** The ink score card on home, and anything shaped like it. */
 export function SkeletonScoreCard() {
   return (
-    <section className="card-score mt-5 rounded-sheet p-5">
+    <section className="card-score rounded-sheet p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <Skeleton className="h-2.5 w-20 !bg-cream/10" />

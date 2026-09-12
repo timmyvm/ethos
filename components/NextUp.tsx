@@ -30,19 +30,19 @@ export function NextUp({
         {shown.map((m) => (
           <div
             key={m.id}
-            className="rounded-card border border-hairline bg-surface p-4"
+            className="elev-1 rounded-card border border-card-edge bg-raised p-4"
           >
             <div className="flex items-baseline justify-between gap-3">
-              <span className="text-[14px] font-semibold">{m.label}</span>
-              <span className="label-data shrink-0">{m.remainingLabel}</span>
+              <span className="font-display text-[14px] font-bold">{m.label}</span>
+              <span className="label-micro shrink-0">{m.remainingLabel}</span>
             </div>
-            <div className="mt-2 h-1 overflow-hidden rounded-full bg-sand">
+            <div className="mt-2 h-1 overflow-hidden bg-sand">
               <div
-                className="fill h-full rounded-control bg-sage-500"
+                className="fill h-full bg-sage-500"
                 style={{ width: `${Math.max(3, m.progress * 100)}%` }}
               />
             </div>
-            <div className="mt-1.5 text-[12px] text-stone-500">{m.detail}</div>
+            <div className="mt-1.5 text-caption text-stone-500">{m.detail}</div>
           </div>
         ))}
       </div>

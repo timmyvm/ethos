@@ -20,7 +20,7 @@ export function StreakBadge({ streak }: { streak: StreakState }) {
   if (streak.current === 0) return null;
 
   return (
-    <span className="font-display text-[13px] font-semibold uppercase tracking-[0.02em] text-sage-700 tabular-nums">
+    <span className="font-display text-[13px] font-bold uppercase tracking-[0.02em] text-sage-700 tabular-nums">
       Streak {streak.current}
       {streak.atRisk && (
         <span className="normal-case opacity-70"> · today&apos;s open</span>

@@ -56,6 +56,11 @@ const TABS = [
 const BARE = [
   "/rep",
   "/lesson",
+  /* A trait lesson is the same shape as a unit intro and belongs here
+     for the same reason: one instruction, one button (#258). */
+  "/practice",
+  /* The design workbench is not an app screen at all (#255). */
+  "/workbench",
   "/hostile",
   "/calibrate",
   "/welcome",

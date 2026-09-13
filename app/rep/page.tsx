@@ -155,6 +155,17 @@ type Phase =
   | "results"
   | "error";
 
+/**
+ * A `back` that is a path on this app and nothing else. Anything with a
+ * scheme, a host, or a second slash at the front is dropped: a redirect
+ * target taken from a query string is the oldest hole there is.
+ */
+function safeBack(raw: string | null): string | null {
+  if (!raw) return null;
+  if (!raw.startsWith("/") || raw.startsWith("//")) return null;
+  return raw;
+}
+
 export default function RepPage() {
   return (
     <Suspense fallback={<main className="px-5 pt-7" />}>
@@ -1013,9 +1024,18 @@ function RepScreen() {
       ? liveTipAt(seconds, config.maxSeconds, captureMode === "voice_video")
       : null;
 
+  /*
+   * Where this recording came FROM, if anywhere (#258). A lesson sends
+   * somebody out here and needs them back on its own last screen,
+   * because the change it is about to show them is the whole lesson.
+   * Same-origin paths only: a `back` that could point off the app would
+   * be an open redirect wearing a query string.
+   */
+  const backTo = safeBack(searchParams.get("back"));
+
   return (
     <main className="flex min-h-dvh flex-col px-5 pb-8 pt-7">
-      <Link href={config.kind === "boss" ? "/boss" : "/"} className="press inline-flex min-h-11 items-center self-start text-[13px] font-semibold text-stone-500">
+      <Link href={backTo ?? (config.kind === "boss" ? "/boss" : "/")} className="press inline-flex min-h-11 items-center self-start text-[13px] font-semibold text-stone-500">
         ← back
       </Link>
       {/*
@@ -1442,6 +1462,9 @@ function Results({
   onRetake: () => void;
 }) {
   const router = useRouter();
+  /* Where this recording came from, if a lesson sent it (#258). Read
+     here rather than threaded down through eighteen props. */
+  const backTo = safeBack(useSearchParams().get("back"));
   const [step, setStep] = useState(0);
   const section = STEPS[step].key;
   const last = step === STEPS.length - 1;
@@ -1736,10 +1759,10 @@ function Results({
             </button>
           )}
           <button
-            onClick={() => exit(game ? "/games" : "/")}
+            onClick={() => exit(backTo ?? (game ? "/games" : "/"))}
             className="press mt-3 block min-h-11 w-full py-2 text-center text-[13px] font-semibold text-stone-500"
           >
-            {game ? "Back to Tools" : "Done for today"}
+            {backTo ? "Back to the lesson" : game ? "Back to Tools" : "Done for today"}
           </button>
         </div>
       ) : (

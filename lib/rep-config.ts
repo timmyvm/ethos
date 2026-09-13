@@ -205,6 +205,13 @@ export function repHref(opts: {
   /** The drawn question, so a shared game link repeats the same rep. */
   q?: string;
   mods?: string[];
+  /**
+   * Where the recorder hands control back (#258). A lesson sends
+   * somebody out to record and needs them to land on its own last
+   * screen rather than on the floor, because the change it is about to
+   * show is the point of the lesson.
+   */
+  back?: string;
 }): string {
   const q = new URLSearchParams();
   if (opts.boss) q.set("boss", opts.boss);
@@ -214,6 +221,7 @@ export function repHref(opts: {
   } else if (opts.topic) q.set("topic", opts.topic);
   else if (opts.lesson) q.set("lesson", opts.lesson);
   if (opts.mods?.length) q.set("mods", opts.mods.join(","));
+  if (opts.back) q.set("back", opts.back);
   const s = q.toString();
   return s ? `/rep?${s}` : "/rep";
 }

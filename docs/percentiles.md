@@ -40,24 +40,24 @@ the population studied matches the population Ethos serves doing the
 task Ethos measures. Where an audit disagrees with the proposal, the
 audit wins and the disagreement is recorded.
 
-**All four proposals completed. One of the four audits did.** The run
-hit a session limit after the fillers audit returned, and the audits for
-pace, pausing and pitch never ran. That is stated here rather than
+**All four proposals completed. Three of the four audits did.** The run
+hit a session limit partway through; the fillers, pace and pausing
+audits ran, the pitch audit did not. That is stated here rather than
 quietly omitted, because a document whose whole purpose is to be honest
 about what stands behind a number cannot be coy about which of its own
 checks were performed.
 
-It changes confidence and it does not change any decision. Every one of
-the four proposals reached "provisional" on its own, for reasons that
-are about the **absence** of a published between-speaker spread rather
-than about a disputed value, and an audit cannot conjure a distribution
-that was never published. So every trait ships provisional either way.
-What is missing is the chance that an auditor would have found, in the
-three un-audited traits, the kind of error it found in the one it
-checked — and it found a serious one, in the direction of the proposal
-misreporting its own evidence. **Read the pace and pausing sections as
-one careful reader's work, not as two.** The three audits should be run
-before any of these traits is promoted above provisional.
+**Auditing was worth it.** Every audit that ran found something the
+proposal had got wrong, and in both of the first two the error ran in
+the direction of the proposal being more confident than its own
+evidence. The fillers proposal claimed no published dispersion exists
+for English filled pauses when the paper it says it read in full gives
+65 English speakers and a median. The pace proposal built its only
+direct measurement on a percentile label its source attaches to
+different numbers, and left an 11% correction unapplied that its own
+cited source states outright. Neither was catchable by rereading the
+proposal. **Read the pitch section as one careful reader's work rather
+than two**, and run that audit before anything is built on it.
 
 Read-aloud data used for a spontaneous monologue model is a real
 problem, and so is conversational data used for a monologue. Both are
@@ -464,17 +464,63 @@ grinding out 110. Below the band the penalty is real: listeners rate
 moderate-to-fast speakers as more competent, credible and confident than
 slow ones (Miller et al. 1976; Smith and Shaffer 1991, 1995), and below
 roughly 115 a young speaker is audibly labouring. Above it the evidence
-is much weaker than the coaching lore: native listeners comprehend at
-200 to 250 words a minute without difficulty, Smith and Shaffer use 180
-as their **moderate** condition, and TED speakers average 169
+is much weaker than the coaching lore: the time-compressed-speech
+literature has native listeners near ceiling well above normal rate,
+Smith and Shaffer use 180 as their **moderate** condition, and TED
+speakers average 169
 ([Wingrove 2017](https://www.sciencedirect.com/science/article/abs/pii/S1475158517301029),
 measured on one-minute windows, the same window Ethos uses). Nothing
 supports a penalty starting at 161. An honest curve is steep below about
 120, flat from about 125 to 175, and shallow above about 190.
 
-**Not changed yet**, for the same reason as the held-pause line: it
-moves every score in the log. It is the first thing to fix once the
-Index's role is settled.
+**What the audit changed.** It verified nine of the ten studies exist,
+found the percentile arithmetic clean end to end, and called the
+directionality analysis the most valuable thing in the proposal. Then it
+took the centre and the spread apart:
+
+- **The one direct measurement does not say what it was quoted as
+  saying.** Route A, sold as the only paper reporting words a minute
+  directly, rests on a percentile label the source abstract attaches to
+  different numbers, in a paper nobody in the chain actually read. That
+  is the most serious finding in the audit.
+- **A correction was available and not applied.** The proposal describes
+  Bradlow's acoustic-syllable under-count as "an unstated amount".
+  Bradlow's own 2019 table states it: 123 acoustic syllables against 139
+  orthographic, an 11% loss, measured on read speech, which loses less
+  than spontaneous speech does. Applying it moves two of the three
+  routes up by 14 to 20 words a minute. **The centre is defensible as a
+  rough prior over roughly 145 to 165, not as 148 plus or minus 10.**
+- **The spread is derived wrongly twice.** The range-to-deviation
+  divisor used is the constant for a sample of about 500 where
+  Switchboard has 2,438; and the un-averaging step assumes two people on
+  a phone call vary independently, where the entrainment literature says
+  they converge on each other.
+- **And here is what that costs.** Holding the centre at 148 and
+  sweeping the spread across the range the proposal itself calls
+  plausible, somebody recorded at 127 words a minute sits **anywhere
+  from the 10th percentile to the 32nd**. The number Ethos would print
+  beside that recording is not a measurement, it is a choice. Under
+  vision.md's own rule, that feedback traces to a timestamp or a number
+  or it is not said, a percentile that swings that far on an unmeasured
+  parameter does not trace to anything.
+
+So the audit's verdict is sharper than the proposal's, and it is the one
+adopted here: **ship the band change, do not ship the percentile.** Show
+the raw rate and which side of the band it falls on, and fit the
+placement to Ethos's own recordings.
+
+Two corrections the audit made to this document's own citations, made
+before filing. The Jordanian normative study is Damhoureyeh, Darawsheh,
+Qa'dan and Natour, not Al-Khateeb. And "native listeners comprehend at
+200 to 250 words a minute" could not be traced to a primary source, so
+what is claimed above is only what the time-compressed-speech literature
+supports. An unsourced convenience is exactly what the NCVS figure was
+rejected for, and it does not get a pass for agreeing with us.
+
+**The band is not changed yet**, for the same reason as the held-pause
+line: it moves every score already in the log. It is the first thing to
+fix once the Index's role is settled, and it is the one change the
+researcher and the auditor asked for independently.
 
 One consequence for the ring, already implemented: a percentile of raw
 words a minute is meaningless for a banded trait, because the 95th and
@@ -582,10 +628,12 @@ percentile.
    it is independent of every ring.
 2. **Move the pace zone, on both sides at once.** 130 to 160 is the 26th
    to the 65th percentile. The honest shape is steep below about 120,
-   flat from about 125 to 175, and shallow above about 190. It is one
-   change across `lib/index-score.ts` and `content/norms.ts`, because
-   the app must not end up with two zones disagreeing about what "in the
-   zone" means.
+   flat from about 125 to 175, and shallow above about 190. The
+   researcher and the adversarial auditor asked for this independently,
+   and it is the only thing in the whole review they fully agreed on. It
+   is one change across `lib/index-score.ts` and `content/norms.ts`,
+   because the app must not end up with two zones disagreeing about what
+   "in the zone" means.
 3. **Decide what 0.8 seconds is called.** At that threshold about 24% of
    pauses count as held where the genuine long class is 14%, so roughly
    a third of what Ethos scores as a landing is an ordinary boundary
@@ -593,7 +641,7 @@ percentile.
    rhetorical.
 4. **Give restarts a column.** The one trait whose raw value is
    recovered from a score rather than stored, now two derivations deep.
-5. **Run the three audits that did not.** Pace, pausing and pitch.
+5. **Run the audit that did not.** Pitch.
 6. **Then fit the norms to Ethos's own recordings.** Every distribution
    here is somebody else's population. Once there are a few hundred
    sixty-second recordings from 16 to 28 year olds speaking a monologue

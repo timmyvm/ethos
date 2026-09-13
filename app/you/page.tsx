@@ -37,6 +37,7 @@ import {
   MAX_EQUIPPED_FREEZES,
   type StreakState,
 } from "@/lib/streak";
+import { INPUT_CLASS } from "@/lib/ui";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 
 // Free tier gets today's swap, not the archive — when the paywall is on.
@@ -253,7 +254,7 @@ export default function YouPage() {
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder="Your name"
-              className="min-h-11 w-full min-w-0 flex-1 rounded-control border border-edge bg-surface px-4 text-[15px] font-semibold placeholder:text-stone-400 focus:border-terracotta-500"
+              className={`${INPUT_CLASS} flex-1`}
             />
             <button
               type="submit"

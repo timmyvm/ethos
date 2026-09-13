@@ -14,6 +14,7 @@ import {
   GOALS,
   LEVELS,
   PAINS,
+  TIMES,
 } from "@/content/portfolio";
 
 export type AgeBandId = (typeof AGE_BANDS)[number]["id"];
@@ -21,6 +22,7 @@ export type GoalId = (typeof GOALS)[number]["id"];
 export type PainId = (typeof PAINS)[number]["id"];
 export type LevelId = (typeof LEVELS)[number]["id"];
 export type ContextId = (typeof CONTEXTS)[number]["id"];
+export type TimeId = (typeof TIMES)[number]["id"];
 
 /** Up to three: more than that is a list, not a focus. */
 export const MAX_PAINS = 3;
@@ -41,6 +43,13 @@ export interface Answers {
   pains: PainId[];
   level: LevelId | null;
   context: ContextId | null;
+  /**
+   * When the daily nudge fires. Kept HERE as well as in prefs, because
+   * prefs only knows the hour and "no reminder" and "not asked yet" are
+   * both a null hour — and a walk has to know whether its seventh
+   * question was answered.
+   */
+  time: TimeId | null;
 }
 
 export interface OnboardingState {
@@ -60,6 +69,7 @@ export const EMPTY_ANSWERS: Answers = {
   pains: [],
   level: null,
   context: null,
+  time: null,
 };
 
 export const EMPTY_STATE: OnboardingState = {
@@ -77,6 +87,7 @@ export const isGoal = (v: unknown): v is GoalId => has(GOALS, v);
 export const isPain = (v: unknown): v is PainId => has(PAINS, v);
 export const isLevel = (v: unknown): v is LevelId => has(LEVELS, v);
 export const isContext = (v: unknown): v is ContextId => has(CONTEXTS, v);
+export const isTime = (v: unknown): v is TimeId => has(TIMES, v);
 
 /** Trimmed, capped, and blank is the same as never answered. */
 export function cleanName(raw: unknown): string | null {
@@ -97,6 +108,7 @@ export function cleanAnswers(raw: Partial<Answers> | null | undefined): Answers 
     pains,
     level: isLevel(raw?.level) ? raw!.level : null,
     context: isContext(raw?.context) ? raw!.context : null,
+    time: isTime(raw?.time) ? raw!.time : null,
   };
 }
 
@@ -107,7 +119,8 @@ export function answered(a: Answers): boolean {
     a.goal !== null ||
     a.pains.length > 0 ||
     a.level !== null ||
-    a.context !== null
+    a.context !== null ||
+    a.time !== null
   );
 }
 

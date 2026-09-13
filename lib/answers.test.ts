@@ -50,6 +50,7 @@ describe("answers", () => {
       pains: ["fillers", "rushing", "flat"],
       level: "often",
       context: null,
+      time: null,
     });
     expect(a.pains.length).toBe(MAX_PAINS);
   });

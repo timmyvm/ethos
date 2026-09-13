@@ -24,3 +24,16 @@ export const ACTION_CLASS =
  */
 export const DISABLED_CLASS =
   "disabled:!border-edge disabled:!bg-surface disabled:!text-stone-400 disabled:shadow-none";
+
+/**
+ * A field somebody types into (#246's control grammar, #249). The one
+ * spelling: `surface` behind the `edge` boundary every control carries,
+ * 44px minimum, and a focus border in terracotta rather than the 2.4:1
+ * stone that used to make focus invisible.
+ *
+ * Here rather than inline because two screens now ask for the same
+ * string — /you's name row and the introduction's first question — and
+ * a control with two spellings is a control with two looks.
+ */
+export const INPUT_CLASS =
+  "min-h-11 w-full min-w-0 rounded-control border border-edge bg-surface px-4 text-[15px] font-semibold placeholder:text-stone-400 focus:border-terracotta-500";

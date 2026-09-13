@@ -5,6 +5,7 @@ import Link from "next/link";
 import { IconBoss } from "@/components/Icon";
 import { journeySteps, journeySummary } from "@/lib/progress";
 import { UNITS } from "@/lib/path";
+import type { Portfolio } from "@/lib/portfolio";
 import { repHref } from "@/lib/rep-config";
 
 /**
@@ -83,9 +84,12 @@ function Connector() {
 export function PathRoad({
   starMap,
   hasAnyRep,
+  focus = null,
 }: {
   starMap: Record<string, number>;
   hasAnyRep: boolean;
+  /** What the introduction said they notice, and where it is trained. */
+  focus?: Portfolio["focus"];
 }) {
   const steps = journeySteps(starMap, hasAnyRep);
   const summary = journeySummary(starMap);
@@ -93,6 +97,26 @@ export function PathRoad({
     (s) => !s.endowed && !s.locked && !s.boss && s.stars < 3,
   );
   const weeks = Math.round(summary.totalLessons / 7);
+
+  /*
+   * The answers have to show up somewhere other than the screen that
+   * collected them, or the introduction was a form (#249). The unit
+   * that trains what they said they notice is marked in their OWN
+   * words, so the mark is evidence the app remembered rather than a
+   * badge: "you said rushing" on the Pace checkpoint.
+   *
+   * It retires the moment the unit scores its first star. A permanent
+   * flag is furniture, and by then the stars on the rows under it say
+   * more about that unit than a label can.
+   */
+  const focusStars =
+    focus === null
+      ? 0
+      : steps.reduce(
+          (n, s) => (!s.endowed && s.unitName === focus.unitName ? n + s.stars : n),
+          0,
+        );
+  const focusUnit = focus !== null && focusStars === 0 ? focus : null;
 
   let lastUnit: string | null = null;
 
@@ -203,9 +227,16 @@ export function PathRoad({
                         <Gate open={!step.locked} width={26} />
                       ) : null}
                     </span>
-                    <span className="font-display min-w-0 flex-1 text-[14px] font-extrabold">
-                      {unit.name}
-                      {unit.boss ? " · weekly boss" : ""}
+                    <span className="min-w-0 flex-1">
+                      <span className="font-display block text-[14px] font-extrabold">
+                        {unit.name}
+                        {unit.boss ? " · weekly boss" : ""}
+                      </span>
+                      {focusUnit !== null && unit.name === focusUnit.unitName && (
+                        <span className="label-micro mt-0.5 block text-terracotta-700">
+                          You said {focusUnit.said}
+                        </span>
+                      )}
                     </span>
                     {step.locked && (
                       <span className="shrink-0 text-caption text-stone-500 tabular-nums">

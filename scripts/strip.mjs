@@ -13,7 +13,17 @@
  *
  * Writes docs/look/strips/<name>-{light,dark}.png. The selector is
  * tapped; if it is the literal string "load" the strip is the page's own
- * first 400ms instead. Frames after the first are SEEKED through the Web
+ * first 400ms instead.
+ *
+ * Two env knobs for the introduction, whose transitions only exist part
+ * way through a walk (#249):
+ *
+ *   STRIP_FRESH=1   an EMPTY browser, no finished onboarding in the
+ *                   fixture, so /welcome opens on its first screen
+ *                   rather than on the plan it would jump to.
+ *   STRIP_PRE=a|b   selectors to tap, in order, before the strip starts,
+ *                   so the camera can walk to the screen being
+ *                   photographed. Pipe-separated. Frames after the first are SEEKED through the Web
  * Animations API rather than waited for, because a screenshot costs
  * longer than the animation being photographed; `--wall` waits in real
  * time instead, for anything JavaScript drives frame by frame.
@@ -63,13 +73,35 @@ await context.route("**/api/analyze", async (route) => {
     body: JSON.stringify(analyzeBody),
   });
 });
-await context.addInitScript(seed, { theme: THEME, session });
+if (process.env.STRIP_FRESH) {
+  await context.addInitScript((t) => {
+    localStorage.setItem(
+      "ethos.prefs",
+      JSON.stringify({ theme: t, reducedMotion: false, haptics: false })
+    );
+  }, THEME);
+} else {
+  await context.addInitScript(seed, { theme: THEME, session });
+}
+await context.addInitScript(() => {
+  const css = document.createElement("style");
+  css.textContent = "nextjs-portal{display:none!important}";
+  document.addEventListener("DOMContentLoaded", () => document.head.appendChild(css));
+});
 const page = await context.newPage();
 page.on("pageerror", (e) => console.log("PAGEERROR", e.message.slice(0, 120)));
 
 await page.goto(`${BASE}${URL_PATH}`);
 await page.waitForSelector("main");
 await sleep(SELECTOR === "load" ? 0 : 1200);
+
+// Walk to the screen being photographed, then let it settle so the
+// frames are the transition and not the arrival that preceded it.
+for (const pre of (process.env.STRIP_PRE ?? "").split("|").filter(Boolean)) {
+  await page.locator(pre).first().click();
+  await sleep(600);
+}
+if (process.env.STRIP_PRE) await sleep(600);
 
 const frames = [];
 const shoot = async () => {

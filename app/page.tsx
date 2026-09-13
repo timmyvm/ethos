@@ -39,7 +39,7 @@ import {
 import { readPrefs } from "@/lib/prefs";
 import { readOnboarding, type Answers, EMPTY_ANSWERS } from "@/lib/answers";
 import { syncOnboarding } from "@/lib/answers-sync";
-import { dayOneNote, spinForAnswers } from "@/lib/portfolio";
+import { buildPortfolio, dayOneNote, spinForAnswers } from "@/lib/portfolio";
 import { repHref } from "@/lib/rep-config";
 import { ownedFrom, poseArt } from "@/lib/shop";
 import { armReminder } from "@/lib/reminders";
@@ -526,7 +526,11 @@ export default function Home() {
           is what scrolling reveals, all of it, without a tab switch. */}
           {/* Only once the reps are in hand: a road drawn from an unread
           history shows nought stars to someone who has earned twenty. */}
-          <PathRoad starMap={starMap} hasAnyRep={history.length > 0} />
+          <PathRoad
+            starMap={starMap}
+            hasAnyRep={history.length > 0}
+            focus={buildPortfolio(answers).focus}
+          />
         </>
       )}
 

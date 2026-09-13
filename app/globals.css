@@ -724,29 +724,37 @@ body::after {
 .stagger > * {
   animation: arrive var(--duration-base) var(--ease-out) backwards;
 }
+/*
+ * `--stagger-lead` holds the whole ladder back (#249). A list inside a
+ * block that is itself arriving has two clocks running at once, and the
+ * rows pop out of step with the slide carrying them. Set the lead to
+ * the parent's own duration and the block lands first, then the rows
+ * land one at a time, which is a shape rather than a collision.
+ * Defaults to 0ms, so every existing stagger is untouched.
+ */
 .stagger > *:nth-child(1) {
-  animation-delay: 0ms;
+  animation-delay: var(--stagger-lead, 0ms);
 }
 .stagger > *:nth-child(2) {
-  animation-delay: 40ms;
+  animation-delay: calc(var(--stagger-lead, 0ms) + 40ms);
 }
 .stagger > *:nth-child(3) {
-  animation-delay: 80ms;
+  animation-delay: calc(var(--stagger-lead, 0ms) + 80ms);
 }
 .stagger > *:nth-child(4) {
-  animation-delay: 120ms;
+  animation-delay: calc(var(--stagger-lead, 0ms) + 120ms);
 }
 .stagger > *:nth-child(5) {
-  animation-delay: 160ms;
+  animation-delay: calc(var(--stagger-lead, 0ms) + 160ms);
 }
 .stagger > *:nth-child(6) {
-  animation-delay: 200ms;
+  animation-delay: calc(var(--stagger-lead, 0ms) + 200ms);
 }
 .stagger > *:nth-child(7) {
-  animation-delay: 240ms;
+  animation-delay: calc(var(--stagger-lead, 0ms) + 240ms);
 }
 .stagger > *:nth-child(n + 8) {
-  animation-delay: 280ms;
+  animation-delay: calc(var(--stagger-lead, 0ms) + 280ms);
 }
 
 /*
@@ -951,6 +959,29 @@ body::after {
     transform: scale(1.02);
   }
 }
+/*
+ * The nod (DECISIONS #249). Demos answers a tap.
+ *
+ * One shot, on the WRAPPER rather than the art, because the art is
+ * already running its pose loop and two animations fighting over one
+ * `transform` is a jitter, not a reaction. It dips and comes back on
+ * the spring, which is the shape of a head nodding rather than a thing
+ * bouncing.
+ */
+@keyframes demos-nod {
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+  38% {
+    transform: translateY(4px) rotate(-2.5deg);
+  }
+  72% {
+    transform: translateY(-1.5px) rotate(1deg);
+  }
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+}
 @keyframes arc-in {
   0%,
   100% {
@@ -989,6 +1020,9 @@ body::after {
   transform-origin: 50% 100%;
   animation: breath 2.4s var(--ease-in-out) infinite alternate;
 }
+.demos-nod {
+  animation: demos-nod 460ms var(--ease-spring);
+}
 .arc {
   animation: arc-in 1.8s var(--ease-in-out) infinite;
   animation-delay: calc(var(--i, 0) * 0.3s);
@@ -998,7 +1032,16 @@ body::after {
   animation-delay: calc(var(--i, 0) * 0.4s);
 }
 :root[data-motion="reduce"]
-  :is(.demos-idle, .demos-sway, .demos-bob, .demos-tilt, .demos-breath, .arc, .spark) {
+  :is(
+    .demos-idle,
+    .demos-sway,
+    .demos-bob,
+    .demos-tilt,
+    .demos-breath,
+    .demos-nod,
+    .arc,
+    .spark
+  ) {
   animation: none;
 }
 

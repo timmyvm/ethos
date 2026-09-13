@@ -34,6 +34,7 @@ import {
   writeOnboarding,
   type OnboardingState,
 } from "./answers";
+import { TIMES } from "@/content/portfolio";
 import { buildPortfolio } from "./portfolio";
 import { readPrefs, writePrefs } from "./prefs";
 
@@ -72,12 +73,19 @@ export async function syncOnboarding(): Promise<OnboardingState> {
       const name = await fetchProfile()
         .then((p) => cleanName(p?.display_name))
         .catch(() => null);
+      /*
+       * The hour round-trips; the "No reminder" ANSWER does not, since
+       * the column holds an hour and "off" has none. A new phone reads
+       * that as unanswered, which produces exactly the same silence, so
+       * the loss costs nothing worth a second column.
+       */
       if (remote.reminder_hour !== null) {
         writePrefs({ reminderHour: remote.reminder_hour });
       }
       return writeOnboarding({
         answers: cleanAnswers({
           name,
+          time: TIMES.find((t) => t.hour === remote.reminder_hour)?.id ?? null,
           ageBand: remote.age_band as never,
           goal: remote.goal as never,
           pains: (remote.pains ?? []) as never,

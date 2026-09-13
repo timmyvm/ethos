@@ -35,9 +35,17 @@ export PLAYWRIGHT_MODULE=/opt/node22/lib/node_modules/playwright/index.mjs
 node scripts/look.mjs after today log          # stills, 390px, light and dark
 LOOK_BLUR=7 node scripts/look.mjs squint today # the squint test
 node scripts/strip.mjs mods / 'button:has-text("Make it harder")'   # a frame strip
+node scripts/look-welcome.mjs after            # the introduction, walked and shot
 node scripts/check-motion-layer.mjs            # the motion layer, asserted
 node scripts/check-motion.mjs                  # the older motion layer, asserted
+node scripts/check-onboarding.mjs              # the eleven-screen walk, asserted
 ```
+
+`look.mjs` photographs the app as a RETURNING user sees it, so its fixture has already finished
+the introduction and cannot photograph it. `look-welcome.mjs` starts from an empty browser, taps
+through all eleven screens and shoots each question twice, unanswered and answered, because
+Demos's reply only exists after a tap. `strip.mjs` takes `STRIP_FRESH=1` and `STRIP_PRE='a|b|c'`
+for the same reason: a transition part way through a walk needs the camera to walk in first.
 
 The **squint test** blurs the document before the shot. At 7px nothing survives but mass and
 colour, so a hierarchy that only works because you can read the words fails immediately. It is

@@ -23,11 +23,12 @@ The road is a list, rows sit on the ground under hairlines, and the eyebrow regi
 - Elevation: `--shadow-1/2/3` and `.elev-1/2/3`. Type: two uppercase registers, `.label-data` (section eyebrow) and `.label-micro` (column heads, chips, tile labels, the nav). Text sizes are body 15, caption 12.5, row title and control label 14/700, text link 13/600; numbers keep the display scale at 800, tabular.
 - Rhythm, owned by the parent: section `mt-7`, eyebrow to content `mt-3`, row `py-3`, card to card `gap-3`, card `p-4`, hero `p-5`, screen `px-5 pt-7 pb-22`. Shared components carry no outer margin.
 - Unit marks: `public/unit/<id>.webp`, one Demos pose per unit, cut and normalised by `scripts/cut-unit-marks.mjs` from `assets/demos-unit-*.png`. The road shows one, on the unit you are in.
+- Demos poses: the introduction's full-body set is `public/demos-onboard-*.webp`, one per screen, on one baseline at one scale; the in-app set is its own crop at 512. A new pose joins either set through `scripts/cut-pose.mjs`, which measures it against a shipped one. Loops and the one-shot nod live in `components/DemosArt.tsx`.
 - Icons: `components/Icon.tsx`, 24px line set. Primitives: `components/ui/` (EmptyState, ErrorState, Overlay, Skeleton), plus ScoreCard, Nav, PathRoad, DayTrail.
 
 ## Screens
 
-Today `/`, Tools `/games`, Log `/history`, You `/you`, Shop `/shop`, the recording loop `/rep`, bosses, auth, the paywall sheet, Settings, the introduction carousel. Desktop is a 430px column in a cream void.
+Today `/`, Tools `/games`, Log `/history`, You `/you`, Shop `/shop`, the recording loop `/rep`, bosses, auth, the paywall sheet, Settings, and the introduction `/welcome`: three intro screens, seven questions (the name typed and first, the hour tapped and last), and the plan built from the answers. Demos replies where an answer moves a number or a setting and nods where it does not. Desktop is a 430px column in a cream void.
 
 ## Open, with the leaning answer. Take it unless Timothy says otherwise.
 

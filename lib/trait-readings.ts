@@ -21,7 +21,7 @@
 
 import { NORMS, type NormQuality } from "@/content/norms";
 import { TRAITS, type TraitId } from "@/content/traits";
-import { substance, type RepMetrics } from "./metrics";
+import { FILLED_PAUSES, per100, substance, type RepMetrics } from "./metrics";
 import { REPAIR_ZERO_AT } from "./index-score";
 import { fraction, percentile, valueFor } from "./percentile";
 
@@ -50,7 +50,20 @@ const RAW: Record<TraitId, (m: RepMetrics) => number> = {
    * would go UP when somebody got worse.
    */
   pause: (m) => perMin(m.composedPauses, m.durationS),
-  fillers: (m) => m.fillersPerMin,
+  /*
+   * Filled pauses per hundred words, not all fillers per minute. Two
+   * separate reasons, both in docs/percentiles.md.
+   *
+   * The SET, because every published rate counts um and uh and nothing
+   * else, and Ethos also counts like, you know and basically. Placing
+   * somebody against one set while measuring another is not a
+   * percentile, it is a subtraction between two different quantities.
+   *
+   * The UNIT, because per minute rewards talking faster. The same
+   * speaker at 120 and at 160 words a minute, saying "um" exactly as
+   * often per sentence, appears to have cut a third of them.
+   */
+  fillers: (m) => m.filledPer100,
   repairs: (m) => m.repairsPerMin,
   pace: (m) => m.wpm,
   /* Distinct words per hundred spoken: the lexical measure the Index
@@ -172,20 +185,27 @@ export function readTraitsFromRow(row: {
   transcript: string;
   wpm: number;
   filler_count: number;
+  /* Every hit carries the word it matched, so the filled pauses can be
+     counted back out of a stored row without a new column. */
+  fillers?: { word: string }[] | null;
   pauses: { kind: string }[];
   dimensions: { tier1: { repairs?: number } } | null;
 }): TraitReading[] {
   const repairsScore = row.dimensions?.tier1?.repairs;
+  const sub = substance(row.transcript);
+  const filled = (row.fillers ?? []).filter((f) => FILLED_PAUSES.has(f.word));
   const m = {
     durationS: row.duration_s,
     composedPauses: row.pauses.filter((p) => p.kind === "pre").length,
     fillersPerMin: perMin(row.filler_count, row.duration_s),
+    filledPauseCount: filled.length,
+    filledPer100: per100(filled.length, sub.wordCount),
     repairsPerMin:
       typeof repairsScore === "number"
         ? REPAIR_ZERO_AT * (1 - repairsScore / 100)
         : 0,
     wpm: row.wpm,
-    substance: substance(row.transcript),
+    substance: sub,
   } as RepMetrics;
   return readTraits(m);
 }

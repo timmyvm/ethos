@@ -49,6 +49,16 @@ export interface RepMetrics {
   fillers: FillerHit[];
   fillerCounts: Record<string, number>;
   topFiller: string | null;
+  /** Filled pauses only: um, uh, erm. See `FILLED_PAUSES`. */
+  filledPauseCount: number;
+  /**
+   * Filled pauses per hundred words, which is the unit the literature
+   * reports and the one that cannot be gamed by talking faster. Per
+   * minute, somebody who speeds up from 120 to 160 words a minute
+   * appears to drop a third of their fillers without changing anything
+   * a listener would notice.
+   */
+  filledPer100: number;
   /**
    * Self-corrections: a phrase restarted with a different landing.
    * A listener hears one of these exactly the way they hear an "um".
@@ -88,6 +98,25 @@ const SIMPLE_FILLERS = new Set([
   "actually",
   "literally",
 ]);
+
+/**
+ * The subset of the above that the published literature actually
+ * counts, and the only one a percentile can be drawn from.
+ *
+ * Every population rate Ethos could find (Bortfeld 2001, Shriberg 1996,
+ * Clark & Fox Tree 2002) counts filled pauses and nothing else. Placing
+ * somebody against those numbers while also counting their "like"s
+ * compares two different quantities and calls the difference a
+ * position, and it fails worst on exactly the people Ethos serves:
+ * Tagliamonte found 8 of 18 Toronto speakers aged 10 to 19 used "like"
+ * more often than "and". A 17 year old would be told they are unusually
+ * disfluent for saying a word their whole year level says.
+ *
+ * So the discourse markers stay counted, stay visible and stay
+ * timestamped. They are just not what the ring is drawn from.
+ * See `docs/percentiles.md`, Fillers.
+ */
+export const FILLED_PAUSES = new Set(["um", "uh", "erm"]);
 
 /** Two-word fillers, matched on consecutive words. */
 const BIGRAM_FILLERS = [
@@ -419,6 +448,7 @@ export function computeMetrics(
 
   const fillerCount = fillers.length;
   const fillersPerMin = minutes > 0 ? fillerCount / minutes : 0;
+  const filledPauseCount = fillers.filter((f) => FILLED_PAUSES.has(f.word)).length;
   const repairCount = detectRepairs(words);
   const unvoicedHesitations = countUnvoicedHesitations(pauses);
   const repairsPerMin = minutes > 0 ? repairCount / minutes : 0;
@@ -446,6 +476,8 @@ export function computeMetrics(
     fillers,
     fillerCounts,
     topFiller,
+    filledPauseCount,
+    filledPer100: round2(per100(filledPauseCount, words.length)),
     repairCount,
     repairsPerMin: round2(repairsPerMin),
     unvoicedHesitations,
@@ -461,4 +493,14 @@ export function computeMetrics(
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
+}
+
+/**
+ * A rate per hundred words, which is how the disfluency literature
+ * reports and the only unit that holds still when somebody changes
+ * pace. Zero words is zero, not a division by nothing.
+ */
+export function per100(count: number, wordCount: number): number {
+  if (!Number.isFinite(wordCount) || wordCount <= 0) return 0;
+  return (count * 100) / wordCount;
 }

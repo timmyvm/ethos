@@ -108,9 +108,17 @@ export const TRAITS: TraitDef[] = [
   {
     id: "fillers",
     name: "Fillers",
-    unit: "fillers a minute",
-    unitOne: "filler a minute",
-    what: "Um, uh, like, you know, counted with a timestamp each.",
+    /*
+     * Per hundred WORDS, and um and uh only. The unit is not a
+     * presentation choice: per minute moves when you change pace, and
+     * every population figure this could be placed against counts
+     * filled pauses and nothing else (docs/percentiles.md, Fillers).
+     * Like and you know are still counted and still timestamped on the
+     * results screen. They are just not what the ring is drawn from.
+     */
+    unit: "um or uh per hundred words",
+    unitOne: "um or uh per hundred words",
+    what: "Um and uh, counted with a timestamp each, against the words around them.",
     why: "Every one is a gap you filled with sound instead of silence.",
     distinction:
       "Fillers are not a speaking problem. They are what happens when a thought arrives late.",
@@ -119,8 +127,7 @@ export const TRAITS: TraitDef[] = [
       "Slow the run-up, not the words. Fillers cluster where the sentence starts.",
       "Let the gap sit. One second of silence costs nothing and buys the next sentence.",
     ],
-    move: (n, up) =>
-      up ? `${s(n, "more filler")} a minute.` : `${s(n, "fewer filler")} a minute.`,
+    move: (n, up) => `${n} ${up ? "more" : "fewer"} per hundred words.`,
   },
   {
     id: "repairs",

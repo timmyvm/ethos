@@ -228,7 +228,7 @@ describe("computeMetrics", () => {
     // "like a gym" does not.
     const text =
       "so um my name is tim and i'm like building an app called ethos " +
-      "which is um basically like a gym for speaking you know it um " +
+      "which is um basically like a coach for speaking you know it um " +
       "kind of measures your fillers";
     const m = computeMetrics(flow(text), 60);
     expect(m.fillerCounts).toEqual({
@@ -242,6 +242,34 @@ describe("computeMetrics", () => {
     expect(m.fillersPerMin).toBe(7);
     expect(m.stars).toBe(1);
     expect(m.topFiller).toBe("um");
+  });
+
+  /*
+   * The ring is drawn from the filled pauses alone, because that is the
+   * only thing the published rates count (docs/percentiles.md). These
+   * two numbers diverging is the point of having both.
+   */
+  it("counts filled pauses apart from the discourse markers", () => {
+    const text =
+      "so um my name is tim and i'm like building an app called ethos " +
+      "which is um basically like a coach for speaking you know it um " +
+      "kind of measures your fillers";
+    const m = computeMetrics(flow(text), 60);
+    expect(m.filledPauseCount).toBe(3);
+    expect(m.fillerCount).toBe(7);
+    // 3 um in 32 words.
+    expect(m.wordCount).toBe(32);
+    expect(m.filledPer100).toBe(9.38);
+  });
+
+  it("does not move filled pauses per hundred words when pace changes", () => {
+    const text = "um one two three four um five six seven eight nine";
+    const slow = computeMetrics(flow(text), 60);
+    const fast = computeMetrics(flow(text), 30);
+    expect(fast.fillersPerMin).toBe(slow.fillersPerMin * 2);
+    expect(fast.filledPer100).toBe(slow.filledPer100);
+    // 2 um in 11 words, whichever minute they land in.
+    expect(slow.filledPer100).toBe(18.18);
   });
 
   it("a clean rep earns 3 stars", () => {

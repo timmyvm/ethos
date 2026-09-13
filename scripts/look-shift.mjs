@@ -95,6 +95,11 @@ async function shootTheme(theme) {
       if (STEPS[i + 1] === "6-after") { await go(`/practice/${LESSON}?done=1`, "main"); continue; }
       const next = page.locator("main button, main a").filter({ hasNot: page.locator("[hidden]") }).last();
       await next.click({ force: true }).catch(() => console.log("STEP-CLICK-FAILED", name));
+      // The pointer stays where it clicked, and the next screen puts its
+      // own button under it: without this every shot after the first
+      // photographs a hovered control and the walk looks like it uses
+      // two different terracottas.
+      await page.mouse.move(2, 2);
       await sleep(500);
     }
   });

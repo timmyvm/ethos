@@ -27,8 +27,8 @@ describe("withUnit", () => {
    * value, not the raw one.
    */
   it("takes the singular from the printed value, not the raw one", () => {
-    expect(withUnit("repairs", 0.997)).toBe("1 restart a minute");
-    expect(withUnit("repairs", 1.4)).toBe("1.4 restarts a minute");
+    expect(withUnit("repairs", 0.997)).toBe("1 restart per hundred words");
+    expect(withUnit("repairs", 1.4)).toBe("1.4 restarts per hundred words");
   });
 
   it("says what the fillers ring is actually drawn from", () => {

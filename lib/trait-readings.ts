@@ -64,7 +64,10 @@ const RAW: Record<TraitId, (m: RepMetrics) => number> = {
    * often per sentence, appears to have cut a third of them.
    */
   fillers: (m) => m.filledPer100,
-  repairs: (m) => m.repairsPerMin,
+  /* Per hundred words for the same two reasons as fillers: the norm
+     (Bortfeld's 1.94) is reported that way, and per minute lets
+     somebody buy a better restart number by talking faster. */
+  repairs: (m) => per100(m.repairCount, m.substance.wordCount),
   pace: (m) => m.wpm,
   /* Distinct words per hundred spoken: the lexical measure the Index
      already calls "range", scaled to a unit a person can picture. */
@@ -214,6 +217,10 @@ export function readTraitsFromRow(row: {
   dimensions: { tier1: { repairs?: number } } | null;
 }): TraitReading[] {
   const repairsScore = row.dimensions?.tier1?.repairs;
+  const repairRate =
+    typeof repairsScore === "number"
+      ? REPAIR_ZERO_AT * (1 - repairsScore / 100)
+      : 0;
   const sub = substance(row.transcript);
   const filled = (row.fillers ?? []).filter((f) => FILLED_PAUSES.has(f.word));
   const m = {
@@ -222,10 +229,12 @@ export function readTraitsFromRow(row: {
     fillersPerMin: perMin(row.filler_count, row.duration_s),
     filledPauseCount: filled.length,
     filledPer100: per100(filled.length, sub.wordCount),
-    repairsPerMin:
-      typeof repairsScore === "number"
-        ? REPAIR_ZERO_AT * (1 - repairsScore / 100)
-        : 0,
+    /* The rate comes back from the score, so the COUNT has to be
+       rebuilt from it before it can be re-expressed per hundred
+       words. Two derivations deep, which is why there should be a
+       column (docs/percentiles.md, Restarts). */
+    repairCount: repairRate * (row.duration_s / 60),
+    repairsPerMin: repairRate,
     wpm: row.wpm,
     substance: sub,
   } as RepMetrics;

@@ -132,8 +132,11 @@ export const TRAITS: TraitDef[] = [
   {
     id: "repairs",
     name: "Restarts",
-    unit: "restarts a minute",
-    unitOne: "restart a minute",
+    /* Per hundred words, like fillers and for the same reason: the
+       published rate (Bortfeld's 1.94) is reported that way, and a
+       per-minute count drops when somebody simply speeds up. */
+    unit: "restarts per hundred words",
+    unitOne: "restart per hundred words",
     what: "Sentences you abandoned and began again a different way.",
     why: "A listener hears a restart the way they hear an um, and it costs more.",
     distinction:
@@ -143,8 +146,7 @@ export const TRAITS: TraitDef[] = [
       "Say the correction as a new sentence: \"Or rather,\" then the better version.",
       "Decide the ending before the beginning. Most restarts are a sentence with nowhere to land.",
     ],
-    move: (n, up) =>
-      up ? `${s(n, "more restart")} a minute.` : `${s(n, "fewer restart")} a minute.`,
+    move: (n, up) => `${n} ${up ? "more" : "fewer"} per hundred words.`,
   },
   {
     id: "pace",

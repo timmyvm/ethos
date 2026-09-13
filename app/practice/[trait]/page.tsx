@@ -164,6 +164,7 @@ function Lesson() {
   if (step === "why") {
     return (
       <LessonScreen
+        center
         stepKey={step}
         onBack={back}
         eyebrow={def.name}
@@ -188,6 +189,7 @@ function Lesson() {
   if (step === "how") {
     return (
       <LessonScreen
+        center
         stepKey={step}
         onBack={back}
         eyebrow={def.name}
@@ -208,6 +210,7 @@ function Lesson() {
     const w = def.walkthrough;
     return (
       <LessonScreen
+        center
         stepKey={step}
         onBack={back}
         eyebrow={def.name}
@@ -250,6 +253,10 @@ function Lesson() {
 
   return (
     <LessonScreen
+      /* Every step of the walk centres its block. Top-aligned, the
+         short ones sit above half a screen of nothing and the walk
+         reads as six different layouts. */
+      center
       stepKey={step}
       onBack={back}
       eyebrow={def.name}

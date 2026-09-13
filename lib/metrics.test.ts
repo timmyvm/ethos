@@ -195,6 +195,29 @@ describe("detectRepairs", () => {
   });
 });
 
+describe("what detectRepairs actually counts", () => {
+  /*
+   * The docstring used to say "a phrase run again with a DIFFERENT
+   * landing" and the function has never checked the landing. That is
+   * not a comment nit: content/norms.ts places this number against
+   * Bortfeld, who reports restarts (1.94 per 100 words) and verbatim
+   * repeats (1.47) separately, so which of the two this counts decides
+   * which number it is compared to. It counts both, so the norm is
+   * their sum. Asserted here so it cannot drift back silently.
+   */
+  it("counts a repeat whose landing changes", () => {
+    expect(detectRepairs(flow("ease the days rest ease the days problems"))).toBe(1);
+  });
+
+  it("counts a verbatim repeat exactly the same", () => {
+    expect(detectRepairs(flow("ease the days rest ease the days rest"))).toBe(1);
+  });
+
+  it("counts a single stuttered word", () => {
+    expect(detectRepairs(flow("i i went to the shop"))).toBe(1);
+  });
+});
+
 describe("disfluencies", () => {
   it("counts a repair against you the way an um is", () => {
     const clean = computeMetrics(flow("ease the days problems for everyone here"), 60);

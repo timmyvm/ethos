@@ -272,13 +272,27 @@ export function detectPauses(words: Word[], segments?: Segment[]): Pause[] {
 }
 
 /**
- * Self-corrections: a phrase run again with a different landing —
- * "ease the days rest", then "ease the days problems". The run-up
- * repeats, the ending changes.
+ * A phrase run again near where it was first said.
  *
- * Only near-adjacent repeats count. Saying the same phrase again a
- * paragraph later is a vocabulary question, and `rangeScore` already
- * owns that.
+ * WHAT IT ACTUALLY COUNTS, which is wider than the name: any run-up of
+ * up to four words repeated within two words of itself, whether or not
+ * the ending changes. "Ease the days rest, ease the days problems" and
+ * "ease the days rest, ease the days rest" both score one. There is a
+ * test for that, because this docstring used to claim the narrower
+ * behaviour and the difference matters to what the number can be
+ * compared against: the disfluency literature reports restarts and
+ * verbatim repeats separately (Bortfeld 1.94 and 1.47 per 100 words),
+ * and this function returns their sum.
+ *
+ * The narrower reading — the run-up repeats and the LANDING changes —
+ * is the one the copy and the lesson describe, and it is the one worth
+ * having. Changing it moves every score already in the log, so it is on
+ * the list in docs/percentiles.md rather than done here, and until then
+ * the norm describes what the code does instead of what it should do.
+ *
+ * Only near-adjacent repeats count either way. Saying the same phrase
+ * again a paragraph later is a vocabulary question, and `rangeScore`
+ * already owns that.
  */
 const REPAIR_MAX_NGRAM = 4;
 const REPAIR_MAX_GAP = 2;

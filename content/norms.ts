@@ -120,12 +120,17 @@ const fillers: SourcedNorm = {
 };
 
 /**
- * Restarts per hundred words: a sentence abandoned and begun again a
- * different way. Not verbatim repeats, which `detectRepairs` does not
- * look for.
+ * Restarts per hundred words: a phrase run again near where it was
+ * first said. The audit caught this one describing itself wrongly.
+ *
+ * The copy calls it "sentences you abandoned and began again a
+ * DIFFERENT way", and `detectRepairs` has never checked the landing:
+ * a verbatim repeat scores exactly the same as a restart. Bortfeld
+ * reports those two separately (1.94 and 1.47 per 100 words), so the
+ * norm is their SUM until the code narrows to match its own name.
  */
 const repairs: SourcedNorm = {
-  ...fromMedian(1.94, 2.72),
+  ...fromMedian(3.41, 2.72),
   shape: "lognormal",
   direction: "lower",
   quality: "provisional",
@@ -135,8 +140,8 @@ const repairs: SourcedNorm = {
     "Bortfeld, H. et al. (2001). Disfluency rates in conversation. Language and Speech 44(2), 123-147, Table 2. https://heatherbortfeld.com/wp-content/uploads/2016/09/bortfeld_etal_ls2001.pdf",
   ],
   assumptions: [
-    "ONE SOURCE FOR THE CENTRE. Bortfeld's restart rate of 1.94 per 100 words, from dyadic task-oriented conversation between married, college-educated adults with a mean age of 28;10.",
-    "REPEATS ARE EXCLUDED ON PURPOSE. Bortfeld's further 1.47 per 100 words of verbatim repetition is not counted, because `detectRepairs` looks for a phrase restarted with a DIFFERENT landing.",
+    "ONE SOURCE FOR THE CENTRE. Bortfeld's Table 2, from dyadic task-oriented conversation between married, college-educated adults with a mean age of 28;10, which is at or above the top of Ethos's band.",
+    "REPEATS ARE INCLUDED, WHICH IS NOT WHAT THE COPY SAYS. `detectRepairs` counts any run-up of up to four words repeated within two words of itself, landing changed or not, so the norm is Bortfeld's restarts (1.94) PLUS verbatim repeats (1.47) = 3.41 per 100 words. Narrowing the code to match the copy would move every score already in the log, so it is on the list in docs/percentiles.md and the norm describes the code in the meantime.",
     "THE SPREAD IS BORROWED FROM FILLERS, which is the thing the fillers audit criticised the fillers proposal for doing. It is done here knowingly and only because restarts have no published spread of any kind, and it is why this trait cannot rise above provisional.",
     "THE RAW VALUE IS RECOVERED, NOT STORED. There is no repairs_per_min column, so the rate is reconstructed by inverting repairScore: exact to about 0.015 a minute, and lower-bounded at the floor, where a score of 0 means 'three a minute or worse' and cannot say which.",
     "DISFLUENCIES MOVE INDEPENDENTLY. Filled pauses are 40 to 45% of all disfluencies and Verdonik's data has fillers and restarts moving in OPPOSITE directions between public and private speech, so this cannot be folded into the filler norm.",

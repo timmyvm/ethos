@@ -392,12 +392,20 @@ outside the observed range.
 
 **Verdict: provisional**, for two reasons that compound.
 
-The population number exists and is single-sourced: Bortfeld's restart
-rate of **1.94 per 100 words**, which is 2.52 to 3.10 a minute across
-Ethos's pace zone. Verbatim repeats are a further 1.47 per 100 words and
-are deliberately **not** included, because `detectRepairs` looks for a
-phrase restarted with a different landing rather than a repetition. No
-dispersion is published for restarts at all — from the same paper that
+**The audit caught this trait describing itself wrongly, and the
+correction doubled its centre.** The copy calls a restart "a sentence
+you abandoned and began again a different way", and `detectRepairs` has
+never checked the landing: it counts any run-up of up to four words
+repeated within two words of itself, so a verbatim repeat scores exactly
+the same as a real restart. Bortfeld reports those two separately, 1.94
+per 100 words of restarts and 1.47 of repeats, which means the honest
+comparison is their **sum, 3.41 per 100 words**, not the 1.94 this
+document first filed. The mismatch is now asserted in
+`lib/metrics.test.ts` so it cannot drift back silently, and narrowing
+the code to match its own name is on the list below rather than done
+here, because it moves every score already in the log.
+
+No dispersion is published for restarts at all — from the same paper that
 publishes none for fillers, and without the section 7.3 that rescued
 them. The spread here is borrowed from the filled-pause figure, which is
 precisely what the fillers audit criticised the fillers proposal for
@@ -639,10 +647,13 @@ percentile.
    a third of what Ethos scores as a landing is an ordinary boundary
    pause. Raise the line to about 1.0 s, or keep it and stop calling it
    rhetorical.
-4. **Give restarts a column.** The one trait whose raw value is
+4. **Narrow `detectRepairs` to what its own name says**, so a verbatim
+   repeat stops counting as a restart, and move the norm back to
+   Bortfeld's 1.94 when it does.
+5. **Give restarts a column.** The one trait whose raw value is
    recovered from a score rather than stored, now two derivations deep.
-5. **Run the audit that did not.** Pitch.
-6. **Then fit the norms to Ethos's own recordings.** Every distribution
+6. **Run the audit that did not.** Pitch.
+7. **Then fit the norms to Ethos's own recordings.** Every distribution
    here is somebody else's population. Once there are a few hundred
    sixty-second recordings from 16 to 28 year olds speaking a monologue
    into a phone, that is both a better norm and the only one that

@@ -15,10 +15,18 @@
  *   HESITATION pauses (inside a clause — the mark of planning
  *   difficulty). Same silence, opposite meaning, and only the boundary
  *   tells you which. That distinction is this file.
- * - **A pause has to be long enough to be rhetorical.** Coaching
+ * - **A pause has to be long enough to count as a landing.** Coaching
  *   practice converges on one to two seconds after a point: long enough
  *   for a listener to absorb it, short enough not to read as lost.
  *   Under ~0.8s at a boundary is a breath, not a beat.
+ *
+ *   Deliberately NOT called rhetorical (docs/percentiles.md, Pausing).
+ *   The audit found that 0.8s buys a boundary pause rather than a
+ *   rhetorical one: one corpus puts 24% of all pauses at or above it
+ *   where the genuine long class is 14%, and another puts it at 9%. No
+ *   choice between those is defensible yet, so the line stays and the
+ *   word goes. A landing at a boundary is worth rewarding either way,
+ *   and it is what this actually measures.
  * - **Silence REPLACES the filler.** The whole technique is swapping
  *   "um" for nothing at all. So a held pause with an "um" leaning
  *   against it earned nothing — you bought the silence back.
@@ -64,8 +72,8 @@ export interface PauseReport {
 
 // --- calibration (v1, stated not tuned) ------------------------------
 
-/** Under this a boundary silence is a breath, not a rhetorical pause. */
-export const RHETORICAL_MIN_S = 0.8;
+/** Under this a boundary silence is a breath, not a landing. */
+export const LANDING_MIN_S = 0.8;
 /** Over this it stops reading as composure. */
 export const DEAD_AIR_S = 3.5;
 /** A filler this close to a silence means the silence was bought back. */
@@ -174,7 +182,7 @@ export function judgePauses(params: {
     }
 
     // Pre-sentence and long enough to be deliberate.
-    if (p.len < RHETORICAL_MIN_S) {
+    if (p.len < LANDING_MIN_S) {
       return { ...p, verdict: "beat", note: `${clock(p.t)} · a breath.` };
     }
 

@@ -47,17 +47,32 @@ quietly omitted, because a document whose whole purpose is to be honest
 about what stands behind a number cannot be coy about which of its own
 checks were performed.
 
-**Auditing was worth it.** Every audit that ran found something the
-proposal had got wrong, and in both of the first two the error ran in
-the direction of the proposal being more confident than its own
-evidence. The fillers proposal claimed no published dispersion exists
-for English filled pauses when the paper it says it read in full gives
-65 English speakers and a median. The pace proposal built its only
-direct measurement on a percentile label its source attaches to
-different numbers, and left an 11% correction unapplied that its own
-cited source states outright. Neither was catchable by rereading the
-proposal. **Read the pitch section as one careful reader's work rather
-than two**, and run that audit before anything is built on it.
+**Auditing was worth it, and it is the reason to trust anything here.**
+Every audit that ran found something its proposal had got wrong, and
+every time the error ran the same way: the proposal was more confident
+than its own evidence, and the overclaim was invisible on a reread.
+
+- **Fillers** claimed no published dispersion exists for English filled
+  pauses, in a paper it says it read in full whose section 7.3 gives 65
+  English speakers and a median. That error is what licensed borrowing a
+  spread from a Hungarian secondary source, and the borrowed value was
+  the floor of what the English data supports.
+- **Pace** built its only direct words-a-minute measurement on a
+  percentile label its source attaches to different numbers, and
+  described an 11% correction as unstated when the cited paper states
+  it outright.
+- **Pausing** was the worst. One citation was fabricated at the author
+  level. Its central reason for refusing a percentile was false and
+  checkable. Its headline convergence was an artifact of incompatible
+  thresholds. Its one concrete code recommendation reverses sign under
+  the better-matched corpus. And the population it needed most was
+  sitting in a paper it had read and excluded on a misreading of a
+  sentence that gives the age range in plain words.
+
+Three of four audits ran; the pitch audit did not, because the run hit a
+session limit. **Read the pitch section as one careful reader's work
+rather than two**, and given what the other three turned up, run that
+audit before anything is built on it.
 
 Read-aloud data used for a spontaneous monologue model is a real
 problem, and so is conversational data used for a monologue. Both are
@@ -173,99 +188,116 @@ because of how its measure behaves with sample length.
 
 ### Pausing
 
-**Verdict: provisional.** The thresholds are well evidenced. The
-placement is not, and the reason is structural rather than a matter of
-finding more papers.
+**Verdict: provisional.** The design decision under this trait is
+sound. Almost every number the first pass offered in support of it
+turned out to be weaker than claimed, and the audit is the reason this
+section reads the way it does.
 
-**What the evidence gives.** The two decisions under `lib/pause-quality.ts`
-are the best-supported things in the engine.
-
-The 0.3 s floor for a beat is right and citable. De Jong and Bosker
-tested every threshold from 20 ms to 1000 ms against fluency ratings and
-found the correlation rises to 300 ms and then falls, concluding that
-250 to 300 ms is optimal and that going higher actively degrades the
-measure ([DiSS 2013](https://pure.mpg.de/rest/items/item_1900232_6/component/file_1900231/content),
-51 speakers, 10,668 hand-marked pauses). Goldman-Eisler's original
-articulatory/hesitation split at 250 ms, Grosjean and Deschamps's 300 ms
-floor and Gilden's 250 ms all sit in the same band. 0.3 s is the top of
-the defensible range, which is the right end to be at for a phone
-microphone where a stop closure can look like silence.
-
-Scoring **placement rather than presence** is the oldest replicated
-result in the field, and Ethos reads it correctly. Goldman-Eisler
-(1972): 78% of sentence boundaries carry a pause over 0.5 s, against 66%
-of clause transitions and 93% of word transitions carrying less.
-Grosjean and Deschamps: about 70% of pauses fall at major constituent
-breaks ([Grosjean, Grosjean & Lane 1979](https://www.francoisgrosjean.ch/speech_prod/6.%20Grosjean,%20Grosjean%20&%20Lane.pdf)).
+**What survives, and it is the part that matters.** Scoring **placement
+rather than presence** is the oldest replicated result in the field, and
+the audit confirmed it independently. Goldman-Eisler (1972): 78% of
+sentence boundaries carry a pause over 0.5 s, against 66% of clause
+transitions and 93% of word transitions carrying less. Grosjean and
+Deschamps: about 70% of pauses fall at major constituent breaks
+([Grosjean, Grosjean & Lane 1979](https://www.francoisgrosjean.ch/speech_prod/6.%20Grosjean,%20Grosjean%20&%20Lane.pdf)).
 Hawkins: 66% of pauses and 75% of pause time at clause and sentence
 boundaries, against 10% and 6% inside minor constituents. Redford: 7% of
-adult pauses ungrammatical against 18% for five year olds. Tavakoli's 40
-natives against 40 learners found the mark of disfluency is not pausing
-more, it is pausing **mid-clause**. "Same silence, opposite meaning,
-only the boundary tells you which" is not a design conceit; it is what
-the literature says.
+adult pauses ungrammatical against 18% for five year olds. "Same
+silence, opposite meaning, only the boundary tells you which" is not a
+design conceit; it is what the literature says, and the comment block at
+the top of `lib/pause-quality.ts` is an accurate reading of it.
 
-The duration distribution is log-normal and multimodal, which is settled
-rather than assumed. Campione and Véronis state it outright over ~6,000
-pauses in 5.5 hours across five languages
-([Speech Prosody 2002](http://sprosig.org/sp2002/pdf/campione-veronis.pdf)),
-Rose and Watanabe log-transform for the same reason, and a log-normal
-fitted from Campione and Véronis's own summary statistics reproduces
-their long-pause class weight to two decimals (14.0% against their
-fitted 0.14). Anything computed on raw milliseconds will be wrong in a
-way that looks fine.
+Also confirmed: the duration distribution is log-normal and multimodal
+(Campione and Véronis state it outright over ~6,000 pauses in 5.5 hours
+across five languages, [Speech Prosody 2002](http://sprosig.org/sp2002/pdf/campione-veronis.pdf);
+Rose and Watanabe log-transform for the same reason), so anything
+computed on raw milliseconds will be wrong in a way that looks fine. And
+`DEAD_AIR` at 3.5 s is correctly placed under every candidate
+parameterisation: a rare-outlier flag, and it should not be pulled down
+towards Kohtz and Niebuhr's 600 ms tolerance threshold, which governs
+how a **response gap in dialogue** reads rather than a silence inside
+your own sentence.
 
-**What it does not give.** Essentially every published pause
-distribution is a distribution **of pauses, not of speakers**. A ring
-needs the between-speaker spread of a per-speaker summary, and for pause
-placement in first-language English that number appears to be
-unpublished. The centres are solid and convergent (20 to 22 pauses a
-minute across four labs and two languages, about 70% at boundaries); a
-centre without a spread cannot produce a percentile.
+**What the audit took away.** Four things, and each of them was in the
+first draft of this section:
 
-Three further problems would bite even if that number existed. A
-sixty-second recording yields roughly 20 pauses of which about 5 clear
-the held line, so a placement ratio of 3 in 5 carries a 95% interval of
-something like 15% to 95%: one recording would mostly report luck.
-Gilden showed pause length scales with **body height**, explaining 18 to
-36% of the variance, so a raw-duration percentile partly ranks people by
-stature. And `pauseReport`'s composite is invented here, so no published
-distribution for it can exist by definition.
+- **The 0.3 s floor is not "the best-evidenced number in the engine",
+  and the paper says something more awkward than it was quoted as
+  saying.** De Jong and Bosker's 250 to 300 ms optimum is defined
+  against **vocabulary knowledge**. On *perceived fluency*, which is the
+  criterion nearest Ethos's actual purpose, the same paper reports that
+  no optimum could be found and that correlations get **stronger as the
+  threshold goes higher**. Quoting the first half and not the second is
+  the exact move this document rejects elsewhere. What 0.3 s can honestly
+  be called: the field's conventional articulatory-versus-hesitation
+  split, robust across a 250 to 300 ms band, and conservative for a
+  phone microphone where a stop closure can look like silence. Keep it,
+  cite it that way.
+- **"Nobody publishes between-speaker dispersion" is false, and it was
+  load-bearing.** Gilden and Mezaraups is 63 to 68 native English
+  speakers **aged 18 to 25** producing roughly thirty-second composed
+  monologues, and it publishes between-participant coefficients of
+  variation for percentage of time spent pausing (0.26 to 0.38), plus
+  Goldman-Eisler's 0.33 across eight speakers of composed interview
+  speech. That is published between-speaker spread, on a per-speaker
+  pause summary, in English, in the closest population match in the
+  entire review. The first pass excluded it on a misreading of its own
+  source, which describes the age range in plain words.
+  **The refusal to ship a percentile still stands, for the narrower and
+  checkable reason**: that dispersion is for *percentage of pause time*
+  under a 250 ms floor, not for the boundary share Ethos scores, and 63
+  undergraduates at one university is a sample rather than a population.
+- **The 20 to 22 pauses a minute "convergence" is an artifact.** Those
+  figures use no threshold, a 250 ms threshold, and context-dependent
+  150/250/350 ms thresholds, over differing denominators. The same four
+  corpora disagree by a factor of two on mean pause duration (530 to 550
+  ms, 629 ms, 993 ms) and on share of time in silence (about 18%, 22%,
+  36%). A rate that agrees while duration does not is incompatible
+  counting rules, not agreement.
+- **"Move the held line to 1.0 s" was the one concrete code change in
+  the first pass, and it reverses under the better-matched corpus.** It
+  rested entirely on a French adult interview corpus, which puts 24.4%
+  of pauses at or above 0.8 s against a genuine long class of 14%.
+  Applying the same method to Gilden's composed English gives roughly 9
+  to 11% at or above 0.8 s and about 2% above 1045 ms — under which
+  0.8 s is already selective and 1.0 s would leave almost nothing. **No
+  choice between the two is defensible today, so the line does not
+  move.**
+
+  What is safe, costs nothing, and is true under every reading: **stop
+  calling a 0.8 s boundary pause a rhetorical pause in the copy.** Call
+  it a landing at a boundary.
+
+**One mismatch inside Ethos that neither pass had flagged.** The
+literature's ~70% boundary base rate is computed over all pauses above a
+250 to 300 ms floor. Ethos's placement ratio in `lib/pause-quality.ts`
+divides by held pauses only, at 0.8 s and up. Boundary pauses are
+systematically the longer ones, so the two ratios are not on the same
+scale and 70% is not Ethos's comparator. The trait shipped here is
+landed pauses **a minute**, which sidesteps that, and inherits a
+different problem: it goes up when somebody simply talks more.
 
 **On telling a rhetorical pause from a hesitation acoustically: no.**
-The only published within-pause discriminator is articulatory, not
-acoustic: Krivokapić and Ramanarayanan's pause postures, where
-grammatical pauses show a significant slowing of articulator movement
-*during* the silence and non-grammatical ones do not. That needs
-electromagnetic articulometry or real-time MRI of the vocal tract. It is
-not reachable from a phone, and no acoustic correlate of it has been
-reported. What *is* reachable sits in the ~200 ms **before** the pause:
-final lengthening and pitch reset are the published acoustic markers of
-a prosodic boundary. That is the route to detecting a boundary from the
-signal rather than trusting Whisper's punctuation, which is currently an
-unmeasured source of error in the one thing this trait scores.
+Independently verified by the audit. The only published within-pause
+discriminator is articulatory rather than acoustic: pause postures,
+where grammatical pauses show a significant slowing of articulator
+movement *during* the silence and non-grammatical ones do not. That
+needs electromagnetic articulometry or real-time MRI of the vocal tract,
+and no acoustic correlate of it has been reported. A promising direction
+does exist in the ~200 ms *before* the pause, where final lengthening
+and pitch reset mark a prosodic boundary, which would let Ethos detect a
+boundary from the signal rather than from Whisper's punctuation. **That
+is an engineering hypothesis, not a finding**: no study in this review
+ranks boundary cues, and the first pass stated it as though one did.
 
-**What this changes in the app.** One number is loose. The empirical
-boundary between the medium and long pause classes is 1045 ms (Campione
-and Véronis's second threshold); English between-sentence pauses average
-0.98 s in public presentation and 1.01 s in commencement speeches; top
-competition speakers run 0.83 to 1.24 s between sentences against 0.42
-to 0.67 s within them. At `HELD_MIN_S = 0.8` Ethos calls 24.4% of all
-pauses held where the genuine long class is 14%, so roughly a third of
-what it scores as a landing is an ordinary boundary pause rather than a
-rhetorical one. Two honest options: raise the line to about 1.0 s, or
-keep 0.8 s and stop calling it a rhetorical pause in the copy. A
-boundary pause is still worth rewarding; it is just not the thing the
-word promises. **Not changed yet** — it moves every stored score's
-meaning, and that is a decision to make deliberately rather than inside
-a documentation pass.
-
-`DEAD_AIR` at 3.5 s is well placed and should stay: the fitted model
-puts 0.23% of pauses above it, and Campione and Véronis found pauses
-over 2 s make up 2.8% of spontaneous speech and are absent from read
-speech. Do not lower it towards Kohtz and Niebuhr's 600 ms tolerance
-threshold, which governs how a **response gap in dialogue** reads, not a
-silence inside your own sentence.
+**Three more reasons a ring here would be guessing**, all of which
+survived the audit. A sixty-second recording yields roughly 20 pauses of
+which about 5 clear the held line, so a placement of 3 in 5 carries a
+95% interval of something like 15% to 95%. Gilden showed pause length
+scales with **body height**, explaining 18 to 36% of the variance, so
+any duration-based placement partly ranks people by stature. And
+`pauseReport`'s composite is invented here, so no published distribution
+for it can exist by definition.
 
 ---
 
@@ -642,11 +674,13 @@ percentile.
    is one change across `lib/index-score.ts` and `content/norms.ts`,
    because the app must not end up with two zones disagreeing about what
    "in the zone" means.
-3. **Decide what 0.8 seconds is called.** At that threshold about 24% of
-   pauses count as held where the genuine long class is 14%, so roughly
-   a third of what Ethos scores as a landing is an ordinary boundary
-   pause. Raise the line to about 1.0 s, or keep it and stop calling it
-   rhetorical.
+3. **Stop calling a 0.8 second boundary pause a rhetorical pause.** Call
+   it a landing at a boundary. This replaces the first pass's
+   recommendation to raise the threshold to 1.0 s, which the audit
+   showed reverses under the better-matched corpus: one source puts 24%
+   of pauses at or above 0.8 s and another puts it at 9%. The line does
+   not move. The word does, it costs nothing, and it is true under
+   either reading.
 4. **Narrow `detectRepairs` to what its own name says**, so a verbatim
    repeat stops counting as a restart, and move the norm back to
    Bortfeld's 1.94 when it does.

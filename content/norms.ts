@@ -58,9 +58,11 @@ export interface SourcedNorm extends Norm {
 /**
  * Landed pauses a minute: held silences that fall at a boundary.
  *
- * The two thresholds under this number are the best-evidenced constants
- * in the engine, and the placement itself is the oldest replicated
- * result in the field. The POSITION is the part with nothing under it.
+ * Scoring placement rather than presence is the oldest replicated
+ * result in the field and it survived the audit intact. Almost every
+ * NUMBER offered in support of the scale did not: see the Pausing
+ * section of docs/percentiles.md, which is mostly a list of what the
+ * audit took back.
  */
 const pause: SourcedNorm = {
   ...fromMedian(3.5, 2),
@@ -68,7 +70,7 @@ const pause: SourcedNorm = {
   direction: "higher",
   quality: "provisional",
   blocker:
-    "Every published pause distribution is a distribution of PAUSES, not of SPEAKERS. A ring needs the between-speaker spread of a per-speaker summary, and for pause placement in L1 English that number appears to be unpublished.",
+    "Between-speaker spread IS published, for a different per-speaker summary than the one Ethos scores: Gilden reports coefficients of variation of 0.26 to 0.38 for percentage of time spent pausing, in 18 to 25 year old native English speakers, under a 250ms floor. Nothing publishes it for boundary SHARE, and 63 undergraduates at one university is a sample rather than a population.",
   sources: [
     "Campione, E. & Véronis, J. (2002). A Large-Scale Multilingual Study of Silent Pause Duration. Speech Prosody 2002, 199-202. http://sprosig.org/sp2002/pdf/campione-veronis.pdf",
     "De Jong, N. H. & Bosker, H. R. (2013). Choosing a threshold for silent pauses to measure second language fluency. DiSS 2013, TMH-QPSR 54(1), 17-20. https://pure.mpg.de/rest/items/item_1900232_6/component/file_1900231/content",
@@ -76,13 +78,13 @@ const pause: SourcedNorm = {
     "Gilden, D. L. & Mezaraups, T. M. (2022). Laws for Pauses. JEP:LMC 48(1), 139-157. doi:10.1037/xlm0001103",
   ],
   assumptions: [
-    "THE CENTRE IS DERIVED, NOT MEASURED. 20 to 22 silent pauses a minute is convergent across four labs and two languages; about 70% fall at major constituent breaks (Grosjean & Deschamps); at Ethos's 0.8s line roughly 24% of all pauses count as held. Multiplying those gives about 3.5 landed pauses a minute. No paper reports that quantity.",
-    "THE SPREAD IS INVENTED. ratio84 = 2 is a wide guess chosen to avoid false confidence. Nothing published supports it, and it is the single reason this trait cannot rise above provisional.",
-    "ETHOS COUNTS, THE LITERATURE RATIOS. Every placement result in the field is a PROPORTION of pauses at boundaries. Ethos's trait is a COUNT per minute, which moves when somebody talks more as well as when they pause better.",
+    "THE CENTRE IS DERIVED FROM AN APPARENT AGREEMENT THAT THE AUDIT CALLED AN ARTIFACT. 20 to 22 silent pauses a minute looks convergent across four labs, but those figures use no threshold, a 250ms threshold, and context-dependent 150/250/350ms thresholds, and the same corpora disagree by a factor of two on mean pause duration and on share of time in silence. A rate that agrees while duration does not is incompatible counting rules. Multiplying that by the ~70% boundary share and the ~24% held share gives about 3.5 landed pauses a minute, and no paper reports that quantity.",
+    "THE SPREAD IS INVENTED. ratio84 = 2 is a wide guess chosen to avoid false confidence. Nothing published supports it for this quantity.",
+    "ETHOS COUNTS, THE LITERATURE RATIOS, AND THE RATIOS ARE NOT EVEN ON THE SAME SCALE. Every placement result in the field is a PROPORTION of pauses at boundaries, computed over all pauses above a 250 to 300ms floor. Ethos's placement ratio divides by held pauses only, at 0.8s and up, and boundary pauses are systematically the longer ones. The trait shipped here is a COUNT per minute, which sidesteps that and inherits a different problem: it goes up when somebody simply talks more.",
     "MORE IS ASSUMED BETTER, WITH NO CEILING FOUND. No study identifies a point where additional landed pauses start to cost. That is an absence of evidence, not evidence of absence.",
     "ONE MINUTE IS TOO SHORT. About 20 pauses of which about 5 clear the held line, so a placement of 3 in 5 carries a 95% interval of roughly 15% to 95%.",
     "PAUSE LENGTH SCALES WITH BODY HEIGHT (Gilden), explaining 18 to 36% of the variance, so any duration-based placement partly ranks people by stature.",
-    "THE BOUNDARY COMES FROM WHISPER'S PUNCTUATION, not from the acoustics. Final lengthening and pitch reset are the published acoustic markers of a prosodic boundary and Ethos reads neither, so the error in the one thing this trait scores is unmeasured.",
+    "THE BOUNDARY COMES FROM WHISPER'S PUNCTUATION, not from the acoustics, and the error that introduces into the one thing this trait scores is unmeasured. Reading the boundary from final lengthening and pitch reset instead is an engineering HYPOTHESIS rather than a finding: no study in this review ranks boundary cues, and the first pass stated it as though one did.",
   ],
 };
 

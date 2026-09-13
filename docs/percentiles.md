@@ -40,12 +40,11 @@ the population studied matches the population Ethos serves doing the
 task Ethos measures. Where an audit disagrees with the proposal, the
 audit wins and the disagreement is recorded.
 
-**All four proposals completed. Three of the four audits did.** The run
-hit a session limit partway through; the fillers, pace and pausing
-audits ran, the pitch audit did not. That is stated here rather than
-quietly omitted, because a document whose whole purpose is to be honest
-about what stands behind a number cannot be coy about which of its own
-checks were performed.
+**All four proposals and all four audits completed**, the audits on a
+second attempt after the first run hit a session limit. That detail is
+here rather than omitted, because a document whose whole purpose is to
+be honest about what stands behind a number should be honest about
+which of its own checks were performed, and when.
 
 **Auditing was worth it, and it is the reason to trust anything here.**
 Every audit that ran found something its proposal had got wrong, and
@@ -69,10 +68,19 @@ than its own evidence, and the overclaim was invisible on a reread.
   sitting in a paper it had read and excluded on a misreading of a
   sentence that gives the age range in plain words.
 
-Three of four audits ran; the pitch audit did not, because the run hit a
-session limit. **Read the pitch section as one careful reader's work
-rather than two**, and given what the other three turned up, run that
-audit before anything is built on it.
+- **Pitch** was the only one whose conclusion survived whole, and it
+  still had its distribution half taken down. It treated reproducibility
+  as validity: the fit re-derives its source's published mean, and the
+  parametric percentiles sit close to the empirical ones, but both
+  checks only confirm the eighteen numbers were copied correctly. Seven
+  independent anchors place typical speech above the fitted median, and
+  several of them are printed inside sources the proposal quotes for
+  other things.
+
+All four ran in the end. The rule stated at the top held every time:
+**where an audit disagreed with a proposal, the audit won**, and every
+correction it forced is recorded in the section it belongs to rather
+than quietly folded in.
 
 Read-aloud data used for a spontaneous monologue model is a real
 problem, and so is conversational data used for a monologue. Both are
@@ -643,16 +651,39 @@ rolling ten-second window, 100 ms latency) that produced a 2.5-semitone
 effect which transferred to an unaided presentation afterwards. That
 needs no population norm and is honest on day one.
 
-**One free improvement found on the way.** `app/rep/page.tsx` asks for
-`getUserMedia({ audio: true })`, which leaves Chrome's noise suppression
-and automatic gain control **on** by default. Automatic gain control
-boosts quiet passages, which is exactly what the voiced-envelope check
-in the pause detector reads, so an uncontrolled processor sits upstream
-of a number Ethos already ships. Passing `{ echoCancellation: false,
-noiseSuppression: false, autoGainControl: false }` costs nothing and
-removes the variable. **Not changed yet**: it could cut both ways for
-Whisper in a noisy room, and that is a question for real recordings
-rather than a documentation pass.
+**What the audit said.** The conclusion survived whole, which none of
+the other three did: do not add a pitch trait now, ship a live meter and
+a within-user trend instead, and rename the lexical dimension. The
+measurement section survived too, and the audit checked its three claims
+about this codebase against the code rather than reasoning about them:
+`rangeScore` really is distinct-word ratio, repeated trigrams and crutch
+density with no acoustics anywhere near it; `app/rep/page.tsx` really
+does call `getUserMedia({ audio: true })`; and restarts really are
+already counted, so the disfluency-versus-expressiveness discriminator
+already exists.
+
+What it took down was the distribution half, for a failure worth naming
+because it is easy to repeat: **it treated reproducibility as validity.**
+The fit re-derives its source's published mean and maximum, and the
+parametric percentiles sit close to the empirical ones on the same 18
+speakers, and the proposal called that "the only reassuring thing about
+it". Both checks only confirm that the 18 numbers were copied correctly.
+The check that matters is whether the centre agrees with anything
+*outside* those 18 speakers, and seven independent anchors place typical
+speech above the fitted median, several of them printed inside papers
+the proposal quotes for other things.
+
+**One free improvement found on the way, and verified against the
+code.** `app/rep/page.tsx` asks for `getUserMedia({ audio: true })`,
+which leaves Chrome's noise suppression and automatic gain control **on**
+by default. Automatic gain control boosts quiet passages, which is
+exactly what the voiced-envelope check in the pause detector reads, so
+an uncontrolled processor sits upstream of a number Ethos already ships.
+Passing `{ echoCancellation: false, noiseSuppression: false,
+autoGainControl: false }` costs nothing and removes the variable. **Not
+changed yet**: it could cut both ways for Whisper in a noisy room, and
+that is a question for real recordings rather than a documentation
+pass.
 
 
 ## What this review says to do, in order
@@ -686,8 +717,7 @@ percentile.
    Bortfeld's 1.94 when it does.
 5. **Give restarts a column.** The one trait whose raw value is
    recovered from a score rather than stored, now two derivations deep.
-6. **Run the audit that did not.** Pitch.
-7. **Then fit the norms to Ethos's own recordings.** Every distribution
+6. **Then fit the norms to Ethos's own recordings.** Every distribution
    here is somebody else's population. Once there are a few hundred
    sixty-second recordings from 16 to 28 year olds speaking a monologue
    into a phone, that is both a better norm and the only one that

@@ -15,9 +15,11 @@
  *
  * ALL FIVE ARE PROVISIONAL, and that is the finding rather than a
  * placeholder. Four researchers read the primary literature per trait
- * and every one came back with the same shape of answer: the CENTRES
- * are published and convergent, and the between-speaker SPREAD, which
- * is the half a percentile is actually made of, is not. A ring drawn
+ * and four adversarial auditors took their proposals apart, and every
+ * one came back with the same shape of answer: the CENTRES are
+ * published, and the between-speaker SPREAD, which is the half a
+ * percentile is actually made of, is not. Every audit found its
+ * proposal more confident than its own evidence. A ring drawn
  * from a centre with a borrowed spread would look exactly like a
  * working feature. So the parameters below are the best estimate
  * available, the ring draws its trough dashed, the card says "scale

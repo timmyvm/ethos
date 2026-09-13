@@ -758,6 +758,70 @@ body::after {
 }
 
 /*
+ * The ring (#252). One closed loop wherever a number has a ceiling.
+ *
+ * The arc's LENGTH is what transitions, not its opacity or its scale,
+ * so a value that changes travels around the ring from where it was:
+ * `pathLength=1` makes the dash units the fraction itself, and the
+ * browser interpolates `stroke-dasharray` between two lengths for free.
+ *
+ * Slower than the app's other transitions on purpose. A percentile is
+ * the one number in Ethos a person has never seen before, and 900ms is
+ * about as long as you can hold someone watching a value arrive before
+ * it stops being an arrival and starts being a wait.
+ */
+.ring-loop .ring-arc {
+  transition: stroke-dasharray 900ms var(--ease-out), stroke 200ms var(--ease-out);
+}
+
+/*
+ * Thinking. The whole ring breathes while a value is being computed,
+ * so a screen that is working never reads as a screen that is broken.
+ * Opacity only: a ring that changed size while thinking would be
+ * reporting a value it does not have yet.
+ */
+@keyframes ring-think {
+  from {
+    opacity: 0.45;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.ring-thinking {
+  animation: ring-think 900ms var(--ease-in-out) infinite alternate;
+}
+
+/*
+ * Closing. The one-shot when a loop completes: a small lift out of the
+ * page and back, on the spring. This is the only 3D the app does, and
+ * it is spent here because closure is the moment the research says to
+ * spend it on (docs/closure.md).
+ */
+@keyframes ring-close {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.ring-closing {
+  animation: ring-close 520ms var(--ease-spring);
+  transform-origin: 50% 50%;
+}
+
+:root[data-motion="reduce"] :is(.ring-thinking, .ring-closing) {
+  animation: none;
+}
+:root[data-motion="reduce"] .ring-loop .ring-arc {
+  transition: none;
+}
+
+/*
  * A sheet the finger is dragging (#242). While a pointer is down the
  * panel follows it exactly — no easing, no duration, because a thing
  * that lags your thumb by 200ms is a thing that is not being dragged.

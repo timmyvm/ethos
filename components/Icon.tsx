@@ -129,6 +129,52 @@ export function IconFlame({ size }: { size?: number }) {
   );
 }
 
+/*
+ * The four streak marks (#253). One per tier, and the change at a
+ * boundary is the whole point of having tiers: a counter that only
+ * counts has nothing to cross.
+ *
+ * They escalate as one object rather than four unrelated glyphs — a
+ * spark, then the fire it becomes, then the fire carried, then the fire
+ * others can see — so crossing a boundary reads as the same thing
+ * growing rather than a new badge arriving. `IconFlame` above is tier
+ * two and is deliberately reused: it is already the streak's mark
+ * everywhere in the app, and the tier it belongs to should be the one
+ * most people are standing in.
+ */
+
+/** Tier 1, days 1 to 9. A spark: before it is a habit at all. */
+export function IconSpark({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="M12 3.5v4M12 16.5v4M4.4 12h4M15.6 12h4M6.6 6.6l2.8 2.8M14.6 14.6l2.8 2.8M17.4 6.6l-2.8 2.8M9.4 14.6l-2.8 2.8" />
+    </Glyph>
+  );
+}
+
+/** Tier 3, days 31 to 75. A torch: the fire, carried. */
+export function IconTorch({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="M12 2.8c.5 1.9 1.7 2.8 2.7 4 1 1.2 1.5 2.3 1.5 3.6a4.2 4.2 0 0 1-8.4 0c0-1.2.5-2.2 1.4-3.1" />
+      <path d="M8.6 13.4h6.8l-1 2.2H9.6z" />
+      <path d="M10.4 15.6 11 21.2M13.6 15.6 13 21.2" />
+    </Glyph>
+  );
+}
+
+/** Tier 4, day 76 and on. A beacon: the fire others can see. */
+export function IconBeacon({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="M12 2.6c.5 1.7 1.6 2.5 2.4 3.6.8 1.1 1.2 2 1.2 3.1a3.6 3.6 0 0 1-7.2 0c0-1 .4-1.9 1.2-2.7" />
+      <path d="M7.2 13.2h9.6l1.4 3.2H5.8z" />
+      <path d="M4.2 19.4h15.6" />
+      <path d="M3.4 8.6 1.6 7.4M20.6 8.6l1.8-1.2M4.4 4.2 3.2 2.8M19.6 4.2l1.2-1.4" />
+    </Glyph>
+  );
+}
+
 /** Fillers: the voice itself, metered. */
 export function IconWave({ size }: { size?: number }) {
   return (

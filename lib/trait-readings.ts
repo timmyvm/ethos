@@ -186,6 +186,37 @@ export function move(
 }
 
 /**
+ * The one line that has to appear beside every percentile, always.
+ *
+ * The hardest finding in `docs/closure.md` is the boomerang: a bare
+ * descriptive norm made above-average households use MORE energy, and
+ * adding an injunctive cue removed the effect entirely. A position on
+ * its own is exactly that bare norm, and the people it damages are the
+ * ones already doing well.
+ *
+ * `move` returns null in three cases that are all real: a provisional
+ * scale, somebody already at the top of the band, and a step too small
+ * to express. The first shows no percentile at all so it needs no line.
+ * The other two are a non-provisional position with nothing to say
+ * underneath, which is the state this function exists to make
+ * impossible. At the top of a trait the honest instruction is not a
+ * bigger number, it is holding the one you have, and that is an
+ * injunctive cue in the sense the research means.
+ *
+ * Returns null ONLY for a provisional reading. Asserted in
+ * `lib/trait-readings.test.ts` across every trait at every percentile.
+ */
+export function nextLine(r: TraitReading): string | null {
+  if (r.quality === "provisional") return null;
+  const step = move(r);
+  if (step) {
+    const n = Math.max(1, Math.round(step.delta));
+    return `To reach the ${ordinal(step.target)}: ${TRAIT[r.id].move(n, step.up)}`;
+  }
+  return `Already near the top of this one. Holding ${withUnit(r.id, r.raw)} is the work now.`;
+}
+
+/**
  * The same five traits, read off a STORED recording rather than a live
  * one (DECISIONS #257).
  *

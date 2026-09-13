@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { NORMS } from "@/content/norms";
 import { TRAITS } from "@/content/traits";
-import { fmtRaw, nextTrait, ordinal, withUnit, type TraitReading } from "./trait-readings";
+import { fmtRaw, nextLine, nextTrait, ordinal, withUnit, type TraitReading } from "./trait-readings";
 
 const reading = (over: Partial<TraitReading> = {}): TraitReading => ({
   id: "pause",
@@ -65,6 +65,33 @@ describe("nextTrait", () => {
       reading({ id: "range", percentile: 90 }),
     ];
     expect(nextTrait(readings)?.next.id).toBe("pace");
+  });
+});
+
+describe("a percentile never stands on its own", () => {
+  /*
+   * The hardest finding in docs/closure.md: a bare descriptive norm
+   * made above-average households use MORE energy, and an injunctive
+   * cue removed the effect. The people a naked position damages are
+   * the ones already doing well, so the invariant has to hold at the
+   * TOP of the scale, which is exactly where `move` gives up.
+   */
+  it("gives every non-provisional reading a line, at every percentile", () => {
+    for (const t of TRAITS) {
+      for (let p = 0; p <= 100; p++) {
+        const line = nextLine(reading({ id: t.id, percentile: p, quality: "good", raw: 2 }));
+        expect([t.id, p, typeof line === "string" && line.length > 0]).toEqual([t.id, p, true]);
+      }
+    }
+  });
+
+  it("says nothing where the card shows no percentile to qualify", () => {
+    expect(nextLine(reading({ quality: "provisional" }))).toBeNull();
+  });
+
+  it("turns into a holding instruction at the top rather than going quiet", () => {
+    const top = nextLine(reading({ id: "fillers", percentile: 99, quality: "good", raw: 0.2 }));
+    expect(top).toMatch(/[Hh]olding/);
   });
 });
 

@@ -13,7 +13,7 @@ import { buzz } from "@/lib/prefs";
 import { repHref } from "@/lib/rep-config";
 import {
   fmtRaw,
-  move,
+  nextLine,
   nextTrait,
   ordinal,
   readTraitsFromRow,
@@ -252,7 +252,6 @@ function Lesson() {
   // ---- after ------------------------------------------------------------
   const nxt = readings ? nextTrait(readings) : null;
   const delta = now && before ? now.percentile - before.percentile : null;
-  const step5 = now ? move(now) : null;
 
   return (
     <LessonScreen
@@ -317,14 +316,9 @@ function Lesson() {
         ) : undefined
       }
       action={{ label: "Done", href: "/" }}
-      fineprint={
-        step5
-          ? `To reach the ${ordinal(step5.target)}: ${TRAIT[id].move(
-              Math.max(1, Math.round(step5.delta)),
-              step5.up
-            )}`
-          : undefined
-      }
+      /* The same invariant as the card: a percentile never stands on
+         its own, including at the top of the scale (nextLine). */
+      fineprint={now ? (nextLine(now) ?? undefined) : undefined}
     />
   );
 }

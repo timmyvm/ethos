@@ -5,7 +5,7 @@ import { CountUp } from "@/components/CountUp";
 import { Ring } from "@/components/Ring";
 import { TRAIT } from "@/content/traits";
 import { DURATION } from "@/lib/motion";
-import { move, ordinal, withUnit, type TraitReading } from "@/lib/trait-readings";
+import { nextLine, ordinal, withUnit, type TraitReading } from "@/lib/trait-readings";
 
 /**
  * One trait, one ring, one thing to do about it (DECISIONS #257).
@@ -35,7 +35,10 @@ export function TraitCard({
   href?: string;
 }) {
   const t = TRAIT[reading.id];
-  const step = move(reading);
+  /* Never a position on its own: see nextLine. Null here means the
+     card is showing "scale provisional" instead of a percentile, so
+     there is nothing to qualify. */
+  const next = nextLine(reading);
 
   const body = (
     <>
@@ -73,12 +76,9 @@ export function TraitCard({
         </div>
       </div>
 
-      {step && (
+      {next && (
         <p className="mt-3 border-t border-hairline pt-2.5 text-caption text-stone-500">
-          <span className="font-semibold text-ink">
-            To reach the {ordinal(step.target)}:
-          </span>{" "}
-          {t.move(round(step.delta), step.up)}
+          {next}
         </p>
       )}
     </>
@@ -94,11 +94,3 @@ export function TraitCard({
   );
 }
 
-/**
- * The move is rounded to something a person can DO. "0.4 fewer fillers
- * a minute" is arithmetic; you cannot say four tenths of an um, so a
- * sub-one delta becomes one.
- */
-function round(n: number): number {
-  return Math.max(1, Math.round(n));
-}

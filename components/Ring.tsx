@@ -168,7 +168,9 @@ export function Ring({
           cy={size / 2}
           r={r}
           fill="none"
-          stroke={track ?? "var(--color-sand)"}
+          stroke={
+            track ?? `var(--color-sand${provisional ? "-dashed" : ""})`
+          }
           strokeWidth={stroke}
           pathLength={1}
           strokeDasharray={provisional ? `${DASH} ${DASH}` : undefined}

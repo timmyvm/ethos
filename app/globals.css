@@ -159,6 +159,25 @@
 }
 
 /*
+ * The trough a PROVISIONAL ring draws, dashed (DECISIONS #252, #264).
+ *
+ * One step firmer than `sand` on purpose: a dashed stroke carries about
+ * half the ink of a solid one at the same colour, so matching the solid
+ * trough's contrast makes the dashes read as an absence rather than as
+ * a mark. The dash is the app saying "this scale is an estimate" in the
+ * picture rather than in a footnote, and it has to survive a glance.
+ *
+ * In a plain `:root` and NOT in `@theme`, because Tailwind v4 drops any
+ * theme variable no utility class references. Declared in there it
+ * vanished from the light build, `var()` resolved to nothing, and the
+ * trough computed to `stroke: none` — an invisible honesty signal,
+ * which is worse than a loud one.
+ */
+:root {
+  --color-sand-dashed: #ddc99c;
+}
+
+/*
  * The text roles (DECISIONS #208, #212). Named for the JOB, not the
  * size, and a screen that wants a level beyond its three is a screen
  * with too much on it.
@@ -232,6 +251,10 @@ body {
   --color-surface: #241c15;
   --color-raised: #2e251c;
   --color-sand: #3b2f22;
+  /* Lifted further here than in light. On the dark card the solid
+     trough is already close to the surface it sits on, and the dashed
+     one at the same value disappeared entirely. */
+  --color-sand-dashed: #6b5636;
   --color-stage: #120e0b;
   --color-ink: #f3ecdd;
   --color-hairline: rgba(243, 236, 221, 0.08);

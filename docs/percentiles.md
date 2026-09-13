@@ -625,8 +625,8 @@ rather than a documentation pass.
 
 ## What this review says to do, in order
 
-Numbered by how much they change, not by effort. The first three are
-changes to numbers the app already ships and they do not wait on any
+Numbered by how much they change, not by effort. The first four are
+changes to numbers the app already ships, and not one of them waits on a
 percentile.
 
 1. **Recalibrate `fillerScore` and `repairScore`.** The median speaker

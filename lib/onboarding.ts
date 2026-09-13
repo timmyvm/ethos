@@ -105,7 +105,7 @@ export const QUESTIONS = [
   {
     id: "time",
     title: "When do you want your minute?",
-    line: "Sets your daily reminder.",
+    line: "Pick when you'd actually do it.",
     essential: false,
   },
 ] as const;

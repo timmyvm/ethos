@@ -1,7 +1,8 @@
-# Job 5, Phase A: the first thirty seconds
+# Job 5: the first thirty seconds
 
-The plan for the introduction. Phase B builds it. Nothing here is built yet
-except the one image at the bottom.
+Phase A was the plan; Timothy approved it and **Phase B is built** (DECISIONS
+#250, #251). This file is kept as the record of what was decided and why, with
+a closing section on what the build changed about it.
 
 `docs/refs/` does not exist in this repo, so the look loops in this job compare
 against the four references named in DESIGN.md from memory of their patterns,
@@ -210,7 +211,7 @@ Two things this took that are worth writing down.
 attempt used the character Element and came back side-on with half-lidded eyes:
 a good picture and a broken set. Uploading the exact frame being replaced and
 changing one object keeps the pose, the face, the tail and the scale, which is
-the only way eleven screens stay one character. `scripts/cut-onboard-pose.mjs`
+the only way eleven screens stay one character. `scripts/cut-pose.mjs`
 then measures the shipped pose it is replacing and matches the new one's
 character height, centre and baseline to it, so joining the set is mechanical
 rather than judged: 923px tall, feet at 993 in a 1024 square, which is #233's
@@ -242,3 +243,37 @@ gets the look loop too, or it ships at the size nobody checked.
    shape, applied here first.
 6. `lib/copy.test.ts` already reads these files, so every new string is held
    to the budget and to the gym ban on the way in.
+
+## What the build changed about this plan
+
+Four things, all of them found by looking rather than by thinking.
+
+**The progress bar is at the top, not above the button.** The plan put the
+answers and the progress in `LessonScreen`'s bottom-anchored slot. Across seven
+questions with lists of four, five and six rows, that made the progress bar
+ride up and down the screen, and it is the one element in a walk that must not
+move. It now sits on the back row: both of a walk's exits in one line.
+
+**The answers sit under the question, not above the button.** Same slot, same
+reason inverted: the gap between a question and the thing that answers it is
+the one place on a screen a gap must never be. The slack now falls above the
+button, where nobody reads it as a missing piece.
+
+**The plan screen leads with its result.** `lead="howTo"` shrank "Think on your
+feet." to a bold body line while the list took the ink. That is right for a
+lesson screen, whose name is not the point, and wrong here: the headline is
+what seven answers came to. The three lines under it are numbered rather than
+bulleted, because they are a sequence in time and a dotted sequence reads as a
+heap.
+
+**Four strings were wrong, and a judge panel found them.** A prompt category
+that barely exists, a metric that names the wrong signal, a promise about
+notifications the walk cannot keep, and a sentence that repeated the line
+directly under it. Two of the four are now tests. DECISIONS #251 has the
+detail.
+
+One thing the plan predicted correctly and one it did not: the name going first
+still looks right on the built screens, and the "small bounce when the third
+pain hits the cap" was dropped — the nod already fires on that tap and the rows
+that grey out say the rest, so a second animation would have been decoration
+answering a question nobody asked.

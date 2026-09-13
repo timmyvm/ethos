@@ -36,7 +36,7 @@ export type Pool = "all" | "school" | "work" | "social" | "online";
  * caller has to widen by hand).
  */
 export const AGE_BANDS = [
-  { id: "u18", label: "Under 18", pool: "school", reply: "School and life prompts, then. No job interviews." },
+  { id: "u18", label: "Under 18", pool: "school", reply: "Then your prompts come from school and life, not work." },
   { id: "18_24", label: "18 to 24", pool: "all", reply: undefined },
   { id: "25_34", label: "25 to 34", pool: "all", reply: undefined },
   { id: "35_plus", label: "35 and up", pool: "all", reply: undefined },
@@ -61,10 +61,10 @@ export const GOALS = [
  */
 export const PAINS = [
   { id: "fillers", label: "Um, like, you know", said: "fillers", unit: "filler", metric: "fillers", line: "fillers per minute, counted with timestamps.", reply: "Fillers. I count them, with timestamps." },
-  { id: "rushing", label: "I rush", said: "rushing", unit: "pace", metric: "wpm", line: "words per minute against the 130 to 160 zone.", reply: "Rushing. You'll see your words per minute." },
+  { id: "rushing", label: "I rush", said: "rushing", unit: "pace", metric: "wpm", line: "words per minute against the 130 to 160 zone.", reply: "Rushing. I count your words per minute." },
   { id: "trailing", label: "I trail off", said: "trailing off", unit: "structure", metric: "structure", line: "whether the ending lands, cited from your words.", reply: "Trailing off. I check whether the ending lands." },
   { id: "freezing", label: "I freeze on the spot", said: "freezing", unit: "fire", metric: "pause", line: "silences that land a point, and silences that search.", reply: "Freezing. I separate the silences that work." },
-  { id: "flat", label: "I sound flat", said: "sounding flat", unit: "pace", metric: "range", line: "pace that moves, and words you repeat.", reply: "Flat. I watch whether your pace moves." },
+  { id: "flat", label: "I sound flat", said: "sounding flat", unit: "pace", metric: "range", line: "pace that moves, and words you repeat.", reply: "Sounding flat. I count the words you repeat." },
   { id: "rambling", label: "I ramble", said: "rambling", unit: "compression", metric: "structure", line: "one claim, one example, an ending.", reply: "Rambling. One claim, one example, an ending." },
 ] as const satisfies readonly { id: string; label: string; said: string; unit: string; metric: string; line: string; reply: string }[];
 
@@ -76,9 +76,9 @@ export const PAINS = [
  * table is not allowed to hold.
  */
 export const LEVELS = [
-  { id: "never", label: "Never practised", frameStep: true, intros: true, reply: "Then you get thirty seconds to think, before each one." },
-  { id: "some", label: "A bit, a class or a few talks", frameStep: false, intros: true, reply: "I'll keep the unit intros on." },
-  { id: "often", label: "Often, I present most weeks", frameStep: false, intros: false, reply: "Intros off. Straight to the floor." },
+  { id: "never", label: "Never practised", frameStep: true, intros: true, reply: "You get thirty seconds to think first. Every unit teaches before it tests." },
+  { id: "some", label: "A bit, a class or a few talks", frameStep: false, intros: true, reply: "Every unit still teaches before it tests." },
+  { id: "often", label: "Often, I present most weeks", frameStep: false, intros: false, reply: "Units skip the teaching. You start on the floor." },
 ] as const satisfies readonly { id: string; label: string; frameStep: boolean; intros: boolean; reply: string }[];
 
 export const CONTEXTS = [
@@ -104,7 +104,7 @@ export const TIMES = [
   { id: "midday", label: "Midday, 12:00", hour: 12 },
   { id: "evening", label: "Evening, 18:00", hour: 18 },
   { id: "night", label: "Night, 21:00", hour: 21 },
-  { id: "off", label: "No reminder", hour: null },
+  { id: "off", label: "Off", hour: null },
 ] as const satisfies readonly { id: string; label: string; hour: number | null }[];
 
 /**
@@ -114,10 +114,10 @@ export const TIMES = [
  * a hole in it reads worse than a shorter sentence.
  */
 export const OPENING = {
-  full: (name: string, said: string) => `${name}. You said ${said}. From day one that's a number.`,
-  noName: (said: string) => `You said ${said}. From day one that's a number.`,
-  noPain: (name: string) => `${name}. Sixty seconds a day, measured.`,
-  none: "Sixty seconds a day, measured.",
+  full: (name: string, said: string) => `${name}. You said ${said}. Now it's a number.`,
+  noName: (said: string) => `You said ${said}. Now it's a number.`,
+  noPain: (name: string) => `${name}. The numbers start today.`,
+  none: "The numbers start today.",
 } as const;
 
 /** His reply to a name, the one answer that is not a tap. */

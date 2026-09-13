@@ -11,6 +11,7 @@ import {
   TIMES,
 } from "@/content/portfolio";
 import { EMPTY_ANSWERS, type Answers } from "./answers";
+import { QUESTIONS } from "./onboarding";
 import { UNITS } from "./path";
 import { buildPortfolio, dayOneNote, poolFor, topicsFor } from "./portfolio";
 import { TOPICS } from "./topics";
@@ -105,6 +106,24 @@ describe("the mapping", () => {
     const settings = [null, 7, 8, 12, 18, 20, 21];
     for (const t of TIMES) expect(settings).toContain(t.hour);
   });
+
+  /**
+   * The hour question promises NOTHING (#249). It writes
+   * `prefs.reminderHour` and asks for no permission, so nothing rings
+   * until someone grants one somewhere else entirely; a screen that
+   * says "sets your daily reminder" has written a cheque the walk
+   * cannot cash. It says WHEN, and the notification vocabulary stays
+   * on the settings screen that can actually deliver it.
+   */
+  it("never promises a notification on the screen that cannot send one", () => {
+    const PROMISE = /\b(remind(er|ers|s)?|notif\w*|alert\w*|nudge\w*|ping\w*|buzz\w*)\b/i;
+    const strings = [
+      ...TIMES.map((t) => t.label),
+      QUESTIONS.find((q) => q.id === "time")!.title,
+      QUESTIONS.find((q) => q.id === "time")!.line,
+    ];
+    for (const s of strings) expect([s, PROMISE.test(s)]).toEqual([s, false]);
+  });
 });
 
 describe("the portfolio", () => {
@@ -150,7 +169,7 @@ describe("the portfolio", () => {
     expect(plan.lines[2]).toBe("Then the road, one unit at a time.");
     expect(plan.boss).toBeNull();
     expect(plan.settings).toEqual({ frameStep: false, intros: true, reminderHour: null });
-    expect(plan.opening).toBe("Sixty seconds a day, measured.");
+    expect(plan.opening).toBe("The numbers start today.");
     expect(plan.name).toBeNull();
   });
 
@@ -169,14 +188,52 @@ describe("the portfolio", () => {
    */
   it("opens in their name and their words, and shortens when it cannot", () => {
     const both = buildPortfolio({ ...EMPTY_ANSWERS, name: "Tim", pains: ["rushing"] });
-    expect(both.opening).toBe("Tim. You said rushing. From day one that's a number.");
+    expect(both.opening).toBe("Tim. You said rushing. Now it's a number.");
     expect(buildPortfolio({ ...EMPTY_ANSWERS, pains: ["rushing"] }).opening).toBe(
-      "You said rushing. From day one that's a number."
+      "You said rushing. Now it's a number."
     );
     expect(buildPortfolio({ ...EMPTY_ANSWERS, name: "Tim" }).opening).toBe(
-      "Tim. Sixty seconds a day, measured."
+      "Tim. The numbers start today."
     );
-    expect(buildPortfolio(EMPTY_ANSWERS).opening).toBe("Sixty seconds a day, measured.");
+    expect(buildPortfolio(EMPTY_ANSWERS).opening).toBe("The numbers start today.");
+  });
+
+  /**
+   * His opening line and the plan's three lines land on ONE screen, a
+   * few pixels apart, so a phrase in both is the app saying the same
+   * thing twice in the same breath.
+   *
+   * This is not hypothetical. The first version of the opening read
+   * "Sixty seconds a day, measured." directly above `PLAN_LINES.dayOne`
+   * ("Day 1: The baseline. Sixty seconds, measured."), and nobody
+   * noticed until three judges read the screen as a whole rather than
+   * the strings one at a time. Word pairs, because a shared pair is
+   * what the ear actually hears; pairs of pure filler don't count.
+   */
+  it("never says the same thing twice on the plan screen", () => {
+    const FILLER = new Set(
+      "a an the and or of to in on it its is you your i my for at that this with from then so be will was".split(" ")
+    );
+    const pairs = (s: string) => {
+      const w = s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(Boolean);
+      return w.slice(0, -1).flatMap((x, i) =>
+        FILLER.has(x) && FILLER.has(w[i + 1]) ? [] : [`${x} ${w[i + 1]}`]
+      );
+    };
+    for (const a of every) {
+      const plan = buildPortfolio(a);
+      /*
+       * Their OWN words are exempt. "You said trailing off" and "the
+       * unit for trailing off" are supposed to be the same phrase: that
+       * is the app proving it kept the answer, not repeating itself.
+       * Everything Demos adds around it has to be new.
+       */
+      const said = plan.focus?.said ?? "";
+      const strip = (s: string) => (said ? s.split(said).join(" ") : s);
+      const rest = new Set([...plan.lines, plan.boss?.line ?? ""].map(strip).flatMap(pairs));
+      const shared = pairs(strip(plan.opening)).filter((x) => rest.has(x));
+      expect([plan.opening, shared]).toEqual([plan.opening, []]);
+    }
   });
 
   it("picks the boss from the goal", () => {

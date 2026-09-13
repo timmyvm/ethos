@@ -111,7 +111,7 @@ ok("a tap picks the answer", (await page.getByRole("radio", { name: "Under 18" }
 await sleep(250);
 ok(
   "the one age band that changes the prompt pool says so",
-  await page.getByText("School and life prompts, then. No job interviews.").isVisible()
+  await page.getByText("Then your prompts come from school and life, not work.").isVisible()
 );
 await page.getByRole("button", { name: "Next", exact: true }).click();
 await sleep(300);
@@ -160,7 +160,7 @@ await page.getByRole("radio", { name: "Often, I present most weeks" }).click();
 await sleep(250);
 ok(
   "the level names the setting it just changed",
-  await page.getByText("Intros off. Straight to the floor.").isVisible()
+  await page.getByText("Units skip the teaching. You start on the floor.").isVisible()
 );
 await shot("08-q-level");
 await page.getByRole("button", { name: "Next", exact: true }).click();
@@ -189,7 +189,7 @@ await page.getByRole("button", { name: "Next", exact: true }).click();
 await page.getByText("Hold the room.").waitFor();
 ok(
   "the plan opens on his line to them, by name",
-  await page.getByText("Tim. You said rushing. From day one that's a number.").isVisible()
+  await page.getByText("Tim. You said rushing. Now it's a number.").isVisible()
 );
 const lines = await page.$$eval("main ol li", (els) => els.map((e) => e.textContent.replace(/^\d/, "").trim()));
 ok("line 2 names the first pain's number", lines[1] === "First number: words per minute against the 130 to 160 zone.", lines[1]);

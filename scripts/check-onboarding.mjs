@@ -215,7 +215,7 @@ await page.goto(`${BASE}/`);
 await page.getByText("Day one starts today.").waitFor();
 ok("the floor repeats what they said, in their words", await page.getByText("You said: rushing, fillers, freezing. The baseline sets the number to beat.").isVisible());
 ok(
-  "the road marks the unit that trains what they said, in their words",
+  "the road marks the unit for what they said, in their words",
   await page.getByText("You said rushing").isVisible()
 );
 await shot("11-home");

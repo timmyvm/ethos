@@ -20,7 +20,7 @@
  */
 
 import { NORMS, type NormQuality } from "@/content/norms";
-import { TRAITS, type TraitId } from "@/content/traits";
+import { TRAIT, TRAITS, type TraitId } from "@/content/traits";
 import { FILLED_PAUSES, per100, substance, type RepMetrics } from "./metrics";
 import { REPAIR_ZERO_AT } from "./index-score";
 import { fraction, percentile, valueFor } from "./percentile";
@@ -124,6 +124,28 @@ export function nextTrait(readings: TraitReading[]): {
 export function targetFor(r: TraitReading, points = 5): number | null {
   const target = Math.min(99, r.percentile + points);
   return valueFor(target, NORMS[r.id], r.raw);
+}
+
+/**
+ * The raw measurement, printed. One decimal under ten, none above:
+ * "1.8 held pauses a minute" is a number somebody can picture and
+ * "155.4 words a minute" is a number pretending to a precision a
+ * sixty-second sample does not have.
+ */
+export function fmtRaw(n: number): string {
+  if (!Number.isFinite(n)) return "0";
+  return n >= 10 ? String(Math.round(n)) : n.toFixed(1).replace(/\.0$/, "");
+}
+
+/**
+ * The measurement with its unit, singular where the printed value is
+ * one. On the DISPLAYED value and not the raw one, because 0.997 prints
+ * as "1" and then reads "1 restarts a minute".
+ */
+export function withUnit(id: TraitId, raw: number): string {
+  const shown = fmtRaw(raw);
+  const t = TRAIT[id];
+  return `${shown} ${shown === "1" ? t.unitOne : t.unit}`;
 }
 
 /**

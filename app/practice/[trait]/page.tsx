@@ -12,10 +12,12 @@ import { DURATION } from "@/lib/motion";
 import { buzz } from "@/lib/prefs";
 import { repHref } from "@/lib/rep-config";
 import {
+  fmtRaw,
   move,
   nextTrait,
   ordinal,
   readTraitsFromRow,
+  withUnit,
   type TraitReading,
 } from "@/lib/trait-readings";
 
@@ -139,9 +141,19 @@ function Lesson() {
         /* The reason, said out loud on the way in. This sentence is the
            whole shift: a lesson is here because a number is. */
         fineprint={
-          now
-            ? `Your lowest trait. ${ordinal(now.percentile)} percentile, from your last recording.`
-            : undefined
+          /*
+           * A provisional scale does not get to say "the 40th". The
+           * MEASUREMENT is known either way and the placement is the
+           * half that is a guess, so the provisional line leads with
+           * the number that is true and names the doubt out loud. The
+           * dashed trough says the same thing in the picture; a person
+           * reading the fineprint should not have to decode it.
+           */
+          !now
+            ? undefined
+            : now.quality === "provisional"
+              ? `${withUnit(id, now.raw)}, from your last recording. This scale is provisional.`
+              : `Your lowest trait. ${ordinal(now.percentile)} percentile, from your last recording.`
         }
         action={{ label: "Why it matters", onPress: () => go(i + 1) }}
       />
@@ -242,16 +254,23 @@ function Lesson() {
       onBack={back}
       eyebrow={def.name}
       title={
-        delta !== null && delta > 0
+        /* "Up 26" is a claim about the population. Where the scale is
+           provisional there is no such claim to make, only a second
+           measurement, so the screen says that instead. */
+        delta !== null && delta > 0 && now?.quality !== "provisional"
           ? `${def.name}, up ${delta}.`
           : `${def.name}, measured again.`
       }
       line={
-        now
-          ? `${ordinal(now.percentile)} percentile${
-              before ? `, from the ${ordinal(before.percentile)}.` : "."
-            }`
-          : undefined
+        !now
+          ? undefined
+          : now.quality === "provisional"
+            ? `${withUnit(id, now.raw)}${
+                before ? `, from ${fmtRaw(before.raw)}.` : "."
+              }`
+            : `${ordinal(now.percentile)} percentile${
+                before ? `, from the ${ordinal(before.percentile)}.` : "."
+              }`
       }
       art={
         <div className="mb-6 flex justify-center">

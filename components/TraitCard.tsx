@@ -5,7 +5,7 @@ import { CountUp } from "@/components/CountUp";
 import { Ring } from "@/components/Ring";
 import { TRAIT } from "@/content/traits";
 import { DURATION } from "@/lib/motion";
-import { move, ordinal, type TraitReading } from "@/lib/trait-readings";
+import { move, ordinal, withUnit, type TraitReading } from "@/lib/trait-readings";
 
 /**
  * One trait, one ring, one thing to do about it (DECISIONS #257).
@@ -36,7 +36,6 @@ export function TraitCard({
 }) {
   const t = TRAIT[reading.id];
   const step = move(reading);
-  const shown = fmt(reading.raw);
 
   const body = (
     <>
@@ -63,9 +62,7 @@ export function TraitCard({
               * beside a number that is perfectly well measured reads
               * as though the measurement were the doubtful half.
               */}
-            {/* On the DISPLAYED value, not the raw one: 0.997 prints
-                as "1" and then reads "1 restarts a minute". */}
-            {shown} {shown === "1" ? t.unitOne : t.unit}
+            {withUnit(reading.id, reading.raw)}
             {" · "}
             {reading.quality === "provisional" ? (
               <span className="text-stone-400">scale provisional</span>
@@ -95,12 +92,6 @@ export function TraitCard({
   ) : (
     <section className={shell}>{body}</section>
   );
-}
-
-/** One decimal for a rate, none for a count above ten. */
-function fmt(n: number): string {
-  if (!Number.isFinite(n)) return "0";
-  return n >= 10 ? String(Math.round(n)) : n.toFixed(1).replace(/\.0$/, "");
 }
 
 /**

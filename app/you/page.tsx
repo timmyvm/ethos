@@ -20,7 +20,6 @@ import {
   fetchProfile,
   fetchReps,
   fetchXp,
-  MAX_DISPLAY_NAME,
   updateDisplayName,
   type LexiconRow,
   type RepRow,
@@ -30,7 +29,7 @@ import { syncFreezes } from "@/lib/freeze-sync";
 import { levelFromXp } from "@/lib/level";
 import { readable, readFailure } from "@/lib/load";
 import { starsByLesson, totalStars } from "@/lib/path";
-import { readOnboarding, type OnboardingState } from "@/lib/answers";
+import { cleanName, MAX_NAME, readOnboarding, type OnboardingState } from "@/lib/answers";
 import { syncOnboarding } from "@/lib/answers-sync";
 import { buildPortfolio } from "@/lib/portfolio";
 import {
@@ -114,7 +113,7 @@ export default function YouPage() {
   const [nameFailed, setNameFailed] = useState(false);
 
   async function saveName() {
-    const next = draft.trim().slice(0, MAX_DISPLAY_NAME);
+    const next = cleanName(draft) ?? "";
     setNameFailed(false);
     const ok = await updateDisplayName(next);
     if (!ok) {
@@ -250,7 +249,7 @@ export default function YouPage() {
             <input
               autoFocus
               aria-label="Display name"
-              maxLength={MAX_DISPLAY_NAME}
+              maxLength={MAX_NAME}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder="Your name"

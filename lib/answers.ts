@@ -25,7 +25,17 @@ export type ContextId = (typeof CONTEXTS)[number]["id"];
 /** Up to three: more than that is a list, not a focus. */
 export const MAX_PAINS = 3;
 
+/**
+ * The cap on what they call themselves. One number, here rather than in
+ * `lib/client-data.ts`, because the same string is now an introduction
+ * answer AND `profiles.display_name`, and two caps on one string is a
+ * bug waiting for a 25-character name.
+ */
+export const MAX_NAME = 24;
+
 export interface Answers {
+  /** What Demos calls them. Given before any account exists. */
+  name: string | null;
   ageBand: AgeBandId | null;
   goal: GoalId | null;
   pains: PainId[];
@@ -44,6 +54,7 @@ export interface OnboardingState {
 }
 
 export const EMPTY_ANSWERS: Answers = {
+  name: null,
   ageBand: null,
   goal: null,
   pains: [],
@@ -67,12 +78,20 @@ export const isPain = (v: unknown): v is PainId => has(PAINS, v);
 export const isLevel = (v: unknown): v is LevelId => has(LEVELS, v);
 export const isContext = (v: unknown): v is ContextId => has(CONTEXTS, v);
 
+/** Trimmed, capped, and blank is the same as never answered. */
+export function cleanName(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const clean = raw.trim().slice(0, MAX_NAME).trim();
+  return clean.length > 0 ? clean : null;
+}
+
 /** Anything unknown becomes null; pains are deduplicated and capped. */
 export function cleanAnswers(raw: Partial<Answers> | null | undefined): Answers {
   const pains = Array.isArray(raw?.pains)
     ? raw!.pains.filter(isPain).filter((p, i, all) => all.indexOf(p) === i).slice(0, MAX_PAINS)
     : [];
   return {
+    name: cleanName(raw?.name),
     ageBand: isAgeBand(raw?.ageBand) ? raw!.ageBand : null,
     goal: isGoal(raw?.goal) ? raw!.goal : null,
     pains,
@@ -83,6 +102,7 @@ export function cleanAnswers(raw: Partial<Answers> | null | undefined): Answers 
 
 export function answered(a: Answers): boolean {
   return (
+    a.name !== null ||
     a.ageBand !== null ||
     a.goal !== null ||
     a.pains.length > 0 ||

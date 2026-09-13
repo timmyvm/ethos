@@ -18,7 +18,8 @@ const POSES = [
   ["demos-speaking", "demos-speaking"],
   ["demos-listening", "demos-listening"],
   ["demos-celebrate", "demos-celebrate"],
-  ["demos-workout", "demos-workout"],
+  // demos-practice is NOT here: it replaced demos-workout (#249) and it
+  // has a shipped pose to match, so it is cut by scripts/cut-pose.mjs.
   ["demos-asleep", "demos-asleep"],
 ];
 

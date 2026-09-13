@@ -85,7 +85,7 @@ describe("poseArt", () => {
   });
 
   it("draws an equipped pose that was actually bought", () => {
-    expect(poseArt("pose_workout", owned)).toBe("/demos-workout.webp");
+    expect(poseArt("pose_workout", owned)).toBe("/demos-practice.webp");
   });
 
   it("refuses a pose the ledger doesn't prove", () => {

@@ -8,6 +8,7 @@ import { supabaseBrowser } from "./supabase-browser";
 import type { AccuracyResult } from "./accuracy";
 import type { JudgedDimension } from "./coach";
 import type { CoinRow } from "./coins";
+import { cleanName } from "./answers";
 import { isUnlocked } from "./entitlement";
 import type { Tier1Scores, Tier2Anchors } from "./index-score";
 import type { Pause } from "./metrics";
@@ -172,6 +173,8 @@ export interface OnboardingRow {
   pains: string[];
   level: string | null;
   context: string | null;
+  /** The hour they picked for the daily nudge, 0-23, or null for off. */
+  reminder_hour: number | null;
   portfolio: unknown;
   rules_version: number;
 }
@@ -183,7 +186,7 @@ export async function fetchOnboarding(): Promise<OnboardingRow | null> {
   if (!session.session) return null;
   const { data, error } = await db
     .from("onboarding")
-    .select("age_band, goal, pains, level, context, portfolio, rules_version")
+    .select("age_band, goal, pains, level, context, reminder_hour, portfolio, rules_version")
     .maybeSingle();
   if (error) throw error;
   return (data as OnboardingRow | null) ?? null;
@@ -226,7 +229,7 @@ export async function updateEquippedPose(
 }
 
 /** Display names cap at 24 characters: the league row is the widest place one shows. */
-export const MAX_DISPLAY_NAME = 24;
+
 
 /**
  * The one profile field the user types. Trimmed and capped here as well
@@ -239,11 +242,11 @@ export async function updateDisplayName(name: string): Promise<boolean> {
   const { data } = await db.auth.getUser();
   const uid = data.user?.id;
   if (!uid) return false;
-  const clean = name.trim().slice(0, MAX_DISPLAY_NAME);
+  const clean = cleanName(name);
   const { error } = await db
     .from("profiles")
     .upsert(
-      { user_id: uid, display_name: clean || null },
+      { user_id: uid, display_name: clean },
       { onConflict: "user_id" }
     );
   return !error;

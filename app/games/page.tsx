@@ -69,7 +69,7 @@ export default function GamesPage() {
         className="press mt-4 flex w-full items-center gap-3.5 rounded-card border-[1.5px] border-terracotta-500 bg-raised p-4 text-left"
       >
         <Image
-          src="/demos-workout.webp"
+          src="/demos-practice.webp"
           alt=""
           width={92}
           height={92}

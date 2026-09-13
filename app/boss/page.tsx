@@ -390,7 +390,7 @@ export default function BossPage() {
           <h1 className="font-display mt-1.5 text-title">{topic.title}</h1>
           <div className="flex flex-1 flex-col items-center justify-center text-center">
             <Image
-              src="/demos-workout.webp"
+              src="/demos-practice.webp"
               alt=""
               width={140}
               height={140}

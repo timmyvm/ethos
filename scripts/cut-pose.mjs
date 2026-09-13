@@ -1,5 +1,5 @@
 /**
- * A new pose joins the introduction's Demos set (DECISIONS #233, #249).
+ * A new pose joins one of the Demos sets (DECISIONS #233, #249).
  *
  * The set's rule is that a pose change between screens is a pose change
  * and not a jump in size, which means a new drawing cannot be cut on its
@@ -13,21 +13,34 @@
  * and stands it on the same baseline.
  *
  * The reference is read from public/, which is the only place the set's
- * actual geometry exists.
+ * actual geometry exists. Pick ONE canonical member and keep using it,
+ * or the set drifts a little with every new pose: members differ in
+ * height by up to about 1%, so matching a different one each time
+ * ratchets. For the introduction that is `demos-onboard-mic.webp`
+ * (923px tall, feet at 993 in a 1024 square); for the in-app set it is
+ * `demos-practice.webp`.
  *
- *   node scripts/cut-onboard-pose.mjs mic dumbbell
- *   #          new assets/demos-onboard-mic.png  ─┘      └─ match public/demos-onboard-dumbbell.webp
+ * There are two sets and they are not interchangeable: the introduction's
+ * is full body on one baseline at 1024, the in-app one is its own crop at
+ * 512. So the source, the destination, the pose to match and the square
+ * are all arguments, and nothing is guessed from a name.
+ *
+ *   node scripts/cut-pose.mjs \\
+ *     assets/demos-onboard-mic.png public/demos-onboard-mic.webp \\
+ *     public/demos-onboard-mic.webp 1024
  */
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright-core");
 import { readFileSync, writeFileSync } from "node:fs";
 
-const [, , NAME, LIKE] = process.argv;
-if (!NAME || !LIKE) {
-  console.error("usage: node scripts/cut-onboard-pose.mjs <new-pose> <shipped-pose-to-match>");
+const [, , SRC, DST, LIKE, SIZE = "1024"] = process.argv;
+if (!SRC || !DST || !LIKE) {
+  console.error(
+    "usage: node scripts/cut-pose.mjs <source.png> <out.webp> <shipped-pose-to-match.webp> [size]"
+  );
   process.exit(1);
 }
 
-const OUT_SIZE = 1024;
+const OUT_SIZE = Number(SIZE);
 const b64 = (p) => readFileSync(p).toString("base64");
 
 const browser = await chromium.launch({
@@ -194,14 +207,13 @@ const result = await page.evaluate(
     };
   },
   {
-    source: "data:image/png;base64," + b64(`assets/demos-onboard-${NAME}.png`),
-    reference: "data:image/webp;base64," + b64(`public/demos-onboard-${LIKE}.webp`),
+    source: "data:image/png;base64," + b64(SRC),
+    reference: "data:image/webp;base64," + b64(LIKE),
     OUT_SIZE,
   }
 );
 
-const path = `public/demos-onboard-${NAME}.webp`;
-writeFileSync(path, Buffer.from(result.webp, "base64"));
-console.log(`${path}  ${result.report.source} → ${result.report.scaled}  (set: ${result.report.matched})`);
+writeFileSync(DST, Buffer.from(result.webp, "base64"));
+console.log(`${DST}  ${result.report.source} → ${result.report.scaled}  (set: ${result.report.matched})`);
 
 await browser.close();

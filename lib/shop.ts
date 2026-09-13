@@ -52,11 +52,18 @@ export const SHOP: ShopItem[] = [
     blurb: "Swaps the Demos on your floor card for the speaking pose.",
   },
   {
+    /*
+     * The id is a LEDGER key — it is written into the coin ledger when
+     * somebody buys it — so it stays `pose_workout` for the same reason
+     * routes keep "rep" (#164): nobody reads it aloud, and renaming it
+     * would orphan every purchase. The art it points at is the part a
+     * user sees, and that was a panda lifting a dumbbell (#249).
+     */
     id: "pose_workout",
     name: "Demos, mid-practice",
     price: 8,
     kind: "cosmetic",
-    blurb: "The practice pose, for the floor card.",
+    blurb: "The stopwatch pose, for the floor card.",
   },
   {
     id: "pose_celebrate",
@@ -74,7 +81,7 @@ export function itemById(id: string): ShopItem | undefined {
 /** The pose a bought cosmetic maps to on the home card. */
 export const POSE_ART: Record<string, string> = {
   pose_speaking: "/demos-speaking.webp",
-  pose_workout: "/demos-workout.webp",
+  pose_workout: "/demos-practice.webp",
   pose_celebrate: "/demos-celebrate.webp",
 };
 

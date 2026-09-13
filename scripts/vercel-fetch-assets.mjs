@@ -16,7 +16,7 @@ const BINARIES = [
   "demos-speaking.webp",
   "demos-listening.webp",
   "demos-celebrate.webp",
-  "demos-workout.webp",
+  "demos-practice.webp",
   "demos-asleep.webp",
   "icon-192.webp",
   "icon-512.webp",

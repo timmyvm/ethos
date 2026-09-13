@@ -39,7 +39,7 @@ describe("the portfolio", () => {
   for (const g of GOALS)
     for (const p of PAINS)
       for (const l of LEVELS)
-        every.push({ ageBand: "18_24", goal: g.id, pains: [p.id], level: l.id, context: null });
+        every.push({ name: null, ageBand: "18_24", goal: g.id, pains: [p.id], level: l.id, context: null });
 
   it("is three lines, each inside the budget, for every answer", () => {
     for (const a of every) {

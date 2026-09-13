@@ -20,8 +20,10 @@ export type Pose =
   | "fingers"
   | "telescope"
   | "listening"
-  | "dumbbell"
+  | "mic"
   | "headphones"
+  | "clock"
+  | "hello"
   | "clipboard";
 
 /** The loop each pose runs (globals.css, `.demos-*`). */
@@ -32,8 +34,10 @@ const LOOP: Record<Pose, string> = {
   fingers: "demos-idle",
   telescope: "demos-idle",
   listening: "demos-tilt",
-  dumbbell: "demos-idle",
+  mic: "demos-idle",
   headphones: "demos-idle",
+  clock: "demos-idle",
+  hello: "demos-sway",
   clipboard: "demos-breath",
 };
 

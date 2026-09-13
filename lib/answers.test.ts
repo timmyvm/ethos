@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   cleanAnswers,
+  cleanName,
   EMPTY_STATE,
   isAgeBand,
   isGoal,
   isPain,
+  MAX_NAME,
   MAX_PAINS,
   readOnboarding,
   writeOnboarding,
@@ -42,6 +44,7 @@ describe("answers", () => {
       level: "often",
     });
     expect(a).toEqual({
+      name: null,
       ageBand: "u18",
       goal: null,
       pains: ["fillers", "rushing", "flat"],
@@ -49,6 +52,23 @@ describe("answers", () => {
       context: null,
     });
     expect(a.pains.length).toBe(MAX_PAINS);
+  });
+
+  /*
+   * The name is the one free-text answer in the walk (#249), so it is
+   * the one that can arrive as anything at all.
+   */
+  it("trims, caps and blanks the name", () => {
+    expect(cleanName("  Tim  ")).toBe("Tim");
+    expect(cleanName("   ")).toBeNull();
+    expect(cleanName("")).toBeNull();
+    expect(cleanName(42 as never)).toBeNull();
+    expect(cleanName(null)).toBeNull();
+    // Capped, then trimmed again, so a cut mid-space leaves no tail.
+    const long = "a".repeat(MAX_NAME + 10);
+    expect(cleanName(long)).toHaveLength(MAX_NAME);
+    expect(cleanName("Tim".padEnd(MAX_NAME + 4, " ") + "X")).toBe("Tim");
+    expect(cleanAnswers({ name: "  Tim  " } as never).name).toBe("Tim");
   });
 
   it("reads an empty state where there is no storage", () => {

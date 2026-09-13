@@ -490,7 +490,7 @@ export default function HostilePage() {
               thinking pose in the set; the working pose is the honest
               stand-in, and it's the app's idea of thinking anyway. */}
           <Image
-            src="/demos-workout.webp"
+            src="/demos-practice.webp"
             alt=""
             width={140}
             height={140}

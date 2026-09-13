@@ -266,7 +266,7 @@ function Lesson() {
           ? undefined
           : now.quality === "provisional"
             ? `${withUnit(id, now.raw)}${
-                before ? `, from ${fmtRaw(before.raw)}.` : "."
+                before ? `, from ${fmtRaw(before.raw)} last time.` : "."
               }`
             : `${ordinal(now.percentile)} percentile${
                 before ? `, from the ${ordinal(before.percentile)}.` : "."

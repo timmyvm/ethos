@@ -118,7 +118,15 @@ function Lesson() {
         line={def.what}
         art={
           <div className="mb-6 flex justify-center">
-            <Ring value={now?.fraction ?? 0} size={132} delay={220}>
+            <Ring
+              value={now?.fraction ?? 0}
+              size={132}
+              delay={220}
+              /* The scale is provisional or it is not, and the big ring
+                 on the lesson's first screen is the loudest place in
+                 the app to be quiet about that. */
+              provisional={now?.quality === "provisional"}
+            >
               <CountUp
                 value={now?.percentile ?? 0}
                 durationMs={DURATION.max}
@@ -255,6 +263,7 @@ function Lesson() {
             from={before?.fraction ?? 0}
             to={now?.fraction ?? 0}
             percentile={now?.percentile ?? 0}
+            provisional={now?.quality === "provisional"}
           />
         </div>
       }
@@ -301,10 +310,12 @@ function MovingRing({
   from,
   to,
   percentile,
+  provisional = false,
 }: {
   from: number;
   to: number;
   percentile: number;
+  provisional?: boolean;
 }) {
   const [value, setValue] = useState(from);
   const [shown, setShown] = useState(Math.round(from * 100));
@@ -323,7 +334,13 @@ function MovingRing({
   }, [from, to, percentile]);
 
   return (
-    <Ring value={value} size={132} state={closing ? "closing" : "idle"} delay={0}>
+    <Ring
+      value={value}
+      size={132}
+      state={closing ? "closing" : "idle"}
+      delay={0}
+      provisional={provisional}
+    >
       <CountUp
         value={shown}
         durationMs={DURATION.max}

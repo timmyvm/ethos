@@ -24,6 +24,8 @@ export interface TraitDef {
   name: string;
   /** The raw unit, for the number under the ring. */
   unit: string;
+  /** The same unit at one. "1 restarts a minute" is a tell. */
+  unitOne: string;
   /** One sentence: what this measures. */
   what: string;
   /** One sentence: why a listener cares. Never "you should". */
@@ -72,6 +74,7 @@ export const TRAITS: TraitDef[] = [
     id: "pause",
     name: "Pausing",
     unit: "held pauses a minute",
+    unitOne: "held pause a minute",
     what: "Silences long enough to land, and where you put them.",
     why: "A held silence after a point is the clearest signal that you meant it.",
     /*
@@ -106,6 +109,7 @@ export const TRAITS: TraitDef[] = [
     id: "fillers",
     name: "Fillers",
     unit: "fillers a minute",
+    unitOne: "filler a minute",
     what: "Um, uh, like, you know, counted with a timestamp each.",
     why: "Every one is a gap you filled with sound instead of silence.",
     distinction:
@@ -122,6 +126,7 @@ export const TRAITS: TraitDef[] = [
     id: "repairs",
     name: "Restarts",
     unit: "restarts a minute",
+    unitOne: "restart a minute",
     what: "Sentences you abandoned and began again a different way.",
     why: "A listener hears a restart the way they hear an um, and it costs more.",
     distinction:
@@ -138,6 +143,7 @@ export const TRAITS: TraitDef[] = [
     id: "pace",
     name: "Pace",
     unit: "words a minute",
+    unitOne: "word a minute",
     what: "How fast you talk, and how much that speed moves.",
     why: "Too fast and the point does not land; too slow and it leaves before you do.",
     distinction:
@@ -153,6 +159,7 @@ export const TRAITS: TraitDef[] = [
     id: "range",
     name: "Variety",
     unit: "distinct words per hundred",
+    unitOne: "distinct word per hundred",
     what: "How much of your vocabulary you actually reach for.",
     why: "The same phrase three times in a minute is the thing people remember.",
     distinction:

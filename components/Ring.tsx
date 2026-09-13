@@ -102,6 +102,12 @@ export function Ring({
   track?: string;
 }) {
   const clamped = Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
+  /*
+   * The provisional trough's dash, as a fraction of the path. Fixed in
+   * path units rather than pixels so a 44px ring and a 132px one carry
+   * the same number of dashes and read as the same material.
+   */
+  const DASH = 0.022;
   const stroke = thickness ?? Math.max(3, Math.round(size / 12));
   const r = (size - stroke) / 2;
 
@@ -165,7 +171,7 @@ export function Ring({
           stroke={track ?? "var(--color-sand)"}
           strokeWidth={stroke}
           pathLength={1}
-          strokeDasharray={provisional ? "0.012 0.012" : undefined}
+          strokeDasharray={provisional ? `${DASH} ${DASH}` : undefined}
           strokeLinecap={provisional ? "round" : "butt"}
         />
         <circle

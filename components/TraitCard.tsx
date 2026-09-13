@@ -36,6 +36,7 @@ export function TraitCard({
 }) {
   const t = TRAIT[reading.id];
   const step = move(reading);
+  const shown = fmt(reading.raw);
 
   const body = (
     <>
@@ -55,15 +56,21 @@ export function TraitCard({
         <div className="min-w-0 flex-1">
           <div className="font-display text-[15px] font-bold">{t.name}</div>
           <div className="mt-0.5 text-caption text-stone-500">
+            {/*
+              * The MEASUREMENT first, always, then where it sits. What
+              * somebody did is known; the place it sits is the part
+              * that can be provisional, and saying "not enough data"
+              * beside a number that is perfectly well measured reads
+              * as though the measurement were the doubtful half.
+              */}
+            {/* On the DISPLAYED value, not the raw one: 0.997 prints
+                as "1" and then reads "1 restarts a minute". */}
+            {shown} {shown === "1" ? t.unitOne : t.unit}
+            {" · "}
             {reading.quality === "provisional" ? (
-              /* Said in the card, not only drawn in the ring: a dashed
-                 arc is a hint and this is a claim about the data. */
-              <>Not enough population data yet. {fmt(reading.raw)} {t.unit}.</>
+              <span className="text-stone-400">scale provisional</span>
             ) : (
-              <>
-                {ordinal(reading.percentile)} percentile &middot;{" "}
-                {fmt(reading.raw)} {t.unit}
-              </>
+              <>{ordinal(reading.percentile)} percentile</>
             )}
           </div>
         </div>

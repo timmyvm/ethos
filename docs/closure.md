@@ -135,6 +135,81 @@ part that is *not* drawn is finite and in the same glance as the value. A
 bar's remainder runs off the end of its track. That is a legibility
 argument, and legibility is what it is allowed to claim.
 
+## 3b. Rings in practice, and the three findings that change the design
+
+**Apple's rings close because they are behaviours you control in the
+next hour.** Move, Exercise, Stand: one personalised, two fixed
+constants. Their designer's own stated rationale is boundedness, not
+geometry — Jay Blahnik: "numbers continue to get bigger... but a ring is
+either closed or not closed."
+https://www.apple.com/watch/close-your-rings/
+
+**A percentile is not that.** It is a rank against a population. It has
+no closed state, the user does not control it in the next hour, and
+100th is not a daily achievement. Everything the closure mechanic
+offers belongs to things Ethos's user controls today — the session, the
+daily challenge — and not to the trait rings. Note that every
+non-Apple competitor (Garmin Body Battery, Whoop Recovery, Oura
+Readiness) deliberately ships a *state* display that never closes, and
+every one of them also ships an explicit rest mode. Apple itself lets
+you pause rings for up to 90 days without losing the streak.
+
+Three findings that are specific enough to build from:
+
+**The boomerang, and it hits our best users.** Large field experiment on
+household energy: a bare descriptive norm ("here is how you compare")
+reduced consumption among above-average households and *increased* it
+among below-average ones. Telling someone they are doing well is telling
+them they can ease off. Adding an injunctive cue removed the effect.
+Schultz et al. (2007). http://assets.csom.umn.edu/assets/118375.pdf
+
+A percentile display is a descriptive norm by construction. **The
+mitigation is that a trait card must never be only a position.** It
+names the next move as well, every time, which is the injunctive half.
+
+**Rank feedback can send effort elsewhere entirely.** Three-year
+randomised experiment, n = 1,754 salespeople: *removing* private rank
+feedback raised sales about 11%. What rescued it was adding explicit
+benchmarks — what it takes to be top 10%, 25%, 50%.
+https://faculty.wharton.upenn.edu/wp-content/uploads/2012/07/rankincentives_1.pdf
+
+So a percentile alone is a liability. A percentile plus the named
+distance to the next band is the version with evidence behind it.
+
+**Visual at the bottom, numeric at the top.** Nine studies, N = 3,735,
+with a single-paper meta-analysis: showing progress visually rather than
+numerically pulls estimates toward the midpoint. At *low* progress the
+visual display makes people feel further along and raises motivation; at
+*high* progress the number beats the picture (d = .27). Effect sizes are
+small (d ≈ .25) but this is the most directly actionable result in the
+set. https://link.springer.com/article/10.1007/s11747-025-01133-1
+
+And the reading-accuracy tax is real: angle sits below length in
+Cleveland & McGill's hierarchy, so a ring is measurably harder to read
+precisely than a bar. A partially-filled non-rectangular unit also gets
+perceptually rounded — a 78th-percentile arc may be read as 80
+(https://academic.oup.com/jcr/article/50/1/142/6717799). **Print the
+number. Always.**
+
+**Reward the comeback, not the streak.** Megastudy across 61,293 gym
+members, 54 four-week programmes designed by 30 scientists, published in
+*Nature*: the single best-performing intervention gave a micro-reward
+for returning after a *missed* session. Standard streak design does the
+opposite. https://www.nature.com/articles/s41586-021-04128-4
+
+**Adaptive targets beat fixed ones over months.** RCT, N = 96, four
+months: static goals produced a bigger initial jump but decayed nearly
+two and a half times faster, and by day 110 the adaptive group was
+1,030 steps a day ahead. https://pmc.ncbi.nlm.nih.gov/articles/PMC5372290/
+
+**And the specific risk of measuring speech.** Orthosomnia is the
+documented case where watching the metric degrades the thing measured
+(https://jcsm.aasm.org/doi/10.5664/jcsm.6472). A user who becomes
+self-conscious about filler words mid-sentence will speak worse, Ethos
+will measure that, and the number will drop — which is the failure mode
+this product is structurally most exposed to.
+
+
 ## 4. The cautions, in order of how much they could cost us
 
 **Ethos has no finish line, and almost every result above has one.** The
@@ -216,6 +291,12 @@ What Ethos uses, where, and what it rests on.
 | 8 | Never let them blame themselves | Broken-streak copy | The line attributes the break to circumstance, because self-blame costs 21 points of continuation. | Silverman & Barasch, 56.22% vs 35.21% |
 | 9 | Implementation intention | Onboarding | The daily minute is pinned to a concrete cue. Question 7 already asks the hour; it should ask the cue. | Gollwitzer & Sheeran, d = 0.65 |
 | 10 | Honest, reachable targets | Daily challenge | A challenge most people close. A target four in five people miss is worse than no target. | Wang et al., 20% reached |
+| 11 | Never a position alone | Trait card | Every percentile is shown with the named next move. A bare descriptive norm makes good performers ease off, and the injunctive half is what removes that. | Schultz et al.; Barankay benchmarks |
+| 12 | Print the number, always | Every ring | Angle reads worse than length, and a partial arc gets perceptually rounded up. The ring is the gap; the number is the value. | Cleveland & McGill; JCR 50(1) 142 |
+| 13 | Ring at the bottom, number at the top | Trait card emphasis | Low percentile: let the ring carry it. High percentile: let the number carry it. | Visual moderation, N = 3,735 |
+| 14 | Reward the comeback | After a missed day | The strongest reward in the loop goes on the session AFTER a miss, not on the 30th in a row. | Milkman et al., Nature, N = 61,293 |
+| 15 | Adaptive targets | Daily challenge | The target is set from their own last week, not fixed for everyone. | Adaptive-goal RCT, 2.4x slower decay |
+| 16 | A rest mode | Settings | Apple pauses rings for 90 days. Every competitor ships one. A habit product without an off switch punishes illness. | Oura, Whoop, Garmin, Apple |
 
 ## 6. The reject list
 
@@ -229,6 +310,9 @@ What Ethos uses, where, and what it rests on.
 | A stretch daily target | 80% failure rate, and failure damages the most committed most |
 | One unified Ethos score doing every job | The matching effect says it cannot |
 | The ring, argued as more motivating than a bar | No evidence exists. Argue it on bounded legibility or not at all |
+| A percentile ring that "closes" | A rank has no closed state and the user does not control it today. Closure belongs to the session and the daily challenge |
+| A percentile shown on its own | It is a bare descriptive norm, which makes above-average users ease off |
+| Five rings read as one comparison | Apple shipped three and froze two. Angle is the worst encoding for comparing values; five separate cards each printing its own number is fine, one five-ring dial is not |
 
 ## 7. The one thing to carry out of this
 

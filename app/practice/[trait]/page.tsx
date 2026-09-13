@@ -115,7 +115,10 @@ function Lesson() {
         center
         stepKey={step}
         onBack={back}
-        eyebrow="Today's lesson"
+        /* "Today's lesson" claims the app chose this. On a provisional
+           scale it refused to (nextTrait returns nothing), so the
+           eyebrow says what the screen actually is. */
+        eyebrow={now?.quality === "provisional" ? "Practice" : "Today's lesson"}
         title={def.name}
         line={def.what}
         art={

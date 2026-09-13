@@ -54,11 +54,14 @@ async function shootTheme(theme) {
     localStorage.setItem("sb-supabase-auth-token", JSON.stringify(session));
     localStorage.setItem("sb-supabase.local-auth-token", JSON.stringify(session));
   }, { theme, session });
-  await context.addInitScript(() => {
-    const css = document.createElement("style");
-    css.textContent = 'nextjs-portal{display:none!important} body{position:relative} nav[aria-label="Sections"]{position:absolute!important}';
-    document.addEventListener("DOMContentLoaded", () => document.head.appendChild(css));
-  });
+  /*
+   * The camera's own CSS goes in AFTER the page has loaded, not from an
+   * init script at DOMContentLoaded. Appending a <style> to a head
+   * React is about to hydrate is a race, and it shows up as an
+   * intermittent hydration error on a different screen every run.
+   */
+  const CAMERA_CSS =
+    'nextjs-portal{display:none!important} body{position:relative} nav[aria-label="Sections"]{position:absolute!important}';
 
   const page = await context.newPage();
   page.on("pageerror", (e) => console.log("PAGEERROR", page.url(), e.message.slice(0, 160)));
@@ -72,6 +75,7 @@ async function shootTheme(theme) {
   };
   const go = async (path, waitFor) => {
     await page.goto(`${BASE}${path}`).catch(async () => { await sleep(500); await page.goto(`${BASE}${path}`); });
+    await page.addStyleTag({ content: CAMERA_CSS }).catch(() => {});
     if (waitFor) await page.waitForSelector(waitFor, { timeout: 15000 }).catch(() => console.log("WAIT-TIMEOUT", path, waitFor));
     // A screen is ready when its skeletons are gone, and the rings need
     // one beat beyond that: they start at zero and travel on the next
@@ -80,6 +84,16 @@ async function shootTheme(theme) {
       .catch(() => console.log("SKELETONS-REMAIN", page.url()));
   };
   const step = async (fn) => { try { await fn(); } catch (e) { console.log("STEP-FAILED", theme, String(e.message ?? e).split("\n")[0]); } };
+
+  /*
+   * A note for whoever sees it next: this walk sometimes logs one React
+   * hydration error (#418), on a different screen each run. It is the
+   * camera, not the app. Every screen here hydrates clean on its own
+   * and clean in a plain sequential walk; it only appears once the
+   * lesson's force-clicks are in the mix, and React re-renders the tree
+   * client-side, so the shot it takes is correct. Worth re-checking if
+   * it ever becomes reproducible on one screen.
+   */
 
   await step(async () => { await go("/", "main .arrive"); await shot("today-shift-before"); });
   await step(async () => { await go("/workbench/home-cards", "main"); await shot("home-cards"); });

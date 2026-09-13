@@ -49,7 +49,7 @@ const ROWS = [
   },
   {
     title: "The traits underneath",
-    note: "One ring each, the measurement first and the placement second, and the next concrete move on every card. Every scale here is provisional until the literature review lands, and the dashed trough says so before the words do.",
+    note: "One ring each, the measurement first and the placement second. The literature review has landed and all five scales are still provisional: the centres are published and the between-speaker spread, which is the half a percentile is made of, is not. The dashed trough says so before the words do, and no lesson is chosen on any of them.",
     width: 300,
     shots: [["traits", "Five traits"]],
   },

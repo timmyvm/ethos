@@ -45,8 +45,17 @@ const reps = SPOKE.map((ago, i) => {
       lesson_id: lesson,
       created_at: iso(ago),
       duration_s: 58 + (i % 4) * 7,
+      /*
+       * A REAL sixty-second length, about 150 words. The old fixture
+       * was 42 tokens against a claimed 128 words a minute over 58
+       * seconds, which is a third of the words the rest of the row
+       * says were spoken. That is not a cosmetic mismatch: distinct
+       * words per hundred rises as a sample shrinks, so a 42-token
+       * transcript photographed the Variety ring pinned at 100 on
+       * every screen in the gallery.
+       */
       transcript:
-        "So the thing about habits is they compound. You do the small version every day and the big version arrives on its own. The mistake people make is waiting to feel ready. Ready is a feeling that shows up after you start, not before.",
+        "So the thing about habits is they compound. You do the small version every day and the big version arrives on its own. The mistake people make is waiting to feel ready. Ready is a feeling that shows up after you start, not before. I used to think discipline was the whole answer, and I would plan a week that no person could actually do, and then I would miss a day and quit the plan instead of the day. What changed was making the thing small enough that missing it felt stupid. Five minutes. Not an hour, not a session I have to clear an evening for, just five minutes I can do standing in a kitchen. And the odd part is that the five minutes usually turns into more, but it only does that because it was allowed to be five.",
       wpm: 128 + ((i * 7) % 30),
       filler_count: fillers,
       fillers: Array.from({ length: fillers }, (_, k) => ({ word: k % 2 ? "um" : "like", t: 4 + k * 7.3 })),

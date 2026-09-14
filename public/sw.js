@@ -4,7 +4,7 @@
  * /api/analyze is never cached — a rep that can't reach the engine
  * should fail honestly rather than return stale numbers.
  */
-const CACHE = "ethos-v7";
+const CACHE = "ethos-v8";
 
 const SHELL = [
   "/",
@@ -12,6 +12,22 @@ const SHELL = [
   "/history",
   "/you",
   "/lessons",
+  /* The lesson art is the Lessons page, so it is shell, not extra. */
+  "/lessons/the-landing.webp",
+  "/lessons/inside-or-after.webp",
+  "/lessons/the-long-one.webp",
+  "/lessons/the-cold-open.webp",
+  "/lessons/closed-mouth.webp",
+  "/lessons/the-crutch.webp",
+  "/lessons/finish-it.webp",
+  "/lessons/know-the-landing.webp",
+  "/lessons/or-rather.webp",
+  "/lessons/room-to-land.webp",
+  "/lessons/one-gear-down.webp",
+  "/lessons/change-gear.webp",
+  "/lessons/name-it-once.webp",
+  "/lessons/short-and-concrete.webp",
+  "/lessons/second-pass.webp",
   "/boss",
   "/hostile",
   "/upload",

@@ -1,54 +1,91 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PathRoad } from "@/components/PathRoad";
+import { LessonCard } from "@/components/lessons/LessonCard";
+import { LESSONS } from "@/content/lessons";
+import { TRAITS } from "@/content/traits";
 import { fetchReps } from "@/lib/client-data";
-import { readOnboarding, EMPTY_ANSWERS, type Answers } from "@/lib/answers";
+import { lessonProgress } from "@/lib/lesson-progress";
+import { readOnboarding } from "@/lib/answers";
 import { buildPortfolio } from "@/lib/portfolio";
-import { starsByLesson } from "@/lib/path";
 
 /**
- * Lessons (DECISIONS #141, #267, #269).
+ * Lessons (DECISIONS #269).
  *
- * It used to live under the floor card on Today and it was the same
- * road for everybody: units in an order chosen once, gated on stars.
- * The shift put the five traits there instead, because the only honest
- * reason a lesson is in front of you is that its number is yours.
+ * The road used to live under the floor card on Today, and it was the
+ * same road for everybody: units in an order chosen once, gated on
+ * stars, rows under hairlines. The shift put the five traits on Today
+ * instead, because the only honest reason a practice is in front of you
+ * is that its number is yours. This page is the other half of that: the
+ * whole set, grouped by the trait each one trains, so choosing is a
+ * real choice rather than a position on a track.
  *
- * The road is not gone, it is a DOOR rather than furniture. Somebody
- * who wants to pick a lesson by name gets a page that is nothing but
- * that, linked from the bottom of the trait strip. This route already
- * existed as a redirect to Today, so old bookmarks and the service
- * worker's cached links land on the thing they were pointing at.
+ * It carries over the one thing from the road worth keeping: the mark
+ * on whichever trait their own answers named in the introduction, in
+ * their words (#231). The road's endowed "Showed up" row does NOT
+ * carry over, and that is a correction rather than a loss:
+ * docs/closure.md's reject list opens with endowed progress, which
+ * works precisely because the head start is unearned, and CLAUDE.md
+ * says stars, streaks and scores are earned.
  */
 export default function LessonsPage() {
-  const [starMap, setStarMap] = useState<Record<string, number> | null>(null);
-  const [hasAny, setHasAny] = useState(false);
-  const [answers, setAnswers] = useState<Answers>(EMPTY_ANSWERS);
+  const [done, setDone] = useState<Record<string, number>>({});
+  const [said, setSaid] = useState<string | null>(null);
 
   useEffect(() => {
-    setAnswers(readOnboarding().answers);
+    const answers = readOnboarding().answers;
+    setSaid(buildPortfolio(answers).focus?.said ?? null);
     fetchReps(200)
-      .then((reps) => {
-        setStarMap(starsByLesson(reps));
-        setHasAny(reps.length > 0);
-      })
-      .catch(() => setStarMap({}));
+      .then((reps) => setDone(lessonProgress(reps)))
+      .catch(() => {});
   }, []);
 
   return (
     <main className="mx-auto max-w-[430px] px-5 pb-24 pt-8">
-      <h1 className="label-data">Every lesson</h1>
+      <h1 className="font-display text-title">Lessons</h1>
       <p className="mt-1.5 text-body text-stone-500">
-        Today picks one from your numbers. This is the whole set.
+        Today picks one practice from your numbers. This is the whole set, and
+        you choose.
       </p>
-      {starMap !== null && (
-        <PathRoad
-          starMap={starMap}
-          hasAnyRep={hasAny}
-          focus={buildPortfolio(answers).focus}
-        />
-      )}
+
+      {TRAITS.map((t) => {
+        const mine = LESSONS.filter((l) => l.trait === t.id);
+        if (mine.length === 0) return null;
+        return (
+          <section key={t.id} className="mt-8">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="label-data">{t.name}</h2>
+              {/* Their own words, kept from the road (#231). */}
+              {said && buildPortfolioTrait(said) === t.id && (
+                <span className="text-caption text-terracotta-700">
+                  You said {said}
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-caption text-stone-400">{t.what}</p>
+            <div className="stagger mt-3 space-y-3">
+              {mine.map((l) => (
+                <LessonCard key={l.id} lesson={l} done={done[l.id] ?? 0} />
+              ))}
+            </div>
+          </section>
+        );
+      })}
     </main>
   );
+}
+
+/**
+ * Which trait an introduction answer points at. The portfolio's focus
+ * still speaks in the road's vocabulary (units), so this is the one
+ * place that translation lives until `lib/portfolio.ts` is moved onto
+ * traits outright.
+ */
+function buildPortfolioTrait(said: string): string | null {
+  const s = said.toLowerCase();
+  if (s.includes("filler") || s.includes("um")) return "fillers";
+  if (s.includes("rush") || s.includes("fast") || s.includes("slow")) return "pace";
+  if (s.includes("pause") || s.includes("silence") || s.includes("blank")) return "pause";
+  if (s.includes("restart") || s.includes("repeat")) return "repairs";
+  return null;
 }

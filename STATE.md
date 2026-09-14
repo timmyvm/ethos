@@ -11,7 +11,7 @@ One system, since #234: Instrument's structure carrying Organic's warmth, design
 - **Rectangles over pills.** Chips are the only pills, Record the only circle, the nav the only square edge. Bars are square, trough and fill.
 - **Colour** unchanged from #203: terracotta #C67139 is the one tap per screen, the sage ramp is earned, deep sage is the score card and the paywall, warm near-black is the stage. Plum #62336c joined in #280 and means one thing: paid. One mark, `components/PremiumMark.tsx`, never a tap and never earned.
 
-Today is the first card, the clean run, then the five trait rings (#267). Lessons is its own page at `/lessons`: fifteen illustrated cards, three per trait, two up with each trait's first taking the whole row (#274). The eyebrow register is Outfit 11/700/0.10em uppercase.
+Today is the first card, today's line, the clean run, then the five trait rings (#267, #281). Lessons is its own page at `/lessons`: fifteen illustrated cards, three per trait, two up with each trait's first taking the whole row (#274). The eyebrow register is Outfit 11/700/0.10em uppercase.
 
 ## Tokens (`app/globals.css`, `lib/motion.ts`)
 
@@ -29,7 +29,17 @@ Today is the first card, the clean run, then the five trait rings (#267). Lesson
 
 ## Screens
 
-Today `/`, Lessons `/lessons`, Tools `/games`, Log `/history`, You `/you`, Shop `/shop`, the recording loop `/rep`, bosses, auth, the paywall sheet, Settings, and the introduction `/welcome`: three intro screens, seven questions (the name typed and first, the hour tapped and last), and the plan built from the answers. Demos replies where an answer moves a number or a setting and nods where it does not. Desktop is a 430px column in a cream void.
+Five tabs since #275: Today `/`, Lessons `/lessons`, Tools `/games`, Log `/history`, You `/you`. The hrefs live in `lib/tabs.ts` and both `Nav` and `PageTransition` read them, because the second one used to keep its own copy and a tab missing from it slid in from the wrong side.
+
+Off the bar: Shop `/shop`, the recording loop `/rep`, bosses, auth, the paywall sheet, Settings, and the introduction `/welcome`: three intro screens, seven questions (the name typed and first, the hour tapped and last), the plan built from the answers, and since #277 the account ask, which gates nothing and is skipped for a signed-in account. Demos replies where an answer moves a number or a setting and nods where it does not. Desktop is a 430px column in a cream void.
+
+Every screen that hides the tab bar has a way off it, asserted in `lib/way-out.test.ts`: a bare route plus a back control that only renders when asked is how `/practice/<trait>` shipped a first screen with no exit (#279).
+
+## The daily challenge (#281)
+
+`lib/challenge.ts`. One line a day, in the weakest trait's own unit, drawn at the 30th percentile of the user's own trailing seven days by nearest rank: a number they already clear on about seven of every ten recordings. Self-referential, moves both ways, frozen inside a week (the window ends at this week's Monday), and absent entirely under three readings. The card is the behaviour channel and reads nothing from the outcome channel, which a test enforces. The ring is `tone="open"`, the tone reserved for it since #252. The prize is one coin for a week with five closed days (migration 0011), never one a day: the streak coin already fires for the same recording.
+
+Not taken from `docs/closure.md`'s build list, with the inventory in #282: resumption (row 10), the comeback grant (row 11, the strongest-evidenced item in the document), the missed-day repair (row 14), the implementation intention (row 15) and rest mode (row 18).
 
 ## Lessons and the path (#269)
 
@@ -58,4 +68,4 @@ NEXT_PUBLIC_SUPABASE_URL=http://supabase.local NEXT_PUBLIC_SUPABASE_ANON_KEY=ano
 PLAYWRIGHT_MODULE=/opt/node22/lib/node_modules/playwright/index.mjs node scripts/look.mjs after today log
 ```
 
-Three browser gates, all needing `PLAYWRIGHT_MODULE` and a server on 3123: `scripts/check-onboarding.mjs` (41/41), `scripts/check-motion-layer.mjs` (12/12), `scripts/check-lessons.mjs` (10/10, the lesson flow end to end).
+Three browser gates, all needing `PLAYWRIGHT_MODULE` and a server on 3123: `scripts/check-onboarding.mjs` (45/45), `scripts/check-motion-layer.mjs` (12/12), `scripts/check-lessons.mjs` (10/10, the lesson flow end to end).

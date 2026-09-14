@@ -5,9 +5,9 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Ethos: practice being worth listening to",
-  // §8: the acquisition line. Clarity converts at zero awareness —
-  // "practice" says gym rather than one-off, and "worth listening to"
-  // names the thing being trained without dragging in fear of the podium.
+  // §8: the acquisition line. Clarity converts at zero awareness:
+  // "practice" says daily rather than one-off, and "worth listening to"
+  // names the thing being built without dragging in fear of the podium.
   description:
     "Practice being worth listening to. Five minutes of practice a day, measured against timestamps, not vibes.",
   openGraph: {

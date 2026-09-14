@@ -548,16 +548,23 @@ function TeaserRow({
   onTap: () => void;
 }) {
   return (
+    /*
+     * NOT on MOVED_GRID. The data rows end in a 44px column sized for a
+     * sparkline, and the mark is a word rather than the old two-letter
+     * pill, so on the grid it sat on top of its own note. This row
+     * carries no data columns to align with, so it is a plain flex row
+     * like the "older recordings" row at the foot of the page.
+     */
     <button
       type="button"
       onClick={onTap}
-      className={`press ${MOVED_GRID} w-full items-center border-t border-hairline py-3 text-left`}
+      className="press flex w-full items-center justify-between gap-3 border-t border-hairline py-3 text-left"
     >
       <span className="font-display truncate text-[14px] font-bold">{label}</span>
-      <span className="col-span-3 text-right text-caption text-stone-400">
-        {note}
+      <span className="flex shrink-0 items-center gap-2.5">
+        <span className="text-caption text-stone-400">{note}</span>
+        <PremiumMark variant="chip" />
       </span>
-      <PremiumMark variant="chip" className="justify-self-end" />
     </button>
   );
 }

@@ -5,13 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { ACTION_CLASS } from "@/components/LessonScreen";
+import { Reel, useReel } from "@/components/Reel";
 import { DISABLED_CLASS } from "@/lib/ui";
 import { ModPicker } from "@/components/ModPicker";
 import { Paywall } from "@/components/Paywall";
 import { fetchProfile, fetchReps } from "@/lib/client-data";
 import { COLD_TOPICS, weeklyTopic, type ColdTopic } from "@/lib/cold-topics";
 import { weekStart } from "@/lib/level";
-import { buzz, prefersReducedMotion } from "@/lib/prefs";
 import { repHref } from "@/lib/rep-config";
 import { modById } from "@/lib/stress-mods";
 
@@ -71,7 +71,6 @@ export default function BossPage() {
   const [mods, setMods] = useState<string[]>([]);
   const [library, setLibrary] = useState(false);
   const [query, setQuery] = useState("");
-  const [rolling, setRolling] = useState(false);
   const week = weekStart().toISOString().slice(0, 10);
   const [spinsUsed, setSpinsUsed] = useState(0);
 
@@ -116,39 +115,32 @@ export default function BossPage() {
   const locked = takenThisWeek && !premium;
   const spinsLeft = Math.max(0, FREE_SPINS - spinsUsed);
 
-  function randomTopic(excludeId: string): ColdTopic {
+  function randomTopic(excludeId: string | null): ColdTopic {
     const pool = COLD_TOPICS.filter((t) => t.id !== excludeId);
     return pool[Math.floor(Math.random() * pool.length)] ?? COLD_TOPICS[0];
   }
 
+  /* The same wheel the roulette turns (#278). This screen used to hold
+     a near-verbatim copy of that flicker, so a change to one of them
+     was a change to neither. */
+  const reel = useReel<ColdTopic>({
+    current: topic,
+    draw: randomTopic,
+    onLand: setTopic,
+  });
+
   function spinWheel() {
-    if (rolling) return;
+    if (reel.rolling) return;
     if (!premium && spinsLeft <= 0) {
       setPaywall("More spins · premium picks any topic");
       return;
     }
-    buzz(20);
     if (!premium) {
       const used = spinsUsed + 1;
       setSpinsUsed(used);
       writeSpins(week, used);
     }
-    if (prefersReducedMotion()) {
-      setTopic((t) => randomTopic(t.id));
-      return;
-    }
-    setRolling(true);
-    // A few flickers so it reads as a draw, not a swap (the roulette's
-    // exact rhythm) — short enough that it never becomes a wait.
-    let n = 0;
-    const t = setInterval(() => {
-      setTopic((prev) => randomTopic(prev.id));
-      if (++n >= 6) {
-        clearInterval(t);
-        setRolling(false);
-        buzz([10, 30, 10]);
-      }
-    }, 70);
+    reel.spin();
   }
 
   const results = useMemo(() => {
@@ -233,28 +225,23 @@ export default function BossPage() {
                 </div>
               )}
             </div>
-            <div
-              className={`font-display mt-3 min-h-[3.75rem] text-title transition-opacity ${
-                rolling ? "opacity-40" : "opacity-100"
-              }`}
-            >
-              {/* Keyed on the topic so every draw mounts fresh and rolls
-                  in from below, the way the roulette draws. */}
-              <span key={topic.id} className="arrive dur-fast block">
-                {topic.title}
-              </span>
-            </div>
+            <Reel
+              state={reel}
+              current={topic}
+              className="font-display mt-3 text-title [--reel-cell:3.75rem]"
+              render={(t) => <span className="block">{t.title}</span>}
+            />
             <div className="mt-4 flex gap-2.5">
               <button
                 onClick={spinWheel}
-                disabled={rolling}
+                disabled={reel.rolling}
                 className="press font-display min-h-12 shrink-0 rounded-control border border-edge bg-surface px-5 text-[14px] font-bold disabled:opacity-40"
               >
                 Spin
               </button>
               <button
                 onClick={() => setPhase("research")}
-                disabled={rolling}
+                disabled={reel.rolling}
                 className={`${ACTION_CLASS} ${DISABLED_CLASS} flex-1`}
               >
                 Start the 4 minutes

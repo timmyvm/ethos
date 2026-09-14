@@ -4,7 +4,7 @@
  * /api/analyze is never cached — a rep that can't reach the engine
  * should fail honestly rather than return stale numbers.
  */
-const CACHE = "ethos-v8";
+const CACHE = "ethos-v9";
 
 const SHELL = [
   "/",
@@ -12,7 +12,11 @@ const SHELL = [
   "/history",
   "/you",
   "/lessons",
-  /* The lesson art is the Lessons page, so it is shell, not extra. */
+  /* The lesson art is the Lessons page, so it is shell, not extra.
+     These are the URLs the page actually asks for: the cards use a
+     plain <img> at the file's own path rather than next/image, whose
+     /_next/image?url=…&w=… varies per device and could never be
+     pre-cached (#274). */
   "/lessons/the-landing.webp",
   "/lessons/inside-or-after.webp",
   "/lessons/the-long-one.webp",

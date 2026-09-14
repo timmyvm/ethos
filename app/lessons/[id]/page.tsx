@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { notFound, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -51,13 +50,14 @@ export default function LessonPage() {
   return (
     <main className="mx-auto max-w-[430px] pb-28">
       <div className="relative aspect-[3/2] w-full bg-sand">
-        <Image
+        {/* Plain <img> for the same reason as the card: the service
+            worker caches the file, not the optimiser's URL for it. */}
+        <img
           src={lesson.art}
           alt=""
-          fill
-          priority
-          sizes="(max-width: 430px) 100vw, 430px"
-          className="object-cover"
+          width={900}
+          height={585}
+          className="absolute inset-0 h-full w-full object-cover"
         />
       </div>
 

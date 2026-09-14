@@ -63,9 +63,14 @@ export default function LessonsPage() {
               )}
             </div>
             <p className="mt-1 text-caption text-stone-400">{t.what}</p>
-            <div className="stagger mt-3 space-y-3">
-              {mine.map((l) => (
-                <LessonCard key={l.id} lesson={l} done={done[l.id] ?? 0} />
+            <div className="stagger mt-3 grid grid-cols-2 gap-3">
+              {mine.map((l, i) => (
+                <LessonCard
+                  key={l.id}
+                  lesson={l}
+                  done={done[l.id] ?? 0}
+                  lead={i === 0}
+                />
               ))}
             </div>
           </section>

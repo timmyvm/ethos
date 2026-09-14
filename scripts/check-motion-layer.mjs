@@ -132,7 +132,11 @@ ok(
 const spring = await page.evaluate(() =>
   getComputedStyle(document.documentElement).getPropertyValue("--ease-spring").trim()
 );
-ok("the spring is a token", spring.replace(/\s/g, "") === "cubic-bezier(0.34,1.56,0.64,1)", spring);
+/* Against a production build the CSS minifier drops the leading zero
+   off every fraction, so the same token serialises as
+   cubic-bezier(.34,1.56,.64,1). Compare the numbers, not the spelling. */
+const norm = (v) => v.replace(/\s/g, "").replace(/(^|[^\d])\./g, "$10.");
+ok("the spring is a token", norm(spring) === "cubic-bezier(0.34,1.56,0.64,1)", spring);
 
 // ---- 4. The Record button waits ------------------------------------------
 await page.goto(`${BASE}/rep?lesson=h4`);

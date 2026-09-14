@@ -68,8 +68,50 @@ async function shootTheme(theme) {
   page.on("pageerror", (e) => console.log("PAGEERROR", page.url(), e.message.slice(0, 160), (e.stack ?? "").split("\n").slice(1, 4).join(" | ")));
   page.on("console", (m) => { if (m.type() === "error") console.log("CONSOLE", page.url(), m.text().slice(0, 200)); });
   page.on("response", (r) => { if (r.status() >= 400 && !/supabase\.local/.test(r.url())) console.log("HTTP", r.status(), r.url()); });
+  /*
+   * A full-page shot photographs the whole document but the browser
+   * only ever loaded the images inside the viewport, so anything
+   * lazy below the fold appears as an empty box. Lessons has fifteen
+   * pictures and eleven of them came back blank the first time. Walk
+   * the page to the bottom, let the loader catch up, return to the
+   * top. Lazy loading is right for a phone; it is the camera that
+   * needs to scroll.
+   */
+  const loadLazily = async () => {
+    await page.evaluate(async () => {
+      const h = document.body.scrollHeight;
+      for (let y = 0; y < h; y += window.innerHeight) {
+        window.scrollTo(0, y);
+        await new Promise((r) => setTimeout(r, 120));
+      }
+      window.scrollTo(0, 0);
+    });
+    await page
+      .waitForFunction(
+        () => [...document.images].every((i) => i.complete),
+        null,
+        { timeout: 12000 }
+      )
+      .catch(() => console.log("IMAGES-INCOMPLETE", page.url()));
+    /*
+     * `complete` only says the bytes arrived. Chromium drops the
+     * DECODED bitmap of an offscreen image when it wants the memory
+     * back, and a full-page capture of a six-thousand-pixel page is
+     * exactly when it wants the memory back — Lessons photographed its
+     * five biggest pictures as empty boxes in dark and not in light,
+     * from one run to the next, with every image loaded and every
+     * request a 200. `decode()` puts the bitmap back before the
+     * shutter.
+     */
+    await page
+      .evaluate(() =>
+        Promise.all([...document.images].map((i) => i.decode().catch(() => {})))
+      )
+      .catch(() => {});
+  };
   const shot = async (name, opts = {}) => {
     if (!want(name)) return;
+    if (opts.fullPage ?? true) await loadLazily();
     await sleep(opts.settle ?? 900);
     await page.screenshot({ path: `${OUT}${name}-${TAG}-${theme}.png`, fullPage: opts.fullPage ?? true });
     console.log(`shot  ${name}-${TAG}-${theme}`);
@@ -97,6 +139,8 @@ async function shootTheme(theme) {
   const step = async (fn) => { try { await fn(); } catch (e) { console.log("STEP-FAILED", theme, String(e.message ?? e).split("\n")[0]); } };
   await step(async () => { await go("/", "main .arrive");
   await shot("today"); });
+  await step(async () => { await go("/lessons", "main .label-data"); await shot("lessons"); });
+  await step(async () => { await go("/lessons/the-cold-open", "main h1"); await shot("lesson"); });
   await step(async () => { await go("/history", "main .arrive"); await shot("log"); });
   await step(async () => { await go("/you", "main .label-data"); await shot("you"); });
   await step(async () => { await go("/shop", "main"); await shot("shop"); });

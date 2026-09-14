@@ -1,6 +1,6 @@
 "use client";
 
-import { notFound, useParams, useSearchParams } from "next/navigation";
+import { notFound, useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { LessonScreen } from "@/components/LessonScreen";
 import { fetchReps } from "@/lib/client-data";
@@ -30,6 +30,7 @@ export default function LessonIntroPage() {
 
 function LessonIntro() {
   const params = useParams<{ unit: string }>();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const unit = unitById(params.unit);
   const mods = searchParams.get("mods");
@@ -55,6 +56,10 @@ function LessonIntro() {
 
   return (
     <LessonScreen
+      /* This route draws no tab bar (Nav's BARE list) and this is its
+         only screen, so without a back control the teaching screen is a
+         one-way door into a recording (#279). */
+      onBack={() => router.push("/")}
       eyebrow={unit.name}
       title={unit.intro.title}
       line={unit.intro.line}

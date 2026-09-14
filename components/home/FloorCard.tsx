@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { TRAIT } from "@/content/traits";
 import { ACTION_CLASS } from "@/lib/ui";
-import { DAILY_MAX_SECONDS, repHref } from "@/lib/rep-config";
+import { repHref } from "@/lib/rep-config";
 import type { Chosen } from "@/lib/next-practice";
 
 /**
@@ -26,11 +26,18 @@ import type { Chosen } from "@/lib/next-practice";
  * about. The number is the REASON, at caption weight, once.
  *
  * WHAT THE BUTTON SAYS. "Take the floor" is the brand's phrase and it
- * never said what the tap does. It now carries the two facts the tap
- * owes: that you are about to record, and for how long, read from
- * `DAILY_MAX_SECONDS` rather than typed, because an adversarial read of
- * four separate proposals for this card found every one of them had
- * written "60 seconds" onto a recorder that runs to ninety.
+ * says it every time (#276). It used to drop to "Go again" on a day
+ * already spoken on, which framed a second recording as a repeat of the
+ * first: the one reading this card should never have. The eyebrow above
+ * it already carries that difference ("One more, Pausing" against
+ * "Today's practice, Pausing"), so the button does not have to,
+ * and the app's own phrase stops having a second-class variant.
+ *
+ * The terms line that used to sit above the button is gone with it.
+ * COPY-RULES had already ruled on that one: default to no explanation,
+ * and "if a string exists to justify a design decision to the user, cut
+ * it". What it explained, a prompt, a length and five numbers, is what
+ * the next screen does, in order, thirty seconds later.
  *
  * WHERE DEMOS IS. Not here. He was on his own line jammed to the right
  * edge between the text and the button, which is the definition of
@@ -120,23 +127,8 @@ export function FloorCard({
         </p>
       )}
 
-      {/*
-       * The terms, ABOVE the tap, because it is the last thing read
-       * before the finger moves. "Take the floor" is the app's own
-       * phrase (#9, opening the app is being handed the floor) and it
-       * never said what the tap does; this says it, and the duration
-       * comes from the recorder's own constant rather than being typed.
-       * Four independent designs for this card all wrote "60 seconds"
-       * onto a recorder that runs to ninety, and all twelve reviewers
-       * caught it.
-       */}
-      <p className="mt-4 text-caption text-stone-400">
-        A prompt, up to {DAILY_MAX_SECONDS} seconds of speaking, then your five
-        numbers.
-      </p>
-
-      <Link href={to} className={`${ACTION_CLASS} mt-2.5`}>
-        {again ? "Go again" : "Take the floor"}
+      <Link href={to} className={`${ACTION_CLASS} mt-5`}>
+        Take the floor
       </Link>
     </div>
   );

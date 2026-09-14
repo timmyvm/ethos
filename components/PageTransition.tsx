@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { TAB_HREFS } from "@/lib/tabs";
 
 /**
  * Page changes push, they never cut (DECISIONS #242).
@@ -22,8 +23,14 @@ import { useEffect, useRef, useState } from "react";
  * component is the one place that changes.
  */
 
-/** The tab bar, in the order it is drawn. Moving along it is lateral. */
-const TABS = ["/", "/games", "/history", "/you"];
+/**
+ * The tab bar, in the order it is drawn. Moving along it is lateral.
+ *
+ * Read from lib/tabs.ts rather than typed again here (#275): this file
+ * used to keep its own copy, and a tab present in Nav and missing from
+ * that copy slid in from the wrong side in both directions.
+ */
+const TABS: readonly string[] = TAB_HREFS;
 
 /**
  * Depth, for everything that is not a tab. A bigger number is further

@@ -205,11 +205,33 @@ ok("'often' turned unit intros off and left the frame step off", prefs.skipIntro
 const state = await page.evaluate(() => JSON.parse(localStorage.getItem("ethos.onboarding")));
 ok("the walk is stored as done, unsynced", state.done === true && state.synced === false && state.answers.pains.length === 3);
 ok("the name and the hour are stored with the answers", state.answers.name === "Tim" && state.answers.time === "evening", JSON.stringify(state.answers));
-const floorHref = await page.getByRole("link", { name: "Take the floor" }).getAttribute("href");
+
+// 7b. The account ask (#277). One screen, after the plan, gating nothing.
+await page.getByRole("button", { name: "Take the floor" }).click();
+await page.getByText("Keep this").waitFor();
+ok(
+  "the plan hands over to the account ask, by name",
+  (await page.textContent("main h1")).includes("Tim"),
+  await page.textContent("main h1")
+);
+ok(
+  "Google is the one tap and email is the second door",
+  (await page.getByRole("button", { name: /Continue with Google/ }).count()) === 1 &&
+    (await page.getByRole("link", { name: /Use an email instead/ }).count()) === 1
+);
+ok(
+  "and it says where to read what the product is",
+  (await page.getByRole("link", { name: "What Ethos is" }).getAttribute("href")) === "/about"
+);
+await shot("10b-account");
+const floorHref = await page.getByRole("link", { name: "Not now" }).getAttribute("href");
 ok("Take the floor skips the unit intro for an 'often' speaker", floorHref.startsWith("/rep"), floorHref);
+/* Nothing here is a gate: the decline is a plain link to the floor, which
+   is what keeps /about's "no signup until you've spoken" true. */
+ok("Not now is a real door, not a dismissal", floorHref === (await page.getByRole("link", { name: "Not now" }).getAttribute("href")));
 
 // 8. Home: the day-one note repeats the answer.
-await page.getByRole("link", { name: "Take the floor" }).click();
+await page.getByRole("link", { name: "Not now" }).click();
 await page.waitForURL(/\/rep/);
 await page.goto(`${BASE}/`);
 await page.getByText("Day one starts today.").waitFor();

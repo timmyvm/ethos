@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { notFound, useParams, useSearchParams } from "next/navigation";
+import { notFound, useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { LessonScreen } from "@/components/LessonScreen";
 import { Ring } from "@/components/Ring";
@@ -57,6 +57,7 @@ export default function Practice() {
 
 function Lesson() {
   const params = useParams<{ trait: string }>();
+  const router = useRouter();
   const search = useSearchParams();
   const id = params.trait as TraitId;
   const def = TRAIT[id];
@@ -106,7 +107,15 @@ function Lesson() {
   const step: Step = steps[Math.min(i, steps.length - 1)];
   const now = readings?.find((r) => r.id === id) ?? null;
   const go = (n: number) => setI(Math.max(0, Math.min(n, steps.length - 1)));
-  const back = i > 0 ? () => go(i - 1) : undefined;
+  /*
+   * Step 0's back is the way OUT, not `undefined` (#279). This route is
+   * in Nav's BARE list, so it draws no tab bar, and `LessonScreen` only
+   * renders its back row when `onBack` is truthy: between them, the
+   * first screen of a lesson had no control on it but the one that goes
+   * deeper. A lesson is entered by tapping a trait on Today and has to
+   * be leavable the same way.
+   */
+  const back = i > 0 ? () => go(i - 1) : () => router.push("/");
 
   // ---- name -------------------------------------------------------------
   if (step === "name") {

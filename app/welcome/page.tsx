@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { DemosArt, type Pose } from "@/components/DemosArt";
 import { LessonScreen } from "@/components/LessonScreen";
+import { sessionState, signInWithGoogle } from "@/lib/auth";
 import {
   AGE_BANDS,
   CONTEXTS,
@@ -59,15 +60,27 @@ import { INPUT_CLASS } from "@/lib/ui";
 type Step =
   | { kind: "intro"; index: number }
   | { kind: "question"; id: QuestionId }
-  | { kind: "plan" };
+  | { kind: "plan" }
+  | { kind: "account" };
 
 const STEPS: Step[] = [
   ...WELCOME_STEPS.map((_, index): Step => ({ kind: "intro", index })),
   ...QUESTIONS.map((q): Step => ({ kind: "question", id: q.id })),
   { kind: "plan" },
+  /*
+   * The account ask (#277). Last, after the plan, because the plan is
+   * the thing worth keeping and asking before it exists is asking for
+   * nothing. Nothing here is gated: "Not now" goes straight to the
+   * floor, which is what keeps /about's "no signup until you've spoken"
+   * true, and a signed-in account skips the screen entirely.
+   */
+  { kind: "account" },
 ];
 const LAST = STEPS.length - 1;
 const FIRST_QUESTION = STEPS.findIndex((s) => s.kind === "question");
+/* The walk's resting place. A finished walk opens here, not on the
+   account screen behind it. */
+const PLAN = STEPS.findIndex((s) => s.kind === "plan");
 
 /** Which pose asks which question (#233, #249). */
 const INTRO_POSES: Pose[] = ["wave", "speaking", "celebrate"];
@@ -119,6 +132,12 @@ function Walk() {
    * one nod per keystroke is not a reaction, it is a twitch.
    */
   const [heardName, setHeardName] = useState<string | null>(null);
+  /*
+   * Null until the session read lands. Somebody who came in through "I
+   * already have an account" on screen one is not asked again, so the
+   * plan takes them straight to the floor.
+   */
+  const [needsAccount, setNeedsAccount] = useState<boolean | null>(null);
 
   /*
    * Seen once is seen (#133): set on mount, so neither finishing nor
@@ -134,9 +153,12 @@ function Walk() {
     const deep = STEPS.findIndex(
       (s) => (s.kind === "question" && s.id === asked) || (s.kind === "plan" && asked === "plan")
     );
-    setI(deep >= 0 ? deep : saved.done ? LAST : Math.min(saved.step, LAST));
+    setI(deep >= 0 ? deep : saved.done ? PLAN : Math.min(saved.step, PLAN));
     setFloor(firstRep(readPrefs().skipIntros));
     setReady(true);
+    sessionState()
+      .then((sess) => setNeedsAccount(!(sess.signedIn && !sess.anonymous)))
+      .catch(() => setNeedsAccount(true));
   }, [asked]);
 
   const step = STEPS[i];
@@ -149,7 +171,7 @@ function Walk() {
   useEffect(() => {
     if (!ready || step.kind !== "plan") return;
     const p = buildPortfolio(answers);
-    writeOnboarding({ done: true, step: LAST });
+    writeOnboarding({ done: true, step: PLAN });
     if (answers.level !== null) {
       writePrefs({ frameStep: p.settings.frameStep, skipIntros: !p.settings.intros });
       setFloor(firstRep(!p.settings.intros));
@@ -270,6 +292,17 @@ function Walk() {
     );
   }
 
+  if (step.kind === "account") {
+    return (
+      <AccountStep
+        stepKey={i}
+        onBack={() => go(i - 1)}
+        floor={floor}
+        name={answers.name}
+      />
+    );
+  }
+
   const plan = buildPortfolio(answers);
   return (
     <LessonScreen
@@ -290,12 +323,125 @@ function Walk() {
       lead="title"
       ladder
       art={<DemosArt pose="clipboard" size={150} />}
+      /*
+       * Editing from /you leaves the way it came. Otherwise the plan
+       * hands over to the account screen, unless this browser already
+       * has an account, in which case there is nothing to ask and the
+       * floor is one tap as it always was.
+       */
       action={
         editing
           ? { label: PLAN_COPY.done, href: "/you" }
-          : { label: PLAN_COPY.action, href: floor }
+          : needsAccount === false
+            ? { label: PLAN_COPY.action, href: floor }
+            : { label: PLAN_COPY.action, onPress: () => go(i + 1) }
       }
       fineprint={plan.boss ? plan.boss.line : undefined}
+    />
+  );
+}
+
+/**
+ * The account ask (#277), and the shape of it is the whole point.
+ *
+ * Ethos has never asked for an account before the product worked: #15
+ * set that rule, the save-progress wall (lib/onboarding.ts) is where it
+ * was kept, and /about still promises "no signup until you've spoken".
+ * Asking here, one screen after the plan, is Timothy's call on 14 Sep,
+ * and it only survives that promise because NOTHING on this screen is a
+ * gate. "Not now" is a plain tap to the floor, not a dismissal hidden
+ * in a corner, and the wall downstream still catches anyone who took
+ * it.
+ *
+ * What it asks to keep is the plan they have just been shown, which is
+ * the one moment in the walk where an account is about something they
+ * can see rather than about a future they have not had yet.
+ *
+ * It wears the save-progress wall's grammar rather than /signup's: one
+ * terracotta tap on the thing being asked for, a neutral second door,
+ * and a quiet decline that continues. No four-colour G, because that
+ * mark belongs on a light surface and this screen's one accent is the
+ * accent every screen gets.
+ *
+ * Google first because it is one tap and the identity is already
+ * wired: `signInWithGoogle("signup")` links the provider to the
+ * anonymous session rather than signing into a new one, so nothing
+ * recorded on this device is orphaned (lib/auth.ts).
+ */
+function AccountStep({
+  stepKey,
+  onBack,
+  floor,
+  name,
+}: {
+  stepKey: number;
+  onBack: () => void;
+  floor: string;
+  name: string | null;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function google() {
+    setBusy(true);
+    setError(null);
+    const result = await signInWithGoogle("signup");
+    /* Success navigates away to Google, so only failure lands back
+       here and the button has to be usable again. */
+    if (!result.ok) {
+      setBusy(false);
+      setError(result.error ?? "Google didn't answer. Try again.");
+    }
+  }
+
+  return (
+    <LessonScreen
+      center
+      stepKey={stepKey}
+      onBack={onBack}
+      title={name ? `Keep this, ${name}.` : "Keep this."}
+      line="Your plan and every number you're about to make, on any phone you open."
+      art={<DemosArt pose="clipboard" size={132} />}
+      action={{ label: "Continue with Google", onPress: () => void google(), disabled: busy }}
+      aside={
+        error ? (
+          <p role="alert" className="text-caption text-rust">
+            {error}
+          </p>
+        ) : undefined
+      }
+      /*
+       * Under the tap, in descending loudness: the second door, then
+       * the decline. The decline is a plain link at full tap height
+       * rather than a swallowed word, because it is the thing that
+       * keeps this screen honest.
+       */
+      footer={
+        <>
+          <Link
+            href="/signup"
+            className="press font-display mt-3 flex min-h-12 w-full items-center justify-center rounded-control border border-edge bg-surface px-6 text-[14px] font-bold"
+          >
+            Use an email instead
+          </Link>
+          <div className="mt-2 flex items-center justify-between gap-4">
+            <Link
+              href={floor}
+              className="press inline-flex min-h-11 items-center px-1 text-[13px] font-semibold text-stone-500"
+            >
+              Not now
+            </Link>
+            {/* The one place inside the product where somebody deciding
+                whether to sign up can read what it is (#277). */}
+            <Link
+              href="/about"
+              className="press inline-flex min-h-11 items-center px-1 text-[13px] font-semibold text-stone-500"
+            >
+              What Ethos is
+            </Link>
+          </div>
+        </>
+      }
     />
   );
 }

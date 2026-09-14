@@ -65,6 +65,23 @@ export function IconGames({ size }: { size?: number }) {
   );
 }
 
+/**
+ * Lessons — a picture in a frame, because that is what the page is: a
+ * set of fifteen commissioned pictures you choose between (#275). A
+ * book was the obvious mark and the wrong one; the product positions
+ * against courses and theory, and the lessons are practice with a face
+ * on them.
+ */
+export function IconLessons({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <rect x="3.6" y="5.6" width="16.8" height="12.8" rx="3" />
+      <path d="M4.1 15.4 8.6 10.9l3.3 3.3" />
+      <path d="M13.1 15.3 15.9 12.5l4 4" />
+    </Glyph>
+  );
+}
+
 /** Log — rows, one per rep. */
 export function IconLog({ size }: { size?: number }) {
   return (

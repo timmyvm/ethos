@@ -97,6 +97,8 @@ import { unlockSfx } from "@/lib/sfx";
 import { computeStreak } from "@/lib/streak";
 import { nextDrill } from "@/lib/drills";
 import { draw, gameById } from "@/lib/games";
+import { lessonById } from "@/content/lessons";
+import { parsePracticeId } from "@/lib/lesson-progress";
 import { repHref, resolveRepConfig, type RepConfig } from "@/lib/rep-config";
 import {
   clearInFlight,
@@ -1483,6 +1485,24 @@ function Results({
   const game = config.lessonId.startsWith("game:")
     ? gameById(config.lessonId.split(":")[1])
     : null;
+  /*
+   * `lesson:<id>:<n>` — and a lesson rep keeps ITS identity for the
+   * same reason (#273). A lesson is three practices that build on each
+   * other, so the way forward out of practice one is practice two, not
+   * a different lesson off the road. `nextInLesson` is null on the last
+   * one, and then the way forward is out.
+   */
+  const practiceOf = parsePracticeId(config.lessonId);
+  const lesson = practiceOf ? lessonById(practiceOf.lessonId) : null;
+  const nextInLesson =
+    lesson && practiceOf && practiceOf.practice < lesson.practices.length
+      ? practiceOf.practice + 1
+      : null;
+  /* Whatever sent this rep gets the loudest button back. Everything
+     that sets `back` is a place worth returning to: a lesson that has
+     more in it, or the trait walk's closing screen, which is the whole
+     reason that walk exists. */
+  const returnIsPrimary = !game && !nextInLesson && backTo !== null;
 
   /*
    * The save-progress wall (DECISIONS #134). The exits route through
@@ -1742,6 +1762,25 @@ function Results({
             >
               Another round · {game.name}
             </button>
+          ) : lesson && nextInLesson ? (
+            <button
+              onClick={() =>
+                exit(
+                  repHref({
+                    lesson: lesson.id,
+                    q: String(nextInLesson),
+                    back: backTo ?? `/lessons/${lesson.id}`,
+                  })
+                )
+              }
+              className={PRIMARY}
+            >
+              Practice {nextInLesson} of {lesson.practices.length}
+            </button>
+          ) : returnIsPrimary ? (
+            <button onClick={() => exit(backTo)} className={PRIMARY}>
+              Back to the lesson
+            </button>
           ) : (
             <button
               onClick={() => exit(repHref({ lesson: next.id }))}
@@ -1759,10 +1798,18 @@ function Results({
             </button>
           )}
           <button
-            onClick={() => exit(backTo ?? (game ? "/games" : "/"))}
+            onClick={() =>
+              exit(returnIsPrimary ? "/" : (backTo ?? (game ? "/games" : "/")))
+            }
             className="press mt-3 block min-h-11 w-full py-2 text-center text-[13px] font-semibold text-stone-500"
           >
-            {backTo ? "Back to the lesson" : game ? "Back to Tools" : "Done for today"}
+            {returnIsPrimary
+              ? "Done for today"
+              : backTo
+                ? "Back to the lesson"
+                : game
+                  ? "Back to Tools"
+                  : "Done for today"}
           </button>
         </div>
       ) : (

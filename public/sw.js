@@ -4,13 +4,14 @@
  * /api/analyze is never cached — a rep that can't reach the engine
  * should fail honestly rather than return stale numbers.
  */
-const CACHE = "ethos-v6";
+const CACHE = "ethos-v7";
 
 const SHELL = [
   "/",
   "/games",
   "/history",
   "/you",
+  "/lessons",
   "/boss",
   "/hostile",
   "/upload",
@@ -19,7 +20,7 @@ const SHELL = [
   "/demos-speaking.webp",
   "/demos-listening.webp",
   "/demos-celebrate.webp",
-  "/demos-workout.webp",
+  "/demos-practice.webp",
   "/demos-asleep.webp",
   "/icon-192.png",
   "/icon-512.png",
@@ -33,7 +34,16 @@ self.addEventListener("install", (e) => {
   e.waitUntil(
     caches
       .open(CACHE)
-      .then((c) => c.addAll(SHELL).catch(() => {}))
+      /*
+       * One at a time, NOT addAll. addAll is atomic: a single 404 in
+       * SHELL rejects the whole thing and the offline shell ends up
+       * empty, and the .catch() here used to swallow exactly that.
+       * demos-workout.webp had been deleted in #249 and left in this
+       * list, so every install since then cached nothing at all.
+       */
+      .then((c) =>
+        Promise.all(SHELL.map((u) => c.add(u).catch(() => {})))
+      )
       .then(() => self.skipWaiting())
   );
 });

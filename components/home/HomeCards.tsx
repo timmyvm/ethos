@@ -23,22 +23,40 @@ import { DURATION } from "@/lib/motion";
  */
 
 /** The shell. Deep sage, cream on it, the shape the score card set. */
-function Shell({
+/**
+ * The one deep-sage shell the home cards share.
+ *
+ * Exported because `components/home/CleanRunCard.tsx` ships the B
+ * option and this file keeps all three as the archive of the choice.
+ * Two copies of the same shell is two things to keep in step, and they
+ * would not stay in step.
+ */
+export function Shell({
   eyebrow,
+  aside,
   children,
   foot,
+  after,
 }: {
   eyebrow: string;
+  /** Top right, opposite the eyebrow. A state, not an action. */
+  aside?: React.ReactNode;
   children: React.ReactNode;
   foot: React.ReactNode;
+  /** Under the footer rule. The day trail, on Today. */
+  after?: React.ReactNode;
 }) {
   return (
     <section className="card-score rounded-sheet p-5 text-cream">
-      <div className="label-data !text-sage-mist">{eyebrow}</div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="label-data !text-sage-mist">{eyebrow}</div>
+        {aside}
+      </div>
       <div className="mt-4 flex items-center gap-5">{children}</div>
       <div className="mt-4 border-t border-cream/15 pt-2.5 text-caption text-sage-mist">
         {foot}
       </div>
+      {after && <div className="mt-4">{after}</div>}
     </section>
   );
 }

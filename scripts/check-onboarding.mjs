@@ -214,11 +214,18 @@ await page.waitForURL(/\/rep/);
 await page.goto(`${BASE}/`);
 await page.getByText("Day one starts today.").waitFor();
 ok("the floor repeats what they said, in their words", await page.getByText("You said: rushing, fillers, freezing. The baseline sets the number to beat.").isVisible());
+await shot("11-home");
+// The lesson list marks the unit their answers chose. It moved off
+// Today with the road (#267): the five traits are there now, and the
+// whole set is a page of its own.
+await page.goto(`${BASE}/lessons`);
 ok(
-  "the road marks the unit for what they said, in their words",
+  "the lesson list marks the unit for what they said, in their words",
   await page.getByText("You said rushing").isVisible()
 );
-await shot("11-home");
+await shot("11b-lessons");
+await page.goto(`${BASE}/`);
+await page.getByText("Day one starts today.").waitFor();
 // The roulette pool: under 18 never draws a job prompt.
 await page.getByRole("button", { name: /Spin a new topic/ }).click();
 const drawn = new Set();

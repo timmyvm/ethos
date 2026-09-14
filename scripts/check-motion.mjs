@@ -173,7 +173,7 @@ ok("focus returns to the opener", (focused ?? "").startsWith("Crowd noise"), foc
 await sleep(400);
 
 // 3. The rep: ring grows out of the button; phases arrive; the debrief lands its values.
-await page.getByRole("link", { name: /Take the floor|→/ }).first().click();
+await page.getByRole("link", { name: /Take the floor/ }).first().click();
 await page.waitForURL(/\/(lesson|rep)/);
 if (page.url().includes("/lesson/")) {
   await sleep(500);

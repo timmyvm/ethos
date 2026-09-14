@@ -84,7 +84,16 @@ export function Nav() {
     >
       <div className="pb-safe flex px-2 pt-2.5">
         {TABS.map((t) => {
-          const active = t.href === "/" ? path === "/" : path.startsWith(t.href);
+          /*
+           * Today owns /lessons as well as /. A route in no tab's match
+           * renders the bar with nothing highlighted and no
+           * aria-current, which is the one state it was never designed
+           * for, and the lesson list is Today's own door.
+           */
+          const active =
+            t.href === "/"
+              ? path === "/" || path.startsWith("/lessons")
+              : path.startsWith(t.href);
           return (
             <Link
               key={t.href}

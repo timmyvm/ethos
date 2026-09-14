@@ -103,7 +103,37 @@ export function SkeletonRow() {
   );
 }
 
-/** The ink score card on home, and anything shaped like it. */
+/**
+ * The clean run on Today (#267).
+ *
+ * Shaped to the card it stands in for, not to the one that used to be
+ * there: a 104px ring with a paragraph beside it, then the footer rule,
+ * then the day trail. The score card's skeleton is 12px of number and
+ * two chips, which is a different height, and a skeleton that reserves
+ * the wrong space is the layout shift this file exists to prevent.
+ */
+export function SkeletonCleanRun() {
+  return (
+    <section className="card-score rounded-sheet p-5">
+      <Skeleton className="h-2.5 w-36 !bg-cream/10" />
+      <div className="mt-4 flex items-center gap-5">
+        <div className="size-[104px] shrink-0 rounded-full border-[9px] border-cream/10" />
+        <div className="min-w-0 flex-1 space-y-2.5">
+          <Skeleton className="h-4 w-full !bg-cream/10" />
+          <Skeleton className="h-4 w-4/5 !bg-cream/10" />
+        </div>
+      </div>
+      <div className="mt-4 border-t border-cream/15 pt-2.5">
+        <Skeleton className="h-3 w-40 !bg-cream/10" />
+      </div>
+      <div className="mt-4">
+        <Skeleton className="h-8 w-full !bg-cream/10" />
+      </div>
+    </section>
+  );
+}
+
+/** The ink score card, on /history. */
 export function SkeletonScoreCard() {
   return (
     <section className="card-score rounded-sheet p-5">

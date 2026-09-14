@@ -7,11 +7,11 @@ import { useCallback, useEffect, useState } from "react";
 import { CountUp } from "@/components/CountUp";
 import { DURATION } from "@/lib/motion";
 import { DayTrail } from "@/components/DayTrail";
-import { ScoreCard } from "@/components/ScoreCard";
+import { CleanRunCard } from "@/components/home/CleanRunCard";
+import { TraitStrip } from "@/components/home/TraitStrip";
 import { ACTION_CLASS, LessonBody } from "@/components/LessonScreen";
 import { ModPicker } from "@/components/ModPicker";
-import { PathRoad } from "@/components/PathRoad";
-import { SkeletonScoreCard } from "@/components/ui/Skeleton";
+import { SkeletonCleanRun } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Paywall } from "@/components/Paywall";
 import { readable, readFailure } from "@/lib/load";
@@ -39,7 +39,7 @@ import {
 import { readPrefs } from "@/lib/prefs";
 import { readOnboarding, type Answers, EMPTY_ANSWERS } from "@/lib/answers";
 import { syncOnboarding } from "@/lib/answers-sync";
-import { buildPortfolio, dayOneNote, spinForAnswers } from "@/lib/portfolio";
+import { dayOneNote, spinForAnswers } from "@/lib/portfolio";
 import { repHref } from "@/lib/rep-config";
 import { ownedFrom, poseArt } from "@/lib/shop";
 import { armReminder } from "@/lib/reminders";
@@ -155,20 +155,18 @@ export default function Home() {
   const history = reps ?? [];
   const starMap = starsByLesson(history);
   const next = nextLesson(starMap);
-  // The path decides what to train; the daily rotation is the fallback
-  // once every lesson is at three stars.
+  // The lesson list decides what is next; the daily rotation is the
+  // fallback once every lesson is at three stars.
   const drill = next?.lesson ?? todaysDrill();
   const unitName = next?.unit.name ?? drill.unit;
 
-  // of the week, the unfinished lesson is the stronger pull (Zeigarnik).
-  const scored = history.filter((r) => r.ethos_index !== null);
-  const lastIndex = scored[scored.length - 1]?.ethos_index ?? null;
-  // Against the FIRST scored rep, not the previous one — the headline
-  // number on the home screen is the arc, not the last delta.
-  const indexDelta =
-    lastIndex !== null && scored.length > 1
-      ? lastIndex - (scored[0].ethos_index as number)
-      : null;
+  /*
+   * The Index left this screen with the score card (#267), and the
+   * dangling half-sentence that used to sit here went with it: it cited
+   * Zeigarnik, which docs/closure.md found does not survive a
+   * meta-analysis of 38 publications and inverts in exactly the
+   * achievement setting this app creates.
+   */
 
   const focus = nextFocus(history);
   const gap = decayNote(history);
@@ -446,7 +444,7 @@ export default function Home() {
           skeleton carry no outer margin, so both sit at the same 28. */}
       {reps === null && !failed && (
         <div className="mt-7">
-          <SkeletonScoreCard />
+          <SkeletonCleanRun />
         </div>
       )}
 
@@ -477,21 +475,25 @@ export default function Home() {
           <div className="arrive">
             {history.length > 0 && (
               <div className="mt-7">
-                <ScoreCard
-                  index={lastIndex}
-                  delta={indexDelta}
-                  recordings={history.length}
-                  stars={totalStars(starMap)}
-                >
+                {/*
+                 * The Ethos Index is off the first screen (#267). It was
+                 * a number out of a thousand that had to be learned
+                 * before it meant anything, and once learned it still
+                 * hid which of five traits moved. It is demoted, not
+                 * deleted: /history still opens on it.
+                 */}
+                <CleanRunCard reps={history}>
                   {/*
                    * The day counter and its line. The streak above is the
                    * pressure; this is the memory — it never resets, so the
                    * morning after a missed day still opens on a number that
-                   * went up. It also gets better with time by construction:
-                   * one day is a number, thirty is a shape.
+                   * went up. Beside the outcome number and never mixed into
+                   * it: monitoring a behaviour moves behaviour and
+                   * monitoring an outcome moves outcomes, and one figure
+                   * cannot do both jobs (docs/closure.md).
                    */}
                   <DayTrail trail={trail} pebbles={pebbles} />
-                </ScoreCard>
+                </CleanRunCard>
               </div>
             )}
 
@@ -521,16 +523,15 @@ export default function Home() {
             )}
           </div>
 
-          {/* The road (#141): the whole path, winding down from here. It
-          goes LAST so the floor keeps the first screen (#9) — the road
-          is what scrolling reveals, all of it, without a tab switch. */}
-          {/* Only once the reps are in hand: a road drawn from an unread
-          history shows nought stars to someone who has earned twenty. */}
-          <PathRoad
-            starMap={starMap}
-            hasAnyRep={history.length > 0}
-            focus={buildPortfolio(answers).focus}
-          />
+          {/*
+           * Where the road used to be (#267). The road was the same
+           * road for everybody, ordered once and gated on stars; these
+           * five are read off the last recording, and the only reason
+           * any one of them is in front of you is that its number is
+           * yours. The road itself moved to /lessons rather than
+           * being deleted, and the strip links to it.
+           */}
+          <TraitStrip reps={history} />
         </>
       )}
 

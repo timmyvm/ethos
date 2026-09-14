@@ -11,7 +11,7 @@ One system, since #234: Instrument's structure carrying Organic's warmth, design
 - **Rectangles over pills.** Chips are the only pills, Record the only circle, the nav the only square edge. Bars are square, trough and fill.
 - **Colour** unchanged from #203: terracotta #C67139 is the one tap per screen, the sage ramp is earned, deep sage is the score card and the paywall, warm near-black is the stage.
 
-The road is a list, rows sit on the ground under hairlines, and the eyebrow register is Outfit 11/700/0.10em uppercase.
+Today is the first card, the clean run, then the five trait rings (#267). The lesson list is its own page at `/lessons`. The eyebrow register is Outfit 11/700/0.10em uppercase.
 
 ## Tokens (`app/globals.css`, `lib/motion.ts`)
 

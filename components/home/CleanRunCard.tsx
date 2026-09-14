@@ -42,6 +42,7 @@ export function CleanRunCard({
   const runs = reps.map((r) => ({
     at: r.created_at,
     s: longestCleanRun(r.fillers ?? [], r.duration_s).seconds,
+    of: r.duration_s,
   }));
   if (runs.length === 0) return null;
 
@@ -55,11 +56,18 @@ export function CleanRunCard({
   const shown = Math.round(now.s);
 
   /*
-   * The ring is drawn against sixty seconds because that is the length
-   * of a recording, so a full ring means "the whole minute, clean". It
-   * is a real ceiling rather than a chosen target, which is the one
-   * kind of ring the closure research says can honestly close.
+   * The ring is drawn against THIS RECORDING'S OWN LENGTH, so a full
+   * ring means the whole thing was clean. A real ceiling rather than a
+   * chosen target, which is the one kind of ring docs/closure.md says
+   * can honestly close.
+   *
+   * It used to say "of 60" and that was simply wrong: lib/rep-config.ts
+   * caps a daily recording at DAILY_MAX_SECONDS = 90, so a 75 second
+   * clean run overfilled the ring and the label misstated the ceiling.
+   * The recording's own duration needs no constant and is true whatever
+   * mods are on, including the tight timer's 30.
    */
+  const ceiling = Math.max(1, now.of);
   return (
     <Shell
       eyebrow="Your longest clean run"
@@ -82,7 +90,7 @@ export function CleanRunCard({
       after={children}
     >
       <Ring
-        value={now.s / 60}
+        value={now.s / ceiling}
         size={104}
         tone="lit"
         track="rgba(253,246,231,0.16)"
@@ -92,7 +100,7 @@ export function CleanRunCard({
           <CountUp value={shown} durationMs={DURATION.max} />
           <span className="text-[17px]">s</span>
         </span>
-        <span className="label-micro mt-1 !text-sage-mist">of 60</span>
+        <span className="label-micro mt-1 !text-sage-mist">of {Math.round(ceiling)}</span>
       </Ring>
       <p className="font-display min-w-0 text-[19px] font-bold leading-snug">
         {shown} seconds straight with no filler in them.

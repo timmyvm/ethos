@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { TraitCard } from "@/components/TraitCard";
 import { TRAIT } from "@/content/traits";
-import { nextTrait, readTraitsFromRow } from "@/lib/trait-readings";
+import { readTraitsFromRow } from "@/lib/trait-readings";
+import { choosePractice } from "@/lib/next-practice";
 import type { RepRow } from "@/lib/client-data";
 
 /**
@@ -23,7 +24,15 @@ import type { RepRow } from "@/lib/client-data";
 export function TraitStrip({ reps }: { reps: RepRow[] }) {
   const last = reps.length > 0 ? reps[reps.length - 1] : null;
   const readings = last ? readTraitsFromRow(last) : [];
-  const next = readings.length > 0 ? nextTrait(readings) : null;
+  /*
+   * The SAME ranking the first card used (lib/next-practice.ts), not
+   * `nextTrait`. Two selectors on one screen is the bug this whole pass
+   * exists to kill: the card would name the trait its measurement
+   * chose, and this line would say nothing had been chosen, because
+   * `nextTrait` refuses on a provisional percentile while `standing`
+   * ranks on the measurement, which is known either way.
+   */
+  const chosen = readings.length > 0 ? choosePractice(readings) : null;
 
   return (
     <section className="mt-7">
@@ -49,9 +58,9 @@ export function TraitStrip({ reps }: { reps: RepRow[] }) {
             ))}
           </div>
           <p className="mt-4 text-caption leading-relaxed text-stone-500">
-            {next
-              ? `Next up: ${TRAIT[next.next.id].name}, because it is your lowest.`
-              : "Every scale here is provisional while the population data gets sourced, so nothing is choosing a lesson for you yet. Pick the one you want."}
+            {chosen
+              ? `Today's practice is ${TRAIT[chosen.trait].name}, because that number is your lowest. Every placement here is provisional until the population data is sourced; the measurements are not.`
+              : "Tap any one of them to practise it."}
           </p>
         </>
       ) : (

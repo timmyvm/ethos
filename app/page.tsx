@@ -214,11 +214,24 @@ export default function Home() {
    * is a paragraph a day.
    */
   /*
-   * The unit intro still owns the tap when it is due, and day one still
-   * goes to its own first lesson. Every other day the card sends you
-   * straight to the recorder with the practice's topic on it.
+   * THE INTRO IS A FIRST-RUN SCREEN, and it took until now to notice it
+   * had stopped being one.
+   *
+   * `introDue` is true while every lesson in a unit is at zero stars.
+   * Since #268 the daily card routes by TOPIC, so an ordinary day never
+   * writes an `f*` lesson id, so those stars never arrive, so introDue
+   * stayed true forever: every user was handed /lesson/filler every
+   * single day, and its Start button then sent them to "The baseline"
+   * instead of the practice their numbers had chosen. The card computed
+   * the right thing and the link threw it away.
+   *
+   * It is gated on having no history at all now, which is what "unit
+   * intro" always meant. Everybody else goes straight to the recorder
+   * with their practice's topic on it.
    */
-  const introOwns = Boolean(next && !skipIntros && introDue(next.unit, starMap));
+  const introOwns = Boolean(
+    history.length === 0 && next && !skipIntros && introDue(next.unit, starMap)
+  );
   const floorHref =
     introOwns && next
       ? introHref(next.unit.id, mods)

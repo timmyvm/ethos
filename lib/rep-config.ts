@@ -177,8 +177,46 @@ export function resolveRepConfig(
     };
   }
 
-  const drill =
-    DRILLS.find((d) => d.id === input.lesson) ?? todaysDrill(now);
+  /*
+   * AN UNKNOWN LESSON ID IS NOT TODAY'S DRILL.
+   *
+   * This used to be `DRILLS.find(...) ?? todaysDrill(now)`, and the
+   * fallback was silent, which made it a data bug rather than a
+   * cosmetic one. `/practice/[trait]` has been sending
+   * `?lesson=trait-pause` since #258; that matches no drill, so every
+   * recording made from the five trait walks showed an unrelated
+   * prompt AND filed its star against whichever drill the rotation
+   * happened to be on. Stars move unit gates, so a lesson nobody did
+   * was opening doors.
+   *
+   * An id we do not recognise is now NAMESPACED rather than guessed at:
+   * `practice:trait-pause` can never collide with a drill id, so the
+   * star lands on the thing that was actually done and the road's
+   * per-lesson counts stop being credited with work nobody did. The
+   * prompt falls back to the rotation, which is a real approved prompt
+   * rather than a blank.
+   */
+  const drill = input.lesson
+    ? (DRILLS.find((d) => d.id === input.lesson) ?? null)
+    : todaysDrill(now);
+
+  if (!drill) {
+    const rotation = todaysDrill(now);
+    return {
+      ...base,
+      kind: "daily",
+      lessonId: `practice:${input.lesson}`,
+      unit: rotation.unit,
+      title: rotation.title,
+      prompt: rotation.prompt,
+      tips: rotation.tips,
+      maxSeconds: tight ? TIGHT_MAX_SECONDS : DAILY_MAX_SECONDS,
+      xpMultiplier: xpMultiplier(mods),
+      topic: null,
+      rouletteTopic: null,
+    };
+  }
+
   return {
     ...base,
     kind: "daily",

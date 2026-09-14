@@ -489,9 +489,10 @@ function RepScreen() {
             .then((s) => setAnon(s.signedIn && s.anonymous))
             .catch(() => {});
 
-          // One coin per day you spoke (§4). Granted from the stored
-          // reps, so it heals rather than double-paying.
-          syncCoins(dates)
+          // One coin per day you spoke (§4), and one for a week with
+          // five closed challenge days in it (#281). Both granted from
+          // the stored reps, so they heal rather than double-paying.
+          syncCoins(dates, reps)
             .then((c) => setCoined(c.granted.length > 0))
             .catch(() => {});
 

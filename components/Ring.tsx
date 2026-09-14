@@ -117,7 +117,9 @@ export function Ring({
    * animate, and the arrival IS the information.
    */
   const [drawn, setDrawn] = useState(0);
-  const closed = useRef(false);
+  /* null until the first value is seen, and that is the whole fix.
+     See the buzz effect below. */
+  const closed = useRef<boolean | null>(null);
 
   useEffect(() => {
     if (prefersReducedMotion()) {
@@ -132,9 +134,23 @@ export function Ring({
    * The buzz fires on the EDGE, once. A ring that is already full when
    * the screen opens has not just closed, and a phone that buzzes on
    * arrival is a phone that buzzes for nothing.
+   *
+   * That is what this said and not what it did (#281). The ref started
+   * at `false`, which is a claim about a ring nobody had seen yet, so a
+   * ring mounting at 1 read as a transition from open to closed and
+   * buzzed. It has never fired in practice only because the one caller
+   * passes a fraction that reaches 1 on a perfect recording alone. The
+   * daily challenge ring mounts already full on most evenings, so every
+   * visit to Today after closing it would have buzzed again.
+   *
+   * The first value is a reading, not an edge: it seeds and returns.
    */
   useEffect(() => {
     const isClosed = clamped >= 0.999;
+    if (closed.current === null) {
+      closed.current = isClosed;
+      return;
+    }
     if (isClosed && !closed.current) buzz([12, 40, 18]);
     closed.current = isClosed;
   }, [clamped]);

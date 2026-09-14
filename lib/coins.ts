@@ -23,6 +23,21 @@
 export const COIN_PER_STREAK_DAY = 1;
 
 /**
+ * One coin for a week you closed the daily challenge on five days
+ * (DECISIONS #281).
+ *
+ * Weekly rather than daily, and that is an economy decision rather than
+ * a taste one. The streak-day coin already fires for the same recording
+ * that closes a challenge, so a daily one would be two rows for one
+ * act; and it would double the earn rate that `FIRST_SHOP_ITEM_PRICE`
+ * was set backwards from, which is the one number holding the shop's
+ * pricing together. Deterministic, printed, never variable: there is no
+ * randomness anywhere in this economy on purpose.
+ */
+export const COIN_PER_CHALLENGE_WEEK = 1;
+export const CLOSES_PER_WEEK_COIN = 5;
+
+/**
  * The anchor. Not built, not decided as a feature — decided as a PRICE,
  * which is the only part the earn rate needs today. Two weeks of practice
  * for the first thing worth buying.
@@ -91,6 +106,30 @@ export function towardFirstItem(current: number): {
     toGo,
     fraction: Math.min(1, current / FIRST_SHOP_ITEM_PRICE),
   };
+}
+
+/**
+ * Weeks that earned the challenge coin and have not been paid, oldest
+ * first. Same no-op-on-rerun shape as `unpaidDays`, for the same
+ * reason: it is called on load and must never double-pay.
+ *
+ * `closes` is one entry per week (its Monday, and how many days in it
+ * closed), computed from the recordings by lib/challenge.ts. Nothing
+ * about this is stored anywhere but the ledger.
+ */
+export function unpaidChallengeWeeks(
+  closes: { week: string; closed: number }[],
+  ledger: CoinRow[]
+): string[] {
+  const paid = new Set(
+    ledger
+      .filter((r) => r.reason === "challenge_week" && r.earned_on)
+      .map((r) => r.earned_on as string)
+  );
+  return closes
+    .filter((c) => c.closed >= CLOSES_PER_WEEK_COIN && !paid.has(c.week))
+    .map((c) => c.week)
+    .sort();
 }
 
 /** Did today already pay out? Drives the "+1" on the results screen. */

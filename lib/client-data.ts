@@ -342,7 +342,10 @@ export async function fetchCoinLedger(limit = 400): Promise<CoinRow[]> {
  * how many rows were actually written — the partial unique index means a
  * double-tap or a second tab collapses to one, so re-running is free.
  */
-export async function grantCoins(days: string[]): Promise<number> {
+export async function grantCoins(
+  days: string[],
+  reason: "streak_day" | "challenge_week" = "streak_day"
+): Promise<number> {
   const db = supabaseBrowser();
   if (!db || days.length === 0) return 0;
   const { data: session } = await db.auth.getSession();
@@ -356,7 +359,7 @@ export async function grantCoins(days: string[]): Promise<number> {
         user_id: userId,
         kind: "earned" as const,
         amount: 1,
-        reason: "streak_day",
+        reason,
         earned_on: d,
       })),
       // Must match `coin_ledger_earn_uniq` exactly. The original target

@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { CountUp } from "@/components/CountUp";
 import { DURATION } from "@/lib/motion";
 import { DayTrail } from "@/components/DayTrail";
+import { ChallengeCard } from "@/components/home/ChallengeCard";
 import { CleanRunCard } from "@/components/home/CleanRunCard";
 import { FloorCard } from "@/components/home/FloorCard";
 import { TraitStrip } from "@/components/home/TraitStrip";
@@ -46,6 +47,7 @@ import { ownedFrom, poseArt } from "@/lib/shop";
 import { armReminder } from "@/lib/reminders";
 import { decayNote, nextFocus } from "@/lib/schedule";
 import { choosePractice } from "@/lib/next-practice";
+import { buildChallenge } from "@/lib/challenge";
 import { readTraitsFromRow } from "@/lib/trait-readings";
 import { computeStreak, type StreakState } from "@/lib/streak";
 
@@ -180,6 +182,9 @@ export default function Home() {
     history.length > 0
       ? choosePractice(readTraitsFromRow(history[history.length - 1]))
       : null;
+
+  /* The same reading, the same trait, one line to clear (#281). */
+  const challenge = buildChallenge(history);
 
   const focus = nextFocus(history);
   const gap = decayNote(history);
@@ -383,6 +388,15 @@ export default function Home() {
           </>
         )}
       </section>
+
+      {/*
+       * Today's line (#281). The behaviour channel, with the streak and
+       * the day trail, above the outcome channel and never inside it.
+       * It is null until there are three of the user's own readings in
+       * the window: a target drawn from one recording is a fiction, and
+       * a seeded one is the endowed progress docs/closure.md rejects.
+       */}
+      {challenge && <ChallengeCard challenge={challenge} />}
 
       {/*
        * TIER 2 — the score. "The score IS the brand" (DECISIONS #18) and

@@ -1,5 +1,6 @@
 "use client";
 
+import { PremiumMark } from "@/components/PremiumMark";
 import {
   MAX_STACKED_MODS,
   STRESS_MODS,
@@ -78,11 +79,7 @@ export function ModPicker({
               <span className="flex-1">
                 <span className="font-display block text-[14px] font-bold">
                   {mod.name}
-                  {locked && (
-                    <span className="ml-1.5 text-caption font-normal text-stone-400">
-                      premium
-                    </span>
-                  )}
+                  {locked && <PremiumMark />}
                 </span>
                 <span
                   className={`mt-0.5 block text-caption leading-relaxed ${

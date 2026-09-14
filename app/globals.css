@@ -52,6 +52,39 @@
    * green that reads on deep sage. Never swaps, same reason. */
   --color-sage-lit: #a9c37f;
 
+  /*
+   * Plum, the premium tier, and the only thing it ever means (#280).
+   *
+   * Premium was marked nine different ways across the app, most often
+   * as the lowercase word "premium" in stone-400, and three of those
+   * nine borrowed a colour that already meant something: terracotta
+   * (tap) on the Presence card, sage (earned) on the boss's spin quota.
+   * That second one was saying something untrue. Money buys cosmetics
+   * and never progress, so the colour of what money buys cannot be the
+   * colour of what you earn.
+   *
+   * 700 is premium TEXT, 300 its border, 50/100 its wash. There is
+   * deliberately NO plum fill role: terracotta owns the press, plum
+   * owns the label, and a premium card with an action is a plum card
+   * with a terracotta button on it.
+   *
+   * Hue 288 rather than a redder plum, which collapses onto terracotta
+   * for a tritanope. Every one of these is reached through a Tailwind
+   * utility (`text-plum-700`, `bg-plum-50`, `border-plum-300`), which is
+   * what keeps them in the build: v4 drops any @theme variable no
+   * utility references, and #265 is the shipped bug that proves it.
+   */
+  --color-plum-50: #f7edf6;
+  --color-plum-100: #f0dfee;
+  --color-plum-200: #e3c9e1;
+  --color-plum-300: #caa4c9;
+  --color-plum-400: #a670ab;
+  --color-plum-500: #8a4a95;
+  --color-plum-600: #743d80;
+  --color-plum-700: #62336c;
+  --color-plum-800: #522b5b;
+  --color-plum-900: #3c2043;
+
   /* The one colour allowed to say "wrong direction" on a data delta
    * (#195). `rust-lit` is its step for the dark surfaces (score card,
    * comparison card) — never swaps, like sage-lit. */
@@ -284,6 +317,20 @@ body {
   --color-sage-800: #c3cda6;
   --color-sage-900: #313a24;
   --color-sage-ink: #211a13;
+
+  /* Plum in dark, the same inversion terracotta and sage take: the
+     washes become dark washes of the same hue and the text steps lift
+     to the lilac that reads on them. */
+  --color-plum-50: #2d1930;
+  --color-plum-100: #382038;
+  --color-plum-200: #46284a;
+  --color-plum-300: #6a3f6f;
+  --color-plum-400: #8f5f96;
+  --color-plum-500: #b273bd;
+  --color-plum-600: #c48cce;
+  --color-plum-700: #d4a8e8;
+  --color-plum-800: #d4a8e8;
+  --color-plum-900: #2a1730;
 
   /* Rust was #e6b48c in dark — the same hex as terracotta-700, so a
    * form error and an accent link were indistinguishable, and the one

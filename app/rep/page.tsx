@@ -13,6 +13,7 @@ import {
   useState,
 } from "react";
 import { AudioScrubber } from "@/components/AudioScrubber";
+import { PremiumDoor } from "@/components/PremiumMark";
 import { Coin } from "@/components/Coin";
 import { GainsRow } from "@/components/GainsRow";
 import { LessonBody } from "@/components/LessonScreen";
@@ -592,7 +593,7 @@ function RepScreen() {
     const scored = frames.length > 0 ? scorePresence(frames) : null;
     setPresence(scored?.scorable ? scored : null);
 
-    // The local clip, for Pro playback with markers. Held as an object
+    // The local clip, for Premium playback with markers. Held as an object
     // URL in this tab and nowhere else — never uploaded, never stored.
     if (r.videoRecorder && r.videoRecorder.state !== "inactive") {
       const clip = await new Promise<Blob>((resolve) => {
@@ -1673,9 +1674,9 @@ function Results({
                     headline: "Keep the coaching coming.",
                   })
                 }
-                className="press mt-2 min-h-11 text-left text-[13px] font-semibold text-stone-600"
+                className="press mt-2 min-h-11 text-left text-[13px] font-semibold text-plum-700"
               >
-                Premium gets the full read, every time →
+                <PremiumDoor>Premium gets the full read, every time →</PremiumDoor>
               </button>
             )}
           </section>

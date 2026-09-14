@@ -108,7 +108,7 @@ export function Paywall({
   }
 
   return (
-    <Overlay label="Ethos Premium" onClose={onClose}>
+    <Overlay label="Premium" onClose={onClose}>
       <div className="card-score elev-3 max-h-[92dvh] w-full max-w-[430px] overflow-y-auto rounded-t-sheet px-6 pb-8 pt-7 text-cream">
         <div className="label-data !text-sage-mist">{reason}</div>
         <h2 className="font-display mt-1.5 text-[30px] leading-[1.05]">

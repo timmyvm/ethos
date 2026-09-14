@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { ACTION_CLASS } from "@/components/LessonScreen";
+import { PremiumMark } from "@/components/PremiumMark";
 import { Reel, useReel } from "@/components/Reel";
 import { DISABLED_CLASS } from "@/lib/ui";
 import { ModPicker } from "@/components/ModPicker";
@@ -198,9 +199,13 @@ export default function BossPage() {
           )}
 
           {locked && (
-            <div className="elev-1 mt-4 rounded-card border border-card-edge bg-raised p-4 text-caption leading-relaxed text-stone-500">
-              You&apos;ve taken this week&apos;s boss. It resets Monday, or
-              premium opens the library now.
+            <div className="elev-1 mt-4 flex items-center justify-between gap-3 rounded-card border border-card-edge bg-raised p-4">
+              {/* The word leaves the sentence and the mark carries it,
+                  so the fact and the tier are two things (#280). */}
+              <p className="text-caption leading-relaxed text-stone-500">
+                You&apos;ve taken this week&apos;s boss. It resets Monday.
+              </p>
+              <PremiumMark variant="chip" />
             </div>
           )}
 
@@ -219,8 +224,12 @@ export default function BossPage() {
                   ? "This week's headliner"
                   : "The wheel says"}
               </div>
+              {/* Plum, not sage. Sage means earned, and a free-tier
+                  allowance is allotted rather than earned: this was the
+                  one place the palette said something untrue (#280). The
+                  counter still counts. */}
               {!premium && (
-                <div className="label-micro shrink-0 !text-sage-700">
+                <div className="label-micro shrink-0 !text-plum-700">
                   {spinsLeft} spin{spinsLeft === 1 ? "" : "s"} left
                 </div>
               )}
@@ -253,7 +262,9 @@ export default function BossPage() {
             onClick={() =>
               premium ? setLibrary((v) => !v) : setPaywall("The boss library")
             }
-            className="press mt-1 inline-flex min-h-11 items-center self-start text-[13px] font-semibold text-terracotta-700"
+            className={`press mt-1 inline-flex min-h-11 items-center self-start text-[13px] font-semibold ${
+              premium ? "text-terracotta-700" : "text-plum-700"
+            }`}
           >
             {library ? "Hide the library" : "Pick a topic instead"}
           </button>

@@ -82,6 +82,30 @@ export function IconLessons({ size }: { size?: number }) {
   );
 }
 
+/**
+ * Premium. An open door, not a padlock.
+ *
+ * #200 forbids "a padlock over an empty box" and #73 found that a free
+ * user SEEING the thing work is a stronger prompt than a lock over it,
+ * so a lock would draw the opposite of what the product believes. The
+ * app already calls these surfaces doors, in two files, so this is the
+ * vocabulary the codebase uses rather than a new metaphor.
+ *
+ * Two paths, on purpose: at 2.75 stroke on a 24 grid a third line turns
+ * to mud under 18px, and the budget is also what stops it growing a
+ * shackle later.
+ */
+export function IconPremium({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      {/* The leaf, swung toward you. */}
+      <path d="M13.6 3.9 5.2 6.5v11l8.4 2.6z" />
+      {/* The frame it swung out of. */}
+      <path d="M13.6 5.3h5.2v13.4h-5.2" />
+    </Glyph>
+  );
+}
+
 /** Log — rows, one per rep. */
 export function IconLog({ size }: { size?: number }) {
   return (

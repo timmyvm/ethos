@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CountUp } from "@/components/CountUp";
+import { PremiumMark } from "@/components/PremiumMark";
 import type { DeliveryMetrics, DeliveryMoment } from "@/lib/presence";
 
 /**
@@ -12,9 +13,9 @@ import type { DeliveryMetrics, DeliveryMoment } from "@/lib/presence";
  * audio-only and stays that way, so a week of Voice reps and a week of
  * Voice + Video reps are still comparable.
  *
- * The free/Pro line is the COST line, not the feature line. Pose
+ * The free/Premium line is the COST line, not the feature line. Pose
  * detection is local and free to serve, so the live ring during the rep
- * is free for everyone. What Pro buys is this readout: the score, the
+ * is free for everyone. What Premium buys is this readout: the score, the
  * timestamped moments, the trendline, and playback with markers.
  */
 export function PresenceScore({
@@ -39,10 +40,16 @@ export function PresenceScore({
         <div className="font-display text-[44px] font-extrabold leading-none text-stone-300">
           ···
         </div>
-        <div>
-          <div className="text-[15px] font-semibold">
-            your Presence{" "}
-            <span className="font-normal text-stone-500">/1000</span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-2">
+            <div className="text-[15px] font-semibold">
+              your Presence{" "}
+              <span className="font-normal text-stone-500">/1000</span>
+            </div>
+            {/* The ellipsis stays a placeholder rather than becoming a
+                mark: what the tier is goes in the chip, and the number
+                is still shown to be there (#73, #280). */}
+            <PremiumMark variant="chip" />
           </div>
           <div className="text-[13px] text-stone-500">
             Measured on this device. Tap to read it.
@@ -93,8 +100,10 @@ export function PresenceDetail({
 }) {
   if (!premium) {
     return (
-      <div className="mt-7 rounded-card bg-terracotta-50 p-4">
-        <div className="label-data !text-terracotta-700">
+      /* Plum card, terracotta button, on purpose and in one place: plum
+         says what this is, terracotta says you can press it (#280). */
+      <div className="mt-7 rounded-card bg-plum-50 p-4">
+        <div className="label-data !text-plum-800">
           Delivery · measured, not yet read out
         </div>
         <p className="mt-2.5 text-[14px] leading-relaxed text-stone-600">

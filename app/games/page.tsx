@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Paywall } from "@/components/Paywall";
+import { PremiumMark } from "@/components/PremiumMark";
 import { fetchProfile } from "@/lib/client-data";
 import {
   draw,
@@ -126,13 +127,8 @@ export default function GamesPage() {
               <span className="min-w-0 flex-1">
                 <span className="font-display block text-[14px] font-bold">
                   {g.name}
-                  {/* The same chip the mod picker wears: a door that opens
-                      the sheet says so before the tap. */}
-                  {needsPremium(g) && !premium && (
-                    <span className="ml-1.5 text-caption font-normal text-stone-400">
-                      premium
-                    </span>
-                  )}
+                  {/* The same mark every gated thing wears (#280). */}
+                  {needsPremium(g) && !premium && <PremiumMark />}
                 </span>
                 <span className="mt-0.5 block text-caption text-stone-500">
                   {g.blurb}
@@ -166,6 +162,10 @@ export default function GamesPage() {
           <span className="min-w-0 flex-1">
             <span className="font-display block text-[14px] font-bold">
               Hostile Q&amp;A
+              {/* One a week is free, and the cap used to be unmarked: you
+                  found out by being refused, which is the worst of the
+                  nine treatments this replaced (#280). */}
+              {!premium && <PremiumMark />}
             </span>
             <span className="mt-0.5 block text-caption text-stone-500">
               Demos interrogates your take. Two questions, no notes.

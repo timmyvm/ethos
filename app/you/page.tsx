@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { AchievementMark, IconFreeze } from "@/components/Icon";
+import { PremiumDoor, PremiumMark } from "@/components/PremiumMark";
 import { CountUp } from "@/components/CountUp";
 import { ErrorLine, ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton, SkeletonStatBare } from "@/components/ui/Skeleton";
@@ -634,12 +635,7 @@ export default function YouPage() {
                 {lexicon.length - FREE_LEXICON === 1 ? "" : "s"} in your
                 archive
               </span>
-              <span
-                aria-hidden
-                className="font-display shrink-0 font-bold text-terracotta-700"
-              >
-                →
-              </span>
+              <PremiumMark variant="chip" />
             </button>
           )}
         </>
@@ -752,11 +748,11 @@ export default function YouPage() {
           </p>
         ) : (
           <button
-            onClick={() => setPaywall({ reason: "Ethos Premium" })}
-            className="press font-display mt-7 flex min-h-11 w-full items-center justify-between rounded-control border border-edge bg-surface px-4 py-3 text-[14px] font-bold hover:bg-sand"
+            onClick={() => setPaywall({ reason: "Premium" })}
+            className="press font-display mt-7 flex min-h-11 w-full items-center justify-between rounded-control border border-plum-300 bg-plum-50 px-4 py-3 text-[14px] font-bold text-plum-800 hover:bg-plum-100"
           >
-            <span>Ethos Premium</span>
-            <span aria-hidden className="text-stone-300">
+            <PremiumDoor>Premium</PremiumDoor>
+            <span aria-hidden className="text-plum-400">
               →
             </span>
           </button>

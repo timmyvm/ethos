@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { CountUp } from "@/components/CountUp";
+import { PremiumMark } from "@/components/PremiumMark";
 import { IconChevron } from "@/components/Icon";
 import { FillerHeatmap } from "@/components/FillerHeatmap";
 import { Paywall, type PaywallAsk } from "@/components/Paywall";
@@ -250,7 +251,7 @@ export default function HistoryPage() {
           )
         )}
 
-        {/* Presence has its own history (#69) and its trendline is Pro
+        {/* Presence has its own history (#69) and its trendline is Premium
             (§2). Free sees the row exists and how many recordings are
             in it, in the same grammar, never a padlock over an empty
             box. */}
@@ -386,9 +387,11 @@ export default function HistoryPage() {
               {hidden} older recording{hidden === 1 ? "" : "s"} held since{" "}
               {since}.
             </span>
-            <span className="font-display shrink-0 text-[13px] font-semibold text-terracotta-700">
-              Unlock full history →
-            </span>
+            {/* Terracotta said "tap" on a row that was already a
+                button, so the accent was carrying no information the
+                row did not already carry. The mark carries the tier
+                instead (#280). */}
+            <PremiumMark variant="chip" />
           </button>
         )}
       </section>
@@ -532,7 +535,9 @@ function MetricRow({
   );
 }
 
-/** A Pro row in the table's own grammar: label, what exists, the chip. */
+/** A Premium row in the table's own grammar: label, what exists, the
+    chip. The note still counts what is behind it: the mark names the
+    tier and never hides a number (#280). */
 function TeaserRow({
   label,
   note,
@@ -552,9 +557,7 @@ function TeaserRow({
       <span className="col-span-3 text-right text-caption text-stone-400">
         {note}
       </span>
-      <span className="label-micro justify-self-end rounded-full bg-stone-100 px-2 py-0.5">
-        Pro
-      </span>
+      <PremiumMark variant="chip" className="justify-self-end" />
     </button>
   );
 }

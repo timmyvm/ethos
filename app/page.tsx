@@ -8,6 +8,7 @@ import { CountUp } from "@/components/CountUp";
 import { DURATION } from "@/lib/motion";
 import { DayTrail } from "@/components/DayTrail";
 import { CleanRunCard } from "@/components/home/CleanRunCard";
+import { FloorCard } from "@/components/home/FloorCard";
 import { TraitStrip } from "@/components/home/TraitStrip";
 import { ACTION_CLASS, LessonBody } from "@/components/LessonScreen";
 import { ModPicker } from "@/components/ModPicker";
@@ -44,6 +45,8 @@ import { repHref } from "@/lib/rep-config";
 import { ownedFrom, poseArt } from "@/lib/shop";
 import { armReminder } from "@/lib/reminders";
 import { decayNote, nextFocus } from "@/lib/schedule";
+import { choosePractice } from "@/lib/next-practice";
+import { readTraitsFromRow } from "@/lib/trait-readings";
 import { computeStreak, type StreakState } from "@/lib/streak";
 
 const EMPTY: StreakState = {
@@ -168,6 +171,16 @@ export default function Home() {
    * achievement setting this app creates.
    */
 
+  /*
+   * ONE selection for the screen (#268). The card names a trait and
+   * quotes its number, and the strip below marks the same one, because
+   * they read the same `choosePractice`.
+   */
+  const chosen =
+    history.length > 0
+      ? choosePractice(readTraitsFromRow(history[history.length - 1]))
+      : null;
+
   const focus = nextFocus(history);
   const gap = decayNote(history);
   const trail = dayTrail(history);
@@ -200,8 +213,14 @@ export default function Home() {
    * the recording, because a technique screen in front of every lesson
    * is a paragraph a day.
    */
+  /*
+   * The unit intro still owns the tap when it is due, and day one still
+   * goes to its own first lesson. Every other day the card sends you
+   * straight to the recorder with the practice's topic on it.
+   */
+  const introOwns = Boolean(next && !skipIntros && introDue(next.unit, starMap));
   const floorHref =
-    next && !skipIntros && introDue(next.unit, starMap)
+    introOwns && next
       ? introHref(next.unit.id, mods)
       : repHref({ lesson: next?.lesson.id, mods });
 
@@ -310,91 +329,13 @@ export default function Home() {
               key="floor"
               className={floorReturned ? "arrive-lift" : undefined}
             >
-              <div className="elev-2 rounded-sheet border border-card-edge bg-raised p-5">
-                {/* Centred with the rest of the card (#212): one
-                  announcement over one tap. */}
-                <div className="label-data mb-3 text-center">
-                  {streak.didToday ? "Extra lesson" : "Today's lesson"}
-                </div>
-                {/*
-                 * The floor's copy is the template (docs/voice.md Part 2)
-                 * via <LessonBody>, and the PROMPT is gone from it
-                 * (DECISIONS #209): it was the same sentence the recording
-                 * screen shows a tap later, so reading it here bought
-                 * nothing and taught people that the words on this screen
-                 * are skippable.
-                 *
-                 * The `note` is the caption level: why THIS, today.
-                 * Duolingo's published answer to "why come back" is
-                 * half-life regression (Settles & Meeder, ACL 2016), and
-                 * the reason always carries the number that chose it, so
-                 * the call stays checkable.
-                 */}
-                {/*
-                 * The lesson NAME is the one thing on this card that
-                 * changes after a read: `todaysDrill()` paints instantly,
-                 * then the history says which lesson is actually next,
-                 * and three lines of type swapped in place (#242's strip
-                 * caught it between 160 and 240ms). Keyed on the lesson,
-                 * so the settled name rises its 6px instead of flicking
-                 * over the placeholder — and unkeyed until the read
-                 * lands, so a cold open still paints the floor with no
-                 * entrance at all (#224).
-                 */}
-                <div
-                  key={reps === null ? "floor-pending" : drill.id}
-                  className={reps === null ? undefined : "arrive dur-fast"}
-                >
-                  <LessonBody
-                    align="center"
-                    title={dayLine}
-                    line={unitName}
-                    /* Day one carries what they said they notice, in their
-                 words (#231); after that the number decides the line. */
-                    note={
-                      dayOne
-                        ? dayOneNote(answers)
-                        : (gap ??
-                          (focus.strength !== null ? focus.reason : undefined))
-                    }
-                  />
-                </div>
-                {/*
-                 * Demos peeks in from the right, just above the tap.
-                 *
-                 * He was beside the button, which pushed the one terracotta
-                 * thing off the screen's axis under a centred headline. He
-                 * cannot simply move to the middle either: the default mark
-                 * (#7's side profile) is drawn cropped into the corner of
-                 * its frame, so centred it reads as a broken image and
-                 * anchored to an edge it reads as intended. Edge it is, and
-                 * the button underneath gets the full width and the centre.
-                 */}
-                <div className="-mr-3 mt-2 flex justify-end">
-                  <Image
-                    src={
-                      streak.didToday
-                        ? "/demos-celebrate.webp"
-                        : (demos ?? "/demos.webp")
-                    }
-                    alt=""
-                    width={104}
-                    height={104}
-                    priority
-                    className="demos pointer-events-none -mb-1 w-[58px]"
-                  />
-                </div>
-                {/* The one tap, in the one declaration every screen shares
-                (#234): the colour is the lift, so it takes no border
-                and no shadow. */}
-                <Link href={floorHref} className={`${ACTION_CLASS} mt-3`}>
-                  {dayOne
-                    ? `${drill.title} →`
-                    : streak.didToday
-                      ? "Go again"
-                      : "Take the floor"}
-                </Link>
-              </div>
+              <FloorCard
+                chosen={chosen}
+                dayOne={dayOne}
+                again={streak.didToday}
+                href={introOwns ? floorHref : undefined}
+                mods={mods}
+              />
               <div className="mt-5 flex items-baseline justify-between gap-3">
                 <button
                   onClick={() => setTopic(spinForAnswers(null))}

@@ -24,9 +24,9 @@
  */
 
 import { PATH, type PathItem } from "@/content/path";
-import { TRAIT, type TraitId } from "@/content/traits";
+import type { TraitId } from "@/content/traits";
 import { NORMS } from "@/content/norms";
-import type { TraitReading } from "./trait-readings";
+import { ordinal, withUnit, type TraitReading } from "./trait-readings";
 import type { Topic } from "./topics";
 
 /**
@@ -116,15 +116,7 @@ export function choosePractice(
  * percentile rather than changing its mind about the trait.
  */
 export function because(r: TraitReading): string {
-  const t = TRAIT[r.id];
-  const shown = r.raw >= 10 ? String(Math.round(r.raw)) : r.raw.toFixed(1).replace(/\.0$/, "");
-  const unit = shown === "1" ? t.unitOne : t.unit;
   return r.quality === "provisional"
-    ? `${shown} ${unit}. Your weakest number right now.`
-    : `${shown} ${unit}, your ${ordinalish(r.percentile)}. The lowest of your five.`;
-}
-
-function ordinalish(n: number): string {
-  const s = ["th", "st", "nd", "rd"][(n % 100) - 20 === 1 ? 1 : n % 10 < 4 ? n % 10 : 0] ?? "th";
-  return `${n}${s}`;
+    ? `${withUnit(r.id, r.raw)}. Your weakest number right now.`
+    : `${withUnit(r.id, r.raw)}, the ${ordinal(r.percentile)} percentile. The lowest of your five.`;
 }

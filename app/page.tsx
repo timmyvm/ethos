@@ -332,6 +332,8 @@ export default function Home() {
               <FloorCard
                 chosen={chosen}
                 dayOne={dayOne}
+                dayOnePrompt={drill.prompt}
+                dayOneNote={dayOne ? dayOneNote(answers) : undefined}
                 again={streak.didToday}
                 href={introOwns ? floorHref : undefined}
                 mods={mods}

@@ -15,7 +15,7 @@
  */
 
 export interface TrainedDay {
-  /** 1-based: this was your Nth day of training. */
+  /** 1-based: this was your Nth day of speaking. */
   day: number;
   /** Local calendar key, YYYY-MM-DD. */
   date: string;

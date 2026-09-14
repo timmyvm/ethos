@@ -1,9 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { IconBoss } from "@/components/Icon";
 import { journeySteps, journeySummary } from "@/lib/progress";
 import { UNITS } from "@/lib/path";
+import type { Portfolio } from "@/lib/portfolio";
 import { repHref } from "@/lib/rep-config";
 
 /**
@@ -19,7 +21,7 @@ import { repHref } from "@/lib/rep-config";
  * the current lesson sits in the one terracotta-bordered card (the
  * same recording the floor button serves, so the screen still has one
  * terracotta tap); future lessons wait at 40%; and each unit boundary is a
- * checkpoint between two ink rules. The endowed "Showed up" row still
+ * checkpoint between two hairline rules. The endowed "Showed up" row still
  * opens it (#45, ink because it's given, not earned).
  *
  * Since #155 this is the ONLY path surface: the tab is gone, and each
@@ -82,16 +84,39 @@ function Connector() {
 export function PathRoad({
   starMap,
   hasAnyRep,
+  focus = null,
 }: {
   starMap: Record<string, number>;
   hasAnyRep: boolean;
+  /** What the introduction said they notice, and where it is trained. */
+  focus?: Portfolio["focus"];
 }) {
   const steps = journeySteps(starMap, hasAnyRep);
   const summary = journeySummary(starMap);
   const currentIndex = steps.findIndex(
-    (s) => !s.endowed && !s.locked && !s.boss && s.stars < 3
+    (s) => !s.endowed && !s.locked && !s.boss && s.stars < 3,
   );
   const weeks = Math.round(summary.totalLessons / 7);
+
+  /*
+   * The answers have to show up somewhere other than the screen that
+   * collected them, or the introduction was a form (#249). The unit
+   * that trains what they said they notice is marked in their OWN
+   * words, so the mark is evidence the app remembered rather than a
+   * badge: "you said rushing" on the Pace checkpoint.
+   *
+   * It retires the moment the unit scores its first star. A permanent
+   * flag is furniture, and by then the stars on the rows under it say
+   * more about that unit than a label can.
+   */
+  const focusStars =
+    focus === null
+      ? 0
+      : steps.reduce(
+          (n, s) => (!s.endowed && s.unitName === focus.unitName ? n + s.stars : n),
+          0,
+        );
+  const focusUnit = focus !== null && focusStars === 0 ? focus : null;
 
   let lastUnit: string | null = null;
 
@@ -99,10 +124,21 @@ export function PathRoad({
     <section className="mt-7 border-t border-hairline pt-4">
       <div className="label-data">The road</div>
 
-      <div className="mt-3 flex flex-col">
+      {/*
+       * The road assembles itself (#242): every row is a direct child of
+       * this container, so `.stagger` lands on the ROWS — each one is a
+       * `<div>` holding an optional checkpoint, its connector and the
+       * row — and they come in 40ms apart, capped at the eighth. The
+       * parent block no longer fades on Today, because a fade over a
+       * stagger is the same entrance twice.
+       */}
+      <div className="stagger mt-3 flex flex-col">
         {steps.map((step, i) => {
           const isCurrent = i === currentIndex;
           const unitHeader = step.unitName !== lastUnit && !step.endowed;
+          /** The unit the current lesson sits in: the one you are on. */
+          const here =
+            currentIndex >= 0 && step.unitName === steps[currentIndex]?.unitName;
           lastUnit = step.endowed ? lastUnit : step.unitName;
           const unit = UNITS.find((u) => u.name === step.unitName);
           const done = !step.endowed && step.stars > 0;
@@ -111,14 +147,14 @@ export function PathRoad({
             /* The current lesson: the screen's terracotta element, on the
                raised paper. Same recording as the floor button above. */
             <span className="-mx-3.5 flex items-center gap-3.5 rounded-card border-[1.5px] border-terracotta-500 bg-raised px-3.5 py-2.5">
-              <span className="font-display w-[30px] shrink-0 text-[12px] font-extrabold tabular-nums">
+              <span className="font-display w-[30px] shrink-0 text-caption font-extrabold tabular-nums">
                 {i}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="font-display block text-[14px] font-bold">
                   {step.label}
                 </span>
-                <span className="mt-px block text-[12px] text-stone-400">
+                <span className="mt-px block text-caption text-stone-400">
                   Today · same recording as the card
                 </span>
               </span>
@@ -130,7 +166,7 @@ export function PathRoad({
               }`}
             >
               <span
-                className={`font-display w-[30px] shrink-0 text-[12px] font-bold tabular-nums ${
+                className={`font-display w-[30px] shrink-0 text-caption font-extrabold tabular-nums ${
                   done ? "text-sage-700" : ""
                 }`}
               >
@@ -140,7 +176,7 @@ export function PathRoad({
                 {step.label}
               </span>
               {done && (
-                <span className="font-display shrink-0 text-[12px] font-bold text-sage-700 tabular-nums">
+                <span className="font-display shrink-0 text-caption font-extrabold text-sage-700 tabular-nums">
                   {step.stars}★
                 </span>
               )}
@@ -152,25 +188,58 @@ export function PathRoad({
               {unitHeader && unit && (
                 <>
                   {i > 0 && <Connector />}
-                  {/* The checkpoint: a unit boundary between two ink
-                      rules. The door is the road's one lock symbol
-                      (#156); the distance keeps #44's exact count. */}
-                  <div className="flex items-center gap-3.5 border-y border-ink py-2.5">
+                  {/* The checkpoint: a unit boundary between two
+                      rules. They were full ink — eight pairs of them,
+                      the loudest lines on Today once the cards stopped
+                      being outlined boxes (#234), so they drop to the
+                      `edge` rule. The door is the road's one lock
+                      symbol (#156); the distance keeps #44's count. */}
+                  <div className="mt-1 flex items-center gap-3.5 border-y border-edge py-3">
+                    {/*
+                     * Three states, each carrying its own information
+                     * (#248). A locked unit shows the door, which is the
+                     * road's one lock symbol (#156). Every other unit
+                     * shows the door open. And the unit you are actually
+                     * IN shows Demos doing the thing it trains.
+                     *
+                     * Only that one. Seven poses exist, one per unit, and
+                     * putting them all on the road turns the character
+                     * into wallpaper down a 5000px scroll — vision.md is
+                     * explicit that Demos appears at moments and never as
+                     * furniture. One pose, at the checkpoint you are
+                     * standing on, IS the moment: it says you are here.
+                     * Static, because nothing on the road moves.
+                     */}
                     <span
-                      className={`flex w-[30px] shrink-0 justify-center ${
+                      className={`flex w-11 shrink-0 justify-center ${
                         step.locked ? "text-stone-500" : "text-stone-300"
                       }`}
                     >
-                      {unit.unlocksAt > 0 ? (
+                      {here ? (
+                        <Image
+                          src={`/unit/${unit.id}.webp`}
+                          alt=""
+                          width={128}
+                          height={128}
+                          className="demos pointer-events-none w-11"
+                        />
+                      ) : unit.unlocksAt > 0 ? (
                         <Gate open={!step.locked} width={26} />
                       ) : null}
                     </span>
-                    <span className="font-display min-w-0 flex-1 text-[13.5px] font-bold">
-                      {unit.name}
-                      {unit.boss ? " · weekly boss" : ""}
+                    <span className="min-w-0 flex-1">
+                      <span className="font-display block text-[14px] font-extrabold">
+                        {unit.name}
+                        {unit.boss ? " · weekly boss" : ""}
+                      </span>
+                      {focusUnit !== null && unit.name === focusUnit.unitName && (
+                        <span className="label-micro mt-0.5 block text-terracotta-700">
+                          You said {focusUnit.said}
+                        </span>
+                      )}
                     </span>
                     {step.locked && (
-                      <span className="shrink-0 text-[12px] text-stone-500 tabular-nums">
+                      <span className="shrink-0 text-caption text-stone-500 tabular-nums">
                         {unit.unlocksAt}★ · {unit.unlocksAt - summary.stars} to
                         go
                       </span>
@@ -183,7 +252,9 @@ export function PathRoad({
                 row
               ) : (
                 <Link
-                  href={step.boss ? "/boss" : repHref({ lesson: step.lessonId })}
+                  href={
+                    step.boss ? "/boss" : repHref({ lesson: step.lessonId })
+                  }
                   className="press -my-3 block py-3"
                 >
                   {row}
@@ -199,9 +270,9 @@ export function PathRoad({
        * is the point — #90's objection inverted: with real content, the
        * distance is the pitch, and it names its numbers (#46).
        */}
-      <p className="mt-4 text-[12px] text-stone-400">
-        {summary.totalLessons} lessons, end to end. About {weeks} weeks at one
-        a day.
+      <p className="mt-4 text-caption text-stone-400">
+        {summary.totalLessons} lessons, end to end. About {weeks} weeks at one a
+        day.
       </p>
     </section>
   );

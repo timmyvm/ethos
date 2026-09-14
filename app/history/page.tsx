@@ -3,6 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { CountUp } from "@/components/CountUp";
+import { PremiumMark } from "@/components/PremiumMark";
+import { IconChevron } from "@/components/Icon";
 import { FillerHeatmap } from "@/components/FillerHeatmap";
 import { Paywall, type PaywallAsk } from "@/components/Paywall";
 import { ScoreCard } from "@/components/ScoreCard";
@@ -17,6 +20,7 @@ import { Stars } from "@/components/Stars";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { fetchProfile, fetchReps, type RepRow } from "@/lib/client-data";
 import { limit } from "@/lib/entitlement";
+import { DURATION } from "@/lib/motion";
 import { fillerHeatmap, insights } from "@/lib/insights";
 import { readable, readFailure } from "@/lib/load";
 import {
@@ -30,13 +34,27 @@ import { starsByLesson, totalStars, UNITS } from "@/lib/path";
 
 const FREE_DAYS = 7; // mechanics.md: free tier sees the last 7 days
 const DASH = "—";
+/** A formatted value CountUp can tick: whole digits, no decimal point. */
+/** A cell the count can drive: a plain number, with or without a decimal. */
+const NUMERIC = /^-?\d+(\.\d+)?$/;
+
+/**
+ * Count a value back in the shape the table already printed it: the
+ * running number keeps the same number of decimal places as the final
+ * one, so a row never changes width mid-tick and never shows the user a
+ * precision the app does not claim.
+ */
+function decimalsOf(printed: string): (value: number) => string {
+  const places = printed.split(".")[1]?.length ?? 0;
+  return (value: number) => value.toFixed(places);
+}
 
 /** The two grids, shared by header and rows so the columns line up. */
-const MOVED_GRID = "grid grid-cols-[minmax(0,1fr)_38px_42px_58px_44px] gap-2";
+const MOVED_GRID = "grid grid-cols-[minmax(0,1fr)_36px_42px_74px_44px] gap-2";
 const RECORD_GRID = "grid grid-cols-[34px_minmax(0,1fr)_44px_36px_36px_36px] gap-1.5";
 
 /**
- * The training log (#17, rebuilt to #217): one hero, one row grammar,
+ * The log (#17, rebuilt to #217): one hero, one row grammar,
  * and the empty state is the populated state with the numbers missing.
  *
  * Three bands. The score card Home already draws, so the shape is
@@ -76,7 +94,7 @@ export default function HistoryPage() {
    */
   if (failed) {
     return (
-      <main className="px-5 pb-24 pt-7">
+      <main className="px-5 pb-22 pt-7">
         <h1 className="font-display text-[24px] font-extrabold">The log</h1>
         <ErrorState
           className="mt-4"
@@ -89,19 +107,23 @@ export default function HistoryPage() {
 
   if (reps === null) {
     return (
-      <main className="px-5 pb-24 pt-7">
+      <main className="px-5 pb-22 pt-7">
         <h1 className="font-display text-[24px] font-extrabold">The log</h1>
-        <SkeletonRegion label="Loading your training log">
+        <SkeletonRegion label="Loading your log">
           <Skeleton className="mt-2 h-3 w-52" />
-          <SkeletonScoreCard />
-          <Skeleton className="mt-6 h-2.5 w-24" />
-          <div className="mt-2 space-y-2.5">
+          {/* The score card carries no outer margin any more (#234), so
+              the placeholder holds the same 28 the real card sits on. */}
+          <div className="mt-7">
+            <SkeletonScoreCard />
+          </div>
+          <Skeleton className="mt-7 h-2.5 w-24" />
+          <div className="mt-3">
             {[0, 1, 2, 3].map((i) => (
               <SkeletonRow key={i} />
             ))}
           </div>
           <Skeleton className="mt-7 h-2.5 w-28" />
-          <div className="mt-2 space-y-2.5">
+          <div className="mt-3">
             {[0, 1, 2].map((i) => (
               <SkeletonRow key={i} />
             ))}
@@ -144,46 +166,56 @@ export default function HistoryPage() {
       });
 
   return (
-    <main className="px-5 pb-24 pt-7">
-      {/* The read landing is one event, so one arrival (#224): the
-          populated log fades in over the skeleton that held its shape. */}
-      <div className="arrive">
+    <main className="px-5 pb-22 pt-7">
+      {/* One entrance per band (#245). The read landing is still one
+          event, but the two tables are lists, and a list assembles
+          itself: `.stagger` ladders each section's eyebrow, column head
+          and rows 40ms apart. It REPLACES the block's `.arrive` — a row
+          that both fades with its parent and fades on its own clock
+          arrives twice and reads as neither. */}
+      {/* Outside the arrival on purpose: the loading state draws this
+          exact h1, so fading it in with the read would take a title
+          that is already on the screen down to nothing and back. */}
       <h1 className="font-display text-[24px] font-extrabold">The log</h1>
-      <p className="mt-1 text-[13px] text-stone-400">
-        {empty
-          ? "0 recordings."
-          : `${reps.length} recording${reps.length === 1 ? "" : "s"} since ${since}. Tap one for the full result.`}
-      </p>
+      <div className="arrive">
+        <p className="mt-1 text-caption text-stone-400">
+          {empty
+            ? "0 recordings."
+            : `${reps.length} recording${reps.length === 1 ? "" : "s"} since ${since}. Tap one for the full result.`}
+        </p>
 
-      {/*
-       * Band one: the hero (#217). The card Home draws, so the log is
-       * no longer the one data screen without a landing point, and the
-       * day-zero card (#213) finally has the populated twin it was
-       * drawn against. The footer anchors the delta without a second
-       * card.
-       */}
-      <ScoreCard
-        index={lastIndex}
-        delta={indexDelta}
-        recordings={reps.length}
-        stars={totalStars(starMap)}
-        foot={
-          empty
-            ? "Day 1 sets the number to beat."
-            : indexDelta !== null
-              ? `Day 1 scored ${firstIndex}.`
-              : undefined
-        }
-      />
+        {/*
+         * Band one: the hero (#217). The card Home draws, so the log is
+         * no longer the one data screen without a landing point, and the
+         * day-zero card (#213) finally has the populated twin it was
+         * drawn against. The footer anchors the delta without a second
+         * card.
+         */}
+        <div className="mt-7">
+          <ScoreCard
+            index={lastIndex}
+            delta={indexDelta}
+            recordings={reps.length}
+            stars={totalStars(starMap)}
+            foot={
+              empty
+                ? "Day 1 sets the number to beat."
+                : indexDelta !== null
+                  ? `Day 1 scored ${firstIndex}.`
+                  : undefined
+            }
+          />
+        </div>
+      </div>
 
       {/*
        * Band two: what moved. One table in place of five sparkline
        * cards, the comparison card and a column of insight prose. The
        * change column is what the reader used to compute.
        */}
-      <section className="mt-6">
-        <div className="label-data pb-1.5">What moved</div>
-        <div className={`${MOVED_GRID} border-b border-edge pb-1.5`}>
+      <section className="stagger mt-7">
+        <div className="label-data">What moved</div>
+        <div className={`${MOVED_GRID} mt-3 border-b border-edge pb-1.5`}>
           <ColumnHead>metric</ColumnHead>
           <ColumnHead right>day 1</ColumnHead>
           <ColumnHead right>now</ColumnHead>
@@ -203,10 +235,13 @@ export default function HistoryPage() {
                 onClick={() => setShowFillers((v) => !v)}
                 className="press block w-full text-left"
               >
-                <MetricRow row={row} dim={empty} />
+                <MetricRow row={row} dim={empty} open={showFillers} />
               </button>
               {showFillers && (
-                <div className="py-2.5">
+                /* `.reveal`: the panel drops out of the row that opened
+                   it, rather than being there the instant the row is
+                   tapped (the before strip was five identical frames). */
+                <div className="reveal py-3">
                   <FillerHeatmap reps={reps} />
                 </div>
               )}
@@ -216,7 +251,7 @@ export default function HistoryPage() {
           )
         )}
 
-        {/* Presence has its own history (#69) and its trendline is Pro
+        {/* Presence has its own history (#69) and its trendline is Premium
             (§2). Free sees the row exists and how many recordings are
             in it, in the same grammar, never a padlock over an empty
             box. */}
@@ -250,7 +285,7 @@ export default function HistoryPage() {
           ))}
 
         {top && (
-          <p className="mt-3 text-caption text-stone-600">
+          <p className="border-t border-hairline pt-3 text-caption text-stone-600">
             <span className="font-semibold text-ink">{top.headline}</span>{" "}
             {top.detail}
           </p>
@@ -263,11 +298,11 @@ export default function HistoryPage() {
        * the eye runs down the fillers column and sees the trend
        * without a chart. Duration lives on the full result.
        */}
-      <section className="mt-7">
-        <div className="label-data pb-1.5">
+      <section className="stagger mt-7">
+        <div className="label-data">
           {empty ? "Waiting to be logged" : "Every recording"}
         </div>
-        <div className={`${RECORD_GRID} border-b border-edge pb-1.5`}>
+        <div className={`${RECORD_GRID} mt-3 border-b border-edge pb-1.5`}>
           <ColumnHead>date</ColumnHead>
           <ColumnHead>lesson</ColumnHead>
           <ColumnHead right>index</ColumnHead>
@@ -280,16 +315,19 @@ export default function HistoryPage() {
           ? UNITS[0].lessons.slice(0, 3).map((lesson, i) => (
               <div
                 key={lesson.id}
-                className={`${RECORD_GRID} items-center border-t border-hairline py-2.5 text-stone-400`}
+                className={`${RECORD_GRID} items-center border-t border-hairline py-3 text-stone-400`}
               >
                 <span className="font-display text-[16px] font-extrabold leading-none tabular-nums">
                   {i + 1}
                 </span>
-                <span className="font-display truncate text-[13.5px] font-bold">
+                <span className="font-display truncate text-[14px] font-bold">
                   {lesson.title}
                 </span>
                 {[0, 1, 2, 3].map((c) => (
-                  <span key={c} className="text-right text-[13px] tabular-nums">
+                  <span
+                    key={c}
+                    className="font-display text-right text-caption font-extrabold tabular-nums"
+                  >
                     {DASH}
                   </span>
                 ))}
@@ -302,24 +340,31 @@ export default function HistoryPage() {
                 <Link
                   key={r.id}
                   href={`/rep/${r.id}`}
-                  className={`press ${RECORD_GRID} items-center border-t border-hairline py-2.5`}
+                  className={`press ${RECORD_GRID} items-center border-t border-hairline py-3`}
                 >
                   <span className="leading-none">
-                    <span className="font-display block text-[9px] font-bold uppercase tracking-[0.1em] text-stone-400">
+                    <span className="label-micro block">
                       {d.toLocaleDateString(undefined, { month: "short" })}
                     </span>
-                    <span className="font-display block text-[16px] font-extrabold tabular-nums">
+                    <span className="font-display mt-0.5 block text-[16px] font-extrabold tabular-nums">
                       {String(d.getDate()).padStart(2, "0")}
                     </span>
                   </span>
                   <span className="min-w-0">
-                    <span className="font-display block truncate text-[13.5px] font-bold">
+                    <span className="font-display block truncate text-[14px] font-bold">
                       {recordingName(r)}
                     </span>
                     <Stars n={r.stars} size={9} />
                   </span>
                   <span className="font-display text-right text-[16px] font-extrabold tabular-nums">
-                    {r.ethos_index ?? DASH}
+                    {r.ethos_index === null ? (
+                      DASH
+                    ) : (
+                      /* `max`, not `celebrate`: a row in a table is a
+                         value arriving, not a rep landing, and 600ms
+                         seven rows deep is a loading bar. */
+                      <CountUp value={r.ethos_index} durationMs={DURATION.max} />
+                    )}
                   </span>
                   <Cell>{r.filler_count}</Cell>
                   <Cell>{r.wpm}</Cell>
@@ -336,15 +381,17 @@ export default function HistoryPage() {
                 headline: "Your first recording is still here.",
               })
             }
-            className="press flex w-full items-center justify-between gap-3 border-y border-hairline px-0.5 py-3 text-left"
+            className="press flex w-full items-center justify-between gap-3 border-t border-hairline py-3 text-left"
           >
-            <span className="text-[13px] font-semibold text-stone-500">
+            <span className="text-caption text-stone-500">
               {hidden} older recording{hidden === 1 ? "" : "s"} held since{" "}
               {since}.
             </span>
-            <span className="font-display shrink-0 text-[13px] font-bold text-terracotta-700">
-              Unlock full history →
-            </span>
+            {/* Terracotta said "tap" on a row that was already a
+                button, so the accent was carrying no information the
+                row did not already carry. The mark carries the tier
+                instead (#280). */}
+            <PremiumMark variant="chip" />
           </button>
         )}
       </section>
@@ -353,8 +400,8 @@ export default function HistoryPage() {
           one screen that says "you have not started" is the sad-mascot
           state brand.md bans. */}
       {empty && (
-        <>
-          <div className="mt-6 flex items-center gap-3.5">
+        <div className="arrive">
+          <div className="mt-7 flex items-center gap-3.5">
             <Image
               src="/demos-speaking.webp"
               alt=""
@@ -363,7 +410,7 @@ export default function HistoryPage() {
               className="demos pointer-events-none w-[56px] shrink-0"
             />
             <p className="text-body text-stone-500">
-              One recording and this becomes a training log.
+              One recording and every number here fills in.
             </p>
           </div>
           <Link
@@ -372,9 +419,8 @@ export default function HistoryPage() {
           >
             Take the floor
           </Link>
-        </>
+        </div>
       )}
-      </div>
 
       {paywall && (
         <Paywall
@@ -395,7 +441,7 @@ function ColumnHead({
   right?: boolean;
 }) {
   return (
-    <span className={`label-data !text-[9.5px] ${right ? "text-right" : ""}`}>
+    <span className={`label-micro ${right ? "text-right" : ""}`}>
       {children}
     </span>
   );
@@ -403,7 +449,7 @@ function ColumnHead({
 
 function Cell({ children }: { children: number }) {
   return (
-    <span className="text-right text-[13px] font-semibold text-stone-600 tabular-nums">
+    <span className="font-display text-right text-caption font-extrabold text-stone-600 tabular-nums">
       {children}
     </span>
   );
@@ -414,7 +460,22 @@ function Cell({ children }: { children: number }) {
  * the number moved the right way, rust when it didn't, stone when it
  * hasn't moved or has nowhere to move from yet.
  */
-function MetricRow({ row, dim = false }: { row: MovedRow; dim?: boolean }) {
+function MetricRow({
+  row,
+  dim = false,
+  open,
+}: {
+  row: MovedRow;
+  dim?: boolean;
+  /**
+   * Present only on the row that opens the heatmap. The chevron is the
+   * app's disclosure grammar (LessonScreen's "Why this works"): one
+   * glyph that turns over in 120ms, so the tap is answered before the
+   * panel has finished dropping, and the row says it opens before
+   * anyone taps it.
+   */
+  open?: boolean;
+}) {
   const tone =
     row.direction === "up"
       ? "text-sage-700"
@@ -423,25 +484,47 @@ function MetricRow({ row, dim = false }: { row: MovedRow; dim?: boolean }) {
         : "text-stone-400";
   return (
     <div
-      className={`${MOVED_GRID} items-center border-t border-hairline py-2.5 ${
+      className={`${MOVED_GRID} items-center border-t border-hairline py-3 ${
         dim ? "text-stone-400" : ""
       }`}
     >
-      <span className="font-display truncate text-[13px] font-bold">
-        {row.label}
+      <span className="font-display flex min-w-0 items-center gap-1 text-[14px] font-bold">
+        <span className="truncate">{row.label}</span>
+        {open !== undefined && (
+          <span
+            aria-hidden
+            data-open={open}
+            className="disclosure-mark shrink-0 text-stone-300"
+          >
+            <IconChevron size={14} />
+          </span>
+        )}
       </span>
       <span
-        className={`font-display text-right text-[13px] font-semibold tabular-nums ${
+        className={`font-display text-right text-caption font-extrabold tabular-nums ${
           dim ? "" : "text-stone-400"
         }`}
       >
         {row.then ?? DASH}
       </span>
       <span className="font-display text-right text-[17px] font-extrabold tabular-nums">
-        {row.now ?? DASH}
+        {/* `now` is already formatted (lib/log), so the count has to
+            print it back the same way: a row reading "2.8" fillers a
+            minute keeps its decimal on every frame, and a row reading
+            "155" stays whole. Rounding a number the user reads, to make
+            it tick, would animate a value the app does not report. */}
+        {NUMERIC.test(row.now ?? "") ? (
+          <CountUp
+            value={Number(row.now)}
+            durationMs={DURATION.max}
+            format={decimalsOf(row.now!)}
+          />
+        ) : (
+          (row.now ?? DASH)
+        )}
       </span>
       <span
-        className={`font-display whitespace-nowrap text-right text-[12px] font-bold tabular-nums ${
+        className={`font-display whitespace-nowrap text-right text-caption font-extrabold tabular-nums ${
           dim ? "" : tone
         }`}
       >
@@ -452,7 +535,9 @@ function MetricRow({ row, dim = false }: { row: MovedRow; dim?: boolean }) {
   );
 }
 
-/** A Pro row in the table's own grammar: label, what exists, the chip. */
+/** A Premium row in the table's own grammar: label, what exists, the
+    chip. The note still counts what is behind it: the mark names the
+    tier and never hides a number (#280). */
 function TeaserRow({
   label,
   note,
@@ -463,17 +548,22 @@ function TeaserRow({
   onTap: () => void;
 }) {
   return (
+    /*
+     * NOT on MOVED_GRID. The data rows end in a 44px column sized for a
+     * sparkline, and the mark is a word rather than the old two-letter
+     * pill, so on the grid it sat on top of its own note. This row
+     * carries no data columns to align with, so it is a plain flex row
+     * like the "older recordings" row at the foot of the page.
+     */
     <button
       type="button"
       onClick={onTap}
-      className={`press ${MOVED_GRID} w-full items-center border-t border-hairline py-2.5 text-left`}
+      className="press flex w-full items-center justify-between gap-3 border-t border-hairline py-3 text-left"
     >
-      <span className="font-display truncate text-[13px] font-bold">{label}</span>
-      <span className="col-span-3 text-right text-[12px] text-stone-400">
-        {note}
-      </span>
-      <span className="font-display justify-self-end rounded-full border border-stone-200 bg-surface px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.06em] text-stone-400">
-        Pro
+      <span className="font-display truncate text-[14px] font-bold">{label}</span>
+      <span className="flex shrink-0 items-center gap-2.5">
+        <span className="text-caption text-stone-400">{note}</span>
+        <PremiumMark variant="chip" />
       </span>
     </button>
   );

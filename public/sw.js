@@ -4,13 +4,34 @@
  * /api/analyze is never cached — a rep that can't reach the engine
  * should fail honestly rather than return stale numbers.
  */
-const CACHE = "ethos-v6";
+const CACHE = "ethos-v9";
 
 const SHELL = [
   "/",
   "/games",
   "/history",
   "/you",
+  "/lessons",
+  /* The lesson art is the Lessons page, so it is shell, not extra.
+     These are the URLs the page actually asks for: the cards use a
+     plain <img> at the file's own path rather than next/image, whose
+     /_next/image?url=…&w=… varies per device and could never be
+     pre-cached (#274). */
+  "/lessons/the-landing.webp",
+  "/lessons/inside-or-after.webp",
+  "/lessons/the-long-one.webp",
+  "/lessons/the-cold-open.webp",
+  "/lessons/closed-mouth.webp",
+  "/lessons/the-crutch.webp",
+  "/lessons/finish-it.webp",
+  "/lessons/know-the-landing.webp",
+  "/lessons/or-rather.webp",
+  "/lessons/room-to-land.webp",
+  "/lessons/one-gear-down.webp",
+  "/lessons/change-gear.webp",
+  "/lessons/name-it-once.webp",
+  "/lessons/short-and-concrete.webp",
+  "/lessons/second-pass.webp",
   "/boss",
   "/hostile",
   "/upload",
@@ -19,7 +40,7 @@ const SHELL = [
   "/demos-speaking.webp",
   "/demos-listening.webp",
   "/demos-celebrate.webp",
-  "/demos-workout.webp",
+  "/demos-practice.webp",
   "/demos-asleep.webp",
   "/icon-192.png",
   "/icon-512.png",
@@ -33,7 +54,16 @@ self.addEventListener("install", (e) => {
   e.waitUntil(
     caches
       .open(CACHE)
-      .then((c) => c.addAll(SHELL).catch(() => {}))
+      /*
+       * One at a time, NOT addAll. addAll is atomic: a single 404 in
+       * SHELL rejects the whole thing and the offline shell ends up
+       * empty, and the .catch() here used to swallow exactly that.
+       * demos-workout.webp had been deleted in #249 and left in this
+       * list, so every install since then cached nothing at all.
+       */
+      .then((c) =>
+        Promise.all(SHELL.map((u) => c.add(u).catch(() => {})))
+      )
       .then(() => self.skipWaiting())
   );
 });

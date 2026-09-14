@@ -1,7 +1,7 @@
 # Ethos
 
-A daily gym for speech. Five minutes of reps a day until speaking clearly
-under pressure is a trait, not a performance.
+Five minutes of speaking a day, measured, until speaking clearly under
+pressure is a trait, not a performance.
 
 ## Run it
 
@@ -13,10 +13,10 @@ npm test                     # metrics engine unit tests
 ```
 
 - `OPENAI_API_KEY` — required. Whisper transcription is the engine's input.
-- `ANTHROPIC_API_KEY` — optional. Powers focus/supply/coach; without it the
-  rep still returns real numbers with a deterministic coach line.
+- `ANTHROPIC_API_KEY` — optional. Powers focus/supply/coach; without it a
+  recording still returns real numbers with a deterministic coach line.
 - Supabase vars — optional. Run `supabase/migrations/0001_schema_v1.sql`
-  against a project to store reps; without them nothing persists.
+  against a project to store recordings; without them nothing persists.
 - `PREMIUM_UNLOCK_CODE` — the invite code `/api/redeem` accepts while
   there's no payment processor. Unset = codes are off.
 - VAPID + `CRON_SECRET` vars — real (server-sent) reminders. Generate the

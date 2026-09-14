@@ -131,15 +131,27 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
   }
 
   return (
-    <div className="mt-4">
+    <div className="mt-3">
       {url ? (
-        <div className="rounded-card border border-edge bg-raised p-4">
+        /* The card the tap produced: it arrives over the button it
+           replaced, rather than cutting in when the canvas finishes. */
+        <div className="arrive elev-1 rounded-card border border-card-edge bg-raised p-4">
+          {/* The story ratio, stated: the canvas is 1080x1920 and a data
+              URL has no intrinsic size until it decodes, so without this
+              the card arrives at one height and grows to another
+              mid-animation. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={url} alt="Your progress card" className="w-full rounded-control" />
+          <img
+            src={url}
+            alt="Your progress card"
+            width={1080}
+            height={1920}
+            className="aspect-[1080/1920] w-full rounded-control"
+          />
           <a
             href={url}
             download="ethos-progress.png"
-            className="press font-display mt-3 block w-full rounded-control bg-terracotta-500 px-6 py-3 text-center text-[15px] font-bold text-on-accent"
+            className="press font-display mt-3 block min-h-11 w-full rounded-control bg-terracotta-500 px-6 py-3 text-center text-[15px] font-bold text-on-accent"
           >
             Save the card
           </a>
@@ -147,7 +159,7 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
       ) : (
         <button
           onClick={draw}
-          className="press font-display w-full rounded-control border border-stone-200 bg-surface px-4 py-[11px] text-[13.5px] font-bold"
+          className="press font-display min-h-11 w-full rounded-control border border-edge bg-surface px-4 py-3 text-[14px] font-bold hover:bg-sand"
         >
           Make a shareable card →
         </button>

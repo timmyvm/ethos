@@ -48,23 +48,23 @@ export default function RepDetail({
 
   if (rep === undefined) {
     return (
-      <main className="px-5 pb-24 pt-7">
+      <main className="px-5 pb-8 pt-7">
         <Skeleton className="h-3 w-16" />
         <SkeletonRegion label="Loading this recording" className="mt-4">
           <Skeleton className="h-2.5 w-40" />
-          <div className="mt-3 flex items-baseline gap-3.5">
+          <div className="mt-5 flex items-baseline gap-3.5">
             <Skeleton className="h-14 w-28" />
             <div className="flex-1">
               <Skeleton className="h-4 w-28" />
               <Skeleton className="mt-2 h-3 w-20" />
             </div>
           </div>
-          <div className="mt-4 flex items-end gap-3">
-            <Skeleton className="h-[58px] w-[58px]" rounded="rounded-card" />
+          <div className="mt-5 flex items-end gap-3">
+            <Skeleton className="h-[62px] w-[62px]" rounded="rounded-card" />
             <Skeleton className="h-20 flex-1" rounded="rounded-card" />
           </div>
-          <Skeleton className="mt-4 h-24 w-full" rounded="rounded-card" />
-          <div className="mt-4 flex gap-3">
+          <Skeleton className="mt-7 h-24 w-full" rounded="rounded-card" />
+          <div className="mt-3 flex gap-3">
             <SkeletonStat />
             <SkeletonStat />
             <SkeletonStat />
@@ -76,11 +76,13 @@ export default function RepDetail({
 
   if (!rep) {
     return (
-      <main className="px-5 pb-24 pt-7">
-        <Link href="/history" className="inline-flex min-h-11 items-center text-sm text-stone-500">
+      <main className="px-5 pb-8 pt-7">
+        <Link href="/history" className="press inline-flex min-h-11 items-center text-[13px] font-semibold text-stone-500">
           ← the log
         </Link>
-        <p className="mt-6 text-[14px] font-semibold">Recording not found.</p>
+        <p className="font-display mt-6 text-[14px] font-bold">
+          Recording not found.
+        </p>
       </main>
     );
   }
@@ -134,8 +136,8 @@ export default function RepDetail({
   const delivery = fromRow(rep.delivery_metrics);
 
   return (
-    <main className="px-5 pb-24 pt-7">
-      <Link href="/history" className="inline-flex min-h-11 items-center text-sm text-stone-500">
+    <main className="px-5 pb-8 pt-7">
+      <Link href="/history" className="press inline-flex min-h-11 items-center text-[13px] font-semibold text-stone-500">
         ← the log
       </Link>
       <div className="label-data mt-4">
@@ -151,12 +153,12 @@ export default function RepDetail({
           {rep.mods.map((id) => (
             <span
               key={id}
-              className="rounded-full bg-ink px-2.5 py-1 text-[11.5px] font-semibold text-ground"
+              className="label-micro rounded-full bg-stone-100 px-2.5 py-1 !text-ink"
             >
               {modById(id)?.name ?? id}
             </span>
           ))}
-          <span className="label-data">×{rep.xp_multiplier} XP</span>
+          <span className="label-micro">×{rep.xp_multiplier} XP</span>
         </div>
       )}
       <RepResult result={view} topic={topic} />
@@ -168,7 +170,7 @@ export default function RepDetail({
        * numbers and the timestamps.
        */}
       {delivery && (
-        <div className="mt-6 border-t border-sand pt-5">
+        <div className="mt-7 border-t border-hairline pt-4">
           <PresenceScore
             score={delivery.presenceScore}
             previous={null}
@@ -196,7 +198,7 @@ export default function RepDetail({
       )}
 
       {audio && (
-        <div className="mt-4">
+        <div className="mt-7">
           <AudioScrubber
             src={audio}
             durationS={rep.duration_s}

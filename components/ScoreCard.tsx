@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { CountUp } from "@/components/CountUp";
+import { DURATION } from "@/lib/motion";
 
 /**
  * The score card: the hero of every data screen (#18, #165, #217).
@@ -32,13 +34,13 @@ export function ScoreCard({
 }) {
   const empty = recordings === 0;
   return (
-    <section className="card-score mt-5 rounded-sheet p-5 text-cream">
+    <section className="card-score rounded-sheet p-5 text-cream">
       <div className="flex items-baseline justify-between gap-3">
         <div className="label-data !text-sage-mist">Your Ethos</div>
         {delta !== null && delta !== 0 && (
           <div
-            className={`font-display text-[13px] font-semibold uppercase tracking-[0.02em] tabular-nums ${
-              delta > 0 ? "text-sage-lit" : "text-rust-lit"
+            className={`label-data ${
+              delta > 0 ? "!text-sage-lit" : "!text-rust-lit"
             }`}
           >
             {delta > 0 ? "▲ +" : "▼ "}
@@ -48,9 +50,21 @@ export function ScoreCard({
       </div>
       <div className="flex items-end justify-between gap-4">
         <div className="flex min-w-0 items-baseline gap-1.5">
-          <span className="font-display text-[58px] font-extrabold leading-none tracking-[-0.02em]">
-            {empty ? 0 : (index ?? "—")}
-          </span>
+          {/* The hero counts on arrival like every number under it
+              (#245). Not when there is nothing to count: zero
+              recordings is a fact, not a climb, and a dash is not a
+              number at all. */}
+          {empty || index === null ? (
+            <span className="font-display text-[58px] font-extrabold leading-none tracking-[-0.02em]">
+              {empty ? 0 : "—"}
+            </span>
+          ) : (
+            <CountUp
+              value={index}
+              durationMs={DURATION.max}
+              className="font-display text-[58px] font-extrabold leading-none tracking-[-0.02em]"
+            />
+          )}
           <span className="text-[15px] text-sage-mist">
             {empty ? "recordings" : "/ 1000"}
           </span>
@@ -87,7 +101,7 @@ export function ScoreCard({
       </div>
       {children}
       {foot && (
-        <div className="mt-3 border-t border-cream/15 pt-2.5 text-[12px] text-sage-mist">
+        <div className="mt-3 border-t border-cream/15 pt-2.5 text-caption text-sage-mist">
           {foot}
         </div>
       )}

@@ -33,7 +33,7 @@ export function PermissionHelp({
   const thing = video ? "mic and camera" : "mic";
 
   return (
-    <div className="w-full rounded-card border border-hairline bg-surface p-5">
+    <div className="elev-1 w-full rounded-card border border-card-edge bg-raised p-4">
       <div className="flex items-center gap-3.5">
         <Image
           src="/demos-listening.webp"
@@ -43,10 +43,10 @@ export function PermissionHelp({
           className="demos w-14 shrink-0"
         />
         <div>
-          <div className="text-[16px] font-extrabold">
+          <div className="font-display text-[16px] font-extrabold">
             {missing ? `No ${thing} found` : `The ${thing} is blocked`}
           </div>
-          <p className="mt-0.5 text-[13px] leading-relaxed text-stone-500">
+          <p className="mt-1 text-caption leading-relaxed text-stone-500">
             Ethos scores what the mic hears: your pauses, pace and fillers.
             Without it there is nothing to measure.
           </p>
@@ -54,15 +54,15 @@ export function PermissionHelp({
       </div>
 
       {missing ? (
-        <p className="mt-4 text-[13.5px] leading-relaxed text-stone-600">
+        <p className="mt-4 text-[14px] leading-relaxed text-stone-600">
           This device didn&apos;t offer one. Plug in or switch on a {thing},
           then check again.
         </p>
       ) : (
         <ol className="mt-4 space-y-2">
           {steps.map((step, i) => (
-            <li key={i} className="flex gap-2.5 text-[13.5px] leading-relaxed">
-              <span className="label-data mt-0.5 shrink-0 !text-sage-700">
+            <li key={i} className="flex gap-2.5 text-[14px] leading-relaxed">
+              <span className="label-micro mt-1 shrink-0 !text-sage-700">
                 {i + 1}
               </span>
               <span className="text-stone-600">{step}</span>
@@ -73,11 +73,11 @@ export function PermissionHelp({
 
       <button
         onClick={onRecheck}
-        className="press mt-5 w-full rounded-control bg-terracotta-500 px-5 py-3.5 text-[15px] font-bold text-on-accent transition-colors hover:bg-terracotta-600"
+        className="press font-display mt-5 min-h-12 w-full rounded-control bg-terracotta-500 px-5 py-3.5 text-[15px] font-bold text-on-accent transition-colors hover:bg-terracotta-600"
       >
         Check again
       </button>
-      <p className="mt-2 text-center text-[11.5px] text-stone-400">
+      <p className="mt-2.5 text-center text-caption text-stone-400">
         {video
           ? "Audio uploads for scoring. Camera frames never leave this device."
           : "Audio uploads for scoring, nothing else."}

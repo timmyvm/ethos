@@ -75,7 +75,7 @@ export const UNITS: Unit[] = [
     unlocksAt: 0,
     lessons: lessonsFor("Filler Elimination"),
     /* docs/voice.md Part 3, verbatim. The third tactic is the one only
-       somebody who has actually done the drill would say, and it does
+       somebody who has actually done the lesson would say, and it does
        the work the old paragraph was reaching for. */
     intro: {
       title: "No fillers",

@@ -65,6 +65,47 @@ export function IconGames({ size }: { size?: number }) {
   );
 }
 
+/**
+ * Lessons — a picture in a frame, because that is what the page is: a
+ * set of fifteen commissioned pictures you choose between (#275). A
+ * book was the obvious mark and the wrong one; the product positions
+ * against courses and theory, and the lessons are practice with a face
+ * on them.
+ */
+export function IconLessons({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <rect x="3.6" y="5.6" width="16.8" height="12.8" rx="3" />
+      <path d="M4.1 15.4 8.6 10.9l3.3 3.3" />
+      <path d="M13.1 15.3 15.9 12.5l4 4" />
+    </Glyph>
+  );
+}
+
+/**
+ * Premium. An open door, not a padlock.
+ *
+ * #200 forbids "a padlock over an empty box" and #73 found that a free
+ * user SEEING the thing work is a stronger prompt than a lock over it,
+ * so a lock would draw the opposite of what the product believes. The
+ * app already calls these surfaces doors, in two files, so this is the
+ * vocabulary the codebase uses rather than a new metaphor.
+ *
+ * Two paths, on purpose: at 2.75 stroke on a 24 grid a third line turns
+ * to mud under 18px, and the budget is also what stops it growing a
+ * shackle later.
+ */
+export function IconPremium({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      {/* The leaf, swung toward you. */}
+      <path d="M13.6 3.9 5.2 6.5v11l8.4 2.6z" />
+      {/* The frame it swung out of. */}
+      <path d="M13.6 5.3h5.2v13.4h-5.2" />
+    </Glyph>
+  );
+}
+
 /** Log — rows, one per rep. */
 export function IconLog({ size }: { size?: number }) {
   return (
@@ -125,6 +166,52 @@ export function IconFlame({ size }: { size?: number }) {
     <Glyph size={size}>
       <path d="M12 3.5c.6 2.4 2 3.5 3.4 5 1.4 1.5 2.1 3 2.1 4.7a5.5 5.5 0 0 1-11 0c0-1.6.6-2.9 1.8-4" />
       <path d="M12 20.2a2.9 2.9 0 0 1-2.9-2.9c0-1.6 1.4-2.4 2.9-4.6 1.5 2.2 2.9 3 2.9 4.6a2.9 2.9 0 0 1-2.9 2.9z" />
+    </Glyph>
+  );
+}
+
+/*
+ * The four streak marks (#253). One per tier, and the change at a
+ * boundary is the whole point of having tiers: a counter that only
+ * counts has nothing to cross.
+ *
+ * They escalate as one object rather than four unrelated glyphs — a
+ * spark, then the fire it becomes, then the fire carried, then the fire
+ * others can see — so crossing a boundary reads as the same thing
+ * growing rather than a new badge arriving. `IconFlame` above is tier
+ * two and is deliberately reused: it is already the streak's mark
+ * everywhere in the app, and the tier it belongs to should be the one
+ * most people are standing in.
+ */
+
+/** Tier 1, days 1 to 9. A spark: before it is a habit at all. */
+export function IconSpark({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="M12 3.5v4M12 16.5v4M4.4 12h4M15.6 12h4M6.6 6.6l2.8 2.8M14.6 14.6l2.8 2.8M17.4 6.6l-2.8 2.8M9.4 14.6l-2.8 2.8" />
+    </Glyph>
+  );
+}
+
+/** Tier 3, days 31 to 75. A torch: the fire, carried. */
+export function IconTorch({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="M12 2.8c.5 1.9 1.7 2.8 2.7 4 1 1.2 1.5 2.3 1.5 3.6a4.2 4.2 0 0 1-8.4 0c0-1.2.5-2.2 1.4-3.1" />
+      <path d="M8.6 13.4h6.8l-1 2.2H9.6z" />
+      <path d="M10.4 15.6 11 21.2M13.6 15.6 13 21.2" />
+    </Glyph>
+  );
+}
+
+/** Tier 4, day 76 and on. A beacon: the fire others can see. */
+export function IconBeacon({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="M12 2.6c.5 1.7 1.6 2.5 2.4 3.6.8 1.1 1.2 2 1.2 3.1a3.6 3.6 0 0 1-7.2 0c0-1 .4-1.9 1.2-2.7" />
+      <path d="M7.2 13.2h9.6l1.4 3.2H5.8z" />
+      <path d="M4.2 19.4h15.6" />
+      <path d="M3.4 8.6 1.6 7.4M20.6 8.6l1.8-1.2M4.4 4.2 3.2 2.8M19.6 4.2l1.2-1.4" />
     </Glyph>
   );
 }

@@ -26,23 +26,21 @@ export const metadata: Metadata = {
 export default function Privacy() {
   return (
     <main className="px-5 pb-24 pt-10">
-      <Link href="/about" className="inline-flex min-h-11 items-center text-sm text-stone-500">
+      <Link href="/about" className="press inline-flex min-h-11 items-center text-[13px] font-semibold text-stone-500">
         ← ethos
       </Link>
       <h1 className="font-display mt-6 text-[34px] leading-[1.15]">Privacy</h1>
-      <p className="mt-2 text-[12.5px] text-stone-400">
-        Last updated 25 August 2026
-      </p>
+      <p className="mt-2 text-caption text-stone-400">Last updated 25 August 2026</p>
 
-      <p className="mt-5 text-[15px] leading-relaxed text-stone-600">
+      <p className="mt-5 text-body leading-relaxed text-stone-600">
         Ethos is speaking practice: you record yourself, the recording gets
         measured, you get feedback. That only works if we handle recordings of
         your voice, so here is exactly what happens to them, in plain words.
       </p>
 
-      <div className="mt-6 rounded-card border border-hairline bg-surface p-5">
-        <h2 className="font-display text-[19px]">Your camera never uploads</h2>
-        <p className="mt-2 text-[14px] leading-relaxed text-stone-600">
+      <div className="elev-2 mt-7 rounded-card border border-card-edge bg-raised p-4">
+        <h2 className="font-display text-lead">Your camera never uploads</h2>
+        <p className="mt-2 text-body leading-relaxed text-stone-600">
           Body-language analysis runs entirely on your device, using MediaPipe
           in your browser. Video frames never leave it, are never uploaded and
           are never stored by us. What we keep is five derived numbers (things
@@ -51,8 +49,8 @@ export default function Privacy() {
         </p>
       </div>
 
-      <h2 className="font-display mt-8 text-[19px]">Audio, and where it goes</h2>
-      <p className="mt-2 text-[14px] leading-relaxed text-stone-600">
+      <h2 className="font-display mt-8 text-lead">Audio, and where it goes</h2>
+      <p className="mt-2 text-body leading-relaxed text-stone-600">
         When you finish a recording, the audio uploads to our server to be
         scored. Two third-party AI services process it on our behalf: OpenAI
         (Whisper) turns the audio into a transcript with word timings, and
@@ -62,8 +60,8 @@ export default function Privacy() {
         AI-generated.
       </p>
 
-      <h2 className="font-display mt-8 text-[19px]">What we store</h2>
-      <ul className="mt-2 space-y-2 text-[14px] leading-relaxed text-stone-600">
+      <h2 className="font-display mt-8 text-lead">What we store</h2>
+      <ul className="mt-2 space-y-2 text-body leading-relaxed text-stone-600">
         <li>
           · Your recordings: the audio files, transcripts (including the raw
           transcription output), and the AI feedback written about them
@@ -83,37 +81,37 @@ export default function Privacy() {
           your IP address when there is no account
         </li>
       </ul>
-      <p className="mt-3 text-[14px] leading-relaxed text-stone-600">
+      <p className="mt-3 text-body leading-relaxed text-stone-600">
         Some things stay on your device only: preferences like theme and
         reminder hour, your sign-in session, and any recording waiting to
         upload.
       </p>
 
-      <h2 className="font-display mt-8 text-[19px]">Cookies and analytics</h2>
-      <p className="mt-2 text-[14px] leading-relaxed text-stone-600">
+      <h2 className="font-display mt-8 text-lead">Cookies and analytics</h2>
+      <p className="mt-2 text-body leading-relaxed text-stone-600">
         None. No analytics scripts, no advertising trackers, no third-party
         cookies. Your sign-in session is kept in your browser&apos;s own
         storage by Supabase, our database and login provider.
       </p>
 
-      <h2 className="font-display mt-8 text-[19px]">Who touches the data</h2>
-      <p className="mt-2 text-[14px] leading-relaxed text-stone-600">
+      <h2 className="font-display mt-8 text-lead">Who touches the data</h2>
+      <p className="mt-2 text-body leading-relaxed text-stone-600">
         Four processors, each doing one job: Supabase (accounts, database and
         audio storage), OpenAI (transcription), Anthropic (feedback), and
         Vercel (hosting, with standard server logs). We never sell your data
         and never share it beyond these services.
       </p>
 
-      <h2 className="font-display mt-8 text-[19px]">Practising without an account</h2>
-      <p className="mt-2 text-[14px] leading-relaxed text-stone-600">
+      <h2 className="font-display mt-8 text-lead">Practising without an account</h2>
+      <p className="mt-2 text-body leading-relaxed text-stone-600">
         You can practise before signing up. That progress is tied to an
         anonymous session in your browser; creating an account later attaches
         it to you. If you clear your browser data first, the anonymous
         progress can&apos;t be traced back to anyone, including you.
       </p>
 
-      <h2 className="font-display mt-8 text-[19px]">Keeping it, deleting it</h2>
-      <p className="mt-2 text-[14px] leading-relaxed text-stone-600">
+      <h2 className="font-display mt-8 text-lead">Keeping it, deleting it</h2>
+      <p className="mt-2 text-body leading-relaxed text-stone-600">
         We keep your data until you delete your account. Settings has a
         delete-account control that removes everything: recordings,
         transcripts, scores, progress, and the account itself. You can also
@@ -127,15 +125,15 @@ export default function Privacy() {
         for deletion, access or correction.
       </p>
 
-      <h2 className="font-display mt-8 text-[19px]">Where we operate</h2>
-      <p className="mt-2 text-[14px] leading-relaxed text-stone-600">
+      <h2 className="font-display mt-8 text-lead">Where we operate</h2>
+      <p className="mt-2 text-body leading-relaxed text-stone-600">
         Ethos is operated from Australia and handles personal information
         under the Australian Privacy Principles. If you think we&apos;ve
         handled yours badly, tell us first; if we don&apos;t sort it out, you
         can complain to the Office of the Australian Information Commissioner.
       </p>
 
-      <p className="mt-10 text-center text-[12.5px] text-stone-400">
+      <p className="mt-10 text-center text-caption text-stone-400">
         <Link href="/terms" className="font-semibold text-stone-500">
           Terms
         </Link>{" "}

@@ -1,5 +1,7 @@
 import Image from "next/image";
+import { ACTION_CLASS as BACK_TO_TODAY } from "@/lib/ui";
 import Link from "next/link";
+
 
 export default function NotFound() {
   return (
@@ -11,16 +13,11 @@ export default function NotFound() {
         height={140}
         className="demos w-[140px]"
       />
-      <h1 className="font-display mt-4 text-[22px] font-bold">
-        Nothing here.
-      </h1>
-      <p className="mt-2 max-w-[280px] text-[14px] leading-relaxed text-stone-500">
+      <h1 className="font-display mt-5 text-title">Nothing here.</h1>
+      <p className="mt-2 max-w-[280px] text-body leading-relaxed text-stone-500">
         Demos checked. Twice.
       </p>
-      <Link
-        href="/"
-        className="mt-6 w-full max-w-[300px] rounded-control bg-terracotta-500 px-6 py-4 text-base font-semibold text-on-accent press"
-      >
+      <Link href="/" className={`${BACK_TO_TODAY} mt-7 max-w-[300px]`}>
         Back to today
       </Link>
     </main>

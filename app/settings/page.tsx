@@ -179,7 +179,7 @@ export default function SettingsPage() {
   // renders, the server holds nothing and the device is being emptied.
   if (deleted) {
     return (
-      <main className="flex min-h-dvh flex-col items-center justify-center px-8 pb-24 text-center">
+      <main className="flex min-h-dvh flex-col items-center justify-center px-8 pb-22 text-center">
         <Image
           src="/demos-asleep.webp"
           alt=""
@@ -196,7 +196,7 @@ export default function SettingsPage() {
         </p>
         <Link
           href="/about"
-          className="press mt-6 text-[13.5px] font-semibold text-terracotta-700"
+          className="press mt-6 text-[13px] font-semibold text-terracotta-700"
         >
           The door stays open →
         </Link>
@@ -207,7 +207,7 @@ export default function SettingsPage() {
   const needsPermission = prefs.reminderHour !== null && perm !== "granted";
 
   return (
-    <main className="px-5 pb-24 pt-7">
+    <main className="px-5 pb-22 pt-7">
       <Link href="/you" className="inline-flex min-h-11 items-center text-[13px] font-semibold text-stone-400">
         ← You
       </Link>
@@ -216,7 +216,7 @@ export default function SettingsPage() {
       {/* Reminders first: it's the habit lever, so it's the one thing
           people come back here to change. */}
       <Section title="Reminders">
-        <p className="pb-2.5 text-[12.5px] leading-relaxed text-stone-500">
+        <p className="pb-2.5 text-caption text-stone-500">
           One notification a day, maximum. It names the streak, never scolds
           you for missing it.
         </p>
@@ -242,7 +242,7 @@ export default function SettingsPage() {
             not a tap, so it stays a quiet line. */}
         {needsPermission &&
           (perm === "denied" ? (
-            <p className="pb-3 text-[12.5px] leading-relaxed text-stone-500">
+            <p className="pb-3 text-caption text-stone-500">
               Notifications are blocked for this site in your browser
               settings. Nothing can fire until that changes.
             </p>
@@ -256,7 +256,7 @@ export default function SettingsPage() {
           ))}
 
         {prefs.reminderHour !== null && perm === "granted" && (
-          <p className="pb-3 text-[12.5px] leading-relaxed text-stone-500">
+          <p className="pb-3 text-caption text-stone-500">
             <span className="font-semibold text-ink">
               {fireAt
                 ? `Next: ${fireAt.toLocaleString(undefined, {
@@ -361,7 +361,7 @@ export default function SettingsPage() {
           <div className="py-3">
             <Link
               href="/signup"
-              className="press font-display flex min-h-11 w-full items-center justify-between rounded-control border border-stone-200 bg-surface px-4 py-[11px] text-[13.5px] font-bold hover:bg-sand"
+              className="press font-display flex min-h-11 w-full items-center justify-between rounded-control border border-edge bg-surface px-4 py-3 text-[14px] font-bold hover:bg-sand"
             >
               <span>Create an account</span>
               <span aria-hidden className="text-stone-300">
@@ -376,11 +376,11 @@ export default function SettingsPage() {
                 await signOut();
                 window.location.href = "/";
               }}
-              className="press font-display min-h-11 w-full rounded-control border border-stone-200 bg-surface px-4 py-[11px] text-[13.5px] font-bold hover:bg-sand"
+              className="press font-display min-h-11 w-full rounded-control border border-edge bg-surface px-4 py-3 text-[14px] font-bold hover:bg-sand"
             >
               Sign out
             </button>
-            <p className="mt-1.5 text-[11.5px] text-stone-400">
+            <p className="mt-1.5 text-caption text-stone-400">
               Signing out empties this device until you sign back in. Nothing
               is deleted.
             </p>
@@ -393,11 +393,11 @@ export default function SettingsPage() {
           <button
             onClick={() => void exportData()}
             disabled={exporting}
-            className="press font-display min-h-11 w-full rounded-control border border-stone-200 bg-surface px-4 py-[11px] text-[13.5px] font-bold hover:bg-sand disabled:opacity-50"
+            className="press font-display min-h-11 w-full rounded-control border border-edge bg-surface px-4 py-3 text-[14px] font-bold hover:bg-sand disabled:opacity-50"
           >
             {exporting ? "Building your file…" : "Export everything as JSON"}
           </button>
-          <p className="mt-1.5 text-[11.5px] leading-relaxed text-stone-400">
+          <p className="mt-1.5 text-caption leading-relaxed text-stone-400">
             Every recording, transcript, score and lexicon entry. Yours to
             take. Audio is stored so the numbers can be recomputed as the
             engine improves.
@@ -435,12 +435,12 @@ export default function SettingsPage() {
               setConfirmText("");
               setDeleteError(null);
             }}
-            className="press font-display min-h-11 w-full rounded-control border border-stone-200 bg-surface px-4 py-[11px] text-[13.5px] font-bold text-rust hover:bg-sand"
+            className="press font-display min-h-11 w-full rounded-control border border-edge bg-surface px-4 py-3 text-[14px] font-bold text-rust hover:bg-sand"
           >
             Delete my account
           </button>
         ) : (
-          <div className="rounded-card border border-edge bg-raised p-4">
+          <div className="elev-1 rounded-card border border-card-edge bg-raised p-4">
             <p className="text-[13px] font-semibold leading-relaxed">
               This deletes every recording, transcript, score, streak and the
               account itself. There is no undo.
@@ -454,10 +454,10 @@ export default function SettingsPage() {
               onChange={(e) => setConfirmText(e.target.value)}
               autoComplete="off"
               placeholder="DELETE"
-              className="mt-1.5 w-full rounded-control border border-stone-200 bg-raised px-4 py-2.5 text-[14px] font-semibold placeholder:text-stone-400 focus:border-stone-300"
+              className="mt-1.5 w-full rounded-control border border-edge bg-surface px-4 py-2.5 text-[14px] font-semibold placeholder:text-stone-400 focus:border-terracotta-500"
             />
             {deleteError && (
-              <p role="alert" className="mt-2 text-[12.5px] font-semibold text-rust">
+              <p role="alert" className="mt-2 text-caption font-semibold text-rust">
                 {deleteError}
               </p>
             )}
@@ -465,14 +465,14 @@ export default function SettingsPage() {
               <button
                 onClick={() => void runDelete()}
                 disabled={confirmText.trim() !== "DELETE" || deleting}
-                className="press font-display min-h-11 flex-1 rounded-control border border-stone-200 bg-surface px-4 py-2.5 text-[13px] font-bold text-rust disabled:opacity-40"
+                className="press font-display min-h-11 flex-1 rounded-control border border-edge bg-surface px-4 py-2.5 text-[13px] font-bold text-rust disabled:opacity-40"
               >
                 {deleting ? "Deleting…" : "Delete everything"}
               </button>
               <button
                 onClick={() => setArming(false)}
                 disabled={deleting}
-                className="press font-display min-h-11 flex-1 rounded-control border border-stone-200 bg-surface px-4 py-2.5 text-[13px] font-bold hover:bg-sand"
+                className="press font-display min-h-11 flex-1 rounded-control border border-edge bg-surface px-4 py-2.5 text-[13px] font-bold hover:bg-sand"
               >
                 Keep it
               </button>
@@ -498,7 +498,7 @@ function Section({
 }) {
   return (
     <section className="mt-7">
-      <h2 className="label-data border-t border-hairline pb-1 pt-3.5">
+      <h2 className="label-data border-t border-hairline pb-1 pt-3">
         {title}
       </h2>
       {children}
@@ -528,13 +528,13 @@ function Toggle({
       role="switch"
       aria-checked={on}
       onClick={() => onChange(!on)}
-      className="press flex w-full items-start gap-3 border-b border-hairline py-3 text-left"
+      className="press flex w-full items-start gap-3 border-b border-hairline py-3 text-left last:border-b-0"
     >
       <span className="flex-1">
         <span className="font-display block text-[14px] font-bold">
           {label}
         </span>
-        <span className="mt-0.5 block text-[12.5px] leading-relaxed text-stone-500">
+        <span className="mt-0.5 block text-caption text-stone-500">
           {note}
         </span>
       </span>
@@ -586,7 +586,7 @@ function Choice({
       className={`press font-display min-h-11 rounded-control border px-3.5 text-[13px] font-bold tabular-nums transition-colors ${
         selected
           ? "border-ink bg-ink text-ground"
-          : "border-stone-200 bg-surface text-stone-600 hover:bg-sand"
+          : "border-edge bg-surface text-stone-600 hover:bg-sand"
       } ${className}`}
     >
       {children}
@@ -605,7 +605,7 @@ function InfoRow({
   note?: string;
 }) {
   return (
-    <div className="border-b border-hairline py-3">
+    <div className="border-b border-hairline py-3 last:border-b-0">
       <div className="flex items-baseline justify-between gap-3">
         <span className="font-display min-w-0 truncate text-[14px] font-bold">
           {label}
@@ -617,7 +617,7 @@ function InfoRow({
         )}
       </div>
       {note && (
-        <p className="mt-0.5 text-[12.5px] leading-relaxed text-stone-500">
+        <p className="mt-0.5 text-caption text-stone-500">
           {note}
         </p>
       )}
@@ -646,13 +646,13 @@ function LinkRow({
           {label}
         </span>
         {note && (
-          <span className="mt-0.5 block text-[12.5px] leading-relaxed text-stone-500">
+          <span className="mt-0.5 block text-caption text-stone-500">
             {note}
           </span>
         )}
       </span>
       {value && (
-        <span className="shrink-0 text-[12.5px] text-stone-400">{value}</span>
+        <span className="shrink-0 text-caption text-stone-400">{value}</span>
       )}
       <span aria-hidden className="shrink-0 text-stone-300">
         →
@@ -661,7 +661,7 @@ function LinkRow({
   );
 
   const className =
-    "press flex min-h-11 w-full items-center gap-3 border-b border-hairline py-3 text-left";
+    "press flex min-h-11 w-full items-center gap-3 border-b border-hairline py-3 text-left last:border-b-0";
 
   return external ? (
     <a href={href} className={className}>

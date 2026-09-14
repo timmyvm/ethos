@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { CountUp } from "@/components/CountUp";
 import { IconFreeze } from "@/components/Icon";
 import { Skeleton, SkeletonRegion } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -26,6 +27,7 @@ import {
   SHOP,
   type ShopItem,
 } from "@/lib/shop";
+import { DURATION } from "@/lib/motion";
 import { MAX_EQUIPPED_FREEZES } from "@/lib/streak";
 import { buzz, readPrefs, writePrefs } from "@/lib/prefs";
 
@@ -44,6 +46,16 @@ export default function ShopPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [pose, setPose] = useState<string | null>(null);
+  /*
+   * The item bought in this visit (#242). A purchase swaps the card's
+   * button for a different one in the same slot — "Buy" becomes "On
+   * your card", or the last freeze turns the door into a state line —
+   * and a swap in place is the one thing that has to come from
+   * somewhere. The new button arrives from 6px below, out of the tap
+   * that produced it; a card whose button was already in that state
+   * when the screen opened stays still.
+   */
+  const [bought, setBought] = useState<string | null>(null);
 
   /*
    * A balance is the one number in the app that must never be guessed:
@@ -103,13 +115,14 @@ export default function ShopPage() {
     const res = await spendCoins(reasonFor(item), item.price);
     if (res.ok) {
       buzz([20, 40, 20]);
+      setBought(item.id);
       // A cosmetic that changes nothing until you find a second switch
       // is a cosmetic that reads as broken. Buying equips it.
       if (item.kind === "cosmetic") equip(item.id);
       setNote(
         item.kind === "cosmetic"
           ? `${item.name} bought, and on your card.`
-          : `${item.name} bought.`
+          : `${item.name} bought.`,
       );
       await refresh();
     } else {
@@ -118,15 +131,21 @@ export default function ShopPage() {
       setNote(
         res.detail === "not enough coins"
           ? "Not enough coins yet."
-          : "That didn't go through. Your coins are untouched."
+          : "That didn't go through. Your coins are untouched.",
       );
     }
     setBusy(null);
   }
 
   return (
-    <main className="px-5 pb-24 pt-7">
-      <Link href="/you" className="inline-flex min-h-11 items-center text-[13px] font-semibold text-stone-400">
+    <main className="px-5 pb-22 pt-7">
+      {/* A 44px target with no pressed state is a target that reads as
+          dead, so the way back answers the finger like every other tap
+          (#240). */}
+      <Link
+        href="/you"
+        className="press inline-flex min-h-11 items-center text-[13px] font-semibold text-stone-400"
+      >
         ← You
       </Link>
 
@@ -154,7 +173,12 @@ export default function ShopPage() {
             )
           ) : (
             <span className="font-display text-[20px] font-extrabold leading-none tabular-nums">
-              {coins}
+              {/* The balance LANDS: the ledger read replaces a skeleton
+                  here, and every price below is an argument against
+                  this number, so it counts up into place rather than
+                  appearing already counted. It also re-counts after a
+                  purchase, which is where the coins went. */}
+              <CountUp value={coins} durationMs={DURATION.max} />
             </span>
           )}
         </span>
@@ -162,14 +186,16 @@ export default function ShopPage() {
       {/* The earning rule moved here from under the balance on /you: a
           day you spoke pays once however many reps you did, which is the
           fact that makes the prices below mean something. */}
-      <p className="mt-1.5 text-[13px] leading-relaxed text-stone-500">
+      <p className="mt-1.5 text-caption text-stone-500">
         One coin a day you speak.
       </p>
 
+      {/* The note is a card, not an outlined strip: it says the same
+          thing the items say, so it stands on the same step (#234). */}
       {note && (
         <p
           key={note}
-          className="arrive mt-4 rounded-control border border-edge bg-raised px-4 py-3 text-[13px] font-semibold"
+          className="arrive elev-1 mt-7 rounded-card border border-card-edge bg-raised p-4 text-[14px] font-bold"
         >
           {note}
         </p>
@@ -177,39 +203,61 @@ export default function ShopPage() {
 
       {failed ? (
         <ErrorState
-          className="mt-5"
+          className="arrive mt-7"
           {...readFailure("Your coins")}
           onRetry={() => void refresh()}
         />
       ) : ledger === null ? (
-        <SkeletonRegion label="Loading the shop" className="mt-5 space-y-3">
-          {[0, 1, 2].map((i) => (
+        /* The skeleton carries the card's shadow and the button's full
+           44px, or it is the layout shift it exists to prevent. */
+        <SkeletonRegion
+          label="Loading the shop"
+          className="mt-7 flex flex-col gap-3"
+        >
+          {/* One skeleton card per item, not three for four: a
+              placeholder that reserves the wrong height IS the layout
+              shift it exists to prevent (#234). */}
+          {SHOP.map((item) => (
             <div
-              key={i}
-              className="rounded-card border border-edge bg-raised p-4"
+              key={item.id}
+              className="elev-1 rounded-card border border-card-edge bg-raised p-4"
             >
               <Skeleton className="h-4 w-32" />
               <Skeleton className="mt-2.5 h-3 w-full" />
-              <Skeleton className="mt-3 h-9 w-full" rounded="rounded-control" />
+              <Skeleton
+                className="mt-3 h-11 w-full"
+                rounded="rounded-control"
+              />
             </div>
           ))}
         </SkeletonRegion>
       ) : (
-        <div className="mt-5 space-y-3">
+        /* The four cards replace the skeleton on one read, so they
+           assemble rather than appear whole (#242): 40ms apart, top
+           down, the order they are priced in. */
+        <div className="stagger mt-7 flex flex-col gap-3">
           {SHOP.map((item) => {
             const state = canBuy(
               item,
               coins,
               owned,
               equipped,
-              MAX_EQUIPPED_FREEZES
+              MAX_EQUIPPED_FREEZES,
             );
-            const isOwned =
-              item.kind === "cosmetic" && owned.ids.has(item.id);
+            const isOwned = item.kind === "cosmetic" && owned.ids.has(item.id);
+            /* A purchase in flight disables every other door, so those
+               doors have to LOOK shut: one disabled value, and a button
+               that is not tappable never wears the earned fill (#234). */
+            const filled = state.ok && (busy === null || busy === item.id);
+            /* The tap this button came out of, if it was one. The key
+               goes with it so the element mounts fresh and the arrival
+               plays; without it React keeps the old node and the label
+               simply changes under the finger. */
+            const justBought = bought === item.id;
             return (
               <div
                 key={item.id}
-                className="rounded-card border border-edge bg-raised p-4"
+                className="elev-1 rounded-card border border-card-edge bg-raised p-4"
               >
                 {/* You can see what you're buying. A cosmetic sold as a
                     name and a price is a cosmetic bought blind, which is
@@ -224,13 +272,17 @@ export default function ShopPage() {
                       className="demos h-[46px] w-[46px] shrink-0 object-contain"
                     />
                   ) : (
-                    <span className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-card border border-sage-300 text-sage-700">
+                    /* An earned tile, so it is a CONTROL at 12 on the
+                       surface step. At 16 it matched the card's own
+                       radius, and an outline at the same radius inside
+                       an outlined card is a double line (#234). */
+                    <span className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-control border border-sage-300 bg-surface text-sage-700">
                       <IconFreeze size={20} />
                     </span>
                   )}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-3">
-                      <span className="font-display text-[15px] font-extrabold">
+                      <span className="font-display text-[14px] font-bold">
                         {item.name}
                       </span>
                       {/* The price wears the coin as a small ring; an
@@ -244,12 +296,12 @@ export default function ShopPage() {
                           aria-hidden
                           className="inline-block h-[7px] w-[7px] shrink-0 rounded-full border-[1.5px] border-current"
                         />
-                        <span className="font-display text-[15px] font-extrabold tabular-nums">
+                        <span className="font-display text-[14px] font-extrabold tabular-nums">
                           {item.price}
                         </span>
                       </span>
                     </div>
-                    <p className="mt-1 text-[12.5px] leading-relaxed text-stone-500">
+                    <p className="mt-1 text-caption text-stone-500">
                       {item.blurb}
                     </p>
                   </div>
@@ -259,17 +311,21 @@ export default function ShopPage() {
                      only thing left to decide: whether it's the one on
                      your card. */
                   <button
+                    key={justBought ? "equip-bought" : "equip"}
                     onClick={() => equip(pose === item.id ? null : item.id)}
-                    className={`press font-display mt-3 w-full rounded-control px-5 py-2.5 text-[13px] font-bold transition-colors ${
+                    className={`press font-display mt-3 min-h-11 w-full rounded-control border border-sage-300 px-5 py-2.5 text-[14px] font-bold text-sage-700 transition-colors ${
+                      justBought ? "arrive " : ""
+                    }${
                       pose === item.id
-                        ? "border border-sage-300 bg-sage-100 text-sage-700"
-                        : "border border-sage-300 text-sage-700 hover:bg-sage-100"
+                        ? "bg-sage-100"
+                        : "bg-surface hover:bg-sage-100"
                     }`}
                   >
                     {pose === item.id ? "On your card" : "Put it on the card"}
                   </button>
                 ) : (
                   <button
+                    key={justBought ? "buy-bought" : "buy"}
                     onClick={() => void buy(item)}
                     disabled={!state.ok || busy !== null}
                     /*
@@ -283,10 +339,21 @@ export default function ShopPage() {
                      * olive-filled when it opens, an outline when the
                      * coins aren't there yet (#131, #201).
                      */
-                    className={`press font-display mt-3 w-full rounded-control px-5 py-2.5 text-[13px] font-bold transition-colors ${
-                      state.ok
-                        ? "bg-sage-700 text-sage-ink hover:bg-sage-800"
-                        : "border border-stone-200 bg-surface text-stone-400"
+                    /*
+                     * A door you cannot walk through is not drawn as a
+                     * door (#234's look loop). "3 more to go" and
+                     * "You're holding the maximum 3" wore the same
+                     * full-width bordered box as Buy, so two of the four
+                     * cards advertised a tap that does nothing. They are
+                     * states, so they read as a line: same slot, same
+                     * height, no frame.
+                     */
+                    className={`font-display mt-3 min-h-11 w-full rounded-control px-5 py-2.5 text-[14px] font-bold transition-colors ${
+                      justBought ? "arrive " : ""
+                    }${
+                      filled
+                        ? "press bg-sage-700 text-sage-ink hover:bg-sage-800"
+                        : "text-stone-400"
                     }`}
                   >
                     {busy === item.id
@@ -301,7 +368,6 @@ export default function ShopPage() {
           })}
         </div>
       )}
-
     </main>
   );
 }

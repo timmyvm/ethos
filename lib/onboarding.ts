@@ -50,12 +50,28 @@ export const WELCOME_STEPS = [
 ] as const;
 
 /**
- * The five questions after the introduction (DECISIONS #232), one per
- * screen, every answer a tap, Skip on every one. Same template, same
- * budget (lib/copy.test.ts reads these). The answers and what they do
- * live in lib/answers.ts and content/portfolio.ts.
+ * The seven questions after the introduction (DECISIONS #232, #249),
+ * one per screen, Skip on every one. Same template, same budget
+ * (lib/copy.test.ts reads these). The answers and what they do live in
+ * lib/answers.ts and content/portfolio.ts.
+ *
+ * The NAME goes first, and it is the walk's only typed answer. First
+ * rather than last because a name given at the start is spent on six
+ * screens and one given at the end is spent on one, and because this
+ * is the only place in the whole app where the mascot is introduced by
+ * name: the ask is reciprocal rather than a form field. Skip keeps
+ * every no-name line working.
+ *
+ * The TIME goes last, after the answers and before the plan, and it
+ * asks for no permission (content/portfolio.ts, TIMES).
  */
 export const QUESTIONS = [
+  {
+    id: "name",
+    title: "What do I call you?",
+    line: "I'm Demos, by the way.",
+    essential: false,
+  },
   {
     id: "ageBand",
     title: "How old are you?",
@@ -86,7 +102,19 @@ export const QUESTIONS = [
     line: "Optional.",
     essential: false,
   },
+  {
+    id: "time",
+    title: "When do you want your minute?",
+    line: "Pick when you'd actually do it.",
+    essential: false,
+  },
 ] as const;
+
+/** The name field's own furniture: it is the one answer you type. */
+export const NAME_FIELD = {
+  placeholder: "First name",
+  label: "Your name",
+} as const;
 
 export type QuestionId = (typeof QUESTIONS)[number]["id"];
 

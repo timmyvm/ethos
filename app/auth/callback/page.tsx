@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { ACTION_CLASS } from "@/components/LessonScreen";
 import { sessionState } from "@/lib/auth";
 
 /**
@@ -32,7 +33,7 @@ export default function CallbackPage() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center px-5 text-center">
       {state === "waiting" && (
-        <p className="text-[15px] text-stone-500">Confirming…</p>
+        <p className="text-body text-stone-500">Confirming…</p>
       )}
 
       {state === "ok" && (
@@ -44,17 +45,12 @@ export default function CallbackPage() {
             height={140}
             className="demos w-[140px]"
           />
-          <h1 className="font-display mt-6 text-[28px] font-bold leading-tight">
-            You&apos;re in.
-          </h1>
-          <p className="mt-3 max-w-[300px] text-[15px] leading-relaxed text-stone-500">
+          <h1 className="font-display mt-6 text-title">You&apos;re in.</h1>
+          <p className="mt-3 max-w-[300px] text-body leading-relaxed text-stone-500">
             {email ? `${email} is confirmed.` : "Your email is confirmed."}{" "}
             Everything you&apos;ve already recorded came with you.
           </p>
-          <Link
-            href="/"
-            className="press mt-7 w-full max-w-[320px] rounded-control bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-on-accent"
-          >
+          <Link href="/" className={`${ACTION_CLASS} mt-7 max-w-[320px]`}>
             Back to the floor
           </Link>
         </>
@@ -62,17 +58,14 @@ export default function CallbackPage() {
 
       {state === "stale" && (
         <>
-          <h1 className="font-display text-[26px] font-bold leading-tight">
+          <h1 className="font-display text-title">
             That link has already been used.
           </h1>
-          <p className="mt-3 max-w-[300px] text-[15px] leading-relaxed text-stone-500">
+          <p className="mt-3 max-w-[300px] text-body leading-relaxed text-stone-500">
             Confirmation links work once. If you&apos;ve already confirmed,
             just sign in.
           </p>
-          <Link
-            href="/signin"
-            className="press mt-7 w-full max-w-[320px] rounded-control bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-on-accent"
-          >
+          <Link href="/signin" className={`${ACTION_CLASS} mt-7 max-w-[320px]`}>
             Sign in
           </Link>
         </>

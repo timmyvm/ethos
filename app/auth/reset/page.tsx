@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { FIELD_CLASS, FormError } from "@/components/AuthForm";
+import { ACTION_CLASS } from "@/components/LessonScreen";
+import { DISABLED_CLASS } from "@/lib/ui";
 import { sessionState, setNewPassword } from "@/lib/auth";
 
 /**
@@ -66,31 +69,28 @@ function ResetScreen() {
 
   return (
     <main className="flex min-h-dvh flex-col px-5 pb-10 pt-7">
-      <div className="font-display text-[22px] font-bold">ethos</div>
+      <div className="font-display text-lead font-extrabold">ethos</div>
 
       {done ? (
         <>
-          <h1 className="font-display mt-8 text-[30px] font-bold leading-tight">
+          <h1 className="font-display mt-7 text-title">
             {first ? "It's yours." : "Done."}
           </h1>
-          <p className="mt-3 text-[15px] leading-relaxed text-stone-500">
+          <p className="mt-3 text-body leading-relaxed text-stone-500">
             {first
               ? "Account live, password saved. Your recordings, your streak and your lexicon are attached on this device and any other you sign in on."
               : "New password saved. Your recordings, your streak and your lexicon are exactly where you left them."}
           </p>
-          <Link
-            href="/"
-            className="press mt-6 block w-full rounded-control bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-on-accent"
-          >
+          <Link href="/" className={`${ACTION_CLASS} mt-6`}>
             Back to the floor
           </Link>
         </>
       ) : ready === false ? (
         <>
-          <h1 className="font-display mt-8 text-[30px] font-bold leading-tight">
+          <h1 className="font-display mt-7 text-title">
             That link has expired.
           </h1>
-          <p className="mt-3 text-[15px] leading-relaxed text-stone-500">
+          <p className="mt-3 text-body leading-relaxed text-stone-500">
             {first
               ? "Save links last an hour and work once. Your recordings are still on your device, so send yourself a fresh one."
               : "Reset links last an hour and work once. Nothing has happened to your account, so ask for a fresh one."}
@@ -99,24 +99,27 @@ function ResetScreen() {
             /* An unconfirmed email can't receive a reset mail — the
                fresh link for the first-password flow is a fresh save. */
             href={first ? "/signup" : "/auth/forgot"}
-            className="press mt-6 block w-full rounded-control bg-terracotta-500 px-6 py-4 text-center text-[17px] font-semibold text-on-accent"
+            className={`${ACTION_CLASS} mt-6`}
           >
             Send a new link
           </Link>
         </>
       ) : (
         <>
-          <h1 className="font-display mt-8 text-[30px] font-bold leading-tight">
+          <h1 className="font-display mt-7 text-title">
             {first ? "Last step. Pick your password." : "Pick a new password."}
           </h1>
           {first && (
-            <p className="mt-2 text-[13.5px] leading-relaxed text-stone-500">
+            <p className="mt-3 text-body leading-relaxed text-stone-500">
               Email confirmed, recordings attached. This is what signs you in
               anywhere.
             </p>
           )}
-          <form onSubmit={submit} className="mt-5">
-            <label className="label-data" htmlFor="password">
+          <form
+            onSubmit={submit}
+            className="elev-2 mt-6 rounded-card border border-card-edge bg-raised p-4"
+          >
+            <label className="label-micro" htmlFor="password">
               {first ? "Password" : "New password"}
             </label>
             <input
@@ -127,17 +130,13 @@ function ResetScreen() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="8 characters or more"
-              className="mt-1.5 w-full rounded-control border border-stone-200 bg-surface px-5 py-3.5 text-[16px] placeholder:text-stone-400 focus:border-stone-300"
+              className={FIELD_CLASS}
             />
-            {error && (
-              <p className="mt-4 rounded-card bg-terracotta-50 px-4 py-3 text-[13.5px] text-terracotta-700">
-                {error}
-              </p>
-            )}
+            {error && <FormError>{error}</FormError>}
             <button
               type="submit"
               disabled={busy || ready === null}
-              className="press mt-5 w-full rounded-control bg-terracotta-500 px-6 py-4 text-[17px] font-semibold text-on-accent disabled:opacity-60"
+              className={`${ACTION_CLASS} ${DISABLED_CLASS} mt-5`}
             >
               {busy ? "Saving…" : "Save it"}
             </button>

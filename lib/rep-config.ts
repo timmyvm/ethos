@@ -11,6 +11,7 @@
 
 import { COLD_TOPICS, weeklyTopic, type ColdTopic } from "./cold-topics";
 import { DRILLS, todaysDrill } from "./drills";
+import { lessonById } from "@/content/lessons";
 import {
   dailyQuestion,
   gameById,
@@ -177,8 +178,87 @@ export function resolveRepConfig(
     };
   }
 
-  const drill =
-    DRILLS.find((d) => d.id === input.lesson) ?? todaysDrill(now);
+  /*
+   * AN UNKNOWN LESSON ID IS NOT TODAY'S DRILL.
+   *
+   * This used to be `DRILLS.find(...) ?? todaysDrill(now)`, and the
+   * fallback was silent, which made it a data bug rather than a
+   * cosmetic one. `/practice/[trait]` has been sending
+   * `?lesson=trait-pause` since #258; that matches no drill, so every
+   * recording made from the five trait walks showed an unrelated
+   * prompt AND filed its star against whichever drill the rotation
+   * happened to be on. Stars move unit gates, so a lesson nobody did
+   * was opening doors.
+   *
+   * An id we do not recognise is now NAMESPACED rather than guessed at:
+   * `practice:trait-pause` can never collide with a drill id, so the
+   * star lands on the thing that was actually done and the road's
+   * per-lesson counts stop being credited with work nobody did. The
+   * prompt falls back to the rotation, which is a real approved prompt
+   * rather than a blank.
+   */
+  /*
+   * A LESSON PRACTICE, when `lesson` names one of content/lessons.ts
+   * and `q` says which of its three. `lessonId` is namespaced so
+   * lib/lesson-progress.ts can read the practice back out of the log:
+   * there is no progress table, and a counter that can drift from the
+   * recordings would.
+   */
+  const lesson = lessonById(input.lesson);
+  if (lesson) {
+    const n = Math.min(
+      Math.max(1, Number(input.q) || 1),
+      lesson.practices.length
+    );
+    const practice = lesson.practices[n - 1];
+    /* The practice's own mod on top of whatever the screen had on.
+       Always the FREE one on a lesson's last practice, so finishing a
+       lesson never needs a subscription (#14). */
+    const withMod = parseMods(
+      [...(input.mods ?? []), ...(practice.mods ?? [])].join(","),
+      { premium: input.premium }
+    );
+    const tightNow = withMod.some((m) => m.effect === "tight-timer");
+    return {
+      ...base,
+      mods: withMod,
+      hidePrompt: withMod.some((m) => m.effect === "hide-prompt"),
+      crowdNoise: withMod.some((m) => m.effect === "crowd-noise"),
+      interrupt: withMod.some((m) => m.effect === "interrupt"),
+      kind: "daily",
+      lessonId: `lesson:${lesson.id}:${n}`,
+      unit: lesson.title,
+      title: lesson.title,
+      prompt: practice.prompt,
+      tips: practice.tips,
+      maxSeconds: tightNow ? TIGHT_MAX_SECONDS : DAILY_MAX_SECONDS,
+      xpMultiplier: xpMultiplier(withMod),
+      topic: null,
+      rouletteTopic: null,
+    };
+  }
+
+  const drill = input.lesson
+    ? (DRILLS.find((d) => d.id === input.lesson) ?? null)
+    : todaysDrill(now);
+
+  if (!drill) {
+    const rotation = todaysDrill(now);
+    return {
+      ...base,
+      kind: "daily",
+      lessonId: `practice:${input.lesson}`,
+      unit: rotation.unit,
+      title: rotation.title,
+      prompt: rotation.prompt,
+      tips: rotation.tips,
+      maxSeconds: tight ? TIGHT_MAX_SECONDS : DAILY_MAX_SECONDS,
+      xpMultiplier: xpMultiplier(mods),
+      topic: null,
+      rouletteTopic: null,
+    };
+  }
+
   return {
     ...base,
     kind: "daily",
@@ -189,7 +269,7 @@ export function resolveRepConfig(
     maxSeconds: tight ? TIGHT_MAX_SECONDS : DAILY_MAX_SECONDS,
     xpMultiplier: xpMultiplier(mods),
     topic: null,
-    // The lesson's own technique, not the generic shape tips: a drill
+    // The lesson's own technique, not the generic shape tips: a lesson
     // that names a target without saying how to hit it is a test.
     tips: drill.tips,
     rouletteTopic: null,
@@ -205,6 +285,13 @@ export function repHref(opts: {
   /** The drawn question, so a shared game link repeats the same rep. */
   q?: string;
   mods?: string[];
+  /**
+   * Where the recorder hands control back (#258). A lesson sends
+   * somebody out to record and needs them to land on its own last
+   * screen rather than on the floor, because the change it is about to
+   * show is the point of the lesson.
+   */
+  back?: string;
 }): string {
   const q = new URLSearchParams();
   if (opts.boss) q.set("boss", opts.boss);
@@ -212,8 +299,15 @@ export function repHref(opts: {
     q.set("game", opts.game);
     if (opts.q) q.set("q", opts.q);
   } else if (opts.topic) q.set("topic", opts.topic);
-  else if (opts.lesson) q.set("lesson", opts.lesson);
+  else if (opts.lesson) {
+    q.set("lesson", opts.lesson);
+    /* A lesson practice carries WHICH of its three. `q` used to be
+       bound to the game branch alone, so a lesson could only ever
+       send its first. */
+    if (opts.q) q.set("q", opts.q);
+  }
   if (opts.mods?.length) q.set("mods", opts.mods.join(","));
+  if (opts.back) q.set("back", opts.back);
   const s = q.toString();
   return s ? `/rep?${s}` : "/rep";
 }

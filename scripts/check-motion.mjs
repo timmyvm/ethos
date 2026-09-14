@@ -110,6 +110,17 @@ const context = await browser.newContext({
 });
 await context.route("http://supabase.local/**", supabase);
 await context.route("**/api/analyze", async (route) => { await sleep(1400); reps.push(repRow); await route.fulfill(json(analyze)); });
+/*
+ * The dev tools button is labelled "Next", so `getByRole("button", {
+ * name: "Next" })` matches it as well as the carousel's own control and
+ * the run dies on a strict-mode violation. Hiding the overlay also stops
+ * its portal swallowing pointer events whenever a route fails to build.
+ */
+await context.addInitScript(() => {
+  const css = document.createElement("style");
+  css.textContent = "nextjs-portal{display:none!important}";
+  document.addEventListener("DOMContentLoaded", () => document.head.appendChild(css));
+});
 const page = await context.newPage();
 page.on("pageerror", (e) => console.log("PAGEERROR", page.url(), e.message.slice(0, 80)));
 
@@ -162,7 +173,7 @@ ok("focus returns to the opener", (focused ?? "").startsWith("Crowd noise"), foc
 await sleep(400);
 
 // 3. The rep: ring grows out of the button; phases arrive; the debrief lands its values.
-await page.getByRole("link", { name: /Take the floor|→/ }).first().click();
+await page.getByRole("link", { name: /Take the floor/ }).first().click();
 await page.waitForURL(/\/(lesson|rep)/);
 if (page.url().includes("/lesson/")) {
   await sleep(500);
@@ -173,7 +184,9 @@ await page.waitForSelector('button[aria-label="Start recording"]');
 let ring = await anim(page, ".rec-ring");
 ok("ring is hidden before recording", ring.opacity === "0", ring.opacity);
 await sleep(600);
-await page.click('button[aria-label="Start recording"]');
+// The Record button breathes while it waits (#242), so the
+// actionability check would wait for a stillness that never comes.
+await page.click('button[aria-label="Start recording"]', { force: true });
 await page.waitForSelector('button[aria-label="Stop and score this recording"]');
 await sleep(350);
 ring = await anim(page, '.rec-ring[data-on="true"]');
@@ -181,7 +194,7 @@ ok("ring grows out of the button on Record", ring.opacity === "1" && (ring.trans
 a = await anim(page, "main .arrive");
 ok("recording phase arrives as one block", a.name === "arrive", a.name);
 await sleep(3000);
-await page.click('button[aria-label="Stop and score this recording"]');
+await page.click('button[aria-label="Stop and score this recording"]', { force: true });
 await page.waitForSelector('[role="status"].arrive');
 ok("scoring wait arrives", true);
 const dialogP = page.waitForSelector('[role="dialog"][aria-label="1 day in a row"]', { timeout: 8000 });

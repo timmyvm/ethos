@@ -48,7 +48,7 @@ export function PauseBar({
   if (durationS > cursor) speech(durationS - cursor);
 
   return (
-    <div className="rounded-card bg-stage px-4 pb-3.5 pt-4">
+    <div className="card-stage elev-1 rounded-card px-4 pb-3.5 pt-4">
       <div className="label-data !text-cream/60">
         Pause bar · sage = silence you earned
       </div>
@@ -58,7 +58,7 @@ export function PauseBar({
             return (
               <span
                 key={i}
-                className="min-w-[2px] shrink rounded-[3px] bg-cream/40"
+                className="min-w-[2px] shrink bg-cream/40"
                 style={{ flex: "0 1 5px", height: 16 + Math.min(34, s.len * 11) }}
               />
             );
@@ -67,7 +67,7 @@ export function PauseBar({
             return (
               <span
                 key={i}
-                className="h-1.5 min-w-[3px] shrink rounded-full bg-cream/40"
+                className="h-1.5 min-w-[3px] shrink bg-cream/40"
                 style={{ flex: "0 1 6px" }}
               />
             );
@@ -78,7 +78,7 @@ export function PauseBar({
           return (
             <span
               key={i}
-              className={`h-3 min-w-[8px] shrink rounded-full ${
+              className={`h-3 min-w-[8px] shrink ${
                 earned ? "bg-sage-500" : "bg-cream/30"
               }`}
               style={{ flex: `0 1 ${Math.min(34, 12 + s.len * 10)}px` }}
@@ -87,8 +87,8 @@ export function PauseBar({
         })}
       </div>
       <div className="mt-2 flex gap-4">
-        <span className="label-data !text-sage-mist">● landed a point</span>
-        <span className="label-data !text-cream/60">● searching</span>
+        <span className="label-micro !text-sage-mist">● landed a point</span>
+        <span className="label-micro !text-cream/60">● searching</span>
       </div>
     </div>
   );

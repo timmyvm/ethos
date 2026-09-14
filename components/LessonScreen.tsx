@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { IconChevron } from "@/components/Icon";
+import { ACTION_CLASS, DISABLED_CLASS } from "@/lib/ui";
 
 /**
  * The one shape every explanation screen takes (docs/voice.md, Part 2).
@@ -49,6 +50,18 @@ export interface LessonBodyProps {
   title: string;
   /** ONE sentence of what this is. */
   line?: string;
+  /**
+   * Demos answering the thing you just did (#249), in the line's slot.
+   *
+   * It REPLACES `line` rather than joining it, because a question's
+   * description and its answer are the same sentence at two moments,
+   * and stacking them leaves the question explaining itself after it
+   * has been answered. Full ink rather than the line's stone, since it
+   * is the newest thing on the screen, and keyed so a different answer
+   * arrives rather than swaps: the whole screen must NOT re-animate on
+   * a tap, so this one paragraph carries its own entrance.
+   */
+  reply?: string;
   /** Tactics, 2 to 3. The technique, not encouragement. */
   howTo?: string[];
   /**
@@ -72,6 +85,16 @@ export interface LessonBodyProps {
   /** A caption under the title block: the reason, carrying its number. */
   note?: string;
   /**
+   * The tactics land one at a time instead of all at once (#249).
+   *
+   * Opt-in rather than always, because these lists sit inside a block
+   * that is often arriving itself, and two clocks on one list is a
+   * collision. Where it IS set, the ladder is held back by the parent's
+   * own duration (`--stagger-lead`) so the block lands first and the
+   * lines land after it: the shape a result is supposed to have.
+   */
+  ladder?: boolean;
+  /**
    * Centre the text block. The floor's card takes it (#212, Timothy's
    * call): that card is one announcement over one button, and a
    * left-ragged stack above a full-width tap reads as the top of a list
@@ -94,10 +117,12 @@ export function LessonBody({
   eyebrow,
   title,
   line,
+  reply,
   howTo,
   howToLabel = "How to do this",
   why,
   note,
+  ladder = false,
   lead = "title",
   align = "left",
 }: LessonBodyProps) {
@@ -122,14 +147,25 @@ export function LessonBody({
         {title}
       </h1>
 
-      {line && (
+      {reply ? (
         <p
-          className={`text-body text-stone-500 ${howToLeads ? "mt-1" : "mt-2"} ${
+          key={reply}
+          className={`arrive text-body ${howToLeads ? "mt-1" : "mt-2"} ${
             centred ? "mx-auto" : ""
           }`}
         >
-          {line}
+          {reply}
         </p>
+      ) : (
+        line && (
+          <p
+            className={`text-body text-stone-500 ${howToLeads ? "mt-1" : "mt-2"} ${
+              centred ? "mx-auto" : ""
+            }`}
+          >
+            {line}
+          </p>
+        )
       )}
 
       {note && <p className="mt-1.5 text-caption text-stone-400">{note}</p>}
@@ -147,7 +183,10 @@ export function LessonBody({
              * mass is what survives a blur, and what the reader is
              * here to act on should be what survives.
              */
-            <ol className="mt-3 space-y-4">
+            <ol
+              className={`mt-3 space-y-4 ${ladder ? "stagger" : ""}`}
+              style={ladder ? { "--stagger-lead": "260ms" } as React.CSSProperties : undefined}
+            >
               {tactics.map((tactic, i) => (
                 <li key={tactic} className="flex gap-3.5">
                   <span
@@ -161,16 +200,31 @@ export function LessonBody({
               ))}
             </ol>
           ) : (
-            <ul className="mt-2 space-y-2">
-              {tactics.map((tactic) => (
-                <li key={tactic} className="flex gap-2.5 text-body">
-                  <span aria-hidden className="shrink-0 text-stone-300">
-                    ·
+            /*
+             * The same grammar one size down, not a different one
+             * (#249). This branch used to be a `·` bullet list, and the
+             * plan screen is its only caller: three lines that are a
+             * SEQUENCE — day one, then the first number, then the unit
+             * — read as a sequence when they are counted and as a heap
+             * when they are dotted. So the ordered column stays and
+             * only the type size steps back.
+             */
+            <ol
+              className={`mt-3 space-y-3 ${ladder ? "stagger" : ""}`}
+              style={ladder ? { "--stagger-lead": "260ms" } as React.CSSProperties : undefined}
+            >
+              {tactics.map((tactic, i) => (
+                <li key={tactic} className="flex gap-3.5 text-body">
+                  <span
+                    aria-hidden
+                    className="font-display w-4 shrink-0 text-[12px] font-extrabold text-sage-700 tabular-nums"
+                  >
+                    {i + 1}
                   </span>
-                  <span>{tactic}</span>
+                  <span className="min-w-0">{tactic}</span>
                 </li>
               ))}
-            </ul>
+            </ol>
           )}
         </div>
       )}
@@ -185,7 +239,9 @@ export function LessonScreen({
   fineprint,
   art,
   aside,
+  controls,
   footer,
+  header,
   center = false,
   stepKey,
   onBack,
@@ -204,8 +260,31 @@ export function LessonScreen({
    * button. Not prose.
    */
   aside?: ReactNode;
+  /**
+   * The answers to the question above: rows you tap, a field you type
+   * in. Interactive, never prose (#249).
+   *
+   * Distinct from `aside` because it is CONTENT, and content belongs in
+   * the flow under the line that introduced it. Putting a question's
+   * answers in the bottom-anchored slot left a variable gap between the
+   * question and the thing that answers it, which is the one place on a
+   * screen a gap must never be; anchored here, the slack falls at the
+   * bottom above the button, where nobody reads it as a missing piece.
+   */
+  controls?: ReactNode;
   /** Below the action: the secondary door (skip, sign in). Not prose. */
   footer?: ReactNode;
+  /**
+   * On the back row, at the very top: where you are in a walk (#249).
+   *
+   * It cannot live in `aside`, which is anchored above the action, or a
+   * progress bar rides up and down with the height of whatever sits
+   * under it — across seven questions that is the one element that must
+   * not move, because it is the whole answer to "how much of this is
+   * left". Top-anchored beside the way out is Duolingo's own shape and
+   * the reason it works: both of a walk's exits in one row.
+   */
+  header?: ReactNode;
   /**
    * Centre the block in the space above the action.
    *
@@ -227,18 +306,21 @@ export function LessonScreen({
 }) {
   return (
     <main className="pb-safe flex min-h-dvh flex-col px-5 pt-7">
-      {onBack && (
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex min-h-11 items-center self-start text-sm text-stone-500"
-        >
-          ← back
-        </button>
+      {(onBack || header) && (
+        <div className="flex items-center gap-4">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="press -ml-1 inline-flex min-h-11 shrink-0 items-center px-1 text-sm text-stone-500"
+            >
+              ← back
+            </button>
+          )}
+          {header && <div className="min-w-0 flex-1">{header}</div>}
+        </div>
       )}
-      <div
-        className={`flex flex-1 flex-col ${center ? "justify-center" : ""}`}
-      >
+      <div className={`flex flex-1 flex-col ${center ? "justify-center" : ""}`}>
         {/* A flex column like its parent, so the art and the text block
             stay flex items (the art centres with `mx-auto`) whether or
             not the wrapper is animating. */}
@@ -248,6 +330,7 @@ export function LessonScreen({
         >
           {art}
           <LessonBody {...body} />
+          {controls && <div className="mt-7">{controls}</div>}
         </div>
       </div>
 
@@ -263,7 +346,7 @@ export function LessonScreen({
             type="button"
             onClick={action.onPress}
             disabled={action.disabled}
-            className={`${ACTION_CLASS} disabled:opacity-40`}
+            className={`${ACTION_CLASS} ${DISABLED_CLASS}`}
           >
             {action.label}
           </button>
@@ -281,10 +364,17 @@ export function LessonScreen({
   );
 }
 
-/** #201's button grammar: a 12px rectangle, cream on terracotta, no pill. */
-const ACTION_CLASS =
-  "press font-display block min-h-12 w-full rounded-control bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-on-accent transition-colors hover:bg-terracotta-600";
-
+/**
+ * The one tap, in one place (#201's grammar, #234's numbers): a
+ * `rounded-control` rectangle, ink on terracotta, 48px tall, no border
+ * and no shadow — the colour is the lift.
+ *
+ * Exported because Today and the roulette declare the same button
+ * outside this template, and they had drifted into three spellings of
+ * it: a transparent 1px border and no min-height on the floor, neither
+ * on the roulette, and this one here. One constant, one button.
+ */
+export 
 /**
  * The theory slot.
  *
@@ -322,3 +412,8 @@ function WhyThisWorks({ children }: { children?: ReactNode }) {
     </div>
   );
 }
+
+/* Re-exported so the seven screens importing it from here keep
+   working; the string itself lives in lib/ui.ts, which a server
+   component can read. */
+export { ACTION_CLASS };

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useEffect, useRef } from "react";
 
 /**
  * Demos on the introduction's screens (DECISIONS #233): one full-body
@@ -20,8 +21,10 @@ export type Pose =
   | "fingers"
   | "telescope"
   | "listening"
-  | "dumbbell"
+  | "mic"
   | "headphones"
+  | "clock"
+  | "hello"
   | "clipboard";
 
 /** The loop each pose runs (globals.css, `.demos-*`). */
@@ -32,14 +35,53 @@ const LOOP: Record<Pose, string> = {
   fingers: "demos-idle",
   telescope: "demos-idle",
   listening: "demos-tilt",
-  dumbbell: "demos-idle",
+  mic: "demos-idle",
   headphones: "demos-idle",
+  clock: "demos-idle",
+  hello: "demos-sway",
   clipboard: "demos-breath",
 };
 
-export function DemosArt({ pose, size = 180 }: { pose: Pose; size?: number }) {
+export function DemosArt({
+  pose,
+  size = 180,
+  nodKey,
+}: {
+  pose: Pose;
+  size?: number;
+  /**
+   * Change this and he nods (#249). It is the answer they just gave, so
+   * picking the same row twice does nothing and picking a different one
+   * always lands.
+   *
+   * The nod goes on the WRAPPER, never on the art: the art is running
+   * its pose loop, and two animations on one `transform` fight. And it
+   * is restarted by removing the class, forcing a reflow and putting it
+   * back, rather than by remounting — a remounted `next/image` is a
+   * flash for the sake of a 460ms dip.
+   */
+  nodKey?: string | number;
+}) {
+  const frame = useRef<HTMLDivElement>(null);
+  const first = useRef(true);
+
+  useEffect(() => {
+    // Not on mount: the screen already has an entrance, and a nod on
+    // arrival is a reaction to nothing.
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    const el = frame.current;
+    if (!el || nodKey === undefined || nodKey === "") return;
+    el.classList.remove("demos-nod");
+    void el.offsetWidth;
+    el.classList.add("demos-nod");
+  }, [nodKey]);
+
   return (
     <div
+      ref={frame}
       className="relative mx-auto mb-6 shrink-0"
       style={{ width: size, height: size }}
       aria-hidden

@@ -15,9 +15,11 @@ import {
   CONTEXTS,
   GOALS,
   LEVELS,
+  OPENING,
   PAINS,
   PLAN_LINES,
   PORTFOLIO_RULES_VERSION,
+  TIMES,
   type Pool,
 } from "@/content/portfolio";
 import { type Answers, type PainId, readOnboarding } from "./answers";
@@ -27,6 +29,14 @@ import { spin, TOPICS, type Topic } from "./topics";
 export interface Portfolio {
   headline: string;
   line: string;
+  /** What Demos calls them, or null if they skipped it. */
+  name: string | null;
+  /**
+   * Demos's first line to them, in place of `line` on the plan screen.
+   * Built from the name and the first thing they said they notice, and
+   * degrading to a shorter true sentence when either is missing.
+   */
+  opening: string;
   /** The three lines of the screen template, in order. */
   lines: string[];
   /** What was noticed first, and where the road trains it. */
@@ -39,7 +49,7 @@ export interface Portfolio {
     unlocksAt: number;
   } | null;
   boss: { id: keyof typeof BOSSES; name: string; href: string; line: string } | null;
-  settings: { frameStep: boolean; intros: boolean };
+  settings: { frameStep: boolean; intros: boolean; reminderHour: number | null };
   pool: Pool;
   rulesVersion: number;
 }
@@ -65,9 +75,21 @@ export function buildPortfolio(a: Answers, units: Unit[] = UNITS): Portfolio {
     ? { id: goal.boss, ...BOSSES[goal.boss], line: PLAN_LINES.boss(BOSSES[goal.boss].name) }
     : null;
 
+  const name = a.name;
+  const opening =
+    name !== null && pain !== null
+      ? OPENING.full(name, pain.said)
+      : name === null && pain !== null
+        ? OPENING.noName(pain.said)
+        : name !== null
+          ? OPENING.noPain(name)
+          : OPENING.none;
+
   return {
     headline: goal?.headline ?? PLAN_LINES.headlineDefault,
     line: PLAN_LINES.line,
+    name,
+    opening,
     lines,
     focus:
       pain && unit
@@ -84,6 +106,9 @@ export function buildPortfolio(a: Answers, units: Unit[] = UNITS): Portfolio {
     settings: {
       frameStep: level?.frameStep ?? false,
       intros: level?.intros ?? true,
+      // null covers both "no reminder" and "never answered": the
+      // outcome is the same, so the walk does not need them apart here.
+      reminderHour: TIMES.find((t) => t.id === a.time)?.hour ?? null,
     },
     pool: poolFor(a),
     rulesVersion: PORTFOLIO_RULES_VERSION,

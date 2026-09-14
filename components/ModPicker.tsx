@@ -1,5 +1,6 @@
 "use client";
 
+import { PremiumMark } from "@/components/PremiumMark";
 import {
   MAX_STACKED_MODS,
   STRESS_MODS,
@@ -13,7 +14,7 @@ import {
  *
  * The multiplier shown is XP, and the card says so: mods buy effort
  * credit, never stars (DECISIONS #10, #16). Two at a time; a third
- * stacked mod is a stunt, not training.
+ * stacked mod is a stunt, not practice.
  */
 export function ModPicker({
   selected,
@@ -45,14 +46,14 @@ export function ModPicker({
   const full = selected.length >= MAX_STACKED_MODS;
 
   return (
-    <div className="rounded-card border border-edge bg-raised p-4">
+    <div className="elev-1 rounded-card border border-card-edge bg-raised p-4">
       <div className="flex items-baseline justify-between">
         <div className="label-data">Stress mods · optional</div>
         {multiplier > 1 && (
           <div className="label-data !text-sage-700">×{multiplier} XP</div>
         )}
       </div>
-      <p className="mt-1.5 text-[12.5px] leading-relaxed text-stone-500">
+      <p className="mt-1.5 text-caption leading-relaxed text-stone-500">
         Harder conditions, same measurement. A mod multiplies XP, never a
         star or the Index.
       </p>
@@ -67,33 +68,29 @@ export function ModPicker({
               key={mod.id}
               onClick={() => toggle(mod)}
               disabled={disabled}
-              className={`flex w-full items-start gap-3 rounded-control border p-3 text-left transition-colors ${
+              className={`press flex w-full items-start gap-3 rounded-control border p-3 text-left transition-colors ${
                 on
-                  ? "border-ink bg-ink text-ground"
+                  ? "border-sage-300 bg-sage-100"
                   : disabled
-                    ? "border-hairline bg-surface opacity-40"
-                    : "border-stone-200 bg-surface"
+                    ? "border-edge bg-surface !text-stone-300"
+                    : "border-edge bg-surface"
               }`}
             >
               <span className="flex-1">
-                <span className="block text-[14px] font-semibold">
+                <span className="font-display block text-[14px] font-bold">
                   {mod.name}
-                  {locked && (
-                    <span className="ml-1.5 text-[11.5px] font-normal opacity-70">
-                      premium
-                    </span>
-                  )}
+                  {locked && <PremiumMark />}
                 </span>
                 <span
-                  className={`mt-0.5 block text-[12.5px] leading-relaxed ${
-                    on ? "text-ground/70" : "text-stone-500"
+                  className={`mt-0.5 block text-caption leading-relaxed ${
+                    on ? "text-sage-800" : "text-stone-500"
                   }`}
                 >
                   {mod.blurb}
                 </span>
               </span>
               <span
-                className={`label-data shrink-0 ${on ? "!text-sage-700" : ""}`}
+                className={`label-micro shrink-0 ${on ? "!text-sage-700" : ""}`}
               >
                 ×{mod.xpMultiplier}
               </span>
@@ -103,8 +100,8 @@ export function ModPicker({
       </div>
 
       {full && (
-        <p className="mt-2.5 text-[12px] text-stone-400">
-          Two at a time. Anything more is a stunt, not training.
+        <p className="mt-2.5 text-caption text-stone-400">
+          Two at a time. Anything more is a stunt.
         </p>
       )}
     </div>

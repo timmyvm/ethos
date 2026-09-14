@@ -52,6 +52,39 @@
    * green that reads on deep sage. Never swaps, same reason. */
   --color-sage-lit: #a9c37f;
 
+  /*
+   * Plum, the premium tier, and the only thing it ever means (#280).
+   *
+   * Premium was marked nine different ways across the app, most often
+   * as the lowercase word "premium" in stone-400, and three of those
+   * nine borrowed a colour that already meant something: terracotta
+   * (tap) on the Presence card, sage (earned) on the boss's spin quota.
+   * That second one was saying something untrue. Money buys cosmetics
+   * and never progress, so the colour of what money buys cannot be the
+   * colour of what you earn.
+   *
+   * 700 is premium TEXT, 300 its border, 50/100 its wash. There is
+   * deliberately NO plum fill role: terracotta owns the press, plum
+   * owns the label, and a premium card with an action is a plum card
+   * with a terracotta button on it.
+   *
+   * Hue 288 rather than a redder plum, which collapses onto terracotta
+   * for a tritanope. Every one of these is reached through a Tailwind
+   * utility (`text-plum-700`, `bg-plum-50`, `border-plum-300`), which is
+   * what keeps them in the build: v4 drops any @theme variable no
+   * utility references, and #265 is the shipped bug that proves it.
+   */
+  --color-plum-50: #f7edf6;
+  --color-plum-100: #f0dfee;
+  --color-plum-200: #e3c9e1;
+  --color-plum-300: #caa4c9;
+  --color-plum-400: #a670ab;
+  --color-plum-500: #8a4a95;
+  --color-plum-600: #743d80;
+  --color-plum-700: #62336c;
+  --color-plum-800: #522b5b;
+  --color-plum-900: #3c2043;
+
   /* The one colour allowed to say "wrong direction" on a data delta
    * (#195). `rust-lit` is its step for the dark surfaces (score card,
    * comparison card) — never swaps, like sage-lit. */
@@ -80,13 +113,21 @@
    * outline with nothing inside it is not a box, it's a diagram.
    */
   --color-ground: #f5ead8;
-  --color-surface: #faf3e3;
-  --color-raised: #faf3e3;
+  --color-surface: #fbf4e6;
+  --color-raised: #fffaf1;
   --color-ink: #201e1d;
   /* Row separators. */
   --color-hairline: rgba(32, 30, 29, 0.08);
-  /* Card outlines — one step firmer than a hairline. */
+  /*
+   * Two border jobs, two tokens (the one-system pass, #234). `edge` is
+   * a RULE: the road's thread, the log's column rules, an input's
+   * boundary. `card-edge` is the hairline ON a card, under its shadow —
+   * fainter, because the shadow and the surface step are already saying
+   * "this is lifted" and a third signal on a 350px card is the "too
+   * much" read.
+   */
   --color-edge: rgba(32, 30, 29, 0.14);
+  --color-card-edge: rgba(32, 30, 29, 0.09);
   /* The dark material the rep-loop signature moments sit on (pause
    * bar, comparison card). Warm, never #000. The score card is NOT
    * stage — it sits on sage-900. */
@@ -115,13 +156,23 @@
   --color-stone-900: #201e1d;
 
   /*
-   * Shape (#201, one scale in #231): controls 10, cards 12, sheets and
-   * the largest surfaces 16. Chips are the only pills. `rounded-control`,
-   * `rounded-card`, `rounded-sheet`; never a bracketed pixel radius.
+   * Shape (#201, one scale in #231, one step warmer in #234): controls
+   * 12, cards 16, sheets and the largest surfaces 20. Chips are the only
+   * pills, Record is the only circle, the nav is the only square edge.
+   * `rounded-control`, `rounded-card`, `rounded-sheet`; never a bracketed
+   * pixel radius.
+   *
+   * No concentric arithmetic: a control keeps 12 wherever it sits and a
+   * card inside a sheet keeps 16. Computing inner = outer − inset gives
+   * 0 at every one of this app's paddings, which is how the 4px corner
+   * on the coach bubble happened.
+   *
+   * Bars are the exception and they are SQUARE, trough and fill: the
+   * instrument reading against the soft corners (#201).
    */
-  --radius-control: 10px;
-  --radius-card: 12px;
-  --radius-sheet: 16px;
+  --radius-control: 12px;
+  --radius-card: 16px;
+  --radius-sheet: 20px;
 
   /*
    * Motion (DESIGN-RULES, motion; DECISIONS #221). These mirror
@@ -133,8 +184,30 @@
    */
   --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  /* Overshoots ~6% and settles: the curve a finger expects on release
+   * (lib/motion.ts EASE_SPRING; the test keeps the two equal). */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --default-transition-duration: 120ms;
   --default-transition-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/*
+ * The trough a PROVISIONAL ring draws, dashed (DECISIONS #252, #264).
+ *
+ * One step firmer than `sand` on purpose: a dashed stroke carries about
+ * half the ink of a solid one at the same colour, so matching the solid
+ * trough's contrast makes the dashes read as an absence rather than as
+ * a mark. The dash is the app saying "this scale is an estimate" in the
+ * picture rather than in a footnote, and it has to survive a glance.
+ *
+ * In a plain `:root` and NOT in `@theme`, because Tailwind v4 drops any
+ * theme variable no utility class references. Declared in there it
+ * vanished from the light build, `var()` resolved to nothing, and the
+ * trough computed to `stroke: none` — an invisible honesty signal,
+ * which is worse than a loud one.
+ */
+:root {
+  --color-sand-dashed: #ddc99c;
 }
 
 /*
@@ -211,11 +284,18 @@ body {
   --color-surface: #241c15;
   --color-raised: #2e251c;
   --color-sand: #3b2f22;
+  /* Lifted further here than in light. On the dark card the solid
+     trough is already close to the surface it sits on, and the dashed
+     one at the same value disappeared entirely. */
+  --color-sand-dashed: #6b5636;
   --color-stage: #120e0b;
   --color-ink: #f3ecdd;
   --color-hairline: rgba(243, 236, 221, 0.08);
-  /* One notch firmer than light: an outline on dark needs it. */
+  /* One notch firmer than light: an outline on dark needs it. Dark
+   * leans on the edge harder than light does, because a black shadow on
+   * a near-black ground carries less than a surface step. */
   --color-edge: rgba(243, 236, 221, 0.16);
+  --color-card-edge: rgba(243, 236, 221, 0.12);
 
   /* Light washes become dark washes of the same hue; the accent-text
    * steps lift to the peach that reads on them. */
@@ -238,7 +318,26 @@ body {
   --color-sage-900: #313a24;
   --color-sage-ink: #211a13;
 
-  --color-rust: #e6b48c;
+  /* Plum in dark, the same inversion terracotta and sage take: the
+     washes become dark washes of the same hue and the text steps lift
+     to the lilac that reads on them. */
+  --color-plum-50: #2d1930;
+  --color-plum-100: #382038;
+  --color-plum-200: #46284a;
+  --color-plum-300: #6a3f6f;
+  --color-plum-400: #8f5f96;
+  --color-plum-500: #b273bd;
+  --color-plum-600: #c48cce;
+  --color-plum-700: #d4a8e8;
+  --color-plum-800: #d4a8e8;
+  --color-plum-900: #2a1730;
+
+  /* Rust was #e6b48c in dark — the same hex as terracotta-700, so a
+   * form error and an accent link were indistinguishable, and the one
+   * colour allowed to say "wrong direction" said "tap here" instead.
+   * Redder and more saturated than the accent peach, 7.4:1 on the dark
+   * ground (#244). */
+  --color-rust: #e08a6a;
 
   --color-stone-100: rgba(243, 236, 221, 0.07);
   --color-stone-200: rgba(243, 236, 221, 0.14);
@@ -265,18 +364,40 @@ body {
 }
 
 /*
- * Section eyebrows — the Instrument register: 11px, 700, tracked wide,
+ * Section eyebrows — the Instrument register: 11px, 700, tracked,
  * uppercase, muted. `.section-title` and `.label-data` converge on it
  * on purpose: the handoff has ONE label voice, and a section heading
  * earns its rank from the hairline above it and the space around it.
  * Both keep their names so the reskin is a restyle, not a rename.
+ *
+ * TWO registers now, not five (#234). The tree had this at 11/0.14em,
+ * the log's month at 9/0.1em, the PRO chip at 9.5/0.06em, the heatmap
+ * heads at 9px and the nav at 11/0.06em: five sizes of one idea, which
+ * reads as a broken eyebrow rather than five voices. `.label-data` is
+ * the SECTION eyebrow, one per section; `.label-micro` is everything
+ * smaller — column heads, chips, the log's month, nav labels, a tile's
+ * label inside a card.
+ *
+ * Tracking drops from 0.14em to 0.10em. At 11px, 0.14em is spec-sheet
+ * tracking: it put "INDEX" at 44px inside a 44px column and wrapped
+ * "HELD PAUSES" onto two lines in a tile 84px wide.
  */
 .section-title,
 .label-data {
   font-family: var(--font-display-face), sans-serif;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-stone-400);
+  font-variant-numeric: tabular-nums;
+}
+
+.label-micro {
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-stone-400);
   font-variant-numeric: tabular-nums;
@@ -296,12 +417,101 @@ body {
 }
 
 /*
- * Elevation: none. The Instrument system has NO shadows anywhere in-app
- * — depth is a 1px `edge` outline, a hairline, or the `raised` surface
- * step, and the current item is a 1.5px terracotta border on raised. The
- * old `.lift*` shadow tiers are gone rather than zeroed so a stray
- * usage does nothing.
+ * Elevation (#234). The Instrument system had NO shadows and depth was a
+ * 1px outline on a `raised` step — except `raised` and `surface` were
+ * the same hex, so the step measured 1.00:1 and every box on every
+ * screen was an ink rectangle on paper. That is the whole "not premium"
+ * read: an outline says "here is a boundary", a shadow says "this is
+ * nearer to you", and only one of those is depth.
+ *
+ * Three levels, named for the job. Job 2 extends this to the full 0-3
+ * scale with press-drop; these are its first three rungs.
+ *
+ *   .elev-1  a card, sitting on the ground
+ *   .elev-2  the ONE lifted thing on a screen: today's lesson, the
+ *            level card, anything holding the primary action
+ *   .elev-3  floating: sheets, the Record button, toasts
+ *
+ * Tinted from the ground's own hue (37°), never grey-black: a neutral
+ * shadow on cream reads as dirt. In dark they go black, because
+ * rgb(52,40,20) has a HIGHER luminance than the #1a1410 ground — a warm
+ * shadow there is a glow, which is the opposite of depth.
+ *
+ * Plain custom properties rather than @theme entries on purpose: the
+ * dark theme has to be able to redefine them, and a `shadow-*` utility
+ * can inline its value at build time.
  */
+:root {
+  --shadow-1: 0 1px 2px rgba(52, 40, 20, 0.05), 0 6px 16px rgba(52, 40, 20, 0.08);
+  --shadow-2: 0 2px 4px rgba(52, 40, 20, 0.06), 0 14px 32px rgba(52, 40, 20, 0.12);
+  --shadow-3: 0 4px 8px rgba(52, 40, 20, 0.08), 0 24px 48px rgba(52, 40, 20, 0.16);
+}
+
+:root[data-theme="dark"] {
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35), 0 6px 16px rgba(0, 0, 0, 0.3);
+  --shadow-2: 0 2px 6px rgba(0, 0, 0, 0.4), 0 14px 32px rgba(0, 0, 0, 0.45);
+  --shadow-3: 0 4px 10px rgba(0, 0, 0, 0.45), 0 24px 48px rgba(0, 0, 0, 0.55);
+}
+
+/*
+ * Level 0 is the ground and needs no class: the room, a hairline, a
+ * list row, a bar in its trough. `.elev-0` exists anyway, because a
+ * pressed level 1 has to have somewhere to drop TO, and because a
+ * surface that deliberately sits flat beside lifted ones (the score
+ * card on Today) should be able to say so.
+ */
+.elev-0 {
+  box-shadow: none;
+}
+.elev-1 {
+  box-shadow: var(--shadow-1);
+}
+.elev-2 {
+  box-shadow: var(--shadow-2);
+}
+.elev-3 {
+  box-shadow: var(--shadow-3);
+}
+
+/*
+ * Press drops one level, release springs back (#240).
+ *
+ * This is the whole "it responds to your hand" feeling in four rules:
+ * under a finger a card is pushed toward the paper, and when the finger
+ * leaves it comes back past where it started and settles. Down is
+ * 60ms on the plain curve, because contact is not an animation; up is
+ * the base duration on the spring.
+ *
+ * A control at level 0 has nothing to drop, so the scale and the veil
+ * are its whole press. That is deliberate: a text link that cast a
+ * shadow on release would be inventing depth it never had.
+ */
+.press.elev-3:active {
+  box-shadow: var(--shadow-2);
+}
+.press.elev-2:active {
+  box-shadow: var(--shadow-1);
+}
+.press.elev-1:active {
+  box-shadow: none;
+}
+
+/*
+ * Arrival for a level 2 surface: it comes in from 6px below AND from
+ * 1.5% small, so the thing that matters on a screen appears to rise
+ * into place rather than slide into it. Everything else keeps the
+ * plain `.arrive`; two things rising at once is nothing rising.
+ */
+@keyframes arrive-lift {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+}
+
+.arrive-lift {
+  animation: arrive-lift var(--duration-max) var(--ease-spring) backwards;
+}
 
 /*
  * The score card's material: deep sage in both themes (#165 — the
@@ -309,13 +519,39 @@ body {
  * paywall sheet wears it too, #171). In dark the ground closes in on
  * it, so it gets a hairline in the sage-dim step instead.
  */
+/*
+ * The score card is level 2 (Job 2's brief names it): the number IS the
+ * brand, so the surface carrying it is important wherever it lands —
+ * the second focal point on Today, the hero of the log.
+ *
+ * Two level-2 surfaces on Today does not break "one loud thing",
+ * because they are not competing in the same channel: the floor card is
+ * lifted PAPER and this is a different MATERIAL, deep sage against the
+ * cream room. The rule that matters is that only one of them is white.
+ */
 .card-score {
   background: var(--color-sage-900);
   border: 1px solid transparent;
+  box-shadow: var(--shadow-2);
 }
 
 :root[data-theme="dark"] .card-score {
   border-color: var(--color-sage-300);
+}
+
+/*
+ * The other deep material: the pause bar and the comparison card. On
+ * cream it separates itself; on the dark ground #120e0b against #1a1410
+ * is 1.6:1, which is a panel you have to go looking for. Same trick as
+ * the score card, one step of cream.
+ */
+.card-stage {
+  background: var(--color-stage);
+  border: 1px solid transparent;
+}
+
+:root[data-theme="dark"] .card-stage {
+  border-color: var(--color-card-edge);
 }
 
 /*
@@ -401,24 +637,57 @@ body::after {
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
 
-/* Press feedback: a tap should feel like it landed. The lift half of
- * the old pair is retired with the shadows; a pressed card darkens its
- * border instead (set border-color per element; it animates here). */
-@media (hover: none) {
-  .press:active {
-    transform: scale(0.985);
-  }
+/*
+ * Press feedback: a tap should feel like it landed (#234).
+ *
+ * This used to be a 0.985 scale on touch devices only, plus an animated
+ * `border-color` "a pressed card darkens its border" — and once cards
+ * stopped being outlined boxes there was no border left to darken, so
+ * the pressed state was invisible on exactly the surfaces people press.
+ *
+ * The veil is a background-IMAGE rather than a background-color or a
+ * box-shadow on purpose: it layers over whatever fill the element
+ * already has (terracotta, sage, raised, nothing at all), it is clipped
+ * by the element's own radius, and it leaves the card's box-shadow
+ * alone. The scale now runs on every pointer type, because a mouse
+ * deserves to feel it land too.
+ */
+:root {
+  --press-veil: rgba(32, 30, 29, 0.05);
 }
+:root[data-theme="dark"] {
+  --press-veil: rgba(243, 236, 221, 0.06);
+}
+
+.press:active {
+  transform: scale(0.985);
+  background-image: linear-gradient(var(--press-veil), var(--press-veil));
+}
+
 .press {
   transition:
-    transform var(--duration-fast) var(--ease-out),
+    transform var(--duration-base) var(--ease-spring),
+    box-shadow var(--duration-base) var(--ease-spring),
     background-color var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out);
+}
+
+/* Down is contact, not animation. */
+.press:active {
+  transition-duration: 60ms;
+  transition-timing-function: var(--ease-out);
 }
 
 :root[data-motion="reduce"] .press,
 :root[data-motion="reduce"] .press:active {
   transform: none;
+}
+
+/* Reduced motion keeps the drop — it is a state, and the state is
+ * true — but lands it instantly instead of easing to it. */
+:root[data-motion="reduce"] .press {
+  transition-property: background-color, border-color, box-shadow;
+  transition-duration: 0s;
 }
 
 /*
@@ -471,6 +740,171 @@ body::after {
 }
 .fade-in {
   animation: fade-in var(--duration-base) var(--ease-out) backwards;
+}
+
+/*
+ * The page push (#242). Nothing cuts: a screen arrives from the
+ * direction you travelled, so the app has a left and a right and you
+ * always know which way you went.
+ *
+ * It is a push rather than a cross-fade because a fade says "something
+ * replaced this" and a push says "you moved". The outgoing screen is
+ * already gone by the time React paints the new one, so what ships is
+ * the incoming half: 24px of travel with the opacity ramp finished in
+ * the first third, which reads as motion rather than as a dissolve.
+ */
+@keyframes push-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  40% {
+    opacity: 1;
+  }
+}
+@keyframes push-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+.push-right {
+  animation: push-from-right var(--duration-max) var(--ease-out) backwards;
+}
+.push-left {
+  animation: push-from-left var(--duration-max) var(--ease-out) backwards;
+}
+
+/*
+ * Lists mount with a stagger (#242): the rows land one after another,
+ * 40ms apart, so a list assembles itself instead of appearing whole.
+ *
+ * The step is capped at the eighth child. The road is 29 rows and a
+ * true stagger down all of them would take 1.2 seconds, by which point
+ * it is not an entrance, it is a loading bar.
+ *
+ * `nth-child` rather than a `--i` on every row, because a stagger that
+ * needs an inline style on each child is a stagger nobody applies to
+ * the second list.
+ */
+.stagger > * {
+  animation: arrive var(--duration-base) var(--ease-out) backwards;
+}
+/*
+ * `--stagger-lead` holds the whole ladder back (#249). A list inside a
+ * block that is itself arriving has two clocks running at once, and the
+ * rows pop out of step with the slide carrying them. Set the lead to
+ * the parent's own duration and the block lands first, then the rows
+ * land one at a time, which is a shape rather than a collision.
+ * Defaults to 0ms, so every existing stagger is untouched.
+ */
+.stagger > *:nth-child(1) {
+  animation-delay: var(--stagger-lead, 0ms);
+}
+.stagger > *:nth-child(2) {
+  animation-delay: calc(var(--stagger-lead, 0ms) + 40ms);
+}
+.stagger > *:nth-child(3) {
+  animation-delay: calc(var(--stagger-lead, 0ms) + 80ms);
+}
+.stagger > *:nth-child(4) {
+  animation-delay: calc(var(--stagger-lead, 0ms) + 120ms);
+}
+.stagger > *:nth-child(5) {
+  animation-delay: calc(var(--stagger-lead, 0ms) + 160ms);
+}
+.stagger > *:nth-child(6) {
+  animation-delay: calc(var(--stagger-lead, 0ms) + 200ms);
+}
+.stagger > *:nth-child(7) {
+  animation-delay: calc(var(--stagger-lead, 0ms) + 240ms);
+}
+.stagger > *:nth-child(n + 8) {
+  animation-delay: calc(var(--stagger-lead, 0ms) + 280ms);
+}
+
+/*
+ * The ring (#252). One closed loop wherever a number has a ceiling.
+ *
+ * The arc's LENGTH is what transitions, not its opacity or its scale,
+ * so a value that changes travels around the ring from where it was:
+ * `pathLength=1` makes the dash units the fraction itself, and the
+ * browser interpolates `stroke-dasharray` between two lengths for free.
+ *
+ * Slower than the app's other transitions on purpose. A percentile is
+ * the one number in Ethos a person has never seen before, and 900ms is
+ * about as long as you can hold someone watching a value arrive before
+ * it stops being an arrival and starts being a wait.
+ */
+.ring-loop .ring-arc {
+  transition: stroke-dasharray 900ms var(--ease-out), stroke 200ms var(--ease-out);
+}
+
+/*
+ * Thinking. The whole ring breathes while a value is being computed,
+ * so a screen that is working never reads as a screen that is broken.
+ * Opacity only: a ring that changed size while thinking would be
+ * reporting a value it does not have yet.
+ */
+@keyframes ring-think {
+  from {
+    opacity: 0.45;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.ring-thinking {
+  animation: ring-think 900ms var(--ease-in-out) infinite alternate;
+}
+
+/*
+ * Closing. The one-shot when a loop completes: a small lift out of the
+ * page and back, on the spring. This is the only 3D the app does, and
+ * it is spent here because closure is the moment the research says to
+ * spend it on (docs/closure.md).
+ */
+@keyframes ring-close {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.ring-closing {
+  animation: ring-close 520ms var(--ease-spring);
+  transform-origin: 50% 50%;
+}
+
+:root[data-motion="reduce"] :is(.ring-thinking, .ring-closing) {
+  animation: none;
+}
+:root[data-motion="reduce"] .ring-loop .ring-arc {
+  transition: none;
+}
+
+/*
+ * A sheet the finger is dragging (#242). While a pointer is down the
+ * panel follows it exactly — no easing, no duration, because a thing
+ * that lags your thumb by 200ms is a thing that is not being dragged.
+ * On release the class comes off and `.sheet-panel`'s own transition
+ * takes it home, or `data-closing` plays it out.
+ */
+.sheet-panel[data-dragging="true"] {
+  animation: none;
+  transition: none;
+}
+.sheet-panel[data-settling="true"] {
+  animation: none;
+  transition: transform var(--duration-base) var(--ease-spring);
 }
 
 /*
@@ -530,6 +964,23 @@ body::after {
   transform-origin: left center;
   animation: fill var(--duration-max) var(--ease-out) backwards;
 }
+
+/*
+ * The same landing for a bar that grows UP rather than along: the
+ * filler heatmap's columns stand on a baseline, so `scaleX` from the
+ * left had nothing to say to them and they were the one set of bars in
+ * the app that could not fill (#247).
+ */
+@keyframes fill-y {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+.fill-y {
+  transform-origin: center bottom;
+  animation: fill-y var(--duration-max) var(--ease-out) backwards;
+}
 .star-land {
   display: inline-block;
   animation: star-land var(--duration-max) var(--ease-out) backwards;
@@ -557,6 +1008,42 @@ body::after {
 .rec-ring[data-on="true"] {
   opacity: 1;
   transform: none;
+}
+
+/* In dark, terracotta-100 is #3f2716 — against the #1a1410 ground that
+ * is a muddy hole, not a ring. One step up is the recording state
+ * legible at a glance. */
+:root[data-theme="dark"] .rec-ring {
+  border-color: var(--color-terracotta-200);
+}
+
+/*
+ * The Record button, waiting (#242).
+ *
+ * The one ambient loop in the app outside the introduction and a live
+ * recording, and it earns its place the way the others do: it is the
+ * screen's only job, sitting there asking to be pressed. A 2% breath on
+ * a 2.6s cycle, which is slower than a resting heart rate and about
+ * half the amplitude of the mascot's — enough to read as alive at the
+ * edge of vision, not enough to notice while reading the tactics above
+ * it. It stops the instant recording starts, because then the meter is
+ * the thing that moves.
+ */
+@keyframes rec-wait {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.02);
+  }
+}
+
+.rec-wait {
+  animation: rec-wait 2.6s var(--ease-in-out) infinite alternate;
+}
+
+:root[data-motion="reduce"] .rec-wait {
+  animation: none;
 }
 
 /*
@@ -606,6 +1093,29 @@ body::after {
     transform: scale(1.02);
   }
 }
+/*
+ * The nod (DECISIONS #249). Demos answers a tap.
+ *
+ * One shot, on the WRAPPER rather than the art, because the art is
+ * already running its pose loop and two animations fighting over one
+ * `transform` is a jitter, not a reaction. It dips and comes back on
+ * the spring, which is the shape of a head nodding rather than a thing
+ * bouncing.
+ */
+@keyframes demos-nod {
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+  38% {
+    transform: translateY(4px) rotate(-2.5deg);
+  }
+  72% {
+    transform: translateY(-1.5px) rotate(1deg);
+  }
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+}
 @keyframes arc-in {
   0%,
   100% {
@@ -644,6 +1154,9 @@ body::after {
   transform-origin: 50% 100%;
   animation: breath 2.4s var(--ease-in-out) infinite alternate;
 }
+.demos-nod {
+  animation: demos-nod 460ms var(--ease-spring);
+}
 .arc {
   animation: arc-in 1.8s var(--ease-in-out) infinite;
   animation-delay: calc(var(--i, 0) * 0.3s);
@@ -653,21 +1166,39 @@ body::after {
   animation-delay: calc(var(--i, 0) * 0.4s);
 }
 :root[data-motion="reduce"]
-  :is(.demos-idle, .demos-sway, .demos-bob, .demos-tilt, .demos-breath, .arc, .spark) {
+  :is(
+    .demos-idle,
+    .demos-sway,
+    .demos-bob,
+    .demos-tilt,
+    .demos-breath,
+    .demos-nod,
+    .arc,
+    .spark
+  ) {
   animation: none;
 }
 
 /* Reduced motion: every entrance is a fade, every value is already
  * there, and nothing slides (DESIGN-RULES, Definition of Done #8). */
 :root[data-motion="reduce"]
-  :is(.arrive, .arrive-x, .reveal, .sheet-panel, .star-land) {
+  :is(
+    .arrive,
+    .arrive-x,
+    .arrive-lift,
+    .push-right,
+    .push-left,
+    .reveal,
+    .sheet-panel,
+    .star-land
+  ) {
   animation-name: fade-in;
   animation-delay: 0ms;
 }
 :root[data-motion="reduce"] .sheet-panel[data-closing="true"] {
   animation-name: fade-out;
 }
-:root[data-motion="reduce"] :is(.fill, .rec-ring) {
+:root[data-motion="reduce"] :is(.fill, .fill-y, .rec-ring) {
   animation: none;
   transition: none;
   transform: none;
@@ -721,6 +1252,12 @@ body::after {
   to {
     background-position: 220% 0;
   }
+}
+
+/* Reduced motion: a list arrives all at once, without the ladder. */
+:root[data-motion="reduce"] .stagger > * {
+  animation-name: fade-in;
+  animation-delay: 0ms;
 }
 
 /* Still a visible placeholder, just a still one. */

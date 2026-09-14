@@ -70,8 +70,8 @@ export function SkeletonStatBare() {
   return (
     <div className="flex-1">
       <Skeleton className="h-2.5 w-12" />
-      <Skeleton className="mt-2 h-6 w-10" />
-      <Skeleton className="mt-2 h-2.5 w-10" />
+      <Skeleton className="mt-1.5 h-7 w-10" />
+      <Skeleton className="mt-1.5 h-3 w-10" />
     </div>
   );
 }
@@ -79,7 +79,7 @@ export function SkeletonStatBare() {
 /** A card the size of the stat tiles on the results screen. */
 export function SkeletonStat() {
   return (
-    <div className="flex-1 rounded-card border border-edge bg-raised p-3.5">
+    <div className="elev-1 flex-1 rounded-card border border-card-edge bg-raised p-4">
       <Skeleton className="h-2.5 w-12" />
       <Skeleton className="mt-2 h-6 w-10" />
       <Skeleton className="mt-2 h-2.5 w-14" />
@@ -87,10 +87,10 @@ export function SkeletonStat() {
   );
 }
 
-/** One row of the training log — a hairline row, like the real one. */
+/** One row of the log — a hairline row, like the real one. */
 export function SkeletonRow() {
   return (
-    <div className="flex items-center gap-3.5 border-t border-hairline px-0.5 py-3">
+    <div className="flex items-center gap-3.5 border-t border-hairline py-3">
       <div className="w-11 shrink-0">
         <Skeleton className="h-2.5 w-8" />
         <Skeleton className="mt-1.5 h-5 w-7" />
@@ -103,10 +103,40 @@ export function SkeletonRow() {
   );
 }
 
-/** The ink score card on home, and anything shaped like it. */
+/**
+ * The clean run on Today (#267).
+ *
+ * Shaped to the card it stands in for, not to the one that used to be
+ * there: a 104px ring with a paragraph beside it, then the footer rule,
+ * then the day trail. The score card's skeleton is 12px of number and
+ * two chips, which is a different height, and a skeleton that reserves
+ * the wrong space is the layout shift this file exists to prevent.
+ */
+export function SkeletonCleanRun() {
+  return (
+    <section className="card-score rounded-sheet p-5">
+      <Skeleton className="h-2.5 w-36 !bg-cream/10" />
+      <div className="mt-4 flex items-center gap-5">
+        <div className="size-[104px] shrink-0 rounded-full border-[9px] border-cream/10" />
+        <div className="min-w-0 flex-1 space-y-2.5">
+          <Skeleton className="h-4 w-full !bg-cream/10" />
+          <Skeleton className="h-4 w-4/5 !bg-cream/10" />
+        </div>
+      </div>
+      <div className="mt-4 border-t border-cream/15 pt-2.5">
+        <Skeleton className="h-3 w-40 !bg-cream/10" />
+      </div>
+      <div className="mt-4">
+        <Skeleton className="h-8 w-full !bg-cream/10" />
+      </div>
+    </section>
+  );
+}
+
+/** The ink score card, on /history. */
 export function SkeletonScoreCard() {
   return (
-    <section className="card-score mt-5 rounded-sheet p-5">
+    <section className="card-score rounded-sheet p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <Skeleton className="h-2.5 w-20 !bg-cream/10" />

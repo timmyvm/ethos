@@ -14,6 +14,7 @@ import {
   GOALS,
   LEVELS,
   PAINS,
+  TIMES,
 } from "@/content/portfolio";
 
 export type AgeBandId = (typeof AGE_BANDS)[number]["id"];
@@ -21,16 +22,34 @@ export type GoalId = (typeof GOALS)[number]["id"];
 export type PainId = (typeof PAINS)[number]["id"];
 export type LevelId = (typeof LEVELS)[number]["id"];
 export type ContextId = (typeof CONTEXTS)[number]["id"];
+export type TimeId = (typeof TIMES)[number]["id"];
 
 /** Up to three: more than that is a list, not a focus. */
 export const MAX_PAINS = 3;
 
+/**
+ * The cap on what they call themselves. One number, here rather than in
+ * `lib/client-data.ts`, because the same string is now an introduction
+ * answer AND `profiles.display_name`, and two caps on one string is a
+ * bug waiting for a 25-character name.
+ */
+export const MAX_NAME = 24;
+
 export interface Answers {
+  /** What Demos calls them. Given before any account exists. */
+  name: string | null;
   ageBand: AgeBandId | null;
   goal: GoalId | null;
   pains: PainId[];
   level: LevelId | null;
   context: ContextId | null;
+  /**
+   * When the daily nudge fires. Kept HERE as well as in prefs, because
+   * prefs only knows the hour and "no reminder" and "not asked yet" are
+   * both a null hour — and a walk has to know whether its seventh
+   * question was answered.
+   */
+  time: TimeId | null;
 }
 
 export interface OnboardingState {
@@ -44,11 +63,13 @@ export interface OnboardingState {
 }
 
 export const EMPTY_ANSWERS: Answers = {
+  name: null,
   ageBand: null,
   goal: null,
   pains: [],
   level: null,
   context: null,
+  time: null,
 };
 
 export const EMPTY_STATE: OnboardingState = {
@@ -66,6 +87,14 @@ export const isGoal = (v: unknown): v is GoalId => has(GOALS, v);
 export const isPain = (v: unknown): v is PainId => has(PAINS, v);
 export const isLevel = (v: unknown): v is LevelId => has(LEVELS, v);
 export const isContext = (v: unknown): v is ContextId => has(CONTEXTS, v);
+export const isTime = (v: unknown): v is TimeId => has(TIMES, v);
+
+/** Trimmed, capped, and blank is the same as never answered. */
+export function cleanName(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const clean = raw.trim().slice(0, MAX_NAME).trim();
+  return clean.length > 0 ? clean : null;
+}
 
 /** Anything unknown becomes null; pains are deduplicated and capped. */
 export function cleanAnswers(raw: Partial<Answers> | null | undefined): Answers {
@@ -73,21 +102,25 @@ export function cleanAnswers(raw: Partial<Answers> | null | undefined): Answers 
     ? raw!.pains.filter(isPain).filter((p, i, all) => all.indexOf(p) === i).slice(0, MAX_PAINS)
     : [];
   return {
+    name: cleanName(raw?.name),
     ageBand: isAgeBand(raw?.ageBand) ? raw!.ageBand : null,
     goal: isGoal(raw?.goal) ? raw!.goal : null,
     pains,
     level: isLevel(raw?.level) ? raw!.level : null,
     context: isContext(raw?.context) ? raw!.context : null,
+    time: isTime(raw?.time) ? raw!.time : null,
   };
 }
 
 export function answered(a: Answers): boolean {
   return (
+    a.name !== null ||
     a.ageBand !== null ||
     a.goal !== null ||
     a.pains.length > 0 ||
     a.level !== null ||
-    a.context !== null
+    a.context !== null ||
+    a.time !== null
   );
 }
 

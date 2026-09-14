@@ -8,8 +8,10 @@
  * someone a coin.
  */
 
+import { closesByWeek } from "./challenge";
+import type { RepRow } from "./client-data";
 import { fetchCoinLedger, grantCoins } from "./client-data";
-import { balance, unpaidDays, type CoinRow } from "./coins";
+import { balance, unpaidChallengeWeeks, unpaidDays, type CoinRow } from "./coins";
 
 export interface CoinSync {
   ledger: CoinRow[];
@@ -18,7 +20,13 @@ export interface CoinSync {
   granted: string[];
 }
 
-export async function syncCoins(repDates: Date[]): Promise<CoinSync> {
+export async function syncCoins(
+  repDates: Date[],
+  /* The rows themselves, when the caller has them: the challenge coin
+     needs the readings, not just the dates. Omitted, only the day coin
+     reconciles, which is what every caller did before #281. */
+  reps: RepRow[] = []
+): Promise<CoinSync> {
   let ledger = await fetchCoinLedger().catch(() => [] as CoinRow[]);
 
   const owed = unpaidDays(repDates, ledger);
@@ -28,6 +36,16 @@ export async function syncCoins(repDates: Date[]): Promise<CoinSync> {
     if (written > 0) {
       granted = owed.slice(-written);
       ledger = await fetchCoinLedger().catch(() => ledger);
+    }
+  }
+
+  /* The week's coin, on the same derive-then-reconcile shape: five
+     closed days in a week pays one, and asking twice pays nothing. */
+  if (reps.length > 0) {
+    const weeks = unpaidChallengeWeeks(closesByWeek(reps), ledger);
+    if (weeks.length > 0) {
+      const written = await grantCoins(weeks, "challenge_week").catch(() => 0);
+      if (written > 0) ledger = await fetchCoinLedger().catch(() => ledger);
     }
   }
 

@@ -40,6 +40,17 @@ export const EASE_OUT = "cubic-bezier(0.25, 1, 0.5, 1)";
 /** Symmetric, for something that has to come back the way it went. */
 export const EASE_IN_OUT = "cubic-bezier(0.65, 0, 0.35, 1)";
 
+/**
+ * The spring. Overshoots by about 6% and settles — the curve a finger
+ * expects when it lets go of something (DECISIONS #240).
+ *
+ * Only for RELEASE and for arrival, never for departure: a thing
+ * leaving the screen that bounces on its way out is a thing that looks
+ * uncertain about leaving. Press-down uses EASE_OUT at 60ms, because
+ * going down should feel like contact rather than like animation.
+ */
+export const EASE_SPRING = "cubic-bezier(0.34, 1.56, 0.64, 1)";
+
 /** `transition` shorthand for the properties we're allowed to animate. */
 export function transition(
   properties: string,

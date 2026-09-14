@@ -7,7 +7,8 @@ Nothing here is banned. One question decides everything: does it move the screen
 The target, described so you can see it, not policed so you can grep it.
 
 - **Type carries the hierarchy.** Outfit 700/800 for numbers and titles, tabular digits, Figtree for body. Big numbers, small labels, generous air between them. When a screen feels flat, the first suspects are weight contrast and spacing, not colour.
-- **One warm accent.** Terracotta means tap. Sage means earned. Stone on cream holds the room. Colour is information first, but richness is welcome: a warm tinted shadow, a grain on the ground, a scrim with a little blur under a sheet.
+- **One warm accent.** Terracotta means tap. Sage means earned. Plum means paid. Stone on cream holds the room. Colour is information first, but richness is welcome: a warm tinted shadow, a grain on the ground, a scrim with a little blur under a sheet.
+- **Plum is the tier, and nothing else.** Where the app says a surface belongs to Premium it says it in plum, in the same word, with the same mark, every time: `components/PremiumMark.tsx`. Nine spellings of one tier read as nine features. Plum never means tap, because terracotta owns the press and that does not change, so a premium card with an action is a plum card with a terracotta button on it. Plum never means earned, because sage is stars and streaks and anything worked for, and an allowance you were given is not a thing you earned. The mark is a door, never a padlock: the ellipsis stays, the counter still counts, the row still says how many recordings are behind it. The mark names the tier; it never hides the number.
 - **Depth is real.** A card sits on the ground and has a fill. It can cast a soft warm shadow or stand on a raised step, whichever reads better beside the reference. Choose per screen, keep it consistent within one.
 - **Continuity.** A state change shows where it came from, what caused it, or what was earned. Sheets rise, results land, the ring grows out of the Record button, the active tab dot slides. Springs are right for celebration and for anything a finger drags. 200ms is the default, not the ceiling: a sheet or a page push can take 350, a celebration 600. Nothing teleports.
 - **Speed is the loudest signal.** Under 100ms perceived in the recording loop. Optimistic writes. Measured numbers render instantly, the judged read streams in. Skeletons reserve exact space so nothing shifts.
@@ -21,6 +22,44 @@ Colour, radius and motion live in `app/globals.css` and `lib/motion.ts`. Radius:
 ## References
 
 `docs/refs/` holds phone screenshots of apps that feel the way Ethos should: Instagram (continuity), Headspace (warmth), Duolingo (celebration), Linear mobile (type). Timothy adds them. If the folder is empty, say so in the first line of your reply and run the loop against the app alone.
+
+## The tools the loop runs on
+
+Three scripts, all against a dev server with the Supabase host mocked and three weeks of
+practice in the fixtures (`scripts/look-fixtures.mjs`, shared so every tool photographs the
+same app).
+
+```
+NEXT_PUBLIC_SUPABASE_URL=http://supabase.local NEXT_PUBLIC_SUPABASE_ANON_KEY=anon npx next dev -p 3123
+export PLAYWRIGHT_MODULE=/opt/node22/lib/node_modules/playwright/index.mjs
+
+node scripts/look.mjs after today log          # stills, 390px, light and dark
+LOOK_BLUR=7 node scripts/look.mjs squint today # the squint test
+node scripts/strip.mjs mods / 'button:has-text("Make it harder")'   # a frame strip
+node scripts/look-welcome.mjs after            # the introduction, walked and shot
+node scripts/check-motion-layer.mjs            # the motion layer, asserted
+node scripts/check-motion.mjs                  # the older motion layer, asserted
+node scripts/check-onboarding.mjs              # the eleven-screen walk, asserted
+```
+
+`look.mjs` photographs the app as a RETURNING user sees it, so its fixture has already finished
+the introduction and cannot photograph it. `look-welcome.mjs` starts from an empty browser, taps
+through all eleven screens and shoots each question twice, unanswered and answered, because
+Demos's reply only exists after a tap. `strip.mjs` takes `STRIP_FRESH=1` and `STRIP_PRE='a|b|c'`
+for the same reason: a transition part way through a walk needs the camera to walk in first.
+
+The **squint test** blurs the document before the shot. At 7px nothing survives but mass and
+colour, so a hierarchy that only works because you can read the words fails immediately. It is
+the cheapest honest test in the repo.
+
+A **frame strip** taps something and lays 0, 80, 160, 240 and 400ms side by side in one image.
+Frame 0 is the moment BEFORE the tap; a screenshot takes 40 to 80ms to come back, so a zero
+frame shot after the click is really the sixty frame. Five identical frames mean the change cut.
+
+Two gotchas, both learned the hard way. `next build` writes into the directory `next dev`
+serves, so build with `NEXT_DIST_DIR=.next-build` while a server is up or every shot comes back
+a 404 page. And an ambient loop on a control (the Record button breathes) makes Playwright's
+click wait forever for it to hold still: those clicks need `{ force: true }`.
 
 ## The look loop, every UI task
 

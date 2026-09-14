@@ -108,8 +108,8 @@ export function Paywall({
   }
 
   return (
-    <Overlay label="Ethos Premium" onClose={onClose}>
-      <div className="card-score max-h-[92dvh] w-full max-w-[430px] overflow-y-auto rounded-t-sheet px-6 pb-8 pt-7 text-cream">
+    <Overlay label="Premium" onClose={onClose}>
+      <div className="card-score elev-3 max-h-[92dvh] w-full max-w-[430px] overflow-y-auto rounded-t-sheet px-6 pb-8 pt-7 text-cream">
         <div className="label-data !text-sage-mist">{reason}</div>
         <h2 className="font-display mt-1.5 text-[30px] leading-[1.05]">
           {headline}
@@ -125,7 +125,7 @@ export function Paywall({
         {unlocked ? (
           <div className="arrive mt-6 rounded-card bg-cream/10 p-5 text-center">
             <div className="font-display text-[24px]">Unlocked.</div>
-            <p className="mt-1 text-[13.5px] text-cream/70">
+            <p className="mt-1 text-caption text-cream/70">
               Premium is on this account now.
             </p>
           </div>
@@ -144,8 +144,8 @@ export function Paywall({
               }`}
             >
               <div>
-                <div className="text-[15px] font-bold">Annual</div>
-                <div className="text-[12.5px] text-cream/60">
+                <div className="font-display text-[15px] font-bold">Annual</div>
+                <div className="text-caption text-cream/60">
                   billed A$79.99 a year
                 </div>
               </div>
@@ -167,7 +167,7 @@ export function Paywall({
                   : "border border-cream/15"
               }`}
             >
-              <div className="text-[15px] font-bold text-cream/80">Monthly</div>
+              <div className="font-display text-[15px] font-bold text-cream/80">Monthly</div>
               <div className="text-right">
                 <span className="font-display text-[20px] leading-none text-cream/80">
                   A$14.99
@@ -209,7 +209,7 @@ export function Paywall({
                     autoCapitalize="off"
                     spellCheck={false}
                     placeholder="Your code"
-                    className="min-w-0 flex-1 rounded-control border border-cream/25 bg-cream/10 px-5 py-3.5 text-[16px] text-cream placeholder:text-cream/40 focus:border-cream/50"
+                    className="min-w-0 flex-1 rounded-control border border-cream/25 bg-cream/10 px-5 py-3.5 text-[16px] text-cream placeholder:text-cream/40 focus:border-terracotta-500"
                   />
                   <button
                     type="submit"
@@ -220,7 +220,7 @@ export function Paywall({
                   </button>
                 </div>
                 {error && (
-                  <p className="mt-2.5 text-[13px] leading-relaxed text-terracotta-300">
+                  <p className="mt-2.5 text-caption leading-relaxed text-terracotta-300">
                     {error}
                   </p>
                 )}

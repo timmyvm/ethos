@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Figtree, Outfit } from "next/font/google";
 import { Nav } from "@/components/Nav";
+import { PageTransition } from "@/components/PageTransition";
 import { OutboxRetry } from "@/components/OutboxRetry";
 import { ServiceWorker } from "@/components/ServiceWorker";
 import { ThemeSync, themeBootScript } from "@/components/Theme";
@@ -75,7 +76,9 @@ export default function RootLayout({
       <body
         className={`${outfit.variable} ${figtree.variable} antialiased`}
       >
-        <div className="mx-auto min-h-dvh max-w-[430px]">{children}</div>
+        <div className="mx-auto min-h-dvh max-w-[430px]">
+          <PageTransition>{children}</PageTransition>
+        </div>
         <Nav />
         <ServiceWorker />
         <ThemeSync />

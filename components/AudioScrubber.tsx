@@ -60,15 +60,15 @@ export function AudioScrubber({
   const pct = (n: number) => (durationS > 0 ? (n / durationS) * 100 : 0);
 
   return (
-    <div className="rounded-card border border-hairline bg-surface p-5">
+    <div className="elev-1 rounded-card border border-card-edge bg-raised p-4">
       <div className="label-data">Hear it back</div>
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <audio ref={ref} src={src} preload="metadata" />
 
-      <div className="mt-3 flex items-center gap-3">
+      <div className="mt-4 flex items-center gap-3">
         <button
           onClick={toggle}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-terracotta-500 text-on-accent"
+          className="press flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-terracotta-500 text-[15px] text-on-accent"
           aria-label={playing ? "Pause" : "Play"}
         >
           {playing ? "❚❚" : "▶"}
@@ -76,7 +76,7 @@ export function AudioScrubber({
 
         <div className="relative flex-1">
           {/* Track with pause bands and filler ticks */}
-          <div className="relative h-8 overflow-hidden rounded-lg bg-sand">
+          <div className="relative h-8 overflow-hidden bg-sand">
             {pauses
               .filter((p) => p.kind !== "beat")
               .map((p, i) => (
@@ -115,27 +115,27 @@ export function AudioScrubber({
           />
         </div>
 
-        <span className="w-11 shrink-0 text-right text-[12px] tabular-nums text-stone-500">
+        <span className="w-11 shrink-0 text-right text-caption tabular-nums text-stone-500">
           {Math.floor(t / 60)}:{String(Math.floor(t % 60)).padStart(2, "0")}
         </span>
       </div>
 
-      <div className="mt-2.5 flex flex-wrap gap-1.5">
+      <div className="mt-3 flex flex-wrap gap-1.5">
         {fillers.map((f, i) => (
           <button
             key={i}
             onClick={() => seek(f.t - 0.4)}
-            className="rounded-full bg-sand px-2.5 py-1 text-[12.5px] transition-colors hover:bg-terracotta-100"
+            className="press rounded-full bg-stone-100 px-2.5 py-1 text-caption text-ink transition-colors hover:bg-terracotta-100"
           >
             {f.word}{" "}
-            <span className="text-stone-500">
+            <span className="tabular-nums text-stone-500">
               {Math.floor(f.t / 60)}:
               {String(Math.floor(f.t % 60)).padStart(2, "0")}
             </span>
           </button>
         ))}
       </div>
-      <p className="mt-2 text-[11.5px] text-stone-400">
+      <p className="mt-3 text-caption text-stone-400">
         Sage bands are silence you held. Tap a word to hear the moment.
       </p>
     </div>

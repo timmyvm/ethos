@@ -22,10 +22,10 @@ export function Moment({
   const earned = moment.tone === "earned";
   return (
     <div
-      className={`rounded-card border p-4 ${
+      className={`elev-1 rounded-card border p-4 ${
         earned
-          ? "border-sage-500/25 bg-sage-50/50"
-          : "border-hairline bg-surface"
+          ? "border-sage-300 bg-sage-100"
+          : "border-card-edge bg-raised"
       }`}
     >
       <div
@@ -35,7 +35,7 @@ export function Moment({
       >
         {moment.headline}
       </div>
-      <div className="mt-1 text-[12.5px] leading-relaxed text-stone-500">
+      <div className="mt-1 text-caption leading-relaxed text-stone-500">
         {moment.detail}
       </div>
     </div>

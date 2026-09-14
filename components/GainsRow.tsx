@@ -14,22 +14,25 @@ import type { RepGain } from "@/lib/progress";
 export function GainsRow({ gains }: { gains: RepGain[] }) {
   if (gains.length === 0) return null;
   return (
-    <div className="mt-4 flex gap-2 overflow-x-auto">
+    <div className="flex gap-2 overflow-x-auto">
       {gains.map((g, i) => (
         <div
           key={i}
+          /* Flat on purpose: these sit ABOVE the Index on the results
+             screen, and a lifted chip there makes the first thing the
+             eye lands on something other than the number. */
           className={`shrink-0 rounded-card border bg-surface px-3.5 py-2.5 ${
-            g.good === false ? "border-terracotta-500/30" : "border-sage-500/30"
+            g.good === false ? "border-edge" : "border-sage-300"
           }`}
         >
           <div
-            className={`font-display text-[17px] leading-none ${
-              g.good === false ? "text-terracotta-600" : "text-sage-700"
+            className={`font-display text-[19px] font-extrabold leading-none ${
+              g.good === false ? "text-rust" : "text-sage-700"
             }`}
           >
             {g.label}
           </div>
-          <div className="mt-1 text-[11.5px] text-stone-500">{g.detail}</div>
+          <div className="mt-1.5 text-caption text-stone-500">{g.detail}</div>
         </div>
       ))}
     </div>

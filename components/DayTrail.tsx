@@ -8,7 +8,7 @@ import type { DayTrail as Trail, PebbleState } from "@/lib/days";
  * Deliberately not a third card: DECISIONS #9 gives the floor the screen
  * and brand.md allows one tap, so this earns its place by living in
  * furniture that already exists. One square bar per recent day — the
- * Instrument reading of a training log (#201, replacing #168's
+ * Instrument reading of a practice log (#201, replacing #168's
  * pebbles): a spoken day is a lit bar, a frozen day an outline, a
  * missed day barely registers, and today stands taller with an offset
  * outline. Nothing here is a tap.
@@ -30,10 +30,10 @@ export function DayTrail({
   const frozen = pebbles.filter((p) => p === "frozen").length;
 
   return (
-    <div className="mt-4 flex items-center justify-between gap-3 border-t border-cream/10 pt-3.5">
+    <div className="mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5 border-t border-cream/10 pt-3.5">
       {pebbles.length > 0 && (
         <div
-          className="forced-color-adjust-none flex items-center gap-[5px]"
+          className="forced-color-adjust-none flex min-w-0 shrink items-center gap-[5px]"
           role="img"
           aria-label={`Last ${pebbles.length} days: ${spoken} spoken${
             frozen > 0 ? `, ${frozen} frozen` : ""
@@ -58,7 +58,7 @@ export function DayTrail({
           })}
         </div>
       )}
-      <p className="shrink-0 text-right text-[12px] text-sage-mist">
+      <p className="min-w-0 text-caption text-sage-mist">
         Day {trail.count} of speaking
         {/* Only when earned, and only for something the card above
             doesn't already say (#95). */}

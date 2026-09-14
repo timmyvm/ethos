@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
 
 /**
- * The path lives on home (DECISIONS #141, finished by #155): the road
- * under the floor card is the whole thing, gates and all, so this tab
- * was a second door to the same room. The route stays so old bookmarks
- * and the service worker's cached links land somewhere real.
+ * The road lived here, then Today, then here again, and now it is the
+ * Lessons page at /lessons (DECISIONS #267, #269).
+ *
+ * The route stays as a redirect so old bookmarks and the service
+ * worker's cached links land on the thing they were pointing at.
  */
 export default function PathPage() {
-  redirect("/");
+  redirect("/lessons");
 }

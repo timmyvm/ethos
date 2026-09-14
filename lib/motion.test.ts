@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { DURATION, EASE_IN_OUT, EASE_OUT } from "./motion";
+import { DURATION, EASE_IN_OUT, EASE_OUT, EASE_SPRING } from "./motion";
 
 /**
  * The motion tokens live twice on purpose (DECISIONS #221): here, for
@@ -27,6 +27,7 @@ describe("motion tokens", () => {
   it("mirrors the easings, and makes them Tailwind's defaults", () => {
     expect(token("ease-out")).toBe(EASE_OUT);
     expect(token("ease-in-out")).toBe(EASE_IN_OUT);
+    expect(token("ease-spring")).toBe(EASE_SPRING);
     expect(token("default-transition-timing-function")).toBe(EASE_OUT);
     expect(token("default-transition-duration")).toBe(`${DURATION.fast}ms`);
   });

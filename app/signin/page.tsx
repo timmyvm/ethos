@@ -13,11 +13,19 @@ export default function SignInPage() {
       onSubmit={signIn}
       footer={
         <>
-          <Link href="/auth/forgot" className="font-semibold text-terracotta-600">
+          {/* One accent text link per footer: the door somebody came
+              here to find. The recovery link is the quiet one. */}
+          <Link
+            href="/auth/forgot"
+            className="press inline-flex min-h-11 items-center px-1 font-semibold text-stone-500"
+          >
             Forgot your password?
           </Link>
-          <span className="mx-2 text-stone-300">·</span>
-          <Link href="/signup" className="font-semibold text-terracotta-600">
+          <span className="mx-1 text-stone-300">·</span>
+          <Link
+            href="/signup"
+            className="press inline-flex min-h-11 items-center px-1 font-semibold text-terracotta-700"
+          >
             Create an account
           </Link>
         </>

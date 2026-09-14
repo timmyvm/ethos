@@ -12,7 +12,7 @@ export type CaptureMode = "voice" | "voice_video";
 
 export interface Prefs {
   /**
-   * Sticky per drill type, remembered separately for daily drills and
+   * Sticky per lesson type, remembered separately for daily lessons and
    * boss modes — the two have opposite right answers, so one shared
    * setting would be wrong half the time.
    */
@@ -46,7 +46,7 @@ export interface Prefs {
 
 export const DEFAULT_PREFS: Prefs = {
   /**
-   * Daily drill defaults to video OFF: the value of the daily loop is
+   * A daily lesson defaults to video OFF: the value of the daily loop is
    * that it works on a tram with headphones, and nagging for a camera
    * there costs the habit. Boss modes default ON — being watched is the
    * point of a boss.
@@ -106,7 +106,7 @@ export function writeCaptureMode(
  * worked is the most expensive ask in the funnel. The ask was never the
  * problem: the RULE was, because a rule has to be explained, and the
  * sentence explaining it sat on the screen whose one job is the Record
- * tap. The default already does the protecting — a daily drill starts
+ * tap. The default already does the protecting — a daily lesson starts
  * on Voice, so nothing asks for a camera nobody chose.
  */
 export function captureModeFor(kind: "daily" | "boss"): CaptureMode {

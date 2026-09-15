@@ -5,17 +5,17 @@
  * first paint without a round trip.
  */
 
-export type Theme = "light" | "dark";
+export type Theme = "system" | "light" | "dark";
 
 /**
- * The app is a light room (#284). Dark is a choice, never an inference:
- * a phone on auto-dark used to decide what Ethos looked like, and the
- * cream ground is the product's face. `"system"` was a stored value for
- * most of the app's life, so anything that is not the word `dark` reads
- * as light rather than as garbage.
+ * #284 cut this to two values and made light the default; #286 put the
+ * OS back, because a phone that has already answered the question
+ * should not be asked it again. The narrowing left `"light"` and
+ * `"dark"` in storage on devices that never chose either, so an
+ * unrecognised value reads as the default rather than as garbage.
  */
 function readTheme(value: unknown): Theme {
-  return value === "dark" ? "dark" : "light";
+  return value === "dark" || value === "light" ? value : "system";
 }
 
 /** Voice, or Voice + Video (decisions 11 Aug, §1). */
@@ -43,7 +43,7 @@ export interface Prefs {
   skipIntros: boolean;
   /** Honour prefers-reduced-motion overrides for the celebration. */
   reducedMotion: boolean;
-  /** Light, or dark. Light unless this device asked for dark. */
+  /** Light, dark, or follow the OS. */
   theme: Theme;
   /**
    * Which bought Demos pose sits on the floor card, or null for the
@@ -72,7 +72,7 @@ export const DEFAULT_PREFS: Prefs = {
   frameStep: false,
   skipIntros: false,
   reducedMotion: false,
-  theme: "light",
+  theme: "system",
   pose: null,
 };
 

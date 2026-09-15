@@ -318,15 +318,12 @@ export default function SettingsPage() {
       </Section>
 
       <Section title="Appearance">
-        {/* Sized to their words, like the reminder chips above: two
-            half-width buttons read as a segmented control, which is a
-            shape this app does not otherwise own (#284). */}
         <div
           role="group"
           aria-label="Theme"
-          className="flex flex-wrap gap-1.5 pb-3 pt-0.5"
+          className="flex gap-1.5 pb-3 pt-0.5"
         >
-          {(["light", "dark"] as Theme[]).map((t) => (
+          {(["system", "light", "dark"] as Theme[]).map((t) => (
             <Choice
               key={t}
               selected={prefs.theme === t}
@@ -334,7 +331,7 @@ export default function SettingsPage() {
                 update({ theme: t });
                 applyTheme(t);
               }}
-              className="capitalize"
+              className="flex-1 capitalize"
             >
               {t}
             </Choice>

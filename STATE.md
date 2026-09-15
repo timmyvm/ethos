@@ -17,7 +17,7 @@ Today is the first card, today's line, the clean run, then the five trait rings 
 
 - Radius: `rounded-control` 12, `rounded-card` 16, `rounded-sheet` 20. No concentric arithmetic: a control keeps 12 wherever it sits.
 - Dark: ground #1A1410, surface #241C15, raised #2E251C, stage #120E0B.
-- **Light is the default and the OS has no vote** (#284). Two values, not three: Settings offers Light and Dark, a stored `"system"` from before reads as light, and `:root` declares `color-scheme` so scrollbars and pickers stand in the same room. Motion still follows the OS (#221); colour does not.
+- **The OS is the default** (#286, reverting #284). Three values: System, Light, Dark, with `system` resolved in two places that a test keeps identical, the inline boot script and `applyTheme`. `:root` declares `color-scheme` on the RESOLVED theme, so scrollbars and pickers stand in the same room whichever way it lands. The server sends no `data-theme`. Colour and motion both follow the OS until this device says otherwise.
 - Text: `stone-500` secondary, `stone-400` muted, `stone-300` glyphs and dividers. `on-accent` is ink on terracotta.
 - Type: Outfit 600/700/800 for numbers and UI, Figtree 400 to 700 for body. Roles: title 26/700, body 15/400, caption 12.5/400.
 - Motion: 200ms ease-out default, 600 for celebration. Classes `.arrive`, `.arrive-x`, `.reveal`, `.fill`, `.star-land`, `.sheet-panel`, `.sheet-scrim`, `.rec-ring`, `.dur-*`. Reduced motion is `data-motion="reduce"` on `<html>`. `.press` scales 0.985 and veils the fill on every pointer type.

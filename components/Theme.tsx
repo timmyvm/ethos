@@ -7,20 +7,26 @@ import { readPrefs, type Theme } from "@/lib/prefs";
  * Applies the stored theme to <html> before paint.
  *
  * The inline script in the layout does the real work — it runs before
- * React hydrates, which is what stops a cream flash on a dark load.
+ * React hydrates, which is what stops a light flash on a dark-mode load.
  * This component only keeps the attribute in step after a change.
  *
- * Two values, not three (#284). The OS used to get a vote through a
- * "System" setting that was also the default, so most people never saw
- * the room the app was designed in. Light is the room; dark is a switch
- * you throw on this device.
+ * Three values again (#286). `system` is the default and resolves here,
+ * so the rest of the app only ever sees `light` or `dark` on the
+ * attribute; nothing downstream has to know the setting had a third
+ * value.
  */
 export function applyTheme(theme: Theme): void {
   if (typeof document === "undefined") return;
-  document.documentElement.setAttribute("data-theme", theme);
+  const resolved =
+    theme === "system"
+      ? window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light"
+      : theme;
+  document.documentElement.setAttribute("data-theme", resolved);
   document
     .querySelector('meta[name="theme-color"]')
-    ?.setAttribute("content", theme === "dark" ? "#1a1410" : "#f5ead8");
+    ?.setAttribute("content", resolved === "dark" ? "#1a1410" : "#f5ead8");
 }
 
 /**
@@ -43,12 +49,21 @@ export function ThemeSync() {
     const prefs = readPrefs();
     applyTheme(prefs.theme);
     applyMotion(prefs.reducedMotion);
-    // Motion still follows the OS, and following it means following it
-    // when it changes. Colour does not: that answer is ours.
+    // Following the OS means following it when it changes, too. Both
+    // questions are the OS's to answer again mid-session: a phone that
+    // flips to dark at sunset is answering the colour one.
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const onMotion = () => applyMotion(readPrefs().reducedMotion);
     motion.addEventListener("change", onMotion);
-    return () => motion.removeEventListener("change", onMotion);
+    const theme = window.matchMedia("(prefers-color-scheme: dark)");
+    const onTheme = () => {
+      if (readPrefs().theme === "system") applyTheme("system");
+    };
+    theme.addEventListener("change", onTheme);
+    return () => {
+      motion.removeEventListener("change", onMotion);
+      theme.removeEventListener("change", onTheme);
+    };
   }, []);
   return null;
 }
@@ -60,10 +75,12 @@ export function ThemeSync() {
 export const themeBootScript = `
 (function(){try{
   var p = JSON.parse(localStorage.getItem('ethos.prefs')||'{}');
-  // Light unless this device chose dark. A stored 'system' from before
-  // #284 reads as light, which is what that setting meant on most of
-  // the phones that carried it and what the app is designed to be.
-  var t = p.theme === 'dark' ? 'dark' : 'light';
+  // Anything this device did not explicitly choose follows the OS
+  // (#286). Kept in step with readTheme in lib/prefs.ts.
+  var t = p.theme === 'dark' || p.theme === 'light' ? p.theme : 'system';
+  if (t === 'system') {
+    t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
   document.documentElement.setAttribute('data-theme', t);
   // Motion answers before paint too, or the first sheet slides for
   // someone who asked it not to.

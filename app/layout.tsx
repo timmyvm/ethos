@@ -69,11 +69,12 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    /* Light is the default room (#284), so the server sends it and the
-       boot script only has to override for a device that chose dark. */
-    <html lang="en" data-theme="light" suppressHydrationWarning>
+    /* No theme attribute from the server: with the OS back in the answer
+       (#286) only the browser knows it, and a guess here would be a
+       wrong first paint half the time. */
+    <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Before paint, or someone on dark gets a cream flash. */}
+        {/* Before paint, or a dark-mode user gets a white flash. */}
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
       <body

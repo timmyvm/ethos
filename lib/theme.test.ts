@@ -4,17 +4,16 @@ import { DEFAULT_PREFS, readPrefs, writePrefs } from "@/lib/prefs";
 import { themeBootScript } from "@/components/Theme";
 
 /**
- * Light is the app (DECISIONS #284).
+ * The theme has three values and the default follows the OS
+ * (DECISIONS #286, restoring what #284 narrowed).
  *
- * The bug this exists to stop is a quiet one: the theme had three
- * values, the third was "follow the OS", and it was the default. A
- * phone on auto-dark therefore decided what Ethos looked like, so the
- * cream ground the whole visual system is built on was not what most
- * people opened. Dark is still there and still complete; it is a switch
- * you throw on a device, not an inference from it.
+ * What this exists to hold: the setting resolves in exactly two places,
+ * the inline boot script and `applyTheme`, and they must agree. They
+ * drifted once already, so both are asserted here against the same
+ * cases rather than one being taken on trust.
  *
  * Source-level where the value is a default rather than a computation:
- * the failure mode is a file drifting back to the old shape, not a
+ * the failure mode is a file drifting back to the other shape, not a
  * function returning the wrong number.
  */
 
@@ -42,7 +41,23 @@ function stubDocument() {
 }
 
 const globals = globalThis as Record<string, unknown>;
-const had = { localStorage: globals.localStorage, document: globals.document, matchMedia: globals.matchMedia };
+const had = {
+  localStorage: globals.localStorage,
+  document: globals.document,
+  matchMedia: globals.matchMedia,
+};
+
+/** Runs the inline script against a bare document on a phone whose OS
+ *  says dark (or does not), and reports what <html> ended up with. */
+function boot({ osDark }: { osDark: boolean }) {
+  const doc = stubDocument();
+  globals.document = doc;
+  globals.matchMedia = (q: string) => ({
+    matches: q.includes("prefers-color-scheme: dark") ? osDark : false,
+  });
+  new Function(themeBootScript)();
+  return doc.documentElement;
+}
 
 beforeEach(() => {
   globals.localStorage = stubStorage();
@@ -54,31 +69,28 @@ afterAll(() => {
   globals.matchMedia = had.matchMedia;
 });
 
-describe("light is the default room", () => {
-  it("defaults to light", () => {
-    expect(DEFAULT_PREFS.theme).toBe("light");
-    expect(readPrefs().theme).toBe("light");
+describe("the OS answers unless this device has", () => {
+  it("defaults to system", () => {
+    expect(DEFAULT_PREFS.theme).toBe("system");
+    expect(readPrefs().theme).toBe("system");
   });
 
-  it("keeps dark once this device chooses it", () => {
+  it("keeps an explicit choice", () => {
     writePrefs({ theme: "dark" });
     expect(readPrefs().theme).toBe("dark");
-  });
-
-  it("reads a stored 'system' from before #284 as light", () => {
-    localStorage.setItem("ethos.prefs", JSON.stringify({ theme: "system" }));
+    writePrefs({ theme: "light" });
     expect(readPrefs().theme).toBe("light");
   });
 
-  it("reads a nonsense stored theme as light", () => {
+  it("reads an unrecognised stored theme as system", () => {
     localStorage.setItem("ethos.prefs", JSON.stringify({ theme: "sepia" }));
-    expect(readPrefs().theme).toBe("light");
+    expect(readPrefs().theme).toBe("system");
   });
 
   it("leaves every other stored preference alone", () => {
     localStorage.setItem(
       "ethos.prefs",
-      JSON.stringify({ theme: "system", haptics: false, reminderHour: 7 })
+      JSON.stringify({ theme: "sepia", haptics: false, reminderHour: 7 })
     );
     const prefs = readPrefs();
     expect(prefs.haptics).toBe(false);
@@ -86,36 +98,40 @@ describe("light is the default room", () => {
   });
 });
 
-describe("the OS never votes on colour", () => {
-  it("keeps the query out of the boot script and the component", () => {
-    expect(themeBootScript).not.toContain("prefers-color-scheme");
-    expect(readFileSync("components/Theme.tsx", "utf8")).not.toContain(
-      "prefers-color-scheme"
+describe("the boot script, which decides it before React exists", () => {
+  it("follows a dark OS when nothing is stored", () => {
+    expect(boot({ osDark: true }).getAttribute("data-theme")).toBe("dark");
+  });
+
+  it("follows a light OS when nothing is stored", () => {
+    expect(boot({ osDark: false }).getAttribute("data-theme")).toBe("light");
+  });
+
+  it("lets a stored light beat a dark OS", () => {
+    localStorage.setItem("ethos.prefs", JSON.stringify({ theme: "light" }));
+    expect(boot({ osDark: true }).getAttribute("data-theme")).toBe("light");
+  });
+
+  it("lets a stored dark beat a light OS", () => {
+    localStorage.setItem("ethos.prefs", JSON.stringify({ theme: "dark" }));
+    expect(boot({ osDark: false }).getAttribute("data-theme")).toBe("dark");
+  });
+
+  it("resolves a stored 'system' rather than stamping the word", () => {
+    // `data-theme="system"` matches no CSS rule, so the app would render
+    // its light tokens while calling itself something else.
+    localStorage.setItem("ethos.prefs", JSON.stringify({ theme: "system" }));
+    expect(boot({ osDark: true }).getAttribute("data-theme")).toBe("dark");
+  });
+
+  it("agrees with lib/prefs.ts on what counts as a choice", () => {
+    // Two copies of the same rule, in two languages, in two files.
+    expect(themeBootScript).toContain(
+      "p.theme === 'dark' || p.theme === 'light' ? p.theme : 'system'"
     );
   });
 
-  it("boots light for a device that has never chosen", () => {
-    // The inline script runs before hydration, so it is the one place
-    // the default is decided for real.
-    const doc = stubDocument();
-    globals.document = doc;
-    globals.matchMedia = () => ({ matches: false });
-    new Function(themeBootScript)();
-    expect(doc.documentElement.getAttribute("data-theme")).toBe("light");
-  });
-
-  it("boots dark for a device that chose dark", () => {
-    localStorage.setItem("ethos.prefs", JSON.stringify({ theme: "dark" }));
-    const doc = stubDocument();
-    globals.document = doc;
-    globals.matchMedia = () => ({ matches: false });
-    new Function(themeBootScript)();
-    expect(doc.documentElement.getAttribute("data-theme")).toBe("dark");
-  });
-
   it("still lets the OS answer the motion question", () => {
-    // #221's rule is untouched: colour is ours, movement is a request
-    // the OS is allowed to make.
     const doc = stubDocument();
     globals.document = doc;
     globals.matchMedia = () => ({ matches: true });
@@ -125,24 +141,27 @@ describe("the OS never votes on colour", () => {
 });
 
 describe("the screens that carry the decision", () => {
-  it("offers two choices in Settings, not three", () => {
-    const settings = readFileSync("app/settings/page.tsx", "utf8");
-    expect(settings).toContain('(["light", "dark"] as Theme[])');
-    expect(settings).not.toContain('"system"');
+  it("offers three choices in Settings", () => {
+    expect(readFileSync("app/settings/page.tsx", "utf8")).toContain(
+      '(["system", "light", "dark"] as Theme[])'
+    );
   });
 
-  it("tells the native layer which room it is in", () => {
-    // Without this a phone on auto-dark paints dark scrollbars, a dark
-    // caret and dark pickers onto the cream page.
+  it("sends no theme from the server, since only the browser knows", () => {
+    // A guessed attribute here is a wrong first paint for half the users
+    // the guess does not match.
+    expect(readFileSync("app/layout.tsx", "utf8")).toContain(
+      '<html lang="en" suppressHydrationWarning>'
+    );
+  });
+
+  it("tells the native layer which room it resolved to", () => {
+    // Kept from #284: without this a dark-themed app gets light
+    // scrollbars, a light caret and light pickers. It follows the
+    // RESOLVED attribute, so it is right under `system` too.
     const css = readFileSync("app/globals.css", "utf8");
     const dark = css.indexOf(':root[data-theme="dark"]');
     expect(css.slice(0, dark)).toContain("color-scheme: light");
     expect(css.slice(dark)).toContain("color-scheme: dark");
-  });
-
-  it("sends light from the server so the first byte is already right", () => {
-    expect(readFileSync("app/layout.tsx", "utf8")).toContain(
-      '<html lang="en" data-theme="light"'
-    );
   });
 });

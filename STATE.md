@@ -1,4 +1,4 @@
-# STATE.md, the system on one page (14 Sep 2026)
+# STATE.md, the system on one page (15 Sep 2026)
 
 Read this instead of `DECISIONS.md`. When the system changes, update this file; the log keeps the history.
 
@@ -17,6 +17,7 @@ Today is the first card, today's line, the clean run, then the five trait rings 
 
 - Radius: `rounded-control` 12, `rounded-card` 16, `rounded-sheet` 20. No concentric arithmetic: a control keeps 12 wherever it sits.
 - Dark: ground #1A1410, surface #241C15, raised #2E251C, stage #120E0B.
+- **Light is the default and the OS has no vote** (#284). Two values, not three: Settings offers Light and Dark, a stored `"system"` from before reads as light, and `:root` declares `color-scheme` so scrollbars and pickers stand in the same room. Motion still follows the OS (#221); colour does not.
 - Text: `stone-500` secondary, `stone-400` muted, `stone-300` glyphs and dividers. `on-accent` is ink on terracotta.
 - Type: Outfit 600/700/800 for numbers and UI, Figtree 400 to 700 for body. Roles: title 26/700, body 15/400, caption 12.5/400.
 - Motion: 200ms ease-out default, 600 for celebration. Classes `.arrive`, `.arrive-x`, `.reveal`, `.fill`, `.star-land`, `.sheet-panel`, `.sheet-scrim`, `.rec-ring`, `.dur-*`. Reduced motion is `data-motion="reduce"` on `<html>`. `.press` scales 0.985 and veils the fill on every pointer type.
@@ -61,6 +62,8 @@ The road is demoted, not retired: `UNITS`/`DRILLS` still back the debrief fallba
 
 `npx tsc --noEmit`, `npx vitest run`, `npx next build`. Build with `NEXT_DIST_DIR=.next-build` while a dev server is up, or the build takes the running server's chunks with it. `scripts/audit-tells.sh` is retired; the look loop replaced it.
 
+Field numbers come from Vercel Speed Insights, mounted in `app/layout.tsx` (#285): LCP, INP and CLS from real phones, which is the only honest check on DESIGN.md's "speed is the loudest signal". The service worker skips `/_vercel/` so the telemetry script is never cached past a deploy.
+
 The look loop has a camera: `scripts/look.mjs`. Start a dev server with the Supabase host mocked, then shoot every screen at 390px in both themes against three weeks of fixture practice.
 
 ```
@@ -68,4 +71,4 @@ NEXT_PUBLIC_SUPABASE_URL=http://supabase.local NEXT_PUBLIC_SUPABASE_ANON_KEY=ano
 PLAYWRIGHT_MODULE=/opt/node22/lib/node_modules/playwright/index.mjs node scripts/look.mjs after today log
 ```
 
-Three browser gates, all needing `PLAYWRIGHT_MODULE` and a server on 3123: `scripts/check-onboarding.mjs` (45/45), `scripts/check-motion-layer.mjs` (12/12), `scripts/check-lessons.mjs` (10/10, the lesson flow end to end).
+Three browser gates, all needing `PLAYWRIGHT_MODULE` and a server on 3123: `scripts/check-onboarding.mjs` (44/45; "the lesson list marks the unit for what they said, in their words" has been red since before #284 and is unclaimed), `scripts/check-motion-layer.mjs` (12/12), `scripts/check-lessons.mjs` (10/10, the lesson flow end to end).

@@ -4,7 +4,7 @@
  * /api/analyze is never cached — a rep that can't reach the engine
  * should fail honestly rather than return stale numbers.
  */
-const CACHE = "ethos-v9";
+const CACHE = "ethos-v10";
 
 const SHELL = [
   "/",
@@ -133,6 +133,14 @@ self.addEventListener("fetch", (e) => {
   if (url.pathname.startsWith("/api/") || url.hostname.includes("supabase")) {
     return;
   }
+
+  /*
+   * Vercel's own endpoints (Speed Insights' script and its vitals
+   * beacon). Telemetry is not app shell: cached, the script would
+   * outlive every deploy that fixed it, and an offline miss here should
+   * be a dropped measurement rather than a rejected request.
+   */
+  if (url.pathname.startsWith("/_vercel/")) return;
 
   /*
    * The on-device pose runtime is ~25MB of WASM plus a 5.5MB model.

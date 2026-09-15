@@ -5,6 +5,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { OutboxRetry } from "@/components/OutboxRetry";
 import { ServiceWorker } from "@/components/ServiceWorker";
 import { ThemeSync, themeBootScript } from "@/components/Theme";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 /*
@@ -68,9 +69,11 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    /* Light is the default room (#284), so the server sends it and the
+       boot script only has to override for a device that chose dark. */
+    <html lang="en" data-theme="light" suppressHydrationWarning>
       <head>
-        {/* Before paint, or a dark-mode user gets a white flash. */}
+        {/* Before paint, or someone on dark gets a cream flash. */}
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
       <body
@@ -83,6 +86,9 @@ export default function RootLayout({
         <ServiceWorker />
         <ThemeSync />
         <OutboxRetry />
+        {/* DESIGN.md: speed is the loudest signal. Vercel's Speed
+            Insights is where the field numbers for that claim land. */}
+        <SpeedInsights />
       </body>
     </html>
   );

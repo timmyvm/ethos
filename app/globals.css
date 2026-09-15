@@ -208,6 +208,13 @@
  */
 :root {
   --color-sand-dashed: #ddc99c;
+  /*
+   * The native layer is part of the room (#284). With the OS no longer
+   * choosing the theme, a phone on auto-dark would otherwise paint dark
+   * scrollbars, dark date pickers and a dark caret onto a cream page.
+   * `color-scheme` tells it which room it is standing in.
+   */
+  color-scheme: light;
 }
 
 /*
@@ -274,6 +281,7 @@ body {
  * the same class keeps its contrast on the dark ground (#64, #167).
  */
 :root[data-theme="dark"] {
+  color-scheme: dark;
   /*
    * Three visible steps (#231): ground, then surface for rows and
    * controls, then raised for cards, sheets and the nav. `surface` and

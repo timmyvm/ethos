@@ -5,7 +5,18 @@
  * first paint without a round trip.
  */
 
-export type Theme = "system" | "light" | "dark";
+export type Theme = "light" | "dark";
+
+/**
+ * The app is a light room (#284). Dark is a choice, never an inference:
+ * a phone on auto-dark used to decide what Ethos looked like, and the
+ * cream ground is the product's face. `"system"` was a stored value for
+ * most of the app's life, so anything that is not the word `dark` reads
+ * as light rather than as garbage.
+ */
+function readTheme(value: unknown): Theme {
+  return value === "dark" ? "dark" : "light";
+}
 
 /** Voice, or Voice + Video (decisions 11 Aug, §1). */
 export type CaptureMode = "voice" | "voice_video";
@@ -32,7 +43,7 @@ export interface Prefs {
   skipIntros: boolean;
   /** Honour prefers-reduced-motion overrides for the celebration. */
   reducedMotion: boolean;
-  /** Light, dark, or follow the OS. */
+  /** Light, or dark. Light unless this device asked for dark. */
   theme: Theme;
   /**
    * Which bought Demos pose sits on the floor card, or null for the
@@ -61,7 +72,7 @@ export const DEFAULT_PREFS: Prefs = {
   frameStep: false,
   skipIntros: false,
   reducedMotion: false,
-  theme: "system",
+  theme: "light",
   pose: null,
 };
 
@@ -72,7 +83,8 @@ export function readPrefs(): Prefs {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return DEFAULT_PREFS;
-    return { ...DEFAULT_PREFS, ...(JSON.parse(raw) as Partial<Prefs>) };
+    const stored = JSON.parse(raw) as Partial<Prefs>;
+    return { ...DEFAULT_PREFS, ...stored, theme: readTheme(stored.theme) };
   } catch {
     return DEFAULT_PREFS;
   }

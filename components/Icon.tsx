@@ -267,6 +267,108 @@ export function IconChevron({ size }: { size?: number }) {
   );
 }
 
+/*
+ * ---- The introduction's answer glyphs (#288). One per option, so an
+ * answer is an object to pick rather than a row to read (the reference's
+ * mechanic 6). Same grid, same stroke, drawn for their own words. The
+ * ones that already existed are reused where the word is the same:
+ * Wave for fillers, Gauge for rushing, Freeze for freezing, Spark,
+ * Beacon, Boss and You for the four goals.
+ */
+/** A line that trails into dots: "I trail off". */
+export function IconTrail({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="M3.5 12h7.5" />
+      <circle cx="14.6" cy="12" r="0.9" />
+      <circle cx="17.8" cy="12" r="0.9" />
+      <circle cx="21" cy="12" r="0.9" />
+    </Glyph>
+  );
+}
+/** One flat line: "I sound flat". */
+export function IconFlat({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="M3.5 12h17" />
+    </Glyph>
+  );
+}
+/** A paragraph that keeps going: "I ramble". */
+export function IconParagraph({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="M4 7h16M4 12h16M4 17h9" />
+    </Glyph>
+  );
+}
+/** A board on a stand: class. */
+export function IconBoard({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <rect x="3.5" y="4.5" width="17" height="11.5" rx="2.5" />
+      <path d="M12 16v4M8.5 20h7" />
+    </Glyph>
+  );
+}
+/** A case: work. */
+export function IconCase({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <rect x="3.5" y="7.5" width="17" height="12" rx="2.5" />
+      <path d="M9 7.5V5h6v2.5M3.5 12.5h17" />
+    </Glyph>
+  );
+}
+/** Two people: dates and friends. */
+export function IconPeople({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <circle cx="9" cy="8.5" r="3" />
+      <path d="M3.5 19.5c1-2.9 3-4.3 5.5-4.3s4.5 1.4 5.5 4.3" />
+      <path d="M15.4 5.7a3 3 0 0 1 0 5.6M16.6 15.4c2.1.4 3.4 1.8 3.9 4.1" />
+    </Glyph>
+  );
+}
+/** A globe: online. */
+export function IconGlobe({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M3.5 12h17M12 3.5c2.8 2.6 2.8 14.4 0 17" />
+    </Glyph>
+  );
+}
+/**
+ * Signal bars lit to a level: how much you have practised. Square,
+ * like every bar in the app, and filled rather than stroked because
+ * three outlined rects at this stroke are three blobs. The unlit ones
+ * keep the shape at the faint step so the scale is visible in every
+ * row, not only the top one.
+ */
+export function IconBars({ size = 24, lit }: { size?: number; lit: 1 | 2 | 3 }) {
+  const bars: [number, number][] = [
+    [3.5, 14],
+    [10, 9],
+    [16.5, 4],
+  ];
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
+      {bars.map(([x, y], i) => (
+        <rect
+          key={i}
+          x={x}
+          y={y}
+          width="4"
+          height={20 - y}
+          fill="currentColor"
+          opacity={i < lit ? 1 : 0.3}
+        />
+      ))}
+    </svg>
+  );
+}
+
 /** The mark for an achievement, chosen by what it measures. */
 export function AchievementMark({
   name,

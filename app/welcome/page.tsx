@@ -2,8 +2,25 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { DemosArt, preloadPose, type Pose } from "@/components/DemosArt";
+import {
+  IconBars,
+  IconBeacon,
+  IconBoard,
+  IconBoss,
+  IconCase,
+  IconFlat,
+  IconFreeze,
+  IconGauge,
+  IconGlobe,
+  IconParagraph,
+  IconPeople,
+  IconSpark,
+  IconTrail,
+  IconWave,
+  IconYou,
+} from "@/components/Icon";
 import { SAID_AFTER_MS } from "@/components/Says";
 import { LessonScreen } from "@/components/LessonScreen";
 import { sessionState, signInWithGoogle } from "@/lib/auth";
@@ -23,7 +40,12 @@ import {
   MAX_PAINS,
   readOnboarding,
   writeOnboarding,
+  type AgeBandId,
   type Answers,
+  type ContextId,
+  type GoalId,
+  type LevelId,
+  type PainId,
 } from "@/lib/answers";
 import {
   markWelcomed,
@@ -93,6 +115,45 @@ const QUESTION_POSES: Record<QuestionId, Pose> = {
   level: "mic",
   context: "headphones",
   time: "clock",
+};
+
+/** A number as a glyph: the age bands, where the number IS the mark. */
+function Mark({ children }: { children: ReactNode }) {
+  return (
+    <span className="font-display text-[13px] font-extrabold tabular-nums">
+      {children}
+    </span>
+  );
+}
+
+/**
+ * One glyph per answer (#288, the reference's mechanic 6). Typed over
+ * every option id so a new answer cannot ship without its mark. The
+ * hour is the one list without glyphs: its rows are two columns, the
+ * word and the time, which is the reference's own goal screen.
+ */
+const GLYPH: Record<AgeBandId | GoalId | PainId | LevelId | ContextId, ReactNode> = {
+  u18: <Mark>&lt;18</Mark>,
+  "18_24": <Mark>18</Mark>,
+  "25_34": <Mark>25</Mark>,
+  "35_plus": <Mark>35</Mark>,
+  sharper: <IconSpark size={22} />,
+  present: <IconBeacon size={22} />,
+  feet: <IconBoss size={22} />,
+  anyone: <IconYou size={22} />,
+  fillers: <IconWave size={22} />,
+  rushing: <IconGauge size={22} />,
+  trailing: <IconTrail size={22} />,
+  freezing: <IconFreeze size={22} />,
+  flat: <IconFlat size={22} />,
+  rambling: <IconParagraph size={22} />,
+  never: <IconBars size={22} lit={1} />,
+  some: <IconBars size={22} lit={2} />,
+  often: <IconBars size={22} lit={3} />,
+  class: <IconBoard size={22} />,
+  work: <IconCase size={22} />,
+  social: <IconPeople size={22} />,
+  online: <IconGlobe size={22} />,
 };
 
 /**
@@ -608,6 +669,7 @@ function Choices({
               on={on}
               disabled={!on && full}
               label={o.label}
+              glyph={GLYPH[o.id]}
               onPress={() =>
                 onAnswer({
                   pains: on
@@ -621,6 +683,29 @@ function Choices({
       </div>
     );
   }
+  if (id === "time") {
+    return (
+      <div role="radiogroup" aria-label={QUESTIONS.find((q) => q.id === id)!.title} className="space-y-2">
+        {TIMES.map((o) => {
+          /* "Morning, 08:00" as two columns: the word to scan, the hour
+             to the right in tabular figures. The row's accessible name
+             stays the whole label. */
+          const [word, hour] = o.label.split(", ");
+          return (
+            <Row
+              key={o.id}
+              role="radio"
+              on={answers.time === o.id}
+              label={o.label}
+              word={word}
+              detail={hour}
+              onPress={() => onAnswer({ time: o.id })}
+            />
+          );
+        })}
+      </div>
+    );
+  }
   const options =
     id === "ageBand"
       ? AGE_BANDS
@@ -628,9 +713,7 @@ function Choices({
         ? GOALS
         : id === "level"
           ? LEVELS
-          : id === "time"
-            ? TIMES
-            : CONTEXTS;
+          : CONTEXTS;
   const value = answers[id];
   return (
     <div role="radiogroup" aria-label={QUESTIONS.find((q) => q.id === id)!.title} className="space-y-2">
@@ -640,6 +723,7 @@ function Choices({
           role="radio"
           on={value === o.id}
           label={o.label}
+          glyph={GLYPH[o.id]}
           onPress={() => onAnswer({ [id]: o.id } as Partial<Answers>)}
         />
       ))}
@@ -647,17 +731,38 @@ function Choices({
   );
 }
 
+/**
+ * One answer, as an object (#288): 56px, a glyph at the left, and the
+ * chosen one lit in terracotta, an edge on a wash, rather than the
+ * inverted ink block #206 gave it. The ink block was the heaviest
+ * thing on the screen and it marked the ANSWER, which is the one thing
+ * on a question screen that is not the action; terracotta is what a
+ * thing you touched looks like everywhere else in the app (an input's
+ * focus, the boss card's edge). A second ring is drawn inside the edge
+ * so the chosen row reads at a squint without the box changing size.
+ *
+ * `aria-label` carries the whole label because the glyph and the
+ * hour are text too, and "<18Under 18" is not a name.
+ */
 function Row({
   role,
   on,
   disabled = false,
   label,
+  word,
+  detail,
+  glyph,
   onPress,
 }: {
   role: "radio" | "checkbox";
   on: boolean;
   disabled?: boolean;
   label: string;
+  /** What the row prints when it is not the whole label. */
+  word?: string;
+  /** A right-hand column: the hour. */
+  detail?: string;
+  glyph?: ReactNode;
   onPress: () => void;
 }) {
   return (
@@ -665,15 +770,36 @@ function Row({
       type="button"
       role={role}
       aria-checked={on}
+      aria-label={label}
       disabled={disabled}
       onClick={onPress}
-      className={`press font-display flex min-h-12 w-full items-center rounded-control border px-4 text-left text-[14px] font-bold transition-colors ${
+      className={`press font-display flex min-h-14 w-full items-center gap-3.5 rounded-control border px-4 py-2.5 text-left text-[15px] font-bold transition-colors ${
         on
-          ? "border-ink bg-ink text-ground"
+          ? "border-terracotta-500 bg-terracotta-50 shadow-[inset_0_0_0_1px_var(--color-terracotta-500)]"
           : "border-edge bg-surface hover:bg-sand"
       } ${disabled ? "!text-stone-400" : ""}`}
     >
-      {label}
+      {glyph !== undefined && (
+        <span
+          aria-hidden
+          className={`flex w-7 shrink-0 items-center justify-center ${
+            on ? "text-terracotta-700" : disabled ? "text-stone-300" : "text-stone-500"
+          }`}
+        >
+          {glyph}
+        </span>
+      )}
+      <span className="min-w-0 flex-1">{word ?? label}</span>
+      {detail && (
+        <span
+          aria-hidden
+          className={`shrink-0 text-[14px] font-semibold tabular-nums ${
+            on ? "text-terracotta-700" : "text-stone-400"
+          }`}
+        >
+          {detail}
+        </span>
+      )}
     </button>
   );
 }

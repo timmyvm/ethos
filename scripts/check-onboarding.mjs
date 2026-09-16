@@ -27,7 +27,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*", "Access-Control-Allow-Methods": "*", "Content-Type": "application/json" };
 
 const browser = await chromium.launch();
-const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, recordVideo: { dir: OUT + "video", size: { width: 390, height: 844 } } });
+/*
+ * `serviceWorkers: "block"`: the app registers its offline shell on every
+ * page load, and once a worker controls the page Playwright's routes no
+ * longer see the fetches it passes through, so the mocked host stops
+ * answering on the second visit to a screen and Today never gets its
+ * recordings. It took three timeouts on "Day one starts today." to find.
+ * The walk tests the app, not the shell.
+ */
+const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, serviceWorkers: "block", recordVideo: { dir: OUT + "video", size: { width: 390, height: 844 } } });
 await context.route("http://supabase.local/**", (r) => r.fulfill({ status: r.request().method() === "OPTIONS" ? 204 : 200, headers: cors, body: "[]" }));
 /*
  * The dev overlay ships a button labelled "Next", which makes every

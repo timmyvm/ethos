@@ -7,7 +7,7 @@ import { DemosArt, preloadPose, type Pose } from "@/components/DemosArt";
 import {
   IconBars,
   IconBeacon,
-  IconBoard,
+  IconCap,
   IconBoss,
   IconCase,
   IconFlat,
@@ -162,7 +162,7 @@ const GLYPH: Record<AgeBandId | GoalId | PainId | LevelId | ContextId, ReactNode
   never: <IconBars size={22} lit={1} />,
   some: <IconBars size={22} lit={2} />,
   often: <IconBars size={22} lit={3} />,
-  class: <IconBoard size={22} />,
+  class: <IconCap size={22} />,
   work: <IconCase size={22} />,
   social: <IconPeople size={22} />,
   online: <IconGlobe size={22} />,

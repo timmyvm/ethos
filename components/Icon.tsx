@@ -302,12 +302,12 @@ export function IconParagraph({ size }: { size?: number }) {
     </Glyph>
   );
 }
-/** A board on a stand: class. */
-export function IconBoard({ size }: { size?: number }) {
+/** A cap: class. A board on a stand read as a monitor at this size. */
+export function IconCap({ size }: { size?: number }) {
   return (
     <Glyph size={size}>
-      <rect x="3.5" y="4.5" width="17" height="11.5" rx="2.5" />
-      <path d="M12 16v4M8.5 20h7" />
+      <path d="M3 9.5 12 5.5l9 4-9 4z" />
+      <path d="M7 11.7v3.8c0 1.6 2.2 2.7 5 2.7s5-1.1 5-2.7v-3.8" />
     </Glyph>
   );
 }

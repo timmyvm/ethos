@@ -93,7 +93,7 @@ export const GAMES: Game[] = [
     id: "interview",
     name: "Interview",
     glyph: "\u201c",
-    blurb: "Classic questions, answered cold.",
+    blurb: "Classic questions, no time to prepare.",
     direction: "Answer like they asked you in the room. Sixty to ninety seconds.",
     modIds: [],
     questions: [

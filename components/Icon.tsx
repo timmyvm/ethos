@@ -423,6 +423,25 @@ export function IconBars({ size = 24, lit }: { size?: number; lit: 1 | 2 | 3 }) 
   );
 }
 
+/* ---- The Tools rows' marks (#292): a glyph per door, one weight. */
+/** A speech bubble: Q&A, where Demos cuts in. */
+export function IconBubble({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="M4 7a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v6.5a3 3 0 0 1-3 3h-6.5L6 20v-3.5A3 3 0 0 1 4 13.5z" />
+    </Glyph>
+  );
+}
+/** A tray with an arrow up out of it: upload. */
+export function IconUpload({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="M12 14.5V4M7.5 8.5 12 4l4.5 4.5" />
+      <path d="M4 15v2.5A2.5 2.5 0 0 0 6.5 20h11a2.5 2.5 0 0 0 2.5-2.5V15" />
+    </Glyph>
+  );
+}
+
 /** The mark for an achievement, chosen by what it measures. */
 export function AchievementMark({
   name,

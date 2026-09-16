@@ -264,10 +264,15 @@ await shot("11-home");
 // Today with the road (#267): the five traits are there now, and the
 // whole set is a page of its own.
 await page.goto(`${BASE}/lessons`);
-ok(
-  "the lesson list marks the unit for what they said, in their words",
-  await page.getByText("You said rushing").isVisible()
-);
+/* The mark is set in an effect after mount; `isVisible()` read before
+   it landed, which is the whole reason this check was red since before
+   #284 (#294). Waiting is the check. */
+const marked = await page
+  .getByText("You said rushing")
+  .waitFor({ timeout: 5000 })
+  .then(() => true)
+  .catch(() => false);
+ok("the lesson list marks the unit for what they said, in their words", marked);
 await shot("11b-lessons");
 await page.goto(`${BASE}/`);
 await page.getByText("Day one starts today.").waitFor();

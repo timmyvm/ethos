@@ -8,6 +8,7 @@ import { fetchReps } from "@/lib/client-data";
 import { lessonProgress } from "@/lib/lesson-progress";
 import { readOnboarding } from "@/lib/answers";
 import { buildPortfolio } from "@/lib/portfolio";
+import { PAINS } from "@/content/portfolio";
 
 /**
  * Lessons (DECISIONS #269).
@@ -87,10 +88,18 @@ export default function LessonsPage() {
  * traits outright.
  */
 function buildPortfolioTrait(said: string): string | null {
-  const s = said.toLowerCase();
-  if (s.includes("filler") || s.includes("um")) return "fillers";
-  if (s.includes("rush") || s.includes("fast") || s.includes("slow")) return "pace";
-  if (s.includes("pause") || s.includes("silence") || s.includes("blank")) return "pause";
-  if (s.includes("restart") || s.includes("repeat")) return "repairs";
-  return null;
+  /*
+   * By the pain's own metric rather than by sniffing its words (#294):
+   * "sounding flat" is measured as range and never matched a substring,
+   * so it went unmarked. The two structure pains have no trait among
+   * the five and stay unmarked on purpose.
+   */
+  const metric = PAINS.find((p) => p.said === said)?.metric;
+  const BY_METRIC: Record<string, string> = {
+    fillers: "fillers",
+    wpm: "pace",
+    pause: "pause",
+    range: "range",
+  };
+  return metric ? (BY_METRIC[metric] ?? null) : null;
 }

@@ -1761,7 +1761,7 @@ function Results({
         <div className="mt-7">
           {/* Buttons, not Links: the exits go through exit(), which
               may route via the save-progress wall first (#134). A game
-              ends as a game (#194): another round or back to Tools,
+              ends as a game (#194): another round or back to Practice,
               never a push onto the path's next lesson. */}
           {game ? (
             <button
@@ -1823,7 +1823,7 @@ function Results({
               : backTo
                 ? "Back to the lesson"
                 : game
-                  ? "Back to Tools"
+                  ? "Back to Practice"
                   : "Done for today"}
           </button>
         </div>

@@ -423,7 +423,7 @@ export function IconBars({ size = 24, lit }: { size?: number; lit: 1 | 2 | 3 }) 
   );
 }
 
-/* ---- The Tools rows' marks (#292): a glyph per door, one weight. */
+/* ---- The Practice tab's row marks (#292): a glyph per door, one weight. */
 /** A speech bubble: Q&A, where Demos cuts in. */
 export function IconBubble({ size }: { size?: number }) {
   return (

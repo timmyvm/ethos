@@ -625,7 +625,7 @@ function InfoRow({
   );
 }
 
-/** A door. Same row grammar as Tools and the shelf on /you. */
+/** A door. Same row grammar as Practice and the shelf on /you. */
 function LinkRow({
   href,
   label,

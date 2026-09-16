@@ -20,7 +20,7 @@ import { repHref } from "@/lib/rep-config";
 import { ACTION_CLASS } from "@/lib/ui";
 
 /**
- * Tools (DECISIONS #157, #184, #292).
+ * Practice, the tab that was Tools (DECISIONS #157, #184, #292, #294).
  *
  * The page is a headliner and a list of doors. The 16 Sep review
  * (#292) found the list unreadable to a cold user, and each of its
@@ -49,8 +49,7 @@ import { ACTION_CLASS } from "@/lib/ui";
  *    "featured" here and "selected" elsewhere. It also has state: days
  *    left in the week, and whether it was taken this week.
  *
- * The tab keeps its name; renaming it ripples through the bar, the
- * transitions and the tests, and is a call for Timothy.
+ * The tab was renamed Practice in #294, on Timothy's call.
  */
 const GLYPH: Record<string, ReactNode> = {
   qa: <IconBubble size={20} />,
@@ -103,7 +102,7 @@ export default function GamesPage() {
   return (
     <main className="px-5 pb-22 pt-7">
       <h1 className="font-display text-[24px] font-extrabold leading-tight">
-        Tools
+        Practice
       </h1>
 
       {/* The weekly headliner: the one lifted card and the one tap. */}

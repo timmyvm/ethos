@@ -40,6 +40,10 @@ import { TAB_HREFS } from "@/lib/tabs";
  * name for a room of lessons, bosses and analyzers. The /games route and
  * the icon identifiers keep their names: nobody reads code aloud and
  * bookmarks live (#164's rule).
+ *
+ * "Tools" became "Practice" on 16 Sep (#294), Timothy's call after the
+ * review said nothing on the tab is a tool. The route and the icon
+ * identifiers keep their names, as before.
  */
 /*
  * Lessons took the second slot on 14 Sep (#275). It had been Today's
@@ -63,7 +67,7 @@ import { TAB_HREFS } from "@/lib/tabs";
 const TABS = [
   { href: "/", label: "Today", Icon: IconToday },
   { href: "/lessons", label: "Lessons", Icon: IconLessons },
-  { href: "/games", label: "Tools", Icon: IconGames },
+  { href: "/games", label: "Practice", Icon: IconGames },
   { href: "/history", label: "Log", Icon: IconLog },
   { href: "/you", label: "You", Icon: IconYou },
 ] satisfies readonly {

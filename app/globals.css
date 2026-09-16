@@ -103,8 +103,12 @@
    * fill doesn't either.
    */
   --color-on-accent: #201e1d;
-  /* Progress-bar troughs, empty slots. Square-cornered (#201). */
-  --color-sand: #ecdfc4;
+  /* Progress-bar troughs, empty slots. Square-cornered (#201). One
+   * step firmer since #287: #ecdfc4 measured 1.11:1 on the ground, and
+   * the six zero-value bars on You read as blank rows rather than as
+   * troughs. 1.22:1 on ground, 1.39:1 on a card; the dashed trough
+   * below stays firmer, as it must. */
+  --color-sand: #e5d5b2;
 
   /*
    * Semantic surfaces. `ground` is the room; `surface` and `raised`
@@ -291,7 +295,9 @@ body {
   --color-ground: #1a1410;
   --color-surface: #241c15;
   --color-raised: #2e251c;
-  --color-sand: #3b2f22;
+  /* 1.57:1 on the dark ground, 1.29:1 on a dark card; was 1.16 on the
+     card, where the dimension bars' troughs vanished (#287). */
+  --color-sand: #443627;
   /* Lifted further here than in light. On the dark card the solid
      trough is already close to the surface it sits on, and the dashed
      one at the same value disappeared entirely. */
@@ -382,9 +388,9 @@ body {
  * the log's month at 9/0.1em, the PRO chip at 9.5/0.06em, the heatmap
  * heads at 9px and the nav at 11/0.06em: five sizes of one idea, which
  * reads as a broken eyebrow rather than five voices. `.label-data` is
- * the SECTION eyebrow, one per section; `.label-micro` is everything
- * smaller — column heads, chips, the log's month, nav labels, a tile's
- * label inside a card.
+ * the SECTION eyebrow, one per section, and since #287 the tab bar's
+ * five labels; `.label-micro` is everything smaller — column heads,
+ * chips, the log's month, a tile's label inside a card.
  *
  * Tracking drops from 0.14em to 0.10em. At 11px, 0.14em is spec-sheet
  * tracking: it put "INDEX" at 44px inside a 44px column and wrapped

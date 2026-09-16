@@ -351,7 +351,11 @@ export default function HistoryPage() {
                     </span>
                   </span>
                   <span className="min-w-0">
-                    <span className="font-display block truncate text-[14px] font-bold">
+                    {/* Two lines, never an ellipsis: the lesson column is
+                        134px and "Punctuate with silence" needs 165, so
+                        the one label a row exists to show was the one
+                        label you could not read (#287). */}
+                    <span className="font-display line-clamp-2 text-[14px] font-bold leading-snug">
                       {recordingName(r)}
                     </span>
                     <Stars n={r.stars} size={9} />

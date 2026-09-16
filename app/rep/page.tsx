@@ -1598,7 +1598,20 @@ function Results({
           the right, where the button pointed (DECISIONS #223). The
           header and the step bar above stay put, so the walk reads as
           one screen turning pages rather than three screens. */}
-      <div key={step} className="arrive-x flex-1">
+      {/*
+       * The score step is short, a number and the coach's read, and the
+       * button is bottom-anchored (DESIGN.md), so on a phone a third of
+       * the screen sat empty between the bubble and the button and the
+       * payoff screen read as stopped rather than finished (#287). The
+       * first step centres in the space the walk gives it, the way the
+       * timer does on the recording screen; the two longer steps flow
+       * as before. `main` is min-h, so a step taller than the screen
+       * grows it rather than clipping at the top.
+       */}
+      <div
+        key={step}
+        className={`arrive-x flex-1 ${step === 0 ? "flex flex-col justify-center" : ""}`}
+      >
         {step === 0 && (
           <div className="mt-4">
             <GainsRow gains={gains} />

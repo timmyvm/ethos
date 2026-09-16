@@ -49,8 +49,14 @@ import { TAB_HREFS } from "@/lib/tabs";
  * a wardrobe, not a section.
  *
  * Five tabs at 390px is 74.8px each, comfortably over the 44px target
- * floor. `.label-micro` has no truncate, so every label here stays one
+ * floor. The register has no truncate, so every label here stays one
  * short word: a second word wraps and the whole bar grows a line.
+ *
+ * The labels wear `.label-data`, 11px, since #287. They were the 10px
+ * `.label-micro`, which is iOS's floor for a tab label and reads as
+ * one on a phone; these five words are the most-read small type in
+ * the app, and one point is the difference between a label you read
+ * and one you recognise. Column heads and chips keep the 10.
  *
  * The hrefs come from lib/tabs.ts, which PageTransition reads as well.
  */
@@ -115,7 +121,7 @@ export function Nav() {
               key={t.href}
               href={t.href}
               aria-current={active ? "page" : undefined}
-              className={`label-micro flex min-h-11 flex-1 flex-col items-center justify-center gap-1 py-1 transition-colors ${
+              className={`label-data flex min-h-11 flex-1 flex-col items-center justify-center gap-1 py-1 transition-colors ${
                 active ? "!text-ink" : ""
               }`}
             >

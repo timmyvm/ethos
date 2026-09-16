@@ -36,8 +36,8 @@ export function TraitCard({
 }) {
   const t = TRAIT[reading.id];
   /* Never a position on its own: see nextLine. Null here means the
-     card is showing "scale provisional" instead of a percentile, so
-     there is nothing to qualify. */
+     scale is provisional and the card shows the measurement alone, so
+     there is no position to qualify. */
   const next = nextLine(reading);
 
   const body = (
@@ -64,13 +64,18 @@ export function TraitCard({
               * that can be provisional, and saying "not enough data"
               * beside a number that is perfectly well measured reads
               * as though the measurement were the doubtful half.
+              *
+              * While the scale is provisional the card prints the
+              * measurement ALONE (#287). The dashed ring already says
+              * the position is an estimate, in the picture (#264), and
+              * the line under the five cards says it once in words.
+              * Each card saying "scale provisional" as well was one
+              * disclaimer printed five times on the first screen, and
+              * COPY-RULES budgets a mantra at one appearance.
               */}
             {withUnit(reading.id, reading.raw)}
-            {" · "}
-            {reading.quality === "provisional" ? (
-              <span className="text-stone-400">scale provisional</span>
-            ) : (
-              <>{ordinal(reading.percentile)} percentile</>
+            {reading.quality !== "provisional" && (
+              <> · {ordinal(reading.percentile)} percentile</>
             )}
           </div>
         </div>

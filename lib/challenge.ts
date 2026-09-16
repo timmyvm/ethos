@@ -277,7 +277,16 @@ export function challengeLine(c: Challenge): string {
   const line = withUnit(c.trait, c.line);
   if (c.today === null) return `${VERB[c.direction]} ${line}.`;
   if (c.closed) {
-    return `${fmtRaw(c.today)} today, ${VERB[c.direction].toLowerCase()} ${fmtRaw(c.line)}.`;
+    const today = fmtRaw(c.today);
+    const target = fmtRaw(c.line);
+    /*
+     * A day that closes ON the line, or near enough that both numbers
+     * print the same, cannot read "1.8 today, over 1.8": four words
+     * that contradict each other (#287). Equality IS a close, because
+     * `closed` is `todayS >= lineS`, so it is said as one.
+     */
+    if (today === target) return `${today} today, on the line.`;
+    return `${today} today, ${VERB[c.direction].toLowerCase()} ${target}.`;
   }
   return `${fmtRaw(c.today)} today. The line is ${fmtRaw(c.line)}.`;
 }

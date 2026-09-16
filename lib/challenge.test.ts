@@ -255,6 +255,15 @@ describe("the copy", () => {
     expect(line).toMatch(/(under|over|inside)/);
   });
 
+  it("says on the line when today prints the same as the line", () => {
+    const c = buildChallenge([...base, rep(0, 0, "today", 9, 140)], NOW)!;
+    /* The rounded strings are what the card prints, so a today that
+       formats the same as the line is the case, whatever the floats. */
+    const line = challengeLine({ ...c, today: c.line, closed: true });
+    expect(line).toMatch(/ today, on the line\.$/);
+    expect(line).not.toMatch(/(under|over|inside)/);
+  });
+
   it("says the same thing about their week whether or not it closed", () => {
     const open = buildChallenge(base, NOW)!;
     const shut = buildChallenge([...base, rep(0, 0, "today", 9, 140)], NOW)!;

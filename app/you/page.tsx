@@ -203,9 +203,11 @@ export default function YouPage() {
   const header = (
     <div className="flex items-center justify-between">
       <h1 className="font-display text-[24px] font-extrabold">You</h1>
+      {/* The 44px target Today's text links carry, without moving the
+          line: the box grows into the margins (#287). */}
       <Link
         href="/settings"
-        className="press text-[13px] font-semibold text-stone-400"
+        className="press -my-3 inline-flex min-h-11 items-center text-[13px] font-semibold text-stone-400"
       >
         Settings
       </Link>
@@ -285,7 +287,12 @@ export default function YouPage() {
                   setNameFailed(false);
                   setEditingName(true);
                 }}
-                className={`press min-h-11 shrink-0 text-caption font-semibold text-stone-400 ${name ? "" : "text-left"}`}
+                className={`press min-h-11 shrink-0 text-caption font-semibold text-stone-400 ${
+                  /* "Edit" is 24px of text; the pad widens the target to
+                     48 and the negative margin keeps its right edge on
+                     the card's own (#287). */
+                  name ? "-mr-3 px-3" : "text-left"
+                }`}
               >
                 {name ? "Edit" : "Add your name →"}
               </button>

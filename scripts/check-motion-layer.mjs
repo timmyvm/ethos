@@ -152,7 +152,7 @@ ok("the Record button breathes while it waits", wait.name === "rec-wait" && wait
 await page.goto(`${BASE}/`);
 await page.waitForSelector("main");
 await sleep(800);
-await page.getByRole("button", { name: /Make it harder/ }).click();
+await page.getByRole("button", { name: /Turn up the difficulty/ }).click();
 await sleep(400);
 await page.getByRole("button", { name: /Crowd noise/ }).click();
 await page.waitForSelector("[role=dialog] .sheet-panel", { timeout: 5000 });

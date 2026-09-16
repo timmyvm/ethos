@@ -45,12 +45,16 @@ import { buzz, prefersReducedMotion } from "@/lib/prefs";
  *             the action colour and an open ring is an action.
  *   quiet     stone, for a ring that is context rather than a target.
  */
-export type RingTone = "measured" | "open" | "quiet" | "lit";
+export type RingTone = "measured" | "open" | "quiet" | "lit" | "dim";
 
 const STROKE: Record<RingTone, string> = {
   measured: "var(--color-sage-600)",
   open: "var(--color-terracotta-500)",
   quiet: "var(--color-stone-400)",
+  /* Below the median (#293): the same colour, one step lighter, so
+     that a ring at the 12th and a ring at the 93rd stop wearing the
+     identical green. */
+  dim: "var(--color-sage-400)",
   /* On the deep sage card, where sage-600 disappears into the ground
      and `sage-lit` is the token that exists for exactly this. */
   lit: "var(--color-sage-lit)",
@@ -83,12 +87,10 @@ export function Ring({
    */
   state?: "idle" | "thinking" | "closing";
   /**
-   * The SCALE is provisional, not the measurement: where
-   * docs/percentiles.md could not find population data good enough to
-   * place somebody honestly, the TROUGH goes dashed. The arc stays
-   * solid, because what they did is known even when where it sits is
-   * a guess, and a dashed ring says "we are estimating" in the picture
-   * rather than in a footnote nobody reads.
+   * The SCALE is provisional, not the measurement. It used to dash the
+   * trough (#264); since #293 it changes nothing drawn, because the
+   * dash read as segmented data rather than as an estimate. Kept on the
+   * prop so callers still say it, and read by the accessible label.
    */
   provisional?: boolean;
   className?: string;
@@ -102,12 +104,6 @@ export function Ring({
   track?: string;
 }) {
   const clamped = Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
-  /*
-   * The provisional trough's dash, as a fraction of the path. Fixed in
-   * path units rather than pixels so a 44px ring and a 132px one carry
-   * the same number of dashes and read as the same material.
-   */
-  const DASH = 0.022;
   const stroke = thickness ?? Math.max(3, Math.round(size / 12));
   const r = (size - stroke) / 2;
 
@@ -184,13 +180,13 @@ export function Ring({
           cy={size / 2}
           r={r}
           fill="none"
-          stroke={
-            track ?? `var(--color-sand${provisional ? "-dashed" : ""})`
-          }
+          /* Solid whatever the scale's quality (#293): the dashed
+             trough read as segmented data, not as "estimating", to
+             every cold reader who met it. */
+          stroke={track ?? "var(--color-sand)"}
           strokeWidth={stroke}
           pathLength={1}
-          strokeDasharray={provisional ? `${DASH} ${DASH}` : undefined}
-          strokeLinecap={provisional ? "round" : "butt"}
+          strokeLinecap="butt"
         />
         <circle
           className="ring-arc"

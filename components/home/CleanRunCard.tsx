@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { CountUp } from "@/components/CountUp";
 import { Ring } from "@/components/Ring";
 import { Shell } from "@/components/home/HomeCards";
@@ -68,13 +69,28 @@ export function CleanRunCard({
    * mods are on, including the tight timer's 30.
    */
   const ceiling = Math.max(1, now.of);
+  const whole = shown >= Math.round(ceiling);
+  /*
+   * Reframed after the 16 Sep review (#293). "Your longest clean run"
+   * over a full ring and then "your best is 52s" contradicted itself:
+   * the eyebrow now says WHICH recording, the ring carries the unit,
+   * and the headline says what the ring shows rather than repeating its
+   * number. The card was the loudest thing on the page and did nothing
+   * when tapped; it opens the log now, where the run and the Index live.
+   */
   return (
+    <Link href="/history" className="press block rounded-sheet">
     <Shell
-      eyebrow="Your longest clean run"
+      eyebrow="Clean run · last recording"
       aside={
-        isBest && shown > 0 ? (
-          <div className="label-micro !text-sage-lit">Best yet</div>
-        ) : undefined
+        <span className="flex items-center gap-2">
+          {isBest && shown > 0 && (
+            <span className="label-micro !text-sage-lit">Best yet</span>
+          )}
+          <span aria-hidden className="text-sage-mist">
+            →
+          </span>
+        </span>
       }
       foot={
         /* Fillers only, said where the number is, because
@@ -85,7 +101,7 @@ export function CleanRunCard({
           ? "Fillers only. Self-corrections are counted separately."
           : isBest
             ? `A new best. The last one was ${Math.round(best.s)}s.`
-            : `Your best is ${Math.round(best.s)}s.`
+            : `Best so far: ${Math.round(best.s)}s.`
       }
       after={children}
     >
@@ -100,11 +116,12 @@ export function CleanRunCard({
           <CountUp value={shown} durationMs={DURATION.max} />
           <span className="text-[17px]">s</span>
         </span>
-        <span className="label-micro mt-1 !text-sage-mist">of {Math.round(ceiling)}</span>
+        <span className="label-micro mt-1 !text-sage-mist">of {Math.round(ceiling)}s</span>
       </Ring>
       <p className="font-display min-w-0 text-[19px] font-bold leading-snug">
-        {shown} seconds straight with no filler in them.
+        {whole ? "The whole recording, no filler." : "Longest stretch without a filler."}
       </p>
     </Shell>
+    </Link>
   );
 }

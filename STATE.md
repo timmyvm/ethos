@@ -11,7 +11,7 @@ One system, since #234: Instrument's structure carrying Organic's warmth, design
 - **Rectangles over pills.** Chips are the only pills, Record the only circle, the nav the only square edge. Bars are square, trough and fill. The trough (`sand`) is #e4e4e4 light and #333333 dark (#287, #289), firm enough that a zero bar still reads as a trough.
 - **Colour** unchanged from #203: terracotta #C67139 is the one tap per screen, the sage ramp is earned, deep sage is the score card and the paywall, warm near-black is the stage. Plum #62336c joined in #280 and means one thing: paid. One mark, `components/PremiumMark.tsx`, never a tap and never earned.
 
-Today is the first card, today's line, the clean run, then the five trait rings (#267, #281). Lessons is its own page at `/lessons`: fifteen illustrated cards, three per trait, two up with each trait's first taking the whole row (#274). The eyebrow register is Outfit 11/700/0.10em uppercase.
+Today is the first card (the topic, the how, the why, each named), today's line, the clean run (tappable, it opens the log), then the five traits as hairline rows, weakest first, each with a direction and a target from its norm (#267, #281, #293). Tools is the boss card with the screen's one tap and its week state, then the doors, every row ending in the same arrow with the Premium chip beside it where the tap leads there (#292). Lessons is its own page at `/lessons`: fifteen illustrated cards, three per trait, two up with each trait's first taking the whole row (#274). The eyebrow register is Outfit 11/700/0.10em uppercase.
 
 ## Tokens (`app/globals.css`, `lib/motion.ts`)
 

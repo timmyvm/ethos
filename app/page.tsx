@@ -265,7 +265,8 @@ export default function Home() {
                   empty until then — so it counts up rather than
                   appearing already counted. Not the celebration length:
                   nothing was earned here, a read landed. */}
-              <CountUp value={totalStars(starMap)} durationMs={DURATION.max} />
+              <CountUp value={totalStars(starMap)} durationMs={DURATION.max} />{" "}
+              stars
             </span>
           )}
           <StreakBadge streak={streak} />
@@ -359,19 +360,19 @@ export default function Home() {
               <div className="mt-5 flex items-baseline justify-between gap-3">
                 <button
                   onClick={() => setTopic(spinForAnswers(null))}
-                  className="press -my-3 inline-flex min-h-11 items-center text-[13px] font-semibold text-terracotta-700"
+                  className="press -my-3 inline-flex min-h-11 items-center text-[13px] font-semibold text-stone-500"
                 >
                   Not feeling it? Spin a new topic →
                 </button>
                 <button
                   onClick={() => setShowMods((v) => !v)}
-                  className="press -my-3 inline-flex min-h-11 shrink-0 items-center text-[13px] font-semibold text-terracotta-700"
+                  className="press -my-3 inline-flex min-h-11 shrink-0 items-center text-[13px] font-semibold text-stone-500"
                 >
                   {showMods
                     ? "Hide mods"
                     : mods.length > 0
                       ? `${mods.length} mod${mods.length === 1 ? "" : "s"} on · edit`
-                      : "Make it harder"}
+                      : "Turn up the difficulty"}
                 </button>
               </div>
             </div>

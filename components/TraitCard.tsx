@@ -5,97 +5,85 @@ import { CountUp } from "@/components/CountUp";
 import { Ring } from "@/components/Ring";
 import { TRAIT } from "@/content/traits";
 import { DURATION } from "@/lib/motion";
-import { nextLine, ordinal, withUnit, type TraitReading } from "@/lib/trait-readings";
+import { aimLine, ordinal, withUnit, type TraitReading } from "@/lib/trait-readings";
 
 /**
- * One trait, one ring, one thing to do about it (DECISIONS #257).
+ * One trait, one ring, and since #293 a direction and a target on every
+ * one (DECISIONS #257, #293).
  *
- * The card has exactly three jobs and refuses a fourth:
+ * Three jobs:
  *
- *  1. Where you stand, as a percentile, drawn as a ring so the gap is
- *     visible rather than implied.
- *  2. The raw number the percentile came from. A position with no
- *     measurement under it is a judgement, and vision.md says feedback
- *     traces to a number or it is not said.
- *  3. What would move it five points, in this trait's own units.
+ *  1. Where you stand, as a percentile, drawn as a ring. The number in
+ *     the ring is an ORDINAL ("18th"), because a bare "18" beside
+ *     "Pace" read as a score out of an unknown total.
+ *  2. The raw number the percentile came from, in its own unit.
+ *  3. Which way is better, and a target with a source: `aimLine`.
  *
- * There is no grade, no colour coding by good or bad, and no star.
- * A percentile is a position, and dressing a position as a verdict is
- * how a measurement turns into a scold.
+ * The ring is one step lighter below the median, so the colour carries
+ * some of the meaning the digit used to carry alone.
+ *
+ * Two shapes. "card" is the original, kept for the workbench; "row" is
+ * what Today uses, a hairline row in the same grammar as every other
+ * list in the app, so five traits stop taking a screen and a half.
  */
 export function TraitCard({
   reading,
   delay = 0,
   href,
+  variant = "card",
+  last = false,
 }: {
   reading: TraitReading;
   /** Stagger a row of these so they land one at a time. */
   delay?: number;
   /** Where the lesson for this trait lives, when there is one. */
   href?: string;
+  variant?: "card" | "row";
+  /** The last row closes the list with a rule. */
+  last?: boolean;
 }) {
   const t = TRAIT[reading.id];
-  /* Never a position on its own: see nextLine. Null here means the
-     scale is provisional and the card shows the measurement alone, so
-     there is no position to qualify. */
-  const next = nextLine(reading);
+  const row = variant === "row";
+  const n = reading.percentile;
+  const suffix = ordinal(n).slice(String(n).length);
 
   const body = (
     <>
-      <div className="flex items-center gap-4">
-        <Ring
-          value={reading.fraction}
-          size={64}
-          delay={delay}
-          provisional={reading.quality === "provisional"}
-        >
-          <CountUp
-            value={reading.percentile}
-            durationMs={DURATION.max}
-            className="font-display text-[19px] font-extrabold leading-none"
-          />
-        </Ring>
-        <div className="min-w-0 flex-1">
-          <div className="font-display text-[15px] font-bold">{t.name}</div>
-          <div className="mt-0.5 text-caption text-stone-500">
-            {/*
-              * The MEASUREMENT first, always, then where it sits. What
-              * somebody did is known; the place it sits is the part
-              * that can be provisional, and saying "not enough data"
-              * beside a number that is perfectly well measured reads
-              * as though the measurement were the doubtful half.
-              *
-              * While the scale is provisional the card prints the
-              * measurement ALONE (#287). The dashed ring already says
-              * the position is an estimate, in the picture (#264), and
-              * the line under the five cards says it once in words.
-              * Each card saying "scale provisional" as well was one
-              * disclaimer printed five times on the first screen, and
-              * COPY-RULES budgets a mantra at one appearance.
-              */}
-            {withUnit(reading.id, reading.raw)}
-            {reading.quality !== "provisional" && (
-              <> · {ordinal(reading.percentile)} percentile</>
-            )}
-          </div>
+      <Ring
+        value={reading.fraction}
+        size={row ? 52 : 64}
+        delay={delay}
+        tone={n >= 50 ? "measured" : "dim"}
+        provisional={reading.quality === "provisional"}
+      >
+        <span className="font-display flex items-baseline text-[15px] font-extrabold leading-none tabular-nums">
+          <CountUp value={n} durationMs={DURATION.max} />
+          <span className="text-[10px]">{suffix}</span>
+        </span>
+      </Ring>
+      <div className="min-w-0 flex-1">
+        <div className="font-display text-[15px] font-bold">{t.name}</div>
+        <div className="mt-0.5 text-caption text-stone-500">
+          {withUnit(reading.id, reading.raw)}
         </div>
+        <div className="mt-0.5 text-caption text-stone-400">{aimLine(reading)}</div>
       </div>
-
-      {next && (
-        <p className="mt-3 border-t border-hairline pt-2.5 text-caption text-stone-500">
-          {next}
-        </p>
+      {row && href && (
+        <span aria-hidden className="shrink-0 text-stone-400">
+          →
+        </span>
       )}
     </>
   );
 
-  const shell = "elev-1 rounded-card border border-card-edge bg-raised p-4";
+  const shell = row
+    ? `flex items-center gap-4 border-t border-hairline py-3 ${last ? "border-b" : ""}`
+    : "elev-1 flex items-center gap-4 rounded-card border border-card-edge bg-raised p-4";
   return href ? (
-    <Link href={href} className={`press block ${shell}`}>
+    <Link href={href} className={`press ${shell}`}>
       {body}
     </Link>
   ) : (
     <section className={shell}>{body}</section>
   );
 }
-

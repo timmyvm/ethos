@@ -59,7 +59,10 @@ export function DayTrail({
         </div>
       )}
       <p className="min-w-0 text-caption text-sage-mist">
-        Day {trail.count} of speaking
+        {/* "22 days spoken · 13 of the last 14": the count with its noun,
+            and the bars explained in the same sentence (#293). */}
+        {trail.count} {trail.count === 1 ? "day" : "days"} spoken
+        {pebbles.length > 0 && ` · ${spoken} of the last ${pebbles.length}`}
         {/* Only when earned, and only for something the card above
             doesn't already say (#95). */}
         {trail.bestYet && " · best day yet"}

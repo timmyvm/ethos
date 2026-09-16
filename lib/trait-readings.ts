@@ -152,6 +152,28 @@ export function withUnit(id: TraitId, raw: number): string {
 }
 
 /**
+ * A direction and a target, for every trait, always (#293).
+ *
+ * The review put it plainly: "106 words a minute is your weakest
+ * number, but the page never says whether that's too fast or too
+ * slow." `nextLine` names a five-point step and goes quiet while the
+ * scale is provisional, which today is every trait, so nothing on the
+ * screen said which way was up. This line never goes quiet. The target
+ * is the norm's own centre (the median the citations in
+ * content/norms.ts were read for) or the band where the trait has one,
+ * so it is a number with a source rather than advice.
+ */
+export function aimLine(r: TraitReading): string {
+  const norm = NORMS[r.id];
+  if (norm.direction === "band" && norm.band) {
+    return `The zone is ${norm.band.lo} to ${norm.band.hi}.`;
+  }
+  const typical = norm.shape === "lognormal" ? Math.exp(norm.mu) : norm.mu;
+  const lead = norm.direction === "higher" ? "More is better" : "Fewer is better";
+  return `${lead}. Typical: ${withUnit(r.id, typical)}.`;
+}
+
+/**
  * "31st", "62nd", "13th". A percentile is read aloud as an ordinal and
  * printing "31 percentile" is the tell of a number that was never meant
  * to be said out loud.

@@ -104,7 +104,13 @@ export function FloorCard({
     <div className="elev-2 rounded-sheet border border-card-edge bg-raised p-5">
       <div className="label-data">{eyebrow}</div>
 
-      <h2 className="font-display mt-2.5 text-title leading-tight">{hero}</h2>
+      {/* Three kinds of content in one card, each named (#293): the
+          topic, the technique, the reason. Without the cues a prompt
+          read as an article title and a technique as its standfirst. */}
+      {!dayOne && <div className="label-micro mt-3">Your topic</div>}
+      <h2 className={`font-display ${dayOne ? "mt-2.5" : "mt-1"} text-title leading-tight`}>
+        {hero}
+      </h2>
 
       {/*
        * ONE instruction, and not the angle's title with it. The title
@@ -113,7 +119,12 @@ export function FloorCard({
        * clause of the sentence and made a three line paragraph out of
        * what should be one line of technique.
        */}
-      {body && <p className="mt-2 text-body text-stone-500">{body}</p>}
+      {body && (
+        <>
+          <div className="label-micro mt-3">{dayOne ? "Your topic" : "How"}</div>
+          <p className="mt-1 text-body text-stone-500">{body}</p>
+        </>
+      )}
 
       {/*
        * The reason, in the trait's own unit, naming the SAME trait the
@@ -122,9 +133,10 @@ export function FloorCard({
        * measurement is the half that is known (docs/percentiles.md).
        */}
       {reason && (
-        <p className="mt-3.5 border-t border-hairline pt-3 text-body leading-snug text-ink">
-          {reason}
-        </p>
+        <div className="mt-3.5 border-t border-hairline pt-3">
+          <div className="label-micro">Why</div>
+          <p className="mt-1 text-body leading-snug text-ink">{reason}</p>
+        </div>
       )}
 
       <Link href={to} className={`${ACTION_CLASS} mt-5`}>

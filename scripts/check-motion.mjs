@@ -150,7 +150,7 @@ a = await anim(page, "main > .arrive");
 ok("home's fetched block arrives once", a.name === "arrive", `${a.name}`);
 const navT = await page.$eval("nav a", (el) => getComputedStyle(el).transitionDuration);
 ok("nav tab colour steps at the press duration", navT === "0.12s", navT);
-await page.getByRole("button", { name: "Make it harder" }).click();
+await page.getByRole("button", { name: "Turn up the difficulty" }).click();
 a = await anim(page, ".reveal");
 ok("mod picker reveals out of its row", a.name === "reveal", a.name);
 await sleep(500);

@@ -9,7 +9,7 @@
  *
  *   node scripts/strip.mjs <name> <url> <selector> [--dark] [--full] [--wall]
  *   node scripts/strip.mjs tab-log / 'nav a[href="/history"]'
- *   node scripts/strip.mjs mods / 'button:has-text("Make it harder")'
+ *   node scripts/strip.mjs mods / 'button:has-text("Turn up the difficulty")'
  *
  * Writes docs/look/strips/<name>-{light,dark}.png. The selector is
  * tapped; if it is the literal string "load" the strip is the page's own

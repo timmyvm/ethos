@@ -178,6 +178,14 @@ ok(
 );
 await page.getByRole("button", { name: "Skip" }).click();
 
+// 7c. The beat before the hour (#288): Demos alone with one line, no
+// answer to give, and the bar does not move for it.
+await page.getByText("Practice with a time happens.").waitFor();
+ok("a beat breaks the run of questions before the hour is asked", (await page.getByRole("radio").count()) === 0);
+ok("and the bar stays at 6 of 7 across it", (await at()) === "6");
+await shot("08b-beat");
+await page.getByRole("button", { name: "Next", exact: true }).click();
+
 // 8. Question 7: the hour. It writes a preference and asks for nothing.
 await page.getByText("When do you want your minute?").waitFor();
 ok("the bar stands at 7 of 7", (await at()) === "7");

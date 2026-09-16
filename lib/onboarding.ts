@@ -103,6 +103,20 @@ export const QUESTIONS: readonly {
   { id: "time", title: "When do you want your minute?" },
 ];
 
+/**
+ * The one beat between the questions (#288): a full-screen Demos line
+ * before the hour is asked, so seven questions do not run as one form.
+ * The reference puts "It can be hard to stay motivated..." in the same
+ * slot before its reminder ask. This one promises nothing the walk
+ * cannot do: the hour is a preference and no permission is asked here,
+ * so it says what a time does and not what the phone will do
+ * (lib/portfolio.test.ts keeps that vocabulary off this screen too).
+ */
+export const WELCOME_BEAT = {
+  title: "Practice with a time happens.",
+  line: "Sixty seconds, at an hour you'd keep.",
+} as const;
+
 /** The name field's own furniture: it is the one answer you type. */
 export const NAME_FIELD = {
   placeholder: "First name",

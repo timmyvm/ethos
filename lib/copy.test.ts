@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { DRILLS } from "./drills";
-import { QUESTIONS, WELCOME_STEPS } from "./onboarding";
+import { QUESTIONS, WELCOME_BEAT, WELCOME_STEPS } from "./onboarding";
 import { AGE_BANDS, CONTEXTS, GOALS, LEVELS, PAINS } from "@/content/portfolio";
 import { UNITS } from "./path";
 
@@ -287,7 +287,7 @@ describe("the screen template", () => {
   it("keeps every approved string inside the word budget", () => {
     const over: string[] = [];
 
-    for (const step of WELCOME_STEPS) {
+    for (const step of [...WELCOME_STEPS, WELCOME_BEAT]) {
       for (const s of [step.title, step.line]) {
         if (count(s) > WORDS) over.push(s);
       }

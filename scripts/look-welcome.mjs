@@ -40,6 +40,8 @@ const ANSWERS = [
   { id: "pains", type: "row", labels: ["I rush", "I ramble"] },
   { id: "level", type: "row", labels: ["A bit, a class or a few talks"] },
   { id: "context", type: "row", labels: ["Work"] },
+  /* The beat (#288): one screen, no answer, shot once. */
+  { id: "beat", type: "beat" },
   { id: "time", type: "row", labels: ["Evening, 18:00"] },
 ];
 
@@ -101,9 +103,16 @@ async function shootTheme(theme) {
     await next();
   }
 
-  for (const [k, q] of ANSWERS.entries()) {
+  let k = 0;
+  for (const q of ANSWERS) {
+    if (q.type === "beat") {
+      await shot("beat");
+      await next();
+      continue;
+    }
+    k += 1;
     // Unanswered first: the question as it is actually met.
-    await shot(`q${k + 1}-${q.id}`);
+    await shot(`q${k}-${q.id}`);
     if (q.type === "text") {
       await page.getByLabel("Your name").fill(q.value);
       await page.getByLabel("Your name").blur();
@@ -117,7 +126,7 @@ async function shootTheme(theme) {
       }
     }
     // Answered: his reply, and the nod that came with it.
-    await shot(`q${k + 1}-${q.id}-answered`, 600);
+    await shot(`q${k}-${q.id}-answered`, 600);
     await next();
   }
 

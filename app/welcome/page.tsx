@@ -52,6 +52,7 @@ import {
   NAME_FIELD,
   PLAN_COPY,
   QUESTIONS,
+  WELCOME_BEAT,
   WELCOME_STEPS,
   type QuestionId,
 } from "@/lib/onboarding";
@@ -83,12 +84,22 @@ import { INPUT_CLASS } from "@/lib/ui";
 type Step =
   | { kind: "intro"; index: number }
   | { kind: "question"; id: QuestionId }
+  | { kind: "beat" }
   | { kind: "plan" }
   | { kind: "account" };
 
 const STEPS: Step[] = [
   ...WELCOME_STEPS.map((_, index): Step => ({ kind: "intro", index })),
-  ...QUESTIONS.map((q): Step => ({ kind: "question", id: q.id })),
+  /*
+   * The beat sits before the hour (#288): six questions, then Demos
+   * alone with one line, then the seventh. It is not a question, so
+   * the bar does not move for it and the count stays seven.
+   */
+  ...QUESTIONS.flatMap((q): Step[] =>
+    q.id === "time"
+      ? [{ kind: "beat" }, { kind: "question", id: q.id }]
+      : [{ kind: "question", id: q.id }]
+  ),
   { kind: "plan" },
   /*
    * The account ask (#277). Last, after the plan, because the plan is
@@ -100,13 +111,14 @@ const STEPS: Step[] = [
   { kind: "account" },
 ];
 const LAST = STEPS.length - 1;
-const FIRST_QUESTION = STEPS.findIndex((s) => s.kind === "question");
 /* The walk's resting place. A finished walk opens here, not on the
    account screen behind it. */
 const PLAN = STEPS.findIndex((s) => s.kind === "plan");
 
 /** Which pose asks which question (#233, #249). */
 const INTRO_POSES: Pose[] = ["wave", "speaking", "celebrate"];
+/** The beat's pose: he is telling you something, arcs and all. */
+const BEAT_POSE: Pose = "speaking";
 const QUESTION_POSES: Record<QuestionId, Pose> = {
   name: "hello",
   ageBand: "fingers",
@@ -234,7 +246,9 @@ function Walk() {
         ? INTRO_POSES[after.index]
         : after.kind === "question"
           ? QUESTION_POSES[after.id]
-          : "clipboard";
+          : after.kind === "beat"
+            ? BEAT_POSE
+            : "clipboard";
     preloadPose(pose);
   }, [i]);
 
@@ -327,9 +341,27 @@ function Walk() {
     );
   }
 
+  if (step.kind === "beat") {
+    return (
+      <LessonScreen
+        center
+        speech="above"
+        stepKey={i}
+        onBack={() => go(i - 1)}
+        header={<Progress n={QUESTIONS.length - 1} of={QUESTIONS.length} />}
+        title={WELCOME_BEAT.title}
+        line={WELCOME_BEAT.line}
+        art={<DemosArt pose={BEAT_POSE} size={200} greetAfterMs={SAID_AFTER_MS} />}
+        action={{ label: "Next", onPress: () => go(i + 1) }}
+      />
+    );
+  }
+
   if (step.kind === "question") {
     const q = QUESTIONS.find((x) => x.id === step.id)!;
-    const n = i - FIRST_QUESTION + 1;
+    /* By the question's own place in the seven, not the step's index:
+       the beat sits between the sixth and the seventh. */
+    const n = QUESTIONS.findIndex((x) => x.id === step.id) + 1;
     const picked = has(answers, step.id);
     return (
       <LessonScreen

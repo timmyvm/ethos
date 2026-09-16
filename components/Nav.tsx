@@ -69,7 +69,7 @@ const TABS = [
 ] satisfies readonly {
   href: (typeof TAB_HREFS)[number];
   label: string;
-  Icon: (p: { size?: number }) => React.ReactElement;
+  Icon: (p: { size?: number; active?: boolean }) => React.ReactElement;
 }[];
 
 /**
@@ -125,7 +125,8 @@ export function Nav() {
                 active ? "!text-ink" : ""
               }`}
             >
-              <t.Icon size={21} />
+              {/* Filled on the tab you are on (#290). */}
+              <t.Icon size={22} active={active} />
               {t.label}
             </Link>
           );

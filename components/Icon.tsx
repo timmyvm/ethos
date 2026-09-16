@@ -42,25 +42,54 @@ function Glyph({
   );
 }
 
+/*
+ * The five tab marks (#290, Timothy's call: "rounded and friendly").
+ * Rounder geometry than the rest of the set, and each has a FILLED
+ * state for the tab you are on: the active mark is the solid shape,
+ * the others are its outline, which is how every common tab bar says
+ * "here" (Instagram, YouTube, Duolingo) and reads without the label.
+ * Knock-outs inside a filled mark are drawn in the bar's own paper
+ * (`fill-raised`, `stroke-raised`), so they stay true in both themes.
+ */
 /** Today — the sun over the floor you're about to take. */
-export function IconToday({ size }: { size?: number }) {
+export function IconToday({ size, active = false }: { size?: number; active?: boolean }) {
   return (
     <Glyph size={size}>
-      <circle cx="12" cy="10.5" r="3.25" />
-      <path d="M12 4v1.5M18.4 6.1l-1.1 1.1M20.5 12.5H19M5 12.5H3.5M5.6 6.1l1.1 1.1" />
-      <path d="M3.5 17.5h17" />
+      <circle cx="12" cy="10.5" r="3.6" fill={active ? "currentColor" : "none"} />
+      <path d="M12 3.2v1.6M18 5.5l-1.15 1.15M20.8 12h-1.6M4.8 12H3.2M6 5.5l1.15 1.15" />
+      <path d="M4 18.5h16" />
     </Glyph>
   );
 }
 
 /** Games — a die: the same reps, rolled conditions. */
-export function IconGames({ size }: { size?: number }) {
+export function IconGames({ size, active = false }: { size?: number; active?: boolean }) {
+  const pips = [
+    [8.4, 8.4],
+    [12, 12],
+    [15.6, 15.6],
+  ] as const;
   return (
     <Glyph size={size}>
-      <rect x="4.25" y="4.25" width="15.5" height="15.5" rx="3.5" />
-      <circle cx="8.9" cy="8.9" r="0.9" />
-      <circle cx="12" cy="12" r="0.9" />
-      <circle cx="15.1" cy="15.1" r="0.9" />
+      <rect
+        x="3.5"
+        y="3.5"
+        width="17"
+        height="17"
+        rx="5.5"
+        fill={active ? "currentColor" : "none"}
+      />
+      {pips.map(([x, y]) => (
+        <circle
+          key={x}
+          cx={x}
+          cy={y}
+          r={active ? 1.7 : 1.35}
+          stroke="none"
+          fill={active ? undefined : "currentColor"}
+          className={active ? "fill-raised" : undefined}
+        />
+      ))}
     </Glyph>
   );
 }
@@ -72,12 +101,30 @@ export function IconGames({ size }: { size?: number }) {
  * against courses and theory, and the lessons are practice with a face
  * on them.
  */
-export function IconLessons({ size }: { size?: number }) {
+export function IconLessons({ size, active = false }: { size?: number; active?: boolean }) {
   return (
     <Glyph size={size}>
-      <rect x="3.6" y="5.6" width="16.8" height="12.8" rx="3" />
-      <path d="M4.1 15.4 8.6 10.9l3.3 3.3" />
-      <path d="M13.1 15.3 15.9 12.5l4 4" />
+      <rect
+        x="3"
+        y="4.75"
+        width="18"
+        height="14.5"
+        rx="4.5"
+        fill={active ? "currentColor" : "none"}
+      />
+      <path
+        d="M6 15.6 9.3 12.2l2.5 2.5 2.5-2.7 3.7 3.6"
+        className={active ? "stroke-raised" : undefined}
+        strokeWidth={active ? 2.2 : undefined}
+      />
+      <circle
+        cx="8.7"
+        cy="9.1"
+        r="1.15"
+        stroke="none"
+        fill={active ? undefined : "currentColor"}
+        className={active ? "fill-raised" : undefined}
+      />
     </Glyph>
   );
 }
@@ -106,22 +153,29 @@ export function IconPremium({ size }: { size?: number }) {
   );
 }
 
-/** Log — rows, one per rep. */
-export function IconLog({ size }: { size?: number }) {
+/** Log — rows, one per recording. The active state is the same rows, fatter. */
+export function IconLog({ size, active = false }: { size?: number; active?: boolean }) {
   return (
     <Glyph size={size}>
-      <path d="M4 6.5h1M4 12h1M4 17.5h1" />
-      <path d="M9 6.5h11M9 12h11M9 17.5h11" />
+      <path d="M5 6.5h14M5 12h14M5 17.5h14" strokeWidth={active ? 3.9 : undefined} />
     </Glyph>
   );
 }
 
 /** You. */
-export function IconYou({ size }: { size?: number }) {
+export function IconYou({ size, active = false }: { size?: number; active?: boolean }) {
   return (
     <Glyph size={size}>
-      <circle cx="12" cy="8" r="3.5" />
-      <path d="M5.5 19.5c1.2-3.1 3.5-4.7 6.5-4.7s5.3 1.6 6.5 4.7" />
+      <circle cx="12" cy="8" r="3.7" fill={active ? "currentColor" : "none"} />
+      {active ? (
+        <path
+          d="M4.6 20.4c.9-4 3.7-6.2 7.4-6.2s6.5 2.2 7.4 6.2z"
+          fill="currentColor"
+          strokeWidth="2"
+        />
+      ) : (
+        <path d="M5 19.6c1.2-3.2 3.6-4.9 7-4.9s5.8 1.7 7 4.9" />
+      )}
     </Glyph>
   );
 }

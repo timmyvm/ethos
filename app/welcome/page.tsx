@@ -530,19 +530,30 @@ function Dots({ count, at }: { count: number; at: number }) {
   );
 }
 
-/** Where you are in the questions: the debrief's segment grammar. */
+/**
+ * Where you are in the questions (#288): one bar that fills, no count.
+ *
+ * Seven segments and "2 of 7" told you the walk was seven long before
+ * you had answered one; a bar a quarter full says the same without the
+ * number, which is the reference's own move. The width transitions
+ * because this element persists from one question to the next (the
+ * template is the same instance across the walk), so the fill grows
+ * from where it was rather than reappearing at the new value.
+ */
 function Progress({ n, of }: { n: number; of: number }) {
   return (
-    <div className="flex items-center gap-2">
-      {Array.from({ length: of }, (_, k) => (
-        <span
-          key={k}
-          className={`h-1 flex-1 ${k < n ? "bg-terracotta-500" : "bg-sand"}`}
-        />
-      ))}
-      <span className="label-micro ml-1 shrink-0 tabular-nums">
-        {n} of {of}
-      </span>
+    <div
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={of}
+      aria-valuenow={n}
+      aria-label={`Question ${n} of ${of}`}
+      className="h-1.5 w-full bg-sand"
+    >
+      <div
+        className="progress-fill h-full bg-terracotta-500"
+        style={{ width: `${(n / of) * 100}%` }}
+      />
     </div>
   );
 }

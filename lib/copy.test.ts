@@ -295,7 +295,9 @@ describe("the screen template", () => {
 
     // The questions and every tappable answer (#232) walk the same template.
     for (const q of QUESTIONS) {
-      for (const s of [q.title, q.line]) if (count(s) > WORDS) over.push(s);
+      for (const s of [q.title, q.line]) {
+        if (s !== undefined && count(s) > WORDS) over.push(s);
+      }
     }
     for (const list of [AGE_BANDS, GOALS, PAINS, LEVELS, CONTEXTS]) {
       for (const o of list) if (count(o.label) > WORDS) over.push(o.label);

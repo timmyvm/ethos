@@ -49,11 +49,35 @@ export const WELCOME_STEPS = [
   },
 ] as const;
 
+export type QuestionId =
+  | "name"
+  | "ageBand"
+  | "goal"
+  | "pains"
+  | "level"
+  | "context"
+  | "time";
+
 /**
- * The seven questions after the introduction (DECISIONS #232, #249),
- * one per screen, Skip on every one. Same template, same budget
- * (lib/copy.test.ts reads these). The answers and what they do live in
- * lib/answers.ts and content/portfolio.ts.
+ * The seven questions after the introduction (DECISIONS #232, #249,
+ * #288), one per screen, said by Demos from his bubble. Same template,
+ * same budget (lib/copy.test.ts reads these). The answers and what they
+ * do live in lib/answers.ts and content/portfolio.ts.
+ *
+ * Next waits for an answer on every one and Skip is the way past
+ * (#288), so there is no longer an essential flag: one rule, one
+ * button.
+ *
+ * Most questions are the question and nothing under it (#288, the
+ * reference's own chrome budget: a question screen there is a bar, the
+ * mascot, the bubble, the options and the button). The two that keep a
+ * second line carry something the screen cannot say otherwise: the
+ * name is where the mascot is introduced by name, and the pains are the
+ * one multi-choice, which looks like every single-choice list until it
+ * says "up to three". "Pick the closest." and "Roughly." were
+ * instructions the rows already give; "It changes the prompts you get,
+ * nothing else." was a design decision justified to the user, which
+ * COPY-RULES cuts on sight; "Optional." is what Skip says.
  *
  * The NAME goes first, and it is the walk's only typed answer. First
  * rather than last because a name given at the start is spent on six
@@ -65,58 +89,25 @@ export const WELCOME_STEPS = [
  * The TIME goes last, after the answers and before the plan, and it
  * asks for no permission (content/portfolio.ts, TIMES).
  */
-export const QUESTIONS = [
-  {
-    id: "name",
-    title: "What do I call you?",
-    line: "I'm Demos, by the way.",
-    essential: false,
-  },
-  {
-    id: "ageBand",
-    title: "How old are you?",
-    line: "It changes the prompts you get, nothing else.",
-    essential: true,
-  },
-  {
-    id: "goal",
-    title: "What do you want this for?",
-    line: "Pick the closest.",
-    essential: true,
-  },
-  {
-    id: "pains",
-    title: "What do you notice when you talk?",
-    line: "Up to three.",
-    essential: true,
-  },
-  {
-    id: "level",
-    title: "How much have you practised?",
-    line: "Roughly.",
-    essential: true,
-  },
-  {
-    id: "context",
-    title: "Where does it matter most?",
-    line: "Optional.",
-    essential: false,
-  },
-  {
-    id: "time",
-    title: "When do you want your minute?",
-    line: "Pick when you'd actually do it.",
-    essential: false,
-  },
-] as const;
+export const QUESTIONS: readonly {
+  id: QuestionId;
+  title: string;
+  line?: string;
+}[] = [
+  { id: "name", title: "What do I call you?", line: "I'm Demos, by the way." },
+  { id: "ageBand", title: "How old are you?" },
+  { id: "goal", title: "What do you want this for?" },
+  { id: "pains", title: "What do you notice when you talk?", line: "Up to three." },
+  { id: "level", title: "How much have you practised?" },
+  { id: "context", title: "Where does it matter most?" },
+  { id: "time", title: "When do you want your minute?" },
+];
 
 /** The name field's own furniture: it is the one answer you type. */
 export const NAME_FIELD = {
   placeholder: "First name",
   label: "Your name",
 } as const;
-
-export type QuestionId = (typeof QUESTIONS)[number]["id"];
 
 export const PLAN_COPY = {
   label: "Your first month",

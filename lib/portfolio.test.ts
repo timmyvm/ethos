@@ -117,11 +117,8 @@ describe("the mapping", () => {
    */
   it("never promises a notification on the screen that cannot send one", () => {
     const PROMISE = /\b(remind(er|ers|s)?|notif\w*|alert\w*|nudge\w*|ping\w*|buzz\w*)\b/i;
-    const strings = [
-      ...TIMES.map((t) => t.label),
-      QUESTIONS.find((q) => q.id === "time")!.title,
-      QUESTIONS.find((q) => q.id === "time")!.line,
-    ];
+    const time = QUESTIONS.find((q) => q.id === "time")!;
+    const strings = [...TIMES.map((t) => t.label), time.title, time.line ?? ""];
     for (const s of strings) expect([s, PROMISE.test(s)]).toEqual([s, false]);
   });
 });

@@ -85,7 +85,8 @@ await sleep(400);
 // 2. Question 1: the name. The one answer you type, and the one he
 // repeats straight back.
 await page.getByText("What do I call you?").waitFor();
-ok("the walk opens on the name, one of seven", await page.getByText("1 of 7").isVisible());
+const at = async () => page.getByRole("progressbar").getAttribute("aria-valuenow");
+ok("the walk opens on the name, one of seven", (await at()) === "1");
 ok(
   "every question holds Next until answered, the name included (#288)",
   (await page.getByRole("button", { name: "Next", exact: true }).isDisabled()) === true
@@ -108,7 +109,7 @@ await sleep(300);
 await page.getByText("How old are you?").waitFor();
 const disabled = await page.getByRole("button", { name: "Next", exact: true }).isDisabled();
 ok("an essential question holds Next until answered", disabled === true);
-ok("progress reads 2 of 7", await page.getByText("2 of 7").isVisible());
+ok("the bar stands at 2 of 7", (await at()) === "2");
 await shot("05-q-age");
 await page.getByRole("radio", { name: "Under 18" }).click();
 ok("a tap picks the answer", (await page.getByRole("radio", { name: "Under 18" }).getAttribute("aria-checked")) === "true");
@@ -126,8 +127,8 @@ await page.getByText("What do you want this for?").waitFor();
 await page.getByRole("radio", { name: "Hold a room when I present" }).click();
 await sleep(250);
 ok(
-  "an answer that only changes the plan gets a nod and no line",
-  await page.getByText("Pick the closest.").isVisible()
+  "an answer that only changes the plan gets a nod and the question stays",
+  await page.getByText("What do you want this for?").isVisible()
 );
 // Refresh in the middle: it resumes here with the answers kept.
 await page.reload();
@@ -179,7 +180,7 @@ await page.getByRole("button", { name: "Skip" }).click();
 
 // 8. Question 7: the hour. It writes a preference and asks for nothing.
 await page.getByText("When do you want your minute?").waitFor();
-ok("progress reads 7 of 7", await page.getByText("7 of 7").isVisible());
+ok("the bar stands at 7 of 7", (await at()) === "7");
 await page.getByRole("radio", { name: "Evening, 18:00" }).click();
 await sleep(250);
 const hour = await page.evaluate(() => JSON.parse(localStorage.getItem("ethos.prefs") || "{}").reminderHour);

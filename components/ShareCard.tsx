@@ -52,7 +52,7 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
         getComputedStyle(document.body)
           .getPropertyValue("--font-display-face")
           .trim() || "Outfit";
-      g.fillStyle = "#f5ead8";
+      g.fillStyle = "#ffffff";
       g.fillRect(0, 0, W, H);
 
       g.fillStyle = "#201e1d";

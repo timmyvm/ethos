@@ -39,6 +39,11 @@ async function shootTheme(theme) {
     viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
     permissions: ["microphone"], locale: "en-AU", timezoneId: "Australia/Melbourne",
     colorScheme: theme,
+    /* The app's offline shell takes over fetches once it controls a
+       page, and Playwright's routes no longer see them: the mocked host
+       goes quiet and a later screen photographs its skeletons. The
+       camera shoots the app, not the shell (#289). */
+    serviceWorkers: "block",
   });
   await context.route("http://supabase.local/**", supabase);
   await context.route("**/api/analyze", async (route) => { await sleep(600); await route.fulfill(json(analyze)); });

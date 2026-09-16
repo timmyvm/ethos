@@ -6,9 +6,9 @@ Read this instead of `DECISIONS.md`. When the system changes, update this file; 
 
 One system, since #234: Instrument's structure carrying Organic's warmth, designed as one thing rather than layered. `docs/look/SYSTEM.md` is the spec, `docs/look/` holds the before and after gallery it was judged against.
 
-- **Depth is a step plus a tinted shadow.** Light: ground #f5ead8, surface #fbf4e6 (controls, tiles, inputs), raised #fffaf1 (cards). Dark: #1a1410, #241c15, #2e251c. `.elev-1` a card, `.elev-2` the ONE lifted thing on a screen, `.elev-3` floating. Shadows tint from the ground's 37° hue in light and go black in dark.
+- **The ground is plain since #289**, Timothy's call: white in light, neutral near-black in dark, in place of the cream and the amber-tinted dark. Light: ground #ffffff, surface #f4f4f4 (controls, tiles, inputs), raised #ffffff (cards, told apart by shadow and hairline). Dark: #121212, #1c1c1c, #262626. `.elev-1` a card, `.elev-2` the ONE lifted thing on a screen, `.elev-3` floating. Shadows are neutral black in both themes. The accents and the ink stay warm.
 - **Two border jobs, two tokens.** `card-edge` (.09/.12) is a card's hairline under its shadow; `edge` (.14/.16) is a rule, a connector, an input's boundary; `hairline` (.08) separates list rows.
-- **Rectangles over pills.** Chips are the only pills, Record the only circle, the nav the only square edge. Bars are square, trough and fill. The trough (`sand`) is #e5d5b2 light and #443627 dark since #287, one step firmer so a zero bar still reads as a trough.
+- **Rectangles over pills.** Chips are the only pills, Record the only circle, the nav the only square edge. Bars are square, trough and fill. The trough (`sand`) is #e4e4e4 light and #333333 dark (#287, #289), firm enough that a zero bar still reads as a trough.
 - **Colour** unchanged from #203: terracotta #C67139 is the one tap per screen, the sage ramp is earned, deep sage is the score card and the paywall, warm near-black is the stage. Plum #62336c joined in #280 and means one thing: paid. One mark, `components/PremiumMark.tsx`, never a tap and never earned.
 
 Today is the first card, today's line, the clean run, then the five trait rings (#267, #281). Lessons is its own page at `/lessons`: fifteen illustrated cards, three per trait, two up with each trait's first taking the whole row (#274). The eyebrow register is Outfit 11/700/0.10em uppercase.
@@ -16,12 +16,12 @@ Today is the first card, today's line, the clean run, then the five trait rings 
 ## Tokens (`app/globals.css`, `lib/motion.ts`)
 
 - Radius: `rounded-control` 12, `rounded-card` 16, `rounded-sheet` 20. No concentric arithmetic: a control keeps 12 wherever it sits.
-- Dark: ground #1A1410, surface #241C15, raised #2E251C, stage #120E0B.
+- Dark: ground #121212, surface #1c1c1c, raised #262626, stage #0a0a0a, ink #f2f2f2. Light stage #1c1c1c.
 - **The OS is the default** (#286, reverting #284). Three values: System, Light, Dark, with `system` resolved in two places that a test keeps identical, the inline boot script and `applyTheme`. `:root` declares `color-scheme` on the RESOLVED theme, so scrollbars and pickers stand in the same room whichever way it lands. The server sends no `data-theme`. Colour and motion both follow the OS until this device says otherwise.
 - Text: `stone-500` secondary, `stone-400` muted, `stone-300` glyphs and dividers. `on-accent` is ink on terracotta.
 - Type: Outfit 600/700/800 for numbers and UI, Figtree 400 to 700 for body. Roles: title 26/700, body 15/400, caption 12.5/400.
 - Motion: 200ms ease-out default, 600 for celebration. Classes `.arrive`, `.arrive-x`, `.reveal`, `.fill`, `.star-land`, `.sheet-panel`, `.sheet-scrim`, `.rec-ring`, `.dur-*`. Reduced motion is `data-motion="reduce"` on `<html>`. `.press` scales 0.985 and veils the fill on every pointer type.
-- Elevation: `--shadow-1/2/3` and `.elev-1/2/3`. Type: two uppercase registers, `.label-data` (section eyebrow, and the tab bar's five labels since #287) and `.label-micro` (column heads, chips, tile labels). Text sizes are body 15, caption 12.5, row title and control label 14/700, text link 13/600; numbers keep the display scale at 800, tabular.
+- Elevation: `--shadow-1/2/3` and `.elev-1/2/3`. Type: two uppercase registers, `.label-data` (section eyebrow, and the tab bar's five labels since #287; the tab marks are filled on the active tab since #290) and `.label-micro` (column heads, chips, tile labels). Text sizes are body 15, caption 12.5, row title and control label 14/700, text link 13/600; numbers keep the display scale at 800, tabular.
 - Rhythm, owned by the parent: section `mt-7`, eyebrow to content `mt-3`, row `py-3`, card to card `gap-3`, card `p-4`, hero `p-5`, screen `px-5 pt-7 pb-22`. Shared components carry no outer margin.
 - Unit marks: `public/unit/<id>.webp`, one Demos pose per unit, cut and normalised by `scripts/cut-unit-marks.mjs` from `assets/demos-unit-*.png`. The road shows one, on the unit you are in.
 - Lesson art: `public/lessons/<id>.webp`, fifteen risograph pieces at 900×585, cut by `scripts/cut-lesson-art.mjs`. Served by a plain `<img>` at that path, never `next/image` — the service worker pre-caches the file and could not pre-cache `/_next/image?url=…&w=…` (#274).

@@ -3,10 +3,13 @@
 /*
  * Brand tokens — docs/brand.md: the Organic palette (DECISIONS #165)
  * carried on the Instrument layout (#201's structure, #203's colours).
- * Warm neutrals only: no pure black, no pure white, no cool grays.
- * Two accents with fixed jobs: terracotta is "tap here" and nothing
- * else; sage is "you earned this" and nothing else. Amber is retired
- * again — it lasted one commit as the tap and Timothy called it back.
+ * The GROUND is plain since #289, Timothy's call: white in light and a
+ * neutral near-black in dark, the backgrounds every common app stands
+ * on, in place of the cream and the amber-tinted dark. The accents and
+ * the ink stay warm. Two accents with fixed jobs: terracotta is "tap
+ * here" and nothing else; sage is "you earned this" and nothing else.
+ * Amber is retired again — it lasted one commit as the tap and Timothy
+ * called it back.
  */
 @theme {
   /*
@@ -94,8 +97,10 @@
   /* The mascot's own accent (brand.md: amber sound arcs, sparkles).
    * Drawn, never a tap, never earned; the only amber in the product. */
   --color-amber: #e0a800;
-  /* Cream: the light text on the deep surfaces (score card, stage). */
-  --color-cream: #fdf6e7;
+  /* The light text on the deep surfaces (score card, stage). Neutral
+   * since #289, with the stage; the name stays because forty call
+   * sites use it and a token's name is never on screen. */
+  --color-cream: #f7f7f7;
   /*
    * The label on the one tap (#231). Ink, not cream: cream on
    * terracotta-500 is 3.35:1 and fails AA at the button's size, ink on
@@ -103,12 +108,11 @@
    * fill doesn't either.
    */
   --color-on-accent: #201e1d;
-  /* Progress-bar troughs, empty slots. Square-cornered (#201). One
-   * step firmer since #287: #ecdfc4 measured 1.11:1 on the ground, and
-   * the six zero-value bars on You read as blank rows rather than as
-   * troughs. 1.22:1 on ground, 1.39:1 on a card; the dashed trough
-   * below stays firmer, as it must. */
-  --color-sand: #e5d5b2;
+  /* Progress-bar troughs, empty slots. Square-cornered (#201). Firm
+   * enough that a zero bar still reads as a trough (#287): 1.28:1 on
+   * the white ground; the dashed trough below stays firmer, as it
+   * must. Neutral since #289. */
+  --color-sand: #e4e4e4;
 
   /*
    * Semantic surfaces. `ground` is the room; `surface` and `raised`
@@ -116,9 +120,9 @@
    * (#218): cards on `raised`, secondary controls on `surface`. An
    * outline with nothing inside it is not a box, it's a diagram.
    */
-  --color-ground: #f5ead8;
-  --color-surface: #fbf4e6;
-  --color-raised: #fffaf1;
+  --color-ground: #ffffff;
+  --color-surface: #f4f4f4;
+  --color-raised: #ffffff;
   --color-ink: #201e1d;
   /* Row separators. */
   --color-hairline: rgba(32, 30, 29, 0.08);
@@ -135,7 +139,7 @@
   /* The dark material the rep-loop signature moments sit on (pause
    * bar, comparison card). Warm, never #000. The score card is NOT
    * stage — it sits on sage-900. */
-  --color-stage: #211a13;
+  --color-stage: #1c1c1c;
 
   /*
    * Stone: the neutrals holding the room, as translucent ink so they
@@ -211,7 +215,7 @@
  * which is worse than a loud one.
  */
 :root {
-  --color-sand-dashed: #ddc99c;
+  --color-sand-dashed: #cfcfcf;
   /*
    * The native layer is part of the room (#284). With the OS no longer
    * choosing the theme, a phone on auto-dark would otherwise paint dark
@@ -280,9 +284,10 @@ body {
 }
 
 /*
- * Dark. Still warm — never pure black, never cool grey. Terracotta 500
- * and sage 500's JOB are unchanged; the washes and text steps remap so
- * the same class keeps its contrast on the dark ground (#64, #167).
+ * Dark. Neutral since #289: the near-black every common app stands on,
+ * in place of the amber-tinted brown. Terracotta 500 and sage 500's
+ * JOB are unchanged; the washes and text steps remap so the same class
+ * keeps its contrast on the dark ground (#64, #167).
  */
 :root[data-theme="dark"] {
   color-scheme: dark;
@@ -292,24 +297,24 @@ body {
    * `raised` used to be the same hex, so a card on the dark ground had
    * no step under it. Stage sits below the room, as it does in light.
    */
-  --color-ground: #1a1410;
-  --color-surface: #241c15;
-  --color-raised: #2e251c;
+  --color-ground: #121212;
+  --color-surface: #1c1c1c;
+  --color-raised: #262626;
   /* 1.57:1 on the dark ground, 1.29:1 on a dark card; was 1.16 on the
      card, where the dimension bars' troughs vanished (#287). */
-  --color-sand: #443627;
+  --color-sand: #333333;
   /* Lifted further here than in light. On the dark card the solid
      trough is already close to the surface it sits on, and the dashed
      one at the same value disappeared entirely. */
-  --color-sand-dashed: #6b5636;
-  --color-stage: #120e0b;
-  --color-ink: #f3ecdd;
-  --color-hairline: rgba(243, 236, 221, 0.08);
+  --color-sand-dashed: #555555;
+  --color-stage: #0a0a0a;
+  --color-ink: #f2f2f2;
+  --color-hairline: rgba(242, 242, 242, 0.08);
   /* One notch firmer than light: an outline on dark needs it. Dark
    * leans on the edge harder than light does, because a black shadow on
    * a near-black ground carries less than a surface step. */
-  --color-edge: rgba(243, 236, 221, 0.16);
-  --color-card-edge: rgba(243, 236, 221, 0.12);
+  --color-edge: rgba(242, 242, 242, 0.16);
+  --color-card-edge: rgba(242, 242, 242, 0.12);
 
   /* Light washes become dark washes of the same hue; the accent-text
    * steps lift to the peach that reads on them. */
@@ -353,16 +358,16 @@ body {
    * ground (#244). */
   --color-rust: #e08a6a;
 
-  --color-stone-100: rgba(243, 236, 221, 0.07);
-  --color-stone-200: rgba(243, 236, 221, 0.14);
-  --color-stone-300: rgba(243, 236, 221, 0.3);
+  --color-stone-100: rgba(242, 242, 242, 0.07);
+  --color-stone-200: rgba(242, 242, 242, 0.14);
+  --color-stone-300: rgba(242, 242, 242, 0.3);
   /* Muted 0.60 (6.2:1 on ground), secondary 0.72 (8.5:1). */
-  --color-stone-400: rgba(243, 236, 221, 0.6);
-  --color-stone-500: rgba(243, 236, 221, 0.72);
-  --color-stone-600: rgba(243, 236, 221, 0.8);
-  --color-stone-700: rgba(243, 236, 221, 0.86);
-  --color-stone-800: rgba(243, 236, 221, 0.92);
-  --color-stone-900: #f3ecdd;
+  --color-stone-400: rgba(242, 242, 242, 0.6);
+  --color-stone-500: rgba(242, 242, 242, 0.72);
+  --color-stone-600: rgba(242, 242, 242, 0.8);
+  --color-stone-700: rgba(242, 242, 242, 0.86);
+  --color-stone-800: rgba(242, 242, 242, 0.92);
+  --color-stone-900: #f2f2f2;
 }
 
 /*
@@ -456,9 +461,11 @@ body {
  * can inline its value at build time.
  */
 :root {
-  --shadow-1: 0 1px 2px rgba(52, 40, 20, 0.05), 0 6px 16px rgba(52, 40, 20, 0.08);
-  --shadow-2: 0 2px 4px rgba(52, 40, 20, 0.06), 0 14px 32px rgba(52, 40, 20, 0.12);
-  --shadow-3: 0 4px 8px rgba(52, 40, 20, 0.08), 0 24px 48px rgba(52, 40, 20, 0.16);
+  /* Neutral since #289: the ground is white, so there is no hue to
+   * tint from and a warm shadow on white reads as a stain. */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.05), 0 6px 16px rgba(0, 0, 0, 0.08);
+  --shadow-2: 0 2px 4px rgba(0, 0, 0, 0.06), 0 14px 32px rgba(0, 0, 0, 0.12);
+  --shadow-3: 0 4px 8px rgba(0, 0, 0, 0.08), 0 24px 48px rgba(0, 0, 0, 0.16);
 }
 
 :root[data-theme="dark"] {
@@ -670,7 +677,7 @@ body::after {
   --press-veil: rgba(32, 30, 29, 0.05);
 }
 :root[data-theme="dark"] {
-  --press-veil: rgba(243, 236, 221, 0.06);
+  --press-veil: rgba(242, 242, 242, 0.06);
 }
 
 .press:active {

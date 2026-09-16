@@ -56,6 +56,11 @@ async function shootTheme(theme) {
     locale: "en-AU",
     timezoneId: "Australia/Melbourne",
     colorScheme: theme,
+    /* The app's offline shell takes over fetches once it controls a
+       page, and Playwright's routes no longer see them: the mocked host
+       goes quiet and a later screen photographs its skeletons. The
+       camera shoots the app, not the shell (#289). */
+    serviceWorkers: "block",
   });
   await context.route("http://supabase.local/**", supabaseRoute);
   // An EMPTY browser, apart from the theme: this is the one screen in

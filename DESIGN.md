@@ -21,7 +21,7 @@ Colour, radius and motion live in `app/globals.css` and `lib/motion.ts`. Radius:
 
 ## References
 
-`docs/refs/` holds phone screenshots of apps that feel the way Ethos should: Instagram (continuity), Headspace (warmth), Duolingo (celebration), Linear mobile (type). Timothy adds them. If the folder is empty, say so in the first line of your reply and run the loop against the app alone.
+`docs/refs/` holds phone screenshots of apps that feel the way Ethos should: Instagram (continuity), Headspace (warmth), Duolingo (celebration, and the introduction: `docs/refs/duolingo-onboarding/`, cut from Timothy's own recording with the mechanics named in its NOTES.md), Linear mobile (type). Timothy adds them. If the folder is empty, say so in the first line of your reply and run the loop against the app alone.
 
 ## The tools the loop runs on
 

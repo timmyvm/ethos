@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { IconChevron } from "@/components/Icon";
+import { Says, SAID_AFTER_MS } from "@/components/Says";
+import { SpeechBubble } from "@/components/SpeechBubble";
 import { ACTION_CLASS, DISABLED_CLASS } from "@/lib/ui";
 
 /**
@@ -245,8 +247,22 @@ export function LessonScreen({
   center = false,
   stepKey,
   onBack,
+  speech,
   ...body
 }: LessonBodyProps & {
+  /**
+   * The mascot says the title and the line, from a bubble with a tail
+   * on him, instead of the template printing them (#288).
+   *
+   * "above": the bubble over his head, both centred, for a screen that
+   * is one line and one button. "beside": his head at the left and the
+   * bubble to its right, for a question with its answers under it. The
+   * strings are the same `title`, `line` and `reply`; only who is seen
+   * to say them changes. A reply REPLACES the question in the bubble,
+   * which is the reference's own move and what keeps a bubble beside
+   * six answers from growing into a paragraph.
+   */
+  speech?: "above" | "beside";
   /** The one terracotta tap (brand.md: exactly one per screen). */
   action: LessonAction;
   /** Bottom, small, muted. */
@@ -328,8 +344,20 @@ export function LessonScreen({
           key={stepKey}
           className={`flex flex-col ${stepKey !== undefined ? "arrive-x" : ""}`}
         >
-          {art}
-          <LessonBody {...body} />
+          {speech ? (
+            <DemosSpeech
+              mode={speech}
+              art={art}
+              title={body.title}
+              line={body.line}
+              reply={body.reply}
+            />
+          ) : (
+            <>
+              {art}
+              <LessonBody {...body} />
+            </>
+          )}
           {controls && <div className="mt-7">{controls}</div>}
         </div>
       </div>
@@ -375,6 +403,74 @@ export function LessonScreen({
  * on the roulette, and this one here. One constant, one button.
  */
 export 
+/**
+ * Demos speaking (#288). The words wait for the screen's own slide
+ * (`arrive-x`, 200ms) so two entrances never run at once, then land a
+ * word at a time; a reply swapped into a bubble already on screen
+ * starts at once. The `key` on each line is what replays the landing
+ * when the text changes.
+ *
+ * The question stays in the document as a hidden heading while a reply
+ * is showing, so the screen's name never changes under a screen reader
+ * while what is SEEN is what he just said.
+ */
+function DemosSpeech({
+  mode,
+  art,
+  title,
+  line,
+  reply,
+}: {
+  mode: "above" | "beside";
+  art?: ReactNode;
+  title: string;
+  line?: string;
+  reply?: string;
+}) {
+  const said = reply ?? title;
+  const second = reply ? undefined : line;
+  const lead = reply ? 0 : 200;
+  const bubble = (size: string) => (
+    <>
+      <Says
+        key={said}
+        as={reply ? "p" : "h1"}
+        text={said}
+        lead={lead}
+        className={`font-display ${size} font-bold leading-snug`}
+      />
+      {reply && <h1 className="sr-only">{title}</h1>}
+      {second && (
+        <Says
+          key={second}
+          text={second}
+          lead={lead + 120}
+          className="mt-1 text-body text-stone-500"
+        />
+      )}
+    </>
+  );
+
+  if (mode === "above") {
+    return (
+      <>
+        <SpeechBubble tail="down" className="max-w-[330px] self-center text-center">
+          {bubble("text-[19px]")}
+        </SpeechBubble>
+        <div className="mt-6">{art}</div>
+      </>
+    );
+  }
+  return (
+    <div className="mt-6 flex items-start gap-3">
+      <div className="shrink-0">{art}</div>
+      <SpeechBubble tail="left" className="min-w-0 flex-1">
+        {bubble("text-[17px]")}
+      </SpeechBubble>
+    </div>
+  );
+}
+
 /**
  * The theory slot.
  *

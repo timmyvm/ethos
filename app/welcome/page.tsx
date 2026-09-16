@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { DemosArt, type Pose } from "@/components/DemosArt";
+import { DemosArt, preloadPose, type Pose } from "@/components/DemosArt";
+import { SAID_AFTER_MS } from "@/components/Says";
 import { LessonScreen } from "@/components/LessonScreen";
 import { sessionState, signInWithGoogle } from "@/lib/auth";
 import {
@@ -163,6 +164,19 @@ function Walk() {
 
   const step = STEPS[i];
 
+  /* The next screen's Demos, fetched while this one is read (#288). */
+  useEffect(() => {
+    const after = STEPS[i + 1];
+    if (!after) return;
+    const pose =
+      after.kind === "intro"
+        ? INTRO_POSES[after.index]
+        : after.kind === "question"
+          ? QUESTION_POSES[after.id]
+          : "clipboard";
+    preloadPose(pose);
+  }, [i]);
+
   /*
    * Reaching the plan finishes the walk: the answers are final for
    * now, the defaults the level sets are applied, and the sync
@@ -211,11 +225,18 @@ function Walk() {
     return (
       <LessonScreen
         center
+        speech="above"
         stepKey={i}
         onBack={i > 0 ? () => go(i - 1) : undefined}
         title={s.title}
         line={s.line}
-        art={<DemosArt pose={INTRO_POSES[step.index]} />}
+        art={
+          <DemosArt
+            pose={INTRO_POSES[step.index]}
+            size={200}
+            greetAfterMs={SAID_AFTER_MS}
+          />
+        }
         aside={<Dots count={WELCOME_STEPS.length} at={step.index} />}
         action={{ label: "Next", onPress: () => go(i + 1) }}
         footer={
@@ -251,6 +272,7 @@ function Walk() {
     const picked = has(answers, step.id);
     return (
       <LessonScreen
+        speech="beside"
         stepKey={i}
         onBack={() => go(i - 1)}
         header={<Progress n={n} of={QUESTIONS.length} />}
@@ -260,8 +282,9 @@ function Walk() {
         art={
           <DemosArt
             pose={QUESTION_POSES[step.id]}
-            size={120}
+            size={84}
             nodKey={nodKey(answers, step.id, heardName)}
+            greetAfterMs={SAID_AFTER_MS}
           />
         }
         controls={
@@ -322,7 +345,7 @@ function Walk() {
        */
       lead="title"
       ladder
-      art={<DemosArt pose="clipboard" size={150} />}
+      art={<DemosArt pose="clipboard" size={150} className="mb-6" />}
       /*
        * Editing from /you leaves the way it came. Otherwise the plan
        * hands over to the account screen, unless this browser already
@@ -401,7 +424,7 @@ function AccountStep({
       onBack={onBack}
       title={name ? `Keep this, ${name}.` : "Keep this."}
       line="Your plan and every number you're about to make, on any phone you open."
-      art={<DemosArt pose="clipboard" size={132} />}
+      art={<DemosArt pose="clipboard" size={132} className="mb-6" />}
       action={{ label: "Continue with Google", onPress: () => void google(), disabled: busy }}
       aside={
         error ? (

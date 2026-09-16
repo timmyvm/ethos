@@ -1171,6 +1171,27 @@ body::after {
 .demos-nod {
   animation: demos-nod 460ms var(--ease-spring);
 }
+
+/*
+ * A line being said (#288, components/Says.tsx): each word fades up
+ * 2px in the fast duration, one after another, the step set per line
+ * so a whole line lands in about 220ms. Inline-block so the transform
+ * has a box; the whitespace between the words stays real text.
+ */
+@keyframes says-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+}
+.says-word {
+  display: inline-block;
+  animation: says-in var(--duration-fast) var(--ease-out) backwards;
+  animation-delay: calc(var(--says-lead, 0ms) + var(--i, 0) * var(--says-step, 28ms));
+}
+:root[data-motion="reduce"] .says-word {
+  animation: none;
+}
 .arc {
   animation: arc-in 1.8s var(--ease-in-out) infinite;
   animation-delay: calc(var(--i, 0) * 0.3s);

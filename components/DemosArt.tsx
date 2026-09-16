@@ -42,13 +42,37 @@ const LOOP: Record<Pose, string> = {
   clipboard: "demos-breath",
 };
 
+export const poseSrc = (pose: Pose) => `/demos-onboard-${pose}.webp`;
+
+/**
+ * Warm the next screen's pose while this one is being read (#288), so
+ * the mascot is there before his bubble fills rather than arriving
+ * after it. A no-op on the server and harmless if the file is cached.
+ */
+export function preloadPose(pose: Pose): void {
+  if (typeof window === "undefined") return;
+  const img = new window.Image();
+  img.src = poseSrc(pose);
+}
+
 export function DemosArt({
   pose,
   size = 180,
   nodKey,
+  greetAfterMs,
+  className = "",
 }: {
   pose: Pose;
   size?: number;
+  /**
+   * Nod once on arrival, this long after mount (#288): the reference's
+   * mascot moves AFTER the bubble's words have landed, never during,
+   * so the delay is the words' own length. Undefined means the old
+   * rule, no nod on arrival at all.
+   */
+  greetAfterMs?: number;
+  /** Margins belong to the parent (#234); this is where they go. */
+  className?: string;
   /**
    * Change this and he nods (#249). It is the answer they just gave, so
    * picking the same row twice does nothing and picking a different one
@@ -79,19 +103,43 @@ export function DemosArt({
     el.classList.add("demos-nod");
   }, [nodKey]);
 
+  useEffect(() => {
+    if (greetAfterMs === undefined) return;
+    const el = frame.current;
+    if (!el) return;
+    const t = setTimeout(() => {
+      el.classList.remove("demos-nod");
+      void el.offsetWidth;
+      el.classList.add("demos-nod");
+    }, greetAfterMs);
+    return () => clearTimeout(t);
+  }, [greetAfterMs]);
+
   return (
     <div
       ref={frame}
-      className="relative mx-auto mb-6 shrink-0"
+      className={`relative mx-auto shrink-0 ${className}`}
       style={{ width: size, height: size }}
       aria-hidden
+      /* The class comes off when the nod ends, so the greeting and an
+         answer's nod never fight over it and a still Demos carries no
+         stale animation. */
+      onAnimationEnd={(e) => {
+        if (e.animationName === "demos-nod") e.currentTarget.classList.remove("demos-nod");
+      }}
     >
+      {/* Served as the file it is, not through the optimiser (#288, the
+          same reason as the lesson art in #274): the set is already cut
+          to one scale, and a plain URL is one `preloadPose` can warm
+          before the screen that needs it arrives. The strip showed him
+          landing 300ms after his own words. */}
       <Image
-        src={`/demos-onboard-${pose}.webp`}
+        src={poseSrc(pose)}
         alt=""
         width={size}
         height={size}
         priority
+        unoptimized
         className={`demos ${LOOP[pose]} block h-full w-full`}
       />
       {pose === "speaking" && <SoundArcs />}

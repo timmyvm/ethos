@@ -295,12 +295,19 @@ function Walk() {
             onSettleName={() => setHeardName(answers.name)}
           />
         }
-        /* Essential questions wait for an answer; the optional ones
-           don't. Skip is a link under the button on every one. */
+        /*
+         * Next waits for an answer on EVERY question (#288, the
+         * reference's grey Continue): the button lighting terracotta is
+         * the reward for answering, and a button that is always lit
+         * rewards nothing. Skip, under it, is the way past without one,
+         * so nothing became mandatory. The old rule lit Next on the
+         * optional questions and held it on the essential ones, which
+         * was two rules for one button.
+         */
         action={{
           label: "Next",
           onPress: () => go(i + 1),
-          disabled: q.essential && !picked,
+          disabled: !picked,
         }}
         footer={
           <button

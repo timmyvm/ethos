@@ -87,12 +87,16 @@ await sleep(400);
 await page.getByText("What do I call you?").waitFor();
 ok("the walk opens on the name, one of seven", await page.getByText("1 of 7").isVisible());
 ok(
-  "an optional question doesn't hold Next",
-  (await page.getByRole("button", { name: "Next", exact: true }).isDisabled()) === false
+  "every question holds Next until answered, the name included (#288)",
+  (await page.getByRole("button", { name: "Next", exact: true }).isDisabled()) === true
 );
 await page.getByLabel("Your name").fill("Tim");
 await page.getByLabel("Your name").blur();
 await sleep(350);
+ok(
+  "and Next lights when the name lands",
+  (await page.getByRole("button", { name: "Next", exact: true }).isDisabled()) === false
+);
 ok("Demos says the name back", await page.getByText("Good to meet you, Tim.").isVisible());
 const nodded = await page.$eval("main img.demos", (el) => el.parentElement.className);
 ok("and he nods when he hears it", /demos-nod/.test(nodded), nodded);
@@ -167,8 +171,10 @@ await page.getByRole("button", { name: "Next", exact: true }).click();
 
 // 7. Question 6: optional, skipped.
 await page.getByText("Where does it matter most?").waitFor();
-const optionalEnabled = !(await page.getByRole("button", { name: "Next", exact: true }).isDisabled());
-ok("the optional question doesn't hold Next", optionalEnabled);
+ok(
+  "an unanswered question holds Next, and Skip is the way past (#288)",
+  (await page.getByRole("button", { name: "Next", exact: true }).isDisabled()) === true
+);
 await page.getByRole("button", { name: "Skip" }).click();
 
 // 8. Question 7: the hour. It writes a preference and asks for nothing.

@@ -43,6 +43,7 @@ const SHELL = [
   "/demos-practice.webp",
   "/demos-asleep.webp",
   "/icon-192.png",
+  "/splash-demos.webp",
   "/icon-512.png",
   "/coin/coin.svg",
   "/coin/coin-stack.svg",

@@ -1344,8 +1344,8 @@ body::after {
  * script stamped `data-splash` on <html>, so nobody who should not see
  * it ever paints it.
  *
- * `on`: the icon holds still, where the home-screen icon was, and the
- * wordmark rises 6px under it. `out`: the icon grows 6% and the ground
+ * `on`: Demos holds still and the wordmark rises 6px under it. `out`:
+ * Demos grows 6% and the ground
  * fades, so the screen underneath is revealed rather than cut to. The
  * last animation on `on` is the fallback: if the script that lifts it
  * never runs, it fades itself out at 2.6s and stops taking taps.
@@ -1379,12 +1379,6 @@ body::after {
   transition: opacity 360ms var(--ease-out);
 }
 :root[data-splash] .splash-mark {
-  border-radius: 22px;
-  /* The lift shadow, plus the card hairline: the icon's tile is near
-     black, and on the dark ground it would otherwise melt away. */
-  box-shadow:
-    var(--shadow-2),
-    0 0 0 1px var(--color-card-edge);
   transition: transform 360ms var(--ease-out);
 }
 :root[data-splash="out"] .splash-mark {

@@ -11,9 +11,10 @@
  * it; a reload or a route change inside the tab does not, because a
  * brand moment on every refresh is a toll, not a welcome.
  *
- * The icon holds still where the home-screen icon was tapped and the
- * wordmark rises under it, then the whole thing lifts off the finished
- * screen. `SplashLift` (components/SplashLift.tsx) lifts it once React
+ * Demos's head sits on the ground itself, no tile, so the same mark
+ * belongs to the white room and the dark one (`public/splash-demos.webp`,
+ * cut by scripts/cut-splash.mjs). The wordmark rises under it, then the
+ * whole thing lifts off the finished screen. `SplashLift` (components/SplashLift.tsx) lifts it once React
  * has hydrated, the fonts are in and a floor of 900ms has passed, so a
  * fast load still reads as a beat and not a flicker. If that never
  * runs, a CSS fallback fades it out on its own (globals.css, `.splash`).
@@ -26,13 +27,13 @@ export function Splash() {
         {/* A plain <img>: the service worker pre-caches this exact path
             (public/sw.js), and next/image would ask for a different one. */}
         <img
-          src="/icon-192.png"
+          src="/splash-demos.webp"
           alt=""
-          width={96}
-          height={96}
+          width={144}
+          height={95}
           fetchPriority="high"
           decoding="sync"
-          className="size-24 rounded-[22px]"
+          className="block h-[95px] w-36"
         />
       </div>
       <span className="splash-word font-display text-[22px] font-extrabold uppercase tracking-[0.02em]">

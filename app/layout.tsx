@@ -5,6 +5,8 @@ import { PageTransition } from "@/components/PageTransition";
 import { OutboxRetry } from "@/components/OutboxRetry";
 import { ServiceWorker } from "@/components/ServiceWorker";
 import { ThemeSync, themeBootScript } from "@/components/Theme";
+import { Splash, splashBootScript } from "@/components/Splash";
+import { SplashLift } from "@/components/SplashLift";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
@@ -76,16 +78,21 @@ export default function RootLayout({
       <head>
         {/* Before paint, or a dark-mode user gets a white flash. */}
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+        {/* Also before paint: whether this open gets the splash. */}
+        <script dangerouslySetInnerHTML={{ __html: splashBootScript }} />
       </head>
       <body
         className={`${outfit.variable} ${figtree.variable} antialiased`}
       >
+        {/* First in the body, so it is in the very first paint. */}
+        <Splash />
         <div className="mx-auto min-h-dvh max-w-[430px]">
           <PageTransition>{children}</PageTransition>
         </div>
         <Nav />
         <ServiceWorker />
         <ThemeSync />
+        <SplashLift />
         <OutboxRetry />
         {/* DESIGN.md: speed is the loudest signal. Vercel's Speed
             Insights is where the field numbers for that claim land. */}

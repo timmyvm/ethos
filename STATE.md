@@ -32,6 +32,8 @@ Today is the first card (the topic, the how, the why, each named), today's line,
 
 Five tabs since #275: Today `/`, Lessons `/lessons`, Practice `/games` (Tools until #294), Log `/history`, You `/you`. The hrefs live in `lib/tabs.ts` and both `Nav` and `PageTransition` read them, because the second one used to keep its own copy and a tab missing from it slid in from the wrong side.
 
+The app opens on a splash since #295: the icon and the wordmark, once a tab, lifted after hydration with a 900ms floor (`components/Splash.tsx`, `SplashLift.tsx`). Automation never sees it; `?splash` forces it for the camera.
+
 Off the bar: Shop `/shop`, the recording loop `/rep`, bosses, auth, the paywall sheet, Settings, and the introduction `/welcome`: three intro screens, seven questions (the name typed and first, the hour tapped and last) with one Demos beat before the hour, the plan built from the answers, and since #277 the account ask, which gates nothing and is skipped for a signed-in account. Since #288 Demos says every line from a speech bubble (`SpeechBubble`, `Says`: the words land one at a time, then he nods), Next waits for an answer on every question with Skip as the way past, the bar is one continuous fill with no count, and answers are 56px objects with a glyph, lit in terracotta when chosen. He replies in the bubble where an answer moves a number or a setting and nods where it does not. The reference is `docs/refs/duolingo-onboarding/`. Desktop is a 430px column in a cream void.
 
 Every screen that hides the tab bar has a way off it, asserted in `lib/way-out.test.ts`: a bare route plus a back control that only renders when asked is how `/practice/<trait>` shipped a first screen with no exit (#279).

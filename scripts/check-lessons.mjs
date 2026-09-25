@@ -70,7 +70,19 @@ await sleep(600);
 const art = await page.evaluate(() =>
   [...document.images].filter((i) => i.src.includes("/lessons/")).map((i) => i.naturalWidth)
 );
-ok("every lesson card has its picture", art.length === 15 && art.every((w) => w > 0), `${art.filter((w) => w > 0).length}/${art.length}`);
+/* Fifteen rows plus the up-next card, which shows one of them again. */
+ok("every lesson row has its picture", art.length >= 15 && art.every((w) => w > 0), `${art.filter((w) => w > 0).length}/${art.length}`);
+/* The feedback round after #296: the gallery read as a paid store. The
+   list is rows, one tap on top, and nothing paid anywhere near it. */
+const list = await page.evaluate(() => ({
+  rows: document.querySelectorAll("main a[data-lesson]").length,
+  taps: [...document.querySelectorAll("main a")].filter((a) => a.className.includes("bg-terracotta-500")).length,
+  upNext: document.querySelector("main [data-up-next]")?.getAttribute("data-up-next") ?? null,
+  paid: /premium/i.test(document.querySelector("main")?.textContent ?? "") ||
+    !!document.querySelector('main [class*="plum-"]'),
+}));
+ok("fifteen rows, one tap, on the lesson that is next", list.rows === 15 && list.taps === 1 && !!list.upNext, JSON.stringify(list));
+ok("nothing on the list says paid", !list.paid);
 
 // ---- 2. A lesson opens, and its last practice is the harder one ----------
 await page.goto(`${BASE}/lessons/${LESSON}`);
@@ -145,6 +157,88 @@ ok(
   buttons.some((b) => /Back to the lesson/.test(b)),
   buttons.join(" | ").slice(0, 120)
 );
+
+// ---- 6. Unknown is not zero ---------------------------------------------
+/* The review after the list shipped. A failed read of the log used to
+   land as "nothing done": Up next said Start on a lesson they may have
+   finished. And the lesson page started at zero, so for a returning user
+   its button said "Start the lesson" until the log arrived, and a tap in
+   that window filed practice 1 again. */
+{
+  const ctx = await browser.newContext({
+    viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true,
+    locale: "en-AU", timezoneId: "Australia/Melbourne", serviceWorkers: "block",
+  });
+  await ctx.route("http://supabase.local/**", supabaseRoute);
+  let failReps = true;
+  let holdReps = 0;
+  /* Registered second, so it runs first; anything it passes on reaches
+     the fixture above. */
+  await ctx.route("http://supabase.local/rest/v1/reps**", async (route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    if (holdReps) await sleep(holdReps);
+    if (failReps) return route.fulfill(json({ message: "upstream", code: "500" }, 500));
+    return route.fallback();
+  });
+  await ctx.addInitScript(seed, { theme: "light", session });
+  await ctx.addInitScript(() => {
+    const css = document.createElement("style");
+    css.textContent = "nextjs-portal{display:none!important}";
+    document.addEventListener("DOMContentLoaded", () => document.head.appendChild(css));
+  });
+  const p = await ctx.newPage();
+
+  await p.goto(`${BASE}/lessons`);
+  await p.waitForSelector('main [role="alert"]');
+  const failedRead = await p.evaluate(() => ({
+    upNext: !!document.querySelector("main [data-up-next]"),
+    progress: [...document.querySelectorAll("main a[data-lesson] [data-progress]")].filter(
+      (e) => getComputedStyle(e).visibility !== "hidden"
+    ).length,
+    retry: !!document.querySelector('main [role="alert"] button'),
+  }));
+  ok(
+    "a failed read draws no up-next card and no progress, and offers a retry",
+    !failedRead.upNext && failedRead.progress === 0 && failedRead.retry,
+    JSON.stringify(failedRead)
+  );
+  failReps = false;
+  await p.click('main [role="alert"] button');
+  const back = await p.waitForSelector("main [data-up-next]", { timeout: 10000 }).then(() => true, () => false);
+  ok("the retry brings the card back", back);
+
+  holdReps = 2500;
+  await p.goto(`${BASE}/lessons/${LESSON}`);
+  await p.waitForSelector("main h1");
+  await sleep(400);
+  const inFlight = await p.evaluate(() => ({
+    labelled: [...document.querySelectorAll("main a, main button")]
+      .map((e) => (e.textContent ?? "").trim())
+      .filter((t) => /Start the lesson|Practice \d of \d|Run it again/.test(t)),
+    held: !!document.querySelector("main button[disabled][aria-busy]"),
+  }));
+  ok(
+    "while the log is in flight the lesson's button names no practice and cannot be pressed",
+    inFlight.labelled.length === 0 && inFlight.held,
+    JSON.stringify(inFlight)
+  );
+  const landed = await p
+    .waitForSelector('main a[href*="lesson="]', { timeout: 10000 })
+    .then((a) => a.textContent(), () => null);
+  ok("and names it once the log is in", /Start the lesson/.test(landed ?? ""), String(landed));
+  holdReps = 0;
+
+  /* 320px, the narrowest phone: "3 PRACTICES" wrapped to two lines in
+     every row and in the up-next card. */
+  await p.setViewportSize({ width: 320, height: 700 });
+  await p.goto(`${BASE}/lessons`);
+  await p.waitForSelector("main [data-up-next]");
+  const wrapped = await p.$$eval("main [data-progress] .label-micro, main [data-up-next] .label-micro", (els) =>
+    els.filter((e) => e.getClientRects().length > 1 || e.getBoundingClientRect().height > 18).map((e) => e.textContent)
+  );
+  ok("at 320px every progress label holds one line", wrapped.length === 0, JSON.stringify(wrapped));
+  await ctx.close();
+}
 
 await browser.close();
 const failed = findings.filter((f) => !f.pass).length;

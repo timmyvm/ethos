@@ -56,6 +56,12 @@ import { TAB_HREFS } from "@/lib/tabs";
  * floor. The register has no truncate, so every label here stays one
  * short word: a second word wraps and the whole bar grows a line.
  *
+ * At 320px a tab is 61px and PRACTICE at 11px with the register's
+ * 0.10em tracking wants about 66, so it ran into its neighbours
+ * ("LESSONSPRACTICE", review 25 Sep). Under 360px the bar gives up its
+ * side padding and the labels most of their tracking, which is the
+ * narrowest change that keeps every word whole at 11px.
+ *
  * The labels wear `.label-data`, 11px, since #287. They were the 10px
  * `.label-micro`, which is iOS's floor for a tab label and reads as
  * one on a phone; these five words are the most-read small type in
@@ -112,7 +118,7 @@ export function Nav() {
       aria-label="Sections"
       className="fixed bottom-0 left-1/2 z-20 w-full max-w-[430px] -translate-x-1/2 border-t border-hairline bg-raised"
     >
-      <div className="pb-safe flex px-2 pt-2.5">
+      <div className="pb-safe flex px-2 pt-2.5 max-[359px]:px-0.5">
         {TABS.map((t) => {
           /*
            * Today owns only itself now that Lessons has its own tab.
@@ -125,7 +131,7 @@ export function Nav() {
               key={t.href}
               href={t.href}
               aria-current={active ? "page" : undefined}
-              className={`label-data flex min-h-11 flex-1 flex-col items-center justify-center gap-1 py-1 transition-colors ${
+              className={`label-data flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-1 whitespace-nowrap py-1 transition-colors max-[359px]:!tracking-[0.02em] ${
                 active ? "!text-ink" : ""
               }`}
             >

@@ -16,8 +16,6 @@ import { AudioScrubber } from "@/components/AudioScrubber";
 import { PremiumDoor } from "@/components/PremiumMark";
 import { Coin } from "@/components/Coin";
 import { GainsRow } from "@/components/GainsRow";
-import { LessonBody } from "@/components/LessonScreen";
-import { DemosListening } from "@/components/DemosListening";
 import { LevelMeter } from "@/components/LevelMeter";
 import { ModeToggle } from "@/components/ModeToggle";
 import { Moment } from "@/components/Moment";
@@ -27,7 +25,11 @@ import { PermissionHelp } from "@/components/PermissionHelp";
 import { PoseSkeleton } from "@/components/PoseSkeleton";
 import { PresenceDetail, PresenceScore } from "@/components/PresenceCard";
 import { RepResult } from "@/components/RepResult";
-import { ScoringWave } from "@/components/ScoringWave";
+import { DemosHears } from "@/components/rep/DemosHears";
+import { ScoringStage } from "@/components/rep/ScoringStage";
+import { TipLine, TipStrip } from "@/components/rep/TipStrip";
+import { splitPrompt } from "@/lib/tip-labels";
+import { TopicCard } from "@/components/rep/TopicCard";
 import { StreakCelebration } from "@/components/StreakCelebration";
 import { readOnboarding } from "@/lib/answers";
 import { buildPortfolio } from "@/lib/portfolio";
@@ -258,6 +260,9 @@ function RepScreen() {
   // --- delivery feedback (§1) ---------------------------------------
   const [captureMode, setCaptureMode] = useState<CaptureMode>("voice");
   const [poseReady, setPoseReady] = useState<boolean | null>(null);
+  /** The browser can do pose but the runtime would not load: a
+   *  different cause, and the toggle says the true one (review, 25 Sep). */
+  const [poseLoadFailed, setPoseLoadFailed] = useState(false);
   const [ring, setRing] = useState<RingState>("ok");
   /**
    * The sampler's live frame array, handed over once when sampling
@@ -337,11 +342,13 @@ function RepScreen() {
     loadPose()
       .then((p) => {
         if (!live || p) return;
+        setPoseLoadFailed(true);
         setPoseReady(false);
         setCaptureMode("voice");
       })
       .catch(() => {
         if (!live) return;
+        setPoseLoadFailed(true);
         setPoseReady(false);
         setCaptureMode("voice");
       });
@@ -1018,6 +1025,27 @@ function RepScreen() {
   const capLabel = fmt(config.maxSeconds);
   const promptHidden = config.hidePrompt && phase !== "idle";
   /*
+   * Which string is the TOPIC. A lesson or a practice names itself in
+   * `title` and puts what you will talk about in `prompt`; a roulette
+   * spin, a game question and a boss put the topic in `title` and the
+   * direction in `prompt`. The topic takes the card either way, and the
+   * other becomes the one line of what to do (COPY-RULES: one line).
+   */
+  const topicFirst =
+    config.kind === "boss" ||
+    config.rouletteTopic !== null ||
+    config.lessonId.startsWith("game:");
+  const topicText = topicFirst ? config.title : config.prompt;
+  /* The boss's prompt carries a scoring rule after its first sentence
+     ("wrong claims cost more"). It is not cut: it shows as a tactic
+     face under the line, sentence on tap, because the score may not
+     mark down something the screen never said (review, 25 Sep). */
+  const bossParts = config.kind === "boss" ? splitPrompt(config.prompt) : null;
+  const doLine = topicFirst
+    ? (bossParts?.line ?? config.prompt)
+    : config.title;
+  const doRule = bossParts?.rule ?? null;
+  /*
    * A tip yields to a live nudge: the nudge is about this second of this
    * rep, the tip is general advice, and stacking them means neither gets
    * read. `seconds` already ticks once a second, so this recomputes at
@@ -1043,28 +1071,39 @@ function RepScreen() {
         ← back
       </Link>
       {/*
-       * The template (docs/voice.md Part 2) via <LessonBody>: the
-       * instruction, one line of what it is, and the tactics — nothing
-       * else. The tactics are back ON the screen rather than folded
-       * behind the disclosure #204 put them in: the disclosure existed
-       * because this screen carried four other blocks of prose, and
-       * those are what left (DECISIONS #209). They show while the
-       * screen is idle and yield to the live tips once the clock runs,
-       * because you cannot read and speak at the same time.
+       * The topic is the hero (feedback round, 25 Sep). A first-time
+       * user in the audience read the old screen, an eyebrow, a name, a
+       * grey paragraph and three numbered sentences, as a document she
+       * would not read. Now: what you will talk about, big, on a colour
+       * ground with Demos on its corner; the one line of what to do; the
+       * tactics as three tiles you take in by looking, each opening its
+       * full sentence on a tap. The tactics still yield to the live tips
+       * once the clock runs, because you cannot read and speak at once.
+       * The card leaves for the scoring wait, which has its own stage.
        */}
-      <div className="mt-6">
-        <LessonBody
-          eyebrow={config.unit}
-          title={config.title}
-          line={
-            promptHidden ? "Prompt hidden. That's the mod." : config.prompt
-          }
-          howTo={phase === "idle" ? config.tips : undefined}
-          lead="howTo"
-        />
-      </div>
+      {/* On idle the topic block takes the free height and centres in
+          it, so the screen is the card, the tiles and the tap, not the
+          tiles and then a hole above the tap (review, 25 Sep). */}
+      <div className={phase === "idle" ? "flex flex-1 flex-col justify-center pb-8" : ""}>
+      {phase !== "analyzing" && (
+        <div className={phase === "idle" ? "mt-[100px]" : "mt-4"}>
+          <TopicCard
+            eyebrow={config.unit}
+            topic={promptHidden ? "Prompt hidden. That's the mod." : topicText}
+            compact={phase !== "idle"}
+          />
+        </div>
+      )}
 
-      {config.mods.length > 0 && (
+      {phase === "idle" && (
+        <div className="mt-6">
+          <h2 className="font-display text-[15px] font-bold">{doLine}</h2>
+          {doRule && <TipLine tip={doRule} className="mt-2" />}
+          <TipStrip tips={config.tips} label={null} className="mt-3" />
+        </div>
+      )}
+
+      {config.mods.length > 0 && phase !== "analyzing" && (
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
           {config.mods.map((m) => (
             <span
@@ -1078,37 +1117,18 @@ function RepScreen() {
         </div>
       )}
 
-      {/*
-       * Voice or Voice + Video, from the first recording (DECISIONS
-       * #211, amending #68). The old rule locked recording one to audio
-       * and had to be explained on the screen it applied to; deleting
-       * the rule deletes the sentence, which is the actual win. The
-       * camera is still OFF by default on a daily lesson, so nothing is
-       * asked for that nobody chose.
-       */}
-      {phase === "idle" && (
-        <ModeToggle
-          mode={captureMode}
-          available={poseReady === true}
-          reason={
-            poseReady === null
-              ? "Checking whether this browser can do on-device pose detection…"
-              : undefined
-          }
-          onChange={(m) => {
-            setCaptureMode(m);
-            writeCaptureMode(config.kind, m);
-          }}
-        />
-      )}
-
       {config.crowdNoise && phase === "idle" && (
         <p className="mt-2 text-caption text-stone-500">
           Headphones on, or the café bleeds into your mic.
         </p>
       )}
+      </div>
 
-      <div className="flex flex-1 flex-col items-center justify-center gap-6">
+      <div
+        className={`flex flex-col items-center gap-6 ${
+          phase === "idle" ? "" : "flex-1 justify-center"
+        }`}
+      >
         {phase === "frame" && (
           <div className="arrive w-full">
             <div className="flex items-baseline justify-between">
@@ -1120,23 +1140,10 @@ function RepScreen() {
 
             {/* Structure tips, by the SHAPE of answer the prompt asks
                 for. We know that much honestly; we don't know what
-                you're going to say, so we don't pretend to. */}
-            <div className="elev-1 mt-5 rounded-card border border-card-edge bg-raised p-4">
-              <div className="label-data">Shape it like this</div>
-              <ul className="mt-3 space-y-2">
-                {config.tips.map((tip, i) => (
-                  <li
-                    key={i}
-                    className="flex gap-2.5 text-[14px] leading-relaxed text-stone-600"
-                  >
-                    <span className="label-micro mt-1 shrink-0 !text-sage-700">
-                      {i + 1}
-                    </span>
-                    {tip}
-                  </li>
-                ))}
-              </ul>
-            </div>
+                you're going to say, so we don't pretend to. The same
+                tiles as the idle screen (feedback round, 25 Sep): a
+                numbered list here was the same wall one tap later. */}
+            <TipStrip tips={config.tips} label="Shape it like this" className="mt-5" />
 
             <textarea
               value={notes}
@@ -1146,8 +1153,7 @@ function RepScreen() {
               className="mt-3 w-full rounded-control border border-edge bg-surface p-4 text-[14px] leading-relaxed transition-colors placeholder:text-stone-400 focus:border-terracotta-500"
             />
             <p className="mt-2 text-caption text-stone-400">
-              They disappear when you record. You can&apos;t read and speak at
-              once.
+              Hidden once you record.
             </p>
           </div>
         )}
@@ -1185,22 +1191,12 @@ function RepScreen() {
         )}
 
         {phase === "analyzing" && (
-          <div className="arrive w-full text-center" role="status">
-            <ScoringWave levels={scoringWave} />
-            <div className="font-display mt-5 text-[19px] font-extrabold">
-              Scoring…
-            </div>
-            <p className="mt-2 text-body text-stone-500">
-              {config.kind === "boss"
-                ? "Transcribing, measuring, checking your claims."
-                : "Transcribing, counting, measuring silence."}
-            </p>
-            <p className="mt-1.5 text-caption text-stone-400">
-              {attempt > 0
-                ? "Still trying. The recording is safe on this device."
-                : "Ten seconds or so. The numbers are computed, not guessed."}
-            </p>
-          </div>
+          <ScoringStage
+            levels={scoringWave}
+            seconds={seconds}
+            boss={config.kind === "boss"}
+            attempt={attempt}
+          />
         )}
 
         {/*
@@ -1269,27 +1265,32 @@ function RepScreen() {
          * starts and a settle when it stops.
          */}
         {phase === "recording" && captureMode !== "voice_video" && (
-          <DemosListening level={meterLevel} size={104} />
+          <DemosHears level={meterLevel} size={116} />
         )}
 
+        {/*
+         * Voice or Voice + Video, from the first recording (DECISIONS
+         * #211, amending #68), demoted to a small pair beside the tap it
+         * configures (feedback round, 25 Sep). The camera is still OFF
+         * by default on a daily lesson, so nothing is asked for that
+         * nobody chose.
+         */}
         {phase === "idle" && (
-          <>
-            {/* Anticipation cue — what this rep is about to earn (#48).
-                One line since the declutter (#204): the headline already
-                names its number (#46), and a filled card here was the
-                loudest thing on a screen whose one job is the Rec tap. */}
-            {anticipate && (
-              <p
-                className={`max-w-[280px] text-center text-caption font-semibold ${
-                  anticipate.tone === "earned"
-                    ? "text-sage-700"
-                    : "text-stone-600"
-                }`}
-              >
-                {anticipate.headline}
-              </p>
-            )}
-          </>
+          <ModeToggle
+            mode={captureMode}
+            available={poseReady === true}
+            reason={
+              poseReady === false
+                ? poseLoadFailed
+                  ? "Video couldn't load. Voice works."
+                  : "Video isn't available here."
+                : undefined
+            }
+            onChange={(m) => {
+              setCaptureMode(m);
+              writeCaptureMode(config.kind, m);
+            }}
+          />
         )}
 
         {phase === "error" &&
@@ -1360,6 +1361,18 @@ function RepScreen() {
          * line it replaces: the first recording, or whenever the camera
          * is in play. A promise repeated daily stops being read.
          */}
+        {/* Anticipation cue — what this recording is about to earn (#48),
+            one line under the tap that earns it. */}
+        {phase === "idle" && anticipate && (
+          <p
+            className={`-mt-2 max-w-[280px] text-center text-caption font-semibold ${
+              anticipate.tone === "earned" ? "text-sage-700" : "text-stone-600"
+            }`}
+          >
+            {anticipate.headline}
+          </p>
+        )}
+
         {phase === "idle" && (repCount === 0 || captureMode === "voice_video") && (
           <p className="max-w-[280px] text-center text-caption text-stone-400">
             Mic is only on while you&apos;re recording.{" "}
@@ -2028,9 +2041,10 @@ function PlanChips({ streak }: { streak: number }) {
         </p>
       ) : (
         <>
-          <p className="mt-2 text-[14px] leading-relaxed text-stone-500">
-            Practice with a time happens. Demos reminds you once a day, never in
-            quiet hours.
+          {/* One line (feedback round, 25 Sep). The label asks the
+              question; the chips answer it. */}
+          <p className="mt-2 text-[14px] text-stone-500">
+            Demos reminds you once a day.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {PLAN_HOURS.map((p) => (

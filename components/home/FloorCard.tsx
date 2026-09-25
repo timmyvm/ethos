@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { TRAIT } from "@/content/traits";
 import { ACTION_CLASS } from "@/lib/ui";
+import { TipLine } from "@/components/rep/TipStrip";
 import { repHref } from "@/lib/rep-config";
 import type { Chosen } from "@/lib/next-practice";
 
@@ -101,8 +102,12 @@ export function FloorCard({
   const reason = dayOne ? dayOneNote : chosen?.because;
 
   return (
-    <div className="elev-2 rounded-sheet border border-card-edge bg-raised p-5">
-      <div className="label-data">{eyebrow}</div>
+    /* The same warm ground as the recording screen's topic card
+       (feedback round, 25 Sep: "pop with colour"), so the card you tap
+       and the screen it opens are visibly one thing. Still the ONE
+       lifted object on Today. */
+    <div className="topic-card topic-card-lift rounded-sheet p-5">
+      <div className="label-data topic-eyebrow">{eyebrow}</div>
 
       {/* Three kinds of content in one card, each named (#293): the
           topic, the technique, the reason. Without the cues a prompt
@@ -119,10 +124,20 @@ export function FloorCard({
        * clause of the sentence and made a three line paragraph out of
        * what should be one line of technique.
        */}
-      {body && (
+      {/* Day one's body is the topic, a sentence to read. Every other
+          day it is a tactic, and a tactic shows as its five words and a
+          glyph with the sentence one tap away (feedback round, 25 Sep:
+          the full sentence in grey was the part nobody read). */}
+      {body && dayOne && (
         <>
-          <div className="label-micro mt-3">{dayOne ? "Your topic" : "How"}</div>
-          <p className="mt-1 text-body text-stone-500">{body}</p>
+          <div className="label-micro mt-3">Your topic</div>
+          <p className="mt-1 text-body text-stone-600">{body}</p>
+        </>
+      )}
+      {body && !dayOne && (
+        <>
+          <div className="label-micro mt-3">How</div>
+          <TipLine tip={body} className="mt-1" />
         </>
       )}
 
@@ -133,7 +148,7 @@ export function FloorCard({
        * measurement is the half that is known (docs/percentiles.md).
        */}
       {reason && (
-        <div className="mt-3.5 border-t border-hairline pt-3">
+        <div className="mt-3.5 border-t border-edge pt-3">
           <div className="label-micro">Why</div>
           <p className="mt-1 text-body leading-snug text-ink">{reason}</p>
         </div>

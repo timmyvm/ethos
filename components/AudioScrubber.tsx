@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { FillerHit, Pause } from "@/lib/metrics";
 
 /**
@@ -61,7 +61,30 @@ export function AudioScrubber({
 
   return (
     <div className="elev-1 rounded-card border border-card-edge bg-raised p-4">
-      <div className="label-data">Hear it back</div>
+      {/*
+       * The legend is the header's right half (feedback round, 25 Sep):
+       * a swatch and a word per mark, only for the marks this recording
+       * actually has. It replaces the caption that used to explain the
+       * track in a sentence under the chips, which a first-time user
+       * said she would not read, and which the chips now say by looking
+       * like what they are: buttons that play.
+       */}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+        <div className="label-data">Hear it back</div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-stone-500">
+          {fillers.length > 0 && (
+            <Key mark={FILLER_MARK} thin>
+              filler
+            </Key>
+          )}
+          {pauses.some((p) => p.kind === "pre") && (
+            <Key mark={PAUSE_MARK.pre}>held pause</Key>
+          )}
+          {pauses.some((p) => p.kind === "mid") && (
+            <Key mark={PAUSE_MARK.mid}>mid-sentence</Key>
+          )}
+        </div>
+      </div>
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <audio ref={ref} src={src} preload="metadata" />
 
@@ -83,7 +106,7 @@ export function AudioScrubber({
                 <span
                   key={`p${i}`}
                   className={`absolute top-0 h-full ${
-                    p.kind === "pre" ? "bg-sage-500/40" : "bg-stone-400/30"
+                    p.kind === "pre" ? PAUSE_MARK.pre : PAUSE_MARK.mid
                   }`}
                   style={{ left: `${pct(p.t)}%`, width: `${pct(p.len)}%` }}
                 />
@@ -94,7 +117,7 @@ export function AudioScrubber({
                 onClick={() => seek(f.t - 0.4)}
                 title={`${f.word} at ${f.t.toFixed(1)}s`}
                 aria-label={`Jump to ${f.word}`}
-                className="absolute top-0 h-full w-[3px] bg-terracotta-600"
+                className={`absolute top-0 h-full w-[3px] ${FILLER_MARK}`}
                 style={{ left: `${pct(f.t)}%` }}
               />
             ))}
@@ -120,24 +143,52 @@ export function AudioScrubber({
         </span>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {fillers.map((f, i) => (
-          <button
-            key={i}
-            onClick={() => seek(f.t - 0.4)}
-            className="press rounded-full bg-stone-100 px-2.5 py-1 text-caption text-ink transition-colors hover:bg-terracotta-100"
-          >
-            {f.word}{" "}
-            <span className="tabular-nums text-stone-500">
-              {Math.floor(f.t / 60)}:
-              {String(Math.floor(f.t % 60)).padStart(2, "0")}
-            </span>
-          </button>
-        ))}
-      </div>
-      <p className="mt-3 text-caption text-stone-400">
-        Sage bands are silence you held. Tap a word to hear the moment.
-      </p>
+      {fillers.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {fillers.map((f, i) => (
+            <button
+              key={i}
+              onClick={() => seek(f.t - 0.4)}
+              aria-label={`Play ${f.word} at ${Math.floor(f.t / 60)}:${String(Math.floor(f.t % 60)).padStart(2, "0")}`}
+              className="press inline-flex min-h-11 items-center gap-1.5 rounded-full border border-edge bg-surface py-1 pl-2.5 pr-3 text-[13px] font-semibold text-ink"
+            >
+              <svg aria-hidden width="10" height="10" viewBox="0 0 10 10" className="text-terracotta-600">
+                <path d="M2 1l7 4-7 4z" fill="currentColor" />
+              </svg>
+              {f.word}
+              <span className="font-normal tabular-nums text-stone-500">
+                {Math.floor(f.t / 60)}:
+                {String(Math.floor(f.t % 60)).padStart(2, "0")}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
+  );
+}
+
+/* One class per mark, shared by the track and its key, so the key is
+   the mark rather than a picture of it (review, 25 Sep). */
+const FILLER_MARK = "bg-terracotta-600";
+const PAUSE_MARK = { pre: "bg-sage-500/40", mid: "bg-stone-400/30" } as const;
+
+/** A key entry: the mark on a scrap of the track's own ground. */
+function Key({
+  mark,
+  thin = false,
+  children,
+}: {
+  mark: string;
+  thin?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span aria-hidden className="relative grid h-3 w-3 place-items-center overflow-hidden bg-sand">
+        <span className={`${thin ? "h-full w-[3px]" : "absolute inset-0"} ${mark}`} />
+      </span>
+      {children}
+    </span>
   );
 }

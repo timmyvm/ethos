@@ -6,12 +6,8 @@ import { ACTION_CLASS } from "@/components/LessonScreen";
 import { DISABLED_CLASS } from "@/lib/ui";
 import { fetchReps } from "@/lib/client-data";
 import { computeStreak } from "@/lib/streak";
-import {
-  sessionState,
-  signInWithGoogle,
-  type AuthResult,
-  type SessionState,
-} from "@/lib/auth";
+import { sessionState, type AuthResult, type SessionState } from "@/lib/auth";
+import { useGoogleSignIn } from "@/lib/use-oauth-return";
 
 /**
  * The shared shell for /signup and /signin.
@@ -43,6 +39,9 @@ export function AuthForm({
   const [note, setNote] = useState<string | null>(null);
   const [session, setSession] = useState<SessionState | null>(null);
   const [progress, setProgress] = useState({ reps: 0, streak: 0 });
+  // Google's own state: it comes back when they do, and never touches
+  // the email form below it (lib/use-oauth-return.ts).
+  const google = useGoogleSignIn(mode);
 
   useEffect(() => {
     sessionState()
@@ -79,18 +78,6 @@ export function AuthForm({
       setNote(result.note ?? null);
       setSent(true);
     } else window.location.href = "/";
-  }
-
-  async function google() {
-    setBusy(true);
-    setError(null);
-    const result = await signInWithGoogle(mode);
-    // On success the browser is navigating to Google; only failure
-    // returns control to this screen.
-    if (!result.ok) {
-      setBusy(false);
-      setError(result.error ?? "Google didn't answer. Try again.");
-    }
   }
 
   if (sent) {
@@ -170,13 +157,20 @@ export function AuthForm({
       >
         <button
           type="button"
-          onClick={() => void google()}
+          /* Held, not greyed, while the browser leaves: a faded button
+             is what read as dead when somebody came back (25 Sep). */
+          onClick={() => {
+            if (!google.pending) void google.start();
+          }}
           disabled={busy}
+          aria-disabled={google.pending || undefined}
+          aria-busy={google.pending || undefined}
           className="press font-display flex min-h-12 w-full items-center justify-center gap-2.5 rounded-control border border-edge bg-surface px-6 text-[14px] font-bold transition-colors hover:bg-sand disabled:opacity-40"
         >
           <GoogleMark />
-          Continue with Google
+          {google.pending ? "Opening Google…" : "Continue with Google"}
         </button>
+        {google.error && <FormError>{google.error}</FormError>}
         {carrying && mode === "signup" && (
           <p className="mt-2 text-center text-caption text-stone-400">
             Your recordings attach to it the same way.
@@ -259,9 +253,9 @@ export function AuthForm({
 
 /** Google's four-colour G — a brand mark, not an app icon, so it lives
     outside components/Icon.tsx (the one-set rule covers our own marks). */
-function GoogleMark() {
+export function GoogleMark({ size = 18 }: { size?: number }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden>
+    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden>
       <path
         fill="#EA4335"
         d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"

@@ -67,7 +67,7 @@ await page.waitForURL(/history/);
 ok("going right along the tab bar pushes from the right", (await pushClass()).includes("push-right"), await pushClass());
 
 await page.click('nav a[href="/"]');
-await page.waitForURL(/3123\/$/);
+await page.waitForURL(/:\d+\/$/);
 ok("coming back along the tab bar pushes from the left", (await pushClass()).includes("push-left"), await pushClass());
 
 await page.goto(`${BASE}/you`);

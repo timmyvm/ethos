@@ -191,12 +191,14 @@ export function RepResult({
 
       {show("score") && (
       <div className="mt-7 flex items-end gap-3">
+        {/* Full body, standing beside what he says (review, 25 Sep):
+            the half-body render showed its cut on this edge. */}
         <Image
-          src="/demos-speaking.webp"
+          src="/demos-onboard-speaking.webp"
           alt="Demos"
-          width={62}
-          height={62}
-          className="demos w-[62px] shrink-0"
+          width={144}
+          height={144}
+          className="demos -mb-1 w-[72px] shrink-0"
         />
         <div className="rounded-card bg-terracotta-50 p-4 text-body leading-relaxed">
           <div className="label-data !text-terracotta-700 mb-1.5">Demos</div>

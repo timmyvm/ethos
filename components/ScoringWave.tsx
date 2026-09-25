@@ -29,26 +29,36 @@ export function ScoringWave({
   const heights = useMemo(() => bucket(levels, bars), [levels, bars]);
   return (
     <div
-      className="relative mx-auto flex w-full max-w-[280px] items-center gap-[3px] overflow-hidden"
+      className="relative mx-auto flex w-full max-w-[300px] items-center gap-[3px] overflow-hidden"
       style={{ height }}
       aria-hidden
     >
+      {/* Each bar lights amber the moment the scan reaches it and
+          cools back behind it (feedback round, 25 Sep): the delay is
+          its position along the one linear sweep, so bar and line are
+          on the same clock. Amber is Demos's colour, and this is him
+          going through what you said. */}
       {heights.map((v, i) => (
         <span
           key={i}
-          className="block h-full w-1 origin-center bg-stone-300"
-          style={{ transform: `scaleY(${Math.max(FLOOR, v)})` }}
+          className="scoring-bar block h-full flex-1 origin-center"
+          style={{
+            transform: `scaleY(${Math.max(FLOOR, v)})`,
+            animationDelay: `${((i + 0.5) / heights.length) * SWEEP_S}s`,
+          }}
         />
       ))}
       {/* A full-width box whose right edge is the line: translating it
           from -100% to 0 walks the edge across, and only transform
           moves (DESIGN-RULES, motion). */}
-      <span className="scoring-cursor absolute inset-y-0 left-0 w-full border-r-[3px] border-ink" />
+      <span className="scoring-cursor absolute inset-y-0 left-0 w-full border-r-[3px]" />
     </div>
   );
 }
 
 const FLOOR = 0.08;
+/** One sweep, in seconds. `.scoring-cursor` in globals.css runs the same. */
+const SWEEP_S = 2.4;
 
 /**
  * Max per bucket, scaled to the recording's own loudest moment, then

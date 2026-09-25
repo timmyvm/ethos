@@ -343,9 +343,20 @@ describe("the screen template", () => {
    * thing #212 fixed.
    */
   it("gives the lesson screens their tactics as the hero", () => {
-    for (const file of ["app/rep/page.tsx", "app/lesson/[unit]/page.tsx"]) {
-      expect(readFileSync(file, "utf8")).toMatch(/lead="howTo"/);
-    }
+    expect(readFileSync("app/lesson/[unit]/page.tsx", "utf8")).toMatch(/lead="howTo"/);
+  });
+
+  /**
+   * The recording screen's hero is the TOPIC since the feedback round
+   * of 25 Sep, which overrides the line above for that one screen: a
+   * first-time user said she would not read three numbered tactics, so
+   * the topic takes the card and the tactics become tiles (five words
+   * and a glyph each, the sentence on a tap).
+   */
+  it("gives the recording screen the topic as the hero and the tactics as tiles", () => {
+    const source = readFileSync("app/rep/page.tsx", "utf8");
+    expect(source).toMatch(/<TopicCard/);
+    expect(source).toMatch(/<TipStrip/);
   });
 
   /**

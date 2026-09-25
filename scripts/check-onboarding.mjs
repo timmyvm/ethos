@@ -18,7 +18,7 @@
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 import { mkdirSync, writeFileSync } from "node:fs";
 
-const BASE = "http://localhost:3123";
+const BASE = process.env.LOOK_BASE ?? "http://localhost:3123";
 const OUT = new URL("../docs/devibe/motion-check/onboarding/", import.meta.url).pathname;
 mkdirSync(OUT, { recursive: true });
 const findings = [];
@@ -69,6 +69,32 @@ page.on("pageerror", (e) => console.log("PAGEERROR", page.url(), e.message.slice
 const shot = (n) => page.screenshot({ path: `${OUT}${n}.png` });
 const anim = (sel) => page.$eval(sel, (el) => getComputedStyle(el).animationName);
 
+/*
+ * A real finger (the swipe-and-pop round): touch events through CDP, so
+ * the page sees `pointerType: "touch"` and its `touch-action: pan-y`
+ * is in force, which is what a phone does. `hold` stops before lifting
+ * and returns what the sliding screen looked like under the finger.
+ */
+const cdp = await context.newCDPSession(page);
+const touch = (type, x, y) =>
+  cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y }] });
+async function swipe(dx, { y = 420, dy = 0, steps = 10, ms = 200, hold = false, settle = 650 } = {}) {
+  const x0 = dx < 0 ? 340 : 50;
+  await touch("touchStart", x0, y);
+  for (let k = 1; k <= steps; k++) {
+    await touch("touchMove", x0 + (dx * k) / steps, y + (dy * k) / steps);
+    await sleep(ms / steps);
+  }
+  let held = null;
+  if (hold) held = await page.$eval("main [class*='step-in-']", (el) => el.style.transform);
+  await touch("touchEnd");
+  await sleep(settle);
+  return held;
+}
+const heading = async () => (await page.textContent("main h1")).trim();
+const arrival = () =>
+  page.$eval("main [class*='step-in-']", (el) => (/step-in-(next|back)/.exec(el.className) || [])[1]);
+
 // 1. A fresh browser lands on the introduction.
 await page.goto(`${BASE}/`);
 await page.waitForURL(/\/welcome/);
@@ -77,8 +103,61 @@ ok("a fresh browser is routed to the introduction", true);
 const wave = await anim("main img.demos");
 ok("the wave sways", wave === "sway", wave);
 await shot("01-intro-1");
+
+// 1a. A short phone (375x667, the review of the swipe-and-pop round):
+// the stage gives up height, Demos shrinks to the room, and the one tap
+// and the door under it stay above the fold.
+await page.setViewportSize({ width: 375, height: 667 });
+await sleep(400);
+const fold = await page.evaluate(() => {
+  const bottom = (el) => (el ? Math.round(el.getBoundingClientRect().bottom) : 9999);
+  const next = [...document.querySelectorAll("main button")].find((b) => b.textContent.trim() === "Next");
+  const door = [...document.querySelectorAll("main a")].find((a) => a.textContent.includes("already have an account"));
+  const demos = document.querySelector("main .demos-fit-room > div");
+  return { next: bottom(next), door: bottom(door), demos: demos ? Math.round(demos.getBoundingClientRect().height) : 0 };
+});
+ok("on a 667px phone Next and the sign-in door are above the fold", fold.next <= 667 && fold.door <= 667, JSON.stringify(fold));
+ok("and Demos fits the room at a size that still reads", fold.demos >= 150, String(fold.demos));
+await page.setViewportSize({ width: 390, height: 844 });
+await sleep(300);
+
+// 1b. The introduction is a carousel (the swipe-and-pop round).
+const held = await swipe(-60, { hold: true });
+ok("the screen follows the finger", /translate3d\(-?\d/.test(held ?? "") && held !== "translate3d(0px, 0px, 0px)", held);
+ok("a short drag springs back", (await heading()) === "Hey. I know why you're here.");
+await swipe(90);
+ok("the first screen rubber-bands a swipe back", (await heading()) === "Hey. I know why you're here.");
+await swipe(-200);
+ok("swipe left goes forward", (await heading()) === "A coach costs $5,000.");
+ok("and the next screen arrives from the right", (await arrival()) === "next");
+const said = await page.$eval("main [class*='step-in-']", (el) => ({
+  arrival: el.dataset.arrival ?? null,
+  delay: getComputedStyle(el.querySelector(".says-word")).animationDelay,
+}));
+ok("a swiped page brings its words with it", said.arrival === "gesture" && said.delay === "0s", JSON.stringify(said));
+ok(
+  "the pager follows the page",
+  (await page.$eval("main .intro-dot[data-on]", (el) => el.parentElement.getAttribute("aria-label"))) === "Page 2"
+);
+await swipe(200);
+ok("swipe right goes back", (await heading()) === "Hey. I know why you're here.");
+ok("and the screen before arrives from the left", (await arrival()) === "back");
+await swipe(8, { dy: -220, y: 640 });
+ok("a vertical drag is left to the page", (await heading()) === "Hey. I know why you're here.");
+await page.keyboard.press("ArrowRight");
+await sleep(400);
+ok("the right arrow key steps forward", (await heading()) === "A coach costs $5,000.");
+await page.keyboard.press("ArrowLeft");
+await sleep(400);
+ok("and the left arrow steps back", (await heading()) === "Hey. I know why you're here.");
+const grounded = await page.$$eval("main .demos-ground > span, main .demos-halo, main .demos-pop", (els) => els.length);
+ok("Demos stands on a stage with a disc, a shadow and a spring", grounded === 3 && (await page.$$("main .intro-stage")).length === 1, String(grounded));
 await page.getByRole("button", { name: "Next", exact: true }).click();
 await sleep(400);
+ok(
+  "a tapped Next keeps the said-then-moves order",
+  (await page.$eval("main [class*='step-in-']", (el) => el.dataset.arrival ?? null)) === null
+);
 const arcs = await page.$$eval("main svg .arc", (els) => els.map((e) => getComputedStyle(e).animationName));
 ok("the speaking pose draws its arcs in code, animated", arcs.length === 3 && arcs.every((a) => a === "arc-in"), arcs.join(","));
 await shot("02-intro-2");
@@ -99,6 +178,11 @@ ok(
   "every question holds Next until answered, the name included (#288)",
   (await page.getByRole("button", { name: "Next", exact: true }).isDisabled()) === true
 );
+await swipe(-220);
+ok("and a swipe past an unanswered question rubber-bands", (await heading()) === "What do I call you?");
+const fieldBox = await page.getByLabel("Your name").boundingBox();
+await swipe(-220, { y: fieldBox.y + fieldBox.height / 2 });
+ok("a drag that starts in the name field is the field's", (await heading()) === "What do I call you?");
 await page.getByLabel("Your name").fill("Tim");
 await page.getByLabel("Your name").blur();
 await sleep(350);
@@ -110,8 +194,14 @@ ok("Demos says the name back", await page.getByText("Good to meet you, Tim.").is
 const nodded = await page.$eval("main img.demos", (el) => el.parentElement.className);
 ok("and he nods when he hears it", /demos-nod/.test(nodded), nodded);
 await shot("04-q-name");
-await page.getByRole("button", { name: "Next", exact: true }).click();
-await sleep(300);
+await swipe(-220);
+ok("an answered question swipes forward like Next", (await heading()) === "How old are you?");
+const rowBox = await page.getByRole("radio", { name: "25 to 34" }).boundingBox();
+await swipe(-80, { y: rowBox.y + rowBox.height / 2 });
+ok(
+  "a drag across an answer does not pick it",
+  (await page.getByRole("radio", { name: "25 to 34" }).getAttribute("aria-checked")) === "false"
+);
 
 // 3. Question 2: age. Next waits for an answer; Skip is under it.
 await page.getByText("How old are you?").waitFor();
@@ -119,7 +209,15 @@ const disabled = await page.getByRole("button", { name: "Next", exact: true }).i
 ok("an essential question holds Next until answered", disabled === true);
 ok("the bar stands at 2 of 7", (await at()) === "2");
 await shot("05-q-age");
-await page.getByRole("radio", { name: "Under 18" }).click();
+// Arrow keys inside a set of answers belong to the answers.
+await page.getByRole("radio", { name: "Under 18" }).focus();
+await page.keyboard.press("ArrowRight");
+await sleep(400);
+ok("an arrow key on an answer does not change the screen", (await heading()) === "How old are you?");
+// A refused swipe, then a quick real tap: the tap must land.
+await swipe(-220, { settle: 60 });
+await page.getByRole("radio", { name: "Under 18" }).tap();
+ok("a tap right after a refused swipe is not swallowed", (await page.getByRole("radio", { name: "Under 18" }).getAttribute("aria-checked")) === "true");
 ok("a tap picks the answer", (await page.getByRole("radio", { name: "Under 18" }).getAttribute("aria-checked")) === "true");
 await sleep(250);
 ok(
@@ -311,6 +409,9 @@ const nodStilled = await page.evaluate(() => {
   return name;
 });
 ok("and the nod is stilled with it", nodStilled === "none", nodStilled);
+const stillHeld = await swipe(200, { hold: true });
+ok("under reduced motion a drag does not move the screen", !stillHeld, String(stillHeld));
+ok("but the swipe still steps", (await heading()) === "When do you want your minute?");
 
 await page.close(); await context.close(); await browser.close();
 writeFileSync(OUT + "findings.json", JSON.stringify(findings, null, 2));

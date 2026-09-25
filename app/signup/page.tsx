@@ -5,7 +5,7 @@ import { AuthForm } from "@/components/AuthForm";
 import { createAccount } from "@/lib/auth";
 
 /**
- * Sign-up (§0.2): email and password, no social login.
+ * Sign-up (§0.2): Google, or email and password (Google since 27 Aug).
  *
  * Reached from the "save your progress" gate, which only ever appears
  * after a rep has landed (DECISIONS #15). Nobody is asked to make an

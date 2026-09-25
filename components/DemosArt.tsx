@@ -42,6 +42,30 @@ const LOOP: Record<Pose, string> = {
   clipboard: "demos-breath",
 };
 
+/**
+ * The contact shadow's loop, one per pose loop, on the same clock
+ * (globals.css, `.ground-*`): he rises, it shrinks; he sways, it slides.
+ */
+const GROUND: Record<string, string> = {
+  "demos-idle": "ground-idle",
+  "demos-sway": "ground-sway",
+  "demos-bob": "ground-bob",
+  "demos-tilt": "ground-tilt",
+  "demos-breath": "ground-breath",
+};
+
+/**
+ * The introduction's illustration tones (globals.css, `.tone-*`): the
+ * colour of the stage he stands on and the disc behind him. They mean
+ * nothing but "picture"; never a tap, never earned, never paid.
+ *
+ * Coral is for the small things (a glyph tile, a plan step), never for
+ * ground he stands on: he is rust and terracotta, and a coral room is
+ * his own fur colour, so his edge disappears into it. His rooms are the
+ * tones that complement him: sun, sky, mint.
+ */
+export type Tone = "sun" | "sky" | "coral" | "mint";
+
 export const poseSrc = (pose: Pose) => `/demos-onboard-${pose}.webp`;
 
 /**
@@ -61,9 +85,34 @@ export function DemosArt({
   nodKey,
   greetAfterMs,
   className = "",
+  pop = false,
+  grounded = false,
+  halo,
+  fit = false,
 }: {
   pose: Pose;
+  /** His size in px, and with `fit`, the most he grows to. */
   size?: number;
+  /**
+   * Take the height the room has, up to `size` (the review of the
+   * swipe-and-pop round): on a 667px phone a fixed 272px Demos pushed
+   * the screen's one tap under the fold. Needs a size container around
+   * him (globals.css, `.demos-fit`), which the stage provides.
+   */
+  fit?: boolean;
+  /**
+   * Arrive on a spring (the swipe-and-pop round): up out of the floor,
+   * a little past, and settle. For a screen whose arrival IS him.
+   */
+  pop?: boolean;
+  /** A soft contact shadow at his feet that breathes with his loop. */
+  grounded?: boolean;
+  /**
+   * A disc behind him in a tone. "stage" is the lighter disc on a
+   * coloured stage (his studio light); "coin" is the tone itself, for
+   * the plain ground where there is no stage to be lighter than.
+   */
+  halo?: { tone: Tone; kind: "stage" | "coin" };
   /**
    * Nod once on arrival, this long after mount (#288): the reference's
    * mascot moves AFTER the bubble's words have landed, never during,
@@ -115,35 +164,59 @@ export function DemosArt({
     return () => clearTimeout(t);
   }, [greetAfterMs]);
 
+  const loop = LOOP[pose];
   return (
     <div
-      ref={frame}
-      className={`relative mx-auto shrink-0 ${className}`}
-      style={{ width: size, height: size }}
+      className={`relative mx-auto shrink-0 ${halo ? `tone-${halo.tone}` : ""} ${className}`}
+      style={
+        fit
+          ? { width: `min(${size}px, 100cqh, 100cqw)`, height: `min(${size}px, 100cqh, 100cqw)` }
+          : { width: size, height: size }
+      }
       aria-hidden
-      /* The class comes off when the nod ends, so the greeting and an
-         answer's nod never fight over it and a still Demos carries no
-         stale animation. */
-      onAnimationEnd={(e) => {
-        if (e.animationName === "demos-nod") e.currentTarget.classList.remove("demos-nod");
-      }}
     >
-      {/* Served as the file it is, not through the optimiser (#288, the
-          same reason as the lesson art in #274): the set is already cut
-          to one scale, and a plain URL is one `preloadPose` can warm
-          before the screen that needs it arrives. The strip showed him
-          landing 300ms after his own words. */}
-      <Image
-        src={poseSrc(pose)}
-        alt=""
-        width={size}
-        height={size}
-        priority
-        unoptimized
-        className={`demos ${LOOP[pose]} block h-full w-full`}
-      />
-      {pose === "speaking" && <SoundArcs />}
-      {pose === "celebrate" && <Sparkles />}
+      {halo && (
+        <div
+          className={`demos-halo ${pop ? "demos-pop-halo" : ""}`}
+          data-solid={halo.kind === "coin" ? "" : undefined}
+        />
+      )}
+      {grounded && (
+        <div className={`demos-ground ${pop ? "demos-pop-ground" : ""}`}>
+          <span className={GROUND[loop]} />
+        </div>
+      )}
+      {/* Three layers, three clocks, one transform each: the arrival on
+          the outside, the nod in the middle, the pose loop on the art. */}
+      <div className={`relative z-[1] h-full w-full ${pop ? "demos-pop" : ""}`}>
+        <div
+          ref={frame}
+          className="relative h-full w-full"
+          /* The class comes off when the nod ends, so the greeting and an
+             answer's nod never fight over it and a still Demos carries no
+             stale animation. */
+          onAnimationEnd={(e) => {
+            if (e.animationName === "demos-nod") e.currentTarget.classList.remove("demos-nod");
+          }}
+        >
+          {/* Served as the file it is, not through the optimiser (#288, the
+              same reason as the lesson art in #274): the set is already cut
+              to one scale, and a plain URL is one `preloadPose` can warm
+              before the screen that needs it arrives. The strip showed him
+              landing 300ms after his own words. */}
+          <Image
+            src={poseSrc(pose)}
+            alt=""
+            width={size}
+            height={size}
+            priority
+            unoptimized
+            className={`demos ${loop} block h-full w-full`}
+          />
+          {pose === "speaking" && <SoundArcs />}
+          {pose === "celebrate" && <Sparkles />}
+        </div>
+      </div>
     </div>
   );
 }
@@ -158,10 +231,12 @@ function SoundArcs() {
     <svg
       viewBox="0 0 40 60"
       className="absolute text-amber"
-      /* Right of the head at mouth height, above the raised paw: the
-         cheek's edge sits near 66% at that height, the paw from 75% at
-         41% down, so the arcs live in the gap at (74 to 89%, 26 to 43%). */
-      style={{ left: "74%", top: "26%", width: "15%", height: "17%" }}
+      /* Measured on the 3D render: his cheek fur reaches 80% across at
+         28 to 32% down, the raised paw starts 35% down between 83 and
+         95%, and the ear ends at 78%. The clear air is right of the
+         head and above the paw, so the arcs live at (82 to 94%, 14 to
+         31%) and read as coming off his face, not out of his hand. */
+      style={{ left: "82%", top: "14%", width: "12%", height: "17%" }}
       fill="none"
       stroke="currentColor"
       strokeWidth={4}
@@ -181,9 +256,10 @@ function SoundArcs() {
 
 /** Three four-point sparkles around the head, twinkling out of step. */
 function Sparkles() {
-  /* Clear of both raised arms: one out left, two up and out right. */
+  /* Clear of both raised arms on the 3D render: one above the left paw
+     (the paw starts 27% down), two up and out right. */
   const at = [
-    { x: 9, y: 34 },
+    { x: 10, y: 16 },
     { x: 84, y: 9 },
     { x: 93, y: 38 },
   ];

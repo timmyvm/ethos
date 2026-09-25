@@ -23,7 +23,7 @@
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 import { mkdirSync, writeFileSync } from "node:fs";
 
-const BASE = "http://localhost:3123";
+const BASE = process.env.LOOK_BASE ?? "http://localhost:3123";
 const OUT = new URL("../docs/devibe/motion-check/", import.meta.url).pathname;
 mkdirSync(OUT, { recursive: true });
 const findings = [];
@@ -133,14 +133,16 @@ const norm = (v) => v.replace(/\s+/g, "").replace(/(^|[^\d])\./g, "$10.");
 ok("--ease-out is the token", norm(rootVars.easeOut) === "cubic-bezier(0.25,1,0.5,1)", rootVars.easeOut);
 ok("transition default is 120ms", /^(120ms|0?\.12s)$/.test(rootVars.dflt), rootVars.dflt);
 ok("--duration-base is 200ms", /^(200ms|0?\.2s)$/.test(rootVars.base), rootVars.base);
-let a = await anim(page, "main .arrive-x");
-ok("welcome step arrives from the right", a.name === "arrive-x" && a.duration === "0.2s", `${a.name} ${a.duration} ${a.easing}`);
+// The walk is a swipe carousel (25 Sep): a step slides in from the side it
+// came from, `.step-in-next` forward and `.step-in-back` back, at 340ms.
+let a = await anim(page, "main .step-in-next");
+ok("welcome step arrives from the right", a.name === "step-in-next" && a.duration === "0.34s", `${a.name} ${a.duration} ${a.easing}`);
 await sleep(400);
 await page.getByRole("button", { name: "Next" }).click();
 await sleep(30);
-a = await anim(page, "main .arrive-x");
-const restarted = await page.$eval("main .arrive-x", (el) => el.getAnimations().map((x) => x.currentTime)[0]);
-ok("next step re-runs the arrival", a.name === "arrive-x" && restarted !== undefined && restarted < 150, `t=${restarted}`);
+a = await anim(page, "main .step-in-next");
+const restarted = await page.$eval("main .step-in-next", (el) => el.getAnimations().map((x) => x.currentTime)[0]);
+ok("next step re-runs the arrival", a.name === "step-in-next" && restarted !== undefined && restarted < 150, `t=${restarted}`);
 await sleep(600);
 
 // 2. Home: fetched content arrives once; the mods reveal; the sheet rises and leaves.
@@ -235,8 +237,8 @@ await page.getByRole("switch", { name: /Reduced motion/ }).click();
 const reduced = await page.evaluate(() => document.documentElement.dataset.motion);
 ok("Settings switch flips data-motion", reduced === "reduce", reduced);
 await page.goto(`${BASE}/welcome`);
-await page.waitForSelector("main .arrive-x");
-a = await anim(page, "main .arrive-x");
+await page.waitForSelector("main .step-in-next");
+a = await anim(page, "main .step-in-next");
 ok("under reduced motion an arrival is a plain fade", a.name === "fade-in", a.name);
 await page.evaluate(() => localStorage.removeItem("ethos.prefs"));
 

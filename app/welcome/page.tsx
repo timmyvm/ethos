@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
-import { DemosArt, preloadPose, type Pose } from "@/components/DemosArt";
+import { DemosArt, preloadPose, type Pose, type Tone } from "@/components/DemosArt";
 import {
   IconBars,
   IconBeacon,
@@ -23,7 +23,8 @@ import {
 } from "@/components/Icon";
 import { SAID_AFTER_MS } from "@/components/Says";
 import { LessonScreen } from "@/components/LessonScreen";
-import { sessionState, signInWithGoogle } from "@/lib/auth";
+import { attemptStartedOn, readOAuthAttempt, sessionState } from "@/lib/auth";
+import { useGoogleSignIn } from "@/lib/use-oauth-return";
 import {
   AGE_BANDS,
   CONTEXTS,
@@ -119,6 +120,29 @@ const PLAN = STEPS.findIndex((s) => s.kind === "plan");
 const INTRO_POSES: Pose[] = ["wave", "speaking", "celebrate"];
 /** The beat's pose: he is telling you something, arcs and all. */
 const BEAT_POSE: Pose = "speaking";
+/*
+ * The colour of each screen (the swipe-and-pop round). The three intro
+ * screens and the beat each stand him on a stage in their own tone, so
+ * a swipe is a change of room as well as of line; the questions give
+ * his head a coin in a tone and the answers' glyphs their tiles. The
+ * speaking pose never stands on sun, because his arcs are amber, and
+ * he never stands on coral, which is his own fur colour (the review of
+ * this round: in dark, coral was rust brown and he vanished into it).
+ * Coral stays on the small things, the glyph tiles and the plan steps.
+ */
+const INTRO_TONES: Tone[] = ["sun", "sky", "mint"];
+const BEAT_TONE: Tone = "mint";
+const QUESTION_TONES: Record<QuestionId, Tone> = {
+  name: "sun",
+  ageBand: "sky",
+  goal: "mint",
+  pains: "sun",
+  level: "sky",
+  context: "mint",
+  time: "sun",
+};
+/** Answer glyphs walk the tones row by row. */
+const ROW_TONES: Tone[] = ["sky", "coral", "sun"];
 const QUESTION_POSES: Record<QuestionId, Pose> = {
   name: "hello",
   ageBand: "fingers",
@@ -196,6 +220,9 @@ function Walk() {
   const asked = params.get("step");
   const editing = asked !== null;
   const [i, setI] = useState(0);
+  /* Which way the last step went, so the next screen arrives from the
+     side it came from. */
+  const [travel, setTravel] = useState<"next" | "back">("next");
   const [answers, setAnswers] = useState<Answers>(EMPTY_ANSWERS);
   const [floor, setFloor] = useState(() => firstRep(false));
   const [ready, setReady] = useState(false);
@@ -227,11 +254,21 @@ function Walk() {
     const deep = STEPS.findIndex(
       (s) => (s.kind === "question" && s.id === asked) || (s.kind === "plan" && asked === "plan")
     );
-    setI(deep >= 0 ? deep : saved.done ? PLAN : Math.min(saved.step, PLAN));
+    /* Back from a Google attempt that began here and did not finish
+       (a successful return forgets it, app/auth/callback): reopen on
+       the account ask, not the plan, or the Google button she just
+       used is nowhere in sight (auth review, 25 Sep). */
+    const resumeAccount =
+      deep < 0 && asked === null && saved.done && attemptStartedOn(readOAuthAttempt(), "/welcome");
+    setI(resumeAccount ? LAST : deep >= 0 ? deep : saved.done ? PLAN : Math.min(saved.step, PLAN));
     setFloor(firstRep(readPrefs().skipIntros));
     setReady(true);
     sessionState()
-      .then((sess) => setNeedsAccount(!(sess.signedIn && !sess.anonymous)))
+      .then((sess) => {
+        const needs = !(sess.signedIn && !sess.anonymous);
+        setNeedsAccount(needs);
+        if (resumeAccount && !needs) setI(PLAN);
+      })
       .catch(() => setNeedsAccount(true));
   }, [asked]);
 
@@ -274,6 +311,7 @@ function Walk() {
     // Leaving a question settles it, so the name he says back is the
     // one that was finished rather than the one mid-word.
     setHeardName(answers.name);
+    setTravel(next < i ? "back" : "next");
     setI(next);
     writeOnboarding({ step: next });
   };
@@ -301,18 +339,31 @@ function Walk() {
       <LessonScreen
         center
         speech="above"
+        stage={INTRO_TONES[step.index]}
         stepKey={i}
+        travel={travel}
+        swipe={{ next: () => go(i + 1), back: i > 0 ? () => go(i - 1) : undefined }}
         onBack={i > 0 ? () => go(i - 1) : undefined}
         title={s.title}
         line={s.line}
         art={
           <DemosArt
             pose={INTRO_POSES[step.index]}
-            size={200}
+            size={320}
+            fit
+            pop
+            grounded
+            halo={{ tone: INTRO_TONES[step.index], kind: "stage" }}
             greetAfterMs={SAID_AFTER_MS}
           />
         }
-        aside={<Dots count={WELCOME_STEPS.length} at={step.index} />}
+        aside={
+          <Dots
+            count={WELCOME_STEPS.length}
+            at={step.index}
+            onPick={(n) => go(STEPS.findIndex((x) => x.kind === "intro" && x.index === n))}
+          />
+        }
         action={{ label: "Next", onPress: () => go(i + 1) }}
         footer={
           /*
@@ -346,12 +397,25 @@ function Walk() {
       <LessonScreen
         center
         speech="above"
+        stage={BEAT_TONE}
         stepKey={i}
+        travel={travel}
+        swipe={{ next: () => go(i + 1), back: () => go(i - 1) }}
         onBack={() => go(i - 1)}
         header={<Progress n={QUESTIONS.length - 1} of={QUESTIONS.length} />}
         title={WELCOME_BEAT.title}
         line={WELCOME_BEAT.line}
-        art={<DemosArt pose={BEAT_POSE} size={200} greetAfterMs={SAID_AFTER_MS} />}
+        art={
+          <DemosArt
+            pose={BEAT_POSE}
+            size={300}
+            fit
+            pop
+            grounded
+            halo={{ tone: BEAT_TONE, kind: "stage" }}
+            greetAfterMs={SAID_AFTER_MS}
+          />
+        }
         action={{ label: "Next", onPress: () => go(i + 1) }}
       />
     );
@@ -367,6 +431,10 @@ function Walk() {
       <LessonScreen
         speech="beside"
         stepKey={i}
+        travel={travel}
+        /* Forward by swipe follows Next's own rule: no answer, no
+           advance. The screen rubber-bands and Skip stays the way past. */
+        swipe={{ next: picked ? () => go(i + 1) : undefined, back: () => go(i - 1) }}
         onBack={() => go(i - 1)}
         header={<Progress n={n} of={QUESTIONS.length} />}
         title={q.title}
@@ -376,6 +444,8 @@ function Walk() {
           <DemosArt
             pose={QUESTION_POSES[step.id]}
             size={84}
+            pop
+            halo={{ tone: QUESTION_TONES[step.id], kind: "coin" }}
             nodKey={nodKey(answers, step.id, heardName)}
             greetAfterMs={SAID_AFTER_MS}
           />
@@ -419,6 +489,7 @@ function Walk() {
     return (
       <AccountStep
         stepKey={i}
+        travel={travel}
         onBack={() => go(i - 1)}
         floor={floor}
         name={answers.name}
@@ -430,13 +501,22 @@ function Walk() {
   return (
     <LessonScreen
       stepKey={i}
+      travel={travel}
+      /* Forward only where forward is the account ask; the floor and
+         /you are doors you tap, never somewhere a swipe drops you. */
+      swipe={{
+        next: !editing && needsAccount !== false ? () => go(i + 1) : undefined,
+        back: () => go(i - 1),
+      }}
       onBack={() => go(i - 1)}
       title={plan.headline}
       /* His line to them, in their name and their words, in place of
          the template's old "Built from what you told me." */
       line={plan.opening}
-      howTo={plan.lines}
-      howToLabel={PLAN_COPY.label}
+      /* The month as coloured steps on a rail (the swipe-and-pop
+         round), in the controls slot so the ladder is this screen's
+         own rather than the template's numbered list. */
+      controls={<PlanSteps label={PLAN_COPY.label} lines={plan.lines} />}
       /*
        * The one screen in the app where the NAME is the result (#212's
        * own test): "Think on your feet." is not what this screen is
@@ -445,7 +525,16 @@ function Walk() {
        */
       lead="title"
       ladder
-      art={<DemosArt pose="clipboard" size={150} className="mb-6" />}
+      art={
+        <DemosArt
+          pose="clipboard"
+          size={156}
+          pop
+          grounded
+          halo={{ tone: "sun", kind: "coin" }}
+          className="mb-6"
+        />
+      }
       /*
        * Editing from /you leaves the way it came. Otherwise the plan
        * hands over to the account screen, unless this browser already
@@ -493,39 +582,48 @@ function Walk() {
  */
 function AccountStep({
   stepKey,
+  travel,
   onBack,
   floor,
   name,
 }: {
   stepKey: number;
+  travel: "next" | "back";
   onBack: () => void;
   floor: string;
   name: string | null;
 }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function google() {
-    setBusy(true);
-    setError(null);
-    const result = await signInWithGoogle("signup");
-    /* Success navigates away to Google, so only failure lands back
-       here and the button has to be usable again. */
-    if (!result.ok) {
-      setBusy(false);
-      setError(result.error ?? "Google didn't answer. Try again.");
-    }
-  }
+  /* The same hook as /signup: the button comes back when they do,
+     whether or not Google finished (lib/use-oauth-return.ts). */
+  const { pending, error, start: google } = useGoogleSignIn("signup");
 
   return (
     <LessonScreen
       center
       stepKey={stepKey}
+      travel={travel}
+      swipe={{ back: onBack }}
       onBack={onBack}
       title={name ? `Keep this, ${name}.` : "Keep this."}
       line="Your plan and every number you're about to make, on any phone you open."
-      art={<DemosArt pose="clipboard" size={132} className="mb-6" />}
-      action={{ label: "Continue with Google", onPress: () => void google(), disabled: busy }}
+      art={
+        <DemosArt
+          pose="clipboard"
+          size={144}
+          pop
+          grounded
+          halo={{ tone: "sky", kind: "coin" }}
+          className="mb-6"
+        />
+      }
+      /* Held, not greyed, while the browser leaves, as on /signup: a
+         faded button is what read as dead when she came back. */
+      action={{
+        label: pending ? "Opening Google…" : "Continue with Google",
+        onPress: () => {
+          if (!pending) void google();
+        },
+      }}
       aside={
         error ? (
           <p role="alert" className="text-caption text-rust">
@@ -609,15 +707,42 @@ function nodKey(a: Answers, id: QuestionId, heardName: string | null): string {
   return a[id] ?? "";
 }
 
-/** The intro's pagination, unchanged (#133). */
-function Dots({ count, at }: { count: number; at: number }) {
+/**
+ * The intro's pager (#133, the swipe-and-pop round). Reads as a pager
+ * because it behaves as one: the active dot is a pill that stretches
+ * along the row as the page changes, and each dot is a door to its
+ * page. The dots live outside the sliding content, so they persist
+ * from page to page and the stretch animates.
+ */
+function Dots({
+  count,
+  at,
+  onPick,
+}: {
+  count: number;
+  at: number;
+  onPick: (n: number) => void;
+}) {
   return (
-    <div className="flex gap-1.5">
+    /* Each door is 44px tall and at least 24px wide (WCAG 2.5.8), not
+       44 square: three 44px cells spread the dots into three separate
+       marks and the row stops reading as one pager. */
+    <div
+      role="group"
+      aria-label={`Page ${at + 1} of ${count}`}
+      className="flex items-center justify-center"
+    >
       {Array.from({ length: count }, (_, n) => (
-        <span
+        <button
           key={n}
-          className={`h-1.5 ${n === at ? "w-6 bg-terracotta-500" : "w-1.5 bg-sand"}`}
-        />
+          type="button"
+          aria-label={`Page ${n + 1}`}
+          aria-current={n === at ? "step" : undefined}
+          onClick={() => onPick(n)}
+          className="flex h-11 min-w-6 items-center justify-center px-2"
+        >
+          <span data-on={n === at ? "" : undefined} className="intro-dot block" />
+        </button>
       ))}
     </div>
   );
@@ -641,12 +766,9 @@ function Progress({ n, of }: { n: number; of: number }) {
       aria-valuemax={of}
       aria-valuenow={n}
       aria-label={`Question ${n} of ${of}`}
-      className="h-1.5 w-full bg-sand"
+      className="intro-progress w-full"
     >
-      <div
-        className="progress-fill h-full bg-terracotta-500"
-        style={{ width: `${(n / of) * 100}%` }}
-      />
+      <div style={{ width: `${(n / of) * 100}%` }} />
     </div>
   );
 }
@@ -692,7 +814,7 @@ function Choices({
     const full = answers.pains.length >= MAX_PAINS;
     return (
       <div role="group" aria-label="What you notice" className="space-y-2">
-        {PAINS.map((o) => {
+        {PAINS.map((o, k) => {
           const on = answers.pains.includes(o.id);
           return (
             <Row
@@ -702,6 +824,7 @@ function Choices({
               disabled={!on && full}
               label={o.label}
               glyph={GLYPH[o.id]}
+              tone={ROW_TONES[k % ROW_TONES.length]}
               onPress={() =>
                 onAnswer({
                   pains: on
@@ -749,13 +872,14 @@ function Choices({
   const value = answers[id];
   return (
     <div role="radiogroup" aria-label={QUESTIONS.find((q) => q.id === id)!.title} className="space-y-2">
-      {options.map((o) => (
+      {options.map((o, k) => (
         <Row
           key={o.id}
           role="radio"
           on={value === o.id}
           label={o.label}
           glyph={GLYPH[o.id]}
+          tone={ROW_TONES[k % ROW_TONES.length]}
           onPress={() => onAnswer({ [id]: o.id } as Partial<Answers>)}
         />
       ))}
@@ -784,6 +908,7 @@ function Row({
   word,
   detail,
   glyph,
+  tone = "sky",
   onPress,
 }: {
   role: "radio" | "checkbox";
@@ -795,6 +920,8 @@ function Row({
   /** A right-hand column: the hour. */
   detail?: string;
   glyph?: ReactNode;
+  /** The glyph tile's colour (the swipe-and-pop round). */
+  tone?: Tone;
   onPress: () => void;
 }) {
   return (
@@ -812,12 +939,9 @@ function Row({
       } ${disabled ? "!text-stone-400" : ""}`}
     >
       {glyph !== undefined && (
-        <span
-          aria-hidden
-          className={`flex w-7 shrink-0 items-center justify-center ${
-            on ? "text-terracotta-700" : disabled ? "text-stone-300" : "text-stone-500"
-          }`}
-        >
+        /* A tile in its tone, the reference's coloured glyph: colour on
+           the answer objects is illustration, never the tap's colour. */
+        <span aria-hidden className={`glyph-tile tone-${tone}`}>
           {glyph}
         </span>
       )}
@@ -833,5 +957,43 @@ function Row({
         </span>
       )}
     </button>
+  );
+}
+
+/**
+ * The plan's month as coloured steps (the swipe-and-pop round): three
+ * numbered coins on a rail, each in its own tone, landing one at a
+ * time. The numbers are what the eye counts before it reads, the rail
+ * says the three are a sequence, and the tones are the only colour on
+ * a screen that was brown text on white.
+ */
+function PlanSteps({ label, lines }: { label: string; lines: string[] }) {
+  const tones: Tone[] = ["sun", "sky", "coral"];
+  return (
+    <div>
+      <div className="label-data">{label}</div>
+      <ol
+        className="stagger relative mt-4 space-y-4"
+        style={{ "--stagger-lead": "260ms" } as React.CSSProperties}
+      >
+        {lines.map((line, k) => (
+          <li key={line} className="relative flex items-start gap-3.5">
+            {k < lines.length - 1 && (
+              <span
+                aria-hidden
+                className="absolute left-[13px] top-7 -bottom-4 w-0.5 bg-edge"
+              />
+            )}
+            <span
+              aria-hidden
+              className={`plan-step-mark tone-${tones[k % tones.length]} font-display text-[13px] font-extrabold tabular-nums`}
+            >
+              {k + 1}
+            </span>
+            <span className="min-w-0 pt-0.5 text-body">{line}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }

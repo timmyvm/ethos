@@ -193,25 +193,235 @@ export async function signInWithGoogle(
   const db = supabaseBrowser();
   if (!db) return { ok: false, error: "Accounts aren't configured yet." };
 
+  // Before leaving: where they started, so a cancel at Google can send
+  // them straight back there (app/auth/callback). Written before the
+  // call because a successful call is already navigating; every failure
+  // below takes it back, so a call that never left leaves no attempt
+  // behind to mislabel a later /auth/callback visit.
+  rememberOAuthAttempt(mode);
+  const failed = (message: string): AuthResult => {
+    forgetOAuthAttempt();
+    return { ok: false, error: humanise(message) };
+  };
   const redirectTo = `${siteUrl()}/auth/callback`;
-  if (mode === "signup") {
-    const { data } = await db.auth.getUser();
-    if (data.user?.is_anonymous) {
-      const { error } = await db.auth.linkIdentity({
-        provider: "google",
-        options: { redirectTo },
-      });
-      if (error) return { ok: false, error: humanise(error.message) };
-      return { ok: true };
+  try {
+    if (mode === "signup") {
+      const { data } = await db.auth.getUser();
+      if (data.user?.is_anonymous) {
+        const { error } = await db.auth.linkIdentity({
+          provider: "google",
+          options: { redirectTo },
+        });
+        if (error) return failed(error.message);
+        return { ok: true };
+      }
     }
-  }
 
-  const { error } = await db.auth.signInWithOAuth({
-    provider: "google",
-    options: { redirectTo },
+    const { error } = await db.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo },
+    });
+    if (error) return failed(error.message);
+    return { ok: true };
+  } catch (e) {
+    forgetOAuthAttempt();
+    throw e;
+  }
+}
+
+/*
+ * ---- The Google round trip, coming back ------------------------------
+ *
+ * Tapping Google hands the page to Google, and there are three ways
+ * back that are not "signed in": the OAuth sheet is dismissed (an
+ * installed PWA or iOS shows the same live page again), the browser's
+ * back button restores the page from the back/forward cache, or the
+ * person says no AT Google and Supabase lands them on /auth/callback
+ * with `error=access_denied`. The first two used to leave the button
+ * disabled for good, the third read "That link has already been used."
+ * These are the pieces both ends share.
+ */
+
+/** sessionStorage, so it rides the same tab's round trip and nothing else. */
+export const OAUTH_KEY = "ethos.oauth";
+/** An attempt older than this is not the one that just came back. */
+export const OAUTH_TTL_MS = 30 * 60_000;
+/**
+ * How long a Google tap holds its button before giving it back even if
+ * no return signal ever fires. Long enough to stop a double tap, short
+ * enough that a dismissed sheet never strands anyone.
+ */
+export const GOOGLE_PENDING_MS = 5000;
+
+export interface OAuthAttempt {
+  /** The path the attempt started from, e.g. "/signup" or "/welcome". */
+  from: string;
+  mode: "signup" | "signin";
+  at: number;
+}
+
+/**
+ * A path this app may send somebody back to: same-origin, absolute,
+ * and not the callback itself (which would loop).
+ */
+export function safeReturnPath(path: unknown): string | null {
+  if (typeof path !== "string") return null;
+  if (!path.startsWith("/") || path.startsWith("//") || path.startsWith("/\\")) {
+    return null;
+  }
+  if (path.startsWith("/auth/")) return null;
+  return path;
+}
+
+export function parseOAuthAttempt(
+  raw: string | null,
+  now: number = Date.now()
+): OAuthAttempt | null {
+  if (!raw) return null;
+  try {
+    const p = JSON.parse(raw) as Partial<OAuthAttempt>;
+    const from = safeReturnPath(p.from);
+    if (!from) return null;
+    if (p.mode !== "signup" && p.mode !== "signin") return null;
+    if (typeof p.at !== "number" || now - p.at > OAUTH_TTL_MS || p.at > now + 60_000) {
+      return null;
+    }
+    return { from, mode: p.mode, at: p.at };
+  } catch {
+    return null;
+  }
+}
+
+export function rememberOAuthAttempt(mode: "signup" | "signin"): void {
+  if (typeof window === "undefined") return;
+  const from = safeReturnPath(window.location.pathname + window.location.search);
+  if (!from) return;
+  try {
+    sessionStorage.setItem(
+      OAUTH_KEY,
+      JSON.stringify({ from, mode, at: Date.now() } satisfies OAuthAttempt)
+    );
+  } catch {}
+}
+
+export function readOAuthAttempt(): OAuthAttempt | null {
+  try {
+    return parseOAuthAttempt(sessionStorage.getItem(OAUTH_KEY));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * True when the attempt started on `path` (its own page, any query).
+ * The introduction uses it to reopen on its account ask when somebody
+ * comes back from Google without an account: a browser that reloads on
+ * back, rather than restoring, would otherwise land them on the plan
+ * with no Google button in sight (review of 25 Sep).
+ */
+export function attemptStartedOn(
+  attempt: OAuthAttempt | null,
+  path: string
+): boolean {
+  if (!attempt) return false;
+  const [pathname] = attempt.from.split(/[?#]/);
+  return pathname === path;
+}
+
+export function forgetOAuthAttempt(): void {
+  try {
+    sessionStorage.removeItem(OAUTH_KEY);
+  } catch {}
+}
+
+/**
+ * What an /auth/callback URL says went wrong, read the way Supabase
+ * reads it: the fragment and the query both, the query winning.
+ *
+ * - `link`: an email link that expired or was already used.
+ * - `taken`: the Google account already belongs to another user, so the
+ *   anonymous session could not be linked to it.
+ * - `google`: anything else, which from the person's side is one thing:
+ *   Google did not finish signing them in (most often, they said no).
+ */
+export type CallbackProblem =
+  | { kind: "none" }
+  | { kind: "link" }
+  | { kind: "taken"; message: string }
+  | { kind: "google" };
+
+export function callbackProblem(href: string): CallbackProblem {
+  let url: URL;
+  try {
+    url = new URL(href);
+  } catch {
+    return { kind: "none" };
+  }
+  const params = new URLSearchParams(url.hash.replace(/^#/, ""));
+  url.searchParams.forEach((v, k) => params.set(k, v));
+  const error = params.get("error");
+  const code = params.get("error_code");
+  const description = params.get("error_description") ?? "";
+  if (!error && !code && !description) return { kind: "none" };
+  if (code === "otp_expired" || /email link|otp/i.test(description)) {
+    return { kind: "link" };
+  }
+  if (
+    code === "identity_already_exists" ||
+    /already linked|already exists/i.test(description)
+  ) {
+    return { kind: "taken", message: humanise("identity is already linked") };
+  }
+  return { kind: "google" };
+}
+
+/** True when the URL is carrying a session in (tokens or a PKCE code). */
+export function callbackCarriesSession(href: string): boolean {
+  try {
+    const url = new URL(href);
+    const hash = new URLSearchParams(url.hash.replace(/^#/, ""));
+    return hash.has("access_token") || url.searchParams.has("code");
+  } catch {
+    return false;
+  }
+}
+
+const SIGNED_OUT: SessionState = { signedIn: false, anonymous: false, email: null };
+
+/**
+ * Wait for a real (non-anonymous) account, bounded. The client reads the
+ * session out of the URL as it initialises, and `getUser` already waits
+ * for that, so this usually resolves on the first read; the listener and
+ * the deadline cover a slow exchange without a fixed sleep.
+ */
+export async function waitForAccount(timeoutMs = 5000): Promise<SessionState> {
+  const db = supabaseBrowser();
+  if (!db) return SIGNED_OUT;
+  await db.auth.initialize().catch(() => {});
+  const first = await sessionState().catch(() => SIGNED_OUT);
+  if ((first.signedIn && !first.anonymous) || timeoutMs <= 0) return first;
+  return new Promise((resolve) => {
+    let done = false;
+    let unsubscribe = () => {};
+    const finish = (s: SessionState) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      unsubscribe();
+      resolve(s);
+    };
+    const timer = setTimeout(() => {
+      sessionState().then(finish, () => finish(first));
+    }, timeoutMs);
+    const { data } = db.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user;
+      if (user && !user.is_anonymous) {
+        finish({ signedIn: true, anonymous: false, email: user.email ?? null });
+      }
+    });
+    unsubscribe = () => data.subscription.unsubscribe();
+    if (done) unsubscribe();
   });
-  if (error) return { ok: false, error: humanise(error.message) };
-  return { ok: true };
 }
 
 export async function signIn(

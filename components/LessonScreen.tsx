@@ -1,10 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+  type RefObject,
+} from "react";
+import type { Tone } from "@/components/DemosArt";
 import { IconChevron } from "@/components/Icon";
 import { Says, SAID_AFTER_MS } from "@/components/Says";
 import { SpeechBubble } from "@/components/SpeechBubble";
+import { TipStrip } from "@/components/rep/TipStrip";
 import { ACTION_CLASS, DISABLED_CLASS } from "@/lib/ui";
 
 /**
@@ -177,30 +186,14 @@ export function LessonBody({
           <div className="label-data">{howToLabel}</div>
           {howToLeads ? (
             /*
-             * The hero block. Each tactic is one ink line at `lead`,
-             * numbered in olive on its own column so the eye can count
-             * three things before it reads any of them, and the rows
-             * are separated by air rather than bullets. Three of these
-             * outweigh the lesson name by mass, which is the point:
-             * mass is what survives a blur, and what the reader is
-             * here to act on should be what survives.
+             * The hero block, as tiles (feedback round, 25 Sep). Three
+             * numbered sentences at lead size were the thing a
+             * first-time user said she would not read. Each tactic is
+             * now a glyph and at most five words (lib/tip-labels.ts),
+             * and its sentence opens on a tap, so the substance stays
+             * one tap away and the screen reads by looking.
              */
-            <ol
-              className={`mt-3 space-y-4 ${ladder ? "stagger" : ""}`}
-              style={ladder ? { "--stagger-lead": "260ms" } as React.CSSProperties : undefined}
-            >
-              {tactics.map((tactic, i) => (
-                <li key={tactic} className="flex gap-3.5">
-                  <span
-                    aria-hidden
-                    className="font-display mt-1 w-4 shrink-0 text-[13px] font-extrabold text-sage-700 tabular-nums"
-                  >
-                    {i + 1}
-                  </span>
-                  <span className="text-lead">{tactic}</span>
-                </li>
-              ))}
-            </ol>
+            <TipStrip tips={tactics} label={null} ladder={ladder} className="mt-3" />
           ) : (
             /*
              * The same grammar one size down, not a different one
@@ -248,8 +241,33 @@ export function LessonScreen({
   stepKey,
   onBack,
   speech,
+  stage,
+  swipe,
+  travel = "next",
   ...body
 }: LessonBodyProps & {
+  /**
+   * Which way the walk just moved, so a swiped screen arrives from the
+   * side it came from: forward from the right, back from the left.
+   */
+  travel?: "next" | "back";
+  /**
+   * A coloured room for Demos and his bubble (the swipe-and-pop round):
+   * with `speech="above"`, the bubble and the art stand together on a
+   * panel in this tone and the panel takes the screen's free height.
+   */
+  stage?: Tone;
+  /**
+   * The walk is a carousel (the swipe-and-pop round): drag left for
+   * `next`, right for `back`, and the arrow keys do the same. A side
+   * with no handler rubber-bands, which is how a question with no
+   * answer refuses a swipe exactly as its Next refuses a tap. The
+   * screen follows the finger (transform only), commits past a quarter
+   * of the width or on a flick, and springs back otherwise. Drags that
+   * start in a text field are never taken, a vertical drag is left to
+   * the page, and reduced motion steps without the follow.
+   */
+  swipe?: { next?: () => void; back?: () => void };
   /**
    * The mascot says the title and the line, from a bubble with a tail
    * on him, instead of the template printing them (#288).
@@ -320,10 +338,47 @@ export function LessonScreen({
   /** A walk's way back one step. Renders the rep screen's back link. */
   onBack?: () => void;
 }) {
+  const slide = useRef<HTMLDivElement>(null);
+  const gestured = useRef(false);
+  const drag = useSwipe(swipe, slide, gestured);
+  const arrival = travel === "back" ? "step-in-back" : "step-in-next";
+  /*
+   * Whether THIS step arrived by a swipe or an arrow key, bound on the
+   * first render with the new key. A gesture is a carousel, and a
+   * carousel's next page brings its content with it: the words land as
+   * the page does instead of waiting for the slide (globals.css,
+   * `[data-arrival="gesture"]`). A tap on Next keeps the said-then-moves
+   * order of #288.
+   */
+  const arrived = useRef<{ key: typeof stepKey; gesture: boolean }>({
+    key: stepKey,
+    gesture: false,
+  });
+  if (arrived.current.key !== stepKey) {
+    arrived.current = { key: stepKey, gesture: gestured.current };
+    gestured.current = false;
+  }
+  /* A walk compacts its chrome on a short phone (under 740px tall), so
+     the one tap and the door under it stay above the fold. Screens that
+     do not swipe keep the template's spacing. */
+  const short = swipe
+    ? {
+        main: "[@media(max-height:740px)]:pt-2",
+        stage: "[@media(max-height:740px)]:mt-2",
+        foot: "[@media(max-height:740px)]:mt-4 [@media(max-height:740px)]:pb-2",
+      }
+    : { main: "", stage: "", foot: "" };
+
   return (
-    <main className="pb-safe flex min-h-dvh flex-col px-5 pt-7">
-      {(onBack || header) && (
-        <div className="flex items-center gap-4">
+    <main
+      className={`pb-safe flex min-h-dvh flex-col px-5 pt-7 ${swipe ? "touch-pan-y" : ""} ${short.main}`}
+      {...drag}
+    >
+      {/* A carousel keeps the row even where it is empty (the first
+          page has no way back), so the stage does not jump 44px down
+          when the second page slides in. */}
+      {(onBack || header || swipe) && (
+        <div className="flex min-h-11 items-center gap-4">
           {onBack && (
             <button
               type="button"
@@ -336,18 +391,23 @@ export function LessonScreen({
           {header && <div className="min-w-0 flex-1">{header}</div>}
         </div>
       )}
-      <div className={`flex flex-1 flex-col ${center ? "justify-center" : ""}`}>
+      <div className={`flex flex-1 flex-col ${center && !stage ? "justify-center" : ""}`}>
         {/* A flex column like its parent, so the art and the text block
             stay flex items (the art centres with `mx-auto`) whether or
             not the wrapper is animating. */}
         <div
           key={stepKey}
-          className={`flex flex-col ${stepKey !== undefined ? "arrive-x" : ""}`}
+          ref={slide}
+          data-arrival={arrived.current.gesture ? "gesture" : undefined}
+          className={`flex flex-col ${stage ? `mt-4 min-h-0 flex-1 ${short.stage}` : ""} ${
+            stepKey === undefined ? "" : swipe ? arrival : "arrive-x"
+          }`}
         >
           {speech ? (
             <DemosSpeech
               mode={speech}
               art={art}
+              stage={stage}
               title={body.title}
               line={body.line}
               reply={body.reply}
@@ -362,8 +422,8 @@ export function LessonScreen({
         </div>
       </div>
 
-      <div className="mt-8 pb-6">
-        {aside && <div className="mb-5">{aside}</div>}
+      <div className={`mt-8 pb-6 ${short.foot}`}>
+        {aside && <div className={swipe ? "mb-3" : "mb-5"}>{aside}</div>}
 
         {action.href !== undefined ? (
           <Link href={action.href} className={ACTION_CLASS}>
@@ -417,12 +477,14 @@ export
 function DemosSpeech({
   mode,
   art,
+  stage,
   title,
   line,
   reply,
 }: {
   mode: "above" | "beside";
   art?: ReactNode;
+  stage?: Tone;
   title: string;
   line?: string;
   reply?: string;
@@ -451,6 +513,25 @@ function DemosSpeech({
     </>
   );
 
+  if (mode === "above" && stage) {
+    /* The stage: his bubble at the top of a coloured room, and him
+       standing on its floor, as big as the room allows. The room takes
+       the screen's free height and no more, and he takes the room's
+       (`.demos-fit` is a size container his `fit` reads), so a short
+       phone gets a smaller Demos rather than a tap below the fold. */
+    return (
+      <div
+        className={`intro-stage tone-${stage} flex min-h-0 flex-1 flex-col items-center justify-center px-4 pb-5 pt-5`}
+      >
+        <SpeechBubble tail="down" className="max-w-[320px] shrink-0 text-center">
+          {bubble("text-[20px]")}
+        </SpeechBubble>
+        <div className="demos-fit mt-4 w-full flex-1">
+          <div className="demos-fit-room">{art}</div>
+        </div>
+      </div>
+    );
+  }
   if (mode === "above") {
     return (
       <>
@@ -507,6 +588,223 @@ function WhyThisWorks({ children }: { children?: ReactNode }) {
       )}
     </div>
   );
+}
+
+/**
+ * The carousel gesture (the swipe-and-pop round), on pointer events so
+ * a finger, a pen and a mouse all drag the same way.
+ *
+ * The page keeps `touch-action: pan-y`, so the browser still owns
+ * vertical scrolling and hands us only the horizontal. The first 8px
+ * decide the axis; a vertical start is abandoned on the spot, so a
+ * scroll is never hijacked. A drag that starts in a text field is
+ * never taken (the name field keeps its caret and selection). A tap
+ * never moves 8px, so it is untouched; a horizontal drag that began on
+ * an answer swallows the click it would otherwise end in, so a swipe
+ * never picks an answer on its way past.
+ *
+ * Everything moves by transform, written straight to the element, not
+ * through React: a render per pointer event is how a drag stutters.
+ */
+function useSwipe(
+  swipe: { next?: () => void; back?: () => void } | undefined,
+  slide: RefObject<HTMLDivElement | null>,
+  /** Set just before a gesture steps, so the next page knows it was one. */
+  gestured: RefObject<boolean>
+) {
+  const handlers = useRef(swipe);
+  useEffect(() => {
+    handlers.current = swipe;
+  });
+  const g = useRef<{
+    id: number;
+    x0: number;
+    y0: number;
+    w: number;
+    lock: "x" | "y" | null;
+    dx: number;
+    trail: { t: number; x: number }[];
+  } | null>(null);
+  const leaving = useRef(false);
+  /* Marks the step about to happen as a gesture's. Lapses on its own if
+     no new step renders (a handler that navigated away), so a later tap
+     is never mistaken for one. */
+  const markGesture = () => {
+    gestured.current = true;
+    setTimeout(() => {
+      gestured.current = false;
+    }, 150);
+  };
+
+  /* The arrow keys are the desktop's swipe. Not while typing: in the
+     name field the arrows move the caret. */
+  useEffect(() => {
+    if (!swipe) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.closest("input, textarea, select, [contenteditable]")) return;
+      /* Nor inside a set of answers or the pager: there the arrows are
+         the standard way to move between the options, and a keyboard or
+         screen-reader user must not be carried to another screen. */
+      if (t?.closest("[role=radiogroup], [role=group], [role=radio], [role=checkbox]")) return;
+      const h = handlers.current;
+      if (e.key === "ArrowRight" && h?.next) {
+        e.preventDefault();
+        markGesture();
+        h.next();
+      } else if (e.key === "ArrowLeft" && h?.back) {
+        e.preventDefault();
+        markGesture();
+        h.back();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [swipe === undefined]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!swipe) return {};
+
+  const reduced = () => document.documentElement.dataset.motion === "reduce";
+  const paint = (x: number, w: number) => {
+    const el = slide.current;
+    if (!el || reduced()) return;
+    el.style.transition = "none";
+    el.style.transform = `translate3d(${x}px,0,0)`;
+    el.style.opacity = String(1 - Math.min(Math.abs(x) / w, 1) * 0.5);
+  };
+  const settle = () => {
+    const el = slide.current;
+    if (!el) return;
+    el.style.transition =
+      "transform 460ms var(--ease-spring), opacity var(--duration-base) var(--ease-out)";
+    el.style.transform = "translate3d(0,0,0)";
+    el.style.opacity = "1";
+    /* Cleared when the SPRING ends, not the fade: opacity finishes at
+       200ms, near the spring's overshoot, and clearing the transform
+       there snapped the screen the last few pixels. */
+    const clear = (ev: TransitionEvent) => {
+      if (ev.target !== el || ev.propertyName !== "transform") return;
+      el.removeEventListener("transitionend", clear);
+      el.style.transition = "";
+      el.style.transform = "";
+      el.style.opacity = "";
+    };
+    el.addEventListener("transitionend", clear);
+  };
+  /* Past the end the screen gives a little and no more: a rubber band,
+     so a refused swipe still feels like the screen heard the finger. */
+  const band = (dx: number) => Math.sign(dx) * 56 * (1 - Math.exp(-Math.abs(dx) / 140));
+  /* Eats the one click a drag can end in, and nothing after it: the
+     guard disarms on the next pointerdown, so a swipe that ended in no
+     click (a moved touch) never swallows the real tap that follows. */
+  const swallowClick = () => {
+    const disarm = () => {
+      window.removeEventListener("click", stop, { capture: true });
+      window.removeEventListener("pointerdown", disarm, { capture: true });
+      clearTimeout(timer);
+    };
+    const stop = (e: MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      disarm();
+    };
+    window.addEventListener("click", stop, { capture: true });
+    window.addEventListener("pointerdown", disarm, { capture: true });
+    const timer = setTimeout(disarm, 350);
+  };
+
+  const end = (e: ReactPointerEvent<HTMLElement>, cancelled: boolean) => {
+    const s = g.current;
+    g.current = null;
+    if (!s || s.id !== e.pointerId || s.lock !== "x") return;
+    e.currentTarget.style.userSelect = "";
+    if (Math.abs(s.dx) > 8) swallowClick();
+    const h = handlers.current;
+    const go = s.dx < 0 ? h?.next : h?.back;
+    const recent = s.trail.filter((p) => p.t > performance.now() - 120);
+    const first = recent[0] ?? s.trail[0];
+    const last = s.trail[s.trail.length - 1];
+    const v = last.t > first.t ? (last.x - first.x) / (last.t - first.t) : 0;
+    const flick = Math.abs(v) > 0.45 && Math.sign(v) === Math.sign(s.dx) && Math.abs(s.dx) > 24;
+    const commit = !cancelled && go !== undefined && (Math.abs(s.dx) > s.w * 0.25 || flick);
+    if (!commit) {
+      if (!reduced()) settle();
+      return;
+    }
+    const el = slide.current;
+    if (!el || reduced()) {
+      markGesture();
+      go();
+      return;
+    }
+    /* Carry the screen off the edge it was dragged toward, then step.
+       The next one arrives from the other side (`.step-in-*`). */
+    leaving.current = true;
+    el.style.transition = "transform 180ms cubic-bezier(0.4, 0, 1, 1), opacity 180ms linear";
+    el.style.transform = `translate3d(${Math.sign(s.dx) * s.w}px,0,0)`;
+    el.style.opacity = "0";
+    setTimeout(() => {
+      leaving.current = false;
+      markGesture();
+      go();
+      /* A step that did not remount this element (the last screen, a
+         handler that navigates away) must not stay parked off-screen. */
+      requestAnimationFrame(() => {
+        if (el.isConnected && el.style.opacity === "0") {
+          el.style.transition = "";
+          el.style.transform = "";
+          el.style.opacity = "";
+        }
+      });
+    }, 170);
+  };
+
+  return {
+    onPointerDown: (e: ReactPointerEvent<HTMLElement>) => {
+      if (leaving.current || g.current) return;
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      const t = e.target as HTMLElement;
+      if (t.closest("input, textarea, select, [contenteditable], [data-no-swipe]")) return;
+      g.current = {
+        id: e.pointerId,
+        x0: e.clientX,
+        y0: e.clientY,
+        w: e.currentTarget.clientWidth || window.innerWidth,
+        lock: null,
+        dx: 0,
+        trail: [{ t: performance.now(), x: e.clientX }],
+      };
+    },
+    onPointerMove: (e: ReactPointerEvent<HTMLElement>) => {
+      const s = g.current;
+      if (!s || s.id !== e.pointerId) return;
+      const dx = e.clientX - s.x0;
+      const dy = e.clientY - s.y0;
+      if (s.lock === null) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        if (Math.abs(dy) >= Math.abs(dx)) {
+          g.current = null;
+          return;
+        }
+        s.lock = "x";
+        e.currentTarget.style.userSelect = "none";
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch {
+          /* A pointer that already went away; the drag ends on its own. */
+        }
+      }
+      s.dx = dx;
+      s.trail.push({ t: performance.now(), x: e.clientX });
+      if (s.trail.length > 8) s.trail.shift();
+      const h = handlers.current;
+      const allowed = dx < 0 ? h?.next : h?.back;
+      paint(allowed ? dx : band(dx), s.w);
+    },
+    onPointerUp: (e: ReactPointerEvent<HTMLElement>) => end(e, false),
+    onPointerCancel: (e: ReactPointerEvent<HTMLElement>) => end(e, true),
+  };
 }
 
 /* Re-exported so the seven screens importing it from here keep

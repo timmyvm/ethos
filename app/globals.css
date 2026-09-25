@@ -1405,3 +1405,727 @@ body::after {
 :root[data-motion="reduce"][data-splash] .splash-mark {
   transform: none;
 }
+
+/* ===================================================================
+ * THE INTRODUCTION'S COLOUR AND STAGING (the swipe-and-pop round).
+ * Owned by the /welcome workstream. Everything below is scoped to the
+ * walk: nothing outside /welcome reads these classes.
+ *
+ * "Pop with colour", from a first-time user in the audience. The walk
+ * was a white page, one terracotta button and brown text. The colour
+ * comes in as ILLUSTRATION, never as a second tap: three tones (sun,
+ * sky, coral) that mean nothing but "this is a picture", used for the
+ * stage Demos stands on, the disc behind him, the answer glyphs' tiles
+ * and the plan's steps. Terracotta keeps the tap, sage keeps earned,
+ * plum keeps paid, amber stays his accent. No tone is ever a fill on a
+ * control.
+ *
+ * Each tone is four values: the stage fill, the lighter disc behind
+ * him (his studio light), the ink a glyph is drawn in, and the wash a
+ * glyph's tile stands on. `.tone-*` publishes them as `--tone-*` so a
+ * component reads one set of names whichever tone it is in.
+ * =================================================================== */
+:root {
+  --pop-sun: #ffd166;
+  --pop-sun-disc: #fff0c2;
+  --pop-sun-ink: #9a6400;
+  --pop-sun-wash: #fff1c9;
+  --pop-sky: #a8daf5;
+  --pop-sky-disc: #e2f4fd;
+  --pop-sky-ink: #1d6e9e;
+  --pop-sky-wash: #def1fb;
+  --pop-coral: #ffb4a1;
+  --pop-coral-disc: #ffe3da;
+  --pop-coral-ink: #c0432a;
+  --pop-coral-wash: #ffe6de;
+  /* Mint: the cool room, because he is warm (rust fur on coral lost
+     his edge). A teal-leaning mint, clear of sage's olive, which is
+     earned and means something. */
+  --pop-mint: #aee6d6;
+  --pop-mint-disc: #e2f7f0;
+  --pop-mint-ink: #177a62;
+  --pop-mint-wash: #dbf3eb;
+}
+:root[data-theme="dark"] {
+  /* Gold, not mustard: the first dark sun read olive brown. */
+  --pop-sun: #a06c04;
+  --pop-sun-disc: #dca526;
+  --pop-sun-ink: #ffd166;
+  --pop-sun-wash: #3d2d06;
+  --pop-sky: #123f60;
+  --pop-sky-disc: #1f6799;
+  --pop-sky-ink: #93d3f6;
+  --pop-sky-wash: #112b3d;
+  --pop-coral: #6e2a1d;
+  --pop-coral-disc: #a3452f;
+  --pop-coral-ink: #ffa991;
+  --pop-coral-wash: #3c1c16;
+  --pop-mint: #11493f;
+  --pop-mint-disc: #1f7d69;
+  --pop-mint-ink: #8fe3c9;
+  --pop-mint-wash: #0f2e28;
+}
+.tone-sun {
+  --tone: var(--pop-sun);
+  --tone-disc: var(--pop-sun-disc);
+  --tone-ink: var(--pop-sun-ink);
+  --tone-wash: var(--pop-sun-wash);
+}
+.tone-sky {
+  --tone: var(--pop-sky);
+  --tone-disc: var(--pop-sky-disc);
+  --tone-ink: var(--pop-sky-ink);
+  --tone-wash: var(--pop-sky-wash);
+}
+.tone-coral {
+  --tone: var(--pop-coral);
+  --tone-disc: var(--pop-coral-disc);
+  --tone-ink: var(--pop-coral-ink);
+  --tone-wash: var(--pop-coral-wash);
+}
+.tone-mint {
+  --tone: var(--pop-mint);
+  --tone-disc: var(--pop-mint-disc);
+  --tone-ink: var(--pop-mint-ink);
+  --tone-wash: var(--pop-mint-wash);
+}
+
+/* The room Demos stands in on a stage, as a size container: his `fit`
+   reads its height (cqh), so he is as big as the room and no bigger.
+   The container is an absolute layer over the flex-grown slot because
+   Chromium resolves cq units to 0 in a size container whose height
+   comes from flex-grow inside a min-height column; `inset: 0` gives it
+   a definite size. The floor keeps him visible on the smallest phone. */
+.demos-fit {
+  position: relative;
+  min-height: 150px;
+  /* No taller than he can be, so on a tall phone the slack goes around
+     the pair (the stage centres them) and his bubble's tail stays on
+     him instead of pointing across 200px of empty room. */
+  max-height: 324px;
+}
+.demos-fit-room {
+  position: absolute;
+  inset: 0;
+  container-type: size;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+/*
+ * The stage: a coloured room for Demos and his bubble on the screens
+ * where he is the whole screen (the three intro screens, the beat).
+ * A sheet-radius panel in the tone, lit from above so it has a floor
+ * and a back wall rather than reading as a flat swatch.
+ */
+.intro-stage {
+  position: relative;
+  isolation: isolate;
+  border-radius: 20px;
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(255, 255, 255, 0.28), transparent 60%),
+    var(--tone);
+  overflow: hidden;
+}
+:root[data-theme="dark"] .intro-stage {
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(255, 255, 255, 0.07), transparent 60%),
+    var(--tone);
+}
+/* The floor he stands on: a slightly deeper band at the bottom. */
+.intro-stage::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 22%;
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.06));
+  z-index: -1;
+  pointer-events: none;
+}
+:root[data-theme="dark"] .intro-stage::after {
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.18));
+}
+
+/* The disc behind him: his studio light. Soft-edged so it reads as
+   light falling on the wall behind a 3D figure, not as a sticker. */
+.demos-halo {
+  position: absolute;
+  left: 50%;
+  bottom: 4%;
+  width: 92%;
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+  border-radius: 9999px;
+  background: radial-gradient(circle, var(--tone-disc) 0%, var(--tone-disc) 58%, transparent 71%);
+  z-index: 0;
+}
+/* A disc on the plain ground (question heads, the plan, the account)
+   is a solid coin in the tone itself, since there is no stage fill for
+   it to be lighter than. */
+.demos-halo[data-solid] {
+  background: var(--tone);
+}
+
+/*
+ * The contact shadow: what makes a 3D figure stand ON something rather
+ * than float in front of it. An ellipse at his feet (the set's baseline
+ * is 97% down the square) that breathes with his loop: smaller and
+ * lighter when he rises, full when he lands. Its entrance is on the
+ * outer element and its loop on the inner, so the two never fight over
+ * one transform.
+ */
+.demos-ground {
+  position: absolute;
+  left: 50%;
+  bottom: -1.5%;
+  width: 58%;
+  height: 9%;
+  transform: translateX(-50%);
+  z-index: 0;
+  pointer-events: none;
+}
+.demos-ground > span {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.12) 60%, transparent);
+}
+:root[data-theme="dark"] .demos-ground > span {
+  background: radial-gradient(closest-side, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.25) 60%, transparent);
+}
+@keyframes ground-rise {
+  to {
+    transform: scaleX(0.84);
+    opacity: 0.65;
+  }
+}
+@keyframes ground-breathe {
+  to {
+    transform: scaleX(1.04);
+  }
+}
+@keyframes ground-sway {
+  from {
+    transform: translateX(-3%);
+  }
+  to {
+    transform: translateX(3%);
+  }
+}
+/* Same durations and curve as the pose loops above, so the shadow and
+   the figure are one clock. */
+.ground-idle {
+  animation: ground-rise 2.4s var(--ease-in-out) infinite alternate;
+}
+.ground-bob {
+  animation: ground-rise 1.2s var(--ease-in-out) infinite alternate;
+}
+.ground-breath {
+  animation: ground-breathe 2.4s var(--ease-in-out) infinite alternate;
+}
+.ground-sway {
+  animation: ground-sway 1.6s var(--ease-in-out) infinite alternate;
+}
+.ground-tilt {
+  animation: ground-sway 2.4s var(--ease-in-out) infinite alternate;
+}
+
+/*
+ * His arrival: a spring with a real overshoot, up out of the floor and
+ * settling, because a 3D figure that simply fades in reads as a
+ * picture being loaded. The shadow spreads as he lands.
+ */
+@keyframes demos-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(22px) scale(0.72);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-8px) scale(1.06);
+  }
+  74% {
+    transform: translateY(2px) scale(0.985);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes ground-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scaleX(0.3);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translateX(-50%) scaleX(0.7);
+  }
+  74% {
+    opacity: 1;
+    transform: translateX(-50%) scaleX(1.06);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+@keyframes halo-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.6);
+  }
+  60% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.04);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+.demos-pop {
+  transform-origin: 50% 100%;
+  animation: demos-pop 640ms var(--ease-out) 60ms backwards;
+}
+.demos-pop-ground {
+  animation: ground-in 640ms var(--ease-out) 60ms backwards;
+}
+.demos-pop-halo {
+  animation: halo-in 520ms var(--ease-out) backwards;
+}
+
+/*
+ * A step of the walk arrives from the side it came from: forward from
+ * the right, back from the left, a third of the column's width with
+ * the fade finished early. The drag that commits it has already carried
+ * the old screen off the other edge, so the two halves read as one
+ * carousel.
+ */
+@keyframes step-in-next {
+  from {
+    opacity: 0;
+    transform: translateX(30%);
+  }
+  45% {
+    opacity: 1;
+  }
+}
+@keyframes step-in-back {
+  from {
+    opacity: 0;
+    transform: translateX(-30%);
+  }
+  45% {
+    opacity: 1;
+  }
+}
+.step-in-next {
+  animation: step-in-next 340ms var(--ease-out) backwards;
+}
+.step-in-back {
+  animation: step-in-back 340ms var(--ease-out) backwards;
+}
+
+/* The questions' bar: thicker, round-ended, sun into terracotta, and
+   it springs to the next question rather than easing. */
+.intro-progress {
+  height: 10px;
+  border-radius: 9999px;
+  background: var(--color-sand);
+  overflow: hidden;
+}
+.intro-progress > div {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, var(--color-amber), var(--color-terracotta-500));
+  transition: width 520ms var(--ease-spring);
+}
+
+/* The intro pager: the active dot is a pill that stretches along the
+   row as the page changes (STATE.md's open item, "the active dot
+   slides along the row"). */
+.intro-dot {
+  height: 8px;
+  width: 8px;
+  border-radius: 9999px;
+  background: var(--color-sand);
+  transition:
+    width var(--duration-max) var(--ease-spring),
+    background-color var(--duration-base) var(--ease-out);
+}
+.intro-dot[data-on] {
+  width: 26px;
+  background: var(--color-ink);
+}
+
+/* An answer's glyph, on a tile in its tone. */
+.glyph-tile {
+  display: flex;
+  height: 36px;
+  width: 36px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--tone-wash);
+  color: var(--tone-ink);
+  transition: transform var(--duration-base) var(--ease-spring);
+}
+[aria-checked="true"] > .glyph-tile {
+  background: var(--tone);
+  transform: scale(1.06) rotate(-4deg);
+}
+:root[data-theme="dark"] [aria-checked="true"] > .glyph-tile {
+  color: #fff;
+}
+:disabled > .glyph-tile {
+  opacity: 0.45;
+}
+
+/* The plan's month as coloured steps on a rail. */
+.plan-step-mark {
+  display: flex;
+  height: 28px;
+  width: 28px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: var(--tone);
+  color: var(--tone-ink);
+  position: relative;
+  z-index: 1;
+}
+:root[data-theme="dark"] .plan-step-mark {
+  color: #fff;
+}
+
+/* A page that arrived by a swipe or an arrow key brings its content
+   with it, as a native carousel's does: his words land with the page
+   (no wait for the slide) and he springs with no delay. */
+[data-arrival="gesture"] .says-word {
+  animation-delay: 0ms;
+}
+[data-arrival="gesture"] :is(.demos-pop, .demos-pop-ground) {
+  animation-delay: 0ms;
+}
+
+/* Reduced motion: the stage keeps its colour and every entrance is a
+   fade; the drag-follow is off in script, the shadow stands still. */
+:root[data-motion="reduce"] :is(.step-in-next, .step-in-back, .demos-pop, .demos-pop-halo) {
+  animation-name: fade-in;
+  animation-delay: 0ms;
+}
+:root[data-motion="reduce"] :is(.demos-pop-ground, .ground-idle, .ground-bob, .ground-breath, .ground-sway, .ground-tilt) {
+  animation: none;
+}
+:root[data-motion="reduce"] :is(.intro-progress > div, .intro-dot, .glyph-tile) {
+  transition: none;
+}
+:root[data-motion="reduce"] [aria-checked="true"] > .glyph-tile {
+  transform: none;
+}
+/* ============ end of the introduction's colour and staging ============ */
+
+/* ==========================================================================
+ * THE RECORDING FLOW, colour and motion (feedback round, 25 Sep).
+ * One block, owned by the recording-flow pass: the topic card, the tip
+ * tiles, the scoring stage. Amber is Demos's accent, so the washes that
+ * frame what he coaches are amber running into a terracotta WASH; the
+ * terracotta FILL stays the Record button's alone.
+ * ========================================================================== */
+:root {
+  --rec-topic-from: #fdefc6;
+  --rec-topic-to: #f7d9c2;
+  --rec-topic-edge: rgba(143, 77, 36, 0.14);
+  --rec-amber-wash: #fcefc9;
+  --rec-amber-ink: #8a6100;
+  --rec-amber-lit: #e0a800;
+  --rec-bar-rest: rgba(138, 97, 0, 0.26);
+  --rec-bar-lit: #c98f00;
+  --rec-spot: rgba(255, 250, 235, 0.85);
+}
+:root[data-theme="dark"] {
+  --rec-topic-from: #2e2610;
+  --rec-topic-to: #3b2416;
+  --rec-topic-edge: rgba(240, 198, 74, 0.16);
+  --rec-amber-wash: #332a10;
+  --rec-amber-ink: #f0c64a;
+  --rec-amber-lit: #f0c64a;
+  --rec-bar-rest: rgba(240, 198, 74, 0.26);
+  --rec-bar-lit: #f0c64a;
+  --rec-spot: rgba(240, 198, 74, 0.14);
+}
+
+.topic-card {
+  background: linear-gradient(135deg, var(--rec-topic-from) 0%, var(--rec-topic-to) 100%);
+  box-shadow: inset 0 0 0 1px var(--rec-topic-edge), var(--shadow-1);
+}
+.topic-card .topic-eyebrow {
+  color: var(--rec-amber-ink);
+}
+/* He stands ON the card's top edge (full-body render); the contact
+   shadow under his feet is what makes that read as standing. */
+.topic-demos {
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+}
+/* The contact shadow for a full-body Demos (the onboard set's baseline
+   is 97% down the square). Sits behind him, at his feet. */
+.rep-ground {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 62%;
+  height: 10%;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(90, 40, 10, 0.32), rgba(90, 40, 10, 0.1) 60%, transparent);
+  pointer-events: none;
+}
+:root[data-theme="dark"] .rep-ground {
+  background: radial-gradient(closest-side, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.25) 60%, transparent);
+}
+/* On the card's ground the glyph's own wash would vanish into it. */
+.topic-card .tip-glyph {
+  background: var(--color-raised);
+}
+
+.tip-tile {
+  background: var(--color-raised);
+  border-color: var(--color-card-edge);
+  box-shadow: var(--shadow-1);
+  transition: border-color 200ms var(--ease-out, ease-out), background-color 200ms ease-out;
+}
+.tip-tile[data-on] {
+  border-color: var(--rec-amber-lit);
+  background: var(--rec-amber-wash);
+}
+.tip-glyph {
+  background: var(--rec-amber-wash);
+  color: var(--rec-amber-ink);
+}
+.tip-tile[data-on] .tip-glyph {
+  background: var(--color-raised);
+}
+.tip-detail {
+  background: var(--rec-amber-wash);
+  color: var(--color-ink);
+}
+
+/* The scoring wave: stone at rest, amber where the scan just passed. */
+.scoring-bar {
+  --bar-rest: var(--color-stone-300);
+  --bar-lit: var(--rec-amber-lit);
+  background: var(--bar-rest);
+  animation: scoring-bar-lit 2.4s linear infinite;
+}
+@keyframes scoring-bar-lit {
+  0% {
+    background: var(--bar-lit);
+  }
+  35%,
+  100% {
+    background: var(--bar-rest);
+  }
+}
+/* On the warm panel the resting bars are the panel's own ink, faint,
+   and the lit ones its full amber, so the recording reads as part of
+   the ground Demos stands on. */
+.scoring-panel .scoring-bar {
+  --bar-rest: var(--rec-bar-rest);
+  --bar-lit: var(--rec-bar-lit);
+}
+.scoring-panel .scoring-cursor {
+  border-color: var(--rec-bar-lit);
+}
+/* His light: a soft spot on the panel behind him. */
+.scoring-spot {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 150%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--rec-spot), transparent);
+  pointer-events: none;
+}
+.scoring-cursor {
+  animation-duration: 2.4s;
+  animation-timing-function: linear;
+  border-color: var(--rec-amber-lit);
+}
+/* Listening, not bouncing: a slow lean toward the sound from his feet,
+   so he never leaves the shadow he stands on. */
+.scoring-demos {
+  transform-origin: 50% 97%;
+  animation: rep-lean 1.6s var(--ease-in-out) infinite alternate;
+}
+@keyframes rep-lean {
+  from {
+    transform: rotate(0deg) scale(1);
+  }
+  to {
+    transform: rotate(-3deg) scale(1.02);
+  }
+}
+.scoring-step {
+  color: var(--color-stone-400);
+  transition: color 300ms ease-out;
+}
+.scoring-step[data-state="past"] {
+  color: var(--color-stone-500);
+}
+.scoring-step[data-state="now"] {
+  color: var(--color-ink);
+  font-weight: 700;
+}
+.scoring-dot {
+  background: currentColor;
+  opacity: 0.5;
+}
+.scoring-step[data-state="now"] .scoring-dot {
+  background: var(--rec-amber-lit);
+  opacity: 1;
+  animation: scoring-dot 0.9s var(--ease-in-out) infinite alternate;
+}
+@keyframes scoring-dot {
+  from {
+    transform: scale(0.7);
+  }
+  to {
+    transform: scale(1.25);
+  }
+}
+:root[data-motion="reduce"] :is(.scoring-bar, .scoring-demos, .scoring-step .scoring-dot) {
+  animation: none;
+}
+/* ======================= end of the recording flow ======================= */
+/* Today's first card wears the topic ground at the lift it already had. */
+.topic-card.topic-card-lift {
+  box-shadow: inset 0 0 0 1px var(--rec-topic-edge), var(--shadow-2);
+}
+
+/* ============================ lessons (trait tones) ============================
+ * Each trait wears its own tone on /lessons and /lessons/[id], so the
+ * list reads as five places you move through rather than one shop
+ * window of pictures (feedback round, "lesson pictures look like ads").
+ * Risograph inks, picked to sit with the lesson art and to stay clear of
+ * the three hues that already carry a job: terracotta (tap), sage
+ * (earned), plum (paid). A tone is a ground and a label, never a tap.
+ *   --tone       the solid ink: a swatch, a rule, the numbered square
+ *                the lesson's button starts. White on it clears 4.5:1
+ *                in light (the ochre takes dark ink instead), and the
+ *                dark ink on it clears 4.5:1 in dark.
+ *   --tone-wash  a ground under the trait's header and the up-next card
+ *   --tone-ink   text on the wash, AA on it in both themes
+ * Set by `data-trait` on any element; children read the vars.
+ *
+ * Hues in OKLCH, because that is where "near" means near to the eye:
+ * ochre 79, teal 183, lagoon 214, cerulean 244, indigo 277. Fillers was
+ * a rose at 7, which is the midpoint between plum (320) and terracotta
+ * (52): its wash sat 30 degrees from plum-50, and Fillers is the most
+ * common pain, so the up-next card was usually pink on the one page a
+ * first-time user asked whether she had to pay. Any red, coral or pink
+ * lands between those two jobs, and green is sage's, so Fillers moved
+ * to the one open arc left: lagoon, midway between the teal and the
+ * cerulean, at its neighbours' chroma so it reads as a colour and never
+ * as a greyed-out, locked row.
+ * lib/lesson-up-next.test.ts holds the contrast floors.
+ */
+[data-trait="pause"] {
+  --tone: #2f77ac;
+  --tone-wash: #e1edf8;
+  --tone-ink: #1f5580;
+}
+[data-trait="fillers"] {
+  --tone: #227d8e;
+  --tone-wash: #dbeff4;
+  --tone-ink: #005765;
+}
+[data-trait="repairs"] {
+  --tone: #c28d22;
+  --tone-wash: #f7ebc9;
+  --tone-ink: #6e4e0e;
+}
+[data-trait="pace"] {
+  --tone: #198074;
+  --tone-wash: #d9efea;
+  --tone-ink: #185a52;
+}
+[data-trait="range"] {
+  --tone: #5a62c0;
+  --tone-wash: #e4e5f8;
+  --tone-ink: #363d8c;
+}
+:root[data-theme="dark"] [data-trait="pause"] {
+  --tone: #5b9bd0;
+  --tone-wash: #172636;
+  --tone-ink: #a8cbee;
+}
+:root[data-theme="dark"] [data-trait="fillers"] {
+  --tone: #579eae;
+  --tone-wash: #152c30;
+  --tone-ink: #9dd5e2;
+}
+:root[data-theme="dark"] [data-trait="repairs"] {
+  --tone: #d6a543;
+  --tone-wash: #2f250f;
+  --tone-ink: #ebcb7e;
+}
+:root[data-theme="dark"] [data-trait="pace"] {
+  --tone: #45a699;
+  --tone-wash: #122e2a;
+  --tone-ink: #92d6cb;
+}
+:root[data-theme="dark"] [data-trait="range"] {
+  --tone: #7d84d6;
+  --tone-wash: #1e2040;
+  --tone-ink: #b8bcf0;
+}
+.tone-wash {
+  background: var(--tone-wash);
+}
+.tone-ink {
+  color: var(--tone-ink);
+}
+.tone-fill {
+  background: var(--tone);
+}
+/* Text on the solid tone: white on the light theme's inks, except the
+   ochre, which is light enough to want the dark ink; dark on all of the
+   dark theme's lighter inks. */
+.tone-on {
+  color: #ffffff;
+}
+[data-trait="repairs"] .tone-on,
+:root[data-theme="dark"] .tone-on {
+  color: #16140f;
+}
+/* A numbered square not reached yet: the wash, with a hairline of the
+   tone round it. On the dark card a dark wash is within a few percent of
+   the card itself and the square vanished to a floating numeral; the
+   ring at 40% is what keeps it a square, in both themes. */
+.tone-ring {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 40%, transparent);
+}
+/* Three practices as three square segments: trough, then sage once done.
+   A segment gives up width before the label beside it wraps: at 320px
+   "3 PRACTICES" broke onto two lines in every row. */
+.lesson-pip {
+  display: block;
+  height: 5px;
+  /* A width, not a flex-basis: Chrome sizes the row of segments from
+     its items' widths, and a basis alone collapsed them to the minimum
+     at every width. */
+  width: 18px;
+  flex-shrink: 1;
+  min-width: 8px;
+  /* The ink at low alpha rather than sand, so the trough reads on the
+     white row and on every trait's wash alike. */
+  background: var(--color-stone-200);
+}
+.lesson-pip[data-done="true"] {
+  background: var(--color-sage-500);
+}
+/* ========================== end of lessons (trait tones) ========================== */

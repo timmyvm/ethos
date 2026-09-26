@@ -71,9 +71,6 @@ export default function LessonsPage() {
   return (
     <main className="mx-auto max-w-[430px] px-5 pb-24 pt-8">
       <h1 className="font-display text-title">Lessons</h1>
-      <p className="mt-1.5 text-pretty text-body text-stone-500">
-        Fifteen lessons, all free. Three practices each.
-      </p>
 
       <div className="mt-6">
         {failed ? (
@@ -105,9 +102,6 @@ export default function LessonsPage() {
                       You said {said}
                     </span>
                   )}
-                </span>
-                <span className="tone-ink mt-0.5 block text-pretty text-caption opacity-80">
-                  {t.what}
                 </span>
               </span>
             </header>

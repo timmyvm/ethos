@@ -20,7 +20,7 @@
  * treat it exactly like any other rep.
  */
 
-import { modById, parseMods, xpMultiplier } from "./stress-mods";
+import { parseMods, xpMultiplier } from "./stress-mods";
 
 export interface GameQuestion {
   id: string;
@@ -36,6 +36,8 @@ export interface Game {
   blurb: string;
   /** One line of stage direction on the rep screen, under the question. */
   direction: string;
+  /** Behind the Premium wall on Practice (26 Sep, Timothy's call). */
+  premium?: boolean;
   /** Mods the game stages. The game IS its conditions. */
   modIds: string[];
   questions: GameQuestion[];
@@ -71,6 +73,7 @@ export const GAMES: Game[] = [
     name: "Speed rush",
     glyph: "30",
     blurb: "The whole answer in 30 seconds.",
+    premium: true,
     direction: "30 seconds. Land the ending before the clock does.",
     modIds: ["tight"],
     questions: [
@@ -94,6 +97,7 @@ export const GAMES: Game[] = [
     name: "Interview",
     glyph: "\u201c",
     blurb: "Classic questions, no time to prepare.",
+    premium: true,
     direction: "Answer like they asked you in the room. Sixty to ninety seconds.",
     modIds: [],
     questions: [
@@ -159,9 +163,15 @@ export function gameLessonId(game: Game, q: GameQuestion): string {
   return `game:${game.id}:${q.id}`;
 }
 
-/** Does this game stage a mod the free tier doesn't hold? */
+/**
+ * Is this game behind the Premium wall? It used to be read off the mods
+ * (a game staging a premium mod was premium), which made Q&A paid and
+ * Interview free. Since 26 Sep the tier is the game's own flag: Q&A is
+ * the free game, Speed rush and Interview are Premium. Staged mods still
+ * run as entitled inside a game (rep-config, #194).
+ */
 export function needsPremium(game: Game): boolean {
-  return game.modIds.some((id) => modById(id)?.premium ?? false);
+  return game.premium === true;
 }
 
 /** The XP multiplier the game's staged mods pay (#37: XP, never stars). */

@@ -67,11 +67,12 @@ await page.evaluate(async () => {
   window.scrollTo(0, 0);
 });
 await sleep(600);
+/* The art is drawn since 26 Sep (LessonGlyph): an svg per tile, with
+   at least one shape beyond its ground. Fifteen rows plus up next. */
 const art = await page.evaluate(() =>
-  [...document.images].filter((i) => i.src.includes("/lessons/")).map((i) => i.naturalWidth)
+  [...document.querySelectorAll(".lesson-art svg")].map((s) => s.children.length)
 );
-/* Fifteen rows plus the up-next card, which shows one of them again. */
-ok("every lesson row has its picture", art.length >= 15 && art.every((w) => w > 0), `${art.filter((w) => w > 0).length}/${art.length}`);
+ok("every lesson row has its picture", art.length >= 15 && art.every((n) => n > 2), `${art.filter((n) => n > 2).length}/${art.length}`);
 /* The feedback round after #296: the gallery read as a paid store. The
    list is rows, one tap on top, and nothing paid anywhere near it. */
 const list = await page.evaluate(() => ({

@@ -5,6 +5,7 @@ import type { Lesson } from "@/content/lessons";
 import { TRAIT } from "@/content/traits";
 import { repHref } from "@/lib/rep-config";
 import { ACTION_CLASS } from "@/lib/ui";
+import { LessonGlyph } from "@/components/lessons/LessonGlyph";
 
 /**
  * A lesson, as a row you move through rather than a tile you buy.
@@ -45,18 +46,11 @@ export function LessonArt({
   return (
     <span
       aria-hidden
+      data-trait={lesson.trait}
       className="lesson-art relative block shrink-0 overflow-hidden rounded-control bg-sand"
       style={{ width: size, height: size }}
     >
-      <img
-        src={lesson.art}
-        alt=""
-        loading={eager ? "eager" : "lazy"}
-        decoding="async"
-        width={900}
-        height={585}
-        className="absolute inset-0 h-full w-full object-cover"
-      />
+      <LessonGlyph id={lesson.id} />
     </span>
   );
 }

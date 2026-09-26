@@ -328,7 +328,7 @@ ok("the walk is stored as done, unsynced", state.done === true && state.synced =
 ok("the name and the hour are stored with the answers", state.answers.name === "Tim" && state.answers.time === "evening", JSON.stringify(state.answers));
 
 // 7b. The account ask (#277). One screen, after the plan, gating nothing.
-await page.getByRole("button", { name: "Take the floor" }).click();
+await page.getByRole("button", { name: "Start" }).click();
 await page.getByText("Keep this").waitFor();
 ok(
   "the plan hands over to the account ask, by name",
@@ -356,7 +356,9 @@ await page.getByRole("link", { name: "Not now" }).click();
 await page.waitForURL(/\/rep/);
 await page.goto(`${BASE}/`);
 await page.getByText("Day one starts today.").waitFor();
-ok("the floor repeats what they said, in their words", await page.getByText("You said: rushing, fillers, freezing. The baseline sets the number to beat.").isVisible());
+/* Since 26 Sep the day-one card is a headline and a tap: the note that
+   repeated the answers went with "reduce text" (Timothy's call). */
+ok("the day-one card is a headline and a tap", (await page.getByText("The baseline sets the number to beat.").count()) === 0);
 await shot("11-home");
 // The lesson list marks the unit their answers chose. It moved off
 // Today with the road (#267): the five traits are there now, and the

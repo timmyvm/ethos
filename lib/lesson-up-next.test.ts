@@ -88,16 +88,9 @@ describe("the lesson screens never look paid", () => {
  * Nothing builds it from the content, so this is what notices the day a
  * lesson is added or a fourth practice lands: change the words with it.
  */
-describe("the Lessons subtitle's counts", () => {
-  const page = readFileSync(path.resolve(__dirname, "../app/lessons/page.tsx"), "utf8");
-
-  it("says fifteen lessons, and there are fifteen", () => {
-    expect(page).toContain("Fifteen lessons, all free.");
+describe("the lessons the page used to count", () => {
+  it("are fifteen, three practices each", () => {
     expect(LESSONS).toHaveLength(15);
-  });
-
-  it("says three practices each, and every lesson has three", () => {
-    expect(page).toContain("Three practices each.");
     for (const l of LESSONS) expect(l.practices, l.id).toHaveLength(3);
   });
 });

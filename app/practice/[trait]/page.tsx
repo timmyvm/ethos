@@ -210,7 +210,7 @@ function Lesson() {
         lead="howTo"
         ladder
         action={{
-          label: def.walkthrough ? "Hear it" : "Take the floor",
+          label: def.walkthrough ? "Hear it" : "Start",
           onPress: () => go(i + 1),
         }}
       />
@@ -234,7 +234,7 @@ function Lesson() {
             <Line label="Landed" text={w.after} lit />
           </div>
         }
-        action={{ label: "Take the floor", onPress: () => go(i + 1) }}
+        action={{ label: "Start", onPress: () => go(i + 1) }}
       />
     );
   }

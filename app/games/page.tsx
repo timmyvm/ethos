@@ -8,11 +8,11 @@ import {
   IconBubble,
   IconGauge,
   IconMic,
+  IconPremium,
   IconUpload,
 } from "@/components/Icon";
 import { DemosArt } from "@/components/DemosArt";
 import { Paywall } from "@/components/Paywall";
-import { PremiumMark } from "@/components/PremiumMark";
 import { fetchProfile, fetchReps } from "@/lib/client-data";
 import { draw, GAMES, needsPremium, type Game } from "@/lib/games";
 import { weekStart } from "@/lib/level";
@@ -128,6 +128,9 @@ export default function GamesPage() {
     7 - Math.floor((Date.now() - weekStart().getTime()) / DAY_MS)
   );
 
+  const free = GAMES.filter((g) => !needsPremium(g));
+  const paid = GAMES.filter(needsPremium);
+
   function play(g: Game) {
     if (needsPremium(g) && !premium) {
       setPaywall(`${g.name} · premium mods`);
@@ -173,53 +176,85 @@ export default function GamesPage() {
             )}
           </div>
         </div>
-        <div className="px-3 pb-3 pt-4">
-          <p className="text-body text-stone-500">
-            A topic you haven&apos;t studied. 4 minutes to read, 90 seconds
-            to explain, fact-checked.
-          </p>
-          <Link href="/boss" className={`${ACTION_CLASS} mt-4`}>
-            {bossDone ? "Take it again" : "Take it on"}
+        <div className="px-2 pb-2 pt-3">
+          <Link href="/boss" className={ACTION_CLASS}>
+            {bossDone ? "Again" : "Start"}
           </Link>
         </div>
       </section>
 
-      {/* One staggered column (#242): eyebrow, four games, eyebrow, one
-          door, each the next thing you read. */}
+      {/*
+       * Free first, then the wall (26 Sep, Timothy: "premium is blurry,
+       * blocked behind a physical wall, not just a colour, and free
+       * chillin above them"). The rows lost their one-line blurbs: the
+       * name and the glyph say what the game is, and the game's own
+       * screen says the rules.
+       */}
       <div className="stagger mt-7">
-        <div className="label-data pb-3">Games</div>
-        {GAMES.map((g) => (
-          <Row
-            key={g.id}
-            glyph={GLYPH[g.id]}
-            tile={TILE[g.id]}
-            name={g.name}
-            blurb={g.blurb}
-            premium={needsPremium(g) && !premium}
-            onPress={() => play(g)}
+        <div className="label-data pb-3">Free</div>
+        <div className="grid grid-cols-2 gap-2.5">
+          {free.map((g) => (
+            <GameTile
+              key={g.id}
+              glyph={GLYPH[g.id]}
+              tile={TILE[g.id]}
+              name={g.name}
+              onPress={() => play(g)}
+            />
+          ))}
+          <GameTile
+            glyph={<IconUpload size={22} />}
+            tile="game-tile-plain"
+            name="Upload a recording"
+            href="/upload"
           />
-        ))}
-        {/* One a week is free, and the cap used to be unmarked: you found
-            out by being refused (#280). The chip says where the tap goes. */}
-        <Row
-          glyph={<IconBoss size={22} />}
-          tile="game-tile-seat"
-          name="Hostile Q&A"
-          blurb="Demos interrogates your take. Two questions, no notes."
-          premium={!premium}
-          href="/hostile"
-          last
-        />
+        </div>
 
-        <div className="label-data mt-7 pb-3">Bring your own</div>
-        <Row
-          glyph={<IconUpload size={22} />}
-          tile="game-tile-plain"
-          name="Upload a recording"
-          blurb="A real meeting or a voice memo, scored the same way."
-          href="/upload"
-          last
-        />
+        <div className="label-data mt-7 pb-3">Premium</div>
+        {premium ? (
+          <div className="grid grid-cols-3 gap-2.5">
+            {paid.map((g) => (
+              <GameTile
+                key={g.id}
+                glyph={GLYPH[g.id]}
+                tile={TILE[g.id]}
+                name={g.name}
+                onPress={() => play(g)}
+              />
+            ))}
+            <GameTile
+              glyph={<IconBoss size={22} />}
+              tile="game-tile-seat"
+              name="Hostile Q&A"
+              href="/hostile"
+            />
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setPaywall("Premium games")}
+            className="press premium-wall block w-full text-left"
+          >
+            <span aria-hidden className="premium-wall-behind grid grid-cols-3 gap-2.5">
+              {paid.map((g) => (
+                <GameTile key={g.id} glyph={GLYPH[g.id]} tile={TILE[g.id]} name={g.name} still />
+              ))}
+              <GameTile glyph={<IconBoss size={22} />} tile="game-tile-seat" name="Hostile Q&A" still />
+            </span>
+            <span className="premium-wall-glass">
+              <span className="premium-wall-mark">
+                <IconPremium size={20} />
+              </span>
+              <span className="font-display mt-3 block text-[19px] font-extrabold leading-tight">
+                Premium
+              </span>
+              <span className="mt-1 block text-caption text-stone-500">
+                Speed rush, Interview, Hostile Q&amp;A
+              </span>
+              <span className="premium-wall-cta font-display mt-4">Unlock</span>
+            </span>
+          </button>
+        )}
       </div>
 
       {paywall && <Paywall reason={paywall} onClose={() => setPaywall(null)} />}
@@ -228,57 +263,44 @@ export default function GamesPage() {
 }
 
 /**
- * One door. A glyph tile in its tone, the name, one line, and at the right edge the
- * same arrow on every row, with the plum chip before it where the tap
- * leads to Premium first.
+ * One game, as a tile: its glyph in its tone and its name, nothing to
+ * read. `still` draws it inert, for the copies behind the Premium wall.
  */
-function Row({
+function GameTile({
   glyph,
   tile,
   name,
-  blurb,
-  premium = false,
   href,
   onPress,
-  last = false,
+  still = false,
 }: {
   glyph: ReactNode;
   /** The tile's tone class: a `.tone-*`, or one of the two named tiles. */
   tile: string;
   name: string;
-  blurb: string;
-  premium?: boolean;
   href?: string;
   onPress?: () => void;
-  last?: boolean;
+  still?: boolean;
 }) {
   const inner = (
     <>
-      <span
-        aria-hidden
-        className={`game-tile ${tile}`}
-      >
+      <span aria-hidden className={`game-tile ${tile}`}>
         {glyph}
       </span>
-      <span className="min-w-0 flex-1">
-        <span className="font-display block text-[14px] font-bold">{name}</span>
-        <span className="mt-0.5 block text-caption text-stone-500">{blurb}</span>
-      </span>
-      {premium && <PremiumMark variant="chip" />}
-      <span aria-hidden className="shrink-0 text-stone-400">
-        →
+      <span className="font-display mt-auto block pt-4 text-[14px] font-bold leading-tight">
+        {name}
       </span>
     </>
   );
-  const cls = `press flex w-full items-center gap-3.5 border-t border-hairline py-3 text-left ${
-    last ? "border-b" : ""
-  }`;
+  const cls =
+    "game-card flex min-h-[116px] flex-col rounded-card border border-card-edge bg-raised p-3.5 text-left";
+  if (still) return <span className={cls}>{inner}</span>;
   return href ? (
-    <Link href={href} className={cls}>
+    <Link href={href} className={`press ${cls}`}>
       {inner}
     </Link>
   ) : (
-    <button type="button" onClick={onPress} className={cls}>
+    <button type="button" onClick={onPress} className={`press ${cls}`}>
       {inner}
     </button>
   );

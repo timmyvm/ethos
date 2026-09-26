@@ -113,31 +113,44 @@ export function Nav() {
   const path = usePathname();
   if (BARE.some((b) => path === b || path.startsWith(`${b}/`))) return null;
 
+  const current = TABS.findIndex((t) =>
+    t.href === "/" ? path === "/" : path.startsWith(t.href)
+  );
+
+  /*
+   * Glass, icons only (Timothy, 26 Sep: "new modern glass nav", "delete
+   * nav bar text"). A floating bar over the page, blurred, with one lit
+   * well that slides to the tab you are on. The words stay for screen
+   * readers as each link's name; the five marks are the tab bar people
+   * hit without reading (#152), so the labels were the part nobody used.
+   */
   return (
     <nav
       aria-label="Sections"
-      className="fixed bottom-0 left-1/2 z-20 w-full max-w-[430px] -translate-x-1/2 border-t border-hairline bg-raised"
+      className="nav-dock fixed bottom-0 left-1/2 z-20 w-full max-w-[430px] -translate-x-1/2 px-4"
     >
-      <div className="pb-safe flex px-2 pt-2.5 max-[359px]:px-0.5">
-        {TABS.map((t) => {
-          /*
-           * Today owns only itself now that Lessons has its own tab.
-           * The exact match on "/" matters: every path starts with it.
-           */
-          const active =
-            t.href === "/" ? path === "/" : path.startsWith(t.href);
+      <div className="nav-glass relative flex h-16 items-stretch px-1.5">
+        {current >= 0 && (
+          <span
+            aria-hidden
+            className="nav-well"
+            style={{ transform: `translateX(${current * 100}%)` }}
+          />
+        )}
+        {TABS.map((t, i) => {
+          const active = i === current;
           return (
             <Link
               key={t.href}
               href={t.href}
+              aria-label={t.label}
               aria-current={active ? "page" : undefined}
-              className={`label-data flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-1 whitespace-nowrap py-1 transition-colors max-[359px]:!tracking-[0.02em] ${
-                active ? "!text-ink" : ""
+              className={`press relative z-[1] flex min-w-0 flex-1 items-center justify-center transition-colors ${
+                active ? "text-ink" : "text-stone-400"
               }`}
             >
               {/* Filled on the tab you are on (#290). */}
-              <t.Icon size={22} active={active} />
-              {t.label}
+              <t.Icon size={24} active={active} />
             </Link>
           );
         })}

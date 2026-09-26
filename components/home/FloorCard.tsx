@@ -5,6 +5,7 @@ import { TRAIT } from "@/content/traits";
 import { ACTION_CLASS } from "@/lib/ui";
 import { TipLine } from "@/components/rep/TipStrip";
 import { repHref } from "@/lib/rep-config";
+import { IconShuffle, IconSliders } from "@/components/Icon";
 import type { Chosen } from "@/lib/next-practice";
 
 /**
@@ -53,6 +54,9 @@ export function FloorCard({
   again,
   href,
   mods,
+  onSpin,
+  onMods,
+  modsOpen = false,
 }: {
   /** Null on day one and on any day with nothing measured yet. */
   chosen: Chosen | null;
@@ -66,6 +70,10 @@ export function FloorCard({
   /** Day one and the unit-intro gate still own the destination. */
   href?: string;
   mods?: string[];
+  /** The roulette and the mods, as two icon buttons beside the tap. */
+  onSpin?: () => void;
+  onMods?: () => void;
+  modsOpen?: boolean;
 }) {
   const to =
     href ?? repHref({ topic: chosen?.item.topicId, mods });
@@ -77,7 +85,7 @@ export function FloorCard({
    * which is the same one-name-for-one-thing failure from the other
    * side: the card quoted a number in a unit and never said whose.
    */
-  const lead = dayOne ? "Day one" : again ? "One more" : "Today's practice";
+  const lead = dayOne ? "Your first recording" : again ? "One more" : "Today's practice";
   const eyebrow =
     chosen && !dayOne ? `${lead} · ${TRAIT[chosen.trait].name}` : lead;
 
@@ -99,7 +107,6 @@ export function FloorCard({
       ? chosen.item.tips[0]
       : undefined;
 
-  const reason = dayOne ? dayOneNote : chosen?.because;
 
   return (
     /* The same warm ground as the recording screen's topic card
@@ -129,8 +136,7 @@ export function FloorCard({
       {/* Three kinds of content in one card, each named (#293): the
           topic, the technique, the reason. Without the cues a prompt
           read as an article title and a technique as its standfirst. */}
-      {!dayOne && <div className="label-micro mt-3">Your topic</div>}
-      <h2 className={`font-display ${dayOne ? "mt-2.5" : "mt-1"} text-title leading-tight`}>
+      <h2 className="font-display mt-2.5 text-title leading-tight">
         {hero}
       </h2>
 
@@ -145,35 +151,47 @@ export function FloorCard({
           day it is a tactic, and a tactic shows as its five words and a
           glyph with the sentence one tap away (feedback round, 25 Sep:
           the full sentence in grey was the part nobody read). */}
-      {body && dayOne && (
-        <>
-          <div className="label-micro mt-3">Your topic</div>
-          <p className="mt-1 text-body text-stone-600">{body}</p>
-        </>
-      )}
       {body && !dayOne && (
         <>
-          <div className="label-micro mt-3">How</div>
-          <TipLine tip={body} className="mt-1" />
+          <TipLine tip={body} className="mt-3" />
         </>
       )}
 
-      {/*
-       * The reason, in the trait's own unit, naming the SAME trait the
-       * eyebrow does. `because` quotes the measurement rather than the
-       * percentile while the scales are provisional, because the
-       * measurement is the half that is known (docs/percentiles.md).
-       */}
-      {reason && (
-        <div className="mt-3.5 border-t border-edge pt-3">
-          <div className="label-micro">Why</div>
-          <p className="mt-1 text-body leading-snug text-ink">{reason}</p>
-        </div>
-      )}
-
-      <Link href={to} className={`${ACTION_CLASS} mt-5`}>
-        Take the floor
-      </Link>
+      {/* Less to read (26 Sep): the topic labels, the why paragraph and
+          the two text links under the card went. The why is Today's
+          line and the trait tiles below; spin and difficulty are the
+          two marks beside the tap. "Take the floor" read as cringe on
+          a button, so it says what it does. */}
+      <div className="mt-5 flex gap-2">
+        <Link href={to} className={`${ACTION_CLASS} flex-1`}>
+          Start
+        </Link>
+        {onSpin && (
+          <button
+            type="button"
+            onClick={onSpin}
+            aria-label="Spin a new topic"
+            className="press floor-side"
+          >
+            <IconShuffle size={22} />
+          </button>
+        )}
+        {onMods && (
+          <button
+            type="button"
+            onClick={onMods}
+            aria-label={modsOpen ? "Hide difficulty" : "Turn up the difficulty"}
+            aria-expanded={modsOpen}
+            data-on={(mods?.length ?? 0) > 0 || modsOpen || undefined}
+            className="press floor-side relative"
+          >
+            <IconSliders size={22} />
+            {(mods?.length ?? 0) > 0 && (
+              <span className="floor-side-count">{mods!.length}</span>
+            )}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

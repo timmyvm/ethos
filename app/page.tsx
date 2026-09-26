@@ -259,7 +259,7 @@ export default function Home() {
               (27 Aug, Timothy's call). Since the colour pass they are
               earned CHIPS: a sage wash with a gold mark, the glyph
               doing the word's job. Earned, never a tap. */}
-          {totalStars(starMap) > 0 && (
+          {reps !== null && (
             <span className="today-earned">
               <span className="sr-only">{totalStars(starMap)} stars</span>
               <span aria-hidden className="today-earned-mark text-[14px] leading-none">
@@ -274,7 +274,7 @@ export default function Home() {
               </span>
             </span>
           )}
-          <StreakBadge streak={streak} />
+          {reps !== null && <StreakBadge streak={streak} />}
         </div>
       </div>
 
@@ -361,25 +361,10 @@ export default function Home() {
                 again={streak.didToday}
                 href={introOwns ? floorHref : undefined}
                 mods={mods}
+                onSpin={() => setTopic(spinForAnswers(null))}
+                onMods={() => setShowMods((v) => !v)}
+                modsOpen={showMods}
               />
-              <div className="mt-5 flex items-baseline justify-between gap-3">
-                <button
-                  onClick={() => setTopic(spinForAnswers(null))}
-                  className="press -my-3 inline-flex min-h-11 items-center text-[13px] font-semibold text-stone-500"
-                >
-                  Not feeling it? Spin a new topic →
-                </button>
-                <button
-                  onClick={() => setShowMods((v) => !v)}
-                  className="press -my-3 inline-flex min-h-11 shrink-0 items-center text-[13px] font-semibold text-stone-500"
-                >
-                  {showMods
-                    ? "Hide mods"
-                    : mods.length > 0
-                      ? `${mods.length} mod${mods.length === 1 ? "" : "s"} on · edit`
-                      : "Turn up the difficulty"}
-                </button>
-              </div>
             </div>
             {showMods && (
               <div className="reveal mt-3">

@@ -196,11 +196,6 @@ export default function HistoryPage() {
           that is already on the screen down to nothing and back. */}
       <h1 className="font-display text-[24px] font-extrabold">The log</h1>
       <div className="arrive">
-        <p className="mt-1 text-caption text-stone-400">
-          {empty
-            ? "0 recordings."
-            : `${reps.length} recording${reps.length === 1 ? "" : "s"} since ${since}. Tap one for the full result.`}
-        </p>
 
         {/*
          * Band one: the hero (#217). The card Home draws, so the log is
@@ -216,9 +211,7 @@ export default function HistoryPage() {
             recordings={reps.length}
             stars={totalStars(starMap)}
             foot={
-              empty
-                ? "Day 1 sets the number to beat."
-                : indexDelta !== null
+              !empty && indexDelta !== null
                   ? `Day 1 scored ${firstIndex}.`
                   : undefined
             }
@@ -467,7 +460,7 @@ export default function HistoryPage() {
             href="/rep"
             className="press font-display mt-4 block min-h-11 w-full rounded-control bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-on-accent hover:bg-terracotta-600"
           >
-            Take the floor
+            Start
           </Link>
         </div>
       )}

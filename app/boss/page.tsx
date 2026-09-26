@@ -415,7 +415,7 @@ export default function BossPage() {
             )}
           </div>
           <button onClick={takeTheFloor} className={`${ACTION_CLASS} mt-7`}>
-            Take the floor
+            Start
           </button>
         </>
       )}

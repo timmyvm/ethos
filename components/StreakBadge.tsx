@@ -22,22 +22,20 @@ import type { StreakState } from "@/lib/streak";
  */
 export function StreakBadge({ streak }: { streak: StreakState }) {
   /*
-   * Nothing on day zero (#209). This corner used to read "Day 1 starts
-   * today" and now the floor's headline says it, in voice.md's words,
-   * at four times the size. Saying it twice on one screen makes it a
-   * slogan instead of a fact, and the smaller copy is the one that
-   * loses.
+   * Day zero shows too, unlit (26 Sep, Timothy: the corner read as
+   * empty). A zero with an unlit flame is a number waiting to move, and
+   * the headline no longer says "day one" in words.
    */
-  if (streak.current === 0) return null;
+  const open = streak.current === 0 || streak.atRisk;
 
   return (
     <span
       className="today-earned"
-      data-open={streak.atRisk ? "true" : undefined}
+      data-open={open ? "true" : undefined}
     >
       <span className="sr-only">
         Streak {streak.current}
-        {streak.atRisk ? ", today's open" : ""}
+        {open ? ", today's open" : ""}
       </span>
       <span aria-hidden className="today-earned-mark">
         <IconFlame size={16} />

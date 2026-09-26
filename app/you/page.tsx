@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { AchievementMark, IconFlame, IconFreeze } from "@/components/Icon";
+import { AchievementMark, IconFlame } from "@/components/Icon";
+import { Overlay } from "@/components/ui/Overlay";
 import { DemosArt } from "@/components/DemosArt";
 import { PremiumDoor, PremiumMark } from "@/components/PremiumMark";
 import { CountUp } from "@/components/CountUp";
@@ -15,7 +16,6 @@ import { achievements } from "@/lib/achievements";
 import { syncCoins } from "@/lib/coin-sync";
 import { limit } from "@/lib/entitlement";
 import { DURATION } from "@/lib/motion";
-import { towardFirstItem } from "@/lib/coins";
 import {
   fetchLexicon,
   fetchProfile,
@@ -25,7 +25,7 @@ import {
   type LexiconRow,
   type RepRow,
 } from "@/lib/client-data";
-import { rankedTraits, traitLevels } from "@/lib/traits";
+import { LEVEL_AT, DOUBLE_AT, rankedTraits, traitLevels, type TraitLevel } from "@/lib/traits";
 import { TRAIT, type TraitId } from "@/content/traits";
 import { syncFreezes } from "@/lib/freeze-sync";
 import { levelFromXp } from "@/lib/level";
@@ -36,7 +36,6 @@ import { syncOnboarding } from "@/lib/answers-sync";
 import { buildPortfolio } from "@/lib/portfolio";
 import {
   computeStreak,
-  MAX_EQUIPPED_FREEZES,
   type StreakState,
 } from "@/lib/streak";
 import { INPUT_CLASS } from "@/lib/ui";
@@ -112,11 +111,16 @@ export default function YouPage() {
    * flight. A failed read draws no number and no coin, only the retry:
    * a balance nobody could read is not shown as one.
    */
-  const [coins, setCoins] = useState<number | null | undefined>(undefined);
+  /* Coins and freezes still sync (the streak's freezes are real), but
+     neither is drawn here since 26 Sep: the shop and the freeze shelf
+     left the profile on Timothy's call. */
+  const [, setCoins] = useState<number | null | undefined>(undefined);
+  /** The trait whose sheet is open. */
+  const [openTrait, setOpenTrait] = useState<TraitLevel | null>(null);
   const [streak, setStreak] = useState<StreakState>(EMPTY_STREAK);
   const [flashing, setFlashing] = useState(false);
   /** `undefined` pending, `null` failed: the same split as `coins`. */
-  const [freezes, setFreezes] = useState<{
+  const [, setFreezes] = useState<{
     equipped: number;
     used: number;
   } | null | undefined>(undefined);
@@ -213,7 +217,6 @@ export default function YouPage() {
   const level = levelFromXp(xp?.total ?? 0);
   const badges = achievements(history);
   const earnedCount = badges.filter((b) => b.earned).length;
-  const toNextFreeze = 7 - (streak.longest % 7);
 
   // "Save your progress" gate — appears only after there IS progress
   // (DECISIONS #15: never before the first rep).
@@ -439,7 +442,7 @@ export default function YouPage() {
        */}
       <div className="mt-7 border-t border-hairline pt-3">
         <div className="label-data">Traits</div>
-        <div className="mt-3 space-y-2.5">
+        <div className="mt-2 space-y-0.5">
           {loading ? (
             <>
               <Skeleton className="h-5 w-full" />
@@ -456,10 +459,13 @@ export default function YouPage() {
                   /* A trait the lessons teach wears its lesson tone, so
                      blue means pausing here as on /lessons and Today;
                      the four the Index only reads stay neutral. */
-                  <div
+                  <button
+                    type="button"
                     key={t.key}
+                    onClick={() => setOpenTrait(t)}
+                    aria-haspopup="dialog"
                     data-trait={toned ? t.key : undefined}
-                    className={`flex items-center gap-3 ${toned ? "you-trait" : ""}`}
+                    className={`press -mx-2 flex w-[calc(100%+16px)] items-center gap-3 rounded-control px-2 py-1.5 text-left ${toned ? "you-trait" : ""}`}
                   >
                     <span
                       aria-hidden
@@ -497,7 +503,7 @@ export default function YouPage() {
                     >
                       <CountUp value={t.level} durationMs={DURATION.max} />
                     </span>
-                  </div>
+                  </button>
                 );
               });
             })()
@@ -505,120 +511,20 @@ export default function YouPage() {
         </div>
       </div>
 
-      {/*
-       * Coins. The balance is shown against the price of the first thing
-       * it buys — a number going somewhere named. What used to sit under
-       * it was three lines arguing why the shop can only sell
-       * convenience; that argument belongs in the shop, where somebody is
-       * about to spend (COPY-RULES: explain a mechanic where it happens).
-       */}
-      <div className="mt-7 border-t border-hairline pt-3">
-        <div className="label-data">Coins</div>
-        {coins === null ? (
-          <ErrorLine className="mt-3" onRetry={() => void loadCoins(dates)}>
-            Your balance didn&apos;t load.
-          </ErrorLine>
-        ) : (
-          <>
-            <div className="mt-3 flex items-end gap-4">
-              <div className="flex-1">
-                {coins === undefined ? (
-                  <Skeleton className="h-7 w-12" />
-                ) : (
-                  <div className="font-display flex items-center gap-2 text-[26px] font-extrabold leading-none tabular-nums">
-                    {/* A coin, drawn: the picture of the thing counted. */}
-                    <span aria-hidden className="you-coin" />
-                    <CountUp value={coins} durationMs={DURATION.max} />
-                  </div>
-                )}
-                <div className="label-micro mt-1.5">1 a day</div>
-              </div>
-              <div className="shrink-0 text-right">
-                {coins === undefined ? (
-                  <Skeleton className="ml-auto h-5 w-8" />
-                ) : (
-                  <div className="font-display text-[18px] font-extrabold leading-none tabular-nums">
-                    <CountUp
-                      value={towardFirstItem(coins).toGo}
-                      durationMs={DURATION.max}
-                    />
-                  </div>
-                )}
-                <div className="label-micro mt-1.5">to the first item</div>
-              </div>
-            </div>
-            {/* Sage: coins are earned, one a day, and this is how far the
-                earning has got. It was terracotta (#165, #201), which on a
-                screen of rows read as the page's tap. */}
-            <div className="mt-3 h-1.5 overflow-hidden bg-sand">
-              {typeof coins === "number" && (
-                <div
-                  className="fill h-full bg-sage-500"
-                  style={{
-                    width: `${towardFirstItem(coins).fraction * 100}%`,
-                  }}
-                />
-              )}
-            </div>
-          </>
-        )}
-        <Link
-          href="/shop"
-          className="press font-display mt-3 flex min-h-11 items-center justify-between rounded-control border border-edge bg-surface px-4 py-3 text-[14px] font-bold hover:bg-sand"
-        >
-          <span>Open the shop</span>
-          <span aria-hidden className="text-stone-300">
-            →
-          </span>
-        </Link>
-      </div>
-
-      {/* Freezes. The rules that were printed here in full — how they're
-          earned, what they cost, what a frozen day does to the streak —
-          now appear at the two moments they're true: when one is spent
-          (the home screen says so) and when you have one to spend. */}
-      <div className="label-data mt-7 border-t border-hairline pt-3">
-        Streak freezes
-      </div>
-      <div className="mt-3 flex items-center gap-2">
-        {Array.from({ length: MAX_EQUIPPED_FREEZES }).map((_, i) => {
-          const ready = (freezes?.equipped ?? 0) > i;
-          return (
-            /* Ice, not sage: a freeze is protection you hold, not a
-               thing you earned the way a star is. A ready one is a tile
-               of the introduction's sky; an empty slot is its outline. */
-            <span
-              key={i}
-              className={`you-freeze ${ready ? "" : "you-freeze-empty"}`}
-            >
-              <IconFreeze size={20} />
-            </span>
-          );
-        })}
-        {freezes && freezes.equipped === 0 && (
-          <p className="ml-2 flex-1 text-caption text-stone-500">
-            {toNextFreeze} more day{toNextFreeze === 1 ? "" : "s"} earns one.
-          </p>
-        )}
-      </div>
-      {freezes && freezes.used > 0 && (
-        <p className="mt-3 text-caption text-stone-500">
-          {freezes.used} spent so far.
-        </p>
-      )}
-      {freezes === null && (
-        <ErrorLine className="mt-2" onRetry={() => void loadFreezes(dates)}>
-          Your freezes didn&apos;t load.
-        </ErrorLine>
-      )}
-
       {/* The league card sat here until 27 Aug — shelved (Timothy's
           call) until there are users to rank. lib/level.ts and xp_events
           stay; a future league reads them unchanged. */}
 
       {/* Personal lexicon — the supply layer's archive (DECISIONS #12) */}
-      <div className="label-data mt-7 border-t border-hairline pt-3">
-        Your lexicon
+      {/* The lexicon grew into the room the shop left (26 Sep, "lexicon
+          expansion"): a card with its count, the swaps at reading size. */}
+      <div className="mt-7 flex items-baseline justify-between border-t border-hairline pt-3">
+        <div className="label-data">Your lexicon</div>
+        {lexicon !== null && (
+          <span className="font-display text-[13px] font-extrabold tabular-nums text-stone-500">
+            {lexicon.length} word{lexicon.length === 1 ? "" : "s"}
+          </span>
+        )}
       </div>
       {lexicon === null ? (
         /* Three rows, the free tier's share, at the height of the real
@@ -634,9 +540,16 @@ export default function YouPage() {
           ))}
         </div>
       ) : lexicon.length === 0 ? (
-        <p className="mt-3 text-caption text-stone-500">
-          Upgrades from your own recordings collect here.
-        </p>
+        <div className="you-lexicon-empty mt-3 rounded-card p-5">
+          <div aria-hidden className="flex items-center gap-2.5 text-[17px]">
+            <span className="font-display font-bold text-stone-400 line-through">the thing is</span>
+            <span className="text-stone-300">→</span>
+            <span className="you-word">the point is</span>
+          </div>
+          <p className="mt-3 text-caption text-stone-500">
+            Upgrades from your own recordings collect here.
+          </p>
+        </div>
       ) : (
         <>
           {/* The archive is a list, so it assembles itself (#245): one
@@ -647,7 +560,7 @@ export default function YouPage() {
             {lexicon.slice(0, limit(FREE_LEXICON, premium) ?? lexicon.length).map((l) => (
               <div
                 key={l.id}
-                className="flex items-center gap-2.5 border-b border-hairline py-3 text-[14px]"
+                className="flex items-center gap-2.5 border-b border-hairline py-3.5 text-[16px]"
               >
                 <span className="text-stone-400 line-through">
                   {l.original}
@@ -818,6 +731,10 @@ export default function YouPage() {
           </button>
         ))}
 
+      {openTrait && (
+        <TraitSheet trait={openTrait} onClose={() => setOpenTrait(null)} />
+      )}
+
       {paywall && (
         <Paywall
           reason={paywall.reason}
@@ -929,5 +846,65 @@ function PlanRow({ state, stars }: { state: OnboardingState; stars: number | nul
           : "The road, one unit at a time"}
       </span>
     </Link>
+  );
+}
+
+/* The four the Index reads but no lesson teaches, in one line each. */
+const WHAT: Record<string, string> = {
+  structure: "Whether the answer has a point, support for it, and an ending.",
+  credibility: "Whether you state things as known, without hedging them away.",
+  engagement: "Whether a listener would stay with you to the last line.",
+  confidence: "How even your delivery holds from the first word to the last.",
+};
+
+/**
+ * A trait, explained where you asked (26 Sep, Timothy: "trait click to
+ * pop up explanation"). What it measures, the level, and the rule that
+ * moves it, with its two numbers. COPY-RULES: the mechanic is explained
+ * at the moment somebody reaches for it, never printed on the page.
+ */
+function TraitSheet({ trait, onClose }: { trait: TraitLevel; onClose: () => void }) {
+  const toned = isToned(trait.key);
+  const name = toned ? TRAIT[trait.key as TraitId].name : trait.name;
+  const what = toned ? TRAIT[trait.key as TraitId].what : WHAT[trait.key];
+  return (
+    <Overlay label={name} onClose={onClose}>
+      <div
+        data-trait={toned ? trait.key : undefined}
+        className="elev-3 w-full max-w-[430px] rounded-t-sheet bg-raised px-6 pb-8 pt-6"
+      >
+        <div aria-hidden className="mx-auto mb-5 h-1 w-10 rounded-full bg-stone-300" />
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className={`label-data ${toned ? "tone-ink" : ""}`}>Trait</div>
+            <h2 className={`font-display mt-1 text-[26px] font-extrabold leading-tight ${toned ? "tone-ink" : ""}`}>
+              {name}
+            </h2>
+          </div>
+          <div
+            className={`flex size-16 shrink-0 flex-col items-center justify-center rounded-card ${
+              toned ? "tone-wash" : "bg-surface"
+            }`}
+          >
+            <span className="font-display text-[26px] font-extrabold leading-none tabular-nums">
+              {trait.level}
+            </span>
+            <span className="label-micro mt-1">Level</span>
+          </div>
+        </div>
+        <p className="mt-4 text-body leading-relaxed text-ink">{what}</p>
+        <p className="mt-3 text-caption leading-relaxed text-stone-500">
+          A recording levels it when this is its best score and clears{" "}
+          {LEVEL_AT}. Over {DOUBLE_AT} counts twice.
+        </p>
+        <button
+          type="button"
+          onClick={onClose}
+          className="press font-display mt-6 flex min-h-12 w-full items-center justify-center rounded-control border border-edge bg-surface text-[15px] font-bold"
+        >
+          Done
+        </button>
+      </div>
+    </Overlay>
   );
 }

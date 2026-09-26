@@ -73,8 +73,8 @@ ok("coming back along the tab bar pushes from the left", (await pushClass()).inc
 await page.goto(`${BASE}/you`);
 await page.waitForSelector("main");
 await sleep(600);
-await page.click('a[href="/shop"]');
-await page.waitForURL(/shop/);
+await page.click('a[href="/settings"]');
+await page.waitForURL(/settings/);
 ok("going deeper pushes from the right", (await pushClass()).includes("push-right"), await pushClass());
 
 await page.click('a[href="/you"]');

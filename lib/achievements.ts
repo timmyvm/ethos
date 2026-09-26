@@ -72,7 +72,7 @@ export function achievements(reps: RepRow[]): Achievement[] {
     {
       id: "first",
       name: "First recording",
-      requirement: "Take the floor once",
+      requirement: "Record once",
       earned: reps.length >= 1,
       progress: Math.min(1, reps.length),
       href: "/rep",

@@ -465,3 +465,30 @@ export function AchievementMark({
       return <IconTrend size={size} />;
   }
 }
+
+/** Spin a new topic: two arrows crossing, the shuffle everyone knows. */
+export function IconShuffle({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="M3.5 7h3.2c2.2 0 3.4 1 4.6 3l1.4 4c1.2 2 2.4 3 4.6 3h3.2" />
+      <path d="M3.5 17h3.2c1.4 0 2.4-.4 3.2-1.2" />
+      <path d="M14.1 8.2C14.9 7.4 15.9 7 17.3 7h3.2" />
+      <path d="m18 4.5 2.5 2.5L18 9.5" />
+      <path d="m18 14.5 2.5 2.5-2.5 2.5" />
+    </Glyph>
+  );
+}
+
+/** Turn up the difficulty: two sliders. */
+export function IconSliders({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="M4 8h9" />
+      <path d="M19 8h1" />
+      <circle cx="16" cy="8" r="2.4" />
+      <path d="M4 16h1" />
+      <path d="M11 16h9" />
+      <circle cx="8" cy="16" r="2.4" />
+    </Glyph>
+  );
+}

@@ -132,10 +132,10 @@ describe("the menu's claims", () => {
     expect(gameMultiplier(gameById("interview")!)).toBe(1);
   });
 
-  it("marks the games that stage premium mods", () => {
-    expect(needsPremium(gameById("qa")!)).toBe(true);
+  it("marks the games behind the Premium wall", () => {
+    expect(needsPremium(gameById("qa")!)).toBe(false);
     expect(needsPremium(gameById("rush")!)).toBe(true);
-    expect(needsPremium(gameById("interview")!)).toBe(false);
+    expect(needsPremium(gameById("interview")!)).toBe(true);
   });
 
   it("resolves questions by id and rejects strangers", () => {

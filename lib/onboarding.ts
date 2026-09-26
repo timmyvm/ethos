@@ -125,7 +125,7 @@ export const NAME_FIELD = {
 
 export const PLAN_COPY = {
   label: "Your first month",
-  action: "Take the floor",
+  action: "Start",
   done: "Done",
 } as const;
 

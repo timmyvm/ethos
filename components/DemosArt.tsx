@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { DemosClip, hasClip } from "@/components/DemosClip";
 
 /**
  * Demos on the introduction's screens (DECISIONS #233): one full-body
@@ -89,6 +90,7 @@ export function DemosArt({
   grounded = false,
   halo,
   fit = false,
+  idle = true,
 }: {
   pose: Pose;
   /** His size in px, and with `fit`, the most he grows to. */
@@ -134,8 +136,15 @@ export function DemosArt({
    * flash for the sake of a 460ms dip.
    */
   nodKey?: string | number;
+  /**
+   * Play his idle clip over the still where one exists (#316). Off for
+   * the small avatars, where a clip is bytes nobody can see move.
+   */
+  idle?: boolean;
 }) {
   const frame = useRef<HTMLDivElement>(null);
+  const [clipLive, setClipLive] = useState(false);
+  const clip = idle && size >= 120 && hasClip(pose) ? pose : null;
   const first = useRef(true);
 
   useEffect(() => {
@@ -211,8 +220,19 @@ export function DemosArt({
             height={size}
             priority
             unoptimized
-            className={`demos ${loop} block h-full w-full`}
+            className={`demos ${loop} ${clipLive ? "opacity-0" : ""} block h-full w-full`}
           />
+          {/* The clip starts and ends on this still, so the swap is
+              invisible; until it has drawn a frame the still is all
+              there is, and if it never does, nothing changed. */}
+          {clip && (
+            <DemosClip
+              key={clip}
+              pose={clip}
+              delayMs={(greetAfterMs ?? 0) + 500}
+              onLive={setClipLive}
+            />
+          )}
           {pose === "speaking" && <SoundArcs />}
           {pose === "celebrate" && <Sparkles />}
         </div>

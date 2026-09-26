@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { DemosFigure } from "@/components/DemosClip";
 import { useEffect, useState } from "react";
 import { ScoringWave } from "@/components/ScoringWave";
 
@@ -65,12 +65,12 @@ export function ScoringStage({
           <div className="relative -mr-1 w-[150px] shrink-0">
             <span aria-hidden className="scoring-spot" />
             <span aria-hidden className="rep-ground" />
-            <Image
+            <DemosFigure
+              pose="listening"
               src="/demos-onboard-listening.webp"
-              alt=""
               width={300}
               height={300}
-              priority
+              delayMs={300}
               className="demos scoring-demos relative block h-auto w-full"
             />
           </div>

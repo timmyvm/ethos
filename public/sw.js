@@ -153,6 +153,14 @@ self.addEventListener("fetch", (e) => {
    */
   if (url.pathname.startsWith("/pose/")) return;
 
+  /*
+   * Demos's idle clips (#316). A video is fetched in ranges, Safari
+   * refuses a video answered with anything but a real 206, and a cache
+   * cannot store a 206 at all. The browser's HTTP cache serves repeats;
+   * offline, he stands still, which is what the clip falls back to.
+   */
+  if (url.pathname.startsWith("/idle/")) return;
+
   // Network-first for pages so a deploy is picked up immediately;
   // cache-first for static assets.
   const isAsset = /\.(webp|png|svg|woff2?|css|js)$/.test(url.pathname);

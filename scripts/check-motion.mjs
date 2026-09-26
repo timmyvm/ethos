@@ -201,10 +201,14 @@ await page.waitForSelector('[role="status"].arrive');
 ok("scoring wait arrives", true);
 const dialogP = page.waitForSelector('[role="dialog"][aria-label="1 day in a row"]', { timeout: 8000 });
 await page.waitForSelector("main .arrive-x", { timeout: 8000 });
-const dialog = await dialogP;
-const before = await dialog.$eval("[aria-hidden] > div", (el) => getComputedStyle(el).transform);
+/* The Index is read the moment the results land, before anything else is
+   awaited: waiting on the streak dialog first let a slow machine (software
+   WebGL drawing Demos's clip on the scoring wait) finish the count before
+   the first reading, and the check failed on a count that had run. */
 const SCORE = 'main .arrive-x span.font-display.text-\\[64px\\]';
 const early = await page.$eval(SCORE, (el) => el.textContent);
+const dialog = await dialogP;
+const before = await dialog.$eval("[aria-hidden] > div", (el) => getComputedStyle(el).transform);
 await sleep(900);
 const late = await page.$eval(SCORE, (el) => el.textContent);
 ok("the Index counts up to 612", Number(early) < 612 && late === "612", `${early} → ${late}`);

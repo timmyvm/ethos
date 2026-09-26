@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { DemosFigure } from "@/components/DemosClip";
 
 /**
  * What you are about to talk about, as the hero (feedback round, 25 Sep).
@@ -37,12 +37,12 @@ export function TopicCard({
       {demos && !compact && (
         <div aria-hidden className="topic-demos pointer-events-none absolute bottom-[calc(100%-12px)] right-3 w-[112px]">
           <span className="rep-ground" />
-          <Image
+          <DemosFigure
+            pose="speaking"
             src="/demos-onboard-speaking.webp"
-            alt=""
             width={224}
             height={224}
-            priority
+            delayMs={900}
             className="demos relative block h-auto w-full"
           />
         </div>

@@ -21,8 +21,6 @@ What this does is the part a set needs and a single pose does not:
   in-app        512 square, each pose contained in the box its flat
                 predecessor filled and stood on the same bottom.
   unit marks    256 square, one box for all seven.
-  splash        the head alone, contained in 432x285 (Splash.tsx shows
-                it at 144x95).
 
     pip install pillow numpy
     python3 scripts/place-3d-demos.py
@@ -91,9 +89,4 @@ contain("side-profile", "public/demos.webp", (48, 96, 464, 470), (512, 512))
 for unit in ["boss", "compression", "filler", "fire", "pace", "pause", "structure"]:
     contain(f"unit-{unit}", f"public/unit/{unit}.webp", (8, 10, 248, 246), (256, 256))
 
-head = load("side-profile")
-s = min(420 / head.size[0], 280 / head.size[1])
-head = head.resize((round(head.size[0] * s), round(head.size[1] * s)), Image.LANCZOS)
-splash = Image.new("RGBA", (432, 285), (0, 0, 0, 0))
-splash.paste(head, ((432 - head.size[0]) // 2, (285 - head.size[1]) // 2), head)
-save(splash, "public/splash-demos.webp")
+# The splash head is scripts/make-icons.py's now: it is the icon's face.

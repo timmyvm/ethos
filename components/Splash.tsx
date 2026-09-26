@@ -13,8 +13,9 @@
  *
  * Demos's head sits on the ground itself, no tile, so the same mark
  * belongs to the white room and the dark one (`public/splash-demos.webp`,
- * cut by scripts/cut-splash.mjs). The wordmark rises under it, then the
- * whole thing lifts off the finished screen. `SplashLift` (components/SplashLift.tsx) lifts it once React
+ * cut by scripts/make-icons.py: the home-screen icon's own face, so the
+ * tap and the screen it opens show one Demos, #310). The wordmark rises
+ * under it, then the whole thing lifts off the finished screen. `SplashLift` (components/SplashLift.tsx) lifts it once React
  * has hydrated, the fonts are in and a floor of 900ms has passed, so a
  * fast load still reads as a beat and not a flicker. If that never
  * runs, a CSS fallback fades it out on its own (globals.css, `.splash`).
@@ -29,11 +30,11 @@ export function Splash() {
         <img
           src="/splash-demos.webp"
           alt=""
-          width={144}
-          height={95}
+          width={128}
+          height={128}
           fetchPriority="high"
           decoding="sync"
-          className="block h-[95px] w-36"
+          className="block h-32 w-32"
         />
       </div>
       <span className="splash-word font-display text-[22px] font-extrabold uppercase tracking-[0.02em]">

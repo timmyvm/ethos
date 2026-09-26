@@ -1,6 +1,7 @@
 "use client";
 
 import { Ring } from "@/components/Ring";
+import { TRAIT } from "@/content/traits";
 import {
   challengeFoot,
   challengeLine,
@@ -18,16 +19,22 @@ import { fmtRaw } from "@/lib/trait-readings";
  * a comparison with anybody else. The number is one of the user's own,
  * in the trait's own unit.
  *
- * The ring wears `tone="open"` — terracotta, the tone Ring.tsx reserved
- * for exactly this in #252 and that no caller had ever passed. Open
- * means a loop still closable TODAY, which is the whole difference
- * between this and the five rings below it: a percentile has no closed
- * state and this does.
+ * The ring is a loop still closable TODAY, which is the whole
+ * difference between this and the five rings below it: a percentile has
+ * no closed state and this does. It wore `tone="open"` (terracotta,
+ * #252) until the colour pass; see below.
  *
- * 44px, not the trait cards' 56 or the clean run's 104. Today already
- * carries a terracotta button and this is the second terracotta object
- * on the screen; the mass difference is what keeps the tap dominant at
- * the squint test's 7px blur.
+ * 48px, under the trait rows' 50 and the clean run's 104: this card
+ * states one number and must not outweigh the floor's button at the
+ * squint test's 7px blur.
+ *
+ * THE COLOUR (the colour pass, 26 Sep). The line is drawn in one
+ * trait's unit, so the card wears that trait's tone: its wash as the
+ * ground, its ink on the ring and the name, the same colour the trait
+ * has on /lessons and in the rows below. The ring left terracotta
+ * (#252's `open`) in the same pass: a terracotta ring under a
+ * terracotta button was the second orange object on the screen, and
+ * the tone says which trait without a second tap's colour.
  *
  * NO BUTTON. The one tap on this screen belongs to the floor card. This
  * card states a number and gets out of the way, which is also why it is
@@ -36,19 +43,23 @@ import { fmtRaw } from "@/lib/trait-readings";
 export function ChallengeCard({ challenge }: { challenge: Challenge }) {
   const c = challenge;
   return (
-    <section className="mt-7">
-      <div className="label-data">Today&apos;s line</div>
-      <div className="elev-1 mt-3 rounded-card border border-card-edge bg-raised p-4">
+    <section className="mt-7" data-trait={c.trait}>
+      <div className="flex items-baseline justify-between gap-3">
+        <div className="label-data">Today&apos;s line</div>
+        <div className="label-data tone-ink">{TRAIT[c.trait].name}</div>
+      </div>
+      <div className="today-line tone-wash mt-3 rounded-card p-4">
         <div className="flex items-center gap-4">
           <Ring
             value={c.value}
-            size={44}
-            tone="open"
+            size={48}
+            tone="trait"
+            track="var(--today-trough)"
             delay={240}
             state={c.closed ? "closing" : "idle"}
           >
             {c.today !== null && (
-              <span className="font-display text-[13px] font-extrabold leading-none tabular-nums">
+              <span className="font-display tone-ink text-[13px] font-extrabold leading-none tabular-nums">
                 {fmtRaw(c.today)}
               </span>
             )}
@@ -64,7 +75,7 @@ export function ChallengeCard({ challenge }: { challenge: Challenge }) {
              * second person anywhere in it, and without the word
              * "missed".
              */}
-            <p className="mt-1 text-caption text-stone-500">
+            <p className="tone-ink mt-1 text-caption">
               {challengeFoot(c)}
             </p>
           </div>

@@ -40,12 +40,20 @@ import { buzz, prefersReducedMotion } from "@/lib/prefs";
  *   measured  sage, the colour this app already uses for what you
  *             earned (stars, the score card, silence that landed). A
  *             percentile is a measurement, so it wears that colour.
- *   open      terracotta, the one accent, for a loop still closable
- *             TODAY: the session, the daily challenge. Terracotta is
- *             the action colour and an open ring is an action.
+ *   open      terracotta. Reserved: no caller since the colour pass
+ *             (26 Sep). The daily challenge wears `trait` now, because
+ *             a terracotta ring under the floor's terracotta button was
+ *             a second tap's colour on Today. Do not put it back there.
  *   quiet     stone, for a ring that is context rather than a target.
+ *   trait     the nearest `[data-trait]`'s own tone (the colour pass on
+ *             Today): a trait's ring wears the same colour as its
+ *             lessons, so blue means pausing on every screen. Picture
+ *             colour, never a tap and never earned; the caller sets
+ *             `data-trait` on an ancestor and usually a `track`. A
+ *             surface may pass `--ring-arc` where the solid tone is too
+ *             light to hold 3:1 on its trough (Today's ochre, light).
  */
-export type RingTone = "measured" | "open" | "quiet" | "lit" | "dim";
+export type RingTone = "measured" | "open" | "quiet" | "lit" | "dim" | "trait";
 
 const STROKE: Record<RingTone, string> = {
   measured: "var(--color-sage-600)",
@@ -58,6 +66,7 @@ const STROKE: Record<RingTone, string> = {
   /* On the deep sage card, where sage-600 disappears into the ground
      and `sage-lit` is the token that exists for exactly this. */
   lit: "var(--color-sage-lit)",
+  trait: "var(--ring-arc, var(--tone))",
 };
 
 export function Ring({

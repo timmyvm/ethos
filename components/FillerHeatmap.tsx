@@ -3,8 +3,9 @@ import type { RepRow } from "@/lib/client-data";
 
 /**
  * Where fillers land inside a rep, and which words they are. Sage is
- * earned-only, so the hotspot is terracotta-toned: this is a thing to
- * fix, not a thing to celebrate.
+ * earned-only and terracotta is the tap, so the bars wear the Fillers
+ * trait's own tone (`data-trait="fillers"`, lagoon): the colour this
+ * trait is on Today, on /lessons and on the row that opens this panel.
  */
 export function FillerHeatmap({ reps }: { reps: RepRow[] }) {
   const heat = fillerHeatmap(reps);
@@ -15,8 +16,11 @@ export function FillerHeatmap({ reps }: { reps: RepRow[] }) {
   const tallyTotal = tally.reduce((a, [, n]) => a + n, 0);
 
   return (
-    <div className="elev-1 rounded-card border border-card-edge bg-raised p-4">
-      <div className="label-data">Where your fillers land</div>
+    <div
+      data-trait="fillers"
+      className="elev-1 rounded-card border border-card-edge bg-raised p-4"
+    >
+      <div className="label-data tone-ink">Where your fillers land</div>
       {/* `items-end` here collapsed every column to the height of its
           number, so the bars drew at 100% of 0 and the card was a row of
           counts with no chart above it. The columns stretch; the bar
@@ -26,7 +30,7 @@ export function FillerHeatmap({ reps }: { reps: RepRow[] }) {
           <div key={i} className="flex flex-1 flex-col items-center gap-1.5">
             <div className="flex w-full flex-1 items-end">
               <div
-                className="fill-y w-full bg-terracotta-300"
+                className="fill-y tone-fill w-full"
                 style={{
                   height: `${peak ? Math.max(4, (n / peak) * 100) : 4}%`,
                 }}
@@ -42,16 +46,16 @@ export function FillerHeatmap({ reps }: { reps: RepRow[] }) {
       </div>
 
       <div className="mt-4 border-t border-hairline pt-3">
-        <div className="label-data">Your words</div>
+        <div className="label-data tone-ink">Your words</div>
         <div className="mt-2 space-y-1.5">
           {tally.map(([word, n]) => (
             <div key={word} className="flex items-center gap-2.5">
               <span className="w-20 shrink-0 text-caption font-semibold">
                 {word}
               </span>
-              <span className="h-[5px] flex-1 overflow-hidden bg-sand">
+              <span className="tone-wash h-[5px] flex-1 overflow-hidden">
                 <span
-                  className="fill block h-full bg-stone-400"
+                  className="fill tone-fill block h-full"
                   style={{ width: `${(n / tallyTotal) * 100}%` }}
                 />
               </span>

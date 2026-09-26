@@ -16,6 +16,7 @@ export function Sparkline({
   invert = false,
   height = 48,
   bare = false,
+  color,
 }: {
   values: number[];
   label: string;
@@ -28,6 +29,14 @@ export function Sparkline({
    * says where the number started and where it is now.
    */
   bare?: boolean;
+  /**
+   * The line's ink, as a CSS colour. The log's rows pass their trait's
+   * `var(--tone)` (or sage for the Index), so a trend reads in the same
+   * colour the trait wears everywhere else, and the line gets a faint
+   * wash of that colour under it. Direction stays the change column's
+   * job, in sage and rust. Unset, the older two voices hold.
+   */
+  color?: string;
 }) {
   if (bare) {
     return (
@@ -46,6 +55,7 @@ export function Sparkline({
         height={height}
         className="fill w-full"
         stroke={1.5}
+        color={color}
       />
     );
   }
@@ -106,6 +116,7 @@ function Trace({
   height,
   className,
   stroke = 2,
+  color,
 }: {
   values: number[];
   label: string;
@@ -114,6 +125,8 @@ function Trace({
   className: string;
   /** 1.5 in a 44px row track, where 2px of ink reads as hatching. */
   stroke?: number;
+  /** See Sparkline. When set, the line also gets a wash under it. */
+  color?: string;
 }) {
   if (values.length < 2) {
     return (
@@ -137,6 +150,7 @@ function Trace({
     return [x, y] as const;
   });
   const d = pts.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+  const ink = color ?? (invert ? "var(--color-stone-400)" : "var(--color-sage-700)");
 
   return (
     <svg
@@ -147,10 +161,20 @@ function Trace({
       role="img"
       aria-label={`${label}: ${values.map((v) => Math.round(v)).join(", ")}`}
     >
+      {color && (
+        /* The wash: the area under the line in the line's own colour,
+           faint enough that the stroke stays the reading. */
+        <path
+          d={`${d} L${w},${height} L0,${height} Z`}
+          fill={color}
+          fillOpacity={0.14}
+          stroke="none"
+        />
+      )}
       <path
         d={d}
         fill="none"
-        stroke={invert ? "var(--color-stone-400)" : "var(--color-sage-700)"}
+        stroke={ink}
         strokeWidth={stroke}
         strokeLinejoin="round"
         strokeLinecap="round"

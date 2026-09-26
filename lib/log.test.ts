@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { RepRow } from "./client-data";
-import { movedRows, presenceRow, recordingName, skillRows } from "./log";
+import {
+  movedRows,
+  presenceRow,
+  recordingName,
+  recordingTrait,
+  rowTrait,
+  skillRows,
+} from "./log";
 
 /*
  * The summary screen's one row grammar (#217): every metric prints
@@ -130,5 +137,48 @@ describe("recordingName", () => {
     expect(recordingName({ lesson_id: "f1", mode: "daily" })).toBe("The baseline");
     expect(recordingName({ lesson_id: null, mode: "boss" })).toBe("Boss");
     expect(recordingName({ lesson_id: "nope", mode: "daily" })).toBe("Recording");
+  });
+});
+
+describe("recordingName, every stored shape", () => {
+  it("names a lesson practice, a path item and a game by title", () => {
+    expect(recordingName({ lesson_id: "lesson:the-landing:2", mode: "daily" })).toBe("The landing");
+    expect(recordingName({ lesson_id: "pause-1-1", mode: "daily" })).not.toBe("Recording");
+    expect(recordingName({ lesson_id: "game:qa:x", mode: "daily" })).toBe("Q&A");
+  });
+});
+
+/*
+ * The log's rows wear their trait's tone (the colour pass), so the
+ * mapping has to say the same trait the lesson or the path item says,
+ * and say nothing for a recording that practised no one trait.
+ */
+describe("recordingTrait", () => {
+  it("reads the trait from a lesson, a path item or a road unit", () => {
+    expect(recordingTrait({ lesson_id: "lesson:the-cold-open:1" })).toBe("fillers");
+    expect(recordingTrait({ lesson_id: "lesson:change-gear:3" })).toBe("pace");
+    expect(recordingTrait({ lesson_id: "range-2-4" })).toBe("range");
+    expect(recordingTrait({ lesson_id: "h1" })).toBe("pause");
+    expect(recordingTrait({ lesson_id: "f2" })).toBe("fillers");
+    expect(recordingTrait({ lesson_id: "p3" })).toBe("pace");
+  });
+
+  it("is null where no single trait was practised", () => {
+    expect(recordingTrait({ lesson_id: null })).toBeNull();
+    expect(recordingTrait({ lesson_id: "s1" })).toBeNull();
+    expect(recordingTrait({ lesson_id: "boss:jevons" })).toBeNull();
+    expect(recordingTrait({ lesson_id: "game:qa:x" })).toBeNull();
+    expect(recordingTrait({ lesson_id: "lesson:nope:1" })).toBeNull();
+  });
+});
+
+describe("rowTrait", () => {
+  it("gives the three trait-shaped metrics their trait, and the Index none", () => {
+    expect(rowTrait("fillers")).toBe("fillers");
+    expect(rowTrait("wpm")).toBe("pace");
+    expect(rowTrait("held")).toBe("pause");
+    expect(rowTrait("index")).toBeNull();
+    expect(rowTrait("presence")).toBeNull();
+    expect(rowTrait("structure")).toBeNull();
   });
 });

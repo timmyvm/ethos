@@ -250,23 +250,28 @@ export default function Home() {
           white tile with a sliver of face in it, which reads as a broken
           image rather than a brand. Better nothing than that until the
           real head mark lands. */}
-      <div className="flex items-baseline justify-between">
+      <div className="flex items-center justify-between">
         <span className="font-display text-[19px] font-extrabold uppercase tracking-[0.02em]">
           ethos
         </span>
-        <div className="flex items-baseline gap-3.5">
+        <div className="flex items-center gap-2">
           {/* Earned stars, beside the streak — the two standing scores
-              (27 Aug, Timothy's call). Plain olive text now (#201):
-              earned, never a pill, never a tap. */}
+              (27 Aug, Timothy's call). Since the colour pass they are
+              earned CHIPS: a sage wash with a gold mark, the glyph
+              doing the word's job. Earned, never a tap. */}
           {totalStars(starMap) > 0 && (
-            <span className="font-display text-[13px] font-bold text-sage-700 tabular-nums">
-              <span aria-hidden>★ </span>
+            <span className="today-earned">
+              <span className="sr-only">{totalStars(starMap)} stars</span>
+              <span aria-hidden className="today-earned-mark text-[14px] leading-none">
+                ★
+              </span>
               {/* The total LANDS with the history read — the corner is
                   empty until then — so it counts up rather than
                   appearing already counted. Not the celebration length:
                   nothing was earned here, a read landed. */}
-              <CountUp value={totalStars(starMap)} durationMs={DURATION.max} />{" "}
-              stars
+              <span aria-hidden>
+                <CountUp value={totalStars(starMap)} durationMs={DURATION.max} />
+              </span>
             </span>
           )}
           <StreakBadge streak={streak} />

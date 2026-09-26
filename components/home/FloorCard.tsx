@@ -107,7 +107,24 @@ export function FloorCard({
        and the screen it opens are visibly one thing. Still the ONE
        lifted object on Today. */
     <div className="topic-card topic-card-lift rounded-sheet p-5">
-      <div className="label-data topic-eyebrow">{eyebrow}</div>
+      {/* The trait's name wears its tone (the colour pass): the same
+          blue, lagoon, jade or ochre as today's line and the row below, so
+          the three places that name it read as one thing. The dot
+          carries it where the ink cannot: the ochre's ink is 1.4:1
+          from this card's own amber eyebrow. */}
+      <div className="label-data topic-eyebrow">
+        {chosen && !dayOne ? (
+          <>
+            {lead} ·{" "}
+            <span data-trait={chosen.trait} className="tone-ink">
+              <span aria-hidden className="today-dot" />
+              {TRAIT[chosen.trait].name}
+            </span>
+          </>
+        ) : (
+          eyebrow
+        )}
+      </div>
 
       {/* Three kinds of content in one card, each named (#293): the
           topic, the technique, the reason. Without the cues a prompt

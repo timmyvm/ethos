@@ -8,7 +8,12 @@
  */
 
 import type { RepRow } from "./client-data";
+import { lessonById } from "@/content/lessons";
+import { pathItemById } from "@/content/path";
+import type { TraitId } from "@/content/traits";
 import { DRILLS } from "./drills";
+import { gameById } from "./games";
+import { parsePracticeId } from "./lesson-progress";
 import { dimensionPoints, INDEX_WEIGHTS } from "./index-score";
 import { TRAITS, type TraitKey } from "./traits";
 
@@ -141,9 +146,63 @@ export function skillRows(reps: RepRow[]): MovedRow[] {
   }).filter((row) => row.series.length >= 2);
 }
 
-/** What a recording is called in its row: the lesson, or the boss. */
+/**
+ * What a recording is called in its row. A stored `lesson_id` is one of
+ * five shapes: a lesson's practice (`lesson:<id>:<n>`), a path item
+ * (`pause-1-3`), a road drill (`f1`), a game (`game:<id>:<q>`) or a
+ * boss topic (`boss:<id>`). Only the road drill used to resolve, so
+ * every recording made from Today or a lesson was called "Recording".
+ */
 export function recordingName(r: Pick<RepRow, "lesson_id" | "mode">): string {
-  const drill = r.lesson_id ? DRILLS.find((d) => d.id === r.lesson_id) : null;
+  const id = r.lesson_id;
+  const practice = parsePracticeId(id);
+  const lesson = practice ? lessonById(practice.lessonId) : null;
+  if (lesson) return lesson.title;
+  const item = pathItemById(id);
+  if (item) return item.title;
+  const drill = id ? DRILLS.find((d) => d.id === id) : null;
   if (drill) return drill.title;
+  const game = id?.startsWith("game:") ? gameById(id.split(":")[1]) : null;
+  if (game) return game.name;
   return r.mode === "boss" ? "Boss" : "Recording";
+}
+
+/** The road's three trait-shaped units; the rest name no single trait. */
+const UNIT_TRAIT: Record<string, TraitId> = {
+  "Filler Elimination": "fillers",
+  "Pace Control": "pace",
+  "The Pause": "pause",
+};
+
+/**
+ * The trait a recording practised, so its row can wear that trait's
+ * tone (`[data-trait]`) the way the lesson does on /lessons. Null for a
+ * game, a boss, a free recording and the road's Structure, Compression
+ * and Thinking Under Fire units: those practise no one trait, and a
+ * tone they did not earn would teach the wrong colour.
+ */
+export function recordingTrait(r: Pick<RepRow, "lesson_id">): TraitId | null {
+  const id = r.lesson_id;
+  if (!id) return null;
+  const practice = parsePracticeId(id);
+  if (practice) return lessonById(practice.lessonId)?.trait ?? null;
+  const item = pathItemById(id);
+  if (item) return item.trait;
+  const drill = DRILLS.find((d) => d.id === id);
+  return drill ? (UNIT_TRAIT[drill.unit] ?? null) : null;
+}
+
+/** The trait a "What moved" row measures, by its key, or null. */
+export function rowTrait(key: string): TraitId | null {
+  const byRow: Record<string, TraitId> = {
+    fillers: "fillers",
+    wpm: "pace",
+    held: "pause",
+    // The Premium skill rows carry the Index dimension's own key.
+    pause: "pause",
+    repairs: "repairs",
+    pace: "pace",
+    range: "range",
+  };
+  return byRow[key] ?? null;
 }

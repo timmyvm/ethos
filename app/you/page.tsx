@@ -1,13 +1,13 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { AchievementMark, IconFreeze } from "@/components/Icon";
+import { AchievementMark, IconFlame, IconFreeze } from "@/components/Icon";
+import { DemosArt } from "@/components/DemosArt";
 import { PremiumDoor, PremiumMark } from "@/components/PremiumMark";
 import { CountUp } from "@/components/CountUp";
 import { ErrorLine, ErrorState } from "@/components/ui/ErrorState";
-import { Skeleton, SkeletonStatBare } from "@/components/ui/Skeleton";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { Paywall, type PaywallAsk } from "@/components/Paywall";
 import { LexiconFlash } from "@/components/LexiconFlash";
 import { ShareCard } from "@/components/ShareCard";
@@ -26,6 +26,7 @@ import {
   type RepRow,
 } from "@/lib/client-data";
 import { rankedTraits, traitLevels } from "@/lib/traits";
+import { TRAIT, type TraitId } from "@/content/traits";
 import { syncFreezes } from "@/lib/freeze-sync";
 import { levelFromXp } from "@/lib/level";
 import { readable, readFailure } from "@/lib/load";
@@ -43,6 +44,15 @@ import { supabaseBrowser } from "@/lib/supabase-browser";
 
 // Free tier gets today's swap, not the archive — when the paywall is on.
 const FREE_LEXICON = 3;
+
+/**
+ * The traits the lessons teach, each with its tone (`[data-trait]`).
+ * A toned row takes the lesson's name for it too (Pausing, Restarts,
+ * Variety), so the colour and the word match /lessons and Today; the
+ * four the Index only reads keep the Index's names.
+ */
+const TONED = new Set<string>(["pause", "fillers", "repairs", "pace", "range"]);
+const isToned = (key: string): key is TraitId => TONED.has(key);
 
 const EMPTY_STREAK: StreakState = {
   current: 0,
@@ -95,14 +105,21 @@ export default function YouPage() {
   const [xp, setXp] = useState<{ total: number; week: number } | null>(null);
   const [anon, setAnon] = useState<boolean | null>(null);
   const [paywall, setPaywall] = useState<PaywallAsk | null>(null);
-  /** `null` is a balance nobody could read. It renders as a dash. */
-  const [coins, setCoins] = useState<number | null>(null);
+  /**
+   * `undefined` until the sync answers, `null` when it failed. They were
+   * one value, so the moment between the reps landing and the balance
+   * landing printed "Your balance didn't load." over a read still in
+   * flight. A failed read draws no number and no coin, only the retry:
+   * a balance nobody could read is not shown as one.
+   */
+  const [coins, setCoins] = useState<number | null | undefined>(undefined);
   const [streak, setStreak] = useState<StreakState>(EMPTY_STREAK);
   const [flashing, setFlashing] = useState(false);
+  /** `undefined` pending, `null` failed: the same split as `coins`. */
   const [freezes, setFreezes] = useState<{
     equipped: number;
     used: number;
-  } | null>(null);
+  } | null | undefined>(undefined);
   /** `null` until the profile answers, so "Add your name" can't flash
       over a name that merely hasn't arrived. */
   const [name, setName] = useState<string | null>(null);
@@ -128,12 +145,14 @@ export default function YouPage() {
 
   /** The coins half, on its own so its retry doesn't reload the page. */
   const loadCoins = useCallback(async (dates: Date[]) => {
+    setCoins(undefined);
     const read = await readable(() => syncCoins(dates));
     setCoins(read.ok ? read.data.balance : null);
   }, []);
 
   /** Same for freezes: one dead sync shouldn't blank the profile. */
   const loadFreezes = useCallback(async (dates: Date[]) => {
+    setFreezes(undefined);
     const read = await readable(() => syncFreezes(dates));
     if (!read.ok) {
       setFreezes(null);
@@ -238,136 +257,155 @@ export default function YouPage() {
 
       {/* The ONE lifted thing on this screen (#234). It holds the two
           numbers that answer "how far in am I", so it keeps the
-          furniture, and nothing below it carries a shadow above elev-1. */}
-      <div className="elev-2 mt-5 rounded-card border border-card-edge bg-raised p-4">
-        {/* The name: the one profile field you type rather than earn.
-            League rows show it, so it caps where they'd truncate. */}
-        {editingName ? (
-          <form
-            className="mb-4 flex items-center gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void saveName();
-            }}
-          >
-            <input
-              autoFocus
-              aria-label="Display name"
-              maxLength={MAX_NAME}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder="Your name"
-              className={`${INPUT_CLASS} flex-1`}
+          furniture, and nothing below it carries a shadow above elev-1.
+          Its top is a stage in the introduction's sun (picture colour,
+          never earned or a tap): your name, your level, and Demos
+          standing in it full-body, the way Practice's boss card stands
+          him in sky. The XP under it stays sage, because XP is earned. */}
+      <section className="elev-2 mt-5 rounded-sheet border border-card-edge bg-raised p-2">
+        <div className="intro-stage tone-sun you-stage h-[184px]">
+          <div className="relative z-[2] flex h-full max-w-[62%] flex-col p-4">
+            {/* The name: the one profile field you type rather than earn.
+                League rows show it, so it caps where they'd truncate. */}
+            <div className="flex min-h-7 items-center gap-2">
+              {!nameKnown ? (
+                <Skeleton className="h-5 w-24" />
+              ) : name ? (
+                <>
+                  <span className="font-display min-w-0 truncate text-[18px] font-extrabold leading-tight min-[360px]:text-[20px]">
+                    {name}
+                  </span>
+                  {!editingName && (
+                    <button
+                      onClick={() => {
+                        setDraft(name ?? "");
+                        setNameFailed(false);
+                        setEditingName(true);
+                      }}
+                      /* "Edit" is 24px of text; the pad widens the
+                         target to 44 without moving the line (#287). */
+                      className="press you-stage-ink -my-2 min-h-11 min-w-11 shrink-0 px-1 text-caption font-semibold"
+                    >
+                      Edit
+                    </button>
+                  )}
+                </>
+              ) : (
+                !editingName && (
+                  <button
+                    onClick={() => {
+                      setDraft("");
+                      setNameFailed(false);
+                      setEditingName(true);
+                    }}
+                    className="press you-stage-ink -my-2 min-h-11 text-left text-caption font-semibold"
+                  >
+                    Add your name →
+                  </button>
+                )
+              )}
+            </div>
+            <div className="mt-auto">
+              <div className="label-micro you-stage-ink">Level</div>
+              {counting ? (
+                <Skeleton className="mt-1.5 h-11 w-14" />
+              ) : (
+                <div className="font-display mt-0.5 text-[52px] font-extrabold leading-none tabular-nums">
+                  <CountUp value={level.level} durationMs={DURATION.max} />
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="you-demos absolute bottom-[2px] right-1 z-[1]">
+            <DemosArt
+              pose="hello"
+              size={172}
+              pop
+              grounded
+              halo={{ tone: "sun", kind: "stage" }}
             />
-            <button
-              type="submit"
-              className="press font-display min-h-11 shrink-0 rounded-control border border-edge bg-surface px-4 text-[14px] font-bold hover:bg-sand"
+          </div>
+        </div>
+
+        <div className="px-3 pb-2 pt-4">
+          {editingName && (
+            <form
+              className="mb-4 flex items-center gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void saveName();
+              }}
             >
-              Save
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditingName(false)}
-              className="press min-h-11 shrink-0 px-1 text-[13px] font-semibold text-stone-500"
-            >
-              Cancel
-            </button>
-          </form>
-        ) : (
-          <div className="mb-4 flex items-baseline justify-between gap-3">
-            {name && (
-              <span className="font-display min-w-0 truncate text-[18px] font-extrabold">
-                {name}
+              <input
+                autoFocus
+                aria-label="Display name"
+                maxLength={MAX_NAME}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder="Your name"
+                className={`${INPUT_CLASS} flex-1`}
+              />
+              <button
+                type="submit"
+                className="press font-display min-h-11 shrink-0 rounded-control border border-edge bg-surface px-4 text-[14px] font-bold hover:bg-sand"
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditingName(false)}
+                className="press min-h-11 shrink-0 px-1 text-[13px] font-semibold text-stone-500"
+              >
+                Cancel
+              </button>
+            </form>
+          )}
+          {nameFailed && (
+            <ErrorLine className="mb-3" onRetry={() => void saveName()}>
+              Your name didn&apos;t save.
+            </ErrorLine>
+          )}
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              {/* Tile labels inside a card take the micro register (#234). */}
+              <div className="label-micro">Total XP</div>
+              {counting ? (
+                <Skeleton className="mt-1.5 h-6 w-16" />
+              ) : (
+                /* The separator survives the tick: `format` writes every
+                   frame the way the page writes the final number, so this
+                   never flashes 1195 on its way to 1,195. */
+                <div className="font-display text-[24px] font-extrabold leading-tight tabular-nums">
+                  <CountUp
+                    value={xp.total}
+                    durationMs={DURATION.max}
+                    format={(v) => Math.round(v).toLocaleString()}
+                  />
+                </div>
+              )}
+            </div>
+            {counting ? (
+              <Skeleton className="mb-1 h-2.5 w-24" />
+            ) : (
+              <span className="label-micro mb-1 tabular-nums">
+                {level.intoLevel}/{level.forNext} to level {level.level + 1}
               </span>
             )}
-            {nameKnown && (
-              <button
-                onClick={() => {
-                  setDraft(name ?? "");
-                  setNameFailed(false);
-                  setEditingName(true);
+          </div>
+          {/* The trough paints at once; the bar fills when the number it
+              reports has landed (#225), never over a skeleton. */}
+          <div className="mt-2.5 h-2 overflow-hidden bg-sand">
+            {!counting && (
+              <div
+                className="fill h-full bg-sage-500"
+                style={{
+                  width: `${(level.intoLevel / level.forNext) * 100}%`,
                 }}
-                className={`press min-h-11 shrink-0 text-caption font-semibold text-stone-400 ${
-                  /* "Edit" is 24px of text; the pad widens the target to
-                     48 and the negative margin keeps its right edge on
-                     the card's own (#287). */
-                  name ? "-mr-3 px-3" : "text-left"
-                }`}
-              >
-                {name ? "Edit" : "Add your name →"}
-              </button>
-            )}
-            {!nameKnown && <Skeleton className="h-5 w-28" />}
-          </div>
-        )}
-        {nameFailed && (
-          <ErrorLine className="mb-3" onRetry={() => void saveName()}>
-            Your name didn&apos;t save.
-          </ErrorLine>
-        )}
-        <div className="flex items-center gap-4">
-          {/* Demos peers out of a sage pebble — the wash is earned-tone
-              because being here at all is (#165). */}
-          <Image
-            src="/demos-listening.webp"
-            alt=""
-            width={96}
-            height={96}
-            className="demos w-12 shrink-0"
-          />
-          <div className="flex-1">
-            {/* Tile labels inside a card take the micro register (#234):
-                the section eyebrow is one per SECTION, and this card has
-                three labels in it. */}
-            <div className="label-micro !text-sage-700">Level</div>
-            {counting ? (
-              <Skeleton className="mt-1.5 h-7 w-10" />
-            ) : (
-              <div className="font-display text-[30px] font-extrabold leading-none tabular-nums">
-                <CountUp value={level.level} durationMs={DURATION.max} />
-              </div>
-            )}
-          </div>
-          <div className="text-right">
-            <div className="label-micro">Total XP</div>
-            {counting ? (
-              <Skeleton className="mt-1.5 ml-auto h-5 w-14" />
-            ) : (
-              /* The separator survives the tick: `format` writes every
-                 frame the way the page writes the final number, so this
-                 never flashes 1195 on its way to 1,195. */
-              <div className="font-display text-[20px] font-extrabold tabular-nums">
-                <CountUp
-                  value={xp.total}
-                  durationMs={DURATION.max}
-                  format={(v) => Math.round(v).toLocaleString()}
-                />
-              </div>
+              />
             )}
           </div>
         </div>
-        {/* The trough paints at once; the bar fills when the number it
-            reports has landed (#225), never over a skeleton. */}
-        <div className="mt-4 h-1.5 overflow-hidden bg-sand">
-          {!counting && (
-            <div
-              className="fill h-full bg-sage-500"
-              style={{
-                width: `${(level.intoLevel / level.forNext) * 100}%`,
-              }}
-            />
-          )}
-        </div>
-        <div className="mt-1.5 flex justify-between">
-          {counting ? (
-            <Skeleton className="h-2.5 w-28" />
-          ) : (
-            <span className="label-micro">
-              {level.intoLevel}/{level.forNext} to level {level.level + 1}
-            </span>
-          )}
-        </div>
-      </div>
+      </section>
 
       {/* The plan (#232): its headline, the unit for what was noticed,
           and how far the road's gate is. A row, not a card (#151), and a
@@ -376,16 +414,16 @@ export default function YouPage() {
         <PlanRow state={onboarding} stars={reps ? totalStars(starsByLesson(reps)) : null} />
       )}
 
-      <div className="mt-7 flex gap-3">
+      <div className="mt-7 flex gap-2">
         {counting ? (
           <>
-            <SkeletonStatBare />
-            <SkeletonStatBare />
-            <SkeletonStatBare />
+            <StatSkeleton />
+            <StatSkeleton />
+            <StatSkeleton />
           </>
         ) : (
           <>
-            <Stat label="Streak" value={streak.current} note="days" />
+            <Stat label="Streak" value={streak.current} note="days" mark />
             <Stat label="Longest" value={streak.longest} note="days" />
             <Stat label="This week" value={xp?.week ?? 0} note="xp" />
           </>
@@ -395,9 +433,9 @@ export default function YouPage() {
       {/*
        * Traits (DECISIONS #159) — the nine Index dimensions as levels,
        * best first, derived from the reps on every load. A mirror, not
-       * a currency: they gate nothing and feed nothing. Amber goes to
-       * the leader only; a trait that hasn't leveled sits dimmed at the
-       * bottom, the shelf's grammar (#153): the position is the claim.
+       * a currency: they gate nothing and feed nothing. A trait that
+       * hasn't leveled sits dimmed at the bottom, the shelf's grammar
+       * (#153): the position is the claim.
        */}
       <div className="mt-7 border-t border-hairline pt-3">
         <div className="label-data">Traits</div>
@@ -412,38 +450,56 @@ export default function YouPage() {
             (() => {
               const ranked = rankedTraits(traitLevels(history));
               const top = Math.max(1, ranked[0]?.level ?? 0);
-              return ranked.map((t, i) => (
-                <div key={t.key} className="flex items-center gap-3">
-                  {/* 600, not 700: nine equally bold lines read as nine
-                      headings and the section loses its leader (#234). */}
-                  <span
-                    className={`font-display w-[116px] shrink-0 text-[14px] font-semibold leading-tight ${
-                      t.level > 0 ? "" : "text-stone-400"
-                    }`}
+              return ranked.map((t) => {
+                const toned = TONED.has(t.key);
+                return (
+                  /* A trait the lessons teach wears its lesson tone, so
+                     blue means pausing here as on /lessons and Today;
+                     the four the Index only reads stay neutral. */
+                  <div
+                    key={t.key}
+                    data-trait={toned ? t.key : undefined}
+                    className={`flex items-center gap-3 ${toned ? "you-trait" : ""}`}
                   >
-                    {t.name}
-                  </span>
-                  <span className="h-[5px] flex-1 overflow-hidden bg-sand">
-                    {t.level > 0 && (
-                      /* The leader wears the earned olive; the rest sit
-                         one step dimmer (#201) — position is the claim. */
-                      <span
-                        className={`fill block h-full ${
-                          i === 0 ? "bg-sage-500" : "bg-sage-400"
-                        }`}
-                        style={{ width: `${(t.level / top) * 100}%` }}
-                      />
-                    )}
-                  </span>
-                  <span
-                    className={`font-display w-6 shrink-0 text-right text-[14px] font-extrabold tabular-nums ${
-                      t.level > 0 ? "" : "text-stone-400"
-                    }`}
-                  >
-                    <CountUp value={t.level} durationMs={DURATION.max} />
-                  </span>
-                </div>
-              ));
+                    <span
+                      aria-hidden
+                      className={`h-2.5 w-2.5 shrink-0 rounded-[3px] ${
+                        toned ? "tone-fill" : "bg-stone-200"
+                      }`}
+                    />
+                    {/* 600, not 700: nine equally bold lines read as nine
+                        headings and the section loses its leader (#234). */}
+                    <span
+                      className={`font-display -ml-1 w-[124px] shrink-0 text-[14px] font-semibold leading-tight ${
+                        t.level > 0 ? "" : "text-stone-400"
+                      }`}
+                    >
+                      {toned && isToned(t.key) ? TRAIT[t.key].name : t.name}
+                    </span>
+                    <span
+                      className={`h-1.5 flex-1 overflow-hidden ${
+                        toned ? "you-trait-trough" : "bg-sand"
+                      }`}
+                    >
+                      {t.level > 0 && (
+                        <span
+                          className={`fill block h-full ${
+                            toned ? "tone-fill" : "bg-stone-400"
+                          }`}
+                          style={{ width: `${(t.level / top) * 100}%` }}
+                        />
+                      )}
+                    </span>
+                    <span
+                      className={`font-display w-6 shrink-0 text-right text-[14px] font-extrabold tabular-nums ${
+                        t.level > 0 ? "" : "text-stone-400"
+                      }`}
+                    >
+                      <CountUp value={t.level} durationMs={DURATION.max} />
+                    </span>
+                  </div>
+                );
+              });
             })()
           )}
         </div>
@@ -458,56 +514,53 @@ export default function YouPage() {
        */}
       <div className="mt-7 border-t border-hairline pt-3">
         <div className="label-data">Coins</div>
-        <div className="mt-3 flex items-end gap-4">
-          <div className="flex-1">
-            {loading ? (
-              <Skeleton className="h-7 w-12" />
-            ) : (
-              <div className="font-display text-[26px] font-extrabold leading-none tabular-nums">
-                {coins === null ? (
-                  "—"
-                ) : (
-                  <CountUp value={coins} durationMs={DURATION.max} />
-                )}
-              </div>
-            )}
-            <div className="label-micro mt-1.5">1 a day</div>
-          </div>
-          <div className="shrink-0 text-right">
-            {loading ? (
-              <Skeleton className="ml-auto h-5 w-8" />
-            ) : (
-              <div className="font-display text-[18px] font-extrabold leading-none tabular-nums">
-                {coins === null ? (
-                  "—"
-                ) : (
-                  <CountUp
-                    value={towardFirstItem(coins).toGo}
-                    durationMs={DURATION.max}
-                  />
-                )}
-              </div>
-            )}
-            <div className="label-micro mt-1.5">to the first item</div>
-          </div>
-        </div>
-        {/* Terracotta on purpose, the ONLY terracotta on this screen: it points
-            at the next buyable thing, and it isn't a tap (#165's flag,
-            carried into #201). */}
-        <div className="mt-3 h-[5px] overflow-hidden bg-sand">
-          {!loading && coins !== null && (
-            <div
-              className="fill h-full bg-terracotta-500"
-              style={{
-                width: `${towardFirstItem(coins).fraction * 100}%`,
-              }}
-            />
-          )}
-        </div>
-        {!loading && coins === null && (
-          <ErrorLine className="mt-2" onRetry={() => void loadCoins(dates)}>
+        {coins === null ? (
+          <ErrorLine className="mt-3" onRetry={() => void loadCoins(dates)}>
             Your balance didn&apos;t load.
           </ErrorLine>
+        ) : (
+          <>
+            <div className="mt-3 flex items-end gap-4">
+              <div className="flex-1">
+                {coins === undefined ? (
+                  <Skeleton className="h-7 w-12" />
+                ) : (
+                  <div className="font-display flex items-center gap-2 text-[26px] font-extrabold leading-none tabular-nums">
+                    {/* A coin, drawn: the picture of the thing counted. */}
+                    <span aria-hidden className="you-coin" />
+                    <CountUp value={coins} durationMs={DURATION.max} />
+                  </div>
+                )}
+                <div className="label-micro mt-1.5">1 a day</div>
+              </div>
+              <div className="shrink-0 text-right">
+                {coins === undefined ? (
+                  <Skeleton className="ml-auto h-5 w-8" />
+                ) : (
+                  <div className="font-display text-[18px] font-extrabold leading-none tabular-nums">
+                    <CountUp
+                      value={towardFirstItem(coins).toGo}
+                      durationMs={DURATION.max}
+                    />
+                  </div>
+                )}
+                <div className="label-micro mt-1.5">to the first item</div>
+              </div>
+            </div>
+            {/* Sage: coins are earned, one a day, and this is how far the
+                earning has got. It was terracotta (#165, #201), which on a
+                screen of rows read as the page's tap. */}
+            <div className="mt-3 h-1.5 overflow-hidden bg-sand">
+              {typeof coins === "number" && (
+                <div
+                  className="fill h-full bg-sage-500"
+                  style={{
+                    width: `${towardFirstItem(coins).fraction * 100}%`,
+                  }}
+                />
+              )}
+            </div>
+          </>
         )}
         <Link
           href="/shop"
@@ -531,32 +584,29 @@ export default function YouPage() {
         {Array.from({ length: MAX_EQUIPPED_FREEZES }).map((_, i) => {
           const ready = (freezes?.equipped ?? 0) > i;
           return (
-            /* Bordered tiles, not washes (#201): a ready freeze wears
-               the earned outline, an empty slot the rule (#234). */
+            /* Ice, not sage: a freeze is protection you hold, not a
+               thing you earned the way a star is. A ready one is a tile
+               of the introduction's sky; an empty slot is its outline. */
             <span
               key={i}
-              className={`flex h-[38px] w-[38px] items-center justify-center rounded-control border ${
-                ready
-                  ? "border-sage-300 bg-surface text-sage-700"
-                  : "border-edge bg-surface text-stone-400"
-              }`}
+              className={`you-freeze ${ready ? "" : "you-freeze-empty"}`}
             >
-              <IconFreeze size={17} />
+              <IconFreeze size={20} />
             </span>
           );
         })}
-        {freezes !== null && freezes.equipped === 0 && (
+        {freezes && freezes.equipped === 0 && (
           <p className="ml-2 flex-1 text-caption text-stone-500">
             {toNextFreeze} more day{toNextFreeze === 1 ? "" : "s"} earns one.
           </p>
         )}
       </div>
-      {freezes !== null && freezes.used > 0 && (
+      {freezes && freezes.used > 0 && (
         <p className="mt-3 text-caption text-stone-500">
           {freezes.used} spent so far.
         </p>
       )}
-      {!loading && freezes === null && (
+      {freezes === null && (
         <ErrorLine className="mt-2" onRetry={() => void loadFreezes(dates)}>
           Your freezes didn&apos;t load.
         </ErrorLine>
@@ -605,16 +655,23 @@ export default function YouPage() {
                 <span aria-hidden className="text-stone-300">
                   →
                 </span>
-                <span className="font-bold">{l.upgrade}</span>
+                {/* The word you have now, on a mint label: picture
+                    colour, so it is neither a tap nor a badge. */}
+                <span className="you-word">{l.upgrade}</span>
               </div>
             ))}
           </div>
           {lexicon.length >= 3 && !flashing && (
             <button
               onClick={() => setFlashing(true)}
-              className="press font-display mt-3 min-h-11 w-full rounded-control border border-sage-300 bg-surface px-5 py-3 text-[14px] font-bold text-sage-700 hover:bg-sage-100"
+              /* The shop link's shape: a door, so it wears no earned
+                 colour of its own; the words it tests are the colour. */
+              className="press font-display mt-3 flex min-h-11 w-full items-center justify-between rounded-control border border-edge bg-surface px-4 py-3 text-[14px] font-bold hover:bg-sand"
             >
-              Test yourself on these →
+              <span>Test yourself on these</span>
+              <span aria-hidden className="text-stone-300">
+                →
+              </span>
             </button>
           )}
 
@@ -656,7 +713,7 @@ export default function YouPage() {
        */}
       <div className="label-data mt-7 border-t border-hairline pt-3">
         Earned{" "}
-        <span className="ml-1.5 text-stone-600">
+        <span className="you-count ml-1.5">
           {earnedCount}/{badges.length}
         </span>
       </div>
@@ -667,16 +724,10 @@ export default function YouPage() {
             href={a.href}
             className="press flex min-h-14 items-center gap-3.5 border-b border-hairline py-3 last:border-b-0"
           >
-            {/* Bordered tiles, not washes (#201): earned wears the
-                olive outline, not-yet the rule (#234). */}
-            <span
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-control border ${
-                a.earned
-                  ? "border-sage-300 bg-surface text-sage-700"
-                  : "border-edge bg-surface text-stone-400"
-              }`}
-            >
-              <AchievementMark name={a.icon} size={18} />
+            {/* Earned is a sage tile with its mark in gold, the grammar
+                of Today's earned chips; not yet is a quiet outline. */}
+            <span className={`you-badge ${a.earned ? "" : "you-badge-open"}`}>
+              <AchievementMark name={a.icon} size={20} />
             </span>
             <span className="min-w-0 flex-1">
               <span
@@ -690,13 +741,15 @@ export default function YouPage() {
                 {a.requirement}
               </span>
               {!a.earned && a.progress > 0 && (
-                <span className="mt-1.5 block h-1 overflow-hidden bg-sand">
+                <span className="mt-1.5 block h-1 overflow-hidden bg-surface">
                   {/* The trough is drawn by the row; the bar only exists
                       once there is progress to report, so its `.fill`
                       runs on the read landing and never over a
-                      placeholder (#225). */}
+                      placeholder (#225). How close you are is the row's
+                      one number, so the fill holds 3:1 on its trough
+                      (`.you-near`); the tile and the name stay muted. */}
                   <span
-                    className="fill block h-full bg-stone-300"
+                    className="you-near fill block h-full"
                     style={{ width: `${Math.round(a.progress * 100)}%` }}
                   />
                 </span>
@@ -777,7 +830,11 @@ export default function YouPage() {
 }
 
 /**
- * A labelled number on the ground. No box: the label is the container.
+ * A labelled number on an earned tile. All three are worked for (the
+ * days practised, the best run, this week's XP), so the tile is sage,
+ * the earned ground, and the number keeps the ink: it is the point.
+ * The streak carries the flame it wears everywhere else, in the gold
+ * Today's earned chips use for their marks.
  *
  * The value is a number rather than a string so it can COUNT: these
  * three only ever mount once the reps have landed (the skeletons hold
@@ -788,20 +845,40 @@ function Stat({
   label,
   value,
   note,
+  mark = false,
 }: {
   label: string;
   value: number;
   note: string;
+  mark?: boolean;
 }) {
   return (
-    <div className="flex-1">
-      {/* The section eyebrow, not micro: each stat IS its own section
-          here, and at 10px the label lost to the 12.5px note under it. */}
-      <div className="label-data">{label}</div>
-      <div className="font-display text-[24px] font-extrabold leading-tight tabular-nums">
-        <CountUp value={value} durationMs={DURATION.max} />
+    <div className="you-stat min-w-0 flex-1 rounded-card px-2.5 pb-2.5 pt-3 min-[360px]:px-3">
+      {/* The micro register: three labels share one row, and at 320px
+          the section eyebrow's tracking wants more than a tile has. */}
+      <div className="label-micro you-stat-label whitespace-nowrap">{label}</div>
+      <div className="mt-1 flex items-center gap-1">
+        <span className="font-display text-[26px] font-extrabold leading-none tabular-nums">
+          <CountUp value={value} durationMs={DURATION.max} />
+        </span>
+        {mark && value > 0 && (
+          <span aria-hidden className="you-gold">
+            <IconFlame size={18} />
+          </span>
+        )}
       </div>
-      <div className="text-caption text-stone-400">{note}</div>
+      <div className="you-stat-label mt-1 text-caption">{note}</div>
+    </div>
+  );
+}
+
+/** The tile's placeholder: the same tile, so nothing moves when it lands. */
+function StatSkeleton() {
+  return (
+    <div className="you-stat min-w-0 flex-1 rounded-card px-2.5 pb-2.5 pt-3 min-[360px]:px-3">
+      <Skeleton className="h-2.5 w-12" />
+      <Skeleton className="mt-1.5 h-[26px] w-10" />
+      <Skeleton className="mt-1.5 h-3 w-8" />
     </div>
   );
 }

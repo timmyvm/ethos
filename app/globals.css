@@ -1408,8 +1408,12 @@ body::after {
 
 /* ===================================================================
  * THE INTRODUCTION'S COLOUR AND STAGING (the swipe-and-pop round).
- * Owned by the /welcome workstream. Everything below is scoped to the
- * walk: nothing outside /welcome reads these classes.
+ * Owned by the /welcome workstream. Built for the walk; outside /welcome
+ * they are read only as picture colour (Practice's boss stage reads
+ * `.intro-stage.tone-sky` and its tiles `.tone-sun/-sky/-mint`, see the
+ * "practice (/games)" block; You's header is `.intro-stage.tone-sun` and
+ * its freezes and lexicon words read `--pop-sky-*` and `--pop-mint-*`,
+ * see the "you (colour pass)" block), never as a control fill.
  *
  * "Pop with colour", from a first-time user in the audience. The walk
  * was a white page, one terracotta button and brown text. The colour
@@ -2022,26 +2026,30 @@ body::after {
  * Set by `data-trait` on any element; children read the vars.
  *
  * Hues in OKLCH, because that is where "near" means near to the eye:
- * ochre 79, teal 183, lagoon 214, cerulean 244, indigo 277. Fillers was
+ * ochre 79, jade 163, lagoon 210, blue 252, indigo 277. Pace, Fillers
+ * and Pausing were spread apart on 26 Sep (#311): at 183, 214 and 244,
+ * all at one lightness and a low chroma, Pace and Fillers were 4.6 apart
+ * (OKLab x100) and sat side by side on Today reading as one colour. Now
+ * about 9 apart each, Pace a jade kept 12 from sage's olive. Fillers was
  * a rose at 7, which is the midpoint between plum (320) and terracotta
  * (52): its wash sat 30 degrees from plum-50, and Fillers is the most
  * common pain, so the up-next card was usually pink on the one page a
  * first-time user asked whether she had to pay. Any red, coral or pink
  * lands between those two jobs, and green is sage's, so Fillers moved
- * to the one open arc left: lagoon, midway between the teal and the
- * cerulean, at its neighbours' chroma so it reads as a colour and never
- * as a greyed-out, locked row.
+ * to the one open arc left: lagoon, between Pace and Pausing, at its
+ * neighbours' chroma so it reads as a colour and never as a greyed-out,
+ * locked row.
  * lib/lesson-up-next.test.ts holds the contrast floors.
  */
 [data-trait="pause"] {
-  --tone: #2f77ac;
-  --tone-wash: #e1edf8;
-  --tone-ink: #1f5580;
+  --tone: #2c71b7;
+  --tone-wash: #e3f2ff;
+  --tone-ink: #274f7a;
 }
 [data-trait="fillers"] {
-  --tone: #227d8e;
-  --tone-wash: #dbeff4;
-  --tone-ink: #005765;
+  --tone: #008293;
+  --tone-wash: #dcf6fb;
+  --tone-ink: #005966;
 }
 [data-trait="repairs"] {
   --tone: #c28d22;
@@ -2049,9 +2057,9 @@ body::after {
   --tone-ink: #6e4e0e;
 }
 [data-trait="pace"] {
-  --tone: #198074;
-  --tone-wash: #d9efea;
-  --tone-ink: #185a52;
+  --tone: #008058;
+  --tone-wash: #e0f6eb;
+  --tone-ink: #0e5b3f;
 }
 [data-trait="range"] {
   --tone: #5a62c0;
@@ -2059,14 +2067,14 @@ body::after {
   --tone-ink: #363d8c;
 }
 :root[data-theme="dark"] [data-trait="pause"] {
-  --tone: #5b9bd0;
-  --tone-wash: #172636;
-  --tone-ink: #a8cbee;
+  --tone: #5999df;
+  --tone-wash: #132539;
+  --tone-ink: #b0d5fe;
 }
 :root[data-theme="dark"] [data-trait="fillers"] {
-  --tone: #579eae;
-  --tone-wash: #152c30;
-  --tone-ink: #9dd5e2;
+  --tone: #45aaba;
+  --tone-wash: #002a30;
+  --tone-ink: #9adeea;
 }
 :root[data-theme="dark"] [data-trait="repairs"] {
   --tone: #d6a543;
@@ -2074,9 +2082,9 @@ body::after {
   --tone-ink: #ebcb7e;
 }
 :root[data-theme="dark"] [data-trait="pace"] {
-  --tone: #45a699;
-  --tone-wash: #122e2a;
-  --tone-ink: #92d6cb;
+  --tone: #48a77f;
+  --tone-wash: #0b2b1e;
+  --tone-ink: #a7e0c4;
 }
 :root[data-theme="dark"] [data-trait="range"] {
   --tone: #7d84d6;
@@ -2129,3 +2137,420 @@ body::after {
   background: var(--color-sage-500);
 }
 /* ========================== end of lessons (trait tones) ========================== */
+
+/* ============================ practice (/games) ============================
+ * The tabs' colour pass, Practice's block. Picture colour only: the boss
+ * card's top is the introduction's sky stage (`.intro-stage.tone-sky`,
+ * Demos full-body with his halo and contact shadow), and each game's
+ * glyph sits on a tile in its own tone. The tap stays terracotta, the
+ * Premium chip stays the only plum, and no tile is a trait tone.
+ */
+/* The stage sits inside the lifted card with 8px round it, so it takes
+   a card's radius rather than the introduction's full-screen 20. */
+.practice-stage {
+  border-radius: 16px;
+}
+/* The stage's label. The sky's own ink is 3.7:1 on the stage fill, under
+   AA for 11px type, so the stage label takes a deeper blue of the same
+   hue (6.0:1). Dark keeps the tone's ink, 6.8:1 on the dark sky. */
+.practice-stage-ink {
+  color: #154d70;
+}
+:root[data-theme="dark"] .practice-stage-ink {
+  color: var(--pop-sky-ink);
+}
+/* The week's state: a label on the picture, never a control. No fill
+   and no pill, because a filled rounded chip just above the tap read as
+   a second button (the review of this pass). The stage's ink, and sage
+   when the boss is done this week, since that state is earned: sage-800
+   is 6.6:1 on the sky stage in light, and on the dark sky in dark. The
+   dark rules repeat `[data-done]` so the theme rule never outranks it
+   (it did, and the one earned state showed in picture blue). */
+.practice-week {
+  color: #154d70;
+}
+.practice-week[data-done] {
+  color: var(--color-sage-800);
+}
+:root[data-theme="dark"] .practice-week {
+  color: var(--pop-sky-ink);
+}
+:root[data-theme="dark"] .practice-week[data-done] {
+  color: var(--color-sage-800);
+}
+/* A game's tile: the tone itself with its ink glyph (3.1 to 3.8:1, over
+   the 3:1 a glyph needs), a little light from the top so it has a face
+   rather than reading as a flat swatch. 44px, a control's radius. */
+.game-tile {
+  display: flex;
+  height: 44px;
+  width: 44px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background:
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 60%),
+    var(--tone);
+  color: var(--tone-ink);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+  transition: transform var(--duration-base) var(--ease-spring);
+}
+:root[data-theme="dark"] .game-tile {
+  /* No sheen in dark: a white wash over the dark sun took its glyph to
+     2.7:1. The inset ring alone gives the tile its edge. */
+  background: var(--tone);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+/* The dark sun, one step deeper on a tile only: #ffd166 on the stage's
+   #a06c04 is 3.1:1, on this 4.0:1. Still gold beside the mint and sky. */
+:root[data-theme="dark"] .game-tile.tone-sun {
+  --tone: #8a5c03;
+}
+/* Hostile Q&A: the hot seat, a warm charcoal with the page's light ink
+   for the shield (7.6:1). Not amber: gold on black is the usual Pro badge,
+   on a Premium row it read as a second paid mark, and amber is Demos's.
+   Not the full ink: at the squint that tile pulled the eye. */
+.game-tile-seat {
+  --tone: #524b46;
+  --tone-ink: #f2f2f2;
+}
+:root[data-theme="dark"] .game-tile-seat {
+  --tone: #0a0a0a;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+/* Bring your own: an input, not a game, so a neutral tint. */
+.game-tile-plain {
+  --tone: var(--color-surface);
+  --tone-ink: var(--color-stone-700);
+}
+:root[data-theme="dark"] .game-tile-plain {
+  --tone: var(--color-raised);
+}
+/* A row pressed: its tile tips, the same answer the introduction's
+   glyph tiles give when picked. */
+.press:active > .game-tile {
+  transform: scale(1.06) rotate(-4deg);
+}
+:root[data-motion="reduce"] .game-tile {
+  transition: none;
+}
+:root[data-motion="reduce"] .press:active > .game-tile {
+  transform: none;
+}
+/* ========================== end of practice (/games) ========================== */
+
+/* ============================ today (colour pass) ============================
+ * Today's share of the colour pass (26 Sep, "pop with colour"). Nothing
+ * new in hue: every trait on Today wears its lessons tone (`[data-trait]`
+ * above), so blue means pausing here, on /lessons and in the log alike;
+ * the earned chips are sage with a gold mark, which is the mascot's
+ * amber and the stars' own colour on the introduction. Terracotta stays
+ * the floor's one tap and never appears here.
+ *   --today-trough  a trait ring's unfilled arc: the tone faint on its
+ *                   own wash, so the remainder reads on every tone and
+ *                   in both themes where `sand` greyed the tile out.
+ * ============================================================================ */
+:root {
+  /* The earned mark's gold: a star, a lit flame, a badge's glyph, on
+     Today and You alike (one token since #311). 3.2:1 on sage-100, the
+     non-text floor for a mark. Earned, never a tap and never paid. */
+  --earned-gold: #ad7c00;
+}
+:root[data-theme="dark"] {
+  --earned-gold: #f0c64a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --earned-gold: #f0c64a;
+  }
+}
+/* The header's stars and streak: earned chips, never a tap. */
+.today-earned {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px 0 8px;
+  border-radius: 999px;
+  background: var(--color-sage-100);
+  color: var(--color-sage-800);
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.today-earned-mark {
+  display: inline-flex;
+  color: var(--earned-gold);
+}
+/* An open day: the flame is unlit until today's recording lands. It
+   replaces the words, which the chip keeps as sr-only text. */
+.today-earned[data-open="true"] .today-earned-mark {
+  color: var(--color-stone-400);
+}
+/* A trait row's tile and today's line: the tone's wash, a faint ring
+   of the tone so the wash holds its edge on the dark ground. */
+.today-trait,
+.today-line {
+  --today-trough: color-mix(in srgb, var(--tone) 20%, var(--tone-wash));
+}
+/* The ochre, light: its solid is 2.1:1 on that trough, so the ring
+   stopped measuring on the Restarts row. A deeper arc (3.9:1 on the
+   wash) and a fainter trough give 3.6:1; the other four clear 3.1 and
+   up as they are, and every tone clears in dark. Held by
+   lib/today-colour.test.ts. The tile and the name keep the lessons
+   ochre, so Restarts still reads as the same colour as on /lessons. */
+:root:not([data-theme="dark"])
+  :is(.today-trait[data-trait="repairs"], [data-trait="repairs"] :is(.today-line, .today-dot)) {
+  --ring-arc: #9a6c14;
+  --today-trough: color-mix(in srgb, var(--tone) 10%, var(--tone-wash));
+}
+/* The trait's colour as a dot before its name on the floor card: on
+   the amber card the ochre's ink is 1.4:1 from the eyebrow's own, so a
+   fill, not an ink, is what tells Restarts apart there. */
+.today-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 5px;
+  border-radius: 999px;
+  background: var(--ring-arc, var(--tone));
+  vertical-align: 1px;
+}
+.today-trait-tile {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 14%, transparent);
+}
+.today-line {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--tone) 18%, transparent),
+    var(--shadow-1);
+}
+/* ========================== end of today (colour pass) ========================== */
+
+/* ============================ log (colour pass) ============================
+ * The log's share of the colour pass (26 Sep, "pop with colour"). No new
+ * hue: every trait-shaped thing on /history wears its lessons tone
+ * (`[data-trait]` above), so blue is pausing here as on Today and
+ * /lessons. The Index row and the score card stay sage (earned), the
+ * change column keeps sage for better and rust for worse (#195), and the
+ * Premium chips are untouched. Nothing here is a tap.
+ * ============================================================================ */
+/* A metric's swatch: the key the recording tiles below are coloured by.
+   The Index's is sage, the colour of the card that carries it. */
+.log-swatch {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  margin-right: 4px;
+  border-radius: 2px;
+  background: var(--tone);
+}
+.log-metric[data-index] .log-swatch {
+  background: var(--color-sage-600);
+}
+/* A row with no trait (Presence, Structure, the Premium teasers) keeps
+   the slot so the label column holds one left edge. */
+.log-swatch-blank {
+  background: transparent;
+}
+/* A recording's date as a tile: the trait's wash with its ink (7:1 and
+   up in both themes), or the plain surface when the recording practised
+   no one trait. A hairline of the tone keeps the wash's edge on the dark
+   ground, where the dark washes sit near the page. */
+.log-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 44px;
+  border-radius: 10px;
+  line-height: 1;
+}
+/* After `.tone-wash` in the file, so the plain tile has to name itself
+   or it would paint over every trait's wash. */
+.log-date:not([data-trait]) {
+  background: var(--color-surface);
+  color: var(--color-stone-600);
+}
+.log-date[data-trait] {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 16%, transparent);
+}
+/* The month over the day: the micro register, in the tile's own ink at
+   full strength (6.4:1 and up on every wash; faded, the ochre fell to
+   3.9 at 9px). Size alone puts it under the day. */
+.log-date-month {
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+/* The one insight, ruled in its trait's tone: a 3px left rule over the
+   wash at 60%, square, no ring. The ringed, rounded box it was read as a
+   card under a row that is itself a button, and invited a tap that did
+   nothing; a rule reads as an annotation of the table. At full strength
+   the wash was the second-heaviest mass on the squint. */
+.log-insight {
+  border-left: 3px solid var(--tone);
+  background: color-mix(in srgb, var(--tone-wash) 60%, transparent);
+}
+/* ========================== end of log (colour pass) ========================== */
+
+/* ============================ you (colour pass) ============================
+ * The profile's share of the colour pass (26 Sep, "pop with colour"). No
+ * new hue family: the header is the introduction's sun as a stage with
+ * Demos standing in it (picture), the five taught traits wear their
+ * lesson tones (`[data-trait]`), a freeze is the introduction's sky
+ * (protection, not earning), a lexicon word sits on its mint (a label),
+ * and everything worked for (the stat tiles, XP, coins, the badges) is
+ * sage with a gold mark, Today's grammar for earned. Terracotta and plum
+ * are untouched here: no tap is added and the Premium row is as it was.
+ * Dark keys on `data-theme` alone, like the tokens: the boot script
+ * always resolves the OS into it, and a fallback on the media query
+ * would darken this card on a page whose tokens stayed light.
+ * ============================================================================ */
+:root {
+  /* Labels on the sun stage (11px): 4.9:1 on #ffd166. */
+  --you-stage-ink: #7a5000;
+  /* A lexicon word on mint's wash: 5.6:1 (mint's own ink is 4.51). */
+  --you-word-ink: #136a55;
+}
+:root[data-theme="dark"] {
+  /* Labels on the dark stage (#946404): white, 4.6:1 where the stage's
+     top light is brightest (sampled beside Edit); cream fell to 4.1. */
+  --you-stage-ink: #ffffff;
+  --you-word-ink: var(--pop-mint-ink);
+}
+/* The header stage sits in the lifted card with 8px round it, so it
+   takes a card's radius, as Practice's does. In dark it steps a shade
+   under the introduction's sun (#a06c04 to #946404): still gold, not
+   the olive brown the introduction rejected, and deep enough that the
+   small labels hold 4.6:1 in white under the top light. The name is
+   large text (4.1:1 in the page ink at its brightest pixel, over the
+   3:1 it needs). His disc keeps the introduction's. */
+.you-stage {
+  border-radius: 16px;
+}
+:root[data-theme="dark"] .you-stage {
+  --pop-sun: #946404;
+}
+.you-stage-ink {
+  color: var(--you-stage-ink);
+}
+/* Under 360px the stage is 264px wide and a 172px Demos left the name
+   126px, so "Timothy" and Edit truncated. He steps down to 80% from
+   his feet, so he still stands on the stage's floor. */
+@media (max-width: 359px) {
+  .you-demos {
+    transform: scale(0.8);
+    transform-origin: 100% 100%;
+  }
+}
+/* The three numbers: earned tiles, the number in ink. */
+.you-stat {
+  background: var(--color-sage-100);
+}
+.you-stat-label {
+  color: var(--color-sage-700);
+}
+.you-gold {
+  display: inline-flex;
+  color: var(--earned-gold);
+}
+/* A taught trait's trough: its wash, so the row reads as that trait's
+   colour while a zero still looks empty. The tone mixed in at 18% read
+   as a pale bar already filled. */
+.you-trait-trough {
+  background: var(--tone-wash);
+}
+/* A coin: gold, a rim, a little light from the top-left. A picture of
+   the thing counted, never a control. */
+.you-coin {
+  display: inline-block;
+  height: 20px;
+  width: 20px;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 35% 30%, #ffe7a3 0%, #f2c14e 45%, #d49a1a 100%);
+  box-shadow:
+    inset 0 0 0 2px rgba(160, 108, 4, 0.55),
+    inset 0 -2px 0 rgba(122, 84, 6, 0.35);
+}
+/* A freeze: the sky's tile with its ink glyph (3.7:1 light, 6.8:1 dark,
+   over the 3:1 a glyph needs), light from the top like Practice's tiles.
+   An empty slot is the sky's outline, dashed: a place a freeze goes. */
+.you-freeze {
+  display: flex;
+  height: 44px;
+  width: 44px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background:
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0) 60%),
+    var(--pop-sky);
+  color: var(--pop-sky-ink);
+  box-shadow: inset 0 0 0 1px rgba(29, 110, 158, 0.12);
+}
+:root[data-theme="dark"] .you-freeze {
+  background:
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 60%),
+    var(--pop-sky);
+  box-shadow: inset 0 0 0 1px rgba(147, 211, 246, 0.14);
+}
+.you-freeze.you-freeze-empty,
+:root[data-theme="dark"] .you-freeze.you-freeze-empty {
+  background: transparent;
+  color: var(--color-stone-300);
+  box-shadow: none;
+  border: 1.5px dashed color-mix(in srgb, var(--pop-sky-ink) 40%, transparent);
+}
+/* A lexicon word: mint's wash and a deeper ink, a label, never a pill
+   anyone would press (no border, no arrow, no hover). */
+.you-word {
+  display: inline-block;
+  border-radius: 9999px;
+  padding: 3px 10px;
+  background: var(--pop-mint-wash);
+  color: var(--you-word-ink);
+  font-weight: 700;
+}
+/* A badge: earned is a sage tile with a gold mark; not yet, an outline
+   with a stone mark, so the shelf's three earned rows are the colour. */
+.you-badge {
+  display: flex;
+  height: 40px;
+  width: 40px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--color-sage-100);
+  color: var(--earned-gold);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-sage-500) 25%, transparent);
+}
+.you-badge.you-badge-open {
+  background: transparent;
+  color: var(--color-stone-400);
+  box-shadow: inset 0 0 0 1px var(--color-edge);
+}
+/* How close a not-yet badge is: ink at half, 3.2:1 on the surface
+   trough in light and 4.7:1 in dark. Stone-200 (1.3:1) hid the one
+   number the row has. */
+.you-near {
+  background: color-mix(in srgb, var(--color-ink) 50%, transparent);
+}
+/* The shelf's count: an earned chip, like Today's. */
+.you-count {
+  display: inline-block;
+  border-radius: 9999px;
+  padding: 2px 8px;
+  background: var(--color-sage-100);
+  color: var(--color-sage-800);
+  letter-spacing: 0.04em;
+}
+/* ========================== end of you (colour pass) ========================== */

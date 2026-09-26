@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { CountUp } from "@/components/CountUp";
 import { PremiumMark } from "@/components/PremiumMark";
 import { IconChevron } from "@/components/Icon";
@@ -27,10 +27,13 @@ import {
   movedRows,
   presenceRow,
   recordingName,
+  recordingTrait,
+  rowTrait,
   skillRows,
   type MovedRow,
 } from "@/lib/log";
 import { starsByLesson, totalStars, UNITS } from "@/lib/path";
+import { TRAIT, type TraitId } from "@/content/traits";
 
 const FREE_DAYS = 7; // mechanics.md: free tier sees the last 7 days
 const DASH = "—";
@@ -51,7 +54,22 @@ function decimalsOf(printed: string): (value: number) => string {
 
 /** The two grids, shared by header and rows so the columns line up. */
 const MOVED_GRID = "grid grid-cols-[minmax(0,1fr)_36px_42px_74px_44px] gap-2";
-const RECORD_GRID = "grid grid-cols-[34px_minmax(0,1fr)_44px_36px_36px_36px] gap-1.5";
+/* The date column is a 40px tile in the recording's trait tone (the
+   colour pass), and the lesson title keeps 4px more air off it. */
+const RECORD_GRID = "grid grid-cols-[40px_minmax(0,1fr)_44px_36px_36px_36px] gap-1.5";
+
+/**
+ * Which trait an insight is about, so its line wears that trait's tone.
+ * The two that are about no single trait (the best hour, the rising
+ * floor) stay on the plain ground.
+ */
+const INSIGHT_TRAIT: Record<string, TraitId> = {
+  "dominant-filler": "fillers",
+  "filler-cluster": "fillers",
+  "pace-fixed": "pace",
+  "pace-fast": "pace",
+  "silence-up": "pause",
+};
 
 /**
  * The log (#17, rebuilt to #217): one hero, one row grammar,
@@ -275,7 +293,15 @@ export default function HistoryPage() {
             the premium display rule, #200). Same honesty pattern. */}
         {skills.length > 0 &&
           (premium ? (
-            skills.map((row) => <MetricRow key={row.key} row={row} />)
+            skills.map((row) => (
+              /* A taught trait's row takes the name Today and Lessons
+                 print beside the same colour ("Restarts", not
+                 "Self-corrections"), so one colour never has two names. */
+              <MetricRow
+                key={row.key}
+                row={{ ...row, label: TRAIT[row.key as TraitId]?.name ?? row.label }}
+              />
+            ))
           ) : (
             <TeaserRow
               label="Every skill"
@@ -284,9 +310,24 @@ export default function HistoryPage() {
             />
           ))}
 
+        {/* The one insight, ruled in its trait's tone when it has one:
+            the sentence about "like" is a Fillers sentence, so it hangs
+            off the Fillers colour the row above it and the heatmap wear.
+            A rule, not a box: it annotates the table, it is no card. */}
         {top && (
-          <p className="border-t border-hairline pt-3 text-caption text-stone-600">
-            <span className="font-semibold text-ink">{top.headline}</span>{" "}
+          <p
+            data-trait={INSIGHT_TRAIT[top.id]}
+            className={`text-caption ${
+              INSIGHT_TRAIT[top.id]
+                ? "log-insight mt-3 py-2.5 pl-3 pr-3.5 text-stone-600"
+                : "border-t border-hairline pt-3 text-stone-600"
+            }`}
+          >
+            <span
+              className={`font-semibold ${INSIGHT_TRAIT[top.id] ? "tone-ink" : "text-ink"}`}
+            >
+              {top.headline}
+            </span>{" "}
             {top.detail}
           </p>
         )}
@@ -317,9 +358,11 @@ export default function HistoryPage() {
                 key={lesson.id}
                 className={`${RECORD_GRID} items-center border-t border-hairline py-3 text-stone-400`}
               >
-                <span className="font-display text-[16px] font-extrabold leading-none tabular-nums">
-                  {i + 1}
-                </span>
+                <DateTile trait={recordingTrait({ lesson_id: lesson.id })}>
+                  <span className="font-display block text-[16px] font-extrabold tabular-nums">
+                    {i + 1}
+                  </span>
+                </DateTile>
                 <span className="font-display truncate text-[14px] font-bold">
                   {lesson.title}
                 </span>
@@ -336,20 +379,21 @@ export default function HistoryPage() {
           : newestFirst.map((r) => {
               const d = new Date(r.created_at);
               const held = (r.pauses ?? []).filter((p) => p.kind !== "beat").length;
+              const trait = recordingTrait(r);
               return (
                 <Link
                   key={r.id}
                   href={`/rep/${r.id}`}
                   className={`press ${RECORD_GRID} items-center border-t border-hairline py-3`}
                 >
-                  <span className="leading-none">
-                    <span className="label-micro block">
+                  <DateTile trait={trait}>
+                    <span className="log-date-month block">
                       {d.toLocaleDateString(undefined, { month: "short" })}
                     </span>
-                    <span className="font-display mt-0.5 block text-[16px] font-extrabold tabular-nums">
+                    <span className="font-display mt-0.5 block text-[15px] font-extrabold tabular-nums">
                       {String(d.getDate()).padStart(2, "0")}
                     </span>
-                  </span>
+                  </DateTile>
                   <span className="min-w-0">
                     {/* Two lines, never an ellipsis: the lesson column is
                         134px and "Punctuate with silence" needs 165, so
@@ -358,7 +402,7 @@ export default function HistoryPage() {
                     <span className="font-display line-clamp-2 text-[14px] font-bold leading-snug">
                       {recordingName(r)}
                     </span>
-                    <Stars n={r.stars} size={9} />
+                    <Stars n={r.stars} size={11} />
                   </span>
                   <span className="font-display text-right text-[16px] font-extrabold tabular-nums">
                     {r.ethos_index === null ? (
@@ -385,7 +429,9 @@ export default function HistoryPage() {
                 headline: "Your first recording is still here.",
               })
             }
-            className="press flex w-full items-center justify-between gap-3 border-t border-hairline py-3 text-left"
+            /* mt-2: air between the last tile and the plum chip, so a
+               Variety tile's indigo never sits against Premium's plum. */
+            className="press mt-2 flex w-full items-center justify-between gap-3 border-t border-hairline py-3 text-left"
           >
             <span className="text-caption text-stone-500">
               {hidden} older recording{hidden === 1 ? "" : "s"} held since{" "}
@@ -480,6 +526,10 @@ function MetricRow({
    */
   open?: boolean;
 }) {
+  const trait = rowTrait(row.key);
+  // The Index is the score the sage card carries, so its row is sage;
+  // every other row is its trait's tone, or plain when it has none.
+  const index = row.key === "index";
   const tone =
     row.direction === "up"
       ? "text-sage-700"
@@ -488,12 +538,24 @@ function MetricRow({
         : "text-stone-400";
   return (
     <div
-      className={`${MOVED_GRID} items-center border-t border-hairline py-3 ${
+      data-trait={trait ?? undefined}
+      data-index={index || undefined}
+      className={`log-metric ${MOVED_GRID} items-center border-t border-hairline py-3 ${
         dim ? "text-stone-400" : ""
       }`}
     >
       <span className="font-display flex min-w-0 items-center gap-1 text-[14px] font-bold">
-        <span className="truncate">{row.label}</span>
+        {/* The trait's swatch, the key the recordings below are
+            coloured by. A rectangle, like every mark that is not a
+            chip. A row with no trait keeps the slot, blank, so every
+            label in the column starts at the same x. */}
+        <span
+          aria-hidden
+          className={`log-swatch ${trait || index ? "" : "log-swatch-blank"}`}
+        />
+        <span className={`truncate ${trait && !dim ? "tone-ink" : ""}`}>
+          {row.label}
+        </span>
         {open !== undefined && (
           <span
             aria-hidden
@@ -534,8 +596,38 @@ function MetricRow({
       >
         {row.change ?? DASH}
       </span>
-      <Sparkline values={row.series} label={row.label} invert={row.invert} height={20} bare />
+      <Sparkline
+        values={row.series}
+        label={row.label}
+        invert={row.invert}
+        height={20}
+        bare
+        color={trait ? "var(--tone)" : index ? "var(--color-sage-600)" : undefined}
+      />
     </div>
+  );
+}
+
+/**
+ * A recording's date as a small tile in its trait's tone: the wash for
+ * a ground, the tone's ink for the digits. A recording that practised
+ * no one trait (a game, a boss, a free recording) gets the plain
+ * surface, so a colour always means a trait.
+ */
+function DateTile({
+  trait,
+  children,
+}: {
+  trait: TraitId | null;
+  children: ReactNode;
+}) {
+  return (
+    <span
+      data-trait={trait ?? undefined}
+      className={`log-date ${trait ? "tone-wash tone-ink" : ""}`}
+    >
+      {children}
+    </span>
   );
 }
 
@@ -564,7 +656,12 @@ function TeaserRow({
       onClick={onTap}
       className="press flex w-full items-center justify-between gap-3 border-t border-hairline py-3 text-left"
     >
-      <span className="font-display truncate text-[14px] font-bold">{label}</span>
+      <span className="font-display flex min-w-0 items-center gap-1 text-[14px] font-bold">
+        {/* The metric rows' blank swatch slot, so this label lines up
+            with theirs. */}
+        <span aria-hidden className="log-swatch log-swatch-blank" />
+        <span className="truncate">{label}</span>
+      </span>
       <span className="flex shrink-0 items-center gap-2.5">
         <span className="text-caption text-stone-400">{note}</span>
         <PremiumMark variant="chip" />

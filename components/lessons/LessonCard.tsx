@@ -5,7 +5,6 @@ import type { Lesson } from "@/content/lessons";
 import { TRAIT } from "@/content/traits";
 import { repHref } from "@/lib/rep-config";
 import { ACTION_CLASS } from "@/lib/ui";
-import { LessonGlyph } from "@/components/lessons/LessonGlyph";
 
 /**
  * A lesson, as a row you move through rather than a tile you buy.
@@ -30,7 +29,7 @@ import { LessonGlyph } from "@/components/lessons/LessonGlyph";
  * /lessons/*.webp; next/image asks for /_next/image?url=… at a width it
  * picks per device, which is never the URL in the shell, so the PWA
  * would hold fifteen files the page never requests and show fifteen
- * holes offline. The art is already cut to 900×585 and about 130KB by
+ * holes offline. The art is already cut to 360px square and a few KB by
  * scripts/cut-lesson-art.mjs, so there is nothing for the optimiser to
  * do anyway.
  */
@@ -46,11 +45,19 @@ export function LessonArt({
   return (
     <span
       aria-hidden
-      data-trait={lesson.trait}
       className="lesson-art relative block shrink-0 overflow-hidden rounded-control bg-sand"
       style={{ width: size, height: size }}
     >
-      <LessonGlyph id={lesson.id} />
+      {/* Soft 3D renders since #319, square, cut to 360px. */}
+      <img
+        src={lesson.art}
+        alt=""
+        loading={eager ? "eager" : "lazy"}
+        decoding="async"
+        width={360}
+        height={360}
+        className="absolute inset-0 h-full w-full object-cover"
+      />
     </span>
   );
 }

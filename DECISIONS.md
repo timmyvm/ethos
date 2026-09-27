@@ -490,6 +490,8 @@ Locked means locked. Reopen only with user data or Timothy's explicit call.
 
 318. 2026-09-27 · **The nav is a capsule** · Timothy: "the nav to look a little better" after #317. The glass slab became a floating capsule 318px wide and 62 tall, fully round, thinner glass with a lit top rim, and the active well a pill that springs between tabs (420ms, a small overshoot) while the active mark grows 8%. In light the glass is white at 56 to 72% with a white well lifted by its own shadow.
 
+319. 2026-09-27 · **Lesson art is soft 3D, generated** · Timothy: "generate the lesson images with higgsfield", replacing #317's drawn vectors. Fifteen GPT Image 2.5 renders (high, 1:1) from one shared prompt: one soft matte clay object per lesson (hourglass, finish flag, zipper, speedometer, boomerang...) on a flat ground in its trait's #317 tone, so they sit beside the 3D Demos and carry the trait colour. Cut by `scripts/cut-lesson-art.mjs` to 360px square webp at an 82% centre crop, a few KB each; same `/lessons/<id>.webp` paths, so the service worker's precache is unchanged. The risograph set and the drawn glyphs are in git history.
+
 ## Open queue (research-once, decide, move up)
 
 - Currency name — after launch copywriting pass

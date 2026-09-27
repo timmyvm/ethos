@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useRef, useState } from "react";
 import {
   IconGames,
   IconLessons,
@@ -9,6 +10,13 @@ import {
   IconToday,
   IconYou,
 } from "@/components/Icon";
+import { prefersReducedMotion } from "@/lib/prefs";
+import {
+  SPRING,
+  animateSpring,
+  releaseVelocity,
+  rubberband,
+} from "@/lib/spring";
 import { TAB_HREFS } from "@/lib/tabs";
 
 /**
@@ -111,11 +119,116 @@ const BARE = [
 
 export function Nav() {
   const path = usePathname();
+  const router = useRouter();
+  const glass = useRef<HTMLDivElement>(null);
+  const well = useRef<HTMLSpanElement>(null);
+  /*
+   * The lens (apple-design §2, §5, §6). Press anywhere on the capsule
+   * and the well answers on the press, not the release; slide along it
+   * and the well stays under the thumb 1:1, resisting past either end;
+   * let go and it settles on the tab under the thumb, at the speed it
+   * was going. A tap is still just a link.
+   */
+  const lens = useRef<{
+    id: number;
+    x0: number;
+    from: number;
+    x: number;
+    moved: boolean;
+    samples: { t: number; y: number }[];
+  } | null>(null);
+  const suppressClick = useRef(false);
+  const [pressed, setPressed] = useState(false);
+  const [dragging, setDragging] = useState(false);
+
   if (BARE.some((b) => path === b || path.startsWith(`${b}/`))) return null;
 
   const current = TABS.findIndex((t) =>
     t.href === "/" ? path === "/" : path.startsWith(t.href)
   );
+
+  /** One tab's width in px: the well's travel per step. */
+  const step = () => (well.current?.offsetWidth ?? 0);
+
+  function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    if (current < 0 || !well.current) return;
+    suppressClick.current = false;
+    const from =
+      new DOMMatrixReadOnly(getComputedStyle(well.current).transform).m41 || 0;
+    lens.current = {
+      id: e.pointerId,
+      x0: e.clientX,
+      from,
+      x: from,
+      moved: false,
+      samples: [{ t: e.timeStamp, y: from }],
+    };
+    setPressed(true);
+  }
+
+  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    const l = lens.current;
+    const el = well.current;
+    if (!l || l.id !== e.pointerId || !el) return;
+    const dx = e.clientX - l.x0;
+    if (!l.moved) {
+      // Ten pixels of intent (§10) before a press becomes a slide.
+      if (Math.abs(dx) < 10) return;
+      l.moved = true;
+      l.x0 += Math.sign(dx) * 10;
+      el.getAnimations().forEach((a) => a.cancel());
+      try {
+        glass.current?.setPointerCapture(e.pointerId);
+      } catch {
+        // A pointer the browser no longer tracks; the slide works without it.
+      }
+      setDragging(true);
+    }
+    const max = step() * (TABS.length - 1);
+    const raw = l.from + (e.clientX - l.x0);
+    l.x =
+      raw < 0 ? rubberband(raw, step()) : raw > max ? max + rubberband(raw - max, step()) : raw;
+    l.samples.push({ t: e.timeStamp, y: l.x });
+    if (l.samples.length > 8) l.samples.shift();
+    el.style.transform = `translateX(${l.x}px)`;
+  }
+
+  function onPointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    const l = lens.current;
+    if (!l || l.id !== e.pointerId) return;
+    lens.current = null;
+    setPressed(false);
+    const el = well.current;
+    if (!l.moved || !el) return;
+    setDragging(false);
+    suppressClick.current = true;
+    const w = step();
+    const velocity = releaseVelocity(l.samples);
+    // The tab under the thumb, not the one momentum would reach: this
+    // is a picker, and the finger's position is the choice (a sheet
+    // projects, §6; a selector that overshoots the tab you let go on
+    // takes the choice away). The speed still carries into the settle.
+    const target = Math.max(0, Math.min(TABS.length - 1, Math.round(l.x / w)));
+    void animateSpring(el, {
+      axis: "x",
+      from: l.x,
+      to: target * w,
+      velocity,
+      spring: Math.abs(velocity) > 600 ? SPRING.thrown : SPRING.base,
+      reduced: prefersReducedMotion(),
+    }).then(() => {
+      // Back to the percentage React writes, so a resize keeps it true.
+      if (well.current) well.current.style.transform = `translateX(${target * 100}%)`;
+    });
+    if (target !== current) router.push(TABS[target].href);
+  }
+
+  function onPointerCancel() {
+    lens.current = null;
+    setPressed(false);
+    setDragging(false);
+    if (well.current) well.current.style.transform = `translateX(${current * 100}%)`;
+  }
 
   /*
    * Glass, icons only (Timothy, 26 Sep: "new modern glass nav", "delete
@@ -129,9 +242,26 @@ export function Nav() {
       aria-label="Sections"
       className="nav-dock fixed bottom-0 left-1/2 z-20 w-full max-w-[430px] -translate-x-1/2 px-4"
     >
-      <div className="nav-glass relative flex h-[62px] items-stretch">
+      <div
+        ref={glass}
+        className="nav-glass relative flex h-[62px] items-stretch"
+        data-pressed={pressed || undefined}
+        data-dragging={dragging || undefined}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerCancel}
+        onClickCapture={(e) => {
+          // The release that ended a slide is not also a tap.
+          if (suppressClick.current) {
+            e.preventDefault();
+            suppressClick.current = false;
+          }
+        }}
+      >
         {current >= 0 && (
           <span
+            ref={well}
             aria-hidden
             className="nav-well"
             style={{ transform: `translateX(${current * 100}%)` }}
@@ -145,6 +275,7 @@ export function Nav() {
               href={t.href}
               aria-label={t.label}
               aria-current={active ? "page" : undefined}
+              draggable={false}
               className={`nav-tab relative z-[1] flex min-w-0 flex-1 items-center justify-center rounded-full ${
                 active ? "text-ink" : "text-stone-500"
               }`}

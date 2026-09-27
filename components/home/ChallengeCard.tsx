@@ -45,8 +45,8 @@ export function ChallengeCard({ challenge }: { challenge: Challenge }) {
   return (
     <section className="mt-7" data-trait={c.trait}>
       <div className="flex items-baseline justify-between gap-3">
-        <div className="label-data">Today&apos;s line</div>
-        <div className="label-data tone-ink">{TRAIT[c.trait].name}</div>
+        <h2 className="section-head">Today&apos;s line</h2>
+        <div className="section-head-aside tone-ink">{TRAIT[c.trait].name}</div>
       </div>
       <div className="today-line tone-wash mt-3 rounded-card p-4">
         <div className="flex items-center gap-4">

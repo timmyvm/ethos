@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { CountUp } from "@/components/CountUp";
@@ -244,39 +245,36 @@ export default function Home() {
 
   return (
     <main className="px-5 pb-22 pt-7">
-      {/* Wordmark only, for now. brand.md wants a head mark beside it —
-          ears and face mask reading at 32px — but the only Demos asset
-          we have is a full-body render, and shrinking it to 32px gives a
-          white tile with a sliver of face in it, which reads as a broken
-          image rather than a brand. Better nothing than that until the
-          real head mark lands. */}
-      <div className="flex items-center justify-between">
-        <span className="font-display text-[19px] font-extrabold uppercase tracking-[0.02em]">
-          ethos
-        </span>
-        <div className="flex items-center gap-2">
-          {/* Earned stars, beside the streak — the two standing scores
-              (27 Aug, Timothy's call). Since the colour pass they are
-              earned CHIPS: a sage wash with a gold mark, the glyph
-              doing the word's job. Earned, never a tap. */}
-          {reps !== null && (
-            <span className="today-earned">
-              <span className="sr-only">{totalStars(starMap)} stars</span>
-              <span aria-hidden className="today-earned-mark text-[14px] leading-none">
-                ★
+      {/* The large title (ScreenHeader), with the date over it the way
+          Apple's own Today screens carry it. The wordmark went with the
+          apple-design pass: the tab says where you are, and the splash
+          already says whose app it is. The earned chips keep their
+          corner, beside the title. */}
+      <ScreenHeader
+        title="Today"
+        dated
+        trailing={
+          reps !== null && (
+            <>
+              {/* Earned stars, beside the streak — the two standing
+                  scores (27 Aug, Timothy's call): a sage wash with a
+                  gold mark, the glyph doing the word's job. Earned,
+                  never a tap. The total counts up as the history read
+                  lands rather than appearing already counted. */}
+              <span className="today-earned">
+                <span className="sr-only">{totalStars(starMap)} stars</span>
+                <span aria-hidden className="today-earned-mark text-[14px] leading-none">
+                  ★
+                </span>
+                <span aria-hidden>
+                  <CountUp value={totalStars(starMap)} durationMs={DURATION.max} />
+                </span>
               </span>
-              {/* The total LANDS with the history read — the corner is
-                  empty until then — so it counts up rather than
-                  appearing already counted. Not the celebration length:
-                  nothing was earned here, a read landed. */}
-              <span aria-hidden>
-                <CountUp value={totalStars(starMap)} durationMs={DURATION.max} />
-              </span>
-            </span>
-          )}
-          {reps !== null && <StreakBadge streak={streak} />}
-        </div>
-      </div>
+              <StreakBadge streak={streak} />
+            </>
+          )
+        }
+      />
 
       {/* The freeze reconciliation is its own read, landing after the
           history: the banner is a card the app produced, so it arrives

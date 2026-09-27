@@ -313,6 +313,15 @@ export function IconTrend({ size }: { size?: number }) {
  * caller when open, so the mark itself stays one shape: a control that
  * swaps glyphs mid-tap reads as two controls.
  */
+/** The way back: iOS's left chevron, in the navigation bar. */
+export function IconBack({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="m14.5 5.5-6.5 6.5 6.5 6.5" />
+    </Glyph>
+  );
+}
+
 export function IconChevron({ size }: { size?: number }) {
   return (
     <Glyph size={size}>

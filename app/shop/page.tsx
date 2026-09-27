@@ -1,5 +1,6 @@
 "use client";
 
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -139,20 +140,11 @@ export default function ShopPage() {
 
   return (
     <main className="px-5 pb-22 pt-7">
-      {/* A 44px target with no pressed state is a target that reads as
-          dead, so the way back answers the finger like every other tap
-          (#240). */}
-      <Link
-        href="/you"
-        className="press inline-flex min-h-11 items-center text-[13px] font-semibold text-stone-400"
-      >
-        ← You
-      </Link>
-
-      <div className="mt-4 flex items-end justify-between">
-        <h1 className="font-display text-[24px] font-extrabold leading-tight">
-          Shop
-        </h1>
+      <ScreenHeader
+        title="Shop"
+        back={{ href: "/you", label: "You" }}
+        trailing={
+          <>
         {/* The balance wears the coin as a drawn terracotta ring; the shop
             is where a coin is about to become something, so the ring
             points at the number, not at a tap. */}
@@ -182,7 +174,9 @@ export default function ShopPage() {
             </span>
           )}
         </span>
-      </div>
+          </>
+        }
+      />
       {/* The earning rule moved here from under the balance on /you: a
           day you spoke pays once however many reps you did, which is the
           fact that makes the prices below mean something. */}

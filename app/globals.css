@@ -200,6 +200,27 @@
 }
 
 /*
+ * Springs (the apple-design skill, §4; lib/spring.ts). A spring is two
+ * numbers, damping and response, and reaches CSS as a `linear()` curve
+ * sampled every frame plus the time it takes to come to rest. The
+ * settle time reads long beside the 200ms default, but a critically
+ * damped spring covers 90% of its travel in about half of it; the tail
+ * is the landing, which is the part that feels physical. Everything a
+ * finger touches or a layout moves runs on one of these; fades keep
+ * `--ease-out`. lib/spring.test.ts keeps these equal to SPRING.
+ */
+:root {
+  --spring-base: linear(0, 0.037, 0.121, 0.227, 0.336, 0.441, 0.536, 0.619, 0.69, 0.75, 0.8, 0.84, 0.873, 0.9, 0.921, 0.938, 0.952, 0.962, 0.971, 0.977, 0.982, 0.986, 0.99, 0.992, 0.994, 0.995, 0.996, 0.997, 0.998, 0.998, 0.999, 1);
+  --spring-base-duration: 517ms;
+  --spring-snappy: linear(0, 0.073, 0.221, 0.382, 0.527, 0.647, 0.742, 0.814, 0.867, 0.906, 0.935, 0.954, 0.969, 0.978, 0.985, 0.99, 0.993, 0.995, 0.997, 0.998, 0.999, 1);
+  --spring-snappy-duration: 354ms;
+  --spring-sheet: linear(0, 0.027, 0.091, 0.174, 0.266, 0.357, 0.444, 0.524, 0.596, 0.66, 0.715, 0.762, 0.803, 0.837, 0.866, 0.89, 0.91, 0.926, 0.94, 0.951, 0.96, 0.968, 0.974, 0.979, 0.983, 0.986, 0.989, 0.991, 0.993, 0.994, 0.995, 0.996, 0.997, 0.998, 0.998, 0.999, 0.999, 1);
+  --spring-sheet-duration: 621ms;
+  --spring-thrown: linear(0, 0.036, 0.121, 0.232, 0.352, 0.47, 0.578, 0.673, 0.753, 0.82, 0.873, 0.915, 0.946, 0.97, 0.986, 0.997, 1.004, 1.008, 1.011, 1.011, 1.011, 1.01, 1.009, 1.007, 1.006, 1.005, 1.004, 1.003, 1.002, 1.001, 1);
+  --spring-thrown-duration: 496ms;
+}
+
+/*
  * The trough a PROVISIONAL ring draws, dashed (DECISIONS #252, #264).
  *
  * One step firmer than `sand` on purpose: a dashed stroke carries about
@@ -256,18 +277,22 @@
 @theme {
   --text-title: 1.625rem;
   --text-title--line-height: 1.15;
-  --text-title--letter-spacing: -0.01em;
+  /* Tracking by size, never one value for all (apple-design §15):
+     the larger the line, the tighter; fine print opens up a hair. */
+  --text-title--letter-spacing: -0.02em;
   --text-title--font-weight: 700;
 
   --text-lead: 1.1875rem;
   --text-lead--line-height: 1.4;
-  --text-lead--letter-spacing: -0.005em;
+  --text-lead--letter-spacing: -0.011em;
 
   --text-body: 0.9375rem;
   --text-body--line-height: 1.5;
+  --text-body--letter-spacing: -0.003em;
 
   --text-caption: 0.78125rem;
   --text-caption--line-height: 1.45;
+  --text-caption--letter-spacing: 0.008em;
 }
 
 /* Font tokens reference next/font variables (scoped to <body>), so they
@@ -406,7 +431,7 @@ body {
   font-family: var(--font-display-face), sans-serif;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-stone-400);
   font-variant-numeric: tabular-nums;
@@ -531,7 +556,7 @@ body {
 }
 
 .arrive-lift {
-  animation: arrive-lift var(--duration-max) var(--ease-spring) backwards;
+  animation: arrive-lift var(--spring-base-duration) var(--spring-base) backwards;
 }
 
 /*
@@ -681,14 +706,22 @@ body::after {
 }
 
 .press:active {
-  transform: scale(0.985);
+  transform: scale(0.97);
   background-image: linear-gradient(var(--press-veil), var(--press-veil));
 }
+/* A big surface moves less than a button under the same thumb: 0.97 of
+   a 350px card is a 10px lurch, so cards give a third of that. */
+.press:is(.elev-1, .elev-2, .elev-3, .rounded-card, .rounded-sheet):active {
+  transform: scale(0.985);
+}
 
+/* Up is a spring, critically damped: a button you let go of comes back
+   and stops. It used to overshoot, and a bounce is for things you threw
+   (apple-design §4); a tap threw nothing. */
 .press {
   transition:
-    transform var(--duration-base) var(--ease-spring),
-    box-shadow var(--duration-base) var(--ease-spring),
+    transform var(--spring-snappy-duration) var(--spring-snappy),
+    box-shadow var(--spring-snappy-duration) var(--spring-snappy),
     background-color var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out);
 }
@@ -751,13 +784,13 @@ body::after {
 }
 
 .arrive {
-  animation: arrive var(--duration-base) var(--ease-out) backwards;
+  animation: arrive var(--spring-base-duration) var(--spring-base) backwards;
 }
 .arrive-x {
-  animation: arrive-x var(--duration-base) var(--ease-out) backwards;
+  animation: arrive-x var(--spring-base-duration) var(--spring-base) backwards;
 }
 .reveal {
-  animation: reveal var(--duration-base) var(--ease-out) backwards;
+  animation: reveal var(--spring-base-duration) var(--spring-base) backwards;
 }
 .fade-in {
   animation: fade-in var(--duration-base) var(--ease-out) backwards;
@@ -794,10 +827,10 @@ body::after {
 }
 
 .push-right {
-  animation: push-from-right var(--duration-max) var(--ease-out) backwards;
+  animation: push-from-right var(--spring-sheet-duration) var(--spring-sheet) backwards;
 }
 .push-left {
-  animation: push-from-left var(--duration-max) var(--ease-out) backwards;
+  animation: push-from-left var(--spring-sheet-duration) var(--spring-sheet) backwards;
 }
 
 /*
@@ -813,7 +846,7 @@ body::after {
  * the second list.
  */
 .stagger > * {
-  animation: arrive var(--duration-base) var(--ease-out) backwards;
+  animation: arrive var(--spring-base-duration) var(--spring-base) backwards;
 }
 /*
  * `--stagger-lead` holds the whole ladder back (#249). A list inside a
@@ -922,10 +955,8 @@ body::after {
 .sheet-panel[data-dragging="true"] {
   animation: none;
   transition: none;
-}
-.sheet-panel[data-settling="true"] {
-  animation: none;
-  transition: transform var(--duration-base) var(--ease-spring);
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 /*
@@ -947,17 +978,29 @@ body::after {
   }
 }
 
+/* The scrim is a material, not a tint (apple-design §12): it dims AND
+   frosts, so the page behind steps back instead of just going grey,
+   and it arrives as the blur comes up rather than as a flat fade. */
 .sheet-scrim {
-  animation: fade-in var(--duration-base) var(--ease-out) backwards;
+  background: color-mix(in srgb, var(--color-stage) 42%, transparent);
+  -webkit-backdrop-filter: blur(6px) saturate(120%);
+  backdrop-filter: blur(6px) saturate(120%);
+  animation: fade-in var(--duration-max) var(--ease-out) backwards;
 }
 .sheet-scrim[data-closing="true"] {
-  animation: fade-out var(--duration-base) var(--ease-in-out) forwards;
+  animation: fade-out 260ms var(--ease-out) forwards;
 }
+/* In on the sheet spring; out is JavaScript's (components/ui/Overlay),
+   because a sheet leaves from wherever it IS, at whatever speed the
+   finger gave it, and a keyframe can only leave from where it began. */
 .sheet-panel {
-  animation: sheet-in var(--duration-max) var(--ease-out) backwards;
+  animation: sheet-in var(--spring-sheet-duration) var(--spring-sheet) backwards;
 }
 .sheet-panel[data-closing="true"] {
-  animation: sheet-out var(--duration-base) var(--ease-in-out) forwards;
+  animation: none;
+}
+:root[data-motion="reduce"] .sheet-panel[data-closing="true"] {
+  animation: fade-out var(--duration-base) var(--ease-out) forwards;
 }
 
 /*
@@ -1244,9 +1287,6 @@ body::after {
   ) {
   animation-name: fade-in;
   animation-delay: 0ms;
-}
-:root[data-motion="reduce"] .sheet-panel[data-closing="true"] {
-  animation-name: fade-out;
 }
 :root[data-motion="reduce"] :is(.fill, .fill-y, .rec-ring) {
   animation: none;
@@ -2547,6 +2587,9 @@ body::after {
 /* The shelf's count: an earned chip, like Today's. */
 .you-count {
   display: inline-block;
+  vertical-align: 3px;
+  font-size: 12px;
+  font-weight: 800;
   border-radius: 9999px;
   padding: 2px 8px;
   background: var(--color-sage-100);
@@ -2602,8 +2645,9 @@ body::after {
     0 16px 36px -14px rgb(0 0 0 / 0.22),
     0 2px 8px rgb(0 0 0 / 0.06);
 }
-/* The well: a capsule of brighter glass behind the tab you are on,
-   sprung so it overshoots a hair when it arrives. */
+/* The well: a capsule of brighter glass behind the tab you are on.
+   Critically damped: a tap carries no momentum, so it arrives and stops
+   (apple-design §4). A drag hands it the finger's speed instead. */
 .nav-well {
   position: absolute;
   top: var(--nav-pad);
@@ -2619,7 +2663,7 @@ body::after {
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.12),
     inset 0 0 0 0.5px color-mix(in srgb, var(--color-ink) 8%, transparent);
-  transition: transform 420ms cubic-bezier(0.34, 1.36, 0.64, 1);
+  transition: transform var(--spring-base-duration) var(--spring-base);
 }
 :root:not([data-theme="dark"]) .nav-well {
   background: rgb(255 255 255 / 0.95);
@@ -2631,13 +2675,42 @@ body::after {
   transition: color 200ms ease-out;
 }
 .nav-tab > svg {
-  transition: transform 300ms cubic-bezier(0.34, 1.36, 0.64, 1);
+  transition: transform var(--spring-snappy-duration) var(--spring-snappy);
 }
 .nav-tab[aria-current="page"] > svg {
   transform: scale(1.08);
 }
+/* Answer on the press (apple-design §1): the mark under the thumb
+   dips at once and the well brightens and swells a hair, like glass
+   pressed from above. Up is the spring. */
+.nav-glass {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.nav-tab:active > svg {
+  transform: scale(0.86);
+  transition-duration: 60ms;
+  transition-timing-function: var(--ease-out);
+}
+.nav-well {
+  scale: 1;
+  transition:
+    transform var(--spring-base-duration) var(--spring-base),
+    scale var(--spring-snappy-duration) var(--spring-snappy);
+}
+.nav-glass[data-pressed] .nav-well {
+  scale: 1.06 1.1;
+}
+/* While the thumb has it, it is the thumb's: no easing to lag behind. */
+.nav-glass[data-dragging] .nav-well {
+  transition: scale var(--spring-snappy-duration) var(--spring-snappy);
+}
 :root[data-motion="reduce"] :is(.nav-well, .nav-tab > svg) {
   transition: none;
+}
+:root[data-motion="reduce"] .nav-glass[data-pressed] .nav-well {
+  scale: 1;
 }
 /* ============================== end of nav (glass) ============================== */
 
@@ -2764,3 +2837,354 @@ body::after {
   background: color-mix(in srgb, var(--pop-mint-wash) 70%, var(--color-raised));
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pop-mint) 30%, transparent);
 }
+
+/* ============================ the screen header ============================
+ * The large title and its bar (components/ui/ScreenHeader.tsx; the
+ * apple-design skill §12, §15). One header on every screen, same size,
+ * same place.
+ * ========================================================================== */
+.screen-bar {
+  --bar-h: 44px;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  margin: -1.75rem -1.25rem 0;
+  height: calc(var(--bar-h) + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) 0.5rem 0;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+}
+/* The material. Not a strip with a hairline under it: a tint of the
+   ground, frosted, that fades out over its last 14px, so content slides
+   under a soft edge rather than a cut (§12, scroll edge effects). Only
+   there once something is actually beneath it. */
+.screen-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 -14px;
+  z-index: -1;
+  background: color-mix(in srgb, var(--color-ground) 74%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent);
+  opacity: 0;
+  transition: opacity 180ms var(--ease-out);
+  pointer-events: none;
+}
+.screen-bar[data-edge]::before {
+  opacity: 1;
+}
+.screen-bar-side {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+}
+/* Over glass, a little heavier and a little wider than the same words
+   on paper (§12, vibrancy). */
+.screen-bar-title {
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  color: var(--color-ink);
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(5px);
+  transition:
+    opacity 160ms var(--ease-out),
+    transform var(--spring-snappy-duration) var(--spring-snappy);
+}
+.screen-bar[data-collapsed] .screen-bar-title {
+  opacity: 1;
+  transform: none;
+}
+.screen-bar-back {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 1px;
+  padding-right: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-ink);
+  border-radius: 999px;
+}
+.screen-bar-back > svg {
+  margin-left: -2px;
+}
+.screen-bar-link {
+  display: inline-flex;
+  min-height: 44px;
+  min-width: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-ink);
+  border-radius: 999px;
+}
+
+.large-title-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 2px;
+}
+/* Apple's Large Title, set for Outfit: 34 on 40, heavy, and tracked in
+   because big geometric type reads loose (§15). It grows from its
+   leading edge when the page is pulled down past the top. */
+.large-title {
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 2.125rem;
+  line-height: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.028em;
+  color: var(--color-ink);
+  transform-origin: 0% 100%;
+}
+.large-title-eyebrow {
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 0.8125rem;
+  line-height: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--color-stone-400);
+}
+/* A section's title: Apple's sentence-case headline in place of the
+   tracked capitals it replaced (§15). Big type tightens, so it tracks
+   in; the capitals register stays for eyebrows INSIDE cards, where a
+   small label over a big number is the instrument talking. */
+.section-head {
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 1.25rem;
+  line-height: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.018em;
+  color: var(--color-ink);
+}
+.section-head-aside {
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+}
+
+.large-title-trailing {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 5px;
+}
+
+/* ============================ reduced transparency ============================
+ * Glass is decoration over a job, and some people need the job without
+ * it (§14). Frostier is not enough: every material goes solid, keeps
+ * its shape, and gains an edge so it still reads as a layer.
+ * ============================================================================ */
+@media (prefers-reduced-transparency: reduce) {
+  .screen-bar::before {
+    background: var(--color-ground);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+    inset: 0;
+    box-shadow: 0 1px 0 var(--color-hairline, rgb(0 0 0 / 0.08));
+  }
+  .nav-glass,
+  :root:not([data-theme="dark"]) .nav-glass {
+    background: var(--color-raised);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .sheet-scrim {
+    background: color-mix(in srgb, var(--color-stage) 62%, transparent);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .premium-wall-glass {
+    background: color-mix(in srgb, var(--color-raised) 88%, transparent);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* More contrast: near-solid surfaces with a defined edge (§14). */
+@media (prefers-contrast: more) {
+  .screen-bar[data-edge]::before {
+    background: var(--color-ground);
+    -webkit-mask-image: none;
+    mask-image: none;
+    inset: 0;
+    box-shadow: 0 1px 0 var(--color-ink);
+  }
+  .nav-glass,
+  :root:not([data-theme="dark"]) .nav-glass {
+    background: var(--color-raised);
+    box-shadow: inset 0 0 0 1.5px var(--color-ink);
+  }
+  .nav-well,
+  :root:not([data-theme="dark"]) .nav-well {
+    background: color-mix(in srgb, var(--color-ink) 18%, var(--color-raised));
+    box-shadow: inset 0 0 0 1px var(--color-ink);
+  }
+}
+/* ========================== end of the screen header ========================== */
+
+/* ============================ grouped lists ============================
+ * iOS's inset grouped list (Settings; the apple-design skill). One
+ * rounded surface per group, rows parted by hairlines that start where
+ * the text does, a small header over the group and a small footer under.
+ * ====================================================================== */
+.group-head {
+  padding: 0 16px 7px;
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-stone-400);
+}
+.group {
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+.group-foot {
+  padding: 7px 16px 0;
+  font-size: 0.78125rem;
+  line-height: 1.45;
+  letter-spacing: 0.008em;
+  color: var(--color-stone-500);
+}
+.group-row {
+  position: relative;
+  display: block;
+  min-height: 48px;
+  padding: 12px 16px;
+}
+.group-row:is(.flex) {
+  display: flex;
+}
+.group-row + .group-row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 0;
+  height: 1px;
+  background: var(--color-hairline);
+  transform: scaleY(0.5);
+  transform-origin: top;
+}
+/* Rows that lead with a 40px tile start their hairline at the text. */
+.group[data-inset="icon"] > .group-row + .group-row::before {
+  left: 70px;
+}
+/* A row answers a press the way iOS's does: it lights, it does not
+   shrink. A row that scales pulls away from the rows beside it. The
+   light comes on at once and goes out slowly (§1). */
+.press-row {
+  transition: background-color 420ms var(--ease-out);
+}
+.press-row:active {
+  background-color: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  transition-duration: 0ms;
+}
+
+/* The switch: iOS's proportions, a knob with a real shadow, on a spring. */
+.switch {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  width: 48px;
+  height: 29px;
+  border-radius: 999px;
+  background: var(--color-stone-200);
+  transition: background-color 200ms var(--ease-out);
+}
+.switch[data-on] {
+  background: var(--color-ink);
+}
+.switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 25px;
+  height: 25px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow:
+    0 3px 8px rgb(0 0 0 / 0.15),
+    0 1px 1px rgb(0 0 0 / 0.16),
+    0 0 0 0.5px rgb(0 0 0 / 0.04);
+  transition: transform var(--spring-snappy-duration) var(--spring-snappy);
+}
+.switch[data-on] .switch-knob {
+  transform: translateX(19px);
+}
+/* On dark, ink is near-white: the knob takes the ground so it still
+   reads against the lit track. */
+:root[data-theme="dark"] .switch[data-on] .switch-knob {
+  background: var(--color-ground);
+}
+/* Pressing a switch stretches its knob toward where it will go. */
+.press-row:active .switch-knob {
+  width: 30px;
+}
+.press-row:active .switch[data-on] .switch-knob {
+  transform: translateX(14px);
+}
+
+/* The segmented control: a track and one raised thumb that slides. */
+.segmented {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--segments), 1fr);
+  padding: 2px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-ink) 7%, transparent);
+}
+.segmented-thumb {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: calc((100% - 4px) / var(--segments));
+  border-radius: 8px;
+  background: var(--color-raised);
+  box-shadow:
+    0 3px 8px rgb(0 0 0 / 0.12),
+    0 3px 1px rgb(0 0 0 / 0.04),
+    0 0 0 0.5px rgb(0 0 0 / 0.04);
+  transition: transform var(--spring-base-duration) var(--spring-base);
+}
+:root[data-theme="dark"] .segmented-thumb {
+  background: #3a3a3a;
+}
+.segmented-option {
+  position: relative;
+  z-index: 1;
+  min-height: 36px;
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-stone-500);
+  transition: color 200ms var(--ease-out);
+}
+.segmented-option[aria-checked="true"] {
+  color: var(--color-ink);
+}
+.segmented-option:active {
+  opacity: 0.6;
+}
+:root[data-motion="reduce"] :is(.segmented-thumb, .switch-knob) {
+  transition: none;
+}
+/* ========================== end of grouped lists ========================== */

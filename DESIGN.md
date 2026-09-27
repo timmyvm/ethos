@@ -17,7 +17,7 @@ The target, described so you can see it, not policed so you can grep it.
 
 ## Tokens
 
-Colour, radius and motion live in `app/globals.css` and `lib/motion.ts`. Radius: control 10, card 12, sheet 16, chips are pills, Record is a circle. Three dark layers plus stage. Text roles that clear AA. The named motion classes in `STATE.md`. Extend them whenever the reference asks for something they lack; a value goes into the tokens first and gets used second.
+Colour, radius and motion live in `app/globals.css`, `lib/motion.ts` and `lib/spring.ts`. Movement is a spring (damping, response), critically damped unless the gesture carried momentum; fades are curves. The `apple-design` skill (`.claude/skills/apple-design`) is the reference for motion, materials and type feel. Radius: control 10, card 12, sheet 16, chips are pills, Record is a circle. Three dark layers plus stage. Text roles that clear AA. The named motion classes in `STATE.md`. Extend them whenever the reference asks for something they lack; a value goes into the tokens first and gets used second.
 
 ## References
 

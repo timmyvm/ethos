@@ -1,5 +1,6 @@
 "use client";
 
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
@@ -141,9 +142,7 @@ export default function GamesPage() {
 
   return (
     <main className="px-5 pb-22 pt-7">
-      <h1 className="font-display text-[24px] font-extrabold leading-tight">
-        Practice
-      </h1>
+      <ScreenHeader title="Practice" />
 
       {/* The weekly headliner: the one lifted card and the one tap. Its
           top is a stage in sky, Demos standing in it with his clock (the
@@ -191,7 +190,7 @@ export default function GamesPage() {
        * screen says the rules.
        */}
       <div className="stagger mt-7">
-        <div className="label-data pb-3">Free</div>
+        <h2 className="section-head pb-3">Free</h2>
         <div className="grid grid-cols-2 gap-2.5">
           {free.map((g) => (
             <GameTile
@@ -210,7 +209,7 @@ export default function GamesPage() {
           />
         </div>
 
-        <div className="label-data mt-7 pb-3">Premium</div>
+        <h2 className="section-head mt-9 pb-3">Premium</h2>
         {premium ? (
           <div className="grid grid-cols-3 gap-2.5">
             {paid.map((g) => (

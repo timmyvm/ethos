@@ -1,7 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DURATION } from "@/lib/motion";
+import { prefersReducedMotion } from "@/lib/prefs";
+import {
+  SPRING,
+  animateSpring,
+  project,
+  releaseVelocity,
+  rubberband,
+  springMs,
+} from "@/lib/spring";
 
 /**
  * Every layer that sits over the app: the paywall sheet, the mods sheet,
@@ -53,17 +61,29 @@ export function Overlay({
   const panel = useRef<HTMLDivElement>(null);
   const [closing, setClosing] = useState(false);
   /*
-   * The drag (DECISIONS #242). A sheet you can pull down is the
-   * difference between a thing that appeared on your screen and a thing
-   * you are holding: while the pointer is down the panel tracks it
-   * exactly, with no easing, because a panel that lags your thumb is a
-   * panel you are not dragging.
+   * The drag (DECISIONS #242, rebuilt on the apple-design skill). While
+   * the pointer is down the panel tracks it exactly, and up past its
+   * resting place it resists instead of stopping dead (§9). On release
+   * it keeps the finger's speed (§5), and whether it goes or stays is
+   * decided by where that speed would CARRY it (§6), so a short flick
+   * dismisses and a long slow haul that stops short springs back.
    */
-  const drag = useRef<{ id: number; from: number; at: number; y: number } | null>(
-    null
-  );
+  const drag = useRef<{
+    id: number;
+    from: number;
+    y: number;
+    samples: { t: number; y: number }[];
+    /** Something under the finger scrolls: an upward move is its. */
+    scrolls: boolean;
+    /** Past the hysteresis. A ref, not the state: pointer events land
+     *  faster than React re-renders, and a flick is over before the
+     *  state would say it began. */
+    active: boolean;
+  } | null>(null);
+  /** A press that began on the scrim itself, so only a tap there closes:
+   *  a drag that starts in the sheet and ends over the scrim is a drag. */
+  const downOnScrim = useRef(false);
   const [dragging, setDragging] = useState(false);
-  const [settling, setSettling] = useState(false);
   // The latest handler, read at close time: the parent passes a fresh
   // arrow every render, and re-running the setup effect for each one
   // re-focused the panel mid-form.
@@ -77,19 +97,52 @@ export function Overlay({
     closeRef.current();
   }, []);
 
+  /**
+   * Where the panel is ON SCREEN right now, mid-animation or not, and
+   * stop whatever was moving it. Every motion starts from here, so a
+   * sheet closed while it is still rising turns round where it is
+   * instead of jumping to the top first (§3).
+   */
+  const takeHold = useCallback((): number => {
+    const el = panel.current;
+    if (!el) return 0;
+    const y = new DOMMatrixReadOnly(getComputedStyle(el).transform).m42 || 0;
+    el.getAnimations().forEach((a) => a.cancel());
+    el.style.transform = `translateY(${y}px)`;
+    return y;
+  }, []);
+
+  /** Out the bottom from wherever it is, at `velocity` px/s. */
+  const leave = useCallback(
+    (velocity = 0) => {
+      const el = panel.current;
+      setClosing(true);
+      if (!el || prefersReducedMotion()) return; // the CSS fade handles it
+      const from = takeHold();
+      void animateSpring(el, {
+        from,
+        to: el.offsetHeight + 24,
+        velocity,
+        spring: SPRING.base,
+      }).then(finish);
+    },
+    [takeHold, finish]
+  );
+
   const requestClose = useCallback(() => {
     if (variant !== "sheet") {
       finish();
       return;
     }
-    setClosing(true);
-  }, [variant, finish]);
+    if (closing) return;
+    leave();
+  }, [variant, finish, closing, leave]);
 
-  // The exit's end is the animation's end; the timer is the floor under
-  // it, for the one browser that never fires the event.
+  // The floor under the exit, for the one browser whose animation
+  // promise never settles.
   useEffect(() => {
     if (!closing) return;
-    const t = setTimeout(finish, DURATION.base + 80);
+    const t = setTimeout(finish, springMs(SPRING.base) + 150);
     return () => clearTimeout(t);
   }, [closing, finish]);
 
@@ -156,30 +209,64 @@ export function Overlay({
      * scrolled. Dragging a sheet whose content is scrolled down is how
      * you close a sheet you were trying to read.
      */
+    let scrolls = false;
     for (
       let node: HTMLElement | null = e.target as HTMLElement;
       node && node !== el.parentElement;
       node = node.parentElement
     ) {
       if (node.scrollTop > 0) return;
+      if (node.scrollHeight > node.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(node).overflowY)) {
+        scrolls = true;
+      }
     }
-    drag.current = { id: e.pointerId, from: e.clientY, at: Date.now(), y: 0 };
+    drag.current = {
+      id: e.pointerId,
+      from: e.clientY,
+      y: 0,
+      samples: [{ t: e.timeStamp, y: 0 }],
+      scrolls,
+      active: false,
+    };
   }
 
   function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
     const d = drag.current;
-    if (!d || d.id !== e.pointerId) return;
-    const dy = e.clientY - d.from;
-    // Down only. Up is where the sheet already is.
-    if (dy <= 0 && d.y === 0) return;
-    d.y = Math.max(0, dy);
-    if (!dragging && d.y > 4) {
+    const el = panel.current;
+    if (!d || d.id !== e.pointerId || !el) return;
+    const raw = e.clientY - d.from;
+    if (!d.active) {
+      // Hysteresis (§10): ten pixels of intent before the sheet is
+      // yours, so a tap stays a tap. Upward is the sheet's too (it
+      // gives and pulls back) unless there is content to scroll.
+      if (Math.abs(raw) < 10) return;
+      if (raw < 0 && d.scrolls) {
+        drag.current = null;
+        return;
+      }
+      d.active = true;
+      // A mouse drag has been selecting text for its first ten pixels;
+      // left selected, the next press drags the selection instead.
+      window.getSelection()?.removeAllRanges();
+      // Grabbed mid-flight, it is held where it IS, and tracks from
+      // there with the offset the finger took it at (§2, §3).
+      d.y = takeHold();
+      d.from = e.clientY - d.y;
       setDragging(true);
-      panel.current?.setPointerCapture(e.pointerId);
+      try {
+        el.setPointerCapture(e.pointerId);
+      } catch {
+        // A pointer the browser no longer tracks; the drag works without it.
+      }
+      return;
     }
-    if (panel.current) {
-      panel.current.style.transform = `translateY(${d.y}px)`;
-    }
+    const dy = e.clientY - d.from;
+    // Down is 1:1. Up is past where a sheet lives, so it gives a
+    // little and pulls back, the way a real thing at its limit does.
+    d.y = dy >= 0 ? dy : rubberband(dy, el.offsetHeight);
+    d.samples.push({ t: e.timeStamp, y: d.y });
+    if (d.samples.length > 8) d.samples.shift();
+    el.style.transform = `translateY(${d.y}px)`;
   }
 
   function endDrag(e: React.PointerEvent<HTMLDivElement>) {
@@ -187,33 +274,44 @@ export function Overlay({
     if (!d || d.id !== e.pointerId) return;
     drag.current = null;
     const el = panel.current;
-    const travelled = d.y;
-    const speed = travelled / Math.max(1, Date.now() - d.at);
+    if (!d.active || !el) return;
     setDragging(false);
-    if (!el) return;
-    // A flick counts as much as a haul: past a fifth of the panel, or
-    // faster than half a pixel a millisecond, and it goes.
-    if (travelled > el.offsetHeight * 0.2 || speed > 0.5) {
-      el.style.transform = "";
-      requestClose();
+    const velocity = releaseVelocity(d.samples);
+    // Where the throw would come to rest. Past half the panel, it goes;
+    // and a clear upward flick keeps it whatever the position.
+    const rest = d.y + project(velocity);
+    if (velocity > -300 && rest > el.offsetHeight * 0.5) {
+      leave(velocity);
       return;
     }
-    // Otherwise it springs home.
-    setSettling(true);
-    el.style.transform = "";
-    setTimeout(() => setSettling(false), DURATION.base);
+    // Home, carrying the finger's speed. A real throw earns the small
+    // overshoot; a slow release settles without one.
+    void animateSpring(el, {
+      from: d.y,
+      to: 0,
+      velocity,
+      spring: Math.abs(velocity) > 600 ? SPRING.thrown : SPRING.sheet,
+      reduced: prefersReducedMotion(),
+    }).then(() => {
+      if (panel.current) panel.current.style.transform = "";
+    });
   }
 
   const sheet = variant === "sheet";
   const position = sheet
-    ? "sheet-scrim flex items-end justify-center bg-stage/50 backdrop-blur-[2px]"
+    ? "sheet-scrim flex items-end justify-center"
     : "flex flex-col items-center justify-center";
 
   return (
     <div
       className={`fixed inset-0 z-50 ${position}`}
       data-closing={closing || undefined}
-      onClick={requestClose}
+      onPointerDown={(e) => {
+        downOnScrim.current = e.target === e.currentTarget;
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && downOnScrim.current) requestClose();
+      }}
       role="dialog"
       aria-modal="true"
       aria-label={label}
@@ -224,14 +322,15 @@ export function Overlay({
         style={style}
         data-closing={closing || undefined}
         data-dragging={dragging || undefined}
-        data-settling={settling || undefined}
         onClick={(e) => e.stopPropagation()}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
         onAnimationEnd={(e) => {
-          if (closing && e.target === panel.current) finish();
+          // Only the reduced-motion fade ends this way; the spring
+          // resolves its own promise.
+          if (closing && e.target === panel.current && prefersReducedMotion()) finish();
         }}
         className={`outline-none ${sheet ? "sheet-panel" : "arrive"} ${className}`}
       >

@@ -97,7 +97,7 @@ export function TraitStrip({ reps }: { reps: RepRow[] }) {
 
   return (
     <section className="mt-7">
-      <h2 className="label-data">Your traits</h2>
+      <h2 className="section-head">Your traits</h2>
       <div className="stagger mt-3 grid grid-cols-6 gap-2.5">
         {tiles.map((t, i) => (
           <TraitTile

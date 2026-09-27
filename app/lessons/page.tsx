@@ -1,5 +1,6 @@
 "use client";
 
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { useCallback, useEffect, useState } from "react";
 import { LessonRow, UpNextCard } from "@/components/lessons/LessonCard";
 import { ErrorLine } from "@/components/ui/ErrorState";
@@ -69,8 +70,8 @@ export default function LessonsPage() {
   const count = (id: string) => (done ? (done[id] ?? 0) : null);
 
   return (
-    <main className="mx-auto max-w-[430px] px-5 pb-24 pt-8">
-      <h1 className="font-display text-title">Lessons</h1>
+    <main className="mx-auto max-w-[430px] px-5 pb-24 pt-7">
+      <ScreenHeader title="Lessons" />
 
       <div className="mt-6">
         {failed ? (

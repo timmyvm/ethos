@@ -1,5 +1,6 @@
 "use client";
 
+import { Disclosure } from "@/components/ui/Disclosure";
 import Link from "next/link";
 import type { Lesson } from "@/content/lessons";
 import { TRAIT } from "@/content/traits";
@@ -139,9 +140,7 @@ export function LessonRow({
           </span>
         )}
       </span>
-      <span aria-hidden className="shrink-0 text-stone-400">
-        →
-      </span>
+      <Disclosure className="text-stone-400" />
     </Link>
   );
 }

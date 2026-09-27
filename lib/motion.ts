@@ -13,6 +13,11 @@
  *  - motion has to mean something (origin, causality, success);
  *    decoration that moves is decoration twice
  *
+ * Movement that a finger or a layout causes runs on springs now, not
+ * on these curves: lib/spring.ts (damping and response, Apple's two
+ * numbers) and its `--spring-*` tokens. What stays here is fades,
+ * celebrations and the spin.
+ *
  * Anything that reads a duration from here must also honour
  * `prefersReducedMotion()` (lib/prefs) — collapse to an opacity fade, or
  * to nothing.

@@ -150,7 +150,7 @@ async function shootTheme(theme) {
   await step(async () => { await go("/you", "main .label-data"); await shot("you"); });
   await step(async () => { await go("/shop", "main"); await shot("shop"); });
   await step(async () => { await go("/games", "main .label-data"); await shot("games"); });
-  await step(async () => { await go("/settings", "main .label-data"); await shot("settings"); });
+  await step(async () => { await go("/settings", "main .group"); await shot("settings"); });
   await step(async () => { await go("/rep/rep-22", "main .label-data"); await shot("rep-detail"); });
 
   // The loop: idle, recording, results (live, via the scoring mock).

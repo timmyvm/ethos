@@ -1,5 +1,6 @@
 "use client";
 
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
@@ -113,7 +114,7 @@ export default function HistoryPage() {
   if (failed) {
     return (
       <main className="px-5 pb-22 pt-7">
-        <h1 className="font-display text-[24px] font-extrabold">The log</h1>
+        <ScreenHeader title="Log" />
         <ErrorState
           className="mt-4"
           {...readFailure("The log")}
@@ -126,7 +127,7 @@ export default function HistoryPage() {
   if (reps === null) {
     return (
       <main className="px-5 pb-22 pt-7">
-        <h1 className="font-display text-[24px] font-extrabold">The log</h1>
+        <ScreenHeader title="Log" />
         <SkeletonRegion label="Loading your log">
           <Skeleton className="mt-2 h-3 w-52" />
           {/* The score card carries no outer margin any more (#234), so
@@ -194,7 +195,7 @@ export default function HistoryPage() {
       {/* Outside the arrival on purpose: the loading state draws this
           exact h1, so fading it in with the read would take a title
           that is already on the screen down to nothing and back. */}
-      <h1 className="font-display text-[24px] font-extrabold">The log</h1>
+      <ScreenHeader title="Log" />
       <div className="arrive">
 
         {/*
@@ -225,7 +226,7 @@ export default function HistoryPage() {
        * change column is what the reader used to compute.
        */}
       <section className="stagger mt-7">
-        <div className="label-data">What moved</div>
+        <h2 className="section-head">What moved</h2>
         <div className={`${MOVED_GRID} mt-3 border-b border-edge pb-1.5`}>
           <ColumnHead>metric</ColumnHead>
           <ColumnHead right>day 1</ColumnHead>
@@ -333,9 +334,9 @@ export default function HistoryPage() {
        * without a chart. Duration lives on the full result.
        */}
       <section className="stagger mt-7">
-        <div className="label-data">
+        <h2 className="section-head">
           {empty ? "Waiting to be logged" : "Every recording"}
-        </div>
+        </h2>
         <div className={`${RECORD_GRID} mt-3 border-b border-edge pb-1.5`}>
           <ColumnHead>date</ColumnHead>
           <ColumnHead>lesson</ColumnHead>

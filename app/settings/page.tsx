@@ -1,5 +1,7 @@
 "use client";
 
+import { Disclosure } from "@/components/ui/Disclosure";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -208,22 +210,18 @@ export default function SettingsPage() {
 
   return (
     <main className="px-5 pb-22 pt-7">
-      <Link href="/you" className="inline-flex min-h-11 items-center text-[13px] font-semibold text-stone-400">
-        ← You
-      </Link>
-      <h1 className="font-display mt-4 text-[24px] font-extrabold">Settings</h1>
+      <ScreenHeader title="Settings" back={{ href: "/you", label: "You" }} />
 
       {/* Reminders first: it's the habit lever, so it's the one thing
           people come back here to change. */}
-      <Section title="Reminders">
-        <p className="pb-2.5 text-caption text-stone-500">
-          One notification a day, maximum. It names the streak, never scolds
-          you for missing it.
-        </p>
+      <Section
+        title="Reminders"
+        footer="One notification a day, maximum. It names the streak, never scolds you for missing it."
+      >
         <div
           role="group"
           aria-label="Reminder hour"
-          className="flex flex-wrap gap-1.5 pb-3"
+          className="group-row flex flex-wrap gap-1.5"
         >
           {[null, 7, 8, 12, 18, 20, 21].map((h) => (
             <Choice
@@ -242,21 +240,23 @@ export default function SettingsPage() {
             not a tap, so it stays a quiet line. */}
         {needsPermission &&
           (perm === "denied" ? (
-            <p className="pb-3 text-caption text-stone-500">
+            <p className="group-row text-caption text-stone-500">
               Notifications are blocked for this site in your browser
               settings. Nothing can fire until that changes.
             </p>
           ) : (
-            <button
-              onClick={() => void askPermission()}
-              className="press font-display mb-3 w-full rounded-control bg-terracotta-500 px-4 py-3 text-[14px] font-bold text-on-accent transition-colors hover:bg-terracotta-600"
-            >
-              Allow notifications
-            </button>
+            <div className="group-row">
+              <button
+                onClick={() => void askPermission()}
+                className="press font-display w-full rounded-control bg-terracotta-500 px-4 py-3 text-[14px] font-bold text-on-accent transition-colors hover:bg-terracotta-600"
+              >
+                Allow notifications
+              </button>
+            </div>
           ))}
 
         {prefs.reminderHour !== null && perm === "granted" && (
-          <p className="pb-3 text-caption text-stone-500">
+          <p className="group-row text-caption text-stone-500">
             <span className="font-semibold text-ink">
               {fireAt
                 ? `Next: ${fireAt.toLocaleString(undefined, {
@@ -318,24 +318,16 @@ export default function SettingsPage() {
       </Section>
 
       <Section title="Appearance">
-        <div
-          role="group"
-          aria-label="Theme"
-          className="flex gap-1.5 pb-3 pt-0.5"
-        >
-          {(["system", "light", "dark"] as Theme[]).map((t) => (
-            <Choice
-              key={t}
-              selected={prefs.theme === t}
-              onSelect={() => {
-                update({ theme: t });
-                applyTheme(t);
-              }}
-              className="flex-1 capitalize"
-            >
-              {t}
-            </Choice>
-          ))}
+        <div className="group-row">
+          <Segmented
+            label="Theme"
+            options={["system", "light", "dark"] as const satisfies readonly Theme[]}
+            value={prefs.theme}
+            onChange={(t) => {
+              update({ theme: t });
+              applyTheme(t);
+            }}
+          />
         </div>
         <Toggle
           label="Reduced motion"
@@ -348,7 +340,14 @@ export default function SettingsPage() {
         />
       </Section>
 
-      <Section title="Account">
+      <Section
+        title="Account"
+        footer={
+          email
+            ? "Signing out empties this device until you sign back in. Nothing is deleted."
+            : undefined
+        }
+      >
         <InfoRow
           label={email ?? "Anonymous"}
           note={
@@ -358,51 +357,31 @@ export default function SettingsPage() {
           }
         />
         {!email ? (
-          <div className="py-3">
-            <Link
-              href="/signup"
-              className="press font-display flex min-h-11 w-full items-center justify-between rounded-control border border-edge bg-surface px-4 py-3 text-[14px] font-bold hover:bg-sand"
-            >
-              <span>Create an account</span>
-              <span aria-hidden className="text-stone-300">
-                →
-              </span>
-            </Link>
-          </div>
+          <LinkRow href="/signup" label="Create an account" />
         ) : (
-          <div className="py-3">
-            <button
-              onClick={async () => {
-                await signOut();
-                window.location.href = "/";
-              }}
-              className="press font-display min-h-11 w-full rounded-control border border-edge bg-surface px-4 py-3 text-[14px] font-bold hover:bg-sand"
-            >
-              Sign out
-            </button>
-            <p className="mt-1.5 text-caption text-stone-400">
-              Signing out empties this device until you sign back in. Nothing
-              is deleted.
-            </p>
-          </div>
+          <button
+            onClick={async () => {
+              await signOut();
+              window.location.href = "/";
+            }}
+            className="group-row press-row font-display w-full text-left text-[15px] font-bold"
+          >
+            Sign out
+          </button>
         )}
       </Section>
 
-      <Section title="Your data">
-        <div className="py-3">
-          <button
-            onClick={() => void exportData()}
-            disabled={exporting}
-            className="press font-display min-h-11 w-full rounded-control border border-edge bg-surface px-4 py-3 text-[14px] font-bold hover:bg-sand disabled:opacity-50"
-          >
-            {exporting ? "Building your file…" : "Export everything as JSON"}
-          </button>
-          <p className="mt-1.5 text-caption leading-relaxed text-stone-400">
-            Every recording, transcript, score and lexicon entry. Yours to
-            take. Audio is stored so the numbers can be recomputed as the
-            engine improves.
-          </p>
-        </div>
+      <Section
+        title="Your data"
+        footer="Every recording, transcript, score and lexicon entry. Yours to take. Audio is stored so the numbers can be recomputed as the engine improves."
+      >
+        <button
+          onClick={() => void exportData()}
+          disabled={exporting}
+          className="group-row press-row font-display w-full text-left text-[15px] font-bold disabled:opacity-50"
+        >
+          {exporting ? "Building your file…" : "Export everything as JSON"}
+        </button>
       </Section>
 
       {/* The group the app never had: the three pages it already ships
@@ -427,18 +406,20 @@ export default function SettingsPage() {
        * never wears the colour that means "tap this" (DESIGN-RULES:
        * confirm only destructive and irreversible).
        */}
-      <div className="mt-10 border-t border-hairline pt-4">
+      <div className="mt-10">
         {!arming ? (
-          <button
-            onClick={() => {
-              setArming(true);
-              setConfirmText("");
-              setDeleteError(null);
-            }}
-            className="press font-display min-h-11 w-full rounded-control border border-edge bg-surface px-4 py-3 text-[14px] font-bold text-rust hover:bg-sand"
-          >
-            Delete my account
-          </button>
+          <div className="group">
+            <button
+              onClick={() => {
+                setArming(true);
+                setConfirmText("");
+                setDeleteError(null);
+              }}
+              className="group-row press-row font-display w-full text-center text-[15px] font-bold text-rust"
+            >
+              Delete my account
+            </button>
+          </div>
         ) : (
           <div className="elev-1 rounded-card border border-card-edge bg-raised p-4">
             <p className="text-[13px] font-semibold leading-relaxed">
@@ -485,26 +466,31 @@ export default function SettingsPage() {
 }
 
 /**
- * A named group of rows. The eyebrow and the hairline above it are the
- * whole container: #201's grammar, and eight bordered cards down one
- * screen is eight things of equal rank (#151's lesson, applied here).
+ * A named group of rows, iOS's inset grouped list (the apple-design
+ * skill: familiarity). The rows share one rounded surface and are told
+ * apart by hairlines inset from the leading edge; the header is small
+ * over the group and the explanation, when there is one, is small
+ * under it, so the rows themselves stay one line of name and state.
+ * People have used this screen in every app on their phone.
  */
 function Section({
   title,
+  footer,
   children,
 }: {
-  title: string;
+  title?: string;
+  footer?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <section className="mt-7">
-      <h2 className="label-data border-t border-hairline pb-1 pt-3">
-        {title}
-      </h2>
-      {children}
+    <section className="mt-8">
+      {title && <h2 className="group-head">{title}</h2>}
+      <div className="group">{children}</div>
+      {footer && <div className="group-foot">{footer}</div>}
     </section>
   );
 }
+
 
 /**
  * One preference, as a row. `role="switch"` sits on the BUTTON — it was
@@ -528,7 +514,7 @@ function Toggle({
       role="switch"
       aria-checked={on}
       onClick={() => onChange(!on)}
-      className="press flex w-full items-start gap-3 border-b border-hairline py-3 text-left last:border-b-0"
+      className="group-row press-row flex w-full items-center gap-3 text-left"
     >
       <span className="flex-1">
         <span className="font-display block text-[14px] font-bold">
@@ -539,29 +525,16 @@ function Toggle({
         </span>
       </span>
       {/*
-       * Ink, not terracotta. A screen of five switches painted in the
-       * tap colour is the wash brand.md's one-tap rule exists to
-       * prevent, and a toggle is a STATE rather than an action.
+       * Ink, not terracotta: a toggle is a state, not an action, and a
+       * screen of five switches in the tap colour is the wash brand.md's
+       * one-tap rule exists to prevent. Ink swaps with the theme, so ON
+       * is always the high-contrast opposite of the ground.
        *
-       * `ink` and not `stage`: ink SWAPS with the theme, so "on" is
-       * always the high-contrast opposite of the ground. Stage is dark
-       * in both themes, which drew a near-black track on the dark
-       * ground and made an ON switch read quieter than an OFF one.
-       *
-       * The track stays round where everything else squared off (#201):
-       * the pill shape is what makes a switch read as a switch.
+       * iOS proportions: a 48 by 29 track and a knob that casts a
+       * shadow, travelling on the snappy spring (apple-design §4).
        */}
-      <span
-        aria-hidden
-        className={`mt-0.5 h-6 w-10 shrink-0 rounded-full p-0.5 transition-colors ${
-          on ? "bg-ink" : "bg-stone-200"
-        }`}
-      >
-        <span
-          className={`block h-5 w-5 rounded-full bg-ground transition-transform ${
-            on ? "translate-x-4" : ""
-          }`}
-        />
+      <span aria-hidden className="switch" data-on={on || undefined}>
+        <span className="switch-knob" />
       </span>
     </button>
   );
@@ -586,11 +559,56 @@ function Choice({
       className={`press font-display min-h-11 rounded-control border px-3.5 text-[13px] font-bold tabular-nums transition-colors ${
         selected
           ? "border-ink bg-ink text-ground"
-          : "border-edge bg-surface text-stone-600 hover:bg-sand"
+          : "border-edge bg-raised text-stone-600 hover:bg-sand"
       } ${className}`}
     >
       {children}
     </button>
+  );
+}
+
+/**
+ * iOS's segmented control: one track, one raised thumb that slides to
+ * the chosen segment on a spring rather than a fill that jumps. The
+ * segments are equal and the thumb is one of them wide, so its travel
+ * is a percentage and holds at any width.
+ */
+function Segmented<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: readonly T[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  const index = Math.max(0, options.indexOf(value));
+  return (
+    <div
+      role="radiogroup"
+      aria-label={label}
+      className="segmented"
+      style={{ "--segments": options.length } as React.CSSProperties}
+    >
+      <span
+        aria-hidden
+        className="segmented-thumb"
+        style={{ transform: `translateX(${index * 100}%)` }}
+      />
+      {options.map((o) => (
+        <button
+          key={o}
+          role="radio"
+          aria-checked={o === value}
+          onClick={() => onChange(o)}
+          className="segmented-option capitalize"
+        >
+          {o}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -605,7 +623,7 @@ function InfoRow({
   note?: string;
 }) {
   return (
-    <div className="border-b border-hairline py-3 last:border-b-0">
+    <div className="group-row">
       <div className="flex items-baseline justify-between gap-3">
         <span className="font-display min-w-0 truncate text-[14px] font-bold">
           {label}
@@ -654,14 +672,11 @@ function LinkRow({
       {value && (
         <span className="shrink-0 text-caption text-stone-400">{value}</span>
       )}
-      <span aria-hidden className="shrink-0 text-stone-300">
-        →
-      </span>
+      <Disclosure />
     </>
   );
 
-  const className =
-    "press flex min-h-11 w-full items-center gap-3 border-b border-hairline py-3 text-left last:border-b-0";
+  const className = "group-row press-row flex w-full items-center gap-3 text-left";
 
   return external ? (
     <a href={href} className={className}>

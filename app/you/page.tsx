@@ -1,5 +1,7 @@
 "use client";
 
+import { Disclosure } from "@/components/ui/Disclosure";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { AchievementMark, IconFlame } from "@/components/Icon";
@@ -223,17 +225,14 @@ export default function YouPage() {
   const showGate = anon === true && history.length >= 1;
 
   const header = (
-    <div className="flex items-center justify-between">
-      <h1 className="font-display text-[24px] font-extrabold">You</h1>
-      {/* The 44px target Today's text links carry, without moving the
-          line: the box grows into the margins (#287). */}
-      <Link
-        href="/settings"
-        className="press -my-3 inline-flex min-h-11 items-center text-[13px] font-semibold text-stone-400"
-      >
-        Settings
-      </Link>
-    </div>
+    <ScreenHeader
+      title="You"
+      barTrailing={
+        <Link href="/settings" className="screen-bar-link press">
+          Settings
+        </Link>
+      }
+    />
   );
 
   /*
@@ -440,8 +439,8 @@ export default function YouPage() {
        * hasn't leveled sits dimmed at the bottom, the shelf's grammar
        * (#153): the position is the claim.
        */}
-      <div className="mt-7 border-t border-hairline pt-3">
-        <div className="label-data">Traits</div>
+      <div className="mt-9">
+        <h2 className="section-head">Traits</h2>
         <div className="mt-2 space-y-0.5">
           {loading ? (
             <>
@@ -518,8 +517,8 @@ export default function YouPage() {
       {/* Personal lexicon — the supply layer's archive (DECISIONS #12) */}
       {/* The lexicon grew into the room the shop left (26 Sep, "lexicon
           expansion"): a card with its count, the swaps at reading size. */}
-      <div className="mt-7 flex items-baseline justify-between border-t border-hairline pt-3">
-        <div className="label-data">Your lexicon</div>
+      <div className="mt-9 flex items-baseline justify-between">
+        <h2 className="section-head">Your lexicon</h2>
         {lexicon !== null && (
           <span className="font-display text-[13px] font-extrabold tabular-nums text-stone-500">
             {lexicon.length} word{lexicon.length === 1 ? "" : "s"}
@@ -582,9 +581,7 @@ export default function YouPage() {
               className="press font-display mt-3 flex min-h-11 w-full items-center justify-between rounded-control border border-edge bg-surface px-4 py-3 text-[14px] font-bold hover:bg-sand"
             >
               <span>Test yourself on these</span>
-              <span aria-hidden className="text-stone-300">
-                →
-              </span>
+              <Disclosure />
             </button>
           )}
 
@@ -624,18 +621,18 @@ export default function YouPage() {
        * lesson that produces its number — a locked badge that only
        * describes itself is a taunt (DECISIONS #153).
        */}
-      <div className="label-data mt-7 border-t border-hairline pt-3">
+      <h2 className="section-head mt-9">
         Earned{" "}
         <span className="you-count ml-1.5">
           {earnedCount}/{badges.length}
         </span>
-      </div>
-      <div className="stagger mt-1">
+      </h2>
+      <div className="group stagger mt-3" data-inset="icon">
         {badges.map((a) => (
           <Link
             key={a.id}
             href={a.href}
-            className="press flex min-h-14 items-center gap-3.5 border-b border-hairline py-3 last:border-b-0"
+            className="group-row press-row flex min-h-14 items-center gap-3.5"
           >
             {/* Earned is a sage tile with its mark in gold, the grammar
                 of Today's earned chips; not yet is a quiet outline. */}
@@ -654,7 +651,7 @@ export default function YouPage() {
                 {a.requirement}
               </span>
               {!a.earned && a.progress > 0 && (
-                <span className="mt-1.5 block h-1 overflow-hidden bg-surface">
+                <span className="mt-1.5 block h-1 overflow-hidden bg-sand">
                   {/* The trough is drawn by the row; the bar only exists
                       once there is progress to report, so its `.fill`
                       runs on the read landing and never over a
@@ -668,18 +665,14 @@ export default function YouPage() {
                 </span>
               )}
             </span>
-            <span aria-hidden className="shrink-0 text-stone-300">
-              →
-            </span>
+            <Disclosure />
           </Link>
         ))}
       </div>
 
       {history.length >= 2 && (
         <>
-          <div className="label-data mt-7 border-t border-hairline pt-3">
-            Day 1 vs now
-          </div>
+          <h2 className="section-head mt-9">Day 1 vs now</h2>
           <ShareCard reps={history} />
         </>
       )}
@@ -725,9 +718,7 @@ export default function YouPage() {
             className="press font-display mt-7 flex min-h-11 w-full items-center justify-between rounded-control border border-plum-300 bg-plum-50 px-4 py-3 text-[14px] font-bold text-plum-800 hover:bg-plum-100"
           >
             <PremiumDoor>Premium</PremiumDoor>
-            <span aria-hidden className="text-plum-400">
-              →
-            </span>
+            <Disclosure className="text-plum-400" />
           </button>
         ))}
 

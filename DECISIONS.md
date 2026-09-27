@@ -492,6 +492,8 @@ Locked means locked. Reopen only with user data or Timothy's explicit call.
 
 319. 2026-09-27 · **Lesson art is soft 3D, generated** · Timothy: "generate the lesson images with higgsfield", replacing #317's drawn vectors. Fifteen GPT Image 2.5 renders (high, 1:1) from one shared prompt: one soft matte clay object per lesson (hourglass, finish flag, zipper, speedometer, boomerang...) on a flat ground in its trait's #317 tone, so they sit beside the 3D Demos and carry the trait colour. Cut by `scripts/cut-lesson-art.mjs` to 360px square webp at an 82% centre crop, a few KB each; same `/lessons/<id>.webp` paths, so the service worker's precache is unchanged. The risograph set and the drawn glyphs are in git history.
 
+320. 2026-09-27 · **Apple-design skill installed** · Timothy ran `npx skills add emilkowalski/skills --skill apple-design`. It lives at `.agents/skills/apple-design/SKILL.md`, with a symlink at `.claude/skills/apple-design` and the version pinned in `skills-lock.json`. It is a reference for motion and feel (springs, interruptible gestures, momentum, glass materials, type tracking, reduced motion), consulted when building sheets, the nav capsule and drag interactions. DESIGN.md and the locked palette and type (#4, #5) still win: the skill's "use the system font" advice does not apply here.
+
 ## Open queue (research-once, decide, move up)
 
 - Currency name — after launch copywriting pass

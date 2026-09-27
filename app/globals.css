@@ -2562,33 +2562,81 @@ body::after {
  * tabs. The page scrolls under it and shows through, blurred.
  * ============================================================================ */
 .nav-dock {
-  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  padding-bottom: max(14px, env(safe-area-inset-bottom));
   pointer-events: none;
 }
+/* A capsule, not a slab (27 Sep, "the nav to look a little better"):
+   narrower than the page so it floats, fully round, thinner glass so
+   the page reads through it, and a light edge on top that fades down
+   the sides the way a lit glass rim does. */
 .nav-glass {
+  --nav-pad: 6px;
   pointer-events: auto;
-  border-radius: 24px;
-  background: color-mix(in srgb, var(--color-raised) 62%, transparent);
-  -webkit-backdrop-filter: blur(22px) saturate(180%);
-  backdrop-filter: blur(22px) saturate(180%);
-  border: 1px solid color-mix(in srgb, var(--color-ink) 9%, transparent);
+  margin-inline: auto;
+  max-width: 318px;
+  border-radius: 999px;
+  padding: var(--nav-pad);
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-raised) 58%, transparent),
+    color-mix(in srgb, var(--color-raised) 44%, transparent)
+  );
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  backdrop-filter: blur(24px) saturate(190%);
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, #ffffff 14%, transparent),
-    0 10px 30px -8px rgb(0 0 0 / 0.35),
-    0 2px 6px rgb(0 0 0 / 0.12);
+    inset 0 0 0 0.5px color-mix(in srgb, var(--color-ink) 12%, transparent),
+    inset 0 1px 0 rgb(255 255 255 / 0.16),
+    inset 0 -1px 0 rgb(0 0 0 / 0.06),
+    0 16px 36px -12px rgb(0 0 0 / 0.45),
+    0 3px 10px rgb(0 0 0 / 0.14);
 }
+:root:not([data-theme="dark"]) .nav-glass {
+  background: linear-gradient(
+    to bottom,
+    rgb(255 255 255 / 0.72),
+    rgb(255 255 255 / 0.56)
+  );
+  box-shadow:
+    inset 0 0 0 0.5px rgb(0 0 0 / 0.08),
+    inset 0 1px 0 rgb(255 255 255 / 0.9),
+    0 16px 36px -14px rgb(0 0 0 / 0.22),
+    0 2px 8px rgb(0 0 0 / 0.06);
+}
+/* The well: a capsule of brighter glass behind the tab you are on,
+   sprung so it overshoots a hair when it arrives. */
 .nav-well {
   position: absolute;
-  top: 8px;
-  bottom: 8px;
-  left: 6px;
-  width: calc((100% - 12px) / 5);
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--color-ink) 9%, transparent);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 10%, transparent);
-  transition: transform 320ms cubic-bezier(0.32, 0.72, 0, 1);
+  top: var(--nav-pad);
+  bottom: var(--nav-pad);
+  left: var(--nav-pad);
+  width: calc((100% - 2 * var(--nav-pad)) / 5);
+  border-radius: 999px;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-ink) 14%, transparent),
+    color-mix(in srgb, var(--color-ink) 9%, transparent)
+  );
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.12),
+    inset 0 0 0 0.5px color-mix(in srgb, var(--color-ink) 8%, transparent);
+  transition: transform 420ms cubic-bezier(0.34, 1.36, 0.64, 1);
 }
-:root[data-motion="reduce"] .nav-well {
+:root:not([data-theme="dark"]) .nav-well {
+  background: rgb(255 255 255 / 0.95);
+  box-shadow:
+    0 2px 8px -2px rgb(0 0 0 / 0.14),
+    inset 0 0 0 0.5px rgb(0 0 0 / 0.06);
+}
+.nav-tab {
+  transition: color 200ms ease-out;
+}
+.nav-tab > svg {
+  transition: transform 300ms cubic-bezier(0.34, 1.36, 0.64, 1);
+}
+.nav-tab[aria-current="page"] > svg {
+  transform: scale(1.08);
+}
+:root[data-motion="reduce"] :is(.nav-well, .nav-tab > svg) {
   transition: none;
 }
 /* ============================== end of nav (glass) ============================== */

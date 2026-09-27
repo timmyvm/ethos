@@ -129,7 +129,7 @@ export function Nav() {
       aria-label="Sections"
       className="nav-dock fixed bottom-0 left-1/2 z-20 w-full max-w-[430px] -translate-x-1/2 px-4"
     >
-      <div className="nav-glass relative flex h-16 items-stretch px-1.5">
+      <div className="nav-glass relative flex h-[62px] items-stretch">
         {current >= 0 && (
           <span
             aria-hidden
@@ -145,12 +145,12 @@ export function Nav() {
               href={t.href}
               aria-label={t.label}
               aria-current={active ? "page" : undefined}
-              className={`press relative z-[1] flex min-w-0 flex-1 items-center justify-center transition-colors ${
-                active ? "text-ink" : "text-stone-400"
+              className={`nav-tab relative z-[1] flex min-w-0 flex-1 items-center justify-center rounded-full ${
+                active ? "text-ink" : "text-stone-500"
               }`}
             >
               {/* Filled on the tab you are on (#290). */}
-              <t.Icon size={24} active={active} />
+              <t.Icon size={23} active={active} />
             </Link>
           );
         })}

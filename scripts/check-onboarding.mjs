@@ -243,7 +243,7 @@ ok("a refresh resumes on the same question", true);
 ok("the answer survived the refresh", (await page.getByRole("radio", { name: "Hold a room when I present" }).getAttribute("aria-checked")) === "true");
 await shot("06-q-goal");
 // Back goes to age, with the answer still there.
-await page.getByRole("button", { name: "← back" }).click();
+await page.getByRole("button", { name: "Back", exact: true }).click();
 await page.getByText("How old are you?").waitFor();
 ok("back returns to the previous question with its answer", (await page.getByRole("radio", { name: "Under 18" }).getAttribute("aria-checked")) === "true");
 await page.getByRole("button", { name: "Next", exact: true }).click();
@@ -392,7 +392,7 @@ await page.getByRole("link", { name: /Your plan/ }).click();
 await page.waitForURL(/step=plan/);
 await page.getByText("Hold the room.").waitFor();
 ok("the plan row reopens the plan with a Done exit", await page.getByRole("link", { name: "Done" }).isVisible());
-await page.getByRole("button", { name: "← back" }).click();
+await page.getByRole("button", { name: "Back", exact: true }).click();
 await page.getByText("When do you want your minute?").waitFor();
 ok("back from the plan reaches the last question", true);
 

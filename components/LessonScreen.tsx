@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
@@ -10,11 +11,28 @@ import {
   type RefObject,
 } from "react";
 import type { Tone } from "@/components/DemosArt";
-import { IconChevron } from "@/components/Icon";
+import { IconBack, IconChevron } from "@/components/Icon";
 import { Says, SAID_AFTER_MS } from "@/components/Says";
 import { SpeechBubble } from "@/components/SpeechBubble";
 import { TipStrip } from "@/components/rep/TipStrip";
+import {
+  SPRING,
+  animateSpring,
+  project,
+  rubberband,
+  springProgress,
+} from "@/lib/spring";
 import { ACTION_CLASS, DISABLED_CLASS } from "@/lib/ui";
+
+/*
+ * The speed a swipe left the last screen with, for the screen it brings
+ * in (the apple-design skill, §5). The old page and the new one are
+ * different elements, so the hand-off goes through here: the leaving
+ * page writes it as it commits, the arriving page reads it on mount and
+ * starts moving at that speed instead of from rest. Stale after half a
+ * second, so an arrow key or a tap never inherits an old flick.
+ */
+let handoff: { v: number; at: number } | null = null;
 
 /**
  * The one shape every explanation screen takes (docs/voice.md, Part 2).
@@ -358,6 +376,34 @@ export function LessonScreen({
     arrived.current = { key: stepKey, gesture: gestured.current };
     gestured.current = false;
   }
+  /*
+   * A page a swipe brought in continues the swipe: it takes over the
+   * keyframe's start (30% in from the far side) but moves off it at the
+   * finger's speed on the sheet spring, so leaving and arriving read as
+   * one throw rather than a stop and a start.
+   */
+  useLayoutEffect(() => {
+    const el = slide.current;
+    const h = handoff;
+    handoff = null;
+    if (!el || !h || !arrived.current.gesture) return;
+    if (performance.now() - h.at > 500) return;
+    if (document.documentElement.dataset.motion === "reduce") return;
+    el.getAnimations().forEach((a) => a.cancel());
+    const from = -Math.sign(h.v) * el.clientWidth * 0.3;
+    // A hard flick would overshoot the landing by more than a hair;
+    // past this it is fast enough to read as the same throw.
+    const v = Math.sign(h.v) * Math.min(Math.abs(h.v), 1600);
+    el.animate([{ opacity: 0 }, { opacity: 1 }], {
+      duration: 160,
+      easing: "ease-out",
+    });
+    void animateSpring(el, { axis: "x", from, to: 0, velocity: v, spring: SPRING.sheet }).then(
+      () => {
+        el.style.transform = "";
+      }
+    );
+  }, [stepKey]);
   /* A walk compacts its chrome on a short phone (under 740px tall), so
      the one tap and the door under it stay above the fold. Screens that
      do not swipe keep the template's spacing. */
@@ -383,9 +429,10 @@ export function LessonScreen({
             <button
               type="button"
               onClick={onBack}
-              className="press -ml-1 inline-flex min-h-11 shrink-0 items-center px-1 text-sm text-stone-500"
+              className="screen-bar-back press -ml-2.5 shrink-0"
             >
-              ← back
+              <IconBack size={22} />
+              <span>Back</span>
             </button>
           )}
           {header && <div className="min-w-0 flex-1">{header}</div>}
@@ -623,6 +670,8 @@ function useSwipe(
     w: number;
     lock: "x" | "y" | null;
     dx: number;
+    /** Where the page is drawn: `dx`, or less past a refused edge. */
+    shown: number;
     trail: { t: number; x: number }[];
   } | null>(null);
   const leaving = useRef(false);
@@ -673,28 +722,30 @@ function useSwipe(
     el.style.transform = `translate3d(${x}px,0,0)`;
     el.style.opacity = String(1 - Math.min(Math.abs(x) / w, 1) * 0.5);
   };
-  const settle = () => {
+  /** Home from wherever it was let go, at the speed it was going (§5):
+   *  a slow release settles, a thrown one earns the small overshoot. */
+  const settle = (from: number, velocity: number) => {
     const el = slide.current;
     if (!el) return;
-    el.style.transition =
-      "transform 460ms var(--ease-spring), opacity var(--duration-base) var(--ease-out)";
-    el.style.transform = "translate3d(0,0,0)";
+    el.style.transition = "opacity var(--duration-base) var(--ease-out)";
     el.style.opacity = "1";
-    /* Cleared when the SPRING ends, not the fade: opacity finishes at
-       200ms, near the spring's overshoot, and clearing the transform
-       there snapped the screen the last few pixels. */
-    const clear = (ev: TransitionEvent) => {
-      if (ev.target !== el || ev.propertyName !== "transform") return;
-      el.removeEventListener("transitionend", clear);
+    void animateSpring(el, {
+      axis: "x",
+      from,
+      to: 0,
+      velocity,
+      spring: Math.abs(velocity) > 600 ? SPRING.thrown : SPRING.base,
+    }).then(() => {
+      if (g.current) return; // grabbed again mid-flight: the finger owns it
       el.style.transition = "";
       el.style.transform = "";
       el.style.opacity = "";
-    };
-    el.addEventListener("transitionend", clear);
+    });
   };
-  /* Past the end the screen gives a little and no more: a rubber band,
-     so a refused swipe still feels like the screen heard the finger. */
-  const band = (dx: number) => Math.sign(dx) * 56 * (1 - Math.exp(-Math.abs(dx) / 140));
+  /* Past the end the screen gives a little and no more: the shared
+     rubber band (§9), so a refused swipe still feels like the screen
+     heard the finger, resisting harder the further it is pulled. */
+  const band = (dx: number, w: number) => rubberband(dx, w * 0.4);
   /* Eats the one click a drag can end in, and nothing after it: the
      guard disarms on the next pointerdown, so a swipe that ended in no
      click (a moved touch) never swallows the real tap that follows. */
@@ -725,11 +776,21 @@ function useSwipe(
     const recent = s.trail.filter((p) => p.t > performance.now() - 120);
     const first = recent[0] ?? s.trail[0];
     const last = s.trail[s.trail.length - 1];
-    const v = last.t > first.t ? (last.x - first.x) / (last.t - first.t) : 0;
-    const flick = Math.abs(v) > 0.45 && Math.sign(v) === Math.sign(s.dx) && Math.abs(s.dx) > 24;
-    const commit = !cancelled && go !== undefined && (Math.abs(s.dx) > s.w * 0.25 || flick);
+    /** px/s, from the end of the drag rather than its average. */
+    const v = last.t > first.t ? ((last.x - first.x) / (last.t - first.t)) * 1000 : 0;
+    /*
+     * Go or stay by where the throw would come to REST (§6): a short
+     * quick flick carries the page past the halfway line and goes; a
+     * long slow haul that stops short stays. A quarter of the width
+     * dragged still counts on its own, and a flick back the other way
+     * cancels whatever the position.
+     */
+    const reversing = Math.sign(v) === -Math.sign(s.dx) && Math.abs(v) > 150;
+    const carried = Math.abs(s.dx + project(v)) > s.w * 0.5 && Math.sign(v) === Math.sign(s.dx);
+    const commit =
+      !cancelled && go !== undefined && !reversing && (Math.abs(s.dx) > s.w * 0.25 || carried);
     if (!commit) {
-      if (!reduced()) settle();
+      if (!reduced()) settle(s.shown, v);
       return;
     }
     const el = slide.current;
@@ -738,26 +799,35 @@ function useSwipe(
       go();
       return;
     }
-    /* Carry the screen off the edge it was dragged toward, then step.
-       The next one arrives from the other side (`.step-in-*`). */
+    /* Carry the page off the edge it was dragged toward at the speed it
+       was going, and hand that speed to the page coming in. The step
+       happens once the old page is most of the way out, which a fast
+       flick reaches sooner: the throw sets the tempo, not a timer. */
     leaving.current = true;
-    el.style.transition = "transform 180ms cubic-bezier(0.4, 0, 1, 1), opacity 180ms linear";
-    el.style.transform = `translate3d(${Math.sign(s.dx) * s.w}px,0,0)`;
+    const to = Math.sign(s.dx) * s.w;
+    const rel = v / (to - s.dx || 1);
+    let out = 0;
+    while (out < 0.3 && springProgress(SPRING.base, out, rel) < 0.6) out += 1 / 120;
+    const stepAt = Math.max(70, Math.min(220, out * 1000));
+    el.style.transition = `opacity ${Math.round(stepAt)}ms linear`;
     el.style.opacity = "0";
+    void animateSpring(el, { axis: "x", from: s.dx, to, velocity: v, spring: SPRING.base });
     setTimeout(() => {
       leaving.current = false;
+      handoff = { v: v || Math.sign(s.dx) * 400, at: performance.now() };
       markGesture();
       go();
       /* A step that did not remount this element (the last screen, a
          handler that navigates away) must not stay parked off-screen. */
       requestAnimationFrame(() => {
         if (el.isConnected && el.style.opacity === "0") {
+          el.getAnimations().forEach((a) => a.cancel());
           el.style.transition = "";
           el.style.transform = "";
           el.style.opacity = "";
         }
       });
-    }, 170);
+    }, stepAt);
   };
 
   return {
@@ -773,6 +843,7 @@ function useSwipe(
         w: e.currentTarget.clientWidth || window.innerWidth,
         lock: null,
         dx: 0,
+        shown: 0,
         trail: [{ t: performance.now(), x: e.clientX }],
       };
     },
@@ -789,6 +860,15 @@ function useSwipe(
         }
         s.lock = "x";
         e.currentTarget.style.userSelect = "none";
+        /* Caught mid-spring, the page is held where it IS (§3): the
+           finger takes it from its live position instead of it jumping
+           back under the finger. */
+        const el = slide.current;
+        if (el && el.getAnimations().length) {
+          const at = new DOMMatrixReadOnly(getComputedStyle(el).transform).m41 || 0;
+          el.getAnimations().forEach((a) => a.cancel());
+          s.x0 -= at;
+        }
         try {
           e.currentTarget.setPointerCapture(e.pointerId);
         } catch {
@@ -800,7 +880,8 @@ function useSwipe(
       if (s.trail.length > 8) s.trail.shift();
       const h = handlers.current;
       const allowed = dx < 0 ? h?.next : h?.back;
-      paint(allowed ? dx : band(dx), s.w);
+      s.shown = allowed ? dx : band(dx, s.w);
+      paint(s.shown, s.w);
     },
     onPointerUp: (e: ReactPointerEvent<HTMLElement>) => end(e, false),
     onPointerCancel: (e: ReactPointerEvent<HTMLElement>) => end(e, true),

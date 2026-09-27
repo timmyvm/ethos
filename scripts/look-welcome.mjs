@@ -137,7 +137,7 @@ async function shootTheme(theme) {
 
   await shot("plan", 1100);
   // The account ask, the walk's last screen (#277).
-  await page.getByRole("button", { name: "Take the floor" }).click();
+  await page.getByRole("button", { name: "Start", exact: true }).click();
   await page.getByText("Keep this").waitFor();
   await shot("account", 900);
   await context.close();

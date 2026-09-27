@@ -134,9 +134,9 @@ ok("--ease-out is the token", norm(rootVars.easeOut) === "cubic-bezier(0.25,1,0.
 ok("transition default is 120ms", /^(120ms|0?\.12s)$/.test(rootVars.dflt), rootVars.dflt);
 ok("--duration-base is 200ms", /^(200ms|0?\.2s)$/.test(rootVars.base), rootVars.base);
 // The walk is a swipe carousel (25 Sep): a step slides in from the side it
-// came from, `.step-in-next` forward and `.step-in-back` back, at 340ms.
+// came from, `.step-in-next` forward and `.step-in-back` back, on the sheet spring.
 let a = await anim(page, "main .step-in-next");
-ok("welcome step arrives from the right", a.name === "step-in-next" && a.duration === "0.34s", `${a.name} ${a.duration} ${a.easing}`);
+ok("welcome step arrives from the right, on the sheet spring", a.name === "step-in-next" && a.easing.startsWith("linear("), `${a.name} ${a.duration} ${a.easing.slice(0, 20)}`);
 await sleep(400);
 await page.getByRole("button", { name: "Next" }).click();
 await sleep(30);

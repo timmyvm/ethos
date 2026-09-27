@@ -278,8 +278,10 @@
   --text-title: 1.625rem;
   --text-title--line-height: 1.15;
   /* Tracking by size, never one value for all (apple-design §15):
-     the larger the line, the tighter; fine print opens up a hair. */
-  --text-title--letter-spacing: -0.02em;
+     the larger the line, the tighter; fine print opens up a hair.
+     Outfit's word space is narrow, so a multi-word title stops at
+     -0.012em: at -0.02 "Think on your feet" read as two words. */
+  --text-title--letter-spacing: -0.012em;
   --text-title--font-weight: 700;
 
   --text-lead: 1.1875rem;
@@ -1763,11 +1765,14 @@ body::after {
     opacity: 1;
   }
 }
+/* On the sheet spring since the apple-design pass: a page is a big
+   thing and moves like one. A page a swipe brought in is taken over in
+   script and carries the finger's speed (LessonScreen, `handoff`). */
 .step-in-next {
-  animation: step-in-next 340ms var(--ease-out) backwards;
+  animation: step-in-next var(--spring-sheet-duration) var(--spring-sheet) backwards;
 }
 .step-in-back {
-  animation: step-in-back 340ms var(--ease-out) backwards;
+  animation: step-in-back var(--spring-sheet-duration) var(--spring-sheet) backwards;
 }
 
 /* The questions' bar: thicker, round-ended, sun into terracotta, and

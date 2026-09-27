@@ -1,5 +1,6 @@
 "use client";
 
+import { BackLink } from "@/components/ui/ScreenHeader";
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { AudioScrubber } from "@/components/AudioScrubber";
@@ -77,9 +78,7 @@ export default function RepDetail({
   if (!rep) {
     return (
       <main className="px-5 pb-8 pt-7">
-        <Link href="/history" className="press inline-flex min-h-11 items-center text-[13px] font-semibold text-stone-500">
-          ← the log
-        </Link>
+        <BackLink href="/history" label="Log" />
         <p className="font-display mt-6 text-[14px] font-bold">
           Recording not found.
         </p>
@@ -137,9 +136,7 @@ export default function RepDetail({
 
   return (
     <main className="px-5 pb-8 pt-7">
-      <Link href="/history" className="press inline-flex min-h-11 items-center text-[13px] font-semibold text-stone-500">
-        ← the log
-      </Link>
+      <BackLink href="/history" label="Log" />
       <div className="label-data mt-4">
         {d.toLocaleDateString(undefined, {
           weekday: "long",

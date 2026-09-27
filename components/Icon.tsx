@@ -19,9 +19,12 @@ import type { AchievementIcon } from "@/lib/achievements";
 
 function Glyph({
   size = 24,
+  weight = 2.75,
   children,
 }: {
   size?: number;
+  /** Stroke width on the 24 grid. The tab marks run lighter (#322). */
+  weight?: number;
   children: React.ReactNode;
 }) {
   return (
@@ -31,7 +34,7 @@ function Glyph({
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={2.75}
+      strokeWidth={weight}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
@@ -51,32 +54,56 @@ function Glyph({
  * Knock-outs inside a filled mark are drawn in the bar's own paper
  * (`fill-raised`, `stroke-raised`), so they stay true in both themes.
  */
-/** Today — the sun over the floor you're about to take. */
+/*
+ * The five tab marks were redrawn on 27 Sep in SF Symbols' grammar (the
+ * apple-design pass, #322): a 2px line where the rest of the set is
+ * 2.75, because a tab bar is read at a glance and Apple's own tab
+ * glyphs are the medium weight, not the heavy; every shape closed and
+ * rounded so the FILLED state is the same silhouette solid, with
+ * knock-outs in the bar's paper (`fill-raised`, `stroke-raised`); and a
+ * metaphor people already know for each word:
+ *
+ *   Today     sun.horizon: the sun rising over the floor line
+ *   Lessons   square.grid.2x2: a collection you choose from (the old
+ *             picture frame read as the Photos app)
+ *   Practice  dice: the same recording, rolled conditions
+ *   Log       list.bullet.rectangle: a page of rows, one per recording
+ *             (the old three bars read as a menu button, and a menu is
+ *             the one thing a tab must never look like)
+ *   You       person.crop.circle's person, shoulders and head
+ */
+const TAB_WEIGHT = 2;
+
+/** Today — the sun rising over the floor you're about to take. */
 export function IconToday({ size, active = false }: { size?: number; active?: boolean }) {
   return (
-    <Glyph size={size}>
-      <circle cx="12" cy="10.5" r="3.6" fill={active ? "currentColor" : "none"} />
-      <path d="M12 3.2v1.6M18 5.5l-1.15 1.15M20.8 12h-1.6M4.8 12H3.2M6 5.5l1.15 1.15" />
-      <path d="M4 18.5h16" />
+    <Glyph size={size} weight={TAB_WEIGHT}>
+      {/* The sun's upper half, closed on the horizon so it can fill. */}
+      <path
+        d="M6.9 16.6a5.1 5.1 0 0 1 10.2 0z"
+        fill={active ? "currentColor" : "none"}
+      />
+      <path d="M12 4.6v2.2M5.3 9.1l1.55 1.55M18.7 9.1l-1.55 1.55" />
+      <path d="M3 16.6h18M8 20.1h8" />
     </Glyph>
   );
 }
 
-/** Games — a die: the same reps, rolled conditions. */
+/** Practice — a die: the same recording, rolled conditions. */
 export function IconGames({ size, active = false }: { size?: number; active?: boolean }) {
   const pips = [
-    [8.4, 8.4],
+    [8.6, 8.6],
     [12, 12],
-    [15.6, 15.6],
+    [15.4, 15.4],
   ] as const;
   return (
-    <Glyph size={size}>
+    <Glyph size={size} weight={TAB_WEIGHT}>
       <rect
-        x="3.5"
-        y="3.5"
-        width="17"
-        height="17"
-        rx="5.5"
+        x="3.75"
+        y="3.75"
+        width="16.5"
+        height="16.5"
+        rx="4.6"
         fill={active ? "currentColor" : "none"}
       />
       {pips.map(([x, y]) => (
@@ -84,7 +111,7 @@ export function IconGames({ size, active = false }: { size?: number; active?: bo
           key={x}
           cx={x}
           cy={y}
-          r={active ? 1.7 : 1.35}
+          r={1.5}
           stroke="none"
           fill={active ? undefined : "currentColor"}
           className={active ? "fill-raised" : undefined}
@@ -95,36 +122,27 @@ export function IconGames({ size, active = false }: { size?: number; active?: bo
 }
 
 /**
- * Lessons — a picture in a frame, because that is what the page is: a
- * set of fifteen commissioned pictures you choose between (#275). A
- * book was the obvious mark and the wrong one; the product positions
- * against courses and theory, and the lessons are practice with a face
- * on them.
+ * Lessons — four tiles, SF Symbols' square.grid.2x2: a collection you
+ * choose from (#275). A stack of cards was tried first and read as a
+ * jar at 23px; the picture frame before it read as the Photos app.
  */
 export function IconLessons({ size, active = false }: { size?: number; active?: boolean }) {
+  const at = [3.9, 13.1] as const;
   return (
-    <Glyph size={size}>
-      <rect
-        x="3"
-        y="4.75"
-        width="18"
-        height="14.5"
-        rx="4.5"
-        fill={active ? "currentColor" : "none"}
-      />
-      <path
-        d="M6 15.6 9.3 12.2l2.5 2.5 2.5-2.7 3.7 3.6"
-        className={active ? "stroke-raised" : undefined}
-        strokeWidth={active ? 2.2 : undefined}
-      />
-      <circle
-        cx="8.7"
-        cy="9.1"
-        r="1.15"
-        stroke="none"
-        fill={active ? undefined : "currentColor"}
-        className={active ? "fill-raised" : undefined}
-      />
+    <Glyph size={size} weight={TAB_WEIGHT}>
+      {at.flatMap((y) =>
+        at.map((x) => (
+          <rect
+            key={`${x}-${y}`}
+            x={x}
+            y={y}
+            width="7"
+            height="7"
+            rx="2.1"
+            fill={active ? "currentColor" : "none"}
+          />
+        ))
+      )}
     </Glyph>
   );
 }
@@ -153,29 +171,45 @@ export function IconPremium({ size }: { size?: number }) {
   );
 }
 
-/** Log — rows, one per recording. The active state is the same rows, fatter. */
+/** Log — a page of rows with their bullets, one row per recording. */
 export function IconLog({ size, active = false }: { size?: number; active?: boolean }) {
+  const rows = [8.5, 12, 15.5];
   return (
-    <Glyph size={size}>
-      <path d="M5 6.5h14M5 12h14M5 17.5h14" strokeWidth={active ? 3.9 : undefined} />
+    <Glyph size={size} weight={TAB_WEIGHT}>
+      <rect
+        x="3.75"
+        y="3.75"
+        width="16.5"
+        height="16.5"
+        rx="4.6"
+        fill={active ? "currentColor" : "none"}
+      />
+      {rows.map((y) => (
+        <g key={y} className={active ? "stroke-raised" : undefined}>
+          <path d={`M11 ${y}h5`} />
+          <circle
+            cx="8"
+            cy={y}
+            r="1.05"
+            stroke="none"
+            fill={active ? undefined : "currentColor"}
+            className={active ? "fill-raised" : undefined}
+          />
+        </g>
+      ))}
     </Glyph>
   );
 }
 
-/** You. */
+/** You — head and shoulders, the person in person.crop.circle. */
 export function IconYou({ size, active = false }: { size?: number; active?: boolean }) {
   return (
-    <Glyph size={size}>
-      <circle cx="12" cy="8" r="3.7" fill={active ? "currentColor" : "none"} />
-      {active ? (
-        <path
-          d="M4.6 20.4c.9-4 3.7-6.2 7.4-6.2s6.5 2.2 7.4 6.2z"
-          fill="currentColor"
-          strokeWidth="2"
-        />
-      ) : (
-        <path d="M5 19.6c1.2-3.2 3.6-4.9 7-4.9s5.8 1.7 7 4.9" />
-      )}
+    <Glyph size={size} weight={TAB_WEIGHT}>
+      <circle cx="12" cy="8.2" r="3.9" fill={active ? "currentColor" : "none"} />
+      <path
+        d="M4.9 19.9c.7-3.6 3.5-5.8 7.1-5.8s6.4 2.2 7.1 5.8a.9.9 0 0 1-.9 1.05H5.8a.9.9 0 0 1-.9-1.05z"
+        fill={active ? "currentColor" : "none"}
+      />
     </Glyph>
   );
 }

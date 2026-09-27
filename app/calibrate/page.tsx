@@ -1,5 +1,6 @@
 "use client";
 
+import { BackLink } from "@/components/ui/ScreenHeader";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ACTION_CLASS } from "@/components/LessonScreen";
@@ -223,12 +224,7 @@ export default function CalibratePage() {
 
   return (
     <main className="px-5 pb-16 pt-7">
-      <Link
-        href="/settings"
-        className="press inline-flex min-h-11 items-center text-[13px] font-semibold text-stone-500"
-      >
-        ← settings
-      </Link>
+      <BackLink href="/settings" label="Settings" />
       <h1 className="font-display mt-4 text-title">Calibrate the camera</h1>
       <p className="mt-2 text-body text-stone-500">
         Four takes, 20 seconds each, through the real engine. The numbers

@@ -136,3 +136,17 @@ export function ScreenHeader({
     </>
   );
 }
+
+/**
+ * The same way back as the bar's, for a screen whose title lives in
+ * its own card (a lesson, a stored recording): the chevron and the
+ * name of where it goes, never a text arrow.
+ */
+export function BackLink({ href, label }: { href: string; label: string }) {
+  return (
+    <Link href={href} className="screen-bar-back press -ml-2.5">
+      <IconBack size={22} />
+      <span>{label}</span>
+    </Link>
+  );
+}

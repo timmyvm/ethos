@@ -1,5 +1,6 @@
 "use client";
 
+import { BackLink } from "@/components/ui/ScreenHeader";
 import Link from "next/link";
 import { notFound, useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -71,12 +72,7 @@ export default function LessonPage() {
 
   return (
     <main data-trait={lesson.trait} className="mx-auto max-w-[430px] px-5 pb-28 pt-4">
-      <Link
-        href="/lessons"
-        className="press -ml-1 inline-flex min-h-11 items-center px-1 text-sm text-stone-500"
-      >
-        ← Lessons
-      </Link>
+      <BackLink href="/lessons" label="Lessons" />
 
       {/*
        * The head is the trait's own ground with the art as a tile on it,

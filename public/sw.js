@@ -4,7 +4,7 @@
  * /api/analyze is never cached — a rep that can't reach the engine
  * should fail honestly rather than return stale numbers.
  */
-const CACHE = "ethos-v13";
+const CACHE = "ethos-v14";
 
 const SHELL = [
   "/",

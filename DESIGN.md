@@ -71,10 +71,13 @@ A **frame strip** taps something and lays 0, 80, 160, 240 and 400ms side by side
 Frame 0 is the moment BEFORE the tap; a screenshot takes 40 to 80ms to come back, so a zero
 frame shot after the click is really the sixty frame. Five identical frames mean the change cut.
 
-Two gotchas, both learned the hard way. `next build` writes into the directory `next dev`
+Three gotchas, all learned the hard way. `next build` writes into the directory `next dev`
 serves, so build with `NEXT_DIST_DIR=.next-build` while a server is up or every shot comes back
-a 404 page. And an ambient loop on a control (the Record button breathes) makes Playwright's
-click wait forever for it to hold still: those clicks need `{ force: true }`.
+a 404 page. An ambient loop on a control (the Record button breathes) makes Playwright's
+click wait forever for it to hold still: those clicks need `{ force: true }`. And headless
+Linux Chromium hints fonts to whole pixels, printing "Ne xt" and "4 O ctober": every camera
+launches with `--font-render-hinting=none`, and a spacing problem seen only in a shot is the
+camera until a phone shows it too (#325).
 
 ## The look loop, every UI task
 

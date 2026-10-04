@@ -52,7 +52,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const { supabaseRoute, seed, analyzeBody, session } = await import("./look-fixtures.mjs");
 
 const browser = await chromium.launch({
-  args: ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"],
+  // Hinting off, as in look.mjs (#325).
+  args: ["--font-render-hinting=none", "--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"],
 });
 const context = await browser.newContext({
   viewport: { width: 390, height: 844 },

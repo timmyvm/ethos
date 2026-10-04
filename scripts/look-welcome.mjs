@@ -45,7 +45,9 @@ const ANSWERS = [
   { id: "time", type: "row", labels: ["Evening, 18:00"] },
 ];
 
-const browser = await chromium.launch();
+// Hinting off: headless Linux Chromium rounds each glyph advance to a
+// whole pixel and prints "Ne xt", "4 O ctober". Phones never do (#325).
+const browser = await chromium.launch({ args: ["--font-render-hinting=none"] });
 
 async function shootTheme(theme) {
   const context = await browser.newContext({

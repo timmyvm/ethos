@@ -35,7 +35,9 @@ const BLUR = Number(process.env.LOOK_BLUR ?? 0) || 0;
 import { supabaseRoute as supabase, analyzeBody as analyze, json, session } from "./look-fixtures.mjs";
 
 // ---- Camera ----------------------------------------------------------------
-const browser = await chromium.launch({ args: ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream", "--autoplay-policy=no-user-gesture-required"] });
+// Hinting off: headless Linux Chromium rounds each glyph advance to a
+// whole pixel and prints "Ne xt", "4 O ctober". Phones never do (#325).
+const browser = await chromium.launch({ args: ["--font-render-hinting=none", "--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream", "--autoplay-policy=no-user-gesture-required"] });
 
 async function shootTheme(theme) {
   const context = await browser.newContext({

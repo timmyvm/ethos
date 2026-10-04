@@ -71,6 +71,8 @@ const ROWS = [
 
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM ?? "/opt/pw-browsers/chromium",
+  // Hinting off, as in look.mjs (#325).
+  args: ["--font-render-hinting=none"],
 });
 const page = await browser.newPage({ deviceScaleFactor: 2 });
 await page.setViewportSize({ width: 1240, height: 900 });

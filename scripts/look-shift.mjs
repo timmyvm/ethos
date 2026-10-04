@@ -35,7 +35,9 @@ const STEPS = ["1-name", "2-why", "3-how", "4-example", "5-practice", "6-after"]
 /** Which trait the lesson shot walks. Pausing is the one with a worked example. */
 const LESSON = process.env.LOOK_TRAIT ?? "pause";
 
-const browser = await chromium.launch();
+// Hinting off: headless Linux Chromium rounds each glyph advance to a
+// whole pixel and prints "Ne xt", "4 O ctober". Phones never do (#325).
+const browser = await chromium.launch({ args: ["--font-render-hinting=none"] });
 
 async function shootTheme(theme) {
   const context = await browser.newContext({

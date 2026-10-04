@@ -11,9 +11,12 @@
  *   LOOK_OUT=docs/look/x node scripts/look.mjs after   # somewhere else
  *   LOOK_BLUR=6 node scripts/look.mjs squint today     # the squint test
  *
- * Screens: today, rep-idle, rep-recording, rep-results, log, you, shop,
- * plus rep-detail (the stored result the log links to), games and
- * settings.
+ * Screens: today, lessons, lesson, log, you, shop, games, settings,
+ * rep-detail (the stored result the log links to), rep-idle,
+ * rep-recording, rep-results, rep-numbers, rep-words; off the bar,
+ * practice, unit, boss, hostile, calibrate, upload, paywall, splash;
+ * signed out, signin, signup, forgot, reset, about, privacy, terms.
+ * The introduction has its own camera, scripts/look-welcome.mjs.
  * Full-page shots; the nav is fixed so it appears where the viewport
  * would show it.
  */
@@ -153,6 +156,29 @@ async function shootTheme(theme) {
   await step(async () => { await go("/settings", "main .group"); await shot("settings"); });
   await step(async () => { await go("/rep/rep-22", "main .label-data"); await shot("rep-detail"); });
 
+  // Off the bar: every route a signed-in person can reach that the
+  // camera used to skip.
+  await step(async () => { await go("/practice/pause", "main h1"); await shot("practice"); });
+  await step(async () => { await go("/lesson/filler", "main"); await shot("unit"); });
+  await step(async () => { await go("/boss", "main"); await shot("boss"); });
+  await step(async () => { await go("/hostile", "main"); await shot("hostile"); });
+  await step(async () => { await go("/calibrate", "main"); await shot("calibrate"); });
+  await step(async () => { await go("/upload", "main"); await shot("upload"); });
+  await step(async () => {
+    if (!want("paywall")) return;
+    await go("/games", "main .label-data");
+    await page.click(".premium-wall", { force: true });
+    await page.waitForSelector('[role="dialog"]', { timeout: 8000 });
+    await shot("paywall", { fullPage: false, settle: 900 });
+  });
+  await step(async () => {
+    if (!want("splash")) return;
+    await page.goto(`${BASE}/?splash`);
+    await sleep(250);
+    await page.screenshot({ path: `${OUT}splash-${TAG}-${theme}.png` });
+    console.log(`shot  splash-${TAG}-${theme}`);
+  });
+
   // The loop: idle, recording, results (live, via the scoring mock).
   await step(async () => {
   await go("/rep?lesson=h4", 'button[aria-label="Start recording"]');
@@ -182,6 +208,36 @@ async function shootTheme(theme) {
   }
   });
   await context.close();
+
+  // Signed out: the doors in, and the pages a stranger can read.
+  const OUT_SCREENS = [
+    ["signin", "/signin"], ["signup", "/signup"], ["forgot", "/auth/forgot"],
+    ["reset", "/auth/reset"], ["about", "/about"], ["privacy", "/privacy"], ["terms", "/terms"],
+  ].filter(([name]) => want(name));
+  if (OUT_SCREENS.length) {
+    const stranger = await browser.newContext({
+      viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
+      locale: "en-AU", timezoneId: "Australia/Melbourne", colorScheme: theme, serviceWorkers: "block",
+    });
+    await stranger.route("http://supabase.local/**", supabase);
+    await stranger.addInitScript(({ theme, blur }) => {
+      localStorage.setItem("ethos.prefs", JSON.stringify({ theme, reducedMotion: false, skipIntros: true, haptics: false }));
+      const css = document.createElement("style");
+      css.textContent = "nextjs-portal{display:none!important}" + (blur ? ` html{filter:blur(${blur}px)}` : "");
+      document.addEventListener("DOMContentLoaded", () => document.head.appendChild(css));
+    }, { theme, blur: BLUR });
+    const p = await stranger.newPage();
+    for (const [name, path] of OUT_SCREENS) {
+      try {
+        await p.goto(`${BASE}${path}`);
+        await p.waitForSelector("main, h1", { timeout: 15000 }).catch(() => {});
+        await sleep(900);
+        await p.screenshot({ path: `${OUT}${name}-${TAG}-${theme}.png`, fullPage: true });
+        console.log(`shot  ${name}-${TAG}-${theme}`);
+      } catch (e) { console.log("STEP-FAILED", theme, name, String(e.message ?? e).split("\n")[0]); }
+    }
+    await stranger.close();
+  }
 }
 
 await shootTheme("light");

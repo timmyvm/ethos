@@ -36,3 +36,6 @@ yarn-error.log*
 # The motion check writes its video, screenshot and findings here (scripts/check-motion.mjs).
 docs/devibe/motion-check/
 .next-build/
+
+# playwright-cli writes snapshots and console logs here when run from the repo root.
+.playwright-cli/

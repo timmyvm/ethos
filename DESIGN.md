@@ -23,6 +23,17 @@ Colour, radius and motion live in `app/globals.css`, `lib/motion.ts` and `lib/sp
 
 `docs/refs/` holds phone screenshots of apps that feel the way Ethos should: Instagram (continuity), Headspace (warmth), Duolingo (celebration, and the introduction: `docs/refs/duolingo-onboarding/`, cut from Timothy's own recording with the mechanics named in its NOTES.md), Linear mobile (type). Timothy adds them. If the folder is empty, say so in the first line of your reply and run the loop against the app alone.
 
+## Skills
+
+Installed in `.claude/skills`, pinned in `skills-lock.json`, refreshed with `npx skills update`. They are references: this file, the tokens and `COPY-RULES.md` win every conflict.
+
+- `apple-design`: motion, materials and type feel inside the app.
+- `design-taste-frontend`: the marketing site and landing pages. Its own brief rules out multi-step product UI, so app screens answer to this file.
+- `awesome-design-md`: DESIGN.md files for Linear, Stripe, Apple and about fifty more. Read one when a screen wants a second reference beside `docs/refs/`; never import it over this file.
+- `image-to-code`: make or take a design image first, then build to match it. Written for Codex; here the image is a reference Timothy drops in or one an image tool generates.
+- `web-design-guidelines`: Vercel's interface checklist. Run it on a finished screen after the look loop and fix what it finds.
+- `playwright-cli`: drive the app by hand (open, click by ref, snapshot, screenshot) when the scripts below do not reach the moment.
+
 ## The tools the loop runs on
 
 Three scripts, all against a dev server with the Supabase host mocked and three weeks of
@@ -40,6 +51,10 @@ node scripts/look-welcome.mjs after            # the introduction, walked and sh
 node scripts/check-motion-layer.mjs            # the motion layer, asserted
 node scripts/check-motion.mjs                  # the older motion layer, asserted
 node scripts/check-onboarding.mjs              # the eleven-screen walk, asserted
+
+# playwright-cli by hand; in the cloud container it needs the preinstalled Chromium
+export PLAYWRIGHT_MCP_BROWSER=chromium PLAYWRIGHT_MCP_EXECUTABLE_PATH=/opt/pw-browsers/chromium
+npx @playwright/cli open http://localhost:3123  # then snapshot, click e12, screenshot
 ```
 
 `look.mjs` photographs the app as a RETURNING user sees it, so its fixture has already finished

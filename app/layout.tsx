@@ -65,6 +65,11 @@ export const viewport: Viewport = {
   themeColor: "#ffffff",
   width: "device-width",
   initialScale: 1,
+  /* today-14: without cover, iOS resolves every env(safe-area-inset-*)
+     to 0, so the nav dock, `.pb-safe`, the sticky header and
+     `--nav-clear` (globals.css) all assumed a phone with no home
+     indicator. */
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

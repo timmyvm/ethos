@@ -13,10 +13,13 @@
  */
 @theme {
   /*
-   * Terracotta. 500 is the one tap per screen, 600 its hover. 700 is
-   * accent TEXT ("keep them →", "Unlock full history →") and 800 is
-   * text on the 100 wash — both remapped in dark so the roles keep
-   * their contrast. Cream text sits on a 500 fill.
+   * Terracotta. 500 is the one tap per screen, and it has NO hover step
+   * (M15): the `.press` veil answers every pointer. 600 is the recording
+   * state's Stop fill (cream on it, 5.2:1) and the scrubber's filler
+   * marks, never a hover: it is the rust hex, ink on it is 2.9:1, and a
+   * tap that hovered into it read as "wrong direction". 700 is accent
+   * TEXT and 800 is text on the 100 wash, both remapped in dark so the
+   * roles keep their contrast. Ink (`on-accent`) sits on a 500 fill.
    */
   --color-terracotta-50: #fbeee1;
   --color-terracotta-100: #f6ddc9;
@@ -279,9 +282,10 @@
   --text-title--line-height: 1.15;
   /* Tracking by size, never one value for all (apple-design §15):
      the larger the line, the tighter; fine print opens up a hair.
-     Outfit's word space is narrow, so a multi-word title stops at
-     -0.012em: at -0.02 "Think on your feet" read as two words. */
-  --text-title--letter-spacing: -0.012em;
+     intro-b-1: back to -0.02em. #323 opened it to -0.012em because
+     "Think on your feet" read as two words, but that was the camera
+     hinting fonts (#325); unhinted, every word gap holds at -0.02. */
+  --text-title--letter-spacing: -0.02em;
   --text-title--font-weight: 700;
 
   --text-lead: 1.1875rem;
@@ -295,7 +299,86 @@
   --text-caption: 0.78125rem;
   --text-caption--line-height: 1.45;
   --text-caption--letter-spacing: 0.008em;
+
+  /*
+   * system-2: the rest of the scale, so a size is a token and not a
+   * bracketed pixel. Copy steps, each a utility (`text-detail` …):
+   *   detail  17/700  a section head one step in, a card's title line
+   *   read    16      reading paragraphs, in the body face (Figtree); no
+   *                   weight, so the paragraph keeps 400. Also every
+   *                   field (16 stops iOS zooming on focus)
+   *   row     14/700  a row's title, a control's label
+   *   link    13/600  a text link (the `.text-link` role adds the rest)
+   *   suffix  10/700  the ring's ordinal suffix ("th"), nothing else
+   * Number steps, always with `font-display` (Outfit 800, tabular):
+   *   num-xl   72  the results score step only
+   *   num-hero 56  the screen's one big number (Log index, You level)
+   *   num-l    36  a ring's or a card's number
+   *   num-m    24  a stat column
+   *   num-s    17  a number in a row
+   * The scale is 34 / 26 / 20 / 19 / 17 / 16 / 15 / 14 / 13 / 12.5 / 10
+   * for copy (34 is `.large-title`, 20 `.section-head`). Arbitrary
+   * `text-[Npx]` / `text-[Nrem]` sizes are counted by
+   * lib/type-scale.test.ts, and the count may only go down.
+   */
+  --text-detail: 1.0625rem;
+  --text-detail--line-height: 1.3;
+  --text-detail--letter-spacing: -0.01em;
+  --text-detail--font-weight: 700;
+
+  --text-read: 1rem;
+  --text-read--line-height: 1.45;
+  --text-read--letter-spacing: -0.003em;
+
+  --text-row: 0.875rem;
+  --text-row--line-height: 1.3;
+  --text-row--letter-spacing: -0.003em;
+  --text-row--font-weight: 700;
+
+  --text-link: 0.8125rem;
+  --text-link--line-height: 1.35;
+  --text-link--letter-spacing: 0em;
+  --text-link--font-weight: 600;
+
+  --text-suffix: 0.625rem;
+  --text-suffix--line-height: 1;
+  --text-suffix--letter-spacing: 0.02em;
+  --text-suffix--font-weight: 700;
+
+  --text-num-xl: 4.5rem;
+  --text-num-xl--line-height: 1;
+  --text-num-xl--letter-spacing: -0.03em;
+  --text-num-xl--font-weight: 800;
+
+  --text-num-hero: 3.5rem;
+  --text-num-hero--line-height: 1;
+  --text-num-hero--letter-spacing: -0.025em;
+  --text-num-hero--font-weight: 800;
+
+  --text-num-l: 2.25rem;
+  --text-num-l--line-height: 1;
+  --text-num-l--letter-spacing: -0.02em;
+  --text-num-l--font-weight: 800;
+
+  --text-num-m: 1.5rem;
+  --text-num-m--line-height: 1.05;
+  --text-num-m--letter-spacing: -0.02em;
+  --text-num-m--font-weight: 800;
+
+  --text-num-s: 1.0625rem;
+  --text-num-s--line-height: 1.1;
+  --text-num-s--letter-spacing: -0.01em;
+  --text-num-s--font-weight: 800;
 }
+
+/*
+ * The dark variant (for Phase B, so a dark value needs no new hook in
+ * this file). Theme.tsx ALWAYS sets data-theme on <html>, resolving
+ * `system` itself, so `dark:` follows the app's theme. Tailwind's
+ * default `dark:` follows the OS and would be wrong whenever someone
+ * picks a theme other than the OS's (#286).
+ */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 /* Font tokens reference next/font variables (scoped to <body>), so they
  * must be inline — a :root-level var() to them computes to invalid. */
@@ -308,6 +391,46 @@ body {
   background: var(--color-ground);
   color: var(--color-ink);
   font-family: var(--font-figtree), sans-serif;
+  /* log-2, intro-a-3 (#325): Linux Chrome's FreeType hinting rounds each
+     glyph advance to a whole pixel and prints "t he t hing" in Figtree
+     and "Ne xt" in Outfit. Geometric precision keeps the font's own
+     advances. Phones never hinted; the cameras pass
+     --font-render-hinting=none for the same reason. */
+  text-rendering: geometricPrecision;
+}
+
+@layer base {
+  /* today-18, recording-25, practice-detail-22: no double-tap-to-zoom
+     wait on anything tappable. In the base layer and on the element
+     only, so `.nav-glass`'s `touch-action: none` and LessonScreen's
+     `touch-pan-y` still win, and touch-action intersects down the
+     ancestor chain, so neither gesture loosens. */
+  a,
+  button,
+  [role="button"],
+  summary,
+  label {
+    touch-action: manipulation;
+  }
+
+  /* practice-detail-17, modes-24: titles break into even lines instead
+     of leaving one word below ("Explain what you haven't / studied."),
+     and prose avoids a one-word last line. Base layer, so a
+     `whitespace-nowrap` or `truncate` utility still wins. */
+  h1,
+  h2,
+  h3,
+  .large-title,
+  .text-title,
+  .section-head,
+  .detail-head {
+    text-wrap: balance;
+  }
+  p,
+  li,
+  .group-foot {
+    text-wrap: pretty;
+  }
 }
 
 /*
@@ -450,6 +573,146 @@ body {
 }
 
 /*
+ * THE CAPITALS RULE (M05, system-3). Tracked capitals are for data:
+ * column heads (Log's METRIC, NOW, CHANGE) and stat labels, and nothing
+ * else. Two registers and no third: `.label-data` 11/700/0.08em (#321
+ * set the 0.08) and `.label-micro` 10/700/0.08em. `.group-head` and
+ * `.log-date-month` are folded onto those values below. One idea per
+ * eyebrow, never a ' · ' compound ("Clean run", not "CLEAN RUN · LAST
+ * RECORDING"). A line over a title inside a card is `.eyebrow`, sentence
+ * case; a section head one step in is `.detail-head`.
+ *
+ * LAYERS, which is how a utility talks to a role:
+ *   @layer components (below): .eyebrow, .detail-head, .text-link,
+ *     .section-head-count, .card. A colour or size
+ *     utility on the element overrides them as written (`eyebrow
+ *     text-terracotta-700`).
+ *   Unlayered (as they always were): .section-head, .section-head-aside,
+ *     .label-data, .label-micro, .large-title*, .elev-*, .today-earned,
+ *     and the deep materials .card-score, .card-stage, .card-premium.
+ *     Unlayered CSS beats every layer, so a utility needs v4's important
+ *     modifier (`text-sage-700!`) against these, and only these.
+ */
+@layer components {
+  /* M05, system-3: the line over a title inside a card. Sentence case
+     at reading size: Outfit 13/600 on 18, no tracking, stone-500. Its
+     colour comes from context (a utility, or a parent's role). */
+  .eyebrow {
+    font-family: var(--font-display-face), sans-serif;
+    font-size: 0.8125rem;
+    line-height: 1.125rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--color-stone-500);
+  }
+
+  /* M05, system-3: a section head on a screen one step in (unit,
+     practice, boss): Outfit 17/700 on 22, -0.01em, ink. The tab screens
+     keep `.section-head` (20/800). */
+  .detail-head {
+    font-family: var(--font-display-face), sans-serif;
+    font-size: 1.0625rem;
+    line-height: 1.375rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--color-ink);
+  }
+
+  /* wellspoken-home s8: a section's count, right after its title on the
+     same row ("Earned 3", "Every recording 22"): Outfit 15/700 tabular
+     in stone-400, 8px after the title. Never filled, never red. */
+  .section-head-count {
+    margin-left: 8px;
+    font-family: var(--font-display-face), sans-serif;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-stone-400);
+  }
+
+  /* system-16: a text link, one spelling. Outfit 13/600 in stone-500
+     (recovery), going ink under a pointer; the door you came for adds
+     `text-terracotta-700` and a trait aside adds its tone ink, and either
+     utility beats this colour. The ::after stretches the hit area 12px
+     up and down and 4px to the sides, so a 18px line is a 44px target
+     without moving anything. */
+  .text-link {
+    position: relative;
+    font-family: var(--font-display-face), sans-serif;
+    font-size: 0.8125rem;
+    line-height: 1.35;
+    font-weight: 600;
+    letter-spacing: 0;
+    color: var(--color-stone-500);
+    transition: color var(--duration-fast) var(--ease-out);
+  }
+  .text-link::after {
+    content: "";
+    position: absolute;
+    inset: -12px -4px;
+  }
+  @media (hover: hover) {
+    .text-link:hover {
+      color: var(--color-ink);
+    }
+  }
+
+  /* system-1, M24: THE card. One recipe for every card that is not a
+     role material: raised fill, the 1px card-edge hairline, radius 16,
+     shadow-1. Replaces the hand-written `elev-1 rounded-card border
+     border-card-edge bg-raised`. The screen's one lifted thing adds
+     `elev-2` (unlayered, so it wins). NOT for role materials: inset
+     groups, Today's tone tiles, You's sage tiles, tone-wash headers. In
+     dark a black shadow vanishes on the near-black ground, so the card
+     is lit from above instead (the sheen below); a card that takes
+     another fill adds `bg-none` to drop the sheen. */
+  .card {
+    background-color: var(--color-raised);
+    border: 1px solid var(--color-card-edge);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-1);
+  }
+  /* The sheen: #303030 at the top edge, raised (#262626) by 88px. Written
+     as raised plus 4.6% white, which IS #303030 in dark, so the OS
+     fallback below cannot paint a grey band on a page whose tokens
+     stayed light (no script, OS dark): there it mixes to white. */
+  :root[data-theme="dark"] .card {
+    background-image: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-raised), #fff 4.6%) 0,
+      var(--color-raised) 88px
+    );
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .card {
+      background-image: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--color-raised), #fff 4.6%) 0,
+        var(--color-raised) 88px
+      );
+    }
+  }
+}
+
+/* practice-tab-4: the paywall sheet is plum, the tier's own surface.
+   Hexes on purpose: the plum tokens invert in dark (900 becomes a near
+   black), and this surface is deep plum in both themes, as the score
+   card is deep sage in both. Plum is never a tap, so its action is
+   still a terracotta button on it. Unlayered, like `.card-score`, its
+   sibling material: its `background` beats the dark `.card` sheen even
+   if both classes land on one element. */
+.card-premium {
+  background: #3c2043;
+  border: 1px solid transparent;
+  box-shadow: var(--shadow-3);
+}
+:root[data-theme="dark"] .card-premium {
+  border-color: #6a3f6f;
+}
+
+/*
  * Numbers are the brand (brand.md). Outfit now (#201): every numeral
  * tabular, heroes at 800 with tight tracking set per-element. The
  * weight sits in the base layer so `font-bold`/`font-extrabold`
@@ -534,6 +797,12 @@ body {
  * are its whole press. That is deliberate: a text link that cast a
  * shadow on release would be inventing depth it never had.
  */
+/* system-1, M24: `.card` is level 1, so it drops to the paper like
+   `.elev-1`. Before the elev rules on purpose: a `.card elev-2` (the one
+   lifted thing) takes the elev-2 drop below, which comes later. */
+.press.card:active {
+  box-shadow: none;
+}
 .press.elev-3:active {
   box-shadow: var(--shadow-2);
 }
@@ -563,24 +832,21 @@ body {
 
 /*
  * The score card's material: deep sage in both themes (#165 — the
- * second focal point is sage, restored with the palette in #203; the
- * paywall sheet wears it too, #171). In dark the ground closes in on
- * it, so it gets a hairline in the sage-dim step instead.
- */
-/*
- * The score card is level 2 (Job 2's brief names it): the number IS the
- * brand, so the surface carrying it is important wherever it lands —
- * the second focal point on Today, the hero of the log.
+ * second focal point is sage, restored with the palette in #203). In
+ * dark the ground closes in on it, so it gets a hairline in the
+ * sage-dim step instead.
  *
- * Two level-2 surfaces on Today does not break "one loud thing",
- * because they are not competing in the same channel: the floor card is
- * lifted PAPER and this is a different MATERIAL, deep sage against the
- * cream room. The rule that matters is that only one of them is white.
+ * Level 1 since system-11 (it was level 2, #240). Two level-2 masses on
+ * Today, the floor card and this, competed with the one tap in the
+ * squint test; the deep sage material already sets it apart, so it
+ * takes a card's shadow (SYSTEM.md §4's score-card row) and the floor
+ * card is Today's one lifted thing. (The paywall sheet that wore this
+ * material moves to `.card-premium`, practice-tab-4.)
  */
 .card-score {
   background: var(--color-sage-900);
   border: 1px solid transparent;
-  box-shadow: var(--shadow-2);
+  box-shadow: var(--shadow-1);
 }
 
 :root[data-theme="dark"] .card-score {
@@ -679,6 +945,16 @@ body::after {
   animation-duration: var(--duration-max);
 }
 
+/* today-14: what a tab screen's last block has to clear at the bottom.
+ * The floating nav is 62px tall and stands max(14px, safe-area) off the
+ * bottom (.nav-dock); 28px is the section rhythm (mt-7) above it. Used
+ * as `pb-[var(--nav-clear)]` in place of `pb-22`, which was 88px against
+ * a 76px dock with no safe area in it, and fell under the glass on any
+ * phone with a home indicator once viewportFit is cover (layout.tsx). */
+:root {
+  --nav-clear: calc(62px + max(14px, env(safe-area-inset-bottom)) + 28px);
+}
+
 /* The bottom inset (#231): the nav and every bottom-anchored tap sit
  * above the home indicator, never under it. */
 .pb-safe {
@@ -713,19 +989,43 @@ body::after {
 }
 /* A big surface moves less than a button under the same thumb: 0.97 of
    a 350px card is a 10px lurch, so cards give a third of that. */
-.press:is(.elev-1, .elev-2, .elev-3, .rounded-card, .rounded-sheet):active {
+.press:is(.elev-1, .elev-2, .elev-3, .rounded-card, .rounded-sheet, .card):active {
   transform: scale(0.985);
+}
+/* A pressed dark card keeps its sheen under the veil (the veil is a
+   background-image too, and would otherwise replace it). */
+:root[data-theme="dark"] .press.card:not(.bg-none):active {
+  background-image:
+    linear-gradient(var(--press-veil), var(--press-veil)),
+    linear-gradient(180deg, color-mix(in srgb, var(--color-raised), #fff 4.6%) 0, var(--color-raised) 88px);
 }
 
 /* Up is a spring, critically damped: a button you let go of comes back
    and stops. It used to overshoot, and a bounce is for things you threw
-   (apple-design §4); a tap threw nothing. */
+   (apple-design §4); a tap threw nothing.
+
+   The colour half reads Tailwind's own `--tw-duration` and `--tw-ease`
+   (set by `duration-*` and `ease-*`, not inherited), because this rule
+   is unlayered and would otherwise beat those utilities outright. So a
+   press that names a duration gets it: ACTION_CLASS's
+   `transition-colors duration-200 ease-out` is the 200ms crossfade a
+   waiting button lights up with (M25), ink and fill together. Every
+   other press keeps the 120ms step. */
 .press {
   transition:
     transform var(--spring-snappy-duration) var(--spring-snappy),
     box-shadow var(--spring-snappy-duration) var(--spring-snappy),
-    background-color var(--duration-fast) var(--ease-out),
-    border-color var(--duration-fast) var(--ease-out);
+    color var(--tw-duration, var(--duration-fast)) var(--tw-ease, var(--ease-out)),
+    background-color var(--tw-duration, var(--duration-fast)) var(--tw-ease, var(--ease-out)),
+    border-color var(--tw-duration, var(--duration-fast)) var(--tw-ease, var(--ease-out));
+}
+
+/* today-18, lessons-23, recording-25, practice-detail-22: iOS and
+   Android paint their own grey rectangle over a tap, on top of the
+   veil and square across rounded corners. Off only where the app
+   draws its own press (these six), so a plain link keeps the system's. */
+:is(.press, .press-row, .group-row, .nav-tab, .segmented-option, .switch) {
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Down is contact, not animation. */
@@ -1807,7 +2107,8 @@ body::after {
   background: var(--color-ink);
 }
 
-/* An answer's glyph, on a tile in its tone. */
+/* An answer's glyph, on a tile in its tone. A fixed tile is a control,
+   so it takes the control radius (system-12; it was an off-scale 10). */
 .glyph-tile {
   display: flex;
   height: 36px;
@@ -1815,7 +2116,7 @@ body::after {
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: var(--tone-wash);
   color: var(--tone-ink);
   transition: transform var(--duration-base) var(--ease-spring);
@@ -2310,25 +2611,41 @@ body::after {
     --earned-gold: #f0c64a;
   }
 }
-/* The header's stars and streak: earned chips, never a tap. */
+/* The header's stars and streak: earned chips, never a tap. Thumb size
+   since M17 (Timothy #176, "make them more noticeable"; the sage-100
+   fill is his too, #312): 36px tall, the number Outfit 15/700 tabular,
+   the glyph 18px. In dark the sage-100 chip sat close to the ground, so
+   it takes the card hairline inside its edge. */
 .today-earned {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  height: 28px;
-  padding: 0 10px 0 8px;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px 0 10px;
   border-radius: 999px;
   background: var(--color-sage-100);
   color: var(--color-sage-800);
   font-family: var(--font-display-face), sans-serif;
-  font-size: 13px;
-  font-weight: 800;
+  font-size: 15px;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+:root[data-theme="dark"] .today-earned {
+  box-shadow: inset 0 0 0 1px var(--color-card-edge);
+}
+/* The glyph at 18px whichever way it is drawn: the star is a text
+   glyph, the flame an SVG. Unlayered, so it sets the size over a
+   call site's own `text-[14px]` or `size` until those go. */
 .today-earned-mark {
   display: inline-flex;
   color: var(--earned-gold);
+  font-size: 18px;
+  line-height: 1;
+}
+.today-earned-mark > svg {
+  width: 18px;
+  height: 18px;
 }
 /* An open day: the flame is unlit until today's recording lands. It
    replaces the words, which the chip keeps as sr-only text. */
@@ -2367,10 +2684,11 @@ body::after {
 .today-trait-tile {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 14%, transparent);
 }
+/* system-11: no shadow. Today's line sits on its wash with its inset
+   tone ring, like the trait tiles, so the floor card is the only mass
+   lifted off Today's ground. */
 .today-line {
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--tone) 18%, transparent),
-    var(--shadow-1);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 18%, transparent);
 }
 /* ========================== end of today (colour pass) ========================== */
 
@@ -2425,12 +2743,14 @@ body::after {
 }
 /* The month over the day: the micro register, in the tile's own ink at
    full strength (6.4:1 and up on every wash; faded, the ochre fell to
-   3.9 at 9px). Size alone puts it under the day. */
+   3.9 at 9px). Size alone puts it under the day. `.label-micro`'s
+   values exactly since system-3 (10/700/0.08em; it was 9px/0.06em), so
+   the app has two capitals registers, not four. */
 .log-date-month {
   font-family: var(--font-display-face), sans-serif;
-  font-size: 9px;
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 /* The one insight, ruled in its trait's tone: a 3px left rule over the
@@ -2952,13 +3272,18 @@ body::after {
   color: var(--color-ink);
   transform-origin: 0% 100%;
 }
+/* The line over a large title (Today's date). M17, wellspoken-lexicon
+   s1: a quiet Figtree line, 15/500 on 20, no tracking, stone-500, 4px
+   over the title. It was Outfit 13/700, which also printed the camera's
+   "4 O ctober" gap. */
 .large-title-eyebrow {
-  font-family: var(--font-display-face), sans-serif;
-  font-size: 0.8125rem;
-  line-height: 1.1rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  color: var(--color-stone-400);
+  margin-bottom: 4px;
+  font-family: var(--font-figtree), sans-serif;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--color-stone-500);
 }
 /* A section's title: Apple's sentence-case headline in place of the
    tracked capitals it replaced (§15). Big type tightens, so it tracks
@@ -2972,6 +3297,13 @@ body::after {
   letter-spacing: -0.018em;
   color: var(--color-ink);
 }
+/* wellspoken-home s8: a trait section's head in its tone's ink (Lessons'
+   open trait sections). Spelled out, because `.section-head`'s ink is
+   unlayered and would beat a layered tone, and `.tone-ink` comes
+   earlier in this file. */
+.section-head.tone-ink {
+  color: var(--tone-ink);
+}
 .section-head-aside {
   font-family: var(--font-display-face), sans-serif;
   font-size: 0.9375rem;
@@ -2979,12 +3311,18 @@ body::after {
   letter-spacing: -0.005em;
 }
 
+/* M17: the trailing chips centre on the title's CAP height, not its
+   line box. The box is exactly the title's 40px line and sits on its
+   bottom (the row aligns flex-end), so its centre is 20px over the line
+   box's foot: Outfit 800 at 34px puts the baseline about 7px over that
+   foot and the cap's middle about 12px over the baseline, 19 to 20px in
+   all. It was 5px of padding under a 28px chip, which sat low. */
 .large-title-trailing {
   display: flex;
   flex-shrink: 0;
   align-items: center;
   gap: 8px;
-  padding-bottom: 5px;
+  height: 2.5rem;
 }
 
 /* ============================ reduced transparency ============================
@@ -3047,16 +3385,27 @@ body::after {
  * rounded surface per group, rows parted by hairlines that start where
  * the text does, a small header over the group and a small footer under.
  * ====================================================================== */
+/* A group's header is a data label: `.label-data`'s values exactly
+   (11/700/0.08em; system-3 folded its own 12px/0.06em away), so the app
+   has two capitals registers, not four. */
 .group-head {
   padding: 0 16px 7px;
   font-family: var(--font-display-face), sans-serif;
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-stone-400);
 }
-.group {
+/* The group's container is `.inset-group` (log-1, recording-1,
+   system-15). It was `.group`, which is also Tailwind's `group` marker:
+   DimensionList's <details className="group …"> picked this rule up and
+   drew nine grey capsules inside a card. `.group:not(details)` is a
+   TEMPORARY alias so Settings and You keep rendering until their
+   packages move to `.inset-group`; Phase C deletes it. The `:not(details)`
+   alone already stops the capsules. `.group-head`, `.group-row` and
+   `.group-foot` keep their names: no Tailwind utility shares them. */
+:is(.inset-group, .group:not(details)) {
   overflow: hidden;
   border-radius: var(--radius-card);
   background: var(--color-surface);
@@ -3089,8 +3438,24 @@ body::after {
   transform-origin: top;
 }
 /* Rows that lead with a 40px tile start their hairline at the text. */
-.group[data-inset="icon"] > .group-row + .group-row::before {
+:is(.inset-group, .group:not(details))[data-inset="icon"] > .group-row + .group-row::before {
   left: 70px;
+}
+/* you-2: the group clips (overflow: hidden) and every row is as wide as
+   it, so the global ring at +2px lost its sides, and its top and bottom
+   on the end rows. Inside a group the ring draws inside the row, and
+   the end rows take the group's corners so the ring follows them. */
+:is(.inset-group, .group:not(details)) > :focus-visible,
+.group-row:focus-visible {
+  outline-offset: -3px;
+}
+:is(.inset-group, .group:not(details)) > :first-child:focus-visible {
+  border-top-left-radius: var(--radius-card);
+  border-top-right-radius: var(--radius-card);
+}
+:is(.inset-group, .group:not(details)) > :last-child:focus-visible {
+  border-bottom-left-radius: var(--radius-card);
+  border-bottom-right-radius: var(--radius-card);
 }
 /* A row answers a press the way iOS's does: it lights, it does not
    shrink. A row that scales pulls away from the rows beside it. The
@@ -3153,7 +3518,9 @@ body::after {
   display: grid;
   grid-template-columns: repeat(var(--segments), 1fr);
   padding: 2px;
-  border-radius: 10px;
+  /* system-12: on the scale. The track is a control (12) and the thumb
+     sits 2px inside it (10); no other off-scale radius in the app. */
+  border-radius: var(--radius-control);
   background: color-mix(in srgb, var(--color-ink) 7%, transparent);
 }
 .segmented-thumb {
@@ -3162,7 +3529,7 @@ body::after {
   bottom: 2px;
   left: 2px;
   width: calc((100% - 4px) / var(--segments));
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--color-raised);
   box-shadow:
     0 3px 8px rgb(0 0 0 / 0.12),
@@ -3170,18 +3537,30 @@ body::after {
     0 0 0 0.5px rgb(0 0 0 / 0.04);
   transition: transform var(--spring-base-duration) var(--spring-base);
 }
+/* you-20: #3a3a3a on the ~#2b2b2b track measured 1.2:1, so only the
+   label's weight said which segment was chosen. iOS's dark thumb: a
+   lighter fill and a faint light hairline. */
 :root[data-theme="dark"] .segmented-thumb {
-  background: #3a3a3a;
+  background: #4a4a4a;
+  box-shadow: 0 0 0 0.5px rgb(255 255 255 / 0.08);
 }
+/* system-13, you-19: 40px, which is 44 with the track's 2px padding,
+   so every option is a full touch target. `data-size="lg"` (A2's shared
+   Segmented, for the introduction and the paywall plans) is 44 inside
+   the track with a 15px label. */
 .segmented-option {
   position: relative;
   z-index: 1;
-  min-height: 36px;
+  min-height: 40px;
   font-family: var(--font-display-face), sans-serif;
   font-size: 13px;
   font-weight: 700;
   color: var(--color-stone-500);
   transition: color 200ms var(--ease-out);
+}
+.segmented[data-size="lg"] .segmented-option {
+  min-height: 44px;
+  font-size: 15px;
 }
 .segmented-option[aria-checked="true"] {
   color: var(--color-ink);

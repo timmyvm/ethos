@@ -2,6 +2,7 @@
 
 import { Disclosure } from "@/components/ui/Disclosure";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { Segmented } from "@/components/ui/Segmented";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -27,6 +28,20 @@ import {
 } from "@/lib/reminders";
 import { computeStreak } from "@/lib/streak";
 import { supabaseBrowser } from "@/lib/supabase-browser";
+import { useHourLabel } from "@/lib/time-label";
+import { ACTION_CLASS, DISABLED_CLASS, INPUT_CLASS } from "@/lib/ui";
+import { useRovingRadio, type RovingItemProps } from "@/lib/use-roving-radio";
+
+/** The hours a reminder can ring at: two rows of three (you-17). */
+const HOURS = [7, 8, 12, 18, 20, 21] as const;
+/** Where the switch lands when it goes on: the evening, after the day. */
+const DEFAULT_HOUR = 20;
+
+/* The three answers (#286, the OS first), spelled as lib/theme.test.ts
+   reads them, then labelled for A2's Segmented. */
+const THEMES = (["system", "light", "dark"] as const satisfies readonly Theme[]).map(
+  (t) => ({ value: t, label: `${t[0].toUpperCase()}${t.slice(1)}` })
+);
 
 /**
  * Settings. mechanics.md notification rules are enforced here, not left
@@ -53,6 +68,11 @@ export default function SettingsPage() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleted, setDeleted] = useState(false);
+  /* The next time the reminder rings. Read after mount and after every
+     change that moves it, never during render: a clock read in render
+     is a different answer on the server and the phone (#418). */
+  const [fireAt, setFireAt] = useState<Date | null>(null);
+  const hour = useHourLabel();
 
   async function runDelete() {
     setDeleting(true);
@@ -172,16 +192,19 @@ export default function SettingsPage() {
     }
   }
 
-  const fireAt =
-    prefs.reminderHour !== null
-      ? nextFireTime(prefs.reminderHour, new Date(), prefs, didToday)
-      : null;
+  useEffect(() => {
+    setFireAt(
+      prefs.reminderHour !== null
+        ? nextFireTime(prefs.reminderHour, new Date(), prefs, didToday)
+        : null
+    );
+  }, [prefs, didToday]);
 
   // The goodbye. Brief, warm, and it means it: by the time this
   // renders, the server holds nothing and the device is being emptied.
   if (deleted) {
     return (
-      <main className="flex min-h-dvh flex-col items-center justify-center px-8 pb-22 text-center">
+      <main className="flex min-h-dvh flex-col items-center justify-center px-8 pb-[var(--nav-clear)] text-center">
         <Image
           src="/demos-asleep.webp"
           alt=""
@@ -189,50 +212,47 @@ export default function SettingsPage() {
           height={160}
           className="demos w-[160px]"
         />
-        <h1 className="font-display mt-5 text-[27px] font-extrabold">
+        <h1 className="font-display mt-5 text-title font-extrabold">
           All gone.
         </h1>
-        <p className="mt-2 max-w-[280px] text-[14px] leading-relaxed text-stone-500">
+        <p className="mt-2 max-w-[280px] text-body text-pretty text-stone-500">
           Recordings, scores, streaks, account: deleted. Thanks for
           speaking with us.
         </p>
-        <Link
-          href="/about"
-          className="press mt-6 text-[13px] font-semibold text-terracotta-700"
-        >
-          The door stays open →
+        <Link href="/about" className="text-link mt-6 text-terracotta-700">
+          The door stays open
         </Link>
       </main>
     );
   }
 
-  const needsPermission = prefs.reminderHour !== null && perm !== "granted";
+  const reminderOn = prefs.reminderHour !== null;
+  const needsPermission = reminderOn && perm !== "granted";
 
   return (
-    <main className="px-5 pb-22 pt-7">
+    <main className="px-5 pb-[var(--nav-clear)] pt-7">
       <ScreenHeader title="Settings" back={{ href: "/you", label: "You" }} />
 
       {/* Reminders first: it's the habit lever, so it's the one thing
-          people come back here to change. */}
+          people come back here to change. One switch says whether it
+          rings (you-17); the hours appear only while it does, so the
+          ink "Off" slab, the heaviest object on the screen, is gone. */}
       <Section
         title="Reminders"
-        footer="One notification a day, maximum. It names the streak, never scolds you for missing it."
+        footer="One notification a day, naming your streak."
       >
-        <div
-          role="group"
-          aria-label="Reminder hour"
-          className="group-row flex flex-wrap gap-1.5"
-        >
-          {[null, 7, 8, 12, 18, 20, 21].map((h) => (
-            <Choice
-              key={String(h)}
-              selected={prefs.reminderHour === h}
-              onSelect={() => void setHour(h)}
-            >
-              {h === null ? "Off" : `${String(h).padStart(2, "0")}:00`}
-            </Choice>
-          ))}
-        </div>
+        <Toggle
+          label="Daily reminder"
+          on={reminderOn}
+          onChange={(v) => void setHour(v ? DEFAULT_HOUR : null)}
+        />
+        {reminderOn && (
+          <HourSet
+            value={prefs.reminderHour}
+            onChange={(h) => void setHour(h)}
+            label={hour}
+          />
+        )}
 
         {/* The screen's one terracotta tap, and only while it is a real
             blocker: an armed hour that cannot fire is the broken state
@@ -248,20 +268,20 @@ export default function SettingsPage() {
             <div className="group-row">
               <button
                 onClick={() => void askPermission()}
-                className="press font-display w-full rounded-control bg-terracotta-500 px-4 py-3 text-[14px] font-bold text-on-accent transition-colors hover:bg-terracotta-600"
+                className={ACTION_CLASS}
               >
                 Allow notifications
               </button>
             </div>
           ))}
 
-        {prefs.reminderHour !== null && perm === "granted" && (
+        {reminderOn && perm === "granted" && (
           <p className="group-row text-caption text-stone-500">
             <span className="font-semibold text-ink">
               {fireAt
                 ? `Next: ${fireAt.toLocaleString(undefined, {
                     weekday: "short",
-                    hour: "2-digit",
+                    hour: "numeric",
                     minute: "2-digit",
                   })}.`
                 : "That hour falls inside your quiet hours, so nothing will fire."}
@@ -272,9 +292,7 @@ export default function SettingsPage() {
 
         <InfoRow
           label="Quiet hours"
-          value={`${String(prefs.quietFrom).padStart(2, "0")}:00 to ${String(
-            prefs.quietTo
-          ).padStart(2, "0")}:00`}
+          value={`${hour(prefs.quietFrom)} to ${hour(prefs.quietTo)}`}
           note="Nothing fires inside them."
         />
       </Section>
@@ -283,7 +301,7 @@ export default function SettingsPage() {
       <Section title="Practice">
         <Toggle
           label="Frame step"
-          note="30 seconds of think-time before the clock starts. Trains deciding before speaking."
+          note="30 seconds to plan before the clock starts."
           on={prefs.frameStep}
           onChange={(v) => update({ frameStep: v })}
         />
@@ -305,7 +323,7 @@ export default function SettingsPage() {
       <Section title="Sound and haptics">
         <Toggle
           label="Sound"
-          note="One chime at the streak celebration. Never while you record, since the mic would hear it."
+          note="One chime at the streak celebration."
           on={prefs.sound}
           onChange={(v) => update({ sound: v })}
         />
@@ -319,9 +337,11 @@ export default function SettingsPage() {
 
       <Section title="Appearance">
         <div className="group-row">
+          {/* A2's shared control (you-19): one tab stop, the arrows move
+              the choice, 40px segments in a 44px track. */}
           <Segmented
             label="Theme"
-            options={["system", "light", "dark"] as const satisfies readonly Theme[]}
+            options={THEMES}
             value={prefs.theme}
             onChange={(t) => {
               update({ theme: t });
@@ -344,7 +364,7 @@ export default function SettingsPage() {
         title="Account"
         footer={
           email
-            ? "Signing out empties this device until you sign back in. Nothing is deleted."
+            ? "Your recordings stay on your account when you sign out."
             : undefined
         }
       >
@@ -364,7 +384,7 @@ export default function SettingsPage() {
               await signOut();
               window.location.href = "/";
             }}
-            className="group-row press-row font-display w-full text-left text-[15px] font-bold"
+            className="group-row press-row font-display w-full text-left text-row"
           >
             Sign out
           </button>
@@ -373,12 +393,12 @@ export default function SettingsPage() {
 
       <Section
         title="Your data"
-        footer="Every recording, transcript, score and lexicon entry. Yours to take. Audio is stored so the numbers can be recomputed as the engine improves."
+        footer="Every recording, transcript, score and lexicon entry, as one file."
       >
         <button
           onClick={() => void exportData()}
           disabled={exporting}
-          className="group-row press-row font-display w-full text-left text-[15px] font-bold disabled:opacity-50"
+          className={`group-row press-row font-display w-full text-left text-row ${DISABLED_CLASS}`}
         >
           {exporting ? "Building your file…" : "Export everything as JSON"}
         </button>
@@ -386,11 +406,12 @@ export default function SettingsPage() {
 
       {/* The group the app never had: the three pages it already ships
           were reachable from the footer of a marketing page and nowhere
-          else (#205). */}
+          else (#205). `from=settings` tells them where back goes
+          (marketing-2, marketing-3). */}
       <Section title="About">
-        <LinkRow href="/about" label="What Ethos is" />
-        <LinkRow href="/privacy" label="Privacy" />
-        <LinkRow href="/terms" label="Terms" />
+        <LinkRow href="/about?from=settings" label="What Ethos is" />
+        <LinkRow href="/privacy?from=settings" label="Privacy" />
+        <LinkRow href="/terms?from=settings" label="Terms" />
         <LinkRow
           href="mailto:hello@speakethos.com"
           label="Email us"
@@ -408,34 +429,37 @@ export default function SettingsPage() {
        */}
       <div className="mt-10">
         {!arming ? (
-          <div className="group">
+          <div className="inset-group">
             <button
               onClick={() => {
                 setArming(true);
                 setConfirmText("");
                 setDeleteError(null);
               }}
-              className="group-row press-row font-display w-full text-center text-[15px] font-bold text-rust"
+              className="group-row press-row font-display w-full text-center text-row text-rust"
             >
               Delete my account
             </button>
           </div>
         ) : (
-          <div className="elev-1 rounded-card border border-card-edge bg-raised p-4">
-            <p className="text-[13px] font-semibold leading-relaxed">
-              This deletes every recording, transcript, score, streak and the
-              account itself. There is no undo.
+          <div className="card p-4">
+            <p className="text-read text-pretty text-stone-800">
+              This permanently deletes every recording, transcript, score,
+              streak and the account itself.
             </p>
-            <label className="label-data mt-3 block" htmlFor="delete-confirm">
+            <label className="eyebrow mt-4 block" htmlFor="delete-confirm">
               Type DELETE to confirm
             </label>
             <input
               id="delete-confirm"
+              name="confirm"
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
               autoComplete="off"
+              spellCheck={false}
+              autoCapitalize="characters"
               placeholder="DELETE"
-              className="mt-1.5 w-full rounded-control border border-edge bg-surface px-4 py-2.5 text-[14px] font-semibold placeholder:text-stone-400 focus:border-terracotta-500"
+              className={`${INPUT_CLASS} mt-1.5`}
             />
             {deleteError && (
               <p role="alert" className="mt-2 text-caption font-semibold text-rust">
@@ -446,14 +470,14 @@ export default function SettingsPage() {
               <button
                 onClick={() => void runDelete()}
                 disabled={confirmText.trim() !== "DELETE" || deleting}
-                className="press font-display min-h-11 flex-1 rounded-control border border-edge bg-surface px-4 py-2.5 text-[13px] font-bold text-rust disabled:opacity-40"
+                className={`press font-display min-h-11 flex-1 rounded-control border border-edge bg-surface px-4 py-2.5 text-row text-rust ${DISABLED_CLASS}`}
               >
                 {deleting ? "Deleting…" : "Delete everything"}
               </button>
               <button
                 onClick={() => setArming(false)}
                 disabled={deleting}
-                className="press font-display min-h-11 flex-1 rounded-control border border-edge bg-surface px-4 py-2.5 text-[13px] font-bold hover:bg-sand"
+                className={`press font-display min-h-11 flex-1 rounded-control border border-edge bg-surface px-4 py-2.5 text-row ${DISABLED_CLASS}`}
               >
                 Keep it
               </button>
@@ -483,14 +507,13 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="mt-8">
+    <section className="mt-7">
       {title && <h2 className="group-head">{title}</h2>}
-      <div className="group">{children}</div>
+      <div className="inset-group">{children}</div>
       {footer && <div className="group-foot">{footer}</div>}
     </section>
   );
 }
-
 
 /**
  * One preference, as a row. `role="switch"` sits on the BUTTON — it was
@@ -505,7 +528,7 @@ function Toggle({
   onChange,
 }: {
   label: string;
-  note: string;
+  note?: string;
   on: boolean;
   onChange: (v: boolean) => void;
 }) {
@@ -517,12 +540,12 @@ function Toggle({
       className="group-row press-row flex w-full items-center gap-3 text-left"
     >
       <span className="flex-1">
-        <span className="font-display block text-[14px] font-bold">
-          {label}
-        </span>
-        <span className="mt-0.5 block text-caption text-stone-500">
-          {note}
-        </span>
+        <span className="font-display block text-row">{label}</span>
+        {note && (
+          <span className="mt-0.5 block text-caption text-pretty text-stone-500">
+            {note}
+          </span>
+        )}
       </span>
       {/*
        * Ink, not terracotta: a toggle is a state, not an action, and a
@@ -540,75 +563,77 @@ function Toggle({
   );
 }
 
-/** One option in a mutually exclusive set: hours, themes. */
-function Choice({
-  selected,
-  onSelect,
-  className = "",
-  children,
-}: {
-  selected: boolean;
-  onSelect: () => void;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      aria-pressed={selected}
-      onClick={onSelect}
-      className={`press font-display min-h-11 rounded-control border px-3.5 text-[13px] font-bold tabular-nums transition-colors ${
-        selected
-          ? "border-ink bg-ink text-ground"
-          : "border-edge bg-raised text-stone-600 hover:bg-sand"
-      } ${className}`}
-    >
-      {children}
-    </button>
-  );
-}
-
 /**
- * iOS's segmented control: one track, one raised thumb that slides to
- * the chosen segment on a spring rather than a fill that jumps. The
- * segments are equal and the thumb is one of them wide, so its travel
- * is a percentage and holds at any width.
+ * The reminder's hour: one radio group (you-19), two rows of three that
+ * end flush with the row (you-17). `grid!` because `.group-row` sets
+ * its display outside the utility layer. It wears the segmented control's
+ * grammar, a quiet track per option and a raised thumb on the chosen
+ * one, so the screen shows a choice one way, not two (system-13).
  */
-function Segmented<T extends string>({
-  label,
-  options,
+function HourSet({
   value,
   onChange,
+  label,
 }: {
-  label: string;
-  options: readonly T[];
-  value: T;
-  onChange: (v: T) => void;
+  value: number | null;
+  onChange: (h: number) => void;
+  label: (h: number) => string;
 }) {
-  const index = Math.max(0, options.indexOf(value));
+  const { getItemProps } = useRovingRadio<number>({
+    values: HOURS,
+    value,
+    onChange,
+  });
   return (
     <div
       role="radiogroup"
-      aria-label={label}
-      className="segmented"
-      style={{ "--segments": options.length } as React.CSSProperties}
+      aria-label="Reminder hour"
+      className="group-row grid! grid-cols-3 gap-1.5"
     >
-      <span
-        aria-hidden
-        className="segmented-thumb"
-        style={{ transform: `translateX(${index * 100}%)` }}
-      />
-      {options.map((o) => (
-        <button
-          key={o}
-          role="radio"
-          aria-checked={o === value}
-          onClick={() => onChange(o)}
-          className="segmented-option capitalize"
+      {HOURS.map((h, i) => (
+        <Choice
+          key={h}
+          selected={value === h}
+          onSelect={() => onChange(h)}
+          {...getItemProps(h, i)}
         >
-          {o}
-        </button>
+          {label(h)}
+        </Choice>
       ))}
     </div>
+  );
+}
+
+/** One option in the hour set: a radio, roved by its group. */
+function Choice({
+  selected,
+  onSelect,
+  children,
+  tabIndex,
+  onKeyDown,
+  ref,
+}: {
+  selected: boolean;
+  onSelect: () => void;
+  children: React.ReactNode;
+} & RovingItemProps) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      tabIndex={tabIndex}
+      onKeyDown={onKeyDown}
+      ref={ref}
+      onClick={onSelect}
+      className={`press font-display min-h-11 w-full rounded-control border px-2 text-link font-bold tabular-nums transition-colors ${
+        selected
+          ? "border-transparent bg-raised text-ink shadow-[var(--shadow-1)] dark:bg-[#4a4a4a] dark:shadow-[0_0_0_0.5px_rgb(255_255_255/0.08)]"
+          : "border-transparent bg-[color-mix(in_srgb,var(--color-ink)_7%,transparent)] text-stone-600"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -625,11 +650,11 @@ function InfoRow({
   return (
     <div className="group-row">
       <div className="flex items-baseline justify-between gap-3">
-        <span className="font-display min-w-0 truncate text-[14px] font-bold">
+        <span className="font-display min-w-0 truncate text-row">
           {label}
         </span>
         {value && (
-          <span className="shrink-0 text-[13px] text-stone-500 tabular-nums">
+          <span className="shrink-0 text-row font-normal text-stone-500 tabular-nums">
             {value}
           </span>
         )}
@@ -660,17 +685,17 @@ function LinkRow({
   const inner = (
     <>
       <span className="min-w-0 flex-1">
-        <span className="font-display block text-[14px] font-bold">
-          {label}
-        </span>
+        <span className="font-display block text-row">{label}</span>
         {note && (
-          <span className="mt-0.5 block text-caption text-stone-500">
+          <span className="mt-0.5 block text-caption text-pretty text-stone-500">
             {note}
           </span>
         )}
       </span>
       {value && (
-        <span className="shrink-0 text-caption text-stone-400">{value}</span>
+        <span className="shrink-0 text-row font-normal text-stone-500">
+          {value}
+        </span>
       )}
       <Disclosure />
     </>

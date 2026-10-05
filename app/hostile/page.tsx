@@ -24,7 +24,7 @@ import { buzz } from "@/lib/prefs";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 
 /**
- * Hostile Q&A — the interrogation (DECISIONS #183). Sixty seconds on a
+ * Hostile Q&A, the interrogation (DECISIONS #183). Sixty seconds on a
  * claim, then Demos comes back at the actual argument, twice, quoting
  * the speaker's own words. A verdict scores how the position held.
  *
@@ -64,7 +64,7 @@ interface VerdictView {
 
 export default function HostilePage() {
   // Deterministic first render (the server prerenders this component),
-  // then a random claim on mount — a random initializer would hydrate
+  // then a random claim on mount: a random initializer would hydrate
   // against a different server pick.
   const [prompt, setPrompt] = useState<HostilePrompt>(HOSTILE_PROMPTS[0]);
   /* modes-26: the server's pick is never shown. The claim holds its
@@ -112,7 +112,7 @@ export default function HostilePage() {
   } | null>(null);
   const [verdict, setVerdict] = useState<VerdictView | null>(null);
   const [banked, setBanked] = useState(false);
-  /** The take's full engine result — the speech numbers the daily
+  /** The take's full engine result: the speech numbers the daily
    *  debrief gets, reported missing here by Timothy. */
   const [takeResult, setTakeResult] = useState<AnalyzeResponse | null>(null);
 

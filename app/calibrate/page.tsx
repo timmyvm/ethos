@@ -301,7 +301,7 @@ export default function CalibratePage() {
 
       {/* Always mounted: startCamera attaches the stream to this ref,
           and an element that only renders AFTER the camera opens is an
-          element that wasn't there to attach to — no preview, and the
+          element that wasn't there to attach to: no preview, and the
           sampler reads a dead video as zero frames. Hidden, not absent,
           until the stream is up. */}
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
@@ -394,10 +394,10 @@ export default function CalibratePage() {
                       {d.result.metrics.eyeLinePct}
                     </td>
                     <td className="py-3 pr-3 tabular-nums">
-                      {d.result.metrics.headLift ?? "—"}
+                      {d.result.metrics.headLift ?? "–"}
                     </td>
                     <td className="py-3 pr-3 tabular-nums">
-                      {d.result.metrics.neckGap ?? "—"}
+                      {d.result.metrics.neckGap ?? "–"}
                     </td>
                     <td className="font-display py-3 pr-3 font-extrabold tabular-nums">
                       {d.result.metrics.presenceScore}

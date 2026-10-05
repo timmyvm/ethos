@@ -94,7 +94,7 @@ function Face({
   const tone = on ? "text-ink" : off ? "" : "text-stone-400";
   return (
     <span
-      className={`flex min-w-[96px] items-center justify-center gap-1.5 px-3 text-body font-bold transition-colors duration-200 ease-out ${tone}`}
+      className={`flex min-w-[96px] items-center justify-center gap-1.5 px-3 text-body font-bold transition-colors dur-base ${tone}`}
     >
       <Glyph kind={glyph} filled={on} />
       {word}

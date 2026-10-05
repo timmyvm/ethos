@@ -1810,12 +1810,12 @@ function Results({
        */}
       <div
         className={`flex flex-1 flex-col ${
-          leaving ? "animate-[fade-out_200ms_ease-out_forwards]" : ""
+          leaving ? "animate-[fade-out_var(--duration-base)_var(--ease-out)_forwards]" : ""
         }`}
       >
         <div
           key={step}
-          className={`arrive-x [:root[data-motion=reduce]_&]:[animation-duration:200ms]! ${
+          className={`arrive-x [:root[data-motion=reduce]_&]:[animation-duration:var(--duration-base)]! ${
             step === 0 ? "flex flex-1 flex-col justify-center pb-16 pt-4" : "pb-8"
           }`}
         >

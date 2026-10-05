@@ -59,7 +59,10 @@ export default function About() {
   const stranger = (
     <div className="flex min-h-11 items-center justify-between">
       <div className="font-display text-lead font-extrabold">ethos</div>
-      <Link href="/signin" className="text-link">
+      {/* The bar's own trailing link (15/600 ink, a 44px target), so
+          this row speaks the app's bar grammar; -mr-2 sets the word on
+          the gutter. */}
+      <Link href="/signin" className="screen-bar-link press -mr-2">
         Sign in
       </Link>
     </div>
@@ -78,7 +81,7 @@ export default function About() {
       <h1 className="large-title mt-4">
         You had the point. <span className="block">It came out fuzzy.</span>
       </h1>
-      <p className="mt-4 text-read text-stone-800">
+      <p className="mt-4 text-balance text-read text-stone-800">
         That&apos;s a practice problem. One prompt a day, 60 seconds of
         talking, and every second of it measured.
       </p>
@@ -153,10 +156,9 @@ export default function About() {
        */}
       <h2 className="font-display mt-12 text-title">Daily, with video</h2>
       <p className="mt-3 text-read text-stone-800">
-        Yoodli reads your body language before a big talk, and it&apos;s
-        good at it. Nobody is doing daily, streak-driven, gamified practice
-        with video, scored on what you said and how you held yourself
-        saying it.
+        Yoodli is a strong rehearsal tool: it reads your body language
+        before a big talk. Nobody is doing{" "}
+        daily, streak-driven, gamified practice with video.
       </p>
 
       <h2 className="font-display mt-12 text-title">

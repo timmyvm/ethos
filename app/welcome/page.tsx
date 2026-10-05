@@ -895,7 +895,14 @@ function NameField({
         onNext();
       }}
       placeholder={NAME_FIELD.placeholder}
-      className={`${NAME_CLASS} font-display ${name ? PICKED_ROW : "border-edge bg-surface"}`}
+      /* Picked, the field holds its focus edge (1px border plus a 1px
+         inset), so a typed answer wears the same 2px terracotta edge as
+         a chosen row whether or not the keyboard is up. */
+      className={`${NAME_CLASS} font-display ${
+        name
+          ? `${PICKED_ROW} shadow-[inset_0_0_0_1px_var(--color-terracotta-500)]`
+          : "border-edge bg-surface"
+      }`}
     />
   );
 }
@@ -1046,8 +1053,9 @@ function Hours({
  * with no edge: grey without an edge means "not yet".
  *
  * A press presses it in: 0.985 (a row is wide, so it gives a third of a
- * button's 0.97), and the lip compresses as the row drops 2px. The
- * margin the lip gives up is put back under it, so nothing below moves.
+ * button's 0.97), and the lip compresses as the row drops 2px. The row's
+ * 56px is its min-height, so the thinner lip changes nothing round it and
+ * no other row moves under the finger.
  *
  * `aria-label` carries the whole label, the hour's time included.
  */
@@ -1105,7 +1113,7 @@ function Row({
       tabIndex={tabIndex}
       onKeyDown={onKeyDown}
       onClick={onPress}
-      className={`press font-display flex min-h-14 w-full items-center gap-3 rounded-control border-2 border-b-4 px-4 py-2 text-left text-detail font-bold transition-colors active:mb-0.5 active:translate-y-0.5 active:border-b-2 active:[transform:scale(0.985)]! [[data-motion=reduce]_&]:active:[transform:none]! ${
+      className={`press font-display flex min-h-14 w-full items-center gap-3 rounded-control border-2 border-b-4 px-4 py-2 text-left text-detail font-bold transition-colors active:translate-y-0.5 active:border-b-2 active:[transform:scale(0.985)]! [[data-motion=reduce]_&]:active:[transform:none]! ${
         on ? PICKED_ROW : "border-edge bg-surface"
       } ${disabled ? "text-stone-400" : on ? "" : "text-ink"}`}
     >
@@ -1179,7 +1187,8 @@ function Numbers({ text }: { text: string }) {
     <>
       {text.split(/(\d+(?: to \d+)?)/).map((part, k) =>
         k % 2 === 1 ? (
-          <span key={k} className="font-display font-bold tabular-nums text-ink">
+          /* nowrap: "130 to 160" is one number and never breaks. */
+          <span key={k} className="font-display font-bold whitespace-nowrap tabular-nums text-ink">
             {part}
           </span>
         ) : (

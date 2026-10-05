@@ -206,7 +206,10 @@ await page.waitForSelector("main .arrive-x", { timeout: 8000 });
    awaited: waiting on the streak dialog first let a slow machine (software
    WebGL drawing Demos's clip on the scoring wait) finish the count before
    the first reading, and the check failed on a count that had run. */
-const SCORE = 'main .arrive-x span.font-display.text-\\[64px\\]';
+/* RepResult marks the Index with data-score (A4): the score step's
+   number moved from text-[64px] to the num-xl token, and a hook that
+   names the job outlives any size. */
+const SCORE = "main .arrive-x [data-score]";
 const early = await page.$eval(SCORE, (el) => el.textContent);
 const dialog = await dialogP;
 const before = await dialog.$eval("[aria-hidden] > div", (el) => getComputedStyle(el).transform);
@@ -222,7 +225,10 @@ ok("streak number rolls up one line on the landing note", rolling && after.trans
 await page.waitForSelector('[role="dialog"]', { state: "detached", timeout: 5000 });
 await sleep(300);
 await page.getByRole("button", { name: /The numbers/ }).click();
-await sleep(60);
+/* The old step fades out for 200ms before the next one mounts (M07), so
+   wait for the numbers step's own bars rather than a fixed beat; the
+   fill runs 300ms, so they are read mid-animation either way. */
+await page.waitForSelector("main .arrive-x .fill", { timeout: 1500 });
 const fills = await page.$$eval("main .arrive-x .fill", (els) => els.map((el) => getComputedStyle(el).animationName));
 ok("dimension bars fill on the numbers step", fills.length >= 5 && fills.every((n) => n === "fill"), `${fills.length} bars`);
 await sleep(900);

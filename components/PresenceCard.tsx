@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CountUp } from "@/components/CountUp";
 import { PremiumMark } from "@/components/PremiumMark";
+import { Disclosure } from "@/components/ui/Disclosure";
 import type { DeliveryMetrics, DeliveryMoment } from "@/lib/presence";
 
 /**
@@ -35,14 +36,14 @@ export function PresenceScore({
     return (
       <button
         onClick={onUpgrade}
-        className="press elev-1 flex w-full items-baseline gap-3.5 rounded-card border border-card-edge bg-raised p-4 text-left"
+        className="press card flex w-full items-baseline gap-3.5 p-4 text-left"
       >
-        <div className="font-display text-[44px] font-extrabold leading-none text-stone-300">
+        <div className="font-display text-num-l text-stone-400">
           ···
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-2">
-            <div className="text-[15px] font-semibold">
+            <div className="text-body font-semibold">
               your Presence{" "}
               <span className="font-normal text-stone-500">/1000</span>
             </div>
@@ -51,7 +52,7 @@ export function PresenceScore({
                 is still shown to be there (#73, #280). */}
             <PremiumMark variant="chip" />
           </div>
-          <div className="text-[13px] text-stone-500">
+          <div className="text-caption text-stone-500">
             Measured on this device. Tap to read it.
           </div>
         </div>
@@ -63,20 +64,19 @@ export function PresenceScore({
     <div className="flex items-baseline gap-3.5">
       <CountUp
         value={score}
-        className="font-display text-[64px] font-extrabold leading-none tracking-[-0.02em]"
+        className="font-display text-num-hero tabular-nums"
       />
       <div>
-        <div className="text-[15px] font-semibold">
+        <div className="text-body font-semibold">
           your Presence <span className="font-normal text-stone-500">/1000</span>
         </div>
         {delta !== null && delta !== 0 && (
           <div
-            className={`text-[13px] font-semibold ${
+            className={`text-caption font-semibold ${
               delta > 0 ? "text-sage-700" : "text-stone-500"
             }`}
           >
-            {delta > 0 ? "▲ +" : "▼ "}
-            {delta} since last video
+            {delta > 0 ? "▲" : "▼"} {Math.abs(delta)} since last video
           </div>
         )}
       </div>
@@ -100,13 +100,20 @@ export function PresenceDetail({
 }) {
   if (!premium) {
     return (
-      /* Plum card, terracotta button, on purpose and in one place: plum
-         says what this is, terracotta says you can press it (#280). */
-      <div className="mt-7 rounded-card bg-plum-50 p-4">
-        <div className="label-data !text-plum-800">
-          Delivery · measured, not yet read out
-        </div>
-        <p className="mt-2.5 text-[14px] leading-relaxed text-stone-600">
+      /* A door, like the free Presence score above it: the whole card
+         is the tap, PremiumMark names the tier, and the chevron says it
+         goes somewhere. It wore a plum-50 wash with a terracotta button,
+         a third plum surface and a second terracotta fill on a screen
+         whose way forward is already terracotta (principle 2, #280). */
+      <button
+        onClick={onUpgrade}
+        className="press card mt-7 block w-full p-4 text-left"
+      >
+        <span className="flex items-center justify-between gap-2">
+          <span className="eyebrow">Delivery</span>
+          <PremiumMark variant="chip" />
+        </span>
+        <span className="mt-2 block text-body text-stone-600 text-pretty">
           Your camera measured posture, gesture, head movement and eye line
           for the whole recording, on this device.{" "}
           {moments.length > 0 && (
@@ -115,14 +122,12 @@ export function PresenceDetail({
               timestamped moment{moments.length === 1 ? "" : "s"} in it.
             </>
           )}
-        </p>
-        <button
-          onClick={onUpgrade}
-          className="press font-display mt-4 min-h-12 w-full rounded-control bg-terracotta-500 px-4 py-3 text-[15px] font-bold text-on-accent transition-colors hover:bg-terracotta-600"
-        >
-          See the readout
-        </button>
-      </div>
+        </span>
+        <span className="mt-3 flex min-h-11 items-center justify-between gap-3 border-t border-hairline pt-3">
+          <span className="font-display text-row text-ink">See the readout</span>
+          <Disclosure />
+        </span>
+      </button>
     );
   }
 
@@ -131,11 +136,11 @@ export function PresenceDetail({
       {videoUrl && <VideoWithMarkers url={videoUrl} moments={moments} />}
 
       {moments.length > 0 && (
-        <section className="mt-7 border-t border-hairline pt-4">
-          <div className="label-data">Delivery · with timestamps</div>
+        <section className="mt-7">
+          <h2 className="section-head">Delivery</h2>
           <ul className="mt-3 space-y-2">
             {moments.map((m, i) => (
-              <li key={i} className="text-[14px] leading-relaxed text-stone-600">
+              <li key={i} className="text-body text-stone-600">
                 {m.note}
               </li>
             ))}
@@ -143,7 +148,8 @@ export function PresenceDetail({
         </section>
       )}
 
-      <div className="mt-3 flex gap-3">
+      {/* Three stats in one card, the results' metric grammar (log-7). */}
+      <div className="card mt-3 grid grid-cols-3 divide-x divide-hairline">
         <Stat
           label="Eye line"
           value={`${metrics.eyeLinePct}%`}
@@ -190,8 +196,8 @@ function VideoWithMarkers({
   }, []);
 
   return (
-    <div className="elev-1 mt-7 rounded-card border border-card-edge bg-raised p-4">
-      <div className="label-data">Playback · this device only</div>
+    <div className="card mt-7 p-4">
+      <div className="eyebrow">Playback</div>
       <video
         ref={ref}
         src={url}
@@ -233,16 +239,10 @@ function Stat({
   note: string;
 }) {
   return (
-    <div className="elev-1 flex-1 rounded-card border border-card-edge bg-raised p-4">
-      <div className="label-micro block min-h-[30px] leading-[1.5]">
-        {label}
-      </div>
-      <div className="font-display mt-1.5 text-[26px] font-extrabold leading-none">
-        {value}
-      </div>
-      <div className="mt-1.5 text-caption leading-snug text-stone-500">
-        {note}
-      </div>
+    <div className="min-w-0 px-3 py-4">
+      <div className="label-micro whitespace-nowrap">{label}</div>
+      <div className="font-display mt-1.5 text-num-m tabular-nums">{value}</div>
+      <div className="mt-1 text-caption text-balance text-stone-500">{note}</div>
     </div>
   );
 }

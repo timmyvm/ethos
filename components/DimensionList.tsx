@@ -1,9 +1,18 @@
+import { IconChevron } from "@/components/Icon";
+import { TRAIT, type TraitId } from "@/content/traits";
 import type { CoachOutput } from "@/lib/coach";
 import { dimensionPoints, type Tier1Scores, type Tier2Anchors } from "@/lib/index-score";
 import type { RepMetrics } from "@/lib/metrics";
 
 interface Row {
   name: string;
+  /**
+   * The trait a measured row IS (log-6, recording-8, system-9): its
+   * name comes from content/traits.ts and its swatch wears the trait's
+   * tone, so one colour never has two names between the Log and here.
+   * The four judged rows have none and stay neutral.
+   */
+  trait?: TraitId;
   score: number;
   weight: number;
   detail: string;
@@ -21,7 +30,9 @@ interface Row {
  * and pretending they are made the /1000 total look like it didn't add
  * up. Now it visibly does: the eight numbers on this list sum to the
  * Ethos Index above it. The bar fills to the same fraction, so half a
- * bar means half the points.
+ * bar means half the points. The bars stay sage on every row, measured
+ * or judged, because points are earned; a measured row carries its
+ * trait in the swatch beside its name instead.
  */
 export function DimensionList({
   tier1,
@@ -45,7 +56,8 @@ export function DimensionList({
 }) {
   const measured: Row[] = [
     {
-      name: "Pause",
+      name: TRAIT.pause.name,
+      trait: "pause",
       score: tier1.pause,
       weight: 150,
       detail: `${
@@ -58,11 +70,12 @@ export function DimensionList({
       }`,
     },
     {
-      name: "Fillers",
+      name: TRAIT.fillers.name,
+      trait: "fillers",
       score: tier1.fillers,
       weight: 100,
-      detail: `${metrics.fillerCount} filler${metrics.fillerCount === 1 ? "" : "s"} · ${metrics.fillersPerMin}/min. 0/min scores 100; 8/min scores 0.${
-        metrics.topFiller ? ` Most of them were "${metrics.topFiller}".` : ""
+      detail: `${metrics.fillerCount} filler${metrics.fillerCount === 1 ? "" : "s"}, ${metrics.fillersPerMin} a minute. None scores 100; 8 a minute scores 0.${
+        metrics.topFiller ? ` Most of them were “${metrics.topFiller}”.` : ""
       }`,
       improve:
         metrics.fillerCount > 0
@@ -75,10 +88,11 @@ export function DimensionList({
     ...(typeof tier1.repairs === "number"
       ? [
           {
-            name: "Self-corrections",
+            name: TRAIT.repairs.name,
+            trait: "repairs" as const,
             score: tier1.repairs,
             weight: 50,
-            detail: `${metrics.repairCount ?? 0} restarted phrase${(metrics.repairCount ?? 0) === 1 ? "" : "s"} · ${metrics.repairsPerMin ?? 0}/min. 0/min scores 100; 3/min scores 0.`,
+            detail: `${metrics.repairCount ?? 0} restarted phrase${(metrics.repairCount ?? 0) === 1 ? "" : "s"}, ${metrics.repairsPerMin ?? 0} a minute. None scores 100; 3 a minute scores 0.`,
             improve:
               (metrics.repairCount ?? 0) > 0
                 ? "Finish the sentence, then say the better one. A restart makes the listener re-follow you."
@@ -87,16 +101,18 @@ export function DimensionList({
         ]
       : []),
     {
-      name: "Pace",
+      name: TRAIT.pace.name,
+      trait: "pace",
       score: tier1.pace,
       weight: 100,
-      detail: `${metrics.wpm} WPM against the 130–160 zone, plus a bonus when pace moves.`,
+      detail: `${metrics.wpm} words a minute against the 130 to 160 zone, plus a bonus when pace moves.`,
     },
     {
-      name: "Range",
+      name: TRAIT.range.name,
+      trait: "range",
       score: tier1.range,
       weight: 100,
-      detail: `Distinct words vs repeats and crutch words ("really", "very", "thing").`,
+      detail: "Distinct words against repeats and crutch words (“really”, “very”, “thing”).",
     },
   ];
 
@@ -132,7 +148,7 @@ export function DimensionList({
           name: "Steadiness",
           score: coach.dimensions.confidence.score,
           weight: 100,
-          detail: `${coach.dimensions.confidence.citedMoment} (${anchors.hedgeCount} hedges, ${anchors.restartCount} restarts · counted, not judged.)`,
+          detail: `${coach.dimensions.confidence.citedMoment} (${anchors.hedgeCount} hedges and ${anchors.restartCount} restarts, counted rather than judged.)`,
           improve: coach.dimensions.confidence.improve,
         },
       ]
@@ -148,17 +164,31 @@ export function DimensionList({
   const available = rows.reduce((sum, r) => sum + r.weight, 0);
 
   return (
-    <div className="elev-1 rounded-card border border-card-edge bg-raised px-4 py-1">
+    <div className="card px-4 py-1">
       {rows.map((row) => {
         const points = dimensionPoints(row.score, row.weight);
         return (
+          /* No `group` here (log-1): Tailwind's marker class matched the
+             grouped list's old `.group` rule and drew a grey capsule
+             round every row. Nothing on the row reads a group variant. */
           <details
             key={row.name}
-            className="group border-b border-hairline py-3 last:border-b-0"
+            className="border-b border-hairline py-3 last:border-b-0"
           >
-            <summary className="flex cursor-pointer select-none items-center gap-3">
-              <span className="font-display w-[104px] shrink-0 text-[14px] font-bold leading-tight">
-                {row.name}
+            <summary
+              data-trait={row.trait}
+              className="flex min-h-6 cursor-pointer select-none list-none items-center gap-3 [&::-webkit-details-marker]:hidden"
+            >
+              {/* A 3px slot on every row, the tone swatch on the five
+                  measured ones, so the nine names share one left edge. */}
+              <span className="flex w-[104px] shrink-0 items-center gap-2">
+                <span
+                  aria-hidden
+                  className={`h-3.5 w-[3px] shrink-0 ${row.trait ? "tone-fill" : ""}`}
+                />
+                <span className="font-display min-w-0 truncate text-row font-bold">
+                  {row.name}
+                </span>
               </span>
               <span className="h-1.5 flex-1 overflow-hidden bg-sand">
                 <span
@@ -166,17 +196,17 @@ export function DimensionList({
                   style={{ width: `${(points / row.weight) * 100}%` }}
                 />
               </span>
-              <span className="w-[62px] shrink-0 text-right">
-                <span className="font-display text-[15px] font-extrabold">
-                  {points}
-                </span>
-                <span className="text-caption text-stone-500">/{row.weight}</span>
+              <Score points={points} of={row.weight} />
+              {/* The row says it opens (log-5, recording-12); the chevron
+                  turns over on open (globals.css, details[open]). */}
+              <span aria-hidden className="disclosure-mark shrink-0 text-stone-400">
+                <IconChevron size={14} />
               </span>
             </summary>
             {/* The why drops out of the row that opened it (#227); a
                 closed <details> doesn't render it, so it plays on every
                 open and never on the page's load. */}
-            <div className="reveal mt-2 pl-0 text-caption leading-relaxed text-stone-500">
+            <div className="reveal mt-2 pl-[11px] text-caption leading-relaxed text-stone-500">
               {row.detail}
               {row.improve && (
                 <div className="mt-1 text-stone-600">↳ {row.improve}</div>
@@ -188,15 +218,14 @@ export function DimensionList({
 
       {/* The sum, stated. Every number above adds to this one, and this
           one is the Ethos Index — so the score is checkable by hand
-          rather than taken on trust. */}
-      <div className="flex items-center justify-between border-t border-hairline py-3 text-[13px]">
-        <span className="label-micro">
-          {rows.length} dimension{rows.length === 1 ? "" : "s"} · added up
+          rather than taken on trust. The total sits in the same column
+          as the rows' scores, over the chevron's slot. */}
+      <div className="flex items-center gap-3 border-t border-hairline py-3">
+        <span className="flex-1 pl-[11px] text-caption font-semibold text-stone-500">
+          {rows.length} dimension{rows.length === 1 ? "" : "s"}, added up
         </span>
-        <span>
-          <span className="font-display text-[15px] font-extrabold">{earned}</span>
-          <span className="text-caption text-stone-500">/{available}</span>
-        </span>
+        <Score points={earned} of={available} />
+        <span aria-hidden className="w-3.5 shrink-0" />
       </div>
 
       {/* Counts the rows rather than claiming a number (#102): the
@@ -209,5 +238,23 @@ export function DimensionList({
         </p>
       )}
     </div>
+  );
+}
+
+/**
+ * Points over a denominator on one fixed edge (log-11): the numerator
+ * right-aligned in its own column and the denominator left-aligned in
+ * a 34px one, both tabular Outfit, so '33/50' ends where '99/150' does.
+ */
+function Score({ points, of }: { points: number; of: number }) {
+  return (
+    <span className="grid w-[66px] shrink-0 grid-cols-[1fr_34px] items-baseline">
+      <span className="font-display text-right text-body font-extrabold tabular-nums">
+        {points}
+      </span>
+      <span className="font-display text-left text-caption font-semibold tabular-nums text-stone-500">
+        /{of}
+      </span>
+    </span>
   );
 }

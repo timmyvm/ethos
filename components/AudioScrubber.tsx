@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { IconPauseSm, IconPlay } from "@/components/Icon";
 import type { FillerHit, Pause } from "@/lib/metrics";
 
 /**
@@ -60,7 +61,10 @@ export function AudioScrubber({
   const pct = (n: number) => (durationS > 0 ? (n / durationS) * 100 : 0);
 
   return (
-    <div className="elev-1 rounded-card border border-card-edge bg-raised p-4">
+    /* The card is the Fillers trait's ground (recording-20, system-9):
+       its tone is what the filler ticks and their key wear, so Fillers
+       is the same colour here as on Today, Lessons and the Log. */
+    <div data-trait="fillers" className="card p-4">
       {/*
        * The legend is the header's right half (feedback round, 25 Sep):
        * a swatch and a word per mark, only for the marks this recording
@@ -70,7 +74,7 @@ export function AudioScrubber({
        * like what they are: buttons that play.
        */}
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
-        <div className="label-data">Hear it back</div>
+        <div className="eyebrow">Hear it back</div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-stone-500">
           {fillers.length > 0 && (
             <Key mark={FILLER_MARK} thin>
@@ -89,16 +93,24 @@ export function AudioScrubber({
       <audio ref={ref} src={src} preload="metadata" />
 
       <div className="mt-4 flex items-center gap-3">
+        {/* A key in the pills' own grammar: surface, hairline, the tap's
+            colour in the glyph. The screen's one terracotta FILL is its
+            way forward, not this (principle 2). SVG glyphs, because iOS
+            can draw the text ones as emoji (recording-19). */}
         <button
           onClick={toggle}
-          className="press flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-terracotta-500 text-[15px] text-on-accent"
+          className="press flex h-11 w-11 shrink-0 items-center justify-center rounded-control border border-edge bg-surface text-terracotta-500"
           aria-label={playing ? "Pause" : "Play"}
         >
-          {playing ? "❚❚" : "▶"}
+          {playing ? <IconPauseSm size={16} /> : <IconPlay size={16} />}
         </button>
 
-        <div className="relative flex-1">
-          {/* Track with pause bands and filler ticks */}
+        {/* The range is invisible over the track, so the track draws its
+            keyboard focus (recording-19). */}
+        <div className="relative flex-1 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-terracotta-500">
+          {/* Track with pause bands and filler ticks. The ticks are marks,
+              not controls: the range lies over them, so no tap could
+              reach one, and each pill below already plays its filler. */}
           <div className="relative h-8 overflow-hidden bg-sand">
             {pauses
               .filter((p) => p.kind !== "beat")
@@ -112,11 +124,9 @@ export function AudioScrubber({
                 />
               ))}
             {fillers.map((f, i) => (
-              <button
+              <span
                 key={`f${i}`}
-                onClick={() => seek(f.t - 0.4)}
-                title={`${f.word} at ${f.t.toFixed(1)}s`}
-                aria-label={`Jump to ${f.word}`}
+                aria-hidden
                 className={`absolute top-0 h-full w-[3px] ${FILLER_MARK}`}
                 style={{ left: `${pct(f.t)}%` }}
               />
@@ -133,7 +143,7 @@ export function AudioScrubber({
             step={0.1}
             value={t}
             onChange={(e) => seek(Number(e.target.value))}
-            aria-label="Scrub"
+            aria-label="Playback position"
             className="absolute inset-0 h-8 w-full cursor-pointer opacity-0"
           />
         </div>
@@ -150,9 +160,9 @@ export function AudioScrubber({
               key={i}
               onClick={() => seek(f.t - 0.4)}
               aria-label={`Play ${f.word} at ${Math.floor(f.t / 60)}:${String(Math.floor(f.t % 60)).padStart(2, "0")}`}
-              className="press inline-flex min-h-11 items-center gap-1.5 rounded-full border border-edge bg-surface py-1 pl-2.5 pr-3 text-[13px] font-semibold text-ink"
+              className="press inline-flex min-h-11 items-center gap-1.5 rounded-full border border-edge bg-surface py-1 pl-2.5 pr-3 text-link text-ink"
             >
-              <svg aria-hidden width="10" height="10" viewBox="0 0 10 10" className="text-terracotta-600">
+              <svg aria-hidden width="10" height="10" viewBox="0 0 10 10" className="text-terracotta-500">
                 <path d="M2 1l7 4-7 4z" fill="currentColor" />
               </svg>
               {f.word}
@@ -169,8 +179,10 @@ export function AudioScrubber({
 }
 
 /* One class per mark, shared by the track and its key, so the key is
-   the mark rather than a picture of it (review, 25 Sep). */
-const FILLER_MARK = "bg-terracotta-600";
+   the mark rather than a picture of it (review, 25 Sep). A filler wears
+   the Fillers tone from the card's data-trait (recording-20); a held
+   pause stays sage, because it is earned. */
+const FILLER_MARK = "bg-[var(--tone)]";
 const PAUSE_MARK = { pre: "bg-sage-500/40", mid: "bg-stone-400/30" } as const;
 
 /** A key entry: the mark on a scrap of the track's own ground. */

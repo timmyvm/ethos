@@ -29,8 +29,60 @@ const LESSONS = [
   ["p1", 3], ["p1", 2], ["p2", 2], ["p2", 3], ["p3", 1], ["p3", 2], ["p4", 2],
   ["h1", 3], ["h1", 2], ["h2", 2], ["h2", 1], ["h3", 1], ["h3", 2], ["h4", 1],
 ];
+/*
+ * lessons-22: five recordings filed against lesson practices, so the
+ * camera can photograph lesson progress at all (lib/lesson-progress.ts
+ * reads it from `lesson:<id>:<n>` and nothing else). The landing
+ * (Pausing) is done, three of three; the closed mouth (Fillers) is two
+ * in, so Up next says carry on with its third. The cold open stays
+ * untouched: check-lessons.mjs walks it from zero. Keyed by the
+ * recording's index, oldest first; the newest (rep-22, the camera's
+ * rep-detail) keeps its road id.
+ */
+const LESSON_PRACTICE = {
+  12: "lesson:the-landing:1",
+  14: "lesson:the-landing:2",
+  16: "lesson:the-landing:3",
+  18: "lesson:closed-mouth:1",
+  20: "lesson:closed-mouth:2",
+};
 const pauses = (held) =>
   Array.from({ length: held }, (_, i) => ({ t: 6 + i * 11, len: 1.1 + (i % 3) * 0.3, kind: i % 3 === 1 ? "mid" : "pre" }));
+
+/*
+ * log-14: the Index a row shows is the sum of its own dimensions, the
+ * way the app computes it (lib/index-score.ts `ethosIndex`, inlined:
+ * this file cannot import the TS lib). The old fixture drew the Index
+ * on its own curve, so every shot of a stored recording printed a hero
+ * its nine rows did not add up to.
+ */
+const WEIGHTS = {
+  pause: 150, fillers: 100, repairs: 50, pace: 100, range: 100,
+  structure: 150, credibility: 150, engagement: 100, confidence: 100,
+};
+const clamp = (n) => Math.max(0, Math.min(100, Math.round(n)));
+const points = (score, weight) => Math.round((clamp(score) / 100) * weight);
+const indexOf = (tier1, tier2) => {
+  const all = { ...tier1, ...Object.fromEntries(Object.entries(tier2).map(([k, v]) => [k, typeof v === "number" ? v : v.score])) };
+  return Object.entries(WEIGHTS).reduce((sum, [k, w]) => sum + points(all[k], w), 0);
+};
+
+/** The coach's focus, from the fillers this row actually has. */
+const focusFor = (fillers) => {
+  if (fillers.length === 0) return "Keep the pause before your point.";
+  const counts = {};
+  for (const f of fillers) counts[f.word] = (counts[f.word] ?? 0) + 1;
+  const [top, n] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  return `Kill \u2018${top}\u2019. ${n} of your ${fillers.length} filler${fillers.length === 1 ? "" : "s"}.`;
+};
+
+const TIER2 = {
+  structure: { score: 64, citedMoment: '"the mistake people make is waiting to feel ready"', improve: "Open with the claim, then the example." },
+  credibility: { score: 58, citedMoment: '"ready is a feeling that shows up after you start"', improve: "Name one number." },
+  engagement: { score: 61, citedMoment: '"the big version arrives on its own"', improve: "One question to the room." },
+  confidence: { score: 66, citedMoment: '"you do the small version every day"', improve: "Land the last sentence." },
+};
+
 const reps = SPOKE.map((ago, i) => {
   const idx = SPOKE.length - 1 - i; // oldest first below
   return { ago, i, idx };
@@ -38,11 +90,12 @@ const reps = SPOKE.map((ago, i) => {
   .sort((a, b) => b.ago - a.ago)
   .map(({ ago }, i) => {
     const [lesson, stars] = LESSONS[i % LESSONS.length];
-    const index = 512 + Math.round(i * 5.9 + Math.sin(i) * 14);
-    const fillers = Math.max(0, 9 - Math.round(i / 3) + (i % 2));
+    const fillerCount = Math.max(0, 9 - Math.round(i / 3) + (i % 2));
+    const fillers = Array.from({ length: fillerCount }, (_, k) => ({ word: k % 2 ? "um" : "like", t: 4 + k * 7.3 }));
+    const tier1 = { pause: 60 + (i % 5) * 6, fillers: 40 + i * 2, repairs: 66, pace: 80 + (i % 3) * 5, range: 58 };
     return {
       id: `rep-${i + 1}`,
-      lesson_id: lesson,
+      lesson_id: LESSON_PRACTICE[i] ?? lesson,
       created_at: iso(ago),
       duration_s: 58 + (i % 4) * 7,
       /*
@@ -57,24 +110,19 @@ const reps = SPOKE.map((ago, i) => {
       transcript:
         "So the thing about habits is they compound. You do the small version every day and the big version arrives on its own. The mistake people make is waiting to feel ready. Ready is a feeling that shows up after you start, not before. I used to think discipline was the whole answer, and I would plan a week that no person could actually do, and then I would miss a day and quit the plan instead of the day. What changed was making the thing small enough that missing it felt stupid. Five minutes. Not an hour, not a session I have to clear an evening for, just five minutes I can do standing in a kitchen. And the odd part is that the five minutes usually turns into more, but it only does that because it was allowed to be five.",
       wpm: 128 + ((i * 7) % 30),
-      filler_count: fillers,
-      fillers: Array.from({ length: fillers }, (_, k) => ({ word: k % 2 ? "um" : "like", t: 4 + k * 7.3 })),
+      filler_count: fillerCount,
+      fillers,
       pauses: pauses(2 + (i % 4)),
       stars,
-      focus: "Kill 'um'. 2 of your 4 fillers.",
-      strength: "Held the pause before 'the mistake people make'.",
+      focus: focusFor(fillers),
+      strength: "Held the pause before \u2018the mistake people make\u2019.",
       supply: { original: "the thing about", upgrade: "what matters about", note: "Names the point instead of pointing at it." },
-      ethos_index: index,
+      ethos_index: indexOf(tier1, TIER2),
       audio_path: null,
       dimensions: {
-        tier1: { pause: 60 + (i % 5) * 6, fillers: 40 + i * 2, repairs: 66, pace: 80 + (i % 3) * 5, range: 58 },
+        tier1,
         anchors: { hedgeCount: 2, restartCount: 1 },
-        tier2: {
-          structure: { score: 64, citedMoment: '"the mistake people make is waiting to feel ready"', improve: "Open with the claim, then the example." },
-          credibility: { score: 58, citedMoment: '"ready is a feeling that shows up after you start"', improve: "Name one number." },
-          engagement: { score: 61, citedMoment: '"the big version arrives on its own"', improve: "One question to the room." },
-          confidence: { score: 66, citedMoment: '"you do the small version every day"', improve: "Land the last sentence." },
-        },
+        tier2: TIER2,
       },
       mode: "daily",
       mods: [],
@@ -141,6 +189,13 @@ async function supabase(route) {
 
 // The scoring mock, for the live results screen.
 const dim = (score, moment) => ({ score, citedMoment: moment, improve: "Open with the claim, then the example." });
+const LIVE_TIER1 = { pause: 72, fillers: 55, repairs: 66, pace: 93, range: 66 };
+const LIVE_TIER2 = {
+  structure: dim(64, '"the mistake people make is waiting to feel ready"'),
+  credibility: dim(58, '"ready is a feeling that shows up after you start"'),
+  engagement: dim(61, '"the big version arrives on its own"'),
+  confidence: dim(66, '"you do the small version every day"'),
+};
 const analyze = {
   transcript: reps[0].transcript,
   metrics: {
@@ -152,21 +207,18 @@ const analyze = {
     heldPauses: 4, composedPauses: 3, midSentencePauses: 1, stars: 2,
     substance: { wordCount: 150, distinctRatio: 0.62, repeatShare: 0.05 },
   },
-  tier1: { pause: 72, fillers: 55, repairs: 66, pace: 90, range: 64 },
+  /* Pace and Variety a few points over the fixture's last recording, so
+     the live Index (the sum of these, log-14) lands three above it. */
+  tier1: LIVE_TIER1,
   anchors: { hedgeCount: 2, restartCount: 1 },
   coach: {
-    focus: "Kill 'um'. 2 of your 4 fillers.",
-    strength: "Held the pause before 'the mistake people make'.",
+    focus: "Kill \u2018um\u2019. 2 of your 4 fillers.",
+    strength: "Held the pause before \u2018the mistake people make\u2019.",
     supply: { original: "the thing about", upgrade: "what matters about", note: "Names the point instead of pointing at it." },
-    coachLine: "4 fillers in 62s. Tomorrow: kill 'um'.",
-    dimensions: {
-      structure: dim(64, '"the mistake people make is waiting to feel ready"'),
-      credibility: dim(58, '"ready is a feeling that shows up after you start"'),
-      engagement: dim(61, '"the big version arrives on its own"'),
-      confidence: dim(66, '"you do the small version every day"'),
-    },
+    coachLine: "4 fillers in 62s. Tomorrow: kill \u2018um\u2019.",
+    dimensions: LIVE_TIER2,
   },
-  ethosIndex: 651, previousIndex: reps[reps.length - 1].ethos_index, repId: "rep-live", scorable: true,
+  ethosIndex: indexOf(LIVE_TIER1, LIVE_TIER2), previousIndex: reps[reps.length - 1].ethos_index, repId: "rep-live", scorable: true,
   pauseHeadline: "Two silences landed a point; one was searching.",
   accuracy: null, mode: "daily", mods: [], xpMultiplier: 1, captureMode: "voice",
   delivery: null, deliveryMoments: [], previousPresence: null,

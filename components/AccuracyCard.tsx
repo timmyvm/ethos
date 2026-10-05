@@ -3,19 +3,17 @@
 import type { AccuracyResult } from "@/lib/accuracy";
 import type { ColdTopic } from "@/lib/cold-topics";
 
+/* Sentence-case pills (principle 4: capitals are for data). A claim
+   that holds wears sage, because getting it right is earned; a wrong
+   one wears rust, the colour that already means wrong direction, never
+   the tap's terracotta. */
 const VERDICT: Record<
   AccuracyResult["claims"][number]["verdict"],
   { label: string; className: string }
 > = {
-  supported: { label: "checks out", className: "bg-sage-100 !text-sage-800" },
-  contradicted: {
-    label: "wrong",
-    className: "bg-terracotta-100 !text-terracotta-800",
-  },
-  unverifiable: {
-    label: "unverified",
-    className: "bg-stone-100 !text-stone-500",
-  },
+  supported: { label: "checks out", className: "bg-sage-100 text-sage-800" },
+  contradicted: { label: "wrong", className: "bg-rust/10 text-rust" },
+  unverifiable: { label: "unverified", className: "bg-stone-100 text-stone-500" },
 };
 
 /**
@@ -38,15 +36,15 @@ export function AccuracyCard({
   const total = topic?.truth.length ?? coveredCount + accuracy.missed.length;
 
   return (
-    <div className="elev-1 mt-3 rounded-card border border-card-edge bg-raised p-4">
-      <div className="label-data">Accuracy · the other half of the boss</div>
+    <div className="card p-4">
+      <div className="eyebrow">Accuracy</div>
 
       <div className="mt-3 flex items-baseline gap-3">
-        <div className="font-display text-[40px] font-extrabold leading-none">
+        <div className="font-display text-num-l tabular-nums">
           {accuracy.score}
         </div>
-        <div className="text-[13px] text-stone-500">
-          <div className="font-semibold text-stone-700">
+        <div className="text-caption text-stone-500">
+          <div className="text-row text-stone-700">
             {coveredCount} of {total} points covered
           </div>
           {accuracy.confidentlyWrong > 0 ? (
@@ -64,9 +62,9 @@ export function AccuracyCard({
       {accuracy.claims.length > 0 && (
         <ul className="mt-4 space-y-2.5 border-t border-hairline pt-4">
           {accuracy.claims.map((c, i) => (
-            <li key={i} className="text-[13px] leading-relaxed">
+            <li key={i} className="text-body leading-relaxed">
               <span
-                className={`label-micro mr-2 inline-block rounded-full px-2 py-0.5 ${VERDICT[c.verdict].className}`}
+                className={`mr-2 inline-block rounded-full px-2 py-0.5 text-caption font-semibold ${VERDICT[c.verdict].className}`}
               >
                 {VERDICT[c.verdict].label}
               </span>
@@ -87,10 +85,10 @@ export function AccuracyCard({
 
       {accuracy.missed.length > 0 && (
         <div className="mt-4 border-t border-hairline pt-4">
-          <div className="label-micro">Never mentioned</div>
-          <ul className="mt-1.5 space-y-1 text-[13px] leading-relaxed text-stone-500">
+          <div className="eyebrow">Never mentioned</div>
+          <ul className="mt-1.5 list-disc space-y-1 pl-4 text-body leading-relaxed text-stone-500 marker:text-stone-400">
             {accuracy.missed.map((m, i) => (
-              <li key={i}>· {m}</li>
+              <li key={i}>{m}</li>
             ))}
           </ul>
         </div>

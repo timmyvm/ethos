@@ -22,6 +22,10 @@ import { Fragment, type CSSProperties } from "react";
  *
  * Whitespace between the spans is real text, so the element's text
  * content is the sentence and a test can find it by its words.
+ *
+ * Says sets no type of its own: inside a SpeechBubble the bubble's
+ * voice (Figtree 400 in ink) is what it inherits, and `className` adds
+ * only wrap and spacing (`text-balance` on the line he says, intro-a-16).
  */
 export function Says({
   text,
@@ -57,6 +61,22 @@ export function Says({
       ))}
     </Tag>
   );
+}
+
+/**
+ * A line he is NOT saying right now, kept only for its size (intro-a-1).
+ *
+ * The bubble holds the question and his reply in one grid cell, so it is
+ * as tall as the taller of the two and the answers under it never move
+ * when one replaces the other. Whichever is not showing is this: an
+ * invisible block whose words are drawn by `.ghost-text::before`
+ * (globals.css) from `data-text`. A pseudo-element's text is not in the
+ * DOM, so a screen reader, `getByText` and the onboarding gate's
+ * `main h1` reader never meet a line twice. Give it the same type
+ * classes as the line it stands in for, or it sizes to the wrong thing.
+ */
+export function SaysGhost({ text, className = "" }: { text: string; className?: string }) {
+  return <div aria-hidden className={`ghost-text invisible ${className}`} data-text={text} />;
 }
 
 /**

@@ -14,23 +14,38 @@ import type { ReactNode } from "react";
  * screen the chosen answer takes that wash (mechanic 6), and his voice
  * and your tap should not share a colour.
  *
+ * The bubble owns his VOICE (intro-a-9, M08): Figtree 400 in ink, so
+ * what he says reads as speech against the Outfit 700 objects you tap
+ * (answers, Next), which is the reference's own contrast. Children set
+ * no family and no weight; a second, quieter line sets only its size
+ * and colour.
+ *
+ *   voice="lead"    19 on a 26px line: the introduction's stage and
+ *                   beside bubbles, where he is the screen
+ *   voice="detail"  17 on a 24px line: everywhere else (the default)
+ *
  * The tail is a rotated square that carries the bubble's own hairline
  * on its two outer sides and covers the bubble's edge with its fill,
  * so the outline reads as one shape.
  */
 export function SpeechBubble({
   tail,
+  voice = "detail",
   className = "",
   children,
 }: {
   /** "down" for a bubble over his head, "left" for one beside him. */
   tail: "down" | "left";
+  /** His voice's size: "lead" in the introduction, "detail" elsewhere. */
+  voice?: "lead" | "detail";
   className?: string;
   children: ReactNode;
 }) {
   return (
     <div
-      className={`relative elev-1 rounded-card border border-card-edge bg-raised px-4 py-3.5 ${className}`}
+      className={`relative elev-1 rounded-card border border-card-edge bg-raised px-4 py-3.5 font-body font-normal text-ink ${
+        voice === "lead" ? "text-lead leading-[26px]" : "text-detail leading-[24px]"
+      } ${className}`}
     >
       {children}
       <span

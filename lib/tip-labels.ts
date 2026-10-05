@@ -14,7 +14,7 @@
  * cannot ship as a wall of text by accident.
  */
 
-export type TipGlyph = "pause" | "start" | "end" | "slow" | "word" | "one" | "cut";
+export type TipGlyph = "pause" | "hold" | "start" | "end" | "slow" | "word" | "one" | "cut";
 
 export interface TipFace {
   label: string;
@@ -24,7 +24,7 @@ export interface TipFace {
 const L: Record<string, [string, TipGlyph]> = {
   // content/traits.ts
   "The beat goes after the full stop, before the next idea. Inside a sentence it reads as searching.": ["Pause after the full stop", "pause"],
-  "One to two seconds reads as command. Past three and a half it costs you.": ["Hold one to two seconds", "pause"],
+  "One to two seconds reads as command. Past three and a half it costs you.": ["Hold one to two seconds", "hold"],
   'Do not fill it. A pause with an "um" leaning on it earns nothing.': ["Leave the silence empty", "cut"],
   "Close your mouth at the end of a clause. Most fillers happen with it already open.": ["Close your mouth", "cut"],
   "Slow the run-up, not the words. Fillers cluster where the sentence starts.": ["Slow the run-up", "slow"],
@@ -79,16 +79,16 @@ const L: Record<string, [string, TipGlyph]> = {
   "Breathe at the full stops. Pace is air, not willpower.": ["Breathe at full stops", "pause"],
   "Rushing? Finish, pause, resume. The pause scores better than the sprint.": ["Finish, pause, resume", "pause"],
   "The pause goes at the joint: after a point, before the next.": ["Pause between points", "pause"],
-  "One to two seconds. Under one is a breath, past three and a half is lost.": ["Hold one to two seconds", "pause"],
+  "One to two seconds. Under one is a breath, past three and a half is lost.": ["Hold one to two seconds", "hold"],
   "Finish the point first. Half a thought has nothing to land.": ["Finish the point first", "end"],
   "Know your last sentence before you start.": ["Know your last sentence", "end"],
   "Stop on the full stop. The silence is the summary.": ["Stop on the full stop", "end"],
   "A held pause in the last fifth scores on its own.": ["Pause near the end", "pause"],
   "A pause before your first word scores as composure.": ["Pause before you start", "pause"],
-  "One second. Count it. From outside it reads as weighing your words.": ["Count one second", "pause"],
+  "One second. Count it. From outside it reads as weighing your words.": ["Count one second", "hold"],
   "Decide sentence one during the silence, then say it whole.": ["Plan sentence one silently", "start"],
   "The beat goes after the full stop, before the next idea.": ["Pause after the full stop", "pause"],
-  "One to two seconds reads as command. Past three and a half it costs.": ["Hold one to two seconds", "pause"],
+  "One to two seconds reads as command. Past three and a half it costs.": ["Hold one to two seconds", "hold"],
   'Don\'t fill it. A pause with an "um" leaning on it earns nothing.': ["Leave the silence empty", "cut"],
   "Open with the claim, not the run-up.": ["Open with the claim", "start"],
   "Everything after sentence one is evidence. Cut what isn't.": ["Then only evidence", "cut"],
@@ -150,7 +150,7 @@ const L: Record<string, [string, TipGlyph]> = {
   // lib/path.ts, the unit intro
   "Know your first sentence before you hit record.": ["Know your first sentence", "start"],
   'When you feel an "um" coming, just close your mouth.': ["Close your mouth", "cut"],
-  "The silence always feels longer to you than it does to anyone listening.": ["Silence feels longer inside", "pause"],
+  "The silence always feels longer to you than it does to anyone listening.": ["Silence feels longer to you", "pause"],
 
   // lib/rep-config.ts, the boss prompt's scoring rule (splitPrompt)
   "Wrong claims stated as fact cost more than saying you're unsure.": ["Unsure beats wrong", "cut"],

@@ -12,9 +12,11 @@ import {
 } from "react";
 import type { Tone } from "@/components/DemosArt";
 import { IconBack, IconChevron } from "@/components/Icon";
-import { Says, SAID_AFTER_MS } from "@/components/Says";
+import { Says, SaysGhost } from "@/components/Says";
 import { SpeechBubble } from "@/components/SpeechBubble";
 import { TipStrip } from "@/components/rep/TipStrip";
+import { FooterShelf } from "@/components/ui/FooterShelf";
+import type { TraitId } from "@/content/traits";
 import {
   SPRING,
   animateSpring,
@@ -60,10 +62,15 @@ let handoff: { v: number; at: number } | null = null;
  * `lead` decides WHICH block is the hero. On the floor and in
  * onboarding the screen name is the instruction, so it takes
  * `text-title`. On a lesson screen it isn't — nobody opens the app to
- * find out this one is called The baseline — so the tactics take
- * `text-lead` in ink and the name drops to a bold body line above
+ * find out this one is called The baseline — so the tactics lead as
+ * tiles and the name steps down to `text-detail` (17/700, M19) above
  * them. Either way, strip the colour and blur it and the hero is still
  * the biggest mass on the screen.
+ *
+ * The line is `text-read` in stone-800 (M18): a sentence someone is
+ * meant to read is set at reading size in near-ink, and only the note
+ * stays a caption. "How to do this" is a sentence-case `.detail-head`
+ * h2 and the eyebrow a sentence-case `.eyebrow` (M05, practice-detail-18).
  */
 
 /** A destination renders a real link; a handler renders a button. */
@@ -73,7 +80,8 @@ export type LessonAction = { label: string } & (
 );
 
 export interface LessonBodyProps {
-  /** The label register above the title: the unit, or "Today's lesson". */
+  /** The line over the title, `.eyebrow` (sentence case 13/600): the
+   *  unit, or "Today's lesson". */
   eyebrow?: string;
   /** 2 to 4 words. The name of the thing. */
   title: string;
@@ -103,7 +111,8 @@ export interface LessonBodyProps {
    * back to a label above them.
    */
   lead?: "title" | "howTo";
-  /** Defaults to voice.md's own label. */
+  /** The how-to block's h2 (`.detail-head`). Defaults to voice.md's own
+   *  label, "How to do this". */
   howToLabel?: string;
   /**
    * "Why this works" — collapsed theory. Renders nothing at all when
@@ -127,7 +136,9 @@ export interface LessonBodyProps {
    * Centre the text block. The floor's card takes it (#212, Timothy's
    * call): that card is one announcement over one button, and a
    * left-ragged stack above a full-width tap reads as the top of a list
-   * rather than as the thing you came to press.
+   * rather than as the thing you came to press. Only the head (eyebrow,
+   * title, line, note) centres; the how-to block stays left at full
+   * width (M19).
    */
   align?: "left" | "center";
 }
@@ -163,45 +174,46 @@ export function LessonBody({
   const centred = align === "center";
 
   return (
-    <div className={centred ? "text-center" : undefined}>
-      {eyebrow && <div className="label-data">{eyebrow}</div>}
+    <div>
+      {/* Under `align="center"` only the head is centred: the how-to
+          block below stays left at full width, because a list read down
+          a ragged centre line is harder to read than one with an edge. */}
+      <div className={centred ? "text-center" : undefined}>
+        {/* M05: sentence case at reading size, not tracked capitals. */}
+        {eyebrow && <div className="eyebrow">{eyebrow}</div>}
 
-      <h1
-        className={
-          howToLeads
-            ? "font-display mt-1.5 text-body font-bold"
-            : "font-display mt-1.5 text-title"
-        }
-      >
-        {title}
-      </h1>
-
-      {reply ? (
-        <p
-          key={reply}
-          className={`arrive text-body ${howToLeads ? "mt-1" : "mt-2"} ${
-            centred ? "mx-auto" : ""
-          }`}
+        {/* M19: where the tactics lead (#212, Timothy), the name rises
+            only to the detail step (Outfit 17/700), never to the title. */}
+        <h1
+          className={`font-display mt-1.5 text-balance ${howToLeads ? "text-detail" : "text-title"}`}
         >
-          {reply}
-        </p>
-      ) : (
-        line && (
-          <p
-            className={`text-body text-stone-500 ${howToLeads ? "mt-1" : "mt-2"} ${
-              centred ? "mx-auto" : ""
-            }`}
-          >
-            {line}
-          </p>
-        )
-      )}
+          {title}
+        </h1>
 
-      {note && <p className="mt-1.5 text-caption text-stone-400">{note}</p>}
+        {/* M18: a line meant to be read is set to be read, Figtree 16 on
+            1.45 in near-ink, and never ends on one word. */}
+        {reply ? (
+          <p key={reply} className={`arrive mt-2 text-read text-pretty ${centred ? "mx-auto" : ""}`}>
+            {reply}
+          </p>
+        ) : (
+          line && (
+            <p
+              className={`mt-2 text-read text-stone-800 text-pretty ${centred ? "mx-auto" : ""}`}
+            >
+              {line}
+            </p>
+          )
+        )}
+
+        {note && <p className="mt-1.5 text-caption text-stone-400">{note}</p>}
+      </div>
 
       {tactics && (
-        <div className={howToLeads ? "mt-7" : "mt-6"}>
-          <div className="label-data">{howToLabel}</div>
+        <div className={`${howToLeads ? "mt-7" : "mt-6"} ${centred ? "text-left" : ""}`}>
+          {/* practice-detail-18, M05: a real heading, so the tiles under
+              it can be reached by heading, in sentence case. */}
+          <h2 className="detail-head">{howToLabel}</h2>
           {howToLeads ? (
             /*
              * The hero block, as tiles (feedback round, 25 Sep). Three
@@ -242,7 +254,9 @@ export function LessonBody({
         </div>
       )}
 
-      <WhyThisWorks>{why}</WhyThisWorks>
+      <div className={centred ? "text-left" : undefined}>
+        <WhyThisWorks>{why}</WhyThisWorks>
+      </div>
     </div>
   );
 }
@@ -262,8 +276,16 @@ export function LessonScreen({
   stage,
   swipe,
   travel = "next",
+  trait,
   ...body
 }: LessonBodyProps & {
+  /**
+   * The trait this screen is about (practice-detail-6). Sets
+   * `data-trait` on <main>, so everything on the screen can wear that
+   * trait's tone (`--tone`, `--tone-wash`, `--tone-ink`, and
+   * `--tone-stage` for a `.stage-dome`) without each block naming it.
+   */
+  trait?: TraitId;
   /**
    * Which way the walk just moved, so a swiped screen arrives from the
    * side it came from: forward from the right, back from the left.
@@ -411,13 +433,31 @@ export function LessonScreen({
     ? {
         main: "[@media(max-height:740px)]:pt-2",
         stage: "[@media(max-height:740px)]:mt-2",
-        foot: "[@media(max-height:740px)]:mt-4 [@media(max-height:740px)]:pb-2",
+        body: "[@media(max-height:740px)]:pb-0",
+        foot: "[@media(max-height:740px)]:pb-[max(8px,env(safe-area-inset-bottom))]",
       }
-    : { main: "", stage: "", foot: "" };
+    : { main: "", stage: "", body: "", foot: "" };
+
+  const tap =
+    action.href !== undefined ? (
+      <Link href={action.href} className={ACTION_CLASS}>
+        {action.label}
+      </Link>
+    ) : (
+      <button
+        type="button"
+        onClick={action.onPress}
+        disabled={action.disabled}
+        className={`${ACTION_CLASS} ${DISABLED_CLASS}`}
+      >
+        {action.label}
+      </button>
+    );
 
   return (
     <main
-      className={`pb-safe flex min-h-dvh flex-col px-5 pt-7 ${swipe ? "touch-pan-y" : ""} ${short.main}`}
+      data-trait={trait}
+      className={`flex min-h-dvh flex-col px-5 pt-7 ${swipe ? "touch-pan-y" : "pb-safe"} ${short.main}`}
       {...drag}
     >
       {/* A carousel keeps the row even where it is empty (the first
@@ -438,7 +478,11 @@ export function LessonScreen({
           {header && <div className="min-w-0 flex-1">{header}</div>}
         </div>
       )}
-      <div className={`flex flex-1 flex-col ${center && !stage ? "justify-center" : ""}`}>
+      <div
+        className={`flex flex-1 flex-col ${center && !stage ? "justify-center" : ""} ${
+          swipe ? `pb-4 ${short.body}` : ""
+        }`}
+      >
         {/* A flex column like its parent, so the art and the text block
             stay flex items (the art centres with `mx-auto`) whether or
             not the wrapper is animating. */}
@@ -469,32 +513,45 @@ export function LessonScreen({
         </div>
       </div>
 
-      <div className={`mt-8 pb-6 ${short.foot}`}>
-        {aside && <div className={swipe ? "mb-3" : "mb-5"}>{aside}</div>}
+      {swipe ? (
+        /*
+         * intro-b-3, intro-a-23 (M20, Duolingo 13-question-list-dark): a
+         * walk's tap stands on the shared shelf at the foot of the
+         * screen, so it is docked rather than floating under a band of
+         * blank, and it lands at ONE height on every page. What sits
+         * over it (the pager, an error, the fine print) grows the shelf
+         * upward; what sits under it is one 56px slot (`flow-root`
+         * keeps Skip's mt-3 inside it), so the seven questions, the beat
+         * and the plan put Next at the same y and only the account ask,
+         * with its two doors, stands taller. The hairline only where
+         * answers sit above it: on a stage it would be a stray rule.
+         */
+        <FooterShelf
+          hairline={controls !== undefined && speech === "beside"}
+          className={short.foot}
+        >
+          {aside && <div className="mb-3">{aside}</div>}
+          {fineprint && (
+            <p className="mb-3 text-center text-caption text-stone-400">{fineprint}</p>
+          )}
+          {tap}
+          <div className="flow-root min-h-14">{footer}</div>
+        </FooterShelf>
+      ) : (
+        <div className="mt-8 pb-6">
+          {aside && <div className="mb-5">{aside}</div>}
 
-        {action.href !== undefined ? (
-          <Link href={action.href} className={ACTION_CLASS}>
-            {action.label}
-          </Link>
-        ) : (
-          <button
-            type="button"
-            onClick={action.onPress}
-            disabled={action.disabled}
-            className={`${ACTION_CLASS} ${DISABLED_CLASS}`}
-          >
-            {action.label}
-          </button>
-        )}
+          {tap}
 
-        {fineprint && (
-          <p className="mt-3 text-center text-caption text-stone-400">
-            {fineprint}
-          </p>
-        )}
+          {fineprint && (
+            <p className="mt-3 text-center text-caption text-stone-400">
+              {fineprint}
+            </p>
+          )}
 
-        {footer}
-      </div>
+          {footer}
+        </div>
+      )}
     </main>
   );
 }
@@ -536,28 +593,41 @@ function DemosSpeech({
   line?: string;
   reply?: string;
 }) {
-  const said = reply ?? title;
-  const second = reply ? undefined : line;
   const lead = reply ? 0 : 200;
-  const bubble = (size: string) => (
-    <>
+  /* The second line is quieter than his voice: body size in stone. */
+  const lineClass = "mt-1 text-body text-stone-500 text-pretty";
+  /*
+   * intro-a-1: the question and the reply share ONE grid cell, so the
+   * bubble is as tall as the taller of the two and the answers under it
+   * stay where the finger left them when his reply replaces the
+   * question. The one not showing is a ghost (SaysGhost: its words drawn
+   * by CSS from `data-text`, never in the DOM), and there is exactly one
+   * h1 in <main> at a time: the question as he says it, or the question
+   * kept for a screen reader while the reply shows. A reply shorter than
+   * the question it replaces sits in the middle of the held height, so
+   * the space reads as the bubble's, not as a line gone missing.
+   */
+  const words = reply ? (
+    <div className="grid">
+      <div aria-hidden className="[grid-area:1/1]">
+        <SaysGhost text={title} className="text-balance" />
+        {line && <SaysGhost text={line} className={lineClass} />}
+      </div>
       <Says
-        key={said}
-        as={reply ? "p" : "h1"}
-        text={said}
+        key={reply}
+        text={reply}
         lead={lead}
-        className={`font-display ${size} font-bold leading-snug`}
+        className="self-center text-balance [grid-area:1/1]"
       />
-      {reply && <h1 className="sr-only">{title}</h1>}
-      {second && (
-        <Says
-          key={second}
-          text={second}
-          lead={lead + 120}
-          className="mt-1 text-body text-stone-500"
-        />
-      )}
-    </>
+      <h1 className="sr-only">{title}</h1>
+    </div>
+  ) : (
+    <div className="grid">
+      <div className="[grid-area:1/1]">
+        <Says key={title} as="h1" text={title} lead={lead} className="text-balance" />
+        {line && <Says key={line} text={line} lead={lead + 120} className={lineClass} />}
+      </div>
+    </div>
   );
 
   if (mode === "above" && stage) {
@@ -565,13 +635,19 @@ function DemosSpeech({
        standing on its floor, as big as the room allows. The room takes
        the screen's free height and no more, and he takes the room's
        (`.demos-fit` is a size container his `fit` reads), so a short
-       phone gets a smaller Demos rather than a tap below the fold. */
+       phone gets a smaller Demos rather than a tap below the fold.
+       intro-a-15: the bubble is the stage's full 320px on every page,
+       so a swipe never shows it change width under a still room. */
     return (
       <div
         className={`intro-stage tone-${stage} flex min-h-0 flex-1 flex-col items-center justify-center px-4 pb-5 pt-5`}
       >
-        <SpeechBubble tail="down" className="max-w-[320px] shrink-0 text-center">
-          {bubble("text-[20px]")}
+        <SpeechBubble
+          tail="down"
+          voice="lead"
+          className="intro-stage-bubble w-full max-w-[320px] shrink-0 text-center"
+        >
+          {words}
         </SpeechBubble>
         <div className="demos-fit mt-4 w-full flex-1">
           <div className="demos-fit-room">{art}</div>
@@ -583,17 +659,20 @@ function DemosSpeech({
     return (
       <>
         <SpeechBubble tail="down" className="max-w-[330px] self-center text-center">
-          {bubble("text-[19px]")}
+          {words}
         </SpeechBubble>
         <div className="mt-6">{art}</div>
       </>
     );
   }
+  /* intro-a-24: the bubble hugs its line (no flex-1), as the
+     reference's does, and the grid above keeps it the width of the
+     wider of question and reply. */
   return (
     <div className="mt-6 flex items-start gap-3">
       <div className="shrink-0">{art}</div>
-      <SpeechBubble tail="left" className="min-w-0 flex-1">
-        {bubble("text-[17px]")}
+      <SpeechBubble tail="left" voice="lead" className="min-w-0">
+        {words}
       </SpeechBubble>
     </div>
   );

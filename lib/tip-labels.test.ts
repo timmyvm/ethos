@@ -47,6 +47,24 @@ describe("tip faces", () => {
     }
   });
 
+  /* practice-detail-23: "inside" had nothing to be inside of. */
+  it("says whose silence feels longer", () => {
+    expect(
+      tipFace("The silence always feels longer to you than it does to anyone listening.").label
+    ).toBe("Silence feels longer to you");
+  });
+
+  /* recording-15: a length of silence wears the stopwatch, so two
+     Pausing tiles side by side ("Pause after the full stop", "Hold one
+     to two seconds") no longer show one glyph twice, and never Pace's
+     gauge. */
+  it("gives every hold-a-silence tactic the stopwatch, never the gauge", () => {
+    const holds = tips.filter((t) => /^(Hold one to two seconds|Count one second)$/.test(tipFace(t).label));
+    expect(holds.length).toBeGreaterThanOrEqual(4);
+    for (const t of holds) expect(tipFace(t).glyph, t).toBe("hold");
+    expect(tips.filter((t) => tipFace(t).glyph === "hold").every((t) => holds.includes(t))).toBe(true);
+  });
+
   it("falls back to a short clause for an unlabelled sentence", () => {
     expect(tipFace("Say one true thing about the weather, then stop.").label).toBe(
       "Say one true thing about…"

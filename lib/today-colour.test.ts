@@ -76,3 +76,39 @@ describe("Today's trait rings still measure", () => {
     });
   }
 });
+
+/*
+ * The trait chip (M11, components/TraitChip.tsx): the label is the
+ * tone's own ink (`.tone-on`) on the solid tone (`.tone-fill`), at
+ * 12.5 and 13px, so it holds text contrast, 4.5:1, for all five traits
+ * in both themes. Light is white on the tone except Restarts, whose
+ * ochre takes the dark ink; dark is the dark ink on every lighter tone.
+ */
+describe("the trait chip's label on its tone", () => {
+  const ink = (selector: RegExp) => {
+    const m = css.match(selector);
+    if (!m) throw new Error(`no colour for ${selector}`);
+    return m[1];
+  };
+  const white = ink(/\n\.tone-on \{\s*color:\s*(#[0-9a-f]{6})/i);
+  const dark = ink(/\[data-trait="repairs"\] \.tone-on,\s*:root\[data-theme="dark"\] \.tone-on \{\s*color:\s*(#[0-9a-f]{6})/i);
+  const light = tones(false);
+  const darkTones = tones(true);
+
+  it("reads both inks from globals.css", () => {
+    expect(white.toLowerCase()).toBe("#ffffff");
+    expect(dark).toMatch(/^#[0-9a-f]{6}$/i);
+  });
+
+  for (const [trait, t] of Object.entries(light)) {
+    it(`${trait}, light: 4.5:1 or better`, () => {
+      const on = trait === "repairs" ? dark : white;
+      expect(ratio(on, t.tone)).toBeGreaterThanOrEqual(4.5);
+    });
+  }
+  for (const [trait, t] of Object.entries(darkTones)) {
+    it(`${trait}, dark: 4.5:1 or better`, () => {
+      expect(ratio(dark, t.tone)).toBeGreaterThanOrEqual(4.5);
+    });
+  }
+});

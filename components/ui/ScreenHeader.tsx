@@ -47,7 +47,11 @@ export function ScreenHeader({
   dated?: boolean;
   /** A screen one step in: where back goes and what it is called. */
   back?: { href: string; label: string };
-  /** Beside the large title, baseline-aligned (chips, a balance). */
+  /**
+   * Beside the large title: objects up to 40px tall (Today's 36px earned
+   * chips, a 40px icon button), centred on the title's cap middle, 8px
+   * apart (`.large-title-trailing`, M17, wellspoken-lexicon s1).
+   */
   trailing?: React.ReactNode;
   /** In the bar's right slot, always visible (a Settings button). */
   barTrailing?: React.ReactNode;
@@ -141,10 +145,26 @@ export function ScreenHeader({
  * The same way back as the bar's, for a screen whose title lives in
  * its own card (a lesson, a stored recording): the chevron and the
  * name of where it goes, never a text arrow.
+ *
+ * The bar's geometry exactly (system-4): a 44px row, the 22px chevron
+ * pulled 10px into the gutter, so the chevron sits at one x and one y
+ * on every screen. `self-start` by default, so in a flex column it
+ * hugs its label instead of stretching into a full-width target.
  */
-export function BackLink({ href, label }: { href: string; label: string }) {
+export function BackLink({
+  href,
+  label,
+  className = "self-start",
+}: {
+  href: string;
+  label: string;
+  className?: string;
+}) {
   return (
-    <Link href={href} className="screen-bar-back press -ml-2.5">
+    <Link
+      href={href}
+      className={`screen-bar-back press -ml-2.5 inline-flex min-h-11 items-center ${className}`}
+    >
       <IconBack size={22} />
       <span>{label}</span>
     </Link>

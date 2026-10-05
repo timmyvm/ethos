@@ -148,6 +148,19 @@ describe("premium wears plum", () => {
     }
   });
 
+  /**
+   * practice-tab-4 (amending #171): the sheet where money changes hands
+   * is the tier's own plum, wears the mark, and borrows nothing from the
+   * earned colour. Its one tap stays terracotta.
+   */
+  it("keeps the paywall sheet plum, marked and free of sage", () => {
+    const sheet = noComments(readFileSync("components/Paywall.tsx", "utf8"));
+    expect(sheet).toContain("card-premium");
+    expect(sheet).not.toContain("card-score");
+    expect(sheet).not.toMatch(/sage-/);
+    expect(sheet).toMatch(/<PremiumMark\b/);
+  });
+
   /** The glyph is a door, and it stays two strokes so it cannot grow
       into the padlock #200 forbids. */
   it("draws the premium glyph as two paths inside Glyph", () => {

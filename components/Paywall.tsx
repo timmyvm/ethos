@@ -1,8 +1,12 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { IconBoss, IconBubble, IconMic, IconSpark, IconTrend } from "@/components/Icon";
+import { PremiumMark } from "@/components/PremiumMark";
 import { Overlay } from "@/components/ui/Overlay";
 import { supabaseBrowser } from "@/lib/supabase-browser";
+import { ACTION_CLASS } from "@/lib/ui";
+import { useRovingRadio } from "@/lib/use-roving-radio";
 
 /**
  * Premium sheet. mechanics.md: annual pushed hard, monthly present,
@@ -11,9 +15,11 @@ import { supabaseBrowser } from "@/lib/supabase-browser";
  * quiz. Pricing is DECIDED (candidate B, the comparables pass in
  * docs/growth/04 §5): A$14.99 monthly, A$79.99 annual.
  *
- * The sheet wears the deep-sage material (the score card's, #165): the
- * most premium surface the system owns, so the ask looks like the thing
- * it's asking for. One terracotta tap, per brand.md.
+ * The sheet is plum (`.card-premium`, practice-tab-4, amending #171):
+ * the tier's own surface, so tapping the plum wall on Practice lands on
+ * plum, not on the score card's earned sage. No sage anywhere on it, the
+ * PremiumMark once as its eyebrow, and the one tap still terracotta: a
+ * premium card with an action is a plum card with a terracotta button.
  *
  * The list is ordered by expected demand (04 §4.2): the judged read
  * first, because the person most likely to be reading this just spent
@@ -29,9 +35,57 @@ export interface PaywallAsk {
   headline?: string;
 }
 
+/**
+ * Checkout does not exist yet. While this is false the primary opens the
+ * invite code and there is no second "I have a code" doing the same
+ * thing (practice-tab-19). When checkout ships, the primary goes there
+ * and the code returns as the secondary.
+ */
+const CHECKOUT_OPEN: boolean = false;
+
+const PLANS = ["annual", "monthly"] as const;
+type Plan = (typeof PLANS)[number];
+
+/** A phrase that wraps whole, so a line never breaks "(free: 1 / a day)". */
+const keep = (s: string) => <span className="whitespace-nowrap">{s}</span>;
+
+/**
+ * What premium is, in expected-demand order (#199), each led by its own
+ * glyph (practice-tab-5, -20, -21). No end punctuation. Two of the five
+ * are wider than the 312px text column at 15px, so each keeps its tail
+ * whole and breaks at the phrase.
+ */
+const BENEFITS = [
+  { Glyph: IconBubble, text: <>Demos&apos;s full read on every recording {keep("(free: 1 a day)")}</> },
+  { Glyph: IconMic, text: "Presence on video, with its moments" },
+  { Glyph: IconTrend, text: "Your whole history, all nine skills" },
+  { Glyph: IconSpark, text: "Every word you've earned, kept" },
+  { Glyph: IconBoss, text: <>Speed rush, Interview and Hostile Q&amp;A, {keep("any boss topic, any week")}</> },
+];
+
+/**
+ * The line under the mark: what was tapped, without saying "premium" a
+ * second time and without a ' · ' compound (PRINCIPLES 4). The surfaces
+ * pass strings like "Full history · premium", "Tight timer · premium
+ * mod", "Premium games" and "Hostile Q&A · once a week free".
+ */
+export function reasonLine(reason: string): string {
+  const parts = reason
+    .split(" · ")
+    .map((p) => p.trim())
+    .flatMap((p, i) => {
+      if (/^premium$/i.test(p)) return [];
+      // "Premium games" names a thing; "premium mod" only restates the tier.
+      if (/^premium\s/i.test(p)) return i === 0 ? [p.replace(/^premium\s+/i, "")] : [];
+      return p ? [p] : [];
+    });
+  const line = parts.join(", ");
+  return line ? line[0].toUpperCase() + line.slice(1) : "";
+}
+
 export function Paywall({
   reason,
-  headline = "All of it.",
+  headline = "Premium opens everything",
   onClose,
   onUnlocked,
 }: {
@@ -52,13 +106,15 @@ export function Paywall({
    */
   onUnlocked?: () => void;
 }) {
-  const [plan, setPlan] = useState<"annual" | "monthly">("annual");
+  const [plan, setPlan] = useState<Plan>("annual");
   const [askingCode, setAskingCode] = useState(false);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [unlocked, setUnlocked] = useState(false);
   const codeRef = useRef<HTMLInputElement>(null);
+  const plans = useRovingRadio({ values: PLANS, value: plan, onChange: setPlan });
+  const why = reasonLine(reason);
 
   function openCode() {
     setAskingCode(true);
@@ -109,91 +165,114 @@ export function Paywall({
 
   return (
     <Overlay label="Premium" onClose={onClose}>
-      <div className="card-score elev-3 max-h-[92dvh] w-full max-w-[430px] overflow-y-auto rounded-t-sheet px-6 pb-8 pt-7 text-cream">
-        <div className="label-data !text-sage-mist">{reason}</div>
-        <h2 className="font-display mt-1.5 text-[30px] leading-[1.05]">
-          {headline}
-        </h2>
-        <ul className="mt-4 space-y-2 text-[14px] leading-relaxed text-cream/80">
-          <li>Demos&apos;s full read on every recording. Free covers 1 a day</li>
-          <li>Presence on video: the score, its moments, the trendline</li>
-          <li>Your whole history, with a line for each of the nine skills</li>
-          <li>Your whole lexicon, every word you&apos;ve earned</li>
-          <li>The boss library: any topic any week, Hostile Q&amp;A at will</li>
+      <div className="card-premium max-h-[92dvh] w-full max-w-[430px] overflow-y-auto overscroll-contain rounded-t-sheet px-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-7 text-cream">
+        {/* The grabber: the sheet already follows a finger down
+            (Overlay), and this is how a thumb knows (practice-tab-23). */}
+        <div aria-hidden className="mx-auto -mt-3 mb-4 h-1 w-10 rounded-full bg-cream/30" />
+        {/* The tier's own mark, once, then what was tapped. The reason
+            never says "premium" again (reasonLine). */}
+        <PremiumMark variant="chip" />
+        {why && <p className="eyebrow mt-2.5 text-cream/70">{why}</p>}
+        <h2 className="font-display mt-1 text-title text-cream">{headline}</h2>
+        <ul className="mt-5 space-y-3 text-body leading-snug text-cream/85">
+          {BENEFITS.map(({ Glyph, text }, i) => (
+            <li key={i} className="flex items-start gap-3">
+              <span aria-hidden className="mt-px shrink-0 text-cream/60">
+                <Glyph size={18} />
+              </span>
+              <span className="min-w-0">{text}</span>
+            </li>
+          ))}
         </ul>
 
         {unlocked ? (
-          <div className="arrive mt-6 rounded-card bg-cream/10 p-5 text-center">
-            <div className="font-display text-[24px]">Unlocked.</div>
+          <div role="status" className="arrive mt-6 rounded-card bg-cream/10 p-5 text-center">
+            <div className="font-display text-title">Unlocked.</div>
             <p className="mt-1 text-caption text-cream/70">
               Premium is on this account now.
             </p>
           </div>
         ) : (
           <>
-            {/* Two plans, one selected. The annual card leads with the
-                per-month figure and keeps the honest total beside it,
-                always: persuasion by arithmetic, never by concealment. */}
-            <button
-              onClick={() => setPlan("annual")}
-              aria-pressed={plan === "annual"}
-              className={`press mt-5 flex w-full items-center justify-between rounded-card p-4 text-left transition-colors ${
-                plan === "annual"
-                  ? "border-[1.5px] border-cream/40 bg-cream/10"
-                  : "border border-cream/15"
-              }`}
-            >
-              <div>
-                <div className="font-display text-[15px] font-bold">Annual</div>
-                <div className="text-caption text-cream/60">
-                  billed A$79.99 a year
-                </div>
-              </div>
-              <div className="text-right">
-                <span className="font-display text-[26px] leading-none">
-                  A$6.67
-                </span>
-                <div className="label-data mt-0.5 !text-sage-mist">
-                  a month · save 55%
-                </div>
-              </div>
-            </button>
-            <button
-              onClick={() => setPlan("monthly")}
-              aria-pressed={plan === "monthly"}
-              className={`press mt-2.5 flex w-full items-center justify-between rounded-card p-4 text-left transition-colors ${
-                plan === "monthly"
-                  ? "border-[1.5px] border-cream/40 bg-cream/10"
-                  : "border border-cream/15"
-              }`}
-            >
-              <div className="font-display text-[15px] font-bold text-cream/80">Monthly</div>
-              <div className="text-right">
-                <span className="font-display text-[20px] leading-none text-cream/80">
-                  A$14.99
-                </span>
-                <div className="label-data mt-0.5 !text-cream/50">a month</div>
-              </div>
-            </button>
+            {/* Two plans, one chosen: one radio group, one tab stop, the
+                arrows move the choice (practice-tab-17). The chosen card
+                is the bright one and its text follows it; the annual
+                card leads with the per-month figure, the larger number,
+                and keeps the honest total beside it, always: persuasion
+                by arithmetic, never by concealment. */}
+            <div role="radiogroup" aria-label="Plan" className="mt-5 space-y-2.5">
+              {PLANS.map((p, i) => {
+                const on = plan === p;
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => setPlan(p)}
+                    {...plans.getItemProps(p, i)}
+                    className={`press flex w-full items-center gap-3 rounded-card border-[1.5px] p-4 text-left transition-colors ${
+                      on ? "border-cream bg-cream/10 text-cream" : "border-cream/15 text-cream/80"
+                    }`}
+                  >
+                    <span
+                      aria-hidden
+                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-cream/40"
+                    >
+                      {on && <span className="h-2 w-2 rounded-full bg-cream" />}
+                    </span>
+                    {p === "annual" ? (
+                      <>
+                        <span className="min-w-0 flex-1">
+                          <span className="font-display block text-body font-bold">Annual</span>
+                          <span className="block text-caption text-cream/70">
+                            billed A$79.99 a year
+                          </span>
+                        </span>
+                        <span className="shrink-0 text-right">
+                          <span className="font-display block text-num-m tabular-nums">A$6.67</span>
+                          <span className="label-data mt-1 block !text-cream/80">
+                            a month · save 55%
+                          </span>
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-display min-w-0 flex-1 text-body font-bold">
+                          Monthly
+                        </span>
+                        <span className="shrink-0 text-right">
+                          <span className="font-display block text-num-s tabular-nums">A$14.99</span>
+                          <span className="label-data mt-1 block !text-cream/70">a month</span>
+                        </span>
+                      </>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
 
             {!askingCode ? (
               <>
-                <button
-                  onClick={openCode}
-                  className="press mt-5 min-h-11 w-full rounded-control bg-terracotta-500 px-6 py-4 text-base font-semibold text-on-accent transition-colors hover:bg-terracotta-600"
-                >
+                {/* No checkout yet, so the one tap opens the real unlock,
+                    the invite code (#171); the secondary that did the
+                    same thing waits for CHECKOUT_OPEN (practice-tab-19). */}
+                <button type="button" onClick={openCode} className={`${ACTION_CLASS} mt-5`}>
                   {plan === "annual" ? "Start with annual" : "Start with monthly"}
                 </button>
-                <button
-                  onClick={openCode}
-                  className="mt-3 min-h-11 w-full text-[13.5px] font-semibold text-cream/70"
-                >
-                  I have a code
-                </button>
+                {CHECKOUT_OPEN && (
+                  <button
+                    type="button"
+                    onClick={openCode}
+                    className="font-display mt-3 min-h-11 w-full text-link text-cream/70"
+                  >
+                    I have a code
+                  </button>
+                )}
               </>
             ) : (
               <form onSubmit={redeem} className="reveal mt-5">
-                <p className="text-[13px] leading-relaxed text-cream/70">
+                <p className="text-caption leading-relaxed text-cream/70">
                   Checkout opens soon. Right now premium is by invite code.
                 </p>
                 <label className="sr-only" htmlFor="premium-code">
@@ -202,25 +281,35 @@ export function Paywall({
                 <div className="mt-2.5 flex gap-2">
                   <input
                     id="premium-code"
+                    name="invite-code"
                     ref={codeRef}
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
                     autoComplete="off"
                     autoCapitalize="off"
                     spellCheck={false}
-                    placeholder="Your code"
-                    className="min-w-0 flex-1 rounded-control border border-cream/25 bg-cream/10 px-5 py-3.5 text-[16px] text-cream placeholder:text-cream/40 focus:border-terracotta-500"
+                    enterKeyHint="go"
+                    aria-invalid={!!error}
+                    aria-describedby={error ? "premium-code-error" : undefined}
+                    placeholder="Invite code…"
+                    className="min-h-12 min-w-0 flex-1 rounded-control border border-cream/25 bg-cream/10 px-4 text-read text-cream placeholder:text-cream/50 focus:border-terracotta-500 focus:shadow-[inset_0_0_0_1px_var(--color-terracotta-500)] focus-visible:outline-none!"
                   />
+                  {/* Disabled on plum: the fill steps back to the field's
+                      own cream/10, never a faded terracotta. */}
                   <button
                     type="submit"
                     disabled={busy || !code.trim()}
-                    className="press min-h-11 shrink-0 rounded-control bg-terracotta-500 px-6 py-3.5 text-[15px] font-semibold text-on-accent transition-colors hover:bg-terracotta-600 disabled:opacity-50"
+                    className="press font-display min-h-12 shrink-0 rounded-control bg-terracotta-500 px-6 text-body font-bold text-on-accent transition-colors disabled:bg-cream/10 disabled:text-cream/60"
                   >
-                    {busy ? "One moment" : "Unlock"}
+                    {busy ? "One moment…" : "Unlock"}
                   </button>
                 </div>
                 {error && (
-                  <p className="mt-2.5 text-caption leading-relaxed text-terracotta-300">
+                  <p
+                    id="premium-code-error"
+                    role="alert"
+                    className="mt-2.5 text-caption leading-relaxed text-terracotta-300"
+                  >
                     {error}
                   </p>
                 )}
@@ -228,14 +317,15 @@ export function Paywall({
             )}
 
             <button
+              type="button"
               onClick={onClose}
-              className="mt-3 min-h-11 w-full text-[13.5px] text-cream/50"
+              className="font-display mt-3 min-h-11 w-full text-link text-cream/70"
             >
               Not yet
             </button>
           </>
         )}
-        <p className="mt-3 text-center text-[11.5px] text-cream/40">
+        <p className="mt-3 text-center text-caption text-cream/60">
           Money never buys stars, streaks, or scores.
         </p>
       </div>

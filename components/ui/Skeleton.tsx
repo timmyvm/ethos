@@ -21,11 +21,6 @@
  *    radii, same gaps, so content arriving doesn't shove the page. A
  *    placeholder that causes the shift it was meant to prevent is worse
  *    than the pop.
- *
- * Nothing here skeletons content the app already has. The floor card on
- * home comes out of `todaysDrill()` with no round trip, so it paints
- * immediately — putting a placeholder over locally-known content just
- * makes the app feel slower than it is.
  */
 
 export function Skeleton({
@@ -79,7 +74,7 @@ export function SkeletonStatBare() {
 /** A card the size of the stat tiles on the results screen. */
 export function SkeletonStat() {
   return (
-    <div className="elev-1 flex-1 rounded-card border border-card-edge bg-raised p-4">
+    <div className="card flex-1 p-4">
       <Skeleton className="h-2.5 w-12" />
       <Skeleton className="mt-2 h-6 w-10" />
       <Skeleton className="mt-2 h-2.5 w-14" />
@@ -133,23 +128,43 @@ export function SkeletonCleanRun() {
   );
 }
 
-/** The ink score card, on /history. */
+/**
+ * The score card, on /history. Built from the card's own type roles with
+ * the words hidden (`Line`), so every line is exactly the height of the
+ * line it stands in for and nothing moves when the numbers land
+ * (PRINCIPLES 8): the eyebrow, the 56px hero, the two stats on the
+ * right (which set the row's height, with or without the change line),
+ * then the foot.
+ */
 export function SkeletonScoreCard() {
+  const bar = "absolute inset-y-[22%] left-0 !bg-cream/10";
   return (
     <section className="card-score rounded-sheet p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <Skeleton className="h-2.5 w-20 !bg-cream/10" />
-          <Skeleton className="mt-2.5 h-12 w-32 !bg-cream/10" />
-        </div>
-        <div className="shrink-0 space-y-3">
-          <Skeleton className="h-5 w-10 !bg-cream/10" />
-          <Skeleton className="h-5 w-10 !bg-cream/10" />
+      <Line className="eyebrow" bar={`${bar} w-20`} />
+      <div className="mt-1 flex items-start justify-between gap-4">
+        <Line className="font-display text-num-hero" bar={`${bar} w-32`} text="000" />
+        <div className="shrink-0 space-y-2">
+          {[0, 1].map((i) => (
+            <div key={i} className="flex flex-col items-end">
+              <Line className="font-display text-num-m" bar={`${bar} !left-auto right-0 w-10`} text="00" />
+              <Line className="label-data" bar={`${bar} !left-auto right-0 w-16`} />
+            </div>
+          ))}
         </div>
       </div>
-      <div className="mt-4 border-t border-cream/10 pt-4">
-        <Skeleton className="h-4 w-full !bg-cream/10" />
+      <div className="mt-3 border-t border-cream/15 pt-2.5">
+        <Line className="text-caption" bar={`${bar} w-36`} />
       </div>
     </section>
+  );
+}
+
+/** One line of type, its words invisible and a bar where they would be. */
+function Line({ className, bar, text = "Ag" }: { className: string; bar: string; text?: string }) {
+  return (
+    <div className={`relative ${className}`}>
+      <span className="invisible">{text}</span>
+      <Skeleton className={bar} />
+    </div>
   );
 }

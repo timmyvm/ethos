@@ -33,15 +33,15 @@ export function ErrorState({
   return (
     <div
       role="alert"
-      className={`elev-1 rounded-card border border-card-edge bg-raised p-4 ${className}`}
+      className={`card p-4 ${className}`}
     >
-      <p className="font-display text-[14px] font-bold">{title}</p>
+      <p className="font-display text-row">{title}</p>
       <p className="mt-1 text-caption leading-relaxed text-stone-500">{body}</p>
       {onRetry && (
         <button
           type="button"
           onClick={onRetry}
-          className="press font-display mt-3 min-h-11 w-full rounded-control border border-edge bg-surface px-4 py-2.5 text-[14px] font-bold"
+          className="press font-display mt-3 min-h-11 w-full rounded-control border border-edge bg-surface px-4 py-2.5 text-row"
         >
           {retryLabel}
         </button>
@@ -54,6 +54,10 @@ export function ErrorState({
  * The same failure, one line, for a section inside an otherwise working
  * screen — the home score card, a single sparkline. A whole alert card
  * over one missing number is louder than the number.
+ *
+ * The retry's hit area reaches 13px above and below and 8px to each
+ * side (lessons-17), a 44px target on an 18px line, so the line keeps
+ * its height where it stands in for a 48px button.
  */
 export function ErrorLine({
   children,
@@ -70,7 +74,7 @@ export function ErrorLine({
       <button
         type="button"
         onClick={onRetry}
-        className="font-semibold text-stone-600 underline underline-offset-2"
+        className="relative font-semibold text-stone-600 underline underline-offset-2 after:absolute after:-inset-x-2 after:-inset-y-[13px] after:content-['']"
       >
         Try again
       </button>

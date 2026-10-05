@@ -1,5 +1,7 @@
 "use client";
 
+import { useId } from "react";
+import { IconCheck } from "@/components/Icon";
 import { PremiumMark } from "@/components/PremiumMark";
 import {
   MAX_STACKED_MODS,
@@ -12,9 +14,15 @@ import {
  * Difficulty the user opts into. Never suggested, never defaulted on —
  * the app doesn't decide you need it harder today.
  *
- * The multiplier shown is XP, and the card says so: mods buy effort
- * credit, never stars (DECISIONS #10, #16). Two at a time; a third
- * stacked mod is a stunt, not practice.
+ * Mods buy effort credit, never stars (DECISIONS #10, #16, #37), and the
+ * numbers say so without a caption: each row's ×N and the running ×N XP
+ * total (modes-15).
+ *
+ * An iOS grouped list (modes-9): one surface, rows parted by hairlines,
+ * no tiles inside a card. A chosen row is a trailing ink check, never
+ * sage: nothing here has been earned yet (modes-10). A toggle says
+ * aria-pressed; a locked row opens the paywall sheet and says so
+ * (modes-11). Two at a time; past that the other rows wait, and say why.
  */
 export function ModPicker({
   selected,
@@ -29,6 +37,7 @@ export function ModPicker({
 }) {
   const chosen = STRESS_MODS.filter((m) => selected.includes(m.id));
   const multiplier = xpMultiplier(chosen);
+  const capId = useId();
 
   function toggle(mod: StressMod) {
     if (mod.premium && !premium) {
@@ -46,19 +55,15 @@ export function ModPicker({
   const full = selected.length >= MAX_STACKED_MODS;
 
   return (
-    <div className="elev-1 rounded-card border border-card-edge bg-raised p-4">
-      <div className="flex items-baseline justify-between">
-        <div className="label-data">Stress mods · optional</div>
+    <div>
+      <div className="flex min-h-5 items-baseline justify-between px-4 pb-2">
+        <div className="eyebrow">Stress mods</div>
         {multiplier > 1 && (
-          <div className="label-data !text-sage-700">×{multiplier} XP</div>
+          <div className="font-display text-link tabular-nums text-ink">×{multiplier} XP</div>
         )}
       </div>
-      <p className="mt-1.5 text-caption leading-relaxed text-stone-500">
-        Harder conditions, same measurement. A mod multiplies XP, never a
-        star or the Index.
-      </p>
 
-      <div className="mt-3 space-y-2">
+      <div className="inset-group">
         {STRESS_MODS.map((mod) => {
           const on = selected.includes(mod.id);
           const locked = mod.premium && !premium;
@@ -66,33 +71,34 @@ export function ModPicker({
           return (
             <button
               key={mod.id}
+              type="button"
               onClick={() => toggle(mod)}
               disabled={disabled}
-              className={`press flex w-full items-start gap-3 rounded-control border p-3 text-left transition-colors ${
-                on
-                  ? "border-sage-300 bg-sage-100"
-                  : disabled
-                    ? "border-edge bg-surface !text-stone-300"
-                    : "border-edge bg-surface"
-              }`}
+              aria-pressed={locked ? undefined : on}
+              aria-haspopup={locked ? "dialog" : undefined}
+              aria-describedby={disabled ? capId : undefined}
+              className="press-row group-row flex w-full items-center gap-3 text-left"
             >
-              <span className="flex-1">
-                <span className="font-display block text-[14px] font-bold">
+              <span className="min-w-0 flex-1">
+                <span
+                  className={`font-display block text-row ${
+                    disabled ? "text-stone-400" : "text-ink"
+                  }`}
+                >
                   {mod.name}
                   {locked && <PremiumMark />}
                 </span>
-                <span
-                  className={`mt-0.5 block text-caption leading-relaxed ${
-                    on ? "text-sage-800" : "text-stone-500"
-                  }`}
-                >
+                <span className="mt-0.5 block text-caption text-pretty text-stone-500">
                   {mod.blurb}
                 </span>
               </span>
-              <span
-                className={`label-micro shrink-0 ${on ? "!text-sage-700" : ""}`}
-              >
+              <span className="font-display shrink-0 text-link tabular-nums text-stone-500">
                 ×{mod.xpMultiplier}
+              </span>
+              {/* The check's slot is always there, so choosing a row
+                  never moves its multiplier. */}
+              <span aria-hidden className="flex h-5 w-5 shrink-0 items-center justify-center text-ink">
+                {on && <IconCheck size={20} />}
               </span>
             </button>
           );
@@ -100,8 +106,8 @@ export function ModPicker({
       </div>
 
       {full && (
-        <p className="mt-2.5 text-caption text-stone-400">
-          Two at a time. Anything more is a stunt.
+        <p id={capId} className="group-foot">
+          Up to 2 at a time.
         </p>
       )}
     </div>

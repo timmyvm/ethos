@@ -2,6 +2,7 @@
 
 import { CountUp } from "@/components/CountUp";
 import { IconFlame } from "@/components/Icon";
+import { HeaderCount } from "@/components/ui/HeaderCount";
 import { DURATION } from "@/lib/motion";
 import type { StreakState } from "@/lib/streak";
 
@@ -28,21 +29,15 @@ export function StreakBadge({ streak }: { streak: StreakState }) {
    */
   const open = streak.current === 0 || streak.atRisk;
 
+  /* M17: the flame at 18px and the number at 15/700, on the shared
+     header count (HeaderCount's chip, the earned register). */
   return (
-    <span
-      className="today-earned"
-      data-open={open ? "true" : undefined}
-    >
-      <span className="sr-only">
-        Streak {streak.current}
-        {open ? ", today's open" : ""}
-      </span>
-      <span aria-hidden className="today-earned-mark">
-        <IconFlame size={16} />
-      </span>
-      <span aria-hidden>
-        <CountUp value={streak.current} durationMs={DURATION.max} />
-      </span>
-    </span>
+    <HeaderCount
+      variant="chip"
+      unlit={open}
+      label={`Streak ${streak.current}${open ? ", today's open" : ""}`}
+      glyph={<IconFlame size={18} />}
+      value={<CountUp value={streak.current} durationMs={DURATION.max} />}
+    />
   );
 }

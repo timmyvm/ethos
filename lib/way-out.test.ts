@@ -30,13 +30,63 @@ const TAPPABLE_BARE_SCREENS = [
   "app/hostile/page.tsx",
 ];
 
+/**
+ * The route a page file serves: route groups (`(marketing)`) are not in
+ * the URL, so they drop out, and the BARE list holds first segments.
+ *   "app/practice/[trait]/page.tsx" -> "/practice"
+ *   "app/(marketing)/about/page.tsx" -> "/about"
+ */
+function routeOf(file: string): string {
+  const segments = file
+    .split("/")
+    .slice(1, -1)
+    .filter((s) => !/^\(.*\)$/.test(s));
+  return `/${segments[0] ?? ""}`;
+}
+
+/** Where a way out may go: a tab, or a screen people leave from. */
+const DESTINATIONS = "(|games|history|you|lessons|settings|signin|about)";
+
+/**
+ * Any of the spellings the app actually uses: LessonScreen's onBack
+ * prop, a Link back to a tab or a known screen, a router push to one,
+ * ScreenHeader's `back={{ href: "/…" }}`, or a `<BackLink href="/…">`.
+ */
+function hasWayOut(source: string): boolean {
+  return (
+    /onBack=\{/.test(source) ||
+    new RegExp(`href="\\/${DESTINATIONS}"`).test(source) ||
+    new RegExp(`router\\.push\\("\\/${DESTINATIONS}"\\)`).test(source) ||
+    /back=\{\{\s*href:\s*["'`]\/[^"'`]*["'`]/.test(source) ||
+    /<BackLink\b[^>]*\bhref=(?:["'`]\/|\{)/.test(source)
+  );
+}
+
+describe("the way-out reader", () => {
+  it("drops route groups from the route", () => {
+    expect(routeOf("app/practice/[trait]/page.tsx")).toBe("/practice");
+    expect(routeOf("app/(marketing)/about/page.tsx")).toBe("/about");
+    expect(routeOf("app/(auth)/signin/page.tsx")).toBe("/signin");
+  });
+
+  it("reads every spelling of a way back", () => {
+    expect(hasWayOut('<ScreenHeader title="Shop" back={{ href: "/you", label: "You" }} />')).toBe(true);
+    expect(hasWayOut('<BackLink href="/lessons" label="Lessons" />')).toBe(true);
+    expect(hasWayOut("<BackLink href={backTo} label={label} />")).toBe(true);
+    expect(hasWayOut('<Link href="/settings">Settings</Link>')).toBe(true);
+    expect(hasWayOut('<Link href="/signin">Sign in</Link>')).toBe(true);
+    expect(hasWayOut('<Link href="/about">Ethos</Link>')).toBe(true);
+    expect(hasWayOut('router.push("/history")')).toBe(true);
+    expect(hasWayOut('<Link href="/rep">Record</Link>')).toBe(false);
+  });
+});
+
 describe("no screen is a dead end", () => {
   it("keeps the BARE list in sync with this test's own list", () => {
     const nav = readFileSync("components/Nav.tsx", "utf8");
     const bare = nav.slice(nav.indexOf("const BARE"), nav.indexOf("export function Nav"));
     for (const file of TAPPABLE_BARE_SCREENS) {
-      // "app/practice/[trait]/page.tsx" -> "/practice"
-      const route = `/${file.split("/")[1]}`;
+      const route = routeOf(file);
       expect(bare, `${route} is no longer in BARE`).toContain(`"${route}"`);
     }
   });
@@ -44,14 +94,7 @@ describe("no screen is a dead end", () => {
   for (const file of TAPPABLE_BARE_SCREENS) {
     it(`gives ${file} a control that leaves it`, () => {
       const source = readFileSync(file, "utf8");
-      /*
-       * Any of the three spellings the app actually uses: LessonScreen's
-       * onBack prop, a Link back to a tab, or a router push to one.
-       */
-      const hasExit =
-        /onBack=\{/.test(source) ||
-        /href="\/(|games|history|you|lessons)"/.test(source) ||
-        /router\.push\("\/(|games|history|you|lessons)"\)/.test(source);
+      const hasExit = hasWayOut(source);
       expect(hasExit, `${file} has no way out`).toBe(true);
     });
   }

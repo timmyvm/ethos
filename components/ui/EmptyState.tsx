@@ -28,10 +28,10 @@ export function EmptyState({
 }) {
   return (
     <div
-      className={`elev-1 rounded-card border border-card-edge bg-raised p-5 text-center ${className}`}
+      className={`card p-5 text-center ${className}`}
     >
       {art}
-      <p className="font-display mt-2 text-[14px] font-bold">{title}</p>
+      <p className="font-display mt-2 text-row">{title}</p>
       <p className="mx-auto mt-1 max-w-[30ch] text-caption leading-relaxed text-stone-500">
         {body}
       </p>

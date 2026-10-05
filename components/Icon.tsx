@@ -535,3 +535,107 @@ export function IconSliders({ size }: { size?: number }) {
     </Glyph>
   );
 }
+
+/*
+ * ---- The design pass's marks (A2). Same grid, same round caps and
+ * joins. The four controls Apple draws at the medium weight (gear,
+ * pencil, play, pause) take the tab marks' 2px line; the rest keep 2.75.
+ */
+
+/** A check: the chosen row in a list (a stress mod, a setting). */
+export function IconCheck({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="M5 12.5l4.5 4.5L19 7.5" />
+    </Glyph>
+  );
+}
+
+/** Settings: SF Symbols' gearshape, eight teeth round a hub, 2px line. */
+export function IconGear({ size }: { size?: number }) {
+  return (
+    <Glyph size={size} weight={TAB_WEIGHT}>
+      <path d="M10.11 4.95L10.51 2.62L13.49 2.62L13.89 4.95L15.65 5.68L17.58 4.31L19.69 6.42L18.32 8.35L19.05 10.11L21.38 10.51L21.38 13.49L19.05 13.89L18.32 15.65L19.69 17.58L17.58 19.69L15.65 18.32L13.89 19.05L13.49 21.38L10.51 21.38L10.11 19.05L8.35 18.32L6.42 19.69L4.31 17.58L5.68 15.65L4.95 13.89L2.62 13.49L2.62 10.51L4.95 10.11L5.68 8.35L4.31 6.42L6.42 4.31L8.35 5.68z" />
+      <circle cx="12" cy="12" r="3" />
+    </Glyph>
+  );
+}
+
+/** Edit: a pencil on the diagonal, its tip at the lower left. */
+export function IconPencil({ size }: { size?: number }) {
+  return (
+    <Glyph size={size} weight={TAB_WEIGHT}>
+      <path d="M15.2 4.8a2.1 2.1 0 0 1 3 0l1 1a2.1 2.1 0 0 1 0 3L9 19l-4.5 1 1-4.5z" />
+      <path d="m13.5 6.5 4 4" />
+    </Glyph>
+  );
+}
+
+/** Play, for the scrubber: a solid, round-cornered triangle. 16px. */
+export function IconPlay({ size = 16 }: { size?: number }) {
+  return (
+    <Glyph size={size} weight={TAB_WEIGHT}>
+      <path d="M8 5.6v12.8a1 1 0 0 0 1.53.85l10.04-6.4a1 1 0 0 0 0-1.7L9.53 4.75A1 1 0 0 0 8 5.6z" fill="currentColor" />
+    </Glyph>
+  );
+}
+
+/** Pause, for the scrubber: two solid bars. 16px (IconPause is the
+    trait's mark, drawn as two lines). */
+export function IconPauseSm({ size = 16 }: { size?: number }) {
+  return (
+    <Glyph size={size} weight={TAB_WEIGHT}>
+      <rect x="6.5" y="5" width="3.5" height="14" rx="1" fill="currentColor" />
+      <rect x="14" y="5" width="3.5" height="14" rx="1" fill="currentColor" />
+    </Glyph>
+  );
+}
+
+/** Speed: a bolt. */
+export function IconBolt({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="M13.5 3 5.5 13.5h6l-1 7.5 8-10.5h-6z" />
+    </Glyph>
+  );
+}
+
+/** A voice with no shape: IconWave's five bars all at one height, so it
+    reads as level where the wave reads as moving. */
+export function IconWaveFlat({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="M3.5 9.5v5M8 9.5v5M12 9.5v5M16 9.5v5M20.5 9.5v5" />
+    </Glyph>
+  );
+}
+
+/** More: three dots. */
+export function IconEllipsis({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      {[5, 12, 19].map((x) => (
+        <circle key={x} cx={x} cy="12" r="2.5" fill="currentColor" stroke="none" />
+      ))}
+    </Glyph>
+  );
+}
+
+/**
+ * A star (duolingo-path s10, log-22): the prize's own shape, points
+ * rounded by the set's round join. Earned is solid in the caller's
+ * colour; unearned is the same shape as a 1.5px outline at any size
+ * (the stroke does not scale), so an empty slot reads as a slot.
+ */
+export function IconStar({ size, filled = true }: { size?: number; filled?: boolean }) {
+  const d = "M12 3.2L14.5 9.16L20.94 9.7L16.04 13.91L17.53 20.2L12 16.85L6.47 20.2L7.96 13.91L3.06 9.7L9.5 9.16z";
+  return filled ? (
+    <Glyph size={size} weight={2}>
+      <path d={d} fill="currentColor" />
+    </Glyph>
+  ) : (
+    <Glyph size={size} weight={1.5}>
+      <path d={d} vectorEffect="non-scaling-stroke" />
+    </Glyph>
+  );
+}

@@ -60,7 +60,8 @@ export const STRESS_MODS: StressMod[] = [
   },
 ];
 
-/** Two at a time. Three stacked mods is a stunt, not training. */
+/** Two at a time. A third stacked mod piles on conditions faster than
+ *  the measurement can say what any one of them changed. */
 export const MAX_STACKED_MODS = 2;
 
 /** Hard ceiling on stacked XP so grinding mods can't outrun reps. */

@@ -5,10 +5,10 @@ import { DURATION } from "@/lib/motion";
 /**
  * The score card: the hero of every data screen (#18, #165, #217).
  *
- * Home and the log draw the same card, because a person should learn
- * this shape once. The delta sits top right in the label register
- * (#195: sage up, rust down), the Index is the 58px hero, recordings
- * and stars are the two small stats on the right.
+ * Home, the log and About draw the same card, because a person should
+ * learn this shape once. The Index is the 56px hero with its change
+ * right under it (log-15; #195: sage up, rust down), and recordings and
+ * stars are the two stats on the right, starting level with the hero.
  *
  * Before any recording the hero is the COUNT (#213): zero recordings is
  * a true number, where 0 / 1000 would claim you scored nothing, and the
@@ -35,53 +35,52 @@ export function ScoreCard({
   const empty = recordings === 0;
   return (
     <section className="card-score rounded-sheet p-5 text-cream">
-      <div className="flex items-baseline justify-between gap-3">
-        <div className="label-data !text-sage-mist">Your Ethos</div>
-        {delta !== null && delta !== 0 && (
-          <div
-            className={`label-data ${
-              delta > 0 ? "!text-sage-lit" : "!text-rust-lit"
-            }`}
-          >
-            {delta > 0 ? "▲ +" : "▼ "}
-            {Math.abs(delta)} since day one
-          </div>
-        )}
-      </div>
-      <div className="flex items-end justify-between gap-4">
-        <div className="flex min-w-0 items-baseline gap-1.5">
-          {/* The hero counts on arrival like every number under it
-              (#245). Not when there is nothing to count: zero
-              recordings is a fact, not a climb, and a dash is not a
-              number at all. */}
-          {empty || index === null ? (
-            <span className="font-display text-[58px] font-extrabold leading-none tracking-[-0.02em]">
-              {empty ? 0 : "—"}
+      <div className="eyebrow text-sage-mist">Your Ethos</div>
+      <div className="mt-1 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex items-baseline gap-1.5">
+            {/* The hero counts on arrival like every number under it
+                (#245). Not when there is nothing to count: zero
+                recordings is a fact, not a climb, and a dash is not a
+                number at all. */}
+            {empty || index === null ? (
+              <span className="font-display text-num-hero tabular-nums">
+                {empty ? 0 : "—"}
+              </span>
+            ) : (
+              <CountUp
+                value={index}
+                durationMs={DURATION.max}
+                className="font-display text-num-hero tabular-nums"
+              />
+            )}
+            <span className="text-body text-sage-mist">
+              {empty ? "recordings" : "/ 1000"}
             </span>
-          ) : (
-            <CountUp
-              value={index}
-              durationMs={DURATION.max}
-              className="font-display text-[58px] font-extrabold leading-none tracking-[-0.02em]"
-            />
+          </div>
+          {/* The change, read with the number it changes (log-15): a
+              line under the hero, sage-lit up and rust-lit down (#195),
+              in words, not a tracked label in the far corner. */}
+          {delta !== null && delta !== 0 && (
+            <div
+              className={`font-display mt-1.5 text-link tabular-nums ${
+                delta > 0 ? "text-sage-lit" : "text-rust-lit"
+              }`}
+            >
+              {delta > 0 ? "▲ +" : "▼ "}
+              {Math.abs(delta)} since day one
+            </div>
           )}
-          <span className="text-[15px] text-sage-mist">
-            {empty ? "recordings" : "/ 1000"}
-          </span>
         </div>
         <div className="shrink-0 space-y-2 text-right tabular-nums">
           {empty ? (
             <div>
-              <div className="font-display text-[19px] font-extrabold leading-none">
-                &mdash; / 1000
-              </div>
+              <div className="font-display text-num-m">&mdash; / 1000</div>
               <div className="label-data !text-sage-mist">index</div>
             </div>
           ) : (
             <div>
-              <div className="font-display text-[19px] font-extrabold leading-none">
-                {recordings}
-              </div>
+              <div className="font-display text-num-m">{recordings}</div>
               {/* "recordings", not "reps": the counter names the thing
                   it counts (#164). */}
               <div className="label-data !text-sage-mist">
@@ -90,9 +89,7 @@ export function ScoreCard({
             </div>
           )}
           <div>
-            <div className="font-display text-[19px] font-extrabold leading-none">
-              {stars}
-            </div>
+            <div className="font-display text-num-m">{stars}</div>
             <div className="label-data !text-sage-mist">
               {stars === 1 ? "star" : "stars"}
             </div>

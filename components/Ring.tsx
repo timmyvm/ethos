@@ -99,7 +99,8 @@ export function Ring({
    * The SCALE is provisional, not the measurement. It used to dash the
    * trough (#264); since #293 it changes nothing drawn, because the
    * dash read as segmented data rather than as an estimate. Kept on the
-   * prop so callers still say it, and read by the accessible label.
+   * prop so callers still say it, and a screen reader hears "estimate"
+   * after the number.
    */
   provisional?: boolean;
   className?: string;
@@ -214,6 +215,8 @@ export function Ring({
       {children !== undefined && (
         <span className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center leading-none">
           {children}
+          {/* practice-detail-21: the number is read with what it is. */}
+          {provisional && <span className="sr-only">estimate</span>}
         </span>
       )}
     </span>

@@ -300,7 +300,7 @@ export default function YouPage() {
         {/* The name: the one profile field you type rather than earn. */}
         {editingName ? (
           <form
-            className="mt-3 flex items-center gap-2 text-left"
+            className="mb-2 mt-3 flex items-center gap-2 text-left"
             onSubmit={(e) => {
               e.preventDefault();
               void saveName();
@@ -634,7 +634,7 @@ export default function YouPage() {
             </span>
           )}
         </h2>
-        <div className={`inset-group mt-3 ${loading ? "" : "stagger"}`} data-inset="icon" aria-busy={loading || undefined}>
+        <div className="inset-group stagger mt-3" data-inset="icon" aria-busy={loading || undefined}>
           {badges.map((a) => {
             const earned = !loading && a.earned;
             return (

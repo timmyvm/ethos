@@ -14,7 +14,8 @@
  * Screens: today, lessons, lesson, log, you, shop, games, settings,
  * rep-detail (the stored result the log links to), rep-idle,
  * rep-recording, rep-results, rep-numbers, rep-words; off the bar,
- * practice, unit, boss, hostile, calibrate, upload, paywall, splash
+ * practice, unit, boss, hostile, calibrate, upload, upload-results,
+ * paywall, splash
  * (with splash-lift, the lift about 100ms in);
  * signed out, signin, signup, forgot, reset, about, privacy, terms.
  * The introduction has its own camera, scripts/look-welcome.mjs.
@@ -29,6 +30,16 @@ const BASE = process.env.LOOK_BASE ?? "http://localhost:3123";
 const OUT = (process.env.LOOK_OUT ?? new URL("../docs/look/", import.meta.url).pathname).replace(/\/?$/, "/");
 mkdirSync(OUT, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+/** A mono 16-bit WAV of `seconds` of silence, for the upload's picker. */
+const silentWav = (seconds, rate = 8000) => {
+  const n = Math.round(seconds * rate);
+  const b = Buffer.alloc(44 + n * 2);
+  b.write("RIFF", 0); b.writeUInt32LE(36 + n * 2, 4); b.write("WAVE", 8);
+  b.write("fmt ", 12); b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22);
+  b.writeUInt32LE(rate, 24); b.writeUInt32LE(rate * 2, 28); b.writeUInt16LE(2, 32); b.writeUInt16LE(16, 34);
+  b.write("data", 36); b.writeUInt32LE(n * 2, 40);
+  return b;
+};
 const want = (name) => ONLY.length === 0 || ONLY.includes(name);
 /** Squint mode: LOOK_BLUR=6 blurs the page so only mass and colour survive. */
 const BLUR = Number(process.env.LOOK_BLUR ?? 0) || 0;
@@ -206,6 +217,18 @@ async function shootTheme(theme) {
   await scene("hostile", "/hostile", "main");
   await scene("calibrate", "/calibrate", "main");
   await scene("upload", "/upload", "main");
+  /*
+   * The upload's results: the camera only ever saw the file picker, so
+   * RepResult's "all" view and the player on /upload were never shot.
+   * One second of silence goes in; the scoring mock answers.
+   */
+  await step(async () => {
+    if (!want("upload-results")) return;
+    await go("/upload", "main h1");
+    await page.setInputFiles('main input[type="file"]', { name: "memo.wav", mimeType: "audio/wav", buffer: silentWav(1) });
+    await page.waitForSelector("main [data-score]", { timeout: 15000 });
+    await shot("upload-results", { settle: 1200 });
+  });
   await step(async () => {
     if (!want("paywall")) return;
     await go("/games", READY);

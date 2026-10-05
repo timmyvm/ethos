@@ -181,10 +181,13 @@ export function RepResult({
     return () => clearTimeout(t);
   }, [celebrate, timed, starsDone]);
 
+  /* Balanced, not pretty: his line is one or two short sentences, and
+     balance breaks "4 fillers in 62s. / Tomorrow: kill ‘um’." where
+     pretty left the last two words alone on the second line. */
   const said = timed ? (
-    <Says text={line} lead={bubbleAt + 160} className="text-pretty" />
+    <Says text={line} lead={bubbleAt + 160} className="text-balance" />
   ) : (
-    <p className="text-pretty">{line}</p>
+    <p className="text-balance">{line}</p>
   );
 
   return (

@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { useRouter } from "next/navigation";
@@ -8,14 +7,14 @@ import { useCallback, useEffect, useState } from "react";
 import { CountUp } from "@/components/CountUp";
 import { DURATION } from "@/lib/motion";
 import { DayTrail } from "@/components/DayTrail";
-import { ChallengeCard } from "@/components/home/ChallengeCard";
-import { CleanRunCard } from "@/components/home/CleanRunCard";
+import { ChallengeCard, SkeletonChallenge } from "@/components/home/ChallengeCard";
+import { CleanRunCard, SkeletonCleanRunCard } from "@/components/home/CleanRunCard";
 import { FloorCard } from "@/components/home/FloorCard";
 import { TraitStrip } from "@/components/home/TraitStrip";
-import { ACTION_CLASS, LessonBody } from "@/components/LessonScreen";
 import { ModPicker } from "@/components/ModPicker";
-import { SkeletonCleanRun } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { HeaderCount } from "@/components/ui/HeaderCount";
+import { IconBack, IconStar } from "@/components/Icon";
 import { Paywall } from "@/components/Paywall";
 import { readable, readFailure } from "@/lib/load";
 import { StreakBadge } from "@/components/StreakBadge";
@@ -235,16 +234,25 @@ export default function Home() {
    * intro" always meant. Everybody else goes straight to the recorder
    * with their practice's topic on it.
    */
+  /*
+   * `dayOne`, not `history.length === 0` (today-2): while the read is in
+   * flight the history is an empty array too, `introDue` is true on an
+   * empty star map, and Start pointed at /lesson/<unit> for everybody
+   * until the read landed, the misroute this block exists to prevent.
+   */
   const introOwns = Boolean(
-    history.length === 0 && next && !skipIntros && introDue(next.unit, starMap)
+    dayOne && next && !skipIntros && introDue(next.unit, starMap)
   );
+  /* The read is in flight. A failed read is not loading: the floor
+     paints its fallback rather than a skeleton that never resolves. */
+  const loading = reps === null && !failed;
   const floorHref =
     introOwns && next
       ? introHref(next.unit.id, mods)
       : repHref({ lesson: next?.lesson.id, mods });
 
   return (
-    <main className="px-5 pb-22 pt-7">
+    <main className="px-5 pb-[var(--nav-clear)] pt-7">
       {/* The large title (ScreenHeader), with the date over it the way
           Apple's own Today screens carry it. The wordmark went with the
           apple-design pass: the tab says where you are, and the splash
@@ -256,20 +264,18 @@ export default function Home() {
         trailing={
           reps !== null && (
             <>
-              {/* Earned stars, beside the streak — the two standing
-                  scores (27 Aug, Timothy's call): a sage wash with a
-                  gold mark, the glyph doing the word's job. Earned,
+              {/* Earned stars, beside the streak: the two standing
+                  scores (27 Aug, Timothy's call, #176): a sage chip with
+                  a gold mark, the glyph doing the word's job. Earned,
                   never a tap. The total counts up as the history read
-                  lands rather than appearing already counted. */}
-              <span className="today-earned">
-                <span className="sr-only">{totalStars(starMap)} stars</span>
-                <span aria-hidden className="today-earned-mark text-[14px] leading-none">
-                  ★
-                </span>
-                <span aria-hidden>
-                  <CountUp value={totalStars(starMap)} durationMs={DURATION.max} />
-                </span>
-              </span>
+                  lands rather than appearing already counted. One chip,
+                  the shared header count, for both (A2). */}
+              <HeaderCount
+                variant="chip"
+                glyph={<IconStar />}
+                value={<CountUp value={totalStars(starMap)} durationMs={DURATION.max} />}
+                label={`${totalStars(starMap)} stars`}
+              />
               <StreakBadge streak={streak} />
             </>
           )
@@ -281,7 +287,7 @@ export default function Home() {
           from 6px below rather than pushing the floor down out of
           nowhere. */}
       {rescued > 0 && (
-        <div className="arrive elev-1 mt-7 rounded-card border border-sage-300 bg-raised p-4 text-body">
+        <div role="status" className="arrive card mt-7 border-sage-300 p-4 text-body">
           <span className="font-semibold">
             A freeze covered {rescued === 1 ? "a day" : `${rescued} days`} you
             missed.
@@ -312,26 +318,28 @@ export default function Home() {
              thing (#242): eyebrow, card and the way back on the same
              300ms lift, because they all arrived from the same tap. */
           <div key="roulette" className="arrive-lift">
-            {/* The unit moved out of this label and into the line under
-                the title, where voice.md puts it: the eyebrow names the
-                slot, the body names the thing. */}
-            <div className="label-data">Roulette</div>
+            {/* A section title on the ground, like every other section
+                on Today (today-22): sentence case, not tracked caps. */}
+            <h2 className="section-head">Roulette</h2>
             <div className="mt-3">
               <TopicRoulette
                 topic={topic}
                 onSpin={setTopic}
                 onTake={(t) => router.push(repHref({ topic: t.id, mods }))}
               />
-              {/* The way back, at the 44px target its two siblings
-                  under the floor card already carry. */}
+              {/* The way back, in the app's one back grammar (BackLink's
+                  chevron and 44px geometry, today-17): a button, because
+                  it changes this screen's state rather than its route. */}
               <button
+                type="button"
                 onClick={() => {
                   setTopic(null);
                   setFloorReturned(true);
                 }}
-                className="press -mb-3 mt-1 inline-flex min-h-11 items-center text-[13px] font-semibold text-stone-500"
+                className="screen-bar-back press -mb-3 -ml-2.5 mt-1"
               >
-                ← Back to today&apos;s lesson
+                <IconBack size={22} />
+                <span>Today&apos;s practice</span>
               </button>
             </div>
           </div>
@@ -357,6 +365,7 @@ export default function Home() {
                 dayOnePrompt={drill.prompt}
                 dayOneNote={dayOne ? dayOneNote(answers) : undefined}
                 again={streak.didToday}
+                loading={loading}
                 href={introOwns ? floorHref : undefined}
                 mods={mods}
                 onSpin={() => setTopic(spinForAnswers(null))}
@@ -385,7 +394,16 @@ export default function Home() {
        * the window: a target drawn from one recording is a fiction, and
        * a seeded one is the endowed progress docs/closure.md rejects.
        */}
-      {challenge && <ChallengeCard challenge={challenge} />}
+      {/* Its slot is held while the read is in flight (today-4): it
+          used to cut in above the score skeleton once the read landed
+          and push everything under it about 140px down. It lands in
+          that slot with one fade. */}
+      {loading && <SkeletonChallenge />}
+      {challenge && (
+        <div className="arrive">
+          <ChallengeCard challenge={challenge} />
+        </div>
+      )}
 
       {/*
        * TIER 2 — the score. "The score IS the brand" (DECISIONS #18) and
@@ -401,9 +419,9 @@ export default function Home() {
           to pop in under it. */}
       {/* The gap belongs to the parent (#234): the card and its
           skeleton carry no outer margin, so both sit at the same 28. */}
-      {reps === null && !failed && (
+      {loading && (
         <div className="mt-7">
-          <SkeletonCleanRun />
+          <SkeletonCleanRunCard />
         </div>
       )}
 
@@ -467,18 +485,17 @@ export default function Home() {
              * the floor's one terracotta tap stays uncontested — the link alone
              * wears the action text.
              */}
+            {/* A sentence and a text link (today-17): no typed arrow and
+                no middot, the link alone wears the action. */}
             {anon === true && history.length > 0 && (
-              <Link
-                href="/signup"
-                className="press mt-3 block py-3 text-center text-caption leading-relaxed text-stone-400"
-              >
+              <p className="mt-3 py-3 text-center text-caption text-pretty text-stone-500">
                 {history.length} recording
                 {history.length === 1 ? " lives" : "s live"} only in this
-                browser ·{" "}
-                <span className="font-semibold text-terracotta-700">
-                  keep {history.length === 1 ? "it" : "them"} →
-                </span>
-              </Link>
+                browser.{" "}
+                <Link href="/signup" className="text-link text-terracotta-700">
+                  Keep {history.length === 1 ? "it" : "them"}
+                </Link>
+              </p>
             )}
           </div>
 

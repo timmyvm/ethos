@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { CountUp } from "@/components/CountUp";
 import { Ring } from "@/components/Ring";
+import { Disclosure } from "@/components/ui/Disclosure";
 import { TRAIT } from "@/content/traits";
 import { DURATION } from "@/lib/motion";
 import { aimLine, ordinal, withUnit, type TraitReading } from "@/lib/trait-readings";
@@ -56,29 +57,25 @@ export function TraitCard({
         tone={n >= 50 ? "measured" : "dim"}
         provisional={reading.quality === "provisional"}
       >
-        <span className="font-display flex items-baseline text-[15px] font-extrabold leading-none tabular-nums">
+        <span className="font-display flex items-baseline text-num-s leading-none tabular-nums">
           <CountUp value={n} durationMs={DURATION.max} />
-          <span className="text-[10px]">{suffix}</span>
+          <span className="text-suffix">{suffix}</span>
         </span>
       </Ring>
       <div className="min-w-0 flex-1">
-        <div className="font-display text-[15px] font-bold">{t.name}</div>
+        <div className="font-display text-row">{t.name}</div>
         <div className="mt-0.5 text-caption text-stone-500">
           {withUnit(reading.id, reading.raw)}
         </div>
         <div className="mt-0.5 text-caption text-stone-400">{aimLine(reading)}</div>
       </div>
-      {row && href && (
-        <span aria-hidden className="shrink-0 text-stone-400">
-          →
-        </span>
-      )}
+      {row && href && <Disclosure />}
     </>
   );
 
   const shell = row
     ? `flex items-center gap-4 border-t border-hairline py-3 ${last ? "border-b" : ""}`
-    : "elev-1 flex items-center gap-4 rounded-card border border-card-edge bg-raised p-4";
+    : "card flex items-center gap-4 p-4";
   return href ? (
     <Link href={href} className={`press ${shell}`}>
       {body}

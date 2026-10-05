@@ -1,13 +1,12 @@
 "use client";
 
 import { Ring } from "@/components/Ring";
-import { TRAIT } from "@/content/traits";
+import { Skeleton } from "@/components/ui/Skeleton";
 import {
   challengeFoot,
   challengeLine,
   type Challenge,
 } from "@/lib/challenge";
-import { fmtRaw } from "@/lib/trait-readings";
 
 /**
  * Today's line (DECISIONS #281).
@@ -26,7 +25,14 @@ import { fmtRaw } from "@/lib/trait-readings";
  *
  * 48px, under the trait rows' 50 and the clean run's 104: this card
  * states one number and must not outweigh the floor's button at the
- * squint test's 7px blur.
+ * squint test's 7px blur. The ring carries no number of its own
+ * (today-7): the sentence beside it prints today's value with its unit,
+ * and the same 1.8 twice, 24px apart and neither with a unit, was one
+ * number said twice and explained never.
+ *
+ * No aside on the head (today-8). "Pausing" right-aligned in its tone
+ * read as iOS's See All link on a div that did nothing; the unit in the
+ * sentence and the card's tone already say which trait.
  *
  * THE COLOUR (the colour pass, 26 Sep). The line is drawn in one
  * trait's unit, so the card wears that trait's tone: its wash as the
@@ -44,10 +50,7 @@ export function ChallengeCard({ challenge }: { challenge: Challenge }) {
   const c = challenge;
   return (
     <section className="mt-7" data-trait={c.trait}>
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 className="section-head">Today&apos;s line</h2>
-        <div className="section-head-aside tone-ink">{TRAIT[c.trait].name}</div>
-      </div>
+      <h2 className="section-head">Today&apos;s line</h2>
       <div className="today-line tone-wash mt-3 rounded-card p-4">
         <div className="flex items-center gap-4">
           <Ring
@@ -57,15 +60,9 @@ export function ChallengeCard({ challenge }: { challenge: Challenge }) {
             track="var(--today-trough)"
             delay={240}
             state={c.closed ? "closing" : "idle"}
-          >
-            {c.today !== null && (
-              <span className="font-display tone-ink text-[13px] font-extrabold leading-none tabular-nums">
-                {fmtRaw(c.today)}
-              </span>
-            )}
-          </Ring>
+          />
           <div className="min-w-0 flex-1">
-            <p className="font-display text-[15px] font-bold leading-snug">
+            <p className="font-display text-body font-bold leading-snug text-balance">
               {challengeLine(c)}
             </p>
             {/*
@@ -75,12 +72,29 @@ export function ChallengeCard({ challenge }: { challenge: Challenge }) {
              * second person anywhere in it, and without the word
              * "missed".
              */}
-            <p className="tone-ink mt-1 text-caption">
+            <p className="tone-ink mt-1 text-caption text-pretty">
               {challengeFoot(c)}
             </p>
           </div>
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * Today's line while the history read is in flight (today-4): the head
+ * and the card at their measured heights, so the line lands in its own
+ * slot and nothing under it moves. Collapses only for somebody with
+ * under three readings in the window, who gets no line at all.
+ */
+export function SkeletonChallenge() {
+  return (
+    <div aria-hidden className="mt-7">
+      <div className="flex h-6 items-center">
+        <Skeleton className="h-5 w-32" />
+      </div>
+      <Skeleton className="mt-3 h-[95px] w-full" rounded="rounded-card" />
+    </div>
   );
 }

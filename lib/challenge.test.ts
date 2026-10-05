@@ -14,7 +14,7 @@ import {
   readingToday,
 } from "./challenge";
 import type { RepRow } from "./client-data";
-import { readTraitsFromRow } from "./trait-readings";
+import { fmtRaw, readTraitsFromRow } from "./trait-readings";
 import { TRAIT } from "@/content/traits";
 
 /**
@@ -253,6 +253,30 @@ describe("the copy", () => {
     expect(c.closed).toBe(true);
     expect(line).toContain("today");
     expect(line).toMatch(/(under|over|inside)/);
+  });
+
+  /*
+   * today-7: the card's ring lost its number, so the sentence is the one
+   * place today's value is printed, and it says what it counts in every
+   * branch: open, closed, and closed on the line.
+   */
+  it("prints today's value with its unit, in every branch", () => {
+    const open = buildChallenge(base, NOW)!;
+    const shut = buildChallenge([...base, rep(0, 0, "today", 9, 140)], NOW)!;
+    const cases = [
+      { ...open, today: open.line + 5, closed: false },
+      shut,
+      { ...shut, today: shut.line, closed: true },
+    ];
+    for (const c of cases) {
+      const t = TRAIT[c.trait];
+      const shown = fmtRaw(c.today!);
+      const unit = shown === "1" ? t.unitOne : t.unit;
+      const line = challengeLine(c);
+      expect(line).toMatch(new RegExp(`^${shown.replace(".", "\\.")} ${unit} today[,.]`));
+      // The unit is said once: the line's own number shares it.
+      expect(line.split(unit).length - 1).toBe(1);
+    }
   });
 
   it("says on the line when today prints the same as the line", () => {

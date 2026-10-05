@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { CountUp } from "@/components/CountUp";
 import { Ring } from "@/components/Ring";
-import { Shell } from "@/components/home/HomeCards";
+import { Headline, Shell } from "@/components/home/HomeCards";
+import { Disclosure } from "@/components/ui/Disclosure";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { DURATION } from "@/lib/motion";
 import { longestCleanRun } from "@/lib/clean-run";
 import type { RepRow } from "@/lib/client-data";
@@ -73,55 +75,91 @@ export function CleanRunCard({
   /*
    * Reframed after the 16 Sep review (#293). "Your longest clean run"
    * over a full ring and then "your best is 52s" contradicted itself:
-   * the eyebrow now says WHICH recording, the ring carries the unit,
-   * and the headline says what the ring shows rather than repeating its
+   * the eyebrow says WHICH recording, the ring carries the unit, and
+   * the headline says what the ring shows rather than repeating its
    * number. The card was the loudest thing on the page and did nothing
    * when tapped; it opens the log now, where the run and the Index live.
+   *
+   * Slimmed for the squint (today-1): the foot line sits under the
+   * headline beside the ring instead of in a ruled band of its own, and
+   * the eyebrow is one idea, "Last recording's clean run", where it was
+   * two in caps joined by a middot. The door is the app's one chevron
+   * (today-17). The "Best yet" tag went with the band: the line under
+   * the headline already says "A new best", and the tag said it twice.
    */
   return (
-    <Link href="/history" className="press block rounded-sheet">
-    <Shell
-      eyebrow="Clean run · last recording"
-      aside={
-        <span className="flex items-center gap-2">
-          {isBest && shown > 0 && (
-            <span className="label-micro !text-sage-lit">Best yet</span>
-          )}
-          <span aria-hidden className="text-sage-mist">
-            →
-          </span>
-        </span>
-      }
-      foot={
-        /* Fillers only, said where the number is, because
-           self-corrections are counted and not timestamped and a
-           measure that quietly ignores half of what it names is worse
-           than a narrow one. */
-        best === null
-          ? "Fillers only. Self-corrections are counted separately."
-          : isBest
-            ? `A new best. The last one was ${Math.round(best.s)}s.`
-            : `Best so far: ${Math.round(best.s)}s.`
-      }
-      after={children}
-    >
-      <Ring
-        value={now.s / ceiling}
-        size={104}
-        tone="lit"
-        track="rgba(253,246,231,0.16)"
-        delay={160}
+    <Link href="/history" className="press block rounded-card">
+      <Shell
+        eyebrow="Last recording's clean run"
+        aside={<Disclosure className="text-sage-mist" />}
+        after={children}
       >
-        <span className="font-display flex items-baseline text-[30px] font-extrabold leading-none">
-          <CountUp value={shown} durationMs={DURATION.max} />
-          <span className="text-[17px]">s</span>
-        </span>
-        <span className="label-micro mt-1 !text-sage-mist">of {Math.round(ceiling)}s</span>
-      </Ring>
-      <p className="font-display min-w-0 text-[19px] font-bold leading-snug">
-        {whole ? "The whole recording, no filler." : "Longest stretch without a filler."}
-      </p>
-    </Shell>
+        <Ring
+          value={now.s / ceiling}
+          size={96}
+          tone="lit"
+          track="rgba(253,246,231,0.16)"
+          delay={160}
+        >
+          <span className="font-display flex items-baseline text-num-l tabular-nums">
+            <CountUp value={shown} durationMs={DURATION.max} />
+            <span className="text-num-s">s</span>
+          </span>
+          {/* Sentence case in Figtree (today-13): `.label-micro`
+              capitalised the seconds symbol, "OF 65S". */}
+          <span className="mt-1 text-caption font-medium text-sage-mist">
+            of {Math.round(ceiling)}s
+          </span>
+        </Ring>
+        <Headline
+          foot={
+            /* Fillers only, said where the number is, because
+               self-corrections are counted and not timestamped and a
+               measure that quietly ignores half of what it names is
+               worse than a narrow one. */
+            best === null
+              ? "Fillers only. Self-corrections are counted separately."
+              : isBest
+                ? `A new best. The last one was ${Math.round(best.s)}s.`
+                : `Best so far: ${Math.round(best.s)}s.`
+          }
+        >
+          {whole ? "The whole recording, no filler." : "Longest stretch without a filler."}
+        </Headline>
+      </Shell>
     </Link>
+  );
+}
+
+/**
+ * The clean run while the history read is in flight, shaped to the card
+ * as it is now (today-1): the eyebrow, the 96px ring with the headline
+ * and its caption beside it, then the trail under its rule. Here rather
+ * than in components/ui/Skeleton.tsx because it has to change whenever
+ * this card does; `SkeletonCleanRun` there still draws the old ruled
+ * foot band, the 34px it would shift by.
+ */
+export function SkeletonCleanRunCard() {
+  const bar = "!bg-cream/10";
+  return (
+    <section aria-hidden className="card-score rounded-card p-4">
+      <div className="flex h-[18px] items-center">
+        <Skeleton className={`h-2.5 w-44 ${bar}`} />
+      </div>
+      <div className="mt-3 flex items-center gap-5">
+        <div className="size-[96px] shrink-0 rounded-full border-[8px] border-cream/10" />
+        <div className="min-w-0 flex-1">
+          <Skeleton className={`h-5 w-full ${bar}`} />
+          <Skeleton className={`mt-2 h-5 w-3/4 ${bar}`} />
+          <Skeleton className={`mt-3 h-3 w-24 ${bar}`} />
+        </div>
+      </div>
+      <div className="mt-4 border-t border-cream/10 pt-4">
+        <Skeleton className={`h-[22px] w-full ${bar}`} />
+        <div className="mt-2.5 flex h-[18px] items-center">
+          <Skeleton className={`h-3 w-48 ${bar}`} />
+        </div>
+      </div>
+    </section>
   );
 }

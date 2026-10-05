@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { TRAIT } from "@/content/traits";
 import { ACTION_CLASS } from "@/lib/ui";
 import { TipLine } from "@/components/rep/TipStrip";
 import { repHref } from "@/lib/rep-config";
 import { IconShuffle, IconSliders } from "@/components/Icon";
+import { TraitChip } from "@/components/TraitChip";
+import { Skeleton } from "@/components/ui/Skeleton";
 import type { Chosen } from "@/lib/next-practice";
 
 /**
@@ -27,13 +28,12 @@ import type { Chosen } from "@/lib/next-practice";
  * so the prompt is the hero: the sentence you will actually speak
  * about. The number is the REASON, at caption weight, once.
  *
- * WHAT THE BUTTON SAYS. "Take the floor" is the brand's phrase and it
- * says it every time (#276). It used to drop to "Go again" on a day
+ * WHAT THE BUTTON SAYS. "Start", every time (#317; "Take the floor"
+ * read as cringe on a button). It used to drop to "Go again" on a day
  * already spoken on, which framed a second recording as a repeat of the
  * first: the one reading this card should never have. The eyebrow above
- * it already carries that difference ("One more, Pausing" against
- * "Today's practice, Pausing"), so the button does not have to,
- * and the app's own phrase stops having a second-class variant.
+ * it already carries that difference (the trait's chip, then "One
+ * more" against "Today's practice"), so the button does not have to.
  *
  * The terms line that used to sit above the button is gone with it.
  * COPY-RULES had already ruled on that one: default to no explanation,
@@ -57,6 +57,7 @@ export function FloorCard({
   onSpin,
   onMods,
   modsOpen = false,
+  loading = false,
 }: {
   /** Null on day one and on any day with nothing measured yet. */
   chosen: Chosen | null;
@@ -74,6 +75,14 @@ export function FloorCard({
   onSpin?: () => void;
   onMods?: () => void;
   modsOpen?: boolean;
+  /**
+   * The history read is in flight (today-2). Nothing on the card is
+   * known yet: not the trait, not the prompt, not the tactic. The slots
+   * hold their exact height instead of painting a fallback prompt that
+   * swaps out and a tip row that pushes the screen 56px down. Start
+   * stays the one tap and stays live: an early tap goes to the recorder.
+   */
+  loading?: boolean;
 }) {
   const to =
     href ?? repHref({ topic: chosen?.item.topicId, mods });
@@ -86,8 +95,6 @@ export function FloorCard({
    * side: the card quoted a number in a unit and never said whose.
    */
   const lead = dayOne ? "Your first recording" : again ? "One more" : "Today's practice";
-  const eyebrow =
-    chosen && !dayOne ? `${lead} · ${TRAIT[chosen.trait].name}` : lead;
 
   /*
    * DAY ONE IS ITS OWN SHAPE. There is no measurement to choose from,
@@ -114,31 +121,43 @@ export function FloorCard({
        and the screen it opens are visibly one thing. Still the ONE
        lifted object on Today. */
     <div className="topic-card topic-card-lift rounded-sheet p-5">
-      {/* The trait's name wears its tone (the colour pass): the same
-          blue, lagoon, jade or ochre as today's line and the row below, so
-          the three places that name it read as one thing. The dot
-          carries it where the ink cannot: the ochre's ink is 1.4:1
-          from this card's own amber eyebrow. */}
-      <div className="label-data topic-eyebrow">
-        {chosen && !dayOne ? (
-          <>
-            {lead} ·{" "}
-            <span data-trait={chosen.trait} className="tone-ink">
-              <span aria-hidden className="today-dot" />
-              {TRAIT[chosen.trait].name}
-            </span>
-          </>
+      {/* The trait is named by its chip (M04, M11, today-16): the solid
+          tone with its own ink, the one pill that names a trait where
+          traits mix. It replaced "ONE MORE · ● PAUSING", two ideas in
+          tracked caps joined by a middot and a dot in two colours. The
+          lead follows it in the card's amber, sentence case. The row is
+          the chip's 22px whether or not there is a chip, and the
+          skeleton holds the same 22px while the read is in flight. */}
+      <div className="flex min-h-[22px] items-center gap-2">
+        {loading ? (
+          <Skeleton className="h-2.5 w-32" />
         ) : (
-          eyebrow
+          <>
+            {chosen && !dayOne && <TraitChip trait={chosen.trait} size="sm" />}
+            <span className="eyebrow text-[color:var(--rec-amber-ink)]">{lead}</span>
+          </>
         )}
       </div>
 
-      {/* Three kinds of content in one card, each named (#293): the
-          topic, the technique, the reason. Without the cues a prompt
-          read as an article title and a technique as its standfirst. */}
-      <h2 className="font-display mt-2.5 text-title leading-tight">
-        {hero}
-      </h2>
+      {/* The prompt is the hero. While loading, two lines of the hero's
+          own type hold its height (a two-line prompt is the usual one),
+          each with a bar where the words will be. */}
+      {loading ? (
+        <div aria-hidden className="font-display mt-2.5 text-title leading-tight">
+          <span className="relative block">
+            <span className="invisible">Ag</span>
+            <Skeleton className="absolute inset-y-[2px] left-0 w-full" />
+          </span>
+          <span className="relative block">
+            <span className="invisible">Ag</span>
+            <Skeleton className="absolute inset-y-[2px] left-0 w-2/3" />
+          </span>
+        </div>
+      ) : (
+        <h2 className="font-display mt-2.5 text-title leading-tight">
+          {hero}
+        </h2>
+      )}
 
       {/*
        * ONE instruction, and not the angle's title with it. The title
@@ -151,10 +170,10 @@ export function FloorCard({
           day it is a tactic, and a tactic shows as its five words and a
           glyph with the sentence one tap away (feedback round, 25 Sep:
           the full sentence in grey was the part nobody read). */}
-      {body && !dayOne && (
-        <>
-          <TipLine tip={body} className="mt-3" />
-        </>
+      {loading ? (
+        <div aria-hidden className="mt-3 min-h-11" />
+      ) : (
+        body && !dayOne && <TipLine tip={body} className="mt-3" />
       )}
 
       {/* Less to read (26 Sep): the topic labels, the why paragraph and

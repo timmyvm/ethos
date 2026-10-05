@@ -30,7 +30,9 @@ export function DayTrail({
   const frozen = pebbles.filter((p) => p === "frozen").length;
 
   return (
-    <div className="mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5 border-t border-cream/10 pt-3.5">
+    /* The card's only rule (today-1). No outer margin: the card that
+       holds it owns the gap (STATE, rhythm). */
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5 border-t border-cream/10 pt-4">
       {pebbles.length > 0 && (
         <div
           className="forced-color-adjust-none flex min-w-0 shrink items-center gap-[5px]"
@@ -60,12 +62,12 @@ export function DayTrail({
       )}
       <p className="min-w-0 text-caption text-sage-mist">
         {/* "22 days spoken · 13 of the last 14": the count with its noun,
-            and the bars explained in the same sentence (#293). */}
+            and the bars explained in the same sentence (#293). "Best
+            day yet" left it (today-6): it compared the Ethos Index, a
+            number no longer on Today, and sat under "Best so far: 53s"
+            saying the opposite. */}
         {trail.count} {trail.count === 1 ? "day" : "days"} spoken
         {pebbles.length > 0 && ` · ${spoken} of the last ${pebbles.length}`}
-        {/* Only when earned, and only for something the card above
-            doesn't already say (#95). */}
-        {trail.bestYet && " · best day yet"}
       </p>
     </div>
   );

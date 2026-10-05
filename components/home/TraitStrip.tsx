@@ -37,12 +37,22 @@ function TraitTile({
   const suffix = reading ? ordinal(n).slice(String(n).length) : "";
   const raw = reading ? fmtRaw(reading.raw) : null;
   const unit = raw === "1" ? t.unitOne : t.unit;
+  /*
+   * Two shapes in one grid (#317's two wide over three narrow, kept).
+   * A wide tile is a row (today-10): the ring on the left and the name
+   * and the measurement beside it, where it used to stack like a narrow
+   * one and leave about 86x56px empty right of the ring. A narrow tile
+   * stays stacked. The measurement is set as a number (Outfit 800,
+   * tabular, ink) over its unit, which prints in full and wraps evenly
+   * (today-3: `line-clamp-2` cut Fillers to "per hundred...", so the
+   * number lost its denominator).
+   */
   return (
     <Link
       href={`/practice/${id}`}
       data-trait={id}
-      className={`press today-trait today-tile tone-wash flex flex-col rounded-card p-3.5 ${
-        wide ? "col-span-3" : "col-span-2"
+      className={`press today-trait today-tile tone-wash flex rounded-card p-3.5 ${
+        wide ? "col-span-3 flex-row items-center gap-3.5" : "col-span-2 flex-col"
       }`}
     >
       <Ring
@@ -55,28 +65,28 @@ function TraitTile({
       >
         <span
           className={`font-display tone-ink flex items-baseline font-extrabold leading-none tabular-nums ${
-            wide ? "text-[16px]" : "text-[13px]"
+            wide ? "text-num-s" : "text-row"
           }`}
         >
           {reading ? (
             <>
               <CountUp value={n} durationMs={DURATION.max} />
-              <span className="text-[9px]">{suffix}</span>
+              <span className="text-suffix">{suffix}</span>
             </>
           ) : (
             <span aria-hidden className="opacity-60">–</span>
           )}
         </span>
       </Ring>
-      <div className="font-display tone-ink mt-3 text-[14px] font-bold leading-tight">
-        {t.name}
+      <div className={`min-w-0 ${wide ? "flex-1" : "mt-3"}`}>
+        <div className="font-display tone-ink text-row leading-tight">{t.name}</div>
+        {raw !== null && (
+          <div className="mt-1 text-caption text-pretty text-stone-500">
+            <span className="font-display text-num-s tabular-nums text-ink">{raw}</span>{" "}
+            {unit}
+          </div>
+        )}
       </div>
-      {raw !== null && (
-        <div className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-stone-500">
-          <span className="font-display font-bold text-ink tabular-nums">{raw}</span>{" "}
-          {unit}
-        </div>
-      )}
     </Link>
   );
 }
@@ -98,7 +108,7 @@ export function TraitStrip({ reps }: { reps: RepRow[] }) {
   return (
     <section className="mt-7">
       <h2 className="section-head">Your traits</h2>
-      <div className="stagger mt-3 grid grid-cols-6 gap-2.5">
+      <div className="stagger mt-3 grid grid-cols-6 gap-3">
         {tiles.map((t, i) => (
           <TraitTile
             key={t.id}

@@ -1,8 +1,7 @@
 "use client";
 
-import { ACTION_CLASS } from "@/components/LessonScreen";
 import { Reel, useReel } from "@/components/Reel";
-import { DISABLED_CLASS } from "@/lib/ui";
+import { ACTION_CLASS, DISABLED_CLASS } from "@/lib/ui";
 import { spinForAnswers as spin } from "@/lib/portfolio";
 import { TOPIC_SHAPES, type Topic } from "@/lib/topics";
 
@@ -41,12 +40,13 @@ export function TopicRoulette({
      rose under a label already sitting at full opacity was two
      entrances for one tap. The card keeps the elevation; the block
      does the rising. */
+  /* One eyebrow, one idea (M05): the topic's shape, which says how to
+     answer it. "Roulette · you don't pick" went: the section head over
+     the card already says Roulette, and the shape was in sage, which is
+     the earned colour, on a label nobody earned. */
   return (
-    <div className="elev-2 rounded-sheet border border-card-edge bg-raised p-5">
-      <div className="flex items-baseline justify-between">
-        <div className="label-data">Roulette · you don&apos;t pick</div>
-        <div className="label-micro !text-sage-700">{shape.label}</div>
-      </div>
+    <div className="card elev-2 rounded-sheet p-5">
+      <div className="eyebrow">{shape.label}</div>
 
       <Reel
         state={reel}
@@ -60,7 +60,7 @@ export function TopicRoulette({
         <button
           onClick={reel.spin}
           disabled={reel.rolling}
-          className="press font-display min-h-12 shrink-0 rounded-control border border-edge bg-surface px-5 text-[14px] font-bold disabled:opacity-40"
+          className={`press font-display min-h-12 shrink-0 rounded-control border border-edge bg-surface px-5 text-row ${DISABLED_CLASS}`}
         >
           Spin
         </button>

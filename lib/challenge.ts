@@ -276,6 +276,14 @@ const VERB: Record<Challenge["direction"], string> = {
 export function challengeLine(c: Challenge): string {
   const line = withUnit(c.trait, c.line);
   if (c.today === null) return `${VERB[c.direction]} ${line}.`;
+  /*
+   * Today's value carries its unit in every branch (today-7). The card
+   * printed "1.8 today. The line is 2.3." beside a ring that said 1.8
+   * again, and neither said what was counted: the unit lived on a tile
+   * 700px further down. The unit goes on the first number, once; the
+   * line's number shares it.
+   */
+  const said = withUnit(c.trait, c.today);
   if (c.closed) {
     const today = fmtRaw(c.today);
     const target = fmtRaw(c.line);
@@ -283,12 +291,13 @@ export function challengeLine(c: Challenge): string {
      * A day that closes ON the line, or near enough that both numbers
      * print the same, cannot read "1.8 today, over 1.8": four words
      * that contradict each other (#287). Equality IS a close, because
-     * `closed` is `todayS >= lineS`, so it is said as one.
+     * `closed` is `todayS >= lineS`, so it is said as one. The compare
+     * stays on the printed strings, not the floats.
      */
-    if (today === target) return `${today} today, on the line.`;
-    return `${today} today, ${VERB[c.direction].toLowerCase()} ${target}.`;
+    if (today === target) return `${said} today, on the line.`;
+    return `${said} today, ${VERB[c.direction].toLowerCase()} ${target}.`;
   }
-  return `${fmtRaw(c.today)} today. The line is ${fmtRaw(c.line)}.`;
+  return `${said} today. The line is ${fmtRaw(c.line)}.`;
 }
 
 export function challengeFoot(c: Challenge): string {

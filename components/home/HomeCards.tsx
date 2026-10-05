@@ -22,7 +22,6 @@ import { DURATION } from "@/lib/motion";
  * line that traces the number to something they can act on.
  */
 
-/** The shell. Deep sage, cream on it, the shape the score card set. */
 /**
  * The one deep-sage shell the home cards share.
  *
@@ -30,38 +29,80 @@ import { DURATION } from "@/lib/motion";
  * option and this file keeps all three as the archive of the choice.
  * Two copies of the same shell is two things to keep in step, and they
  * would not stay in step.
+ *
+ * Two bands, not three (today-1). The ruled foot band under the ring
+ * went: its one line moved into the column beside the ring
+ * (`Headline`), which took about 44px and a hairline off the darkest
+ * mass on Today, so the floor card's Start wins the squint. What
+ * follows the ring row (`after`, the day trail on Today) draws the
+ * card's only rule itself. The eyebrow is one idea in sentence case
+ * (M05), not tracked caps. A card's padding and radius (p-4, 16), not
+ * the hero's: the floor card is Today's hero and its one lifted thing,
+ * and this card took a hero's 20 and 20 beside it.
  */
 export function Shell({
   eyebrow,
   aside,
   children,
-  foot,
   after,
 }: {
   eyebrow: string;
-  /** Top right, opposite the eyebrow. A state, not an action. */
+  /** Top right, opposite the eyebrow. A state or the door's chevron. */
   aside?: React.ReactNode;
+  /** The ring, then a `Headline` column beside it. */
   children: React.ReactNode;
-  foot: React.ReactNode;
-  /** Under the footer rule. The day trail, on Today. */
+  /** Under the ring row. The day trail, on Today; it draws its rule. */
   after?: React.ReactNode;
 }) {
   return (
-    <section className="card-score rounded-sheet p-5 text-cream">
-      <div className="flex items-center justify-between gap-3">
-        <div className="label-data !text-sage-mist">{eyebrow}</div>
+    <section className="card-score rounded-card p-4 text-cream">
+      <div className="flex min-h-[18px] items-center justify-between gap-3">
+        <div className="eyebrow text-sage-mist">{eyebrow}</div>
         {aside}
       </div>
-      <div className="mt-4 flex items-center gap-5">{children}</div>
-      <div className="mt-4 border-t border-cream/15 pt-2.5 text-caption text-sage-mist">
-        {foot}
-      </div>
+      <div className="mt-3 flex items-center gap-5">{children}</div>
       {after && <div className="mt-4">{after}</div>}
     </section>
   );
 }
 
-const RING = { size: 104, tone: "lit" as const, track: "rgba(253,246,231,0.16)" };
+/**
+ * The column beside the ring: what the ring shows, in words, and one
+ * caption line under it (what used to be the ruled foot).
+ */
+export function Headline({
+  children,
+  foot,
+}: {
+  children: React.ReactNode;
+  foot?: React.ReactNode;
+}) {
+  return (
+    <div className="min-w-0 flex-1">
+      <div className="font-display text-lead font-bold leading-snug text-balance">
+        {children}
+      </div>
+      {foot && <p className="mt-1.5 text-caption text-pretty text-sage-mist">{foot}</p>}
+    </div>
+  );
+}
+
+/** The number in the ring: Outfit 800 tabular, with its unit beside it. */
+function RingNumber({ value, unit }: { value: number; unit?: string }) {
+  return (
+    <span className="font-display flex items-baseline text-num-l tabular-nums">
+      <CountUp value={value} durationMs={DURATION.max} />
+      {unit && <span className="text-num-s">{unit}</span>}
+    </span>
+  );
+}
+
+/** Under the ring's number: Figtree, sentence case, never tracked caps. */
+function RingLabel({ children }: { children: React.ReactNode }) {
+  return <span className="mt-1 text-caption font-medium text-sage-mist">{children}</span>;
+}
+
+const RING = { size: 96, tone: "lit" as const, track: "rgba(253,246,231,0.16)" };
 
 /**
  * A. THE STANDING — a position among people.
@@ -85,21 +126,16 @@ export function CardStanding({
   movedBy: number;
 }) {
   return (
-    <Shell
-      eyebrow="Where you stand"
-      foot={`${movedTrait} moved ${movedBy > 0 ? "up" : "down"} ${Math.abs(movedBy)} places since day one.`}
-    >
+    <Shell eyebrow="Where you stand">
       <Ring value={percentile / 100} {...RING}>
-        <CountUp
-          value={percentile}
-          durationMs={DURATION.max}
-          className="font-display text-[30px] font-extrabold leading-none"
-        />
-        <span className="label-micro mt-1 !text-sage-mist">percentile</span>
+        <RingNumber value={percentile} />
+        <RingLabel>percentile</RingLabel>
       </Ring>
-      <p className="font-display min-w-0 text-[19px] font-bold leading-snug">
+      <Headline
+        foot={`${movedTrait} moved ${movedBy > 0 ? "up" : "down"} ${Math.abs(movedBy)} places since day one.`}
+      >
         You speak more clearly than {percentile} people in a hundred.
-      </p>
+      </Headline>
     </Shell>
   );
 }
@@ -128,24 +164,20 @@ export function CardCleanRun({
   target?: number;
 }) {
   return (
-    <Shell
-      eyebrow="Your longest clean run"
-      foot={
-        seconds >= best
-          ? "A new best. The last one stood since " + bestWhen + "."
-          : `Your best is ${best}s, ${bestWhen}.`
-      }
-    >
+    <Shell eyebrow="Your longest clean run">
       <Ring value={seconds / target} {...RING}>
-        <span className="font-display flex items-baseline text-[30px] font-extrabold leading-none">
-          <CountUp value={seconds} durationMs={DURATION.max} />
-          <span className="text-[17px]">s</span>
-        </span>
-        <span className="label-micro mt-1 !text-sage-mist">of {target}</span>
+        <RingNumber value={seconds} unit="s" />
+        <RingLabel>of {target}s</RingLabel>
       </Ring>
-      <p className="font-display min-w-0 text-[19px] font-bold leading-snug">
+      <Headline
+        foot={
+          seconds >= best
+            ? "A new best. The last one stood since " + bestWhen + "."
+            : `Your best is ${best}s, ${bestWhen}.`
+        }
+      >
         {seconds} seconds straight with no filler in them.
-      </p>
+      </Headline>
     </Shell>
   );
 }
@@ -176,24 +208,20 @@ export function CardTell({
 }) {
   const better = gapS > wasGapS;
   return (
-    <Shell
-      eyebrow="Your tell"
-      foot={
-        better
-          ? `Two weeks ago: every ${Math.round(wasGapS)}s. The gap is widening.`
-          : `Two weeks ago: every ${Math.round(wasGapS)}s.`
-      }
-    >
+    <Shell eyebrow="Your tell">
       <Ring value={gapS / target} {...RING}>
-        <span className="font-display flex items-baseline text-[30px] font-extrabold leading-none">
-          <CountUp value={gapS} durationMs={DURATION.max} />
-          <span className="text-[17px]">s</span>
-        </span>
-        <span className="label-micro mt-1 !text-sage-mist">apart</span>
+        <RingNumber value={gapS} unit="s" />
+        <RingLabel>apart</RingLabel>
       </Ring>
-      <p className="font-display min-w-0 text-[19px] font-bold leading-snug">
+      <Headline
+        foot={
+          better
+            ? `Two weeks ago: every ${Math.round(wasGapS)}s. The gap is widening.`
+            : `Two weeks ago: every ${Math.round(wasGapS)}s.`
+        }
+      >
         One &ldquo;{word}&rdquo; every {Math.round(gapS)} seconds.
-      </p>
+      </Headline>
     </Shell>
   );
 }

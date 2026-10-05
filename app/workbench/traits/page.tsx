@@ -35,7 +35,7 @@ export default function Traits() {
 
   return (
     <main className="mx-auto max-w-[390px] px-5 pb-16 pt-8">
-      <h1 className="label-data">Your traits, from the last recording</h1>
+      <h1 className="section-head">Your traits, from the last recording</h1>
 
       <div className="stagger mt-4 space-y-3">
         {(readings ?? []).map((r, i) => (

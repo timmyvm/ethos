@@ -22,7 +22,7 @@ import {
 export default function HomeCards() {
   return (
     <main className="mx-auto max-w-[390px] px-5 pb-28 pt-8">
-      <h1 className="label-data">The first card, three ways</h1>
+      <h1 className="section-head">The first card, three ways</h1>
 
       <div className="mt-6 space-y-8">
         <Option
@@ -67,10 +67,10 @@ function Option({
   return (
     <section>
       <div className="mb-2 flex items-baseline gap-2">
-        <span className="font-display text-[15px] font-extrabold text-terracotta-700">
+        <span className="font-display text-body font-extrabold text-terracotta-700">
           {letter}
         </span>
-        <span className="font-display text-[15px] font-bold">{name}</span>
+        <span className="font-display text-body font-bold">{name}</span>
       </div>
       {children}
       <p className="mt-2.5 text-caption leading-relaxed text-stone-500">{note}</p>

@@ -398,9 +398,29 @@ export default function SettingsPage() {
         <button
           onClick={() => void exportData()}
           disabled={exporting}
-          className={`group-row press-row font-display w-full text-left text-row ${DISABLED_CLASS}`}
+          className={`group-row press-row flex w-full items-center gap-3 text-left ${DISABLED_CLASS}`}
         >
-          {exporting ? "Building your file…" : "Export everything as JSON"}
+          <span className="font-display min-w-0 flex-1 text-row">
+            {exporting ? "Building your file…" : "Export everything as JSON"}
+          </span>
+          {/* The row's affordance (you-18): a download mark in the
+              functional glyph colour, never a hue. */}
+          <svg
+            aria-hidden
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="shrink-0 text-stone-400"
+          >
+            <path d="M12 4v11" />
+            <path d="m7.5 10.5 4.5 4.5 4.5-4.5" />
+            <path d="M5 19.5h14" />
+          </svg>
         </button>
       </Section>
 

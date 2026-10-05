@@ -14,7 +14,8 @@
  * Screens: today, lessons, lesson, log, you, shop, games, settings,
  * rep-detail (the stored result the log links to), rep-idle,
  * rep-recording, rep-results, rep-numbers, rep-words; off the bar,
- * practice, unit, boss, hostile, calibrate, upload, paywall, splash;
+ * practice, unit, boss, hostile, calibrate, upload, paywall, splash
+ * (with splash-lift, the lift about 100ms in);
  * signed out, signin, signup, forgot, reset, about, privacy, terms.
  * The introduction has its own camera, scripts/look-welcome.mjs.
  * Full-page shots; the nav is fixed so it appears where the viewport
@@ -75,6 +76,28 @@ async function shootTheme(theme) {
       (blur ? ` html{filter:blur(${blur}px)}` : "");
     document.addEventListener("DOMContentLoaded", () => document.head.appendChild(css));
   }, BLUR);
+  /*
+   * The splash holds for the camera. SplashLift waits on
+   * `document.fonts.ready` (and its 900ms floor), so on a `?splash` open
+   * that promise also waits for the camera's release: the "on" frame is
+   * shot while it is certainly on, and the lift starts when the camera
+   * says so. Without the hold the dark shot raced the lift and caught
+   * Today under a ghost of it. No other page is touched.
+   */
+  await context.addInitScript(() => {
+    if (!/[?&]splash\b/.test(location.search)) return;
+    let release;
+    const hold = new Promise((r) => (release = r));
+    window.__ethosReleaseSplash = release;
+    try {
+      const fonts = document.fonts;
+      const real = fonts.ready;
+      Object.defineProperty(fonts, "ready", {
+        configurable: true,
+        get: () => Promise.all([real, hold]).then(() => fonts),
+      });
+    } catch {}
+  });
   page.on("pageerror", (e) => console.log("PAGEERROR", page.url(), e.message.slice(0, 160), (e.stack ?? "").split("\n").slice(1, 4).join(" | ")));
   page.on("console", (m) => { if (m.type() === "error") console.log("CONSOLE", page.url(), m.text().slice(0, 200)); });
   page.on("response", (r) => { if (r.status() >= 400 && !/supabase\.local/.test(r.url())) console.log("HTTP", r.status(), r.url()); });
@@ -147,45 +170,99 @@ async function shootTheme(theme) {
   };
 
   const step = async (fn) => { try { await fn(); } catch (e) { console.log("STEP-FAILED", theme, String(e.message ?? e).split("\n")[0]); } };
-  await step(async () => { await go("/", "main .arrive");
-  await shot("today"); });
-  await step(async () => { await go("/lessons", "main .label-data"); await shot("lessons"); });
-  await step(async () => { await go("/lessons/the-cold-open", "main h1"); await shot("lesson"); });
-  await step(async () => { await go("/history", "main .arrive"); await shot("log"); });
-  await step(async () => { await go("/you", "main .label-data"); await shot("you"); });
-  await step(async () => { await go("/shop", "main"); await shot("shop"); });
-  await step(async () => { await go("/games", "main .label-data"); await shot("games"); });
-  await step(async () => { await go("/settings", "main .group"); await shot("settings"); });
-  await step(async () => { await go("/rep/rep-22", "main .label-data"); await shot("rep-detail"); });
+  /*
+   * One screen: go there and shoot it, or skip the trip entirely when it
+   * was not asked for (a subset run used to load all seventeen routes on
+   * a dev server that compiles each on first visit). The wait selectors
+   * name a ROLE the screen keeps through a redesign (a heading, a section
+   * head, an eyebrow) rather than one class, so a package that retires
+   * the capitals register does not leave the camera waiting 15s.
+   */
+  const READY = "main :is(h1, h2, .section-head, .eyebrow, .label-data)";
+  const scene = (name, path, waitFor = READY, opts) =>
+    step(async () => {
+      if (!want(name)) return;
+      await go(path, waitFor);
+      await shot(name, opts);
+    });
+  await scene("today", "/", "main .arrive");
+  await scene("lessons", "/lessons");
+  await scene("lesson", "/lessons/the-cold-open", "main h1");
+  await scene("log", "/history", "main .arrive");
+  await scene("you", "/you");
+  await scene("shop", "/shop", "main");
+  await scene("games", "/games");
+  // auth-14 (A1's rename): Settings is an .inset-group now, with the old
+  // class kept as an alias until Phase C removes it.
+  await scene("settings", "/settings", "main :is(.inset-group, .group)");
+  // The stored recording: RepResult marks its Index with data-score.
+  await scene("rep-detail", "/rep/rep-22", "main :is([data-score], h1, .section-head)");
 
   // Off the bar: every route a signed-in person can reach that the
   // camera used to skip.
-  await step(async () => { await go("/practice/pause", "main h1"); await shot("practice"); });
-  await step(async () => { await go("/lesson/filler", "main"); await shot("unit"); });
-  await step(async () => { await go("/boss", "main"); await shot("boss"); });
-  await step(async () => { await go("/hostile", "main"); await shot("hostile"); });
-  await step(async () => { await go("/calibrate", "main"); await shot("calibrate"); });
-  await step(async () => { await go("/upload", "main"); await shot("upload"); });
+  await scene("practice", "/practice/pause", "main h1");
+  await scene("unit", "/lesson/filler", "main");
+  await scene("boss", "/boss", "main");
+  await scene("hostile", "/hostile", "main");
+  await scene("calibrate", "/calibrate", "main");
+  await scene("upload", "/upload", "main");
   await step(async () => {
     if (!want("paywall")) return;
-    await go("/games", "main .label-data");
+    await go("/games", READY);
     await page.click(".premium-wall", { force: true });
     await page.waitForSelector('[role="dialog"]', { timeout: 8000 });
     await shot("paywall", { fullPage: false, settle: 900 });
   });
+  /*
+   * auth-14: the splash, photographed while it is up. `goto` used to
+   * wait for `load`, which on a dev server lands after SplashLift's
+   * 900ms floor, so both shots caught Today under a 10% ghost of the
+   * lift. Now: navigate on commit, wait for the mark to be visible and
+   * the wordmark's rise to finish with the picture decoded, shoot it if
+   * the splash is still on, then release the hold (above) and catch
+   * the lift about 100ms in.
+   */
   await step(async () => {
     if (!want("splash")) return;
-    await page.goto(`${BASE}/?splash`);
-    await sleep(250);
-    await page.screenshot({ path: `${OUT}splash-${TAG}-${theme}.png` });
-    console.log(`shot  splash-${TAG}-${theme}`);
+    await page.goto(`${BASE}/?splash`, { waitUntil: "commit" });
+    await page.waitForSelector('html[data-splash="on"] .splash-mark img', { state: "visible", timeout: 15000 });
+    await page
+      .waitForFunction(
+        () => {
+          const img = document.querySelector(".splash-mark img");
+          const words = [...document.querySelectorAll(".splash-word")];
+          return (
+            !!img && img.complete && img.naturalWidth > 0 && words.length > 0 &&
+            words.every((w) => w.getAnimations().every((a) => a.playState === "finished"))
+          );
+        },
+        null,
+        { timeout: 10000, polling: 16 }
+      )
+      .catch(() => {});
+    const state = await page.evaluate(() => document.documentElement.getAttribute("data-splash"));
+    if (state === "on") {
+      await page.screenshot({ path: `${OUT}splash-${TAG}-${theme}.png` });
+      console.log(`shot  splash-${TAG}-${theme}`);
+    } else {
+      console.log("SPLASH-MISSED", theme, state);
+    }
+    await page.evaluate(() => window.__ethosReleaseSplash?.());
+    await page.waitForSelector('html[data-splash="out"]', { timeout: 15000 });
+    // A screenshot takes 40 to 80ms to come back (DESIGN.md), so a 40ms
+    // wait lands the frame about 100ms into the 360ms lift.
+    await sleep(40);
+    await page.screenshot({ path: `${OUT}splash-lift-${TAG}-${theme}.png` });
+    console.log(`shot  splash-lift-${TAG}-${theme}`);
   });
 
   // The loop: idle, recording, results (live, via the scoring mock).
   await step(async () => {
+  const walk = ["rep-recording", "rep-results", "rep-numbers", "rep-words"].some(want);
+  if (!walk && !want("rep-idle")) return;
   await go("/rep?lesson=h4", 'button[aria-label="Start recording"]');
   await shot("rep-idle", { fullPage: false });
-  if (want("rep-recording") || want("rep-results")) {
+  if (walk) {
     // `force`, because the Record button breathes while it waits and
     // Playwright's actionability check waits for an element to stop
     // moving — which this one never does (#242).

@@ -42,8 +42,52 @@ GLOW = (255, 255, 255, 150)
 RADIUS = 0.23  # the corner #291 settled on
 
 
+def box_blur(x, r):
+    """A (2r+1)-wide box mean over the first two axes, in float, edges
+    clamped. Separable, by cumulative sums; numpy only."""
+    def along(v, axis):
+        pad = [(0, 0)] * v.ndim
+        pad[axis] = (r + 1, r)
+        c = np.cumsum(np.pad(v, pad, mode="edge"), axis=axis)
+        hi = np.take(c, np.arange(2 * r + 1, c.shape[axis]), axis=axis)
+        lo = np.take(c, np.arange(0, c.shape[axis] - 2 * r - 1), axis=axis)
+        return (hi - lo) / (2 * r + 1)
+    return along(along(x, 0), 1)
+
+
+def defringe(a):
+    """
+    Give every soft edge pixel the colour of the fur beside it (auth-13).
+
+    The 3D cutout's soft edge carries a dark matte: its half-transparent
+    pixels average about (71, 52, 44) where the fur beside them is about
+    (221, 171, 143), and un-premultiplying does not recover it, so on the
+    white room the ears and crown wore a grey keyline. The alpha stays
+    exactly as cut; only the colour under it is pulled in from the
+    nearest solid fur, the nearest ring that has any.
+    """
+    rgb = a[..., :3].astype(np.float32)
+    alpha = a[..., 3].astype(np.float32) / 255
+    solid = (alpha > 0.96).astype(np.float32)
+    est = rgb.copy()
+    todo = alpha <= 0.96
+    for r in (1, 2, 3, 5, 8, 13, 21):
+        w = box_blur(solid, r)
+        num = box_blur(rgb * solid[..., None], r)
+        take = todo & (w > 0.02)
+        est[take] = num[take] / w[take][:, None]
+        todo &= ~take
+        if not todo.any():
+            break
+    out = a.copy()
+    soft = alpha <= 0.96
+    out[..., :3][soft] = np.clip(est[soft].round(), 0, 255).astype(np.uint8)
+    return out
+
+
 def head():
-    """The hello pose trimmed, the tail cleared, and the head's span."""
+    """The hello pose trimmed, the tail cleared, the edge defringed, and
+    the head's span."""
     im = Image.open(SRC).convert("RGBA")
     im = im.crop(im.getbbox())
     a = np.array(im)
@@ -71,7 +115,7 @@ def head():
         for start, end in runs:
             if end <= body[0][0]:
                 a[y, start:end, 3] = 0
-    return Image.fromarray(a), cx, x1 - x0
+    return Image.fromarray(defringe(a)), cx, x1 - x0
 
 
 def tile(size, head_frac, top_frac):
@@ -89,8 +133,12 @@ def tile(size, head_frac, top_frac):
     shadow.putalpha(im.split()[3].point(lambda v: v * 80 // 255))
     shadow = shadow.filter(ImageFilter.GaussianBlur(size * 0.021))
     x, y = round(size / 2 - cx * s), round(size * top_frac)
-    t.paste(shadow, (x, y + round(size * 0.016)), shadow)
-    t.paste(im, (x, y), im)
+    # alpha_composite, not paste-with-mask (auth-13): paste blends the
+    # alpha channel as well, so every soft pixel of the shadow and the
+    # fur punched a hole in the opaque tile (the maskable icon, which is
+    # never re-masked, shipped with alpha down to 160 round the head).
+    t.alpha_composite(shadow, (x, y + round(size * 0.016)))
+    t.alpha_composite(im, (x, y))
     return t
 
 
@@ -133,7 +181,11 @@ s = 384 * 0.86 / span
 im = im.resize((round(im.size[0] * s), round(im.size[1] * s)), Image.LANCZOS)
 x = round(192 - cx * s)
 canvas = Image.new("RGBA", (384, 384), (0, 0, 0, 0))
-canvas.paste(im, (x, 14), im)
+# auth-13: alpha_composite keeps the fur's own colour and alpha at its
+# soft edge. paste(im, pos, im) onto transparent black mixed every edge
+# pixel toward black and squared its alpha, which drew a dark rim round
+# the ears and crown on the white ground.
+canvas.alpha_composite(im, (x, 14))
 a = np.array(canvas).astype(np.float32)
 fade_from, fade_to = 250, 372
 ramp = np.clip((fade_to - np.arange(384)) / (fade_to - fade_from), 0, 1)

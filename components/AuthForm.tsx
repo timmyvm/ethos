@@ -211,11 +211,13 @@ export function AuthForm({
     <Shell title={heading}>
       <div className="arrive flex flex-col">
         {carrying && (
-          /* A tile, not a card: `surface` under `edge`, no shadow. Two
-             raised cards on one screen read as two of the same thing,
-             and what is on this device is context for the panel below.
-             The numbers are the argument, so they are numbers (auth-12). */
-          <div className="mt-6 rounded-card border border-edge bg-surface p-4">
+          /* A tile, not a card: a `surface` fill, no shadow and no
+             line. Two raised cards on one screen read as two of the same
+             thing, and an input's `edge` round it made it read as a
+             field; what is on this device is context for the panel
+             below. The numbers are the argument, so they are numbers
+             (auth-12). */
+          <div className="mt-6 rounded-card bg-surface p-4">
             <div className="eyebrow">On this device</div>
             <div className="mt-2 flex gap-8">
               <Figure
@@ -236,7 +238,7 @@ export function AuthForm({
                   leaves them on this device.{" "}
                   <Link
                     href="/signup"
-                    className="font-semibold text-terracotta-700"
+                    className="text-link whitespace-nowrap text-terracotta-700"
                   >
                     Keep them instead
                   </Link>
@@ -269,7 +271,7 @@ export function AuthForm({
                light the card is white too, so the shadow is the step
                that tells it apart (#218: never an outline with nothing
                in it). No hover fill; .press answers the pointer. */
-            className={`press font-display flex min-h-12 w-full items-center justify-center gap-2.5 rounded-control border border-edge bg-raised px-6 text-body font-bold text-ink shadow-[var(--shadow-1)] transition-colors duration-200 ease-out dark:bg-[color-mix(in_srgb,var(--color-raised),#fff_6%)] ${DISABLED_ONLY}`}
+            className={`press font-display flex min-h-12 w-full items-center justify-center gap-2.5 rounded-control border border-edge bg-raised px-6 text-body font-bold text-ink shadow-[var(--shadow-1)] transition-colors dur-base ease-out dark:bg-[color-mix(in_srgb,var(--color-raised),#fff_6%)] ${DISABLED_ONLY}`}
           >
             <GoogleMark />
             {google.pending ? "Opening Google…" : "Continue with Google"}
@@ -405,7 +407,7 @@ function Address({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Google's four-colour G — a brand mark, not an app icon, so it lives
+/** Google's four-colour G, a brand mark and not an app icon, so it lives
     outside components/Icon.tsx (the one-set rule covers our own marks). */
 export function GoogleMark({ size = 18 }: { size?: number }) {
   return (
@@ -499,9 +501,11 @@ export const LABEL_CLASS = "font-display block text-row text-ink";
  * An input is a CONTROL: A1's one spelling (lib/ui.ts INPUT_CLASS),
  * a `surface` well behind the `edge` boundary, 16px so iOS never zooms,
  * and ONE 2px terracotta focus edge (auth-18). 48px tall here, the
- * height of the two buttons it sits between.
+ * height of the two buttons it sits between. The placeholder is set
+ * regular: a semibold grey address read as one already filled in, the
+ * same misread as the old bullets (auth-8).
  */
-export const FIELD_CLASS = `mt-2 h-12 ${INPUT_CLASS}`;
+export const FIELD_CLASS = `mt-2 h-12 ${INPUT_CLASS} placeholder:font-normal`;
 
 /**
  * A failure the form caused. It used to wear `terracotta-50`, which is

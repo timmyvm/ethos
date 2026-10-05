@@ -112,15 +112,18 @@ function LessonIntro() {
  * page's grammar (M06) so the three one-step-in screens read as one
  * family. 128px from a 256px cut, so it stays crisp at 2x; next/image is
  * safe here because the service worker does not pre-cache /unit/. It
- * arrives once, with the screen.
+ * arrives once, with the screen, and then breathes.
  */
 function UnitStage({ id }: { id: string }) {
   return (
     <div className="relative -mx-5 mb-4 flex justify-center pb-[22px]">
       <div aria-hidden className="stage-dome absolute inset-x-0 bottom-0" />
       <div className="arrive relative h-32 w-32">
+        {/* He breathes on DemosArt's own loop and his shadow with him
+            (`.demos-breath`, `.ground-breath`; still under reduced
+            motion): the unit marks have no idle clip yet (#316). */}
         <div aria-hidden className="demos-ground">
-          <span />
+          <span className="ground-breath" />
         </div>
         <Image
           src={`/unit/${id}.webp`}
@@ -128,7 +131,7 @@ function UnitStage({ id }: { id: string }) {
           width={128}
           height={128}
           priority
-          className="demos pointer-events-none relative mx-auto h-32 w-32"
+          className="demos demos-breath pointer-events-none relative mx-auto h-32 w-32"
         />
       </div>
     </div>

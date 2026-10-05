@@ -110,6 +110,26 @@ describe("insights", () => {
     );
   });
 
+  /*
+   * log-18: the headline stands alone (the Log prints the detail on
+   * its own line), in curly quotes, and the detail is the count and
+   * nothing argued after it.
+   */
+  it("prints the dominant filler in curly quotes with its count alone", () => {
+    const reps = Array.from({ length: 4 }, () =>
+      rep({
+        fillers: [
+          { word: "like", t: 1 },
+          { word: "like", t: 2 },
+          { word: "um", t: 3 },
+        ],
+      })
+    );
+    const top = insights(reps).find((i) => i.id === "dominant-filler")!;
+    expect(top.headline).toBe("\u201clike\u201d is 67% of your fillers");
+    expect(top.detail).toBe("8 of 12 across 4 recordings.");
+  });
+
   it("flags fillers clustering at the open", () => {
     const reps = Array.from({ length: 4 }, () =>
       rep({

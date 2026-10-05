@@ -88,8 +88,10 @@ export function insights(reps: RepRow[]): Insight[] {
     if (share >= 30) {
       out.push({
         id: "dominant-filler",
-        headline: `"${word}" is ${share}% of your fillers`,
-        detail: `${count} of ${total} across ${reps.length} recordings. Killing one word moves the number more than trimming five.`,
+        headline: `“${word}” is ${share}% of your fillers`,
+        // The count is the reason; a sentence after it explaining why
+        // one word matters was the app arguing with its own number.
+        detail: `${count} of ${total} across ${reps.length} recordings.`,
       });
     }
   }

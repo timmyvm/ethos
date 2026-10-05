@@ -5,6 +5,7 @@ import {
   presenceRow,
   recordingName,
   recordingTrait,
+  rolling,
   rowTrait,
   skillRows,
 } from "./log";
@@ -180,5 +181,34 @@ describe("rowTrait", () => {
     expect(rowTrait("index")).toBeNull();
     expect(rowTrait("presence")).toBeNull();
     expect(rowTrait("structure")).toBeNull();
+  });
+});
+
+/*
+ * log-23: the trend track draws a trailing mean, so a noisy series
+ * reads as a direction. It never drops a point and never moves the
+ * first one: the line still starts at the Day 1 value beside it.
+ */
+describe("rolling", () => {
+  it("averages each point with the ones before it, up to the window", () => {
+    expect(rolling([3, 6, 9, 12], 3)).toEqual([3, 4.5, 6, 9]);
+  });
+
+  it("keeps the length and the first value", () => {
+    const raw = [128, 135, 142, 149, 156, 133, 140];
+    const smooth = rolling(raw, 3);
+    expect(smooth).toHaveLength(raw.length);
+    expect(smooth[0]).toBe(raw[0]);
+  });
+
+  it("flattens a sawtooth into its level", () => {
+    const saw = [1, 3, 1, 3, 1, 3, 1, 3];
+    const smooth = rolling(saw, 2);
+    expect(smooth.slice(1).every((v) => v === 2)).toBe(true);
+  });
+
+  it("is the series itself for a window of one, and empty for none", () => {
+    expect(rolling([5, 1, 4], 1)).toEqual([5, 1, 4]);
+    expect(rolling([], 3)).toEqual([]);
   });
 });

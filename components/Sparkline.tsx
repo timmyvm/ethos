@@ -12,6 +12,7 @@
  */
 export function Sparkline({
   values,
+  labelValues,
   label,
   invert = false,
   height = 48,
@@ -19,6 +20,12 @@ export function Sparkline({
   color,
 }: {
   values: number[];
+  /**
+   * The numbers a screen reader hears, when the line draws something
+   * else: the Log's rows draw a trailing mean (log-23) and announce
+   * the raw series. Defaults to `values`.
+   */
+  labelValues?: number[];
   label: string;
   /** True when lower is better (fillers) — flips the "improving" test. */
   invert?: boolean;
@@ -50,6 +57,7 @@ export function Sparkline({
        */
       <Trace
         values={values}
+        labelValues={labelValues}
         label={label}
         invert={invert}
         height={height}
@@ -62,8 +70,8 @@ export function Sparkline({
 
   if (values.length < 2) {
     return (
-      <div className="elev-1 rounded-card border border-card-edge bg-raised p-4">
-        <div className="label-data">{label}</div>
+      <div className="card p-4">
+        <div className="eyebrow">{label}</div>
         <p className="mt-3 text-caption text-stone-500">
           Two scores and this becomes a line. One more to go.
         </p>
@@ -78,9 +86,9 @@ export function Sparkline({
   const fmt = (v: number) => String(Math.round(v * 10) / 10);
 
   return (
-    <div className="elev-1 rounded-card border border-card-edge bg-raised p-4">
+    <div className="card p-4">
       <div className="flex items-baseline justify-between">
-        <div className="label-data">{label}</div>
+        <div className="eyebrow">{label}</div>
         <div
           className={`font-display text-caption font-extrabold tabular-nums ${
             delta === 0
@@ -90,11 +98,12 @@ export function Sparkline({
                 : "text-rust"
           }`}
         >
-          {fmt(first)} → {fmt(last)}
+          {fmt(first)} to {fmt(last)}
         </div>
       </div>
       <Trace
         values={values}
+        labelValues={labelValues}
         label={label}
         invert={invert}
         height={height}
@@ -111,6 +120,7 @@ export function Sparkline({
  */
 function Trace({
   values,
+  labelValues = values,
   label,
   invert,
   height,
@@ -119,6 +129,7 @@ function Trace({
   color,
 }: {
   values: number[];
+  labelValues?: number[];
   label: string;
   invert: boolean;
   height: number;
@@ -130,13 +141,15 @@ function Trace({
 }) {
   if (values.length < 2) {
     return (
-      <div
+      /* A span: the Log's Fillers row puts this inside a button, where
+         only phrasing content is valid (log-21). */
+      <span
         className={`${className} flex items-center`}
         style={{ height }}
         aria-hidden
       >
         <span className="h-1 w-full bg-sand" />
-      </div>
+      </span>
     );
   }
 
@@ -159,7 +172,7 @@ function Trace({
       style={{ height }}
       preserveAspectRatio="none"
       role="img"
-      aria-label={`${label}: ${values.map((v) => Math.round(v)).join(", ")}`}
+      aria-label={`${label}: ${labelValues.map((v) => Math.round(v)).join(", ")}`}
     >
       {color && (
         /* The wash: the area under the line in the line's own colour,

@@ -14,7 +14,6 @@ import { Sparkline } from "@/components/Sparkline";
 import {
   Skeleton,
   SkeletonRegion,
-  SkeletonRow,
   SkeletonScoreCard,
 } from "@/components/ui/Skeleton";
 import { Stars } from "@/components/Stars";
@@ -22,6 +21,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { fetchProfile, fetchReps, type RepRow } from "@/lib/client-data";
 import { limit } from "@/lib/entitlement";
 import { DURATION } from "@/lib/motion";
+import { ACTION_CLASS } from "@/lib/ui";
 import { fillerHeatmap, insights } from "@/lib/insights";
 import { readable, readFailure } from "@/lib/load";
 import {
@@ -29,6 +29,7 @@ import {
   presenceRow,
   recordingName,
   recordingTrait,
+  rolling,
   rowTrait,
   skillRows,
   type MovedRow,
@@ -85,6 +86,9 @@ const INSIGHT_TRAIT: Record<string, TraitId> = {
  */
 export default function HistoryPage() {
   const [reps, setReps] = useState<RepRow[] | null>(null);
+  /* The clock the free window is cut against, read when the data
+     lands rather than on every render. */
+  const [readAt, setReadAt] = useState(0);
   const [failed, setFailed] = useState(false);
   const [paywall, setPaywall] = useState<PaywallAsk | null>(null);
   const [premium, setPremium] = useState(false);
@@ -94,8 +98,10 @@ export default function HistoryPage() {
     setFailed(false);
     setReps(null);
     const read = await readable(fetchReps);
-    if (read.ok) setReps(read.data);
-    else setFailed(true);
+    if (read.ok) {
+      setReadAt(Date.now());
+      setReps(read.data);
+    } else setFailed(true);
   }, []);
 
   useEffect(() => {
@@ -113,7 +119,7 @@ export default function HistoryPage() {
    */
   if (failed) {
     return (
-      <main className="px-5 pb-22 pt-7">
+      <main className="px-5 pb-[var(--nav-clear)] pt-7">
         <ScreenHeader title="Log" />
         <ErrorState
           className="mt-4"
@@ -126,27 +132,57 @@ export default function HistoryPage() {
 
   if (reps === null) {
     return (
-      <main className="px-5 pb-22 pt-7">
+      <main className="px-5 pb-[var(--nav-clear)] pt-7">
         <ScreenHeader title="Log" />
         <SkeletonRegion label="Loading your log">
-          <Skeleton className="mt-2 h-3 w-52" />
           {/* The score card carries no outer margin any more (#234), so
               the placeholder holds the same 28 the real card sits on. */}
+          {/* Nothing under the title: the count line is gone (#317), and
+              a placeholder for it pushed the card 20px when the data
+              landed. */}
           <div className="mt-7">
             <SkeletonScoreCard />
           </div>
-          <Skeleton className="mt-7 h-2.5 w-24" />
-          <div className="mt-3">
-            {[0, 1, 2, 3].map((i) => (
-              <SkeletonRow key={i} />
-            ))}
+          {/* The two tables at their own row heights (PRINCIPLES 8):
+              the head, the column heads, four 45px metric rows and the
+              Premium row, the insight, then 69px recording rows. */}
+          <Line className="section-head mt-7" width="w-32" />
+          <div className="label-micro invisible mt-3 pb-1.5">Ag</div>
+          {[0, 1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className={`${MOVED_GRID} items-center border-t border-hairline py-3`}
+            >
+              <Skeleton className="h-3.5 w-24" />
+              <Skeleton className="ml-auto h-3 w-6" />
+              <Skeleton className="ml-auto h-4 w-8" />
+              <Skeleton className="ml-auto h-3 w-10" />
+              <Skeleton className="h-5 w-full" />
+            </div>
+          ))}
+          <div className="flex items-center justify-between border-t border-hairline py-3">
+            <Skeleton className="h-3.5 w-20" />
+            <Skeleton className="h-[21px] w-20" rounded="rounded-full" />
           </div>
-          <Skeleton className="mt-7 h-2.5 w-28" />
-          <div className="mt-3">
-            {[0, 1, 2].map((i) => (
-              <SkeletonRow key={i} />
-            ))}
-          </div>
+          <Skeleton className="mt-3 h-[58px] w-full" rounded="rounded-none" />
+          <Line className="section-head mt-7" width="w-40" />
+          <div className="label-micro invisible mt-3 pb-1.5">Ag</div>
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className={`${RECORD_GRID} items-center border-t border-hairline py-3`}
+            >
+              <Skeleton className="h-11 w-10" rounded="rounded-[10px]" />
+              <span className="min-w-0">
+                <Skeleton className="h-3.5 w-28" />
+                <Skeleton className="mt-2 h-2.5 w-12" />
+              </span>
+              <Skeleton className="ml-auto h-4 w-9" />
+              <Skeleton className="ml-auto h-3 w-4" />
+              <Skeleton className="ml-auto h-3 w-7" />
+              <Skeleton className="ml-auto h-3 w-4" />
+            </div>
+          ))}
         </SkeletonRegion>
       </main>
     );
@@ -173,7 +209,7 @@ export default function HistoryPage() {
   // The 7-day window used to apply to everyone, premium included — the
   // limit was a constant rather than a gate. It reads the entitlement now.
   const days = limit(FREE_DAYS, premium);
-  const cutoff = days === null ? -Infinity : Date.now() - days * 86_400_000;
+  const cutoff = days === null ? -Infinity : readAt - days * 86_400_000;
   const visible = reps.filter((r) => new Date(r.created_at).getTime() >= cutoff);
   const hidden = reps.length - visible.length;
   const newestFirst = [...visible].reverse();
@@ -185,7 +221,7 @@ export default function HistoryPage() {
       });
 
   return (
-    <main className="px-5 pb-22 pt-7">
+    <main className="px-5 pb-[var(--nav-clear)] pt-7">
       {/* One entrance per band (#245). The read landing is still one
           event, but the two tables are lists, and a list assembles
           itself: `.stagger` ladders each section's eyebrow, column head
@@ -227,7 +263,7 @@ export default function HistoryPage() {
        */}
       <section className="stagger mt-7">
         <h2 className="section-head">What moved</h2>
-        <div className={`${MOVED_GRID} mt-3 border-b border-edge pb-1.5`}>
+        <div className={`${MOVED_GRID} mt-3 pb-1.5`}>
           <ColumnHead>metric</ColumnHead>
           <ColumnHead right>day 1</ColumnHead>
           <ColumnHead right>now</ColumnHead>
@@ -244,8 +280,9 @@ export default function HistoryPage() {
               <button
                 type="button"
                 aria-expanded={showFillers}
+                aria-controls="filler-heatmap"
                 onClick={() => setShowFillers((v) => !v)}
-                className="press block w-full text-left"
+                className="press-row block w-full text-left"
               >
                 <MetricRow row={row} dim={empty} open={showFillers} />
               </button>
@@ -253,7 +290,7 @@ export default function HistoryPage() {
                 /* `.reveal`: the panel drops out of the row that opened
                    it, rather than being there the instant the row is
                    tapped (the before strip was five identical frames). */
-                <div className="reveal py-3">
+                <div id="filler-heatmap" className="reveal py-3">
                   <FillerHeatmap reps={reps} />
                 </div>
               )}
@@ -321,8 +358,10 @@ export default function HistoryPage() {
               className={`font-semibold ${INSIGHT_TRAIT[top.id] ? "tone-ink" : "text-ink"}`}
             >
               {top.headline}
-            </span>{" "}
-            {top.detail}
+            </span>
+            {/* Its own line: the headline has no full stop, so run on
+                it read "of your fillers 70 of 132" (log-18). */}
+            <span className="mt-0.5 block">{top.detail}</span>
           </p>
         )}
       </section>
@@ -337,7 +376,7 @@ export default function HistoryPage() {
         <h2 className="section-head">
           {empty ? "Waiting to be logged" : "Every recording"}
         </h2>
-        <div className={`${RECORD_GRID} mt-3 border-b border-edge pb-1.5`}>
+        <div aria-hidden className={`${RECORD_GRID} mt-3 pb-1.5`}>
           <ColumnHead>date</ColumnHead>
           <ColumnHead>lesson</ColumnHead>
           <ColumnHead right>index</ColumnHead>
@@ -353,11 +392,11 @@ export default function HistoryPage() {
                 className={`${RECORD_GRID} items-center border-t border-hairline py-3 text-stone-400`}
               >
                 <DateTile trait={recordingTrait({ lesson_id: lesson.id })}>
-                  <span className="font-display block text-[16px] font-extrabold tabular-nums">
+                  <span className="font-display block text-num-s tabular-nums">
                     {i + 1}
                   </span>
                 </DateTile>
-                <span className="font-display truncate text-[14px] font-bold">
+                <span className="font-display truncate text-row">
                   {lesson.title}
                 </span>
                 {[0, 1, 2, 3].map((c) => (
@@ -374,17 +413,28 @@ export default function HistoryPage() {
               const d = new Date(r.created_at);
               const held = (r.pauses ?? []).filter((p) => p.kind !== "beat").length;
               const trait = recordingTrait(r);
+              const name = recordingName(r);
+              /* log-21: the row's name, not four bare numbers. The
+                 column heads are hidden from assistive tech, so the
+                 label carries what they said. */
+              const label = `${name}, ${d.toLocaleDateString(undefined, {
+                day: "numeric",
+                month: "long",
+              })}, ${
+                r.ethos_index === null ? "not scored" : `Ethos ${r.ethos_index}`
+              }, ${r.stars} of 3 stars`;
               return (
                 <Link
                   key={r.id}
                   href={`/rep/${r.id}`}
-                  className={`press ${RECORD_GRID} items-center border-t border-hairline py-3`}
+                  aria-label={label}
+                  className={`press-row ${RECORD_GRID} items-center border-t border-hairline py-3`}
                 >
                   <DateTile trait={trait}>
                     <span className="log-date-month block">
                       {d.toLocaleDateString(undefined, { month: "short" })}
                     </span>
-                    <span className="font-display mt-0.5 block text-[15px] font-extrabold tabular-nums">
+                    <span className="font-display mt-0.5 block text-num-s tabular-nums">
                       {String(d.getDate()).padStart(2, "0")}
                     </span>
                   </DateTile>
@@ -393,12 +443,12 @@ export default function HistoryPage() {
                         134px and "Punctuate with silence" needs 165, so
                         the one label a row exists to show was the one
                         label you could not read (#287). */}
-                    <span className="font-display line-clamp-2 text-[14px] font-bold leading-snug">
-                      {recordingName(r)}
+                    <span className="font-display line-clamp-2 text-row leading-snug">
+                      {name}
                     </span>
                     <Stars n={r.stars} size={11} />
                   </span>
-                  <span className="font-display text-right text-[16px] font-extrabold tabular-nums">
+                  <span className="font-display text-right text-num-s tabular-nums">
                     {r.ethos_index === null ? (
                       DASH
                     ) : (
@@ -425,7 +475,7 @@ export default function HistoryPage() {
             }
             /* mt-2: air between the last tile and the plum chip, so a
                Variety tile's indigo never sits against Premium's plum. */
-            className="press mt-2 flex w-full items-center justify-between gap-3 border-t border-hairline py-3 text-left"
+            className="press-row mt-2 flex w-full items-center justify-between gap-3 border-t border-hairline py-3 text-left"
           >
             <span className="text-caption text-stone-500">
               {hidden} older recording{hidden === 1 ? "" : "s"} held since{" "}
@@ -457,10 +507,7 @@ export default function HistoryPage() {
               One recording and every number here fills in.
             </p>
           </div>
-          <Link
-            href="/rep"
-            className="press font-display mt-4 block min-h-11 w-full rounded-control bg-terracotta-500 px-6 py-3.5 text-center text-[15px] font-bold text-on-accent hover:bg-terracotta-600"
-          >
+          <Link href="/rep" className={`${ACTION_CLASS} mt-4`}>
             Start
           </Link>
         </div>
@@ -474,6 +521,20 @@ export default function HistoryPage() {
         />
       )}
     </main>
+  );
+}
+
+/**
+ * One line of type at its role's own height, the words invisible and a
+ * bar where they would be (the score card skeleton's trick), so the
+ * head that replaces it is the same height to the pixel.
+ */
+function Line({ className, width }: { className: string; width: string }) {
+  return (
+    <div className={`relative ${className}`}>
+      <span className="invisible">Ag</span>
+      <Skeleton className={`absolute inset-y-[22%] left-0 ${width}`} />
+    </div>
   );
 }
 
@@ -531,14 +592,16 @@ function MetricRow({
         ? "text-rust"
         : "text-stone-400";
   return (
-    <div
+    /* A span (log-21): the Fillers row sits inside a button, where only
+       phrasing content is valid. The grid class makes it a block. */
+    <span
       data-trait={trait ?? undefined}
       data-index={index || undefined}
       className={`log-metric ${MOVED_GRID} items-center border-t border-hairline py-3 ${
         dim ? "text-stone-400" : ""
       }`}
     >
-      <span className="font-display flex min-w-0 items-center gap-1 text-[14px] font-bold">
+      <span className="font-display flex min-w-0 items-center gap-1 text-row">
         {/* The trait's swatch, the key the recordings below are
             coloured by. A rectangle, like every mark that is not a
             chip. A row with no trait keeps the slot, blank, so every
@@ -554,7 +617,7 @@ function MetricRow({
           <span
             aria-hidden
             data-open={open}
-            className="disclosure-mark shrink-0 text-stone-300"
+            className="disclosure-mark shrink-0 text-stone-400"
           >
             <IconChevron size={14} />
           </span>
@@ -567,7 +630,7 @@ function MetricRow({
       >
         {row.then ?? DASH}
       </span>
-      <span className="font-display text-right text-[17px] font-extrabold tabular-nums">
+      <span className="font-display text-right text-num-s tabular-nums">
         {/* `now` is already formatted (lib/log), so the count has to
             print it back the same way: a row reading "2.8" fillers a
             minute keeps its decimal on every frame, and a row reading
@@ -590,15 +653,20 @@ function MetricRow({
       >
         {row.change ?? DASH}
       </span>
+      {/* log-23: the track draws a trailing mean of three, so a noisy
+          series reads as a direction; every point stays, so the line
+          still starts at the Day 1 value, and the label reads the raw
+          numbers. */}
       <Sparkline
-        values={row.series}
+        values={rolling(row.series, 3)}
+        labelValues={row.series}
         label={row.label}
         invert={row.invert}
         height={20}
         bare
         color={trait ? "var(--tone)" : index ? "var(--color-sage-600)" : undefined}
       />
-    </div>
+    </span>
   );
 }
 
@@ -648,9 +716,9 @@ function TeaserRow({
     <button
       type="button"
       onClick={onTap}
-      className="press flex w-full items-center justify-between gap-3 border-t border-hairline py-3 text-left"
+      className="press-row flex w-full items-center justify-between gap-3 border-t border-hairline py-3 text-left"
     >
-      <span className="font-display flex min-w-0 items-center gap-1 text-[14px] font-bold">
+      <span className="font-display flex min-w-0 items-center gap-1 text-row">
         {/* The metric rows' blank swatch slot, so this label lines up
             with theirs. */}
         <span aria-hidden className="log-swatch log-swatch-blank" />

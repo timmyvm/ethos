@@ -103,6 +103,24 @@ function paceRow(series: number[]): MovedRow {
   return { ...base, change: `in ${WPM_ZONE.low}–${WPM_ZONE.high}`, direction: "up" };
 }
 
+/**
+ * A trailing mean over the last `n` values (log-23): each point is the
+ * average of itself and the n - 1 before it, so the first points
+ * average what exists. Same length as the series and the same first
+ * value, so a smoothed trend still starts at the Day 1 number printed
+ * beside it. Per-recording WPM and held pauses are noisy enough that,
+ * at 2px a recording in a 44px track, the raw line reads as hatching.
+ */
+export function rolling(series: number[], n: number): number[] {
+  const size = Math.max(1, Math.floor(n));
+  let sum = 0;
+  return series.map((v, i) => {
+    sum += v;
+    if (i >= size) sum -= series[i - size];
+    return sum / Math.min(i + 1, size);
+  });
+}
+
 /** The four rows everyone sees, oldest recording first. */
 export function movedRows(reps: RepRow[]): MovedRow[] {
   const index = reps

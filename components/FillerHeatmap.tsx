@@ -18,9 +18,11 @@ export function FillerHeatmap({ reps }: { reps: RepRow[] }) {
   return (
     <div
       data-trait="fillers"
-      className="elev-1 rounded-card border border-card-edge bg-raised p-4"
+      className="card p-4"
     >
-      <div className="label-data tone-ink">Where your fillers land</div>
+      {/* Sentence-case eyebrows inside a card (M05): the caps register
+          is for the data labels under the bars. */}
+      <div className="eyebrow tone-ink">Where your fillers land</div>
       {/* `items-end` here collapsed every column to the height of its
           number, so the bars drew at 100% of 0 and the card was a row of
           counts with no chart above it. The columns stretch; the bar
@@ -46,7 +48,7 @@ export function FillerHeatmap({ reps }: { reps: RepRow[] }) {
       </div>
 
       <div className="mt-4 border-t border-hairline pt-3">
-        <div className="label-data tone-ink">Your words</div>
+        <div className="eyebrow tone-ink">Your words</div>
         <div className="mt-2 space-y-1.5">
           {tally.map(([word, n]) => (
             <div key={word} className="flex items-center gap-2.5">

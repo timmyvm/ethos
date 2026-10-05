@@ -4,16 +4,20 @@ import { useMemo, useState } from "react";
 import type { LexiconRow } from "@/lib/client-data";
 
 /**
- * Lexicon flash — three of your own upgrades, recalled cold.
+ * Lexicon flash: three of your own upgrades, recalled cold.
  *
- * The supply layer (DECISIONS #12) collects a word swap from every rep
- * and then never asks about them again, which is how a vocabulary list
- * dies. This is the retrieval half: you see the weak phrase you actually
- * said and try to remember the upgrade before flipping it.
+ * The supply layer (DECISIONS #12) collects a word swap from every
+ * recording and then never asks about them again, which is how a
+ * vocabulary list dies. This is the retrieval half: you see the weak
+ * phrase you actually said and try to remember the upgrade before
+ * flipping it.
  *
  * Retrieval practice rather than re-reading is the one study technique
- * with strong evidence behind it (Dunlosky et al. 2013, top tier — the
+ * with strong evidence behind it (Dunlosky et al. 2013, top tier: the
  * same review that put highlighting and re-reading in the bottom tier).
+ *
+ * It sits inside You's lexicon section, so the upgrade wears the same
+ * Variety label as the list above it (`.you-word` under `data-trait`).
  */
 export function LexiconFlash({
   lexicon,
@@ -30,13 +34,15 @@ export function LexiconFlash({
   if (cards.length === 0) return null;
   const card = cards[i];
   const last = i === cards.length - 1;
+  const step =
+    "press font-display mt-4 min-h-11 w-full rounded-control bg-surface px-4 py-3 text-row";
 
   return (
     /* The card is produced by a tap (the button above it is replaced),
        so it arrives from 6px below rather than appearing (#221). */
-    <div className="arrive elev-1 rounded-card border border-card-edge bg-raised p-4">
+    <div className="arrive card p-4">
       <div className="flex items-baseline justify-between">
-        <div className="label-data">Lexicon flash</div>
+        <div className="eyebrow">Lexicon flash</div>
         <div className="label-micro">
           {i + 1}/{cards.length}
         </div>
@@ -53,7 +59,7 @@ export function LexiconFlash({
         <p className="mt-3 text-caption text-stone-500">
           You said this. What did you swap it for?
         </p>
-        <div className="font-display mt-1 text-[24px] font-bold leading-tight">
+        <div className="font-display mt-1 text-title font-bold">
           &ldquo;{card.original}&rdquo;
         </div>
 
@@ -61,12 +67,13 @@ export function LexiconFlash({
           <>
             {/* The answer drops out of the row that revealed it. */}
             <div className="reveal mt-3 border-t border-hairline pt-3">
-              <div className="label-micro">The upgrade</div>
-              <div className="font-display mt-0.5 text-[20px] font-bold text-sage-700">
-                {card.upgrade}
+              <div className="eyebrow">The upgrade</div>
+              <div className="mt-1 text-lead">
+                <span className="you-word">{card.upgrade}</span>
               </div>
             </div>
             <button
+              type="button"
               onClick={() => {
                 if (last) {
                   onDone();
@@ -75,16 +82,13 @@ export function LexiconFlash({
                 setI(i + 1);
                 setShown(false);
               }}
-              className="press font-display mt-4 min-h-11 w-full rounded-control border border-edge bg-surface px-4 py-3 text-[14px] font-bold"
+              className={step}
             >
               {last ? "Done" : "Next"}
             </button>
           </>
         ) : (
-          <button
-            onClick={() => setShown(true)}
-            className="press font-display mt-4 min-h-11 w-full rounded-control border border-edge bg-surface px-4 py-3 text-[14px] font-bold"
-          >
+          <button type="button" onClick={() => setShown(true)} className={step}>
             Show it
           </button>
         )}

@@ -2,17 +2,28 @@
 
 import { useRef, useState } from "react";
 import type { RepRow } from "@/lib/client-data";
+import { ACTION_CLASS } from "@/lib/ui";
+
+/** Fillers a minute, or `null` when a recording has no length to divide by. */
+const fpm = (r: RepRow): number | null =>
+  r.duration_s > 0 ? r.filler_count / (r.duration_s / 60) : null;
 
 /**
- * The day-1-vs-day-N card, rendered to a PNG the user can post.
- * vision.md principle 4: the retention asset and the marketing asset
- * are the same artifact — so it exports at story size, brand-correct,
- * with no scoreboard bragging, just the two numbers and the days.
+ * Day 1 vs now (you-11, M23): your first recording beside your latest,
+ * as two numbers you can read before you press anything, then the tap
+ * that turns them into a picture to post.
  *
- * Canvas-drawn (no html2canvas): fewer deps, exact control, and it
+ * vision.md principle 4: the retention asset and the marketing asset
+ * are the same artifact, so the picture exports at story size,
+ * brand-correct, with no scoreboard bragging, just the numbers and the
+ * days. Canvas-drawn (no html2canvas): fewer deps, exact control, and it
  * works offline in the PWA.
+ *
+ * It carries no outer margin; the parent places it (STATE). `quiet`
+ * steps the button down to the surface door when something else on the
+ * screen holds the one terracotta tap.
  */
-export function ShareCard({ reps }: { reps: RepRow[] }) {
+export function ShareCard({ reps, quiet = false }: { reps: RepRow[]; quiet?: boolean }) {
   const [url, setUrl] = useState<string | null>(null);
   const busy = useRef(false);
 
@@ -20,19 +31,19 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
 
   const first = reps[0];
   const last = reps[reps.length - 1];
-  const days =
-    Math.round(
-      (new Date(last.created_at).getTime() -
-        new Date(first.created_at).getTime()) /
-        86_400_000
-    ) + 1;
-  const fpm = (r: RepRow) =>
-    r.duration_s > 0 ? r.filler_count / (r.duration_s / 60) : 0;
+  const was = fpm(first);
+  const now = fpm(last);
 
   async function draw() {
     if (busy.current) return;
     busy.current = true;
     try {
+      const days =
+        Math.round(
+          (new Date(last.created_at).getTime() -
+            new Date(first.created_at).getTime()) /
+            86_400_000
+        ) + 1;
       const W = 1080;
       const H = 1920;
       const c = document.createElement("canvas");
@@ -41,12 +52,12 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
       const g = c.getContext("2d");
       if (!g) return;
 
-      // Paper ground, brand.md — no pure white, no pure black.
+      // Paper ground, brand.md: no pure white, no pure black.
       //
       // Literal, and staying literal: this canvas leaves the app. A
       // shared image is a piece of Ethos in someone else's feed, so it
       // wears the brand's light palette whatever theme the phone that
-      // made it was in (Checkpoint 1, finding 3 — deliberate). The
+      // made it was in (Checkpoint 1, finding 3, deliberate). The
       // values are the Instrument set (#201).
       const face =
         getComputedStyle(document.body)
@@ -63,14 +74,13 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
       g.font = "700 38px Figtree, sans-serif";
       g.fillText(`DAY 1  →  DAY ${days}`, 90, 300);
 
-      // The two numbers, big.
-      const rows: [string, string, string, boolean][] = [
-        [
-          "Fillers / min",
-          fpm(first).toFixed(1),
-          fpm(last).toFixed(1),
-          fpm(last) < fpm(first),
-        ],
+      // The two numbers, big. A row whose first or last reading is
+      // missing is left out rather than drawn as a zero.
+      const rows: [string, string, string, boolean][] = [];
+      if (was !== null && now !== null) {
+        rows.push(["Fillers / min", was.toFixed(1), now.toFixed(1), now < was]);
+      }
+      rows.push(
         [
           "Words / min",
           String(first.wpm),
@@ -82,8 +92,8 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
           String((first.pauses ?? []).filter((p) => p.kind !== "beat").length),
           String((last.pauses ?? []).filter((p) => p.kind !== "beat").length),
           true,
-        ],
-      ];
+        ]
+      );
       if (first.ethos_index !== null && last.ethos_index !== null) {
         rows.unshift([
           "Your Ethos",
@@ -119,7 +129,7 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
       // Footer: the honest line.
       g.fillStyle = "#75706a";
       g.font = "700 32px Figtree, sans-serif";
-      g.fillText(`${reps.length} RECORDINGS · EVERY NUMBER MEASURED`, 90, H - 140);
+      g.fillText(`${reps.length} RECORDINGS, EVERY NUMBER MEASURED`, 90, H - 140);
 
       g.fillStyle = "#c67139";
       g.fillRect(90, H - 100, 120, 8);
@@ -130,15 +140,40 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
     }
   }
 
+  const tap = quiet
+    ? "press font-display block min-h-12 w-full rounded-control bg-surface px-6 py-3.5 text-center text-body font-bold"
+    : ACTION_CLASS;
+
   return (
-    <div className="mt-3">
+    <section className="card p-5">
+      <h2 className="detail-head">Day 1 vs now</h2>
+      <p className="mt-0.5 text-caption text-stone-500">Fillers a minute</p>
+      {/* Then and now, side by side: the first reading in stone, the
+          latest in ink. A recording with no length has no rate, so it
+          shows a dash, never a 0. */}
+      <dl className="mt-4 grid grid-cols-2 gap-3">
+        {/* The term reads first and sits under its number
+            (column-reverse), the way the stats on the card above do. */}
+        <div className="flex flex-col-reverse">
+          <dt className="mt-1 text-caption text-stone-500">Day 1</dt>
+          <dd className="font-display text-num-m tabular-nums text-stone-500">
+            {was === null ? "–" : was.toFixed(1)}
+          </dd>
+        </div>
+        <div className="flex flex-col-reverse">
+          <dt className="mt-1 text-caption text-stone-500">Now</dt>
+          <dd className="font-display text-num-m tabular-nums">
+            {now === null ? "–" : now.toFixed(1)}
+          </dd>
+        </div>
+      </dl>
       {url ? (
-        /* The card the tap produced: it arrives over the button it
-           replaced, rather than cutting in when the canvas finishes. */
-        <div className="arrive elev-1 rounded-card border border-card-edge bg-raised p-4">
+        /* The card the tap produced: it arrives in place of the button
+           it replaced, rather than cutting in when the canvas finishes. */
+        <div className="arrive mt-5">
           {/* The story ratio, stated: the canvas is 1080x1920 and a data
               URL has no intrinsic size until it decodes, so without this
-              the card arrives at one height and grows to another
+              the picture arrives at one height and grows to another
               mid-animation. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -146,24 +181,17 @@ export function ShareCard({ reps }: { reps: RepRow[] }) {
             alt="Your progress card"
             width={1080}
             height={1920}
-            className="aspect-[1080/1920] w-full rounded-control"
+            className="aspect-[1080/1920] w-full rounded-control border border-card-edge"
           />
-          <a
-            href={url}
-            download="ethos-progress.png"
-            className="press font-display mt-3 block min-h-11 w-full rounded-control bg-terracotta-500 px-6 py-3 text-center text-[15px] font-bold text-on-accent"
-          >
+          <a href={url} download="ethos-progress.png" className={`${tap} mt-3`}>
             Save the card
           </a>
         </div>
       ) : (
-        <button
-          onClick={draw}
-          className="press font-display min-h-11 w-full rounded-control border border-edge bg-surface px-4 py-3 text-[14px] font-bold hover:bg-sand"
-        >
-          Make a shareable card →
+        <button type="button" onClick={draw} className={`${tap} mt-5`}>
+          Make the card
         </button>
       )}
-    </div>
+    </section>
   );
 }

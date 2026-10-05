@@ -6,12 +6,12 @@
  *
  *  - Is this a first visit? A fresh browser gets routed to /welcome; a
  *    returning one never does. "Fresh" is decided by two keys: our own
- *    welcomed flag, and any Supabase session in storage — an existing
+ *    welcomed flag, and any Supabase session in storage: an existing
  *    device that predates the flag must not be bounced into an intro it
  *    has outgrown.
  *
  *  - Has the save-progress soft wall fired? It shows exactly twice per
- *    browser — after rep 1, and once more when the streak reaches 3 —
+ *    browser: after the first recording, and once more when the streak reaches 3,
  *    and the flags are what make that "exactly" true across remounts.
  */
 
@@ -149,7 +149,7 @@ const GATE_KEYS: Record<GateMoment, string> = {
 /**
  * The streak at which the wall fires its second (and last) time.
  * Duolingo's retention team: "going from a 1 to 2-day streak is a huge
- * jump in retention", decaying until ~7 — day 3 is where the stake is
+ * jump in retention", decaying until ~7; day 3 is where the stake is
  * big enough to name and the habit is still the thing being decided.
  */
 export const GATE_STREAK = 3;
@@ -182,13 +182,13 @@ export function markWelcomed(): void {
 
 /**
  * Which showing of the save-progress wall this moment has earned, if
- * any. Pure — the callers own reading the session and the flags.
+ * any. Pure: the callers own reading the session and the flags.
  *
- * `repCountBefore` is the count captured on mount, BEFORE this rep —
+ * `repCountBefore` is the count captured on mount, BEFORE this recording:
  * null means the fetch never landed, and an unknown count never gets
- * the rep-1 wall (a wall shown twice to the wrong person is worse than
- * one shown late). The streak showing keys off the real post-rep
- * streak, so it self-corrects: someone who declined at rep 1 and kept
+ * the first-recording wall (a wall shown twice to the wrong person is worse than
+ * one shown late). The streak showing keys off the real post-recording
+ * streak, so it self-corrects: someone who declined after the first recording and kept
  * going gets the second ask when the stake is three days tall.
  */
 export function gateMoment(args: {

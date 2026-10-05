@@ -75,8 +75,8 @@ import { useRovingRadio } from "@/lib/use-roving-radio";
  *
  * What #249 added, and why it is not decoration:
  *
- *  - Demos REACTS. Every answer moves him — a nod on the wrapper, one
- *    shot, 460ms — and where the answer actually changed something he
+ *  - Demos REACTS. Every answer moves him (a nod on the wrapper, one
+ *    shot, 460ms), and where the answer actually changed something he
  *    also says so, in the line's own slot, replacing the question's
  *    description. Where it changed nothing he only nods. The strings
  *    are in content/portfolio.ts, on the options themselves.
@@ -340,7 +340,7 @@ function Walk() {
      * The hour is a device preference, so it applies the moment it is
      * chosen rather than waiting for the plan: picking "Evening" and
      * seeing nothing happen until two screens later is the opposite of
-     * a control that answers your hand. No permission is requested —
+     * a control that answers your hand. No permission is requested:
      * `armPush` no-ops until one is granted (content/portfolio.ts).
      */
     if (patch.time !== undefined) {

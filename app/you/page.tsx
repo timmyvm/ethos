@@ -224,7 +224,11 @@ export default function YouPage() {
         setPremium(p?.premium ?? false);
         return syncOnboarding().then(setOnboarding);
       })
-      .catch(() => {});
+      .catch(() => {
+        /* The profile didn't load: the name stays unknown (never "Add
+           your name" over one that exists), the answers still sync. */
+        syncOnboarding().then(setOnboarding).catch(() => {});
+      });
     const db = supabaseBrowser();
     db?.auth
       .getUser()

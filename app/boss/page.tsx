@@ -99,7 +99,8 @@ export default function BossPage() {
     setSpinsUsed(readSpins(thisWeek));
     fetchProfile()
       .then((p) => setPremium(p?.premium ?? false))
-      .catch(() => setPremium(false));
+      // Unknown, not free: a failed read never locks a paying account.
+      .catch(() => setPremium(null));
     fetchReps()
       .then((reps) => {
         const boss = reps.filter((r) => r.mode === "boss");

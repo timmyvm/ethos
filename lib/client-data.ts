@@ -59,17 +59,21 @@ export async function fetchReps(limit = 90): Promise<RepRow[]> {
   if (!db) return [];
   const { data: session } = await db.auth.getSession();
   if (!session.session) return [];
+  // The NEWEST `limit` rows. Ascending with a limit kept the oldest 90,
+  // so anyone past 90 recordings lost this week's (the boss's "taken
+  // this week", Hostile's allowance, today's streak day).
   const { data, error } = await db
     .from("reps")
     .select(REP_COLUMNS)
-    .order("created_at", { ascending: true })
+    .order("created_at", { ascending: false })
     .limit(limit);
   // An answered error (500, an expired JWT's 401) used to come back as
   // [], and every screen drew its zero state over a read that never
   // happened. "Nothing yet" and "didn't load" are different screens
   // (DECISIONS #147); only a throw reaches the error card.
   if (error) throw error;
-  return (data as RepRow[] | null) ?? [];
+  // Handed back oldest first, the order every caller reads the log in.
+  return [...((data as RepRow[] | null) ?? [])].reverse();
 }
 
 export async function fetchRep(id: string): Promise<RepRow | null> {
@@ -147,10 +151,14 @@ export interface ProfileRow {
 export async function fetchProfile(): Promise<ProfileRow | null> {
   const db = supabaseBrowser();
   if (!db) return null;
-  const { data } = await db
+  const { data, error } = await db
     .from("profiles")
     .select("display_name, premium, premium_until, equipped_pose")
     .maybeSingle();
+  // A failed read used to resolve as "not premium", which showed a
+  // paying account the Premium wall (#146). Unknown is not free: throw,
+  // and each caller decides what an unknown plan draws.
+  if (error) throw error;
   const row = (data as ProfileRow | null) ?? null;
   const stored = row?.premium ?? false;
   return {

@@ -177,7 +177,17 @@ async function supabase(route) {
   if (url.pathname.startsWith("/rest/v1/streaks")) return route.fulfill(json(single ? streaks : [streaks]));
   const table = url.pathname.replace("/rest/v1/", "").split("/")[0];
   if (req.method() !== "GET") return route.fulfill(json([]));
-  const rows = TABLES[table] ?? [];
+  let rows = TABLES[table] ?? [];
+  // PostgREST's order and limit, honoured, so a read for the newest N
+  // gets the newest N (fetchReps asks descending and reverses).
+  const order = url.searchParams.get("order");
+  if (order) {
+    const [col, dir] = order.split(".");
+    const sign = dir === "desc" ? -1 : 1;
+    rows = [...rows].sort((a, b) => (a[col] < b[col] ? -sign : a[col] > b[col] ? sign : 0));
+  }
+  const limit = Number(url.searchParams.get("limit"));
+  if (limit > 0) rows = rows.slice(0, limit);
   const id = url.searchParams.get("id");
   if (id) {
     const found = rows.find((r) => r.id === id.replace(/^eq\./, ""));

@@ -51,7 +51,8 @@ async function supabase(route) {
   if (url.pathname.startsWith("/auth/v1/user")) return route.fulfill(json(user));
   if (url.pathname.startsWith("/auth/v1/")) return route.fulfill(json({}));
   if (url.pathname.startsWith("/rest/v1/rpc/")) return route.fulfill(json(0));
-  if (url.pathname.startsWith("/rest/v1/reps")) return route.fulfill(json(req.method() === "GET" ? reps : []));
+  // fetchReps asks for the newest first (order=created_at.desc) and reverses.
+  if (url.pathname.startsWith("/rest/v1/reps")) return route.fulfill(json(req.method() === "GET" ? [...reps].reverse() : []));
   if (url.pathname.startsWith("/rest/v1/")) return route.fulfill(json([]));
   if (url.pathname.startsWith("/storage/")) return route.fulfill(json({ signedURL: "/x.wav" }));
   return route.fulfill(json({}, 404));

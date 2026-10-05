@@ -143,7 +143,9 @@ export default function Home() {
        the profile answer, so the default never flashes over the thing
        someone paid for. The account's equipped pose wins over the
        device's copy — it's what follows a purchase to a new phone. */
-    Promise.all([fetchProfile(), fetchCoinLedger()])
+    /* A failed profile read throws now; the device's pose and the
+       answers' sync still run, and the mods keep the free reading. */
+    Promise.all([fetchProfile().catch(() => null), fetchCoinLedger()])
       .then(([p, l]) => {
         setPremium(p?.premium ?? false);
         const pose = p?.equipped_pose ?? readPrefs().pose;

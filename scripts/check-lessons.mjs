@@ -60,7 +60,7 @@ page.on("pageerror", (e) => console.log("PAGEERROR", page.url(), e.message.slice
 
 // ---- 1. Lessons lists them, grouped, with their art ----------------------
 await page.goto(`${BASE}/lessons`);
-await page.waitForSelector("main .label-data");
+await page.waitForSelector("main [data-trait] h2");
 await page.evaluate(async () => {
   const h = document.body.scrollHeight;
   for (let y = 0; y < h; y += window.innerHeight) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 120)); }
@@ -73,15 +73,18 @@ const art = await page.evaluate(() =>
 /* Fifteen rows plus the up-next card, which shows one of them again. */
 ok("every lesson row has its picture", art.length >= 15 && art.every((w) => w > 0), `${art.filter((w) => w > 0).length}/${art.length}`);
 /* The feedback round after #296: the gallery read as a paid store. The
-   list is rows, one tap on top, and nothing paid anywhere near it. */
+   list is rows, one tap on top, and nothing paid anywhere near it. The
+   tap is the Up next card's terracotta square (M03): one fill on the
+   page, inside the one link that starts the next practice. */
 const list = await page.evaluate(() => ({
   rows: document.querySelectorAll("main a[data-lesson]").length,
-  taps: [...document.querySelectorAll("main a")].filter((a) => a.className.includes("bg-terracotta-500")).length,
+  taps: document.querySelectorAll('main [class*="bg-terracotta-500"]').length,
+  tapIsUpNext: !!document.querySelector('main a[data-up-next][href*="lesson="] [class*="bg-terracotta-500"]'),
   upNext: document.querySelector("main [data-up-next]")?.getAttribute("data-up-next") ?? null,
   paid: /premium/i.test(document.querySelector("main")?.textContent ?? "") ||
     !!document.querySelector('main [class*="plum-"]'),
 }));
-ok("fifteen rows, one tap, on the lesson that is next", list.rows === 15 && list.taps === 1 && !!list.upNext, JSON.stringify(list));
+ok("fifteen rows, one tap, on the lesson that is next", list.rows === 15 && list.taps === 1 && list.tapIsUpNext && !!list.upNext, JSON.stringify(list));
 ok("nothing on the list says paid", !list.paid);
 
 // ---- 2. A lesson opens, and its last practice is the harder one ----------
@@ -97,7 +100,7 @@ ok(
 ok("the tier is never on the screen", !/tier/i.test(await page.textContent("main")));
 
 // ---- 3. Into the first practice -----------------------------------------
-await page.getByRole("link", { name: /Start the lesson/ }).click();
+await page.getByRole("link", { name: "Start", exact: true }).click();
 await page.waitForSelector('button[aria-label="Start recording"]');
 const url = new URL(page.url());
 ok(
@@ -162,7 +165,7 @@ ok(
 /* The review after the list shipped. A failed read of the log used to
    land as "nothing done": Up next said Start on a lesson they may have
    finished. And the lesson page started at zero, so for a returning user
-   its button said "Start the lesson" until the log arrived, and a tap in
+   its button said "Start" until the log arrived, and a tap in
    that window filed practice 1 again. */
 {
   const ctx = await browser.newContext({
@@ -214,7 +217,7 @@ ok(
   const inFlight = await p.evaluate(() => ({
     labelled: [...document.querySelectorAll("main a, main button")]
       .map((e) => (e.textContent ?? "").trim())
-      .filter((t) => /Start the lesson|Practice \d of \d|Run it again/.test(t)),
+      .filter((t) => /^(Start|Practice \d of \d|Run it again)$/.test(t)),
     held: !!document.querySelector("main button[disabled][aria-busy]"),
   }));
   ok(
@@ -225,16 +228,19 @@ ok(
   const landed = await p
     .waitForSelector('main a[href*="lesson="]', { timeout: 10000 })
     .then((a) => a.textContent(), () => null);
-  ok("and names it once the log is in", /Start the lesson/.test(landed ?? ""), String(landed));
+  ok("and names it once the log is in", /^Start$/.test((landed ?? "").trim()), String(landed));
   holdReps = 0;
 
-  /* 320px, the narrowest phone: "3 PRACTICES" wrapped to two lines in
-     every row and in the up-next card. */
+  /* 320px, the narrowest phone: "3 PRACTICES" once wrapped to two lines
+     in every row and in the up-next card. The labels print only when
+     they are news now (M10): "2 of 3", "Done", and the row's "Carry on". */
   await p.setViewportSize({ width: 320, height: 700 });
   await p.goto(`${BASE}/lessons`);
   await p.waitForSelector("main [data-up-next]");
-  const wrapped = await p.$$eval("main [data-progress] .label-micro, main [data-up-next] .label-micro", (els) =>
-    els.filter((e) => e.getClientRects().length > 1 || e.getBoundingClientRect().height > 18).map((e) => e.textContent)
+  const wrapped = await p.$$eval("main [data-progress-label]", (els) =>
+    els
+      .filter((e) => e.getBoundingClientRect().height > 1.5 * parseFloat(getComputedStyle(e).lineHeight))
+      .map((e) => e.textContent)
   );
   ok("at 320px every progress label holds one line", wrapped.length === 0, JSON.stringify(wrapped));
   await ctx.close();

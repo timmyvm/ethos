@@ -1,11 +1,13 @@
 "use client";
 
+import { IconChevron } from "@/components/Icon";
 import { Disclosure } from "@/components/ui/Disclosure";
+import { SegmentBar } from "@/components/ui/SegmentBar";
 import Link from "next/link";
 import type { Lesson } from "@/content/lessons";
 import { TRAIT } from "@/content/traits";
+import { nextPractice } from "@/lib/lesson-progress";
 import { repHref } from "@/lib/rep-config";
-import { ACTION_CLASS } from "@/lib/ui";
 
 /**
  * A lesson, as a row you move through rather than a tile you buy.
@@ -18,10 +20,10 @@ import { ACTION_CLASS } from "@/lib/ui";
  * what doing it involves or where you are in it, is a course store.
  *
  * So the art keeps its place and loses the lead. It is a thumbnail
- * beside the text, the text says what it is (three practices, as three
- * segments that fill in sage), and the row ends in the same arrow every
- * free door in the app ends in. The Practice tab puts the Premium chip
- * before that arrow where a tap leads to paying; a lesson never has one.
+ * beside the text, the text says where you are in it (three practices,
+ * as one bar of three segments that fill in sage), and the row ends in
+ * the same Disclosure every row-shaped door in the app ends in. A
+ * lesson never carries the Premium chip.
  */
 
 /**
@@ -38,15 +40,20 @@ export function LessonArt({
   lesson,
   size,
   eager = false,
+  radius = "rounded-control",
+  className = "",
 }: {
   lesson: Lesson;
   size: number;
   eager?: boolean;
+  /** A thumbnail is a control's 12; the lesson page's 120 stands at the card's 16. */
+  radius?: "rounded-control" | "rounded-card";
+  className?: string;
 }) {
   return (
     <span
       aria-hidden
-      className="lesson-art relative block shrink-0 overflow-hidden rounded-control bg-sand"
+      className={`lesson-art relative block shrink-0 overflow-hidden bg-sand ${radius} ${className}`}
       style={{ width: size, height: size }}
     >
       {/* Soft 3D renders since #319, square, cut to 360px. */}
@@ -64,41 +71,82 @@ export function LessonArt({
 }
 
 /**
- * The three practices as three segments. Square, like every bar in the
- * app (STATE.md), and sage when done because a practice recorded is a
- * thing worked for. The segments shrink before the label beside them
- * wraps (`.lesson-pip`), so at 320px "3 practices" stays one line.
+ * The count beside the bar, printed only when it is news (M10): nothing
+ * before you start (three empty segments already say three), "1 of 3"
+ * during, "Done" after. It used to print "3 PRACTICES" in tracked caps
+ * on all sixteen bars, the same words sixteen times (lessons-1).
  */
-export function Pips({ done, total }: { done: number; total: number }) {
+export function progressLabel(done: number, total: number): string | null {
+  if (done >= total) return "Done";
+  if (done <= 0) return null;
+  return `${done} of ${total}`;
+}
+
+/**
+ * The bar and its label, one line. `cue` takes the label slot on the
+ * row Up next points at ("Up next", "Carry on"), in the trait's ink, so
+ * the row says it is the lesson on the card above (lessons-19).
+ */
+function Progress({
+  done,
+  total,
+  cue,
+  className = "",
+}: {
+  done: number;
+  total: number;
+  cue?: string | null;
+  className?: string;
+}) {
+  const label = progressLabel(done, total);
   return (
-    <span className="flex min-w-0 shrink items-center gap-1" aria-hidden>
-      {Array.from({ length: total }, (_, i) => (
-        <span key={i} className="lesson-pip" data-done={i < done} />
-      ))}
+    <span className={`flex h-4.5 items-center gap-2.5 ${className}`}>
+      <SegmentBar total={total} done={done} className="min-w-0 flex-1" />
+      {cue ? (
+        <span
+          data-progress-label
+          className="whitespace-nowrap text-caption font-semibold tone-ink"
+        >
+          {cue}
+        </span>
+      ) : (
+        label && (
+          <span
+            data-progress-label
+            className={`whitespace-nowrap text-link tabular-nums ${
+              done >= total ? "text-sage-700" : "font-medium text-stone-500"
+            }`}
+          >
+            {label}
+          </span>
+        )
+      )}
     </span>
   );
 }
 
-/** "3 practices" before you start, "1 of 3" during, "Done" after. */
-export function progressLabel(done: number, total: number): string {
-  if (done >= total) return "Done";
-  if (done === 0) return `${total} practices`;
-  return `${done} of ${total}`;
-}
+/**
+ * The inset rule between rows: a hairline from the title's edge (20 gutter
+ * + 56 art + 14 gap = 90px) to the row's end, the `.inset-group` icon-inset
+ * grammar on the open ground. None above a section's first row.
+ */
+const RULE =
+  "before:absolute before:left-[90px] before:right-0 before:top-0 before:h-px before:origin-top before:scale-y-50 before:bg-hairline";
 
 export function LessonRow({
   lesson,
   done,
   pending = true,
   first = false,
+  eager = false,
+  cue = null,
 }: {
   lesson: Lesson;
   /**
    * How many of its practices have a recording against them, or null
    * while that is unknown: the log is in flight, or it failed. Unknown
-   * draws no pips and no label, because "3 practices" and three empty
-   * segments are a claim (you have not started) that a failed read
-   * cannot make.
+   * draws no bar and no label, because three empty segments are a
+   * claim (you have not started) that a failed read cannot make.
    */
   done: number | null;
   /**
@@ -109,89 +157,81 @@ export function LessonRow({
    */
   pending?: boolean;
   first?: boolean;
+  /** Above the fold: load the thumbnail at once (lessons-21). */
+  eager?: boolean;
+  /** "Up next" or "Carry on" on the row the Up next card points at. */
+  cue?: string | null;
 }) {
   const total = lesson.practices.length;
   const known = done !== null;
-  const complete = known && done >= total;
+  /*
+   * Flush to the gutter (-mx-5 px-5), so the press lights the whole width
+   * the way an iOS list row does, and never scales: a row that shrinks
+   * pulls away from the rows beside it (`.press-row`, lessons-4). The
+   * focus ring is drawn inside, because outside it would sit on the
+   * screen's edge (lessons-5).
+   */
   return (
     <Link
       href={`/lessons/${lesson.id}`}
       data-lesson={lesson.id}
-      className={`press flex items-center gap-3.5 px-4 py-3 ${
-        first ? "" : "border-t border-hairline"
+      className={`press-row relative -mx-5 flex items-center gap-3.5 px-5 py-3 focus-visible:-outline-offset-3! ${
+        first ? "" : RULE
       }`}
     >
-      <LessonArt lesson={lesson} size={56} />
+      <LessonArt lesson={lesson} size={56} eager={eager} />
       <span className="min-w-0 flex-1">
-        <span className="font-display block text-[15px] font-bold leading-snug">
-          {lesson.title}
-        </span>
+        <span className="font-display block text-row">{lesson.title}</span>
         {(known || pending) && (
           <span
             data-progress={known ? done : "unknown"}
-            className={`mt-1.5 flex items-center gap-2.5 ${known ? "" : "invisible"}`}
+            className={`mt-2 block ${known ? "" : "invisible"}`}
           >
-            <Pips done={done ?? 0} total={total} />
-            <span
-              className={`label-micro whitespace-nowrap ${complete ? "text-sage-700" : "text-stone-400"}`}
-            >
-              {progressLabel(done ?? 0, total)}
-            </span>
+            <Progress done={done ?? 0} total={total} cue={known ? cue : null} />
           </span>
         )}
       </span>
-      <Disclosure className="text-stone-400" />
+      <Disclosure />
     </Link>
   );
 }
 
 /**
- * The one tap on the page: the lesson that is yours next, on its
- * trait's own ground, with a button that goes straight into the next
- * practice. One tap from the tab to recording is what "you just start
- * it" looks like.
+ * The one tap on the page, and its one lifted thing: the lesson that is
+ * yours next, as one row that goes straight into its next practice (M03,
+ * Imprint's "continue" card). One tap from the tab to recording is what
+ * "you just start it" looks like. The terracotta square is the tap's
+ * colour; the whole card is the target.
  */
 export function UpNextCard({ lesson, done }: { lesson: Lesson; done: number }) {
   const total = lesson.practices.length;
-  const next = Math.min(done + 1, total);
+  const next = nextPractice(lesson, done);
   return (
-    <section
+    <Link
+      href={repHref({
+        lesson: lesson.id,
+        q: String(next),
+        back: `/lessons/${lesson.id}`,
+      })}
       data-trait={lesson.trait}
       data-up-next={lesson.id}
-      className="arrive elev-2 overflow-hidden rounded-card border border-card-edge bg-raised"
+      aria-label={`${done > 0 ? "Carry on" : "Start"} ${lesson.title}, practice ${next} of ${total}`}
+      className="card elev-2 press arrive flex items-center gap-3.5 p-4 focus-visible:-outline-offset-3!"
     >
-      <Link
-        href={`/lessons/${lesson.id}`}
-        className="press tone-wash flex items-center gap-4 p-4"
-      >
-        <LessonArt lesson={lesson} size={84} eager />
-        <span className="min-w-0 flex-1">
-          <span className="label-micro tone-ink block whitespace-nowrap">
-            {done > 0 ? "Carry on" : "Up next"} · {TRAIT[lesson.trait].name}
-          </span>
-          <span className="font-display mt-1 block text-[19px] font-bold leading-tight">
-            {lesson.title}
-          </span>
-          <span className="mt-2 flex items-center gap-2.5">
-            <Pips done={done} total={total} />
-            <span className="label-micro tone-ink whitespace-nowrap">
-              {progressLabel(done, total)}
-            </span>
-          </span>
-        </span>
-      </Link>
-      <div className="p-4">
-        <Link
-          href={repHref({
-            lesson: lesson.id,
-            q: String(next),
-            back: `/lessons/${lesson.id}`,
-          })}
-          className={ACTION_CLASS}
-        >
-          {done === 0 ? "Start" : `Practice ${next} of ${total}`}
-        </Link>
+      <LessonArt lesson={lesson} size={64} eager />
+      <div className="min-w-0 flex-1">
+        <h2 className="font-display truncate text-detail">{lesson.title}</h2>
+        <div className="text-row font-semibold tone-ink">{TRAIT[lesson.trait].name}</div>
+        <Progress done={done} total={total} className="mt-2" />
       </div>
-    </section>
+      <span
+        aria-hidden
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-control bg-terracotta-500 text-on-accent"
+      >
+        <span className="flex -rotate-90">
+          <IconChevron size={20} />
+        </span>
+      </span>
+    </Link>
   );
 }

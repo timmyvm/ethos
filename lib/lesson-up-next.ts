@@ -16,6 +16,8 @@
 import { LESSONS, type Lesson } from "@/content/lessons";
 import type { TraitId } from "@/content/traits";
 import { PAINS } from "@/content/portfolio";
+import { substance } from "./metrics";
+import { readTraitsFromRow } from "./trait-readings";
 
 export function upNextLesson(
   done: Record<string, number>,
@@ -51,4 +53,31 @@ export function traitForSaid(said: string | null | undefined): TraitId | null {
     range: "range",
   };
   return metric ? (BY_METRIC[metric] ?? null) : null;
+}
+
+/**
+ * The number each trait's section on Lessons opens with, and the one the
+ * lesson page calls "Your number": the last recording's reading, in the
+ * trait's own unit (lib/trait-readings.ts, the one definition of "your
+ * pausing"). A number, not a description (#317: no trait descriptions).
+ *
+ * Absent, never zero, wherever the row cannot say: no recordings, a row
+ * with no length or no words, and Restarts on a row that stored no
+ * restarts score (readTraitsFromRow reads that as a rate of 0, which
+ * would print "0 restarts per hundred words" for a number nobody took).
+ * `rows` is the log oldest first, as fetchReps returns it.
+ */
+export function lastReadings(
+  rows: Parameters<typeof readTraitsFromRow>[0][]
+): Partial<Record<TraitId, number>> {
+  const last = rows.length > 0 ? rows[rows.length - 1] : null;
+  if (!last || !(last.duration_s > 0)) return {};
+  if (substance(last.transcript ?? "").wordCount === 0) return {};
+  const out: Partial<Record<TraitId, number>> = {};
+  for (const r of readTraitsFromRow(last)) {
+    if (!Number.isFinite(r.raw)) continue;
+    if (r.id === "repairs" && typeof last.dimensions?.tier1?.repairs !== "number") continue;
+    out[r.id] = r.raw;
+  }
+  return out;
 }

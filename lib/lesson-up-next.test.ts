@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { LESSONS } from "@/content/lessons";
-import { traitForSaid, upNextLesson } from "@/lib/lesson-up-next";
+import { lastReadings, traitForSaid, upNextLesson } from "@/lib/lesson-up-next";
 
 const byId = (id: string) => LESSONS.find((l) => l.id === id)!;
 
@@ -50,6 +50,45 @@ describe("the lesson that gets the Lessons page's one tap", () => {
 });
 
 /*
+ * Each trait's section on Lessons opens with its last number, and the
+ * lesson page calls it "Your number". Unknown is never shown as 0.
+ */
+describe("the number a trait's section opens with", () => {
+  const row = (over: Record<string, unknown> = {}) => ({
+    duration_s: 60,
+    transcript: "So the thing about habits is they compound and the big version arrives on its own.",
+    wpm: 140,
+    filler_count: 2,
+    fillers: [{ word: "um" }, { word: "like" }],
+    pauses: [{ kind: "pre" }, { kind: "pre" }, { kind: "mid" }],
+    dimensions: { tier1: { repairs: 80 } },
+    ...over,
+  });
+
+  it("is nothing at all with no recordings", () => {
+    expect(lastReadings([])).toEqual({});
+  });
+
+  it("reads the LAST recording, every trait in its own unit", () => {
+    const r = lastReadings([row({ wpm: 100 }), row({ wpm: 152 })]);
+    expect(r.pace).toBe(152);
+    expect(r.pause).toBeCloseTo(2);
+    expect(Object.keys(r).sort()).toEqual(["fillers", "pace", "pause", "range", "repairs"]);
+  });
+
+  it("leaves Restarts out, rather than printing 0, when the row stored no restarts score", () => {
+    const r = lastReadings([row({ dimensions: null })]);
+    expect(r.repairs).toBeUndefined();
+    expect(r.pace).toBe(140);
+  });
+
+  it("says nothing for a row with no length or no words", () => {
+    expect(lastReadings([row({ duration_s: 0 })])).toEqual({});
+    expect(lastReadings([row({ transcript: "" })])).toEqual({});
+  });
+});
+
+/*
  * Every lesson is free (#269), and a first-time user still read the old
  * gallery as a paid course store. Nothing on the two lesson screens may
  * wear the paid colour or the Premium mark, and each screen keeps one
@@ -74,8 +113,10 @@ describe("the lesson screens never look paid", () => {
     const card = readFileSync(path.join(root, "components/lessons/LessonCard.tsx"), "utf8");
     const list = readFileSync(path.join(root, "app/lessons/page.tsx"), "utf8");
     const lesson = readFileSync(path.join(root, "app/lessons/[id]/page.tsx"), "utf8");
-    /* The list's tap lives in UpNextCard, rendered once; rows never carry one. */
-    expect(card.match(/ACTION_CLASS\}/g)?.length ?? 0).toBe(1);
+    /* The list's tap is UpNextCard's terracotta square (M03), rendered
+       once; rows never carry one, and the card has no second button. */
+    expect(card.match(/bg-terracotta-500/g)?.length ?? 0).toBe(1);
+    expect(card).not.toMatch(/ACTION_CLASS/);
     expect(list.match(/<UpNextCard/g)?.length).toBe(1);
     expect(list).not.toMatch(/ACTION_CLASS|bg-terracotta-500/);
     expect(lesson.match(/className=\{ACTION_CLASS\}/g)?.length).toBe(1);
@@ -83,10 +124,10 @@ describe("the lesson screens never look paid", () => {
 });
 
 /*
- * The Lessons page's subtitle, "Fifteen lessons, all free. Three
- * practices each.", spells both counts out in words (app/lessons/page.tsx).
- * Nothing builds it from the content, so this is what notices the day a
- * lesson is added or a fourth practice lands: change the words with it.
+ * The lesson page's head says "The three practices" in words, and the
+ * bars draw three segments (app/lessons/[id]/page.tsx). Nothing builds
+ * the word from the content, so this is what notices the day a lesson
+ * is added or a fourth practice lands: change the words with it.
  */
 describe("the lessons the page used to count", () => {
   it("are fifteen, three practices each", () => {

@@ -88,7 +88,11 @@ export default function LessonPage() {
       data-trait={lesson.trait}
       className="mx-auto flex min-h-dvh max-w-[430px] flex-col px-5 pt-4"
     >
-      <BackLink href="/lessons" label="Lessons" className="relative z-[1] self-start" />
+      <BackLink
+        href="/lessons"
+        label="Lessons"
+        className="relative z-[1] self-start"
+      />
 
       {/*
        * The stage (M06, Imprint's lesson sheet): the art stands on a dome
@@ -107,7 +111,9 @@ export default function LessonPage() {
         <LessonArt lesson={lesson} size={120} radius="rounded-card" eager />
       </div>
       <TraitChip trait={lesson.trait} size="md" className="mt-4 self-center" />
-      <h1 className="font-display mt-3 text-center text-title">{lesson.title}</h1>
+      <h1 className="font-display mt-3 text-center text-title">
+        {lesson.title}
+      </h1>
 
       {/*
        * Your number: where the trait this lesson works on stood on the
@@ -117,8 +123,8 @@ export default function LessonPage() {
        */}
       {reading === undefined && !failed && (
         <div aria-hidden className="mt-7">
-          <Skeleton className="h-[22px] w-28" rounded="rounded-none" />
-          <Skeleton className="mt-3 h-[25px] w-56" rounded="rounded-none" />
+          <Skeleton className="h-[22.125px] w-28" rounded="rounded-none" />
+          <Skeleton className="mt-3 h-[26.5px] w-56" rounded="rounded-none" />
         </div>
       )}
       {shown !== null && (
@@ -128,7 +134,9 @@ export default function LessonPage() {
             <span className="text-caption text-stone-500">Last recording</span>
           </div>
           <p className="mt-3 flex flex-wrap items-baseline gap-x-1.5">
-            <span className="font-display text-num-m tabular-nums">{shown}</span>
+            <span className="font-display text-num-m tabular-nums">
+              {shown}
+            </span>
             <span className="text-body text-stone-500">
               {shown === "1" ? trait.unitOne : trait.unit}
             </span>
@@ -159,7 +167,11 @@ export default function LessonPage() {
           const here = known && !complete && n === next;
           const mod = p.mods?.[0] ? modById(p.mods[0]) : null;
           return (
-            <li key={n} data-done={known ? did : undefined} className="flex gap-3.5">
+            <li
+              key={n}
+              data-done={known ? did : undefined}
+              className="flex gap-3.5"
+            >
               <span
                 aria-hidden
                 className={`font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] text-row font-extrabold tabular-nums ${
@@ -177,7 +189,9 @@ export default function LessonPage() {
                   Practice {n}
                   {did ? ", done" : here ? ", next" : ""}.{" "}
                 </span>
-                <p className={`text-read text-pretty ${did ? "text-stone-500" : "text-stone-800"}`}>
+                <p
+                  className={`text-read text-pretty ${did ? "text-stone-500" : "text-stone-800"}`}
+                >
                   {p.prompt}
                 </p>
                 {/*
@@ -189,7 +203,8 @@ export default function LessonPage() {
                  */}
                 {mod && (
                   <p className="mt-1.5 text-caption text-stone-500">
-                    <span className="font-semibold text-ink">{mod.name}:</span> {mod.blurb}
+                    <span className="font-semibold text-ink">{mod.name}:</span>{" "}
+                    {mod.blurb}
                   </p>
                 )}
               </div>
@@ -209,7 +224,10 @@ export default function LessonPage() {
        */}
       <div
         className="sticky bottom-0 z-[1] -mx-5 mt-auto px-5 pt-6 pb-[calc(var(--nav-clear)-16px)]"
-        style={{ background: "linear-gradient(to bottom, transparent, var(--color-ground) 24px)" }}
+        style={{
+          background:
+            "linear-gradient(to bottom, transparent, var(--color-ground) 24px)",
+        }}
       >
         {known ? (
           <Link
@@ -220,7 +238,11 @@ export default function LessonPage() {
             })}
             className={ACTION_CLASS}
           >
-            {complete ? "Run it again" : done === 0 ? "Start" : `Practice ${next} of ${total}`}
+            {complete
+              ? "Run it again"
+              : done === 0
+                ? "Start"
+                : `Practice ${next} of ${total}`}
           </Link>
         ) : failed ? (
           <ErrorLine className="text-center" onRetry={retry}>

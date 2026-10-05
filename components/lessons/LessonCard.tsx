@@ -85,7 +85,9 @@ export function progressLabel(done: number, total: number): string | null {
 /**
  * The bar and its label, one line. `cue` takes the label slot on the
  * row Up next points at ("Up next", "Carry on"), in the trait's ink, so
- * the row says it is the lesson on the card above (lessons-19).
+ * the row says it is the lesson on the card above (lessons-19). The slot
+ * keeps its width when it is empty, so every bar in a list ends at the
+ * same x whether or not its count is news (52px holds "Carry on").
  */
 function Progress({
   done,
@@ -102,25 +104,27 @@ function Progress({
   return (
     <span className={`flex h-4.5 items-center gap-2.5 ${className}`}>
       <SegmentBar total={total} done={done} className="min-w-0 flex-1" />
-      {cue ? (
-        <span
-          data-progress-label
-          className="whitespace-nowrap text-caption font-semibold tone-ink"
-        >
-          {cue}
-        </span>
-      ) : (
-        label && (
+      <span className="w-13 shrink-0">
+        {cue ? (
           <span
             data-progress-label
-            className={`whitespace-nowrap text-link tabular-nums ${
-              done >= total ? "text-sage-700" : "font-medium text-stone-500"
-            }`}
+            className="whitespace-nowrap text-caption font-semibold tone-ink"
           >
-            {label}
+            {cue}
           </span>
-        )
-      )}
+        ) : (
+          label && (
+            <span
+              data-progress-label
+              className={`whitespace-nowrap text-link tabular-nums ${
+                done >= total ? "text-sage-700" : "font-medium text-stone-500"
+              }`}
+            >
+              {label}
+            </span>
+          )
+        )}
+      </span>
     </span>
   );
 }
@@ -220,8 +224,12 @@ export function UpNextCard({ lesson, done }: { lesson: Lesson; done: number }) {
     >
       <LessonArt lesson={lesson} size={64} eager />
       <div className="min-w-0 flex-1">
-        <h2 className="font-display truncate text-detail">{lesson.title}</h2>
-        <div className="text-row font-semibold tone-ink">{TRAIT[lesson.trait].name}</div>
+        {/* One line at 390 (the longest title fits); at 320 it wraps
+            rather than ending in an ellipsis that hides the lesson's name. */}
+        <h2 className="font-display text-detail">{lesson.title}</h2>
+        <div className="text-row font-semibold tone-ink">
+          {TRAIT[lesson.trait].name}
+        </div>
         <Progress done={done} total={total} className="mt-2" />
       </div>
       <span

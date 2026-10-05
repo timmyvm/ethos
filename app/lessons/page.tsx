@@ -41,7 +41,9 @@ export default function LessonsPage() {
      one lesson and then swaps to another (Skeleton's rule 1). */
   const [done, setDone] = useState<Record<string, number> | null>(null);
   /* Each trait's last reading, null while the log is in flight. */
-  const [readings, setReadings] = useState<Partial<Record<TraitId, number>> | null>(null);
+  const [readings, setReadings] = useState<Partial<
+    Record<TraitId, number>
+  > | null>(null);
   /* A failed read is its own state, never an empty log (#147). It used
      to land as done = {}, and the page said "Start" on a lesson they may
      have finished: no card, no bars, a line and a retry instead. */
@@ -101,10 +103,16 @@ export default function LessonsPage() {
               <h2 className="section-head tone-ink">{t.name}</h2>
               {/* Their own words, kept from the road (#231). */}
               {focus === t.id && (
-                <span className="section-head-aside tone-ink">You said {said}</span>
+                <span className="section-head-aside tone-ink">
+                  You said {said}
+                </span>
               )}
             </div>
-            <TraitNumber trait={t} raw={readings ? (readings[t.id] ?? null) : undefined} pending={!failed} />
+            <TraitNumber
+              trait={t}
+              raw={readings ? (readings[t.id] ?? null) : undefined}
+              pending={!failed}
+            />
             <div className="stagger mt-2">
               {mine.map((l, i) => (
                 <LessonRow
@@ -151,7 +159,9 @@ function TraitNumber({
   const shown = fmtRaw(raw);
   return (
     <p className="arrive mt-1 text-body text-stone-500">
-      <span className="font-display font-bold tabular-nums text-ink">{shown}</span>{" "}
+      <span className="font-display font-bold tabular-nums text-ink">
+        {shown}
+      </span>{" "}
       {shown === "1" ? trait.unitOne : trait.unit}
     </p>
   );

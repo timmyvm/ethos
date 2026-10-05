@@ -17,7 +17,7 @@ user-facing string.
   it once where it lands hardest and trust the reader after that.
 - Section captions: one sentence. If a mechanic needs more, it doesn't belong
   here (see placement rules).
-- Zero rhetorical fragments used as sentences ("No guessing." "Just reps.")
+- Zero rhetorical fragments used as sentences ("No guessing." "Just practice.")
   outside of marketing pages, where at most one is allowed.
 
 ## Vocabulary
@@ -40,7 +40,7 @@ user-facing string.
   the profile. Coin economics live in the shop, not under the balance.
 - A number with a good label needs no paragraph. "1 a day" already explains
   coin earning; the philosophy under it was for us, not the user.
-- Instructions on the rep screen: what to do, one line. Why it works moves
+- Instructions on the recording screen: what to do, one line. Why it works moves
   to the tips card, which is already expandable. Hardware details (mic
   permission) appear the first time only, then never again.
 - If a string exists to justify a design decision to the user, cut it. The
@@ -56,7 +56,7 @@ user-facing string.
 - Banned constructions (the AI tells): "which is why …", "It's not X,
   it's Y", chained fragments ("Not A. Not B. Just C."), tailing negations
   ("…, no guessing"), explaining a feature by what it ISN'T.
-- Numbers speak for themselves. "17 reps" beats any sentence about
+- Numbers speak for themselves. "17 recordings" beats any sentence about
   consistency.
 
 ## The test for every string

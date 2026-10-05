@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { notFound, useParams, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { LessonScreen } from "@/components/LessonScreen";
 import { Ring } from "@/components/Ring";
 import { CountUp } from "@/components/CountUp";
+import { Disclosure } from "@/components/ui/Disclosure";
+import { NORMS } from "@/content/norms";
 import { TRAIT, type TraitId } from "@/content/traits";
 import { fetchReps } from "@/lib/client-data";
 import { DURATION } from "@/lib/motion";
@@ -62,50 +64,62 @@ function Lesson() {
   const id = params.trait as TraitId;
   const def = TRAIT[id];
 
-  /*
-   * `?done=1` is how the recorder hands the lesson back: the walk goes
-   * out to /rep and returns to the last step, where the new reading is
-   * waiting to be compared with the one it left on.
-   */
-  const returning = search.get("done") === "1";
+  /* The example step is skipped for a trait without approved copy. */
+  const steps = STEPS.filter((s) => s !== "example" || def?.walkthrough);
 
   const [readings, setReadings] = useState<TraitReading[] | null>(null);
   const [before, setBefore] = useState<TraitReading | null>(null);
-  const [i, setI] = useState(0);
+  /*
+   * practice-detail-1: whether the read has come back at all, success,
+   * nothing recorded yet, or a failure. Until it has, nothing on the
+   * screen is a number: the ring thinks and the figure is a dash, never
+   * a 0 (STATE: unknown progress is never drawn as zero).
+   */
+  const [loaded, setLoaded] = useState(false);
+  /*
+   * `?done=1` is how the recorder hands the lesson back: the walk goes
+   * out to /rep and returns to the last step, where the new reading is
+   * waiting to be compared with the one it left on. Read on the FIRST
+   * render (practice-detail-5), so the return paints the last step
+   * straight away instead of one frame of the first step and a slide.
+   */
+  const [i, setI] = useState(() => (search.get("done") === "1" ? steps.length - 1 : 0));
 
   useEffect(() => {
     let live = true;
     fetchReps(30)
       .then((reps) => {
-        if (!live || reps.length === 0) return;
-        const last = readTraitsFromRow(reps[reps.length - 1]);
-        setReadings(last);
-        /*
-         * The comparison is against the recording BEFORE this one, not
-         * against a stored snapshot: a snapshot would go stale the
-         * moment somebody recorded outside the lesson, and then the
-         * screen would claim a change that did not happen here.
-         */
-        if (reps.length > 1) {
-          const prev = readTraitsFromRow(reps[reps.length - 2]);
-          setBefore(prev.find((r) => r.id === id) ?? null);
+        if (!live) return;
+        if (reps.length > 0) {
+          const last = readTraitsFromRow(reps[reps.length - 1]);
+          setReadings(last);
+          /*
+           * The comparison is against the recording BEFORE this one, not
+           * against a stored snapshot: a snapshot would go stale the
+           * moment somebody recorded outside the lesson, and then the
+           * screen would claim a change that did not happen here.
+           */
+          if (reps.length > 1) {
+            const prev = readTraitsFromRow(reps[reps.length - 2]);
+            setBefore(prev.find((r) => r.id === id) ?? null);
+          }
         }
+        setLoaded(true);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (live) setLoaded(true);
+      });
     return () => {
       live = false;
     };
   }, [id]);
 
-  useEffect(() => {
-    if (returning) setI(STEPS.length - 1);
-  }, [returning]);
-
   if (!def) notFound();
 
-  const steps = STEPS.filter((s) => s !== "example" || def.walkthrough);
   const step: Step = steps[Math.min(i, steps.length - 1)];
   const now = readings?.find((r) => r.id === id) ?? null;
+  /* The scale's quality is the norm's, known before any read lands. */
+  const provisional = NORMS[id].quality === "provisional";
   const go = (n: number) => setI(Math.max(0, Math.min(n, steps.length - 1)));
   /*
    * Step 0's back is the way OUT, not `undefined` (#279). This route is
@@ -114,106 +128,140 @@ function Lesson() {
    * first screen of a lesson had no control on it but the one that goes
    * deeper. A lesson is entered by tapping a trait on Today and has to
    * be leavable the same way.
+   *
+   * practice-detail-24: the way out REPLACES this entry with Today
+   * rather than stacking Today on top of it, so the OS back gesture from
+   * Today never reopens the lesson.
    */
-  const back = i > 0 ? () => go(i - 1) : () => router.push("/");
+  const back = i > 0 ? () => go(i - 1) : () => router.replace("/");
+
+  /*
+   * What every step shares. The trait (practice-detail-6): `data-trait`
+   * on <main>, so the rings, the eyebrow and the distinction wear its
+   * tone, the colour the tile on Today wore when it was tapped. The axis
+   * (practice-detail-3, wellspoken-course s2): eyebrow, title and line
+   * centred on the ring's line, and the block centred in the height
+   * above the tap, so the six steps read as one layout.
+   */
+  const frame = { center: true, align: "center", stepKey: step, trait: id } as const;
 
   // ---- name -------------------------------------------------------------
   if (step === "name") {
+    /*
+     * practice-detail-2: "Today's lesson" claims the app chose this, so
+     * it is said only where it did: this trait is the one `nextTrait`
+     * would send somebody to. A provisional scale never chooses, and
+     * nothing has chosen while the read is in flight, so both say what
+     * the screen is.
+     */
+    const lowest = readings ? nextTrait(readings)?.next.id === id : false;
     return (
-      <LessonScreen
-        center
-        stepKey={step}
-        onBack={back}
-        /* "Today's lesson" claims the app chose this. On a provisional
-           scale it refused to (nextTrait returns nothing), so the
-           eyebrow says what the screen actually is. */
-        eyebrow={now?.quality === "provisional" ? "Practice" : "Today's lesson"}
-        title={def.name}
-        line={def.what}
-        art={
-          <div className="mb-6 flex justify-center">
-            <Ring
-              value={now?.fraction ?? 0}
-              size={132}
-              delay={220}
-              /* The scale is provisional or it is not, and the big ring
-                 on the lesson's first screen is the loudest place in
-                 the app to be quiet about that. */
-              provisional={now?.quality === "provisional"}
-            >
-              <CountUp
-                value={now?.percentile ?? 0}
-                durationMs={DURATION.max}
-                className="font-display text-[36px] font-extrabold leading-none"
-              />
-              <span className="label-micro mt-1 text-stone-500">percentile</span>
-            </Ring>
-          </div>
-        }
-        /* The reason, said out loud on the way in. This sentence is the
-           whole shift: a lesson is here because a number is. */
-        fineprint={
+      <Toned>
+        <LessonScreen
+          {...frame}
+          onBack={back}
+          eyebrow={lowest ? "Today's lesson" : "Practice"}
+          title={def.name}
+          line={def.what}
+          art={
+            <div className="mb-5 mt-7">
+              <RingStage>
+                <Ring
+                  value={now?.fraction ?? 0}
+                  size={RING}
+                  tone="trait"
+                  state={loaded ? "idle" : "thinking"}
+                  delay={220}
+                  /* The scale is provisional or it is not, and the big
+                     ring on the lesson's first screen is the loudest
+                     place in the app to be quiet about that. */
+                  provisional={now !== null && provisional}
+                  className={COIN}
+                >
+                  {now ? (
+                    <CountUp
+                      value={now.percentile}
+                      durationMs={DURATION.max}
+                      className={FIGURE}
+                    />
+                  ) : (
+                    <Dash />
+                  )}
+                  <span className="label-micro mt-1 text-stone-500">percentile</span>
+                </Ring>
+              </RingStage>
+              <Measured id={id} now={now} />
+            </div>
+          }
           /*
-           * A provisional scale does not get to say "the 40th". The
-           * MEASUREMENT is known either way and the placement is the
-           * half that is a guess, so the provisional line leads with
-           * the number that is true and names the doubt out loud. The
-           * dashed trough says the same thing in the picture; a person
-           * reading the fineprint should not have to decode it.
+           * The reason, said on the way in, in one plain sentence. The
+           * measurement itself sits by the ring (practice-detail-7);
+           * this line says what the ring's number is worth. Held at one
+           * line while the read is in flight, so the block does not
+           * move when it lands.
            */
-          !now
-            ? undefined
-            : now.quality === "provisional"
-              ? `${withUnit(id, now.raw)}, from your last recording. This scale is provisional.`
-              : `Your lowest trait. ${ordinal(now.percentile)} percentile, from your last recording.`
-        }
-        action={{ label: "Why it matters", onPress: () => go(i + 1) }}
-      />
+          fineprint={
+            !loaded
+              ? " "
+              : !now
+                ? "Record once to place this trait."
+                : provisional
+                  ? "The percentile is an estimate."
+                  : lowest
+                    ? `Your lowest trait, at the ${ordinal(now.percentile)} percentile.`
+                    : `${ordinal(now.percentile)} percentile, from your last recording.`
+          }
+          action={{ label: "Why it matters", onPress: () => go(i + 1) }}
+        />
+      </Toned>
     );
   }
 
   // ---- why --------------------------------------------------------------
   if (step === "why") {
     return (
-      <LessonScreen
-        center
-        stepKey={step}
-        onBack={back}
-        eyebrow={def.name}
-        title="Why it matters"
-        line={def.why}
-        controls={
-          /* The distinction is the hinge: the one thing people have
-             wrong about this trait. It gets a card rather than a second
-             line, because a lesson that can be skimmed past its hinge
-             is a tip. */
-          <div className="rounded-card border border-sage-300 bg-sage-50 p-3.5">
-            <div className="label-micro text-sage-700">The part people miss</div>
-            <p className="mt-1.5 text-body leading-relaxed">{def.distinction}</p>
-          </div>
-        }
-        action={{ label: "How to do it", onPress: () => go(i + 1) }}
-      />
+      <Toned>
+        <LessonScreen
+          {...frame}
+          onBack={back}
+          eyebrow={def.name}
+          title="Why it matters"
+          line={def.why}
+          controls={
+            /* The distinction is the hinge: the one thing people have
+               wrong about this trait. It gets a ground of its own rather
+               than a second line, because a lesson that can be skimmed
+               past its hinge is a tip. The trait's ground, not sage
+               (practice-detail-15): nothing on it is earned. */
+            <div className="rounded-card bg-(--tone-stage) p-4">
+              <h2 className="detail-head tone-ink">The part people miss</h2>
+              <p className="mt-2 text-read text-stone-800 text-pretty">{def.distinction}</p>
+            </div>
+          }
+          action={{ label: "How to do it", onPress: () => go(i + 1) }}
+        />
+      </Toned>
     );
   }
 
   // ---- how --------------------------------------------------------------
   if (step === "how") {
     return (
-      <LessonScreen
-        center
-        stepKey={step}
-        onBack={back}
-        eyebrow={def.name}
-        title="The technique"
-        howTo={def.howTo}
-        lead="howTo"
-        ladder
-        action={{
-          label: def.walkthrough ? "Hear it" : "Start",
-          onPress: () => go(i + 1),
-        }}
-      />
+      <Toned>
+        <LessonScreen
+          {...frame}
+          onBack={back}
+          eyebrow={def.name}
+          title="The technique"
+          howTo={def.howTo}
+          lead="howTo"
+          ladder
+          action={{
+            label: def.walkthrough ? "Hear it" : "Start",
+            onPress: () => go(i + 1),
+          }}
+        />
+      </Toned>
     );
   }
 
@@ -221,40 +269,42 @@ function Lesson() {
   if (step === "example" && def.walkthrough) {
     const w = def.walkthrough;
     return (
-      <LessonScreen
-        center
-        stepKey={step}
-        onBack={back}
-        eyebrow={def.name}
-        title="Same words, moved"
-        line={w.note}
-        controls={
-          <div className="space-y-3">
-            <Line label="Searching" text={w.before} />
-            <Line label="Landed" text={w.after} lit />
-          </div>
-        }
-        action={{ label: "Start", onPress: () => go(i + 1) }}
-      />
+      <Toned>
+        <LessonScreen
+          {...frame}
+          onBack={back}
+          eyebrow={def.name}
+          title="Same words, moved"
+          line={w.note}
+          controls={
+            <div className="space-y-3">
+              <Line label="Searching" text={w.before} />
+              <Line label="Landed" text={w.after} lit />
+            </div>
+          }
+          action={{ label: "Start", onPress: () => go(i + 1) }}
+        />
+      </Toned>
     );
   }
 
   // ---- practice ---------------------------------------------------------
   if (step === "practice") {
     return (
-      <LessonScreen
-        center
-        stepKey={step}
-        onBack={back}
-        eyebrow={def.name}
-        title="Sixty seconds"
-        line={def.howTo[0]}
-        action={{
-          label: "Record",
-          href: repHref({ lesson: `trait-${id}`, back: `/practice/${id}?done=1` }),
-        }}
-        fineprint="The tactic stays on screen while you talk."
-      />
+      <Toned>
+        <LessonScreen
+          {...frame}
+          onBack={back}
+          eyebrow={def.name}
+          title="Sixty seconds"
+          line={def.howTo[0]}
+          action={{
+            label: "Record",
+            href: repHref({ lesson: `trait-${id}`, back: `/practice/${id}?done=1` }),
+          }}
+          fineprint="The tactic stays on screen while you talk."
+        />
+      </Toned>
     );
   }
 
@@ -263,74 +313,177 @@ function Lesson() {
   const delta = now && before ? now.percentile - before.percentile : null;
 
   return (
-    <LessonScreen
-      /* Every step of the walk centres its block. Top-aligned, the
-         short ones sit above half a screen of nothing and the walk
-         reads as six different layouts. */
-      center
-      stepKey={step}
-      onBack={back}
-      eyebrow={def.name}
-      title={
-        /* "Up 26" is a claim about the population. Where the scale is
-           provisional there is no such claim to make, only a second
-           measurement, so the screen says that instead. */
-        delta !== null && delta > 0 && now?.quality !== "provisional"
-          ? `${def.name}, up ${delta}.`
-          : `${def.name}, measured again.`
-      }
-      line={
-        !now
-          ? undefined
-          : now.quality === "provisional"
-            ? `${withUnit(id, now.raw)}${
-                before ? `, from ${fmtRaw(before.raw)} last time.` : "."
-              }`
-            : `${ordinal(now.percentile)} percentile${
-                before ? `, from the ${ordinal(before.percentile)}.` : "."
-              }`
-      }
-      art={
-        <div className="mb-6 flex justify-center">
-          {/* The ring travels from where it WAS to where it is, in
-              front of them: the value it mounts with is the old one and
-              the new one lands a beat later. That beat is the whole
-              reward, and cutting to the answer throws it away. */}
-          <MovingRing
-            from={before?.fraction ?? 0}
-            to={now?.fraction ?? 0}
-            percentile={now?.percentile ?? 0}
-            provisional={now?.quality === "provisional"}
-          />
-        </div>
-      }
-      controls={
-        nxt && nxt.next.id !== id ? (
-          <Link
-            href={`/practice/${nxt.next.id}`}
-            className="press elev-1 flex items-center gap-3 rounded-card border border-card-edge bg-raised p-4"
-          >
-            <Ring value={nxt.next.fraction} size={44} delay={500}>
-              <span className="font-display text-[13px] font-extrabold leading-none">
-                {nxt.next.percentile}
+    <Toned>
+      <LessonScreen
+        {...frame}
+        onBack={back}
+        eyebrow={def.name}
+        title={
+          /* "Up 26" is a claim about the population. Where the scale is
+             provisional there is no such claim to make, only a second
+             measurement, so the screen says that instead. */
+          delta !== null && delta > 0 && !provisional
+            ? `${def.name}, up ${delta}.`
+            : `${def.name}, measured again.`
+        }
+        line={
+          /* One line held while the read is in flight, so the ring and
+             the title above it stay where they are when it lands. */
+          !now
+            ? " "
+            : provisional
+              ? `${withUnit(id, now.raw)}${
+                  before ? `, from ${fmtRaw(before.raw)} last time.` : "."
+                }`
+              : `${ordinal(now.percentile)} percentile${
+                  before ? `, from the ${ordinal(before.percentile)}.` : "."
+                }`
+        }
+        art={
+          <div className="mb-5 mt-7">
+            <RingStage>
+              {/* The ring travels from where it WAS to where it is, in
+                  front of them: the value it mounts with is the old one
+                  and the new one lands a beat later. That beat is the
+                  whole reward, and cutting to the answer throws it away.
+                  practice-detail-4: it is not mounted until the read is
+                  back, because mounted early it seeded on 0 and drew
+                  every change as a rise from empty; keyed on both values,
+                  so it always starts from the right one. Until then it
+                  thinks, with a dash, never a 0. */}
+              {now ? (
+                <MovingRing
+                  key={`${before?.fraction}-${now.fraction}`}
+                  from={before?.fraction ?? 0}
+                  fromPercentile={before?.percentile ?? 0}
+                  to={now.fraction}
+                  percentile={now.percentile}
+                  provisional={provisional}
+                />
+              ) : (
+                <Ring
+                  value={0}
+                  size={RING}
+                  tone="trait"
+                  state={loaded ? "idle" : "thinking"}
+                  className={COIN}
+                >
+                  <Dash />
+                  <span className="label-micro mt-1 text-stone-500">percentile</span>
+                </Ring>
+              )}
+            </RingStage>
+          </div>
+        }
+        controls={
+          /* Latent while every norm is provisional (nextTrait returns
+             nothing then); it wears the NEXT trait's tone, not this
+             one's. */
+          nxt && nxt.next.id !== id ? (
+            <Link
+              href={`/practice/${nxt.next.id}`}
+              data-trait={nxt.next.id}
+              className="card press flex items-center gap-3 p-4"
+            >
+              <Ring value={nxt.next.fraction} size={44} tone="trait" delay={500}>
+                <span className="font-display text-link font-extrabold leading-none tabular-nums">
+                  {nxt.next.percentile}
+                </span>
+              </Ring>
+              <span className="min-w-0 flex-1">
+                <span className="eyebrow block">Next</span>
+                <span className="font-display block text-body font-bold">
+                  {TRAIT[nxt.next.id].name}, {ordinal(nxt.next.percentile)}
+                </span>
               </span>
-            </Ring>
-            <span className="min-w-0 flex-1">
-              <span className="label-micro block text-stone-500">Next</span>
-              <span className="font-display block text-[15px] font-bold">
-                {TRAIT[nxt.next.id].name}, {ordinal(nxt.next.percentile)}
-              </span>
-            </span>
-          </Link>
-        ) : undefined
-      }
-      action={{ label: "Done", href: "/" }}
-      /* The same invariant as the card: a percentile never stands on
-         its own, including at the top of the scale (nextLine). */
-      fineprint={now ? (nextLine(now) ?? undefined) : undefined}
-    />
+              <Disclosure />
+            </Link>
+          ) : undefined
+        }
+        action={{ label: "Done", href: "/" }}
+        /* The same invariant as the card: a percentile never stands on
+           its own, including at the top of the scale (nextLine). */
+        fineprint={now ? (nextLine(now) ?? undefined) : undefined}
+      />
+    </Toned>
   );
 }
+
+/** The ring's size on the first and the last step alike (M18). */
+const RING = 168;
+/* The ring as an object on its stage: a disc of the ground behind the
+   trough, so the number stays on plain ground where the dome rises
+   behind it, the way the lesson page's art tile stands on its dome. */
+const COIN = "rounded-full bg-ground";
+const FIGURE = "font-display text-num-l tabular-nums";
+
+/** Unknown, drawn as unknown: a dash where the number goes. */
+function Dash() {
+  return (
+    <span aria-hidden className={`${FIGURE} opacity-60`}>
+      –
+    </span>
+  );
+}
+
+/**
+ * The stage the ring stands on (M18, the lesson page's grammar from
+ * M06): the trait's dome behind its lower half, full column width, the
+ * ring's foot 22px above the dome's, as the lesson page stands its art.
+ */
+function RingStage({ children }: { children: ReactNode }) {
+  return (
+    <div className="relative -mx-5 flex justify-center pb-[22px]">
+      <div aria-hidden className="stage-dome absolute inset-x-0 bottom-0" />
+      {children}
+    </div>
+  );
+}
+
+/**
+ * practice-detail-7, #263: the number that IS measured, by the ring and
+ * not in the fine print under the button. On a provisional scale the
+ * placement is the guess and this is the fact. One line whether or not
+ * it is known yet, so nothing moves when it lands.
+ */
+function Measured({ id, now }: { id: TraitId; now: TraitReading | null }) {
+  const shown = now ? fmtRaw(now.raw) : null;
+  return (
+    <p
+      aria-hidden={shown === null || undefined}
+      className={`mt-3 text-center text-caption text-stone-500 ${shown === null ? "invisible" : "arrive"}`}
+    >
+      <span className="font-display text-num-s text-ink tabular-nums">{shown ?? "0"}</span>{" "}
+      {shown === "1" ? TRAIT[id].unitOne : TRAIT[id].unit}
+    </p>
+  );
+}
+
+/**
+ * practice-detail-6: the eyebrow over the title wears the trait's ink.
+ * LessonBody takes the eyebrow as a string and gives it no class, so the
+ * colour reaches it from this wrapper, which draws no box (`display:
+ * contents`); the tone itself is read from <main data-trait> inside it.
+ * Only the eyebrow that heads an h1: the labels on the example's two
+ * lines stay stone.
+ *
+ * The how step's tiles take the recording screen's tightened recipe
+ * (B4's, app/rep/page.tsx): at 15px with 16px sides a 3-up tile broke
+ * "Pause after the full stop" over three lines at 390px; at 14px with
+ * 10px sides and an 8px gutter it is two, as on /rep.
+ */
+function Toned({ children }: { children: ReactNode }) {
+  return (
+    <div
+      className={`contents [&_.eyebrow:has(+h1)]:text-(--tone-ink) ${TIGHT_TILES}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+const TIGHT_TILES =
+  "[&_.grid:has(.tip-tile)]:gap-2 [&_.tip-tile]:px-2.5 [&_.tip-tile>span:last-child]:text-row";
 
 /**
  * The ring that moves. It mounts on the OLD value, waits for the screen
@@ -340,24 +493,29 @@ function Lesson() {
  */
 function MovingRing({
   from,
+  fromPercentile,
   to,
   percentile,
   provisional = false,
 }: {
   from: number;
+  fromPercentile: number;
   to: number;
   percentile: number;
   provisional?: boolean;
 }) {
   const [value, setValue] = useState(from);
-  const [shown, setShown] = useState(Math.round(from * 100));
+  const [shown, setShown] = useState(fromPercentile);
   const [closing, setClosing] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => {
       setValue(to);
       setShown(percentile);
-      if (to > from) {
+      /* A lift and a buzz only for a real rise from a real reading: a
+         drop is never drawn as a gain, and a first reading has nothing
+         to rise from. */
+      if (to > from && from > 0) {
         setClosing(true);
         buzz(14);
       }
@@ -368,16 +526,14 @@ function MovingRing({
   return (
     <Ring
       value={value}
-      size={132}
+      size={RING}
+      tone="trait"
       state={closing ? "closing" : "idle"}
       delay={0}
       provisional={provisional}
+      className={COIN}
     >
-      <CountUp
-        value={shown}
-        durationMs={DURATION.max}
-        className="font-display text-[36px] font-extrabold leading-none"
-      />
+      <CountUp value={shown} durationMs={DURATION.max} className={FIGURE} />
       <span className="label-micro mt-1 text-stone-500">percentile</span>
     </Ring>
   );
@@ -387,12 +543,14 @@ function MovingRing({
 function Line({ label, text, lit = false }: { label: string; text: string; lit?: boolean }) {
   return (
     <div
-      className={`rounded-card border p-3.5 ${
+      className={`rounded-card border p-4 ${
+        /* "Landed" stays sage: silence that landed is earned, Ring's
+           own grammar for it. */
         lit ? "border-sage-300 bg-sage-50" : "border-edge bg-surface"
       }`}
     >
-      <div className="label-micro text-stone-500">{label}</div>
-      <p className="mt-1.5 text-body leading-relaxed">{text}</p>
+      <div className="eyebrow">{label}</div>
+      <p className="mt-1.5 text-read text-stone-800 text-pretty">{text}</p>
     </div>
   );
 }

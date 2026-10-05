@@ -4,10 +4,10 @@ import type { Metadata } from "next";
  * place to declare it. Renders nothing of its own. */
 export const metadata: Metadata = {
   title: "The lesson · Ethos",
-  description: "What this unit trains, and how to do it.",
+  description: "The technique, before you record.",
   openGraph: {
     title: "The lesson · Ethos",
-    description: "What this unit trains, and how to do it.",
+    description: "The technique, before you record.",
   },
 };
 

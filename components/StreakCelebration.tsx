@@ -89,7 +89,11 @@ export function StreakCelebration({
   );
 }
 
-/** The 64px line the number lives on; the roll is exactly one of these. */
+/**
+ * The 64px line the number lives on; the roll is exactly one of these.
+ * The number itself is the num-hero step (56), so the line keeps 8px of
+ * air and the roll stays one whole line.
+ */
 const LINE = 64;
 
 /**
@@ -124,7 +128,7 @@ function StreakRoll({
   return (
     <div
       aria-hidden
-      className="font-display mt-4 overflow-hidden text-[64px] leading-none text-sage-500 tabular-nums"
+      className="font-display mt-4 overflow-hidden text-num-hero leading-none text-sage-500 tabular-nums"
       style={{ height: LINE }}
     >
       <div

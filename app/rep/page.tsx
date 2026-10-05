@@ -1815,7 +1815,7 @@ function Results({
       >
         <div
           key={step}
-          className={`arrive-x [:root[data-motion=reduce]_&]:[animation-duration:200ms] ${
+          className={`arrive-x [:root[data-motion=reduce]_&]:[animation-duration:200ms]! ${
             step === 0 ? "flex flex-1 flex-col justify-center pb-16 pt-4" : "pb-8"
           }`}
         >

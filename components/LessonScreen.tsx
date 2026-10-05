@@ -451,15 +451,15 @@ export function LessonScreen({
   }, [stepKey]);
   /* A walk compacts its chrome on a short phone (under 740px tall), so
      the one tap and the door under it stay above the fold. Screens that
-     do not swipe keep the template's spacing. */
+     do not swipe keep the template's spacing. (The top row already sits
+     where the bar does, so the top has nothing left to give.) */
   const short = swipe
     ? {
-        main: "[@media(max-height:740px)]:pt-2",
         stage: "[@media(max-height:740px)]:mt-2",
         body: "[@media(max-height:740px)]:pb-0",
         foot: "[@media(max-height:740px)]:pb-[max(8px,env(safe-area-inset-bottom))]",
       }
-    : { main: "", stage: "", body: "", foot: "" };
+    : { stage: "", body: "", foot: "" };
 
   const tap =
     action.href !== undefined ? (
@@ -480,19 +480,22 @@ export function LessonScreen({
   return (
     <main
       data-trait={trait}
-      className={`flex min-h-dvh flex-col px-5 pt-7 ${swipe ? "touch-pan-y" : "pb-safe"} ${short.main}`}
+      className={`flex min-h-dvh flex-col px-5 ${
+        onBack || header || swipe ? "pt-[env(safe-area-inset-top)]" : "pt-7"
+      } ${swipe ? "touch-pan-y" : "pb-safe"}`}
       {...drag}
     >
       {/* A carousel keeps the row even where it is empty (the first
           page has no way back), so the stage does not jump 44px down
-          when the second page slides in. */}
+          when the second page slides in. The row stands where the
+          header's bar does, so Back sits at one x and one y app-wide. */}
       {(onBack || header || swipe) && (
         <div className="flex min-h-11 items-center gap-4">
           {onBack && (
             <button
               type="button"
               onClick={onBack}
-              className="screen-bar-back press -ml-2.5 shrink-0"
+              className="screen-bar-back press -ml-3 shrink-0"
             >
               <IconBack size={22} />
               <span>Back</span>

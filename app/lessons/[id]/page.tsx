@@ -86,7 +86,7 @@ export default function LessonPage() {
   return (
     <main
       data-trait={lesson.trait}
-      className="mx-auto flex min-h-dvh max-w-[430px] flex-col px-5 pt-4"
+      className="mx-auto flex min-h-dvh max-w-[430px] flex-col px-5 pt-[env(safe-area-inset-top)]"
     >
       <BackLink
         href="/lessons"
@@ -106,7 +106,7 @@ export default function LessonPage() {
        * close control sits beside its art: 44px less ground before the
        * one tap. It takes no pointer, so the back control stays a target.
        */}
-      <div className="pointer-events-none relative -mx-5 -mt-11 flex justify-center pb-[22px]">
+      <div className="pointer-events-none relative -mx-5 -mt-7 flex justify-center pb-[22px]">
         <div aria-hidden className="stage-dome absolute inset-x-0 bottom-0" />
         <LessonArt lesson={lesson} size={120} radius="rounded-card" eager />
       </div>

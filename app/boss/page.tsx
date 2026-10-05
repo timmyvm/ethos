@@ -188,7 +188,7 @@ export default function BossPage() {
 
   return (
     <main
-      className={`flex min-h-dvh flex-col px-5 pt-7 ${
+      className={`flex min-h-dvh flex-col px-5 pt-[env(safe-area-inset-top)] ${
         phase === "lobby" ? "pb-12" : "pb-safe"
       }`}
     >

@@ -166,8 +166,10 @@ export function ScreenHeader({
  * name of where it goes, never a text arrow.
  *
  * The bar's geometry exactly (system-4): a 44px row, the 22px chevron
- * pulled 10px into the gutter, so the chevron sits at one x and one y
- * on every screen. `self-start` by default, so in a flex column it
+ * pulled 12px into the gutter (the bar's 8px inset), so the chevron sits
+ * at one x on every screen. For one y too, the row is the screen's first
+ * child and the screen starts at `pt-[env(safe-area-inset-top)]`, where
+ * the bar starts (C2). `self-start` by default, so in a flex column it
  * hugs its label instead of stretching into a full-width target.
  */
 export function BackLink({
@@ -182,7 +184,7 @@ export function BackLink({
   return (
     <Link
       href={href}
-      className={`screen-bar-back press -ml-2.5 inline-flex min-h-11 items-center ${className}`}
+      className={`screen-bar-back press -ml-3 inline-flex min-h-11 items-center ${className}`}
     >
       <IconBack size={22} />
       <span>{label}</span>

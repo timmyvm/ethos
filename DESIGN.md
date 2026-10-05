@@ -22,8 +22,8 @@ Ten principles from the design pass (#326), each a thing you can count on a scre
 1. **One lifted thing.** At most one `elev-2` per screen, the card holding the one tap. Every other card is `.card`. No card inside a card, no filled tile inside a card.
 2. **One tap colour.** Exactly one terracotta fill per screen and no hover step; terracotta-600 is only Stop. Plum only as PremiumMark and the two Premium surfaces; sage only on something earned.
 3. **Type has a scale.** 34 / 26 / 20 / 19 / 17 / 16 / 15 / 14 / 13 / 12.5 / 10, numbers 72 / 56 / 36 / 24 / 17 at 800 tabular. The count of arbitrary `text-[…]` sizes only goes down.
-4. **Capitals are for data.** Tracked caps only on data column heads and stat labels, three per viewport at most, one idea per eyebrow, no ` · ` compounds. An eyebrow in a card is sentence case 13/600.
-5. **One header, one way back.** ScreenHeader's large title or a BackLink at the same 44px geometry; no ← or → in a label; every row-shaped door ends in the same stone-400 Disclosure.
+4. **Capitals are for data.** Tracked caps only on data column heads and stat labels (plus the PremiumMark and Settings' iOS group heads), three per viewport at most, one idea per eyebrow, no ` · ` compounds. An eyebrow in a card is sentence case 13/600.
+5. **One header, one way back.** ScreenHeader's large title or a BackLink at the same 44px geometry, its chevron at the bar's x and y; no ← or → in a label; every row-shaped door ends in the same stone-400 Disclosure.
 6. **A trait wears its colour and its name**, everywhere it appears, from `content/traits.ts`.
 7. **Rhythm belongs to the parent.** First block mt-5 under a title, sections mt-7, head to content mt-3, card to card gap-3, card p-4, hero p-5; no empty band over 64px at 390x844; the one tap 48px, bottom-anchored, clear of the nav by `--nav-clear`.
 8. **Nothing moves on load, and unknown is never zero.** Every async slot reserves its height and lands with `.arrive`; loading or failed shows a skeleton or a dash.

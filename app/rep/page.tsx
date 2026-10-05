@@ -1131,7 +1131,7 @@ function RepScreen() {
   const micHot = phase === "recording" || phase === "analyzing";
 
   return (
-    <main className="relative isolate flex min-h-dvh flex-col px-5 pb-8 pt-7">
+    <main className="relative isolate flex min-h-dvh flex-col px-5 pb-8 pt-[env(safe-area-inset-top)]">
       {/* M14: a warm glow under Record marks where you speak. Static, in
           the recording flow's amber wash (it has a dark value), behind
           the content of the isolated main. Idle only: once the mic is

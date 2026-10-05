@@ -420,7 +420,7 @@ export default function HostilePage() {
   ];
 
   return (
-    <main className="pb-safe flex min-h-dvh flex-col px-5 pt-7">
+    <main className="pb-safe flex min-h-dvh flex-col px-5 pt-[env(safe-area-inset-top)]">
       {/* Practice is where this door lives (modes-1): back never lands
           on /boss for someone who came in from the Premium grid. */}
       <BackLink href="/games" label="Practice" />

@@ -256,7 +256,7 @@ export default function YouPage() {
         barGear && (
           /* mr-3: the bar's own 8px inset plus 12 puts the twin on the
              large title's 20px gutter, so the gear keeps its x. */
-          <span className="invisible mr-3 opacity-0 transition-[opacity,visibility] duration-200 ease-out [.screen-bar[data-collapsed]_&]:visible [.screen-bar[data-collapsed]_&]:opacity-100">
+          <span className="invisible mr-3 opacity-0 transition-[opacity,visibility] dur-base ease-out [.screen-bar[data-collapsed]_&]:visible [.screen-bar[data-collapsed]_&]:opacity-100">
             <SettingsButton />
           </span>
         )

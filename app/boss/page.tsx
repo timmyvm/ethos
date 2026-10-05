@@ -404,7 +404,7 @@ export default function BossPage() {
               {mods.length > 0 ? `×${multiplier} XP` : "Off"}
             </span>
             <Disclosure
-              className={`text-stone-400 transition-transform duration-200 ease-out ${
+              className={`text-stone-400 transition-transform dur-base ease-out ${
                 showMods ? "rotate-90" : ""
               }`}
             />

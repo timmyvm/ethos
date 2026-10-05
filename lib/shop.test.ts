@@ -63,11 +63,11 @@ describe("canBuy", () => {
   });
 
   it("refuses a freeze that would evaporate at the cap", () => {
-    expect(canBuy(freeze, 99, none, 2, 2).ok).toBe(false);
+    expect(canBuy(freeze, 99, none, 2, 2)).toEqual({ ok: false, reason: "2 of 2 held" });
   });
 
   it("says how far off the price is, rather than just no", () => {
-    expect(canBuy(freeze, 9, none, 0, 2).reason).toBe("5 more to go");
+    expect(canBuy(freeze, 9, none, 0, 2).reason).toBe("5 more coins");
   });
 
   it("checks ownership before the balance", () => {

@@ -63,7 +63,7 @@ export const SHOP: ShopItem[] = [
     name: "Demos, mid-practice",
     price: 8,
     kind: "cosmetic",
-    blurb: "The stopwatch pose, for the floor card.",
+    blurb: "Puts the stopwatch pose on your floor card.",
   },
   {
     id: "pose_celebrate",
@@ -147,13 +147,10 @@ export function canBuy(
     return { ok: false, reason: "Owned" };
   }
   if (item.id === "streak_freeze" && freezesEquipped >= maxFreezes) {
-    return {
-      ok: false,
-      reason: `You're holding the maximum ${maxFreezes}`,
-    };
+    return { ok: false, reason: `${maxFreezes} of ${maxFreezes} held` };
   }
   if (balance < item.price) {
-    return { ok: false, reason: `${item.price - balance} more to go` };
+    return { ok: false, reason: `${item.price - balance} more coins` };
   }
   return { ok: true };
 }

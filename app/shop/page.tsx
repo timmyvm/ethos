@@ -2,12 +2,12 @@
 
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import Image from "next/image";
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { CountUp } from "@/components/CountUp";
 import { IconFreeze } from "@/components/Icon";
 import { Skeleton, SkeletonRegion } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { HeaderCount } from "@/components/ui/HeaderCount";
 import { readable, readFailure } from "@/lib/load";
 import {
   fetchCoinLedger,
@@ -31,14 +31,21 @@ import {
 import { DURATION } from "@/lib/motion";
 import { MAX_EQUIPPED_FREEZES } from "@/lib/streak";
 import { buzz, readPrefs, writePrefs } from "@/lib/prefs";
+import { DISABLED_CLASS } from "@/lib/ui";
 
 /**
  * The shop. Coins are earned by speaking, one per day, and this is the
  * first thing they do.
  *
- * The non-negotiable is printed on every card rather than assumed:
- * nothing here buys a number. Freezes buy convenience — a frozen day
- * still doesn't count toward the streak — and poses buy nothing at all.
+ * Nothing here buys a number (lib/shop.test.ts holds it). Freezes buy
+ * convenience, since a frozen day still doesn't count toward the
+ * streak, and poses buy nothing at all.
+ *
+ * Every card is one grammar (you-3, you-22, you-24): a 56px art slot,
+ * the name and its price in gold coins, the blurb, then the one footer
+ * its state allows: Buy (sage, #131 and #165), the equip button for a
+ * pose you own, a trough filling toward the price while the coins are
+ * short, or nothing at all once the freezes are full.
  */
 export default function ShopPage() {
   const [ledger, setLedger] = useState<CoinRow[] | null>(null);
@@ -139,61 +146,64 @@ export default function ShopPage() {
   }
 
   return (
-    <main className="px-5 pb-22 pt-7">
+    <main className="px-5 pb-[var(--nav-clear)] pt-7">
       <ScreenHeader
         title="Shop"
         back={{ href: "/you", label: "You" }}
         trailing={
-          <>
-        {/* The balance wears the coin as a drawn terracotta ring; the shop
-            is where a coin is about to become something, so the ring
-            points at the number, not at a tap. */}
-        <span className="flex items-baseline gap-2">
-          <span
-            aria-hidden
-            className="inline-block h-[18px] w-[18px] shrink-0 self-center rounded-full border-2 border-terracotta-500"
+          /* The balance is a picture of the thing counted: the gold coin
+             and the number, bare (you-23, duolingo-path s6). The
+             terracotta ring it replaces wore the tap colour on a number
+             nobody taps. */
+          <HeaderCount
+            variant="bare"
+            glyph={<span className="you-coin" />}
+            label={
+              ledger !== null
+                ? `${coins} coins`
+                : failed
+                  ? "Coin balance unread"
+                  : "Loading your coins"
+            }
+            value={
+              ledger === null ? (
+                failed ? (
+                  /* Not a zero. A balance nobody could read is unknown,
+                     and unknown is a dash. */
+                  <span className="text-num-m text-stone-400">—</span>
+                ) : (
+                  <Skeleton className="h-6 w-10" />
+                )
+              ) : (
+                <span className="text-num-m">
+                  {/* The balance LANDS: the ledger read replaces a
+                      skeleton here, and every price below is an argument
+                      against this number, so it counts up into place.
+                      It re-counts after a purchase, which is where the
+                      coins went. */}
+                  <CountUp value={coins} durationMs={DURATION.max} />
+                </span>
+              )
+            }
           />
-          {ledger === null ? (
-            failed ? (
-              /* Not a zero. A balance nobody could read is unknown, and
-                 unknown is a dash. */
-              <span className="font-display text-[20px] font-extrabold leading-none text-stone-400">
-                —
-              </span>
-            ) : (
-              <Skeleton className="h-6 w-10" />
-            )
-          ) : (
-            <span className="font-display text-[20px] font-extrabold leading-none tabular-nums">
-              {/* The balance LANDS: the ledger read replaces a skeleton
-                  here, and every price below is an argument against
-                  this number, so it counts up into place rather than
-                  appearing already counted. It also re-counts after a
-                  purchase, which is where the coins went. */}
-              <CountUp value={coins} durationMs={DURATION.max} />
-            </span>
-          )}
-        </span>
-          </>
         }
       />
       {/* The earning rule moved here from under the balance on /you: a
-          day you spoke pays once however many reps you did, which is the
-          fact that makes the prices below mean something. */}
+          day you spoke pays once however many recordings you made, which
+          is the fact that makes the prices below mean something. */}
       <p className="mt-1.5 text-caption text-stone-500">
         One coin a day you speak.
       </p>
 
-      {/* The note is a card, not an outlined strip: it says the same
-          thing the items say, so it stands on the same step (#234). */}
-      {note && (
-        <p
-          key={note}
-          className="arrive elev-1 mt-7 rounded-card border border-card-edge bg-raised p-4 text-[14px] font-bold"
-        >
-          {note}
-        </p>
-      )}
+      {/* Always mounted, so a screen reader hears the purchase land
+          (you-25); the note itself still arrives as a card. */}
+      <div role="status" aria-live="polite">
+        {note && (
+          <p key={note} className="arrive card mt-7 p-4 font-display text-row">
+            {note}
+          </p>
+        )}
+      </div>
 
       {failed ? (
         <ErrorState
@@ -202,26 +212,25 @@ export default function ShopPage() {
           onRetry={() => void refresh()}
         />
       ) : ledger === null ? (
-        /* The skeleton carries the card's shadow and the button's full
-           44px, or it is the layout shift it exists to prevent. */
+        /* One skeleton card per item, each the card's own shape: the
+           56px art slot, the name and blurb, and an h-8 footer between a
+           button's 44px and a trough's line, so whichever state lands
+           moves the page by a few pixels at most (#234, you-24). */
         <SkeletonRegion
           label="Loading the shop"
           className="mt-7 flex flex-col gap-3"
         >
-          {/* One skeleton card per item, not three for four: a
-              placeholder that reserves the wrong height IS the layout
-              shift it exists to prevent (#234). */}
           {SHOP.map((item) => (
-            <div
-              key={item.id}
-              className="elev-1 rounded-card border border-card-edge bg-raised p-4"
-            >
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="mt-2.5 h-3 w-full" />
-              <Skeleton
-                className="mt-3 h-11 w-full"
-                rounded="rounded-control"
-              />
+            <div key={item.id} className="card p-4">
+              <div className="flex gap-3.5">
+                <Skeleton className="h-14 w-14 shrink-0" />
+                <div className="min-w-0 flex-1 pt-0.5">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="mt-2.5 h-3 w-full" />
+                  <Skeleton className="mt-1.5 h-3 w-2/3" />
+                </div>
+              </div>
+              <Skeleton className="mt-3 h-8 w-full" />
             </div>
           ))}
         </SkeletonRegion>
@@ -239,129 +248,141 @@ export default function ShopPage() {
               MAX_EQUIPPED_FREEZES,
             );
             const isOwned = item.kind === "cosmetic" && owned.ids.has(item.id);
-            /* A purchase in flight disables every other door, so those
-               doors have to LOOK shut: one disabled value, and a button
-               that is not tappable never wears the earned fill (#234). */
-            const filled = state.ok && (busy === null || busy === item.id);
+            /* Full freezes are a state, not a door: the count goes under
+               the blurb and the card offers no footer at all (you-24). */
+            const full =
+              !state.ok && !isOwned && item.id === "streak_freeze" &&
+              equipped >= MAX_EQUIPPED_FREEZES;
+            const short = !state.ok && !isOwned && !full;
             /* The tap this button came out of, if it was one. The key
                goes with it so the element mounts fresh and the arrival
                plays; without it React keeps the old node and the label
                simply changes under the finger. */
             const justBought = bought === item.id;
             return (
-              <div
-                key={item.id}
-                className="elev-1 rounded-card border border-card-edge bg-raised p-4"
-              >
-                {/* You can see what you're buying. A cosmetic sold as a
-                    name and a price is a cosmetic bought blind, which is
-                    the one way a decoration can still be a bad deal. */}
+              <div key={item.id} className="card p-4">
                 <div className="flex gap-3.5">
-                  {POSE_ART[item.id] ? (
-                    <Image
-                      src={POSE_ART[item.id]}
-                      alt=""
-                      width={128}
-                      height={128}
-                      className="demos h-[46px] w-[46px] shrink-0 object-contain"
-                    />
-                  ) : (
-                    /* An earned tile, so it is a CONTROL at 12 on the
-                       surface step. At 16 it matched the card's own
-                       radius, and an outline at the same radius inside
-                       an outlined card is a double line (#234). */
-                    <span className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-control border border-sage-300 bg-surface text-sage-700">
-                      <IconFreeze size={20} />
-                    </span>
-                  )}
+                  <ItemArt id={item.id} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-3">
-                      <span className="font-display text-[14px] font-bold">
+                      <span className="font-display text-detail">
                         {item.name}
                       </span>
-                      {/* The price wears the coin as a small ring; an
-                          already-owned price fades to faint. */}
-                      <span
-                        className={`flex shrink-0 items-baseline gap-1.5 ${
-                          isOwned ? "text-stone-400" : ""
-                        }`}
-                      >
-                        <span
-                          aria-hidden
-                          className="inline-block h-[7px] w-[7px] shrink-0 rounded-full border-[1.5px] border-current"
-                        />
-                        <span className="font-display text-[14px] font-extrabold tabular-nums">
-                          {item.price}
+                      {isOwned ? (
+                        /* Owned: the price has done its job, so the word
+                           replaces it rather than a faded number. */
+                        <span className="label-micro shrink-0">Owned</span>
+                      ) : (
+                        <span className="flex shrink-0 items-baseline gap-1.5">
+                          <span
+                            aria-hidden
+                            className="you-coin !h-3 !w-3 self-center"
+                          />
+                          <span className="font-display text-num-s tabular-nums">
+                            {item.price}
+                            <span className="sr-only"> coins</span>
+                          </span>
                         </span>
-                      </span>
+                      )}
                     </div>
-                    <p className="mt-1 text-caption text-stone-500">
+                    <p className="mt-1 text-caption text-pretty text-stone-500">
                       {item.blurb}
                     </p>
+                    {full && (
+                      <p className="mt-1.5 text-caption font-semibold tabular-nums text-ink">
+                        {state.reason}
+                      </p>
+                    )}
                   </div>
                 </div>
                 {isOwned ? (
                   /* Owned cosmetics stop offering a sale and offer the
                      only thing left to decide: whether it's the one on
-                     your card. */
+                     your card. Its label is its state, so it carries no
+                     aria-pressed (you-25). */
                   <button
                     key={justBought ? "equip-bought" : "equip"}
                     onClick={() => equip(pose === item.id ? null : item.id)}
-                    className={`press font-display mt-3 min-h-11 w-full rounded-control border border-sage-300 px-5 py-2.5 text-[14px] font-bold text-sage-700 transition-colors ${
+                    className={`press font-display mt-3 min-h-11 w-full rounded-control border border-sage-300 px-5 py-2.5 text-row text-sage-700 transition-colors ${
                       justBought ? "arrive " : ""
-                    }${
-                      pose === item.id
-                        ? "bg-sage-100"
-                        : "bg-surface hover:bg-sage-100"
-                    }`}
+                    }${pose === item.id ? "bg-sage-100" : "bg-surface"}`}
                   >
                     {pose === item.id ? "On your card" : "Put it on the card"}
                   </button>
-                ) : (
+                ) : state.ok ? (
+                  /*
+                   * Sage, never terracotta, though it is the card's
+                   * action (#131, #165): a shop has four of them, and
+                   * painting "Buy" in the attention colour is the nudge a
+                   * store that refuses to sell you a score shouldn't make.
+                   * A purchase in flight shuts every other door, and a
+                   * shut door wears the one disabled value.
+                   */
                   <button
                     key={justBought ? "buy-bought" : "buy"}
                     onClick={() => void buy(item)}
-                    disabled={!state.ok || busy !== null}
-                    /*
-                     * Deliberately NOT terracotta, even though it's the
-                     * primary action on its card. Two reasons pointing
-                     * the same way: brand.md allows one terracotta tap per
-                     * screen and a shop has four, and painting "Buy" in
-                     * the attention colour is the exact nudge a store
-                     * that refuses to sell you a score shouldn't make.
-                     * The price is the argument; the button is a door —
-                     * olive-filled when it opens, an outline when the
-                     * coins aren't there yet (#131, #201).
-                     */
-                    /*
-                     * A door you cannot walk through is not drawn as a
-                     * door (#234's look loop). "3 more to go" and
-                     * "You're holding the maximum 3" wore the same
-                     * full-width bordered box as Buy, so two of the four
-                     * cards advertised a tap that does nothing. They are
-                     * states, so they read as a line: same slot, same
-                     * height, no frame.
-                     */
-                    className={`font-display mt-3 min-h-11 w-full rounded-control px-5 py-2.5 text-[14px] font-bold transition-colors ${
+                    disabled={busy !== null}
+                    className={`press font-display mt-3 min-h-11 w-full rounded-control border border-transparent bg-sage-700 px-5 py-2.5 text-row text-sage-ink transition-colors ${
                       justBought ? "arrive " : ""
-                    }${
-                      filled
-                        ? "press bg-sage-700 text-sage-ink hover:bg-sage-800"
-                        : "text-stone-400"
-                    }`}
+                    }${DISABLED_CLASS}`}
                   >
-                    {busy === item.id
-                      ? "Buying…"
-                      : state.ok
-                        ? "Buy"
-                        : (state.reason ?? "Not yet")}
+                    {busy === item.id ? "Buying…" : "Buy"}
                   </button>
-                )}
+                ) : short ? (
+                  /* Short of the price: how far along, as a measurement
+                     rather than a button with its fill missing (you-24). */
+                  <div className="mt-3">
+                    <div aria-hidden className="h-1.5 overflow-hidden bg-sand">
+                      <div
+                        className="fill h-full bg-sage-500"
+                        style={{
+                          width: `${Math.min(100, (coins / item.price) * 100)}%`,
+                        }}
+                      />
+                    </div>
+                    <p className="mt-1.5 text-caption tabular-nums text-stone-500">
+                      {coins} of {item.price} coins
+                    </p>
+                  </div>
+                ) : null}
               </div>
             );
           })}
         </div>
       )}
     </main>
+  );
+}
+
+/**
+ * Every item's picture in one 56px slot (you-3, you-22). A pose stands
+ * on the slot's floor, so the speaking pose's flat bust cut meets the
+ * tile's edge instead of hanging in the air; the freeze is the sky tile
+ * itself (#315: protection you hold, never sage), not a tile in a tile.
+ * In dark the surface step is darker than the card it sits in and drew
+ * a hole, so the tile takes the quiet ink fill Settings' hour set uses.
+ */
+function ItemArt({ id }: { id: string }) {
+  const art = POSE_ART[id];
+  if (!art) {
+    return (
+      <span aria-hidden className="you-freeze h-14! w-14!">
+        <IconFreeze size={22} />
+      </span>
+    );
+  }
+  return (
+    <span
+      aria-hidden
+      className="flex h-14 w-14 shrink-0 items-end justify-center overflow-hidden rounded-control bg-surface dark:bg-[color-mix(in_srgb,var(--color-ink)_7%,transparent)]"
+    >
+      <Image
+        src={art}
+        alt=""
+        width={128}
+        height={128}
+        className="demos h-[52px] w-[52px] object-contain object-bottom"
+      />
+    </span>
   );
 }

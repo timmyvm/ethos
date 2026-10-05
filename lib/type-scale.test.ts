@@ -16,7 +16,9 @@ import { describe, expect, it } from "vitest";
  *
  * rem as well as px, so `text-[1rem]` cannot slip past.
  */
-const BASELINE = 255;
+// Phase C: 255 → 1 (the splash wordmark's 22px, a brand mark rather
+// than a step of the scale).
+const BASELINE = 1;
 
 const ROOT = path.resolve(__dirname, "..");
 const ARBITRARY_SIZE = /text-\[\d+(?:\.\d+)?(?:px|rem)\]/g;

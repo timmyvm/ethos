@@ -33,7 +33,7 @@ export default function Error({
       </button>
       <Link
         href="/"
-        className="press mt-3 inline-flex min-h-11 items-center text-[13px] font-semibold text-stone-500"
+        className="text-link press mt-3 inline-flex min-h-11 items-center"
       >
         Back to today
       </Link>

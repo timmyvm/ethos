@@ -9,8 +9,8 @@ import type { ReactNode } from "react";
  * reference's introduction has over ours (docs/refs/duolingo-onboarding,
  * NOTES.md, mechanic 1).
  *
- * Raised paper on a card-edge hairline, the same material as every
- * card, rather than the results screen's terracotta wash: on a question
+ * The one `.card` recipe (raised paper, card-edge hairline, shadow-1,
+ * the dark sheen), the same material as every card, rather than the results screen's terracotta wash: on a question
  * screen the chosen answer takes that wash (mechanic 6), and his voice
  * and your tap should not share a colour.
  *
@@ -43,7 +43,7 @@ export function SpeechBubble({
 }) {
   return (
     <div
-      className={`relative elev-1 rounded-card border border-card-edge bg-raised px-4 py-3.5 font-body font-normal text-ink ${
+      className={`card relative px-4 py-3.5 font-body font-normal text-ink ${
         voice === "lead" ? "text-lead leading-[26px]" : "text-detail leading-[24px]"
       } ${className}`}
     >
@@ -53,7 +53,10 @@ export function SpeechBubble({
         className={`absolute h-3.5 w-3.5 rotate-45 border-card-edge bg-raised ${
           tail === "down"
             ? "-bottom-[7px] left-1/2 -translate-x-1/2 border-b border-r"
-            : "-left-[7px] top-[22px] border-b border-l"
+            : /* In dark the card's sheen is still about 3% lighter at
+                 the tail's height (29px down), so the tail takes that
+                 step and no seam shows where it meets the bubble. */
+              "-left-[7px] top-[22px] border-b border-l dark:bg-[color-mix(in_srgb,var(--color-raised),#fff_3%)]"
         }`}
       />
     </div>

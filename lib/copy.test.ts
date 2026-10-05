@@ -195,6 +195,26 @@ describe("retired vocabulary", () => {
   const GYM = /\b(gyms?|workouts?|drills?|training)\b/i;
 
   /*
+   * And the verb (you-1): "Trains deciding before speaking." sat on
+   * Settings because the scan above only knew the noun. "Train" about a
+   * model ("never used to train a model") is the privacy page talking
+   * about machine learning, not a gym, and stays legal.
+   */
+  const TRAIN = /\btrain(?:s|ed)?\b/i;
+  const MODEL_SENSE = /\b(models?|AI|machine learning)\b/i;
+  const gymWords = (s: string) =>
+    (GYM.test(s) && !/model training/i.test(s)) || (TRAIN.test(s) && !MODEL_SENSE.test(s));
+
+  it("catches the verb as well as the noun", () => {
+    expect(gymWords("30 seconds of think-time. Trains deciding before speaking.")).toBe(true);
+    expect(gymWords("The road trains it.")).toBe(true);
+    expect(gymWords("You trained for this.")).toBe(true);
+    expect(gymWords("Your recordings never train a model.")).toBe(false);
+    expect(gymWords("The train left.")).toBe(true); // a noun, still not our word
+    expect(gymWords("Constrained, strained, trainee")).toBe(false);
+  });
+
+  /*
    * The prompts too (CLAUDE.md: not in the interface, the docs, the
    * marketing, THE PROMPTS, or your own reasoning). Half the copy in a
    * finished recording is generated, so a model told it works for "a
@@ -215,9 +235,7 @@ describe("retired vocabulary", () => {
 
   for (const file of files) {
     it(`keeps the gym out of ${file}`, () => {
-      const hits = proseStrings(readFileSync(file, "utf8"))
-        .filter((s) => !/model training/i.test(s))
-        .filter((s) => GYM.test(s));
+      const hits = proseStrings(readFileSync(file, "utf8")).filter(gymWords);
       expect(hits).toEqual([]);
     });
   }

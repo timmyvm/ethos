@@ -250,7 +250,7 @@ export function LessonBody({
                 <li key={tactic} className="flex gap-3.5 text-body">
                   <span
                     aria-hidden
-                    className="font-display w-4 shrink-0 text-[12px] font-extrabold text-sage-700 tabular-nums"
+                    className="font-display w-4 shrink-0 text-caption font-extrabold text-sage-700 tabular-nums"
                   >
                     {i + 1}
                   </span>

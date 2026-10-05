@@ -138,7 +138,6 @@ export default function YouPage() {
   const [editingName, setEditingName] = useState(false);
   const [draft, setDraft] = useState("");
   const [nameFailed, setNameFailed] = useState(false);
-  const barGear = useBarHandedOver();
 
   async function saveName() {
     const next = cleanName(draft) ?? "";
@@ -256,14 +255,13 @@ export default function YouPage() {
     <ScreenHeader
       title="You"
       trailing={<SettingsButton />}
+      barTrailingOnCollapse
       barTrailing={
-        barGear && (
-          /* mr-3: the bar's own 8px inset plus 12 puts the twin on the
-             large title's 20px gutter, so the gear keeps its x. */
-          <span className="invisible mr-3 opacity-0 transition-[opacity,visibility] dur-base ease-out [.screen-bar[data-collapsed]_&]:visible [.screen-bar[data-collapsed]_&]:opacity-100">
-            <SettingsButton />
-          </span>
-        )
+        /* mr-3: the bar's own 8px inset plus 12 puts the twin on the
+           large title's 20px gutter, so the gear keeps its x. */
+        <span className="mr-3 flex">
+          <SettingsButton />
+        </span>
       }
     />
   );
@@ -760,27 +758,6 @@ export default function YouPage() {
       )}
     </main>
   );
-}
-
-/**
- * Whether the large title has handed over to the bar at least once.
- * ScreenHeader marks the hand-over on its bar (`data-collapsed`); this
- * listens for it rather than measuring the scroll a second time.
- */
-function useBarHandedOver() {
-  const [seen, setSeen] = useState(false);
-  useEffect(() => {
-    const bar = document.querySelector(".screen-bar");
-    if (!bar) return;
-    const read = () => {
-      if (bar.hasAttribute("data-collapsed")) setSeen(true);
-    };
-    read();
-    const watch = new MutationObserver(read);
-    watch.observe(bar, { attributes: true, attributeFilter: ["data-collapsed"] });
-    return () => watch.disconnect();
-  }, []);
-  return seen;
 }
 
 /**

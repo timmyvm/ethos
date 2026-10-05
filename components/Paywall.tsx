@@ -225,15 +225,17 @@ export function Paywall({
                       <>
                         <span className="min-w-0 flex-1">
                           <span className="font-display block text-body font-bold">Annual</span>
+                          {/* PRINCIPLES 4: no caps middot compound
+                              ("A MONTH · SAVE 55%"). The saving sits
+                              with the honest total; the unit under the
+                              price is a caption, as on Monthly. */}
                           <span className="block text-caption text-cream/70">
-                            billed A$79.99 a year
+                            A$79.99 a year, save 55%
                           </span>
                         </span>
                         <span className="shrink-0 text-right">
                           <span className="font-display block text-num-m tabular-nums">A$6.67</span>
-                          <span className="label-data mt-1 block !text-cream/80">
-                            a month · save 55%
-                          </span>
+                          <span className="block text-caption text-cream/80">a month</span>
                         </span>
                       </>
                     ) : (
@@ -243,7 +245,7 @@ export function Paywall({
                         </span>
                         <span className="shrink-0 text-right">
                           <span className="font-display block text-num-s tabular-nums">A$14.99</span>
-                          <span className="label-data mt-1 block !text-cream/70">a month</span>
+                          <span className="block text-caption text-cream/70">a month</span>
                         </span>
                       </>
                     )}

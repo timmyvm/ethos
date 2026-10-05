@@ -43,7 +43,7 @@ export const DRILLS: Drill[] = [
   {
     id: "f2",
     unit: "Filler Elimination",
-    title: "Kill 'like'",
+    title: "Kill ‘like’",
     prompt: "Explain your favorite app to someone who's never used a phone.",
     tips: [
       "\"Like\" holds the place of a comparison you haven't found. Stop, find it, say it.",
@@ -54,7 +54,7 @@ export const DRILLS: Drill[] = [
   {
     id: "f3",
     unit: "Filler Elimination",
-    title: "Silence beats 'um'",
+    title: "Silence beats ‘um’",
     prompt: "Describe your morning routine. Pause wherever you'd say a filler.",
     tips: [
       "Silence INSTEAD of the \"um\", not either side of it.",

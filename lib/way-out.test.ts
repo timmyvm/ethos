@@ -28,6 +28,14 @@ const TAPPABLE_BARE_SCREENS = [
   "app/lesson/[unit]/page.tsx",
   "app/boss/page.tsx",
   "app/hostile/page.tsx",
+  // B10: the two auth screens off the bar, each with its literal back.
+  "app/auth/forgot/page.tsx",
+  "app/auth/reset/page.tsx",
+  // B11: the marketing pages find their way back (A2's matcher reads
+  // the route group out of the path).
+  "app/(marketing)/about/page.tsx",
+  "app/(marketing)/privacy/page.tsx",
+  "app/(marketing)/terms/page.tsx",
 ];
 
 /**

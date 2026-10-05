@@ -534,10 +534,9 @@ body {
 
 /*
  * Section eyebrows — the Instrument register: 11px, 700, tracked,
- * uppercase, muted. `.section-title` and `.label-data` converge on it
- * on purpose: the handoff has ONE label voice, and a section heading
- * earns its rank from the hairline above it and the space around it.
- * Both keep their names so the reskin is a restyle, not a rename.
+ * uppercase, muted: the handoff has ONE label voice, and a section
+ * heading earns its rank from the hairline above it and the space
+ * around it.
  *
  * TWO registers now, not five (#234). The tree had this at 11/0.14em,
  * the log's month at 9/0.1em, the PRO chip at 9.5/0.06em, the heatmap
@@ -551,7 +550,6 @@ body {
  * tracking: it put "INDEX" at 44px inside a 44px column and wrapped
  * "HELD PAUSES" onto two lines in a tile 84px wide.
  */
-.section-title,
 .label-data {
   font-family: var(--font-display-face), sans-serif;
   font-size: 0.6875rem;
@@ -905,12 +903,6 @@ body::after {
 :focus-visible {
   outline: 2px solid var(--color-terracotta-500);
   outline-offset: 2px;
-}
-
-/* On the ink stage the offset gap shows ground, not stage — the ring
-   hugs the control there instead. */
-.on-stage :focus-visible {
-  outline-offset: 1px;
 }
 
 /*
@@ -1559,13 +1551,6 @@ body::after {
   content: attr(data-text);
 }
 
-/* The introduction's one bar, growing to the next question (#288). */
-.progress-fill {
-  transition: width var(--duration-max) var(--ease-out);
-}
-:root[data-motion="reduce"] .progress-fill {
-  transition: none;
-}
 .arc {
   animation: arc-in 1.8s var(--ease-in-out) infinite;
   animation-delay: calc(var(--i, 0) * 0.3s);
@@ -1856,9 +1841,8 @@ summary::-webkit-details-marker {
  * Owned by the /welcome workstream. Built for the walk; outside /welcome
  * they are read only as picture colour (Practice's boss stage reads
  * `.intro-stage.tone-sky` and its tiles `.tone-sun/-sky/-mint`, see the
- * "practice (/games)" block; You's header is `.intro-stage.tone-sun` and
- * its freezes and lexicon words read `--pop-sky-*` and `--pop-mint-*`,
- * see the "you (colour pass)" block), never as a control fill.
+ * "practice (/games)" block; You's freezes read `--pop-sky-*`, see the
+ * "you (colour pass)" block), never as a control fill.
  *
  * "Pop with colour", from a first-time user in the audience. The walk
  * was a white page, one terracotta button and brown text. The colour
@@ -2257,31 +2241,6 @@ summary::-webkit-details-marker {
   background: var(--color-ink);
 }
 
-/* An answer's glyph, on a tile in its tone. A fixed tile is a control,
-   so it takes the control radius (system-12; it was an off-scale 10). */
-.glyph-tile {
-  display: flex;
-  height: 36px;
-  width: 36px;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-control);
-  background: var(--tone-wash);
-  color: var(--tone-ink);
-  transition: transform var(--duration-base) var(--ease-spring);
-}
-[aria-checked="true"] > .glyph-tile {
-  background: var(--tone);
-  transform: scale(1.06) rotate(-4deg);
-}
-:root[data-theme="dark"] [aria-checked="true"] > .glyph-tile {
-  color: #fff;
-}
-:disabled > .glyph-tile {
-  opacity: 0.45;
-}
-
 /* The plan's month as coloured steps on a rail. */
 .plan-step-mark {
   display: flex;
@@ -2321,11 +2280,8 @@ summary::-webkit-details-marker {
 :root[data-motion="reduce"] :is(.demos-pop-ground, .ground-idle, .ground-bob, .ground-breath, .ground-sway, .ground-tilt) {
   animation: none;
 }
-:root[data-motion="reduce"] :is(.intro-progress > div, .intro-dot, .glyph-tile) {
+:root[data-motion="reduce"] :is(.intro-progress > div, .intro-dot) {
   transition: none;
-}
-:root[data-motion="reduce"] [aria-checked="true"] > .glyph-tile {
-  transform: none;
 }
 /* ============ end of the introduction's colour and staging ============ */
 
@@ -2611,13 +2567,6 @@ summary::-webkit-details-marker {
 :root[data-theme="dark"] .tone-on {
   color: #16140f;
 }
-/* A numbered square not reached yet: the wash, with a hairline of the
-   tone round it. On the dark card a dark wash is within a few percent of
-   the card itself and the square vanished to a floating numeral; the
-   ring at 40% is what keeps it a square, in both themes. */
-.tone-ring {
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 40%, transparent);
-}
 /* M06, M18, M19 (B2 and B9's hook): the ground a trait's art or ring
    stands on. The wash in light; in dark the tone at 22% into the ground,
    because the dark washes sit within a few percent of the page. */
@@ -2636,25 +2585,6 @@ summary::-webkit-details-marker {
   aspect-ratio: 306 / 120;
   border-radius: 50% 50% 0 0 / 100% 100% 0 0;
   background: var(--tone-stage, var(--color-surface));
-}
-/* Three practices as three square segments: trough, then sage once done.
-   A segment gives up width before the label beside it wraps: at 320px
-   "3 PRACTICES" broke onto two lines in every row. */
-.lesson-pip {
-  display: block;
-  height: 5px;
-  /* A width, not a flex-basis: Chrome sizes the row of segments from
-     its items' widths, and a basis alone collapsed them to the minimum
-     at every width. */
-  width: 18px;
-  flex-shrink: 1;
-  min-width: 8px;
-  /* The ink at low alpha rather than sand, so the trough reads on the
-     white row and on every trait's wash alike. */
-  background: var(--color-stone-200);
-}
-.lesson-pip[data-done="true"] {
-  background: var(--color-sage-500);
 }
 /* ========================== end of lessons (trait tones) ========================== */
 
@@ -2857,26 +2787,11 @@ summary::-webkit-details-marker {
 :root:not([data-theme="dark"])
   :is(
     .today-trait[data-trait="repairs"],
-    [data-trait="repairs"] :is(.today-line, .today-dot),
+    [data-trait="repairs"] .today-line,
     main[data-trait="repairs"]
   ) {
   --ring-arc: #9a6c14;
   --today-trough: color-mix(in srgb, var(--tone) 10%, var(--tone-wash));
-}
-/* The trait's colour as a dot before its name on the floor card: on
-   the amber card the ochre's ink is 1.4:1 from the eyebrow's own, so a
-   fill, not an ink, is what tells Restarts apart there. */
-.today-dot {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  margin-right: 5px;
-  border-radius: 999px;
-  background: var(--ring-arc, var(--tone));
-  vertical-align: 1px;
-}
-.today-trait-tile {
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 14%, transparent);
 }
 /* system-11: no shadow. Today's line sits on its wash with its inset
    tone ring, like the trait tiles, so the floor card is the only mass
@@ -2959,62 +2874,14 @@ summary::-webkit-details-marker {
 /* ========================== end of log (colour pass) ========================== */
 
 /* ============================ you (colour pass) ============================
- * The profile's share of the colour pass (26 Sep, "pop with colour"). No
- * new hue family: the header is the introduction's sun as a stage with
- * Demos standing in it (picture), the five taught traits wear their
+ * The profile's share of the colour pass (26 Sep, "pop with colour"),
+ * as the identity card left it (M09): the five taught traits wear their
  * lesson tones (`[data-trait]`), a freeze is the introduction's sky
- * (protection, not earning), a lexicon word sits on its mint (a label),
- * and everything worked for (the stat tiles, XP, coins, the badges) is
- * sage with a gold mark, Today's grammar for earned. Terracotta and plum
- * are untouched here: no tap is added and the Premium row is as it was.
- * Dark keys on `data-theme` alone, like the tokens: the boot script
- * always resolves the OS into it, and a fallback on the media query
- * would darken this card on a page whose tokens stayed light.
+ * (protection, not earning), a lexicon word wears Variety's tone (a
+ * label), and what was worked for (XP, the earned marks) is sage with a
+ * gold mark, Today's grammar for earned. Terracotta and plum are
+ * untouched here. Dark keys on `data-theme` alone, like the tokens.
  * ============================================================================ */
-:root {
-  /* Labels on the sun stage (11px): 4.9:1 on #ffd166. */
-  --you-stage-ink: #7a5000;
-  /* A lexicon word on mint's wash: 5.6:1 (mint's own ink is 4.51). */
-  --you-word-ink: #136a55;
-}
-:root[data-theme="dark"] {
-  /* Labels on the dark stage (#946404): white, 4.6:1 where the stage's
-     top light is brightest (sampled beside Edit); cream fell to 4.1. */
-  --you-stage-ink: #ffffff;
-  --you-word-ink: var(--pop-mint-ink);
-}
-/* The header stage sits in the lifted card with 8px round it, so it
-   takes a card's radius, as Practice's does. In dark it steps a shade
-   under the introduction's sun (#a06c04 to #946404): still gold, not
-   the olive brown the introduction rejected, and deep enough that the
-   small labels hold 4.6:1 in white under the top light. The name is
-   large text (4.1:1 in the page ink at its brightest pixel, over the
-   3:1 it needs). His disc keeps the introduction's. */
-.you-stage {
-  border-radius: 16px;
-}
-:root[data-theme="dark"] .you-stage {
-  --pop-sun: #946404;
-}
-.you-stage-ink {
-  color: var(--you-stage-ink);
-}
-/* Under 360px the stage is 264px wide and a 172px Demos left the name
-   126px, so "Timothy" and Edit truncated. He steps down to 80% from
-   his feet, so he still stands on the stage's floor. */
-@media (max-width: 359px) {
-  .you-demos {
-    transform: scale(0.8);
-    transform-origin: 100% 100%;
-  }
-}
-/* The three numbers: earned tiles, the number in ink. */
-.you-stat {
-  background: var(--color-sage-100);
-}
-.you-stat-label {
-  color: var(--color-sage-700);
-}
 .you-gold {
   display: inline-flex;
   color: var(--earned-gold);
@@ -3047,52 +2914,20 @@ summary::-webkit-details-marker {
     var(--pop-sky);
   box-shadow: inset 0 0 0 1px rgba(147, 211, 246, 0.14);
 }
-/* A lexicon word: mint's wash and a deeper ink, a label, never a pill
-   anyone would press (no border, no arrow, no hover). */
+/* A lexicon word: a label in its trait's wash and ink (the
+   `[data-trait]` rule below), never a pill anyone would press (no
+   border, no arrow, no hover). */
 .you-word {
   display: inline-block;
   border-radius: 9999px;
   padding: 3px 10px;
-  background: var(--pop-mint-wash);
-  color: var(--you-word-ink);
   font-weight: 700;
-}
-/* A badge: earned is a sage tile with a gold mark; not yet, an outline
-   with a stone mark, so the shelf's three earned rows are the colour. */
-.you-badge {
-  display: flex;
-  height: 40px;
-  width: 40px;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  background: var(--color-sage-100);
-  color: var(--earned-gold);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-sage-500) 25%, transparent);
-}
-.you-badge.you-badge-open {
-  background: transparent;
-  color: var(--color-stone-400);
-  box-shadow: inset 0 0 0 1px var(--color-edge);
 }
 /* How close a not-yet badge is: ink at half, 3.2:1 on the surface
    trough in light and 4.7:1 in dark. Stone-200 (1.3:1) hid the one
    number the row has. */
 .you-near {
   background: color-mix(in srgb, var(--color-ink) 50%, transparent);
-}
-/* The shelf's count: an earned chip, like Today's. */
-.you-count {
-  display: inline-block;
-  vertical-align: 3px;
-  font-size: 12px;
-  font-weight: 800;
-  border-radius: 9999px;
-  padding: 2px 8px;
-  background: var(--color-sage-100);
-  color: var(--color-sage-800);
-  letter-spacing: 0.04em;
 }
 /* ========================== end of you (colour pass) ========================== */
 
@@ -3379,27 +3214,18 @@ summary::-webkit-details-marker {
     inset 0 0 0 1px var(--color-plum-300),
     0 4px 14px -4px rgb(0 0 0 / 0.25);
 }
+/* The copies behind the glass: 200px tall (the Premium skeleton's 218px
+   counts on it, B5: keep the two in step), and no hairlines
+   (practice-tab-8), so the wall's own border is the one frame left. */
 .premium-wall .premium-wall-behind .game-card {
   min-height: 200px;
-}
-/* practice-tab-8: the copies behind the glass lose their hairlines, so
-   the wall's own border is the one frame left. */
-.premium-wall .premium-wall-behind .game-card {
   border-color: transparent;
 }
 /* ========================== end of practice (the wall) ========================== */
 
-/* The lexicon's empty card: the mint wash of its labels, so the one
-   example swap reads as the picture of what arrives here. */
-.you-lexicon-empty {
-  background: color-mix(in srgb, var(--pop-mint-wash) 70%, var(--color-raised));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pop-mint) 30%, transparent);
-}
-/* you-4 (B7's hook): inside a trait (B7 sets data-trait="range" on the
-   lexicon) a word and the empty card wear that trait's tone, because
-   mint is Pace's green and the lexicon read as Pace. The `:root` prefix
-   outranks the dark `--you-word-ink` rules above. The mint rules stay
-   until B7 moves the lexicon; Phase C deletes them. */
+/* you-4: the lexicon (data-trait="range" on its section) wears
+   Variety's tone, a word and the empty card alike: mint was Pace's
+   green and the lexicon read as Pace. The mint rules are gone. */
 :root [data-trait] .you-word {
   background: var(--tone-wash);
   color: var(--tone-ink);

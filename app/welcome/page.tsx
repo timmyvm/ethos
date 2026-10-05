@@ -271,8 +271,15 @@ function Walk() {
        (a successful return forgets it, app/auth/callback): reopen on
        the account ask, not the plan, or the Google button she just
        used is nowhere in sight (auth review, 25 Sep). */
+    /* And back from About's "Take the floor" after "What Ethos is" took
+       her off the account ask (B11): the walk was left there, so it
+       resumes there, never one step short on the plan. A signed-in
+       account still lands on the plan (below). */
     const resumeAccount =
-      deep < 0 && asked === null && saved.done && attemptStartedOn(readOAuthAttempt(), "/welcome");
+      deep < 0 &&
+      asked === null &&
+      saved.done &&
+      (attemptStartedOn(readOAuthAttempt(), "/welcome") || saved.step === LAST);
     setI(resumeAccount ? LAST : deep >= 0 ? deep : saved.done ? PLAN : Math.min(saved.step, PLAN));
     setFloor(firstRep(readPrefs().skipIntros));
     setReady(true);

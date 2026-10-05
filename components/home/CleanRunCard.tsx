@@ -136,8 +136,8 @@ export function CleanRunCard({
  * as it is now (today-1): the eyebrow, the 96px ring with the headline
  * and its caption beside it, then the trail under its rule. Here rather
  * than in components/ui/Skeleton.tsx because it has to change whenever
- * this card does; `SkeletonCleanRun` there still draws the old ruled
- * foot band, the 34px it would shift by.
+ * this card does (the old shared one drew a ruled foot band, 34px of
+ * shift, and is gone).
  */
 export function SkeletonCleanRunCard() {
   const bar = "!bg-cream/10";

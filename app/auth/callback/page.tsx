@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import { DemosArt } from "@/components/DemosArt";
 import { useEffect, useState } from "react";
 import { GoogleMark } from "@/components/AuthForm";
 import { ACTION_CLASS } from "@/components/LessonScreen";
@@ -86,13 +86,9 @@ export default function CallbackPage() {
 
       {state.at === "ok" && (
         <>
-          <Image
-            src="/demos-celebrate.webp"
-            alt=""
-            width={140}
-            height={140}
-            className="demos w-[140px]"
-          />
+          {/* B10, principle 9: DemosArt's celebrate pose, so at 140px
+              his idle clip plays like every other Demos of that size. */}
+          <DemosArt pose="celebrate" size={140} />
           <h1 className="font-display mt-6 text-title">You&apos;re in</h1>
           <p className="mt-3 max-w-[300px] text-body leading-relaxed text-stone-500">
             {viaGoogle

@@ -34,6 +34,7 @@ export function ScreenHeader({
   back,
   trailing,
   barTrailing,
+  barTrailingOnCollapse = false,
 }: {
   title: string;
   /** A line above the title, as Apple's apps put the date over Today. */
@@ -55,11 +56,21 @@ export function ScreenHeader({
   trailing?: React.ReactNode;
   /** In the bar's right slot, always visible (a Settings button). */
   barTrailing?: React.ReactNode;
+  /**
+   * `barTrailing` is the twin of something on the large title's row
+   * (You's gear): it mounts at the first hand-over, so at rest the page
+   * holds one copy, and it fades with the bar's small title.
+   */
+  barTrailingOnCollapse?: boolean;
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
   const bar = useRef<HTMLDivElement>(null);
   const [edge, setEdge] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  /* Latched: once the title has handed over, the twin stays mounted and
+     only fades, so scrolling back up never unmounts a focused control. */
+  const [handedOver, setHandedOver] = useState(false);
+  if (collapsed && !handedOver) setHandedOver(true);
   const [date, setDate] = useState<string | null>(null);
 
   useEffect(() => {
@@ -122,7 +133,15 @@ export function ScreenHeader({
         <div className="screen-bar-title" aria-hidden>
           {title}
         </div>
-        <div className="screen-bar-side justify-end">{barTrailing}</div>
+        <div className="screen-bar-side justify-end">
+          {barTrailingOnCollapse
+            ? handedOver && (
+                <span className="invisible opacity-0 transition-[opacity,visibility] dur-base ease-out [.screen-bar[data-collapsed]_&]:visible [.screen-bar[data-collapsed]_&]:opacity-100">
+                  {barTrailing}
+                </span>
+              )
+            : barTrailing}
+        </div>
       </div>
       <div className="large-title-row">
         <div className="min-w-0">

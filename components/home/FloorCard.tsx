@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { ACTION_CLASS } from "@/lib/ui";
 import { TipLine } from "@/components/rep/TipStrip";
 import { repHref } from "@/lib/rep-config";
@@ -95,6 +96,15 @@ export function FloorCard({
    * side: the card quoted a number in a unit and never said whose.
    */
   const lead = dayOne ? "Your first recording" : again ? "One more" : "Today's practice";
+  /*
+   * Content that replaces a skeleton lands with `.arrive` (PRINCIPLES
+   * 8), the same fade the line and the clean run under it land with.
+   * Only when this card mounted loading: back from the roulette it
+   * mounts loaded and its wrapper already rises (`arrive-lift`), and
+   * two entrances on one tap is one too many.
+   */
+  const [fromSkeleton] = useState(loading);
+  const lands = fromSkeleton ? "arrive" : "";
 
   /*
    * DAY ONE IS ITS OWN SHAPE. There is no measurement to choose from,
@@ -132,10 +142,10 @@ export function FloorCard({
         {loading ? (
           <Skeleton className="h-2.5 w-32" />
         ) : (
-          <>
+          <span className={`flex items-center gap-2 ${lands}`}>
             {chosen && !dayOne && <TraitChip trait={chosen.trait} size="sm" />}
             <span className="eyebrow text-[color:var(--rec-amber-ink)]">{lead}</span>
-          </>
+          </span>
         )}
       </div>
 
@@ -154,7 +164,7 @@ export function FloorCard({
           </span>
         </div>
       ) : (
-        <h2 className="font-display mt-2.5 text-title leading-tight">
+        <h2 className={`font-display mt-2.5 text-title leading-tight ${lands}`}>
           {hero}
         </h2>
       )}
@@ -173,7 +183,7 @@ export function FloorCard({
       {loading ? (
         <div aria-hidden className="mt-3 min-h-11" />
       ) : (
-        body && !dayOne && <TipLine tip={body} className="mt-3" />
+        body && !dayOne && <TipLine tip={body} className={`mt-3 ${lands}`} />
       )}
 
       {/* Less to read (26 Sep): the topic labels, the why paragraph and

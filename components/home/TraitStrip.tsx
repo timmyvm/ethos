@@ -42,17 +42,20 @@ function TraitTile({
    * A wide tile is a row (today-10): the ring on the left and the name
    * and the measurement beside it, where it used to stack like a narrow
    * one and leave about 86x56px empty right of the ring. A narrow tile
-   * stays stacked. The measurement is set as a number (Outfit 800,
-   * tabular, ink) over its unit, which prints in full and wraps evenly
-   * (today-3: `line-clamp-2` cut Fillers to "per hundred...", so the
-   * number lost its denominator).
+   * stays stacked, and so does a wide one under 360px, where the column
+   * beside the ring would be narrower than "Pausing". The measurement
+   * is set as a number (Outfit 800, tabular, ink) before its unit,
+   * which prints in full and wraps evenly (today-3: `line-clamp-2` cut
+   * Fillers to "per hundred...", so the number lost its denominator).
    */
   return (
     <Link
       href={`/practice/${id}`}
       data-trait={id}
       className={`press today-trait today-tile tone-wash flex rounded-card p-3.5 ${
-        wide ? "col-span-3 flex-row items-center gap-3.5" : "col-span-2 flex-col"
+        wide
+          ? "col-span-3 flex-col min-[360px]:flex-row min-[360px]:items-center min-[360px]:gap-3.5"
+          : "col-span-2 flex-col"
       }`}
     >
       <Ring
@@ -78,7 +81,7 @@ function TraitTile({
           )}
         </span>
       </Ring>
-      <div className={`min-w-0 ${wide ? "flex-1" : "mt-3"}`}>
+      <div className={`min-w-0 ${wide ? "mt-3 flex-1 min-[360px]:mt-0" : "mt-3"}`}>
         <div className="font-display tone-ink text-row leading-tight">{t.name}</div>
         {raw !== null && (
           <div className="mt-1 text-caption text-pretty text-stone-500">

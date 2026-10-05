@@ -269,14 +269,17 @@ export default function Home() {
                   a gold mark, the glyph doing the word's job. Earned,
                   never a tap. The total counts up as the history read
                   lands rather than appearing already counted. One chip,
-                  the shared header count, for both (A2). */}
-              <HeaderCount
-                variant="chip"
-                glyph={<IconStar />}
-                value={<CountUp value={totalStars(starMap)} durationMs={DURATION.max} />}
-                label={`${totalStars(starMap)} stars`}
-              />
-              <StreakBadge streak={streak} />
+                  the shared header count, for both (A2). They land with
+                  the read, in one fade with everything else it paints. */}
+              <span className="arrive flex items-center gap-2">
+                <HeaderCount
+                  variant="chip"
+                  glyph={<IconStar />}
+                  value={<CountUp value={totalStars(starMap)} durationMs={DURATION.max} />}
+                  label={`${totalStars(starMap)} stars`}
+                />
+                <StreakBadge streak={streak} />
+              </span>
             </>
           )
         }

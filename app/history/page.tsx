@@ -122,7 +122,7 @@ export default function HistoryPage() {
       <main className="px-5 pb-[var(--nav-clear)] pt-7">
         <ScreenHeader title="Log" />
         <ErrorState
-          className="mt-4"
+          className="mt-5"
           {...readFailure("The log")}
           onRetry={() => void load()}
         />
@@ -136,11 +136,12 @@ export default function HistoryPage() {
         <ScreenHeader title="Log" />
         <SkeletonRegion label="Loading your log">
           {/* The score card carries no outer margin any more (#234), so
-              the placeholder holds the same 28 the real card sits on. */}
+              the placeholder holds the same 20 the real card sits on
+              (system-7: the first block is mt-5 on every tab). */}
           {/* Nothing under the title: the count line is gone (#317), and
               a placeholder for it pushed the card 20px when the data
               landed. */}
-          <div className="mt-7">
+          <div className="mt-5">
             <SkeletonScoreCard />
           </div>
           {/* The two tables at their own row heights (PRINCIPLES 8):
@@ -241,7 +242,7 @@ export default function HistoryPage() {
          * drawn against. The footer anchors the delta without a second
          * card.
          */}
-        <div className="mt-7">
+        <div className="mt-5">
           <ScoreCard
             index={lastIndex}
             delta={indexDelta}

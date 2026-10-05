@@ -292,7 +292,7 @@ export default function Home() {
           from 6px below rather than pushing the floor down out of
           nowhere. */}
       {rescued > 0 && (
-        <div role="status" className="arrive card mt-7 border-sage-300 p-4 text-body">
+        <div role="status" className="arrive card mt-5 border-sage-300 p-4 text-body">
           <span className="font-semibold">
             A freeze covered {rescued === 1 ? "a day" : `${rescued} days`} you
             missed.
@@ -316,8 +316,11 @@ export default function Home() {
        * and wears the lift in its place. A second block would mean a
        * second terracotta button, and brand.md allows exactly one tap
        * per screen — scarcity is what makes it command.
+       *
+       * system-7: the first block under the header sits mt-5 on every
+       * tab (Today, Lessons, Practice, Log, You); sections under it mt-7.
        */}
-      <section className="mt-7">
+      <section className="mt-5">
         {topic ? (
           /* The roulette block rises into the floor's place as ONE
              thing (#242): eyebrow, card and the way back on the same

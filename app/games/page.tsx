@@ -171,7 +171,7 @@ export default function GamesPage() {
           his clock (the boss is timed), the name and the week's state
           on the left. Nothing on the stage is a tap; Start sits on the
           ground under it, edge to edge with it. */}
-      <section aria-labelledby="boss-title" className="mt-4">
+      <section aria-labelledby="boss-title" className="mt-5">
         <div className="intro-stage tone-sky practice-stage elev-2 h-[160px] p-5">
           <div className="relative z-[2] flex h-full max-w-[60%] flex-col">
             <p className="eyebrow practice-stage-ink">This week&apos;s boss</p>

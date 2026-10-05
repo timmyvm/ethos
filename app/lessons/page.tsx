@@ -84,7 +84,8 @@ export default function LessonsPage() {
     <main className="mx-auto max-w-[430px] px-5 pb-[var(--nav-clear)] pt-7">
       <ScreenHeader title="Lessons" />
 
-      <div className="mt-4">
+      {/* system-7: the first block sits mt-5 under the header, every tab. */}
+      <div className="mt-5">
         {failed ? (
           <ErrorLine onRetry={retry}>Your progress didn&apos;t load.</ErrorLine>
         ) : done === null ? (

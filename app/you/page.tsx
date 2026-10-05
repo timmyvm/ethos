@@ -276,7 +276,7 @@ export default function YouPage() {
       <main className="px-5 pb-[var(--nav-clear)] pt-7">
         {header}
         <ErrorState
-          className="mt-4"
+          className="mt-5"
           {...readFailure("Your numbers")}
           onRetry={() => void load()}
         />
@@ -543,7 +543,7 @@ export default function YouPage() {
         ) : lexicon === null ? (
           /* Three rows, the free tier's share, at the height of the real
              ones so nothing under them moves when they land. */
-          <div className="mt-1" aria-busy="true">
+          <div aria-busy="true">
             {[0, 1, 2].map((i) => (
               <div key={i} className={`${SWAP_ROW} border-b border-hairline`}>
                 <Skeleton className="h-6 w-48" />
@@ -567,7 +567,10 @@ export default function YouPage() {
                 row every 40ms, capped at the eighth. Nothing above it
                 carries an `.arrive`, so this is the block's one
                 entrance. */}
-            <ul className="stagger mt-1">
+            {/* No margin: the rows' own 12px top padding is the head's
+                mt-3 (system-7), so a word sits 12px under "Your lexicon"
+                like every section's content. */}
+            <ul className="stagger">
               {lexicon.slice(0, limit(FREE_LEXICON, premium) ?? lexicon.length).map((l) => (
                 <li key={l.id} className={`${SWAP_ROW} border-b border-hairline`}>
                   <Swap original={l.original} upgrade={l.upgrade} />

@@ -134,8 +134,40 @@ describe("the portfolio", () => {
     for (const a of every) {
       const plan = buildPortfolio(a);
       expect(plan.lines).toHaveLength(3);
+      expect(plan.stepParts).toHaveLength(3);
       for (const l of [plan.headline, plan.line, ...plan.lines]) budget(l);
+      for (const s of plan.stepParts) {
+        budget(s.lead);
+        budget(s.detail);
+      }
       if (plan.boss) budget(plan.boss.line);
+    }
+  });
+
+  /*
+   * intro-b-12: the screen draws the steps as data, a lead to count
+   * down and a detail under it, so a number is set as a number rather
+   * than parsed back out of a sentence. Every detail is a sentence that
+   * starts with a capital, whatever the table's line started with.
+   */
+  it("gives each step a lead and a detail, in that order", () => {
+    const pace = UNITS.find((u) => u.id === "pace")!;
+    const plan = buildPortfolio({ ...EMPTY_ANSWERS, pains: ["rushing"] });
+    expect(plan.stepParts).toEqual([
+      { lead: "Day 1", detail: "Your first 60 seconds set the baseline." },
+      { lead: "First number", detail: "Words per minute against the 130 to 160 zone." },
+      { lead: "Then Pace Control", detail: `The unit for rushing. It opens at ${pace.unlocksAt} stars.` },
+    ]);
+    expect(buildPortfolio({ ...EMPTY_ANSWERS, pains: ["fillers"] }).stepParts[2]).toEqual({
+      lead: "Then Filler Elimination",
+      detail: "The unit for fillers. It opens on day one.",
+    });
+    expect(buildPortfolio(EMPTY_ANSWERS).stepParts.slice(1)).toEqual([
+      { lead: "First number", detail: "Your Ethos Index, out of 1000." },
+      { lead: "Then the road", detail: "Each unit opens with the stars you earn." },
+    ]);
+    for (const a of every) {
+      for (const s of buildPortfolio(a).stepParts) expect(s.detail).toMatch(/^[A-Z]/);
     }
   });
 
@@ -185,12 +217,12 @@ describe("the portfolio", () => {
    */
   it("opens in their name and their words, and shortens when it cannot", () => {
     const both = buildPortfolio({ ...EMPTY_ANSWERS, name: "Tim", pains: ["rushing"] });
-    expect(both.opening).toBe("Tim. You said rushing. Now it's a number.");
+    expect(both.opening).toBe("Tim, you said rushing. Now it's a number.");
     expect(buildPortfolio({ ...EMPTY_ANSWERS, pains: ["rushing"] }).opening).toBe(
       "You said rushing. Now it's a number."
     );
     expect(buildPortfolio({ ...EMPTY_ANSWERS, name: "Tim" }).opening).toBe(
-      "Tim. The numbers start today."
+      "Tim, the numbers start today."
     );
     expect(buildPortfolio(EMPTY_ANSWERS).opening).toBe("The numbers start today.");
   });
@@ -227,7 +259,11 @@ describe("the portfolio", () => {
        */
       const said = plan.focus?.said ?? "";
       const strip = (s: string) => (said ? s.split(said).join(" ") : s);
-      const rest = new Set([...plan.lines, plan.boss?.line ?? ""].map(strip).flatMap(pairs));
+      /* The steps as the screen draws them count too (intro-b-12). */
+      const drawn = plan.stepParts.flatMap((s) => [s.lead, s.detail]);
+      const rest = new Set(
+        [...plan.lines, ...drawn, plan.boss?.line ?? ""].map(strip).flatMap(pairs)
+      );
       const shared = pairs(strip(plan.opening)).filter((x) => rest.has(x));
       expect([plan.opening, shared]).toEqual([plan.opening, []]);
     }

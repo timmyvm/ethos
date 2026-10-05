@@ -36,7 +36,7 @@ export type Pool = "all" | "school" | "work" | "social" | "online";
  * caller has to widen by hand).
  */
 export const AGE_BANDS = [
-  { id: "u18", label: "Under 18", pool: "school", reply: "Then your prompts come from school and life, not work." },
+  { id: "u18", label: "Under 18", pool: "school", reply: "Your prompts will come from school and life." },
   { id: "18_24", label: "18 to 24", pool: "all", reply: undefined },
   { id: "25_34", label: "25 to 34", pool: "all", reply: undefined },
   { id: "35_plus", label: "35 and up", pool: "all", reply: undefined },
@@ -60,12 +60,12 @@ export const GOALS = [
  * plan names that number, `said` how the app repeats the answer back.
  */
 export const PAINS = [
-  { id: "fillers", label: "Um, like, you know", said: "fillers", unit: "filler", metric: "fillers", line: "fillers per minute, counted with timestamps.", reply: "Fillers. I count them, with timestamps." },
-  { id: "rushing", label: "I rush", said: "rushing", unit: "pace", metric: "wpm", line: "words per minute against the 130 to 160 zone.", reply: "Rushing. I count your words per minute." },
-  { id: "trailing", label: "I trail off", said: "trailing off", unit: "structure", metric: "structure", line: "whether the ending lands, cited from your words.", reply: "Trailing off. I check whether the ending lands." },
-  { id: "freezing", label: "I freeze on the spot", said: "freezing", unit: "fire", metric: "pause", line: "silences that land a point, and silences that search.", reply: "Freezing. I separate the silences that work." },
-  { id: "flat", label: "I sound flat", said: "sounding flat", unit: "pace", metric: "range", line: "pace that moves, and words you repeat.", reply: "Sounding flat. I count the words you repeat." },
-  { id: "rambling", label: "I ramble", said: "rambling", unit: "compression", metric: "structure", line: "one claim, one example, an ending.", reply: "Rambling. One claim, one example, an ending." },
+  { id: "fillers", label: "Um, like, you know", said: "fillers", unit: "filler", metric: "fillers", line: "fillers per minute, counted with timestamps.", reply: "I'll count every filler, with its timestamp." },
+  { id: "rushing", label: "I rush", said: "rushing", unit: "pace", metric: "wpm", line: "words per minute against the 130 to 160 zone.", reply: "I'll count your words per minute." },
+  { id: "trailing", label: "I trail off", said: "trailing off", unit: "structure", metric: "structure", line: "whether the ending lands, cited from your words.", reply: "I'll check whether your endings land." },
+  { id: "freezing", label: "I freeze on the spot", said: "freezing", unit: "fire", metric: "pause", line: "silences that land a point, and silences that search.", reply: "I separate the silences that work." },
+  { id: "flat", label: "I sound flat", said: "sounding flat", unit: "pace", metric: "range", line: "pace that moves, and words you repeat.", reply: "I'll count the words you repeat." },
+  { id: "rambling", label: "I ramble", said: "rambling", unit: "compression", metric: "structure", line: "one claim, one example, an ending.", reply: "I'll hold you to one claim, one example and an ending." },
 ] as const satisfies readonly { id: string; label: string; said: string; unit: string; metric: string; line: string; reply: string }[];
 
 /**
@@ -76,7 +76,7 @@ export const PAINS = [
  * table is not allowed to hold.
  */
 export const LEVELS = [
-  { id: "never", label: "Never practised", frameStep: true, intros: true, reply: "You get thirty seconds to think first. Every unit teaches before it tests." },
+  { id: "never", label: "Never practised", frameStep: true, intros: true, reply: "You get thirty seconds to think, and units teach first." },
   { id: "some", label: "A bit, a class or a few talks", frameStep: false, intros: true, reply: "Every unit still teaches before it tests." },
   { id: "often", label: "Often, I present most weeks", frameStep: false, intros: false, reply: "Units skip the teaching. You start on the floor." },
 ] as const satisfies readonly { id: string; label: string; frameStep: boolean; intros: boolean; reply: string }[];
@@ -114,9 +114,9 @@ export const TIMES = [
  * a hole in it reads worse than a shorter sentence.
  */
 export const OPENING = {
-  full: (name: string, said: string) => `${name}. You said ${said}. Now it's a number.`,
+  full: (name: string, said: string) => `${name}, you said ${said}. Now it's a number.`,
   noName: (said: string) => `You said ${said}. Now it's a number.`,
-  noPain: (name: string) => `${name}. The numbers start today.`,
+  noPain: (name: string) => `${name}, the numbers start today.`,
   none: "The numbers start today.",
 } as const;
 
@@ -135,6 +135,32 @@ export const PLAN_LINES = {
   line: "Built from what you told me.",
   boss: (name: string) => `Your boss, when you're ready: ${name}.`,
   dayOneNote: (said: string) => `You said: ${said}. The baseline sets the number to beat.`,
+} as const;
+
+/**
+ * The same three steps as data, for the plan screen (intro-b-12): a
+ * short lead the eye can count down ("Day 1", "First number", "Then
+ * Pace Control") and the detail under it, where the screen sets every
+ * number in the display face. `PLAN_LINES` keeps the one-line form for
+ * anything that stores or prints the plan as text.
+ */
+export type PlanStep = { lead: string; detail: string };
+
+const capitalise = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+export const PLAN_STEPS = {
+  dayOne: { lead: "Day 1", detail: "Your first 60 seconds set the baseline." },
+  firstNumber: (line: string): PlanStep => ({ lead: "First number", detail: capitalise(line) }),
+  firstNumberDefault: { lead: "First number", detail: "Your Ethos Index, out of 1000." },
+  firstUnit: (unit: string, said: string): PlanStep => ({
+    lead: `Then ${unit}`,
+    detail: `The unit for ${said}. It opens on day one.`,
+  }),
+  laterUnit: (unit: string, said: string, stars: number): PlanStep => ({
+    lead: `Then ${unit}`,
+    detail: `The unit for ${said}. It opens at ${stars} stars.`,
+  }),
+  road: { lead: "Then the road", detail: "Each unit opens with the stars you earn." },
 } as const;
 
 /** Bump when the mapping changes shape, so stored portfolios can be rebuilt. */

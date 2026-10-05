@@ -18,8 +18,10 @@ import {
   OPENING,
   PAINS,
   PLAN_LINES,
+  PLAN_STEPS,
   PORTFOLIO_RULES_VERSION,
   TIMES,
+  type PlanStep,
   type Pool,
 } from "@/content/portfolio";
 import { type Answers, type PainId, readOnboarding } from "./answers";
@@ -39,6 +41,13 @@ export interface Portfolio {
   opening: string;
   /** The three lines of the screen template, in order. */
   lines: string[];
+  /**
+   * The same three steps as a lead and a detail (intro-b-12), which is
+   * what the plan screen draws: the lead to count down, the detail with
+   * its numbers set as numbers. `lines` stays for everything that reads
+   * the plan as text.
+   */
+  stepParts: PlanStep[];
   /** What was noticed first, and where the road trains it. */
   focus: {
     pain: PainId;
@@ -71,6 +80,16 @@ export function buildPortfolio(a: Answers, units: Unit[] = UNITS): Portfolio {
         : PLAN_LINES.laterUnit(unit.name, pain.said, unit.unlocksAt),
   ];
 
+  const stepParts: PlanStep[] = [
+    PLAN_STEPS.dayOne,
+    pain ? PLAN_STEPS.firstNumber(pain.line) : PLAN_STEPS.firstNumberDefault,
+    !pain || !unit
+      ? PLAN_STEPS.road
+      : unit.id === first.id
+        ? PLAN_STEPS.firstUnit(unit.name, pain.said)
+        : PLAN_STEPS.laterUnit(unit.name, pain.said, unit.unlocksAt),
+  ];
+
   const boss = goal
     ? { id: goal.boss, ...BOSSES[goal.boss], line: PLAN_LINES.boss(BOSSES[goal.boss].name) }
     : null;
@@ -91,6 +110,7 @@ export function buildPortfolio(a: Answers, units: Unit[] = UNITS): Portfolio {
     name,
     opening,
     lines,
+    stepParts,
     focus:
       pain && unit
         ? {

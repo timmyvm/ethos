@@ -92,6 +92,17 @@ async function swipe(dx, { y = 420, dy = 0, steps = 10, ms = 200, hold = false, 
   return held;
 }
 const heading = async () => (await page.textContent("main h1")).trim();
+/* Where the one tap stands, per screen: the walk docks it in one shelf,
+   so it must read the same on every question, the beat and the plan. */
+const tops = {};
+const nextTop = async (name) => {
+  tops[name] = await page.evaluate(() => {
+    const b = [...document.querySelectorAll("main button, main a")].find((x) =>
+      ["Next", "Start"].includes(x.textContent.trim())
+    );
+    return b ? Math.round(b.getBoundingClientRect().top) : null;
+  });
+};
 const arrival = () =>
   page.$eval("main [class*='step-in-']", (el) => (/step-in-(next|back)/.exec(el.className) || [])[1]);
 
@@ -172,6 +183,7 @@ await sleep(400);
 // 2. Question 1: the name. The one answer you type, and the one he
 // repeats straight back.
 await page.getByText("What do I call you?").waitFor();
+await nextTop("q1");
 const at = async () => page.getByRole("progressbar").getAttribute("aria-valuenow");
 ok("the walk opens on the name, one of seven", (await at()) === "1");
 ok(
@@ -196,6 +208,12 @@ ok("and he nods when he hears it", /demos-nod/.test(nodded), nodded);
 await shot("04-q-name");
 await swipe(-220);
 ok("an answered question swipes forward like Next", (await heading()) === "How old are you?");
+// intro-a-2: the keyboard's own Next key, on the name, is the screen's Next.
+await page.getByRole("button", { name: "Back", exact: true }).click();
+await page.getByText("What do I call you?").waitFor();
+await page.getByLabel("Your name").press("Enter");
+await sleep(400);
+ok("the keyboard's Next key on the name goes forward", (await heading()) === "How old are you?");
 const rowBox = await page.getByRole("radio", { name: "25 to 34" }).boundingBox();
 await swipe(-80, { y: rowBox.y + rowBox.height / 2 });
 ok(
@@ -203,26 +221,44 @@ ok(
   (await page.getByRole("radio", { name: "25 to 34" }).getAttribute("aria-checked")) === "false"
 );
 
-// 3. Question 2: age. Next waits for an answer; Skip is under it.
+// 3. Question 2: age. Next waits for an answer; Skip is beside the bar.
 await page.getByText("How old are you?").waitFor();
 const disabled = await page.getByRole("button", { name: "Next", exact: true }).isDisabled();
 ok("an essential question holds Next until answered", disabled === true);
 ok("the bar stands at 2 of 7", (await at()) === "2");
+/* M20: Skip is the top row's, right of the bar; the shelf holds Next alone. */
+const skipRow = await page.evaluate(() => {
+  const mid = (el) => { const r = el.getBoundingClientRect(); return Math.round(r.top + r.height / 2); };
+  const skip = [...document.querySelectorAll("main button")].find((b) => b.textContent.trim() === "Skip");
+  return skip ? { skip: mid(skip), bar: mid(document.querySelector("[role=progressbar]")) } : null;
+});
+ok("Skip sits in the top row beside the bar", skipRow !== null && Math.abs(skipRow.skip - skipRow.bar) <= 2, JSON.stringify(skipRow));
+await nextTop("q2");
 await shot("05-q-age");
-// Arrow keys inside a set of answers belong to the answers.
-await page.getByRole("radio", { name: "Under 18" }).focus();
-await page.keyboard.press("ArrowRight");
-await sleep(400);
-ok("an arrow key on an answer does not change the screen", (await heading()) === "How old are you?");
 // A refused swipe, then a quick real tap: the tap must land.
 await swipe(-220, { settle: 60 });
 await page.getByRole("radio", { name: "Under 18" }).tap();
 ok("a tap right after a refused swipe is not swallowed", (await page.getByRole("radio", { name: "Under 18" }).getAttribute("aria-checked")) === "true");
 ok("a tap picks the answer", (await page.getByRole("radio", { name: "Under 18" }).getAttribute("aria-checked")) === "true");
+// Arrow keys inside a set of answers belong to the answers (intro-a-5,
+// intro-b-7): one Tab stop, and the arrows move the choice with the focus.
+const stops = await page.$$eval("main [role=radio]", (els) => els.filter((e) => e.tabIndex === 0).length);
+ok("a set of answers is one Tab stop", stops === 1, String(stops));
+await page.getByRole("radio", { name: "Under 18" }).focus();
+await page.keyboard.press("ArrowRight");
+await sleep(400);
+ok("an arrow key on an answer does not change the screen", (await heading()) === "How old are you?");
+ok(
+  "and it moves the choice to the next answer",
+  (await page.getByRole("radio", { name: "18 to 24" }).getAttribute("aria-checked")) === "true" &&
+    (await page.evaluate(() => document.activeElement?.getAttribute("aria-label"))) === "18 to 24"
+);
+await page.keyboard.press("ArrowLeft");
 await sleep(250);
+ok("the left arrow moves it back", (await page.getByRole("radio", { name: "Under 18" }).getAttribute("aria-checked")) === "true");
 ok(
   "the one age band that changes the prompt pool says so",
-  await page.getByText("Then your prompts come from school and life, not work.").isVisible()
+  await page.getByText("Your prompts will come from school and life.").isVisible()
 );
 await page.getByRole("button", { name: "Next", exact: true }).click();
 await sleep(300);
@@ -230,6 +266,7 @@ await sleep(300);
 // 4. Question 3: goal. It changes only what the PLAN will say, so he
 // nods and says nothing — the screen keeps its own line.
 await page.getByText("What do you want this for?").waitFor();
+await nextTop("q3");
 await page.getByRole("radio", { name: "Hold a room when I present" }).click();
 await sleep(250);
 ok(
@@ -252,13 +289,20 @@ await page.getByRole("button", { name: "Next", exact: true }).click();
 
 // 5. Question 4: pains, up to three, and he answers the one just tapped.
 await page.getByText("What do you notice when you talk?").waitFor();
+await nextTop("q4");
 for (const n of ["I rush", "Um, like, you know", "I freeze on the spot"]) {
   await page.getByRole("checkbox", { name: n }).click();
   await sleep(200);
 }
+/* Waited for rather than read at once: a tap on a busy dev server can
+   take longer than the sleep to render. */
 ok(
   "he replies about the pain just tapped, not the first one",
-  await page.getByText("Freezing. I separate the silences that work.").isVisible()
+  await page
+    .getByText("I separate the silences that work.")
+    .waitFor({ timeout: 3000 })
+    .then(() => true)
+    .catch(() => false)
 );
 const fourth = await page.getByRole("checkbox", { name: "I ramble" }).isDisabled();
 ok("a fourth pain is refused", fourth === true);
@@ -267,6 +311,7 @@ await page.getByRole("button", { name: "Next", exact: true }).click();
 
 // 6. Question 5: level, which moves two real settings and says which.
 await page.getByText("How much have you practised?").waitFor();
+await nextTop("q5");
 await page.getByRole("radio", { name: "Often, I present most weeks" }).click();
 await sleep(250);
 ok(
@@ -278,15 +323,17 @@ await page.getByRole("button", { name: "Next", exact: true }).click();
 
 // 7. Question 6: optional, skipped.
 await page.getByText("Where does it matter most?").waitFor();
+await nextTop("q6");
 ok(
   "an unanswered question holds Next, and Skip is the way past (#288)",
   (await page.getByRole("button", { name: "Next", exact: true }).isDisabled()) === true
 );
-await page.getByRole("button", { name: "Skip" }).click();
+await page.getByRole("button", { name: "Skip", exact: true }).click();
 
 // 7c. The beat before the hour (#288): Demos alone with one line, no
 // answer to give, and the bar does not move for it.
-await page.getByText("Practice with a time happens.").waitFor();
+await page.getByText("Practice with a set time gets done.").waitFor();
+await nextTop("beat");
 ok("a beat breaks the run of questions before the hour is asked", (await page.getByRole("radio").count()) === 0);
 ok("and the bar stays at 6 of 7 across it", (await at()) === "6");
 await shot("08b-beat");
@@ -294,8 +341,11 @@ await page.getByRole("button", { name: "Next", exact: true }).click();
 
 // 8. Question 7: the hour. It writes a preference and asks for nothing.
 await page.getByText("When do you want your minute?").waitFor();
+await nextTop("q7");
 ok("the bar stands at 7 of 7", (await at()) === "7");
-await page.getByRole("radio", { name: "Evening, 18:00" }).click();
+/* The hour is said the device's way after mount (intro-b-19), so the
+   row is found by its word. */
+await page.getByRole("radio", { name: /^Evening/ }).click();
 await sleep(250);
 const hour = await page.evaluate(() => JSON.parse(localStorage.getItem("ethos.prefs") || "{}").reminderHour);
 ok("picking an hour writes it straight to prefs", hour === 18, String(hour));
@@ -308,13 +358,29 @@ await page.getByRole("button", { name: "Next", exact: true }).click();
 
 // 9. The plan, from the answers, opening in their name and their words.
 await page.getByText("Hold the room.").waitFor();
+await nextTop("plan");
 ok(
   "the plan opens on his line to them, by name",
-  await page.getByText("Tim. You said rushing. Now it's a number.").isVisible()
+  await page.getByText("Tim, you said rushing. Now it's a number.").isVisible()
 );
-const lines = await page.$$eval("main ol li", (els) => els.map((e) => e.textContent.replace(/^\d/, "").trim()));
-ok("line 2 names the first pain's number", lines[1] === "First number: words per minute against the 130 to 160 zone.", lines[1]);
-ok("line 3 names the unit and the road's gate", /^Then Pace Control, the unit for rushing\. Opens at \d+ stars\.$/.test(lines[2]), lines[2]);
+/* Each step is a lead and a detail (intro-b-12). */
+const steps = await page.$$eval("main ol li", (els) =>
+  els.map((e) => [...e.querySelectorAll(":scope > span:last-child > span")].map((s) => s.textContent.trim()))
+);
+ok(
+  "step 2 names the first pain's number",
+  steps[1]?.[0] === "First number" && steps[1]?.[1] === "Words per minute against the 130 to 160 zone.",
+  JSON.stringify(steps[1])
+);
+ok(
+  "step 3 names the unit and the road's gate",
+  steps[2]?.[0] === "Then Pace Control" && /^The unit for rushing\. It opens at \d+ stars\.$/.test(steps[2]?.[1] ?? ""),
+  JSON.stringify(steps[2])
+);
+const numbersSet = await page.$$eval("main ol li span.tabular-nums.font-display", (els) => els.map((e) => e.textContent));
+ok("the plan's numbers are set as numbers", numbersSet.includes("130 to 160") && numbersSet.includes("60"), numbersSet.join(","));
+const shelf = Object.values(tops);
+ok("Next stands at one height on every question, the beat and the plan", shelf.length === 9 && shelf.every((y) => y !== null && y === shelf[0]), JSON.stringify(tops));
 const laddered = await page.$eval("main ol", (el) => el.className);
 ok("the plan's lines land one at a time", /stagger/.test(laddered), laddered);
 ok("the boss is the fine print", await page.getByText("Your boss, when you're ready: Cold Topic.").isVisible());
@@ -328,7 +394,9 @@ ok("the walk is stored as done, unsynced", state.done === true && state.synced =
 ok("the name and the hour are stored with the answers", state.answers.name === "Tim" && state.answers.time === "evening", JSON.stringify(state.answers));
 
 // 7b. The account ask (#277). One screen, after the plan, gating nothing.
-await page.getByRole("button", { name: "Start" }).click();
+/* Next, not Start: it opens the account ask, a step in the walk
+   (intro-b-10); Start is kept for the floor. */
+await page.getByRole("button", { name: "Next", exact: true }).click();
 await page.getByText("Keep this").waitFor();
 ok(
   "the plan hands over to the account ask, by name",
@@ -375,7 +443,9 @@ const marked = await page
 ok("the lesson list marks the unit for what they said, in their words", marked);
 await shot("11b-lessons");
 await page.goto(`${BASE}/`);
-await page.getByText("Day one starts today.").waitFor();
+/* The second visit to Today recompiles on a shared dev server more
+   often than not (B1's report), so it gets a longer wait. */
+await page.getByText("Day one starts today.").waitFor({ timeout: 60000 });
 // The roulette pool: under 18 never draws a job prompt.
 await page.getByRole("button", { name: /Spin a new topic/ }).click();
 const drawn = new Set();
@@ -386,7 +456,10 @@ ok("the roulette never draws a job prompt for an under-18", !job, `${drawn.size}
 // 9. /you: the plan row, and reopening the plan to change an answer.
 await page.goto(`${BASE}/you`);
 await page.getByText("Your plan").waitFor();
-ok("/you shows the plan row with the unit and its gate", await page.getByText(/Pace Control · \d+★ to go/).isVisible());
+ok(
+  "/you shows the plan row with the unit and its gate",
+  await page.getByText(/^Pace Control (opens in \d+ stars?|is open)$/).isVisible()
+);
 await shot("12-you");
 await page.getByRole("link", { name: /Your plan/ }).click();
 await page.waitForURL(/step=plan/);

@@ -42,7 +42,9 @@ const ANSWERS = [
   { id: "context", type: "row", labels: ["Work"] },
   /* The beat (#288): one screen, no answer, shot once. */
   { id: "beat", type: "beat" },
-  { id: "time", type: "row", labels: ["Evening, 18:00"] },
+  /* The hour is said in the device's own form after mount ("6 pm"),
+     so the row is found by its word (intro-b-19). */
+  { id: "time", type: "row", labels: [/^Evening/] },
 ];
 
 // Hinting off: headless Linux Chromium rounds each glyph advance to a
@@ -125,10 +127,10 @@ async function shootTheme(theme) {
       await page.getByLabel("Your name").blur();
     } else {
       for (const label of q.labels) {
-        await page.getByRole(/^I /.test(label) || label.startsWith("Um,") ? "checkbox" : "radio", {
-          name: label,
-          exact: true,
-        }).click();
+        const box = typeof label === "string" && (/^I /.test(label) || label.startsWith("Um,"));
+        await page
+          .getByRole(box ? "checkbox" : "radio", typeof label === "string" ? { name: label, exact: true } : { name: label })
+          .click();
         await sleep(300);
       }
     }
@@ -138,8 +140,9 @@ async function shootTheme(theme) {
   }
 
   await shot("plan", 1100);
-  // The account ask, the walk's last screen (#277).
-  await page.getByRole("button", { name: "Start", exact: true }).click();
+  // The account ask, the walk's last screen (#277). The plan's tap says
+  // Next when it opens the ask; Start is kept for the floor (intro-b-10).
+  await page.getByRole("button", { name: "Next", exact: true }).click();
   await page.getByText("Keep this").waitFor();
   await shot("account", 900);
   await context.close();

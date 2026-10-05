@@ -2,24 +2,24 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useState, type KeyboardEvent, type ReactNode } from "react";
 import { DemosArt, preloadPose, type Pose, type Tone } from "@/components/DemosArt";
 import {
   IconBars,
-  IconBeacon,
+  IconBolt,
+  IconBubble,
   IconCap,
-  IconBoss,
   IconCase,
-  IconFlat,
+  IconEllipsis,
   IconFreeze,
   IconGauge,
   IconGlobe,
+  IconMic,
   IconParagraph,
   IconPeople,
   IconSpark,
-  IconTrail,
   IconWave,
-  IconYou,
+  IconWaveFlat,
 } from "@/components/Icon";
 import { SAID_AFTER_MS } from "@/components/Says";
 import { LessonScreen } from "@/components/LessonScreen";
@@ -33,7 +33,9 @@ import {
   NAME_REPLY,
   PAINS,
   TIMES,
+  type PlanStep,
 } from "@/content/portfolio";
+import type { TraitId } from "@/content/traits";
 import {
   cleanName,
   EMPTY_ANSWERS,
@@ -41,7 +43,6 @@ import {
   MAX_PAINS,
   readOnboarding,
   writeOnboarding,
-  type AgeBandId,
   type Answers,
   type ContextId,
   type GoalId,
@@ -61,7 +62,9 @@ import { introDue, introHref, nextLesson, UNITS } from "@/lib/path";
 import { buildPortfolio } from "@/lib/portfolio";
 import { readPrefs, writePrefs } from "@/lib/prefs";
 import { repHref } from "@/lib/rep-config";
+import { useHourLabel } from "@/lib/time-label";
 import { INPUT_CLASS } from "@/lib/ui";
+import { useRovingRadio } from "@/lib/use-roving-radio";
 
 /**
  * The walk (DECISIONS #133, #232, #249): three screens that say the
@@ -141,7 +144,12 @@ const QUESTION_TONES: Record<QuestionId, Tone> = {
   context: "mint",
   time: "sun",
 };
-/** Answer glyphs walk the tones row by row. */
+/**
+ * The glyphs' inks walk these row by row (#300, pop with colour): the
+ * colour is the glyph's own ink, never a tile and never the tap. The
+ * level is the exception (intro-b-9): its bars rise one to three, so
+ * all three wear one tone (`QUESTION_TONES.level`) and read as a scale.
+ */
 const ROW_TONES: Tone[] = ["sky", "coral", "sun"];
 const QUESTION_POSES: Record<QuestionId, Pose> = {
   name: "hello",
@@ -153,43 +161,48 @@ const QUESTION_POSES: Record<QuestionId, Pose> = {
   time: "clock",
 };
 
-/** A number as a glyph: the age bands, where the number IS the mark. */
-function Mark({ children }: { children: ReactNode }) {
-  return (
-    <span className="font-display text-[13px] font-extrabold tabular-nums">
-      {children}
-    </span>
-  );
-}
+/**
+ * One glyph per answer (#288, the reference's mechanic 6), standing
+ * bare at 24px in its ink (intro-a-7, M20). Typed over every option id
+ * so a new answer cannot ship without its mark. Two lists have none:
+ * the age bands, whose label already IS the number (intro-a-8), and the
+ * hour, whose rows are the word and the time, the reference's own goal
+ * screen.
+ */
+const GLYPH: Record<GoalId | PainId | LevelId | ContextId, ReactNode> = {
+  sharper: <IconSpark size={24} />,
+  present: <IconMic size={24} />,
+  feet: <IconBolt size={24} />,
+  anyone: <IconBubble size={24} />,
+  fillers: <IconWave size={24} />,
+  rushing: <IconGauge size={24} />,
+  trailing: <IconEllipsis size={24} />,
+  freezing: <IconFreeze size={24} />,
+  flat: <IconWaveFlat size={24} />,
+  rambling: <IconParagraph size={24} />,
+  never: <IconBars size={24} lit={1} />,
+  some: <IconBars size={24} lit={2} />,
+  often: <IconBars size={24} lit={3} />,
+  class: <IconCap size={24} />,
+  work: <IconCase size={24} />,
+  social: <IconPeople size={24} />,
+  online: <IconGlobe size={24} />,
+};
 
 /**
- * One glyph per answer (#288, the reference's mechanic 6). Typed over
- * every option id so a new answer cannot ship without its mark. The
- * hour is the one list without glyphs: its rows are two columns, the
- * word and the time, which is the reference's own goal screen.
+ * The pains that ARE a trait wear that trait's ink (intro-a-7,
+ * PRINCIPLES 6): a colour always means a trait and a trait always wears
+ * its colour, so "Um, like" is the Fillers lagoon and never a tone
+ * picked by its row. Trailing off and rambling are read by the Index
+ * but are no trait of the five, so they stand neutral.
  */
-const GLYPH: Record<AgeBandId | GoalId | PainId | LevelId | ContextId, ReactNode> = {
-  u18: <Mark>&lt;18</Mark>,
-  "18_24": <Mark>18</Mark>,
-  "25_34": <Mark>25</Mark>,
-  "35_plus": <Mark>35</Mark>,
-  sharper: <IconSpark size={22} />,
-  present: <IconBeacon size={22} />,
-  feet: <IconBoss size={22} />,
-  anyone: <IconYou size={22} />,
-  fillers: <IconWave size={22} />,
-  rushing: <IconGauge size={22} />,
-  trailing: <IconTrail size={22} />,
-  freezing: <IconFreeze size={22} />,
-  flat: <IconFlat size={22} />,
-  rambling: <IconParagraph size={22} />,
-  never: <IconBars size={22} lit={1} />,
-  some: <IconBars size={22} lit={2} />,
-  often: <IconBars size={22} lit={3} />,
-  class: <IconCap size={22} />,
-  work: <IconCase size={22} />,
-  social: <IconPeople size={22} />,
-  online: <IconGlobe size={22} />,
+const PAIN_TRAIT: Record<PainId, TraitId | null> = {
+  fillers: "fillers",
+  rushing: "pace",
+  trailing: null,
+  freezing: "pause",
+  flat: "range",
+  rambling: null,
 };
 
 /**
@@ -285,7 +298,11 @@ function Walk() {
           ? QUESTION_POSES[after.id]
           : after.kind === "beat"
             ? BEAT_POSE
-            : "clipboard";
+            : /* intro-b-21: the account ask says hello, so the plan's
+                 clipboard is not shown twice in a row. */
+              after.kind === "account"
+              ? "hello"
+              : "clipboard";
     preloadPose(pose);
   }, [i]);
 
@@ -373,18 +390,14 @@ function Walk() {
            * Later screens keep Skip, which skips the questions too.
            */
           step.index === 0 ? (
-            <Link
-              href="/signin"
-              className="press mt-3 block min-h-11 py-3 text-center text-[13px] font-semibold text-stone-500"
-            >
+            <Link href="/signin" className={FOOT_LINK}>
               I already have an account
             </Link>
           ) : (
-            <Link
-              href="/"
-              className="press mt-3 block min-h-11 py-3 text-center text-[13px] font-semibold text-stone-500"
-            >
-              Skip
+            /* intro-a-21: it leaves the whole introduction, questions
+               and all, so it says so; a question's Skip passes one. */
+            <Link href="/" className={FOOT_LINK}>
+              Skip intro
             </Link>
           )
         }
@@ -402,7 +415,9 @@ function Walk() {
         travel={travel}
         swipe={{ next: () => go(i + 1), back: () => go(i - 1) }}
         onBack={() => go(i - 1)}
-        header={<Progress n={QUESTIONS.length - 1} of={QUESTIONS.length} />}
+        /* The beat is no question, so it has no Skip, but it holds
+           Skip's width so the bar keeps one length from q6 to q7. */
+        header={<WalkBar n={QUESTIONS.length - 1} of={QUESTIONS.length} />}
         title={WELCOME_BEAT.title}
         line={WELCOME_BEAT.line}
         art={
@@ -436,7 +451,9 @@ function Walk() {
            advance. The screen rubber-bands and Skip stays the way past. */
         swipe={{ next: picked ? () => go(i + 1) : undefined, back: () => go(i - 1) }}
         onBack={() => go(i - 1)}
-        header={<Progress n={n} of={QUESTIONS.length} />}
+        header={
+          <WalkBar n={n} of={QUESTIONS.length} onSkip={() => go(i + 1)} />
+        }
         title={q.title}
         line={q.line}
         reply={replyFor(answers, step.id)}
@@ -456,31 +473,22 @@ function Walk() {
             answers={answers}
             onAnswer={answer}
             onSettleName={() => setHeardName(answers.name)}
+            onNext={() => go(i + 1)}
           />
         }
         /*
          * Next waits for an answer on EVERY question (#288, the
          * reference's grey Continue): the button lighting terracotta is
          * the reward for answering, and a button that is always lit
-         * rewards nothing. Skip, under it, is the way past without one,
-         * so nothing became mandatory. The old rule lit Next on the
-         * optional questions and held it on the essential ones, which
-         * was two rules for one button.
+         * rewards nothing. Skip, in the top row beside the bar (M20), is
+         * the way past without one, so nothing became mandatory, and the
+         * shelf holds Next alone, as the reference's footer does.
          */
         action={{
           label: "Next",
           onPress: () => go(i + 1),
           disabled: !picked,
         }}
-        footer={
-          <button
-            type="button"
-            onClick={() => go(i + 1)}
-            className="press mt-3 block min-h-11 w-full py-3 text-center text-[13px] font-semibold text-stone-500"
-          >
-            Skip
-          </button>
-        }
       />
     );
   }
@@ -509,44 +517,43 @@ function Walk() {
         back: () => go(i - 1),
       }}
       onBack={() => go(i - 1)}
+      /*
+       * The plan speaks (intro-b-11): Demos says the headline and his
+       * line to them from the same bubble every question used, so the
+       * walk keeps one grammar to its end instead of dropping into a
+       * heading and a grey subtitle. The month is the screen's list,
+       * left-aligned under him. 120px is the smallest size at which his
+       * idle clip still plays (#316).
+       */
+      speech="beside"
       title={plan.headline}
       /* His line to them, in their name and their words, in place of
          the template's old "Built from what you told me." */
       line={plan.opening}
-      /* The month as coloured steps on a rail (the swipe-and-pop
-         round), in the controls slot so the ladder is this screen's
-         own rather than the template's numbered list. */
-      controls={<PlanSteps label={PLAN_COPY.label} lines={plan.lines} />}
-      /*
-       * The one screen in the app where the NAME is the result (#212's
-       * own test): "Think on your feet." is not what this screen is
-       * called, it is what the seven answers came to. So it leads, and
-       * the month under it is the list.
-       */
-      lead="title"
-      ladder
+      controls={<PlanSteps label={PLAN_COPY.label} steps={plan.stepParts} />}
       art={
         <DemosArt
           pose="clipboard"
-          size={156}
+          size={120}
           pop
-          grounded
           halo={{ tone: "sun", kind: "coin" }}
-          className="mb-6"
+          greetAfterMs={SAID_AFTER_MS}
         />
       }
       /*
        * Editing from /you leaves the way it came. Otherwise the plan
        * hands over to the account screen, unless this browser already
        * has an account, in which case there is nothing to ask and the
-       * floor is one tap as it always was.
+       * floor is one tap as it always was. Start only where it starts
+       * something (#317); the step to the account ask is Next
+       * (intro-b-10).
        */
       action={
         editing
           ? { label: PLAN_COPY.done, href: "/you" }
           : needsAccount === false
             ? { label: PLAN_COPY.action, href: floor }
-            : { label: PLAN_COPY.action, onPress: () => go(i + 1) }
+            : { label: PLAN_COPY.toAccount, onPress: () => go(i + 1) }
       }
       fineprint={plan.boss ? plan.boss.line : undefined}
     />
@@ -606,10 +613,15 @@ function AccountStep({
       onBack={onBack}
       title={name ? `Keep this, ${name}.` : "Keep this."}
       line="Your plan and every number you're about to make, on any phone you open."
+      /* intro-b-13: the title and the line share the coin's axis, and
+         a larger Demos takes the slack out of the bands round them. He
+         says hello (intro-b-21): the plan's clipboard was one screen
+         ago. */
+      align="center"
       art={
         <DemosArt
-          pose="clipboard"
-          size={144}
+          pose="hello"
+          size={200}
           pop
           grounded
           halo={{ tone: "sky", kind: "coin" }}
@@ -639,25 +651,23 @@ function AccountStep({
        */
       footer={
         <>
+          {/* intro-b-14: the second door is Google's size and type, so
+              the two read as a pair and only the fill ranks them. */}
           <Link
             href="/signup"
-            className="press font-display mt-3 flex min-h-12 w-full items-center justify-center rounded-control border border-edge bg-surface px-6 text-[14px] font-bold"
+            className="press font-display mt-3 flex min-h-12 w-full items-center justify-center rounded-control border border-edge bg-surface px-6 py-3.5 text-body font-bold"
           >
             Use an email instead
           </Link>
+          {/* -mx-1 px-1: the words line up with the buttons' edges and
+              keep the padding as hit area. */}
           <div className="mt-2 flex items-center justify-between gap-4">
-            <Link
-              href={floor}
-              className="press inline-flex min-h-11 items-center px-1 text-[13px] font-semibold text-stone-500"
-            >
+            <Link href={floor} className="text-link -mx-1 inline-flex min-h-11 items-center px-1">
               Not now
             </Link>
             {/* The one place inside the product where somebody deciding
                 whether to sign up can read what it is (#277). */}
-            <Link
-              href="/about"
-              className="press inline-flex min-h-11 items-center px-1 text-[13px] font-semibold text-stone-500"
-            >
+            <Link href="/about" className="text-link -mx-1 inline-flex min-h-11 items-center px-1">
               What Ethos is
             </Link>
           </div>
@@ -753,10 +763,10 @@ function Dots({
  *
  * Seven segments and "2 of 7" told you the walk was seven long before
  * you had answered one; a bar a quarter full says the same without the
- * number, which is the reference's own move. The width transitions
- * because this element persists from one question to the next (the
- * template is the same instance across the walk), so the fill grows
- * from where it was rather than reappearing at the new value.
+ * number, which is the reference's own move. The fill is full width and
+ * clipped to `--p` on the base spring (A3's hook, intro-a-20), so the
+ * gradient holds still under the clip as the bar grows; this element
+ * persists from one question to the next, so it grows from where it was.
  */
 function Progress({ n, of }: { n: number; of: number }) {
   return (
@@ -766,121 +776,214 @@ function Progress({ n, of }: { n: number; of: number }) {
       aria-valuemax={of}
       aria-valuenow={n}
       aria-label={`Question ${n} of ${of}`}
-      className="intro-progress w-full"
+      className="intro-progress w-full min-w-0 flex-1"
     >
-      <div style={{ width: `${(n / of) * 100}%` }} />
+      {/* intro-b-4: the plan is the walk's last step, so the drawn bar
+          counts it and no question shows a finished bar. */}
+      <div style={{ "--p": n / (of + 1) } as React.CSSProperties} />
     </div>
   );
 }
 
 /**
- * One tappable answer per row, in the segmented control's grammar
- * (#206, ModeToggle): the chosen row fills with ink, the rest stand on
- * `surface` behind the `edge` boundary every control in the app now
- * carries. Single answers are a radio set; the pains are checkboxes,
- * three at most; the name is the one thing you type.
+ * The walk's top row after Back (M20, Duolingo 13-question-list-dark):
+ * the bar, then Skip, the way past a question without an answer, as a
+ * text link with a 44px hit. Its place is held on the beat, which has
+ * nothing to skip, so the bar is one length from the first question to
+ * the last.
+ */
+function WalkBar({ n, of, onSkip }: { n: number; of: number; onSkip?: () => void }) {
+  return (
+    <div className="flex items-center gap-4">
+      <Progress n={n} of={of} />
+      {onSkip ? (
+        <button type="button" onClick={onSkip} className="text-link flex min-h-11 shrink-0 items-center">
+          Skip
+        </button>
+      ) : (
+        <span aria-hidden className="text-link invisible flex min-h-11 shrink-0 items-center">
+          Skip
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** The door under an intro screen's Next: a text link at full width. */
+const FOOT_LINK = "text-link mt-3 flex min-h-11 items-center justify-center";
+
+/**
+ * An answer, chosen (M20, intro-a-14): the reference's accent edge,
+ * tinted fill and accent label, never an inverted block. The dark wash
+ * is the accent at 10% over the surface, because terracotta-50 in dark
+ * is a brown slab. One constant, worn by a chosen row and by the name
+ * field once a name is in it, so the typed answer and the tapped ones
+ * light the same way.
+ */
+const PICKED_ROW =
+  "border-terracotta-500 bg-terracotta-50 text-terracotta-700 dark:bg-[color-mix(in_srgb,var(--color-terracotta-500)_10%,var(--color-surface))]";
+
+/**
+ * The answers to one question: a field for the name, checkboxes for
+ * the pains (three at most), and a radio set for the rest. Each is its
+ * own component, so the radio sets can hold their hook.
  */
 function Choices({
   id,
   answers,
   onAnswer,
   onSettleName,
+  onNext,
 }: {
   id: QuestionId;
   answers: Answers;
   onAnswer: (patch: Partial<Answers>) => void;
   onSettleName: () => void;
+  onNext: () => void;
 }) {
   if (id === "name") {
     return (
-      <input
-        // Deliberately NOT autoFocus: a keyboard that throws itself up
-        // over Demos on the first question of the first session hides
-        // the half of the screen that is doing the introducing.
-        aria-label={NAME_FIELD.label}
-        maxLength={MAX_NAME}
-        autoComplete="given-name"
-        enterKeyHint="next"
-        value={answers.name ?? ""}
-        onChange={(e) => onAnswer({ name: cleanName(e.target.value) })}
-        onBlur={onSettleName}
-        placeholder={NAME_FIELD.placeholder}
-        className={INPUT_CLASS}
+      <NameField
+        name={answers.name}
+        onAnswer={onAnswer}
+        onSettleName={onSettleName}
+        onNext={onNext}
       />
     );
   }
+  if (id === "pains") return <Pains pains={answers.pains} onAnswer={onAnswer} />;
+  if (id === "time") return <Hours value={answers.time} onAnswer={onAnswer} />;
+  return <OneOf id={id} answers={answers} onAnswer={onAnswer} />;
+}
 
-  if (id === "pains") {
-    const full = answers.pains.length >= MAX_PAINS;
-    return (
-      <div role="group" aria-label="What you notice" className="space-y-2">
-        {PAINS.map((o, k) => {
-          const on = answers.pains.includes(o.id);
-          return (
-            <Row
-              key={o.id}
-              role="checkbox"
-              on={on}
-              disabled={!on && full}
-              label={o.label}
-              glyph={GLYPH[o.id]}
-              tone={ROW_TONES[k % ROW_TONES.length]}
-              onPress={() =>
-                onAnswer({
-                  pains: on
-                    ? answers.pains.filter((p) => p !== o.id)
-                    : [...answers.pains, o.id],
-                })
-              }
-            />
-          );
-        })}
-      </div>
-    );
-  }
-  if (id === "time") {
-    return (
-      <div role="radiogroup" aria-label={QUESTIONS.find((q) => q.id === id)!.title} className="space-y-2">
-        {TIMES.map((o) => {
-          /* "Morning, 08:00" as two columns: the word to scan, the hour
-             to the right in tabular figures. The row's accessible name
-             stays the whole label. */
-          const [word, hour] = o.label.split(", ");
-          return (
-            <Row
-              key={o.id}
-              role="radio"
-              on={answers.time === o.id}
-              label={o.label}
-              word={word}
-              detail={hour}
-              onPress={() => onAnswer({ time: o.id })}
-            />
-          );
-        })}
-      </div>
-    );
-  }
-  const options =
-    id === "ageBand"
-      ? AGE_BANDS
-      : id === "goal"
-        ? GOALS
-        : id === "level"
-          ? LEVELS
-          : CONTEXTS;
-  const value = answers[id];
+/**
+ * The one answer you type (intro-a-10, intro-a-11): the same 56px
+ * object as the rows under every other question, at 17px (still past
+ * the 16 that stops iOS zooming in), lit like a chosen row once a name
+ * is in it. The keyboard's Next key is the screen's Next (intro-a-2).
+ */
+function NameField({
+  name,
+  onAnswer,
+  onSettleName,
+  onNext,
+}: {
+  name: string | null;
+  onAnswer: (patch: Partial<Answers>) => void;
+  onSettleName: () => void;
+  onNext: () => void;
+}) {
   return (
-    <div role="radiogroup" aria-label={QUESTIONS.find((q) => q.id === id)!.title} className="space-y-2">
+    <input
+      // Deliberately NOT autoFocus: a keyboard that throws itself up
+      // over Demos on the first question of the first session hides
+      // the half of the screen that is doing the introducing.
+      aria-label={NAME_FIELD.label}
+      name="given-name"
+      maxLength={MAX_NAME}
+      autoComplete="given-name"
+      autoCapitalize="words"
+      spellCheck={false}
+      enterKeyHint="next"
+      value={name ?? ""}
+      onChange={(e) => onAnswer({ name: cleanName(e.target.value) })}
+      onBlur={onSettleName}
+      onKeyDown={(e) => {
+        if (e.key !== "Enter" || !name) return;
+        e.preventDefault();
+        onSettleName();
+        onNext();
+      }}
+      placeholder={NAME_FIELD.placeholder}
+      className={`${NAME_CLASS} font-display ${name ? PICKED_ROW : "border-edge bg-surface"}`}
+    />
+  );
+}
+
+/*
+ * INPUT_CLASS at the answers' size: swapped rather than appended,
+ * because two utilities for one property (min-h-11 and min-h-14, the
+ * resting edge and the picked one) are settled by stylesheet order,
+ * not by the order they are written in.
+ */
+const NAME_CLASS = INPUT_CLASS.replace("text-read", "text-detail")
+  .replace("min-h-11", "min-h-14")
+  .replace("border-edge bg-surface", "");
+
+/** What you notice: checkboxes, three at most, each its own Tab stop. */
+function Pains({
+  pains,
+  onAnswer,
+}: {
+  pains: readonly PainId[];
+  onAnswer: (patch: Partial<Answers>) => void;
+}) {
+  const full = pains.length >= MAX_PAINS;
+  return (
+    <div role="group" aria-label="What you notice" className="flex flex-col gap-3">
+      {PAINS.map((o) => {
+        const on = pains.includes(o.id);
+        return (
+          <Row
+            key={o.id}
+            role="checkbox"
+            on={on}
+            disabled={!on && full}
+            label={o.label}
+            glyph={GLYPH[o.id]}
+            trait={PAIN_TRAIT[o.id]}
+            onPress={() =>
+              onAnswer({ pains: on ? pains.filter((p) => p !== o.id) : [...pains, o.id] })
+            }
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * A single answer from a list (intro-a-5, intro-b-7): one Tab stop, the
+ * arrow keys move the choice and the focus together, wrapping at the
+ * ends, through the app's one radio hook.
+ */
+function OneOf({
+  id,
+  answers,
+  onAnswer,
+}: {
+  id: "ageBand" | "goal" | "level" | "context";
+  answers: Answers;
+  onAnswer: (patch: Partial<Answers>) => void;
+}) {
+  const options: readonly { id: string; label: string }[] =
+    id === "ageBand" ? AGE_BANDS : id === "goal" ? GOALS : id === "level" ? LEVELS : CONTEXTS;
+  const value: string | null = answers[id];
+  const pick = (v: string) => onAnswer({ [id]: v } as Partial<Answers>);
+  const { getItemProps } = useRovingRadio({
+    values: options.map((o) => o.id),
+    value,
+    onChange: pick,
+  });
+  return (
+    <div
+      role="radiogroup"
+      aria-label={QUESTIONS.find((q) => q.id === id)!.title}
+      className="flex flex-col gap-3"
+    >
       {options.map((o, k) => (
         <Row
           key={o.id}
           role="radio"
           on={value === o.id}
           label={o.label}
-          glyph={GLYPH[o.id]}
-          tone={ROW_TONES[k % ROW_TONES.length]}
-          onPress={() => onAnswer({ [id]: o.id } as Partial<Answers>)}
+          /* The age bands' label is the number, so they carry no glyph
+             and line their figures up (intro-a-8). */
+          glyph={id === "ageBand" ? undefined : GLYPH[o.id as keyof typeof GLYPH]}
+          tabular={id === "ageBand"}
+          tone={id === "level" ? QUESTION_TONES.level : ROW_TONES[k % ROW_TONES.length]}
+          onPress={() => pick(o.id)}
+          {...getItemProps(o.id, k)}
         />
       ))}
     </div>
@@ -888,17 +991,65 @@ function Choices({
 }
 
 /**
- * One answer, as an object (#288): 56px, a glyph at the left, and the
- * chosen one lit in terracotta, an edge on a wash, rather than the
- * inverted ink block #206 gave it. The ink block was the heaviest
- * thing on the screen and it marked the ANSWER, which is the one thing
- * on a question screen that is not the action; terracotta is what a
- * thing you touched looks like everywhere else in the app (an input's
- * focus, the boss card's edge). A second ring is drawn inside the edge
- * so the chosen row reads at a squint without the box changing size.
+ * The hour (intro-b-19): the word to scan on the left, and the time on
+ * the right said the way this device says it ("6 pm", "18"), set after
+ * mount so the server's render and the first client one agree. Its
+ * accessible name is the two together.
+ */
+function Hours({
+  value,
+  onAnswer,
+}: {
+  value: Answers["time"];
+  onAnswer: (patch: Partial<Answers>) => void;
+}) {
+  const hourLabel = useHourLabel();
+  const pick = (v: (typeof TIMES)[number]["id"]) => onAnswer({ time: v });
+  const { getItemProps } = useRovingRadio({
+    values: TIMES.map((t) => t.id),
+    value,
+    onChange: pick,
+  });
+  return (
+    <div
+      role="radiogroup"
+      aria-label={QUESTIONS.find((q) => q.id === "time")!.title}
+      className="flex flex-col gap-3"
+    >
+      {TIMES.map((o, k) => {
+        const word = o.label.split(", ")[0];
+        const time = o.hour === null ? undefined : hourLabel(o.hour);
+        return (
+          <Row
+            key={o.id}
+            role="radio"
+            on={value === o.id}
+            label={time ? `${word}, ${time}` : word}
+            word={word}
+            detail={time}
+            onPress={() => pick(o.id)}
+            {...getItemProps(o.id, k)}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * One answer, as an object (#288, M20, Duolingo 13-question-list-dark):
+ * a filled row on `surface` behind a 2px edge with the same edge at 4px
+ * as its bottom lip, a bold label at the left, the glyph bare in its
+ * ink. Never outlined and transparent (#218): `raised` is white on the
+ * white ground in light, so the fill is `surface`. The edge and lip are
+ * what tell an answer from the disabled Next, which is a flat grey slab
+ * with no edge: grey without an edge means "not yet".
  *
- * `aria-label` carries the whole label because the glyph and the
- * hour are text too, and "<18Under 18" is not a name.
+ * A press presses it in: 0.985 (a row is wide, so it gives a third of a
+ * button's 0.97), and the lip compresses as the row drops 2px. The
+ * margin the lip gives up is put back under it, so nothing below moves.
+ *
+ * `aria-label` carries the whole label, the hour's time included.
  */
 function Row({
   role,
@@ -909,7 +1060,12 @@ function Row({
   detail,
   glyph,
   tone = "sky",
+  trait,
+  tabular = false,
   onPress,
+  tabIndex,
+  onKeyDown,
+  ref,
 }: {
   role: "radio" | "checkbox";
   on: boolean;
@@ -920,39 +1076,53 @@ function Row({
   /** A right-hand column: the hour. */
   detail?: string;
   glyph?: ReactNode;
-  /** The glyph tile's colour (the swipe-and-pop round). */
+  /** The glyph's ink, a picture tone (#300). */
   tone?: Tone;
+  /** A trait's ink instead of a tone; null stands neutral. */
+  trait?: TraitId | null;
+  /** Figures in columns, for the age bands. */
+  tabular?: boolean;
   onPress: () => void;
+  /** From useRovingRadio, on the radio sets. */
+  tabIndex?: 0 | -1;
+  onKeyDown?: (e: KeyboardEvent<HTMLElement>) => void;
+  ref?: (el: HTMLElement | null) => void;
 }) {
+  const ink =
+    disabled
+      ? "text-stone-400"
+      : trait === null
+        ? "text-stone-500"
+        : "text-[var(--tone-ink)]";
   return (
     <button
+      ref={ref}
       type="button"
       role={role}
       aria-checked={on}
       aria-label={label}
       disabled={disabled}
+      tabIndex={tabIndex}
+      onKeyDown={onKeyDown}
       onClick={onPress}
-      className={`press font-display flex min-h-14 w-full items-center gap-3.5 rounded-control border px-4 py-2.5 text-left text-[15px] font-bold transition-colors ${
-        on
-          ? "border-terracotta-500 bg-terracotta-50 shadow-[inset_0_0_0_1px_var(--color-terracotta-500)]"
-          : "border-edge bg-surface hover:bg-sand"
-      } ${disabled ? "!text-stone-400" : ""}`}
+      className={`press font-display flex min-h-14 w-full items-center gap-3 rounded-control border-2 border-b-4 px-4 py-2 text-left text-detail font-bold transition-colors active:mb-0.5 active:translate-y-0.5 active:border-b-2 active:[transform:scale(0.985)]! [[data-motion=reduce]_&]:active:[transform:none]! ${
+        on ? PICKED_ROW : "border-edge bg-surface"
+      } ${disabled ? "text-stone-400" : on ? "" : "text-ink"}`}
     >
       {glyph !== undefined && (
-        /* A tile in its tone, the reference's coloured glyph: colour on
-           the answer objects is illustration, never the tap's colour. */
-        <span aria-hidden className={`glyph-tile tone-${tone}`}>
+        <span
+          aria-hidden
+          data-trait={trait ?? undefined}
+          className={`flex size-6 shrink-0 items-center justify-center ${
+            trait === undefined ? `tone-${tone}` : ""
+          } ${ink}`}
+        >
           {glyph}
         </span>
       )}
-      <span className="min-w-0 flex-1">{word ?? label}</span>
+      <span className={`min-w-0 flex-1 ${tabular ? "tabular-nums" : ""}`}>{word ?? label}</span>
       {detail && (
-        <span
-          aria-hidden
-          className={`shrink-0 text-[14px] font-semibold tabular-nums ${
-            on ? "text-terracotta-700" : "text-stone-400"
-          }`}
-        >
+        <span aria-hidden className="font-body shrink-0 text-body font-normal tabular-nums text-stone-500">
           {detail}
         </span>
       )}
@@ -961,24 +1131,24 @@ function Row({
 }
 
 /**
- * The plan's month as coloured steps (the swipe-and-pop round): three
- * numbered coins on a rail, each in its own tone, landing one at a
- * time. The numbers are what the eye counts before it reads, the rail
- * says the three are a sequence, and the tones are the only colour on
- * a screen that was brown text on white.
+ * The plan's month as numbered steps on a rail (the swipe-and-pop
+ * round), landing one at a time. Each step is data (intro-b-12): a
+ * short lead to count down, and the detail under it with every number
+ * set as a number, because the numbers are what the product sells.
  */
-function PlanSteps({ label, lines }: { label: string; lines: string[] }) {
+function PlanSteps({ label, steps }: { label: string; steps: PlanStep[] }) {
   const tones: Tone[] = ["sun", "sky", "coral"];
   return (
     <div>
-      <div className="label-data">{label}</div>
+      {/* A3's request: a sentence-case head, not tracked capitals. */}
+      <h2 className="detail-head">{label}</h2>
       <ol
-        className="stagger relative mt-4 space-y-4"
+        className="stagger relative mt-3 space-y-4"
         style={{ "--stagger-lead": "260ms" } as React.CSSProperties}
       >
-        {lines.map((line, k) => (
-          <li key={line} className="relative flex items-start gap-3.5">
-            {k < lines.length - 1 && (
+        {steps.map((step, k) => (
+          <li key={step.lead} className="relative flex items-start gap-3.5">
+            {k < steps.length - 1 && (
               <span
                 aria-hidden
                 className="absolute left-[13px] top-7 -bottom-4 w-0.5 bg-edge"
@@ -986,14 +1156,36 @@ function PlanSteps({ label, lines }: { label: string; lines: string[] }) {
             )}
             <span
               aria-hidden
-              className={`plan-step-mark tone-${tones[k % tones.length]} font-display text-[13px] font-extrabold tabular-nums`}
+              className={`plan-step-mark tone-${tones[k % tones.length]} font-display text-row font-extrabold tabular-nums`}
             >
               {k + 1}
             </span>
-            <span className="min-w-0 pt-0.5 text-body">{line}</span>
+            <span className="min-w-0 pt-0.5 text-pretty">
+              <span className="font-display block text-row">{step.lead}</span>
+              <span className="mt-0.5 block text-body text-stone-500">
+                <Numbers text={step.detail} />
+              </span>
+            </span>
           </li>
         ))}
       </ol>
     </div>
+  );
+}
+
+/** Every number in a line ("60", "130 to 160") set in the display face. */
+function Numbers({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(/(\d+(?: to \d+)?)/).map((part, k) =>
+        k % 2 === 1 ? (
+          <span key={k} className="font-display font-bold tabular-nums text-ink">
+            {part}
+          </span>
+        ) : (
+          part
+        )
+      )}
+    </>
   );
 }

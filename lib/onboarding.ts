@@ -113,8 +113,8 @@ export const QUESTIONS: readonly {
  * (lib/portfolio.test.ts keeps that vocabulary off this screen too).
  */
 export const WELCOME_BEAT = {
-  title: "Practice with a time happens.",
-  line: "Sixty seconds, at an hour you'd keep.",
+  title: "Practice with a set time gets done.",
+  line: "It takes 60 seconds. Pick an hour you'd keep.",
 } as const;
 
 /** The name field's own furniture: it is the one answer you type. */
@@ -123,9 +123,16 @@ export const NAME_FIELD = {
   label: "Your name",
 } as const;
 
+/**
+ * The plan's own words. `action` is the tap that goes to the floor, so
+ * it says Start (#317); `toAccount` is the same button when it opens the
+ * account ask instead, which is a step in the walk and not a start
+ * (intro-b-10), so it says what every other step's button says.
+ */
 export const PLAN_COPY = {
   label: "Your first month",
   action: "Start",
+  toAccount: "Next",
   done: "Done",
 } as const;
 

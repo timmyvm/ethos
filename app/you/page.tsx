@@ -699,8 +699,10 @@ export default function YouPage() {
       )}
 
       {showGate && (
-        <section className="card mt-7 p-4">
-          <h2 className="font-display text-row">Save your progress</h2>
+        /* p-5 and a detail head, like Day 1 vs now above it, so the two
+           stacked cards share one inner edge and one title size. */
+        <section className="card mt-7 p-5">
+          <h2 className="detail-head">Save your progress</h2>
           <p className="mt-1 text-caption text-stone-500">
             {history.length} recording{history.length === 1 ? "" : "s"}
             {streak.current > 0 &&
@@ -846,19 +848,24 @@ function Stat({
       {value === undefined ? (
         <Line className="font-display text-num-m" bar="w-9" text="0" />
       ) : (
-        <div className="font-display flex items-center justify-center gap-1 text-num-m tabular-nums">
-          {value === null ? "–" : <CountUp value={value} durationMs={DURATION.max} />}
-          {mark && value !== null && value > 0 && (
-            <span aria-hidden className="you-gold">
-              <IconFlame size={18} />
-            </span>
-          )}
+        /* The flame hangs off the number's right edge, so the number
+           itself stays centred over its label like the other two. */
+        <div className="font-display text-num-m tabular-nums">
+          <span className="relative inline-block">
+            {value === null ? "–" : <CountUp value={value} durationMs={DURATION.max} />}
+            {mark && value !== null && value > 0 && (
+              <span aria-hidden className="you-gold absolute left-full top-1/2 ml-1 -translate-y-1/2">
+                <IconFlame size={18} />
+              </span>
+            )}
+          </span>
         </div>
       )}
-      {/* At 390 each label holds one line; a narrower phone breaks the
-          long one in two (Imprint's own labels run two lines), which the
-          placeholder matches, because the label is drawn in both states. */}
-      <div className="label-micro mt-1.5 text-balance text-stone-500!">{label}</div>
+      {/* Two short lines in every column at every width, as Imprint's
+          run: one line each crowded the three together at 390 and broke
+          only the longest at 375. The label is drawn in both states, so
+          the placeholder is the same height. */}
+      <div className="label-micro mx-auto mt-1.5 max-w-16 text-balance text-stone-500!">{label}</div>
     </div>
   );
 }

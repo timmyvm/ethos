@@ -1,5 +1,6 @@
 "use client";
 
+import { Segmented } from "@/components/ui/Segmented";
 import type { CaptureMode } from "@/lib/prefs";
 
 /**
@@ -10,13 +11,18 @@ import type { CaptureMode } from "@/lib/prefs";
  * Pro buys, not the camera, and a padlock here would sell the wrong
  * thing and make the free tier feel like a demo.
  *
- * DEMOTED in the feedback round (25 Sep). It was a full-width segmented
- * control with a sentence under it, the second-biggest object on a
- * screen whose job is the topic and the Record tap, and a first-time
- * user read the screen as a document. It is now a small centred pair
- * that sits with the Record button it configures: 44px targets still,
- * a glyph and a word each, and the only sentence left is the camera's
- * promise, shown at the moment the camera is chosen (#135's rule).
+ * DEMOTED in the feedback round (25 Sep, #301): a small centred pair
+ * beside the Record button it configures, a glyph and a word each, and
+ * the only sentence left is the camera's promise, shown at the moment
+ * the camera is chosen (#135's rule).
+ *
+ * system-13, recording-26: it is the app's one segmented control (A2's
+ * `Segmented`, the same track and sliding thumb as Settings), at the
+ * large size: 44px segments, one tab stop, arrow keys that step over a
+ * Video this browser cannot do. Segments are equal, 96px each at
+ * least, so the thumb is the same width on both sides. The chosen
+ * segment wears its glyph filled in ink; the other stands in outline at
+ * stone-400, word and glyph together.
  */
 export function ModeToggle({
   mode,
@@ -33,25 +39,30 @@ export function ModeToggle({
 }) {
   return (
     <div className="flex flex-col items-center">
-      <div
-        role="radiogroup"
-        aria-label="Recording mode"
-        className="inline-flex gap-1 rounded-control bg-surface p-1"
-      >
-        <Option
-          label="Voice"
-          glyph="mic"
-          selected={mode === "voice"}
-          onSelect={() => onChange("voice")}
-        />
-        <Option
-          label="Video"
-          glyph="cam"
-          selected={mode === "voice_video"}
-          disabled={!available}
-          onSelect={() => onChange("voice_video")}
-        />
-      </div>
+      <Segmented<CaptureMode>
+        label="Record with"
+        size="lg"
+        value={mode}
+        onChange={onChange}
+        options={[
+          {
+            value: "voice",
+            label: <Face glyph="mic" word="Voice" on={mode === "voice"} />,
+          },
+          {
+            value: "voice_video",
+            label: (
+              <Face
+                glyph="cam"
+                word="Video"
+                on={mode === "voice_video"}
+                off={!available}
+              />
+            ),
+            disabled: !available,
+          },
+        ]}
+      />
 
       {(mode === "voice_video" || reason) && (
         <p className="mt-1.5 text-center text-caption text-stone-500">
@@ -64,55 +75,73 @@ export function ModeToggle({
   );
 }
 
-function Option({
-  label,
+/**
+ * One segment's face: the 20px glyph and the word. A disabled segment
+ * leaves its colour to the control (stone-300 on the option), so it
+ * reads as unavailable rather than as merely unchosen.
+ */
+function Face({
   glyph,
-  selected,
-  disabled = false,
-  onSelect,
+  word,
+  on,
+  off = false,
 }: {
-  label: string;
   glyph: "mic" | "cam";
-  selected: boolean;
-  disabled?: boolean;
-  onSelect: () => void;
+  word: string;
+  on: boolean;
+  off?: boolean;
 }) {
+  const tone = on ? "text-ink" : off ? "" : "text-stone-400";
   return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={selected}
-      aria-label={glyph === "cam" ? "Voice + Video" : "Voice"}
-      disabled={disabled}
-      onClick={onSelect}
-      className={`press font-display inline-flex min-h-11 items-center gap-1.5 rounded-control px-3.5 text-[13px] font-bold transition-colors ${
-        selected ? "elev-1 bg-raised text-ink" : "text-stone-500"
-      } ${disabled ? "!text-stone-300" : ""}`}
+    <span
+      className={`flex min-w-[96px] items-center justify-center gap-1.5 px-3 text-body font-bold transition-colors duration-200 ease-out ${tone}`}
     >
-      <svg
-        aria-hidden
-        width="16"
-        height="16"
-        viewBox="0 0 20 20"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        {glyph === "mic" ? (
-          <>
-            <rect x="7" y="2.5" width="6" height="10" rx="3" />
-            <path d="M4.5 9.5a5.5 5.5 0 0011 0M10 15v2.5" />
-          </>
-        ) : (
-          <>
-            <rect x="2.5" y="5.5" width="11" height="9" rx="2" />
-            <path d="M13.5 9l4-2.5v7l-4-2.5" />
-          </>
-        )}
+      <Glyph kind={glyph} filled={on} />
+      {word}
+    </span>
+  );
+}
+
+function Glyph({ kind, filled }: { kind: "mic" | "cam"; filled: boolean }) {
+  const common = {
+    "aria-hidden": true,
+    width: 20,
+    height: 20,
+    viewBox: "0 0 20 20",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+  if (kind === "mic") {
+    return (
+      <svg {...common} fill="none">
+        <rect
+          x="7"
+          y="2.5"
+          width="6"
+          height="10"
+          rx="3"
+          fill={filled ? "currentColor" : "none"}
+        />
+        <path d="M4.5 9.5a5.5 5.5 0 0011 0M10 15v2.5" />
       </svg>
-      {label}
-    </button>
+    );
+  }
+  return (
+    <svg {...common} fill="none">
+      <rect
+        x="2.5"
+        y="5.5"
+        width="11"
+        height="9"
+        rx="2"
+        fill={filled ? "currentColor" : "none"}
+      />
+      <path
+        d="M13.5 9l4-2.5v7l-4-2.5z"
+        fill={filled ? "currentColor" : "none"}
+      />
+    </svg>
   );
 }

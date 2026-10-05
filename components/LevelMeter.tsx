@@ -52,7 +52,7 @@ export function LevelMeter({
 
   return (
     <div
-      className="flex items-center gap-[3px]"
+      className="flex items-center gap-0.5"
       style={{ height }}
       aria-hidden
     >
@@ -62,7 +62,7 @@ export function LevelMeter({
           ref={(el) => {
             nodes.current[i] = el;
           }}
-          className="block h-full w-1 origin-center bg-stone-400"
+          className="block h-full w-1 origin-center bg-[var(--rec-bar-lit)]"
           style={{ transform: `scaleY(${FLOOR})` }}
         />
       ))}
@@ -70,5 +70,11 @@ export function LevelMeter({
   );
 }
 
-/** A bar never vanishes: silence is a flat line, not an empty row. */
-const FLOOR = 0.08;
+/**
+ * A bar never vanishes: silence is a flat line, not an empty row.
+ * recording-17: at 4% of 48px and 2px apart, silence reads as one
+ * near-continuous amber hairline (the scoring wave's lit colour, so the
+ * recording and its reading wear one colour) rather than a dotted rule.
+ * #219 stands: the bars still move with the voice.
+ */
+const FLOOR = 0.04;

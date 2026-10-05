@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useMemo } from "react";
 import { browserFamily, permissionSteps } from "@/lib/permission-help";
+import { ACTION_CLASS } from "@/lib/ui";
 
 /**
  * The blocked-mic screen. Never a dead end: it says why the mic is
@@ -33,7 +34,7 @@ export function PermissionHelp({
   const thing = video ? "mic and camera" : "mic";
 
   return (
-    <div className="elev-1 w-full rounded-card border border-card-edge bg-raised p-4">
+    <div className="card w-full p-4">
       <div className="flex items-center gap-3.5">
         <Image
           src="/demos-listening.webp"
@@ -43,7 +44,7 @@ export function PermissionHelp({
           className="demos w-14 shrink-0"
         />
         <div>
-          <div className="font-display text-[16px] font-extrabold">
+          <div className="font-display text-detail font-extrabold">
             {missing ? `No ${thing} found` : `The ${thing} is blocked`}
           </div>
           <p className="mt-1 text-caption leading-relaxed text-stone-500">
@@ -54,15 +55,15 @@ export function PermissionHelp({
       </div>
 
       {missing ? (
-        <p className="mt-4 text-[14px] leading-relaxed text-stone-600">
+        <p className="mt-4 text-body text-stone-600">
           This device didn&apos;t offer one. Plug in or switch on a {thing},
           then check again.
         </p>
       ) : (
         <ol className="mt-4 space-y-2">
           {steps.map((step, i) => (
-            <li key={i} className="flex gap-2.5 text-[14px] leading-relaxed">
-              <span className="label-micro mt-1 shrink-0 !text-sage-700">
+            <li key={i} className="flex gap-2.5 text-body">
+              <span className="font-display mt-px w-3 shrink-0 text-row tabular-nums text-stone-500">
                 {i + 1}
               </span>
               <span className="text-stone-600">{step}</span>
@@ -73,7 +74,7 @@ export function PermissionHelp({
 
       <button
         onClick={onRecheck}
-        className="press font-display mt-5 min-h-12 w-full rounded-control bg-terracotta-500 px-5 py-3.5 text-[15px] font-bold text-on-accent transition-colors hover:bg-terracotta-600"
+        className={`${ACTION_CLASS} mt-5`}
       >
         Check again
       </button>

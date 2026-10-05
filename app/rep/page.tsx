@@ -8,6 +8,7 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -15,7 +16,6 @@ import {
 import { AudioScrubber } from "@/components/AudioScrubber";
 import { PremiumDoor } from "@/components/PremiumMark";
 import { Coin } from "@/components/Coin";
-import { GainsRow } from "@/components/GainsRow";
 import { LevelMeter } from "@/components/LevelMeter";
 import { ModeToggle } from "@/components/ModeToggle";
 import { Moment } from "@/components/Moment";
@@ -31,9 +31,15 @@ import { TipLine, TipStrip } from "@/components/rep/TipStrip";
 import { splitPrompt } from "@/lib/tip-labels";
 import { TopicCard } from "@/components/rep/TopicCard";
 import { StreakCelebration } from "@/components/StreakCelebration";
+import { TraitChip } from "@/components/TraitChip";
 import { readOnboarding } from "@/lib/answers";
 import { buildPortfolio } from "@/lib/portfolio";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { FooterShelf } from "@/components/ui/FooterShelf";
+import { BackLink } from "@/components/ui/ScreenHeader";
+import { recordingTrait } from "@/lib/log";
+import { animateSpring, SPRING } from "@/lib/spring";
+import { useHourLabel } from "@/lib/time-label";
 import { achievements } from "@/lib/achievements";
 import {
   fetchProfile,
@@ -82,20 +88,20 @@ import {
 import {
   buzz,
   captureModeFor,
+  prefersReducedMotion,
   readPrefs,
   writeCaptureMode,
   writePrefs,
   type CaptureMode,
 } from "@/lib/prefs";
 import { armReminder } from "@/lib/reminders";
-import { nextMilestones, repGains, type RepGain } from "@/lib/progress";
+import { nextMilestones, repGains } from "@/lib/progress";
 import {
   anticipation,
   endNote,
   personalBests,
   type RewardMoment,
 } from "@/lib/rewards";
-import { nextFocus, type NextFocus } from "@/lib/schedule";
 import { unlockSfx } from "@/lib/sfx";
 import { computeStreak } from "@/lib/streak";
 import { nextDrill } from "@/lib/drills";
@@ -115,6 +121,7 @@ import {
 } from "@/lib/rep-outbox";
 import { ensureSession } from "@/lib/supabase-browser";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
+import type { TraitId } from "@/content/traits";
 
 const METER_BARS = 36;
 const FRAME_SECONDS = 30;
@@ -249,13 +256,25 @@ function RepScreen() {
   );
   const [celebrate, setCelebrate] = useState<number | null>(null);
   const [interruption, setInterruption] = useState<string | null>(null);
-  const [gains, setGains] = useState<RepGain[]>([]);
   const [anticipate, setAnticipate] = useState<RewardMoment | null>(null);
   const [closing, setClosing] = useState<RewardMoment | null>(null);
   const [bests, setBests] = useState<RewardMoment[]>([]);
   const [notes, setNotes] = useState("");
-  const [tomorrow, setTomorrow] = useState<NextFocus | null>(null);
   const [coined, setCoined] = useState(false);
+  /**
+   * A star landed or the streak held on this recording (M08): Demos
+   * swaps to his celebrate pose on the score step. The streak "held"
+   * when this recording is the one that closed today, not a second
+   * take on a day already counted.
+   */
+  const [earnedNow, setEarnedNow] = useState(false);
+  /**
+   * recording-16: the topic card's top just before Record's tap, so the
+   * layout effect can FLIP it from there to its recording place on a
+   * spring instead of letting it cut 100px up the screen.
+   */
+  const topicRef = useRef<HTMLDivElement | null>(null);
+  const flipFrom = useRef<number | null>(null);
 
   // --- delivery feedback (§1) ---------------------------------------
   const [captureMode, setCaptureMode] = useState<CaptureMode>("voice");
@@ -313,6 +332,8 @@ function RepScreen() {
     stars: number;
     unitsOpen: string[];
     reps: RepRow[];
+    /** Today already had a recording before this one. */
+    didToday: boolean;
   } | null>(null);
 
   /**
@@ -362,14 +383,15 @@ function RepScreen() {
       .then(async (rows) => {
         setRepCount(rows.length);
         const map = starsByLesson(rows);
+        const streak = computeStreak(rows.map((r) => new Date(r.created_at)));
         baselineRef.current = {
           stars: totalStars(map),
           unitsOpen: unitStates(map)
             .filter((u) => !u.locked)
             .map((u) => u.name),
           reps: rows,
+          didToday: streak.didToday,
         };
-        const streak = computeStreak(rows.map((r) => new Date(r.created_at)));
         const xp = await fetchXp().catch(() => ({ total: 0, week: 0 }));
         setAnticipate(
           anticipation(
@@ -518,7 +540,10 @@ function RepScreen() {
               unlockedUnit:
                 openNow.find((n) => !before.unitsOpen.includes(n)) ?? null,
             });
-            setGains(nextGains);
+            setEarnedNow(
+              totalStars(map) > before.stars ||
+                (!before.didToday && streak.current > 1)
+            );
             // before.reps is the history captured on mount — the true
             // "before", independent of whether this rep persisted.
             setBests(
@@ -526,7 +551,6 @@ function RepScreen() {
             );
             // Streak-end rule: the last thing on screen decides whether
             // they come back, so it is always something true and good.
-            setTomorrow(nextFocus(reps));
             setClosing(
               endNote({
                 gains: nextGains,
@@ -802,6 +826,9 @@ function RepScreen() {
       }
 
       buzz(30);
+      // recording-16: where the card stands now, read before the layout
+      // changes, so the layout effect below can glide it to its new place.
+      flipFrom.current = topicRef.current?.getBoundingClientRect().top ?? null;
       setPhase("recording");
     } catch (e) {
       // A refusal and a missing device get the dedicated explainer
@@ -828,10 +855,10 @@ function RepScreen() {
    */
   const retake = useCallback(() => {
     setResult(null);
-    setGains([]);
     setBests([]);
     setClosing(null);
     setCelebrate(null);
+    setEarnedNow(false);
     setSeconds(0);
     meterLevel.current = 0;
     meterPeak.current = 0;
@@ -845,6 +872,23 @@ function RepScreen() {
       return null;
     });
     setPhase("idle");
+  }, []);
+
+  /*
+   * The celebration's end. Stable, because StreakCelebration keys its
+   * hold timers on this callback: an inline arrow was a new function on
+   * every render of this screen, and each late result (the coin, the
+   * session, the bests) restarted the 1.8s hold, so the overlay stayed
+   * up for as long as answers kept landing.
+   */
+  const celebrated = useCallback(() => {
+    setCelebrate(null);
+    // The overlay hands focus back to its opener, and the opener (Stop)
+    // is gone: land on the step button so a keyboard does not restart
+    // from the top of the page.
+    requestAnimationFrame(() =>
+      document.querySelector<HTMLElement>("main [data-step-action]")?.focus()
+    );
   }, []);
 
   /** Frame step (DECISIONS #35): opt-in think time before the clock. */
@@ -862,10 +906,10 @@ function RepScreen() {
     lessonKeyRef.current = lessonKey;
     setResult(null);
     setPresence(null);
-    setGains([]);
     setBests([]);
     setClosing(null);
     setCelebrate(null);
+    setEarnedNow(false);
     setCoined(false);
     setSeconds(0);
     setRing("ok");
@@ -882,6 +926,32 @@ function RepScreen() {
     setPhase("idle");
     window.scrollTo({ top: 0 });
   }, [lessonKey]);
+
+  /*
+   * recording-16 (DESIGN.md: nothing teleports). On Record the topic
+   * card loses the idle screen's headroom and centring and steps its
+   * type down, so it used to cut about 100px up the screen in one
+   * frame. FLIP: the top was read just before the phase changed; read
+   * it again now, after layout and before paint, put the card back where
+   * it was with a transform, and let the base spring bring it home.
+   * Reduced motion lands it at once.
+   */
+  useLayoutEffect(() => {
+    const from = flipFrom.current;
+    flipFrom.current = null;
+    const el = topicRef.current;
+    if (phase !== "recording" || from === null || !el) return;
+    const offset = from - el.getBoundingClientRect().top;
+    if (Math.abs(offset) < 1) return;
+    void animateSpring(el, {
+      from: offset,
+      to: 0,
+      spring: SPRING.base,
+      reduced: prefersReducedMotion(),
+    }).then(() => {
+      el.style.transform = "";
+    });
+  }, [phase]);
 
   // Frame countdown
   useEffect(() => {
@@ -975,10 +1045,9 @@ function RepScreen() {
         <Results
           result={result}
           config={config}
-          gains={gains}
           bests={bests}
           closing={closing}
-          tomorrow={tomorrow}
+          earned={earnedNow}
           presence={presence}
           clipUrl={clipUrl}
           audioUrl={audioUrl}
@@ -992,20 +1061,7 @@ function RepScreen() {
           onRetake={retake}
         />
         {celebrate !== null && (
-          <StreakCelebration
-            streak={celebrate}
-            onDone={() => {
-              setCelebrate(null);
-              // The overlay hands focus back to its opener, and the
-              // opener (Stop) is gone: land on the step button so a
-              // keyboard does not restart from the top of the page.
-              requestAnimationFrame(() =>
-                document
-                  .querySelector<HTMLElement>("main button.press")
-                  ?.focus()
-              );
-            }}
-          />
+          <StreakCelebration streak={celebrate} onDone={celebrated} />
         )}
         {paywall && (
           <Paywall
@@ -1064,12 +1120,35 @@ function RepScreen() {
    * be an open redirect wearing a query string.
    */
   const backTo = safeBack(searchParams.get("back"));
+  const backHref = backTo ?? (config.kind === "boss" ? "/boss" : "/");
+  /*
+   * recording-3: while the mic is hot (and while its take is being
+   * scored) Stop is the only control. Leaving would unmount the
+   * recorder without scoring or saving the take. The row keeps its 44px
+   * so the card does not jump twice, and `inert` takes it out of the
+   * tab order and the accessibility tree along with the pointer.
+   */
+  const micHot = phase === "recording" || phase === "analyzing";
 
   return (
-    <main className="flex min-h-dvh flex-col px-5 pb-8 pt-7">
-      <Link href={backTo ?? (config.kind === "boss" ? "/boss" : "/")} className="press inline-flex min-h-11 items-center self-start text-[13px] font-semibold text-stone-500">
-        ← back
-      </Link>
+    <main className="relative isolate flex min-h-dvh flex-col px-5 pb-8 pt-7">
+      {/* M14: a warm glow under Record marks where you speak. Static, in
+          the recording flow's amber wash (it has a dark value), behind
+          the content of the isolated main. Idle only: once the mic is
+          hot the ring is the signal. */}
+      {phase === "idle" && (
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-x-0 bottom-0 -z-10 mx-auto h-60 max-w-[430px] bg-[radial-gradient(120%_100%_at_50%_100%,var(--rec-amber-wash)_0%,transparent_70%)]"
+        />
+      )}
+      <div
+        className={`flex self-start ${micHot ? "invisible pointer-events-none" : ""}`}
+        aria-hidden={micHot || undefined}
+        inert={micHot || undefined}
+      >
+        <BackLink href={backHref} label={backLabel(backHref)} className="" />
+      </div>
       {/*
        * The topic is the hero (feedback round, 25 Sep). A first-time
        * user in the audience read the old screen, an eyebrow, a name, a
@@ -1086,9 +1165,9 @@ function RepScreen() {
           tiles and then a hole above the tap (review, 25 Sep). */}
       <div className={phase === "idle" ? "flex flex-1 flex-col justify-center pb-8" : ""}>
       {phase !== "analyzing" && (
-        <div className={phase === "idle" ? "mt-[100px]" : "mt-4"}>
+        <div ref={topicRef} className={phase === "idle" ? "mt-[100px]" : "mt-4"}>
           <TopicCard
-            eyebrow={config.unit}
+            eyebrow={eyebrowOf(config.unit)}
             topic={promptHidden ? "Prompt hidden. That's the mod." : topicText}
             compact={phase !== "idle"}
           />
@@ -1097,9 +1176,11 @@ function RepScreen() {
 
       {phase === "idle" && (
         <div className="mt-6">
-          <h2 className="font-display text-[15px] font-bold">{doLine}</h2>
+          {/* recording-15: the instruction over the three tactics, a clear
+              step above their 14px labels rather than a fourth label. */}
+          <h2 className="font-display text-lead font-bold">{doLine}</h2>
           {doRule && <TipLine tip={doRule} className="mt-2" />}
-          <TipStrip tips={config.tips} label={null} className="mt-3" />
+          <TipStrip tips={config.tips} label={null} className={`mt-3 ${TIGHT_TILES}`} />
         </div>
       )}
 
@@ -1108,12 +1189,12 @@ function RepScreen() {
           {config.mods.map((m) => (
             <span
               key={m.id}
-              className="label-micro rounded-full bg-stone-100 px-2.5 py-1 !text-ink"
+              className="rounded-full bg-surface px-2.5 py-1 text-caption font-bold text-ink"
             >
               {m.name}
             </span>
           ))}
-          <span className="label-micro">×{config.xpMultiplier} XP</span>
+          <span className="text-caption font-semibold text-stone-500">×{config.xpMultiplier} XP</span>
         </div>
       )}
 
@@ -1132,7 +1213,7 @@ function RepScreen() {
         {phase === "frame" && (
           <div className="arrive w-full">
             <div className="flex items-baseline justify-between">
-              <div className="font-display text-[40px] font-extrabold leading-none">
+              <div className="font-display text-num-l tabular-nums">
                 {frameLeft}
               </div>
               <div className="label-data">seconds to think</div>
@@ -1143,14 +1224,14 @@ function RepScreen() {
                 you're going to say, so we don't pretend to. The same
                 tiles as the idle screen (feedback round, 25 Sep): a
                 numbered list here was the same wall one tap later. */}
-            <TipStrip tips={config.tips} label="Shape it like this" className="mt-5" />
+            <TipStrip tips={config.tips} label="Shape it like this" className={`mt-5 ${TIGHT_TILES}`} />
 
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               placeholder="Notes: first line, last line, one example…"
-              className="mt-3 w-full rounded-control border border-edge bg-surface p-4 text-[14px] leading-relaxed transition-colors placeholder:text-stone-400 focus:border-terracotta-500"
+              className="mt-3 w-full rounded-control border border-edge bg-surface p-4 text-read transition-colors placeholder:text-stone-400 focus:border-terracotta-500"
             />
             <p className="mt-2 text-caption text-stone-400">
               Hidden once you record.
@@ -1161,12 +1242,14 @@ function RepScreen() {
         {phase === "recording" && (
           <div className="arrive flex w-full flex-col items-center gap-6">
             <div
-              className={`font-display text-[54px] font-extrabold leading-none tracking-[-0.02em] transition-colors ${
+              className={`font-display text-num-hero tabular-nums transition-colors ${
                 config.maxSeconds - seconds <= 10 ? "text-terracotta-700" : ""
               }`}
             >
               {fmt(seconds)}
-              <span className="font-body text-[15px] font-medium text-stone-500">
+              {/* recording-17: the cap in the clock's own face, a step
+                  down, so the two numbers read as one reading. */}
+              <span className="font-display text-body font-semibold tracking-normal text-stone-500">
                 {" "}
                 / {capLabel}
               </span>
@@ -1178,9 +1261,9 @@ function RepScreen() {
              * message nobody reads — and the row keeps its height
              * either way so the meter never jumps.
              */}
-            <div className="flex h-[18px] items-center">
+            <div className="flex h-6 items-center">
               <span
-                className={`text-caption leading-none text-stone-400 transition-opacity dur-max ${
+                className={`text-center text-body leading-tight text-stone-500 transition-opacity dur-max ${
                   liveTip ? "opacity-100" : "opacity-0"
                 }`}
               >
@@ -1251,7 +1334,7 @@ function RepScreen() {
               </div>
             )}
           </div>
-          <div className="mt-2.5 h-[18px] text-center text-[13px] font-semibold text-stone-600">
+          <div className="mt-2.5 h-[18px] text-center text-link text-stone-600">
             {ring !== "ok" ? ringNote(ring) : ""}
           </div>
         </div>
@@ -1336,10 +1419,10 @@ function RepScreen() {
                   ? "Stop and score this recording"
                   : "Start recording"
               }
-              className={`press font-display elev-3 relative h-24 w-24 rounded-full text-[15px] font-bold transition-colors dur-base ${
+              className={`press font-display elev-3 relative h-24 w-24 rounded-full text-body font-bold transition-colors dur-base ${
                 phase === "recording"
                   ? "bg-terracotta-600 text-cream"
-                  : "rec-wait bg-terracotta-500 text-on-accent hover:bg-terracotta-600"
+                  : "rec-wait bg-terracotta-500 text-on-accent"
               }`}
             >
               {phase === "recording" ? "Stop" : "Record"}
@@ -1385,7 +1468,7 @@ function RepScreen() {
         {phase === "frame" && (
           <button
             onClick={() => void startRep()}
-            className="press font-display min-h-12 rounded-control border border-edge bg-surface px-6 py-3.5 text-[15px] font-bold"
+            className="press font-display min-h-12 rounded-control border border-edge bg-surface px-6 py-3.5 text-body font-bold"
           >
             I&apos;m ready
           </button>
@@ -1402,7 +1485,7 @@ function RepScreen() {
               height={36}
               className="demos w-9 shrink-0"
             />
-            <span className="font-display text-[17px] font-extrabold">
+            <span className="font-display text-detail font-extrabold">
               {interruption}
             </span>
           </div>
@@ -1415,6 +1498,39 @@ function RepScreen() {
 function fmt(s: number) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
+
+/**
+ * recording-4: the back control names where it goes, like every other
+ * back in the app (BackLink, system-4), never a lowercase "← back".
+ */
+function backLabel(href: string): string {
+  const path = href.split(/[?#]/)[0];
+  if (path === "/") return "Today";
+  if (path === "/boss" || path.startsWith("/boss/")) return "Boss";
+  if (/^\/(lessons?|practice)\//.test(path)) return "Lesson";
+  return "Back";
+}
+
+/**
+ * One idea per eyebrow (PRINCIPLES 4): "Weekly boss · Cold Topic" and
+ * "Games · Hot Take" keep the name they end on.
+ */
+function eyebrowOf(unit: string): string {
+  const parts = unit.split(" · ");
+  return parts[parts.length - 1];
+}
+
+/*
+ * A3's request (NOTES-from-A): the 3-up tactic tiles wrapped their 15px
+ * labels to three and four lines at 390px ("Pause / after the / full
+ * stop"). Measured over all 109 labels in lib/tip-labels.ts: at 15px a
+ * 3-up tile fits 48 of them in two lines; with 10px side padding, an 8px
+ * gutter and the 14px row size, 103. The type stays Figtree semibold on
+ * its 21px line; only the size and the side padding move. The six that
+ * still take three lines need shorter words (a request for Phase C).
+ */
+const TIGHT_TILES =
+  "[&_.grid]:gap-2 [&_.tip-tile]:px-2.5 [&_.tip-tile>span:last-child]:text-row";
 
 /** "An 8-day streak", "An 11-day", "An 18-day", "An 80-day"; "A" otherwise. */
 function article(n: number): string {
@@ -1444,10 +1560,9 @@ const STEPS = [
 function Results({
   result,
   config,
-  gains,
   bests,
   closing,
-  tomorrow,
+  earned,
   presence,
   clipUrl,
   audioUrl,
@@ -1462,10 +1577,10 @@ function Results({
 }: {
   result: AnalyzeResponse;
   config: RepConfig;
-  gains: RepGain[];
   bests: RewardMoment[];
   closing: RewardMoment | null;
-  tomorrow: NextFocus | null;
+  /** A star landed or the streak held: Demos celebrates (M08). */
+  earned: boolean;
   presence: PresenceResult | null;
   clipUrl: string | null;
   audioUrl: string | null;
@@ -1553,10 +1668,63 @@ function Results({
     else router.push(href);
   };
 
-  // Each step starts at the top. Landing halfway down the next screen
-  // because the last one was long is how a step gets skipped.
+  /*
+   * M07: what was practised names the walk, read from the rep config:
+   * the lesson's title, the boss's Cold Topic, the game's name, or
+   * Today's practice. Never "Lesson complete" on a recording that was
+   * not a lesson (most of them are the floor, a boss or a game).
+   */
+  const practised = lesson
+    ? lesson.title
+    : config.kind === "boss"
+      ? "Cold Topic"
+      : game
+        ? game.name
+        : "Today's practice";
+  /*
+   * recording-7, recording-21: one "Tomorrow", from the same source as
+   * the button, so the walk gives one answer to what next (#220). It
+   * names the path's next only where the button IS the path's next; a
+   * game, a lesson's next practice and a return to the lesson say their
+   * own next on the button and nothing here contradicts it.
+   */
+  const pathPrimary = !game && !(lesson && nextInLesson) && !returnIsPrimary;
+  const nextTrait = recordingTrait({ lesson_id: next.id });
+
+  /*
+   * Between steps the content fades out as one block (200ms ease-out),
+   * then the next step arrives from the right (M07, #223). The button
+   * never leaves the shelf. Reduced motion skips the fade out, and the
+   * arrival is its one 200ms fade.
+   */
+  const [leaving, setLeaving] = useState(false);
+  const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (leaveTimer.current) clearTimeout(leaveTimer.current);
+  }, []);
+  const advance = () => {
+    if (leaving || last) return;
+    if (prefersReducedMotion()) {
+      setStep((n) => n + 1);
+      return;
+    }
+    setLeaving(true);
+    leaveTimer.current = setTimeout(() => {
+      setLeaving(false);
+      setStep((n) => n + 1);
+    }, 200);
+  };
+
+  /*
+   * Each step starts at the top: landing halfway down the next screen
+   * because the last one was long is how a step gets skipped. And focus
+   * moves to the step's own heading (recording-23), so a screen reader
+   * hears the new step instead of the same button with a new label.
+   */
+  const stepHead = useRef<HTMLHeadingElement | null>(null);
   useEffect(() => {
     window.scrollTo({ top: 0 });
+    if (step > 0) stepHead.current?.focus({ preventScroll: true });
   }, [step]);
 
   if (gateTo !== null && gate !== null) {
@@ -1581,273 +1749,275 @@ function Results({
   }
 
   return (
-    <main className="flex min-h-dvh flex-col px-5 pb-8 pt-7">
-      <div className="flex items-center justify-between">
-        <div className="label-data">
-          {config.kind === "boss" ? "Boss complete" : "Lesson complete"}
-        </div>
+    <main className="flex min-h-dvh flex-col px-5 pt-7">
+      {/* M07, recording-10: what was practised, as the page's h1 in the
+          body size (the score is the hero, not the name), and the coin
+          it earned on the right. */}
+      <div className="flex min-h-6 items-center justify-between gap-3">
+        <h1 className="font-display min-w-0 text-body font-bold text-ink">
+          {practised}
+        </h1>
         {coined && step === 0 && (
-          <span className="flex items-center gap-1.5 text-[13px] font-semibold text-sage-700">
+          <span className="flex shrink-0 items-center gap-1.5 text-link text-sage-700">
             <Coin size={18} /> +1
           </span>
         )}
       </div>
 
-      {/* Where you are and how much is left. Three dots is a promise
-          you can see the end of; a scrollbar is not. */}
-      <div className="mt-4 flex items-center gap-2">
-        {STEPS.map((s, i) => (
-          <span
-            key={s.key}
-            className={`h-1 flex-1 transition-colors ${
-              i <= step ? "bg-terracotta-500" : "bg-sand"
-            }`}
-          />
-        ))}
-        <span className="label-micro ml-1 shrink-0">{STEPS[step].label}</span>
+      {/* Where you are and how much is left: one continuous ink bar on
+          the sand trough, a third per step, sliding on the base spring
+          (M07, Duolingo's walk). No segments and no label: the bar is
+          the count, and terracotta stays the tap's. */}
+      <div
+        role="progressbar"
+        aria-label="Debrief"
+        aria-valuemin={1}
+        aria-valuemax={STEPS.length}
+        aria-valuenow={step + 1}
+        aria-valuetext={`${STEPS[step].label}, ${step + 1} of ${STEPS.length}`}
+        className="mt-4 h-1 bg-sand"
+      >
+        <div
+          className="h-full bg-ink transition-[width] duration-(--spring-base-duration) ease-(--spring-base) [:root[data-motion=reduce]_&]:transition-none"
+          style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
+        />
       </div>
 
-      {/* Keyed on the step: the next screen of the walk comes in from
-          the right, where the button pointed (DECISIONS #223). The
-          header and the step bar above stay put, so the walk reads as
-          one screen turning pages rather than three screens. */}
-      {/*
-       * The score step is short, a number and the coach's read, and the
-       * button is bottom-anchored (DESIGN.md), so on a phone a third of
-       * the screen sat empty between the bubble and the button and the
-       * payoff screen read as stopped rather than finished (#287). The
-       * first step centres in the space the walk gives it, the way the
-       * timer does on the recording screen; the two longer steps flow
-       * as before. `main` is min-h, so a step taller than the screen
-       * grows it rather than clipping at the top.
-       */}
-      <div
-        key={step}
-        className={`arrive-x flex-1 ${step === 0 ? "flex flex-col justify-center" : ""}`}
-      >
-        {step === 0 && (
-          <div className="mt-4">
-            <GainsRow gains={gains} />
-          </div>
-        )}
-        <RepResult
-          result={result}
-          topic={config.topic}
-          section={section}
-          baseline={repCountBefore === 0}
-          live
-        />
+      {/* The step, as one block: it fades out whole when the button is
+          pressed, and the next one comes in from the right where the
+          button pointed (DECISIONS #223). Keyed on the step, so React
+          mounts it fresh and the arrival runs once per step; the first
+          step runs it too, which is the results landing after the wait. */}
+      <div className={leaving ? "animate-[fade-out_200ms_ease-out_forwards]" : ""}>
+        <div
+          key={step}
+          className="arrive-x pb-8 [:root[data-motion=reduce]_&]:[animation-duration:200ms]"
+        >
+          {step > 0 && (
+            <h2 ref={stepHead} tabIndex={-1} className="sr-only">
+              {STEPS[step].label}
+            </h2>
+          )}
 
-        {/*
-         * Presence — a SECOND score, beside the Index at the same size.
-         * The Index is audio-only and stays that way, so the trendline
-         * and the leagues remain comparable whichever mode was picked.
-         */}
-        {section === "score" && presence && (
-          <div className="mt-7 border-t border-hairline pt-4">
-            <PresenceScore
-              score={presence.metrics.presenceScore}
-              previous={result.previousPresence}
+          <div className={step === 0 ? "mt-6" : ""}>
+            <RepResult
+              result={result}
+              topic={config.topic}
+              section={section}
+              baseline={repCountBefore === 0}
+              live
+              celebrate={earned}
+              /* recording-13, recording-18: the evidence you can play sits
+                 above the words it produced, inside the words section. */
+              player={
+                audioUrl ? (
+                  <AudioScrubber
+                    src={audioUrl}
+                    durationS={result.metrics.durationS}
+                    fillers={result.metrics.fillers}
+                    pauses={result.metrics.pauses}
+                  />
+                ) : undefined
+              }
+              hasPlayer={!!audioUrl}
+            />
+          </div>
+
+          {/*
+           * Presence — a SECOND score, beside the Index at the same size.
+           * The Index is audio-only and stays that way, so the trendline
+           * and the leagues remain comparable whichever mode was picked.
+           */}
+          {section === "score" && presence && (
+            <div className="mt-7 border-t border-hairline pt-4">
+              <PresenceScore
+                score={presence.metrics.presenceScore}
+                previous={result.previousPresence}
+                premium={premium}
+                onUpgrade={() =>
+                  onUpgrade({
+                    reason: "Presence · premium",
+                    headline: "See what the camera measured.",
+                  })
+                }
+              />
+            </div>
+          )}
+          {section === "numbers" && presence && (
+            <PresenceDetail
+              metrics={presence.metrics}
+              moments={presence.moments}
               premium={premium}
+              videoUrl={clipUrl}
               onUpgrade={() =>
                 onUpgrade({
-                  reason: "Presence · premium",
+                  reason: "Delivery readout · premium",
                   headline: "See what the camera measured.",
                 })
               }
             />
-          </div>
-        )}
-        {section === "numbers" && presence && (
-          <PresenceDetail
-            metrics={presence.metrics}
-            moments={presence.moments}
-            premium={premium}
-            videoUrl={clipUrl}
-            onUpgrade={() =>
-              onUpgrade({
-                reason: "Delivery readout · premium",
-                headline: "See what the camera measured.",
-              })
-            }
-          />
-        )}
+          )}
 
-        {/*
-         * The judged tier ran out (§3). Said plainly, never framed as a
-         * failed rep — the rep counted, the streak stands, and every
-         * measured number is real.
-         */}
-        {section === "score" && result.judged.capped && (
-          <section className="mt-7 border-t border-hairline pt-4">
-            <div className="font-display text-[19px] font-bold leading-tight">
-              Measured, not judged.
+          {/*
+           * The judged tier ran out (§3). Said plainly, never framed as a
+           * failed rep — the rep counted, the streak stands, and every
+           * measured number is real.
+           */}
+          {section === "score" && result.judged.capped && (
+            <section className="mt-7 border-t border-hairline pt-4">
+              <h2 className="font-display text-lead font-bold leading-tight">
+                Measured, not judged.
+              </h2>
+              <p className="mt-2 text-body text-stone-500">
+                These are counted from the recording. The cited moments, the word
+                upgrade and Demos&apos;s take are back tomorrow.
+              </p>
+              <p className="mt-2 text-caption text-stone-500">
+                It still counted toward your streak.
+              </p>
+              {/* The map's #1 surface (docs/growth/04 §1.1): came back for
+                  a second read the same day, right after finished work.
+                  One quiet line, day 3 on; before that, meter state only. */}
+              {daysSpoken >= PRO_MOMENT_DAYS && (
+                <button
+                  onClick={() =>
+                    onUpgrade({
+                      reason: "The judged read · 1 a day free",
+                      headline: "Keep the coaching coming.",
+                    })
+                  }
+                  className="press mt-2 min-h-11 text-left text-link text-plum-700"
+                >
+                  <PremiumDoor>Premium gets the full read, every time</PremiumDoor>
+                </button>
+              )}
+            </section>
+          )}
+
+          {/* recording-10: a ground section, so a sentence-case head. */}
+          {section === "words" && bests.length > 0 && (
+            <section className="mt-7">
+              <h2 className="section-head">Records broken</h2>
+              <div className="mt-3 space-y-3">
+                {bests.map((b, i) => (
+                  <Moment key={i} moment={b} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* The ending carries disproportionate weight when someone
+              decides whether to come back (streak-end rule), so it lands
+              on the last screen rather than halfway down the first. */}
+          {last && closing && (
+            <div className="mt-3">
+              <Moment moment={closing} emphasis />
             </div>
-            <p className="mt-2 text-[14px] leading-relaxed text-stone-500">
-              These are counted from the recording. The cited moments, the word
-              upgrade and Demos&apos;s take are back tomorrow.
-            </p>
-            <p className="mt-2 text-caption leading-relaxed text-stone-400">
-              It still counted toward your streak.
-            </p>
-            {/* The map's #1 surface (docs/growth/04 §1.1): came back for
-                a second read the same day, right after finished work.
-                One quiet line, day 3 on; before that, meter state only. */}
-            {daysSpoken >= PRO_MOMENT_DAYS && (
-              <button
-                onClick={() =>
-                  onUpgrade({
-                    reason: "The judged read · 1 a day free",
-                    headline: "Keep the coaching coming.",
-                  })
-                }
-                className="press mt-2 min-h-11 text-left text-[13px] font-semibold text-plum-700"
-              >
-                <PremiumDoor>Premium gets the full read, every time →</PremiumDoor>
-              </button>
-            )}
-          </section>
-        )}
+          )}
 
-        {/* Hear it back, right under the words it produced. The most
-            honest feedback in the product: the evidence, replayable,
-            with every filler tappable (vision.md: claims trace to
-            timestamps). Local object URL, dropped when you leave. */}
-        {section === "words" && audioUrl && (
-          <div className="mt-7">
-            <AudioScrubber
-              src={audioUrl}
-              durationS={result.metrics.durationS}
-              fillers={result.metrics.fillers}
-              pauses={result.metrics.pauses}
+          {last && (
+            <Tomorrow
+              next={pathPrimary ? { title: next.title, trait: nextTrait } : null}
+              streak={streakNow}
             />
-          </div>
-        )}
-
-        {section === "words" && bests.length > 0 && (
-          <div className="mt-7 space-y-3">
-            <div className="label-data">Records broken</div>
-            {bests.map((b, i) => (
-              <Moment key={i} moment={b} />
-            ))}
-          </div>
-        )}
-
-        {/* The ending carries disproportionate weight when someone
-            decides whether to come back (streak-end rule), so it lands
-            on the last screen rather than halfway down the first. */}
-        {last && closing && (
-          <div className="mt-3">
-            <Moment moment={closing} emphasis />
-          </div>
-        )}
-
-        {/*
-         * The hook for tomorrow. Half-life regression (Settles &
-         * Meeder, ACL 2016) is Duolingo's real answer to "why come
-         * back" — the app holds a model of what you're about to lose
-         * and schedules against it. Same idea over the four measured
-         * skills, and it always shows the number that made the call.
-         */}
-        {last && tomorrow && tomorrow.strength !== null && (
-          <section className="mt-7 border-t border-hairline pt-4">
-            <div className="label-data">Tomorrow</div>
-            <div className="font-display mt-2 text-[22px] font-bold leading-tight">
-              {tomorrow.label}
-            </div>
-            <p className="mt-1.5 text-[14px] leading-relaxed text-stone-500">
-              {tomorrow.reason}
-            </p>
-          </section>
-        )}
-
-        {last && <PlanChips streak={streakNow} />}
+          )}
+        </div>
       </div>
 
       {/*
-       * One way forward per screen. There is deliberately no exit until
-       * the debrief is finished — the numbers are the product, and a
-       * "Done" button beside the first screen means most of them are
-       * never seen.
+       * One way forward per screen, on the shelf every step shares, so
+       * the tap never moves while the steps turn (M07). There is
+       * deliberately no exit until the debrief is finished — the numbers
+       * are the product, and a "Done" button beside the first screen
+       * means most of them are never seen.
        */}
-      {last ? (
-        <div className="mt-7">
-          {/* Buttons, not Links: the exits go through exit(), which
-              may route via the save-progress wall first (#134). A game
-              ends as a game (#194): another round or back to Practice,
-              never a push onto the path's next lesson. */}
-          {game ? (
-            <button
-              onClick={() =>
-                exit(
-                  repHref({
-                    game: game.id,
-                    q: draw(game, config.lessonId.split(":")[2] ?? null).id,
-                  })
-                )
-              }
-              className={PRIMARY}
-            >
-              Another round · {game.name}
-            </button>
-          ) : lesson && nextInLesson ? (
-            <button
-              onClick={() =>
-                exit(
-                  repHref({
-                    lesson: lesson.id,
-                    q: String(nextInLesson),
-                    back: backTo ?? `/lessons/${lesson.id}`,
-                  })
-                )
-              }
-              className={PRIMARY}
-            >
-              Practice {nextInLesson} of {lesson.practices.length}
-            </button>
-          ) : returnIsPrimary ? (
-            <button onClick={() => exit(backTo)} className={PRIMARY}>
-              Back to the lesson
-            </button>
-          ) : (
-            <button
-              onClick={() => exit(repHref({ lesson: next.id }))}
-              className={PRIMARY}
-            >
-              {again ? "Go again" : "Next lesson"} · {next.title}
-            </button>
-          )}
-          {!again && (
-            <button
-              onClick={onRetake}
-              className="press font-display mt-3 min-h-12 w-full rounded-control border border-edge bg-surface px-6 py-3.5 text-[15px] font-bold"
-            >
-              Retake this one
-            </button>
-          )}
-          <button
-            onClick={() =>
-              exit(returnIsPrimary ? "/" : (backTo ?? (game ? "/games" : "/")))
-            }
-            className="press mt-3 block min-h-11 w-full py-2 text-center text-[13px] font-semibold text-stone-500"
-          >
-            {returnIsPrimary
-              ? "Done for today"
-              : backTo
-                ? "Back to the lesson"
-                : game
-                  ? "Back to Practice"
-                  : "Done for today"}
+      <FooterShelf>
+        {last ? (
+          <>
+            {/* Buttons, not Links: the exits go through exit(), which
+                may route via the save-progress wall first (#134). A game
+                ends as a game (#194): another round or back to Practice,
+                never a push onto the path's next lesson. */}
+            {game ? (
+              <button
+                data-step-action
+                onClick={() =>
+                  exit(
+                    repHref({
+                      game: game.id,
+                      q: draw(game, config.lessonId.split(":")[2] ?? null).id,
+                    })
+                  )
+                }
+                className={PRIMARY}
+              >
+                Another round · {game.name}
+              </button>
+            ) : lesson && nextInLesson ? (
+              <button
+                data-step-action
+                onClick={() =>
+                  exit(
+                    repHref({
+                      lesson: lesson.id,
+                      q: String(nextInLesson),
+                      back: backTo ?? `/lessons/${lesson.id}`,
+                    })
+                  )
+                }
+                className={PRIMARY}
+              >
+                Practice {nextInLesson} of {lesson.practices.length}
+              </button>
+            ) : returnIsPrimary ? (
+              <button data-step-action onClick={() => exit(backTo)} className={PRIMARY}>
+                Back to the lesson
+              </button>
+            ) : (
+              <button
+                data-step-action
+                onClick={() => exit(repHref({ lesson: next.id }))}
+                className={PRIMARY}
+              >
+                {again ? "Go again" : "Next lesson"} · {next.title}
+              </button>
+            )}
+            {/* recording-22: the quiet pair under the one tap. Retake is
+                a text button beside the exit, never a second primary,
+                and the exit centres alone when Retake hides (#220). */}
+            <div className="mt-1 flex items-center justify-center gap-6">
+              {!again && (
+                <button
+                  onClick={onRetake}
+                  className="press min-h-11 px-3 text-link text-stone-500"
+                >
+                  Retake this one
+                </button>
+              )}
+              <button
+                onClick={() =>
+                  exit(returnIsPrimary ? "/" : (backTo ?? (game ? "/games" : "/")))
+                }
+                className="press min-h-11 px-3 text-link text-stone-500"
+              >
+                {returnIsPrimary
+                  ? "Done for today"
+                  : backTo
+                    ? "Back to the lesson"
+                    : game
+                      ? "Back to Practice"
+                      : "Done for today"}
+              </button>
+            </div>
+          </>
+        ) : (
+          /* M23: the verb alone, no arrow. Present from the first frame
+             of the step, before anything on it has landed. */
+          <button data-step-action onClick={advance} className={PRIMARY}>
+            {STEPS[step + 1].label}
           </button>
-        </div>
-      ) : (
-        <button
-          onClick={() => setStep((n) => n + 1)}
-          className={`${PRIMARY} mt-7`}
-        >
-          {STEPS[step + 1].label} →
-        </button>
-      )}
+        )}
+      </FooterShelf>
     </main>
   );
 }
@@ -1882,20 +2052,20 @@ function SaveGate({
 
   return (
     <main className="flex min-h-dvh flex-col px-5 pb-8 pt-7">
-      <div className="label-data">Before you go</div>
+      <div className="eyebrow">Before you go</div>
 
       <div className="flex flex-1 flex-col justify-center">
         {index !== null && (
           <div className="flex items-baseline gap-2">
-            <span className="font-display text-[56px] font-extrabold leading-none tracking-[-0.02em]">
+            <span className="font-display text-num-hero tabular-nums">
               {index}
             </span>
-            <span className="text-[13px] text-stone-500">
+            <span className="text-link font-normal text-stone-500">
               /1000{moment === "rep1" && " · your baseline"}
             </span>
           </div>
         )}
-        <h1 className="font-display mt-4 text-[30px] font-bold leading-tight">
+        <h1 className="font-display mt-4 text-title">
           {moment === "rep1"
             ? "Day 1 is on the board."
             : `${days} days on the board.`}
@@ -1914,7 +2084,7 @@ function SaveGate({
       </Link>
       <button
         onClick={onSkip}
-        className="press mt-3 block min-h-11 w-full py-2 text-center text-[13px] font-semibold text-stone-500"
+        className="press mt-3 block min-h-11 w-full py-2 text-center text-link text-stone-500"
       >
         Not now
       </button>
@@ -1950,7 +2120,7 @@ function ProgressMoment({
 
   return (
     <main className="flex min-h-dvh flex-col px-5 pb-8 pt-7">
-      <div className="label-data">Since day one</div>
+      <div className="eyebrow">Since day one</div>
 
       <div className="flex flex-1 flex-col justify-center">
         {/* Leads with the number they said they'd watch (#232). */}
@@ -1958,7 +2128,7 @@ function ProgressMoment({
           reps={reps}
           lead={buildPortfolio(readOnboarding().answers).focus?.metric}
         />
-        <p className="mt-4 text-[14px] leading-relaxed text-stone-500">
+        <p className="mt-4 text-body text-stone-500">
           Free shows the last 7 days and reads one recording a day. Premium
           opens all of it.
         </p>
@@ -1969,7 +2139,7 @@ function ProgressMoment({
       </button>
       <button
         onClick={onSkip}
-        className="press mt-3 block min-h-11 w-full py-2 text-center text-[13px] font-semibold text-stone-500"
+        className="press mt-3 block min-h-11 w-full py-2 text-center text-link text-stone-500"
       >
         Not now
       </button>
@@ -1996,12 +2166,29 @@ function ProgressMoment({
  * disappears for good once one is.
  */
 const PLAN_HOURS = [
-  { h: 8, label: "Morning · 8:00" },
-  { h: 12, label: "Lunch · 12:00" },
-  { h: 18, label: "Evening · 18:00" },
+  { h: 8, name: "Morning" },
+  { h: 12, name: "Lunch" },
+  { h: 18, name: "Evening" },
 ];
 
-function PlanChips({ streak }: { streak: number }) {
+/**
+ * recording-7, recording-21: the one "Tomorrow" on the last step. What
+ * comes next, from the same source as the button (the path's next, its
+ * title and its trait), and the when-plan under the same head, while
+ * no reminder hour is set. One formatter for the chips and the line
+ * after a pick (A2's useHourLabel: "6 pm" on the device, the padded
+ * 24 hour form until mount, so both renders agree), so the two can
+ * never say the hour two ways. Renders nothing when it has neither.
+ */
+function Tomorrow({
+  next,
+  streak,
+}: {
+  /** The path's next, when the button is the path's next; else null. */
+  next: { title: string; trait: TraitId | null } | null;
+  streak: number;
+}) {
+  const hourLabel = useHourLabel();
   const [hour, setHour] = useState<number | null>(
     () => readPrefs().reminderHour
   );
@@ -2026,39 +2213,52 @@ function PlanChips({ streak }: { streak: number }) {
     }
   }
 
-  // Already planned on an earlier day — the settings card owns it now.
-  if (hour !== null && !picked) return null;
+  // Already planned on an earlier day: the settings card owns it now.
+  const asking = hour === null || picked;
+  if (!next && !asking) return null;
 
   return (
-    <section className="mt-7 border-t border-hairline pt-4">
-      <div className="label-data">Tomorrow · when?</div>
-      {picked ? (
-        <p className="mt-2.5 text-[14px] leading-relaxed text-stone-600">
-          {String(hour).padStart(2, "0")}:00.{" "}
-          {granted
-            ? "Demos will nudge you once, never more."
-            : "Noted. Notifications are off in this browser; Settings names the fix."}
-        </p>
-      ) : (
-        <>
-          {/* One line (feedback round, 25 Sep). The label asks the
-              question; the chips answer it. */}
-          <p className="mt-2 text-[14px] text-stone-500">
-            Demos reminds you once a day.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {PLAN_HOURS.map((p) => (
-              <button
-                key={p.h}
-                onClick={() => void pick(p.h)}
-                className="press font-display min-h-11 rounded-control border border-edge bg-surface px-3.5 py-2 text-[14px] font-bold"
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-        </>
+    <section className="mt-7">
+      <h2 className="section-head">Tomorrow</h2>
+      {next && (
+        <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+          <span className="font-display text-detail">{next.title}</span>
+          {next.trait && <TraitChip trait={next.trait} />}
+        </div>
       )}
+      {asking &&
+        (picked && hour !== null ? (
+          <p role="status" className="mt-3 text-body text-stone-600">
+            {hourLabel(hour)}.{" "}
+            {granted === null
+              ? null
+              : granted
+                ? "Demos will nudge you once, never more."
+                : "Noted. Notifications are off in this browser; Settings names the fix."}
+          </p>
+        ) : (
+          <>
+            {/* One line (feedback round, 25 Sep): the line asks, the
+                chips answer. */}
+            <p className={`${next ? "mt-4" : "mt-3"} text-body text-stone-500`}>
+              Pick a time and Demos reminds you once a day.
+            </p>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {PLAN_HOURS.map((p) => (
+                <button
+                  key={p.h}
+                  onClick={() => void pick(p.h)}
+                  className="press flex min-h-14 flex-col items-center justify-center rounded-control border border-edge bg-surface px-2 py-2"
+                >
+                  <span className="font-display text-row">{p.name}</span>
+                  <span className="text-caption text-stone-500">
+                    {hourLabel(p.h)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </>
+        ))}
     </section>
   );
 }

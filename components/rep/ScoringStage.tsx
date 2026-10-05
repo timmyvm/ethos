@@ -58,7 +58,7 @@ export function ScoringStage({
         <div className="relative flex items-end justify-between">
           <div className="pb-5">
             <div className="label-data topic-eyebrow">Recorded</div>
-            <div className="font-display mt-1.5 text-[44px] font-extrabold leading-none tabular-nums tracking-[-0.02em]">
+            <div className="font-display mt-1.5 text-num-hero tabular-nums">
               {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}
             </div>
           </div>
@@ -90,7 +90,7 @@ export function ScoringStage({
             <li
               key={s}
               data-state={i < at ? "past" : i === at ? "now" : "next"}
-              className="scoring-step flex items-center gap-2.5 text-[15px]"
+              className="scoring-step flex items-center gap-2.5 text-body"
             >
               <span aria-hidden className="scoring-dot h-2 w-2 shrink-0 rounded-full" />
               {s}

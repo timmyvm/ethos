@@ -28,7 +28,7 @@ export function TopicCard({
   return (
     <section
       aria-label="Your topic"
-      className={`topic-card relative rounded-sheet ${compact ? "p-4" : "p-5 pb-6"}`}
+      className={`topic-card relative rounded-sheet p-5 ${compact ? "" : "pb-6"}`}
     >
       {/* He stands ON the card's top edge, full body, with a contact
           shadow where his feet meet it (review, 25 Sep: the half-body
@@ -47,12 +47,17 @@ export function TopicCard({
           />
         </div>
       )}
-      <div className="label-data topic-eyebrow">{eyebrow}</div>
+      {/* PRINCIPLES 4: an eyebrow inside a card is sentence case. */}
+      <div className="eyebrow topic-eyebrow">{eyebrow}</div>
+      {/* recording-14: balanced in both sizes, so the last word never
+          stands alone ("next / sentence."). recording-16: the padding is
+          the same in both states, so on Record only the type steps down
+          while the card glides up. */}
       <h1
-        className={`font-display text-ink ${
+        className={`font-display text-balance text-ink ${
           compact
-            ? "mt-1.5 text-[19px] font-bold leading-snug"
-            : "mt-2 text-[25px] font-extrabold leading-[1.18] tracking-[-0.01em]"
+            ? "mt-1.5 text-lead font-bold leading-snug"
+            : "mt-2 text-title font-extrabold leading-[1.18]"
         }`}
       >
         {topic}

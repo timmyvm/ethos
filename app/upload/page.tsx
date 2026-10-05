@@ -1,35 +1,45 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { AudioScrubber } from "@/components/AudioScrubber";
-import { ACTION_CLASS } from "@/components/LessonScreen";
+import { IconUpload } from "@/components/Icon";
 import { RepResult } from "@/components/RepResult";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ensureSession } from "@/lib/supabase-browser";
+import { ACTION_CLASS } from "@/lib/ui";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 
 /**
  * Upload-and-analyze (DECISIONS #185): a real meeting, a voice memo, a
- * practice run from the camera roll — through the exact engine every
+ * run-through from the camera roll, through the exact engine every
  * recording gets. Real-stakes audio is the strongest mirror the product
- * can offer, and it was the one Wellspoken feature on the post-MVP list
- * (mechanics.md) nobody had built.
+ * can offer.
  *
- * The upload banks as a recording (lesson `upload`), so it counts like
- * speech you did today. No loudness envelope exists for a file, and the
+ * The upload banks as a recording (lesson `upload`), so it counts as
+ * today's practice. No loudness envelope exists for a file, and the
  * engine already scores that honestly (#122: absent evidence, not
  * guessed evidence).
+ *
+ * The pick step is this screen's empty state (modes-4): one line, a
+ * drop tile that says what goes in and how much, and the one tap at the
+ * bottom. Both the tile and the button are labels for one hidden input,
+ * and both light the focus ring when it has the keyboard (modes-21).
  */
 
 const MAX_MB = 25;
 /**
  * The scoring function has 60 seconds of wall time (Vercel Hobby), and
- * Whisper on a long meeting blows straight through it — reported live
+ * Whisper on a long meeting blows straight through it, reported live
  * as "the scoring server didn't answer" on a meeting upload. Gate by
  * DURATION before spending the upload, with the honest reason.
  */
 const MAX_MINUTES = 6;
+
+/** The hidden input lights both of its labels (modes-21). */
+const PEER_FOCUS =
+  "peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-terracotta-500";
 
 /** Read a media file's duration without uploading it. Null = unknown
  *  (some webm containers report Infinity); unknown proceeds. */
@@ -59,11 +69,8 @@ export default function UploadPage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const lastFile = useRef<File | null>(null);
 
   async function analyze(file: File) {
-    lastFile.current = file;
     setError(null);
     if (file.size > MAX_MB * 1024 * 1024) {
       setError(`That file is over ${MAX_MB}MB. Trim it and try again.`);
@@ -110,60 +117,85 @@ export default function UploadPage() {
   }
 
   return (
-    <main className="flex min-h-dvh flex-col px-5 pb-22 pt-7">
-      <h1 className="font-display text-title">Upload a recording</h1>
+    <main className="flex min-h-dvh flex-col px-5 pb-[var(--nav-clear)] pt-7">
+      <ScreenHeader
+        title="Upload a recording"
+        back={{ href: "/games", label: "Practice" }}
+      />
 
       {phase === "pick" && (
         <>
-          <p className="mt-2 text-body text-stone-500">
-            A meeting, a voice memo, a run-through from your camera roll.
-            The engine reads it like anything recorded here: fillers, pace,
-            pauses, the Index.
-          </p>
-          <p className="mt-1.5 text-caption leading-relaxed text-stone-400">
-            Up to {MAX_MB}MB and {MAX_MINUTES} minutes. It banks to your
-            log as today&apos;s speaking. A long meeting? Trim it to the
-            part where you talk.
+          <p className="mt-3 text-read text-stone-800 text-pretty">
+            Score a meeting, a voice memo or a run-through.
           </p>
 
           <input
-            ref={fileRef}
             type="file"
             accept="audio/*,video/webm,video/mp4"
-            className="sr-only"
+            className="peer sr-only"
             id="upload-file"
             onChange={(e) => {
               const f = e.target.files?.[0];
               if (f) void analyze(f);
             }}
           />
-          {/* The tap sits at the bottom of the phone, where every
-              other single-action screen puts it. */}
-          <div className="flex-1" />
+          {/* The drop tile: what goes in and how much of it, at a fixed
+              height so nothing under it moves. A file dropped on it (a
+              desktop browser) goes the same way as a picked one. Both
+              labels stay siblings of the input, so its focus ring can
+              reach them (peer). */}
           <label
             htmlFor="upload-file"
-            className={`${ACTION_CLASS} mt-7 cursor-pointer`}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const f = e.dataTransfer.files?.[0];
+              if (f) void analyze(f);
+            }}
+            className={`press mt-7 flex h-[220px] shrink-0 cursor-pointer flex-col items-center justify-center gap-2 rounded-card border-2 border-dashed border-[var(--color-sand-dashed)] bg-surface text-center ${PEER_FOCUS}`}
           >
-            Choose a file
+            <span aria-hidden className="game-tile game-tile-plain">
+              <IconUpload size={22} />
+            </span>
+            <span className="font-display text-row text-ink">Audio or video</span>
+            <span className="text-caption tabular-nums text-stone-500">
+              Up to {MAX_MB}MB, {MAX_MINUTES} min
+            </span>
           </label>
 
-          {/* A failure keeps the card grammar: the terracotta wash is
-              the coach bubble's material, not an error's (#234). */}
-          {error && (
+          {/* A failure in the error grammar (system-10): rust on the
+              control surface, never terracotta, which means tap. It takes
+              the caption's place, and the spacer absorbs its height, so
+              the button below stays put. */}
+          {error ? (
             <p
               role="alert"
-              className="elev-1 mt-4 rounded-card border border-card-edge bg-raised p-4 text-caption leading-relaxed text-terracotta-700"
+              className="mt-3 rounded-control border border-edge bg-surface px-4 py-3 text-caption leading-relaxed text-rust"
             >
               {error}
             </p>
+          ) : (
+            <p className="mt-3 text-caption text-stone-500">
+              Counts as today&apos;s practice.
+            </p>
           )}
+
+          {/* The tap sits at the bottom of the phone, where every
+              other single-action screen puts it. */}
+          <div aria-hidden className="flex-1" />
+          <label
+            htmlFor="upload-file"
+            className={`${ACTION_CLASS} mt-7 cursor-pointer ${PEER_FOCUS}`}
+          >
+            Choose a file
+          </label>
         </>
       )}
 
       {phase === "analyzing" && (
-        <div className="mt-7 space-y-3" role="status">
+        <div className="mt-3 space-y-3" role="status">
           <p className="text-body text-stone-500">
-            Reading it. A few minutes of audio takes a little while.
+            Reading it… A few minutes of audio takes a little while.
           </p>
           {/* A skeleton carries the shadow of what replaces it (#234):
               the debrief's cards land at level 1. */}
@@ -174,26 +206,33 @@ export default function UploadPage() {
 
       {phase === "done" && result && (
         <>
-          <RepResult result={result} section="all" />
-          {audioUrl && (
-            <div className="mt-7">
-              <AudioScrubber
-                src={audioUrl}
-                durationS={result.metrics.durationS}
-                fillers={result.metrics.fillers}
-                pauses={result.metrics.pauses}
-              />
-            </div>
-          )}
-          <div className="mt-7 flex gap-2.5">
+          {/* The player rides on the words section, above the
+              transcript, and the static filler chips go, since the
+              pills on the player play them (A4's RepResult props). */}
+          <RepResult
+            result={result}
+            section="all"
+            player={
+              audioUrl ? (
+                <AudioScrubber
+                  src={audioUrl}
+                  durationS={result.metrics.durationS}
+                  fillers={result.metrics.fillers}
+                  pauses={result.metrics.pauses}
+                />
+              ) : undefined
+            }
+          />
+          <div className="mt-7 flex gap-3">
             <button
+              type="button"
               onClick={() => {
                 setPhase("pick");
                 setResult(null);
                 if (audioUrl) URL.revokeObjectURL(audioUrl);
                 setAudioUrl(null);
               }}
-              className="press font-display min-h-12 flex-1 rounded-control border border-edge bg-surface px-4 text-[14px] font-bold"
+              className="press font-display min-h-12 flex-1 rounded-control border border-edge bg-surface px-4 text-row"
             >
               Another file
             </button>

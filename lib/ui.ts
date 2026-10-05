@@ -21,9 +21,13 @@
  * The 200ms colour transition is how a waiting button (DISABLED_CLASS,
  * M25) lights up once it is valid: a crossfade, no scale. `.press`
  * reads the duration and curve these utilities set (globals.css).
+ *
+ * `leading-5` makes it a whole 48px (14 + 20 + 14): on the body's 1.5
+ * line it came to 50.5, and a sticky shelf of a fractional height let a
+ * device row of the content behind it show under its edge at 2x (B4).
  */
 export const ACTION_CLASS =
-  "press font-display block min-h-12 w-full rounded-control bg-terracotta-500 px-6 py-3.5 text-center text-body font-bold text-on-accent transition-colors duration-200 ease-out";
+  "press font-display block min-h-12 w-full rounded-control bg-terracotta-500 px-6 py-3.5 text-center text-body leading-5 font-bold text-on-accent transition-colors duration-200 ease-out";
 
 /**
  * Disabled, one value everywhere (#234): the control keeps its shape and
@@ -52,5 +56,15 @@ export const DISABLED_CLASS =
  * focus ring is switched off here (important, since that ring is
  * unlayered), so a field never shows two rings at once.
  */
-export const INPUT_CLASS =
-  "min-h-11 w-full min-w-0 rounded-control border border-edge bg-surface px-4 text-read font-semibold placeholder:text-stone-400 focus:border-terracotta-500 focus:shadow-[inset_0_0_0_1px_var(--color-terracotta-500)] focus-visible:outline-none!";
+const INPUT_SHAPE =
+  "w-full min-w-0 rounded-control border px-4 font-semibold placeholder:text-stone-400 focus:border-terracotta-500 focus:shadow-[inset_0_0_0_1px_var(--color-terracotta-500)] focus-visible:outline-none!";
+
+export const INPUT_CLASS = `min-h-11 ${INPUT_SHAPE} border-edge bg-surface text-read`;
+
+/**
+ * The same field at an answer's size (B12): 56px at 17px, the height of
+ * the introduction's answer rows (still past the 16 that stops iOS
+ * zooming in). No resting fill or edge: the caller sets the resting look
+ * or the picked one, so two utilities for one property never meet.
+ */
+export const INPUT_ANSWER_CLASS = `min-h-14 ${INPUT_SHAPE} text-detail`;

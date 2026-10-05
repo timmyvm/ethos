@@ -65,44 +65,40 @@ function LessonIntro() {
 
   return (
     /* The eyebrow takes the trait's ink where the unit has a trait, as
-       on the trait's own page; LessonBody gives the eyebrow no class,
-       so it reaches it from here, a wrapper that draws no box.
-       TIGHT_TILES: see the note on it below. */
-    <div className={`contents ${trait ? "[&_.eyebrow:has(+h1)]:text-(--tone-ink)" : ""} ${TIGHT_TILES}`}>
-      <LessonScreen
-        /* practice-detail-8, M19: one centred column in the height above
-           Start, so the slack splits above and below instead of pooling
-           in one band over the button. The head shares the mark's axis;
-           the tiles under "How to do this" keep their left edge. */
-        center
-        align="center"
-        stepKey="intro"
-        trait={trait}
-        /* This route draws no tab bar (Nav's BARE list) and this is its
-           only screen, so without a back control the teaching screen is
-           a one-way door into a recording (#279). It replaces this entry
-           with Today (practice-detail-24), so the OS back gesture from
-           Today does not open it again. */
-        onBack={() => router.replace("/")}
-        /* The unit's own name, as lib/path.ts writes it: a proper name,
-           so its capitals stay. */
-        eyebrow={unit.name}
-        /* #212 (Timothy): the tactics lead, so the title rises only to
-           the detail step (17/700) that `lead="howTo"` gives it. */
-        title={unit.intro.title}
-        line={unit.intro.line}
-        howTo={unit.intro.howTo}
-        lead="howTo"
-        art={<UnitStage id={unit.id} />}
-        action={{
-          label: "Start",
-          href: repHref({
-            lesson: lesson.id,
-            mods: mods ? mods.split(",") : undefined,
-          }),
-        }}
-      />
-    </div>
+       on the trait's own page: LessonScreen tones it from `trait`. */
+    <LessonScreen
+      /* practice-detail-8, M19: one centred column in the height above
+         Start, so the slack splits above and below instead of pooling
+         in one band over the button. The head shares the mark's axis;
+         the tiles under "How to do this" keep their left edge. */
+      center
+      align="center"
+      stepKey="intro"
+      trait={trait}
+      /* This route draws no tab bar (Nav's BARE list) and this is its
+         only screen, so without a back control the teaching screen is
+         a one-way door into a recording (#279). It replaces this entry
+         with Today (practice-detail-24), so the OS back gesture from
+         Today does not open it again. */
+      onBack={() => router.replace("/")}
+      /* The unit's own name, as lib/path.ts writes it: a proper name,
+         so its capitals stay. */
+      eyebrow={unit.name}
+      /* #212 (Timothy): the tactics lead, so the title rises only to
+         the detail step (17/700) that `lead="howTo"` gives it. */
+      title={unit.intro.title}
+      line={unit.intro.line}
+      howTo={unit.intro.howTo}
+      lead="howTo"
+      art={<UnitStage id={unit.id} />}
+      action={{
+        label: "Start",
+        href: repHref({
+          lesson: lesson.id,
+          mods: mods ? mods.split(",") : undefined,
+        }),
+      }}
+    />
   );
 }
 
@@ -137,12 +133,3 @@ function UnitStage({ id }: { id: string }) {
     </div>
   );
 }
-
-/*
- * The recording screen's tightened tiles (B4, app/rep/page.tsx), so the
- * same tactic reads the same here as it does there: at 15px with 16px
- * sides a 3-up tile broke "Silence feels longer to you" over four lines
- * at 390px; at 14px with 10px sides and an 8px gutter it is two.
- */
-const TIGHT_TILES =
-  "[&_.grid:has(.tip-tile)]:gap-2 [&_.tip-tile]:px-2.5 [&_.tip-tile>span:last-child]:text-row";

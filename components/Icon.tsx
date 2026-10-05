@@ -639,3 +639,26 @@ export function IconStar({ size, filled = true }: { size?: number; filled?: bool
     </Glyph>
   );
 }
+
+/**
+ * The coin (B8): the gold disc the Shop's balance and prices wear, as an
+ * SVG so HeaderCount sizes it at 18px like every other glyph. Gold is its
+ * own fill, never `currentColor`: a coin is a picture, not ink. The
+ * gradient's id is fixed; every copy defines the same one, so whichever
+ * the document resolves first draws them all alike.
+ */
+export function IconCoin({ size = 24 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <defs>
+        <radialGradient id="ethos-coin-fill" cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stopColor="#ffe7a3" />
+          <stop offset="45%" stopColor="#f2c14e" />
+          <stop offset="100%" stopColor="#d49a1a" />
+        </radialGradient>
+      </defs>
+      <circle cx="12" cy="12" r="12" fill="url(#ethos-coin-fill)" />
+      <circle cx="12" cy="12" r="10.8" fill="none" stroke="#a06c04" strokeOpacity="0.55" strokeWidth="2.4" />
+    </svg>
+  );
+}

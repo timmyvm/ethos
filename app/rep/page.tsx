@@ -1180,7 +1180,7 @@ function RepScreen() {
               step above their 14px labels rather than a fourth label. */}
           <h2 className="font-display text-lead font-bold">{doLine}</h2>
           {doRule && <TipLine tip={doRule} className="mt-2" />}
-          <TipStrip tips={config.tips} label={null} className={`mt-3 ${TIGHT_TILES}`} />
+          <TipStrip tips={config.tips} label={null} className="mt-3" />
         </div>
       )}
 
@@ -1226,7 +1226,7 @@ function RepScreen() {
                 numbered list here was the same wall one tap later. */}
             {/* PRINCIPLES 4: an eyebrow, not tracked capitals. */}
             <div className="eyebrow mt-5">Shape it like this</div>
-            <TipStrip tips={config.tips} label={null} className={`mt-3 ${TIGHT_TILES}`} />
+            <TipStrip tips={config.tips} label={null} className="mt-3" />
 
             <textarea
               value={notes}
@@ -1523,26 +1523,6 @@ function eyebrowOf(unit: string): string {
   const parts = unit.split(" · ");
   return parts[parts.length - 1];
 }
-
-/*
- * A3's request (NOTES-from-A): the 3-up tactic tiles wrapped their 15px
- * labels to three and four lines at 390px ("Pause / after the / full
- * stop"). Measured over all 109 labels in lib/tip-labels.ts: at 15px a
- * 3-up tile fits 48 of them in two lines; with 10px side padding, an 8px
- * gutter and the 14px row size, 103. The type stays Figtree semibold on
- * its 21px line; only the size and the side padding move. The six that
- * still take three lines need shorter words (a request for Phase C).
- */
-/*
- * The one tap on the results shelf at a whole 48px. ACTION_CLASS's
- * py-3.5 on the body's 1.5 line comes to 50.5px, and a sticky shelf of
- * a fractional height let one device row of the transcript show under
- * its bottom edge at 2x (a Phase C request for ACTION_CLASS itself).
- */
-const SHELF_TAP = `${PRIMARY} leading-5`;
-
-const TIGHT_TILES =
-  "[&_.grid]:gap-2 [&_.tip-tile]:px-2.5 [&_.tip-tile>span:last-child]:text-row";
 
 /** "An 8-day streak", "An 11-day", "An 18-day", "An 80-day"; "A" otherwise. */
 function article(n: number): string {
@@ -1975,7 +1955,7 @@ function Results({
                     })
                   )
                 }
-                className={SHELF_TAP}
+                className={PRIMARY}
               >
                 Another round · {game.name}
               </button>
@@ -1991,19 +1971,19 @@ function Results({
                     })
                   )
                 }
-                className={SHELF_TAP}
+                className={PRIMARY}
               >
                 Practice {nextInLesson} of {lesson.practices.length}
               </button>
             ) : returnIsPrimary ? (
-              <button data-step-action onClick={() => exit(backTo)} className={SHELF_TAP}>
+              <button data-step-action onClick={() => exit(backTo)} className={PRIMARY}>
                 Back to the lesson
               </button>
             ) : (
               <button
                 data-step-action
                 onClick={() => exit(repHref({ lesson: next.id }))}
-                className={SHELF_TAP}
+                className={PRIMARY}
               >
                 {again ? "Go again" : "Next lesson"} · {next.title}
               </button>
@@ -2039,7 +2019,7 @@ function Results({
         ) : (
           /* M23: the verb alone, no arrow. Present from the first frame
              of the step, before anything on it has landed. */
-          <button data-step-action onClick={advance} className={SHELF_TAP}>
+          <button data-step-action onClick={advance} className={PRIMARY}>
             {STEPS[step + 1].label}
           </button>
         )}

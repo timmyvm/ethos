@@ -585,8 +585,7 @@ function Toggle({
 
 /**
  * The reminder's hour: one radio group (you-19), two rows of three that
- * end flush with the row (you-17). `grid!` because `.group-row` sets
- * its display outside the utility layer. It wears the segmented control's
+ * end flush with the row (you-17). It wears the segmented control's
  * grammar, a quiet track per option and a raised thumb on the chosen
  * one, so the screen shows a choice one way, not two (system-13).
  */
@@ -608,7 +607,7 @@ function HourSet({
     <div
       role="radiogroup"
       aria-label="Reminder hour"
-      className="group-row grid! grid-cols-3 gap-1.5"
+      className="group-row grid grid-cols-3 gap-1.5"
     >
       {HOURS.map((h, i) => (
         <Choice

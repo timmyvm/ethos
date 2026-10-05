@@ -864,7 +864,12 @@ body {
   border: 1px solid transparent;
 }
 
+/* B11: in dark the stage token (#0a0a0a) sits BELOW the ground
+   (#121212, about 1.06:1) and read as a hole cut in the page on About.
+   The panel takes the surface step instead: above the ground, under a
+   card's raised fill, still the darkest object on the screen. */
 :root[data-theme="dark"] .card-stage {
+  background: var(--color-surface);
   border-color: var(--color-card-edge);
 }
 
@@ -3020,26 +3025,12 @@ summary::-webkit-details-marker {
 .you-trait-trough {
   background: var(--tone-wash);
 }
-/* A coin: gold, a rim, a little light from the top-left. A picture of
-   the thing counted, never a control. */
-.you-coin {
-  display: inline-block;
-  height: 20px;
-  width: 20px;
-  flex-shrink: 0;
-  border-radius: 9999px;
-  background: radial-gradient(circle at 35% 30%, #ffe7a3 0%, #f2c14e 45%, #d49a1a 100%);
-  box-shadow:
-    inset 0 0 0 2px rgba(160, 108, 4, 0.55),
-    inset 0 -2px 0 rgba(122, 84, 6, 0.35);
-}
 /* A freeze: the sky's tile with its ink glyph (3.7:1 light, 6.8:1 dark,
    over the 3:1 a glyph needs), light from the top like Practice's tiles.
-   An empty slot is the sky's outline, dashed: a place a freeze goes. */
+   Its size is the caller's (a utility), so the Shop's 56px art slot sets
+   it without `!` (B8). */
 .you-freeze {
   display: flex;
-  height: 44px;
-  width: 44px;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
@@ -3055,13 +3046,6 @@ summary::-webkit-details-marker {
     linear-gradient(to bottom, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 60%),
     var(--pop-sky);
   box-shadow: inset 0 0 0 1px rgba(147, 211, 246, 0.14);
-}
-.you-freeze.you-freeze-empty,
-:root[data-theme="dark"] .you-freeze.you-freeze-empty {
-  background: transparent;
-  color: var(--color-stone-300);
-  box-shadow: none;
-  border: 1.5px dashed color-mix(in srgb, var(--pop-sky-ink) 40%, transparent);
 }
 /* A lexicon word: mint's wash and a deeper ink, a label, never a pill
    anyone would press (no border, no arrow, no hover). */
@@ -3671,12 +3655,11 @@ summary::-webkit-details-marker {
 /* The group's container is `.inset-group` (log-1, recording-1,
    system-15). It was `.group`, which is also Tailwind's `group` marker:
    DimensionList's <details className="group …"> picked this rule up and
-   drew nine grey capsules inside a card. `.group:not(details)` is a
-   TEMPORARY alias so Settings and You keep rendering until their
-   packages move to `.inset-group`; Phase C deletes it. The `:not(details)`
-   alone already stops the capsules. `.group-head`, `.group-row` and
-   `.group-foot` keep their names: no Tailwind utility shares them. */
-:is(.inset-group, .group:not(details)) {
+   drew nine grey capsules inside a card. The rename's alias is gone
+   (Phase C): nothing in the tree draws a list as `.group` now.
+   `.group-head`, `.group-row` and `.group-foot` keep their names: no
+   Tailwind utility shares them. */
+.inset-group {
   overflow: hidden;
   border-radius: var(--radius-card);
   background: var(--color-surface);
@@ -3697,6 +3680,11 @@ summary::-webkit-details-marker {
 .group-row:is(.flex) {
   display: flex;
 }
+/* A row that lays out a grid (Settings' hour set): the utility's display
+   would lose to `.group-row`'s, which sits outside the utility layer. */
+.group-row:is(.grid) {
+  display: grid;
+}
 .group-row + .group-row::before {
   content: "";
   position: absolute;
@@ -3709,22 +3697,22 @@ summary::-webkit-details-marker {
   transform-origin: top;
 }
 /* Rows that lead with a 40px tile start their hairline at the text. */
-:is(.inset-group, .group:not(details))[data-inset="icon"] > .group-row + .group-row::before {
+.inset-group[data-inset="icon"] > .group-row + .group-row::before {
   left: 70px;
 }
 /* you-2: the group clips (overflow: hidden) and every row is as wide as
    it, so the global ring at +2px lost its sides, and its top and bottom
    on the end rows. Inside a group the ring draws inside the row, and
    the end rows take the group's corners so the ring follows them. */
-:is(.inset-group, .group:not(details)) > :focus-visible,
+.inset-group > :focus-visible,
 .group-row:focus-visible {
   outline-offset: -3px;
 }
-:is(.inset-group, .group:not(details)) > :first-child:focus-visible {
+.inset-group > :first-child:focus-visible {
   border-top-left-radius: var(--radius-card);
   border-top-right-radius: var(--radius-card);
 }
-:is(.inset-group, .group:not(details)) > :last-child:focus-visible {
+.inset-group > :last-child:focus-visible {
   border-bottom-left-radius: var(--radius-card);
   border-bottom-right-radius: var(--radius-card);
 }

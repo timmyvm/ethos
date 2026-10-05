@@ -4,7 +4,7 @@ import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { CountUp } from "@/components/CountUp";
-import { IconFreeze } from "@/components/Icon";
+import { IconCoin, IconFreeze } from "@/components/Icon";
 import { Skeleton, SkeletonRegion } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { HeaderCount } from "@/components/ui/HeaderCount";
@@ -157,7 +157,7 @@ export default function ShopPage() {
              nobody taps. */
           <HeaderCount
             variant="bare"
-            glyph={<span className="you-coin" />}
+            glyph={<IconCoin />}
             label={
               ledger !== null
                 ? `${coins} coins`
@@ -170,7 +170,7 @@ export default function ShopPage() {
                 failed ? (
                   /* Not a zero. A balance nobody could read is unknown,
                      and unknown is a dash. */
-                  <span className="text-num-m text-stone-400">—</span>
+                  <span className="text-num-m text-stone-400">–</span>
                 ) : (
                   <Skeleton className="h-6 w-10" />
                 )
@@ -274,10 +274,9 @@ export default function ShopPage() {
                         <span className="label-micro shrink-0">Owned</span>
                       ) : (
                         <span className="flex shrink-0 items-baseline gap-1.5">
-                          <span
-                            aria-hidden
-                            className="you-coin !h-3 !w-3 self-center"
-                          />
+                          <span aria-hidden className="self-center leading-none">
+                            <IconCoin size={12} />
+                          </span>
                           <span className="font-display text-num-s tabular-nums">
                             {item.price}
                             <span className="sr-only"> coins</span>
@@ -366,7 +365,7 @@ function ItemArt({ id }: { id: string }) {
   const art = POSE_ART[id];
   if (!art) {
     return (
-      <span aria-hidden className="you-freeze h-14! w-14!">
+      <span aria-hidden className="you-freeze h-14 w-14">
         <IconFreeze size={22} />
       </span>
     );

@@ -203,9 +203,8 @@ async function shootTheme(theme) {
   await scene("you", "/you");
   await scene("shop", "/shop", "main");
   await scene("games", "/games");
-  // auth-14 (A1's rename): Settings is an .inset-group now, with the old
-  // class kept as an alias until Phase C removes it.
-  await scene("settings", "/settings", "main :is(.inset-group, .group)");
+  // auth-14 (A1's rename): Settings is an .inset-group.
+  await scene("settings", "/settings", "main .inset-group");
   // The stored recording: RepResult marks its Index with data-score.
   await scene("rep-detail", "/rep/rep-22", "main :is([data-score], h1, .section-head)");
 

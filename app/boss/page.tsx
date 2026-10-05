@@ -413,9 +413,10 @@ export default function BossPage() {
           {showMods && (
             <div
               id="boss-mods"
-              className="reveal mt-2 [&>div>div:first-child:not(.inset-group)]:hidden"
+              className="reveal mt-2"
             >
               <ModPicker
+                head={false}
                 selected={mods}
                 onChange={setMods}
                 premium={paid}

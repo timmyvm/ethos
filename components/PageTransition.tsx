@@ -81,10 +81,14 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
    */
   const cold = previous.current === null;
 
+  /* overflow-x: clip (B10): the 24px the push starts from widened the
+     page to 414px for a frame, and a phone can zoom out to show it.
+     `clip`, not `hidden`, so the wrapper never becomes a scroll
+     container and the sticky header and shelf still stick. */
   return (
     <div
       key={path}
-      className={cold ? undefined : direction === "right" ? "push-right" : "push-left"}
+      className={`overflow-x-clip ${cold ? "" : direction === "right" ? "push-right" : "push-left"}`}
     >
       {children}
     </div>

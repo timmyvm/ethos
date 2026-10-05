@@ -36,12 +36,20 @@ export function TipStrip({
   if (tips.length === 0) return null;
   const shown = tips.slice(0, 3);
   const cols = shown.length === 1 ? "grid-cols-1" : shown.length === 2 ? "grid-cols-2" : "grid-cols-3";
+  /*
+   * Three across is tight at 390px: at 15px with 16px sides a tile broke
+   * "Pause after the full stop" over three lines. Three tiles take 14px
+   * labels, 10px sides and an 8px gutter, so every label in
+   * lib/tip-labels.ts reads in two lines (B4's recipe, once, here, where
+   * /rep, the unit intro and the trait page used to copy it).
+   */
+  const tight = shown.length === 3;
 
   return (
     <div className={className}>
       {label && <div className="label-data">{label}</div>}
       <div
-        className={`grid ${cols} gap-3 ${label ? "mt-3" : ""} ${ladder ? "stagger" : ""}`}
+        className={`grid ${cols} ${tight ? "gap-2" : "gap-3"} ${label ? "mt-3" : ""} ${ladder ? "stagger" : ""}`}
         style={ladder ? ({ "--stagger-lead": "260ms" } as React.CSSProperties) : undefined}
       >
         {shown.map((tip, i) => {
@@ -51,7 +59,7 @@ export function TipStrip({
             /*
              * today-12, practice-detail-19, system-14, recording-15 (M14):
              * no box inside the box. The glyph stands bare at 24px, the
-             * label is reading type (Figtree 15/600 on 21, ink) 12px
+             * label is reading type (Figtree 15/600 on 21, ink; 14 three across) 12px
              * under it, and the tile is as tall as its words. The
              * chevron stays as the tile's one expand cue
              * (practice-detail-12): stone-400 at 16px, centred on the
@@ -65,7 +73,7 @@ export function TipStrip({
               aria-expanded={on}
               aria-controls={`${id}-tip`}
               onClick={() => setOpen(on ? null : i)}
-              className="tip-tile press flex flex-col items-start rounded-card border p-4 text-left"
+              className={`tip-tile press flex flex-col items-start rounded-card border text-left ${tight ? "px-2.5 py-4" : "p-4"}`}
               data-on={on || undefined}
             >
               <span className="flex w-full items-center justify-between">
@@ -76,7 +84,9 @@ export function TipStrip({
                   <Chevron />
                 </span>
               </span>
-              <span className="mt-3 text-body font-semibold leading-[21px] text-ink text-balance">
+              <span
+                className={`mt-3 font-semibold leading-[21px] text-ink text-balance ${tight ? "text-row" : "text-body"}`}
+              >
                 {face.label}
               </span>
             </button>

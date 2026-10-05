@@ -29,11 +29,15 @@ export function ModPicker({
   onChange,
   premium,
   onPremiumTap,
+  head = true,
 }: {
   selected: string[];
   onChange: (ids: string[]) => void;
   premium: boolean;
   onPremiumTap: (mod: StressMod) => void;
+  /** The "Stress mods" eyebrow and the running ×N XP. Off where the
+   *  row that opened the list already says both (/boss). */
+  head?: boolean;
 }) {
   const chosen = STRESS_MODS.filter((m) => selected.includes(m.id));
   const multiplier = xpMultiplier(chosen);
@@ -56,12 +60,14 @@ export function ModPicker({
 
   return (
     <div>
-      <div className="flex min-h-5 items-baseline justify-between px-4 pb-2">
-        <div className="eyebrow">Stress mods</div>
-        {multiplier > 1 && (
-          <div className="font-display text-link tabular-nums text-ink">×{multiplier} XP</div>
-        )}
-      </div>
+      {head && (
+        <div className="flex min-h-5 items-baseline justify-between px-4 pb-2">
+          <div className="eyebrow">Stress mods</div>
+          {multiplier > 1 && (
+            <div className="font-display text-link tabular-nums text-ink">×{multiplier} XP</div>
+          )}
+        </div>
+      )}
 
       <div className="inset-group">
         {STRESS_MODS.map((mod) => {

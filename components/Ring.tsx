@@ -81,8 +81,12 @@ export function Ring({
   delay = 0,
   track,
 }: {
-  /** 0 to 1. Clamped, because a percentile of 1.02 is a bug, not a flourish. */
-  value: number;
+  /**
+   * 0 to 1. Clamped, because a percentile of 1.02 is a bug, not a
+   * flourish. `null` is unknown (loading, failed, never measured): the
+   * trough alone, no arc, because unknown is never drawn as zero.
+   */
+  value: number | null;
   size?: number;
   /** Defaults to a twelfth of the diameter, which holds from 32 to 200px. */
   thickness?: number;
@@ -113,7 +117,8 @@ export function Ring({
    */
   track?: string;
 }) {
-  const clamped = Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
+  const known = value !== null && Number.isFinite(value);
+  const clamped = known ? Math.max(0, Math.min(1, value)) : 0;
   const stroke = thickness ?? Math.max(3, Math.round(size / 12));
   const r = (size - stroke) / 2;
 
@@ -198,6 +203,10 @@ export function Ring({
           pathLength={1}
           strokeLinecap="butt"
         />
+        {/* A round cap on a zero-length dash still paints a dot at
+            twelve o'clock, which reads as a little progress: an empty
+            arc (unknown, a real 0, or the frame before the travel) is
+            capped flat, so it draws nothing at all. */}
         <circle
           className="ring-arc"
           cx={size / 2}
@@ -206,7 +215,7 @@ export function Ring({
           fill="none"
           stroke={STROKE[tone]}
           strokeWidth={stroke}
-          strokeLinecap="round"
+          strokeLinecap={known && drawn > 0 ? "round" : "butt"}
           pathLength={1}
           strokeDasharray={`${drawn} 1`}
           transform={`rotate(-90 ${size / 2} ${size / 2})`}

@@ -59,7 +59,7 @@ function TraitTile({
     >
       <div className={wide ? "flex items-center gap-3" : "contents"}>
       <Ring
-        value={reading?.fraction ?? 0}
+        value={reading?.fraction ?? null}
         size={wide ? 56 : 46}
         tone="trait"
         track="var(--today-trough)"

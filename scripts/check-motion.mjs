@@ -164,14 +164,27 @@ const scrim = await anim(page, "[role=dialog].sheet-scrim");
 ok("sheet rises on the sheet spring", a.name === "sheet-in" && a.easing.startsWith("linear("), `${a.name} ${a.easing.slice(0, 20)}`);
 ok("scrim fades on its own", scrim.name === "fade-in", scrim.name);
 await sleep(700);
+/* The page keeps its own clock (C2): from the key to the dialog leaving
+   the DOM. Timed from the harness, the same exit read 799 to 855ms with
+   about 275ms of it being the press's round trip and the detach poll
+   under video capture; in the page it is the base spring's 515ms plus
+   one render. */
+await page.evaluate(() => {
+  const t = (window.__sheetExit = {});
+  document.addEventListener("keydown", () => { t.key = performance.now(); }, { capture: true, once: true });
+  const mo = new MutationObserver(() => {
+    if (t.key !== undefined && !document.querySelector("[role=dialog]")) { t.gone = performance.now(); mo.disconnect(); }
+  });
+  mo.observe(document.body, { subtree: true, childList: true });
+});
 await page.keyboard.press("Escape");
 await page.waitForSelector('[role=dialog] .sheet-panel[data-closing="true"]', { timeout: 500 });
 // The exit is a script spring from the live position (lib/spring.ts).
 const exiting = await page.$eval('[role=dialog] .sheet-panel[data-closing="true"]', (el) => el.getAnimations().some((x) => !("animationName" in x)));
 ok("Escape plays the exit before unmount", exiting, String(exiting));
-const t0 = Date.now();
 await page.waitForSelector("[role=dialog]", { state: "detached", timeout: 1000 });
-ok("sheet is gone after the exit", Date.now() - t0 < 800, `${Date.now() - t0}ms`);
+const exitMs = await page.evaluate(() => Math.round(window.__sheetExit.gone - window.__sheetExit.key));
+ok("sheet is gone after the exit", exitMs > 0 && exitMs < 800, `${exitMs}ms`);
 const focused = await page.evaluate(() => document.activeElement?.textContent?.trim().slice(0, 12));
 ok("focus returns to the opener", (focused ?? "").startsWith("Crowd noise"), focused);
 await sleep(400);

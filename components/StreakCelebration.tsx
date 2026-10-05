@@ -75,10 +75,10 @@ export function StreakCelebration({
         className="demos w-[200px]"
       />
       <StreakRoll streak={streak} milestone={milestone} calm={calm} />
-      <div className="mt-1 text-[15px] font-semibold">
+      <div className="mt-1 text-body font-semibold">
         day{streak === 1 ? "" : "s"} in a row
       </div>
-      <p className="mt-2 max-w-[260px] text-center text-[13px] text-stone-500">
+      <p className="mt-2 max-w-[260px] text-center text-link font-normal text-stone-500">
         {streak === 1
           ? "Day one is the hard one. It's done."
           : milestone

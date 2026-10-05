@@ -1224,7 +1224,9 @@ function RepScreen() {
                 you're going to say, so we don't pretend to. The same
                 tiles as the idle screen (feedback round, 25 Sep): a
                 numbered list here was the same wall one tap later. */}
-            <TipStrip tips={config.tips} label="Shape it like this" className={`mt-5 ${TIGHT_TILES}`} />
+            {/* PRINCIPLES 4: an eyebrow, not tracked capitals. */}
+            <div className="eyebrow mt-5">Shape it like this</div>
+            <TipStrip tips={config.tips} label={null} className={`mt-3 ${TIGHT_TILES}`} />
 
             <textarea
               value={notes}
@@ -1468,7 +1470,9 @@ function RepScreen() {
         {phase === "frame" && (
           <button
             onClick={() => void startRep()}
-            className="press font-display min-h-12 rounded-control border border-edge bg-surface px-6 py-3.5 text-body font-bold"
+            /* The think time's one tap: Record is not on this screen, so
+               the start is the terracotta (PRINCIPLES 2). */
+            className={PRIMARY}
           >
             I&apos;m ready
           </button>
@@ -1529,6 +1533,14 @@ function eyebrowOf(unit: string): string {
  * its 21px line; only the size and the side padding move. The six that
  * still take three lines need shorter words (a request for Phase C).
  */
+/*
+ * The one tap on the results shelf at a whole 48px. ACTION_CLASS's
+ * py-3.5 on the body's 1.5 line comes to 50.5px, and a sticky shelf of
+ * a fractional height let one device row of the transcript show under
+ * its bottom edge at 2x (a Phase C request for ACTION_CLASS itself).
+ */
+const SHELF_TAP = `${PRIMARY} leading-5`;
+
 const TIGHT_TILES =
   "[&_.grid]:gap-2 [&_.tip-tile]:px-2.5 [&_.tip-tile>span:last-child]:text-row";
 
@@ -1788,10 +1800,24 @@ function Results({
           button pointed (DECISIONS #223). Keyed on the step, so React
           mounts it fresh and the arrival runs once per step; the first
           step runs it too, which is the results landing after the wait. */}
-      <div className={leaving ? "animate-[fade-out_200ms_ease-out_forwards]" : ""}>
+      {/*
+       * The score step is short (a number, the stars and his line) and
+       * the button is on the shelf, so the column centres in the space
+       * the walk gives it, a little above the middle (M07, #287): a
+       * top-aligned column left a 340px hole over the shelf and read as
+       * stopped rather than finished. The two longer steps flow from the
+       * top and scroll under the shelf.
+       */}
+      <div
+        className={`flex flex-1 flex-col ${
+          leaving ? "animate-[fade-out_200ms_ease-out_forwards]" : ""
+        }`}
+      >
         <div
           key={step}
-          className="arrive-x pb-8 [:root[data-motion=reduce]_&]:[animation-duration:200ms]"
+          className={`arrive-x [:root[data-motion=reduce]_&]:[animation-duration:200ms] ${
+            step === 0 ? "flex flex-1 flex-col justify-center pb-16 pt-4" : "pb-8"
+          }`}
         >
           {step > 0 && (
             <h2 ref={stepHead} tabIndex={-1} className="sr-only">
@@ -1799,7 +1825,7 @@ function Results({
             </h2>
           )}
 
-          <div className={step === 0 ? "mt-6" : ""}>
+          <div>
             <RepResult
               result={result}
               topic={config.topic}
@@ -1949,7 +1975,7 @@ function Results({
                     })
                   )
                 }
-                className={PRIMARY}
+                className={SHELF_TAP}
               >
                 Another round · {game.name}
               </button>
@@ -1965,19 +1991,19 @@ function Results({
                     })
                   )
                 }
-                className={PRIMARY}
+                className={SHELF_TAP}
               >
                 Practice {nextInLesson} of {lesson.practices.length}
               </button>
             ) : returnIsPrimary ? (
-              <button data-step-action onClick={() => exit(backTo)} className={PRIMARY}>
+              <button data-step-action onClick={() => exit(backTo)} className={SHELF_TAP}>
                 Back to the lesson
               </button>
             ) : (
               <button
                 data-step-action
                 onClick={() => exit(repHref({ lesson: next.id }))}
-                className={PRIMARY}
+                className={SHELF_TAP}
               >
                 {again ? "Go again" : "Next lesson"} · {next.title}
               </button>
@@ -2013,7 +2039,7 @@ function Results({
         ) : (
           /* M23: the verb alone, no arrow. Present from the first frame
              of the step, before anything on it has landed. */
-          <button data-step-action onClick={advance} className={PRIMARY}>
+          <button data-step-action onClick={advance} className={SHELF_TAP}>
             {STEPS[step + 1].label}
           </button>
         )}

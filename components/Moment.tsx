@@ -21,16 +21,16 @@ export function Moment({
   if (!moment) return null;
   const earned = moment.tone === "earned";
   return (
+    /* The one card recipe (PRINCIPLES 1); an earned moment wears the
+       sage wash over it, since sage is what was earned. */
     <div
-      className={`elev-1 rounded-card border p-4 ${
-        earned
-          ? "border-sage-300 bg-sage-100"
-          : "border-card-edge bg-raised"
+      className={`card p-4 ${
+        earned ? "border-sage-300 bg-sage-100 dark:bg-none" : ""
       }`}
     >
       <div
         className={`font-display font-bold leading-tight ${
-          emphasis ? "text-[19px]" : "text-[15px]"
+          emphasis ? "text-lead" : "text-body"
         } ${earned ? "text-sage-700" : ""}`}
       >
         {moment.headline}

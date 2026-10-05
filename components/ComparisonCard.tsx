@@ -77,19 +77,18 @@ export function ComparisonCard({
 
   return (
     <div className="card-stage elev-1 rounded-sheet p-5 text-cream">
-      <div className="label-data !text-cream/60">
-        Day 1 → day {days} · your log
-      </div>
+      <div className="eyebrow text-cream/60">Day 1 to day {days}</div>
       <div className="mt-4 space-y-3">
         {rows.map((r) => (
           <div key={r.label} className="flex items-baseline gap-3">
             <span className="w-28 text-caption text-cream/60">{r.label}</span>
-            <span className="font-display text-[20px] font-extrabold text-cream/45">
+            <span className="font-display text-num-s tabular-nums text-cream/45">
               {r.a}
             </span>
-            <span className="text-cream/40">→</span>
+            <span aria-hidden className="text-cream/40">→</span>
+            <span className="sr-only">to</span>
             <span
-              className={`font-display text-[24px] font-extrabold ${
+              className={`font-display text-num-m tabular-nums ${
                 r.better ? "text-sage-lit" : "text-rust-lit"
               }`}
             >

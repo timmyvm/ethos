@@ -26,7 +26,7 @@ export function GainsRow({ gains }: { gains: RepGain[] }) {
           }`}
         >
           <div
-            className={`font-display text-[19px] font-extrabold leading-none ${
+            className={`font-display text-lead font-extrabold leading-none ${
               g.good === false ? "text-rust" : "text-sage-700"
             }`}
           >

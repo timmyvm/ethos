@@ -63,7 +63,7 @@ import { buildPortfolio } from "@/lib/portfolio";
 import { readPrefs, writePrefs } from "@/lib/prefs";
 import { repHref } from "@/lib/rep-config";
 import { useHourLabel } from "@/lib/time-label";
-import { INPUT_CLASS } from "@/lib/ui";
+import { INPUT_ANSWER_CLASS } from "@/lib/ui";
 import { useRovingRadio } from "@/lib/use-roving-radio";
 
 /**
@@ -457,6 +457,12 @@ function Walk() {
         title={q.title}
         line={q.line}
         reply={replyFor(answers, step.id)}
+        replies={repliesFor(step.id)}
+        /* intro-a-4: the name is announced once it settles (blur, Enter
+           or Next), never per keystroke over the typing echo. */
+        announce={
+          step.id === "name" ? (heardName ? NAME_REPLY(heardName) : "") : undefined
+        }
         art={
           <DemosArt
             pose={QUESTION_POSES[step.id]}
@@ -706,6 +712,17 @@ function replyFor(a: Answers, id: QuestionId): string | undefined {
 }
 
 /**
+ * Every reply a question can give, so its bubble rests at the widest
+ * (B12: q2's edge jumped 178 to 254px when a reply replaced "How old are
+ * you?"). The name's reply is the typed name, so it holds nothing.
+ */
+function repliesFor(id: QuestionId): string[] | undefined {
+  const all: readonly { reply?: string }[] | null =
+    id === "ageBand" ? AGE_BANDS : id === "pains" ? PAINS : id === "level" ? LEVELS : null;
+  return all?.flatMap((o) => (o.reply ? [o.reply] : []));
+}
+
+/**
  * What makes him nod: the answer to THIS question, as a string. Picking
  * the same row twice changes nothing and he stays still; picking a
  * different one always lands. The name uses the settled value, so the
@@ -898,7 +915,7 @@ function NameField({
       /* Picked, the field holds its focus edge (1px border plus a 1px
          inset), so a typed answer wears the same 2px terracotta edge as
          a chosen row whether or not the keyboard is up. */
-      className={`${NAME_CLASS} font-display ${
+      className={`${INPUT_ANSWER_CLASS} font-display ${
         name
           ? `${PICKED_ROW} shadow-[inset_0_0_0_1px_var(--color-terracotta-500)]`
           : "border-edge bg-surface"
@@ -907,15 +924,6 @@ function NameField({
   );
 }
 
-/*
- * INPUT_CLASS at the answers' size: swapped rather than appended,
- * because two utilities for one property (min-h-11 and min-h-14, the
- * resting edge and the picked one) are settled by stylesheet order,
- * not by the order they are written in.
- */
-const NAME_CLASS = INPUT_CLASS.replace("text-read", "text-detail")
-  .replace("min-h-11", "min-h-14")
-  .replace("border-edge bg-surface", "");
 
 /** What you notice: checkboxes, three at most, each its own Tab stop. */
 function Pains({

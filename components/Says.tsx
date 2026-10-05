@@ -20,8 +20,13 @@ import { Fragment, type CSSProperties } from "react";
  * under it moves. Reduced motion lands the whole line at once
  * (globals.css, `.says-word`).
  *
- * Whitespace between the spans is real text, so the element's text
- * content is the sentence and a test can find it by its words.
+ * Assistive tech gets the sentence once, whole (intro-a-25): a
+ * `.sr-only` copy of the line, with the word spans beside it inside
+ * `aria-hidden`, because VoiceOver can stop on each of a run of styled
+ * inline-block spans and read a bubble one word per swipe. A test that
+ * finds a line by its words finds it in the `.sr-only` copy. With
+ * `ariaHidden` the whole line is hidden and the copy is left out: the
+ * caller speaks it somewhere else (DemosSpeech's live region).
  *
  * Says sets no type of its own: inside a SpeechBubble the bubble's
  * voice (Figtree 400 in ink) is what it inherits, and `className` adds
@@ -32,18 +37,22 @@ export function Says({
   as: Tag = "p",
   className,
   lead = 0,
+  ariaHidden = false,
 }: {
   text: string;
   as?: "p" | "h1";
   className?: string;
   /** Milliseconds before the first word: the bubble's own entrance. */
   lead?: number;
+  /** Seen, not read: the line is announced elsewhere. */
+  ariaHidden?: boolean;
 }) {
   const words = text.split(" ");
   const step = Math.min(30, 220 / words.length);
   return (
     <Tag
       className={className}
+      aria-hidden={ariaHidden || undefined}
       style={
         {
           "--says-step": `${step.toFixed(1)}ms`,
@@ -51,14 +60,17 @@ export function Says({
         } as CSSProperties
       }
     >
-      {words.map((w, i) => (
-        <Fragment key={i}>
-          {i > 0 && " "}
-          <span className="says-word" style={{ "--i": i } as CSSProperties}>
-            {w}
-          </span>
-        </Fragment>
-      ))}
+      {!ariaHidden && <span className="sr-only">{text}</span>}
+      <span aria-hidden>
+        {words.map((w, i) => (
+          <Fragment key={i}>
+            {i > 0 && " "}
+            <span className="says-word" style={{ "--i": i } as CSSProperties}>
+              {w}
+            </span>
+          </Fragment>
+        ))}
+      </span>
     </Tag>
   );
 }

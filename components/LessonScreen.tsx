@@ -141,6 +141,12 @@ export interface LessonBodyProps {
    * width (M19).
    */
   align?: "left" | "center";
+  /**
+   * The eyebrow wears the screen's trait ink (practice-detail-6).
+   * LessonScreen sets it whenever it has a `trait`, so a page no longer
+   * reaches the eyebrow through a wrapper.
+   */
+  toneEyebrow?: boolean;
 }
 
 /**
@@ -165,6 +171,7 @@ export function LessonBody({
   ladder = false,
   lead = "title",
   align = "left",
+  toneEyebrow = false,
 }: LessonBodyProps) {
   const tactics = howTo?.length ? howTo : null;
   /* The hero only moves when there is something to move it to: a
@@ -180,12 +187,13 @@ export function LessonBody({
           a ragged centre line is harder to read than one with an edge. */}
       <div className={centred ? "text-center" : undefined}>
         {/* M05: sentence case at reading size, not tracked capitals. */}
-        {eyebrow && <div className="eyebrow">{eyebrow}</div>}
+        {eyebrow && <div className={`eyebrow ${toneEyebrow ? "tone-ink" : ""}`}>{eyebrow}</div>}
 
         {/* M19: where the tactics lead (#212, Timothy), the name rises
-            only to the detail step (Outfit 17/700), never to the title. */}
+            only to the detail step (Outfit 17/700), never to the title,
+            4px under its eyebrow. */}
         <h1
-          className={`font-display mt-1.5 text-balance ${howToLeads ? "text-detail" : "text-title"}`}
+          className={`font-display mt-1 text-balance ${howToLeads ? "text-detail" : "text-title"}`}
         >
           {title}
         </h1>
@@ -277,8 +285,23 @@ export function LessonScreen({
   swipe,
   travel = "next",
   trait,
+  replies,
+  announce,
   ...body
 }: LessonBodyProps & {
+  /**
+   * Every reply this question can give (B12): held in the bubble as
+   * ghosts, so it is the width and height of the widest from the first
+   * frame and its edge does not jump when a short question is replaced
+   * by a longer reply.
+   */
+  replies?: string[];
+  /**
+   * What the beside bubble's live region announces (intro-a-4). Defaults
+   * to `reply`; the name question passes the SETTLED name's reply, so a
+   * screen reader hears it once the field is finished, not per keystroke.
+   */
+  announce?: string;
   /**
    * The trait this screen is about (practice-detail-6). Sets
    * `data-trait` on <main>, so everything on the screen can wear that
@@ -502,11 +525,13 @@ export function LessonScreen({
               title={body.title}
               line={body.line}
               reply={body.reply}
+              replies={replies}
+              announce={announce}
             />
           ) : (
             <>
               {art}
-              <LessonBody {...body} />
+              <LessonBody {...body} toneEyebrow={trait !== undefined} />
             </>
           )}
           {controls && <div className="mt-7">{controls}</div>}
@@ -521,10 +546,12 @@ export function LessonScreen({
          * blank, and it lands at ONE height on every page. What sits
          * over it (the pager, an error, the fine print) grows the shelf
          * upward; what sits under it is one 56px slot (`flow-root`
-         * keeps Skip's mt-3 inside it), so the seven questions, the beat
-         * and the plan put Next at the same y and only the account ask,
-         * with its two doors, stands taller. The hairline only where
-         * answers sit above it: on a stage it would be a stray rule.
+         * keeps a door's mt-3 inside it) only where there IS a door: the
+         * intro screens and the account ask. The seven questions, the
+         * beat and the plan have none, so Next sits at the foot as the
+         * reference's Continue does (B12), at one y across all nine. The
+         * hairline only where answers sit above it: on a stage it would
+         * be a stray rule.
          */
         <FooterShelf
           hairline={controls !== undefined && speech === "beside"}
@@ -535,7 +562,7 @@ export function LessonScreen({
             <p className="mb-3 text-center text-caption text-stone-400">{fineprint}</p>
           )}
           {tap}
-          <div className="flow-root min-h-14">{footer}</div>
+          {footer !== undefined && <div className="flow-root min-h-14">{footer}</div>}
         </FooterShelf>
       ) : (
         <div className="mt-8 pb-6">
@@ -557,17 +584,6 @@ export function LessonScreen({
 }
 
 /**
- * The one tap, in one place (#201's grammar, #234's numbers): a
- * `rounded-control` rectangle, ink on terracotta, 48px tall, no border
- * and no shadow — the colour is the lift.
- *
- * Exported because Today and the roulette declare the same button
- * outside this template, and they had drifted into three spellings of
- * it: a transparent 1px border and no min-height on the floor, neither
- * on the roulette, and this one here. One constant, one button.
- */
-export 
-/**
  * Demos speaking (#288). The words wait for the screen's own slide
  * (`arrive-x`, 200ms) so two entrances never run at once, then land a
  * word at a time; a reply swapped into a bubble already on screen
@@ -576,7 +592,11 @@ export
  *
  * The question stays in the document as a hidden heading while a reply
  * is showing, so the screen's name never changes under a screen reader
- * while what is SEEN is what he just said.
+ * while what is SEEN is what he just said. What he says back is HEARD
+ * through one live region that is always mounted beside the bubble
+ * (intro-a-4, intro-b-6): a region inserted together with its words is
+ * often never announced. The visible reply is `aria-hidden`, so browse
+ * mode meets it once, in the region.
  */
 function DemosSpeech({
   mode,
@@ -585,6 +605,8 @@ function DemosSpeech({
   title,
   line,
   reply,
+  replies,
+  announce,
 }: {
   mode: "above" | "beside";
   art?: ReactNode;
@@ -592,8 +614,16 @@ function DemosSpeech({
   title: string;
   line?: string;
   reply?: string;
+  replies?: string[];
+  announce?: string;
 }) {
   const lead = reply ? 0 : 200;
+  const live = mode === "beside";
+  /* B12: every other reply this question can give, as ghosts in the same
+     cell at no height, so the bubble rests at the widest from the first
+     frame and only its height answers the line being said (the coin
+     holds the rows, intro-a-1). */
+  const held = (replies ?? []).filter((r) => r !== reply);
   /* The second line is quieter than his voice: body size in stone. */
   const lineClass = "mt-1 text-body text-stone-500 text-pretty";
   /*
@@ -607,8 +637,12 @@ function DemosSpeech({
    * the question it replaces sits in the middle of the held height, so
    * the space reads as the bubble's, not as a line gone missing.
    */
+  const ghosts = held.map((r) => (
+    <SaysGhost key={r} text={r} className="h-0 overflow-hidden text-balance [grid-area:1/1]" />
+  ));
   const words = reply ? (
     <div className="grid">
+      {ghosts}
       <div aria-hidden className="[grid-area:1/1]">
         <SaysGhost text={title} className="text-balance" />
         {line && <SaysGhost text={line} className={lineClass} />}
@@ -617,12 +651,14 @@ function DemosSpeech({
         key={reply}
         text={reply}
         lead={lead}
+        ariaHidden={live}
         className="self-center text-balance [grid-area:1/1]"
       />
       <h1 className="sr-only">{title}</h1>
     </div>
   ) : (
     <div className="grid">
+      {ghosts}
       <div className="[grid-area:1/1]">
         <Says key={title} as="h1" text={title} lead={lead} className="text-balance" />
         {line && <Says key={line} text={line} lead={lead + 120} className={lineClass} />}
@@ -674,6 +710,9 @@ function DemosSpeech({
       <SpeechBubble tail="left" voice="lead" className="min-w-0">
         {words}
       </SpeechBubble>
+      <p className="sr-only" aria-live="polite" aria-atomic="true">
+        {(announce === undefined ? reply : announce) ?? ""}
+      </p>
     </div>
   );
 }

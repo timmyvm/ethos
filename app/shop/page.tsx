@@ -56,8 +56,8 @@ export default function ShopPage() {
   const [pose, setPose] = useState<string | null>(null);
   /*
    * The item bought in this visit (#242). A purchase swaps the card's
-   * button for a different one in the same slot — "Buy" becomes "On
-   * your card", or the last freeze turns the door into a state line —
+   * button for a different one in the same slot ("Buy" becomes "On
+   * your card", or the last freeze turns the door into a state line),
    * and a swap in place is the one thing that has to come from
    * somewhere. The new button arrives from 6px below, out of the tap
    * that produced it; a card whose button was already in that state
@@ -68,7 +68,7 @@ export default function ShopPage() {
   /*
    * A balance is the one number in the app that must never be guessed:
    * every button on this screen is priced against it, and an unread
-   * ledger used to fall back to zero — which sold "not enough coins" to
+   * ledger used to fall back to zero, which sold "not enough coins" to
    * someone holding thirty.
    */
   const refresh = useCallback(async () => {
@@ -105,7 +105,7 @@ export default function ShopPage() {
     void refresh();
   }, [refresh]);
 
-  /** Equipping is free and reversible — the coins bought the option. */
+  /** Equipping is free and reversible: the coins bought the option. */
   function equip(id: string | null) {
     writePrefs({ pose: id });
     setPose(id);

@@ -46,7 +46,7 @@ const THEMES = (["system", "light", "dark"] as const satisfies readonly Theme[])
 /**
  * Settings. mechanics.md notification rules are enforced here, not left
  * to copy: quiet hours default 10pm–7am, and the reminder text is coach
- * register — loss-aversion is allowed, guilt is not.
+ * register: loss-aversion is allowed, guilt is not.
  *
  * The reminder section states which scheduling tier the browser actually
  * gives us. A reminder that silently never fires is worse than none.
@@ -536,7 +536,7 @@ function Section({
 }
 
 /**
- * One preference, as a row. `role="switch"` sits on the BUTTON — it was
+ * One preference, as a row. `role="switch"` sits on the BUTTON. It was
  * on an inner span before, which made the control a button containing a
  * switch to a screen reader and left the state announcement on an
  * element nobody could focus.

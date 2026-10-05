@@ -1,15 +1,15 @@
 /**
  * The shop (DECISIONS #90 reopened on Timothy's call, 11 Aug).
  *
- * It was deferred because the obvious sinks — freezes, early boss
- * access, score retries — mostly competed with Pro. Everything is free
+ * It was deferred because the obvious sinks (freezes, early boss
+ * access, score retries) mostly competed with Pro. Everything is free
  * right now (`entitlement.ts`), so that objection is moot, and coins
  * have been accruing with nothing to spend them on, which was always
  * the temporary state rather than the design.
  *
  * The non-negotiable holds and shapes the whole list: **money never buys
- * stars, streaks, or scores.** Coins aren't money — they're earned by
- * speaking, one per day — but the rule behind it still applies. Nothing
+ * stars, streaks, or scores.** Coins aren't money (they're earned by
+ * speaking, one per day) but the rule behind it still applies. Nothing
  * here buys a number. Freezes buy *convenience* (a day you protected,
  * which is why a frozen day still doesn't count toward the streak), and
  * poses buy *nothing at all*, which is what makes them the safest thing
@@ -53,8 +53,8 @@ export const SHOP: ShopItem[] = [
   },
   {
     /*
-     * The id is a LEDGER key — it is written into the coin ledger when
-     * somebody buys it — so it stays `pose_workout` for the same reason
+     * The id is a LEDGER key (it is written into the coin ledger when
+     * somebody buys it), so it stays `pose_workout` for the same reason
      * routes keep "rep" (#164): nobody reads it aloud, and renaming it
      * would orphan every purchase. The art it points at is the part a
      * user sees, and that was a panda lifting a dumbbell (#249).
@@ -113,7 +113,7 @@ export interface Owned {
 }
 
 /**
- * What's owned, read off the ledger rather than a separate table — same
+ * What's owned, read off the ledger rather than a separate table: same
  * property that makes coins safe to re-sync: derived, never incremented,
  * so a dropped write heals instead of double-granting.
  */

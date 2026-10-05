@@ -39,25 +39,25 @@ function TraitTile({
   const unit = raw === "1" ? t.unitOne : t.unit;
   /*
    * Two shapes in one grid (#317's two wide over three narrow, kept).
-   * A wide tile is a row (today-10): the ring on the left and the name
-   * and the measurement beside it, where it used to stack like a narrow
-   * one and leave about 86x56px empty right of the ring. A narrow tile
-   * stays stacked, and so does a wide one under 360px, where the column
-   * beside the ring would be narrower than "Pausing". The measurement
-   * is set as a number (Outfit 800, tabular, ink) before its unit,
-   * which prints in full and wraps evenly (today-3: `line-clamp-2` cut
-   * Fillers to "per hundred...", so the number lost its denominator).
+   * A wide tile puts the name beside the ring (today-10: stacked, it
+   * left about 86x56px empty right of the ring) and gives the
+   * measurement the tile's full width under them. A first pass set the
+   * measurement beside the ring too, and its 71px column wrapped
+   * "1.8 held pauses a minute" onto three lines. A narrow tile stacks.
+   * The measurement is set as a number (Outfit 800, tabular, ink) before
+   * its unit, which prints in full and wraps evenly (today-3:
+   * `line-clamp-2` cut Fillers to "per hundred...", so the number lost
+   * its denominator).
    */
   return (
     <Link
       href={`/practice/${id}`}
       data-trait={id}
-      className={`press today-trait today-tile tone-wash flex rounded-card p-3.5 ${
-        wide
-          ? "col-span-3 flex-col min-[360px]:flex-row min-[360px]:items-center min-[360px]:gap-3.5"
-          : "col-span-2 flex-col"
+      className={`press today-trait today-tile tone-wash flex flex-col rounded-card p-3.5 ${
+        wide ? "col-span-3" : "col-span-2"
       }`}
     >
+      <div className={wide ? "flex items-center gap-3" : "contents"}>
       <Ring
         value={reading?.fraction ?? 0}
         size={wide ? 56 : 46}
@@ -81,15 +81,16 @@ function TraitTile({
           )}
         </span>
       </Ring>
-      <div className={`min-w-0 ${wide ? "mt-3 flex-1 min-[360px]:mt-0" : "mt-3"}`}>
-        <div className="font-display tone-ink text-row leading-tight">{t.name}</div>
-        {raw !== null && (
-          <div className="mt-1 text-caption text-pretty text-stone-500">
-            <span className="font-display text-num-s tabular-nums text-ink">{raw}</span>{" "}
-            {unit}
-          </div>
-        )}
+      <div className={`font-display tone-ink text-row min-w-0 leading-tight ${wide ? "" : "mt-3"}`}>
+        {t.name}
       </div>
+      </div>
+      {raw !== null && (
+        <div className={`text-caption text-pretty text-stone-500 ${wide ? "mt-2.5" : "mt-1"}`}>
+          <span className="font-display text-num-s tabular-nums text-ink">{raw}</span>{" "}
+          {unit}
+        </div>
+      )}
     </Link>
   );
 }

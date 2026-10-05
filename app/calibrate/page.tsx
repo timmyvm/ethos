@@ -1,9 +1,8 @@
 "use client";
 
-import { BackLink } from "@/components/ui/ScreenHeader";
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ACTION_CLASS } from "@/components/LessonScreen";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { ACTION_CLASS } from "@/lib/ui";
 import { loadPose, samplePose, type PoseSampler } from "@/lib/pose-client";
 import {
   PRESENCE_CONSTANTS,
@@ -26,6 +25,19 @@ import {
  */
 
 const TAKE_SECONDS = 20;
+
+/** A failure or a warning in the error grammar (system-10, #246): the
+ *  control surface with rust words, as the auth forms and Upload draw
+ *  it. Terracotta means tap. */
+const NOTICE_CLASS =
+  "rounded-control border border-edge bg-surface px-4 py-3 text-caption leading-relaxed text-rust";
+
+/** The setup, as the ordered steps they are (modes-18). */
+const SETUP = [
+  "Prop the phone at face height.",
+  "Step back until your head, shoulders and hands are in frame.",
+  "Put look-away notes off to one side.",
+];
 
 const TAKES: { label: TakeLabel; name: string; brief: string }[] = [
   {
@@ -224,41 +236,36 @@ export default function CalibratePage() {
 
   return (
     <main className="px-5 pb-16 pt-7">
-      <BackLink href="/settings" label="Settings" />
-      <h1 className="font-display mt-4 text-title">Calibrate the camera</h1>
-      <p className="mt-2 text-body text-stone-500">
-        Four takes, 20 seconds each, through the real engine. The numbers
-        it measures become the proposed thresholds for the Presence score.
-        Nothing recorded here leaves this page.
+      {/* Settings' own header, one push in (modes-17): the 34/800 large
+          title that hands over to the bar, not a 26/700 one under a
+          back link. */}
+      <ScreenHeader
+        title="Calibrate the camera"
+        back={{ href: "/settings", label: "Settings" }}
+      />
+      <p className="mt-3 text-read text-stone-800 text-pretty">
+        {TAKES.length} takes of {TAKE_SECONDS} seconds through the real
+        engine set the Presence thresholds. Nothing leaves this page.
       </p>
 
       {/* The model assumes a static camera. The first real session was
           shot handheld and every number came out polluted, so the setup
           is stated before the mic, not diagnosed after. */}
-      <div className="elev-1 mt-7 rounded-card border border-card-edge bg-raised p-4">
-        <div className="label-data">Set up first</div>
-        <ul className="mt-3 space-y-2 text-caption leading-relaxed text-stone-600">
-          <li className="flex gap-2.5">
-            <span aria-hidden className="shrink-0 text-stone-300">
-              ·
-            </span>
-            <span>Prop the phone at face height. Never in your hand.</span>
-          </li>
-          <li className="flex gap-2.5">
-            <span aria-hidden className="shrink-0 text-stone-300">
-              ·
-            </span>
-            <span>
-              Step back until head, shoulders and both hands are in frame.
-            </span>
-          </li>
-          <li className="flex gap-2.5">
-            <span aria-hidden className="shrink-0 text-stone-300">
-              ·
-            </span>
-            <span>Look-away notes go somewhere that isn&apos;t the phone.</span>
-          </li>
-        </ul>
+      <div className="card mt-7 p-4">
+        <p className="eyebrow">Set up first</p>
+        <ol className="mt-3 space-y-2.5 text-body text-ink">
+          {SETUP.map((step, i) => (
+            <li key={step} className="flex gap-2.5">
+              <span
+                aria-hidden
+                className="font-display w-4 shrink-0 font-extrabold tabular-nums text-stone-400"
+              >
+                {i + 1}
+              </span>
+              <span className="text-pretty">{step}</span>
+            </li>
+          ))}
+        </ol>
       </div>
 
       {status === "idle" && (
@@ -275,13 +282,21 @@ export default function CalibratePage() {
         </p>
       )}
       {status === "unavailable" && (
-        <p
-          role="alert"
-          className="elev-1 mt-7 rounded-card border border-card-edge bg-raised p-4 text-caption leading-relaxed text-terracotta-700"
-        >
-          The camera or the pose engine didn&apos;t load. Check the
-          permission, or try Chrome.
-        </p>
+        <>
+          <p role="alert" className={`mt-7 ${NOTICE_CLASS}`}>
+            The camera or the pose engine didn&apos;t load. Check the
+            permission, or try Chrome.
+          </p>
+          {/* A failure always offers the retry, in the control grammar
+              rather than the tap colour (ErrorState, #146). */}
+          <button
+            type="button"
+            onClick={() => void startCamera()}
+            className="press font-display mt-3 min-h-12 w-full rounded-control border border-edge bg-surface px-4 text-row"
+          >
+            Try again
+          </button>
+        </>
       )}
 
       {/* Always mounted: startCamera attaches the stream to this ref,
@@ -305,16 +320,18 @@ export default function CalibratePage() {
       {(status === "ready" || status === "recording") && (
         <>
           {done.length < TAKES.length && (
-            <div className="elev-2 mt-3 rounded-card border border-card-edge bg-raised p-4">
-              <div className="label-data">
-                Take {current + 1} of {TAKES.length} · {take.name}
-              </div>
-              <p className="mt-3 text-body text-stone-600">{take.brief}</p>
+            <div className="card elev-2 mt-3 p-4">
+              {/* One idea per eyebrow (M05): the count over the take's
+                  name, never "Take 1 of 4 · Composed". */}
+              <p className="eyebrow">
+                Take {current + 1} of {TAKES.length}
+              </p>
+              <h2 className="detail-head mt-1">{take.name}</h2>
+              <p className="mt-2 text-read text-stone-800 text-pretty">
+                {take.brief}
+              </p>
               {note && (
-                <p
-                  role="alert"
-                  className="mt-2 text-caption leading-relaxed text-terracotta-700"
-                >
+                <p role="alert" className={`mt-3 ${NOTICE_CLASS}`}>
                   {note}
                 </p>
               )}
@@ -326,7 +343,10 @@ export default function CalibratePage() {
                   Record {TAKE_SECONDS}s
                 </button>
               ) : (
-                <div className="font-display mt-4 text-center text-[54px] font-extrabold leading-none tracking-[-0.02em] tabular-nums">
+                <div
+                  role="timer"
+                  className="font-display mt-4 text-center text-num-hero tabular-nums"
+                >
                   {left}
                 </div>
               )}
@@ -337,22 +357,22 @@ export default function CalibratePage() {
 
       {done.length > 0 && (
         <div className="mt-7">
-          <div className="label-data">Measured</div>
+          <h2 className="section-head">Measured</h2>
           {/* Column heads are the micro register: at 11/0.10em these
               were wider than the numbers under them (#234). */}
           <div className="mt-3 overflow-x-auto">
             <table className="w-full text-caption">
               <thead>
                 <tr className="text-left">
-                  <th className="label-micro pb-2 pr-3">take</th>
-                  <th className="label-micro pb-2 pr-3">gest/min</th>
-                  <th className="label-micro pb-2 pr-3">drift</th>
-                  <th className="label-micro pb-2 pr-3">head</th>
-                  <th className="label-micro pb-2 pr-3">eyes %</th>
-                  <th className="label-micro pb-2 pr-3"></th>
-                  <th className="label-micro pb-2 pr-3">neck</th>
-                  <th className="label-micro pb-2 pr-3">score</th>
-                  <th className="pb-2" aria-label="Redo" />
+                  <th scope="col" className="label-micro pb-2 pr-3">take</th>
+                  <th scope="col" className="label-micro pb-2 pr-3">gest/min</th>
+                  <th scope="col" className="label-micro pb-2 pr-3">drift</th>
+                  <th scope="col" className="label-micro pb-2 pr-3">head</th>
+                  <th scope="col" className="label-micro pb-2 pr-3">eyes %</th>
+                  <th scope="col" className="label-micro pb-2 pr-3">lift</th>
+                  <th scope="col" className="label-micro pb-2 pr-3">neck</th>
+                  <th scope="col" className="label-micro pb-2 pr-3">score</th>
+                  <th scope="col" className="pb-2" aria-label="Redo" />
                 </tr>
               </thead>
               <tbody>
@@ -385,7 +405,7 @@ export default function CalibratePage() {
                     <td className="py-3">
                       <button
                         onClick={() => redo(d.label)}
-                        className="press min-h-11 px-1 text-[13px] font-semibold text-stone-500"
+                        className="text-link press min-h-11 px-1"
                       >
                         redo
                       </button>
@@ -400,19 +420,15 @@ export default function CalibratePage() {
 
       {proposal && (
         <div className="mt-7">
-          <div className="label-data">Proposed constants</div>
+          <h2 className="section-head">Proposed constants</h2>
           {proposal.warnings.map((w, i) => (
-            <p
-              key={i}
-              role="alert"
-              className="elev-1 mt-3 rounded-card border border-card-edge bg-raised p-4 text-caption leading-relaxed text-terracotta-700"
-            >
+            <p key={i} role="alert" className={`mt-3 ${NOTICE_CLASS}`}>
               {w}
             </p>
           ))}
           {/* Code is the deep material the loop uses for its own panels:
               stage, never ink-on-ground. */}
-          <pre className="elev-1 mt-3 overflow-x-auto rounded-card bg-stage p-4 text-[12px] leading-relaxed text-cream">
+          <pre className="elev-1 mt-3 overflow-x-auto rounded-card bg-stage p-4 text-caption leading-relaxed text-cream">
             {proposalText}
           </pre>
           <div className="mt-3 flex gap-2.5">
@@ -423,13 +439,13 @@ export default function CalibratePage() {
                   .then(() => setCopied(true))
                   .catch(() => {});
               }}
-              className="press font-display min-h-12 flex-1 rounded-control border border-edge bg-surface px-4 text-[14px] font-bold"
+              className="press font-display min-h-12 flex-1 rounded-control border border-edge bg-surface px-4 text-row"
             >
               {copied ? "Copied" : "Copy for lib/presence.ts"}
             </button>
             <button
               onClick={download}
-              className="press font-display min-h-12 flex-1 rounded-control border border-edge bg-surface px-4 text-[14px] font-bold"
+              className="press font-display min-h-12 flex-1 rounded-control border border-edge bg-surface px-4 text-row"
             >
               Download takes
             </button>

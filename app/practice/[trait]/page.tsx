@@ -164,7 +164,7 @@ function Lesson() {
           title={def.name}
           line={def.what}
           art={
-            <div className="mb-5 mt-7">
+            <div className="mb-7 mt-7">
               <RingStage>
                 <Ring
                   value={now?.fraction ?? 0}
@@ -176,7 +176,7 @@ function Lesson() {
                      ring on the lesson's first screen is the loudest
                      place in the app to be quiet about that. */
                   provisional={now !== null && provisional}
-                  className={COIN}
+                  className={now ? COIN : `${COIN} ${NO_ARC}`}
                 >
                   {now ? (
                     <CountUp
@@ -324,7 +324,11 @@ function Lesson() {
              measurement, so the screen says that instead. */
           delta !== null && delta > 0 && !provisional
             ? `${def.name}, up ${delta}.`
-            : `${def.name}, measured again.`
+            : loaded && !now
+              ? /* The read came back with nothing to compare (or failed):
+                   no claim that anything was measured. */
+                `${def.name}, no reading yet.`
+              : `${def.name}, measured again.`
         }
         line={
           /* One line held while the read is in flight, so the ring and
@@ -340,7 +344,7 @@ function Lesson() {
                 }`
         }
         art={
-          <div className="mb-5 mt-7">
+          <div className="mb-4 mt-7">
             <RingStage>
               {/* The ring travels from where it WAS to where it is, in
                   front of them: the value it mounts with is the old one
@@ -366,7 +370,7 @@ function Lesson() {
                   size={RING}
                   tone="trait"
                   state={loaded ? "idle" : "thinking"}
-                  className={COIN}
+                  className={`${COIN} ${NO_ARC}`}
                 >
                   <Dash />
                   <span className="label-micro mt-1 text-stone-500">percentile</span>
@@ -416,6 +420,9 @@ const RING = 168;
    behind it, the way the lesson page's art tile stands on its dome. */
 const COIN = "rounded-full bg-ground";
 const FIGURE = "font-display text-num-l tabular-nums";
+/* Unknown draws no arc at all: at 0 the arc's round cap is still a dot
+   of the tone at twelve o'clock, which reads as a little progress. */
+const NO_ARC = "[&_.ring-arc]:opacity-0";
 
 /** Unknown, drawn as unknown: a dash where the number goes. */
 function Dash() {

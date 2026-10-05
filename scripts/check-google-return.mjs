@@ -361,7 +361,7 @@ if (SHOTS) {
   await page.evaluate(() => sessionStorage.setItem("ethos.oauth", JSON.stringify({ from: "/signup", mode: "signup", at: Date.now() })));
   await page.evaluate(() => localStorage.removeItem("sb-supabase-auth-token"));
   await page.goto(`${BASE}/auth/callback#access_token=${token(false)}&expires_in=86400&expires_at=${exp}&refresh_token=r1&token_type=bearer`, { waitUntil: "load" });
-  const landed = await page.getByText("You're in.").waitFor({ timeout: 8000 }).then(() => true, () => false);
+  const landed = await page.getByText("You're in", { exact: true }).waitFor({ timeout: 8000 }).then(() => true, () => false);
   const h1 = (await page.locator("main h1").first().textContent().catch(() => "")) ?? "";
   ok("callback, a finished Google return with a slow server: lands as signed in", landed, h1);
   await close();

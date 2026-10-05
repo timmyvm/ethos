@@ -93,7 +93,7 @@ export default function CallbackPage() {
             height={140}
             className="demos w-[140px]"
           />
-          <h1 className="font-display mt-6 text-title">You&apos;re in.</h1>
+          <h1 className="font-display mt-6 text-title">You&apos;re in</h1>
           <p className="mt-3 max-w-[300px] text-body leading-relaxed text-stone-500">
             {viaGoogle
               ? state.email
@@ -115,7 +115,7 @@ export default function CallbackPage() {
         <>
           <GoogleTile />
           <h1 className="font-display mt-5 text-title">
-            Google sign-in didn&apos;t finish.
+            Google sign-in didn&apos;t finish
           </h1>
           <p className="mt-3 max-w-[300px] text-body leading-relaxed text-stone-500">
             Nothing changed on this device.
@@ -128,7 +128,7 @@ export default function CallbackPage() {
           </Link>
           <Link
             href="/"
-            className="press mt-2 inline-flex min-h-11 items-center px-3 text-[13px] font-semibold text-stone-500"
+            className="text-link press mt-2 inline-flex min-h-11 items-center px-3"
           >
             Not now
           </Link>
@@ -139,7 +139,7 @@ export default function CallbackPage() {
         <>
           <GoogleTile />
           <h1 className="font-display mt-5 text-title">
-            That Google account is taken.
+            That Google account is taken
           </h1>
           {/* The headline already says whose it is; the body only says
               what to do. humanise()'s longer line is for the inline
@@ -154,7 +154,7 @@ export default function CallbackPage() {
               introduction, "back where you started" is its plan. */}
           <Link
             href="/signup"
-            className="press mt-2 inline-flex min-h-11 items-center px-3 text-[13px] font-semibold text-stone-500"
+            className="text-link press mt-2 inline-flex min-h-11 items-center px-3"
           >
             Use an email instead
           </Link>
@@ -163,7 +163,7 @@ export default function CallbackPage() {
 
       {state.at === "stale" && (
         <>
-          <h1 className="font-display text-title">That link has expired.</h1>
+          <h1 className="font-display text-title">That link has expired</h1>
           <p className="mt-3 max-w-[300px] text-body leading-relaxed text-stone-500">
             Links work once. If you&apos;ve already confirmed, sign in.
           </p>

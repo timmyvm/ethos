@@ -8,27 +8,28 @@ export default function SignInPage() {
   return (
     <AuthForm
       mode="signin"
-      title="Welcome back."
+      title="Welcome back"
       submitLabel="Sign in"
       onSubmit={signIn}
+      /* Recovery sits on the field it recovers (auth-16), the way every
+         sign-in screen people already know does it. */
+      passwordAside={
+        <Link
+          href="/auth/forgot"
+          className="text-link press -my-3 inline-flex min-h-11 items-center"
+        >
+          Forgot?
+        </Link>
+      }
       footer={
-        <>
-          {/* One accent text link per footer: the door somebody came
-              here to find. The recovery link is the quiet one. */}
-          <Link
-            href="/auth/forgot"
-            className="press inline-flex min-h-11 items-center px-1 font-semibold text-stone-500"
-          >
-            Forgot your password?
-          </Link>
-          <span className="mx-1 text-stone-300">·</span>
-          <Link
-            href="/signup"
-            className="press inline-flex min-h-11 items-center px-1 font-semibold text-terracotta-700"
-          >
-            Create an account
-          </Link>
-        </>
+        /* One door left in the footer: the one somebody without an
+           account came here to find. */
+        <Link
+          href="/signup"
+          className="text-link press inline-flex min-h-11 items-center px-1 text-terracotta-700"
+        >
+          Create an account
+        </Link>
       }
     />
   );

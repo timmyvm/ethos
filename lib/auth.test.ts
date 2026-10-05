@@ -28,6 +28,7 @@ import {
   parseOAuthAttempt,
   passwordProblem,
   safeReturnPath,
+  signIn,
 } from "./auth";
 
 describe("password rules", () => {
@@ -40,6 +41,27 @@ describe("password rules", () => {
 
   it("rejects a short one with the reason, not a red border", () => {
     expect(passwordProblem("short")).toContain(String(MIN_PASSWORD));
+  });
+});
+
+describe("signing in checks the fields before the server does", () => {
+  // The forms are noValidate (auth-19): the browser's bubble no longer
+  // runs, so these are what an empty or malformed sign-in hears, and
+  // `field` is how the form knows which input to mark and refocus.
+  it("names a malformed address and points at the email field", async () => {
+    expect(await signIn("tim", "a long password")).toEqual({
+      ok: false,
+      error: expect.stringMatching(/email/),
+      field: "email",
+    });
+  });
+
+  it("asks for the password when it is empty", async () => {
+    expect(await signIn("tim@speakethos.com", "")).toEqual({
+      ok: false,
+      error: "Enter your password.",
+      field: "password",
+    });
   });
 });
 

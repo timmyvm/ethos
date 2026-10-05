@@ -44,6 +44,12 @@ export interface AuthResult {
   checkInbox?: boolean;
   /** Quiet caveat under the check-inbox headline (slow email server). */
   note?: string;
+  /**
+   * The field the error is about, when it is one field's fault: the
+   * form marks it invalid, ties the message to it and puts the cursor
+   * back in it (auth-19). Absent for anything the server said.
+   */
+  field?: "email" | "password";
 }
 
 /**
@@ -77,7 +83,7 @@ function emailTimedOut(message: string): boolean {
  */
 export function passwordProblem(password: string): string | null {
   if (password.length < MIN_PASSWORD) {
-    return `${MIN_PASSWORD} characters or more. Length beats punctuation.`;
+    return `Use ${MIN_PASSWORD} characters or more.`;
   }
   return null;
 }
@@ -140,7 +146,7 @@ export async function createAccount(
      * collects the password once there's an identity to hang it on.
      */
     const problem = emailProblem(email);
-    if (problem) return { ok: false, error: problem };
+    if (problem) return { ok: false, error: problem, field: "email" };
 
     const upgrade = await db.auth.updateUser(
       { email: email.trim() },
@@ -159,8 +165,12 @@ export async function createAccount(
     return { ok: true, checkInbox: true };
   }
 
-  const problem = emailProblem(email) ?? passwordProblem(password);
-  if (problem) return { ok: false, error: problem };
+  const emailWrong = emailProblem(email);
+  if (emailWrong) return { ok: false, error: emailWrong, field: "email" };
+  const passwordWrong = passwordProblem(password);
+  if (passwordWrong) {
+    return { ok: false, error: passwordWrong, field: "password" };
+  }
 
   const { error } = await db.auth.signUp({
     email: email.trim(),
@@ -428,6 +438,14 @@ export async function signIn(
   email: string,
   password: string
 ): Promise<AuthResult> {
+  /* Checked here, before Supabase, as createAccount and sendReset do:
+     the form is noValidate (auth-19), so this is the only thing between
+     an empty field and a developer's error message. */
+  const emailWrong = emailProblem(email);
+  if (emailWrong) return { ok: false, error: emailWrong, field: "email" };
+  if (!password) {
+    return { ok: false, error: "Enter your password.", field: "password" };
+  }
   const db = supabaseBrowser();
   if (!db) return { ok: false, error: "Accounts aren't configured yet." };
   const { error } = await db.auth.signInWithPassword({
@@ -442,7 +460,7 @@ export async function sendReset(email: string): Promise<AuthResult> {
   const db = supabaseBrowser();
   if (!db) return { ok: false, error: "Accounts aren't configured yet." };
   const problem = emailProblem(email);
-  if (problem) return { ok: false, error: problem };
+  if (problem) return { ok: false, error: problem, field: "email" };
   const { error } = await db.auth.resetPasswordForEmail(email.trim(), {
     // Straight to the form. Nothing to detect on arrival, so there's no
     // race between the link being read and the page deciding what it is.
@@ -462,7 +480,7 @@ export async function setNewPassword(password: string): Promise<AuthResult> {
   const db = supabaseBrowser();
   if (!db) return { ok: false, error: "Accounts aren't configured yet." };
   const problem = passwordProblem(password);
-  if (problem) return { ok: false, error: problem };
+  if (problem) return { ok: false, error: problem, field: "password" };
   const { error } = await db.auth.updateUser({ password });
   if (error) return { ok: false, error: humanise(error.message) };
   return { ok: true };
@@ -520,7 +538,8 @@ export async function deleteAccount(): Promise<AuthResult> {
 function humanise(message: string): string {
   const m = message.toLowerCase();
   if (m.includes("invalid login credentials")) {
-    return "That email and password don't match. Try again, or reset it below.";
+    // "Forgot?" sits on the password row, above this line (auth-16).
+    return "That email and password don't match. Try again or reset it.";
   }
   if (m.includes("email not confirmed")) {
     return "Confirm the link in your inbox first. Then this will work.";
@@ -560,7 +579,7 @@ function humanise(message: string): string {
     return "The email server took too long. Check your inbox anyway; the mail often lands after this error.";
   }
   if (m.includes("weak") || m.includes("password should be")) {
-    return `${MIN_PASSWORD} characters or more. Length beats punctuation.`;
+    return `Use ${MIN_PASSWORD} characters or more.`;
   }
   return message;
 }

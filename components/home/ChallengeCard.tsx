@@ -1,5 +1,6 @@
 "use client";
 
+import { IconCheck } from "@/components/Icon";
 import { Ring } from "@/components/Ring";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
@@ -60,7 +61,15 @@ export function ChallengeCard({ challenge }: { challenge: Challenge }) {
             track="var(--today-trough)"
             delay={240}
             state={c.closed ? "closing" : "idle"}
-          />
+          >
+            {/* A closed line says so in the ring, with a mark rather
+                than the number the sentence already prints. */}
+            {c.closed ? (
+              <span className="tone-ink">
+                <IconCheck size={22} />
+              </span>
+            ) : undefined}
+          </Ring>
           <div className="min-w-0 flex-1">
             <p className="font-display text-body font-bold leading-snug text-balance">
               {challengeLine(c)}

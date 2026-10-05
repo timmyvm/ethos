@@ -47,6 +47,9 @@ import type { Chosen } from "@/lib/next-practice";
  * furniture, and DESIGN.md asks for an arrival instead. He keeps the
  * empty states and the celebrations.
  */
+/** Placeholders in the card's own warm edge, not the grey trough. */
+const WARM = "!bg-[color:var(--rec-topic-edge)]";
+
 export function FloorCard({
   chosen,
   dayOne,
@@ -140,7 +143,7 @@ export function FloorCard({
           skeleton holds the same 22px while the read is in flight. */}
       <div className="flex min-h-[22px] items-center gap-2">
         {loading ? (
-          <Skeleton className="h-2.5 w-32" />
+          <Skeleton className={`h-2.5 w-32 ${WARM}`} />
         ) : (
           <span className={`flex items-center gap-2 ${lands}`}>
             {chosen && !dayOne && <TraitChip trait={chosen.trait} size="sm" />}
@@ -156,11 +159,11 @@ export function FloorCard({
         <div aria-hidden className="font-display mt-2.5 text-title leading-tight">
           <span className="relative block">
             <span className="invisible">Ag</span>
-            <Skeleton className="absolute inset-y-[2px] left-0 w-full" />
+            <Skeleton className={`absolute inset-y-[2px] left-0 w-full ${WARM}`} />
           </span>
           <span className="relative block">
             <span className="invisible">Ag</span>
-            <Skeleton className="absolute inset-y-[2px] left-0 w-2/3" />
+            <Skeleton className={`absolute inset-y-[2px] left-0 w-2/3 ${WARM}`} />
           </span>
         </div>
       ) : (

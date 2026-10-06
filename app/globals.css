@@ -2579,16 +2579,6 @@ summary::-webkit-details-marker {
 :root[data-theme="dark"] [data-trait] {
   --tone-stage: color-mix(in srgb, var(--tone) 22%, var(--color-ground));
 }
-/* M06 (B2 and B9's hook): a dome for the art or the ring to stand on, a
-   half-ellipse 76% of the column wide (306 by 120 at 390). Outside any
-   trait it is the neutral surface. */
-.stage-dome {
-  width: 76%;
-  margin-inline: auto;
-  aspect-ratio: 306 / 120;
-  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
-  background: var(--tone-stage, var(--color-surface));
-}
 /* ========================== end of lessons (trait tones) ========================== */
 
 /* ============================ practice (/games) ============================
@@ -2712,10 +2702,9 @@ summary::-webkit-details-marker {
  * above), so blue means pausing here, on /lessons and in the log alike;
  * the earned chips are sage with a gold mark, which is the mascot's
  * amber and the stars' own colour on the introduction. Terracotta stays
- * the floor's one tap and never appears here.
- *   --today-trough  a trait ring's unfilled arc: the tone faint on its
- *                   own wash, so the remainder reads on every tone and
- *                   in both themes where `sand` greyed the tile out.
+ * the floor's one tap and never appears here. Since round 2 a trait's
+ * tile is the neutral `.card` and today's line sits on the ground, so a
+ * trait ring is its tone's arc on the app's `sand` trough.
  * ============================================================================ */
 :root {
   /* The earned mark's gold: a star, a lit flame, a badge's glyph, on
@@ -2772,35 +2761,16 @@ summary::-webkit-details-marker {
 .today-earned[data-open="true"] .today-earned-mark {
   color: var(--color-stone-400);
 }
-/* A trait row's tile and today's line: the tone's wash, a faint ring
-   of the tone so the wash holds its edge on the dark ground. */
-.today-trait,
-.today-line {
-  --today-trough: color-mix(in srgb, var(--tone) 20%, var(--tone-wash));
-}
-/* The ochre, light: its solid is 2.1:1 on that trough, so the ring
-   stopped measuring on the Restarts row. A deeper arc (3.9:1 on the
-   wash) and a fainter trough give 3.6:1; the other four clear 3.1 and
-   up as they are, and every tone clears in dark. Held by
-   lib/today-colour.test.ts. The tile and the name keep the lessons
-   ochre, so Restarts still reads as the same colour as on /lessons. */
-/* practice-detail-6 (B9's hook): `main[data-trait="repairs"]` is the
-   trait page (LessonScreen's `trait` prop), whose ring takes the same
-   deeper ochre. */
-:root:not([data-theme="dark"])
-  :is(
-    .today-trait[data-trait="repairs"],
-    [data-trait="repairs"] .today-line,
-    main[data-trait="repairs"]
-  ) {
+/* The ochre, light: a neutral tile, the ring on sand. Its solid is
+   1.9:1 on that trough, so the Restarts ring would stop measuring; a
+   deeper arc gives 3.6:1, and the other four tones and every tone in
+   dark clear 3:1 as they are. Held by lib/today-colour.test.ts. The
+   name keeps the lessons ochre ink, so Restarts reads as the same
+   colour as on /lessons. `.today-trait` is a trait tile and today's
+   line; `main[data-trait="repairs"]` is the trait page (LessonScreen's
+   `trait` prop), whose ring takes the same deeper ochre. */
+:root:not([data-theme="dark"]) :is(.today-trait[data-trait="repairs"], main[data-trait="repairs"]) {
   --ring-arc: #9a6c14;
-  --today-trough: color-mix(in srgb, var(--tone) 10%, var(--tone-wash));
-}
-/* system-11: no shadow. Today's line sits on its wash with its inset
-   tone ring, like the trait tiles, so the floor card is the only mass
-   lifted off Today's ground. */
-.today-line {
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 18%, transparent);
 }
 /* ========================== end of today (colour pass) ========================== */
 
@@ -3117,55 +3087,6 @@ summary::-webkit-details-marker {
 }
 /* ============================== end of nav (glass) ============================== */
 
-/* The floor card's two side marks: spin and difficulty, square beside
-   the tap, on the card's own amber, never terracotta. */
-.floor-side {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  width: 52px;
-  min-height: 48px;
-  border-radius: var(--radius-control, 12px);
-  color: var(--color-ink);
-  /* today-11: frosted white on the amber card with the card's own edge,
-     where a 7% ink fill came out a muddy tan that read as disabled.
-     On (mods set) it is the full raised paper. */
-  background: rgb(255 255 255 / 0.6);
-  border: 1px solid var(--rec-topic-edge);
-}
-.floor-side[data-on="true"] {
-  background: var(--color-raised);
-}
-/* Dark keeps its ink-8% fill with no edge, and its own on-step. */
-:root[data-theme="dark"] .floor-side {
-  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
-  border-color: transparent;
-}
-:root[data-theme="dark"] .floor-side[data-on="true"] {
-  background: color-mix(in srgb, var(--color-ink) 14%, transparent);
-}
-.floor-side-count {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: var(--color-ink);
-  color: var(--color-ground, #121212);
-  font: 800 11px/18px var(--font-display-face), sans-serif;
-  text-align: center;
-}
-
-/* Today's trait tiles (26 Sep): the tone's wash with its hairline, so a
-   tile holds its edge on the dark ground. */
-.today-tile {
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 18%, transparent);
-  min-height: 112px;
-}
-
 /* ============================ practice (the wall) ============================
  * Premium on Practice is a wall, not a chip (26 Sep): the paid games sit
  * behind frosted plum glass, visible enough to want and blurred enough
@@ -3380,6 +3301,9 @@ summary::-webkit-details-marker {
   gap: 12px;
   padding-top: 2px;
 }
+.large-title-eyebrow + .large-title-row {
+  padding-top: 0;
+}
 /* Apple's Large Title, set for Outfit: 34 on 40, heavy, and tracked in
    because big geometric type reads loose (§15). It grows from its
    leading edge when the page is pulled down past the top. */
@@ -3395,8 +3319,11 @@ summary::-webkit-details-marker {
 /* The line over a large title (Today's date). M17, wellspoken-lexicon
    s1: a quiet Figtree line, 15/500 on 20, no tracking, stone-500, 4px
    over the title. It was Outfit 13/700, which also printed the camera's
-   "4 O ctober" gap. */
+   "4 O ctober" gap. It stands over the title row rather than in it, so
+   it has the column's full width (round 2: at 320px the date wrapped
+   beside Today's chips); it takes the row's 2px top padding with it. */
 .large-title-eyebrow {
+  padding-top: 2px;
   margin-bottom: 4px;
   font-family: var(--font-figtree), sans-serif;
   font-size: 0.9375rem;

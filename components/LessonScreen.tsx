@@ -309,7 +309,7 @@ export function LessonScreen({
    * The trait this screen is about (practice-detail-6). Sets
    * `data-trait` on <main>, so everything on the screen can wear that
    * trait's tone (`--tone`, `--tone-wash`, `--tone-ink`, and
-   * `--tone-stage` for a `.stage-dome`) without each block naming it.
+   * `--tone-stage` for a `fill` stage) without each block naming it.
    */
   trait?: TraitId;
   /**
@@ -727,8 +727,7 @@ function StageScreen({
       >
         {/* The stage's ground. Unclipped above the document's top (and
             tall enough there to travel), so under a status bar the stage
-            simply carries on. Outside a trait it is the neutral surface,
-            as `.stage-dome` is. */}
+            simply carries on. Outside a trait it is the neutral surface. */}
         <div
           ref={ground}
           aria-hidden

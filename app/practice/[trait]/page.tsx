@@ -409,12 +409,12 @@ const RING = 168;
 /*
  * R3: the ring as an object on its stage, a disc of the ground behind
  * the trough so the number stays on plain ground, scaled to the stage:
- * 58% of the room's height, never under 152 or over 236 (its stroke
- * scales with it through the viewBox).
+ * 60% of the room's height, never under 152 or over 272 (70% of the
+ * column; its stroke scales with it through the viewBox).
  */
-const COIN = "rounded-full bg-ground size-[clamp(152px,58cqh,236px)]! [&>svg]:size-full";
+const COIN = "rounded-full bg-ground size-[clamp(152px,60cqh,272px)]! [&>svg]:size-full";
 /* The figure steps up from num-l to num-hero once the ring is big
-   enough to hold it (a room 380px tall gives a 220 ring). */
+   enough to hold it (a room 380px tall gives a 228 ring). */
 const FIGURE =
   "font-display text-num-l tabular-nums [@container(min-height:380px)]:text-num-hero";
 

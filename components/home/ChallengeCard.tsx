@@ -3,6 +3,7 @@
 import { IconCheck } from "@/components/Icon";
 import { Ring } from "@/components/Ring";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { TRAIT } from "@/content/traits";
 import {
   challengeFoot,
   challengeLine,
@@ -24,7 +25,7 @@ import {
  * no closed state and this does. It wore `tone="open"` (terracotta,
  * #252) until the colour pass; see below.
  *
- * 48px, under the trait rows' 50 and the clean run's 104: this card
+ * 56px, the wide trait tile's size and under the clean run's 96: the line
  * states one number and must not outweigh the floor's button at the
  * squint test's 7px blur. The ring carries no number of its own
  * (today-7): the sentence beside it prints today's value with its unit,
@@ -32,59 +33,62 @@ import {
  * number said twice and explained never.
  *
  * No aside on the head (today-8). "Pausing" right-aligned in its tone
- * read as iOS's See All link on a div that did nothing; the unit in the
- * sentence and the card's tone already say which trait.
+ * read as iOS's See All link on a div that did nothing; the name sits
+ * over the sentence instead, in its tone, where it labels the number.
  *
- * THE COLOUR (the colour pass, 26 Sep). The line is drawn in one
- * trait's unit, so the card wears that trait's tone: its wash as the
- * ground, its ink on the ring and the name, the same colour the trait
- * has on /lessons and in the rows below. The ring left terracotta
- * (#252's `open`) in the same pass: a terracotta ring under a
- * terracotta button was the second orange object on the screen, and
- * the tone says which trait without a second tap's colour.
+ * THE MATERIAL (round 2, M12). The line is a statement, not a tap, so
+ * it has no card: the ring and its lines sit on the ground under the
+ * section head, the way Imprint's home sets what it says on the page
+ * and keeps a card for what you press. It wore its trait's wash with an
+ * inset tone ring (#312), which made it a second coloured slab between
+ * the floor card and the clean run. The tone is on the ring's arc and
+ * the trait's name, nothing else; the name is said because the wash
+ * that used to say which trait went (PRINCIPLES 6). The ring left
+ * terracotta in the colour pass and stays out of it: a terracotta ring
+ * under a terracotta button was a second tap's colour.
  *
- * NO BUTTON. The one tap on this screen belongs to the floor card. This
- * card states a number and gets out of the way, which is also why it is
- * `elev-1` under the floor's `elev-2`.
+ * NO BUTTON. The one tap on this screen belongs to the floor card.
  */
 export function ChallengeCard({ challenge }: { challenge: Challenge }) {
   const c = challenge;
   return (
-    <section className="mt-7" data-trait={c.trait}>
+    <section className="mt-7">
       <h2 className="section-head">Today&apos;s line</h2>
-      <div className="today-line tone-wash mt-3 rounded-card p-4">
-        <div className="flex items-center gap-4">
-          <Ring
-            value={c.value}
-            size={48}
-            tone="trait"
-            track="var(--today-trough)"
-            delay={240}
-            state={c.closed ? "closing" : "idle"}
-          >
-            {/* A closed line says so in the ring, with a mark rather
-                than the number the sentence already prints. */}
-            {c.closed ? (
-              <span className="tone-ink">
-                <IconCheck size={22} />
-              </span>
-            ) : undefined}
-          </Ring>
-          <div className="min-w-0 flex-1">
-            <p className="font-display text-body font-bold leading-snug text-balance">
-              {challengeLine(c)}
-            </p>
-            {/*
-             * The same sentence whether it closed or not. On a miss the
-             * number is what does the attributing (§5 row 12): it says
-             * "this is the kind of day you usually have" without a
-             * second person anywhere in it, and without the word
-             * "missed".
-             */}
-            <p className="tone-ink mt-1 text-caption text-pretty">
-              {challengeFoot(c)}
-            </p>
-          </div>
+      {/* The row holds two lines of the sentence whichever state it is
+          in (min-h-20, centred), so the open day's one line and the
+          closed day's two land in the same slot as the skeleton. */}
+      <div data-trait={c.trait} className="today-trait mt-3 flex min-h-20 items-center gap-4">
+        <Ring
+          value={c.value}
+          size={56}
+          tone="trait"
+          track="var(--color-sand)"
+          delay={240}
+          state={c.closed ? "closing" : "idle"}
+        >
+          {/* A closed line says so in the ring, with a mark rather
+              than the number the sentence already prints. */}
+          {c.closed ? (
+            <span className="tone-ink">
+              <IconCheck size={22} />
+            </span>
+          ) : undefined}
+        </Ring>
+        <div className="min-w-0 flex-1">
+          <p className="eyebrow tone-ink">{TRAIT[c.trait].name}</p>
+          <p className="font-display text-body font-bold leading-snug text-balance">
+            {challengeLine(c)}
+          </p>
+          {/*
+           * The same sentence whether it closed or not. On a miss the
+           * number is what does the attributing (§5 row 12): it says
+           * "this is the kind of day you usually have" without a
+           * second person anywhere in it, and without the word
+           * "missed".
+           */}
+          <p className="mt-0.5 text-caption text-pretty text-stone-500">
+            {challengeFoot(c)}
+          </p>
         </div>
       </div>
     </section>
@@ -103,7 +107,14 @@ export function SkeletonChallenge() {
       <div className="flex h-6 items-center">
         <Skeleton className="h-5 w-32" />
       </div>
-      <Skeleton className="mt-3 h-[95px] w-full" rounded="rounded-card" />
+      <div className="mt-3 flex min-h-20 items-center gap-4">
+        <div className="size-14 shrink-0 rounded-full border-[5px] border-sand" />
+        <div className="min-w-0 flex-1">
+          <Skeleton className="h-3 w-16" />
+          <Skeleton className="mt-2 h-4 w-full" />
+          <Skeleton className="mt-2 h-3 w-3/4" />
+        </div>
+      </div>
     </div>
   );
 }

@@ -34,7 +34,12 @@ import { buildPortfolio } from "@/lib/portfolio";
  * their words (#231, and check-onboarding waits on it, #294). The road's
  * endowed "Showed up" row does NOT carry over: docs/closure.md's reject
  * list opens with endowed progress, and CLAUDE.md says stars, streaks
- * and scores are earned. No subtitle under the title (#317).
+ * and scores are earned.
+ *
+ * Under the title, one quiet line counts the practices done of all of
+ * them (round 2, M26, Imprint's path s9; it reverses #317's "no
+ * subtitle"): the earned count, read from the same log as the rows,
+ * and while that log is in flight a bar holding the line, never "0".
  */
 export default function LessonsPage() {
   /* null while the log is in flight, so the up-next card never shows
@@ -72,6 +77,13 @@ export default function LessonsPage() {
     load();
   };
 
+  /* Practices with a recording, of every practice on the page. A lesson
+     counts at most its own practices, whatever the log holds. */
+  const total = LESSONS.reduce((n, l) => n + l.practices.length, 0);
+  const earned = done
+    ? LESSONS.reduce((n, l) => n + Math.min(done[l.id] ?? 0, l.practices.length), 0)
+    : null;
+
   const focus = traitForSaid(said);
   const next = done ? upNextLesson(done, focus) : null;
   /* null reaches every row until the log is in: unknown, not zero. */
@@ -82,7 +94,23 @@ export default function LessonsPage() {
 
   return (
     <main className="mx-auto max-w-[430px] px-5 pb-[var(--nav-clear)] pt-7">
-      <ScreenHeader title="Lessons" />
+      <ScreenHeader
+        title="Lessons"
+        subtitle={
+          earned !== null ? (
+            <span className="arrive">
+              {earned} of {total} practices
+            </span>
+          ) : failed ? (
+            /* The error line below says why; the line keeps its height. */
+            "\u00a0"
+          ) : (
+            <span aria-hidden className="flex h-5 items-center">
+              <Skeleton className="h-3 w-32" rounded="rounded-none" />
+            </span>
+          )
+        }
+      />
 
       {/* system-7: the first block sits mt-5 under the header, every tab. */}
       <div className="mt-5">

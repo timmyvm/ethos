@@ -210,7 +210,34 @@ ok(
   const back = await p.waitForSelector("main [data-up-next]", { timeout: 10000 }).then(() => true, () => false);
   ok("the retry brings the card back", back);
 
+  /* Round 2: the count under the title (M26). While the log is in
+     flight its line is held at its height with no number in it, never
+     "0 of 45"; when it lands it is the earned count and the card under
+     it has not moved. */
   holdReps = 2500;
+  await p.goto(`${BASE}/lessons`);
+  await p.waitForSelector("main h1");
+  await sleep(400);
+  const countLine = () =>
+    p.evaluate(() => {
+      const line = document.querySelector("main .large-title-subtitle");
+      const first = document.querySelector("main > .mt-5");
+      return {
+        text: (line?.textContent ?? "").trim(),
+        h: line ? Math.round(line.getBoundingClientRect().height) : 0,
+        top: first ? Math.round(first.getBoundingClientRect().top) : -1,
+      };
+    });
+  const held = await countLine();
+  ok("while the log is in flight the count's line is held, with no number in it", held.h === 20 && !/\d/.test(held.text), JSON.stringify(held));
+  await p.waitForFunction(() => /of \d+ practices/.test(document.querySelector("main .large-title-subtitle")?.textContent ?? ""), null, { timeout: 10000 }).catch(() => {});
+  const count = await countLine();
+  ok(
+    "and lands as the earned count without moving the card",
+    /^\d+ of 45 practices$/.test(count.text) && count.h === 20 && count.top === held.top,
+    JSON.stringify(count)
+  );
+
   await p.goto(`${BASE}/lessons/${LESSON}`);
   await p.waitForSelector("main h1");
   await sleep(400);

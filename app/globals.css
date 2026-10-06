@@ -3390,6 +3390,22 @@ summary::-webkit-details-marker {
   letter-spacing: 0;
   color: var(--color-stone-500);
 }
+/* Round 2 (M26, Imprint 01-course-path s9): the line UNDER a large
+   title, the eyebrow's twin. Same quiet Figtree 15/500 on 20 in
+   stone-500, 4px under the title, tabular so a count does not shift its
+   words as it changes. A 20px line even when empty, so a count that
+   lands after a read moves nothing. */
+.large-title-subtitle {
+  min-height: 1.25rem;
+  margin-top: 4px;
+  font-family: var(--font-figtree), sans-serif;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-stone-500);
+}
 /* A section's title: Apple's sentence-case headline in place of the
    tracked capitals it replaced (§15). Big type tightens, so it tracks
    in; the capitals register stays for eyebrows INSIDE cards, where a

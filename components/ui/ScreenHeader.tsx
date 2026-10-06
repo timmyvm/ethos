@@ -30,6 +30,7 @@ import { IconBack } from "@/components/Icon";
 export function ScreenHeader({
   title,
   eyebrow,
+  subtitle,
   dated = false,
   back,
   trailing,
@@ -39,6 +40,15 @@ export function ScreenHeader({
   title: string;
   /** A line above the title, as Apple's apps put the date over Today. */
   eyebrow?: React.ReactNode;
+  /**
+   * One quiet line under the large title (round 2, M26, Imprint's path
+   * s9: Lessons' "14 of 45 practices"). It belongs to the large title
+   * and leaves with it: the collapsed bar carries the name only. Its
+   * line is always drawn once the prop is passed, so a screen that
+   * fills it after a read passes a placeholder meanwhile and nothing
+   * under it moves when the words land.
+   */
+  subtitle?: React.ReactNode;
   /**
    * Today's date as the eyebrow. Written after mount, in the device's
    * own zone and words: the server cannot know either, and a date that
@@ -156,6 +166,11 @@ export function ScreenHeader({
         </div>
         {trailing && <div className="large-title-trailing">{trailing}</div>}
       </div>
+      {/* Outside the title row, so trailing objects still centre on the
+          title's cap height rather than on this line. */}
+      {subtitle !== undefined && (
+        <p className="large-title-subtitle">{subtitle}</p>
+      )}
     </>
   );
 }

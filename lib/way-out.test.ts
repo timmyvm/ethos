@@ -39,6 +39,13 @@ const TAPPABLE_BARE_SCREENS = [
 ];
 
 /**
+ * Detail screens beneath a tab that hide the bar (Nav's DETAIL list,
+ * round 2): one lesson, under Lessons. Its route is the tab's plus a
+ * segment, so it is checked against DETAIL rather than BARE.
+ */
+const TAPPABLE_DETAIL_SCREENS = ["app/lessons/[id]/page.tsx"];
+
+/**
  * The route a page file serves: route groups (`(marketing)`) are not in
  * the URL, so they drop out, and the BARE list holds first segments.
  *   "app/practice/[trait]/page.tsx" -> "/practice"
@@ -92,14 +99,23 @@ describe("the way-out reader", () => {
 describe("no screen is a dead end", () => {
   it("keeps the BARE list in sync with this test's own list", () => {
     const nav = readFileSync("components/Nav.tsx", "utf8");
-    const bare = nav.slice(nav.indexOf("const BARE"), nav.indexOf("export function Nav"));
+    const bare = nav.slice(nav.indexOf("const BARE"), nav.indexOf("const DETAIL"));
     for (const file of TAPPABLE_BARE_SCREENS) {
       const route = routeOf(file);
       expect(bare, `${route} is no longer in BARE`).toContain(`"${route}"`);
     }
   });
 
-  for (const file of TAPPABLE_BARE_SCREENS) {
+  it("keeps the DETAIL list in sync with this test's own list", () => {
+    const nav = readFileSync("components/Nav.tsx", "utf8");
+    const detail = nav.slice(nav.indexOf("const DETAIL"), nav.indexOf("export function Nav"));
+    for (const file of TAPPABLE_DETAIL_SCREENS) {
+      const route = routeOf(file);
+      expect(detail, `${route}/… no longer hides the bar`).toContain(`"${route}"`);
+    }
+  });
+
+  for (const file of [...TAPPABLE_BARE_SCREENS, ...TAPPABLE_DETAIL_SCREENS]) {
     it(`gives ${file} a control that leaves it`, () => {
       const source = readFileSync(file, "utf8");
       const hasExit = hasWayOut(source);
@@ -112,7 +128,7 @@ describe("no screen is a dead end", () => {
    * `undefined` leaves the first step of a walk with nothing on it.
    */
   it("never hands LessonScreen an undefined back on the first step", () => {
-    for (const file of TAPPABLE_BARE_SCREENS) {
+    for (const file of [...TAPPABLE_BARE_SCREENS, ...TAPPABLE_DETAIL_SCREENS]) {
       const source = readFileSync(file, "utf8");
       expect(
         /const back =[^;]*:\s*undefined/.test(source),

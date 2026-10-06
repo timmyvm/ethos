@@ -40,8 +40,11 @@ const TABS: readonly string[] = TAB_HREFS;
 function depth(path: string): number {
   const tab = TABS.indexOf(path);
   if (tab !== -1) return 0;
-  // A lesson, a recording, a boss: the deepest the app goes.
-  if (/^\/(rep|lesson|boss|hostile|calibrate|upload)/.test(path)) return 2;
+  // A unit intro, a recording, a boss: the deepest the app goes. Matched
+  // on whole segments: a bare prefix put one lesson (/lessons/<id>, one
+  // step in from its tab) at the recording's depth, so coming back from
+  // the recording to it slid in from the right, as if deeper again.
+  if (/^\/(rep|lesson|boss|hostile|calibrate|upload)(\/|$)/.test(path)) return 2;
   return 1;
 }
 

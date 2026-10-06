@@ -112,6 +112,15 @@ const BARE = [
   "/auth",
 ];
 
+/**
+ * Detail screens BENEATH a tab that hide the bar, matched on the tab's
+ * route plus a slash so the tab itself keeps it. One lesson (round 2,
+ * B2's offer): it is a detail screen with its own Start at the foot,
+ * and a tab row under that Start is five ways to not press it. Its way
+ * back is the BackLink to Lessons (lib/way-out.test.ts).
+ */
+const DETAIL = ["/lessons"];
+
 export function Nav() {
   const path = usePathname();
   const router = useRouter();
@@ -137,6 +146,7 @@ export function Nav() {
   const [dragging, setDragging] = useState(false);
 
   if (BARE.some((b) => path === b || path.startsWith(`${b}/`))) return null;
+  if (DETAIL.some((d) => path.startsWith(`${d}/`))) return null;
 
   const current = TABS.findIndex((t) =>
     t.href === "/" ? path === "/" : path.startsWith(t.href)

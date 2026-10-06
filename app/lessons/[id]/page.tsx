@@ -15,8 +15,8 @@ import { repHref } from "@/lib/rep-config";
 import { modById } from "@/lib/stress-mods";
 import { fmtRaw } from "@/lib/trait-readings";
 import { ACTION_CLASS, DISABLED_CLASS } from "@/lib/ui";
-import { LessonArt } from "@/components/lessons/LessonCard";
 import { ErrorLine } from "@/components/ui/ErrorState";
+import { FooterShelf } from "@/components/ui/FooterShelf";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 /**
@@ -86,31 +86,65 @@ export default function LessonPage() {
   return (
     <main
       data-trait={lesson.trait}
-      className="mx-auto flex min-h-dvh max-w-[430px] flex-col px-5 pt-[env(safe-area-inset-top)]"
+      className="mx-auto flex min-h-dvh max-w-[430px] flex-col px-5"
     >
-      <BackLink
-        href="/lessons"
-        label="Lessons"
-        className="relative z-[1] self-start"
-      />
-
       {/*
-       * The stage (M06, Imprint's lesson sheet): the art stands on a dome
-       * in the trait's ground, centred, its base 22px above the dome's.
+       * The stage (round 2; Wellspoken 03-course's hero, Imprint's lesson
+       * sheet, and the same stage R3 gives the trait page and the unit
+       * intro). The tab bar is gone from this screen and Start is docked
+       * at the foot, so the screen's free height goes HERE, never into a
+       * band between the list and Start (principle 7): the trait's ground
+       * runs from the top edge, under the back row, down to a shallow
+       * arc of the page's ground rising into its foot, and the art stands
+       * centred on it, as large as the room allows (120 to 176). On a
+       * long lesson or a small phone it keeps its 204px and the page
+       * scrolls under the shelf.
+       *
        * The art stays a tile, never a full-bleed picture over the title
        * (#305): glossy art over a title is the shape of an ad, and a
-       * first-time user read it exactly that way. The ground goes wide
-       * instead, and the tone below it is only the chip and the next
-       * square (wellspoken-course s10). It rises into the back row, the art
-       * level with the back control and clear of it, as the reference's
-       * close control sits beside its art: 44px less ground before the
-       * one tap. It takes no pointer, so the back control stays a target.
+       * first-time user read it exactly that way. The tone below the
+       * stage is only the chip and the next square (wellspoken-course
+       * s10).
        */}
-      <div className="pointer-events-none relative -mx-5 -mt-7 flex justify-center pb-[22px]">
-        <div aria-hidden className="stage-dome absolute inset-x-0 bottom-0" />
-        <LessonArt lesson={lesson} size={120} radius="rounded-card" eager />
+      <div className="relative -mx-5 flex min-h-[204px] flex-1 flex-col px-5 pt-[env(safe-area-inset-top)]">
+        {/* The ground, unclipped above the document's top so a pull past
+            it shows more stage rather than a seam. Outside a trait it is
+            the neutral surface. */}
+        <div
+          aria-hidden
+          className="absolute inset-x-0 bottom-0 -top-96 bg-[var(--tone-stage,var(--color-surface))]"
+        >
+          <div className="absolute inset-x-0 -bottom-px h-6 rounded-[50%_50%_0_0/100%_100%_0_0] bg-ground" />
+        </div>
+        <BackLink
+          href="/lessons"
+          label="Lessons"
+          className="relative z-[1] self-start"
+        />
+        <div className="relative min-h-0 flex-1">
+          {/* A size container with a definite size (cq units read 0 in a
+              container whose height comes from flex-grow), so the art can
+              read the room's height. */}
+          <div
+            aria-hidden
+            className="absolute inset-0 flex items-center justify-center pb-6 [container-type:size]"
+          >
+            <span className="lesson-art relative block aspect-square w-[clamp(120px,calc(100cqh-16px),176px)] shrink-0 overflow-hidden rounded-card bg-sand">
+              {/* Soft 3D renders, square, cut to 360px; a plain img (#274). */}
+              <img
+                src={lesson.art}
+                alt=""
+                loading="eager"
+                decoding="async"
+                width={360}
+                height={360}
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            </span>
+          </div>
+        </div>
       </div>
-      <TraitChip trait={lesson.trait} size="md" className="mt-4 self-center" />
+      <TraitChip trait={lesson.trait} size="md" className="mt-5 self-center" />
       <h1 className="font-display mt-3 text-center text-title">
         {lesson.title}
       </h1>
@@ -214,21 +248,14 @@ export default function LessonPage() {
       </ol>
 
       {/*
-       * Bottom-anchored (lessons-7): at the foot of a short lesson, and
-       * held over the nav when the lesson is longer than the screen, on
-       * the ground, so the list scrolls under a soft edge (ScreenHeader's
-       * fade, mirrored, inside the shelf's own top 24px so it never dims
-       * the list at rest) rather than the one tap waiting under the glass.
-       * Its own foot clears the nav dock (--nav-clear less the 28px
-       * rhythm, plus 12px of air), which is why main has no bottom pad.
+       * Bottom-anchored (lessons-7) in the flows' FooterShelf (round 2):
+       * this screen hides the tab bar (Nav's DETAIL), so Start stands at
+       * the foot over the home indicator like every flow's tap, and a
+       * longer lesson scrolls under the shelf. No hairline: the ground
+       * above it is open at rest, and Imprint's sheet cuts its list on
+       * the ground the same way.
        */}
-      <div
-        className="sticky bottom-0 z-[1] -mx-5 mt-auto px-5 pt-6 pb-[calc(var(--nav-clear)-16px)]"
-        style={{
-          background:
-            "linear-gradient(to bottom, transparent, var(--color-ground) 24px)",
-        }}
-      >
+      <FooterShelf hairline={false}>
         {known ? (
           <Link
             href={repHref({
@@ -266,7 +293,7 @@ export default function LessonPage() {
             Another run still counts.
           </p>
         )}
-      </div>
+      </FooterShelf>
     </main>
   );
 }

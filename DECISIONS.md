@@ -604,6 +604,8 @@ Locked means locked. Reopen only with user data or Timothy's explicit call.
 
 375. 2026-10-06 · **R4: the closing pass** · Deleted the CSS round 2 left with no reader: `.today-tile`, `.floor-side` with its on, dark and count rules, `.today-line`'s inset ring, `--today-trough` and `.stage-dome`; the deeper ochre arc stays for Restarts on sand. ScreenHeader's eyebrow stands over the title row, not in it, so a date takes the column's full width: at 320 "Wednesday 7 October" wrapped beside Today's chips, and at 390 every edge is where it was. Today's loading strip (`docs/look/audit/today-load-after-light.png`) is re-shot on round 2's materials, still with no shift. Bends nothing.
 
+376. 2026-10-06 · **Today's line waits in its own colour** · Timothy: "fix it", on the open day's ring. Before today's recording the line's ring was an empty 56px grey circle on sand, the weakest object on Today. Its full circle is the line (`value` reaches 1 exactly when today clears it), so the trough now wears the trait's own tone at 22% on the ground (`LINE_TRACK` in `ChallengeCard.tsx`) and the centre carries a flag in the trait's ink while today is open, swapping to the check when the recording closes the line: the line still to clear, then cleared. A partly filled day shows the arc alone. The skeleton keeps sand, because there the number is unknown, not open. Every arc clears 3:1 on its tint in both themes (`lib/today-colour.test.ts`, ten new checks). New `IconFlag` (SF Symbols' flag) in `components/Icon.tsx`. Reference: the activity ring's coloured empty track. Bends #360's sand trough for this one ring; the tiles keep sand.
+
 ## Open queue (research-once, decide, move up)
 
 - Currency name — after launch copywriting pass

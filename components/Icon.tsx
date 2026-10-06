@@ -543,6 +543,20 @@ export function IconSliders({ size }: { size?: number }) {
  */
 
 /** A check: the chosen row in a list (a stress mod, a setting). */
+/**
+ * The line still to clear: SF Symbols' flag, a pole and a notched
+ * pennant. Today's line wears it inside its ring until today's
+ * recording closes the line, when IconCheck takes its place.
+ */
+export function IconFlag({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="M6 21V3.5" />
+      <path d="M6 4.5h11.5l-2.4 4.25 2.4 4.25H6" />
+    </Glyph>
+  );
+}
+
 export function IconCheck({ size }: { size?: number }) {
   return (
     <Glyph size={size}>

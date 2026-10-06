@@ -99,6 +99,26 @@ describe("Today's trait rings still measure", () => {
   }
 });
 
+/*
+ * Today's line draws its trough as its own tone at 22% on the ground
+ * (ChallengeCard's LINE_TRACK), so an open day is the trait's ring
+ * waiting to close rather than a grey circle. The arc still has to
+ * read on that tint wherever today's value has filled part of it.
+ */
+describe("Today's line: the arc on its own tint", () => {
+  for (const [trait, t] of Object.entries(tones(false))) {
+    it(`${trait}, light: 3:1 or better`, () => {
+      const arc = trait === "repairs" ? ochreArc! : t.tone;
+      expect(ratio(arc, mix(t.tone, light.ground, 0.22))).toBeGreaterThanOrEqual(3);
+    });
+  }
+  for (const [trait, t] of Object.entries(tones(true))) {
+    it(`${trait}, dark: 3:1 or better`, () => {
+      expect(ratio(t.tone, mix(t.tone, dark.ground, 0.22))).toBeGreaterThanOrEqual(3);
+    });
+  }
+});
+
 describe("Today's trait names in their ink", () => {
   for (const [trait, t] of Object.entries(tones(false))) {
     it(`${trait}, light: 4.5:1 or better on the card and the ground`, () => {
@@ -139,7 +159,8 @@ describe("Today's materials", () => {
 
   it("today's line has no card and no wash", () => {
     expect(line).not.toMatch(/tone-wash|today-line|rounded-card p-4/);
-    expect(line).toContain('track="var(--color-sand)"');
+    expect(line).toContain("track={LINE_TRACK}");
+    expect(line).toContain('LINE_TRACK = "color-mix(in srgb, var(--tone) 22%, var(--color-ground))"');
   });
 
   it("the clean run on Today is the neutral card, sage only where earned", () => {

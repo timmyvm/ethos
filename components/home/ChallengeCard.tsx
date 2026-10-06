@@ -1,6 +1,6 @@
 "use client";
 
-import { IconCheck } from "@/components/Icon";
+import { IconCheck, IconFlag } from "@/components/Icon";
 import { Ring } from "@/components/Ring";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { TRAIT } from "@/content/traits";
@@ -47,8 +47,20 @@ import {
  * terracotta in the colour pass and stays out of it: a terracotta ring
  * under a terracotta button was a second tap's colour.
  *
+ * THE TRACK (6 Oct). The ring's unfilled part is its trait's tone at
+ * 22% on the ground, not the grey sand trough the tiles use. Its full
+ * circle IS the line (`value` reaches 1 exactly when today clears it),
+ * so before today's recording the ring is the line still to close:
+ * Pausing's ring in Pausing's colour with a flag at its centre, the
+ * way an activity ring waits; the check replaces the flag on close.
+ * On sand it was an empty grey circle, the weakest thing on Today. The
+ * skeleton keeps sand, because there the number is unknown, not open.
+ * Every arc clears 3:1 on its tint in both themes (today-colour.test).
+ *
  * NO BUTTON. The one tap on this screen belongs to the floor card.
  */
+export const LINE_TRACK = "color-mix(in srgb, var(--tone) 22%, var(--color-ground))";
+
 export function ChallengeCard({ challenge }: { challenge: Challenge }) {
   const c = challenge;
   return (
@@ -62,15 +74,22 @@ export function ChallengeCard({ challenge }: { challenge: Challenge }) {
           value={c.value}
           size={56}
           tone="trait"
-          track="var(--color-sand)"
+          track={LINE_TRACK}
           delay={240}
           state={c.closed ? "closing" : "idle"}
         >
-          {/* A closed line says so in the ring, with a mark rather
-              than the number the sentence already prints. */}
+          {/* The ring's centre says where the line stands, with a mark
+              rather than the number the sentence already prints: a
+              flag while today is open (the line still to clear), a
+              check once today's recording closes it, and nothing in
+              between, where the arc itself is the reading. */}
           {c.closed ? (
             <span className="tone-ink">
               <IconCheck size={22} />
+            </span>
+          ) : c.today === null ? (
+            <span className="tone-ink">
+              <IconFlag size={20} />
             </span>
           ) : undefined}
         </Ring>

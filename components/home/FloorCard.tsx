@@ -49,6 +49,9 @@ import type { Chosen } from "@/lib/next-practice";
  */
 /** Placeholders in the card's own warm edge, not the grey trough. */
 const WARM = "!bg-[color:var(--rec-topic-edge)]";
+/** A bare glyph button: 20px of mark in a 44px hit area, no fill. */
+const GLYPH =
+  "press grid size-11 place-items-center rounded-control transition-colors dur-fast ease-out";
 
 export function FloorCard({
   chosen,
@@ -75,7 +78,7 @@ export function FloorCard({
   /** Day one and the unit-intro gate still own the destination. */
   href?: string;
   mods?: string[];
-  /** The roulette and the mods, as two icon buttons beside the tap. */
+  /** The roulette and the mods, as two bare glyphs in the top-right corner. */
   onSpin?: () => void;
   onMods?: () => void;
   modsOpen?: boolean;
@@ -140,14 +143,61 @@ export function FloorCard({
           tracked caps joined by a middot and a dot in two colours. The
           lead follows it in the card's amber, sentence case. The row is
           the chip's 22px whether or not there is a chip, and the
-          skeleton holds the same 22px while the read is in flight. */}
+          skeleton holds the same 22px while the read is in flight.
+
+          Spin and difficulty sit at the row's far end (round 2, M04;
+          they stood beside Start as two 52px squares, #317): bare 20px
+          glyphs in stone-500, ink while a mod is on, each a 44px hit
+          area whose extra 12px is a negative margin, so the row keeps
+          its 22px, the right glyph lines up with the text's edge, and
+          "Today's practice" beside a chip still fits at 320px.
+          They paint at once, loading or not, because neither waits on
+          the read. */}
       <div className="flex min-h-[22px] items-center gap-2">
         {loading ? (
-          <Skeleton className={`h-2.5 w-32 ${WARM}`} />
+          <span className="flex min-w-0 flex-1">
+            <Skeleton className={`h-2.5 w-32 ${WARM}`} />
+          </span>
         ) : (
-          <span className={`flex items-center gap-2 ${lands}`}>
+          <span className={`flex min-w-0 flex-1 items-center gap-2 ${lands}`}>
             {chosen && !dayOne && <TraitChip trait={chosen.trait} size="sm" />}
             <span className="eyebrow text-[color:var(--rec-amber-ink)]">{lead}</span>
+          </span>
+        )}
+        {(onSpin || onMods) && (
+          <span className="-mx-3 -my-3 flex shrink-0">
+            {onSpin && (
+              <button
+                type="button"
+                onClick={onSpin}
+                aria-label="Spin a new topic"
+                className={`${GLYPH} text-stone-500`}
+              >
+                <IconShuffle size={20} />
+              </button>
+            )}
+            {onMods && (
+              <button
+                type="button"
+                onClick={onMods}
+                aria-label={modsOpen ? "Hide difficulty" : "Turn up the difficulty"}
+                aria-expanded={modsOpen}
+                className={`${GLYPH} ${
+                  (mods?.length ?? 0) > 0 || modsOpen ? "text-ink" : "text-stone-500"
+                }`}
+              >
+                <span className="relative flex">
+                  <IconSliders size={20} />
+                  {/* How many mods are on, as a count on the glyph's
+                      corner: ink, the type scale's 10px suffix. */}
+                  {(mods?.length ?? 0) > 0 && (
+                    <span className="font-display absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-ink px-1 text-suffix font-extrabold leading-none text-ground tabular-nums">
+                      {mods!.length}
+                    </span>
+                  )}
+                </span>
+              </button>
+            )}
           </span>
         )}
       </div>
@@ -190,40 +240,13 @@ export function FloorCard({
       )}
 
       {/* Less to read (26 Sep): the topic labels, the why paragraph and
-          the two text links under the card went. The why is Today's
-          line and the trait tiles below; spin and difficulty are the
-          two marks beside the tap. "Take the floor" read as cringe on
-          a button, so it says what it does. */}
-      <div className="mt-5 flex gap-2">
-        <Link href={to} className={`${ACTION_CLASS} flex-1`}>
-          Start
-        </Link>
-        {onSpin && (
-          <button
-            type="button"
-            onClick={onSpin}
-            aria-label="Spin a new topic"
-            className="press floor-side"
-          >
-            <IconShuffle size={22} />
-          </button>
-        )}
-        {onMods && (
-          <button
-            type="button"
-            onClick={onMods}
-            aria-label={modsOpen ? "Hide difficulty" : "Turn up the difficulty"}
-            aria-expanded={modsOpen}
-            data-on={(mods?.length ?? 0) > 0 || modsOpen || undefined}
-            className="press floor-side relative"
-          >
-            <IconSliders size={22} />
-            {(mods?.length ?? 0) > 0 && (
-              <span className="floor-side-count">{mods!.length}</span>
-            )}
-          </button>
-        )}
-      </div>
+          the two text links under the card went. "Take the floor" read
+          as cringe on a button, so it says what it does. Start has the
+          card's full width in a row of its own (round 2, M04): the one
+          tap, with nothing beside it to share its weight. */}
+      <Link href={to} className={`${ACTION_CLASS} mt-5 w-full`}>
+        Start
+      </Link>
     </div>
   );
 }

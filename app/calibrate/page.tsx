@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { FooterShelf } from "@/components/ui/FooterShelf";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import { ACTION_CLASS } from "@/lib/ui";
+import { ACTION_CLASS, DISABLED_CLASS } from "@/lib/ui";
 import { loadPose, samplePose, type PoseSampler } from "@/lib/pose-client";
 import {
   PRESENCE_CONSTANTS,
@@ -233,9 +234,12 @@ export default function CalibratePage() {
   }
 
   const take = TAKES[current];
+  /* The stream is up: the bench (the self-view, the take card, the
+     table) replaces the setup screen's frame and shelf. */
+  const live = status === "ready" || status === "recording";
 
   return (
-    <main className="px-5 pb-16 pt-7">
+    <main className={`flex min-h-dvh flex-col px-5 pt-7 ${live ? "pb-16" : ""}`}>
       {/* Settings' own header, one push in (modes-17): the 34/800 large
           title that hands over to the bar, not a 26/700 one under a
           back link. */}
@@ -268,56 +272,78 @@ export default function CalibratePage() {
         </ol>
       </div>
 
-      {status === "idle" && (
-        <button
-          onClick={() => void startCamera()}
-          className={`${ACTION_CLASS} mt-7`}
-        >
-          Start the camera
-        </button>
-      )}
-      {status === "starting" && (
-        <p role="status" className="mt-7 text-body text-stone-500">
-          Opening the camera…
-        </p>
-      )}
-      {status === "unavailable" && (
-        <>
-          <p role="alert" className={`mt-7 ${NOTICE_CLASS}`}>
-            The camera or the pose engine didn&apos;t load. Check the
-            permission, or try Chrome.
-          </p>
-          {/* A failure always offers the retry, in the control grammar
-              rather than the tap colour (ErrorState, #146). */}
-          <button
-            type="button"
-            onClick={() => void startCamera()}
-            className="press font-display mt-3 min-h-12 w-full rounded-control border border-edge bg-surface px-4 text-row"
-          >
-            Try again
-          </button>
-        </>
-      )}
-
-      {/* Always mounted: startCamera attaches the stream to this ref,
-          and an element that only renders AFTER the camera opens is an
-          element that wasn't there to attach to: no preview, and the
-          sampler reads a dead video as zero frames. Hidden, not absent,
-          until the stream is up. */}
-      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-      {/* The self-view wears the recording screen's frame: the stage
-          behind it, a hairline ring, the sheet radius. */}
-      <video
-        ref={videoRef}
-        autoPlay
-        muted
-        playsInline
-        className={`mt-7 block w-full -scale-x-100 rounded-sheet bg-stage ring-2 ring-hairline ${
-          status === "ready" || status === "recording" ? "" : "hidden"
+      {/*
+       * R3 (principle 7): the frame the camera will fill takes the free
+       * height while the camera is off, and the one tap is docked at the
+       * foot (B6's offer, which C1 rejected), so the setup and the place
+       * you are about to stand in read as one screen instead of a list
+       * over 400px of blank. The frame is the self-view's own box: the
+       * video is always mounted in it (startCamera attaches the stream to
+       * this ref, and an element that only renders AFTER the camera opens
+       * was not there to attach to: no preview, and the sampler read a
+       * dead video as zero frames). Until the stream is up it shows where
+       * to stand, head and shoulders in frame; once it is up it wears the
+       * recording screen's frame (the stage behind it, a hairline ring,
+       * the sheet radius) at the stream's own shape.
+       */}
+      <div
+        className={`relative mt-7 overflow-hidden rounded-sheet ${
+          live ? "bg-stage ring-2 ring-hairline" : "min-h-[200px] flex-1 bg-surface"
         }`}
-      />
+      >
+        {!live && <FrameGuide />}
+        {status === "starting" && (
+          <p
+            role="status"
+            className="absolute inset-x-0 bottom-4 text-center text-caption text-stone-500"
+          >
+            Opening the camera…
+          </p>
+        )}
+        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          playsInline
+          className={`block w-full -scale-x-100 ${live ? "" : "hidden"}`}
+        />
+      </div>
 
-      {(status === "ready" || status === "recording") && (
+      {!live && (
+        <FooterShelf hairline={false}>
+          {status === "unavailable" ? (
+            <>
+              <p role="alert" className={`mb-3 ${NOTICE_CLASS}`}>
+                The camera or the pose engine didn&apos;t load. Check the
+                permission, or try Chrome.
+              </p>
+              {/* A failure always offers the retry, in the control
+                  grammar rather than the tap colour (ErrorState, #146). */}
+              <button
+                type="button"
+                onClick={() => void startCamera()}
+                className="press font-display min-h-12 w-full rounded-control border border-edge bg-surface px-4 text-row"
+              >
+                Try again
+              </button>
+            </>
+          ) : (
+            /* Held in place, disabled, while the camera opens, so the
+               shelf does not change under the finger that tapped it. */
+            <button
+              type="button"
+              onClick={() => void startCamera()}
+              disabled={status === "starting"}
+              className={`${ACTION_CLASS} ${DISABLED_CLASS}`}
+            >
+              Start the camera
+            </button>
+          )}
+        </FooterShelf>
+      )}
+
+      {live && (
         <>
           {done.length < TAKES.length && (
             <div className="card elev-2 mt-3 p-4">
@@ -458,5 +484,39 @@ export default function CalibratePage() {
         </div>
       )}
     </main>
+  );
+}
+
+/**
+ * Where to stand, drawn in the frame while the camera is off (R3): the
+ * viewfinder's four corners and a head and shoulders, the setup's
+ * second step as a picture. The figure scales with the frame (a size
+ * container over the flex-grown box, the `.demos-fit` pattern) and
+ * keeps a 2px line at any size.
+ */
+function FrameGuide() {
+  const corner = "absolute size-6 border-stone-400";
+  return (
+    <div aria-hidden className="absolute inset-0">
+      <span className={`${corner} left-4 top-4 rounded-tl-lg border-l-2 border-t-2`} />
+      <span className={`${corner} right-4 top-4 rounded-tr-lg border-r-2 border-t-2`} />
+      <span className={`${corner} bottom-4 left-4 rounded-bl-lg border-b-2 border-l-2`} />
+      <span className={`${corner} bottom-4 right-4 rounded-br-lg border-b-2 border-r-2`} />
+      <div className="absolute inset-0 flex items-end justify-center [container-type:size]">
+        <svg
+          viewBox="0 0 120 132"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          className="h-[72cqh] max-h-[260px] w-auto text-stone-300"
+        >
+          <circle cx="60" cy="40" r="26" vectorEffect="non-scaling-stroke" />
+          <path
+            d="M8 132 C8 98 30 80 60 80 C90 80 112 98 112 132"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+      </div>
+    </div>
   );
 }

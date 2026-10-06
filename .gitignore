@@ -39,3 +39,6 @@ docs/devibe/motion-check/
 
 # playwright-cli writes snapshots and console logs here when run from the repo root.
 .playwright-cli/
+
+# check-apple writes these on every run (the nav label checks).
+docs/look/apple/nav-labels-*.png

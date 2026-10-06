@@ -943,13 +943,16 @@ body::after {
 }
 
 /* today-14: what a tab screen's last block has to clear at the bottom.
- * The floating nav is 62px tall and stands max(14px, safe-area) off the
- * bottom (.nav-dock); 28px is the section rhythm (mt-7) above it. Used
- * as `pb-[var(--nav-clear)]` in place of `pb-22`, which was 88px against
- * a 76px dock with no safe area in it, and fell under the glass on any
- * phone with a home indicator once viewportFit is cover (layout.tsx). */
+ * The floating nav is --nav-h tall and stands max(14px, safe-area) off
+ * the bottom (.nav-dock); 28px is the section rhythm (mt-7) above it.
+ * Used as `pb-[var(--nav-clear)]` in place of `pb-22`, which was 88px
+ * against a 76px dock with no safe area in it, and fell under the glass
+ * on any phone with a home indicator once viewportFit is cover
+ * (layout.tsx). Round 2: the capsule grew from 62 to 64px when the
+ * labels came back, and both numbers now read the one token. */
 :root {
-  --nav-clear: calc(62px + max(14px, env(safe-area-inset-bottom)) + 28px);
+  --nav-h: 64px;
+  --nav-clear: calc(var(--nav-h) + max(14px, env(safe-area-inset-bottom)) + 28px);
 }
 
 /* The bottom inset (#231): the nav and every bottom-anchored tap sit
@@ -2967,13 +2970,16 @@ summary::-webkit-details-marker {
   --nav-pad: 6px;
   pointer-events: auto;
   margin-inline: auto;
-  max-width: 318px;
+  max-width: 350px;
   border-radius: 999px;
   padding: var(--nav-pad);
+  /* Round 2: a step denser than the icons-only glass (58/44), because
+     11px words now sit on it and a passing row of numbers read through
+     them; the page still shows through, blurred. */
   background: linear-gradient(
     to bottom,
-    color-mix(in srgb, var(--color-raised) 58%, transparent),
-    color-mix(in srgb, var(--color-raised) 44%, transparent)
+    color-mix(in srgb, var(--color-raised) 66%, transparent),
+    color-mix(in srgb, var(--color-raised) 52%, transparent)
   );
   -webkit-backdrop-filter: blur(24px) saturate(190%);
   backdrop-filter: blur(24px) saturate(190%);
@@ -2989,8 +2995,8 @@ summary::-webkit-details-marker {
 :root:not([data-theme="dark"]) .nav-glass {
   background: linear-gradient(
     to bottom,
-    rgb(255 255 255 / 0.72),
-    rgb(255 255 255 / 0.56)
+    rgb(255 255 255 / 0.78),
+    rgb(255 255 255 / 0.64)
   );
   box-shadow:
     inset 0 0 0 0.5px rgb(0 0 0 / 0.08),
@@ -3030,7 +3036,34 @@ summary::-webkit-details-marker {
   transition: color var(--duration-fast) var(--ease-out);
 }
 .nav-tab > svg {
+  flex-shrink: 0;
   transition: transform var(--spring-snappy-duration) var(--spring-snappy);
+}
+/* Round 2 (wellspoken-home s13, Imprint 03-me, 04-home): the word under
+   the mark, iOS's tab label set for Outfit. 11/600 on 13, the size of
+   the data register but sentence case and untracked, because it is a
+   name, not a column head. It takes the tab's colour (ink on the tab
+   you are on, stone-500 elsewhere) and never truncates: "Practice" is
+   about 45px and the narrowest tab, at 320px, is 55. */
+.nav-label {
+  margin-top: 3px;
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 0.6875rem;
+  line-height: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+}
+/* Under 360px (a 320 phone) the capsule gives up 8px of its stand-off
+   on each side, so "Lessons" and "Practice" keep 13px between them
+   rather than 5. */
+@media (max-width: 359px) {
+  .nav-dock {
+    padding-inline: 12px;
+  }
+  .nav-label {
+    letter-spacing: 0;
+  }
 }
 .nav-tab[aria-current="page"] > svg {
   transform: scale(1.08);

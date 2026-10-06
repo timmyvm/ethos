@@ -64,17 +64,12 @@ import { TAB_HREFS } from "@/lib/tabs";
  * floor. The register has no truncate, so every label here stays one
  * short word: a second word wraps and the whole bar grows a line.
  *
- * At 320px a tab is 61px and PRACTICE at 11px with the register's
- * 0.10em tracking wants about 66, so it ran into its neighbours
- * ("LESSONSPRACTICE", review 25 Sep). Under 360px the bar gives up its
- * side padding and the labels most of their tracking, which is the
- * narrowest change that keeps every word whole at 11px.
- *
- * The labels wear `.label-data`, 11px, since #287. They were the 10px
- * `.label-micro`, which is iOS's floor for a tab label and reads as
- * one on a phone; these five words are the most-read small type in
- * the app, and one point is the difference between a label you read
- * and one you recognise. Column heads and chips keep the 10.
+ * At 320px a tab was 61px and PRACTICE at 11px with the register's
+ * 0.10em tracking wanted about 66, so it ran into its neighbours
+ * ("LESSONSPRACTICE", review 25 Sep). The labels are sentence case
+ * now (`.nav-label`, Outfit 11/600, round 2), "Practice" is about 45px,
+ * and under 360px the capsule gives up 8px of its stand-off a side, so
+ * the narrowest tab is 56px and every word stays whole.
  *
  * The hrefs come from lib/tabs.ts, which PageTransition reads as well.
  */
@@ -147,8 +142,12 @@ export function Nav() {
     t.href === "/" ? path === "/" : path.startsWith(t.href)
   );
 
-  /** One tab's width in px: the well's travel per step. */
-  const step = () => (well.current?.offsetWidth ?? 0);
+  /** One tab's width in px: the well's travel per step. The layout
+   *  width, fractional and unscaled: offsetWidth rounds (a 67.6px tab
+   *  read as 68 settles the well 1.2px past its tab, then jumps back)
+   *  and a rect would include the press's swell. */
+  const step = () =>
+    well.current ? parseFloat(getComputedStyle(well.current).width) || 0 : 0;
 
   function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
     if (current < 0 || !well.current) return;
@@ -231,20 +230,23 @@ export function Nav() {
   }
 
   /*
-   * Glass, icons only (Timothy, 26 Sep: "new modern glass nav", "delete
-   * nav bar text"). A floating bar over the page, blurred, with one lit
-   * well that slides to the tab you are on. The words stay for screen
-   * readers as each link's name; the five marks are the tab bar people
-   * hit without reading (#152), so the labels were the part nobody used.
+   * Glass (Timothy, 26 Sep: "new modern glass nav"): a floating bar over
+   * the page, blurred, with one lit well that slides to the tab you are
+   * on. Each mark carries its word under it again (round 2, wellspoken
+   * home s13, Imprint's Home and Me): icons alone made five shapes to
+   * learn, and four of them (a sun, a grid, a die, a list) name nothing
+   * a first-time user can guess. The mark is still what the thumb aims
+   * at (#152); the word is what makes the aim mean something. The word
+   * is the link's name, so it is not said twice.
    */
   return (
     <nav
       aria-label="Sections"
-      className="nav-dock fixed bottom-0 left-1/2 z-20 w-full max-w-[430px] -translate-x-1/2 px-4"
+      className="nav-dock fixed bottom-0 left-1/2 z-20 w-full max-w-[430px] -translate-x-1/2 px-5"
     >
       <div
         ref={glass}
-        className="nav-glass relative flex h-[62px] items-stretch"
+        className="nav-glass relative flex h-[var(--nav-h)] items-stretch"
         data-pressed={pressed || undefined}
         data-dragging={dragging || undefined}
         onPointerDown={onPointerDown}
@@ -273,15 +275,15 @@ export function Nav() {
             <Link
               key={t.href}
               href={t.href}
-              aria-label={t.label}
               aria-current={active ? "page" : undefined}
               draggable={false}
-              className={`nav-tab relative z-[1] flex min-w-0 flex-1 items-center justify-center rounded-full ${
+              className={`nav-tab relative z-[1] flex min-w-0 flex-1 flex-col items-center justify-center rounded-full ${
                 active ? "text-ink" : "text-stone-500"
               }`}
             >
               {/* Filled on the tab you are on (#290). */}
-              <t.Icon size={23} active={active} />
+              <t.Icon size={22} active={active} />
+              <span className="nav-label">{t.label}</span>
             </Link>
           );
         })}

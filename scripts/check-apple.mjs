@@ -81,6 +81,45 @@ async function gesture(page, sel, points, { release = true } = {}) {
 const line = ([x0, y0], [x1, y1], n) =>
   Array.from({ length: n + 1 }, (_, i) => [x0 + ((x1 - x0) * i) / n, y0 + ((y1 - y0) * i) / n]);
 
+/** The tab bar's labels: their words, whether each sits whole inside
+ *  its own tab, and the active and resting colours. */
+const navWords = (page) =>
+  page.evaluate(() => {
+    const tabs = [...document.querySelectorAll(".nav-glass .nav-tab")];
+    const labels = tabs.map((t) => t.querySelector(".nav-label"));
+    const whole = labels.every((l, i) => {
+      if (!l) return false;
+      const r = l.getBoundingClientRect();
+      const t = tabs[i].getBoundingClientRect();
+      const next = labels[i + 1]?.getBoundingClientRect();
+      return (
+        l.scrollWidth <= l.clientWidth + 0.5 &&
+        r.width > 8 &&
+        r.left >= t.left - 0.5 &&
+        r.right <= t.right + 0.5 &&
+        (!next || next.left - r.right >= 6)
+      );
+    });
+    const active = tabs.find((t) => t.getAttribute("aria-current") === "page");
+    const rest = tabs.find((t) => t !== active);
+    const ink = getComputedStyle(document.documentElement).getPropertyValue("--color-ink").trim();
+    const probe = document.createElement("span");
+    probe.style.color = ink;
+    document.body.appendChild(probe);
+    const inkRgb = getComputedStyle(probe).color;
+    probe.remove();
+    const activeColor = active ? getComputedStyle(active.querySelector(".nav-label")).color : "";
+    const restColor = rest ? getComputedStyle(rest.querySelector(".nav-label")).color : "";
+    return {
+      labels: labels.map((l) => l?.textContent ?? ""),
+      whole,
+      activeInk: activeColor === inkRgb,
+      restQuiet: !!restColor && restColor !== inkRgb,
+      activeColor,
+      restColor,
+    };
+  });
+
 const translateY = (page, sel) =>
   page.$eval(sel, (el) => new DOMMatrixReadOnly(getComputedStyle(el).transform).m42);
 
@@ -155,9 +194,31 @@ for (const theme of ["light", "dark"]) {
     );
     await sleep(900);
     const wellX = await page.$eval(".nav-well", (el) => new DOMMatrixReadOnly(getComputedStyle(el).transform).m41);
-    const step = await page.$eval(".nav-well", (el) => el.offsetWidth);
-    ok("and the well rests on it", Math.abs(wellX - step * 3) < 1, `${Math.round(wellX)} vs ${step * 3}`);
+    // The layout width, fractional: offsetWidth rounds, and a 67.6px
+    // tab read as 68 is 1.2px off by the fourth tab.
+    const step = await page.$eval(".nav-well", (el) => parseFloat(getComputedStyle(el).width));
+    ok("and the well rests on it", Math.abs(wellX - step * 3) < 1, `${wellX.toFixed(1)} vs ${(step * 3).toFixed(1)}`);
   }
+
+  // 3b. The tab bar's words (round 2): five labels under the marks, the
+  //     tab you are on in ink, and the last block of a tab screen clear
+  //     of the capsule by the 28px rhythm (--nav-clear follows --nav-h).
+  await page.goto(`${BASE}/you`);
+  await page.waitForSelector(".nav-glass .nav-label");
+  await sleep(600);
+  const words = await navWords(page);
+  ok(`${theme}: the tab bar names every tab under its mark`, words.labels.join(",") === "Today,Lessons,Practice,Log,You" && words.whole, JSON.stringify(words.labels));
+  ok(`${theme}: the tab you are on is the one in ink`, words.activeInk && words.restQuiet, `${words.activeColor} vs ${words.restColor}`);
+  const clear = await page.evaluate(async () => {
+    window.scrollTo(0, document.documentElement.scrollHeight);
+    await new Promise((r) => setTimeout(r, 400));
+    const glass = document.querySelector(".nav-glass").getBoundingClientRect();
+    const main = document.querySelector("main");
+    const last = [...main.querySelectorAll(":scope > *")].filter((e) => e.getBoundingClientRect().height > 0).pop();
+    return { gap: Math.round(glass.top - last.getBoundingClientRect().bottom), h: Math.round(glass.height) };
+  });
+  ok(`${theme}: the last block clears the capsule by the rhythm`, clear.gap >= 27, `${clear.gap}px over a ${clear.h}px capsule`);
+  await page.screenshot({ path: `${OUT}nav-labels-${theme}.png`, clip: { x: 0, y: 740, width: 390, height: 104 } });
 
   // 4. Settings: the segmented thumb slides on the spring.
   await page.goto(`${BASE}/settings`);
@@ -171,6 +232,18 @@ for (const theme of ["light", "dark"]) {
   await sleep(700);
   await page.getByRole("radio", { name: theme }).click();
   await sleep(700);
+  await context.close();
+}
+
+// 4b. 320px, the narrowest phone: every label still whole, none touching.
+{
+  const { context, page } = await open("light", { viewport: { width: 320, height: 700 } });
+  await page.goto(`${BASE}/lessons`);
+  await page.waitForSelector(".nav-glass .nav-label");
+  await sleep(600);
+  const words = await navWords(page);
+  ok("320px: every tab label is whole and apart", words.labels.length === 5 && words.whole, JSON.stringify(words.labels));
+  await page.screenshot({ path: `${OUT}nav-labels-320.png`, clip: { x: 0, y: 596, width: 320, height: 104 } });
   await context.close();
 }
 

@@ -521,9 +521,8 @@ export function LessonScreen({
             {footer}
           </>
         }
-      >
-        <LessonBody {...body} toneEyebrow={trait !== undefined} />
-      </StageScreen>
+        words={<LessonBody {...body} toneEyebrow={trait !== undefined} />}
+      />
     );
   }
 
@@ -654,7 +653,7 @@ function StageScreen({
   stepKey,
   controls,
   foot,
-  children,
+  words,
 }: {
   trait?: TraitId;
   onBack?: () => void;
@@ -662,7 +661,9 @@ function StageScreen({
   stepKey?: string | number;
   controls?: ReactNode;
   foot: ReactNode;
-  children: ReactNode;
+  /** The template's own text block (LessonBody), never free text: the
+   *  no-prose rule holds here too. */
+  words: ReactNode;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const ground = useRef<HTMLDivElement>(null);
@@ -765,7 +766,7 @@ function StageScreen({
         key={stepKey}
         className={`relative mt-5 pb-4 ${stepKey === undefined ? "" : "arrive-x"}`}
       >
-        {children}
+        {words}
         {controls && <div className="mt-6">{controls}</div>}
       </div>
       <FooterShelf hairline={false}>{foot}</FooterShelf>

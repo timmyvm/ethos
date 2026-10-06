@@ -191,7 +191,7 @@ export function FloorCard({
                   {/* How many mods are on, as a count on the glyph's
                       corner: ink, the type scale's 10px suffix. */}
                   {(mods?.length ?? 0) > 0 && (
-                    <span className="font-display absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-ink px-1 text-suffix font-extrabold leading-none text-ground tabular-nums">
+                    <span className="font-display absolute -right-3 -top-3 flex h-4 min-w-4 items-center justify-center rounded-full bg-ink px-1 text-suffix font-extrabold leading-none text-ground tabular-nums">
                       {mods!.length}
                     </span>
                   )}

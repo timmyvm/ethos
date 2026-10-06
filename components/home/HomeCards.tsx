@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { CountUp } from "@/components/CountUp";
 import { Ring } from "@/components/Ring";
 import { DURATION } from "@/lib/motion";
@@ -23,29 +24,34 @@ import { DURATION } from "@/lib/motion";
  */
 
 /**
- * The one deep-sage shell the home cards share.
+ * The one shell the home cards share.
  *
  * Exported because `components/home/CleanRunCard.tsx` ships the B
  * option and this file keeps all three as the archive of the choice.
  * Two copies of the same shell is two things to keep in step, and they
  * would not stay in step.
  *
- * Two bands, not three (today-1). The ruled foot band under the ring
- * went: its one line moved into the column beside the ring
- * (`Headline`), which took about 44px and a hairline off the darkest
- * mass on Today, so the floor card's Start wins the squint. What
- * follows the ring row (`after`, the day trail on Today) draws the
- * card's only rule itself. The eyebrow is one idea in sentence case
- * (M05), not tracked caps. A card's padding and radius (p-4, 16), not
- * the hero's: the floor card is Today's hero and its one lifted thing,
- * and this card took a hero's 20 and 20 beside it.
+ * THE MATERIAL (round 2). The standard neutral `.card` at shadow-1, ink
+ * text, the ring's arc in sage because the number is earned. It wore
+ * the deep sage (`.card-score`, cream ink, #165), which made it Today's
+ * heaviest mass in the squint, darker than the floor card holding the
+ * one tap; the deep sage stays on the Log's score card, where it is the
+ * screen's hero.
+ *
+ * Two bands, not three (today-1): the ring row, then what follows it
+ * (`after`, the day trail on Today), which draws the card's only rule
+ * itself. The eyebrow is one idea in sentence case (M05). A card's
+ * padding and radius (p-4, 16): the floor card is Today's hero.
  */
 export function Shell({
   eyebrow,
   aside,
   children,
   after,
+  href,
 }: {
+  /** A door: the whole card is the link, and its press is the card's. */
+  href?: string;
   eyebrow: string;
   /** Top right, opposite the eyebrow. A state or the door's chevron. */
   aside?: React.ReactNode;
@@ -54,15 +60,22 @@ export function Shell({
   /** Under the ring row. The day trail, on Today; it draws its rule. */
   after?: React.ReactNode;
 }) {
-  return (
-    <section className="card-score rounded-card p-4 text-cream">
+  const inner = (
+    <>
       <div className="flex min-h-[18px] items-center justify-between gap-3">
-        <div className="eyebrow text-sage-mist">{eyebrow}</div>
+        <div className="eyebrow">{eyebrow}</div>
         {aside}
       </div>
       <div className="mt-3 flex items-center gap-5">{children}</div>
       {after && <div className="mt-4">{after}</div>}
-    </section>
+    </>
+  );
+  return href ? (
+    <Link href={href} className="card press block p-4">
+      {inner}
+    </Link>
+  ) : (
+    <section className="card p-4">{inner}</section>
   );
 }
 
@@ -82,7 +95,7 @@ export function Headline({
       <div className="font-display text-lead font-bold leading-snug text-balance">
         {children}
       </div>
-      {foot && <p className="mt-1.5 text-caption text-pretty text-sage-mist">{foot}</p>}
+      {foot && <p className="mt-1.5 text-caption text-pretty text-stone-500">{foot}</p>}
     </div>
   );
 }
@@ -99,10 +112,11 @@ function RingNumber({ value, unit }: { value: number; unit?: string }) {
 
 /** Under the ring's number: Figtree, sentence case, never tracked caps. */
 function RingLabel({ children }: { children: React.ReactNode }) {
-  return <span className="mt-1 text-caption font-medium text-sage-mist">{children}</span>;
+  return <span className="mt-1 text-caption font-medium text-stone-500">{children}</span>;
 }
 
-const RING = { size: 96, tone: "lit" as const, track: "rgba(253,246,231,0.16)" };
+/** Sage, because the number is earned; the trough is the app's sand. */
+const RING = { size: 96, tone: "measured" as const, track: "var(--color-sand)" };
 
 /**
  * A. THE STANDING — a position among people.

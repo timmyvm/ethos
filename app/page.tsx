@@ -308,9 +308,10 @@ export default function Home() {
        * this screen (the one-system pass, #234): raised paper, a
        * card-edge hairline and `elev-2`. It sat bare on the ground under
        * a hairline, which put the screen's first object at the same
-       * depth as its list rows; the score card below stays FLAT because
-       * deep sage on cream is already the second focal point, and two
-       * lifted things is no lift at all.
+       * depth as its list rows. Everything under it is the neutral card
+       * at shadow-1 or bare ground (round 2), so in the squint Start is
+       * the strongest mass on the screen; two lifted things is no lift
+       * at all.
        *
        * The roulette REPLACES the block rather than sitting beside it,
        * and wears the lift in its place. A second block would mean a
@@ -416,11 +417,12 @@ export default function Home() {
       {/*
        * TIER 2 — the score. "The score IS the brand" (DECISIONS #18) and
        * brand.md sets the numbers as the hero, but this was a 26px stat
-       * card at the bottom, indistinguishable from rep count. It gets
-       * the second focal point: a different MATERIAL (deep sage against
-       * the cream room, #165) so it pulls the eye without competing with
-       * the floor for first place, and it absorbs the three identical
-       * stat cards that used to sit here saying nothing in particular.
+       * card at the bottom, indistinguishable from rep count. It absorbs
+       * the three identical stat cards that used to sit here saying
+       * nothing in particular. It wore the deep sage (#165) until round
+       * 2, when the squint showed it outweighing the floor card's Start;
+       * it is the neutral card now, its number carried by the 96px ring
+       * and the 36px figure, and the deep sage stays the Log's hero.
        */}
       {/* The floor card above needs no round trip — `todaysDrill()` is
           local — so it paints immediately. This one is fetched, and used

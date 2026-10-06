@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { CountUp } from "@/components/CountUp";
 import { Ring } from "@/components/Ring";
 import { Headline, Shell } from "@/components/home/HomeCards";
@@ -88,46 +87,48 @@ export function CleanRunCard({
    * the headline already says "A new best", and the tag said it twice.
    */
   return (
-    <Link href="/history" className="press block rounded-card">
-      <Shell
-        eyebrow="Last recording's clean run"
-        aside={<Disclosure className="text-sage-mist" />}
-        after={children}
+    <Shell
+      href="/history"
+      eyebrow="Last recording's clean run"
+      aside={<Disclosure />}
+      after={children}
+    >
+      {/* Sage on the arc, because a clean stretch is earned; the
+          trough is the app's sand and the number is ink (round 2: the
+          card left the deep sage for the neutral card). */}
+      <Ring
+        value={now.s / ceiling}
+        size={96}
+        tone="measured"
+        track="var(--color-sand)"
+        delay={160}
       >
-        <Ring
-          value={now.s / ceiling}
-          size={96}
-          tone="lit"
-          track="rgba(253,246,231,0.16)"
-          delay={160}
-        >
-          <span className="font-display flex items-baseline text-num-l tabular-nums">
-            <CountUp value={shown} durationMs={DURATION.max} />
-            <span className="text-num-s">s</span>
-          </span>
-          {/* Sentence case in Figtree (today-13): `.label-micro`
-              capitalised the seconds symbol, "OF 65S". */}
-          <span className="mt-1 text-caption font-medium text-sage-mist">
-            of {Math.round(ceiling)}s
-          </span>
-        </Ring>
-        <Headline
-          foot={
-            /* Fillers only, said where the number is, because
-               self-corrections are counted and not timestamped and a
-               measure that quietly ignores half of what it names is
-               worse than a narrow one. */
-            best === null
-              ? "Fillers only. Self-corrections are counted separately."
-              : isBest
-                ? `A new best. The last one was ${Math.round(best.s)}s.`
-                : `Best so far: ${Math.round(best.s)}s.`
-          }
-        >
-          {whole ? "The whole recording, no filler." : "Longest stretch without a filler."}
-        </Headline>
-      </Shell>
-    </Link>
+        <span className="font-display flex items-baseline text-num-l tabular-nums">
+          <CountUp value={shown} durationMs={DURATION.max} />
+          <span className="text-num-s">s</span>
+        </span>
+        {/* Sentence case in Figtree (today-13): `.label-micro`
+            capitalised the seconds symbol, "OF 65S". */}
+        <span className="mt-1 text-caption font-medium text-stone-500">
+          of {Math.round(ceiling)}s
+        </span>
+      </Ring>
+      <Headline
+        foot={
+          /* Fillers only, said where the number is, because
+             self-corrections are counted and not timestamped and a
+             measure that quietly ignores half of what it names is
+             worse than a narrow one. */
+          best === null
+            ? "Fillers only. Self-corrections are counted separately."
+            : isBest
+              ? `A new best. The last one was ${Math.round(best.s)}s.`
+              : `Best so far: ${Math.round(best.s)}s.`
+        }
+      >
+        {whole ? "The whole recording, no filler." : "Longest stretch without a filler."}
+      </Headline>
+    </Shell>
   );
 }
 
@@ -140,24 +141,23 @@ export function CleanRunCard({
  * shift, and is gone).
  */
 export function SkeletonCleanRunCard() {
-  const bar = "!bg-cream/10";
   return (
-    <section aria-hidden className="card-score rounded-card p-4">
+    <section aria-hidden className="card p-4">
       <div className="flex h-[18px] items-center">
-        <Skeleton className={`h-2.5 w-44 ${bar}`} />
+        <Skeleton className="h-2.5 w-44" />
       </div>
       <div className="mt-3 flex items-center gap-5">
-        <div className="size-[96px] shrink-0 rounded-full border-[8px] border-cream/10" />
+        <div className="size-[96px] shrink-0 rounded-full border-[8px] border-sand" />
         <div className="min-w-0 flex-1">
-          <Skeleton className={`h-5 w-full ${bar}`} />
-          <Skeleton className={`mt-2 h-5 w-3/4 ${bar}`} />
-          <Skeleton className={`mt-3 h-3 w-24 ${bar}`} />
+          <Skeleton className="h-5 w-full" />
+          <Skeleton className="mt-2 h-5 w-3/4" />
+          <Skeleton className="mt-3 h-3 w-24" />
         </div>
       </div>
-      <div className="mt-4 border-t border-cream/10 pt-4">
-        <Skeleton className={`h-[22px] w-full ${bar}`} />
+      <div className="mt-4 border-t border-hairline pt-4">
+        <Skeleton className="h-[22px] w-full" />
         <div className="mt-2.5 flex h-[18px] items-center">
-          <Skeleton className={`h-3 w-48 ${bar}`} />
+          <Skeleton className="h-3 w-48" />
         </div>
       </div>
     </section>

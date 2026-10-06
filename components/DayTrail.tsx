@@ -3,7 +3,8 @@
 import type { DayTrail as Trail, PebbleState } from "@/lib/days";
 
 /**
- * The day counter and its trail, sitting inside the score card on home.
+ * The day counter and its trail, sitting inside the clean run card on
+ * Today.
  *
  * Deliberately not a third card: DECISIONS #9 gives the floor the screen
  * and brand.md allows one tap, so this earns its place by living in
@@ -31,8 +32,10 @@ export function DayTrail({
 
   return (
     /* The card's only rule (today-1). No outer margin: the card that
-       holds it owns the gap (STATE, rhythm). */
-    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5 border-t border-cream/10 pt-4">
+       holds it owns the gap (STATE, rhythm). On the neutral card since
+       round 2: a spoken day is sage (earned) at 4.6:1 on white and 5:1
+       on dark raised, a missed day the app's sand trough. */
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5 border-t border-hairline pt-4">
       {pebbles.length > 0 && (
         <div
           className="forced-color-adjust-none flex min-w-0 shrink items-center gap-[5px]"
@@ -50,17 +53,17 @@ export function DayTrail({
                   today ? "h-[22px] outline outline-1 outline-offset-2" : "h-4"
                 } ${
                   p === "spoken"
-                    ? "bg-sage-lit outline-sage-lit"
+                    ? "bg-sage-600 outline-sage-600"
                     : p === "frozen"
-                      ? "border border-sage-lit outline-sage-lit"
-                      : "bg-cream/15 outline-cream/25"
+                      ? "border border-sage-600 outline-sage-600"
+                      : "bg-sand outline-stone-400"
                 }`}
               />
             );
           })}
         </div>
       )}
-      <p className="min-w-0 text-caption text-sage-mist">
+      <p className="min-w-0 text-caption text-stone-500">
         {/* "22 days spoken · 13 of the last 14": the count with its noun,
             and the bars explained in the same sentence (#293). "Best
             day yet" left it (today-6): it compared the Ethos Index, a

@@ -153,13 +153,15 @@ export function ScreenHeader({
             : barTrailing}
         </div>
       </div>
+      {/* Over the title row, not in it: the line takes the column's full
+          width, so at 320px a date never wraps beside Today's chips. */}
+      {dated ? (
+        <div className="large-title-eyebrow">{date ?? "\u00a0"}</div>
+      ) : (
+        eyebrow && <div className="large-title-eyebrow">{eyebrow}</div>
+      )}
       <div className="large-title-row">
         <div className="min-w-0">
-          {dated ? (
-            <div className="large-title-eyebrow">{date ?? "\u00a0"}</div>
-          ) : (
-            eyebrow && <div className="large-title-eyebrow">{eyebrow}</div>
-          )}
           <h1 ref={heading} className="large-title">
             {title}
           </h1>

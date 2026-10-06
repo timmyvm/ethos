@@ -3100,6 +3100,21 @@ summary::-webkit-details-marker {
 :root[data-motion="reduce"] .nav-glass[data-pressed] .nav-well {
   scale: 1;
 }
+/* Round 2: back on a tab from a screen without the bar, the capsule
+   rises back in on the sheet spring, the page's push duration, so the
+   two land together. `transform`, not `translate`: the dock's centring
+   is Tailwind's translate property and the two compose. */
+@keyframes nav-return {
+  from {
+    transform: translateY(calc(100% + 8px));
+  }
+}
+.nav-return {
+  animation: nav-return var(--spring-sheet-duration) var(--spring-sheet) backwards;
+}
+:root[data-motion="reduce"] .nav-return {
+  animation-name: fade-in;
+}
 /* ============================== end of nav (glass) ============================== */
 
 /* The floor card's two side marks: spin and difficulty, square beside

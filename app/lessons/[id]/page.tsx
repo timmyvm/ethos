@@ -191,7 +191,7 @@ export default function LessonPage() {
        * one what makes it harder. The squares are the progress (lessons-12).
        */}
       <h2 className="detail-head mt-7">The three practices</h2>
-      <ol className="mt-3 flex flex-col gap-5">
+      <ol className="mt-3 flex flex-col gap-5 pb-3">
         {lesson.practices.map((p, i) => {
           const n = i + 1;
           /* Unknown is neither done nor next: every square waits in the
@@ -253,7 +253,8 @@ export default function LessonPage() {
        * the foot over the home indicator like every flow's tap, and a
        * longer lesson scrolls under the shelf. No hairline: the ground
        * above it is open at rest, and Imprint's sheet cuts its list on
-       * the ground the same way.
+       * the ground the same way. The list's 12px foot and the shelf's 16
+       * put the tap the section rhythm (28) under the last practice.
        */}
       <FooterShelf hairline={false}>
         {known ? (

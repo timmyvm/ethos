@@ -98,6 +98,26 @@ ok(
   (practices[2] ?? "").slice(-60)
 );
 ok("the tier is never on the screen", !/tier/i.test(await page.textContent("main")));
+/* Round 2: one lesson is a detail screen with its own tap. The tab bar
+   is gone, Start is docked at the foot (FooterShelf, 16px over the
+   edge), and the free height went into the stage, never into a band
+   over 64px between the list and Start (principle 7). */
+await page.waitForSelector('main a[href*="lesson="]');
+await sleep(300);
+const foot = await page.evaluate(() => {
+  const tap = document.querySelector('main a[href*="lesson="]').getBoundingClientRect();
+  const list = document.querySelector("main ol").getBoundingClientRect();
+  return {
+    nav: !!document.querySelector('nav[aria-label="Sections"]'),
+    gap: Math.round(innerHeight - tap.bottom),
+    band: Math.round(tap.top - list.bottom),
+  };
+});
+ok(
+  "the lesson hides the tab bar and docks its tap at the foot, with no band over it",
+  !foot.nav && foot.gap === 16 && foot.band <= 64,
+  JSON.stringify(foot)
+);
 
 // ---- 3. Into the first practice -----------------------------------------
 await page.getByRole("link", { name: "Start", exact: true }).click();

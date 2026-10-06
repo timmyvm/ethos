@@ -145,8 +145,25 @@ export function Nav() {
   const [pressed, setPressed] = useState(false);
   const [dragging, setDragging] = useState(false);
 
-  if (BARE.some((b) => path === b || path.startsWith(`${b}/`))) return null;
-  if (DETAIL.some((d) => path.startsWith(`${d}/`))) return null;
+  const hidden =
+    BARE.some((b) => path === b || path.startsWith(`${b}/`)) ||
+    DETAIL.some((d) => path.startsWith(`${d}/`));
+  /*
+   * Coming back to a tab from a screen without the bar (a lesson, a
+   * recording), the bar rises back in with the page's push rather than
+   * appearing whole under it (round 2: one lesson hides it now, so
+   * Lessons and its lesson trade it on every visit). Set while
+   * rendering, React's pattern for state that follows a prop; a cold
+   * load starts visible and never plays it.
+   */
+  const [lastHidden, setLastHidden] = useState(hidden);
+  const [returned, setReturned] = useState(false);
+  if (hidden !== lastHidden) {
+    setLastHidden(hidden);
+    setReturned(!hidden);
+  }
+
+  if (hidden) return null;
 
   const current = TABS.findIndex((t) =>
     t.href === "/" ? path === "/" : path.startsWith(t.href)
@@ -252,7 +269,9 @@ export function Nav() {
   return (
     <nav
       aria-label="Sections"
-      className="nav-dock fixed bottom-0 left-1/2 z-20 w-full max-w-[430px] -translate-x-1/2 px-5"
+      className={`nav-dock fixed bottom-0 left-1/2 z-20 w-full max-w-[430px] -translate-x-1/2 px-5 ${
+        returned ? "nav-return" : ""
+      }`}
     >
       <div
         ref={glass}

@@ -7,7 +7,9 @@ import { DemosFigure } from "@/components/DemosClip";
 import { Paywall } from "@/components/Paywall";
 import { PremiumMark } from "@/components/PremiumMark";
 import { SpeechBubble } from "@/components/SpeechBubble";
+import { IconShuffle } from "@/components/Icon";
 import { Disclosure } from "@/components/ui/Disclosure";
+import { FooterShelf } from "@/components/ui/FooterShelf";
 import { BackLink } from "@/components/ui/ScreenHeader";
 import { fetchProfile, fetchReps } from "@/lib/client-data";
 import { weekStart } from "@/lib/level";
@@ -420,7 +422,12 @@ export default function HostilePage() {
   ];
 
   return (
-    <main className="pb-safe flex min-h-dvh flex-col px-5 pt-[env(safe-area-inset-top)]">
+    <main
+      className={`flex min-h-dvh flex-col px-5 pt-[env(safe-area-inset-top)] ${
+        /* The intro's shelf clears the home indicator itself. */
+        phase === "intro" ? "" : "pb-safe"
+      }`}
+    >
       {/* Practice is where this door lives (modes-1): back never lands
           on /boss for someone who came in from the Premium grid. */}
       <BackLink href="/games" label="Practice" />
@@ -435,31 +442,52 @@ export default function HostilePage() {
             Argue the claim, then answer Demos on what you said.
           </p>
 
-          {/* The claim card holds the tap, so it is this screen's one
-              lifted thing: the wheel's grammar on /boss. Demos stands on
-              its top edge exactly as he does on the recording screen's
-              topic card (TopicCard): the full-body render with its
-              contact shadow, never the in-app bust, whose cut floated
-              as a sticker. The title names him; now he is here. */}
-          <section
-            aria-label="The claim"
-            className="card elev-2 relative mt-[100px] rounded-sheet p-5"
-          >
-            <div
-              aria-hidden
-              className="topic-demos pointer-events-none absolute bottom-[calc(100%-12px)] right-3 w-[112px]"
-            >
-              <span className="rep-ground" />
-              <DemosFigure
-                pose="speaking"
-                src="/demos-onboard-speaking.webp"
-                width={224}
-                height={224}
-                delayMs={900}
-                className="demos relative block h-auto w-full"
-              />
+          {/* R3 (principle 7): the free height is Demos's. He stands on
+              the claim card's top edge, as he does on the recording
+              screen's topic card (TopicCard), the full-body render with
+              its contact shadow and his idle clip, as big as the room
+              between the line and the card allows (112 at the least, 264
+              at the most), so the screen has no band of empty ground and
+              the title's "Demos" is the biggest thing on it. The room is
+              a size container over a flex-grown slot (the `.demos-fit`
+              pattern), so he reads its height. */}
+          <div aria-hidden className="relative mt-3 min-h-[100px] flex-1">
+            <div className="absolute inset-0 [container-type:size]">
+              <div className="topic-demos pointer-events-none absolute -bottom-3 left-1/2 w-[clamp(112px,calc(100cqh+12px),264px)] -translate-x-1/2">
+                <span className="rep-ground" />
+                <DemosFigure
+                  pose="speaking"
+                  src="/demos-onboard-speaking.webp"
+                  width={528}
+                  height={528}
+                  delayMs={900}
+                  className="demos relative block h-auto w-full"
+                />
+              </div>
             </div>
-            <p className="eyebrow">The claim</p>
+          </div>
+
+          {/* The claim card no longer holds the tap (it is docked at the
+              foot below), so it is the standard card at level 1 at the
+              headliner's sheet radius (/boss). Another claim is a bare
+              glyph on its eyebrow row, Today's floor-card grammar. */}
+          <section aria-label="The claim" className="card relative rounded-sheet p-5">
+            <div className="flex min-h-[22px] items-center gap-2">
+              <p className="eyebrow min-w-0 flex-1">The claim</p>
+              <button
+                type="button"
+                aria-label="Another claim"
+                onClick={() =>
+                  setPrompt((p) => {
+                    const pool = HOSTILE_PROMPTS.filter((x) => x.id !== p.id);
+                    return pool[Math.floor(Math.random() * pool.length)] ?? p;
+                  })
+                }
+                className="press -my-3 -mr-3 grid size-11 shrink-0 place-items-center rounded-control text-stone-500"
+              >
+                <IconShuffle size={20} />
+              </button>
+            </div>
             <div className="font-display mt-2 min-h-[3.75rem] text-title font-extrabold">
               <span
                 key={prompt.id}
@@ -484,35 +512,13 @@ export default function HostilePage() {
                 </p>
               )}
             </div>
-            <div className="mt-4 flex gap-2.5">
-              <button
-                type="button"
-                onClick={() =>
-                  setPrompt((p) => {
-                    const pool = HOSTILE_PROMPTS.filter((x) => x.id !== p.id);
-                    return pool[Math.floor(Math.random() * pool.length)] ?? p;
-                  })
-                }
-                className="press font-display min-h-12 shrink-0 rounded-control border border-edge bg-surface px-4 text-row"
-              >
-                Another
-              </button>
-              <button
-                type="button"
-                onClick={() => void startRecording()}
-                aria-haspopup={locked ? "dialog" : undefined}
-                className={`${ACTION_CLASS} flex-1 !px-4`}
-              >
-                Record my take
-              </button>
-            </div>
           </section>
 
           <ErrorNote>{error}</ErrorNote>
 
           {/* The boss's shape, flat on the ground: three numbers and
               their stat labels, no card. */}
-          <dl className="mt-7 grid grid-cols-3 gap-3">
+          <dl className="mt-7 grid grid-cols-3 gap-3 pb-4">
             {shape.map((s) => (
               <div key={s.label} className="flex flex-col-reverse">
                 <dt className="label-micro mt-1">{s.label}</dt>
@@ -522,6 +528,20 @@ export default function HostilePage() {
               </div>
             ))}
           </dl>
+
+          {/* R3: the one tap docked at the foot, as on every flow (B6's
+              offer): the shelf holds it at one y whatever the claim's
+              length, and it clears the home indicator itself. */}
+          <FooterShelf hairline={false}>
+            <button
+              type="button"
+              onClick={() => void startRecording()}
+              aria-haspopup={locked ? "dialog" : undefined}
+              className={ACTION_CLASS}
+            >
+              Record my take
+            </button>
+          </FooterShelf>
         </>
       )}
 

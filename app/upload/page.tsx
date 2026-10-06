@@ -139,8 +139,11 @@ export default function UploadPage() {
               if (f) void analyze(f);
             }}
           />
-          {/* The drop tile: what goes in and how much of it, at a fixed
-              height so nothing under it moves. A file dropped on it (a
+          {/* The drop tile: what goes in and how much of it. R3
+              (principle 7): it takes the free height, so the screen is a
+              line, a big place to drop a file and the tap, with no band
+              of blank between them; a big drop zone is the natural fill
+              (220px on the smallest phone). A file dropped on it (a
               desktop browser) goes the same way as a picked one. Both
               labels stay siblings of the input, so its focus ring can
               reach them (peer). */}
@@ -152,7 +155,7 @@ export default function UploadPage() {
               const f = e.dataTransfer.files?.[0];
               if (f) void analyze(f);
             }}
-            className={`press mt-7 flex h-[220px] shrink-0 cursor-pointer flex-col items-center justify-center gap-2 rounded-card border-2 border-dashed border-[var(--color-sand-dashed)] bg-surface text-center ${PEER_FOCUS}`}
+            className={`press mt-7 flex min-h-[220px] flex-1 cursor-pointer flex-col items-center justify-center gap-2 rounded-card border-2 border-dashed border-[var(--color-sand-dashed)] bg-surface text-center ${PEER_FOCUS}`}
           >
             <span aria-hidden className="game-tile game-tile-plain">
               <IconUpload size={22} />
@@ -165,8 +168,8 @@ export default function UploadPage() {
 
           {/* A failure in the error grammar (system-10): rust on the
               control surface, never terracotta, which means tap. It takes
-              the caption's place, and the spacer absorbs its height, so
-              the button below stays put. */}
+              the caption's place, and the tile gives up the height it
+              needs, so the button below stays put. */}
           {error ? (
             <p
               role="alert"
@@ -180,12 +183,11 @@ export default function UploadPage() {
             </p>
           )}
 
-          {/* The tap sits at the bottom of the phone, where every
-              other single-action screen puts it. */}
-          <div aria-hidden className="flex-1" />
+          {/* The tap at the foot of the column, over the tab bar's
+              clearance, where every other single-action screen puts it. */}
           <label
             htmlFor="upload-file"
-            className={`${ACTION_CLASS} mt-7 cursor-pointer ${PEER_FOCUS}`}
+            className={`${ACTION_CLASS} mt-6 cursor-pointer ${PEER_FOCUS}`}
           >
             Choose a file
           </label>

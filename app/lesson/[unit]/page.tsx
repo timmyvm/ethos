@@ -67,11 +67,12 @@ function LessonIntro() {
     /* The eyebrow takes the trait's ink where the unit has a trait, as
        on the trait's own page: LessonScreen tones it from `trait`. */
     <LessonScreen
-      /* practice-detail-8, M19: one centred column in the height above
-         Start, so the slack splits above and below instead of pooling
-         in one band over the button. The head shares the mark's axis;
-         the tiles under "How to do this" keep their left edge. */
-      center
+      /* R3 (principle 7): the unit's stage takes the free height and
+         the mark stands on it, scaled to the room, so the slack goes
+         into the stage instead of two bands round a small block. The
+         head shares the mark's axis; the tiles under "How to do this"
+         keep their left edge. */
+      fill
       align="center"
       stepKey="intro"
       trait={trait}
@@ -103,33 +104,31 @@ function LessonIntro() {
 }
 
 /**
- * The unit's mark on its stage (M19, #248): the Demos pose made for this
- * unit, standing on the trait's dome with a contact shadow, the lesson
- * page's grammar (M06) so the three one-step-in screens read as one
- * family. 128px from a 256px cut, so it stays crisp at 2x; next/image is
- * safe here because the service worker does not pre-cache /unit/. It
- * arrives once, with the screen, and then breathes.
+ * The unit's mark on its stage (M19, #248, R3): the Demos pose made for
+ * this unit, standing on the stage LessonScreen draws in the trait's
+ * tone, with a contact shadow, scaled to the room (128 at the least,
+ * 184 at the most: the cut is 256px, so it stays crisp at 2x up to
+ * 128 and soft only by a hair at the top). next/image is safe here
+ * because the service worker does not pre-cache /unit/. It arrives
+ * once, with the screen, and then breathes.
  */
 function UnitStage({ id }: { id: string }) {
   return (
-    <div className="relative -mx-5 mb-4 flex justify-center pb-[22px]">
-      <div aria-hidden className="stage-dome absolute inset-x-0 bottom-0" />
-      <div className="arrive relative h-32 w-32">
-        {/* He breathes on DemosArt's own loop and his shadow with him
-            (`.demos-breath`, `.ground-breath`; still under reduced
-            motion): the unit marks have no idle clip yet (#316). */}
-        <div aria-hidden className="demos-ground">
-          <span className="ground-breath" />
-        </div>
-        <Image
-          src={`/unit/${id}.webp`}
-          alt=""
-          width={128}
-          height={128}
-          priority
-          className="demos demos-breath pointer-events-none relative mx-auto h-32 w-32"
-        />
+    <div className="arrive relative size-[clamp(128px,52cqh,184px)]">
+      {/* He breathes on DemosArt's own loop and his shadow with him
+          (`.demos-breath`, `.ground-breath`; still under reduced
+          motion): the unit marks have no idle clip yet (#316). */}
+      <div aria-hidden className="demos-ground">
+        <span className="ground-breath" />
       </div>
+      <Image
+        src={`/unit/${id}.webp`}
+        alt=""
+        width={256}
+        height={256}
+        priority
+        className="demos demos-breath pointer-events-none relative mx-auto size-full"
+      />
     </div>
   );
 }

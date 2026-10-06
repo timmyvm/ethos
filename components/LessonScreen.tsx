@@ -22,6 +22,8 @@ import {
   animateSpring,
   project,
   rubberband,
+  springEasing,
+  springMs,
   springProgress,
 } from "@/lib/spring";
 import { ACTION_CLASS, DISABLED_CLASS } from "@/lib/ui";
@@ -280,6 +282,7 @@ export function LessonScreen({
   center = false,
   stepKey,
   onBack,
+  fill = false,
   speech,
   stage,
   swipe,
@@ -400,6 +403,26 @@ export function LessonScreen({
   stepKey?: string | number;
   /** A walk's way back one step. Renders the rep screen's back link. */
   onBack?: () => void;
+  /**
+   * The art takes the screen's free height (R3, principle 7: no empty
+   * band over 64px at 390x844). Opt-in, for the one-thing screens that
+   * are an object, a name and a tap: the trait page and the unit intro.
+   *
+   * The `art` stands on a stage in the screen's trait tone that runs
+   * from the top edge (under the back row) down to the words, its foot
+   * a shallow arc of the ground rising into it (Wellspoken 03-course's
+   * hero, Imprint 02-lesson-sheet's art over a plain sheet). The words
+   * sit under it and the tap is docked at the foot in `FooterShelf`, so
+   * the slack goes into the stage instead of pooling in two bands round
+   * a small block. The art is laid out in a size container, so it can
+   * scale with the room it is given (`cqh`, `cqmin`).
+   *
+   * The stage stays put across a walk's steps (`stepKey`): only the
+   * words arrive, and when a step's words need more or less room the
+   * stage's foot and its art travel to their new size on the base
+   * spring instead of cutting.
+   */
+  fill?: boolean;
 }) {
   const slide = useRef<HTMLDivElement>(null);
   const gestured = useRef(false);
@@ -476,6 +499,33 @@ export function LessonScreen({
         {action.label}
       </button>
     );
+
+  if (fill) {
+    return (
+      <StageScreen
+        trait={trait}
+        onBack={onBack}
+        art={art}
+        stepKey={stepKey}
+        controls={controls}
+        /* The walk's shelf grammar (B12): what sits over the tap grows
+           the shelf upward, so the tap lands at one y on every step
+           whether or not the step has fine print. */
+        foot={
+          <>
+            {aside && <div className="mb-3">{aside}</div>}
+            {fineprint && (
+              <p className="mb-3 text-center text-caption text-stone-400">{fineprint}</p>
+            )}
+            {tap}
+            {footer}
+          </>
+        }
+      >
+        <LessonBody {...body} toneEyebrow={trait !== undefined} />
+      </StageScreen>
+    );
+  }
 
   return (
     <main
@@ -582,6 +632,143 @@ export function LessonScreen({
           {footer}
         </div>
       )}
+    </main>
+  );
+}
+
+/**
+ * LessonScreen's `fill` layout (R3): the stage takes the free height,
+ * the words sit under it, the tap is docked at the foot.
+ *
+ *   ┌ back ───────────────────┐  the trait's stage, from the top edge
+ *   │          (art)          │  flex-1: every spare pixel lands here
+ *   └────────╮ arc ╭──────────┘  the ground rising into it
+ *     eyebrow, title, line        keyed on the step, so only these arrive
+ *     how-to, controls
+ *   [ tap ]  fine print           FooterShelf, at one y on every step
+ */
+function StageScreen({
+  trait,
+  onBack,
+  art,
+  stepKey,
+  controls,
+  foot,
+  children,
+}: {
+  trait?: TraitId;
+  onBack?: () => void;
+  art?: ReactNode;
+  stepKey?: string | number;
+  controls?: ReactNode;
+  foot: ReactNode;
+  children: ReactNode;
+}) {
+  const box = useRef<HTMLDivElement>(null);
+  const ground = useRef<HTMLDivElement>(null);
+  const figure = useRef<HTMLDivElement>(null);
+  /* Where the stage's foot and its art were laid out at the last
+     commit, in document coordinates, transforms aside. */
+  const seen = useRef<{ key: typeof stepKey; foot: number; x: number; y: number; w: number } | null>(
+    null
+  );
+  /*
+   * A new step's words can need more room or less, so the stage is a
+   * different height on each step. The layout lands at once (the words
+   * arrive into their final place); the stage's foot and the art are
+   * drawn from where they were and travel to where they are now on the
+   * base spring (FLIP, transform only), so the room breathes between
+   * steps rather than jumping. Reduced motion lands at once.
+   */
+  useLayoutEffect(() => {
+    const b = box.current;
+    const g = ground.current;
+    const f = figure.current;
+    if (!b || !g || !f) return;
+    const layer = (f.offsetParent ?? b).getBoundingClientRect();
+    const now = {
+      key: stepKey,
+      foot: b.getBoundingClientRect().bottom + window.scrollY,
+      x: layer.left + f.offsetLeft,
+      y: layer.top + window.scrollY + f.offsetTop,
+      w: f.offsetWidth,
+    };
+    const was = seen.current;
+    seen.current = now;
+    if (!was || was.key === now.key) return;
+    if (document.documentElement.dataset.motion === "reduce") return;
+    const timing = { duration: springMs(SPRING.base), easing: springEasing(SPRING.base) };
+    const d = was.foot - now.foot;
+    if (Math.abs(d) >= 1) {
+      g.animate([{ transform: `translateY(${d}px)` }, { transform: "none" }], timing);
+    }
+    if (was.w > 0 && now.w > 0) {
+      const k = was.w / now.w;
+      const dx = was.x - now.x;
+      const dy = was.y - now.y;
+      if (Math.abs(k - 1) > 0.01 || Math.abs(dx) >= 1 || Math.abs(dy) >= 1) {
+        f.animate(
+          [
+            { transformOrigin: "0 0", transform: `translate(${dx}px, ${dy}px) scale(${k})` },
+            { transformOrigin: "0 0", transform: "none" },
+          ],
+          timing
+        );
+      }
+    }
+  });
+
+  return (
+    <main data-trait={trait} className="flex min-h-dvh flex-col px-5">
+      <div
+        ref={box}
+        className="relative -mx-5 flex min-h-[260px] flex-1 flex-col px-5 pt-[env(safe-area-inset-top)]"
+      >
+        {/* The stage's ground. Unclipped above the document's top (and
+            tall enough there to travel), so under a status bar the stage
+            simply carries on. Outside a trait it is the neutral surface,
+            as `.stage-dome` is. */}
+        <div
+          ref={ground}
+          aria-hidden
+          className="absolute inset-x-0 bottom-0 -top-96 bg-[var(--tone-stage,var(--color-surface))]"
+        >
+          <div className="absolute inset-x-0 -bottom-px h-6 rounded-[50%_50%_0_0/100%_100%_0_0] bg-ground" />
+        </div>
+        {onBack && (
+          <div className="relative flex min-h-11 items-center">
+            <button
+              type="button"
+              onClick={onBack}
+              className="screen-bar-back press -ml-3 shrink-0"
+            >
+              <IconBack size={22} />
+              <span>Back</span>
+            </button>
+          </div>
+        )}
+        <div className="relative min-h-0 flex-1">
+          {/* A size container over the grown slot (the `.demos-fit`
+              pattern: cq units read 0 in a container whose height comes
+              from flex-grow, so the container is an absolute layer with
+              a definite size). The art reads `cqh` and `cqmin`. */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center pb-6 [container-type:size]">
+            <div ref={figure} className="flex flex-col items-center">
+              {art}
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* Positioned, so the words paint over the stage's foot while it
+          travels under them. */}
+      <div
+        key={stepKey}
+        className={`relative mt-5 pb-4 ${stepKey === undefined ? "" : "arrive-x"}`}
+      >
+        {children}
+        {controls && <div className="mt-6">{controls}</div>}
+      </div>
+      <FooterShelf hairline={false}>{foot}</FooterShelf>
     </main>
   );
 }

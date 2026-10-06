@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { notFound, useParams, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { LessonScreen } from "@/components/LessonScreen";
 import { Ring } from "@/components/Ring";
 import { CountUp } from "@/components/CountUp";
@@ -143,7 +143,39 @@ function Lesson() {
    * centred on the ring's line, and the block centred in the height
    * above the tap, so the six steps read as one layout.
    */
-  const frame = { center: true, align: "center", stepKey: step, trait: id } as const;
+  const frame = { fill: true, align: "center", stepKey: step, trait: id } as const;
+
+  /*
+   * R3: the trait's stage takes the free height on every step and the
+   * ring stands centred on it, scaled to the room (principle 7). It is
+   * the same element from the first step to the recording, so it stays
+   * put while the words change under it; the walk ends on the last
+   * step, where the ring finally moves.
+   */
+  const stage = (
+    <>
+      <Ring
+        value={now?.fraction ?? null}
+        size={RING}
+        tone="trait"
+        state={loaded ? "idle" : "thinking"}
+        delay={220}
+        /* The scale is provisional or it is not, and the big ring on
+           the lesson's stage is the loudest place in the app to be
+           quiet about that. */
+        provisional={now !== null && provisional}
+        className={COIN}
+      >
+        {now ? (
+          <CountUp value={now.percentile} durationMs={DURATION.max} className={FIGURE} />
+        ) : (
+          <Dash />
+        )}
+        <span className="label-micro mt-1 text-stone-500">percentile</span>
+      </Ring>
+      <Measured id={id} now={now} />
+    </>
+  );
 
   // ---- name -------------------------------------------------------------
   if (step === "name") {
@@ -162,36 +194,7 @@ function Lesson() {
         eyebrow={lowest ? "Today's lesson" : "Practice"}
         title={def.name}
         line={def.what}
-        art={
-          <div className="mb-7 mt-7">
-            <RingStage>
-              <Ring
-                value={now?.fraction ?? null}
-                size={RING}
-                tone="trait"
-                state={loaded ? "idle" : "thinking"}
-                delay={220}
-                /* The scale is provisional or it is not, and the big
-                   ring on the lesson's first screen is the loudest
-                   place in the app to be quiet about that. */
-                provisional={now !== null && provisional}
-                className={COIN}
-              >
-                {now ? (
-                  <CountUp
-                    value={now.percentile}
-                    durationMs={DURATION.max}
-                    className={FIGURE}
-                  />
-                ) : (
-                  <Dash />
-                )}
-                <span className="label-micro mt-1 text-stone-500">percentile</span>
-              </Ring>
-            </RingStage>
-            <Measured id={id} now={now} />
-          </div>
-        }
+        art={stage}
         /*
          * The reason, said on the way in, in one plain sentence. The
          * measurement itself sits by the ring (practice-detail-7);
@@ -222,6 +225,7 @@ function Lesson() {
         {...frame}
         onBack={back}
         eyebrow={def.name}
+        art={stage}
         title="Why it matters"
         line={def.why}
         controls={
@@ -247,6 +251,7 @@ function Lesson() {
         {...frame}
         onBack={back}
         eyebrow={def.name}
+        art={stage}
         title="The technique"
         howTo={def.howTo}
         lead="howTo"
@@ -267,6 +272,7 @@ function Lesson() {
         {...frame}
         onBack={back}
         eyebrow={def.name}
+        art={stage}
         title="Same words, moved"
         line={w.note}
         controls={
@@ -287,6 +293,7 @@ function Lesson() {
         {...frame}
         onBack={back}
         eyebrow={def.name}
+        art={stage}
         title="Sixty seconds"
         line={def.howTo[0]}
         action={{
@@ -333,40 +340,35 @@ function Lesson() {
               }`
       }
       art={
-        <div className="mb-4 mt-7">
-          <RingStage>
-            {/* The ring travels from where it WAS to where it is, in
-                front of them: the value it mounts with is the old one
-                and the new one lands a beat later. That beat is the
-                whole reward, and cutting to the answer throws it away.
-                practice-detail-4: it is not mounted until the read is
-                back, because mounted early it seeded on 0 and drew
-                every change as a rise from empty; keyed on both values,
-                so it always starts from the right one. Until then it
-                thinks, with a dash, never a 0. */}
-            {now ? (
-              <MovingRing
-                key={`${before?.fraction}-${now.fraction}`}
-                from={before?.fraction ?? 0}
-                fromPercentile={before?.percentile ?? 0}
-                to={now.fraction}
-                percentile={now.percentile}
-                provisional={provisional}
-              />
-            ) : (
-              <Ring
-                value={null}
-                size={RING}
-                tone="trait"
-                state={loaded ? "idle" : "thinking"}
-                className={COIN}
-              >
-                <Dash />
-                <span className="label-micro mt-1 text-stone-500">percentile</span>
-              </Ring>
-            )}
-          </RingStage>
-        </div>
+        /* The ring travels from where it WAS to where it is, in front
+           of them: the value it mounts with is the old one and the new
+           one lands a beat later. That beat is the whole reward, and
+           cutting to the answer throws it away. practice-detail-4: it
+           is not mounted until the read is back, because mounted early
+           it seeded on 0 and drew every change as a rise from empty;
+           keyed on both values, so it always starts from the right
+           one. Until then it thinks, with a dash, never a 0. */
+        now ? (
+          <MovingRing
+            key={`${before?.fraction}-${now.fraction}`}
+            from={before?.fraction ?? 0}
+            fromPercentile={before?.percentile ?? 0}
+            to={now.fraction}
+            percentile={now.percentile}
+            provisional={provisional}
+          />
+        ) : (
+          <Ring
+            value={null}
+            size={RING}
+            tone="trait"
+            state={loaded ? "idle" : "thinking"}
+            className={COIN}
+          >
+            <Dash />
+            <span className="label-micro mt-1 text-stone-500">percentile</span>
+          </Ring>
+        )
       }
       controls={
         /* Latent while every norm is provisional (nextTrait returns
@@ -401,13 +403,20 @@ function Lesson() {
   );
 }
 
-/** The ring's size on the first and the last step alike (M18). */
+/** The ring's drawn size (its viewBox and stroke, M18); the stage
+ *  scales it to the room it is given. */
 const RING = 168;
-/* The ring as an object on its stage: a disc of the ground behind the
-   trough, so the number stays on plain ground where the dome rises
-   behind it, the way the lesson page's art tile stands on its dome. */
-const COIN = "rounded-full bg-ground";
-const FIGURE = "font-display text-num-l tabular-nums";
+/*
+ * R3: the ring as an object on its stage, a disc of the ground behind
+ * the trough so the number stays on plain ground, scaled to the stage:
+ * 58% of the room's height, never under 152 or over 236 (its stroke
+ * scales with it through the viewBox).
+ */
+const COIN = "rounded-full bg-ground size-[clamp(152px,58cqh,236px)]! [&>svg]:size-full";
+/* The figure steps up from num-l to num-hero once the ring is big
+   enough to hold it (a room 380px tall gives a 220 ring). */
+const FIGURE =
+  "font-display text-num-l tabular-nums [@container(min-height:380px)]:text-num-hero";
 
 /** Unknown, drawn as unknown: a dash where the number goes. */
 function Dash() {
@@ -415,20 +424,6 @@ function Dash() {
     <span aria-hidden className={`${FIGURE} opacity-60`}>
       –
     </span>
-  );
-}
-
-/**
- * The stage the ring stands on (M18, the lesson page's grammar from
- * M06): the trait's dome behind its lower half, full column width, the
- * ring's foot 22px above the dome's, as the lesson page stands its art.
- */
-function RingStage({ children }: { children: ReactNode }) {
-  return (
-    <div className="relative -mx-5 flex justify-center pb-[22px]">
-      <div aria-hidden className="stage-dome absolute inset-x-0 bottom-0" />
-      {children}
-    </div>
   );
 }
 

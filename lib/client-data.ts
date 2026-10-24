@@ -160,13 +160,44 @@ export async function fetchProfile(): Promise<ProfileRow | null> {
   // and each caller decides what an unknown plan draws.
   if (error) throw error;
   const row = (data as ProfileRow | null) ?? null;
-  const stored = row?.premium ?? false;
+  // premium_until is the server's backstop on a paid plan (#377): if the
+  // webhook that ends a plan never lands, the flag still runs out.
+  const until = row?.premium_until ?? null;
+  const stored = (row?.premium ?? false) && (!until || new Date(until) > new Date());
   return {
     display_name: row?.display_name ?? null,
     premium: isUnlocked(stored),
     premium_until: row?.premium_until ?? null,
     equipped_pose: row?.equipped_pose ?? null,
   };
+}
+
+/**
+ * The account's plan on the price ladder (#377, migration 0012), as the
+ * server last synced it from Stripe. Null when the account has never
+ * started one; throws on a failed read, like every fetcher here.
+ */
+export interface BillingRow {
+  status: string | null;
+  /** Months paid in a row on this plan; 0 before the first payment. */
+  ladder_month: number;
+  price_cents: number | null;
+  next_price_cents: number | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+}
+
+export async function fetchBilling(): Promise<BillingRow | null> {
+  const db = supabaseBrowser();
+  if (!db) return null;
+  const { data, error } = await db
+    .from("billing")
+    .select(
+      "status, ladder_month, price_cents, next_price_cents, current_period_end, cancel_at_period_end"
+    )
+    .maybeSingle();
+  if (error) throw error;
+  return (data as BillingRow | null) ?? null;
 }
 
 /**

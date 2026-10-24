@@ -27,6 +27,9 @@ export interface AuthedUser {
   /** Anonymous-first sessions are real users on a shorter leash: the
    *  rate limiter (lib/rate-limit.ts) gives them the visitor tier. */
   anonymous: boolean;
+  /** The account's email, when it has one: checkout hands it to Stripe
+   *  so receipts reach the inbox the account signs in with. */
+  email?: string | null;
 }
 
 /** Resolve a Supabase access token to a user; null on anything else. */
@@ -38,7 +41,11 @@ export async function getUserFromAuthHeader(
   if (!db) return null;
   const { data, error } = await db.auth.getUser(header.slice(7));
   if (error || !data.user) return null;
-  return { id: data.user.id, anonymous: data.user.is_anonymous ?? false };
+  return {
+    id: data.user.id,
+    anonymous: data.user.is_anonymous ?? false,
+    email: data.user.email || null,
+  };
 }
 
 /** The user's latest stored index — powers the "+18" delta display. */

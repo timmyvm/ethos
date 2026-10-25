@@ -504,6 +504,9 @@ export async function setNewPassword(password: string): Promise<AuthResult> {
   return { ok: true };
 }
 
+/** A failed delete with no word from the server, for an account with a plan. */
+const PLAN_MAY_HAVE_ENDED = "Your account is still here, but your plan may have ended. Try again.";
+
 export async function signOut(): Promise<void> {
   await supabaseBrowser()?.auth.signOut();
 }
@@ -514,8 +517,14 @@ export async function signOut(): Promise<void> {
  * nothing). Anonymous sessions qualify too; their token authorises
  * deleting exactly themselves. On success the local session is signed
  * out here; the caller clears the rest of the device.
+ *
+ * The server cancels a plan before it deletes anything, and its own
+ * errors after that start "Your plan is cancelled, but…". When there is
+ * no sentence from it (the network dropped, a gateway answered), a
+ * person with a plan (`plan`) is never told that nothing happened: the
+ * account is still here, and the plan may already have ended.
  */
-export async function deleteAccount(): Promise<AuthResult> {
+export async function deleteAccount({ plan = false }: { plan?: boolean } = {}): Promise<AuthResult> {
   const db = supabaseBrowser();
   if (!db) return { ok: false, error: "Accounts aren't configured yet." };
   const { data } = await db.auth.getSession();
@@ -532,7 +541,9 @@ export async function deleteAccount(): Promise<AuthResult> {
   } catch {
     return {
       ok: false,
-      error: "The server didn't answer. Nothing was deleted; try again.",
+      error: plan
+        ? `The server didn't answer. ${PLAN_MAY_HAVE_ENDED}`
+        : "The server didn't answer. Nothing was deleted; try again.",
     };
   }
   const body = (await res.json().catch(() => null)) as {
@@ -541,7 +552,7 @@ export async function deleteAccount(): Promise<AuthResult> {
   if (!res.ok) {
     return {
       ok: false,
-      error: body?.error ?? "That didn't go through. Nothing was deleted.",
+      error: body?.error ?? (plan ? `That didn't go through. ${PLAN_MAY_HAVE_ENDED}` : "That didn't go through. Nothing was deleted."),
     };
   }
   await db.auth.signOut().catch(() => {});

@@ -5,7 +5,7 @@ import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Segmented } from "@/components/ui/Segmented";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { deleteAccount, signOut } from "@/lib/auth";
 import { fetchLexicon, fetchReps } from "@/lib/client-data";
 import {
@@ -17,8 +17,10 @@ import {
 } from "@/lib/prefs";
 import { applyMotion, applyTheme } from "@/components/Theme";
 import { ManageSheet } from "@/components/premium/ManageSheet";
-import { SettingsPlanRow } from "@/components/premium/PlanCard";
-import { hasPlan } from "@/lib/plan-view";
+import { SettingsPlanRow, SettingsPlanRowSkeleton } from "@/components/premium/PlanCard";
+import { ErrorLine } from "@/components/ui/ErrorState";
+import { DELETE_ANY_PLAN, deletePlanLine, hasPlan } from "@/lib/plan-view";
+import { forgetPlanHint, keepPlanHint, readPlanHint, settingsRowSlot } from "@/lib/plan-hint";
 import { usePlan, useStripeReturn, useStripeReturns } from "@/lib/use-plan";
 import {
   armReminder,
@@ -84,11 +86,41 @@ export default function SettingsPage() {
   const stripeReturn = useStripeReturn();
   useStripeReturns(stripeReturn === "portal" ? "portal" : null, plan);
   const [managing, setManaging] = useState(false);
+  /* Whether this device last saw a plan here (lib/plan-hint.ts): a
+     subscriber's row holds its place from the first frame, before the
+     billing read, and nothing under it moves when it lands. Read before
+     paint, so a visit from You never draws the page without it. */
+  const [hint, setHint] = useState(false);
+  useLayoutEffect(() => {
+    setHint(readPlanHint());
+  }, []);
+  useEffect(() => {
+    if (plan.today) keepPlanHint(plan.view, plan.failed);
+  }, [plan.view, plan.failed, plan.today]);
+  const planSlot = settingsRowSlot({
+    view: plan.view,
+    ready: plan.today !== null,
+    failed: plan.failed,
+    hint,
+    signedIn: email !== null,
+  });
+  /* Deleting ends a plan at once, with no refund for the rest of its
+     month: said in the confirm, before anyone types DELETE. A plan that
+     is still unknown on a signed-in account is spoken of as "any plan". */
+  const planKnown = plan.today !== null && plan.view.kind !== "unknown";
+  const deleteLine = planKnown
+    ? deletePlanLine(plan.view, plan.today as Date)
+    : email !== null
+      ? DELETE_ANY_PLAN
+      : null;
+  const [hadPlan, setHadPlan] = useState(false);
 
   async function runDelete() {
     setDeleting(true);
     setDeleteError(null);
-    const result = await deleteAccount();
+    const withPlan = planKnown ? hasPlan(plan.view) : email !== null;
+    setHadPlan(planKnown && hasPlan(plan.view));
+    const result = await deleteAccount({ plan: withPlan });
     if (!result.ok) {
       setDeleteError(result.error ?? "That didn't go through.");
       setDeleting(false);
@@ -227,7 +259,7 @@ export default function SettingsPage() {
           All gone.
         </h1>
         <p className="mt-2 max-w-[280px] text-body text-pretty text-stone-500">
-          Recordings, scores, streaks, account: deleted. Thanks for
+          {hadPlan && "Plan ended. "}Recordings, scores, streaks, account: deleted. Thanks for
           speaking with us.
         </p>
         <Link href="/about" className="text-link mt-6 text-terracotta-700">
@@ -387,15 +419,33 @@ export default function SettingsPage() {
               : "Everything you've recorded lives on this device. An account attaches to it where it is."
           }
         />
-        {plan.today && hasPlan(plan.view) && (
-          <SettingsPlanRow view={plan.view} today={plan.today} onOpen={() => setManaging(true)} />
-        )}
+        {/* The plan's row: a skeleton at its height while the plan is
+            unknown on a device that last saw one, a failed read said with
+            its retry (the cancel path never silently gone), the row once
+            it is known. The row is a direct .group-row, so the hairlines
+            either side of it hold. */}
+        {planSlot === "error" ? (
+          <div className="group-row">
+            <ErrorLine onRetry={plan.retry}>Premium didn&apos;t load.</ErrorLine>
+          </div>
+        ) : planSlot === "skeleton" ? (
+          <SettingsPlanRowSkeleton />
+        ) : planSlot === "row" && plan.today ? (
+          <SettingsPlanRow
+            view={plan.view}
+            today={plan.today}
+            onOpen={() => setManaging(true)}
+            arrive={hint ? "line" : "row"}
+          />
+        ) : null}
         {!email ? (
           <LinkRow href="/signup" label="Create an account" />
         ) : (
           <button
             onClick={async () => {
               await signOut();
+              // The next account on this device is someone else's.
+              forgetPlanHint();
               window.location.href = "/";
             }}
             className="group-row press-row font-display w-full text-left text-row"
@@ -481,6 +531,7 @@ export default function SettingsPage() {
               This permanently deletes every recording, transcript, score,
               streak and the account itself.
             </p>
+            {deleteLine && <p className="mt-2 text-read text-pretty text-stone-800">{deleteLine}</p>}
             <label className="eyebrow mt-4 block" htmlFor="delete-confirm">
               Type DELETE to confirm
             </label>
@@ -525,7 +576,7 @@ export default function SettingsPage() {
           view={plan.view}
           today={plan.today}
           onClose={() => setManaging(false)}
-          onPlan={(row) => plan.adopt(row)}
+          onPlan={(row, premium) => plan.adopt(row, premium)}
         />
       )}
     </main>

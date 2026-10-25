@@ -3,6 +3,7 @@ import type { BillingRow, ProfileRow } from "./client-data";
 import {
   CHECKOUT_COPY,
   CODE_LINE,
+  DELETE_ANY_PLAN,
   MANAGE_COPY,
   PAYWALL_COPY,
   addMonths,
@@ -13,11 +14,13 @@ import {
   checkoutReturnWords,
   confirmBody,
   daysBetween,
+  deletePlanLine,
   dropDecision,
   dropWords,
   endingBody,
   endingTitle,
   hasPlan,
+  heldPlan,
   ladderSentence,
   longDate,
   manageLine,
@@ -421,6 +424,54 @@ describe("You, the manage sheet and Settings, per state", () => {
   });
 });
 
+describe("the paywall over a plan that is held", () => {
+  it("knows the accounts whose Start would only open the portal: unpaid, or a first payment pending", () => {
+    expect(heldPlan(view(ROWS.unpaid, FREE_PROFILE))).toBe(true);
+    expect(heldPlan(view(ROWS.incomplete, FREE_PROFILE))).toBe(true);
+    for (const r of [ROWS.active3, ROWS.floor, ROWS.ending, ROWS.pastDue, ROWS.ended]) {
+      expect(heldPlan(view(r, FREE_PROFILE))).toBe(false);
+    }
+    expect(heldPlan(view(null, FREE_PROFILE))).toBe(false);
+    expect(heldPlan(view(undefined))).toBe(false);
+  });
+
+  it("says why the tap opens Stripe's card page, never a second plan", () => {
+    expect(PAYWALL_COPY.heldOpening).toBe("You already have a plan. Opening its card and receipts…");
+    expect(PAYWALL_COPY.updateCard).toBe("Update card");
+  });
+});
+
+describe("deleting the account", () => {
+  it("says, before the confirm, that a live plan ends now with no refund for the rest of the month", () => {
+    expect(deletePlanLine(view(ROWS.active3), TODAY)).toBe("Your plan ends now too, with no refund for the days left to 24 Nov.");
+    expect(deletePlanLine(view(ROWS.floor), TODAY)).toBe("Your plan ends now too, with no refund for the days left to 24 Nov.");
+    // Already set to end: it ends sooner, and those days are not refunded either.
+    expect(deletePlanLine(view(ROWS.ending), TODAY)).toBe("Your plan ends now too, with no refund for the days left to 24 Nov.");
+    expect(deletePlanLine(view(row({ current_period_end: null })), TODAY)).toBe(
+      "Your plan ends now too, with no refund for the rest of this month."
+    );
+  });
+
+  it("has no paid days to speak of on a declined or pending plan: the charge left open is closed", () => {
+    expect(deletePlanLine(view(ROWS.pastDue), TODAY)).toBe("Your plan ends now too, and the declined A$9.99 is never charged.");
+    expect(deletePlanLine(view(ROWS.unpaid, FREE_PROFILE), TODAY)).toBe(
+      "Your plan ends now too, and the declined A$9.99 is never charged."
+    );
+    expect(deletePlanLine(view(row({ status: "past_due", cancel_at_period_end: true, next_price_cents: null })), TODAY)).toBe(
+      "Your plan ends now too, and the declined A$9.99 is never charged."
+    );
+    expect(deletePlanLine(view(ROWS.incomplete, FREE_PROFILE), TODAY)).toBe(
+      "Your plan ends now too, and its first payment is never taken."
+    );
+  });
+
+  it("says nothing about a plan there is not", () => {
+    for (const v of [view(null, FREE_PROFILE), view(null, PAID_PROFILE), view(ROWS.ended, FREE_PROFILE), view(undefined)]) {
+      expect(deletePlanLine(v, TODAY)).toBeNull();
+    }
+  });
+});
+
 describe("the checkout return and the price drop", () => {
   it("says month 1 and the next step", () => {
     const v = view(row({ ladder_month: 1, price_cents: 1299, next_price_cents: 1199 }));
@@ -504,6 +555,7 @@ describe("every string", () => {
     ...Object.values(MANAGE_COPY),
     ...Object.values(CHECKOUT_COPY),
     CODE_LINE,
+    DELETE_ANY_PLAN,
     ladderSentence(),
     ...[1, 2, 3, 4, 5, 6, 7].flatMap((n) => Object.values(paywallStep(n, TODAY)).filter((s): s is string => typeof s === "string")),
   ];
@@ -524,6 +576,7 @@ describe("every string", () => {
       endingBody(v, TODAY),
       resumedStatus(v, TODAY),
       settingsLine(v, TODAY) ?? "",
+      deletePlanLine(v, TODAY) ?? "",
       dropWords(v, TODAY).bubble,
       dropWords(v, TODAY).caption,
       checkoutReturnWords(v, TODAY).left.caption,

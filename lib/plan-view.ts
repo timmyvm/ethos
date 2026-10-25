@@ -376,7 +376,21 @@ export const PAYWALL_COPY = {
   unlockedLine: "Premium is on this account now.",
   codeFirst: "Do one recording first, then the code has somewhere to land.",
   codeFailed: "That didn't go through. Try again.",
+  // An account whose plan is held (unpaid, or a first payment pending):
+  // Start would only open Stripe's card page, so the tap says that.
+  updateCard: "Update card",
+  heldOpening: "You already have a plan. Opening its card and receipts…",
 } as const;
+
+/**
+ * A plan Premium is off for that still holds its place: unpaid (the
+ * retries ran out) or a first payment pending. Checkout answers such an
+ * account with the portal, never a second plan, so the paywall over it
+ * offers the card instead of "Start at A$12.99".
+ */
+export function heldPlan(view: PlanView): boolean {
+  return view.kind === "unpaid" || view.kind === "incomplete";
+}
 
 /** What the paywall's readout and slider say for step `n` of a plan starting today. */
 export function paywallStep(n: number, today: Date) {
@@ -641,6 +655,24 @@ export function resumedStatus(view: PlanView, today: Date): string {
   const day = view.periodEnd ? shortDate(view.periodEnd, today) : dayOf(view, next, today);
   return `You're staying. Month ${next} is ${aud(view.nextPriceCents ?? priceForMonth(next))}${day ? ` from ${day}` : ""}.`;
 }
+
+/**
+ * Deleting the account ends the plan at once (app/api/account: Stripe
+ * cancels it now, closes any open Checkout and voids what is unpaid),
+ * and the confirm says so before anyone types DELETE. A paid month's
+ * days left are not refunded; a declined or pending plan has no paid
+ * days, only the charge left open, which is closed. Null with no plan.
+ */
+export function deletePlanLine(view: PlanView, today: Date): string | null {
+  if (!hasPlan(view)) return null;
+  if (view.kind === "incomplete") return "Your plan ends now too, and its first payment is never taken.";
+  if (view.declined) return `Your plan ends now too, and the declined ${aud(nextCents(view))} is never charged.`;
+  const end = endOf(view, today);
+  return `Your plan ends now too, with no refund for ${end ? `the days left to ${end}` : "the rest of this month"}.`;
+}
+
+/** The delete confirm's line while the plan on a signed-in account is still unknown. */
+export const DELETE_ANY_PLAN = "Any plan on it ends now too, with no refund for the rest of its month.";
 
 // Settings ---------------------------------------------------------------
 

@@ -5,6 +5,7 @@ import { Disclosure } from "@/components/ui/Disclosure";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cardWords, DECLINED, pictureLabel, settingsLine, MANAGE_COPY, type PlanView } from "@/lib/plan-view";
 import { LADDER_CENTS, formatBare } from "@/lib/pricing";
+import { RollNumber } from "./RollNumber";
 import { Stair, stepHeight } from "./Stair";
 
 /**
@@ -20,35 +21,58 @@ import { Stair, stepHeight } from "./Stair";
  * grammar and changes only what the spec says it changes.
  */
 
-/** A price on a neutral surface: "A$" one number-step down in stone, the figure in ink. */
+/**
+ * Every price the ladder prints: "A$" one number-step down, then the
+ * figure. The one place the pair is set, on every surface, neutral or
+ * plum, so the gap between them is one rule: about 0.08 of the figure
+ * (2px at 24, 3px at 36, 4px at 56), as both design directions set it.
+ * `roll` turns the figure with RollNumber (the paywall's readout, the
+ * drop's).
+ */
 export function Price({
   cents,
   size,
   tone = "neutral",
+  roll = false,
   className = "",
 }: {
   cents: number;
   /** m: 24 over a 17 currency; l: 36 over 24; hero: 56 over 36. */
   size: "m" | "l" | "hero";
   tone?: "neutral" | "plum";
+  roll?: boolean;
   className?: string;
 }) {
-  const [cur, fig] =
-    size === "hero" ? ["text-num-l", "text-num-hero"] : size === "l" ? ["text-num-m", "text-num-l"] : ["text-num-s", "text-num-m"];
+  const [cur, fig, gap] =
+    size === "hero"
+      ? ["text-num-l", "text-num-hero", "mr-1"]
+      : size === "l"
+        ? ["text-num-m", "text-num-l", "mr-0.75"]
+        : ["text-num-s", "text-num-m", "mr-0.5"];
   return (
     <span className={`font-display inline-flex items-baseline whitespace-nowrap tabular-nums ${className}`}>
-      <span className={`${cur} mr-0.5 ${tone === "plum" ? "text-cream/70" : "text-stone-500"}`}>A$</span>
-      <span className={fig}>{formatBare(cents)}</span>
+      <span className={`${cur} ${gap} ${tone === "plum" ? "text-cream/70" : "text-stone-500"}`}>A$</span>
+      {roll ? (
+        <RollNumber className={fig} text={formatBare(cents)} value={cents} />
+      ) : (
+        <span className={fig}>{formatBare(cents)}</span>
+      )}
     </span>
   );
 }
 
-/** One column of the board: what it is, over its price. */
+/**
+ * One column of the board: what it is, over its price. The price stands
+ * on its own flex line, exactly one figure tall: an inline-flex price on
+ * the button's text strut made the line 3px taller than the skeleton's.
+ */
 export function PriceCell({ caption, cents, end = false }: { caption: string; cents: number; end?: boolean }) {
   return (
     <span className={`block min-w-0 ${end ? "text-right" : ""}`}>
       <span className="block text-caption text-stone-500">{caption}</span>
-      <Price cents={cents} size="m" className="mt-0.5" />
+      <span className={`mt-0.5 flex ${end ? "justify-end" : ""}`}>
+        <Price cents={cents} size="m" />
+      </span>
     </span>
   );
 }
@@ -168,13 +192,22 @@ export function PlanCardSkeleton({ status }: { status?: string }) {
           </div>
         </div>
       </div>
+      {/* The active card's own foot sentence, so it wraps where the
+          card's does (two lines below about 375), a bar per line. */}
       {status ? (
         <p className="mt-3 text-caption text-stone-500">{status}</p>
       ) : (
-        <Bar className="mt-3 block text-caption" text="4 months to your lowest price" />
+        <span className="mt-3 block text-caption text-pretty">
+          <SkeletonText text="4 months to your lowest price, A$6.99 from 24 Feb." />
+        </span>
       )}
     </div>
   );
+}
+
+/** Words hidden under a bar on each line they take, so a wrapped line keeps its place line for line. */
+function SkeletonText({ text }: { text: string }) {
+  return <span className="skeleton skeleton-text">{text}</span>;
 }
 
 /** A line of type at its own height, its words hidden under a bar. */
@@ -187,12 +220,30 @@ function Bar({ className, text, right = false }: { className: string; text: stri
   );
 }
 
+/** A date's day and month never part across lines: "24 Nov" stays whole. */
+const keepDate = (line: string) => line.replace(/(\d) (?=[A-Z][a-z]{2}$)/, "$1\u00a0");
+
 /**
  * Settings' row in the account group: "Manage plan" over the plan's
- * state in one line, then the mark and the chevron. It opens the same
- * manage sheet as You's card.
+ * state, then the mark and the chevron. It opens the same manage sheet
+ * as You's card. On a narrow phone the state takes two balanced lines
+ * ("Month 3, A$9.99" over "from 24 Nov"), never a date split in two.
+ *
+ * `arrive`: how it lands after the billing read. `row` fades the whole
+ * row in where nothing held its place; `line` fades only the state in,
+ * over the skeleton that held it (SettingsPlanRowSkeleton).
  */
-export function SettingsPlanRow({ view, today, onOpen }: { view: PlanView; today: Date; onOpen: () => void }) {
+export function SettingsPlanRow({
+  view,
+  today,
+  onOpen,
+  arrive,
+}: {
+  view: PlanView;
+  today: Date;
+  onOpen: () => void;
+  arrive?: "row" | "line";
+}) {
   const line = settingsLine(view, today);
   if (line === null) return null;
   const declined = view.declined;
@@ -202,17 +253,42 @@ export function SettingsPlanRow({ view, today, onOpen }: { view: PlanView; today
       data-look="manage-plan"
       aria-haspopup="dialog"
       onClick={onOpen}
-      className="group-row press-row flex w-full items-center gap-3 text-left"
+      className={`group-row press-row flex w-full items-center gap-3 text-left ${arrive === "row" ? "arrive" : ""}`}
     >
       <span className="min-w-0 flex-1">
         <span className="font-display block text-row">{MANAGE_COPY.manage}</span>
-        <span className="mt-0.5 flex items-center gap-1.5 text-caption tabular-nums text-stone-500">
-          {declined && <IconDeclined size={14} />}
-          {line}
+        {/* The glyph stands on the first line when the state takes two. */}
+        <span
+          className={`mt-0.5 flex items-start gap-1.5 text-caption tabular-nums text-stone-500 ${arrive === "line" ? "fade-in" : ""}`}
+        >
+          {declined && <IconDeclined size={14} className="mt-0.5 text-stone-500" />}
+          <span className="min-w-0 text-balance">{keepDate(line)}</span>
         </span>
       </span>
       <PremiumMark variant="chip" />
       <Disclosure />
     </button>
+  );
+}
+
+/**
+ * The row's place while the plan is unknown, on a device that last saw
+ * one (lib/plan-hint.ts): the row itself, its state line a bar, so the
+ * rows under it never move when it lands.
+ */
+export function SettingsPlanRowSkeleton() {
+  return (
+    <div aria-hidden data-look="manage-plan-skeleton" className="group-row flex w-full items-center gap-3 text-left">
+      <span className="min-w-0 flex-1">
+        <span className="font-display block text-row">{MANAGE_COPY.manage}</span>
+        <span className="mt-0.5 flex items-start gap-1.5 text-caption tabular-nums">
+          <span className="min-w-0 text-balance">
+            <SkeletonText text={keepDate("Month 3, A$9.99 from 24 Nov")} />
+          </span>
+        </span>
+      </span>
+      <PremiumMark variant="chip" />
+      <Disclosure />
+    </div>
   );
 }

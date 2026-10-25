@@ -165,10 +165,10 @@ export default function Privacy() {
       <h2 className={HEAD}>Keeping it, deleting it</h2>
       <p className={READ}>
         We keep your data until you delete your account. Settings has a
-        delete-account control. It cancels any plan first, then removes
+        delete-account control. It ends any plan at once, then removes
         everything: recordings, transcripts, scores, progress, plan details,
-        and the account itself. Stripe keeps its own record of payments
-        already made. You can also write to{" "}
+        and the account itself. Stripe keeps the payments already made, and
+        your email and saved card stay on file there. You can also write to{" "}
         <a href="mailto:hello@speakethos.com" className={INLINE_LINK}>
           hello@speakethos.com
         </a>{" "}

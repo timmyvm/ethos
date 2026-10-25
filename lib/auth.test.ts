@@ -28,6 +28,8 @@ vi.mock("./supabase-browser", () => ({
         fake.redirects.push({ call: "signUp", to: a.options?.emailRedirectTo });
         return { error: null };
       },
+      getSession: async () => ({ data: { session: { access_token: "tok" } } }),
+      signOut: async () => ({ error: null }),
     },
   }),
 }));
@@ -35,6 +37,7 @@ vi.mock("./supabase-browser", () => ({
 import {
   attemptStartedOn,
   createAccount,
+  deleteAccount,
   OAUTH_KEY,
   signInWithGoogle,
   callbackCarriesSession,
@@ -273,5 +276,39 @@ describe("sign-up carries where to come back to", () => {
     fake.anonymous = true;
     await createAccount("a@b.co", "");
     expect(fake.redirects[0].to).toBe("https://speakethos.com/auth/reset?first=1");
+  });
+});
+
+describe("deleting the account, when the server cannot say what happened", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("never tells someone with a plan that nothing happened: the plan is cancelled first", async () => {
+    vi.stubGlobal("fetch", async () => {
+      throw new TypeError("network");
+    });
+    const lost = await deleteAccount({ plan: true });
+    expect(lost.ok).toBe(false);
+    expect(lost.error).toBe("The server didn't answer. Your account is still here, but your plan may have ended. Try again.");
+    vi.stubGlobal("fetch", async () => new Response("<html>gateway</html>", { status: 504 }));
+    expect((await deleteAccount({ plan: true })).error).toBe(
+      "That didn't go through. Your account is still here, but your plan may have ended. Try again."
+    );
+  });
+
+  it("keeps the plain line for an account with no plan", async () => {
+    vi.stubGlobal("fetch", async () => {
+      throw new TypeError("network");
+    });
+    expect((await deleteAccount()).error).toBe("The server didn't answer. Nothing was deleted; try again.");
+    vi.stubGlobal("fetch", async () => new Response("", { status: 502 }));
+    expect((await deleteAccount()).error).toBe("That didn't go through. Nothing was deleted.");
+  });
+
+  it("says the server's own sentence when it has one", async () => {
+    const said = "Your plan is cancelled, but your audio didn't delete. Nothing else was touched; try again.";
+    vi.stubGlobal("fetch", async () => new Response(JSON.stringify({ error: said }), { status: 502 }));
+    expect((await deleteAccount({ plan: true })).error).toBe(said);
   });
 });

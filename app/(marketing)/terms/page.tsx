@@ -102,8 +102,9 @@ export default function Terms() {
       <h2 className={HEAD}>Your account</h2>
       <p className={READ}>
         Keep your sign-in to yourself; what happens under it is yours. You
-        can delete the account at any time from Settings. That cancels any
-        plan first, then removes your data as the privacy policy describes.
+        can delete the account at any time from Settings. That ends any plan
+        at once, with no refund for the rest of its month, then removes your
+        data as the privacy policy describes.
       </p>
 
       <h2 className={HEAD}>Fair use</h2>
@@ -187,7 +188,7 @@ export default function Terms() {
           stays at {formatAud(FLOOR_PRICE_CENTS)} for as long as you keep it.
         </li>
         <li>
-          <Lead>Cancelling.</Lead> Cancel any time in the app: tap your plan
+          <Lead>Cancelling.</Lead> Cancel any time in the app: tap Premium
           on You, or Manage plan in Settings, then Cancel plan. Premium stays
           on to the end of the month you&apos;ve paid for, then the plan ends.
         </li>

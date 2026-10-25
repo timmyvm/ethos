@@ -4,18 +4,30 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { IconBoss, IconBubble, IconMic, IconSpark, IconTrend } from "@/components/Icon";
 import { PremiumMark } from "@/components/PremiumMark";
-import { RollNumber } from "@/components/premium/RollNumber";
+import { Price } from "@/components/premium/PlanCard";
 import { Stair } from "@/components/premium/Stair";
 import { Overlay } from "@/components/ui/Overlay";
 import { useAttempts } from "@/lib/attempt";
 import { currentPath, openPortal, startCheckout } from "@/lib/billing-client";
-import { PAYWALL_COPY, calendarFromToday, ladderSentence, paywallStep, stepLabels } from "@/lib/plan-view";
+import {
+  MANAGE_COPY,
+  PAYWALL_COPY,
+  PENDING_LINE,
+  calendarFromToday,
+  heldPlan,
+  ladderSentence,
+  paywallStep,
+  planView,
+  stepLabels,
+  unpaidLine,
+  type PlanView,
+} from "@/lib/plan-view";
 import { withPortalReturn } from "@/lib/plan-return";
 import { prefersReducedMotion } from "@/lib/prefs";
-import { formatBare } from "@/lib/pricing";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { ACTION_CLASS } from "@/lib/ui";
 import { authHref, withPaywall } from "@/lib/use-paywall-return";
+import { readBilling } from "@/lib/use-plan";
 
 /**
  * The Premium sheet (docs/ladder-spec.md, surface 1). It only ever
@@ -152,6 +164,34 @@ export function Paywall({
   // lands after that never sends the browser to Stripe.
   const attempts = useAttempts();
   const note = useRef<HTMLParagraphElement>(null);
+  /*
+   * With checkout open, an account whose plan is held (unpaid, or a
+   * first payment pending) is offered its card, never "Start at
+   * A$12.99": Checkout would only answer it with the portal. Read once
+   * when the sheet opens; it changes the shelf only while nothing has
+   * been tapped. Whatever the read says, a Start that Checkout answers
+   * with the portal says so before the browser leaves (`opening`).
+   */
+  const [held, setHeld] = useState<PlanView | null>(null);
+  const [opening, setOpening] = useState(false);
+  const phaseNow = useRef(phase);
+  phaseNow.current = phase;
+  useEffect(() => {
+    if (!CHECKOUT_OPEN) return;
+    let live = true;
+    readBilling()
+      .then((row) => {
+        if (!live || phaseNow.current !== "ready") return;
+        const v = planView(null, row, today);
+        setHeld(heldPlan(v) ? v : null);
+      })
+      .catch(() => {
+        // Unread, Start stays; Checkout still never sells a second plan.
+      });
+    return () => {
+      live = false;
+    };
+  }, [today]);
   // The scrolling part fades at its foot while there is more under it.
   const scroller = useRef<HTMLDivElement>(null);
   const [more, setMore] = useState(false);
@@ -159,17 +199,18 @@ export function Paywall({
     const el = scroller.current;
     if (el) setMore(el.scrollHeight - el.scrollTop - el.clientHeight > 1);
   }, []);
-  // A state that grows the shelf (the code, the account ask, an error)
-  // keeps the ladder in sight just above it: the part scrolls to its end.
+  // A state that grows the shelf (the code, the account ask, an error,
+  // a held plan's note) keeps the ladder in sight just above it: the
+  // part scrolls to its end.
   useEffect(() => {
-    if (phase !== "code" && phase !== "needsAccount" && phase !== "error") return;
+    if (phase !== "code" && phase !== "needsAccount" && phase !== "error" && !held) return;
     const el = scroller.current;
     if (!el) return;
     const frame = requestAnimationFrame(() =>
       el.scrollTo({ top: el.scrollHeight, behavior: prefersReducedMotion() ? "auto" : "smooth" })
     );
     return () => cancelAnimationFrame(frame);
-  }, [phase]);
+  }, [phase, held]);
 
   useEffect(() => {
     const el = scroller.current;
@@ -234,15 +275,18 @@ export function Paywall({
       return;
     }
     if (out.ok) {
-      // Already on a plan: its card and receipts, never a second plan.
-      // The portal comes back to You flagged, so the plan is asked for
-      // once as Stripe now has it (a fixed card switches Premium back on).
+      // Already on a plan: its card and receipts, never a second plan,
+      // said before the browser leaves for them. The portal comes back
+      // to You flagged, so the plan is asked for once as Stripe now has
+      // it (a fixed card switches Premium back on).
+      setOpening(true);
       const portal = await openPortal({ returnTo: withPortalReturn("/you") });
       if (!attempts.live(id)) return;
       if (portal.ok) {
         window.location.assign(portal.url);
         return;
       }
+      setOpening(false);
       setError(portal.error);
       setPhase("error");
       return;
@@ -252,6 +296,22 @@ export function Paywall({
       return;
     }
     setError(out.error);
+    setPhase("error");
+  }
+
+  /** A held plan's tap: straight to its card and receipts. */
+  async function openCard() {
+    if (phase === "busy") return;
+    const id = attempts.start();
+    setPhase("busy");
+    setError(null);
+    const portal = await openPortal({ returnTo: withPortalReturn("/you") });
+    if (!attempts.live(id)) return;
+    if (portal.ok) {
+      window.location.assign(portal.url);
+      return;
+    }
+    setError(portal.error);
     setPhase("error");
   }
 
@@ -337,13 +397,16 @@ export function Paywall({
               <h3 id="paywall-ladder-head" className="detail-head text-cream">
                 {PAYWALL_COPY.head}
               </h3>
-              {/* The slider speaks for the readout (its valuetext). */}
-              <div aria-hidden className="mt-2 flex items-end justify-between gap-3">
-                <p className="font-display flex items-baseline whitespace-nowrap tabular-nums text-cream">
-                  <span className="mr-1 text-num-m text-cream/70">A$</span>
-                  <RollNumber className="text-num-l" text={formatBare(readout.cents)} value={readout.cents} />
+              {/* The slider speaks for the readout (its valuetext). The
+                  price is the ladder's one Price, its gap the same as the
+                  manage sheet's; "Month 1" sits on the price's baseline
+                  (the last baseline of each side, so "Today" over it
+                  never decides). */}
+              <div aria-hidden className="mt-2 flex items-baseline-last justify-between gap-3">
+                <p className="text-cream">
+                  <Price cents={readout.cents} size="l" tone="plum" roll />
                 </p>
-                <div className="min-w-0 overflow-hidden pb-0.5 text-right">
+                <div className="min-w-0 overflow-hidden text-right">
                   <p key={readout.dateLine} data-dir={turn.dir || undefined} className="roll-line font-display text-row text-cream">
                     {readout.dateLine}
                   </p>
@@ -454,6 +517,18 @@ export function Paywall({
             </>
           ) : (
             <>
+              {/* A held plan: what holds it, where the account ask's note
+                  would stand, then its card as the tap. */}
+              {held && (
+                <p role="status" className="arrive mb-3 rounded-control bg-cream/10 p-4 text-body leading-snug text-cream/85">
+                  {held.kind === "unpaid" ? unpaidLine(held, today) : PENDING_LINE}
+                </p>
+              )}
+              {phase === "busy" && opening && (
+                <p role="status" className="mb-3 text-caption leading-relaxed text-cream/70">
+                  {PAYWALL_COPY.heldOpening}
+                </p>
+              )}
               {phase === "error" && error && (
                 <p role="alert" className="mb-3 text-caption leading-relaxed text-terracotta-300">
                   {error}
@@ -464,12 +539,18 @@ export function Paywall({
                   start() itself refuses a second press. */}
               <button
                 type="button"
-                onClick={() => void start()}
+                onClick={() => void (held ? openCard() : start())}
                 aria-disabled={phase === "busy" || undefined}
                 aria-busy={phase === "busy" || undefined}
                 className={ACTION_CLASS}
               >
-                {phase === "busy" ? PAYWALL_COPY.busy : PAYWALL_COPY.start}
+                {phase === "busy"
+                  ? PAYWALL_COPY.busy
+                  : held
+                    ? held.kind === "unpaid"
+                      ? PAYWALL_COPY.updateCard
+                      : MANAGE_COPY.update
+                    : PAYWALL_COPY.start}
               </button>
               {/* With checkout live the code is the second way in, on one
                   row with "Not yet" so the sheet still fits a phone; with

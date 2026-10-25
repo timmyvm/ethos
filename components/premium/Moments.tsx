@@ -6,11 +6,10 @@ import { SpeechBubble } from "@/components/SpeechBubble";
 import { Overlay, useOverlayClose } from "@/components/ui/Overlay";
 import { CHECKOUT_COPY, checkoutReturnWords, dropWords, pictureLabel, stepLabels, type PlanView } from "@/lib/plan-view";
 import { prefersReducedMotion } from "@/lib/prefs";
-import { formatAud, formatBare } from "@/lib/pricing";
+import { formatAud } from "@/lib/pricing";
 import { ACTION_CLASS } from "@/lib/ui";
 import { usePlan, usePriceDrop } from "@/lib/use-plan";
-import { PriceCell } from "./PlanCard";
-import { RollNumber } from "./RollNumber";
+import { Price, PriceCell } from "./PlanCard";
 import { HOP_DELAY_MS, Stair } from "./Stair";
 
 /**
@@ -67,7 +66,9 @@ export function CheckoutReturn({ view, today }: { view: PlanView; today: Date })
     <div ref={root} data-look="checkout-return" aria-hidden className={seen ? "arrive" : "invisible"}>
       <div className="flex items-center gap-2">
         <DemosArt pose="celebrate" size={120} className="!mx-0 -ml-1" />
-        <SpeechBubble tail="left" className="min-w-0 flex-1">
+        {/* Pretty, not balanced: balance set "Premium is / on. This is /
+            your first step." on a narrow phone. */}
+        <SpeechBubble tail="left" className="min-w-0 flex-1 text-pretty">
           {CHECKOUT_COPY.on}
         </SpeechBubble>
       </div>
@@ -147,18 +148,23 @@ function DropBody({
   return (
     <div className="card-premium max-h-[calc(100dvh-max(1rem,env(safe-area-inset-top)))] w-full max-w-[430px] overflow-x-hidden overflow-y-auto overscroll-contain rounded-t-sheet px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-7 text-cream">
       <div aria-hidden className="mx-auto -mt-3 mb-3 h-1 w-10 rounded-full bg-cream/30" />
+      {/* His line on the plum sheet's own cream, balanced so each
+          sentence keeps its line where it can and "Month 4" never
+          parts: "Your price / dropped. / Month 4 / starts today." at
+          320, two lines from 375. */}
       <div className="flex items-center gap-2">
-        <DemosArt pose="celebrate" size={112} className="!mx-0 -ml-1" />
-        <SpeechBubble tail="left" className="min-w-0 flex-1">
-          {words.bubble}
+        {/* Below 360 he steps down to 88, so his line has the room to
+            set in three lines rather than four. */}
+        <DemosArt pose="celebrate" size={112} className="!mx-0 -ml-1 max-[359px]:!h-[88px] max-[359px]:!w-[88px]" />
+        <SpeechBubble tail="left" material="plum" className="min-w-0 flex-1 text-balance">
+          {words.bubble.replace(/Month (\d+)/, "Month\u00a0$1")}
         </SpeechBubble>
       </div>
       <p role="status" className="sr-only">
         {landed ? `Month ${Math.max(1, view.month)} is ${formatAud(words.toCents)}.` : ""}
       </p>
-      <p aria-hidden className="font-display mt-5 flex items-baseline tabular-nums text-cream">
-        <span className="mr-1 text-num-l text-cream/70">A$</span>
-        <RollNumber className="text-num-hero" text={formatBare(shown)} value={shown} />
+      <p aria-hidden className="mt-5 text-cream">
+        <Price cents={shown} size="hero" tone="plum" roll />
       </p>
       <p className="mt-2 text-caption text-cream/70">{words.caption}</p>
       <Stair

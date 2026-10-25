@@ -111,9 +111,14 @@ right, on `--spring-base`.
 **Reduced motion** (`data-motion="reduce"`): no rise, no hop and no roll. A 200ms fade
 stands in.
 
-**320px:** the steps shrink with the column. If the faces would clip below 34px of width,
-the cents drop to a smaller size, then the faces hide on future steps first. This must be
-checked at 320.
+**320px:** the steps shrink with the column. The faces are sized for the whole stair at
+once, never step by step, so one stair prints every price at one size. As the step's content
+narrows below 36px (a 360 phone) the cents drop to a smaller size (8px); below 32px (a 320
+phone) the whole dollars step down to `row` 14 with them, so all seven faces still print
+whole; below 29px the faces hide on future steps first, then all. The 14 is the one face
+size off the number scale, taken from direction B's own 320 stair: hiding the three
+two-digit faces (the lit month 1 among them) read as a broken ladder. This must be checked
+at 320.
 
 ## Surfaces
 
@@ -181,7 +186,8 @@ The other states:
 |---|---|
 | Floor (month ≥ 7) | The right column is gone. The middle says "This month" `A$6.99`. Foot: "Your lowest price, every month from here." |
 | Ending | Middle left: "Premium until 24 Nov" at `detail`. Foot: "Keep your plan and month 4 is A$9.99." The stair is ghosted after the current step. The card still opens the manage sheet. |
-| Past due | Middle left: "Card declined" at `detail`, with the declined glyph from B in stone-500, never red. Foot: "Premium stays on while it's retried, and month 3 holds at A$10.99." |
+| Past due | Middle left: "Card declined" at `detail`, with the declined glyph from B in stone-500, never red. Foot: "Premium stays on while month 4's A$9.99 is retried." (the charge being retried is the renewal that failed, never this month's price). Stripe has already rolled the period into that month, so the stair's labels count month m + 1 from a month before `current_period_end`. |
+| Unpaid | As past due, with "Premium is off until month 4's A$9.99 goes through." The steps are numbered, not dated: Stripe keeps rolling periods nobody pays for. |
 | Invite code (premium with no billing row) | Unchanged: "Premium is on this account." |
 | Free, or a plan that ended | The existing Premium door, unchanged. |
 | Unknown (a profile or billing read failed or is loading) | A skeleton at the card's final height. Never the free door, never A$0.00. |
@@ -234,9 +240,15 @@ behaviour (Escape closes, focus trapped).
 
 **Past due:**
 - The title "Card declined" with the glyph.
-- Body: "Premium stays on while it's retried, and month 3 holds at A$10.99."
+- Body: "Premium stays on while month 4's A$9.99 is retried."
 - The stair, then the terracotta tap "Update card" (portal).
-- Then the group: "Receipts" (portal) and "Cancel plan" (the same confirm).
+- Then the group: "Receipts" (portal) and "Cancel plan" (a confirm of its own: "Month 4's
+  A$9.99 is still being retried. If it goes through, Premium runs to 24 Nov; if it fails,
+  the plan ends when the retries stop.").
+- Cancelled while declined, the head keeps "Card declined" over "The plan is set to end.
+  Premium runs to 24 Nov if month 4's A$9.99 goes through.", and the actions are Ending's
+  ("Keep my plan" and the card row). An unpaid plan cancelled says "The plan ends on 7 Nov"
+  and never "Premium runs to": Premium is off. Neither offers the cancel again.
 
 **A 409 from cancel or resume:** sync, re-render from the fresh row, and show that row's
 state. Never a dead end.
@@ -249,7 +261,11 @@ the Disclosure, and it opens the same ManageSheet. The secondary line by state:
 - Active: "Month 3, A$9.99 from 24 Nov"
 - Floor: "Month 9, A$6.99"
 - Ending: "Ends 24 Nov"
-- Past due: "Card declined"
+- Past due: "Card declined" (cancelled: "Card declined, set to end")
+- Unpaid: "Card declined" (cancelled: "Card declined, ends 7 Nov")
+
+While the plan is unknown, a device that last saw a plan here (`ethos.plan.row`) holds the
+row's place with its skeleton; a failed read says "Premium didn't load." with its retry.
 
 ### 5. The price-drop moment (`PriceDropSheet`)
 
@@ -302,7 +318,8 @@ Update the page's date to 25 October 2026.
 Privacy names Stripe:
 - Stripe takes the payment and holds the card. Ethos never sees the card number.
 - Ethos keeps the Stripe customer id, the plan's status and the months paid.
-- Deleting the account cancels the plan first.
+- Deleting the account ends the plan at once. The delete confirm says so before anyone
+  types DELETE: "Your plan ends now too, with no refund for the days left to 24 Nov."
 
 ## Checklist (implementers tick it, reviewers verify it)
 

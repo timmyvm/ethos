@@ -51,6 +51,10 @@ const RISE_STAGGER_MS = 30;
 const PAW_LANDS_MS = 300;
 /** The stage's wait before the hop, so the sheet has landed first. */
 export const HOP_DELAY_MS = 450;
+/** How far a finger goes sideways before a touch on the stair is a scrub rather than the sheet's scroll. */
+const SCRUB_SLOP_PX = 8;
+/** A finger resting on a step presses it after this long, if it has not become a scroll or a scrub. */
+const TOUCH_PRESS_DELAY_MS = 90;
 
 type StepState = "lit" | "paid" | "future" | "ghost";
 type Phase = "rest" | "waiting" | "flying" | "landed";
@@ -218,9 +222,26 @@ export function Stair({
   // -- The slider: the Paw hops to each new selection.
   const previous = useRef(tokenAt);
   /** The finger on the slider: where it started, and the step it is on now
-      (a ref, because pointer events land faster than React renders). */
-  const dragging = useRef<{ id: number; moved: boolean; before: number; at: number } | null>(null);
+      (a ref, because pointer events land faster than React renders). A
+      touch is not yet ours until it moves sideways (`moved`) or lifts: it
+      may be the sheet's scroll, and a scroll that began on the stair must
+      never flip the readout and buzz before the browser takes it. */
+  const dragging = useRef<{
+    id: number;
+    touch: boolean;
+    x0: number;
+    moved: boolean;
+    before: number;
+    at: number;
+  } | null>(null);
   const [pressed, setPressed] = useState<number | null>(null);
+  /** A finger that rests on a step presses it after a beat, as a scroll view delays its touches. */
+  const pressSoon = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stopPressSoon = () => {
+    if (pressSoon.current !== null) clearTimeout(pressSoon.current);
+    pressSoon.current = null;
+  };
+  useEffect(() => stopPressSoon, []);
   useLayoutEffect(() => {
     const was = previous.current;
     previous.current = tokenAt;
@@ -304,11 +325,24 @@ export function Stair({
           if (e.pointerType === "mouse" && e.button !== 0) return;
           const n = stepAt(e.clientX);
           const before = tokenAt ?? 1;
-          dragging.current = { id: e.pointerId, moved: false, before, at: n };
+          const touch = e.pointerType === "touch";
+          dragging.current = { id: e.pointerId, touch, x0: e.clientX, moved: false, before, at: n };
           try {
             e.currentTarget.setPointerCapture(e.pointerId);
           } catch {
             // A pointer the browser no longer tracks; the tap still selects.
+          }
+          // A mouse or a pen selects on press. A finger waits to be a tap
+          // (lifted where it landed) or a scrub (8px sideways); resting
+          // on a step, it presses it after a beat.
+          if (touch) {
+            stopPressSoon();
+            const id = e.pointerId;
+            pressSoon.current = setTimeout(() => {
+              const d = dragging.current;
+              if (d && d.id === id && !d.moved) setPressed(d.at);
+            }, TOUCH_PRESS_DELAY_MS);
+            return;
           }
           setPressed(n);
           choose(n, "tap", before);
@@ -316,7 +350,17 @@ export function Stair({
         onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => {
           const d = dragging.current;
           if (!d || d.id !== e.pointerId) return;
+          if (d.touch && !d.moved && Math.abs(e.clientX - d.x0) < SCRUB_SLOP_PX) return;
           const n = stepAt(e.clientX);
+          if (d.touch && !d.moved) {
+            stopPressSoon();
+            // Sideways: the gesture is the stair's now, from the step it started on.
+            d.moved = true;
+            d.at = n;
+            setPressed(n);
+            choose(n, "drag", d.before);
+            return;
+          }
           if (n !== d.at) {
             const was = d.at;
             d.at = n;
@@ -326,20 +370,27 @@ export function Stair({
           }
         },
         onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => {
-          if (dragging.current?.id !== e.pointerId) return;
-          // Letting go keeps the selection.
+          const d = dragging.current;
+          if (!d || d.id !== e.pointerId) return;
+          // Letting go keeps the selection; a finger that never moved was a tap.
+          stopPressSoon();
           dragging.current = null;
           setPressed(null);
+          if (d.touch && !d.moved) choose(d.at, "tap", d.before);
         },
         onPointerCancel: (e: React.PointerEvent<HTMLDivElement>) => {
           const d = dragging.current;
           if (!d || d.id !== e.pointerId) return;
+          stopPressSoon();
           dragging.current = null;
           setPressed(null);
-          // The browser took the touch for a scroll: it was never a scrub.
-          if (!d.moved && d.at !== d.before) onSelect?.(d.before, "tap");
+          // The browser took the touch for a scroll: it was never a scrub,
+          // and a finger selects nothing before it is one. A mouse or pen
+          // press (selected on contact) goes back.
+          if (!d.touch && !d.moved && d.at !== d.before) onSelect?.(d.before, "tap");
         },
         onLostPointerCapture: () => {
+          stopPressSoon();
           if (!dragging.current) return;
           dragging.current = null;
           setPressed(null);

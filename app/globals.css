@@ -3668,11 +3668,20 @@ summary::-webkit-details-marker {
  * The edge and the lip are borders over a padding-box fill, so a
  * translucent edge reads against the sheet behind it, never against
  * the step's own fill. A paid step's border takes its fill's colour,
- * so pressing flat is a transition, not a cut.
+ * so pressing flat is a transition, not a cut. The lit step is one
+ * solid object instead: its edge is transparent over a border-box fill,
+ * and its lip is a band painted in that fill (`--stair-lip-color`),
+ * never a border of another colour, whose diagonal corner join drew
+ * the lip up the foot's curve as a horn at each corner.
  */
 :root {
   /* The cents on a step too narrow for the suffix size (a 320 phone). */
   --stair-cents-xs: 0.5rem;
+}
+@property --stair-lip-color {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: transparent;
 }
 
 .stair-wrap {
@@ -3681,6 +3690,9 @@ summary::-webkit-details-marker {
 }
 
 .stair {
+  /* The faces are sized for the whole stair at once (below), so every
+     step on one stair prints its price at one size. */
+  container: stair / inline-size;
   --stair-gap: 6px;
   /* (column - 6 gaps) / 7, the column being the parent's content box. */
   --stair-col: calc((100% - var(--stair-bleed, 0px) - 6 * var(--stair-gap)) / 7);
@@ -3715,6 +3727,9 @@ summary::-webkit-details-marker {
 }
 .stair[data-mode="slider"] {
   cursor: pointer;
+  /* Focused from the keyboard, the sheet scrolls it clear with room for
+     the ring's 8px outset (and .paywall-scroll keeps it above the fade). */
+  scroll-margin-block: 8px;
 }
 /* The slider's focus ring wraps the column, not the floor's bleed, so
    the sheet's edge never clips it. */
@@ -3761,18 +3776,26 @@ summary::-webkit-details-marker {
   flex-direction: column;
   align-items: center;
   overflow: hidden;
-  /* Each step asks its own width whether its face fits (below). */
-  container-type: inline-size;
   border-style: solid;
   border-width: var(--stair-edge) var(--stair-edge) var(--stair-lip);
   border-radius: var(--stair-radius) var(--stair-radius) var(--stair-radius-foot) var(--stair-radius-foot);
   background-clip: padding-box;
+  /* The lit step's lip: a band along the foot of the border box, the
+     lip's height, in `--stair-lip-color` (transparent on every other
+     step, and clipped away with their padding-box fill). */
+  background-image: linear-gradient(var(--stair-lip-color), var(--stair-lip-color));
+  background-origin: border-box;
+  background-position: bottom;
+  background-repeat: no-repeat;
+  background-size: 100% var(--stair-lip);
   /* Up is a spring (#240); the colours cross-fade. */
   transition:
     height var(--spring-snappy-duration) var(--spring-snappy),
     border-bottom-width var(--spring-snappy-duration) var(--spring-snappy),
+    background-size var(--spring-snappy-duration) var(--spring-snappy),
     background-color var(--duration-base) var(--ease-out),
     border-color var(--duration-base) var(--ease-out),
+    --stair-lip-color var(--duration-base) var(--ease-out),
     color var(--duration-base) var(--ease-out);
 }
 .stair[data-bleed] .stair-col[data-floor] .stair-block {
@@ -3792,6 +3815,7 @@ summary::-webkit-details-marker {
 .stair-col[data-pressed] .stair-block {
   height: calc(100% - 2px);
   border-bottom-width: calc(var(--stair-lip) - 2px);
+  background-size: 100% calc(var(--stair-lip) - 2px);
   transition-duration: var(--duration-fast);
   transition-timing-function: var(--ease-out);
 }
@@ -3831,26 +3855,34 @@ summary::-webkit-details-marker {
   letter-spacing: 0;
   margin-left: 0.5px;
 }
-/* A narrow step (a 320 phone, 33.7px): the cents drop a size first,
-   then the dollars, then the faces of future steps go, then any face
-   that cannot fit. Thresholds are the faces' own measured widths. */
-@container (max-width: 35.9px) {
+/* A narrow phone. The faces are sized per stair, never per step: a
+   per-step query let the wider floor keep its 10px cents beside six
+   steps at 8px. The thresholds are the stair's own width for a step
+   content box of 35.9, 31.9, 28.9 and 21.9px, the faces' measured
+   widths ("12.99" is 34.7px at 17/10, 31.8 at 17/8, 28.3 at 14/8),
+   with the 24px bleed every faced stair has: width = 7 x (content + 4)
+   + 6 gaps + bleed. In that order, the cents drop a size (a 360
+   phone); then the dollars step to the row size with them, so all
+   seven faces still print whole (a 320 phone: direction B's own 320
+   move, the one face size below the number scale, logged in the spec);
+   then the faces of future steps go; then every face. */
+@container stair (max-width: 339.3px) {
   .stair-cents {
     font-size: var(--stair-cents-xs);
   }
 }
-@container (max-width: 32.9px) {
+@container stair (max-width: 311.3px) {
   .stair-price {
     padding-top: 6px;
     font-size: var(--text-row);
   }
 }
-@container (max-width: 28.9px) {
+@container stair (max-width: 290.3px) {
   .stair-col:is([data-state="future"], [data-state="ghost"], [data-wide]) .stair-price {
     visibility: hidden;
   }
 }
-@container (max-width: 21.9px) {
+@container stair (max-width: 241.3px) {
   .stair-price {
     visibility: hidden;
   }
@@ -3885,18 +3917,22 @@ summary::-webkit-details-marker {
 }
 /* The lit step is one solid object: its fill runs under its edge (no
    antialiased rim where a padding-box fill meets a border of the same
-   colour), and its lip is cream/60 over plum, mixed opaque. */
+   colour), and its lip is cream/60 over plum, mixed opaque, painted as
+   a band in the fill. */
 .stair[data-tone="plum"] .stair-col[data-state="lit"] .stair-block {
   background-color: #f7f7f7;
   background-clip: border-box;
-  border-color: #f7f7f7;
-  border-bottom-color: color-mix(in srgb, #f7f7f7 60%, #3c2043);
+  border-color: transparent;
+  --stair-lip-color: color-mix(in srgb, #f7f7f7 60%, #3c2043);
   color: #3c2043;
 }
+/* Paid faces at cream/68: 4.8:1 on the cream/16 fill over plum, AA for
+   17px text (cream/60 was 4.1). Still well under the future steps'
+   cream/92, so the months behind you read as behind you. */
 .stair[data-tone="plum"] .stair-col[data-state="paid"] .stair-block {
   background-color: rgb(247 247 247 / 0.16);
   border-color: rgb(247 247 247 / 0.16);
-  color: rgb(247 247 247 / 0.6);
+  color: rgb(247 247 247 / 0.68);
 }
 .stair[data-tone="plum"] .stair-col[data-state="ghost"] .stair-block {
   border-color: rgb(247 247 247 / 0.24);
@@ -3928,14 +3964,23 @@ summary::-webkit-details-marker {
 .stair[data-tone="neutral"] .stair-col[data-state="lit"] .stair-block {
   background-color: var(--color-ink);
   background-clip: border-box;
-  border-color: var(--color-ink);
-  border-bottom-color: var(--stair-lit-lip);
+  border-color: transparent;
+  --stair-lip-color: var(--stair-lit-lip);
   color: var(--color-ground);
 }
 .stair[data-tone="neutral"] .stair-col[data-state="paid"] .stair-block {
   background-color: var(--color-surface);
   border-color: var(--color-surface);
   color: var(--color-stone-500);
+}
+/* In dark the surface step is darker than the raised card it sits on,
+   and the months behind you sank into it. A fill reads in dark as a
+   light overlay (iOS's fills): white at 8% over whatever is behind,
+   card, sheet or ground, about 1.3:1 against the card where light's
+   surface-on-white is 1.1. */
+:root[data-theme="dark"] .stair[data-tone="neutral"] .stair-col[data-state="paid"] .stair-block {
+  background-color: rgb(255 255 255 / 0.08);
+  border-color: rgb(255 255 255 / 0.08);
 }
 .stair[data-tone="neutral"] .stair-col[data-state="ghost"] .stair-block {
   border-color: var(--color-edge);
@@ -4058,16 +4103,19 @@ summary::-webkit-details-marker {
   0% {
     height: 100%;
     border-bottom-width: var(--stair-lip);
+    background-size: 100% var(--stair-lip);
     animation-timing-function: var(--ease-out);
   }
   30% {
     height: calc(100% - 2px);
     border-bottom-width: calc(var(--stair-lip) - 2px);
+    background-size: 100% calc(var(--stair-lip) - 2px);
     animation-timing-function: var(--ease-out);
   }
   100% {
     height: 100%;
     border-bottom-width: var(--stair-lip);
+    background-size: 100% var(--stair-lip);
   }
 }
 @keyframes stair-token-dip {
@@ -4133,7 +4181,7 @@ summary::-webkit-details-marker {
   transition: none;
 }
 :root[data-motion="reduce"] .stair-block {
-  transition-property: background-color, border-color, color;
+  transition-property: background-color, border-color, --stair-lip-color, color;
 }
 :root[data-motion="reduce"] :is(.stair-col[data-dip] .stair-block, .stair-token[data-dip]) {
   animation: none;
@@ -4148,6 +4196,22 @@ summary::-webkit-details-marker {
 .paywall-scroll[data-more] {
   -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
   mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+}
+/* Whatever the keyboard focuses in it (the slider) is scrolled clear of
+   that 32px fade, so its ring and its month labels are never washed. */
+.paywall-scroll {
+  scroll-padding-bottom: 32px;
+}
+
+/* -- A skeleton's words, a bar per line (PlanCard.tsx) ------------------- */
+/* The words hold their own wrap and height; each line they take draws
+   its own bar (box-decoration-break), so a sentence that wraps at 320
+   keeps its two lines while it loads. */
+.skeleton-text {
+  color: transparent;
+  border-radius: 4px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }
 
 /* -- RollNumber (components/premium/RollNumber.tsx) ---------------------- */

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { AuthForm } from "@/components/AuthForm";
 import { createAccount } from "@/lib/auth";
+import { authHref, useNextPath } from "@/lib/use-paywall-return";
 
 /**
  * Sign-up (§0.2): Google, or email and password (Google since 27 Aug).
@@ -16,6 +17,8 @@ import { createAccount } from "@/lib/auth";
  * title never changes after it is drawn (auth-12).
  */
 export default function SignUpPage() {
+  // A paywall's account ask comes back through here (lib/use-paywall-return.ts).
+  const next = useNextPath();
   return (
     <AuthForm
       mode="signup"
@@ -27,7 +30,7 @@ export default function SignUpPage() {
         <p className="text-caption text-stone-500">
           Already have one?{" "}
           <Link
-            href="/signin"
+            href={authHref("signin", next)}
             className="text-link press inline-flex min-h-11 items-center px-1 text-terracotta-700"
           >
             Sign in

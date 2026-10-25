@@ -14,6 +14,7 @@ import {
   type SessionState,
 } from "@/lib/auth";
 import { useGoogleSignIn } from "@/lib/use-oauth-return";
+import { asksForPaywall, authHref, useNextPath } from "@/lib/use-paywall-return";
 
 /** Where the auth screens' back goes unless a page says otherwise. */
 const TODAY = { href: "/", label: "Today" };
@@ -91,6 +92,14 @@ export function AuthForm({
   // Google's own state: it comes back when they do, and never touches
   // the email form below it (lib/use-oauth-return.ts).
   const google = useGoogleSignIn(mode);
+  /*
+   * Where a signed-in person goes next: a safe same-origin `next=` (the
+   * paywall's account ask sends its page with paywall=1, so the sheet
+   * reopens there), or the floor. Read after mount; the way back in the
+   * bar goes there too, named for the sheet it reopens.
+   */
+  const next = useNextPath();
+  const back = next ? { href: next, label: asksForPaywall(next) ? "Premium" : "Back" } : TODAY;
 
   useEffect(() => {
     let live = true;
@@ -157,7 +166,7 @@ export function AuthForm({
     if (result.checkInbox) {
       setNote(result.note ?? null);
       setSent(true);
-    } else window.location.href = "/";
+    } else window.location.href = next ?? "/";
   }
 
   if (!ready) {
@@ -165,13 +174,14 @@ export function AuthForm({
       <AuthLoading
         label="Loading"
         card={mode === "signup" ? "h-[407px]" : "h-[382px]"}
+        back={back}
       />
     );
   }
 
   if (sent) {
     return (
-      <Shell title="Check your inbox">
+      <Shell title="Check your inbox" back={back}>
         <div className="arrive flex flex-1 flex-col">
           <p className="mt-3 text-read text-stone-800 text-pretty">
             We&apos;ve sent a confirmation link to <Address>{email}</Address>{" "}
@@ -208,7 +218,7 @@ export function AuthForm({
   const passwordInvalid = errorField === "password";
 
   return (
-    <Shell title={heading}>
+    <Shell title={heading} back={back}>
       <div className="arrive flex flex-col">
         {carrying && (
           /* A tile, not a card: a `surface` fill, no shadow and no
@@ -237,7 +247,7 @@ export function AuthForm({
                   <span className="font-semibold">different</span> account
                   leaves them on this device.{" "}
                   <Link
-                    href="/signup"
+                    href={authHref("signup", next)}
                     className="text-link whitespace-nowrap text-terracotta-700"
                   >
                     Keep them instead

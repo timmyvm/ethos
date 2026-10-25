@@ -3,8 +3,11 @@
 import Link from "next/link";
 import { AuthForm } from "@/components/AuthForm";
 import { signIn } from "@/lib/auth";
+import { authHref, useNextPath } from "@/lib/use-paywall-return";
 
 export default function SignInPage() {
+  // A paywall's account ask comes back through here (lib/use-paywall-return.ts).
+  const next = useNextPath();
   return (
     <AuthForm
       mode="signin"
@@ -25,7 +28,7 @@ export default function SignInPage() {
         /* One door left in the footer: the one somebody without an
            account came here to find. */
         <Link
-          href="/signup"
+          href={authHref("signup", next)}
           className="text-link press inline-flex min-h-11 items-center px-1 text-terracotta-700"
         >
           Create an account

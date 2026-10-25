@@ -24,6 +24,7 @@ import {
 } from "@/lib/hostile";
 import { buzz } from "@/lib/prefs";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
+import { usePaywallReturn } from "@/lib/use-paywall-return";
 
 /**
  * Hostile Q&A, the interrogation (DECISIONS #183). Sixty seconds on a
@@ -108,6 +109,9 @@ export default function HostilePage() {
   const [seconds, setSeconds] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [paywall, setPaywall] = useState<string | null>(null);
+  // Back from the paywall's account doors or Checkout's back arrow
+  // (paywall=1): the sheet opens again where it was.
+  usePaywallReturn(() => setPaywall("Hostile Q&A · once a week free"));
   const [pending, setPending] = useState<{
     question: string;
     quoted: string;

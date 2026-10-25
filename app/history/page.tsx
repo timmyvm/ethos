@@ -36,6 +36,7 @@ import {
 } from "@/lib/log";
 import { starsByLesson, totalStars, UNITS } from "@/lib/path";
 import { TRAIT, type TraitId } from "@/content/traits";
+import { usePaywallReturn } from "@/lib/use-paywall-return";
 
 const FREE_DAYS = 7; // mechanics.md: free tier sees the last 7 days
 const DASH = "—";
@@ -91,6 +92,9 @@ export default function HistoryPage() {
   const [readAt, setReadAt] = useState(0);
   const [failed, setFailed] = useState(false);
   const [paywall, setPaywall] = useState<PaywallAsk | null>(null);
+  // Back from the paywall's account doors or Checkout's back arrow
+  // (paywall=1): the sheet opens again where it was.
+  usePaywallReturn(() => setPaywall({ reason: "Premium" }));
   const [premium, setPremium] = useState(false);
   const [showFillers, setShowFillers] = useState(false);
 

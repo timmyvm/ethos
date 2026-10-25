@@ -1067,6 +1067,12 @@ function RepScreen() {
           <Paywall
             reason={paywall.reason}
             headline={paywall.headline}
+            // The debrief lives only in this page's memory, so the way
+            // back from the account doors or Checkout is the stored
+            // recording (which reopens the sheet), or You before it is
+            // stored. Never this live /rep address: it lands on an
+            // empty Record screen.
+            returnTo={result.repId ? `/rep/${result.repId}` : "/you"}
             onClose={() => setPaywall(null)}
             onUnlocked={() => {
               setPremium(true);
@@ -2154,6 +2160,9 @@ function ProgressMoment({
         <Paywall
           reason={`Day ${days} of speaking`}
           headline={`${days} days of numbers. Keep all of them.`}
+          // This moment is gone after a reload: come back to You, which
+          // reopens the sheet.
+          returnTo="/you"
           onClose={() => setSheet(false)}
           onUnlocked={onSkip}
         />

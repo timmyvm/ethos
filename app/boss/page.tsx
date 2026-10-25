@@ -18,6 +18,7 @@ import { weekStart } from "@/lib/level";
 import { repHref } from "@/lib/rep-config";
 import { modById, STRESS_MODS, xpMultiplier } from "@/lib/stress-mods";
 import { ACTION_CLASS, DISABLED_CLASS, INPUT_CLASS } from "@/lib/ui";
+import { usePaywallReturn } from "@/lib/use-paywall-return";
 
 const RESEARCH_SECONDS = 240; // 4 minutes (mechanics.md: 3–5 min window)
 
@@ -78,6 +79,9 @@ export default function BossPage() {
   const [phase, setPhase] = useState<Phase>("lobby");
   const [left, setLeft] = useState(RESEARCH_SECONDS);
   const [paywall, setPaywall] = useState<string | null>(null);
+  // Back from the paywall's account doors or Checkout's back arrow
+  // (paywall=1): the sheet opens again where it was.
+  usePaywallReturn(() => setPaywall("Premium"));
   /** Unknown until the profile read lands: the spins counter waits for
       it, so a paying account never flashes a free allowance. */
   const [premium, setPremium] = useState<boolean | null>(null);

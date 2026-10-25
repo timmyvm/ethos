@@ -25,6 +25,7 @@ import { computeMetrics, substance } from "@/lib/metrics";
 import { fromRow } from "@/lib/presence";
 import { topicFromLessonId } from "@/lib/rep-config";
 import { modById } from "@/lib/stress-mods";
+import { usePaywallReturn } from "@/lib/use-paywall-return";
 
 /** Where back goes, on every state of this screen. */
 const BACK = { href: "/history", label: "Log" };
@@ -64,6 +65,9 @@ export default function RepDetail({
   const [failed, setFailed] = useState(false);
   const [premium, setPremium] = useState(false);
   const [paywall, setPaywall] = useState<PaywallAsk | null>(null);
+  // Back from the paywall's account doors or Checkout's back arrow
+  // (paywall=1): the sheet opens again where it was.
+  usePaywallReturn(() => setPaywall({ reason: "Premium" }));
 
   /*
    * log-12: a failed read and a missing row are different screens. The

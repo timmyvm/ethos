@@ -21,6 +21,7 @@ import { draw, GAMES, needsPremium, type Game } from "@/lib/games";
 import { weekStart } from "@/lib/level";
 import { repHref } from "@/lib/rep-config";
 import { ACTION_CLASS } from "@/lib/ui";
+import { usePaywallReturn } from "@/lib/use-paywall-return";
 
 /**
  * Practice, the tab that was Tools (DECISIONS #157, #184, #292, #294).
@@ -78,6 +79,9 @@ export default function GamesPage() {
      rather than showing a paying user the wall (#146). */
   const [planFailed, setPlanFailed] = useState(false);
   const [paywall, setPaywall] = useState<string | null>(null);
+  // Back from the paywall's account doors or Checkout's back arrow
+  // (paywall=1): the sheet opens again where it was.
+  usePaywallReturn(() => setPaywall("Premium games"));
   /* Whether this week's boss has a recording behind it yet. Read once,
      from the same rows the log shows. Null while in flight (the label
      holds its line); a failed read lands on false and the card says

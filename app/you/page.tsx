@@ -34,7 +34,7 @@ import { LEVEL_AT, DOUBLE_AT, rankedTraits, traitLevels, type TraitLevel } from 
 import { TRAIT, type TraitId } from "@/content/traits";
 import { syncFreezes } from "@/lib/freeze-sync";
 import { levelFromXp } from "@/lib/level";
-import { readable, readFailure } from "@/lib/load";
+import { readable, readFailure, withTimeout } from "@/lib/load";
 import { starsByLesson, totalStars } from "@/lib/path";
 import { cleanName, MAX_NAME, readOnboarding, type OnboardingState } from "@/lib/answers";
 import { syncOnboarding } from "@/lib/answers-sync";
@@ -159,9 +159,11 @@ export default function YouPage() {
   const stripeReturn = useStripeReturn();
   const { arrival, rereading } = useStripeReturns(stripeReturn, plan, setPremium);
   const [managing, setManaging] = useState(false);
+  // Held back while any other sheet is up: two sheets at once is one
+  // Escape for two and a scroll lock to unpick.
   const drop = usePriceDrop(
     plan.view,
-    stripeReturn !== undefined && stripeReturn !== "checkout" && !managing && paywall === null
+    stripeReturn !== undefined && stripeReturn !== "checkout" && !managing && paywall === null && openTrait === null
   );
   const planSlot = useRef<HTMLDivElement>(null);
   // A page someone came back to from the paywall's account doors (or
@@ -245,7 +247,10 @@ export default function YouPage() {
     loadLexicon();
     loadXp();
     setOnboarding(readOnboarding());
-    fetchProfile()
+    // The profile decides code or free for the plan, so it takes the
+    // page-level ceiling too: a read that never answers ends in the
+    // plan's retry, never a skeleton for good.
+    withTimeout(fetchProfile())
       .then((p) => {
         setName(p?.display_name ?? null);
         setNameKnown(true);
@@ -272,7 +277,7 @@ export default function YouPage() {
     plan.retry();
     if (profileRead !== "failed") return;
     setProfileRead("loading");
-    fetchProfile()
+    withTimeout(fetchProfile())
       .then((p) => {
         setProfileRead(p);
         setPremium(p?.premium ?? false);
@@ -282,19 +287,67 @@ export default function YouPage() {
 
   /* Back from Checkout the plan is the news, and it lives at the foot of
      the page: bring it into view while Premium switches on, and again
-     when the moment lands (only as far as it takes). */
+     when the moment lands (only as far as it takes). While it switches,
+     what lands above it (the recordings' card, the badges' bars, the
+     account gate) pushes it down after the first scroll, so the page
+     follows it on every resize until the person scrolls for themselves. */
   useEffect(() => {
     if (stripeReturn !== "checkout") return;
     const el = planSlot.current;
     if (!el) return;
-    const frame = requestAnimationFrame(() =>
+    const go = () =>
       el.scrollIntoView({
         block: arrival === "switching" ? "center" : "nearest",
         behavior: prefersReducedMotion() ? "auto" : "smooth",
-      })
-    );
-    return () => cancelAnimationFrame(frame);
+      });
+    const frame = requestAnimationFrame(go);
+    const page = el.closest("main");
+    if (arrival !== "switching" || !page || typeof ResizeObserver === "undefined") {
+      return () => cancelAnimationFrame(frame);
+    }
+    let held = false;
+    const hold = () => {
+      held = true;
+    };
+    const ro = new ResizeObserver(() => {
+      if (!held) go();
+    });
+    ro.observe(page);
+    const opts = { passive: true } as const;
+    window.addEventListener("wheel", hold, opts);
+    window.addEventListener("touchstart", hold, opts);
+    window.addEventListener("keydown", hold);
+    return () => {
+      cancelAnimationFrame(frame);
+      ro.disconnect();
+      window.removeEventListener("wheel", hold);
+      window.removeEventListener("touchstart", hold);
+      window.removeEventListener("keydown", hold);
+    };
   }, [stripeReturn, arrival]);
+
+  /** The first step's moment holds the plan's place, and with it the page's one Demos. */
+  const momentUp = arrival === "on" && !!plan.today && hasPlan(plan.view);
+
+  /* The manage sheet closed over a card that is gone (a 409 found the
+     plan ended): the focus the sheet gave back (to the card that opened
+     it) had nowhere to land, so it goes to what holds the plan's place
+     now, the door or the slot. Run after the commit that unmounts the
+     sheet, whose own cleanup gives focus back first. */
+  const wasManaging = useRef(false);
+  useEffect(() => {
+    if (managing) {
+      wasManaging.current = true;
+      return;
+    }
+    if (!wasManaging.current) return;
+    wasManaging.current = false;
+    const active = document.activeElement;
+    if (active && active !== document.body && active.isConnected) return;
+    const slot = planSlot.current;
+    const door = slot?.querySelector<HTMLElement>("button, a[href]");
+    (door ?? slot)?.focus({ preventScroll: true });
+  }, [managing]);
 
   /** The plan's slot is waiting on a read or a sync: its skeleton is up. */
   const planPending =
@@ -363,8 +416,17 @@ export default function YouPage() {
           numbers land. */}
       <section aria-label="Your profile" className="card mt-5 p-5 text-center">
         {/* His sky coin on the plain card (never coral, his coat). At
-            128 his idle clip still plays (#316, from 120 up). */}
-        <DemosArt pose="hello" size={128} halo={{ tone: "sky", kind: "coin" }} />
+            128 his idle clip still plays (#316, from 120 up). While the
+            checkout's moment celebrates at the foot, he is there, not
+            here: the coin holds its 128 with nobody on it, so the page
+            has one Demos and nothing above the moment moves. */}
+        {momentUp ? (
+          <div aria-hidden className="tone-sky relative mx-auto shrink-0" style={{ width: 128, height: 128 }}>
+            <div className="demos-halo" data-solid="" />
+          </div>
+        ) : (
+          <DemosArt pose="hello" size={128} halo={{ tone: "sky", kind: "coin" }} />
+        )}
 
         {/* The name: the one profile field you type rather than earn. */}
         {editingName ? (
@@ -801,7 +863,13 @@ export default function YouPage() {
           while the plan is unknown its skeleton holds the card's height:
           never the free door, never A$0.00. The live region says each
           step of a checkout return once. */}
-      <div ref={planSlot} data-look="plan-slot" aria-busy={planPending || undefined} className="mt-7 scroll-mt-24 scroll-mb-28">
+      <div
+        ref={planSlot}
+        tabIndex={-1}
+        data-look="plan-slot"
+        aria-busy={planPending || undefined}
+        className="mt-7 scroll-mt-24 scroll-mb-28 outline-none!"
+      >
         <p role="status" className="sr-only">
           {arrival === "switching"
             ? CHECKOUT_COPY.switching
@@ -813,7 +881,7 @@ export default function YouPage() {
         </p>
         {arrival === "switching" || (arrival === "slow" && rereading) ? (
           <PlanCardSkeleton status={arrival === "switching" ? CHECKOUT_COPY.switching : CHECKOUT_COPY.slow} />
-        ) : arrival === "on" && plan.today && hasPlan(plan.view) ? (
+        ) : momentUp && plan.today ? (
           <CheckoutReturn view={plan.view} today={plan.today} />
         ) : (
           <>
@@ -822,8 +890,10 @@ export default function YouPage() {
                 {CHECKOUT_COPY.slow}
               </p>
             )}
+            {/* Named for its card: "Your plan" on this page is the
+                practice plan in the identity card. */}
             {plan.failed ? (
-              <ErrorLine onRetry={retryPlan}>Your plan didn&apos;t load.</ErrorLine>
+              <ErrorLine onRetry={retryPlan}>Premium didn&apos;t load.</ErrorLine>
             ) : plan.view.kind === "unknown" || !plan.today ? (
               <PlanCardSkeleton />
             ) : hasPlan(plan.view) ? (
@@ -832,7 +902,10 @@ export default function YouPage() {
               </div>
             ) : plan.view.kind === "code" ? (
               <p className="text-caption text-stone-400">{CODE_LINE}</p>
-            ) : (
+            ) : arrival === "slow" ? null : (
+              /* Free, or a plan that ended. Not under "Your payment went
+                 through": a door that sells the plan again to someone who
+                 just paid. The caption stands alone for this visit. */
               <button
                 type="button"
                 onClick={() => setPaywall({ reason: "Premium" })}
@@ -864,7 +937,7 @@ export default function YouPage() {
           today={plan.today}
           onClose={() => setManaging(false)}
           onPlan={(row, isPremium) => {
-            plan.adopt(row);
+            plan.adopt(row, isPremium);
             setPremium(isPremium);
           }}
         />

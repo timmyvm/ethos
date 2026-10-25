@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { syncPlan } from "./billing-client";
 import { fetchBilling, type BillingRow, type ProfileRow } from "./client-data";
+import { withTimeout, READ_TIMEOUT_MS } from "./load";
 import { planView, type PlanView } from "./plan-view";
 import { markCheckoutSeen, takeDrop } from "./price-drop";
 import { checkoutOutcome, readReturn, withoutReturn, type Arrival, type StripeReturn } from "./plan-return";
@@ -29,27 +30,79 @@ export interface Plan {
   view: PlanView;
   /** This device's today, from the first effect on; null on the server render. */
   today: Date | null;
-  /** The billing read (or the profile read the page passed) failed. */
+  /**
+   * The plan could not be decided: the billing read failed or timed out,
+   * or the profile read the page passed failed and no live billing row
+   * decides alone (`planFailed`).
+   */
   failed: boolean;
   /** Read the row again, showing the skeleton while it comes. */
   retry: () => void;
   /** Read the row again quietly: what is on screen stays until it lands. */
   reread: () => Promise<BillingRow | null | undefined>;
-  /** Take a billing route's answer as the row, over any read still in flight. */
-  adopt: (row: BillingRow | null) => void;
+  /**
+   * Take a billing route's answer as the row, over any read still in
+   * flight, and its word on the account's Premium over the profile read
+   * the page made at mount (`planProfile`).
+   */
+  adopt: (row: BillingRow | null, premium?: boolean) => void;
+}
+
+/**
+ * The billing read with the page-level ceiling (lib/load.ts): a read
+ * that never answers rejects after eight seconds, so the plan's skeleton
+ * always ends, in the card or in "Premium didn't load" with its retry.
+ */
+export function readBilling(
+  read: () => Promise<BillingRow | null> = fetchBilling,
+  ms: number = READ_TIMEOUT_MS
+): Promise<BillingRow | null> {
+  return withTimeout(read(), ms);
+}
+
+/**
+ * Whether the plan has failed: only while it is still unknown. A live
+ * billing row decides alone (planView), so a profile that failed never
+ * hides a card already decided; a quiet re-read that fails over a row
+ * on screen leaves the row.
+ */
+export function planFailed(
+  view: PlanView,
+  billingFailed: boolean,
+  billing: BillingRow | null | undefined,
+  profile: ProfileRead
+): boolean {
+  if (view.kind !== "unknown") return false;
+  return (billingFailed && billing === undefined) || profile === "failed";
+}
+
+/**
+ * The profile the plan reads: the page's own read (unknown while it is
+ * out or failed), with Premium as a billing route last said it. A plan
+ * that a 409 found ended answers premium false, and a mount-time read
+ * that said true (a paid plan's Premium) would otherwise draw the
+ * invite-code line over an account with no Premium at all.
+ */
+export function planProfile(profile: ProfileRead, premium: boolean | undefined): ProfileRow | null | undefined {
+  const base = profile === "loading" || profile === "failed" ? undefined : profile;
+  return base && premium !== undefined ? { ...base, premium } : base;
 }
 
 export function usePlan(profile: ProfileRead = null): Plan {
   const [today, setToday] = useState<Date | null>(null);
   const [billing, setBilling] = useState<BillingRow | null | undefined>(undefined);
   const [failed, setFailed] = useState(false);
+  /** A billing route's word on Premium, and the profile read it overrides. */
+  const [said, setSaid] = useState<{ premium: boolean; over: ProfileRead } | null>(null);
+  const profileRef = useRef(profile);
+  profileRef.current = profile;
   /** The newest read wins; a route's answer outranks every read before it. */
   const seq = useRef(0);
 
   const reread = useCallback(async () => {
     const n = ++seq.current;
     try {
-      const row = await fetchBilling();
+      const row = await readBilling();
       if (n === seq.current) {
         setBilling(row);
         setFailed(false);
@@ -67,10 +120,11 @@ export function usePlan(profile: ProfileRead = null): Plan {
     void reread();
   }, [reread]);
 
-  const adopt = useCallback((row: BillingRow | null) => {
+  const adopt = useCallback((row: BillingRow | null, premium?: boolean) => {
     seq.current += 1;
     setBilling(row);
     setFailed(false);
+    if (premium !== undefined) setSaid({ premium, over: profileRef.current });
   }, []);
 
   useEffect(() => {
@@ -78,14 +132,15 @@ export function usePlan(profile: ProfileRead = null): Plan {
     void reread();
   }, [reread]);
 
-  const profileRow = profile === "loading" || profile === "failed" ? undefined : profile;
+  // A fresh profile read is newer than any route's earlier word.
+  const premiumNow = said && said.over === profile ? said.premium : undefined;
+  const profileRow = useMemo(() => planProfile(profile, premiumNow), [profile, premiumNow]);
   const view = useMemo(
     () => planView(profileRow, today ? billing : undefined, today ?? new Date(0)),
     [profileRow, billing, today]
   );
 
-  // A quiet re-read that fails over a row already on screen leaves the row: only a page with nothing to show has failed.
-  return { view, today, failed: (failed && billing === undefined) || profile === "failed", retry, reread, adopt };
+  return { view, today, failed: planFailed(view, failed, billing, profile), retry, reread, adopt };
 }
 
 /**
@@ -156,7 +211,7 @@ export function useStripeReturns(
     void (async () => {
       const r = await syncPlan();
       if (r.ok) {
-        planRef.current.adopt(r.billing);
+        planRef.current.adopt(r.billing, r.premium);
         premiumRef.current?.(r.premium);
       }
       if (ret === "portal" || !alive.current) return;

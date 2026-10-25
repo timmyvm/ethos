@@ -151,6 +151,90 @@ const lexicon = [
   { id: "l5", original: "kind of like", upgrade: "resembles", created_at: iso(12) },
 ];
 const profile = { display_name: "Timothy", premium: false, premium_until: null, equipped_pose: "pose_speaking" };
+
+// ---- The plan: LOOK_PLAN picks the profile and the billing row -------------
+/*
+ * The price ladder (docs/ladder-spec.md) reads two rows: the profile's
+ * premium and the billing row lib/billing.ts writes. LOOK_PLAN sets both,
+ * dated from today so "From 24 Nov" is always a month out:
+ *
+ *   free (the default)  no row, premium off: the Premium door
+ *   code                no row, premium on: an invite code
+ *   active3             month 3, A$10.99, A$9.99 from a month on
+ *   floor               month 9, A$6.99 every month
+ *   ending              month 3, cancelled: Premium until the period end
+ *   pastdue             month 3, the renewal declined and being retried
+ *   unpaid              month 3, retries ran out, Premium off
+ *   incomplete          the first payment pending
+ *   ended               a plan that ended, premium off
+ *   month1              month 1, as the checkout return lands
+ *   drop4               month 4 starting today (the price drop; seed
+ *                       LOOK_SEEN=3 so this device last saw month 3)
+ *
+ * The billing API's cancel and resume move the row (billingApiRoute), so
+ * a camera walking the manage sheet sees the next state; `resetPlan()`
+ * puts it back, and look.mjs calls it for each theme.
+ */
+export const PLAN_NAME = process.env.LOOK_PLAN ?? "free";
+/* Dates are the camera's: every context shoots in Australia/Melbourne,
+   so "today" and each period end are that calendar's, at 12:12 there
+   (01:12 UTC), whatever zone this script runs in. */
+const [MY, MM, MD] = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Australia/Melbourne",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+})
+  .format(new Date())
+  .split("-")
+  .map(Number);
+const inDays = (n) => new Date(Date.UTC(MY, MM - 1, MD + n, 1, 12)).toISOString();
+/** A month from today on the same day, Stripe's way (clamped to the month's last day). */
+const inAMonth = () => {
+  const last = new Date(Date.UTC(MY, MM + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(MY, MM, Math.min(MD, last), 1, 12)).toISOString();
+};
+const planRow = (over) => ({
+  status: "active",
+  ladder_month: 3,
+  price_cents: 1099,
+  next_price_cents: 999,
+  current_period_end: inDays(30),
+  cancel_at_period_end: false,
+  ...over,
+});
+const PLANS = {
+  free: { premium: false, billing: null },
+  code: { premium: true, billing: null },
+  active3: { premium: true, billing: planRow({}) },
+  floor: { premium: true, billing: planRow({ ladder_month: 9, price_cents: 699, next_price_cents: 699 }) },
+  ending: { premium: true, billing: planRow({ cancel_at_period_end: true, next_price_cents: null }) },
+  pastdue: { premium: true, billing: planRow({ status: "past_due", current_period_end: inDays(29) }) },
+  unpaid: { premium: false, billing: planRow({ status: "unpaid", current_period_end: inDays(12) }) },
+  incomplete: {
+    premium: false,
+    billing: planRow({ status: "incomplete", ladder_month: 0, price_cents: null, next_price_cents: null, current_period_end: inAMonth() }),
+  },
+  ended: { premium: false, billing: planRow({ status: "canceled", next_price_cents: null, current_period_end: inDays(-20) }) },
+  month1: { premium: true, billing: planRow({ ladder_month: 1, price_cents: 1299, next_price_cents: 1199, current_period_end: inAMonth() }) },
+  drop4: { premium: true, billing: planRow({ ladder_month: 4, price_cents: 999, next_price_cents: 899, current_period_end: inAMonth() }) },
+};
+if (!PLANS[PLAN_NAME]) {
+  throw new Error(`LOOK_PLAN=${PLAN_NAME} is not one of ${Object.keys(PLANS).join(", ")}`);
+}
+/** The plan the mock answers with now: billing may move under cancel and resume. */
+export const plan = { premium: false, billing: null };
+export function resetPlan() {
+  const p = PLANS[PLAN_NAME];
+  plan.premium = p.premium;
+  plan.billing = p.billing ? { ...p.billing } : null;
+  const until = plan.billing?.current_period_end ? new Date(new Date(plan.billing.current_period_end).getTime() + 3 * 86_400_000).toISOString() : null;
+  profile.premium = plan.premium;
+  profile.premium_until = plan.premium && plan.billing ? until : null;
+}
+resetPlan();
+/** LOOK_SEEN, the last ladder month this device celebrated (ethos.ladder.seen), or null. */
+export const SEEN = process.env.LOOK_SEEN ?? null;
 const streaks = { freezes_equipped: 1 };
 const streak_freezes = [{ used_on: dateOnly(11) }];
 
@@ -175,6 +259,11 @@ async function supabase(route) {
   if (url.pathname.startsWith("/rest/v1/rpc/")) return route.fulfill(json(0));
   if (url.pathname.startsWith("/rest/v1/profiles")) return route.fulfill(json(single ? profile : [profile]));
   if (url.pathname.startsWith("/rest/v1/streaks")) return route.fulfill(json(single ? streaks : [streaks]));
+  if (url.pathname.startsWith("/rest/v1/billing")) {
+    const row = plan.billing;
+    if (single) return route.fulfill(row ? json(row) : json({ code: "PGRST116", message: "0 rows" }, 406));
+    return route.fulfill(json(row ? [row] : []));
+  }
   const table = url.pathname.replace("/rest/v1/", "").split("/")[0];
   if (req.method() !== "GET") return route.fulfill(json([]));
   let rows = TABLES[table] ?? [];
@@ -195,6 +284,57 @@ async function supabase(route) {
   }
   if (single) return route.fulfill(rows[0] ? json(rows[0]) : json({ code: "PGRST116", message: "0 rows" }, 406));
   return route.fulfill(json(rows));
+}
+
+/*
+ * The billing routes (app/api/billing/*), answered the way
+ * lib/billing-routes.test.ts documents them. `checkout` is what the
+ * checkout route says, set per shot (billingMode.checkout):
+ *   "slow"     never answers inside a shot: the tap's busy state
+ *   "account"  403 needsAccount: an anonymous session
+ *   "error"    502 with the server's sentence
+ *   "manage"   { manage: true }, then the portal
+ *   "url"      a Checkout url (the camera never follows it)
+ * Cancel and resume move the plan; sync answers it; the portal answers a
+ * url the camera never follows.
+ */
+export const billingMode = { checkout: "slow", sync: "ok" };
+export async function billingApiRoute(route) {
+  const req = route.request();
+  const name = new URL(req.url()).pathname.split("/").pop();
+  const answer = (body, status = 200) => route.fulfill(json(body, status));
+  if (name === "checkout") {
+    const mode = billingMode.checkout;
+    if (mode === "slow") {
+      await new Promise((r) => setTimeout(r, 15000));
+      return answer({ error: "Checkout didn't open, and nothing was charged. Try again in a minute." }, 502).catch(() => {});
+    }
+    if (mode === "account") return answer({ error: "Premium needs an account. Make one and everything you've practised stays.", needsAccount: true }, 403);
+    if (mode === "error") return answer({ error: "Checkout didn't open, and nothing was charged. Try again in a minute." }, 502);
+    if (mode === "manage") return answer({ manage: true });
+    return answer({ url: "https://checkout.stripe.test/c/pay/cs_look" });
+  }
+  if (name === "portal") return answer({ url: "https://billing.stripe.test/p/session/look" });
+  if (name === "sync") {
+    if (billingMode.sync === "fail") return answer({ error: "Your plan didn't load. Try again in a minute." }, 502);
+    return answer({ billing: plan.billing, premium: plan.premium });
+  }
+  if (name === "cancel" || name === "resume") {
+    const row = plan.billing;
+    if (!row) return answer({ error: "There's no plan on this account." }, 404);
+    const ending = name === "cancel";
+    if (ending === row.cancel_at_period_end) {
+      return answer({ error: ending ? "This plan is already set to end." : "This plan has ended. A new one starts at month 1." }, 409);
+    }
+    plan.billing = {
+      ...row,
+      cancel_at_period_end: ending,
+      next_price_cents: ending ? null : [1299, 1199, 1099, 999, 899, 799, 699][Math.min(row.ladder_month, 6)],
+    };
+    await new Promise((r) => setTimeout(r, 400));
+    return answer({ billing: plan.billing, premium: plan.premium });
+  }
+  return answer({ error: "Not here." }, 404);
 }
 
 // The scoring mock, for the live results screen.
@@ -258,6 +398,7 @@ export function seed(arg) {
   );
   localStorage.setItem("ethos.gates.rep1", new Date().toISOString());
   localStorage.setItem("ethos.gates.streak", new Date().toISOString());
+  if (arg && typeof arg === "object" && arg.seen != null) localStorage.setItem("ethos.ladder.seen", String(arg.seen));
   // Without a session the mock answers nothing and every screen draws
   // day zero, which is not the app anybody is looking at.
   if (session) {

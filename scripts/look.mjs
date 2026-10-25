@@ -18,6 +18,21 @@
  * paywall, splash
  * (with splash-lift, the lift about 100ms in);
  * signed out, signin, signup, forgot, reset, about, privacy, terms.
+ *
+ * The price ladder (docs/ladder-spec.md): paywall-scrub (step 4 tapped),
+ * paywall-end (End pressed: the floor, the slider's focus ring),
+ * paywall-code (the invite code form), and, against a server started
+ * with NEXT_PUBLIC_CHECKOUT_OPEN=1, paywall-busy, paywall-account and
+ * paywall-error (the checkout route answering slow, 403 needsAccount and
+ * 502). The plan surfaces, with LOOK_PLAN (scripts/look-fixtures.mjs):
+ * manage (You's plan card tapped), manage-confirm (then "Cancel plan"),
+ * settings-manage (Settings' "Manage plan" row), checkout-return
+ * (/you?checkout=done) and price-drop (Today, with LOOK_SEEN set to the
+ * month before). The plan card and the Settings row are found by
+ * `data-look="plan-card"` and `data-look="manage-plan"`.
+ *
+ *   LOOK_PLAN=active3 node scripts/look.mjs after you manage settings
+ *   LOOK_WIDTH=320 node scripts/look.mjs after paywall   # paywall-320-after-*
  * The introduction has its own camera, scripts/look-welcome.mjs.
  * Full-page shots; the nav is fixed so it appears where the viewport
  * would show it.
@@ -44,7 +59,20 @@ const want = (name) => ONLY.length === 0 || ONLY.includes(name);
 /** Squint mode: LOOK_BLUR=6 blurs the page so only mass and colour survive. */
 const BLUR = Number(process.env.LOOK_BLUR ?? 0) || 0;
 
-import { supabaseRoute as supabase, analyzeBody as analyze, json, session } from "./look-fixtures.mjs";
+import {
+  supabaseRoute as supabase,
+  analyzeBody as analyze,
+  json,
+  session,
+  billingApiRoute,
+  billingMode,
+  resetPlan,
+  SEEN,
+} from "./look-fixtures.mjs";
+
+/** LOOK_WIDTH: the viewport's width; anything but 390 names its shots `<screen>-<width>`. */
+const WIDTH = Number(process.env.LOOK_WIDTH ?? 390) || 390;
+const WSUFFIX = WIDTH === 390 ? "" : `-${WIDTH}`;
 
 // ---- Camera ----------------------------------------------------------------
 // Hinting off: headless Linux Chromium rounds each glyph advance to a
@@ -52,8 +80,9 @@ import { supabaseRoute as supabase, analyzeBody as analyze, json, session } from
 const browser = await chromium.launch({ args: ["--font-render-hinting=none", "--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream", "--autoplay-policy=no-user-gesture-required"] });
 
 async function shootTheme(theme) {
+  resetPlan();
   const context = await browser.newContext({
-    viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
+    viewport: { width: WIDTH, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
     permissions: ["microphone"], locale: "en-AU", timezoneId: "Australia/Melbourne",
     colorScheme: theme,
     /* The app's offline shell takes over fetches once it controls a
@@ -65,7 +94,9 @@ async function shootTheme(theme) {
   await context.route("http://supabase.local/**", supabase);
   await context.route("**/api/analyze", async (route) => { await sleep(600); await route.fulfill(json(analyze)); });
   await context.route("**/api/push", (route) => route.fulfill(json({ ok: true })));
-  await context.addInitScript(({ theme, session }) => {
+  await context.route("**/api/billing/*", billingApiRoute);
+  await context.addInitScript(({ theme, session, seen }) => {
+    if (seen != null) localStorage.setItem("ethos.ladder.seen", String(seen));
     localStorage.setItem("ethos.welcomed", new Date().toISOString());
     localStorage.setItem("ethos.prefs", JSON.stringify({ theme, reducedMotion: false, pose: "pose_speaking", skipIntros: true, haptics: false }));
     localStorage.setItem("ethos.onboarding", JSON.stringify({ answers: { ageBand: "19-22", goal: "work", pains: ["fillers", "blank"], level: "some", context: "meetings" }, step: 6, done: true, synced: true }));
@@ -73,7 +104,7 @@ async function shootTheme(theme) {
     localStorage.setItem("ethos.gates.streak", new Date().toISOString());
     localStorage.setItem("sb-supabase-auth-token", JSON.stringify(session));
     localStorage.setItem("sb-supabase.local-auth-token", JSON.stringify(session));
-  }, { theme, session });
+  }, { theme, session, seen: SEEN });
   const page = await context.newPage();
   // Full-page shots: the dev badge goes, and the fixed nav sits where
   // the page ends rather than where the first viewport did.
@@ -157,8 +188,8 @@ async function shootTheme(theme) {
     if (!want(name)) return;
     if (opts.fullPage ?? true) await loadLazily();
     await sleep(opts.settle ?? 900);
-    await page.screenshot({ path: `${OUT}${name}-${TAG}-${theme}.png`, fullPage: opts.fullPage ?? true });
-    console.log(`shot  ${name}-${TAG}-${theme}`);
+    await page.screenshot({ path: `${OUT}${name}${WSUFFIX}-${TAG}-${theme}.png`, fullPage: opts.fullPage ?? true });
+    console.log(`shot  ${name}${WSUFFIX}-${TAG}-${theme}`);
   };
   /*
    * A screen is ready when its skeletons are gone. Waiting on a selector
@@ -233,7 +264,112 @@ async function shootTheme(theme) {
     await go("/games", READY);
     await page.click(".premium-wall", { force: true });
     await page.waitForSelector('[role="dialog"]', { timeout: 8000 });
-    await shot("paywall", { fullPage: false, settle: 900 });
+    // The ladder rises in once the sheet has settled: let it land.
+    await shot("paywall", { fullPage: false, settle: 1600 });
+  });
+
+  /*
+   * The paywall's ladder, in each state. Each opens a fresh sheet from
+   * Practice's wall. A shot of the tap's own states scrolls the sheet to
+   * its end, so the tap is in the picture on any phone.
+   */
+  const openPaywall = async () => {
+    await go("/games", READY);
+    await page.click(".premium-wall", { force: true });
+    await page.waitForSelector('[role="dialog"] [role="slider"]', { timeout: 8000 });
+    await sleep(1400);
+  };
+  const sheetToEnd = () =>
+    page.evaluate(() => {
+      const el = document.querySelector('[role="dialog"] .card-premium');
+      if (el) el.scrollTop = el.scrollHeight;
+    });
+  const checkoutLive = async () =>
+    (await page.locator('[role="dialog"] button', { hasText: "I have a code" }).count()) > 0;
+  const tapStart = () => page.locator('[role="dialog"] button', { hasText: /^Start at/ }).click();
+  await step(async () => {
+    if (!want("paywall-scrub")) return;
+    await openPaywall();
+    const box = await page.locator('[role="dialog"] .stair-col').nth(3).boundingBox();
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height - 12);
+    await shot("paywall-scrub", { fullPage: false, settle: 700 });
+  });
+  await step(async () => {
+    if (!want("paywall-end")) return;
+    await openPaywall();
+    await page.locator('[role="dialog"] [role="slider"]').focus();
+    await page.keyboard.press("End");
+    await shot("paywall-end", { fullPage: false, settle: 700 });
+  });
+  await step(async () => {
+    if (!want("paywall-code")) return;
+    await openPaywall();
+    if (await checkoutLive()) await page.locator('[role="dialog"] button', { hasText: "I have a code" }).click();
+    else await tapStart();
+    await page.waitForSelector("#premium-code", { timeout: 4000 });
+    await sheetToEnd();
+    await shot("paywall-code", { fullPage: false, settle: 600 });
+  });
+  for (const [name, mode] of [["paywall-busy", "slow"], ["paywall-account", "account"], ["paywall-error", "error"]]) {
+    await step(async () => {
+      if (!want(name)) return;
+      await openPaywall();
+      if (!(await checkoutLive())) {
+        console.log("CHECKOUT-OFF", name, "needs a server started with NEXT_PUBLIC_CHECKOUT_OPEN=1");
+        return;
+      }
+      billingMode.checkout = mode;
+      await tapStart();
+      await sleep(mode === "slow" ? 150 : 700);
+      await sheetToEnd();
+      await shot(name, { fullPage: false, settle: 300 });
+      billingMode.checkout = "slow";
+    });
+  }
+
+  /*
+   * The plan's own surfaces (LOOK_PLAN). The plan card and the Settings
+   * row carry `data-look`, so the camera finds them through a redesign.
+   */
+  await step(async () => {
+    if (!want("manage") && !want("manage-confirm")) return;
+    await go("/you", READY);
+    if (!(await page.locator('[data-look="plan-card"]').count())) {
+      console.log("NO-PLAN-CARD", 'You has no [data-look="plan-card"] (is LOOK_PLAN a plan?)');
+      return;
+    }
+    await page.locator('[data-look="plan-card"]').first().click({ timeout: 8000 });
+    await page.waitForSelector('[role="dialog"]', { timeout: 8000 });
+    await shot("manage", { fullPage: false, settle: 1200 });
+    if (!want("manage-confirm")) return;
+    await page.locator('[role="dialog"] button', { hasText: /^Cancel plan/ }).first().click();
+    await shot("manage-confirm", { fullPage: false, settle: 700 });
+  });
+  await step(async () => {
+    if (!want("settings-manage")) return;
+    await go("/settings", "main .inset-group");
+    if (!(await page.locator('[data-look="manage-plan"]').count())) {
+      console.log("NO-MANAGE-ROW", 'Settings has no [data-look="manage-plan"] (is LOOK_PLAN a plan?)');
+      return;
+    }
+    await page.locator('[data-look="manage-plan"]').first().click({ timeout: 8000 });
+    await page.waitForSelector('[role="dialog"]', { timeout: 8000 });
+    await shot("settings-manage", { fullPage: false, settle: 1200 });
+  });
+  await step(async () => {
+    if (!want("checkout-return")) return;
+    await go("/you?checkout=done", READY);
+    await shot("checkout-return", { settle: 1800 });
+  });
+  await step(async () => {
+    if (!want("price-drop")) return;
+    await go("/", "main .arrive");
+    const shown = await page.waitForSelector('[role="dialog"]', { timeout: 8000 }).catch(() => null);
+    if (!shown) {
+      console.log("NO-PRICE-DROP", "no sheet on Today (LOOK_PLAN=drop4 LOOK_SEEN=3?)");
+      return;
+    }
+    await shot("price-drop", { fullPage: false, settle: 1800 });
   });
   /*
    * auth-14: the splash, photographed while it is up. `goto` used to
@@ -264,8 +400,8 @@ async function shootTheme(theme) {
       .catch(() => {});
     const state = await page.evaluate(() => document.documentElement.getAttribute("data-splash"));
     if (state === "on") {
-      await page.screenshot({ path: `${OUT}splash-${TAG}-${theme}.png` });
-      console.log(`shot  splash-${TAG}-${theme}`);
+      await page.screenshot({ path: `${OUT}splash${WSUFFIX}-${TAG}-${theme}.png` });
+      console.log(`shot  splash${WSUFFIX}-${TAG}-${theme}`);
     } else {
       console.log("SPLASH-MISSED", theme, state);
     }
@@ -274,8 +410,8 @@ async function shootTheme(theme) {
     // A screenshot takes 40 to 80ms to come back (DESIGN.md), so a 40ms
     // wait lands the frame about 100ms into the 360ms lift.
     await sleep(40);
-    await page.screenshot({ path: `${OUT}splash-lift-${TAG}-${theme}.png` });
-    console.log(`shot  splash-lift-${TAG}-${theme}`);
+    await page.screenshot({ path: `${OUT}splash-lift${WSUFFIX}-${TAG}-${theme}.png` });
+    console.log(`shot  splash-lift${WSUFFIX}-${TAG}-${theme}`);
   });
 
   // The loop: idle, recording, results (live, via the scoring mock).
@@ -317,7 +453,7 @@ async function shootTheme(theme) {
   ].filter(([name]) => want(name));
   if (OUT_SCREENS.length) {
     const stranger = await browser.newContext({
-      viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
+      viewport: { width: WIDTH, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
       locale: "en-AU", timezoneId: "Australia/Melbourne", colorScheme: theme, serviceWorkers: "block",
     });
     await stranger.route("http://supabase.local/**", supabase);
@@ -333,8 +469,8 @@ async function shootTheme(theme) {
         await p.goto(`${BASE}${path}`);
         await p.waitForSelector("main, h1", { timeout: 15000 }).catch(() => {});
         await sleep(900);
-        await p.screenshot({ path: `${OUT}${name}-${TAG}-${theme}.png`, fullPage: true });
-        console.log(`shot  ${name}-${TAG}-${theme}`);
+        await p.screenshot({ path: `${OUT}${name}${WSUFFIX}-${TAG}-${theme}.png`, fullPage: true });
+        console.log(`shot  ${name}${WSUFFIX}-${TAG}-${theme}`);
       } catch (e) { console.log("STEP-FAILED", theme, name, String(e.message ?? e).split("\n")[0]); }
     }
     await stranger.close();

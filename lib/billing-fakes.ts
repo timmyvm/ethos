@@ -43,6 +43,12 @@ export interface FakePrice {
   tax_behavior: string | null;
   transform_quantity: { divide_by: number; round: string } | null;
   product: string;
+  /**
+   * Prices in other currencies, beside `currency`. Like Stripe, a list
+   * returns the field only when asked to expand it, and then the map
+   * holds the price's own currency too.
+   */
+  currency_options?: Record<string, { unit_amount: number | null; tax_behavior: string | null }>;
 }
 
 interface FakeItem {
@@ -224,14 +230,30 @@ export function fakeStripe() {
     webhooks: Stripe.webhooks,
 
     prices: {
-      async list(params: ListParams & { lookup_keys?: string[]; active?: boolean }) {
+      async list(
+        params: ListParams & { lookup_keys?: string[]; active?: boolean; expand?: string[] }
+      ) {
         record("prices.list", [params]);
-        const rows = state.priceBook.filter(
-          (p) =>
-            (!params.lookup_keys ||
-              (p.lookup_key !== null && params.lookup_keys.includes(p.lookup_key))) &&
-            (params.active === undefined || p.active === params.active)
-        );
+        const expanded = params.expand?.includes("data.currency_options") ?? false;
+        const rows = state.priceBook
+          .filter(
+            (p) =>
+              (!params.lookup_keys ||
+                (p.lookup_key !== null && params.lookup_keys.includes(p.lookup_key))) &&
+              (params.active === undefined || p.active === params.active)
+          )
+          .map((p) => {
+            const { currency_options: extra, ...rest } = p;
+            return expanded
+              ? {
+                  ...rest,
+                  currency_options: {
+                    [p.currency]: { unit_amount: p.unit_amount, tax_behavior: p.tax_behavior },
+                    ...extra,
+                  },
+                }
+              : rest;
+          });
         return page(rows, params);
       },
     },

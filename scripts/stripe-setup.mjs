@@ -141,6 +141,10 @@ function priceProblem(price, month, productId) {
   const want = LADDER_CENTS[month - 1];
   if (!price.active) return "archived";
   if (price.currency !== CURRENCY) return `currency ${price.currency}`;
+  // Expanded, currency_options holds AUD itself too; any other key is a
+  // price Checkout would charge a buyer abroad instead of the A$ one.
+  const others = Object.keys(price.currency_options ?? {}).filter((c) => c !== CURRENCY);
+  if (others.length > 0) return `currency_options ${others.join(", ")}`;
   if (price.type !== "recurring" || !price.recurring) return "not recurring";
   if (price.recurring.interval !== "month") return `interval ${price.recurring.interval}`;
   if (price.recurring.interval_count !== 1) return `interval_count ${price.recurring.interval_count}`;
@@ -156,7 +160,11 @@ function priceProblem(price, month, productId) {
 
 async function prices(productId) {
   console.log("\nPrices");
-  const found = await stripe.prices.list({ lookup_keys: LOOKUP_KEYS, limit: 100 });
+  const found = await stripe.prices.list({
+    lookup_keys: LOOKUP_KEYS,
+    limit: 100,
+    expand: ["data.currency_options"],
+  });
   const ids = [];
   for (const [i, key] of LOOKUP_KEYS.entries()) {
     const month = i + 1;

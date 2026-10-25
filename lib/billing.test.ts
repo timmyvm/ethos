@@ -450,6 +450,7 @@ describe("checkout", () => {
       success_url: `${SITE}/you?checkout=done`,
       cancel_url: `${SITE}/games`,
       allow_promotion_codes: false,
+      currency: "aud",
       adaptive_pricing: { enabled: false },
       custom_text: { submit: { message: checkoutDisclosure() } },
     });
@@ -501,6 +502,11 @@ describe("checkout", () => {
     ["an archived rung", (book) => void (book[3].active = false)],
     ["a wrong amount", (book) => void (book[2].unit_amount = 999)],
     ["another currency", (book) => void (book[0].currency = "usd")],
+    [
+      "a price in a second currency",
+      (book) =>
+        void (book[0].currency_options = { usd: { unit_amount: 899, tax_behavior: "inclusive" } }),
+    ],
     ["GST added on top", (book) => void (book[1].tax_behavior = "exclusive")],
     [
       "a yearly price",
@@ -740,6 +746,9 @@ describe("helpers", () => {
     expect(block.split(",").map((n) => Number(n.trim()))).toEqual([...LADDER_CENTS]);
     expect(script).toContain('tax_behavior: "inclusive"');
     expect(script).toContain("transfer_lookup_key: true");
+    // A rung with a second currency is replaced, the same check the server makes.
+    expect(script).toContain('expand: ["data.currency_options"]');
+    expect(script).toMatch(/currency_options[\s\S]*filter\(\(c\) => c !== CURRENCY\)/);
     expect(script).toContain('mode: "at_period_end"');
     expect(script).toContain("subscription_update: { enabled: false }");
   });

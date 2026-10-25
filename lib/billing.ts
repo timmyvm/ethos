@@ -170,7 +170,10 @@ export function clearLadderCache(): void {
 /**
  * What is wrong with `price` as month `month`'s rung, or null when it
  * is exactly what the paywall says: AUD, the ladder's amount, GST
- * inclusive, monthly, licensed, per unit, active.
+ * inclusive, monthly, licensed, per unit, active, and no price in any
+ * other currency (Checkout would charge a buyer abroad that one, even
+ * with Adaptive Pricing off). `currency_options` is only there when the
+ * list expanded it; expanded, it holds AUD itself too.
  */
 export function ladderPriceProblem(
   price: Stripe.Price,
@@ -179,6 +182,8 @@ export function ladderPriceProblem(
   const want = LADDER_CENTS[rungIndex(month)];
   if (!price.active) return "archived";
   if (price.currency !== CURRENCY) return `currency ${price.currency}`;
+  const others = Object.keys(price.currency_options ?? {}).filter((c) => c !== CURRENCY);
+  if (others.length > 0) return `currency_options ${others.join(", ")}`;
   if (price.type !== "recurring" || !price.recurring) return "not recurring";
   if (price.recurring.interval !== "month") return `interval ${price.recurring.interval}`;
   if (price.recurring.interval_count !== 1)
@@ -206,6 +211,7 @@ export async function ladderPrices(
     lookup_keys: [...LOOKUP_KEYS],
     active: true,
     limit: 100,
+    expand: ["data.currency_options"],
   });
   const prices = LOOKUP_KEYS.map((key, i) => {
     const matches = found.data.filter((p) => p.lookup_key === key);
@@ -808,7 +814,8 @@ export async function createCheckout(
     cancel_url: `${opts.site}${opts.returnTo}`,
     allow_promotion_codes: false,
     // Everyone pays the A$ amount the paywall and the text below show,
-    // never Stripe's conversion of it into another currency.
+    // never Stripe's conversion of it, nor a price in another currency.
+    currency: CURRENCY,
     adaptive_pricing: { enabled: false },
     custom_text: { submit: { message: checkoutDisclosure() } },
   });

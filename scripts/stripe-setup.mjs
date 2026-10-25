@@ -358,6 +358,11 @@ Checklist, dashboard only (${MODE} mode; Stripe keeps test and live settings apa
       keeps its place while Stripe retries; this is what ends the plan after.
   [ ] Billing > Revenue recovery > Emails: failed payment emails on, so a declined
       card hears about it while there is time to fix it.
+  [ ] Billing > Revenue recovery > Emails, payments that require 3D Secure:
+      "Send a Stripe-hosted link for customers to confirm their payments when
+      required" on, and "Send reminders" on. Stripe never retries a renewal the
+      bank wants confirmed by itself, so this link is the only way it gets paid
+      before the retries end the plan.
   [ ] Settings > Customer emails: "Successful payments" and "Refunds" on.
   [ ] Billing settings, customer emails: upcoming renewal reminders on (7 days
       is fine). The same days set when invoice.upcoming fires, the sync's

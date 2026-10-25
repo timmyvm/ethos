@@ -1170,8 +1170,18 @@ describe("helpers", () => {
     expect([...listed].sort()).toEqual([...HANDLED_EVENTS].sort());
   });
 
+  it("asks for the email that lets a renewal needing 3D Secure be confirmed", () => {
+    // Stripe never retries an authentication_required renewal by itself, and
+    // the failed-payment email does not cover it: without this link the plan
+    // runs out its retries and resets to month 1.
+    const script = readFileSync("scripts/stripe-setup.mjs", "utf8").replace(/\s+/g, " ");
+    expect(script).toContain("3D Secure");
+    expect(script).toContain("Send a Stripe-hosted link for customers to confirm their payments when required");
+    expect(script).toContain("Send reminders");
+  });
+
   it("asks for Stripe's own one-plan limit in the dashboard checklist", () => {
-    const script = readFileSync("scripts/stripe-setup.mjs", "utf8");
+    const script = readFileSync("scripts/stripe-setup.mjs", "utf8").replace(/\s+/g, " ");
     expect(script).toContain("Limit customers to one subscription");
   });
 

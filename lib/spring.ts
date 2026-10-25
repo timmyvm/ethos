@@ -288,6 +288,11 @@ export function animateSpring(
       fill: "forwards",
     }
   );
+  // Started on this frame, not the next: a new animation waits a frame
+  // or two to be ready, and that wait shows as the element holding still
+  // exactly when it should be carrying the speed it was handed.
+  const timeline = typeof document !== "undefined" ? document.timeline : null;
+  if (timeline?.currentTime != null) animation.startTime = timeline.currentTime;
   const run = { axis, from, to, velocity: speed, spring, start: now, animation };
   runs.set(el, run);
   return animation.finished.then(

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import {
   IconGames,
   IconLessons,
@@ -162,6 +162,51 @@ export function Nav() {
     setLastHidden(hidden);
     setReturned(!hidden);
   }
+
+  /*
+   * A tap moves the well on a spring from wherever it is on screen,
+   * carrying the speed of a move still in flight (lib/spring.ts): tap
+   * two tabs fast and it swings on through the first instead of
+   * stopping dead and setting off again, the stall a timer animation
+   * has (Justin Sun's reel on why iOS feels nice). The class's
+   * transform transition would restart from rest, so the well keeps
+   * only the press's swell as a CSS transition and this does the
+   * travel. The slide (onPointerUp) settles it the same way.
+   */
+  const shownTab = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const el = well.current;
+    if (hidden || !el) {
+      shownTab.current = null;
+      return;
+    }
+    el.style.transition = "scale var(--spring-snappy-duration) var(--spring-snappy)";
+    const tab = TABS.findIndex((t) =>
+      t.href === "/" ? path === "/" : path.startsWith(t.href)
+    );
+    const was = shownTab.current;
+    shownTab.current = tab;
+    // First paint, the same tab, or the thumb's own slide: nothing to travel.
+    if (was === null || was < 0 || tab < 0 || was === tab || lens.current) return;
+    const w = parseFloat(getComputedStyle(el).width) || 0;
+    const moving = el
+      .getAnimations()
+      .some((a) => !(typeof CSSTransition !== "undefined" && a instanceof CSSTransition));
+    const from = moving
+      ? new DOMMatrixReadOnly(getComputedStyle(el).transform).m41 || 0
+      : was * w;
+    void animateSpring(el, {
+      axis: "x",
+      from,
+      to: tab * w,
+      spring: SPRING.base,
+      reduced: prefersReducedMotion(),
+    }).then(() => {
+      if (well.current && shownTab.current === tab) {
+        well.current.style.transform = `translateX(${tab * 100}%)`;
+      }
+    });
+  }, [path, hidden]);
 
   if (hidden) return null;
 

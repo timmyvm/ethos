@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { DEFAULT_PREFS, readPrefs, writePrefs } from "@/lib/prefs";
-import { themeBootScript } from "@/components/Theme";
+import { themeBootScript } from "@/lib/theme-boot";
 
 /**
  * The theme has three values and the default follows the OS

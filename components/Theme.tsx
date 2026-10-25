@@ -8,7 +8,9 @@ import { readPrefs, type Theme } from "@/lib/prefs";
  *
  * The inline script in the layout does the real work — it runs before
  * React hydrates, which is what stops a light flash on a dark-mode load.
- * This component only keeps the attribute in step after a change.
+ * This component only keeps the attribute in step after a change. That
+ * script is lib/theme-boot.ts, not this file: this module is "use
+ * client", and the layout must import the string, not a client reference.
  *
  * Three values again (#286). `system` is the default and resolves here,
  * so the rest of the app only ever sees `light` or `dark` on the
@@ -67,29 +69,3 @@ export function ThemeSync() {
   }, []);
   return null;
 }
-
-/**
- * Runs before hydration. Kept deliberately tiny and dependency-free —
- * it's inlined into the document head.
- */
-export const themeBootScript = `
-(function(){try{
-  var p = JSON.parse(localStorage.getItem('ethos.prefs')||'{}');
-  // Anything this device did not explicitly choose follows the OS
-  // (#286). Kept in step with readTheme in lib/prefs.ts.
-  var t = p.theme === 'dark' || p.theme === 'light' ? p.theme : 'system';
-  if (t === 'system') {
-    t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
-  document.documentElement.setAttribute('data-theme', t);
-  // Motion answers before paint too, or the first sheet slides for
-  // someone who asked it not to.
-  var r = !!p.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)').matches;
-  document.documentElement.setAttribute('data-motion', r ? 'reduce' : 'full');
-  // The browser chrome is part of the room. Setting it here rather than
-  // after hydration is the difference between a dark app under a cream
-  // status bar for one frame and never seeing it at all.
-  var m = document.querySelector('meta[name="theme-color"]');
-  if (m) m.setAttribute('content', t === 'dark' ? '#121212' : '#ffffff');
-}catch(e){}})();
-`;

@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { TAB_HREFS } from "@/lib/tabs";
 
 /**
@@ -87,13 +87,22 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
   /* overflow-x: clip (B10): the 24px the push starts from widened the
      page to 414px for a frame, and a phone can zoom out to show it.
      `clip`, not `hidden`, so the wrapper never becomes a scroll
-     container and the sticky header and shelf still stick. */
+     container and the sticky header and shelf still stick.
+
+     The keyed fragment is load-bearing (React #418). `children` is
+     Next's router element, which waits on its error and not-found chunks
+     on a cold load. Straight under the div, the div itself waited, and
+     React (19.2) replays a waiting element from inside it: the div then
+     looked for itself among its own children and threw a hydration
+     error, about one cold load in fifty. Under a fragment, the fragment
+     waits and the div keeps its place. Keyed, because React unwraps an
+     unkeyed fragment that is the only child. */
   return (
     <div
       key={path}
       className={`overflow-x-clip ${cold ? "" : direction === "right" ? "push-right" : "push-left"}`}
     >
-      {children}
+      <Fragment key="page">{children}</Fragment>
     </div>
   );
 }

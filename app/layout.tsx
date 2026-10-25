@@ -4,7 +4,9 @@ import { Nav } from "@/components/Nav";
 import { PageTransition } from "@/components/PageTransition";
 import { OutboxRetry } from "@/components/OutboxRetry";
 import { ServiceWorker } from "@/components/ServiceWorker";
-import { ThemeSync, themeBootScript } from "@/components/Theme";
+import { ThemeSync } from "@/components/Theme";
+// From a plain module, never a "use client" one: see lib/theme-boot.ts.
+import { themeBootScript } from "@/lib/theme-boot";
 import { Splash, splashBootScript } from "@/components/Splash";
 import { SplashLift } from "@/components/SplashLift";
 import { SpeedInsights } from "@vercel/speed-insights/next";

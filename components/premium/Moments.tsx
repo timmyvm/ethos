@@ -5,6 +5,7 @@ import { DemosArt } from "@/components/DemosArt";
 import { SpeechBubble } from "@/components/SpeechBubble";
 import { Overlay, useOverlayClose } from "@/components/ui/Overlay";
 import { CHECKOUT_COPY, checkoutReturnWords, dropWords, pictureLabel, stepLabels, type PlanView } from "@/lib/plan-view";
+import { prefersReducedMotion } from "@/lib/prefs";
 import { formatAud, formatBare } from "@/lib/pricing";
 import { ACTION_CLASS } from "@/lib/ui";
 import { usePlan, usePriceDrop } from "@/lib/use-plan";
@@ -115,7 +116,11 @@ function DropBody({ view, today, onClose }: { view: PlanView; today: Date; onClo
   // the sheet does not rewrite what it is celebrating.
   const words = useMemo(() => dropWords(view, today), []); // eslint-disable-line react-hooks/exhaustive-deps
   const [labels] = useState(() => stepLabels(view.calendar));
-  const [landed, setLanded] = useState(false);
+  // Reduced motion: no hop and no roll, the end state from the start,
+  // faded in with the sheet. (The sheet only renders after a tap or a
+  // read, never on the server, so the preference is safe to read here.)
+  const [still] = useState(() => prefersReducedMotion());
+  const [landed, setLanded] = useState(still);
   const shown = landed ? words.toCents : words.fromCents;
 
   return (
@@ -139,13 +144,13 @@ function DropBody({ view, today, onClose }: { view: PlanView; today: Date; onClo
         tone="plum"
         size="lg"
         at={words.hop.to}
-        hop={{ from: words.hop.from, to: words.hop.to, delay: RISE_AFTER_MS + HOP_DELAY_MS }}
+        hop={{ from: words.hop.from, to: words.hop.to, key: still ? 0 : 1, delay: RISE_AFTER_MS + HOP_DELAY_MS }}
         onLand={() => setLanded(true)}
         labels={labels}
         bleed={24}
         riseDelay={RISE_AFTER_MS}
         label={pictureLabel(view, today)}
-        className="mt-5"
+        className="mt-2"
       />
       <button type="button" onClick={close} className={`${ACTION_CLASS} mt-7`}>
         Done

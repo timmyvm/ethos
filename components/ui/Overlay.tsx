@@ -191,6 +191,9 @@ export function Overlay({
     // Focus the panel itself rather than its first control: a sheet that
     // opens with the paywall's "Start at A$12.99" already focused is one
     // stray Enter away from a purchase nobody asked for.
+    // The panel is a container, never a control: no ring (`outline-none!`
+    // beats the global :focus-visible, which a sheet opened without a
+    // tap, like the monthly price drop, would otherwise draw on its edge).
     panel.current?.focus();
 
     const previousOverflow = document.body.style.overflow;
@@ -342,7 +345,7 @@ export function Overlay({
           // resolves its own promise.
           if (closing && e.target === panel.current && prefersReducedMotion()) finish();
         }}
-        className={`outline-none ${sheet ? "sheet-panel" : "arrive"} ${className}`}
+        className={`outline-none! ${sheet ? "sheet-panel" : "arrive"} ${className}`}
       >
         <CloseContext.Provider value={requestClose}>{children}</CloseContext.Provider>
       </div>

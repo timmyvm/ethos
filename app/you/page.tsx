@@ -296,6 +296,12 @@ export default function YouPage() {
     return () => cancelAnimationFrame(frame);
   }, [stripeReturn, arrival]);
 
+  /** The plan's slot is waiting on a read or a sync: its skeleton is up. */
+  const planPending =
+    arrival === "switching" ||
+    (arrival === "slow" && rereading) ||
+    (arrival !== "on" && !plan.failed && (plan.view.kind === "unknown" || !plan.today));
+
   const loading = reps === null;
   /** The level waits on the XP read; the streak columns on the reps. */
   const xpPending = xp === null && !xpFailed;
@@ -795,7 +801,7 @@ export default function YouPage() {
           while the plan is unknown its skeleton holds the card's height:
           never the free door, never A$0.00. The live region says each
           step of a checkout return once. */}
-      <div ref={planSlot} data-look="plan-slot" className="mt-7 scroll-mt-24 scroll-mb-28">
+      <div ref={planSlot} data-look="plan-slot" aria-busy={planPending || undefined} className="mt-7 scroll-mt-24 scroll-mb-28">
         <p role="status" className="sr-only">
           {arrival === "switching"
             ? CHECKOUT_COPY.switching

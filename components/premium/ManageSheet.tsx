@@ -98,7 +98,11 @@ function ManageBody({
 
   useEffect(() => {
     if (beat === null) return;
-    const t = setTimeout(() => setBeat(null), BEAT_MS);
+    // The live region empties with it, so the same sentence later is said again.
+    const t = setTimeout(() => {
+      setBeat(null);
+      setSaid("");
+    }, BEAT_MS);
     return () => clearTimeout(t);
   }, [beat]);
 
@@ -475,7 +479,7 @@ function Morph({ id, className = "", children }: { id: string; className?: strin
     <div
       ref={box}
       tabIndex={-1}
-      className={`relative -mx-1 -mb-1 overflow-hidden p-1 outline-none ${className}`}
+      className={`relative -mx-1 -mb-1 overflow-hidden p-1 outline-none! ${className}`}
       style={{
         height: height === null ? undefined : height + 8,
         transition: glide ? "height var(--spring-base-duration) var(--spring-base)" : undefined,

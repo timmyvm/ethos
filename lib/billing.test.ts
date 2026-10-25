@@ -573,6 +573,42 @@ describe("checkout", () => {
     expect(w.db.row("billing", USER)?.next_price_cents).toBe(1199);
   });
 
+  it("never steps a plan on a price that is not the ladder's, and says what it will really charge", async () => {
+    // A yearly plan made by hand in the dashboard, on another product.
+    const w = world();
+    const customer = customerFor(w);
+    const sub = w.sim.startPlan(customer);
+    w.sim.sub(sub).items.data[0].price = {
+      ...structuredClone(w.stripe.state.priceBook[0]),
+      id: "price_yearly",
+      lookup_key: null,
+      product: "prod_other",
+      unit_amount: 9900,
+      recurring: { interval: "year", interval_count: 1, usage_type: "licensed" },
+    };
+
+    const out = await syncCustomer(w.deps, customer);
+    expect(w.sim.callsTo("subscriptions.update")).toEqual([]);
+    expect(w.sim.itemPrice(sub)).toBe("price_yearly");
+    expect(out?.billing).toMatchObject({ ladder_month: 1, next_price_cents: 9900 });
+    expect(out?.premium).toBe(true);
+  });
+
+  it("still steps a plan on an old rung whose key moved to a corrected price", async () => {
+    const w = world();
+    const customer = customerFor(w);
+    const sub = w.sim.startPlan(customer);
+    // stripe-setup.mjs moved ethos_ladder_m1 off this price (transfer_lookup_key).
+    w.sim.sub(sub).items.data[0].price = {
+      ...structuredClone(w.stripe.state.priceBook[0]),
+      id: "price_m1_old",
+      lookup_key: null,
+    };
+
+    await syncCustomer(w.deps, customer);
+    expect(w.sim.itemPrice(sub)).toBe("price_m2");
+  });
+
   it("never steps a plan with more than one item, and says what it will really charge", async () => {
     const w = world();
     const customer = customerFor(w);

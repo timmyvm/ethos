@@ -158,6 +158,8 @@ export interface LadderPrice {
   month: number;
   id: string;
   cents: number;
+  /** The Stripe Product the rung belongs to. */
+  product: string;
 }
 
 let priceCache = new WeakMap<object, { at: number; prices: LadderPrice[] }>();
@@ -222,7 +224,12 @@ export async function ladderPrices(
     if (problem) {
       throw new BillingError(502, PRICES_WRONG, `${key} (${matches[0].id}): ${problem}`);
     }
-    return { month: i + 1, id: matches[0].id, cents: LADDER_CENTS[i] };
+    return {
+      month: i + 1,
+      id: matches[0].id,
+      cents: LADDER_CENTS[i],
+      product: productId(matches[0].product),
+    };
   });
   priceCache.set(stripe, { at: now, prices });
   return prices;
@@ -230,6 +237,29 @@ export async function ladderPrices(
 
 function rungFor(prices: LadderPrice[], month: number): LadderPrice {
   return prices[rungIndex(month)];
+}
+
+function productId(product: string | { id: string } | null | undefined): string {
+  return typeof product === "string" ? product : (product?.id ?? "");
+}
+
+/**
+ * A price the ladder may move a plan off: one of its rungs, or a monthly
+ * AUD price on a rung's product (a rung whose lookup key the setup
+ * script moved to a corrected price). Anything else, a yearly plan or a
+ * comp made by hand, is left as it is: moving it would change its
+ * interval or currency and bill it at once.
+ */
+function onLadder(price: Stripe.Price, rungs: LadderPrice[]): boolean {
+  if (rungs.some((r) => r.id === price.id)) return true;
+  const product = productId(price.product);
+  return (
+    product !== "" &&
+    rungs.some((r) => r.product === product) &&
+    price.currency === CURRENCY &&
+    price.recurring?.interval === "month" &&
+    price.recurring?.interval_count === 1
+  );
 }
 
 // ---------------------------------------------------------------------
@@ -541,8 +571,13 @@ async function stepRung(
   item: Stripe.SubscriptionItem,
   months: number
 ): Promise<Stripe.Subscription | null> {
-  const next = rungFor(await ladderPrices(stripe), months + 1);
+  const rungs = await ladderPrices(stripe);
+  const next = rungFor(rungs, months + 1);
   if (item.price.id === next.id) return null;
+  if (!onLadder(item.price, rungs)) {
+    console.error(`billing: ${sub.id} is on ${item.price.id}, not a ladder price; left as it is`);
+    return null;
+  }
   const at = monthForLookupKey(item.price.lookup_key);
   if (at !== null && rungIndex(at) > rungIndex(months + 1)) {
     console.error(

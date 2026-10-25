@@ -19,7 +19,11 @@ import { GOOGLE_PENDING_MS, signInWithGoogle } from "@/lib/auth";
  * `pending` is the Google button's alone. It must never disable the
  * email form beside it: that was the second half of the same bug.
  */
-export function useGoogleSignIn(mode: "signup" | "signin") {
+export function useGoogleSignIn(
+  mode: "signup" | "signin",
+  /** The page to come back to once signed in (lib/auth.ts `withNext`). */
+  next: string | null = null
+) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,7 +51,7 @@ export function useGoogleSignIn(mode: "signup" | "signin") {
   const start = useCallback(async () => {
     setError(null);
     setPending(true);
-    const result = await signInWithGoogle(mode).catch(() => ({
+    const result = await signInWithGoogle(mode, next).catch(() => ({
       ok: false,
       error: undefined,
     }));
@@ -57,7 +61,7 @@ export function useGoogleSignIn(mode: "signup" | "signin") {
       setPending(false);
       setError(result.error ?? "Google didn't answer. Try again.");
     }
-  }, [mode]);
+  }, [mode, next]);
 
   return { pending, error, start };
 }

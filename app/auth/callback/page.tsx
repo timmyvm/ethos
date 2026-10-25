@@ -5,6 +5,7 @@ import { DemosArt } from "@/components/DemosArt";
 import { useEffect, useState } from "react";
 import { GoogleMark } from "@/components/AuthForm";
 import { ACTION_CLASS } from "@/components/LessonScreen";
+import { nextFrom, onwardLink } from "@/lib/use-paywall-return";
 import {
   callbackCarriesSession,
   callbackProblem,
@@ -35,12 +36,17 @@ type State =
 export default function CallbackPage() {
   const [state, setState] = useState<State>({ at: "waiting" });
   const [attempt, setAttempt] = useState<OAuthAttempt | null>(null);
+  /** The page that asked for the account, read after mount. */
+  const [next, setNext] = useState<string | null>(null);
 
   useEffect(() => {
     let live = true;
     const href = window.location.href;
     const tried = readOAuthAttempt();
     setAttempt(tried);
+    // The link or Google's redirect carries it; a redirect that dropped
+    // the query still has it in the page the attempt began on.
+    setNext(nextFrom(window.location.search) ?? nextFrom(tried?.from));
     const problem = callbackProblem(href);
     if (problem.kind === "google") {
       setState({ at: "google" });
@@ -101,8 +107,10 @@ export default function CallbackPage() {
             {(!viaGoogle || attempt?.mode === "signup") &&
               " Everything you've already recorded came with you."}
           </p>
-          <Link href="/" className={`${ACTION_CLASS} mt-7 max-w-[320px]`}>
-            Back to the floor
+          {/* On to the page that asked for the account (the Premium
+              sheet included), or the floor. */}
+          <Link href={onwardLink(next).href} className={`${ACTION_CLASS} mt-7 max-w-[320px]`}>
+            {onwardLink(next).label}
           </Link>
         </>
       )}

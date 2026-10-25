@@ -13,6 +13,7 @@ import {
 } from "@/components/AuthForm";
 import { ACTION_CLASS, DISABLED_CLASS } from "@/lib/ui";
 import { sessionState, setNewPassword } from "@/lib/auth";
+import { authHref, nextFrom, onwardLink } from "@/lib/use-paywall-return";
 
 /**
  * The landing page for a password-reset link, and, as ?first=1, for
@@ -54,7 +55,11 @@ function Checking() {
 }
 
 function ResetScreen() {
-  const first = useSearchParams().get("first") === "1";
+  const params = useSearchParams();
+  const first = params.get("first") === "1";
+  // The page that asked for the account (the paywall's account ask
+  // sends its page with paywall=1): where the finished account goes.
+  const onward = onwardLink(nextFrom(`?${params.toString()}`));
   const [ready, setReady] = useState<boolean | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -120,10 +125,12 @@ function ResetScreen() {
               ? "Account live, password saved. Your recordings, your streak and your lexicon are attached on this device and any other you sign in on."
               : "Your recordings, your streak and your lexicon are exactly where you left them."}
           </p>
-          {/* Nothing to type: the tap sits at the bottom (auth-11). */}
+          {/* Nothing to type: the tap sits at the bottom (auth-11). It
+              goes on to the page that asked for the account, the
+              Premium sheet included, or the floor. */}
           <div className="mt-auto pt-8">
-            <Link href="/" className={ACTION_CLASS}>
-              Back to the floor
+            <Link href={onward.href} className={ACTION_CLASS}>
+              {onward.label}
             </Link>
           </div>
         </div>
@@ -138,7 +145,7 @@ function ResetScreen() {
             <Link
               /* An unconfirmed email can't receive a reset mail, so the
                  fresh link for the first-password flow is a fresh save. */
-              href={first ? "/signup" : "/auth/forgot"}
+              href={first ? authHref("signup", onward.href === "/" ? null : onward.href) : "/auth/forgot"}
               className={ACTION_CLASS}
             >
               Get a new link

@@ -315,7 +315,9 @@ export const PAYWALL_COPY = {
   busy: "One moment…",
   notYet: "Not yet",
   closing: "Money never buys stars, streaks, or scores.",
-  needsAccount: "A plan needs an account. Make one and you'll come straight back here.",
+  // Every way through (the inbox link, Google, sign-in) ends on a tap back to
+  // this sheet; "straight" overpromised a trip through the inbox.
+  needsAccount: "A plan needs an account. Make one and you'll come back here.",
   createAccount: "Create an account",
   haveAccount: "I already have one",
   haveCode: "I have a code",

@@ -73,7 +73,8 @@ export function AuthForm({
   footer: React.ReactNode;
   /** On the Password label's row, right-aligned: sign in's "Forgot?". */
   passwordAside?: React.ReactNode;
-  onSubmit: (email: string, password: string) => Promise<AuthResult>;
+  /** `next`: the page to come back to, carried through the inbox link (lib/auth.ts `withNext`). */
+  onSubmit: (email: string, password: string, next: string | null) => Promise<AuthResult>;
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -89,16 +90,18 @@ export function AuthForm({
   const [progress, setProgress] = useState({ recordings: 0, streak: 0 });
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
-  // Google's own state: it comes back when they do, and never touches
-  // the email form below it (lib/use-oauth-return.ts).
-  const google = useGoogleSignIn(mode);
   /*
    * Where a signed-in person goes next: a safe same-origin `next=` (the
    * paywall's account ask sends its page with paywall=1, so the sheet
    * reopens there), or the floor. Read after mount; the way back in the
-   * bar goes there too, named for the sheet it reopens.
+   * bar goes there too, named for the sheet it reopens. Sign-up and
+   * Google carry it through the inbox link and the round trip, so the
+   * page they land on can send them on (lib/auth.ts `withNext`).
    */
   const next = useNextPath();
+  // Google's own state: it comes back when they do, and never touches
+  // the email form below it (lib/use-oauth-return.ts).
+  const google = useGoogleSignIn(mode, next);
   const back = next ? { href: next, label: asksForPaywall(next) ? "Premium" : "Back" } : TODAY;
 
   useEffect(() => {
@@ -156,7 +159,7 @@ export function AuthForm({
     setBusy(true);
     setError(null);
     setErrorField(null);
-    const result = await onSubmit(email, password);
+    const result = await onSubmit(email, password, next);
     setBusy(false);
     if (!result.ok) {
       setError(result.error ?? "That didn't work.");

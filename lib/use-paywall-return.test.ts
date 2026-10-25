@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { asksForPaywall, authHref, safeNextPath, withPaywall, withoutPaywall } from "./use-paywall-return";
+import { asksForPaywall, authHref, nextFrom, onwardLink, safeNextPath, withPaywall, withoutPaywall } from "./use-paywall-return";
 
 /**
  * The paywall's way back through sign-up: only a same-origin path is
@@ -56,5 +56,27 @@ describe("the flag", () => {
     expect(authHref("signin", "/you?paywall=1")).toBe("/signin?next=%2Fyou%3Fpaywall%3D1");
     expect(authHref("signup", "https://evil.example")).toBe("/signup");
     expect(authHref("signin", null)).toBe("/signin");
+  });
+});
+
+/*
+ * The page an inbox link or Google lands on (/auth/reset?first=1,
+ * /auth/callback) reads `next` and offers the way on: back to the sheet
+ * when it asked for it, the floor when nothing did.
+ */
+describe("the way on from an account page", () => {
+  it("reads next from a query, or from the sign-up page an attempt began on", () => {
+    expect(nextFrom("?first=1&next=%2Fyou%3Fpaywall%3D1")).toBe("/you?paywall=1");
+    expect(nextFrom("/signup?next=%2Fgames%3Fpaywall%3D1")).toBe("/games?paywall=1");
+    expect(nextFrom("?next=%2F%2Fevil.com")).toBeNull();
+    expect(nextFrom("")).toBeNull();
+    expect(nextFrom(null)).toBeNull();
+  });
+
+  it("names the sheet it reopens, and otherwise goes to the floor", () => {
+    expect(onwardLink("/you?paywall=1")).toEqual({ href: "/you?paywall=1", label: "Back to Premium" });
+    expect(onwardLink("/games")).toEqual({ href: "/games", label: "Carry on" });
+    expect(onwardLink(null)).toEqual({ href: "/", label: "Back to the floor" });
+    expect(onwardLink("//evil.com")).toEqual({ href: "/", label: "Back to the floor" });
   });
 });

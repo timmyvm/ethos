@@ -5,19 +5,36 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const fake = vi.hoisted(() => ({
   anonymous: false,
   error: null as null | { message: string },
+  /** Where each call asked the auth server to send the person back. */
+  redirects: [] as { call: string; to: string | undefined }[],
 }));
 vi.mock("./supabase-browser", () => ({
   supabaseBrowser: () => ({
     auth: {
       getUser: async () => ({ data: { user: { is_anonymous: fake.anonymous } } }),
-      linkIdentity: async () => ({ error: fake.error }),
-      signInWithOAuth: async () => ({ error: fake.error }),
+      linkIdentity: async (a: { options?: { redirectTo?: string } }) => {
+        fake.redirects.push({ call: "linkIdentity", to: a.options?.redirectTo });
+        return { error: fake.error };
+      },
+      signInWithOAuth: async (a: { options?: { redirectTo?: string } }) => {
+        fake.redirects.push({ call: "signInWithOAuth", to: a.options?.redirectTo });
+        return { error: fake.error };
+      },
+      updateUser: async (_: unknown, o?: { emailRedirectTo?: string }) => {
+        fake.redirects.push({ call: "updateUser", to: o?.emailRedirectTo });
+        return { error: null };
+      },
+      signUp: async (a: { options?: { emailRedirectTo?: string } }) => {
+        fake.redirects.push({ call: "signUp", to: a.options?.emailRedirectTo });
+        return { error: null };
+      },
     },
   }),
 }));
 
 import {
   attemptStartedOn,
+  createAccount,
   OAUTH_KEY,
   signInWithGoogle,
   callbackCarriesSession,
@@ -29,6 +46,7 @@ import {
   passwordProblem,
   safeReturnPath,
   signIn,
+  withNext,
 } from "./auth";
 
 describe("password rules", () => {
@@ -190,5 +208,70 @@ describe("the Google attempt, remembered and forgotten", () => {
     expect(attemptStartedOn({ from: "/welcomer", mode: "signup", at }, "/welcome")).toBe(false);
     expect(attemptStartedOn({ from: "/signup", mode: "signup", at }, "/welcome")).toBe(false);
     expect(attemptStartedOn(null, "/welcome")).toBe(false);
+  });
+});
+
+/*
+ * The paywall's account ask promises the person comes back to the sheet
+ * ("paywall=1"). Every way through sign-up has to carry that `next` to
+ * the page the confirmation link or Google lands on, or they end on
+ * Today with the sheet gone.
+ */
+describe("sign-up carries where to come back to", () => {
+  const next = "/you?paywall=1";
+  const encoded = encodeURIComponent(next);
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    fake.anonymous = false;
+    fake.error = null;
+    fake.redirects = [];
+  });
+  const install = () => {
+    vi.stubGlobal("window", { location: { pathname: "/signup", search: `?next=${encoded}`, origin: "https://speakethos.com" } });
+    vi.stubGlobal("sessionStorage", { getItem: () => null, setItem: () => {}, removeItem: () => {} });
+  };
+
+  it("adds a safe next to a path, keeping the query it has", () => {
+    expect(withNext("/auth/reset?first=1", next)).toBe(`/auth/reset?first=1&next=${encoded}`);
+    expect(withNext("/auth/callback", next)).toBe(`/auth/callback?next=${encoded}`);
+  });
+
+  it("drops a next that could leave the site or loop", () => {
+    expect(withNext("/auth/callback", "//evil.com")).toBe("/auth/callback");
+    expect(withNext("/auth/callback", "https://evil.com/x")).toBe("/auth/callback");
+    expect(withNext("/auth/callback", "/signup?next=%2Fyou")).toBe("/auth/callback");
+    expect(withNext("/auth/callback", null)).toBe("/auth/callback");
+  });
+
+  it("sends an anonymous session's confirmation link to the password page with next", async () => {
+    install();
+    fake.anonymous = true;
+    expect(await createAccount("a@b.co", "", next)).toEqual({ ok: true, checkInbox: true });
+    expect(fake.redirects).toEqual([{ call: "updateUser", to: `https://speakethos.com/auth/reset?first=1&next=${encoded}` }]);
+  });
+
+  it("sends a fresh sign-up's confirmation link to the callback with next", async () => {
+    install();
+    expect(await createAccount("a@b.co", "longenough", next)).toEqual({ ok: true, checkInbox: true });
+    expect(fake.redirects).toEqual([{ call: "signUp", to: `https://speakethos.com/auth/callback?next=${encoded}` }]);
+  });
+
+  it("sends Google back to the callback with next, linking or signing in", async () => {
+    install();
+    fake.anonymous = true;
+    await signInWithGoogle("signup", next);
+    fake.anonymous = false;
+    await signInWithGoogle("signin", next);
+    expect(fake.redirects).toEqual([
+      { call: "linkIdentity", to: `https://speakethos.com/auth/callback?next=${encoded}` },
+      { call: "signInWithOAuth", to: `https://speakethos.com/auth/callback?next=${encoded}` },
+    ]);
+  });
+
+  it("keeps the old landing pages when there is nowhere to come back to", async () => {
+    install();
+    fake.anonymous = true;
+    await createAccount("a@b.co", "");
+    expect(fake.redirects[0].to).toBe("https://speakethos.com/auth/reset?first=1");
   });
 });

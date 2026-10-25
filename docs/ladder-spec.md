@@ -146,7 +146,9 @@ yet" and the closing line.
 **Needs an account** (403 `needsAccount`):
 - The ladder stays.
 - An inset note (cream/10 fill, radius 12, p-4, body cream/85) reads "A plan needs an
-  account. Make one and you'll come straight back here."
+  account. Make one and you'll come back here." Sign-up carries `next` through the inbox
+  link and Google's round trip (lib/auth.ts `withNext`), and the page each lands on ends
+  on "Back to Premium" (`onwardLink`).
 - The tap becomes "Create an account", linking to `/signup?next=` with the current path
   plus `paywall=1`, so the sheet reopens on return.
 - The link is "I already have one", to `/signin?next=` the same.

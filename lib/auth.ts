@@ -25,6 +25,7 @@
  */
 
 import { supabaseBrowser } from "./supabase-browser";
+import { safeNextPath } from "./use-paywall-return";
 
 /** Where confirmation and reset links come back to. */
 export function siteUrl(): string {
@@ -35,6 +36,19 @@ export function siteUrl(): string {
 }
 
 export const MIN_PASSWORD = 8;
+
+/**
+ * `path` with the page to come back to after the account is made, when
+ * there is a safe one (lib/use-paywall-return.ts `safeNextPath`): the
+ * paywall's account ask sends its page plus `paywall=1`, and the link in
+ * the inbox or the round trip through Google lands on a page that reads
+ * it and offers the way back. Anything unsafe is dropped, never sent.
+ */
+export function withNext(path: string, next: string | null | undefined): string {
+  const safe = next ? safeNextPath(next) : null;
+  if (!safe) return path;
+  return `${path}${path.includes("?") ? "&" : "?"}next=${encodeURIComponent(safe)}`;
+}
 
 export interface AuthResult {
   ok: boolean;
@@ -125,7 +139,9 @@ export async function sessionState(): Promise<SessionState> {
  */
 export async function createAccount(
   email: string,
-  password: string
+  password: string,
+  /** Where the confirmation link's page sends them on (`withNext`). */
+  next?: string | null
 ): Promise<AuthResult> {
   const db = supabaseBrowser();
   if (!db) return { ok: false, error: "Accounts aren't configured yet." };
@@ -150,7 +166,7 @@ export async function createAccount(
 
     const upgrade = await db.auth.updateUser(
       { email: email.trim() },
-      { emailRedirectTo: `${siteUrl()}/auth/reset?first=1` }
+      { emailRedirectTo: `${siteUrl()}${withNext("/auth/reset?first=1", next)}` }
     );
     if (upgrade.error) {
       if (emailTimedOut(upgrade.error.message)) {
@@ -175,7 +191,7 @@ export async function createAccount(
   const { error } = await db.auth.signUp({
     email: email.trim(),
     password,
-    options: { emailRedirectTo: `${siteUrl()}/auth/callback` },
+    options: { emailRedirectTo: `${siteUrl()}${withNext("/auth/callback", next)}` },
   });
   if (error) {
     if (emailTimedOut(error.message)) {
@@ -198,7 +214,9 @@ export async function createAccount(
  * means "the redirect is happening", not "signed in".
  */
 export async function signInWithGoogle(
-  mode: "signup" | "signin"
+  mode: "signup" | "signin",
+  /** Where the callback sends them on once they are in (`withNext`). */
+  next?: string | null
 ): Promise<AuthResult> {
   const db = supabaseBrowser();
   if (!db) return { ok: false, error: "Accounts aren't configured yet." };
@@ -213,7 +231,7 @@ export async function signInWithGoogle(
     forgetOAuthAttempt();
     return { ok: false, error: humanise(message) };
   };
-  const redirectTo = `${siteUrl()}/auth/callback`;
+  const redirectTo = `${siteUrl()}${withNext("/auth/callback", next)}`;
   try {
     if (mode === "signup") {
       const { data } = await db.auth.getUser();

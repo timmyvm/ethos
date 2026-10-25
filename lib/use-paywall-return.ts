@@ -10,7 +10,9 @@ import { useEffect, useRef, useState } from "react";
  * back arrow comes home the same way.
  *
  * The pages that open the paywall mount `usePaywallReturn`; the auth
- * screens read `next` through `useNextPath`. Both read the URL after
+ * screens read `next` through `useNextPath` and carry it through the
+ * inbox link and Google's round trip (lib/auth.ts `withNext`), and the
+ * pages those land on send them on with `onwardLink`. Both read the URL after
  * mount, never during render, so nothing here touches the server render.
  */
 
@@ -66,6 +68,31 @@ export function asksForPaywall(path: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * The safe `next` in a query string or a path with one ("?next=…", or
+ * the "/signup?next=…" a Google attempt began on), or null.
+ */
+export function nextFrom(search: string | null | undefined): string | null {
+  if (!search) return null;
+  try {
+    const q = search.includes("?") ? search.slice(search.indexOf("?") + 1) : search;
+    return safeNextPath(new URLSearchParams(q).get("next"));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The tap at the end of an account page (a confirmed email, a password
+ * set, Google done): on to the page that asked, named for the sheet it
+ * reopens, or the floor when nothing asked.
+ */
+export function onwardLink(next: string | null): { href: string; label: string } {
+  const safe = next ? safeNextPath(next) : null;
+  if (!safe) return { href: "/", label: "Back to the floor" };
+  return { href: safe, label: asksForPaywall(safe) ? "Back to Premium" : "Carry on" };
 }
 
 /**

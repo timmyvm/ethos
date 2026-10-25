@@ -1,36 +1,153 @@
 /*
  * Direction A, the timeline. Every class here is `la-` and lives only on
  * the workbench (app/workbench/ladder-a). Values come from the tokens in
- * app/globals.css: the springs, the durations, cream on the plum sheet.
- * No new type size: the column labels are the caption step (12.5), the
- * card's axis the suffix step (10).
+ * app/globals.css: the springs, the durations, cream on the plum sheet,
+ * ink on the neutral ones. No new type size: column labels are the
+ * caption step (12.5), the small currency is 0.55em of its own numeral.
+ *
+ * One chart, two materials. `la-plum` is the paywall (cream on #3c2043,
+ * the tier's own surface); `la-neutral` is everything a subscriber
+ * manages (ink on raised), because managing a plan is a utility and
+ * plum stays the paid surface (DESIGN.md principle 2). The chart reads
+ * every colour from `--la-rgb` and four alphas per state, so the two
+ * materials are one drawing.
  */
 
 /* ------------------------------------------------------------------ */
+/* Materials. */
+.la-plum {
+  --la-rgb: 247 247 247;
+  --la-ground: #3c2043;
+  --la-fg: var(--color-cream);
+  --la-fg2: rgb(247 247 247 / 0.7);
+  --la-fg3: rgb(247 247 247 / 0.6);
+  /* Not yet: a faint column under a line, so the staircase still reads. */
+  --la-next-top: 0.13;
+  --la-next-bot: 0.045;
+  --la-next-line: 0.42;
+  /* Paid: filled. */
+  --la-paid-top: 0.2;
+  --la-paid-bot: 0.2;
+  --la-paid-line: 0.78;
+  /* This month: lit. */
+  --la-now-top: 0.4;
+  --la-now-bot: 0.28;
+  /* Ending: the months that will not happen keep a dashed outline. */
+  --la-void-line: 0.32;
+  --la-axis-line: 0.24;
+  --la-band: 0.075;
+  --la-label: 0.6;
+  --la-price: 0.8;
+}
+.la-neutral {
+  --la-rgb: 32 30 29;
+  --la-ground: var(--color-raised);
+  --la-fg: var(--color-ink);
+  --la-fg2: var(--color-stone-500);
+  --la-fg3: var(--color-stone-400);
+  --la-next-top: 0.07;
+  --la-next-bot: 0.025;
+  --la-next-line: 0.28;
+  --la-paid-top: 0.12;
+  --la-paid-bot: 0.12;
+  --la-paid-line: 0.5;
+  --la-now-top: 0.24;
+  --la-now-bot: 0.14;
+  --la-void-line: 0.26;
+  --la-axis-line: 0.14;
+  --la-band: 0.045;
+  --la-label: 0.66;
+  --la-price: 0.72;
+}
+:root[data-theme="dark"] .la-neutral {
+  --la-rgb: 242 242 242;
+  --la-next-top: 0.09;
+  --la-next-bot: 0.03;
+  --la-next-line: 0.32;
+  --la-paid-top: 0.17;
+  --la-paid-bot: 0.17;
+  --la-paid-line: 0.6;
+  --la-now-top: 0.36;
+  --la-now-bot: 0.26;
+  --la-void-line: 0.3;
+  --la-axis-line: 0.16;
+  --la-band: 0.065;
+  --la-label: 0.6;
+  --la-price: 0.72;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .la-neutral {
+    --la-rgb: 242 242 242;
+  }
+}
+
+.la-fg {
+  color: var(--la-fg);
+}
+.la-fg2 {
+  color: var(--la-fg2);
+}
+
 /* The sheet's material: #3c2043 in both themes (.card-premium). In dark
    it takes .card's sheen, 4.6% white over the top 88px, so its top edge
    reads against the scrim. */
-:root[data-theme="dark"] .la-sheet {
+:root[data-theme="dark"] .la-sheet-plum {
   background: linear-gradient(180deg, color-mix(in srgb, #3c2043, #fff 4.6%) 0, #3c2043 88px);
+}
+/* The neutral sheet: raised, and in dark the same sheen as a card. */
+.la-sheet-neutral {
+  background-color: var(--color-raised);
+}
+:root[data-theme="dark"] .la-sheet-neutral {
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-raised), #fff 4.6%) 0,
+    var(--color-raised) 88px
+  );
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.06),
+    var(--shadow-3);
+}
+
+/* In dark, a group on the raised sheet steps UP a layer, as iOS's cells
+   do on a sheet, rather than sinking to the surface under it. */
+:root[data-theme="dark"] .la-sheet-neutral :is(.inset-group, .la-fill-2) {
+  background-color: color-mix(in srgb, var(--color-raised), #fff 5.5%);
+}
+
+/* ------------------------------------------------------------------ */
+/* The price: "A$" at 0.55em of its numeral on the same baseline, one
+   step quieter, so the currency is said and the number is read. */
+.la-cur {
+  font-size: 0.55em;
+  letter-spacing: 0;
+  margin-right: 0.08em;
+  color: var(--la-fg2, currentColor);
+  font-weight: 700;
 }
 
 /* ------------------------------------------------------------------ */
 /* The timeline chart. */
 .la-chart {
-  --la-top: 26px; /* air over the tallest column, for its price */
-  --la-plot: 88px; /* A$12.99, measured from zero */
-  --la-axis: 28px; /* the month row under the baseline */
-  --la-bleed: 1.5rem; /* the sheet's side padding: month 7 runs to the edge */
+  --la-top: 23px; /* air over the tallest column, for its price */
+  --la-plot: 76px; /* A$12.99, measured from zero */
+  --la-axis: 24px; /* the month row under the baseline */
+  --la-bleed: 1.5rem; /* the container's side padding: month 7 runs to its edge */
   position: relative;
   container: la / inline-size;
   border-radius: var(--radius-control);
   touch-action: pan-y;
   -webkit-user-select: none;
   user-select: none;
+}
+.la-chart[role="slider"] {
   cursor: pointer;
 }
 .la-chart:focus-visible {
   outline-offset: 6px;
+}
+.la-chart[data-bare] {
+  --la-top: 0px;
 }
 .la-cols {
   position: relative;
@@ -45,58 +162,71 @@
   right: calc(-1 * var(--la-bleed));
   bottom: calc(var(--la-axis) - 1px);
   height: 1px;
-  background: rgb(247 247 247 / 0.24);
+  background: rgb(var(--la-rgb) / var(--la-axis-line));
   -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - var(--la-bleed)), transparent);
   mask-image: linear-gradient(90deg, #000 calc(100% - var(--la-bleed)), transparent);
   pointer-events: none;
 }
 
 .la-col {
-  /* The month's material, by state. Not yet: a faint column under a
-     cream/42 line, so the staircase still reads. */
-  --area: linear-gradient(180deg, rgb(247 247 247 / 0.13), rgb(247 247 247 / 0.045));
-  --tread: rgb(247 247 247 / 0.42);
+  --area: linear-gradient(180deg, rgb(var(--la-rgb) / var(--la-next-top)), rgb(var(--la-rgb) / var(--la-next-bot)));
+  --tread: rgb(var(--la-rgb) / var(--la-next-line));
   position: relative;
   height: calc(var(--la-top) + var(--la-plot) + var(--la-axis));
+}
+.la-col[data-state="paid"] {
+  --area: linear-gradient(180deg, rgb(var(--la-rgb) / var(--la-paid-top)), rgb(var(--la-rgb) / var(--la-paid-bot)));
+  --tread: rgb(var(--la-rgb) / var(--la-paid-line));
+}
+.la-col[data-state="now"] {
+  --area: linear-gradient(180deg, rgb(var(--la-rgb) / var(--la-now-top)), rgb(var(--la-rgb) / var(--la-now-bot)));
+  --tread: var(--la-fg);
+}
+.la-col[data-state="void"] {
+  --area: transparent;
+  --tread: rgb(var(--la-rgb) / var(--la-void-line));
+}
+
+/* The entrance: each column rises from the baseline on the base spring,
+   24ms apart, after `--la-lead` (the sheet lands first). */
+.la-chart[data-enter] .la-bar,
+.la-chart[data-enter] .la-riser {
+  transform-origin: center bottom;
   animation: la-rise var(--spring-base-duration) var(--spring-base) backwards;
   animation-delay: calc(var(--la-lead, 0ms) + var(--i, 0) * 24ms);
 }
-/* Paid: filled. */
-.la-col[data-state="paid"] {
-  --area: rgb(247 247 247 / 0.2);
-  --tread: rgb(247 247 247 / 0.78);
+/* The month row is the axis: it is there with the first column. A price
+   lands once its own column has most of its height, so no number floats
+   over an empty bar. */
+.la-chart[data-enter] .la-month {
+  animation: fade-in var(--duration-base) var(--ease-out) backwards;
+  animation-delay: calc(var(--la-lead, 0ms) + var(--i, 0) * 24ms);
 }
-/* This month: lit. */
-.la-col[data-state="now"] {
-  --area: linear-gradient(180deg, rgb(247 247 247 / 0.4), rgb(247 247 247 / 0.28));
-  --tread: var(--color-cream);
+.la-chart[data-enter] :is(.la-price, .la-tag) {
+  animation: fade-in var(--duration-base) var(--ease-out) backwards;
+  animation-delay: calc(var(--la-lead, 0ms) + 240ms + var(--i, 0) * 24ms);
 }
-/* Cancelled: the months that will not happen keep their outline only. */
-.la-col[data-state="void"] {
-  --area: transparent;
-  --tread: rgb(247 247 247 / 0.32);
+/* The selection arrives with its column, never ahead of the stair: the
+   band fades in as month 1 rises, the puck lands on it a beat later. */
+.la-chart[data-enter] .la-sel-band {
+  animation: fade-in var(--duration-base) var(--ease-out) backwards;
+  animation-delay: calc(var(--la-lead, 0ms) + 160ms);
 }
-
-@keyframes la-rise {
+.la-chart[data-enter] .la-sel-dot {
+  animation: la-puck var(--spring-snappy-duration) var(--spring-snappy) backwards;
+  animation-delay: calc(var(--la-lead, 0ms) + 260ms);
+}
+@keyframes la-puck {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    scale: 0.3;
   }
 }
-
-/* The selection: a band behind the whole column, price to month. */
-.la-band {
-  position: absolute;
-  inset: 0 2px;
-  border-radius: 10px;
-  background: rgb(247 247 247 / 0);
-  transition: background-color var(--duration-fast) var(--ease-out);
-}
-.la-col[data-sel] .la-band {
-  background: rgb(247 247 247 / 0.075);
-}
-.la-chart[data-scrubbing] .la-band {
-  transition: none;
+@keyframes la-rise {
+  from {
+    transform: scaleY(0.2);
+    opacity: 0;
+  }
 }
 
 .la-bar {
@@ -108,12 +238,15 @@
   height: var(--h);
   background: var(--area);
   border-top: 2px solid var(--tread);
+  transition:
+    border-color var(--duration-base) var(--ease-out),
+    background var(--duration-base) var(--ease-out);
 }
 .la-col[data-state="void"] .la-bar {
   border-top-style: dashed;
 }
 /* Month 7 is every month after it: it runs through the padding to the
-   sheet's edge and fades there. */
+   container's edge and fades there. */
 .la-col[data-floor] .la-bar {
   right: calc(-1 * var(--la-bleed));
   -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - var(--la-bleed)), transparent);
@@ -129,45 +262,97 @@
   width: 2px;
   bottom: calc(var(--la-axis) + var(--next-h) - 2px);
   height: calc(var(--h) - var(--next-h) + 2px);
-  background: rgb(247 247 247 / 0.42);
+  background: rgb(var(--la-rgb) / var(--la-next-line));
+  transition: background-color var(--duration-base) var(--ease-out);
 }
 .la-riser[data-next="paid"] {
-  background: rgb(247 247 247 / 0.78);
+  background: rgb(var(--la-rgb) / var(--la-paid-line));
 }
 .la-riser[data-next="now"] {
-  background: var(--color-cream);
+  background: var(--la-fg);
 }
 .la-riser[data-next="void"] {
-  background: rgb(247 247 247 / 0.32);
+  background: rgb(var(--la-rgb) / var(--la-void-line));
 }
 
-/* Where the selected price starts: the corner of its step. */
-.la-dot {
+/* The selection: one band and one dot for the whole chart, moved by a
+   transform, so a step from month to month is one object travelling
+   (the tab bar's well, #321), never two states swapping. */
+.la-sel {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: calc(100% / 7);
+  transform: translateX(calc((var(--sel) - 1) * 100%));
+  transition: transform var(--spring-snappy-duration) var(--spring-snappy);
+  pointer-events: none;
+}
+.la-sel-band {
+  position: absolute;
+  inset: 0 1px;
+  border-radius: 10px;
+  background: rgb(var(--la-rgb) / var(--la-band));
+}
+/* The puck: centred on the selected month's tread (the tread is the
+   bar's 2px top edge, so its centre is 1px under the bar's top). It is
+   what a thumb reads as "this slides". */
+.la-sel-dot {
   position: absolute;
   z-index: 3;
-  left: -4px;
-  bottom: calc(var(--la-axis) + var(--h) - 5px);
-  width: 8px;
-  height: 8px;
+  left: calc(50% - 6px);
+  bottom: calc(var(--la-axis) - 7px);
+  width: 12px;
+  height: 12px;
   border-radius: 999px;
-  background: var(--color-cream);
-  box-shadow: 0 0 0 2px #3c2043;
-  opacity: 0;
-  transform: scale(0.4);
-  transition:
-    opacity var(--duration-fast) var(--ease-out),
-    transform var(--spring-snappy-duration) var(--spring-snappy);
+  background: var(--la-fg);
+  box-shadow: 0 0 0 2.5px var(--la-ground);
+  transform: translateY(calc(-1 * var(--sel-h)));
+  transition: transform var(--spring-snappy-duration) var(--spring-snappy);
 }
-.la-col[data-sel] .la-dot {
-  opacity: 1;
-  transform: scale(1);
+.la-sel[data-layer="dot"] {
+  z-index: 3;
 }
-/* Under the finger it grows, the way Stocks' marker does. */
-.la-chart[data-scrubbing] .la-col[data-sel] .la-dot {
-  transform: scale(1.4);
+/* Under the finger the dot grows, the way Stocks' marker does. */
+.la-chart[data-scrubbing] .la-sel-dot {
+  transform: translateY(calc(-1 * var(--sel-h))) scale(1.35);
 }
-.la-chart[data-scrubbing] .la-dot {
+.la-chart[data-scrubbing] :is(.la-sel, .la-sel-dot) {
   transition: none;
+}
+/* A step nobody's finger made (the monthly drop): the sheet spring,
+   critically damped, slower, so it reads as the plan moving on. */
+.la-chart[data-step="sheet"] :is(.la-sel, .la-sel-dot) {
+  transition-duration: var(--spring-sheet-duration);
+  transition-timing-function: var(--spring-sheet);
+}
+
+/* The sheen: once, over the column the plan just stepped onto, 600ms
+   (DURATION.celebrate). */
+.la-sheen {
+  position: absolute;
+  z-index: 2;
+  left: 1px;
+  right: 1px;
+  bottom: var(--la-axis);
+  height: var(--h);
+  overflow: hidden;
+  pointer-events: none;
+}
+.la-sheen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgb(var(--la-rgb) / 0.32) 50%, transparent 80%);
+  transform: translateX(-100%);
+  animation: la-sheen var(--duration-celebrate) var(--ease-out) forwards;
+  animation-delay: var(--sheen-delay, 0ms);
+}
+@keyframes la-sheen {
+  to {
+    transform: translateX(100%);
+  }
 }
 
 .la-price {
@@ -175,23 +360,25 @@
   z-index: 2;
   left: 0;
   right: 0;
-  bottom: calc(var(--la-axis) + var(--h) + 7px);
+  bottom: calc(var(--la-axis) + var(--h) + 9px);
   text-align: center;
   font-size: var(--text-caption);
   line-height: 1;
   font-weight: 700;
   letter-spacing: -0.01em;
-  color: rgb(247 247 247 / 0.8);
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--la-rgb) / var(--la-price));
   white-space: nowrap;
+  transition: color var(--duration-fast) var(--ease-out);
 }
 .la-tag {
   position: absolute;
   z-index: 2;
-  left: 0;
-  right: 0;
-  bottom: calc(var(--la-axis) + var(--h) + 24px);
+  left: -6px;
+  right: -6px;
   text-align: center;
-  color: rgb(247 247 247 / 0.8) !important;
+  bottom: calc(var(--la-axis) + var(--h) + 25px);
+  color: var(--la-fg2) !important;
 }
 .la-month {
   position: absolute;
@@ -202,47 +389,42 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding-bottom: 2px;
+  padding-bottom: 1px;
   font-size: var(--text-caption);
   line-height: 1;
   font-weight: 600;
-  color: rgb(247 247 247 / 0.6);
+  color: rgb(var(--la-rgb) / var(--la-label));
   white-space: nowrap;
+  transition: color var(--duration-fast) var(--ease-out);
 }
 .la-col[data-sel] :is(.la-price, .la-month) {
-  color: var(--color-cream);
+  color: var(--la-fg);
 }
 .la-plus {
   margin-left: 1px;
 }
 
 /* At large text sizes the column prices step aside and the readout
-   carries the number (Speechify): 7 x 2.3rem is what "12.99" needs. */
+   carries the number: 7 x 2.3rem is what "12.99" needs. */
 @container la (max-width: 16.25rem) {
+  /* visibility, not display: a display toggle restarts the labels'
+     entrance and they would fade in again on every resize. */
   .la-price,
   .la-tag {
-    display: none;
+    visibility: hidden;
   }
 }
 
-/* Checkout return: month 1 fills, from 60%, from the bottom. */
+/* Checkout return: month 1 fills from the baseline, on the sheet spring,
+   after the sheet has landed. */
 .la-fill-first {
   transform-origin: center bottom;
-  animation: la-fill-first var(--spring-base-duration) var(--spring-base) backwards;
-  animation-delay: calc(var(--la-lead, 0ms) + 240ms);
-}
-@keyframes la-fill-first {
-  from {
-    transform: scaleY(0.6);
-    opacity: 0.35;
-  }
+  animation: fill-y var(--spring-sheet-duration) var(--spring-sheet) backwards !important;
+  animation-delay: calc(var(--la-lead, 0ms) + 200ms) !important;
 }
 
 /* ------------------------------------------------------------------ */
 /* The readout. */
-.la-currency {
-  margin-right: 0.04em;
-}
 .la-roll {
   display: inline-flex;
 }
@@ -254,6 +436,10 @@
 }
 .la-roll-up {
   animation: la-roll-up var(--spring-snappy-duration) var(--spring-snappy) backwards;
+}
+.la-roll-slow .la-roll-down {
+  animation-duration: var(--spring-sheet-duration);
+  animation-timing-function: var(--spring-sheet);
 }
 @keyframes la-roll-down {
   from {
@@ -268,144 +454,62 @@
   }
 }
 
-/* The readout's skeleton on plum: cream at 12%, swept. */
-.la-readout-skeleton {
-  display: flex;
-  align-items: center;
-  height: 1em;
-}
+/* The readout's skeleton: the material's own colour at 12%, swept. */
 .la-skel {
-  background-color: rgb(247 247 247 / 0.12);
-  background-image: linear-gradient(90deg, transparent 0%, rgb(247 247 247 / 0.14) 50%, transparent 100%);
+  background-color: rgb(var(--la-rgb) / 0.1);
+  background-image: linear-gradient(90deg, transparent 0%, rgb(var(--la-rgb) / 0.1) 50%, transparent 100%);
   background-size: 200% 100%;
   background-repeat: no-repeat;
   animation: skeleton-sweep 1.5s ease-in-out infinite;
 }
 
 /* ------------------------------------------------------------------ */
-/* The board's mini timeline, on You: 24px, the same proportions. */
-.la-mini {
-  --la-bleed: 1rem; /* the card's p-4 */
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  column-gap: 3px;
-  align-items: end;
-  height: 24px;
+/* A board: label left, value right, one hairline between rows (Flighty's
+   one line per flight). On plum the hairline is cream at 14%. */
+.la-board {
+  border-top: 1px solid rgb(var(--la-rgb) / 0.14);
 }
-.la-mini::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: calc(-1 * var(--la-bleed));
-  bottom: -1px;
-  height: 1px;
-  background: var(--color-edge);
-  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - var(--la-bleed)), transparent);
-  mask-image: linear-gradient(90deg, #000 calc(100% - var(--la-bleed)), transparent);
-}
-.la-mini-bar {
-  position: relative;
-  height: var(--h);
-}
-.la-mini-fill {
-  background: currentColor;
-}
-.la-mini-void {
-  background: transparent;
-  box-shadow: inset 0 0 0 1.5px var(--color-sand);
-}
-.la-mini-bar[data-floor] {
-  margin-right: calc(-1 * var(--la-bleed));
-  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - var(--la-bleed)), transparent);
-  mask-image: linear-gradient(90deg, #000 calc(100% - var(--la-bleed)), transparent);
-}
-/* This month: a 2px ring of its own colour, off the bar by 2px. */
-.la-mini-bar[data-now]::after {
-  content: "";
-  position: absolute;
-  inset: -4px;
-  border: 2px solid currentColor;
-  border-radius: 3px;
-}
-.la-mini-axis {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  column-gap: 3px;
-}
-
-/* The monthly drop: the new month fills from the baseline, after the
-   card has arrived. */
-.la-mini-new {
-  transform-origin: center bottom;
-  animation: fill-y var(--spring-base-duration) var(--spring-base) backwards;
-  animation-delay: 520ms;
+.la-board > * {
+  border-bottom: 1px solid rgb(var(--la-rgb) / 0.14);
 }
 
 /* ------------------------------------------------------------------ */
-/* The manage sheet's inset group, on plum: cream at 8%, 48px rows,
-   cream hairlines. */
-.la-group {
-  overflow: hidden;
-  border-radius: var(--radius-card);
-  background: rgb(247 247 247 / 0.08);
-}
-.la-row {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 48px;
-  width: 100%;
-  padding: 12px 16px;
-  text-align: left;
-}
-.la-row + .la-row::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 16px;
-  right: 0;
-  height: 1px;
-  background: rgb(247 247 247 / 0.12);
-  transform: scaleY(0.5);
-  transform-origin: top;
-}
-button.la-row {
-  -webkit-tap-highlight-color: transparent;
-  transition: background-color 420ms var(--ease-out);
-}
-button.la-row:active {
-  background-color: rgb(247 247 247 / 0.08);
-  transition-duration: 0ms;
-}
-.la-group > :focus-visible {
-  outline-offset: -3px;
-}
-
 /* The group and its confirm swap in place: the height on the base
    spring, the contents in a 200ms cross-fade. */
 .la-swap {
   overflow: hidden;
   transition: height var(--spring-base-duration) var(--spring-base);
 }
+.la-swap-in {
+  animation: fade-in var(--duration-base) var(--ease-out) backwards;
+}
 
 /* ------------------------------------------------------------------ */
-/* Reduced motion: no stagger, no roll, no scale. The changed numeral
+/* Reduced motion: no stagger, no roll, no slide. The changed numeral
    and the changed column fade in 200ms; the scrub still tracks, since a
    1:1 drag is not vestibular motion. */
-:root[data-motion="reduce"] .la-col {
-  animation: none;
+:root[data-motion="reduce"] .la-chart[data-enter] :is(.la-bar, .la-riser, .la-price, .la-month, .la-tag) {
+  animation: fade-in var(--duration-base) var(--ease-out) backwards;
+  animation-delay: 0ms;
 }
 :root[data-motion="reduce"] :is(.la-roll-down, .la-roll-up) {
   animation: fade-in var(--duration-base) var(--ease-out) backwards;
 }
-:root[data-motion="reduce"] :is(.la-fill-first, .la-mini-new) {
-  animation: fade-in var(--duration-base) var(--ease-out) backwards;
+:root[data-motion="reduce"] .la-fill-first {
+  animation: fade-in var(--duration-base) var(--ease-out) backwards !important;
 }
-:root[data-motion="reduce"] .la-dot {
-  transform: none !important;
-  transition: opacity var(--duration-base) var(--ease-out);
+:root[data-motion="reduce"] :is(.la-sel, .la-sel-dot) {
+  transition: none;
+}
+:root[data-motion="reduce"] .la-chart[data-enter] :is(.la-sel-band, .la-sel-dot) {
+  animation: fade-in var(--duration-base) var(--ease-out) backwards;
+  animation-delay: 0ms;
+}
+:root[data-motion="reduce"] .la-sel {
+  animation: fade-in var(--duration-base) var(--ease-out);
+}
+:root[data-motion="reduce"] .la-sheen {
+  display: none;
 }
 :root[data-motion="reduce"] .la-swap {
   transition: none;
@@ -416,7 +520,16 @@ button.la-row:active {
 }
 
 /* ------------------------------------------------------------------ */
-/* The workbench's own frames. */
+/* The workbench's own frames: a sheet stands on the scrim's colour over
+   a ground, as it would over You. */
 .la-frame-sheet {
   background: color-mix(in srgb, var(--color-stage) 42%, var(--color-ground));
+}
+
+/* The camera opens a sheet with no tap before it, so Chromium draws the
+   panel's programmatic focus as focus-visible. On a phone the sheet
+   always follows a tap and the ring never shows; here it would print a
+   terracotta line over every in-place shot. Workbench only. */
+.la-root .sheet-panel:focus-visible {
+  outline: none;
 }

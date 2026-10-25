@@ -11,6 +11,7 @@
  * day (the 31st in a 30-day month, or February) bills on its last day,
  * and the next month returns to the anchor. `addMonths` is that rule.
  */
+import type { BillingRow } from "@/lib/client-data";
 import {
   FLOOR_MONTH,
   LADDER_CENTS,
@@ -33,15 +34,17 @@ export function monthStarts(start: Date, month: number): Date {
 
 const DAY_MONTH = new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short" });
 const DAY_MONTH_LONG = new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "long" });
-const MONTH = new Intl.DateTimeFormat("en-AU", { month: "short" });
+/** Three letters, always: en-AU writes "Sept", which breaks a column of
+    seven three-letter months by one glyph. */
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const WEEKDAY = new Intl.DateTimeFormat("en-AU", { weekday: "long" });
 
 /** "24 Nov". */
 export const dayMonth = (d: Date) => DAY_MONTH.format(d);
 /** "24 November", for a screen reader, which reads "Nov" as a word. */
 export const dayMonthLong = (d: Date) => DAY_MONTH_LONG.format(d);
-/** "Nov". en-AU writes September "Sept". */
-export const monthName = (d: Date) => MONTH.format(d);
+/** "Nov", "Sep". */
+export const monthName = (d: Date) => MONTHS[d.getMonth()];
 
 const MS_DAY = 86_400_000;
 const midnight = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -113,7 +116,8 @@ export function rungSpoken(r: Rung, today: Date, current?: number): string {
 export type PlanState =
   | { kind: "active"; start: Date; month: number }
   | { kind: "ending"; start: Date; month: number; endsOn: Date }
-  | { kind: "past_due"; start: Date; month: number; declinedOn: Date; retryUntil: Date }
+  /** Stripe is retrying a declined renewal: the place and the price hold. */
+  | { kind: "past_due"; start: Date; month: number; declinedOn: Date; retryOn: Date }
   | { kind: "code" }
   | { kind: "free" };
 
@@ -122,4 +126,34 @@ export function pricesFor(month: number) {
   const now = priceForMonth(month);
   const next = priceForMonth(month + 1);
   return { now, next, drops: next < now };
+}
+
+/** The months still to pay before the floor, counting this one out. */
+export const monthsToFloor = (month: number) => Math.max(0, FLOOR_MONTH - Math.floor(month));
+
+/**
+ * A BillingRow (lib/client-data.ts) as the state these surfaces draw.
+ * The row carries no start date; month 1 began `ladder_month - 1`
+ * months before the current period did, and the current period began
+ * one month before `current_period_end`. Null when the row says nothing
+ * a subscriber's card could show (no row, or a plan that has ended).
+ */
+export function planFromBilling(row: BillingRow | null, retryOn?: Date): PlanState | null {
+  if (!row || row.ladder_month < 1 || !row.current_period_end) return null;
+  const end = new Date(row.current_period_end);
+  const periodStart = addMonths(end, -1);
+  const start = addMonths(periodStart, -(row.ladder_month - 1));
+  const month = row.ladder_month;
+  if (row.status === "past_due") {
+    // The renewal that failed opened this period; Stripe's next try is
+    // the caller's to say (the invoice knows it, the row does not).
+    const next = retryOn ?? new Date(periodStart.getTime() + 3 * MS_DAY);
+    return { kind: "past_due", start, month, declinedOn: periodStart, retryOn: next };
+  }
+  if (row.status === "active" || row.status === "trialing") {
+    return row.cancel_at_period_end
+      ? { kind: "ending", start, month, endsOn: end }
+      : { kind: "active", start, month };
+  }
+  return null;
 }

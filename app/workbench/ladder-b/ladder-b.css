@@ -1,0 +1,558 @@
+/*
+ * Direction B, the staircase: the price ladder as a physical object.
+ *
+ * Seven blocks in the answer-row grammar (a filled object, a 2px edge
+ * and the same edge at 4px as its bottom lip, #345), standing on one
+ * floor and measured from zero, so A$6.99 is 54% as tall as A$12.99
+ * and a 46% drop looks like one. The floor rung runs on through the
+ * padding to the surface's edge and fades: "from month 7, forever"
+ * without a word. A token with Demos's paw stands on the month you
+ * are in. Pressing a step presses it in; paying a month presses it
+ * flat. Every class here is prefixed `lb-` so nothing leaks into the
+ * app while this is still a direction.
+ */
+
+/* ------------------------------------------------------------------ */
+/* Geometry                                                            */
+/* ------------------------------------------------------------------ */
+
+.lb-stair-wrap {
+  container-type: inline-size;
+  container-name: lbstair;
+  /* The floor runs through the parent's padding to its edge. */
+  margin-right: calc(-1 * var(--lb-bleed, 0px));
+}
+
+.lb-stair {
+  --lb-gap: 6px;
+  --lb-col: calc((100% - var(--lb-bleed, 0px) - 6 * var(--lb-gap)) / 7);
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(6, var(--lb-col)) 1fr;
+  column-gap: var(--lb-gap);
+  align-items: end;
+  height: calc(var(--lb-max) + var(--lb-token) + 8px);
+  /* A vertical pan is the sheet's scroll; a horizontal one is ours. */
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.lb-stair[data-size="lg"] {
+  --lb-max: 120px;
+  --lb-token: 26px;
+  --lb-radius: 12px;
+  --lb-edge-w: 2px;
+  --lb-lip-w: 4px;
+}
+.lb-stair[data-size="md"] {
+  --lb-max: 88px;
+  --lb-token: 22px;
+  --lb-radius: 11px;
+  --lb-edge-w: 2px;
+  --lb-lip-w: 4px;
+}
+.lb-stair[data-size="sm"] {
+  --lb-gap: 4px;
+  --lb-max: 40px;
+  --lb-token: 18px;
+  --lb-radius: 7px;
+  --lb-edge-w: 1.5px;
+  --lb-lip-w: 3px;
+}
+
+/* The column clips its block: blocks rise out of the floor and a
+   pressed block sinks into it, and neither shows below the line. */
+.lb-col {
+  position: relative;
+  height: var(--h);
+  overflow: hidden;
+  /* The radius lives on the clip as well, so a block mid-rise never
+     shows a square corner. */
+  border-radius: var(--lb-radius) var(--lb-radius) 0 0;
+}
+.lb-col[data-floor] {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - var(--lb-bleed, 0px)), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--lb-bleed, 0px)), transparent);
+}
+
+.lb-block {
+  position: relative;
+  box-sizing: border-box;
+  height: 100%;
+  border-style: solid;
+  border-width: var(--lb-edge-w) var(--lb-edge-w) var(--lb-lip-w);
+  border-radius: var(--lb-radius);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  overflow: hidden;
+  transition:
+    translate var(--spring-snappy-duration) var(--spring-snappy),
+    border-bottom-width var(--spring-snappy-duration) var(--spring-snappy),
+    background-color var(--duration-base) var(--ease-out),
+    border-color var(--duration-base) var(--ease-out),
+    color var(--duration-base) var(--ease-out);
+}
+.lb-col[data-floor] .lb-block {
+  border-right-width: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  padding-right: var(--lb-bleed, 0px);
+}
+
+/* Press: in on contact, back on the snappy spring (#240: going down
+   feels like contact, coming up like a spring). */
+.lb-col[data-pressed] .lb-block {
+  translate: 0 2px;
+  border-bottom-width: calc(var(--lb-lip-w) - 2px);
+  transition-duration: var(--duration-fast);
+  transition-timing-function: var(--ease-out);
+}
+
+/* Faces: the price printed at the top of the step, the month at its
+   foot. The whole dollars at 17/800 and the cents riding high at the
+   suffix size, the way a shelf tag prints them: read down the stair
+   and the big figures count 12, 11, 10, 9, 8, 7, 6, which is the whole
+   mechanic in seven glyphs. Nothing is rounded away. */
+.lb-price {
+  padding-top: 7px;
+  font-family: var(--font-display-face), sans-serif;
+  font-size: var(--text-num-s);
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.lb-cents {
+  font-size: var(--text-suffix);
+  vertical-align: 0.5em;
+  letter-spacing: 0;
+  margin-left: 0.5px;
+}
+.lb-month {
+  padding-bottom: 5px;
+  font-family: var(--font-display-face), sans-serif;
+  font-size: var(--text-caption);
+  line-height: 1.2;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+/* A narrow phone (320): the whole dollars step down to the row size. */
+@container lbstair (max-width: 330px) {
+  .lb-price {
+    padding-top: 6px;
+    font-size: var(--text-row);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Tones                                                               */
+/* ------------------------------------------------------------------ */
+
+/* On plum (the paywall, the drop): cream objects. Hexes, as
+   `.card-premium` uses them, because this surface is plum in both
+   themes and the plum tokens invert in dark. */
+.lb-stair[data-tone="plum"] {
+  --lb-ink: #3c2043;
+}
+.lb-stair[data-tone="plum"] [data-state="future"] .lb-block {
+  background-color: rgb(247 247 247 / 0.1);
+  border-color: rgb(247 247 247 / 0.12);
+  /* The lip is the shadowed front of the step, so it is darker than
+     the face (Duolingo's path), not a highlight. */
+  border-bottom-color: rgb(20 6 24 / 0.42);
+  color: rgb(247 247 247 / 0.92);
+}
+.lb-stair[data-tone="plum"] [data-state="future"] .lb-month {
+  color: rgb(247 247 247 / 0.62);
+}
+.lb-stair[data-tone="plum"] [data-state="lit"] .lb-block {
+  background-color: #f7f7f7;
+  border-color: #f7f7f7;
+  border-bottom-color: color-mix(in srgb, #f7f7f7, #3c2043 30%);
+  color: var(--lb-ink);
+}
+.lb-stair[data-tone="plum"] [data-state="lit"] .lb-month {
+  color: rgb(60 32 67 / 0.72);
+}
+.lb-stair[data-tone="plum"] [data-state="paid"] .lb-block {
+  background-color: rgb(247 247 247 / 0.05);
+  border-color: transparent;
+  border-bottom-width: calc(var(--lb-lip-w) - 2px);
+  translate: 0 2px;
+  color: rgb(247 247 247 / 0.62);
+}
+.lb-stair[data-tone="plum"] [data-selected] .lb-block {
+  border-color: rgb(247 247 247 / 0.78);
+  border-bottom-color: rgb(20 6 24 / 0.42);
+  background-color: rgb(247 247 247 / 0.16);
+}
+
+/* On a neutral card (You, the manage sheet): the introduction's
+   answer rows exactly: surface, edge, lip. The month you are in is
+   ink, paid months are pressed flat into the trough. */
+.lb-stair[data-tone="neutral"] {
+  --lb-block: var(--color-surface);
+  --lb-lit-lip: color-mix(in srgb, var(--color-ink), #000 45%);
+}
+:root[data-theme="dark"] .lb-stair[data-tone="neutral"] {
+  /* On a raised card in dark, surface is darker than the card and a
+     block would read as a hole. One step up instead, and the paid
+     months take the hole: pressed in, below the card. */
+  --lb-block: color-mix(in srgb, var(--color-raised), #fff 7%);
+  --lb-lit-lip: color-mix(in srgb, var(--color-ink), #000 36%);
+  --lb-paid: var(--color-surface);
+}
+.lb-stair[data-tone="neutral"] [data-state="future"] .lb-block {
+  background-color: var(--lb-block);
+  border-color: var(--color-edge);
+  color: var(--color-ink);
+}
+.lb-stair[data-tone="neutral"] [data-state="future"] .lb-month {
+  color: var(--color-stone-500);
+}
+.lb-stair[data-tone="neutral"] [data-state="lit"] .lb-block {
+  background-color: var(--color-ink);
+  border-color: var(--color-ink);
+  border-bottom-color: var(--lb-lit-lip);
+  color: var(--color-ground);
+}
+.lb-stair[data-tone="neutral"] [data-state="paid"] .lb-block {
+  background-color: var(--lb-paid, var(--color-sand));
+  border-color: transparent;
+  border-bottom-width: calc(var(--lb-lip-w) - 2px);
+  translate: 0 2px;
+  color: var(--color-stone-500);
+}
+/* A plan that is ending: the months it will not reach are outlines
+   only. A fact drawn, not a warning: no colour, no motion. */
+.lb-stair[data-tone="neutral"] [data-state="ghost"] .lb-block {
+  background-color: transparent;
+  border-color: var(--color-edge);
+  border-style: dashed;
+  border-bottom-width: var(--lb-edge-w);
+  color: var(--color-stone-400);
+}
+.lb-stair[data-tone="neutral"] [data-selected] .lb-block {
+  border-color: var(--color-stone-500);
+}
+
+/* ------------------------------------------------------------------ */
+/* The token: Demos's paw on a coin with its own lip                   */
+/* ------------------------------------------------------------------ */
+
+.lb-token {
+  position: absolute;
+  z-index: 1;
+  left: calc(var(--ti) * (var(--lb-col) + var(--lb-gap)) + var(--lb-col) / 2);
+  bottom: calc(var(--th) + 3px);
+  width: var(--lb-token);
+  height: var(--lb-token);
+  margin-left: calc(var(--lb-token) / -2);
+  pointer-events: none;
+  transition: translate var(--spring-snappy-duration) var(--spring-snappy);
+}
+.lb-stair[data-token-pressed] .lb-token {
+  translate: 0 2px;
+  transition-duration: var(--duration-fast);
+  transition-timing-function: var(--ease-out);
+}
+.lb-token-body {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+}
+.lb-token-body svg {
+  width: 62%;
+  height: 62%;
+}
+.lb-stair[data-tone="plum"] .lb-token-body {
+  background: #f7f7f7;
+  color: #3c2043;
+  box-shadow:
+    0 2px 0 color-mix(in srgb, #f7f7f7, #3c2043 34%),
+    0 6px 14px rgb(0 0 0 / 0.3);
+}
+.lb-stair[data-tone="neutral"] .lb-token-body {
+  background: #62336c;
+  color: #f7f7f7;
+  box-shadow:
+    0 2px 0 #3c2043,
+    0 4px 10px rgb(0 0 0 / 0.16);
+}
+:root[data-theme="dark"] .lb-stair[data-tone="neutral"] .lb-token-body {
+  background: #b273bd;
+  color: #2a1730;
+  box-shadow:
+    0 2px 0 #6a3f6f,
+    0 4px 10px rgb(0 0 0 / 0.45);
+}
+.lb-stair[data-size="sm"] .lb-token-body {
+  box-shadow: 0 1.5px 0 var(--lb-token-lip, #3c2043);
+}
+:root[data-theme="dark"] .lb-stair[data-size="sm"][data-tone="neutral"] .lb-token-body {
+  box-shadow: 0 1.5px 0 #6a3f6f;
+}
+
+/* ------------------------------------------------------------------ */
+/* The slider's focus, drawn round the whole stair                     */
+/* ------------------------------------------------------------------ */
+
+.lb-stair:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 6px;
+  border-radius: 14px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Motion                                                              */
+/* ------------------------------------------------------------------ */
+
+/* The entrance: the steps rise out of the floor one after another
+   (40ms apart, the app's stagger), on the base spring, while the
+   sheet is still settling; then the token drops onto month 1 and the
+   step takes its weight. */
+@keyframes lb-rise {
+  from {
+    transform: translateY(calc(100% + 4px));
+  }
+}
+@keyframes lb-drop {
+  from {
+    transform: translateY(-34px);
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+@keyframes lb-dip {
+  0% {
+    translate: 0 0;
+    border-bottom-width: var(--lb-lip-w);
+    animation-timing-function: var(--ease-out);
+  }
+  28% {
+    translate: 0 2px;
+    border-bottom-width: calc(var(--lb-lip-w) - 2px);
+    animation-timing-function: var(--ease-out);
+  }
+  100% {
+    translate: 0 0;
+    border-bottom-width: var(--lb-lip-w);
+  }
+}
+.lb-stair[data-rise] {
+  --lb-lead: 90ms;
+  --lb-step: 40ms;
+  --lb-land: calc(var(--lb-lead) + 6 * var(--lb-step) + 160ms + var(--duration-base));
+}
+.lb-stair[data-rise] .lb-block {
+  animation: lb-rise var(--spring-base-duration) var(--spring-base) backwards;
+  animation-delay: calc(var(--lb-lead) + var(--i) * var(--lb-step));
+}
+.lb-stair[data-rise] .lb-token-body {
+  /* Falling, so it accelerates: an ease-in, the one curve here that
+     is not a spring, because gravity is not one. */
+  animation: lb-drop var(--duration-base) cubic-bezier(0.55, 0, 1, 0.45) backwards;
+  animation-delay: calc(var(--lb-land) - var(--duration-base));
+}
+.lb-stair[data-rise] [data-state="lit"] .lb-block {
+  animation:
+    lb-rise var(--spring-base-duration) var(--spring-base) backwards,
+    lb-dip var(--spring-snappy-duration) linear;
+  animation-delay: calc(var(--lb-lead) + var(--i) * var(--lb-step)), var(--lb-land);
+}
+
+/* A step taking a landing outside the entrance (the monthly drop,
+   the checkout return): set by script, removed on animationend. */
+.lb-col[data-dip] .lb-block {
+  animation: lb-dip var(--spring-snappy-duration) linear;
+}
+
+/* The sheen across the step you just reached: cream at 20% crossing
+   once in 600ms, the celebration's own length. */
+.lb-block::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 30%, rgb(255 255 255 / 0.55) 50%, transparent 70%);
+  transform: translateX(-130%);
+  opacity: 0;
+}
+.lb-col[data-sheen] .lb-block::after {
+  animation: lb-sheen var(--duration-celebrate) var(--ease-out);
+}
+@keyframes lb-sheen {
+  from {
+    transform: translateX(-130%);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(130%);
+    opacity: 1;
+  }
+}
+
+/* The roll: only the digits that changed turn over, new from above
+   when the price goes down (an odometer running down), on the
+   snappy spring. Tabular figures hold every glyph's width. */
+.lb-roll {
+  display: inline-flex;
+}
+.lb-glyph {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  /* Room for the travel inside the clip at this line height. */
+  padding-block: 0.06em;
+  margin-block: -0.06em;
+}
+.lb-glyph > span {
+  display: inline-block;
+}
+.lb-glyph > .lb-old {
+  position: absolute;
+  left: 0;
+  top: 0.06em;
+}
+@keyframes lb-in-down {
+  from {
+    transform: translateY(-0.62em);
+    opacity: 0;
+  }
+}
+@keyframes lb-out-down {
+  to {
+    transform: translateY(0.62em);
+    opacity: 0;
+  }
+}
+@keyframes lb-in-up {
+  from {
+    transform: translateY(0.62em);
+    opacity: 0;
+  }
+}
+@keyframes lb-out-up {
+  to {
+    transform: translateY(-0.62em);
+    opacity: 0;
+  }
+}
+.lb-glyph[data-dir="down"] > .lb-new {
+  animation: lb-in-down var(--spring-snappy-duration) var(--spring-snappy) backwards;
+}
+.lb-glyph[data-dir="down"] > .lb-old {
+  animation: lb-out-down var(--spring-snappy-duration) var(--spring-snappy) forwards;
+}
+.lb-glyph[data-dir="up"] > .lb-new {
+  animation: lb-in-up var(--spring-snappy-duration) var(--spring-snappy) backwards;
+}
+.lb-glyph[data-dir="up"] > .lb-old {
+  animation: lb-out-up var(--spring-snappy-duration) var(--spring-snappy) forwards;
+}
+
+/* The currency, said small: 0.55 of its numeral on the same baseline. */
+.lb-cur {
+  font-size: 0.55em;
+  letter-spacing: 0;
+  margin-right: 0.08em;
+}
+
+/* Reduced motion: no rise, no fall, no travel. The token and the roll
+   become the 200ms fade; the dip and the haptic stay, because they are
+   the state change, not decoration. */
+:root[data-motion="reduce"] .lb-stair[data-rise] .lb-block,
+:root[data-motion="reduce"] .lb-stair[data-rise] [data-state="lit"] .lb-block {
+  animation: fade-in var(--duration-base) var(--ease-out) backwards;
+}
+:root[data-motion="reduce"] .lb-stair[data-rise] .lb-token-body {
+  animation: fade-in var(--duration-base) var(--ease-out) backwards;
+  animation-delay: 0ms;
+}
+:root[data-motion="reduce"] .lb-col[data-sheen] .lb-block::after {
+  animation: none;
+}
+:root[data-motion="reduce"] .lb-glyph > .lb-new {
+  animation: fade-in var(--duration-base) var(--ease-out) backwards;
+}
+:root[data-motion="reduce"] .lb-glyph > .lb-old {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Surfaces                                                            */
+/* ------------------------------------------------------------------ */
+
+/* The manage sheet: a neutral sheet, the raised material at the sheet
+   radius, shadow 3; in dark the card's sheen and a rim, because a black
+   shadow vanishes on #121212. Managing a plan is a utility, so plum
+   stays the mark. */
+.lb-sheet-neutral {
+  background-color: var(--color-raised);
+  box-shadow: var(--shadow-3);
+  border: 1px solid transparent;
+}
+:root[data-theme="dark"] .lb-sheet-neutral {
+  border-color: rgb(242 242 242 / 0.1);
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-raised), #fff 4.6%) 0,
+    var(--color-raised) 88px
+  );
+}
+
+/* The workbench's stand-in for a sheet's scrim, for frames shot flat. */
+.lb-frame-scrim {
+  background: color-mix(in srgb, var(--color-stage) 42%, var(--color-ground));
+}
+:root[data-theme="dark"] .lb-frame-scrim {
+  background: color-mix(in srgb, var(--color-stage) 60%, var(--color-ground));
+}
+
+/* The confirm and the rows trade places in one cell, so the sheet keeps
+   its height and nothing under the finger moves. */
+.lb-swap {
+  display: grid;
+}
+.lb-swap > * {
+  grid-area: 1 / 1;
+}
+
+/* The checkout return: the steps are already standing; the token drops
+   onto month 1 and month 1 fills, on the sheet spring, as it lands. */
+@keyframes lb-fill-neutral {
+  from {
+    background-color: var(--lb-block);
+    border-color: var(--color-edge);
+    color: var(--color-ink);
+  }
+}
+.lb-stair[data-drop] {
+  --lb-drop-at: 380ms;
+  --lb-land: calc(var(--lb-drop-at) + var(--duration-base));
+}
+.lb-stair[data-drop] .lb-token-body {
+  animation: lb-drop var(--duration-base) cubic-bezier(0.55, 0, 1, 0.45) backwards;
+  animation-delay: var(--lb-drop-at);
+}
+.lb-stair[data-drop][data-tone="neutral"] [data-state="lit"] .lb-block {
+  animation:
+    lb-fill-neutral var(--spring-sheet-duration) var(--spring-sheet) backwards,
+    lb-dip var(--spring-snappy-duration) linear backwards;
+  animation-delay: var(--lb-land), var(--lb-land);
+}
+:root[data-motion="reduce"] .lb-stair[data-drop] .lb-token-body {
+  animation: fade-in var(--duration-base) var(--ease-out) backwards;
+}
+:root[data-motion="reduce"] .lb-stair[data-drop] [data-state="lit"] .lb-block {
+  animation: fade-in var(--duration-base) var(--ease-out) backwards;
+}

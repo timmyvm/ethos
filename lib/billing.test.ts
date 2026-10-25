@@ -400,6 +400,34 @@ describe("cancel and resume", () => {
   });
 });
 
+describe("a cancel date past this period", () => {
+  it("still reads as renewing, with its next charge, and cancel brings the end to this period", async () => {
+    const w = await paying();
+    const end = w.sim.sub(w.sub).items.data[0].current_period_end;
+    // Support set a date in the dashboard, in the period after next.
+    w.sim.sub(w.sub).cancel_at = end + 20 * DAY_S;
+
+    const synced = await syncCustomer(w.deps, w.customer);
+    expect(synced?.billing).toMatchObject({
+      cancel_at_period_end: false,
+      next_price_cents: 1199,
+      current_period_end: new Date(end * 1000).toISOString(),
+    });
+
+    const cancelled = await cancelPlan(w.deps, USER);
+    expect(w.sim.callsTo("subscriptions.update").at(-1)?.args[1]).toEqual({ cancel_at: end });
+    expect(w.sim.sub(w.sub).cancel_at).toBe(end);
+    expect(cancelled.billing).toMatchObject({
+      cancel_at_period_end: true,
+      next_price_cents: null,
+      current_period_end: new Date(end * 1000).toISOString(),
+    });
+    // Nothing more is charged: the plan ends at this period's end.
+    expect(w.sim.renew(w.sub)).toBe(0);
+    expect(w.sim.sub(w.sub).status).toBe("canceled");
+  });
+});
+
 describe("checkout", () => {
   it("opens a new plan on month 1 with the whole ladder above the pay button", async () => {
     const w = world();

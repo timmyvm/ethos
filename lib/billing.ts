@@ -389,6 +389,30 @@ function planItem(sub: Stripe.Subscription): {
   return { period: items[0] ?? null, step: items.length === 1 ? items[0] : null };
 }
 
+/**
+ * Set to end when the paid period runs out, or sooner. A cancel date
+ * later than that (one support can pick in the dashboard) still renews
+ * at least once first, so the plan is not ending yet: it shows its next
+ * charge, and cancel can still bring the end forward to this period.
+ */
+function endsThisPeriod(sub: Stripe.Subscription): boolean {
+  if (sub.cancel_at_period_end) return true;
+  if (sub.cancel_at == null) return false;
+  const end = sub.items?.data?.[0]?.current_period_end ?? null;
+  return end == null || sub.cancel_at <= end;
+}
+
+/**
+ * What ends a plan at the end of its paid period. A cancel date already
+ * set is moved to the period's end rather than mixed with the flag.
+ */
+function cancelAtPeriodEnd(sub: Stripe.Subscription): Stripe.SubscriptionUpdateParams {
+  const end = sub.items?.data?.[0]?.current_period_end ?? null;
+  return sub.cancel_at != null && end != null
+    ? { cancel_at: end }
+    : { cancel_at_period_end: true };
+}
+
 // ---------------------------------------------------------------------
 // Sync
 
@@ -547,7 +571,7 @@ async function syncInner(
   const live = isLive(status);
   const { period, step } = sub ? planItem(sub) : { period: null, step: null };
 
-  const ending = Boolean(live && sub && (sub.cancel_at_period_end || sub.cancel_at != null));
+  const ending = Boolean(live && sub && endsThisPeriod(sub));
   // The day the paid time runs to: the period's end, or an earlier
   // cancel_at date when one is set. A plan that ended reads the day it
   // ended: one whose retries ran out had already rolled into a month
@@ -710,7 +734,7 @@ export async function cancelPlan(deps: BillingDeps, userId: string): Promise<Syn
   if (!isLive(sub.status)) throw new BillingError(409, ENDED);
   if (synced.billing.cancel_at_period_end) throw new BillingError(409, ALREADY_ENDING);
 
-  await deps.stripe.subscriptions.update(sub.id, { cancel_at_period_end: true });
+  await deps.stripe.subscriptions.update(sub.id, cancelAtPeriodEnd(sub));
   const after = await syncForRoute(deps, synced.customerId);
   return after
     ? { billing: after.billing, premium: after.premium }

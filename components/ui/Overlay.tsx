@@ -179,8 +179,8 @@ export function Overlay({
     document.addEventListener("keydown", onKey, true);
 
     // Focus the panel itself rather than its first control: a sheet that
-    // opens with "Start with annual" already focused is one stray Enter
-    // away from a purchase nobody asked for.
+    // opens with the paywall's "Start at A$12.99" already focused is one
+    // stray Enter away from a purchase nobody asked for.
     panel.current?.focus();
 
     const previousOverflow = document.body.style.overflow;
@@ -199,8 +199,8 @@ export function Overlay({
     if (!sheet || closing) return;
     const el = panel.current;
     if (!el) return;
-    // A pointer that started on a control is that control's, not the
-    // sheet's: a drag must not swallow the tap on "Start with annual".
+    // A pointer that started on a field is that field's, not the
+    // sheet's: a drag must not swallow a caret placed in the invite code.
     if ((e.target as HTMLElement).closest("input, textarea, select")) return;
     /*
      * The panel itself rarely scrolls — the paywall puts its own

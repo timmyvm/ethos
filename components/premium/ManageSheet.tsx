@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
 import { PremiumMark } from "@/components/PremiumMark";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { Overlay, useOverlayClose } from "@/components/ui/Overlay";
+import { useAttempts, type Attempts } from "@/lib/attempt";
 import { cancelPlan, currentPath, openPortal, resumePlan, syncPlan } from "@/lib/billing-client";
 import type { BillingRow } from "@/lib/client-data";
 import {
@@ -67,11 +68,15 @@ export function ManageSheet({
   /** A billing route's answer: the row as the server now has it, and the account's Premium. */
   onPlan: (billing: BillingRow | null, premium: boolean) => void;
 }) {
+  // The portal's request, abandoned the moment the sheet starts to
+  // leave (Done, Escape, the scrim, a drag): its answer then never sends
+  // the browser to Stripe.
+  const attempts = useAttempts();
   return (
     // The panel is the sheet's own width: a flex item sized by its
     // content would draw a narrow sheet for a short state.
-    <Overlay label={MANAGE_COPY.manage} onClose={onClose} className="w-full max-w-[430px]">
-      <ManageBody view={view} today={today} onClose={onClose} onPlan={onPlan} />
+    <Overlay label={MANAGE_COPY.manage} onClose={onClose} onLeave={attempts.abandon} className="w-full max-w-[430px]">
+      <ManageBody view={view} today={today} onClose={onClose} onPlan={onPlan} attempts={attempts} />
     </Overlay>
   );
 }
@@ -81,11 +86,13 @@ function ManageBody({
   today,
   onClose,
   onPlan,
+  attempts,
 }: {
   view: PlanView;
   today: Date;
   onClose: () => void;
   onPlan: (billing: BillingRow | null, premium: boolean) => void;
+  attempts: Attempts;
 }) {
   const close = useOverlayClose(onClose);
   const [confirming, setConfirming] = useState(false);
@@ -163,9 +170,12 @@ function ManageBody({
 
   async function portal(which: "portal-tap" | "portal-row") {
     if (busy) return;
+    const id = attempts.start();
     setBusy(which);
     setError(null);
     const r = await openPortal({ returnTo: withPortalReturn(currentPath()) });
+    // The sheet was closed while it was out: stay on this page.
+    if (!attempts.live(id)) return;
     if (r.ok) {
       // Busy until the browser has left.
       window.location.assign(r.url);
@@ -204,6 +214,7 @@ function ManageBody({
       disabled={locked}
       expands
       onClick={() => {
+        if (locked) return;
         setError(null);
         setConfirming(true);
       }}
@@ -289,17 +300,23 @@ function ManageBody({
             </h3>
             <p className="mt-1 text-body text-pretty text-stone-500">{confirmBody(view, today)}</p>
             <div className="mt-4 grid grid-cols-2 gap-3">
+              {/* Backing out takes the failed cancel's line with it: an
+                  alert about an action nobody is taking any more. */}
               <button
                 type="button"
-                disabled={locked}
-                onClick={() => setConfirming(false)}
-                className="press font-display flex min-h-12 items-center justify-center rounded-control border-2 border-edge px-4 text-body font-bold text-ink disabled:text-stone-400"
+                aria-disabled={locked || undefined}
+                onClick={() => {
+                  if (locked) return;
+                  setError(null);
+                  setConfirming(false);
+                }}
+                className="press font-display flex min-h-12 items-center justify-center rounded-control border-2 border-edge px-4 text-body font-bold text-ink aria-disabled:text-stone-400"
               >
                 {MANAGE_COPY.keep}
               </button>
               <button
                 type="button"
-                disabled={locked}
+                aria-disabled={locked || undefined}
                 aria-busy={busy === "cancel" || undefined}
                 onClick={() => void cancel()}
                 className={`${ACTION_CLASS} px-4!`}
@@ -312,7 +329,7 @@ function ManageBody({
           <>
             <button
               type="button"
-              disabled={locked}
+              aria-disabled={locked || undefined}
               aria-busy={busy === "resume" || undefined}
               onClick={() => void resume()}
               className={ACTION_CLASS}
@@ -325,7 +342,7 @@ function ManageBody({
           <>
             <button
               type="button"
-              disabled={locked}
+              aria-disabled={locked || undefined}
               aria-busy={busy === "portal-tap" || undefined}
               onClick={() => void portal("portal-tap")}
               className={ACTION_CLASS}
@@ -379,7 +396,13 @@ function withPrices(text: string): ReactNode {
   );
 }
 
-/** A row in the sheet's group: a label, an optional note, the chevron (or "One moment…" while it opens). */
+/**
+ * A row in the sheet's group: a label, an optional note, the chevron (or
+ * "One moment…" while it opens). While a call is out every control in
+ * the sheet is aria-disabled rather than disabled, and its handler
+ * refuses: a disabled button drops the keyboard's focus to <body>, and
+ * the next Tab walked out of the modal to the nav behind it.
+ */
 function Row({
   label,
   note,
@@ -399,8 +422,10 @@ function Row({
   return (
     <button
       type="button"
-      onClick={onClick}
-      disabled={disabled}
+      onClick={() => {
+        if (!disabled) onClick();
+      }}
+      aria-disabled={disabled || undefined}
       aria-busy={busy || undefined}
       aria-expanded={expands ? false : undefined}
       className="group-row press-row flex w-full items-center gap-3 text-left"

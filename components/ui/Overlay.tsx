@@ -50,9 +50,22 @@ export function useOverlayClose(fallback: () => void): () => void {
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+/*
+ * Two sheets can be up at once (the price drop landing over a trait
+ * sheet). Only the top one hears Escape and Tab, so one Escape closes
+ * one sheet; and the page's scroll lock is counted, so it lifts when the
+ * last sheet goes, whichever order they leave in. A sheet that saved
+ * and restored `overflow` on its own put back the "hidden" the sheet
+ * under it had set, and the page never scrolled again.
+ */
+const openSheets: object[] = [];
+let locks = 0;
+let unlockedOverflow = "";
+
 export function Overlay({
   label,
   onClose,
+  onLeave,
   variant = "sheet",
   className = "",
   style,
@@ -61,6 +74,13 @@ export function Overlay({
   /** Names the dialog for screen readers. */
   label: string;
   onClose: () => void;
+  /**
+   * The moment the sheet starts to leave, by any way out (Escape, the
+   * scrim, a drag, a button inside): before the exit plays, where
+   * `onClose` comes after it. A request the sheet started is abandoned
+   * here, so nothing it answers can act on a sheet already going.
+   */
+  onLeave?: () => void;
   /** `sheet` rises from the bottom edge; `full` owns the viewport. */
   variant?: "sheet" | "full";
   className?: string;
@@ -99,13 +119,24 @@ export function Overlay({
   // re-focused the panel mid-form.
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
+  const leaveRef = useRef(onLeave);
+  leaveRef.current = onLeave;
+  const leaving = useRef(false);
   const closed = useRef(false);
+
+  /** Said once, as the exit starts. */
+  const startLeaving = useCallback(() => {
+    if (leaving.current) return;
+    leaving.current = true;
+    leaveRef.current?.();
+  }, []);
 
   const finish = useCallback(() => {
     if (closed.current) return;
     closed.current = true;
+    startLeaving();
     closeRef.current();
-  }, []);
+  }, [startLeaving]);
 
   /**
    * Where the panel is ON SCREEN right now, mid-animation or not, and
@@ -126,6 +157,7 @@ export function Overlay({
   const leave = useCallback(
     (velocity = 0) => {
       const el = panel.current;
+      startLeaving();
       setClosing(true);
       if (!el || prefersReducedMotion()) return; // the CSS fade handles it
       const from = takeHold();
@@ -136,7 +168,7 @@ export function Overlay({
         spring: SPRING.base,
       }).then(finish);
     },
-    [takeHold, finish]
+    [takeHold, finish, startLeaving]
   );
 
   const requestClose = useCallback(() => {
@@ -156,13 +188,22 @@ export function Overlay({
     return () => clearTimeout(t);
   }, [closing, finish]);
 
+  const requestCloseRef = useRef(requestClose);
+  requestCloseRef.current = requestClose;
+
+  // Once per sheet: into the stack, the page's scroll locked, focus in;
+  // and out of all three when it goes.
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
+    const me = {};
+    openSheets.push(me);
 
     function onKey(e: KeyboardEvent) {
+      // A sheet under another one leaves the key to the top one.
+      if (openSheets[openSheets.length - 1] !== me) return;
       if (e.key === "Escape") {
         e.stopPropagation();
-        requestClose();
+        requestCloseRef.current();
         return;
       }
       if (e.key !== "Tab" || !panel.current) return;
@@ -177,6 +218,14 @@ export function Overlay({
       const first = items[0];
       const last = items[items.length - 1];
       const active = document.activeElement;
+      // Focus that fell out of the sheet (a control that went disabled
+      // or unmounted under it lands on <body>) comes back in, rather
+      // than walking on to the page behind a modal.
+      if (!active || !panel.current.contains(active)) {
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+        return;
+      }
       if (e.shiftKey && (active === first || active === panel.current)) {
         e.preventDefault();
         last.focus();
@@ -196,15 +245,22 @@ export function Overlay({
     // tap, like the monthly price drop, would otherwise draw on its edge).
     panel.current?.focus();
 
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    if (locks++ === 0) {
+      unlockedOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+    }
 
     return () => {
       document.removeEventListener("keydown", onKey, true);
-      document.body.style.overflow = previousOverflow;
+      const at = openSheets.indexOf(me);
+      if (at >= 0) openSheets.splice(at, 1);
+      if (--locks <= 0) {
+        locks = 0;
+        document.body.style.overflow = unlockedOverflow;
+      }
       opener?.focus?.();
     };
-  }, [requestClose]);
+  }, []);
 
   /** Only from the top of the panel's own scroll, or a long list can
    *  never be scrolled up. */

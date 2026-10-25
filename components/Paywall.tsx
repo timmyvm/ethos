@@ -7,13 +7,15 @@ import { PremiumMark } from "@/components/PremiumMark";
 import { RollNumber } from "@/components/premium/RollNumber";
 import { Stair } from "@/components/premium/Stair";
 import { Overlay } from "@/components/ui/Overlay";
+import { useAttempts } from "@/lib/attempt";
 import { currentPath, openPortal, startCheckout } from "@/lib/billing-client";
 import { PAYWALL_COPY, calendarFromToday, ladderSentence, paywallStep, stepLabels } from "@/lib/plan-view";
+import { withPortalReturn } from "@/lib/plan-return";
 import { prefersReducedMotion } from "@/lib/prefs";
 import { formatBare } from "@/lib/pricing";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { ACTION_CLASS } from "@/lib/ui";
-import { authHref, withPaywall, withoutPaywall } from "@/lib/use-paywall-return";
+import { authHref, withPaywall } from "@/lib/use-paywall-return";
 
 /**
  * The Premium sheet (docs/ladder-spec.md, surface 1). It only ever
@@ -38,7 +40,7 @@ import { authHref, withPaywall, withoutPaywall } from "@/lib/use-paywall-return"
  * here). Off, the tap opens the invite code exactly as before. On, the
  * tap goes to Stripe Checkout (or, for an account already on a plan, the
  * portal); an anonymous session is asked for an account first, through
- * doors that bring it straight back to this sheet (paywall=1,
+ * doors that bring it back to this sheet (paywall=1,
  * lib/use-paywall-return.ts), and the code moves to a secondary.
  */
 
@@ -98,6 +100,7 @@ export function Paywall({
   headline = "Premium opens everything",
   onClose,
   onUnlocked,
+  returnTo,
 }: {
   reason: string;
   /**
@@ -115,6 +118,13 @@ export function Paywall({
    * screen (DECISIONS #220).
    */
   onUnlocked?: () => void;
+  /**
+   * The page the account doors and Checkout's back arrow bring someone
+   * back to, with the sheet open again (`paywall=1`). This page by
+   * default. A page whose state does not survive a reload (the debrief
+   * on /rep) names one that does: the stored recording, or You.
+   */
+  returnTo?: string;
 }) {
   // Dates are this device's, read once when the sheet opens: the sheet
   // only ever renders on the client, after a tap.
@@ -136,7 +146,12 @@ export function Paywall({
   const [labels] = useState(() => stepLabels(calendarFromToday(today)));
   // Where the account doors and Checkout's back arrow bring them: this
   // page, with the sheet open again.
-  const [here] = useState(() => withPaywall(currentPath()));
+  const [here] = useState(() => withPaywall(returnTo ?? currentPath()));
+  // Start's request, abandoned by every way off it: "Not yet", Escape,
+  // the scrim, "I have a code", the sheet unmounting. An answer that
+  // lands after that never sends the browser to Stripe.
+  const attempts = useAttempts();
+  const note = useRef<HTMLParagraphElement>(null);
   // The scrolling part fades at its foot while there is more under it.
   const scroller = useRef<HTMLDivElement>(null);
   const [more, setMore] = useState(false);
@@ -177,7 +192,24 @@ export function Paywall({
     return () => window.removeEventListener("pageshow", onShow);
   }, []);
 
+  // Start's button gave way to the account ask under the keyboard's
+  // focus: the focus goes to the note that replaced it, so a screen
+  // reader reads it and the next Tab is "Create an account".
+  // Otherwise (a tap that never focused it) the sheet's live region,
+  // in the DOM before the words arrive, says it once.
+  const [spoken, setSpoken] = useState("");
+  useEffect(() => {
+    if (phase !== "needsAccount") {
+      setSpoken("");
+      return;
+    }
+    const active = document.activeElement;
+    if (!active || active === document.body) note.current?.focus({ preventScroll: true });
+    else setSpoken(PAYWALL_COPY.needsAccount);
+  }, [phase]);
+
   function openCode() {
+    attempts.abandon();
     setPhase("code");
     setError(null);
     // After the reveal renders, not before.
@@ -190,9 +222,12 @@ export function Paywall({
       return;
     }
     if (phase === "busy") return;
+    const id = attempts.start();
     setPhase("busy");
     setError(null);
     const out = await startCheckout({ returnTo: here });
+    // Walked away while it was out: the answer goes nowhere.
+    if (!attempts.live(id)) return;
     if (out.ok && out.kind === "checkout") {
       // Busy until the browser has left.
       window.location.assign(out.url);
@@ -200,7 +235,10 @@ export function Paywall({
     }
     if (out.ok) {
       // Already on a plan: its card and receipts, never a second plan.
-      const portal = await openPortal({ returnTo: withoutPaywall(here) });
+      // The portal comes back to You flagged, so the plan is asked for
+      // once as Stripe now has it (a fixed card switches Premium back on).
+      const portal = await openPortal({ returnTo: withPortalReturn("/you") });
+      if (!attempts.live(id)) return;
       if (portal.ok) {
         window.location.assign(portal.url);
         return;
@@ -250,10 +288,19 @@ export function Paywall({
     }
   }
 
-  const twoUp = CHECKOUT_OPEN && !unlocked && (phase === "ready" || phase === "busy" || phase === "error");
+  // With checkout live, a second row under the shelf: the code (or, in
+  // the code's own form, the way back to Start) beside "Not yet".
+  const twoUp = CHECKOUT_OPEN && !unlocked && phase !== "needsAccount";
+  const notYet = () => {
+    attempts.abandon();
+    onClose();
+  };
 
   return (
-    <Overlay label="Premium" onClose={onClose}>
+    // The panel is the sheet's own width, as the other two sheets'
+    // are: a flex item sized by its content grew past a 320 screen the
+    // moment the code's field and Unlock joined it.
+    <Overlay label="Premium" onClose={onClose} onLeave={attempts.abandon} className="w-full max-w-[430px]">
       {/* Two parts: what Premium is and what it costs scroll; the tap
           stays at the foot, so on a short phone it is never below the
           fold. When everything fits, the seam is invisible. */}
@@ -325,6 +372,9 @@ export function Paywall({
         </div>
 
         <div className="shrink-0 px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+          <p role="status" className="sr-only">
+            {spoken}
+          </p>
           {unlocked ? (
             <div role="status" className="arrive rounded-card bg-cream/10 p-5 text-center">
               <div className="font-display text-title">{PAYWALL_COPY.unlockedTitle}</div>
@@ -350,7 +400,7 @@ export function Paywall({
                   aria-invalid={!!codeError}
                   aria-describedby={codeError ? "premium-code-error" : undefined}
                   placeholder="Invite code…"
-                  className="min-h-12 min-w-0 flex-1 rounded-control border border-cream/25 bg-cream/10 px-4 text-read text-cream placeholder:text-cream/50 focus:border-terracotta-500 focus:shadow-[inset_0_0_0_1px_var(--color-terracotta-500)] focus-visible:outline-none!"
+                  className="min-h-12 w-0 min-w-0 flex-1 rounded-control border border-cream/25 bg-cream/10 px-4 text-read text-cream placeholder:text-cream/50 focus:border-terracotta-500 focus:shadow-[inset_0_0_0_1px_var(--color-terracotta-500)] focus-visible:outline-none!"
                 />
                 {/* Disabled on plum: the fill steps back to the field's
                     own cream/10, never a faded terracotta. */}
@@ -367,12 +417,29 @@ export function Paywall({
                   {codeError}
                 </p>
               )}
+              {/* The code is the second way in, never the only one: a
+                  mis-tap on it keeps Start a tap away, as text, so the
+                  sheet still has one terracotta (Unlock). */}
+              {twoUp && (
+                <div className="mt-1 grid grid-cols-2">
+                  <button type="button" onClick={() => void start()} className="font-display min-h-11 text-link text-cream">
+                    {PAYWALL_COPY.start}
+                  </button>
+                  <button type="button" onClick={notYet} className="font-display min-h-11 text-link text-cream/70">
+                    {PAYWALL_COPY.notYet}
+                  </button>
+                </div>
+              )}
             </form>
           ) : phase === "needsAccount" ? (
             <>
               {/* Where the tap was: what it needs, and the way there,
-                  which brings them straight back to this sheet. */}
-              <p role="status" className="arrive rounded-control bg-cream/10 p-4 text-body leading-snug text-cream/85">
+                  which brings them back to this sheet. */}
+              <p
+                ref={note}
+                tabIndex={-1}
+                className="arrive rounded-control bg-cream/10 p-4 text-body leading-snug text-cream/85 outline-none!"
+              >
                 {PAYWALL_COPY.needsAccount}
               </p>
               <Link href={authHref("signup", here)} className={`${ACTION_CLASS} mt-3`}>
@@ -392,10 +459,13 @@ export function Paywall({
                   {error}
                 </p>
               )}
+              {/* Busy is aria-disabled, never disabled: a disabled button
+                  drops the keyboard's focus to <body>, behind the modal.
+                  start() itself refuses a second press. */}
               <button
                 type="button"
                 onClick={() => void start()}
-                disabled={phase === "busy"}
+                aria-disabled={phase === "busy" || undefined}
                 aria-busy={phase === "busy" || undefined}
                 className={ACTION_CLASS}
               >
@@ -409,7 +479,7 @@ export function Paywall({
                   <button type="button" onClick={openCode} className="font-display min-h-11 text-link text-cream">
                     {PAYWALL_COPY.haveCode}
                   </button>
-                  <button type="button" onClick={onClose} className="font-display min-h-11 text-link text-cream/70">
+                  <button type="button" onClick={notYet} className="font-display min-h-11 text-link text-cream/70">
                     {PAYWALL_COPY.notYet}
                   </button>
                 </div>
@@ -418,7 +488,7 @@ export function Paywall({
           )}
 
           {!twoUp && !unlocked && (
-            <button type="button" onClick={onClose} className="font-display mt-1 min-h-11 w-full text-link text-cream/70">
+            <button type="button" onClick={notYet} className="font-display mt-1 min-h-11 w-full text-link text-cream/70">
               {PAYWALL_COPY.notYet}
             </button>
           )}

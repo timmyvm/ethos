@@ -4,7 +4,9 @@
  *
  * Body `{ returnTo? }`, a same-origin path the portal's back link
  * returns to (anything else is /you). Answers 200 { url }, 401 no
- * session, 404 no plan, 503 Stripe isn't configured, 502 Stripe failed.
+ * session, 404 no plan, 429 too many tries, 503 Stripe isn't
+ * configured, 502 Stripe failed. Every call asks Stripe, so it is rate
+ * limited like the other billing routes.
  *
  * STRIPE_PORTAL_CONFIGURATION picks the configuration
  * scripts/stripe-setup.mjs made (cancel at period end, no plan
@@ -23,7 +25,7 @@ import {
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
-  const gate = await guardBillingRoute(req, {});
+  const gate = await guardBillingRoute(req, { rate: "portal" });
   if (!gate.ok) return gate.res;
 
   const body = (await req.json().catch(() => null)) as { returnTo?: unknown } | null;

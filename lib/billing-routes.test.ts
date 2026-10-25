@@ -79,9 +79,17 @@ type Handler = (req: NextRequest) => Promise<Response>;
 
 async function call(
   handler: Handler,
-  opts: { token?: string | null; body?: unknown; method?: string } = {}
+  opts: {
+    token?: string | null;
+    body?: unknown;
+    method?: string;
+    headers?: Record<string, string>;
+  } = {}
 ): Promise<{ status: number; body: Record<string, unknown> }> {
-  const headers: Record<string, string> = { "content-type": "application/json" };
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+    ...opts.headers,
+  };
   const token = opts.token === undefined ? "tok_user" : opts.token;
   if (token) headers.authorization = `Bearer ${token}`;
   const req = new Request("https://preview.speakethos.test/api/x", {
@@ -184,6 +192,16 @@ describe("POST /api/billing/checkout", () => {
 });
 
 describe("POST /api/billing/portal", () => {
+  it("is rate limited before it asks Stripe anything", async () => {
+    await paying();
+    const before = stripe.state.calls.length;
+    h.limited.add(`portal:u:${USER}`);
+    const res = await call(portal);
+    expect(res.status).toBe(429);
+    expect(consumeRateLimit).toHaveBeenCalledWith(`portal:u:${USER}`, "user");
+    expect(stripe.state.calls.length).toBe(before);
+  });
+
   it("answers 404 without a plan, and the portal's url with one", async () => {
     expect((await call(portal)).status).toBe(404);
 
@@ -251,12 +269,18 @@ describe("POST /api/billing/cancel and /resume", () => {
   });
 
   it("answers 401, 429 and 503 before touching Stripe", async () => {
+    // A plan exists, so a guard that asked Stripe first would show up here.
+    await paying();
+    const before = stripe.state.calls.length;
     expect((await call(cancel, { token: null })).status).toBe(401);
     h.limited.add(`resume:u:${USER}`);
     expect((await call(resume)).status).toBe(429);
-    h.stripe = null;
+    expect(stripe.state.calls.length).toBe(before);
+    h.limited.clear();
+    // Billing off while the client is still reachable, so a stray call would be recorded.
+    h.secret = null;
     expect((await call(cancel)).status).toBe(503);
-    expect(stripe.state.calls).toEqual([]);
+    expect(stripe.state.calls.slice(before)).toEqual([]);
   });
 });
 
@@ -321,6 +345,28 @@ describe("DELETE /api/account", () => {
 });
 
 describe("POST /api/redeem", () => {
+  it("limits guesses by address too, so fresh anonymous ids buy no more tries", async () => {
+    vi.stubEnv("PREMIUM_UNLOCK_CODE", "ETHOS-INVITE");
+    const from = { "x-forwarded-for": "203.0.113.9, 10.0.0.1" };
+    h.limited.add("redeem:ip:203.0.113.9");
+
+    // A brand-new anonymous session, its own limit untouched.
+    const res = await call(redeem, { token: "tok_anon", body: { code: "ETHOS-INVITE" }, headers: from });
+    expect(res.status).toBe(429);
+    expect(consumeRateLimit).toHaveBeenCalledWith("redeem:ip:203.0.113.9", "user");
+    expect(db.row("profiles", ANON)).toBeUndefined();
+
+    // Another address, the same code: the per-account limit still applies.
+    h.limited.clear();
+    const ok = await call(redeem, {
+      token: "tok_anon",
+      body: { code: "ETHOS-INVITE" },
+      headers: { "x-forwarded-for": "198.51.100.7" },
+    });
+    expect(ok.status).toBe(200);
+    expect(consumeRateLimit).toHaveBeenCalledWith(`redeem:u:${ANON}`, "anon");
+  });
+
   it("writes a code's premium as 'code', which a plan ending never switches off", async () => {
     vi.stubEnv("PREMIUM_UNLOCK_CODE", "ETHOS-INVITE");
     const { sub, customer } = await paying();

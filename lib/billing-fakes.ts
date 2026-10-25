@@ -531,6 +531,14 @@ const UNIQUE: Record<string, string[]> = {
 /** Tables whose user_id references auth.users on delete cascade. */
 const OWNED = ["billing", "profiles", "reps"];
 
+/** Columns typed uuid: Postgres refuses to compare one with anything else (22P02). */
+const UUID_COLUMNS: Record<string, string[]> = {
+  billing: ["user_id"],
+  profiles: ["user_id"],
+  reps: ["user_id"],
+};
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const DEFAULTS: Record<string, Row> = {
   billing: {
     stripe_subscription_id: null,
@@ -587,6 +595,7 @@ export function fakeDb(users: string[]) {
     private filters: ((r: Row) => boolean)[] = [];
     private payload: Row = {};
     private conflict = "id";
+    private typeError: DbError | null = null;
 
     constructor(private readonly table: string) {}
 
@@ -615,6 +624,15 @@ export function fakeDb(users: string[]) {
       return this;
     }
     eq(column: string, value: unknown) {
+      if (
+        UUID_COLUMNS[this.table]?.includes(column) &&
+        !(typeof value === "string" && UUID_RE.test(value))
+      ) {
+        this.typeError ??= {
+          code: "22P02",
+          message: `invalid input syntax for type uuid: "${String(value)}"`,
+        };
+      }
       this.filters.push((r) => r[column] === value);
       return this;
     }
@@ -653,6 +671,7 @@ export function fakeDb(users: string[]) {
       state.log.push({ table: this.table, op: this.op });
       const injected = failure(this.table, this.op);
       if (injected) return { data: null, error: injected };
+      if (this.typeError) return { data: null, error: this.typeError };
       const table = rows(this.table);
 
       if (this.op === "select") {

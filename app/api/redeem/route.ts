@@ -7,9 +7,14 @@
  * 'stripe'. A code's premium has no end date, and the billing sync never
  * touches it, so a paid plan ending can't switch off a premium the
  * account was given. The code lives in PREMIUM_UNLOCK_CODE on the
- * server, compared in constant time, and attempts ride the existing
- * rate limiter on the visitor tier (3/hour, 5/day) so the code can't be
- * brute-forced at request speed.
+ * server, compared in constant time. Attempts ride the existing rate
+ * limiter twice: per account on the visitor tier (3/hour, 5/day), and
+ * per address on the account tier (10/hour, 30/day). The second one
+ * matters because anonymous sign-in mints a new account id for free,
+ * so the per-account limit alone falls to a script that keeps signing
+ * in; the address limit is loose enough for a shared school network.
+ * Neither stands in for a strong code: PREMIUM_UNLOCK_CODE should be
+ * long and random (.env.example).
  *
  * Anonymous-first sessions qualify: premium attaches to the same auth
  * user their reps already point at, so saving progress later loses
@@ -19,7 +24,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromAuthHeader, supabaseAdmin } from "@/lib/db";
-import { consumeRateLimit } from "@/lib/rate-limit";
+import { clientIp, consumeRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -49,7 +54,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const verdict = await consumeRateLimit(`redeem:u:${auth.id}`, "anon");
+  const byAddress = await consumeRateLimit(`redeem:ip:${clientIp(req.headers)}`, "user");
+  const verdict = byAddress.allowed
+    ? await consumeRateLimit(`redeem:u:${auth.id}`, "anon")
+    : byAddress;
   if (!verdict.allowed) {
     return NextResponse.json(
       { error: "Too many tries. Give it an hour." },

@@ -111,6 +111,8 @@ const BACKSTOP_MS = 3 * 24 * 60 * 60 * 1000;
 const PRICE_CACHE_MS = 10 * 60 * 1000;
 const UNIQUE_VIOLATION = "23505";
 const FOREIGN_KEY_VIOLATION = "23503";
+/** An auth user id as Supabase writes it. Anything else names nobody here. */
+const USER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // ---------------------------------------------------------------------
 // Errors and dependencies
@@ -417,6 +419,15 @@ async function userForCustomer(
   }
   if (!claimed) {
     console.error(`billing: customer ${customerId} names no user; not synced`);
+    return null;
+  }
+  // Another product on the same Stripe account may keep its own kind of
+  // user id here. Postgres would refuse it as a uuid, and the webhook
+  // would answer 500 for days over a customer that was never ours.
+  if (!USER_ID.test(claimed)) {
+    console.error(
+      `billing: customer ${customerId} names user ${JSON.stringify(claimed)}, not an Ethos id; not synced`
+    );
     return null;
   }
   const theirs = await billingBy(deps.db, "user_id", claimed);

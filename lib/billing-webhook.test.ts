@@ -224,6 +224,14 @@ describe("what the webhook does with a verified event", () => {
     expect(db.state.tables.profiles).toEqual([]);
   });
 
+  it("answers 200 to a customer whose user id is not an Ethos id", async () => {
+    const foreign = stripe.sim.customer("someone@example.com");
+    stripe.sim.startPlan(foreign);
+    const body = eventBody("invoice.paid", { object: "invoice", customer: foreign });
+    expect((await deliver(body, sign(body))).status).toBe(200);
+    expect(db.state.tables.billing).toEqual([]);
+  });
+
   it("answers 200 to an event that names no customer", async () => {
     const body = eventBody("invoice.paid", { object: "invoice", customer: null });
     expect((await deliver(body, sign(body))).status).toBe(200);

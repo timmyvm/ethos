@@ -611,6 +611,16 @@ describe("who a customer is", () => {
     expect(w.db.state.tables.profiles).toEqual([]);
   });
 
+  it("skips a customer whose user id is not an Ethos id, without throwing", async () => {
+    // Another product on the same Stripe account, with its own idea of a user id.
+    const w = world();
+    const foreign = w.sim.customer("u_123");
+    w.sim.startPlan(foreign);
+    await expect(syncCustomer(w.deps, foreign)).resolves.toBeNull();
+    expect(w.db.state.tables.billing).toEqual([]);
+    expect(w.sim.writes()).toEqual([]);
+  });
+
   it("never moves an account onto a second customer", async () => {
     const w = world();
     const mine = customerFor(w);

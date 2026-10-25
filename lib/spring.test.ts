@@ -1,14 +1,19 @@
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   SPRING,
+  animateSpring,
   project,
   releaseVelocity,
   rubberband,
   springDuration,
   springEasing,
   springMs,
+  springOffset,
   springProgress,
+  springStateAt,
+  springVelocity,
+  velocityAt,
 } from "./spring";
 
 const css = readFileSync("app/globals.css", "utf8");
@@ -96,5 +101,101 @@ describe("gesture maths", () => {
       { t: 300, y: 100 },
     ];
     expect(releaseVelocity(stoppedDead)).toBe(0);
+  });
+});
+
+describe("a spring read mid-flight (the grab-it-halfway problem)", () => {
+  const cases = [
+    { name: "critically damped", spring: SPRING.base },
+    { name: "thrown", spring: SPRING.thrown },
+  ];
+
+  it("starts at exactly the speed it was given", () => {
+    for (const { spring } of cases) {
+      for (const v of [0, 2, -3, 8]) expect(springVelocity(spring, 0, v)).toBeCloseTo(-v, 10);
+    }
+  });
+
+  it("is the true slope of the curve all the way to rest", () => {
+    const h = 1e-6;
+    for (const { spring } of cases) {
+      for (const v of [0, 1.5, -2]) {
+        for (const t of [0.02, 0.1, 0.2, 0.35, 0.6]) {
+          const slope = (springOffset(spring, t + h, v) - springOffset(spring, t - h, v)) / (2 * h);
+          expect(springVelocity(spring, t, v)).toBeCloseTo(slope, 4);
+        }
+      }
+    }
+  });
+
+  it("hands a retarget the position and the speed, so neither jumps", () => {
+    const run = { from: 0, to: 400, velocity: 0, spring: SPRING.sheet };
+    const at = springStateAt(run, 0.09);
+    expect(at.value).toBeGreaterThan(0);
+    expect(at.velocity).toBeGreaterThan(0);
+    // Turned round toward 0 from there, carrying the speed it had.
+    const back = { from: at.value, to: 0, velocity: at.velocity, spring: SPRING.sheet };
+    const h = 1e-4;
+    const start = springStateAt(back, 0);
+    const slope = (springStateAt(back, h).value - start.value) / h;
+    expect(start.value).toBeCloseTo(at.value, 6);
+    expect(slope).toBeCloseTo(at.velocity, -1);
+    // Still moving away for a moment before it turns: momentum, not a stall.
+    expect(springStateAt(back, 0.02).value).toBeGreaterThan(at.value);
+  });
+
+  it("finds the run's speed from where the element is, a frame late or cancelled", () => {
+    const run = { from: 0, to: 600, velocity: 0, spring: SPRING.base };
+    const truth = springStateAt(run, 0.1);
+    // The clock says 116ms (the animation started a frame after it was made).
+    expect(velocityAt(run, 0.116, truth.value)).toBeCloseTo(truth.velocity, -1);
+    // Moved by something else since: off the path, so no inherited speed.
+    expect(velocityAt(run, 0.116, truth.value + 80)).toBe(0);
+  });
+});
+
+describe("animateSpring carries an interrupted run's speed in", () => {
+  function fakeEl() {
+    const animations: { easing: string; cancel: ReturnType<typeof vi.fn> }[] = [];
+    const el = {
+      style: {} as Record<string, string>,
+      animate: vi.fn((_frames: unknown, opts: { easing: string }) => {
+        const a = { easing: opts.easing, cancel: vi.fn(), finished: new Promise<void>(() => {}) };
+        animations.push(a);
+        return a;
+      }),
+    };
+    return { el: el as unknown as HTMLElement, animations };
+  }
+
+  it("turns a rising sheet round with its momentum when nothing else is moving it", () => {
+    const clock = vi.spyOn(performance, "now");
+    const { el, animations } = fakeEl();
+    clock.mockReturnValue(1000);
+    void animateSpring(el, { from: 600, to: 0, spring: SPRING.sheet });
+    // 100ms later it is asked to close from wherever it is.
+    const run = { from: 600, to: 0, velocity: 0, spring: SPRING.sheet };
+    const here = springStateAt(run, 0.1);
+    clock.mockReturnValue(1100);
+    void animateSpring(el, { from: here.value, to: 700, spring: SPRING.sheet });
+    expect(animations[0].cancel).toHaveBeenCalled();
+    const relative = here.velocity / (700 - here.value);
+    expect(relative).toBeLessThan(0); // still moving up, away from the new target
+    expect(animations[1].easing).toBe(springEasing(SPRING.sheet, relative));
+    clock.mockRestore();
+  });
+
+  it("lets a finger's speed win, and starts from rest when the element was moved", () => {
+    const clock = vi.spyOn(performance, "now");
+    const { el, animations } = fakeEl();
+    clock.mockReturnValue(0);
+    void animateSpring(el, { from: 0, to: 300, spring: SPRING.base });
+    clock.mockReturnValue(50);
+    void animateSpring(el, { from: 120, to: 0, velocity: -900, spring: SPRING.base });
+    expect(animations[1].easing).toBe(springEasing(SPRING.base, -900 / (0 - 120)));
+    clock.mockReturnValue(5000);
+    void animateSpring(el, { from: 40, to: 200, spring: SPRING.base });
+    expect(animations[2].easing).toBe(springEasing(SPRING.base, 0));
+    clock.mockRestore();
   });
 });

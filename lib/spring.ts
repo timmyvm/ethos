@@ -76,6 +76,52 @@ export function springProgress(spring: Spring, t: number, velocity = 0): number 
 }
 
 /**
+ * How fast `springOffset` is changing `t` seconds in, in starting
+ * distances per second: negative while it closes in, `-velocity` at
+ * the start. The derivative of the same two curves, so a spring can be
+ * read mid-flight without sampling it.
+ */
+export function springVelocity(spring: Spring, t: number, velocity = 0): number {
+  const w0 = (2 * Math.PI) / spring.response;
+  const z = spring.damping;
+  if (z >= 1) {
+    return Math.exp(-w0 * t) * (-velocity - w0 * (w0 - velocity) * t);
+  }
+  const wd = w0 * Math.sqrt(1 - z * z);
+  const b = (z * w0 - velocity) / wd;
+  return (
+    Math.exp(-z * w0 * t) *
+    (-velocity * Math.cos(wd * t) - (z * w0 * b + wd) * Math.sin(wd * t))
+  );
+}
+
+/** One spring run in pixels: where it set off, where it is going, how fast it left. */
+export type SpringRun = {
+  from: number;
+  to: number;
+  /** px/s at the start, signed along the axis. */
+  velocity: number;
+  spring: Spring;
+};
+
+/**
+ * Where a run is and how fast it is moving, `t` seconds in, in px and
+ * px/s. What an interruption needs: the next motion starts here, at
+ * this speed, so neither the position nor the speed jumps. A timer
+ * animation keeps the position and throws the speed away, which is the
+ * stall a grabbed animation has in most apps and not on an iPhone.
+ */
+export function springStateAt(run: SpringRun, t: number): { value: number; velocity: number } {
+  const distance = run.to - run.from;
+  if (Math.abs(distance) < 1e-6) return { value: run.to, velocity: 0 };
+  const relative = run.velocity / distance;
+  return {
+    value: run.to - distance * springOffset(run.spring, t, relative),
+    velocity: -distance * springVelocity(run.spring, t, relative),
+  };
+}
+
+/**
  * Seconds until the spring is at rest: within a thousandth of the
  * distance and staying there. That is where a CSS animation has to end,
  * or the last frame jumps.
@@ -151,11 +197,57 @@ export function releaseVelocity(samples: { t: number; y: number }[]): number {
   return dt > 0 ? ((last.y - first.y) / dt) * 1000 : 0;
 }
 
+/** The run each element is on, so the next one can read its speed. */
+const runs = new WeakMap<HTMLElement, SpringRun & { axis: "x" | "y"; start: number; animation?: Animation }>();
+
+/**
+ * The speed a run is moving at when it is seen at `from`, px/s, or 0
+ * when `from` is not on its path. The clock alone cannot say where a
+ * run is: an animation starts on the frame after it is made, and a
+ * caller may already have cancelled it to read where it stopped. So
+ * this finds the instant in the last 60ms of the run's clock at which
+ * the curve passes through `from`, and reads the speed there. A finger
+ * that grabbed and moved the element since, or anything else that moved
+ * it, is off the path and reads as 0.
+ */
+export function velocityAt(run: SpringRun, elapsed: number, from: number): number {
+  const distance = Math.abs(run.to - run.from);
+  const tolerance = Math.max(2, distance * 0.004);
+  let best = Infinity;
+  let speed = 0;
+  for (let ms = 0; ms <= 60; ms++) {
+    const t = elapsed - ms / 1000;
+    if (t < 0) break;
+    const state = springStateAt(run, t);
+    const miss = Math.abs(state.value - from);
+    if (miss < best) {
+      best = miss;
+      speed = state.velocity;
+    }
+  }
+  return best <= tolerance ? speed : 0;
+}
+
+function inheritedVelocity(el: HTMLElement, axis: "x" | "y", from: number, now: number): number {
+  const run = runs.get(el);
+  if (!run || run.axis !== axis) return 0;
+  return velocityAt(run, Math.max(0, (now - run.start) / 1000), from);
+}
+
 /**
  * Move `el` along one axis from `from` px to `to` px on a spring,
  * starting at `velocity` px/s. Reads nothing from CSS: the caller
  * passes the live on-screen value (§3), so an interrupted motion picks
  * up exactly where it was.
+ *
+ * With no `velocity`, a motion that interrupts another one this module
+ * started carries that one's speed in (springStateAt), so a sheet told
+ * to close while it is still rising turns round with its momentum
+ * instead of stopping dead and starting again. A finger's velocity,
+ * when there is one, always wins. The run it interrupts is cancelled
+ * (as Overlay's takeHold and a grab in LessonScreen already do), so its
+ * promise resolves without landing; a continuation that must not act
+ * after an interruption checks for one, as theirs do.
  *
  * Resolves when it lands. Honours reduced motion by landing at once.
  */
@@ -165,7 +257,7 @@ export function animateSpring(
     axis = "y",
     from,
     to,
-    velocity = 0,
+    velocity,
     spring = SPRING.sheet,
     reduced = false,
   }: {
@@ -179,11 +271,15 @@ export function animateSpring(
 ): Promise<void> {
   const fn = axis === "y" ? "translateY" : "translateX";
   const distance = to - from;
+  const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+  const speed = velocity ?? inheritedVelocity(el, axis, from, now);
+  runs.get(el)?.animation?.cancel();
+  runs.delete(el);
   if (reduced || Math.abs(distance) < 0.5 || typeof el.animate !== "function") {
     el.style.transform = `${fn}(${to}px)`;
     return Promise.resolve();
   }
-  const relative = velocity / distance;
+  const relative = speed / distance;
   const animation = el.animate(
     [{ transform: `${fn}(${from}px)` }, { transform: `${fn}(${to}px)` }],
     {
@@ -192,8 +288,11 @@ export function animateSpring(
       fill: "forwards",
     }
   );
+  const run = { axis, from, to, velocity: speed, spring, start: now, animation };
+  runs.set(el, run);
   return animation.finished.then(
     () => {
+      if (runs.get(el) === run) runs.delete(el);
       el.style.transform = `${fn}(${to}px)`;
       animation.cancel();
     },

@@ -352,7 +352,7 @@ Environment (Vercel > Project > Settings > Environment Variables, ${MODE} values
   NEXT_PUBLIC_CHECKOUT_OPEN=1   last, once everything above is in; it is read at build, so redeploy
 ${hook.secret ? "\nThe signing secret is shown only this once. Put it in Vercel now.\n" : ""}
 Checklist, dashboard only (${MODE} mode; Stripe keeps test and live settings apart):
-  [ ] Supabase: migration 0012_price_ladder.sql applied.
+  [ ] Supabase: migrations 0012_price_ladder.sql and 0013_meter_guard.sql applied.
   [ ] Billing > Revenue recovery > Retries: Smart Retries over about 2 weeks, and
       "If all retries for a payment fail: cancel the subscription". A declined card
       keeps its place while Stripe retries; this is what ends the plan after.

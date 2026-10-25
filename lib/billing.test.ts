@@ -1170,6 +1170,22 @@ describe("helpers", () => {
     expect([...listed].sort()).toEqual([...HANDLED_EVENTS].sort());
   });
 
+  it("guards the judged-analysis meter against a browser session, like the entitlement (0013)", () => {
+    // 0003 lets a session update its own profile row. Clearing
+    // judged_accrued_on before each recording read as a first-ever one and
+    // granted Premium's metered analysis every time.
+    const sql = readFileSync("supabase/migrations/0013_meter_guard.sql", "utf8");
+    const body = sql.match(/create or replace function guard_profile_entitlement\(\)[\s\S]*?\$\$;/)?.[0] ?? "";
+    expect(body).toContain("current_user in ('anon', 'authenticated')");
+    const [insert, update] = body.split(/\belse\b/);
+    for (const col of ["premium", "premium_until", "premium_source", "judged_rollover", "judged_accrued_on", "judged_analysis_used_at"]) {
+      expect(update).toContain(`new.${col} := old.${col};`);
+      expect(insert).toMatch(new RegExp(`new\\.${col} := `));
+    }
+    expect(insert).toContain("new.judged_rollover := 1;"); // 0004's default
+    expect(insert).toContain("new.judged_accrued_on := null;");
+  });
+
   it("asks for the email that lets a renewal needing 3D Secure be confirmed", () => {
     // Stripe never retries an authentication_required renewal by itself, and
     // the failed-payment email does not cover it: without this link the plan

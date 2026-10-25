@@ -1,27 +1,40 @@
 /**
- * DELETE /api/account — the whole account, gone.
+ * DELETE /api/account: the whole account, gone.
  *
- * Ordered so a partial failure can never strand data:
+ * Ordered so a partial failure can never strand data or a charge:
  *
- *   1. Audio files first. They're the only thing a cascade can't reach
+ *   0. The plan, before anything is deleted. Every subscription of the
+ *      account's Stripe customer that has not ended is cancelled now
+ *      (lib/billing.ts endEveryPlan), so a deleted account is never
+ *      charged again. If Stripe isn't configured while the billing row
+ *      says a plan is live, or a cancel fails, the route stops here with
+ *      nothing deleted, and is safe to retry.
+ *   1. Audio files. They're the only thing a cascade can't reach
  *      (storage objects aren't rows), so they go while the reps rows
  *      still hold their paths. Any failure here aborts with everything
  *      else untouched, and the route is safe to retry.
- *   2. Rate-limit rows, which key on a subject string, not a foreign key.
+ *   2. Rate-limit rows, which key on a subject string, not a foreign key:
+ *      `u:<id>` and every route's `<route>:u:<id>`.
  *   3. The auth user, last. Every table references auth.users with
- *      on delete cascade (migrations 0001 to 0004), so this one call
- *      removes reps, lexicon, streaks, freezes, profiles, XP and coins
- *      atomically, and a failure before it leaves the account whole.
+ *      on delete cascade (migrations 0001 to 0004, and billing in 0012),
+ *      so this one call removes reps, lexicon, streaks, freezes,
+ *      profiles, XP, coins and the billing row atomically, and a failure
+ *      before it leaves the account whole.
  *
  * Works identically for anonymous-first accounts: they are real auth
  * users, and their token authorises deleting exactly themselves.
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { endEveryPlan, isLive } from "@/lib/billing";
 import { getUserFromAuthHeader, supabaseAdmin } from "@/lib/db";
+import { stripeClient } from "@/lib/stripe";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+const PLAN_NOT_CANCELLED =
+  "Your plan didn't cancel, so nothing was deleted. Try again in a minute.";
 
 export async function DELETE(req: NextRequest) {
   const auth = await getUserFromAuthHeader(
@@ -40,6 +53,34 @@ export async function DELETE(req: NextRequest) {
       { error: "Accounts aren't configured on this server." },
       { status: 503 }
     );
+  }
+
+  const { data: plan, error: planError } = await db
+    .from("billing")
+    .select("stripe_customer_id, status")
+    .eq("user_id", auth.id)
+    .maybeSingle();
+  if (planError) {
+    console.error("account delete: billing read failed", planError.message);
+    return NextResponse.json({ error: PLAN_NOT_CANCELLED }, { status: 502 });
+  }
+  if (plan) {
+    const stripe = stripeClient();
+    const customerId = plan.stripe_customer_id as string;
+    if (stripe) {
+      try {
+        await endEveryPlan(stripe, customerId);
+      } catch (e) {
+        console.error(
+          "account delete: plan cancel failed",
+          e instanceof Error ? e.message : e
+        );
+        return NextResponse.json({ error: PLAN_NOT_CANCELLED }, { status: 502 });
+      }
+    } else if (isLive(plan.status as string | null) || plan.status === "incomplete") {
+      console.error("account delete: a live plan and no Stripe key to cancel it");
+      return NextResponse.json({ error: PLAN_NOT_CANCELLED }, { status: 502 });
+    }
   }
 
   const { data: rows, error: readError } = await db
@@ -70,7 +111,8 @@ export async function DELETE(req: NextRequest) {
     }
   }
 
-  await db.from("rate_limits").delete().eq("subject", `u:${auth.id}`);
+  // `u:<id>` and `checkout:u:<id>` alike; a uuid holds no LIKE wildcard.
+  await db.from("rate_limits").delete().like("subject", `%u:${auth.id}`);
 
   const del = await db.auth.admin.deleteUser(auth.id);
   if (del.error) {

@@ -1,9 +1,12 @@
 /**
- * POST /api/redeem — premium by invite code.
+ * POST /api/redeem: premium by invite code.
  *
- * There is no payment processor yet; `profiles.premium` is the gate
- * every premium check reads, and until Stripe exists this route is the
- * only thing that sets it. The code lives in PREMIUM_UNLOCK_CODE on the
+ * `profiles.premium` is the gate every premium check reads. Two things
+ * set it, and `premium_source` says which (migration 0012): this route
+ * writes 'code', and the price ladder's sync (lib/billing.ts) writes
+ * 'stripe'. A code's premium has no end date, and the billing sync never
+ * touches it, so a paid plan ending can't switch off a premium the
+ * account was given. The code lives in PREMIUM_UNLOCK_CODE on the
  * server, compared in constant time, and attempts ride the existing
  * rate limiter on the visitor tier (3/hour, 5/day) so the code can't be
  * brute-forced at request speed.
@@ -75,7 +78,15 @@ export async function POST(req: NextRequest) {
 
   const { error } = await db
     .from("profiles")
-    .upsert({ user_id: auth.id, premium: true }, { onConflict: "user_id" });
+    .upsert(
+      {
+        user_id: auth.id,
+        premium: true,
+        premium_source: "code",
+        premium_until: null,
+      },
+      { onConflict: "user_id" }
+    );
   if (error) {
     console.error("redeem: premium write failed", error.message);
     return NextResponse.json(

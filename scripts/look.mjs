@@ -334,6 +334,7 @@ async function shootTheme(theme) {
   await step(async () => {
     if (!want("manage") && !want("manage-confirm")) return;
     await go("/you", READY);
+    await page.waitForSelector('[data-look="plan-card"]', { timeout: 6000 }).catch(() => {});
     if (!(await page.locator('[data-look="plan-card"]').count())) {
       console.log("NO-PLAN-CARD", 'You has no [data-look="plan-card"] (is LOOK_PLAN a plan?)');
       return;
@@ -348,6 +349,8 @@ async function shootTheme(theme) {
   await step(async () => {
     if (!want("settings-manage")) return;
     await go("/settings", "main .inset-group");
+    // The row lands with the billing read, after the page has settled.
+    await page.waitForSelector('[data-look="manage-plan"]', { timeout: 6000 }).catch(() => {});
     if (!(await page.locator('[data-look="manage-plan"]').count())) {
       console.log("NO-MANAGE-ROW", 'Settings has no [data-look="manage-plan"] (is LOOK_PLAN a plan?)');
       return;

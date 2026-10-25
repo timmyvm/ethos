@@ -2,6 +2,14 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { MarketingHeader, MarketingLink } from "@/components/MarketingBack";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import {
+  FIRST_PRICE_CENTS,
+  FLOOR_MONTH,
+  FLOOR_PRICE_CENTS,
+  LADDER_CENTS,
+  formatAud,
+  totalForMonths,
+} from "@/lib/pricing";
 
 export const metadata: Metadata = {
   title: "Terms · Ethos",
@@ -25,6 +33,34 @@ const INLINE_LINK =
 const FOOT_LINK =
   "press inline-flex min-h-11 items-center px-3 font-semibold text-stone-500 hover:text-ink";
 
+/** A list item's lead, the way Privacy's "What we store" names each one. */
+function Lead({ children }: { children: React.ReactNode }) {
+  return <span className="font-semibold text-ink">{children}</span>;
+}
+
+/*
+ * The ladder as the terms state it, built from lib/pricing.ts so this
+ * page can never disagree with what Stripe charges (the same reason
+ * lib/billing.ts builds Checkout's disclosure from LADDER_CENTS). The
+ * claims under it are checked against the server:
+ *  - one plan, AUD, GST included: lib/billing.ts verifies every Price
+ *    is AUD, the ladder's amount and tax_behavior "inclusive"
+ *  - renews on its start day, clamped: Stripe's billing anchor
+ *  - months in a row, retries keep the place, an ended plan starts at
+ *    month 1: lib/billing.ts syncCustomer, lib/pricing.ts
+ *  - cancel runs to the end of the paid month: lib/billing.ts cancelPlan
+ *    sets cancel_at_period_end
+ *  - deleting the account cancels first: app/api/account/route.ts
+ */
+const LADDER_ROWS = LADDER_CENTS.map((cents, i) => ({
+  month: i + 1 === FLOOR_MONTH ? `${FLOOR_MONTH} on` : String(i + 1),
+  price: formatAud(cents),
+  /* The bar's length against month 1, so the floor reads as 54% of it,
+     the Stair's own proportion (docs/ladder-spec.md). */
+  share: (cents / FIRST_PRICE_CENTS) * 100,
+}));
+const FIRST_YEAR = formatAud(totalForMonths(12));
+
 export default function Terms() {
   return (
     <main className="px-5 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-7">
@@ -37,7 +73,7 @@ export default function Terms() {
       >
         <MarketingHeader title="Terms" />
       </Suspense>
-      <p className="mt-2 text-caption text-stone-400">Last updated 25 August 2026</p>
+      <p className="mt-2 text-caption text-stone-400">Last updated 25 October 2026</p>
 
       <p className="mt-5 text-read text-stone-800">
         Ethos is a daily speaking-practice tool. Using it means agreeing to
@@ -66,8 +102,8 @@ export default function Terms() {
       <h2 className={HEAD}>Your account</h2>
       <p className={READ}>
         Keep your sign-in to yourself; what happens under it is yours. You
-        can delete the account at any time from Settings, which removes your
-        data as the privacy policy describes.
+        can delete the account at any time from Settings. That cancels any
+        plan first, then removes your data as the privacy policy describes.
       </p>
 
       <h2 className={HEAD}>Fair use</h2>
@@ -78,12 +114,105 @@ export default function Terms() {
         or that harasses someone.
       </p>
 
-      <h2 className={HEAD}>Money</h2>
+      <h2 className={HEAD}>Premium and billing</h2>
       <p className={READ}>
-        The core loop is free. Coins are earned by practising and never cost
-        money; nothing you could ever buy changes a score, a star or a
-        streak. If a paid plan ships, its price and terms will be stated
-        where you&apos;d pay, before you pay.
+        The core loop is free. Premium is one plan, billed monthly in
+        Australian dollars with GST included, and its price drops each
+        month you keep it.
+      </p>
+
+      <div className="card mt-4 px-4 pb-1 pt-2">
+        <table className="w-full border-collapse">
+          <caption className="sr-only">
+            Premium&apos;s price for each month in a row on one plan
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col" className="label-micro pb-2 pt-1 text-left">
+                Month
+              </th>
+              <td aria-hidden className="w-full p-0" />
+              <th scope="col" className="label-micro pb-2 pt-1 text-right">
+                Price
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {LADDER_ROWS.map((row) => (
+              <tr key={row.month} className="border-t border-hairline">
+                <th
+                  scope="row"
+                  className="font-display whitespace-nowrap py-2 pr-4 text-left text-row text-stone-500"
+                >
+                  {row.month}
+                </th>
+                <td aria-hidden className="py-2 pr-4">
+                  <span
+                    className="block h-1 bg-stone-400"
+                    style={{ width: `${row.share}%` }}
+                  />
+                </td>
+                <td className="font-display whitespace-nowrap py-2 text-right text-num-s">
+                  {row.price}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="border-t border-edge">
+              <th
+                scope="row"
+                colSpan={2}
+                className="whitespace-nowrap py-3 text-left text-body font-normal text-stone-500"
+              >
+                Your first 12 months
+              </th>
+              <td className="font-display whitespace-nowrap py-3 text-right text-num-s">
+                {FIRST_YEAR}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <ul className="mt-5 list-disc space-y-2 pl-5 text-read text-stone-800 marker:text-stone-300">
+        <li>
+          <Lead>Renewal.</Lead> The plan renews each month on the day you
+          started it, until you cancel. In a shorter month it renews on the
+          last day. Stripe charges your card on that day.
+        </li>
+        <li>
+          <Lead>Months in a row.</Lead> Your price goes by the months
+          you&apos;ve paid in a row on one plan. From month&nbsp;{FLOOR_MONTH} it
+          stays at {formatAud(FLOOR_PRICE_CENTS)} for as long as you keep it.
+        </li>
+        <li>
+          <Lead>Cancelling.</Lead> Cancel any time in the app: tap your plan
+          on You, or Manage plan in Settings, then Cancel plan. Premium stays
+          on to the end of the month you&apos;ve paid for, then the plan ends.
+        </li>
+        <li>
+          <Lead>A declined payment.</Lead> We retry it for about two weeks.
+          Premium stays on while we do, and your plan keeps its month and its
+          price. If the payment still fails, the plan ends.
+        </li>
+        <li>
+          <Lead>Starting again.</Lead> If a plan ends, the next one starts at
+          month&nbsp;1, {formatAud(FIRST_PRICE_CENTS)}.
+        </li>
+        <li>
+          <Lead>Price changes.</Lead> If our prices change, we&apos;ll email
+          you at least 30 days before. A change never touches a month
+          you&apos;ve already paid for.
+        </li>
+        <li>
+          <Lead>Refunds.</Lead> We don&apos;t refund part of a month, except
+          where the Australian Consumer Law says we must.
+        </li>
+      </ul>
+      <p className={READ}>
+        Coins, stars, streaks and scores are never for sale. You earn every
+        one of them by practising.
       </p>
 
       <h2 className={HEAD}>The honest limits</h2>

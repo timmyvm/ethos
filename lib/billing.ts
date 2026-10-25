@@ -108,6 +108,11 @@ export const HANDLED_EVENTS: readonly string[] = [
 
 /** Premium outlives the paid period by this much, in case the ended webhook is lost. */
 const BACKSTOP_MS = 3 * 24 * 60 * 60 * 1000;
+/**
+ * How long a Checkout stays payable: Stripe's minimum is 30 minutes after
+ * it makes the session, so a little more, never its default of a day.
+ */
+const CHECKOUT_TTL_S = 35 * 60;
 const PRICE_CACHE_MS = 10 * 60 * 1000;
 const UNIQUE_VIOLATION = "23505";
 const FOREIGN_KEY_VIOLATION = "23503";
@@ -455,6 +460,8 @@ function cancelAtPeriodEnd(sub: Stripe.Subscription): Stripe.SubscriptionUpdateP
 interface Synced {
   userId: string;
   customerId: string;
+  /** Every subscription the sync read, the plan's as stepped. */
+  subs: Stripe.Subscription[];
   subscription: Stripe.Subscription | null;
   billing: BillingRow;
   premium: boolean;
@@ -679,7 +686,10 @@ async function syncInner(
     }
   }
 
-  return { userId, customerId, subscription, billing, premium, stepError };
+  const read = subscription
+    ? subs.map((x) => (x.id === subscription.id ? subscription : x))
+    : subs;
+  return { userId, customerId, subs: read, subscription, billing, premium, stepError };
 }
 
 /** What the plan's next renewal charges as Stripe has it: every item, at its quantity. */
@@ -768,14 +778,25 @@ async function syncedPlan(
 /**
  * Cancel at the end of the paid month: Premium runs until then, and the
  * plan keeps its place on the ladder until the cancel takes effect.
+ *
+ * Every live plan on the account is cancelled, the one it reads last. A
+ * duplicate should never exist (createCheckout closes older Checkouts),
+ * but if one slipped through, cancelling only the plan the app shows
+ * would leave the other billing after the person thought they had
+ * stopped, and it would become "the plan" once the first one ended.
  */
 export async function cancelPlan(deps: BillingDeps, userId: string): Promise<SyncResult> {
   const synced = await syncedPlan(deps, userId);
   const sub = synced.subscription;
   if (!isLive(sub.status)) throw new BillingError(409, ENDED);
-  if (synced.billing.cancel_at_period_end) throw new BillingError(409, ALREADY_ENDING);
+  const toEnd = synced.subs
+    .filter((s) => isLive(s.status) && !endsThisPeriod(s))
+    .sort((a, b) => Number(a.id === sub.id) - Number(b.id === sub.id));
+  if (toEnd.length === 0) throw new BillingError(409, ALREADY_ENDING);
 
-  await deps.stripe.subscriptions.update(sub.id, cancelAtPeriodEnd(sub));
+  for (const s of toEnd) {
+    await deps.stripe.subscriptions.update(s.id, cancelAtPeriodEnd(s));
+  }
   const after = await syncForRoute(deps, synced.customerId);
   return after
     ? { billing: after.billing, premium: after.premium }
@@ -830,14 +851,74 @@ export function checkoutDisclosure(): string {
   );
 }
 
-/** A Checkout Session for a NEW plan on month 1's price. Returns its URL. */
+/**
+ * Close every Checkout this customer still has open, so it can never be
+ * paid. A session paid (or lapsed) since the list is no longer open and
+ * is skipped: its plan, if any, is in Stripe now for the caller to find.
+ */
+async function expireOpenCheckouts(stripe: Stripe, customerId: string): Promise<void> {
+  // Each pass re-lists from the top: an expired session drops out of the
+  // "open" filter, so a cursor on it would point nowhere.
+  for (let pass = 0; pass < 10; pass++) {
+    const page = await stripe.checkout.sessions.list({
+      customer: customerId,
+      status: "open",
+      limit: 100,
+    });
+    for (const session of page.data) {
+      try {
+        await stripe.checkout.sessions.expire(session.id);
+      } catch (e) {
+        const now = await stripe.checkout.sessions.retrieve(session.id);
+        if (now.status === "open") throw e;
+      }
+    }
+    if (!page.has_more) return;
+  }
+  throw new Error(`billing: ${customerId} still has open Checkout Sessions after 10 passes`);
+}
+
+/** Whether the customer has a plan running, or one whose first payment is pending. */
+async function hasPlan(stripe: Stripe, customerId: string): Promise<boolean> {
+  const subs = await stripe.subscriptions.list({ customer: customerId, status: "all", limit: 20 });
+  return subs.data.some((s) => CANDIDATE_STATUSES.includes(s.status));
+}
+
+/**
+ * The checkout route's answer when the account already has a plan: open
+ * the portal, never a second plan. A first payment still pending counts
+ * (a debit that settles over days, or a confirmation left unfinished):
+ * the portal's invoices are where it can be finished.
+ */
+export function hasPlanToManage(status: string | null | undefined): boolean {
+  return status != null && CANDIDATE_STATUSES.includes(status);
+}
+
+export type CheckoutOutcome = { url: string } | { manage: true };
+
+/**
+ * A Checkout Session for a NEW plan on month 1's price: its URL, or
+ * `{ manage: true }` when a plan turned up while the older Checkouts were
+ * being closed.
+ *
+ * Two open Checkouts would be two plans, both billed every month: a
+ * second tap (another tab, phone then laptop) makes a new session while
+ * the first is still payable. So every older open one is closed first,
+ * then Stripe is asked again for a plan (one paid a moment ago is no
+ * longer open, so the close cannot catch it), and the new session lasts
+ * half an hour rather than a day.
+ */
 export async function createCheckout(
   deps: BillingDeps,
   opts: { userId: string; email: string | null; site: string; returnTo: string }
-): Promise<string> {
+): Promise<CheckoutOutcome> {
   // Verify the ladder before anything is made, so a wrong price stops here.
   const first = rungFor(await ladderPrices(deps.stripe), 1);
   const customer = await ensureCustomer(deps, opts.userId, opts.email);
+  await expireOpenCheckouts(deps.stripe, customer);
+  if (await hasPlan(deps.stripe, customer)) return { manage: true };
+
+  const nowS = Math.floor((deps.now?.() ?? new Date()).getTime() / 1000);
   const session = await deps.stripe.checkout.sessions.create({
     mode: "subscription",
     customer,
@@ -853,9 +934,10 @@ export async function createCheckout(
     currency: CURRENCY,
     adaptive_pricing: { enabled: false },
     custom_text: { submit: { message: checkoutDisclosure() } },
+    expires_at: nowS + CHECKOUT_TTL_S,
   });
   if (!session.url) throw new Error(`checkout session ${session.id} came back without a url`);
-  return session.url;
+  return { url: session.url };
 }
 
 /** A customer portal session: card, invoices, cancel. Returns its URL. */

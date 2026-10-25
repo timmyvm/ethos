@@ -144,6 +144,24 @@ describe("POST /api/billing/checkout", () => {
     expect(stripe.sim.callsTo("checkout.sessions.create")).toEqual([]);
   });
 
+  it("answers { manage: true } while the first payment is still pending, and opens no second plan", async () => {
+    const customer = stripe.sim.customer(USER, "tim@example.com");
+    db.put("billing", { user_id: USER, stripe_customer_id: customer });
+    stripe.sim.startPlan(customer, { firstPaid: false });
+
+    expect(await call(checkout)).toEqual({ status: 200, body: { manage: true } });
+    expect(stripe.sim.callsTo("checkout.sessions.create")).toEqual([]);
+  });
+
+  it("a second tap ends the first Checkout, so it can never be paid as a second plan", async () => {
+    const one = await call(checkout);
+    const two = await call(checkout);
+    expect(one.status).toBe(200);
+    expect(two.status).toBe(200);
+    expect(stripe.state.sessions.map((cs) => cs.status)).toEqual(["expired", "open"]);
+    expect(() => stripe.sim.completeSession(stripe.state.sessions[0].id)).toThrow();
+  });
+
   it("answers { manage: true } while a declined card is being retried", async () => {
     const { sub } = await paying();
     stripe.sim.renew(sub, { paid: false });

@@ -5,8 +5,9 @@
  * to (anything else is /you). Answers:
  *
  *   200 { url }          Stripe Checkout for a NEW plan on month 1's price
- *   200 { manage: true } the account already has a live plan; open the
- *                        portal (/api/billing/portal), never a second plan
+ *   200 { manage: true } the account already has a live plan, or one whose
+ *                        first payment is still pending; open the portal
+ *                        (/api/billing/portal), never a second plan
  *   401                  no session
  *   503                  Stripe isn't configured on this server
  *   403 { needsAccount } an anonymous-first session: a paid plan needs an
@@ -16,7 +17,8 @@
  *
  * The ladder's prices are verified before the session is made
  * (lib/billing.ts), and Checkout's pay button carries the whole ladder,
- * the renewal and the reset rule.
+ * the renewal and the reset rule. Any older Checkout still open for the
+ * account is closed first, so two tabs can never become two plans.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -24,7 +26,7 @@ import {
   billingFailure,
   createCheckout,
   guardBillingRoute,
-  isLive,
+  hasPlanToManage,
   safeReturnPath,
   siteFrom,
   syncUser,
@@ -45,15 +47,15 @@ export async function POST(req: NextRequest) {
   try {
     // An account with a row may already be paying: Stripe's word first.
     const { billing } = await syncUser(gate.deps, gate.auth.id);
-    if (isLive(billing?.status)) return NextResponse.json({ manage: true });
+    if (hasPlanToManage(billing?.status)) return NextResponse.json({ manage: true });
 
-    const url = await createCheckout(gate.deps, {
+    const out = await createCheckout(gate.deps, {
       userId: gate.auth.id,
       email: gate.auth.email ?? null,
       site: siteFrom(req),
       returnTo: safeReturnPath(body?.returnTo),
     });
-    return NextResponse.json({ url });
+    return NextResponse.json(out);
   } catch (e) {
     return billingFailure(
       e,

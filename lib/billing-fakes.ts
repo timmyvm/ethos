@@ -89,6 +89,15 @@ export interface FakeInvoice {
   };
 }
 
+export interface FakeSession {
+  id: string;
+  object: "checkout.session";
+  customer: string | null;
+  status: "open" | "complete" | "expired";
+  expires_at: number;
+  url: string;
+}
+
 interface FakeCustomer {
   id: string;
   object: "customer";
@@ -148,6 +157,7 @@ export function fakeStripe() {
     customers: new Map<string, FakeCustomer>(),
     subs: [] as FakeSubscription[],
     invoices: [] as FakeInvoice[],
+    sessions: [] as FakeSession[],
     calls: [] as Call[],
     idempotent: new Map<string, unknown>(),
     /** Throw this from the named method once. */
@@ -188,6 +198,12 @@ export function fakeStripe() {
   function sub(id: string): FakeSubscription {
     const found = state.subs.find((s) => s.id === id);
     if (!found) throw new FakeStripeError("resource_missing", `No such subscription: ${id}`, 404);
+    return found;
+  }
+
+  function session(id: string): FakeSession {
+    const found = state.sessions.find((cs) => cs.id === id);
+    if (!found) throw new FakeStripeError("resource_missing", `No such checkout.session: ${id}`, 404);
     return found;
   }
 
@@ -364,7 +380,44 @@ export function fakeStripe() {
         async create(params: Record<string, unknown>) {
           record("checkout.sessions.create", [params]);
           const id = nextId("cs_test");
-          return { id, object: "checkout.session", url: `https://checkout.stripe.test/c/pay/${id}` };
+          const made: FakeSession = {
+            id,
+            object: "checkout.session",
+            customer: typeof params.customer === "string" ? params.customer : null,
+            status: "open",
+            // Stripe's default is 24 hours after creation.
+            expires_at: typeof params.expires_at === "number" ? params.expires_at : state.clock + DAY_S,
+            url: `https://checkout.stripe.test/c/pay/${id}`,
+          };
+          state.sessions.push(made);
+          return clone(made);
+        },
+        async list(params: ListParams & { customer?: string; status?: string }) {
+          record("checkout.sessions.list", [params]);
+          const rows = [...state.sessions]
+            .reverse()
+            .filter(
+              (cs) =>
+                (!params.customer || cs.customer === params.customer) &&
+                (!params.status || cs.status === params.status)
+            );
+          return page(rows, params);
+        },
+        async retrieve(id: string) {
+          record("checkout.sessions.retrieve", [id]);
+          return clone(session(id));
+        },
+        async expire(id: string) {
+          record("checkout.sessions.expire", [id]);
+          const cs = session(id);
+          if (cs.status !== "open") {
+            throw new FakeStripeError(
+              "checkout_session_not_open",
+              `Only an open Checkout Session can be expired; this one is ${cs.status}.`
+            );
+          }
+          cs.status = "expired";
+          return clone(cs);
         },
       },
     },
@@ -454,6 +507,20 @@ export function fakeStripe() {
       return paid ? inv.amount_paid : 0;
     },
 
+    /**
+     * The person pays on a Checkout page: a plan starts on its customer.
+     * An expired (or already paid) session shows Stripe's expired page.
+     */
+    completeSession(sessionId: string, opts: { firstPaid?: boolean } = {}): string {
+      const cs = session(sessionId);
+      if (cs.status !== "open" || cs.expires_at <= state.clock) {
+        throw new Error(`checkout session ${sessionId} is ${cs.status}; it can't be paid`);
+      }
+      if (!cs.customer) throw new Error(`checkout session ${sessionId} has no customer`);
+      cs.status = "complete";
+      return sim.startPlan(cs.customer, opts);
+    },
+
     /** A retry succeeds: the open renewal is paid. */
     payOpen(subId: string): number {
       const inv = newestFirst(state.invoices).find(
@@ -511,7 +578,9 @@ export function fakeStripe() {
 
     /** Calls that change something in Stripe. */
     writes(): Call[] {
-      return state.calls.filter((c) => /\.(create|update|cancel)$/.test(c.method));
+      return state.calls.filter((c) =>
+        /\.(create|update|cancel|expire|voidInvoice)$/.test(c.method)
+      );
     },
   };
 

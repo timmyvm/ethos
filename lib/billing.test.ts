@@ -431,14 +431,14 @@ describe("a cancel date past this period", () => {
 describe("checkout", () => {
   it("opens a new plan on month 1 with the whole ladder above the pay button", async () => {
     const w = world();
-    const url = await createCheckout(w.deps, {
+    const out = await createCheckout(w.deps, {
       userId: USER,
       email: "tim@example.com",
       site: SITE,
       returnTo: "/games",
     });
 
-    expect(url).toMatch(/^https:\/\/checkout\.stripe\.test\//);
+    expect(out).toEqual({ url: expect.stringMatching(/^https:\/\/checkout\.stripe\.test\//) });
     const params = w.sim.callsTo("checkout.sessions.create")[0].args[0] as { customer: string };
     expect(params).toEqual({
       mode: "subscription",
@@ -453,6 +453,8 @@ describe("checkout", () => {
       currency: "aud",
       adaptive_pricing: { enabled: false },
       custom_text: { submit: { message: checkoutDisclosure() } },
+      // Half an hour and a little, never Stripe's default of a day.
+      expires_at: Math.floor(w.stripe.now().getTime() / 1000) + 35 * 60,
     });
     expect(w.db.row("billing", USER)).toMatchObject({
       stripe_customer_id: params.customer,
@@ -623,7 +625,86 @@ describe("checkout", () => {
   });
 });
 
+describe("two Checkouts, one plan", () => {
+  const open = (w: World) =>
+    createCheckout(w.deps, { userId: USER, email: null, site: SITE, returnTo: "/you" });
+
+  it("ends every older open Checkout before opening a new one, so only the newest can be paid", async () => {
+    const w = world();
+    await open(w); // phone
+    await open(w); // laptop, before the phone's was paid
+    const [first, second] = w.stripe.state.sessions;
+    expect(first.status).toBe("expired");
+    expect(second.status).toBe("open");
+
+    // Paying on the laptop starts the plan; the phone's tab shows Stripe's expired page.
+    const sub = w.sim.completeSession(second.id);
+    expect(() => w.sim.completeSession(first.id)).toThrow(/expired/);
+    await syncCustomer(w.deps, w.stripe.state.sessions[1].customer!);
+    expect(w.stripe.state.subs.map((x) => x.id)).toEqual([sub]);
+    expect(w.sim.charges(sub)).toEqual([1299]);
+  });
+
+  it("opens no second Checkout when the older one was paid while it was being closed", async () => {
+    const w = world();
+    await open(w);
+    const first = w.stripe.state.sessions[0];
+    const expire = w.stripe.api.checkout.sessions.expire;
+    w.stripe.api.checkout.sessions.expire = async (id: string) => {
+      w.sim.completeSession(id); // paid a moment before the expire reached Stripe
+      return expire(id);
+    };
+
+    expect(await open(w)).toEqual({ manage: true });
+    expect(w.sim.callsTo("checkout.sessions.create")).toHaveLength(1);
+    expect(first.status).toBe("complete");
+    expect(w.stripe.state.subs).toHaveLength(1);
+  });
+
+  it("opens no second Checkout over a plan whose first payment is still pending", async () => {
+    const w = world();
+    const customer = customerFor(w);
+    w.sim.startPlan(customer, { firstPaid: false }); // a debit that settles over days
+
+    expect(await open(w)).toEqual({ manage: true });
+    expect(w.sim.callsTo("checkout.sessions.create")).toEqual([]);
+  });
+});
+
 describe("more than one plan", () => {
+  it("an in-app cancel ends every live plan, so a duplicate stops billing too", async () => {
+    const w = world();
+    const customer = customerFor(w);
+    const first = w.sim.startPlan(customer);
+    await syncCustomer(w.deps, customer);
+    const dup = w.sim.startPlan(customer);
+    await syncCustomer(w.deps, customer);
+
+    const out = await cancelPlan(w.deps, USER);
+    expect(out.billing).toMatchObject({ cancel_at_period_end: true, next_price_cents: null });
+    expect(w.sim.sub(first).cancel_at_period_end).toBe(true);
+    expect(w.sim.sub(dup).cancel_at_period_end).toBe(true);
+    await expect(cancelPlan(w.deps, USER)).rejects.toMatchObject({ status: 409 });
+
+    expect(w.sim.renew(first)).toBe(0);
+    expect(w.sim.renew(dup)).toBe(0);
+  });
+
+  it("an in-app cancel reaches a duplicate even when the kept plan is already ending", async () => {
+    const w = world();
+    const customer = customerFor(w);
+    const kept = w.sim.startPlan(customer);
+    w.sim.renew(kept); // two paid months: the plan the account reads
+    w.sim.sub(kept).cancel_at_period_end = true;
+    w.sim.sub(kept).cancel_at = w.sim.sub(kept).items.data[0].current_period_end;
+    const dup = w.sim.startPlan(customer);
+
+    const out = await cancelPlan(w.deps, USER);
+    expect(w.sim.sub(dup).cancel_at_period_end).toBe(true);
+    expect(out.billing).toMatchObject({ ladder_month: 2, cancel_at_period_end: true });
+    expect(w.sim.renew(dup)).toBe(0);
+  });
+
   it("keeps the plan with the most paid months, logs the other and cancels nothing", async () => {
     const w = world();
     const customer = customerFor(w);
@@ -774,6 +855,11 @@ describe("helpers", () => {
     const block = script.match(/const EVENTS = \[([\s\S]*?)\];/)?.[1] ?? "";
     const listed = [...block.matchAll(/"([a-z_.]+)"/g)].map((m) => m[1]);
     expect([...listed].sort()).toEqual([...HANDLED_EVENTS].sort());
+  });
+
+  it("asks for Stripe's own one-plan limit in the dashboard checklist", () => {
+    const script = readFileSync("scripts/stripe-setup.mjs", "utf8");
+    expect(script).toContain("Limit customers to one subscription");
   });
 
   it("makes the prices at exactly the ladder the server charges", () => {

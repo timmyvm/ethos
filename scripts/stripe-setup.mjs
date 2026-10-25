@@ -366,6 +366,9 @@ Checklist, dashboard only (${MODE} mode; Stripe keeps test and live settings apa
       descriptor (ETHOS), so a charge is recognisable on a bank statement.
   [ ] Settings > Payments > Payment methods: cards and wallets. A method that
       settles over days (BECS) works, but Premium waits for the money.
+  [ ] Settings > Checkout and Payment Links > Subscriptions:
+      "Limit customers to one subscription" on. The server already closes older
+      Checkouts before it opens one; this is Stripe's own guard behind it.
   [ ] In test mode, end to end: subscribe with card 4242 4242 4242 4242, then
       check the subscription's item moved to ethos_ladder_m2 (A$11.99).
 `);

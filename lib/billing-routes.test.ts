@@ -324,6 +324,67 @@ describe("DELETE /api/account", () => {
     expect(db.state.tables.billing).toEqual([]);
   });
 
+  it("closes an open Checkout, so paying it later starts no plan on a deleted account", async () => {
+    expect((await call(checkout)).status).toBe(200);
+    const [session] = stripe.state.sessions;
+
+    expect((await call(deleteAccount, { method: "DELETE" })).status).toBe(200);
+    expect(session.status).toBe("expired");
+    expect(() => stripe.sim.completeSession(session.id)).toThrow(/expired/);
+    expect(db.state.deletedUsers).toEqual([USER]);
+  });
+
+  it("lists the recordings before it cancels anything, so a failed read really leaves all of it", async () => {
+    const { sub } = await paying();
+    withAudio();
+    db.state.fail.push({ table: "reps", op: "select", error: { code: "08006", message: "down" } });
+
+    expect(await call(deleteAccount, { method: "DELETE" })).toEqual({
+      status: 502,
+      body: { error: "Couldn't list your recordings. Nothing was deleted." },
+    });
+    expect(stripe.sim.sub(sub).status).toBe("active");
+    expect(stripe.sim.callsTo("subscriptions.cancel")).toEqual([]);
+  });
+
+  it("says the plan is cancelled when a later step fails after the cancel", async () => {
+    const { sub } = await paying();
+    withAudio();
+    db.state.fail.push({ table: "storage:audio", op: "remove", error: { code: "500", message: "down" } });
+
+    const audio = await call(deleteAccount, { method: "DELETE" });
+    expect(audio.status).toBe(502);
+    expect(audio.body.error).toBe(
+      "Your plan is cancelled, but your audio didn't delete. Nothing else was touched; try again."
+    );
+    expect(stripe.sim.sub(sub).status).toBe("canceled");
+    expect(String(audio.body.error)).not.toMatch(/—/);
+
+    // The retry: nothing left to cancel, so the account's own words are back.
+    db.state.fail.push({ table: "auth.users", op: "delete", error: { code: "500", message: "down" } });
+    expect(await call(deleteAccount, { method: "DELETE" })).toEqual({
+      status: 502,
+      body: { error: "The account didn't delete. Try again in a minute." },
+    });
+  });
+
+  it("says the plan is cancelled when the account itself fails to delete after the cancel", async () => {
+    await paying();
+    db.state.fail.push({ table: "auth.users", op: "delete", error: { code: "500", message: "down" } });
+    expect(await call(deleteAccount, { method: "DELETE" })).toEqual({
+      status: 502,
+      body: { error: "Your plan is cancelled, but the account didn't delete. Try again in a minute." },
+    });
+  });
+
+  it("deletes nothing without a key while a Checkout may have started a plan nobody synced", async () => {
+    expect((await call(checkout)).status).toBe(200); // a row, status still null
+    h.stripe = null;
+    const res = await call(deleteAccount, { method: "DELETE" });
+    expect(res.status).toBe(502);
+    expect(db.state.deletedUsers).toEqual([]);
+  });
+
   it("deletes nothing when a cancel fails", async () => {
     await paying();
     withAudio();

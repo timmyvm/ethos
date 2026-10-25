@@ -492,6 +492,8 @@ export function fakeStripe() {
      */
     renew(subId: string, opts: { paid?: boolean } = {}): number {
       const s = sub(subId);
+      // An ended plan never renews.
+      if (s.status === "canceled" || s.status === "incomplete_expired") return 0;
       const item = s.items.data[0];
       state.clock = item.current_period_end;
       if (s.cancel_at_period_end || (s.cancel_at !== null && s.cancel_at <= state.clock)) {

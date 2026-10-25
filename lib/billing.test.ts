@@ -754,12 +754,34 @@ describe("who a customer is", () => {
     });
   });
 
-  it("skips a deleted account rather than failing the webhook forever", async () => {
+  it("ends a deleted account's plan rather than billing it forever, and answers without throwing", async () => {
+    // A Checkout paid after the account was deleted: the customer still names the user.
     const w = world([]);
     const customer = w.sim.customer(USER);
-    w.sim.startPlan(customer);
+    const sub = w.sim.startPlan(customer);
     await expect(syncCustomer(w.deps, customer)).resolves.toBeNull();
     expect(w.db.state.tables.profiles).toEqual([]);
+    expect(w.sim.sub(sub).status).toBe("canceled");
+    expect(w.sim.renew(sub)).toBe(0);
+    // The ended event's own sync finds nothing left to end.
+    await expect(syncCustomer(w.deps, customer)).resolves.toBeNull();
+    expect(w.sim.callsTo("subscriptions.cancel")).toHaveLength(1);
+  });
+
+  it("leaves a plan that isn't the ladder's alone on a customer naming a user who isn't here", async () => {
+    // Another product on the same Stripe account whose user ids happen to be uuids.
+    const w = world([]);
+    const customer = w.sim.customer(USER);
+    const sub = w.sim.startPlan(customer);
+    w.sim.sub(sub).items.data[0].price = {
+      ...structuredClone(w.stripe.state.priceBook[0]),
+      id: "price_theirs",
+      lookup_key: null,
+      product: "prod_theirs",
+    };
+    await expect(syncCustomer(w.deps, customer)).resolves.toBeNull();
+    expect(w.sim.sub(sub).status).toBe("active");
+    expect(w.sim.callsTo("subscriptions.cancel")).toEqual([]);
   });
 
   it("skips a customer whose user id is not an Ethos id, without throwing", async () => {
@@ -822,6 +844,32 @@ describe("account deletion", () => {
       [late, pending].sort()
     );
     expect(w.sim.sub(late).status).toBe("canceled");
+  });
+
+  it("closes the customer's open Checkouts first, so none can be paid afterwards", async () => {
+    const w = world();
+    await createCheckout(w.deps, { userId: USER, email: null, site: SITE, returnTo: "/you" });
+    const customer = w.db.row("billing", USER)!.stripe_customer_id as string;
+    const [session] = w.stripe.state.sessions;
+
+    expect(await endEveryPlan(w.deps.stripe, customer)).toBe(0);
+    expect(session.status).toBe("expired");
+    expect(() => w.sim.completeSession(session.id)).toThrow(/expired/);
+  });
+
+  it("cancels the plan of a Checkout paid while it was being closed", async () => {
+    const w = world();
+    await createCheckout(w.deps, { userId: USER, email: null, site: SITE, returnTo: "/you" });
+    const customer = w.db.row("billing", USER)!.stripe_customer_id as string;
+    const expire = w.stripe.api.checkout.sessions.expire;
+    let paid = "";
+    w.stripe.api.checkout.sessions.expire = async (id: string) => {
+      paid = w.sim.completeSession(id);
+      return expire(id);
+    };
+
+    expect(await endEveryPlan(w.deps.stripe, customer)).toBe(1);
+    expect(w.sim.sub(paid).status).toBe("canceled");
   });
 });
 

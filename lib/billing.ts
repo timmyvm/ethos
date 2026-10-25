@@ -92,6 +92,11 @@ export function isEntitled(status: string | null | undefined): boolean {
   return status != null && ENTITLED_STATUSES.includes(status);
 }
 
+/** Ended for good: nothing on it can be charged again. */
+export function hasEnded(status: string | null | undefined): boolean {
+  return status != null && ENDED_STATUSES.includes(status);
+}
+
 /** The webhook acts on exactly these; scripts/stripe-setup.mjs subscribes to them. */
 export const HANDLED_EVENTS: readonly string[] = [
   "checkout.session.completed",
@@ -654,7 +659,21 @@ async function syncInner(
   );
   if (error) {
     if (error.code === FOREIGN_KEY_VIOLATION) {
-      console.error(`billing: user ${userId} no longer exists; ${customerId} not synced`);
+      // The user this customer names is gone, so a plan here charges an
+      // account that no longer exists, with no way to cancel it from the
+      // app: a Checkout paid after the account was deleted. End it. Only
+      // plans on the ladder: a customer found by metadata alone may be
+      // another product's on a shared Stripe account. A failure throws,
+      // so the webhook answers 500 and Stripe retries until it is ended.
+      const rungs = await ladderPrices(stripe);
+      const ended = await endPlans(stripe, customerId, (s) => {
+        const items = s.items?.data ?? [];
+        return items.length > 0 && items.every((i) => onLadder(i.price, rungs));
+      });
+      console.error(
+        `billing: user ${userId} no longer exists; ${customerId} not synced` +
+          (ended > 0 ? `; ended ${ended} plan(s), and any month already paid needs a refund by hand` : "")
+      );
       return null;
     }
     throw new Error(`billing write failed: ${error.message}`);
@@ -960,11 +979,12 @@ export async function openPortal(
   return session.url;
 }
 
-/**
- * Account deletion: every plan that has not ended, cancelled now, so a
- * deleted account is never charged again. Returns how many it ended.
- */
-export async function endEveryPlan(stripe: Stripe, customerId: string): Promise<number> {
+/** Cancel now every plan on the customer that has not ended and `which` picks. */
+async function endPlans(
+  stripe: Stripe,
+  customerId: string,
+  which: (sub: Stripe.Subscription) => boolean
+): Promise<number> {
   let ended = 0;
   let after: string | undefined;
   for (;;) {
@@ -975,7 +995,7 @@ export async function endEveryPlan(stripe: Stripe, customerId: string): Promise<
       ...(after ? { starting_after: after } : {}),
     });
     for (const sub of page.data) {
-      if (ENDED_STATUSES.includes(sub.status)) continue;
+      if (ENDED_STATUSES.includes(sub.status) || !which(sub)) continue;
       await stripe.subscriptions.cancel(sub.id);
       ended++;
     }
@@ -983,6 +1003,18 @@ export async function endEveryPlan(stripe: Stripe, customerId: string): Promise<
     if (!page.has_more || !last) return ended;
     after = last.id;
   }
+}
+
+/**
+ * Account deletion: every Checkout still open is closed, then every plan
+ * that has not ended is cancelled now, so a deleted account is never
+ * charged again. Closing first matters: a Checkout paid in between has
+ * made its plan by the time the cancel pass lists them, so it is caught.
+ * Returns how many plans it ended.
+ */
+export async function endEveryPlan(stripe: Stripe, customerId: string): Promise<number> {
+  await expireOpenCheckouts(stripe, customerId);
+  return endPlans(stripe, customerId, () => true);
 }
 
 // ---------------------------------------------------------------------

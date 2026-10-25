@@ -194,6 +194,7 @@ describe("a declined card", () => {
     for (let i = 0; i < 4; i++) await nextMonth(w);
     w.sim.renew(w.sub, { paid: false });
     await syncCustomer(w.deps, w.customer);
+    w.sim.advance(14 * DAY_S); // the retry window
     w.sim.retriesRunOut(w.sub);
 
     const ended = await syncCustomer(w.deps, w.customer);
@@ -203,9 +204,14 @@ describe("a declined card", () => {
         ladder_month: 5,
         next_price_cents: null,
         cancel_at_period_end: false,
+        // The day it ended, not the end of the month nobody paid for.
+        current_period_end: w.stripe.now().toISOString(),
       }),
       premium: false,
     });
+    expect(Date.parse(ended!.billing!.current_period_end!)).toBeLessThan(
+      w.sim.sub(w.sub).items.data[0].current_period_end * 1000
+    );
     expect(w.db.row("profiles", USER)).toMatchObject({
       premium: false,
       premium_source: null,
@@ -267,6 +273,25 @@ describe("premium on the profile", () => {
 
     expect(out?.premium).toBe(true);
     expect(w.db.row("profiles", USER)).toEqual(code);
+  });
+
+  it("gives a paid plan its Premium when an older given premium has run out", async () => {
+    const w = world();
+    const lapsed = new Date(w.stripe.now().getTime() - DAY_S * 1000).toISOString();
+    w.db.put("profiles", {
+      user_id: USER,
+      premium: true,
+      premium_source: "code",
+      premium_until: lapsed,
+    });
+    const p = await paying(w);
+    const end = w.sim.sub(p.sub).items.data[0].current_period_end;
+
+    expect(w.db.row("profiles", USER)).toMatchObject({
+      premium: true,
+      premium_source: "stripe",
+      premium_until: new Date((end + 3 * DAY_S) * 1000).toISOString(),
+    });
   });
 });
 
@@ -333,6 +358,17 @@ describe("cancel and resume", () => {
     expect(w.sim.writes()).toHaveLength(before);
   });
 
+  it("answers 404, not 409, for a first payment that never came", async () => {
+    const w = world();
+    const customer = customerFor(w);
+    const sub = w.sim.startPlan(customer, { firstPaid: false });
+    w.sim.sub(sub).status = "incomplete_expired";
+
+    await expect(cancelPlan(w.deps, USER)).rejects.toMatchObject({ status: 404 });
+    await expect(resumePlan(w.deps, USER)).rejects.toMatchObject({ status: 404 });
+    expect(w.sim.writes()).toEqual([]);
+  });
+
   it("treats a cancel date set elsewhere as ending, and resume clears it", async () => {
     const w = await paying();
     const end = w.sim.sub(w.sub).items.data[0].current_period_end;
@@ -374,6 +410,7 @@ describe("checkout", () => {
       success_url: `${SITE}/you?checkout=done`,
       cancel_url: `${SITE}/games`,
       allow_promotion_codes: false,
+      adaptive_pricing: { enabled: false },
       custom_text: { submit: { message: checkoutDisclosure() } },
     });
     expect(w.db.row("billing", USER)).toMatchObject({
@@ -468,7 +505,12 @@ describe("checkout", () => {
 
     await expect(syncCustomer(w.deps, customer)).rejects.toMatchObject({ status: 502 });
     expect(w.sim.callsTo("subscriptions.update")).toEqual([]);
-    expect(w.db.row("billing", USER)).toMatchObject({ status: "active", ladder_month: 1 });
+    // The item never left month 1's price, so the next renewal says so.
+    expect(w.db.row("billing", USER)).toMatchObject({
+      status: "active",
+      ladder_month: 1,
+      next_price_cents: 1299,
+    });
     expect(w.db.row("profiles", USER)).toMatchObject({ premium: true });
 
     // The person's own sync answers; the failed step goes to the log.
@@ -477,6 +519,25 @@ describe("checkout", () => {
       expect.stringContaining("rung step failed"),
       expect.stringContaining("ethos_ladder_m2")
     );
+
+    // Fixed in Stripe: a failed check is never cached, so the next sync
+    // steps, and the row says the rung again.
+    w.stripe.state.priceBook[1].unit_amount = 1199;
+    await syncCustomer(w.deps, customer);
+    expect(w.db.row("billing", USER)?.next_price_cents).toBe(1199);
+  });
+
+  it("never steps a plan with more than one item, and says what it will really charge", async () => {
+    const w = world();
+    const customer = customerFor(w);
+    const sub = w.sim.startPlan(customer);
+    const item = w.sim.sub(sub).items.data[0];
+    w.sim.sub(sub).items.data.push({ ...structuredClone(item), id: "si_extra" });
+
+    const out = await syncCustomer(w.deps, customer);
+    expect(w.sim.callsTo("subscriptions.update")).toEqual([]);
+    expect(out?.billing).toMatchObject({ ladder_month: 1, next_price_cents: 2598 });
+    expect(out?.premium).toBe(true);
   });
 });
 
@@ -621,5 +682,15 @@ describe("helpers", () => {
     const block = script.match(/const EVENTS = \[([\s\S]*?)\];/)?.[1] ?? "";
     const listed = [...block.matchAll(/"([a-z_.]+)"/g)].map((m) => m[1]);
     expect([...listed].sort()).toEqual([...HANDLED_EVENTS].sort());
+  });
+
+  it("makes the prices at exactly the ladder the server charges", () => {
+    const script = readFileSync("scripts/stripe-setup.mjs", "utf8");
+    const block = script.match(/const LADDER_CENTS = \[([^\]]*)\];/)?.[1] ?? "";
+    expect(block.split(",").map((n) => Number(n.trim()))).toEqual([...LADDER_CENTS]);
+    expect(script).toContain('tax_behavior: "inclusive"');
+    expect(script).toContain("transfer_lookup_key: true");
+    expect(script).toContain('mode: "at_period_end"');
+    expect(script).toContain("subscription_update: { enabled: false }");
   });
 });

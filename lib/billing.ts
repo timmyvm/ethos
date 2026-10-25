@@ -25,6 +25,8 @@
  *      BEFORE the step below, so a price problem can never hold back
  *      Premium starting or ending;
  *   5. the step: a live plan's item moves to the rung for month + 1.
+ *      When it cannot, the row's next price is what Stripe will really
+ *      charge, never the rung it missed, and the webhook retries.
  *
  * Fail closed on money: every price is checked against LADDER_CENTS
  * before anyone is charged it, so Stripe never bills an amount the
@@ -71,6 +73,9 @@ const CANDIDATE_STATUSES: readonly string[] = [...LIVE_STATUSES, "incomplete"];
 
 /** Ended for good; a new plan starts at month 1. */
 const ENDED_STATUSES: readonly string[] = ["canceled", "incomplete_expired"];
+
+/** Its first payment is pending, or expired unpaid: there was never a plan to cancel. */
+const NEVER_STARTED: readonly string[] = ["incomplete", "incomplete_expired"];
 
 /** The invoices that count as a paid month of the plan. */
 const MONTH_REASONS: readonly string[] = [
@@ -364,13 +369,21 @@ async function currentPlan(
   return counted[0];
 }
 
-/** The plan's one item. The ladder only steps a plan with exactly one. */
-function soleItem(sub: Stripe.Subscription): Stripe.SubscriptionItem | null {
+/**
+ * The plan's item: `period` dates the plan, `step` is the item the
+ * ladder may move. Checkout makes exactly one; with any other count the
+ * dates still read from the first, but nothing is stepped, because
+ * moving one item of several would charge an amount nobody was shown.
+ */
+function planItem(sub: Stripe.Subscription): {
+  period: Stripe.SubscriptionItem | null;
+  step: Stripe.SubscriptionItem | null;
+} {
   const items = sub.items?.data ?? [];
   if (items.length !== 1) {
-    console.error(`billing: ${sub.id} has ${items.length} items; the ladder needs exactly one`);
+    console.error(`billing: ${sub.id} has ${items.length} items; the ladder steps only one`);
   }
-  return items[0] ?? null;
+  return { period: items[0] ?? null, step: items.length === 1 ? items[0] : null };
 }
 
 // ---------------------------------------------------------------------
@@ -439,7 +452,12 @@ async function writeEntitlement(
     premium_until: string | null;
     premium_source: string | null;
   } | null;
-  const given = Boolean(profile?.premium) && profile?.premium_source !== "stripe";
+  // A premium this module did not write, still running. A code's premium
+  // has no end; one that somehow ran out is no reason to withhold a paid one.
+  const given =
+    Boolean(profile?.premium) &&
+    profile?.premium_source !== "stripe" &&
+    (!profile?.premium_until || new Date(profile.premium_until) > now);
 
   if (entitled) {
     if (given) return true;
@@ -466,7 +484,7 @@ async function writeEntitlement(
     if (clearError) throw new Error(`premium clear failed: ${clearError.message}`);
     return false;
   }
-  return given && (!profile?.premium_until || new Date(profile.premium_until) > now);
+  return given;
 }
 
 /** Move a live plan's item to the rung for month + 1. Null when it is already there. */
@@ -503,14 +521,19 @@ async function syncInner(
   const months = plan?.months ?? 0;
   const status = sub?.status ?? null;
   const live = isLive(status);
-  const item = sub ? soleItem(sub) : null;
+  const { period, step } = sub ? planItem(sub) : { period: null, step: null };
 
   const ending = Boolean(live && sub && (sub.cancel_at_period_end || sub.cancel_at != null));
   // The day the paid time runs to: the period's end, or an earlier
-  // cancel_at date when one is set.
-  let paidToS = item?.current_period_end ?? null;
+  // cancel_at date when one is set. A plan that ended reads the day it
+  // ended: one whose retries ran out had already rolled into a month
+  // nobody paid for, and that month's end is no date to show anyone.
+  let paidToS = period?.current_period_end ?? null;
   if (ending && sub?.cancel_at != null && (paidToS == null || sub.cancel_at < paidToS)) {
     paidToS = sub.cancel_at;
+  }
+  if (sub && ENDED_STATUSES.includes(sub.status) && sub.ended_at != null) {
+    paidToS = sub.ended_at;
   }
   const paidTo = paidToS != null ? new Date(paidToS * 1000) : null;
 
@@ -545,15 +568,40 @@ async function syncInner(
 
   let subscription = sub;
   let stepError: unknown = null;
-  if (sub && item && live && months >= 1) {
-    try {
-      subscription = (await stepRung(stripe, sub, item, months)) ?? sub;
-    } catch (e) {
-      stepError = e;
+  if (sub && live && months >= 1) {
+    if (step) {
+      try {
+        subscription = (await stepRung(stripe, sub, step, months)) ?? sub;
+      } catch (e) {
+        stepError = e;
+      }
+    }
+    // The ladder could not put the plan on its rung: say what the next
+    // renewal will really charge, never the rung it missed.
+    if ((stepError || !step) && billing.next_price_cents != null) {
+      const real = renewalCents(sub);
+      if (real !== billing.next_price_cents) {
+        billing.next_price_cents = real;
+        const { error: fixError } = await db
+          .from("billing")
+          .update({ next_price_cents: real })
+          .eq("user_id", userId);
+        if (fixError) throw new Error(`billing write failed: ${fixError.message}`);
+      }
     }
   }
 
   return { userId, customerId, subscription, billing, premium, stepError };
+}
+
+/** What the plan's next renewal charges as Stripe has it: every item, at its quantity. */
+function renewalCents(sub: Stripe.Subscription): number | null {
+  let total = 0;
+  for (const item of sub.items?.data ?? []) {
+    if (item.price?.unit_amount == null) return null;
+    total += item.price.unit_amount * (item.quantity ?? 1);
+  }
+  return total;
 }
 
 /**
@@ -619,8 +667,10 @@ async function syncedPlan(
   if (!row) throw new BillingError(404, NO_PLAN);
   const synced = await syncForRoute(deps, row.stripe_customer_id);
   const sub = synced?.subscription;
-  // A first payment still pending never started a plan.
-  if (!synced || !sub || sub.status === "incomplete") throw new BillingError(404, NO_PLAN);
+  // A first payment still pending, or one that never came, never started a plan.
+  if (!synced || !sub || NEVER_STARTED.includes(sub.status)) {
+    throw new BillingError(404, NO_PLAN);
+  }
   return { ...synced, subscription: sub };
 }
 
@@ -710,6 +760,9 @@ export async function createCheckout(
     success_url: `${opts.site}/you?checkout=done`,
     cancel_url: `${opts.site}${opts.returnTo}`,
     allow_promotion_codes: false,
+    // Everyone pays the A$ amount the paywall and the text below show,
+    // never Stripe's conversion of it into another currency.
+    adaptive_pricing: { enabled: false },
     custom_text: { submit: { message: checkoutDisclosure() } },
   });
   if (!session.url) throw new Error(`checkout session ${session.id} came back without a url`);

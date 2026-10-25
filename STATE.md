@@ -76,7 +76,6 @@ The app opens on a splash (#295, `components/Splash.tsx`): Demos's head on the b
 - `nextLesson` pins the floor to the first lesson under three stars: advance on any star, revisit for the missing ones.
 - The price ladder is built and dormant. To switch it on: apply migrations 0012 and 0013, run `scripts/stripe-setup.mjs` with the test key, add `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` and `STRIPE_PORTAL_CONFIGURATION` in Vercel, test with 4242, repeat with the live key, then set `NEXT_PUBLIC_CHECKOUT_OPEN=1` and redeploy.
 - A plan paid for a deleted account in the gap is cancelled, but its month is refunded by hand (the log line says so).
-- Intermittent React #418 hydration error: Practice's and /boss's week reads moved after mount in #341 and #342; round 2's gates on the build still logged it once each on `/you` (the onboarding walk) and `/rep?lesson=h4` (reduced motion), which twelve fresh loads did not reproduce. Needs a root cause.
 - Offered after the design pass, still not shipped (#355): a footer shelf on /boss; a day-zero skeleton for Today; Demos as a bust inside You's coin. The idle-clip keyline (intro-a-19) is its own asset job.
 - Offered after round 2: re-cut the unit marks at 512 through `scripts/place-3d-demos.py` (the fill stage caps them at 184 because the 256 cut goes soft above that); a matched push from a Lessons row's art into its lesson's stage art; one-line short forms for the two-line units, so Today's 2x2 tiles set at one height.
 

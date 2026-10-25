@@ -129,6 +129,10 @@ export function Paywall({
   const codeRef = useRef<HTMLInputElement>(null);
   const why = reasonLine(reason);
   const readout = paywallStep(step, today);
+  // Which way the readout's lines turn: later months come from above, as
+  // the digits do when the price goes down.
+  const [turn, setTurn] = useState({ step, dir: "" as "" | "up" | "down" });
+  if (turn.step !== step) setTurn({ step, dir: step > turn.step ? "down" : "up" });
   const [labels] = useState(() => stepLabels(calendarFromToday(today)));
   // Where the account doors and Checkout's back arrow bring them: this
   // page, with the sheet open again.
@@ -292,9 +296,13 @@ export function Paywall({
                   <span className="mr-1 text-num-m text-cream/70">A$</span>
                   <RollNumber className="text-num-l" text={formatBare(readout.cents)} value={readout.cents} />
                 </p>
-                <div className="min-w-0 pb-0.5 text-right">
-                  <p className="font-display text-row text-cream">{readout.dateLine}</p>
-                  <p className="mt-0.5 text-caption text-cream/70">{readout.monthLine}</p>
+                <div className="min-w-0 overflow-hidden pb-0.5 text-right">
+                  <p key={readout.dateLine} data-dir={turn.dir || undefined} className="roll-line font-display text-row text-cream">
+                    {readout.dateLine}
+                  </p>
+                  <p key={readout.monthLine} data-dir={turn.dir || undefined} className="roll-line mt-0.5 text-caption text-cream/70">
+                    {readout.monthLine}
+                  </p>
                 </div>
               </div>
               <Stair

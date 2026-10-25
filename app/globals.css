@@ -3826,7 +3826,8 @@ summary::-webkit-details-marker {
 }
 .stair-cents {
   font-size: var(--text-suffix);
-  vertical-align: 0.55em;
+  /* The cents' tops meet the dollars' cap height, as a shelf tag sets them. */
+  vertical-align: 0.45em;
   letter-spacing: 0;
   margin-left: 0.5px;
 }
@@ -3882,10 +3883,14 @@ summary::-webkit-details-marker {
   border-color: rgb(247 247 247 / 0.2);
   color: rgb(247 247 247 / 0.92);
 }
+/* The lit step is one solid object: its fill runs under its edge (no
+   antialiased rim where a padding-box fill meets a border of the same
+   colour), and its lip is cream/60 over plum, mixed opaque. */
 .stair[data-tone="plum"] .stair-col[data-state="lit"] .stair-block {
   background-color: #f7f7f7;
+  background-clip: border-box;
   border-color: #f7f7f7;
-  border-bottom-color: rgb(247 247 247 / 0.6);
+  border-bottom-color: color-mix(in srgb, #f7f7f7 60%, #3c2043);
   color: #3c2043;
 }
 .stair[data-tone="plum"] .stair-col[data-state="paid"] .stair-block {
@@ -3922,6 +3927,7 @@ summary::-webkit-details-marker {
 }
 .stair[data-tone="neutral"] .stair-col[data-state="lit"] .stair-block {
   background-color: var(--color-ink);
+  background-clip: border-box;
   border-color: var(--color-ink);
   border-bottom-color: var(--stair-lit-lip);
   color: var(--color-ground);
@@ -4202,6 +4208,16 @@ summary::-webkit-details-marker {
     transform: translateY(-0.62em);
     opacity: 0;
   }
+}
+/* A line of the readout (the date, the month) turns over with the digits. */
+.roll-line[data-dir="down"] {
+  animation: roll-in-down var(--spring-snappy-duration) var(--spring-snappy) backwards;
+}
+.roll-line[data-dir="up"] {
+  animation: roll-in-up var(--spring-snappy-duration) var(--spring-snappy) backwards;
+}
+:root[data-motion="reduce"] .roll-line[data-dir] {
+  animation: fade-in var(--duration-base) var(--ease-out) backwards;
 }
 @keyframes roll-collapse {
   to {

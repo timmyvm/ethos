@@ -293,6 +293,105 @@ describe("an ended plan's unpaid invoice", () => {
   });
 });
 
+/**
+ * The next invoices.list call reads Stripe as it is, then stalls before
+ * answering until released: a sync that read early and writes late.
+ */
+function holdNextRead(w: World) {
+  let release!: () => void;
+  let reached!: () => void;
+  const reachedP = new Promise<void>((r) => (reached = r));
+  const released = new Promise<void>((r) => (release = r));
+  const list = w.stripe.api.invoices.list;
+  let armed = true;
+  w.stripe.api.invoices.list = async (params: Parameters<typeof list>[0]) => {
+    const out = await list(params);
+    if (armed) {
+      armed = false;
+      reached();
+      await released;
+    }
+    return out;
+  };
+  return { reached: reachedP, release };
+}
+
+describe("two syncs at once", () => {
+  it("a sync that read the plan before it ended never leaves Premium on after a newer sync cleared it", async () => {
+    const w = await paying();
+    await nextMonth(w);
+    w.sim.renew(w.sub, { paid: false });
+    await syncCustomer(w.deps, w.customer); // past_due, Premium on through the retries
+
+    // The last invoice.payment_failed: its sync reads past_due, then stalls.
+    const hold = holdNextRead(w);
+    const stale = syncCustomer(w.deps, w.customer);
+    await hold.reached;
+    // The retries run out; customer.subscription.deleted's sync runs to the end.
+    w.sim.retriesRunOut(w.sub);
+    await syncCustomer(w.deps, w.customer);
+    expect(w.db.row("profiles", USER)).toMatchObject({ premium: false });
+
+    hold.release();
+    await stale;
+    expect(w.db.row("billing", USER)).toMatchObject({ status: "canceled", next_price_cents: null });
+    expect(w.db.row("profiles", USER)).toMatchObject({ premium: false, premium_source: null });
+  });
+
+  it("a sync that read a first payment as pending never switches off the Premium a newer sync gave", async () => {
+    const w = world();
+    const customer = customerFor(w);
+    const sub = w.sim.startPlan(customer, { firstPaid: false });
+
+    // customer.subscription.created's sync reads incomplete, then stalls.
+    const hold = holdNextRead(w);
+    const stale = syncCustomer(w.deps, customer);
+    await hold.reached;
+    // The payment lands; invoice.paid's sync runs to the end.
+    w.sim.payOpen(sub);
+    await syncCustomer(w.deps, customer);
+    expect(w.db.row("profiles", USER)).toMatchObject({ premium: true });
+
+    hold.release();
+    await stale;
+    expect(w.db.row("billing", USER)).toMatchObject({ status: "active", ladder_month: 1 });
+    expect(w.db.row("profiles", USER)).toMatchObject({ premium: true, premium_source: "stripe" });
+    expect(w.sim.itemPrice(sub)).toBe("price_m2");
+    expect(w.sim.callsTo("subscriptions.update")).toHaveLength(1);
+  });
+
+  it("a renewal paid between the read and the write never leaves last month's count", async () => {
+    const w = await paying();
+    for (let i = 0; i < 7; i++) await nextMonth(w); // month 8: on the floor, no step to give it away
+    const item = w.sim.sub(w.sub).items.data[0];
+    w.stripe.state.clock = item.current_period_end;
+    item.current_period_start = item.current_period_end;
+    item.current_period_end += 30 * DAY_S; // the period rolled, its invoice not paid yet
+
+    const hold = holdNextRead(w);
+    const stale = syncCustomer(w.deps, w.customer);
+    await hold.reached;
+    w.sim.invoice(w.sub, "subscription_cycle", "paid"); // paid an hour later, nothing else changed
+    await syncCustomer(w.deps, w.customer);
+
+    hold.release();
+    await stale;
+    expect(w.db.row("billing", USER)).toMatchObject({ ladder_month: 9 });
+  });
+
+  it("gives up and throws, so Stripe retries, when the plan never holds still", async () => {
+    const w = await paying();
+    const list = w.stripe.api.subscriptions.list;
+    w.stripe.api.subscriptions.list = async (params: Parameters<typeof list>[0]) => {
+      const out = await list(params);
+      w.sim.advance(1);
+      w.sim.sub(w.sub).items.data[0].current_period_end += 1; // something new every read
+      return out;
+    };
+    await expect(syncCustomer(w.deps, w.customer)).rejects.toThrow(/kept changing/);
+  });
+});
+
 describe("premium on the profile", () => {
   it("runs to the paid period's end plus three days", async () => {
     const w = await paying();

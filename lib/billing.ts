@@ -12,7 +12,9 @@
  *
  * `syncCustomer` is the one function every webhook event and every
  * route runs. It reads Stripe's current truth (never an event's
- * snapshot), so it is idempotent and order-independent:
+ * snapshot), so it is idempotent and order-independent, and it reads
+ * Stripe again after writing, running again if anything moved, so two
+ * syncs that overlap cannot leave the older one's state standing:
  *
  *   1. the user: the billing row by customer, else the customer's
  *      `metadata.user_id`;
@@ -606,15 +608,77 @@ async function stepRung(
   );
 }
 
+/** A sync gives up and throws (so Stripe retries) after this many reads that kept changing. */
+const MAX_SYNC_PASSES = 3;
+
+/**
+ * What one pass read, as a string two reads can be compared by: every
+ * subscription's status, cancel, end and items, and the plan's paid
+ * months (a renewal paid an hour after its period rolled changes nothing
+ * else).
+ */
+function readPrint(subs: Stripe.Subscription[], months: number): string {
+  return JSON.stringify({
+    months,
+    subs: subs
+      .map((s) => [
+        s.id,
+        s.status,
+        s.cancel_at_period_end,
+        s.cancel_at ?? null,
+        s.ended_at ?? null,
+        (s.items?.data ?? []).map((i) => [
+          i.id,
+          i.price?.id ?? null,
+          i.current_period_end ?? null,
+          i.quantity ?? 1,
+        ]),
+      ])
+      .sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
+  });
+}
+
+/**
+ * The sync, checked after it writes. Stripe delivers events at once and
+ * in no order, so two syncs can overlap, and the writes are plain
+ * overwrites: one that read Stripe before a change and wrote after a
+ * newer sync would leave the older state standing (Premium on after a
+ * plan ended, or off after it started), with no event left to fix it.
+ * So after its writes a pass reads Stripe again: unchanged, any later
+ * change has its own event whose sync reads and writes after this one;
+ * changed, the pass runs again from the fresh read. Reading again BEFORE
+ * writing would leave the window open.
+ */
 async function syncInner(
   deps: BillingDeps,
   customerId: string
 ): Promise<Synced | null> {
-  const { stripe, db } = deps;
-  const now = deps.now?.() ?? new Date();
-
   const userId = await userForCustomer(deps, customerId);
   if (!userId) return null;
+
+  for (let pass = 1; ; pass++) {
+    const out = await syncPass(deps, customerId, userId);
+    if (!out) return null;
+    const subs = (
+      await deps.stripe.subscriptions.list({ customer: customerId, status: "all", limit: 20 })
+    ).data;
+    const planId = out.synced.subscription?.id ?? null;
+    const months = planId ? await paidMonths(deps.stripe, planId) : 0;
+    if (readPrint(subs, months) === out.print) return out.synced;
+    if (pass >= MAX_SYNC_PASSES) {
+      throw new Error(`billing: ${customerId} kept changing while it synced; Stripe will retry`);
+    }
+  }
+}
+
+/** One read of Stripe and every write it implies. */
+async function syncPass(
+  deps: BillingDeps,
+  customerId: string,
+  userId: string
+): Promise<{ synced: Synced; print: string } | null> {
+  const { stripe, db } = deps;
+  const now = deps.now?.() ?? new Date();
 
   const subs = (
     await stripe.subscriptions.list({ customer: customerId, status: "all", limit: 20 })
@@ -724,7 +788,11 @@ async function syncInner(
   const read = subscription
     ? subs.map((x) => (x.id === subscription.id ? subscription : x))
     : subs;
-  return { userId, customerId, subs: read, subscription, billing, premium, stepError, voidError };
+  return {
+    synced: { userId, customerId, subs: read, subscription, billing, premium, stepError, voidError },
+    // What Stripe should hold now: the read, with the plan as stepped.
+    print: readPrint(read, sub ? months : 0),
+  };
 }
 
 /** What the plan's next renewal charges as Stripe has it: every item, at its quantity. */

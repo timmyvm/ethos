@@ -363,15 +363,30 @@ export function fakeStripe() {
     },
 
     invoices: {
-      async list(params: ListParams & { subscription?: string; status?: string }) {
+      async list(
+        params: ListParams & { subscription?: string; customer?: string; status?: string }
+      ) {
         record("invoices.list", [params]);
         const rows = newestFirst(state.invoices).filter(
           (inv) =>
             (!params.subscription ||
               inv.parent.subscription_details.subscription === params.subscription) &&
+            (!params.customer || inv.customer === params.customer) &&
             (!params.status || inv.status === params.status)
         );
         return page(rows, params);
+      },
+      async voidInvoice(id: string, params?: unknown, opts?: { idempotencyKey?: string }) {
+        record("invoices.voidInvoice", [id, params ?? {}, opts]);
+        return once(opts, () => {
+          const inv = state.invoices.find((i) => i.id === id);
+          if (!inv) throw new FakeStripeError("resource_missing", `No such invoice: ${id}`, 404);
+          if (inv.status !== "open" && inv.status !== "uncollectible") {
+            throw new FakeStripeError("invoice_not_open", `A ${inv.status} invoice can't be voided.`);
+          }
+          inv.status = "void";
+          return clone(inv);
+        });
       },
     },
 
@@ -523,26 +538,31 @@ export function fakeStripe() {
       return sim.startPlan(cs.customer, opts);
     },
 
-    /** A retry succeeds: the open renewal is paid. */
+    /**
+     * The open renewal is paid: a retry succeeds, or the person pays it
+     * from the email's link or the portal. An ended plan stays ended.
+     */
     payOpen(subId: string): number {
       const inv = newestFirst(state.invoices).find(
-        (i) => i.parent.subscription_details.subscription === subId && i.status === "open"
+        (i) =>
+          i.parent.subscription_details.subscription === subId &&
+          (i.status === "open" || i.status === "uncollectible")
       );
       if (!inv) throw new Error(`no open invoice on ${subId}`);
       inv.status = "paid";
       inv.amount_paid = inv.amount_due;
-      sub(subId).status = "active";
+      const s = sub(subId);
+      if (s.status !== "canceled" && s.status !== "incomplete_expired") s.status = "active";
       return inv.amount_paid;
     },
 
-    /** Smart Retries give up and the plan is cancelled (the dashboard setting). */
+    /**
+     * Smart Retries give up and the plan is cancelled (the dashboard
+     * setting). Like Stripe, the declined renewal is left open: still
+     * payable from its email link or the portal's invoice history.
+     */
     retriesRunOut(subId: string): void {
       const s = sub(subId);
-      for (const inv of state.invoices) {
-        if (inv.parent.subscription_details.subscription === subId && inv.status === "open") {
-          inv.status = "void";
-        }
-      }
       s.status = "canceled";
       s.ended_at = state.clock;
     },

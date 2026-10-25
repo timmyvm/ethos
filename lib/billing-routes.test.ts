@@ -385,6 +385,33 @@ describe("DELETE /api/account", () => {
     expect(db.state.deletedUsers).toEqual([]);
   });
 
+  it("voids a cancelled past-due plan's unpaid renewal before the account goes", async () => {
+    const { sub } = await paying();
+    stripe.sim.renew(sub, { paid: false });
+
+    expect((await call(deleteAccount, { method: "DELETE" })).status).toBe(200);
+    expect(stripe.sim.sub(sub).status).toBe("canceled");
+    expect(stripe.state.invoices.at(-1)!.status).toBe("void");
+  });
+
+  it("deletes nothing when the unpaid renewal didn't void, and says the plan is cancelled", async () => {
+    const { sub } = await paying();
+    stripe.sim.renew(sub, { paid: false });
+    stripe.state.fail["invoices.voidInvoice"] = new Error("Stripe is down");
+
+    expect(await call(deleteAccount, { method: "DELETE" })).toEqual({
+      status: 502,
+      body: {
+        error:
+          "Your plan is cancelled, but its unpaid invoice didn't close, so nothing else was deleted. Try again in a minute.",
+      },
+    });
+    expect(db.state.deletedUsers).toEqual([]);
+    // The retry finishes it.
+    expect((await call(deleteAccount, { method: "DELETE" })).status).toBe(200);
+    expect(stripe.state.invoices.at(-1)!.status).toBe("void");
+  });
+
   it("deletes nothing when a cancel fails", async () => {
     await paying();
     withAudio();

@@ -8,7 +8,8 @@
  *   1. The plan, before anything is deleted. Every Checkout still open
  *      for the account's Stripe customer is closed, then every
  *      subscription that has not ended is cancelled now (lib/billing.ts
- *      endEveryPlan), so a deleted account is never charged again. If
+ *      endEveryPlan), so a deleted account is never charged again, and
+ *      an ended plan's unpaid invoice is voided so nobody can pay it. If
  *      Stripe isn't configured while the billing row may hold a plan, or
  *      a cancel fails, the route stops here with nothing deleted, and is
  *      safe to retry. A cancel can't be undone: once a plan is cancelled,
@@ -29,7 +30,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { endEveryPlan, hasEnded } from "@/lib/billing";
+import { endEveryPlan, hasEnded, voidEndedInvoices } from "@/lib/billing";
 import { getUserFromAuthHeader, supabaseAdmin } from "@/lib/db";
 import { stripeClient } from "@/lib/stripe";
 
@@ -93,6 +94,25 @@ export async function DELETE(req: NextRequest) {
           e instanceof Error ? e.message : e
         );
         return NextResponse.json({ error: PLAN_NOT_CANCELLED }, { status: 502 });
+      }
+      // A cancelled plan's declined renewal stays payable from its email;
+      // nothing on an account that is gone should be.
+      try {
+        await voidEndedInvoices(stripe, customerId);
+      } catch (e) {
+        console.error(
+          "account delete: unpaid invoice void failed",
+          e instanceof Error ? e.message : e
+        );
+        return NextResponse.json(
+          {
+            error:
+              cancelled > 0
+                ? "Your plan is cancelled, but its unpaid invoice didn't close, so nothing else was deleted. Try again in a minute."
+                : "Your plan's unpaid invoice didn't close, so nothing was deleted. Try again in a minute.",
+          },
+          { status: 502 }
+        );
       }
     } else if (!hasEnded(plan.status as string | null)) {
       // Without a key nothing can be checked against Stripe, and a row that

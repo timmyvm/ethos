@@ -197,6 +197,8 @@ describe("what the webhook does with a verified event", () => {
     expect((await deliver(ended, sign(ended))).status).toBe(200);
     expect(db.row("billing", USER)).toMatchObject({ status: "canceled", ladder_month: 2 });
     expect(db.row("profiles", USER)).toMatchObject({ premium: false, premium_source: null });
+    // The declined renewal Stripe left open can no longer be paid.
+    expect(stripe.state.invoices.at(-1)).toMatchObject({ billing_reason: "subscription_cycle", status: "void" });
 
     const again = stripe.sim.startPlan(customer);
     const started = eventBody("checkout.session.completed", { object: "checkout.session", customer });

@@ -16,6 +16,7 @@ import {
   safeReturnPath,
   syncCustomer,
   syncUser,
+  voidEndedInvoices,
 } from "./billing";
 import { fakeDb, fakeStripe, type FakePrice } from "./billing-fakes";
 import { LADDER_CENTS, formatAud, totalForMonths } from "./pricing";
@@ -241,6 +242,54 @@ describe("a declined card", () => {
     expect(w.db.row("billing", USER)?.stripe_subscription_id).toBe(again);
     expect(w.sim.charges(again)).toEqual([1299]);
     expect(w.sim.itemPrice(again)).toBe("price_m2");
+  });
+});
+
+describe("an ended plan's unpaid invoice", () => {
+  it("is voided when the retries run out, so nobody pays for a month Premium never covers", async () => {
+    const w = await paying();
+    for (let i = 0; i < 3; i++) await nextMonth(w);
+    w.sim.renew(w.sub, { paid: false }); // month 5, A$8.99, declined
+    await syncCustomer(w.deps, w.customer);
+    w.sim.advance(14 * DAY_S);
+    w.sim.retriesRunOut(w.sub);
+
+    await syncCustomer(w.deps, w.customer); // customer.subscription.deleted
+    const renewal = w.stripe.state.invoices.at(-1)!;
+    expect(renewal.status).toBe("void");
+    expect(w.sim.callsTo("invoices.voidInvoice")[0].args[2]).toEqual({
+      idempotencyKey: `ethos-void-${renewal.id}`,
+    });
+    // The email's link a week later: nothing left to pay.
+    w.sim.advance(7 * DAY_S);
+    expect(() => w.sim.payOpen(w.sub)).toThrow(/no open invoice/);
+    expect(w.db.row("billing", USER)).toMatchObject({ status: "canceled", ladder_month: 4 });
+    expect(w.db.row("profiles", USER)).toMatchObject({ premium: false });
+  });
+
+  it("never holds back Premium ending when the void fails, and a later sync voids it behind a new plan", async () => {
+    const w = await paying();
+    w.sim.renew(w.sub, { paid: false });
+    w.sim.retriesRunOut(w.sub);
+    w.stripe.state.fail["invoices.voidInvoice"] = new Error("Stripe is down");
+
+    await expect(syncCustomer(w.deps, w.customer)).rejects.toThrow("Stripe is down");
+    expect(w.db.row("profiles", USER)).toMatchObject({ premium: false });
+    expect(w.db.row("billing", USER)).toMatchObject({ status: "canceled" });
+
+    const again = w.sim.startPlan(w.customer);
+    await syncCustomer(w.deps, w.customer);
+    expect(w.db.row("billing", USER)?.stripe_subscription_id).toBe(again);
+    expect(() => w.sim.payOpen(w.sub)).toThrow(/no open invoice/);
+  });
+
+  it("is voided on account deletion, so a cancelled past-due plan has nothing left to pay", async () => {
+    const w = await paying();
+    w.sim.renew(w.sub, { paid: false }); // past_due
+    await endEveryPlan(w.deps.stripe, w.customer);
+    await voidEndedInvoices(w.deps.stripe, w.customer);
+    expect(w.sim.sub(w.sub).status).toBe("canceled");
+    expect(w.stripe.state.invoices.at(-1)!.status).toBe("void");
   });
 });
 

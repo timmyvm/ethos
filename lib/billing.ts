@@ -472,6 +472,8 @@ interface Synced {
   premium: boolean;
   /** The rung step failed; everything else was written. */
   stepError: unknown;
+  /** An ended plan's unpaid invoice did not void; everything else was written. */
+  voidError: unknown;
 }
 
 /** Who a Stripe customer is; null (logged) when nobody we know. */
@@ -666,10 +668,12 @@ async function syncInner(
       // another product's on a shared Stripe account. A failure throws,
       // so the webhook answers 500 and Stripe retries until it is ended.
       const rungs = await ladderPrices(stripe);
-      const ended = await endPlans(stripe, customerId, (s) => {
+      const ours = (s: Stripe.Subscription) => {
         const items = s.items?.data ?? [];
         return items.length > 0 && items.every((i) => onLadder(i.price, rungs));
-      });
+      };
+      const ended = await endPlans(stripe, customerId, ours);
+      await voidEndedInvoices(stripe, customerId, ours);
       console.error(
         `billing: user ${userId} no longer exists; ${customerId} not synced` +
           (ended > 0 ? `; ended ${ended} plan(s), and any month already paid needs a refund by hand` : "")
@@ -705,10 +709,22 @@ async function syncInner(
     }
   }
 
+  // Last, so it never holds back the copy or the step: an ended plan's
+  // unpaid invoice can no longer be paid.
+  let voidError: unknown = null;
+  const ended = new Set(subs.filter((x) => x.status === "canceled").map((x) => x.id));
+  if (ended.size > 0) {
+    try {
+      await voidUnpaid(stripe, customerId, ended);
+    } catch (e) {
+      voidError = e;
+    }
+  }
+
   const read = subscription
     ? subs.map((x) => (x.id === subscription.id ? subscription : x))
     : subs;
-  return { userId, customerId, subs: read, subscription, billing, premium, stepError };
+  return { userId, customerId, subs: read, subscription, billing, premium, stepError, voidError };
 }
 
 /** What the plan's next renewal charges as Stripe has it: every item, at its quantity. */
@@ -722,9 +738,80 @@ function renewalCents(sub: Stripe.Subscription): number | null {
 }
 
 /**
+ * The unpaid invoices of these ended plans, voided. When the retries run
+ * out Stripe cancels the plan but leaves its declined renewal open (or
+ * uncollectible), still payable from the failed-payment email or the
+ * portal's invoice history: paying it would buy a month Premium never
+ * covers. Returns how many it voided.
+ */
+async function voidUnpaid(
+  stripe: Stripe,
+  customerId: string,
+  ended: ReadonlySet<string>
+): Promise<number> {
+  if (ended.size === 0) return 0;
+  let voided = 0;
+  for (const status of ["open", "uncollectible"] as const) {
+    let after: string | undefined;
+    for (let pass = 0; pass < 50; pass++) {
+      const page = await stripe.invoices.list({
+        customer: customerId,
+        status,
+        limit: 100,
+        ...(after ? { starting_after: after } : {}),
+      });
+      // A voided invoice leaves the status filter, so the cursor is the
+      // last one left as it is.
+      let kept: string | undefined;
+      for (const invoice of page.data) {
+        const owner = invoice.parent?.subscription_details?.subscription;
+        const ownerId = typeof owner === "string" ? owner : owner?.id;
+        if (!ownerId || !ended.has(ownerId)) {
+          kept = invoice.id;
+          continue;
+        }
+        await stripe.invoices.voidInvoice(invoice.id, {}, { idempotencyKey: `ethos-void-${invoice.id}` });
+        voided++;
+      }
+      if (!page.has_more) break;
+      after = kept ?? after;
+    }
+  }
+  return voided;
+}
+
+/**
+ * Account deletion and the deleted-user backstop: the unpaid invoices of
+ * every ended plan on the customer that `which` picks, voided, so nothing
+ * on an account that is gone can still be paid.
+ */
+export async function voidEndedInvoices(
+  stripe: Stripe,
+  customerId: string,
+  which: (sub: Stripe.Subscription) => boolean = () => true
+): Promise<number> {
+  const ended = new Set<string>();
+  let after: string | undefined;
+  for (;;) {
+    const page = await stripe.subscriptions.list({
+      customer: customerId,
+      status: "canceled",
+      limit: 100,
+      ...(after ? { starting_after: after } : {}),
+    });
+    for (const sub of page.data) if (which(sub)) ended.add(sub.id);
+    const last = page.data[page.data.length - 1];
+    if (!page.has_more || !last) break;
+    after = last.id;
+  }
+  return voidUnpaid(stripe, customerId, ended);
+}
+
+/**
  * THE sync. Every webhook event lands here. Throws when anything fails,
- * the rung step included, so Stripe retries the event; returns null
- * (logged, never thrown) for a customer that is nobody we know.
+ * the rung step and the voiding of an ended plan's invoice included, so
+ * Stripe retries the event; returns null (logged, never thrown) for a
+ * customer that is nobody we know.
  */
 export async function syncCustomer(
   deps: BillingDeps,
@@ -733,10 +820,11 @@ export async function syncCustomer(
   const synced = await syncInner(deps, customerId);
   if (!synced) return null;
   if (synced.stepError) throw synced.stepError;
+  if (synced.voidError) throw synced.voidError;
   return { billing: synced.billing, premium: synced.premium };
 }
 
-/** The same sync for a person's own request: a failed step is logged, not theirs to see. */
+/** The same sync for a person's own request: a failed step or void is logged, not theirs to see. */
 async function syncForRoute(
   deps: BillingDeps,
   customerId: string
@@ -744,6 +832,9 @@ async function syncForRoute(
   const synced = await syncInner(deps, customerId);
   if (synced?.stepError) {
     console.error(`billing: rung step failed for ${customerId}`, explain(synced.stepError));
+  }
+  if (synced?.voidError) {
+    console.error(`billing: an ended plan's invoice didn't void for ${customerId}`, explain(synced.voidError));
   }
   return synced;
 }

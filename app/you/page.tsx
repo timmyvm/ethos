@@ -3,7 +3,7 @@
 import { Disclosure } from "@/components/ui/Disclosure";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AchievementMark, IconFlame, IconGear, IconPencil } from "@/components/Icon";
 import { Overlay } from "@/components/ui/Overlay";
 import { DemosArt } from "@/components/DemosArt";
@@ -14,6 +14,9 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Paywall, type PaywallAsk } from "@/components/Paywall";
 import { LexiconFlash } from "@/components/LexiconFlash";
 import { ShareCard } from "@/components/ShareCard";
+import { ManageSheet } from "@/components/premium/ManageSheet";
+import { CheckoutReturn, PriceDropSheet } from "@/components/premium/Moments";
+import { PlanCard, PlanCardSkeleton } from "@/components/premium/PlanCard";
 import { achievements } from "@/lib/achievements";
 import { syncCoins } from "@/lib/coin-sync";
 import { limit } from "@/lib/entitlement";
@@ -42,6 +45,10 @@ import {
 } from "@/lib/streak";
 import { ACTION_CLASS, INPUT_CLASS } from "@/lib/ui";
 import { supabaseBrowser } from "@/lib/supabase-browser";
+import { CHECKOUT_COPY, CODE_LINE, hasPlan } from "@/lib/plan-view";
+import { prefersReducedMotion } from "@/lib/prefs";
+import { usePlan, usePriceDrop, useStripeReturn, useStripeReturns, type ProfileRead } from "@/lib/use-plan";
+import { usePaywallReturn } from "@/lib/use-paywall-return";
 
 // Free tier gets today's swap, not the archive, when the paywall is on.
 const FREE_LEXICON = 3;
@@ -139,6 +146,28 @@ export default function YouPage() {
   const [draft, setDraft] = useState("");
   const [nameFailed, setNameFailed] = useState(false);
 
+  /*
+   * The plan (docs/ladder-spec.md, surface 2). The profile read above
+   * says code or free; the billing row says everything else. Unknown
+   * until both land, and drawn as the card's skeleton, never the free
+   * door. Back from Checkout, one sync switches Premium on and the
+   * first step is celebrated in the card's place; back from the portal,
+   * one sync quietly takes the row Stripe now has.
+   */
+  const [profileRead, setProfileRead] = useState<ProfileRead>("loading");
+  const plan = usePlan(profileRead);
+  const stripeReturn = useStripeReturn();
+  const { arrival, rereading } = useStripeReturns(stripeReturn, plan, setPremium);
+  const [managing, setManaging] = useState(false);
+  const drop = usePriceDrop(
+    plan.view,
+    stripeReturn !== undefined && stripeReturn !== "checkout" && !managing && paywall === null
+  );
+  const planSlot = useRef<HTMLDivElement>(null);
+  // A page someone came back to from the paywall's account doors (or
+  // Checkout's back arrow) opens the sheet again.
+  usePaywallReturn(() => setPaywall({ reason: "Premium" }));
+
   async function saveName() {
     const next = cleanName(draft) ?? "";
     setNameFailed(false);
@@ -221,11 +250,14 @@ export default function YouPage() {
         setName(p?.display_name ?? null);
         setNameKnown(true);
         setPremium(p?.premium ?? false);
+        setProfileRead(p);
         return syncOnboarding().then(setOnboarding);
       })
       .catch(() => {
         /* The profile didn't load: the name stays unknown (never "Add
-           your name" over one that exists), the answers still sync. */
+           your name" over one that exists), the plan stays unknown
+           (never the free door), the answers still sync. */
+        setProfileRead((r) => (r === "loading" ? "failed" : r));
         syncOnboarding().then(setOnboarding).catch(() => {});
       });
     const db = supabaseBrowser();
@@ -234,6 +266,35 @@ export default function YouPage() {
       .then(({ data }) => setAnon(data.user?.is_anonymous ?? null))
       .catch(() => setAnon(null));
   }, [load, loadLexicon, loadXp]);
+
+  /** The plan's read failed: read it again, and the profile with it if that was the one. */
+  const retryPlan = () => {
+    plan.retry();
+    if (profileRead !== "failed") return;
+    setProfileRead("loading");
+    fetchProfile()
+      .then((p) => {
+        setProfileRead(p);
+        setPremium(p?.premium ?? false);
+      })
+      .catch(() => setProfileRead("failed"));
+  };
+
+  /* Back from Checkout the plan is the news, and it lives at the foot of
+     the page: bring it into view while Premium switches on, and again
+     when the moment lands (only as far as it takes). */
+  useEffect(() => {
+    if (stripeReturn !== "checkout") return;
+    const el = planSlot.current;
+    if (!el) return;
+    const frame = requestAnimationFrame(() =>
+      el.scrollIntoView({
+        block: arrival === "switching" ? "center" : "nearest",
+        behavior: prefersReducedMotion() ? "auto" : "smooth",
+      })
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [stripeReturn, arrival]);
 
   const loading = reps === null;
   /** The level waits on the XP read; the streak columns on the reps. */
@@ -726,27 +787,58 @@ export default function YouPage() {
         </section>
       )}
 
-      {/* The one standing door to the sheet (docs/growth/04 §4.1): a
-          quiet row, last on the page, never a card. The tier speaks in
-          its word and its door mark, in plum; the row is the page's door
-          recipe, so plum stays the mark and the two Premium surfaces
-          (PRINCIPLES 2). A premium account sees its state instead: the
-          only place the app says it. */}
-      {!loading &&
-        (premium ? (
-          <p className="mt-7 text-caption text-stone-400">
-            Premium is on this account.
-          </p>
+      {/* The plan's place, last on the page. Free, or a plan that
+          ended, keeps the one standing door to the sheet (docs/growth/04
+          §4.1): a quiet row, never a card, the tier in its word and its
+          door mark in plum (PRINCIPLES 2). An invite code keeps its one
+          line. A plan is the card (docs/ladder-spec.md, surface 2), and
+          while the plan is unknown its skeleton holds the card's height:
+          never the free door, never A$0.00. The live region says each
+          step of a checkout return once. */}
+      <div ref={planSlot} data-look="plan-slot" className="mt-7 scroll-mt-24 scroll-mb-28">
+        <p role="status" className="sr-only">
+          {arrival === "switching"
+            ? CHECKOUT_COPY.switching
+            : arrival === "on"
+              ? CHECKOUT_COPY.on
+              : arrival === "slow"
+                ? CHECKOUT_COPY.slow
+                : ""}
+        </p>
+        {arrival === "switching" || (arrival === "slow" && rereading) ? (
+          <PlanCardSkeleton status={arrival === "switching" ? CHECKOUT_COPY.switching : CHECKOUT_COPY.slow} />
+        ) : arrival === "on" && plan.today && hasPlan(plan.view) ? (
+          <CheckoutReturn view={plan.view} today={plan.today} />
         ) : (
-          <button
-            type="button"
-            onClick={() => setPaywall({ reason: "Premium" })}
-            className={`${DOOR_CLASS} mt-7`}
-          >
-            <PremiumDoor className="text-plum-700">Premium</PremiumDoor>
-            <Disclosure />
-          </button>
-        ))}
+          <>
+            {arrival === "slow" && (
+              <p aria-hidden className="mb-3 text-caption text-pretty text-stone-500">
+                {CHECKOUT_COPY.slow}
+              </p>
+            )}
+            {plan.failed ? (
+              <ErrorLine onRetry={retryPlan}>Your plan didn&apos;t load.</ErrorLine>
+            ) : plan.view.kind === "unknown" || !plan.today ? (
+              <PlanCardSkeleton />
+            ) : hasPlan(plan.view) ? (
+              <div className="arrive">
+                <PlanCard view={plan.view} today={plan.today} onOpen={() => setManaging(true)} />
+              </div>
+            ) : plan.view.kind === "code" ? (
+              <p className="text-caption text-stone-400">{CODE_LINE}</p>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setPaywall({ reason: "Premium" })}
+                className={DOOR_CLASS}
+              >
+                <PremiumDoor className="text-plum-700">Premium</PremiumDoor>
+                <Disclosure />
+              </button>
+            )}
+          </>
+        )}
+      </div>
 
       {openTrait && (
         <TraitSheet trait={openTrait} onClose={() => setOpenTrait(null)} />
@@ -758,6 +850,22 @@ export default function YouPage() {
           headline={paywall.headline}
           onClose={() => setPaywall(null)}
         />
+      )}
+
+      {managing && plan.today && (
+        <ManageSheet
+          view={plan.view}
+          today={plan.today}
+          onClose={() => setManaging(false)}
+          onPlan={(row, isPremium) => {
+            plan.adopt(row);
+            setPremium(isPremium);
+          }}
+        />
+      )}
+
+      {drop.open && plan.today && (
+        <PriceDropSheet view={plan.view} today={plan.today} onClose={drop.close} />
       )}
     </main>
   );

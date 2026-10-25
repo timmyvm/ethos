@@ -16,6 +16,10 @@ import {
   type Theme,
 } from "@/lib/prefs";
 import { applyMotion, applyTheme } from "@/components/Theme";
+import { ManageSheet } from "@/components/premium/ManageSheet";
+import { SettingsPlanRow } from "@/components/premium/PlanCard";
+import { hasPlan } from "@/lib/plan-view";
+import { usePlan, useStripeReturn, useStripeReturns } from "@/lib/use-plan";
 import {
   armReminder,
   cancelReminder,
@@ -73,6 +77,13 @@ export default function SettingsPage() {
      is a different answer on the server and the phone (#418). */
   const [fireAt, setFireAt] = useState<Date | null>(null);
   const hour = useHourLabel();
+  /* The plan (docs/ladder-spec.md, surface 4): a live plan gets one row
+     in the account's group, and it opens the manage sheet. Back from
+     the portal, one sync takes the row Stripe now has. */
+  const plan = usePlan();
+  const stripeReturn = useStripeReturn();
+  useStripeReturns(stripeReturn === "portal" ? "portal" : null, plan);
+  const [managing, setManaging] = useState(false);
 
   async function runDelete() {
     setDeleting(true);
@@ -376,6 +387,9 @@ export default function SettingsPage() {
               : "Everything you've recorded lives on this device. An account attaches to it where it is."
           }
         />
+        {plan.today && hasPlan(plan.view) && (
+          <SettingsPlanRow view={plan.view} today={plan.today} onOpen={() => setManaging(true)} />
+        )}
         {!email ? (
           <LinkRow href="/signup" label="Create an account" />
         ) : (
@@ -505,6 +519,15 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+
+      {managing && plan.today && (
+        <ManageSheet
+          view={plan.view}
+          today={plan.today}
+          onClose={() => setManaging(false)}
+          onPlan={(row) => plan.adopt(row)}
+        />
+      )}
     </main>
   );
 }

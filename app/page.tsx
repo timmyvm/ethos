@@ -16,6 +16,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { HeaderCount } from "@/components/ui/HeaderCount";
 import { IconBack, IconStar } from "@/components/Icon";
 import { Paywall } from "@/components/Paywall";
+import { PriceDropOnLoad } from "@/components/premium/Moments";
 import { readable, readFailure } from "@/lib/load";
 import { StreakBadge } from "@/components/StreakBadge";
 import { TopicRoulette } from "@/components/TopicRoulette";
@@ -50,6 +51,7 @@ import { choosePractice } from "@/lib/next-practice";
 import { buildChallenge } from "@/lib/challenge";
 import { readTraitsFromRow } from "@/lib/trait-readings";
 import { computeStreak, type StreakState } from "@/lib/streak";
+import { usePaywallReturn } from "@/lib/use-paywall-return";
 
 const EMPTY: StreakState = {
   current: 0,
@@ -85,6 +87,8 @@ export default function Home() {
   /** The introduction's answers (#232). Read after paint, never at render. */
   const [answers, setAnswers] = useState<Answers>(EMPTY_ANSWERS);
   const [skipIntros, setSkipIntros] = useState(false);
+  // Back from the paywall's account doors with paywall=1: the sheet reopens.
+  usePaywallReturn(() => setPaywall("Premium"));
 
   /**
    * The history read, on its own so the retry can mean it. It used to
@@ -522,6 +526,8 @@ export default function Home() {
       )}
 
       {paywall && <Paywall reason={paywall} onClose={() => setPaywall(null)} />}
+      {/* The month the price steps down: a sheet over Today, never a card in its flow. */}
+      <PriceDropOnLoad hold={paywall !== null} />
     </main>
   );
 }

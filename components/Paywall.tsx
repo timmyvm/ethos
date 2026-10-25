@@ -417,12 +417,12 @@ export function Paywall({
             </>
           )}
 
-          {!twoUp && (
+          {!twoUp && !unlocked && (
             <button type="button" onClick={onClose} className="font-display mt-1 min-h-11 w-full text-link text-cream/70">
               {PAYWALL_COPY.notYet}
             </button>
           )}
-          <p className="mt-1 text-center text-caption text-cream/60">{PAYWALL_COPY.closing}</p>
+          <p className={`${unlocked ? "mt-3" : "mt-1"} text-center text-caption text-cream/60`}>{PAYWALL_COPY.closing}</p>
         </div>
       </div>
     </Overlay>

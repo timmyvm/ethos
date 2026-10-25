@@ -217,7 +217,9 @@ export function Stair({
 
   // -- The slider: the Paw hops to each new selection.
   const previous = useRef(tokenAt);
-  const dragging = useRef<{ id: number; moved: boolean; before: number } | null>(null);
+  /** The finger on the slider: where it started, and the step it is on now
+      (a ref, because pointer events land faster than React renders). */
+  const dragging = useRef<{ id: number; moved: boolean; before: number; at: number } | null>(null);
   const [pressed, setPressed] = useState<number | null>(null);
   useLayoutEffect(() => {
     const was = previous.current;
@@ -254,8 +256,7 @@ export function Stair({
     return clampStep(Math.floor(x / pitch) + 1);
   }
 
-  function choose(next: number, how: StairHow) {
-    const now = tokenAt ?? 1;
+  function choose(next: number, how: StairHow, now = tokenAt ?? 1) {
     if (next === now) return;
     // One tick per step crossed, never on release.
     const crossed = Math.min(6, Math.abs(next - now));
@@ -301,24 +302,27 @@ export function Stair({
           // The stair's own: a scrub is not the sheet's drag down.
           e.stopPropagation();
           if (e.pointerType === "mouse" && e.button !== 0) return;
-          dragging.current = { id: e.pointerId, moved: false, before: tokenAt ?? 1 };
+          const n = stepAt(e.clientX);
+          const before = tokenAt ?? 1;
+          dragging.current = { id: e.pointerId, moved: false, before, at: n };
           try {
             e.currentTarget.setPointerCapture(e.pointerId);
           } catch {
             // A pointer the browser no longer tracks; the tap still selects.
           }
-          const n = stepAt(e.clientX);
           setPressed(n);
-          choose(n, "tap");
+          choose(n, "tap", before);
         },
         onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => {
           const d = dragging.current;
           if (!d || d.id !== e.pointerId) return;
           const n = stepAt(e.clientX);
-          if (n !== pressed) {
+          if (n !== d.at) {
+            const was = d.at;
+            d.at = n;
             d.moved = true;
             setPressed(n);
-            choose(n, "drag");
+            choose(n, "drag", was);
           }
         },
         onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => {
@@ -333,7 +337,7 @@ export function Stair({
           dragging.current = null;
           setPressed(null);
           // The browser took the touch for a scroll: it was never a scrub.
-          if (!d.moved && d.before !== (tokenAt ?? 1)) onSelect?.(d.before, "tap");
+          if (!d.moved && d.at !== d.before) onSelect?.(d.before, "tap");
         },
         onLostPointerCapture: () => {
           if (!dragging.current) return;

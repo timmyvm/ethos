@@ -228,6 +228,23 @@ export function velocityAt(run: SpringRun, elapsed: number, from: number): numbe
   return best <= tolerance ? speed : 0;
 }
 
+/**
+ * Where the run this module last gave `el` on `axis` is right now, px,
+ * and how fast it is going, px/s; null when none of ours is moving it.
+ * For a caller that moves the element's frame under it (a FLIP: the
+ * layout jumps, the transform carries the difference) and so has to
+ * hand the speed over itself.
+ */
+export function springNow(
+  el: HTMLElement,
+  axis: "x" | "y",
+  now: number = typeof performance !== "undefined" ? performance.now() : Date.now()
+): { value: number; velocity: number } | null {
+  const run = runs.get(el);
+  if (!run || run.axis !== axis) return null;
+  return springStateAt(run, Math.max(0, (now - run.start) / 1000));
+}
+
 function inheritedVelocity(el: HTMLElement, axis: "x" | "y", from: number, now: number): number {
   const run = runs.get(el);
   if (!run || run.axis !== axis) return 0;

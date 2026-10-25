@@ -9,6 +9,7 @@ import {
   releaseVelocity,
   rubberband,
   springMs,
+  springStateAt,
 } from "@/lib/spring";
 
 /**
@@ -61,6 +62,23 @@ const FOCUSABLE =
 const openSheets: object[] = [];
 let locks = 0;
 let unlockedOverflow = "";
+
+
+/** How fast a sheet's CSS rise is moving it right now, px/s (up is negative); null once it has landed. */
+function riseVelocity(el: HTMLElement): number | null {
+  const rise = el
+    .getAnimations()
+    .find(
+      (a) =>
+        typeof CSSAnimation !== "undefined" &&
+        a instanceof CSSAnimation &&
+        a.animationName === "sheet-in" &&
+        a.playState === "running"
+    );
+  const ms = rise?.currentTime;
+  if (typeof ms !== "number") return null;
+  return springStateAt({ from: el.offsetHeight, to: 0, velocity: 0, spring: SPRING.sheet }, ms / 1000).velocity;
+}
 
 export function Overlay({
   label,
@@ -153,18 +171,27 @@ export function Overlay({
     return y;
   }, []);
 
-  /** Out the bottom from wherever it is, at `velocity` px/s. */
+  /**
+   * Out the bottom from wherever it is, at `velocity` px/s: a finger's,
+   * when a drag threw it. Without one it keeps the speed it already had
+   * (#388): closed while it is still rising, it carries on up for a
+   * moment and turns, the way a grabbed spring does, instead of stopping
+   * dead. The rise is CSS (`sheet-in`, SPRING.sheet from the panel's
+   * height to 0), so its speed is read off that curve before takeHold
+   * stops it; any other run of ours is inherited by animateSpring.
+   */
   const leave = useCallback(
-    (velocity = 0) => {
+    (velocity?: number) => {
       const el = panel.current;
       startLeaving();
       setClosing(true);
       if (!el || prefersReducedMotion()) return; // the CSS fade handles it
+      const rising = velocity === undefined ? riseVelocity(el) : null;
       const from = takeHold();
       void animateSpring(el, {
         from,
         to: el.offsetHeight + 24,
-        velocity,
+        velocity: velocity ?? rising ?? undefined,
         spring: SPRING.base,
       }).then(finish);
     },

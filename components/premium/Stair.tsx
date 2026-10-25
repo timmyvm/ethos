@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { buzz, prefersReducedMotion } from "@/lib/prefs";
 import { DURATION, EASE_OUT } from "@/lib/motion";
-import { SPRING, springMs } from "@/lib/spring";
+import { SPRING, animateSpring, springMs, springNow } from "@/lib/spring";
 import { FIRST_PRICE_CENTS, LADDER_CENTS } from "@/lib/pricing";
 import { Paw } from "./Paw";
 
@@ -252,6 +252,25 @@ export function Stair({
       // No hop: the Paw fades in where it now stands.
       body.animate([{ opacity: 0 }, { opacity: 1 }], { duration: DURATION.base, easing: EASE_OUT });
       return;
+    }
+    // Across: the Paw's `left` jumps to the new step and a spring carries
+    // it there from where it was on screen, at the speed it was already
+    // going (#388), so a fast scrub runs through the steps instead of
+    // restarting from rest at each one.
+    const coin = token.current;
+    const cols = steps.current?.querySelectorAll<HTMLElement>(".stair-col");
+    if (coin && cols && cols[tokenAt - 1] && cols[was - 1]) {
+      const dx = cols[tokenAt - 1].offsetLeft - cols[was - 1].offsetLeft;
+      const moving = springNow(coin, "x");
+      void animateSpring(coin, {
+        axis: "x",
+        from: (moving?.value ?? 0) - dx,
+        to: 0,
+        velocity: moving?.velocity ?? 0,
+        spring: SPRING.snappy,
+      }).then(() => {
+        if (token.current && !springNow(token.current, "x")) token.current.style.transform = "";
+      });
     }
     const y = new DOMMatrixReadOnly(getComputedStyle(body).transform).m42 || 0;
     body.getAnimations().forEach((a) => {

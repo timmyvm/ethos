@@ -4002,10 +4002,11 @@ summary::-webkit-details-marker {
   width: var(--stair-token);
   height: var(--stair-token);
   pointer-events: none;
-  /* The slider's hop: across and down on the snappy spring, while the
-     body arcs over (Stair.tsx), so it lands like a hop, not a slide. */
+  /* The slider's hop: down on the snappy spring while the body arcs over
+     (Stair.tsx), so it lands like a hop, not a slide. Across is a spring
+     in Stair.tsx that keeps its speed through a fast scrub (#388), so
+     `left` itself jumps. */
   transition:
-    left var(--spring-snappy-duration) var(--spring-snappy),
     bottom var(--spring-snappy-duration) var(--spring-snappy),
     translate var(--spring-snappy-duration) var(--spring-snappy);
 }

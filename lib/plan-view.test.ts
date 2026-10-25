@@ -380,6 +380,8 @@ describe("the checkout return and the price drop", () => {
     expect([parseSeen(null), parseSeen("3"), parseSeen("x"), parseSeen("-1"), parseSeen("2.5")]).toEqual([
       null, 3, null, null, null,
     ]);
+    // Blank storage is first sight, never month 0 (which any month would beat).
+    expect([parseSeen(""), parseSeen("  ")]).toEqual([null, null]);
   });
 
   it("says the drop on the day it lands, and the day it started after that", () => {

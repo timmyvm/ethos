@@ -615,7 +615,8 @@ export function dropDecision(view: PlanView, seen: number | null): { show: boole
 
 /** Reads the stored month; any junk or a blocked storage reads as first sight. */
 export function parseSeen(raw: string | null): number | null {
-  if (raw == null) return null;
+  // Blank is not zero: Number("") is 0, which would celebrate any month.
+  if (raw == null || raw.trim() === "") return null;
   const n = Number(raw);
   return Number.isInteger(n) && n >= 0 ? n : null;
 }

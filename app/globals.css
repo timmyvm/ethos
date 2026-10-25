@@ -3648,3 +3648,592 @@ summary::-webkit-details-marker {
   transition: none;
 }
 /* ========================== end of grouped lists ========================== */
+
+/* the price ladder */
+/*
+ * The Stair (components/premium/Stair.tsx, docs/ladder-spec.md): seven
+ * steps in the answer rows' grammar (a fill, a 2px edge, a 4px lip),
+ * measured from zero, standing on one floor. The floor step runs on
+ * through the parent's padding to the sheet's edge and fades over 24px.
+ * A step a finger presses goes in 2px and its lip goes 4 to 2, the way
+ * an answer row does; a month already paid is pressed flat. Demos's Paw
+ * stands on the month you are in.
+ *
+ * Two tones. Plum (the paywall, the price drop) is cream objects in
+ * hexes, as `.card-premium` is, because that surface is deep plum in
+ * both themes and the plum tokens invert in dark. Neutral (You, the
+ * manage sheet) is the app's own: raised steps, an ink month, paid
+ * months sunk to the surface. No sage anywhere: a price is not earned.
+ *
+ * The edge and the lip are borders over a padding-box fill, so a
+ * translucent edge reads against the sheet behind it, never against
+ * the step's own fill. A paid step's border takes its fill's colour,
+ * so pressing flat is a transition, not a cut.
+ */
+:root {
+  /* The cents on a step too narrow for the suffix size (a 320 phone). */
+  --stair-cents-xs: 0.5rem;
+}
+
+.stair-wrap {
+  /* The floor runs through the parent's padding to its edge. */
+  margin-right: calc(-1 * var(--stair-bleed, 0px));
+}
+
+.stair {
+  --stair-gap: 6px;
+  /* (column - 6 gaps) / 7, the column being the parent's content box. */
+  --stair-col: calc((100% - var(--stair-bleed, 0px) - 6 * var(--stair-gap)) / 7);
+  --stair-radius: 12px;
+  --stair-radius-foot: 6px;
+  --stair-edge: 2px;
+  --stair-lip: 4px;
+  position: relative;
+  /* A vertical pan is the sheet's scroll; a horizontal one is ours. */
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.stair[data-size="lg"] {
+  --stair-max: 120px;
+  --stair-token: 26px;
+}
+.stair[data-size="md"] {
+  --stair-max: 88px;
+  --stair-token: 22px;
+}
+/* The plan card's stair is a glyph of the ladder, 40px tall: the same
+   object at its own scale, so its radius, edge and lip step down. */
+.stair[data-size="sm"] {
+  --stair-max: 40px;
+  --stair-token: 18px;
+  --stair-radius: 8px;
+  --stair-radius-foot: 4px;
+  --stair-edge: 1.5px;
+  --stair-lip: 3px;
+}
+.stair[data-mode="slider"] {
+  cursor: pointer;
+}
+/* The slider's focus ring wraps the column, not the floor's bleed, so
+   the sheet's edge never clips it. */
+.stair[data-mode="slider"]:focus-visible {
+  outline: none;
+}
+.stair[data-mode="slider"]:focus-visible::after {
+  content: "";
+  position: absolute;
+  inset: -8px calc(var(--stair-bleed, 0px) - 8px) -8px -8px;
+  border: 2px solid var(--color-terracotta-500);
+  border-radius: 14px;
+  pointer-events: none;
+}
+
+.stair-steps {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(6, var(--stair-col)) 1fr;
+  column-gap: var(--stair-gap);
+  align-items: end;
+  /* The tallest step, the Paw on it and a little air. */
+  height: calc(var(--stair-max) + var(--stair-token) + 6px);
+}
+
+.stair-col {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: var(--h);
+}
+/* "Forever", without a word: the floor fades over its last 24px. */
+.stair[data-bleed] .stair-col[data-floor] {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+}
+
+.stair-block {
+  position: relative;
+  box-sizing: border-box;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  /* Each step asks its own width whether its face fits (below). */
+  container-type: inline-size;
+  border-style: solid;
+  border-width: var(--stair-edge) var(--stair-edge) var(--stair-lip);
+  border-radius: var(--stair-radius) var(--stair-radius) var(--stair-radius-foot) var(--stair-radius-foot);
+  background-clip: padding-box;
+  /* Up is a spring (#240); the colours cross-fade. */
+  transition:
+    height var(--spring-snappy-duration) var(--spring-snappy),
+    border-bottom-width var(--spring-snappy-duration) var(--spring-snappy),
+    background-color var(--duration-base) var(--ease-out),
+    border-color var(--duration-base) var(--ease-out),
+    color var(--duration-base) var(--ease-out);
+}
+.stair[data-bleed] .stair-col[data-floor] .stair-block {
+  border-right-width: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  padding-right: var(--stair-bleed);
+}
+
+/* Paid: pressed flat, the lip gone. */
+.stair-col[data-state="paid"] .stair-block {
+  height: calc(100% - var(--stair-lip) + var(--stair-edge));
+  border-bottom-width: var(--stair-edge);
+}
+/* Under the finger: in 2px, the lip 4 to 2. Down is contact, not
+   animation (#240): a fast ease-out in, the spring back up. */
+.stair-col[data-pressed] .stair-block {
+  height: calc(100% - 2px);
+  border-bottom-width: calc(var(--stair-lip) - 2px);
+  transition-duration: var(--duration-fast);
+  transition-timing-function: var(--ease-out);
+}
+.stair-col[data-pressed][data-state="paid"] .stair-block {
+  height: calc(100% - var(--stair-lip) + var(--stair-edge));
+  border-bottom-width: var(--stair-edge);
+}
+/* An ending plan's months it will not reach: outlines only, no lip. A
+   fact drawn, not a warning: no colour, no motion. */
+.stair-col[data-state="ghost"] .stair-block {
+  border-style: dashed;
+  border-bottom-width: var(--stair-edge);
+  height: calc(100% - var(--stair-lip) + var(--stair-edge));
+  background-color: transparent;
+}
+
+/* Faces: the whole dollars at num-s 17/800 with the cents riding high
+   at the suffix size, the way a shelf tag prints them. Read down the
+   stair and the big figures count 12, 11, 10, 9, 8, 7, 6. */
+.stair-price {
+  padding-top: 7px;
+  font-family: var(--font-display-face), sans-serif;
+  font-size: var(--text-num-s);
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.stair[data-size="md"] .stair-price {
+  padding-top: 6px;
+}
+.stair-cents {
+  font-size: var(--text-suffix);
+  vertical-align: 0.55em;
+  letter-spacing: 0;
+  margin-left: 0.5px;
+}
+/* A narrow step (a 320 phone, 33.7px): the cents drop a size first,
+   then the dollars, then the faces of future steps go, then any face
+   that cannot fit. Thresholds are the faces' own measured widths. */
+@container (max-width: 35.9px) {
+  .stair-cents {
+    font-size: var(--stair-cents-xs);
+  }
+}
+@container (max-width: 32.9px) {
+  .stair-price {
+    padding-top: 6px;
+    font-size: var(--text-row);
+  }
+}
+@container (max-width: 28.9px) {
+  .stair-col:is([data-state="future"], [data-state="ghost"], [data-wide]) .stair-price {
+    visibility: hidden;
+  }
+}
+@container (max-width: 21.9px) {
+  .stair-price {
+    visibility: hidden;
+  }
+}
+
+/* The months, under the steps. */
+.stair-labels {
+  display: grid;
+  grid-template-columns: repeat(6, var(--stair-col)) 1fr;
+  column-gap: var(--stair-gap);
+  margin-top: 8px;
+}
+.stair-label {
+  text-align: center;
+  white-space: nowrap;
+  line-height: 1;
+  transition: color var(--duration-base) var(--ease-out);
+}
+.stair[data-bleed] .stair-label:last-child {
+  padding-right: var(--stair-bleed);
+}
+
+/* -- Plum ----------------------------------------------------------- */
+.stair[data-tone="plum"] {
+  --stair-sheen: rgb(255 255 255 / 0.9);
+  --stair-sheen-flank: rgb(60 32 67 / 0.12);
+}
+.stair[data-tone="plum"] .stair-col[data-state="future"] .stair-block {
+  background-color: rgb(247 247 247 / 0.08);
+  border-color: rgb(247 247 247 / 0.2);
+  color: rgb(247 247 247 / 0.92);
+}
+.stair[data-tone="plum"] .stair-col[data-state="lit"] .stair-block {
+  background-color: #f7f7f7;
+  border-color: #f7f7f7;
+  border-bottom-color: rgb(247 247 247 / 0.6);
+  color: #3c2043;
+}
+.stair[data-tone="plum"] .stair-col[data-state="paid"] .stair-block {
+  background-color: rgb(247 247 247 / 0.16);
+  border-color: rgb(247 247 247 / 0.16);
+  color: rgb(247 247 247 / 0.6);
+}
+.stair[data-tone="plum"] .stair-col[data-state="ghost"] .stair-block {
+  border-color: rgb(247 247 247 / 0.24);
+  color: rgb(247 247 247 / 0.5);
+}
+.stair[data-tone="plum"] .stair-label {
+  color: rgb(247 247 247 / 0.6);
+}
+.stair[data-tone="plum"] .stair-label[data-lit] {
+  color: #f7f7f7;
+}
+
+/* -- Neutral ----------------------------------------------------------- */
+.stair[data-tone="neutral"] {
+  --stair-lit-lip: color-mix(in srgb, var(--color-ink), #000 45%);
+  --stair-sheen: rgb(255 255 255 / 0.5);
+  --stair-sheen-flank: rgb(255 255 255 / 0);
+}
+:root[data-theme="dark"] .stair[data-tone="neutral"] {
+  --stair-lit-lip: color-mix(in srgb, var(--color-ink), #000 38%);
+  --stair-sheen: rgb(255 255 255 / 0.9);
+  --stair-sheen-flank: rgb(0 0 0 / 0.1);
+}
+.stair[data-tone="neutral"] .stair-col[data-state="future"] .stair-block {
+  background-color: var(--color-raised);
+  border-color: var(--color-edge);
+  color: var(--color-ink);
+}
+.stair[data-tone="neutral"] .stair-col[data-state="lit"] .stair-block {
+  background-color: var(--color-ink);
+  border-color: var(--color-ink);
+  border-bottom-color: var(--stair-lit-lip);
+  color: var(--color-ground);
+}
+.stair[data-tone="neutral"] .stair-col[data-state="paid"] .stair-block {
+  background-color: var(--color-surface);
+  border-color: var(--color-surface);
+  color: var(--color-stone-500);
+}
+.stair[data-tone="neutral"] .stair-col[data-state="ghost"] .stair-block {
+  border-color: var(--color-edge);
+  color: var(--color-stone-400);
+}
+.stair[data-tone="neutral"] .stair-label {
+  color: var(--color-stone-500);
+}
+.stair[data-tone="neutral"] .stair-label[data-lit] {
+  color: var(--color-ink);
+}
+
+/* -- The Paw: a coin with its own lip, standing on your step --------- */
+.stair-token {
+  position: absolute;
+  z-index: 1;
+  left: calc(var(--ti) * (var(--stair-col) + var(--stair-gap)) + (var(--stair-col) - var(--stair-token)) / 2);
+  bottom: calc(var(--th) + 3px);
+  width: var(--stair-token);
+  height: var(--stair-token);
+  pointer-events: none;
+  /* The slider's hop: across and down on the snappy spring, while the
+     body arcs over (Stair.tsx), so it lands like a hop, not a slide. */
+  transition:
+    left var(--spring-snappy-duration) var(--spring-snappy),
+    bottom var(--spring-snappy-duration) var(--spring-snappy),
+    translate var(--spring-snappy-duration) var(--spring-snappy);
+}
+.stair-token[data-pressed] {
+  translate: 0 2px;
+  transition-duration: var(--duration-fast);
+  transition-timing-function: var(--ease-out);
+}
+.stair-token-body {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+}
+.stair-token-body svg {
+  width: 62%;
+  height: 62%;
+}
+.stair[data-tone="plum"] .stair-token-body {
+  background: #f7f7f7;
+  color: #3c2043;
+  box-shadow:
+    0 2px 0 color-mix(in srgb, #f7f7f7, #3c2043 34%),
+    0 6px 14px rgb(0 0 0 / 0.3);
+}
+/* On a neutral card the Paw is a raised coin in ink, never plum: plum
+   is the paywall, the drop and the mark. */
+.stair[data-tone="neutral"] .stair-token-body {
+  background: var(--color-raised);
+  color: var(--color-ink);
+  box-shadow:
+    inset 0 0 0 1.5px var(--color-edge),
+    0 2px 0 var(--color-edge),
+    0 3px 8px rgb(0 0 0 / 0.14);
+}
+:root[data-theme="dark"] .stair[data-tone="neutral"] .stair-token-body {
+  background: color-mix(in srgb, var(--color-raised), #fff 12%);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.1),
+    0 2px 0 rgb(0 0 0 / 0.5),
+    0 4px 10px rgb(0 0 0 / 0.45);
+}
+.stair[data-size="sm"] .stair-token-body {
+  box-shadow:
+    inset 0 0 0 1px var(--color-edge),
+    0 1.5px 0 var(--color-edge);
+}
+.stair[data-size="sm"][data-tone="plum"] .stair-token-body {
+  box-shadow: 0 1.5px 0 color-mix(in srgb, #f7f7f7, #3c2043 34%);
+}
+
+/* -- Motion ------------------------------------------------------------ */
+/* The rise: every first render, the steps lift 12px and fade in, 30ms
+   apart, on the base spring; then the Paw drops onto its step, an
+   ease-in (gravity is not a spring), and the step takes its weight. */
+@keyframes stair-rise {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+}
+@keyframes stair-drop {
+  from {
+    transform: translateY(-14px);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.stair[data-rise] :is(.stair-col, .stair-label) {
+  animation: stair-rise var(--spring-base-duration) var(--spring-base) backwards;
+  animation-delay: calc(var(--stair-rise-delay, 0ms) + var(--i) * 30ms);
+}
+.stair[data-rise] .stair-token-body {
+  animation: stair-drop var(--duration-base) cubic-bezier(0.55, 0, 1, 0.45) backwards;
+  /* Lands at 300ms after its step starts rising (Stair.tsx PAW_LANDS_MS). */
+  animation-delay: calc(var(--stair-rise-delay, 0ms) + var(--ti) * 30ms + 100ms);
+}
+/* On the stage the Paw is already standing when the steps arrive: it
+   comes with its step, then hops. */
+.stair[data-rise][data-mode="stage"] .stair-token-body {
+  animation: fade-in var(--duration-base) var(--ease-out) backwards;
+  animation-delay: calc(var(--stair-rise-delay, 0ms) + var(--ti) * 30ms);
+}
+
+/* Taking the weight: the landing step dips 2px and back. */
+@keyframes stair-dip {
+  0% {
+    height: 100%;
+    border-bottom-width: var(--stair-lip);
+    animation-timing-function: var(--ease-out);
+  }
+  30% {
+    height: calc(100% - 2px);
+    border-bottom-width: calc(var(--stair-lip) - 2px);
+    animation-timing-function: var(--ease-out);
+  }
+  100% {
+    height: 100%;
+    border-bottom-width: var(--stair-lip);
+  }
+}
+@keyframes stair-token-dip {
+  0% {
+    translate: 0 0;
+    animation-timing-function: var(--ease-out);
+  }
+  30% {
+    translate: 0 2px;
+    animation-timing-function: var(--ease-out);
+  }
+  100% {
+    translate: 0 0;
+  }
+}
+.stair-col[data-dip] .stair-block {
+  animation: stair-dip var(--spring-snappy-duration) linear;
+}
+.stair-token[data-dip] {
+  animation: stair-token-dip var(--spring-snappy-duration) linear;
+}
+
+/* The sheen across the step the stage's Paw just reached, once, in the
+   celebration's 600ms: a highlight with a faint shadow either side, so
+   it reads on a cream step as well as on an ink one. */
+.stair-block::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 22%,
+    var(--stair-sheen-flank) 38%,
+    var(--stair-sheen) 50%,
+    var(--stair-sheen-flank) 62%,
+    transparent 78%
+  );
+  transform: translateX(-130%);
+  opacity: 0;
+}
+.stair[data-mode="stage"] .stair-col[data-dip] .stair-block::after {
+  animation: stair-sheen var(--duration-celebrate) var(--ease-out);
+}
+@keyframes stair-sheen {
+  from {
+    transform: translateX(-130%);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(130%);
+    opacity: 1;
+  }
+}
+
+/* Reduced motion: no rise, no hop, no roll. A 200ms fade stands in, and
+   a press lands at once. */
+:root[data-motion="reduce"] .stair[data-rise] :is(.stair-col, .stair-label, .stair-token-body) {
+  animation: fade-in var(--duration-base) var(--ease-out) backwards;
+  animation-delay: var(--stair-rise-delay, 0ms);
+}
+:root[data-motion="reduce"] .stair-token {
+  transition: none;
+}
+:root[data-motion="reduce"] .stair-block {
+  transition-property: background-color, border-color, color;
+}
+:root[data-motion="reduce"] :is(.stair-col[data-dip] .stair-block, .stair-token[data-dip]) {
+  animation: none;
+}
+:root[data-motion="reduce"] .stair-block::after {
+  animation: none !important;
+}
+
+/* -- The paywall's scrolling part (components/Paywall.tsx) ------------- */
+/* While there is more under it, its foot fades into the tap's shelf, so
+   the seam reads as "this goes on" rather than a cut. */
+.paywall-scroll[data-more] {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+}
+
+/* -- RollNumber (components/premium/RollNumber.tsx) ---------------------- */
+/* Only the glyphs that changed turn over, inside their own clip, new
+   from above when the price goes down, on the snappy spring. Tabular
+   figures hold every glyph's width, and a leading digit that comes or
+   goes narrows or grows rather than jumping its neighbours. */
+.roll-num,
+.roll-glyphs {
+  display: inline-flex;
+}
+.roll-glyph {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  /* Room for the travel inside the clip at a line height of 1. */
+  padding-block: 0.06em;
+  margin-block: -0.06em;
+}
+.roll-glyph > span {
+  display: inline-block;
+}
+.roll-glyph > .roll-out {
+  position: absolute;
+  left: 0;
+  top: 0.06em;
+}
+.roll-glyph[data-edge] {
+  display: inline-grid;
+  grid-template-columns: 1fr;
+}
+.roll-glyph[data-edge] > span {
+  min-width: 0;
+}
+.roll-glyph[data-edge="leave"] > .roll-out {
+  position: static;
+}
+@keyframes roll-in-down {
+  from {
+    transform: translateY(-0.62em);
+    opacity: 0;
+  }
+}
+@keyframes roll-out-down {
+  to {
+    transform: translateY(0.62em);
+    opacity: 0;
+  }
+}
+@keyframes roll-in-up {
+  from {
+    transform: translateY(0.62em);
+    opacity: 0;
+  }
+}
+@keyframes roll-out-up {
+  to {
+    transform: translateY(-0.62em);
+    opacity: 0;
+  }
+}
+@keyframes roll-collapse {
+  to {
+    grid-template-columns: 0fr;
+  }
+}
+@keyframes roll-expand {
+  from {
+    grid-template-columns: 0fr;
+  }
+}
+.roll-glyph[data-dir="down"] > .roll-in {
+  animation: roll-in-down var(--spring-snappy-duration) var(--spring-snappy) backwards;
+}
+.roll-glyph[data-dir="down"] > .roll-out {
+  animation: roll-out-down var(--spring-snappy-duration) var(--spring-snappy) forwards;
+}
+.roll-glyph[data-dir="up"] > .roll-in {
+  animation: roll-in-up var(--spring-snappy-duration) var(--spring-snappy) backwards;
+}
+.roll-glyph[data-dir="up"] > .roll-out {
+  animation: roll-out-up var(--spring-snappy-duration) var(--spring-snappy) forwards;
+}
+.roll-glyph[data-edge="leave"] {
+  animation: roll-collapse var(--spring-snappy-duration) var(--spring-snappy) forwards;
+}
+.roll-glyph[data-edge="enter"] {
+  animation: roll-expand var(--spring-snappy-duration) var(--spring-snappy) backwards;
+}
+:root[data-motion="reduce"] .roll-glyph[data-dir] > .roll-in {
+  animation: fade-in var(--duration-base) var(--ease-out) backwards;
+}
+:root[data-motion="reduce"] :is(.roll-glyph > .roll-out, .roll-glyph[data-edge="leave"]) {
+  display: none;
+}
+:root[data-motion="reduce"] .roll-glyph[data-edge] {
+  animation: none;
+}
+/* ========================== end of the price ladder ========================== */

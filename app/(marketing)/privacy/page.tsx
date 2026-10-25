@@ -42,6 +42,13 @@ function Lead({ children }: { children: React.ReactNode }) {
  *    (five numbers and timestamped notes, never frames)
  *  - what's stored: lib/db.ts saveRep + supabase/migrations/*
  *  - no analytics: nothing in package.json or app/ loads any
+ *  - payments: lib/billing.ts (Stripe Checkout holds the card; the
+ *    customer is made with the email and metadata.user_id only), the
+ *    billing row in supabase/migrations/0012_price_ladder.sql (ids,
+ *    status, ladder_month, price_cents, next_price_cents,
+ *    current_period_end, cancel_at_period_end), and
+ *    app/api/account/route.ts (every plan cancelled before anything is
+ *    deleted; the Stripe customer and its payments stay at Stripe)
  */
 export default function Privacy() {
   return (
@@ -55,7 +62,7 @@ export default function Privacy() {
       >
         <MarketingHeader title="Privacy" />
       </Suspense>
-      <p className="mt-2 text-caption text-stone-400">Last updated 25 August 2026</p>
+      <p className="mt-2 text-caption text-stone-400">Last updated 25 October 2026</p>
 
       <p className="mt-5 text-read text-stone-800">
         You record yourself, the recording gets measured, you get feedback.
@@ -101,7 +108,7 @@ export default function Privacy() {
         </li>
         <li>
           <Lead>Your account.</Lead> Email address once you create one, an
-          optional display name, and your plan.
+          optional display name, and your plan, detailed under Payments.
         </li>
         <li>
           <Lead>Abuse protection.</Lead> Request timestamps keyed to your
@@ -114,6 +121,24 @@ export default function Privacy() {
         upload.
       </p>
 
+      <h2 className={HEAD}>Payments</h2>
+      <ul className="mt-3 list-disc space-y-2 pl-5 text-read text-stone-800 marker:text-stone-300">
+        <li>
+          <Lead>What Stripe holds.</Lead> Your card. Stripe takes each payment
+          for Premium, and Ethos never sees the card number.
+        </li>
+        <li>
+          <Lead>What Stripe gets from us.</Lead> Your email address and
+          account id, so the plan and its receipts reach you.
+        </li>
+        <li>
+          <Lead>What we keep.</Lead> Stripe&apos;s ids for you and your plan,
+          the plan&apos;s status, the months paid in a row, this month&apos;s
+          and next month&apos;s price, the renewal date, and whether the plan
+          is set to end.
+        </li>
+      </ul>
+
       <h2 className={HEAD}>Cookies and analytics</h2>
       <p className={READ}>
         Ethos runs no analytics scripts, advertising trackers or third-party
@@ -123,9 +148,9 @@ export default function Privacy() {
 
       <h2 className={HEAD}>Who touches the data</h2>
       <p className={READ}>
-        Four processors, each doing one job: Supabase (accounts, database and
-        audio storage), OpenAI (transcription), Anthropic (feedback), and
-        Vercel (hosting, with standard server logs). We never sell your data
+        Five processors, each doing one job: Supabase (accounts, database and
+        audio storage), OpenAI (transcription), Anthropic (feedback), Stripe
+        (payments), and Vercel (hosting, with standard server logs). We never sell your data
         and never share it beyond these services.
       </p>
 
@@ -140,9 +165,10 @@ export default function Privacy() {
       <h2 className={HEAD}>Keeping it, deleting it</h2>
       <p className={READ}>
         We keep your data until you delete your account. Settings has a
-        delete-account control that removes everything: recordings,
-        transcripts, scores, progress, and the account itself. You can also
-        write to{" "}
+        delete-account control. It cancels any plan first, then removes
+        everything: recordings, transcripts, scores, progress, plan details,
+        and the account itself. Stripe keeps its own record of payments
+        already made. You can also write to{" "}
         <a href="mailto:hello@speakethos.com" className={INLINE_LINK}>
           hello@speakethos.com
         </a>{" "}

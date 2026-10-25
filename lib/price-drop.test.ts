@@ -36,15 +36,15 @@ const view = (over: Partial<BillingRow> = {}) => planView(null, row(over), TODAY
 describe("takeDrop", () => {
   it("stores the month silently on first sight", () => {
     const store = memory();
-    expect(takeDrop(view(), store)).toBe(false);
+    expect(takeDrop(view(), store)).toBeNull();
     expect(store.value).toBe("4");
   });
 
   it("celebrates a new month once, then never again for it", () => {
     const store = memory("3");
-    expect(takeDrop(view(), store)).toBe(true);
+    expect(takeDrop(view(), store)).toBe(3);
     expect(store.value).toBe("4");
-    expect(takeDrop(view(), store)).toBe(false);
+    expect(takeDrop(view(), store)).toBeNull();
     expect(store.writes).toBe(1);
   });
 
@@ -52,47 +52,48 @@ describe("takeDrop", () => {
     const store = memory("3");
     const today = takeDrop(view(), store);
     const you = takeDrop(view(), store);
-    expect([today, you]).toEqual([true, false]);
+    expect([today, you]).toEqual([3, null]);
   });
 
   it("never celebrates month 1, and the checkout return remembers it", () => {
     const store = memory();
     markCheckoutSeen(store);
     expect(store.value).toBe("1");
-    expect(takeDrop(view({ ladder_month: 1, price_cents: 1299, next_price_cents: 1199 }), store)).toBe(false);
-    expect(takeDrop(view({ ladder_month: 2, price_cents: 1199, next_price_cents: 1099 }), store)).toBe(true);
+    expect(takeDrop(view({ ladder_month: 1, price_cents: 1299, next_price_cents: 1199 }), store)).toBeNull();
+    expect(takeDrop(view({ ladder_month: 2, price_cents: 1199, next_price_cents: 1099 }), store)).toBe(1);
   });
 
   it("stores a month that went down (a new plan) without a word", () => {
     const store = memory("6");
-    expect(takeDrop(view({ ladder_month: 2, price_cents: 1199 }), store)).toBe(false);
+    expect(takeDrop(view({ ladder_month: 2, price_cents: 1199 }), store)).toBeNull();
     expect(store.value).toBe("2");
   });
 
   it("stays quiet past the floor, where the price holds", () => {
     const store = memory("7");
-    expect(takeDrop(view({ ladder_month: 8, price_cents: 699, next_price_cents: 699 }), store)).toBe(false);
+    expect(takeDrop(view({ ladder_month: 8, price_cents: 699, next_price_cents: 699 }), store)).toBeNull();
     expect(store.value).toBe("8");
   });
 
-  it("celebrates a plan that skipped a month on this device, once", () => {
+  it("celebrates a plan that skipped a month on this device, once, from the month it last saw", () => {
     const store = memory("2");
-    expect(takeDrop(view({ ladder_month: 5, price_cents: 899 }), store)).toBe(true);
+    expect(takeDrop(view({ ladder_month: 5, price_cents: 899 }), store)).toBe(2);
     expect(store.value).toBe("5");
+    expect(takeDrop(view({ ladder_month: 5, price_cents: 899 }), store)).toBeNull();
   });
 
   it("touches nothing for a plan that is not live", () => {
     const store = memory("3");
-    expect(takeDrop(planView(null, null, TODAY), store)).toBe(false);
-    expect(takeDrop(view({ status: "canceled" }), store)).toBe(false);
-    expect(takeDrop(view({ status: "incomplete", ladder_month: 0 }), store)).toBe(false);
-    expect(takeDrop(planView(null, undefined, TODAY), store)).toBe(false);
+    expect(takeDrop(planView(null, null, TODAY), store)).toBeNull();
+    expect(takeDrop(view({ status: "canceled" }), store)).toBeNull();
+    expect(takeDrop(view({ status: "incomplete", ladder_month: 0 }), store)).toBeNull();
+    expect(takeDrop(planView(null, undefined, TODAY), store)).toBeNull();
     expect(store.writes).toBe(0);
   });
 
   it("still celebrates a drop on a plan that is ending or being retried", () => {
-    expect(takeDrop(view({ cancel_at_period_end: true }), memory("3"))).toBe(true);
-    expect(takeDrop(view({ status: "past_due" }), memory("3"))).toBe(true);
+    expect(takeDrop(view({ cancel_at_period_end: true }), memory("3"))).toBe(3);
+    expect(takeDrop(view({ status: "past_due" }), memory("3"))).toBe(3);
   });
 });
 
@@ -101,7 +102,7 @@ describe("a store that misbehaves", () => {
     for (const junk of ["", "abc", "-2", "3.5", "NaN"]) {
       const store = memory(junk);
       expect(readSeen(store)).toBeNull();
-      expect(takeDrop(view(), store)).toBe(false);
+      expect(takeDrop(view(), store)).toBeNull();
       expect(store.value).toBe("4");
     }
   });
@@ -117,7 +118,7 @@ describe("a store that misbehaves", () => {
     };
     expect(readSeen(broken)).toBeNull();
     expect(() => writeSeen(4, broken)).not.toThrow();
-    expect(takeDrop(view(), broken)).toBe(false);
+    expect(takeDrop(view(), broken)).toBeNull();
   });
 
   it("never writes a month that is not a whole number", () => {

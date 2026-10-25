@@ -54,16 +54,18 @@ export function writeSeen(month: number, store: SeenStore = browserSeenStore): v
 }
 
 /**
- * Decide once and remember: true when this view is a new month whose
- * price fell since this device last looked. First sight, a month that
- * went down (a new plan) and a month past the floor are stored without
- * a word. Call it once per landed view; a second call for the same
- * month answers false, because the first one stored it.
+ * Decide once and remember: when this view is a new month whose price
+ * fell since this device last looked, the month it last saw (the sheet
+ * rolls from that month's price, read here before the new month is
+ * written over it); otherwise null. First sight, a month that went down
+ * (a new plan) and a month past the floor are stored without a word.
+ * Call it once per landed view; a second call for the same month
+ * answers null, because the first one stored it.
  */
-export function takeDrop(view: PlanView, store: SeenStore = browserSeenStore): boolean {
+export function takeDrop(view: PlanView, store: SeenStore = browserSeenStore): number | null {
   const d = dropDecision(view, readSeen(store));
   if (d.store !== null) writeSeen(d.store, store);
-  return d.show;
+  return d.show ? d.from : null;
 }
 
 /** The checkout return's first step is never a drop: remember month 1. */

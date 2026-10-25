@@ -99,10 +99,21 @@ export function CheckoutReturn({ view, today }: { view: PlanView; today: Date })
  * weight and the haptic fires. One terracotta tap, "Done". Reduced
  * motion draws the end state with a fade.
  */
-export function PriceDropSheet({ view, today, onClose }: { view: PlanView; today: Date; onClose: () => void }) {
+export function PriceDropSheet({
+  view,
+  today,
+  from,
+  onClose,
+}: {
+  view: PlanView;
+  today: Date;
+  /** The month this device last saw: the roll and the hop start there (usePriceDrop). */
+  from: number | null;
+  onClose: () => void;
+}) {
   return (
     <Overlay label={DROP_LABEL} onClose={onClose} className="w-full max-w-[430px]">
-      <DropBody view={view} today={today} onClose={onClose} />
+      <DropBody view={view} today={today} from={from} onClose={onClose} />
     </Overlay>
   );
 }
@@ -110,11 +121,21 @@ export function PriceDropSheet({ view, today, onClose }: { view: PlanView; today
 /** The dialog's name: the bubble's first sentence. */
 const DROP_LABEL = "Your price dropped";
 
-function DropBody({ view, today, onClose }: { view: PlanView; today: Date; onClose: () => void }) {
+function DropBody({
+  view,
+  today,
+  from,
+  onClose,
+}: {
+  view: PlanView;
+  today: Date;
+  from: number | null;
+  onClose: () => void;
+}) {
   const close = useOverlayClose(onClose);
   // The words are the moment's: taken once, so a row that changes behind
   // the sheet does not rewrite what it is celebrating.
-  const words = useMemo(() => dropWords(view, today), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const words = useMemo(() => dropWords(view, today, from), []); // eslint-disable-line react-hooks/exhaustive-deps
   const [labels] = useState(() => stepLabels(view.calendar));
   // Reduced motion: no hop and no roll, the end state from the start,
   // faded in with the sheet. (The sheet only renders after a tap or a
@@ -169,5 +190,5 @@ export function PriceDropOnLoad({ hold = false }: { hold?: boolean }) {
   const plan = usePlan();
   const drop = usePriceDrop(plan.view, !hold);
   if (!drop.open || !plan.today) return null;
-  return <PriceDropSheet view={plan.view} today={plan.today} onClose={drop.close} />;
+  return <PriceDropSheet view={plan.view} today={plan.today} from={drop.from} onClose={drop.close} />;
 }

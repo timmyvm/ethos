@@ -187,16 +187,25 @@ export function useStripeReturns(
  * once per month per mount, and the stored month keeps it to once across
  * Today and You.
  */
-export function usePriceDrop(view: PlanView, enabled = true): { open: boolean; close: () => void } {
+export function usePriceDrop(
+  view: PlanView,
+  enabled = true
+): { open: boolean; from: number | null; close: () => void } {
   const [open, setOpen] = useState(false);
+  /** The month this device last saw, which the sheet rolls from. */
+  const [from, setFrom] = useState<number | null>(null);
   const decided = useRef<number | null>(null);
   useEffect(() => {
     if (!enabled || view.kind === "unknown") return;
     if (decided.current === view.month) return;
     decided.current = view.month;
     // Only ever opens it: the development double effect must not close it.
-    if (takeDrop(view)) setOpen(true);
+    const seen = takeDrop(view);
+    if (seen !== null) {
+      setFrom(seen);
+      setOpen(true);
+    }
   }, [enabled, view]);
   const close = useCallback(() => setOpen(false), []);
-  return { open, close };
+  return { open, from, close };
 }

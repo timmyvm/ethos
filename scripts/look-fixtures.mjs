@@ -164,7 +164,9 @@ const profile = { display_name: "Timothy", premium: false, premium_until: null, 
  *   floor               month 9, A$6.99 every month
  *   ending              month 3, cancelled: Premium until the period end
  *   pastdue             month 3, the renewal declined and being retried
+ *   pastdueending       pastdue, then cancelled while it is retried
  *   unpaid              month 3, retries ran out, Premium off
+ *   unpaidending        unpaid, then cancelled: it ends at the period end
  *   incomplete          the first payment pending
  *   ended               a plan that ended, premium off
  *   month1              month 1, as the checkout return lands
@@ -210,7 +212,9 @@ const PLANS = {
   floor: { premium: true, billing: planRow({ ladder_month: 9, price_cents: 699, next_price_cents: 699 }) },
   ending: { premium: true, billing: planRow({ cancel_at_period_end: true, next_price_cents: null }) },
   pastdue: { premium: true, billing: planRow({ status: "past_due", current_period_end: inDays(29) }) },
+  pastdueending: { premium: true, billing: planRow({ status: "past_due", current_period_end: inDays(29), cancel_at_period_end: true, next_price_cents: null }) },
   unpaid: { premium: false, billing: planRow({ status: "unpaid", current_period_end: inDays(12) }) },
+  unpaidending: { premium: false, billing: planRow({ status: "unpaid", current_period_end: inDays(12), cancel_at_period_end: true, next_price_cents: null }) },
   incomplete: {
     premium: false,
     billing: planRow({ status: "incomplete", ladder_month: 0, price_cents: null, next_price_cents: null, current_period_end: inAMonth() }),

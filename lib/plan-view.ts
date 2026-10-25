@@ -148,11 +148,14 @@ function parseDate(iso: string | null | undefined): Date | null {
  * - `active`: renewing, months 1 to 6. `floor`: renewing at the floor,
  *   month 7 on.
  * - `ending`: cancelled at period end. Premium runs to the end of the
- *   paid month.
+ *   paid month. A past-due plan cancelled while its card is retried is
+ *   ending too, and keeps `declined`.
  * - `pastDue`: a renewal was declined and Stripe is retrying it. Premium
- *   stays on and the month holds.
+ *   stays on and the plan keeps its place; the charge being retried is
+ *   the next month's.
  * - `unpaid`: the retries ran out on a plan Stripe keeps open. The plan
- *   holds its month, but Premium is off.
+ *   keeps its place, but Premium is off. One can be cancelled too
+ *   (`cancelling`), and then ends at the period's end.
  * - `incomplete`: the first payment is pending.
  */
 export type PlanKind =
@@ -183,6 +186,10 @@ export interface PlanView {
   calendar: LadderCalendar | null;
   /** A plan is running: it renews or is being retried (Stripe's live statuses). */
   live: boolean;
+  /** A renewal was declined (past due, or unpaid once the retries ran out), whatever else is true. */
+  declined: boolean;
+  /** Cancelled at the period's end and not yet ended. */
+  cancelling: boolean;
 }
 
 /** Stripe's statuses a plan surface draws as a plan; any other ends it. */
@@ -212,10 +219,14 @@ export function planView(
 
   if (billing && drawn) {
     const month = Math.max(0, Math.floor(Number(billing.ladder_month) || 0));
+    const cancelling = Boolean(billing.cancel_at_period_end);
+    const declined = drawn === "pastDue" || drawn === "unpaid";
     // Cancelled at period end: Premium runs to the end of the paid month.
-    // A plan whose card is being retried can be cancelled too, and the
-    // end is the bigger fact; one Stripe has stopped retrying cannot.
-    const ending = billing.cancel_at_period_end && (drawn === "active" || drawn === "pastDue");
+    // A plan whose card is being retried can be cancelled too, and is
+    // drawn ending with its decline kept. An unpaid plan cancelled stays
+    // unpaid (Premium is off, so nothing "runs to" a date), marked
+    // `cancelling` so no surface offers the cancel again.
+    const ending = cancelling && (drawn === "active" || drawn === "pastDue");
     const kind: PlanKind = ending ? "ending" : drawn === "active" && month >= FLOOR_MONTH ? "floor" : drawn;
     const priceCents = billing.price_cents ?? priceForMonth(Math.max(1, month));
     const next =
@@ -229,10 +240,10 @@ export function planView(
       priceCents,
       nextPriceCents: next,
       periodEnd: parseDate(billing.current_period_end),
-      // A first payment still pending is month 1 in progress: its period
-      // end is where month 2 starts, not month 1.
-      calendar: calendarFromBilling(kind === "incomplete" ? { ...billing, ladder_month: Math.max(1, month) } : billing),
+      calendar: planCalendar(billing, drawn, month),
       live: kind !== "incomplete",
+      declined,
+      cancelling,
     };
   }
 
@@ -248,7 +259,27 @@ export function planView(
     periodEnd: null,
     calendar: calendarFromToday(today),
     live: false,
+    declined: false,
+    cancelling: false,
   };
+}
+
+/**
+ * Where a plan's months fall, from the row. Stripe opens the next period
+ * when it invoices a renewal, paid or not, so:
+ * - a first payment still pending is month 1 in progress: its period
+ *   end is where month 2 starts;
+ * - a past-due plan has rolled into the month being retried: its period
+ *   end is where month m + 2 starts, and month m + 1 began a month
+ *   earlier (with or without a cancel on it);
+ * - an unpaid plan keeps rolling into periods nobody pays for, so no
+ *   date is sure: the steps are counted instead.
+ */
+function planCalendar(billing: BillingRow, drawn: PlanKind, month: number): LadderCalendar | null {
+  if (drawn === "incomplete") return calendarFromBilling({ ...billing, ladder_month: Math.max(1, month) });
+  if (drawn === "pastDue") return calendarFromBilling({ ...billing, ladder_month: month + 1 });
+  if (drawn === "unpaid") return null;
+  return calendarFromBilling(billing);
 }
 
 function unknownView(): PlanView {
@@ -261,6 +292,8 @@ function unknownView(): PlanView {
     periodEnd: null,
     calendar: null,
     live: false,
+    declined: false,
+    cancelling: false,
   };
 }
 
@@ -302,6 +335,20 @@ function spokenEndOf(view: PlanView, today: Date): string | null {
   return view.periodEnd ? longDate(view.periodEnd, today) : null;
 }
 const nextCents = (view: PlanView) => view.nextPriceCents ?? priceForMonth(view.month + 1);
+/**
+ * The charge a declined plan is retrying, which is the NEXT month's: the
+ * renewal that failed. "month 4's A$9.99" (a past-due row at month 3).
+ */
+const due = (view: PlanView) => `month ${Math.max(1, view.month) + 1}'s ${aud(nextCents(view))}`;
+const Due = (view: PlanView) => {
+  const s = due(view);
+  return `${s[0].toUpperCase()}${s.slice(1)}`;
+};
+/** "on 24 Nov", or "this month" with no date. */
+const endsOn = (view: PlanView, today: Date) => {
+  const end = endOf(view, today);
+  return end ? `on ${end}` : "this month";
+};
 
 /** The month a plan is in, as a label: "Month 3". */
 export const monthWord = (month: number) => `Month ${Math.max(1, Math.floor(month))}`;
@@ -376,13 +423,18 @@ export function pictureLabel(view: PlanView, today: Date): string {
     case "floor":
       return `${head} ${now} now, your lowest price.`;
     case "ending": {
+      if (view.declined) return `${head} ${Due(view)} is being retried, and the plan is set to end.`;
       const end = spokenEndOf(view, today);
       return end ? `${head} ${now} now. The plan ends on ${end}.` : `${head} ${now} now. The plan ends this month.`;
     }
     case "pastDue":
-      return `${head} ${now}, held while the card is retried.`;
-    case "unpaid":
-      return `${head} Held at ${now} until the card goes through.`;
+      return `${head} ${Due(view)} is being retried.`;
+    case "unpaid": {
+      const off = `${head} Premium is off until ${due(view)} goes through.`;
+      if (!view.cancelling) return off;
+      const end = spokenEndOf(view, today);
+      return `${off} The plan ends ${end ? `on ${end}` : "this month"}.`;
+    }
     case "incomplete":
       return `Month 1 of the price ladder. ${aud(FIRST_PRICE_CENTS)} once the first payment goes through.`;
     case "active": {
@@ -441,6 +493,11 @@ export function cardWords(view: PlanView, today: Date): CardWords | null {
     case "floor":
       return { month, left: now, right: null, foot: FLOOR_LINE, declined: false, ghostAfter: false };
     case "ending":
+      // Cancelled while the card is retried: the decline is still the
+      // thing to fix, so it keeps the title.
+      if (view.declined) {
+        return { month, left: { title: DECLINED }, right: null, foot: declinedEndingLine(view, today), declined: true, ghostAfter: true };
+      }
       return {
         month,
         left: { title: premiumUntil(view, today) },
@@ -452,7 +509,14 @@ export function cardWords(view: PlanView, today: Date): CardWords | null {
     case "pastDue":
       return { month, left: { title: DECLINED }, right: null, foot: retriedLine(view), declined: true, ghostAfter: false };
     case "unpaid":
-      return { month, left: { title: DECLINED }, right: null, foot: unpaidLine(view), declined: true, ghostAfter: false };
+      return {
+        month,
+        left: { title: DECLINED },
+        right: null,
+        foot: unpaidLine(view, today),
+        declined: true,
+        ghostAfter: view.cancelling,
+      };
     case "incomplete":
       return {
         month: monthWord(1),
@@ -479,14 +543,26 @@ export function premiumUntil(view: PlanView, today: Date): string {
   return end ? `Premium until ${end}` : "Premium until this month ends";
 }
 
-/** "Premium stays on while it's retried, and month 3 holds at A$10.99." */
+/**
+ * A declined renewal being retried: "Premium stays on while month 4's
+ * A$9.99 is retried." The amount is the renewal that failed, never this
+ * month's price (the spec's "month 3 holds at A$10.99" named a charge
+ * nobody was being asked for).
+ */
 export function retriedLine(view: PlanView): string {
-  return `Premium stays on while it's retried, and month ${Math.max(1, view.month)} holds at ${aud(view.priceCents)}.`;
+  return `Premium stays on while ${due(view)} is retried.`;
 }
 
-/** The retries ran out on a plan Stripe keeps open. */
-export function unpaidLine(view: PlanView): string {
-  return `Premium is off until the card goes through, and month ${Math.max(1, view.month)} holds at ${aud(view.priceCents)}.`;
+/** The retries ran out on a plan Stripe keeps open; cancelled, it also says when it ends. */
+export function unpaidLine(view: PlanView, today: Date): string {
+  const off = `Premium is off until ${due(view)} goes through`;
+  return view.cancelling ? `${off}, and the plan ends ${endsOn(view, today)}.` : `${off}.`;
+}
+
+/** A past-due plan cancelled while its card is retried: Premium runs to the end only if the charge lands. */
+export function declinedEndingLine(view: PlanView, today: Date): string {
+  const end = endOf(view, today);
+  return `The plan is set to end. Premium runs to ${end ?? "the end of this month"} if ${due(view)} goes through.`;
 }
 
 // The manage sheet ------------------------------------------------------
@@ -515,13 +591,31 @@ export function manageLine(view: PlanView, today: Date): string {
   return `${month}. ${aud(nextCents(view))} ${nextDay ? `from ${nextDay}` : "next month"}.`;
 }
 
-/** The confirm's body: "Premium runs to 24 Nov. If the plan ends, the next one starts at A$12.99." */
+/**
+ * The confirm's body: "Premium runs to 24 Nov. If the plan ends, the
+ * next one starts at A$12.99." A declined plan's is its own: a past-due
+ * cancel leaves the retried charge open (Premium runs to the end only if
+ * it lands, and the plan ends sooner if the retries run out), and an
+ * unpaid plan has no Premium to run on.
+ */
 export function confirmBody(view: PlanView, today: Date): string {
-  return `${runsTo(view, today)} If the plan ends, the next one starts at ${aud(FIRST_PRICE_CENTS)}.`;
+  const first = aud(FIRST_PRICE_CENTS);
+  const end = endOf(view, today) ?? "the end of this month";
+  if (view.kind === "pastDue") {
+    return `${Due(view)} is still being retried. If it goes through, Premium runs to ${end}; if it fails, the plan ends when the retries stop. If a plan ends, the next one starts at ${first}.`;
+  }
+  if (view.kind === "unpaid") {
+    return `Premium stays off until ${due(view)} goes through, and the plan ends ${endsOn(view, today)}. The next one starts at ${first}.`;
+  }
+  return `${runsTo(view, today)} If the plan ends, the next one starts at ${first}.`;
 }
 
-/** "Cancelled. Premium runs to 24 Nov." */
+/** "Cancelled. Premium runs to 24 Nov.", from the row the cancel answered. */
 export function cancelledStatus(view: PlanView, today: Date): string {
+  if (view.kind === "unpaid") return `Cancelled. The plan ends ${endsOn(view, today)}.`;
+  if (view.declined) {
+    return `Cancelled. Premium runs to ${endOf(view, today) ?? "the end of this month"} if ${due(view)} goes through.`;
+  }
   return `Cancelled. ${runsTo(view, today)}`;
 }
 
@@ -533,13 +627,16 @@ function runsTo(view: PlanView, today: Date): string {
 /** The ending sheet's title: "Premium until 24 Nov". */
 export const endingTitle = premiumUntil;
 
-/** "Then the plan ends. Keep it and month 4 is A$9.99." */
-export function endingBody(view: PlanView): string {
+/** "Then the plan ends. Keep it and month 4 is A$9.99." A declined one says what the end waits on. */
+export function endingBody(view: PlanView, today: Date): string {
+  if (view.declined) return declinedEndingLine(view, today);
   return `Then the plan ends. Keep it and month ${view.month + 1} is ${aud(priceForMonth(view.month + 1))}.`;
 }
 
-/** After resume: "You're staying. Month 4 is A$9.99 from 24 Nov." */
+/** After resume: "You're staying. Month 4 is A$9.99 from 24 Nov." A declined plan's retry is still the news. */
 export function resumedStatus(view: PlanView, today: Date): string {
+  if (view.kind === "pastDue") return `You're staying. ${Due(view)} is still being retried.`;
+  if (view.kind === "unpaid") return `You're staying. Premium switches back on once ${due(view)} goes through.`;
   const next = view.month + 1;
   const day = view.periodEnd ? shortDate(view.periodEnd, today) : dayOf(view, next, today);
   return `You're staying. Month ${next} is ${aud(view.nextPriceCents ?? priceForMonth(next))}${day ? ` from ${day}` : ""}.`;
@@ -558,12 +655,17 @@ export function settingsLine(view: PlanView, today: Date): string | null {
     case "floor":
       return `${month}, ${aud(view.priceCents)}`;
     case "ending": {
+      if (view.declined) return `${DECLINED}, set to end`;
       const end = endOf(view, today);
       return end ? `Ends ${end}` : "Ends this month";
     }
     case "pastDue":
-    case "unpaid":
       return DECLINED;
+    case "unpaid": {
+      if (!view.cancelling) return DECLINED;
+      const end = endOf(view, today);
+      return `${DECLINED}, ends ${end ?? "this month"}`;
+    }
     case "incomplete":
       return PENDING;
     default:
@@ -607,14 +709,18 @@ export const CHECKOUT_SEEN_MONTH = 1;
  * price holds, so the month is stored silently). First sight stores
  * silently, and so does a month that went down (a new plan).
  */
-export function dropDecision(view: PlanView, seen: number | null): { show: boolean; store: number | null } {
-  if (!view.live || view.month < 1) return { show: false, store: null };
+export function dropDecision(
+  view: PlanView,
+  seen: number | null
+): { show: boolean; store: number | null; from: number | null } {
+  if (!view.live || view.month < 1) return { show: false, store: null, from: null };
   const month = view.month;
-  if (seen === null || !Number.isFinite(seen)) return { show: false, store: month };
-  if (month < seen) return { show: false, store: month };
-  if (month === seen) return { show: false, store: null };
+  if (seen === null || !Number.isFinite(seen)) return { show: false, store: month, from: null };
+  if (month < seen) return { show: false, store: month, from: null };
+  if (month === seen) return { show: false, store: null, from: null };
   const fell = month >= 2 && priceForMonth(month) < priceForMonth(seen);
-  return { show: fell, store: month };
+  // `from`: the month this device last saw, which the sheet rolls from.
+  return { show: fell, store: month, from: fell ? seen : null };
 }
 
 /** Reads the stored month; any junk or a blocked storage reads as first sight. */
@@ -625,9 +731,17 @@ export function parseSeen(raw: string | null): number | null {
   return Number.isInteger(n) && n >= 0 ? n : null;
 }
 
-/** The drop sheet's words: the bubble, the caption under the readout, and the roll. */
-export function dropWords(view: PlanView, today: Date) {
+/**
+ * The drop sheet's words: the bubble, the caption under the readout, and
+ * the roll. `from` is the month this device last saw (dropDecision): a
+ * device that skipped months rolls from the price it last showed, so
+ * month 9 seen from month 5 rolls 8.99 to 6.99 and hops 5 to 7, rather
+ * than 6.99 to 6.99 in place. Without one, the month before.
+ */
+export function dropWords(view: PlanView, today: Date, from?: number | null) {
   const month = Math.max(1, view.month);
+  const before = Math.min(month - 1, Math.max(1, Math.floor(from ?? month - 1)));
+  const prev = Number.isFinite(before) && before >= 1 ? before : Math.max(1, month - 1);
   const started = view.calendar ? monthStart(view.calendar, month) : null;
   const bubble =
     !started || daysBetween(today, started) >= 0
@@ -643,9 +757,9 @@ export function dropWords(view: PlanView, today: Date) {
   return {
     bubble,
     caption,
-    fromCents: priceForMonth(Math.max(1, month - 1)),
+    fromCents: priceForMonth(prev),
     toCents: view.priceCents,
-    /** The stage's hop: from the step before to this one. */
-    hop: { from: stepOf(month - 1), to: stepOf(month) },
+    /** The stage's hop: from the step last seen (or the one before) to this one. */
+    hop: { from: stepOf(prev), to: stepOf(month) },
   };
 }

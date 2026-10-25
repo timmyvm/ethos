@@ -871,7 +871,7 @@ export default function YouPage() {
       )}
 
       {drop.open && plan.today && (
-        <PriceDropSheet view={plan.view} today={plan.today} onClose={drop.close} />
+        <PriceDropSheet view={plan.view} today={plan.today} from={drop.from} onClose={drop.close} />
       )}
     </main>
   );

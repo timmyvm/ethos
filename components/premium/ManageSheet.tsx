@@ -14,6 +14,7 @@ import {
   confirmBody,
   endingBody,
   endingTitle,
+  hasPlan,
   manageLine,
   pictureLabel,
   planView,
@@ -131,10 +132,22 @@ function ManageBody({
     setSaid(sentence);
   }
 
-  /** A 409: the plan moved under us. Ask Stripe, draw what it is, and say the server's sentence. */
+  /**
+   * A 409: the plan moved under us. Ask Stripe, draw what it is, and say
+   * the server's sentence, unless the plan has ended: the "ended" head
+   * then says it and the reset rule, once, and a beat repeating the
+   * server's "This plan has ended" under it would say it twice.
+   */
   async function resync(sentence: string) {
     const s = await syncPlan();
     if (s.ok) {
+      if (!hasPlan(planView(null, s.billing, today))) {
+        onPlan(s.billing, s.premium);
+        setConfirming(false);
+        setBusy(null);
+        setSaid(`${ENDED_TITLE}. ${ENDED_LINE}`);
+        return;
+      }
       settle(s.billing, s.premium, sentence);
       return;
     }
@@ -186,17 +199,22 @@ function ManageBody({
   }
 
   const kind = view.kind;
+  // A declined plan keeps its decline in the head even once it is set
+  // to end (the charge still being retried is the thing to fix), and a
+  // plan set to end, declined or not, offers "Keep my plan" rather than
+  // a cancel the server would answer with a 409.
   const head =
     kind === "active" || kind === "floor"
       ? "price"
-      : kind === "ending"
-        ? "ending"
-        : kind === "pastDue" || kind === "unpaid"
-          ? "declined"
+      : view.declined && (kind === "ending" || kind === "pastDue" || kind === "unpaid")
+        ? "declined"
+        : kind === "ending"
+          ? "ending"
           : kind === "incomplete"
             ? "pending"
             : "ended";
-  const panel = beat !== null ? "beat" : confirming ? "confirm" : head;
+  const actions = view.cancelling && (kind === "ending" || kind === "unpaid") ? "ending" : head;
+  const panel = beat !== null ? "beat" : confirming ? "confirm" : actions;
   const locked = busy !== null;
 
   const updateRow = (
@@ -247,7 +265,7 @@ function ManageBody({
         ) : head === "ending" ? (
           <>
             <h2 className="font-display text-title">{endingTitle(view, today)}</h2>
-            <p className="mt-1.5 text-body text-pretty text-stone-500">{withPrices(endingBody(view))}</p>
+            <p className="mt-1.5 text-body text-pretty text-stone-500">{withPrices(endingBody(view, today))}</p>
           </>
         ) : head === "declined" ? (
           <>
@@ -256,7 +274,9 @@ function ManageBody({
               {MANAGE_COPY.declined}
             </h2>
             <p className="mt-1.5 text-body text-pretty text-stone-500">
-              {withPrices(kind === "unpaid" ? unpaidLine(view) : retriedLine(view))}
+              {withPrices(
+                kind === "unpaid" ? unpaidLine(view, today) : kind === "ending" ? endingBody(view, today) : retriedLine(view)
+              )}
             </p>
           </>
         ) : head === "pending" ? (
@@ -278,7 +298,7 @@ function ManageBody({
           size="md"
           at={kind === "incomplete" ? null : view.step}
           labels={stepLabels(view.calendar)}
-          ghostAfter={kind === "ending"}
+          ghostAfter={view.cancelling}
           bleed={24}
           riseDelay={180}
           label={pictureLabel(view, today)}

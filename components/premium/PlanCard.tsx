@@ -70,7 +70,7 @@ export function IconDeclined({ size = 16, className = "text-stone-500" }: { size
 
 /** What a screen reader hears for the card: the state, the ladder, the door. */
 function cardLabel(view: PlanView, today: Date): string {
-  const declined = view.kind === "pastDue" || view.kind === "unpaid" ? `${DECLINED}. ` : "";
+  const declined = view.declined ? `${DECLINED}. ` : "";
   return `Premium plan. ${declined}${pictureLabel(view, today)} ${MANAGE_COPY.manage}.`;
 }
 
@@ -195,7 +195,7 @@ function Bar({ className, text, right = false }: { className: string; text: stri
 export function SettingsPlanRow({ view, today, onOpen }: { view: PlanView; today: Date; onOpen: () => void }) {
   const line = settingsLine(view, today);
   if (line === null) return null;
-  const declined = view.kind === "pastDue" || view.kind === "unpaid";
+  const declined = view.declined;
   return (
     <button
       type="button"

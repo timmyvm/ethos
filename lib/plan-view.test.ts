@@ -292,7 +292,7 @@ describe("You, the manage sheet and Settings, per state", () => {
       ghostAfter: true,
     });
     expect(endingTitle(v, TODAY)).toBe("Premium until 24 Nov");
-    expect(endingBody(v)).toBe("Then the plan ends. Keep it and month 4 is A$9.99.");
+    expect(endingBody(v, TODAY)).toBe("Then the plan ends. Keep it and month 4 is A$9.99.");
     expect(settingsLine(v, TODAY)).toBe("Ends 24 Nov");
     expect(pictureLabel(v, TODAY)).toBe("Month 3 of the price ladder. A$10.99 now. The plan ends on 24 November.");
     // After resume the row has its next price back.
@@ -301,21 +301,91 @@ describe("You, the manage sheet and Settings, per state", () => {
 
   it("past due", () => {
     const v = view(ROWS.pastDue);
+    expect([v.declined, v.cancelling]).toEqual([true, false]);
+    // The declined renewal is month 4's, and that is the amount being retried.
     expect(cardWords(v, TODAY)).toMatchObject({
       left: { title: "Card declined" },
       right: null,
-      foot: "Premium stays on while it's retried, and month 3 holds at A$10.99.",
+      foot: "Premium stays on while month 4's A$9.99 is retried.",
       declined: true,
+      ghostAfter: false,
     });
     expect(settingsLine(v, TODAY)).toBe("Card declined");
+    expect(pictureLabel(v, TODAY)).toBe("Month 3 of the price ladder. Month 4's A$9.99 is being retried.");
     expect(MANAGE_COPY.updateCard).toBe("Update card");
+  });
+
+  it("past due says what a cancel does to the charge still being retried", () => {
+    const v = view(ROWS.pastDue);
+    expect(confirmBody(v, TODAY)).toBe(
+      "Month 4's A$9.99 is still being retried. If it goes through, Premium runs to 24 Nov; if it fails, the plan ends when the retries stop. If a plan ends, the next one starts at A$12.99."
+    );
+    // After the cancel the row is past_due and ending: the decline stays in sight.
+    const after = view(row({ status: "past_due", cancel_at_period_end: true, next_price_cents: null }));
+    expect([after.kind, after.declined, after.cancelling]).toEqual(["ending", true, true]);
+    expect(cancelledStatus(after, TODAY)).toBe("Cancelled. Premium runs to 24 Nov if month 4's A$9.99 goes through.");
+    expect(cardWords(after, TODAY)).toMatchObject({
+      left: { title: "Card declined" },
+      foot: "The plan is set to end. Premium runs to 24 Nov if month 4's A$9.99 goes through.",
+      declined: true,
+      ghostAfter: true,
+    });
+    expect(endingBody(after, TODAY)).toBe("The plan is set to end. Premium runs to 24 Nov if month 4's A$9.99 goes through.");
+    expect(settingsLine(after, TODAY)).toBe("Card declined, set to end");
+    expect(pictureLabel(after, TODAY)).toBe(
+      "Month 3 of the price ladder. Month 4's A$9.99 is being retried, and the plan is set to end."
+    );
+    // Kept: the row goes back to past due, and the retry is still the news.
+    expect(resumedStatus(view(ROWS.pastDue), TODAY)).toBe("You're staying. Month 4's A$9.99 is still being retried.");
+  });
+
+  it("past due counts its months from the renewal Stripe already rolled into", () => {
+    // Stripe opens the next period when it invoices, paid or not: on a
+    // declined renewal the period end is where month m + 2 starts.
+    const v = view(ROWS.pastDue);
+    expect(stepLabels(v.calendar)).toEqual(["Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan+"]);
+    expect(monthStart(v.calendar!, 4)).toEqual(d(2026, 10, 24));
+    // The same subscription once the retry lands: month 4 paid, same period end, same labels.
+    expect(stepLabels(view(row({ ladder_month: 4, price_cents: 999, next_price_cents: 899 })).calendar)).toEqual(
+      stepLabels(v.calendar)
+    );
+    // Cancelled while declined: the same calendar.
+    expect(stepLabels(view(row({ status: "past_due", cancel_at_period_end: true, next_price_cents: null })).calendar)).toEqual(
+      stepLabels(v.calendar)
+    );
+    // Unpaid: Stripe keeps rolling periods nobody pays for, so no date is
+    // sure. The steps are counted instead.
+    expect(stepLabels(view(ROWS.unpaid, FREE_PROFILE).calendar)).toEqual(["1", "2", "3", "4", "5", "6", "7+"]);
+  });
+
+  it("unpaid never says Premium runs on, and a cancelled one ends with no cancel offered again", () => {
+    const u = view(ROWS.unpaid, FREE_PROFILE);
+    expect([u.declined, u.cancelling]).toEqual([true, false]);
+    expect(confirmBody(u, TODAY)).toBe(
+      "Premium stays off until month 4's A$9.99 goes through, and the plan ends on 24 Nov. The next one starts at A$12.99."
+    );
+    const after = view(row({ status: "unpaid", cancel_at_period_end: true, next_price_cents: null }), FREE_PROFILE);
+    expect([after.kind, after.declined, after.cancelling]).toEqual(["unpaid", true, true]);
+    expect(cancelledStatus(after, TODAY)).toBe("Cancelled. The plan ends on 24 Nov.");
+    expect(cardWords(after, TODAY)).toMatchObject({
+      left: { title: "Card declined" },
+      foot: "Premium is off until month 4's A$9.99 goes through, and the plan ends on 24 Nov.",
+      declined: true,
+      ghostAfter: true,
+    });
+    expect(settingsLine(after, TODAY)).toBe("Card declined, ends 24 Nov");
+    expect(pictureLabel(after, TODAY)).toBe(
+      "Month 3 of the price ladder. Premium is off until month 4's A$9.99 goes through. The plan ends on 24 November."
+    );
+    expect(resumedStatus(u, TODAY)).toBe("You're staying. Premium switches back on once month 4's A$9.99 goes through.");
+    for (const s of [confirmBody(u, TODAY), cancelledStatus(after, TODAY), resumedStatus(u, TODAY)]) {
+      expect(s).not.toMatch(/Premium runs to/);
+    }
   });
 
   it("unpaid and incomplete have words of their own", () => {
     const u = view(ROWS.unpaid, FREE_PROFILE);
-    expect(cardWords(u, TODAY)!.foot).toBe(
-      "Premium is off until the card goes through, and month 3 holds at A$10.99."
-    );
+    expect(cardWords(u, TODAY)!.foot).toBe("Premium is off until month 4's A$9.99 goes through.");
     const i = view(ROWS.incomplete, FREE_PROFILE);
     expect(cardWords(i, TODAY)).toMatchObject({ month: "Month 1", left: { title: "Payment pending" } });
     expect(settingsLine(i, TODAY)).toBe("Payment pending");
@@ -363,19 +433,21 @@ describe("the checkout return and the price drop", () => {
 
   it("celebrates once per new month, never on first sight, never for month 1, never past the floor", () => {
     const at = (m: number) => view(row({ ladder_month: m, price_cents: null, next_price_cents: null }));
-    expect(dropDecision(at(4), null)).toEqual({ show: false, store: 4 });
-    expect(dropDecision(at(4), 3)).toEqual({ show: true, store: 4 });
-    expect(dropDecision(at(4), 4)).toEqual({ show: false, store: null });
-    expect(dropDecision(at(1), 1)).toEqual({ show: false, store: null });
-    expect(dropDecision(at(2), 1)).toEqual({ show: true, store: 2 });
+    expect(dropDecision(at(4), null)).toEqual({ show: false, store: 4, from: null });
+    expect(dropDecision(at(4), 3)).toEqual({ show: true, store: 4, from: 3 });
+    expect(dropDecision(at(4), 4)).toEqual({ show: false, store: null, from: null });
+    expect(dropDecision(at(1), 1)).toEqual({ show: false, store: null, from: null });
+    expect(dropDecision(at(2), 1)).toEqual({ show: true, store: 2, from: 1 });
     // A new plan went back down: stored, not celebrated.
-    expect(dropDecision(at(1), 5)).toEqual({ show: false, store: 1 });
+    expect(dropDecision(at(1), 5)).toEqual({ show: false, store: 1, from: null });
     // Past the floor the price holds.
-    expect(dropDecision(at(8), 7)).toEqual({ show: false, store: 8 });
-    expect(dropDecision(at(7), 6)).toEqual({ show: true, store: 7 });
+    expect(dropDecision(at(8), 7)).toEqual({ show: false, store: 8, from: null });
+    expect(dropDecision(at(7), 6)).toEqual({ show: true, store: 7, from: 6 });
+    // Months this device never saw: the drop is from the last one it did.
+    expect(dropDecision(at(9), 5)).toEqual({ show: true, store: 9, from: 5 });
     // Nothing for a plan that is not live, or a free account.
-    expect(dropDecision(view(ROWS.incomplete, FREE_PROFILE), 0)).toEqual({ show: false, store: null });
-    expect(dropDecision(view(null, FREE_PROFILE), null)).toEqual({ show: false, store: null });
+    expect(dropDecision(view(ROWS.incomplete, FREE_PROFILE), 0)).toEqual({ show: false, store: null, from: null });
+    expect(dropDecision(view(null, FREE_PROFILE), null)).toEqual({ show: false, store: null, from: null });
   });
 
   it("reads the stored month defensively", () => {
@@ -403,6 +475,18 @@ describe("the checkout return and the price drop", () => {
       caption: "Your lowest price, every month from here.",
       hop: { from: 6, to: 7 },
     });
+  });
+
+  it("rolls from the price this device last saw, so a skipped month still shows its drop", () => {
+    const at = (m: number) =>
+      view(row({ ladder_month: m, price_cents: null, next_price_cents: null, current_period_end: iso(2026, 11, 25) }));
+    // Last seen in month 5, back in month 9: A$8.99 down to the floor, step 5 to 7.
+    expect(dropWords(at(9), TODAY, 5)).toMatchObject({ fromCents: 899, toCents: 699, hop: { from: 5, to: 7 } });
+    expect(dropWords(at(8), TODAY, 6)).toMatchObject({ fromCents: 799, toCents: 699, hop: { from: 6, to: 7 } });
+    expect(dropWords(at(5), TODAY, 3)).toMatchObject({ fromCents: 1099, toCents: 899, hop: { from: 3, to: 5 } });
+    // No baseline, or a nonsense one: the month before.
+    expect(dropWords(at(5), TODAY)).toMatchObject({ fromCents: 999, hop: { from: 4, to: 5 } });
+    expect(dropWords(at(5), TODAY, 9)).toMatchObject({ fromCents: 999, hop: { from: 4, to: 5 } });
   });
 });
 
@@ -437,7 +521,7 @@ describe("every string", () => {
       confirmBody(v, TODAY),
       cancelledStatus(v, TODAY),
       endingTitle(v, TODAY),
-      endingBody(v),
+      endingBody(v, TODAY),
       resumedStatus(v, TODAY),
       settingsLine(v, TODAY) ?? "",
       dropWords(v, TODAY).bubble,

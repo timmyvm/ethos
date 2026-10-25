@@ -32,7 +32,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { endEveryPlan, hasEnded, voidEndedInvoices } from "@/lib/billing";
 import { getUserFromAuthHeader, supabaseAdmin } from "@/lib/db";
-import { stripeClient } from "@/lib/stripe";
+import { stripeClient, stripeLivemode } from "@/lib/stripe";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -87,7 +87,7 @@ export async function DELETE(req: NextRequest) {
     const customerId = plan.stripe_customer_id as string;
     if (stripe) {
       try {
-        cancelled = await endEveryPlan(stripe, customerId);
+        cancelled = await endEveryPlan(stripe, customerId, { livemode: stripeLivemode() });
       } catch (e) {
         console.error(
           "account delete: plan cancel failed",
@@ -98,7 +98,7 @@ export async function DELETE(req: NextRequest) {
       // A cancelled plan's declined renewal stays payable from its email;
       // nothing on an account that is gone should be.
       try {
-        await voidEndedInvoices(stripe, customerId);
+        await voidEndedInvoices(stripe, customerId, { livemode: stripeLivemode() });
       } catch (e) {
         console.error(
           "account delete: unpaid invoice void failed",

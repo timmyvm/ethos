@@ -135,7 +135,8 @@ export class FakeStripeError extends Error {
   constructor(
     readonly code: string,
     message: string,
-    readonly statusCode = 400
+    readonly statusCode = 400,
+    readonly param?: string
   ) {
     super(message);
   }
@@ -193,6 +194,20 @@ export function fakeStripe() {
     const out = run();
     state.idempotent.set(key, clone(out));
     return out;
+  }
+
+  /**
+   * A customer this key can see. Stripe answers resource_missing for one
+   * it can't: made in the other mode, or never made. A deleted customer
+   * still lists its (cancelled) subscriptions and invoices, but nothing
+   * new can be made on it.
+   */
+  function seeCustomer(id: string | undefined, opts: { making?: boolean } = {}): void {
+    if (!id) return;
+    const found = state.customers.get(id);
+    if (!found || (opts.making && found.deleted)) {
+      throw new FakeStripeError("resource_missing", `No such customer: '${id}'`, 400, "customer");
+    }
   }
 
   function sub(id: string): FakeSubscription {
@@ -304,6 +319,7 @@ export function fakeStripe() {
     subscriptions: {
       async list(params: ListParams & { customer?: string; status?: string }) {
         record("subscriptions.list", [params]);
+        seeCustomer(params.customer);
         const rows = newestFirst(state.subs).filter(
           (s) =>
             (!params.customer || s.customer === params.customer) &&
@@ -367,6 +383,7 @@ export function fakeStripe() {
         params: ListParams & { subscription?: string; customer?: string; status?: string }
       ) {
         record("invoices.list", [params]);
+        seeCustomer(params.customer);
         const rows = newestFirst(state.invoices).filter(
           (inv) =>
             (!params.subscription ||
@@ -394,6 +411,7 @@ export function fakeStripe() {
       sessions: {
         async create(params: Record<string, unknown>) {
           record("checkout.sessions.create", [params]);
+          seeCustomer(params.customer as string | undefined, { making: true });
           const id = nextId("cs_test");
           const made: FakeSession = {
             id,
@@ -409,6 +427,7 @@ export function fakeStripe() {
         },
         async list(params: ListParams & { customer?: string; status?: string }) {
           record("checkout.sessions.list", [params]);
+          seeCustomer(params.customer);
           const rows = [...state.sessions]
             .reverse()
             .filter(
@@ -441,6 +460,7 @@ export function fakeStripe() {
       sessions: {
         async create(params: Record<string, unknown>) {
           record("billingPortal.sessions.create", [params]);
+          seeCustomer(params.customer as string | undefined, { making: true });
           const id = nextId("bps");
           return { id, object: "billing_portal.session", url: `https://billing.stripe.test/p/session/${id}` };
         },
@@ -463,6 +483,27 @@ export function fakeStripe() {
       };
       state.customers.set(customer.id, customer);
       return customer.id;
+    },
+
+    /**
+     * The server's key moved to the other mode (test to live): this
+     * customer, and everything on it, is out of its sight.
+     */
+    otherMode(customerId: string): void {
+      state.customers.delete(customerId);
+    },
+
+    /** Deleted in the dashboard: Stripe cancels its plans at once. */
+    deleteCustomer(customerId: string): void {
+      const found = state.customers.get(customerId);
+      if (!found) throw new Error(`no customer ${customerId}`);
+      found.deleted = true;
+      for (const s of state.subs) {
+        if (s.customer === customerId && s.status !== "canceled" && s.status !== "incomplete_expired") {
+          s.status = "canceled";
+          s.ended_at = state.clock;
+        }
+      }
     },
 
     /** Checkout completes: a new plan on month 1's price, its first month paid. */

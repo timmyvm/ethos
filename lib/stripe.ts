@@ -33,6 +33,18 @@ export function stripeClient(): Stripe | null {
   return cached.client;
 }
 
+/**
+ * Whether the key charges real money (sk_live_ or rk_live_). Billing
+ * reads it to tell a customer this key can't see because it belongs to
+ * the other mode (a test customer left in the database after the switch
+ * to live, which can never be charged and is safe to forget) from one it
+ * can't see because this server runs on a test key (a Preview on the
+ * production database, where forgetting it would lose a live plan).
+ */
+export function stripeLivemode(): boolean {
+  return /^(sk|rk)_live_/.test(process.env.STRIPE_SECRET_KEY?.trim() ?? "");
+}
+
 /** The webhook's signing secret, or null when unset. */
 export function webhookSecret(): string | null {
   return process.env.STRIPE_WEBHOOK_SECRET?.trim() || null;

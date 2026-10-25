@@ -16,6 +16,7 @@ const h = vi.hoisted(() => ({
   stripe: null as unknown,
   db: null as unknown,
   secret: null as string | null,
+  live: false,
   /** Bearer token -> the user it resolves to. */
   sessions: new Map<string, { id: string; anonymous: boolean; email: string | null }>(),
   limited: new Set<string>(),
@@ -25,6 +26,7 @@ vi.mock("@/lib/stripe", () => ({
   stripeClient: () => h.stripe,
   webhookSecret: () => h.secret,
   billingConfigured: () => Boolean(h.stripe && h.secret),
+  stripeLivemode: () => h.live,
 }));
 vi.mock("@/lib/db", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/db")>()),
@@ -61,6 +63,7 @@ beforeEach(() => {
   h.stripe = stripe.asStripe();
   h.db = db.asClient();
   h.secret = "whsec_test";
+  h.live = false;
   h.sessions.clear();
   h.sessions.set("tok_user", { id: USER, anonymous: false, email: "tim@example.com" });
   h.sessions.set("tok_anon", { id: ANON, anonymous: true, email: null });
@@ -206,6 +209,30 @@ describe("POST /api/billing/checkout", () => {
     expect(String(res.body.error)).not.toMatch(/—/);
     expect(stripe.sim.writes()).toEqual([]);
     expect(db.row("billing", USER)).toBeUndefined();
+  });
+});
+
+describe("a test-mode plan left in the database after the switch to live keys", () => {
+  it("never locks checkout, the portal or deleting the account", async () => {
+    const { customer } = await paying();
+    h.live = true;
+    stripe.sim.otherMode(customer);
+
+    expect((await call(portal)).status).toBe(404);
+    const opened = await call(checkout);
+    expect(opened.status).toBe(200);
+    expect(opened.body.url).toBeTruthy();
+    expect(db.row("billing", USER)!.stripe_customer_id).not.toBe(customer);
+
+    expect((await call(deleteAccount, { method: "DELETE" })).status).toBe(200);
+    expect(db.state.deletedUsers).toEqual([USER]);
+  });
+
+  it("deletes nothing when the only key is test and the row is live", async () => {
+    const { customer } = await paying();
+    stripe.sim.otherMode(customer);
+    expect((await call(deleteAccount, { method: "DELETE" })).status).toBe(502);
+    expect(db.state.deletedUsers).toEqual([]);
   });
 });
 

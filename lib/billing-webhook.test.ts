@@ -17,12 +17,14 @@ const h = vi.hoisted(() => ({
   stripe: null as unknown,
   db: null as unknown,
   secret: null as string | null,
+  live: false,
 }));
 
 vi.mock("@/lib/stripe", () => ({
   stripeClient: () => h.stripe,
   webhookSecret: () => h.secret,
   billingConfigured: () => Boolean(h.stripe && h.secret),
+  stripeLivemode: () => h.live,
 }));
 vi.mock("@/lib/db", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/db")>()),
@@ -41,6 +43,7 @@ beforeEach(() => {
   h.stripe = stripe.asStripe();
   h.db = db.asClient();
   h.secret = SECRET;
+  h.live = false;
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
 

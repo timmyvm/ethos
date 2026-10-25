@@ -33,10 +33,15 @@ const USER = "6f1c2b9e-0d4a-4c1e-9a77-3b2f5e8d1c40";
 const SITE = "https://speakethos.com";
 const DAY_S = 86_400;
 
-function world(users: string[] = [USER]) {
+function world(users: string[] = [USER], opts: { live?: boolean } = {}) {
   const stripe = fakeStripe();
   const db = fakeDb(users);
-  const deps = { stripe: stripe.asStripe(), db: db.asClient(), now: () => stripe.now() };
+  const deps = {
+    stripe: stripe.asStripe(),
+    db: db.asClient(),
+    now: () => stripe.now(),
+    livemode: opts.live ?? false,
+  };
   return { stripe, db, deps, sim: stripe.sim };
 }
 
@@ -288,6 +293,7 @@ describe("an ended plan's unpaid invoice", () => {
     w.sim.renew(w.sub, { paid: false }); // past_due
     await endEveryPlan(w.deps.stripe, w.customer);
     await voidEndedInvoices(w.deps.stripe, w.customer);
+    expect(w.sim.callsTo("invoices.voidInvoice")).toHaveLength(1);
     expect(w.sim.sub(w.sub).status).toBe("canceled");
     expect(w.stripe.state.invoices.at(-1)!.status).toBe("void");
   });
@@ -993,6 +999,72 @@ describe("who a customer is", () => {
     const impostor = w.sim.customer(USER);
     await expect(syncCustomer(w.deps, impostor)).resolves.toBeNull();
     expect(w.db.row("billing", USER)?.stripe_customer_id).toBe(mine);
+  });
+});
+
+describe("a customer this key can't see", () => {
+  const open = (w: World) =>
+    createCheckout(w.deps, { userId: USER, email: "tim@example.com", site: SITE, returnTo: "/you" });
+
+  it("a test-mode row under live keys: the stale plan clears, and checkout opens on a new customer", async () => {
+    const w = await paying(world([USER], { live: true }));
+    w.sim.otherMode(w.customer); // the end-to-end test ran in test mode on this database
+
+    const synced = await syncUser(w.deps, USER);
+    expect(synced).toEqual({
+      billing: expect.objectContaining({ status: null, ladder_month: 0, next_price_cents: null }),
+      premium: false,
+    });
+    expect(w.db.row("profiles", USER)).toMatchObject({ premium: false, premium_source: null });
+
+    expect(await open(w)).toEqual({ url: expect.stringMatching(/^https:/) });
+    const fresh = w.db.row("billing", USER)!.stripe_customer_id as string;
+    expect(fresh).not.toBe(w.customer);
+    expect(w.sim.callsTo("customers.create").at(-1)?.args[1]).toEqual({
+      idempotencyKey: `ethos-customer-${USER}-${w.customer}`,
+    });
+    expect(w.stripe.state.sessions.at(-1)?.customer).toBe(fresh);
+  });
+
+  it("a test-mode row under live keys never blocks account deletion", async () => {
+    const w = await paying(world([USER], { live: true }));
+    w.sim.otherMode(w.customer);
+    expect(await endEveryPlan(w.deps.stripe, w.customer, { livemode: true })).toBe(0);
+    expect(await voidEndedInvoices(w.deps.stripe, w.customer, { livemode: true })).toBe(0);
+  });
+
+  it("the portal answers 404 for a test-mode plan under live keys, and clears it", async () => {
+    const w = await paying(world([USER], { live: true }));
+    w.sim.otherMode(w.customer);
+    await expect(
+      openPortal(w.deps, { userId: USER, site: SITE, returnTo: "/you" })
+    ).rejects.toMatchObject({ status: 404 });
+    expect(w.db.row("billing", USER)).toMatchObject({ stripe_subscription_id: null, status: null });
+  });
+
+  it("a customer deleted in the dashboard: checkout opens on a new one", async () => {
+    const w = await paying();
+    w.sim.deleteCustomer(w.customer);
+    await syncUser(w.deps, USER);
+    expect(w.db.row("profiles", USER)).toMatchObject({ premium: false });
+
+    expect(await open(w)).toEqual({ url: expect.stringMatching(/^https:/) });
+    expect(w.db.row("billing", USER)!.stripe_customer_id).not.toBe(w.customer);
+  });
+
+  it("under a test key a live row is never touched: sync, checkout and deletion all stop", async () => {
+    const w = await paying(world([USER], { live: false }));
+    const before = structuredClone(w.db.row("billing", USER));
+    w.sim.otherMode(w.customer); // a Preview with test keys on the production database
+
+    await expect(syncUser(w.deps, USER)).rejects.toMatchObject({ code: "resource_missing" });
+    await expect(open(w)).rejects.toMatchObject({ code: "resource_missing" });
+    await expect(endEveryPlan(w.deps.stripe, w.customer)).rejects.toMatchObject({
+      code: "resource_missing",
+    });
+    expect(w.db.row("billing", USER)).toEqual(before);
+    expect(w.db.row("profiles", USER)).toMatchObject({ premium: true });
+    expect(w.sim.callsTo("customers.create")).toEqual([]);
   });
 });
 

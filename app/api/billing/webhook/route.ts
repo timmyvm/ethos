@@ -14,7 +14,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { HANDLED_EVENTS, customerIdOf, syncCustomer } from "@/lib/billing";
 import { supabaseAdmin } from "@/lib/db";
-import { stripeClient, webhookSecret } from "@/lib/stripe";
+import { stripeClient, stripeLivemode, webhookSecret } from "@/lib/stripe";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    await syncCustomer({ stripe, db }, customerId);
+    await syncCustomer({ stripe, db, livemode: stripeLivemode() }, customerId);
   } catch (e) {
     console.error(
       `billing webhook: sync failed for ${event.type} ${event.id} (${customerId})`,

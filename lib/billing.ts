@@ -51,7 +51,7 @@ import {
   rungIndex,
 } from "./pricing";
 import { consumeRateLimit } from "./rate-limit";
-import { billingConfigured, stripeClient } from "./stripe";
+import { billingConfigured, stripeClient, stripeLivemode } from "./stripe";
 
 // ---------------------------------------------------------------------
 // Statuses
@@ -154,6 +154,11 @@ export interface BillingDeps {
   db: SupabaseClient;
   /** The clock, for tests. */
   now?: () => Date;
+  /**
+   * The key charges real money (lib/stripe.ts stripeLivemode). Only then
+   * is a customer it can't see forgotten; on a test key it fails closed.
+   */
+  livemode?: boolean;
 }
 
 export interface SyncResult {
@@ -311,10 +316,52 @@ async function billingBy(
   return (data as unknown as StoredBilling | null) ?? null;
 }
 
+/** Stripe's answer for a customer id it can't see. */
+function missingCustomer(e: unknown): boolean {
+  const x = e as { code?: string; param?: string; message?: string } | null;
+  return (
+    x?.code === "resource_missing" &&
+    (x.param === "customer" || /no such customer/i.test(x.message ?? ""))
+  );
+}
+
+/**
+ * Whether a stored customer can never be charged by this key: deleted in
+ * the dashboard (Stripe cancelled its plans), or, on a live key, one the
+ * key can't see at all (a test customer left behind by the switch to
+ * live). On a test key a customer it can't see may be a live one, so
+ * that throws, and nothing is forgotten.
+ */
+async function customerGone(
+  stripe: Stripe,
+  customerId: string,
+  livemode: boolean | undefined
+): Promise<boolean> {
+  try {
+    const customer = await stripe.customers.retrieve(customerId);
+    return "deleted" in customer && customer.deleted === true;
+  } catch (e) {
+    if (livemode && (e as { code?: string } | null)?.code === "resource_missing") return true;
+    throw e;
+  }
+}
+
+/** A billing row's plan columns with no plan in them. */
+const NO_PLAN_ROW: BillingRow = {
+  status: null,
+  ladder_month: 0,
+  price_cents: null,
+  next_price_cents: null,
+  current_period_end: null,
+  cancel_at_period_end: false,
+};
+
 /**
  * The account's Stripe customer, made on first need. The idempotency
  * key makes two taps one customer; a lost insert race re-reads the
- * winner's row.
+ * winner's row. A stored customer this key can never charge (deleted, or
+ * the other mode's) is replaced, under a key of its own so Stripe never
+ * replays the old one.
  */
 export async function ensureCustomer(
   deps: BillingDeps,
@@ -322,7 +369,23 @@ export async function ensureCustomer(
   email: string | null
 ): Promise<string> {
   const existing = await billingBy(deps.db, "user_id", userId);
-  if (existing) return existing.stripe_customer_id;
+  if (existing) {
+    const stale = existing.stripe_customer_id;
+    if (!(await customerGone(deps.stripe, stale, deps.livemode))) return stale;
+    const customer = await deps.stripe.customers.create(
+      { ...(email ? { email } : {}), metadata: { user_id: userId } },
+      { idempotencyKey: `ethos-customer-${userId}-${stale}` }
+    );
+    const { error } = await deps.db
+      .from("billing")
+      .update({ stripe_customer_id: customer.id, stripe_subscription_id: null, ...NO_PLAN_ROW })
+      .eq("user_id", userId)
+      .eq("stripe_customer_id", stale);
+    if (error) throw new Error(`billing write failed: ${error.message}`);
+    console.error(`billing: ${userId} moved off ${stale}, which this key can't charge, to ${customer.id}`);
+    // Another request may have replaced it first; the row says which won.
+    return (await billingBy(deps.db, "user_id", userId))?.stripe_customer_id ?? customer.id;
+  }
 
   const customer = await deps.stripe.customers.create(
     { ...(email ? { email } : {}), metadata: { user_id: userId } },
@@ -659,6 +722,7 @@ async function syncInner(
   for (let pass = 1; ; pass++) {
     const out = await syncPass(deps, customerId, userId);
     if (!out) return null;
+    if (out.print === null) return out.synced; // nothing left in Stripe to check against
     const subs = (
       await deps.stripe.subscriptions.list({ customer: customerId, status: "all", limit: 20 })
     ).data;
@@ -676,13 +740,21 @@ async function syncPass(
   deps: BillingDeps,
   customerId: string,
   userId: string
-): Promise<{ synced: Synced; print: string } | null> {
+): Promise<{ synced: Synced; print: string | null } | null> {
   const { stripe, db } = deps;
   const now = deps.now?.() ?? new Date();
 
-  const subs = (
-    await stripe.subscriptions.list({ customer: customerId, status: "all", limit: 20 })
-  ).data;
+  let subs: Stripe.Subscription[];
+  try {
+    subs = (
+      await stripe.subscriptions.list({ customer: customerId, status: "all", limit: 20 })
+    ).data;
+  } catch (e) {
+    if (missingCustomer(e) && (await customerGone(stripe, customerId, deps.livemode))) {
+      return { synced: await forgetPlan(deps, customerId, userId, now), print: null };
+    }
+    throw e;
+  }
   const plan = await currentPlan(stripe, customerId, subs);
   const sub = plan?.sub ?? null;
   const months = plan?.months ?? 0;
@@ -737,7 +809,7 @@ async function syncPass(
         return items.length > 0 && items.every((i) => onLadder(i.price, rungs));
       };
       const ended = await endPlans(stripe, customerId, ours);
-      await voidEndedInvoices(stripe, customerId, ours);
+      await voidEndedOn(stripe, customerId, ours);
       console.error(
         `billing: user ${userId} no longer exists; ${customerId} not synced` +
           (ended > 0 ? `; ended ${ended} plan(s), and any month already paid needs a refund by hand` : "")
@@ -792,6 +864,37 @@ async function syncPass(
     synced: { userId, customerId, subs: read, subscription, billing, premium, stepError, voidError },
     // What Stripe should hold now: the read, with the plan as stepped.
     print: readPrint(read, sub ? months : 0),
+  };
+}
+
+/**
+ * The row of a customer this key can never charge (a test customer after
+ * the switch to live keys) no longer shows its plan, and the Premium it
+ * gave ends. The customer id stays until checkout replaces it.
+ */
+async function forgetPlan(
+  deps: BillingDeps,
+  customerId: string,
+  userId: string,
+  now: Date
+): Promise<Synced> {
+  const { error } = await deps.db
+    .from("billing")
+    .update({ stripe_subscription_id: null, ...NO_PLAN_ROW, updated_at: now.toISOString() })
+    .eq("user_id", userId)
+    .eq("stripe_customer_id", customerId);
+  if (error) throw new Error(`billing write failed: ${error.message}`);
+  const premium = await writeEntitlement(deps.db, userId, false, null, now);
+  console.error(`billing: ${customerId} can't be charged by this key; ${userId}'s plan cleared`);
+  return {
+    userId,
+    customerId,
+    subs: [],
+    subscription: null,
+    billing: { ...NO_PLAN_ROW },
+    premium,
+    stepError: null,
+    voidError: null,
   };
 }
 
@@ -856,7 +959,21 @@ async function voidUnpaid(
 export async function voidEndedInvoices(
   stripe: Stripe,
   customerId: string,
-  which: (sub: Stripe.Subscription) => boolean = () => true
+  opts: { which?: (sub: Stripe.Subscription) => boolean; livemode?: boolean } = {}
+): Promise<number> {
+  try {
+    return await voidEndedOn(stripe, customerId, opts.which ?? (() => true));
+  } catch (e) {
+    // The other mode's customer: nothing on it can be paid with this key.
+    if (missingCustomer(e) && (await customerGone(stripe, customerId, opts.livemode))) return 0;
+    throw e;
+  }
+}
+
+async function voidEndedOn(
+  stripe: Stripe,
+  customerId: string,
+  which: (sub: Stripe.Subscription) => boolean
 ): Promise<number> {
   const ended = new Set<string>();
   let after: string | undefined;
@@ -1164,11 +1281,21 @@ export async function openPortal(
     const synced = await syncForRoute(deps, row.stripe_customer_id);
     if (!synced?.subscription) throw new BillingError(404, NO_PLAN);
   }
-  const session = await deps.stripe.billingPortal.sessions.create({
-    customer: row.stripe_customer_id,
-    return_url: `${opts.site}${opts.returnTo}`,
-    ...(opts.configuration ? { configuration: opts.configuration } : {}),
-  });
+  let session: Stripe.BillingPortal.Session;
+  try {
+    session = await deps.stripe.billingPortal.sessions.create({
+      customer: row.stripe_customer_id,
+      return_url: `${opts.site}${opts.returnTo}`,
+      ...(opts.configuration ? { configuration: opts.configuration } : {}),
+    });
+  } catch (e) {
+    // A customer this key can never charge: its row is cleared, and there's no plan here.
+    if (!missingCustomer(e) || !(await customerGone(deps.stripe, row.stripe_customer_id, deps.livemode))) {
+      throw e;
+    }
+    await syncForRoute(deps, row.stripe_customer_id);
+    throw new BillingError(404, NO_PLAN);
+  }
   return session.url;
 }
 
@@ -1203,11 +1330,22 @@ async function endPlans(
  * that has not ended is cancelled now, so a deleted account is never
  * charged again. Closing first matters: a Checkout paid in between has
  * made its plan by the time the cancel pass lists them, so it is caught.
- * Returns how many plans it ended.
+ * Returns how many plans it ended. A customer a live key can't see (a
+ * test customer after the switch to live) has nothing it could charge,
+ * so it ends none; on a test key that fails closed.
  */
-export async function endEveryPlan(stripe: Stripe, customerId: string): Promise<number> {
-  await expireOpenCheckouts(stripe, customerId);
-  return endPlans(stripe, customerId, () => true);
+export async function endEveryPlan(
+  stripe: Stripe,
+  customerId: string,
+  opts: { livemode?: boolean } = {}
+): Promise<number> {
+  try {
+    await expireOpenCheckouts(stripe, customerId);
+    return await endPlans(stripe, customerId, () => true);
+  } catch (e) {
+    if (missingCustomer(e) && (await customerGone(stripe, customerId, opts.livemode))) return 0;
+    throw e;
+  }
 }
 
 // ---------------------------------------------------------------------
@@ -1320,7 +1458,7 @@ export async function guardBillingRoute(
     };
   }
 
-  return { ok: true, auth, deps: { stripe, db } };
+  return { ok: true, auth, deps: { stripe, db, livemode: stripeLivemode() } };
 }
 
 /** A failed billing call as the person reads it; the detail goes to the log. */

@@ -28,7 +28,12 @@
  *      Premium starting or ending;
  *   5. the step: a live plan's item moves to the rung for month + 1.
  *      When it cannot, the row's next price is what Stripe will really
- *      charge, never the rung it missed, and the webhook retries.
+ *      charge, never the rung it missed, and the webhook retries;
+ *   6. the void: an ended plan's unpaid invoices are voided, so nobody
+ *      can pay for a month Premium never covers.
+ *
+ * Checkout closes every older open Checkout first, so two tabs never
+ * become two plans; an in-app cancel ends every live plan regardless.
  *
  * Fail closed on money: every price is checked against LADDER_CENTS
  * before anyone is charged it, so Stripe never bills an amount the
@@ -446,7 +451,8 @@ function entitledRank(status: string): number {
  * The plan this account is on: the newest candidate, or with several,
  * the one with the most paid months (then the one Premium runs on, then
  * the newest). Nothing is cancelled automatically; a duplicate is
- * logged for a person to look at.
+ * logged for a person to look at. Checkout closes older sessions so one
+ * should never start, and an in-app cancel ends every live plan.
  */
 async function currentPlan(
   stripe: Stripe,

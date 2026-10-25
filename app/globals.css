@@ -3958,10 +3958,14 @@ summary::-webkit-details-marker {
     bottom var(--spring-snappy-duration) var(--spring-snappy),
     translate var(--spring-snappy-duration) var(--spring-snappy);
 }
+/* The finger's press reaches the Paw on contact; its travel keeps the
+   spring. */
 .stair-token[data-pressed] {
   translate: 0 2px;
-  transition-duration: var(--duration-fast);
-  transition-timing-function: var(--ease-out);
+  transition:
+    left var(--spring-snappy-duration) var(--spring-snappy),
+    bottom var(--spring-snappy-duration) var(--spring-snappy),
+    translate var(--duration-fast) var(--ease-out);
 }
 .stair-token-body {
   display: flex;

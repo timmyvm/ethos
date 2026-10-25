@@ -271,6 +271,20 @@ describe("POST /api/billing/cancel and /resume", () => {
     });
   });
 
+  it("answers 200, never 'didn't cancel', when the cancel went through and only the copy failed", async () => {
+    const { sub } = await paying();
+    const update = stripe.api.subscriptions.update;
+    stripe.api.subscriptions.update = async (...args: Parameters<typeof update>) => {
+      const out = await update(...args);
+      db.state.fail.push({ table: "billing", op: "upsert", error: { code: "08006", message: "down" } });
+      return out;
+    };
+    const res = await call(cancel);
+    expect(res.status).toBe(200);
+    expect(res.body.billing).toMatchObject({ cancel_at_period_end: true });
+    expect(stripe.sim.sub(sub).cancel_at_period_end).toBe(true);
+  });
+
   it("answers 404 with no plan and 409 once the plan has ended", async () => {
     expect((await call(cancel)).status).toBe(404);
     expect((await call(resume)).status).toBe(404);

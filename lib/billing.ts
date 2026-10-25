@@ -886,6 +886,29 @@ async function syncedPlan(
 // Cancel and resume
 
 /**
+ * After a Stripe write that went through: the synced copy, or, when that
+ * sync fails, `fallback`, built from what Stripe now holds. A change that
+ * happened is never answered as one that didn't; the webhook the change
+ * fires repairs the copy.
+ */
+async function afterWrite(
+  deps: BillingDeps,
+  customerId: string,
+  fallback: SyncResult
+): Promise<SyncResult> {
+  try {
+    const after = await syncForRoute(deps, customerId);
+    return after ? { billing: after.billing, premium: after.premium } : fallback;
+  } catch (e) {
+    console.error(
+      `billing: Stripe changed ${customerId}, but the copy didn't sync; the webhook will repair it`,
+      explain(e)
+    );
+    return fallback;
+  }
+}
+
+/**
  * Cancel at the end of the paid month: Premium runs until then, and the
  * plan keeps its place on the ladder until the cancel takes effect.
  *
@@ -907,10 +930,10 @@ export async function cancelPlan(deps: BillingDeps, userId: string): Promise<Syn
   for (const s of toEnd) {
     await deps.stripe.subscriptions.update(s.id, cancelAtPeriodEnd(s));
   }
-  const after = await syncForRoute(deps, synced.customerId);
-  return after
-    ? { billing: after.billing, premium: after.premium }
-    : { billing: synced.billing, premium: synced.premium };
+  return afterWrite(deps, synced.customerId, {
+    billing: { ...synced.billing, cancel_at_period_end: true, next_price_cents: null },
+    premium: synced.premium,
+  });
 }
 
 /**
@@ -926,18 +949,29 @@ export async function resumePlan(deps: BillingDeps, userId: string): Promise<Syn
     return { billing: synced.billing, premium: synced.premium };
   }
 
-  const updated = await deps.stripe.subscriptions.update(
+  let updated = await deps.stripe.subscriptions.update(
     sub.id,
     sub.cancel_at_period_end ? { cancel_at_period_end: false } : { cancel_at: "" }
   );
-  // A cancel_at date can outlive the flag; clear it too.
+  // A cancel_at date can outlive the flag; clear it too. Still ending if
+  // this fails, which is close to unchanged, so it may answer 502.
   if (updated.cancel_at != null) {
-    await deps.stripe.subscriptions.update(sub.id, { cancel_at: "" });
+    updated = await deps.stripe.subscriptions.update(sub.id, { cancel_at: "" });
   }
-  const after = await syncForRoute(deps, synced.customerId);
-  return after
-    ? { billing: after.billing, premium: after.premium }
-    : { billing: synced.billing, premium: synced.premium };
+  // An earlier cancel date may have shortened the end the row showed.
+  const end = updated.items?.data?.[0]?.current_period_end;
+  return afterWrite(deps, synced.customerId, {
+    billing: {
+      ...synced.billing,
+      status: updated.status,
+      cancel_at_period_end: false,
+      next_price_cents:
+        renewalCents(updated) ?? priceForMonth(synced.billing.ladder_month + 1),
+      current_period_end:
+        end != null ? new Date(end * 1000).toISOString() : synced.billing.current_period_end,
+    },
+    premium: synced.premium,
+  });
 }
 
 // ---------------------------------------------------------------------

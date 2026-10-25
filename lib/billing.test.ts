@@ -389,6 +389,51 @@ describe("cancel and resume", () => {
     expect(w.sim.renew(w.sub)).toBe(999);
   });
 
+  it("answers what Stripe now holds when the copy fails to sync after a cancel went through", async () => {
+    const w = await paying();
+    const update = w.stripe.api.subscriptions.update;
+    w.stripe.api.subscriptions.update = async (...args: Parameters<typeof update>) => {
+      const out = await update(...args);
+      // Supabase blips right after Stripe took the change.
+      w.db.state.fail.push({ table: "billing", op: "upsert", error: { code: "08006", message: "down" } });
+      return out;
+    };
+
+    const out = await cancelPlan(w.deps, USER);
+    expect(w.sim.sub(w.sub).cancel_at_period_end).toBe(true);
+    expect(out).toEqual({
+      billing: expect.objectContaining({ cancel_at_period_end: true, next_price_cents: null }),
+      premium: true,
+    });
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining("the webhook will repair it"),
+      expect.stringContaining("billing write failed")
+    );
+  });
+
+  it("answers what Stripe now holds when the copy fails to sync after a resume went through", async () => {
+    const w = await paying();
+    await cancelPlan(w.deps, USER);
+    const update = w.stripe.api.subscriptions.update;
+    w.stripe.api.subscriptions.update = async (...args: Parameters<typeof update>) => {
+      const out = await update(...args);
+      w.db.state.fail.push({ table: "profiles", op: "upsert", error: { code: "08006", message: "down" } });
+      return out;
+    };
+
+    const out = await resumePlan(w.deps, USER);
+    expect(w.sim.sub(w.sub).cancel_at_period_end).toBe(false);
+    expect(out).toEqual({
+      billing: expect.objectContaining({
+        status: "active",
+        cancel_at_period_end: false,
+        next_price_cents: 1199,
+        current_period_end: new Date(w.sim.sub(w.sub).items.data[0].current_period_end * 1000).toISOString(),
+      }),
+      premium: true,
+    });
+  });
+
   it("refuses a second cancel, and a resume or cancel once the plan has ended", async () => {
     const w = await paying();
     await cancelPlan(w.deps, USER);

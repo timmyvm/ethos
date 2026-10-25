@@ -229,7 +229,9 @@ export function planView(
       priceCents,
       nextPriceCents: next,
       periodEnd: parseDate(billing.current_period_end),
-      calendar: calendarFromBilling(billing),
+      // A first payment still pending is month 1 in progress: its period
+      // end is where month 2 starts, not month 1.
+      calendar: calendarFromBilling(kind === "incomplete" ? { ...billing, ladder_month: Math.max(1, month) } : billing),
       live: kind !== "incomplete",
     };
   }

@@ -182,6 +182,8 @@ describe("the plan state machine", () => {
     expect(view(row({ next_price_cents: 1099 })).nextPriceCents).toBe(1099);
     const i = view(ROWS.incomplete, FREE_PROFILE);
     expect([i.month, i.step, i.priceCents, i.nextPriceCents, i.live]).toEqual([0, 1, 1299, null, false]);
+    // Pending is month 1 in progress: its period end starts month 2, so month 1 is labelled now.
+    expect(stepLabels(i.calendar).slice(0, 2)).toEqual(["Oct", "Nov"]);
   });
 
   it("never draws unknown as free or as zero", () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { prefersReducedMotion } from "@/lib/prefs";
 import {
   SPRING,
@@ -36,6 +36,16 @@ import {
  * left. A full-screen layer fades in and leaves on its own terms (the
  * celebration owns its slow fade), so it closes at once.
  */
+
+/**
+ * The sheet's own way out, for a button inside it ("Done"): the same
+ * exit Escape and the scrim play, so a sheet never cuts to nothing.
+ * Outside an Overlay it answers `fallback`.
+ */
+const CloseContext = createContext<(() => void) | null>(null);
+export function useOverlayClose(fallback: () => void): () => void {
+  return useContext(CloseContext) ?? fallback;
+}
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -334,7 +344,7 @@ export function Overlay({
         }}
         className={`outline-none ${sheet ? "sheet-panel" : "arrive"} ${className}`}
       >
-        {children}
+        <CloseContext.Provider value={requestClose}>{children}</CloseContext.Provider>
       </div>
     </div>
   );

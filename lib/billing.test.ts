@@ -145,6 +145,18 @@ describe("the ladder", () => {
     });
   });
 
+  it("never steps a plan back down a rung, and says what the renewal will really charge", async () => {
+    const w = await paying(); // month 1 paid, the item on month 2's price
+    // A newer sync, or a dashboard edit, already put the item further on.
+    w.sim.sub(w.sub).items.data[0].price = structuredClone(w.stripe.state.priceBook[3]);
+
+    const out = await syncCustomer(w.deps, w.customer);
+    expect(w.sim.itemPrice(w.sub)).toBe("price_m4");
+    expect(w.sim.callsTo("subscriptions.update")).toHaveLength(1); // the first step only
+    expect(out?.billing).toMatchObject({ ladder_month: 1, next_price_cents: 999 });
+    expect(w.db.row("billing", USER)?.next_price_cents).toBe(999);
+  });
+
   it("catches up a step whose webhook never came, before the next renewal", async () => {
     const w = await paying();
     w.sim.renew(w.sub); // month 2 paid at A$11.99, its invoice.paid lost

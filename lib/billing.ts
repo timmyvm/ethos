@@ -44,6 +44,7 @@ import {
   LADDER_CENTS,
   LOOKUP_KEYS,
   formatAud,
+  monthForLookupKey,
   priceForMonth,
   rungIndex,
 } from "./pricing";
@@ -487,7 +488,12 @@ async function writeEntitlement(
   return given;
 }
 
-/** Move a live plan's item to the rung for month + 1. Null when it is already there. */
+/**
+ * Move a live plan's item to the rung for month + 1. Null when it is
+ * already there. Never moves it down: paid months only ever grow, so an
+ * item on a later rung means this sync read Stripe before a newer one
+ * did, and stepping back would charge more than the ladder promised.
+ */
 async function stepRung(
   stripe: Stripe,
   sub: Stripe.Subscription,
@@ -496,6 +502,13 @@ async function stepRung(
 ): Promise<Stripe.Subscription | null> {
   const next = rungFor(await ladderPrices(stripe), months + 1);
   if (item.price.id === next.id) return null;
+  const at = monthForLookupKey(item.price.lookup_key);
+  if (at !== null && rungIndex(at) > rungIndex(months + 1)) {
+    console.error(
+      `billing: ${sub.id} is on month ${at}'s price with ${months} paid; left there, never stepped back`
+    );
+    return null;
+  }
   return stripe.subscriptions.update(
     sub.id,
     { items: [{ id: item.id, price: next.id }], proration_behavior: "none" },
@@ -568,26 +581,25 @@ async function syncInner(
 
   let subscription = sub;
   let stepError: unknown = null;
-  if (sub && live && months >= 1) {
-    if (step) {
-      try {
-        subscription = (await stepRung(stripe, sub, step, months)) ?? sub;
-      } catch (e) {
-        stepError = e;
-      }
+  if (sub && step && live && months >= 1) {
+    try {
+      subscription = (await stepRung(stripe, sub, step, months)) ?? sub;
+    } catch (e) {
+      stepError = e;
     }
-    // The ladder could not put the plan on its rung: say what the next
-    // renewal will really charge, never the rung it missed.
-    if ((stepError || !step) && billing.next_price_cents != null) {
-      const real = renewalCents(sub);
-      if (real !== billing.next_price_cents) {
-        billing.next_price_cents = real;
-        const { error: fixError } = await db
-          .from("billing")
-          .update({ next_price_cents: real })
-          .eq("user_id", userId);
-        if (fixError) throw new Error(`billing write failed: ${fixError.message}`);
-      }
+  }
+  // When the plan is not on its rung after all (the step failed, or the
+  // plan is not one the ladder steps), say what the next renewal will
+  // really charge, never the rung it missed.
+  if (subscription && billing.next_price_cents != null) {
+    const real = renewalCents(subscription);
+    if (real !== billing.next_price_cents) {
+      billing.next_price_cents = real;
+      const { error: fixError } = await db
+        .from("billing")
+        .update({ next_price_cents: real })
+        .eq("user_id", userId);
+      if (fixError) throw new Error(`billing write failed: ${fixError.message}`);
     }
   }
 

@@ -12,6 +12,7 @@ import { readable, readFailure } from "@/lib/load";
 import {
   fetchCoinLedger,
   fetchProfile,
+  fetchRepSpine,
   fetchReps,
   spendCoins,
   updateEquippedPose,
@@ -89,7 +90,11 @@ export default function ShopPage() {
       return;
     }
     setLedger(rows.data);
-    const f = await readable(() => syncFreezes(dates));
+    // The freezes held are earned from the longest run, which only every
+    // recording's date can give; the newest 90 lost the early ones.
+    const f = await readable(async () =>
+      syncFreezes((await fetchRepSpine()).map((r) => new Date(r.created_at)))
+    );
     if (f.ok) setEquipped(f.data.equipped);
   }, []);
 

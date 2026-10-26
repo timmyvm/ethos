@@ -77,6 +77,43 @@ export async function fetchReps(limit = 90): Promise<RepRow[]> {
   return [...((data as RepRow[] | null) ?? [])].reverse();
 }
 
+/**
+ * Every recording the account holds, a few columns each: what the
+ * lifetime numbers are counted from (the streak and the longest run, the
+ * freezes earned from it, the day counter, stars, the recording count,
+ * Day 1). `fetchReps` reads the newest 90 whole rows, which is right for
+ * the tables and wrong for anything that counts from the first day: past
+ * 90 recordings the streak capped and Day 1 moved.
+ */
+export interface RepSpine {
+  created_at: string;
+  lesson_id: string | null;
+  stars: number;
+  ethos_index: number | null;
+}
+
+/** PostgREST answers at most this many rows (max_rows), so the read pages. */
+const SPINE_PAGE = 1000;
+
+export async function fetchRepSpine(): Promise<RepSpine[]> {
+  const db = supabaseBrowser();
+  if (!db) return [];
+  const { data: session } = await db.auth.getSession();
+  if (!session.session) return [];
+  const out: RepSpine[] = [];
+  for (let from = 0; ; from += SPINE_PAGE) {
+    const { data, error } = await db
+      .from("reps")
+      .select("created_at, lesson_id, stars, ethos_index")
+      .order("created_at", { ascending: true })
+      .range(from, from + SPINE_PAGE - 1);
+    if (error) throw error;
+    const page = (data as RepSpine[] | null) ?? [];
+    out.push(...page);
+    if (page.length < SPINE_PAGE) return out;
+  }
+}
+
 export async function fetchRep(id: string): Promise<RepRow | null> {
   const db = supabaseBrowser();
   if (!db) return null;

@@ -18,7 +18,13 @@ import {
 } from "@/components/ui/Skeleton";
 import { Stars } from "@/components/Stars";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { fetchProfile, fetchReps, type RepRow } from "@/lib/client-data";
+import {
+  fetchProfile,
+  fetchRepSpine,
+  fetchReps,
+  type RepRow,
+  type RepSpine,
+} from "@/lib/client-data";
 import { limit } from "@/lib/entitlement";
 import { DURATION } from "@/lib/motion";
 import { ACTION_CLASS } from "@/lib/ui";
@@ -102,6 +108,8 @@ const INSIGHT_TRAIT: Record<string, TraitId> = {
  */
 export default function HistoryPage() {
   const [reps, setReps] = useState<RepRow[] | null>(null);
+  /** Every recording, a few columns each: the counts and Day 1. */
+  const [spine, setSpine] = useState<RepSpine[]>([]);
   /* The clock the free window is cut against, read when the data
      lands rather than on every render. */
   const [readAt, setReadAt] = useState(0);
@@ -116,10 +124,14 @@ export default function HistoryPage() {
   const load = useCallback(async () => {
     setFailed(false);
     setReps(null);
-    const read = await readable(fetchReps);
+    // The newest 90 whole rows for the tables, and every recording's
+    // date, stars and Index for the counts and Day 1, which the newest 90
+    // stopped holding past 90 recordings.
+    const read = await readable(() => Promise.all([fetchReps(), fetchRepSpine()]));
     if (read.ok) {
       setReadAt(Date.now());
-      setReps(read.data);
+      setSpine(read.data[1]);
+      setReps(read.data[0]);
     } else setFailed(true);
   }, []);
 
@@ -209,8 +221,8 @@ export default function HistoryPage() {
   }
 
   const empty = reps.length === 0;
-  const starMap = starsByLesson(reps);
-  const scored = reps.filter((r) => r.ethos_index !== null);
+  const starMap = starsByLesson(spine);
+  const scored = spine.filter((r) => r.ethos_index !== null);
   const firstIndex = scored[0]?.ethos_index ?? null;
   const lastIndex = scored[scored.length - 1]?.ethos_index ?? null;
   // Against the FIRST scored recording, as on Home: the arc, not the
@@ -231,11 +243,16 @@ export default function HistoryPage() {
   const days = limit(FREE_DAYS, premium);
   const cutoff = days === null ? -Infinity : readAt - days * 86_400_000;
   const visible = reps.filter((r) => new Date(r.created_at).getTime() >= cutoff);
-  const hidden = reps.length - visible.length;
+  // Held back by the free window, counted over every recording.
+  const hidden =
+    days === null
+      ? 0
+      : spine.filter((r) => new Date(r.created_at).getTime() < cutoff).length;
   const newestFirst = [...visible].reverse();
-  const since = empty
-    ? null
-    : new Date(reps[0].created_at).toLocaleDateString(undefined, {
+  const since =
+    spine.length === 0
+      ? null
+      : new Date(spine[0].created_at).toLocaleDateString(undefined, {
         day: "numeric",
         month: "short",
       });
@@ -269,7 +286,7 @@ export default function HistoryPage() {
           <ScoreCard
             index={lastIndex}
             delta={indexDelta}
-            recordings={reps.length}
+            recordings={spine.length}
             stars={totalStars(starMap)}
             series={scored.map((r) => r.ethos_index as number)}
             demos

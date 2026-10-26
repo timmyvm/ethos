@@ -43,9 +43,11 @@ import { useHourLabel } from "@/lib/time-label";
 import { achievements } from "@/lib/achievements";
 import {
   fetchProfile,
+  fetchRepSpine,
   fetchReps,
   fetchXp,
   type RepRow,
+  type RepSpine,
 } from "@/lib/client-data";
 import { syncCoins } from "@/lib/coin-sync";
 import {
@@ -334,6 +336,10 @@ function RepScreen() {
   /** The stored list AFTER this recording landed, for the debrief's
    *  day-3 progress moment (the comparison card needs both ends). */
   const [repsNow, setRepsNow] = useState<RepRow[]>([]);
+  /** Every recording after this one landed, a few columns each: the
+   *  stars, the days spoken and the count, which the newest 90 rows
+   *  stopped holding past 90 recordings. */
+  const [spineNow, setSpineNow] = useState<RepSpine[]>([]);
   /**
    * For the save-progress wall (DECISIONS #134). Anonymity is read
    * AFTER the analysis, not on mount — rep 1 has no session until the
@@ -408,11 +414,13 @@ function RepScreen() {
   }, [poseReady, captureMode]);
 
   useEffect(() => {
-    fetchReps()
-      .then(async (rows) => {
-        setRepCount(rows.length);
-        const map = starsByLesson(rows);
-        const streak = computeStreak(rows.map((r) => new Date(r.created_at)));
+    Promise.all([fetchReps(), fetchRepSpine()])
+      .then(async ([rows, all]) => {
+        // Counted over every recording; the newest 90 rows are for the
+        // records, which compare readings.
+        setRepCount(all.length);
+        const map = starsByLesson(all);
+        const streak = computeStreak(all.map((r) => new Date(r.created_at)));
         baselineRef.current = {
           stars: totalStars(map),
           unitsOpen: unitStates(map)
@@ -522,12 +530,15 @@ function RepScreen() {
       // Streak is derived from stored reps, so read it back rather than
       // guessing — a rep that failed to persist shouldn't celebrate.
       const analyzed = data as AnalyzeResponse;
-      fetchReps()
-        .then(async (reps) => {
+      Promise.all([fetchReps(), fetchRepSpine()])
+        .then(async ([reps, all]) => {
           if (!live()) return;
           setRepsNow(reps);
-          const dates = reps.map((x) => new Date(x.created_at));
-          const { streak } = await syncFreezes(dates);
+          setSpineNow(all);
+          // The streak and the freezes it earns count from day one.
+          const { streak } = await syncFreezes(
+            all.map((x) => new Date(x.created_at))
+          );
           if (!live()) return;
           if (streak.current > 0) setCelebrate(streak.current);
           setStreakNow(streak.current);
@@ -549,13 +560,16 @@ function RepScreen() {
           // One coin per day you spoke (§4), and one for a week with
           // five closed challenge days in it (#281). Both granted from
           // the stored reps, so they heal rather than double-paying.
-          syncCoins(dates, reps)
+          syncCoins(
+            reps.map((x) => new Date(x.created_at)),
+            reps
+          )
             .then((c) => setCoined(c.granted.length > 0))
             .catch(() => {});
 
           const before = baselineRef.current;
           if (before) {
-            const map = starsByLesson(reps);
+            const map = starsByLesson(all);
             const openNow = unitStates(map)
               .filter((u) => !u.locked)
               .map((u) => u.name);
@@ -584,7 +598,7 @@ function RepScreen() {
                 gains: nextGains,
                 metrics: analyzed.metrics,
                 streak,
-                repCount: reps.length,
+                repCount: all.length,
               })
             );
           }
@@ -1170,6 +1184,7 @@ function RepScreen() {
           repCountBefore={repCount}
           streakNow={streakNow}
           repsNow={repsNow}
+          spineNow={spineNow}
           onUpgrade={setPaywall}
           onRetake={retake}
         />
@@ -1683,6 +1698,7 @@ function Results({
   repCountBefore,
   streakNow,
   repsNow,
+  spineNow,
   onUpgrade,
   onRetake,
 }: {
@@ -1701,6 +1717,8 @@ function Results({
   repCountBefore: number | null;
   streakNow: number;
   repsNow: RepRow[];
+  /** Every recording after this one, for the stars, days and count. */
+  spineNow: RepSpine[];
   onUpgrade: (ask: PaywallAsk) => void;
   onRetake: () => void;
 }) {
@@ -1717,8 +1735,8 @@ function Results({
   // the history lands, or once every lesson holds three stars, the
   // rotation stands in.
   const pathNext =
-    repsNow.length > 0
-      ? nextLesson(starsByLesson(repsNow))?.lesson
+    spineNow.length > 0
+      ? nextLesson(starsByLesson(spineNow))?.lesson
       : undefined;
   const next = pathNext ?? nextDrill(config.lessonId);
   const again = next.id === config.lessonId;
@@ -1767,11 +1785,11 @@ function Results({
    * ask, and a deferred moment stays due for a later exit.
    */
   const [proTo, setProTo] = useState<string | null>(null);
-  const daysSpoken = trainedDays(repsNow).length;
+  const daysSpoken = trainedDays(spineNow).length;
   const proDue = proMomentDue({
     premium,
     daysSpoken,
-    repCount: repsNow.length,
+    repCount: spineNow.length,
     shown: proMomentShown(),
   });
   /*

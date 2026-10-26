@@ -21,6 +21,10 @@ function query(rows: Row[]) {
       out = out.slice(0, n);
       return Promise.resolve({ data: out, error: null });
     },
+    // PostgREST's max_rows: a response never holds more than 1000 rows,
+    // however wide the range asked for.
+    range: (from: number, to: number) =>
+      Promise.resolve({ data: out.slice(from, Math.min(to + 1, from + 1000)), error: null }),
     maybeSingle: () =>
       Promise.resolve(
         profileError
@@ -38,7 +42,7 @@ vi.mock("./supabase-browser", () => ({
   }),
 }));
 
-const { fetchReps, fetchProfile } = await import("./client-data");
+const { fetchReps, fetchProfile, fetchRepSpine } = await import("./client-data");
 
 const day = (n: number) => new Date(Date.UTC(2026, 0, 1) + n * 86_400_000).toISOString();
 
@@ -82,5 +86,20 @@ describe("fetchProfile", () => {
   it("throws on a failed read instead of answering 'not premium'", async () => {
     profileError = { message: "upstream" };
     await expect(fetchProfile()).rejects.toEqual({ message: "upstream" });
+  });
+});
+
+describe("fetchRepSpine", () => {
+  it("reads every recording, past the 1000 rows one response can hold", async () => {
+    table = Array.from({ length: 1200 }, (_, i) => ({ id: `r${i}`, created_at: day(i) })).reverse();
+    const rows = await fetchRepSpine();
+    expect(rows).toHaveLength(1200);
+    expect(rows[0].created_at).toBe(day(0));
+    expect(rows[rows.length - 1].created_at).toBe(day(1199));
+  });
+
+  it("reads a short history in one page", async () => {
+    table = Array.from({ length: 120 }, (_, i) => ({ id: `r${i}`, created_at: day(i) }));
+    expect(await fetchRepSpine()).toHaveLength(120);
   });
 });

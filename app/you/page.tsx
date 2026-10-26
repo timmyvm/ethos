@@ -25,11 +25,13 @@ import { DURATION } from "@/lib/motion";
 import {
   fetchLexicon,
   fetchProfile,
+  fetchRepSpine,
   fetchReps,
   fetchXp,
   updateDisplayName,
   type LexiconRow,
   type RepRow,
+  type RepSpine,
 } from "@/lib/client-data";
 import { LEVEL_AT, DOUBLE_AT, rankedTraits, traitLevels, type TraitLevel } from "@/lib/traits";
 import { TRAIT, type TraitId } from "@/content/traits";
@@ -104,6 +106,8 @@ export default function YouPage() {
    * height with a bar instead, and `lib/load` is what lets them end.
    */
   const [reps, setReps] = useState<RepRow[] | null>(null);
+  /** Every recording, a few columns each: the lifetime numbers. */
+  const [spine, setSpine] = useState<RepSpine[]>([]);
   const [failed, setFailed] = useState(false);
   /**
    * `null` until the read lands, like `reps` and `xp`. Starting at `[]`
@@ -220,17 +224,22 @@ export default function YouPage() {
   const load = useCallback(async () => {
     setFailed(false);
     setReps(null);
-    const read = await readable(fetchReps);
+    // The newest 90 whole rows for the traits and the badges, and every
+    // recording's date and stars for the numbers that count from day one.
+    const read = await readable(() => Promise.all([fetchReps(), fetchRepSpine()]));
     if (!read.ok) {
       setFailed(true);
       return;
     }
-    const rows = read.data;
+    const [rows, all] = read.data;
+    setSpine(all);
     setReps(rows);
-    const dates = rows.map((r) => new Date(r.created_at));
+    const dates = all.map((r) => new Date(r.created_at));
     setStreak(computeStreak(dates));
     void loadFreezes(dates);
-    void loadCoins(dates);
+    // The coin sync pays new days, which are always among the newest,
+    // and its ledger read is windowed too: the 90 rows' dates suffice.
+    void loadCoins(rows.map((r) => new Date(r.created_at)));
   }, [loadCoins, loadFreezes]);
 
   const loadLexicon = useCallback(() => {
@@ -366,13 +375,15 @@ export default function YouPage() {
   /** The level waits on the XP read; the streak columns on the reps. */
   const xpPending = xp === null && !xpFailed;
   const history = reps ?? [];
+  /* Lifetime counts read every recording, not the newest 90. */
+  const lifetime = reps === null ? [] : spine;
   const level = levelFromXp(xp?.total ?? 0);
   const badges = achievements(history);
   const earnedCount = badges.filter((b) => b.earned).length;
 
   // "Save your progress" gate: appears only after there IS progress
   // (DECISIONS #15: never before the first recording).
-  const showGate = anon === true && history.length >= 1;
+  const showGate = anon === true && lifetime.length >= 1;
 
   /* The gear sits on the large title's row (Imprint's Me, Wellspoken's
      lexicon s1) and its twin joins the bar once the title has handed
@@ -598,7 +609,7 @@ export default function YouPage() {
             <Line className="mt-0.5 text-caption" bar="w-32" align="left" />
           </div>
         ) : (
-          <PlanRow state={onboarding} stars={reps ? totalStars(starsByLesson(reps)) : null} />
+          <PlanRow state={onboarding} stars={reps ? totalStars(starsByLesson(lifetime)) : null} />
         )}
       </section>
 
@@ -872,7 +883,7 @@ export default function YouPage() {
         <section className="card mt-7 p-5">
           <h2 className="detail-head">Save your progress</h2>
           <p className="mt-1 text-caption text-stone-500">
-            {history.length} recording{history.length === 1 ? "" : "s"}
+            {lifetime.length} recording{lifetime.length === 1 ? "" : "s"}
             {streak.current > 0 &&
               ` and ${/^(8|11|18|8\d)$/.test(String(streak.current)) ? "an" : "a"} ${streak.current}-day streak`}{" "}
             live

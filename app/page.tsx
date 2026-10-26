@@ -24,8 +24,10 @@ import { TopicRoulette } from "@/components/TopicRoulette";
 import {
   fetchCoinLedger,
   fetchProfile,
+  fetchRepSpine,
   fetchReps,
   type RepRow,
+  type RepSpine,
 } from "@/lib/client-data";
 import { type Topic } from "@/lib/topics";
 import { sessionState } from "@/lib/auth";
@@ -66,6 +68,8 @@ const EMPTY: StreakState = {
 export default function Home() {
   const router = useRouter();
   const [reps, setReps] = useState<RepRow[] | null>(null);
+  /** Every recording, a few columns each: the lifetime numbers. */
+  const [spine, setSpine] = useState<RepSpine[]>([]);
   const [streak, setStreak] = useState<StreakState>(EMPTY);
   const [rescued, setRescued] = useState(0);
   const [frozen, setFrozen] = useState<Date[]>([]);
@@ -108,14 +112,18 @@ export default function Home() {
   const load = useCallback(async () => {
     setFailed(false);
     setReps(null);
-    const read = await readable(fetchReps);
+    // The newest 90 whole rows for what reads a recording, and every
+    // recording's date and stars for what counts from day one: the
+    // streak, the freezes it earns, the day counter and the stars.
+    const read = await readable(() => Promise.all([fetchReps(), fetchRepSpine()]));
     if (!read.ok) {
       setFailed(true);
       return;
     }
-    const rows = read.data;
+    const [rows, all] = read.data;
+    setSpine(all);
     setReps(rows);
-    const dates = rows.map((r) => new Date(r.created_at));
+    const dates = all.map((r) => new Date(r.created_at));
     // Optimistic: show the unfrozen streak immediately, then reconcile
     // freezes (which may involve a write).
     setStreak(computeStreak(dates));
@@ -172,7 +180,9 @@ export default function Home() {
   }, [load, router]);
 
   const history = reps ?? [];
-  const starMap = starsByLesson(history);
+  /* Lifetime numbers count every recording, not the newest 90. */
+  const lifetime = reps === null ? [] : spine;
+  const starMap = starsByLesson(lifetime);
   const next = nextLesson(starMap);
   // The lesson list decides what is next; the daily rotation is the
   // fallback once every lesson is at three stars.
@@ -202,8 +212,8 @@ export default function Home() {
 
   const focus = nextFocus(history);
   const gap = decayNote(history);
-  const trail = dayTrail(history);
-  const pebbles = pebbleDays(history, frozen);
+  const trail = dayTrail(lifetime);
+  const pebbles = pebbleDays(lifetime, frozen);
 
   /*
    * The floor's headline, and which of the two things names the lesson
@@ -223,7 +233,7 @@ export default function Home() {
    * the history lands nobody is on day one. The lesson name needs no
    * round trip, so the card still paints immediately.
    */
-  const dayOne = reps !== null && history.length === 0;
+  const dayOne = reps !== null && lifetime.length === 0;
   const dayLine = dayOne ? "Day one starts today." : drill.title;
 
   /*
@@ -510,13 +520,13 @@ export default function Home() {
              */}
             {/* A sentence and a text link (today-17): no typed arrow and
                 no middot, the link alone wears the action. */}
-            {anon === true && history.length > 0 && (
+            {anon === true && lifetime.length > 0 && (
               <p className="mt-3 py-3 text-center text-caption text-pretty text-stone-500">
-                {history.length} recording
-                {history.length === 1 ? " lives" : "s live"} only in this
+                {lifetime.length} recording
+                {lifetime.length === 1 ? " lives" : "s live"} only in this
                 browser.{" "}
                 <Link href="/signup" className="text-link text-terracotta-700">
-                  Keep {history.length === 1 ? "it" : "them"}
+                  Keep {lifetime.length === 1 ? "it" : "them"}
                 </Link>
               </p>
             )}

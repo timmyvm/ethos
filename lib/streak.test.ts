@@ -164,3 +164,15 @@ describe("weekStart", () => {
     expect(weekStart(d(2026, 8, 10)).getDate()).toBe(10);
   });
 });
+
+describe("a streak read from every recording", () => {
+  it("counts forty days at three recordings a day as forty", () => {
+    const now = new Date(2026, 9, 26, 8);
+    const dates: Date[] = [];
+    for (let ago = 40; ago >= 1; ago--)
+      for (const h of [9, 13, 19]) dates.push(new Date(2026, 9, 26 - ago, h));
+    expect(computeStreak(dates, now).current).toBe(40);
+    // The newest 90 of them, which is what the screens used to read.
+    expect(computeStreak(dates.slice(-90), now).current).toBe(30);
+  });
+});

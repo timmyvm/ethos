@@ -14,9 +14,12 @@ let repInsert: { data: { id: string } | null; error: { code: string; message: st
 };
 /** What a lookup by (user, client_id) finds. */
 let existing: { id: string } | null = null;
+/** What GoTrue answers for a token. */
+let getUser: () => Promise<unknown> = async () => ({ data: { user: null }, error: null });
 
 function fakeClient() {
   return {
+    auth: { getUser: () => getUser() },
     storage: {
       from: () => ({
         upload: async () => ({ error: null }),
@@ -53,7 +56,7 @@ vi.mock("@supabase/supabase-js", () => ({ createClient: () => fakeClient() }));
 process.env.NEXT_PUBLIC_SUPABASE_URL = "http://supabase.test";
 process.env.SUPABASE_SERVICE_ROLE_KEY = "service";
 
-const { saveRep } = await import("./db");
+const { saveRep, resolveAuthHeader } = await import("./db");
 
 const metrics = {
   durationS: 60,
@@ -119,5 +122,48 @@ describe("saveRep and a recording sent twice", () => {
     expect(inserts.some((i) => i.table === "xp_events")).toBe(false);
     expect(inserts.some((i) => i.table === "lexicon")).toBe(false);
     expect(removed).toHaveLength(1);
+  });
+});
+
+/*
+ * A token that does not resolve used to look like no token at all, and
+ * the recording was stored with no owner while the client deleted its
+ * only copy. The route needs to tell four answers apart.
+ */
+describe("resolveAuthHeader", () => {
+  const user = { id: "u1", is_anonymous: false, email: "t@x.co" };
+
+  it("knows a missing header from a session", async () => {
+    expect(await resolveAuthHeader(null)).toEqual({ kind: "none" });
+    getUser = async () => ({ data: { user }, error: null });
+    expect(await resolveAuthHeader("Bearer t")).toEqual({
+      kind: "user",
+      user: { id: "u1", anonymous: false, email: "t@x.co" },
+    });
+  });
+
+  it("calls an expired or forged token rejected", async () => {
+    getUser = async () => ({
+      data: { user: null },
+      error: { name: "AuthApiError", status: 401, message: "invalid JWT: token is expired" },
+    });
+    expect(await resolveAuthHeader("Bearer t")).toEqual({ kind: "rejected" });
+  });
+
+  it("calls GoTrue's own failure unavailable, never sessionless", async () => {
+    getUser = async () => ({
+      data: { user: null },
+      error: { name: "AuthApiError", status: 503, message: "upstream" },
+    });
+    expect(await resolveAuthHeader("Bearer t")).toEqual({ kind: "unavailable" });
+    getUser = async () => ({
+      data: { user: null },
+      error: { name: "AuthRetryableFetchError", status: 0, message: "fetch failed" },
+    });
+    expect(await resolveAuthHeader("Bearer t")).toEqual({ kind: "unavailable" });
+    getUser = async () => {
+      throw new Error("network");
+    };
+    expect(await resolveAuthHeader("Bearer t")).toEqual({ kind: "unavailable" });
   });
 });

@@ -13,6 +13,9 @@ const ensureSession = vi.fn(async () => "minted-token");
 vi.mock("./supabase-browser", () => ({
   ensureSession: () => ensureSession(),
   currentSession: async () => me,
+  // The device's session after any mint: the signed-in one, or the one
+  // ensureSession just made.
+  sessionToken: async () => me?.token ?? (ensureSession.mock.calls.length ? "minted-token" : null),
 }));
 
 vi.mock("./rep-outbox", async (importOriginal) => ({

@@ -10,7 +10,7 @@
  * on the recording screen, not to the resume path.
  */
 
-import { currentSession, ensureSession } from "./supabase-browser";
+import { currentSession, ensureSession, sessionToken } from "./supabase-browser";
 import {
   clearInFlight,
   isInFlight,
@@ -44,7 +44,7 @@ export async function flushOutbox(): Promise<void> {
   if (mine.length === 0) return;
   // Without a session, only recordings made with no session at all are
   // here; this device's session, made now, is the only owner they had.
-  const token = me ? me.token : await ensureSession();
+  if (!me) await ensureSession();
   for (const rep of mine) {
     if (isInFlight(rep.id)) continue;
     // Tried within the hour and failed: its turn comes on a later visit.
@@ -54,7 +54,9 @@ export async function flushOutbox(): Promise<void> {
       // One send. The ladder of four belongs to the recording screen,
       // where someone is waiting; here every try spends a rate-limit
       // slot, and the next visit is the retry.
-      const outcome = await sendWithRetry(replayForm(rep), token, undefined, 1);
+      // The token is asked for per send, so a queue of recordings never
+      // runs on one that lapsed partway (a 401 refreshes it once).
+      const outcome = await sendWithRetry(replayForm(rep), sessionToken, undefined, 1);
       if (outcome.ok && outcome.settled) {
         await outboxDelete(rep.id);
         continue;

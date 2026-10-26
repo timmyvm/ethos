@@ -128,7 +128,11 @@ import {
   sendWithRetry,
   type OutboxRep,
 } from "@/lib/rep-outbox";
-import { currentSession, ensureSession } from "@/lib/supabase-browser";
+import {
+  currentSession,
+  ensureSession,
+  sessionToken,
+} from "@/lib/supabase-browser";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 import type { TraitId } from "@/content/traits";
 
@@ -503,8 +507,11 @@ function RepScreen() {
     if (outboxId) markInFlight(outboxId);
     try {
       // Anonymous-first (DECISIONS #15): attribute the rep if a session
-      // exists or can be minted; never block the rep on auth.
-      const token = await ensureSession();
+      // exists or can be minted; never block the rep on auth. Asked for
+      // on every try, and refreshed once if the server says it lapsed, so
+      // a ladder of four never sends a token that ran out on the way.
+      const token = (force?: boolean) =>
+        force ? sessionToken(true) : ensureSession();
       // Three retries with backoff for the failures waiting can fix
       // (network drops, gateway 5xx). The blob is already in the outbox,
       // so even a closed tab loses nothing (lib/rep-outbox.ts).

@@ -167,3 +167,44 @@ describe("sendWithRetry with one try", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("sendWithRetry and a lapsed sign-in", () => {
+  it("asks for a token on every try, so a long ladder never sends a stale one", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(502, {}))
+      .mockResolvedValueOnce(jsonResponse(200, { repId: "r1" }));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.useFakeTimers();
+    let n = 0;
+    const tokens = async () => `t${++n}`;
+    const out = sendWithRetry(replayForm(rep()), tokens);
+    await vi.runAllTimersAsync();
+    expect((await out).settled).toBe(true);
+    const auth = fetchMock.mock.calls.map((c) => (c[1].headers as Record<string, string>).Authorization);
+    expect(auth).toEqual(["Bearer t1", "Bearer t2"]);
+  });
+
+  it("refreshes once on a 401 and sends again", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(401, { authExpired: true }))
+      .mockResolvedValueOnce(jsonResponse(200, { repId: "r1" }));
+    vi.stubGlobal("fetch", fetchMock);
+    const forced: boolean[] = [];
+    const tokens = async (force?: boolean) => {
+      forced.push(!!force);
+      return force ? "fresh" : "stale";
+    };
+    const out = await sendWithRetry(replayForm(rep()), tokens);
+    expect(out.ok && out.settled).toBe(true);
+    expect(forced).toEqual([false, true]);
+  });
+
+  it("keeps the recording when the sign-in stays lapsed", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(401, { authExpired: true })));
+    const out = await sendWithRetry(replayForm(rep()), async () => "stale");
+    expect(out.settled).toBe(false);
+    expect(out.status).toBe(401);
+  });
+});

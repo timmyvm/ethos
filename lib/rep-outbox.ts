@@ -183,6 +183,14 @@ export function isInFlight(id: string): boolean {
   return inFlight.has(id);
 }
 
+function post(form: FormData, token: string | null): Promise<Response> {
+  return fetch("/api/analyze", {
+    method: "POST",
+    body: form,
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+}
+
 export interface SendOutcome {
   /** The request round-tripped and the body parsed. */
   ok: boolean;
@@ -194,32 +202,50 @@ export interface SendOutcome {
 }
 
 /**
+ * Where an upload's token comes from: asked for on every try, so a
+ * ladder that runs for minutes never sends one that lapsed meanwhile.
+ * `force` asks for a refreshed one, after the server said it lapsed.
+ */
+export type TokenSource = (force?: boolean) => Promise<string | null>;
+
+/**
  * One upload attempt with the retry ladder. Retries only what waiting
  * can fix: network failures and gateway 5xx. A 4xx (including the rate
- * limiter's 429) is an answer, not an outage.
+ * limiter's 429) is an answer, not an outage, except a 401 for a lapsed
+ * sign-in, which is refreshed once and sent again.
  */
 export async function sendWithRetry(
   form: FormData,
-  token: string | null,
+  token: string | null | TokenSource,
   onAttempt?: (attempt: number) => void,
   /** How many sends at most. The background flush sends once: the next
    *  app open or return to the network is its retry. */
   tries: number = RETRY_DELAYS_MS.length + 1
 ): Promise<SendOutcome> {
   const attempts = Math.max(1, tries);
+  const source: TokenSource =
+    typeof token === "function" ? token : async () => token;
+  let refreshed = false;
   let last: SendOutcome = { ok: false, status: 0, settled: false, data: null };
   for (let i = 0; i < attempts; i++) {
     onAttempt?.(i);
     try {
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        body: form,
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
+      let sent = await source();
+      let res = await post(form, sent);
+      // The sign-in lapsed between the token and the server (a long
+      // ladder, a queue of flushes): refresh once and send again.
+      if (res.status === 401 && !refreshed && typeof token === "function") {
+        refreshed = true;
+        const fresh = await source(true);
+        if (fresh) {
+          sent = fresh;
+          res = await post(form, sent);
+        }
+      }
       const data = await res.json().catch(() => null);
       if (res.ok && data) {
         const repId = (data as { repId?: string | null }).repId ?? null;
-        return { ok: true, status: res.status, settled: repId !== null || !token, data };
+        return { ok: true, status: res.status, settled: repId !== null || !sent, data };
       }
       last = { ok: false, status: res.status, settled: false, data };
       // 5xx from a gateway is weather; anything else is a verdict.

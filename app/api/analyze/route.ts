@@ -17,7 +17,7 @@ import { coachRep, tier2Scores, type CoachOutput } from "@/lib/coach";
 import { COLD_TOPICS } from "@/lib/cold-topics";
 import {
   findRepByClientId,
-  getUserFromAuthHeader,
+  resolveAuthHeader,
   isPremium,
   previousEthosIndex,
   previousPresence,
@@ -126,10 +126,27 @@ export async function POST(req: NextRequest) {
   const filename =
     audio instanceof File && audio.name ? audio.name : "rep.webm";
 
-  // Anonymous-first: a valid token attributes the rep; absence never blocks.
-  const auth = await getUserFromAuthHeader(
-    req.headers.get("authorization")
-  ).catch(() => null);
+  // Anonymous-first: a valid token attributes the rep; absence never
+  // blocks. A token that was SENT but does not resolve is different: the
+  // recording has an owner we cannot name right now, so nothing is stored
+  // (it would be stored with no owner, and the client would drop its only
+  // copy). Checked before the limiter and Whisper, so it costs nothing.
+  const resolved = await resolveAuthHeader(req.headers.get("authorization")).catch(
+    () => ({ kind: "unavailable" }) as const
+  );
+  if (resolved.kind === "rejected") {
+    return NextResponse.json(
+      { error: "Your sign-in lapsed. Sending it again.", authExpired: true },
+      { status: 401 }
+    );
+  }
+  if (resolved.kind === "unavailable") {
+    return NextResponse.json(
+      { error: "Sign-in didn't answer. Sending it again." },
+      { status: 503 }
+    );
+  }
+  const auth = resolved.kind === "user" ? resolved.user : null;
   const userId = auth?.id ?? null;
 
   /*

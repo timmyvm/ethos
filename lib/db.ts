@@ -32,20 +32,53 @@ export interface AuthedUser {
   email?: string | null;
 }
 
+/**
+ * What an Authorization header comes to. A missing header (or local mode
+ * with no backend) is "none", the anonymous-first path. A token GoTrue
+ * answered for but refused (expired, forged) is "rejected". GoTrue not
+ * answering (5xx, a dropped fetch, a throw) is "unavailable". Only the
+ * first is sessionless: the other two must never store a recording with
+ * no owner, because the client deletes its copy once one is stored.
+ */
+export type AuthResolution =
+  | { kind: "none" }
+  | { kind: "user"; user: AuthedUser }
+  | { kind: "rejected" }
+  | { kind: "unavailable" };
+
+export async function resolveAuthHeader(
+  header: string | null
+): Promise<AuthResolution> {
+  if (!header?.startsWith("Bearer ")) return { kind: "none" };
+  const db = supabaseAdmin();
+  if (!db) return { kind: "none" };
+  try {
+    const { data, error } = await db.auth.getUser(header.slice(7));
+    if (data?.user) {
+      return {
+        kind: "user",
+        user: {
+          id: data.user.id,
+          anonymous: data.user.is_anonymous ?? false,
+          email: data.user.email || null,
+        },
+      };
+    }
+    const status = (error as { status?: number } | null)?.status ?? 0;
+    return status >= 500 || error?.name === "AuthRetryableFetchError"
+      ? { kind: "unavailable" }
+      : { kind: "rejected" };
+  } catch {
+    return { kind: "unavailable" };
+  }
+}
+
 /** Resolve a Supabase access token to a user; null on anything else. */
 export async function getUserFromAuthHeader(
   header: string | null
 ): Promise<AuthedUser | null> {
-  if (!header?.startsWith("Bearer ")) return null;
-  const db = supabaseAdmin();
-  if (!db) return null;
-  const { data, error } = await db.auth.getUser(header.slice(7));
-  if (error || !data.user) return null;
-  return {
-    id: data.user.id,
-    anonymous: data.user.is_anonymous ?? false,
-    email: data.user.email || null,
-  };
+  const r = await resolveAuthHeader(header);
+  return r.kind === "user" ? r.user : null;
 }
 
 /** The user's latest stored index — powers the "+18" delta display. */

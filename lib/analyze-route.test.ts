@@ -6,10 +6,18 @@ vi.mock("@/lib/coach", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/coach")>()),
   coachRep: vi.fn(),
 }));
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/db", () => {
+  const getUserFromAuthHeader = vi.fn(async (_h: string | null): Promise<unknown> => null);
+  return {
   saveRep: vi.fn(async () => null),
   findRepByClientId: vi.fn(async () => null),
-  getUserFromAuthHeader: vi.fn(async () => null),
+  getUserFromAuthHeader,
+  // The route reads the four-way answer; tests that set a user through
+  // getUserFromAuthHeader get it as "user" here.
+  resolveAuthHeader: vi.fn(async (h: string | null) => {
+    const user = await getUserFromAuthHeader(h);
+    return user ? { kind: "user", user } : { kind: "none" };
+  }),
   previousEthosIndex: vi.fn(async () => null),
   previousPresence: vi.fn(async () => null),
   isPremium: vi.fn(async () => false),
@@ -19,7 +27,8 @@ vi.mock("@/lib/db", () => ({
     usedAt: null,
   })),
   writeMeterState: vi.fn(async () => {}),
-}));
+  };
+});
 vi.mock("@/lib/rate-limit", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/rate-limit")>()),
   consumeRateLimit: vi.fn(async () => ({
@@ -40,6 +49,7 @@ import { coachRep } from "@/lib/coach";
 import {
   findRepByClientId,
   getUserFromAuthHeader,
+  resolveAuthHeader,
   isPremium,
   readMeterState,
   saveRep,
@@ -646,5 +656,44 @@ describe("the rate-limit slot of a failed transcription", () => {
     vi.mocked(transcribe).mockResolvedValue(FIXTURE);
     await post(audioForm());
     expect(refundRateLimit).not.toHaveBeenCalled();
+  });
+});
+
+describe("a token that does not resolve", () => {
+  function withToken(): Promise<Response> {
+    const req = new Request("http://test.local/api/analyze", {
+      method: "POST",
+      body: audioForm(),
+      headers: { Authorization: "Bearer stale" },
+    });
+    return POST(req as unknown as NextRequest);
+  }
+
+  beforeEach(() => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(consumeRateLimit).mockClear();
+  });
+
+  it("answers 401 for a lapsed sign-in and stores nothing without its owner", async () => {
+    vi.mocked(resolveAuthHeader).mockResolvedValueOnce({ kind: "rejected" });
+    const res = await withToken();
+    expect(res.status).toBe(401);
+    expect((await res.json()).authExpired).toBe(true);
+    expect(saveRep).not.toHaveBeenCalled();
+    expect(consumeRateLimit).not.toHaveBeenCalled();
+    expect(transcribe).not.toHaveBeenCalled();
+  });
+
+  it("answers 503 when sign-in can't be checked, so the upload is retried", async () => {
+    vi.mocked(resolveAuthHeader).mockResolvedValueOnce({ kind: "unavailable" });
+    const res = await withToken();
+    expect(res.status).toBe(503);
+    expect(saveRep).not.toHaveBeenCalled();
+  });
+
+  it("still scores a sessionless upload, as anonymous-first promises", async () => {
+    vi.mocked(resolveAuthHeader).mockResolvedValueOnce({ kind: "none" });
+    expect((await post(audioForm())).status).toBe(200);
+    expect(saveRep).toHaveBeenCalledTimes(1);
   });
 });

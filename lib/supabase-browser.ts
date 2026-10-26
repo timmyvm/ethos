@@ -42,6 +42,24 @@ export async function currentSession(): Promise<{
   }
 }
 
+/**
+ * The session's token, never minting one; refreshed first when `force`
+ * (the server said the one it was sent had lapsed). The outbox flush
+ * asks for this on every send.
+ */
+export async function sessionToken(force = false): Promise<string | null> {
+  const db = supabaseBrowser();
+  if (!db) return null;
+  try {
+    const { data } = force
+      ? await db.auth.refreshSession()
+      : await db.auth.getSession();
+    return data.session?.access_token ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Access token for the current (anonymous or real) session, if any. */
 export async function ensureSession(): Promise<string | null> {
   const db = supabaseBrowser();

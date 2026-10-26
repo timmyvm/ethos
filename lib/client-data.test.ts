@@ -42,7 +42,7 @@ vi.mock("./supabase-browser", () => ({
   }),
 }));
 
-const { fetchReps, fetchProfile, fetchRepSpine } = await import("./client-data");
+const { fetchReps, fetchProfile, fetchRepSpine, fetchAllReps } = await import("./client-data");
 
 const day = (n: number) => new Date(Date.UTC(2026, 0, 1) + n * 86_400_000).toISOString();
 
@@ -101,5 +101,14 @@ describe("fetchRepSpine", () => {
   it("reads a short history in one page", async () => {
     table = Array.from({ length: 120 }, (_, i) => ({ id: `r${i}`, created_at: day(i) }));
     expect(await fetchRepSpine()).toHaveLength(120);
+  });
+});
+
+describe("fetchAllReps (the export)", () => {
+  it("holds every recording, past the 1000 rows one response can hold", async () => {
+    table = Array.from({ length: 1200 }, (_, i) => ({ id: `r${i}`, created_at: day(i) })).reverse();
+    const rows = await fetchAllReps();
+    expect(rows).toHaveLength(1200);
+    expect(rows[0].id).toBe("r0");
   });
 });

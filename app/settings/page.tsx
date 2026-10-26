@@ -7,7 +7,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useLayoutEffect, useState } from "react";
 import { deleteAccount, signOut } from "@/lib/auth";
-import { fetchLexicon, fetchReps } from "@/lib/client-data";
+import { fetchAllLexicon, fetchAllReps, fetchReps } from "@/lib/client-data";
+import { readable } from "@/lib/load";
 import {
   DEFAULT_PREFS,
   readPrefs,
@@ -68,6 +69,7 @@ export default function SettingsPage() {
   const [tier, setTier] = useState<ReminderTier>("unsupported");
   const [email, setEmail] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [exportFailed, setExportFailed] = useState(false);
   const [didToday, setDidToday] = useState(false);
   const [arming, setArming] = useState(false);
   const [confirmText, setConfirmText] = useState("");
@@ -209,11 +211,20 @@ export default function SettingsPage() {
    */
   async function exportData() {
     setExporting(true);
+    setExportFailed(false);
     try {
-      const [reps, lexicon] = await Promise.all([
-        fetchReps(1000).catch(() => []),
-        fetchLexicon(1000).catch(() => []),
-      ]);
+      // Every row, paged, and a failed read is a failure: an empty file
+      // passed off as a backup is the worst thing this row could do,
+      // one row above Delete my account.
+      const read = await readable(
+        () => Promise.all([fetchAllReps(), fetchAllLexicon()]),
+        30_000
+      );
+      if (!read.ok) {
+        setExportFailed(true);
+        return;
+      }
+      const [reps, lexicon] = read.data;
       const blob = new Blob(
         [
           JSON.stringify(
@@ -486,6 +497,15 @@ export default function SettingsPage() {
             <path d="M5 19.5h14" />
           </svg>
         </button>
+        {/* A read that failed builds no file: said here, with its retry,
+            as a direct .group-row like the plan's failed read above. */}
+        {exportFailed && (
+          <div className="group-row">
+            <ErrorLine onRetry={() => void exportData()}>
+              Your file didn&apos;t build, so nothing was downloaded.
+            </ErrorLine>
+          </div>
+        )}
       </Section>
 
       {/* The group the app never had: the three pages it already ships

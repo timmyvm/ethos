@@ -92,26 +92,41 @@ export interface RepSpine {
   ethos_index: number | null;
 }
 
-/** PostgREST answers at most this many rows (max_rows), so the read pages. */
-const SPINE_PAGE = 1000;
+/** PostgREST answers at most this many rows (max_rows), so whole reads page. */
+const PAGE = 1000;
 
-export async function fetchRepSpine(): Promise<RepSpine[]> {
+/** Every row of one of the account's tables, oldest first, paged; throws on a failed page. */
+async function readAll<T>(table: "reps" | "lexicon", columns: string): Promise<T[]> {
   const db = supabaseBrowser();
   if (!db) return [];
   const { data: session } = await db.auth.getSession();
   if (!session.session) return [];
-  const out: RepSpine[] = [];
-  for (let from = 0; ; from += SPINE_PAGE) {
+  const out: T[] = [];
+  for (let from = 0; ; from += PAGE) {
     const { data, error } = await db
-      .from("reps")
-      .select("created_at, lesson_id, stars, ethos_index")
+      .from(table)
+      .select(columns)
       .order("created_at", { ascending: true })
-      .range(from, from + SPINE_PAGE - 1);
+      .range(from, from + PAGE - 1);
     if (error) throw error;
-    const page = (data as RepSpine[] | null) ?? [];
+    const page = (data as T[] | null) ?? [];
     out.push(...page);
-    if (page.length < SPINE_PAGE) return out;
+    if (page.length < PAGE) return out;
   }
+}
+
+export function fetchRepSpine(): Promise<RepSpine[]> {
+  return readAll<RepSpine>("reps", "created_at, lesson_id, stars, ethos_index");
+}
+
+/** Every recording, whole, for the export: nothing capped, nothing guessed. */
+export function fetchAllReps(): Promise<RepRow[]> {
+  return readAll<RepRow>("reps", REP_COLUMNS);
+}
+
+/** Every lexicon upgrade, for the export. */
+export function fetchAllLexicon(): Promise<LexiconRow[]> {
+  return readAll<LexiconRow>("lexicon", "id, original, upgrade, created_at");
 }
 
 export async function fetchRep(id: string): Promise<RepRow | null> {

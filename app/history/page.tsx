@@ -58,16 +58,23 @@ function decimalsOf(printed: string): (value: number) => string {
 /** The two grids, shared by header and rows so the columns line up.
     Under 360px the trend column steps out (TREND_CELL), so the metric's
     name keeps room to be read: at 320 it truncated to "Eth..." and
-    "F...". */
+    "F...". The Day 1 column gives 4px back there too, so "Fillers / min"
+    and its chevron hold one line (the fix round); its head never wraps. */
 const MOVED_GRID =
-  "grid grid-cols-[minmax(0,1fr)_36px_42px_74px] min-[360px]:grid-cols-[minmax(0,1fr)_36px_42px_74px_44px] gap-2";
+  "grid grid-cols-[minmax(0,1fr)_32px_42px_74px] min-[360px]:grid-cols-[minmax(0,1fr)_36px_42px_74px_44px] gap-2";
 /* Out of the flow and unseen under 360px, rather than `display: none`:
    toggling display restarts the line's unroll (`.fill`), and the
    camera's full-page capture caught it part way. */
 const TREND_CELL = "max-[359px]:invisible max-[359px]:absolute";
 /* The date column is a 40px tile in the recording's trait tone (the
    colour pass), and the lesson title keeps 4px more air off it. */
-const RECORD_GRID = "grid grid-cols-[40px_minmax(0,1fr)_44px_36px_36px_36px] gap-1.5";
+const RECORD_GRID =
+  "grid grid-cols-[40px_minmax(0,1fr)_44px_36px_36px] min-[360px]:grid-cols-[40px_minmax(0,1fr)_44px_36px_36px_36px] gap-1.5";
+/* Under 360px the held column steps out of the recordings table, so a
+   lesson's name wraps between its words: at 320 the column was 87px and
+   "Punctuate" broke inside itself (the fix round). Held pauses are in
+   What moved above and on every recording's own page. */
+const HELD_CELL = "max-[359px]:hidden";
 
 /**
  * Which trait an insight is about, so its line wears that trait's tone.
@@ -193,7 +200,7 @@ export default function HistoryPage() {
               <Skeleton className="ml-auto h-4 w-9" />
               <Skeleton className="ml-auto h-3 w-4" />
               <Skeleton className="ml-auto h-3 w-7" />
-              <Skeleton className="ml-auto h-3 w-4" />
+              <Skeleton className={`ml-auto h-3 w-4 ${HELD_CELL}`} />
             </div>
           ))}
         </SkeletonRegion>
@@ -265,6 +272,7 @@ export default function HistoryPage() {
             recordings={reps.length}
             stars={totalStars(starMap)}
             series={scored.map((r) => r.ethos_index as number)}
+            demos
           />
         </div>
       </div>
@@ -396,7 +404,9 @@ export default function HistoryPage() {
           <ColumnHead right>index</ColumnHead>
           <ColumnHead right>fill</ColumnHead>
           <ColumnHead right>wpm</ColumnHead>
-          <ColumnHead right>held</ColumnHead>
+          <ColumnHead right className={HELD_CELL}>
+            held
+          </ColumnHead>
         </div>
 
         {empty
@@ -416,7 +426,9 @@ export default function HistoryPage() {
                 {[0, 1, 2, 3].map((c) => (
                   <span
                     key={c}
-                    className="font-display text-right text-caption font-extrabold tabular-nums"
+                    className={`font-display text-right text-caption font-extrabold tabular-nums ${
+                      c === 3 ? HELD_CELL : ""
+                    }`}
                   >
                     {DASH}
                   </span>
@@ -474,7 +486,7 @@ export default function HistoryPage() {
                   </span>
                   <Cell>{r.filler_count}</Cell>
                   <Cell>{r.wpm}</Cell>
-                  <Cell>{held}</Cell>
+                  <Cell className={HELD_CELL}>{held}</Cell>
                 </Link>
               );
             })}
@@ -562,19 +574,25 @@ function ColumnHead({
   className?: string;
 }) {
   return (
-    <span className={`label-micro ${right ? "text-right" : ""} ${className}`}>
+    <span className={`label-micro whitespace-nowrap ${right ? "text-right" : ""} ${className}`}>
       {children}
     </span>
   );
 }
 
-function Cell({ children }: { children: number }) {
+function Cell({ children, className = "" }: { children: number; className?: string }) {
   return (
-    <span className="font-display text-right text-caption font-extrabold text-stone-600 tabular-nums">
+    <span
+      className={`font-display text-right text-caption font-extrabold text-stone-600 tabular-nums ${className}`}
+    >
       {children}
     </span>
   );
 }
+
+/** "Fillers / min" with no-break thin spaces round the slash, so a
+    narrow column breaks between words and never at the unit. */
+const unitLabel = (label: string) => label.replace(/ \/ /g, "\u202F/\u202F");
 
 /**
  * One metric, five cells. Direction wears the colour (#195): sage when
@@ -629,17 +647,27 @@ function MetricRow({
           className={`log-swatch ${trait || index ? "" : "log-swatch-blank"}`}
         />
         {/* Two lines at most, never an ellipsis: at 320px "Fillers /
-            min" beside its chevron cut to "Fillers / ...". */}
-        <span className="line-clamp-2 min-w-0 leading-tight">{row.label}</span>
-        {open !== undefined && (
-          <span
-            aria-hidden
-            data-open={open}
-            className="disclosure-mark shrink-0 text-stone-400"
-          >
-            <IconChevron size={14} />
-          </span>
-        )}
+            min" beside its chevron cut to "Fillers / ...". A unit's slash
+            holds its words together (no-break thin spaces), so the label
+            breaks between words and never at the slash, and the chevron
+            follows the label's last word rather than the column's edge
+            (the fix round). */}
+        <span className="line-clamp-2 min-w-0 leading-tight">
+          {open === undefined ? (
+            unitLabel(row.label)
+          ) : (
+            <>
+              {unitLabel(row.label)}
+              <span
+                aria-hidden
+                data-open={open}
+                className="disclosure-mark ml-1 align-[-2px] text-stone-400"
+              >
+                <IconChevron size={14} />
+              </span>
+            </>
+          )}
+        </span>
       </span>
       <span
         className={`font-display text-right text-caption font-extrabold tabular-nums ${

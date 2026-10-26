@@ -39,6 +39,13 @@ const SAMPLE_PAUSES: (Pause & { verdict: PauseVerdict })[] = [
 ];
 
 /** A footer link: a 44px target in the caption's voice (marketing-9). */
+/* The sample card's history: 21 recordings from 564 to 612 (+48), a
+   plausible three weeks with its dips, drawn as the card's hill. */
+const SAMPLE_SERIES = [
+  564, 571, 566, 579, 574, 583, 580, 588, 585, 591, 597, 590, 598, 603, 599, 606, 602, 609, 605, 611,
+  612,
+];
+
 const FOOT_LINK =
   "press inline-flex min-h-11 items-center px-3 font-semibold text-stone-500 hover:text-ink";
 
@@ -129,6 +136,7 @@ export default function About() {
           delta={48}
           recordings={21}
           stars={14}
+          series={SAMPLE_SERIES}
           foot="A sample, three weeks in."
         />
         <p className="mt-3 text-body font-semibold">

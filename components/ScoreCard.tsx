@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { CountUp } from "@/components/CountUp";
+import { DemosArt } from "@/components/DemosArt";
 import { HeroStage } from "@/components/ui/HeroStage";
 import { DURATION } from "@/lib/motion";
 
@@ -21,7 +22,11 @@ import { DURATION } from "@/lib/motion";
  * THE ART is the Index's own history, drawn as a hill on the stage's
  * floor at the right (`series`, a trailing mean of three, so a noisy run
  * reads as a direction): a picture made of the number it sits beside,
- * never decoration. No series, no hill.
+ * never decoration. Its fill runs to the stage's edge and the stage's
+ * corner clips it, so it has no cut where the series ends. Until there
+ * are two scored recordings there is no hill, and on a screen that has
+ * no other Demos (`demos`, the Log) he stands in its place, the empty
+ * state's figure, the way he stands on every other tab's stage.
  *
  * Before any recording the hero is the COUNT (#213): zero recordings is
  * a true number, where 0 / 1000 would claim you scored nothing, and the
@@ -34,6 +39,7 @@ export function ScoreCard({
   stars,
   foot,
   series,
+  demos = false,
   children,
 }: {
   index: number | null;
@@ -45,6 +51,9 @@ export function ScoreCard({
   foot?: ReactNode;
   /** The Index over time, oldest first, for the hill. */
   series?: number[];
+  /** Demos may stand on the stage while there is no hill (the Log; About
+      has its own Demos in its hero, and one is the most a screen has). */
+  demos?: boolean;
   /** Anything the screen adds after the number. */
   children?: ReactNode;
 }) {
@@ -54,8 +63,15 @@ export function ScoreCard({
     <HeroStage
       eyebrow="Your Ethos"
       artSize={hill ? 136 : undefined}
-      artFluid
-      art={hill ? <IndexHill values={hill} /> : undefined}
+      artFluid={!!hill}
+      artBleed={!!hill}
+      art={
+        hill ? (
+          <IndexHill values={hill} />
+        ) : demos ? (
+          <DemosArt pose="hello" size={132} grounded halo={{ tone: "sky", kind: "stage" }} />
+        ) : undefined
+      }
       line={
         <div className="mt-auto pt-3">
           <p className="stage-ink font-display text-link font-bold tabular-nums">
@@ -149,7 +165,12 @@ function IndexHill({ values }: { values: number[] }) {
         </linearGradient>
       </defs>
       <g transform={`translate(0 ${W - H})`}>
-        <path d={`${line} L${lx.toFixed(1)} ${H} L0 ${H} Z`} fill="url(#index-hill-fade)" />
+        {/* Past today's point the ground runs on flat to the box's edge,
+            which is the stage's: the stage's corner clips it. */}
+        <path
+          d={`${line} L${W} ${ly.toFixed(1)} L${W} ${H} L0 ${H} Z`}
+          fill="url(#index-hill-fade)"
+        />
         <path
           d={line}
           fill="none"

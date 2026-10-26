@@ -106,7 +106,10 @@ export default function ShopPage() {
     setPose(readPrefs().pose);
     fetchProfile()
       .then((p) => {
-        if (p) setPose(p.equipped_pose ?? null);
+        if (!p) return;
+        setPose(p.equipped_pose ?? null);
+        // The device's copy follows, so the next first paint is right.
+        writePrefs({ pose: p.equipped_pose ?? null });
       })
       .catch(() => {});
     void refresh();

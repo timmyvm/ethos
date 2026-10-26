@@ -42,7 +42,7 @@ import {
   starsByLesson,
   totalStars,
 } from "@/lib/path";
-import { readPrefs } from "@/lib/prefs";
+import { readPrefs, writePrefs } from "@/lib/prefs";
 import { readOnboarding, type Answers, EMPTY_ANSWERS } from "@/lib/answers";
 import { syncOnboarding } from "@/lib/answers-sync";
 import { dayOneNote, spinForAnswers } from "@/lib/portfolio";
@@ -182,7 +182,10 @@ export default function Home() {
     ])
       .then(([p, l]) => {
         if (p !== undefined) setPremium(p?.premium ?? false);
-        const pose = p?.equipped_pose ?? readPrefs().pose;
+        // The account wins when it answers (#175), its null (the default)
+        // included; the device's copy stands in only when it did not.
+        const pose = p ? p.equipped_pose : readPrefs().pose;
+        if (p) writePrefs({ pose: p.equipped_pose });
         if (l) setDemos(stagePose(pose, ownedFrom(l)));
         // The introduction's answers follow the account (#232): a
         // finished walk goes up, or the account's answers come down.

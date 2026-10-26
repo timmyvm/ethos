@@ -51,7 +51,7 @@ import { ownedFrom, poseArt } from "@/lib/shop";
 import { armReminder } from "@/lib/reminders";
 import { decayNote, nextFocus } from "@/lib/schedule";
 import { choosePractice } from "@/lib/next-practice";
-import { buildChallenge } from "@/lib/challenge";
+import { buildChallenge, practiceRow } from "@/lib/challenge";
 import { readTraitsFromRow } from "@/lib/trait-readings";
 import { computeStreak, type StreakState } from "@/lib/streak";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
@@ -202,10 +202,10 @@ export default function Home() {
    * quotes its number, and the strip below marks the same one, because
    * they read the same `choosePractice`.
    */
-  const chosen =
-    history.length > 0
-      ? choosePractice(readTraitsFromRow(history[history.length - 1]))
-      : null;
+  const lastBeforeToday = practiceRow(history);
+  const chosen = lastBeforeToday
+    ? choosePractice(readTraitsFromRow(lastBeforeToday))
+    : null;
 
   /* The same reading, the same trait, one line to clear (#281). */
   const challenge = buildChallenge(history);

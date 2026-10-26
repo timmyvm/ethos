@@ -8,6 +8,7 @@ import {
   closeRate,
   MIN_HISTORY,
   openQuantile,
+  practiceRow,
   Q_MAX,
   Q_MIN,
   Q_START,
@@ -346,5 +347,51 @@ describe("the week's coin", () => {
 
   it("pays nothing for a week nobody spoke in", () => {
     expect(closesByWeek([], NOW)).toEqual([]);
+  });
+});
+
+/*
+ * The trait is chosen once a day, from the last recording before the
+ * day began. It used to come from the newest recording overall, so a
+ * recording made today switched today's card to another trait, and every
+ * past week was judged again by whatever the newest recording picked.
+ */
+describe("the day's trait", () => {
+  /** A recording at a local moment, filler rate and held pauses chosen. */
+  function at(when: Date, fillers: number, held: number): RepRow {
+    const r = rep(0, fillers, `at-${when.getTime()}-${fillers}-${held}`, held);
+    return { ...r, created_at: when.toISOString() };
+  }
+
+  it("stays the same after today's recording", () => {
+    const week: RepRow[] = [];
+    for (let i = 0; i < 7; i++) week.push(at(new Date(2026, 9, 19 + i, 12), 8 + (i % 3), 1));
+    const morning = buildChallenge(week, new Date(2026, 9, 26, 8));
+    // Today: few fillers, no held pause, so the newest row's weakest
+    // trait is a different one.
+    const today = at(new Date(2026, 9, 26, 9), 2, 0);
+    const after = buildChallenge([...week, today], new Date(2026, 9, 26, 10));
+    expect(morning).not.toBeNull();
+    expect(after?.trait).toBe(morning?.trait);
+    expect(after?.line).toBe(morning?.line);
+  });
+
+  it("judges a past week the same whatever is recorded later", () => {
+    const reps: RepRow[] = [];
+    for (let i = 0; i < 7; i++) reps.push(at(new Date(2026, 9, 5 + i, 12), 8, 1));
+    for (let i = 0; i < 5; i++) reps.push(at(new Date(2026, 9, 12 + i, 12), 2, 0));
+    const now = new Date(2026, 9, 26, 20);
+    const before = closesByWeek(reps, now).find((w) => w.week === "2026-10-12");
+    const later = at(new Date(2026, 9, 26, 12), 8, 4);
+    const after = closesByWeek([...reps, later], now).find((w) => w.week === "2026-10-12");
+    expect(after?.closed).toBe(before?.closed);
+  });
+
+  it("reads the last recording before today began", () => {
+    const yesterday = at(new Date(2026, 9, 25, 20), 8, 1);
+    const today = at(new Date(2026, 9, 26, 9), 2, 0);
+    expect(practiceRow([yesterday, today], new Date(2026, 9, 26, 10))).toBe(yesterday);
+    // Only today's: nothing earlier to choose from, so the newest stands in.
+    expect(practiceRow([today], new Date(2026, 9, 26, 10))).toBe(today);
   });
 });

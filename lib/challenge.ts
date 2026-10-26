@@ -207,6 +207,25 @@ export function openQuantile(reps: RepRow[], now: Date): number {
 }
 
 /**
+ * The row the day's practice and challenge are chosen from (#268, #281):
+ * the last recording made before `now`'s local day began. The newest row
+ * overall would switch today's card to another trait the moment today's
+ * recording landed, and judge every past day by whatever was recorded
+ * later. With nothing before today, the newest row up to `now` stands in
+ * (the window is empty then, so no challenge is drawn from it anyway).
+ */
+export function practiceRow(
+  reps: RepRow[],
+  now: Date = new Date()
+): RepRow | undefined {
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const before = reps.filter((r) => new Date(r.created_at) < startOfToday);
+  if (before.length > 0) return before[before.length - 1];
+  const upToNow = reps.filter((r) => new Date(r.created_at) <= now);
+  return upToNow[upToNow.length - 1] ?? reps[reps.length - 1];
+}
+
+/**
  * The challenge, or null when there is not enough of the person's own
  * history to draw a line from honestly.
  */
@@ -215,7 +234,7 @@ export function buildChallenge(
   now: Date = new Date(),
   q?: number
 ): Challenge | null {
-  const last = reps[reps.length - 1];
+  const last = practiceRow(reps, now);
   if (!last) return null;
 
   /* ONE SELECTOR. The same function the floor card reads, off the same

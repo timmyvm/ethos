@@ -6,7 +6,10 @@
 name: push-cron
 on:
   schedule:
-    - cron: "0 * * * *"
+    # Off the top of the hour, which GitHub names as its busiest and most
+    # delayed; a late or dropped tick is made up by the next ones
+    # (lib/push.ts CATCH_UP_HOURS).
+    - cron: "17 * * * *"
   workflow_dispatch: {}
 
 jobs:

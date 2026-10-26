@@ -62,9 +62,11 @@ describe("shouldSend", () => {
     expect(shouldSend(window(), true, atHour)).toBe(false);
   });
 
-  it("skips every other hour", () => {
-    const wrongHour = new Date(Date.UTC(2026, 7, 1, 9, 0));
-    expect(shouldSend(window(), false, wrongHour)).toBe(false);
+  it("skips the hours before the chosen one and after its window", () => {
+    // 07:00 UTC is 17:00 in Melbourne, before the chosen 18.
+    expect(shouldSend(window(), false, new Date(Date.UTC(2026, 7, 1, 7, 0)))).toBe(false);
+    // 11:00 UTC is 21:00, past the three-hour catch-up window.
+    expect(shouldSend(window(), false, new Date(Date.UTC(2026, 7, 1, 11, 0)))).toBe(false);
   });
 
   it("a quiet-hours choice never sends", () => {
@@ -111,5 +113,37 @@ describe("localStreak", () => {
 
   it("no reps is zero", () => {
     expect(localStreak([], MEL, now)).toBe(0);
+  });
+});
+
+/*
+ * GitHub's hourly schedule runs late at the top of the hour, or drops a
+ * run, and the cron reads the clock when it runs. With an exact-hour
+ * match, an 18:00 tick that ran at 19:03 skipped everyone choosing 18,
+ * and no later tick that day matched either.
+ */
+describe("shouldSend and a late or dropped tick", () => {
+  it("still sends from a tick that runs an hour late", () => {
+    expect(shouldSend(window(), false, new Date(Date.UTC(2026, 7, 1, 9, 3)))).toBe(true);
+  });
+
+  it("does not send twice when the late tick follows a sent one", () => {
+    expect(
+      shouldSend(window({ lastSentOn: "2026-08-01" }), false, new Date(Date.UTC(2026, 7, 1, 9, 3)))
+    ).toBe(false);
+  });
+
+  it("never catches up into quiet hours", () => {
+    // Chosen 21, quiet from 22: a catch-up at 22:05 local stays silent.
+    expect(
+      shouldSend(window({ reminderHour: 21 }), false, new Date(Date.UTC(2026, 7, 1, 12, 5)))
+    ).toBe(false);
+  });
+
+  it("never rings the next morning for last night's hour", () => {
+    // Chosen 23, quiet hours off: 00:30 the next local day is not a catch-up.
+    expect(
+      shouldSend(window({ reminderHour: 23, quietFrom: 7, quietTo: 7 }), false, new Date(Date.UTC(2026, 7, 1, 14, 30)))
+    ).toBe(false);
   });
 });

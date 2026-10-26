@@ -56,6 +56,14 @@ export function inQuietRange(
 }
 
 /**
+ * Hours a late or dropped tick is made up in. The scheduler (GitHub's
+ * hourly cron) runs late at the top of the hour and drops runs under
+ * load, and the route reads the clock when it runs: an exact-hour match
+ * lost the day's reminder to a tick that ran at 19:03 for 18:00.
+ */
+export const CATCH_UP_HOURS = 3;
+
+/**
  * Should this hourly cron tick send to this subscription?
  * `didToday` is the #143 check, answered by the database.
  */
@@ -65,8 +73,12 @@ export function shouldSend(
   now: Date
 ): boolean {
   const hour = localClock(now, w.tzOffset).getUTCHours();
-  if (hour !== w.reminderHour) return false;
+  // The chosen hour or the next few, the same local day (hour is 0-23,
+  // so the window never wraps into tomorrow).
+  if (hour < w.reminderHour || hour >= w.reminderHour + CATCH_UP_HOURS) return false;
   if (inQuietRange(w.reminderHour, w.quietFrom, w.quietTo)) return false;
+  // A catch-up never rings inside quiet hours.
+  if (inQuietRange(hour, w.quietFrom, w.quietTo)) return false;
   if (didToday) return false;
   // One send per local day, whatever the scheduler does.
   if (w.lastSentOn === localDayKey(now, w.tzOffset)) return false;

@@ -144,7 +144,9 @@ export default function YouPage() {
       over a name that merely hasn't arrived. */
   const [name, setName] = useState<string | null>(null);
   const [nameKnown, setNameKnown] = useState(false);
-  const [premium, setPremium] = useState(false);
+  /** The plan: null until the profile answers, and on a failed read.
+   *  Unknown is never free (#353): the lexicon is not cut until it says so. */
+  const [premium, setPremium] = useState<boolean | null>(null);
   /** The introduction's answers (#232): undefined until the device has been read. */
   const [onboarding, setOnboarding] = useState<OnboardingState | undefined>(undefined);
   const [editingName, setEditingName] = useState(false);
@@ -378,6 +380,8 @@ export default function YouPage() {
   /** The level waits on the XP read; the streak columns on the reps. */
   const xpPending = xp === null && !xpFailed;
   const history = reps ?? [];
+  /* The free cap on the lexicon, only once the plan says free. */
+  const lexiconCap = premium === false ? limit(FREE_LEXICON, false) : null;
   /* Lifetime counts read every recording, not the newest 90. */
   const lifetime = reps === null ? [] : spine;
   const level = levelFromXp(xp?.total ?? 0);
@@ -716,9 +720,11 @@ export default function YouPage() {
           <ErrorLine className="mt-3" onRetry={() => void loadLexicon()}>
             Your lexicon didn&apos;t load.
           </ErrorLine>
-        ) : lexicon === null ? (
+        ) : lexicon === null || profileRead === "loading" ? (
           /* Three rows, the free tier's share, at the height of the real
-             ones so nothing under them moves when they land. */
+             ones so nothing under them moves when they land. Held until
+             the plan is read too, so a free list never lands long and
+             then shrinks to its three (a failed plan read shows all). */
           <div aria-busy="true">
             {[0, 1, 2].map((i) => (
               <div key={i} className={`${SWAP_ROW} border-b border-hairline`}>
@@ -747,7 +753,7 @@ export default function YouPage() {
                 mt-3 (system-7), so a word sits 12px under "Your lexicon"
                 like every section's content. */}
             <ul className="stagger">
-              {lexicon.slice(0, limit(FREE_LEXICON, premium) ?? lexicon.length).map((l) => (
+              {lexicon.slice(0, lexiconCap ?? lexicon.length).map((l) => (
                 <li key={l.id} className={`${SWAP_ROW} border-b border-hairline`}>
                   <Swap original={l.original} upgrade={l.upgrade} />
                 </li>
@@ -773,7 +779,7 @@ export default function YouPage() {
               </div>
             )}
 
-            {limit(FREE_LEXICON, premium) !== null && lexicon.length > FREE_LEXICON && (
+            {lexiconCap !== null && lexicon.length > FREE_LEXICON && (
               <button
                 type="button"
                 onClick={() =>

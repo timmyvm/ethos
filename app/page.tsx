@@ -73,7 +73,8 @@ export default function Home() {
   const [streak, setStreak] = useState<StreakState>(EMPTY);
   const [rescued, setRescued] = useState(0);
   const [frozen, setFrozen] = useState<Date[]>([]);
-  const [premium, setPremium] = useState(false);
+  /** The plan: null until the profile answers, and on a failed read. */
+  const [premium, setPremium] = useState<boolean | null>(null);
   const [mods, setMods] = useState<string[]>([]);
   const [showMods, setShowMods] = useState(false);
   const [paywall, setPaywall] = useState<string | null>(null);
@@ -168,11 +169,13 @@ export default function Home() {
     /* The ledger read throws on a failure now (#147): it keeps the pose
        already drawn and never stops the plan or the answers below. */
     Promise.all([
-      fetchProfile().catch(() => null),
+      // undefined is a failed read: the plan stays unknown, never free
+      // (#353). null is no backend at all, which is free.
+      fetchProfile().catch(() => undefined),
       fetchCoinLedger().catch(() => null),
     ])
       .then(([p, l]) => {
-        setPremium(p?.premium ?? false);
+        if (p !== undefined) setPremium(p?.premium ?? false);
         const pose = p?.equipped_pose ?? readPrefs().pose;
         if (l) setDemos(poseArt(pose, ownedFrom(l)));
         // The introduction's answers follow the account (#232): a
@@ -415,7 +418,11 @@ export default function Home() {
                 <ModPicker
                   selected={mods}
                   onChange={setMods}
-                  premium={premium}
+                  /* An unknown plan never opens the paywall over a
+                     paid one (#353, superseding its "mods keep the free
+                     reading"): the mods stay open until the plan says
+                     free, and /rep honours what the account holds. */
+                  premium={premium !== false}
                   onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
                 />
               </div>

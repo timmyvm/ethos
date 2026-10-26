@@ -118,7 +118,11 @@ export default function HistoryPage() {
   // Back from the paywall's account doors or Checkout's back arrow
   // (paywall=1): the sheet opens again where it was.
   usePaywallReturn(() => setPaywall({ reason: "Premium" }));
-  const [premium, setPremium] = useState(false);
+  /** The plan: null until the profile answers, and on a failed read.
+   *  Unknown is never free (#353): no cut, no teaser, until it says so. */
+  const [premium, setPremium] = useState<boolean | null>(null);
+  /** The plan's read failed: unknown for good, drawn unlocked, never as a teaser. */
+  const [planFailed, setPlanFailed] = useState(false);
   const [showFillers, setShowFillers] = useState(false);
 
   const load = useCallback(async () => {
@@ -139,7 +143,7 @@ export default function HistoryPage() {
     void load();
     fetchProfile()
       .then((p) => setPremium(p?.premium ?? false))
-      .catch(() => {});
+      .catch(() => setPlanFailed(true));
   }, [load]);
 
   /*
@@ -240,7 +244,7 @@ export default function HistoryPage() {
 
   // The 7-day window used to apply to everyone, premium included — the
   // limit was a constant rather than a gate. It reads the entitlement now.
-  const days = limit(FREE_DAYS, premium);
+  const days = premium === false ? limit(FREE_DAYS, false) : null;
   const cutoff = days === null ? -Infinity : readAt - days * 86_400_000;
   const visible = reps.filter((r) => new Date(r.created_at).getTime() >= cutoff);
   // Held back by the free window, counted over every recording.
@@ -345,7 +349,9 @@ export default function HistoryPage() {
             in it, in the same grammar, never a padlock over an empty
             box. */}
         {presence &&
-          (premium ? (
+          (premium === null && !planFailed ? (
+            <PlanRowSkeleton />
+          ) : premium !== false ? (
             <MetricRow row={presence} />
           ) : (
             <TeaserRow
@@ -363,7 +369,9 @@ export default function HistoryPage() {
         {/* One row per skill (mechanics.md: history per dimension is
             the premium display rule, #200). Same honesty pattern. */}
         {skills.length > 0 &&
-          (premium ? (
+          (premium === null && !planFailed ? (
+            <PlanRowSkeleton />
+          ) : premium !== false ? (
             skills.map((row) => (
               /* A taught trait's row takes the name Today and Lessons
                  print beside the same colour ("Restarts", not
@@ -508,7 +516,7 @@ export default function HistoryPage() {
               );
             })}
 
-        {hidden > 0 && (
+        {premium === false && hidden > 0 && (
           <button
             onClick={() =>
               setPaywall({
@@ -793,5 +801,22 @@ function TeaserRow({
         <PremiumMark variant="chip" />
       </span>
     </button>
+  );
+}
+
+/**
+ * A Premium row while the plan is unknown: the teaser's own height, so
+ * nothing moves when the plan lands, and never the PREMIUM chip over a
+ * plan that may be paid (#353).
+ */
+function PlanRowSkeleton() {
+  return (
+    <div
+      aria-hidden
+      className="flex items-center justify-between border-t border-hairline py-3"
+    >
+      <Skeleton className="h-3.5 w-20" />
+      <Skeleton className="h-[21px] w-20" rounded="rounded-full" />
+    </div>
   );
 }

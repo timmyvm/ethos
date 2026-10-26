@@ -63,7 +63,11 @@ export default function RepDetail({
   const { id } = use(params);
   const [stored, setStored] = useState<Stored | null>(null);
   const [failed, setFailed] = useState(false);
-  const [premium, setPremium] = useState(false);
+  /** The plan: null until the profile answers, and on a failed read.
+   *  Unknown is never free (#353): no teaser and no paywall over it. */
+  const [premium, setPremium] = useState<boolean | null>(null);
+  /** The plan's read failed: unknown for good, drawn unlocked, never walled. */
+  const [planFailed, setPlanFailed] = useState(false);
   const [paywall, setPaywall] = useState<PaywallAsk | null>(null);
   // Back from the paywall's account doors or Checkout's back arrow
   // (paywall=1): the sheet opens again where it was.
@@ -88,7 +92,7 @@ export default function RepDetail({
     void load();
     fetchProfile()
       .then((p) => setPremium(p?.premium ?? false))
-      .catch(() => {});
+      .catch(() => setPlanFailed(true));
   }, [load]);
 
   if (failed) {
@@ -278,12 +282,21 @@ export default function RepDetail({
        * tab that recorded it and nowhere else. What survives is the five
        * numbers and the timestamps.
        */}
-      {delivery && (
+      {delivery && premium === null && !planFailed && (
+        <SkeletonRegion
+          label="Loading what the camera measured"
+          className="mt-7 border-t border-hairline pt-4"
+        >
+          <Skeleton className="h-7 w-40" />
+          <Skeleton className="mt-3 h-24 w-full" />
+        </SkeletonRegion>
+      )}
+      {delivery && (premium !== null || planFailed) && (
         <div className="mt-7 border-t border-hairline pt-4">
           <PresenceScore
             score={delivery.presenceScore}
             previous={null}
-            premium={premium}
+            premium={premium !== false}
             onUpgrade={() =>
               setPaywall({
                 reason: "Presence · premium",
@@ -294,7 +307,7 @@ export default function RepDetail({
           <PresenceDetail
             metrics={delivery}
             moments={rep.delivery_moments ?? []}
-            premium={premium}
+            premium={premium !== false}
             videoUrl={null}
             onUpgrade={() =>
               setPaywall({

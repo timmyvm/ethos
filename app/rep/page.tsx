@@ -169,6 +169,20 @@ const INTERRUPTIONS = [
   "Get to the point.",
 ];
 
+/**
+ * getUserMedia failures that are about the camera itself, not a refused
+ * permission: no camera, or another app (Teams, Zoom) holds it. With
+ * Voice + Video on, these fall back to Voice rather than to the mic help.
+ */
+const CAMERA_DEVICE_FAILURES = new Set([
+  "NotFoundError",
+  "DevicesNotFoundError",
+  "OverconstrainedError",
+  "NotReadableError",
+  "TrackStartError",
+  "AbortError",
+]);
+
 /** A failure we already have words for. Anything else gets the generic. */
 class ScoringFailure extends Error {}
 
@@ -828,14 +842,27 @@ function RepScreen() {
     // The chime itself never plays while the mic is hot (lib/sfx.ts).
     unlockSfx();
     const cfg = configRef.current;
-    const wantsVideo = captureModeRef.current === "voice_video";
+    let wantsVideo = captureModeRef.current === "voice_video";
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: wantsVideo
-          ? { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" }
-          : false,
-      });
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: wantsVideo
+            ? { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" }
+            : false,
+        });
+      } catch (e) {
+        const name = e instanceof DOMException ? e.name : "";
+        if (!wantsVideo || !CAMERA_DEVICE_FAILURES.has(name)) throw e;
+        // The camera is missing or another app holds it; the mic may be
+        // fine. Record with voice on this screen, and leave the saved
+        // preference as it is (#216's rule for a pose load that fails).
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        wantsVideo = false;
+        captureModeRef.current = "voice";
+        setCaptureMode("voice");
+      }
       // The screen moved to another recording while the device opened.
       if (lessonKeyRef.current !== key) {
         stream.getTracks().forEach((t) => t.stop());

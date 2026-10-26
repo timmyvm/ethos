@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -85,9 +85,30 @@ describe("under the hero, colour is an accent", () => {
     expect(dot).toMatch(/height:\s*8px/);
   });
 
-  it("Lessons' rows are quiet: small, desaturated renders and neutral bars", () => {
+  /*
+   * The fix round: the renders are keyed off their gradients
+   * (scripts/key-lesson-art.py), so a row shows the glass object on the
+   * one neutral tile every lesson shares and no square of tone; the
+   * stage's picture is the object standing in the studio light; and
+   * progress has one rule, sage on sand for what you earned.
+   */
+  it("Lessons' rows are quiet: the object on one neutral tile, earned bars in sage", () => {
     const card = src("components/lessons/LessonCard.tsx");
-    expect(card).toContain("size={44} eager={eager} quiet");
-    expect(card).toContain('tone="neutral"');
+    expect(card).toContain("<LessonArt lesson={lesson} size={44} eager={eager} />");
+    expect(card).toContain("lesson-tile");
+    expect(card).not.toMatch(/tone="neutral"|lesson-art-quiet|stage-art/);
+    expect(card).toContain("<LessonArt lesson={lesson} size={132} eager stage />");
+    const css = readFileSync(path.join(root, "app/globals.css"), "utf8");
+    expect(css).toMatch(/\.lesson-tile \{\s*background: var\(--color-surface\);/);
+  });
+
+  it("the lesson pictures are cut out: every one carries transparency", () => {
+    for (const name of readdirSync(path.join(root, "public/lessons"))) {
+      if (!name.endsWith(".webp")) continue;
+      const head = readFileSync(path.join(root, "public/lessons", name)).subarray(0, 64);
+      // RIFF....WEBPVP8X with the alpha flag (bit 4 of the flags byte).
+      expect(head.toString("ascii", 12, 16), name).toBe("VP8X");
+      expect(head[20] & 0x10, name).toBe(0x10);
+    }
   });
 });

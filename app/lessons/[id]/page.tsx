@@ -100,9 +100,9 @@ export default function LessonPage() {
        * long lesson or a small phone it keeps its 204px and the page
        * scrolls under the shelf.
        *
-       * The art stays a tile, never a full-bleed picture over the title
-       * (#305): glossy art over a title is the shape of an ad, and a
-       * first-time user read it exactly that way. The tone below the
+       * The art is an object standing on the stage, never a full-bleed
+       * picture over the title (#305): glossy art over a title is the
+       * shape of an ad, and a first-time user read it exactly that way. The tone below the
        * stage is only the chip and the next square (wellspoken-course
        * s10).
        */}
@@ -129,8 +129,12 @@ export default function LessonPage() {
             aria-hidden
             className="absolute inset-0 flex items-center justify-center pb-6 [container-type:size]"
           >
-            <span className="lesson-art relative block aspect-square w-[clamp(120px,calc(100cqh-16px),176px)] shrink-0 overflow-hidden rounded-card bg-sand">
-              {/* Soft 3D renders, square, cut to 360px; a plain img (#274). */}
+            <span className="lesson-art relative block aspect-square w-[clamp(120px,calc(100cqh-16px),176px)] shrink-0">
+              {/* The glass object alone, standing in the room (the fix
+                  round): the render's own square was a full-strength
+                  tile of tone on the stage, the brightest thing one tap
+                  past Lessons. Keyed off its ground at 360px
+                  (scripts/key-lesson-art.py); a plain img (#274). */}
               <img
                 src={lesson.art}
                 alt=""

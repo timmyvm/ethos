@@ -29,9 +29,12 @@ import { ACTION_CLASS } from "@/lib/ui";
  * "the colors are too bright", "lessons look really weird". Fifteen
  * glossy renders at 56px in saturated blue, pink, orange, green and
  * violet, under heads in those tones, were the loudest page in the app.
- * The renders stay (they are the set) and come down: 44px, desaturated
- * to a third (`.lesson-art-quiet`), the heads in ink with the trait's
- * 8px mark, the bars in stone. The page's colour is its one hero.
+ * The heads went to ink with the trait's 8px mark. The pictures first
+ * went to a third of their colour, which read as old photos, so since
+ * the fix round each render is keyed off its gradient
+ * (scripts/key-lesson-art.py): the glass object alone, on one neutral
+ * tile in every row, so the fifteen read as one set and the colour left
+ * is the object's own pastel, not a square of tone.
  */
 
 /**
@@ -50,7 +53,6 @@ export function LessonArt({
   eager = false,
   radius = "rounded-control",
   className = "",
-  quiet = false,
   stage = false,
 }: {
   lesson: Lesson;
@@ -59,21 +61,25 @@ export function LessonArt({
   /** A thumbnail is a control's 12; the lesson page's 120 stands at the card's 16. */
   radius?: "rounded-control" | "rounded-card";
   className?: string;
-  /** In a list: desaturated to a third (`.lesson-art-quiet`). */
-  quiet?: boolean;
-  /** On the hero stage: no sand behind it (HeroStage's `artBlend` lays
-      its light over the sky). */
+  /**
+   * On a stage: no tile. The object stands in the stage's studio light
+   * (Demos's halo, `.demos-halo`), on its floor, the way Demos stands on
+   * every other tab's stage. Off a stage it sits on the one neutral tile
+   * every lesson shares (`.lesson-tile`).
+   */
   stage?: boolean;
 }) {
   return (
     <span
       aria-hidden
-      className={`lesson-art relative block shrink-0 overflow-hidden ${stage ? "" : "bg-sand"} ${
-        quiet ? "lesson-art-quiet" : ""
-      } ${radius} ${className}`}
+      className={`lesson-art relative block shrink-0 ${
+        stage ? "tone-sky" : `lesson-tile overflow-hidden ${radius}`
+      } ${className}`}
       style={{ width: size, height: size }}
     >
-      {/* Soft 3D renders since #319, square, cut to 360px. */}
+      {stage && <span className="demos-halo" />}
+      {/* Glass renders since #322, keyed off their ground since the fix
+          round: a square cut at 360px with transparency. */}
       <img
         src={lesson.art}
         alt=""
@@ -120,7 +126,7 @@ function Progress({
   const label = progressLabel(done, total);
   return (
     <span className={`flex h-4.5 items-center gap-2.5 ${className}`}>
-      <SegmentBar total={total} done={done} tone="neutral" className="min-w-0 flex-1" />
+      <SegmentBar total={total} done={done} className="min-w-0 flex-1" />
       <span className="w-13 shrink-0">
         {cue ? (
           <span
@@ -200,7 +206,7 @@ export function LessonRow({
         first ? "" : RULE
       }`}
     >
-      <LessonArt lesson={lesson} size={44} eager={eager} quiet />
+      <LessonArt lesson={lesson} size={44} eager={eager} />
       <span className="min-w-0 flex-1">
         <span className="font-display block text-row">{lesson.title}</span>
         {(known || pending) && (
@@ -227,8 +233,9 @@ export function LessonRow({
  *
  * The eyebrow is the trait on its stage chip, then "Up next"; the title
  * is the lesson; the line is its three practices as the stage's
- * segments; the art is the lesson's own render, its light laid over the
- * sky (`stage`). The tap says what it does: "Carry on" part way in,
+ * segments; the art is the lesson's own glass object standing on the
+ * stage's floor in Demos's studio light, at his 132 (`stage`). It was
+ * the render's whole square, a tile of tone on the sky (the fix round). The tap says what it does: "Carry on" part way in,
  * "Start" before. One tap from the tab to recording is what "you just
  * start it" looks like.
  */
@@ -250,13 +257,7 @@ export function UpNextCard({ lesson, done }: { lesson: Lesson; done: number }) {
         }
         eyebrowWide
         title={lesson.title}
-        artSize={112}
-        artBlend
-        art={
-          <span className="flex h-full w-full items-end justify-end pb-3 pr-3">
-            <LessonArt lesson={lesson} size={92} eager stage radius="rounded-card" />
-          </span>
-        }
+        art={<LessonArt lesson={lesson} size={132} eager stage />}
         line={
           <span className="mt-auto flex items-center gap-2.5 pt-3">
             <span className="w-24 shrink-0">

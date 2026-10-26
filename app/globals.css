@@ -2777,28 +2777,13 @@ summary::-webkit-details-marker {
 .practice-stage .disclosure-mark {
   color: var(--stage-ink);
 }
-/* A lesson's picture on the stage takes the stage's hue: its light and
-   shade over the sky (luminosity), so the glass object reads as part of
-   the room instead of a candy tile set on it. The stage isolates, so the
-   blend sees only the stage. */
-.stage-art {
-  mix-blend-mode: luminosity;
-}
-/* On the light sky the renders' saturated grounds fall to a deep navy
-   tile, the heaviest mass on the stage: their light is lifted first. */
-:root:not([data-theme="dark"]) .stage-art {
-  filter: brightness(1.3) contrast(0.8);
-}
-/* A lesson's picture in a list: smaller and quiet. The renders are glass
-   on a saturated gradient in the trait's tone; desaturated to a third,
-   with the light lifted in light and taken down in dark, the fifteen sit
-   as one calm column (Imprint's and Wellspoken's lists) and keep their
-   families. */
-.lesson-art-quiet > img {
-  filter: saturate(0.32) contrast(0.78) brightness(1.22);
-}
-:root[data-theme="dark"] .lesson-art-quiet > img {
-  filter: saturate(0.3) brightness(0.8);
+/* A lesson's picture off a stage: the glass object (keyed off its ground,
+   scripts/key-lesson-art.py) on the one tile every lesson shares, the
+   surface step, so the fifteen read as one set and the only colour is
+   each object's own pastel. On a stage it has no tile and stands in the
+   studio light (LessonArt's `stage`). */
+.lesson-tile {
+  background: var(--color-surface);
 }
 /* ========================== end of the hero stage ========================== */
 

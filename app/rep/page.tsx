@@ -378,6 +378,8 @@ function RepScreen() {
     reps: RepRow[];
     /** Today already had a recording before this one. */
     didToday: boolean;
+    /** How many recordings came before this one. */
+    count: number;
   } | null>(null);
 
   /**
@@ -437,6 +439,7 @@ function RepScreen() {
             .map((u) => u.name),
           reps: rows,
           didToday: streak.didToday,
+          count: all.length,
         };
         const xp = await fetchXp().catch(() => ({ total: 0, week: 0 }));
         setAnticipate(
@@ -634,6 +637,22 @@ function RepScreen() {
               })
             );
           }
+          // The next take on this screen (Retake, Go again, Practice N
+          // of 3, Next lesson, Another round all keep it mounted) is
+          // measured against the history that now holds this one, not
+          // the one from when the screen opened: records, the streak
+          // celebration and the stars are claimed once.
+          const mapNow = starsByLesson(all);
+          baselineRef.current = {
+            stars: totalStars(mapNow),
+            unitsOpen: unitStates(mapNow)
+              .filter((u) => !u.locked)
+              .map((u) => u.name),
+            reps,
+            // Spoken today, whether or not the row was stored.
+            didToday: true,
+            count: all.length,
+          };
         })
         .catch(() => {});
     } catch (e) {
@@ -997,6 +1016,7 @@ function RepScreen() {
    * same thing, not an undo.
    */
   const retake = useCallback(() => {
+    setRepCount((n) => baselineRef.current?.count ?? n);
     setResult(null);
     setBests([]);
     setClosing(null);
@@ -1060,6 +1080,7 @@ function RepScreen() {
       teardown();
     }
     setInterruption(null);
+    setRepCount((n) => baselineRef.current?.count ?? n);
     setResult(null);
     setPresence(null);
     setBests([]);

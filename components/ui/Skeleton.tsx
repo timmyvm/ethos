@@ -1,3 +1,5 @@
+import { HeroStage } from "@/components/ui/HeroStage";
+
 /**
  * Loading placeholders.
  *
@@ -64,25 +66,18 @@ export function SkeletonRegion({
  * then the foot.
  */
 export function SkeletonScoreCard() {
-  const bar = "absolute inset-y-[22%] left-0 !bg-cream/10";
+  /* On the house stage since the cohesion pass: the bars read the
+     stage's bone (`.practice-stage .skeleton`), at the landed lines. */
+  const bar = "absolute inset-y-[22%] left-0";
   return (
-    <section className="card-score rounded-sheet p-5">
+    <HeroStage>
       <Line className="eyebrow" bar={`${bar} w-20`} />
-      <div className="mt-1 flex items-start justify-between gap-4">
-        <Line className="font-display text-num-hero" bar={`${bar} w-32`} text="000" />
-        <div className="shrink-0 space-y-2">
-          {[0, 1].map((i) => (
-            <div key={i} className="flex flex-col items-end">
-              <Line className="font-display text-num-m" bar={`${bar} !left-auto right-0 w-10`} text="00" />
-              <Line className="label-data" bar={`${bar} !left-auto right-0 w-16`} />
-            </div>
-          ))}
-        </div>
+      <Line className="font-display mt-1 text-num-hero" bar={`${bar} w-36`} text="000" />
+      <Line className="font-display mt-0.5 text-link" bar={`${bar} w-32`} />
+      <div className="mt-auto pt-3">
+        <Line className="font-display text-link" bar={`${bar} w-36`} />
       </div>
-      <div className="mt-3 border-t border-cream/15 pt-2.5">
-        <Line className="text-caption" bar={`${bar} w-36`} />
-      </div>
-    </section>
+    </HeroStage>
   );
 }
 

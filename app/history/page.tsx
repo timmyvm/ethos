@@ -247,16 +247,16 @@ export default function HistoryPage() {
          * card.
          */}
         <div className="mt-5">
+          {/* The house stage (the cohesion pass): the number, its change,
+              the counts, and the Index's own history as the art. "Day 1
+              scored" left the foot: "since day one" says it, and What
+              moved prints the Day 1 column under it. */}
           <ScoreCard
             index={lastIndex}
             delta={indexDelta}
             recordings={reps.length}
             stars={totalStars(starMap)}
-            foot={
-              !empty && indexDelta !== null
-                  ? `Day 1 scored ${firstIndex}.`
-                  : undefined
-            }
+            series={scored.map((r) => r.ethos_index as number)}
           />
         </div>
       </div>
@@ -349,21 +349,20 @@ export default function HistoryPage() {
         {/* The one insight, ruled in its trait's tone when it has one:
             the sentence about "like" is a Fillers sentence, so it hangs
             off the Fillers colour the row above it and the heatmap wear.
-            A rule, not a box: it annotates the table, it is no card. */}
+            A rule, not a box: it annotates the table, it is no card.
+            Since the cohesion pass the rule is the only colour: no wash
+            behind it (it read as a maroon callout in dark), the words in
+            ink. */}
         {top && (
           <p
             data-trait={INSIGHT_TRAIT[top.id]}
             className={`text-caption ${
               INSIGHT_TRAIT[top.id]
-                ? "log-insight mt-3 py-2.5 pl-3 pr-3.5 text-stone-600"
+                ? "log-insight mt-3 py-1 pl-3 pr-3.5 text-stone-600"
                 : "border-t border-hairline pt-3 text-stone-600"
             }`}
           >
-            <span
-              className={`font-semibold ${INSIGHT_TRAIT[top.id] ? "tone-ink" : "text-ink"}`}
-            >
-              {top.headline}
-            </span>
+            <span className="font-semibold text-ink">{top.headline}</span>
             {/* Its own line: the headline has no full stop, so run on
                 it read "of your fillers 70 of 132" (log-18). */}
             <span className="mt-0.5 block">{top.detail}</span>
@@ -587,8 +586,10 @@ function MetricRow({
   open?: boolean;
 }) {
   const trait = rowTrait(row.key);
-  // The Index is the score the sage card carries, so its row is sage;
-  // every other row is its trait's tone, or plain when it has none.
+  // The accent rule (the cohesion pass): a trait's row keeps its tone on
+  // the 8px swatch and the trend's line, its label in ink. The Index row
+  // is neutral, its swatch and line in stone: the score's colour was the
+  // deep sage card's, and that card is the stage now.
   const index = row.key === "index";
   const tone =
     row.direction === "up"
@@ -615,9 +616,7 @@ function MetricRow({
           aria-hidden
           className={`log-swatch ${trait || index ? "" : "log-swatch-blank"}`}
         />
-        <span className={`truncate ${trait && !dim ? "tone-ink" : ""}`}>
-          {row.label}
-        </span>
+        <span className="truncate">{row.label}</span>
         {open !== undefined && (
           <span
             aria-hidden
@@ -669,17 +668,19 @@ function MetricRow({
         invert={row.invert}
         height={20}
         bare
-        color={trait ? "var(--tone)" : index ? "var(--color-sage-600)" : undefined}
+        color={trait ? "var(--tone)" : index ? "var(--color-stone-500)" : undefined}
+        wash={false}
       />
     </span>
   );
 }
 
 /**
- * A recording's date as a small tile in its trait's tone: the wash for
- * a ground, the tone's ink for the digits. A recording that practised
- * no one trait (a game, a boss, a free recording) gets the plain
- * surface, so a colour always means a trait.
+ * A recording's date as a small tile: the plain surface and the ink, with
+ * the trait it practised as a short bar in its tone at the tile's foot
+ * (the cohesion pass: the trait's wash made every row a coloured tile).
+ * A recording that practised no one trait (a game, a boss, a free
+ * recording) has no bar, so a colour always means a trait.
  */
 function DateTile({
   trait,
@@ -689,10 +690,7 @@ function DateTile({
   children: ReactNode;
 }) {
   return (
-    <span
-      data-trait={trait ?? undefined}
-      className={`log-date ${trait ? "tone-wash tone-ink" : ""}`}
-    >
+    <span data-trait={trait ?? undefined} className="log-date">
       {children}
     </span>
   );

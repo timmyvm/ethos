@@ -18,6 +18,7 @@ export function Sparkline({
   height = 48,
   bare = false,
   color,
+  wash = true,
 }: {
   values: number[];
   /**
@@ -44,6 +45,12 @@ export function Sparkline({
    * job, in sage and rust. Unset, the older two voices hold.
    */
   color?: string;
+  /**
+   * The faint area under a coloured line. The Log turns it off since the
+   * cohesion pass: under the hero a trait's colour is a line, never a
+   * wash.
+   */
+  wash?: boolean;
 }) {
   if (bare) {
     return (
@@ -64,6 +71,7 @@ export function Sparkline({
         className="fill w-full"
         stroke={1.5}
         color={color}
+        wash={wash}
       />
     );
   }
@@ -127,6 +135,7 @@ function Trace({
   className,
   stroke = 2,
   color,
+  wash = true,
 }: {
   values: number[];
   labelValues?: number[];
@@ -138,6 +147,7 @@ function Trace({
   stroke?: number;
   /** See Sparkline. When set, the line also gets a wash under it. */
   color?: string;
+  wash?: boolean;
 }) {
   if (values.length < 2) {
     return (
@@ -174,7 +184,7 @@ function Trace({
       role="img"
       aria-label={`${label}: ${labelValues.map((v) => Math.round(v)).join(", ")}`}
     >
-      {color && (
+      {color && wash && (
         /* The wash: the area under the line in the line's own colour,
            faint enough that the stroke stays the reading. */
         <path

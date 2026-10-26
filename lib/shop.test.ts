@@ -8,6 +8,7 @@ import {
   ownedFrom,
   poseArt,
   reasonFor,
+  stagePose,
 } from "./shop";
 
 const freeze = itemById("streak_freeze")!;
@@ -180,5 +181,39 @@ describe("the server's catalog", () => {
   it("holds no drop statement, which the production connector stalls on", () => {
     expect(sql.length).toBeGreaterThan(0);
     expect(sql).not.toMatch(/\bdrop\b/i);
+  });
+});
+
+/*
+ * A bought pose has to reach the floor card. Today computed the equipped
+ * pose and then never drew it: the card hard-coded the mic Demos, so a
+ * pose bought for 8 to 12 earned coins changed nothing anyone could see.
+ */
+describe("stagePose", () => {
+  const owns = (...ids: string[]) =>
+    ownedFrom(
+      ids.map((id) => ({
+        kind: "spent",
+        reason: `shop:${id}`,
+        amount: SHOP.find((i) => i.id === id)!.price,
+      }))
+    );
+
+  it("puts each bought and equipped pose on the stage", () => {
+    expect(stagePose("pose_speaking", owns("pose_speaking"))).toBe("speaking");
+    expect(stagePose("pose_workout", owns("pose_workout"))).toBe("clock");
+    expect(stagePose("pose_celebrate", owns("pose_celebrate"))).toBe("celebrate");
+  });
+
+  it("draws nothing for a pose not owned, not equipped, or unknown", () => {
+    expect(stagePose("pose_speaking", owns())).toBeNull();
+    expect(stagePose(null, owns("pose_speaking"))).toBeNull();
+    expect(stagePose("pose_unknown", { ids: new Set(["pose_unknown"]), freezes: 0 })).toBeNull();
+  });
+
+  it("has a stage pose for every pose the shop sells", () => {
+    for (const item of SHOP.filter((i) => i.id.startsWith("pose_"))) {
+      expect(stagePose(item.id, owns(item.id)), item.id).not.toBeNull();
+    }
   });
 });

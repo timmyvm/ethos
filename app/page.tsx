@@ -47,7 +47,7 @@ import { readOnboarding, type Answers, EMPTY_ANSWERS } from "@/lib/answers";
 import { syncOnboarding } from "@/lib/answers-sync";
 import { dayOneNote, spinForAnswers } from "@/lib/portfolio";
 import { repHref } from "@/lib/rep-config";
-import { ownedFrom, poseArt } from "@/lib/shop";
+import { ownedFrom, POSE_STAGE, stagePose, type StagePose } from "@/lib/shop";
 import { armReminder } from "@/lib/reminders";
 import { decayNote, nextFocus } from "@/lib/schedule";
 import { choosePractice } from "@/lib/next-practice";
@@ -94,7 +94,8 @@ export default function Home() {
    * this is a flag and not a class on the card.
    */
   const [floorReturned, setFloorReturned] = useState(false);
-  const [demos, setDemos] = useState<string | null>(null);
+  /** The bought pose on the floor card's stage; null draws the default. */
+  const [demos, setDemos] = useState<StagePose | null>(null);
   const [anon, setAnon] = useState<boolean | null>(null);
   const [failed, setFailed] = useState(false);
   /** The introduction's answers (#232). Read after paint, never at render. */
@@ -159,6 +160,10 @@ export default function Home() {
 
     setAnswers(readOnboarding().answers);
     setSkipIntros(readPrefs().skipIntros);
+    // First paint from this device's copy (written by the shop's equip
+    // after a purchase here), so the default never flashes over a pose
+    // someone paid for; the account's answer below corrects it.
+    setDemos(POSE_STAGE[readPrefs().pose ?? ""] ?? null);
 
     /* A bought pose, if there is one. `null` until both the ledger and
        the profile answer, so the default never flashes over the thing
@@ -177,7 +182,7 @@ export default function Home() {
       .then(([p, l]) => {
         if (p !== undefined) setPremium(p?.premium ?? false);
         const pose = p?.equipped_pose ?? readPrefs().pose;
-        if (l) setDemos(poseArt(pose, ownedFrom(l)));
+        if (l) setDemos(stagePose(pose, ownedFrom(l)));
         // The introduction's answers follow the account (#232): a
         // finished walk goes up, or the account's answers come down.
         return syncOnboarding().then((s) => setAnswers(s.answers));
@@ -411,6 +416,7 @@ export default function Home() {
                 onMods={() => setShowMods((v) => !v)}
                 modsOpen={showMods}
                 away={dropOpen}
+                pose={demos}
               />
             </div>
             {showMods && (

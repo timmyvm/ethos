@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ACTION_CLASS } from "@/lib/ui";
-import { DemosArt } from "@/components/DemosArt";
+import { DemosArt, type Pose } from "@/components/DemosArt";
 import { TipLine } from "@/components/rep/TipStrip";
 import { repHref } from "@/lib/rep-config";
 import { IconShuffle, IconSliders } from "@/components/Icon";
@@ -76,9 +76,12 @@ export function FloorCard({
   modsOpen = false,
   loading = false,
   away = false,
+  pose = null,
 }: {
   /** Null on day one and on any day with nothing measured yet. */
   chosen: Chosen | null;
+  /** The bought pose equipped in the Shop; it wins over the default mic. */
+  pose?: Pose | null;
   dayOne: boolean;
   /** The first lesson's own prompt, so card and recorder agree. */
   dayOnePrompt?: string;
@@ -242,7 +245,7 @@ export function FloorCard({
           ) : (
             arrive !== null && (
               <DemosArt
-                pose={dayOne ? "wave" : "mic"}
+                pose={dayOne ? "wave" : (pose ?? "mic")}
                 size={132}
                 pop={arrive || back}
                 grounded

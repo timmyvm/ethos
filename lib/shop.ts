@@ -105,6 +105,24 @@ export function poseArt(
   return POSE_ART[equipped] ?? DEFAULT_POSE_ART;
 }
 
+/**
+ * The pose a bought cosmetic puts on Today's stage, in DemosArt's set.
+ * The stage draws DemosArt, not the still art above, so a bought pose
+ * reaches the card only through this map.
+ */
+export type StagePose = "speaking" | "clock" | "celebrate";
+export const POSE_STAGE: Record<string, StagePose> = {
+  pose_speaking: "speaking",
+  pose_workout: "clock", // "the stopwatch pose"
+  pose_celebrate: "celebrate",
+};
+
+/** The equipped pose for the stage, under poseArt's ownership guard; null draws the default. */
+export function stagePose(equipped: string | null, owned: Owned): StagePose | null {
+  if (!equipped || !owned.ids.has(equipped)) return null;
+  return POSE_STAGE[equipped] ?? null;
+}
+
 export interface Owned {
   /** Item ids bought at least once. */
   ids: Set<string>;

@@ -481,6 +481,8 @@ describe("cancel and resume", () => {
     expect(w.sim.callsTo("subscriptions.update").at(-1)?.args[1]).toEqual({
       cancel_at_period_end: true,
     });
+    // An active plan is never ended early: the month is paid for.
+    expect(w.sim.callsTo("subscriptions.cancel")).toEqual([]);
 
     const resumed = await resumePlan(w.deps, USER);
     expect(resumed).toEqual({
@@ -596,6 +598,136 @@ describe("cancel and resume", () => {
     expect(w.sim.callsTo("subscriptions.update").at(-1)?.args[1]).toEqual({ cancel_at: "" });
     expect(w.sim.sub(w.sub).cancel_at).toBeNull();
     expect(resumed.billing).toMatchObject({ cancel_at_period_end: false, next_price_cents: 1199 });
+  });
+});
+
+/**
+ * Cancelling while the card is declined. A plan set to end at the
+ * period's end keeps its open renewal, and Stripe keeps retrying it:
+ * someone who cancelled because the card was declined could still be
+ * charged for the month they declined. So a past-due or unpaid plan ends
+ * now and that renewal is voided.
+ */
+describe("cancelling a declined plan", () => {
+  it("ends a past-due plan now, voids the renewal being retried, and Premium ends with it", async () => {
+    const w = await paying();
+    await nextMonth(w);
+    w.sim.renew(w.sub, { paid: false }); // month 3, A$10.99, declined
+    await syncCustomer(w.deps, w.customer);
+    expect(w.db.row("profiles", USER)).toMatchObject({ premium: true });
+
+    const out = await cancelPlan(w.deps, USER);
+    expect(w.sim.callsTo("subscriptions.cancel").map((c) => c.args[0])).toEqual([w.sub]);
+    expect(w.sim.callsTo("subscriptions.update").filter((c) => "cancel_at_period_end" in (c.args[1] as object))).toEqual([]);
+    expect(w.sim.sub(w.sub).status).toBe("canceled");
+    expect(out).toEqual({
+      billing: expect.objectContaining({
+        status: "canceled",
+        ladder_month: 2,
+        next_price_cents: null,
+        cancel_at_period_end: false,
+        current_period_end: w.stripe.now().toISOString(),
+      }),
+      premium: false,
+    });
+    expect(w.db.row("profiles", USER)).toMatchObject({ premium: false, premium_source: null });
+    const renewal = w.stripe.state.invoices.at(-1)!;
+    expect(renewal.status).toBe("void");
+    // The retry, or the email's link, a week later: nothing left to pay.
+    w.sim.advance(7 * DAY_S);
+    expect(() => w.sim.payOpen(w.sub)).toThrow(/no open invoice/);
+    expect(w.sim.charges(w.sub)).toEqual([1299, 1199]);
+  });
+
+  it("ends an unpaid plan now too, and voids its uncollectible renewal", async () => {
+    const w = await paying();
+    w.sim.renew(w.sub, { paid: false });
+    w.sim.sub(w.sub).status = "unpaid"; // the retries ran out on a plan Stripe keeps open
+    w.stripe.state.invoices.at(-1)!.status = "uncollectible";
+    await syncCustomer(w.deps, w.customer);
+
+    const out = await cancelPlan(w.deps, USER);
+    expect(w.sim.sub(w.sub).status).toBe("canceled");
+    expect(out.billing).toMatchObject({ status: "canceled", cancel_at_period_end: false });
+    expect(out.premium).toBe(false);
+    expect(w.stripe.state.invoices.at(-1)!.status).toBe("void");
+  });
+
+  it("ends a past-due plan now even when it was already set to end at the period's end", async () => {
+    // Set to end in the portal, or by the app before this fix: Stripe was
+    // still retrying the renewal.
+    const w = await paying();
+    w.sim.renew(w.sub, { paid: false });
+    w.sim.sub(w.sub).cancel_at_period_end = true;
+    w.sim.sub(w.sub).cancel_at = w.sim.sub(w.sub).items.data[0].current_period_end;
+    await syncCustomer(w.deps, w.customer);
+
+    const out = await cancelPlan(w.deps, USER);
+    expect(out.billing).toMatchObject({ status: "canceled" });
+    expect(w.stripe.state.invoices.at(-1)!.status).toBe("void");
+    await expect(cancelPlan(w.deps, USER)).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("answers the cancel when the void fails, and the ended plan's webhook voids it", async () => {
+    const w = await paying();
+    w.sim.renew(w.sub, { paid: false });
+    await syncCustomer(w.deps, w.customer);
+    const voidInvoice = w.stripe.api.invoices.voidInvoice;
+    w.stripe.api.invoices.voidInvoice = async () => {
+      throw new Error("Stripe is down");
+    };
+
+    const out = await cancelPlan(w.deps, USER);
+    expect(out).toEqual({ billing: expect.objectContaining({ status: "canceled" }), premium: false });
+    expect(w.stripe.state.invoices.at(-1)!.status).toBe("open");
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining("didn't void"),
+      expect.stringContaining("Stripe is down")
+    );
+
+    w.stripe.api.invoices.voidInvoice = voidInvoice;
+    await syncCustomer(w.deps, w.customer); // customer.subscription.deleted
+    expect(w.stripe.state.invoices.at(-1)!.status).toBe("void");
+  });
+
+  it("answers the ended plan when the copy fails to sync after the cancel went through", async () => {
+    const w = await paying();
+    w.sim.renew(w.sub, { paid: false });
+    await syncCustomer(w.deps, w.customer);
+    const cancel = w.stripe.api.subscriptions.cancel;
+    w.stripe.api.subscriptions.cancel = async (...args: Parameters<typeof cancel>) => {
+      const out = await cancel(...args);
+      w.db.state.fail.push({ table: "billing", op: "upsert", error: { code: "08006", message: "down" } });
+      return out;
+    };
+
+    const out = await cancelPlan(w.deps, USER);
+    expect(out).toEqual({
+      billing: expect.objectContaining({
+        status: "canceled",
+        next_price_cents: null,
+        cancel_at_period_end: false,
+        current_period_end: w.stripe.now().toISOString(),
+      }),
+      premium: false,
+    });
+    expect(w.stripe.state.invoices.at(-1)!.status).toBe("void");
+  });
+
+  it("ends the declined plan now and an active duplicate at its period's end", async () => {
+    const w = world();
+    const customer = customerFor(w);
+    const declined = w.sim.startPlan(customer);
+    w.sim.renew(declined); // two paid months: the plan the account reads
+    w.sim.renew(declined, { paid: false });
+    const dup = w.sim.startPlan(customer);
+    await syncCustomer(w.deps, customer);
+
+    const out = await cancelPlan(w.deps, USER);
+    expect(w.sim.sub(declined).status).toBe("canceled");
+    expect(w.sim.sub(dup)).toMatchObject({ status: "active", cancel_at_period_end: true });
+    expect(out.billing).toMatchObject({ status: "active", cancel_at_period_end: true });
+    expect(w.sim.renew(dup)).toBe(0);
   });
 });
 

@@ -318,15 +318,26 @@ describe("You, the manage sheet and Settings, per state", () => {
     expect(MANAGE_COPY.updateCard).toBe("Update card");
   });
 
-  it("past due says what a cancel does to the charge still being retried", () => {
+  it("past due says, before the confirm, that a cancel ends the plan now and the declined charge with it", () => {
+    // lib/billing.ts cancelPlan cancels a declined plan at once and voids
+    // the renewal Stripe was retrying, so Premium ends now too: it was
+    // only on while the retries ran.
     const v = view(ROWS.pastDue);
     expect(confirmBody(v, TODAY)).toBe(
-      "Month 4's A$9.99 is still being retried. If it goes through, Premium runs to 24 Nov; if it fails, the plan ends when the retries stop. If a plan ends, the next one starts at A$12.99."
+      "Your plan ends now, and the declined charge is cancelled. The next one starts at A$12.99."
     );
-    // After the cancel the row is past_due and ending: the decline stays in sight.
+    // The cancel answers the ended row.
+    const after = view(row({ status: "canceled", next_price_cents: null }), FREE_PROFILE);
+    expect(after.kind).toBe("ended");
+    expect(cancelledStatus(after, TODAY)).toBe("Cancelled. The declined charge won't be taken.");
+    expect(cancelledStatus(after, TODAY)).not.toMatch(/Premium runs to/);
+  });
+
+  it("past due set to end elsewhere keeps the decline in sight", () => {
+    // Set to end at the period's end in Stripe's portal, or by the app
+    // before a declined plan's cancel ended it at once.
     const after = view(row({ status: "past_due", cancel_at_period_end: true, next_price_cents: null }));
     expect([after.kind, after.declined, after.cancelling]).toEqual(["ending", true, true]);
-    expect(cancelledStatus(after, TODAY)).toBe("Cancelled. Premium runs to 24 Nov if month 4's A$9.99 goes through.");
     expect(cardWords(after, TODAY)).toMatchObject({
       left: { title: "Card declined" },
       foot: "The plan is set to end. Premium runs to 24 Nov if month 4's A$9.99 goes through.",
@@ -361,12 +372,15 @@ describe("You, the manage sheet and Settings, per state", () => {
     expect(stepLabels(view(ROWS.unpaid, FREE_PROFILE).calendar)).toEqual(["1", "2", "3", "4", "5", "6", "7+"]);
   });
 
-  it("unpaid never says Premium runs on, and a cancelled one ends with no cancel offered again", () => {
+  it("unpaid never says Premium runs on, and its cancel ends the plan now with the declined charge", () => {
     const u = view(ROWS.unpaid, FREE_PROFILE);
     expect([u.declined, u.cancelling]).toEqual([true, false]);
     expect(confirmBody(u, TODAY)).toBe(
-      "Premium stays off until month 4's A$9.99 goes through, and the plan ends on 24 Nov. The next one starts at A$12.99."
+      "Your plan ends now, and the declined charge is cancelled. The next one starts at A$12.99."
     );
+    const ended = view(row({ status: "canceled", next_price_cents: null }), FREE_PROFILE);
+    expect(cancelledStatus(ended, TODAY)).toBe("Cancelled. The declined charge won't be taken.");
+    // One set to end elsewhere (the portal) is drawn with no cancel offered again.
     const after = view(row({ status: "unpaid", cancel_at_period_end: true, next_price_cents: null }), FREE_PROFILE);
     expect([after.kind, after.declined, after.cancelling]).toEqual(["unpaid", true, true]);
     expect(cancelledStatus(after, TODAY)).toBe("Cancelled. The plan ends on 24 Nov.");
@@ -381,7 +395,7 @@ describe("You, the manage sheet and Settings, per state", () => {
       "Month 3 of the price ladder. Premium is off until month 4's A$9.99 goes through. The plan ends on 24 November."
     );
     expect(resumedStatus(u, TODAY)).toBe("You're staying. Premium switches back on once month 4's A$9.99 goes through.");
-    for (const s of [confirmBody(u, TODAY), cancelledStatus(after, TODAY), resumedStatus(u, TODAY)]) {
+    for (const s of [confirmBody(u, TODAY), cancelledStatus(ended, TODAY), cancelledStatus(after, TODAY), resumedStatus(u, TODAY)]) {
       expect(s).not.toMatch(/Premium runs to/);
     }
   });

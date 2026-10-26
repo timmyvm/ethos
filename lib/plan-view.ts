@@ -607,25 +607,28 @@ export function manageLine(view: PlanView, today: Date): string {
 
 /**
  * The confirm's body: "Premium runs to 24 Nov. If the plan ends, the
- * next one starts at A$12.99." A declined plan's is its own: a past-due
- * cancel leaves the retried charge open (Premium runs to the end only if
- * it lands, and the plan ends sooner if the retries run out), and an
- * unpaid plan has no Premium to run on.
+ * next one starts at A$12.99." A declined plan's is its own: its cancel
+ * ends the plan now and voids the renewal Stripe was retrying
+ * (lib/billing.ts cancelPlan), and the person is told so before the tap.
  */
 export function confirmBody(view: PlanView, today: Date): string {
   const first = aud(FIRST_PRICE_CENTS);
-  const end = endOf(view, today) ?? "the end of this month";
-  if (view.kind === "pastDue") {
-    return `${Due(view)} is still being retried. If it goes through, Premium runs to ${end}; if it fails, the plan ends when the retries stop. If a plan ends, the next one starts at ${first}.`;
-  }
-  if (view.kind === "unpaid") {
-    return `Premium stays off until ${due(view)} goes through, and the plan ends ${endsOn(view, today)}. The next one starts at ${first}.`;
+  if (view.kind === "pastDue" || view.kind === "unpaid") {
+    return `${DECLINED_CANCEL} The next one starts at ${first}.`;
   }
   return `${runsTo(view, today)} If the plan ends, the next one starts at ${first}.`;
 }
 
-/** "Cancelled. Premium runs to 24 Nov.", from the row the cancel answered. */
+/** What cancelling a declined plan does, said before the confirm. */
+export const DECLINED_CANCEL = "Your plan ends now, and the declined charge is cancelled.";
+
+/**
+ * "Cancelled. Premium runs to 24 Nov.", from the row the cancel answered.
+ * Only a declined plan's cancel answers an ended row. A plan set to end
+ * elsewhere (Stripe's portal) keeps its own words.
+ */
 export function cancelledStatus(view: PlanView, today: Date): string {
+  if (view.kind === "ended") return "Cancelled. The declined charge won't be taken.";
   if (view.kind === "unpaid") return `Cancelled. The plan ends ${endsOn(view, today)}.`;
   if (view.declined) {
     return `Cancelled. Premium runs to ${endOf(view, today) ?? "the end of this month"} if ${due(view)} goes through.`;

@@ -298,6 +298,28 @@ describe("POST /api/billing/cancel and /resume", () => {
     });
   });
 
+  it("ends a declined plan now: the ended row, Premium off, and the renewal it was retrying voided", async () => {
+    const { sub } = await paying();
+    stripe.sim.renew(sub, { paid: false });
+    await syncCustomer({ stripe: stripe.asStripe(), db: db.asClient() }, db.row("billing", USER)!.stripe_customer_id as string);
+
+    const res = await call(cancel);
+    expect(res).toEqual({
+      status: 200,
+      body: {
+        billing: expect.objectContaining({ status: "canceled", cancel_at_period_end: false, next_price_cents: null }),
+        premium: false,
+      },
+    });
+    expect(stripe.sim.sub(sub).status).toBe("canceled");
+    expect(stripe.state.invoices.at(-1)!.status).toBe("void");
+    // Ended, so a second tap is the ended plan's 409.
+    expect(await call(cancel)).toEqual({
+      status: 409,
+      body: { error: "This plan has ended. A new one starts at month 1." },
+    });
+  });
+
   it("answers 200, never 'didn't cancel', when the cancel went through and only the copy failed", async () => {
     const { sub } = await paying();
     const update = stripe.api.subscriptions.update;

@@ -164,9 +164,10 @@ const profile = { display_name: "Timothy", premium: false, premium_until: null, 
  *   floor               month 9, A$6.99 every month
  *   ending              month 3, cancelled: Premium until the period end
  *   pastdue             month 3, the renewal declined and being retried
- *   pastdueending       pastdue, then cancelled while it is retried
+ *   pastdueending       pastdue, set to end in Stripe's portal (the app's
+ *                       cancel ends a declined plan now)
  *   unpaid              month 3, retries ran out, Premium off
- *   unpaidending        unpaid, then cancelled: it ends at the period end
+ *   unpaidending        unpaid, set to end in the portal: at the period end
  *   incomplete          the first payment pending
  *   ended               a plan that ended, premium off
  *   month1              month 1, as the checkout return lands
@@ -338,6 +339,15 @@ export async function billingApiRoute(route) {
     const row = plan.billing;
     if (!row) return answer({ error: "There's no plan on this account." }, 404);
     const ending = name === "cancel";
+    // As lib/billing.ts cancelPlan: a declined plan ends now, Premium with it.
+    if (ending && (row.status === "past_due" || row.status === "unpaid")) {
+      plan.billing = { ...row, status: "canceled", cancel_at_period_end: false, next_price_cents: null, current_period_end: inDays(0) };
+      plan.premium = false;
+      profile.premium = false;
+      profile.premium_until = null;
+      await new Promise((r) => setTimeout(r, 400));
+      return answer({ billing: plan.billing, premium: plan.premium });
+    }
     if (ending === row.cancel_at_period_end) {
       return answer({ error: ending ? "This plan is already set to end." : "This plan has ended. A new one starts at month 1." }, 409);
     }

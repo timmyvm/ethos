@@ -49,7 +49,8 @@ function Lead({ children }: { children: React.ReactNode }) {
  *  - months in a row, retries keep the place, an ended plan starts at
  *    month 1: lib/billing.ts syncCustomer, lib/pricing.ts
  *  - cancel runs to the end of the paid month: lib/billing.ts cancelPlan
- *    sets cancel_at_period_end
+ *    sets cancel_at_period_end; a declined plan's cancel ends it now and
+ *    voids the renewal being retried
  *  - deleting the account cancels first: app/api/account/route.ts
  */
 const LADDER_ROWS = LADDER_CENTS.map((cents, i) => ({
@@ -191,6 +192,8 @@ export default function Terms() {
           <Lead>Cancelling.</Lead> Cancel any time in the app: tap Premium
           on You, or Manage plan in Settings, then Cancel plan. Premium stays
           on to the end of the month you&apos;ve paid for, then the plan ends.
+          If a payment was declined, the plan ends as soon as you cancel, and
+          the declined charge is cancelled.
         </li>
         <li>
           <Lead>A declined payment.</Lead> We retry it for about two weeks.

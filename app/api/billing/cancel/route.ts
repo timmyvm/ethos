@@ -4,6 +4,11 @@
  * the plan keeps its place on the ladder until the cancel takes effect,
  * so undoing it (/api/billing/resume) loses nothing.
  *
+ * A declined plan (past due or unpaid) ends now instead, and the
+ * renewal Stripe was retrying is voided, so cancelling never leaves a
+ * declined month to be charged later. Its answer is the ended row
+ * (status "canceled") with Premium off.
+ *
  * One tap and a confirm in the app, as easy as starting (Australian
  * Consumer Law). Answers 200 { billing, premium }, 401, 404 no plan,
  * 409 already ending or already ended, 429, 503 Stripe isn't

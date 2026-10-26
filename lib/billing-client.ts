@@ -160,7 +160,7 @@ export async function syncPlan(): Promise<PlanResult> {
   return plan("sync", await post("sync"));
 }
 
-/** POST /api/billing/cancel: cancel at the end of the paid month. 409 when already ending or ended. */
+/** POST /api/billing/cancel: cancel at the end of the paid month; a declined plan ends now. 409 when already ending or ended. */
 export async function cancelPlan(): Promise<PlanResult> {
   return plan("cancel", await post("cancel"));
 }

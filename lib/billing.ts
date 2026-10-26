@@ -1099,9 +1099,17 @@ async function afterWrite(
   }
 }
 
+/** A renewal was declined: Stripe is retrying it, or the retries ran out on a plan it keeps open. */
+const DECLINED_STATUSES: readonly string[] = ["past_due", "unpaid"];
+
 /**
- * Cancel at the end of the paid month: Premium runs until then, and the
- * plan keeps its place on the ladder until the cancel takes effect.
+ * Cancel. A paid month runs out: Premium runs until the period's end,
+ * and the plan keeps its place on the ladder until the cancel takes
+ * effect. A declined plan ends now instead, and the renewal Stripe was
+ * retrying is voided: set to end later, it stays open and Stripe keeps
+ * retrying it, so someone who cancelled because their card was declined
+ * could still be charged for the month they declined. Premium ends with
+ * it, which is honest: it was only on while the retries ran.
  *
  * Every live plan on the account is cancelled, the one it reads last. A
  * duplicate should never exist (createCheckout closes older Checkouts),
@@ -1113,18 +1121,53 @@ export async function cancelPlan(deps: BillingDeps, userId: string): Promise<Syn
   const synced = await syncedPlan(deps, userId);
   const sub = synced.subscription;
   if (!isLive(sub.status)) throw new BillingError(409, ENDED);
+  const declined = (s: Stripe.Subscription) => DECLINED_STATUSES.includes(s.status);
   const toEnd = synced.subs
-    .filter((s) => isLive(s.status) && !endsThisPeriod(s))
+    .filter((s) => isLive(s.status) && (declined(s) || !endsThisPeriod(s)))
     .sort((a, b) => Number(a.id === sub.id) - Number(b.id === sub.id));
   if (toEnd.length === 0) throw new BillingError(409, ALREADY_ENDING);
 
+  const endedNow = new Set<string>();
+  let endedAt: number | null = null;
   for (const s of toEnd) {
-    await deps.stripe.subscriptions.update(s.id, cancelAtPeriodEnd(s));
+    if (declined(s)) {
+      const ended = await deps.stripe.subscriptions.cancel(s.id);
+      endedNow.add(s.id);
+      if (s.id === sub.id) endedAt = ended.ended_at ?? null;
+    } else {
+      await deps.stripe.subscriptions.update(s.id, cancelAtPeriodEnd(s));
+    }
   }
-  return afterWrite(deps, synced.customerId, {
-    billing: { ...synced.billing, cancel_at_period_end: true, next_price_cents: null },
-    premium: synced.premium,
-  });
+  // The sync's own void step, run here so it never waits on the copy
+  // syncing. A failure is logged, not answered: the plan did end, Stripe
+  // stops collecting an ended plan's invoices, and the deleted event's
+  // sync voids it and throws until it has.
+  if (endedNow.size > 0) {
+    try {
+      await voidUnpaid(deps.stripe, synced.customerId, endedNow);
+    } catch (e) {
+      console.error(`billing: a cancelled declined plan's invoice didn't void for ${synced.customerId}`, explain(e));
+    }
+  }
+
+  const now = deps.now?.() ?? new Date();
+  return afterWrite(deps, synced.customerId, endedNow.has(sub.id)
+    ? {
+        // What Stripe holds: the plan ended, and Premium with it. A code's
+        // Premium, if any, comes back with the webhook's sync.
+        billing: {
+          ...synced.billing,
+          status: "canceled",
+          next_price_cents: null,
+          cancel_at_period_end: false,
+          current_period_end: new Date(endedAt != null ? endedAt * 1000 : now.getTime()).toISOString(),
+        },
+        premium: false,
+      }
+    : {
+        billing: { ...synced.billing, cancel_at_period_end: true, next_price_cents: null },
+        premium: synced.premium,
+      });
 }
 
 /**

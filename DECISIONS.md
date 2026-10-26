@@ -634,6 +634,36 @@ Locked means locked. Reopen only with user data or Timothy's explicit call.
 
 390. 2026-10-25 · **React #418 had a root cause, and it was the root layout** · The intermittent hydration error STATE carried since #341 (about one cold load in a hundred, on /, /you, /settings and /games) was not in any page. With React's hydration patched to say where it failed: React hydrates inside a transition, and an element still waiting on a JavaScript chunk is retried from the wrong place. Two elements in the root layout waited. `themeBootScript` was imported into the server layout from `components/Theme.tsx`, a client file, so the first `<script>` in `<head>` waited on that file's chunk, and retrying the head left `<body>` hydrating against `<meta charset>`. And `PageTransition`'s div held Next's router element directly, which waits on the error and not-found chunks. The script now lives in a plain module (`lib/theme-boot.ts`) and the page sits under a keyed fragment, with the DOM unchanged. Before: 9 in about 900 loads. After: 0 in 960, plus all six gates on the production build.
 
+391. 2026-10-26 · **The five tabs are one app: Practice's grammar is the house grammar** · A first-time tester went through the tabs in dark on an iPhone (`docs/refs/feedback/2026-10-25-dark-tabs.md`). Her read:
+- "None of the pages match really."
+- On Today: "everything competes", "you don't know this is the main thing".
+- On Lessons: "the colors are too bright", "lessons look really weird".
+- On You: "nothing matches this one because of the panda".
+- On Practice: "practice is good".
+
+Timothy said to take it seriously, and the shots agreed. Each tab had its own colour world:
+- Today: an amber card, a blue ring and five tones.
+- Lessons: fifteen saturated glossy squares and tone-coloured heads.
+- Log: an olive card and a maroon callout.
+- You: a grey card with Demos on a blue coin.
+
+Practice, the one she liked, had one coloured stage and nothing else coloured. So:
+- **One stage.** Every tab now opens on one sky stage (`HeroStage`) holding its one hero, and its one tap stands under it.
+- **Colour under the stage.** Under the stage nothing has a coloured fill. A trait's colour is an 8px square, rings are stone, and dark mutes the tones (while keeping Pausing and Variety apart).
+- **Progress.** One rule: sage on sand off the stage, the stage's ink on it, and grey only for the trough.
+- **Lessons.** The fifteen objects are cut out of their gradient squares (`scripts/key-lesson-art.py`, service worker cache v16) and stand on one neutral tile. Up next stands its object on the stage like a figure.
+- **Today.** Its topic sets at 20/800 so a typical topic holds three lines.
+
+Principles bent, and why:
+- **Sage leaves the Log's score card** (#362): the stage is the hero's material everywhere, and sage still marks the stars, the streak and earned progress.
+- **Demos stands on Today's and You's stages as on Practice's**: every stage wants a figure at its right. That stretches "Demos at moments", so only one Demos is ever on screen, and the stage's Demos steps off while the price drop shows.
+
+Measured by the pass:
+- Today's distinct hues went from 6 to 3, and coloured pixels under the stage from 1.8% to 0.2%.
+- Lessons' coloured area under the stage went from 7.2% to 2.0%.
+
+An independent critic marked each of her sentences resolved or not with screenshots. Its sixteen defects were fixed in a second round. The gates were all green on the production build: tsc, 2201 tests, and the six browser checks at their counts. Before and after sheets: `docs/look/cohesion/contact-dark.png`, `contact-light.png`.
+
 ## Open queue (research-once, decide, move up)
 
 - Currency name — after launch copywriting pass

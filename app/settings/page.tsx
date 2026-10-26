@@ -19,6 +19,7 @@ import {
 import { applyMotion, applyTheme } from "@/components/Theme";
 import { ManageSheet } from "@/components/premium/ManageSheet";
 import { SettingsPlanRow, SettingsPlanRowSkeleton } from "@/components/premium/PlanCard";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorLine } from "@/components/ui/ErrorState";
 import { DELETE_ANY_PLAN, deletePlanLine, hasPlan } from "@/lib/plan-view";
 import { forgetPlanHint, keepPlanHint, readPlanHint, settingsRowSlot } from "@/lib/plan-hint";
@@ -67,7 +68,10 @@ export default function SettingsPage() {
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
   const [perm, setPerm] = useState<string>("default");
   const [tier, setTier] = useState<ReminderTier>("unsupported");
-  const [email, setEmail] = useState<string | null>(null);
+  /** undefined while unknown (in flight, or both reads failed), null for
+   *  no account (anonymous or no session), the address once signed in.
+   *  Unknown is never drawn as "Anonymous" (DESIGN principle 8). */
+  const [email, setEmail] = useState<string | null | undefined>(undefined);
   const [exporting, setExporting] = useState(false);
   const [exportFailed, setExportFailed] = useState(false);
   const [didToday, setDidToday] = useState(false);
@@ -154,10 +158,27 @@ export default function SettingsPage() {
     currentTier()
       .then(setTier)
       .catch(() => {});
-    supabaseBrowser()
-      ?.auth.getUser()
-      .then(({ data }) => setEmail(data.user?.email ?? null))
-      .catch(() => {});
+    /* The stored session answers at once (offline too); the server then
+       confirms it. auth-js hands a failed getUser back as user null with
+       an error, which used to read as "no account": a failed server read
+       keeps the session's answer instead. */
+    const db = supabaseBrowser();
+    if (!db) setEmail(null);
+    else
+      db.auth
+        .getSession()
+        .then(({ data }) => {
+          const u = data.session?.user;
+          if (!u) {
+            setEmail(null);
+            return;
+          }
+          setEmail(u.email ?? null);
+          return db.auth.getUser().then(({ data: fresh, error }) => {
+            if (!error) setEmail(fresh.user?.email ?? null);
+          });
+        })
+        .catch(() => {});
     fetchReps()
       .then((reps) =>
         setDidToday(
@@ -422,14 +443,18 @@ export default function SettingsPage() {
             : undefined
         }
       >
-        <InfoRow
-          label={email ?? "Anonymous"}
-          note={
-            email
-              ? "Your recordings follow this email anywhere."
-              : "Everything you've recorded lives on this device. An account attaches to it where it is."
-          }
-        />
+        {email === undefined ? (
+          <InfoRowSkeleton />
+        ) : (
+          <InfoRow
+            label={email ?? "Anonymous"}
+            note={
+              email
+                ? "Your recordings follow this email anywhere."
+                : "Everything you've recorded lives on this device. An account attaches to it where it is."
+            }
+          />
+        )}
         {/* The plan's row: a skeleton at its height while the plan is
             unknown on a device that last saw one, a failed read said with
             its retry (the cancel path never silently gone), the row once
@@ -449,7 +474,7 @@ export default function SettingsPage() {
             arrive={hint ? "line" : "row"}
           />
         ) : null}
-        {!email ? (
+        {email === undefined ? null : !email ? (
           <LinkRow href="/signup" label="Create an account" />
         ) : (
           <button
@@ -751,6 +776,16 @@ function Choice({
 }
 
 /** A fact, not a control: quiet hours, the account you're signed into. */
+/** The account row while it is unknown: its two lines' height, no words. */
+function InfoRowSkeleton() {
+  return (
+    <div className="group-row" aria-busy="true">
+      <Skeleton className="h-[18px] w-40" />
+      <Skeleton className="mt-1.5 h-3.5 w-56" />
+    </div>
+  );
+}
+
 function InfoRow({
   label,
   value,

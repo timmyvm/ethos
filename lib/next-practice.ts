@@ -94,8 +94,10 @@ export function choosePractice(
   }
   if (pool.length === 0) return null;
 
+  // The person's own calendar day (#77), the boundary todaysDrill uses:
+  // a UTC day turned the card over at 11:00 in Sydney and 20:00 in New York.
   const day = Math.floor(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) / 86400000
+    Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86400000
   );
   const item = pool[Math.abs(day) % pool.length];
 

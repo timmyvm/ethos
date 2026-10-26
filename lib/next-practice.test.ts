@@ -88,11 +88,32 @@ describe("choosePractice", () => {
 
   it("holds still across a day and moves across days", () => {
     const rs = [reading("fillers", 9), reading("pace", 150)];
-    const a = choosePractice(rs, new Date("2026-09-14T01:00:00Z"));
-    const b = choosePractice(rs, new Date("2026-09-14T22:00:00Z"));
-    const c = choosePractice(rs, new Date("2026-09-15T09:00:00Z"));
+    const a = choosePractice(rs, new Date(2026, 8, 14, 1));
+    const b = choosePractice(rs, new Date(2026, 8, 14, 22));
+    const c = choosePractice(rs, new Date(2026, 8, 15, 9));
     expect(a?.item.id).toBe(b?.item.id);
     expect(a?.item.id).not.toBe(c?.item.id);
+  });
+
+  /*
+   * The card rotates on the person's own calendar day (#77), as
+   * todaysDrill does. It rotated at UTC midnight: 11:00 in Sydney, 20:00
+   * in New York, so the floor card changed topic partway through the day.
+   */
+  it("keeps one practice for the whole local day, east and west of UTC", () => {
+    const rs = [reading("fillers", 9), reading("pace", 150)];
+    const tz = process.env.TZ;
+    try {
+      for (const zone of ["Australia/Sydney", "America/New_York", "America/Los_Angeles"]) {
+        process.env.TZ = zone;
+        const early = choosePractice(rs, new Date(2026, 9, 26, 0, 1))?.item.id;
+        for (const h of [10, 11, 17, 20, 23]) {
+          expect(choosePractice(rs, new Date(2026, 9, 26, h, 59))?.item.id, `${zone} ${h}:59`).toBe(early);
+        }
+      }
+    } finally {
+      process.env.TZ = tz;
+    }
   });
 
   it("starts somebody weak on the lower tier", () => {

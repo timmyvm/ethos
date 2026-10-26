@@ -167,6 +167,12 @@ export default function YouPage() {
     stripeReturn !== undefined && stripeReturn !== "checkout" && !managing && paywall === null && openTrait === null
   );
   const planSlot = useRef<HTMLDivElement>(null);
+  /* Demos steps off the stage for a moment with its own Demos (the
+     price drop) and springs back in after it, rather than reappearing. */
+  const [back, setBack] = useState(false);
+  useEffect(() => {
+    if (drop.open) setBack(true);
+  }, [drop.open]);
   // A page someone came back to from the paywall's account doors (or
   // Checkout's back arrow) opens the sheet again.
   usePaywallReturn(() => setPaywall({ reason: "Premium" }));
@@ -464,17 +470,21 @@ export default function YouPage() {
                  earn, in the stage's eyebrow with its pencil. */
               <div className="flex min-h-[18px] items-center">
                 {!nameKnown ? (
-                  <Line className="eyebrow" bar="w-20" align="left" />
+                  <Line className="font-display text-detail" bar="w-20" align="left" />
                 ) : name ? (
                   <>
-                    <span className="eyebrow stage-ink min-w-0 truncate">{name}</span>
+                    {/* The name in the detail type, 17/700 (the fix round:
+                        as the stage's 13px eyebrow it was the smallest
+                        words on the stage, and it is the one thing on it
+                        that is you rather than a number). */}
+                    <span className="font-display min-w-0 truncate text-detail">{name}</span>
                     {/* 14px of pencil, a 44px target: the padding is the
                         hit area and the negative margin gives it back. */}
                     <button
                       type="button"
                       onClick={editName}
                       aria-label="Edit your name"
-                      className="press stage-ink -my-3.5 -ml-1.5 -mr-3.5 shrink-0 rounded-control p-3.5"
+                      className="press stage-ink -my-[15px] -ml-1.5 -mr-[15px] shrink-0 rounded-control p-[15px]"
                     >
                       <IconPencil size={14} />
                     </button>
@@ -483,7 +493,7 @@ export default function YouPage() {
                   <button
                     type="button"
                     onClick={editName}
-                    className="press stage-ink -my-3.5 -ml-2 flex shrink-0 items-center gap-1.5 rounded-control px-2 py-3.5"
+                    className="press stage-ink -my-3 -ml-2 flex min-h-11 shrink-0 items-center gap-1.5 rounded-control px-2"
                   >
                     <span className="eyebrow stage-ink">Add your name</span>
                     <IconPencil size={14} />
@@ -494,17 +504,19 @@ export default function YouPage() {
           }
           art={
             /* At 132 his idle clip plays (#316, from 120 up). While the
-               checkout's moment celebrates at the foot, he is there, not
-               here: the stage keeps its light with nobody on it, so the
-               page has one Demos and nothing above the moment moves. And
+               checkout's moment celebrates at the foot, or the month's
+               price drop is up in its sheet, he is there, not here: the
+               stage keeps its light with nobody on it, so the page has
+               one Demos and nothing above the moment moves; when the
+               sheet goes he springs back in. And
                while the name is typed he steps off, so the field has the
                stage's width. */
-            editingName ? undefined : momentUp ? (
+            editingName ? undefined : momentUp || drop.open ? (
               <div className="tone-sky relative h-full w-full">
                 <div className="demos-halo" />
               </div>
             ) : (
-              <DemosArt pose="hello" size={132} grounded halo={{ tone: "sky", kind: "stage" }} />
+              <DemosArt pose="hello" size={132} pop={back} grounded halo={{ tone: "sky", kind: "stage" }} />
             )
           }
           line={
@@ -526,13 +538,13 @@ export default function YouPage() {
                 )}
               </div>
               {xpPending ? (
-                <Line className="mt-1.5 text-caption font-medium" bar="w-32" align="left" />
+                <Line className="font-display mt-1.5 text-link font-bold" bar="w-32" align="left" />
               ) : xpFailed ? (
                 <ErrorLine className="mt-1.5" onRetry={loadXp}>
                   Your XP didn&apos;t load.
                 </ErrorLine>
               ) : (
-                <p className="stage-ink mt-1.5 text-caption font-medium tabular-nums">
+                <p className="stage-ink font-display mt-1.5 text-link font-bold tabular-nums">
                   {level.intoLevel} of {level.forNext} to level {level.level + 1}
                 </p>
               )}
@@ -618,9 +630,11 @@ export default function YouPage() {
                 return (
                   /* A trait the lessons teach wears its lesson tone on
                      its mark, so blue means pausing here as on /lessons
-                     and Today; the bar is neutral stone on sand, the
-                     name ink. The four the Index only reads take a
-                     stone mark. */
+                     and Today; the name is ink. The bar is a level you
+                     earned, so it fills in sage on sand, as every earned
+                     bar off the stage does (the fix round: it was stone,
+                     and the app drew progress in four colours). The four
+                     the Index only reads take a stone mark. */
                   <button
                     type="button"
                     key={t.key}
@@ -647,7 +661,7 @@ export default function YouPage() {
                     <span className="h-1.5 flex-1 overflow-hidden bg-sand">
                       {t.level > 0 && (
                         <span
-                          className="fill block h-full bg-stone-400"
+                          className="fill block h-full bg-sage-500"
                           style={{ width: `${(t.level / top) * 100}%` }}
                         />
                       )}

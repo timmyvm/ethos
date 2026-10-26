@@ -184,6 +184,28 @@ function safeBack(raw: string | null): string | null {
   return raw;
 }
 
+/** One take while the mic is hot: its devices, recorders and readings. */
+interface Take {
+  recorder: MediaRecorder;
+  stream: MediaStream;
+  ctx: AudioContext;
+  raf: number;
+  chunks: Blob[];
+  crowd: CrowdNoise | null;
+  interruptTimer: ReturnType<typeof setTimeout> | null;
+  /** Local-only video recorder. Its blob never touches the network. */
+  videoRecorder: MediaRecorder | null;
+  videoChunks: Blob[];
+  sampler: PoseSampler | null;
+  /**
+   * Loudness envelope. The meter already computes RMS every frame;
+   * this keeps it at a fixed rate so the engine can ask whether a gap
+   * between two words was actually silent (lib/envelope.ts).
+   */
+  envelope: number[];
+  envelopeAt: number;
+}
+
 export default function RepPage() {
   return (
     <Suspense fallback={<main className="px-5 pt-7" />}>
@@ -417,27 +439,10 @@ function RepScreen() {
       .catch(() => {});
   }, []);
 
-  const recRef = useRef<{
-    recorder: MediaRecorder;
-    stream: MediaStream;
-    ctx: AudioContext;
-    raf: number;
-    chunks: Blob[];
-    crowd: CrowdNoise | null;
-    interruptTimer: ReturnType<typeof setTimeout> | null;
-    /** Local-only video recorder. Its blob never touches the network. */
-    videoRecorder: MediaRecorder | null;
-    videoChunks: Blob[];
-    sampler: PoseSampler | null;
-    /**
-     * Loudness envelope. The meter already computes RMS every frame;
-     * this keeps it at a fixed rate so the engine can ask whether a gap
-     * between two words was actually silent (lib/envelope.ts).
-     */
-    envelope: number[];
-    envelopeAt: number;
-  } | null>(null);
+  const recRef = useRef<Take | null>(null);
   const videoElRef = useRef<HTMLVideoElement | null>(null);
+  /** A start is opening the device: further taps wait for it. */
+  const startingRef = useRef(false);
   const phaseRef = useRef<Phase>("idle");
   phaseRef.current = phase;
   const configRef = useRef<RepConfig>(config);
@@ -467,10 +472,21 @@ function RepScreen() {
    * wifi is the worst failure in the product, and until now the error
    * card named the breakage and left you to record it from scratch.
    */
-  const score = useCallback(async (form: FormData, outboxId: string | null) => {
-    setPhase("analyzing");
-    setError(null);
-    setAttempt(0);
+  const score = useCallback(async (
+    form: FormData,
+    outboxId: string | null,
+    /** The recording this take was spoken for; defaults to the one on screen. */
+    key: string = lessonKeyRef.current
+  ) => {
+    // A take keeps uploading after the screen moves to another
+    // recording (a browser back mid-scoring), so it is still stored,
+    // but its answer never takes over the other recording's screen.
+    const live = () => lessonKeyRef.current === key;
+    if (live()) {
+      setPhase("analyzing");
+      setError(null);
+      setAttempt(0);
+    }
     if (outboxId) markInFlight(outboxId);
     try {
       // Anonymous-first (DECISIONS #15): attribute the rep if a session
@@ -482,7 +498,9 @@ function RepScreen() {
       // A gateway's 502 is HTML, and parsing it used to throw, so the
       // JSON parser's complaint ("Unexpected token <") became the
       // sentence the user read. Ours are the only words that reach them.
-      const outcome = await sendWithRetry(form, token, setAttempt);
+      const outcome = await sendWithRetry(form, token, (n) => {
+        if (live()) setAttempt(n);
+      });
       if (!outcome.ok || !outcome.data) {
         throw new ScoringFailure(
           outcome.status === 503
@@ -497,6 +515,7 @@ function RepScreen() {
       // The outbox copy leaves only once the server confirmed the rep
       // is stored (or nothing was ever going to store it: local mode).
       if (outboxId && outcome.settled) void outboxDelete(outboxId);
+      if (!live()) return;
       setResult(data as AnalyzeResponse);
       setPhase("results");
       pendingRef.current = null;
@@ -505,9 +524,11 @@ function RepScreen() {
       const analyzed = data as AnalyzeResponse;
       fetchReps()
         .then(async (reps) => {
+          if (!live()) return;
           setRepsNow(reps);
           const dates = reps.map((x) => new Date(x.created_at));
           const { streak } = await syncFreezes(dates);
+          if (!live()) return;
           if (streak.current > 0) setCelebrate(streak.current);
           setStreakNow(streak.current);
           // Re-arm the reminder now that today's practice is DONE. A
@@ -570,6 +591,9 @@ function RepScreen() {
         })
         .catch(() => {});
     } catch (e) {
+      // Another recording is on screen now; the outbox copy (if held)
+      // is what sends this take later.
+      if (!live()) return;
       // The audio stays in hand AND in IndexedDB, which is what makes
       // the retry real even across a closed tab.
       pendingRef.current = { form, outboxId };
@@ -611,6 +635,12 @@ function RepScreen() {
     // Claim the stop now. phaseRef only syncs on render, and the
     // recorder's own stop event (startRep) must not start a second one.
     phaseRef.current = "analyzing";
+    // The recording this take was spoken for, read before any await, so
+    // a browser back while it stops files it under its own lesson.
+    const key = lessonKeyRef.current;
+    const cfg = configRef.current;
+    const mode = captureModeRef.current;
+    const live = () => lessonKeyRef.current === key;
     buzz([20, 40, 20]);
     setPhase("analyzing");
     setInterruption(null);
@@ -631,20 +661,20 @@ function RepScreen() {
         take();
       }
     });
-    setAudioUrl(URL.createObjectURL(blob));
+    if (live()) setAudioUrl(URL.createObjectURL(blob));
 
     // The loudness envelope, captured alongside the meter. This is what
     // lets the engine tell a silent gap from one the mic heard a sound
     // in — i.e. an "um" the transcript dropped.
     const envelope: Envelope = { levels: [...r.envelope], rate: ENVELOPE_RATE };
-    setScoringWave(envelope.levels);
+    if (live()) setScoringWave(envelope.levels);
 
     // Score the body before tearing the camera down. Everything below
     // this line is five numbers and a list of timestamps — the frames
     // themselves are dropped with the sampler.
     const frames = r.sampler?.stop() ?? [];
     const scored = frames.length > 0 ? scorePresence(frames) : null;
-    setPresence(scored?.scorable ? scored : null);
+    if (live()) setPresence(scored?.scorable ? scored : null);
 
     // The local clip, for Premium playback with markers. Held as an object
     // URL in this tab and nowhere else — never uploaded, never stored.
@@ -654,12 +684,12 @@ function RepScreen() {
           resolve(new Blob(r.videoChunks, { type: r.videoRecorder!.mimeType }));
         r.videoRecorder!.stop();
       });
-      if (clip.size > 0) setClipUrl(URL.createObjectURL(clip));
+      if (clip.size > 0 && live()) setClipUrl(URL.createObjectURL(clip));
     }
 
-    const cfg = configRef.current;
-    const mode = captureModeRef.current;
-    teardown();
+    // Only this take's devices: if the screen moved on, they were let go
+    // already and recRef may hold a newer take.
+    if (recRef.current === r) teardown();
 
     {
       const ext = blob.type.includes("mp4") ? "mp4" : "webm";
@@ -696,11 +726,17 @@ function RepScreen() {
         fields,
       };
       const held = await outboxPut(rep);
-      await score(replayForm(rep), held ? rep.id : null);
+      await score(replayForm(rep), held ? rep.id : null, key);
     }
   }, [teardown, score]);
 
   const startRep = useCallback(async () => {
+    // One take at a time. A second tap while the device opens (a double
+    // tap, a slow permission bubble), or a tap with a take already live,
+    // would start a second recorder that nothing ever stops.
+    if (startingRef.current || recRef.current) return;
+    startingRef.current = true;
+    const key = lessonKeyRef.current;
     setError(null);
     setMicBlock(null);
     setSeconds(0);
@@ -717,6 +753,11 @@ function RepScreen() {
           ? { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" }
           : false,
       });
+      // The screen moved to another recording while the device opened.
+      if (lessonKeyRef.current !== key) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
 
       /*
        * The uploaded blob is built from the AUDIO TRACKS ONLY, never
@@ -811,7 +852,7 @@ function RepScreen() {
 
       const crowd = cfg.crowdNoise ? startCrowdNoise(ctx) : null;
 
-      recRef.current = {
+      const rec: Take = {
         recorder,
         stream,
         ctx,
@@ -825,7 +866,8 @@ function RepScreen() {
         envelope: [],
         envelopeAt: 0,
       };
-      recRef.current.raf = requestAnimationFrame(tick);
+      recRef.current = rec;
+      rec.raf = requestAnimationFrame(tick);
 
       // Pose sampling + the live ring. Free for everyone (§2): it's
       // local compute at zero marginal cost, and it's the part that
@@ -833,13 +875,16 @@ function RepScreen() {
       if (wantsVideo && stream.getVideoTracks().length > 0) {
         const video = videoElRef.current;
         const landmarker = await loadPose();
+        // The take was let go while the runtime loaded (the screen moved).
+        if (recRef.current !== rec) return;
         if (video && landmarker) {
           video.srcObject = stream;
           await video.play().catch(() => {});
+          if (recRef.current !== rec) return;
           const sampler = samplePose(video, landmarker, (frames) =>
             setRing(ringState(frames))
           );
-          recRef.current.sampler = sampler;
+          rec.sampler = sampler;
           setPoseFrames(sampler.frames);
         }
       }
@@ -848,7 +893,7 @@ function RepScreen() {
         // Somewhere in the middle third — early enough to recover from,
         // late enough that you're committed to a thread.
         const at = Math.round(cfg.maxSeconds * (0.4 + Math.random() * 0.2));
-        recRef.current.interruptTimer = setTimeout(() => {
+        rec.interruptTimer = setTimeout(() => {
           if (phaseRef.current !== "recording") return;
           setInterruption(
             INTERRUPTIONS[Math.floor(Math.random() * INTERRUPTIONS.length)]
@@ -864,6 +909,8 @@ function RepScreen() {
       flipFrom.current = topicRef.current?.getBoundingClientRect().top ?? null;
       setPhase("recording");
     } catch (e) {
+      // Refused for a recording the screen has already left.
+      if (lessonKeyRef.current !== key) return;
       // A refusal and a missing device get the dedicated explainer
       // (browser-specific steps, a re-check button) rather than a
       // sentence and a shrug.
@@ -878,6 +925,8 @@ function RepScreen() {
       });
       setError(null);
       setPhase("error");
+    } finally {
+      startingRef.current = false;
     }
   }, [stopRep]);
 
@@ -938,6 +987,18 @@ function RepScreen() {
   useEffect(() => {
     if (lessonKeyRef.current === lessonKey) return;
     lessonKeyRef.current = lessonKey;
+    // A take still in progress belongs to the recording the person left
+    // (a browser back mid-take): discard it, the way leaving the screen
+    // does, so the mic is never on behind a Record button.
+    const r = recRef.current;
+    if (r) {
+      try {
+        r.recorder.stop();
+        r.videoRecorder?.stop();
+      } catch {}
+      teardown();
+    }
+    setInterruption(null);
     setResult(null);
     setPresence(null);
     setBests([]);
@@ -959,7 +1020,7 @@ function RepScreen() {
     });
     setPhase("idle");
     window.scrollTo({ top: 0 });
-  }, [lessonKey]);
+  }, [lessonKey, teardown]);
 
   /*
    * recording-16 (DESIGN.md: nothing teleports). On Record the topic

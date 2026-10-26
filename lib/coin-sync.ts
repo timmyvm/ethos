@@ -43,10 +43,14 @@ export async function syncCoins(
      closed days in a week pays one, and asking twice pays nothing. */
   if (reps.length > 0) {
     const weeks = unpaidChallengeWeeks(closesByWeek(reps), ledger);
-    if (weeks.length > 0) {
-      const written = await grantCoins(weeks, "challenge_week").catch(() => 0);
-      if (written > 0) ledger = await fetchCoinLedger().catch(() => ledger);
+    // One week per grant. The insert is one statement under row
+    // security, so a single week the policy refuses used to fail the
+    // whole batch, and every later week stayed unpaid with it.
+    let written = 0;
+    for (const week of weeks) {
+      written += await grantCoins([week], "challenge_week").catch(() => 0);
     }
+    if (written > 0) ledger = await fetchCoinLedger().catch(() => ledger);
   }
 
   return { ledger, balance: balance(ledger), granted };

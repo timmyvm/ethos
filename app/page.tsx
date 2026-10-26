@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CountUp } from "@/components/CountUp";
 import { DURATION } from "@/lib/motion";
 import { DayTrail } from "@/components/DayTrail";
@@ -94,6 +94,25 @@ export default function Home() {
    * this is a flag and not a class on the card.
    */
   const [floorReturned, setFloorReturned] = useState(false);
+  /*
+   * Focus across the swap. Opening the roulette unmounts the spin glyph
+   * that held focus and closing it unmounts the way back, and both times
+   * focus fell to <body>: a keyboard or screen-reader user was thrown to
+   * the top. It moves to the roulette's heading on open and back to the
+   * spin glyph on close, only after a tap (never on a cold open), and
+   * keyed on open or closed, so a spin inside the roulette leaves focus
+   * where it is.
+   */
+  const toggled = useRef(false);
+  const rouletteHead = useRef<HTMLHeadingElement>(null);
+  const spinGlyph = useRef<HTMLButtonElement>(null);
+  const rouletteOpen = topic !== null;
+  useEffect(() => {
+    if (!toggled.current) return;
+    toggled.current = false;
+    if (rouletteOpen) rouletteHead.current?.focus();
+    else spinGlyph.current?.focus();
+  }, [rouletteOpen]);
   /** The bought pose on the floor card's stage; null draws the default. */
   const [demos, setDemos] = useState<StagePose | null>(null);
   const [anon, setAnon] = useState<boolean | null>(null);
@@ -368,7 +387,9 @@ export default function Home() {
           <div key="roulette" className="arrive-lift">
             {/* A section title on the ground, like every other section
                 on Today (today-22): sentence case, not tracked caps. */}
-            <h2 className="section-head">Roulette</h2>
+            <h2 ref={rouletteHead} tabIndex={-1} className="section-head outline-none!">
+              Roulette
+            </h2>
             <div className="mt-3">
               <TopicRoulette
                 topic={topic}
@@ -381,6 +402,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => {
+                  toggled.current = true;
                   setTopic(null);
                   setFloorReturned(true);
                 }}
@@ -416,7 +438,11 @@ export default function Home() {
                 loading={loading}
                 href={introOwns ? floorHref : undefined}
                 mods={mods}
-                onSpin={() => setTopic(spinForAnswers(null))}
+                onSpin={() => {
+                  toggled.current = true;
+                  setTopic(spinForAnswers(null));
+                }}
+                spinRef={spinGlyph}
                 onMods={() => setShowMods((v) => !v)}
                 modsOpen={showMods}
                 away={dropOpen}

@@ -77,11 +77,14 @@ export function FloorCard({
   loading = false,
   away = false,
   pose = null,
+  spinRef,
 }: {
   /** Null on day one and on any day with nothing measured yet. */
   chosen: Chosen | null;
   /** The bought pose equipped in the Shop; it wins over the default mic. */
   pose?: Pose | null;
+  /** The spin glyph, so Today can hand focus back to it when the roulette closes. */
+  spinRef?: React.Ref<HTMLButtonElement>;
   dayOne: boolean;
   /** The first lesson's own prompt, so card and recorder agree. */
   dayOnePrompt?: string;
@@ -197,6 +200,7 @@ export function FloorCard({
     <>
       {onSpin && (
         <button
+          ref={spinRef}
           type="button"
           onClick={onSpin}
           aria-label="Spin a new topic"

@@ -3,10 +3,11 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 /*
- * Today's materials since round 2 (M02, M12): a trait's tile is the
- * neutral `.card` and today's line sits on the ground, so a trait ring
- * is its tone's arc on the app's `sand` trough and the only colour in
- * it. The ring is a measurement, so the arc holds the 3:1 a graphic
+ * Today's materials since round 2 (M02, M12) and the cohesion pass (26
+ * Oct): a trait is a row on the ground and today's line sits on the
+ * ground, so a trait ring is its tone's arc on the app's `sand` trough
+ * and the only colour in it. The dark tones are muted (lower chroma, the
+ * same hue and lightness) and still clear every floor here. The ring is a measurement, so the arc holds the 3:1 a graphic
  * needs against that trough, for all five tones in both themes; the
  * ochre in light is 1.9:1 there and takes its own deeper arc
  * (`.today-trait[data-trait="repairs"]`, `--ring-arc`). The name and the
@@ -100,24 +101,12 @@ describe("Today's trait rings still measure", () => {
 });
 
 /*
- * Today's line draws its trough as its own tone at 22% on the ground
- * (ChallengeCard's LINE_TRACK), so an open day is the trait's ring
- * waiting to close rather than a grey circle. The arc still has to
- * read on that tint wherever today's value has filled part of it.
+ * Today's line drew its trough as its own tone at 22% on the ground
+ * until the cohesion pass (26 Oct), and this block held the arc at 3:1
+ * on that tint. The line's track is the app's sand now (LINE_TRACK, the
+ * accent rule: a trait's colour is the arc and nothing else), so its arc
+ * is held by the sand block above, the same as every trait ring.
  */
-describe("Today's line: the arc on its own tint", () => {
-  for (const [trait, t] of Object.entries(tones(false))) {
-    it(`${trait}, light: 3:1 or better`, () => {
-      const arc = trait === "repairs" ? ochreArc! : t.tone;
-      expect(ratio(arc, mix(t.tone, light.ground, 0.22))).toBeGreaterThanOrEqual(3);
-    });
-  }
-  for (const [trait, t] of Object.entries(tones(true))) {
-    it(`${trait}, dark: 3:1 or better`, () => {
-      expect(ratio(t.tone, mix(t.tone, dark.ground, 0.22))).toBeGreaterThanOrEqual(3);
-    });
-  }
-});
 
 describe("Today's trait names in their ink", () => {
   for (const [trait, t] of Object.entries(tones(false))) {
@@ -136,10 +125,14 @@ describe("Today's trait names in their ink", () => {
 });
 
 /*
- * What Today is built from (round 2). The tiles and today's line wear
- * no wash, the clean run is the neutral card rather than the deep sage
- * (which stays the Log's), and Start has the floor card's width to
- * itself with spin and difficulty as bare glyphs on the eyebrow row.
+ * What Today is built from, since the cohesion pass (26 Oct; a
+ * first-time tester: "everything competes"). The floor is the house
+ * stage (HeroStage, Practice's sky), with Start on the ground under it
+ * and spin and difficulty as bare glyphs in its corner. Under it nothing
+ * wears a wash: today's line is a 44px ring on sand with a 4px arc, the
+ * clean run is the neutral card rather than the deep sage (which left
+ * the Log too), and the traits are rows on the ground whose colour is a
+ * 3px arc, their names in ink.
  */
 describe("Today's materials", () => {
   const strip = src("components/home/TraitStrip.tsx");
@@ -149,18 +142,18 @@ describe("Today's materials", () => {
   const trail = src("components/DayTrail.tsx");
   const floor = src("components/home/FloorCard.tsx");
 
-  it("the trait tiles are neutral cards, one wide over an even 2x2", () => {
-    expect(strip).toMatch(/className=\{`card press today-trait/);
-    expect(strip).not.toMatch(/tone-wash|today-tile|--today-trough/);
+  it("the traits are rows on the ground, the tone on a 3px arc and the name in ink", () => {
+    expect(strip).toMatch(/className=\{`press-row today-trait/);
+    expect(strip).not.toMatch(/tone-wash|tone-ink|today-tile|--today-trough|className=\{`card/);
     expect(strip).toContain('track="var(--color-sand)"');
-    expect(strip).toContain("grid grid-cols-2");
-    expect(strip).toContain("wide={i === 0}");
+    expect(strip).toContain("thickness={3}");
   });
 
-  it("today's line has no card and no wash", () => {
-    expect(line).not.toMatch(/tone-wash|today-line|rounded-card p-4/);
+  it("today's line has no card and no wash, and its ring is a 4px arc on sand", () => {
+    expect(line).not.toMatch(/tone-wash|tone-ink|today-line|rounded-card p-4/);
     expect(line).toContain("track={LINE_TRACK}");
-    expect(line).toContain('LINE_TRACK = "color-mix(in srgb, var(--tone) 22%, var(--color-ground))"');
+    expect(line).toContain('LINE_TRACK = "var(--color-sand)"');
+    expect(line).toContain("thickness={4}");
   });
 
   it("the clean run on Today is the neutral card, sage only where earned", () => {
@@ -171,9 +164,11 @@ describe("Today's materials", () => {
     expect(run).toContain('tone="measured"');
   });
 
-  it("Start has the floor card's width; spin and difficulty are bare glyphs", () => {
-    expect(floor).not.toContain("floor-side");
-    expect(floor).toMatch(/\$\{ACTION_CLASS\} mt-5 w-full/);
+  it("the floor is the house stage, with Start on the ground under it and the glyphs in its corner", () => {
+    expect(floor).toContain("<HeroStage");
+    expect(floor).not.toMatch(/topic-card|floor-side/);
+    expect(floor.match(/\$\{ACTION_CLASS\}/g)?.length).toBe(1);
+    expect(floor).toMatch(/<Link href=\{to\} className=\{`\$\{ACTION_CLASS\} mt-3`\}>/);
     expect(floor).toContain('aria-label="Spin a new topic"');
     expect(floor).toContain("size-11");
   });

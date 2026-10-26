@@ -57,9 +57,17 @@ import {
  * skeleton keeps sand, because there the number is unknown, not open.
  * Every arc clears 3:1 on its tint in both themes (today-colour.test).
  *
+ * QUIETER (the cohesion pass, 26 Oct). A first-time tester read Today as
+ * "everything competes": the line's 56px ring on its tinted track was a
+ * blue disc under an amber card. The stage above is Today's one hero
+ * now, so the line steps down to a secondary row: a 44px ring with a 4px
+ * arc in its tone on the app's sand trough (the accent rule: colour on
+ * the arc, nowhere else), the trait's 8px mark and its name in ink, the
+ * flag and the check in ink.
+ *
  * NO BUTTON. The one tap on this screen belongs to the floor card.
  */
-export const LINE_TRACK = "color-mix(in srgb, var(--tone) 22%, var(--color-ground))";
+export const LINE_TRACK = "var(--color-sand)";
 
 export function ChallengeCard({ challenge }: { challenge: Challenge }) {
   const c = challenge;
@@ -72,7 +80,8 @@ export function ChallengeCard({ challenge }: { challenge: Challenge }) {
       <div data-trait={c.trait} className="today-trait mt-3 flex min-h-20 items-center gap-4">
         <Ring
           value={c.value}
-          size={56}
+          size={44}
+          thickness={4}
           tone="trait"
           track={LINE_TRACK}
           delay={240}
@@ -84,17 +93,20 @@ export function ChallengeCard({ challenge }: { challenge: Challenge }) {
               check once today's recording closes it, and nothing in
               between, where the arc itself is the reading. */}
           {c.closed ? (
-            <span className="tone-ink">
-              <IconCheck size={22} />
+            <span className="text-ink">
+              <IconCheck size={18} />
             </span>
           ) : c.today === null ? (
-            <span className="tone-ink">
-              <IconFlag size={20} />
+            <span className="text-stone-500">
+              <IconFlag size={16} />
             </span>
           ) : undefined}
         </Ring>
         <div className="min-w-0 flex-1">
-          <p className="eyebrow tone-ink">{TRAIT[c.trait].name}</p>
+          <p className="eyebrow flex items-center gap-1.5 text-ink">
+            <span aria-hidden className="trait-dot" />
+            {TRAIT[c.trait].name}
+          </p>
           <p className="font-display text-body font-bold leading-snug text-balance">
             {challengeLine(c)}
           </p>
@@ -127,7 +139,7 @@ export function SkeletonChallenge() {
         <Skeleton className="h-5 w-32" />
       </div>
       <div className="mt-3 flex min-h-20 items-center gap-4">
-        <div className="size-14 shrink-0 rounded-full border-[5px] border-sand" />
+        <div className="size-11 shrink-0 rounded-full border-4 border-sand" />
         <div className="min-w-0 flex-1">
           <Skeleton className="h-3 w-16" />
           <Skeleton className="mt-2 h-4 w-full" />

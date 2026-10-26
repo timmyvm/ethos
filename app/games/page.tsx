@@ -15,6 +15,7 @@ import {
 import { DemosArt } from "@/components/DemosArt";
 import { Paywall } from "@/components/Paywall";
 import { ErrorLine } from "@/components/ui/ErrorState";
+import { HeroStage } from "@/components/ui/HeroStage";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { fetchProfile, fetchReps } from "@/lib/client-data";
 import { draw, GAMES, needsPremium, type Game } from "@/lib/games";
@@ -176,24 +177,22 @@ export default function GamesPage() {
           on the left. Nothing on the stage is a tap; Start sits on the
           ground under it, edge to edge with it. */}
       <section aria-labelledby="boss-title" className="mt-5">
-        <div className="intro-stage tone-sky practice-stage elev-2 h-[160px] p-5">
-          <div className="relative z-[2] flex h-full max-w-[60%] flex-col">
-            <p className="eyebrow practice-stage-ink">This week&apos;s boss</p>
-            <h2
-              id="boss-title"
-              className="font-display mt-1.5 text-title font-extrabold"
-            >
-              Cold Topic
-            </h2>
+        {/* The house stage (components/ui/HeroStage.tsx): every tab's
+            hero is this one, since the cohesion pass. */}
+        <HeroStage
+          eyebrow="This week's boss"
+          title="Cold Topic"
+          titleId="boss-title"
+          line={
             <p
               className="practice-week font-display mt-auto text-link font-bold"
               data-done={bossDone || undefined}
             >
               {weekState}
             </p>
-          </div>
-          <div className="absolute bottom-[2px] right-1 z-[1] h-[132px] w-[132px]">
-            {arrive !== null && (
+          }
+          art={
+            arrive !== null && (
               <DemosArt
                 pose="clock"
                 size={132}
@@ -201,9 +200,9 @@ export default function GamesPage() {
                 grounded
                 halo={{ tone: "sky", kind: "stage" }}
               />
-            )}
-          </div>
-        </div>
+            )
+          }
+        />
         <Link
           href="/boss"
           aria-label={`${startLabel}: Cold Topic`}

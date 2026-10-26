@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ACTION_CLASS } from "@/lib/ui";
+import { DemosArt } from "@/components/DemosArt";
 import { TipLine } from "@/components/rep/TipStrip";
 import { repHref } from "@/lib/rep-config";
 import { IconShuffle, IconSliders } from "@/components/Icon";
-import { TraitChip } from "@/components/TraitChip";
+import { HeroStage, StageChip } from "@/components/ui/HeroStage";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { Chosen } from "@/lib/next-practice";
 
@@ -42,16 +43,25 @@ import type { Chosen } from "@/lib/next-practice";
  * it". What it explained, a prompt, a length and five numbers, is what
  * the next screen does, in order, thirty seconds later.
  *
- * WHERE DEMOS IS. Not here. He was on his own line jammed to the right
- * edge between the text and the button, which is the definition of
- * furniture, and DESIGN.md asks for an arrival instead. He keeps the
- * empty states and the celebrations.
+ * WHERE DEMOS IS. On the stage, since the cohesion pass (26 Oct). He
+ * left this card when he stood on his own line jammed to the right edge
+ * between the text and the button, which is the definition of
+ * furniture. The hero stage gives him a floor: he stands at its right
+ * holding the mic, the way he holds the clock on Practice's stage, and
+ * he springs in on the first visit of the day only, so a tab you come
+ * back to is not a moment. Day one he waves.
+ *
+ * THE MATERIAL (the cohesion pass). The card is the house stage
+ * (`HeroStage`), the same sky as Practice's, not the recording flow's
+ * amber: a first-time tester read Today's amber card, blue ring, sage
+ * run and five tones as "everything competes". Start stands on the
+ * ground under the stage at its width, as on Practice: the one tap.
  */
-/** Placeholders in the card's own warm edge, not the grey trough. */
-const WARM = "!bg-[color:var(--rec-topic-edge)]";
 /** A bare glyph button: 20px of mark in a 44px hit area, no fill. */
 const GLYPH =
   "press grid size-11 place-items-center rounded-control transition-colors dur-fast ease-out";
+/** The day this device last welcomed Demos onto Today's stage. */
+const SEEN_KEY = "ethos.today.demosSeen";
 
 export function FloorCard({
   chosen,
@@ -112,6 +122,22 @@ export function FloorCard({
   const [fromSkeleton] = useState(loading);
   const lands = fromSkeleton ? "arrive" : "";
 
+  /* Demos springs onto the stage on the first visit of the day and
+     stands still after that (Practice's rule, by the day rather than the
+     week). Null until read, so he never pops in late over a still frame. */
+  const [arrive, setArrive] = useState<boolean | null>(null);
+  useEffect(() => {
+    const day = new Date().toDateString();
+    let first = true;
+    try {
+      first = localStorage.getItem(SEEN_KEY) !== day;
+      localStorage.setItem(SEEN_KEY, day);
+    } catch {
+      /* No storage: every visit is the first. */
+    }
+    setArrive(first);
+  }, []);
+
   /*
    * DAY ONE IS ITS OWN SHAPE. There is no measurement to choose from,
    * so nothing can be the reason, and the card says so rather than
@@ -130,123 +156,123 @@ export function FloorCard({
       ? chosen.item.tips[0]
       : undefined;
 
+  /* The trait leads the eyebrow on its stage chip (the trait's 8px mark
+     and its name in the stage ink), then the lead. The row is the chip's
+     22px whether or not there is a chip, and the skeleton holds the same
+     22px while the read is in flight. It runs to the corner's glyphs
+     rather than wrapping in the words' 60%. */
+  const eyebrow = (
+    <div className="flex min-h-[22px] items-center">
+      {loading ? (
+        <Skeleton className="h-2.5 w-32" />
+      ) : (
+        <span className={`flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 ${lands}`}>
+          {chosen && !dayOne && <StageChip trait={chosen.trait} />}
+          <span className="eyebrow stage-ink">{lead}</span>
+        </span>
+      )}
+    </div>
+  );
+
+  /* Spin and difficulty (round 2, M04): bare 20px glyphs in the stage's
+     ink at the stage's top-right corner, each a 44px hit area. They
+     paint at once, loading or not, because neither waits on the read. */
+  const corner = (onSpin || onMods) && (
+    <>
+      {onSpin && (
+        <button
+          type="button"
+          onClick={onSpin}
+          aria-label="Spin a new topic"
+          className={`${GLYPH} stage-ink`}
+        >
+          <IconShuffle size={20} />
+        </button>
+      )}
+      {onMods && (
+        <button
+          type="button"
+          onClick={onMods}
+          aria-label={modsOpen ? "Hide difficulty" : "Turn up the difficulty"}
+          aria-expanded={modsOpen}
+          className={`${GLYPH} ${(mods?.length ?? 0) > 0 || modsOpen ? "text-ink" : "stage-ink"}`}
+        >
+          <span className="relative flex">
+            <IconSliders size={20} />
+            {/* How many mods are on, as a count on the glyph's
+                corner: ink, the type scale's 10px suffix. */}
+            {(mods?.length ?? 0) > 0 && (
+              <span className="font-display absolute -right-3 -top-3 flex h-4 min-w-4 items-center justify-center rounded-full bg-ink px-1 text-suffix font-extrabold leading-none text-ground tabular-nums">
+                {mods!.length}
+              </span>
+            )}
+          </span>
+        </button>
+      )}
+    </>
+  );
 
   return (
-    /* The same warm ground as the recording screen's topic card
-       (feedback round, 25 Sep: "pop with colour"), so the card you tap
-       and the screen it opens are visibly one thing. Still the ONE
-       lifted object on Today. */
-    <div className="topic-card topic-card-lift rounded-sheet p-5">
-      {/* The trait is named by its chip (M04, M11, today-16): the solid
-          tone with its own ink, the one pill that names a trait where
-          traits mix. It replaced "ONE MORE · ● PAUSING", two ideas in
-          tracked caps joined by a middot and a dot in two colours. The
-          lead follows it in the card's amber, sentence case. The row is
-          the chip's 22px whether or not there is a chip, and the
-          skeleton holds the same 22px while the read is in flight.
-
-          Spin and difficulty sit at the row's far end (round 2, M04;
-          they stood beside Start as two 52px squares, #317): bare 20px
-          glyphs in stone-500, ink while a mod is on, each a 44px hit
-          area whose extra 12px is a negative margin, so the row keeps
-          its 22px, the right glyph lines up with the text's edge, and
-          "Today's practice" beside a chip still fits at 320px.
-          They paint at once, loading or not, because neither waits on
-          the read. */}
-      <div className="flex min-h-[22px] items-center gap-2">
+    <>
+      <HeroStage
+        eyebrow={eyebrow}
+        eyebrowWide
+        corner={corner}
+        /* The prompt runs to three lines in the words' 60%, and the
+           corner's glyphs need his head clear of them: a 196px floor. */
+        minHeight={196}
+        art={
+          arrive !== null && (
+            <DemosArt
+              pose={dayOne ? "wave" : "mic"}
+              size={132}
+              pop={arrive}
+              grounded
+              halo={{ tone: "sky", kind: "stage" }}
+            />
+          )
+        }
+        line={
+          /*
+           * ONE instruction, and not the angle's title with it. Day
+           * one's body is the topic, a sentence to read, and stays off
+           * the stage; every other day it is a tactic, its five words
+           * and a glyph with the sentence one tap away (feedback round,
+           * 25 Sep). While loading its 44px is held.
+           */
+          loading ? (
+            <div aria-hidden className="mt-auto min-h-11 pt-3" />
+          ) : body && !dayOne ? (
+            <TipLine tip={body} compact className={`mt-auto pt-3 ${lands}`} />
+          ) : undefined
+        }
+      >
+        {/* The prompt is the hero. While loading, two lines of the hero's
+            own type hold its height, each with a bar where the words will
+            be. */}
         {loading ? (
-          <span className="flex min-w-0 flex-1">
-            <Skeleton className={`h-2.5 w-32 ${WARM}`} />
-          </span>
+          <div aria-hidden className="font-display mt-2.5 text-title leading-tight">
+            <span className="relative block">
+              <span className="invisible">Ag</span>
+              <Skeleton className="absolute inset-y-[2px] left-0 w-full" />
+            </span>
+            <span className="relative block">
+              <span className="invisible">Ag</span>
+              <Skeleton className="absolute inset-y-[2px] left-0 w-2/3" />
+            </span>
+          </div>
         ) : (
-          <span className={`flex min-w-0 flex-1 items-center gap-2 ${lands}`}>
-            {chosen && !dayOne && <TraitChip trait={chosen.trait} size="sm" />}
-            <span className="eyebrow text-[color:var(--rec-amber-ink)]">{lead}</span>
-          </span>
+          <h2 className={`font-display mt-2.5 text-title font-extrabold leading-tight text-balance ${lands}`}>
+            {hero}
+          </h2>
         )}
-        {(onSpin || onMods) && (
-          <span className="-mx-3 -my-3 flex shrink-0">
-            {onSpin && (
-              <button
-                type="button"
-                onClick={onSpin}
-                aria-label="Spin a new topic"
-                className={`${GLYPH} text-stone-500`}
-              >
-                <IconShuffle size={20} />
-              </button>
-            )}
-            {onMods && (
-              <button
-                type="button"
-                onClick={onMods}
-                aria-label={modsOpen ? "Hide difficulty" : "Turn up the difficulty"}
-                aria-expanded={modsOpen}
-                className={`${GLYPH} ${
-                  (mods?.length ?? 0) > 0 || modsOpen ? "text-ink" : "text-stone-500"
-                }`}
-              >
-                <span className="relative flex">
-                  <IconSliders size={20} />
-                  {/* How many mods are on, as a count on the glyph's
-                      corner: ink, the type scale's 10px suffix. */}
-                  {(mods?.length ?? 0) > 0 && (
-                    <span className="font-display absolute -right-3 -top-3 flex h-4 min-w-4 items-center justify-center rounded-full bg-ink px-1 text-suffix font-extrabold leading-none text-ground tabular-nums">
-                      {mods!.length}
-                    </span>
-                  )}
-                </span>
-              </button>
-            )}
-          </span>
-        )}
-      </div>
+      </HeroStage>
 
-      {/* The prompt is the hero. While loading, two lines of the hero's
-          own type hold its height (a two-line prompt is the usual one),
-          each with a bar where the words will be. */}
-      {loading ? (
-        <div aria-hidden className="font-display mt-2.5 text-title leading-tight">
-          <span className="relative block">
-            <span className="invisible">Ag</span>
-            <Skeleton className={`absolute inset-y-[2px] left-0 w-full ${WARM}`} />
-          </span>
-          <span className="relative block">
-            <span className="invisible">Ag</span>
-            <Skeleton className={`absolute inset-y-[2px] left-0 w-2/3 ${WARM}`} />
-          </span>
-        </div>
-      ) : (
-        <h2 className={`font-display mt-2.5 text-title leading-tight ${lands}`}>
-          {hero}
-        </h2>
-      )}
-
-      {/*
-       * ONE instruction, and not the angle's title with it. The title
-       * ("End, then wait") is how the path names this practice to
-       * itself; printed in front of the tip it read as the first
-       * clause of the sentence and made a three line paragraph out of
-       * what should be one line of technique.
-       */}
-      {/* Day one's body is the topic, a sentence to read. Every other
-          day it is a tactic, and a tactic shows as its five words and a
-          glyph with the sentence one tap away (feedback round, 25 Sep:
-          the full sentence in grey was the part nobody read). */}
-      {loading ? (
-        <div aria-hidden className="mt-3 min-h-11" />
-      ) : (
-        body && !dayOne && <TipLine tip={body} className={`mt-3 ${lands}`} />
-      )}
-
-      {/* Less to read (26 Sep): the topic labels, the why paragraph and
-          the two text links under the card went. "Take the floor" read
-          as cringe on a button, so it says what it does. Start has the
-          card's full width in a row of its own (round 2, M04): the one
-          tap, with nothing beside it to share its weight. */}
-      <Link href={to} className={`${ACTION_CLASS} mt-5 w-full`}>
+      {/* The one tap, on the ground under the stage at its width, as on
+          Practice (the cohesion pass). "Start", every time (#317). */}
+      <Link href={to} className={`${ACTION_CLASS} mt-3`}>
         Start
       </Link>
-    </div>
+    </>
   );
 }

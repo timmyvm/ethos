@@ -95,21 +95,24 @@ export function CleanRunCard({
     >
       {/* Sage on the arc, because a clean stretch is earned; the
           trough is the app's sand and the number is ink (round 2: the
-          card left the deep sage for the neutral card). */}
+          card left the deep sage for the neutral card). 72px with a 6px
+          arc since the cohesion pass: the stage above is Today's hero,
+          and at 96 this ring was the second-heaviest mass in the squint. */}
       <Ring
         value={now.s / ceiling}
-        size={96}
+        size={72}
+        thickness={6}
         tone="measured"
         track="var(--color-sand)"
         delay={160}
       >
-        <span className="font-display flex items-baseline text-num-l tabular-nums">
+        <span className="font-display flex items-baseline text-num-m tabular-nums">
           <CountUp value={shown} durationMs={DURATION.max} />
-          <span className="text-num-s">s</span>
+          <span className="text-suffix">s</span>
         </span>
         {/* Sentence case in Figtree (today-13): `.label-micro`
             capitalised the seconds symbol, "OF 65S". */}
-        <span className="mt-1 text-caption font-medium text-stone-500">
+        <span className="mt-0.5 text-caption font-medium text-stone-500">
           of {Math.round(ceiling)}s
         </span>
       </Ring>
@@ -147,7 +150,7 @@ export function SkeletonCleanRunCard() {
         <Skeleton className="h-2.5 w-44" />
       </div>
       <div className="mt-3 flex items-center gap-5">
-        <div className="size-[96px] shrink-0 rounded-full border-[8px] border-sand" />
+        <div className="size-[72px] shrink-0 rounded-full border-[6px] border-sand" />
         <div className="min-w-0 flex-1">
           <Skeleton className="h-5 w-full" />
           <Skeleton className="mt-2 h-5 w-3/4" />

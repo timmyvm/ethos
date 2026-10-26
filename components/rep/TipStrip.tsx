@@ -217,7 +217,17 @@ function Chevron() {
  * The glyph stands bare at 20px with the label 12px to its right (M04);
  * the sentence opens under the label's edge, 32px in.
  */
-export function TipLine({ tip, className = "" }: { tip: string; className?: string }) {
+export function TipLine({
+  tip,
+  className = "",
+  compact = false,
+}: {
+  tip: string;
+  className?: string;
+  /** On a hero stage (Today), where the words keep to the stage's left
+      60%: the label at 14px, balanced over two lines when it runs long. */
+  compact?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const id = useId();
   const face = tipFace(tip);
@@ -234,7 +244,11 @@ export function TipLine({ tip, className = "" }: { tip: string; className?: stri
         <span aria-hidden className="tip-glyph">
           <Glyph kind={face.glyph} size={20} />
         </span>
-        <span className="font-display min-w-0 flex-1 text-body font-bold leading-tight">
+        <span
+          className={`font-display min-w-0 flex-1 font-bold leading-tight ${
+            compact ? "text-row text-balance" : "text-body"
+          }`}
+        >
           {face.label}
         </span>
         <span aria-hidden data-open={open} className="disclosure-mark text-stone-400">

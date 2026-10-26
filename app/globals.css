@@ -2526,30 +2526,38 @@ summary::-webkit-details-marker {
   --tone-wash: #efe9ff;
   --tone-ink: #4727a3;
 }
+/* The dark tones are muted (the cohesion pass, 26 Oct: "the colors are
+   too bright", a first-time tester in dark). Each keeps its hue and its
+   OKLCH lightness and drops to about 58% of its chroma (the tone from
+   about 0.16 to 0.09, the wash and the ink to 60%), so the five read as
+   one family of quiet inks on near-black rather than five neon signs.
+   Every pair still clears its floor (lib/today-colour.test.ts,
+   lib/lesson-up-next.test.ts): the tone at 4.7:1 or better on sand, the
+   dark ink on the tone at 6.9:1, the ink on its wash at 10.6:1. */
 :root[data-theme="dark"] [data-trait="pause"] {
-  --tone: #6d9bff;
-  --tone-wash: #13213f;
-  --tone-ink: #c6d7ff;
+  --tone: #839ed8;
+  --tone-wash: #192234;
+  --tone-ink: #cdd7ef;
 }
 :root[data-theme="dark"] [data-trait="fillers"] {
-  --tone: #ff7a9e;
-  --tone-wash: #3a1422;
-  --tone-ink: #ffc8d6;
+  --tone: #e092a4;
+  --tone-wash: #321b22;
+  --tone-ink: #f1cfd7;
 }
 :root[data-theme="dark"] [data-trait="repairs"] {
-  --tone: #ffb62e;
-  --tone-wash: #3a2807;
-  --tone-ink: #ffda91;
+  --tone: #e8be7f;
+  --tone-wash: #342a19;
+  --tone-ink: #f2ddb2;
 }
 :root[data-theme="dark"] [data-trait="pace"] {
-  --tone: #3fd99a;
-  --tone-wash: #0a3122;
-  --tone-ink: #a8f0cf;
+  --tone: #84cda8;
+  --tone-wash: #1a2e25;
+  --tone-ink: #bfe9d5;
 }
 :root[data-theme="dark"] [data-trait="range"] {
-  --tone: #a988ff;
-  --tone-wash: #24184a;
-  --tone-ink: #d9cbff;
+  --tone: #a595d9;
+  --tone-wash: #231e3b;
+  --tone-ink: #d7cfee;
 }
 .tone-wash {
   background: var(--tone-wash);
@@ -2696,6 +2704,99 @@ summary::-webkit-details-marker {
 }
 /* ========================== end of practice (/games) ========================== */
 
+/* ============================ the hero stage ============================
+ * The cohesion pass (26 Oct, docs/refs/feedback/2026-10-25-dark-tabs.md:
+ * "none of the pages match really"). Practice's sky stage, the one tab a
+ * first-time tester liked, is the house grammar: every tab opens on ONE
+ * hero in this one material (components/ui/HeroStage.tsx). The material
+ * is the introduction's sky (`.intro-stage.tone-sky`) at the sheet radius
+ * (`.practice-stage`), `elev-2`, p-5 and at least 160px tall; its grammar
+ * is an eyebrow, a title, one line or number, and the art at the right,
+ * standing on the stage's floor. Under it nothing has a coloured fill: a
+ * trait's colour is a small accent (`.trait-dot`, a ring's arc of 4px or
+ * less, a short bar) and its name is in ink.
+ *
+ *   --stage-ink   the stage's own ink: the eyebrow, the line, a glyph, a
+ *                 bar's fill. Practice's label ink, 6.0:1 on the light
+ *                 sky and 6.8:1 on the dark one.
+ *   --stage-bone  a trough or a placeholder on the stage: the ink at 16%.
+ *   --stage-veil  a quiet pill on the stage (the trait chip): white over
+ *                 the light sky, a shade over the dark one.
+ * ======================================================================== */
+.practice-stage {
+  --stage-ink: #154d70;
+  --stage-bone: rgba(21, 77, 112, 0.16);
+  --stage-veil: rgba(255, 255, 255, 0.55);
+}
+:root[data-theme="dark"] .practice-stage {
+  --stage-ink: var(--pop-sky-ink);
+  --stage-bone: rgba(147, 211, 246, 0.16);
+  --stage-veil: rgba(0, 0, 0, 0.24);
+}
+.stage-ink {
+  color: var(--stage-ink);
+}
+/* A placeholder on the stage reads the stage's bone, not the page's sand. */
+.practice-stage .skeleton {
+  background-color: var(--stage-bone);
+}
+.stage-trough {
+  background: var(--stage-bone);
+}
+.stage-fill {
+  background: var(--stage-ink);
+}
+/* The trait on a stage (Today, Lessons' Up next): a quiet pill in the
+   stage's veil, the trait's square at its start and its name in the
+   stage's ink. The solid tone chip read as a second coloured object on
+   a coloured stage; here the colour is the 8px mark. */
+.stage-chip {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 9px 0 8px;
+  border-radius: 9999px;
+  background: var(--stage-veil);
+  color: var(--stage-ink);
+  white-space: nowrap;
+}
+/* A trait's mark wherever traits are listed: 8px, the square every mark
+   that is not a chip takes (the log's swatch), in the trait's tone. */
+.trait-dot {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--tone);
+}
+/* A tactic's glyph and its expand cue on the stage, in the stage's ink. */
+.practice-stage .tip-glyph,
+.practice-stage .disclosure-mark {
+  color: var(--stage-ink);
+}
+/* A lesson's picture on the stage takes the stage's hue: its light and
+   shade over the sky (luminosity), so the glass object reads as part of
+   the room instead of a candy tile set on it. The stage isolates, so the
+   blend sees only the stage. */
+.stage-art {
+  mix-blend-mode: luminosity;
+}
+/* A lesson's picture in a list: smaller and quiet. The renders are glass
+   on a saturated gradient in the trait's tone; desaturated to a third,
+   with the light lifted in light and taken down in dark, the fifteen sit
+   as one calm column (Imprint's and Wellspoken's lists) and keep their
+   families. */
+.lesson-art-quiet > img {
+  filter: saturate(0.32) contrast(0.78) brightness(1.22);
+}
+:root[data-theme="dark"] .lesson-art-quiet > img {
+  filter: saturate(0.3) brightness(0.8);
+}
+/* ========================== end of the hero stage ========================== */
+
 /* ============================ today (colour pass) ============================
  * Today's share of the colour pass (26 Sep, "pop with colour"). Nothing
  * new in hue: every trait on Today wears its lessons tone (`[data-trait]`
@@ -2792,19 +2893,23 @@ summary::-webkit-details-marker {
   border-radius: 2px;
   background: var(--tone);
 }
+/* The Index's swatch is stone since the cohesion pass: its colour was the
+   deep sage card's, and the card is the house stage now. */
 .log-metric[data-index] .log-swatch {
-  background: var(--color-sage-600);
+  background: var(--color-stone-400);
 }
 /* A row with no trait (Presence, Structure, the Premium teasers) keeps
    the slot so the label column holds one left edge. */
 .log-swatch-blank {
   background: transparent;
 }
-/* A recording's date as a tile: the trait's wash with its ink (7:1 and
-   up in both themes), or the plain surface when the recording practised
-   no one trait. A hairline of the tone keeps the wash's edge on the dark
-   ground, where the dark washes sit near the page. */
+/* A recording's date as a tile: the plain surface and the ink in every
+   row (the cohesion pass; it was the trait's wash with its ink, a column
+   of blue and pink tiles), and the trait the recording practised as a
+   short bar in its tone at the tile's foot, 12 by 3. No bar when the
+   recording practised no one trait. */
 .log-date {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2813,15 +2918,18 @@ summary::-webkit-details-marker {
   height: 44px;
   border-radius: 10px;
   line-height: 1;
-}
-/* After `.tone-wash` in the file, so the plain tile has to name itself
-   or it would paint over every trait's wash. */
-.log-date:not([data-trait]) {
   background: var(--color-surface);
-  color: var(--color-stone-600);
 }
-.log-date[data-trait] {
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 16%, transparent);
+.log-date[data-trait]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  width: 12px;
+  height: 3px;
+  margin-left: -6px;
+  border-radius: 1px;
+  background: var(--tone);
 }
 /* The month over the day: the micro register, in the tile's own ink at
    full strength (6.4:1 and up on every wash; faded, the ochre fell to
@@ -2835,14 +2943,14 @@ summary::-webkit-details-marker {
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-/* The one insight, ruled in its trait's tone: a 3px left rule over the
-   wash at 60%, square, no ring. The ringed, rounded box it was read as a
+/* The one insight, ruled in its trait's tone: a 3px left rule, square,
+   no ring, and since the cohesion pass no wash (in dark it read as a
+   maroon callout). The ringed, rounded box it was read as a
    card under a row that is itself a button, and invited a tap that did
    nothing; a rule reads as an annotation of the table. At full strength
    the wash was the second-heaviest mass on the squint. */
 .log-insight {
   border-left: 3px solid var(--tone);
-  background: color-mix(in srgb, var(--tone-wash) 60%, transparent);
 }
 /* ========================== end of log (colour pass) ========================== */
 
@@ -2858,12 +2966,6 @@ summary::-webkit-details-marker {
 .you-gold {
   display: inline-flex;
   color: var(--earned-gold);
-}
-/* A taught trait's trough: its wash, so the row reads as that trait's
-   colour while a zero still looks empty. The tone mixed in at 18% read
-   as a pale bar already filled. */
-.you-trait-trough {
-  background: var(--tone-wash);
 }
 /* A freeze: the sky's tile with its ink glyph (3.7:1 light, 6.8:1 dark,
    over the 3:1 a glyph needs), light from the top like Practice's tiles.
@@ -2887,14 +2989,17 @@ summary::-webkit-details-marker {
     var(--pop-sky);
   box-shadow: inset 0 0 0 1px rgba(147, 211, 246, 0.14);
 }
-/* A lexicon word: a label in its trait's wash and ink (the
-   `[data-trait]` rule below), never a pill anyone would press (no
-   border, no arrow, no hover). */
+/* A lexicon word: a neutral label, ink on the surface, never a pill
+   anyone would press (no border, no arrow, no hover). It wore Variety's
+   wash and ink (you-4) until the cohesion pass: purple chips under the
+   sky stage read as a second colour world on You. */
 .you-word {
   display: inline-block;
   border-radius: 9999px;
   padding: 3px 10px;
   font-weight: 700;
+  background: var(--color-surface);
+  color: var(--color-ink);
 }
 /* How close a not-yet badge is: ink at half, 3.2:1 on the surface
    trough in light and 4.7:1 in dark. Stone-200 (1.3:1) hid the one
@@ -3192,17 +3297,7 @@ summary::-webkit-details-marker {
 }
 /* ========================== end of practice (the wall) ========================== */
 
-/* you-4: the lexicon (data-trait="range" on its section) wears
-   Variety's tone, a word and the empty card alike: mint was Pace's
-   green and the lexicon read as Pace. The mint rules are gone. */
-:root [data-trait] .you-word {
-  background: var(--tone-wash);
-  color: var(--tone-ink);
-}
-:root [data-trait] .you-lexicon-empty {
-  background: color-mix(in srgb, var(--tone-wash) 70%, var(--color-raised));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 30%, transparent);
-}
+
 
 /* ============================ the screen header ============================
  * The large title and its bar (components/ui/ScreenHeader.tsx; the

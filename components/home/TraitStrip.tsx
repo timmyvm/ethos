@@ -15,40 +15,34 @@ import {
 import type { RepRow } from "@/lib/client-data";
 
 /**
- * One trait as a tile (26 Sep, Timothy: "at the dead space add trait
- * levels"). A tile carries the ring, the name and the one number; the
- * direction and the target live one tap away on the trait's own screen.
- * Day zero draws the same five tiles with empty rings, so the screen has
- * its shape before the first recording fills it.
+ * One trait as a row (the cohesion pass, 26 Oct). It was a tile: five
+ * neutral cards, one wide over a 2x2, each with a 46 to 56px ring in its
+ * tone and its name in its tone's ink, which on Today made five hues at
+ * equal weight under an amber card, a blue ring and a sage ring ("I
+ * think everything competes", a first-time tester). Today's one hero is
+ * the stage now, so the traits are what every other tab's list is: rows
+ * on the ground under a section head, a hairline between them, each
+ * ending in the row's door (Lessons' rows, the Log's tables, You's
+ * traits).
  *
- * THE MATERIAL (round 2, M02). Every tile is the one neutral `.card`
- * (raised fill, card-edge, shadow-1), and the trait's tone lives on the
- * ring's arc, the percentile and the name only (`tone-ink`), never on
- * the ground. Five washes put five tinted grounds in the first scroll
- * where Imprint's home and Wellspoken's have one or none, and the floor
- * card's amber stopped being the one coloured surface. The trough is
- * the app's `sand`, so the arc is the only colour in the ring; every
- * tone clears 3:1 on it in both themes, the light ochre through its
- * deeper `--ring-arc` (`.today-trait`, lib/today-colour.test.ts).
- *
- * TWO SHAPES. The weakest trait (first in the sorted order) is a
- * full-width row: the 56px ring on the left, the name over the
- * measurement beside it and the row's chevron at the end, because it is
- * the one the floor card above is working on. The other four stack (ring, name, measurement) in an even
- * 2x2. The measurement is set as a number (Outfit 800, tabular, ink)
- * before its unit, which prints in full and wraps (today-3: a clamp cut
- * Fillers to "per hundred...", so the number lost its denominator).
+ * The trait's colour is the accent and nothing more: a 40px ring whose
+ * 3px arc is the tone on the app's `sand` trough (every tone clears 3:1
+ * there, the light ochre through its deeper `--ring-arc`), with the
+ * percentile in ink inside it. The name is in ink, the measurement a
+ * number before its unit (today-3: the unit prints in full and wraps).
+ * The direction and the target live one tap away on the trait's own
+ * screen. Day zero draws the same five rows with empty rings.
  */
-function TraitTile({
+function TraitRow({
   id,
   reading,
   delay,
-  wide,
+  first,
 }: {
   id: TraitId;
   reading: TraitReading | null;
   delay: number;
-  wide: boolean;
+  first: boolean;
 }) {
   const t = TRAIT[id];
   const n = reading?.percentile ?? 0;
@@ -56,77 +50,65 @@ function TraitTile({
   const raw = reading ? fmtRaw(reading.raw) : null;
   const unit = raw === "1" ? t.unitOne : t.unit;
 
-  const ring = (
-    <Ring
-      value={reading?.fraction ?? null}
-      size={wide ? 56 : 46}
-      tone="trait"
-      track="var(--color-sand)"
-      delay={delay}
-      provisional={reading?.quality === "provisional"}
-    >
-      <span
-        className={`font-display tone-ink flex items-baseline font-extrabold leading-none tabular-nums ${
-          wide ? "text-num-s" : "text-row"
-        }`}
-      >
-        {reading ? (
-          <>
-            <CountUp value={n} durationMs={DURATION.max} />
-            <span className="text-suffix">{suffix}</span>
-          </>
-        ) : (
-          <span aria-hidden className="opacity-60">–</span>
-        )}
-      </span>
-    </Ring>
-  );
-
-  const measured = raw !== null && (
-    <div className="mt-1 text-caption text-pretty text-stone-500">
-      <span className="font-display text-num-s tabular-nums text-ink">{raw}</span>{" "}
-      {unit}
-    </div>
-  );
-
   return (
     <Link
       href={`/practice/${id}`}
       data-trait={id}
-      className={`card press today-trait p-4 ${
-        wide ? "col-span-2 flex items-center gap-4" : "flex flex-col"
+      className={`press-row today-trait relative -mx-5 flex items-center gap-3.5 px-5 py-3 focus-visible:-outline-offset-3! ${
+        first ? "" : ROW_RULE
       }`}
     >
-      {ring}
-      <div className={`min-w-0 ${wide ? "flex-1" : "mt-3"}`}>
-        <div
-          className={`font-display tone-ink font-bold leading-tight ${
-            wide ? "text-detail" : "text-body"
-          }`}
-        >
-          {t.name}
-        </div>
-        {measured}
-      </div>
-      {/* The full-width tile is row-shaped, so it ends in the row's
-          door (PRINCIPLES 5); the four in the 2x2 are tiles and carry
-          none. */}
-      {wide && <Disclosure />}
+      <Ring
+        value={reading?.fraction ?? null}
+        size={40}
+        thickness={3}
+        tone="trait"
+        track="var(--color-sand)"
+        delay={delay}
+        provisional={reading?.quality === "provisional"}
+      >
+        <span className="font-display flex items-baseline text-caption font-extrabold leading-none tabular-nums">
+          {reading ? (
+            <>
+              <CountUp value={n} durationMs={DURATION.max} />
+              <span className="text-suffix">{suffix}</span>
+            </>
+          ) : (
+            <span aria-hidden className="text-stone-400">–</span>
+          )}
+        </span>
+      </Ring>
+      <span className="min-w-0 flex-1">
+        <span className="font-display block text-row">{t.name}</span>
+        {raw !== null && (
+          <span className="mt-0.5 block text-caption text-pretty text-stone-500">
+            <span className="font-display font-bold tabular-nums text-ink">{raw}</span>{" "}
+            {unit}
+          </span>
+        )}
+      </span>
+      <Disclosure />
     </Link>
   );
 }
 
 /**
- * The five traits on Today, weakest first once there is a recording:
- * the weakest across the full width, the other four in an even 2x2
- * (round 2, M02; it was two wide over three narrow, #317). Before the
- * first recording, the lesson order.
+ * The inset rule between rows: a hairline from the name's edge (20 gutter
+ * + 40 ring + 14 gap = 74px) to the row's end, Lessons' row grammar.
+ */
+const ROW_RULE =
+  "before:absolute before:left-[74px] before:right-0 before:top-0 before:h-px before:origin-top before:scale-y-50 before:bg-hairline";
+
+/**
+ * The five traits on Today, weakest first once there is a recording (the
+ * one the stage above is working on leads). Before the first recording,
+ * the lesson order.
  */
 export function TraitStrip({ reps }: { reps: RepRow[] }) {
   const last = reps.length > 0 ? reps[reps.length - 1] : null;
   const readings = last ? readTraitsFromRow(last) : [];
   const sorted = [...readings].sort((a, b) => a.percentile - b.percentile);
-  const tiles: { id: TraitId; reading: TraitReading | null }[] =
+  const rows: { id: TraitId; reading: TraitReading | null }[] =
     sorted.length > 0
       ? sorted.map((r) => ({ id: r.id, reading: r }))
       : TRAITS.map((t) => ({ id: t.id, reading: null }));
@@ -134,14 +116,14 @@ export function TraitStrip({ reps }: { reps: RepRow[] }) {
   return (
     <section className="mt-7">
       <h2 className="section-head">Your traits</h2>
-      <div className="stagger mt-3 grid grid-cols-2 gap-3">
-        {tiles.map((t, i) => (
-          <TraitTile
+      <div className="stagger mt-1">
+        {rows.map((t, i) => (
+          <TraitRow
             key={t.id}
             id={t.id}
             reading={t.reading}
             delay={220 + i * 80}
-            wide={i === 0}
+            first={i === 0}
           />
         ))}
       </div>

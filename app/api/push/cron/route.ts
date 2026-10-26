@@ -25,6 +25,9 @@ import { reminderBody } from "@/lib/reminders";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
+/** At most the server's max_rows, so a full page reliably means "maybe more". */
+const SUB_PAGE = 1000;
+
 interface SubRow {
   endpoint: string;
   user_id: string;
@@ -62,20 +65,37 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "No database." }, { status: 503 });
   }
 
-  const { data, error } = await db
-    .from("push_subscriptions")
-    .select("*")
-    .not("reminder_hour", "is", null);
-  if (error) {
-    console.error("push cron: read failed", error.message);
-    return NextResponse.json({ error: "Read failed." }, { status: 502 });
+  /*
+   * Every subscription, paged. One read answered at most PostgREST's
+   * max_rows (1000) with no error, so past 1000 devices the rest were
+   * never considered. Keyset on the primary key, not offsets: the loop
+   * below deletes and updates rows, which would shift an offset.
+   */
+  const subs: SubRow[] = [];
+  for (let after: string | null = null; ; ) {
+    let q = db
+      .from("push_subscriptions")
+      .select("*")
+      .not("reminder_hour", "is", null)
+      .order("endpoint", { ascending: true })
+      .limit(SUB_PAGE);
+    if (after !== null) q = q.gt("endpoint", after);
+    const { data, error } = await q;
+    if (error) {
+      console.error("push cron: read failed", error.message);
+      return NextResponse.json({ error: "Read failed." }, { status: 502 });
+    }
+    const page = (data ?? []) as SubRow[];
+    subs.push(...page);
+    if (page.length < SUB_PAGE) break;
+    after = page[page.length - 1].endpoint;
   }
 
   const now = new Date();
   let sent = 0;
   let dropped = 0;
 
-  for (const sub of (data ?? []) as SubRow[]) {
+  for (const sub of subs) {
     if (sub.reminder_hour === null) continue;
     const win = {
       reminderHour: sub.reminder_hour,

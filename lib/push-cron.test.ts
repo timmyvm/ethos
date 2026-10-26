@@ -141,4 +141,10 @@ describe("the reminder cron", () => {
     expect(sent).toEqual([]);
     expect(stamped).toEqual([]);
   });
+
+  it("reaches every subscriber, past the 1000 rows one read returns", async () => {
+    subs = Array.from({ length: 1500 }, (_, i) => due(i));
+    const body = await (await tick()).json();
+    expect(body.sent).toBe(1500);
+  });
 });

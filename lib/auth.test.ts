@@ -47,6 +47,7 @@ import {
   OAUTH_TTL_MS,
   parseOAuthAttempt,
   passwordProblem,
+  resetReady,
   safeReturnPath,
   signIn,
   withNext,
@@ -310,5 +311,38 @@ describe("deleting the account, when the server cannot say what happened", () =>
     const said = "Your plan is cancelled, but your audio didn't delete. Nothing else was touched; try again.";
     vi.stubGlobal("fetch", async () => new Response(JSON.stringify({ error: said }), { status: 502 }));
     expect((await deleteAccount({ plan: true })).error).toBe(said);
+  });
+});
+
+/*
+ * /auth/reset decides between the password form and "That link has
+ * expired". The device that started a save still holds its anonymous
+ * session when the save link turns out dead (auth-js keeps the session
+ * on a failed URL login), so that session is not a confirmed email.
+ */
+describe("the password page, after a save link", () => {
+  const anon = { signedIn: true, anonymous: true, email: null };
+  const real = { signedIn: true, anonymous: false, email: "t@x.co" };
+  const out = { signedIn: false, anonymous: false, email: null };
+  const dead = "https://speakethos.com/auth/reset?first=1#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired";
+  const fine = "https://speakethos.com/auth/reset?first=1";
+
+  it("sends an expired link on the saving device to the expired-link screen", () => {
+    expect(resetReady(anon, true, dead)).toBe(false);
+  });
+
+  it("still lets a fresh first-password link through", () => {
+    expect(resetReady(anon, true, fine)).toBe(true);
+    expect(resetReady(real, true, fine)).toBe(true);
+  });
+
+  it("lets a confirmed account reopening its used link set a password", () => {
+    expect(resetReady(real, true, dead)).toBe(true);
+  });
+
+  it("keeps the reset flow to full accounts", () => {
+    expect(resetReady(anon, false, fine)).toBe(false);
+    expect(resetReady(real, false, fine)).toBe(true);
+    expect(resetReady(out, true, fine)).toBe(false);
   });
 });

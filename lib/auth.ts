@@ -403,6 +403,26 @@ export function callbackProblem(href: string): CallbackProblem {
   return { kind: "google" };
 }
 
+/**
+ * Whether /auth/reset shows the password form. The reset flow needs a
+ * full account. The first-password flow (`first`, after a save link)
+ * trusts the server over the anonymous flag, since a stale flag must not
+ * block the happy path, EXCEPT when the link itself came back dead: the
+ * device that started the save still holds its anonymous session then
+ * (auth-js keeps it on a failed URL login), and that session is not a
+ * confirmed email, so the expired-link screen and its new link show.
+ */
+export function resetReady(
+  s: SessionState,
+  first: boolean,
+  href: string
+): boolean {
+  if (!s.signedIn) return false;
+  if (!first) return !s.anonymous;
+  const dead = callbackProblem(href).kind !== "none";
+  return !(dead && s.anonymous);
+}
+
 /** True when the URL is carrying a session in (tokens or a PKCE code). */
 export function callbackCarriesSession(href: string): boolean {
   try {

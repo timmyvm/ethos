@@ -12,7 +12,7 @@ import {
   Shell,
 } from "@/components/AuthForm";
 import { ACTION_CLASS, DISABLED_CLASS } from "@/lib/ui";
-import { sessionState, setNewPassword } from "@/lib/auth";
+import { resetReady, sessionState, setNewPassword } from "@/lib/auth";
 import { authHref, nextFrom, onwardLink } from "@/lib/use-paywall-return";
 
 /**
@@ -70,19 +70,20 @@ function ResetScreen() {
 
   useEffect(() => {
     // The Supabase client consumes the link's fragment as it starts up,
-    // so a session either exists a beat later or the link was stale.
+    // so a session either exists a beat later or the link was stale. A
+    // dead link leaves its error in the URL: read it now, before anything
+    // tidies the address.
+    const href = window.location.href;
     const timer = setTimeout(() => {
       sessionState()
         .then((s) => {
           setEmail(s.email ?? "");
           /*
            * The reset flow requires a full account. The first-password
-           * flow trusts the server over the flag: if the email somehow
-           * isn't attached yet, setNewPassword returns the exact error
-           * this page exists to prevent, humanised; a stale `anonymous`
-           * claim must not block the happy path.
+           * flow trusts the server over the flag, unless the link came
+           * back dead on the device that started the save (resetReady).
            */
-          setReady(s.signedIn && (first || !s.anonymous));
+          setReady(resetReady(s, first, href));
         })
         .catch(() => setReady(false));
     }, 400);

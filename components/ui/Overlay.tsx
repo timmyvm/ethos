@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { openLayer } from "@/lib/overlay-layers";
 import { prefersReducedMotion } from "@/lib/prefs";
 import {
   SPRING,
@@ -224,6 +225,8 @@ export function Overlay({
     const opener = document.activeElement as HTMLElement | null;
     const me = {};
     openSheets.push(me);
+    // Up over the page, so what moves for its own sake under it rests.
+    const closeLayer = panel.current ? openLayer(panel.current) : () => {};
 
     function onKey(e: KeyboardEvent) {
       // A sheet under another one leaves the key to the top one.
@@ -279,6 +282,7 @@ export function Overlay({
 
     return () => {
       document.removeEventListener("keydown", onKey, true);
+      closeLayer();
       const at = openSheets.indexOf(me);
       if (at >= 0) openSheets.splice(at, 1);
       if (--locks <= 0) {

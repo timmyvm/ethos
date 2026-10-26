@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { clipSrc, hasClip, type ClipPose } from "@/lib/idle-clips";
+import { onLayers, underLayer } from "@/lib/overlay-layers";
 import { prefersReducedMotion } from "@/lib/prefs";
 
 export { hasClip, type ClipPose };
@@ -35,7 +36,9 @@ export { hasClip, type ClipPose };
  * moving is a screensaver: the first play waits `delayMs` (on a screen
  * where he speaks, until his words have landed, #288), then each rest is
  * a few seconds, drawn afresh each time so the rhythm never ticks. It
- * pauses while off screen or while the tab is hidden.
+ * pauses while off screen, while the tab is hidden, and while a sheet is
+ * up over him (`lib/overlay-layers.ts`); a clip inside the top sheet
+ * plays on.
  */
 
 /** Rest between plays, drawn per rest so two screens never beat in time. */
@@ -215,7 +218,7 @@ export function DemosClip({
     };
 
     const play = () => {
-      if (disposed || !visible || document.hidden) return;
+      if (disposed || !visible || document.hidden || underLayer(box)) return;
       video.currentTime = 0;
       video.play().then(
         () => {
@@ -264,6 +267,16 @@ export function DemosClip({
     };
     document.addEventListener("visibilitychange", onVisibility);
 
+    let covered = underLayer(box);
+    const offLayers = onLayers(() => {
+      const was = covered;
+      covered = underLayer(box);
+      if (covered && !was) {
+        clearTimeout(rest);
+        video.pause();
+      } else if (!covered && was && visible) scheduleRest(shown ? undefined : delayMs);
+    });
+
     const onLost = (e: Event) => {
       e.preventDefault();
       disposed = true;
@@ -277,6 +290,7 @@ export function DemosClip({
       stopTicking();
       clearTimeout(rest);
       seen.disconnect();
+      offLayers();
       document.removeEventListener("visibilitychange", onVisibility);
       cv.removeEventListener("webglcontextlost", onLost);
       video.pause();

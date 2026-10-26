@@ -29,6 +29,18 @@ export interface OutboxRep {
    * local mode). Missing on recordings held before this field existed.
    */
   owner?: string | null;
+  /** Background sends that failed, and when the last one was tried. */
+  attempts?: number;
+  lastTriedAt?: number;
+}
+
+/**
+ * Answers no resend can change: an empty or unreadable file (400, 422)
+ * or one over the size limit (413). The outbox lets these go rather than
+ * sending them on every visit for ever.
+ */
+export function isFinalReject(status: number): boolean {
+  return status === 400 || status === 413 || status === 422;
 }
 
 /**
@@ -189,9 +201,12 @@ export interface SendOutcome {
 export async function sendWithRetry(
   form: FormData,
   token: string | null,
-  onAttempt?: (attempt: number) => void
+  onAttempt?: (attempt: number) => void,
+  /** How many sends at most. The background flush sends once: the next
+   *  app open or return to the network is its retry. */
+  tries: number = RETRY_DELAYS_MS.length + 1
 ): Promise<SendOutcome> {
-  const attempts = RETRY_DELAYS_MS.length + 1;
+  const attempts = Math.max(1, tries);
   let last: SendOutcome = { ok: false, status: 0, settled: false, data: null };
   for (let i = 0; i < attempts; i++) {
     onAttempt?.(i);
@@ -217,7 +232,7 @@ export async function sendWithRetry(
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
       return last;
     }
-    if (i < RETRY_DELAYS_MS.length) {
+    if (i < attempts - 1 && i < RETRY_DELAYS_MS.length) {
       await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[i]));
     }
   }

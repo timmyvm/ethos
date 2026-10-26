@@ -166,6 +166,22 @@ describe("POST /api/analyze", () => {
     expect(res.status).toBe(502);
   });
 
+  it("answers 422 when Whisper cannot read the file, which no resend will fix", async () => {
+    for (const code of [400, 413, 415]) {
+      vi.mocked(transcribe).mockRejectedValue(
+        new Error(`Whisper API ${code}: Invalid file format`)
+      );
+      expect((await post(audioForm())).status).toBe(422);
+    }
+  });
+
+  it("keeps 502 for a Whisper refusal that is ours, not the file's", async () => {
+    for (const code of [401, 429]) {
+      vi.mocked(transcribe).mockRejectedValue(new Error(`Whisper API ${code}: nope`));
+      expect((await post(audioForm())).status).toBe(502);
+    }
+  });
+
   it("returns metrics, tier-1 scores, and the /1000 index with coach output", async () => {
     vi.mocked(transcribe).mockResolvedValue(FIXTURE);
     const dim = {

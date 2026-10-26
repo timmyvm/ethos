@@ -99,3 +99,65 @@ describe("the outbox flush and who a recording belongs to", () => {
     expect(store).toHaveLength(0);
   });
 });
+
+/*
+ * A recording the server always refuses used to be resent four times on
+ * every app open, held up every recording behind it, and spent the rate
+ * limit doing it.
+ */
+describe("the outbox flush and a recording the server refuses", () => {
+  let answers: Record<string, number> = {};
+  const sent: string[] = [];
+
+  beforeEach(() => {
+    me = { userId: "user-a", token: "token-a" };
+    answers = {};
+    sent.length = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init: RequestInit) => {
+        const id = String((init.body as FormData).get("clientId"));
+        sent.push(id);
+        const status = answers[id] ?? 200;
+        return new Response(JSON.stringify(status === 200 ? { repId: `r-${id}` } : { error: "no" }), { status });
+      })
+    );
+  });
+
+  it("lets go of a recording the server will never accept, and sends the next", async () => {
+    store = [held("bad", "user-a", 120_000), held("good", "user-a")];
+    answers = { bad: 422 };
+    await flushOutbox();
+    expect(sent).toEqual(["bad", "good"]);
+    expect(store).toHaveLength(0);
+  });
+
+  it("sends a failing recording once a flush, and still sends the ones behind it", async () => {
+    store = [held("flaky", "user-a", 120_000), held("good", "user-a")];
+    answers = { flaky: 502 };
+    await flushOutbox();
+    expect(sent).toEqual(["flaky", "good"]);
+    expect(store.map((r) => [r.id, r.attempts])).toEqual([["flaky", 1]]);
+  });
+
+  it("waits an hour before trying a failed recording again", async () => {
+    store = [{ ...held("flaky", "user-a"), attempts: 1, lastTriedAt: Date.now() - 60_000 }];
+    await flushOutbox();
+    expect(sent).toEqual([]);
+  });
+
+  it("stops at a rate limit, which every recording behind it would meet too", async () => {
+    store = [held("first", "user-a", 120_000), held("second", "user-a")];
+    answers = { first: 429 };
+    await flushOutbox();
+    expect(sent).toEqual(["first"]);
+    expect(store).toHaveLength(2);
+  });
+
+  it("lets go of a recording that has failed all week", async () => {
+    store = [{ ...held("old", "user-a", 8 * 86_400_000), attempts: 5, lastTriedAt: Date.now() - 2 * 3_600_000 }];
+    answers = { old: 502 };
+    await flushOutbox();
+    expect(store).toHaveLength(0);
+  });
+});

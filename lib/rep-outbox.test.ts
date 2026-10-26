@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  isFinalReject,
   newOutboxId,
   ownedBy,
   replayForm,
@@ -147,5 +148,22 @@ describe("ownedBy", () => {
   it("sends a recording made with no session to whoever this device is", () => {
     expect(ownedBy([r(null)], null)).toHaveLength(1);
     expect(ownedBy([r(null)], "a")).toHaveLength(1);
+  });
+});
+
+describe("isFinalReject", () => {
+  it("names the answers no resend can change", () => {
+    expect([400, 413, 422].every(isFinalReject)).toBe(true);
+    expect([0, 401, 429, 500, 502, 503].some(isFinalReject)).toBe(false);
+  });
+});
+
+describe("sendWithRetry with one try", () => {
+  it("sends once, and leaves the next try to the next flush", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(502, {}));
+    vi.stubGlobal("fetch", fetchMock);
+    const out = await sendWithRetry(replayForm(rep()), "token", undefined, 1);
+    expect(out.status).toBe(502);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

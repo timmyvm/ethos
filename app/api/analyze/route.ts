@@ -197,9 +197,14 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     const message = e instanceof Error ? e.message : "Transcription failed.";
     const unconfigured = message.includes("OPENAI_API_KEY");
+    // Whisper's own verdict on the FILE (it can't decode it, it's too
+    // big, the type is wrong) is final: a resend gets the same answer,
+    // so it is 422, which the outbox lets go of. Its 401 or 429 is a
+    // fault on our side and stays a 502 to retry.
+    const undecodable = /^Whisper API (400|413|415):/.test(message);
     return NextResponse.json(
       { error: message },
-      { status: unconfigured ? 503 : 502 }
+      { status: unconfigured ? 503 : undecodable ? 422 : 502 }
     );
   }
 

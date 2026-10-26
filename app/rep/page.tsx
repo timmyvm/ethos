@@ -119,6 +119,7 @@ import {
 } from "@/lib/rep-config";
 import {
   clearInFlight,
+  isFinalReject,
   markInFlight,
   newOutboxId,
   outboxDelete,
@@ -513,6 +514,17 @@ function RepScreen() {
       const outcome = await sendWithRetry(form, token, (n) => {
         if (live()) setAttempt(n);
       });
+      if (!outcome.ok && isFinalReject(outcome.status)) {
+        // The server will never take this file (empty, unreadable, too
+        // large). Keeping it would resend it on every visit for good, so
+        // it goes, and the screen says to record it again.
+        if (outboxId) void outboxDelete(outboxId);
+        if (!live()) return;
+        pendingRef.current = null;
+        setError("The audio couldn't be read. Record it again.");
+        setPhase("error");
+        return;
+      }
       if (!outcome.ok || !outcome.data) {
         throw new ScoringFailure(
           outcome.status === 503

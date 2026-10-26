@@ -55,6 +55,7 @@ export function ScoreCard({
       label="Your Ethos"
       eyebrow="Your Ethos"
       artSize={hill ? 136 : undefined}
+      artFluid
       art={hill ? <IndexHill values={hill} /> : undefined}
       line={
         <div className="mt-auto pt-3">
@@ -131,9 +132,10 @@ function IndexHill({ values }: { values: number[] }) {
   const [lx, ly] = pts[pts.length - 1];
   return (
     <svg
-      width={W}
-      height={W}
+      width="100%"
+      height="100%"
       viewBox={`0 0 ${W} ${W}`}
+      preserveAspectRatio="xMaxYMax meet"
       aria-hidden
       focusable="false"
       className="stage-ink block"

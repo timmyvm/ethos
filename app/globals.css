@@ -2784,6 +2784,11 @@ summary::-webkit-details-marker {
 .stage-art {
   mix-blend-mode: luminosity;
 }
+/* On the light sky the renders' saturated grounds fall to a deep navy
+   tile, the heaviest mass on the stage: their light is lifted first. */
+:root:not([data-theme="dark"]) .stage-art {
+  filter: brightness(1.3) contrast(0.8);
+}
 /* A lesson's picture in a list: smaller and quiet. The renders are glass
    on a saturated gradient in the trait's tone; desaturated to a third,
    with the light lifted in light and taken down in dark, the fifteen sit

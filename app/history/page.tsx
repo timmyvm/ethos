@@ -55,8 +55,16 @@ function decimalsOf(printed: string): (value: number) => string {
   return (value: number) => value.toFixed(places);
 }
 
-/** The two grids, shared by header and rows so the columns line up. */
-const MOVED_GRID = "grid grid-cols-[minmax(0,1fr)_36px_42px_74px_44px] gap-2";
+/** The two grids, shared by header and rows so the columns line up.
+    Under 360px the trend column steps out (TREND_CELL), so the metric's
+    name keeps room to be read: at 320 it truncated to "Eth..." and
+    "F...". */
+const MOVED_GRID =
+  "grid grid-cols-[minmax(0,1fr)_36px_42px_74px] min-[360px]:grid-cols-[minmax(0,1fr)_36px_42px_74px_44px] gap-2";
+/* Out of the flow and unseen under 360px, rather than `display: none`:
+   toggling display restarts the line's unroll (`.fill`), and the
+   camera's full-page capture caught it part way. */
+const TREND_CELL = "max-[359px]:invisible max-[359px]:absolute";
 /* The date column is a 40px tile in the recording's trait tone (the
    colour pass), and the lesson title keeps 4px more air off it. */
 const RECORD_GRID = "grid grid-cols-[40px_minmax(0,1fr)_44px_36px_36px_36px] gap-1.5";
@@ -162,7 +170,7 @@ export default function HistoryPage() {
               <Skeleton className="ml-auto h-3 w-6" />
               <Skeleton className="ml-auto h-4 w-8" />
               <Skeleton className="ml-auto h-3 w-10" />
-              <Skeleton className="h-5 w-full" />
+              <Skeleton className={`h-5 w-full ${TREND_CELL}`} />
             </div>
           ))}
           <div className="flex items-center justify-between border-t border-hairline py-3">
@@ -273,7 +281,9 @@ export default function HistoryPage() {
           <ColumnHead right>day 1</ColumnHead>
           <ColumnHead right>now</ColumnHead>
           <ColumnHead right>change</ColumnHead>
-          <ColumnHead right>trend</ColumnHead>
+          <ColumnHead right className={TREND_CELL}>
+            trend
+          </ColumnHead>
         </div>
 
         {rows.map((row) =>
@@ -545,12 +555,14 @@ function Line({ className, width }: { className: string; width: string }) {
 function ColumnHead({
   children,
   right = false,
+  className = "",
 }: {
   children: string;
   right?: boolean;
+  className?: string;
 }) {
   return (
-    <span className={`label-micro ${right ? "text-right" : ""}`}>
+    <span className={`label-micro ${right ? "text-right" : ""} ${className}`}>
       {children}
     </span>
   );
@@ -661,16 +673,18 @@ function MetricRow({
           series reads as a direction; every point stays, so the line
           still starts at the Day 1 value, and the label reads the raw
           numbers. */}
-      <Sparkline
-        values={rolling(row.series, 3)}
-        labelValues={row.series}
-        label={row.label}
-        invert={row.invert}
-        height={20}
-        bare
-        color={trait ? "var(--tone)" : index ? "var(--color-stone-500)" : undefined}
-        wash={false}
-      />
+      <span className={`block ${TREND_CELL}`}>
+        <Sparkline
+          values={rolling(row.series, 3)}
+          labelValues={row.series}
+          label={row.label}
+          invert={row.invert}
+          height={20}
+          bare
+          color={trait ? "var(--tone)" : index ? "var(--color-stone-500)" : undefined}
+          wash={false}
+        />
+      </span>
     </span>
   );
 }

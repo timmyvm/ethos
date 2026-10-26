@@ -36,6 +36,7 @@ export function HeroStage({
   minHeight,
   eyebrowWide = false,
   artBlend = false,
+  artFluid = false,
   ...rest
 }: {
   /** Sentence case, the stage's ink. A node, so a trait chip can lead it. */
@@ -67,6 +68,12 @@ export function HeroStage({
    * blend inside it would only see itself.
    */
   artBlend?: boolean;
+  /**
+   * The art may narrow to 38% of the stage on a small phone (the Log's
+   * hill, which would otherwise run under the words at 320px). Its own
+   * drawing scales to fit.
+   */
+  artFluid?: boolean;
   "data-trait"?: string;
   "data-look"?: string;
 }) {
@@ -109,7 +116,7 @@ export function HeroStage({
         <div
           aria-hidden
           className={`absolute bottom-[2px] right-1 z-[1] ${artBlend ? "stage-art" : ""}`}
-          style={{ width: artSize, height: artSize }}
+          style={{ width: artFluid ? `min(${artSize}px, 38%)` : artSize, height: artSize }}
         >
           {art}
         </div>

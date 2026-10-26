@@ -574,11 +574,13 @@ export default function YouPage() {
         </div>
 
         {/* The plan (#232): its headline, the unit for what was noticed,
-            and how far the road's gate is. A row in the card, not a card
-            of its own, and a tap, because an answer is allowed to change.
-            Its three lines are reserved while the device is read. */}
+            and how far the road's gate is. A row in the card under a
+            hairline, not a card of its own, and a tap, because an answer
+            is allowed to change. Its three lines are reserved while the
+            device is read. */}
+        <div aria-hidden className="mx-1 mt-5 border-t border-hairline" />
         {onboarding === undefined ? (
-          <div aria-hidden className="-mx-3 mt-4 px-3 py-2.5 text-left">
+          <div aria-hidden className="-mx-3 mt-2 -mb-2.5 px-3 py-2.5 text-left">
             <Line className="eyebrow" bar="w-16" align="left" />
             <Line className="font-display mt-0.5 text-row" bar="w-40" align="left" />
             <Line className="mt-0.5 text-caption" bar="w-32" align="left" />
@@ -645,7 +647,7 @@ export default function YouPage() {
                     <span className="h-1.5 flex-1 overflow-hidden bg-sand">
                       {t.level > 0 && (
                         <span
-                          className="fill block h-full bg-stone-500"
+                          className="fill block h-full bg-stone-400"
                           style={{ width: `${(t.level / top) * 100}%` }}
                         />
                       )}
@@ -1100,7 +1102,7 @@ function gateLine(unitName: string, toGo: number | null): string {
 
 /** The plan row's box: a row inside the identity card that lights on a press. */
 const PLAN_ROW =
-  "press-row -mx-3 mt-4 flex min-h-11 items-center gap-3 rounded-control px-3 py-2.5 text-left";
+  "press-row -mx-3 mt-2 -mb-2.5 flex min-h-11 items-center gap-3 rounded-control px-3 py-2.5 text-left";
 
 /**
  * The plan row (#232): the portfolio's headline, the unit for what was

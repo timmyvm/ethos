@@ -2531,13 +2531,17 @@ summary::-webkit-details-marker {
    OKLCH lightness and drops to about 58% of its chroma (the tone from
    about 0.16 to 0.09, the wash and the ink to 60%), so the five read as
    one family of quiet inks on near-black rather than five neon signs.
+   Muted, Pausing (265) and Variety (295) fell to 0.050 apart in OKLab,
+   too close once the 8px mark is a trait's only colour, so the fix round
+   spread them to 250 and 307: 0.091 apart, the lightness and chroma
+   kept.
    Every pair still clears its floor (lib/today-colour.test.ts,
    lib/lesson-up-next.test.ts): the tone at 4.7:1 or better on sand, the
    dark ink on the tone at 6.9:1, the ink on its wash at 10.6:1. */
 :root[data-theme="dark"] [data-trait="pause"] {
-  --tone: #839ed8;
-  --tone-wash: #192234;
-  --tone-ink: #cdd7ef;
+  --tone: #72a3d6;
+  --tone-wash: #142333;
+  --tone-ink: #c6daee;
 }
 :root[data-theme="dark"] [data-trait="fillers"] {
   --tone: #e092a4;
@@ -2555,9 +2559,9 @@ summary::-webkit-details-marker {
   --tone-ink: #bfe9d5;
 }
 :root[data-theme="dark"] [data-trait="range"] {
-  --tone: #a595d9;
-  --tone-wash: #231e3b;
-  --tone-ink: #d7cfee;
+  --tone: #b191d2;
+  --tone-wash: #2a1c37;
+  --tone-ink: #dcceeb;
 }
 .tone-wash {
   background: var(--tone-wash);

@@ -60,10 +60,13 @@ import {
  * QUIETER (the cohesion pass, 26 Oct). A first-time tester read Today as
  * "everything competes": the line's 56px ring on its tinted track was a
  * blue disc under an amber card. The stage above is Today's one hero
- * now, so the line steps down to a secondary row: a 44px ring with a 4px
- * stone arc on the app's sand trough, the trait's 8px mark (its one
- * colour, the accent rule) and its name in ink, the flag and the check
- * in ink.
+ * now, so the line steps down to a secondary row: a 44px ring on the
+ * app's sand trough, the trait's 8px mark and its name in ink, the flag
+ * and the check in ink. The arc is sage since the fix round, the clean
+ * run's own (`measured`): stone read as a loading spinner, and the
+ * trait's tone made a blue ring on the first screen again in light, the
+ * one she named. Clearing your line is earned, and grey is only ever the
+ * trough.
  *
  * NO BUTTON. The one tap on this screen belongs to the floor card.
  */
@@ -82,7 +85,7 @@ export function ChallengeCard({ challenge }: { challenge: Challenge }) {
           value={c.value}
           size={44}
           thickness={4}
-          tone="quiet"
+          tone="measured"
           track={LINE_TRACK}
           delay={240}
           state={c.closed ? "closing" : "idle"}

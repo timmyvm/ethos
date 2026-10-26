@@ -75,6 +75,7 @@ export function FloorCard({
   onMods,
   modsOpen = false,
   loading = false,
+  away = false,
 }: {
   /** Null on day one and on any day with nothing measured yet. */
   chosen: Chosen | null;
@@ -100,6 +101,13 @@ export function FloorCard({
    * stays the one tap and stays live: an early tap goes to the recorder.
    */
   loading?: boolean;
+  /**
+   * A moment's sheet is up over Today (the month's price drop), with its
+   * own Demos: the stage keeps its light with nobody on it, so the screen
+   * has one Demos (principle 9), as You's stage does for the checkout's
+   * moment. He springs back in when the sheet goes.
+   */
+  away?: boolean;
 }) {
   const to =
     href ?? repHref({ topic: chosen?.item.topicId, mods });
@@ -137,6 +145,11 @@ export function FloorCard({
     }
     setArrive(first);
   }, []);
+  /* Back from a moment, he arrives rather than reappearing. */
+  const [back, setBack] = useState(false);
+  useEffect(() => {
+    if (away) setBack(true);
+  }, [away]);
 
   /*
    * DAY ONE IS ITS OWN SHAPE. There is no measurement to choose from,
@@ -218,18 +231,24 @@ export function FloorCard({
         eyebrow={eyebrow}
         eyebrowWide
         corner={corner}
-        /* The prompt runs to three lines in the words' 60%, and the
-           corner's glyphs need his head clear of them: a 196px floor. */
+        /* The corner's glyphs need his head clear of them: a 196px
+           floor, which a typical prompt (three lines) just fills. */
         minHeight={196}
         art={
-          arrive !== null && (
-            <DemosArt
-              pose={dayOne ? "wave" : "mic"}
-              size={132}
-              pop={arrive}
-              grounded
-              halo={{ tone: "sky", kind: "stage" }}
-            />
+          away ? (
+            <div className="tone-sky relative h-full w-full">
+              <div className="demos-halo" />
+            </div>
+          ) : (
+            arrive !== null && (
+              <DemosArt
+                pose={dayOne ? "wave" : "mic"}
+                size={132}
+                pop={arrive || back}
+                grounded
+                halo={{ tone: "sky", kind: "stage" }}
+              />
+            )
           )
         }
         line={
@@ -247,22 +266,29 @@ export function FloorCard({
           ) : undefined
         }
       >
-        {/* The prompt is the hero. While loading, two lines of the hero's
-            own type hold its height, each with a bar where the words will
-            be. */}
+        {/* The prompt is the hero, in the stage's prompt type: 20/800
+            (the fix round). At the stage title's 26 in the words' 60% a
+            typical prompt ran to four lines and a long one to eight at
+            320, and the stage grew with the topic; at 20 a typical one
+            sets in three, inside the stage's 196px floor. Day one's
+            headline is short and keeps the title's 26. While loading,
+            three lines of the prompt's type hold its height, each with a
+            bar where the words will be. */}
         {loading ? (
-          <div aria-hidden className="font-display mt-2.5 text-title leading-tight">
-            <span className="relative block">
-              <span className="invisible">Ag</span>
-              <Skeleton className="absolute inset-y-[2px] left-0 w-full" />
-            </span>
-            <span className="relative block">
-              <span className="invisible">Ag</span>
-              <Skeleton className="absolute inset-y-[2px] left-0 w-2/3" />
-            </span>
+          <div aria-hidden className="stage-prompt font-display mt-2.5">
+            {["w-full", "w-full", "w-1/2"].map((w, i) => (
+              <span key={i} className="relative block">
+                <span className="invisible">Ag</span>
+                <Skeleton className={`absolute inset-y-[3px] left-0 ${w}`} />
+              </span>
+            ))}
           </div>
         ) : (
-          <h2 className={`font-display mt-2.5 text-title font-extrabold leading-tight text-balance ${lands}`}>
+          <h2
+            className={`font-display mt-2.5 text-balance ${
+              dayOne ? "text-title font-extrabold leading-tight" : "stage-prompt"
+            } ${lands}`}
+          >
             {hero}
           </h2>
         )}

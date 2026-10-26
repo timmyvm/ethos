@@ -41,7 +41,7 @@ import { buzz, prefersReducedMotion } from "@/lib/prefs";
  *             earned (stars, the score card, silence that landed). A
  *             percentile is a measurement, so it wears that colour.
  *   open      terracotta. Reserved: no caller since the colour pass
- *             (26 Sep). The daily challenge wears `trait` now, because
+ *             (26 Sep). The daily challenge wears `measured` now, because
  *             a terracotta ring under the floor's terracotta button was
  *             a second tap's colour on Today. Do not put it back there.
  *   quiet     stone, for a ring that is context rather than a target.

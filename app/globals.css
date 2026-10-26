@@ -2736,6 +2736,30 @@ summary::-webkit-details-marker {
 .stage-ink {
   color: var(--stage-ink);
 }
+/* The words keep to the stage's left 60%, and clear of a figure's square
+   (`--art`, set by HeroStage) with 6px to spare: the figure's box ends 4px
+   inside the stage's edge and the words start 20px in, so the room left is
+   the content box plus 10px less the figure. Under 360px the figure stands
+   at 82% (Demos 132 to 108), so a prompt keeps a readable measure beside
+   him instead of running under his tail. */
+.hero-stage {
+  --art-k: 1;
+}
+.hero-words {
+  max-width: 60%;
+}
+.hero-stage[data-figure] .hero-words {
+  max-width: min(60%, calc(100% + 10px - var(--art) * var(--art-k)));
+}
+.hero-figure {
+  transform: scale(var(--art-k));
+  transform-origin: right bottom;
+}
+@media (max-width: 359px) {
+  .hero-stage {
+    --art-k: 0.82;
+  }
+}
 /* A placeholder on the stage reads the stage's bone, not the page's sand. */
 .practice-stage .skeleton {
   background-color: var(--stage-bone);
@@ -2771,6 +2795,15 @@ summary::-webkit-details-marker {
   height: 8px;
   border-radius: 2px;
   background: var(--tone);
+}
+/* A prompt as a stage's title (Today's): the scale's 20/800, the
+   section head's step, so a sentence of 30 to 68 characters sets in two
+   to four lines inside the words' 60% rather than four to eight at 26. */
+.stage-prompt {
+  font-size: 1.25rem;
+  line-height: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.018em;
 }
 /* A tactic's glyph and its expand cue on the stage, in the stage's ink. */
 .practice-stage .tip-glyph,

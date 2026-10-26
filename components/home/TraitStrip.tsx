@@ -26,11 +26,13 @@ import type { RepRow } from "@/lib/client-data";
  * traits).
  *
  * The trait's colour is the accent and nothing more: its 8px mark
- * before the name. The 40px ring is a measurement, so it is drawn in
- * stone (`quiet`, a 3px arc on the app's `sand`, 4.3:1 light and 5:1
- * dark) with the percentile in ink inside it; five rings in five tones
- * was the five-hue row the tester's "everything competes" was about.
- * The name is in ink, the measurement a number before its unit
+ * before the name and the 3px arc of its 40px ring, on the app's `sand`
+ * (3:1 or better in both themes, lib/today-colour.test.ts), with the
+ * percentile in ink inside it. The cohesion pass drew the arcs in stone,
+ * and five grey arcs read as five loading spinners (the fix round): a
+ * ring that measures a trait wears the trait, grey is only ever the
+ * trough. Below the first screen, at 3px, they do not compete with the
+ * stage. The name is in ink, the measurement a number before its unit
  * (today-3: the unit prints in full and wraps).
  * The direction and the target live one tap away on the trait's own
  * screen. Day zero draws the same five rows with empty rings.
@@ -64,7 +66,7 @@ function TraitRow({
         value={reading?.fraction ?? null}
         size={40}
         thickness={3}
-        tone="quiet"
+        tone="trait"
         track="var(--color-sand)"
         delay={delay}
         provisional={reading?.quality === "provisional"}

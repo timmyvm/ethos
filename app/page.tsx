@@ -16,7 +16,8 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { HeaderCount } from "@/components/ui/HeaderCount";
 import { IconBack, IconStar } from "@/components/Icon";
 import { Paywall } from "@/components/Paywall";
-import { PriceDropOnLoad } from "@/components/premium/Moments";
+import { PriceDropSheet } from "@/components/premium/Moments";
+import { usePlan, usePriceDrop } from "@/lib/use-plan";
 import { readable, readFailure } from "@/lib/load";
 import { StreakBadge } from "@/components/StreakBadge";
 import { TopicRoulette } from "@/components/TopicRoulette";
@@ -72,6 +73,13 @@ export default function Home() {
   const [mods, setMods] = useState<string[]>([]);
   const [showMods, setShowMods] = useState(false);
   const [paywall, setPaywall] = useState<string | null>(null);
+  /* The month the price steps down: a sheet over Today, never a card in
+     its flow, held back while the paywall is up. Read here rather than
+     inside the sheet, so the floor's stage knows a moment with its own
+     Demos is open and steps its Demos off (one Demos per screen). */
+  const plan = usePlan();
+  const drop = usePriceDrop(plan.view, paywall === null);
+  const dropOpen = drop.open && !!plan.today;
   const [topic, setTopic] = useState<Topic | null>(null);
   /*
    * Whether the floor is coming BACK from the roulette (#242's motion
@@ -384,6 +392,7 @@ export default function Home() {
                 onSpin={() => setTopic(spinForAnswers(null))}
                 onMods={() => setShowMods((v) => !v)}
                 modsOpen={showMods}
+                away={dropOpen}
               />
             </div>
             {showMods && (
@@ -526,8 +535,9 @@ export default function Home() {
       )}
 
       {paywall && <Paywall reason={paywall} onClose={() => setPaywall(null)} />}
-      {/* The month the price steps down: a sheet over Today, never a card in its flow. */}
-      <PriceDropOnLoad hold={paywall !== null} />
+      {dropOpen && plan.today && (
+        <PriceDropSheet view={plan.view} today={plan.today} from={drop.from} onClose={drop.close} />
+      )}
     </main>
   );
 }

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { TRAIT, type TraitId } from "@/content/traits";
 
 /**
@@ -35,7 +35,7 @@ export function HeroStage({
   className = "",
   minHeight,
   eyebrowWide = false,
-  artBlend = false,
+  artBleed = false,
   artFluid = false,
   ...rest
 }: {
@@ -62,12 +62,11 @@ export function HeroStage({
   /** The eyebrow spans the stage's width up to the corner (a node only). */
   eyebrowWide?: boolean;
   /**
-   * The art takes the stage's hue (`.stage-art`, luminosity): for a
-   * picture in its own colours (a lesson's render), never for Demos. On
-   * the art's own layer, because that layer is a stacking context and a
-   * blend inside it would only see itself.
+   * The art runs to the stage's edge and its corner clips it (the Log's
+   * hill, whose fill would otherwise stop in a hard vertical cut short of
+   * the edge). A figure stands 2px up and 4px in instead.
    */
-  artBlend?: boolean;
+  artBleed?: boolean;
   /**
    * The art may narrow to 38% of the stage on a small phone (the Log's
    * hill, which would otherwise run under the words at 320px). Its own
@@ -77,20 +76,31 @@ export function HeroStage({
   "data-trait"?: string;
   "data-look"?: string;
 }) {
+  /* A figure (Demos, a lesson's object) holds its own square; the words
+     keep clear of it as well as to their 60%, because at 320px 60% of
+     the stage reached 20px into his tail (the fix round). A fluid art
+     (the hill) narrows itself instead. `--art` is the figure's square,
+     which `.hero-stage` scales down under 360px (`--art-k`). */
+  const figure = !!art && !artFluid;
+  const style = {
+    ...(minHeight ? { minHeight } : {}),
+    ...(figure ? { "--art": `${artSize}px` } : {}),
+  } as CSSProperties;
   return (
     <div
       {...rest}
       role={label ? "group" : undefined}
       aria-label={label}
+      data-figure={figure || undefined}
       className={`intro-stage tone-sky practice-stage hero-stage elev-2 flex min-h-[160px] flex-col p-5 ${className}`}
-      style={minHeight ? { minHeight } : undefined}
+      style={style}
     >
       {/* A wide eyebrow (a chip and a lead) runs to the corner's edge
           rather than wrapping inside the words' 60%. */}
       {eyebrowWide && eyebrow !== undefined && (
         <div className="relative z-[2] min-w-0 pr-16">{eyebrow}</div>
       )}
-      <div className="relative z-[2] flex min-w-0 max-w-[60%] flex-1 flex-col">
+      <div className="hero-words relative z-[2] flex min-w-0 flex-1 flex-col">
         {!eyebrowWide &&
           eyebrow !== undefined &&
           (typeof eyebrow === "string" ? (
@@ -115,7 +125,9 @@ export function HeroStage({
       {art && (
         <div
           aria-hidden
-          className={`absolute bottom-[2px] right-1 z-[1] ${artBlend ? "stage-art" : ""}`}
+          className={`absolute z-[1] ${artBleed ? "bottom-0 right-0" : "bottom-[2px] right-1"} ${
+            figure ? "hero-figure" : ""
+          }`}
           style={{ width: artFluid ? `min(${artSize}px, 38%)` : artSize, height: artSize }}
         >
           {art}

@@ -6,9 +6,9 @@ import { describe, expect, it } from "vitest";
  * The trait rings (round 2, M02, M12): wherever a ring is drawn in its
  * trait's tone (the trait page's ring, the lesson stages), it is that
  * tone's arc on the app's `sand` trough and the only colour in it, so
- * the arc holds 3:1 there. Since the cohesion pass (26 Oct) Today's own
- * rings are stone and the trait's colour there is its 8px mark, but the
- * tones still have to measure where they are drawn. The dark tones are
+ * the arc holds 3:1 there. Since the cohesion pass (26 Oct) Today's
+ * trait colour is its 8px mark and its ring's thin arc on sand, and the
+ * tones have to measure there. The dark tones are
  * muted (lower chroma, the same hue and lightness) and still clear every
  * floor here. The ring is a measurement, so the arc holds the 3:1 a graphic
  * needs against that trough, for all five tones in both themes; the
@@ -132,10 +132,11 @@ describe("Today's trait names in their ink", () => {
  * first-time tester: "everything competes"). The floor is the house
  * stage (HeroStage, Practice's sky), with Start on the ground under it
  * and spin and difficulty as bare glyphs in its corner. Under it nothing
- * wears a wash: today's line is a 44px ring with a 4px stone arc on sand,
+ * wears a wash: today's line is a 44px ring with a 4px sage arc on sand,
  * the clean run is the neutral card rather than the deep sage (which
- * left the Log too), and the traits are rows on the ground with stone
- * rings, each trait's colour its 8px mark and its name in ink.
+ * left the Log too), and the traits are rows on the ground, each trait's
+ * colour its 8px mark and its ring's arc (stone arcs read as spinners,
+ * the fix round), its name in ink.
  */
 describe("Today's materials", () => {
   const strip = src("components/home/TraitStrip.tsx");
@@ -145,21 +146,21 @@ describe("Today's materials", () => {
   const trail = src("components/DayTrail.tsx");
   const floor = src("components/home/FloorCard.tsx");
 
-  it("the traits are rows on the ground: stone rings, the trait's mark, the name in ink", () => {
+  it("the traits are rows on the ground: rings in the trait's arc, the trait's mark, the name in ink", () => {
     expect(strip).toMatch(/className=\{`press-row today-trait/);
     expect(strip).not.toMatch(/tone-wash|tone-ink|today-tile|--today-trough|className=\{`card/);
     expect(strip).toContain('track="var(--color-sand)"');
     expect(strip).toContain("thickness={3}");
-    expect(strip).toContain('tone="quiet"');
+    expect(strip).toContain('tone="trait"');
     expect(strip).toContain('className="trait-dot"');
   });
 
-  it("today's line has no card and no wash, and its ring is a 4px stone arc on sand", () => {
+  it("today's line has no card and no wash, and its ring is a 4px sage arc on sand", () => {
     expect(line).not.toMatch(/tone-wash|tone-ink|today-line|rounded-card p-4/);
     expect(line).toContain("track={LINE_TRACK}");
     expect(line).toContain('LINE_TRACK = "var(--color-sand)"');
     expect(line).toContain("thickness={4}");
-    expect(line).toContain('tone="quiet"');
+    expect(line).toContain('tone="measured"');
   });
 
   it("the clean run on Today is the neutral card, sage only where earned", () => {

@@ -45,7 +45,11 @@ describe("every tab opens on the one stage", () => {
     expect(stage).toMatch(/intro-stage tone-sky practice-stage hero-stage elev-2/);
     expect(stage).toContain("min-h-[160px]");
     expect(stage).toContain("p-5");
-    expect(stage).toContain("max-w-[60%]");
+    expect(stage).toContain("hero-words");
+    const css = readFileSync(path.join(root, "app/globals.css"), "utf8");
+    // The words keep to the left 60%, and clear of a figure's square.
+    expect(css).toMatch(/\.hero-words \{\s*max-width: 60%;/);
+    expect(css).toMatch(/\.hero-stage\[data-figure\] \.hero-words \{\s*max-width: min\(60%, calc\(100% \+ 10px - var\(--art\) \* var\(--art-k\)\)\);/);
   });
 
   it("no hero keeps its old colour world", () => {

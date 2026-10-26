@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { tipFace, type TipGlyph } from "@/lib/tip-labels";
 
 /**
@@ -217,6 +217,22 @@ function Chevron() {
  * The glyph stands bare at 20px with the label 12px to its right (M04);
  * the sentence opens under the label's edge, 32px in.
  */
+/** A label whose last word is bound to `tail`, so the two wrap as one. */
+function lastWordWith(label: string, tail: ReactNode): ReactNode {
+  const cut = label.lastIndexOf(" ");
+  const head = cut < 0 ? "" : label.slice(0, cut + 1);
+  const last = cut < 0 ? label : label.slice(cut + 1);
+  return (
+    <>
+      {head}
+      <span className="whitespace-nowrap">
+        {last}
+        {tail}
+      </span>
+    </>
+  );
+}
+
 export function TipLine({
   tip,
   className = "",
@@ -248,16 +264,30 @@ export function TipLine({
         <span aria-hidden className="tip-glyph">
           <Glyph kind={face.glyph} size={compact ? 18 : 20} />
         </span>
-        <span
-          className={`font-display min-w-0 flex-1 font-bold leading-tight ${
-            compact ? "stage-ink text-link text-balance" : "text-body"
-          }`}
-        >
-          {face.label}
-        </span>
-        <span aria-hidden data-open={open} className="disclosure-mark text-stone-400">
-          <Chevron />
-        </span>
+        {compact ? (
+          /* On the stage the cue follows the last word, 6px off it, so a
+             label that wraps keeps its chevron beside it rather than at
+             the column's far edge (the fix round: it floated 80px off
+             "two seconds", by Demos's tail). The last word and the cue
+             never part. */
+          <span className="stage-ink font-display min-w-0 text-link font-bold leading-tight text-balance">
+            {lastWordWith(
+              face.label,
+              <span aria-hidden data-open={open} className="disclosure-mark ml-1.5 inline-flex align-[-2px]">
+                <Chevron />
+              </span>
+            )}
+          </span>
+        ) : (
+          <>
+            <span className="font-display min-w-0 flex-1 text-body font-bold leading-tight">
+              {face.label}
+            </span>
+            <span aria-hidden data-open={open} className="disclosure-mark text-stone-400">
+              <Chevron />
+            </span>
+          </>
+        )}
       </button>
       <div id={`${id}-tip`} aria-live="polite">
         {open && (

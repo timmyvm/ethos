@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { clientIp, limitMessage } from "./rate-limit";
 
 describe("clientIp", () => {
@@ -32,5 +32,31 @@ describe("limitMessage", () => {
     expect(
       limitMessage({ allowed: false, window: "hour", retryAfterS: 5 })
     ).toContain("a minute");
+  });
+});
+
+describe("refundRateLimit", () => {
+  it("gives back the subject's newest slot through the server's function", async () => {
+    vi.resetModules();
+    const rpc = vi.fn(async () => ({ data: null, error: null }));
+    vi.doMock("./db", () => ({ supabaseAdmin: () => ({ rpc }) }));
+    const { refundRateLimit } = await import("./rate-limit");
+    await refundRateLimit("u:abc");
+    expect(rpc).toHaveBeenCalledWith("refund_rate_limit", { p_subject: "u:abc" });
+    vi.doUnmock("./db");
+  });
+
+  it("never throws, like the check it undoes", async () => {
+    vi.resetModules();
+    vi.doMock("./db", () => ({
+      supabaseAdmin: () => ({
+        rpc: async () => {
+          throw new Error("down");
+        },
+      }),
+    }));
+    const { refundRateLimit } = await import("./rate-limit");
+    await expect(refundRateLimit("u:abc")).resolves.toBeUndefined();
+    vi.doUnmock("./db");
   });
 });

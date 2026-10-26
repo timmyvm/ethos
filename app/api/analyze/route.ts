@@ -30,6 +30,7 @@ import {
   clientIp,
   consumeRateLimit,
   limitMessage,
+  refundRateLimit,
 } from "@/lib/rate-limit";
 import type { DeliveryMetrics, DeliveryMoment } from "@/lib/presence";
 import type { CaptureMode } from "@/lib/prefs";
@@ -150,8 +151,9 @@ export async function POST(req: NextRequest) {
    * every upload). Real accounts train hard; anonymous sessions and
    * sessionless callers get the visitor allowance (lib/rate-limit.ts).
    */
+  const subject = auth ? `u:${auth.id}` : `ip:${clientIp(req.headers)}`;
   const verdict = await consumeRateLimit(
-    auth ? `u:${auth.id}` : `ip:${clientIp(req.headers)}`,
+    subject,
     auth && !auth.anonymous ? "user" : "anon"
   );
   if (!verdict.allowed) {
@@ -202,6 +204,11 @@ export async function POST(req: NextRequest) {
     // so it is 422, which the outbox lets go of. Its 401 or 429 is a
     // fault on our side and stays a 502 to retry.
     const undecodable = /^Whisper API (400|413|415):/.test(message);
+    // The slot was spent on our outage, not on the person's upload: give
+    // it back, or each retry of one recording costs another. A file
+    // Whisper refuses (any 4xx but its 429) keeps its slot.
+    const fileFault = /^Whisper API 4(?!29)\d\d/.test(message);
+    if (!fileFault) await refundRateLimit(subject);
     return NextResponse.json(
       { error: message },
       { status: unconfigured ? 503 : undecodable ? 422 : 502 }

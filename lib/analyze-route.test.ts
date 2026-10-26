@@ -27,6 +27,7 @@ vi.mock("@/lib/rate-limit", async (importOriginal) => ({
     window: null,
     retryAfterS: 0,
   })),
+  refundRateLimit: vi.fn(async () => {}),
 }));
 vi.mock("@/lib/accuracy", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/accuracy")>()),
@@ -45,7 +46,7 @@ import {
   writeMeterState,
 } from "@/lib/db";
 import { dateKey } from "@/lib/metering";
-import { consumeRateLimit } from "@/lib/rate-limit";
+import { consumeRateLimit, refundRateLimit } from "@/lib/rate-limit";
 import { transcribe } from "@/lib/transcribe";
 
 function post(form: FormData | null): Promise<Response> {
@@ -603,5 +604,47 @@ describe("a recording sent twice", () => {
     await post(keyed("x".repeat(300)));
     expect(findRepByClientId).not.toHaveBeenCalled();
     expect(vi.mocked(saveRep).mock.calls[0][0]).toMatchObject({ clientId: null });
+  });
+});
+
+/*
+ * A brand-new visitor has three uploads an hour. Each retry of one
+ * recording that Whisper never answered used to spend one of them, so a
+ * single take during a Whisper hiccup ended at "the floor reopens in
+ * about 60 minutes". A slot spent on our outage is given back.
+ */
+describe("the rate-limit slot of a failed transcription", () => {
+  beforeEach(() => {
+    vi.mocked(consumeRateLimit).mockClear();
+    vi.mocked(refundRateLimit).mockClear();
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "anon-1", anonymous: true });
+  });
+
+  it("is given back when Whisper is down, busy or unreachable", async () => {
+    for (const message of [
+      "Whisper API 500: boom",
+      "Whisper API 503: overloaded",
+      "Whisper API 429: rate limited",
+      "fetch failed",
+      "OPENAI_API_KEY is not set",
+    ]) {
+      vi.mocked(refundRateLimit).mockClear();
+      vi.mocked(transcribe).mockRejectedValue(new Error(message));
+      await post(audioForm());
+      expect(refundRateLimit, message).toHaveBeenCalledWith("u:anon-1");
+    }
+    expect(vi.mocked(consumeRateLimit).mock.calls[0][0]).toBe("u:anon-1");
+  });
+
+  it("is kept when the file itself is refused, so junk cannot loop for free", async () => {
+    vi.mocked(transcribe).mockRejectedValue(new Error("Whisper API 400: Invalid file format"));
+    await post(audioForm());
+    expect(refundRateLimit).not.toHaveBeenCalled();
+  });
+
+  it("is kept when the recording scores", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    await post(audioForm());
+    expect(refundRateLimit).not.toHaveBeenCalled();
   });
 });

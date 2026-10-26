@@ -62,6 +62,23 @@ export async function consumeRateLimit(
   }
 }
 
+/**
+ * Give back the subject's newest slot (migration 0017), for an upload
+ * that failed on our side: Whisper down or unreachable. Best effort and
+ * fail-open, like the check: a refund that fails costs one slot, never
+ * the request.
+ */
+export async function refundRateLimit(subject: string): Promise<void> {
+  try {
+    const db = supabaseAdmin();
+    if (!db) return;
+    const { error } = await db.rpc("refund_rate_limit", { p_subject: subject });
+    if (error) console.error("rate-limit refund failed", error.message);
+  } catch (e) {
+    console.error("rate-limit refund threw", e);
+  }
+}
+
 /** First hop of x-forwarded-for; Vercel sets it on every request. */
 export function clientIp(headers: Headers): string {
   const fwd = headers.get("x-forwarded-for");

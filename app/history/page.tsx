@@ -628,7 +628,9 @@ function MetricRow({
           aria-hidden
           className={`log-swatch ${trait || index ? "" : "log-swatch-blank"}`}
         />
-        <span className="truncate">{row.label}</span>
+        {/* Two lines at most, never an ellipsis: at 320px "Fillers /
+            min" beside its chevron cut to "Fillers / ...". */}
+        <span className="line-clamp-2 min-w-0 leading-tight">{row.label}</span>
         {open !== undefined && (
           <span
             aria-hidden

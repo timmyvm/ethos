@@ -601,14 +601,28 @@ function RepScreen() {
   const stopRep = useCallback(async () => {
     const r = recRef.current;
     if (!r || phaseRef.current !== "recording") return;
+    // Claim the stop now. phaseRef only syncs on render, and the
+    // recorder's own stop event (startRep) must not start a second one.
+    phaseRef.current = "analyzing";
     buzz([20, 40, 20]);
     setPhase("analyzing");
     setInterruption(null);
 
     const blob = await new Promise<Blob>((resolve) => {
-      r.recorder.onstop = () =>
+      const take = () =>
         resolve(new Blob(r.chunks, { type: r.recorder.mimeType }));
-      r.recorder.stop();
+      // The mic went away mid-take (unplugged, permission revoked, the
+      // OS took it): the recorder already stopped itself and holds the
+      // take. Waiting for a second stop event would wait forever.
+      if (r.recorder.state === "inactive") return take();
+      r.recorder.onstop = take;
+      // A recorder that never reports back still hands over what it caught.
+      setTimeout(take, 3000);
+      try {
+        r.recorder.stop();
+      } catch {
+        take();
+      }
     });
     setAudioUrl(URL.createObjectURL(blob));
 
@@ -717,6 +731,18 @@ function RepScreen() {
         if (e.data.size > 0) chunks.push(e.data);
       };
       recorder.start(1000);
+      // If the recorder stops on its own (the mic was unplugged or taken
+      // mid-take), score what it caught now instead of leaving the take
+      // to a Stop tap or the cap, which would wait on a stop that never
+      // comes.
+      recorder.addEventListener("stop", () => {
+        if (
+          phaseRef.current === "recording" &&
+          recRef.current?.recorder === recorder
+        ) {
+          void stopRep();
+        }
+      });
 
       // A second, local-only recorder for playback with markers. Its
       // blob is held as an object URL and dropped when you leave.
@@ -846,7 +872,7 @@ function RepScreen() {
       setError(null);
       setPhase("error");
     }
-  }, []);
+  }, [stopRep]);
 
   /**
    * Retake — same prompt, clean slate. The rep that just happened is
@@ -1011,6 +1037,9 @@ function RepScreen() {
   useEffect(() => {
     return () => {
       const r = recRef.current;
+      // Let go first, so the recorder's own stop event (startRep) reads
+      // a discarded take, not one to score after the screen is gone.
+      recRef.current = null;
       if (r) {
         try {
           r.recorder.stop();

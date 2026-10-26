@@ -89,11 +89,19 @@ export async function GET(req: NextRequest) {
     if (!shouldSend(win, false, now)) continue;
 
     const dayStart = localDayStartUtc(now, sub.tz_offset).toISOString();
-    const { count } = await db
+    const { count, error: doneErr } = await db
       .from("reps")
       .select("id", { count: "exact", head: true })
       .eq("user_id", sub.user_id)
       .gte("created_at", dayStart);
+    // A check that could not answer is not "not done": postgrest hands a
+    // failure back as count null, which read as zero and rang on a day
+    // already practised. Skip; a wrong reminder costs more than a missed
+    // one (#143).
+    if (doneErr) {
+      console.error("push cron: done-today check failed", doneErr.message);
+      continue;
+    }
     if ((count ?? 0) > 0) continue; // #143: today is already done.
 
     // The streak for the body text, in their local calendar.

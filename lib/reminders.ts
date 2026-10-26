@@ -191,7 +191,40 @@ export async function armPush(prefs: Prefs = readPrefs()): Promise<boolean> {
         quietTo: prefs.quietTo,
       }),
     });
+    if (res.ok) writeAck({ endpoint: sub.endpoint, hour: prefs.reminderHour });
     return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * What the server last acknowledged holding for this device: its push
+ * endpoint and hour. A re-arm that fails (a 502, offline) leaves that row
+ * in place, still ringing at its hour, so a local tier on top of it would
+ * ring the same day twice (#186). A local subscription alone proves
+ * nothing: armPush subscribes before it posts, so a first post that
+ * failed leaves a subscription the server never heard of.
+ */
+const ACK_KEY = "ethos.push.ack";
+
+function writeAck(ack: { endpoint: string; hour: number } | null): void {
+  try {
+    if (ack) localStorage.setItem(ACK_KEY, JSON.stringify(ack));
+    else localStorage.removeItem(ACK_KEY);
+  } catch {}
+}
+
+async function serverStillHolds(hour: number): Promise<boolean> {
+  if (!pushSupported()) return false;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    const ack = JSON.parse(localStorage.getItem(ACK_KEY) ?? "null") as {
+      endpoint?: string;
+      hour?: number;
+    } | null;
+    return !!sub && ack?.endpoint === sub.endpoint && ack?.hour === hour;
   } catch {
     return false;
   }
@@ -216,6 +249,7 @@ export async function disarmPush(): Promise<void> {
       }).catch(() => {});
     }
     await sub.unsubscribe().catch(() => {});
+    writeAck(null);
   } catch {}
 }
 
@@ -281,6 +315,9 @@ export async function armReminder(
    * notification would double-ring the same day.
    */
   if (await armPush(prefs)) return "push";
+  // The post failed, but the server may still hold this device at this
+  // hour from the last arm that worked: it will ring, so stay dark.
+  if (await serverStillHolds(prefs.reminderHour)) return "push";
 
   // ctx.didToday matters at the OS tier too: a scheduled notification
   // can't check anything at fire time, so the honest day is chosen here.

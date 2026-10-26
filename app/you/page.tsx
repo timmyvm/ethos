@@ -1,6 +1,7 @@
 "use client";
 
 import { Disclosure } from "@/components/ui/Disclosure";
+import { HeroStage } from "@/components/ui/HeroStage";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -408,139 +409,158 @@ export default function YouPage() {
     <main className="px-5 pb-[var(--nav-clear)] pt-7">
       {header}
 
-      {/* The identity card (M09, you-7, you-8, you-12). Plain `.card`:
-          You has no elev-2, because nothing on it is the screen's one
-          tap. Its text is ink or stone-500 only; XP keeps the sage that
-          means earned. Every async line holds its exact height while it
-          is in flight (`Line`), so the card never changes size when the
-          numbers land. */}
-      <section aria-label="Your profile" className="card mt-5 p-5 text-center">
-        {/* His sky coin on the plain card (never coral, his coat). At
-            128 his idle clip still plays (#316, from 120 up). While the
-            checkout's moment celebrates at the foot, he is there, not
-            here: the coin holds its 128 with nobody on it, so the page
-            has one Demos and nothing above the moment moves. */}
-        {momentUp ? (
-          <div aria-hidden className="tone-sky relative mx-auto shrink-0" style={{ width: 128, height: 128 }}>
-            <div className="demos-halo" data-solid="" />
-          </div>
-        ) : (
-          <DemosArt pose="hello" size={128} halo={{ tone: "sky", kind: "coin" }} />
-        )}
-
-        {/* The name: the one profile field you type rather than earn. */}
-        {editingName ? (
-          <form
-            className="mb-2 mt-3 flex items-center gap-2 text-left"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void saveName();
-            }}
-          >
-            <input
-              autoFocus
-              name="displayName"
-              autoComplete="nickname"
-              enterKeyHint="done"
-              spellCheck={false}
-              aria-label="Display name"
-              maxLength={MAX_NAME}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder="Your name"
-              className={`${INPUT_CLASS} flex-1`}
-            />
-            <button
-              type="submit"
-              className="press font-display min-h-11 shrink-0 rounded-control bg-surface px-4 text-row"
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditingName(false)}
-              className="text-link shrink-0 px-1"
-            >
-              Cancel
-            </button>
-          </form>
-        ) : (
-          <div className="mt-3 flex items-center justify-center">
-            {!nameKnown ? (
-              <Line className="section-head" bar="w-28" />
-            ) : name ? (
-              <>
-                <span className="section-head min-w-0 truncate">{name}</span>
-                {/* 16px of pencil, a 44px target: the padding is the hit
-                    area and the negative margin gives it back, so the
-                    glyph sits 8px after the name. */}
+      {/* The identity stage (the cohesion pass, 26 Oct). It was a grey
+          card with Demos on a sky coin over the name, the level, the XP
+          bar, three numbers and the plan row: a first-time tester said
+          "nothing matches this one because of the panda". It is the
+          house stage now (`HeroStage`, Practice's sky), Demos standing on
+          its floor at the right the way Practice's boss Demos does, your
+          name over your level and the bar to the next. The numbers and
+          the plan follow on one neutral card. Every async line holds its
+          exact height while it is in flight (`Line`), so nothing changes
+          size when the numbers land. */}
+      <div className="mt-5">
+        <HeroStage
+          label="Your profile"
+          eyebrowWide={editingName}
+          eyebrow={
+            editingName ? (
+              <form
+                className="flex items-center gap-2 text-left"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void saveName();
+                }}
+              >
+                <input
+                  autoFocus
+                  name="displayName"
+                  autoComplete="nickname"
+                  enterKeyHint="done"
+                  spellCheck={false}
+                  aria-label="Display name"
+                  maxLength={MAX_NAME}
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  placeholder="Your name"
+                  className={`${INPUT_CLASS} min-w-0 flex-1`}
+                />
+                <button
+                  type="submit"
+                  className="press font-display min-h-11 shrink-0 rounded-control bg-surface px-4 text-row"
+                >
+                  Save
+                </button>
                 <button
                   type="button"
-                  onClick={editName}
-                  aria-label="Edit your name"
-                  className="press -my-3.5 -ml-1.5 -mr-3.5 shrink-0 rounded-control p-3.5 text-stone-500"
+                  onClick={() => setEditingName(false)}
+                  className="text-link stage-ink shrink-0 px-1"
                 >
-                  <IconPencil size={16} />
+                  Cancel
                 </button>
-              </>
+              </form>
             ) : (
-              <button
-                type="button"
-                onClick={editName}
-                className="press -my-3.5 flex shrink-0 items-center gap-2 rounded-control px-2 py-3.5 text-stone-500"
+              /* The name: the one profile field you type rather than
+                 earn, in the stage's eyebrow with its pencil. */
+              <div className="flex min-h-[18px] items-center">
+                {!nameKnown ? (
+                  <Line className="eyebrow" bar="w-20" align="left" />
+                ) : name ? (
+                  <>
+                    <span className="eyebrow stage-ink min-w-0 truncate">{name}</span>
+                    {/* 14px of pencil, a 44px target: the padding is the
+                        hit area and the negative margin gives it back. */}
+                    <button
+                      type="button"
+                      onClick={editName}
+                      aria-label="Edit your name"
+                      className="press stage-ink -my-3.5 -ml-1.5 -mr-3.5 shrink-0 rounded-control p-3.5"
+                    >
+                      <IconPencil size={14} />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={editName}
+                    className="press stage-ink -my-3.5 -ml-2 flex shrink-0 items-center gap-1.5 rounded-control px-2 py-3.5"
+                  >
+                    <span className="eyebrow stage-ink">Add your name</span>
+                    <IconPencil size={14} />
+                  </button>
+                )}
+              </div>
+            )
+          }
+          art={
+            /* At 132 his idle clip plays (#316, from 120 up). While the
+               checkout's moment celebrates at the foot, he is there, not
+               here: the stage keeps its light with nobody on it, so the
+               page has one Demos and nothing above the moment moves. And
+               while the name is typed he steps off, so the field has the
+               stage's width. */
+            editingName ? undefined : momentUp ? (
+              <div className="tone-sky relative h-full w-full">
+                <div className="demos-halo" />
+              </div>
+            ) : (
+              <DemosArt pose="hello" size={132} grounded halo={{ tone: "sky", kind: "stage" }} />
+            )
+          }
+          line={
+            <div className="mt-auto pt-3">
+              {/* The trough paints at once; the bar fills when the
+                  number it reports has landed (#225), never over a
+                  placeholder. The stage's ink on its bone: XP is earned,
+                  and the earned colour stays on the chips and stars. */}
+              <div
+                role="img"
+                aria-label={xp ? `${level.intoLevel} of ${level.forNext} XP to level ${level.level + 1}` : "XP to the next level"}
+                className="stage-trough h-1.5 w-full max-w-[168px] overflow-hidden"
               >
-                <span className="section-head text-stone-500!">Add your name</span>
-                <IconPencil size={16} />
-              </button>
-            )}
-          </div>
-        )}
+                {xp && (
+                  <div
+                    className="fill stage-fill h-full"
+                    style={{ width: `${(level.intoLevel / level.forNext) * 100}%` }}
+                  />
+                )}
+              </div>
+              {xpPending ? (
+                <Line className="mt-1.5 text-caption font-medium" bar="w-32" align="left" />
+              ) : xpFailed ? (
+                <ErrorLine className="mt-1.5" onRetry={loadXp}>
+                  Your XP didn&apos;t load.
+                </ErrorLine>
+              ) : (
+                <p className="stage-ink mt-1.5 text-caption font-medium tabular-nums">
+                  {level.intoLevel} of {level.forNext} to level {level.level + 1}
+                </p>
+              )}
+            </div>
+          }
+        >
+          {/* The level is the stage's title (you-7: it outranks the
+              three numbers under it, 26/800 against their 24). */}
+          {xpPending ? (
+            <Line className="font-display mt-1.5 text-title font-extrabold" bar="w-24" align="left" />
+          ) : (
+            <h2 className="font-display mt-1.5 text-title font-extrabold tabular-nums">
+              Level{" "}
+              {xpFailed ? "–" : <CountUp value={level.level} durationMs={DURATION.max} />}
+            </h2>
+          )}
+        </HeroStage>
         {nameFailed && (
           <ErrorLine className="mt-2" onRetry={() => void saveName()}>
             Your name didn&apos;t save.
           </ErrorLine>
         )}
+      </div>
 
-        {/* The level outranks the three numbers under it (you-7): 26/800
-            against their 24. */}
-        {xpPending ? (
-          <Line className="font-display mt-1 text-title font-extrabold" bar="w-24" />
-        ) : (
-          <p className="font-display mt-1 text-title font-extrabold tabular-nums">
-            Level{" "}
-            {xpFailed ? "–" : <CountUp value={level.level} durationMs={DURATION.max} />}
-          </p>
-        )}
-        {/* The trough paints at once; the bar fills when the number it
-            reports has landed (#225), never over a placeholder. */}
-        <div
-          role="img"
-          aria-label={xp ? `${level.intoLevel} of ${level.forNext} XP to level ${level.level + 1}` : "XP to the next level"}
-          className="mx-auto mt-3 h-2 w-[200px] max-w-full overflow-hidden bg-sand"
-        >
-          {xp && (
-            <div
-              className="fill h-full bg-sage-500"
-              style={{ width: `${(level.intoLevel / level.forNext) * 100}%` }}
-            />
-          )}
-        </div>
-        {xpPending ? (
-          <Line className="mt-1.5 text-caption font-medium" bar="w-36" />
-        ) : xpFailed ? (
-          <ErrorLine className="mt-1.5" onRetry={loadXp}>
-            Your XP didn&apos;t load.
-          </ErrorLine>
-        ) : (
-          <p className="mt-1.5 text-caption font-medium tabular-nums text-stone-500">
-            {level.intoLevel} of {level.forNext} to level {level.level + 1}
-          </p>
-        )}
-
-        <div aria-hidden className="mx-4 mt-5 border-t border-hairline" />
-        {/* Three bare columns, one measurement each (you-12): the label
-            names the number and its unit together. */}
-        <div className="grid grid-cols-3 pt-5">
+      {/* The numbers and the plan, on one neutral card under the stage
+          (M09's three bare columns, you-12). */}
+      <section aria-label="Your numbers" className="card mt-3 p-5 text-center">
+        <div className="grid grid-cols-3">
           <Stat
             label="Day streak"
             value={loading ? undefined : streak.current}
@@ -594,9 +614,11 @@ export default function YouPage() {
               return ranked.map((t) => {
                 const toned = TONED.has(t.key);
                 return (
-                  /* A trait the lessons teach wears its lesson tone, so
-                     blue means pausing here as on /lessons and Today;
-                     the four the Index only reads stay neutral. */
+                  /* A trait the lessons teach wears its lesson tone on
+                     its mark, so blue means pausing here as on /lessons
+                     and Today; the bar is neutral stone on sand, the
+                     name ink. The four the Index only reads take a
+                     stone mark. */
                   <button
                     type="button"
                     key={t.key}
@@ -605,11 +627,11 @@ export default function YouPage() {
                     data-trait={toned ? t.key : undefined}
                     className={`press -mx-2 flex min-h-11 w-[calc(100%+16px)] items-center gap-3 rounded-control px-2 py-2 text-left ${toned ? "you-trait" : ""}`}
                   >
+                    {/* The accent rule (the cohesion pass): a taught
+                        trait's colour is its 8px mark, nothing else. */}
                     <span
                       aria-hidden
-                      className={`h-2.5 w-2.5 shrink-0 rounded-[3px] ${
-                        toned ? "tone-fill" : "bg-stone-200"
-                      }`}
+                      className={toned ? "trait-dot" : "size-2 shrink-0 rounded-[2px] bg-stone-200"}
                     />
                     {/* 600, not 700: nine equally bold lines read as nine
                         headings and the section loses its leader (#234). */}
@@ -620,16 +642,10 @@ export default function YouPage() {
                     >
                       {toned && isToned(t.key) ? TRAIT[t.key].name : t.name}
                     </span>
-                    <span
-                      className={`h-1.5 flex-1 overflow-hidden ${
-                        toned ? "you-trait-trough" : "bg-sand"
-                      }`}
-                    >
+                    <span className="h-1.5 flex-1 overflow-hidden bg-sand">
                       {t.level > 0 && (
                         <span
-                          className={`fill block h-full ${
-                            toned ? "tone-fill" : "bg-stone-400"
-                          }`}
+                          className="fill block h-full bg-stone-500"
                           style={{ width: `${(t.level / top) * 100}%` }}
                         />
                       )}
@@ -656,9 +672,10 @@ export default function YouPage() {
       {/* Personal lexicon: the supply layer's archive (DECISIONS #12),
           grown into the room the shop left (#317): a section with its
           count, the swaps at reading size, an example when empty. It
-          wears Variety's tone (you-4): the lexicon is the words you
-          range over, and mint was Pace's green. */}
-      <section data-trait="range" className="mt-7">
+          wore Variety's tone (you-4) until the cohesion pass: purple
+          chips under a sky stage read as a second colour world. A word
+          you have now is a neutral label in ink. */}
+      <section className="mt-7">
         <h2 className="section-head">
           Your lexicon
           {lexicon !== null && (
@@ -682,7 +699,7 @@ export default function YouPage() {
         ) : lexicon.length === 0 ? (
           /* The example card (#317): one swap, drawn the way a real one
              will be, so the empty section shows what arrives here. */
-          <div className="you-lexicon-empty mt-3 rounded-card px-5 py-4">
+          <div className="card mt-3 px-5 py-4">
             <div aria-hidden className={SWAP_ROW}>
               <Swap original="the thing is" upgrade="the point is" />
             </div>
@@ -778,12 +795,13 @@ export default function YouPage() {
                 className="group-row press-row flex min-h-14 items-center gap-3.5"
               >
                 {/* One host for every badge (wellspoken-lexicon s12): a
-                    40px tile and an 18px mark. Earned is the sage tile
-                    with its mark in sage ink; not yet is the raised step
-                    off the group's surface, its mark in stone. */}
+                    40px tile and an 18px mark, the raised step off the
+                    group's surface. Earned is the mark in sage (the
+                    accent rule, the cohesion pass: it was a sage tile);
+                    not yet is the mark in stone. */}
                 <span
-                  className={`flex size-10 shrink-0 items-center justify-center rounded-control ${
-                    earned ? "bg-sage-100 text-sage-700" : "bg-raised text-stone-400"
+                  className={`flex size-10 shrink-0 items-center justify-center rounded-control bg-raised ${
+                    earned ? "text-sage-700" : "text-stone-400"
                   }`}
                 >
                   <AchievementMark name={a.icon} size={18} />
@@ -1046,8 +1064,9 @@ const SWAP_ROW = "flex min-h-14 flex-wrap items-center gap-x-2.5 gap-y-1 py-3 te
 
 /**
  * One swap: what you said, struck through, an arrow, and the word you
- * have now on Variety's label (`.you-word` inside the section's
- * `data-trait`): picture colour, so it is neither a tap nor a badge.
+ * have now as a neutral label (`.you-word`): ink on the surface, so it
+ * is neither a tap nor a badge (the cohesion pass; it wore Variety's
+ * wash).
  */
 function Swap({ original, upgrade }: { original: string; upgrade: string }) {
   return (
@@ -1149,16 +1168,13 @@ function TraitSheet({ trait, onClose }: { trait: TraitLevel; onClose: () => void
         <div aria-hidden className="mx-auto mb-5 h-1 w-10 rounded-full bg-stone-300" />
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <div className={`eyebrow ${toned ? "tone-ink" : ""}`}>Trait</div>
-            <h2 className={`font-display mt-1 text-title font-extrabold ${toned ? "tone-ink" : ""}`}>
-              {name}
-            </h2>
+            <div className="eyebrow flex items-center gap-1.5">
+              {toned && <span aria-hidden className="trait-dot" />}
+              Trait
+            </div>
+            <h2 className="font-display mt-1 text-title font-extrabold">{name}</h2>
           </div>
-          <div
-            className={`flex size-16 shrink-0 flex-col items-center justify-center rounded-card ${
-              toned ? "tone-wash" : "bg-surface"
-            }`}
-          >
+          <div className="flex size-16 shrink-0 flex-col items-center justify-center rounded-card bg-surface">
             <span className="font-display text-num-m tabular-nums">
               {trait.level}
             </span>

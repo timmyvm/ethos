@@ -17,7 +17,7 @@ import type { LexiconRow } from "@/lib/client-data";
  * same review that put highlighting and re-reading in the bottom tier).
  *
  * It sits inside You's lexicon section, so the upgrade wears the same
- * Variety label as the list above it (`.you-word` under `data-trait`).
+ * neutral label as the list above it (`.you-word`).
  */
 export function LexiconFlash({
   lexicon,

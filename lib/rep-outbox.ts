@@ -23,6 +23,26 @@ export interface OutboxRep {
   filename: string;
   /** Every non-audio field of the /api/analyze form, ready to replay. */
   fields: Record<string, string>;
+  /**
+   * Who recorded it: the session's user id when it was held, null when
+   * no session existed or could be made (offline on a first recording,
+   * local mode). Missing on recordings held before this field existed.
+   */
+  owner?: string | null;
+}
+
+/**
+ * The held recordings the signed-in account (`me`, null when signed
+ * out) may send now. Another account's stay parked until it is back:
+ * signing out leaves them on the device, never sends them as whoever
+ * signs in next. A recording made with no session goes to whoever this
+ * device is, since no one else ever held it; one from before owners were
+ * kept goes only into a live session.
+ */
+export function ownedBy(reps: OutboxRep[], me: string | null): OutboxRep[] {
+  return reps.filter((r) =>
+    r.owner === undefined ? me !== null : r.owner === null ? true : r.owner === me
+  );
 }
 
 /** Waits between attempts. Three retries: patient, not stubborn. */

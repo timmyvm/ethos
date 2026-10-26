@@ -125,7 +125,7 @@ import {
   sendWithRetry,
   type OutboxRep,
 } from "@/lib/rep-outbox";
-import { ensureSession } from "@/lib/supabase-browser";
+import { currentSession, ensureSession } from "@/lib/supabase-browser";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 import type { TraitId } from "@/content/traits";
 
@@ -721,15 +721,26 @@ function RepScreen() {
 
       // Into the outbox BEFORE the first upload attempt: from here the
       // recording survives a dead network, a killed tab, everything
-      // short of clearing site data.
+      // short of clearing site data. It carries its owner, so a later
+      // flush never sends it as whoever is signed in by then. The read
+      // is local, so holding the take never waits on the network.
+      const owner = (await currentSession())?.userId ?? null;
       const rep: OutboxRep = {
         id: newOutboxId(cfg.lessonId),
         createdAt: spokenAt,
         audio: blob,
         filename: `rep.${ext}`,
         fields,
+        owner,
       };
       const held = await outboxPut(rep);
+      if (held && owner === null) {
+        // The first recording on this device: the upload mints its
+        // session, and the held copy belongs to that session.
+        await ensureSession().catch(() => null);
+        const minted = await currentSession();
+        if (minted) await outboxPut({ ...rep, owner: minted.userId });
+      }
       await score(replayForm(rep), held ? rep.id : null, key);
     }
   }, [teardown, score]);

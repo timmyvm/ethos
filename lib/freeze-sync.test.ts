@@ -9,7 +9,7 @@ const db = {
   frozen: [] as Date[],
   row: 0,
   purchased: 0,
-  pending: [] as { createdAt: number }[],
+  pending: [] as { createdAt: number; owner?: string | null }[],
   failFrozenRead: false,
 };
 const DB_CAP = 2;
@@ -34,8 +34,13 @@ vi.mock("./client-data", () => ({
   },
 }));
 
-vi.mock("./rep-outbox", () => ({
+vi.mock("./rep-outbox", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./rep-outbox")>()),
   outboxAll: async () => db.pending,
+}));
+
+vi.mock("./supabase-browser", () => ({
+  currentSession: async () => ({ userId: "user-1", token: "t" }),
 }));
 
 const { syncFreezes } = await import("./freeze-sync");
@@ -59,10 +64,18 @@ describe("syncFreezes", () => {
     // is still on the device when this morning's screen loads.
     const reps = run(0, 9);
     db.row = 1;
-    db.pending = [{ createdAt: day(10, 22).getTime() }];
+    db.pending = [{ createdAt: day(10, 22).getTime(), owner: "user-1" }];
     const out = await syncFreezes(reps, day(11, 8));
     expect(out.rescued).toEqual([]);
     expect(db.frozen).toEqual([]);
+  });
+
+  it("does not hold a rescue for another account's waiting recording", async () => {
+    const reps = run(0, 9);
+    db.row = 1;
+    db.pending = [{ createdAt: day(10, 22).getTime(), owner: "someone-else" }];
+    const out = await syncFreezes(reps, day(11, 8));
+    expect(out.rescued).toHaveLength(1);
   });
 
   it("still rescues a missed day with nothing waiting for it", async () => {

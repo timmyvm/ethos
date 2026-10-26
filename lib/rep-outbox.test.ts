@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   newOutboxId,
+  ownedBy,
   replayForm,
   sendWithRetry,
   RETRY_DELAYS_MS,
@@ -118,5 +119,28 @@ describe("sendWithRetry", () => {
     expect(out.ok).toBe(false);
     expect(out.status).toBe(0);
     expect(fetchMock).toHaveBeenCalledTimes(RETRY_DELAYS_MS.length + 1);
+  });
+});
+
+describe("ownedBy", () => {
+  const r = (owner?: string | null): OutboxRep => ({ ...rep(), ...(owner === undefined ? {} : { owner }) });
+
+  it("keeps another account's recordings parked", () => {
+    expect(ownedBy([r("a")], "b")).toEqual([]);
+    expect(ownedBy([r("a")], null)).toEqual([]);
+  });
+
+  it("sends the signed-in account its own", () => {
+    expect(ownedBy([r("a")], "a")).toHaveLength(1);
+  });
+
+  it("sends a recording from before owners only into a live session", () => {
+    expect(ownedBy([r()], null)).toEqual([]);
+    expect(ownedBy([r()], "a")).toHaveLength(1);
+  });
+
+  it("sends a recording made with no session to whoever this device is", () => {
+    expect(ownedBy([r(null)], null)).toHaveLength(1);
+    expect(ownedBy([r(null)], "a")).toHaveLength(1);
   });
 });

@@ -20,6 +20,28 @@ export function supabaseBrowser(): SupabaseClient | null {
   return client;
 }
 
+/**
+ * The session this device holds right now, read without ever creating
+ * one. A background job that only has a recording to send (the outbox
+ * flush) uses this: minting a user to carry someone else's recording is
+ * how a signed-out account's audio ended up in a stranger's Log.
+ */
+export async function currentSession(): Promise<{
+  userId: string;
+  token: string;
+} | null> {
+  const db = supabaseBrowser();
+  if (!db) return null;
+  try {
+    const { data } = await db.auth.getSession();
+    return data.session
+      ? { userId: data.session.user.id, token: data.session.access_token }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Access token for the current (anonymous or real) session, if any. */
 export async function ensureSession(): Promise<string | null> {
   const db = supabaseBrowser();

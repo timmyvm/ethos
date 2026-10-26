@@ -16,7 +16,8 @@ import {
   purchasedFreezes,
   spendFreezes,
 } from "./client-data";
-import { outboxAll } from "./rep-outbox";
+import { outboxAll, ownedBy } from "./rep-outbox";
+import { currentSession } from "./supabase-browser";
 import {
   computeStreak,
   freezeBalance,
@@ -34,7 +35,8 @@ const PENDING_WINDOW_MS = 72 * 3_600_000;
  */
 async function pendingDates(now: Date): Promise<Date[]> {
   const held = await outboxAll().catch(() => []);
-  return held
+  const me = await currentSession();
+  return ownedBy(held, me?.userId ?? null)
     .filter((r) => now.getTime() - r.createdAt < PENDING_WINDOW_MS)
     .map((r) => new Date(r.createdAt));
 }

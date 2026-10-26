@@ -116,17 +116,24 @@ export interface Owned {
  * What's owned, read off the ledger rather than a separate table: same
  * property that makes coins safe to re-sync: derived, never incremented,
  * so a dropped write heals instead of double-granting.
+ *
+ * A spend proves a purchase only when it is for an item on sale and paid
+ * its price in full. Until migration 0015, spend_coins charged whatever
+ * amount the caller sent, so the ledger can hold a one-coin freeze; that
+ * row proves nothing. No price has ever changed; if one rises, purchases
+ * made at the old price have to keep counting here.
  */
 export function ownedFrom(
-  ledger: { kind: string; reason: string }[]
+  ledger: { kind: string; reason: string; amount: number }[]
 ): Owned {
   const ids = new Set<string>();
   let freezes = 0;
   for (const row of ledger) {
     if (row.kind !== "spent" || !row.reason.startsWith("shop:")) continue;
-    const id = row.reason.slice(5);
-    ids.add(id);
-    if (id === "streak_freeze") freezes++;
+    const item = itemById(row.reason.slice(5));
+    if (!item || row.amount < item.price) continue;
+    ids.add(item.id);
+    if (item.id === "streak_freeze") freezes++;
   }
   return { ids, freezes };
 }

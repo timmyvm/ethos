@@ -10,6 +10,7 @@ import type { JudgedDimension } from "./coach";
 import type { CoinRow } from "./coins";
 import { cleanName } from "./answers";
 import { isUnlocked } from "./entitlement";
+import { ownedFrom } from "./shop";
 import type { Tier1Scores, Tier2Anchors } from "./index-score";
 import type { Pause } from "./metrics";
 import type { DeliveryMoment } from "./presence";
@@ -458,14 +459,18 @@ export async function grantFreezes(target: number): Promise<number> {
   return error ? 0 : target;
 }
 
-/** How many freezes were bought in the shop, for the freeze derivation. */
+/**
+ * How many freezes were bought in the shop, for the freeze derivation.
+ * Counted by `ownedFrom`, so a spend below the price (possible before
+ * migration 0015) buys nothing here either.
+ */
 export async function purchasedFreezes(): Promise<number> {
   const db = supabaseBrowser();
   if (!db) return 0;
   const { data } = await db
     .from("coin_ledger")
-    .select("id")
+    .select("kind, reason, amount")
     .eq("kind", "spent")
     .eq("reason", "shop:streak_freeze");
-  return data?.length ?? 0;
+  return ownedFrom((data as { kind: string; reason: string; amount: number }[] | null) ?? []).freezes;
 }

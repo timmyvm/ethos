@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_POSE_ART,
@@ -12,8 +13,9 @@ import {
 const freeze = itemById("streak_freeze")!;
 const pose = itemById("pose_speaking")!;
 
-function spend(reason: string) {
-  return { kind: "spent", reason };
+/** A purchase as spend_coins writes it: the reason, at the catalog's price. */
+function spend(reason: string, amount = itemById(reason.slice(5))?.price ?? 1) {
+  return { kind: "spent", reason, amount };
 }
 
 describe("reasonFor", () => {
@@ -27,13 +29,36 @@ describe("reasonFor", () => {
 describe("ownedFrom", () => {
   it("reads purchases off the ledger, ignoring earnings", () => {
     const owned = ownedFrom([
-      { kind: "earned", reason: "streak_day" },
+      { kind: "earned", reason: "streak_day", amount: 1 },
       spend("shop:pose_speaking"),
       spend("shop:streak_freeze"),
     ]);
     expect(owned.ids.has("pose_speaking")).toBe(true);
     expect(owned.ids.has("streak_day")).toBe(false);
     expect(owned.freezes).toBe(1);
+  });
+
+  it("proves nothing with a spend below the price", () => {
+    // Before 0015, spend_coins took the caller's amount: a direct call
+    // bought a freeze for one coin. Those rows may be in the ledger, and
+    // they must never count as a purchase.
+    const owned = ownedFrom([
+      spend("shop:streak_freeze", 1),
+      spend("shop:pose_celebrate", 11),
+    ]);
+    expect(owned.freezes).toBe(0);
+    expect(owned.ids.size).toBe(0);
+    expect(poseArt("pose_celebrate", owned)).toBe(DEFAULT_POSE_ART);
+  });
+
+  it("counts a spend at the catalog's price", () => {
+    const owned = ownedFrom([spend("shop:streak_freeze", 14), spend("shop:pose_celebrate", 12)]);
+    expect(owned.freezes).toBe(1);
+    expect([...owned.ids].sort()).toEqual(["pose_celebrate", "streak_freeze"]);
+  });
+
+  it("ignores a spend on an item the shop doesn't sell", () => {
+    expect(ownedFrom([spend("shop:gold_mic", 999)]).ids.size).toBe(0);
   });
 
   it("counts repeat freeze buys but keeps the id once", () => {
@@ -106,5 +131,54 @@ describe("the shop's non-negotiable", () => {
     expect(SHOP.filter((i) => i.kind === "utility").map((i) => i.id)).toEqual([
       "streak_freeze",
     ]);
+  });
+});
+
+/**
+ * The server's copy of the catalog (migration 0015). spend_coins charges
+ * the price in shop_prices and refuses any other amount, so the shop's
+ * button and the database have to agree item for item, price for price,
+ * or a purchase the shop offers is refused.
+ */
+describe("the server's catalog", () => {
+  const PATH = "supabase/migrations/0015_shop_prices.sql";
+  const sql = existsSync(PATH) ? readFileSync(PATH, "utf8") : "";
+  const code = sql.replace(/--.*$/gm, "");
+
+  it("seeds shop_prices with exactly lib/shop.ts's items and prices", () => {
+    const seed = code.match(/insert into public\.shop_prices[^;]*values([^;]*?)on conflict/i)?.[1] ?? "";
+    const rows = [...seed.matchAll(/\(\s*'([^']+)'\s*,\s*(\d+)\s*\)/g)].map((m) => [m[1], Number(m[2])]);
+    expect(rows.length).toBeGreaterThan(0);
+    expect(Object.fromEntries(rows)).toEqual(
+      Object.fromEntries(SHOP.map((item) => [reasonFor(item), item.price]))
+    );
+    expect(rows).toHaveLength(SHOP.length);
+  });
+
+  it("charges the catalog's price and refuses an unknown item or any other amount", () => {
+    const body = code.match(/create or replace function public\.spend_coins\([\s\S]*?\$\$;/i)?.[0] ?? "";
+    expect(body).toMatch(/security definer/i);
+    expect(body).toMatch(/set search_path = ''/i);
+    expect(body).toMatch(/from public\.shop_prices/i);
+    expect(body).toMatch(/'unknown item'/);
+    expect(body).toMatch(/p_amount is distinct from v_price/i);
+    // The row written carries the catalog's price, never the caller's.
+    expect(body).toMatch(/values \(uid, 'spent', v_price, p_reason\)/i);
+    expect(body).not.toMatch(/values \([^)]*p_amount/i);
+  });
+
+  it("lets a signed-in session spend, anonymous-first ones included, and never the anon key", () => {
+    expect(code).toMatch(/revoke all on function public\.spend_coins\(text, integer\) from public, anon;/i);
+    expect(code).toMatch(/grant execute on function public\.spend_coins\(text, integer\) to authenticated;/i);
+  });
+
+  it("keeps purchased_freezes to the reader's own rows, and away from the anon key", () => {
+    expect(code).toMatch(/alter view public\.purchased_freezes set \(security_invoker = true\);/i);
+    expect(code).toMatch(/revoke select on public\.purchased_freezes from anon;/i);
+  });
+
+  it("holds no drop statement, which the production connector stalls on", () => {
+    expect(sql.length).toBeGreaterThan(0);
+    expect(sql).not.toMatch(/\bdrop\b/i);
   });
 });

@@ -47,8 +47,9 @@ function Lead({ children }: { children: React.ReactNode }) {
  *    billing row in supabase/migrations/0012_price_ladder.sql (ids,
  *    status, ladder_month, price_cents, next_price_cents,
  *    current_period_end, cancel_at_period_end), and
- *    app/api/account/route.ts (every plan cancelled before anything is
- *    deleted; the Stripe customer and its payments stay at Stripe)
+ *    app/api/account/route.ts (every plan cancelled and the Stripe
+ *    customer, with its email and saved card, deleted before anything
+ *    else is; Stripe keeps its own records of the payments)
  */
 export default function Privacy() {
   return (
@@ -167,8 +168,9 @@ export default function Privacy() {
         We keep your data until you delete your account. Settings has a
         delete-account control. It ends any plan at once, then removes
         everything: recordings, transcripts, scores, progress, plan details,
-        and the account itself. Stripe keeps the payments already made, and
-        your email and saved card stay on file there. You can also write to{" "}
+        and the account itself. Your email and saved card are deleted at
+        Stripe too. Stripe keeps its records of the payments already made,
+        which the law requires it to hold. You can also write to{" "}
         <a href="mailto:hello@speakethos.com" className={INLINE_LINK}>
           hello@speakethos.com
         </a>{" "}

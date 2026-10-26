@@ -9,11 +9,15 @@
  *      for the account's Stripe customer is closed, then every
  *      subscription that has not ended is cancelled now (lib/billing.ts
  *      endEveryPlan), so a deleted account is never charged again, and
- *      an ended plan's unpaid invoice is voided so nobody can pay it. If
- *      Stripe isn't configured while the billing row may hold a plan, or
- *      a cancel fails, the route stops here with nothing deleted, and is
- *      safe to retry. A cancel can't be undone: once a plan is cancelled,
- *      every later failure says so, and a retry finishes the rest.
+ *      an ended plan's unpaid invoice is voided so nobody can pay it.
+ *      Then the Stripe customer itself is deleted (deleteCustomer), with
+ *      the email and saved card on it; Stripe keeps its own records of
+ *      the payments it took. If Stripe isn't configured while the billing
+ *      row may hold a plan, or a cancel, a void or the customer's
+ *      deletion fails, the route stops here with nothing of ours
+ *      deleted, and is safe to retry: a customer already gone counts as
+ *      done. A cancel can't be undone: once a plan is cancelled, every
+ *      later failure says so, and a retry finishes the rest.
  *   2. Audio files. They're the only thing a cascade can't reach
  *      (storage objects aren't rows), so they go while the reps rows
  *      still hold their paths. Any failure here aborts with every other
@@ -30,7 +34,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { endEveryPlan, hasEnded, voidEndedInvoices } from "@/lib/billing";
+import { deleteCustomer, endEveryPlan, hasEnded, voidEndedInvoices } from "@/lib/billing";
 import { getUserFromAuthHeader, supabaseAdmin } from "@/lib/db";
 import { stripeClient, stripeLivemode } from "@/lib/stripe";
 
@@ -110,6 +114,25 @@ export async function DELETE(req: NextRequest) {
               cancelled > 0
                 ? "Your plan is cancelled, but its unpaid invoice didn't close, so nothing else was deleted. Try again in a minute."
                 : "Your plan's unpaid invoice didn't close, so nothing was deleted. Try again in a minute.",
+          },
+          { status: 502 }
+        );
+      }
+      // Last at Stripe: with nothing left on it to charge or pay, the
+      // customer goes, and the email and saved card with it.
+      try {
+        await deleteCustomer(stripe, customerId, { livemode: stripeLivemode() });
+      } catch (e) {
+        console.error(
+          "account delete: Stripe customer deletion failed",
+          e instanceof Error ? e.message : e
+        );
+        return NextResponse.json(
+          {
+            error:
+              cancelled > 0
+                ? "Your plan is cancelled, but your details at Stripe didn't delete, so nothing else was deleted. Try again in a minute."
+                : "Your details at Stripe didn't delete, so nothing was deleted. Try again in a minute.",
           },
           { status: 502 }
         );

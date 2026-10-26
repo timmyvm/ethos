@@ -395,6 +395,68 @@ describe("DELETE /api/account", () => {
     expect(session.status).toBe("expired");
     expect(() => stripe.sim.completeSession(session.id)).toThrow(/expired/);
     expect(db.state.deletedUsers).toEqual([USER]);
+    // A customer made for a Checkout nobody paid goes too.
+    expect(stripe.sim.callsTo("customers.del")).toHaveLength(1);
+  });
+
+  it("deletes the Stripe customer, its email and saved card, once the plans are cancelled and the invoices voided", async () => {
+    const { customer, sub } = await paying();
+    stripe.sim.renew(sub, { paid: false });
+    withAudio();
+
+    expect((await call(deleteAccount, { method: "DELETE" })).status).toBe(200);
+    expect(stripe.sim.callsTo("customers.del").map((c) => c.args[0])).toEqual([customer]);
+    expect(stripe.state.customers.get(customer)!.deleted).toBe(true);
+    // In order: nothing on the customer can be charged or paid before it goes,
+    // and it goes before anything of ours does.
+    const order = stripe.state.calls.map((c) => c.method);
+    const at = (m: string) => order.indexOf(m);
+    expect(at("subscriptions.cancel")).toBeLessThan(at("invoices.voidInvoice"));
+    expect(at("invoices.voidInvoice")).toBeLessThan(at("customers.del"));
+    expect(stripe.state.invoices.at(-1)!.status).toBe("void");
+    expect(db.state.removedAudio).toEqual(["reps/1-a.webm"]);
+    expect(db.state.deletedUsers).toEqual([USER]);
+  });
+
+  it("deletes nothing else when the customer didn't delete, says the plan is cancelled, and the retry finishes", async () => {
+    const { customer } = await paying();
+    withAudio();
+    stripe.state.fail["customers.del"] = new Error("Stripe is down");
+
+    expect(await call(deleteAccount, { method: "DELETE" })).toEqual({
+      status: 502,
+      body: {
+        error:
+          "Your plan is cancelled, but your details at Stripe didn't delete, so nothing else was deleted. Try again in a minute.",
+      },
+    });
+    expect(db.state.deletedUsers).toEqual([]);
+    expect(db.state.removedAudio).toEqual([]);
+    expect(db.row("billing", USER)).toBeDefined();
+
+    expect((await call(deleteAccount, { method: "DELETE" })).status).toBe(200);
+    expect(stripe.state.customers.get(customer)!.deleted).toBe(true);
+    expect(db.state.deletedUsers).toEqual([USER]);
+  });
+
+  it("says nothing was deleted when only the customer failed, with no plan to cancel", async () => {
+    expect((await call(checkout)).status).toBe(200);
+    stripe.state.fail["customers.del"] = new Error("Stripe is down");
+    expect(await call(deleteAccount, { method: "DELETE" })).toEqual({
+      status: 502,
+      body: { error: "Your details at Stripe didn't delete, so nothing was deleted. Try again in a minute." },
+    });
+    expect(db.state.deletedUsers).toEqual([]);
+  });
+
+  it("finishes when the customer is already gone, as after a retry whose delete went through", async () => {
+    const { customer } = await paying();
+    db.state.fail.push({ table: "auth.users", op: "delete", error: { code: "500", message: "down" } });
+    expect((await call(deleteAccount, { method: "DELETE" })).status).toBe(502);
+    expect(stripe.state.customers.get(customer)!.deleted).toBe(true);
+
+    expect(await call(deleteAccount, { method: "DELETE" })).toEqual({ status: 200, body: { ok: true } });
+    expect(db.state.deletedUsers).toEqual([USER]);
   });
 
   it("lists the recordings before it cancels anything, so a failed read really leaves all of it", async () => {

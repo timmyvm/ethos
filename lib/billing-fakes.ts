@@ -314,6 +314,20 @@ export function fakeStripe() {
           ? { id, object: "customer" as const, deleted: true as const }
           : clone(found);
       },
+      /**
+       * Like Stripe: the customer goes (a retrieve says deleted), every
+       * plan on it still running is cancelled at once, and its invoices
+       * stay listed. Deleting one already deleted is "No such customer".
+       */
+      async del(id: string) {
+        record("customers.del", [id]);
+        const found = state.customers.get(id);
+        if (!found || found.deleted) {
+          throw new FakeStripeError("resource_missing", `No such customer: '${id}'`, 404, "id");
+        }
+        sim.deleteCustomer(id);
+        return { id, object: "customer" as const, deleted: true as const };
+      },
     },
 
     subscriptions: {
@@ -642,7 +656,7 @@ export function fakeStripe() {
     /** Calls that change something in Stripe. */
     writes(): Call[] {
       return state.calls.filter((c) =>
-        /\.(create|update|cancel|expire|voidInvoice)$/.test(c.method)
+        /\.(create|update|cancel|expire|voidInvoice|del)$/.test(c.method)
       );
     },
   };

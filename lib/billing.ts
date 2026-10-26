@@ -1397,6 +1397,27 @@ export async function endEveryPlan(
   }
 }
 
+/**
+ * Account deletion's last step at Stripe, once nothing on the customer
+ * can be charged or paid: the customer itself, with the email and saved
+ * card on it. Stripe keeps its own records of the payments it took.
+ * Returns false for a customer already gone: deleted by an earlier try
+ * whose answer was lost, or, on a live key, the other mode's.
+ */
+export async function deleteCustomer(
+  stripe: Stripe,
+  customerId: string,
+  opts: { livemode?: boolean } = {}
+): Promise<boolean> {
+  try {
+    await stripe.customers.del(customerId);
+    return true;
+  } catch (e) {
+    if (missingCustomer(e) && (await customerGone(stripe, customerId, opts.livemode))) return false;
+    throw e;
+  }
+}
+
 // ---------------------------------------------------------------------
 // HTTP: shared by the /api/billing routes
 

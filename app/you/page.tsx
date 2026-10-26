@@ -242,26 +242,29 @@ export default function YouPage() {
     void loadCoins(rows.map((r) => new Date(r.created_at)));
   }, [loadCoins, loadFreezes]);
 
-  const loadLexicon = useCallback(() => {
+  /* Both under the page-level ceiling (readable): a read that fails or
+     never answers ends in the ErrorLine and its retry, never Level 1 or
+     an empty lexicon, and never a skeleton for good (#147). */
+  const loadLexicon = useCallback(async () => {
     setLexiconFailed(false);
     setLexicon(null);
-    fetchLexicon()
-      .then(setLexicon)
-      .catch(() => setLexiconFailed(true));
+    const read = await readable(() => fetchLexicon());
+    if (read.ok) setLexicon(read.data);
+    else setLexiconFailed(true);
   }, []);
 
-  const loadXp = useCallback(() => {
+  const loadXp = useCallback(async () => {
     setXpFailed(false);
     setXp(null);
-    fetchXp()
-      .then(setXp)
-      .catch(() => setXpFailed(true));
+    const read = await readable(fetchXp);
+    if (read.ok) setXp(read.data);
+    else setXpFailed(true);
   }, []);
 
   useEffect(() => {
     void load();
-    loadLexicon();
-    loadXp();
+    void loadLexicon();
+    void loadXp();
     setOnboarding(readOnboarding());
     // The profile decides code or free for the plan, so it takes the
     // page-level ceiling too: a read that never answers ends in the
@@ -551,7 +554,7 @@ export default function YouPage() {
               {xpPending ? (
                 <Line className="font-display mt-1.5 text-link font-bold" bar="w-32" align="left" />
               ) : xpFailed ? (
-                <ErrorLine className="mt-1.5" onRetry={loadXp}>
+                <ErrorLine className="mt-1.5" onRetry={() => void loadXp()}>
                   Your XP didn&apos;t load.
                 </ErrorLine>
               ) : (
@@ -710,7 +713,7 @@ export default function YouPage() {
           )}
         </h2>
         {lexiconFailed ? (
-          <ErrorLine className="mt-3" onRetry={loadLexicon}>
+          <ErrorLine className="mt-3" onRetry={() => void loadLexicon()}>
             Your lexicon didn&apos;t load.
           </ErrorLine>
         ) : lexicon === null ? (

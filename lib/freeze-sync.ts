@@ -56,51 +56,46 @@ export async function syncFreezes(
   repDates: Date[],
   now = new Date()
 ): Promise<FreezeSync> {
-  // A failed read must not look like "nothing spent yet": it would pay
-  // for a rescue twice and write a count derived from missing rows.
-  let frozenDays: Date[] | null = await fetchFrozenDays().catch(() => null);
-  const purchased = await purchasedFreezes().catch(() => 0);
+  // A failed read rejects, before anything is written: missing rows must
+  // not look like "nothing spent yet" (a rescue paid twice) or "none
+  // bought" (a lower count), and the caller draws the failure (#147).
+  let frozenDays = await fetchFrozenDays();
+  const purchased = await purchasedFreezes();
 
+  // What is held is derived, never read back from streaks.freezes_equipped:
+  // production's check stores 0..2 (0001) while three can be held (#174),
+  // so the column could never say three. A rescue never moves `longest`
+  // (a freeze bridges, it never counts, and rescued days come after the
+  // last covered one), so before and after agree.
+  const before = computeStreak(repDates, now, frozenDays);
+  const held = freezeBalance(before.longest, frozenDays.length, purchased);
+  const pending = await pendingDates(now);
+  const candidates = rescuableDays(
+    [...repDates, ...pending],
+    frozenDays,
+    held,
+    now
+  );
   let rescued: Date[] = [];
-  if (frozenDays) {
-    // What is held is derived, never read back from streaks.freezes_equipped:
-    // production's check stores 0..2 (0001) while three can be held
-    // (#174), so the column could never say three. A rescue never moves
-    // `longest` (a freeze bridges, it never counts, and rescued days come
-    // after the last covered one), so before and after agree.
-    const before = computeStreak(repDates, now, frozenDays);
-    const held = freezeBalance(before.longest, frozenDays.length, purchased);
-    const pending = await pendingDates(now);
-    const candidates = rescuableDays(
-      [...repDates, ...pending],
-      frozenDays,
-      held,
-      now
-    );
-    if (candidates.length > 0) {
-      const spent = await spendFreezes(candidates, held).catch(() => 0);
-      if (spent > 0) {
-        rescued = candidates.slice(0, spent);
-        frozenDays = [...frozenDays, ...rescued];
-      }
+  if (candidates.length > 0) {
+    const spent = await spendFreezes(candidates, held).catch(() => 0);
+    if (spent > 0) {
+      rescued = candidates.slice(0, spent);
+      frozenDays = [...frozenDays, ...rescued];
     }
   }
 
-  const days = frozenDays ?? [];
-  const streak = computeStreak(repDates, now, days);
-  const equipped = frozenDays
-    ? freezeBalance(streak.longest, days.length, purchased)
-    : 0;
+  const streak = computeStreak(repDates, now, frozenDays);
+  const equipped = freezeBalance(streak.longest, frozenDays.length, purchased);
 
   // The column stays a mirror for anyone reading the table, clamped to
-  // what its check accepts, and is never read back.
-  if (frozenDays) {
-    const mirror = Math.min(STORED_FREEZE_CAP, equipped);
-    const row = await fetchStreakRow().catch(() => null);
-    if (row?.freezes_equipped !== mirror) {
-      await grantFreezes(mirror).catch(() => 0);
-    }
+  // what its check accepts, and is never read back. An unread row skips
+  // the write rather than guessing.
+  const mirror = Math.min(STORED_FREEZE_CAP, equipped);
+  const row = await fetchStreakRow().catch(() => undefined);
+  if (row !== undefined && row?.freezes_equipped !== mirror) {
+    await grantFreezes(mirror).catch(() => 0);
   }
 
-  return { streak, frozenDays: days, equipped, rescued };
+  return { streak, frozenDays, equipped, rescued };
 }

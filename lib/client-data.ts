@@ -136,22 +136,26 @@ export interface LexiconRow {
 export async function fetchLexicon(limit = 100): Promise<LexiconRow[]> {
   const db = supabaseBrowser();
   if (!db) return [];
-  const { data } = await db
+  const { data, error } = await db
     .from("lexicon")
     .select("id, original, upgrade, created_at")
     .order("created_at", { ascending: false })
     .limit(limit);
+  // An answered error is "didn't load", not "no upgrades yet" (#147).
+  if (error) throw error;
   return (data as LexiconRow[] | null) ?? [];
 }
 
 export async function fetchXp(): Promise<{ total: number; week: number }> {
   const db = supabaseBrowser();
   if (!db) return { total: 0, week: 0 };
-  const { data } = await db
+  const { data, error } = await db
     .from("xp_events")
     .select("amount, created_at")
     .order("created_at", { ascending: false })
     .limit(1000);
+  // A failed read is not Level 1 (#147).
+  if (error) throw error;
   const rows = (data as { amount: number; created_at: string }[] | null) ?? [];
   const total = rows.reduce((a, r) => a + r.amount, 0);
   const monday = new Date();
@@ -336,10 +340,11 @@ export interface StreakRow {
 export async function fetchStreakRow(): Promise<StreakRow | null> {
   const db = supabaseBrowser();
   if (!db) return null;
-  const { data } = await db
+  const { data, error } = await db
     .from("streaks")
     .select("freezes_equipped")
     .maybeSingle();
+  if (error) throw error;
   return (data as StreakRow | null) ?? null;
 }
 
@@ -347,10 +352,13 @@ export async function fetchStreakRow(): Promise<StreakRow | null> {
 export async function fetchFrozenDays(): Promise<Date[]> {
   const db = supabaseBrowser();
   if (!db) return [];
-  const { data } = await db
+  const { data, error } = await db
     .from("streak_freezes")
     .select("used_on")
     .order("used_on", { ascending: true });
+  // A failed read must not look like "no freezes spent": the streak
+  // would lose its bridged days, and a sync would spend them twice.
+  if (error) throw error;
   const rows = (data as { used_on: string }[] | null) ?? [];
   // `used_on` is a bare date; parse as local, not UTC, or a timezone
   // west of Greenwich shifts every freeze back a day.
@@ -406,11 +414,14 @@ export async function spendFreezes(
 export async function fetchCoinLedger(limit = 400): Promise<CoinRow[]> {
   const db = supabaseBrowser();
   if (!db) return [];
-  const { data } = await db
+  const { data, error } = await db
     .from("coin_ledger")
     .select("id, kind, amount, reason, earned_on, created_at")
     .order("created_at", { ascending: false })
     .limit(limit);
+  // An answered error used to come back as [], and the shop priced every
+  // button against a zero balance. Only a throw reaches the error card.
+  if (error) throw error;
   return (data as CoinRow[] | null) ?? [];
 }
 
@@ -510,10 +521,12 @@ export async function grantFreezes(target: number): Promise<number> {
 export async function purchasedFreezes(): Promise<number> {
   const db = supabaseBrowser();
   if (!db) return 0;
-  const { data } = await db
+  const { data, error } = await db
     .from("coin_ledger")
     .select("kind, reason, amount")
     .eq("kind", "spent")
     .eq("reason", "shop:streak_freeze");
+  // A failed read is not "none bought": the sync would write a lower count.
+  if (error) throw error;
   return ownedFrom((data as { kind: string; reason: string; amount: number }[] | null) ?? []).freezes;
 }

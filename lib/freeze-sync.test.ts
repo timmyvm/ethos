@@ -128,3 +128,14 @@ describe("syncFreezes and the database's cap of two", () => {
     expect(db.grants.every((g) => g <= DB_CAP)).toBe(true);
   });
 });
+
+describe("syncFreezes and a failed read", () => {
+  it("fails out loud and writes nothing, so missing rows never mint or wipe freezes", async () => {
+    db.failFrozenRead = true;
+    db.row = 2;
+    await expect(syncFreezes(run(0, 13), day(14, 8))).rejects.toBeTruthy();
+    expect(db.grants).toEqual([]);
+    expect(db.frozen).toEqual([]);
+    expect(db.row).toBe(2);
+  });
+});

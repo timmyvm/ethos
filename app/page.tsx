@@ -165,11 +165,16 @@ export default function Home() {
        device's copy — it's what follows a purchase to a new phone. */
     /* A failed profile read throws now; the device's pose and the
        answers' sync still run, and the mods keep the free reading. */
-    Promise.all([fetchProfile().catch(() => null), fetchCoinLedger()])
+    /* The ledger read throws on a failure now (#147): it keeps the pose
+       already drawn and never stops the plan or the answers below. */
+    Promise.all([
+      fetchProfile().catch(() => null),
+      fetchCoinLedger().catch(() => null),
+    ])
       .then(([p, l]) => {
         setPremium(p?.premium ?? false);
         const pose = p?.equipped_pose ?? readPrefs().pose;
-        setDemos(poseArt(pose, ownedFrom(l)));
+        if (l) setDemos(poseArt(pose, ownedFrom(l)));
         // The introduction's answers follow the account (#232): a
         // finished walk goes up, or the account's answers come down.
         return syncOnboarding().then((s) => setAnswers(s.answers));

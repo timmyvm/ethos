@@ -27,7 +27,9 @@ export async function syncCoins(
      reconciles, which is what every caller did before #281. */
   reps: RepRow[] = []
 ): Promise<CoinSync> {
-  let ledger = await fetchCoinLedger().catch(() => [] as CoinRow[]);
+  // A failed first read rejects, so the caller draws the balance as
+  // unread (a dash and a retry), never as zero.
+  let ledger = await fetchCoinLedger();
 
   const owed = unpaidDays(repDates, ledger);
   let granted: string[] = [];

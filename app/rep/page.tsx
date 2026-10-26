@@ -571,9 +571,12 @@ function RepScreen() {
           setRepsNow(reps);
           setSpineNow(all);
           // The streak and the freezes it earns count from day one.
-          const { streak } = await syncFreezes(
-            all.map((x) => new Date(x.created_at))
-          );
+          const dates = all.map((x) => new Date(x.created_at));
+          // A failed freeze read rejects now; the debrief's celebration,
+          // coins and closing note still land on the plain streak.
+          const { streak } = await syncFreezes(dates).catch(() => ({
+            streak: computeStreak(dates),
+          }));
           if (!live()) return;
           if (streak.current > 0) setCelebrate(streak.current);
           setStreakNow(streak.current);

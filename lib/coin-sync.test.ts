@@ -7,10 +7,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  */
 let ledger: { id: string; kind: string; amount: number; reason: string; earned_on: string | null; created_at: string }[] = [];
 let refused = new Set<string>();
+let ledgerFails = false;
 const grantCalls: string[][] = [];
 
 vi.mock("./client-data", () => ({
-  fetchCoinLedger: async () => [...ledger],
+  fetchCoinLedger: async () => {
+    if (ledgerFails) throw new Error("500");
+    return [...ledger];
+  },
   grantCoins: async (days: string[], reason = "streak_day") => {
     grantCalls.push([reason, ...days]);
     if (days.some((d) => refused.has(`${reason}:${d}`))) return 0;
@@ -32,6 +36,7 @@ vi.mock("./challenge", () => ({
 const { syncCoins } = await import("./coin-sync");
 
 beforeEach(() => {
+  ledgerFails = false;
   ledger = [];
   refused = new Set();
   grantCalls.length = 0;
@@ -48,5 +53,14 @@ describe("syncCoins and the week's coin", () => {
   it("pays both weeks when both are accepted", async () => {
     await syncCoins([], [{} as never]);
     expect(ledger.filter((r) => r.reason === "challenge_week")).toHaveLength(2);
+  });
+});
+
+describe("syncCoins and a failed ledger read", () => {
+  it("fails out loud instead of answering a zero balance", async () => {
+    ledger = [{ id: "c1", kind: "earned", amount: 1, reason: "streak_day", earned_on: "2026-10-20", created_at: "x" }];
+    ledgerFails = true;
+    await expect(syncCoins([], [])).rejects.toBeTruthy();
+    expect(grantCalls).toEqual([]);
   });
 });

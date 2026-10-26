@@ -7,7 +7,8 @@ import { ErrorLine } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { LESSONS } from "@/content/lessons";
 import { TRAITS, type TraitDef, type TraitId } from "@/content/traits";
-import { fetchReps } from "@/lib/client-data";
+import { fetchRepSpine, fetchReps } from "@/lib/client-data";
+import { readable } from "@/lib/load";
 import { lessonProgress } from "@/lib/lesson-progress";
 import { lastReadings, traitForSaid, upNextLesson } from "@/lib/lesson-up-next";
 import { fmtRaw } from "@/lib/trait-readings";
@@ -57,12 +58,15 @@ export default function LessonsPage() {
   const [said, setSaid] = useState<string | null>(null);
 
   const load = useCallback(() => {
-    fetchReps(200)
-      .then((reps) => {
-        setDone(lessonProgress(reps));
-        setReadings(lastReadings(reps));
-      })
-      .catch(() => setFailed(true));
+    // Under the page-level ceiling (#147): a read that never answers ends
+    // in the retry, never a skeleton for good. Progress counts every
+    // recording (the newest 200 lost lesson practices past 200).
+    void readable(() => Promise.all([fetchReps(200), fetchRepSpine()])).then((r) => {
+      if (!r.ok) return setFailed(true);
+      const [reps, all] = r.data;
+      setDone(lessonProgress(all));
+      setReadings(lastReadings(reps));
+    });
   }, []);
 
   useEffect(() => {

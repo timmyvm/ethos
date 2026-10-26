@@ -8,7 +8,8 @@ import { IconCheck } from "@/components/Icon";
 import { TraitChip } from "@/components/TraitChip";
 import { lessonById } from "@/content/lessons";
 import { TRAIT } from "@/content/traits";
-import { fetchReps } from "@/lib/client-data";
+import { fetchRepSpine, fetchReps } from "@/lib/client-data";
+import { readable } from "@/lib/load";
 import { lessonProgress, nextPractice } from "@/lib/lesson-progress";
 import { lastReadings } from "@/lib/lesson-up-next";
 import { repHref } from "@/lib/rep-config";
@@ -54,13 +55,16 @@ export default function LessonPage() {
   const [failed, setFailed] = useState(false);
 
   const load = useCallback(() => {
-    fetchReps(200)
-      .then((reps) => {
-        setDone(lessonProgress(reps)[id] ?? 0);
-        const trait = lessonById(id)?.trait;
-        setReading(trait ? (lastReadings(reps)[trait] ?? null) : null);
-      })
-      .catch(() => setFailed(true));
+    // Under the page-level ceiling (#147): a hung read ends in the retry,
+    // never "Loading your progress" for good. Progress counts every
+    // recording.
+    void readable(() => Promise.all([fetchReps(200), fetchRepSpine()])).then((r) => {
+      if (!r.ok) return setFailed(true);
+      const [reps, all] = r.data;
+      setDone(lessonProgress(all)[id] ?? 0);
+      const trait = lessonById(id)?.trait;
+      setReading(trait ? (lastReadings(reps)[trait] ?? null) : null);
+    });
   }, [id]);
 
   useEffect(() => {

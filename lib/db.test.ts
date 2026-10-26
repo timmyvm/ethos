@@ -167,3 +167,28 @@ describe("resolveAuthHeader", () => {
     expect(await resolveAuthHeader("Bearer t")).toEqual({ kind: "unavailable" });
   });
 });
+
+describe("saveRep before migration 0016 is applied", () => {
+  it("stores the recording without its key rather than not at all", async () => {
+    let first = true;
+    repInsert = { data: { id: "rep-1" }, error: null };
+    const realPush = inserts.push.bind(inserts);
+    // The first reps insert names client_id and the table has no such column yet.
+    inserts.push = (...items: Insert[]) => {
+      for (const i of items) {
+        if (i.table === "reps" && first && "client_id" in i.row) {
+          first = false;
+          repInsert = { data: null, error: { code: "PGRST204", message: "Could not find the 'client_id' column of 'reps' in the schema cache" } };
+        } else if (i.table === "reps") {
+          repInsert = { data: { id: "rep-1" }, error: null };
+        }
+      }
+      return realPush(...items);
+    };
+    const saved = await saveRep(params({ clientId: "k1" }));
+    expect(saved?.id).toBe("rep-1");
+    const reps = inserts.filter((i) => i.table === "reps");
+    expect(reps).toHaveLength(2);
+    expect("client_id" in reps[1].row).toBe(false);
+  });
+});

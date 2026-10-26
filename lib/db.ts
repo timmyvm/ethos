@@ -258,45 +258,51 @@ export async function saveRep(params: {
   });
   if (!upload.error) audioPath = path;
 
-  const { data, error } = await db
-    .from("reps")
-    .insert({
-      user_id: params.userId ?? null,
-      lesson_id: params.lessonId ?? null,
-      duration_s: metrics.durationS,
-      transcript,
-      wpm: metrics.wpm,
-      filler_count: metrics.fillerCount,
-      fillers: metrics.fillers,
-      pauses: metrics.pauses,
-      stars: metrics.stars,
-      focus: coach?.focus ?? null,
-      strength: coach?.strength ?? null,
-      supply: coach?.supply ?? null,
-      ethos_index: params.ethosIndex,
-      dimensions: {
-        tier1,
-        anchors,
-        tier2: coach?.dimensions ?? null,
-      },
-      audio_path: audioPath,
-      whisper_raw: params.whisperRaw ?? null,
-      mode: params.mode ?? "daily",
-      mods: params.mods ?? [],
-      xp_multiplier: params.xpMultiplier ?? 1,
-      boss_topic_id: params.bossTopicId ?? null,
-      accuracy: params.accuracy ?? null,
-      capture_mode: params.captureMode ?? "voice",
-      // Voice-mode reps store null, so the results screen branches on
-      // whether presence exists rather than on which mode was picked.
-      delivery_metrics: params.delivery ? toRow(params.delivery) : null,
-      presence_score: params.delivery?.presenceScore ?? null,
-      delivery_moments: params.deliveryMoments ?? null,
-      ...(params.createdAt ? { created_at: params.createdAt } : {}),
-      client_id: params.clientId ?? null,
-    })
-    .select("id")
-    .single();
+  const row = {
+    user_id: params.userId ?? null,
+    lesson_id: params.lessonId ?? null,
+    duration_s: metrics.durationS,
+    transcript,
+    wpm: metrics.wpm,
+    filler_count: metrics.fillerCount,
+    fillers: metrics.fillers,
+    pauses: metrics.pauses,
+    stars: metrics.stars,
+    focus: coach?.focus ?? null,
+    strength: coach?.strength ?? null,
+    supply: coach?.supply ?? null,
+    ethos_index: params.ethosIndex,
+    dimensions: {
+      tier1,
+      anchors,
+      tier2: coach?.dimensions ?? null,
+    },
+    audio_path: audioPath,
+    whisper_raw: params.whisperRaw ?? null,
+    mode: params.mode ?? "daily",
+    mods: params.mods ?? [],
+    xp_multiplier: params.xpMultiplier ?? 1,
+    boss_topic_id: params.bossTopicId ?? null,
+    accuracy: params.accuracy ?? null,
+    capture_mode: params.captureMode ?? "voice",
+    // Voice-mode reps store null, so the results screen branches on
+    // whether presence exists rather than on which mode was picked.
+    delivery_metrics: params.delivery ? toRow(params.delivery) : null,
+    presence_score: params.delivery?.presenceScore ?? null,
+    delivery_moments: params.deliveryMoments ?? null,
+    ...(params.createdAt ? { created_at: params.createdAt } : {}),
+  };
+  const insert = (r: Record<string, unknown>) =>
+    db.from("reps").insert(r).select("id").single();
+  // The key goes in only when there is one (/upload and /hostile send
+  // none), and a table without the column yet (migration 0016 is applied
+  // by hand) still stores the recording, without its key.
+  let { data, error } = await insert(
+    params.clientId ? { ...row, client_id: params.clientId } : row
+  );
+  if (params.clientId && error && error.code !== "23505" && /client_id/.test(error.message)) {
+    ({ data, error } = await insert(row));
+  }
 
   // Two sends of one recording raced past the route's lookup and the
   // unique index refused the second: answer with the first, drop the

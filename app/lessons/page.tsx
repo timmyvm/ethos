@@ -23,11 +23,12 @@ import { buildPortfolio } from "@/lib/portfolio";
  *
  * A LIST YOU MOVE THROUGH, not a gallery (the feedback round after
  * #296: "lesson pictures look like ads", "makes you think you have to
- * pay for them"). The next lesson sits on top as the page's one card and
- * its one tap, straight into its next practice (M03). Under it the five
- * traits are open sections on the ground (M01, Imprint's home): a head
- * in the trait's ink, the trait's last number, and three rows. The
- * tone is on the head and the art and nowhere else, never a second tap.
+ * pay for them"). The next lesson sits on top as the page's hero, on the
+ * house stage with its one tap under it, straight into its next practice
+ * (the cohesion pass). Under it the five traits are open sections on the
+ * ground (M01, Imprint's home): a head in ink with the trait's 8px mark,
+ * the trait's last number, and three rows. The tone is the mark and the
+ * quiet art, never a second tap.
  *
  * It carries over the one thing from the road worth keeping: the mark
  * on whichever trait their own answers named in the introduction, in
@@ -117,7 +118,11 @@ export default function LessonsPage() {
         {failed ? (
           <ErrorLine onRetry={retry}>Your progress didn&apos;t load.</ErrorLine>
         ) : done === null ? (
-          <Skeleton className="h-[100px] w-full" rounded="rounded-card" />
+          /* The stage and the tap under it, at their landed heights. */
+          <div aria-hidden>
+            <Skeleton className="h-[160px] w-full" rounded="rounded-sheet" />
+            <Skeleton className="mt-3 h-12 w-full" />
+          </div>
         ) : (
           next && <UpNextCard lesson={next} done={done[next.id] ?? 0} />
         )}
@@ -129,10 +134,15 @@ export default function LessonsPage() {
         return (
           <section key={t.id} data-trait={t.id} className="mt-7">
             <div className="flex items-baseline justify-between gap-3">
-              <h2 className="section-head tone-ink">{t.name}</h2>
+              {/* The head in ink with the trait's 8px mark (the cohesion
+                  pass): the colour is the mark, not the words. */}
+              <h2 className="section-head flex items-center gap-2">
+                <span aria-hidden className="trait-dot" />
+                {t.name}
+              </h2>
               {/* Their own words, kept from the road (#231). */}
               {focus === t.id && (
-                <span className="section-head-aside tone-ink">
+                <span className="section-head-aside text-stone-500">
                   You said {said}
                 </span>
               )}

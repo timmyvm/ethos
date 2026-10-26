@@ -74,12 +74,13 @@ const art = await page.evaluate(() =>
 ok("every lesson row has its picture", art.length >= 15 && art.every((w) => w > 0), `${art.filter((w) => w > 0).length}/${art.length}`);
 /* The feedback round after #296: the gallery read as a paid store. The
    list is rows, one tap on top, and nothing paid anywhere near it. The
-   tap is the Up next card's terracotta square (M03): one fill on the
-   page, inside the one link that starts the next practice. */
+   tap is the one under Up next's stage (the cohesion pass; it was the
+   card's terracotta square, M03): one fill on the page, and it is the
+   link that starts the next practice. */
 const list = await page.evaluate(() => ({
   rows: document.querySelectorAll("main a[data-lesson]").length,
   taps: document.querySelectorAll('main [class*="bg-terracotta-500"]').length,
-  tapIsUpNext: !!document.querySelector('main a[data-up-next][href*="lesson="] [class*="bg-terracotta-500"]'),
+  tapIsUpNext: !!document.querySelector('main a[data-up-next][href*="lesson="][class*="bg-terracotta-500"]'),
   upNext: document.querySelector("main [data-up-next]")?.getAttribute("data-up-next") ?? null,
   paid: /premium/i.test(document.querySelector("main")?.textContent ?? "") ||
     !!document.querySelector('main [class*="plum-"]'),

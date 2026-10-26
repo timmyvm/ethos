@@ -1,13 +1,13 @@
 "use client";
 
-import { IconChevron } from "@/components/Icon";
 import { Disclosure } from "@/components/ui/Disclosure";
+import { HeroStage, StageChip } from "@/components/ui/HeroStage";
 import { SegmentBar } from "@/components/ui/SegmentBar";
 import Link from "next/link";
 import type { Lesson } from "@/content/lessons";
-import { TRAIT } from "@/content/traits";
 import { nextPractice } from "@/lib/lesson-progress";
 import { repHref } from "@/lib/rep-config";
+import { ACTION_CLASS } from "@/lib/ui";
 
 /**
  * A lesson, as a row you move through rather than a tile you buy.
@@ -24,6 +24,14 @@ import { repHref } from "@/lib/rep-config";
  * as one bar of three segments that fill in sage), and the row ends in
  * the same Disclosure every row-shaped door in the app ends in. A
  * lesson never carries the Premium chip.
+ *
+ * QUIETER (the cohesion pass, 26 Oct). A first-time tester in dark:
+ * "the colors are too bright", "lessons look really weird". Fifteen
+ * glossy renders at 56px in saturated blue, pink, orange, green and
+ * violet, under heads in those tones, were the loudest page in the app.
+ * The renders stay (they are the set) and come down: 44px, desaturated
+ * to a third (`.lesson-art-quiet`), the heads in ink with the trait's
+ * 8px mark, the bars in stone. The page's colour is its one hero.
  */
 
 /**
@@ -42,6 +50,8 @@ export function LessonArt({
   eager = false,
   radius = "rounded-control",
   className = "",
+  quiet = false,
+  stage = false,
 }: {
   lesson: Lesson;
   size: number;
@@ -49,11 +59,18 @@ export function LessonArt({
   /** A thumbnail is a control's 12; the lesson page's 120 stands at the card's 16. */
   radius?: "rounded-control" | "rounded-card";
   className?: string;
+  /** In a list: desaturated to a third (`.lesson-art-quiet`). */
+  quiet?: boolean;
+  /** On the hero stage: no sand behind it (HeroStage's `artBlend` lays
+      its light over the sky). */
+  stage?: boolean;
 }) {
   return (
     <span
       aria-hidden
-      className={`lesson-art relative block shrink-0 overflow-hidden bg-sand ${radius} ${className}`}
+      className={`lesson-art relative block shrink-0 overflow-hidden ${stage ? "" : "bg-sand"} ${
+        quiet ? "lesson-art-quiet" : ""
+      } ${radius} ${className}`}
       style={{ width: size, height: size }}
     >
       {/* Soft 3D renders since #319, square, cut to 360px. */}
@@ -103,12 +120,12 @@ function Progress({
   const label = progressLabel(done, total);
   return (
     <span className={`flex h-4.5 items-center gap-2.5 ${className}`}>
-      <SegmentBar total={total} done={done} className="min-w-0 flex-1" />
+      <SegmentBar total={total} done={done} tone="neutral" className="min-w-0 flex-1" />
       <span className="w-13 shrink-0">
         {cue ? (
           <span
             data-progress-label
-            className="whitespace-nowrap text-caption font-semibold tone-ink"
+            className="whitespace-nowrap text-caption font-semibold text-ink"
           >
             {cue}
           </span>
@@ -117,7 +134,7 @@ function Progress({
             <span
               data-progress-label
               className={`whitespace-nowrap text-link tabular-nums ${
-                done >= total ? "text-sage-700" : "font-medium text-stone-500"
+                done >= total ? "font-semibold text-ink" : "font-medium text-stone-500"
               }`}
             >
               {label}
@@ -131,11 +148,11 @@ function Progress({
 
 /**
  * The inset rule between rows: a hairline from the title's edge (20 gutter
- * + 56 art + 14 gap = 90px) to the row's end, the `.inset-group` icon-inset
+ * + 44 art + 14 gap = 78px) to the row's end, the `.inset-group` icon-inset
  * grammar on the open ground. None above a section's first row.
  */
 const RULE =
-  "before:absolute before:left-[90px] before:right-0 before:top-0 before:h-px before:origin-top before:scale-y-50 before:bg-hairline";
+  "before:absolute before:left-[78px] before:right-0 before:top-0 before:h-px before:origin-top before:scale-y-50 before:bg-hairline";
 
 export function LessonRow({
   lesson,
@@ -183,7 +200,7 @@ export function LessonRow({
         first ? "" : RULE
       }`}
     >
-      <LessonArt lesson={lesson} size={56} eager={eager} />
+      <LessonArt lesson={lesson} size={44} eager={eager} quiet />
       <span className="min-w-0 flex-1">
         <span className="font-display block text-row">{lesson.title}</span>
         {(known || pending) && (
@@ -201,45 +218,70 @@ export function LessonRow({
 }
 
 /**
- * The one tap on the page, and its one lifted thing: the lesson that is
- * yours next, as one row that goes straight into its next practice (M03,
- * Imprint's "continue" card). One tap from the tab to recording is what
- * "you just start it" looks like. The terracotta square is the tap's
- * colour; the whole card is the target.
+ * The page's hero and its one tap (the cohesion pass, 26 Oct): the lesson
+ * that is yours next, on the house stage (`HeroStage`), with the tap on
+ * the ground under it, as on Practice and Today. It was a lifted card
+ * with a 64px render and a terracotta chevron square (M03, Imprint's
+ * "continue" card); a first-time tester read the page's colours as "too
+ * bright" and the tabs as not matching, and the stage is what matches.
+ *
+ * The eyebrow is the trait on its stage chip, then "Up next"; the title
+ * is the lesson; the line is its three practices as the stage's
+ * segments; the art is the lesson's own render, its light laid over the
+ * sky (`stage`). The tap says what it does: "Carry on" part way in,
+ * "Start" before. One tap from the tab to recording is what "you just
+ * start it" looks like.
  */
 export function UpNextCard({ lesson, done }: { lesson: Lesson; done: number }) {
   const total = lesson.practices.length;
   const next = nextPractice(lesson, done);
+  const label = progressLabel(done, total);
+  const verb = done > 0 ? "Carry on" : "Start";
   return (
-    <Link
-      href={repHref({
-        lesson: lesson.id,
-        q: String(next),
-        back: `/lessons/${lesson.id}`,
-      })}
-      data-trait={lesson.trait}
-      data-up-next={lesson.id}
-      aria-label={`${done > 0 ? "Carry on" : "Start"} ${lesson.title}, practice ${next} of ${total}`}
-      className="card elev-2 press arrive flex items-center gap-3.5 p-4 focus-visible:-outline-offset-3!"
-    >
-      <LessonArt lesson={lesson} size={64} eager />
-      <div className="min-w-0 flex-1">
-        {/* One line at 390 (the longest title fits); at 320 it wraps
-            rather than ending in an ellipsis that hides the lesson's name. */}
-        <h2 className="font-display text-detail">{lesson.title}</h2>
-        <div className="text-row font-semibold tone-ink">
-          {TRAIT[lesson.trait].name}
-        </div>
-        <Progress done={done} total={total} className="mt-2" />
-      </div>
-      <span
-        aria-hidden
-        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-control bg-terracotta-500 text-on-accent"
+    <div className="arrive">
+      {/* No `data-trait` on the stage itself: the trait's `--tone` would
+          repaint the sky in the trait's colour. The chip carries it. */}
+      <HeroStage
+        eyebrow={
+          <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <StageChip trait={lesson.trait} />
+            <span className="eyebrow stage-ink">Up next</span>
+          </span>
+        }
+        eyebrowWide
+        title={lesson.title}
+        artSize={112}
+        artBlend
+        art={
+          <span className="flex h-full w-full items-end justify-end pb-3 pr-3">
+            <LessonArt lesson={lesson} size={92} eager stage radius="rounded-card" />
+          </span>
+        }
+        line={
+          <span className="mt-auto flex items-center gap-2.5 pt-3">
+            <span className="w-24 shrink-0">
+              <SegmentBar total={total} done={done} tone="stage" />
+            </span>
+            {label && (
+              <span className="stage-ink font-display whitespace-nowrap text-link font-bold tabular-nums">
+                {label}
+              </span>
+            )}
+          </span>
+        }
+      />
+      <Link
+        href={repHref({
+          lesson: lesson.id,
+          q: String(next),
+          back: `/lessons/${lesson.id}`,
+        })}
+        data-up-next={lesson.id}
+        aria-label={`${verb} ${lesson.title}, practice ${next} of ${total}`}
+        className={`${ACTION_CLASS} mt-3`}
       >
-        <span className="flex -rotate-90">
-          <IconChevron size={20} />
-        </span>
-      </span>
-    </Link>
+        {verb}
+      </Link>
+    </div>
   );
 }

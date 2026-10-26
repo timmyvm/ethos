@@ -96,7 +96,10 @@ export interface RepSpine {
 const PAGE = 1000;
 
 /** Every row of one of the account's tables, oldest first, paged; throws on a failed page. */
-async function readAll<T>(table: "reps" | "lexicon", columns: string): Promise<T[]> {
+async function readAll<T>(
+  table: "reps" | "lexicon" | "coin_ledger" | "xp_events",
+  columns: string
+): Promise<T[]> {
   const db = supabaseBrowser();
   if (!db) return [];
   const { data: session } = await db.auth.getSession();
@@ -164,14 +167,13 @@ export async function fetchLexicon(limit = 100): Promise<LexiconRow[]> {
 export async function fetchXp(): Promise<{ total: number; week: number }> {
   const db = supabaseBrowser();
   if (!db) return { total: 0, week: 0 };
-  const { data, error } = await db
-    .from("xp_events")
-    .select("amount, created_at")
-    .order("created_at", { ascending: false })
-    .limit(1000);
-  // A failed read is not Level 1 (#147).
-  if (error) throw error;
-  const rows = (data as { amount: number; created_at: string }[] | null) ?? [];
+  // Every event, paged: a read capped at the newest 1000 stopped the
+  // total (and the Level) rising after about 1000 recordings. A failed
+  // page throws: a failed read is not Level 1 (#147).
+  const rows = await readAll<{ amount: number; created_at: string }>(
+    "xp_events",
+    "amount, created_at"
+  );
   const total = rows.reduce((a, r) => a + r.amount, 0);
   const monday = new Date();
   monday.setHours(0, 0, 0, 0);
@@ -425,7 +427,17 @@ export async function spendFreezes(
   return spent;
 }
 
-/** The coin ledger — append-only, read whole (DECISIONS: §4, 11 Aug). */
+/**
+ * The whole coin ledger, paged, oldest first: what the balance and the
+ * purchases are counted from, so they agree with spend_coins, which sums
+ * every row. The capped read below drifted once an account passed 400
+ * rows (a lower balance, and a pose bought in month one shown unbought).
+ */
+export function fetchWholeLedger(): Promise<CoinRow[]> {
+  return readAll<CoinRow>("coin_ledger", "id, kind, amount, reason, earned_on, created_at");
+}
+
+/** The newest `limit` ledger rows (DECISIONS: §4, 11 Aug). */
 export async function fetchCoinLedger(limit = 400): Promise<CoinRow[]> {
   const db = supabaseBrowser();
   if (!db) return [];

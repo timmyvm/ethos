@@ -22,7 +22,7 @@ import { readable, readFailure } from "@/lib/load";
 import { StreakBadge } from "@/components/StreakBadge";
 import { TopicRoulette } from "@/components/TopicRoulette";
 import {
-  fetchCoinLedger,
+  fetchWholeLedger,
   fetchProfile,
   fetchRepSpine,
   fetchReps,
@@ -177,7 +177,8 @@ export default function Home() {
       // undefined is a failed read: the plan stays unknown, never free
       // (#353). null is no backend at all, which is free.
       fetchProfile().catch(() => undefined),
-      fetchCoinLedger().catch(() => null),
+      // The whole ledger: a pose bought in month one is still owned.
+      fetchWholeLedger().catch(() => null),
     ])
       .then(([p, l]) => {
         if (p !== undefined) setPremium(p?.premium ?? false);

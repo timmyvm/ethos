@@ -11,7 +11,7 @@ let ledgerFails = false;
 const grantCalls: string[][] = [];
 
 vi.mock("./client-data", () => ({
-  fetchCoinLedger: async () => {
+  fetchWholeLedger: async () => {
     if (ledgerFails) throw new Error("500");
     return [...ledger];
   },

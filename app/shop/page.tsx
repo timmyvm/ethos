@@ -10,7 +10,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { HeaderCount } from "@/components/ui/HeaderCount";
 import { readable, readFailure } from "@/lib/load";
 import {
-  fetchCoinLedger,
+  fetchWholeLedger,
   fetchProfile,
   fetchRepSpine,
   fetchReps,
@@ -83,7 +83,9 @@ export default function ShopPage() {
     const dates = reps.data.map((r: RepRow) => new Date(r.created_at));
     // Pay out anything owed before showing a balance to spend.
     await readable(() => syncCoins(dates));
-    const rows = await readable(fetchCoinLedger);
+    // The whole ledger: the balance and what was bought are counted over
+    // every row, as spend_coins counts them.
+    const rows = await readable(fetchWholeLedger);
     if (!rows.ok) {
       setLedger(null);
       setFailed(true);

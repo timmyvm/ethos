@@ -10,7 +10,7 @@
 
 import { closesByWeek } from "./challenge";
 import type { RepRow } from "./client-data";
-import { fetchCoinLedger, grantCoins } from "./client-data";
+import { fetchWholeLedger as fetchCoinLedger, grantCoins } from "./client-data";
 import { balance, unpaidChallengeWeeks, unpaidDays, type CoinRow } from "./coins";
 
 export interface CoinSync {

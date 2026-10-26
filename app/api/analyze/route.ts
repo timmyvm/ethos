@@ -46,25 +46,11 @@ import { parseEnvelope } from "@/lib/envelope";
 import { pauseReport } from "@/lib/pause-quality";
 import { BOSS_XP_BASE } from "@/lib/rep-config";
 import { modIds, parseMods, xpMultiplier } from "@/lib/stress-mods";
+import { spokenAt } from "@/lib/spoken-at";
 import { transcribe } from "@/lib/transcribe";
 
 export const runtime = "nodejs";
 export const maxDuration = 60; // Vercel Hobby cap
-
-/**
- * How far back a client may date a recording. The outbox sends a take
- * hours (or a long weekend) after it was spoken, and the streak, the
- * freezes, the coins and the Log all bucket by when it was spoken. The
- * time is the client's word, so it is clamped: never in the future, and
- * never more than three days back.
- */
-export const RECORDED_AT_SLACK_MS = 72 * 3_600_000;
-
-export function spokenAt(v: FormDataEntryValue | null, nowMs = Date.now()): Date | null {
-  const ms = numberOrNull(v);
-  if (ms === null) return null;
-  return new Date(Math.min(nowMs, Math.max(nowMs - RECORDED_AT_SLACK_MS, ms)));
-}
 
 export interface AnalyzeResponse {
   transcript: string;

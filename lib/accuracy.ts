@@ -14,6 +14,7 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
+import { stripProseDashes } from "./coach";
 import { z } from "zod";
 import type { ColdTopic } from "./cold-topics";
 
@@ -142,6 +143,9 @@ export function scoreAccuracy(
 
   return {
     ...report,
+    // The verdict's reason is the model's copy, so it loses its prose
+    // dashes (COPY-RULES); the quote is the speaker's and stays as said.
+    claims: report.claims.map((c) => ({ ...c, why: stripProseDashes(c.why) })),
     covered,
     score,
     coverage: Math.round(coverage * 100) / 100,

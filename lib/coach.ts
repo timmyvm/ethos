@@ -314,14 +314,62 @@ export function splitProblems(problems: string[]): {
   return { hard: problems.filter((p) => !soft.includes(p)), soft };
 }
 
-/** Trim the coachLine back to house style rather than binning the rep. */
+/**
+ * COPY-RULES' zero em dashes, for copy the model wrote. A prose dash
+ * (an em dash, or an en dash with spaces round it) becomes a comma, so a
+ * sentence count never changes; an unspaced en dash stays, because that
+ * is a range ("0:42\u20130:48"). Written as escapes so lib/copy.test.ts,
+ * which scans source for the character, never trips on this file.
+ */
+export function stripProseDashes(s: string): string {
+  return s
+    .replace(/\s*\u2014\s*/g, ", ")
+    .replace(/\s+\u2013\s+/g, ", ")
+    .replace(/^,\s*/, "")
+    .replace(/,\s*([.!?])/g, "$1")
+    .trim();
+}
+
+/**
+ * House style, repaired rather than binning the rep: every field a person
+ * reads loses its prose dashes (supply.original is the speaker's own
+ * words and stays as said), then the coachLine is trimmed to two
+ * sentences. Runs after validation, so the grounding checks see the
+ * model's original text.
+ */
 export function repairCoachOutput(out: CoachOutput): CoachOutput {
-  const sentences = splitSentences(out.coachLine);
-  if (sentences.length <= MAX_COACH_SENTENCES) return out;
+  const d = (x: JudgedDimension | undefined) =>
+    x && {
+      ...x,
+      improve: stripProseDashes(x.improve),
+      citedMoment: stripProseDashes(x.citedMoment),
+    };
+  const dims = out.dimensions as CoachOutput["dimensions"] | undefined;
+  const clean: CoachOutput = {
+    ...out,
+    focus: stripProseDashes(out.focus),
+    strength: stripProseDashes(out.strength),
+    supply: {
+      ...out.supply,
+      upgrade: stripProseDashes(out.supply.upgrade),
+      note: stripProseDashes(out.supply.note),
+    },
+    coachLine: stripProseDashes(out.coachLine),
+    dimensions: dims
+      ? ({
+          structure: d(dims.structure),
+          credibility: d(dims.credibility),
+          engagement: d(dims.engagement),
+          confidence: d(dims.confidence),
+        } as CoachOutput["dimensions"])
+      : out.dimensions,
+  };
+  const sentences = splitSentences(clean.coachLine);
+  if (sentences.length <= MAX_COACH_SENTENCES) return clean;
   // Keep the first two and their terminators; the third is almost always
   // an extra flourish, which is exactly what the rule exists to remove.
   const kept = sentences.slice(0, MAX_COACH_SENTENCES).join(". ");
-  return { ...out, coachLine: `${kept}.` };
+  return { ...clean, coachLine: `${kept}.` };
 }
 
 /**
@@ -467,7 +515,9 @@ export async function coachRep(
       tier1,
       anchors
     );
-    if (problems.length === 0) return parsed;
+    // Clean output still gets the copy repair: a dash is not a problem
+    // worth a retry, but it never reaches the screen either.
+    if (problems.length === 0) return repairCoachOutput(parsed);
 
     const { hard, soft } = splitProblems(problems);
 

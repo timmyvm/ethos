@@ -5,6 +5,7 @@ import {
   localDayStartUtc,
   localStreak,
   shouldSend,
+  tzOffsetAt,
   type PushWindow,
 } from "./push";
 
@@ -145,5 +146,27 @@ describe("shouldSend and a late or dropped tick", () => {
     expect(
       shouldSend(window({ reminderHour: 23, quietFrom: 7, quietTo: 7 }), false, new Date(Date.UTC(2026, 7, 1, 14, 30)))
     ).toBe(false);
+  });
+});
+
+/*
+ * The offset a device sent when it armed goes stale at a daylight-saving
+ * change, and the people a reminder is for are the ones not opening the
+ * app to re-arm it. With the zone stored, the cron reads the offset the
+ * zone has at the tick.
+ */
+describe("tzOffsetAt", () => {
+  it("follows New York across the November change", () => {
+    expect(tzOffsetAt(new Date(Date.UTC(2026, 9, 30, 16)), "America/New_York")).toBe(240);
+    expect(tzOffsetAt(new Date(Date.UTC(2026, 10, 2, 16)), "America/New_York")).toBe(300);
+  });
+
+  it("follows Melbourne across the October change", () => {
+    expect(tzOffsetAt(new Date(Date.UTC(2026, 6, 1, 2)), "Australia/Melbourne")).toBe(-600);
+    expect(tzOffsetAt(new Date(Date.UTC(2026, 9, 26, 2)), "Australia/Melbourne")).toBe(-660);
+  });
+
+  it("answers null for a zone it does not know", () => {
+    expect(tzOffsetAt(new Date(), "Mars/Olympus_Mons")).toBeNull();
   });
 });

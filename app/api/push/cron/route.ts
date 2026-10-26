@@ -19,6 +19,7 @@ import {
   localDayStartUtc,
   localStreak,
   shouldSend,
+  tzOffsetAt,
 } from "@/lib/push";
 import { reminderBody } from "@/lib/reminders";
 
@@ -35,6 +36,8 @@ interface SubRow {
   auth: string;
   reminder_hour: number | null;
   tz_offset: number;
+  /** The device's IANA zone (0019); null on rows armed before it. */
+  tz?: string | null;
   quiet_from: number;
   quiet_to: number;
   last_sent_on: string | null;
@@ -97,9 +100,13 @@ export async function GET(req: NextRequest) {
 
   for (const sub of subs) {
     if (sub.reminder_hour === null) continue;
+    // The zone's offset at this tick, so a daylight-saving change since
+    // the device armed moves nothing; the stored offset only for rows
+    // that never sent a zone.
+    const off = (sub.tz ? tzOffsetAt(now, sub.tz) : null) ?? sub.tz_offset;
     const win = {
       reminderHour: sub.reminder_hour,
-      tzOffset: sub.tz_offset,
+      tzOffset: off,
       quietFrom: sub.quiet_from,
       quietTo: sub.quiet_to,
       lastSentOn: sub.last_sent_on,
@@ -108,7 +115,7 @@ export async function GET(req: NextRequest) {
     // Cheap gates first; the DB check only runs for real candidates.
     if (!shouldSend(win, false, now)) continue;
 
-    const dayStart = localDayStartUtc(now, sub.tz_offset).toISOString();
+    const dayStart = localDayStartUtc(now, off).toISOString();
     const { count, error: doneErr } = await db
       .from("reps")
       .select("id", { count: "exact", head: true })
@@ -133,7 +140,7 @@ export async function GET(req: NextRequest) {
       .limit(120);
     const streak = localStreak(
       (repRows ?? []).map((r) => new Date(r.created_at as string)),
-      sub.tz_offset,
+      off,
       now
     );
 
@@ -152,7 +159,7 @@ export async function GET(req: NextRequest) {
       sent++;
       await db
         .from("push_subscriptions")
-        .update({ last_sent_on: localDayKey(now, sub.tz_offset) })
+        .update({ last_sent_on: localDayKey(now, off) })
         .eq("endpoint", sub.endpoint);
     } catch (e) {
       const status = (e as { statusCode?: number }).statusCode;

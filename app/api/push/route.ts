@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromAuthHeader, supabaseAdmin } from "@/lib/db";
+import { validZone } from "@/lib/push";
 
 export const runtime = "nodejs";
 
@@ -22,6 +23,8 @@ interface SubscribeBody {
   };
   reminderHour?: number | null;
   tzOffset?: number;
+  /** The device's IANA zone, so the cron follows its DST changes (0019). */
+  tz?: string;
   quietFrom?: number;
   quietTo?: number;
 }
@@ -56,20 +59,29 @@ export async function POST(req: NextRequest) {
   }
 
   const hour = body?.reminderHour;
-  const { error } = await db.from("push_subscriptions").upsert(
-    {
-      endpoint,
-      user_id: auth.id,
-      p256dh,
-      auth: authKey,
-      reminder_hour:
-        typeof hour === "number" && hour >= 0 && hour <= 23 ? hour : null,
-      tz_offset: Math.trunc(body?.tzOffset ?? 0),
-      quiet_from: clampHour(body?.quietFrom, 22),
-      quiet_to: clampHour(body?.quietTo, 7),
-    },
+  const row = {
+    endpoint,
+    user_id: auth.id,
+    p256dh,
+    auth: authKey,
+    reminder_hour:
+      typeof hour === "number" && hour >= 0 && hour <= 23 ? hour : null,
+    tz_offset: Math.trunc(body?.tzOffset ?? 0),
+    quiet_from: clampHour(body?.quietFrom, 22),
+    quiet_to: clampHour(body?.quietTo, 7),
+  };
+  const table = db.from("push_subscriptions");
+  let { error } = await table.upsert(
+    { ...row, tz: validZone(body?.tz) },
     { onConflict: "endpoint" }
   );
+  // Until migration 0019 adds the column, the zone is refused by name:
+  // save the reminder without it rather than not at all.
+  if (error && /\btz\b/.test(error.message)) {
+    ({ error } = await db
+      .from("push_subscriptions")
+      .upsert(row, { onConflict: "endpoint" }));
+  }
   if (error) {
     console.error("push subscribe failed", error.message);
     return NextResponse.json(

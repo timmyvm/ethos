@@ -147,4 +147,30 @@ describe("the reminder cron", () => {
     const body = await (await tick()).json();
     expect(body.sent).toBe(1500);
   });
+
+  it("rings at the chosen hour after a daylight-saving change, from the stored zone", async () => {
+    vi.useFakeTimers();
+    try {
+      // Armed in New York in October (EDT, offset 240), hour 18, and not
+      // opened since. On 2 Nov (EST) 22:00 UTC is 17:00 there, 23:00 is 18:00.
+      subs = [{ ...due(1), reminder_hour: 18, tz_offset: 240, tz: "America/New_York" }];
+      vi.setSystemTime(new Date(Date.UTC(2026, 10, 2, 22, 5)));
+      expect((await (await tick()).json()).sent).toBe(0);
+      vi.setSystemTime(new Date(Date.UTC(2026, 10, 2, 23, 5)));
+      expect((await (await tick()).json()).sent).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps the stored offset for a row that never sent its zone", async () => {
+    vi.useFakeTimers();
+    try {
+      subs = [{ ...due(1), reminder_hour: 18, tz_offset: 240, tz: null }];
+      vi.setSystemTime(new Date(Date.UTC(2026, 10, 2, 22, 5)));
+      expect((await (await tick()).json()).sent).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

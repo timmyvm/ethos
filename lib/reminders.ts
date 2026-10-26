@@ -187,6 +187,15 @@ export async function armPush(prefs: Prefs = readPrefs()): Promise<boolean> {
         subscription: sub.toJSON(),
         reminderHour: prefs.reminderHour,
         tzOffset: new Date().getTimezoneOffset(),
+        // The zone itself, so the server follows its daylight-saving
+        // changes without waiting for this device to re-arm (0019).
+        tz: (() => {
+          try {
+            return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
+          } catch {
+            return undefined;
+          }
+        })(),
         quietFrom: prefs.quietFrom,
         quietTo: prefs.quietTo,
       }),

@@ -22,6 +22,39 @@ export interface PushWindow {
   lastSentOn: string | null;
 }
 
+/**
+ * The offset (in Date.getTimezoneOffset() terms, UTC+10 is -600) the IANA
+ * zone `tz` has at `now`; null for a zone this runtime does not know.
+ * The cron reads this rather than the offset stored at arming, which a
+ * daylight-saving change leaves an hour wrong (migration 0019).
+ */
+export function tzOffsetAt(now: Date, tz: string): number | null {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      hourCycle: "h23",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+    }).formatToParts(now);
+    const n = (t: string) => Number(parts.find((p) => p.type === t)?.value);
+    const asUtc = Date.UTC(n("year"), n("month") - 1, n("day"), n("hour"), n("minute"), n("second"));
+    const whole = Math.floor(now.getTime() / 1000) * 1000;
+    return Math.round((whole - asUtc) / 60_000);
+  } catch {
+    return null;
+  }
+}
+
+/** A real IANA zone name, short enough to store; null otherwise. */
+export function validZone(tz: unknown): string | null {
+  if (typeof tz !== "string" || tz.length === 0 || tz.length > 64) return null;
+  return tzOffsetAt(new Date(), tz) === null ? null : tz;
+}
+
 /** The instant shifted into the subscriber's local clock. */
 export function localClock(now: Date, tzOffset: number): Date {
   return new Date(now.getTime() - tzOffset * 60_000);

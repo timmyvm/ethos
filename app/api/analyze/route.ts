@@ -49,6 +49,21 @@ import { transcribe } from "@/lib/transcribe";
 export const runtime = "nodejs";
 export const maxDuration = 60; // Vercel Hobby cap
 
+/**
+ * How far back a client may date a recording. The outbox sends a take
+ * hours (or a long weekend) after it was spoken, and the streak, the
+ * freezes, the coins and the Log all bucket by when it was spoken. The
+ * time is the client's word, so it is clamped: never in the future, and
+ * never more than three days back.
+ */
+export const RECORDED_AT_SLACK_MS = 72 * 3_600_000;
+
+export function spokenAt(v: FormDataEntryValue | null, nowMs = Date.now()): Date | null {
+  const ms = numberOrNull(v);
+  if (ms === null) return null;
+  return new Date(Math.min(nowMs, Math.max(nowMs - RECORDED_AT_SLACK_MS, ms)));
+}
+
 export interface AnalyzeResponse {
   transcript: string;
   metrics: RepMetrics;
@@ -220,12 +235,17 @@ export async function POST(req: NextRequest) {
    * rep with nothing in it. A near-silent rep has nothing to judge, so
    * burning the day's one analysis on it would be theft.
    */
+  // When it was spoken, if the client says (the outbox's replay does).
+  const recordedAt = spokenAt(form.get("recordedAt"));
   const meterState = await readMeterState(userId).catch(() => null);
   const decision =
     scorable && meterState
       ? meter({
           state: meterState,
-          now: localDate(new Date(), numberOrNull(form.get("tzOffset"))),
+          // The judged read of the day it was spoken, on the user's own
+          // calendar. accrue never grants for an earlier day, so a
+          // backdated take can only cost that day's read, never mint one.
+          now: localDate(recordedAt ?? new Date(), numberOrNull(form.get("tzOffset"))),
           premium,
         })
       : null;
@@ -285,6 +305,7 @@ export async function POST(req: NextRequest) {
       captureMode,
       delivery,
       deliveryMoments,
+      createdAt: recordedAt?.toISOString(),
     });
     repId = saved?.id ?? null;
   } catch {

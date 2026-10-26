@@ -183,6 +183,9 @@ export async function saveRep(params: {
   /** Derived numbers only — raw video never reaches this process. */
   delivery?: DeliveryMetrics | null;
   deliveryMoments?: DeliveryMoment[] | null;
+  /** When it was spoken (ISO), already clamped by the route. Absent, the
+   *  column's default now() dates it at the insert. */
+  createdAt?: string;
 }): Promise<SavedRep | null> {
   const db = supabaseAdmin();
   if (!db) return null;
@@ -231,6 +234,7 @@ export async function saveRep(params: {
       delivery_metrics: params.delivery ? toRow(params.delivery) : null,
       presence_score: params.delivery?.presenceScore ?? null,
       delivery_moments: params.deliveryMoments ?? null,
+      ...(params.createdAt ? { created_at: params.createdAt } : {}),
     })
     .select("id")
     .single();
@@ -261,6 +265,8 @@ export async function saveRep(params: {
             ? "mod"
             : "rep",
       rep_id: data.id,
+      // The week's XP lands in the week it was spoken, with the recording.
+      ...(params.createdAt ? { created_at: params.createdAt } : {}),
     });
   }
 

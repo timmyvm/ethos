@@ -16,12 +16,28 @@ import {
   purchasedFreezes,
   spendFreezes,
 } from "./client-data";
+import { outboxAll } from "./rep-outbox";
 import {
   computeStreak,
   freezeBalance,
   rescuableDays,
   type StreakState,
 } from "./streak";
+
+/** As far back as the server will date a recording sent late (route.ts). */
+const PENDING_WINDOW_MS = 72 * 3_600_000;
+
+/**
+ * Days a recording is still on its way to: spoken, held in the outbox,
+ * not yet stored. The server will date it the day it was spoken, so a
+ * freeze must not be spent on that day in the meantime.
+ */
+async function pendingDates(now: Date): Promise<Date[]> {
+  const held = await outboxAll().catch(() => []);
+  return held
+    .filter((r) => now.getTime() - r.createdAt < PENDING_WINDOW_MS)
+    .map((r) => new Date(r.createdAt));
+}
 
 export interface FreezeSync {
   streak: StreakState;
@@ -39,7 +55,13 @@ export async function syncFreezes(
   const row = await fetchStreakRow().catch(() => null);
   let equipped = row?.freezes_equipped ?? 0;
 
-  const candidates = rescuableDays(repDates, frozenDays, equipped, now);
+  const pending = await pendingDates(now);
+  const candidates = rescuableDays(
+    [...repDates, ...pending],
+    frozenDays,
+    equipped,
+    now
+  );
   let rescued: Date[] = [];
   if (candidates.length > 0) {
     const spent = await spendFreezes(candidates, equipped).catch(() => 0);

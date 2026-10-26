@@ -114,11 +114,19 @@ export async function outboxDelete(id: string): Promise<void> {
   db.close();
 }
 
-/** Rebuild the /api/analyze form from a stored record. */
+/**
+ * Rebuild the /api/analyze form from a stored record. It carries when
+ * the recording was spoken (`recordedAt`), so a take the outbox sends
+ * hours later still lands on its own day. Added here rather than to
+ * `fields`, so recordings already held on a device carry it too.
+ */
 export function replayForm(rep: OutboxRep): FormData {
   const form = new FormData();
   form.append("audio", rep.audio, rep.filename);
   for (const [k, v] of Object.entries(rep.fields)) form.append(k, v);
+  if (!("recordedAt" in rep.fields)) {
+    form.append("recordedAt", String(rep.createdAt));
+  }
   return form;
 }
 

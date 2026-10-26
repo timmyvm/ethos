@@ -641,6 +641,9 @@ function RepScreen() {
     const cfg = configRef.current;
     const mode = captureModeRef.current;
     const live = () => lessonKeyRef.current === key;
+    // When it was spoken: the outbox sends this with the take
+    // (`recordedAt`), so a late upload still lands on this day.
+    const spokenAt = Date.now();
     buzz([20, 40, 20]);
     setPhase("analyzing");
     setInterruption(null);
@@ -700,9 +703,10 @@ function RepScreen() {
         xpMultiplier: String(cfg.xpMultiplier),
         captureMode: mode,
         // The judged-tier allowance resets on the user's own calendar
-        // day, not on UTC's (§3) — captured now, so a resumed upload
-        // still lands on the day it was spoken.
-        tzOffset: String(new Date().getTimezoneOffset()),
+        // day, not on UTC's (§3). The offset names the calendar; the
+        // outbox's `recordedAt` (replayForm) names the moment, which is
+        // what lands a resumed upload on the day it was spoken.
+        tzOffset: String(new Date(spokenAt).getTimezoneOffset()),
       };
       if (envelope.levels.length > 0) {
         fields.envelope = serializeEnvelope(envelope);
@@ -720,7 +724,7 @@ function RepScreen() {
       // short of clearing site data.
       const rep: OutboxRep = {
         id: newOutboxId(cfg.lessonId),
-        createdAt: Date.now(),
+        createdAt: spokenAt,
         audio: blob,
         filename: `rep.${ext}`,
         fields,

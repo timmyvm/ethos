@@ -475,3 +475,63 @@ describe("rate limiting", () => {
     expect(vi.mocked(consumeRateLimit).mock.lastCall?.[1]).toBe("anon");
   });
 });
+
+/*
+ * A recording the outbox sends later belongs to the day it was spoken
+ * (streak, freezes, coins and the Log all bucket by reps.created_at), and
+ * so does the judged read it spends. The client says when; the server
+ * clamps it, so a forged time can move a take back three days at most.
+ */
+describe("the day a recording was spoken", () => {
+  function sentLater(at: number): FormData {
+    const form = audioForm();
+    form.append("recordedAt", String(at));
+    return form;
+  }
+  const savedAt = () =>
+    (vi.mocked(saveRep).mock.calls.at(-1)?.[0] as { createdAt?: string })
+      .createdAt;
+
+  it("stores the recording at the time it was spoken, not when it uploaded", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    const spoken = Date.now() - 9 * 3_600_000;
+    await post(sentLater(spoken));
+    expect(savedAt()).toBe(new Date(spoken).toISOString());
+  });
+
+  it("never dates a recording in the future, or more than three days back", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    const before = Date.now();
+    await post(sentLater(before + 3_600_000));
+    const future = new Date(savedAt()!).getTime();
+    expect(future).toBeGreaterThanOrEqual(before);
+    expect(future).toBeLessThanOrEqual(Date.now());
+
+    const start = Date.now();
+    await post(sentLater(start - 10 * 86_400_000));
+    const back = new Date(savedAt()!).getTime();
+    expect(back).toBeGreaterThanOrEqual(start - 72 * 3_600_000);
+    expect(back).toBeLessThanOrEqual(Date.now() - 72 * 3_600_000 + 1_000);
+  });
+
+  it("leaves the time to the database when the form does not say", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    await post(audioForm());
+    expect(savedAt()).toBeUndefined();
+  });
+
+  it("spends the judged read of the day the recording was spoken", async () => {
+    coachedFixture();
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "user-1", anonymous: false });
+    const yesterday = Date.now() - 24 * 3_600_000;
+    // Yesterday's read is already spent; today's has not been granted yet.
+    vi.mocked(readMeterState).mockResolvedValue({
+      balance: 0,
+      accruedOn: dateKey(new Date(yesterday)),
+      usedAt: new Date(yesterday).toISOString(),
+    });
+    const body = await (await post(sentLater(yesterday))).json();
+    expect(coachRep).not.toHaveBeenCalled();
+    expect(body.judged).toMatchObject({ ran: false, capped: true });
+  });
+});

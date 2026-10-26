@@ -48,6 +48,12 @@ describe("replayForm", () => {
     expect(form.get("tzOffset")).toBe("-600");
     expect(form.get("audio")).toBeInstanceOf(Blob);
   });
+
+  it("says when the recording was spoken, so a late upload lands on its day", () => {
+    const r = rep({ lessonId: "l1" });
+    r.createdAt = Date.UTC(2026, 9, 20, 12, 50);
+    expect(replayForm(r).get("recordedAt")).toBe(String(r.createdAt));
+  });
 });
 
 describe("sendWithRetry", () => {

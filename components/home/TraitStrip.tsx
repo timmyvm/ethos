@@ -25,11 +25,13 @@ import type { RepRow } from "@/lib/client-data";
  * ending in the row's door (Lessons' rows, the Log's tables, You's
  * traits).
  *
- * The trait's colour is the accent and nothing more: a 40px ring whose
- * 3px arc is the tone on the app's `sand` trough (every tone clears 3:1
- * there, the light ochre through its deeper `--ring-arc`), with the
- * percentile in ink inside it. The name is in ink, the measurement a
- * number before its unit (today-3: the unit prints in full and wraps).
+ * The trait's colour is the accent and nothing more: its 8px mark
+ * before the name. The 40px ring is a measurement, so it is drawn in
+ * stone (`quiet`, a 3px arc on the app's `sand`, 4.3:1 light and 5:1
+ * dark) with the percentile in ink inside it; five rings in five tones
+ * was the five-hue row the tester's "everything competes" was about.
+ * The name is in ink, the measurement a number before its unit
+ * (today-3: the unit prints in full and wraps).
  * The direction and the target live one tap away on the trait's own
  * screen. Day zero draws the same five rows with empty rings.
  */
@@ -62,7 +64,7 @@ function TraitRow({
         value={reading?.fraction ?? null}
         size={40}
         thickness={3}
-        tone="trait"
+        tone="quiet"
         track="var(--color-sand)"
         delay={delay}
         provisional={reading?.quality === "provisional"}
@@ -79,7 +81,10 @@ function TraitRow({
         </span>
       </Ring>
       <span className="min-w-0 flex-1">
-        <span className="font-display block text-row">{t.name}</span>
+        <span className="font-display flex items-center gap-1.5 text-row">
+          <span aria-hidden className="trait-dot" />
+          {t.name}
+        </span>
         {raw !== null && (
           <span className="mt-0.5 block text-caption text-pretty text-stone-500">
             <span className="font-display font-bold tabular-nums text-ink">{raw}</span>{" "}

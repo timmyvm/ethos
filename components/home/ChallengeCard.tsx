@@ -61,9 +61,9 @@ import {
  * "everything competes": the line's 56px ring on its tinted track was a
  * blue disc under an amber card. The stage above is Today's one hero
  * now, so the line steps down to a secondary row: a 44px ring with a 4px
- * arc in its tone on the app's sand trough (the accent rule: colour on
- * the arc, nowhere else), the trait's 8px mark and its name in ink, the
- * flag and the check in ink.
+ * stone arc on the app's sand trough, the trait's 8px mark (its one
+ * colour, the accent rule) and its name in ink, the flag and the check
+ * in ink.
  *
  * NO BUTTON. The one tap on this screen belongs to the floor card.
  */
@@ -82,7 +82,7 @@ export function ChallengeCard({ challenge }: { challenge: Challenge }) {
           value={c.value}
           size={44}
           thickness={4}
-          tone="trait"
+          tone="quiet"
           track={LINE_TRACK}
           delay={240}
           state={c.closed ? "closing" : "idle"}

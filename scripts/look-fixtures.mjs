@@ -250,7 +250,18 @@ const user = { id: "u1", aud: "authenticated", role: "authenticated", email: "ti
 const session = { access_token: jwt, token_type: "bearer", expires_in: 3600 * 24, expires_at: exp, refresh_token: "r1", user };
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*", "Access-Control-Allow-Methods": "GET,POST,PATCH,PUT,DELETE,OPTIONS", "Access-Control-Expose-Headers": "*" };
 const json = (body, status = 200) => ({ status, headers: { ...cors, "Content-Type": "application/json" }, body: JSON.stringify(body) });
-const TABLES = { reps, xp_events, coin_ledger, lexicon, streak_freezes, onboarding: [] };
+/*
+ * LOOK_FRESH=1: an account that finished the introduction and has not
+ * recorded yet, the state a first-time tester meets Today and Lessons
+ * in. No recordings, no XP, no coins, no lexicon, no freezes; the
+ * profile (the name typed in the introduction) and the plan stay.
+ *
+ *   LOOK_FRESH=1 node scripts/look.mjs before-fresh today lessons
+ */
+export const FRESH = process.env.LOOK_FRESH === "1";
+const TABLES = FRESH
+  ? { reps: [], xp_events: [], coin_ledger: [], lexicon: [], streak_freezes: [], onboarding: [] }
+  : { reps, xp_events, coin_ledger, lexicon, streak_freezes, onboarding: [] };
 
 async function supabase(route) {
   const req = route.request();

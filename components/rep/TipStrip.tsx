@@ -225,7 +225,9 @@ export function TipLine({
   tip: string;
   className?: string;
   /** On a hero stage (Today), where the words keep to the stage's left
-      60%: the label at 14px, balanced over two lines when it runs long. */
+      60%: the label is the stage's line, Outfit 13/700 in the stage's ink
+      (Practice's "7 days left"), balanced over two lines when it runs
+      long. */
   compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -239,14 +241,16 @@ export function TipLine({
         aria-controls={`${id}-tip`}
         aria-label={`${face.label}. ${open ? "Hide" : "Show"} the full tip.`}
         onClick={() => setOpen(!open)}
-        className="press -mx-1 flex min-h-11 w-[calc(100%+0.5rem)] items-center gap-3 rounded-control px-1 text-left"
+        className={`press -mx-1 flex min-h-11 w-[calc(100%+0.5rem)] items-center rounded-control px-1 text-left ${
+          compact ? "gap-2" : "gap-3"
+        }`}
       >
         <span aria-hidden className="tip-glyph">
-          <Glyph kind={face.glyph} size={20} />
+          <Glyph kind={face.glyph} size={compact ? 18 : 20} />
         </span>
         <span
           className={`font-display min-w-0 flex-1 font-bold leading-tight ${
-            compact ? "text-row text-balance" : "text-body"
+            compact ? "stage-ink text-link text-balance" : "text-body"
           }`}
         >
           {face.label}
@@ -257,7 +261,13 @@ export function TipLine({
       </button>
       <div id={`${id}-tip`} aria-live="polite">
         {open && (
-          <p className="reveal mt-1.5 pl-8 text-row font-normal leading-snug text-stone-600">{tip}</p>
+          <p
+            className={`reveal mt-1.5 text-row font-normal leading-snug text-stone-600 ${
+              compact ? "pl-[26px]" : "pl-8"
+            }`}
+          >
+            {tip}
+          </p>
         )}
       </div>
     </div>

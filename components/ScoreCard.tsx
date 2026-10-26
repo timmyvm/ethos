@@ -52,7 +52,6 @@ export function ScoreCard({
   const hill = !empty && series && series.length > 1 ? series : null;
   return (
     <HeroStage
-      label="Your Ethos"
       eyebrow="Your Ethos"
       artSize={hill ? 136 : undefined}
       artFluid

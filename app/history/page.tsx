@@ -106,6 +106,15 @@ const INSIGHT_TRAIT: Record<string, TraitId> = {
  * units stated once in a header. Anything that needs its own shape
  * (the filler heatmap) is one tap down from the row it explains.
  */
+/** Where the Log was scrolled when a recording was opened from it. */
+const PLACE_KEY = "ethos.log.place";
+
+function keepPlace() {
+  try {
+    sessionStorage.setItem(PLACE_KEY, String(window.scrollY));
+  } catch {}
+}
+
 export default function HistoryPage() {
   const [reps, setReps] = useState<RepRow[] | null>(null);
   /** Every recording, a few columns each: the counts and Day 1. */
@@ -138,6 +147,25 @@ export default function HistoryPage() {
       setReps(read.data[0]);
     } else setFailed(true);
   }, []);
+
+  /*
+   * The Log's place, kept across opening a recording. Both ways back (the
+   * recording's "Log" link, a push, and the browser's back, whose restore
+   * runs against the short skeleton page) landed near the top. Read and
+   * cleared once, after the rows have landed, so the scroll is measured
+   * against the real page; opening the Log from its tab still starts at
+   * the top.
+   */
+  useEffect(() => {
+    if (reps === null) return;
+    let y: number | null = null;
+    try {
+      const raw = sessionStorage.getItem(PLACE_KEY);
+      sessionStorage.removeItem(PLACE_KEY);
+      y = raw === null ? null : Number(raw);
+    } catch {}
+    if (y !== null && Number.isFinite(y) && y > 0) window.scrollTo({ top: y });
+  }, [reps]);
 
   useEffect(() => {
     void load();
@@ -478,6 +506,7 @@ export default function HistoryPage() {
                 <Link
                   key={r.id}
                   href={`/rep/${r.id}`}
+                  onClick={keepPlace}
                   aria-label={label}
                   className={`press-row ${RECORD_GRID} items-center border-t border-hairline py-3`}
                 >

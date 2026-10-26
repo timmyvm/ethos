@@ -10,6 +10,8 @@ import { Disclosure } from "@/components/ui/Disclosure";
 import { NORMS } from "@/content/norms";
 import { TRAIT, type TraitId } from "@/content/traits";
 import { fetchReps } from "@/lib/client-data";
+import { readable } from "@/lib/load";
+import { ErrorLine } from "@/components/ui/ErrorState";
 import { DURATION } from "@/lib/motion";
 import { buzz } from "@/lib/prefs";
 import { repHref } from "@/lib/rep-config";
@@ -76,6 +78,10 @@ function Lesson() {
    * a 0 (STATE: unknown progress is never drawn as zero).
    */
   const [loaded, setLoaded] = useState(false);
+  /* The read failed or never answered: "didn't load", with a retry,
+     never "Record once" to someone who has (#147). */
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   /*
    * `?done=1` is how the recorder hands the lesson back: the walk goes
    * out to /rep and returns to the last step, where the new reading is
@@ -87,9 +93,16 @@ function Lesson() {
 
   useEffect(() => {
     let live = true;
-    fetchReps(30)
-      .then((reps) => {
+    setFailed(false);
+    // Under the page-level ceiling, so a hung read ends in the retry.
+    void readable(() => fetchReps(30)).then((read) => {
         if (!live) return;
+        if (!read.ok) {
+          setFailed(true);
+          setLoaded(true);
+          return;
+        }
+        const reps = read.data;
         if (reps.length > 0) {
           const last = readTraitsFromRow(reps[reps.length - 1]);
           setReadings(last);
@@ -105,14 +118,24 @@ function Lesson() {
           }
         }
         setLoaded(true);
-      })
-      .catch(() => {
-        if (live) setLoaded(true);
       });
     return () => {
       live = false;
     };
-  }, [id]);
+  }, [id, attempt]);
+
+  const retry = () => {
+    setLoaded(false);
+    setFailed(false);
+    setAttempt((n) => n + 1);
+  };
+  /* Above the tap, where LessonScreen anchors an aside: a failed read
+     says so and offers the read again. */
+  const readFailed = failed ? (
+    <ErrorLine className="text-center" onRetry={retry}>
+      Your reading didn&apos;t load.
+    </ErrorLine>
+  ) : undefined;
 
   if (!def) notFound();
 
@@ -202,10 +225,13 @@ function Lesson() {
          * line while the read is in flight, so the block does not
          * move when it lands.
          */
+        aside={readFailed}
         fineprint={
           !loaded
             ? " "
-            : !now
+            : failed
+              ? undefined
+              : !now
               ? "Record once to place this trait."
               : provisional
                 ? "The percentile is an estimate."
@@ -314,15 +340,16 @@ function Lesson() {
       {...frame}
       onBack={back}
       eyebrow={def.name}
+      aside={readFailed}
       title={
         /* "Up 26" is a claim about the population. Where the scale is
            provisional there is no such claim to make, only a second
            measurement, so the screen says that instead. */
         delta !== null && delta > 0 && !provisional
           ? `${def.name}, up ${delta}.`
-          : loaded && !now
-            ? /* The read came back with nothing to compare (or failed):
-                 no claim that anything was measured. */
+          : loaded && !now && !failed
+            ? /* The read came back with nothing to compare: no claim
+                 that anything was measured. A failed read is not that. */
               `${def.name}, no reading yet.`
             : `${def.name}, measured again.`
       }

@@ -5,7 +5,7 @@
  * double-grant, and re-running is a no-op.
  *
  * Order matters. Spend first (rescue the gap while it's still
- * rescuable), then grant, so a freeze earned today can't be eaten by a
+ * rescuable), then count, so a freeze earned today can't be eaten by a
  * gap it wasn't around for.
  */
 
@@ -24,6 +24,9 @@ import {
   rescuableDays,
   type StreakState,
 } from "./streak";
+
+/** What streaks.freezes_equipped can store: 0001's check is 0..2. */
+const STORED_FREEZE_CAP = 2;
 
 /** As far back as the server will date a recording sent late (route.ts). */
 const PENDING_WINDOW_MS = 72 * 3_600_000;
@@ -53,38 +56,51 @@ export async function syncFreezes(
   repDates: Date[],
   now = new Date()
 ): Promise<FreezeSync> {
-  let frozenDays = await fetchFrozenDays().catch(() => [] as Date[]);
-  const row = await fetchStreakRow().catch(() => null);
-  let equipped = row?.freezes_equipped ?? 0;
+  // A failed read must not look like "nothing spent yet": it would pay
+  // for a rescue twice and write a count derived from missing rows.
+  let frozenDays: Date[] | null = await fetchFrozenDays().catch(() => null);
+  const purchased = await purchasedFreezes().catch(() => 0);
 
-  const pending = await pendingDates(now);
-  const candidates = rescuableDays(
-    [...repDates, ...pending],
-    frozenDays,
-    equipped,
-    now
-  );
   let rescued: Date[] = [];
-  if (candidates.length > 0) {
-    const spent = await spendFreezes(candidates, equipped).catch(() => 0);
-    if (spent > 0) {
-      rescued = candidates.slice(0, spent);
-      frozenDays = [...frozenDays, ...rescued];
-      equipped = Math.max(0, equipped - spent);
+  if (frozenDays) {
+    // What is held is derived, never read back from streaks.freezes_equipped:
+    // production's check stores 0..2 (0001) while three can be held
+    // (#174), so the column could never say three. A rescue never moves
+    // `longest` (a freeze bridges, it never counts, and rescued days come
+    // after the last covered one), so before and after agree.
+    const before = computeStreak(repDates, now, frozenDays);
+    const held = freezeBalance(before.longest, frozenDays.length, purchased);
+    const pending = await pendingDates(now);
+    const candidates = rescuableDays(
+      [...repDates, ...pending],
+      frozenDays,
+      held,
+      now
+    );
+    if (candidates.length > 0) {
+      const spent = await spendFreezes(candidates, held).catch(() => 0);
+      if (spent > 0) {
+        rescued = candidates.slice(0, spent);
+        frozenDays = [...frozenDays, ...rescued];
+      }
     }
   }
 
-  const streak = computeStreak(repDates, now, frozenDays);
+  const days = frozenDays ?? [];
+  const streak = computeStreak(repDates, now, days);
+  const equipped = frozenDays
+    ? freezeBalance(streak.longest, days.length, purchased)
+    : 0;
 
-  const target = freezeBalance(
-    streak.longest,
-    frozenDays.length,
-    await purchasedFreezes().catch(() => 0)
-  );
-  if (target !== equipped) {
-    const granted = await grantFreezes(target).catch(() => equipped);
-    equipped = granted || equipped;
+  // The column stays a mirror for anyone reading the table, clamped to
+  // what its check accepts, and is never read back.
+  if (frozenDays) {
+    const mirror = Math.min(STORED_FREEZE_CAP, equipped);
+    const row = await fetchStreakRow().catch(() => null);
+    if (row?.freezes_equipped !== mirror) {
+      await grantFreezes(mirror).catch(() => 0);
+    }
   }
 
-  return { streak, frozenDays, equipped, rescued };
+  return { streak, frozenDays: days, equipped, rescued };
 }

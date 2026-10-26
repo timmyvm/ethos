@@ -456,7 +456,13 @@ export async function grantFreezes(target: number): Promise<number> {
       { user_id: userId, freezes_equipped: target },
       { onConflict: "user_id" }
     );
-  return error ? 0 : target;
+  if (error) {
+    // The coin grant's lesson: a write that fails without a word is how
+    // a count stays wrong for months.
+    console.warn("[freezes] grant failed:", error.message);
+    return 0;
+  }
+  return target;
 }
 
 /**

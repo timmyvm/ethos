@@ -4,6 +4,8 @@ import {
   DAILY_MAX_SECONDS,
   TIGHT_MAX_SECONDS,
   repHref,
+  repKey,
+  sameRepScreen,
   resolveRepConfig,
   topicFromLessonId,
 } from "./rep-config";
@@ -116,5 +118,31 @@ describe("repHref", () => {
     expect(repHref({ lesson: "f1", mods: ["no-notes", "tight"] })).toBe(
       "/rep?lesson=f1&mods=no-notes%2Ctight"
     );
+  });
+});
+
+describe("repKey and sameRepScreen (Go again)", () => {
+  const here = (s: string) => new URLSearchParams(s);
+
+  it("keys on mods too, so dropping or changing them is a new screen", () => {
+    expect(repKey(here("lesson=f1&mods=tight"))).not.toBe(
+      repKey(here("lesson=f1"))
+    );
+  });
+
+  it("ignores where the recording hands back to", () => {
+    expect(repKey(here("lesson=f1&back=%2Flessons%2Fx"))).toBe(
+      repKey(here("lesson=f1"))
+    );
+  });
+
+  it("knows a push to the address already on screen goes nowhere", () => {
+    expect(sameRepScreen(repHref({ lesson: "f1" }), here("lesson=f1"))).toBe(true);
+    expect(sameRepScreen(repHref({ lesson: "p3" }), here("lesson=f1"))).toBe(false);
+    expect(
+      sameRepScreen(repHref({ lesson: "f1" }), here("lesson=f1&mods=tight"))
+    ).toBe(false);
+    expect(sameRepScreen("/", here("lesson=f1"))).toBe(false);
+    expect(sameRepScreen("/games", here(""))).toBe(false);
   });
 });

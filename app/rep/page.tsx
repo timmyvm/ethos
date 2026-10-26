@@ -108,7 +108,13 @@ import { nextDrill } from "@/lib/drills";
 import { draw, gameById } from "@/lib/games";
 import { lessonById } from "@/content/lessons";
 import { parsePracticeId } from "@/lib/lesson-progress";
-import { repHref, resolveRepConfig, type RepConfig } from "@/lib/rep-config";
+import {
+  repHref,
+  repKey,
+  resolveRepConfig,
+  sameRepScreen,
+  type RepConfig,
+} from "@/lib/rep-config";
 import {
   clearInFlight,
   markInFlight,
@@ -222,9 +228,10 @@ function RepScreen() {
    * showing the rep you just finished. Reported by Timothy as "the next
    * lesson button doesn't take you to the next lesson".
    *
-   * Resetting on lessonId is what makes the navigation real.
+   * Resetting on lessonId is what makes the navigation real. The key
+   * carries the mods too, so a push that drops or changes them resets.
    */
-  const lessonKey = `${searchParams.get("lesson") ?? ""}|${searchParams.get("topic") ?? ""}|${searchParams.get("boss") ?? ""}|${searchParams.get("game") ?? ""}:${searchParams.get("q") ?? ""}`;
+  const lessonKey = repKey(searchParams);
   const lessonKeyRef = useRef(lessonKey);
   const [seconds, setSeconds] = useState(0);
   const [frameLeft, setFrameLeft] = useState(FRAME_SECONDS);
@@ -898,6 +905,7 @@ function RepScreen() {
       return null;
     });
     setPhase("idle");
+    window.scrollTo({ top: 0 });
   }, []);
 
   /*
@@ -1621,9 +1629,10 @@ function Results({
   onRetake: () => void;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   /* Where this recording came from, if a lesson sent it (#258). Read
      here rather than threaded down through eighteen props. */
-  const backTo = safeBack(useSearchParams().get("back"));
+  const backTo = safeBack(searchParams.get("back"));
   const [step, setStep] = useState(0);
   const section = STEPS[step].key;
   const last = step === STEPS.length - 1;
@@ -1689,10 +1698,21 @@ function Results({
     repCount: repsNow.length,
     shown: proMomentShown(),
   });
+  /*
+   * Every exit lands here. "Go again" from the address already on screen
+   * would push the same URL, which Next treats as nothing (same route,
+   * same key, no reset), so the tap and the walls' "Not now" were dead.
+   * The recording on screen resets in place instead: Go again stands in
+   * for the hidden Retake (#220).
+   */
+  const go = (href: string) => {
+    if (sameRepScreen(href, searchParams)) onRetake();
+    else router.push(href);
+  };
   const exit = (href: string) => {
     if (gate) setGateTo(href);
     else if (proDue) setProTo(href);
-    else router.push(href);
+    else go(href);
   };
 
   /*
@@ -1760,7 +1780,7 @@ function Results({
         moment={gate}
         index={result.ethosIndex}
         streak={streakNow}
-        onSkip={() => router.push(gateTo)}
+        onSkip={() => go(gateTo)}
       />
     );
   }
@@ -1770,7 +1790,7 @@ function Results({
       <ProgressMoment
         reps={repsNow}
         days={daysSpoken}
-        onSkip={() => router.push(proTo)}
+        onSkip={() => go(proTo)}
       />
     );
   }

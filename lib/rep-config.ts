@@ -311,3 +311,28 @@ export function repHref(opts: {
   const s = q.toString();
   return s ? `/rep?${s}` : "/rep";
 }
+
+/**
+ * Which recording a /rep address asks for: everything that changes the
+ * take (lesson, topic, boss, game, question, mods), and nothing that only
+ * says where to go after it (`back`). The recording screen resets when
+ * this changes, and only then.
+ */
+const REP_KEY_PARAMS = ["lesson", "topic", "boss", "game", "q", "mods"] as const;
+
+export function repKey(params: { get(k: string): string | null }): string {
+  return REP_KEY_PARAMS.map((k) => params.get(k) ?? "").join("|");
+}
+
+/**
+ * True when `href` is the recording already on screen. Pushing it is a
+ * no-op in Next (same route, same key, nothing remounts or resets), so
+ * a caller resets in place instead: "Go again" on the address you are on.
+ */
+export function sameRepScreen(
+  href: string,
+  current: { get(k: string): string | null }
+): boolean {
+  const u = new URL(href, "http://ethos.local");
+  return u.pathname === "/rep" && repKey(u.searchParams) === repKey(current);
+}

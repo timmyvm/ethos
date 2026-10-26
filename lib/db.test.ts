@@ -6,25 +6,45 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  */
 type Insert = { table: string; row: Record<string, unknown> };
 let inserts: Insert[] = [];
+let removed: string[] = [];
+/** The reps insert's answer: a stored row, or the unique index refusing it. */
+let repInsert: { data: { id: string } | null; error: { code: string; message: string } | null } = {
+  data: { id: "rep-1" },
+  error: null,
+};
+/** What a lookup by (user, client_id) finds. */
+let existing: { id: string } | null = null;
 
 function fakeClient() {
   return {
     storage: {
       from: () => ({
         upload: async () => ({ error: null }),
+        remove: async (paths: string[]) => {
+          removed.push(...paths);
+          return { error: null };
+        },
       }),
     },
-    from: (table: string) => ({
-      insert: (row: Record<string, unknown>) => {
-        inserts.push({ table, row });
-        return {
-          select: () => ({
-            single: async () => ({ data: { id: "rep-1" }, error: null }),
-          }),
-          then: (ok: (v: unknown) => unknown) => Promise.resolve({ error: null }).then(ok),
-        };
-      },
-    }),
+    from: (table: string) => {
+      const lookup = {
+        select: () => lookup,
+        eq: () => lookup,
+        maybeSingle: async () => ({ data: existing, error: null }),
+      };
+      return {
+        ...lookup,
+        insert: (row: Record<string, unknown>) => {
+          inserts.push({ table, row });
+          return {
+            select: () => ({
+              single: async () => (table === "reps" ? repInsert : { data: { id: "x" }, error: null }),
+            }),
+            then: (ok: (v: unknown) => unknown) => Promise.resolve({ error: null }).then(ok),
+          };
+        },
+      };
+    },
   };
 }
 
@@ -61,6 +81,9 @@ function params(extra: Partial<Parameters<typeof saveRep>[0]> = {}) {
 
 beforeEach(() => {
   inserts = [];
+  removed = [];
+  repInsert = { data: { id: "rep-1" }, error: null };
+  existing = null;
 });
 
 describe("saveRep", () => {
@@ -77,5 +100,24 @@ describe("saveRep", () => {
     await saveRep(params());
     const rep = inserts.find((i) => i.table === "reps")!.row;
     expect("created_at" in rep).toBe(false);
+  });
+});
+
+describe("saveRep and a recording sent twice", () => {
+  it("stores the recording's key", async () => {
+    await saveRep(params({ clientId: "k1" }));
+    expect(inserts.find((i) => i.table === "reps")!.row.client_id).toBe("k1");
+  });
+
+  it("answers the stored recording when the key is already taken, and pays nothing twice", async () => {
+    repInsert = { data: null, error: { code: "23505", message: "duplicate key" } };
+    existing = { id: "rep-first" };
+    const saved = await saveRep(
+      params({ clientId: "k1", coach: { supply: { original: "a", upgrade: "b", note: "" } } as never })
+    );
+    expect(saved).toEqual({ id: "rep-first", audioPath: null, duplicate: true });
+    expect(inserts.some((i) => i.table === "xp_events")).toBe(false);
+    expect(inserts.some((i) => i.table === "lexicon")).toBe(false);
+    expect(removed).toHaveLength(1);
   });
 });

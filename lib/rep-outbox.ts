@@ -147,6 +147,9 @@ export function replayForm(rep: OutboxRep): FormData {
   if (!("recordedAt" in rep.fields)) {
     form.append("recordedAt", String(rep.createdAt));
   }
+  // The recording's key: every resend of this take carries the same one,
+  // so the server stores it once however many times it arrives.
+  if (!("clientId" in rep.fields)) form.append("clientId", rep.id);
   return form;
 }
 

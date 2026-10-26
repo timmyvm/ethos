@@ -8,6 +8,7 @@ vi.mock("@/lib/coach", async (importOriginal) => ({
 }));
 vi.mock("@/lib/db", () => ({
   saveRep: vi.fn(async () => null),
+  findRepByClientId: vi.fn(async () => null),
   getUserFromAuthHeader: vi.fn(async () => null),
   previousEthosIndex: vi.fn(async () => null),
   previousPresence: vi.fn(async () => null),
@@ -36,6 +37,7 @@ import { POST } from "@/app/api/analyze/route";
 import { judgeAccuracy } from "@/lib/accuracy";
 import { coachRep } from "@/lib/coach";
 import {
+  findRepByClientId,
   getUserFromAuthHeader,
   isPremium,
   readMeterState,
@@ -104,6 +106,9 @@ beforeEach(() => {
   vi.mocked(judgeAccuracy).mockReset();
   vi.mocked(judgeAccuracy).mockResolvedValue(null);
   vi.mocked(saveRep).mockClear();
+  vi.mocked(saveRep).mockResolvedValue(null);
+  vi.mocked(findRepByClientId).mockReset();
+  vi.mocked(findRepByClientId).mockResolvedValue(null);
   vi.mocked(writeMeterState).mockClear();
   vi.mocked(getUserFromAuthHeader).mockResolvedValue(null);
   vi.mocked(consumeRateLimit).mockResolvedValue({
@@ -533,5 +538,54 @@ describe("the day a recording was spoken", () => {
     const body = await (await post(sentLater(yesterday))).json();
     expect(coachRep).not.toHaveBeenCalled();
     expect(body.judged).toMatchObject({ ran: false, capped: true });
+  });
+});
+
+/*
+ * A lost response (the phone switched networks while the server wrote
+ * the row) or a second tab resends the same recording. The outbox id
+ * travels as clientId, and a resend gets the stored recording back
+ * instead of a second row, double XP and a spent judged read.
+ */
+describe("a recording sent twice", () => {
+  function keyed(id = "1792-f1-abcd1234"): FormData {
+    const form = audioForm();
+    form.append("clientId", id);
+    return form;
+  }
+
+  it("answers a resend with the recording already stored, before the limiter and Whisper", async () => {
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "user-1", anonymous: false });
+    vi.mocked(findRepByClientId).mockResolvedValue("rep-1");
+    vi.mocked(consumeRateLimit).mockClear();
+    const res = await post(keyed());
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ repId: "rep-1", duplicate: true });
+    expect(findRepByClientId).toHaveBeenCalledWith("user-1", "1792-f1-abcd1234");
+    expect(consumeRateLimit).not.toHaveBeenCalled();
+    expect(transcribe).not.toHaveBeenCalled();
+    expect(saveRep).not.toHaveBeenCalled();
+  });
+
+  it("stores the key with a first send", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "user-1", anonymous: false });
+    await post(keyed());
+    expect(vi.mocked(saveRep).mock.calls[0][0]).toMatchObject({ clientId: "1792-f1-abcd1234" });
+  });
+
+  it("answers the stored recording when two sends race past the lookup", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "user-1", anonymous: false });
+    vi.mocked(saveRep).mockResolvedValue({ id: "rep-1", audioPath: null, duplicate: true });
+    expect(await (await post(keyed())).json()).toEqual({ repId: "rep-1", duplicate: true });
+  });
+
+  it("ignores a key that is not an outbox id", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "user-1", anonymous: false });
+    await post(keyed("x".repeat(300)));
+    expect(findRepByClientId).not.toHaveBeenCalled();
+    expect(vi.mocked(saveRep).mock.calls[0][0]).toMatchObject({ clientId: null });
   });
 });

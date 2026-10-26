@@ -16,6 +16,7 @@ import { judgeAccuracy, type AccuracyResult } from "@/lib/accuracy";
 import { coachRep, tier2Scores, type CoachOutput } from "@/lib/coach";
 import { COLD_TOPICS } from "@/lib/cold-topics";
 import {
+  findRepByClientId,
   getUserFromAuthHeader,
   isPremium,
   previousEthosIndex,
@@ -129,6 +130,20 @@ export async function POST(req: NextRequest) {
     req.headers.get("authorization")
   ).catch(() => null);
   const userId = auth?.id ?? null;
+
+  /*
+   * A resend of a recording this account already stored (the response
+   * was lost on the way back, or a second tab sent it too) gets that
+   * recording back: no rate-limit slot, no Whisper, no judged read, no
+   * second row. The key is the outbox id (lib/rep-outbox.ts).
+   */
+  const rawKey = form.get("clientId");
+  const clientId =
+    typeof rawKey === "string" && /^[\w-]{1,200}$/.test(rawKey) ? rawKey : null;
+  if (userId && clientId) {
+    const stored = await findRepByClientId(userId, clientId).catch(() => null);
+    if (stored) return NextResponse.json({ repId: stored, duplicate: true });
+  }
 
   /*
    * The throttle, BEFORE anything that costs money (Whisper runs on
@@ -306,7 +321,11 @@ export async function POST(req: NextRequest) {
       delivery,
       deliveryMoments,
       createdAt: recordedAt?.toISOString(),
+      clientId,
     });
+    if (saved?.duplicate) {
+      return NextResponse.json({ repId: saved.id, duplicate: true });
+    }
     repId = saved?.id ?? null;
   } catch {
     repId = null;

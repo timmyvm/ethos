@@ -218,6 +218,10 @@ export default function RepPage() {
 
 function RepScreen() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  /* Held in a ref so `score` (stable, [] deps) reads the current one. */
+  const routerRef = useRef(router);
+  routerRef.current = router;
   const [premium, setPremium] = useState(false);
 
   useEffect(() => {
@@ -524,6 +528,15 @@ function RepScreen() {
       // is stored (or nothing was ever going to store it: local mode).
       if (outboxId && outcome.settled) void outboxDelete(outboxId);
       if (!live()) return;
+      // A resend of a recording already stored (its first answer was
+      // lost on the way back): the server hands back that recording, so
+      // open it, judged read and all, rather than a debrief of nothing.
+      const stored = data as { duplicate?: boolean; repId?: string | null };
+      if (stored.duplicate && stored.repId) {
+        pendingRef.current = null;
+        routerRef.current.replace(`/rep/${stored.repId}`);
+        return;
+      }
       setResult(data as AnalyzeResponse);
       setPhase("results");
       pendingRef.current = null;

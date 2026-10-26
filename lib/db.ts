@@ -160,6 +160,29 @@ const XP_PER_REP = 10;
 export interface SavedRep {
   id: string;
   audioPath: string | null;
+  /** The recording was already stored under its key (a resend): this is
+   *  that row, and nothing was written twice. */
+  duplicate?: boolean;
+}
+
+/**
+ * The recording this account already stored under the outbox key
+ * `clientId`, if any (migration 0016). A resend after a lost response
+ * gets this instead of a second row.
+ */
+export async function findRepByClientId(
+  userId: string,
+  clientId: string
+): Promise<string | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const { data } = await db
+    .from("reps")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("client_id", clientId)
+    .maybeSingle();
+  return (data?.id as string | undefined) ?? null;
 }
 
 export async function saveRep(params: {
@@ -186,6 +209,8 @@ export async function saveRep(params: {
   /** When it was spoken (ISO), already clamped by the route. Absent, the
    *  column's default now() dates it at the insert. */
   createdAt?: string;
+  /** The outbox key (migration 0016): one stored row per key per account. */
+  clientId?: string | null;
 }): Promise<SavedRep | null> {
   const db = supabaseAdmin();
   if (!db) return null;
@@ -235,10 +260,19 @@ export async function saveRep(params: {
       presence_score: params.delivery?.presenceScore ?? null,
       delivery_moments: params.deliveryMoments ?? null,
       ...(params.createdAt ? { created_at: params.createdAt } : {}),
+      client_id: params.clientId ?? null,
     })
     .select("id")
     .single();
 
+  // Two sends of one recording raced past the route's lookup and the
+  // unique index refused the second: answer with the first, drop the
+  // audio just uploaded, and pay no XP or lexicon entry twice.
+  if (error?.code === "23505" && params.userId && params.clientId) {
+    if (audioPath) await db.storage.from("audio").remove([audioPath]);
+    const first = await findRepByClientId(params.userId, params.clientId);
+    return first ? { id: first, audioPath: null, duplicate: true } : null;
+  }
   if (error || !data) return null;
 
   if (coach) {

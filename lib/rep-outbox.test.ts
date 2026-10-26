@@ -50,6 +50,11 @@ describe("replayForm", () => {
     expect(form.get("audio")).toBeInstanceOf(Blob);
   });
 
+  it("carries the outbox id as the recording's key, so a resend is never stored twice", () => {
+    const r = rep({ lessonId: "l1" });
+    expect(replayForm(r).get("clientId")).toBe(r.id);
+  });
+
   it("says when the recording was spoken, so a late upload lands on its day", () => {
     const r = rep({ lessonId: "l1" });
     r.createdAt = Date.UTC(2026, 9, 20, 12, 50);

@@ -664,6 +664,26 @@ Measured by the pass:
 
 An independent critic marked each of her sentences resolved or not with screenshots. Its sixteen defects were fixed in a second round. The gates were all green on the production build: tsc, 2201 tests, and the six browser checks at their counts. Before and after sheets: `docs/look/cohesion/contact-dark.png`, `contact-light.png`.
 
+392. 2026-10-27 · **A bug pass: the shop's prices, a leaking view, the declined cancel, the Stripe customer, and 37 bugs from a hunt** · Timothy: "lets do some bug fixes".
+- **Known items, each fixed test first:**
+  - The shop took its price from the caller, so a direct call bought a freeze or a pose for one coin, and freezes protect streaks. The price now comes from a server catalog (`shop_prices`, migration 0015, kept equal to `lib/shop.ts` by a drift test). A spend at the wrong price is refused, and only a spend at the catalog price proves ownership.
+  - `purchased_freezes` showed every account's id to anyone. It now runs as the reader, so it returns only their own row. It is unused and kept.
+  - Cancelling a declined plan now ends it at once and voids the charge Stripe was retrying, and the person is told that before they confirm.
+  - Deleting an account now deletes the Stripe customer too, with its email and saved card. Privacy says so.
+- **The hunt:** three hunters read and drove the core loop, the data and sync, and the screen states. A skeptic upheld 37 of 38 findings, and each was fixed test first. The worst:
+  - Stop could hang the scoring screen forever.
+  - Go again did nothing.
+  - A second capture could leave the mic recording.
+  - Outbox recordings were dated on upload day and had no owner. They now carry when they were spoken, clamped to the last 72 hours, and who made them.
+  - The streak, the longest streak and the day count were computed from only the newest 90 recordings.
+  - The database capped held freezes at 2 while the code allowed 3.
+  - A sent-twice recording was stored twice. Migration 0016 keys reps on a client id.
+  - The challenge week's coin was judged on UTC days (migration 0018).
+  - Push reminders drifted an hour across daylight saving (migration 0019 stores the zone).
+  - Several reads drew a failure as zero.
+- **Gates:** 2355 tests, the production build, and the six browser gates at their counts. Two gate fixes landed on the way: route files may only export handlers, now asserted in `lib/route-exports.test.ts`; and Demos's idle clip rests while a sheet covers him, which had made a long drag read as slow.
+- **Migrations:** 0015, 0016, 0018 and 0019 are applied to production. 0017 (`refund_rate_limit`) is not, because the connector stalls on its `delete` for a confirmation that never arrives. Until it is applied, a transcription that fails costs its rate-limit slot, which the code tolerates.
+
 ## Open queue (research-once, decide, move up)
 
 - Currency name — after launch copywriting pass

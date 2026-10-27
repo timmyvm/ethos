@@ -78,6 +78,7 @@ The app opens on a splash (#295, `components/Splash.tsx`): Demos's head on the b
 **Lessons** are fifteen, three per trait, three practices each, chosen by the user; the last practice carries the free `no-notes` mod (#14). **The path** is `content/path.ts`, 120 practices the daily card draws from through `lib/next-practice.ts`, ranked on the RAW measurement; the hidden tier is never rendered or named. Lesson progress is derived from `lesson_id` on recordings (`lesson:<id>:<n>`, `lib/lesson-progress.ts`). A lesson practice's debrief offers the next practice of the same lesson (#273). The road is demoted, not retired: `UNITS`/`DRILLS` still back the debrief fallback, the star map and six test files (#272).
 
 ## Open, with the leaning answer. Take it unless Timothy says otherwise.
+- Migration 0017 (`refund_rate_limit`) is not on production: the Supabase connector stalls on its `delete`. Run `supabase/migrations/0017_rate_limit_refund.sql` in the dashboard's SQL editor. Until then a failed transcription costs its rate-limit slot (#392).
 
 - The one tap is a rectangle at 12. A pill primary (Headspace) or Duolingo's lip on the tap is worth one experiment, app-wide.
 - Desktop shell: same stage, constrained, side rail with Demos, streak and day trail.

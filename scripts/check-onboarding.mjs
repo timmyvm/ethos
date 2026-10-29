@@ -474,10 +474,12 @@ await page.goto(`${BASE}/`);
 /* The second visit to Today recompiles on a shared dev server more
    often than not (B1's report), so it gets a longer wait. */
 await page.getByText("Day one starts today.").waitFor({ timeout: 60000 });
-// The roulette pool: under 18 never draws a job prompt.
+// The roulette pool: under 18 never draws a job prompt. Since #393's fix
+// round the roulette spins inside Today's card: the prompt is the card's
+// reel and Spin again is its shuffle glyph.
 await page.getByRole("button", { name: /Spin a new topic/ }).click();
 const drawn = new Set();
-for (let i = 0; i < 25; i++) { drawn.add(await page.$eval("main .font-display.text-title", (e) => e.textContent.trim())); await page.getByRole("button", { name: "Spin" }).click(); await sleep(560); }
+for (let i = 0; i < 25; i++) { drawn.add(await page.$eval("main .home-reel", (e) => e.textContent.trim())); await page.getByRole("button", { name: "Spin again" }).click(); await sleep(560); }
 const job = [...drawn].some((t) => /worst job|Explain your work|job you're not qualified/.test(t));
 ok("the roulette never draws a job prompt for an under-18", !job, `${drawn.size} distinct`);
 

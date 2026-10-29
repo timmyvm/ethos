@@ -137,6 +137,13 @@ export function Overlay({
    *  a drag that starts in the sheet and ends over the scrim is a drag. */
   const downOnScrim = useRef(false);
   const [dragging, setDragging] = useState(false);
+  /*
+   * Once a finger has held the sheet, its rise is over for good. The rise
+   * is CSS (`sheet-in`), which a drag turns off; turned back on at the
+   * release, it started again from off screen and the sheet blinked out
+   * for a frame before the spring home covered it (notes1, round 2).
+   */
+  const [held, setHeld] = useState(false);
   // The latest handler, read at close time: the parent passes a fresh
   // arrow every render, and re-running the setup effect for each one
   // re-focused the panel mid-form.
@@ -395,6 +402,7 @@ export function Overlay({
       d.y = takeHold();
       d.from = e.clientY - d.y;
       setDragging(true);
+      setHeld(true);
       try {
         el.setPointerCapture(e.pointerId);
       } catch {
@@ -464,6 +472,7 @@ export function Overlay({
         style={style}
         data-closing={closing || undefined}
         data-dragging={dragging || undefined}
+        data-held={held || undefined}
         onClick={(e) => e.stopPropagation()}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}

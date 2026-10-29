@@ -1301,6 +1301,11 @@ body::after {
 .sheet-panel[data-closing="true"] {
   animation: none;
 }
+/* Held once by a finger, the rise is spent: let back on at the release,
+   it would start again from off screen under the spring home. */
+.sheet-panel[data-held] {
+  animation: none;
+}
 :root[data-motion="reduce"] .sheet-panel[data-closing="true"] {
   animation: fade-out var(--duration-base) var(--ease-out) forwards;
 }

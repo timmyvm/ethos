@@ -85,7 +85,8 @@ describe("Today opens on the object", () => {
   });
 
   it("the card stands the lesson's object at the large cut, and holds the one Start", () => {
-    expect(hero).toMatch(/src=\{objectSrc\(object, true\)\}/);
+    expect(hero).toContain("<HeroObject key={object} id={object} />");
+    expect(hero).toMatch(/src=\{objectSrc\(id, true\)\}/);
     expect(hero.match(/className="home-start press"/g)?.length).toBe(1);
     expect(hero).toMatch(/>\s*Start\s*</);
     expect(hero).toContain('aria-label="Spin a new topic"');

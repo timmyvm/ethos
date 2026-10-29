@@ -220,8 +220,11 @@ function TraitTile({
       </span>
       <span
         aria-hidden
+        /* A half tile's number keeps to the left 70%, so a long unit
+           ("/100 words") wraps under it, as at 320, rather than running
+           under the object. */
         className={`font-display mt-auto flex flex-wrap items-baseline gap-x-1 tabular-nums ${
-          wide ? "text-num-hero" : "text-num-l"
+          wide ? "text-num-hero" : "max-w-[70%] text-num-l"
         }`}
       >
         {raw ?? <span className="text-stone-400">&ndash;</span>}

@@ -76,7 +76,7 @@ export function WeekTiles({ week }: { week: WeekView }) {
           ))}
         </div>
         <p className="mt-2 text-caption text-stone-500">
-          {week.daysAll} {week.daysAll === 1 ? "day" : "days"} since day one
+          {week.daysAll} {week.daysAll === 1 ? "day" : "days"} in all
         </p>
       </section>
 

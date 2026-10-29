@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { IconShuffle, IconSliders } from "@/components/Icon";
 import { TipLine } from "@/components/rep/TipStrip";
 import { StageChip } from "@/components/ui/HeroStage";
@@ -82,16 +82,7 @@ export function HomeHero({
         {!loading && (
           <>
             <span aria-hidden className="home-hero-pool" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              key={object}
-              src={objectSrc(object, true)}
-              alt=""
-              width={260}
-              height={260}
-              className={`home-hero-art ${lands}`}
-              draggable={false}
-            />
+            <HeroObject key={object} id={object} />
           </>
         )}
 
@@ -167,5 +158,32 @@ export function HomeHero({
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * The object fades up once its file has decoded, on the card's own
+ * 300ms, so a picture that arrives after the card never cuts in; from
+ * the cache it lands with the colour.
+ */
+function HeroObject({ id }: { id: string }) {
+  const [loaded, setLoaded] = useState(false);
+  /* A cached file can finish before React sees its load event. */
+  const ref = useCallback((img: HTMLImageElement | null) => {
+    if (img?.complete && img.naturalWidth > 0) setLoaded(true);
+  }, []);
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      ref={ref}
+      src={objectSrc(id, true)}
+      alt=""
+      width={260}
+      height={260}
+      onLoad={() => setLoaded(true)}
+      data-loaded={loaded || undefined}
+      className="home-hero-art"
+      draggable={false}
+    />
   );
 }

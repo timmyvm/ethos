@@ -4527,6 +4527,11 @@ summary::-webkit-details-marker {
     display: none;
   }
 }
+/* The chips keep the bar's right column whether or not the title is in
+   the middle one. */
+.home .screen-bar > .screen-bar-side:last-child {
+  grid-column: 3;
+}
 .home-avatar {
   display: grid;
   place-items: center;
@@ -4558,6 +4563,7 @@ summary::-webkit-details-marker {
    lifted thing, its object breaking out of the top-right corner. */
 .home-hero {
   position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   min-height: 376px;
@@ -4567,6 +4573,20 @@ summary::-webkit-details-marker {
   /* TipLine and StageChip read the stage's ink and veil. */
   --stage-ink: #ffffff;
   --stage-veil: rgb(255 255 255 / 0.18);
+  /* Under the colour: the surface step the card stands on while the
+     read is in flight. */
+  background: var(--color-surface);
+}
+/* The colour is a layer, so it fades up over the neutral card when the
+   read names the trait rather than cutting in (principle: nothing
+   teleports). Its shadow, a glow in the family's own colour, comes with
+   it: the lift arrives with the card it belongs to. */
+.home-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
   background:
     radial-gradient(90% 62% at 82% 6%, var(--home-lit) 0%, transparent 70%),
     radial-gradient(70% 50% at 0% 100%, var(--home-low) 0%, transparent 72%),
@@ -4576,6 +4596,7 @@ summary::-webkit-details-marker {
     inset 0 0 0 1px rgb(255 255 255 / 0.06),
     0 28px 44px -22px var(--home-glow),
     0 8px 18px -10px rgb(0 0 0 / 0.3);
+  transition: opacity var(--duration-max) var(--ease-out);
 }
 /* One family per trait. Light: the tone lit at the top falling to its
    ink. Dark: the same hue a step deeper and quieter. White 13px type
@@ -4657,8 +4678,9 @@ summary::-webkit-details-marker {
 .home-hero[data-family="none"] {
   color: var(--color-ink);
   --stage-ink: var(--color-ink);
-  background: var(--color-surface);
-  box-shadow: none;
+}
+.home-hero[data-family="none"]::before {
+  opacity: 0;
 }
 
 /* The object. The one picture on the screen that breaks its frame,
@@ -4673,6 +4695,11 @@ summary::-webkit-details-marker {
   pointer-events: none;
   user-select: none;
   filter: drop-shadow(0 22px 26px rgb(8 20 70 / 0.38));
+  opacity: 0;
+  transition: opacity var(--duration-max) var(--ease-out);
+}
+.home-hero-art[data-loaded] {
+  opacity: 1;
 }
 :root[data-theme="dark"] .home-hero-art {
   filter: drop-shadow(0 22px 26px rgb(0 0 0 / 0.5));
@@ -4772,6 +4799,10 @@ summary::-webkit-details-marker {
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.16);
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
+  transition:
+    color var(--duration-max) var(--ease-out),
+    background-color var(--duration-max) var(--ease-out),
+    box-shadow var(--duration-max) var(--ease-out);
 }
 .home-glyph[aria-expanded="true"] {
   background: rgb(255 255 255 / 0.3);

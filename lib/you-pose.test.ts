@@ -149,7 +149,10 @@ describe("You's page", () => {
     expect(you).toMatch(
       /<YouDemos worn=\{worn\} ledger=\{poseLedger\} away=\{momentUp \|\| drop\.open\} back=\{back\} \/>/
     );
-    expect(you).toMatch(/fetchWholeLedger\(\)\.then\(setPoseLedger\)/);
+    // One whole-ledger read per visit: the pose is proven from the coin
+    // sync's ledger, not from a second read of the same rows.
+    expect(you).toMatch(/setPoseLedger\(read\.data\.ledger\)/);
+    expect(you).not.toMatch(/fetchWholeLedger\b/);
     expect(you).not.toMatch(/<DemosArt\b/);
     expect(you).not.toMatch(/pose="hello"/);
   });

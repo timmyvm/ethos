@@ -27,7 +27,6 @@ import {
   fetchProfile,
   fetchRepSpine,
   fetchReps,
-  fetchWholeLedger,
   fetchXp,
   updateDisplayName,
   type LexiconRow,
@@ -183,8 +182,9 @@ export default function YouPage() {
    * The pose the Shop sold, on the stage (#393 took Demos off Today, so
    * this is where a bought pose shows). `worn` is the shop id: undefined
    * until read, then the device's copy, then the account's answer, which
-   * wins (#175). The whole ledger proves it was bought (#392); a pose
-   * from month one is still owned, so the windowed coin read won't do.
+   * wins (#175). The whole ledger proves it was bought (#392), so a pose
+   * from month one is still owned; it is the coin sync's own read, shared,
+   * so a visit reads the ledger once.
    */
   const [worn, setWorn] = useState<string | null | undefined>(undefined);
   const [poseLedger, setPoseLedger] = useState<CoinRow[] | null>(null);
@@ -220,6 +220,9 @@ export default function YouPage() {
     setCoins(undefined);
     const read = await readable(() => syncCoins(dates));
     setCoins(read.ok ? read.data.balance : null);
+    // The sync read the whole ledger, which is the pose's proof too. A
+    // failed read keeps the pose already drawn; it never blanks the stage.
+    if (read.ok) setPoseLedger(read.data.ledger);
   }, []);
 
   /** Same for freezes: one dead sync shouldn't blank the profile. */
@@ -253,8 +256,9 @@ export default function YouPage() {
     const dates = all.map((r) => new Date(r.created_at));
     setStreak(computeStreak(dates));
     void loadFreezes(dates);
-    // The coin sync pays new days, which are always among the newest,
-    // and its ledger read is windowed too: the 90 rows' dates suffice.
+    // The coin sync pays new days, which are always among the newest, so
+    // the 90 rows' dates suffice; its ledger read is whole, and the stage's
+    // pose is proven from it.
     void loadCoins(rows.map((r) => new Date(r.created_at)));
   }, [loadCoins, loadFreezes]);
 
@@ -305,8 +309,6 @@ export default function YouPage() {
         setProfileRead((r) => (r === "loading" ? "failed" : r));
         syncOnboarding().then(setOnboarding).catch(() => {});
       });
-    // A failed read keeps the pose already drawn; it never blanks the stage.
-    fetchWholeLedger().then(setPoseLedger).catch(() => {});
     const db = supabaseBrowser();
     db?.auth
       .getUser()

@@ -21,9 +21,11 @@ import { Paw } from "./Paw";
  *  - **picture** (You's plan card, the manage sheet): `role="img"`,
  *    named by one sentence (`label`, lib/plan-view.ts `pictureLabel`).
  *  - **slider** (the paywall, with `onSelect`): one `role="slider"` a
- *    finger scrubs or the arrow keys step. The Paw hops to the selection,
- *    the step under the finger presses in like a key, the steps behind
- *    it press flat, and a 6ms tick fires per step crossed.
+ *    finger scrubs or the arrow keys step. The selected step lights, the
+ *    step under the finger presses in like a key, the steps behind it
+ *    press flat, and a 6ms tick fires per step crossed. The paywall
+ *    draws it without the Paw (`paw={false}`, notes1): the lit step and
+ *    the readout carry the selection on their own.
  *  - **stage** (the monthly drop, with `hop`): the Paw hops one step down
  *    on an arc, the step takes its weight and a sheen crosses it, and
  *    `onLand` fires on that frame so the parent's digits roll with it.
@@ -74,6 +76,7 @@ export function Stair({
   onLand,
   selected,
   onSelect,
+  paw = true,
   label,
   valueText,
   summary,
@@ -100,6 +103,8 @@ export function Stair({
   /** Slider mode, with `onSelect`: the chosen step, 1 to 7. */
   selected?: number;
   onSelect?: (step: number, how: StairHow) => void;
+  /** Demos's Paw on the step; off, the lit step alone says where you are. */
+  paw?: boolean;
   /** The slider's name, or the picture's whole sentence. */
   label: string;
   /** The slider's aria-valuetext for a step. */
@@ -213,7 +218,7 @@ export function Stair({
 
   // The entrance's landing: the Paw drops onto its step as the steps finish rising.
   useEffect(() => {
-    if (!rise || tokenAt === null || stage || prefersReducedMotion()) return;
+    if (!paw || !rise || tokenAt === null || stage || prefersReducedMotion()) return;
     const t = setTimeout(() => setDip(tokenAt), riseDelay + (tokenAt - 1) * RISE_STAGGER_MS + PAW_LANDS_MS);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -444,6 +449,7 @@ export function Stair({
         data-mode={slider ? "slider" : stage ? "stage" : "picture"}
         data-rise={rising || undefined}
         data-bleed={bleed > 0 || undefined}
+        data-paw={paw ? undefined : "none"}
         className="stair"
         style={{ ["--stair-rise-delay" as string]: `${riseDelay}ms` }}
         {...sliderProps}
@@ -475,7 +481,7 @@ export function Stair({
               </div>
             );
           })}
-          {tokenAt !== null && (
+          {paw && tokenAt !== null && (
             <div
               ref={token}
               aria-hidden

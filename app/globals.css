@@ -3848,6 +3848,11 @@ summary::-webkit-details-marker {
   --stair-edge: 1.5px;
   --stair-lip: 3px;
 }
+/* No Paw (the paywall, notes1): his room above the tallest step closes,
+   leaving the 6px of air. */
+.stair[data-paw="none"] {
+  --stair-token: 0px;
+}
 .stair[data-mode="slider"] {
   cursor: pointer;
   /* Focused from the keyboard, the sheet scrolls it clear with room for

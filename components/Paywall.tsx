@@ -45,7 +45,8 @@ import { readBilling } from "@/lib/use-plan";
  * plan, A$12.99 in month 1 and a dollar less every month you stay, to
  * A$6.99 from month 7. The staircase says it before any sentence does:
  * scrub it and the readout rolls to each month's price and the day it
- * starts, the Paw hops to the step, and the steps behind it press flat.
+ * starts, the step lights, and the steps behind it press flat. No Paw
+ * here (notes1): the lit step and the readout carry the selection.
  * The caption says the renewal and the reset once, as facts.
  *
  * Checkout opens only when NEXT_PUBLIC_CHECKOUT_OPEN is "1" (read once,
@@ -431,6 +432,7 @@ export function Paywall({
                 at={1}
                 selected={step}
                 onSelect={(n) => setStep(n)}
+                paw={false}
                 labels={labels}
                 bleed={24}
                 riseDelay={LADDER_RISE_DELAY_MS}

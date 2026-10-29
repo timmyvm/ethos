@@ -137,6 +137,11 @@ describe("Overlay refuses the browser's pan while a drag is the sheet's", () => 
     expect(src).toMatch(/sheetHoldsTouch\(/);
     expect(src).toMatch(/sheetClaim\(/);
   });
+  it("measures the throw from where the sheet started following, not from the press", () => {
+    // The press's own sample (y 0, before the slop) made a short flick from
+    // the tap shelf read slow: half its samples were the finger standing still.
+    expect(src).toMatch(/d\.samples = \[\{ t: e\.timeStamp, y: d\.y \}\];/);
+  });
   it("lets sheetDismisses decide a release, with the room the finger had", () => {
     expect(src).toMatch(/sheetDismisses\(\{/);
     expect(src).toMatch(/room:/);

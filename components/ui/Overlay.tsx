@@ -402,6 +402,10 @@ export function Overlay({
       // Grabbed mid-flight, it is held where it IS, and tracks from
       // there with the offset the finger took it at (§2, §3).
       d.y = takeHold();
+      // The throw is measured from here, where the sheet starts to
+      // follow: the press's own sample, from before the slop, made a short
+      // flick off the tap shelf read as half standing still.
+      d.samples = [{ t: e.timeStamp, y: d.y }];
       d.held = d.y;
       d.room = Math.max(0, window.innerHeight - e.clientY);
       d.from = e.clientY - d.y;

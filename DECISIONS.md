@@ -684,6 +684,32 @@ An independent critic marked each of her sentences resolved or not with screensh
 - **Gates:** 2355 tests, the production build, and the six browser gates at their counts. Two gate fixes landed on the way: route files may only export handlers, now asserted in `lib/route-exports.test.ts`; and Demos's idle clip rests while a sheet covers him, which had made a long drag read as slow.
 - **Migrations:** 0015, 0016, 0018 and 0019 are applied to production. 0017 (`refund_rate_limit`) is not, because the connector stalls on its `delete` for a confirmation that never arrives. Until it is applied, a transcription that fails costs its rate-limit slot, which the code tolerates.
 
+393. 2026-10-29 · **Today is a home page, not a card with a panda: Timothy picked direction B, "the object"** · Timothy put five reference home pages beside Ethos (`docs/refs/home/`: a fintech card, ToyCad, a travel app, a kcal tracker and a smart home) and said: "They have beautiful home pages. we have a card with a panda. whats up with that." What the references did that Today did not:
+- a personal opening;
+- one signature visual;
+- imagery that breaks its frame;
+- headlines at 34 to 56px;
+- a bento of big numbers.
+
+Two directions were built on the workbench (`app/workbench/home-dial`, `home-b`; shots in `docs/look/home-directions/`). Timothy picked B. An independent critic preferred A's dial. Timothy's live call wins, and the critic's points that applied to B were fixed in the build: objects re-cut at 560 with no fringe, every object kept clear of the words at 320, the light behind the object held under 4.8:1 for the white text, and the trait colours each checked.
+
+What it is:
+- "Hi, Timothy";
+- the day's practice as a tall card in its trait's colour, the lesson object for today's tactic rising off its corner over a 40px topic;
+- the Today / This week pill;
+- the bento of tiles, each trait with its own object.
+
+Demos leaves the home and returns to moments. Today breaks from #391's one stage per tab. Its card is the trait's colour, not the sky stage, and it is the only tab that does this.
+
+DESIGN.md rules bent, each for the references:
+- the topic at 40px, above the 34 cap;
+- radius 28 and 22, outside the 12/16/20 scale;
+- the card's own coloured lift instead of `elev-2` (still the one lifted thing);
+- Start as a pill and the controls as circles;
+- a faint trait glow behind each tile's object, held under 22% by a test.
+
+The build had a critic and a fix round of 16 items. It passed 2478 tests and the six gates on the production build, and had no #418 in 32 fresh loads. Open: bought Demos poses have nowhere to show now that he is off the home card (next: You's stage). `DayTrail` and `dayTrail`/`pebbleDays` are left without callers.
+
 ## Open queue (research-once, decide, move up)
 
 - Currency name — after launch copywriting pass

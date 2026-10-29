@@ -4503,13 +4503,13 @@ summary::-webkit-details-marker {
 
 /* The opening. The bar holds the coin and the chips at rest, so it
    stands 56px: a 44px coin in a 44px bar touched the top of the glass.
-   The date sits 8px under it, and the greeting keeps clear of the
+   The date sits 16px under it, as on the workbench, and the greeting keeps clear of the
    object's column from 360 up. */
 .home .screen-bar {
   --bar-h: 56px;
 }
 .home .large-title-eyebrow {
-  margin-top: 8px;
+  margin-top: 14px;
 }
 .home .large-title-row > .min-w-0 {
   flex: 1 1 auto;

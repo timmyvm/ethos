@@ -218,17 +218,25 @@ function TraitTile({
         <span className="trait-dot" />
         {t.name}
       </span>
+      {/* The number and its unit. On the wide tile they share a line;
+          on a half tile the unit takes its own line under the number,
+          every tile alike, so the four numbers sit on one baseline per
+          row whatever their units' lengths ("wpm", "/100 words"), and no
+          unit runs under the object. */}
       <span
         aria-hidden
-        /* A half tile's number keeps to the left 70%, so a long unit
-           ("/100 words") wraps under it, as at 320, rather than running
-           under the object. */
-        className={`font-display mt-auto flex flex-wrap items-baseline gap-x-1 tabular-nums ${
-          wide ? "text-num-hero" : "max-w-[70%] text-num-l"
+        className={`font-display mt-auto tabular-nums ${
+          wide ? "flex items-baseline gap-x-1 text-num-hero" : "flex flex-col text-num-l"
         }`}
       >
-        {raw ?? <span className="text-stone-400">&ndash;</span>}
-        {raw !== null && <span className="home-unit">{SHORT_UNIT[id]}</span>}
+        <span className="leading-none">
+          {raw ?? <span className="text-stone-400">&ndash;</span>}
+        </span>
+        {raw !== null ? (
+          <span className={`home-unit ${wide ? "" : "mt-1"}`}>{SHORT_UNIT[id]}</span>
+        ) : (
+          !wide && <span className="home-unit invisible mt-1">&nbsp;</span>
+        )}
       </span>
       {reading ? (
         <span aria-hidden className={`mt-2.5 flex items-center gap-2.5 ${wide ? "max-w-[56%]" : ""}`}>

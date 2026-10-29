@@ -33,6 +33,9 @@
  *
  *   LOOK_PLAN=active3 node scripts/look.mjs after you manage settings
  *   LOOK_WIDTH=320 node scripts/look.mjs after paywall   # paywall-320-after-*
+ * The pose You's stage wears, with LOOK_POSE (scripts/look-fixtures.mjs):
+ * the speaking pose by default, "none" for his hello, or another shop id.
+ *   LOOK_POSE=none node scripts/look.mjs after-bare you shop
  * The introduction has its own camera, scripts/look-welcome.mjs.
  * Full-page shots; the nav is fixed so it appears where the viewport
  * would show it.
@@ -68,6 +71,7 @@ import {
   billingMode,
   resetPlan,
   SEEN,
+  POSE_PREF,
 } from "./look-fixtures.mjs";
 
 /** LOOK_WIDTH: the viewport's width; anything but 390 names its shots `<screen>-<width>`. */
@@ -95,16 +99,16 @@ async function shootTheme(theme) {
   await context.route("**/api/analyze", async (route) => { await sleep(600); await route.fulfill(json(analyze)); });
   await context.route("**/api/push", (route) => route.fulfill(json({ ok: true })));
   await context.route("**/api/billing/*", billingApiRoute);
-  await context.addInitScript(({ theme, session, seen }) => {
+  await context.addInitScript(({ theme, session, seen, pose }) => {
     if (seen != null) localStorage.setItem("ethos.ladder.seen", String(seen));
     localStorage.setItem("ethos.welcomed", new Date().toISOString());
-    localStorage.setItem("ethos.prefs", JSON.stringify({ theme, reducedMotion: false, pose: "pose_speaking", skipIntros: true, haptics: false }));
+    localStorage.setItem("ethos.prefs", JSON.stringify({ theme, reducedMotion: false, pose, skipIntros: true, haptics: false }));
     localStorage.setItem("ethos.onboarding", JSON.stringify({ answers: { ageBand: "19-22", goal: "work", pains: ["fillers", "blank"], level: "some", context: "meetings" }, step: 6, done: true, synced: true }));
     localStorage.setItem("ethos.gates.rep1", new Date().toISOString());
     localStorage.setItem("ethos.gates.streak", new Date().toISOString());
     localStorage.setItem("sb-supabase-auth-token", JSON.stringify(session));
     localStorage.setItem("sb-supabase.local-auth-token", JSON.stringify(session));
-  }, { theme, session, seen: SEEN });
+  }, { theme, session, seen: SEEN, pose: POSE_PREF });
   const page = await context.newPage();
   // Full-page shots: the dev badge goes, and the fixed nav sits where
   // the page ends rather than where the first viewport did.

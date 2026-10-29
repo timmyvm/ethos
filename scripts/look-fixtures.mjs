@@ -165,11 +165,26 @@ const reps = SPOKE.map((ago, i) => {
   });
 
 const xp_events = reps.map((r, i) => ({ amount: 40 + (i % 3) * 15, created_at: r.created_at }));
-// 17 earned, 8 spent on the speaking pose: 9 in hand, so the shop shows
-// every button state at once (owned, buy, two "more to go").
+/*
+ * LOOK_POSE: the Demos pose the account wears on You's stage. The default
+ * buys and wears the speaking pose; "none" keeps it bought and takes it
+ * off (You's own "hello"); another shop pose id is bought instead, at
+ * its catalog price, and worn.
+ *
+ *   LOOK_POSE=none node scripts/look.mjs after-bare you
+ */
+export const POSE = process.env.LOOK_POSE ?? "pose_speaking";
+const POSE_PRICE = { pose_speaking: 8, pose_workout: 8, pose_celebrate: 12 };
+const BOUGHT = POSE === "none" ? "pose_speaking" : POSE;
+if (!POSE_PRICE[BOUGHT]) throw new Error(`LOOK_POSE=${POSE} is not one of none, ${Object.keys(POSE_PRICE).join(", ")}`);
+/** The device's copy of the worn pose (`ethos.prefs`), which seed() writes. */
+export const POSE_PREF = POSE === "none" ? null : POSE;
+// 17 earned, 8 spent on the speaking pose (or LOOK_POSE's, at its price):
+// 9 in hand, so the shop shows every button state at once (owned, buy,
+// two "more to go").
 const coin_ledger = [
   ...SPOKE.slice(0, 17).map((ago, i) => ({ id: `c${i}`, kind: "earned", amount: 1, reason: "streak_day", earned_on: dateOnly(ago), created_at: iso(ago) })),
-  { id: "spent-1", kind: "spent", amount: 8, reason: "shop:pose_speaking", earned_on: null, created_at: iso(9) },
+  { id: "spent-1", kind: "spent", amount: POSE_PRICE[BOUGHT], reason: `shop:${BOUGHT}`, earned_on: null, created_at: iso(9) },
 ];
 const lexicon = [
   { id: "l1", original: "really good", upgrade: "compelling", created_at: iso(1) },
@@ -178,7 +193,7 @@ const lexicon = [
   { id: "l4", original: "the thing about", upgrade: "what matters about", created_at: iso(8) },
   { id: "l5", original: "kind of like", upgrade: "resembles", created_at: iso(12) },
 ];
-const profile = { display_name: "Timothy", premium: false, premium_until: null, equipped_pose: "pose_speaking" };
+const profile = { display_name: "Timothy", premium: false, premium_until: null, equipped_pose: POSE_PREF };
 
 // ---- The plan: LOOK_PLAN picks the profile and the billing row -------------
 /*
@@ -425,10 +440,13 @@ const analyze = {
  */
 export function seed(arg) {
   const { theme, session } = typeof arg === "string" ? { theme: arg, session: null } : arg;
+  /* Serialised into the page, so the worn pose comes in on the argument
+     (POSE_PREF); a caller that does not pass one wears the default. */
+  const pose = arg && typeof arg === "object" && "pose" in arg ? arg.pose : "pose_speaking";
   localStorage.setItem("ethos.welcomed", new Date().toISOString());
   localStorage.setItem(
     "ethos.prefs",
-    JSON.stringify({ theme, reducedMotion: false, pose: "pose_speaking", skipIntros: true, haptics: false })
+    JSON.stringify({ theme, reducedMotion: false, pose, skipIntros: true, haptics: false })
   );
   localStorage.setItem(
     "ethos.onboarding",

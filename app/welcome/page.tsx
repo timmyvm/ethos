@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState, type KeyboardEvent, type ReactNode } from "react";
+import { Suspense, useEffect, useState, type ComponentProps, type KeyboardEvent, type ReactNode } from "react";
 import { DemosArt, preloadPose, type Pose, type Tone } from "@/components/DemosArt";
 import {
   IconBars,
@@ -371,7 +371,7 @@ function Walk() {
         title={s.title}
         line={s.line}
         art={
-          <DemosArt
+          <IntroDemos
             pose={INTRO_POSES[step.index]}
             size={320}
             fit
@@ -428,7 +428,7 @@ function Walk() {
         title={WELCOME_BEAT.title}
         line={WELCOME_BEAT.line}
         art={
-          <DemosArt
+          <IntroDemos
             pose={BEAT_POSE}
             size={300}
             fit
@@ -471,7 +471,7 @@ function Walk() {
           step.id === "name" ? (heardName ? NAME_REPLY(heardName) : "") : undefined
         }
         art={
-          <DemosArt
+          <IntroDemos
             pose={QUESTION_POSES[step.id]}
             size={84}
             pop
@@ -535,8 +535,8 @@ function Walk() {
        * line to them from the same bubble every question used, so the
        * walk keeps one grammar to its end instead of dropping into a
        * heading and a grey subtitle. The month is the screen's list,
-       * left-aligned under him. 120px is the smallest size at which his
-       * idle clip still plays (#316).
+       * left-aligned under him, at 120px (the size #316 chose so his
+       * idle clip would play; the introduction plays none, notes1).
        */
       speech="beside"
       title={plan.headline}
@@ -545,7 +545,7 @@ function Walk() {
       line={plan.opening}
       controls={<PlanSteps label={PLAN_COPY.label} steps={plan.stepParts} />}
       art={
-        <DemosArt
+        <IntroDemos
           pose="clipboard"
           size={120}
           pop
@@ -571,6 +571,19 @@ function Walk() {
       fineprint={plan.boss ? plan.boss.line : undefined}
     />
   );
+}
+
+/**
+ * Demos in the introduction: his entrance (the pop, then his pose's own
+ * loop on the still) and nothing after it. Everywhere else he stands at
+ * 120px or more his idle clip plays over the still (#316); here it began
+ * once the entrance had settled and read as a second, different
+ * animation starting (notes1, Timothy: "Lets js have the chopping image
+ * animation"). Every Demos on these screens goes through this, so no
+ * screen of the walk can bring the clip back.
+ */
+function IntroDemos(props: Omit<ComponentProps<typeof DemosArt>, "idle">) {
+  return <DemosArt {...props} idle={false} />;
 }
 
 /**
@@ -632,7 +645,7 @@ function AccountStep({
          ago. */
       align="center"
       art={
-        <DemosArt
+        <IntroDemos
           pose="hello"
           size={200}
           pop

@@ -3829,11 +3829,17 @@ summary::-webkit-details-marker {
   --stair-edge: 2px;
   --stair-lip: 4px;
   position: relative;
-  /* A vertical pan is the sheet's scroll; a horizontal one is ours. */
-  touch-action: pan-y;
   -webkit-user-select: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+}
+/* The slider's: a vertical pan is the sheet's (its drag or its scroll); a
+   horizontal one is the scrub's. Only where it scrubs: a picture or a
+   stage does nothing sideways, and claiming sideways moves there kept an
+   arcing swipe off the manage sheet's stair from closing it (notes1,
+   round 3; Overlay reads this to know who owns a sideways move). */
+.stair[data-mode="slider"] {
+  touch-action: pan-y;
 }
 .stair[data-size="lg"] {
   --stair-max: 120px;

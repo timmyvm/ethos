@@ -226,8 +226,16 @@ describe("the stair refuses the browser's pan while a finger scrubs it", () => {
   it("listens to touchmove with passive: false", () => {
     expect(src).toMatch(/addEventListener\(\s*"touchmove"[\s\S]{0,80}passive:\s*false/);
   });
-  it("says it owns sideways moves, the way Overlay asks", () => {
-    expect(readFileSync("app/globals.css", "utf8")).toMatch(/\.stair \{[\s\S]*?touch-action: pan-y;/);
+  it("says it owns sideways moves, the way Overlay asks, only where it scrubs", () => {
+    const css = readFileSync("app/globals.css", "utf8");
+    expect(css).toMatch(/\.stair\[data-mode="slider"\] \{[^}]*touch-action: pan-y;/);
+    /*
+     * A picture or a stage (the manage sheet, the price drop) does nothing
+     * sideways: claiming sideways moves there kept an arcing swipe off the
+     * manage sheet's stair from closing it.
+     */
+    const plain = css.slice(css.indexOf("\n.stair {"), css.indexOf("}", css.indexOf("\n.stair {")));
+    expect(plain).not.toMatch(/touch-action/);
   });
 });
 

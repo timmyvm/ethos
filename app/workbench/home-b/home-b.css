@@ -1,0 +1,464 @@
+/*
+ * Direction B, "the object" (the home round, 29 Oct). Every class is
+ * `hb-` and lives only on this workbench page. Colours, springs and the
+ * type scale come from app/globals.css; what this direction adds is
+ * declared once, here, as tokens first and used second:
+ *
+ *   --hb-text-display  40/800  the hero's title. The scale stops at 34
+ *                              (the large title); ToyCad and the travel
+ *                              app set their card titles a step over the
+ *                              screen's own title, and so does this.
+ *                              A long prompt drops to 34.
+ *   --hb-radius-hero   28      the hero card. The scale's 20 read as a
+ *   --hb-radius-tile   22      form field beside the references' 28 to
+ *                              32; the tiles sit one step under it.
+ *
+ * If the direction ships, the three move into globals.css's @theme as
+ * `--text-display`, `--radius-hero` and `--radius-tile`.
+ */
+.hb {
+  --hb-text-display: 2.5rem;
+  --hb-radius-hero: 28px;
+  --hb-radius-tile: 22px;
+  /* The hero's object: 260 at 390, down to 200 at 320. */
+  --hb-art: clamp(200px, 66.6vw, 260px);
+  /* A tile's object, and the wide tile's, scaled with the column. */
+  --hb-tile-art: clamp(108px, 36vw, 140px);
+  --hb-wide-art: clamp(160px, 54vw, 212px);
+  /* How far the hero's object rises out of the card. */
+  --hb-rise: -0.3;
+}
+
+/* ------------------------------------------------------------------ */
+/* The opening: avatar, earned chips, the greeting. */
+.hb-avatar {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 1.0625rem;
+  font-weight: 800;
+  color: var(--color-ink);
+  background:
+    radial-gradient(100% 100% at 30% 20%, rgb(255 255 255 / 0.9), transparent 60%),
+    linear-gradient(150deg, #efe7df, #d9cdc2);
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.06),
+    0 4px 12px -4px rgb(0 0 0 / 0.18);
+}
+:root[data-theme="dark"] .hb-avatar {
+  background:
+    radial-gradient(100% 100% at 30% 20%, rgb(255 255 255 / 0.14), transparent 60%),
+    linear-gradient(150deg, #3a3633, #2a2725);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.1),
+    0 4px 12px -4px rgb(0 0 0 / 0.5);
+}
+
+/* ------------------------------------------------------------------ */
+/* The hero: today's practice, one trait's family, the object breaking
+   out of its top-right corner. */
+.hb-hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 376px;
+  padding: 20px;
+  border-radius: var(--hb-radius-hero);
+  color: #ffffff;
+  /* TipLine and StageChip read the stage's ink and veil. */
+  --stage-ink: #ffffff;
+  --stage-veil: rgb(255 255 255 / 0.18);
+  background:
+    radial-gradient(90% 62% at 82% 6%, var(--hb-lit) 0%, transparent 70%),
+    radial-gradient(70% 50% at 0% 100%, var(--hb-low) 0%, transparent 72%),
+    linear-gradient(172deg, var(--hb-a) 0%, var(--hb-b) 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.28),
+    inset 0 0 0 1px rgb(255 255 255 / 0.06),
+    0 28px 44px -22px var(--hb-glow),
+    0 8px 18px -10px rgb(0 0 0 / 0.3);
+}
+/* One family per card, per trait. Light: the tone lit at the top
+   falling to its ink. Dark: the same hue a step deeper and quieter.
+   Each top colour holds white 13px type at 4.5:1 or better (4.8, 4.8,
+   5.0, 4.7, 5.1 in light); the lit corner sits behind the object. */
+.hb-hero[data-trait="pause"] {
+  --hb-a: #3d6ae6;
+  --hb-b: #1c368a;
+  --hb-lit: rgb(196 214 255 / 0.62);
+  --hb-low: rgb(14 30 92 / 0.5);
+  --hb-glow: rgb(47 95 224 / 0.6);
+}
+.hb-hero[data-trait="fillers"] {
+  --hb-a: #cc3a6c;
+  --hb-b: #8a1640;
+  --hb-lit: rgb(255 208 222 / 0.6);
+  --hb-low: rgb(80 8 34 / 0.5);
+  --hb-glow: rgb(214 47 104 / 0.55);
+}
+.hb-hero[data-trait="repairs"] {
+  --hb-a: #9e6200;
+  --hb-b: #6b4200;
+  --hb-lit: rgb(255 226 160 / 0.6);
+  --hb-low: rgb(60 34 0 / 0.5);
+  --hb-glow: rgb(200 130 10 / 0.55);
+}
+.hb-hero[data-trait="pace"] {
+  --hb-a: #12845a;
+  --hb-b: #084a30;
+  --hb-lit: rgb(190 245 220 / 0.55);
+  --hb-low: rgb(4 40 26 / 0.5);
+  --hb-glow: rgb(13 132 87 / 0.55);
+}
+.hb-hero[data-trait="range"] {
+  --hb-a: #7652e6;
+  --hb-b: #3b1f8f;
+  --hb-lit: rgb(222 210 255 / 0.6);
+  --hb-low: rgb(30 12 80 / 0.5);
+  --hb-glow: rgb(112 72 230 / 0.55);
+}
+:root[data-theme="dark"] .hb-hero[data-trait="pause"] {
+  --hb-a: #3558b4;
+  --hb-b: #14244f;
+  --hb-lit: rgb(140 176 246 / 0.42);
+  --hb-low: rgb(6 12 34 / 0.55);
+  --hb-glow: rgb(40 80 190 / 0.45);
+}
+:root[data-theme="dark"] .hb-hero[data-trait="fillers"] {
+  --hb-a: #a83a60;
+  --hb-b: #4a1226;
+  --hb-lit: rgb(240 160 186 / 0.4);
+  --hb-low: rgb(30 4 14 / 0.55);
+  --hb-glow: rgb(170 40 90 / 0.4);
+}
+:root[data-theme="dark"] .hb-hero[data-trait="repairs"] {
+  --hb-a: #9c6a12;
+  --hb-b: #3d2805;
+  --hb-lit: rgb(240 200 120 / 0.38);
+  --hb-low: rgb(28 16 0 / 0.55);
+  --hb-glow: rgb(160 110 20 / 0.4);
+}
+:root[data-theme="dark"] .hb-hero[data-trait="pace"] {
+  --hb-a: #1d7a56;
+  --hb-b: #0a3423;
+  --hb-lit: rgb(150 220 190 / 0.36);
+  --hb-low: rgb(2 22 14 / 0.55);
+  --hb-glow: rgb(20 110 75 / 0.4);
+}
+:root[data-theme="dark"] .hb-hero[data-trait="range"] {
+  --hb-a: #6146b4;
+  --hb-b: #26164f;
+  --hb-lit: rgb(196 176 246 / 0.4);
+  --hb-low: rgb(14 6 34 / 0.55);
+  --hb-glow: rgb(90 60 190 / 0.42);
+}
+
+/* The object. It stands in the card's top-right corner and rises out
+   of it, the way ToyCad's chick rises out of its tile: the one picture
+   on the screen that breaks its frame. A soft shadow in the card's own
+   ink sits it on the colour; above the card it falls on the page. */
+.hb-hero-art {
+  position: absolute;
+  top: calc(var(--hb-art) * var(--hb-rise));
+  right: calc(var(--hb-art) * -0.1);
+  width: var(--hb-art);
+  height: var(--hb-art);
+  pointer-events: none;
+  user-select: none;
+  filter: drop-shadow(0 22px 26px rgb(8 20 70 / 0.38));
+}
+:root[data-theme="dark"] .hb-hero-art {
+  filter: drop-shadow(0 22px 26px rgb(0 0 0 / 0.5));
+}
+/* A pool of light under the object on the card, so it reads lit from
+   inside the colour (the fintech card's glow from below). */
+.hb-hero-pool {
+  position: absolute;
+  top: calc(var(--hb-art) * 0.42);
+  right: calc(var(--hb-art) * 0.06);
+  width: calc(var(--hb-art) * 0.7);
+  height: calc(var(--hb-art) * 0.34);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(255 255 255 / 0.34), transparent);
+  filter: blur(6px);
+  pointer-events: none;
+}
+
+.hb-hero-lead {
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+/* The title: 40/800, three lines at most for a typical prompt. */
+.hb-display {
+  font-family: var(--font-display-face), sans-serif;
+  font-size: min(var(--hb-text-display), 10.2vw);
+  line-height: 1.02;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+.hb-display[data-long] {
+  font-size: min(2.125rem, 8.8vw);
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+}
+
+/* TipLine on the card: its glyph, its cue and its open sentence in the
+   card's ink. */
+.hb-hero .tip-glyph,
+.hb-hero .disclosure-mark {
+  color: var(--stage-ink);
+}
+.hb-hero .text-stone-600 {
+  color: rgb(255 255 255 / 0.84);
+}
+
+/* The one tap, as a pill on the card (STATE's open experiment: "a pill
+   primary is worth one experiment"). 48px, terracotta, ink. */
+.hb-start {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  border-radius: 999px;
+  padding: 0 24px;
+  background: var(--color-terracotta-500);
+  color: var(--color-on-accent);
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+  font-weight: 700;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.3),
+    0 8px 18px -8px rgb(0 0 0 / 0.45);
+}
+/* Spin and difficulty: 44px glass circles in the card's veil. */
+.hb-glyph {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  background: rgb(255 255 255 / 0.16);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.16);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.hb-glyph[aria-expanded="true"] {
+  background: rgb(255 255 255 / 0.3);
+}
+.hb-glyph-count {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--hb-b, #1c368a);
+}
+
+/* ------------------------------------------------------------------ */
+/* The switch: ToyCad's Start / My Recent pill, on the shared Segmented
+   (its roving radio and keys), dressed as a capsule with an ink thumb. */
+.hb-seg.segmented {
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--color-surface);
+}
+.hb-seg .segmented-thumb {
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc((100% - 8px) / var(--segments));
+  border-radius: 999px;
+  /* The raised step, not ink: an ink thumb was the second heaviest mass
+     on the first screen and outweighed Start in the squint. */
+  background: var(--color-raised);
+  box-shadow:
+    0 4px 12px -4px rgb(0 0 0 / 0.16),
+    0 0 0 0.5px rgb(0 0 0 / 0.05);
+}
+:root[data-theme="dark"] .hb-seg .segmented-thumb {
+  background: #3d3d3d;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    0 4px 12px -4px rgb(0 0 0 / 0.6);
+}
+.hb-seg .segmented-option {
+  min-height: 44px;
+  font-size: 0.9375rem;
+}
+.hb-seg .segmented-option[aria-checked="true"] {
+  color: var(--color-ink);
+}
+
+/* ------------------------------------------------------------------ */
+/* The bento. Every tile is the surface step at the tile radius: name at
+   the top left, its picture at the top right, its number at the foot. */
+.hb-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  isolation: isolate;
+  min-height: 172px;
+  padding: 16px;
+  border-radius: var(--hb-radius-tile);
+  background: var(--color-surface);
+}
+:root[data-theme="dark"] .hb-tile {
+  background: linear-gradient(180deg, #212121, var(--color-surface) 96px);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.05);
+}
+.hb-tile[data-wide] {
+  min-height: 168px;
+}
+.hb-tile[data-compact] {
+  min-height: 152px;
+}
+/* The trait's light behind its object: its tone, low, in the corner. */
+.hb-tile-glow {
+  position: absolute;
+  z-index: -1;
+  top: -40px;
+  right: -40px;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--tone) 22%, transparent), transparent);
+  pointer-events: none;
+}
+:root[data-theme="dark"] .hb-tile-glow {
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--tone) 20%, transparent), transparent);
+}
+.hb-tile[data-wide] .hb-tile-glow {
+  top: -40px;
+  right: -40px;
+  width: 260px;
+  height: 260px;
+}
+.hb-tile-art {
+  position: absolute;
+  z-index: -1;
+  top: calc(var(--hb-tile-art) * -0.1);
+  right: calc(var(--hb-tile-art) * -0.21);
+  width: var(--hb-tile-art);
+  height: var(--hb-tile-art);
+  pointer-events: none;
+  user-select: none;
+  filter: drop-shadow(0 10px 12px rgb(0 0 0 / 0.12));
+}
+.hb-tile[data-wide] .hb-tile-art {
+  top: calc(var(--hb-wide-art) * -0.085);
+  right: calc(var(--hb-wide-art) * -0.12);
+  width: var(--hb-wide-art);
+  height: var(--hb-wide-art);
+}
+/* Under 360 the greeting runs to the object's column, so the object
+   rises less out of the card and the words keep their line. */
+@media (max-width: 359px) {
+  .hb {
+    --hb-rise: -0.17;
+  }
+}
+/* The number, and its unit on the same baseline. */
+/* Set off by its row's 4px column gap, so a unit that wraps at 320
+   starts flush under its number. */
+.hb-unit {
+  white-space: nowrap;
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 0.78125rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--color-stone-500);
+}
+/* The percentile as a measured bar: sand trough, the trait's tone. */
+.hb-bar {
+  position: relative;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-sand);
+}
+.hb-bar > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  background: var(--ring-arc, var(--tone));
+}
+/* A mark on the bar: the line to clear, or the best so far. */
+.hb-bar-mark {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 10px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--color-ink);
+}
+.hb-bar[data-marked] {
+  overflow: visible;
+}
+/* The check on a closed line: earned, so sage. */
+.hb-check {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--color-sage-500);
+  color: #ffffff;
+}
+:root[data-theme="dark"] .hb-check {
+  color: var(--color-sage-ink);
+}
+/* The trait's chip on the hero: white, the card's own ink, its mark. */
+.hb-hero .stage-chip {
+  background: rgb(255 255 255 / 0.94);
+  color: var(--hb-b);
+}
+
+/* The ochre is 1.9:1 on sand in light; the ring's deeper arc (globals). */
+:root:not([data-theme="dark"]) [data-trait="repairs"] .hb-bar > i {
+  background: #b47400;
+}
+
+/* A day in the week strip: a sage bar for a day spoken. */
+.hb-day {
+  height: 24px;
+  border-radius: 6px;
+  background: var(--color-sand);
+}
+.hb-day[data-on] {
+  background: var(--color-sage-500);
+}
+
+/* The Index's history as a hill along the tile's foot. */
+/* It keeps to the right 62%, so the caption under the number stays on
+   the plain tile. */
+.hb-hill {
+  position: absolute;
+  z-index: -1;
+  inset: auto 0 0 38%;
+  height: 104px;
+  color: var(--color-sage-500);
+  pointer-events: none;
+}

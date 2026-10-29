@@ -22,6 +22,7 @@ import {
   unpaidLine,
   type PlanView,
 } from "@/lib/plan-view";
+import { usePaywallHeadStays } from "@/lib/paywall-head";
 import { withPortalReturn } from "@/lib/plan-return";
 import { prefersReducedMotion } from "@/lib/prefs";
 import { supabaseBrowser } from "@/lib/supabase-browser";
@@ -361,6 +362,18 @@ export function Paywall({
     onClose();
   };
 
+  // The tier's own mark, once, then what was tapped. The reason never
+  // says "premium" again (reasonLine). Above the scroll where the screen
+  // has room for it, inside it where it does not (lib/paywall-head.ts).
+  const headStays = usePaywallHeadStays();
+  const head = (
+    <>
+      <PremiumMark variant="chip" />
+      {why && <p className="eyebrow mt-2.5 text-cream/70">{why}</p>}
+      <h2 className="font-display mt-1 text-title text-cream">{headline}</h2>
+    </>
+  );
+
   return (
     // The panel is the sheet's own width, as the other two sheets'
     // are: a flex item sized by its content grew past a 320 screen the
@@ -372,25 +385,23 @@ export function Paywall({
           seams are invisible. */}
       <div className="card-premium flex max-h-[calc(100dvh-max(1rem,env(safe-area-inset-top)))] w-full max-w-[430px] flex-col overflow-hidden rounded-t-sheet text-cream">
         {/* The head never scrolls, as an iOS sheet's bar never does, so a
-            finger on it always drags the sheet, scrolled or not (notes1). */}
+            finger on it always drags the sheet, scrolled or not (notes1).
+            On a short screen only the grabber's strip stays. */}
         <div className="shrink-0 px-6 pt-4">
           {/* The grabber: the sheet already follows a finger down
               (Overlay), and this is how a thumb knows (practice-tab-23). */}
-          <div aria-hidden className="mx-auto mb-4 h-1 w-10 rounded-full bg-cream/30" />
-          {/* The tier's own mark, once, then what was tapped. The reason
-              never says "premium" again (reasonLine). */}
-          <PremiumMark variant="chip" />
-          {why && <p className="eyebrow mt-2.5 text-cream/70">{why}</p>}
-          <h2 className="font-display mt-1 text-title text-cream">{headline}</h2>
+          <div aria-hidden className={`mx-auto h-1 w-10 rounded-full bg-cream/30 ${headStays ? "mb-4" : "mb-3"}`} />
+          {headStays && head}
         </div>
         <div
           ref={scroller}
           onScroll={measure}
           data-more={more || undefined}
           data-under={under || undefined}
-          className="paywall-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-6 pb-4 pt-4"
+          className={`paywall-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-6 pb-4 ${headStays ? "pt-4" : "pt-1"}`}
         >
-          <ul className="space-y-2.5 text-body leading-snug text-cream/85">
+          {!headStays && head}
+          <ul className={`${headStays ? "" : "mt-4 "}space-y-2.5 text-body leading-snug text-cream/85`}>
             {BENEFITS.map(({ Glyph, text }, i) => (
               <li key={i} className="flex items-start gap-3">
                 <span aria-hidden className="mt-px shrink-0 text-cream/60">

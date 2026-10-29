@@ -211,8 +211,15 @@ export function introDue(
   return unit.lessons.every((l) => (starMap[l.id] ?? 0) === 0);
 }
 
-/** The unit intro's route. */
-export function introHref(unitId: string, mods: string[] = []): string {
-  const q = mods.length > 0 ? `?mods=${mods.join(",")}` : "";
-  return `/lesson/${unitId}${q}`;
+/**
+ * The unit intro's route. `lesson` names the lesson its Start opens (the
+ * Log's Go on a row, notes1); without one it opens the unit's first
+ * lesson still short of three stars.
+ */
+export function introHref(unitId: string, mods: string[] = [], lesson?: string): string {
+  const params = [
+    ...(mods.length > 0 ? [`mods=${mods.join(",")}`] : []),
+    ...(lesson ? [`lesson=${encodeURIComponent(lesson)}`] : []),
+  ];
+  return `/lesson/${unitId}${params.length > 0 ? `?${params.join("&")}` : ""}`;
 }

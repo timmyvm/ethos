@@ -36,6 +36,9 @@ function LessonIntro() {
   const searchParams = useSearchParams();
   const unit = unitById(params.unit);
   const mods = searchParams.get("mods");
+  // The lesson a door named (the Log's Go on a waiting row), when it is
+  // one of this unit's.
+  const asked = searchParams.get("lesson");
 
   /*
    * Which lesson [Start] opens: the first in this unit still short of
@@ -54,7 +57,9 @@ function LessonIntro() {
   if (!unit?.intro) notFound();
 
   const lesson =
-    unit.lessons.find((l) => (starMap[l.id] ?? 0) < 3) ?? unit.lessons[0];
+    unit.lessons.find((l) => l.id === asked) ??
+    unit.lessons.find((l) => (starMap[l.id] ?? 0) < 3) ??
+    unit.lessons[0];
   /*
    * The trait this unit works on, read the way the log reads a
    * recording's: Filler Elimination, Pace Control and The Pause name

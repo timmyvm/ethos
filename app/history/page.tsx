@@ -40,6 +40,7 @@ import {
   type MovedRow,
 } from "@/lib/log";
 import { starsByLesson, totalStars } from "@/lib/path";
+import { readPrefs } from "@/lib/prefs";
 import { TRAIT, type TraitId } from "@/content/traits";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
 
@@ -129,6 +130,12 @@ export default function HistoryPage() {
   /** The plan: null until the profile answers, and on a failed read.
    *  Unknown is never free (#353): no cut, no teaser, until it says so. */
   const [premium, setPremium] = useState<boolean | null>(null);
+  // Whether a waiting row's Go meets the unit's teaching screen first, as
+  // Today's Start does (#232: the introduction can turn intros off).
+  const [skipIntros, setSkipIntros] = useState(false);
+  useEffect(() => {
+    setSkipIntros(readPrefs().skipIntros);
+  }, []);
   /** The plan's read failed: unknown for good, drawn unlocked, never as a teaser. */
   const [planFailed, setPlanFailed] = useState(false);
   const [showFillers, setShowFillers] = useState(false);
@@ -462,7 +469,7 @@ export default function HistoryPage() {
         </div>
 
         {empty
-          ? waitingRows().map((row) => (
+          ? waitingRows(3, { intros: !skipIntros }).map((row) => (
               <div
                 key={row.id}
                 className={`${RECORD_GRID} items-center border-t border-hairline py-3 text-stone-400`}

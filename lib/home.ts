@@ -22,15 +22,23 @@ import { fmtRaw, type TraitReading } from "./trait-readings";
 
 /**
  * The tactic a practice leads with is one of its trait's three `howTo`
- * lines (content/path.ts, `tipsFor`), and each of those three is what
- * one of the trait's three lessons teaches. So the card's object is the
- * lesson's object for the tactic on it: the hourglass beside "Hold one
- * to two seconds", the pause marks and full stop beside "After the full
+ * lines (content/path.ts, `tipsFor`), and the card's object is the
+ * object of the lesson that teaches that tactic, paired by what the two
+ * say, not by their place in a list: the hourglass beside "Hold one to
+ * two seconds", the pause marks and full stop beside "After the full
  * stop", the zip beside "Close your mouth". Indexed like `howTo`.
+ *
+ * Two tactics have no lesson of their own in their trait. Fillers' "Let
+ * the gap sit" is a shut mouth holding a silence, so it takes the zip
+ * (the crutch magnifier it had is Fillers' crutch-word lesson, which
+ * says nothing about a gap). Variety's "Your crutch word is the one you
+ * cannot hear" is the repeated word, which is the second pass's subject
+ * ("the second time you reach for an idea, reach somewhere else"), so
+ * it keeps the boomerang.
  */
 export const TACTIC_OBJECT: Record<TraitId, readonly [string, string, string]> = {
   pause: ["inside-or-after", "the-long-one", "the-landing"],
-  fillers: ["closed-mouth", "the-cold-open", "the-crutch"],
+  fillers: ["closed-mouth", "the-cold-open", "closed-mouth"],
   repairs: ["finish-it", "or-rather", "know-the-landing"],
   pace: ["one-gear-down", "change-gear", "room-to-land"],
   range: ["name-it-once", "second-pass", "short-and-concrete"],
@@ -100,18 +108,29 @@ export const SHORT_UNIT: Record<TraitId, string> = {
 };
 
 /**
- * The five, weakest first, ranked the way the practice is chosen
- * (`standing` on the raw measurement, lib/next-practice.ts), so the wide
- * tile is the trait the card works on. With no reading, the lesson order.
+ * The five in the bento's order. The wide tile is the trait the card
+ * works on (`focus`, the practice's own trait, so the card, today's line
+ * and the wide tile name one trait, #268); the other four follow by the
+ * percentile printed on them, lowest first, so the order reads weakest
+ * first by the numbers on screen. Without a focus (a failed choice) the
+ * lowest percentile takes the wide tile. A trait with no reading sorts
+ * last; with no reading at all the order is the lessons'.
  */
 export function traitOrder(
-  readings: TraitReading[]
+  readings: TraitReading[],
+  focus: TraitId | null = null
 ): { id: TraitId; reading: TraitReading | null }[] {
-  if (readings.length === 0) return TRAITS.map((t) => ({ id: t.id, reading: null }));
-  return readings
-    .map((r) => ({ r, s: standing(r.id, r.raw) }))
-    .sort((a, b) => a.s - b.s || a.r.id.localeCompare(b.r.id))
-    .map(({ r }) => ({ id: r.id, reading: r }));
+  const byId = new Map(readings.map((r) => [r.id, r]));
+  const place = (id: TraitId) => TRAITS.findIndex((t) => t.id === id);
+  const pct = (id: TraitId) => byId.get(id)?.percentile ?? Infinity;
+  const ranked = TRAITS.map((t) => t.id).sort(
+    (a, b) => (readings.length === 0 ? 0 : pct(a) - pct(b)) || place(a) - place(b)
+  );
+  const lead = focus ?? ranked[0];
+  return [lead, ...ranked.filter((id) => id !== lead)].map((id) => ({
+    id,
+    reading: byId.get(id) ?? null,
+  }));
 }
 
 const VERB: Record<Challenge["direction"], string> = {

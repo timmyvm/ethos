@@ -37,16 +37,22 @@ import { fmtRaw, ordinal, readTraitsFromRow, type TraitReading } from "@/lib/tra
 export function TodayTiles({
   reps,
   challenge,
+  focus,
   hero,
 }: {
   /** Oldest first, as `fetchReps` returns them. */
   reps: RepRow[];
   challenge: Challenge | null;
+  /** The card's trait: the wide tile, so the card, the line and the wide
+      tile name one trait (#268). Null on day one. */
+  focus: TraitId | null;
   /** The card's object, so no tile repeats it. */
   hero: string | null;
 }) {
+  /* The readings are the newest recording's, today's included: the
+     numbers are the latest, the trait in the wide tile is the card's. */
   const last = reps.length > 0 ? reps[reps.length - 1] : null;
-  const rows = traitOrder(last ? readTraitsFromRow(last) : []);
+  const rows = traitOrder(last ? readTraitsFromRow(last) : [], focus);
   const run = cleanRunTile(reps);
   const [first, ...rest] = rows;
 

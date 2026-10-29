@@ -28,7 +28,7 @@ import {
   type RepRow,
   type RepSpine,
 } from "@/lib/client-data";
-import { type Topic } from "@/lib/topics";
+import { topicById, type Topic } from "@/lib/topics";
 import { sessionState } from "@/lib/auth";
 import { syncFreezes } from "@/lib/freeze-sync";
 import { firstRun, markWelcomed } from "@/lib/onboarding";
@@ -60,8 +60,9 @@ const EMPTY: StreakState = {
   frozenInRun: 0,
 };
 
-/** No practice could be chosen (a failed read): a prompt anyone can take. */
-const FALLBACK_PROMPT = "Say what you think about the last thing you read.";
+/** No practice could be chosen (a failed read): a topic anyone can take,
+    and the one Start opens, so the card promises what the tap keeps. */
+const FALLBACK_TOPIC = topicById("t2")!;
 
 /*
  * Today, "the object" (#393). Timothy, on the five home pages in
@@ -237,9 +238,10 @@ export default function Home() {
 
   /*
    * ONE selection for the screen (#268). The card names a trait and
-   * stands its object, today's line works on the same trait, and the
-   * wide tile is the same trait, because all three read the same
-   * `choosePractice` off the same row.
+   * stands its object, today's line works on the same trait (it reads
+   * the same `choosePractice` off the same row), and the wide tile is
+   * handed the same trait, whatever today's recordings did to the
+   * newest numbers under it.
    */
   const lastBeforeToday = practiceRow(history);
   const chosen = lastBeforeToday
@@ -272,15 +274,21 @@ export default function Home() {
   /* The read is in flight. A failed read is not loading: the card paints
      its fallback rather than a skeleton that never resolves. */
   const loading = reps === null && !failed;
+  /* No practice to show once the read has answered (a failed read, a
+     history with nothing to read): the card's fallback topic, which is
+     also where Start goes. */
+  const fallback = !loading && !dayOne && !chosen;
   const startHref =
     introOwns && next
       ? introHref(next.unit.id, mods)
-      : repHref({ topic: chosen?.item.topicId, mods });
+      : repHref({ topic: chosen?.item.topicId ?? (fallback ? FALLBACK_TOPIC.id : undefined), mods });
 
   /* What the card says. The trait is named in every state that has one. */
   const heroTrait = dayOne ? null : (chosen?.trait ?? null);
   const heroTip = dayOne ? null : (chosen?.item.tips[0] ?? null);
-  const heroTitle = dayOne ? "Day one starts today." : (chosen?.item.prompt ?? FALLBACK_PROMPT);
+  const heroTitle = dayOne
+    ? "Day one starts today."
+    : (chosen?.item.prompt ?? FALLBACK_TOPIC.prompt);
   const lead = dayOne ? "Your first recording" : streak.didToday ? "One more" : "Today's practice";
   const object = heroObject(heroTrait, heroTip);
 
@@ -438,7 +446,7 @@ export default function Home() {
 
       {reps !== null &&
         (view === "today" ? (
-          <TodayTiles key="today" reps={history} challenge={challenge} hero={object} />
+          <TodayTiles key="today" reps={history} challenge={challenge} focus={heroTrait} hero={object} />
         ) : (
           <WeekTiles key="week" week={weekView(lifetime, new Date())} />
         ))}

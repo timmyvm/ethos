@@ -35,24 +35,31 @@ import type { TraitReading } from "./trait-readings";
 const root = path.resolve(__dirname, "..");
 
 describe("every practice has its object", () => {
-  it("each trait's three tactics map to its own three lessons, all fifteen once", () => {
-    const seen: string[] = [];
+  it("each trait's three tactics map to a lesson of its own trait, by what the lesson teaches", () => {
     for (const t of TRAITS) {
       const ids = TACTIC_OBJECT[t.id];
       expect(ids).toHaveLength(t.howTo.length);
-      for (const id of ids) {
-        expect(lessonById(id)?.trait, id).toBe(t.id);
-        seen.push(id);
-      }
+      for (const id of ids) expect(lessonById(id)?.trait, id).toBe(t.id);
     }
-    expect([...seen].sort()).toEqual(LESSONS.map((l) => l.id).sort());
+    // Where a tactic names its lesson, the lesson's object stands beside it.
+    expect(TACTIC_OBJECT.pause).toEqual(["inside-or-after", "the-long-one", "the-landing"]);
+    expect(TACTIC_OBJECT.repairs).toEqual(["finish-it", "or-rather", "know-the-landing"]);
+    expect(TACTIC_OBJECT.range[0]).toBe("name-it-once");
+    expect(TACTIC_OBJECT.range[2]).toBe("short-and-concrete");
+    // "Let the gap sit" is a shut mouth holding a silence: the zip, not
+    // the crutch-word magnifier it once took by its place in the list.
+    expect(TRAIT.fillers.howTo[2]).toMatch(/^Let the gap sit/);
+    expect(TACTIC_OBJECT.fillers[2]).toBe("closed-mouth");
+    expect(TACTIC_OBJECT.fillers).not.toContain("the-crutch");
   });
 
   it("each trait's own object is one of its lessons, and Pausing's is the hourglass", () => {
     for (const t of TRAITS) {
       expect(lessonById(TRAIT_OBJECT[t.id])?.trait).toBe(t.id);
-      // The tile's order is the same three, every lesson of the trait.
-      expect([...TRAIT_OBJECTS[t.id]].sort()).toEqual([...TACTIC_OBJECT[t.id]].sort());
+      // The tile's order is the trait's three lessons, every one of them.
+      expect([...TRAIT_OBJECTS[t.id]].sort()).toEqual(
+        LESSONS.filter((l) => l.trait === t.id).map((l) => l.id).sort()
+      );
     }
     expect(TRAIT_OBJECT.pause).toBe("the-long-one");
     expect(HOUSE_OBJECT).toBe("the-long-one");
@@ -108,20 +115,33 @@ describe("the tiles", () => {
     for (const t of TRAITS) expect(SHORT_UNIT[t.id].length).toBeGreaterThan(0);
   });
 
-  it("orders the five weakest first on the practice's own ranking, and the lesson order with none", () => {
+  it("puts the card's trait wide and the other four lowest percentile first; the lesson order with none", () => {
     expect(traitOrder([]).map((t) => t.id)).toEqual(TRAITS.map((t) => t.id));
     expect(traitOrder([]).every((t) => t.reading === null)).toBe(true);
+    expect(traitOrder([], "pace").map((t) => t.id)).toEqual(["pace", "pause", "fillers", "repairs", "range"]);
     const five = [
-      reading("pause", 3.5),
-      reading("fillers", 9),
-      reading("repairs", 1),
-      reading("pace", 150),
-      reading("range", 60),
+      reading("pause", 1.8, 18),
+      reading("fillers", 0.7, 93),
+      reading("repairs", 0.8, 93),
+      reading("pace", 155, 72),
+      reading("range", 62, 68),
     ];
-    const order = traitOrder(five);
-    expect(order).toHaveLength(5);
-    // Nine filled pauses per hundred words is the weakest of these.
-    expect(order[0].id).toBe("fillers");
+    // The fixture's morning: Pace's 155wpm is inside its band, so the
+    // practice's own ranking called it best, but the tile prints 72nd.
+    const order = traitOrder(five, "pause");
+    expect(order.map((t) => t.id)).toEqual(["pause", "range", "pace", "fillers", "repairs"]);
+    expect(order.map((t) => t.reading?.percentile)).toEqual([18, 68, 72, 93, 93]);
+    // After a recording today the newest row's weakest can differ from
+    // the card's trait; the card's trait still takes the wide tile.
+    const today = traitOrder([...five.slice(0, 1), reading("fillers", 9.8, 12), ...five.slice(2)], "pause");
+    expect(today[0].id).toBe("pause");
+    expect(today[1]).toMatchObject({ id: "fillers", reading: { percentile: 12 } });
+    // No focus: the lowest percentile is wide.
+    expect(traitOrder(five)[0].id).toBe("pause");
+    // A trait without a reading keeps its place and prints a dash, last.
+    const four = traitOrder(five.slice(1), "pause");
+    expect(four[0]).toEqual({ id: "pause", reading: null });
+    expect(four.map((t) => t.id)).toEqual(["pause", "range", "pace", "fillers", "repairs"]);
   });
 
   const line = (over: Partial<Challenge>): Challenge => ({

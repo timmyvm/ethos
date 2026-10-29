@@ -54,8 +54,3 @@ export function trainedDays(reps: RepLike[]): TrainedDay[] {
     .sort((a, b) => (a[0] < b[0] ? -1 : 1))
     .map(([date, index], i) => ({ day: i + 1, date, index }));
 }
-
-/** The counter itself. "Day 12" — never resets, never inflates. */
-export function dayCount(reps: RepLike[]): number {
-  return trainedDays(reps).length;
-}

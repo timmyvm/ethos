@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayCount, trainedDays } from "./days";
+import { trainedDays } from "./days";
 
 function rep(date: Date, index: number | null = 600) {
   return { created_at: date.toISOString(), ethos_index: index };
@@ -7,15 +7,21 @@ function rep(date: Date, index: number | null = 600) {
 
 const AUG = (d: number, h = 10) => new Date(2026, 7, d, h);
 
-describe("the day counter", () => {
+/*
+ * dayCount went (no caller); the recording screen counts the days spoken
+ * as trainedDays(...).length, so the counter's promises are held there.
+ */
+const spoken = (reps: ReturnType<typeof rep>[]) => trainedDays(reps).length;
+
+describe("the days spoken", () => {
   it("counts days you spoke, not reps", () => {
-    expect(dayCount([rep(AUG(9)), rep(AUG(9, 19)), rep(AUG(10))])).toBe(2);
+    expect(spoken([rep(AUG(9)), rep(AUG(9, 19)), rep(AUG(10))])).toBe(2);
   });
 
   it("counts days you spoke, not days since you signed up", () => {
     // Two days in August, then nothing for three weeks, then one more.
     const reps = [rep(AUG(1)), rep(AUG(2)), rep(AUG(28))];
-    expect(dayCount(reps)).toBe(3);
+    expect(spoken(reps)).toBe(3);
   });
 
   /**
@@ -27,12 +33,12 @@ describe("the day counter", () => {
   it("never resets on a missed day", () => {
     const before = [rep(AUG(1)), rep(AUG(2)), rep(AUG(3))];
     const afterMissingTwo = [...before, rep(AUG(6))];
-    expect(dayCount(before)).toBe(3);
-    expect(dayCount(afterMissingTwo)).toBe(4);
+    expect(spoken(before)).toBe(3);
+    expect(spoken(afterMissingTwo)).toBe(4);
   });
 
   it("is zero before the first rep", () => {
-    expect(dayCount([])).toBe(0);
+    expect(spoken([])).toBe(0);
   });
 });
 
@@ -49,7 +55,7 @@ describe("the day's score", () => {
   });
 
   it("still counts an unscored day as a day you turned up", () => {
-    expect(dayCount([rep(AUG(9), null)])).toBe(1);
+    expect(spoken([rep(AUG(9), null)])).toBe(1);
   });
 
   it("numbers days from one, in order", () => {

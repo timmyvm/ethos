@@ -4769,12 +4769,17 @@ summary::-webkit-details-marker {
 .home-hero[data-family="none"] .home-hero-tip {
   color: var(--color-stone-600);
 }
-/* The roulette's reel at the card's display size: four lines a cell,
-   each prompt standing on the cell's foot, so the pill sits where
-   Start sat and a short prompt does not float. */
-.home-reel {
-  --reel-cell: calc(4.24 * min(2.125rem, 8.8cqw));
-  font-size: min(2.125rem, 8.8cqw);
+/* The roulette's reel, a step under the card's display size: every
+   prompt in the pool fits its four-line window at 320 and 390 (the
+   longest, "Explain how interest works...", runs four at 320), and the
+   card keeps its 376px, so nothing under it moves when it spins up; each
+   standing on the window's foot, so the pill sits where Start sat and
+   a short prompt does not float. Its window is one cell tall
+   (components/Reel.tsx) and clips, so a fifth line would be lost. */
+.home-display.home-reel {
+  --reel-fs: min(1.75rem, 10.8cqw);
+  --reel-cell: calc(4 * 1.06 * var(--reel-fs));
+  font-size: var(--reel-fs);
   line-height: 1.06;
   letter-spacing: -0.03em;
   box-sizing: content-box;

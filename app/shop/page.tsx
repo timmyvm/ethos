@@ -1,10 +1,10 @@
 "use client";
 
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CountUp } from "@/components/CountUp";
-import { IconCoin, IconFreeze } from "@/components/Icon";
+import { IconCoin } from "@/components/Icon";
+import { ItemArt } from "@/components/shop/ItemArt";
 import { Skeleton, SkeletonRegion } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { HeaderCount } from "@/components/ui/HeaderCount";
@@ -24,7 +24,6 @@ import { syncFreezes } from "@/lib/freeze-sync";
 import {
   canBuy,
   ownedFrom,
-  POSE_ART,
   reasonFor,
   SHOP,
   type ShopItem,
@@ -375,38 +374,5 @@ export default function ShopPage() {
         </div>
       )}
     </main>
-  );
-}
-
-/**
- * Every item's picture in one 56px slot (you-3, you-22). A pose stands
- * on the slot's floor, so the speaking pose's flat bust cut meets the
- * tile's edge instead of hanging in the air; the freeze is the sky tile
- * itself (#315: protection you hold, never sage), not a tile in a tile.
- * In dark the surface step is darker than the card it sits in and drew
- * a hole, so the tile takes the quiet ink fill Settings' hour set uses.
- */
-function ItemArt({ id }: { id: string }) {
-  const art = POSE_ART[id];
-  if (!art) {
-    return (
-      <span aria-hidden className="you-freeze h-14 w-14">
-        <IconFreeze size={22} />
-      </span>
-    );
-  }
-  return (
-    <span
-      aria-hidden
-      className="flex h-14 w-14 shrink-0 items-end justify-center overflow-hidden rounded-control bg-surface dark:bg-[color-mix(in_srgb,var(--color-ink)_7%,transparent)]"
-    >
-      <Image
-        src={art}
-        alt=""
-        width={128}
-        height={128}
-        className="demos h-[52px] w-[52px] object-contain object-bottom"
-      />
-    </span>
   );
 }

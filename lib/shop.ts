@@ -57,20 +57,21 @@ export const SHOP: ShopItem[] = [
      * somebody buys it), so it stays `pose_workout` for the same reason
      * routes keep "rep" (#164): nobody reads it aloud, and renaming it
      * would orphan every purchase. The art it points at is the part a
-     * user sees, and that was a panda lifting a dumbbell (#249).
+     * user sees: once a panda lifting a dumbbell (#249), then a stopwatch
+     * the stage never drew, and now the alarm-clock pose You wears.
      */
     id: "pose_workout",
     name: "Demos, mid-practice",
     price: 8,
     kind: "cosmetic",
-    blurb: "Puts the stopwatch pose on You.",
+    blurb: "Puts the alarm-clock pose on You.",
   },
   {
     id: "pose_celebrate",
     name: "Demos, celebrating",
     price: 12,
     kind: "cosmetic",
-    blurb: "The one he normally saves for a streak milestone.",
+    blurb: "Puts the arms-up pose on You.",
   },
 ];
 
@@ -78,48 +79,28 @@ export function itemById(id: string): ShopItem | undefined {
   return SHOP.find((i) => i.id === id);
 }
 
-/** Each pose's still, for its art slot in the Shop. */
-export const POSE_ART: Record<string, string> = {
-  pose_speaking: "/demos-speaking.webp",
-  pose_workout: "/demos-practice.webp",
-  pose_celebrate: "/demos-celebrate.webp",
-};
-
-/** The floor card's Demos when nothing has been bought or equipped. */
-export const DEFAULT_POSE_ART = "/demos.webp";
-
 /**
- * What the floor card should draw.
- *
- * Guarded by ownership rather than trusting the stored id: prefs live in
- * localStorage, so a hand-edited value must fall back to the default
- * rather than unlocking art. The ledger is the source of truth for what
- * was bought; the pref only picks between things it proves.
- */
-export function poseArt(
-  equipped: string | null,
-  owned: Owned
-): string {
-  if (!equipped) return DEFAULT_POSE_ART;
-  if (!owned.ids.has(equipped)) return DEFAULT_POSE_ART;
-  return POSE_ART[equipped] ?? DEFAULT_POSE_ART;
-}
-
-/**
- * The pose a bought cosmetic puts on You's stage, in DemosArt's set.
- * The stage draws DemosArt, not the still art above, so a bought pose
- * reaches the stage only through this map. It stood on Today's floor
- * card until #393 took Demos off the home; You's identity stage is
- * where he stands every day now, so that is where a bought pose shows.
+ * The pose a bought cosmetic puts on You's stage, in DemosArt's set, and
+ * the picture the Shop sells it with: the Shop's slot draws the same
+ * still (`components/shop/ItemArt.tsx`, through DemosArt's `poseSrc`),
+ * so what you buy is what you wear. It stood on Today's floor card until
+ * #393 took Demos off the home; You's identity stage is where he stands
+ * every day now, so that is where a bought pose shows.
  */
 export type StagePose = "speaking" | "clock" | "celebrate";
 export const POSE_STAGE: Record<string, StagePose> = {
   pose_speaking: "speaking",
-  pose_workout: "clock", // "the stopwatch pose"
+  pose_workout: "clock", // "the alarm-clock pose", Practice's boss
   pose_celebrate: "celebrate",
 };
 
-/** The equipped pose for the stage, under poseArt's ownership guard; null draws the default. */
+/**
+ * The equipped pose for the stage; null draws the default. Guarded by
+ * ownership rather than trusting the stored id: the device's copy lives
+ * in localStorage, so a hand-edited value must fall back rather than
+ * unlock a pose. The ledger proves what was bought; the pref only picks
+ * between things it proves.
+ */
 export function stagePose(equipped: string | null, owned: Owned): StagePose | null {
   if (!equipped || !owned.ids.has(equipped)) return null;
   return POSE_STAGE[equipped] ?? null;

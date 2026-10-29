@@ -2,9 +2,10 @@ import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { ItemArt } from "@/components/shop/ItemArt";
 import { YouDemos } from "@/components/you/YouDemos";
 import { hasClip } from "./idle-clips";
-import { ownedFrom, POSE_STAGE, SHOP, YOU_POSE, youPose } from "./shop";
+import { itemById, ownedFrom, POSE_STAGE, SHOP, YOU_POSE, youPose } from "./shop";
 
 /*
  * A bought pose has to show somewhere (money buys cosmetics only, and a
@@ -105,6 +106,39 @@ describe("You's stage, rendered", () => {
   it("springs back in when the moment goes", () => {
     expect(stage({ worn: "pose_speaking", ledger: bought("pose_speaking"), back: true })).toMatch(/demos-pop/);
     expect(stage({ worn: "pose_speaking", ledger: bought("pose_speaking") })).not.toMatch(/demos-pop/);
+  });
+});
+
+/*
+ * What the Shop shows is what You wears. "Demos, mid-practice" sold a
+ * Demos holding out a stopwatch and put one hugging an alarm clock on
+ * You's stage (Practice's boss); the speaking and celebrating stills were
+ * other renders too. The Shop's slot draws the stage's own still now,
+ * from the same source, and each blurb names what it shows.
+ */
+describe("the Shop's picture of a pose", () => {
+  it("is the still You's stage draws once the pose is worn", () => {
+    for (const id of POSES) {
+      const shop = drawn(renderToStaticMarkup(createElement(ItemArt, { id })));
+      const you = drawn(stage({ worn: id, ledger: [...earned, ...bought(id)] }));
+      expect([id, shop]).toEqual([id, you]);
+      expect([id, shop]).toEqual([id, POSE_STAGE[id]]);
+    }
+  });
+
+  it("keeps the freeze its own tile", () => {
+    const html = renderToStaticMarkup(createElement(ItemArt, { id: "streak_freeze" }));
+    expect(drawn(html)).toBeNull();
+    expect(html).toMatch(/you-freeze/);
+  });
+
+  it("names the pose each blurb puts on You", () => {
+    expect(itemById("pose_speaking")!.blurb).toBe("Puts the speaking pose on You.");
+    expect(itemById("pose_workout")!.blurb).toBe("Puts the alarm-clock pose on You.");
+    expect(itemById("pose_celebrate")!.blurb).toBe("Puts the arms-up pose on You.");
+    // The id is a ledger key: purchases are stored under it.
+    expect(POSE_STAGE.pose_workout).toBe("clock");
+    for (const item of SHOP) expect(item.blurb, item.id).not.toMatch(/stopwatch|milestone/i);
   });
 });
 

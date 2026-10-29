@@ -1,12 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  DEFAULT_POSE_ART,
   SHOP,
   canBuy,
   itemById,
   ownedFrom,
-  poseArt,
   reasonFor,
   stagePose,
 } from "./shop";
@@ -49,7 +47,7 @@ describe("ownedFrom", () => {
     ]);
     expect(owned.freezes).toBe(0);
     expect(owned.ids.size).toBe(0);
-    expect(poseArt("pose_celebrate", owned)).toBe(DEFAULT_POSE_ART);
+    expect(stagePose("pose_celebrate", owned)).toBeNull();
   });
 
   it("counts a spend at the catalog's price", () => {
@@ -100,23 +98,6 @@ describe("canBuy", () => {
     // Owning it is the truer reason than being broke.
     const owned = ownedFrom([spend("shop:pose_speaking")]);
     expect(canBuy(pose, 0, owned, 0, 2).reason).toBe("Owned");
-  });
-});
-
-describe("poseArt", () => {
-  const owned = ownedFrom([spend("shop:pose_workout")]);
-
-  it("falls back to the default when nothing is equipped", () => {
-    expect(poseArt(null, owned)).toBe(DEFAULT_POSE_ART);
-  });
-
-  it("draws an equipped pose that was actually bought", () => {
-    expect(poseArt("pose_workout", owned)).toBe("/demos-practice.webp");
-  });
-
-  it("refuses a pose the ledger doesn't prove", () => {
-    // prefs live in localStorage, so the id is user-editable.
-    expect(poseArt("pose_celebrate", owned)).toBe(DEFAULT_POSE_ART);
   });
 });
 

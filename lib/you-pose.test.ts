@@ -120,8 +120,8 @@ describe("You's page", () => {
     expect(you).not.toMatch(/pose="hello"/);
   });
 
-  it("lets the account's pose win over the device's copy", () => {
+  it("lets the account's pose win over the device's copy, once this device's save has landed", () => {
     expect(you).toMatch(/setWorn\(readPrefs\(\)\.pose\)/);
-    expect(you).toMatch(/setWorn\(p\.equipped_pose\)/);
+    expect(you).toMatch(/setWorn\(adoptAccountPose\(p\.equipped_pose\)\)/);
   });
 });

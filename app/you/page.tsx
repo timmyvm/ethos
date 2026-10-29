@@ -50,7 +50,8 @@ import {
 import { ACTION_CLASS, INPUT_CLASS } from "@/lib/ui";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { CHECKOUT_COPY, CODE_LINE, hasPlan } from "@/lib/plan-view";
-import { prefersReducedMotion, readPrefs, writePrefs } from "@/lib/prefs";
+import { prefersReducedMotion, readPrefs } from "@/lib/prefs";
+import { adoptAccountPose } from "@/lib/pose-save";
 import type { CoinRow } from "@/lib/coins";
 import { usePlan, usePriceDrop, useStripeReturn, useStripeReturns, type ProfileRead } from "@/lib/use-plan";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
@@ -291,12 +292,10 @@ export default function YouPage() {
         setPremium(p?.premium ?? false);
         setProfileRead(p);
         // The account's pose wins, its null (none worn) included, and the
-        // device's copy follows so the next first paint is right. No
-        // account (null) keeps the device's copy.
-        if (p) {
-          setWorn(p.equipped_pose);
-          writePrefs({ pose: p.equipped_pose });
-        }
+        // device's copy follows so the next first paint is right, unless
+        // the Shop's save of a pose worn here has not landed yet: then the
+        // device's copy stands (lib/pose-save). No account (null) keeps it.
+        if (p) setWorn(adoptAccountPose(p.equipped_pose));
         return syncOnboarding().then(setOnboarding);
       })
       .catch(() => {

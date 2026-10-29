@@ -2,7 +2,7 @@
 
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CountUp } from "@/components/CountUp";
 import { IconCoin, IconFreeze } from "@/components/Icon";
 import { Skeleton, SkeletonRegion } from "@/components/ui/Skeleton";
@@ -31,7 +31,8 @@ import {
 } from "@/lib/shop";
 import { DURATION } from "@/lib/motion";
 import { MAX_EQUIPPED_FREEZES } from "@/lib/streak";
-import { buzz, readPrefs, writePrefs } from "@/lib/prefs";
+import { adoptAccountPose, wearPose } from "@/lib/pose-save";
+import { buzz, readPrefs } from "@/lib/prefs";
 import { DISABLED_CLASS } from "@/lib/ui";
 
 /**
@@ -55,6 +56,8 @@ export default function ShopPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [pose, setPose] = useState<string | null>(null);
+  /** Which tap of the equip button is the latest, so an older save's failure stays quiet. */
+  const wearing = useRef(0);
   /*
    * The item bought in this visit (#242). A purchase swaps the card's
    * button for a different one in the same slot ("Buy" becomes "On
@@ -102,25 +105,35 @@ export default function ShopPage() {
 
   useEffect(() => {
     // The local copy paints first; the account's answer wins when it
-    // lands, because the account is what follows you to a new device.
+    // lands, because the account is what follows you to a new device,
+    // unless a pose worn here is still on its way there (lib/pose-save).
     setPose(readPrefs().pose);
     fetchProfile()
       .then((p) => {
-        if (!p) return;
-        setPose(p.equipped_pose ?? null);
-        // The device's copy follows, so the next first paint is right.
-        writePrefs({ pose: p.equipped_pose ?? null });
+        if (p) setPose(adoptAccountPose(p.equipped_pose));
       })
       .catch(() => {});
     void refresh();
   }, [refresh]);
 
-  /** Equipping is free and reversible: the coins bought the option. */
+  /**
+   * Equipping is free and reversible: the coins bought the option. The
+   * device has it at once and the account in the background; a save that
+   * fails twice puts the account's pose back on the button and says so.
+   */
   function equip(id: string | null) {
-    writePrefs({ pose: id });
     setPose(id);
-    void updateEquippedPose(id);
     buzz(15);
+    const turn = ++wearing.current;
+    void wearPose(id, updateEquippedPose).then((saved) => {
+      if (saved || turn !== wearing.current) return;
+      setNote("Wearing it didn't save. Try again.");
+      fetchProfile()
+        .then((p) => {
+          if (p && turn === wearing.current) setPose(adoptAccountPose(p.equipped_pose));
+        })
+        .catch(() => {});
+    });
   }
 
   const rows = ledger ?? [];

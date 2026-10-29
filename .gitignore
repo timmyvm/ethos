@@ -36,6 +36,8 @@ yarn-error.log*
 # The motion check writes its video, screenshot and findings here (scripts/check-motion.mjs).
 docs/devibe/motion-check/
 .next-build/
+# Any other build folder an agent or a gate writes (NEXT_DIST_DIR=.next-<name>).
+.next-*/
 .next-e2e/
 .next-open/
 

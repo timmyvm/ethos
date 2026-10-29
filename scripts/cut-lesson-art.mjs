@@ -22,6 +22,11 @@
  *
  *   SIZE=560 OUT=public/lessons/large/ node scripts/cut-lesson-art.mjs
  *   python3 scripts/key-lesson-art.py public/lessons/large
+ *   python3 scripts/measure-lesson-art.py
+ *
+ * The last writes lib/lesson-art-bounds.ts, the box each object's
+ * visible pixels fill inside its square: Today places every object by
+ * that box, so re-run it whenever the art is re-cut.
  */
 import { mkdirSync, writeFileSync, existsSync } from "node:fs";
 import sharp from "sharp";

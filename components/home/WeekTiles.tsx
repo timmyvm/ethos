@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { CountUp } from "@/components/CountUp";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { signed, type WeekView } from "@/lib/home";
@@ -13,10 +14,18 @@ import { DURATION } from "@/lib/motion";
  * Today (the days you spoke, the counter that never resets) lives here
  * now, beside the Index the Log opens on, a tap away from the practice
  * rather than under it.
+ *
+ * The two half tiles are built alike, row for row: the head, the
+ * number, a chart, a caption. So their numbers, their charts and their
+ * captions each share a line, and "22 days in all" has a row of its own
+ * rather than being packed under the strip.
  */
 export function WeekTiles({ week }: { week: WeekView }) {
   const { index } = week;
   const most = Math.max(1, ...week.weeks);
+  /* Six weekly slots, this week last; a week before day one has no
+     column at all, never a zero. */
+  const slots: (number | null)[] = [...Array(Math.max(0, 6 - week.weeks.length)).fill(null), ...week.weeks];
   const moved = index
     ? [
         index.week !== null ? `${signed(index.week)} this week` : null,
@@ -33,12 +42,15 @@ export function WeekTiles({ week }: { week: WeekView }) {
       <Link
         href="/history"
         data-wide
-        data-hill={(index !== null && index.series.length > 1) || undefined}
+        /* The hill's band is held with or without a hill (a new account,
+           one scored recording), so the tile lands at the skeleton's
+           height. */
+        data-hill
         className="home-tile press col-span-2"
       >
         {index && index.series.length > 1 && <Hill values={index.series} />}
         <h3 className="eyebrow text-ink">Ethos Index</h3>
-        <p className="font-display mt-3 flex items-baseline gap-x-1 text-num-hero tabular-nums">
+        <p className="font-display mt-3 flex items-baseline text-num-hero tabular-nums">
           {index ? (
             <>
               <CountUp value={index.now} durationMs={DURATION.max} />
@@ -57,13 +69,10 @@ export function WeekTiles({ week }: { week: WeekView }) {
         </p>
       </Link>
 
-      <section data-compact className="home-tile">
-        <h3 className="eyebrow text-ink">Days spoken</h3>
-        <p className="font-display mt-auto flex items-baseline gap-x-1 text-num-l tabular-nums">
-          {week.spoken}
-          <span className="home-unit">of 7</span>
-        </p>
-        <div aria-hidden className="mt-2.5 grid grid-cols-7 gap-1">
+      <section data-week className="home-tile">
+        <h3 className="home-week-head eyebrow text-ink">Days spoken</h3>
+        <WeekNum n={week.spoken} unit="of 7" />
+        <div aria-hidden className="home-week-chart grid grid-cols-7 gap-1">
           {week.days.map((d, i) => (
             <span key={i} className="flex flex-col items-center gap-1">
               <span className="home-day w-full" data-on={d.on || undefined} />
@@ -75,34 +84,43 @@ export function WeekTiles({ week }: { week: WeekView }) {
             </span>
           ))}
         </div>
-        <p className="mt-2 text-caption text-stone-500">
+        <p className="home-week-caption text-caption text-stone-500">
           {week.daysAll} {week.daysAll === 1 ? "day" : "days"} in all
         </p>
       </section>
 
-      <Link href="/history" data-compact className="home-tile press">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="eyebrow text-ink">Recordings</h3>
-          {/* A column a week since day one, six at most, this week's in sage. */}
-          {week.weeks.length > 1 && (
-            <span aria-hidden className="flex h-7 items-end gap-[3px]">
-              {week.weeks.map((n, i) => (
+      <Link href="/history" data-week className="home-tile press">
+        <h3 className="home-week-head eyebrow text-ink">Recordings</h3>
+        <WeekNum n={week.thisWeek} unit="this week" />
+        {/* A column a week, six weeks, this week's in sage. */}
+        <span aria-hidden className="home-week-chart flex items-end gap-1">
+          {slots.map((n, i) => (
+            <span key={i} className="flex h-full flex-1 items-end">
+              {n !== null && (
                 <span
-                  key={i}
-                  className={`w-1.5 rounded-sm ${i === week.weeks.length - 1 ? "bg-sage-600" : "bg-sand"}`}
-                  style={{ height: `${Math.max(12, (n / most) * 100)}%` }}
+                  className={`w-full rounded-[3px] ${i === slots.length - 1 ? "bg-sage-600" : "bg-sand"}`}
+                  style={{ height: `${Math.max(10, (n / most) * 100)}%` }}
                 />
-              ))}
+              )}
             </span>
-          )}
-        </div>
-        <p className="font-display mt-auto flex items-baseline gap-x-1 text-num-l tabular-nums">
-          {week.thisWeek}
-          <span className="home-unit">this week</span>
-        </p>
-        <p className="mt-2 text-caption text-stone-500">{week.total} since day one</p>
+          ))}
+        </span>
+        <p className="home-week-caption text-caption text-stone-500">{week.total} since day one</p>
       </Link>
     </div>
+  );
+}
+
+/** A half tile's number and its unit, on the number's line. */
+function WeekNum({ n, unit }: { n: number; unit: string }) {
+  return (
+    <p
+      className="home-num-line home-week-num font-display tabular-nums"
+      style={{ "--num-em": String(n).length * 0.58, "--unit-em": unit.length * 0.52 } as CSSProperties}
+    >
+      <span className="home-num">{n}</span>
+      <span className="home-unit">{unit}</span>
+    </p>
   );
 }
 
@@ -138,9 +156,8 @@ function Hill({ values }: { values: number[] }) {
 }
 
 /**
- * This week while the read is in flight: each line in a box of its
- * landed height (the eyebrow's 18, the number's line, the day strip's
- * 38, a caption's 18), so the week lands without moving.
+ * This week while the read is in flight: each row in a box of its
+ * landed size (`.home-week-*`), so the week lands without moving.
  */
 export function WeekSkeleton() {
   const line = (h: string, w: string, extra = "") => (
@@ -158,15 +175,19 @@ export function WeekSkeleton() {
         {line("h-[18px]", "w-48", "mt-1")}
       </div>
       {[0, 1].map((i) => (
-        <div key={i} data-compact className="home-tile">
-          {line("h-[18px]", "w-20")}
-          <span className="mt-auto flex h-9 items-center">
+        <div key={i} data-week className="home-tile">
+          <span className="home-week-head flex items-center">
+            <Skeleton className="h-3 w-20" />
+          </span>
+          <span className="home-num-line home-week-num flex items-center">
             <Skeleton className="h-7 w-16" />
           </span>
-          <span className="mt-2.5 flex h-[38px] items-center">
+          <span className="home-week-chart flex items-end">
             <Skeleton className="h-6 w-full" />
           </span>
-          {line("h-[18px]", "w-24", "mt-2")}
+          <span className="home-week-caption flex items-center">
+            <Skeleton className="h-3 w-24" />
+          </span>
         </div>
       ))}
     </div>

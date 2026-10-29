@@ -13,6 +13,7 @@ import { cleanName } from "./answers";
 import type { Challenge } from "./challenge";
 import { longestCleanRun } from "./clean-run";
 import type { RepRow, RepSpine } from "./client-data";
+import { ART_BOUNDS } from "./lesson-art-bounds";
 import { weekStart } from "./level";
 import { standing } from "./next-practice";
 import { fmtRaw, type TraitReading } from "./trait-readings";
@@ -91,6 +92,27 @@ export function objectSrc(id: string, large = false): string {
   return large ? `/lessons/large/${name}.webp` : `/lessons/${name}.webp`;
 }
 
+/**
+ * Where the object is inside its square, for the CSS that places it:
+ * its visible box's left and top and its width and height, as fractions
+ * of the square (lib/lesson-art-bounds.ts, measured from the cut's
+ * transparency). `.home-hero` and `.home-tile` size an object so that
+ * box fills their object zone, and stand it by the box, so a wide low
+ * object (the pause marks, the bowl, the boomerang) rises out of the
+ * card's corner as far as the hourglass does and never reaches the
+ * words beside it.
+ */
+export function artBox(id: string): Record<"--art-l" | "--art-t" | "--art-w" | "--art-h", number> {
+  const b = ART_BOUNDS[id] ?? ART_BOUNDS[HOUSE_OBJECT];
+  const round = (n: number) => Math.round(n * 10000) / 10000;
+  return {
+    "--art-l": b.l,
+    "--art-t": b.t,
+    "--art-w": round(b.r - b.l),
+    "--art-h": round(b.b - b.t),
+  };
+}
+
 /* ------------------------------------------------------------------ */
 /* The tiles. */
 
@@ -105,6 +127,26 @@ export const SHORT_UNIT: Record<TraitId, string> = {
   repairs: "/100 words",
   pace: "wpm",
   range: "/100 words",
+};
+
+/**
+ * How wide a printed number and a short unit are, in ems of their own
+ * size (Outfit 800 tabular digits; the unit at 700), measured in the
+ * browser with a little to spare. A tile sets its number on one line
+ * with its unit (`.home-num-line`), and the number takes the largest
+ * size up to the tile's own that leaves the unit room, so "9.8 /100
+ * words" holds one line in a 102px column at 320 and no unit wraps.
+ */
+export function numEm(printed: string): number {
+  let em = 0;
+  for (const ch of printed) em += /\d/.test(ch) ? 0.58 : ch === "." ? 0.28 : 0.6;
+  return Math.round(em * 100) / 100 || 0.58;
+}
+export const UNIT_EM: Record<string, number> = {
+  "/100 words": 5.2,
+  wpm: 2.3,
+  "/min": 2.1,
+  s: 0.5,
 };
 
 /**

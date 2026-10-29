@@ -11,6 +11,9 @@ import {
   LINE_MARK,
   SHORT_UNIT,
   TACTIC_OBJECT,
+  UNIT_EM,
+  artBox,
+  numEm,
   TRAIT_OBJECT,
   TRAIT_OBJECTS,
   cleanRunTile,
@@ -24,6 +27,7 @@ import {
   traitOrder,
   weekView,
 } from "./home";
+import { ART_BOUNDS } from "./lesson-art-bounds";
 import type { TraitReading } from "./trait-readings";
 
 /*
@@ -99,6 +103,85 @@ describe("every practice has its object", () => {
       expect(head.toString("ascii", 12, 16), l.id).toBe("VP8X");
       expect(head[20] & 0x10, l.id).toBe(0x10);
     }
+  });
+});
+
+/*
+ * The fix round's object placement: every object is stood by the box
+ * its visible pixels fill (lib/lesson-art-bounds.ts), inside the card's
+ * object zone (`.home-hero` in app/globals.css). The zone's edges are
+ * read from the CSS and evaluated at 320 and 390, and every one of the
+ * fifteen must rise out of the card by the same distance, keep 12px or
+ * more clear of the words' column, end above the topic and stay inside
+ * the card's edge. (The browser check of the same, pixel by pixel, is
+ * the fix round's objects.mjs; this holds the numbers it relied on.)
+ */
+describe("every object stands in the card's zone, by its visible box", () => {
+  const css = readFileSync(path.join(root, "app", "globals.css"), "utf8");
+  const home = css.slice(css.indexOf("/* the home (#393) */"), css.indexOf("end of the home (#393)"));
+  const heroBlock = home.slice(home.indexOf("\n.home-hero {"), home.indexOf("}", home.indexOf("\n.home-hero {")));
+  const zone = (name: string) => {
+    const m = heroBlock.match(new RegExp(`--zone-${name}:\\s*([^;]+);`));
+    if (!m) throw new Error(`no --zone-${name}`);
+    return m[1];
+  };
+  /* calc(), clamp(), px and cqw: all the zone uses. */
+  const at = (expr: string, content: number) =>
+    Function(
+      "clamp",
+      `return ${expr
+        .replace(/calc\(/g, "(")
+        .replace(/([\d.]+)cqw/g, (_, n) => `(${n}*${content}/100)`)
+        .replace(/([\d.]+)px/g, "$1")};`
+    )((lo: number, v: number, hi: number) => Math.min(Math.max(lo, v), hi)) as number;
+  const wordsMin = home.match(/\.home-hero-words \{[^}]*min-height: calc\(var\(--zone-b\) - (\d+)px\)/);
+
+  it("reads a box for every lesson, and the card's zone from the CSS", () => {
+    expect(Object.keys(ART_BOUNDS).sort()).toEqual(LESSONS.map((l) => l.id).sort());
+    for (const b of Object.values(ART_BOUNDS)) {
+      expect(b.r).toBeGreaterThan(b.l);
+      expect(b.b).toBeGreaterThan(b.t);
+    }
+    expect(wordsMin).not.toBeNull();
+    expect(artBox("the-long-one")).toEqual({
+      "--art-l": ART_BOUNDS["the-long-one"].l,
+      "--art-t": ART_BOUNDS["the-long-one"].t,
+      "--art-w": Math.round((ART_BOUNDS["the-long-one"].r - ART_BOUNDS["the-long-one"].l) * 10000) / 10000,
+      "--art-h": Math.round((ART_BOUNDS["the-long-one"].b - ART_BOUNDS["the-long-one"].t) * 10000) / 10000,
+    });
+  });
+
+  for (const [width, rise] of [
+    [320, 22],
+    [390, 48],
+  ] as const) {
+    it(`at ${width}: all fifteen rise ${rise}px, clear the words by 12px, end above the topic, inside the card`, () => {
+      const content = width - 40 - 40; // the column's gutters, then the card's padding
+      const card = content + 40;
+      const [l, r, t, b] = ["l", "r", "t", "b"].map((n) => at(zone(n), content));
+      const column = 20 + 0.52 * content;
+      expect(t).toBeCloseTo(-rise, 0);
+      // The topic starts 24px under the words, which hold the zone's height.
+      const topic = 20 + (b - Number(wordsMin![1])) + 24;
+      for (const id of LESSONS.map((x) => x.id)) {
+        const box = artBox(id);
+        const s = Math.min((b - t) / box["--art-h"], (r - l) / box["--art-w"]);
+        const left = (l + r) / 2 - (s * box["--art-w"]) / 2;
+        expect(left - column, `${id} clear of the words`).toBeGreaterThanOrEqual(12);
+        expect(left + s * box["--art-w"], `${id} inside the card`).toBeLessThanOrEqual(card - 8);
+        expect(t + s * box["--art-h"], `${id} above the topic`).toBeLessThanOrEqual(topic - 6);
+      }
+    });
+  }
+});
+
+describe("a number and its unit share a line", () => {
+  it("every short unit has a measured width, and the printed numbers count their digits", () => {
+    for (const u of Object.values(SHORT_UNIT)) expect(UNIT_EM[u], u).toBeGreaterThan(0);
+    expect(UNIT_EM.s).toBeGreaterThan(0);
+    expect(numEm("155")).toBeCloseTo(1.74, 2);
+    expect(numEm("9.8")).toBeCloseTo(1.44, 2);
+    expect(numEm("9.8")).toBeLessThan(numEm("155"));
   });
 });
 

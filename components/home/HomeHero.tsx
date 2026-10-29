@@ -1,13 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useState, type CSSProperties } from "react";
 import { IconShuffle, IconSliders } from "@/components/Icon";
+import { Reel, useReel } from "@/components/Reel";
 import { TipLine } from "@/components/rep/TipStrip";
 import { StageChip } from "@/components/ui/HeroStage";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { TraitId } from "@/content/traits";
-import { objectSrc } from "@/lib/home";
+import { artBox, objectSrc } from "@/lib/home";
+import { spinForAnswers } from "@/lib/portfolio";
+import { DISABLED_CLASS } from "@/lib/ui";
+import { TOPIC_SHAPES, type Topic } from "@/lib/topics";
+
+/** The roulette, run inside the card (#393's fix round). */
+export interface HeroRoulette {
+  topic: Topic;
+  onSpin: (t: Topic) => void;
+  onTake: (t: Topic) => void;
+  /** The heading focus moves to when the roulette opens. */
+  headRef: React.Ref<HTMLHeadingElement>;
+}
 
 /**
  * Today's practice, "the object" (#393; direction B, Timothy's pick of
@@ -23,6 +36,13 @@ import { objectSrc } from "@/lib/home";
  * the card (lib/home.ts), and it breaks out of the card's top-right
  * corner: the one picture on the screen that leaves its frame.
  *
+ * The object is sized and stood by the box its visible pixels fill
+ * (`artBox`, lib/lesson-art-bounds.ts), inside the card's object zone
+ * (`.home-hero`): its top rises the same distance out of the card for
+ * the hourglass and the boomerang alike, and it keeps 12px clear of the
+ * words' column. The words' column holds the zone's height, so the
+ * topic always starts under the object.
+ *
  * Demos is not on it. He stood here holding a mic every day, which is
  * furniture; he comes back for moments (the price drop's sheet, a
  * result, a milestone).
@@ -34,6 +54,9 @@ import { objectSrc } from "@/lib/home";
  * in flight, on a neutral card, because the trait and so the colour are
  * not known yet; Start and the two glyphs stay live, as they always
  * have: an early tap goes to the recorder.
+ *
+ * The roulette runs in the same card, in the same colour with the same
+ * object: the topic spins where the topic was and the pill takes it.
  */
 export function HomeHero({
   loading,
@@ -49,6 +72,7 @@ export function HomeHero({
   spinRef,
   onMods,
   modsOpen,
+  roulette,
 }: {
   /** The history read is in flight: no colour, no object, no words yet. */
   loading: boolean;
@@ -70,15 +94,26 @@ export function HomeHero({
   spinRef?: React.Ref<HTMLButtonElement>;
   onMods: () => void;
   modsOpen: boolean;
+  /** Set while the roulette has the card. */
+  roulette?: HeroRoulette | null;
 }) {
   /* Words that replace a skeleton land (principle 8); a card that
      mounted with its words (back from the roulette) does not land twice. */
   const [fromSkeleton] = useState(loading);
   const lands = fromSkeleton ? "arrive" : "";
+  /* The tactic's sentence is the card's, not the column's: it lays
+     across the card's width under the object rather than in a six-line
+     column beside it. */
+  const [tipOpen, setTipOpen] = useState(false);
+  const tipPanel = "home-tactic-tip";
 
   return (
-    <section aria-labelledby="home-topic" className="mt-6">
-      <div data-family={loading ? "none" : family} className="home-hero">
+    <section aria-labelledby={roulette ? "home-roulette" : "home-topic"} className="mt-6">
+      <div
+        data-family={loading ? "none" : family}
+        className="home-hero"
+        style={loading ? undefined : (artBox(object) as CSSProperties)}
+      >
         {!loading && (
           <>
             <span aria-hidden className="home-hero-pool" />
@@ -86,78 +121,160 @@ export function HomeHero({
           </>
         )}
 
-        {/* Beside the object: what today is, the trait, the tactic. */}
-        <div className="home-hero-words relative flex flex-col items-start gap-2">
-          {loading ? (
-            <div aria-hidden className="flex w-full flex-col items-start gap-2">
-              <span className="flex h-[18px] items-center">
-                <Skeleton className="h-2.5 w-24" />
-              </span>
-              <Skeleton className="h-[22px] w-20" rounded="rounded-full" />
-              <span className="flex h-11 w-full items-center">
-                <Skeleton className="h-3 w-full" />
-              </span>
-            </div>
-          ) : (
-            <div className={`flex w-full flex-col items-start gap-2 ${lands}`}>
-              <span className="home-hero-lead">{lead}</span>
-              {trait && <StageChip trait={trait} />}
-              {tip && <TipLine tip={tip} compact className="w-full" />}
-            </div>
-          )}
-        </div>
-
-        {loading ? (
-          <div aria-hidden className="home-display relative mt-auto pt-6">
-            {["w-full", "w-11/12", "w-1/2"].map((w, i) => (
-              <span key={i} className="relative block">
-                <span className="invisible">Ag</span>
-                <Skeleton className={`absolute inset-y-[6px] left-0 ${w}`} />
-              </span>
-            ))}
-          </div>
+        {roulette ? (
+          <RouletteBody key="roulette" {...roulette} />
         ) : (
-          <h2
-            id="home-topic"
-            className={`home-display relative mt-auto pt-6 ${lands}`}
-            data-long={title.length > 40 || undefined}
-          >
-            {title}
-          </h2>
-        )}
+          <>
+            {/* Beside the object: what today is, the trait, the tactic. */}
+            <div className="home-hero-words relative flex flex-col items-start gap-2">
+              {loading ? (
+                <div aria-hidden className="flex w-full flex-col items-start gap-2">
+                  <span className="flex h-[18px] items-center">
+                    <Skeleton className="h-2.5 w-24" />
+                  </span>
+                  <Skeleton className="h-[22px] w-20" rounded="rounded-full" />
+                  <span className="flex h-11 w-full items-center">
+                    <Skeleton className="h-3 w-full" />
+                  </span>
+                </div>
+              ) : (
+                <div className={`flex w-full flex-col items-start gap-2 ${lands}`}>
+                  <span className="home-hero-lead">{lead}</span>
+                  {trait && <StageChip trait={trait} />}
+                  {tip && (
+                    <TipLine
+                      tip={tip}
+                      compact
+                      className="w-full"
+                      open={tipOpen}
+                      onOpenChange={setTipOpen}
+                      panelId={tipPanel}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
 
-        {/* The one tap, then spin and difficulty: 48px each, on the card. */}
-        <div className="relative mt-5 flex items-center gap-2">
-          <Link href={href} className="home-start press">
-            Start
-          </Link>
-          <button
-            ref={spinRef}
-            type="button"
-            onClick={onSpin}
-            aria-label="Spin a new topic"
-            className="home-glyph press"
-          >
-            <IconShuffle size={20} />
-          </button>
-          <button
-            type="button"
-            onClick={onMods}
-            aria-label={modsOpen ? "Hide difficulty" : "Turn up the difficulty"}
-            aria-expanded={modsOpen}
-            className="home-glyph press"
-          >
-            <IconSliders size={20} />
-            {/* How many mods are on, on the glyph's corner. */}
-            {mods.length > 0 && (
-              <span className="home-glyph-count font-display text-suffix font-extrabold tabular-nums">
-                {mods.length}
-              </span>
+            {/* The tactic's sentence, under the object, the card's width. */}
+            <div id={tipPanel} aria-live="polite" className="relative">
+              {tip && tipOpen && <p className="home-hero-tip reveal">{tip}</p>}
+            </div>
+
+            {loading ? (
+              <div aria-hidden className="home-display relative mt-auto pt-6">
+                {["w-full", "w-11/12", "w-1/2"].map((w, i) => (
+                  <span key={i} className="relative block">
+                    <span className="invisible">Ag</span>
+                    <Skeleton className={`absolute inset-y-[6px] left-0 ${w}`} />
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <h2
+                id="home-topic"
+                className={`home-display relative mt-auto pt-6 ${lands}`}
+                data-long={title.length > 40 || undefined}
+              >
+                {title}
+              </h2>
             )}
-          </button>
-        </div>
+
+            {/* The one tap, then spin and difficulty: 48px each, on the card. */}
+            <div className="relative mt-5 flex items-center gap-2">
+              <Link href={href} className="home-start press">
+                Start
+              </Link>
+              <button
+                ref={spinRef}
+                type="button"
+                onClick={onSpin}
+                aria-label="Spin a new topic"
+                className="home-glyph press"
+              >
+                <IconShuffle size={20} />
+              </button>
+              <button
+                type="button"
+                onClick={onMods}
+                aria-label={modsOpen ? "Hide difficulty" : "Turn up the difficulty"}
+                aria-expanded={modsOpen}
+                className="home-glyph press"
+              >
+                <IconSliders size={20} />
+                {/* How many mods are on, on the glyph's corner. */}
+                {mods.length > 0 && (
+                  <span className="home-glyph-count font-display text-suffix font-extrabold tabular-nums">
+                    {mods.length}
+                  </span>
+                )}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </section>
+  );
+}
+
+/**
+ * The roulette in the card (#242's motion, #393's fix round): the lead
+ * says Roulette, the chip says the topic's shape (how to answer it),
+ * the topic spins in the topic's place at the card's display size, and
+ * the pill takes it. Spin again is the shuffle glyph that opened it.
+ * The way back stays under the card, in the app's back grammar.
+ */
+function RouletteBody({ topic, onSpin, onTake, headRef }: HeroRoulette) {
+  /* The wheel is components/Reel.tsx (#278), shared with the boss's. */
+  const reel = useReel<Topic>({
+    current: topic,
+    draw: (exclude) => spinForAnswers(exclude),
+    onLand: onSpin,
+  });
+  return (
+    <>
+      <div className="home-hero-words arrive relative flex flex-col items-start gap-2">
+        <h2
+          id="home-roulette"
+          ref={headRef}
+          tabIndex={-1}
+          className="home-hero-lead outline-none!"
+        >
+          Roulette
+        </h2>
+        <span className="stage-chip font-display text-caption font-bold leading-none">
+          {TOPIC_SHAPES[topic.shape].label}
+        </span>
+      </div>
+      <Reel
+        state={reel}
+        current={topic}
+        className="home-display home-reel relative mt-auto pt-6"
+        render={(t) => (
+          <span className="flex h-full items-end">
+            <span className="block">{t.prompt}</span>
+          </span>
+        )}
+      />
+      <div className="relative mt-5 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onTake(topic)}
+          disabled={reel.rolling}
+          className={`home-start press ${DISABLED_CLASS}`}
+        >
+          Take this one
+        </button>
+        <button
+          type="button"
+          onClick={reel.spin}
+          disabled={reel.rolling}
+          aria-label="Spin again"
+          className="home-glyph press disabled:opacity-60"
+        >
+          <IconShuffle size={20} />
+        </button>
+      </div>
+    </>
   );
 }
 

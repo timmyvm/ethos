@@ -4489,22 +4489,6 @@ summary::-webkit-details-marker {
   --radius-hero: 28px;
   --radius-tile: 22px;
 }
-.home {
-  /* The card's object: 260 at 390, down to 200 at 320. */
-  --home-art: clamp(200px, 66.6vw, 260px);
-  /* A tile's object, and the wide tile's, with the column. */
-  --home-tile-art: clamp(108px, 36vw, 140px);
-  --home-wide-art: clamp(160px, 54vw, 212px);
-  /* How far the card's object rises out of the card. */
-  --home-rise: -0.3;
-}
-@media (max-width: 359px) {
-  /* The greeting runs to the object's column under 360, so the object
-     rises less and the words keep their line. */
-  .home {
-    --home-rise: -0.17;
-  }
-}
 
 /* The opening. The bar holds the coin and the chips at rest, so it
    stands 56px: a 44px coin in a 44px bar touched the top of the glass.
@@ -4519,9 +4503,13 @@ summary::-webkit-details-marker {
 .home .large-title-row > .min-w-0 {
   flex: 1 1 auto;
 }
+/* From 360 up the greeting stops 6px short of the card's object zone
+   (52% of the column and 13px, `.home-hero`), so a long name fits
+   itself to that width (app/page.tsx) and never runs into the object's
+   top; under 360 the object rises less and the greeting has the row. */
 @media (min-width: 360px) {
   .home .large-title {
-    max-width: 62%;
+    max-width: calc(52% + 6px);
     text-wrap: balance;
   }
 }
@@ -4569,6 +4557,34 @@ summary::-webkit-details-marker {
 .home-hero {
   position: relative;
   isolation: isolate;
+  /* The object zone below is measured in the card's own width (cqw is
+     1% of its content box: 310px at 390, 240 at 320). */
+  container-type: inline-size;
+  /*
+   * The object zone, in the card's box (its 20px padding included).
+   * Every object is sized so the box its visible pixels fill
+   * (`artBox`: --art-l, --art-t, --art-w, --art-h, fractions of its
+   * square) fits the zone, then centred across it with its visible top
+   * on the zone's top. So every object rises out of the card by the
+   * same distance, 48px at 390 and 22 at 320, the hourglass and the
+   * boomerang alike, and none comes nearer the words than 12px.
+   *   left    13px right of the words' column (52% of the content box)
+   *   right   10px inside the card's edge
+   *   top     the rise: -48px at 390, -22 at 320 (where the greeting
+   *           runs the column's width), between on the way
+   *   bottom  160px at 390, 140 at 320: the topic starts under it
+   */
+  --zone-l: calc(52cqw + 33px);
+  --zone-r: calc(100cqw + 30px);
+  --zone-t: clamp(-48px, calc(67.1px - 37.14cqw), -22px);
+  --zone-b: clamp(140px, calc(71.4px + 28.57cqw), 160px);
+  --art-s: min(
+    calc((var(--zone-b) - var(--zone-t)) / var(--art-h, 0.84)),
+    calc((var(--zone-r) - var(--zone-l)) / var(--art-w, 0.43))
+  );
+  /* The object's visible centre across the zone, and its visible foot. */
+  --art-cx: calc((var(--zone-l) + var(--zone-r)) / 2);
+  --art-foot: calc(var(--zone-t) + var(--art-s) * var(--art-h, 0.84));
   display: flex;
   flex-direction: column;
   min-height: 376px;
@@ -4592,8 +4608,14 @@ summary::-webkit-details-marker {
   inset: 0;
   z-index: -1;
   border-radius: inherit;
+  /* The lit corner sits behind the object and stops short of the words'
+     column (52% of the card) in every row the words use, so the white
+     13px lead and tactic hold 4.5:1 on the family's own top colour
+     (lib/today-colour.test.ts composites the two over that column at
+     320 and 390). It was 90% by 62% from 82% across, which put up to a
+     quarter of its light under "Today's practice". */
   background:
-    radial-gradient(90% 62% at 82% 6%, var(--home-lit) 0%, transparent 70%),
+    radial-gradient(46% 42% at 84% 6%, var(--home-lit) 0%, transparent 70%),
     radial-gradient(70% 50% at 0% 100%, var(--home-low) 0%, transparent 72%),
     linear-gradient(172deg, var(--home-a) 0%, var(--home-b) 100%);
   box-shadow:
@@ -4690,13 +4712,16 @@ summary::-webkit-details-marker {
 
 /* The object. The one picture on the screen that breaks its frame,
    the way ToyCad's chick rises out of its tile; a soft shadow in the
-   card's own ink sits it on the colour. */
+   card's own ink sits it on the colour. Stood by its visible box in the
+   zone (`.home-hero`), not by its square. */
 .home-hero-art {
   position: absolute;
-  top: calc(var(--home-art) * var(--home-rise));
-  right: calc(var(--home-art) * -0.1);
-  width: var(--home-art);
-  height: var(--home-art);
+  top: calc(var(--zone-t) - var(--art-s) * var(--art-t, 0.1));
+  left: calc(
+    var(--art-cx) - var(--art-s) * var(--art-w, 0.43) / 2 - var(--art-s) * var(--art-l, 0.28)
+  );
+  width: var(--art-s);
+  height: var(--art-s);
   pointer-events: none;
   user-select: none;
   filter: drop-shadow(0 22px 26px rgb(8 20 70 / 0.38));
@@ -4710,21 +4735,49 @@ summary::-webkit-details-marker {
   filter: drop-shadow(0 22px 26px rgb(0 0 0 / 0.5));
 }
 /* A pool of light under the object, so it reads lit from inside the
-   colour (the fintech card's glow from below). */
+   colour (the fintech card's glow from below): centred under its foot,
+   no wider than the zone, so it never reaches the words. */
 .home-hero-pool {
+  --pool-w: min(calc(var(--art-s) * 0.7), calc(var(--zone-r) - var(--zone-l)));
   position: absolute;
-  top: calc(var(--home-art) * 0.42);
-  right: calc(var(--home-art) * 0.06);
-  width: calc(var(--home-art) * 0.7);
-  height: calc(var(--home-art) * 0.34);
+  top: calc(var(--art-foot) - var(--pool-w) * 0.3);
+  left: calc(var(--art-cx) - var(--pool-w) / 2);
+  width: var(--pool-w);
+  height: calc(var(--pool-w) * 0.48);
   border-radius: 50%;
   background: radial-gradient(closest-side, rgb(255 255 255 / 0.34), transparent);
   filter: blur(6px);
   pointer-events: none;
 }
-/* The words beside the object keep to the left 52%. */
+/* The words beside the object keep to the left 52%, and hold the
+   object zone's height, so the topic (24px under them) always starts
+   below the object's foot, however many lines it runs to. */
 .home-hero-words {
   max-width: 52%;
+  min-height: calc(var(--zone-b) - 38px);
+}
+/* The tactic's sentence, opened: under the object, across the card,
+   indented to the tactic's words (its 18px glyph and 8px gap). */
+.home-hero-tip {
+  margin-top: 26px;
+  padding-left: 26px;
+  font-size: 0.875rem;
+  line-height: 1.35;
+  text-wrap: pretty;
+  color: rgb(255 255 255 / 0.9);
+}
+.home-hero[data-family="none"] .home-hero-tip {
+  color: var(--color-stone-600);
+}
+/* The roulette's reel at the card's display size: four lines a cell,
+   each prompt standing on the cell's foot, so the pill sits where
+   Start sat and a short prompt does not float. */
+.home-reel {
+  --reel-cell: calc(4.24 * min(2.125rem, 8.8cqw));
+  font-size: min(2.125rem, 8.8cqw);
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  box-sizing: content-box;
 }
 .home-hero-lead {
   font-family: var(--font-display-face), sans-serif;
@@ -4876,6 +4929,7 @@ summary::-webkit-details-marker {
   flex-direction: column;
   overflow: hidden;
   isolation: isolate;
+  container-type: inline-size;
   min-height: 172px;
   padding: 16px;
   border-radius: var(--radius-tile);
@@ -4888,18 +4942,77 @@ summary::-webkit-details-marker {
 .home-tile[data-wide] {
   min-height: 168px;
 }
+/* The line and the clean run: every compact tile's content (a 28px
+   head, the number's line, the bar and a two-line caption) stays under
+   this, so the two land at one height, their numbers on one line, and
+   the skeleton holds exactly that height. */
 .home-tile[data-compact] {
-  min-height: 152px;
+  min-height: 168px;
 }
-/* The trait's light behind its object: its tone, low, in the corner.
-   Part of the picture, never the tile's ground. */
+/* The caption's two lines, held whatever the caption says: "Over it on
+   5 of your last 6." wraps where "On your line." does not, and the two
+   numbers above them sat 18px apart. */
+.home-caption {
+  min-height: calc(2 * 1.45 * var(--text-caption));
+}
+/*
+ * A tile's object zone, in the tile's box (16px padding included), the
+ * card's rule at tile size: the object's visible box fits the zone and
+ * is centred across it, its top on the zone's top. A half tile's zone
+ * is its right half above the number's line, 12px over the top and 8px
+ * past the edge, so an object is cut by the tile the way the workbench
+ * cut the road and the flag; the
+ * wide tile's is the right 44% beside the number, its full height.
+ * Nothing in a zone reaches a name, a number or a unit, at 320 or 390.
+ */
+.home-tile[data-trait] {
+  /* Clear of the name too: at 320 "Restarts" runs past the half. */
+  --zone-l: max(calc(50cqw + 22px), calc(var(--name-w, 56px) + 38px));
+  --zone-r: calc(100cqw + 40px);
+  --zone-t: -12px;
+  --zone-b: 84px;
+}
+/* Each name's width at the tile's 14/700 (the dot and its gap are the
+   38px above, with 8 to spare). */
+.home-tile[data-trait="pause"] {
+  --name-w: 51px;
+}
+.home-tile[data-trait="fillers"] {
+  --name-w: 39px;
+}
+.home-tile[data-trait="repairs"] {
+  --name-w: 55px;
+}
+.home-tile[data-trait="pace"] {
+  --name-w: 31px;
+}
+.home-tile[data-trait="range"] {
+  --name-w: 47px;
+}
+.home-tile[data-trait][data-wide] {
+  --zone-l: calc(56cqw + 26px);
+  --zone-r: calc(100cqw + 24px);
+  --zone-t: 10px;
+  --zone-b: 158px;
+}
+.home-tile[data-trait] {
+  --art-s: min(
+    calc((var(--zone-b) - var(--zone-t)) / var(--art-h, 0.84)),
+    calc((var(--zone-r) - var(--zone-l)) / var(--art-w, 0.43))
+  );
+  --art-cx: calc((var(--zone-l) + var(--zone-r)) / 2);
+  --art-cy: calc(var(--zone-t) + var(--art-s) * var(--art-h, 0.84) / 2);
+}
+/* The trait's light behind its object: its tone, low, centred on the
+   object. Part of the picture, never the tile's ground. */
 .home-tile-glow {
+  --glow: 170px;
   position: absolute;
   z-index: -1;
-  top: -40px;
-  right: -40px;
-  width: 170px;
-  height: 170px;
+  top: calc(var(--art-cy) - var(--glow) / 2);
+  left: calc(var(--art-cx) - var(--glow) / 2);
+  width: var(--glow);
+  height: var(--glow);
   border-radius: 50%;
   background: radial-gradient(closest-side, color-mix(in srgb, var(--tone) 22%, transparent), transparent);
   pointer-events: none;
@@ -4908,32 +5021,73 @@ summary::-webkit-details-marker {
   background: radial-gradient(closest-side, color-mix(in srgb, var(--tone) 20%, transparent), transparent);
 }
 .home-tile[data-wide] .home-tile-glow {
-  width: 260px;
-  height: 260px;
+  --glow: 260px;
 }
 .home-tile-art {
   position: absolute;
   z-index: -1;
-  top: calc(var(--home-tile-art) * -0.1);
-  right: calc(var(--home-tile-art) * -0.21);
-  width: var(--home-tile-art);
-  height: var(--home-tile-art);
+  top: calc(var(--zone-t) - var(--art-s) * var(--art-t, 0.1));
+  left: calc(
+    var(--art-cx) - var(--art-s) * var(--art-w, 0.43) / 2 - var(--art-s) * var(--art-l, 0.28)
+  );
+  width: var(--art-s);
+  height: var(--art-s);
   pointer-events: none;
   user-select: none;
   filter: drop-shadow(0 10px 12px rgb(0 0 0 / 0.12));
 }
-.home-tile[data-wide] .home-tile-art {
-  top: calc(var(--home-wide-art) * -0.085);
-  right: calc(var(--home-wide-art) * -0.12);
-  width: var(--home-wide-art);
-  height: var(--home-wide-art);
+/*
+ * A number and its unit on one line (`NumLine`). The line is set at the
+ * tile's number size, so its baseline is that size's wherever the
+ * number fits to; the number takes the largest size up to it that
+ * leaves its unit room in the column:
+ *   min(the tile's size, (the room - the unit - 4px) / the number's ems)
+ * with the number's and the unit's em widths from lib/home.ts (`numEm`,
+ * `UNIT_EM`). So "9.8 /100 words" holds one line in a half tile at 320
+ * (102px) and a unit never wraps under its number.
+ *   half tile   36, 30 under a 120px column; the unit 11, 10 there
+ *   wide tile   56; its room is the left 56%, beside the object
+ */
+.home-tile {
+  --num-max: 2.25rem;
+  --num-room: 100cqw;
+  --unit-size: 0.6875rem;
 }
-/* The unit on the number's baseline, set off by its row's 4px gap, so a
-   unit that wraps at 320 starts flush under its number. */
+.home-tile[data-wide] {
+  --num-max: 3.5rem;
+  --num-room: calc(56cqw + 2px);
+  --unit-size: 0.78125rem;
+}
+@container (max-width: 120px) {
+  .home-num-line {
+    --num-max: 1.875rem;
+    --unit-size: 0.625rem;
+  }
+}
+.home-num-line {
+  display: block;
+  height: var(--num-max);
+  font-size: var(--num-max);
+  line-height: 1;
+  white-space: nowrap;
+  letter-spacing: -0.02em;
+}
+.home-num {
+  font-size: min(
+    var(--num-max),
+    calc((var(--num-room) - var(--unit-em) * var(--unit-size) - 4px) / var(--num-em))
+  );
+  font-weight: 800;
+}
+.home-tile[data-wide] .home-num {
+  letter-spacing: -0.025em;
+}
+/* The unit on the number's baseline, 4px off it, never wrapping. */
 .home-unit {
+  margin-left: 4px;
   white-space: nowrap;
   font-family: var(--font-display-face), sans-serif;
-  font-size: 0.78125rem;
+  font-size: var(--unit-size, 0.78125rem);
   font-weight: 700;
   letter-spacing: 0;
   color: var(--color-stone-500);
@@ -4973,13 +5127,15 @@ summary::-webkit-details-marker {
   overflow: visible;
 }
 /* The check on a closed line: earned, so sage. The flag on an open one:
-   the line still to clear, in ink on the surface's sand. */
+   the line still to clear, in ink on the surface's sand. Both end the
+   bar (its row stays the bar's 4px, the circle standing over it), so
+   the number's line is the number's and its unit's. */
 .home-check,
 .home-flag {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   flex-shrink: 0;
   border-radius: 999px;
 }
@@ -4993,6 +5149,25 @@ summary::-webkit-details-marker {
 .home-flag {
   background: var(--color-sand);
   color: var(--color-ink);
+}
+/* This week's two half tiles, row for row alike: the head, the number,
+   a 38px chart, a caption, so each row shares a line across the pair. */
+.home-week-head {
+  min-height: 18px;
+}
+.home-week-num {
+  margin-top: 10px;
+}
+.home-week-chart {
+  height: 38px;
+  margin-top: 12px;
+}
+.home-week-caption {
+  min-height: 18px;
+  margin-top: 8px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 /* A day in the week: a sage bar for a day spoken. */
 .home-day {
@@ -5013,6 +5188,8 @@ summary::-webkit-details-marker {
   position: absolute;
   z-index: -1;
   inset: auto 0 0 0;
+  /* An absolute svg keeps its 300px default without a width. */
+  width: 100%;
   height: 68px;
   color: var(--color-sage-600);
   pointer-events: none;

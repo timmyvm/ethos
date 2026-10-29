@@ -237,6 +237,9 @@ export function TipLine({
   tip,
   className = "",
   compact = false,
+  open: openProp,
+  onOpenChange,
+  panelId,
 }: {
   tip: string;
   className?: string;
@@ -245,9 +248,19 @@ export function TipLine({
       (Practice's "7 days left"), balanced over two lines when it runs
       long. */
   compact?: boolean;
+  /** Held by the parent, with `onOpenChange`: Today's card lays the open
+      sentence across its full width under its object, so it draws the
+      sentence itself, in the element `panelId` names, and TipLine draws
+      only the line. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  panelId?: string;
 }) {
-  const [open, setOpen] = useState(false);
-  const id = useId();
+  const [openOwn, setOpenOwn] = useState(false);
+  const open = openProp ?? openOwn;
+  const setOpen = (v: boolean) => (onOpenChange ? onOpenChange(v) : setOpenOwn(v));
+  const ownId = useId();
+  const id = panelId ? panelId.replace(/-tip$/, "") : ownId;
   const face = tipFace(tip);
   return (
     <div className={className}>
@@ -289,17 +302,19 @@ export function TipLine({
           </>
         )}
       </button>
-      <div id={`${id}-tip`} aria-live="polite">
-        {open && (
-          <p
-            className={`reveal mt-1.5 text-row font-normal leading-snug text-stone-600 ${
-              compact ? "pl-[26px]" : "pl-8"
-            }`}
-          >
-            {tip}
-          </p>
-        )}
-      </div>
+      {!panelId && (
+        <div id={`${id}-tip`} aria-live="polite">
+          {open && (
+            <p
+              className={`reveal mt-1.5 text-row font-normal leading-snug text-stone-600 ${
+                compact ? "pl-[26px]" : "pl-8"
+              }`}
+            >
+              {tip}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

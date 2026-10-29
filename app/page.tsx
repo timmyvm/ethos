@@ -106,14 +106,6 @@ export default function Home() {
   const dropOpen = drop.open && !!plan.today;
   const [topic, setTopic] = useState<Topic | null>(null);
   /*
-   * Whether the floor is coming BACK from the roulette (#242's motion
-   * pass). The roulette rises into the floor's place with `arrive-lift`,
-   * so the floor has to rise back into its own when the way out is
-   * taken; on a cold open it must still paint instantly, which is why
-   * this is a flag and not a class on the card.
-   */
-  const [floorReturned, setFloorReturned] = useState(false);
-  /*
    * Focus across the swap. Opening the roulette unmounts the spin glyph
    * that held focus and closing it unmounts the way back, and both times
    * focus fell to <body>: a keyboard or screen-reader user was thrown to
@@ -144,6 +136,58 @@ export default function Home() {
   const [name, setName] = useState<string | null>(null);
   const [nameKnown, setNameKnown] = useState(false);
   const [skipIntros, setSkipIntros] = useState(false);
+  /*
+   * The greeting fits one line (#393's fix round: "Hi, Maximiliana" left
+   * "Hi," alone over the name and pushed the card down 40px). Measured
+   * before paint: the title steps down from 34 to as small as 26 to keep
+   * one line, and a name too long even then is greeted by itself.
+   */
+  const [nameAlone, setNameAlone] = useState<string | null>(null);
+  const greeting = nameKnown
+    ? name
+      ? nameAlone === name
+        ? name
+        : `Hi, ${name}`
+      : "Today"
+    : "\u00a0";
+  useLayoutEffect(() => {
+    const title = document.querySelector<HTMLElement>(".home .large-title");
+    if (!title) return;
+    if (!name) {
+      title.style.removeProperty("font-size");
+      return;
+    }
+    /* Both versions are measured off the page in the title's own type,
+       so the choice is made again when the webfont lands and a guess
+       made on the fallback face never sticks. */
+    const fit = () => {
+      title.style.removeProperty("font-size");
+      const cs = getComputedStyle(title);
+      const probe = document.createElement("span");
+      probe.style.cssText = `position:absolute;visibility:hidden;white-space:nowrap;font:${cs.font};letter-spacing:${cs.letterSpacing}`;
+      document.body.appendChild(probe);
+      const width = (text: string) => {
+        probe.textContent = text;
+        return probe.getBoundingClientRect().width;
+      };
+      const room = title.clientWidth;
+      const full = width(`Hi, ${name}`);
+      const aloneW = width(name);
+      probe.remove();
+      const alone = full * (26 / 34) > room;
+      setNameAlone(alone ? name : null);
+      const natural = alone ? aloneW : full;
+      if (natural > room) title.style.fontSize = `${Math.max(26, Math.floor(34 * (room / natural)))}px`;
+    };
+    fit();
+    let live = true;
+    void document.fonts?.ready.then(() => live && fit());
+    window.addEventListener("resize", fit);
+    return () => {
+      live = false;
+      window.removeEventListener("resize", fit);
+    };
+  }, [greeting, name]);
   // Back from the paywall's account doors with paywall=1: the sheet reopens.
   usePaywallReturn(() => setPaywall("Premium"));
 
@@ -299,7 +343,7 @@ export default function Home() {
           takes "Today" when the greeting scrolls under it. Without a
           name the large title is the tab's own, "Today". */}
       <ScreenHeader
-        title={nameKnown ? (name ? `Hi, ${name}` : "Today") : " "}
+        title={greeting}
         barTitle="Today"
         dated
         leading={<AvatarCoin name={name} known={nameKnown} />}
@@ -324,80 +368,68 @@ export default function Home() {
       />
 
       {/*
-       * The roulette REPLACES the card rather than sitting beside it, and
-       * wears the lift in its place: a second block would mean a second
-       * terracotta button, and there is one tap per screen.
+       * The roulette runs INSIDE the card rather than beside it (#393's
+       * fix round): the same colour, the same object, the topic spinning
+       * in the topic's place and the pill taking it, so the one
+       * terracotta tap is still the card's. The way back sits under it.
        */}
+      <HomeHero
+        loading={loading}
+        family={heroTrait ?? "pause"}
+        lead={lead}
+        trait={heroTrait}
+        tip={heroTip}
+        title={heroTitle}
+        object={object}
+        href={startHref}
+        mods={mods}
+        onSpin={() => {
+          toggled.current = true;
+          setShowMods(false);
+          setTopic(spinForAnswers(null));
+        }}
+        spinRef={spinGlyph}
+        onMods={() => setShowMods((v) => !v)}
+        modsOpen={showMods}
+        roulette={
+          topic
+            ? {
+                topic,
+                onSpin: setTopic,
+                onTake: (t) => router.push(repHref({ topic: t.id, mods })),
+                headRef: rouletteHead,
+              }
+            : null
+        }
+      />
       {topic ? (
-        <section className="mt-6">
-          {/* The roulette block rises into the card's place as ONE thing
-              (#242): eyebrow, card and the way back on one lift. */}
-          <div key="roulette" className="arrive-lift">
-            <h2 ref={rouletteHead} tabIndex={-1} className="section-head outline-none!">
-              Roulette
-            </h2>
-            <div className="mt-3">
-              <TopicRoulette
-                topic={topic}
-                onSpin={setTopic}
-                onTake={(t) => router.push(repHref({ topic: t.id, mods }))}
-              />
-              {/* The way back, in the app's one back grammar: a button,
-                  because it changes this screen's state, not its route. */}
-              <button
-                type="button"
-                onClick={() => {
-                  toggled.current = true;
-                  setTopic(null);
-                  setFloorReturned(true);
-                }}
-                className="screen-bar-back press -mb-3 -ml-2.5 mt-1"
-              >
-                <IconBack size={22} />
-                <span>Today&apos;s practice</span>
-              </button>
-            </div>
-          </div>
-        </section>
+        /* The way back, in the app's one back grammar: a button, because
+           it changes this screen's state, not its route. */
+        <button
+          type="button"
+          onClick={() => {
+            toggled.current = true;
+            setTopic(null);
+          }}
+          className="screen-bar-back press arrive -mb-3 -ml-2.5 mt-1"
+        >
+          <IconBack size={22} />
+          <span>Today&apos;s practice</span>
+        </button>
       ) : (
-        <>
-          {/* Back from the roulette, the card rises into its own place the
-              way the roulette rose into it; on a cold open it paints at
-              once. The key makes the two states two elements (#242). */}
-          <div key="floor" className={floorReturned ? "arrive-lift" : undefined}>
-            <HomeHero
-              loading={loading}
-              family={heroTrait ?? "pause"}
-              lead={lead}
-              trait={heroTrait}
-              tip={heroTip}
-              title={heroTitle}
-              object={object}
-              href={startHref}
-              mods={mods}
-              onSpin={() => {
-                toggled.current = true;
-                setTopic(spinForAnswers(null));
-              }}
-              spinRef={spinGlyph}
-              onMods={() => setShowMods((v) => !v)}
-              modsOpen={showMods}
+        showMods && (
+          <div className="reveal mt-3">
+            <ModPicker
+              selected={mods}
+              onChange={setMods}
+              /* An unknown plan never opens the paywall over a paid
+                 one (#353): the mods stay open until the plan says
+                 free, and /rep honours what the account holds. */
+              premium={premium !== false}
+              onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
             />
           </div>
-          {showMods && (
-            <div className="reveal mt-3">
-              <ModPicker
-                selected={mods}
-                onChange={setMods}
-                /* An unknown plan never opens the paywall over a paid
-                   one (#353): the mods stay open until the plan says
-                   free, and /rep honours what the account holds. */
-                premium={premium !== false}
-                onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
-              />
-            </div>
-          )}
-        </>
+        )
       )}
 
       {/* The freeze reconciliation is its own read, landing after the

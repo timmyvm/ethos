@@ -134,6 +134,47 @@ describe("Today's card holds white type in every family", () => {
       expect(ratio("#ffffff", lightTop)).toBeGreaterThanOrEqual(4.5);
       expect(ratio("#ffffff", darkTop)).toBeGreaterThanOrEqual(4.5);
     });
+    /*
+     * The lit corner (the first radial in `.home-hero::before`) is laid
+     * over the top colour, and the critic's round measured 4.12:1 under
+     * "Today's practice" in light at 390 and 3.65 at 320: the light ran
+     * into the words' column. So the test lays the light over the top
+     * colour across the whole column (the left 52% of the content box,
+     * from the lead down through the tactic) on the card at 320 and 390,
+     * and holds white to 4.5:1 at the brightest point.
+     */
+    it(`${f}: white over the lit corner across the words' column at 320 and 390, light and dark`, () => {
+      const before = block(".home-hero::before");
+      const g = before.match(
+        /radial-gradient\((\d+)% (\d+)% at (\d+)% (\d+)%, var\(--home-lit\) 0%, transparent (\d+)%\)/
+      );
+      expect(g, "the lit corner's gradient").not.toBeNull();
+      const [rx, ry, cx, cy, stop] = g!.slice(1).map(Number);
+      for (const sel of [`.home-hero[data-family="${f}"]`, `:root[data-theme="dark"] .home-hero[data-family="${f}"]`]) {
+        const body = block(sel);
+        const top = hexOf(body, "home-a");
+        const lit = body.match(/--home-lit:\s*rgb\((\d+) (\d+) (\d+) \/ ([\d.]+)\)/);
+        expect(lit, `${sel} --home-lit`).not.toBeNull();
+        const [lr, lg, lb, la] = lit!.slice(1).map(Number);
+        for (const width of [280, 350]) {
+          const height = 376;
+          const column = 20 + 0.52 * (width - 40);
+          let worst = Infinity;
+          for (let y = 20; y <= 120; y += 2) {
+            for (let x = 20; x <= column; x += 2) {
+              const t = Math.hypot((x - (cx / 100) * width) / ((rx / 100) * width), (y - (cy / 100) * height) / ((ry / 100) * height));
+              const a = la * Math.max(0, 1 - t / (stop / 100));
+              const [br, bg, bb] = rgb(top);
+              const over = "#" + [lr * a + br * (1 - a), lg * a + bg * (1 - a), lb * a + bb * (1 - a)]
+                .map((v) => Math.round(v).toString(16).padStart(2, "0"))
+                .join("");
+              worst = Math.min(worst, ratio("#ffffff", over));
+            }
+          }
+          expect(worst, `${sel} at ${width}`).toBeGreaterThanOrEqual(4.5);
+        }
+      }
+    });
     it(`${f}: the chip's name in the card's deep ink on white at 4.5:1 or better`, () => {
       for (const sel of [`.home-hero[data-family="${f}"]`, `:root[data-theme="dark"] .home-hero[data-family="${f}"]`]) {
         expect(ratio(hexOf(block(sel), "home-b"), "#f8f8f8")).toBeGreaterThanOrEqual(4.5);

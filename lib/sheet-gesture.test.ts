@@ -99,8 +99,10 @@ describe("sheetDismisses", () => {
     // Start at 390x844: about 94px of screen under the finger once the sheet takes it.
     expect(sheetDismisses({ height: 800, room: 94, travel: 90, velocity: 0 })).toBe(true);
     expect(sheetDismisses({ height: 800, room: 94, travel: 72, velocity: 120 })).toBe(true);
-    // "Not yet": about 32px.
+    // "Not yet": about 32px, less what the finger moved before the sheet
+    // took it (a phone's moves come 10 to 16px apart at a swipe's speed).
     expect(sheetDismisses({ height: 800, room: 32, travel: 26, velocity: 0 })).toBe(true);
+    expect(sheetDismisses({ height: 800, room: 27, travel: 23, velocity: 0 })).toBe(true);
   });
 
   it("springs home from a sloppy tap near the bottom", () => {

@@ -63,7 +63,7 @@ export function sheetHoldsTouch(dx: number, dy: number, scrolls: boolean): boole
 }
 
 /** The least a finger must take the sheet before the room rule counts. */
-const DISMISS_MIN_TRAVEL_PX = 24;
+const DISMISS_MIN_TRAVEL_PX = 16;
 
 /**
  * Does a released drag close the sheet? `travel`: how far the finger

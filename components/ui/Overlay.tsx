@@ -3,11 +3,10 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { openLayer } from "@/lib/overlay-layers";
 import { prefersReducedMotion } from "@/lib/prefs";
-import { SHEET_LEAN_PX, SHEET_SLOP_PX, sheetClaim } from "@/lib/sheet-gesture";
+import { SHEET_SLOP_PX, sheetClaim, sheetDismisses, sheetHoldsTouch } from "@/lib/sheet-gesture";
 import {
   SPRING,
   animateSpring,
-  project,
   releaseVelocity,
   rubberband,
   springMs,
@@ -128,6 +127,10 @@ export function Overlay({
     samples: { t: number; y: number }[];
     /** Something under the finger scrolls: an upward move is its. */
     scrolls: boolean;
+    /** Where the sheet was when the finger took it, and how much screen
+     *  was under the finger then, to the bottom edge. */
+    held: number;
+    room: number;
     /** Past the hysteresis. A ref, not the state: pointer events land
      *  faster than React re-renders, and a flick is over before the
      *  state would say it began. */
@@ -305,16 +308,18 @@ export function Overlay({
   }, []);
 
   /*
-   * The browser's pan, refused while the finger is the sheet's (notes1).
-   * A touch the page does not refuse becomes the browser's scroll the
-   * moment it moves, and the browser says so with pointercancel: the
-   * drag below died ten pixels in, from every part of the paywall, at
-   * every scroll, because each of them sits in (or over) something the
-   * browser could pan. So a touchmove that the sheet claims, by the same
-   * rule the pointer uses (lib/sheet-gesture.ts) but sooner, is
-   * cancelled before a pan can start. React's onTouchMove is passive and
-   * cannot cancel anything, so this is the DOM's own listener. A touch
-   * that started in scrolled content never has a drag here, and scrolls.
+   * The browser's pan, refused while the finger could be the sheet's
+   * (notes1). A touch the page does not refuse becomes the browser's
+   * scroll the moment it moves, and the browser says so with
+   * pointercancel: the drag below died ten pixels in, from every part of
+   * the paywall, at every scroll, because each of them sits in (or over)
+   * something the browser could pan. So from the first touchmove, at any
+   * distance (iOS settles a scroll on that first one), a move with a
+   * downward lean is cancelled before a pan can start (sheetHoldsTouch);
+   * whose the finger is stays the pointer's call, at the slop. React's
+   * onTouchMove is passive and cannot cancel anything, so this is the
+   * DOM's own listener. A touch that started in scrolled content never
+   * has a drag here, and scrolls.
    */
   useEffect(() => {
     const el = panel.current;
@@ -324,12 +329,7 @@ export function Overlay({
       if (!d || e.touches.length !== 1) return;
       if (!d.active) {
         const t = e.touches[0];
-        const claim = sheetClaim(t.clientX - d.x0, t.clientY - d.y0, d.scrolls, SHEET_LEAN_PX);
-        if (claim === "undecided") return;
-        if (claim === "content") {
-          drag.current = null;
-          return;
-        }
+        if (!sheetHoldsTouch(t.clientX - d.x0, t.clientY - d.y0, d.scrolls)) return;
       }
       if (e.cancelable) e.preventDefault();
     }
@@ -374,6 +374,8 @@ export function Overlay({
       y: 0,
       samples: [{ t: e.timeStamp, y: 0 }],
       scrolls,
+      held: 0,
+      room: 0,
       active: false,
     };
   }
@@ -400,6 +402,8 @@ export function Overlay({
       // Grabbed mid-flight, it is held where it IS, and tracks from
       // there with the offset the finger took it at (§2, §3).
       d.y = takeHold();
+      d.held = d.y;
+      d.room = Math.max(0, window.innerHeight - e.clientY);
       d.from = e.clientY - d.y;
       setDragging(true);
       setHeld(true);
@@ -427,10 +431,19 @@ export function Overlay({
     if (!d.active || !el) return;
     setDragging(false);
     const velocity = releaseVelocity(d.samples);
-    // Where the throw would come to rest. Past half the panel, it goes;
-    // and a clear upward flick keeps it whatever the position.
-    const rest = d.y + project(velocity);
-    if (velocity > -300 && rest > el.offsetHeight * 0.5) {
+    // Where the throw would come to rest: past half the panel, it goes.
+    // So does a finger that ran most of the way to the screen's edge from
+    // the tap shelf, where a thumb rests; a clear upward flick keeps it
+    // whatever the position.
+    if (
+      sheetDismisses({
+        travel: d.y - d.held,
+        from: d.held,
+        velocity,
+        height: el.offsetHeight,
+        room: d.room,
+      })
+    ) {
       leave(velocity);
       return;
     }

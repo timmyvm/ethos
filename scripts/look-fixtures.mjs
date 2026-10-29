@@ -10,16 +10,44 @@
  */
 
 // ---- Fixtures: three weeks of practice ------------------------------------
+/* Dates are the camera's: every context shoots in Australia/Melbourne,
+   so "today", each recording's day and each period end are that
+   calendar's, whatever zone this script runs in. The recordings were
+   built in the script's zone, which in a UTC container put yesterday's
+   18:12 at 05:12 today in Melbourne: every shot showed today already
+   spoken ("One more", "On your line.") and the morning nobody had
+   photographed. */
+const MEL = "Australia/Melbourne";
+const [MY, MM, MD] = new Intl.DateTimeFormat("en-CA", {
+  timeZone: MEL,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+})
+  .format(new Date())
+  .split("-")
+  .map(Number);
+/** Melbourne's offset from UTC at an instant, in minutes. */
+const melOffset = (at) => {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: MEL, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
+    })
+      .formatToParts(at)
+      .map((x) => [x.type, Number(x.value)])
+  );
+  return (Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute) - at.getTime()) / 60000;
+};
+/** n days before Melbourne's today, at h:12 on Melbourne's clock. */
 const day = (n, h = 18) => {
-  const d = new Date();
-  d.setHours(h, 12, 0, 0);
-  d.setDate(d.getDate() - n);
-  return d;
+  const wall = Date.UTC(MY, MM - 1, MD - n, h, 12);
+  return new Date(wall - melOffset(new Date(wall)) * 60000);
 };
 const iso = (n) => day(n).toISOString();
+/** That day's date in Melbourne, as a `date` column holds it. */
 const dateOnly = (n) => {
-  const d = day(n);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const d = new Date(Date.UTC(MY, MM - 1, MD - n));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
 };
 
 // Days ago the user spoke (yesterday last, so today is still open).
@@ -179,18 +207,8 @@ const profile = { display_name: "Timothy", premium: false, premium_until: null, 
  * puts it back, and look.mjs calls it for each theme.
  */
 export const PLAN_NAME = process.env.LOOK_PLAN ?? "free";
-/* Dates are the camera's: every context shoots in Australia/Melbourne,
-   so "today" and each period end are that calendar's, at 12:12 there
-   (01:12 UTC), whatever zone this script runs in. */
-const [MY, MM, MD] = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "Australia/Melbourne",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-})
-  .format(new Date())
-  .split("-")
-  .map(Number);
+/* Period ends are Melbourne's calendar (MY, MM, MD, at the top), at
+   12:12 there (01:12 UTC). */
 const inDays = (n) => new Date(Date.UTC(MY, MM - 1, MD + n, 1, 12)).toISOString();
 /** A month from today on the same day, Stripe's way (clamped to the month's last day). */
 const inAMonth = () => {

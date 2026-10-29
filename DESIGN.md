@@ -27,7 +27,7 @@ Ten principles from the design pass (#326), each a thing you can count on a scre
 6. **A trait wears its colour and its name**, everywhere it appears, from `content/traits.ts`.
 7. **Rhythm belongs to the parent.** First block mt-5 under a title, sections mt-7, head to content mt-3, card to card gap-3, card p-4, hero p-5; no empty band over 64px at 390x844, so a screen with room to spare gives it to its stage or its art, never to ground (#368); the one tap 48px, bottom-anchored, clear of the nav by `--nav-clear` or docked in `FooterShelf`.
 8. **Nothing moves on load, and unknown is never zero.** Every async slot reserves its height and lands with `.arrive`; loading or failed shows a skeleton or a dash.
-9. **Demos speaks in one voice.** One tailed SpeechBubble in Figtree regular (19 in the introduction, 17 elsewhere) against Outfit 700 answers; one Demos per screen, never on a terracotta wash, and at 120px or more his idle clip plays.
+9. **Demos speaks in one voice.** One tailed SpeechBubble in Figtree regular (19 in the introduction, 17 elsewhere) against Outfit 700 answers; one Demos per screen, never on a terracotta wash, and at 120px or more his idle clip plays, except in the introduction, where he arrives and stays a picture (`IntroDemos`, notes1).
 10. **Every control is reachable and announced.** 44px targets, focus drawn inside clipped containers, radio groups on `useRovingRadio` with arrow keys, `role=status` or `role=alert` on every async result, Demos's lines read once.
 
 ## Tokens

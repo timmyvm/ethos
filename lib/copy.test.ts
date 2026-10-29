@@ -445,7 +445,10 @@ describe("the shop names where a pose shows", () => {
   it("wears a pose on You, and says so on the button and in the note", () => {
     expect(shop).toContain('"Wear it on You"');
     expect(shop).toContain('"On You"');
-    expect(shop).toContain("bought, and on You.");
+    // The pose names carry a comma ("Demos, mid-practice"), so a note that
+    // led with the name read as Demos being spoken to. It names no item.
+    expect(shop).toContain(`"It's yours, and it's on You."`);
+    expect(shop).not.toMatch(/\$\{item\.name\} bought, and on You/);
   });
 
   it("never sends a pose to a card that is gone", () => {

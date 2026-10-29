@@ -149,11 +149,13 @@ export default function ShopPage() {
       // A cosmetic that changes nothing until you find a second switch
       // is a cosmetic that reads as broken. Buying equips it, and the
       // note names where it went: You's stage, since #393 took Demos
-      // off Today.
+      // off Today. It leaves the pose's name to its card: the names
+      // carry a comma, and "Demos, mid-practice bought" read as an
+      // order given to Demos.
       if (item.kind === "cosmetic") equip(item.id);
       setNote(
         item.kind === "cosmetic"
-          ? `${item.name} bought, and on You.`
+          ? "It's yours, and it's on You."
           : `${item.name} bought.`,
       );
       await refresh();

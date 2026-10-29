@@ -36,7 +36,7 @@
    * Sage — the earned colour (stars, streak, earned fills, the leader
    * trait bar, the shop's Buy). 400 is earned-dim (non-leader bars),
    * 300 earned-border (outline buttons, XP chips), 100 earned-wash
-   * ("On your card"), 900 the score card. `sage-ink` is the text that
+   * (the Shop's "On You"), 900 the score card. `sage-ink` is the text that
    * sits ON a 500 fill.
    */
   --color-sage-50: #f4f5ea;

@@ -1,7 +1,6 @@
 "use client";
 
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { CountUp } from "@/components/CountUp";
@@ -27,7 +26,7 @@ import {
 } from "@/lib/client-data";
 import { limit } from "@/lib/entitlement";
 import { DURATION } from "@/lib/motion";
-import { ACTION_CLASS } from "@/lib/ui";
+import { waitingRows } from "@/lib/log-waiting";
 import { fillerHeatmap, insights } from "@/lib/insights";
 import { readable, readFailure } from "@/lib/load";
 import {
@@ -40,7 +39,7 @@ import {
   skillRows,
   type MovedRow,
 } from "@/lib/log";
-import { starsByLesson, totalStars, UNITS } from "@/lib/path";
+import { starsByLesson, totalStars } from "@/lib/path";
 import { TRAIT, type TraitId } from "@/content/traits";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
 
@@ -463,24 +462,39 @@ export default function HistoryPage() {
         </div>
 
         {empty
-          ? UNITS[0].lessons.slice(0, 3).map((lesson, i) => (
+          ? waitingRows().map((row) => (
               <div
-                key={lesson.id}
+                key={row.id}
                 className={`${RECORD_GRID} items-center border-t border-hairline py-3 text-stone-400`}
               >
-                <DateTile trait={recordingTrait({ lesson_id: lesson.id })}>
+                <DateTile trait={recordingTrait({ lesson_id: row.id })}>
                   <span className="font-display block text-num-s tabular-nums">
-                    {i + 1}
+                    {row.n}
                   </span>
                 </DateTile>
-                <span className="font-display truncate text-row">
-                  {lesson.title}
+                {/* Two lines, never an ellipsis, as a logged row's name
+                    (#287): at 320 "Silence beats 'um'" truncated. */}
+                <span className="font-display line-clamp-2 text-row leading-snug">
+                  {row.title}
                 </span>
-                {[0, 1, 2, 3].map((c) => (
+                {/* Go stands in the Index column, where this lesson's
+                    Index will land once it is recorded; the other
+                    columns keep their dashes. The secondary control
+                    (#234: surface, a rule edge, no shadow), the same
+                    three times: three terracotta fills would be three
+                    primaries on a screen that has none. */}
+                <Link
+                  href={row.href}
+                  aria-label={row.label}
+                  className="press font-display flex min-h-11 min-w-11 items-center justify-center justify-self-end rounded-control border border-edge bg-surface px-2.5 text-row text-ink"
+                >
+                  Go
+                </Link>
+                {[0, 1, 2].map((c) => (
                   <span
                     key={c}
                     className={`font-display text-right text-caption font-extrabold tabular-nums ${
-                      c === 3 ? HELD_CELL : ""
+                      c === 2 ? HELD_CELL : ""
                     }`}
                   >
                     {DASH}
@@ -570,27 +584,14 @@ export default function HistoryPage() {
         )}
       </section>
 
-      {/* Day zero (#213): Demos awake, one tap. The asleep pose on the
-          one screen that says "you have not started" is the sad-mascot
-          state brand.md bans. */}
+      {/* Day zero (#213): the dashes say what fills in, and the Go on
+          each waiting row is the way in (notes1: Start went). Demos is
+          on the stage above, so the line stands without him: one Demos
+          per screen. */}
       {empty && (
-        <div className="arrive">
-          <div className="mt-7 flex items-center gap-3.5">
-            <Image
-              src="/demos-speaking.webp"
-              alt=""
-              width={104}
-              height={104}
-              className="demos pointer-events-none w-[56px] shrink-0"
-            />
-            <p className="text-body text-stone-500">
-              One recording and every number here fills in.
-            </p>
-          </div>
-          <Link href="/rep" className={`${ACTION_CLASS} mt-4`}>
-            Start
-          </Link>
-        </div>
+        <p className="arrive mt-3 text-caption text-stone-500">
+          One recording and every number here fills in.
+        </p>
       )}
 
       {paywall && (

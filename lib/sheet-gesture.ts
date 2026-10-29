@@ -4,11 +4,13 @@ import { project } from "@/lib/spring";
  * Whose a finger on a sheet is (components/ui/Overlay.tsx).
  *
  * A touch that starts where nothing is scrolled could be three things:
- * the sheet's own drag (down, from anywhere, the way an iOS sheet goes),
- * the content's scroll (up, into content that has more below), or a
- * sideways gesture that belongs to a control (the paywall's stair). A
- * touch that starts in content already scrolled never reaches this:
- * that finger is the scroll's, whichever way it goes.
+ * the sheet's own drag (down, from anywhere, at any angle, the way an iOS
+ * sheet follows a thumb's arc), the content's scroll (up, into content
+ * that has more below), or a sideways gesture that belongs to a control
+ * that owns sideways moves (the paywall's stair, which says so with
+ * `touch-action: pan-y`). A touch that starts in content already
+ * scrolled never reaches this: that finger is the scroll's, whichever
+ * way it goes.
  *
  * Two questions per move. Overlay's touchmove asks `sheetHoldsTouch`
  * from the first pixel, so the browser's own pan is refused before it can
@@ -25,18 +27,28 @@ export type SheetClaim = "sheet" | "content" | "undecided";
 /**
  * `dx`, `dy`: how far the finger is from where it went down (down is
  * positive). `scrolls`: something under the finger has content to
- * scroll. `slop`: how far it must go before this answers.
+ * scroll. `slop`: how far it must go before this answers. `sideways`:
+ * something under the finger owns sideways moves (the stair's scrub, a
+ * row that scrolls sideways).
  */
-export function sheetClaim(dx: number, dy: number, scrolls: boolean, slop: number): SheetClaim {
+export function sheetClaim(
+  dx: number,
+  dy: number,
+  scrolls: boolean,
+  slop: number,
+  sideways = false
+): SheetClaim {
   const ax = Math.abs(dx);
   const ay = Math.abs(dy);
   if (Math.max(ax, ay) < slop) return "undecided";
-  // Sideways is a control's (the stair's scrub), never the sheet's.
-  if (ax > ay) return "content";
-  // Up into content with more below is a scroll.
+  // Sideways on a control that owns it (the stair's scrub), never the sheet's.
+  if (sideways && ax > ay) return "content";
+  // Up into content with more below is a scroll, at any angle.
   if (dy < 0 && scrolls) return "content";
-  // Down from the top, or up on a sheet with nothing to scroll (it gives
-  // and pulls back).
+  // Down from the top at any angle (a thumb's swipe arcs, and its first
+  // ten pixels can lean more sideways than down), or up on a sheet with
+  // nothing to scroll (it gives and pulls back). The sheet follows the
+  // finger's height alone.
   return "sheet";
 }
 
@@ -48,17 +60,24 @@ export function sheetClaim(dx: number, dy: number, scrolls: boolean, slop: numbe
  * the rest of the touch. Holding a move decides nothing else: the
  * pointer still reaches the sheet and the stair, and `sheetClaim` still
  * says whose the finger is at the slop.
+ *
+ * That first move comes a pixel or three in, and a finger's contact
+ * wobbles by about as much as it starts to move, so its sideways part
+ * says nothing about the swipe (notes1, round 3): a swipe down that
+ * read (2, 1) was left to the browser, which panned the page and
+ * cancelled the pointer. Only a control that owns sideways moves makes
+ * sideways mean something, and it holds its own (the stair).
  */
-export function sheetHoldsTouch(dx: number, dy: number, scrolls: boolean): boolean {
+export function sheetHoldsTouch(dx: number, dy: number, scrolls: boolean, sideways = false): boolean {
   const ax = Math.abs(dx);
   const ay = Math.abs(dy);
-  // Not moved yet: where nothing scrolls, the browser has nothing to do.
-  if (ax === 0 && ay === 0) return !scrolls;
-  // Sideways is the stair's scrub, and its own touch-action already says so.
-  if (ax > ay) return false;
-  // Any downward lean, from the top: the sheet's, whatever is under it.
+  // Sideways on a control that owns sideways moves: the control's call.
+  if (sideways && ax > ay) return false;
+  // Any downward lean, at any angle, from the top: the sheet's, whatever
+  // is under it.
   if (dy > 0) return true;
-  // Up is the content's scroll, when it has one.
+  // Still, level or up: the content's scroll when it has one; where
+  // nothing scrolls the browser has nothing to pan.
   return !scrolls;
 }
 
@@ -70,13 +89,17 @@ const DISMISS_MIN_TRAVEL_PX = 16;
  * moved it since it took hold (down is positive). `from`: where the sheet
  * was when the finger took it (0 at rest). `velocity`: the finger's speed
  * at release, px/s. `height`: the panel's. `room`: the screen under the
- * finger when it took hold, to the bottom edge.
+ * finger where it went down, to the bottom edge. `run`: how far down the
+ * finger went from there (`travel` when not given).
  *
  * Where the throw would carry the sheet decides most releases: past half
  * its height, it goes (apple-design §6). But a thumb on the tap shelf has
- * 40 to 110px of glass under it, and only a hard flick carried that far,
- * so a finger that took the sheet three quarters of the way to the edge
- * has said "go" too. An upward flick keeps it, wherever it is.
+ * 30 to 110px of glass under it, and only a hard flick carried that far,
+ * so a finger that ran three quarters of the way to the edge has said
+ * "go" too. That run counts from the press, slop and all (notes1, round
+ * 3): a quick swipe off the last line can reach the page as one move,
+ * which the sheet takes and has travelled nothing on when it lets go.
+ * An upward flick keeps it, wherever it is.
  */
 export function sheetDismisses({
   travel,
@@ -84,14 +107,16 @@ export function sheetDismisses({
   velocity,
   height,
   room,
+  run = travel,
 }: {
   travel: number;
   from?: number;
   velocity: number;
   height: number;
   room: number;
+  run?: number;
 }): boolean {
   if (velocity <= -300) return false;
   if (from + travel + project(velocity) > height * 0.5) return true;
-  return travel >= Math.max(room * 0.75, DISMISS_MIN_TRAVEL_PX);
+  return run >= Math.max(room * 0.75, DISMISS_MIN_TRAVEL_PX);
 }

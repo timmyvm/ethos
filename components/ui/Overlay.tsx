@@ -65,6 +65,15 @@ let locks = 0;
 let unlockedOverflow = "";
 
 
+/**
+ * A computed `touch-action` that keeps sideways moves for the page: the
+ * element handles them itself (the stair's `pan-y`, or `none`).
+ */
+function ownsSideways(touchAction: string): boolean {
+  if (touchAction === "none") return true;
+  return /pan-y|pan-up|pan-down/.test(touchAction) && !/pan-x|pan-left|pan-right|manipulation|auto/.test(touchAction);
+}
+
 /** How fast a sheet's CSS rise is moving it right now, px/s (up is negative); null once it has landed. */
 function riseVelocity(el: HTMLElement): number | null {
   const rise = el
@@ -127,10 +136,13 @@ export function Overlay({
     samples: { t: number; y: number }[];
     /** Something under the finger scrolls: an upward move is its. */
     scrolls: boolean;
-    /** Where the sheet was when the finger took it, and how much screen
-     *  was under the finger then, to the bottom edge. */
+    /** Something under the finger owns sideways moves (the stair's
+     *  scrub): a sideways move is its. */
+    sideways: boolean;
+    /** Where the finger is now, for how far it has run from the press. */
+    yNow: number;
+    /** Where the sheet was when the finger took it. */
     held: number;
-    room: number;
     /** Past the hysteresis. A ref, not the state: pointer events land
      *  faster than React re-renders, and a flick is over before the
      *  state would say it began. */
@@ -315,7 +327,8 @@ export function Overlay({
    * the paywall, at every scroll, because each of them sits in (or over)
    * something the browser could pan. So from the first touchmove, at any
    * distance (iOS settles a scroll on that first one), a move with a
-   * downward lean is cancelled before a pan can start (sheetHoldsTouch);
+   * downward lean, at any angle, is cancelled before a pan can start
+   * (sheetHoldsTouch; a sideways lean is only the stair's to keep);
    * whose the finger is stays the pointer's call, at the slop. React's
    * onTouchMove is passive and cannot cancel anything, so this is the
    * DOM's own listener. A touch that started in scrolled content never
@@ -329,7 +342,7 @@ export function Overlay({
       if (!d || e.touches.length !== 1) return;
       if (!d.active) {
         const t = e.touches[0];
-        if (!sheetHoldsTouch(t.clientX - d.x0, t.clientY - d.y0, d.scrolls)) return;
+        if (!sheetHoldsTouch(t.clientX - d.x0, t.clientY - d.y0, d.scrolls, d.sideways)) return;
       }
       if (e.cancelable) e.preventDefault();
     }
@@ -354,16 +367,30 @@ export function Overlay({
      * whatever was touched up to the panel looking for anything already
      * scrolled. Dragging a sheet whose content is scrolled down is how
      * you close a sheet you were trying to read.
+     *
+     * The same walk asks whether anything there owns sideways moves: a
+     * control that takes them for itself (`touch-action: pan-y` or
+     * `none`, the stair) or a row that scrolls sideways. Only there does
+     * a sideways move mean something other than the sheet (notes1,
+     * round 3); everywhere else a swipe down is the sheet's at any angle.
      */
     let scrolls = false;
+    let sideways = false;
     for (
       let node: HTMLElement | null = e.target as HTMLElement;
       node && node !== el.parentElement;
       node = node.parentElement
     ) {
       if (node.scrollTop > 0) return;
-      if (node.scrollHeight > node.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(node).overflowY)) {
+      const style = getComputedStyle(node);
+      if (node.scrollHeight > node.clientHeight + 1 && /auto|scroll/.test(style.overflowY)) {
         scrolls = true;
+      }
+      if (
+        (node.scrollWidth > node.clientWidth + 1 && /auto|scroll/.test(style.overflowX)) ||
+        ownsSideways(style.touchAction)
+      ) {
+        sideways = true;
       }
     }
     drag.current = {
@@ -374,8 +401,9 @@ export function Overlay({
       y: 0,
       samples: [{ t: e.timeStamp, y: 0 }],
       scrolls,
+      sideways,
+      yNow: e.clientY,
       held: 0,
-      room: 0,
       active: false,
     };
   }
@@ -384,12 +412,14 @@ export function Overlay({
     const d = drag.current;
     const el = panel.current;
     if (!d || d.id !== e.pointerId || !el) return;
+    d.yNow = e.clientY;
     if (!d.active) {
       // Hysteresis (§10): ten pixels of intent before the sheet is
       // yours, so a tap stays a tap. Upward is the sheet's too (it
       // gives and pulls back) unless there is content to scroll, and
-      // sideways is never the sheet's (the stair's scrub).
-      const claim = sheetClaim(e.clientX - d.x0, e.clientY - d.y0, d.scrolls, SHEET_SLOP_PX);
+      // sideways is the sheet's only where nothing owns it (the stair's
+      // scrub does).
+      const claim = sheetClaim(e.clientX - d.x0, e.clientY - d.y0, d.scrolls, SHEET_SLOP_PX, d.sideways);
       if (claim === "undecided") return;
       if (claim === "content") {
         drag.current = null;
@@ -407,7 +437,6 @@ export function Overlay({
       // flick off the tap shelf read as half standing still.
       d.samples = [{ t: e.timeStamp, y: d.y }];
       d.held = d.y;
-      d.room = Math.max(0, window.innerHeight - e.clientY);
       d.from = e.clientY - d.y;
       setDragging(true);
       setHeld(true);
@@ -437,15 +466,16 @@ export function Overlay({
     const velocity = releaseVelocity(d.samples);
     // Where the throw would come to rest: past half the panel, it goes.
     // So does a finger that ran most of the way to the screen's edge from
-    // the tap shelf, where a thumb rests; a clear upward flick keeps it
-    // whatever the position.
+    // where it went down (the tap shelf, where a thumb rests); a clear
+    // upward flick keeps it whatever the position.
     if (
       sheetDismisses({
         travel: d.y - d.held,
         from: d.held,
         velocity,
         height: el.offsetHeight,
-        room: d.room,
+        room: Math.max(0, window.innerHeight - d.y0),
+        run: d.yNow - d.y0,
       })
     ) {
       leave(velocity);

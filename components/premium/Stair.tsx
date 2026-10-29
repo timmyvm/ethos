@@ -113,6 +113,7 @@ export function Stair({
   summary?: string;
   className?: string;
 }) {
+  const root = useRef<HTMLDivElement>(null);
   const steps = useRef<HTMLDivElement>(null);
   const token = useRef<HTMLDivElement>(null);
   const tokenBody = useRef<HTMLSpanElement>(null);
@@ -248,6 +249,31 @@ export function Stair({
     pressSoon.current = null;
   };
   useEffect(() => stopPressSoon, []);
+  /*
+   * A finger's scrub is the stair's to hold (notes1, round 3). The sheet
+   * leaves a sideways move here to the stair (`touch-action: pan-y` says
+   * the stair owns them), so the stair refuses the browser's pan itself:
+   * from the first move that leans sideways, and on every move once the
+   * finger is scrubbing, so a scrub that drifts up or down on its way
+   * across never becomes a scroll that cancels it. A move that leans down
+   * or up is left alone: the sheet's drag or its scroll. React's
+   * onTouchMove is passive and cannot refuse anything.
+   */
+  useEffect(() => {
+    const el = root.current;
+    if (!el || !slider) return;
+    const onTouchMove = (e: TouchEvent) => {
+      const d = dragging.current;
+      if (!d || !d.touch || e.touches.length !== 1 || !e.cancelable) return;
+      if (!d.moved) {
+        const t = e.touches[0];
+        if (Math.abs(t.clientX - d.x0) <= Math.abs(t.clientY - d.y0)) return;
+      }
+      e.preventDefault();
+    };
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    return () => el.removeEventListener("touchmove", onTouchMove);
+  }, [slider]);
   useLayoutEffect(() => {
     const was = previous.current;
     previous.current = tokenAt;
@@ -444,6 +470,7 @@ export function Stair({
     <div className={`stair-wrap ${className}`} style={{ ["--stair-bleed" as string]: `${Math.max(0, bleed)}px` }}>
       {slider && summary && <p className="sr-only">{summary}</p>}
       <div
+        ref={root}
         data-tone={tone}
         data-size={size}
         data-mode={slider ? "slider" : stage ? "stage" : "picture"}

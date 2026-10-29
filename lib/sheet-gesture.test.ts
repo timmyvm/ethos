@@ -29,11 +29,28 @@ describe("sheetClaim", () => {
     expect(sheetClaim(0, -12, false, SHEET_SLOP_PX)).toBe("sheet");
   });
 
-  it("never takes a sideways drag: that is the stair's scrub", () => {
-    expect(sheetClaim(12, 4, false, SHEET_SLOP_PX)).toBe("content");
-    expect(sheetClaim(-30, 20, true, SHEET_SLOP_PX)).toBe("content");
+  it("never takes a sideways drag from a control that owns sideways moves: the stair's scrub", () => {
+    expect(sheetClaim(12, 4, false, SHEET_SLOP_PX, true)).toBe("content");
+    expect(sheetClaim(-30, 20, true, SHEET_SLOP_PX, true)).toBe("content");
+    expect(sheetClaim(14, -3, false, SHEET_SLOP_PX, true)).toBe("content");
   });
 
+  /*
+   * A thumb's swipe down arcs (notes1, round 3): its first ten pixels can
+   * lean more sideways than down. Nothing on a sheet but the stair does
+   * anything sideways, so everywhere else that start is the sheet's, as
+   * on an iOS sheet, which follows the finger's height from any angle.
+   */
+  it("gives an arcing swipe down to the sheet wherever nothing owns sideways moves", () => {
+    expect(sheetClaim(16, 8, false, SHEET_SLOP_PX, false)).toBe("sheet");
+    expect(sheetClaim(-16, 8, true, SHEET_SLOP_PX, false)).toBe("sheet");
+    expect(sheetClaim(12, 0, false, SHEET_SLOP_PX, false)).toBe("sheet");
+  });
+
+  it("still gives an arcing swipe up into content that scrolls to the scroll", () => {
+    expect(sheetClaim(16, -8, true, SHEET_SLOP_PX, false)).toBe("content");
+    expect(sheetClaim(16, -8, false, SHEET_SLOP_PX, false)).toBe("sheet");
+  });
 });
 
 /*
@@ -63,14 +80,40 @@ describe("sheetHoldsTouch", () => {
     expect(sheetHoldsTouch(0, -1, false)).toBe(true);
   });
 
-  it("never holds a sideways move: the stair's scrub", () => {
-    expect(sheetHoldsTouch(2, 1, true)).toBe(false);
-    expect(sheetHoldsTouch(-5, 1, false)).toBe(false);
+  it("leaves a sideways move to the control that owns sideways moves: the stair holds its own scrub", () => {
+    expect(sheetHoldsTouch(2, 1, true, true)).toBe(false);
+    expect(sheetHoldsTouch(-5, 1, false, true)).toBe(false);
+    expect(sheetHoldsTouch(5, -1, false, true)).toBe(false);
+  });
+
+  /*
+   * An iPhone's first touchmove comes a pixel or three in, and a finger's
+   * contact wobbles by about that much as it starts to move (notes1,
+   * round 3). A swipe down whose first move read (2, 1), or (1, 0), was
+   * left to the browser, which panned the page and cancelled the pointer:
+   * the sheet never moved. Where nothing owns sideways moves, a sideways
+   * lean decides nothing; any downward lean is held, and a level move is
+   * held where nothing scrolls.
+   */
+  it("holds a downward first move however sideways it leans, where nothing owns sideways moves", () => {
+    expect(sheetHoldsTouch(2, 1, true, false)).toBe(true);
+    expect(sheetHoldsTouch(-5, 1, false, false)).toBe(true);
+    expect(sheetHoldsTouch(1, 0.4, true, false)).toBe(true);
+  });
+
+  it("holds a level first move where nothing scrolls, and leaves it to content that scrolls", () => {
+    expect(sheetHoldsTouch(1, 0, false, false)).toBe(true);
+    expect(sheetHoldsTouch(1, 0, true, false)).toBe(false);
+  });
+
+  it("holds an upward first move only where nothing scrolls, however sideways it leans", () => {
+    expect(sheetHoldsTouch(3, -1, false, false)).toBe(true);
+    expect(sheetHoldsTouch(3, -1, true, false)).toBe(false);
   });
 
   it("holds a touch that has not moved only where nothing scrolls", () => {
-    expect(sheetHoldsTouch(0, 0, false)).toBe(true);
-    expect(sheetHoldsTouch(0, 0, true)).toBe(false);
+    expect(sheetHoldsTouch(0, 0, false, false)).toBe(true);
+    expect(sheetHoldsTouch(0, 0, true, false)).toBe(false);
   });
 });
 
@@ -118,6 +161,24 @@ describe("sheetDismisses", () => {
   it("asks for a real move even when there is almost no room", () => {
     expect(sheetDismisses({ height: 800, room: 8, travel: 7, velocity: 0 })).toBe(false);
   });
+
+  /*
+   * The finger's whole run counts, from where it went down (notes1, round
+   * 3). A quick swipe off the paywall's last line ("Never money…", about
+   * 33px over the edge at 390x844) can reach the page as one 29px move:
+   * the sheet takes the finger on that move and has travelled nothing
+   * when it lets go, so the room rule, measured from there, kept it open
+   * two times in three. Measured from the press, the finger ran 29 of 33.
+   */
+  it("counts the finger's run from the press, so a swipe off the last line closes even when one move carried it", () => {
+    expect(sheetDismisses({ height: 800, room: 33, run: 29, travel: 0, velocity: 0 })).toBe(true);
+    expect(sheetDismisses({ height: 800, room: 33, run: 29, travel: 0, velocity: -400 })).toBe(false);
+  });
+
+  it("still springs home from a short pull off the last line", () => {
+    expect(sheetDismisses({ height: 800, room: 33, run: 20, travel: 8, velocity: 0 })).toBe(false);
+    expect(sheetDismisses({ height: 800, room: 120, run: 40, travel: 28, velocity: 200 })).toBe(false);
+  });
 });
 
 /*
@@ -142,9 +203,31 @@ describe("Overlay refuses the browser's pan while a drag is the sheet's", () => 
     // the tap shelf read slow: half its samples were the finger standing still.
     expect(src).toMatch(/d\.samples = \[\{ t: e\.timeStamp, y: d\.y \}\];/);
   });
-  it("lets sheetDismisses decide a release, with the room the finger had", () => {
+  it("lets sheetDismisses decide a release, with the room the finger had and how far it ran", () => {
     expect(src).toMatch(/sheetDismisses\(\{/);
     expect(src).toMatch(/room:/);
+    expect(src).toMatch(/run:/);
+  });
+  it("asks whether something under the finger owns sideways moves, and tells both questions", () => {
+    expect(src).toMatch(/sheetHoldsTouch\([^)]*d\.sideways\)/);
+    expect(src).toMatch(/sheetClaim\([^)]*d\.sideways\)/);
+  });
+});
+
+/*
+ * The stair holds its own scrub (notes1, round 3). Overlay leaves a
+ * sideways move on it to the stair; once a finger's move there leans
+ * sideways the stair refuses the browser's pan itself, so a scrub that
+ * drifts up or down on its way across never turns into a scroll that
+ * cancels it.
+ */
+describe("the stair refuses the browser's pan while a finger scrubs it", () => {
+  const src = readFileSync("components/premium/Stair.tsx", "utf8");
+  it("listens to touchmove with passive: false", () => {
+    expect(src).toMatch(/addEventListener\(\s*"touchmove"[\s\S]{0,80}passive:\s*false/);
+  });
+  it("says it owns sideways moves, the way Overlay asks", () => {
+    expect(readFileSync("app/globals.css", "utf8")).toMatch(/\.stair \{[\s\S]*?touch-action: pan-y;/);
   });
 });
 

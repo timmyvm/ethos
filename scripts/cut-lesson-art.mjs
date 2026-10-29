@@ -15,15 +15,22 @@
  * way in. Run once; the output is committed.
  *
  *   node scripts/cut-lesson-art.mjs
+ *
+ * The home's large cut (#393): Today's hero stands the object at 200 to
+ * 260 CSS px, which a 360 square cannot hold at 2x. The same sources,
+ * the same crop, at 560 into their own folder, then keyed the same way:
+ *
+ *   SIZE=560 OUT=public/lessons/large/ node scripts/cut-lesson-art.mjs
+ *   python3 scripts/key-lesson-art.py public/lessons/large
  */
 import { mkdirSync, writeFileSync, existsSync } from "node:fs";
 import sharp from "sharp";
 
 const BASE =
   "https://d8j0ntlcm91z4.cloudfront.net/user_3B6GJ2qFPzJeS439soyfKOK3IXx/";
-const OUT = "public/lessons/";
+const OUT = process.env.OUT ?? "public/lessons/";
 /** Square thumbnails, 84 CSS px at most: 360 is 4x the largest. */
-const SIZE = 360;
+const SIZE = Number(process.env.SIZE ?? 360);
 /** The renders leave generous air; the thumbnail wants the object. */
 const CROP = 0.82;
 

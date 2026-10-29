@@ -22,15 +22,23 @@ already has transparency is left alone, so a second run is a no-op:
 
     pip install pillow numpy
     python3 scripts/key-lesson-art.py
+
+A folder as the one argument keys that folder instead (the home's 560
+cut, #393: python3 scripts/key-lesson-art.py public/lessons/large).
 """
 
 import glob
 import os
+import sys
 
 import numpy as np
 from PIL import Image
 
-DIR = os.path.join(os.path.dirname(__file__), "..", "public", "lessons")
+DIR = (
+    sys.argv[1]
+    if len(sys.argv) > 1
+    else os.path.join(os.path.dirname(__file__), "..", "public", "lessons")
+)
 BORDER = 14
 # Distance from the ground (0..sqrt(3)) where alpha starts and where it is full.
 LO, SPAN = 0.06, 0.22

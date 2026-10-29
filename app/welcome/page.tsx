@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState, type ComponentProps, type KeyboardEvent, type ReactNode } from "react";
-import { DemosArt, preloadPose, type Pose, type Tone } from "@/components/DemosArt";
+import { Suspense, useEffect, useState, type KeyboardEvent, type ReactNode } from "react";
+import { preloadPose, type Pose, type Tone } from "@/components/DemosArt";
+import { IntroDemos } from "@/components/IntroDemos";
 import {
   IconBars,
   IconBolt,
@@ -571,19 +572,6 @@ function Walk() {
       fineprint={plan.boss ? plan.boss.line : undefined}
     />
   );
-}
-
-/**
- * Demos in the introduction: his entrance (the pop, then his pose's own
- * loop on the still) and nothing after it. Everywhere else he stands at
- * 120px or more his idle clip plays over the still (#316); here it began
- * once the entrance had settled and read as a second, different
- * animation starting (notes1, Timothy: "Lets js have the chopping image
- * animation"). Every Demos on these screens goes through this, so no
- * screen of the walk can bring the clip back.
- */
-function IntroDemos(props: Omit<ComponentProps<typeof DemosArt>, "idle">) {
-  return <DemosArt {...props} idle={false} />;
 }
 
 /**

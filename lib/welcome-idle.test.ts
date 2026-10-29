@@ -1,5 +1,10 @@
 import { readFileSync } from "node:fs";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { DemosArt } from "@/components/DemosArt";
+import { IntroDemos } from "@/components/IntroDemos";
+import { CLIP_POSES } from "./idle-clips";
 
 /*
  * The introduction keeps Demos's entrance and nothing after it (notes1,
@@ -11,14 +16,49 @@ import { describe, expect, it } from "vitest";
 const welcome = readFileSync("app/welcome/page.tsx", "utf8");
 const art = readFileSync("components/DemosArt.tsx", "utf8");
 
+/*
+ * Rendered, not read (notes1, round 2): the clip mounts its own host
+ * (`data-clip`) inside DemosArt's frame, so the markup says whether a
+ * Demos will play one. Every pose that has a clip, at every size the
+ * introduction draws him at 120px and up.
+ */
+describe("the introduction's Demos, rendered", () => {
+  const sizes = [120, 200, 300, 320];
+  const html = (el: Parameters<typeof renderToStaticMarkup>[0]) => renderToStaticMarkup(el);
+
+  it("never mounts the clip, for any pose that has one, at any size", () => {
+    for (const pose of CLIP_POSES) {
+      for (const size of sizes) {
+        expect(html(createElement(IntroDemos, { pose, size }))).not.toMatch(/data-clip/);
+      }
+    }
+  });
+
+  it("while the same Demos anywhere else mounts it", () => {
+    for (const pose of CLIP_POSES) {
+      for (const size of sizes) {
+        expect(html(createElement(DemosArt, { pose, size }))).toMatch(new RegExp(`data-clip="${pose}"`));
+      }
+    }
+  });
+
+  it("keeps the still and its entrance: the picture and the pop", () => {
+    const out = html(createElement(IntroDemos, { pose: "hello", size: 200, pop: true }));
+    expect(out).toMatch(/<img[^>]+demos-onboard-hello/);
+    expect(out).toMatch(/demos-pop|pop/);
+  });
+});
+
 describe("the introduction's Demos", () => {
   it("is drawn through one wrapper that turns the idle clip off", () => {
-    expect(welcome).toMatch(/function IntroDemos\([\s\S]{0,200}<DemosArt \{\.\.\.props\} idle=\{false\} \/>/);
+    const wrapper = readFileSync("components/IntroDemos.tsx", "utf8");
+    expect(wrapper).toMatch(/<DemosArt \{\.\.\.props\} idle=\{false\} \/>/);
+    expect(welcome).toMatch(/import \{ IntroDemos \} from "@\/components\/IntroDemos"/);
   });
 
   it("has no Demos that skips the wrapper", () => {
     const raw = welcome.match(/<DemosArt\b/g) ?? [];
-    expect(raw.length).toBe(1); // the wrapper's own
+    expect(raw.length).toBe(0);
     expect((welcome.match(/<IntroDemos\b/g) ?? []).length).toBeGreaterThanOrEqual(5);
   });
 

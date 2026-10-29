@@ -308,6 +308,7 @@ export function DemosClip({
     <div
       ref={host}
       aria-hidden
+      data-clip={pose}
       className={`pointer-events-none absolute inset-0 ${className}`}
     />
   );

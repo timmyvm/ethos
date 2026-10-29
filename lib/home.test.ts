@@ -12,6 +12,7 @@ import {
   SHORT_UNIT,
   TACTIC_OBJECT,
   TRAIT_OBJECT,
+  TRAIT_OBJECTS,
   cleanRunTile,
   greetingName,
   heroObject,
@@ -48,7 +49,11 @@ describe("every practice has its object", () => {
   });
 
   it("each trait's own object is one of its lessons, and Pausing's is the hourglass", () => {
-    for (const t of TRAITS) expect(lessonById(TRAIT_OBJECT[t.id])?.trait).toBe(t.id);
+    for (const t of TRAITS) {
+      expect(lessonById(TRAIT_OBJECT[t.id])?.trait).toBe(t.id);
+      // The tile's order is the same three, every lesson of the trait.
+      expect([...TRAIT_OBJECTS[t.id]].sort()).toEqual([...TACTIC_OBJECT[t.id]].sort());
+    }
     expect(TRAIT_OBJECT.pause).toBe("the-long-one");
     expect(HOUSE_OBJECT).toBe("the-long-one");
   });

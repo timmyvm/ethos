@@ -4461,3 +4461,524 @@ summary::-webkit-details-marker {
   animation: none;
 }
 /* ========================== end of the price ladder ========================== */
+
+/* the home (#393) */
+/* ============================ the home (#393) ============================
+ * Today, "the object" (direction B off the workbench, app/workbench/home-b,
+ * Timothy's pick). Every class is `home-` and lives on Today alone.
+ * What the direction adds is declared once, here, before it is used:
+ *
+ *   --text-display  40/800  the card's topic. The scale stops at 34 (the
+ *                           large title); the references set a card's
+ *                           title a step over the screen's own, and so
+ *                           does this. A long topic drops to 34.
+ *   --radius-hero   28      the card. The sheet's 20 read as a form field
+ *   --radius-tile   22      beside the references' 28 to 32; the tiles
+ *                           sit one step under it.
+ *
+ * Plain custom properties, not @theme entries: no utility reads them,
+ * and v4 drops a theme variable no utility references (#265).
+ * ============================================================================ */
+:root {
+  --text-display: 2.5rem;
+  --radius-hero: 28px;
+  --radius-tile: 22px;
+}
+.home {
+  /* The card's object: 260 at 390, down to 200 at 320. */
+  --home-art: clamp(200px, 66.6vw, 260px);
+  /* A tile's object, and the wide tile's, with the column. */
+  --home-tile-art: clamp(108px, 36vw, 140px);
+  --home-wide-art: clamp(160px, 54vw, 212px);
+  /* How far the card's object rises out of the card. */
+  --home-rise: -0.3;
+}
+@media (max-width: 359px) {
+  /* The greeting runs to the object's column under 360, so the object
+     rises less and the words keep their line. */
+  .home {
+    --home-rise: -0.17;
+  }
+}
+
+/* The opening. The bar holds the coin and the chips at rest, so it
+   stands 56px: a 44px coin in a 44px bar touched the top of the glass.
+   The date sits 8px under it, and the greeting keeps clear of the
+   object's column from 360 up. */
+.home .screen-bar {
+  --bar-h: 56px;
+}
+.home .large-title-eyebrow {
+  margin-top: 8px;
+}
+.home .large-title-row > .min-w-0 {
+  flex: 1 1 auto;
+}
+@media (min-width: 360px) {
+  .home .large-title {
+    max-width: 62%;
+    text-wrap: balance;
+  }
+}
+/* Under 360 the chips and the coin fill the collapsed bar; the small
+   title would sit under them, so the coin says whose Today it is. */
+@media (max-width: 359px) {
+  .home .screen-bar-title {
+    display: none;
+  }
+}
+.home-avatar {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 1.0625rem;
+  font-weight: 800;
+  color: var(--color-ink);
+  background:
+    radial-gradient(100% 100% at 30% 20%, rgb(255 255 255 / 0.9), transparent 60%),
+    linear-gradient(150deg, #efe7df, #d9cdc2);
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.06),
+    0 4px 12px -4px rgb(0 0 0 / 0.18);
+}
+:root[data-theme="dark"] .home-avatar {
+  background:
+    radial-gradient(100% 100% at 30% 20%, rgb(255 255 255 / 0.14), transparent 60%),
+    linear-gradient(150deg, #3a3633, #2a2725);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.1),
+    0 4px 12px -4px rgb(0 0 0 / 0.5);
+}
+
+/* The card: today's practice in its trait's family, the screen's one
+   lifted thing, its object breaking out of the top-right corner. */
+.home-hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 376px;
+  padding: 20px;
+  border-radius: var(--radius-hero);
+  color: #ffffff;
+  /* TipLine and StageChip read the stage's ink and veil. */
+  --stage-ink: #ffffff;
+  --stage-veil: rgb(255 255 255 / 0.18);
+  background:
+    radial-gradient(90% 62% at 82% 6%, var(--home-lit) 0%, transparent 70%),
+    radial-gradient(70% 50% at 0% 100%, var(--home-low) 0%, transparent 72%),
+    linear-gradient(172deg, var(--home-a) 0%, var(--home-b) 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.28),
+    inset 0 0 0 1px rgb(255 255 255 / 0.06),
+    0 28px 44px -22px var(--home-glow),
+    0 8px 18px -10px rgb(0 0 0 / 0.3);
+}
+/* One family per trait. Light: the tone lit at the top falling to its
+   ink. Dark: the same hue a step deeper and quieter. White 13px type
+   holds 4.5:1 on every top colour in both themes, and the lit corner
+   sits behind the object (lib/today-colour.test.ts). Day one and a
+   failed read take Pausing's blue, the house's, with no chip. */
+.home-hero[data-family="pause"] {
+  --home-a: #3d6ae6;
+  --home-b: #1c368a;
+  --home-lit: rgb(196 214 255 / 0.62);
+  --home-low: rgb(14 30 92 / 0.5);
+  --home-glow: rgb(47 95 224 / 0.6);
+}
+.home-hero[data-family="fillers"] {
+  --home-a: #cc3a6c;
+  --home-b: #8a1640;
+  --home-lit: rgb(255 208 222 / 0.6);
+  --home-low: rgb(80 8 34 / 0.5);
+  --home-glow: rgb(214 47 104 / 0.55);
+}
+.home-hero[data-family="repairs"] {
+  --home-a: #9e6200;
+  --home-b: #6b4200;
+  --home-lit: rgb(255 226 160 / 0.6);
+  --home-low: rgb(60 34 0 / 0.5);
+  --home-glow: rgb(200 130 10 / 0.55);
+}
+.home-hero[data-family="pace"] {
+  --home-a: #12845a;
+  --home-b: #084a30;
+  --home-lit: rgb(190 245 220 / 0.55);
+  --home-low: rgb(4 40 26 / 0.5);
+  --home-glow: rgb(13 132 87 / 0.55);
+}
+.home-hero[data-family="range"] {
+  --home-a: #7652e6;
+  --home-b: #3b1f8f;
+  --home-lit: rgb(222 210 255 / 0.6);
+  --home-low: rgb(30 12 80 / 0.5);
+  --home-glow: rgb(112 72 230 / 0.55);
+}
+:root[data-theme="dark"] .home-hero[data-family="pause"] {
+  --home-a: #3558b4;
+  --home-b: #14244f;
+  --home-lit: rgb(140 176 246 / 0.42);
+  --home-low: rgb(6 12 34 / 0.55);
+  --home-glow: rgb(40 80 190 / 0.45);
+}
+:root[data-theme="dark"] .home-hero[data-family="fillers"] {
+  --home-a: #a83a60;
+  --home-b: #4a1226;
+  --home-lit: rgb(240 160 186 / 0.4);
+  --home-low: rgb(30 4 14 / 0.55);
+  --home-glow: rgb(170 40 90 / 0.4);
+}
+:root[data-theme="dark"] .home-hero[data-family="repairs"] {
+  --home-a: #8f6110;
+  --home-b: #3d2805;
+  --home-lit: rgb(240 200 120 / 0.38);
+  --home-low: rgb(28 16 0 / 0.55);
+  --home-glow: rgb(160 110 20 / 0.4);
+}
+:root[data-theme="dark"] .home-hero[data-family="pace"] {
+  --home-a: #1d7a56;
+  --home-b: #0a3423;
+  --home-lit: rgb(150 220 190 / 0.36);
+  --home-low: rgb(2 22 14 / 0.55);
+  --home-glow: rgb(20 110 75 / 0.4);
+}
+:root[data-theme="dark"] .home-hero[data-family="range"] {
+  --home-a: #6146b4;
+  --home-b: #26164f;
+  --home-lit: rgb(196 176 246 / 0.4);
+  --home-low: rgb(14 6 34 / 0.55);
+  --home-glow: rgb(90 60 190 / 0.42);
+}
+/* While the read is in flight the trait is unknown, so the card has no
+   colour yet: the surface step at the card's height, its bars on sand. */
+.home-hero[data-family="none"] {
+  color: var(--color-ink);
+  --stage-ink: var(--color-ink);
+  background: var(--color-surface);
+  box-shadow: none;
+}
+
+/* The object. The one picture on the screen that breaks its frame,
+   the way ToyCad's chick rises out of its tile; a soft shadow in the
+   card's own ink sits it on the colour. */
+.home-hero-art {
+  position: absolute;
+  top: calc(var(--home-art) * var(--home-rise));
+  right: calc(var(--home-art) * -0.1);
+  width: var(--home-art);
+  height: var(--home-art);
+  pointer-events: none;
+  user-select: none;
+  filter: drop-shadow(0 22px 26px rgb(8 20 70 / 0.38));
+}
+:root[data-theme="dark"] .home-hero-art {
+  filter: drop-shadow(0 22px 26px rgb(0 0 0 / 0.5));
+}
+/* A pool of light under the object, so it reads lit from inside the
+   colour (the fintech card's glow from below). */
+.home-hero-pool {
+  position: absolute;
+  top: calc(var(--home-art) * 0.42);
+  right: calc(var(--home-art) * 0.06);
+  width: calc(var(--home-art) * 0.7);
+  height: calc(var(--home-art) * 0.34);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(255 255 255 / 0.34), transparent);
+  filter: blur(6px);
+  pointer-events: none;
+}
+/* The words beside the object keep to the left 52%. */
+.home-hero-words {
+  max-width: 52%;
+}
+.home-hero-lead {
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  font-weight: 600;
+  color: var(--stage-ink);
+}
+/* The topic: 40/800, three lines at most for a typical prompt. */
+.home-display {
+  font-family: var(--font-display-face), sans-serif;
+  font-size: min(var(--text-display), 10.2vw);
+  line-height: 1.02;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+.home-display[data-long] {
+  font-size: min(2.125rem, 8.8vw);
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+}
+/* TipLine on the card: its glyph, its cue and its open sentence in the
+   card's ink. */
+.home-hero .tip-glyph,
+.home-hero .disclosure-mark {
+  color: var(--stage-ink);
+}
+.home-hero .text-stone-600 {
+  color: rgb(255 255 255 / 0.84);
+}
+.home-hero[data-family="none"] .text-stone-600 {
+  color: var(--color-stone-600);
+}
+/* A placeholder on the colour reads the card's veil, not the page's sand. */
+.home-hero:not([data-family="none"]) .skeleton {
+  background-color: rgb(255 255 255 / 0.18);
+}
+/* The trait's chip on the card: white, the card's own ink, its mark. */
+.home-hero .stage-chip {
+  background: rgb(255 255 255 / 0.94);
+  color: var(--home-b);
+}
+
+/* The one tap, a pill on the card (STATE's open experiment). 48px,
+   terracotta, ink. */
+.home-start {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  border-radius: 999px;
+  padding: 0 24px;
+  background: var(--color-terracotta-500);
+  color: var(--color-on-accent);
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+  font-weight: 700;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.3),
+    0 8px 18px -8px rgb(0 0 0 / 0.45);
+}
+/* Spin and difficulty: 48px glass circles in the card's veil. */
+.home-glyph {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  color: var(--stage-ink);
+  background: rgb(255 255 255 / 0.16);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.16);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.home-glyph[aria-expanded="true"] {
+  background: rgb(255 255 255 / 0.3);
+}
+.home-hero[data-family="none"] .home-glyph {
+  background: var(--color-raised);
+  box-shadow: inset 0 0 0 1px var(--color-card-edge);
+}
+.home-glyph-count {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--home-b, var(--color-ink));
+}
+.home-hero[data-family="none"] .home-glyph-count {
+  background: var(--color-ink);
+  color: var(--color-ground);
+}
+
+/* The switch: ToyCad's Start / My Recent capsule, on the shared
+   Segmented (its roving radio and keys). The thumb is the raised step,
+   not ink: an ink thumb outweighed Start in the squint. */
+.home-seg.segmented {
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--color-surface);
+}
+.home-seg .segmented-thumb {
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc((100% - 8px) / var(--segments));
+  border-radius: 999px;
+  background: var(--color-raised);
+  box-shadow:
+    0 4px 12px -4px rgb(0 0 0 / 0.16),
+    0 0 0 0.5px rgb(0 0 0 / 0.05);
+}
+:root[data-theme="dark"] .home-seg .segmented-thumb {
+  background: #3d3d3d;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    0 4px 12px -4px rgb(0 0 0 / 0.6);
+}
+.home-seg .segmented-option {
+  min-height: 44px;
+  font-size: 0.9375rem;
+}
+.home-seg .segmented-option[aria-checked="true"] {
+  color: var(--color-ink);
+}
+
+/* The bento. Every tile is the surface step at the tile radius, with no
+   shadow: name at the top left, its picture at the top right, its
+   number at the foot. */
+.home-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  isolation: isolate;
+  min-height: 172px;
+  padding: 16px;
+  border-radius: var(--radius-tile);
+  background: var(--color-surface);
+}
+:root[data-theme="dark"] .home-tile {
+  background: linear-gradient(180deg, #212121, var(--color-surface) 96px);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.05);
+}
+.home-tile[data-wide] {
+  min-height: 168px;
+}
+.home-tile[data-compact] {
+  min-height: 152px;
+}
+/* The trait's light behind its object: its tone, low, in the corner.
+   Part of the picture, never the tile's ground. */
+.home-tile-glow {
+  position: absolute;
+  z-index: -1;
+  top: -40px;
+  right: -40px;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--tone) 22%, transparent), transparent);
+  pointer-events: none;
+}
+:root[data-theme="dark"] .home-tile-glow {
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--tone) 20%, transparent), transparent);
+}
+.home-tile[data-wide] .home-tile-glow {
+  width: 260px;
+  height: 260px;
+}
+.home-tile-art {
+  position: absolute;
+  z-index: -1;
+  top: calc(var(--home-tile-art) * -0.1);
+  right: calc(var(--home-tile-art) * -0.21);
+  width: var(--home-tile-art);
+  height: var(--home-tile-art);
+  pointer-events: none;
+  user-select: none;
+  filter: drop-shadow(0 10px 12px rgb(0 0 0 / 0.12));
+}
+.home-tile[data-wide] .home-tile-art {
+  top: calc(var(--home-wide-art) * -0.085);
+  right: calc(var(--home-wide-art) * -0.12);
+  width: var(--home-wide-art);
+  height: var(--home-wide-art);
+}
+/* The unit on the number's baseline, set off by its row's 4px gap, so a
+   unit that wraps at 320 starts flush under its number. */
+.home-unit {
+  white-space: nowrap;
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 0.78125rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--color-stone-500);
+}
+/* A measured bar: sand trough, the trait's tone (or the ochre's deeper
+   arc in light, `.today-trait`'s --ring-arc). */
+.home-bar {
+  position: relative;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-sand);
+}
+.home-bar > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  background: var(--ring-arc, var(--tone));
+}
+/* What is earned fills in sage: clearing your line, a clean stretch.
+   The ring's own `measured` sage, 600: the 500 is 2.9:1 on light sand,
+   under the 3:1 a measurement needs (lib/today-colour.test.ts). */
+.home-bar-earned > i {
+  background: var(--color-sage-600);
+}
+/* A mark on the bar: the line to clear, or the best so far. */
+.home-bar-mark {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 10px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--color-ink);
+}
+.home-bar[data-marked] {
+  overflow: visible;
+}
+/* The check on a closed line: earned, so sage. The flag on an open one:
+   the line still to clear, in ink on the surface's sand. */
+.home-check,
+.home-flag {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 999px;
+}
+.home-check {
+  background: var(--color-sage-500);
+  color: #ffffff;
+}
+:root[data-theme="dark"] .home-check {
+  color: var(--color-sage-ink);
+}
+.home-flag {
+  background: var(--color-sand);
+  color: var(--color-ink);
+}
+/* A day in the week: a sage bar for a day spoken. */
+.home-day {
+  height: 24px;
+  border-radius: 6px;
+  background: var(--color-sand);
+}
+.home-day[data-on] {
+  background: var(--color-sage-600);
+}
+/* The Index's history as a hill along the tile's foot, the tile's full
+   width, in a band of its own under the caption: the real caption ("+10
+   this week, +51 since day one") runs past the workbench's right 62%. */
+.home-tile[data-hill] {
+  padding-bottom: 76px;
+}
+.home-hill {
+  position: absolute;
+  z-index: -1;
+  inset: auto 0 0 0;
+  height: 68px;
+  color: var(--color-sage-600);
+  pointer-events: none;
+}
+/* ========================== end of the home (#393) ========================== */

@@ -29,15 +29,24 @@ import { IconBack } from "@/components/Icon";
  */
 export function ScreenHeader({
   title,
+  barTitle,
   eyebrow,
   subtitle,
   dated = false,
   back,
+  leading,
   trailing,
   barTrailing,
   barTrailingOnCollapse = false,
 }: {
   title: string;
+  /**
+   * The bar's small title, where the large one is not the screen's name
+   * (Today greets you by name and hands "Today" to the bar, #393).
+   */
+  barTitle?: string;
+  /** In the bar's left slot on a tab screen, always visible (Today's avatar coin). */
+  leading?: React.ReactNode;
   /** A line above the title, as Apple's apps put the date over Today. */
   eyebrow?: React.ReactNode;
   /**
@@ -133,15 +142,17 @@ export function ScreenHeader({
         data-collapsed={collapsed || undefined}
       >
         <div className="screen-bar-side">
-          {back && (
+          {back ? (
             <Link href={back.href} className="screen-bar-back press">
               <IconBack size={22} />
               <span>{back.label}</span>
             </Link>
+          ) : (
+            leading
           )}
         </div>
         <div className="screen-bar-title" aria-hidden>
-          {title}
+          {barTitle ?? title}
         </div>
         <div className="screen-bar-side justify-end">
           {barTrailingOnCollapse

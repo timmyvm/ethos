@@ -6,9 +6,10 @@ import { describe, expect, it } from "vitest";
  * The trait rings (round 2, M02, M12): wherever a ring is drawn in its
  * trait's tone (the trait page's ring, the lesson stages), it is that
  * tone's arc on the app's `sand` trough and the only colour in it, so
- * the arc holds 3:1 there. Since the cohesion pass (26 Oct) Today's
- * trait colour is its 8px mark and its ring's thin arc on sand, and the
- * tones have to measure there. The dark tones are
+ * the arc holds 3:1 there. Since the home round (#393) Today's trait
+ * colour under its card is its 8px mark and its percentile bar's fill on
+ * sand (the cohesion pass drew a ring's thin arc there), and the tones
+ * have to measure there. The dark tones are
  * muted (lower chroma, the same hue and lightness) and still clear every
  * floor here. The ring is a measurement, so the arc holds the 3:1 a graphic
  * needs against that trough, for all five tones in both themes; the
@@ -104,80 +105,84 @@ describe("Today's trait rings still measure", () => {
 });
 
 /*
- * Today's line drew its trough as its own tone at 22% on the ground
- * until the cohesion pass (26 Oct), and this block held the arc at 3:1
- * on that tint. The line's track is the app's sand now (LINE_TRACK, the
- * accent rule: a trait's colour is the arc and nothing else), so its arc
- * is held by the sand block above, the same as every trait ring.
+ * What Today is built from, since the home round (#393, direction B,
+ * "the object"; it replaced the cohesion pass's stage, rows and rings).
+ * The card is the practice in its trait's own colour family, with white
+ * type on it; under it nothing is lifted and nothing wears a wash. The
+ * tiles are the surface step; a trait's colour is its 8px mark, its
+ * bar's fill on sand and the light behind its object; what is earned
+ * (clearing your line, a clean stretch, a day spoken) fills in the
+ * ring's own measured sage.
  */
+const home = between("/* the home (#393) */", "end of the home (#393)");
+const block = (selector: string) => {
+  const at = home.indexOf(`${selector} {`);
+  if (at < 0) throw new Error(`no ${selector}`);
+  return home.slice(at, home.indexOf("}", at));
+};
+const hexOf = (body: string, name: string) => {
+  const m = body.match(new RegExp(`--${name}:\\s*(#[0-9a-f]{6})`, "i"));
+  if (!m) throw new Error(`no --${name}`);
+  return m[1];
+};
 
-describe("Today's trait names in their ink", () => {
-  for (const [trait, t] of Object.entries(tones(false))) {
-    it(`${trait}, light: 4.5:1 or better on the card and the ground`, () => {
-      expect(ratio(t["tone-ink"], light.raised)).toBeGreaterThanOrEqual(4.5);
-      expect(ratio(t["tone-ink"], light.ground)).toBeGreaterThanOrEqual(4.5);
+describe("Today's card holds white type in every family", () => {
+  for (const f of ["pause", "fillers", "repairs", "pace", "range"]) {
+    it(`${f}: white on the card's lit top at 4.5:1 or better, light and dark`, () => {
+      const lightTop = hexOf(block(`.home-hero[data-family="${f}"]`), "home-a");
+      const darkTop = hexOf(block(`:root[data-theme="dark"] .home-hero[data-family="${f}"]`), "home-a");
+      expect(ratio("#ffffff", lightTop)).toBeGreaterThanOrEqual(4.5);
+      expect(ratio("#ffffff", darkTop)).toBeGreaterThanOrEqual(4.5);
     });
-  }
-  for (const [trait, t] of Object.entries(tones(true))) {
-    it(`${trait}, dark: 4.5:1 or better on the card, its sheen and the ground`, () => {
-      for (const on of [dark.raised, sheen, dark.ground]) {
-        expect(ratio(t["tone-ink"], on)).toBeGreaterThanOrEqual(4.5);
+    it(`${f}: the chip's name in the card's deep ink on white at 4.5:1 or better`, () => {
+      for (const sel of [`.home-hero[data-family="${f}"]`, `:root[data-theme="dark"] .home-hero[data-family="${f}"]`]) {
+        expect(ratio(hexOf(block(sel), "home-b"), "#f8f8f8")).toBeGreaterThanOrEqual(4.5);
       }
     });
   }
 });
 
-/*
- * What Today is built from, since the cohesion pass (26 Oct; a
- * first-time tester: "everything competes"). The floor is the house
- * stage (HeroStage, Practice's sky), with Start on the ground under it
- * and spin and difficulty as bare glyphs in its corner. Under it nothing
- * wears a wash: today's line is a 44px ring with a 4px sage arc on sand,
- * the clean run is the neutral card rather than the deep sage (which
- * left the Log too), and the traits are rows on the ground, each trait's
- * colour its 8px mark and its ring's arc (stone arcs read as spinners,
- * the fix round), its name in ink.
- */
 describe("Today's materials", () => {
-  const strip = src("components/home/TraitStrip.tsx");
-  const line = src("components/home/ChallengeCard.tsx");
-  const shell = src("components/home/HomeCards.tsx");
-  const run = src("components/home/CleanRunCard.tsx");
-  const trail = src("components/DayTrail.tsx");
-  const floor = src("components/home/FloorCard.tsx");
+  const tiles = src("components/home/HomeTiles.tsx");
+  const week = src("components/home/WeekTiles.tsx");
+  const hero = src("components/home/HomeHero.tsx");
 
-  it("the traits are rows on the ground: rings in the trait's arc, the trait's mark, the name in ink", () => {
-    expect(strip).toMatch(/className=\{`press-row today-trait/);
-    expect(strip).not.toMatch(/tone-wash|tone-ink|today-tile|--today-trough|className=\{`card/);
-    expect(strip).toContain('track="var(--color-sand)"');
-    expect(strip).toContain("thickness={3}");
-    expect(strip).toContain('tone="trait"');
-    expect(strip).toContain('className="trait-dot"');
+  it("the traits are tiles on the surface: the trait's mark, its bar on sand, its name in ink", () => {
+    expect(tiles).toMatch(/className=\{`home-tile today-trait press/);
+    expect(tiles).not.toMatch(/tone-wash|tone-ink|tone-fill|className=\{`card|className="card/);
+    expect(tiles).toContain('className="trait-dot"');
+    expect(block(".home-bar")).toContain("background: var(--color-sand);");
+    // The fill is the trait's arc: the tone, or the ochre's deeper arc in
+    // light, which `.today-trait` carries (held on sand above).
+    expect(block(".home-bar > i")).toContain("background: var(--ring-arc, var(--tone));");
   });
 
-  it("today's line has no card and no wash, and its ring is a 4px sage arc on sand", () => {
-    expect(line).not.toMatch(/tone-wash|tone-ink|today-line|rounded-card p-4/);
-    expect(line).toContain("track={LINE_TRACK}");
-    expect(line).toContain('LINE_TRACK = "var(--color-sand)"');
-    expect(line).toContain("thickness={4}");
-    expect(line).toContain('tone="measured"');
-  });
-
-  it("the clean run on Today is the neutral card, sage only where earned", () => {
-    for (const file of [shell, run, trail]) {
-      expect(file).not.toMatch(/card-score|text-cream|sage-mist|sage-lit|cream\//);
+  it("the light behind an object is the tone at 22% at most, never the tile's ground", () => {
+    for (const glow of home.matchAll(/\.home-tile-glow \{([^}]*)\}/g)) {
+      const pct = [...glow[1].matchAll(/var\(--tone\) (\d+)%/g)].map((m) => Number(m[1]));
+      for (const p of pct) expect(p).toBeLessThanOrEqual(22);
     }
-    expect(shell).toMatch(/className="card press block p-4"/);
-    expect(run).toContain('tone="measured"');
+    expect(block("\n.home-tile")).not.toMatch(/--tone/);
   });
 
-  it("the floor is the house stage, with Start on the ground under it and the glyphs in its corner", () => {
-    expect(floor).toContain("<HeroStage");
-    expect(floor).not.toMatch(/topic-card|floor-side/);
-    expect(floor.match(/\$\{ACTION_CLASS\}/g)?.length).toBe(1);
-    expect(floor).toMatch(/<Link href=\{to\} className=\{`\$\{ACTION_CLASS\} mt-3`\}>/);
-    expect(floor).toContain('aria-label="Spin a new topic"');
-    expect(floor).toContain("size-11");
+  it("what is earned fills in the measured sage, 3:1 on sand in both themes", () => {
+    expect(tiles.match(/home-bar home-bar-earned/g)?.length).toBe(2);
+    expect(block(".home-bar-earned > i")).toContain("var(--color-sage-600)");
+    expect(block(".home-day[data-on]")).toContain("var(--color-sage-600)");
+    expect(week).toContain("bg-sage-600");
+    expect(ratio(token(css, "sage-600"), light.sand)).toBeGreaterThanOrEqual(3);
+    expect(ratio(token(darkRoot, "sage-600"), dark.sand)).toBeGreaterThanOrEqual(3);
+  });
+
+  it("the card holds the one tap, 48px, and spin and difficulty as 48px glyphs", () => {
+    expect(block(".home-start")).toMatch(/min-height: 48px;/);
+    expect(block(".home-start")).toContain("background: var(--color-terracotta-500);");
+    expect(block(".home-glyph")).toMatch(/width: 48px;\s*height: 48px;/);
+    expect(hero).toContain('aria-label="Spin a new topic"');
+    // Nothing else on Today is terracotta-filled.
+    for (const file of [tiles, week, src("app/page.tsx")]) {
+      expect(file).not.toMatch(/bg-terracotta-500|ACTION_CLASS/);
+    }
   });
 });
 

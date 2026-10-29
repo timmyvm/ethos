@@ -8,8 +8,11 @@ import { describe, expect, it } from "vitest";
  * really": each had its own colour world. Practice's sky stage became
  * the house grammar, and this holds it:
  *
- *  1. Every tab opens on the one stage material, `HeroStage`, which is
- *     the sky at the sheet radius and the screen's one `elev-2`.
+ *  1. Every tab but Today opens on the one stage material, `HeroStage`,
+ *     which is the sky at the sheet radius and the screen's one
+ *     `elev-2`. Today left it in the home round (#393, Timothy's pick of
+ *     direction B, "the object"): its card is the practice in its
+ *     trait's colour family with the lesson's glass object, held below.
  *  2. Under the hero nothing has a coloured fill or wash: a trait's
  *     colour is a small accent (its 8px mark, a ring's arc, a short bar)
  *     and its name is in ink, so the files that draw the tabs reach for
@@ -28,7 +31,6 @@ const src = (file: string) =>
 
 describe("every tab opens on the one stage", () => {
   const heroes: [string, string][] = [
-    ["Today", "components/home/FloorCard.tsx"],
     ["Lessons", "components/lessons/LessonCard.tsx"],
     ["Practice", "app/games/page.tsx"],
     ["Log", "components/ScoreCard.tsx"],
@@ -54,23 +56,70 @@ describe("every tab opens on the one stage", () => {
 
   it("no hero keeps its old colour world", () => {
     expect(src("components/ScoreCard.tsx")).not.toMatch(/card-score|sage-mist|sage-lit|text-cream/);
-    expect(src("components/home/FloorCard.tsx")).not.toMatch(/topic-card|rec-amber/);
+    expect(src("components/home/HomeHero.tsx")).not.toMatch(/topic-card|rec-amber|<HeroStage\b|practice-stage/);
     expect(src("app/you/page.tsx")).not.toMatch(/kind: "coin"/);
   });
 
   it("a trait's own tone never paints the stage (data-trait goes on the chip)", () => {
-    for (const file of ["components/lessons/LessonCard.tsx", "components/home/FloorCard.tsx"]) {
-      expect(src(file)).not.toMatch(/<HeroStage[^>]*data-trait/);
+    expect(src("components/lessons/LessonCard.tsx")).not.toMatch(/<HeroStage[^>]*data-trait/);
+  });
+});
+
+/*
+ * Today's card (#393). The one place a trait's colour is a ground, and
+ * only in its own family (`.home-hero[data-family]`), never the lessons
+ * tones' washes: the card is today's practice, so it is the practice's
+ * trait, and nothing under it wears a fill.
+ */
+describe("Today opens on the object", () => {
+  const hero = src("components/home/HomeHero.tsx");
+  const page = src("app/page.tsx");
+  const css = readFileSync(path.join(root, "app/globals.css"), "utf8");
+  const home = css.slice(css.indexOf("/* the home (#393) */"), css.indexOf("end of the home (#393)"));
+
+  it("the page draws the card once, with no Demos anywhere on it", () => {
+    expect(page.match(/<HomeHero\b/g)?.length).toBe(1);
+    for (const file of [page, hero, src("components/home/HomeTiles.tsx"), src("components/home/WeekTiles.tsx")]) {
+      expect(file).not.toMatch(/DemosArt|DemosClip|demos-/);
     }
+  });
+
+  it("the card stands the lesson's object at the large cut, and holds the one Start", () => {
+    expect(hero).toMatch(/src=\{objectSrc\(object, true\)\}/);
+    expect(hero.match(/className="home-start press"/g)?.length).toBe(1);
+    expect(hero).toMatch(/>\s*Start\s*</);
+    expect(hero).toContain('aria-label="Spin a new topic"');
+  });
+
+  it("the card's colour is its family, set by data-family and never by a tone wash", () => {
+    expect(hero).toMatch(/data-family=\{loading \? "none" : family\}/);
+    expect(hero).not.toMatch(/\btone-wash\b|\btone-fill\b|data-trait=\{family/);
+    for (const f of ["pause", "fillers", "repairs", "pace", "range"]) {
+      expect(home).toContain(`.home-hero[data-family="${f}"] {`);
+      expect(home).toContain(`:root[data-theme="dark"] .home-hero[data-family="${f}"] {`);
+    }
+  });
+
+  it("the card is the one lifted thing: no elev-2 under it", () => {
+    for (const file of ["app/page.tsx", "components/home/HomeTiles.tsx", "components/home/WeekTiles.tsx"]) {
+      expect(src(file)).not.toMatch(/\belev-2\b/);
+    }
+    const tile = home.match(/\n\.home-tile \{([^}]*)\}/)?.[1] ?? "";
+    expect(tile).toContain("background: var(--color-surface);");
+    expect(tile).not.toContain("box-shadow");
+    // In dark the tile takes a hairline inside its edge, never a lift.
+    const dark = home.match(/:root\[data-theme="dark"\] \.home-tile \{([^}]*)\}/)?.[1] ?? "";
+    expect(dark).toMatch(/box-shadow: inset 0 0 0 1px/);
   });
 });
 
 describe("under the hero, colour is an accent", () => {
   const tabs = [
     "app/page.tsx",
-    "components/home/ChallengeCard.tsx",
-    "components/home/CleanRunCard.tsx",
-    "components/home/TraitStrip.tsx",
+    "components/home/HomeHero.tsx",
+    "components/home/HomeTiles.tsx",
+    "components/home/WeekTiles.tsx",
+    "components/home/AvatarCoin.tsx",
     "app/lessons/page.tsx",
     "components/lessons/LessonCard.tsx",
     "app/history/page.tsx",

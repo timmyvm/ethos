@@ -37,17 +37,23 @@ export const TACTIC_OBJECT: Record<TraitId, readonly [string, string, string]> =
 };
 
 /**
- * Each trait's own object, for a trait tile and for a practice whose
- * first tip is not one of the trait's three (a shape's tip). Pausing is
- * the hourglass, the piece the set was rendered from.
+ * Each trait's own objects, first choice first: the first stands for the
+ * trait on its tile and on a practice whose first tip is not one of the
+ * trait's three (a shape's tip); a tile takes the next when the card
+ * above already stands the first. Pausing is the hourglass, the piece
+ * the set was rendered from.
  */
-export const TRAIT_OBJECT: Record<TraitId, string> = {
-  pause: "the-long-one",
-  fillers: "the-cold-open",
-  repairs: "finish-it",
-  pace: "room-to-land",
-  range: "name-it-once",
+export const TRAIT_OBJECTS: Record<TraitId, readonly [string, string, string]> = {
+  pause: ["the-long-one", "the-landing", "inside-or-after"],
+  fillers: ["the-cold-open", "closed-mouth", "the-crutch"],
+  repairs: ["finish-it", "know-the-landing", "or-rather"],
+  pace: ["room-to-land", "one-gear-down", "change-gear"],
+  range: ["name-it-once", "short-and-concrete", "second-pass"],
 };
+
+export const TRAIT_OBJECT = Object.fromEntries(
+  Object.entries(TRAIT_OBJECTS).map(([id, ids]) => [id, ids[0]])
+) as Record<TraitId, string>;
 
 /** No trait to picture (day one, a failed read): the house's hourglass. */
 export const HOUSE_OBJECT = TRAIT_OBJECT.pause;
@@ -60,13 +66,11 @@ export function heroObject(trait: TraitId | null, tip?: string | null): string {
 }
 
 /**
- * A trait tile's object: the trait's own, unless the card above already
- * stands it up, then the trait's next lesson's. One object, once.
+ * A trait tile's object: the trait's first, unless the card above
+ * already stands it, then its next. One object, once.
  */
 export function tileObject(trait: TraitId, hero: string | null): string {
-  const own = TRAIT_OBJECT[trait];
-  if (own !== hero) return own;
-  return TACTIC_OBJECT[trait].find((id) => id !== hero) ?? own;
+  return TRAIT_OBJECTS[trait].find((id) => id !== hero) ?? TRAIT_OBJECT[trait];
 }
 
 /**

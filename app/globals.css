@@ -4321,9 +4321,20 @@ summary::-webkit-details-marker {
   -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
   mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
 }
+/* Scrolled, it passes under the head (the grabber, the mark and the
+   headline stay put), so it fades at its top edge too. */
+.paywall-scroll[data-under] {
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 16px);
+  mask-image: linear-gradient(to bottom, transparent, #000 16px);
+}
+.paywall-scroll[data-under][data-more] {
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 16px, #000 calc(100% - 32px), transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 16px, #000 calc(100% - 32px), transparent);
+}
 /* Whatever the keyboard focuses in it (the slider) is scrolled clear of
    that 32px fade, so its ring and its month labels are never washed. */
 .paywall-scroll {
+  scroll-padding-top: 16px;
   scroll-padding-bottom: 32px;
 }
 

@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { openLayer } from "@/lib/overlay-layers";
 import { prefersReducedMotion } from "@/lib/prefs";
+import { SHEET_LEAN_PX, SHEET_SLOP_PX, sheetClaim } from "@/lib/sheet-gesture";
 import {
   SPRING,
   animateSpring,
@@ -119,6 +120,9 @@ export function Overlay({
    */
   const drag = useRef<{
     id: number;
+    /** Where the finger went down, for which way it is going. */
+    x0: number;
+    y0: number;
     from: number;
     y: number;
     samples: { t: number; y: number }[];
@@ -293,6 +297,41 @@ export function Overlay({
     };
   }, []);
 
+  /*
+   * The browser's pan, refused while the finger is the sheet's (notes1).
+   * A touch the page does not refuse becomes the browser's scroll the
+   * moment it moves, and the browser says so with pointercancel: the
+   * drag below died ten pixels in, from every part of the paywall, at
+   * every scroll, because each of them sits in (or over) something the
+   * browser could pan. So a touchmove that the sheet claims, by the same
+   * rule the pointer uses (lib/sheet-gesture.ts) but sooner, is
+   * cancelled before a pan can start. React's onTouchMove is passive and
+   * cannot cancel anything, so this is the DOM's own listener. A touch
+   * that started in scrolled content never has a drag here, and scrolls.
+   */
+  useEffect(() => {
+    const el = panel.current;
+    if (!el || variant !== "sheet") return;
+    function onTouchMove(e: TouchEvent) {
+      const d = drag.current;
+      if (!d || e.touches.length !== 1) return;
+      if (!d.active) {
+        const t = e.touches[0];
+        const claim = sheetClaim(t.clientX - d.x0, t.clientY - d.y0, d.scrolls, SHEET_LEAN_PX);
+        if (claim === "undecided") return;
+        if (claim === "content") {
+          drag.current = null;
+          return;
+        }
+      }
+      if (e.cancelable) e.preventDefault();
+    }
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    return () => {
+      el.removeEventListener("touchmove", onTouchMove);
+    };
+  }, [variant]);
+
   /** Only from the top of the panel's own scroll, or a long list can
    *  never be scrolled up. */
   function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
@@ -322,6 +361,8 @@ export function Overlay({
     }
     drag.current = {
       id: e.pointerId,
+      x0: e.clientX,
+      y0: e.clientY,
       from: e.clientY,
       y: 0,
       samples: [{ t: e.timeStamp, y: 0 }],
@@ -334,13 +375,14 @@ export function Overlay({
     const d = drag.current;
     const el = panel.current;
     if (!d || d.id !== e.pointerId || !el) return;
-    const raw = e.clientY - d.from;
     if (!d.active) {
       // Hysteresis (§10): ten pixels of intent before the sheet is
       // yours, so a tap stays a tap. Upward is the sheet's too (it
-      // gives and pulls back) unless there is content to scroll.
-      if (Math.abs(raw) < 10) return;
-      if (raw < 0 && d.scrolls) {
+      // gives and pulls back) unless there is content to scroll, and
+      // sideways is never the sheet's (the stair's scrub).
+      const claim = sheetClaim(e.clientX - d.x0, e.clientY - d.y0, d.scrolls, SHEET_SLOP_PX);
+      if (claim === "undecided") return;
+      if (claim === "content") {
         drag.current = null;
         return;
       }

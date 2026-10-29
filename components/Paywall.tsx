@@ -195,9 +195,13 @@ export function Paywall({
   // The scrolling part fades at its foot while there is more under it.
   const scroller = useRef<HTMLDivElement>(null);
   const [more, setMore] = useState(false);
+  // And at its top while it has been scrolled under the head.
+  const [under, setUnder] = useState(false);
   const measure = useCallback(() => {
     const el = scroller.current;
-    if (el) setMore(el.scrollHeight - el.scrollTop - el.clientHeight > 1);
+    if (!el) return;
+    setMore(el.scrollHeight - el.scrollTop - el.clientHeight > 1);
+    setUnder(el.scrollTop > 1);
   }, []);
   // A state that grows the shelf (the code, the account ask, an error,
   // a held plan's note) keeps the ladder in sight just above it: the
@@ -361,25 +365,31 @@ export function Paywall({
     // are: a flex item sized by its content grew past a 320 screen the
     // moment the code's field and Unlock joined it.
     <Overlay label="Premium" onClose={onClose} onLeave={attempts.abandon} className="w-full max-w-[430px]">
-      {/* Two parts: what Premium is and what it costs scroll; the tap
-          stays at the foot, so on a short phone it is never below the
-          fold. When everything fits, the seam is invisible. */}
+      {/* Three parts: the head and the tap stay put, and what Premium
+          is and what it costs scroll between them, so on a short phone
+          the tap is never below the fold. When everything fits, the
+          seams are invisible. */}
       <div className="card-premium flex max-h-[calc(100dvh-max(1rem,env(safe-area-inset-top)))] w-full max-w-[430px] flex-col overflow-hidden rounded-t-sheet text-cream">
-        <div
-          ref={scroller}
-          onScroll={measure}
-          data-more={more || undefined}
-          className="paywall-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-6 pb-4 pt-7"
-        >
+        {/* The head never scrolls, as an iOS sheet's bar never does, so a
+            finger on it always drags the sheet, scrolled or not (notes1). */}
+        <div className="shrink-0 px-6 pt-4">
           {/* The grabber: the sheet already follows a finger down
               (Overlay), and this is how a thumb knows (practice-tab-23). */}
-          <div aria-hidden className="mx-auto -mt-3 mb-4 h-1 w-10 rounded-full bg-cream/30" />
+          <div aria-hidden className="mx-auto mb-4 h-1 w-10 rounded-full bg-cream/30" />
           {/* The tier's own mark, once, then what was tapped. The reason
               never says "premium" again (reasonLine). */}
           <PremiumMark variant="chip" />
           {why && <p className="eyebrow mt-2.5 text-cream/70">{why}</p>}
           <h2 className="font-display mt-1 text-title text-cream">{headline}</h2>
-          <ul className="mt-4 space-y-2.5 text-body leading-snug text-cream/85">
+        </div>
+        <div
+          ref={scroller}
+          onScroll={measure}
+          data-more={more || undefined}
+          data-under={under || undefined}
+          className="paywall-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-6 pb-4 pt-4"
+        >
+          <ul className="space-y-2.5 text-body leading-snug text-cream/85">
             {BENEFITS.map(({ Glyph, text }, i) => (
               <li key={i} className="flex items-start gap-3">
                 <span aria-hidden className="mt-px shrink-0 text-cream/60">

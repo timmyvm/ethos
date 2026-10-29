@@ -230,6 +230,7 @@ export function Stair({
     id: number;
     touch: boolean;
     x0: number;
+    y0: number;
     moved: boolean;
     before: number;
     at: number;
@@ -339,13 +340,17 @@ export function Stair({
           choose(clampStep(next), "key");
         },
         onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => {
-          // The stair's own: a scrub is not the sheet's drag down.
-          e.stopPropagation();
+          // A mouse or a pen press is the stair's own: it selects on
+          // contact, and a scrub is not the sheet's drag down. A finger
+          // is not yet anyone's: sideways it is a scrub, and down it is
+          // the sheet's, which a sheet must hear about from the start
+          // (components/ui/Overlay.tsx), so it goes on up.
+          if (e.pointerType !== "touch") e.stopPropagation();
           if (e.pointerType === "mouse" && e.button !== 0) return;
           const n = stepAt(e.clientX);
           const before = tokenAt ?? 1;
           const touch = e.pointerType === "touch";
-          dragging.current = { id: e.pointerId, touch, x0: e.clientX, moved: false, before, at: n };
+          dragging.current = { id: e.pointerId, touch, x0: e.clientX, y0: e.clientY, moved: false, before, at: n };
           try {
             e.currentTarget.setPointerCapture(e.pointerId);
           } catch {
@@ -369,7 +374,19 @@ export function Stair({
         onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => {
           const d = dragging.current;
           if (!d || d.id !== e.pointerId) return;
-          if (d.touch && !d.moved && Math.abs(e.clientX - d.x0) < SCRUB_SLOP_PX) return;
+          if (d.touch && !d.moved) {
+            const ax = Math.abs(e.clientX - d.x0);
+            const ay = Math.abs(e.clientY - d.y0);
+            if (Math.max(ax, ay) < SCRUB_SLOP_PX) return;
+            // Up or down first: never a scrub. The sheet's drag or its
+            // scroll has it; the finger selected nothing.
+            if (ay >= ax) {
+              stopPressSoon();
+              dragging.current = null;
+              setPressed(null);
+              return;
+            }
+          }
           const n = stepAt(e.clientX);
           if (d.touch && !d.moved) {
             stopPressSoon();

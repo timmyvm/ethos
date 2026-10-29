@@ -4,10 +4,10 @@ import { Disclosure } from "@/components/ui/Disclosure";
 import { HeroStage } from "@/components/ui/HeroStage";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AchievementMark, IconFlame, IconGear, IconPencil } from "@/components/Icon";
 import { Overlay } from "@/components/ui/Overlay";
-import { DemosArt } from "@/components/DemosArt";
+import { YouDemos } from "@/components/you/YouDemos";
 import { PremiumDoor, PremiumMark } from "@/components/PremiumMark";
 import { CountUp } from "@/components/CountUp";
 import { ErrorLine, ErrorState } from "@/components/ui/ErrorState";
@@ -27,6 +27,7 @@ import {
   fetchProfile,
   fetchRepSpine,
   fetchReps,
+  fetchWholeLedger,
   fetchXp,
   updateDisplayName,
   type LexiconRow,
@@ -49,7 +50,8 @@ import {
 import { ACTION_CLASS, INPUT_CLASS } from "@/lib/ui";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { CHECKOUT_COPY, CODE_LINE, hasPlan } from "@/lib/plan-view";
-import { prefersReducedMotion } from "@/lib/prefs";
+import { prefersReducedMotion, readPrefs, writePrefs } from "@/lib/prefs";
+import type { CoinRow } from "@/lib/coins";
 import { usePlan, usePriceDrop, useStripeReturn, useStripeReturns, type ProfileRead } from "@/lib/use-plan";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
 
@@ -176,6 +178,17 @@ export default function YouPage() {
   /* Demos steps off the stage for a moment with its own Demos (the
      price drop) and springs back in after it, rather than reappearing. */
   const [back, setBack] = useState(false);
+  /*
+   * The pose the Shop sold, on the stage (#393 took Demos off Today, so
+   * this is where a bought pose shows). `worn` is the shop id: undefined
+   * until read, then the device's copy, then the account's answer, which
+   * wins (#175). The whole ledger proves it was bought (#392); a pose
+   * from month one is still owned, so the windowed coin read won't do.
+   */
+  const [worn, setWorn] = useState<string | null | undefined>(undefined);
+  const [poseLedger, setPoseLedger] = useState<CoinRow[] | null>(null);
+  // Before paint, so a tab switch to You never draws an empty stage first.
+  useLayoutEffect(() => setWorn(readPrefs().pose), []);
   useEffect(() => {
     if (drop.open) setBack(true);
   }, [drop.open]);
@@ -277,6 +290,13 @@ export default function YouPage() {
         setNameKnown(true);
         setPremium(p?.premium ?? false);
         setProfileRead(p);
+        // The account's pose wins, its null (none worn) included, and the
+        // device's copy follows so the next first paint is right. No
+        // account (null) keeps the device's copy.
+        if (p) {
+          setWorn(p.equipped_pose);
+          writePrefs({ pose: p.equipped_pose });
+        }
         return syncOnboarding().then(setOnboarding);
       })
       .catch(() => {
@@ -286,6 +306,8 @@ export default function YouPage() {
         setProfileRead((r) => (r === "loading" ? "failed" : r));
         syncOnboarding().then(setOnboarding).catch(() => {});
       });
+    // A failed read keeps the pose already drawn; it never blanks the stage.
+    fetchWholeLedger().then(setPoseLedger).catch(() => {});
     const db = supabaseBrowser();
     db?.auth
       .getUser()
@@ -521,20 +543,16 @@ export default function YouPage() {
             )
           }
           art={
-            /* At 132 his idle clip plays (#316, from 120 up). While the
-               checkout's moment celebrates at the foot, or the month's
-               price drop is up in its sheet, he is there, not here: the
-               stage keeps its light with nobody on it, so the page has
-               one Demos and nothing above the moment moves; when the
-               sheet goes he springs back in. And
-               while the name is typed he steps off, so the field has the
-               stage's width. */
-            editingName ? undefined : momentUp || drop.open ? (
-              <div className="tone-sky relative h-full w-full">
-                <div className="demos-halo" />
-              </div>
-            ) : (
-              <DemosArt pose="hello" size={132} pop={back} grounded halo={{ tone: "sky", kind: "stage" }} />
+            /* The pose the Shop sold, or his hello (YouDemos). At 132
+               his idle clip plays where the pose has one (#316, from 120
+               up). While the checkout's moment celebrates at the foot,
+               or the month's price drop is up in its sheet, he is there,
+               not here: the stage keeps its light with nobody on it, so
+               the page has one Demos and nothing above the moment moves;
+               when the sheet goes he springs back in. And while the name
+               is typed he steps off, so the field has the stage's width. */
+            editingName ? undefined : (
+              <YouDemos worn={worn} ledger={poseLedger} away={momentUp || drop.open} back={back} />
             )
           }
           line={

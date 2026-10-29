@@ -58,7 +58,7 @@ export default function ShopPage() {
   /*
    * The item bought in this visit (#242). A purchase swaps the card's
    * button for a different one in the same slot ("Buy" becomes "On
-   * your card", or the last freeze turns the door into a state line),
+   * You", or the last freeze turns the door into a state line),
    * and a swap in place is the one thing that has to come from
    * somewhere. The new button arrives from 6px below, out of the tap
    * that produced it; a card whose button was already in that state
@@ -135,11 +135,13 @@ export default function ShopPage() {
       buzz([20, 40, 20]);
       setBought(item.id);
       // A cosmetic that changes nothing until you find a second switch
-      // is a cosmetic that reads as broken. Buying equips it.
+      // is a cosmetic that reads as broken. Buying equips it, and the
+      // note names where it went: You's stage, since #393 took Demos
+      // off Today.
       if (item.kind === "cosmetic") equip(item.id);
       setNote(
         item.kind === "cosmetic"
-          ? `${item.name} bought, and on your card.`
+          ? `${item.name} bought, and on You.`
           : `${item.name} bought.`,
       );
       await refresh();
@@ -306,8 +308,8 @@ export default function ShopPage() {
                 </div>
                 {isOwned ? (
                   /* Owned cosmetics stop offering a sale and offer the
-                     only thing left to decide: whether it's the one on
-                     your card. Its label is its state, so it carries no
+                     only thing left to decide: whether it's the one You's
+                     stage wears. Its label is its state, so it carries no
                      aria-pressed (you-25). */
                   <button
                     key={justBought ? "equip-bought" : "equip"}
@@ -316,7 +318,7 @@ export default function ShopPage() {
                       justBought ? "arrive " : ""
                     }${pose === item.id ? "bg-sage-100" : "bg-surface"}`}
                   >
-                    {pose === item.id ? "On your card" : "Put it on the card"}
+                    {pose === item.id ? "On You" : "Wear it on You"}
                   </button>
                 ) : state.ok ? (
                   /*

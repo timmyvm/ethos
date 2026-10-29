@@ -5,6 +5,7 @@ import { DRILLS } from "./drills";
 import { QUESTIONS, WELCOME_BEAT, WELCOME_STEPS } from "./onboarding";
 import { AGE_BANDS, CONTEXTS, GOALS, LEVELS, PAINS } from "@/content/portfolio";
 import { UNITS } from "./path";
+import { SHOP } from "./shop";
 
 /**
  * Copy rules, asserted rather than remembered (decisions 11 Aug, §8).
@@ -428,5 +429,35 @@ describe("the screen template", () => {
     // back from storage.
     expect(source).toMatch(/useState\(false\)/);
     expect(source).not.toMatch(/localStorage/);
+  });
+});
+
+/**
+ * Where a bought pose shows, said where it is sold. #393 took Demos off
+ * Today, and the Shop went on selling poses "on your card" with no card
+ * left to wear them. They stand on You's stage now, and every string
+ * the Shop shows about where a pose goes names You, in as few words as
+ * it can.
+ */
+describe("the shop names where a pose shows", () => {
+  const shop = copyOnly(readFileSync("app/shop/page.tsx", "utf8"));
+
+  it("wears a pose on You, and says so on the button and in the note", () => {
+    expect(shop).toContain('"Wear it on You"');
+    expect(shop).toContain('"On You"');
+    expect(shop).toContain("bought, and on You.");
+  });
+
+  it("never sends a pose to a card that is gone", () => {
+    expect(shop).not.toMatch(/\b(your|the|floor|home) card\b/i);
+    for (const item of SHOP) {
+      expect(item.blurb, item.id).not.toMatch(/\b(card|floor|Today)\b/i);
+    }
+  });
+
+  it("names You in every pose blurb that names a place", () => {
+    for (const item of SHOP.filter((i) => i.kind === "cosmetic")) {
+      if (/\bon\b/.test(item.blurb)) expect(item.blurb, item.id).toMatch(/\bon You\b/);
+    }
   });
 });

@@ -49,7 +49,7 @@ export const SHOP: ShopItem[] = [
     name: "Demos, mid-sentence",
     price: 8,
     kind: "cosmetic",
-    blurb: "Swaps the Demos on your floor card for the speaking pose.",
+    blurb: "Puts the speaking pose on You.",
   },
   {
     /*
@@ -63,7 +63,7 @@ export const SHOP: ShopItem[] = [
     name: "Demos, mid-practice",
     price: 8,
     kind: "cosmetic",
-    blurb: "Puts the stopwatch pose on your floor card.",
+    blurb: "Puts the stopwatch pose on You.",
   },
   {
     id: "pose_celebrate",
@@ -78,7 +78,7 @@ export function itemById(id: string): ShopItem | undefined {
   return SHOP.find((i) => i.id === id);
 }
 
-/** The pose a bought cosmetic maps to on the home card. */
+/** Each pose's still, for its art slot in the Shop. */
 export const POSE_ART: Record<string, string> = {
   pose_speaking: "/demos-speaking.webp",
   pose_workout: "/demos-practice.webp",
@@ -106,9 +106,11 @@ export function poseArt(
 }
 
 /**
- * The pose a bought cosmetic puts on Today's stage, in DemosArt's set.
+ * The pose a bought cosmetic puts on You's stage, in DemosArt's set.
  * The stage draws DemosArt, not the still art above, so a bought pose
- * reaches the card only through this map.
+ * reaches the stage only through this map. It stood on Today's floor
+ * card until #393 took Demos off the home; You's identity stage is
+ * where he stands every day now, so that is where a bought pose shows.
  */
 export type StagePose = "speaking" | "clock" | "celebrate";
 export const POSE_STAGE: Record<string, StagePose> = {
@@ -121,6 +123,18 @@ export const POSE_STAGE: Record<string, StagePose> = {
 export function stagePose(equipped: string | null, owned: Owned): StagePose | null {
   if (!equipped || !owned.ids.has(equipped)) return null;
   return POSE_STAGE[equipped] ?? null;
+}
+
+/** You's Demos when no pose is worn: his hello, since #391. */
+export const YOU_POSE = "hello";
+
+/**
+ * The Demos You's stage draws: the worn pose when the ledger proves it
+ * was bought at its price, and his hello otherwise (nothing worn, a pose
+ * taken off, one never paid for, or an id the shop does not sell).
+ */
+export function youPose(equipped: string | null, owned: Owned): StagePose | typeof YOU_POSE {
+  return stagePose(equipped, owned) ?? YOU_POSE;
 }
 
 export interface Owned {

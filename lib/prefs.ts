@@ -46,11 +46,10 @@ export interface Prefs {
   /** Light, dark, or follow the OS. */
   theme: Theme;
   /**
-   * Which bought Demos pose sits on the floor card, or null for the
-   * default. Device-local on purpose and consistent with the rest of
-   * this file: what a cosmetic *is* lives on the server (the ledger
-   * proves you bought it), what you're currently looking at is a
-   * property of the screen you're looking at.
+   * Which bought Demos pose stands on You's stage, or null for his
+   * hello. This device's copy, for the first paint: the account's
+   * `equipped_pose` wins when it answers (#175), and what a cosmetic
+   * *is* lives on the server (the ledger proves you bought it).
    */
   pose: string | null;
 }

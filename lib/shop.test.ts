@@ -185,9 +185,10 @@ describe("the server's catalog", () => {
 });
 
 /*
- * A bought pose has to reach the floor card. Today computed the equipped
- * pose and then never drew it: the card hard-coded the mic Demos, so a
- * pose bought for 8 to 12 earned coins changed nothing anyone could see.
+ * A bought pose has to reach a stage. Today computed the equipped pose
+ * and then never drew it: the card hard-coded the mic Demos, so a pose
+ * bought for 8 to 12 earned coins changed nothing anyone could see. It
+ * stands on You's stage since #393 (lib/you-pose.test.ts).
  */
 describe("stagePose", () => {
   const owns = (...ids: string[]) =>

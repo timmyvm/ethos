@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { DemosArt } from "@/components/DemosArt";
 import { SpeechBubble } from "@/components/SpeechBubble";
 import { FooterShelf } from "@/components/ui/FooterShelf";
@@ -68,6 +68,15 @@ function Tester() {
       })
       .catch(() => setPhase("code"));
   }, []);
+
+  /* The words land after the read, behind an empty main, and Chrome's
+     scroll anchoring then carried Settings' scroll in: the page opened
+     part way down, its title cut and its back link off screen. Once
+     the read lands, it stands at its top. */
+  const reading = phase === "reading";
+  useLayoutEffect(() => {
+    if (!reading) window.scrollTo(0, 0);
+  }, [reading]);
 
   async function check() {
     if (!codeReady(code) || busy) return;
@@ -272,7 +281,9 @@ function CodeField({
         pattern="[0-9]*"
         autoComplete="one-time-code"
         enterKeyHint="go"
-        maxLength={CODE_LENGTH}
+        /* No maxLength: it would cut a paste (" 1234", "Code: 1234") to
+           its first four characters before codeDigits picks out the
+           digits, which already keeps four at most. */
         autoFocus
         value={value}
         onChange={(e) => onChange(codeDigits(e.target.value))}
@@ -365,9 +376,14 @@ function TesterNumber({ className = "" }: { className?: string }) {
           }}
           className="press font-display min-h-11 shrink-0 rounded-control border border-edge bg-surface px-4 text-row"
         >
-          <span role="status">{copied ? JOINED_COPY.copied : JOINED_COPY.copy}</span>
+          {copied ? JOINED_COPY.copied : JOINED_COPY.copy}
         </button>
       )}
+      {/* Said from beside the button, not inside it: a live region in a
+          button takes the button's name with it. */}
+      <span role="status" className="sr-only">
+        {copied ? JOINED_COPY.copied : ""}
+      </span>
     </div>
   );
 }

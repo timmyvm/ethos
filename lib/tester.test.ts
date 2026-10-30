@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CODE_COPY, CONSENT, CONSENT_VERSION, DOOR_COPY, JOINED_COPY, MATCH_COPY } from "@/content/tester";
 import {
@@ -35,6 +36,47 @@ describe("the code entry", () => {
     expect(codeReady("123")).toBe(false);
     expect(codeReady("1234")).toBe(true);
     expect(codeReady("12a4")).toBe(false);
+  });
+
+  /* The final check of 30 Oct: the field's maxLength cut a paste to its
+     first four characters before the digits were picked out, so " 1234"
+     copied from a message landed as 123 and "Code: 1234" as nothing.
+     codeDigits keeps four; the field must not cut first. */
+  it("takes a pasted code whole, leaving the four-digit cap to codeDigits", () => {
+    const field = readFileSync("app/tester/page.tsx", "utf8").match(/<input\b[\s\S]*?\/>/)?.[0] ?? "";
+    expect(field).toMatch(/name="tester-code"/);
+    expect(field).toMatch(/onChange=\{\(e\) => onChange\(codeDigits\(e\.target\.value\)\)\}/);
+    expect(field).not.toMatch(/maxLength=/);
+    expect(codeDigits(" 1234")).toBe("1234");
+    expect(codeDigits("Code: 1234")).toBe("1234");
+  });
+});
+
+describe("the tester number's Copy", () => {
+  /* A live region inside a button takes the button's name with it:
+     Chrome named it "" and VoiceOver read "button". The word stays the
+     button's own text, and "Copied" is said by a status beside it. */
+  it("keeps its name, and says Copied from outside the button", () => {
+    const page = readFileSync("app/tester/page.tsx", "utf8");
+    const buttons = page.match(/<button\b[\s\S]*?<\/button>/g) ?? [];
+    const copy = buttons.find((b) => b.includes("JOINED_COPY.copy"));
+    expect(copy).toBeDefined();
+    expect(copy).not.toMatch(/role="status"|aria-live/);
+    expect(page).toMatch(/role="status"[^>]*className="sr-only"[^>]*>\s*\{copied \? JOINED_COPY\.copied : ""\}/);
+  });
+});
+
+describe("the tester page from Settings", () => {
+  /* The final check of 30 Oct: opened from Settings' About group, the
+     page read the account first behind an empty main, and when its
+     words landed Chrome's scroll anchoring carried Settings' scroll in:
+     it opened 50 to 84px down, the title cut and the back link off
+     screen. Once the read lands, it stands at its top. */
+  it("opens at its top once the account's row is read", () => {
+    const page = readFileSync("app/tester/page.tsx", "utf8");
+    expect(page).toMatch(
+      /useLayoutEffect\(\(\) => \{\s*if \(!reading\) window\.scrollTo\(0, 0\);\s*\}, \[reading\]\);/
+    );
   });
 });
 

@@ -228,6 +228,30 @@ describe("Overlay refuses the browser's pan while a drag is the sheet's", () => 
 });
 
 /*
+ * The hand-off in Overlay (handoff). The rules above are only the sheet's
+ * if Overlay asks them: on scrolled content a touch is taken from its
+ * first move, by a touch only (a mouse there selects and the wheel
+ * scrolls), the finger's moves are split by handOff, the release asks
+ * handOffEnd, and a let-go content glides on glideStep until a press
+ * stops it on its way down to whatever is under it.
+ */
+describe("Overlay drives a swipe on scrolled content through the hand-off", () => {
+  const src = readFileSync("components/ui/Overlay.tsx", "utf8");
+  it("takes a touch on scrolled content by its first move, and a touch only", () => {
+    expect(src).toMatch(/sheetTakesScrolledTouch\([^)]*d\.sideways\)/);
+    expect(src).toMatch(/node\.scrollTop > 0[\s\S]{0,80}e\.pointerType !== "touch"\) return;/);
+  });
+  it("splits the finger's moves with handOff and lets handOffEnd decide the release", () => {
+    expect(src).toMatch(/handOff\(under\.at, e\.clientY - under\.lastY/);
+    expect(src).toMatch(/handOffEnd\(\{/);
+  });
+  it("glides with glideStep, and a press stops the glide before anything under it hears the press", () => {
+    expect(src).toMatch(/glideStep\(/);
+    expect(src).toMatch(/onPointerDownCapture=\{onPointerDownCapture\}/);
+  });
+});
+
+/*
  * The stair holds its own scrub (notes1, round 3). Overlay leaves a
  * sideways move on it to the stair; once a finger's move there leans
  * sideways the stair refuses the browser's pan itself, so a scrub that

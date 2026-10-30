@@ -294,15 +294,19 @@ function WideTile({
             </span>
             {/* The line as a number (E24), at the tile's precision with
                 its unit, "1.0 /min": the caption read "Line 1." as a
-                label, and the half stood empty where the number goes. */}
+                label, and the half stood empty where the number goes.
+                It stands at the foot with its caption under it, as the
+                left half stands its number over its bar, so the two
+                numbers read on one level and the line's words stay
+                together (R2F-07). */}
+            <span className="mt-auto" />
             {l && (
               <span className="font-display mt-2 flex items-baseline whitespace-nowrap tabular-nums">
                 <span className="text-num-m font-extrabold">{l.line}</span>
                 <span className="ml-1 text-suffix text-stone-500">{SHORT_UNIT[id]}</span>
               </span>
             )}
-            <span className="mt-auto" />
-            <p className="home-caption text-caption text-pretty text-stone-500">
+            <p className="home-caption mt-1 text-caption text-pretty text-stone-500">
               {l ? l.caption : "Three recordings set it."}
             </p>
           </span>

@@ -1285,11 +1285,13 @@ function PlanSteps({ label, steps }: { label: string; steps: PlanStep[] }) {
  */
 function DayOne() {
   return (
-    /* 160 at the least, taller where the room has it (216 at most), so
-       the month and its first day fill the screen over Next. */
+    /* 160 at the least, taller where the room has it (240 at most), so
+       the month and its first day fill the screen over Next. 240, not
+       216: the gap gate now measures to the shelf's first word (E18),
+       and at 216 the band under the card read 72px at 390x844. */
     <div
       data-family={dayOneFamily(nextLesson({}))}
-      className="family-fill mt-6 flex min-h-40 max-h-[216px] flex-1 flex-col justify-between rounded-[var(--radius-tile)]! p-5"
+      className="family-fill mt-6 flex min-h-40 max-h-[240px] flex-1 flex-col justify-between rounded-[var(--radius-tile)]! p-5"
     >
       {/* eslint-disable-next-line @next/next/no-img-element -- lesson art is a plain img (#274) */}
       <img

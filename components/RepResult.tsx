@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import { AccuracyCard } from "@/components/AccuracyCard";
 import { CountUp } from "@/components/CountUp";
 import { DemosArt, preloadPose } from "@/components/DemosArt";
@@ -198,8 +198,33 @@ export function RepResult({
   );
 
   const spreads = spread && debrief;
+  /* On a phone 700pt or taller the stage has room for his line too:
+     it hangs over his head with its tail down at his face, so the step
+     reads as the score, then Demos saying it on his own ground (R2F-02:
+     at 390x844 the stage was 359pt holding only him, about 139pt of
+     bare wash over his ears, his line in a second card under it). On a
+     shorter phone the stage is about his height and the line hangs
+     under it, tail up. */
+  const tallRoom = useTallRoom();
+  const lineInStage = spreads && tallRoom;
+  const bubble = (tail: "up" | "down", className: string) => (
+    <div
+      className={`${className} ${timed ? "arrive" : ""}`}
+      style={timed ? ({ animationDelay: `${bubbleAt}ms` } as CSSProperties) : undefined}
+    >
+      <SpeechBubble tail={tail} className="text-center">
+        {said}
+      </SpeechBubble>
+    </div>
+  );
+  /* With his line in the stage, what the stage cannot use over his
+     head (about 120pt at 390x844) is shared out: up to 32pt over the
+     stars and 32pt over the stage, and the stage keeps the rest, so
+     the score breathes and the wash over his line stays under 80. */
+  const air = lineInStage ? <div aria-hidden className="max-h-8 flex-1" /> : null;
   return (
     <>
+      {show("score") && air}
       {show("score") &&
         (debrief ? (
           /* The debrief's score step (recording-6, M07, D52, E55): one
@@ -298,6 +323,7 @@ export function RepResult({
         </p>
       )}
 
+      {show("score") && debrief && air}
       {show("score") && debrief && (
         /*
          * E55, E58: the score step's free height is Demos's stage, not
@@ -325,12 +351,26 @@ export function RepResult({
               stands 8px over its foot from 64px up. */}
           <div
             data-coach-stage
+            data-line-in-stage={lineInStage || undefined}
             className={`relative mt-5 w-full rounded-[28px] bg-[var(--tone-wash,var(--pop-sky-wash))] [@media(max-height:600px)]:mt-3 ${
-              spreads ? "min-h-[140px] flex-1 [@media(max-height:600px)]:min-h-0" : "h-[240px]"
+              lineInStage
+                ? "min-h-[300px] flex-1"
+                : spreads
+                  ? "min-h-[140px] flex-1 [@media(max-height:600px)]:min-h-0"
+                  : "h-[240px]"
             }`}
           >
             <div className="absolute inset-0 [container-type:size]">
-            <div className="absolute bottom-5 left-1/2 size-[clamp(88px,calc(100cqh_-_40px),200px)] -translate-x-1/2 [container-type:size] [@media(max-height:600px)]:bottom-2 [@media(max-height:600px)]:size-[clamp(64px,calc(100cqh_-_12px),200px)]">
+            {/* With his line in the stage, he gives it two lines of room
+                (78), 12px to his head and 20 to the stage's top: 88 to
+                200 from 100cqh less 130. */}
+            <div
+              className={`absolute bottom-5 left-1/2 -translate-x-1/2 [container-type:size] ${
+                lineInStage
+                  ? "size-[clamp(88px,calc(100cqh_-_130px),200px)]"
+                  : "size-[clamp(88px,calc(100cqh_-_40px),200px)] [@media(max-height:600px)]:bottom-2 [@media(max-height:600px)]:size-[clamp(64px,calc(100cqh_-_12px),200px)]"
+              }`}
+            >
               {celebrating ? (
                 /* The still, not the clip: the celebrate clip's alpha
                    leaves a white matte over his head on a coloured
@@ -363,19 +403,22 @@ export function RepResult({
                 </span>
               )}
             </div>
+            {lineInStage &&
+              bubble(
+                "down",
+                "absolute inset-x-5 bottom-[calc(20px_+_clamp(88px,calc(100cqh_-_130px),200px)_+_12px)] text-left"
+              )}
             </div>
           </div>
-          <div
-            className={`mt-3 w-full text-left ${timed ? "arrive" : ""}`}
-            style={timed ? ({ animationDelay: `${bubbleAt}ms` } as CSSProperties) : undefined}
-          >
-            <SpeechBubble tail="up" className="text-center">
-              {said}
-            </SpeechBubble>
-            {coach && (
-              <p className="mt-2 text-center text-caption text-stone-400">AI-generated feedback</p>
-            )}
-          </div>
+          {!lineInStage && bubble("up", "mt-3 w-full text-left")}
+          {coach && (
+            <p
+              className={`mt-2 text-center text-caption text-stone-400 ${timed ? "arrive" : ""}`}
+              style={timed ? ({ animationDelay: `${bubbleAt}ms` } as CSSProperties) : undefined}
+            >
+              AI-generated feedback
+            </p>
+          )}
         </div>
       )}
 
@@ -687,4 +730,19 @@ function mostSaid(fillers: FillerHit[]): string | null {
     }
   }
   return best;
+}
+
+/** A phone at least 700pt tall: the score step's stage holds his line. */
+const TALL_ROOM = "(min-height: 700px)";
+
+function useTallRoom(): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      const query = window.matchMedia(TALL_ROOM);
+      query.addEventListener("change", onChange);
+      return () => query.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia(TALL_ROOM).matches,
+    () => false
+  );
 }

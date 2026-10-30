@@ -1,11 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Overlay } from "@/components/ui/Overlay";
-import { DURATION } from "@/lib/motion";
+import type { WeekDay } from "@/lib/home";
+import { DURATION, EASE_OUT } from "@/lib/motion";
 import { buzz, prefersReducedMotion } from "@/lib/prefs";
 import { CHIME, MILESTONE_CHIME, playCelebration } from "@/lib/sfx";
+import { SPRING, springEasing, springMs } from "@/lib/spring";
+
+/** Today's block fills this long after the flame lights (E03). */
+const FILL_AFTER_MS = 240;
 
 /**
  * The one celebration moment. Duolingo earns its streak screen by
@@ -24,9 +29,12 @@ import { CHIME, MILESTONE_CHIME, playCelebration } from "@/lib/sfx";
  */
 export function StreakCelebration({
   streak,
+  week,
   onDone,
 }: {
   streak: number;
+  /** This week, Monday first (lib/home.ts `weekView`): the row under the count. */
+  week?: WeekDay[] | null;
   onDone: () => void;
 }) {
   const [leaving, setLeaving] = useState(false);
@@ -74,11 +82,17 @@ export function StreakCelebration({
         priority
         className="demos w-[200px]"
       />
+      <LitFlame calm={calm} />
       <StreakRoll streak={streak} milestone={milestone} calm={calm} />
       <div className="mt-1 text-body font-semibold">
         day{streak === 1 ? "" : "s"} in a row
       </div>
-      <p className="mt-2 max-w-[260px] text-center text-link font-normal text-stone-500">
+      {week && week.length === 7 && <WeekRow days={week} calm={calm} />}
+      <p
+        className={`max-w-[260px] text-center text-link font-normal text-stone-500 ${
+          week && week.length === 7 ? "mt-4" : "mt-2"
+        }`}
+      >
         {streak === 1
           ? "Day one is the hard one. It's done."
           : milestone
@@ -128,7 +142,7 @@ function StreakRoll({
   return (
     <div
       aria-hidden
-      className="font-display mt-4 overflow-hidden text-num-hero leading-none text-sage-700 tabular-nums"
+      className="font-display mt-2 overflow-hidden text-num-hero leading-none text-sage-700 tabular-nums"
       style={{ height: LINE }}
     >
       <div
@@ -142,6 +156,104 @@ function StreakRoll({
           {streak}
         </span>
       </div>
+    </div>
+  );
+}
+
+/**
+ * The streak's own mark, lit (E03): the app's biggest earned moment drew
+ * its streak without the flame every chip and badge wears. 64px of the
+ * earned gold over the sage count, its 1px rim in light and none in dark
+ * (`--earned-rim`, the star's), lighting on the snappy spring from 0.6
+ * with a fade as the sheet arrives. Reduced motion: a 200ms fade.
+ */
+function LitFlame({ calm }: { calm: boolean }) {
+  const ref = useRef<SVGSVGElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.animate(
+      calm
+        ? [{ opacity: 0 }, { opacity: 1 }]
+        : [
+            { opacity: 0, transform: "scale(0.6)" },
+            { opacity: 1, transform: "scale(1)" },
+          ],
+      calm
+        ? { duration: DURATION.base, easing: EASE_OUT, fill: "backwards" }
+        : { duration: springMs(SPRING.snappy), easing: springEasing(SPRING.snappy), fill: "backwards" }
+    );
+  }, [calm]);
+  return (
+    <svg
+      ref={ref}
+      aria-hidden
+      width={64}
+      height={64}
+      viewBox="0 0 24 24"
+      className="mt-2 origin-bottom"
+      data-flame
+    >
+      {/* Streaks' flame (Icon.tsx), closed and filled: the outer flame in
+          the gold with its rim, the core a lighter gold inside it. */}
+      <path
+        d="M12 3.5c.6 2.4 2 3.5 3.4 5 1.4 1.5 2.1 3 2.1 4.7a5.5 5.5 0 0 1-11 0c0-1.6.6-2.9 1.8-4 .3 1.4 1 2.2 1.9 2.6C9.6 9 10.6 6.4 12 3.5z"
+        fill="var(--earned-gold)"
+        stroke="var(--earned-rim)"
+        strokeWidth={1}
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
+      <path
+        d="M12 18.6a2.4 2.4 0 0 1-2.4-2.4c0-1.3 1.1-2 2.4-3.9 1.3 1.9 2.4 2.6 2.4 3.9a2.4 2.4 0 0 1-2.4 2.4z"
+        fill="#ffe08a"
+      />
+    </svg>
+  );
+}
+
+/**
+ * This week under the count (E03), in the Days spoken tile's grammar
+ * (components/home/WeekTiles.tsx): the same 24px blocks at radius 6 on
+ * the sand trough (`.home-day`), sage-600 for a day spoken, the 10/700
+ * day letters, today's in ink. Today's block fills 240ms after the
+ * flame lights; under reduced motion it is filled from the start.
+ */
+function WeekRow({ days, calm }: { days: WeekDay[]; calm: boolean }) {
+  const today = useRef<HTMLSpanElement>(null);
+  /* On a seekable clock (an animation, not a timer), so a frame strip
+     shows the fill where it is: sand, then sage, from 240ms. */
+  useEffect(() => {
+    const el = today.current;
+    if (calm || !el || !el.hasAttribute("data-on")) return;
+    const sand = getComputedStyle(document.documentElement).getPropertyValue("--color-sand").trim();
+    const sage = getComputedStyle(el).backgroundColor;
+    if (!sand || !sage) return;
+    el.animate([{ backgroundColor: sand }, { backgroundColor: sage }], {
+      duration: DURATION.max,
+      delay: FILL_AFTER_MS,
+      easing: EASE_OUT,
+      fill: "backwards",
+    });
+  }, [calm]);
+  return (
+    <div aria-hidden className="mt-5 grid w-[224px] grid-cols-7 gap-1">
+      {days.map((d, i) => (
+        <span key={i} className="flex flex-col items-center gap-1">
+          {/* Today is always spoken here: this moment is the take that
+              just landed, whether or not the read back has it yet. */}
+          <span
+            ref={d.today ? today : undefined}
+            className="home-day w-full"
+            data-on={d.on || d.today || undefined}
+          />
+          <span
+            className={`font-display text-suffix ${d.today ? "font-extrabold text-ink" : "text-stone-400"}`}
+          >
+            {d.label}
+          </span>
+        </span>
+      ))}
     </div>
   );
 }

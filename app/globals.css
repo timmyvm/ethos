@@ -5339,3 +5339,75 @@ summary::-webkit-details-marker {
   pointer-events: none;
 }
 /* ========================== end of the home (#393) ========================== */
+
+/*
+ * Start carries the card (E51, B02): Today's card and the recording's
+ * topic card share `practice-card`, their objects `practice-object`, and
+ * Start navigates inside a view transition, so the card you pressed
+ * moves into the one you land on on the base spring instead of cutting.
+ * A practice's lead and topic travel too (`practice-eyebrow`,
+ * `practice-topic`), each into its place on the recording card, so its
+ * words are never on screen twice; what only Today's card says (the
+ * chip, the tactic, Start) fades with the old card. An object the
+ * recording card has no room for leaves in 120ms where it stood. The
+ * page's own push sits out while the card moves (`data-vt`). Reduced
+ * motion: a 200ms cross-fade, nothing travels.
+ */
+::view-transition-group(practice-card),
+::view-transition-group(practice-object),
+::view-transition-group(practice-eyebrow),
+::view-transition-group(practice-topic) {
+  animation-duration: var(--spring-base-duration);
+  animation-timing-function: var(--spring-base);
+}
+::view-transition-old(practice-object):only-child {
+  animation-duration: 120ms;
+}
+/* The card: the recording card's picture is its colour alone (its
+   words and object travel on their own), drawn whole from the first
+   frame; Today's, with what only it says (the chip, the tactic, Start),
+   lies over it and fades in 160ms. Both fill the moving box, so the
+   taller card never hangs out under the shorter one, and neither adds
+   light to the other. */
+::view-transition-old(practice-card),
+::view-transition-new(practice-card) {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: fill;
+  mix-blend-mode: normal;
+}
+::view-transition-old(practice-card) {
+  z-index: 1;
+  animation-duration: 160ms;
+  animation-timing-function: ease-out;
+}
+::view-transition-new(practice-card) {
+  animation: none;
+}
+/* The lead and the topic are the same words on both cards (the topic
+   at 40 there and 26 here, broken at the same places), so they do not
+   cross-fade, which shows them twice: only the new words are drawn,
+   scaled with the group's height, so they start at Today's size where
+   Today's stood and settle into the recording card's. */
+::view-transition-old(practice-topic),
+::view-transition-old(practice-eyebrow) {
+  animation: none;
+  opacity: 0;
+}
+::view-transition-new(practice-topic),
+::view-transition-new(practice-eyebrow) {
+  animation: none;
+  block-size: 100%;
+  inline-size: auto;
+}
+:root[data-vt] .push-right {
+  animation: none;
+}
+/* Reduced motion: nothing travels; the page cross-fades in 200ms. */
+:root[data-motion="reduce"] .vt-shared {
+  view-transition-name: none !important;
+}
+:root[data-motion="reduce"]::view-transition-old(root),
+:root[data-motion="reduce"]::view-transition-new(root) {
+  animation-duration: 200ms;
+}

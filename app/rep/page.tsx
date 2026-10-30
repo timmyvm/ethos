@@ -31,11 +31,12 @@ import { TipLine, TipStrip } from "@/components/rep/TipStrip";
 import { splitPrompt } from "@/lib/tip-labels";
 import { TopicCard } from "@/components/rep/TopicCard";
 import { StreakCelebration } from "@/components/StreakCelebration";
+import { weekView } from "@/lib/home";
 import { TraitChip } from "@/components/TraitChip";
 import { FeltCheck, FeltStage } from "@/components/tester/FeltCheck";
 import { MatchCheck } from "@/components/tester/MatchCheck";
 import { TesterPaused } from "@/components/tester/TesterPaused";
-import { FELT_COPY } from "@/content/tester";
+import { DOOR_COPY, FELT_COPY } from "@/content/tester";
 import { feltRow, pausedTester, scoreSnapshot, showsMatchCheck, type Felt, type TesterRow } from "@/lib/tester";
 import { saveMatch, useTester } from "@/lib/tester-client";
 import { testerRecord } from "@/lib/tester-signal";
@@ -45,7 +46,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { FooterShelf } from "@/components/ui/FooterShelf";
 import { BackLink } from "@/components/ui/ScreenHeader";
 import { recordingTrait } from "@/lib/log";
-import { practiceFamily } from "@/lib/practice-family";
+import { practiceFamily, recordingObject } from "@/lib/practice-family";
 import { animateSpring, SPRING, springEasing, springMs } from "@/lib/spring";
 import { useHourLabel } from "@/lib/time-label";
 import { achievements } from "@/lib/achievements";
@@ -120,6 +121,7 @@ import { draw, gameById } from "@/lib/games";
 import { lessonById } from "@/content/lessons";
 import { parsePracticeId } from "@/lib/lesson-progress";
 import {
+  recordingText,
   repHref,
   repKey,
   resolveRepConfig,
@@ -274,6 +276,7 @@ function RepScreen() {
         lesson: searchParams.get("lesson"),
         boss: searchParams.get("boss"),
         topic: searchParams.get("topic"),
+        item: searchParams.get("item"),
         game: searchParams.get("game"),
         q: searchParams.get("q"),
         mods: searchParams.get("mods"),
@@ -284,6 +287,9 @@ function RepScreen() {
   /* The colour the screen wears (D50): the practice's trait family, as
      on the Today card that opened it, or the sky stage. */
   const family = practiceFamily(config, searchParams.get("trait"));
+  /* The glass object the recording card stands (E51): Today's, carried
+     through Start, or the lesson's own; none on the sky. */
+  const art = recordingObject(config);
 
   const [phase, setPhase] = useState<Phase>("idle");
   /** Which upload attempt is in flight, so the wait can say so. */
@@ -1326,7 +1332,11 @@ function RepScreen() {
           onRetake={retake}
         />
         {celebrate !== null && (
-          <StreakCelebration streak={celebrate} onDone={celebrated} />
+          <StreakCelebration
+            streak={celebrate}
+            week={weekView(spineNow, new Date()).days}
+            onDone={celebrated}
+          />
         )}
         {paywall && (
           <Paywall
@@ -1351,26 +1361,15 @@ function RepScreen() {
 
   const capLabel = fmt(config.maxSeconds);
   const promptHidden = config.hidePrompt && phase !== "idle";
-  /*
-   * Which string is the TOPIC. A lesson or a practice names itself in
-   * `title` and puts what you will talk about in `prompt`; a roulette
-   * spin, a game question and a boss put the topic in `title` and the
-   * direction in `prompt`. The topic takes the card either way, and the
-   * other becomes the one line of what to do (COPY-RULES: one line).
-   */
-  const topicFirst =
-    config.kind === "boss" ||
-    config.rouletteTopic !== null ||
-    config.lessonId.startsWith("game:");
-  const topicText = topicFirst ? config.title : config.prompt;
+  /* Which string is the TOPIC and which the line over the tiles
+     (lib/rep-config.ts `recordingText`, held by its tests). */
+  const { topic: topicText, heading } = recordingText(config);
   /* The boss's prompt carries a scoring rule after its first sentence
      ("wrong claims cost more"). It is not cut: it shows as a tactic
      face under the line, sentence on tap, because the score may not
      mark down something the screen never said (review, 25 Sep). */
   const bossParts = config.kind === "boss" ? splitPrompt(config.prompt) : null;
-  const doLine = topicFirst
-    ? (bossParts?.line ?? config.prompt)
-    : config.title;
+  const doLine = bossParts?.line ?? heading;
   const doRule = bossParts?.rule ?? null;
   /*
    * A tip yields to a live nudge: the nudge is about this second of this
@@ -1443,6 +1442,7 @@ function RepScreen() {
             eyebrow={eyebrowOf(config.unit)}
             topic={promptHidden ? "Prompt hidden. That's the mod." : topicText}
             family={family}
+            art={art}
             compact={phase !== "idle"}
           />
         </div>
@@ -1905,6 +1905,8 @@ function Results({
   /* Where this recording came from, if a lesson sent it (#258). Read
      here rather than threaded down through eighteen props. */
   const backTo = safeBack(searchParams.get("back"));
+  /* The family the take wore (D50), for the score step's coach stage. */
+  const family = practiceFamily(config, searchParams.get("trait"));
   const [step, setStep] = useState(0);
   const section = STEPS[step].key;
   /*
@@ -2194,22 +2196,34 @@ function Results({
             </h2>
           )}
 
+          {/* E57: a tester's last step says what the question is for, in
+              the quiet head Settings' door uses ("Testing Ethos"), so the
+              match question never opens the step unannounced. Testers
+              only; everyone else's step is unchanged. */}
+          {last && ((match && resultKey) || pausedTester(tester)) && (
+            <p className="eyebrow mt-6">{DOOR_COPY.settingsTesting}</p>
+          )}
           {last && match && resultKey && (
             <MatchCheck
               key={resultKey}
               clientId={resultKey}
               repId={result.repId}
               scores={snapshot}
-              className="mt-6 mb-7 border-b border-hairline pb-4"
+              className="mt-2 mb-7 border-b border-hairline pb-4"
             />
           )}
           {/* A tester on an older consent: where the question would be,
               that testing is paused and the way back (review D1). */}
           {last && pausedTester(tester) && (
-            <TesterPaused back="/" className="mt-6 mb-7 border-b border-hairline pb-4" />
+            <TesterPaused back="/" className="mt-2 mb-7 border-b border-hairline pb-4" />
           )}
 
-          <div className={step === 0 ? "flex flex-1 flex-col" : undefined}>
+          {/* The take's colour (D50, E55): the score step's coach stage
+              reads `--tone-wash` from here; the sky's wash with none. */}
+          <div
+            className={step === 0 ? "flex flex-1 flex-col" : undefined}
+            data-trait={step === 0 && family !== "sky" ? family : undefined}
+          >
             <RepResult
               result={result}
               topic={config.topic}

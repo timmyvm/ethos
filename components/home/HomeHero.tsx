@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useRef, useState, type CSSProperties } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import { IconShuffle, IconSliders } from "@/components/Icon";
 import { Reel, useReel } from "@/components/Reel";
+import { CARD_FROM_KEY, topicCardArrival, type CardFrom } from "@/components/rep/TopicCard";
 import { TipLine } from "@/components/rep/TipStrip";
 import { StageChip } from "@/components/ui/HeroStage";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -105,12 +107,71 @@ export function HomeHero({
   const [tipOpen, setTipOpen] = useState(false);
   const tipPanel = "home-tactic-tip";
 
+  /*
+   * Start carries the card (E51, B02): the card you pressed moves into
+   * the recording's topic card instead of the screen cutting. Where the
+   * browser has view transitions, the navigation runs inside one that
+   * waits for the topic card to arrive (`practice-card` and
+   * `practice-object` on both, globals.css). Where it has none, the
+   * card's rect and its object's go to sessionStorage and the topic card
+   * starts from them. A modified click stays an ordinary link.
+   */
+  const router = useRouter();
+  const cardRef = useRef<HTMLDivElement>(null);
+  const start = (e: MouseEvent<HTMLAnchorElement>) => {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const el = cardRef.current;
+    /* Only the recording has a topic card to land on (a unit intro has
+       its own stage). */
+    if (!el || !href.startsWith("/rep")) return;
+    const doc = document as Document & {
+      startViewTransition?: (update: () => Promise<void>) => { finished: Promise<void> };
+    };
+    if (typeof doc.startViewTransition === "function") {
+      e.preventDefault();
+      const root = document.documentElement;
+      root.dataset.vt = "card";
+      const vt = doc.startViewTransition(() => {
+        const arrival = topicCardArrival();
+        router.push(href);
+        return arrival;
+      });
+      /* The page's push sat out the move (`data-vt`); it must not play
+         once the move is over, so the new page's wrapper keeps it off
+         before the flag goes. */
+      void vt.finished.finally(() => {
+        document.querySelectorAll<HTMLElement>(".push-right, .push-left").forEach((p) => {
+          p.style.animation = "none";
+        });
+        delete root.dataset.vt;
+      });
+      return;
+    }
+    const box = (r: DOMRect) => ({ x: r.left, y: r.top, w: r.width, h: r.height });
+    const art = el.querySelector(".home-hero-art");
+    const from: CardFrom = {
+      card: box(el.getBoundingClientRect()),
+      object: art ? box(art.getBoundingClientRect()) : null,
+      at: Date.now(),
+    };
+    try {
+      sessionStorage.setItem(CARD_FROM_KEY, JSON.stringify(from));
+    } catch {
+      /* No storage: the recording opens without the move. */
+    }
+  };
+
   return (
     <section aria-labelledby={roulette ? "home-roulette" : "home-topic"} className="mt-6">
       <div
+        ref={cardRef}
         data-family={loading ? "none" : family}
-        className="home-hero"
-        style={loading ? undefined : (artBox(object) as CSSProperties)}
+        className="home-hero vt-shared"
+        style={{
+          ...(loading ? {} : (artBox(object) as CSSProperties)),
+          /* The recording's topic card wears the same name (E51). */
+          viewTransitionName: "practice-card",
+        }}
       >
         {!loading && (
           <>
@@ -137,7 +198,16 @@ export function HomeHero({
                 </div>
               ) : (
                 <div className={`flex w-full flex-col items-start gap-2 ${lands}`}>
-                  <span className="home-hero-lead">{lead}</span>
+                  {/* A practice's lead and topic are the recording card's
+                      eyebrow and topic, so on Start each moves into its
+                      own place there (E51) rather than both cards' words
+                      showing at once. Day one's say something else. */}
+                  <span
+                    className="home-hero-lead vt-shared"
+                    style={trait ? { viewTransitionName: "practice-eyebrow" } : undefined}
+                  >
+                    {lead}
+                  </span>
                   {trait && <StageChip trait={trait} />}
                   {tip && (
                     <TipLine
@@ -173,13 +243,17 @@ export function HomeHero({
                 className={`home-display relative mt-auto pt-6 ${lands}`}
                 data-long={title.length > 40 || undefined}
               >
-                {title}
+                {/* A block, not an inline: a name on a box that breaks
+                    across lines is not one the transition can carry. */}
+                <span className="vt-shared block" style={trait ? { viewTransitionName: "practice-topic" } : undefined}>
+                  {title}
+                </span>
               </h2>
             )}
 
             {/* The one tap, then spin and difficulty: 48px each, on the card. */}
             <div className="relative mt-5 flex items-center gap-2">
-              <Link href={href} className="home-start press">
+              <Link href={href} onClick={start} className="home-start press">
                 Start
               </Link>
               <button
@@ -307,7 +381,9 @@ function HeroObject({ id }: { id: string }) {
       height={260}
       onLoad={() => setLoaded(true)}
       data-loaded={loaded || undefined}
-      className="home-hero-art"
+      className="home-hero-art vt-shared"
+      /* It flies to the recording card's corner on Start (E51). */
+      style={{ viewTransitionName: "practice-object" }}
       draggable={false}
     />
   );

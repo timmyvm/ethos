@@ -51,6 +51,7 @@ import { readTraitsFromRow } from "@/lib/trait-readings";
 import { computeStreak, type StreakState } from "@/lib/streak";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
 import { greetingName, heroObject, weekView } from "@/lib/home";
+import { dayOneFamily } from "@/lib/practice-family";
 
 const EMPTY: StreakState = {
   current: 0,
@@ -324,16 +325,25 @@ export default function Home() {
   const fallback = !loading && !dayOne && !chosen;
   /* What the card says. The trait is named in every state that has one. */
   const heroTrait = dayOne ? null : (chosen?.trait ?? null);
-  /* The colour it wears, which the recording card keeps (D50). */
-  const heroFamily = heroTrait ?? "pause";
+  /* The colour it wears, which the recording card keeps (D50). Day one
+     wears the family of the lesson its Start opens (E20). */
+  const heroFamily = dayOne ? dayOneFamily(next) : (heroTrait ?? "pause");
   const startHref =
     introOwns && next
       ? introHref(next.unit.id, mods, undefined, "today")
-      : repHref({
-          topic: chosen?.item.topicId ?? (fallback ? FALLBACK_TOPIC.id : undefined),
-          mods,
-          trait: heroFamily,
-        });
+      : dayOne && next
+        ? /* Day one with the intros off: the same first lesson the
+             intro would have opened, so the card's colour is the
+             recording's, not the day's rotation. */
+          repHref({ lesson: next.lesson.id, mods })
+        : repHref({
+            topic: chosen?.item.topicId ?? (fallback ? FALLBACK_TOPIC.id : undefined),
+            /* The practice the card printed, so the recording screen
+               heads with its angle and leads with its tactic (E52). */
+            item: chosen?.item.id,
+            mods,
+            trait: heroFamily,
+          });
   const heroTip = dayOne ? null : (chosen?.item.tips[0] ?? null);
   const heroTitle = dayOne
     ? "Day one starts today."

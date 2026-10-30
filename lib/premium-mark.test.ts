@@ -149,6 +149,34 @@ describe("premium wears plum", () => {
   });
 
   /**
+   * D04, D31: plum is a background only where money changes hands, the
+   * two `.card-premium` sheets (the paywall and the price drop), and the
+   * plum Stair that stands on them. Practice's frosted wall filled a
+   * tile with plum-700 and washed a whole card lilac; the mark's own
+   * plum-50 wash is the one other plum ground, and it is the mark.
+   */
+  it("fills with plum only on the two Premium sheets", () => {
+    for (const file of FILES) {
+      if (file === OWNER) continue;
+      expect(noComments(readFileSync(file, "utf8")), `${file} paints a plum ground`).not.toMatch(
+        /\bbg-plum-|bg-\[#(?:3c2043|62336c)\]/i
+      );
+    }
+    const css = readFileSync("app/globals.css", "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+    const offences: string[] = [];
+    for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const fills = body
+        .split(";")
+        .filter((d) => /^\s*(?:background|background-color|background-image)\s*:/.test(d))
+        .filter((d) => /plum|#3c2043|#62336c/i.test(d));
+      if (fills.length === 0) continue;
+      if (/\.card-premium|data-tone="plum"/.test(selector)) continue;
+      offences.push(`${selector.trim().slice(-80)} { ${fills[0].trim().slice(0, 60)} }`);
+    }
+    expect(offences, offences.join("\n")).toEqual([]);
+  });
+
+  /**
    * practice-tab-4 (amending #171): the sheet where money changes hands
    * is the tier's own plum, wears the mark, and borrows nothing from the
    * earned colour. Its one tap stays terracotta.

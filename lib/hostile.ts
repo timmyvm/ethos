@@ -43,6 +43,10 @@ export function promptById(id: string): HostilePrompt | undefined {
   return HOSTILE_PROMPTS.find((p) => p.id === id);
 }
 
+/** What Hostile Q&A is, in one line: its own screen's title, and its
+ *  row on Practice's Premium card (D31). */
+export const HOSTILE_LINE = "Hold a claim while Demos comes at it.";
+
 /** Questions Demos asks after the take. Two rounds is the boss. */
 export const HOSTILE_ROUNDS = 2;
 export const TAKE_SECONDS = 60;

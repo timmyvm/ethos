@@ -12,6 +12,7 @@ import { PremiumMark } from "@/components/PremiumMark";
 import { Reel, useReel } from "@/components/Reel";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { BackLink } from "@/components/ui/ScreenHeader";
+import { BOSS_RESEARCH_SECONDS, bossLobbyLine } from "@/lib/boss";
 import { fetchProfile, fetchReps } from "@/lib/client-data";
 import { COLD_TOPICS, weeklyTopic, type ColdTopic } from "@/lib/cold-topics";
 import { weekStart } from "@/lib/level";
@@ -19,8 +20,6 @@ import { repHref } from "@/lib/rep-config";
 import { modById, STRESS_MODS, xpMultiplier } from "@/lib/stress-mods";
 import { ACTION_CLASS, DISABLED_CLASS, INPUT_CLASS } from "@/lib/ui";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
-
-const RESEARCH_SECONDS = 240; // 4 minutes (mechanics.md: 3–5 min window)
 
 /** Free tier: the headliner plus two re-rolls a week (DECISIONS #181). */
 const FREE_SPINS = 2;
@@ -77,7 +76,7 @@ export default function BossPage() {
   const [headlinerId, setHeadlinerId] = useState<string | null>(null);
   const [week, setWeek] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>("lobby");
-  const [left, setLeft] = useState(RESEARCH_SECONDS);
+  const [left, setLeft] = useState(BOSS_RESEARCH_SECONDS);
   const [paywall, setPaywall] = useState<string | null>(null);
   // Back from the paywall's account doors or Checkout's back arrow
   // (paywall=1): the sheet opens again where it was.
@@ -206,8 +205,7 @@ export default function BossPage() {
             Explain what you haven&apos;t studied.
           </h1>
           <p className="mt-2 text-read text-stone-800 text-pretty">
-            Read for 4 minutes, then explain it from memory in 90 seconds.
-            You get a delivery score and a fact-check.
+            {bossLobbyLine()} You get a delivery score and a fact-check.
           </p>
 
           {/* The record, in the numbers' own weight: a count and the

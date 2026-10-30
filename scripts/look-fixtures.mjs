@@ -300,8 +300,35 @@ const TABLES = FRESH
   ? { reps: [], xp_events: [], coin_ledger: [], lexicon: [], streak_freezes: [], onboarding: [] }
   : { reps, xp_events, coin_ledger, lexicon, streak_freezes, onboarding: [] };
 
-/** Tester mode for the camera (scripts/look-testers.mjs): who is a tester, what the answers' writes do, and what was sent. */
-export const testerMode = { tester: process.env.LOOK_TESTER === "1", feedback: "ok", answers: [], consentVersion: 2, stored: {} };
+/**
+ * Tester mode for the camera (scripts/look-testers.mjs): who is a tester,
+ * what the answers' writes do, and what was sent. `consentVersion` is
+ * the consent the app shows (3 since 30 Oct); set it lower for a tester
+ * asked again. `collected` holds every batch /api/tester/collect was sent
+ * (collectRoute), and `collect` "stop" answers as the route does for
+ * someone who is not testing.
+ */
+export const testerMode = {
+  tester: process.env.LOOK_TESTER === "1",
+  feedback: "ok",
+  answers: [],
+  consentVersion: Number(process.env.LOOK_CONSENT ?? 3),
+  stored: {},
+  collected: [],
+  collect: "ok",
+};
+
+/** /api/tester/collect as the route answers it, every batch kept for the camera's checks. */
+export async function collectRoute(route) {
+  const req = route.request();
+  let body = null;
+  try {
+    body = JSON.parse(req.postData() ?? "null");
+  } catch {}
+  testerMode.collected.push({ body, auth: req.headers()["authorization"] ?? null, at: Date.now() });
+  if (testerMode.collect === "stop") return route.fulfill(json({ error: "Not testing.", stop: true }, 403));
+  return route.fulfill(json({ ok: true, kept: Array.isArray(body?.events) ? body.events.length : 0 }));
+}
 /** A tester on the consent the app shows (content/tester.ts CONSENT_VERSION); set testerMode.consentVersion lower for one asked again. */
 const testerRow = () => ({ consent_version: testerMode.consentVersion, consented_at: iso(9) });
 
@@ -495,6 +522,8 @@ export function seed(arg) {
   localStorage.setItem("ethos.gates.rep1", new Date().toISOString());
   localStorage.setItem("ethos.gates.streak", new Date().toISOString());
   if (arg && typeof arg === "object" && arg.seen != null) localStorage.setItem("ethos.ladder.seen", String(arg.seen));
+  // A device that last saw its account as a tester (lib/tester-client.ts).
+  if (arg && typeof arg === "object" && arg.tester) localStorage.setItem("ethos.tester", "1");
   // Without a session the mock answers nothing and every screen draws
   // day zero, which is not the app anybody is looking at.
   if (session) {

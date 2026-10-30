@@ -363,3 +363,12 @@ export function asksAgain({
 export function askedFrom(raw: string | null | undefined): string {
   return raw && ASK_AGAIN_ON.includes(raw) ? raw : "/";
 }
+
+/**
+ * Whether this account's phone collects device, usage and problems
+ * (lib/tester-collect.ts): a tester on the consent that named them
+ * (version 3) and on the one this app shows. Nobody else, ever.
+ */
+export function collects(row: TesterRow | null | undefined): boolean {
+  return isCurrentTester(row) && row.consent_version >= 3;
+}

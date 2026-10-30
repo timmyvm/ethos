@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { ACTION_CLASS } from "@/components/LessonScreen";
+import { testerBoundary } from "@/lib/tester-signal";
 
 /**
  * Something broke. Say so plainly and give one way forward — the same
@@ -17,6 +18,9 @@ export default function Error({
 }) {
   useEffect(() => {
     console.error(error);
+    // A tester on consent version 3: what broke, and where (a no-op for
+    // everyone else, lib/tester-signal.ts).
+    testerBoundary(error, error.digest);
   }, [error]);
 
   return (

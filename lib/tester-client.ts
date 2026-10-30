@@ -333,3 +333,20 @@ export async function fetchMatch(clientId: string): Promise<GivenMatch | null> {
   if (error) throw error;
   return data ? given(data as Parameters<typeof given>[0]) : null;
 }
+
+/** The consent version this device last asked a tester about, once (lib/tester.ts asksAgain). */
+const ASKED_KEY = "ethos.tester.asked";
+
+export function readAsked(): number {
+  try {
+    return Number(localStorage.getItem(ASKED_KEY)) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function markAsked(version: number = CONSENT_VERSION): void {
+  try {
+    localStorage.setItem(ASKED_KEY, String(version));
+  } catch {}
+}

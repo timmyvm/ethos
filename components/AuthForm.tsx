@@ -279,12 +279,12 @@ export function AuthForm({
             disabled={busy}
             aria-disabled={google.pending || undefined}
             aria-busy={google.pending || undefined}
-            /* A raised key, not a third field (auth-6): the fields below
-               are sunken surface wells, this stands on the card. In
-               light the card is white too, so the shadow is the step
-               that tells it apart (#218: never an outline with nothing
-               in it). No hover fill; .press answers the pointer. */
-            className={`press font-display flex min-h-12 w-full items-center justify-center gap-2.5 rounded-control border border-edge bg-raised px-6 text-body font-bold text-ink shadow-[var(--shadow-1)] transition-colors dur-base ease-out dark:bg-[color-mix(in_srgb,var(--color-raised),#fff_6%)] ${DISABLED_ONLY}`}
+            /* Google's own button, the same one the introduction's
+               account ask wears (D49): its edge is Google's, with the G
+               and the words in it, so it is not an empty outline (#218)
+               and not a third field (auth-6). No hover fill; .press
+               answers the pointer. */
+            className={`${GOOGLE_BUTTON} transition-colors dur-base ease-out ${DISABLED_ONLY}`}
           >
             <GoogleMark />
             {google.pending ? "Opening Google…" : "Continue with Google"}
@@ -419,6 +419,15 @@ function Address({ children }: { children: React.ReactNode }) {
     </span>
   );
 }
+
+/**
+ * Google's button (D49, Google's sign-in branding): white, a 1px #747775
+ * edge and #1f1f1f words in light; #131314, #8e918f and #e3e3e3 in dark;
+ * the unmodified 18px G before the words. A pill, as every tap is. The
+ * introduction's account ask and /signin wear the same one.
+ */
+export const GOOGLE_BUTTON =
+  "press font-display flex min-h-12 w-full items-center justify-center gap-3 rounded-tap border border-[#747775] bg-white px-6 text-body font-bold text-[#1f1f1f] dark:border-[#8e918f] dark:bg-[#131314] dark:text-[#e3e3e3]";
 
 /** Google's four-colour G, a brand mark and not an app icon, so it lives
     outside components/Icon.tsx (the one-set rule covers our own marks). */

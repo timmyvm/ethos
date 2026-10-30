@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { preloadPose, type Pose, type Tone } from "@/components/DemosArt";
 import { IntroDemos } from "@/components/IntroDemos";
-import { GoogleMark } from "@/components/AuthForm";
+import { GOOGLE_BUTTON, GoogleMark } from "@/components/AuthForm";
 import { HOUSE_OBJECT, objectSrc } from "@/lib/home";
 import {
   IconBars,
@@ -872,14 +872,6 @@ function WalkBar({ n, of, onSkip }: { n: number; of: number; onSkip?: () => void
     </div>
   );
 }
-
-/**
- * Google's button (D49, Google's sign-in branding): white, a 1px #747775
- * edge and #1f1f1f words in light; #131314, #8e918f and #e3e3e3 in dark;
- * the unmodified 18px G before the words. A pill, as every tap is.
- */
-const GOOGLE_BUTTON =
-  "press font-display flex min-h-12 w-full items-center justify-center gap-3 rounded-tap border border-[#747775] bg-white px-6 text-body font-bold text-[#1f1f1f] dark:border-[#8e918f] dark:bg-[#131314] dark:text-[#e3e3e3]";
 
 /** The door under an intro screen's Next: a text link at full width. */
 const FOOT_LINK = "text-link mt-3 flex min-h-11 items-center justify-center";

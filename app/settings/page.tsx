@@ -40,7 +40,7 @@ import { useHourLabel } from "@/lib/time-label";
 import { ACTION_CLASS, DISABLED_CLASS, INPUT_CLASS } from "@/lib/ui";
 import { useRovingRadio, type RovingItemProps } from "@/lib/use-roving-radio";
 import { DOOR_COPY } from "@/content/tester";
-import { fetchTester, readTesterHint } from "@/lib/tester-client";
+import { fetchTester, forgetTesterHint, readTesterHint } from "@/lib/tester-client";
 
 /** The hours a reminder can ring at: two rows of three (you-17). */
 const HOURS = [7, 8, 12, 18, 20, 21] as const;
@@ -496,6 +496,7 @@ export default function SettingsPage() {
               await signOut();
               // The next account on this device is someone else's.
               forgetPlanHint();
+              forgetTesterHint();
               window.location.href = "/";
             }}
             className="group-row press-row font-display w-full text-left text-row"

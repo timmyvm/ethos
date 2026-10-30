@@ -25,6 +25,11 @@ function keepHint(on: boolean): void {
   } catch {}
 }
 
+/** Signing out: the next account on this device is someone else's. */
+export function forgetTesterHint(): void {
+  keepHint(false);
+}
+
 export function readTesterHint(): boolean {
   try {
     return localStorage.getItem(HINT_KEY) === "1";

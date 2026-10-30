@@ -90,13 +90,9 @@ function Tester() {
     }
   }
 
-  if (phase === "reading") {
-    return (
-      <main className="flex min-h-dvh flex-col px-5 pt-7">
-        <ScreenHeader title={CODE_COPY.title} back={{ href: `/${from}`, label: backLabel }} />
-      </main>
-    );
-  }
+  /* Until the account's row answers, nothing: a tester opening this
+     from Settings never sees the code's title flash before their own. */
+  if (phase === "reading") return <main className="px-5 pt-7" />;
 
   if (phase === "joined" && tester) {
     return (

@@ -39,6 +39,7 @@ export function ScoreCard({
   stars,
   foot,
   series,
+  span,
   demos = false,
   children,
 }: {
@@ -51,6 +52,9 @@ export function ScoreCard({
   foot?: ReactNode;
   /** The Index over time, oldest first, for the hill. */
   series?: number[];
+  /** The first and last scored recordings' dates ("4 Oct", "29 Oct"),
+      under the hill's two ends (D32), so the line has a time axis. */
+  span?: [string, string];
   /** Demos may stand on the stage while there is no hill (the Log; About
       has its own Demos in its hero, and one is the most a screen has). */
   demos?: boolean;
@@ -67,7 +71,19 @@ export function ScoreCard({
       artBleed={!!hill}
       art={
         hill ? (
-          <IndexHill values={hill} />
+          <>
+            <IndexHill values={hill} />
+            {span && (
+              /* 12.5/600 in the stage's ink, each under its end of the
+                 line: the start at the box's left, the end 8 of 136 in,
+                 where the line stops (the drawing fills the box's width
+                 at every size, so a percentage holds it there). */
+              <span aria-hidden className="stage-ink font-display text-caption font-semibold tabular-nums">
+                <span className="absolute bottom-2 left-0 leading-none">{span[0]}</span>
+                <span className="absolute bottom-2 right-[5.9%] leading-none">{span[1]}</span>
+              </span>
+            )}
+          </>
         ) : demos ? (
           <DemosArt pose="hello" size={132} grounded halo={{ tone: "sky", kind: "stage" }} />
         ) : undefined
@@ -138,7 +154,8 @@ function IndexHill({ values }: { values: number[] }) {
   const hi = Math.max(...smooth);
   const span = Math.max(1, hi - lo);
   const top = 10;
-  const floor = H - 18;
+  /* 26 under the line's lowest point: the dates stand there (D32). */
+  const floor = H - 26;
   const pts = smooth.map((v, i) => [
     (i / (smooth.length - 1)) * (W - 8),
     floor - ((v - lo) / span) * (floor - top),

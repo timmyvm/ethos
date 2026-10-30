@@ -4,7 +4,7 @@ import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { CountUp } from "@/components/CountUp";
-import { PremiumMark } from "@/components/PremiumMark";
+import { PremiumDoor, PremiumMark } from "@/components/PremiumMark";
 import { IconChevron } from "@/components/Icon";
 import { FillerHeatmap } from "@/components/FillerHeatmap";
 import { Paywall, type PaywallAsk } from "@/components/Paywall";
@@ -72,9 +72,14 @@ const MOVED_GRID =
    toggling display restarts the line's unroll (`.fill`), and the
    camera's full-page capture caught it part way. */
 const TREND_CELL = "max-[359px]:invisible max-[359px]:absolute";
-/* The date column is a 40px tile in the recording's trait tone (the
-   colour pass), and the lesson title keeps 4px more air off it. */
+/* The date is a bare 40px column, the day over its month (D33), and the
+   number columns are as wide as their heads, so the lesson's name gets
+   the width: "Punctuate with silence" sets on one line at 390. */
 const RECORD_GRID =
+  "grid grid-cols-[40px_minmax(0,1fr)_36px_28px_30px] min-[360px]:grid-cols-[40px_minmax(0,1fr)_36px_28px_30px_28px] gap-1";
+/* The table while every row waits, unchanged (#394): the Go in the
+   Index column needs its 44px. */
+const WAITING_GRID =
   "grid grid-cols-[40px_minmax(0,1fr)_44px_36px_36px] min-[360px]:grid-cols-[40px_minmax(0,1fr)_44px_36px_36px_36px] gap-1.5";
 /* Under 360px the held column steps out of the recordings table, so a
    lesson's name wraps between its words: at 320 the column was 87px and
@@ -106,6 +111,10 @@ const INSIGHT_TRAIT: Record<string, TraitId> = {
  * units stated once in a header. Anything that needs its own shape
  * (the filler heatmap) is one tap down from the row it explains.
  */
+/** "4 Oct": a date as the hill's ends say it. */
+const shortDate = (iso: string) =>
+  new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+
 /** Where the Log was scrolled when a recording was opened from it. */
 const PLACE_KEY = "ethos.log.place";
 
@@ -270,7 +279,9 @@ export default function HistoryPage() {
       ? lastIndex - firstIndex
       : null;
 
-  const rows = movedRows(reps);
+  /* The stage already carries the Index and its change since day one
+     (D32), so What moved starts at the first thing under it. */
+  const rows = movedRows(reps).filter((row) => row.key !== "index");
   const presence = presenceRow(reps);
   const skills = skillRows(reps);
   const heatCount = fillerHeatmap(reps).reduce((a, b) => a + b, 0);
@@ -327,6 +338,11 @@ export default function HistoryPage() {
             recordings={spine.length}
             stars={totalStars(starMap)}
             series={scored.map((r) => r.ethos_index as number)}
+            span={
+              scored.length > 1
+                ? [shortDate(scored[0].created_at), shortDate(scored[scored.length - 1].created_at)]
+                : undefined
+            }
             demos
           />
         </div>
@@ -433,16 +449,28 @@ export default function HistoryPage() {
         {top && (
           <p
             data-trait={INSIGHT_TRAIT[top.id]}
-            className={`text-caption ${
-              INSIGHT_TRAIT[top.id]
-                ? "log-insight mt-3 py-1 pl-3 pr-3.5 text-stone-600"
-                : "border-t border-hairline pt-3 text-stone-600"
-            }`}
+            className="border-t border-hairline pt-3 text-caption text-stone-600"
           >
-            <span className="font-semibold text-ink">{top.headline}</span>
+            {/* D32: the trait's 8px square leads the line, the swatch
+                the rows above wear, where a pink side rule stood alone;
+                the number in it is the weight. */}
+            <span className="flex items-center gap-2 font-medium text-ink">
+              {INSIGHT_TRAIT[top.id] && <span aria-hidden className="log-swatch mr-0!" />}
+              <span>
+                {top.headline.split(/(\d+%)/).map((part, i) =>
+                  /^\d+%$/.test(part) ? (
+                    <b key={i} className="font-bold">
+                      {part}
+                    </b>
+                  ) : (
+                    part
+                  )
+                )}
+              </span>
+            </span>
             {/* Its own line: the headline has no full stop, so run on
                 it read "of your fillers 70 of 132" (log-18). */}
-            <span className="mt-0.5 block">{top.detail}</span>
+            <span className={`mt-0.5 block ${INSIGHT_TRAIT[top.id] ? "pl-4" : ""}`}>{top.detail}</span>
           </p>
         )}
       </section>
@@ -457,7 +485,7 @@ export default function HistoryPage() {
         <h2 className="section-head">
           {empty ? "Waiting to be logged" : "Every recording"}
         </h2>
-        <div aria-hidden className={`${RECORD_GRID} mt-3 pb-1.5`}>
+        <div aria-hidden className={`${empty ? WAITING_GRID : RECORD_GRID} mt-3 pb-1.5`}>
           <ColumnHead>date</ColumnHead>
           <ColumnHead>lesson</ColumnHead>
           <ColumnHead right>index</ColumnHead>
@@ -472,7 +500,7 @@ export default function HistoryPage() {
           ? waitingRows(3, { intros: !skipIntros }).map((row) => (
               <div
                 key={row.id}
-                className={`${RECORD_GRID} items-center border-t border-hairline py-3 text-stone-400`}
+                className={`${WAITING_GRID} items-center border-t border-hairline py-3 text-stone-400`}
               >
                 <DateTile trait={recordingTrait({ lesson_id: row.id })}>
                   <span className="font-display block text-num-s tabular-nums">
@@ -531,23 +559,23 @@ export default function HistoryPage() {
                   aria-label={label}
                   className={`press-row ${RECORD_GRID} items-center border-t border-hairline py-3`}
                 >
-                  <DateTile trait={trait}>
-                    <span className="log-date-month block">
+                  {/* D33: the day over its month, bare. The tile's fill
+                      and its tone bar were a second grid of colour, and
+                      its OCT the column's twelfth capital. */}
+                  <span className="flex flex-col items-start leading-none">
+                    <span className="font-display text-num-s tabular-nums">{d.getDate()}</span>
+                    <span className="mt-1 text-caption font-medium text-stone-500">
                       {d.toLocaleDateString(undefined, { month: "short" })}
                     </span>
-                    <span className="font-display mt-0.5 block text-num-s tabular-nums">
-                      {String(d.getDate()).padStart(2, "0")}
-                    </span>
-                  </DateTile>
+                  </span>
                   <span className="min-w-0">
-                    {/* Two lines, never an ellipsis: the lesson column is
-                        134px and "Punctuate with silence" needs 165, so
-                        the one label a row exists to show was the one
-                        label you could not read (#287). */}
+                    {/* One line at 390, two at most at 320, never an
+                        ellipsis (#287): the number columns gave the
+                        lesson its width (D33). */}
                     <span className="font-display line-clamp-2 text-row leading-snug">
                       {name}
                     </span>
-                    <Stars n={r.stars} size={11} />
+                    <Stars n={r.stars} size={10} />
                   </span>
                   <span className="font-display text-right text-num-s tabular-nums">
                     {r.ethos_index === null ? (
@@ -585,8 +613,11 @@ export default function HistoryPage() {
             {/* Terracotta said "tap" on a row that was already a
                 button, so the accent was carrying no information the
                 row did not already carry. The mark carries the tier
-                instead (#280). */}
-            <PremiumMark variant="chip" />
+                instead (#280), here as the door with its word (the
+                mark for a row that is the door itself): its capitals
+                chip made the free Log's fourth caps line in one
+                viewport, over the three (D10). */}
+            <PremiumDoor className="shrink-0 font-display text-link text-plum-700">Premium</PremiumDoor>
           </button>
         )}
       </section>
@@ -782,11 +813,10 @@ function MetricRow({
 }
 
 /**
- * A recording's date as a small tile: the plain surface and the ink, with
- * the trait it practised as a short bar in its tone at the tile's foot
- * (the cohesion pass: the trait's wash made every row a coloured tile).
- * A recording that practised no one trait (a game, a boss, a free
- * recording) has no bar, so a colour always means a trait.
+ * A waiting row's number as a small tile (#394, unchanged): the plain
+ * surface and the ink, with the trait the lesson practises as a short
+ * bar in its tone at the tile's foot. A logged recording's date is a
+ * bare column since D33.
  */
 function DateTile({
   trait,

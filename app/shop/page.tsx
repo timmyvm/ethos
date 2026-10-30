@@ -290,15 +290,14 @@ export default function ShopPage() {
                 <div className="flex gap-3.5">
                   <ItemArt id={item.id} />
                   <div className="min-w-0 flex-1">
+                    {/* Owned leaves the price's slot empty (E38): the
+                        price has done its job, and the On You pill under
+                        it says the state, so a second word doubled it. */}
                     <div className="flex items-baseline justify-between gap-3">
                       <span className="font-display text-detail">
                         {item.name}
                       </span>
-                      {isOwned ? (
-                        /* Owned: the price has done its job, so the word
-                           replaces it rather than a faded number. */
-                        <span className="label-micro shrink-0">Owned</span>
-                      ) : (
+                      {isOwned ? null : (
                         <span className="flex shrink-0 items-baseline gap-1.5">
                           <span aria-hidden className="self-center leading-none">
                             <IconCoin size={12} />

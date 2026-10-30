@@ -32,3 +32,35 @@ export function usePaywallHeadStays(): boolean {
     () => true
   );
 }
+
+/**
+ * A short screen (a standalone SE is 667): the ladder is the paywall's
+ * argument, and under the shelf's terms (D40) its steps were cut at the
+ * bar tops with the month labels hidden. Under this height the sheet
+ * tightens its rhythm and stands the Stair at its middle size, so the
+ * whole ladder, labels and all, clears the shelf at 375x667. 759: the
+ * full rhythm needs 758 to stand the large Stair clear of the shelf (at
+ * 390x700 its labels sat 41px under it).
+ */
+export const PAYWALL_SHORT_MAX_HEIGHT = 759;
+
+export function paywallShort(viewportHeight: number): boolean {
+  return viewportHeight <= PAYWALL_SHORT_MAX_HEIGHT;
+}
+
+const SHORT_QUERY = `(max-height: ${PAYWALL_SHORT_MAX_HEIGHT}px)`;
+
+function subscribeShort(change: () => void): () => void {
+  if (typeof window === "undefined" || !window.matchMedia) return () => {};
+  const mq = window.matchMedia(SHORT_QUERY);
+  mq.addEventListener("change", change);
+  return () => mq.removeEventListener("change", change);
+}
+
+export function usePaywallShort(): boolean {
+  return useSyncExternalStore(
+    subscribeShort,
+    () => (typeof window === "undefined" || !window.matchMedia ? false : window.matchMedia(SHORT_QUERY).matches),
+    () => false
+  );
+}

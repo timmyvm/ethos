@@ -59,7 +59,7 @@ From the advocate:
 10. **S10, tabs and backs.** The tab bar lights You on the Shop and Settings, Practice's tab is a microphone instead of a die, and every back link names where it goes.
 11. **S11, Practice's Premium.** One plain card names Speed rush, Interview and Hostile Q&A with one Unlock. The frosted wall is gone, the free tiles are neutral, and the boss stage says "Read for 4 minutes. Explain it in 90 seconds."
 12. **S12, You.** Day 1 vs now sits right under your three numbers (Streak, Best streak, XP this week), the road gets its own card, and the four locked traits fold into one row.
-13. **S13, introduction.** The plan screen previews day one, its discs are plain numbered steps, Google sign-in uses Google's own button, the dark first intro screen is sky instead of mustard, and intro 2 says "Sixty seconds a day. Every one of them is measured." in place of the $5,000 line.
+13. **S13, introduction.** The plan screen previews day one, its discs are plain numbered steps, Google sign-in uses Google's own button, the dark first intro screen is the dark mint (teal) instead of mustard, and intro 2 says "Sixty seconds a day. Every one of them is measured." in place of the $5,000 line.
 14. **S14, Today.** Each trait's object shows once, today's line shows once (in the wide tile and as a tick on its bar), nothing is cropped at the top at any width, and "Take this one" works while the topic is still spinning.
 15. **S15, sheets.** Every information sheet closes with Done at the top right, the trait sheet shows your last number with a "Practise Pace" button, Cancel plan is red, and the blur behind a sheet drops from 6px to 2px.
 
@@ -68,13 +68,13 @@ When the three builds were merged, the sign-in page's Google button was brought 
 ### Worth your eye first
 
 - **Practice's Premium card (S11)** reverses #317's frosted wall. Look at Practice in both themes.
-- **The dark first intro screen (S13)** is now sky, not the sun. That undoes part of #300's "pop with colour" in dark only.
+- **The dark first intro screen (S13)** is now the dark mint, not the sun. The rulings said sky, but intro 2 is already sky, so in dark the first swipe changed only the words; teal, sky, teal keeps every swipe a new room. That undoes part of #300's "pop with colour" in dark only.
 - **The account ask (S13)** has no terracotta tap, by design: its one tap is Google's branded button.
 
 ### What did not fully land
 
-- **You** is 2,293pt tall at 390, not the 2,000 target. Earned's ten rows (735pt) were left as specced. Folding the unearned rows past the next three would close the gap.
-- **The paywall on a 375x667 phone** is still cramped: the Stair sits mostly under the tap shelf, about as it did before. A smaller shelf on short screens, for example "Not yet" beside the money line, would fix it.
+- **You** is 2,063pt tall at 390, against the 2,000 target (2,293 before the fix round folded the badges past the next three into one "4 more to earn" row).
+- **The paywall on a 375x667 phone** still scrolls to show the whole Stair. The terms now sit on their own shelf with a hairline, so they no longer read as printed on the bar tops. A smaller shelf that fits the whole ladder was built and withdrawn: it left the body 5px of scroll, and check-sheet-touch measures the sheet's scroll hand-off at exactly 375x667.
 
 ## Your one question: D21
 

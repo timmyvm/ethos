@@ -63,7 +63,7 @@ export default function Privacy() {
       >
         <MarketingHeader title="Privacy" />
       </Suspense>
-      <p className="mt-2 text-caption text-stone-400">Last updated 25 October 2026</p>
+      <p className="mt-2 text-caption text-stone-400">Last updated 30 October 2026</p>
 
       <p className="mt-5 text-read text-stone-800">
         You record yourself, the recording gets measured, you get feedback.
@@ -162,6 +162,21 @@ export default function Privacy() {
         it to you. If you clear your browser data first, the anonymous
         progress can&apos;t be traced back to anyone, including you.
       </p>
+
+      {/* Tester mode: migration 0020 (testers, tester_feedback, the
+          tester_admin report only the service role reads),
+          app/api/tester, content/tester.ts CONSENT, docs/testers.md. */}
+      <section id="testers">
+        <h2 className={HEAD}>Testers</h2>
+        <p className={READ}>
+          If you joined with a tester code, Timothy, who makes Ethos, reads
+          your recordings, transcripts and scores, and your answer after each
+          recording about whether the score matched how it felt. Only he sees
+          them, and only to make the scoring accurate. Ask him and it&apos;s
+          all deleted, any time; deleting your account in Settings deletes it
+          too. If you&apos;re under 18, a parent says yes first.
+        </p>
+      </section>
 
       <h2 className={HEAD}>Keeping it, deleting it</h2>
       <p className={READ}>

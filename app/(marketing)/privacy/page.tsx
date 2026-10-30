@@ -41,7 +41,12 @@ function Lead({ children }: { children: React.ReactNode }) {
  *  - camera stays on-device: lib/pose-client.ts + app/rep/page.tsx
  *    (five numbers and timestamped notes, never frames)
  *  - what's stored: lib/db.ts saveRep + supabase/migrations/*
- *  - no analytics: nothing in package.json or app/ loads any
+ *  - an upload goes as it is: app/upload/page.tsx (audio or video
+ *    files) to app/api/analyze, stored by lib/db.ts saveRep under
+ *    "rep" and its extension (lib/audio-name.ts), never its own name
+ *  - no advertising trackers or third-party cookies; Vercel Speed
+ *    Insights (app/layout.tsx, @vercel/speed-insights) times page loads
+ *    without cookies
  *  - payments: lib/billing.ts (Stripe Checkout holds the card; the
  *    customer is made with the email and metadata.user_id only), the
  *    billing row in supabase/migrations/0012_price_ladder.sql (ids,
@@ -89,7 +94,8 @@ export default function Privacy() {
         Anthropic (Claude) turns the transcript and your numbers into written
         feedback. Both run under API terms that keep your audio and
         transcripts out of model training. All feedback in Ethos is
-        AI-generated.
+        AI-generated. A file you upload goes the same way, as it is, video
+        included.
       </p>
 
       <h2 className={HEAD}>What we store</h2>
@@ -142,18 +148,20 @@ export default function Privacy() {
 
       <h2 className={HEAD}>Cookies and analytics</h2>
       <p className={READ}>
-        Ethos runs no analytics scripts, advertising trackers or third-party
+        Ethos runs no advertising trackers and sets no third-party cookies.
+        Vercel Speed Insights measures how fast each page loads, without
         cookies. Your sign-in session is kept in your browser&apos;s own
-        storage by Supabase, our database and login provider. Testers are
-        the one exception: the app sends their usage, device and error
-        details to our own server, as the Testers section says.
+        storage by Supabase, our database and login provider. Testers also
+        send their usage, device and error details to our own server, as
+        the Testers section says.
       </p>
 
       <h2 className={HEAD}>Who touches the data</h2>
       <p className={READ}>
         Five processors, each doing one job: Supabase (accounts, database and
         audio storage), OpenAI (transcription), Anthropic (feedback), Stripe
-        (payments), and Vercel (hosting, with standard server logs). We never sell your data
+        (payments), and Vercel (hosting, with standard server logs and page
+        load timings). We never sell your data
         and never share it beyond these services.
       </p>
 
@@ -178,8 +186,9 @@ export default function Privacy() {
         </p>
         <ul className="mt-3 list-disc space-y-2 pl-5 text-read text-stone-800 marker:text-stone-300">
           <li>
-            <Lead>Your recordings.</Lead> Every audio recording, and the
-            camera&apos;s numbers when it&apos;s on. Video stays on your phone.
+            <Lead>Your recordings.</Lead> Every audio recording, every file
+            you upload (video included), and the camera&apos;s numbers when
+            it&apos;s on. The live camera&apos;s video stays on your phone.
           </li>
           <li>
             <Lead>Transcripts.</Lead> Everything you say, word for word, with
@@ -218,7 +227,9 @@ export default function Privacy() {
           Timothy, who makes Ethos, is the only person who reads it. Nothing is
           sold, and it goes only to the services that run the app, the
           processors above (Supabase, OpenAI, Anthropic and Vercel). It&apos;s
-          kept up to 12 months after the test ends, then deleted. Ask him and
+          kept up to 12 months after the test ends, then deleted; if you keep
+          using Ethos, your recordings and scores stay in your account, as
+          everyone&apos;s do. Ask him and
           it&apos;s all deleted within 7 days; deleting your account in
           Settings deletes it too. If you&apos;re under 18, a parent or
           guardian says yes first.

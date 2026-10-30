@@ -20,7 +20,9 @@
  * results-low (Too low, the note open and typed), results-fail (the
  * answer refused, its retry), results-plain (a non-tester's results:
  * nothing new, the score first), log (a stored recording's page, the
- * answer reopened), privacy (the Testers section). The direction is
+ * answer reopened), results-paused and log-paused (a tester on consent
+ * version 2 who said Not now: testing is paused, with Agree again,
+ * where the question would be), privacy (the Testers section). The direction is
  * asked on the results' last step, so those scenes answer how it felt
  * and walk there first. /api/tester is answered here as the route
  * would: 1234 right, anything else wrong, and no code only for a tester
@@ -53,8 +55,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const RETURNING_ID = "0b5e7a21-6c3d-4f8e-8a1b-2d9c4e6f7a10";
 const want = (name) => ONLY.length === 0 || ONLY.includes(name);
 
+/* LOOK_AUDIO: a WAV the fake microphone plays, so a take's wave has a
+   voice's shape rather than the default device's once-a-second beep. */
 const browser = await chromium.launch({
-  args: ["--font-render-hinting=none", "--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream", "--autoplay-policy=no-user-gesture-required"],
+  args: [
+    "--font-render-hinting=none", "--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream", "--autoplay-policy=no-user-gesture-required",
+    ...(process.env.LOOK_AUDIO ? [`--use-file-for-fake-audio-capture=${process.env.LOOK_AUDIO}`] : []),
+  ],
 });
 
 async function context(theme, { returning = true, hint = false, asked = 0 } = {}) {
@@ -209,7 +216,7 @@ async function shootTheme(theme) {
       await sleep(700);
     }
     for (let i = 0; i < 3; i++) {
-      if (await page.getByText("Did the score feel right?").count()) return;
+      if (await page.getByText(/feel right\?/).count()) return;
       const next = page.locator("[data-step-action]").first();
       if (!(await next.count()) || !/numbers|words/i.test(await next.innerText())) return;
       await next.click();
@@ -256,6 +263,39 @@ async function shootTheme(theme) {
     });
   }
 
+  // A tester on consent version 2 who said Not now to the open's ask:
+  // where the question would be, testing is paused (review D1).
+  await step(["results-paused", "log-paused"], async () => {
+    testerMode.tester = true;
+    testerMode.consentVersion = 2;
+    testerMode.feedback = "ok";
+    if (want("results-paused")) {
+      const { ctx, page } = await context(theme, { hint: true, asked: 3 });
+      await results(page);
+      for (let i = 0; i < 3; i++) {
+        if (await page.getByText("Testing is paused.").count()) break;
+        const next = page.locator("[data-step-action]").first();
+        if (!(await next.count())) break;
+        await next.click();
+        await sleep(900);
+      }
+      await page.getByText("Testing is paused.").waitFor({ timeout: 8000 });
+      await shot(page, "results-paused", { settle: 600, fullPage: false });
+      await ctx.close();
+    }
+    if (want("log-paused")) {
+      const { ctx, page } = await context(theme, { hint: true, asked: 3 });
+      await page.goto(`${BASE}/rep/rep-3`);
+      const line = page.getByText("Testing is paused.");
+      await line.waitFor({ timeout: 20000 });
+      await sleep(1200);
+      await line.scrollIntoViewIfNeeded();
+      await shot(page, "log-paused", { fullPage: false, settle: 500 });
+      await ctx.close();
+    }
+    testerMode.consentVersion = 3;
+  });
+
   // The Log: a stored recording's page asks too, and an answer given
   // there reopens as it was left.
   await step(["log"], async () => {
@@ -264,7 +304,7 @@ async function shootTheme(theme) {
     testerMode.stored = {};
     const { ctx, page } = await context(theme);
     await page.goto(`${BASE}/rep/rep-3`);
-    const q = page.getByText("Did the score feel right?");
+    const q = page.getByText(/feel right\?/);
     await q.waitFor({ timeout: 20000 });
     await page.getByRole("radio", { name: "Too high", exact: true }).click();
     await page.getByLabel("What felt off?").fill("The pauses felt longer than that.");

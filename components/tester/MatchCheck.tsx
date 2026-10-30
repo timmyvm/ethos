@@ -20,8 +20,9 @@ type Status = "idle" | "saving" | "saved" | "failed";
 
 /**
  * The match check (migrations 0020 and 0022, docs/testers.md): a
- * tester's question about the score they were just shown, "Did the
- * score feel right?", answered as a direction. Testers only; the
+ * tester's question about the score they were just shown, by its
+ * number ("Did 665 feel right?", review D2: on the last step the score
+ * is two steps back), answered as a direction. Testers only; the
  * results screen decides that (`showsMatchCheck`) and a non-tester's
  * screen never mounts this.
  *
@@ -63,6 +64,8 @@ export function MatchCheck({
   /** The numbers this answer is about: the ones on screen, or the ones
       an earlier answer about this recording was given with. */
   const shown = useRef(scores);
+  /** The Index the question names: those numbers' own. */
+  const [index, setIndex] = useState<number | null>(scores.index);
 
   /* An answer already given about this recording opens as it was left,
      unless the tester has already picked. A failed read asks afresh. */
@@ -72,7 +75,10 @@ export function MatchCheck({
       .then((given) => {
         // How it felt alone is no answer to this question.
         if (!live || !given?.answer || last.current) return;
-        if (given.scores) shown.current = given.scores;
+        if (given.scores) {
+          shown.current = given.scores;
+          setIndex(given.scores.index ?? null);
+        }
         const n = given.note ?? "";
         last.current = { answer: given.answer, note: n };
         setAnswer(given.answer);
@@ -121,10 +127,10 @@ export function MatchCheck({
   return (
     <section aria-labelledby="match-question" className={`text-left ${className}`}>
       <h2 id="match-question" className="font-display text-row text-ink">
-        {MATCH_COPY.question}
+        {MATCH_COPY.questionFor(index)}
       </h2>
       <Segmented
-        label={MATCH_COPY.question}
+        label={MATCH_COPY.questionFor(index)}
         options={MATCH_COPY.options}
         value={answer}
         onChange={(v) => pick(v as MatchAnswer)}
@@ -175,11 +181,9 @@ export function MatchCheck({
               {status === "saving"
                 ? MATCH_COPY.saving
                 : status === "saved"
-                  ? noteOpen
-                    ? savedNote && !noteDirty
-                      ? MATCH_COPY.noteSaved
-                      : MATCH_COPY.answerSaved
-                    : MATCH_COPY.saved
+                  ? noteOpen && savedNote && !noteDirty
+                    ? MATCH_COPY.noteSaved
+                    : MATCH_COPY.answerSaved
                   : ""}
             </p>
           )}

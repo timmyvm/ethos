@@ -359,9 +359,23 @@ export function asksAgain({
   );
 }
 
-/** Where the ask goes back to: the screen it opened over, or Today. */
+/** A recording's page in the Log: where its paused line sends a tester to agree from. */
+const LOG_PAGE = /^\/rep\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Where the ask goes back to: the screen it opened over, a recording's page it was opened from, or Today. */
 export function askedFrom(raw: string | null | undefined): string {
-  return raw && ASK_AGAIN_ON.includes(raw) ? raw : "/";
+  return raw && (ASK_AGAIN_ON.includes(raw) || LOG_PAGE.test(raw)) ? raw : "/";
+}
+
+/**
+ * A tester on an older consent: nothing is asked or kept until they
+ * agree to the one this app shows, and where the questions would be
+ * they read that testing is paused, with the way back (review D1: the
+ * ask on the way in comes once per device, and one reflex tap past it
+ * otherwise lost a paid tester's answers for the rest of the test).
+ */
+export function pausedTester(row: TesterRow | null | undefined): row is TesterRow {
+  return !!row && row.consent_version < CONSENT_VERSION;
 }
 
 /**

@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { CODE_COPY, CONSENT, CONSENT_VERSION, DOOR_COPY, FELT_COPY, JOINED_COPY, MATCH_COPY } from "@/content/tester";
+import { CODE_COPY, CONSENT, CONSENT_VERSION, DOOR_COPY, FELT_COPY, JOINED_COPY, MATCH_COPY, PAUSED_COPY } from "@/content/tester";
 import {
+  askedFrom,
   asksForNote,
   cleanNote,
   codeDigits,
@@ -14,6 +15,7 @@ import {
   isMatchAnswer,
   MATCH_ANSWERS,
   NOTE_MAX,
+  pausedTester,
   sameSave,
   scoreSnapshot,
   showsMatchCheck,
@@ -143,9 +145,55 @@ describe("the two questions", () => {
     for (const a of MATCH_ANSWERS) expect(sql).toContain(`'${a}'`);
   });
 
+  /* Review D2: on the last step the score is two steps back, so the
+     question names it; a Too low is then about that number, not
+     whichever one the tester remembers. */
+  it("names the number it is about, and asks plainly without one", () => {
+    expect(MATCH_COPY.questionFor(665)).toBe("Did 665 feel right?");
+    expect(MATCH_COPY.questionFor(664.6)).toBe("Did 665 feel right?");
+    expect(MATCH_COPY.questionFor(null)).toBe("Did the score feel right?");
+    expect(MATCH_COPY.questionFor(undefined)).toBe("Did the score feel right?");
+  });
+
+  /* Review D8: one save line for every answer, the words COPY-RULES lists. */
+  it("says Answer saved for every answer", () => {
+    expect(MATCH_COPY).not.toHaveProperty("saved");
+    expect(MATCH_COPY.answerSaved).toBe("Answer saved");
+    expect(readFileSync("components/tester/MatchCheck.tsx", "utf8")).not.toMatch(/MATCH_COPY\.saved\b/);
+  });
+
   it("reopen one of 0020's answers as no answer, since it answered another question", () => {
     expect(isMatchAnswer("too_low")).toBe(true);
     for (const old of ["yes", "roughly", "no", null, undefined, 3]) expect(isMatchAnswer(old)).toBe(false);
+  });
+});
+
+/*
+ * Review D1: a tester on an older consent who dismissed the ask once
+ * stopped answering and sending for the rest of the test, and nothing
+ * said so. Where the questions would be, they read that testing is
+ * paused, with the way back to agreeing.
+ */
+describe("a tester on an older consent", () => {
+  const at = "2026-10-30T09:00:00.000Z";
+  it("is told testing is paused where the questions would be, and nobody else is", () => {
+    expect(pausedTester({ consent_version: CONSENT_VERSION - 1, consented_at: at })).toBe(true);
+    expect(pausedTester({ consent_version: 1, consented_at: at })).toBe(true);
+    expect(pausedTester({ consent_version: CONSENT_VERSION, consented_at: at })).toBe(false);
+    expect(pausedTester(null)).toBe(false);
+    expect(pausedTester(undefined)).toBe(false);
+    expect(PAUSED_COPY).toEqual({ line: "Testing is paused.", action: "Agree again" });
+  });
+
+  it("goes back to the recording's page in the Log after agreeing there", () => {
+    expect(askedFrom("/rep/8a3e2a8c-0b8e-4b52-9f39-8a1c4f0a1b2c")).toBe("/rep/8a3e2a8c-0b8e-4b52-9f39-8a1c4f0a1b2c");
+    expect(askedFrom("/rep/not-an-id")).toBe("/");
+    expect(askedFrom("/rep")).toBe("/");
+  });
+
+  /* Review D7: the ask says what is new, not only that there is more. */
+  it("is told what testing now also keeps", () => {
+    expect(CONSENT.renewLine).toMatch(/how you use Ethos, your device, your connection and problems/);
   });
 });
 
@@ -386,7 +434,11 @@ describe("a save that would repeat the last one", () => {
 const CONSENT_FINGERPRINTS: Record<number, string> = {
   1: "d31d36a2b184bb3a",
   2: "bb38c1a2e720688f",
-  3: "96dafbd22ffee90e",
+  // Re-pinned before it shipped (30 Oct, the review of the build that
+  // carries it: an upload goes as it is, what stays when they keep using
+  // Ethos, what an older consent's tester now also agrees to). Nobody
+  // had agreed to version 3 yet: production still shows version 2.
+  3: "b1106fce09864f62",
 };
 
 describe("the consent", () => {
@@ -426,6 +478,9 @@ describe("the consent", () => {
       /Making the scores accurate and fixing what breaks/, /Only Timothy/, /Nothing is sold/,
       /services that run the app, named in Privacy/, /12 months after the test/, /deleted within 7 days/,
       /Deleting your account in Settings/, /Under 18/, /parent or guardian/,
+      // Review P3: an upload goes as it is; review P2: what stays when they keep using Ethos.
+      /every file you upload \(video included\)/, /live camera's video stays on your phone/,
+      /If you keep using Ethos, your recordings and scores stay in your account/,
     ]) {
       expect(text).toMatch(must);
     }
@@ -458,7 +513,7 @@ describe("tester copy", () => {
           : o && typeof o === "object"
             ? Object.values(o).flatMap(all)
             : [];
-  const strings = all([CONSENT, CODE_COPY, JOINED_COPY, FELT_COPY, MATCH_COPY, DOOR_COPY]);
+  const strings = all([CONSENT, CODE_COPY, JOINED_COPY, FELT_COPY, MATCH_COPY, PAUSED_COPY, DOOR_COPY]);
 
   it("has no em dash", () => {
     expect(strings.filter((s) => s.includes("—"))).toEqual([]);

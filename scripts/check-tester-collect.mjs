@@ -17,7 +17,14 @@
  *   4. a tester on version 3: the device on open, screens with their
  *      time, taps by name, shown and hidden, an error with what was on
  *      screen, sent by timer and by beacon, and never what was typed;
- *   5. a version 2 tester who agrees again: collection starts.
+ *   5. a version 2 tester who agrees again: collection starts;
+ *   6. a version 3 tester whose first screen crashes as it opens (its page
+ *      chunk patched to throw): the error boundary's report, held until
+ *      the collector starts, arrives under that screen (review F1). It
+ *      patches a production chunk's module wrappers, so run this gate
+ *      against `next start` (BASE); on a dev server it says it skipped.
+ *
+ * Phone 3 also reads the Log page's "Testing is paused." (review D1).
  */
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 import { analyzeBody, collectRoute, json, seed, session, supabaseRoute, testerMode, POSE_PREF } from "./look-fixtures.mjs";
@@ -118,7 +125,7 @@ const events = () => testerMode.collected.flatMap((c) => c.body?.events ?? []);
   await page.waitForURL(/\/tester\?from=open/, { timeout: 30000 }).catch(() => {});
   check("a version 2 tester is asked on the open", /\/tester\?from=open/.test(page.url()), page.url());
   await page.getByRole("button", { name: "I agree" }).waitFor({ timeout: 10000 }).catch(() => {});
-  const line = await page.getByText("Testing keeps more now.").count();
+  const line = await page.getByText(/Testing now also keeps/).count();
   const code = await page.getByLabel("Tester code").count();
   check("…with the line that says what changed, and no code", line >= 1 && code === 0, `line ${line}, code field ${code}`);
   await page.getByRole("link", { name: "Not now" }).click();
@@ -128,6 +135,16 @@ const events = () => testerMode.collected.flatMap((c) => c.body?.events ?? []);
   await page.waitForSelector("main h1", { timeout: 30000 });
   await sleep(2500);
   check("…and the ask never comes again on this device", !/\/tester/.test(page.url()), page.url());
+  await hide(page);
+  await sleep(600);
+  // Where the question would be, testing reads as paused (review D1).
+  await page.goto(`${BASE}/rep/rep-3`);
+  const paused = page.getByText("Testing is paused.");
+  await paused.waitFor({ timeout: 30000 }).catch(() => {});
+  const agree = page.getByRole("link", { name: "Agree again" });
+  const href = (await agree.count()) ? await agree.first().getAttribute("href") : null;
+  check("…and the Log says testing is paused, with Agree again", (await paused.count()) === 1 && /from=open/.test(href ?? ""), href ?? "no link");
+  check("…and asks nothing there", (await page.getByText(/feel right\?/).count()) === 0);
   await hide(page);
   await sleep(600);
   check("a version 2 tester's phone sends nothing", testerMode.collected.length === 0, `${testerMode.collected.length} batches`);
@@ -145,7 +162,7 @@ const events = () => testerMode.collected.flatMap((c) => c.body?.events ?? []);
   await sleep(1500);
   // A typed note: the field is the tester's, never collected.
   await page.goto(`${BASE}/rep/rep-3?from=check`);
-  const note = page.getByText("Did the score feel right?");
+  const note = page.getByText(/feel right\?/);
   await note.waitFor({ timeout: 30000 });
   await page.getByRole("radio", { name: "Too high", exact: true }).click();
   const field = page.getByLabel("What felt off?");
@@ -195,6 +212,33 @@ const events = () => testerMode.collected.flatMap((c) => c.body?.events ?? []);
   await hide(page);
   await sleep(800);
   check("…and collection starts", events().some((e) => e.kind === "device"), `${events().length} events`);
+  await ctx.close();
+}
+
+// 6. A version 3 tester whose first screen crashes as the app opens.
+{
+  const { ctx, page } = await phone({ tester: true, version: 3, hint: true });
+  let patched = 0;
+  await ctx.route("**/_next/static/chunks/app/games/page*.js", async (route) => {
+    const res = await route.fetch();
+    const text = await res.text();
+    const body = text.replace(/\(e,t,([a-z])\)=>\{/g, (m) => {
+      patched++;
+      return `${m}throw new Error("probe: the first screen crashed");`;
+    });
+    await route.fulfill({ response: res, body });
+  });
+  await page.goto(`${BASE}/games`);
+  await page.getByText("That screen didn").first().waitFor({ timeout: 20000 }).catch(() => {});
+  if (!patched || !(await page.getByText("That screen didn").count())) {
+    console.log("skip a crash on the first screen (needs a production build: BASE pointing at next start)");
+  } else {
+    await sleep(3000);
+    await hide(page);
+    await sleep(1200);
+    const crash = events().find((e) => e.kind === "error" && e.name === "boundary");
+    check("a crash on the first screen of an open is reported, under that screen", !!crash && crash.screen === "/games" && /first screen crashed/.test(crash.data?.message ?? ""), JSON.stringify(crash ?? events().map((e) => `${e.kind}:${e.name}`)).slice(0, 200));
+  }
   await ctx.close();
 }
 

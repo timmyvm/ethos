@@ -32,10 +32,11 @@ import { splitPrompt } from "@/lib/tip-labels";
 import { TopicCard } from "@/components/rep/TopicCard";
 import { StreakCelebration } from "@/components/StreakCelebration";
 import { TraitChip } from "@/components/TraitChip";
-import { FeltCheck } from "@/components/tester/FeltCheck";
+import { FeltCheck, FeltStage } from "@/components/tester/FeltCheck";
 import { MatchCheck } from "@/components/tester/MatchCheck";
+import { TesterPaused } from "@/components/tester/TesterPaused";
 import { FELT_COPY } from "@/content/tester";
-import { feltRow, scoreSnapshot, showsMatchCheck, type Felt, type TesterRow } from "@/lib/tester";
+import { feltRow, pausedTester, scoreSnapshot, showsMatchCheck, type Felt, type TesterRow } from "@/lib/tester";
 import { saveMatch, useTester } from "@/lib/tester-client";
 import { testerRecord } from "@/lib/tester-signal";
 import { readOnboarding } from "@/lib/answers";
@@ -1286,6 +1287,7 @@ function RepScreen() {
           presence={presence}
           tester={tester}
           resultKey={resultKey}
+          wave={scoringWave}
           clipUrl={clipUrl}
           audioUrl={audioUrl}
           premium={premium}
@@ -1802,6 +1804,7 @@ function Results({
   presence,
   tester,
   resultKey,
+  wave,
   clipUrl,
   audioUrl,
   premium,
@@ -1825,6 +1828,8 @@ function Results({
   tester: TesterRow | null | undefined;
   /** The outbox key this recording travelled under. */
   resultKey: string | null;
+  /** The take's loudness envelope, as the scoring wait drew it (the felt step's stage). */
+  wave: number[];
   clipUrl: string | null;
   audioUrl: string | null;
   premium: boolean;
@@ -2100,10 +2105,18 @@ function Results({
         }`}
       >
         {askingFelt ? (
-          <div
-            key="felt"
-            className="arrive flex flex-1 flex-col justify-center pb-16 pt-4"
-          >
+          /* The take on a stage that takes the free height, the question
+             and its three answers resting under it in the thumb's reach
+             (review D4: centred, it left 215px and 260px of ground). */
+          <div key="felt" className="arrive flex flex-1 flex-col justify-center gap-8 pb-8 pt-5">
+            {/* A short phone has no free height to give: the question
+                alone, as before (the stage's floor would push the
+                answers under the shelf at 320x568). */}
+            <FeltStage
+              levels={wave}
+              seconds={result.metrics.durationS}
+              className="max-h-[40dvh] flex-1 [@media(max-height:639px)]:hidden"
+            />
             <FeltCheck onAnswer={feltDone} />
           </div>
         ) : (
@@ -2127,6 +2140,11 @@ function Results({
               scores={snapshot}
               className="mt-6 mb-7 border-b border-hairline pb-4"
             />
+          )}
+          {/* A tester on an older consent: where the question would be,
+              that testing is paused and the way back (review D1). */}
+          {last && pausedTester(tester) && (
+            <TesterPaused back="/" className="mt-6 mb-7 border-b border-hairline pb-4" />
           )}
 
           <div>

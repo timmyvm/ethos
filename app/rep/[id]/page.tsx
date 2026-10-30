@@ -12,6 +12,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Skeleton, SkeletonRegion } from "@/components/ui/Skeleton";
 import { MatchCheck } from "@/components/tester/MatchCheck";
+import { TesterPaused } from "@/components/tester/TesterPaused";
 import { lessonById } from "@/content/lessons";
 import {
   fetchProfile,
@@ -26,7 +27,7 @@ import { computeMetrics, substance } from "@/lib/metrics";
 import { fromRow } from "@/lib/presence";
 import { topicFromLessonId } from "@/lib/rep-config";
 import { modById } from "@/lib/stress-mods";
-import { scoreSnapshot, showsMatchCheck, storedSnapshotInput } from "@/lib/tester";
+import { pausedTester, scoreSnapshot, showsMatchCheck, storedSnapshotInput } from "@/lib/tester";
 import { useTester } from "@/lib/tester-client";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
 
@@ -336,6 +337,11 @@ export default function RepDetail({
             className="mt-7 border-t border-hairline pt-4"
           />
         )}
+      {/* A tester on an older consent: where the question would be, that
+          testing is paused, and agreeing comes back here (review D1). */}
+      {pausedTester(tester) && rep.ethos_index !== null && (
+        <TesterPaused back={`/rep/${rep.id}`} className="mt-7 border-t border-hairline pt-4" />
+      )}
 
       {paywall && (
         <Paywall

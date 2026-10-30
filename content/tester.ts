@@ -38,12 +38,12 @@ export const CONSENT = {
   title: "Testing Ethos",
   line: "Everything Ethos keeps while you test, and why.",
   /** For a tester who agreed to an older list: what changed, once. */
-  renewLine: "Testing keeps more now. Read it all, then agree again.",
+  renewLine: "Testing now also keeps how you use Ethos, your device, your connection and problems. Read it all, then agree again.",
   keptLead: "What's kept",
   kept: [
     {
       lead: "Your recordings",
-      text: "Every audio recording you make, and the camera's numbers when it's on. Video stays on your phone.",
+      text: "Every audio recording you make, every file you upload (video included), and the camera's numbers when it's on. The live camera's video stays on your phone.",
     },
     { lead: "Transcripts", text: "Everything you say, word for word, with timestamps." },
     { lead: "Your scores", text: "Every score, star, streak and number Ethos gives you." },
@@ -67,7 +67,10 @@ export const CONSENT = {
       /** The word in `text` that opens the Privacy page's Testers section. */
       link: { word: "Privacy", href: "/privacy#testers" },
     },
-    { lead: "How long", text: "Up to 12 months after the test ends, then it's deleted." },
+    {
+      lead: "How long",
+      text: "Up to 12 months after the test ends, then it's deleted. If you keep using Ethos, your recordings and scores stay in your account.",
+    },
     {
       lead: "Deleting it",
       text: "Ask Timothy and it's all deleted within 7 days. Deleting your account in Settings deletes it too.",
@@ -118,6 +121,8 @@ export const JOINED_COPY = {
 export const FELT_COPY = {
   question: "How did that feel?",
   line: "Before you see the score.",
+  /** The stage above it: the take just made, by its length (the scoring panel's own word). */
+  stage: "Recorded",
   options: [
     { value: "rough", label: "Rough" },
     { value: "okay", label: "Okay" },
@@ -129,6 +134,13 @@ export const FELT_COPY = {
 /** The match check after the score: which way the score was off, if it was. */
 export const MATCH_COPY = {
   question: "Did the score feel right?",
+  /**
+   * The question with the number it is about, so an answer is never
+   * about a number the tester has to remember: the Index from the
+   * numbers frozen as they landed, or the plain question without one.
+   */
+  questionFor: (index: number | null | undefined) =>
+    typeof index === "number" && Number.isFinite(index) ? `Did ${Math.round(index)} feel right?` : "Did the score feel right?",
   options: [
     { value: "too_low", label: "Too low" },
     { value: "about_right", label: "About right" },
@@ -138,10 +150,19 @@ export const MATCH_COPY = {
   notePlaceholder: "Optional",
   saveNote: "Save note",
   saving: "Saving…",
-  saved: "Saved",
   answerSaved: "Answer saved",
   noteSaved: "Note saved",
   failed: "Your answer didn't save.",
+} as const;
+
+/**
+ * A tester on an older consent, where the questions would be: nothing is
+ * asked or kept until they agree to the one this app shows, and this is
+ * how they find out (review D1).
+ */
+export const PAUSED_COPY = {
+  line: "Testing is paused.",
+  action: "Agree again",
 } as const;
 
 /** The doors in. */

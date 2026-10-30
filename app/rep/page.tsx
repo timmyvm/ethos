@@ -1433,10 +1433,11 @@ function RepScreen() {
         /* Idle, the card takes the column's free height, 168 to 300, so a
            practice with more under it (the boss's tactic line) gets a
            shorter card rather than a screen that scrolls Record's caption
-           off the bottom. */
+           off the bottom. Under 600pt tall (320x568) it is as tall as its
+           words, so Record rises into view (F12). */
         <div
           ref={topicRef}
-          className={phase === "idle" ? "mt-4 flex max-h-[300px] min-h-[168px] flex-1 flex-col" : "mt-4"}
+          className={phase === "idle" ? "mt-4 flex max-h-[300px] min-h-[168px] flex-1 flex-col [@media(max-height:600px)]:min-h-0" : "mt-4"}
         >
           <TopicCard
             eyebrow={eyebrowOf(config.unit)}

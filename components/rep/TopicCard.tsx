@@ -10,6 +10,9 @@ import { SPRING, springEasing, springMs } from "@/lib/spring";
 
 /** Clear space between the object's box and the words, either side. */
 const CLEAR = 8;
+/** The smallest the object stands at where the band is short (a 375x667
+ *  phone's band holds about 80): below it, it is not drawn. */
+const MIN_BOX = 72;
 
 /*
  * Start carries the card (E51, B02). Today's Start runs its navigation
@@ -78,8 +81,10 @@ function fromRect(el: Element, r: CardFrom["card"]) {
  * (96 under 360). The object is sized by the box its visible pixels
  * fill (lib/lesson-art-bounds.ts), as Today's is, and it stands only
  * where the band has the room: the box clears the eyebrow's words and
- * the topic's first line by 8px, or it is not drawn. On Record it
- * scales to 0.6 and fades out on the card's own shrink spring.
+ * the topic's first line by 8px, stepping down to as little as 72px
+ * where the band is short (a 375x667 phone), or it is not drawn. On
+ * Record it scales to 0.6 on the card's own shrink spring and fades in
+ * 120ms, before the topic's compact lines reach its corner.
  *
  * Demos is not on it: he arrives as the listener when Record is
  * pressed (D51), so the prompt is the one thing to read while idle.
@@ -104,8 +109,11 @@ export function TopicCard({
   const brow = useRef<HTMLSpanElement>(null);
   const head = useRef<HTMLHeadingElement>(null);
   const img = useRef<HTMLImageElement | null>(null);
-  /* Whether the band has the room, measured before paint. */
+  /* Whether the band has the room, measured before paint, and the box
+     it has room for: the full 112 (96 under 360), or down to 72 where
+     the band is shorter. */
   const [fits, setFits] = useState(false);
+  const [boxPx, setBoxPx] = useState<number | null>(null);
   const [measured, setMeasured] = useState(!art);
   const [loaded, setLoaded] = useState(false);
 
@@ -123,10 +131,16 @@ export function TopicCard({
       const b = ART_BOUNDS[art];
       const w = b ? b.r - b.l : 0.43;
       const t = b ? b.b - b.t : 0.84;
+      /* The box the band holds: the full box, or what is left over the
+         topic's first line (the box is pinned top right, so its top and
+         right edges never move). */
+      const full = window.matchMedia("(max-width: 359px)").matches ? 96 : 112;
+      const size = Math.min(full, Math.floor(h.top - CLEAR - z.top));
       /* The visible object's width inside the box, centred across it. */
-      const shown = Math.min(1, w / t) * z.width;
-      const left = z.left + (z.width - shown) / 2;
-      setFits(z.bottom + CLEAR <= h.top && e.right + CLEAR <= left);
+      const shown = Math.min(1, w / t) * size;
+      const left = z.right - size + (size - shown) / 2;
+      setFits(size >= MIN_BOX && e.right + CLEAR <= left);
+      setBoxPx(size < full ? size : null);
       setMeasured(true);
     };
     measure();
@@ -147,20 +161,28 @@ export function TopicCard({
       return;
     }
     const reduced = prefersReducedMotion();
-    el.animate(
-      reduced
-        ? [{ opacity: 1 }, { opacity: 0 }]
-        : [
-            { opacity: 1, transform: "scale(1)" },
-            /* Gone by the spring's 60%, so the topic's shorter lines
-               rising into the corner never read through it. */
-            { opacity: 0, transform: "scale(0.76)", offset: 0.6 },
-            { opacity: 0, transform: "scale(0.6)" },
-          ],
-      reduced
-        ? { duration: DURATION.base, easing: EASE_OUT, fill: "forwards" }
-        : { duration: springMs(SPRING.base), easing: springEasing(SPRING.base), fill: "forwards" }
-    );
+    if (reduced) {
+      el.animate([{ opacity: 1 }, { opacity: 0 }], {
+        duration: DURATION.base,
+        easing: EASE_OUT,
+        fill: "forwards",
+      });
+      return;
+    }
+    /* The fade runs on its own short clock (120ms, ease-out, so all but
+       gone by 80): the topic steps down to its compact size at once,
+       and at the spring's pace its lines printed over the half-faded
+       glass for the first frames (R2F-05). The shrink keeps the spring. */
+    el.animate([{ opacity: 1 }, { opacity: 0 }], {
+      duration: DURATION.fast,
+      easing: EASE_OUT,
+      fill: "forwards",
+    });
+    el.animate([{ transform: "scale(1)" }, { transform: "scale(0.6)" }], {
+      duration: springMs(SPRING.base),
+      easing: springEasing(SPRING.base),
+      fill: "forwards",
+    });
   }, [compact]);
 
   /* Arrived: on the page, measured, and its object drawn if it has
@@ -262,9 +284,11 @@ export function TopicCard({
       /* Idle, it stands as tall as the room allows (Today's card is
          376): the eyebrow at the top, the topic at the foot, and the
          idle screen's free height in the card rather than over it. The
-         recording screen's column gives it that height, 168 to 300. */
+         recording screen's column gives it that height, 168 to 300.
+         Under 600pt tall (320x568) it is as tall as its words, so
+         Record rises into view (F12). */
       className={`family-fill vt-shared flex flex-col p-5 ${
-        compact ? "" : "min-h-[168px] flex-1 justify-between pb-6"
+        compact ? "" : "min-h-[168px] flex-1 justify-between pb-6 [@media(max-height:600px)]:min-h-0"
       }`}
     >
       {art && (
@@ -280,6 +304,7 @@ export function TopicCard({
             {
               ...artBox(art),
               "--s": "min(calc(100% / var(--art-h)), calc(100% / var(--art-w)))",
+              ...(boxPx !== null ? { width: boxPx, height: boxPx } : {}),
             } as CSSProperties
           }
         >

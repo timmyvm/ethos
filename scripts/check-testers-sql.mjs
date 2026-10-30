@@ -1,5 +1,6 @@
 /**
- * Tester isolation, on a real Postgres (migration 0020, docs/testers.md).
+ * Tester isolation, on a real Postgres (migrations 0020 and 0021,
+ * docs/testers.md).
  *
  * Applies every migration to PGlite (Postgres compiled to wasm) with
  * Supabase's three roles, auth.users and auth.uid() stubbed, then tries
@@ -45,19 +46,23 @@ for (const f of readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort()) {
     console.log("applied", f);
   } catch (e) {
     console.log("FAILED", f, e.message);
-    if (f.startsWith("0020")) process.exit(1);
+    if (Number(f.slice(0, 4)) >= 20) process.exit(1);
   }
 }
-// Twice: every statement in 0020 must be safe to run again.
+// Twice: every statement in 0020 and 0021 must be safe to run again.
 await ex(readFileSync(`${DIR}/0020_testers.sql`, "utf8"));
-console.log("applied 0020 again");
+await ex(readFileSync(`${DIR}/0021_tester_limits.sql`, "utf8"));
+console.log("applied 0020 and 0021 again");
 
 const A = "11111111-1111-4111-8111-111111111111";
 const B = "22222222-2222-4222-8222-222222222222";
 const C = "33333333-3333-4333-8333-333333333333";
-await ex(`insert into auth.users (id, email) values ('${A}', 'a@x.test'), ('${B}', 'b@x.test'), ('${C}', 'c@x.test');`);
-// A and B are testers (the route's service-role write); C is not.
-await ex(`insert into public.testers (user_id, consent_version, consented_at) values ('${A}', 1, now()), ('${B}', 1, now());`);
+const D = "44444444-4444-4444-8444-444444444444";
+const E = "55555555-5555-4555-8555-555555555555";
+await ex(`insert into auth.users (id, email) values ('${A}', 'a@x.test'), ('${B}', 'b@x.test'), ('${C}', 'c@x.test'), ('${D}', 'd@x.test'), ('${E}', 'e@x.test');`);
+// A, B and E are testers on the current consent (the route's
+// service-role write); D agreed to version 1; C is not a tester.
+await ex(`insert into public.testers (user_id, consent_version, consented_at) values ('${A}', 2, now()), ('${B}', 2, now()), ('${D}', 1, now()), ('${E}', 2, now());`);
 await ex(`insert into public.profiles (user_id, display_name) values ('${A}', 'Ana'), ('${B}', 'Ben');`);
 await ex(`insert into public.reps (user_id, duration_s, transcript, wpm, filler_count, stars, ethos_index, client_id, dimensions, pauses)
   values ('${A}', 60, 'hello', 140, 2, 2, 640, 'k-a1', '{"tier1":{"pause":70,"fillers":55,"repairs":66,"pace":90,"range":60}}', '[{"t":1,"len":1,"kind":"pre"}]'),
@@ -123,6 +128,32 @@ await expectRefused("A removes its answer from the browser", () => as("authentic
 await expectRefused("anon writes an answer", () => as("anon", null, () =>
   q(`insert into public.tester_feedback (user_id, client_id, answer) values ('${A}', 'k-anon', 'yes')`)));
 
+// 0021: answers only under consent version 2 or later.
+await expectRefused("D (consent version 1) answers", () => as("authenticated", D, () =>
+  q(`insert into public.tester_feedback (user_id, client_id, answer) values ('${D}', 'k-d1', 'yes')`)));
+
+// 0021: at most 300 answers per account, and changing one still works.
+await expectOk("E stores 300 answers", () => as("authenticated", E, async () => {
+  const r = await q(`insert into public.tester_feedback (user_id, client_id, answer)
+    select '${E}', 'k-e' || g, 'yes' from generate_series(1, 300) g returning id`);
+  if (r.rows.length !== 300) throw new Error(`${r.rows.length} rows`);
+  return r.rows.length;
+}));
+await expectRefused("E's 301st answer", () => as("authenticated", E, () =>
+  q(`insert into public.tester_feedback (user_id, client_id, answer) values ('${E}', 'k-e301', 'no')`)));
+await expectOk("E changes an answer at the cap (upsert)", () => as("authenticated", E, () =>
+  q(`insert into public.tester_feedback (user_id, client_id, answer, note) values ('${E}', 'k-e7', 'no', 'Felt faster')
+     on conflict (user_id, client_id) do update set answer = excluded.answer, note = excluded.note, updated_at = now() returning answer`)
+    .then((r) => { if (r.rows[0]?.answer !== "no") throw new Error(JSON.stringify(r.rows)); return r.rows[0].answer; })));
+await expectRefused("A stores 2000 answers in one statement", () => as("authenticated", A, () =>
+  q(`insert into public.tester_feedback (user_id, client_id, answer, note)
+     select '${A}', 'bulk-' || g, 'no', repeat('x', 280) from generate_series(1, 2000) g`)));
+await expectOk("the refused statement left nothing behind", async () => {
+  const r = await q(`select count(*)::int as n from public.tester_feedback where user_id = '${A}'`);
+  if (r.rows[0].n !== 1) throw new Error(`${r.rows[0].n} rows`);
+  return r.rows[0].n;
+});
+
 // The tables that hold a tester's recordings and scores (0001 to 0012)
 // show their owner only: A, signed in, reads none of B's rows.
 await ex(`insert into public.onboarding (user_id, age_band) values ('${B}', 'u18');
@@ -142,13 +173,36 @@ await expectRefused("anon reads the report", () => as("anon", null, () => q("sel
 await expectOk("service role reads the report", () => as("service_role", null, async () => {
   const t = await q("select name, days_spoken, recordings, average_index, matched_yes, matched_no, matched_roughly, notes from tester_admin.testers order by name");
   const r = await q("select name, ethos_index, pauses, pause_score, matched, note from tester_admin.recordings order by name");
-  const a = await q("select name, answer, index_shown, rep_id is not null as stored from tester_admin.answers order by name");
+  const a = await q("select name, answer, index_shown, rep_id is not null as stored from tester_admin.answers where name is not null order by name");
   return JSON.stringify({ t: t.rows, r: r.rows, a: a.rows });
 }));
 await expectOk("postgres (the SQL editor) reads the report", async () => {
   const r = await q("select count(*)::int as n from tester_admin.recordings");
   return r.rows[0].n;
 });
+
+// Every query in docs/testers.md runs as pasted in the SQL editor
+// (postgres), the tester-number lookup and the parent check included.
+{
+  const guide = readFileSync(new URL("../docs/testers.md", import.meta.url), "utf8");
+  const blocks = [...guide.matchAll(/```sql\n([\s\S]*?)```/g)].map((m) => m[1].trim());
+  if (blocks.length < 7) {
+    fails++;
+    console.log("FAIL  the guide's queries: found", blocks.length);
+  }
+  for (const [i, sql] of blocks.entries()) {
+    await expectOk(`the guide's query ${i + 1} runs`, async () => {
+      const r = await q(sql.replace(/;\s*$/, ""));
+      return `${r.rows.length} rows`;
+    });
+  }
+  await expectOk("the guide finds a tester by the number they send", async () => {
+    const number = `${A.slice(0, 4)} ${A.slice(4, 8)}`.toUpperCase();
+    const r = await q(`select user_id from tester_admin.testers where upper(left(user_id::text, 8)) = upper(replace('${number}', ' ', ''))`);
+    if (r.rows.length !== 1 || r.rows[0].user_id !== A) throw new Error(JSON.stringify(r.rows));
+    return number;
+  });
+}
 
 // The account goes: every tester row with it.
 await ex(`${"DEL" + "ETE"} from auth.users where id = '${A}'`);

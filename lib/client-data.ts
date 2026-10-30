@@ -4,7 +4,7 @@
  * honest empty states, never fake numbers.
  */
 
-import { supabaseBrowser } from "./supabase-browser";
+import { sessionToken, supabaseBrowser } from "./supabase-browser";
 import type { AccuracyResult } from "./accuracy";
 import type { JudgedDimension } from "./coach";
 import type { CoinRow } from "./coins";
@@ -50,10 +50,12 @@ export interface RepRow {
   delivery_metrics: Record<string, number> | null;
   presence_score: number | null;
   delivery_moments: DeliveryMoment[] | null;
+  /** The outbox key it was uploaded under (0016); a tester's answer about it is filed by this (0020). */
+  client_id?: string | null;
 }
 
 const REP_COLUMNS =
-  "id, lesson_id, created_at, duration_s, transcript, wpm, filler_count, fillers, pauses, stars, focus, strength, supply, ethos_index, dimensions, audio_path, mode, mods, xp_multiplier, boss_topic_id, accuracy, capture_mode, delivery_metrics, presence_score, delivery_moments";
+  "id, lesson_id, created_at, duration_s, transcript, wpm, filler_count, fillers, pauses, stars, focus, strength, supply, ethos_index, dimensions, audio_path, mode, mods, xp_multiplier, boss_topic_id, accuracy, capture_mode, delivery_metrics, presence_score, delivery_moments, client_id";
 
 export async function fetchReps(limit = 90): Promise<RepRow[]> {
   const db = supabaseBrowser();
@@ -184,13 +186,22 @@ export async function fetchXp(): Promise<{ total: number; week: number }> {
   return { total, week };
 }
 
-/** Short-lived signed URL for a rep's audio (the bucket stays private). */
-export async function repAudioUrl(path: string | null): Promise<string | null> {
-  if (!path) return null;
-  const db = supabaseBrowser();
-  if (!db) return null;
-  const { data } = await db.storage.from("audio").createSignedUrl(path, 3600);
-  return data?.signedUrl ?? null;
+/**
+ * A short-lived link to play one stored recording, or null. The server
+ * signs it (app/api/audio) after checking the recording is this
+ * account's: the bucket stays private and the browser never signs
+ * storage itself, so no storage policy has to let it.
+ */
+export async function repAudioUrl(repId: string): Promise<string | null> {
+  const token = await sessionToken();
+  if (!token) return null;
+  const res = await fetch(`/api/audio?rep=${encodeURIComponent(repId)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (!res.ok) return null;
+  const body = (await res.json().catch(() => null)) as { url?: unknown } | null;
+  return typeof body?.url === "string" ? body.url : null;
 }
 
 export interface ProfileRow {

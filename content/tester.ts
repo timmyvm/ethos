@@ -13,7 +13,13 @@
  * Nothing secret lives here. The code itself is the server's alone.
  */
 
-export const CONSENT_VERSION = 1;
+/**
+ * 2 (30 Oct): says where every recording goes (the services Privacy
+ * names, linked) where 1 said "Nothing is shared", and names the name,
+ * age and email the report shows Timothy. Migration 0021 takes answers
+ * only from a tester on 2 or later.
+ */
+export const CONSENT_VERSION = 2;
 
 /** The consent screen: one negation, no em dash, one agree tap. */
 export const CONSENT = {
@@ -22,10 +28,15 @@ export const CONSENT = {
   items: [
     {
       lead: "What's kept",
-      text: "Your recordings, transcripts and scores, and your answer to one question after each recording.",
+      text: "Your recordings, transcripts and scores, your answer after each one, and any name, age or email you gave.",
     },
     { lead: "What for", text: "Making the scores accurate." },
-    { lead: "Who sees it", text: "Only Timothy, who makes Ethos. Nothing is shared or sold." },
+    {
+      lead: "Who sees it",
+      text: "Only Timothy, who makes Ethos. Nothing is sold, and it goes only to the services named in Privacy.",
+      /** The word in `text` that opens the Privacy page's Testers section. */
+      link: { word: "Privacy", href: "/privacy#testers" },
+    },
     {
       lead: "Deleting it",
       text: "Ask Timothy and it's all deleted, any time. Deleting your account in Settings deletes it too.",
@@ -59,6 +70,11 @@ export const JOINED_COPY = {
   changed: "This screen changed since it opened. Read it again.",
   toWelcome: "Back to the introduction",
   toSettings: "Back to Settings",
+  /** How a friend tells Timothy which answers are theirs (lib/tester.ts testerNumber). */
+  number: "Your tester number",
+  demos: "Send Timothy your tester number.",
+  copy: "Copy",
+  copied: "Copied",
 } as const;
 
 /** The match check on results. */

@@ -732,6 +732,8 @@ export function fakeDb(users: string[]) {
     users: new Set(users),
     tables: { billing: [], profiles: [], reps: [], rate_limits: [] } as Record<string, Row[]>,
     removedAudio: [] as string[],
+    /** Every playback link the server signed (app/api/audio). */
+    signed: [] as { path: string; expiresIn: number }[],
     deletedUsers: [] as string[],
     /** Fail the next `op` on `table` with this error. */
     fail: [] as { table: string; op: string; error: DbError }[],
@@ -894,6 +896,15 @@ export function fakeDb(users: string[]) {
             if (injected) return { data: null, error: injected };
             state.removedAudio.push(...paths);
             return { data: [], error: null };
+          },
+          async createSignedUrl(path: string, expiresIn: number) {
+            const injected = failure(`storage:${bucket}`, "sign");
+            if (injected) return { data: null, error: injected };
+            state.signed.push({ path, expiresIn });
+            return {
+              data: { signedUrl: `https://storage.test/object/sign/${bucket}/${path}?token=t` },
+              error: null,
+            };
           },
         };
       },

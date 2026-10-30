@@ -11,6 +11,8 @@
  * here: it lives in the route (app/api/tester) and nowhere else.
  */
 
+import { CONSENT_VERSION } from "@/content/tester";
+
 export type MatchAnswer = "yes" | "roughly" | "no";
 
 export const MATCH_ANSWERS: readonly MatchAnswer[] = ["yes", "roughly", "no"];
@@ -49,7 +51,28 @@ export interface TesterRow {
   consented_at: string;
 }
 
+/**
+ * A tester on the consent this app shows. One who agreed to an older
+ * consent reads the new one before anything more is kept: the question
+ * waits, Settings offers the code again, and 0021 refuses their answers.
+ */
+export function isCurrentTester(row: TesterRow | null | undefined): row is TesterRow {
+  return !!row && row.consent_version >= CONSENT_VERSION;
+}
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * The tester number: the account id's first eight characters, in
+ * capitals, in two fours ("3F9A 1C2E"). A friend sends it to Timothy,
+ * and the report reads it the same way (docs/testers.md), so a row in
+ * tester_admin.testers is never a guess at who it is.
+ */
+export function testerNumber(userId: string): string | null {
+  if (!UUID.test(userId)) return null;
+  const head = userId.slice(0, 8).toUpperCase();
+  return `${head.slice(0, 4)} ${head.slice(4)}`;
+}
 
 /** The outbox key's shape, the one /api/analyze accepts (0016). */
 const CLIENT_ID = /^[\w-]{1,200}$/;
@@ -70,7 +93,7 @@ export function showsMatchCheck({
   scorable: boolean;
   clientId: string | null | undefined;
 }): boolean {
-  return !!tester && scorable && typeof clientId === "string" && CLIENT_ID.test(clientId);
+  return isCurrentTester(tester) && scorable && typeof clientId === "string" && CLIENT_ID.test(clientId);
 }
 
 /** What the results screen hands over: AnalyzeResponse, structurally. */
@@ -92,13 +115,20 @@ export interface SnapshotInput {
 }
 
 /**
- * The numbers on screen when the answer was given: the Index, the
- * stars, each measured score, the judged ones when the coach ran, and
- * the camera's when it scored. Numbers only and flat, so the row stays
- * small (0020 caps it at 4000 bytes) and a later change to the engine
- * cannot rewrite what the tester was looking at.
+ * The numbers the tester had been shown when they answered: the Index,
+ * the stars, each measured score, the judged ones when the coach ran,
+ * and the camera's when it scored. Numbers only and flat, so the row
+ * stays small (0020 caps it at 4000 bytes) and a later change to the
+ * engine cannot rewrite what the tester was looking at. The question is
+ * asked on the debrief's last step, after the score and the numbers, so
+ * every number here was on screen; `seen` says whether the answer came
+ * on results or later from the Log.
  */
-export function scoreSnapshot(result: SnapshotInput, presence: number | null = null) {
+export function scoreSnapshot(
+  result: SnapshotInput,
+  presence: number | null = null,
+  seen: "results" | "log" = "results"
+) {
   const n = (v: unknown): number | null =>
     typeof v === "number" && Number.isFinite(v) ? Math.round(v * 10) / 10 : null;
   const judged = result.coach?.dimensions ?? null;
@@ -112,6 +142,7 @@ export function scoreSnapshot(result: SnapshotInput, presence: number | null = n
     : null;
   return {
     v: 1,
+    seen,
     index: n(result.ethosIndex),
     previous: n(result.previousIndex),
     stars: n(result.metrics.stars),
@@ -131,6 +162,47 @@ export function scoreSnapshot(result: SnapshotInput, presence: number | null = n
 }
 
 export type ScoreSnapshot = ReturnType<typeof scoreSnapshot>;
+
+/** The stored recording's columns a snapshot reads (lib/client-data.ts RepRow). */
+export interface StoredForSnapshot {
+  ethos_index: number | null;
+  stars: number;
+  wpm: number;
+  filler_count: number;
+  duration_s: number;
+  pauses: readonly { kind?: string }[] | null;
+  dimensions: {
+    tier1?: SnapshotInput["tier1"] | null;
+    tier2?: Partial<Record<string, { score: number } | null>> | null;
+  } | null;
+  capture_mode: string;
+}
+
+/**
+ * A stored recording as the snapshot reads it: the numbers the Log's
+ * page shows, from the row. No previous Index (the Log shows none), and
+ * the judged scores only when the coach's read was stored.
+ */
+export function storedSnapshotInput(stored: StoredForSnapshot): SnapshotInput {
+  const pauses = stored.pauses ?? [];
+  const tier2 = stored.dimensions?.tier2 ?? null;
+  return {
+    ethosIndex: stored.ethos_index,
+    previousIndex: null,
+    metrics: {
+      stars: stored.stars,
+      wpm: stored.wpm,
+      fillerCount: stored.filler_count,
+      durationS: stored.duration_s,
+      pauses,
+      heldPauses: pauses.filter((p) => p.kind !== "beat").length,
+    },
+    tier1: stored.dimensions?.tier1 ?? {},
+    coach: tier2 ? { dimensions: tier2 } : null,
+    captureMode: stored.capture_mode,
+    judged: { ran: tier2 !== null },
+  };
+}
 
 /**
  * One row of `tester_feedback`, as the browser upserts it on
@@ -166,3 +238,40 @@ export function feedbackRow({
 }
 
 export type FeedbackRow = ReturnType<typeof feedbackRow>;
+
+/**
+ * Answers that have not landed yet, kept on the phone by recording
+ * (lib/tester-client.ts): one per recording, the newest, so a later
+ * save, on this screen or the next results screen, lands what the
+ * tester last said. An older answer never replaces a newer one.
+ */
+export type PendingMatches<R extends FeedbackRow = FeedbackRow> = Record<string, R>;
+
+export function withPending<R extends FeedbackRow>(map: PendingMatches<R>, row: R): PendingMatches<R> {
+  const had = map[row.client_id];
+  if (had && had.updated_at > row.updated_at) return map;
+  return { ...map, [row.client_id]: row };
+}
+
+/** A save landed: its answer stops waiting, unless a newer one took its place. */
+export function withoutPending<R extends FeedbackRow>(map: PendingMatches<R>, row: R): PendingMatches<R> {
+  const had = map[row.client_id];
+  if (!had || had.updated_at !== row.updated_at) return map;
+  const next = { ...map };
+  delete next[row.client_id];
+  return next;
+}
+
+/**
+ * Whether a save would store what the last one stored: the same answer,
+ * and the same note as the row keeps it (none after Yes). Leaving the
+ * note's field saves it, so the Save note tap that left it is the same
+ * save and sends nothing more.
+ */
+export function sameSave(
+  prev: { answer: MatchAnswer; note: string } | null,
+  next: { answer: MatchAnswer; note: string }
+): boolean {
+  if (!prev || prev.answer !== next.answer) return false;
+  return !asksForNote(next.answer) || cleanNote(prev.note) === cleanNote(next.note);
+}

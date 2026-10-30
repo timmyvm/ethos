@@ -304,9 +304,10 @@ function RepScreen() {
    * recording's id may never come back.
    */
   const [resultKey, setResultKey] = useState<string | null>(null);
-  /* Tester mode (docs/testers.md): read once, and only a tester's
-     results ask the match question. */
-  const tester = useTester();
+  /* Tester mode (docs/testers.md): only a tester's results ask the
+     match question. Read on open, and again when a result lands if that
+     read failed, so a phone that opened this offline still asks. */
+  const tester = useTester(resultKey);
   const [error, setError] = useState<string | null>(null);
   /** The mic (or camera) was refused or absent; owns the error phase. */
   const [micBlock, setMicBlock] = useState<null | {
@@ -1836,9 +1837,11 @@ function Results({
   const section = STEPS[step].key;
   /*
    * The match check (migration 0020): a tester's one question about the
-   * score, on the score step, under everything the score step already
-   * says. The numbers are frozen as they land, so a later change on
-   * this screen can never rewrite what the tester was answering about.
+   * score, at the top of the last step, so it is asked after the score
+   * and the numbers it is about have both been on screen, it opens above
+   * the shelf on the shortest phone, and the step's own tap no longer
+   * walks past it. The numbers are frozen as they land, so a later
+   * change on this screen can never rewrite what was being answered.
    */
   const match = showsMatchCheck({
     tester,
@@ -2064,20 +2067,23 @@ function Results({
         <div
           key={step}
           className={`arrive-x [:root[data-motion=reduce]_&]:[animation-duration:var(--duration-base)]! ${
-            /* A tester's score step flows from the top: the match
-               check's note opens under it, and a centred column would
-               lift the score by half of every line it adds. */
-            step === 0
-              ? match
-                ? "pb-8 pt-8"
-                : "flex flex-1 flex-col justify-center pb-16 pt-4"
-              : "pb-8"
+            step === 0 ? "flex flex-1 flex-col justify-center pb-16 pt-4" : "pb-8"
           }`}
         >
           {step > 0 && (
             <h2 ref={stepHead} tabIndex={-1} className="sr-only">
               {STEPS[step].label}
             </h2>
+          )}
+
+          {last && match && resultKey && (
+            <MatchCheck
+              key={resultKey}
+              clientId={resultKey}
+              repId={result.repId}
+              scores={snapshot}
+              className="mt-6 mb-7 border-b border-hairline pb-4"
+            />
           )}
 
           <div>
@@ -2173,16 +2179,6 @@ function Results({
                 </button>
               )}
             </section>
-          )}
-
-          {section === "score" && match && resultKey && (
-            <MatchCheck
-              key={resultKey}
-              clientId={resultKey}
-              repId={result.repId}
-              scores={snapshot}
-              className="mt-7"
-            />
           )}
 
           {/* recording-10: a ground section, so a sentence-case head. */}

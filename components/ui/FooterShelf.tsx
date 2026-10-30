@@ -12,20 +12,28 @@ import type { ReactNode } from "react";
  * screen drops it in as the last child of its column and nothing else.
  * `mt-auto` pushes it down a flex column that is shorter than the screen.
  *
+ * `sticky={false}` keeps the shelf at the foot of a short screen but lets
+ * it follow the content on a long one, for a tap that must come after
+ * everything above it in reading order: a consent's I agree is never
+ * tappable while its last line is under the shelf.
+ *
  *   <FooterShelf><button className={ACTION_CLASS}>Next</button></FooterShelf>
  */
 export function FooterShelf({
   children,
   hairline = true,
+  sticky = true,
   className = "",
 }: {
   children: ReactNode;
   hairline?: boolean;
+  sticky?: boolean;
   className?: string;
 }) {
   return (
     <div
-      className={`sticky bottom-0 z-10 -mx-5 mt-auto bg-ground px-5 pt-4 pb-[max(16px,env(safe-area-inset-bottom))] ${
+      data-shelf=""
+      className={`${sticky ? "sticky bottom-0 z-10" : ""} -mx-5 mt-auto bg-ground px-5 pt-4 pb-[max(16px,env(safe-area-inset-bottom))] ${
         hairline ? "border-t border-hairline" : ""
       } ${className}`}
     >

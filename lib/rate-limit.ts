@@ -67,13 +67,34 @@ export async function consumeRateLimit(
  * that failed on our side: Whisper down or unreachable. Best effort and
  * fail-open, like the check: a refund that fails costs one slot, never
  * the request.
+ *
+ * Where 0017 is not applied yet (production, STATE.md), the function is
+ * missing and the same refund is made by hand with the service role:
+ * the subject's newest row, by id. Without 0017's lock a refund can race
+ * a check on the same subject; either way one of its rows goes, which
+ * is the refund.
  */
 export async function refundRateLimit(subject: string): Promise<void> {
   try {
     const db = supabaseAdmin();
     if (!db) return;
     const { error } = await db.rpc("refund_rate_limit", { p_subject: subject });
-    if (error) console.error("rate-limit refund failed", error.message);
+    if (!error) return;
+    const { data: newest, error: readError } = await db
+      .from("rate_limits")
+      .select("id")
+      .eq("subject", subject)
+      .order("at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const id = (newest as { id?: number } | null)?.id;
+    if (readError || id == null) {
+      console.error("rate-limit refund failed", error.message);
+      return;
+    }
+    const { error: gone } = await db.from("rate_limits").delete().eq("id", id);
+    if (gone) console.error("rate-limit refund failed", gone.message);
   } catch (e) {
     console.error("rate-limit refund threw", e);
   }

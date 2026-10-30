@@ -170,11 +170,14 @@ export default function Privacy() {
         <h2 className={HEAD}>Testers</h2>
         <p className={READ}>
           If you joined with a tester code, Timothy, who makes Ethos, reads
-          your recordings, transcripts and scores, and your answer after each
-          recording about whether the score matched how it felt. Only he sees
-          them, and only to make the scoring accurate. Ask him and it&apos;s
-          all deleted, any time; deleting your account in Settings deletes it
-          too. If you&apos;re under 18, a parent says yes first.
+          your recordings, transcripts and scores, your answer after each
+          recording about whether the score matched how it felt, and any
+          name, age or email you gave. He is the only person who reads them,
+          and only to make the scoring accurate. Like every recording, yours
+          go to the processors above that score and store them (Supabase,
+          OpenAI, Anthropic and Vercel), and to no one else. Ask him and
+          it&apos;s all deleted, any time; deleting your account in Settings
+          deletes it too. If you&apos;re under 18, a parent says yes first.
         </p>
       </section>
 

@@ -20,6 +20,9 @@ const h = vi.hoisted(() => ({
   db: null as unknown,
   sessions: new Map<string, { id: string; anonymous: boolean; email: string | null }>(),
   limited: new Set<string>(),
+  /** The limiter as Postgres runs it (0006, 0017): slots per subject, under a cap when one is set. */
+  cap: 0,
+  slots: new Map<string, number>(),
 }));
 
 vi.mock("@/lib/stripe", () => ({
@@ -46,16 +49,22 @@ vi.mock("@/lib/db", async (importOriginal) => {
 });
 vi.mock("@/lib/rate-limit", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/rate-limit")>()),
-  consumeRateLimit: vi.fn(async (subject: string) =>
-    h.limited.has(subject)
-      ? { allowed: false, window: "hour", retryAfterS: 1200 }
-      : { allowed: true, window: null, retryAfterS: 0 }
-  ),
+  consumeRateLimit: vi.fn(async (subject: string) => {
+    const used = h.slots.get(subject) ?? 0;
+    if (h.limited.has(subject) || (h.cap > 0 && used >= h.cap)) {
+      return { allowed: false, window: "hour", retryAfterS: 1200 };
+    }
+    h.slots.set(subject, used + 1);
+    return { allowed: true, window: null, retryAfterS: 0 };
+  }),
+  refundRateLimit: vi.fn(async (subject: string) => {
+    h.slots.set(subject, Math.max(0, (h.slots.get(subject) ?? 0) - 1));
+  }),
 }));
 
 import { POST as tester } from "@/app/api/tester/route";
 import { DELETE as deleteAccount } from "@/app/api/account/route";
-import { consumeRateLimit } from "./rate-limit";
+import { consumeRateLimit, LIMITS, refundRateLimit } from "./rate-limit";
 
 let db: FakeDb;
 
@@ -66,7 +75,10 @@ beforeEach(() => {
   h.sessions.set("tok_user", { id: USER, anonymous: false, email: "tim@example.com" });
   h.sessions.set("tok_anon", { id: ANON, anonymous: true, email: null });
   h.limited.clear();
+  h.cap = 0;
+  h.slots.clear();
   vi.mocked(consumeRateLimit).mockClear();
+  vi.mocked(refundRateLimit).mockClear();
   vi.stubEnv("TESTER_CODE", "");
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -146,6 +158,33 @@ describe("POST /api/tester, the code", () => {
     expect(res.status).toBe(429);
     expect(consumeRateLimit).toHaveBeenCalledWith(`tester:u:${ANON}`, "user");
   });
+
+  /*
+   * Friends join together, on one school's or one house's Wi-Fi. Only a
+   * wrong guess may spend the address's allowance: the right code gives
+   * its slot back once it has been checked (checked first, so a limited
+   * address still learns nothing).
+   */
+  it("lets a room of friends on one address all join, and still stops a guesser", async () => {
+    h.cap = LIMITS.user.hour;
+    for (let i = 0; i < 12; i++) {
+      const token = `tok_friend_${i}`;
+      const id = `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`;
+      db.state.users.add(id);
+      h.sessions.set(token, { id, anonymous: true, email: null });
+      expect((await call({ code: "1234" }, { token: null, ip: "203.0.113.7" })).status, `friend ${i} check`).toBe(200);
+      expect((await call({ code: "1234", agree: CONSENT_VERSION }, { token, ip: "203.0.113.7" })).status, `friend ${i} agree`).toBe(200);
+    }
+    expect(db.state.tables.testers).toHaveLength(12);
+
+    const guesses: number[] = [];
+    for (let i = 0; i < LIMITS.user.hour + 2; i++) {
+      guesses.push((await call({ code: String(1000 + i) }, { token: null, ip: "203.0.113.7" })).status);
+    }
+    expect(guesses).toEqual([...Array(LIMITS.user.hour).fill(403), 429, 429]);
+    // Over the limit, the right code is refused too: nothing to learn.
+    expect((await call({ code: "1234" }, { token: null, ip: "203.0.113.7" })).status).toBe(429);
+  });
 });
 
 describe("POST /api/tester, the consent", () => {
@@ -205,10 +244,72 @@ describe("POST /api/tester, the consent", () => {
     expect((await call({ code: "1234", agree: CONSENT_VERSION })).status).toBe(200);
   });
 
-  it("agreeing twice keeps one row", async () => {
-    await call({ code: "1234", agree: CONSENT_VERSION });
-    await call({ code: "1234", agree: CONSENT_VERSION });
+  it("agreeing twice keeps one row, and the first time it was agreed", async () => {
+    const first = await call({ code: "1234", agree: CONSENT_VERSION });
+    const at = db.row("testers", USER)!.consented_at;
+    await new Promise((r) => setTimeout(r, 5));
+    const again = await call({ code: "1234", agree: CONSENT_VERSION });
     expect(db.state.tables.testers).toHaveLength(1);
+    expect(db.row("testers", USER)!.consented_at).toBe(at);
+    expect(again).toEqual(first);
+  });
+
+  it("an older consent is replaced by the new one, with the new time", async () => {
+    db.put("testers", { user_id: USER, consent_version: CONSENT_VERSION - 1, consented_at: "2026-10-29T09:00:00.000Z" });
+    const res = await call({ code: "1234", agree: CONSENT_VERSION });
+    expect(res.status).toBe(200);
+    expect(db.row("testers", USER)).toMatchObject({ consent_version: CONSENT_VERSION });
+    expect(db.row("testers", USER)!.consented_at).not.toBe("2026-10-29T09:00:00.000Z");
+  });
+});
+
+/*
+ * A friend who joins on the introduction and then signs in to the
+ * account they already had: signing in swaps the anonymous session for
+ * the account, and the testing they agreed to on this phone goes with
+ * them, consent version and time as they gave them.
+ */
+describe("POST /api/tester, carrying testing to the account signed in to", () => {
+  const AT = "2026-10-30T09:00:00.000Z";
+
+  it("moves the anonymous tester's consent to the account", async () => {
+    db.put("testers", { user_id: ANON, consent_version: CONSENT_VERSION, consented_at: AT });
+    const res = await call({ carry: "tok_anon" });
+    expect(res).toEqual({ status: 200, body: { ok: true, tester: { consent_version: CONSENT_VERSION, consented_at: AT } } });
+    expect(db.row("testers", USER)).toMatchObject({ consent_version: CONSENT_VERSION, consented_at: AT });
+    expect(db.row("testers", ANON)).toBeUndefined();
+  });
+
+  it("keeps the account's own consent when it is as new", async () => {
+    db.put("testers", { user_id: USER, consent_version: CONSENT_VERSION, consented_at: "2026-10-01T09:00:00.000Z" });
+    db.put("testers", { user_id: ANON, consent_version: CONSENT_VERSION, consented_at: AT });
+    const res = await call({ carry: "tok_anon" });
+    expect(res.status).toBe(200);
+    expect(db.row("testers", USER)!.consented_at).toBe("2026-10-01T09:00:00.000Z");
+  });
+
+  it("moves nothing from an account that is not a tester, or from a real account", async () => {
+    expect((await call({ carry: "tok_anon" })).status).toBe(404);
+    db.put("testers", { user_id: USER, consent_version: CONSENT_VERSION, consented_at: AT });
+    h.sessions.set("tok_other", { id: ANON, anonymous: false, email: "other@example.com" });
+    expect((await call({ carry: "tok_other" })).status).toBe(403);
+    expect(db.row("testers", ANON)).toBeUndefined();
+  });
+
+  it("needs both sessions to be real ones", async () => {
+    db.put("testers", { user_id: ANON, consent_version: CONSENT_VERSION, consented_at: AT });
+    expect((await call({ carry: "tok_gone" })).status).toBe(403);
+    expect((await call({ carry: "tok_anon" }, { token: null })).status).toBe(401);
+    expect((await call({ carry: 42 })).status).toBe(403);
+    expect(db.row("testers", USER)).toBeUndefined();
+    expect(db.row("testers", ANON)).toMatchObject({ consented_at: AT });
+  });
+
+  it("never needs the code, and gives back the slot it used", async () => {
+    db.put("testers", { user_id: ANON, consent_version: CONSENT_VERSION, consented_at: AT });
+    h.cap = LIMITS.user.hour;
+    expect((await call({ carry: "tok_anon" })).status).toBe(200);
+    expect(h.slots.get("tester:ip:203.0.113.9")).toBe(0);
   });
 });
 

@@ -161,6 +161,8 @@ const reps = SPOKE.map((ago, i) => {
       delivery_metrics: null,
       presence_score: null,
       delivery_moments: null,
+      /* The outbox key it was stored under (0016): a tester's answer about it is filed by this. */
+      client_id: `look-${i + 1}`,
     };
   });
 
@@ -299,8 +301,9 @@ const TABLES = FRESH
   : { reps, xp_events, coin_ledger, lexicon, streak_freezes, onboarding: [] };
 
 /** Tester mode for the camera (scripts/look-testers.mjs): who is a tester, what the answers' writes do, and what was sent. */
-export const testerMode = { tester: process.env.LOOK_TESTER === "1", feedback: "ok", answers: [] };
-const TESTER_ROW = { consent_version: 1, consented_at: iso(9) };
+export const testerMode = { tester: process.env.LOOK_TESTER === "1", feedback: "ok", answers: [], consentVersion: 2, stored: {} };
+/** A tester on the consent the app shows (content/tester.ts CONSENT_VERSION); set testerMode.consentVersion lower for one asked again. */
+const testerRow = () => ({ consent_version: testerMode.consentVersion, consented_at: iso(9) });
 
 async function supabase(route) {
   const req = route.request();
@@ -318,7 +321,7 @@ async function supabase(route) {
      "fail" refuses the match check's answers. Off, both behave as any
      table the account has no row in. */
   if (url.pathname.startsWith("/rest/v1/testers")) {
-    const row = testerMode.tester ? TESTER_ROW : null;
+    const row = testerMode.tester ? testerRow() : null;
     if (single) return route.fulfill(row ? json(row) : json({ code: "PGRST116", message: "0 rows" }, 406));
     return route.fulfill(json(row ? [row] : []));
   }
@@ -330,7 +333,15 @@ async function supabase(route) {
     testerMode.answers.push(sent);
     if (testerMode.feedback === "fail") return route.fulfill(json({ code: "XX000", message: "look: refused" }, 500));
     if (testerMode.feedback === "slow") await new Promise((r) => setTimeout(r, 1500));
+    // Kept by recording, so the Log's page reopens an answer as it was left.
+    if (sent?.client_id) testerMode.stored[sent.client_id] = sent;
     return route.fulfill({ status: 201, headers: cors, body: "" });
+  }
+  if (url.pathname.startsWith("/rest/v1/tester_feedback")) {
+    const key = (url.searchParams.get("client_id") ?? "").replace(/^eq\./, "");
+    const row = testerMode.stored[key] ?? null;
+    if (single) return route.fulfill(row ? json(row) : json({ code: "PGRST116", message: "0 rows" }, 406));
+    return route.fulfill(json(row ? [row] : []));
   }
   if (url.pathname.startsWith("/rest/v1/billing")) {
     const row = plan.billing;

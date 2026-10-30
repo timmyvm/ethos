@@ -45,11 +45,24 @@ describe("the trait sheet shows how you speak it (D37)", () => {
   it("lets you practise only the five the lessons teach, from You", () => {
     for (const key of ["pause", "fillers", "repairs", "pace", "range"]) {
       expect(isTaught(key)).toBe(true);
-      expect(practiseHref(key)).toBe(`/practice/${key}?from=you`);
+      expect(practiseHref(key)).toMatch(new RegExp(`^/lessons/[a-z-]+\\?from=you$`));
     }
     for (const key of ["structure", "credibility", "engagement", "confidence"]) {
       expect(practiseHref(key)).toBeNull();
     }
+  });
+
+  it("Practise opens the trait's next lesson, not its walk (D37)", () => {
+    // Nothing recorded: the trait's first lesson.
+    expect(practiseHref("pace")).toBe("/lessons/room-to-land?from=you");
+    expect(practiseHref("pause")).toBe("/lessons/the-landing?from=you");
+    // A started lesson is carried on with; a finished one is passed.
+    expect(practiseHref("pace", { "room-to-land": 3, "one-gear-down": 1 })).toBe("/lessons/one-gear-down?from=you");
+    expect(practiseHref("pace", { "room-to-land": 3 })).toBe("/lessons/one-gear-down?from=you");
+    // All three finished: back to its first.
+    expect(practiseHref("pace", { "room-to-land": 3, "one-gear-down": 3, "change-gear": 3 })).toBe("/lessons/room-to-land?from=you");
+    // Another trait's progress never moves it.
+    expect(practiseHref("pace", { "the-landing": 1 })).toBe("/lessons/room-to-land?from=you");
   });
 
   it("every information sheet closes with Done at the top right", () => {

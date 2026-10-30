@@ -149,20 +149,21 @@ export function ShareCard({ reps, quiet = false }: { reps: RepRow[]; quiet?: boo
       <h2 className="detail-head">Day 1 vs now</h2>
       <p className="mt-0.5 text-caption text-stone-500">Fillers a minute</p>
       {/* Then and now, side by side: the first reading in stone, the
-          latest in ink. A recording with no length has no rate, so it
-          shows a dash, never a 0. */}
+          latest in ink, at num-l so the change outweighs the tap under
+          it (the numbers are the product). A recording with no length
+          has no rate, so it shows a dash, never a 0. */}
       <dl className="mt-4 grid grid-cols-2 gap-3">
         {/* The term reads first and sits under its number
             (column-reverse), the way the stats on the card above do. */}
         <div className="flex flex-col-reverse">
           <dt className="mt-1 text-caption text-stone-500">Day 1</dt>
-          <dd className="font-display text-num-m tabular-nums text-stone-500">
+          <dd className="font-display text-num-l tabular-nums text-stone-500">
             {was === null ? "–" : was.toFixed(1)}
           </dd>
         </div>
         <div className="flex flex-col-reverse">
           <dt className="mt-1 text-caption text-stone-500">Now</dt>
-          <dd className="font-display text-num-m tabular-nums">
+          <dd className="font-display text-num-l tabular-nums">
             {now === null ? "–" : now.toFixed(1)}
           </dd>
         </div>

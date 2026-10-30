@@ -1,6 +1,8 @@
+import { lessonsForTrait } from "@/content/lessons";
 import { TRAIT, type TraitId } from "@/content/traits";
 import { withFrom } from "./back-from";
 import type { RepRow } from "./client-data";
+import { upNextLesson } from "./lesson-up-next";
 import type { TraitKey } from "./traits";
 import { fmtRaw, ordinal, readTraitsFromRow } from "./trait-readings";
 
@@ -50,11 +52,17 @@ export function sheetReading(key: TraitKey, reps: RepRow[]): SheetReading | null
 }
 
 /**
- * Where "Practise <trait>" goes (D37): the trait's own walk, the one
- * teaching screen all five taught traits have (the road's units teach
- * three of them and only one has its intro written), opened from You
- * so its back says You. Null for the four the Index only reads.
+ * Where "Practise <trait>" goes (D37): the trait's next lesson, the one
+ * the Lessons tab would carry on with inside that trait (started first,
+ * then the first not finished, then its first when all three are), so
+ * the tap lands on a lesson with its Start, opened from You so its back
+ * says You. It went to the trait walk, whose one tap is "Why it
+ * matters". `done` is practices recorded per lesson (lessonProgress).
+ * Null for the four the Index only reads.
  */
-export function practiseHref(key: string): string | null {
-  return isTaught(key) ? withFrom(`/practice/${key}`, "you") : null;
+export function practiseHref(key: string, done: Record<string, number> = {}): string | null {
+  if (!isTaught(key)) return null;
+  const mine = lessonsForTrait(key);
+  const next = upNextLesson(done, key, mine) ?? mine[0];
+  return next ? withFrom(`/lessons/${next.id}`, "you") : withFrom(`/practice/${key}`, "you");
 }

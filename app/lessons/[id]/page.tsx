@@ -2,11 +2,12 @@
 
 import { BackLink } from "@/components/ui/ScreenHeader";
 import Link from "next/link";
-import { notFound, useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { notFound, useParams, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { IconCheck } from "@/components/Icon";
 import { TraitChip } from "@/components/TraitChip";
 import { lessonById } from "@/content/lessons";
+import { backFrom } from "@/lib/back-from";
 import { TRAIT } from "@/content/traits";
 import { fetchRepSpine, fetchReps } from "@/lib/client-data";
 import { readable } from "@/lib/load";
@@ -119,11 +120,11 @@ export default function LessonPage() {
         >
           <div className="absolute inset-x-0 -bottom-px h-6 rounded-[50%_50%_0_0/100%_100%_0_0] bg-ground" />
         </div>
-        <BackLink
-          href="/lessons"
-          label="Lessons"
-          className="relative z-[1] self-start"
-        />
+        {/* Its parent is Lessons, or You when You's trait sheet opened
+            it (?from=you, D37), so the back names where it goes (D18). */}
+        <Suspense fallback={<BackLink href="/lessons" label="Lessons" className="relative z-[1] self-start" />}>
+          <LessonBack />
+        </Suspense>
         <div className="relative min-h-0 flex-1">
           {/* A size container with a definite size (cq units read 0 in a
               container whose height comes from flex-grow), so the art can
@@ -306,4 +307,10 @@ export default function LessonPage() {
       </FooterShelf>
     </main>
   );
+}
+
+/** The lesson's back: Lessons, unless a `?from=` door names its parent. */
+function LessonBack() {
+  const parent = backFrom(useSearchParams().get("from"), "lessons");
+  return <BackLink href={parent.href} label={parent.label} className="relative z-[1] self-start" />;
 }

@@ -36,6 +36,7 @@ import {
 } from "@/lib/client-data";
 import { LEVEL_AT, DOUBLE_AT, rankedTraits, traitLevels, type TraitLevel } from "@/lib/traits";
 import { practiseHref, sheetReading } from "@/lib/trait-sheet";
+import { lessonProgress } from "@/lib/lesson-progress";
 import { TRAIT, type TraitId } from "@/content/traits";
 import { syncFreezes } from "@/lib/freeze-sync";
 import { levelFromXp } from "@/lib/level";
@@ -113,6 +114,7 @@ export default function YouPage() {
   /** Every recording, a few columns each: the lifetime numbers. */
   const [spine, setSpine] = useState<RepSpine[]>([]);
   const [failed, setFailed] = useState(false);
+  const [allBadges, setAllBadges] = useState(false);
   /**
    * `null` until the read lands, like `reps` and `xp`. Starting at `[]`
    * printed the empty example to someone with forty upgrades for as
@@ -412,6 +414,15 @@ export default function YouPage() {
   const level = levelFromXp(xp?.total ?? 0);
   const badges = achievements(history);
   const earnedCount = badges.filter((b) => b.earned).length;
+  /* The ladder past the next three not yet earned folds into one row
+     (S12: You was 2,293pt against its 2,000): what you have, then what
+     is next, then the count of the rest. */
+  const shownBadges = (() => {
+    if (loading || allBadges) return badges;
+    let next = 0;
+    return badges.filter((b) => b.earned || next++ < 3);
+  })();
+  const foldedBadges = badges.length - shownBadges.length;
 
   // "Save your progress" gate: appears only after there IS progress
   // (DECISIONS #15: never before the first recording).
@@ -616,6 +627,9 @@ export default function YouPage() {
             label="Streak"
             value={loading ? undefined : streak.current}
             mark
+            /* Today's chip's rule (D25, S06): unlit until today's
+               recording lands, the same flame on both tabs. */
+            lit={!streak.atRisk}
           />
           <Stat label="Best streak" value={loading ? undefined : streak.longest} />
           <Stat
@@ -911,7 +925,7 @@ export default function YouPage() {
           )}
         </h2>
         <div className="inset-group stagger mt-3" data-inset="icon" aria-busy={loading || undefined}>
-          {badges.map((a) => {
+          {shownBadges.map((a) => {
             const earned = !loading && a.earned;
             return (
               <Link
@@ -961,6 +975,21 @@ export default function YouPage() {
               </Link>
             );
           })}
+          {foldedBadges > 0 && (
+            <button
+              type="button"
+              onClick={() => setAllBadges(true)}
+              className="group-row press-row flex min-h-14 w-full items-center gap-3.5 text-left"
+            >
+              {/* The count stands in the names' column, under them. */}
+              <span aria-hidden className="w-10 shrink-0" />
+              <span className="font-display min-w-0 flex-1 text-row text-stone-500">
+                {foldedBadges} more to earn
+              </span>
+              {/* It opens here, so the mark points down, not on. */}
+              <Disclosure className="rotate-90 text-stone-400" />
+            </button>
+          )}
         </div>
       </section>
 
@@ -1029,7 +1058,7 @@ export default function YouPage() {
       </div>
 
       {openTrait && (
-        <TraitSheet trait={openTrait} reps={history} onClose={() => setOpenTrait(null)} />
+        <TraitSheet trait={openTrait} reps={history} done={lessonProgress(lifetime)} onClose={() => setOpenTrait(null)} />
       )}
 
       {paywall && (
@@ -1118,10 +1147,13 @@ function Stat({
   label,
   value,
   mark = false,
+  lit = true,
 }: {
   label: string;
   value: number | null | undefined;
   mark?: boolean;
+  /** The flame is gold once today's recording lands, stone on an open day. */
+  lit?: boolean;
 }) {
   return (
     <div className="min-w-0">
@@ -1134,7 +1166,10 @@ function Stat({
           <span className="relative inline-block">
             {value === null ? "–" : <CountUp value={value} durationMs={DURATION.max} />}
             {mark && value !== null && value > 0 && (
-              <span aria-hidden className="you-gold earned-lit absolute left-full top-1/2 ml-1 -translate-y-1/2">
+              <span
+                aria-hidden
+                className={`you-gold absolute left-full top-1/2 ml-1 -translate-y-1/2 ${lit ? "earned-lit" : "text-stone-400"}`}
+              >
                 <IconFlame size={18} />
               </span>
             )}
@@ -1256,17 +1291,20 @@ const WHAT: Record<string, string> = {
 function TraitSheet({
   trait,
   reps,
+  done,
   onClose,
 }: {
   trait: TraitLevel;
   reps: RepRow[];
+  /** Practices recorded per lesson, every recording counted, so Practise opens the next one. */
+  done: Record<string, number>;
   onClose: () => void;
 }) {
   const toned = isToned(trait.key);
   const name = toned ? TRAIT[trait.key as TraitId].name : trait.name;
   const what = toned ? TRAIT[trait.key as TraitId].what : WHAT[trait.key];
   const reading = sheetReading(trait.key, reps);
-  const practise = practiseHref(trait.key);
+  const practise = practiseHref(trait.key, done);
   return (
     <Overlay label={name} onClose={onClose}>
       <div

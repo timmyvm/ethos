@@ -110,12 +110,16 @@ type Phase = "ready" | "busy" | "error" | "needsAccount" | "code";
 const LADDER_RISE_DELAY_MS = 180;
 
 export function Paywall({
-  reason,
   headline = "Premium opens everything",
   onClose,
   onUnlocked,
   returnTo,
 }: {
+  /**
+   * What was tapped ("Premium games", "Full history · premium"). The
+   * sheet no longer prints it under the mark (D40); every opener still
+   * names itself, for the day a line earns its place again.
+   */
   reason: string;
   /**
    * Names what continues or deepens, keyed to the surface that opened
@@ -151,7 +155,6 @@ export function Paywall({
   const [codeError, setCodeError] = useState<string | null>(null);
   const [unlocked, setUnlocked] = useState(false);
   const codeRef = useRef<HTMLInputElement>(null);
-  const why = reasonLine(reason);
   const readout = paywallStep(step, today);
   // Which way the readout's lines turn: later months come from above, as
   // the digits do when the price goes down.
@@ -202,7 +205,11 @@ export function Paywall({
   const measure = useCallback(() => {
     const el = scroller.current;
     if (!el) return;
-    setMore(el.scrollHeight - el.scrollTop - el.clientHeight > 1);
+    /* More means content under the edge, not the part's own foot
+       padding: with the terms in the shelf (D40) a 320x844 screen hid
+       10px of padding and the fade washed the month labels over it. */
+    const pad = parseFloat(getComputedStyle(el).paddingBottom) || 0;
+    setMore(el.scrollHeight - el.scrollTop - el.clientHeight > pad + 1);
     setUnder(el.scrollTop > 1);
   }, []);
   // A state that grows the shelf (the code, the account ask, an error,
@@ -369,8 +376,9 @@ export function Paywall({
   const head = (
     <>
       <PremiumMark variant="chip" />
-      {why && <p className="eyebrow mt-2.5 text-cream/70">{why}</p>}
-      <h2 className="font-display mt-1 text-title text-cream">{headline}</h2>
+      {/* No source line under the mark (D40): it said "Games" over a
+          tab called Practice, and the headline already names the ask. */}
+      <h2 className="font-display mt-2.5 text-title text-cream">{headline}</h2>
     </>
   );
 
@@ -414,7 +422,7 @@ export function Paywall({
 
           {!unlocked && (
             /* The ladder: a head, the readout the stair drives, the
-               stair, and the facts in one caption. */
+               stair. The facts stand over the tap, in the shelf (D40). */
             <section aria-labelledby="paywall-ladder-head" className="mt-5 border-t border-cream/15 pt-4">
               <h3 id="paywall-ladder-head" className="detail-head text-cream">
                 {PAYWALL_COPY.head}
@@ -452,7 +460,6 @@ export function Paywall({
                 summary={ladderSentence()}
                 className="mt-3"
               />
-              <p className="mt-4 text-caption leading-relaxed text-cream/70">{PAYWALL_COPY.caption}</p>
             </section>
           )}
         </div>
@@ -555,6 +562,15 @@ export function Paywall({
               {phase === "error" && error && (
                 <p role="alert" className="mb-3 text-caption leading-relaxed text-terracotta-300">
                   {error}
+                </p>
+              )}
+              {/* The renewal and the reset, 8px over the tap that agrees
+                  to them (D40): in the scroll they sat faded under this
+                  shelf at the moment of purchase. 13/500 white at 72%,
+                  8.07:1 on the plum; two lines at most at 320. */}
+              {!held && (
+                <p data-look="paywall-terms" className="mb-2 text-link font-medium text-white/72">
+                  {PAYWALL_COPY.caption}
                 </p>
               )}
               {/* Busy is aria-disabled, never disabled: a disabled button

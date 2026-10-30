@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { BillingRow, ProfileRow } from "./client-data";
+import { FIRST_PRICE_CENTS, formatAud } from "./pricing";
 import {
   CHECKOUT_COPY,
   CODE_LINE,
@@ -240,9 +241,11 @@ describe("the paywall's words", () => {
   });
 
   it("keeps the spec's lines", () => {
-    expect(PAYWALL_COPY.start).toBe("Start at A$12.99");
+    expect(PAYWALL_COPY.start).toBe("Start at A$12.99 a month");
+    expect(PAYWALL_COPY.start).toContain(formatAud(FIRST_PRICE_CENTS));
+    expect(PAYWALL_COPY.start).toMatch(/ a month$/);
     expect(PAYWALL_COPY.caption).toBe(
-      "Renews monthly until you cancel, any time in the app. If a plan ends, the next one starts at A$12.99."
+      "Renews monthly until you cancel in the app. If a plan ends, the next starts at A$12.99."
     );
   });
 });

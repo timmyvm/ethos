@@ -8,15 +8,17 @@ import { project } from "@/lib/spring";
  * sheet follows a thumb's arc), the content's scroll (up, into content
  * that has more below), or a sideways gesture that belongs to a control
  * that owns sideways moves (the paywall's stair, which says so with
- * `touch-action: pan-y`). A touch that starts in content already
- * scrolled never reaches this: that finger is the scroll's, whichever
- * way it goes.
+ * `touch-action: pan-y`).
  *
  * Two questions per move. Overlay's touchmove asks `sheetHoldsTouch`
  * from the first pixel, so the browser's own pan is refused before it can
  * start (a pan that starts cancels the pointer, and the drag with it);
  * its pointermove asks `sheetClaim` at `SHEET_SLOP_PX` before the sheet
  * moves, so a tap stays a tap.
+ *
+ * A touch that starts in content already scrolled is the hand-off's
+ * (handoff, below): its first move says whether the sheet drives the
+ * scroll and then itself, or the browser scrolls it as before.
  */
 
 /** Ten pixels of intent before the sheet moves (apple-design §10). */
@@ -119,4 +121,111 @@ export function sheetDismisses({
   if (velocity <= -300) return false;
   if (from + travel + project(velocity) > height * 0.5) return true;
   return run >= Math.max(room * 0.75, DISMISS_MIN_TRAVEL_PX);
+}
+
+/*
+ * The hand-off (handoff, Timothy: "Yea add that"). A UIKit sheet over a
+ * scroll view takes one finger as one gesture: a swipe down on content
+ * scrolled part way scrolls it back to its top, and the rest of the same
+ * swipe pulls the sheet, with no second swipe and no seam where one
+ * becomes the other. The browser cannot hand a touch from its own scroll
+ * to the page mid-swipe (once it scrolls, the pointer is cancelled), so
+ * the sheet takes such a touch from its first move and drives both.
+ */
+
+/**
+ * Is a touch on content already scrolled the sheet's to drive? Asked once,
+ * on its first move (iOS settles a scroll there, and the browser's own
+ * scroll cannot be taken back later): a move with any downward lean, at
+ * any angle, is; a move up or level stays the browser's native scroll,
+ * momentum and all. A sideways move on a control that owns sideways moves
+ * (the stair) is the control's, scrolled or not.
+ */
+export function sheetTakesScrolledTouch(dx: number, dy: number, sideways = false): boolean {
+  if (sideways && Math.abs(dx) > Math.abs(dy)) return false;
+  return dy > 0;
+}
+
+/** Where a finger on scrolled content has put the two: the content's scrollTop and the sheet's offset (down is positive). */
+export type HandOff = { scroll: number; sheet: number };
+
+/**
+ * A finger move of `dy` px (down is positive) split between the content
+ * and the sheet. They sit on one line: the sheet's offset above zero and
+ * the content's scroll below it, so a move down spends the scroll first
+ * and gives the rest to the sheet, and a move up brings the sheet to rest
+ * first and then scrolls the content again. Never both at once, and
+ * finger travel is always scroll travelled plus sheet offset, except at
+ * the content's end (`max`), where the scroll stops; asked move by move,
+ * the first move back down moves it at once.
+ */
+export function handOff(at: HandOff, dy: number, max: number): HandOff {
+  const line = at.sheet - at.scroll + dy;
+  if (line >= 0) return { scroll: 0, sheet: line };
+  return { scroll: Math.min(Math.max(0, max), -line), sheet: 0 };
+}
+
+/** UIScrollView's normal deceleration rate: the speed kept each millisecond. */
+export const SCROLL_DECELERATION = 0.998;
+
+/** Slower than this (px/s, a third of a pixel a frame at 60Hz) a glide has stopped. */
+export const MOMENTUM_REST_PX_S = 20;
+
+/**
+ * One frame of a glide: content let go while it still had scroll keeps
+ * the finger's speed (`velocity`, px/s along scrollTop) and loses it at
+ * `rate` a millisecond, the series `project` sums. Any frame length gives
+ * the same path. It stops dead at the top and at the end (`max`); a glide
+ * that reaches the top never pulls the sheet, because a fling closes a
+ * sheet only when the sheet itself was being dragged.
+ */
+export function glideStep(
+  at: { scroll: number; velocity: number },
+  ms: number,
+  max: number,
+  rate = SCROLL_DECELERATION
+): { scroll: number; velocity: number; done: boolean } {
+  const kept = Math.pow(rate, Math.max(0, ms));
+  const scroll = at.scroll + ((at.velocity / 1000) * rate * (1 - kept)) / (1 - rate);
+  const velocity = at.velocity * kept;
+  if (scroll <= 0) return { scroll: 0, velocity: 0, done: true };
+  if (scroll >= max) return { scroll: Math.max(0, max), velocity: 0, done: true };
+  if (Math.abs(velocity) < MOMENTUM_REST_PX_S) return { scroll, velocity: 0, done: true };
+  return { scroll, velocity, done: false };
+}
+
+/**
+ * What letting go of a hand-off does. The sheet moved: its own rules
+ * decide ("close" or "home"), with the travel, the run and the room all
+ * counted from the hand-off point, where it started to move: the finger
+ * is there plus the sheet's offset, 1:1. Counted from the press, a long
+ * swipe that spent most of itself scrolling read as a long pull. The
+ * sheet still at rest: the content glides (`glideStep`).
+ * `velocity` is the finger's, px/s, down positive; `screen` the
+ * viewport's height; `fingerY` where the finger let go.
+ */
+export function handOffEnd({
+  at,
+  velocity,
+  height,
+  screen,
+  fingerY,
+}: {
+  at: HandOff;
+  velocity: number;
+  height: number;
+  screen: number;
+  fingerY: number;
+}): "close" | "home" | "glide" {
+  if (at.sheet <= 0) return "glide";
+  const handedOff = fingerY - at.sheet;
+  return sheetDismisses({
+    travel: at.sheet,
+    velocity,
+    height,
+    room: Math.max(0, screen - handedOff),
+    run: at.sheet,
+  })
+    ? "close"
+    : "home";
 }

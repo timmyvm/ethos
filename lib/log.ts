@@ -20,6 +20,22 @@ import { TRAITS, type TraitKey } from "./traits";
 /** The pace band the results walk already names (RepResult). */
 export const WPM_ZONE = { low: 130, high: 160 } as const;
 
+/**
+ * Every filler counted (um, uh, like, you know), a minute (E32). The
+ * Fillers trait is um or uh per hundred words (content/traits.ts), so
+ * Today's tile and this rate are two different numbers: a row or a card
+ * that printed this one under the trait's own name read as the same
+ * trait in a second unit. The one label for it, in the row's and the
+ * card's grammar (`lib/trait-labels.test.ts` holds every label to it).
+ */
+export const ALL_FILLERS = "All fillers";
+export const ALL_FILLERS_LABEL = {
+  /** The What moved row and the shared picture's row. */
+  row: `${ALL_FILLERS} / min`,
+  /** The Day 1 vs now card's caption. */
+  card: `${ALL_FILLERS} a minute`,
+} as const;
+
 export type Direction = "up" | "down" | "flat";
 
 export interface MovedRow {
@@ -87,7 +103,7 @@ function endpoints(
 /**
  * Pace is the one metric with a zone rather than a direction, and the
  * zone is printed so the colour is inferable from the row (#217): "in
- * 130–160" is sage, "over 160" or "under 130" is rust. A distance to a
+ * 130 to 160" is sage, "over 160" or "under 130" is rust. A distance to a
  * target the reader cannot see is not a change anyone can check.
  */
 function paceRow(series: number[]): MovedRow {
@@ -100,7 +116,7 @@ function paceRow(series: number[]): MovedRow {
   if (last < WPM_ZONE.low) {
     return { ...base, change: `under ${WPM_ZONE.low}`, direction: "down" };
   }
-  return { ...base, change: `in ${WPM_ZONE.low}–${WPM_ZONE.high}`, direction: "up" };
+  return { ...base, change: `in ${WPM_ZONE.low} to ${WPM_ZONE.high}`, direction: "up" };
 }
 
 /**
@@ -128,7 +144,7 @@ export function movedRows(reps: RepRow[]): MovedRow[] {
     .map((r) => r.ethos_index as number);
   return [
     endpoints("index", "Ethos Index", index),
-    endpoints("fillers", "Fillers / min", reps.map(fpm), { decimals: 1, invert: true }),
+    endpoints("fillers", ALL_FILLERS_LABEL.row, reps.map(fpm), { decimals: 1, invert: true }),
     paceRow(reps.map((r) => r.wpm)),
     endpoints("held", "Held pauses", reps.map(held)),
   ];

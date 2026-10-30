@@ -5,16 +5,24 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { DemosArt } from "@/components/DemosArt";
-import { IconBoss } from "@/components/Icon";
+import { IconBoss, IconGlobe } from "@/components/Icon";
 import { ModPicker } from "@/components/ModPicker";
 import { Paywall } from "@/components/Paywall";
 import { PremiumMark } from "@/components/PremiumMark";
 import { Reel, useReel } from "@/components/Reel";
 import { Disclosure } from "@/components/ui/Disclosure";
+import { HeroStage } from "@/components/ui/HeroStage";
 import { BackLink } from "@/components/ui/ScreenHeader";
-import { BOSS_RESEARCH_SECONDS, bossLobbyLine } from "@/lib/boss";
+import {
+  BOSS_RESEARCH_SECONDS,
+  bossAnswerLine,
+  bossReadLine,
+  bossWeekLine,
+  daysLeftInWeek,
+} from "@/lib/boss";
 import { fetchProfile, fetchReps } from "@/lib/client-data";
 import { COLD_TOPICS, weeklyTopic, type ColdTopic } from "@/lib/cold-topics";
+import { HOSTILE_LINE } from "@/lib/hostile";
 import { weekStart } from "@/lib/level";
 import { repHref } from "@/lib/rep-config";
 import { modById, STRESS_MODS, xpMultiplier } from "@/lib/stress-mods";
@@ -92,6 +100,9 @@ export default function BossPage() {
   const [library, setLibrary] = useState(false);
   const [query, setQuery] = useState("");
   const [spinsUsed, setSpinsUsed] = useState<number | null>(null);
+  /* The stage's week line waits for both reads, as Practice's does. */
+  const [weekRead, setWeekRead] = useState(false);
+  const [daysLeft, setDaysLeft] = useState<number | null>(null);
 
   useEffect(() => {
     const w = weeklyTopic();
@@ -99,6 +110,7 @@ export default function BossPage() {
     setHeadlinerId(w.id);
     const thisWeek = weekStart().toISOString().slice(0, 10);
     setWeek(thisWeek);
+    setDaysLeft(daysLeftInWeek(weekStart()));
     setSpinsUsed(readSpins(thisWeek));
     fetchProfile()
       .then((p) => setPremium(p?.premium ?? false))
@@ -116,8 +128,10 @@ export default function BossPage() {
         setTakenThisWeek(
           boss.some((r) => new Date(r.created_at) >= since)
         );
+        setWeekRead(true);
       })
-      .catch(() => {});
+      /* A failed read lands on "days left", which is true either way. */
+      .catch(() => setWeekRead(true));
   }, []);
 
   useEffect(() => {
@@ -200,18 +214,54 @@ export default function BossPage() {
 
       {phase === "lobby" && (
         <>
-          <p className="eyebrow mt-4">Cold Topic</p>
-          <h1 className="font-display mt-1.5 text-title">
-            Explain what you haven&apos;t studied.
-          </h1>
-          <p className="mt-2 text-read text-stone-800 text-pretty">
-            {bossLobbyLine()} You get a delivery score and a fact-check.
+          {/* Practice's stage, the same one (E30): sky, the sheet
+              radius, p-5, the screen's one elev-2, the week's boss named
+              as Practice names it, what it asks in its two clocks, the
+              week's state from the same helper, and the clock Demos
+              standing on its floor at the right, without his spring: his
+              arrival stays Practice's weekly moment (#313). The title is
+              the page's h1. Nothing on the stage is a tap. */}
+          <HeroStage
+            className="mt-4"
+            eyebrow="This week's boss"
+            line={
+              <p
+                className="practice-week font-display mt-auto pt-3 text-link font-bold"
+                data-done={takenThisWeek || undefined}
+              >
+                {bossWeekLine(weekRead ? takenThisWeek : null, daysLeft)}
+              </p>
+            }
+            art={<DemosArt pose="clock" size={132} grounded halo={{ tone: "sky", kind: "stage" }} />}
+          >
+            <h1 className="font-display mt-1.5 text-title font-extrabold">Cold Topic</h1>
+            <p className="stage-ink font-display mt-1 text-body font-semibold">
+              <span className="block">{bossReadLine()}</span>
+              <span className="block">{bossAnswerLine()}</span>
+            </p>
+          </HeroStage>
+
+          {/* The topic on the ground, at the title's 26/800, and what
+              the take earns under it. Topic title only: the study sheet
+              waits for the clock (#182). */}
+          <Reel
+            state={reel}
+            current={shown}
+            className={`font-display mt-5 text-title font-extrabold [--reel-cell:3.75rem] ${
+              topic ? "" : "invisible"
+            }`}
+            render={(t) => (
+              <span className="flex h-full items-center text-balance">{t.title}</span>
+            )}
+          />
+          <p className="mt-1 text-link font-medium text-stone-500">
+            You get a delivery score and a fact-check.
           </p>
 
           {/* The record, in the numbers' own weight: a count and the
               best Index, the second in the earned colour. */}
           {bossCount > 0 && (
-            <p className="mt-2.5 text-caption font-semibold text-stone-500">
+            <p className="mt-1 text-caption font-semibold text-stone-500">
               <span className="font-display font-extrabold tabular-nums">
                 {bossCount}
               </span>{" "}
@@ -227,118 +277,133 @@ export default function BossPage() {
             </p>
           )}
 
+          {/* The wheel, then the take. Spin is the secondary pill with
+              the allowance beside it: allotted, not earned, so never
+              sage, and the tier is named once, by the Premium head
+              below. The count waits for the profile, so a paying
+              account never sees one. */}
+          <div className="mt-4 flex min-h-11 items-center gap-3">
+            <button
+              type="button"
+              onClick={spinWheel}
+              disabled={reel.rolling || !topic}
+              className={`press font-display min-h-11 shrink-0 rounded-tap border border-edge bg-surface px-5 text-row ${DISABLED_CLASS}`}
+            >
+              Spin
+            </button>
+            {premium === false && spinsUsed !== null && (
+              <span className="text-link tabular-nums text-stone-500">
+                {spinsLeft} spin{spinsLeft === 1 ? "" : "s"} left
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setPhase("research")}
+            disabled={reel.rolling || !topic}
+            className={`${ACTION_CLASS} ${DISABLED_CLASS} mt-3`}
+          >
+            Start the 4 minutes
+          </button>
           {locked && (
-            <div className="card mt-4 flex items-center justify-between gap-3 p-4">
-              {/* The word leaves the sentence and the mark carries it,
-                  so the fact and the tier are two things (#280). */}
-              <p className="text-caption leading-relaxed text-stone-500">
-                You&apos;ve taken this week&apos;s boss. It resets Monday.
-              </p>
-              <PremiumMark variant="chip" />
+            /* The week's run is spent: said where the take is, plainly.
+               The tier is the Premium head's to name. */
+            <p className="mt-2 text-caption text-stone-500">
+              You&apos;ve taken this week&apos;s boss. It resets Monday.
+            </p>
+          )}
+
+          {/* Mods, folded (modes-3): optional, never suggested, so one
+              row until it is asked for, the grammar Today uses. Its
+              trailing value is what the choice is worth. The list's own
+              header would say "Stress mods" a second time under this
+              row, so the wrapper folds it away. */}
+          <button
+            type="button"
+            aria-expanded={showMods}
+            aria-controls="boss-mods"
+            onClick={() => setShowMods((v) => !v)}
+            className="press-row group-row mt-7 flex min-h-12 w-full items-center gap-3 rounded-card bg-surface px-4 text-left"
+          >
+            <span className="font-display min-w-0 flex-1 text-row text-ink">
+              Stress mods
+            </span>
+            <span className="font-display text-link tabular-nums text-stone-500">
+              {mods.length > 0 ? `×${multiplier} XP` : "Off"}
+            </span>
+            <Disclosure
+              className={`text-stone-400 transition-transform dur-base ease-out ${
+                showMods ? "rotate-90" : ""
+              }`}
+            />
+          </button>
+          {showMods && (
+            <div
+              id="boss-mods"
+              className="reveal mt-2"
+            >
+              <ModPicker
+                head={false}
+                selected={mods}
+                onChange={setMods}
+                premium={paid}
+                onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
+              />
             </div>
           )}
 
-          {/* The wheel, on the stage Practice's boss card stands on
-              (modes-29, M13): the object you tapped carries over. The
-              sky stage runs flush along the card's top at the sheet
-              radius, the label at Practice's 20px inset, the same clock
-              Demos at 132 in the same corner, without his spring: his
-              arrival stays Practice's weekly moment (#313). The topic
-              and the two buttons sit on the card under the stage.
-
-              This is the screen's one lifted thing (#234/#240): it holds
-              the tap. Topic title only, the study sheet waits for the
-              clock (#182). */}
-          <section
-            aria-label="This week's boss"
-            className="card elev-2 mt-6 overflow-hidden rounded-sheet p-0"
-          >
-            <div
-              data-flush
-              className="intro-stage tone-sky practice-stage relative h-[160px] p-5"
+          {/* Premium, as Practice draws it (E30, D31): the tier's head
+              with its one mark, over one plain card of rows, each a bare
+              ink glyph, the name, one line and the chevron. No
+              terracotta: the room's one tap is the take. Pick a topic
+              opens the library on a plan and the paywall without one;
+              Hostile Q&A goes to its own screen, which says a free
+              account's one a week before the take. */}
+          <div className="mt-7 flex items-center justify-between gap-3">
+            <h2 className="section-head">Premium</h2>
+            <PremiumMark variant="chip" />
+          </div>
+          <div className="card mt-3 px-4">
+            <button
+              type="button"
+              aria-expanded={paid ? library : undefined}
+              aria-haspopup={paid ? undefined : "dialog"}
+              onClick={() =>
+                paid ? setLibrary((v) => !v) : setPaywall("The boss library")
+              }
+              className="press-row flex min-h-14 w-full items-center gap-3 py-2 text-left"
             >
-              <div className="relative z-[2] flex h-full max-w-[60%] flex-col">
-                <p
-                  className={`eyebrow practice-stage-ink ${
-                    headlinerId ? "" : "invisible"
-                  }`}
-                >
-                  {shown.id === headlinerId
-                    ? "This week's headliner"
-                    : "The wheel says"}
-                </p>
-                {/* The allowance, where Practice prints the week's
-                    state: a label on the picture in the stage's ink.
-                    Allotted, not earned, so never sage, and the tier is
-                    named once, by the mark beside "Pick a topic" (#280).
-                    It waits for the profile, so a paying account never
-                    sees a count. */}
-                {premium === false && spinsUsed !== null && (
-                  <p className="practice-week font-display mt-auto text-link font-bold tabular-nums">
-                    {spinsLeft} spin{spinsLeft === 1 ? "" : "s"} left
-                  </p>
-                )}
-              </div>
-              <div className="absolute bottom-[2px] right-1 z-[1] h-[132px] w-[132px]">
-                <DemosArt
-                  pose="clock"
-                  size={132}
-                  grounded
-                  halo={{ tone: "sky", kind: "stage" }}
-                />
-              </div>
-            </div>
-            <div className="px-5 pb-5 pt-4">
-              <Reel
-                state={reel}
-                current={shown}
-                className={`font-display text-title font-extrabold [--reel-cell:3.75rem] ${
-                  topic ? "" : "invisible"
-                }`}
-                render={(t) => (
-                  <span className="flex h-full items-center text-balance">
-                    {t.title}
-                  </span>
-                )}
-              />
-              <div className="mt-3 flex gap-2.5">
-                <button
-                  type="button"
-                  onClick={spinWheel}
-                  disabled={reel.rolling || !topic}
-                  className={`press font-display min-h-12 shrink-0 rounded-tap border border-edge bg-surface px-5 text-row ${DISABLED_CLASS}`}
-                >
-                  Spin
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPhase("research")}
-                  disabled={reel.rolling || !topic}
-                  className={`${ACTION_CLASS} ${DISABLED_CLASS} flex-1`}
-                >
-                  Start the 4 minutes
-                </button>
-              </div>
-            </div>
-          </section>
-
-          {/* A text link in both states, never the tap colour and never
-              plum as a colour (modes-8): the mark names the tier. */}
-          <button
-            type="button"
-            aria-expanded={paid ? library : undefined}
-            aria-haspopup={paid ? undefined : "dialog"}
-            onClick={() =>
-              paid ? setLibrary((v) => !v) : setPaywall("The boss library")
-            }
-            className="text-link press mt-2 inline-flex min-h-11 items-center gap-2 self-start"
-          >
-            {library ? "Hide the library" : "Pick a topic instead"}
-            {premium === false && <PremiumMark variant="chip" />}
-          </button>
-
+              <span aria-hidden className="shrink-0 text-ink">
+                <IconGlobe size={24} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="font-display block text-detail font-semibold text-ink">
+                  {library ? "Hide the topics" : "Pick a topic"}
+                </span>
+                <span className="block text-link font-medium text-stone-500">
+                  Any of the {COLD_TOPICS.length} topics, any week.
+                </span>
+              </span>
+              <Disclosure className={library ? "rotate-90" : ""} />
+            </button>
+            <Link
+              href="/hostile"
+              className="press-row flex min-h-14 items-center gap-3 border-t border-hairline py-2"
+            >
+              <span aria-hidden className="shrink-0 text-ink">
+                <IconBoss size={24} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="font-display block text-detail font-semibold text-ink">
+                  Hostile Q&amp;A
+                </span>
+                <span className="block text-link font-medium text-stone-500">{HOSTILE_LINE}</span>
+              </span>
+              <Disclosure />
+            </Link>
+          </div>
           {library && paid && (
-            <div className="reveal mt-2">
+            <div className="reveal mt-3">
               <label className="sr-only" htmlFor="boss-search">
                 Search topics
               </label>
@@ -387,63 +452,6 @@ export default function BossPage() {
               </div>
             </div>
           )}
-
-          {/* Mods, folded (modes-3): optional, never suggested, so one
-              row until it is asked for, the grammar Today uses. Its
-              trailing value is what the choice is worth. The list's own
-              header would say "Stress mods" a second time under this
-              row, so the wrapper folds it away. */}
-          <button
-            type="button"
-            aria-expanded={showMods}
-            aria-controls="boss-mods"
-            onClick={() => setShowMods((v) => !v)}
-            className="press-row group-row mt-7 flex min-h-12 w-full items-center gap-3 rounded-card bg-surface px-4 text-left"
-          >
-            <span className="font-display min-w-0 flex-1 text-row text-ink">
-              Stress mods
-            </span>
-            <span className="font-display text-link tabular-nums text-stone-500">
-              {mods.length > 0 ? `×${multiplier} XP` : "Off"}
-            </span>
-            <Disclosure
-              className={`text-stone-400 transition-transform dur-base ease-out ${
-                showMods ? "rotate-90" : ""
-              }`}
-            />
-          </button>
-          {showMods && (
-            <div
-              id="boss-mods"
-              className="reveal mt-2"
-            >
-              <ModPicker
-                head={false}
-                selected={mods}
-                onChange={setMods}
-                premium={paid}
-                onPremiumTap={(m) => setPaywall(`${m.name} · premium mod`)}
-              />
-            </div>
-          )}
-
-          {/* The second boss (#183), as Practice draws it: the hot seat's
-              tile, the name, the mark where the tap leads to Premium,
-              and the row's chevron. No blurb (#317), and no terracotta:
-              the room's one tap stays on the wheel. */}
-          <Link
-            href="/hostile"
-            className="press card mt-3 flex min-h-12 items-center gap-3 px-4 py-3"
-          >
-            <span aria-hidden className="game-tile game-tile-seat">
-              <IconBoss size={22} />
-            </span>
-            <span className="font-display min-w-0 flex-1 text-row text-ink">
-              Hostile Q&amp;A
-            </span>
-            {premium === false && <PremiumMark variant="chip" />}
-            <Disclosure />
-          </Link>
         </>
       )}
 

@@ -92,18 +92,34 @@ export function WeekTiles({ week }: { week: WeekView }) {
       <Link href="/history" data-week className="home-tile press">
         <h3 className="home-week-head eyebrow text-ink">Recordings</h3>
         <WeekNum n={week.thisWeek} unit="this week" />
-        {/* A column a week, six weeks, this week's in sage. */}
-        <span aria-hidden className="home-week-chart flex items-end gap-1">
-          {slots.map((n, i) => (
-            <span key={i} className="flex h-full flex-1 items-end">
-              {n !== null && (
+        {/* A column a week, six weeks, this week's in sage, each with
+            its count under it (E23) in the day letters' grammar beside
+            it: the same 24px band over the same 10/700 row, so the
+            counts and the letters share a baseline. Earlier weeks' counts
+            are stone, this week's ink, as today's letter is. */}
+        <span aria-hidden className="home-week-chart flex gap-1">
+          {slots.map((n, i) => {
+            const now = i === slots.length - 1;
+            return (
+              <span key={i} className="flex flex-1 flex-col items-center gap-1">
+                <span className="flex h-6 w-full items-end">
+                  {n !== null && (
+                    <span
+                      className={`w-full rounded-[3px] ${now ? "bg-sage-600" : "bg-sand"}`}
+                      style={{ height: `${Math.max(10, (n / most) * 100)}%` }}
+                    />
+                  )}
+                </span>
                 <span
-                  className={`w-full rounded-[3px] ${i === slots.length - 1 ? "bg-sage-600" : "bg-sand"}`}
-                  style={{ height: `${Math.max(10, (n / most) * 100)}%` }}
-                />
-              )}
-            </span>
-          ))}
+                  className={`font-display text-suffix whitespace-nowrap tabular-nums ${
+                    now ? "text-ink" : "text-stone-500"
+                  }`}
+                >
+                  {n ?? "\u00a0"}
+                </span>
+              </span>
+            );
+          })}
         </span>
         <p className="home-week-caption text-caption text-stone-500">{week.total} since day one</p>
       </Link>

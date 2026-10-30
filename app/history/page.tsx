@@ -64,10 +64,16 @@ function decimalsOf(printed: string): (value: number) => string {
 /** The two grids, shared by header and rows so the columns line up.
     Under 360px the trend column steps out (TREND_CELL), so the metric's
     name keeps room to be read: at 320 it truncated to "Eth..." and
-    "F...". The Day 1 column gives 4px back there too, so "Fillers / min"
-    and its chevron hold one line (the fix round); its head never wraps. */
+    "F...". E32's "All fillers / min" is 104px with its chevron, so the
+    number columns are as narrow as their contents and the gaps 6: Day 1
+    28 under 360 (its values reach 25; its head hangs 4px into the gap
+    by the empty end of "Metric", since right-aligned heads and changes
+    overflow to their left and keep one right edge) and 32 over it, Now
+    36 and 38 (its widest, "12.3", is 34), Change 76 ("in 130 to 160" is
+    75.5), Trend 40 (its head is 38). The label and its chevron hold one
+    line at 320 and from 375 up; at 360 it takes two, as it did before. */
 const MOVED_GRID =
-  "grid grid-cols-[minmax(0,1fr)_32px_42px_74px] min-[360px]:grid-cols-[minmax(0,1fr)_36px_42px_74px_44px] gap-2";
+  "grid grid-cols-[minmax(0,1fr)_28px_36px_76px] gap-1.5 min-[360px]:grid-cols-[minmax(0,1fr)_32px_38px_76px_40px]";
 /* Out of the flow and unseen under 360px, rather than `display: none`:
    toggling display restarts the line's unroll (`.fill`), and the
    camera's full-page capture caught it part way. */
@@ -668,7 +674,7 @@ function ColumnHead({
   className?: string;
 }) {
   return (
-    <span className={`label-micro whitespace-nowrap ${right ? "text-right" : ""} ${className}`}>
+    <span className={`label-micro whitespace-nowrap ${right ? "flex justify-end text-right" : ""} ${className}`}>
       {children}
     </span>
   );
@@ -684,7 +690,7 @@ function Cell({ children, className = "" }: { children: number; className?: stri
   );
 }
 
-/** "Fillers / min" with no-break thin spaces round the slash, so a
+/** "All fillers / min" with no-break thin spaces round the slash, so a
     narrow column breaks between words and never at the unit. */
 const unitLabel = (label: string) => label.replace(/ \/ /g, "\u202F/\u202F");
 
@@ -755,7 +761,7 @@ function MetricRow({
               <span
                 aria-hidden
                 data-open={open}
-                className="disclosure-mark ml-1 align-[-2px] text-stone-400"
+                className="disclosure-mark ml-0.5 align-[-2px] text-stone-400"
               >
                 <IconChevron size={14} />
               </span>
@@ -787,7 +793,7 @@ function MetricRow({
         )}
       </span>
       <span
-        className={`font-display whitespace-nowrap text-right text-caption font-extrabold tabular-nums ${
+        className={`font-display flex justify-end whitespace-nowrap text-right text-caption font-extrabold tabular-nums ${
           dim ? "" : tone
         }`}
       >

@@ -414,13 +414,13 @@ export default function YouPage() {
   const level = levelFromXp(xp?.total ?? 0);
   const badges = achievements(history);
   const earnedCount = badges.filter((b) => b.earned).length;
-  /* The ladder past the next three not yet earned folds into one row
-     (S12: You was 2,293pt against its 2,000): what you have, then what
-     is next, then the count of the rest. */
+  /* The ladder past the next two not yet earned folds into one row
+     (S12, E36: You was 2,293pt and then 2,063 against its 2,000): what
+     you have, then what is next, then the count of the rest. */
   const shownBadges = (() => {
     if (loading || allBadges) return badges;
     let next = 0;
-    return badges.filter((b) => b.earned || next++ < 3);
+    return badges.filter((b) => b.earned || next++ < 2);
   })();
   const foldedBadges = badges.length - shownBadges.length;
 
@@ -696,7 +696,9 @@ export default function YouPage() {
        * what it measures and the rule that moves it (#317).
        */}
       <section className="mt-7">
-        <h2 className="section-head">Traits</h2>
+        {/* "Trait levels" (E35): the bare numbers are levels you earned,
+            never a score a tab away from Today's percentiles. */}
+        <h2 className="section-head">Trait levels</h2>
         <div className="mt-3">
           {loading ? (
             <div aria-busy="true">
@@ -813,12 +815,22 @@ export default function YouPage() {
           chips under a sky stage read as a second colour world. A word
           you have now is a neutral label in ink. */}
       <section className="mt-7">
-        <h2 className="section-head">
-          Your lexicon
-          {lexicon !== null && (
-            <span className="section-head-count">{lexicon.length}</span>
+        {/* The flash cards' door rides the head row (E36): a text link
+            with its 44px hit area, where the row under the words was a
+            filled 56px door of its own. */}
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="section-head">
+            Your lexicon
+            {lexicon !== null && (
+              <span className="section-head-count">{lexicon.length}</span>
+            )}
+          </h2>
+          {!lexiconFailed && lexicon !== null && profileRead !== "loading" && lexicon.length >= 3 && !flashing && (
+            <button type="button" onClick={() => setFlashing(true)} className="text-link shrink-0">
+              Test yourself
+            </button>
           )}
-        </h2>
+        </div>
         {lexiconFailed ? (
           <ErrorLine className="mt-3" onRetry={() => void loadLexicon()}>
             Your lexicon didn&apos;t load.
@@ -862,17 +874,6 @@ export default function YouPage() {
                 </li>
               ))}
             </ul>
-            {lexicon.length >= 3 && !flashing && (
-              <button
-                type="button"
-                onClick={() => setFlashing(true)}
-                className={`${DOOR_CLASS} mt-3`}
-              >
-                <span>Test yourself on these</span>
-                <Disclosure />
-              </button>
-            )}
-
             {flashing && (
               <div className="mt-3">
                 <LexiconFlash
@@ -924,26 +925,27 @@ export default function YouPage() {
             </span>
           )}
         </h2>
-        <div className="inset-group stagger mt-3" data-inset="icon" aria-busy={loading || undefined}>
+        {/* An open hairline list on the ground (E11), Trait levels' and
+            the lexicon's grammar: no card, no tile inside it. The rows'
+            own 12px top padding is the head's mt-3. */}
+        <div className="stagger" aria-busy={loading || undefined}>
           {shownBadges.map((a) => {
             const earned = !loading && a.earned;
             return (
               <Link
                 key={a.id}
                 href={a.href}
-                className="group-row press-row flex min-h-14 items-center gap-3.5"
+                className="press-row flex min-h-14 items-center gap-3.5 border-b border-hairline py-3"
               >
-                {/* One host for every badge (wellspoken-lexicon s12): a
-                    40px tile and an 18px mark, the raised step off the
-                    group's surface. Earned is the mark in sage (the
-                    accent rule, the cohesion pass: it was a sage tile);
-                    not yet is the mark in stone. */}
+                {/* The bare mark at 24 (E11): sage when earned, the
+                    accent rule's one colour for it; stone while not. */}
                 <span
-                  className={`flex size-10 shrink-0 items-center justify-center rounded-control bg-raised ${
-                    earned ? "text-sage-700" : "text-stone-400"
+                  aria-hidden
+                  className={`flex size-6 shrink-0 items-center justify-center ${
+                    earned ? "text-sage-600" : "text-stone-400"
                   }`}
                 >
-                  <AchievementMark name={a.icon} size={18} />
+                  <AchievementMark name={a.icon} size={24} />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span
@@ -963,7 +965,7 @@ export default function YouPage() {
                           runs on the read landing and never over a
                           placeholder (#225). How close you are is the row's
                           one number, so the fill holds 3:1 on its trough
-                          (`.you-near`); the tile and the name stay muted. */}
+                          (`.you-near`); the mark and the name stay muted. */}
                       <span
                         className="you-near fill block h-full"
                         style={{ width: `${Math.round(a.progress * 100)}%` }}
@@ -976,13 +978,13 @@ export default function YouPage() {
             );
           })}
           {foldedBadges > 0 && (
+            /* The last hairline row: the count in the names' column. */
             <button
               type="button"
               onClick={() => setAllBadges(true)}
-              className="group-row press-row flex min-h-14 w-full items-center gap-3.5 text-left"
+              className="press-row flex min-h-14 w-full items-center gap-3.5 border-b border-hairline py-3 text-left"
             >
-              {/* The count stands in the names' column, under them. */}
-              <span aria-hidden className="w-10 shrink-0" />
+              <span aria-hidden className="w-6 shrink-0" />
               <span className="font-display min-w-0 flex-1 text-row text-stone-500">
                 {foldedBadges} more to earn
               </span>

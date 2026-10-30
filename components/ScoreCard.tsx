@@ -28,9 +28,11 @@ import { DURATION } from "@/lib/motion";
  * no other Demos (`demos`, the Log) he stands in its place, the empty
  * state's figure, the way he stands on every other tab's stage.
  *
- * Before any recording the hero is the COUNT (#213): zero recordings is
- * a true number, where 0 / 1000 would claim you scored nothing, and the
- * Index keeps its honest dash on the line under it.
+ * Before any recording the hero is the Index's own dash over "/ 1000",
+ * the populated layout with the number not yet known (E33): the stage
+ * read "Your Ethos 0" when it led with the count, an Ethos of zero on a
+ * new account's first Log. "Your first recording sets it." stands on
+ * the line the counts take once there are some.
  */
 export function ScoreCard({
   index,
@@ -92,7 +94,7 @@ export function ScoreCard({
         <div className="mt-auto pt-3">
           <p className="stage-ink font-display text-link font-bold tabular-nums">
             {empty ? (
-              "— / 1000 index"
+              "Your first recording sets it."
             ) : (
               <>
                 {recordings} {recordings === 1 ? "recording" : "recordings"}, {stars}{" "}
@@ -106,12 +108,10 @@ export function ScoreCard({
     >
       <div className="mt-1 flex items-baseline gap-1.5">
         {/* The hero counts on arrival like every number under it
-            (#245). Not when there is nothing to count: zero recordings
-            is a fact, not a climb, and a dash is not a number at all. */}
+            (#245). Not when it is unknown: before a recording, or with
+            none scored, the Index is a dash, and a dash is not a number. */}
         {empty || index === null ? (
-          <span className="font-display text-num-hero font-extrabold tabular-nums">
-            {empty ? 0 : "—"}
-          </span>
+          <span className="font-display text-num-hero font-extrabold tabular-nums">—</span>
         ) : (
           <CountUp
             value={index}
@@ -119,9 +119,7 @@ export function ScoreCard({
             className="font-display text-num-hero font-extrabold tabular-nums"
           />
         )}
-        <span className="stage-ink whitespace-nowrap text-body">
-          {empty ? "recordings" : "/ 1000"}
-        </span>
+        <span className="stage-ink whitespace-nowrap text-body">/ 1000</span>
       </div>
       {/* The change, read with the number it changes (log-15): a line
           under the hero, in words, in the stage's ink with its arrow. */}

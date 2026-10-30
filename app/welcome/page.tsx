@@ -393,26 +393,31 @@ function Walk() {
             onPick={(n) => go(STEPS.findIndex((x) => x.kind === "intro" && x.index === n))}
           />
         }
+        /* The tester's door (docs/testers.md): the quietest thing on the
+           first screen, in the top row the carousel keeps empty there
+           (Back stands in it from screen 2), so the account door below
+           stays centred and alone, and Next keeps its y. */
+        header={
+          step.index === 0 ? (
+            <div className="flex justify-end">
+              <Link href="/tester?from=welcome" className={TOP_DOOR}>
+                {DOOR_COPY.welcome}
+              </Link>
+            </div>
+          ) : undefined
+        }
         action={{ label: "Next", onPress: () => go(i + 1) }}
         footer={
           /*
            * Screen 1 carries the returning-user door (Duolingo's splash
            * pattern, DECISIONS #133): a new device belonging to an
            * existing account should sign in BEFORE recording anonymously.
-           * Beside it, the tester's door (docs/testers.md): the account
-           * ask's pair of doors, one row in the same 56px slot, so Next
-           * keeps its y across the three screens. Later screens keep
-           * Skip, which skips the questions too.
+           * Later screens keep Skip, which skips the questions too.
            */
           step.index === 0 ? (
-            <div className="mt-3 flex items-center justify-between gap-4">
-              <Link href="/signin" className={PAIR_LINK}>
-                I already have an account
-              </Link>
-              <Link href="/tester?from=welcome" className={PAIR_LINK}>
-                {DOOR_COPY.welcome}
-              </Link>
-            </div>
+            <Link href="/signin" className={FOOT_LINK}>
+              I already have an account
+            </Link>
           ) : (
             /* intro-a-21: it leaves the whole introduction, questions
                and all, so it says so; a question's Skip passes one. */
@@ -879,9 +884,9 @@ function WalkBar({ n, of, onSkip }: { n: number; of: number; onSkip?: () => void
 
 /** The door under an intro screen's Next: a text link at full width. */
 const FOOT_LINK = "text-link mt-3 flex min-h-11 items-center justify-center";
-/** Two doors on one row, the account ask's pair: the words line up with
-    the tap's edges and keep their padding as hit area. */
-const PAIR_LINK = "text-link -mx-1 inline-flex min-h-11 items-center px-1";
+/** The tester's door in screen 1's top row: caption size, muted, its
+    words on the column's right edge and a 44px hit area around them. */
+const TOP_DOOR = "text-link inline-flex min-h-11 items-center text-caption text-stone-400";
 
 /**
  * An answer, chosen (D47): drawn in ink, a 2px ink edge with its lip in

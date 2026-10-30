@@ -20,16 +20,20 @@ export function ScoringWave({
   levels,
   bars = 48,
   height = 40,
+  still = false,
 }: {
   /** Raw envelope samples, any length. Empty draws a flat track. */
   levels: number[];
   bars?: number;
-  height?: number;
+  /** Pixels, or a CSS length (a stage that gives the wave its free height). */
+  height?: number | string;
+  /** The reading is done (a tester's question before the score): no sweep, the bars at rest. */
+  still?: boolean;
 }) {
   const heights = useMemo(() => bucket(levels, bars), [levels, bars]);
   return (
     <div
-      className="relative mx-auto flex w-full max-w-[300px] items-center gap-[3px] overflow-hidden"
+      className={`relative mx-auto flex w-full max-w-[300px] items-center gap-[3px] overflow-hidden ${still ? "scoring-still" : ""}`}
       style={{ height }}
       aria-hidden
     >
@@ -51,7 +55,7 @@ export function ScoringWave({
       {/* A full-width box whose right edge is the line: translating it
           from -100% to 0 walks the edge across, and only transform
           moves (DESIGN-RULES, motion). */}
-      <span className="scoring-cursor absolute inset-y-0 left-0 w-full border-r-[3px]" />
+      {!still && <span className="scoring-cursor absolute inset-y-0 left-0 w-full border-r-[3px]" />}
     </div>
   );
 }

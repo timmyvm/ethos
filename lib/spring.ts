@@ -181,13 +181,26 @@ export function rubberband(overshoot: number, dimension: number, c = 0.55): numb
 }
 
 /**
+ * A finger that sent no move for this long before it lifted had stopped
+ * (handoff review). A lift trails a moving finger's last move by a frame
+ * or two; a finger held still sends nothing at all, so its last moves
+ * still say how fast it was going before it stopped. Chromium's own
+ * flings read a lift this long after the last move as a stop.
+ */
+export const POINTER_STOPPED_MS = 80;
+
+/**
  * Velocity from the last ~100ms of pointer samples, in px/s. The whole
  * drag's average is the wrong number: a slow haul that ends in a flick
- * is a flick, and a fast start that stopped dead is not one.
+ * is a flick, and a fast start that stopped dead is not one. Given the
+ * moment the finger lifted (`releasedAt`, the samples' clock), a finger
+ * that sat still before it lifted throws nothing: a pull held, then let
+ * go, settles where it is instead of flying on at the speed it had.
  */
-export function releaseVelocity(samples: { t: number; y: number }[]): number {
+export function releaseVelocity(samples: { t: number; y: number }[], releasedAt?: number): number {
   if (samples.length < 2) return 0;
   const last = samples[samples.length - 1];
+  if (releasedAt !== undefined && releasedAt - last.t > POINTER_STOPPED_MS) return 0;
   let first = samples[samples.length - 2];
   for (let i = samples.length - 2; i >= 0; i--) {
     if (last.t - samples[i].t > 100) break;
@@ -266,7 +279,10 @@ function inheritedVelocity(el: HTMLElement, axis: "x" | "y", from: number, now: 
  * promise resolves without landing; a continuation that must not act
  * after an interruption checks for one, as theirs do.
  *
- * Resolves when it lands. Honours reduced motion by landing at once.
+ * Resolves `true` when it lands and `false` when something interrupted
+ * it (a grab's cancel, a new run), so a caller tidies up only after a
+ * run that finished: a finger that caught the element owns it now.
+ * Honours reduced motion by landing at once.
  */
 export function animateSpring(
   el: HTMLElement,
@@ -285,7 +301,7 @@ export function animateSpring(
     spring?: Spring;
     reduced?: boolean;
   }
-): Promise<void> {
+): Promise<boolean> {
   const fn = axis === "y" ? "translateY" : "translateX";
   const distance = to - from;
   const now = typeof performance !== "undefined" ? performance.now() : Date.now();
@@ -294,7 +310,7 @@ export function animateSpring(
   runs.delete(el);
   if (reduced || Math.abs(distance) < 0.5 || typeof el.animate !== "function") {
     el.style.transform = `${fn}(${to}px)`;
-    return Promise.resolve();
+    return Promise.resolve(true);
   }
   const relative = speed / distance;
   const animation = el.animate(
@@ -317,7 +333,8 @@ export function animateSpring(
       if (runs.get(el) === run) runs.delete(el);
       el.style.transform = `${fn}(${to}px)`;
       animation.cancel();
+      return true;
     },
-    () => {}
+    () => false
   );
 }

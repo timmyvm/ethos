@@ -11,6 +11,8 @@ import { Disclosure } from "@/components/ui/Disclosure";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Skeleton, SkeletonRegion } from "@/components/ui/Skeleton";
+import { MatchCheck } from "@/components/tester/MatchCheck";
+import { TesterPaused } from "@/components/tester/TesterPaused";
 import { lessonById } from "@/content/lessons";
 import {
   fetchProfile,
@@ -25,6 +27,8 @@ import { computeMetrics, substance } from "@/lib/metrics";
 import { fromRow } from "@/lib/presence";
 import { topicFromLessonId } from "@/lib/rep-config";
 import { modById } from "@/lib/stress-mods";
+import { pausedTester, scoreSnapshot, showsMatchCheck, storedSnapshotInput } from "@/lib/tester";
+import { useTester } from "@/lib/tester-client";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
 
 /** Where back goes, on every state of this screen. */
@@ -48,9 +52,7 @@ interface Stored {
  */
 async function readStored(id: string): Promise<Stored> {
   const rep = await fetchRep(id);
-  const audio = rep?.audio_path
-    ? await repAudioUrl(rep.audio_path).catch(() => null)
-    : null;
+  const audio = rep?.audio_path ? await repAudioUrl(rep.id).catch(() => null) : null;
   return { rep, audio };
 }
 
@@ -69,6 +71,9 @@ export default function RepDetail({
   /** The plan's read failed: unknown for good, drawn unlocked, never walled. */
   const [planFailed, setPlanFailed] = useState(false);
   const [paywall, setPaywall] = useState<PaywallAsk | null>(null);
+  /* Tester mode (docs/testers.md): a tester can answer, or change, the
+     match question about any recording here, after the live results. */
+  const tester = useTester();
   // Back from the paywall's account doors or Checkout's back arrow
   // (paywall=1): the sheet opens again where it was.
   usePaywallReturn(() => setPaywall({ reason: "Premium" }));
@@ -317,6 +322,25 @@ export default function RepDetail({
             }
           />
         </div>
+      )}
+
+      {/* A tester's question about this recording, at the foot, once
+          everything it is about has been read: an answer given on the
+          results opens as it was left, and one never given can be. */}
+      {rep.client_id &&
+        showsMatchCheck({ tester, scorable: rep.ethos_index !== null, clientId: rep.client_id }) && (
+          <MatchCheck
+            key={rep.client_id}
+            clientId={rep.client_id}
+            repId={rep.id}
+            scores={scoreSnapshot(storedSnapshotInput(rep), rep.presence_score, "log")}
+            className="mt-7 border-t border-hairline pt-4"
+          />
+        )}
+      {/* A tester on an older consent: where the question would be, that
+          testing is paused, and agreeing comes back here (review D1). */}
+      {pausedTester(tester) && rep.ethos_index !== null && (
+        <TesterPaused back={`/rep/${rep.id}`} className="mt-7 border-t border-hairline pt-4" />
       )}
 
       {paywall && (

@@ -1,15 +1,16 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ErrorLine } from "@/components/ui/ErrorState";
 import { Segmented } from "@/components/ui/Segmented";
 import { MATCH_COPY } from "@/content/tester";
-import { saveMatch } from "@/lib/tester-client";
+import { fetchMatch, saveMatch } from "@/lib/tester-client";
 import {
   asksForNote,
   cleanNote,
   feedbackRow,
   NOTE_MAX,
+  sameSave,
   type MatchAnswer,
   type ScoreSnapshot,
 } from "@/lib/tester";
@@ -18,17 +19,26 @@ import { DISABLED_CLASS, INPUT_CLASS } from "@/lib/ui";
 type Status = "idle" | "saving" | "saved" | "failed";
 
 /**
- * The match check (migration 0020, docs/testers.md): a tester's one
- * question about the score they were just shown. Testers only; the
+ * The match check (migrations 0020 and 0022, docs/testers.md): a
+ * tester's question about the score they were just shown, by its
+ * number ("Did 665 feel right?", review D2: on the last step the score
+ * is two steps back), answered as a direction. Testers only; the
  * results screen decides that (`showsMatchCheck`) and a non-tester's
  * screen never mounts this.
  *
  * It is the screen's quiet second thing, never its tap: the neutral
  * segmented control (no terracotta, no lift), one tap to answer, and the
- * answer can change. Roughly and No open a note, optional, saved with
- * its own secondary button or when the field is left. Every save is the
- * whole row upserted on the recording's outbox key, so the last answer
- * wins and a retry sends exactly what is on screen.
+ * answer can change. Too low and Too high open a note, optional, saved
+ * with its own secondary button or when the field is left. Every save
+ * upserts the recording's row on its outbox key, so the last answer
+ * wins and a retry sends exactly what is on screen; a save that has not
+ * landed waits on the phone, with how it felt if that is waiting too,
+ * and goes again from the next recording screen (lib/tester-client.ts).
+ *
+ * It asks on the debrief's last step, after the score and the numbers,
+ * and again at the foot of the recording's page in the Log, where an
+ * answer already given opens as it was left and the numbers it was
+ * given about stay the ones stored with it.
  */
 export function MatchCheck({
   clientId,
@@ -51,19 +61,58 @@ export function MatchCheck({
   const queue = useRef<Promise<void>>(Promise.resolve());
   const latest = useRef(0);
   const last = useRef<{ answer: MatchAnswer; note: string } | null>(null);
+  /** The numbers this answer is about: the ones on screen, or the ones
+      an earlier answer about this recording was given with. */
+  const shown = useRef(scores);
+  /** The Index the question names: those numbers' own. */
+  const [index, setIndex] = useState<number | null>(scores.index);
+
+  /* An answer already given about this recording opens as it was left,
+     unless the tester has already picked. A failed read asks afresh. */
+  useEffect(() => {
+    let live = true;
+    fetchMatch(clientId)
+      .then((given) => {
+        // How it felt alone is no answer to this question.
+        if (!live || !given?.answer || last.current) return;
+        if (given.scores) {
+          shown.current = given.scores;
+          setIndex(given.scores.index ?? null);
+        }
+        const n = given.note ?? "";
+        last.current = { answer: given.answer, note: n };
+        setAnswer(given.answer);
+        setNote(n);
+        setSavedNote(given.note);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [clientId]);
 
   function save(a: MatchAnswer, n: string) {
+    // Leaving the note's field saved it; the Save note tap that left it
+    // is the same save (T6). A failed one always goes again.
+    if (status !== "failed" && sameSave(last.current, { answer: a, note: n })) return;
     const mine = ++latest.current;
     last.current = { answer: a, note: n };
     setStatus("saving");
     queue.current = queue.current.then(async () => {
-      const row = feedbackRow({ clientId, repId, answer: a, note: n, scores });
+      const row = feedbackRow({ clientId, repId, answer: a, note: n, scores: shown.current });
       const ok = await saveMatch(row);
       if (mine !== latest.current) return;
       setStatus(ok ? "saved" : "failed");
-      if (ok) setSavedNote(row.note);
+      if (ok) setSavedNote(row.note ?? null);
     });
   }
+
+  const retry = () => {
+    const l = last.current;
+    if (!l) return;
+    last.current = null;
+    save(l.answer, l.note);
+  };
 
   const pick = (a: MatchAnswer) => {
     setAnswer(a);
@@ -76,12 +125,12 @@ export function MatchCheck({
   };
 
   return (
-    <section aria-labelledby="match-question" className={`border-t border-hairline pt-4 text-left ${className}`}>
+    <section aria-labelledby="match-question" className={`text-left ${className}`}>
       <h2 id="match-question" className="font-display text-row text-ink">
-        {MATCH_COPY.question}
+        {MATCH_COPY.questionFor(index)}
       </h2>
       <Segmented
-        label={MATCH_COPY.question}
+        label={MATCH_COPY.questionFor(index)}
         options={MATCH_COPY.options}
         value={answer}
         onChange={(v) => pick(v as MatchAnswer)}
@@ -100,8 +149,19 @@ export function MatchCheck({
             value={note}
             onChange={(e) => setNote(e.target.value)}
             onBlur={saveNote}
+            /* The key says done, so it is done: the field lets go and
+               leaving it saves. Shift+Enter still breaks a line. */
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                e.currentTarget.blur();
+              }
+            }}
             placeholder={MATCH_COPY.notePlaceholder}
             enterKeyHint="done"
+            /* While it has focus a sticky shelf steps back into the flow
+               (app/globals.css, #match-note), so a keyboard that shrinks
+               the page never leaves the shelf over the field. */
             className={`${INPUT_CLASS} mt-1.5 block resize-none py-2.5 leading-snug`}
           />
         </div>
@@ -113,12 +173,7 @@ export function MatchCheck({
       {answer !== null && (
         <div className="mt-2 flex min-h-11 items-center justify-between gap-3">
           {status === "failed" ? (
-            <ErrorLine
-              onRetry={() => {
-                const l = last.current;
-                if (l) save(l.answer, l.note);
-              }}
-            >
+            <ErrorLine onRetry={retry}>
               {MATCH_COPY.failed}
             </ErrorLine>
           ) : (
@@ -126,11 +181,9 @@ export function MatchCheck({
               {status === "saving"
                 ? MATCH_COPY.saving
                 : status === "saved"
-                  ? noteOpen
-                    ? savedNote && !noteDirty
-                      ? MATCH_COPY.noteSaved
-                      : MATCH_COPY.answerSaved
-                    : MATCH_COPY.saved
+                  ? noteOpen && savedNote && !noteDirty
+                    ? MATCH_COPY.noteSaved
+                    : MATCH_COPY.answerSaved
                   : ""}
             </p>
           )}

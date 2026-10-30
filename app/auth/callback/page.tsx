@@ -5,6 +5,7 @@ import { DemosArt } from "@/components/DemosArt";
 import { useEffect, useState } from "react";
 import { GoogleMark } from "@/components/AuthForm";
 import { ACTION_CLASS } from "@/components/LessonScreen";
+import { carryStashed } from "@/lib/tester-client";
 import { nextFrom, onwardLink } from "@/lib/use-paywall-return";
 import {
   callbackCarriesSession,
@@ -67,6 +68,8 @@ export default function CallbackPage() {
         if (!live) return;
         if (s.signedIn && !s.anonymous) {
           forgetOAuthAttempt();
+          // Testing joined on the session this sign-in replaced (lib/auth.ts).
+          void carryStashed();
           setState({ at: "ok", email: s.email });
         } else {
           // Back from Google with nothing to show for it is a Google

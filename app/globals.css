@@ -2473,6 +2473,12 @@ summary::-webkit-details-marker {
 .scoring-panel .scoring-cursor {
   border-color: var(--rec-bar-lit);
 }
+/* Read and done (a tester's question before the score): the bars rest
+   in the panel's lit amber, no sweep. */
+.scoring-still .scoring-bar {
+  animation: none;
+  background: var(--bar-lit);
+}
 /* His light: a soft spot on the panel behind him. */
 .scoring-spot {
   position: absolute;
@@ -3827,6 +3833,16 @@ summary::-webkit-details-marker {
    then slides like any other. */
 .segmented-thumb[data-arrive] {
   animation: fade-in var(--duration-base) var(--ease-out);
+}
+
+/* The match check's note (components/tester/MatchCheck) while it is
+   being typed: a keyboard that shrinks the page (Android's in-app
+   browsers, Samsung Internet, Firefox) leaves too little height for the
+   note and a sticky shelf both, so the shelf steps back into the flow
+   until the note lets go. It holds its place in the layout either way,
+   so nothing above it moves. */
+:root:has(#match-note:focus) [data-shelf] {
+  position: static;
 }
 
 /* The tester code's cells (app/tester): the next empty cell holds a

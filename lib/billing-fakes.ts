@@ -689,6 +689,8 @@ interface DbError {
 interface Result {
   data: unknown;
   error: DbError | null;
+  /** With select(cols, { count: "exact" }): the matching rows' number. */
+  count?: number | null;
 }
 
 const UNIQUE: Record<string, string[]> = {
@@ -697,8 +699,8 @@ const UNIQUE: Record<string, string[]> = {
   testers: ["user_id"],
 };
 
-/** Tables whose user_id references auth.users on delete cascade (testers: 0020). */
-const OWNED = ["billing", "profiles", "reps", "testers", "tester_feedback"];
+/** Tables whose user_id references auth.users on delete cascade (testers: 0020, 0022). */
+const OWNED = ["billing", "profiles", "reps", "testers", "tester_feedback", "tester_events"];
 
 /** Columns typed uuid: Postgres refuses to compare one with anything else (22P02). */
 const UUID_COLUMNS: Record<string, string[]> = {
@@ -707,6 +709,7 @@ const UUID_COLUMNS: Record<string, string[]> = {
   reps: ["user_id"],
   testers: ["user_id"],
   tester_feedback: ["user_id"],
+  tester_events: ["user_id"],
 };
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -732,7 +735,13 @@ export function fakeDb(users: string[]) {
     users: new Set(users),
     tables: { billing: [], profiles: [], reps: [], rate_limits: [] } as Record<string, Row[]>,
     removedAudio: [] as string[],
+    /** Every playback link the server signed (app/api/audio). */
+    signed: [] as { path: string; expiresIn: number }[],
     deletedUsers: [] as string[],
+    /** Auth users that are anonymous (auth.admin.getUserById's is_anonymous). */
+    anonymous: new Set<string>(),
+    /** Database functions by name and what they return (client.rpc). Any other name throws, as before. */
+    rpc: {} as Record<string, unknown>,
     /** Fail the next `op` on `table` with this error. */
     fail: [] as { table: string; op: string; error: DbError }[],
     log: [] as { table: string; op: string }[],
@@ -765,18 +774,22 @@ export function fakeDb(users: string[]) {
     private columns = "*";
     private filters: ((r: Row) => boolean)[] = [];
     private payload: Row = {};
+    private many: Row[] | null = null;
     private conflict = "id";
     private typeError: DbError | null = null;
+    private counting: { head: boolean } | null = null;
 
     constructor(private readonly table: string) {}
 
-    select(columns = "*") {
+    select(columns = "*", opts?: { count?: "exact"; head?: boolean }) {
       if (this.op === "select") this.columns = columns;
+      if (opts?.count) this.counting = { head: !!opts.head };
       return this;
     }
-    insert(row: Row) {
+    insert(row: Row | Row[]) {
       this.op = "insert";
-      this.payload = row;
+      if (Array.isArray(row)) this.many = row;
+      else this.payload = row;
       return this;
     }
     upsert(row: Row, opts?: { onConflict?: string }) {
@@ -845,6 +858,22 @@ export function fakeDb(users: string[]) {
       if (this.typeError) return { data: null, error: this.typeError };
       const table = rows(this.table);
 
+      if (this.op === "select" && this.counting) {
+        const n = table.filter((r) => this.matches(r)).length;
+        return { data: this.counting.head ? null : clone(table.filter((r) => this.matches(r))), error: null, count: n };
+      }
+
+      if (this.op === "insert" && this.many) {
+        // One statement: every row lands, or none does.
+        const rowsIn = this.many.map((r) => ({ ...DEFAULTS[this.table], ...clone(r) }));
+        for (const row of rowsIn) {
+          const bad = violates(this.table, row, null);
+          if (bad) return { data: null, error: bad };
+        }
+        table.push(...rowsIn);
+        return { data: null, error: null };
+      }
+
       if (this.op === "select") {
         const cols =
           this.columns.trim() === "*" ? null : this.columns.split(",").map((c) => c.trim());
@@ -886,6 +915,12 @@ export function fakeDb(users: string[]) {
     from(table: string) {
       return new Query(table);
     },
+    rpc(name: string) {
+      if (!Object.hasOwn(state.rpc, name)) throw new TypeError("db.rpc is not a function");
+      const injected = failure(`rpc:${name}`, "call");
+      if (injected) return Promise.resolve({ data: null, error: injected });
+      return Promise.resolve({ data: clone(state.rpc[name]), error: null });
+    },
     storage: {
       from(bucket: string) {
         return {
@@ -895,11 +930,24 @@ export function fakeDb(users: string[]) {
             state.removedAudio.push(...paths);
             return { data: [], error: null };
           },
+          async createSignedUrl(path: string, expiresIn: number) {
+            const injected = failure(`storage:${bucket}`, "sign");
+            if (injected) return { data: null, error: injected };
+            state.signed.push({ path, expiresIn });
+            return {
+              data: { signedUrl: `https://storage.test/object/sign/${bucket}/${path}?token=t` },
+              error: null,
+            };
+          },
         };
       },
     },
     auth: {
       admin: {
+        async getUserById(id: string) {
+          if (!state.users.has(id)) return { data: { user: null }, error: { message: "User not found" } };
+          return { data: { user: { id, is_anonymous: state.anonymous.has(id) } }, error: null };
+        },
         async deleteUser(id: string) {
           const injected = failure("auth.users", "delete");
           if (injected) return { data: { user: null }, error: injected };

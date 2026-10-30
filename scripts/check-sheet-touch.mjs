@@ -22,14 +22,26 @@
  *    stops it and presses nothing; an upward first move is the browser's
  *    own scroll; a mouse there selects text and the wheel scrolls;
  *  - the hand-off on the manage sheet held sideways (upright, no sheet
- *    but the paywall scrolls), and a swipe off it and the trait sheet.
+ *    but the paywall scrolls), and a swipe off it and the trait sheet;
+ *  - the review's findings (handoff review), each a touch that went wrong
+ *    before: a tap on Start or Not yet while the content glides presses
+ *    it; a second finger mid-pull never strands the sheet; a finger held
+ *    still before it lifts throws nothing; a sheet caught springing home
+ *    holds where it is caught, and a tap on it presses what is under the
+ *    finger; a sheet still rising is the finger's from where it is, the
+ *    content put; Escape mid-pull plays the whole exit; a first reading
+ *    that is level, still or a pixel up, still hands off; so does a first
+ *    move the stair held, the way iOS reads it, and a level first move on
+ *    content at its top is held and driven both ways; a glide that meets the
+ *    top with speed bounces, and a finger run past the content's end
+ *    gives with resistance and springs back.
  *
  *   NEXT_PUBLIC_SUPABASE_URL=http://supabase.local \
  *   NEXT_PUBLIC_SUPABASE_ANON_KEY=anon npx next dev -p 3123
  *   PLAYWRIGHT_MODULE=/opt/node22/lib/node_modules/playwright/index.mjs \
  *     node scripts/check-sheet-touch.mjs
  *
- *   SECTIONS=2,3 node scripts/check-sheet-touch.mjs   # some of the five
+ *   SECTIONS=2,6 node scripts/check-sheet-touch.mjs   # some of the six
  *
  * Frames are read in the page every animation frame: where the finger
  * is (the last touchmove), the scrolled content's scrollTop, and the
@@ -46,7 +58,7 @@ const ok = (name, pass, detail = "") => {
   console.log(`${pass ? "PASS" : "FAIL"}  ${name}${detail ? `  (${detail})` : ""}`);
 };
 const started = Date.now();
-const SECTIONS = process.env.SECTIONS ? process.env.SECTIONS.split(",").map(Number) : [1, 2, 3, 4, 5];
+const SECTIONS = process.env.SECTIONS ? process.env.SECTIONS.split(",").map(Number) : [1, 2, 3, 4, 5, 6];
 const section = (n) => SECTIONS.includes(n);
 const browser = await chromium.launch({ args: ["--font-render-hinting=none"] });
 
@@ -136,7 +148,24 @@ async function phone(W, H, { reduced = false, plan = "free" } = {}) {
     return { x, y };
   }
   const swipe = (x, y, dx, dy, speed = 800, opts) => gesture(x, y, [{ dx, dy, speed }], opts);
-  return { context, page, touch, gesture, swipe, W, H };
+  /** Every finger that is down, as [[x, y, id], ...]: for a second finger. */
+  const fingers = (type, points = []) =>
+    cdp.send("Input.dispatchTouchEvent", {
+      type,
+      touchPoints: points.map(([x, y, id]) => ({ x, y, id, radiusX: 4, radiusY: 4, force: 1 })),
+    });
+  /** One finger moved straight to (x, y + dy) by the clock, still down at the end. */
+  async function drag(x, y, dy, speed = 600) {
+    const T = (Math.abs(dy) / speed) * 1000;
+    const t0 = Date.now();
+    for (;;) {
+      await sleep(12);
+      const u = Math.min(1, (Date.now() - t0) / T);
+      await touch("touchMove", x, y + dy * u);
+      if (u >= 1) return y + dy;
+    }
+  }
+  return { context, page, touch, gesture, swipe, fingers, drag, W, H };
 }
 
 const isOpen = async (page, sel = '[role="dialog"]') => (await page.locator(sel).count()) > 0;
@@ -649,6 +678,344 @@ if (section(5)) {
     ok("trait sheet, 320x568: a swipe down from its text closes it", !(await isOpen(page)));
     await p.context.close();
   }
+}
+
+// ---- 6. The review's findings (handoff review) ---------------------------
+/*
+ * Each case here went wrong on the first hand-off build, measured by the
+ * review with real touches; each check is what a UIKit sheet does.
+ */
+if (section(6)) {
+  const START = REGIONS[7][1];
+  const NOTYET = REGIONS[8][1];
+  const centre = async (page, sel) => {
+    const b = await page.locator(sel).first().boundingBox();
+    return b ? { x: Math.round(b.x + b.width / 2), y: Math.round(b.y + b.height / 2) } : null;
+  };
+  const tap = async ({ touch }, { x, y }) => {
+    await touch("touchStart", x, y);
+    await sleep(40);
+    await touch("touchEnd");
+  };
+  const dragMark = (page) =>
+    page.evaluate(() => document.querySelector('[role="dialog"] > div')?.getAttribute("data-dragging") ?? null);
+  const codeShown = async (page) => (await page.locator("#premium-code").count()) > 0;
+
+  // Start and Not yet sit outside the content a glide moves: a tap there
+  // presses them, glide or not. Only a press on the content is the glide's.
+  {
+    const p = await phone(320, 568);
+    const { page, swipe } = p;
+    for (const [name, sel] of [["Not yet", NOTYET], ["Start", START]]) {
+      await paywall(p);
+      await setScroll(page, "end");
+      await sleep(200);
+      const pt = await pointOf(page, CAPTION);
+      await swipe(pt.x, pt.y, 0, 110, 400, { hold: 0 });
+      await sleep(110);
+      const a = (await scrollOf(page)).top;
+      await sleep(30);
+      const b = (await scrollOf(page)).top;
+      await tap(p, await centre(page, sel));
+      await sleep(700);
+      const pressed = name === "Not yet" ? !(await isOpen(page)) : await codeShown(page);
+      ok(`glide: a tap on ${name}, outside the gliding content, presses it`, Math.abs(a - b) > 0.5 && pressed, `gliding ${Math.round(a)} -> ${Math.round(b)} at the tap`);
+    }
+    await p.context.close();
+  }
+
+  const p = await phone(375, 667);
+  const { page, touch, fingers, drag, swipe, gesture, H } = p;
+
+  // A second finger on a sheet the first is pulling is nobody's: the first
+  // keeps it, and its let go settles it. Before, the sheet was stranded
+  // mid-screen, still marked as dragged.
+  for (const order of ["the second lifts first", "the first lifts first"]) {
+    await paywall(p);
+    await setScroll(page, "end");
+    await sleep(200);
+    const s0 = await scrollOf(page);
+    const pt = await pointOf(page, READOUT);
+    await touch("touchStart", pt.x, pt.y);
+    const y1 = await drag(pt.x, pt.y, s0.top + 120, 600);
+    await sleep(60);
+    const mid = await panelY(page);
+    await fingers("touchStart", [[pt.x, y1, 1], [200, 200, 2]]);
+    await sleep(60);
+    // touchEnd names the fingers still down.
+    await fingers("touchEnd", order === "the second lifts first" ? [[pt.x, y1, 1]] : [[200, 200, 2]]);
+    await sleep(60);
+    await fingers("touchEnd", []);
+    await sleep(1200);
+    const open = await isOpen(page);
+    const y = open ? await panelY(page) : 0;
+    const mark = open ? await dragMark(page) : null;
+    ok(`a second finger mid-pull (${order}) never strands the sheet`, mid > 40 && Math.abs(y) < 1 && mark === null, `pulled ${Math.round(mid)}px, then ${open ? `open at ${Math.round(y)}px, dragging ${mark}` : "closed"}`);
+  }
+
+  // A finger that stops and holds still before it lifts throws nothing.
+  await paywall(p);
+  {
+    await setScroll(page, "mid");
+    await sleep(200);
+    const pt = await pointOf(page, BENEFITS);
+    await swipe(pt.x, pt.y, 0, 60, 600, { hold: 400 });
+    const atLetGo = (await scrollOf(page)).top;
+    await sleep(800);
+    const later = (await scrollOf(page)).top;
+    ok("held still 400ms, then let go: the content stays where the finger left it", Math.abs(later - atLetGo) < 1 && (await isOpen(page)), `scrollTop ${Math.round(atLetGo)} at the let go, ${Math.round(later)} after`);
+  }
+  // A pull of about 150px: under half the sheet and short of three
+  // quarters of its room, so only the speed it had before the hold, read
+  // as if it were still moving, would close it.
+  await paywall(p);
+  {
+    await setScroll(page, "mid");
+    await sleep(200);
+    const s0 = await scrollOf(page);
+    const pt = await pointOf(page, BENEFITS);
+    await record(page, PAYWALL);
+    await swipe(pt.x, pt.y, 0, s0.top + 150, 800, { hold: 500 });
+    await sleep(1000);
+    const frames = await stopRecord(page);
+    const most = Math.max(...frames.map((f) => f.ty ?? 0));
+    ok("a pull held still 500ms, then let go, springs home", (await isOpen(page)) && most > 90 && Math.abs(await panelY(page)) < 1, `the sheet reached ${Math.round(most)}px`);
+  }
+
+  // Caught springing home, the sheet holds where the finger caught it: no
+  // flash to its rest under the grab, and a tap presses what is under it.
+  await paywall(p);
+  {
+    const pt = await pointOf(page, BENEFITS);
+    await swipe(pt.x, pt.y, 0, 130, 300, { hold: 120 });
+    await sleep(60);
+    await record(page, PAYWALL);
+    await gesture(pt.x, pt.y + 20, [{ dy: 60, speed: 250 }], { hold: 60 });
+    const frames = await stopRecord(page);
+    const live = frames.filter((f) => f.touching && f.ty !== null);
+    const atDown = live[0]?.ty ?? 0;
+    const lowest = Math.min(...live.map((f) => f.ty));
+    ok("caught springing home, the sheet holds where it was caught, with no flash to its rest", atDown > 5 && lowest >= atDown - 1, `caught at ${Math.round(atDown)}px, lowest ${Math.round(lowest)}px while held`);
+    await sleep(900);
+  }
+  for (const wait of [60, 120]) {
+    await paywall(p);
+    const pt = await pointOf(page, BENEFITS);
+    await swipe(pt.x, pt.y, 0, 120, 400, { hold: 120 });
+    await sleep(wait);
+    const y = await panelY(page);
+    await tap(p, await centre(page, START));
+    await sleep(600);
+    ok(`a tap on Start ${wait}ms into a spring home presses Start`, y > 5 && (await isOpen(page)) && (await codeShown(page)), `the sheet at ${Math.round(y)}px at the tap`);
+  }
+
+  // Grabbed while it is still rising, the content scrolled: the sheet is
+  // the finger's from where it is, and the content stays put.
+  {
+    let result = null;
+    for (let tries = 0; tries < 3 && !result; tries++) {
+      if (await isOpen(page)) {
+        await page.keyboard.press("Escape");
+        await page.waitForSelector('[role="dialog"]', { state: "detached", timeout: 4000 }).catch(() => {});
+        await sleep(300);
+      }
+      await page.locator(".premium-wall").click({ force: true });
+      await page.waitForSelector(PAYWALL);
+      await sleep(100);
+      await setScroll(page, 100);
+      const st0 = (await scrollOf(page)).top;
+      // Wherever the rising body is on screen, with room under it.
+      const pt = await page.evaluate((sel) => {
+        const r = document.querySelector(sel).getBoundingClientRect();
+        return { x: Math.round(r.left + 40), y: Math.round(Math.min(Math.max(r.top + 40, 20), innerHeight - 100)) };
+      }, PAYWALL);
+      await record(page, PAYWALL);
+      await gesture(pt.x, pt.y, [{ dy: 72, speed: 200 }], { hold: 60 });
+      const frames = await stopRecord(page);
+      const live = frames.filter((f) => f.touching && f.fy !== null && f.fy - pt.y >= 12 && f.ty !== null);
+      if (live.length < 4 || live[0].ty < 5) continue; // landed after the rise: try again
+      const follow = Math.max(...live.map((f) => Math.abs(f.fy - f.ty - (live[0].fy - live[0].ty))));
+      // From before the touch: the old grab spent the scroll on its first move.
+      const moved = Math.max(...frames.filter((f) => f.st !== null).map((f) => Math.abs(f.st - st0)));
+      result = { follow, moved, at: live[0].ty, st: st0 };
+    }
+    ok(
+      "caught still rising over scrolled content, the sheet follows the finger and the content stays put",
+      !!result && result.st >= 90 && result.follow <= 1 && result.moved <= 0.5,
+      result ? `caught at ${Math.round(result.at)}px over scrollTop ${Math.round(result.st)}; sheet off the finger by ${result.follow.toFixed(1)}px, content moved ${result.moved.toFixed(1)}px` : "never caught it rising"
+    );
+  }
+
+  // Escape mid-pull, then the finger lets go: the exit plays to the edge.
+  await paywall(p);
+  {
+    await setScroll(page, "end");
+    await sleep(200);
+    const s0 = await scrollOf(page);
+    const target = await page.evaluate(() => document.querySelector('[role="dialog"] > div').offsetHeight + 24);
+    const pt = await pointOf(page, READOUT);
+    await record(page, PAYWALL);
+    await touch("touchStart", pt.x, pt.y);
+    await drag(pt.x, pt.y, s0.top + 90, 600);
+    await page.keyboard.press("Escape");
+    await sleep(80);
+    await touch("touchEnd");
+    await sleep(900);
+    const frames = await stopRecord(page);
+    const shown = frames.filter((f) => f.ty !== null);
+    const last = shown[shown.length - 1]?.ty ?? 0;
+    ok("Escape mid-pull, then let go: the sheet leaves all the way to the edge", !(await isOpen(page)) && last >= target - 30, `last seen at ${Math.round(last)}px of ${target}`);
+  }
+
+  // A first reading with no direction is still a swipe down: one swipe
+  // from scrolled content closes the paywall. iOS reads a touch in whole
+  // pixels and settles the browser's scroll on its first touchmove, which
+  // can read level, so that one is sent straight at the content, as iOS
+  // would send it; Chromium shows it as the pointer's first reading.
+  const firstMove = (pt, dx, dy) =>
+    page.evaluate(({ x, y, dx, dy }) => {
+      const target = document.elementFromPoint(x, y);
+      const t = new Touch({ identifier: 1, target, clientX: x + dx, clientY: y + dy });
+      const e = new TouchEvent("touchmove", { touches: [t], targetTouches: [t], changedTouches: [t], bubbles: true, cancelable: true });
+      target.dispatchEvent(e);
+      return e.defaultPrevented;
+    }, { ...pt, dx, dy });
+  for (const [dx, dy, how] of [[1, 0, "touchmove"], [-1, 0, "touchmove"], [0, 0, "touchmove"], [1, 0, "pointer"], [1, -1, "pointer"]]) {
+    await paywall(p);
+    await setScroll(page, "mid");
+    await sleep(200);
+    const pt = await pointOf(page, BENEFITS);
+    await touch("touchStart", pt.x, pt.y);
+    await sleep(16);
+    const held = how === "touchmove" ? await firstMove(pt, dx, dy) : null;
+    await touch("touchMove", pt.x + dx, pt.y + dy);
+    await drag(pt.x + dx, pt.y + dy, H - 6 - (pt.y + dy), 800);
+    await sleep(16);
+    await touch("touchEnd");
+    await sleep(900);
+    ok(`a first ${how === "touchmove" ? "touchmove, as iOS reads it," : "pointer reading"} of (${dx}, ${dy}), then a swipe down from scrolled content, closes the paywall`, !(await isOpen(page)) && held !== false);
+  }
+
+  // On the stair the first move may lean sideways by a pixel and then go
+  // down. Chromium shows it as the pointer's first reading; iOS as the
+  // first touchmove, which the stair holds from the browser, so here one
+  // is sent straight at it (as iOS would) before the real swipe.
+  for (const ios of [false, true]) {
+    await paywall(p);
+    await setScroll(page, "mid");
+    await sleep(200);
+    const pt = await pointOf(page, STEP(4));
+    await touch("touchStart", pt.x, pt.y);
+    await sleep(16);
+    // The stair holds a sideways first touchmove itself (its scrub).
+    const held = ios ? await firstMove(pt, 1, 0) : null;
+    await touch("touchMove", pt.x + 1, pt.y);
+    await drag(pt.x + 1, pt.y, H - 6 - pt.y, 800);
+    await sleep(16);
+    await touch("touchEnd");
+    await sleep(900);
+    ok(`on the stair in scrolled content, a first ${ios ? "touchmove, as iOS reads it," : "pointer reading"} 1px sideways, then a swipe down, closes the paywall`, !(await isOpen(page)) && held !== false, ios ? `the stair ${held ? "held" : "did not hold"} it` : "");
+  }
+
+  // Content at its top with more below, a first touchmove read level (as
+  // iOS can read a swipe that arcs): held, and the hand-off's from scroll
+  // 0. Down closes the sheet; up scrolls the content, nothing cancelled.
+  for (const dir of ["down", "up"]) {
+    await paywall(p);
+    await setScroll(page, "top");
+    await sleep(200);
+    const pt = await pointOf(page, BENEFITS);
+    await record(page, PAYWALL);
+    await touch("touchStart", pt.x, pt.y);
+    await sleep(16);
+    const held = await firstMove(pt, 1, 0);
+    await touch("touchMove", pt.x + 1, pt.y);
+    const to = dir === "down" ? H - 6 : pt.y - 140;
+    await drag(pt.x + 1, pt.y, to - pt.y, dir === "down" ? 800 : 500);
+    await sleep(16);
+    await touch("touchEnd");
+    await sleep(900);
+    await stopRecord(page);
+    const ev = await events(page);
+    if (dir === "down") {
+      ok("content at its top: a first touchmove read level is held, and a swipe down closes the paywall", held === true && !(await isOpen(page)));
+    } else {
+      const st = (await scrollOf(page)).top;
+      ok("content at its top: a first touchmove read level is held, and a swipe up scrolls the content", held === true && st > 60 && !ev.includes("pointercancel") && Math.abs(await panelY(page)) < 1 && (await isOpen(page)), `scrollTop 0 -> ${Math.round(st)}`);
+    }
+  }
+
+  // The edges give, as a scroll view's do: a glide that meets the top
+  // with speed goes past it and comes back, and a finger that runs up
+  // past the content's end takes it there with resistance, which springs
+  // back on the let go. The content only: the sheet never moves.
+  const shownEdge = () =>
+    page.evaluate((sel) => {
+      const tr = getComputedStyle(document.querySelector(sel).firstElementChild).translate;
+      return tr === "none" ? 0 : parseFloat(tr.split(" ")[1] ?? "0");
+    }, PAYWALL);
+  const recordEdge = () =>
+    page.evaluate((sel) => {
+      const frames = [];
+      let on = true;
+      const sc = document.querySelector(sel);
+      const panel = document.querySelector('[role="dialog"] > div');
+      const tick = () => {
+        if (!on) return;
+        const tr = getComputedStyle(sc.firstElementChild).translate;
+        frames.push({ fy: window.__fy, touching: window.__touching, st: sc.scrollTop, ty: new DOMMatrixReadOnly(getComputedStyle(panel).transform).m42, tr: tr === "none" ? 0 : parseFloat(tr.split(" ")[1] ?? "0") });
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+      window.__stopEdge = () => {
+        on = false;
+        return frames;
+      };
+    }, PAYWALL);
+  const stopEdge = () => page.evaluate(() => window.__stopEdge());
+  await paywall(p);
+  {
+    await setScroll(page, 120);
+    await sleep(200);
+    const pt = await pointOf(page, READOUT);
+    await recordEdge();
+    await swipe(pt.x, pt.y, 0, 70, 2500, { hold: 0 });
+    await sleep(1000);
+    const frames = await stopEdge();
+    const after = frames.filter((f) => !f.touching);
+    const peak = Math.max(...after.map((f) => f.tr));
+    const atTop = after.findIndex((f) => f.st <= 0.5);
+    const bounced = atTop >= 0 && after.slice(atTop).some((f) => f.tr > 3);
+    const steps = after.slice(atTop >= 0 ? atTop : 0).map((f, i, a) => (i ? Math.abs(f.tr - a[i - 1].tr) : 0));
+    ok(
+      "glide: meeting the top with speed, the content goes past it and comes back; the sheet stays",
+      bounced && after.every((f) => f.tr >= -0.01) && (await shownEdge()) === 0 && Math.max(...frames.map((f) => f.ty ?? 0)) < 0.5 && (await isOpen(page)) && Math.max(...steps) < 12,
+      `${Math.round(peak)}px past the top at most, ${Math.max(...steps).toFixed(1)}px in a frame at most`
+    );
+  }
+  await paywall(p);
+  {
+    const s = await scrollOf(page);
+    await setScroll(page, s.max - 10);
+    await sleep(200);
+    const pt = await pointOf(page, READOUT);
+    await recordEdge();
+    await gesture(pt.x, pt.y, [{ dy: 32, speed: 500 }, { dy: -190, speed: 500 }], { hold: 60 });
+    await sleep(900);
+    const frames = await stopEdge();
+    const live = frames.filter((f) => f.touching && f.fy !== null);
+    const deepest = Math.min(...frames.map((f) => f.tr));
+    // Resistance: the content shows less than the finger ran past the end.
+    const lowest = Math.min(...live.map((f) => f.fy));
+    const pastEnd = live.filter((f) => f.st >= s.max - 0.5);
+    const finger = pastEnd.length ? pastEnd[0].fy - lowest : 0;
+    ok(
+      "hand-off: pushed up past the content's end, it gives with resistance and comes back on the let go",
+      deepest < -15 && -deepest < finger && (await shownEdge()) === 0 && Math.abs((await scrollOf(page)).top - s.max) < 1 && Math.max(...frames.map((f) => f.ty ?? 0)) < 0.5 && (await isOpen(page)),
+      `${Math.round(-deepest)}px shown for about ${Math.round(finger)}px of finger past the end`
+    );
+  }
+  await p.context.close();
 }
 
 await browser.close();

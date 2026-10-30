@@ -20,6 +20,9 @@ const h = vi.hoisted(() => ({
   db: null as unknown,
   sessions: new Map<string, { id: string; anonymous: boolean; email: string | null }>(),
   limited: new Set<string>(),
+  /** The limiter as Postgres runs it (0006, 0017): slots per subject, under a cap when one is set. */
+  cap: 0,
+  slots: new Map<string, number>(),
 }));
 
 vi.mock("@/lib/stripe", () => ({
@@ -46,16 +49,22 @@ vi.mock("@/lib/db", async (importOriginal) => {
 });
 vi.mock("@/lib/rate-limit", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/rate-limit")>()),
-  consumeRateLimit: vi.fn(async (subject: string) =>
-    h.limited.has(subject)
-      ? { allowed: false, window: "hour", retryAfterS: 1200 }
-      : { allowed: true, window: null, retryAfterS: 0 }
-  ),
+  consumeRateLimit: vi.fn(async (subject: string) => {
+    const used = h.slots.get(subject) ?? 0;
+    if (h.limited.has(subject) || (h.cap > 0 && used >= h.cap)) {
+      return { allowed: false, window: "hour", retryAfterS: 1200 };
+    }
+    h.slots.set(subject, used + 1);
+    return { allowed: true, window: null, retryAfterS: 0 };
+  }),
+  refundRateLimit: vi.fn(async (subject: string) => {
+    h.slots.set(subject, Math.max(0, (h.slots.get(subject) ?? 0) - 1));
+  }),
 }));
 
 import { POST as tester } from "@/app/api/tester/route";
 import { DELETE as deleteAccount } from "@/app/api/account/route";
-import { consumeRateLimit } from "./rate-limit";
+import { consumeRateLimit, LIMITS, refundRateLimit } from "./rate-limit";
 
 let db: FakeDb;
 
@@ -66,7 +75,10 @@ beforeEach(() => {
   h.sessions.set("tok_user", { id: USER, anonymous: false, email: "tim@example.com" });
   h.sessions.set("tok_anon", { id: ANON, anonymous: true, email: null });
   h.limited.clear();
+  h.cap = 0;
+  h.slots.clear();
   vi.mocked(consumeRateLimit).mockClear();
+  vi.mocked(refundRateLimit).mockClear();
   vi.stubEnv("TESTER_CODE", "");
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -146,6 +158,33 @@ describe("POST /api/tester, the code", () => {
     expect(res.status).toBe(429);
     expect(consumeRateLimit).toHaveBeenCalledWith(`tester:u:${ANON}`, "user");
   });
+
+  /*
+   * Friends join together, on one school's or one house's Wi-Fi. Only a
+   * wrong guess may spend the address's allowance: the right code gives
+   * its slot back once it has been checked (checked first, so a limited
+   * address still learns nothing).
+   */
+  it("lets a room of friends on one address all join, and still stops a guesser", async () => {
+    h.cap = LIMITS.user.hour;
+    for (let i = 0; i < 12; i++) {
+      const token = `tok_friend_${i}`;
+      const id = `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`;
+      db.state.users.add(id);
+      h.sessions.set(token, { id, anonymous: true, email: null });
+      expect((await call({ code: "1234" }, { token: null, ip: "203.0.113.7" })).status, `friend ${i} check`).toBe(200);
+      expect((await call({ code: "1234", agree: CONSENT_VERSION }, { token, ip: "203.0.113.7" })).status, `friend ${i} agree`).toBe(200);
+    }
+    expect(db.state.tables.testers).toHaveLength(12);
+
+    const guesses: number[] = [];
+    for (let i = 0; i < LIMITS.user.hour + 2; i++) {
+      guesses.push((await call({ code: String(1000 + i) }, { token: null, ip: "203.0.113.7" })).status);
+    }
+    expect(guesses).toEqual([...Array(LIMITS.user.hour).fill(403), 429, 429]);
+    // Over the limit, the right code is refused too: nothing to learn.
+    expect((await call({ code: "1234" }, { token: null, ip: "203.0.113.7" })).status).toBe(429);
+  });
 });
 
 describe("POST /api/tester, the consent", () => {
@@ -205,17 +244,197 @@ describe("POST /api/tester, the consent", () => {
     expect((await call({ code: "1234", agree: CONSENT_VERSION })).status).toBe(200);
   });
 
-  it("agreeing twice keeps one row", async () => {
-    await call({ code: "1234", agree: CONSENT_VERSION });
-    await call({ code: "1234", agree: CONSENT_VERSION });
+  it("agreeing twice keeps one row, and the first time it was agreed", async () => {
+    const first = await call({ code: "1234", agree: CONSENT_VERSION });
+    const at = db.row("testers", USER)!.consented_at;
+    await new Promise((r) => setTimeout(r, 5));
+    const again = await call({ code: "1234", agree: CONSENT_VERSION });
     expect(db.state.tables.testers).toHaveLength(1);
+    expect(db.row("testers", USER)!.consented_at).toBe(at);
+    expect(again).toEqual(first);
+  });
+
+  /*
+   * Consent version 3 names everything kept (30 Oct). A tester on 1 or
+   * 2 reads it once on their next open and agrees again, with no code
+   * to type: their row is the proof, and the slot comes back.
+   */
+  it("lets a tester on an older consent agree to the new one without the code", async () => {
+    db.put("testers", { user_id: USER, consent_version: CONSENT_VERSION - 1, consented_at: "2026-10-29T09:00:00.000Z" });
+    h.cap = LIMITS.user.hour;
+    const res = await call({ agree: CONSENT_VERSION });
+    expect(res.status).toBe(200);
+    expect(db.row("testers", USER)).toMatchObject({ consent_version: CONSENT_VERSION });
+    expect(res.body).toMatchObject({ ok: true, tester: { consent_version: CONSENT_VERSION } });
+    expect(h.slots.get(`tester:u:${USER}`)).toBe(0);
+  });
+
+  it("without the code, still refuses an account that is not a tester, and counts it as a guess", async () => {
+    const res = await call({ agree: CONSENT_VERSION });
+    expect(res).toEqual({ status: 403, body: { error: CODE_COPY.wrong } });
+    expect(h.slots.get(`tester:u:${USER}`)).toBe(1);
+    expect((await call({ agree: CONSENT_VERSION }, { token: null })).status).toBe(403);
+    expect(db.row("testers", USER)).toBeUndefined();
+  });
+
+  it("without the code, refuses a consent the screen no longer shows", async () => {
+    db.put("testers", { user_id: USER, consent_version: CONSENT_VERSION - 1, consented_at: "2026-10-29T09:00:00.000Z" });
+    expect((await call({ agree: CONSENT_VERSION + 1 })).status).toBe(409);
+    expect(db.row("testers", USER)).toMatchObject({ consent_version: CONSENT_VERSION - 1 });
+  });
+
+  it("an older consent is replaced by the new one, with the new time", async () => {
+    db.put("testers", { user_id: USER, consent_version: CONSENT_VERSION - 1, consented_at: "2026-10-29T09:00:00.000Z" });
+    const res = await call({ code: "1234", agree: CONSENT_VERSION });
+    expect(res.status).toBe(200);
+    expect(db.row("testers", USER)).toMatchObject({ consent_version: CONSENT_VERSION });
+    expect(db.row("testers", USER)!.consented_at).not.toBe("2026-10-29T09:00:00.000Z");
+  });
+});
+
+/*
+ * Review P4: the code is the first anyone guesses, so the number of
+ * testers has a ceiling (TESTER_LIMIT, 60), and a stranger with the
+ * code cannot mint testers without end. A tester already on the list
+ * is never refused.
+ */
+describe("POST /api/tester, a full test", () => {
+  const fill = (n: number) => {
+    for (let i = 0; i < n; i++) {
+      db.put("testers", { user_id: `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`, consent_version: CONSENT_VERSION, consented_at: "2026-10-30T09:00:00.000Z" });
+    }
+  };
+
+  it("refuses a new tester once sixty have joined, at the code and at the agree", async () => {
+    fill(60);
+    expect(await call({ code: "1234" })).toEqual({ status: 423, body: { error: CODE_COPY.full } });
+    expect(await call({ code: "1234", agree: CONSENT_VERSION })).toEqual({ status: 423, body: { error: CODE_COPY.full } });
+    expect(db.row("testers", USER)).toBeUndefined();
+  });
+
+  it("is TESTER_LIMIT when set", async () => {
+    vi.stubEnv("TESTER_LIMIT", "2");
+    fill(1);
+    expect((await call({ code: "1234", agree: CONSENT_VERSION })).status).toBe(200);
+    expect((await call({ code: "1234", agree: CONSENT_VERSION }, { token: "tok_anon" })).status).toBe(423);
+  });
+
+  it("never refuses a tester already on the list, agreeing again included", async () => {
+    fill(60);
+    db.put("testers", { user_id: USER, consent_version: CONSENT_VERSION - 1, consented_at: "2026-10-29T09:00:00.000Z" });
+    expect((await call({ agree: CONSENT_VERSION })).status).toBe(200);
+    expect((await call({ code: "1234" })).status).toBe(200);
+    expect(db.row("testers", USER)).toMatchObject({ consent_version: CONSENT_VERSION });
+  });
+});
+
+/*
+ * A friend who joins on the introduction and then signs in to the
+ * account they already had: signing in swaps the anonymous session for
+ * the account, and the testing they agreed to on this phone goes with
+ * them, consent version and time as they gave them.
+ */
+describe("POST /api/tester, carrying testing to the account signed in to", () => {
+  const AT = "2026-10-30T09:00:00.000Z";
+
+  it("moves the anonymous tester's consent to the account", async () => {
+    db.put("testers", { user_id: ANON, consent_version: CONSENT_VERSION, consented_at: AT });
+    const res = await call({ carry: "tok_anon" });
+    expect(res).toEqual({ status: 200, body: { ok: true, tester: { consent_version: CONSENT_VERSION, consented_at: AT } } });
+    expect(db.row("testers", USER)).toMatchObject({ consent_version: CONSENT_VERSION, consented_at: AT });
+    expect(db.row("testers", ANON)).toBeUndefined();
+  });
+
+  it("moves what the phone sent as the anonymous session with them (0022)", async () => {
+    db.put("testers", { user_id: ANON, consent_version: CONSENT_VERSION, consented_at: AT });
+    db.put("tester_events", { user_id: ANON, kind: "device", name: "open" });
+    db.put("tester_events", { user_id: ANON, kind: "usage", name: "tap", label: "Start" });
+    expect((await call({ carry: "tok_anon" })).status).toBe(200);
+    expect(db.state.tables.tester_events.map((e) => e.user_id)).toEqual([USER, USER]);
+  });
+
+  it("keeps the account's own consent when it is as new", async () => {
+    db.put("testers", { user_id: USER, consent_version: CONSENT_VERSION, consented_at: "2026-10-01T09:00:00.000Z" });
+    db.put("testers", { user_id: ANON, consent_version: CONSENT_VERSION, consented_at: AT });
+    const res = await call({ carry: "tok_anon" });
+    expect(res.status).toBe(200);
+    expect(db.row("testers", USER)!.consented_at).toBe("2026-10-01T09:00:00.000Z");
+  });
+
+  it("moves nothing from an account that is not a tester, or from a real account", async () => {
+    expect((await call({ carry: "tok_anon" })).status).toBe(404);
+    db.put("testers", { user_id: USER, consent_version: CONSENT_VERSION, consented_at: AT });
+    h.sessions.set("tok_other", { id: ANON, anonymous: false, email: "other@example.com" });
+    expect((await call({ carry: "tok_other" })).status).toBe(403);
+    expect(db.row("testers", ANON)).toBeUndefined();
+  });
+
+  it("needs both sessions to be real ones", async () => {
+    db.put("testers", { user_id: ANON, consent_version: CONSENT_VERSION, consented_at: AT });
+    expect((await call({ carry: "tok_gone" })).status).toBe(403);
+    expect((await call({ carry: "tok_anon" }, { token: null })).status).toBe(401);
+    expect((await call({ carry: 42 })).status).toBe(403);
+    expect(db.row("testers", USER)).toBeUndefined();
+    expect(db.row("testers", ANON)).toMatchObject({ consented_at: AT });
+  });
+
+  it("never needs the code, and gives back the slot it used", async () => {
+    db.put("testers", { user_id: ANON, consent_version: CONSENT_VERSION, consented_at: AT });
+    h.cap = LIMITS.user.hour;
+    expect((await call({ carry: "tok_anon" })).status).toBe(200);
+    expect(h.slots.get("tester:ip:203.0.113.9")).toBe(0);
+  });
+
+  /*
+   * Review P1 and F2: the answers and typed notes given on the anonymous
+   * session stayed under its id, so the report listed them under a
+   * tester number the friend never sent, and a deletion by their number
+   * missed them. The recordings themselves stay where every signed-in
+   * phone leaves them (lib/auth.ts), so the account remembers the
+   * session it came from and its removal reaches them.
+   */
+  it("moves the anonymous session's answers and notes with them", async () => {
+    db.put("testers", { user_id: ANON, consent_version: CONSENT_VERSION, consented_at: AT });
+    db.put("tester_feedback", { user_id: ANON, client_id: "k-anon", felt: "okay", answer: "too_low", note: "my private note", updated_at: AT });
+    expect((await call({ carry: "tok_anon" })).status).toBe(200);
+    expect(db.state.tables.tester_feedback).toEqual([
+      expect.objectContaining({ user_id: USER, client_id: "k-anon", felt: "okay", answer: "too_low", note: "my private note" }),
+    ]);
+  });
+
+  it("keeps the newer of two answers about one recording", async () => {
+    db.put("testers", { user_id: ANON, consent_version: CONSENT_VERSION, consented_at: AT });
+    db.put("tester_feedback", { user_id: USER, client_id: "k-1", felt: "rough", answer: null, updated_at: "2026-10-30T08:00:00.000Z" });
+    db.put("tester_feedback", { user_id: ANON, client_id: "k-1", felt: null, answer: "about_right", updated_at: "2026-10-30T08:05:00.000Z" });
+    db.put("tester_feedback", { user_id: USER, client_id: "k-2", answer: "too_high", updated_at: "2026-10-30T08:09:00.000Z" });
+    db.put("tester_feedback", { user_id: ANON, client_id: "k-2", answer: "too_low", updated_at: "2026-10-30T08:01:00.000Z" });
+    expect((await call({ carry: "tok_anon" })).status).toBe(200);
+    const rows = db.state.tables.tester_feedback;
+    expect(rows.every((r) => r.user_id === USER)).toBe(true);
+    expect(rows.find((r) => r.client_id === "k-1")).toMatchObject({ answer: "about_right", felt: "rough" });
+    expect(rows.find((r) => r.client_id === "k-2")).toMatchObject({ answer: "too_high" });
+    expect(rows).toHaveLength(2);
+  });
+
+  it("remembers the session it came from, and keeps the day they first joined", async () => {
+    db.put("testers", { user_id: ANON, consent_version: CONSENT_VERSION, consented_at: AT, created_at: "2026-10-30T08:00:00.000Z", carried_from: [] });
+    expect((await call({ carry: "tok_anon" })).status).toBe(200);
+    expect(db.row("testers", USER)).toMatchObject({ carried_from: [ANON], created_at: "2026-10-30T08:00:00.000Z" });
+  });
+
+  it("still carries the consent while the column that remembers is not there yet (0022 after the deploy)", async () => {
+    db.put("testers", { user_id: ANON, consent_version: CONSENT_VERSION, consented_at: AT });
+    db.state.fail.push({ table: "testers", op: "update", error: { code: "42703", message: 'column "carried_from" does not exist' } });
+    expect((await call({ carry: "tok_anon" })).status).toBe(200);
+    expect(db.row("testers", USER)).toMatchObject({ consent_version: CONSENT_VERSION });
   });
 });
 
 describe("deleting the account", () => {
   it("takes the tester row, the answers and the code's rate-limit rows with it", async () => {
     await call({ code: "1234", agree: CONSENT_VERSION });
-    db.put("tester_feedback", { user_id: USER, client_id: "k1", answer: "no", note: "Felt faster" });
+    db.put("tester_feedback", { user_id: USER, client_id: "k1", answer: "too_low", note: "Felt faster", felt: "rough" });
+    db.put("tester_events", { user_id: USER, kind: "device", name: "open" });
     db.put("rate_limits", { subject: `tester:u:${USER}` });
     // On Postgres the cascade on each user_id does this (0020); the fake
     // models the same references, and scripts/check-testers-sql.mjs
@@ -223,7 +442,30 @@ describe("deleting the account", () => {
     expect((await call(undefined, { method: "DELETE", handler: deleteAccount })).status).toBe(200);
     expect(db.row("testers", USER)).toBeUndefined();
     expect(db.row("tester_feedback", USER)).toBeUndefined();
+    expect(db.row("tester_events", USER)).toBeUndefined();
     expect(db.state.tables.rate_limits).toEqual([]);
+  });
+
+  /* "Deleting your account in Settings deletes it too": the anonymous
+     session a tester signed in from goes with the account. */
+  it("takes the anonymous session a tester carried from, its audio included", async () => {
+    db.state.anonymous.add(ANON);
+    db.put("testers", { user_id: USER, consent_version: CONSENT_VERSION, consented_at: "2026-10-30T09:00:00.000Z", carried_from: [ANON] });
+    db.put("reps", { user_id: ANON, audio_path: "reps/1-anon.webm" });
+    db.put("rate_limits", { subject: `u:${ANON}` });
+    expect((await call(undefined, { method: "DELETE", handler: deleteAccount })).status).toBe(200);
+    expect(db.state.deletedUsers).toEqual([ANON, USER]);
+    expect(db.state.removedAudio).toContain("reps/1-anon.webm");
+    expect(db.row("reps", ANON)).toBeUndefined();
+    expect(db.state.tables.rate_limits).toEqual([]);
+  });
+
+  it("never removes a carried id that is a real account", async () => {
+    db.put("testers", { user_id: USER, consent_version: CONSENT_VERSION, consented_at: "2026-10-30T09:00:00.000Z", carried_from: [ANON] });
+    db.put("reps", { user_id: ANON, audio_path: "reps/1-other.webm" });
+    expect((await call(undefined, { method: "DELETE", handler: deleteAccount })).status).toBe(200);
+    expect(db.state.deletedUsers).toEqual([USER]);
+    expect(db.row("reps", ANON)).toBeDefined();
   });
 });
 

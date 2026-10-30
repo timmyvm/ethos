@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import {
+  POINTER_STOPPED_MS,
   SPRING,
   animateSpring,
   project,
@@ -102,6 +103,25 @@ describe("gesture maths", () => {
     ];
     expect(releaseVelocity(stoppedDead)).toBe(0);
   });
+
+  /*
+   * A finger that stops and holds still sends no moves, so the last ones
+   * still say how fast it WAS going (handoff review: a pull held 400ms
+   * then let go closed the paywall, and content held still glided on).
+   * Asked with the moment it lifted, a finger that sat still longer than
+   * a lift ever trails the last move has stopped.
+   */
+  it("reads a finger that held still before it lifted as stopped", () => {
+    const swipe = Array.from({ length: 8 }, (_, i) => ({ t: 16 + i * 12, y: i * 9 }));
+    expect(releaseVelocity(swipe)).toBeGreaterThan(700);
+    // Lifted on the last move's heels: still the swipe's speed.
+    expect(releaseVelocity(swipe, 100 + 16)).toBeCloseTo(releaseVelocity(swipe), 6);
+    // Held 400ms, 150ms, or just past a lift's longest trail, then lifted.
+    expect(releaseVelocity(swipe, 100 + 400)).toBe(0);
+    expect(releaseVelocity(swipe, 100 + 150)).toBe(0);
+    expect(releaseVelocity(swipe, 100 + POINTER_STOPPED_MS + 1)).toBe(0);
+    expect(releaseVelocity(swipe, 100 + POINTER_STOPPED_MS - 1)).toBeGreaterThan(700);
+  });
 });
 
 describe("a spring read mid-flight (the grab-it-halfway problem)", () => {
@@ -197,5 +217,30 @@ describe("animateSpring carries an interrupted run's speed in", () => {
     void animateSpring(el, { from: 40, to: 200, spring: SPRING.base });
     expect(animations[2].easing).toBe(springEasing(SPRING.base, 0));
     clock.mockRestore();
+  });
+
+  /*
+   * A caller that tidies up after a run (Overlay's spring home clears the
+   * panel's transform) must know whether it landed or was caught: caught
+   * by a finger, the tidy-up wiped the transform the grab had just put
+   * there, and the sheet flashed to its rest for a few frames (handoff
+   * review).
+   */
+  it("says whether the run landed or was interrupted", async () => {
+    function settling(outcome: "lands" | "cancelled") {
+      const el = {
+        style: {} as Record<string, string>,
+        animate: vi.fn(() => ({
+          cancel: vi.fn(),
+          finished: outcome === "lands" ? Promise.resolve() : Promise.reject(new DOMException("", "AbortError")),
+        })),
+      };
+      return el as unknown as HTMLElement;
+    }
+    await expect(animateSpring(settling("lands"), { from: 120, to: 0 })).resolves.toBe(true);
+    await expect(animateSpring(settling("cancelled"), { from: 120, to: 0 })).resolves.toBe(false);
+    // Nothing to move, or reduced motion: it lands at once.
+    await expect(animateSpring(settling("cancelled"), { from: 0.2, to: 0 })).resolves.toBe(true);
+    await expect(animateSpring(settling("cancelled"), { from: 120, to: 0, reduced: true })).resolves.toBe(true);
   });
 });

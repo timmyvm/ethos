@@ -25,6 +25,7 @@
  */
 
 import { supabaseBrowser } from "./supabase-browser";
+import { carryTesting, stashTesterCarry, testerCarryToken } from "./tester-client";
 import { safeNextPath } from "./use-paywall-return";
 
 /** Where confirmation and reset links come back to. */
@@ -245,11 +246,17 @@ export async function signInWithGoogle(
       }
     }
 
+    // A plain sign-in swaps the session: testing joined on it rides the
+    // round trip and /auth/callback hands it to the account.
+    stashTesterCarry(await testerCarryToken());
     const { error } = await db.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo },
     });
-    if (error) return failed(error.message);
+    if (error) {
+      stashTesterCarry(null);
+      return failed(error.message);
+    }
     return { ok: true };
   } catch (e) {
     forgetOAuthAttempt();
@@ -486,11 +493,16 @@ export async function signIn(
   }
   const db = supabaseBrowser();
   if (!db) return { ok: false, error: "Accounts aren't configured yet." };
+  /* A phone that joined testing on its anonymous session takes that
+     testing into the account (docs/testers.md): the token is read before
+     the sign-in swaps it out. */
+  const carry = await testerCarryToken();
   const { error } = await db.auth.signInWithPassword({
     email: email.trim(),
     password,
   });
   if (error) return { ok: false, error: humanise(error.message) };
+  await carryTesting(carry);
   return { ok: true };
 }
 

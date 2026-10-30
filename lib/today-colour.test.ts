@@ -306,7 +306,7 @@ describe("Start stands on the card's foot", () => {
 describe("a trait's tone is only ever one of its forms", () => {
   const FORMS = {
     mark: "an 8px square or dot beside a trait's name, or a 3px tick on a track",
-    measure: "a ring's arc or a bar on sand",
+    measure: "a ring's arc, a bar on sand, or the live waveform's stroke",
     sparkline: "a sparkline",
     chip: "TraitChip",
     ground: "a named ground: Today's card, the lesson stage, the trait stage, the recording's topic card",
@@ -318,7 +318,6 @@ describe("a trait's tone is only ever one of its forms", () => {
     ".intro-stage": "pop",
     ':root[data-theme="dark"] .intro-stage': "pop",
     ".demos-halo[data-solid]": "pop",
-    ".plan-step-mark": "pop",
     ".game-tile": "pop",
     ':root[data-theme="dark"] .game-tile': "pop",
     // The utility; the components that use it are held below.
@@ -333,6 +332,9 @@ describe("a trait's tone is only ever one of its forms", () => {
     ".home-tile-glow": "glow",
     ':root[data-theme="dark"] .home-tile-glow': "glow",
     ".home-bar > i": "measure",
+    // The recording screen's live waveform (S08, D51).
+    ".rec-wave": "measure",
+    ':root[data-theme="dark"] .rec-wave': "measure",
   };
   const FILES: Record<string, Form> = {
     "app/lessons/[id]/page.tsx": "ground",

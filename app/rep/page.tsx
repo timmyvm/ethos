@@ -41,7 +41,8 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { FooterShelf } from "@/components/ui/FooterShelf";
 import { BackLink } from "@/components/ui/ScreenHeader";
 import { recordingTrait } from "@/lib/log";
-import { animateSpring, SPRING } from "@/lib/spring";
+import { practiceFamily } from "@/lib/practice-family";
+import { animateSpring, SPRING, springEasing, springMs } from "@/lib/spring";
 import { useHourLabel } from "@/lib/time-label";
 import { achievements } from "@/lib/achievements";
 import {
@@ -104,6 +105,7 @@ import { nextMilestones, repGains } from "@/lib/progress";
 import {
   anticipation,
   endNote,
+  celebrates,
   personalBests,
   type RewardMoment,
 } from "@/lib/rewards";
@@ -139,7 +141,15 @@ import {
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 import type { TraitId } from "@/content/traits";
 
-const METER_BARS = 36;
+/* D51: the live waveform's bars across the column, the left half the
+   take so far, rolling left from the centre. */
+const WAVE_BARS = 56;
+/* 120 tall at 390x844, less on a shorter phone so Stop stays on it. */
+const WAVE_H = "clamp(56px, calc(100dvh - 724px), 120px)";
+/* The progress ring around Stop: its radius on a 120 box, 8px outside
+   the 96px button with a 4px stroke, and its length. */
+const RING_R = 58;
+const RING_C = 2 * Math.PI * RING_R;
 const FRAME_SECONDS = 30;
 
 /**
@@ -267,6 +277,9 @@ function RepScreen() {
       }),
     [searchParams, premium]
   );
+  /* The colour the screen wears (D50): the practice's trait family, as
+     on the Today card that opened it, or the sky stage. */
+  const family = practiceFamily(config);
 
   const [phase, setPhase] = useState<Phase>("idle");
   /** Which upload attempt is in flight, so the wait can say so. */
@@ -328,10 +341,8 @@ function RepScreen() {
   const [notes, setNotes] = useState("");
   const [coined, setCoined] = useState(false);
   /**
-   * A star landed or the streak held on this recording (M08): Demos
-   * swaps to his celebrate pose on the score step. The streak "held"
-   * when this recording is the one that closed today, not a second
-   * take on a day already counted.
+   * A new best Index or three stars on this recording (D52, lib/rewards
+   * `celebrates`): Demos swaps to his celebrate pose on the score step.
    */
   const [earnedNow, setEarnedNow] = useState(false);
   /**
@@ -340,7 +351,7 @@ function RepScreen() {
    * spring instead of letting it cut 100px up the screen.
    */
   const topicRef = useRef<HTMLDivElement | null>(null);
-  const flipFrom = useRef<number | null>(null);
+  const flipFrom = useRef<{ top: number; height: number } | null>(null);
 
   // --- delivery feedback (§1) ---------------------------------------
   const [captureMode, setCaptureMode] = useState<CaptureMode>("voice");
@@ -648,9 +659,11 @@ function RepScreen() {
               unlockedUnit:
                 openNow.find((n) => !before.unitsOpen.includes(n)) ?? null,
             });
+            /* D52: the celebrate pose is for a new best Index or three
+               stars. A star or a held streak is said elsewhere (the
+               bests, the streak's own moment), not by spending it. */
             setEarnedNow(
-              totalStars(map) > before.stars ||
-                (!before.didToday && streak.current > 1)
+              celebrates(before.reps, analyzed.metrics.stars, analyzed.ethosIndex)
             );
             // before.reps is the history captured on mount — the true
             // "before", independent of whether this rep persisted.
@@ -1030,7 +1043,8 @@ function RepScreen() {
       buzz(30);
       // recording-16: where the card stands now, read before the layout
       // changes, so the layout effect below can glide it to its new place.
-      flipFrom.current = topicRef.current?.getBoundingClientRect().top ?? null;
+      const was = topicRef.current?.getBoundingClientRect();
+      flipFrom.current = was ? { top: was.top, height: was.height } : null;
       setPhase("recording");
     } catch (e) {
       // Refused for a recording the screen has already left.
@@ -1162,7 +1176,18 @@ function RepScreen() {
     flipFrom.current = null;
     const el = topicRef.current;
     if (phase !== "recording" || from === null || !el) return;
-    const offset = from - el.getBoundingClientRect().top;
+    const now = el.getBoundingClientRect();
+    const offset = from.top - now.top;
+    /* D50: the idle card is tall, like Today's, and the live one is
+       shrunk at the top, so the card's own height travels with it on
+       the same spring, from what it was to what it is. */
+    const card = el.firstElementChild as HTMLElement | null;
+    if (card && Math.abs(from.height - now.height) >= 1 && !prefersReducedMotion()) {
+      card.animate([{ height: `${from.height}px` }, { height: `${now.height}px` }], {
+        duration: springMs(SPRING.base),
+        easing: springEasing(SPRING.base),
+      });
+    }
     if (Math.abs(offset) < 1) return;
     void animateSpring(el, {
       from: offset,
@@ -1365,16 +1390,10 @@ function RepScreen() {
 
   return (
     <main className="relative isolate flex min-h-dvh flex-col px-5 pb-8 pt-[env(safe-area-inset-top)]">
-      {/* M14: a warm glow under Record marks where you speak. Static, in
-          the recording flow's amber wash (it has a dark value), behind
-          the content of the isolated main. Idle only: once the mic is
-          hot the ring is the signal. */}
-      {phase === "idle" && (
-        <div
-          aria-hidden
-          className="pointer-events-none fixed inset-x-0 bottom-0 -z-10 mx-auto h-60 max-w-[430px] bg-[radial-gradient(120%_100%_at_50%_100%,var(--rec-amber-wash)_0%,transparent_70%)]"
-        />
-      )}
+      {/* D50: the ground is the plain ground. The amber glow under
+          Record and the amber card over it broke the day's colour at
+          the one moment it should carry: the card wears the practice's
+          family now, and Record is the screen's one warm thing. */}
       <div
         className={`flex self-start ${micHot ? "invisible pointer-events-none" : ""}`}
         aria-hidden={micHot || undefined}
@@ -1395,13 +1414,15 @@ function RepScreen() {
        */}
       {/* On idle the topic block takes the free height and centres in
           it, so the screen is the card, the tiles and the tap, not the
-          tiles and then a hole above the tap (review, 25 Sep). */}
+          tiles and then a hole above the tap (review, 25 Sep). Demos no
+          longer stands on the card (D50): he arrives as the listener. */}
       <div className={phase === "idle" ? "flex flex-1 flex-col justify-center pb-8" : ""}>
       {phase !== "analyzing" && (
-        <div ref={topicRef} className={phase === "idle" ? "mt-[100px]" : "mt-4"}>
+        <div ref={topicRef} className="mt-4">
           <TopicCard
             eyebrow={eyebrowOf(config.unit)}
             topic={promptHidden ? "Prompt hidden. That's the mod." : topicText}
+            family={family}
             compact={phase !== "idle"}
           />
         </div>
@@ -1439,7 +1460,7 @@ function RepScreen() {
       </div>
 
       <div
-        className={`flex flex-col items-center gap-6 ${
+        className={`flex flex-col items-center gap-6 [@media(max-height:700px)]:gap-3 ${
           phase === "idle" ? "" : "flex-1 justify-center"
         }`}
       >
@@ -1475,7 +1496,7 @@ function RepScreen() {
         )}
 
         {phase === "recording" && (
-          <div className="arrive flex w-full flex-col items-center gap-6">
+          <div className="arrive flex w-full flex-col items-center gap-6 [@media(max-height:700px)]:gap-3">
             <div
               className={`font-display text-num-hero tabular-nums transition-colors ${
                 config.maxSeconds - seconds <= 10 ? "text-terracotta-700" : ""
@@ -1489,12 +1510,11 @@ function RepScreen() {
                 / {capLabel}
               </span>
             </div>
-            <LevelMeter level={meterLevel} bars={METER_BARS} />
             {/*
-             * One tip, at the moment it applies (lib/live-tips.ts). It
-             * yields to a live nudge — two messages at once is one
-             * message nobody reads — and the row keeps its height
-             * either way so the meter never jumps.
+             * One tip, at the moment it applies (lib/live-tips.ts), over
+             * the waveform it is about (D51). It yields to a live nudge
+             * — two messages at once is one message nobody reads — and
+             * the row keeps its height either way so nothing jumps.
              */}
             <div className="flex h-6 items-center">
               <span
@@ -1504,6 +1524,15 @@ function RepScreen() {
               >
                 {liveTip ?? ""}
               </span>
+            </div>
+            {/* D51: the take as a waveform the column's width, 120 tall,
+                rolling left from the centre, in the practice's tone. */}
+            <div
+              className="rec-wave w-full"
+              data-family={family}
+              data-trait={family === "sky" ? undefined : family}
+            >
+              <LevelMeter level={meterLevel} bars={WAVE_BARS} height={WAVE_H} centre />
             </div>
           </div>
         )}
@@ -1583,7 +1612,10 @@ function RepScreen() {
          * starts and a settle when it stops.
          */}
         {phase === "recording" && captureMode !== "voice_video" && (
-          <DemosHears level={meterLevel} size={116} />
+          /* D51: he listens in the column, scaled to the room. */
+          <div className="w-[clamp(120px,18vh,160px)]">
+            <DemosHears level={meterLevel} size={160} fluid />
+          </div>
         )}
 
         {/*
@@ -1640,11 +1672,29 @@ function RepScreen() {
             {/* The ring is its own element so it can grow out of the
                 button by transform alone (#228): a Tailwind ring is a
                 box-shadow, which neither animates nor belongs here. */}
-            <span
+            {/* D51: the take's progress, a 4px ring 8px outside Stop,
+                ink sweeping clockwise to the target length. */}
+            <svg
               aria-hidden
               className="rec-ring"
               data-on={phase === "recording" || undefined}
-            />
+              viewBox="0 0 120 120"
+            >
+              <circle className="rec-ring-track" cx="60" cy="60" r={RING_R} fill="none" strokeWidth="4" />
+              <circle
+                className="rec-ring-fill"
+                cx="60"
+                cy="60"
+                r={RING_R}
+                fill="none"
+                strokeWidth="4"
+                strokeDasharray={RING_C}
+                strokeDashoffset={
+                  RING_C * (1 - (phase === "recording" ? Math.min(1, seconds / config.maxSeconds) : 0))
+                }
+                transform="rotate(-90 60 60)"
+              />
+            </svg>
             <button
               onClick={
                 phase === "recording" ? () => void stopRep() : () => begin()
@@ -1807,7 +1857,7 @@ function Results({
   config: RepConfig;
   bests: RewardMoment[];
   closing: RewardMoment | null;
-  /** A star landed or the streak held: Demos celebrates (M08). */
+  /** A new best Index or three stars: Demos celebrates (D52). */
   earned: boolean;
   presence: PresenceResult | null;
   /** The account's tester row: undefined while read, null for no. */
@@ -2050,11 +2100,13 @@ function Results({
           step runs it too, which is the results landing after the wait. */}
       {/*
        * The score step is short (a number, the stars and his line) and
-       * the button is on the shelf, so the column centres in the space
-       * the walk gives it, a little above the middle (M07, #287): a
+       * the button is on the shelf, so it fills the space the walk gives
+       * it (M07, #287, D52): the score and Demos with his line share the
+       * free height out in three even bands (RepResult's `spread`). A
        * top-aligned column left a 340px hole over the shelf and read as
-       * stopped rather than finished. The two longer steps flow from the
-       * top and scroll under the shelf.
+       * stopped rather than finished, and a centred one still left 98px
+       * over and under it. The two longer steps flow from the top and
+       * scroll under the shelf.
        */}
       <div
         className={`flex flex-1 flex-col ${
@@ -2070,7 +2122,7 @@ function Results({
             step === 0
               ? match
                 ? "pb-8 pt-8"
-                : "flex flex-1 flex-col justify-center pb-16 pt-4"
+                : "flex flex-1 flex-col"
               : "pb-8"
           }`}
         >
@@ -2080,7 +2132,7 @@ function Results({
             </h2>
           )}
 
-          <div>
+          <div className={step === 0 && !match ? "flex flex-1 flex-col" : undefined}>
             <RepResult
               result={result}
               topic={config.topic}
@@ -2088,6 +2140,7 @@ function Results({
               baseline={repCountBefore === 0}
               live
               celebrate={earned}
+              spread={step === 0 && !match}
               /* recording-13, recording-18: the evidence you can play sits
                  above the words it produced, inside the words section. */
               player={
@@ -2242,7 +2295,7 @@ function Results({
                 }
                 className={PRIMARY}
               >
-                Another round · {game.name}
+                Another round: {game.name}
               </button>
             ) : lesson && nextInLesson ? (
               <button
@@ -2270,7 +2323,7 @@ function Results({
                 onClick={() => exit(repHref({ lesson: next.id }))}
                 className={PRIMARY}
               >
-                {again ? "Go again" : "Next lesson"} · {next.title}
+                {again ? "Go again" : "Next lesson"}: {next.title}
               </button>
             )}
             {/* recording-22: the quiet pair under the one tap. Retake is

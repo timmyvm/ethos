@@ -2,14 +2,18 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState, type KeyboardEvent, type ReactNode } from "react";
+import { Suspense, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { preloadPose, type Pose, type Tone } from "@/components/DemosArt";
 import { IntroDemos } from "@/components/IntroDemos";
+import { GoogleMark } from "@/components/AuthForm";
+import { HOUSE_OBJECT, objectSrc } from "@/lib/home";
 import {
   IconBars,
   IconBolt,
   IconBubble,
+  IconBulb,
   IconCap,
+  IconCheck,
   IconCase,
   IconEllipsis,
   IconFreeze,
@@ -18,7 +22,6 @@ import {
   IconMic,
   IconParagraph,
   IconPeople,
-  IconSpark,
   IconWave,
   IconWaveFlat,
 } from "@/components/Icon";
@@ -172,7 +175,7 @@ const QUESTION_POSES: Record<QuestionId, Pose> = {
  * screen.
  */
 const GLYPH: Record<GoalId | PainId | LevelId | ContextId, ReactNode> = {
-  sharper: <IconSpark size={24} />,
+  sharper: <IconBulb size={24} />,
   present: <IconMic size={24} />,
   feet: <IconBolt size={24} />,
   anyone: <IconBubble size={24} />,
@@ -480,15 +483,21 @@ function Walk() {
         announce={
           step.id === "name" ? (heardName ? NAME_REPLY(heardName) : "") : undefined
         }
+        /* D19: his coin scales with the room, 96 to 140 (135 at
+           390x844), where it was a fixed 84. */
+        shelfFollows={step.id === "name"}
         art={
-          <IntroDemos
-            pose={QUESTION_POSES[step.id]}
-            size={84}
-            pop
-            halo={{ tone: QUESTION_TONES[step.id], kind: "coin" }}
-            nodKey={nodKey(answers, step.id, heardName)}
-            greetAfterMs={SAID_AFTER_MS}
-          />
+          <div className="relative size-[clamp(96px,16vh,140px)] [container-type:size]">
+            <IntroDemos
+              pose={QUESTION_POSES[step.id]}
+              size={140}
+              fit
+              pop
+              halo={{ tone: QUESTION_TONES[step.id], kind: "coin" }}
+              nodKey={nodKey(answers, step.id, heardName)}
+              greetAfterMs={SAID_AFTER_MS}
+            />
+          </div>
         }
         controls={
           <Choices
@@ -497,6 +506,7 @@ function Walk() {
             onAnswer={answer}
             onSettleName={() => setHeardName(answers.name)}
             onNext={() => go(i + 1)}
+            focusName={travel === "next"}
           />
         }
         /*
@@ -553,7 +563,13 @@ function Walk() {
       /* His line to them, in their name and their words, in place of
          the template's old "Built from what you told me." */
       line={plan.opening}
-      controls={<PlanSteps label={PLAN_COPY.label} steps={plan.stepParts} />}
+      grow
+      controls={
+        <>
+          <PlanSteps label={PLAN_COPY.label} steps={plan.stepParts} />
+          <DayOne />
+        </>
+      }
       art={
         <IntroDemos
           pose="clipboard"
@@ -600,10 +616,10 @@ function Walk() {
  * can see rather than about a future they have not had yet.
  *
  * It wears the save-progress wall's grammar rather than /signup's: one
- * terracotta tap on the thing being asked for, a neutral second door,
- * and a quiet decline that continues. No four-colour G, because that
- * mark belongs on a light surface and this screen's one accent is the
- * accent every screen gets.
+ * tap on the thing being asked for, a neutral second door, and a quiet
+ * decline that continues. The tap is Google's own button since D49
+ * (its fill, edge, words and four-colour G, as Google's branding asks),
+ * so this is the one screen with no terracotta tap.
  *
  * Google first because it is one tap and the identity is already
  * wired: `signInWithGoogle("signup")` links the provider to the
@@ -636,25 +652,39 @@ function AccountStep({
       onBack={onBack}
       title={name ? `Keep this, ${name}.` : "Keep this."}
       line="Your plan and every number you're about to make, on any phone you open."
-      /* intro-b-13: the title and the line share the coin's axis, and
-         a larger Demos takes the slack out of the bands round them. He
-         says hello (intro-b-21): the plan's clipboard was one screen
-         ago. */
+      /* intro-b-13: the title and the line share his axis. He says
+         hello (intro-b-21): the plan's clipboard was one screen ago.
+         D19, D49: he stands at 240 on the intro's sky stage, which takes
+         the free height; a 240 coin on the ground still left 112px over
+         him and 136 under the line. */
       align="center"
+      stage="sky"
       art={
-        <IntroDemos
-          pose="hello"
-          size={200}
-          pop
-          grounded
-          halo={{ tone: "sky", kind: "coin" }}
-          className="mb-6"
-        />
+        <div className="intro-stage tone-sky mb-6 flex min-h-0 flex-1 flex-col px-4 pt-5">
+          <div className="demos-fit max-h-[264px] w-full flex-1">
+            <div className="demos-fit-room">
+              <IntroDemos
+                pose="hello"
+                size={240}
+                fit
+                pop
+                grounded
+                halo={{ tone: "sky", kind: "stage" }}
+              />
+            </div>
+          </div>
+        </div>
       }
       /* Held, not greyed, while the browser leaves, as on /signup: a
          faded button is what read as dead when she came back. */
+      /* D49: Google's own button, as its branding asks (white with a
+         #747775 edge and #1f1f1f words in light, #131314 with #8e918f
+         and #e3e3e3 in dark, the unmodified G), a pill like every tap.
+         So this screen has no terracotta tap, by design: the one thing
+         to press is a brand's. */
       action={{
         label: pending ? "Opening Google…" : "Continue with Google",
+        brand: { className: GOOGLE_BUTTON, mark: <GoogleMark size={18} /> },
         onPress: () => {
           if (!pending) void google();
         },
@@ -843,6 +873,14 @@ function WalkBar({ n, of, onSkip }: { n: number; of: number; onSkip?: () => void
   );
 }
 
+/**
+ * Google's button (D49, Google's sign-in branding): white, a 1px #747775
+ * edge and #1f1f1f words in light; #131314, #8e918f and #e3e3e3 in dark;
+ * the unmodified 18px G before the words. A pill, as every tap is.
+ */
+const GOOGLE_BUTTON =
+  "press font-display flex min-h-12 w-full items-center justify-center gap-3 rounded-tap border border-[#747775] bg-white px-6 text-body font-bold text-[#1f1f1f] dark:border-[#8e918f] dark:bg-[#131314] dark:text-[#e3e3e3]";
+
 /** The door under an intro screen's Next: a text link at full width. */
 const FOOT_LINK = "text-link mt-3 flex min-h-11 items-center justify-center";
 /** Two doors on one row, the account ask's pair: the words line up with
@@ -850,15 +888,17 @@ const FOOT_LINK = "text-link mt-3 flex min-h-11 items-center justify-center";
 const PAIR_LINK = "text-link -mx-1 inline-flex min-h-11 items-center px-1";
 
 /**
- * An answer, chosen (M20, intro-a-14): the reference's accent edge,
- * tinted fill and accent label, never an inverted block. The dark wash
- * is the accent at 10% over the surface, because terracotta-50 in dark
- * is a brown slab. One constant, worn by a chosen row and by the name
- * field once a name is in it, so the typed answer and the tapped ones
- * light the same way.
+ * An answer, chosen (D47): drawn in ink, a 2px ink edge with its lip in
+ * ink, raised off the surface, ink words and an ink check at the right
+ * (Row). Terracotta means tap, so on a question screen it is only ever
+ * Next: two terracotta picks over a terracotta Next made three things
+ * that looked pressable (Duolingo's 04-question-answered picks in blue
+ * while its tap is green). Never an inverted block. One constant, worn
+ * by a chosen row and by the name field once a name is in it, so the
+ * typed answer and the tapped ones are chosen the same way; a field
+ * with the keyboard up still takes its terracotta focus edge (#249).
  */
-const PICKED_ROW =
-  "border-terracotta-500 bg-terracotta-50 text-terracotta-700 dark:bg-[color-mix(in_srgb,var(--color-terracotta-500)_10%,var(--color-surface))]";
+const PICKED_ROW = "border-ink bg-raised text-ink";
 
 /**
  * The answers to one question: a field for the name, checkboxes for
@@ -871,12 +911,15 @@ function Choices({
   onAnswer,
   onSettleName,
   onNext,
+  focusName = false,
 }: {
   id: QuestionId;
   answers: Answers;
   onAnswer: (patch: Partial<Answers>) => void;
   onSettleName: () => void;
   onNext: () => void;
+  /** Arrived going forward: the name field takes the focus. */
+  focusName?: boolean;
 }) {
   if (id === "name") {
     return (
@@ -885,6 +928,7 @@ function Choices({
         onAnswer={onAnswer}
         onSettleName={onSettleName}
         onNext={onNext}
+        focus={focusName}
       />
     );
   }
@@ -904,17 +948,30 @@ function NameField({
   onAnswer,
   onSettleName,
   onNext,
+  focus = false,
 }: {
   name: string | null;
   onAnswer: (patch: Partial<Answers>) => void;
   onSettleName: () => void;
   onNext: () => void;
+  focus?: boolean;
 }) {
+  const field = useRef<HTMLInputElement>(null);
+  /*
+   * D19: arriving at the name going forward, the field takes the focus,
+   * so the keyboard is up and Next stands 16px under the field
+   * (LessonScreen's `shelfFollows`): the question is one reach. Never on
+   * the way back (a swipe back must not throw the keyboard up and jump
+   * the page), and without scrolling the page to it.
+   */
+  useEffect(() => {
+    if (focus) field.current?.focus({ preventScroll: true });
+    // On arrival only: a later re-render keeps whatever focus is.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return (
     <input
-      // Deliberately NOT autoFocus: a keyboard that throws itself up
-      // over Demos on the first question of the first session hides
-      // the half of the screen that is doing the introducing.
+      ref={field}
       aria-label={NAME_FIELD.label}
       name="given-name"
       maxLength={MAX_NAME}
@@ -932,12 +989,13 @@ function NameField({
         onNext();
       }}
       placeholder={NAME_FIELD.placeholder}
-      /* Picked, the field holds its focus edge (1px border plus a 1px
-         inset), so a typed answer wears the same 2px terracotta edge as
-         a chosen row whether or not the keyboard is up. */
+      /* Picked, the field is 2px of ink (its 1px border plus a 1px
+         inset), the edge of a chosen row; focused, INPUT_SHAPE's
+         terracotta edge wins (a :focus utility outranks these), so a
+         field being typed in still says where the keys go. */
       className={`${INPUT_ANSWER_CLASS} font-display ${
         name
-          ? `${PICKED_ROW} shadow-[inset_0_0_0_1px_var(--color-terracotta-500)]`
+          ? `${PICKED_ROW} shadow-[inset_0_0_0_1px_var(--color-ink)]`
           : "border-edge bg-surface"
       }`}
     />
@@ -1162,6 +1220,11 @@ function Row({
           {detail}
         </span>
       )}
+      {/* The check's slot is held on every row, so a label never
+          rewraps under the finger when its row is picked. */}
+      <span aria-hidden className={`flex size-5 shrink-0 text-ink ${on ? "" : "invisible"}`}>
+        <IconCheck size={20} />
+      </span>
     </button>
   );
 }
@@ -1173,7 +1236,6 @@ function Row({
  * set as a number, because the numbers are what the product sells.
  */
 function PlanSteps({ label, steps }: { label: string; steps: PlanStep[] }) {
-  const tones: Tone[] = ["sun", "sky", "coral"];
   return (
     <div>
       {/* A3's request: a sentence-case head, not tracked capitals. */}
@@ -1187,12 +1249,14 @@ function PlanSteps({ label, steps }: { label: string; steps: PlanStep[] }) {
             {k < steps.length - 1 && (
               <span
                 aria-hidden
-                className="absolute left-[13px] top-7 -bottom-4 w-0.5 bg-edge"
+                className="absolute left-[13.5px] top-7 -bottom-4 w-px bg-edge"
               />
             )}
+            {/* D49: a numbered disc in ink on the surface; the sun, sky
+                and coral meant nothing. */}
             <span
               aria-hidden
-              className={`plan-step-mark tone-${tones[k % tones.length]} font-display text-row font-extrabold tabular-nums`}
+              className="plan-step-mark font-display font-extrabold tabular-nums"
             >
               {k + 1}
             </span>
@@ -1205,6 +1269,35 @@ function PlanSteps({ label, steps }: { label: string; steps: PlanStep[] }) {
           </li>
         ))}
       </ol>
+    </div>
+  );
+}
+
+/**
+ * Day one, previewed under the month (D49): Today's first card as it
+ * will stand tomorrow morning, in Pausing's family (`.family-fill`, the
+ * house's blue, with Today's feet), the hourglass at its corner and the
+ * same words Today says on day one. Not a button: the plan's tap is
+ * still Next. It fills the band the rail left over the shelf.
+ */
+function DayOne() {
+  return (
+    /* 160 at the least, taller where the room has it (216 at most), so
+       the month and its first day fill the screen over Next. */
+    <div
+      data-family="pause"
+      className="family-fill mt-6 flex min-h-40 max-h-[216px] flex-1 flex-col justify-between rounded-[var(--radius-tile)]! p-5"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element -- lesson art is a plain img (#274) */}
+      <img
+        src={objectSrc(HOUSE_OBJECT)}
+        alt=""
+        width={72}
+        height={72}
+        className="pointer-events-none absolute right-4 top-3 size-[72px] select-none"
+      />
+      <div className="eyebrow text-[var(--stage-ink)]">Your first recording</div>
+      <div className="font-display text-num-m font-extrabold">Day one starts today.</div>
     </div>
   );
 }

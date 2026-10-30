@@ -44,8 +44,9 @@ export function SpeechBubble({
   className = "",
   children,
 }: {
-  /** "down" for a bubble over his head, "left" for one beside him. */
-  tail: "down" | "left";
+  /** "down" for a bubble over his head, "up" for one under him (the
+   *  results' score step, D52), "left" for one beside him. */
+  tail: "down" | "up" | "left";
   /** His voice's size: "lead" in the introduction, "detail" elsewhere. */
   voice?: "lead" | "detail";
   /** What the bubble is made of: the card, or the plum sheet's cream (above). */
@@ -66,10 +67,16 @@ export function SpeechBubble({
         className={`absolute h-3.5 w-3.5 rotate-45 ${plum ? "border-cream/16 bg-[#4f3655]" : "border-card-edge bg-raised"} ${
           tail === "down"
             ? "-bottom-[7px] left-1/2 -translate-x-1/2 border-b border-r"
-            : /* In dark the card's sheen is still about 3% lighter at
-                 the tail's height (29px down), so the tail takes that
-                 step and no seam shows where it meets the bubble. */
-              `-left-[7px] top-[22px] border-b border-l ${plum ? "" : "dark:bg-[color-mix(in_srgb,var(--color-raised),#fff_3%)]"}`
+            : tail === "up"
+              ? /* At the top edge the dark card's sheen is at its
+                   lightest (raised plus 3% white), so the tail
+                   takes that step and no seam shows. */
+                `-top-[7px] left-1/2 -translate-x-1/2 border-t border-l ${plum ? "" : "dark:bg-[color-mix(in_srgb,var(--color-raised),#fff_3%)]"}`
+              : /* In dark the card's sheen is still about 2% lighter at
+                 the tail's height (29px down of its 88px), so the tail
+                 takes that step and no seam shows where it meets the
+                 bubble. */
+              `-left-[7px] top-[22px] border-b border-l ${plum ? "" : "dark:bg-[color-mix(in_srgb,var(--color-raised),#fff_2%)]"}`
         }`}
       />
     </div>

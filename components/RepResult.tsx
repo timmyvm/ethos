@@ -64,6 +64,7 @@ export function RepResult({
   player,
   hasPlayer = player != null,
   celebrate = false,
+  spread = false,
 }: {
   result: ResultView;
   topic?: ColdTopic | null;
@@ -105,6 +106,14 @@ export function RepResult({
    * Under reduced motion it is the swap and a 200ms fade.
    */
   celebrate?: boolean;
+  /**
+   * The score step fills a flex column (the recording page's walk): the
+   * score and Demos with his line share the free height out in three
+   * even bands, over, between and under them (D19, D52), so neither a
+   * hole over the stars nor one over the shelf. The parent is a
+   * `flex flex-col` the height of the room.
+   */
+  spread?: boolean;
 }) {
   const show = (s: ResultSection) => section === "all" || section === s;
   const debrief = section === "score";
@@ -190,14 +199,17 @@ export function RepResult({
     <p className="text-balance">{line}</p>
   );
 
+  const spreads = spread && debrief;
   return (
     <>
+      {spreads && <div aria-hidden className="min-h-4 flex-1" />}
       {show("score") &&
         (debrief ? (
-          /* The debrief's score step (recording-6, M07): one centred
-             column, stars first, then the number, one delta, one
-             caption. Nothing floats off to one side. */
-          <div className="mt-5 flex flex-col items-center text-center">
+          /* The debrief's score step (recording-6, M07, D52): one
+             centred column, stars first, then the number, one delta,
+             one caption, then Demos and his line, 24px between the
+             parts. Nothing floats off to one side. */
+          <div className="flex flex-col items-center text-center">
             {ethosIndex !== null ? (
               <>
                 <span className="[&>span]:gap-3!">
@@ -209,7 +221,7 @@ export function RepResult({
                     landAfterMs={COUNT_MS}
                   />
                 </span>
-                <div className="mt-5 flex items-baseline justify-center gap-1">
+                <div className="mt-6 flex items-baseline justify-center gap-1">
                   <span className="sr-only">Ethos</span>
                   <span data-score className="font-display text-num-xl tabular-nums">
                     <CountUp value={ethosIndex} />
@@ -225,7 +237,7 @@ export function RepResult({
                 <span className="[&>span]:gap-3!">
                   <Stars n={m.stars} size={40} arch land={live} />
                 </span>
-                <div className="mt-5 flex items-baseline justify-center gap-1.5">
+                <div className="mt-6 flex items-baseline justify-center gap-1.5">
                   <span className="font-display text-num-xl tabular-nums">
                     {m.fillerCount}
                   </span>
@@ -288,7 +300,65 @@ export function RepResult({
         </p>
       )}
 
-      {show("score") && (
+      {show("score") && debrief && (
+        /*
+         * D52: on the score step Demos stands under the score, scaled
+         * to the room (228 at 390x844, 139 at 667, 90 at 568: the
+         * round's 22vh left 98px bands at 844 and its 120 floor pushed
+         * his line under the shelf at 568), his line under him
+         * at the column's width with its tail up at his face, so the
+         * score and what he says about it read as one group down the
+         * step (`spread`). Beside a Demos that size the bubble would be 150px
+         * wide and his line three or four lines tall. The celebrate
+         * pose, with its sparkles and burst, is only for a new best
+         * Index or three stars (lib/rewards `celebrates`).
+         */
+        <>
+        <div aria-hidden className={spreads ? "min-h-6 flex-1" : "h-6"} />
+        <div className="flex w-full flex-col items-center">
+          <div className="relative size-[clamp(88px,calc(50dvh_-_194px),228px)] [container-type:size]">
+            {celebrating ? (
+              <DemosArt
+                key="celebrate"
+                pose="celebrate"
+                size={228}
+                fit
+                greetAfterMs={0}
+                className="fade-in"
+              />
+            ) : (
+              <DemosArt
+                key="speaking"
+                pose="speaking"
+                size={228}
+                fit
+                greetAfterMs={timed && !celebrate ? bubbleAt + SAID_AFTER_MS : undefined}
+              />
+            )}
+            {celebrating && (
+              <span aria-hidden className="earned-burst">
+                {Array.from({ length: 12 }, (_, i) => (
+                  <i key={i} />
+                ))}
+              </span>
+            )}
+          </div>
+          <div
+            className={`mt-3 w-full text-left ${timed ? "arrive" : ""}`}
+            style={timed ? ({ animationDelay: `${bubbleAt}ms` } as CSSProperties) : undefined}
+          >
+            <SpeechBubble tail="up" className="text-center">
+              {said}
+            </SpeechBubble>
+            {coach && (
+              <p className="mt-2 text-center text-caption text-stone-400">AI-generated feedback</p>
+            )}
+          </div>
+        </div>
+        </>
+      )}
+
+      {show("score") && !debrief && (
         /*
          * Demos speaks from his bubble (M08, log-8): the full-body
          * speaking pose at 112, the bubble's tail at his face, and no
@@ -297,7 +367,7 @@ export function RepResult({
          * under the bubble, outside it, and only when a coach ran: the
          * fallback line is computed from the metrics.
          */
-        <div className={`${debrief ? "mt-8" : "mt-7"} flex w-full items-start gap-3 text-left`}>
+        <div className="mt-7 flex w-full items-start gap-3 text-left">
           <div className="relative shrink-0">
             {celebrating ? (
               <DemosArt
@@ -344,6 +414,7 @@ export function RepResult({
           <AccuracyCard accuracy={result.accuracy} topic={topic} />
         </div>
       )}
+      {spreads && <div aria-hidden className="flex-1" />}
 
       {show("numbers") && (
         <>

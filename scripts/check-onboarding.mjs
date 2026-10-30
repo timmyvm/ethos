@@ -151,7 +151,7 @@ ok("a short drag springs back", (await heading()) === "Hey. I know why you're he
 await swipe(90);
 ok("the first screen rubber-bands a swipe back", (await heading()) === "Hey. I know why you're here.");
 await swipe(-200);
-ok("swipe left goes forward", (await heading()) === "A coach costs $5,000.");
+ok("swipe left goes forward", (await heading()) === "Sixty seconds a day.");
 ok("and the next screen arrives from the right", (await arrival()) === "next");
 const landed = await page.$eval("main [class*='step-in-']", (el) => ({
   arrival: el.dataset.arrival ?? null,
@@ -169,7 +169,7 @@ await swipe(8, { dy: -220, y: 640 });
 ok("a vertical drag is left to the page", (await heading()) === "Hey. I know why you're here.");
 await page.keyboard.press("ArrowRight");
 await sleep(400);
-ok("the right arrow key steps forward", (await heading()) === "A coach costs $5,000.");
+ok("the right arrow key steps forward", (await heading()) === "Sixty seconds a day.");
 await page.keyboard.press("ArrowLeft");
 await sleep(400);
 ok("and the left arrow steps back", (await heading()) === "Hey. I know why you're here.");

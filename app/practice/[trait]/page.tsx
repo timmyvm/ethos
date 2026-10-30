@@ -166,7 +166,7 @@ function Lesson() {
    * centred on the ring's line, and the block centred in the height
    * above the tap, so the six steps read as one layout.
    */
-  const frame = { fill: true, align: "center", stepKey: step, trait: id } as const;
+  const frame = { fill: true, stageMax: STAGE_MAX, align: "center", stepKey: step, trait: id } as const;
 
   /*
    * R3: the trait's stage takes the free height on every step and the
@@ -189,14 +189,8 @@ function Lesson() {
         provisional={now !== null && provisional}
         className={COIN}
       >
-        {now ? (
-          <CountUp value={now.percentile} durationMs={DURATION.max} className={FIGURE} />
-        ) : (
-          <Dash />
-        )}
-        <span className="label-micro mt-1 text-stone-500">percentile</span>
+        <RingCentre id={id} raw={now?.raw ?? null} percentile={now?.percentile ?? null} />
       </Ring>
-      <Measured id={id} now={now} />
     </>
   );
 
@@ -227,17 +221,21 @@ function Lesson() {
          */
         aside={readFailed}
         fineprint={
+          /* D29: the ring says the number and its percentile, so the
+             fine print says only where they come from, the same line on
+             a provisional scale (said by the ring to a screen reader,
+             Ring's `provisional`, never as a disclaimer). Held at one
+             line while the read is in flight, so the shelf keeps its
+             height when it lands. */
           !loaded
-            ? " "
+            ? " "
             : failed
               ? undefined
               : !now
-              ? "Record once to place this trait."
-              : provisional
-                ? "The percentile is an estimate."
+                ? "Record once to place this trait."
                 : lowest
-                  ? `Your lowest trait, at the ${ordinal(now.percentile)} percentile.`
-                  : `${ordinal(now.percentile)} percentile, from your last recording.`
+                  ? "Your lowest trait, from your last recording."
+                  : "From your last recording."
         }
         action={{ label: "Why it matters", onPress: () => go(i + 1) }}
       />
@@ -378,9 +376,12 @@ function Lesson() {
         now ? (
           <MovingRing
             key={`${before?.fraction}-${now.fraction}`}
+            id={id}
             from={before?.fraction ?? 0}
+            fromRaw={before?.raw ?? now.raw}
             fromPercentile={before?.percentile ?? 0}
             to={now.fraction}
+            raw={now.raw}
             percentile={now.percentile}
             provisional={provisional}
           />
@@ -392,8 +393,7 @@ function Lesson() {
             state={loaded ? "idle" : "thinking"}
             className={COIN}
           >
-            <Dash />
-            <span className="label-micro mt-1 text-stone-500">percentile</span>
+            <RingCentre id={id} raw={null} percentile={null} />
           </Ring>
         )
       }
@@ -433,43 +433,67 @@ function Lesson() {
 /** The ring's drawn size (its viewBox and stroke, M18); the stage
  *  scales it to the room it is given. */
 const RING = 168;
+/* The stage's tallest (D19, D29): at 390x844 it holds a 320 ring with
+   about the band over and under it that the words get over and under
+   them (check-gaps: 60, 61, 62, 60). A shorter screen's stage takes all
+   the free height, and the ring keeps 56px over and under it. */
+const STAGE_MAX = 508;
 /*
- * R3: the ring as an object on its stage, a disc of the ground behind
- * the trough so the number stays on plain ground, scaled to the stage:
- * 60% of the room's height, never under 152 or over 272 (70% of the
- * column; its stroke scales with it through the viewBox).
+ * R3, D29: the ring as an object on its stage, a disc of the ground
+ * behind the trough so the number stays on plain ground, scaled to the
+ * stage: its room less 56px over and under it, never wider than the
+ * column, between 152 and 320 (its stroke scales with it through the
+ * viewBox). 320, not the round's 300: at 390x844 a 300 ring leaves four
+ * bands that cannot all come in under 64px (check-gaps), and 320 can.
  */
-const COIN = "rounded-full bg-ground size-[clamp(152px,60cqh,272px)]! [&>svg]:size-full";
-/* The figure steps up from num-l to num-hero once the ring is big
-   enough to hold it (a room 380px tall gives a 228 ring). */
+const COIN =
+  "rounded-full bg-ground size-[clamp(152px,min(calc(100cqh_-_112px),100cqw),320px)]! [&>svg]:size-full";
+/* The measured value steps up from num-l to num-hero once the ring is
+   200px or more (a room 312px tall), so Pace's "155" fits the smaller
+   ring of a 320 screen. */
 const FIGURE =
-  "font-display text-num-l tabular-nums [@container(min-height:380px)]:text-num-hero";
-
-/** Unknown, drawn as unknown: a dash where the number goes. */
-function Dash() {
-  return (
-    <span aria-hidden className={`${FIGURE} opacity-60`}>
-      –
-    </span>
-  );
-}
+  "font-display text-num-l tabular-nums [@container(min-height:312px)]:text-num-hero";
 
 /**
- * practice-detail-7, #263: the number that IS measured, by the ring and
- * not in the fine print under the button. On a provisional scale the
- * placement is the guess and this is the fact. One line whether or not
- * it is known yet, so nothing moves when it lands.
+ * D29: the ring's centre is the measurement, not the grade. The value
+ * at num-hero, its unit under it, then the percentile in sentence
+ * case. Unknown is a dash, with the two lines held (invisible) so
+ * nothing moves when the read lands.
  */
-function Measured({ id, now }: { id: TraitId; now: TraitReading | null }) {
-  const shown = now ? fmtRaw(now.raw) : null;
+function RingCentre({
+  id,
+  raw,
+  percentile,
+}: {
+  id: TraitId;
+  raw: number | null;
+  percentile: number | null;
+}) {
+  const shown = raw === null ? null : fmtRaw(raw);
   return (
-    <p
-      aria-hidden={shown === null || undefined}
-      className={`mt-3 text-center text-caption text-stone-500 ${shown === null ? "invisible" : "arrive"}`}
-    >
-      <span className="font-display text-num-s text-ink tabular-nums">{shown ?? "0"}</span>{" "}
-      {shown === "1" ? TRAIT[id].unitOne : TRAIT[id].unit}
-    </p>
+    <>
+      {raw === null ? (
+        <span aria-hidden className={`${FIGURE} opacity-60`}>
+          –
+        </span>
+      ) : (
+        <CountUp value={raw} format={fmtRaw} durationMs={DURATION.max} className={FIGURE} />
+      )}
+      <span
+        className={`mt-1.5 max-w-[68%] text-center text-body leading-tight font-medium text-stone-500 text-balance ${
+          raw === null ? "invisible" : ""
+        }`}
+      >
+        {shown === "1" ? TRAIT[id].unitOne : TRAIT[id].unit}
+      </span>
+      <span
+        className={`font-display mt-2 text-link font-semibold text-stone-500 ${
+          percentile === null ? "invisible" : ""
+        }`}
+      >
+        {ordinal(percentile ?? 0)} percentile
+      </span>
+    </>
   );
 }
 
@@ -480,26 +504,32 @@ function Measured({ id, now }: { id: TraitId; now: TraitReading | null }) {
  * there.
  */
 function MovingRing({
+  id,
   from,
+  fromRaw,
   fromPercentile,
   to,
+  raw,
   percentile,
   provisional = false,
 }: {
+  id: TraitId;
   from: number;
+  fromRaw: number;
   fromPercentile: number;
   to: number;
+  raw: number;
   percentile: number;
   provisional?: boolean;
 }) {
   const [value, setValue] = useState(from);
-  const [shown, setShown] = useState(fromPercentile);
+  const [shown, setShown] = useState({ raw: fromRaw, percentile: fromPercentile });
   const [closing, setClosing] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => {
       setValue(to);
-      setShown(percentile);
+      setShown({ raw, percentile });
       /* A lift and a buzz only for a real rise from a real reading: a
          drop is never drawn as a gain, and a first reading has nothing
          to rise from. */
@@ -509,7 +539,7 @@ function MovingRing({
       }
     }, 650);
     return () => clearTimeout(t);
-  }, [from, to, percentile]);
+  }, [from, to, raw, percentile]);
 
   return (
     <Ring
@@ -521,8 +551,8 @@ function MovingRing({
       provisional={provisional}
       className={COIN}
     >
-      <CountUp value={shown} durationMs={DURATION.max} className={FIGURE} />
-      <span className="label-micro mt-1 text-stone-500">percentile</span>
+      {/* The value and its percentile travel with the arc. */}
+      <RingCentre id={id} raw={shown.raw} percentile={shown.percentile} />
     </Ring>
   );
 }

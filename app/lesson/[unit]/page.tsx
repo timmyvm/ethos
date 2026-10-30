@@ -90,12 +90,19 @@ function LessonIntro() {
       /* The unit's own name, as lib/path.ts writes it: a proper name,
          so its capitals stay. */
       eyebrow={unit.name}
-      /* #212 (Timothy): the tactics lead, so the title rises only to
-         the detail step (17/700) that `lead="howTo"` gives it. */
+      /* The tactics stay tiles (#212), but the name is the title
+         (26/700, D09): at 17 under the stage it read as a label. */
       title={unit.intro.title}
+      titleSize="title"
       line={unit.intro.line}
       howTo={unit.intro.howTo}
       lead="howTo"
+      /* D53: the stage stops short of the free height so the title and
+         the tips lead. 368, not the 280 the round set: a 180 mark on a
+         280 stage leaves 125px and 121px of ground over and under the
+         words at 390x844, and 368 is where every band comes out under
+         64 (check-gaps: 56, 58, 61, 51, 57). */
+      stageMax={368}
       art={<UnitStage id={unit.id} />}
       action={{
         label: "Start",
@@ -112,14 +119,15 @@ function LessonIntro() {
  * The unit's mark on its stage (M19, #248, R3): the Demos pose made for
  * this unit, standing on the stage LessonScreen draws in the trait's
  * tone, with a contact shadow, scaled to the room (128 at the least,
- * 184 at the most: the cut is 256px, so it stays crisp at 2x up to
+ * 180 at the most, D53: the stage is capped at 280, so the mark takes
+ * most of its room; the cut is 256px, so it stays crisp at 2x up to
  * 128 and soft only by a hair at the top). next/image is safe here
  * because the service worker does not pre-cache /unit/. It arrives
  * once, with the screen, and then breathes.
  */
 function UnitStage({ id }: { id: string }) {
   return (
-    <div className="arrive relative size-[clamp(128px,52cqh,184px)]">
+    <div className="arrive relative size-[clamp(128px,calc(100cqh_-_112px),180px)]">
       {/* He breathes on DemosArt's own loop and his shadow with him
           (`.demos-breath`, `.ground-breath`; still under reduced
           motion): the unit marks have no idle clip yet (#316). */}

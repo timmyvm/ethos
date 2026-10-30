@@ -4,6 +4,7 @@ import { computeMetrics, type RepMetrics } from "./metrics";
 import type { Milestone } from "./progress";
 import {
   anticipation,
+  celebrates,
   endNote,
   freshStart,
   landmark,
@@ -251,5 +252,28 @@ describe("personalBests", () => {
     );
     expect(out.length).toBeGreaterThan(0);
     for (const b of out) expect(b.detail).toMatch(/\d/);
+  });
+});
+
+describe("celebrates (D52)", () => {
+  const prior = [rep({ ethos_index: 640 }), rep({ ethos_index: 662 }), rep({ ethos_index: null })];
+
+  it("celebrates three stars, whatever the Index", () => {
+    expect(celebrates(prior, 3, 500)).toBe(true);
+    expect(celebrates([], 3, null)).toBe(true);
+  });
+
+  it("celebrates a new best Index", () => {
+    expect(celebrates(prior, 2, 663)).toBe(true);
+  });
+
+  it("does not celebrate two stars a few points up on the last take but under the best", () => {
+    expect(celebrates([rep({ ethos_index: 700 }), rep({ ethos_index: 662 })], 2, 665)).toBe(false);
+  });
+
+  it("does not celebrate tying the best, an unscored take, or a first take under three stars", () => {
+    expect(celebrates(prior, 2, 662)).toBe(false);
+    expect(celebrates(prior, 2, null)).toBe(false);
+    expect(celebrates([], 2, 700)).toBe(false);
   });
 });

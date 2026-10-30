@@ -24,10 +24,14 @@ import { prefersReducedMotion } from "@/lib/prefs";
 export function DemosHears({
   level,
   size = 116,
+  fluid = false,
 }: {
   /** 0 to 1, written by the recorder every audio frame. */
   level: MutableRefObject<number>;
+  /** His width in px, or with `fluid`, the most he is drawn at. */
   size?: number;
+  /** Take the parent's width (the live column's clamp, D51). */
+  fluid?: boolean;
 }) {
   const el = useRef<HTMLDivElement>(null);
 
@@ -61,7 +65,7 @@ export function DemosHears({
       ref={el}
       aria-hidden
       className="demos-hears"
-      style={{ width: size, transformOrigin: "50% 100%" }}
+      style={{ width: fluid ? "100%" : size, transformOrigin: "50% 100%" }}
     >
       <Image
         src="/demos-onboard-listening.webp"

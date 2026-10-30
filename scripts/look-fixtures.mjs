@@ -420,12 +420,23 @@ export async function billingApiRoute(route) {
 }
 
 // The scoring mock, for the live results screen.
+/*
+ * LOOK_BEST=1: the live recording is a new best, three stars and an
+ * Index past every fixture recording, so the score step's celebrate
+ * pose (D52, lib/rewards `celebrates`) has a shot. Without it the
+ * recording is two stars, three over the last, under the best, and
+ * Demos speaks.
+ *   LOOK_BEST=1 node scripts/look.mjs best rep-results
+ */
+export const BEST = process.env.LOOK_BEST === "1";
 const dim = (score, moment) => ({ score, citedMoment: moment, improve: "Open with the claim, then the example." });
-const LIVE_TIER1 = { pause: 72, fillers: 55, repairs: 66, pace: 93, range: 66 };
+const LIVE_TIER1 = BEST
+  ? { pause: 92, fillers: 88, repairs: 90, pace: 96, range: 84 }
+  : { pause: 72, fillers: 55, repairs: 66, pace: 93, range: 66 };
 const LIVE_TIER2 = {
-  structure: dim(64, '"the mistake people make is waiting to feel ready"'),
-  credibility: dim(58, '"ready is a feeling that shows up after you start"'),
-  engagement: dim(61, '"the big version arrives on its own"'),
+  structure: dim(BEST ? 86 : 64, '"the mistake people make is waiting to feel ready"'),
+  credibility: dim(BEST ? 82 : 58, '"ready is a feeling that shows up after you start"'),
+  engagement: dim(BEST ? 80 : 61, '"the big version arrives on its own"'),
   confidence: dim(66, '"you do the small version every day"'),
 };
 const analyze = {
@@ -436,7 +447,7 @@ const analyze = {
     fillerCounts: { um: 2, like: 1, "you know": 1 }, topFiller: "um",
     repairCount: 1, repairsPerMin: 1, unvoicedHesitations: 1, disfluenciesPerMin: 4.8,
     pauses: [{ t: 2.1, len: 1.2, kind: "pre", verdict: "opening" }, { t: 20, len: 0.9, kind: "mid" }, { t: 41, len: 1.5, kind: "pre", verdict: "landing" }, { t: 58, len: 1.1, kind: "pre" }],
-    heldPauses: 4, composedPauses: 3, midSentencePauses: 1, stars: 2,
+    heldPauses: 4, composedPauses: 3, midSentencePauses: 1, stars: BEST ? 3 : 2,
     substance: { wordCount: 150, distinctRatio: 0.62, repeatShare: 0.05 },
   },
   /* Pace and Variety a few points over the fixture's last recording, so

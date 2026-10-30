@@ -76,7 +76,15 @@ let handoff: { v: number; at: number } | null = null;
  */
 
 /** A destination renders a real link; a handler renders a button. */
-export type LessonAction = { label: string } & (
+export type LessonAction = {
+  label: string;
+  /**
+   * A brand button in the tap's place (the account ask's Google button,
+   * D49): its own classes instead of the terracotta ACTION_CLASS, and a
+   * mark before the label. The screen then has no terracotta tap.
+   */
+  brand?: { className: string; mark: ReactNode };
+} & (
   | { href: string; onPress?: never; disabled?: never }
   | { onPress: () => void; href?: never; disabled?: boolean }
 );
@@ -113,6 +121,20 @@ export interface LessonBodyProps {
    * back to a label above them.
    */
   lead?: "title" | "howTo";
+  /**
+   * The title's size where `lead` would otherwise decide it. The unit
+   * intro keeps its tactics as tiles but sets its name at `text-title`
+   * (26/700, D09): under a stage it was a 17px label the art outshouted.
+   */
+  titleSize?: "title" | "detail";
+  /**
+   * The block's groups (the head, the how-to) share out the height
+   * they are given, evenly above, between and under them, rather than
+   * stacking at the top. A capped stage (`stageMax`) sets it, so the
+   * room its cap frees is spread in bands of one size instead of
+   * pooling in one (D19, principle 7).
+   */
+  spread?: boolean;
   /** The how-to block's h2 (`.detail-head`). Defaults to voice.md's own
    *  label, "How to do this". */
   howToLabel?: string;
@@ -172,6 +194,8 @@ export function LessonBody({
   note,
   ladder = false,
   lead = "title",
+  titleSize,
+  spread = false,
   align = "left",
   toneEyebrow = false,
 }: LessonBodyProps) {
@@ -183,7 +207,12 @@ export function LessonBody({
   const centred = align === "center";
 
   return (
-    <div>
+    <div className={spread ? "flex flex-1 flex-col" : undefined}>
+      {/* `spread`: three spacers share the height out evenly over, between
+          and under the groups; between them it never drops under the
+          step the how-to always had, so a short phone stacks them as
+          before. */}
+      {spread && <div aria-hidden className="min-h-2 flex-1" />}
       {/* Under `align="center"` only the head is centred: the how-to
           block below stays left at full width, because a list read down
           a ragged centre line is harder to read than one with an edge. */}
@@ -195,7 +224,9 @@ export function LessonBody({
             only to the detail step (Outfit 17/700), never to the title,
             4px under its eyebrow. */}
         <h1
-          className={`font-display mt-1 text-balance ${howToLeads ? "text-detail" : "text-title"}`}
+          className={`font-display mt-1 text-balance ${
+            (titleSize ?? (howToLeads ? "detail" : "title")) === "detail" ? "text-detail" : "text-title"
+          }`}
         >
           {title}
         </h1>
@@ -219,8 +250,13 @@ export function LessonBody({
         {note && <p className="mt-1.5 text-caption text-stone-400">{note}</p>}
       </div>
 
+      {spread && tactics && (
+        <div aria-hidden className={`flex-1 ${howToLeads ? "min-h-7" : "min-h-6"}`} />
+      )}
       {tactics && (
-        <div className={`${howToLeads ? "mt-7" : "mt-6"} ${centred ? "text-left" : ""}`}>
+        <div
+          className={`${spread ? "" : howToLeads ? "mt-7" : "mt-6"} ${centred ? "text-left" : ""}`}
+        >
           {/* practice-detail-18, M05: a real heading, so the tiles under
               it can be reached by heading, in sentence case. */}
           <h2 className="detail-head">{howToLabel}</h2>
@@ -264,9 +300,12 @@ export function LessonBody({
         </div>
       )}
 
-      <div className={centred ? "text-left" : undefined}>
-        <WhyThisWorks>{why}</WhyThisWorks>
-      </div>
+      {why && (
+        <div className={centred ? "text-left" : undefined}>
+          <WhyThisWorks>{why}</WhyThisWorks>
+        </div>
+      )}
+      {spread && <div aria-hidden className="flex-1" />}
     </div>
   );
 }
@@ -283,9 +322,12 @@ export function LessonScreen({
   stepKey,
   onBack,
   fill = false,
+  stageMax,
   speech,
   stage,
   swipe,
+  shelfFollows = false,
+  grow = false,
   travel = "next",
   trait,
   replies,
@@ -334,6 +376,17 @@ export function LessonScreen({
    * the page, and reduced motion steps without the follow.
    */
   swipe?: { next?: () => void; back?: () => void };
+  /**
+   * With the keyboard up (a viewport under 540px tall), the shelf
+   * follows the words 16px under them instead of standing at the foot,
+   * so the field and its Next are one reach (the name question, D19).
+   */
+  shelfFollows?: boolean;
+  /**
+   * The controls take the free height over the shelf (the plan's day-one
+   * card grows into it, D49), instead of leaving it as one band.
+   */
+  grow?: boolean;
   /**
    * The mascot says the title and the line, from a bubble with a tail
    * on him, instead of the template printing them (#288).
@@ -423,6 +476,15 @@ export function LessonScreen({
    * spring instead of cutting.
    */
   fill?: boolean;
+  /**
+   * A `fill` stage's tallest, in px, where the words should lead rather
+   * than the art (the unit intro, D53; the trait page, D29). Up to it
+   * the stage takes the free height; past it the words spread through
+   * what is left (LessonBody's `spread`), so no band pools over the
+   * shelf (D19). Each screen sets it so its bands come out even at
+   * 390x844, scripts/check-gaps.mjs measuring.
+   */
+  stageMax?: number;
 }) {
   const slide = useRef<HTMLDivElement>(null);
   const gestured = useRef(false);
@@ -494,8 +556,9 @@ export function LessonScreen({
         type="button"
         onClick={action.onPress}
         disabled={action.disabled}
-        className={`${ACTION_CLASS} ${DISABLED_CLASS}`}
+        className={action.brand ? action.brand.className : `${ACTION_CLASS} ${DISABLED_CLASS}`}
       >
+        {action.brand?.mark}
         {action.label}
       </button>
     );
@@ -508,6 +571,7 @@ export function LessonScreen({
         art={art}
         stepKey={stepKey}
         controls={controls}
+        stageMax={stageMax}
         /* The walk's shelf grammar (B12): what sits over the tap grows
            the shelf upward, so the tap lands at one y on every step
            whether or not the step has fine print. */
@@ -521,7 +585,9 @@ export function LessonScreen({
             {footer}
           </>
         }
-        words={<LessonBody {...body} toneEyebrow={trait !== undefined} />}
+        words={
+          <LessonBody {...body} toneEyebrow={trait !== undefined} spread={stageMax !== undefined} />
+        }
       />
     );
   }
@@ -556,7 +622,7 @@ export function LessonScreen({
       <div
         className={`flex flex-1 flex-col ${center && !stage ? "justify-center" : ""} ${
           swipe ? `pb-4 ${short.body}` : ""
-        }`}
+        } ${shelfFollows ? "[@media(max-height:540px)]:flex-none" : ""}`}
       >
         {/* A flex column like its parent, so the art and the text block
             stay flex items (the art centres with `mx-auto`) whether or
@@ -565,7 +631,7 @@ export function LessonScreen({
           key={stepKey}
           ref={slide}
           data-arrival={arrived.current.gesture ? "gesture" : undefined}
-          className={`flex flex-col ${stage ? `mt-4 min-h-0 flex-1 ${short.stage}` : ""} ${
+          className={`flex flex-col ${stage ? `mt-4 min-h-0 flex-1 ${short.stage}` : grow ? "flex-1" : ""} ${
             stepKey === undefined ? "" : swipe ? arrival : "arrive-x"
           }`}
         >
@@ -586,7 +652,9 @@ export function LessonScreen({
               <LessonBody {...body} toneEyebrow={trait !== undefined} />
             </>
           )}
-          {controls && <div className="mt-7">{controls}</div>}
+          {controls && (
+            <div className={`mt-7 ${grow ? "flex flex-1 flex-col" : ""}`}>{controls}</div>
+          )}
         </div>
       </div>
 
@@ -607,7 +675,7 @@ export function LessonScreen({
          */
         <FooterShelf
           hairline={controls !== undefined && speech === "beside"}
-          className={short.foot}
+          className={`${short.foot} ${shelfFollows ? "[@media(max-height:540px)]:mt-4" : ""}`}
         >
           {aside && <div className="mb-3">{aside}</div>}
           {fineprint && (
@@ -654,12 +722,14 @@ function StageScreen({
   controls,
   foot,
   words,
+  stageMax,
 }: {
   trait?: TraitId;
   onBack?: () => void;
   art?: ReactNode;
   stepKey?: string | number;
   controls?: ReactNode;
+  stageMax?: number;
   foot: ReactNode;
   /** The template's own text block (LessonBody), never free text: the
    *  no-prose rule holds here too. */
@@ -724,6 +794,11 @@ function StageScreen({
       <div
         ref={box}
         className="relative -mx-5 flex min-h-[260px] flex-1 flex-col px-5 pt-[env(safe-area-inset-top)]"
+        /* Capped, the stage still takes the free height first (its grow
+           dwarfs the words'), and only what its cap leaves goes to the
+           words; on a short phone it gives up to 40px more to them,
+           enough for its art at the least (a 128 mark, a 152 ring). */
+        style={stageMax ? { maxHeight: stageMax, minHeight: 220, flexGrow: 1000 } : undefined}
       >
         {/* The stage's ground. Unclipped above the document's top (and
             tall enough there to travel), so under a status bar the stage
@@ -763,7 +838,13 @@ function StageScreen({
           travels under them. */}
       <div
         key={stepKey}
-        className={`relative mt-5 pb-4 ${stepKey === undefined ? "" : "arrive-x"}`}
+        className={`relative ${
+          /* A capped stage leaves height under it, and the words spread
+             through it (LessonBody's `spread`): the gap over the head,
+             between the head and the how-to, and over the shelf come
+             out one size, instead of one band pooling over the shelf. */
+          stageMax ? "flex flex-1 flex-col pt-3 pb-2" : "mt-5 pb-4"
+        } ${stepKey === undefined ? "" : "arrive-x"}`}
       >
         {words}
         {controls && <div className="mt-6">{controls}</div>}

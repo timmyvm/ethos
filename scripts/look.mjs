@@ -36,6 +36,9 @@
  * The pose You's stage wears, with LOOK_POSE (scripts/look-fixtures.mjs):
  * the speaking pose by default, "none" for his hello, or another shop id.
  *   LOOK_POSE=none node scripts/look.mjs after-bare you shop
+ * The live recording a new best (three stars, the Index past every
+ * fixture recording), so the score step's celebrate pose has a shot:
+ *   LOOK_BEST=1 node scripts/look.mjs best rep-results
  * The introduction has its own camera, scripts/look-welcome.mjs.
  * Full-page shots; the nav is fixed so it appears where the viewport
  * would show it.

@@ -22,37 +22,56 @@ export function LevelMeter({
   level,
   bars = 36,
   height = 48,
+  centre = false,
+  className = "",
 }: {
   /** 0 to 1, already normalised. Written by the recorder every frame. */
   level: MutableRefObject<number>;
   bars?: number;
-  height?: number;
+  /** In px, or any CSS length (the live waveform's clamp). */
+  height?: number | string;
+  /**
+   * The live screen's waveform (D51): the bars span the column, the
+   * newest lands at the centre and the take rolls left from it, and the
+   * right half is the flat line still to come. Stroked in `--wave` (the
+   * practice's tone, `.rec-wave`).
+   */
+  centre?: boolean;
+  className?: string;
 }) {
   const nodes = useRef<(HTMLSpanElement | null)[]>([]);
+  /* In the centre layout only the left half moves. */
+  const live = centre ? Math.ceil(bars / 2) : bars;
 
   useEffect(() => {
-    const buffer = new Float32Array(bars);
-    const interval = prefersReducedMotion() ? 1000 / 12 : 0;
+    const buffer = new Float32Array(live);
+    /* The centre waveform keeps about two seconds in its half (15 bars
+       a second, each the loudest frame since the last), so it reads as
+       the take rolling by rather than a flicker. */
+    const interval = prefersReducedMotion() ? 1000 / 12 : centre ? 1000 / 15 : 0;
     let raf = 0;
     let last = 0;
+    let peak = 0;
     const tick = (now: number) => {
       raf = requestAnimationFrame(tick);
+      peak = Math.max(peak, level.current);
       if (now - last < interval) return;
       last = now;
       buffer.copyWithin(0, 1);
-      buffer[bars - 1] = level.current;
-      for (let i = 0; i < bars; i++) {
+      buffer[live - 1] = centre ? peak : level.current;
+      peak = 0;
+      for (let i = 0; i < live; i++) {
         const el = nodes.current[i];
         if (el) el.style.transform = `scaleY(${Math.max(FLOOR, buffer[i])})`;
       }
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [level, bars]);
+  }, [level, live, centre]);
 
   return (
     <div
-      className="flex items-center gap-0.5"
+      className={`flex items-center ${centre ? "w-full justify-between" : "gap-0.5"} ${className}`}
       style={{ height }}
       aria-hidden
     >
@@ -62,7 +81,11 @@ export function LevelMeter({
           ref={(el) => {
             nodes.current[i] = el;
           }}
-          className="block h-full w-1 origin-center bg-[var(--rec-bar-lit)]"
+          className={`block h-full w-1 origin-center ${
+            centre
+              ? `rounded-full bg-[var(--wave)] ${i >= live ? "opacity-35" : ""}`
+              : "bg-[var(--rec-bar-lit)]"
+          }`}
           style={{ transform: `scaleY(${FLOOR})` }}
         />
       ))}

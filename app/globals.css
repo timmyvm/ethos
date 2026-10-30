@@ -1389,16 +1389,17 @@ body::after {
 }
 
 /*
- * The recording ring (DECISIONS #228). The terracotta-100 ring around
- * the Stop button used to appear with the button's colour swap; it now
- * grows out of the button when the mic opens and shrinks back into it
- * on Stop, so the ring says where recording came from.
+ * The recording ring (DECISIONS #228). It grows out of the button when
+ * the mic opens and shrinks back into it on Stop, so the ring says
+ * where recording came from; since D51 it is the take's progress, not
+ * a terracotta halo that said nothing.
  */
 .rec-ring {
   position: absolute;
-  inset: -10px;
-  border-radius: 9999px;
-  border: 10px solid var(--color-terracotta-100);
+  left: -12px;
+  top: -12px;
+  width: 120px;
+  height: 120px;
   opacity: 0;
   transform: scale(0.8);
   pointer-events: none;
@@ -1410,12 +1411,21 @@ body::after {
   opacity: 1;
   transform: none;
 }
-
-/* In dark, terracotta-100 is #3f2716 — against the #1a1410 ground that
- * is a muddy hole, not a ring. One step up is the recording state
- * legible at a glance. */
-:root[data-theme="dark"] .rec-ring {
-  border-color: var(--color-terracotta-200);
+/*
+ * D51: the ring says how much of the take is gone. A 4px ring 8px
+ * outside Stop, sand track, ink fill sweeping clockwise from the top to
+ * the target length. The page sets the fill once a second and it runs
+ * linear between, so it sweeps; under reduced motion it steps.
+ */
+.rec-ring-track {
+  stroke: var(--color-sand);
+}
+.rec-ring-fill {
+  stroke: var(--color-ink);
+  transition: stroke-dashoffset 1s linear;
+}
+:root[data-motion="reduce"] .rec-ring-fill {
+  transition: none;
 }
 
 /*
@@ -2029,6 +2039,19 @@ summary::-webkit-details-marker {
   background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.18));
 }
 
+/* D06, dark only: the sun as a stage ground (the first intro screen)
+   sampled mustard (#9e6d07) and a yellow cannot hold its hue at a dark
+   stage's lightness, so in dark that room is the dark sky: its ground,
+   its ink, its disc. The light sun, the mint rooms and the sun coins on
+   the questions are unchanged. */
+/* (Demos's own root on the stage wears the tone class too, for his disc.) */
+:root[data-theme="dark"] :is(.intro-stage.tone-sun, .intro-stage.tone-sun .tone-sun) {
+  --tone: var(--pop-sky);
+  --tone-disc: var(--pop-sky-disc);
+  --tone-ink: var(--pop-sky-ink);
+  --tone-wash: var(--pop-sky-wash);
+}
+
 /* The disc behind him: his studio light. Soft-edged so it reads as
    light falling on the wall behind a 3D figure, not as a sticker. */
 .demos-halo {
@@ -2279,7 +2302,9 @@ summary::-webkit-details-marker {
   background: var(--color-ink);
 }
 
-/* The plan's month as coloured steps on a rail. */
+/* The plan's month as numbered steps on a hairline rail (D49, D06): a
+   28px surface disc with an ink numeral at 15/800. The sun, sky and
+   coral discs meant nothing, so the numbers carry it. */
 .plan-step-mark {
   display: flex;
   height: 28px;
@@ -2288,15 +2313,12 @@ summary::-webkit-details-marker {
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
-  background: var(--tone);
-  /* intro-b-8: ink, not the tone's ink, on the light coins (11.5, 11.1
-     and 9.7:1 where the tone inks measured 3.0 to 3.7 at 13px). */
+  background: var(--color-surface);
+  box-shadow: inset 0 0 0 1px var(--color-hairline);
   color: var(--color-ink);
+  font-size: 0.9375rem;
   position: relative;
   z-index: 1;
-}
-:root[data-theme="dark"] .plan-step-mark {
-  color: #fff;
 }
 
 /* A page that arrived by a swipe or an arrow key brings its content
@@ -2402,9 +2424,15 @@ summary::-webkit-details-marker {
   flex-shrink: 0;
   color: var(--color-stone-500);
 }
-.topic-card .tip-glyph,
-.tip-tile .tip-glyph {
+.topic-card .tip-glyph {
   color: var(--rec-amber-ink);
+}
+/* D50: a tip tile's glyph is ink, on the recording screen and the unit
+   intro alike: amber glyphs under a trait's card broke the day's colour.
+   stone-700 is the ink step in both themes (0.86 of the ink); the dark
+   stone-300 is a divider at 30% white, 2.4:1 on a card. */
+.tip-tile .tip-glyph {
+  color: var(--color-stone-700);
 }
 .tip-detail {
   background: var(--rec-amber-wash);
@@ -2498,6 +2526,42 @@ summary::-webkit-details-marker {
 }
 :root[data-motion="reduce"] :is(.scoring-bar, .scoring-demos, .scoring-step .scoring-dot) {
   animation: none;
+}
+/*
+ * The topic card (D50): the practice's trait family, the same layer and
+ * tokens as Today's card (`.home-hero`, its ::before and its
+ * [data-family] blocks), so Start on a blue Pausing card opens onto
+ * the same blue. White words, radius 28. A practice with no one trait
+ * (the boss, a game, a free recording) stands on the sky stage, with
+ * its ink. The same card shrinks to the top while the clock runs.
+ */
+.family-fill {
+  position: relative;
+  isolation: isolate;
+  border-radius: var(--radius-hero);
+  color: #ffffff;
+  --stage-ink: #ffffff;
+  background: var(--color-surface);
+}
+.family-fill[data-family="sky"] {
+  background: var(--pop-sky);
+  color: #154d70;
+  --stage-ink: #154d70;
+}
+:root[data-theme="dark"] .family-fill[data-family="sky"] {
+  color: var(--pop-sky-ink);
+  --stage-ink: var(--pop-sky-ink);
+}
+.family-fill[data-family="sky"]::before {
+  content: none;
+}
+/* The live waveform's stroke (D51): the trait's tone (muted in dark), or
+   the sky stage's ink. */
+.rec-wave {
+  --wave: var(--tone, #154d70);
+}
+:root[data-theme="dark"] .rec-wave {
+  --wave: var(--tone, var(--pop-sky-ink));
 }
 /* ======================= end of the recording flow ======================= */
 /* Today's first card wears the topic ground at the lift it already had. */
@@ -4723,6 +4787,7 @@ summary::-webkit-details-marker {
    read names the trait rather than cutting in (principle: nothing
    teleports). Its shadow, a glow in the family's own colour, comes with
    it: the lift arrives with the card it belongs to. */
+.family-fill::before,
 .home-hero::before {
   content: "";
   position: absolute;
@@ -4755,7 +4820,9 @@ summary::-webkit-details-marker {
    row (its top at 82% of the 376px card), so Start stands on the solid
    foot, and the light feet are deep enough to hold terracotta at 3.3:1
    or better there (3.58, 3.38, 3.32, 3.55, 3.97; they were 2.4 to 3.3,
-   under 3 on Fillers and Restarts days). */
+   under 3 on Fillers and Restarts days). The recording's topic card
+   wears the same family through .family-fill (D50). */
+.family-fill[data-family="pause"],
 .home-hero[data-family="pause"] {
   --home-a: #3d6ae6;
   --home-b: #162c70;
@@ -4763,6 +4830,7 @@ summary::-webkit-details-marker {
   --home-low: rgb(14 30 92 / 0.5);
   --home-glow: rgb(47 95 224 / 0.6);
 }
+.family-fill[data-family="fillers"],
 .home-hero[data-family="fillers"] {
   --home-a: #cc3a6c;
   --home-b: #6a0f30;
@@ -4770,6 +4838,7 @@ summary::-webkit-details-marker {
   --home-low: rgb(80 8 34 / 0.5);
   --home-glow: rgb(214 47 104 / 0.55);
 }
+.family-fill[data-family="repairs"],
 .home-hero[data-family="repairs"] {
   --home-a: #9e6200;
   --home-b: #4f3000;
@@ -4777,6 +4846,7 @@ summary::-webkit-details-marker {
   --home-low: rgb(60 34 0 / 0.5);
   --home-glow: rgb(200 130 10 / 0.55);
 }
+.family-fill[data-family="pace"],
 .home-hero[data-family="pace"] {
   --home-a: #12845a;
   --home-b: #063a26;
@@ -4784,6 +4854,7 @@ summary::-webkit-details-marker {
   --home-low: rgb(4 40 26 / 0.5);
   --home-glow: rgb(13 132 87 / 0.55);
 }
+.family-fill[data-family="range"],
 .home-hero[data-family="range"] {
   --home-a: #7652e6;
   --home-b: #2e1670;
@@ -4791,6 +4862,7 @@ summary::-webkit-details-marker {
   --home-low: rgb(30 12 80 / 0.5);
   --home-glow: rgb(112 72 230 / 0.55);
 }
+:root[data-theme="dark"] .family-fill[data-family="pause"],
 :root[data-theme="dark"] .home-hero[data-family="pause"] {
   --home-a: #3558b4;
   --home-b: #14244f;
@@ -4798,6 +4870,7 @@ summary::-webkit-details-marker {
   --home-low: rgb(6 12 34 / 0.55);
   --home-glow: rgb(40 80 190 / 0.45);
 }
+:root[data-theme="dark"] .family-fill[data-family="fillers"],
 :root[data-theme="dark"] .home-hero[data-family="fillers"] {
   --home-a: #a83a60;
   --home-b: #4a1226;
@@ -4805,6 +4878,7 @@ summary::-webkit-details-marker {
   --home-low: rgb(30 4 14 / 0.55);
   --home-glow: rgb(170 40 90 / 0.4);
 }
+:root[data-theme="dark"] .family-fill[data-family="repairs"],
 :root[data-theme="dark"] .home-hero[data-family="repairs"] {
   --home-a: #8f6110;
   --home-b: #3d2805;
@@ -4812,6 +4886,7 @@ summary::-webkit-details-marker {
   --home-low: rgb(28 16 0 / 0.55);
   --home-glow: rgb(160 110 20 / 0.4);
 }
+:root[data-theme="dark"] .family-fill[data-family="pace"],
 :root[data-theme="dark"] .home-hero[data-family="pace"] {
   --home-a: #1d7a56;
   --home-b: #0a3423;
@@ -4819,6 +4894,7 @@ summary::-webkit-details-marker {
   --home-low: rgb(2 22 14 / 0.55);
   --home-glow: rgb(20 110 75 / 0.4);
 }
+:root[data-theme="dark"] .family-fill[data-family="range"],
 :root[data-theme="dark"] .home-hero[data-family="range"] {
   --home-a: #6146b4;
   --home-b: #26164f;

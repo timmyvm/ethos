@@ -660,9 +660,10 @@ body {
   /* system-16: a text link, one spelling. Outfit 13/600 in stone-500
      (recovery), going ink under a pointer; the door you came for adds
      `text-terracotta-700` and a trait aside adds its tone ink, and either
-     utility beats this colour. The ::after stretches the hit area 12px
-     up and down and 4px to the sides, so a 18px line is a 44px target
-     without moving anything. */
+     utility beats this colour. The ::after stretches the hit area 4px to
+     the sides and centres a 44px target on the line (a 17.6px line with
+     12px either side was 42), without moving anything; a link that wraps
+     past 44px keeps its own height. */
   .text-link {
     position: relative;
     font-family: var(--font-display-face), sans-serif;
@@ -676,7 +677,8 @@ body {
   .text-link::after {
     content: "";
     position: absolute;
-    inset: -12px -4px;
+    inset-block: min(0px, calc(50% - 22px));
+    inset-inline: -4px;
   }
   @media (hover: hover) {
     .text-link:hover {

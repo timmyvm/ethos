@@ -418,9 +418,11 @@ export default function YouPage() {
      (S12, E36: You was 2,293pt and then 2,063 against its 2,000): what
      you have, then what is next, then the count of the rest. */
   const shownBadges = (() => {
-    if (loading || allBadges) return badges;
-    let next = 0;
-    return badges.filter((b) => b.earned || next++ < 2);
+    if (loading) return badges;
+    // Earned rows first, so the count reads at a glance and opening the
+    // fold only adds rows under the ones already shown (F5).
+    const ordered = [...badges.filter((b) => b.earned), ...badges.filter((b) => !b.earned)];
+    return allBadges ? ordered : ordered.slice(0, earnedCount + 2);
   })();
   const foldedBadges = badges.length - shownBadges.length;
 

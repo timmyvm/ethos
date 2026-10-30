@@ -87,7 +87,7 @@ export function TipStrip({
               <span
                 className={`mt-3 font-semibold leading-[21px] text-ink text-balance ${tight ? "text-row" : "text-body"}`}
               >
-                {face.label}
+                {unbroken(face.label)}
               </span>
             </button>
           );
@@ -316,5 +316,24 @@ export function TipLine({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * A tile's label with each hyphenated word held on one line, so
+ * "mid-action" never breaks after its hyphen. Figtree has no U+2011
+ * (the non-breaking hyphen), which would draw in a fallback face.
+ */
+function unbroken(label: string): ReactNode {
+  const parts = label.split(/(\S+-\S+)/);
+  if (parts.length === 1) return label;
+  return parts.map((part, i) =>
+    i % 2 === 1 ? (
+      <span key={i} className="whitespace-nowrap">
+        {part}
+      </span>
+    ) : (
+      part
+    )
   );
 }

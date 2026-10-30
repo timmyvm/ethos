@@ -46,8 +46,9 @@ const L: Record<string, [string, TipGlyph]> = {
   "Say your position in the first sentence. Don't warm up to it.": ["Your side, sentence one", "start"],
   "One reason, one example, then stop.": ["One reason, one example", "one"],
   "Name the strongest objection and answer it in a line.": ["Answer the objection", "word"],
-  /* A non-breaking hyphen (U+2011): "mid-" never ends a tile's line. */
-  "Start in the middle of the action, not the background.": ["Start mid\u2011action", "start"],
+  /* A plain hyphen: Figtree has no U+2011, so TipStrip keeps a
+     hyphenated word on one line instead ("mid-" never ends a line). */
+  "Start in the middle of the action, not the background.": ["Start mid-action", "start"],
   "One scene. Resist covering the whole week.": ["One scene only", "one"],
   "End on what changed, not on 'so yeah'.": ["End on what changed", "end"],
   "Open with what it IS in one sentence.": ["Say what it is", "start"],

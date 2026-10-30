@@ -139,11 +139,25 @@ ok("--duration-base is 200ms", /^(200ms|0?\.2s)$/.test(rootVars.base), rootVars.
 let a = await anim(page, "main .step-in-next");
 ok("welcome step arrives from the right, on the sheet spring", a.name === "step-in-next" && a.easing.startsWith("linear("), `${a.name} ${a.duration} ${a.easing.slice(0, 20)}`);
 await sleep(400);
+/* Restarted means it began after the tap, measured against the tap's
+   own pointerdown rather than a wall-clock limit: under load the
+   click's own wait pushed a fresh arrival past a fixed 150ms (R7). */
+await page.evaluate(() => {
+  window.__tapAt = null;
+  document.addEventListener("pointerdown", () => (window.__tapAt = performance.now()), { once: true, capture: true });
+});
 await page.getByRole("button", { name: "Next" }).click();
 await sleep(30);
 a = await anim(page, "main .step-in-next");
-const restarted = await page.$eval("main .step-in-next", (el) => el.getAnimations().map((x) => x.currentTime)[0]);
-ok("next step re-runs the arrival", a.name === "step-in-next" && restarted !== undefined && restarted < 150, `t=${restarted}`);
+const restart = await page.$eval("main .step-in-next", (el) => ({
+  t: el.getAnimations().map((x) => x.currentTime)[0],
+  since: window.__tapAt === null ? null : performance.now() - window.__tapAt,
+}));
+ok(
+  "next step re-runs the arrival",
+  a.name === "step-in-next" && restart.t != null && restart.since !== null && restart.t <= restart.since + 17,
+  `t=${restart.t} since the tap ${restart.since?.toFixed(0)}`
+);
 await sleep(600);
 
 // 2. Home: fetched content arrives once; the mods reveal; the sheet rises and leaves.

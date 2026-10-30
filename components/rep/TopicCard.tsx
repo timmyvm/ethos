@@ -31,9 +31,10 @@ export function TopicCard({
       data-family={family}
       /* Idle, it stands as tall as the room allows (Today's card is
          376): the eyebrow at the top, the topic at the foot, and the
-         idle screen's free height in the card rather than over it. */
+         idle screen's free height in the card rather than over it. The
+         recording screen's column gives it that height, 168 to 300. */
       className={`family-fill flex flex-col p-5 ${
-        compact ? "" : "min-h-[clamp(168px,34dvh,300px)] justify-between pb-6"
+        compact ? "" : "min-h-[168px] flex-1 justify-between pb-6"
       }`}
     >
       {/* PRINCIPLES 4: an eyebrow inside a card is sentence case, here

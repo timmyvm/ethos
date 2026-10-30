@@ -12,12 +12,23 @@ import type { RepConfig } from "./rep-config";
  * A trait walk (/practice/[trait]) sends `?lesson=trait-<id>`, stored
  * as `practice:trait-<id>`; everything else goes by the recording's own
  * id, as the Log colours its rows (lib/log.ts `recordingTrait`).
+ *
+ * Today's Start and its roulette open a topic (`?topic=t9`), whose id
+ * names no trait, so the card that was pressed says which family it
+ * wore (`?trait=pause`, the `pressed` hint). Without it the blue
+ * Pausing card opened onto the sky stage on every returning user's
+ * daily path. The practice's own trait wins over the hint.
  */
 export type PracticeFamily = TraitId | "sky";
 
-export function practiceFamily(config: Pick<RepConfig, "kind" | "lessonId">): PracticeFamily {
+export function practiceFamily(
+  config: Pick<RepConfig, "kind" | "lessonId">,
+  pressed?: string | null
+): PracticeFamily {
   if (config.kind === "boss") return "sky";
   const walk = config.lessonId.match(/^practice:trait-(\w+)$/);
   if (walk && walk[1] in TRAIT) return walk[1] as TraitId;
-  return recordingTrait({ lesson_id: config.lessonId }) ?? "sky";
+  const own = recordingTrait({ lesson_id: config.lessonId });
+  if (own) return own;
+  return pressed && Object.prototype.hasOwnProperty.call(TRAIT, pressed) ? (pressed as TraitId) : "sky";
 }

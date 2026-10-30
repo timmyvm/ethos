@@ -322,13 +322,18 @@ export default function Home() {
      history with nothing to read): the card's fallback topic, which is
      also where Start goes. */
   const fallback = !loading && !dayOne && !chosen;
+  /* What the card says. The trait is named in every state that has one. */
+  const heroTrait = dayOne ? null : (chosen?.trait ?? null);
+  /* The colour it wears, which the recording card keeps (D50). */
+  const heroFamily = heroTrait ?? "pause";
   const startHref =
     introOwns && next
       ? introHref(next.unit.id, mods, undefined, "today")
-      : repHref({ topic: chosen?.item.topicId ?? (fallback ? FALLBACK_TOPIC.id : undefined), mods });
-
-  /* What the card says. The trait is named in every state that has one. */
-  const heroTrait = dayOne ? null : (chosen?.trait ?? null);
+      : repHref({
+          topic: chosen?.item.topicId ?? (fallback ? FALLBACK_TOPIC.id : undefined),
+          mods,
+          trait: heroFamily,
+        });
   const heroTip = dayOne ? null : (chosen?.item.tips[0] ?? null);
   const heroTitle = dayOne
     ? "Day one starts today."
@@ -377,7 +382,7 @@ export default function Home() {
        */}
       <HomeHero
         loading={loading}
-        family={heroTrait ?? "pause"}
+        family={heroFamily}
         lead={lead}
         trait={heroTrait}
         tip={heroTip}
@@ -398,7 +403,7 @@ export default function Home() {
             ? {
                 topic,
                 onSpin: setTopic,
-                onTake: (t) => router.push(repHref({ topic: t.id, mods })),
+                onTake: (t) => router.push(repHref({ topic: t.id, mods, trait: heroFamily })),
                 headRef: rouletteHead,
               }
             : null

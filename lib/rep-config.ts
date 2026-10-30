@@ -292,6 +292,11 @@ export function repHref(opts: {
    * show is the point of the lesson.
    */
   back?: string;
+  /**
+   * The family the pressed card wore (D50), for a practice whose own id
+   * names no trait: Today's topic. Colour only, never part of the take.
+   */
+  trait?: string;
 }): string {
   const q = new URLSearchParams();
   if (opts.boss) q.set("boss", opts.boss);
@@ -308,6 +313,7 @@ export function repHref(opts: {
   }
   if (opts.mods?.length) q.set("mods", opts.mods.join(","));
   if (opts.back) q.set("back", opts.back);
+  if (opts.trait) q.set("trait", opts.trait);
   const s = q.toString();
   return s ? `/rep?${s}` : "/rep";
 }

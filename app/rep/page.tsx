@@ -279,7 +279,7 @@ function RepScreen() {
   );
   /* The colour the screen wears (D50): the practice's trait family, as
      on the Today card that opened it, or the sky stage. */
-  const family = practiceFamily(config);
+  const family = practiceFamily(config, searchParams.get("trait"));
 
   const [phase, setPhase] = useState<Phase>("idle");
   /** Which upload attempt is in flight, so the wait can say so. */
@@ -1418,7 +1418,14 @@ function RepScreen() {
           longer stands on the card (D50): he arrives as the listener. */}
       <div className={phase === "idle" ? "flex flex-1 flex-col justify-center pb-8" : ""}>
       {phase !== "analyzing" && (
-        <div ref={topicRef} className="mt-4">
+        /* Idle, the card takes the column's free height, 168 to 300, so a
+           practice with more under it (the boss's tactic line) gets a
+           shorter card rather than a screen that scrolls Record's caption
+           off the bottom. */
+        <div
+          ref={topicRef}
+          className={phase === "idle" ? "mt-4 flex max-h-[300px] min-h-[168px] flex-1 flex-col" : "mt-4"}
+        >
           <TopicCard
             eyebrow={eyebrowOf(config.unit)}
             topic={promptHidden ? "Prompt hidden. That's the mod." : topicText}

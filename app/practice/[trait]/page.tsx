@@ -185,7 +185,7 @@ function Lesson() {
    * centred on the ring's line, and the block centred in the height
    * above the tap, so the six steps read as one layout.
    */
-  const frame = { fill: true, stageMax: STAGE_MAX, align: "center", stepKey: step, trait: id, backLabel } as const;
+  const frame = { fill: true, stageGrows: true, align: "center", stepKey: step, trait: id, backLabel } as const;
 
   /*
    * R3: the trait's stage takes the free height on every step and the
@@ -227,7 +227,9 @@ function Lesson() {
       <LessonScreen
         {...frame}
         onBack={back}
-        eyebrow={lowest ? "Today's lesson" : "Practice"}
+        /* E29: "Trait", as on the trait sheet. "Practice" named a tab
+           on a screen opened from Today. */
+        eyebrow={lowest ? "Today's lesson" : "Trait"}
         title={def.name}
         line={def.what}
         art={stage}
@@ -452,18 +454,14 @@ function Lesson() {
 /** The ring's drawn size (its viewBox and stroke, M18); the stage
  *  scales it to the room it is given. */
 const RING = 168;
-/* The stage's tallest (D19, D29): at 390x844 it holds a 320 ring with
-   about the band over and under it that the words get over and under
-   them (check-gaps: 60, 61, 62, 60). A shorter screen's stage takes all
-   the free height, and the ring keeps 56px over and under it. */
-const STAGE_MAX = 508;
 /*
  * R3, D29: the ring as an object on its stage, a disc of the ground
  * behind the trough so the number stays on plain ground, scaled to the
  * stage: its room less 56px over and under it, never wider than the
  * column, between 152 and 320 (its stroke scales with it through the
- * viewBox). 320, not the round's 300: at 390x844 a 300 ring leaves four
- * bands that cannot all come in under 64px (check-gaps), and 320 can.
+ * viewBox). The stage takes every spare pixel (E18, `stageGrows`), so
+ * past 320 the ring stays 320 and stands centred in the taller stage:
+ * the room is the stage's, never flat ground over the shelf.
  */
 const COIN =
   "rounded-full bg-ground size-[clamp(152px,min(calc(100cqh_-_112px),100cqw),320px)]! [&>svg]:size-full";

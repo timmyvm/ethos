@@ -323,6 +323,7 @@ export function LessonScreen({
   onBack,
   fill = false,
   stageMax,
+  stageGrows = false,
   speech,
   stage,
   swipe,
@@ -492,6 +493,15 @@ export function LessonScreen({
    * 390x844, scripts/check-gaps.mjs measuring.
    */
   stageMax?: number;
+  /**
+   * A `fill` stage that takes every spare pixel above its least height
+   * (220), with no cap: the words keep their own spacing (20 over the
+   * eyebrow, the how-to's step, 8 over the shelf) and nothing pools as
+   * flat ground over the shelf (E18, E29). The art keeps its own cap
+   * and stands centred in the taller stage. The trait page and the unit
+   * intro set it; it outranks `stageMax`.
+   */
+  stageGrows?: boolean;
 }) {
   const slide = useRef<HTMLDivElement>(null);
   const gestured = useRef(false);
@@ -579,7 +589,8 @@ export function LessonScreen({
         art={art}
         stepKey={stepKey}
         controls={controls}
-        stageMax={stageMax}
+        stageMax={stageGrows ? undefined : stageMax}
+        stageGrows={stageGrows}
         /* The walk's shelf grammar (B12): what sits over the tap grows
            the shelf upward, so the tap lands at one y on every step
            whether or not the step has fine print. */
@@ -594,7 +605,11 @@ export function LessonScreen({
           </>
         }
         words={
-          <LessonBody {...body} toneEyebrow={trait !== undefined} spread={stageMax !== undefined} />
+          <LessonBody
+            {...body}
+            toneEyebrow={trait !== undefined}
+            spread={stageMax !== undefined && !stageGrows}
+          />
         }
       />
     );
@@ -732,6 +747,7 @@ function StageScreen({
   foot,
   words,
   stageMax,
+  stageGrows = false,
 }: {
   trait?: TraitId;
   onBack?: () => void;
@@ -740,6 +756,7 @@ function StageScreen({
   stepKey?: string | number;
   controls?: ReactNode;
   stageMax?: number;
+  stageGrows?: boolean;
   foot: ReactNode;
   /** The template's own text block (LessonBody), never free text: the
    *  no-prose rule holds here too. */
@@ -803,12 +820,24 @@ function StageScreen({
     <main data-trait={trait} className="flex min-h-dvh flex-col px-5">
       <div
         ref={box}
+        /* scripts/check-gaps.mjs reports a band inside a stage that took
+           the slack as the stage's room, not ground (E18). */
+        data-gap-stage={stageGrows ? "" : undefined}
         className="relative -mx-5 flex min-h-[260px] flex-1 flex-col px-5 pt-[env(safe-area-inset-top)]"
         /* Capped, the stage still takes the free height first (its grow
            dwarfs the words'), and only what its cap leaves goes to the
            words; on a short phone it gives up to 40px more to them,
            enough for its art at the least (a 128 mark, a 152 ring). */
-        style={stageMax ? { maxHeight: stageMax, minHeight: 220, flexGrow: 1000 } : undefined}
+        style={
+          stageGrows
+            ? /* Uncapped (E18): every spare pixel is the stage's, down to
+                 the words; on a short phone it still gives up to 40px to
+                 them, as the capped stage does. */
+              { minHeight: 220 }
+            : stageMax
+              ? { maxHeight: stageMax, minHeight: 220, flexGrow: 1000 }
+              : undefined
+        }
       >
         {/* The stage's ground. Unclipped above the document's top (and
             tall enough there to travel), so under a status bar the stage
@@ -853,7 +882,7 @@ function StageScreen({
              through it (LessonBody's `spread`): the gap over the head,
              between the head and the how-to, and over the shelf come
              out one size, instead of one band pooling over the shelf. */
-          stageMax ? "flex flex-1 flex-col pt-3 pb-2" : "mt-5 pb-4"
+          stageGrows ? "pt-5 pb-2" : stageMax ? "flex flex-1 flex-col pt-3 pb-2" : "mt-5 pb-4"
         } ${stepKey === undefined ? "" : "arrive-x"}`}
       >
         {words}

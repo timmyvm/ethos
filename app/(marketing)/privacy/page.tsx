@@ -144,7 +144,9 @@ export default function Privacy() {
       <p className={READ}>
         Ethos runs no analytics scripts, advertising trackers or third-party
         cookies. Your sign-in session is kept in your browser&apos;s own
-        storage by Supabase, our database and login provider.
+        storage by Supabase, our database and login provider. Testers are
+        the one exception: the app sends their usage, device and error
+        details to our own server, as the Testers section says.
       </p>
 
       <h2 className={HEAD}>Who touches the data</h2>
@@ -163,21 +165,63 @@ export default function Privacy() {
         progress can&apos;t be traced back to anyone, including you.
       </p>
 
-      {/* Tester mode: migration 0020 (testers, tester_feedback, the
-          tester_admin report only the service role reads),
-          app/api/tester, content/tester.ts CONSENT, docs/testers.md. */}
+      {/* Tester mode: migrations 0020 to 0022 (testers, tester_feedback,
+          tester_events, the tester_admin report only the service role
+          reads), app/api/tester and app/api/tester/collect,
+          lib/tester-collect.ts, content/tester.ts CONSENT (version 3),
+          docs/testers.md. Says what the consent says. */}
       <section id="testers">
         <h2 className={HEAD}>Testers</h2>
         <p className={READ}>
-          If you joined with a tester code, Timothy, who makes Ethos, reads
-          your recordings, transcripts and scores, your answer after each
-          recording about whether the score matched how it felt, and any
-          name, age or email you gave. He is the only person who reads them,
-          and only to make the scoring accurate. Like every recording, yours
-          go to the processors above that score and store them (Supabase,
-          OpenAI, Anthropic and Vercel), and to no one else. Ask him and
-          it&apos;s all deleted, any time; deleting your account in Settings
-          deletes it too. If you&apos;re under 18, a parent says yes first.
+          If you joined with a tester code and agreed to the list on the
+          consent screen, Ethos keeps all of this while you test:
+        </p>
+        <ul className="mt-3 list-disc space-y-2 pl-5 text-read text-stone-800 marker:text-stone-300">
+          <li>
+            <Lead>Your recordings.</Lead> Every audio recording, and the
+            camera&apos;s numbers when it&apos;s on. Video stays on your phone.
+          </li>
+          <li>
+            <Lead>Transcripts.</Lead> Everything you say, word for word, with
+            timestamps.
+          </li>
+          <li>
+            <Lead>Your scores.</Lead> Every score, star, streak and number
+            Ethos gives you.
+          </li>
+          <li>
+            <Lead>Your answers.</Lead> Everything you answer in the
+            introduction (your name, age, goal and the hour you picked), your
+            email if you make an account, and every answer and note after a
+            recording.
+          </li>
+          <li>
+            <Lead>How you use it.</Lead> Which screens you open, what you tap,
+            when, and for how long. A tap is kept by the button&apos;s name,
+            never by anything you type.
+          </li>
+          <li>
+            <Lead>Your device.</Lead> Phone model, operating system, browser,
+            screen size, language, time zone, and whether Ethos is on your
+            home screen.
+          </li>
+          <li>
+            <Lead>Your connection.</Lead> IP address and basic network info.
+          </li>
+          <li>
+            <Lead>Problems.</Lead> Errors and crashes, and what was on screen
+            when they happened.
+          </li>
+        </ul>
+        <p className={READ}>
+          It&apos;s for making the scores accurate and fixing what breaks.
+          Timothy, who makes Ethos, is the only person who reads it. Nothing is
+          sold, and it goes only to the services that run the app, the
+          processors above (Supabase, OpenAI, Anthropic and Vercel). It&apos;s
+          kept up to 12 months after the test ends, then deleted. Ask him and
+          it&apos;s all deleted within 7 days; deleting your account in
+          Settings deletes it too. If you&apos;re under 18, a parent or
+          guardian says yes first.
         </p>
       </section>
 

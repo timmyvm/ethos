@@ -115,6 +115,7 @@ export const JOINED_COPY = {
  */
 export const FELT_COPY = {
   question: "How did that feel?",
+  line: "Before you see the score.",
   options: [
     { value: "rough", label: "Rough" },
     { value: "okay", label: "Okay" },

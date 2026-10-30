@@ -100,8 +100,9 @@ can.
   ("3F9A 1C2E"), with Copy. On the moment it switches on, Demos says
   "Send Timothy your tester number."
 - **The match check is two questions, one either side of the score.**
-  Before the score shows, one tap: "How did that feel?" Rough, Okay,
-  Strong, or Skip; tapping goes straight on to the score. After the
+  Before the score shows, one tap: "How did that feel?" over "Before
+  you see the score.", Rough, Okay, Strong, or Skip; tapping goes
+  straight on to the score. After the
   score: "Did the score feel right?" Too low, About right, Too high.
   Too low and Too high open "What felt off?", optional. The save line
   says "Answer saved", "Note saved", or "Your answer didn't save." with

@@ -55,7 +55,10 @@ function Tester() {
   const fromParam = params.get("from");
   const from: "settings" | "welcome" | "open" =
     fromParam === "settings" ? "settings" : fromParam === "open" ? "open" : "welcome";
-  const backHref = from === "open" ? askedFrom(params.get("back")) : `/${from}`;
+  /* Where back goes, after its slash: the door this came through, or,
+     for the ask on the way in, the screen it opened over. */
+  const backPath = (from === "open" ? askedFrom(params.get("back")) : `/${from}`).slice(1);
+  const backHref = `/${backPath}`;
   const backLabel = from === "settings" ? "Settings" : "Back";
   const onward = from === "settings" ? JOINED_COPY.toSettings : JOINED_COPY.toWelcome;
 
@@ -153,7 +156,7 @@ function Tester() {
       <Joined
         tester={tester}
         moment={justJoined}
-        back={{ href: backHref, label: backLabel }}
+        back={{ href: `/${backPath}`, label: backLabel }}
         onward={{ href: backHref, label: onward }}
       />
     );
@@ -169,7 +172,7 @@ function Tester() {
         <ScreenHeader
           title={CONSENT.title}
           subtitle={renewing ? CONSENT.renewLine : CONSENT.line}
-          back={{ href: backHref, label: backLabel }}
+          back={{ href: `/${backPath}`, label: backLabel }}
         />
         <div key="consent" className="arrive-x mt-5 pb-8">
           <ConsentList />
@@ -205,7 +208,7 @@ function Tester() {
       <ScreenHeader
         title={CODE_COPY.title}
         subtitle={CODE_COPY.line}
-        back={{ href: backHref, label: backLabel }}
+        back={{ href: `/${backPath}`, label: backLabel }}
       />
       <form
         className="mt-7"
@@ -329,7 +332,7 @@ function ConsentList() {
       <div className="py-3.5">
         <dt className="font-display text-row text-ink">{CONSENT.keptLead}</dt>
         <dd className="mt-1.5">
-          <ul className="space-y-2">
+          <ul className="list-disc space-y-2 pl-5 marker:text-stone-300">
             {CONSENT.kept.map((k) => (
               <li key={k.lead} className="text-body text-pretty text-stone-600">
                 <span className="font-semibold text-ink">{k.lead}.</span> {k.text}

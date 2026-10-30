@@ -7,6 +7,7 @@ import { Skeleton, SkeletonRegion } from "@/components/ui/Skeleton";
 import { ACTION_CLASS, DISABLED_CLASS, INPUT_CLASS } from "@/lib/ui";
 import { fetchReps } from "@/lib/client-data";
 import { computeStreak } from "@/lib/streak";
+import { firstRun } from "@/lib/onboarding";
 import {
   MIN_PASSWORD,
   sessionState,
@@ -18,6 +19,10 @@ import { asksForPaywall, authHref, useNextPath } from "@/lib/use-paywall-return"
 
 /** Where the auth screens' back goes unless a page says otherwise. */
 const TODAY = { href: "/", label: "Today" };
+/** A stranger's way back (firstRun: no account, never welcomed), whom
+    Today would only send on to the introduction they came from. Not
+    "Welcome", which would stand over "Welcome back". */
+const INTRO = { href: "/welcome", label: "Back" };
 
 /**
  * How long the form waits for the session and this device's recordings
@@ -102,7 +107,14 @@ export function AuthForm({
   // Google's own state: it comes back when they do, and never touches
   // the email form below it (lib/use-oauth-return.ts).
   const google = useGoogleSignIn(mode, next);
-  const back = next ? { href: next, label: asksForPaywall(next) ? "Premium" : "Back" } : TODAY;
+  // Read after mount, as `next` is: localStorage has no server answer.
+  const [stranger, setStranger] = useState(false);
+  useEffect(() => setStranger(firstRun()), []);
+  const back = next
+    ? { href: next, label: asksForPaywall(next) ? "Premium" : "Back" }
+    : stranger
+      ? INTRO
+      : TODAY;
 
   useEffect(() => {
     let live = true;

@@ -705,10 +705,14 @@ function AccountStep({
       footer={
         <>
           {/* intro-b-14: the second door is Google's size and type, so
-              the two read as a pair and only the fill ranks them. */}
+              the two read as a pair and only the weight ranks them. Since
+              Google wears its own branded pill (S13), white on white with
+              a #747775 edge, a surface fill here outweighed it; the email
+              door is the edge alone, so Google's darker edge and its G
+              lead. */}
           <Link
             href="/signup"
-            className="press font-display mt-3 flex min-h-12 w-full items-center justify-center rounded-tap border border-edge bg-surface px-6 py-3.5 text-body font-bold"
+            className="press font-display mt-3 flex min-h-12 w-full items-center justify-center rounded-tap border border-edge bg-transparent px-6 py-3.5 text-body font-bold"
           >
             Use an email instead
           </Link>

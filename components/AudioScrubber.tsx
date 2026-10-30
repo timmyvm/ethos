@@ -195,8 +195,11 @@ function Key({
   thin?: boolean;
   children: ReactNode;
 }) {
+  /* gap-1: the swatch sits 4px from its word and 12px from the next key,
+     so each pair reads as one, and the three keys at the 13px caption
+     (B05) still fit one line in a 320 card (248pt: 242 used). */
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <span className="inline-flex items-center gap-1">
       <span aria-hidden className="relative grid h-3 w-3 place-items-center overflow-hidden bg-sand">
         <span className={`${thin ? "h-full w-[3px]" : "absolute inset-0"} ${mark}`} />
       </span>

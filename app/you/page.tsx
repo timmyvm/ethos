@@ -59,7 +59,7 @@ import { usePaywallReturn } from "@/lib/use-paywall-return";
 const FREE_LEXICON = 3;
 
 /** The nine rows the Traits list always draws (lib/traits.ts TRAITS). */
-const TRAIT_ROWS = 9;
+const TRAIT_ROWS_FREE = 5;
 
 /**
  * The traits the lessons teach, each with its tone (`[data-trait]`).
@@ -606,38 +606,70 @@ export default function YouPage() {
         )}
       </div>
 
-      {/* The numbers and the plan, on one neutral card under the stage
-          (M09's three bare columns, you-12). */}
-      <section aria-label="Your numbers" className="card mt-3 p-5 text-center">
+      {/* The three numbers, alone on one neutral card under the stage
+          (M09's bare columns, you-12; D36 took the plan row out). */}
+      <section aria-label="Your numbers" className="card mt-3 px-4 py-5 text-center">
         <div className="grid grid-cols-3">
           <Stat
-            label="Day streak"
+            label="Streak"
             value={loading ? undefined : streak.current}
             mark
           />
-          <Stat label="Longest streak" value={loading ? undefined : streak.longest} />
+          <Stat label="Best streak" value={loading ? undefined : streak.longest} />
           <Stat
             label="XP this week"
             value={xpFailed ? null : xp?.week}
           />
         </div>
-
-        {/* The plan (#232): its headline, the unit for what was noticed,
-            and how far the road's gate is. A row in the card under a
-            hairline, not a card of its own, and a tap, because an answer
-            is allowed to change. Its three lines are reserved while the
-            device is read. */}
-        <div aria-hidden className="mx-1 mt-5 border-t border-hairline" />
-        {onboarding === undefined ? (
-          <div aria-hidden className="-mx-3 mt-2 -mb-2.5 px-3 py-2.5 text-left">
-            <Line className="eyebrow" bar="w-16" align="left" />
-            <Line className="font-display mt-0.5 text-row" bar="w-40" align="left" />
-            <Line className="mt-0.5 text-caption" bar="w-32" align="left" />
-          </div>
-        ) : (
-          <PlanRow state={onboarding} stars={reps ? totalStars(starsByLesson(lifetime)) : null} />
-        )}
       </section>
+
+      {/* Day 1 vs now (you-11, M23; D36 moved it up from the foot): one
+          card with the two numbers and the page's one tap, near the top,
+          because the numbers are the product. While the account gate
+          under it is showing, its button keeps the screen's one
+          terracotta and this one steps down to the surface door. */}
+      {history.length >= 2 && (
+        <div className="mt-3">
+          <ShareCard reps={history} quiet={showGate} />
+        </div>
+      )}
+
+      {showGate && (
+        /* p-5 and a detail head, like Day 1 vs now above it, so the two
+           stacked cards share one inner edge and one title size. */
+        <section className="card mt-3 p-5">
+          <h2 className="detail-head">Save your progress</h2>
+          <p className="mt-1 text-caption text-stone-500">
+            {lifetime.length} recording{lifetime.length === 1 ? "" : "s"}
+            {streak.current > 0 &&
+              ` and ${/^(8|11|18|8\d)$/.test(String(streak.current)) ? "an" : "a"} ${streak.current}-day streak`}{" "}
+            live
+            on this device. An account keeps them.
+          </p>
+          <Link href="/signup" className={`${ACTION_CLASS} mt-3`}>
+            Create my account
+          </Link>
+          <div className="mt-3 text-center">
+            <Link href="/signin" className="text-link text-terracotta-700">
+              I already have one
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {/* The road (#232, D36): its headline, the unit for what was
+          noticed, and how far its gate is, as its own card door, because
+          an answer is allowed to change. "Plan" is left to Premium. Its
+          three lines are reserved while the device is read. */}
+      {onboarding === undefined ? (
+        <div aria-hidden className="card mt-3 p-4 text-left">
+          <Line className="eyebrow" bar="w-16" align="left" />
+          <Line className="font-display mt-0.5 text-row" bar="w-40" align="left" />
+          <Line className="mt-0.5 text-caption" bar="w-32" align="left" />
+        </div>
+      ) : (
+        <RoadCard state={onboarding} stars={reps ? totalStars(starsByLesson(lifetime)) : null} />
+      )}
 
       {/*
        * Traits (DECISIONS #159): the nine Index dimensions as levels,
@@ -652,7 +684,7 @@ export default function YouPage() {
         <div className="mt-3">
           {loading ? (
             <div aria-busy="true">
-              {Array.from({ length: TRAIT_ROWS }, (_, i) => (
+              {Array.from({ length: TRAIT_ROWS_FREE + 1 }, (_, i) => (
                 <div key={i} className="flex min-h-11 items-center gap-3 py-2">
                   <Skeleton className="h-5 w-full" />
                 </div>
@@ -660,9 +692,14 @@ export default function YouPage() {
             </div>
           ) : (
             (() => {
-              const ranked = rankedTraits(traitLevels(history));
+              const all = rankedTraits(traitLevels(history));
+              /* D36: free shows the five traits the lessons teach and
+                 folds the four the Index only reads into one door, which
+                 still counts them; Premium shows all nine. */
+              const ranked = premium === true ? all : all.filter((t) => TONED.has(t.key));
+              const folded = all.length - ranked.length;
               const top = Math.max(1, ranked[0]?.level ?? 0);
-              return ranked.map((t) => {
+              const rows = ranked.map((t) => {
                 const toned = TONED.has(t.key);
                 return (
                   /* A trait the lessons teach wears its lesson tone on
@@ -713,6 +750,37 @@ export default function YouPage() {
                   </button>
                 );
               });
+              return (
+                <>
+                  {rows}
+                  {premium === null ? (
+                    /* The plan is in flight: the fold's height, held. */
+                    <div aria-hidden className="flex min-h-11 items-center py-2">
+                      <Skeleton className="h-5 w-full" />
+                    </div>
+                  ) : (
+                    folded > 0 && (
+                      /* The lexicon's fold grammar: the count in words,
+                         the mark, the chevron, a door to the sheet. The
+                         mark names the tier, so the words do not. */
+                      <button
+                        type="button"
+                        onClick={() => setPaywall({ reason: "All nine skills" })}
+                        data-look="traits-fold"
+                        className="press -mx-2 flex min-h-11 w-[calc(100%+16px)] items-center justify-between gap-3 rounded-control px-2 py-2 text-left text-row font-semibold text-stone-500"
+                      >
+                        <span>
+                          {folded} more trait{folded === 1 ? "" : "s"}
+                        </span>
+                        <span className="flex shrink-0 items-center gap-3">
+                          <PremiumMark variant="chip" />
+                          <Disclosure />
+                        </span>
+                      </button>
+                    )
+                  )}
+                </>
+              );
             })()
           )}
         </div>
@@ -894,40 +962,6 @@ export default function YouPage() {
         </div>
       </section>
 
-      {/* Day 1 vs now (you-11, M23): one card with the two numbers and
-          the tap that makes them a picture. The margin is the parent's
-          (STATE: shared components carry none). While the account gate
-          below is showing, its button keeps the screen's one terracotta
-          and this one steps down to the surface door. */}
-      {history.length >= 2 && (
-        <div className="mt-7">
-          <ShareCard reps={history} quiet={showGate} />
-        </div>
-      )}
-
-      {showGate && (
-        /* p-5 and a detail head, like Day 1 vs now above it, so the two
-           stacked cards share one inner edge and one title size. */
-        <section className="card mt-7 p-5">
-          <h2 className="detail-head">Save your progress</h2>
-          <p className="mt-1 text-caption text-stone-500">
-            {lifetime.length} recording{lifetime.length === 1 ? "" : "s"}
-            {streak.current > 0 &&
-              ` and ${/^(8|11|18|8\d)$/.test(String(streak.current)) ? "an" : "a"} ${streak.current}-day streak`}{" "}
-            live
-            on this device. An account keeps them.
-          </p>
-          <Link href="/signup" className={`${ACTION_CLASS} mt-3`}>
-            Create my account
-          </Link>
-          <div className="mt-3 text-center">
-            <Link href="/signin" className="text-link text-terracotta-700">
-              I already have one
-            </Link>
-          </div>
-        </section>
-      )}
-
       {/* The plan's place, last on the page. Free, or a plan that
           ended, keeps the one standing door to the sheet (docs/growth/04
           §4.1): a quiet row, never a card, the tier in its word and its
@@ -1105,11 +1139,13 @@ function Stat({
           </span>
         </div>
       )}
-      {/* Two short lines in every column at every width, as Imprint's
-          run: one line each crowded the three together at 390 and broke
-          only the longest at 375. The label is drawn in both states, so
-          the placeholder is the same height. */}
-      <div className="label-micro mx-auto mt-1.5 max-w-16 text-balance text-stone-500!">{label}</div>
+      {/* One line in every column at every width (D10, D36): three
+          labels that wrapped were six capital lines. Sentence case, the
+          spec's fallback: in capitals "XP THIS WEEK" set 78px in a 79px
+          column at 320, a pixel from touching its neighbour, and the
+          three took the viewport's whole budget of capitals. The label
+          is drawn in both states, so the placeholder is the same height. */}
+      <div className="font-display mt-1 whitespace-nowrap text-caption font-semibold text-stone-500">{label}</div>
     </div>
   );
 }
@@ -1153,21 +1189,21 @@ function gateLine(unitName: string, toGo: number | null): string {
   return `${unitName} opens in ${toGo} star${toGo === 1 ? "" : "s"}`;
 }
 
-/** The plan row's box: a row inside the identity card that lights on a press. */
-const PLAN_ROW =
-  "press-row -mx-3 mt-2 -mb-2.5 flex min-h-11 items-center gap-3 rounded-control px-3 py-2.5 text-left";
+/** The road's card: its own door under Day 1 vs now (D36). */
+const ROAD_CARD = "card press mt-3 flex min-h-11 items-center gap-3 p-4 text-left";
 
 /**
- * The plan row (#232): the portfolio's headline, the unit for what was
+ * The road (#232, D36): the portfolio's headline, the unit for what was
  * noticed, and how far its gate is. Opens the plan to change an answer;
- * a walk never taken opens the first question.
+ * a walk never taken opens the first question. Its eyebrow is "The
+ * road": "Your plan" echoed the paid plan's card further down.
  */
-function PlanRow({ state, stars }: { state: OnboardingState; stars: number | null }) {
+function RoadCard({ state, stars }: { state: OnboardingState; stars: number | null }) {
   if (!state.done) {
     return (
-      <Link href="/welcome?step=ageBand" className={PLAN_ROW}>
+      <Link href="/welcome?step=ageBand" className={ROAD_CARD}>
         <span className="min-w-0 flex-1">
-          <span className="eyebrow block">Your plan</span>
+          <span className="eyebrow block">The road</span>
           <span className="font-display mt-0.5 block text-row">
             Five questions, then a first month.
           </span>
@@ -1180,9 +1216,9 @@ function PlanRow({ state, stars }: { state: OnboardingState; stars: number | nul
   const toGo =
     plan.focus && stars !== null ? Math.max(0, plan.focus.unlocksAt - stars) : null;
   return (
-    <Link href="/welcome?step=plan" className={PLAN_ROW}>
+    <Link href="/welcome?step=plan" className={ROAD_CARD}>
       <span className="min-w-0 flex-1">
-        <span className="eyebrow block">Your plan</span>
+        <span className="eyebrow block">The road</span>
         <span className="font-display mt-0.5 block truncate text-row">
           {plan.headline}
         </span>

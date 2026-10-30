@@ -485,13 +485,13 @@ ok("the roulette never draws a job prompt for an under-18", !job, `${drawn.size}
 
 // 9. /you: the plan row, and reopening the plan to change an answer.
 await page.goto(`${BASE}/you`);
-await page.getByText("Your plan").waitFor();
+await page.getByText("The road", { exact: true }).waitFor();
 ok(
-  "/you shows the plan row with the unit and its gate",
+  "/you shows the road card with the unit and its gate",
   await page.getByText(/^Pace Control (opens in \d+ stars?|is open)$/).isVisible()
 );
 await shot("12-you");
-await page.getByRole("link", { name: /Your plan/ }).click();
+await page.getByRole("link", { name: /The road/ }).click();
 await page.waitForURL(/step=plan/);
 await said("Hold the room.").waitFor();
 ok("the plan row reopens the plan with a Done exit", await page.getByRole("link", { name: "Done" }).isVisible());

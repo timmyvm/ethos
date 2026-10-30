@@ -36,6 +36,8 @@ const TAPPABLE_BARE_SCREENS = [
   "app/(marketing)/about/page.tsx",
   "app/(marketing)/privacy/page.tsx",
   "app/(marketing)/terms/page.tsx",
+  // Tester mode's door, back to the introduction or Settings.
+  "app/tester/page.tsx",
 ];
 
 /**

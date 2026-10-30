@@ -60,6 +60,7 @@ import {
   type QuestionId,
 } from "@/lib/onboarding";
 import { introDue, introHref, nextLesson, UNITS } from "@/lib/path";
+import { DOOR_COPY } from "@/content/tester";
 import { buildPortfolio } from "@/lib/portfolio";
 import { readPrefs, writePrefs } from "@/lib/prefs";
 import { repHref } from "@/lib/rep-config";
@@ -395,12 +396,20 @@ function Walk() {
            * Screen 1 carries the returning-user door (Duolingo's splash
            * pattern, DECISIONS #133): a new device belonging to an
            * existing account should sign in BEFORE recording anonymously.
-           * Later screens keep Skip, which skips the questions too.
+           * Beside it, the tester's door (docs/testers.md): the account
+           * ask's pair of doors, one row in the same 56px slot, so Next
+           * keeps its y across the three screens. Later screens keep
+           * Skip, which skips the questions too.
            */
           step.index === 0 ? (
-            <Link href="/signin" className={FOOT_LINK}>
-              I already have an account
-            </Link>
+            <div className="mt-3 flex items-center justify-between gap-4">
+              <Link href="/signin" className={PAIR_LINK}>
+                I already have an account
+              </Link>
+              <Link href="/tester?from=welcome" className={PAIR_LINK}>
+                {DOOR_COPY.welcome}
+              </Link>
+            </div>
           ) : (
             /* intro-a-21: it leaves the whole introduction, questions
                and all, so it says so; a question's Skip passes one. */
@@ -836,6 +845,9 @@ function WalkBar({ n, of, onSkip }: { n: number; of: number; onSkip?: () => void
 
 /** The door under an intro screen's Next: a text link at full width. */
 const FOOT_LINK = "text-link mt-3 flex min-h-11 items-center justify-center";
+/** Two doors on one row, the account ask's pair: the words line up with
+    the tap's edges and keep their padding as hit area. */
+const PAIR_LINK = "text-link -mx-1 inline-flex min-h-11 items-center px-1";
 
 /**
  * An answer, chosen (M20, intro-a-14): the reference's accent edge,

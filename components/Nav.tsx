@@ -103,6 +103,9 @@ const BARE = [
   "/hostile",
   "/calibrate",
   "/welcome",
+  /* Tester mode's door (docs/testers.md): a code, a consent, one tap
+     each, reached from the introduction or Settings. */
+  "/tester",
   "/about",
   "/privacy",
   "/terms",

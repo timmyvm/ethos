@@ -74,13 +74,14 @@ export const MATCH_COPY = {
   saveNote: "Save note",
   saving: "Saving…",
   saved: "Saved",
+  answerSaved: "Answer saved",
   noteSaved: "Note saved",
   failed: "Your answer didn't save.",
 } as const;
 
 /** The doors in. */
 export const DOOR_COPY = {
-  welcome: "I have a tester code",
+  welcome: "Tester code",
   settingsCode: "Tester code",
   settingsTesting: "Testing Ethos",
   settingsOn: "On",

@@ -39,6 +39,8 @@ import { supabaseBrowser } from "@/lib/supabase-browser";
 import { useHourLabel } from "@/lib/time-label";
 import { ACTION_CLASS, DISABLED_CLASS, INPUT_CLASS } from "@/lib/ui";
 import { useRovingRadio, type RovingItemProps } from "@/lib/use-roving-radio";
+import { DOOR_COPY } from "@/content/tester";
+import { fetchTester, readTesterHint } from "@/lib/tester-client";
 
 /** The hours a reminder can ring at: two rows of three (you-17). */
 const HOURS = [7, 8, 12, 18, 20, 21] as const;
@@ -120,6 +122,18 @@ export default function SettingsPage() {
       ? DELETE_ANY_PLAN
       : null;
   const [hadPlan, setHadPlan] = useState(false);
+  /* Tester mode (docs/testers.md): the About group's last door is the
+     code for everyone else and "Testing Ethos, On" for a tester. The
+     device's last answer paints first; the account's own row decides. */
+  const [testing, setTesting] = useState(false);
+  useLayoutEffect(() => {
+    setTesting(readTesterHint());
+  }, []);
+  useEffect(() => {
+    fetchTester()
+      .then((t) => setTesting(t !== null))
+      .catch(() => {});
+  }, []);
 
   async function runDelete() {
     setDeleting(true);
@@ -541,6 +555,11 @@ export default function SettingsPage() {
         <LinkRow href="/about?from=settings" label="What Ethos is" />
         <LinkRow href="/privacy?from=settings" label="Privacy" />
         <LinkRow href="/terms?from=settings" label="Terms" />
+        <LinkRow
+          href="/tester?from=settings"
+          label={testing ? DOOR_COPY.settingsTesting : DOOR_COPY.settingsCode}
+          value={testing ? DOOR_COPY.settingsOn : undefined}
+        />
         <LinkRow
           href="mailto:hello@speakethos.com"
           label="Email us"

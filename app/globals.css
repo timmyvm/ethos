@@ -3775,6 +3775,32 @@ summary::-webkit-details-marker {
 :root[data-motion="reduce"] :is(.segmented-thumb, .switch-knob) {
   transition: none;
 }
+/* A control that opened with nothing chosen (Segmented's null, the
+   tester's match check): its thumb fades in where the first pick lands,
+   then slides like any other. */
+.segmented-thumb[data-arrive] {
+  animation: fade-in var(--duration-base) var(--ease-out);
+}
+
+/* The tester code's cells (app/tester): the next empty cell holds a
+   caret in the tap's colour while the field has focus, blinking at the
+   system's rate. Reduced motion keeps it lit. */
+.code-caret {
+  display: block;
+  width: 2px;
+  height: 28px;
+  border-radius: 1px;
+  background: var(--color-terracotta-500);
+  animation: code-caret 1.06s steps(1) infinite;
+}
+@keyframes code-caret {
+  50% {
+    opacity: 0;
+  }
+}
+:root[data-motion="reduce"] .code-caret {
+  animation: none;
+}
 /* ========================== end of grouped lists ========================== */
 
 /* the price ladder */

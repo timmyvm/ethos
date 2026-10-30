@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { useRovingRadio } from "@/lib/use-roving-radio";
 
 /**
@@ -14,6 +14,11 @@ import { useRovingRadio } from "@/lib/use-roving-radio";
  *
  * `size`: `md` is 40px segments (44 with the track), `lg` 44px with a
  * 15px label (globals.css `.segmented[data-size="lg"]`).
+ *
+ * `value` may be null for a question nobody has answered yet (the
+ * tester's match check): the track stands empty, and the first pick
+ * fades its thumb in where it lands rather than sliding it from the
+ * first segment. Every other caller passes a value and is unchanged.
  *
  * A disabled option stays in place (the thumb never lands on it, the
  * arrows step over it) with its label at stone-300: stone-400 sat one
@@ -44,7 +49,7 @@ export function Segmented<T extends string | number>({
   /** Names the group for screen readers. */
   label: string;
   options: readonly SegmentedOption<T>[];
-  value: T;
+  value: T | null;
   onChange: (v: T) => void;
   size?: "md" | "lg";
   className?: string;
@@ -52,7 +57,8 @@ export function Segmented<T extends string | number>({
   const values = options.map((o) => o.value);
   const off = (v: T) => !!options.find((o) => o.value === v)?.disabled;
   const { getItemProps } = useRovingRadio({ values, value, onChange, isDisabled: off });
-  const index = Math.max(0, values.indexOf(value));
+  const index = value === null ? -1 : Math.max(0, values.indexOf(value));
+  const startedEmpty = useRef(value === null);
 
   return (
     <div
@@ -62,11 +68,14 @@ export function Segmented<T extends string | number>({
       className={`segmented ${className}`}
       style={{ "--segments": options.length } as React.CSSProperties}
     >
-      <span
-        aria-hidden
-        className="segmented-thumb"
-        style={{ transform: `translateX(${index * 100}%)` }}
-      />
+      {index >= 0 && (
+        <span
+          aria-hidden
+          className="segmented-thumb"
+          data-arrive={startedEmpty.current || undefined}
+          style={{ transform: `translateX(${index * 100}%)` }}
+        />
+      )}
       {options.map((o, i) => (
         <button
           key={String(o.value)}

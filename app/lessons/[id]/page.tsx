@@ -107,8 +107,7 @@ export default function LessonPage() {
        * The art is an object standing on the stage, never a full-bleed
        * picture over the title (#305): glossy art over a title is the
        * shape of an ad, and a first-time user read it exactly that way. The tone below the
-       * stage is only the chip and the next square (wellspoken-course
-       * s10).
+       * stage is only the chip (wellspoken-course s10, D28).
        */}
       <div className="relative -mx-5 flex min-h-[204px] flex-1 flex-col px-5 pt-[env(safe-area-inset-top)]">
         {/* The ground, unclipped above the document's top so a pull past
@@ -193,10 +192,12 @@ export default function LessonPage() {
       </p>
 
       {/*
-       * The three practices as a plain list: a numbered square that
-       * turns sage with a check when it has a recording, the trait's
-       * solid on the one the button starts, the prompt, and on the last
-       * one what makes it harder. The squares are the progress (lessons-12).
+       * The three practices as a plain list: a numbered square on the
+       * surface, an ink check on it once it has a recording, an ink
+       * square with a numeral in the ground's colour on the one the
+       * button starts (D28: the trait's solid here was a tone leak), the
+       * prompt, and on the last one what makes it harder. The squares
+       * are the progress (lessons-12).
        */}
       <h2 className="detail-head mt-7">The three practices</h2>
       <ol className="mt-3 flex flex-col gap-5 pb-3">
@@ -205,7 +206,7 @@ export default function LessonPage() {
           /* Unknown is neither done nor next: every square waits in the
              neutral surface until the log says which is which. */
           const did = known && n <= done;
-          /* The one the button starts wears the trait's solid tone. */
+          /* The one the button starts is the ink square. */
           const here = known && !complete && n === next;
           const mod = p.mods?.[0] ? modById(p.mods[0]) : null;
           return (
@@ -218,13 +219,13 @@ export default function LessonPage() {
                 aria-hidden
                 className={`font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] text-row font-extrabold tabular-nums ${
                   did
-                    ? "bg-sage-500 text-sage-ink"
+                    ? "bg-surface text-ink"
                     : here
-                      ? "tone-fill tone-on"
+                      ? "bg-ink text-ground"
                       : "bg-surface text-stone-500"
                 }`}
               >
-                {did ? <IconCheck size={14} /> : n}
+                {did ? <IconCheck size={16} /> : n}
               </span>
               <div className="min-w-0 flex-1 pt-1">
                 <span className="sr-only">

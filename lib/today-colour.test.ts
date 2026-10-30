@@ -12,11 +12,10 @@ import { describe, expect, it } from "vitest";
  * have to measure there. The dark tones are
  * muted (lower chroma, the same hue and lightness) and still clear every
  * floor here. The ring is a measurement, so the arc holds the 3:1 a graphic
- * needs against that trough, for all five tones in both themes; the
- * ochre in light is 1.9:1 there and takes its own deeper arc
- * (`.today-trait[data-trait="repairs"]`, `--ring-arc`). The name and the
- * percentile are text in `tone-ink` on the card or the ground, so they
- * hold 4.5:1 there.
+ * needs against that trough, for all five tones in both themes (the
+ * ochre in light was 1.9:1 there and wore its own deeper arc until D05
+ * made the tone itself #b06f00). The name and the percentile are text in
+ * `tone-ink` on the card or the ground, so they hold 4.5:1 there.
  */
 const css = readFileSync(path.resolve(__dirname, "../app/globals.css"), "utf8");
 /* A source file without its comments, so a comment naming the old
@@ -36,9 +35,13 @@ const tones = (dark: boolean) => {
     ? /:root\[data-theme="dark"\] \[data-trait="(\w+)"\] \{([^}]*)\}/g
     : /(?:^|\n)\[data-trait="(\w+)"\] \{([^}]*)\}/g;
   for (const [, trait, body] of lessons.matchAll(re)) {
-    out[trait] = Object.fromEntries(
-      [...body.matchAll(/--(tone(?:-wash|-ink)?):\s*(#[0-9a-f]{6})/gi)].map((m) => [m[1], m[2]])
-    );
+    // Merged: a trait's dark stage (D13) is a rule of its own.
+    out[trait] = {
+      ...out[trait],
+      ...Object.fromEntries(
+        [...body.matchAll(/--(tone(?:-wash|-ink)?):\s*(#[0-9a-f]{6})/gi)].map((m) => [m[1], m[2]])
+      ),
+    };
   }
   return out;
 };
@@ -64,8 +67,6 @@ const ratio = (a: string, b: string) => {
   const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
   return (x + 0.05) / (y + 0.05);
 };
-const ochre = today.slice(today.indexOf('.today-trait[data-trait="repairs"]'));
-const ochreArc = ochre.match(/--ring-arc:\s*(#[0-9a-f]{6})/i)?.[1];
 
 const light = {
   sand: token(css, "sand"),
@@ -77,24 +78,23 @@ const dark = {
   raised: token(darkRoot, "raised"),
   ground: token(darkRoot, "ground"),
 };
-/* The dark card's sheen: raised plus 4.6% white at its top edge. */
-const sheen = mix("#ffffff", dark.raised, 0.046);
+/* The dark card's sheen: raised plus 3% white at its top edge. */
+const sheen = mix("#ffffff", dark.raised, 0.03);
 
 describe("Today's trait rings still measure", () => {
   const l = tones(false);
   const d = tones(true);
 
-  it("reads all five tones, the neutral tokens and the ochre's light arc", () => {
+  it("reads all five tones and the neutral tokens, and no tone wears a second arc", () => {
     expect(Object.keys(l)).toHaveLength(5);
     expect(Object.keys(d)).toHaveLength(5);
-    expect(ochreArc).toBeDefined();
     expect(light.sand).not.toBe(dark.sand);
+    expect(today).not.toMatch(/--ring-arc:/);
   });
 
   for (const [trait, t] of Object.entries(l)) {
     it(`${trait}, light: the arc on sand at 3:1 or better`, () => {
-      const arc = trait === "repairs" ? ochreArc! : t.tone;
-      expect(ratio(arc, light.sand)).toBeGreaterThanOrEqual(3);
+      expect(ratio(t.tone, light.sand)).toBeGreaterThanOrEqual(3);
     });
   }
   for (const [trait, t] of Object.entries(d)) {
@@ -193,9 +193,8 @@ describe("Today's materials", () => {
     expect(tiles).not.toMatch(/tone-wash|tone-ink|tone-fill|className=\{`card|className="card/);
     expect(tiles).toContain('className="trait-dot"');
     expect(block(".home-bar")).toContain("background: var(--color-sand);");
-    // The fill is the trait's arc: the tone, or the ochre's deeper arc in
-    // light, which `.today-trait` carries (held on sand above).
-    expect(block(".home-bar > i")).toContain("background: var(--ring-arc, var(--tone));");
+    // The fill is the trait's tone (held on sand above).
+    expect(block(".home-bar > i")).toContain("background: var(--tone);");
   });
 
   it("the light behind an object is the tone at 22% at most, never the tile's ground", () => {
@@ -261,4 +260,189 @@ describe("the trait chip's label on its tone", () => {
       expect(ratio(dark, t.tone)).toBeGreaterThanOrEqual(4.5);
     });
   }
+});
+
+/*
+ * Start stands out on every day's card (D21). Start's row starts 82% of
+ * the way down the 376px card (308px, measured at 390x844 and at 320),
+ * so the card's gradient lands on its foot colour above that row and
+ * every family's foot holds the 3:1 a control's edge needs against
+ * Start's terracotta, in both themes. The foot used to land at 100%, so
+ * Start stood on the gradient's middle at 2.1 to 3.0:1, under 3 on
+ * Fillers and Restarts days. scripts/check-colour.mjs samples the
+ * rendered pixels around the row as well.
+ */
+describe("Start stands on the card's foot", () => {
+  const START_ROW = 308 / 376;
+  const terracotta = token(css, "terracotta-500");
+
+  it("the gradient lands on its foot at or above Start's row", () => {
+    const g = block(".home-hero::before").match(/linear-gradient\(\d+deg, var\(--home-a\) 0%, var\(--home-b\) (\d+)%\)/);
+    expect(g, "the card's linear gradient").not.toBeNull();
+    expect(Number(g![1]) / 100).toBeLessThanOrEqual(START_ROW);
+  });
+  for (const f of ["pause", "fillers", "repairs", "pace", "range"]) {
+    it(`${f}: the foot holds Start at 3:1 or better, light and dark`, () => {
+      for (const sel of [`.home-hero[data-family="${f}"]`, `:root[data-theme="dark"] .home-hero[data-family="${f}"]`]) {
+        expect(ratio(hexOf(block(sel), "home-b"), terracotta), sel).toBeGreaterThanOrEqual(3);
+      }
+    });
+  }
+});
+
+/*
+ * Where a trait's tone may be read (D05). A tone is a mark, a
+ * measurement or a named ground, never a fill that happens to be handy:
+ * the lesson page's next square in the solid tone and the Log's coloured
+ * underlines were leaks. Every rule in globals.css that reads `--tone` or
+ * `--tone-stage`, and every component that does (`tone-fill`,
+ * `var(--tone)`, `(--tone-stage)`), names its form here, and anything
+ * else fails. The introduction's pop tones (`--pop-*` on `.tone-sun` and
+ * its siblings) share the variable but are never a trait.
+ */
+describe("a trait's tone is only ever one of its forms", () => {
+  const FORMS = {
+    mark: "an 8px square or dot beside a trait's name, or a 3px tick on a track",
+    measure: "a ring's arc or a bar on sand",
+    sparkline: "a sparkline",
+    chip: "TraitChip",
+    ground: "a named ground: Today's card, the lesson stage, the trait stage, the recording's topic card",
+    glow: "the light behind a tile's object, 22% at most (held above)",
+    pop: "the introduction's pop tones, never a trait",
+  } as const;
+  type Form = keyof typeof FORMS;
+  const RULES: Record<string, Form> = {
+    ".intro-stage": "pop",
+    ':root[data-theme="dark"] .intro-stage': "pop",
+    ".demos-halo[data-solid]": "pop",
+    ".plan-step-mark": "pop",
+    ".game-tile": "pop",
+    ':root[data-theme="dark"] .game-tile': "pop",
+    // The utility; the components that use it are held below.
+    ".tone-fill": "chip",
+    // The dark stage of any trait outside the five (the five set their own).
+    ':root[data-theme="dark"] [data-trait]': "ground",
+    ".trait-dot": "mark",
+    ".log-swatch": "mark",
+    // The Log's date underline and the insight's rule go with S09 (D33).
+    ".log-date[data-trait]::after": "mark",
+    ".log-insight": "mark",
+    ".home-tile-glow": "glow",
+    ':root[data-theme="dark"] .home-tile-glow': "glow",
+    ".home-bar > i": "measure",
+  };
+  const FILES: Record<string, Form> = {
+    "app/lessons/[id]/page.tsx": "ground",
+    "app/practice/[trait]/page.tsx": "ground",
+    "components/LessonScreen.tsx": "ground",
+    "app/history/page.tsx": "sparkline",
+    "components/Sparkline.tsx": "sparkline",
+    "components/Ring.tsx": "measure",
+    "components/FillerHeatmap.tsx": "measure",
+    "components/AudioScrubber.tsx": "mark",
+    "components/DimensionList.tsx": "mark",
+    "components/TraitChip.tsx": "chip",
+  };
+  const READS = /var\(--tone(?:-stage)?[,)]/;
+
+  it("every stylesheet rule that reads a tone is one of the forms", () => {
+    const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    const stray: string[] = [];
+    for (const [, sel, body] of bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const name = sel.trim().replace(/\s+/g, " ");
+      if (READS.test(body) && !(name in RULES)) stray.push(name);
+    }
+    expect(stray).toEqual([]);
+  });
+
+  it("every component that reads a tone is one of the forms", async () => {
+    const { globSync } = await import("node:fs");
+    const files = [
+      ...globSync("app/**/*.tsx", { cwd: path.resolve(__dirname, "..") }),
+      ...globSync("components/**/*.tsx", { cwd: path.resolve(__dirname, "..") }),
+    ].filter((f) => !f.startsWith("app/workbench/"));
+    const stray = files.filter(
+      (f) => /\btone-fill\b|var\(--tone(?:-stage)?[,)]|\(--tone(?:-stage)?\)/.test(src(f)) && !(f in FILES)
+    );
+    expect(stray).toEqual([]);
+  });
+
+  it("the lesson page's next square is ink, not the trait's solid", () => {
+    const page = src("app/lessons/[id]/page.tsx");
+    expect(page).not.toMatch(/\btone-fill\b|\btone-on\b/);
+    expect(page).toContain('"bg-ink text-ground"');
+  });
+});
+
+/*
+ * Today's colour under the card is measured in the browser
+ * (scripts/check-colour.mjs): the share of chromatic pixels between the
+ * card's foot and the tab bar at 390x844. Its pin is the figure measured
+ * after the home round (#393), with 10% headroom and no more, so a
+ * looser ceiling is a change somebody has to make here.
+ */
+describe("Today's colour under the card is pinned", () => {
+  const gate = readFileSync(path.resolve(__dirname, "../scripts/check-colour.mjs"), "utf8");
+  it("the gate carries a measured pin for both themes and 10% headroom", () => {
+    const pin = gate.match(/const TODAY_COLOUR_PIN = \{ light: ([\d.]+), dark: ([\d.]+) \};/);
+    expect(pin, "TODAY_COLOUR_PIN").not.toBeNull();
+    for (const v of pin!.slice(1).map(Number)) {
+      expect(v).toBeGreaterThan(0);
+      expect(v).toBeLessThan(5);
+    }
+    expect(gate).toMatch(/const HEADROOM = 1\.1;/);
+  });
+});
+
+/*
+ * The neutral and semantic tokens S05 moved (D01, D12, D13, D39).
+ */
+describe("the tokens the colour round moved", () => {
+  const stages = (theme: "dark") =>
+    Object.fromEntries(
+      [...lessons.matchAll(/:root\[data-theme="dark"\] \[data-trait="(\w+)"\] \{\s*--tone-stage:\s*(#[0-9a-f]{6});\s*\}/gi)].map(
+        (m) => [m[1], m[2]]
+      )
+    ) as Record<string, string>;
+
+  it("dark cards separate from the ground by their fill, 1.3:1 or better", () => {
+    expect(ratio(dark.raised, dark.ground)).toBeGreaterThanOrEqual(1.3);
+  });
+  it("each trait has its own dark stage that carries white at 10:1", () => {
+    const s = stages("dark");
+    expect(Object.keys(s).sort()).toEqual(["fillers", "pace", "pause", "range", "repairs"]);
+    for (const [trait, hex] of Object.entries(s)) {
+      expect(ratio("#ffffff", hex), trait).toBeGreaterThanOrEqual(10);
+      expect(ratio(hex, dark.ground), trait).toBeGreaterThanOrEqual(1.5);
+    }
+  });
+  it("destructive red reads as text on every card and row it sits on", () => {
+    const red = token(css, "destructive");
+    const redDark = token(darkRoot, "destructive");
+    expect(ratio(red, light.raised)).toBeGreaterThanOrEqual(4.5);
+    expect(ratio(red, token(css, "surface"))).toBeGreaterThanOrEqual(4.5);
+    expect(ratio(redDark, dark.raised)).toBeGreaterThanOrEqual(4.5);
+    expect(ratio(redDark, token(darkRoot, "surface"))).toBeGreaterThanOrEqual(4.5);
+    expect(red).not.toBe(token(css, "terracotta-600"));
+  });
+  it("the segmented trough sits under its thumb, and only the segmented controls use it", () => {
+    // Translucent ink in light, so it is a step under whatever row holds it.
+    const m = css.match(/--color-trough:\s*rgba\((\d+), (\d+), (\d+), ([\d.]+)\)/);
+    expect(m, "--color-trough").not.toBeNull();
+    const [r, g, b, a] = m!.slice(1).map(Number);
+    const over = (ground: string) =>
+      "#" + rgb(ground).map((v, i) => Math.round([r, g, b][i] * a + v * (1 - a)).toString(16).padStart(2, "0")).join("");
+    expect(over(light.ground)).toBe("#ececec");
+    expect(ratio(light.raised, over(light.ground))).toBeGreaterThanOrEqual(1.15);
+    expect(ratio(light.raised, over(token(css, "surface")))).toBeGreaterThanOrEqual(1.25);
+    expect(darkRoot).toMatch(/--color-trough: var\(--color-surface\);/);
+    const users = [...css.matchAll(/([^{}]+)\{[^{}]*var\(--color-trough\)[^{}]*\}/g)].map((m) =>
+      m[1].replace(/\/\*[\s\S]*?\*\//g, "").trim()
+    );
+    expect(users.sort()).toEqual([".home-seg.segmented", ".segmented"]);
+  });
+  it("a light card's shadow is one tight layer beside its edge", () => {
+    const shadow = css.match(/:root \{[^}]*--shadow-1:\s*([^;]+);/);
+    expect(shadow?.[1].trim()).toBe("0 1px 2px rgba(0, 0, 0, 0.06)");
+  });
 });

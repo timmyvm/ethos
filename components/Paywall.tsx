@@ -406,10 +406,14 @@ export function Paywall({
           onScroll={measure}
           data-more={more || undefined}
           data-under={under || undefined}
-          className={`paywall-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-6 pb-4 ${headStays ? "pt-4" : "pt-1"}`}
+          className={`paywall-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-6 pb-4 ${headStays ? "pt-3" : "pt-1"}`}
         >
           {!headStays && head}
-          <ul className={`${headStays ? "" : "mt-4 "}space-y-2.5 text-body leading-snug text-cream/85`}>
+          {/* D40: the terms moved into the shelf, 43px taller, so the
+              body gives back 24 (2px a benefit, 4 over the ladder, 4 at
+              the top, 8 under the shelf): at 375x667 the stair stands
+              where it stood before the move. */}
+          <ul className={`${headStays ? "" : "mt-4 "}space-y-2 text-body leading-snug text-cream/85`}>
             {BENEFITS.map(({ Glyph, text }, i) => (
               <li key={i} className="flex items-start gap-3">
                 <span aria-hidden className="mt-px shrink-0 text-cream/60">
@@ -423,7 +427,7 @@ export function Paywall({
           {!unlocked && (
             /* The ladder: a head, the readout the stair drives, the
                stair. The facts stand over the tap, in the shelf (D40). */
-            <section aria-labelledby="paywall-ladder-head" className="mt-5 border-t border-cream/15 pt-4">
+            <section aria-labelledby="paywall-ladder-head" className="mt-4 border-t border-cream/15 pt-4">
               <h3 id="paywall-ladder-head" className="detail-head text-cream">
                 {PAYWALL_COPY.head}
               </h3>
@@ -464,7 +468,7 @@ export function Paywall({
           )}
         </div>
 
-        <div className="shrink-0 px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        <div className="shrink-0 px-6 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <p role="status" className="sr-only">
             {spoken}
           </p>

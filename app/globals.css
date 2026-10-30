@@ -2009,6 +2009,19 @@ summary::-webkit-details-marker {
   background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.18));
 }
 
+/* D06, dark only: the sun as a stage ground (the first intro screen)
+   sampled mustard (#9e6d07) and a yellow cannot hold its hue at a dark
+   stage's lightness, so in dark that room is the dark sky: its ground,
+   its ink, its disc. The light sun, the mint rooms and the sun coins on
+   the questions are unchanged. */
+/* (Demos's own root on the stage wears the tone class too, for his disc.) */
+:root[data-theme="dark"] :is(.intro-stage.tone-sun, .intro-stage.tone-sun .tone-sun) {
+  --tone: var(--pop-sky);
+  --tone-disc: var(--pop-sky-disc);
+  --tone-ink: var(--pop-sky-ink);
+  --tone-wash: var(--pop-sky-wash);
+}
+
 /* The disc behind him: his studio light. Soft-edged so it reads as
    light falling on the wall behind a 3D figure, not as a sticker. */
 .demos-halo {
@@ -2259,7 +2272,9 @@ summary::-webkit-details-marker {
   background: var(--color-ink);
 }
 
-/* The plan's month as coloured steps on a rail. */
+/* The plan's month as numbered steps on a hairline rail (D49, D06): a
+   28px surface disc with an ink numeral at 15/800. The sun, sky and
+   coral discs meant nothing, so the numbers carry it. */
 .plan-step-mark {
   display: flex;
   height: 28px;
@@ -2268,15 +2283,12 @@ summary::-webkit-details-marker {
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
-  background: var(--tone);
-  /* intro-b-8: ink, not the tone's ink, on the light coins (11.5, 11.1
-     and 9.7:1 where the tone inks measured 3.0 to 3.7 at 13px). */
+  background: var(--color-surface);
+  box-shadow: inset 0 0 0 1px var(--color-hairline);
   color: var(--color-ink);
+  font-size: 0.9375rem;
   position: relative;
   z-index: 1;
-}
-:root[data-theme="dark"] .plan-step-mark {
-  color: #fff;
 }
 
 /* A page that arrived by a swipe or an arrow key brings its content

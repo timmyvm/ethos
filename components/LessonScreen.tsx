@@ -76,7 +76,15 @@ let handoff: { v: number; at: number } | null = null;
  */
 
 /** A destination renders a real link; a handler renders a button. */
-export type LessonAction = { label: string } & (
+export type LessonAction = {
+  label: string;
+  /**
+   * A brand button in the tap's place (the account ask's Google button,
+   * D49): its own classes instead of the terracotta ACTION_CLASS, and a
+   * mark before the label. The screen then has no terracotta tap.
+   */
+  brand?: { className: string; mark: ReactNode };
+} & (
   | { href: string; onPress?: never; disabled?: never }
   | { onPress: () => void; href?: never; disabled?: boolean }
 );
@@ -318,6 +326,8 @@ export function LessonScreen({
   speech,
   stage,
   swipe,
+  shelfFollows = false,
+  grow = false,
   travel = "next",
   trait,
   replies,
@@ -366,6 +376,17 @@ export function LessonScreen({
    * the page, and reduced motion steps without the follow.
    */
   swipe?: { next?: () => void; back?: () => void };
+  /**
+   * With the keyboard up (a viewport under 540px tall), the shelf
+   * follows the words 16px under them instead of standing at the foot,
+   * so the field and its Next are one reach (the name question, D19).
+   */
+  shelfFollows?: boolean;
+  /**
+   * The controls take the free height over the shelf (the plan's day-one
+   * card grows into it, D49), instead of leaving it as one band.
+   */
+  grow?: boolean;
   /**
    * The mascot says the title and the line, from a bubble with a tail
    * on him, instead of the template printing them (#288).
@@ -535,8 +556,9 @@ export function LessonScreen({
         type="button"
         onClick={action.onPress}
         disabled={action.disabled}
-        className={`${ACTION_CLASS} ${DISABLED_CLASS}`}
+        className={action.brand ? action.brand.className : `${ACTION_CLASS} ${DISABLED_CLASS}`}
       >
+        {action.brand?.mark}
         {action.label}
       </button>
     );
@@ -600,7 +622,7 @@ export function LessonScreen({
       <div
         className={`flex flex-1 flex-col ${center && !stage ? "justify-center" : ""} ${
           swipe ? `pb-4 ${short.body}` : ""
-        }`}
+        } ${shelfFollows ? "[@media(max-height:540px)]:flex-none" : ""}`}
       >
         {/* A flex column like its parent, so the art and the text block
             stay flex items (the art centres with `mx-auto`) whether or
@@ -609,7 +631,7 @@ export function LessonScreen({
           key={stepKey}
           ref={slide}
           data-arrival={arrived.current.gesture ? "gesture" : undefined}
-          className={`flex flex-col ${stage ? `mt-4 min-h-0 flex-1 ${short.stage}` : ""} ${
+          className={`flex flex-col ${stage ? `mt-4 min-h-0 flex-1 ${short.stage}` : grow ? "flex-1" : ""} ${
             stepKey === undefined ? "" : swipe ? arrival : "arrive-x"
           }`}
         >
@@ -630,7 +652,9 @@ export function LessonScreen({
               <LessonBody {...body} toneEyebrow={trait !== undefined} />
             </>
           )}
-          {controls && <div className="mt-7">{controls}</div>}
+          {controls && (
+            <div className={`mt-7 ${grow ? "flex flex-1 flex-col" : ""}`}>{controls}</div>
+          )}
         </div>
       </div>
 
@@ -651,7 +675,7 @@ export function LessonScreen({
          */
         <FooterShelf
           hairline={controls !== undefined && speech === "beside"}
-          className={short.foot}
+          className={`${short.foot} ${shelfFollows ? "[@media(max-height:540px)]:mt-4" : ""}`}
         >
           {aside && <div className="mb-3">{aside}</div>}
           {fineprint && (

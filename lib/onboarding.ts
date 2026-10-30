@@ -39,8 +39,13 @@ export const WELCOME_STEPS = [
   },
   {
     art: "/demos-onboard-speaking.webp",
-    title: "A coach costs $5,000.",
-    line: "This is sixty seconds a day.",
+    /* D46: the price claim went. "$5,000" was a US figure in an A$ app
+       and a pitch-deck line. The line is a sentence, not the round's
+       fragment ("Every one of them measured."): COPY-RULES allows no
+       fragment used as a sentence in the app, and read aloud it is the
+       same claim. */
+    title: "Sixty seconds a day.",
+    line: "Every one of them is measured.",
   },
   {
     art: "/demos-onboard-celebrate.webp",

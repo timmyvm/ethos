@@ -144,12 +144,15 @@ function measure({ scope }) {
     const imaged = cs.backgroundImage !== "none";
     const bordered = parseFloat(cs.borderTopWidth) > 0 && !/rgba\([^)]*,\s*0\)/.test(cs.borderTopColor);
     const shadowed = cs.boxShadow !== "none";
+    /* A panel with rounded corners is a card at any height (the intro's
+       stages); a square wrapper that tall is the page, not a card. */
+    const rounded = parseFloat(cs.borderTopLeftRadius) > 0;
     const card =
       (filled || imaged) &&
       inFlow &&
       !el.closest("[aria-hidden]") &&
       r.width >= vw * 0.4 &&
-      r.height < vh * 0.7;
+      (rounded || r.height < vh * 0.7);
     if (card) add(r.top, r.bottom, r.left, r.right, el, "card");
     else if (filled || imaged || bordered || shadowed) {
       add(r.top, r.top + 1, r.left, r.right, el, "edge");

@@ -262,8 +262,9 @@ if (!PLANS[PLAN_NAME]) {
 }
 /** The plan the mock answers with now: billing may move under cancel and resume. */
 export const plan = { premium: false, billing: null };
-export function resetPlan() {
-  const p = PLANS[PLAN_NAME];
+/** Back to LOOK_PLAN, or to `name` for a camera that needs one plan for one screen (check-sheet-touch's manage sheet). */
+export function resetPlan(name = PLAN_NAME) {
+  const p = PLANS[name];
   plan.premium = p.premium;
   plan.billing = p.billing ? { ...p.billing } : null;
   const until = plan.billing?.current_period_end ? new Date(new Date(plan.billing.current_period_end).getTime() + 3 * 86_400_000).toISOString() : null;

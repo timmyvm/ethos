@@ -7,14 +7,20 @@ import {
   codeDigits,
   codeReady,
   feedbackRow,
+  isCurrentTester,
   MATCH_ANSWERS,
   NOTE_MAX,
+  sameSave,
   scoreSnapshot,
   showsMatchCheck,
+  storedSnapshotInput,
+  testerNumber,
+  withoutPending,
+  withPending,
   type SnapshotInput,
 } from "./tester";
 
-const TESTER = { consent_version: 1, consented_at: "2026-10-30T09:00:00.000Z" };
+const TESTER = { consent_version: CONSENT_VERSION, consented_at: "2026-10-30T09:00:00.000Z" };
 const KEY = "1761814800000-lesson_the-landing_1-a1b2c3d4";
 
 describe("the code entry", () => {
@@ -37,12 +43,42 @@ describe("who sees the match check", () => {
     expect(showsMatchCheck({ tester: TESTER, scorable: true, clientId: KEY })).toBe(true);
   });
 
+  /*
+   * A tester who agreed to an older consent is asked again before
+   * anything more is kept (0021 refuses their answers too): the question
+   * waits until they have read the one that names the services.
+   */
+  it("not a tester whose consent is older than the one on screen", () => {
+    const older = { ...TESTER, consent_version: CONSENT_VERSION - 1 };
+    expect(isCurrentTester(older)).toBe(false);
+    expect(isCurrentTester(TESTER)).toBe(true);
+    expect(isCurrentTester(null)).toBe(false);
+    expect(showsMatchCheck({ tester: older, scorable: true, clientId: KEY })).toBe(false);
+  });
+
   it("nobody else: a non-tester, an unknown state, an unscored take, no key", () => {
     expect(showsMatchCheck({ tester: null, scorable: true, clientId: KEY })).toBe(false);
     expect(showsMatchCheck({ tester: undefined, scorable: true, clientId: KEY })).toBe(false);
     expect(showsMatchCheck({ tester: TESTER, scorable: false, clientId: KEY })).toBe(false);
     expect(showsMatchCheck({ tester: TESTER, scorable: true, clientId: null })).toBe(false);
     expect(showsMatchCheck({ tester: TESTER, scorable: true, clientId: "has spaces" })).toBe(false);
+  });
+});
+
+/*
+ * The tester number: how a friend tells Timothy which row in the report
+ * is theirs (to be paid, to have it all deleted, for the parent's text).
+ * The first eight characters of the account's id, in two groups, read
+ * the same way by the guide's query (docs/testers.md).
+ */
+describe("the tester number", () => {
+  it("is the account id's first eight characters, in capitals, in two fours", () => {
+    expect(testerNumber("3f9a1c2e-0d4a-4c1e-9a77-3b2f5e8d1c40")).toBe("3F9A 1C2E");
+  });
+
+  it("is nothing for something that is not an account id", () => {
+    expect(testerNumber("")).toBeNull();
+    expect(testerNumber("u1")).toBeNull();
   });
 });
 
@@ -91,6 +127,7 @@ describe("what a feedback row holds", () => {
     const s = scoreSnapshot(RESULT, 71);
     expect(s).toEqual({
       v: 1,
+      seen: "results",
       index: 665,
       previous: 662,
       stars: 2,
@@ -107,6 +144,57 @@ describe("what a feedback row holds", () => {
     });
     // 0020 caps the column at 4000 bytes; this is a tenth of that.
     expect(JSON.stringify(s).length).toBeLessThan(400);
+  });
+
+  it("says where it was answered: on results, or later from the Log", () => {
+    expect(scoreSnapshot(RESULT).seen).toBe("results");
+    expect(scoreSnapshot(RESULT, null, "log").seen).toBe("log");
+  });
+
+  it("from a stored recording, the same numbers the Log shows", () => {
+    const input = storedSnapshotInput({
+      ethos_index: 665,
+      stars: 2,
+      wpm: 145,
+      filler_count: 4,
+      duration_s: 62.4,
+      pauses: [
+        { kind: "pre" },
+        { kind: "mid" },
+        { kind: "beat" },
+        { kind: "mid" },
+        { kind: "mid" },
+      ],
+      dimensions: {
+        tier1: RESULT.tier1,
+        tier2: {
+          structure: { score: 64 },
+          credibility: { score: 58 },
+          engagement: { score: 61 },
+          confidence: { score: 66 },
+        },
+      },
+      capture_mode: "voice",
+    });
+    const s = scoreSnapshot(input, 71, "log");
+    expect(s).toMatchObject({
+      index: 665,
+      previous: null,
+      stars: 2,
+      tier1: { pause: 72, fillers: 55, repairs: 66, pace: 93, range: 66.3 },
+      tier2: { structure: 64, credibility: 58, engagement: 61, confidence: 66 },
+      presence: 71,
+      pauses: 5,
+      held: 4,
+      judged: true,
+      seen: "log",
+    });
+    // No judged read stored: nothing judged said.
+    const bare = storedSnapshotInput({
+      ethos_index: null, stars: 1, wpm: 0, filler_count: 0, duration_s: 4,
+      pauses: null, dimensions: null, capture_mode: "voice",
+    });
+    expect(scoreSnapshot(bare, null, "log")).toMatchObject({ index: null, tier2: null, judged: false, pauses: 0 });
   });
 
   it("nulls for what was not measured, never zeros", () => {
@@ -147,6 +235,49 @@ describe("what a feedback row holds", () => {
   });
 });
 
+/*
+ * D4: an answer that has not landed is kept on the phone, by recording,
+ * until a later save lands it. A newer answer for the same recording
+ * replaces an older one, and an older one landing never clears a newer.
+ */
+describe("answers waiting to land", () => {
+  const row = (answer: "yes" | "no", at: string, clientId = KEY) =>
+    feedbackRow({ clientId, repId: null, answer, note: null, scores: scoreSnapshot(RESULT), now: new Date(at) });
+
+  it("keeps the newest answer per recording", () => {
+    const a = row("yes", "2026-10-30T09:00:00Z");
+    const b = row("no", "2026-10-30T09:01:00Z");
+    const other = row("yes", "2026-10-30T09:02:00Z", "k-other");
+    let m = withPending({}, a);
+    m = withPending(m, b);
+    m = withPending(m, other);
+    expect(Object.keys(m).sort()).toEqual([KEY, "k-other"].sort());
+    expect(m[KEY].answer).toBe("no");
+    // An older one written late never replaces a newer one.
+    expect(withPending(m, a)[KEY].answer).toBe("no");
+  });
+
+  it("lets go of an answer once it landed, and only that one", () => {
+    const a = row("yes", "2026-10-30T09:00:00Z");
+    const b = row("no", "2026-10-30T09:01:00Z");
+    const m = withPending({}, b);
+    expect(withoutPending(m, a)).toEqual(m);
+    expect(withoutPending(m, b)).toEqual({});
+  });
+});
+
+/* T6: one tap of Save note right after the field was left is one write. */
+describe("a save that would repeat the last one", () => {
+  it("is the same answer with the same note, as stored", () => {
+    expect(sameSave({ answer: "no", note: "Felt fast " }, { answer: "no", note: "Felt fast" })).toBe(true);
+    expect(sameSave({ answer: "no", note: "Felt fast" }, { answer: "no", note: "Felt slow" })).toBe(false);
+    expect(sameSave({ answer: "no", note: "x" }, { answer: "roughly", note: "x" })).toBe(false);
+    // Yes stores no note, so a note left in the field changes nothing.
+    expect(sameSave({ answer: "yes", note: "" }, { answer: "yes", note: "left over" })).toBe(true);
+    expect(sameSave(null, { answer: "yes", note: "" })).toBe(false);
+  });
+});
+
 /**
  * The server stores the version a tester agreed to, so the version has
  * to mean one text. Change a word of the consent and this fails until
@@ -154,6 +285,7 @@ describe("what a feedback row holds", () => {
  */
 const CONSENT_FINGERPRINTS: Record<number, string> = {
   1: "d31d36a2b184bb3a",
+  2: "bb38c1a2e720688f",
 };
 
 describe("the consent", () => {
@@ -167,9 +299,23 @@ describe("the consent", () => {
 
   it("says what is collected, what for, who sees it, how to delete it, and the parent", () => {
     const text = CONSENT.items.map((i) => `${i.lead} ${i.text}`).join(" ");
-    for (const must of [/recordings/, /transcripts/, /scores/, /answer/, /accurate/, /Only Timothy/, /shared or sold/, /deleted, any time/, /Deleting your account in Settings/, /Under 18/, /parent/]) {
+    for (const must of [/recordings/, /transcripts/, /scores/, /answer/, /name, age or email/, /accurate/, /Only Timothy/, /Nothing is sold/, /deleted, any time/, /Deleting your account in Settings/, /Under 18/, /parent/]) {
       expect(text).toMatch(must);
     }
+  });
+
+  /*
+   * Every recording goes through the services Privacy names (OpenAI and
+   * Anthropic score it, Supabase and Vercel hold it). Version 1 said
+   * "Nothing is shared", which a parent could read as "no company sees
+   * it". The consent says where it goes and links the page that names
+   * them.
+   */
+  it("says it goes only to the services Privacy names, and links Privacy", () => {
+    const who = CONSENT.items.find((i) => i.lead === "Who sees it")!;
+    expect(who.text).toMatch(/only to the services named in Privacy\.$/);
+    expect(who.text).not.toMatch(/shared/);
+    expect(who).toMatchObject({ link: { word: "Privacy", href: "/privacy#testers" } });
   });
 });
 

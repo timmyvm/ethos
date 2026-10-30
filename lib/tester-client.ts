@@ -13,7 +13,15 @@
 import { useEffect, useState } from "react";
 import { CODE_COPY, CONSENT_VERSION } from "@/content/tester";
 import { currentSession, ensureSession, sessionToken, supabaseBrowser } from "./supabase-browser";
-import type { FeedbackRow, TesterRow } from "./tester";
+import {
+  isCurrentTester,
+  withoutPending,
+  withPending,
+  type FeedbackRow,
+  type MatchAnswer,
+  type ScoreSnapshot,
+  type TesterRow,
+} from "./tester";
 
 /** This device last saw the account as a tester: Settings' row paints right first. */
 const HINT_KEY = "ethos.tester";
@@ -28,6 +36,7 @@ function keepHint(on: boolean): void {
 /** Signing out: the next account on this device is someone else's. */
 export function forgetTesterHint(): void {
   keepHint(false);
+  writePending({});
 }
 
 export function readTesterHint(): boolean {
@@ -61,21 +70,29 @@ export async function fetchTester(): Promise<TesterRow | null> {
 
 /**
  * The tester state for a screen: undefined while it is read (or when
- * the read failed), null for no, the row for yes.
+ * the read failed), null for no, the row for yes. A read that failed
+ * (supabase-js has already retried it three times) is read again when
+ * `again` changes: the recording screen passes the result's key, so a
+ * phone that opened it offline still asks the question once the
+ * recording has scored. A current tester's answers still waiting from
+ * an earlier screen are sent once the row is known.
  */
-export function useTester(): TesterRow | null | undefined {
+export function useTester(again?: unknown): TesterRow | null | undefined {
   const [tester, setTester] = useState<TesterRow | null | undefined>(undefined);
+  const known = tester !== undefined;
   useEffect(() => {
+    if (known) return;
     let live = true;
     fetchTester()
       .then((t) => {
         if (live) setTester(t);
+        if (isCurrentTester(t)) void flushPendingMatches();
       })
       .catch(() => {});
     return () => {
       live = false;
     };
-  }, []);
+  }, [again, known]);
   return tester;
 }
 
@@ -178,9 +195,36 @@ export async function carryStashed(): Promise<boolean> {
 }
 
 /**
+ * Answers that have not landed, kept on this phone (lib/tester.ts
+ * PendingMatches) with the account they belong to: a save that fails
+ * after the tester has left the screen is sent again on the next
+ * recording screen, the way the recording outbox resends a recording.
+ * Signing out clears them.
+ */
+const PENDING_KEY = "ethos.tester.pending";
+type Pending = FeedbackRow & { user_id: string };
+
+function readPending(): Record<string, Pending> {
+  try {
+    const raw = localStorage.getItem(PENDING_KEY);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : null;
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, Pending>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writePending(map: Record<string, Pending>): void {
+  try {
+    if (Object.keys(map).length) localStorage.setItem(PENDING_KEY, JSON.stringify(map));
+    else localStorage.removeItem(PENDING_KEY);
+  } catch {}
+}
+
+/**
  * One answer, upserted on (user_id, client_id), so a changed answer
- * replaces the last one. False on any failure, which the screen says
- * with its retry.
+ * replaces the last one. It waits on the phone until it lands. False on
+ * any failure, which the screen says with its retry.
  */
 export async function saveMatch(row: FeedbackRow): Promise<boolean> {
   const db = supabaseBrowser();
@@ -188,11 +232,56 @@ export async function saveMatch(row: FeedbackRow): Promise<boolean> {
   try {
     const me = await currentSession();
     if (!me) return false;
+    const owned: Pending = { ...row, user_id: me.userId };
+    writePending(withPending(readPending(), owned));
     const { error } = await db
       .from("tester_feedback")
-      .upsert({ ...row, user_id: me.userId }, { onConflict: "user_id,client_id" });
-    return !error;
+      .upsert(owned, { onConflict: "user_id,client_id" });
+    if (error) return false;
+    writePending(withoutPending(readPending(), owned));
+    return true;
   } catch {
     return false;
   }
+}
+
+/** Every answer still waiting for this account, sent again. */
+export async function flushPendingMatches(): Promise<void> {
+  const me = await currentSession();
+  if (!me) return;
+  for (const row of Object.values(readPending())) {
+    if (row.user_id !== me.userId) continue;
+    const { user_id: _owner, ...rest } = row;
+    await saveMatch(rest);
+  }
+}
+
+/** An answer already given about this recording, as the match check reopens it. */
+export interface GivenMatch {
+  answer: MatchAnswer;
+  note: string | null;
+  scores: ScoreSnapshot | null;
+}
+
+/**
+ * The account's own answer about one recording (RLS: own rows only), or
+ * null for none. A newer answer still waiting on this phone wins over
+ * the stored one. Throws on a failed read.
+ */
+export async function fetchMatch(clientId: string): Promise<GivenMatch | null> {
+  const waiting = readPending()[clientId];
+  const me = await currentSession();
+  if (waiting && me && waiting.user_id === me.userId) {
+    return { answer: waiting.answer, note: waiting.note, scores: waiting.scores };
+  }
+  const db = supabaseBrowser();
+  if (!db || !me) return null;
+  const { data, error } = await db
+    .from("tester_feedback")
+    .select("answer, note, scores")
+    .eq("user_id", me.userId)
+    .eq("client_id", clientId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as GivenMatch | null) ?? null;
 }

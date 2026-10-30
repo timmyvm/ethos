@@ -50,10 +50,12 @@ export interface RepRow {
   delivery_metrics: Record<string, number> | null;
   presence_score: number | null;
   delivery_moments: DeliveryMoment[] | null;
+  /** The outbox key it was uploaded under (0016); a tester's answer about it is filed by this (0020). */
+  client_id?: string | null;
 }
 
 const REP_COLUMNS =
-  "id, lesson_id, created_at, duration_s, transcript, wpm, filler_count, fillers, pauses, stars, focus, strength, supply, ethos_index, dimensions, audio_path, mode, mods, xp_multiplier, boss_topic_id, accuracy, capture_mode, delivery_metrics, presence_score, delivery_moments";
+  "id, lesson_id, created_at, duration_s, transcript, wpm, filler_count, fillers, pauses, stars, focus, strength, supply, ethos_index, dimensions, audio_path, mode, mods, xp_multiplier, boss_topic_id, accuracy, capture_mode, delivery_metrics, presence_score, delivery_moments, client_id";
 
 export async function fetchReps(limit = 90): Promise<RepRow[]> {
   const db = supabaseBrowser();

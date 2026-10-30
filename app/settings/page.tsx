@@ -40,6 +40,7 @@ import { useHourLabel } from "@/lib/time-label";
 import { ACTION_CLASS, DISABLED_CLASS, INPUT_CLASS } from "@/lib/ui";
 import { useRovingRadio, type RovingItemProps } from "@/lib/use-roving-radio";
 import { DOOR_COPY } from "@/content/tester";
+import { isCurrentTester } from "@/lib/tester";
 import { fetchTester, forgetTesterHint, readTesterHint } from "@/lib/tester-client";
 
 /** The hours a reminder can ring at: two rows of three (you-17). */
@@ -130,8 +131,10 @@ export default function SettingsPage() {
     setTesting(readTesterHint());
   }, []);
   useEffect(() => {
+    // A tester on an older consent is offered the code again, which
+    // leads to the consent that replaced theirs.
     fetchTester()
-      .then((t) => setTesting(t !== null))
+      .then((t) => setTesting(isCurrentTester(t)))
       .catch(() => {});
   }, []);
 

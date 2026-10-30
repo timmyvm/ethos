@@ -80,3 +80,34 @@ describe("0020 testers", () => {
     expect(sql).not.toMatch(/create (or replace )?view public\./);
   });
 });
+
+/**
+ * 0021: the answers a tester can store are bounded, and taken only under
+ * a consent that names the services (version 2 on). The browser's own
+ * gate (lib/tester.ts showsMatchCheck) asks for CONSENT_VERSION; the
+ * database's floor may be lower, never higher, or a current tester's
+ * answers would be refused.
+ */
+describe("0021 tester limits", () => {
+  const sql = code("0021_tester_limits.sql");
+
+  it("caps an account's answers with a row trigger that lets a changed answer through", () => {
+    expect(sql).toMatch(/create or replace trigger tester_feedback_cap\s+before insert on public\.tester_feedback\s+for each row/);
+    expect(sql).toMatch(/>= 300 then/);
+    expect(sql).toMatch(/f\.client_id = new\.client_id/);
+    expect(sql).toMatch(/pg_advisory_xact_lock/);
+  });
+
+  it("asks both answer policies for the consent that names the services", async () => {
+    const { CONSENT_VERSION } = await import("@/content/tester");
+    const floors = [...sql.matchAll(/t\.consent_version >= (\d+)/g)].map((m) => Number(m[1]));
+    expect(floors).toHaveLength(2);
+    for (const floor of floors) {
+      expect(floor).toBe(2);
+      expect(floor).toBeLessThanOrEqual(CONSENT_VERSION);
+    }
+    expect(sql).toMatch(/alter policy "tester feedback: testers insert their own"/);
+    expect(sql).toMatch(/alter policy "tester feedback: testers change their own"/);
+    expect(sql).not.toMatch(/create policy/);
+  });
+});

@@ -20,6 +20,7 @@ import {
   greetingName,
   heroObject,
   initialOf,
+  fmtLine,
   lineTile,
   objectSrc,
   signed,
@@ -328,26 +329,41 @@ describe("the tiles", () => {
   it("fewer-is-better fills the same way", () => {
     const fewer = lineTile(line({ trait: "fillers", direction: "lower", line: 4, today: 2, closed: true }));
     expect(fewer.fill).toBeGreaterThanOrEqual(LINE_MARK);
-    expect(fewer.caption).toBe("Under your line of 4.");
+    expect(fewer.caption).toBe("Under your line of 4.0.");
   });
 
-  it("today's line in the wide tile is a tick on the bar's own scale, and names itself only when the tile does not", () => {
-    // The fixture's morning: the line and the tile's number are both 1.8.
-    const same = wideLine(line({}), 1.8);
-    expect(same).toMatchObject({ state: "open", caption: "Over it on 4 of your last 5." });
+  it("today's line in the wide tile is a number, a tick on the bar's own scale, and a caption that never labels it", () => {
+    const open = wideLine(line({}));
+    expect(open).toMatchObject({ state: "open", line: "1.8", caption: "Over it on 4 of your last 5." });
     // The tick is the line's percentile on the same norm the bar's fill reads.
-    expect(same.tick).toBe(percentile(1.8, NORMS.pause));
-    expect(same.tick).toBeGreaterThanOrEqual(0);
-    expect(same.tick).toBeLessThanOrEqual(100);
-    // A tile printing another number: the caption says the line's.
-    expect(wideLine(line({}), 2.4).caption).toBe("Line 1.8. Over it on 4 of your last 5.");
-    expect(wideLine(line({}), null).caption).toBe("Line 1.8. Over it on 4 of your last 5.");
-    // Spoken today: lineTile's captions already carry the line where needed.
-    expect(wideLine(line({ today: 2.6, closed: true, value: 1 }), 2.6)).toMatchObject({
+    expect(open.tick).toBe(percentile(1.8, NORMS.pause));
+    expect(open.tick).toBeGreaterThanOrEqual(0);
+    expect(open.tick).toBeLessThanOrEqual(100);
+    // The number stands over the caption, so "Line 1.8." left it (E24).
+    for (const c of [line({}), line({ line: 1 }), line({ today: 2.6, closed: true, value: 1 }), line({ today: 0.9 })]) {
+      expect(wideLine(c).caption).not.toMatch(/^Line /);
+    }
+    // Spoken today: lineTile's captions carry the line where needed.
+    expect(wideLine(line({ today: 2.6, closed: true, value: 1 }))).toMatchObject({
       state: "closed",
+      line: "1.8",
       caption: "Over your line of 1.8.",
     });
-    expect(wideLine(line({ today: 0.9 }), 0.9)).toMatchObject({ state: "short", caption: "Your line is 1.8." });
+    expect(wideLine(line({ today: 0.9 }))).toMatchObject({ state: "short", caption: "Your line is 1.8." });
+  });
+
+  it("a line of 1.0 prints 1.0, at the tile's precision, never 1", () => {
+    expect(fmtLine(1)).toBe("1.0");
+    expect(fmtLine(0.96)).toBe("1.0");
+    expect(fmtLine(1.84)).toBe("1.8");
+    expect(fmtLine(9.96)).toBe("10.0");
+    // From 10 up the tile prints whole numbers, so the line does too.
+    expect(fmtLine(145.4)).toBe("145");
+    expect(fmtLine(62)).toBe("62");
+    expect(wideLine(line({ line: 1 })).line).toBe("1.0");
+    expect(lineTile(line({ line: 1, today: 1.6, closed: true })).caption).toBe("Over your line of 1.0.");
+    expect(lineTile(line({ line: 1, today: 1.0, closed: true })).caption).toBe("On your line.");
+    expect(lineTile(line({ line: 1, today: 0.6 })).caption).toBe("Your line is 1.0.");
   });
 
   const rep = (fillers: number[], duration = 60): RepRow =>

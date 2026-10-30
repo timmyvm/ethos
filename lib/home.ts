@@ -18,7 +18,7 @@ import { ART_BOUNDS } from "./lesson-art-bounds";
 import { weekStart } from "./level";
 import { standing } from "./next-practice";
 import { percentile } from "./percentile";
-import { fmtRaw, type TraitReading } from "./trait-readings";
+import type { TraitReading } from "./trait-readings";
 
 /* ------------------------------------------------------------------ */
 /* The objects. */
@@ -187,6 +187,17 @@ const VERB: Record<Challenge["direction"], string> = {
   band: "Inside",
 };
 
+/**
+ * Today's line as the tile prints it (E24): the tile's own precision,
+ * whole from 10 up and one decimal under it, keeping the decimal, so a
+ * line of 1.0 a minute reads "1.0" and never "1", which next to "Today's
+ * line" read as the line's number in a list. Never `fmtRaw`.
+ */
+export function fmtLine(n: number): string {
+  if (!Number.isFinite(n)) return "0.0";
+  return n >= 10 ? String(Math.round(n)) : n.toFixed(1);
+}
+
 export interface LineTile {
   /** The number the tile prints: today's best once spoken, the line before. */
   shown: number;
@@ -220,14 +231,14 @@ export function lineTile(c: Challenge): LineTile {
   const lineS = Math.max(standing(c.trait, c.line), 0.05);
   const fill = Math.max(0, Math.min(1, (standing(c.trait, c.today) / lineS) * LINE_MARK));
   if (c.closed) {
-    const on = fmtRaw(c.today) === fmtRaw(c.line);
+    const on = fmtLine(c.today) === fmtLine(c.line);
     return {
       shown: c.today,
       state: "closed",
       /* A close always reaches the mark, whatever the rounding. */
       fill: Math.max(fill, LINE_MARK),
       mark: LINE_MARK,
-      caption: on ? "On your line." : `${verb} your line of ${fmtRaw(c.line)}.`,
+      caption: on ? "On your line." : `${verb} your line of ${fmtLine(c.line)}.`,
     };
   }
   return {
@@ -235,32 +246,34 @@ export function lineTile(c: Challenge): LineTile {
     state: "short",
     fill: Math.min(fill, LINE_MARK - 0.04),
     mark: LINE_MARK,
-    caption: `Your line is ${fmtRaw(c.line)}.`,
+    caption: `Your line is ${fmtLine(c.line)}.`,
   };
 }
 
 /**
- * Today's line in the wide tile (D23): the card's trait already prints
- * its number there, so the line keeps to the tile's right half as a
- * head, a flag or a check, and a caption, and draws itself as a tick
- * on the trait's own bar at the line's percentile, on the same scale as
- * the bar's fill. 1.8 shows once. Where the line's printed number is
- * not the number the tile prints, the caption names it, so the line is
- * never only a tick.
+ * Today's line in the wide tile (D23, E24): the card's trait prints its
+ * number at the left, and the tile's right half holds today's line as a
+ * head with its flag or check, the line itself as a number with the
+ * tile's unit ("1.0 /min"), and a caption; the line also draws itself as
+ * a tick on the trait's own bar at its percentile, on the same scale as
+ * the bar's fill. The caption no longer names the line ("Line 1."), since
+ * the number stands over it.
  */
 export interface WideLine {
   state: LineTile["state"];
+  /** The line as the tile prints it (`fmtLine`). */
+  line: string;
   caption: string;
   /** Where the line sits on the trait's bar, 0 to 100. */
   tick: number;
 }
 
-export function wideLine(c: Challenge, shown: number | null): WideLine {
+export function wideLine(c: Challenge): WideLine {
   const t = lineTile(c);
-  const named = c.today === null && (shown === null || fmtRaw(shown) !== fmtRaw(c.line));
   return {
     state: t.state,
-    caption: named ? `Line ${fmtRaw(c.line)}. ${t.caption}` : t.caption,
+    line: fmtLine(c.line),
+    caption: t.caption,
     tick: Math.max(0, Math.min(100, percentile(c.line, NORMS[c.trait]))),
   };
 }

@@ -295,9 +295,18 @@ for (const theme of ["light", "dark"]) {
   if (want("paywall")) {
     try {
       await page.goto(`${BASE}/games`);
-      await page.waitForSelector("main h1", { timeout: 20000 });
+      /* The Premium card is server-rendered (D31), so Unlock exists
+         before React has hydrated it; a tap that early does nothing.
+         Wait as check-sheet-touch does, and tap once more if the sheet
+         has still not opened. */
+      await page.waitForSelector(".premium-wall", { timeout: 20000 });
+      await sleep(600);
+      const slider = '[role="dialog"] [role="slider"]';
       await page.click(".premium-wall", { force: true });
-      await page.waitForSelector('[role="dialog"] [role="slider"]', { timeout: 8000 });
+      if (!(await page.waitForSelector(slider, { timeout: 3000 }).catch(() => null))) {
+        await page.click(".premium-wall", { force: true });
+        await page.waitForSelector(slider, { timeout: 8000 });
+      }
       await sleep(1400);
       await check(page, "paywall", theme, { scope: '[role="dialog"] .card-premium' });
     } catch (e) {

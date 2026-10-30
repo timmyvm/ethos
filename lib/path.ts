@@ -7,6 +7,7 @@
  * Star totals gate unit unlocks. Boss units stay premium (DECISIONS #13).
  */
 
+import type { From } from "./back-from";
 import { DRILLS, type Drill } from "./drills";
 
 /**
@@ -216,10 +217,17 @@ export function introDue(
  * Log's Go on a row, notes1); without one it opens the unit's first
  * lesson still short of three stars.
  */
-export function introHref(unitId: string, mods: string[] = [], lesson?: string): string {
+export function introHref(
+  unitId: string,
+  mods: string[] = [],
+  lesson?: string,
+  /** The tab that opened it, so its back names that tab (D18). */
+  from?: From
+): string {
   const params = [
     ...(mods.length > 0 ? [`mods=${mods.join(",")}`] : []),
     ...(lesson ? [`lesson=${encodeURIComponent(lesson)}`] : []),
+    ...(from ? [`from=${from}`] : []),
   ];
   return `/lesson/${unitId}${params.length > 0 ? `?${params.join("&")}` : ""}`;
 }

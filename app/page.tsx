@@ -324,7 +324,7 @@ export default function Home() {
   const fallback = !loading && !dayOne && !chosen;
   const startHref =
     introOwns && next
-      ? introHref(next.unit.id, mods)
+      ? introHref(next.unit.id, mods, undefined, "today")
       : repHref({ topic: chosen?.item.topicId ?? (fallback ? FALLBACK_TOPIC.id : undefined), mods });
 
   /* What the card says. The trait is named in every state that has one. */

@@ -13,6 +13,7 @@ import { fetchReps } from "@/lib/client-data";
 import { readable } from "@/lib/load";
 import { ErrorLine } from "@/components/ui/ErrorState";
 import { DURATION } from "@/lib/motion";
+import { backFrom, fromParam, withFrom } from "@/lib/back-from";
 import { buzz } from "@/lib/prefs";
 import { repHref } from "@/lib/rep-config";
 import {
@@ -51,6 +52,16 @@ import {
 const STEPS = ["name", "why", "how", "example", "practice", "after"] as const;
 type Step = (typeof STEPS)[number];
 
+/** Each step's title, which the next step's back names (D18). */
+const STEP_TITLE: Record<Step, (trait: string) => string> = {
+  name: (trait) => trait,
+  why: () => "Why it matters",
+  how: () => "The technique",
+  example: () => "Same words, moved",
+  practice: () => "Sixty seconds",
+  after: (trait) => trait,
+};
+
 export default function Practice() {
   return (
     <Suspense fallback={<main className="px-5 pt-7" />}>
@@ -63,6 +74,8 @@ function Lesson() {
   const params = useParams<{ trait: string }>();
   const router = useRouter();
   const search = useSearchParams();
+  const from = fromParam(search.get("from"));
+  const parent = backFrom(from, "today");
   const id = params.trait as TraitId;
   const def = TRAIT[id];
 
@@ -156,7 +169,13 @@ function Lesson() {
    * rather than stacking Today on top of it, so the OS back gesture from
    * Today never reopens the lesson.
    */
-  const back = i > 0 ? () => go(i - 1) : () => router.replace("/");
+  const back = i > 0 ? () => go(i - 1) : () => router.replace(parent.href);
+  /*
+   * D18: the back names where it goes. Out of the walk, the tab that
+   * opened it (`?from=`, Today's tiles by default); inside it, the step
+   * before, by its title, the way a pushed screen names its parent.
+   */
+  const backLabel = i > 0 ? STEP_TITLE[steps[i - 1]](def.name) : parent.label;
 
   /*
    * What every step shares. The trait (practice-detail-6): `data-trait`
@@ -166,7 +185,7 @@ function Lesson() {
    * centred on the ring's line, and the block centred in the height
    * above the tap, so the six steps read as one layout.
    */
-  const frame = { fill: true, align: "center", stepKey: step, trait: id } as const;
+  const frame = { fill: true, align: "center", stepKey: step, trait: id, backLabel } as const;
 
   /*
    * R3: the trait's stage takes the free height on every step and the
@@ -324,7 +343,7 @@ function Lesson() {
         line={def.howTo[0]}
         action={{
           label: "Record",
-          href: repHref({ lesson: `trait-${id}`, back: `/practice/${id}?done=1` }),
+          href: repHref({ lesson: `trait-${id}`, back: withFrom(`/practice/${id}?done=1`, from) }),
         }}
         fineprint="The tactic stays on screen while you talk."
       />
@@ -403,7 +422,7 @@ function Lesson() {
            one's. */
         nxt && nxt.next.id !== id ? (
           <Link
-            href={`/practice/${nxt.next.id}`}
+            href={withFrom(`/practice/${nxt.next.id}`, from)}
             data-trait={nxt.next.id}
             className="card press flex items-center gap-3 p-4"
           >

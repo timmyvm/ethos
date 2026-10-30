@@ -28,8 +28,8 @@ describe("waitingRows", () => {
    */
   it("sends each Go through the unit's teaching screen first while intros are on, as Today does", () => {
     const unit = UNITS[0].id;
-    expect(rows.map((r) => r.href)).toEqual(rows.map((r) => `/lesson/${unit}?lesson=${r.id}`));
-    expect(waitingRows(3, { intros: true })[1].href).toBe(`/lesson/${unit}?lesson=f2`);
+    expect(rows.map((r) => r.href)).toEqual(rows.map((r) => `/lesson/${unit}?lesson=${r.id}&from=log`));
+    expect(waitingRows(3, { intros: true })[1].href).toBe(`/lesson/${unit}?lesson=f2&from=log`);
   });
 
   it("sends each Go straight to that lesson's recording when intros are off", () => {

@@ -10,7 +10,7 @@ import { ModPicker } from "@/components/ModPicker";
 import { TipLine } from "@/components/rep/TipStrip";
 import {
   IconCheck,
-  IconGames,
+  IconPractice,
   IconLessons,
   IconLog,
   IconShuffle,
@@ -410,7 +410,7 @@ function TraitTile({ reading, delay }: { reading: (typeof READINGS)[number]; del
 const TABS = [
   { href: "/", label: "Today", Icon: IconToday },
   { href: "/lessons", label: "Lessons", Icon: IconLessons },
-  { href: "/games", label: "Practice", Icon: IconGames },
+  { href: "/games", label: "Practice", Icon: IconPractice },
   { href: "/history", label: "Log", Icon: IconLog },
   { href: "/you", label: "You", Icon: IconYou },
 ];

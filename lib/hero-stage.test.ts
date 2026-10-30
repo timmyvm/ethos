@@ -87,8 +87,13 @@ describe("Today opens on the object", () => {
   it("the card stands the lesson's object at the large cut, and holds the one Start", () => {
     expect(hero).toContain("<HeroObject key={object} id={object} />");
     expect(hero).toMatch(/src=\{objectSrc\(id, true\)\}/);
-    expect(hero.match(/className="home-start press"/g)?.length).toBe(1);
+    // Start, and in its place while the roulette has the card, "Take this
+    // one": the same pill, never both on screen, and never disabled by a
+    // spin (D14).
+    expect(hero.match(/className="home-start press"/g)?.length).toBe(2);
     expect(hero).toMatch(/>\s*Start\s*</);
+    expect(hero).toMatch(/onClick=\{take\} className="home-start press">\s*Take this one/);
+    expect(hero).not.toMatch(/disabled=\{reel\.rolling\}\s*className=\{`home-start/);
     expect(hero).toContain('aria-label="Spin a new topic"');
   });
 

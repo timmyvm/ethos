@@ -33,11 +33,13 @@ const ok = (name, pass, detail = "") => {
  * below its foot, past its own glow, down to the tab bar) whose pixels
  * carry colour (chroma over 24 of 255, the difference between a pixel's
  * largest and smallest channel), at 390x844 on the look fixtures. It
- * was 0.2% under the cohesion pass's stage; after the home round (#393)
- * it measured 0.68% in both themes. The ceiling is the measure plus the
+ * was 0.2% under the cohesion pass's stage and 0.68% after the home
+ * round (#393), most of it the wide tile's hourglass repeating the
+ * card's object; with the wide tile's object gone (D22) it measures
+ * 0.09% in both themes, pinned at 0.1. The ceiling is the pin plus the
  * 10% headroom.
  */
-const TODAY_COLOUR_PIN = { light: 0.68, dark: 0.68 };
+const TODAY_COLOUR_PIN = { light: 0.1, dark: 0.1 };
 const HEADROOM = 1.1;
 
 const FAMILIES = ["pause", "fillers", "repairs", "pace", "range"];

@@ -189,7 +189,7 @@ describe("Today's materials", () => {
   const hero = src("components/home/HomeHero.tsx");
 
   it("the traits are tiles on the surface: the trait's mark, its bar on sand, its name in ink", () => {
-    expect(tiles).toMatch(/className=\{`home-tile today-trait press/);
+    expect(tiles).toMatch(/className="home-tile today-trait press/);
     expect(tiles).not.toMatch(/tone-wash|tone-ink|tone-fill|className=\{`card|className="card/);
     expect(tiles).toContain('className="trait-dot"');
     expect(block(".home-bar")).toContain("background: var(--color-sand);");
@@ -206,7 +206,10 @@ describe("Today's materials", () => {
   });
 
   it("what is earned fills in the measured sage, 3:1 on sand in both themes", () => {
-    expect(tiles.match(/home-bar home-bar-earned/g)?.length).toBe(2);
+    // The clean run's bar; today's line is a tick on its trait's own bar
+    // since D23, and clearing it is the sage check.
+    expect(tiles.match(/home-bar home-bar-earned/g)?.length).toBe(1);
+    expect(block(".home-check")).toContain("var(--color-sage-600)");
     expect(block(".home-bar-earned > i")).toContain("var(--color-sage-600)");
     expect(block(".home-day[data-on]")).toContain("var(--color-sage-600)");
     expect(week).toContain("bg-sage-600");

@@ -480,7 +480,7 @@ export default function Home() {
 
       {reps !== null &&
         (view === "today" ? (
-          <TodayTiles key="today" reps={history} challenge={challenge} focus={heroTrait} hero={object} />
+          <TodayTiles key="today" reps={history} challenge={challenge} focus={heroTrait} />
         ) : (
           <WeekTiles key="week" week={weekView(lifetime, new Date())} />
         ))}

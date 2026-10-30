@@ -9,6 +9,7 @@ import {
 } from "react";
 import { EASE_IN_OUT, EASE_OUT, SPIN, spinAt, spinStop, spinTicks } from "@/lib/motion";
 import { buzz, prefersReducedMotion } from "@/lib/prefs";
+import { SPRING, springEasing, springMs } from "@/lib/spring";
 
 /**
  * The reel (DECISIONS #278, lengthened by the first-user feedback round).
@@ -35,6 +36,12 @@ import { buzz, prefersReducedMotion } from "@/lib/prefs";
  *
  * `data-motion="reduce"` never starts: the draw is handed back
  * immediately.
+ *
+ * `land()` (D14) is a tap that will not wait for the wheel: the reel
+ * settles on the topic it already drew, from wherever it is on screen,
+ * on --spring-snappy (354ms), hands the topic back, and then calls the
+ * caller's `then` once, so Start takes the topic it shows. A second tap
+ * while it settles does nothing.
  */
 
 /** How dim a candidate is while it flashes past. The landing lifts to 1. */
@@ -46,8 +53,19 @@ export interface ReelState<T> {
   /** Index within `strip` the wheel settles on. */
   landing: number;
   rolling: boolean;
+  /** `land()` has the wheel: it is settling on the snappy spring. */
+  settling: boolean;
   spin: () => void;
+  /**
+   * Settle now on the drawn topic and call `then` with it once the
+   * spring is at rest; at rest already, `then` runs at once with the
+   * current one. Returns false when a settle is already under way.
+   */
+  land: (then?: (item: T) => void) => boolean;
 }
+
+/** How long `land()` takes: the snappy spring, critically damped. */
+export const LAND_MS = springMs(SPRING.snappy);
 
 /**
  * Owns the draw and the timing; the caller owns the button and what a
@@ -66,7 +84,13 @@ export function useReel<T extends { id: string }>({
   onLand: (item: T) => void;
 }): ReelState<T> {
   const [strip, setStrip] = useState<T[] | null>(null);
+  const [settling, setSettling] = useState(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  /* The spin's draw, and whether it has been handed back yet: `land()`
+     hands it back itself when it beats the stop. */
+  const drawn = useRef<{ item: T; handed: boolean } | null>(null);
+  /* Two taps in one frame both see `settling` false; the ref does not. */
+  const settlingNow = useRef(false);
 
   useEffect(
     () => () => {
@@ -102,6 +126,7 @@ export function useReel<T extends { id: string }>({
       last = t.id;
     }
     const next = [current, ...lead, landed, avoid(landed.id, last)];
+    drawn.current = { item: landed, handed: false };
     setStrip(next);
 
     /* A tick as each candidate takes the window, and on the stop the
@@ -115,20 +140,52 @@ export function useReel<T extends { id: string }>({
       ...ticks.map((at) => setTimeout(() => buzz(6), at)),
       setTimeout(() => {
         buzz([10, 30, 10]);
+        if (drawn.current) drawn.current.handed = true;
         onLand(landed);
       }, stop),
       setTimeout(() => {
         timers.current = [];
+        drawn.current = null;
         setStrip(null);
       }, SPIN.ms),
     ];
+  }
+
+  function land(then?: (item: T) => void): boolean {
+    if (settlingNow.current) return false;
+    const d = drawn.current;
+    if (!strip || !d) {
+      then?.(current);
+      return true;
+    }
+    settlingNow.current = true;
+    for (const t of timers.current) clearTimeout(t);
+    buzz([10, 30, 10]);
+    if (!d.handed) {
+      d.handed = true;
+      onLand(d.item);
+    }
+    setSettling(true);
+    timers.current = [
+      setTimeout(() => {
+        timers.current = [];
+        drawn.current = null;
+        settlingNow.current = false;
+        setSettling(false);
+        setStrip(null);
+        then?.(d.item);
+      }, LAND_MS),
+    ];
+    return true;
   }
 
   return {
     strip,
     landing: strip ? strip.length - 2 : 0,
     rolling: strip !== null,
+    settling,
     spin,
+    land,
   };
 }
 
@@ -147,10 +204,12 @@ export function Reel<T extends { id: string }>({
   render: (item: T) => ReactNode;
   className?: string;
 }) {
-  const { strip, landing } = state;
+  const { strip, landing, settling } = state;
   const win = useRef<HTMLDivElement>(null);
   const column = useRef<HTMLDivElement>(null);
   const landed = useRef<HTMLDivElement>(null);
+  /* The spin's animations, so a settle can take over from them. */
+  const running = useRef<Animation[]>([]);
 
   /*
    * The spin runs on the Web Animations API, started in a LAYOUT effect:
@@ -183,7 +242,7 @@ export function Reel<T extends { id: string }>({
        brightens, and the one under it fades, both done by the stop. */
     const ticks = spinTicks(landing);
     const arriving = at(ticks[ticks.length - 1] ?? stop * 0.9);
-    const running = [
+    const live = [
       column.current.animate(path, { duration: ms }),
       /* The pop: the window lifts a few percent at the stop, and back. */
       win.current.animate(
@@ -201,7 +260,7 @@ export function Reel<T extends { id: string }>({
        candidate and comes up to full as it stops. */
     const fade = (el: Element | null | undefined, from: number, to: number) => {
       if (!el) return;
-      running.push(
+      live.push(
         el.animate(
           [
             { offset: 0, opacity: from },
@@ -215,10 +274,39 @@ export function Reel<T extends { id: string }>({
     };
     fade(landed.current, PASSING, 1);
     fade(landed.current?.nextElementSibling, PASSING, 0);
+    running.current = live;
     return () => {
-      for (const a of running) a.cancel();
+      for (const a of running.current) a.cancel();
+      running.current = [];
     };
   }, [strip, landing]);
+
+  /*
+   * The settle (`land()`, D14): read where the column and the landed
+   * prompt are on screen this frame, drop the spin, and carry them to
+   * rest on the snappy spring, so the wheel never jumps.
+   */
+  useLayoutEffect(() => {
+    if (!settling || !strip || !win.current || !column.current) return;
+    const cell = win.current.offsetHeight;
+    const col = column.current;
+    const from = new DOMMatrixReadOnly(getComputedStyle(col).transform).m42;
+    const lit = landed.current;
+    const under = lit?.nextElementSibling ?? null;
+    const opacity = (el: Element | null) => (el ? Number(getComputedStyle(el).opacity) : 1);
+    const [litFrom, underFrom] = [opacity(lit), opacity(under)];
+    for (const a of running.current) a.cancel();
+    const timing = { duration: LAND_MS, easing: springEasing(SPRING.snappy), fill: "forwards" as const };
+    const next = [
+      col.animate(
+        [{ transform: `translateY(${from}px)` }, { transform: `translateY(${-landing * cell}px)` }],
+        timing
+      ),
+    ];
+    if (lit) next.push(lit.animate([{ opacity: litFrom }, { opacity: 1 }], timing));
+    if (under) next.push(under.animate([{ opacity: underFrom }, { opacity: 0 }], timing));
+    running.current = next;
+  }, [settling, strip, landing]);
 
   /*
    * `off` is DERIVED rather than stored, which is not a style

@@ -8,6 +8,7 @@
  */
 
 import { lessonById } from "@/content/lessons";
+import { NORMS } from "@/content/norms";
 import { TRAIT, TRAITS, type TraitId } from "@/content/traits";
 import { cleanName } from "./answers";
 import type { Challenge } from "./challenge";
@@ -16,6 +17,7 @@ import type { RepRow, RepSpine } from "./client-data";
 import { ART_BOUNDS } from "./lesson-art-bounds";
 import { weekStart } from "./level";
 import { standing } from "./next-practice";
+import { percentile } from "./percentile";
 import { fmtRaw, type TraitReading } from "./trait-readings";
 
 /* ------------------------------------------------------------------ */
@@ -46,11 +48,10 @@ export const TACTIC_OBJECT: Record<TraitId, readonly [string, string, string]> =
 };
 
 /**
- * Each trait's own objects, first choice first: the first stands for the
- * trait on its tile and on a practice whose first tip is not one of the
- * trait's three (a shape's tip); a tile takes the next when the card
- * above already stands the first. Pausing is the hourglass, the piece
- * the set was rendered from.
+ * Each trait's own objects, first choice first: the first is the
+ * trait's emblem (`TRAIT_OBJECT`), on its tile and on a practice whose
+ * first tip is not one of the trait's three (a shape's tip). Pausing is
+ * the hourglass, the piece the set was rendered from.
  */
 export const TRAIT_OBJECTS: Record<TraitId, readonly [string, string, string]> = {
   pause: ["the-long-one", "the-landing", "inside-or-after"],
@@ -75,11 +76,16 @@ export function heroObject(trait: TraitId | null, tip?: string | null): string {
 }
 
 /**
- * A trait tile's object: the trait's first, unless the card above
- * already stands it, then its next. One object, once.
+ * A trait tile's object: the trait's emblem, always the same one (D22):
+ * Pausing the hourglass, Fillers the door, Restarts the flag, Pace the
+ * road, Variety the tag. It used to swap to the trait's next object
+ * whenever the card above stood the first, so the same tile showed the
+ * bowl one morning and the hourglass the next. The wide tile, the
+ * card's own trait, draws none: the card above already stands the
+ * lesson's object.
  */
-export function tileObject(trait: TraitId, hero: string | null): string {
-  return TRAIT_OBJECTS[trait].find((id) => id !== hero) ?? TRAIT_OBJECT[trait];
+export function tileObject(trait: TraitId): string {
+  return TRAIT_OBJECT[trait];
 }
 
 /**
@@ -230,6 +236,32 @@ export function lineTile(c: Challenge): LineTile {
     fill: Math.min(fill, LINE_MARK - 0.04),
     mark: LINE_MARK,
     caption: `Your line is ${fmtRaw(c.line)}.`,
+  };
+}
+
+/**
+ * Today's line in the wide tile (D23): the card's trait already prints
+ * its number there, so the line keeps to the tile's right half as a
+ * head, a flag or a check, and a caption, and draws itself as a tick
+ * on the trait's own bar at the line's percentile, on the same scale as
+ * the bar's fill. 1.8 shows once. Where the line's printed number is
+ * not the number the tile prints, the caption names it, so the line is
+ * never only a tick.
+ */
+export interface WideLine {
+  state: LineTile["state"];
+  caption: string;
+  /** Where the line sits on the trait's bar, 0 to 100. */
+  tick: number;
+}
+
+export function wideLine(c: Challenge, shown: number | null): WideLine {
+  const t = lineTile(c);
+  const named = c.today === null && (shown === null || fmtRaw(shown) !== fmtRaw(c.line));
+  return {
+    state: t.state,
+    caption: named ? `Line ${fmtRaw(c.line)}. ${t.caption}` : t.caption,
+    tick: Math.max(0, Math.min(100, percentile(c.line, NORMS[c.trait]))),
   };
 }
 

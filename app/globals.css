@@ -4651,20 +4651,13 @@ summary::-webkit-details-marker {
   font-size: 1.0625rem;
   font-weight: 800;
   color: var(--color-ink);
-  background:
-    radial-gradient(100% 100% at 30% 20%, rgb(255 255 255 / 0.9), transparent 60%),
-    linear-gradient(150deg, #efe7df, #d9cdc2);
-  box-shadow:
-    inset 0 0 0 1px rgb(0 0 0 / 0.06),
-    0 4px 12px -4px rgb(0 0 0 / 0.18);
+  /* The surface step with its hairline (D20): the beige gradient made
+     it the only beige object in the app. */
+  background: var(--color-surface);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.06);
 }
 :root[data-theme="dark"] .home-avatar {
-  background:
-    radial-gradient(100% 100% at 30% 20%, rgb(255 255 255 / 0.14), transparent 60%),
-    linear-gradient(150deg, #3a3633, #2a2725);
-  box-shadow:
-    inset 0 0 0 1px rgb(255 255 255 / 0.1),
-    0 4px 12px -4px rgb(0 0 0 / 0.5);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
 }
 
 /* The card: today's practice in its trait's family, the screen's one
@@ -4712,6 +4705,19 @@ summary::-webkit-details-marker {
   /* Under the colour: the surface step the card stands on while the
      read is in flight. */
   background: var(--color-surface);
+}
+/* Under 360 (D22): the words take 56% of the card so the longest
+   tactic holds two lines at 320 (scripts/check-today.mjs), and the
+   object keeps to the right 44%, 12px clear of them, at 120px tall at
+   most, so the topic still starts under its foot. */
+@media (max-width: 359px) {
+  .home-hero {
+    --zone-l: calc(56cqw + 32px);
+    --zone-b: calc(var(--zone-t) + 120px);
+  }
+  .home-hero .home-hero-words {
+    max-width: 56%;
+  }
 }
 /* The colour is a layer, so it fades up over the neutral card when the
    read names the trait rather than cutting in (principle: nothing
@@ -4911,13 +4917,15 @@ summary::-webkit-details-marker {
   font-weight: 600;
   color: var(--stage-ink);
 }
-/* The topic: 40/800, three lines at most for a typical prompt. */
+/* The topic: 40/800, three lines at most for a typical prompt. Tracked
+   -0.015em since D08: at -0.035em the 40px 800 ran its letters into
+   each other ("nearly", "didn't"). */
 .home-display {
   font-family: var(--font-display-face), sans-serif;
   font-size: min(var(--text-display), 10.2vw);
   line-height: 1.02;
   font-weight: 800;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.015em;
   text-wrap: balance;
 }
 .home-display[data-long] {
@@ -5027,9 +5035,10 @@ summary::-webkit-details-marker {
   width: calc((100% - 8px) / var(--segments));
   border-radius: 999px;
   background: var(--color-raised);
+  /* A tight contact shadow and a half-pixel rim on the trough (D23). */
   box-shadow:
-    0 4px 12px -4px rgb(0 0 0 / 0.16),
-    0 0 0 0.5px rgb(0 0 0 / 0.05);
+    0 1px 3px rgba(0, 0, 0, 0.14),
+    0 0 0 0.5px rgba(0, 0, 0, 0.08);
 }
 :root[data-theme="dark"] .home-seg .segmented-thumb {
   background: #3d3d3d;
@@ -5074,6 +5083,30 @@ summary::-webkit-details-marker {
 .home-tile[data-compact] {
   min-height: 168px;
 }
+/* The clean run as one row (D23): its head and number at the left, the
+   bar and its two-line caption at the right. */
+.home-tile[data-row] {
+  min-height: 120px;
+}
+.home-row {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 16px;
+}
+/* The wide tile (D22, D23): the trait at the left 56%, today's line in
+   the right half, where its object used to stand. */
+.home-wide {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 56fr) minmax(0, 44fr);
+  column-gap: 16px;
+}
+.home-wide-line {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
 /* The caption's two lines, held whatever the caption says: "Over it on
    5 of your last 6." wraps where "On your line." does not, and the two
    numbers above them sat 18px apart. */
@@ -5084,18 +5117,19 @@ summary::-webkit-details-marker {
  * A tile's object zone, in the tile's box (16px padding included), the
  * card's rule at tile size: the object's visible box fits the zone and
  * is centred across it, its top on the zone's top. A half tile's zone
- * is its right half above the number's line, 12px over the top and 8px
- * past the edge, so an object is cut by the tile the way the workbench
- * cut the road and the flag; the
- * wide tile's is the right 44% beside the number, its full height.
- * Nothing in a zone reaches a name, a number or a unit, at 320 or 390.
+ * is its right half above the number's line, from 12px inside the top
+ * (D24: the road, the door and the flag were cut at the top) to 10px
+ * over the number, and 8px past the right edge, so a wide object may
+ * run off the right by a little and none runs off the top. The wide
+ * tile has no object (D22). Nothing in a zone reaches a name, a number
+ * or a unit, at 320, 390 or 430 (lib/home.test.ts).
  */
 .home-tile[data-trait] {
   /* Clear of the name too: at 320 "Restarts" runs past the half. */
   --zone-l: max(calc(50cqw + 22px), calc(var(--name-w, 56px) + 38px));
   --zone-r: calc(100cqw + 40px);
-  --zone-t: -12px;
-  --zone-b: 84px;
+  --zone-t: 12px;
+  --zone-b: 96px;
 }
 /* Each name's width at the tile's 14/700 (the dot and its gap are the
    38px above, with 8 to spare). */
@@ -5113,12 +5147,6 @@ summary::-webkit-details-marker {
 }
 .home-tile[data-trait="range"] {
   --name-w: 47px;
-}
-.home-tile[data-trait][data-wide] {
-  --zone-l: calc(56cqw + 26px);
-  --zone-r: calc(100cqw + 24px);
-  --zone-t: 10px;
-  --zone-b: 158px;
 }
 .home-tile[data-trait] {
   --art-s: min(
@@ -5144,9 +5172,6 @@ summary::-webkit-details-marker {
 }
 :root[data-theme="dark"] .home-tile-glow {
   background: radial-gradient(closest-side, color-mix(in srgb, var(--tone) 20%, transparent), transparent);
-}
-.home-tile[data-wide] .home-tile-glow {
-  --glow: 260px;
 }
 .home-tile-art {
   position: absolute;
@@ -5180,7 +5205,8 @@ summary::-webkit-details-marker {
 }
 .home-tile[data-wide] {
   --num-max: 3.5rem;
-  --num-room: calc(56cqw + 2px);
+  /* The left column: 56% of what is left beside the 16px gap. */
+  --num-room: calc((100cqw - 16px) * 0.56);
   --unit-size: 0.78125rem;
 }
 @container (max-width: 120px) {
@@ -5264,7 +5290,8 @@ summary::-webkit-details-marker {
   border-radius: 999px;
 }
 .home-check {
-  background: var(--color-sage-500);
+  /* Sage-600, the earned fills' step (D03): white holds 4.6:1 on it. */
+  background: var(--color-sage-600);
   color: #ffffff;
 }
 :root[data-theme="dark"] .home-check {

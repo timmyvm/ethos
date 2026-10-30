@@ -13,26 +13,31 @@ import {
   UNIT_EM,
   artBox,
   cleanRunTile,
-  lineTile,
   numEm,
   objectSrc,
   tileObject,
   traitOrder,
+  wideLine,
 } from "@/lib/home";
 import { DURATION } from "@/lib/motion";
 import { fmtRaw, ordinal, readTraitsFromRow, type TraitReading } from "@/lib/trait-readings";
 
 /**
- * Today's bento (#393): today's line and the clean run as two tiles,
- * then the five traits, the card's trait wide and the other four lowest
- * percentile first, each with its glass object, its number big and its
- * percentile under a bar.
+ * Today's bento (#393, D22 and D23): the card's trait wide, with today's
+ * line in its right half; the clean run as one full-width row; then the
+ * other four traits, lowest percentile first, each with its emblem, its
+ * number big and its percentile under a bar.
  *
  * Every tile is the surface step at the tile radius, with no shadow:
  * the card above is the one lifted thing. A trait's colour is its 8px
  * mark, its bar's fill and the light behind its object, which is part
  * of the picture and never the tile's ground. What is earned (clearing
  * your line, a clean stretch) fills in sage.
+ *
+ * Each object shows once: the card stands the lesson's object, the wide
+ * tile (the card's trait) stands none, and each of the other four its
+ * trait's fixed emblem. Today's line shows once too: it lives in the
+ * wide tile, where the trait's number already is, as a tick on its bar.
  *
  * Unknown is never zero: with no recording a trait prints a dash and an
  * empty trough, and so do today's line (absent under three readings in
@@ -43,7 +48,6 @@ export function TodayTiles({
   reps,
   challenge,
   focus,
-  hero,
 }: {
   /** Oldest first, as `fetchReps` returns them. */
   reps: RepRow[];
@@ -51,8 +55,6 @@ export function TodayTiles({
   /** The card's trait: the wide tile, so the card, the line and the wide
       tile name one trait (#268). Null on day one. */
   focus: TraitId | null;
-  /** The card's object, so no tile repeats it. */
-  hero: string | null;
 }) {
   /* The readings are the newest recording's, today's included: the
      numbers are the latest, the trait in the wide tile is the card's. */
@@ -60,44 +62,40 @@ export function TodayTiles({
   const rows = traitOrder(last ? readTraitsFromRow(last) : [], focus);
   const run = cleanRunTile(reps);
   const [first, ...rest] = rows;
+  /* The line is the card's trait's (one selector, #268), so it stands in
+     the wide tile; with none yet the wide tile says what sets it. */
+  const line = challenge && challenge.trait === first.id ? challenge : null;
 
-  const traits = (
-    <>
-      <TraitTile id={first.id} reading={first.reading} hero={hero} wide />
-      {rest.map((t) => (
-        <TraitTile key={t.id} id={t.id} reading={t.reading} hero={hero} />
-      ))}
-    </>
-  );
+  const wide = <WideTile id={first.id} reading={first.reading} line={line} pending={!challenge} />;
+  const four = rest.map((t) => <TraitTile key={t.id} id={t.id} reading={t.reading} />);
 
-  /* Day zero: the line and the clean run as dashes, saying what sets
-     them, and the five reading nothing yet, all as one block. A stagger
-     is numbers landing one after another, and dashes landing one after
-     another is theatre. */
+  /* Day zero: the five reading nothing yet and the clean run as a dash,
+     saying what sets it, all as one block. A stagger is numbers landing
+     one after another, and dashes landing one after another is theatre. */
   if (!last) {
     return (
       <div className="arrive">
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <PendingTile head="Today's line" caption="Three recordings set it." />
-          <PendingTile head="Clean run" caption="Your longest stretch with no filler." />
+        <div className="mt-3 grid grid-cols-2 gap-3">{wide}</div>
+        <div className="mt-3">
+          <RunRow head="Clean run" caption="Your longest stretch with no filler." />
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-3">{traits}</div>
+        <div className="mt-3 grid grid-cols-2 gap-3">{four}</div>
       </div>
     );
   }
 
   return (
-    <>
-      {/* The line and the clean run land with the read, in one fade. A
-          clean run with no line (under three readings this week) takes
-          the row. */}
-      <div className="arrive mt-3 grid grid-cols-2 gap-3">
-        {challenge && <LineTile c={challenge} />}
-        {run && <CleanRunTile run={run} wide={!challenge} />}
-      </div>
-      {/* The five assemble one after another (the motion layer's stagger). */}
-      <div className="stagger mt-3 grid grid-cols-2 gap-3 [--stagger-lead:80ms]">{traits}</div>
-    </>
+    /* The wide tile, the clean run and the four assemble one after
+       another (the motion layer's stagger). */
+    <div className="stagger mt-3 grid grid-cols-2 gap-3 [--stagger-lead:80ms]">
+      {wide}
+      {run ? (
+        <CleanRunRow run={run} />
+      ) : (
+        <RunRow head="Clean run" caption="Your longest stretch with no filler." />
+      )}
+      {four}
+    </div>
   );
 }
 
@@ -143,158 +141,194 @@ function CompactHead({ children }: { children: ReactNode }) {
 }
 
 /**
- * Today's line (#281): the number to clear in the trait's own unit, a
- * flag at the bar's end while today is open and a sage check once it
- * closes.
- * The bar runs today's reading to the line's mark, on the trait's own
- * standing. The caption holds two lines, as the clean run's does, so
- * the two numbers share a line whatever either caption says.
+ * The clean run (#254, #267) as one full-width row (D23): the newest
+ * recording's longest stretch with no filler on the left, the bar
+ * against that recording's own length and the caption on the right,
+ * the best before it as the bar's mark. A door to the Log, where the
+ * run and the Index live.
  */
-function LineTile({ c }: { c: Challenge }) {
-  const t = lineTile(c);
-  const name = TRAIT[c.trait].name;
-  return (
-    <section
-      data-trait={c.trait}
-      data-compact
-      aria-label={`Today's line, ${name}. ${t.state === "open" ? "Clear" : "Today"} ${fmtRaw(t.shown)} ${TRAIT[c.trait].unit}. ${t.caption}`}
-      className="home-tile today-trait"
-    >
-      <CompactHead>
-        <span aria-hidden className="trait-dot mt-[5px]" />
-        Today&apos;s line
-      </CompactHead>
-      <span className="mt-auto" />
-      <NumLine shown={fmtRaw(t.shown)} unit={SHORT_UNIT[c.trait]} />
-      {/* Clearing your line is earned: the fill is sage. The flag or the
-          check ends the bar, as the ordinal ends a trait's: at 320 the
-          head has no room beside "Today's line". */}
-      <span aria-hidden className="mt-2.5 flex h-1 items-center gap-2">
-        <span data-marked className="home-bar home-bar-earned block flex-1">
-          <i style={{ width: `${t.fill * 100}%` }} />
-          <span className="home-bar-mark" style={{ left: `${t.mark * 100}%` }} />
-        </span>
-        {t.state === "closed" ? (
-          <span className="home-check">
-            <IconCheck size={13} />
-          </span>
-        ) : t.state === "open" ? (
-          <span className="home-flag">
-            <IconFlag size={12} />
-          </span>
-        ) : null}
-      </span>
-      <p aria-hidden className="home-caption mt-2 text-caption text-pretty text-stone-500">
-        {t.caption}
-      </p>
-    </section>
-  );
-}
-
-/**
- * The clean run (#254, #267): the newest recording's longest stretch
- * with no filler, against that recording's own length, the best before
- * it as the mark. A door to the Log, where the run and the Index live.
- */
-function CleanRunTile({
-  run,
-  wide,
-}: {
-  run: NonNullable<ReturnType<typeof cleanRunTile>>;
-  wide: boolean;
-}) {
+function CleanRunRow({ run }: { run: NonNullable<ReturnType<typeof cleanRunTile>> }) {
   return (
     <Link
       href="/history"
-      data-compact
+      data-row
       aria-label={`Clean run: ${run.s} seconds with no filler, of ${run.of}. ${run.caption.replace(/^Of \d+s\. ?/, "")}`}
-      className={`home-tile press ${wide ? "col-span-2" : ""}`}
+      className="home-tile press col-span-2"
     >
-      <CompactHead>Clean run</CompactHead>
-      <span className="mt-auto" />
-      <NumLine shown={String(run.s)} unit="s">
-        <CountUp value={run.s} durationMs={DURATION.max} />
-      </NumLine>
-      <span
-        aria-hidden
-        data-marked
-        className={`home-bar home-bar-earned mt-2.5 block ${wide ? "max-w-[60%]" : ""}`}
-      >
-        <i style={{ width: `${(run.s / run.of) * 100}%` }} />
-        {run.best !== null && (
-          <span
-            className="home-bar-mark"
-            style={{ left: `${Math.min(100, (run.best / run.of) * 100)}%` }}
-          />
-        )}
+      <span className="home-row">
+        <span className="flex flex-col">
+          <CompactHead>Clean run</CompactHead>
+          <span className="mt-auto" />
+          <NumLine shown={String(run.s)} unit="s">
+            <CountUp value={run.s} durationMs={DURATION.max} />
+          </NumLine>
+        </span>
+        <span className="flex flex-col justify-end">
+          <span aria-hidden data-marked className="home-bar home-bar-earned block">
+            <i style={{ width: `${(run.s / run.of) * 100}%` }} />
+            {run.best !== null && (
+              <span
+                className="home-bar-mark"
+                style={{ left: `${Math.min(100, (run.best / run.of) * 100)}%` }}
+              />
+            )}
+          </span>
+          <p aria-hidden className="mt-2 text-caption text-pretty text-stone-500">
+            {run.caption}
+          </p>
+        </span>
       </span>
-      <p aria-hidden className="home-caption mt-2 text-caption text-pretty text-stone-500">
-        {run.caption}
-      </p>
     </Link>
   );
 }
 
 /**
- * Day zero's line and clean run: the head, a dash where the number will
- * be, an empty trough and what sets it, at the landed tiles' height.
+ * The clean run before there is one: the head, a dash where the number
+ * will be, an empty trough and what sets it, at the landed row's height.
  */
-function PendingTile({ head, caption }: { head: string; caption: string }) {
+function RunRow({ head, caption }: { head: string; caption: string }) {
   return (
-    <section data-compact aria-label={`${head}: ${caption}`} className="home-tile">
-      <CompactHead>{head}</CompactHead>
-      <span className="mt-auto" />
-      <DashLine />
-      <span aria-hidden className="home-bar mt-2.5 block" />
-      <p aria-hidden className="home-caption mt-2 text-caption text-pretty text-stone-500">
-        {caption}
-      </p>
+    <section data-row aria-label={`${head}: ${caption}`} className="home-tile col-span-2">
+      <span className="home-row">
+        <span className="flex flex-col">
+          <CompactHead>{head}</CompactHead>
+          <span className="mt-auto" />
+          <DashLine />
+        </span>
+        <span className="flex flex-col justify-end">
+          <span aria-hidden className="home-bar block" />
+          <p aria-hidden className="mt-2 text-caption text-pretty text-stone-500">
+            {caption}
+          </p>
+        </span>
+      </span>
     </section>
   );
 }
 
+/** A trait's label for a screen reader: its name, number and percentile. */
+function traitLabel(id: TraitId, reading: TraitReading | null): string {
+  const t = TRAIT[id];
+  if (!reading) return `${t.name}, no reading yet`;
+  const raw = fmtRaw(reading.raw);
+  const unit = raw === "1" ? t.unitOne : t.unit;
+  return `${t.name}, ${raw} ${unit}, ${ordinal(reading.percentile)} percentile${
+    reading.quality === "provisional" ? ", an estimate" : ""
+  }`;
+}
+
 /**
- * One trait: its object at the top right in its own light, its name and
- * mark, the measurement big with its short unit on its line, the
- * percentile as a bar in its tone with the ordinal beside it. A door to
- * the trait's own page, where the direction and the target live.
+ * The card's trait, wide (D22, D23): no object, since the card above
+ * stands the lesson's. Its left holds the name, the number at the
+ * tile's hero size and the percentile bar with its ordinal; its right
+ * half holds today's line, the head with its flag (open) or check
+ * (closed) and the caption, and the line itself is the ink tick on the
+ * bar, at its own percentile on the bar's scale.
  */
-function TraitTile({
+function WideTile({
   id,
   reading,
-  hero,
-  wide = false,
+  line,
+  pending,
 }: {
   id: TraitId;
   reading: TraitReading | null;
-  hero: string | null;
-  wide?: boolean;
+  line: Challenge | null;
+  /** No line yet anywhere: under three readings this week. */
+  pending: boolean;
 }) {
   const t = TRAIT[id];
   const raw = reading ? fmtRaw(reading.raw) : null;
-  const unit = raw === "1" ? t.unitOne : t.unit;
-  const object = tileObject(id, hero);
-  const label = reading
-    ? `${t.name}, ${raw} ${unit}, ${ordinal(reading.percentile)} percentile${
-        reading.quality === "provisional" ? ", an estimate" : ""
-      }`
-    : `${t.name}, no reading yet`;
+  const l = line ? wideLine(line, reading ? reading.raw : null) : null;
+  const lineLabel = l
+    ? ` Today's line, ${fmtRaw(line!.line)} ${t.unit}${
+        l.state === "closed" ? ", cleared" : ""
+      }. ${l.caption}`
+    : "";
   return (
     <Link
       href={`/practice/${id}`}
       data-trait={id}
-      data-wide={wide || undefined}
-      aria-label={label}
-      className={`home-tile today-trait press ${wide ? "col-span-2" : ""}`}
+      data-wide
+      aria-label={`${traitLabel(id, reading)}.${lineLabel}`}
+      className="home-tile today-trait press col-span-2"
+    >
+      <span className="home-wide">
+        <span className="flex min-w-0 flex-col">
+          <span aria-hidden className="font-display flex min-h-[22px] items-center gap-1.5 text-row">
+            <span className="trait-dot" />
+            {t.name}
+          </span>
+          <span className="mt-auto" />
+          {raw !== null ? <NumLine shown={raw} unit={SHORT_UNIT[id]} /> : <DashLine />}
+          {reading ? (
+            <span aria-hidden className="mt-2.5 flex items-center gap-2.5">
+              <span data-marked={l ? true : undefined} className="home-bar flex-1">
+                <i style={{ width: `${reading.percentile}%` }} />
+                {l && <span className="home-bar-mark" style={{ left: `${l.tick}%` }} />}
+              </span>
+              <span className="font-display shrink-0 text-caption font-bold tabular-nums text-stone-500">
+                {ordinal(reading.percentile)}
+              </span>
+            </span>
+          ) : (
+            /* Day zero: what the dash is waiting for, said once, here. */
+            <span aria-hidden className="mt-2.5 text-caption text-pretty text-stone-500">
+              Your first recording reads all five.
+            </span>
+          )}
+        </span>
+        {(l || pending) && (
+          <span aria-hidden className="home-wide-line">
+            <span className="flex min-h-[22px] items-center gap-2">
+              <span className="eyebrow">Today&apos;s line</span>
+              {l?.state === "closed" ? (
+                <span className="home-check">
+                  <IconCheck size={13} />
+                </span>
+              ) : l?.state === "open" ? (
+                <span className="home-flag">
+                  <IconFlag size={12} />
+                </span>
+              ) : null}
+            </span>
+            <span className="mt-auto" />
+            <p className="home-caption text-caption text-pretty text-stone-500">
+              {l ? l.caption : "Three recordings set it."}
+            </p>
+          </span>
+        )}
+      </span>
+    </Link>
+  );
+}
+
+/**
+ * One of the other four: its emblem at the top right in its own light,
+ * its name and mark, the measurement big with its short unit on its
+ * line, the percentile as a bar in its tone with the ordinal beside it.
+ * A door to the trait's own page, where the direction and the target
+ * live.
+ */
+function TraitTile({ id, reading }: { id: TraitId; reading: TraitReading | null }) {
+  const t = TRAIT[id];
+  const raw = reading ? fmtRaw(reading.raw) : null;
+  const object = tileObject(id);
+  return (
+    <Link
+      href={`/practice/${id}`}
+      data-trait={id}
+      aria-label={traitLabel(id, reading)}
+      className="home-tile today-trait press"
       style={artBox(object) as CSSProperties}
     >
       <span aria-hidden className="home-tile-glow" />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={objectSrc(object, wide)}
+        src={objectSrc(object)}
         alt=""
-        width={wide ? 212 : 140}
-        height={wide ? 212 : 140}
+        width={140}
+        height={140}
         className="home-tile-art"
         draggable={false}
       />
@@ -305,18 +339,13 @@ function TraitTile({
       <span className="mt-auto" />
       {raw !== null ? <NumLine shown={raw} unit={SHORT_UNIT[id]} /> : <DashLine />}
       {reading ? (
-        <span aria-hidden className={`mt-2.5 flex items-center gap-2.5 ${wide ? "max-w-[56%]" : ""}`}>
+        <span aria-hidden className="mt-2.5 flex items-center gap-2.5">
           <span className="home-bar flex-1">
             <i style={{ width: `${reading.percentile}%` }} />
           </span>
           <span className="font-display shrink-0 text-caption font-bold tabular-nums text-stone-500">
             {ordinal(reading.percentile)}
           </span>
-        </span>
-      ) : wide ? (
-        /* Day zero: what the dash is waiting for, said once, on the wide tile. */
-        <span aria-hidden className="mt-2.5 max-w-[56%] text-caption text-pretty text-stone-500">
-          Your first recording reads all five.
         </span>
       ) : (
         <span aria-hidden className="home-bar mt-2.5 block" />
@@ -332,44 +361,57 @@ function TraitTile({
  */
 export function TilesSkeleton() {
   return (
-    <div aria-hidden>
-      <div className="mt-3 grid grid-cols-2 gap-3">
-        {[0, 1].map((i) => (
-          <div key={i} data-compact className="home-tile">
+    <div aria-hidden className="mt-3 grid grid-cols-2 gap-3">
+      <div data-wide className="home-tile col-span-2">
+        <span className="home-wide">
+          <span className="flex flex-col">
+            <Skeleton className="h-3 w-20" />
+            <span className="mt-auto" />
+            <span className="home-num-line flex items-center">
+              <Skeleton className="h-11 w-28" />
+            </span>
+            <Skeleton className="mt-3 h-1 w-full" />
+          </span>
+          <span className="home-wide-line">
             <span className="flex min-h-7 items-start pt-[5px]">
               <Skeleton className="h-3 w-20" />
             </span>
             <span className="mt-auto" />
-            <span className="home-num-line flex items-center">
-              <Skeleton className="h-7 w-16" />
-            </span>
-            <Skeleton className="mt-2.5 h-1 w-full" />
-            <span className="home-caption mt-2 flex items-start pt-1">
+            <span className="home-caption flex items-end pb-1">
               <Skeleton className="h-3 w-24" />
             </span>
-          </div>
-        ))}
-      </div>
-      <div className="mt-3 grid grid-cols-2 gap-3">
-        <div data-wide className="home-tile col-span-2">
-          <Skeleton className="h-3 w-20" />
-          <span className="mt-auto" />
-          <span className="home-num-line flex items-center">
-            <Skeleton className="h-11 w-28" />
           </span>
-          <Skeleton className="mt-3 h-1 w-1/2" />
-        </div>
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="home-tile">
-            <Skeleton className="h-3 w-20" />
+        </span>
+      </div>
+      <div data-row className="home-tile col-span-2">
+        <span className="home-row">
+          <span className="flex flex-col">
+            <span className="flex min-h-7 items-start pt-[5px]">
+              <Skeleton className="h-3 w-16" />
+            </span>
             <span className="mt-auto" />
             <span className="home-num-line flex items-center">
               <Skeleton className="h-7 w-16" />
             </span>
-            <Skeleton className="mt-3 h-1 w-full" />
-          </div>
-        ))}
+          </span>
+          <span className="flex flex-col justify-end">
+            <Skeleton className="h-1 w-full" />
+            <span className="mt-2 flex items-start pt-1">
+              <Skeleton className="h-3 w-24" />
+            </span>
+          </span>
+        </span>
       </div>
+      {[0, 1, 2, 3].map((i) => (
+        <div key={i} className="home-tile">
+          <Skeleton className="h-3 w-20" />
+          <span className="mt-auto" />
+          <span className="home-num-line flex items-center">
+            <Skeleton className="h-7 w-16" />
+          </span>
+          <Skeleton className="mt-3 h-1 w-full" />
+        </div>
+      ))}
     </div>
   );
 }

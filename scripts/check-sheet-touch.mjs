@@ -32,9 +32,11 @@
  *    content put; Escape mid-pull plays the whole exit; a first reading
  *    that is level, still or a pixel up, still hands off; so does a first
  *    move the stair held, the way iOS reads it, and a level first move on
- *    content at its top is held and driven both ways; a glide that meets the
- *    top with speed bounces, and a finger run past the content's end
- *    gives with resistance and springs back.
+ *    content at its top is held and driven both ways; the content follows
+ *    the finger from where it crossed the slop, so a first move that lands
+ *    30px in moves it 20px and a one-move flick scrolls and glides; a glide
+ *    that meets the top with speed bounces, and a finger run past the
+ *    content's end gives with resistance and springs back.
  *
  *   NEXT_PUBLIC_SUPABASE_URL=http://supabase.local \
  *   NEXT_PUBLIC_SUPABASE_ANON_KEY=anon npx next dev -p 3123
@@ -249,7 +251,9 @@ async function paywall(p) {
 
 /* Each region of the paywall, by selector (notes1, round 2). The caption
    sits below the fold at 375x667 until the body is scrolled, so it is
-   swiped from in the hand-off cases instead. */
+   swiped from in the hand-off cases instead, as the last thing in the
+   scrolled body. Where the terms stand in the tap shelf instead (D40), the
+   body ends on the stair's month labels, and those stand in for it. */
 const REGIONS = [
   ["grabber", ".card-premium .h-1.w-10"],
   ["mark", ".card-premium .label-micro"],
@@ -257,7 +261,11 @@ const REGIONS = [
   ["benefits", ".card-premium ul li:nth-child(3)"],
   ["readout", '.card-premium section[aria-labelledby="paywall-ladder-head"] > div[aria-hidden]'],
   ["stair", ".card-premium .stair-col:nth-child(4)"],
-  ["caption", '.card-premium section[aria-labelledby="paywall-ladder-head"] > p:last-of-type'],
+  [
+    "caption",
+    '.card-premium section[aria-labelledby="paywall-ladder-head"] > p:last-child, ' +
+      '.card-premium section[aria-labelledby="paywall-ladder-head"] > .stair-wrap:last-child .stair-labels',
+  ],
   ["start", ".card-premium > div:last-child button"],
   ["notyet", ".card-premium > div:last-child > button:last-of-type"],
   ["money", ".card-premium > div:last-child > p:last-child"],
@@ -759,7 +767,8 @@ if (section(6)) {
     await setScroll(page, "mid");
     await sleep(200);
     const pt = await pointOf(page, BENEFITS);
-    await swipe(pt.x, pt.y, 0, 60, 600, { hold: 400 });
+    // 40px: the content still well short of its top when the finger stops.
+    await swipe(pt.x, pt.y, 0, 40, 600, { hold: 400 });
     const atLetGo = (await scrollOf(page)).top;
     await sleep(800);
     const later = (await scrollOf(page)).top;
@@ -915,6 +924,59 @@ if (section(6)) {
     await touch("touchEnd");
     await sleep(900);
     ok(`on the stair in scrolled content, a first ${ios ? "touchmove, as iOS reads it," : "pointer reading"} 1px sideways, then a swipe down, closes the paywall`, !(await isOpen(page)) && held !== false, ios ? `the stair ${held ? "held" : "did not hold"} it` : "");
+  }
+
+  // From the slop (handoff review): the content follows the finger from
+  // where it crossed the slop, not from the move that crossed it. Chromium
+  // sends its first touchmove 12 to 48px in, and that move used to move
+  // nothing; a flick that reached the page as one move scrolled nothing.
+  await paywall(p);
+  {
+    await setScroll(page, "mid");
+    await sleep(200);
+    const s0 = (await scrollOf(page)).top;
+    const pt = await pointOf(page, BENEFITS);
+    await record(page, PAYWALL);
+    await touch("touchStart", pt.x, pt.y);
+    await sleep(30);
+    await touch("touchMove", pt.x, pt.y + 30);
+    await sleep(50);
+    const first = (await scrollOf(page)).top;
+    await drag(pt.x, pt.y + 30, s0 + 40, 500);
+    await sleep(40);
+    await touch("touchEnd");
+    await sleep(900);
+    const frames = await stopRecord(page);
+    // Finger travel since the slop = scroll travelled + sheet, every frame.
+    const live = frames.filter((f) => f.touching && f.fy !== null && f.fy - pt.y >= 10 && f.st !== null && f.ty !== null);
+    const miss = Math.max(...live.map((f) => Math.abs(f.fy - pt.y - 10 - (s0 - f.st + f.ty))));
+    ok(
+      "from the slop: a first move that lands 30px in moves the content 20px, and finger since the slop = scroll + sheet",
+      Math.abs(s0 - first - 20) <= 1 && live.length >= 4 && miss <= 1,
+      `scrollTop ${Math.round(s0)} -> ${Math.round(first)} on that move; worst ${miss.toFixed(1)}px over ${live.length} frames`
+    );
+  }
+  await paywall(p);
+  {
+    await setScroll(page, "mid");
+    await sleep(200);
+    const s0 = (await scrollOf(page)).top;
+    const pt = await pointOf(page, BENEFITS);
+    await record(page, PAYWALL);
+    await touch("touchStart", pt.x, pt.y);
+    await sleep(20);
+    await touch("touchMove", pt.x, pt.y + 50);
+    await sleep(20);
+    const moved = (await scrollOf(page)).top;
+    await touch("touchEnd");
+    await sleep(1000);
+    const frames = await stopRecord(page);
+    const end = (await scrollOf(page)).top;
+    ok(
+      "from the slop: a flick that reaches the page as one 50px move scrolls the content 40px and glides on; the sheet stays",
+      Math.abs(s0 - moved - 40) <= 1 && end < moved - 5 && Math.max(...frames.map((f) => f.ty ?? 0)) < 0.5 && (await isOpen(page)),
+      `scrollTop ${Math.round(s0)} -> ${Math.round(moved)} on the move, ${Math.round(end)} after the glide`
+    );
   }
 
   // Content at its top with more below, a first touchmove read level (as

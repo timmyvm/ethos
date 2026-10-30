@@ -1,6 +1,6 @@
 # Testers
 
-About twenty friends speak for five minutes a day from Monday 2 November to Sunday 15 November 2026, and are paid A$35 each when they finish. Around each recording they answer two questions: how it felt, before the score shows, and whether the score felt right, after it. Their answers, stored beside the numbers they were shown, are how the thresholds (stars, the pause detector, presence) get tuned. While they test, their phones also send what the consent names: the device, how the app is used, and what breaks. This page is how to run it.
+About twenty friends speak for five minutes a day from Friday 30 October to Thursday 12 November 2026, and are paid A$35 each when they finish. Around each recording they answer two questions: how it felt, before the score shows, and whether the score felt right, after it. Their answers, stored beside the numbers they were shown, are how the thresholds (stars, the pause detector, presence) get tuned. While they test, their phones also send what the consent names: the device, how the app is used, and what breaks. This page is how to run it.
 
 ## What a tester gets
 
@@ -197,7 +197,7 @@ select at, kind, name, screen, label, ms
 
 ### Paying and the parents
 
-Who has finished the 14 days (2 to 15 November):
+Who has finished the 14 days (30 October to 12 November):
 
 ```sql
 select tester_number, name, email, days_spoken
@@ -234,7 +234,7 @@ To stop testing but keep the account and its recordings, add `--tester-only`: it
 
 ## Keeping it 12 months, then deleting it
 
-The consent says the data is kept up to 12 months after the test ends, then deleted. The test ends Sunday 15 November 2026, so by **15 November 2027**:
+The consent says the data is kept up to 12 months after the test ends, then deleted. The test ends Thursday 12 November 2026, so by **12 November 2027**:
 
 1. Run the delete for every tester in `tester_admin.testers`: `--tester-only --yes` for a friend still using Ethos (their account and practice stay theirs, under Privacy's terms for everyone), or the full `--yes` for one who is not.
 2. Check the report is empty: `select count(*) from tester_admin.testers;` and `select count(*) from public.tester_events;` both 0.
@@ -247,12 +247,27 @@ Deploy the code that carries consent version 3 first, then apply 0022, minutes a
 
 ## The message
 
-First message:
+The one Timothy sends, as one DM. Step 5 matters most: the tester number is the only way to tell a friend's rows apart in the report, so chase anyone who has not sent theirs by the end of day one.
 
-> I'm testing Ethos, my speaking app, and I'd love you in. It's five minutes of speaking a day for two weeks, Monday 2 Nov to Sunday 15 Nov, and I'll pay you A$35 when you finish. After each recording you tell me how it felt and whether the score felt right. Ethos keeps your recordings and how you use the app while you test; the full list is on the screen before you agree, and only I see it. If you're under 18, get a parent or guardian to text me it's cool.
+```
+yo thanks for being down 🙏
 
-Then the steps, as a second message:
+Ethos: 5 mins of speaking a day, and it measures how clearly you talk (ums, pace, pauses).
 
-> Open speakethos.com on your phone, add it to your home screen, and open it from the icon. On the first screen tap Tester code (top right), type 1234, read the list and tap I agree. Then send me your tester number from the next screen.
+THE DEAL
+5 mins a day for 14 days, starting today (Fri 30 Oct) to Thu 12 Nov. After each score, tap how it felt (be honest). 10 min chat at the end. A$35 when you finish + free Premium at launch.
+
+SETUP (2 mins)
+1. Open speakethos.com
+2. iPhone: Safari > Share > Add to Home Screen. Android: Chrome > menu > Add to Home screen
+3. Open it from your home screen, tap Tester code (top right), enter 1234
+4. Read the consent, tap I agree, allow the mic
+5. Send me your tester number (it's on the screen with a Copy button)
+
+DATA
+I see your recordings, transcripts, scores, how you use the app, and device info. It's only used to make the scoring accurate and fix bugs. Only I see it, it's never sold, and it only goes to the services that run the app (transcription and AI feedback). I'll delete it anytime you ask.
+```
+
+A friend who missed step 5 finds the number again in Settings, About, Testing Ethos.
 
 If you set `TESTER_CODE` in Vercel, put that code in the second message instead of 1234.

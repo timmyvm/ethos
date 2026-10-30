@@ -119,7 +119,6 @@ describe("what a feedback row holds", () => {
   it("one row per recording, keyed by its outbox id, with the answer and the time", () => {
     const now = new Date("2026-10-30T09:15:00.000Z");
     const row = feedbackRow({
-      userId: "u1",
       clientId: KEY,
       repId: "8a3e2a8c-0b8e-4b52-9f39-8a1c4f0a1b2c",
       answer: "no",
@@ -128,7 +127,6 @@ describe("what a feedback row holds", () => {
       now,
     });
     expect(row).toMatchObject({
-      user_id: "u1",
       client_id: KEY,
       rep_id: "8a3e2a8c-0b8e-4b52-9f39-8a1c4f0a1b2c",
       answer: "no",
@@ -139,12 +137,12 @@ describe("what a feedback row holds", () => {
   });
 
   it("drops the note when the answer moves to Yes", () => {
-    const row = feedbackRow({ userId: "u1", clientId: KEY, repId: null, answer: "yes", note: "old", scores: scoreSnapshot(RESULT) });
+    const row = feedbackRow({ clientId: KEY, repId: null, answer: "yes", note: "old", scores: scoreSnapshot(RESULT) });
     expect(row.note).toBeNull();
   });
 
   it("keeps a rep id only when it is a uuid, so the row is never refused for it", () => {
-    const row = feedbackRow({ userId: "u1", clientId: KEY, repId: "rep-live", answer: "yes", note: null, scores: scoreSnapshot(RESULT) });
+    const row = feedbackRow({ clientId: KEY, repId: "rep-live", answer: "yes", note: null, scores: scoreSnapshot(RESULT) });
     expect(row.rep_id).toBeNull();
   });
 });

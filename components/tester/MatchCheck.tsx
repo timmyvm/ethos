@@ -1,0 +1,151 @@
+"use client";
+
+import { useRef, useState } from "react";
+import { ErrorLine } from "@/components/ui/ErrorState";
+import { Segmented } from "@/components/ui/Segmented";
+import { MATCH_COPY } from "@/content/tester";
+import { saveMatch } from "@/lib/tester-client";
+import {
+  asksForNote,
+  cleanNote,
+  feedbackRow,
+  NOTE_MAX,
+  type MatchAnswer,
+  type ScoreSnapshot,
+} from "@/lib/tester";
+import { DISABLED_CLASS, INPUT_CLASS } from "@/lib/ui";
+
+type Status = "idle" | "saving" | "saved" | "failed";
+
+/**
+ * The match check (migration 0020, docs/testers.md): a tester's one
+ * question about the score they were just shown. Testers only; the
+ * results screen decides that (`showsMatchCheck`) and a non-tester's
+ * screen never mounts this.
+ *
+ * It is the screen's quiet second thing, never its tap: the neutral
+ * segmented control (no terracotta, no lift), one tap to answer, and the
+ * answer can change. Roughly and No open a note, optional, saved with
+ * its own secondary button or when the field is left. Every save is the
+ * whole row upserted on the recording's outbox key, so the last answer
+ * wins and a retry sends exactly what is on screen.
+ */
+export function MatchCheck({
+  clientId,
+  repId,
+  scores,
+  className = "",
+}: {
+  clientId: string;
+  repId: string | null;
+  scores: ScoreSnapshot;
+  className?: string;
+}) {
+  const [answer, setAnswer] = useState<MatchAnswer | null>(null);
+  const [note, setNote] = useState("");
+  /** The note as the last save that landed carried it. */
+  const [savedNote, setSavedNote] = useState<string | null>(null);
+  const [status, setStatus] = useState<Status>("idle");
+  /* Saves run one after another, and only the newest one's outcome is
+     said: an older answer landing late never reads as the current one. */
+  const queue = useRef<Promise<void>>(Promise.resolve());
+  const latest = useRef(0);
+  const last = useRef<{ answer: MatchAnswer; note: string } | null>(null);
+
+  function save(a: MatchAnswer, n: string) {
+    const mine = ++latest.current;
+    last.current = { answer: a, note: n };
+    setStatus("saving");
+    queue.current = queue.current.then(async () => {
+      const row = feedbackRow({ clientId, repId, answer: a, note: n, scores });
+      const ok = await saveMatch(row);
+      if (mine !== latest.current) return;
+      setStatus(ok ? "saved" : "failed");
+      if (ok) setSavedNote(row.note);
+    });
+  }
+
+  const pick = (a: MatchAnswer) => {
+    setAnswer(a);
+    save(a, note);
+  };
+  const noteOpen = asksForNote(answer);
+  const noteDirty = noteOpen && cleanNote(note) !== savedNote;
+  const saveNote = () => {
+    if (answer && noteDirty) save(answer, note);
+  };
+
+  return (
+    <section aria-labelledby="match-question" className={`border-t border-hairline pt-4 text-left ${className}`}>
+      <h2 id="match-question" className="font-display text-row text-ink">
+        {MATCH_COPY.question}
+      </h2>
+      <Segmented
+        label={MATCH_COPY.question}
+        options={MATCH_COPY.options}
+        value={answer}
+        onChange={(v) => pick(v as MatchAnswer)}
+        className="mt-3"
+      />
+
+      {noteOpen && (
+        <div className="reveal mt-4">
+          <label htmlFor="match-note" className="eyebrow block">
+            {MATCH_COPY.notePrompt}
+          </label>
+          <textarea
+            id="match-note"
+            rows={2}
+            maxLength={NOTE_MAX}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            onBlur={saveNote}
+            placeholder={MATCH_COPY.notePlaceholder}
+            enterKeyHint="done"
+            className={`${INPUT_CLASS} mt-1.5 block resize-none py-2.5 leading-snug`}
+          />
+        </div>
+      )}
+
+      {/* One line says how the last save went, beside the note's own
+          button when there is a note. Its height is held from the first
+          answer on, so the line changing never moves the screen. */}
+      {answer !== null && (
+        <div className="mt-2 flex min-h-11 items-center justify-between gap-3">
+          {status === "failed" ? (
+            <ErrorLine
+              onRetry={() => {
+                const l = last.current;
+                if (l) save(l.answer, l.note);
+              }}
+            >
+              {MATCH_COPY.failed}
+            </ErrorLine>
+          ) : (
+            <p role="status" className="text-caption text-stone-500">
+              {status === "saving"
+                ? MATCH_COPY.saving
+                : status === "saved"
+                  ? noteOpen
+                    ? savedNote && !noteDirty
+                      ? MATCH_COPY.noteSaved
+                      : MATCH_COPY.answerSaved
+                    : MATCH_COPY.saved
+                  : ""}
+            </p>
+          )}
+          {noteOpen && (
+            <button
+              type="button"
+              onClick={saveNote}
+              disabled={!noteDirty}
+              className={`press font-display min-h-11 shrink-0 rounded-control border border-edge bg-surface px-4 text-row ${DISABLED_CLASS}`}
+            >
+              {MATCH_COPY.saveNote}
+            </button>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}

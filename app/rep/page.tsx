@@ -32,6 +32,9 @@ import { splitPrompt } from "@/lib/tip-labels";
 import { TopicCard } from "@/components/rep/TopicCard";
 import { StreakCelebration } from "@/components/StreakCelebration";
 import { TraitChip } from "@/components/TraitChip";
+import { MatchCheck } from "@/components/tester/MatchCheck";
+import { scoreSnapshot, showsMatchCheck, type TesterRow } from "@/lib/tester";
+import { useTester } from "@/lib/tester-client";
 import { readOnboarding } from "@/lib/answers";
 import { buildPortfolio } from "@/lib/portfolio";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -295,6 +298,15 @@ function RepScreen() {
   /** The envelope of the recording being scored, drawn during the wait. */
   const [scoringWave, setScoringWave] = useState<number[]>([]);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
+  /**
+   * The outbox key the result on screen travelled under (0016): what a
+   * tester's match answer is filed by (migration 0020), since the stored
+   * recording's id may never come back.
+   */
+  const [resultKey, setResultKey] = useState<string | null>(null);
+  /* Tester mode (docs/testers.md): read once, and only a tester's
+     results ask the match question. */
+  const tester = useTester();
   const [error, setError] = useState<string | null>(null);
   /** The mic (or camera) was refused or absent; owns the error phase. */
   const [micBlock, setMicBlock] = useState<null | {
@@ -574,6 +586,8 @@ function RepScreen() {
         return;
       }
       setResult(data as AnalyzeResponse);
+      const key = form.get("clientId");
+      setResultKey(typeof key === "string" ? key : null);
       setPhase("results");
       pendingRef.current = null;
       // Streak is derived from stored reps, so read it back rather than
@@ -1259,6 +1273,8 @@ function RepScreen() {
           closing={closing}
           earned={earnedNow}
           presence={presence}
+          tester={tester}
+          resultKey={resultKey}
           clipUrl={clipUrl}
           audioUrl={audioUrl}
           premium={premium}
@@ -1773,6 +1789,8 @@ function Results({
   closing,
   earned,
   presence,
+  tester,
+  resultKey,
   clipUrl,
   audioUrl,
   premium,
@@ -1792,6 +1810,10 @@ function Results({
   /** A star landed or the streak held: Demos celebrates (M08). */
   earned: boolean;
   presence: PresenceResult | null;
+  /** The account's tester row: undefined while read, null for no. */
+  tester: TesterRow | null | undefined;
+  /** The outbox key this recording travelled under. */
+  resultKey: string | null;
   clipUrl: string | null;
   audioUrl: string | null;
   premium: boolean;
@@ -1812,6 +1834,20 @@ function Results({
   const backTo = safeBack(searchParams.get("back"));
   const [step, setStep] = useState(0);
   const section = STEPS[step].key;
+  /*
+   * The match check (migration 0020): a tester's one question about the
+   * score, on the score step, under everything the score step already
+   * says. The numbers are frozen as they land, so a later change on
+   * this screen can never rewrite what the tester was answering about.
+   */
+  const match = showsMatchCheck({
+    tester,
+    scorable: result.scorable !== false,
+    clientId: resultKey,
+  });
+  const [snapshot] = useState(() =>
+    scoreSnapshot(result, presence?.metrics.presenceScore ?? null)
+  );
   const last = step === STEPS.length - 1;
   // One answer to "what next": the path's (DECISIONS #220). Home's
   // floor and the road read nextLesson, so the debrief does too. Before
@@ -2028,7 +2064,14 @@ function Results({
         <div
           key={step}
           className={`arrive-x [:root[data-motion=reduce]_&]:[animation-duration:var(--duration-base)]! ${
-            step === 0 ? "flex flex-1 flex-col justify-center pb-16 pt-4" : "pb-8"
+            /* A tester's score step flows from the top: the match
+               check's note opens under it, and a centred column would
+               lift the score by half of every line it adds. */
+            step === 0
+              ? match
+                ? "pb-8 pt-8"
+                : "flex flex-1 flex-col justify-center pb-16 pt-4"
+              : "pb-8"
           }`}
         >
           {step > 0 && (
@@ -2130,6 +2173,16 @@ function Results({
                 </button>
               )}
             </section>
+          )}
+
+          {section === "score" && match && resultKey && (
+            <MatchCheck
+              key={resultKey}
+              clientId={resultKey}
+              repId={result.repId}
+              scores={snapshot}
+              className="mt-7"
+            />
           )}
 
           {/* recording-10: a ground section, so a sentence-case head. */}

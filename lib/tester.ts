@@ -134,11 +134,11 @@ export type ScoreSnapshot = ReturnType<typeof scoreSnapshot>;
 
 /**
  * One row of `tester_feedback`, as the browser upserts it on
- * (user_id, client_id). The note goes only with an answer that asks
- * for one: Yes after No clears it.
+ * (user_id, client_id); the owner is added by the write itself
+ * (lib/tester-client.ts saveMatch), from the session. The note goes only
+ * with an answer that asks for one: Yes after No clears it.
  */
 export function feedbackRow({
-  userId,
   clientId,
   repId,
   answer,
@@ -146,7 +146,6 @@ export function feedbackRow({
   scores,
   now = new Date(),
 }: {
-  userId: string;
   clientId: string;
   repId: string | null;
   answer: MatchAnswer;
@@ -155,7 +154,6 @@ export function feedbackRow({
   now?: Date;
 }) {
   return {
-    user_id: userId,
     client_id: clientId,
     // A uuid or nothing: the column is uuid, and anything else would
     // refuse the whole row.

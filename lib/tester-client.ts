@@ -126,7 +126,7 @@ export async function joinTesting(code: string): Promise<CodeAnswer> {
  * replaces the last one. False on any failure, which the screen says
  * with its retry.
  */
-export async function saveMatch(row: Omit<FeedbackRow, "user_id">): Promise<boolean> {
+export async function saveMatch(row: FeedbackRow): Promise<boolean> {
   const db = supabaseBrowser();
   if (!db) return false;
   try {

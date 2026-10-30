@@ -74,13 +74,13 @@ export function ScoreCard({
           <>
             <IndexHill values={hill} />
             {span && (
-              /* 12.5/600 in the stage's ink, each under its end of the
-                 line: the start at the box's left, the end 8 of 136 in,
+              /* 12.5/600 in the stage's ink, 12 off the stage's foot, each
+                 under its end of the line: the start at the box's left, the end 8 of 136 in,
                  where the line stops (the drawing fills the box's width
                  at every size, so a percentage holds it there). */
               <span aria-hidden className="stage-ink font-display text-caption font-semibold tabular-nums">
-                <span className="absolute bottom-2 left-0 leading-none">{span[0]}</span>
-                <span className="absolute bottom-2 right-[5.9%] leading-none">{span[1]}</span>
+                <span className="absolute bottom-3 left-0 leading-none">{span[0]}</span>
+                <span className="absolute bottom-3 right-[5.9%] leading-none">{span[1]}</span>
               </span>
             )}
           </>
@@ -154,8 +154,10 @@ function IndexHill({ values }: { values: number[] }) {
   const hi = Math.max(...smooth);
   const span = Math.max(1, hi - lo);
   const top = 10;
-  /* 26 under the line's lowest point: the dates stand there (D32). */
-  const floor = H - 26;
+  /* 34 under the line's lowest point: the dates stand there (D32), 12
+     off the stage's foot with about 8 of air under the line, so "4 Oct"
+     hangs under the line's start instead of touching it. */
+  const floor = H - 34;
   const pts = smooth.map((v, i) => [
     (i / (smooth.length - 1)) * (W - 8),
     floor - ((v - lo) / span) * (floor - top),

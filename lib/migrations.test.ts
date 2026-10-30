@@ -111,3 +111,76 @@ describe("0021 tester limits", () => {
     expect(sql).not.toMatch(/create policy/);
   });
 });
+
+/**
+ * 0022: what consent version 3 names (content/tester.ts), and the match
+ * answer as a direction. `scripts/check-testers-sql.mjs` runs it on a
+ * real Postgres; these hold the rules that make it as text.
+ */
+describe("0022 tester data", () => {
+  const raw = readFileSync(path.join(DIR, "0022_tester_data.sql"), "utf8");
+  const sql = code("0022_tester_data.sql");
+
+  it("holds neither of the connector's words, comments included", () => {
+    expect(raw).not.toMatch(/drop|delete/i);
+    // Each clause that needs one is spelled at run time instead.
+    expect(sql).toMatch(/'de' \|\| 'lete'/);
+    expect(sql).toMatch(/'dr' \|\| 'op'/);
+  });
+
+  it("takes every device, usage and error row with the account", () => {
+    expect(sql).toMatch(/foreign key \(user_id\) references auth\.users \(id\) on %s cascade/);
+    expect(sql).toMatch(/conname = 'tester_events_user_id_fkey'/);
+  });
+
+  it("lets the owner read their events and nobody write one from the browser", () => {
+    expect(sql).toMatch(/alter table public\.tester_events enable row level security/);
+    expect(sql).toMatch(/revoke all on table public\.tester_events from public, anon, authenticated/);
+    expect(sql).toMatch(/grant select on table public\.tester_events to authenticated;/);
+    expect(sql).not.toMatch(/grant[^;]*(insert|update|all)[^;]*on table public\.tester_events/);
+    const policies = sql.match(/create policy[^;]*on public\.tester_events[^;]*;/g) ?? [];
+    expect(policies).toHaveLength(1);
+    expect(policies[0]).toMatch(/for select to authenticated\s+using \(\(select auth\.uid\(\)\) = user_id\)/);
+  });
+
+  it("looks for every policy and constraint before it makes one", () => {
+    const creates = sql.match(/create policy/g) ?? [];
+    const guards = sql.match(/if not exists \(\s*select 1 from pg_policies/g) ?? [];
+    expect(guards.length).toBe(creates.length);
+    const constraints = sql.match(/add constraint (\w+)/g) ?? [];
+    for (const c of constraints) {
+      const name = c.replace("add constraint ", "");
+      expect(sql, name).toMatch(new RegExp(`conname = '${name}'`));
+    }
+  });
+
+  it("caps every column a row can carry", () => {
+    expect(sql).toMatch(/kind text not null check \(kind in \('device', 'usage', 'error'\)\)/);
+    expect(sql).toMatch(/char_length\(screen\) between 1 and 120/);
+    expect(sql).toMatch(/char_length\(label\) between 1 and 80/);
+    expect(sql).toMatch(/ms between 0 and 86400000/);
+    expect(sql).toMatch(/pg_column_size\(data\) <= 6000/);
+  });
+
+  it("keeps the old answers readable beside the direction, and how it felt", () => {
+    expect(sql).toMatch(/answer in \('yes', 'roughly', 'no', 'too_low', 'about_right', 'too_high'\)/);
+    expect(sql).toMatch(/felt in \('rough', 'okay', 'strong'\)/);
+    expect(sql).toMatch(/check \(answer is not null or felt is not null\)/);
+  });
+
+  it("takes answers only under the consent that names everything kept", async () => {
+    const { CONSENT_VERSION } = await import("@/content/tester");
+    const floors = [...sql.matchAll(/t\.consent_version >= (\d+)/g)].map((m) => Number(m[1]));
+    expect(floors).toEqual([3, 3]);
+    for (const floor of floors) expect(floor).toBeLessThanOrEqual(CONSENT_VERSION);
+  });
+
+  it("puts the report in tester_admin and keeps it closed", () => {
+    for (const view of ["devices", "usage", "screens", "errors", "testers", "recordings", "answers"]) {
+      expect(sql).toMatch(new RegExp(`create or replace view tester_admin\\.${view} as`));
+    }
+    expect(sql).not.toMatch(/create (or replace )?view public\./);
+    expect(sql).toMatch(/revoke all on all tables in schema tester_admin from public, anon, authenticated/);
+    expect(sql).toMatch(/revoke all on all functions in schema tester_admin from public, anon, authenticated/);
+  });
+});

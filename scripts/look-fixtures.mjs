@@ -298,6 +298,10 @@ const TABLES = FRESH
   ? { reps: [], xp_events: [], coin_ledger: [], lexicon: [], streak_freezes: [], onboarding: [] }
   : { reps, xp_events, coin_ledger, lexicon, streak_freezes, onboarding: [] };
 
+/** Tester mode for the camera (scripts/look-testers.mjs): who is a tester, what the answers' writes do, and what was sent. */
+export const testerMode = { tester: process.env.LOOK_TESTER === "1", feedback: "ok", answers: [] };
+const TESTER_ROW = { consent_version: 1, consented_at: iso(9) };
+
 async function supabase(route) {
   const req = route.request();
   const url = new URL(req.url());
@@ -309,6 +313,25 @@ async function supabase(route) {
   if (url.pathname.startsWith("/rest/v1/rpc/")) return route.fulfill(json(0));
   if (url.pathname.startsWith("/rest/v1/profiles")) return route.fulfill(json(single ? profile : [profile]));
   if (url.pathname.startsWith("/rest/v1/streaks")) return route.fulfill(json(single ? streaks : [streaks]));
+  /* Tester mode (migration 0020): LOOK_TESTER=1, or testerMode.tester
+     set by a camera, makes the account a tester; testerMode.feedback
+     "fail" refuses the match check's answers. Off, both behave as any
+     table the account has no row in. */
+  if (url.pathname.startsWith("/rest/v1/testers")) {
+    const row = testerMode.tester ? TESTER_ROW : null;
+    if (single) return route.fulfill(row ? json(row) : json({ code: "PGRST116", message: "0 rows" }, 406));
+    return route.fulfill(json(row ? [row] : []));
+  }
+  if (url.pathname.startsWith("/rest/v1/tester_feedback") && req.method() !== "GET") {
+    let sent = null;
+    try {
+      sent = req.postDataJSON();
+    } catch {}
+    testerMode.answers.push(sent);
+    if (testerMode.feedback === "fail") return route.fulfill(json({ code: "XX000", message: "look: refused" }, 500));
+    if (testerMode.feedback === "slow") await new Promise((r) => setTimeout(r, 1500));
+    return route.fulfill({ status: 201, headers: cors, body: "" });
+  }
   if (url.pathname.startsWith("/rest/v1/billing")) {
     const row = plan.billing;
     if (single) return route.fulfill(row ? json(row) : json({ code: "PGRST116", message: "0 rows" }, 406));

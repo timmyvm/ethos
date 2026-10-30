@@ -134,7 +134,10 @@ export function MatchCheck({
                   : ""}
             </p>
           )}
-          {noteOpen && (
+          {/* The note's own save, once there is a note to save: an empty
+              field needs nothing, and a dead button beside a failed line
+              was one control too many. */}
+          {noteOpen && (cleanNote(note) !== null || savedNote !== null) && (
             <button
               type="button"
               onClick={saveNote}

@@ -738,6 +738,10 @@ export function fakeDb(users: string[]) {
     /** Every playback link the server signed (app/api/audio). */
     signed: [] as { path: string; expiresIn: number }[],
     deletedUsers: [] as string[],
+    /** Auth users that are anonymous (auth.admin.getUserById's is_anonymous). */
+    anonymous: new Set<string>(),
+    /** Database functions by name and what they return (client.rpc). Any other name throws, as before. */
+    rpc: {} as Record<string, unknown>,
     /** Fail the next `op` on `table` with this error. */
     fail: [] as { table: string; op: string; error: DbError }[],
     log: [] as { table: string; op: string }[],
@@ -911,6 +915,12 @@ export function fakeDb(users: string[]) {
     from(table: string) {
       return new Query(table);
     },
+    rpc(name: string) {
+      if (!Object.hasOwn(state.rpc, name)) throw new TypeError("db.rpc is not a function");
+      const injected = failure(`rpc:${name}`, "call");
+      if (injected) return Promise.resolve({ data: null, error: injected });
+      return Promise.resolve({ data: clone(state.rpc[name]), error: null });
+    },
     storage: {
       from(bucket: string) {
         return {
@@ -934,6 +944,10 @@ export function fakeDb(users: string[]) {
     },
     auth: {
       admin: {
+        async getUserById(id: string) {
+          if (!state.users.has(id)) return { data: { user: null }, error: { message: "User not found" } };
+          return { data: { user: { id, is_anonymous: state.anonymous.has(id) } }, error: null };
+        },
         async deleteUser(id: string) {
           const injected = failure("auth.users", "delete");
           if (injected) return { data: { user: null }, error: injected };

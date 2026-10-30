@@ -57,8 +57,14 @@ export const EVENT_CAPS = {
   past: 7 * 86_400_000,
   /** How far ahead: a phone's clock a little fast. */
   ahead: 5 * 60_000,
-  /** Rows one account keeps: about forty times a heavy day of testing. */
-  perAccount: 30_000,
+  /**
+   * Rows one account keeps: a heavy day of testing is about 750, so this
+   * is twenty of them (review P4: 30,000 let one account fill about
+   * 90 MB). Past it the batch is taken and kept by nobody.
+   */
+  perAccount: 15_000,
+  /** Errors one open keeps, on the phone and again on the server. */
+  errorsPerOpen: 20,
 } as const;
 
 /** One event as the phone queues it. */
@@ -131,17 +137,56 @@ export function screenOf(raw: unknown): string | null {
   return capText(path, EVENT_CAPS.screen);
 }
 
-/** Origins off every URL in a string: an error says which file of Ethos, never a host. */
+/**
+ * A URL's origin, query and fragment off every URL in a string: an error
+ * says which file of Ethos and which line, never a host, and never what
+ * rode after the path (an auth callback's code, a token after #, a
+ * deployment id). A frame's line and column stay.
+ */
 function withoutOrigins(s: string): string {
-  return s.replace(/\b[a-z][a-z0-9+.-]*:\/\/[^/\s)]*/gi, "");
+  return s
+    .replace(/\b[a-z][a-z0-9+.-]*:\/\/[^/\s)'"]*/gi, "")
+    .replace(/(\/[^\s?#()'"]*)[?#][^\s()'"]*?((?::\d+){1,2})?(?=[\s()'"]|$)/g, "$1$2");
+}
+
+/** Lines no page of Ethos ever writes: a browser extension's, or a script hidden from the page. */
+const EXTENSION_LINE = /(chrome|moz|safari|safari-web)-extension:|webkit-masked-url:/i;
+const URL_HOST = /\b(https?):\/\/([^/\s)'"]+)/gi;
+
+/**
+ * A stack read against the page's host: the lines of another site (an
+ * extension, Google's sign-in script, anything not served by Ethos) go,
+ * and `foreign` says the stack named only other sites, so the error was
+ * never Ethos's. A line naming no URL stays (`at Array.map (<anonymous>)`).
+ * With no host to read against, only extension lines go.
+ */
+export function ownStack(raw: unknown, host: string | null | undefined): { stack: string | null; foreign: boolean } {
+  if (typeof raw !== "string") return { stack: null, foreign: false };
+  const own = host?.toLowerCase() ?? null;
+  let framed = 0;
+  let ours = 0;
+  const kept = raw.split("\n").filter((line) => {
+    if (EXTENSION_LINE.test(line)) {
+      framed++;
+      return false;
+    }
+    const hosts = [...line.matchAll(URL_HOST)].map((m) => m[2].toLowerCase());
+    if (hosts.length === 0) return true;
+    framed++;
+    if (own && hosts.some((h) => h !== own)) return false;
+    ours++;
+    return true;
+  });
+  const stack = kept.join("\n");
+  return { stack: stack || null, foreign: framed > 0 && ours === 0 };
 }
 
 /** Stack lines from another origin (an extension, an injected script) are not Ethos's: they go. */
-export function cleanStack(raw: unknown): string | null {
-  if (typeof raw !== "string") return null;
-  const lines = raw
+export function cleanStack(raw: unknown, host?: string | null): string | null {
+  const own = ownStack(raw, host).stack;
+  if (own === null) return null;
+  const lines = own
     .split("\n")
-    .filter((l) => !/(chrome|moz|safari|safari-web)-extension:|webkit-masked-url:/i.test(l))
     .map((l) => withoutOrigins(l).trimEnd())
     .filter(Boolean);
   const out = lines.join("\n");
@@ -269,11 +314,11 @@ function cleanBefore(raw: unknown): Record<string, unknown>[] | null {
   return out.length ? out : null;
 }
 
-function cleanErrorData(raw: Record<string, unknown>): Record<string, unknown> {
+function cleanErrorData(raw: Record<string, unknown>, host?: string | null): Record<string, unknown> {
   return present({
     message: capText(typeof raw.message === "string" ? withoutOrigins(raw.message) : null, EVENT_CAPS.message),
     where: capText(typeof raw.where === "string" ? withoutOrigins(raw.where) : null, EVENT_CAPS.where),
-    stack: cleanStack(raw.stack),
+    stack: cleanStack(raw.stack, host),
     digest: capText(raw.digest, 40),
     before: cleanBefore(raw.before),
   });
@@ -301,8 +346,12 @@ export function fitted(data: Record<string, unknown>, max = 5000): Record<string
   return bytes(out) <= max ? out : {};
 }
 
-/** One event, every field checked and capped, or null when it is not one Ethos sends. */
-export function cleanEvent(raw: unknown, now: Date): EventRow | null {
+/**
+ * One event, every field checked and capped, or null when it is not one
+ * Ethos sends. `host` is the page's own (the request's): an error whose
+ * stack names only other sites was never Ethos's, and goes.
+ */
+export function cleanEvent(raw: unknown, now: Date, host?: string | null): EventRow | null {
   if (!raw || typeof raw !== "object") return null;
   const e = raw as Record<string, unknown>;
   const kind = typeof e.kind === "string" && Object.hasOwn(EVENT_NAMES, e.kind) ? (e.kind as EventKind) : null;
@@ -311,6 +360,7 @@ export function cleanEvent(raw: unknown, now: Date): EventRow | null {
   const name = typeof e.name === "string" && names.includes(e.name) ? e.name : null;
   if (!name) return null;
   const data = e.data && typeof e.data === "object" && !Array.isArray(e.data) ? (e.data as Record<string, unknown>) : {};
+  if (kind === "error" && ownStack(data.stack, host).foreign) return null;
 
   const t = now.getTime();
   const at = typeof e.at === "number" && e.at >= t - EVENT_CAPS.past && e.at <= t + EVENT_CAPS.ahead ? e.at : t;
@@ -331,17 +381,17 @@ export function cleanEvent(raw: unknown, now: Date): EventRow | null {
         ? cleanDevice(data)
         : kind === "usage"
           ? cleanUsageData(name as UsageName, data)
-          : cleanErrorData(data)
+          : cleanErrorData(data, host)
     ),
     at: new Date(at).toISOString(),
   };
 }
 
 /** A batch from the phone: at most `batch` events, each cleaned; the ones that are not events go. */
-export function cleanEvents(raw: unknown, now = new Date()): EventRow[] {
+export function cleanEvents(raw: unknown, now = new Date(), host?: string | null): EventRow[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .slice(0, EVENT_CAPS.batch)
-    .map((e) => cleanEvent(e, now))
+    .map((e) => cleanEvent(e, now, host))
     .filter((e): e is EventRow => e !== null);
 }

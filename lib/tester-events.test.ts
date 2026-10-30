@@ -7,6 +7,7 @@ import {
   describeDevice,
   EVENT_CAPS,
   fitted,
+  ownStack,
   screenOf,
 } from "./tester-events";
 
@@ -205,6 +206,78 @@ describe("an error", () => {
   it("lets go of stack lines from other origins", () => {
     expect(cleanStack("a\nat moz-extension://x/y.js:1:1\nat webkit-masked-url://hidden/:1:1")).toBe("a");
     expect(cleanStack(42)).toBeNull();
+  });
+
+  /*
+   * Review P5: a page URL in a message or a frame kept its query and
+   * fragment (an auth callback's code, a token after #), and a frame on
+   * another site (Google's sign-in script) stayed as a bare path once
+   * its host was taken off.
+   */
+  it("keeps no query or fragment anywhere, and a frame's line and column stay", () => {
+    const row = cleanEvent(
+      {
+        kind: "error",
+        name: "window",
+        data: {
+          message: "TypeError: x at https://speakethos.com/auth/callback?code=PKCE123#access_token=eyJSECRET",
+          where: "https://speakethos.com/_next/static/chunks/app/page.js?dpl=dpl_9:1:200",
+          stack:
+            "TypeError: x\n    at https://speakethos.com/auth/callback?code=PKCE123#access_token=eyJSECRET:3:5\n    at f (https://speakethos.com/_next/static/chunks/app.js?dpl=dpl_9:1:2)",
+        },
+      },
+      NOW,
+      "speakethos.com"
+    )!;
+    const all = JSON.stringify(row.data);
+    expect(all).not.toMatch(/PKCE123|eyJSECRET|access_token|dpl_9/);
+    expect(row.data.message).toBe("TypeError: x at /auth/callback");
+    expect(row.data.where).toBe("/_next/static/chunks/app/page.js:1:200");
+    expect(row.data.stack).toBe("TypeError: x\n    at /auth/callback:3:5\n    at f (/_next/static/chunks/app.js:1:2)");
+  });
+
+  it("lets go of another site's frames, and of an error that is all another site's", () => {
+    const mixed = cleanEvent(
+      {
+        kind: "error",
+        name: "window",
+        data: {
+          message: "TypeError: y",
+          stack:
+            "TypeError: y\n    at f (https://speakethos.com/_next/static/chunks/app.js:1:2)\n    at foo (https://accounts.google.com/gsi/client:1:2)\n    at Array.map (<anonymous>)",
+        },
+      },
+      NOW,
+      "speakethos.com"
+    )!;
+    expect(mixed.data.stack).toBe("TypeError: y\n    at f (/_next/static/chunks/app.js:1:2)\n    at Array.map (<anonymous>)");
+    expect(JSON.stringify(mixed.data)).not.toMatch(/gsi/);
+
+    // A browser extension's rejection (MetaMask's, say) is not Ethos's.
+    const extension = {
+      kind: "error",
+      name: "rejection",
+      data: {
+        message: "Error: MetaMask: Failed to connect to MetaMask",
+        stack: "Error: MetaMask\n    at chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/inpage.js:1:1",
+      },
+    };
+    expect(cleanEvent(extension, NOW, "speakethos.com")).toBeNull();
+    expect(cleanEvent(extension, NOW)).toBeNull();
+    const google = { kind: "error", name: "rejection", data: { message: "x", stack: "x\n    at a (https://accounts.google.com/gsi/client:1:2)" } };
+    expect(cleanEvent(google, NOW, "speakethos.com")).toBeNull();
+    // Without a frame to tell by, the error is kept (a failed fetch has none).
+    expect(cleanEvent({ kind: "error", name: "rejection", data: { message: "TypeError: Failed to fetch" } }, NOW, "speakethos.com")).not.toBeNull();
+  });
+
+  it("reads a stack's own lines against the page's host", () => {
+    expect(ownStack("E\n at a (https://speakethos.com/x.js:1:1)\n at b (https://evil.example/y.js:2:2)", "speakethos.com")).toEqual({
+      stack: "E\n at a (https://speakethos.com/x.js:1:1)",
+      foreign: false,
+    });
+    expect(ownStack("E\n at b (https://evil.example/y.js:2:2)", "speakethos.com")).toEqual({ stack: "E", foreign: true });
+    expect(ownStack("E", "speakethos.com")).toEqual({ stack: "E", foreign: false });
+    expect(ownStack(null, "speakethos.com")).toEqual({ stack: null, foreign: false });
   });
 });
 

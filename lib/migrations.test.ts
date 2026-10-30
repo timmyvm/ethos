@@ -175,6 +175,26 @@ describe("0022 tester data", () => {
     for (const floor of floors) expect(floor).toBeLessThanOrEqual(CONSENT_VERSION);
   });
 
+  /* Review P1 and F2: an account remembers the anonymous session its
+     testing was carried from, so its recordings read as the tester's
+     and every deletion reaches them. */
+  it("remembers the anonymous sessions a tester was carried from, and reads their recordings as theirs", () => {
+    expect(sql).toMatch(/add column if not exists carried_from uuid\[\] not null default '\{\}'/);
+    expect(sql).toMatch(/cardinality\(carried_from\) <= 20/);
+    const anyCarried = sql.match(/= any\(t\.carried_from\)/g) ?? [];
+    // The testers view's recordings, the recordings view, and the answers view's recording.
+    expect(anyCarried.length).toBeGreaterThanOrEqual(3);
+  });
+
+  /* Review P4: a ceiling on the table as a whole, read by the route
+     with the service role and nobody else. */
+  it("tells the route the events table's size, and nobody else", () => {
+    expect(sql).toMatch(/create or replace function public\.tester_events_bytes\(\)/);
+    expect(sql).toMatch(/pg_total_relation_size\('public\.tester_events'/);
+    expect(sql).toMatch(/revoke all on function public\.tester_events_bytes\(\) from public, anon, authenticated/);
+    expect(sql).toMatch(/grant execute on function public\.tester_events_bytes\(\) to service_role/);
+  });
+
   it("puts the report in tester_admin and keeps it closed", () => {
     for (const view of ["devices", "usage", "screens", "errors", "testers", "recordings", "answers"]) {
       expect(sql).toMatch(new RegExp(`create or replace view tester_admin\\.${view} as`));

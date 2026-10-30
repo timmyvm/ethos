@@ -44,6 +44,7 @@ vi.mock("@/lib/rate-limit", async (importOriginal) => ({
 }));
 
 import { POST as collect } from "@/app/api/tester/collect/route";
+import { resetRoomForTests } from "./tester-room";
 
 let db: FakeDb;
 
@@ -58,6 +59,7 @@ beforeEach(() => {
   h.sessions.set("tok_stranger", { id: STRANGER, anonymous: true, email: null });
   h.limited.clear();
   h.consumed.length = 0;
+  resetRoomForTests();
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
@@ -173,6 +175,43 @@ describe("POST /api/tester/collect, what it keeps", () => {
     expect(await call({ events: BATCH })).toEqual({ status: 200, body: { ok: true, kept: 1 } });
     expect(await call({ events: BATCH })).toEqual({ status: 200, body: { ok: true, kept: 0, full: true } });
     expect(events()).toHaveLength(EVENT_CAPS.perAccount);
+  });
+
+  /*
+   * Review P4: the code is the first anyone guesses, so a stranger can
+   * mint testers; each one's rows must stay small, and the table as a
+   * whole has a ceiling, so it can never fill the database.
+   */
+  it("keeps at most twenty errors from one open, counting the ones it already holds", async () => {
+    for (let i = 0; i < 15; i++) db.put("tester_events", { user_id: TESTER, kind: "error", name: "window", open_id: "o1" });
+    const errors = Array.from({ length: 12 }, (_, i) => ({ kind: "error", name: "window", at: NOW, open: "o1", data: { message: `E${i}` } }));
+    const other = Array.from({ length: 3 }, (_, i) => ({ kind: "error", name: "window", at: NOW, open: "o2", data: { message: `F${i}` } }));
+    expect(await call({ events: [...errors, ...other, BATCH[2]] })).toEqual({ status: 200, body: { ok: true, kept: 5 + 3 + 1 } });
+    const kept = events().filter((e) => e.kind === "error");
+    expect(kept.filter((e) => e.open_id === "o1")).toHaveLength(EVENT_CAPS.errorsPerOpen);
+    expect(kept.filter((e) => e.open_id === "o2")).toHaveLength(3);
+  });
+
+  it("takes nothing more once the events table has used its room, and the phone stops resending", async () => {
+    db.state.rpc.tester_events_bytes = 151 * 1024 * 1024;
+    expect(await call({ events: BATCH })).toEqual({ status: 200, body: { ok: true, kept: 0, full: true } });
+    expect(events()).toEqual([]);
+  });
+
+  it("writes as before while the table has room, or while its size cannot be read", async () => {
+    db.state.rpc.tester_events_bytes = 2 * 1024 * 1024;
+    expect((await call({ events: BATCH })).body).toEqual({ ok: true, kept: 3 });
+    resetRoomForTests();
+    delete db.state.rpc.tester_events_bytes;
+    expect((await call({ events: BATCH })).body).toEqual({ ok: true, kept: 3 });
+  });
+
+  it("keeps no error that is all another site's, read against the page's own host", async () => {
+    const extension = { kind: "error", name: "rejection", at: NOW, open: "o1", data: { message: "MetaMask", stack: "E\n at chrome-extension://x/inpage.js:1:1" } };
+    const google = { kind: "error", name: "rejection", at: NOW, open: "o1", data: { message: "x", stack: "x\n at a (https://accounts.google.com/gsi/client:1:2)" } };
+    const ours = { kind: "error", name: "window", at: NOW, open: "o1", data: { message: "y", stack: "y\n at f (https://preview.speakethos.test/_next/static/chunks/a.js?dpl=d1:1:2)\n at a (https://accounts.google.com/gsi/client:1:2)" } };
+    expect((await call({ events: [extension, google, ours] })).body).toEqual({ ok: true, kept: 1 });
+    expect(events()[0].data).toMatchObject({ stack: "y\n at f (/_next/static/chunks/a.js:1:2)" });
   });
 
   it("lets a row the table refuses go, and keeps the rest of the batch", async () => {

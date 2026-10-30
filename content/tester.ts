@@ -89,6 +89,8 @@ export const CODE_COPY = {
   wrong: "That code doesn't match. Check it and try again.",
   tooMany: "Too many tries. Give it an hour.",
   offline: "The server didn't answer. Try again.",
+  /** Every place in the test is taken (TESTER_LIMIT). */
+  full: "Testing is full. Message Timothy.",
 } as const;
 
 /** Testing, switched on (and what a tester sees from Settings). */

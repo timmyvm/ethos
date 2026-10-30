@@ -26,6 +26,17 @@
 --   3. Answers only under consent version 3 or later (0021 asked for 2).
 --   4. The report: tester_admin.devices, .usage, .screens and .errors,
 --      and the felt and direction counts on the existing views.
+--   5. public.testers.carried_from: the anonymous sessions a tester's
+--      testing was carried from when they signed in (app/api/tester
+--      `carry`). Their answers and events move to the account; their
+--      recordings stay under the session's id, as every sign-in leaves
+--      them, so the report reads them through this column, and removing
+--      the account (Settings, or Timothy's script in docs/testers.md)
+--      reaches them by it.
+--   6. public.tester_events_bytes(): the table's size on disk, for the
+--      route's ceiling (lib/tester-room.ts), callable by the service
+--      role alone. Anyone can become a tester with the code, so the
+--      table as a whole has a budget it can never grow past.
 --
 -- The deploy connector stalls on two words (0020's head), so neither
 -- appears in this file. Clauses that need them are spelled at run time
@@ -195,6 +206,26 @@ begin
   end if;
 end
 $$;
+
+-- 5. The sessions a tester was carried from -------------------------------
+
+alter table public.testers
+  add column if not exists carried_from uuid[] not null default '{}'
+    check (cardinality(carried_from) <= 20);
+
+-- 6. The events table's size, for the route's ceiling ----------------------
+
+create or replace function public.tester_events_bytes()
+returns bigint
+language sql
+stable
+set search_path = ''
+as $$
+  select pg_total_relation_size('public.tester_events'::regclass)
+$$;
+
+revoke all on function public.tester_events_bytes() from public, anon, authenticated;
+grant execute on function public.tester_events_bytes() to service_role;
 
 -- 4. Timothy's report ---------------------------------------------------------
 --
@@ -377,7 +408,8 @@ select
   coalesce(v.opens, 0) as opens,
   coalesce(v.minutes, 0) as minutes_in_app,
   coalesce(v.errors, 0) as errors,
-  v.last_open
+  v.last_open,
+  t.carried_from
 from public.testers t
 join tester_admin.zones z on z.user_id = t.user_id
 left join auth.users u on u.id = t.user_id
@@ -391,7 +423,8 @@ left join lateral (
     round(avg(x.stars), 2) as average_stars,
     max(x.created_at) as last_spoken_at
   from public.reps x
-  where x.user_id = t.user_id and x.created_at >= t.created_at
+  where (x.user_id = t.user_id or x.user_id = any(t.carried_from))
+    and x.created_at >= t.created_at
 ) r on true
 left join lateral (
   select
@@ -456,12 +489,14 @@ select
   upper(left(t.user_id::text, 8)) as tester_number
 from public.testers t
 join tester_admin.zones z on z.user_id = t.user_id
-join public.reps x on x.user_id = t.user_id and x.created_at >= t.created_at
+join public.reps x
+  on (x.user_id = t.user_id or x.user_id = any(t.carried_from))
+ and x.created_at >= t.created_at
 left join public.profiles p on p.user_id = t.user_id
 left join lateral (
   select y.answer, y.note, y.scores, y.updated_at, y.felt
     from public.tester_feedback y
-   where y.user_id = x.user_id
+   where (y.user_id = t.user_id or y.user_id = x.user_id)
      and (y.client_id = x.client_id or y.rep_id = x.id)
    order by y.updated_at desc
    limit 1
@@ -485,10 +520,11 @@ select
   upper(left(y.user_id::text, 8)) as tester_number
 from public.tester_feedback y
 left join public.profiles p on p.user_id = y.user_id
+left join public.testers t on t.user_id = y.user_id
 left join lateral (
   select r.id, r.created_at
     from public.reps r
-   where r.user_id = y.user_id
+   where (r.user_id = y.user_id or r.user_id = any(t.carried_from))
      and (r.client_id = y.client_id or r.id = y.rep_id)
    order by r.created_at
    limit 1

@@ -26,11 +26,22 @@
  *                          testing (lib/auth.ts): the token is that
  *                          session's, the Authorization the account's.
  *                          The consent the person gave on this phone
- *                          moves to the account, version and time as
- *                          given, and the anonymous row goes, with the
- *                          device, usage and error rows it had sent
- *                          (0022). No code: both sessions are proof
- *                          enough.
+ *                          moves to the account, version, time and the
+ *                          day they first joined as given, and the
+ *                          anonymous row goes. Their answers and notes
+ *                          and the device, usage and error rows it had
+ *                          sent move with it (0022), and the account
+ *                          remembers the session (`carried_from`), whose
+ *                          recordings stay under its id as every
+ *                          sign-in leaves them: the report reads them
+ *                          as this tester's, and deleting the account
+ *                          or the tester's data reaches them. No code:
+ *                          both sessions are proof enough.
+ *
+ * At most TESTER_LIMIT testers (60 when unset) at once: a right code
+ * from someone new past that is told the test is full (423), and a
+ * tester already on the list is never refused (review P4: 1234 is the
+ * first code anyone guesses, so the list needs its own ceiling).
  *
  * The code is TESTER_CODE on the server, "1234" when unset (Timothy's
  * pick, 30 Oct). It is compared in constant time and appears in no
@@ -110,6 +121,9 @@ export async function POST(req: NextRequest) {
     if (!found) return NextResponse.json({ error: CODE_COPY.wrong }, { status: 403 });
   } else if (!given || !codesMatch(given, expected)) {
     return NextResponse.json({ error: CODE_COPY.wrong }, { status: 403 });
+  } else if (await full(user?.id ?? null)) {
+    await giveBack();
+    return NextResponse.json({ error: CODE_COPY.full }, { status: 423 });
   }
   await giveBack();
 
@@ -173,6 +187,29 @@ export async function POST(req: NextRequest) {
   });
 }
 
+/** The most testers at once: TESTER_LIMIT, or 60 (about twenty friends, some on two phones). */
+function testerLimit(): number {
+  const n = Number(process.env.TESTER_LIMIT);
+  return Number.isInteger(n) && n > 0 ? n : 60;
+}
+
+/**
+ * Whether a new tester would be one too many. Never for an account
+ * already on the list. A count that cannot be read lets them in: the
+ * collect route's own ceilings still hold.
+ */
+async function full(userId: string | null): Promise<boolean> {
+  const db = supabaseAdmin();
+  if (!db) return false;
+  if (userId) {
+    const had = await testerRow(userId);
+    if (had && had !== "unavailable") return false;
+  }
+  const { count, error } = await db.from("testers").select("user_id", { count: "exact", head: true });
+  if (error || count == null) return false;
+  return count >= testerLimit();
+}
+
 /** The account's testers row, null for none, or "unavailable" when it could not be read. */
 async function testerRow(
   userId: string
@@ -218,13 +255,16 @@ async function carry(
       { status: 503 }
     );
   }
-  type Row = { consent_version: number; consented_at: string };
+  /* Read whole ("*"): `carried_from` is 0022's, and the code ships
+     before the migration does. */
+  type Row = {
+    consent_version: number;
+    consented_at: string;
+    created_at?: string | null;
+    carried_from?: string[] | null;
+  };
   const read = async (id: string) => {
-    const { data, error } = await db
-      .from("testers")
-      .select("consent_version, consented_at")
-      .eq("user_id", id)
-      .maybeSingle();
+    const { data, error } = await db.from("testers").select("*").eq("user_id", id).maybeSingle();
     if (error) throw error;
     return (data as Row | null) ?? null;
   };
@@ -232,30 +272,53 @@ async function carry(
     const given = await read(from.user.id);
     if (from.user.id === user.id) {
       return given
-        ? NextResponse.json({ ok: true, tester: given })
+        ? NextResponse.json({
+            ok: true,
+            tester: { consent_version: given.consent_version, consented_at: given.consented_at },
+          })
         : NextResponse.json({ error: "Nothing to carry." }, { status: 404 });
     }
     if (!given) return NextResponse.json({ error: "Nothing to carry." }, { status: 404 });
     const own = await read(user.id);
     const tester = own && own.consent_version >= given.consent_version ? own : given;
-    if (tester === given) {
-      const { error } = await db
-        .from("testers")
-        .upsert({ user_id: user.id, ...given }, { onConflict: "user_id" });
+    // The day they first joined, whichever session that was on: days
+    // spoken count from it (tester_admin.testers), and so does paying.
+    const joined = [own?.created_at, given.created_at]
+      .filter((d): d is string => typeof d === "string" && !!d)
+      .sort()[0];
+    {
+      const { error } = await db.from("testers").upsert(
+        {
+          user_id: user.id,
+          consent_version: tester.consent_version,
+          consented_at: tester.consented_at,
+          ...(joined ? { created_at: joined } : {}),
+        },
+        { onConflict: "user_id" }
+      );
       if (error) throw error;
     }
-    // The anonymous account is left behind on this phone; its row would
-    // read as a second tester in the report.
-    const { error } = await db.from("testers").delete().eq("user_id", from.user.id);
-    if (error) console.error("tester: carried row left behind", error.message);
-    // What the phone sent while it was the anonymous session is the same
-    // person's, so it moves with them: the report reads one tester, and
-    // removing their data on request finds all of it (docs/testers.md).
+    // The session it came from, and any that one came from: the report
+    // reads their recordings as this tester's, and a deletion reaches them.
+    const carried = [...new Set([...(own?.carried_from ?? []), ...(given.carried_from ?? []), from.user.id])];
+    {
+      const { error } = await db.from("testers").update({ carried_from: carried }).eq("user_id", user.id);
+      if (error) console.error("tester: carried session not remembered", error.message);
+    }
+    // Answers, notes and how it felt about the anonymous session's
+    // recordings are the same person's: they move first, so the
+    // report reads one tester and a deletion by their number finds them.
+    await carryAnswers(db, from.user.id, user.id);
+    // What the phone sent while it was the anonymous session moves too.
     const moved = await db
       .from("tester_events")
       .update({ user_id: user.id })
       .eq("user_id", from.user.id);
     if (moved.error) console.error("tester: carried events left behind", moved.error.message);
+    // The anonymous account is left behind on this phone; its row would
+    // read as a second tester in the report.
+    const { error } = await db.from("testers").delete().eq("user_id", from.user.id);
+    if (error) console.error("tester: carried row left behind", error.message);
     return NextResponse.json({
       ok: true,
       tester: { consent_version: tester.consent_version, consented_at: tester.consented_at },
@@ -264,4 +327,56 @@ async function carry(
     console.error("tester: carry failed", (e as { message?: string }).message);
     return NextResponse.json({ error: JOINED_COPY.saveFailed }, { status: 502 });
   }
+}
+
+type Answer = {
+  client_id: string;
+  rep_id: string | null;
+  answer: string | null;
+  note: string | null;
+  scores: Record<string, unknown> | null;
+  felt: string | null;
+  updated_at: string;
+};
+
+/**
+ * The anonymous session's answers, moved to the account. Two answers
+ * about one recording (the phone saved under both) become one, the
+ * newer's over the older's, as the phone merges its own waiting saves
+ * (lib/tester.ts withPending): an answer keeps its note and numbers,
+ * and how it felt survives a later answer that did not say.
+ */
+async function carryAnswers(db: NonNullable<ReturnType<typeof supabaseAdmin>>, from: string, to: string): Promise<void> {
+  const theirs = await db.from("tester_feedback").select("*").eq("user_id", from);
+  if (theirs.error) {
+    console.error("tester: carried answers left behind", theirs.error.message);
+    return;
+  }
+  const rows = (theirs.data ?? []) as Answer[];
+  if (rows.length === 0) return;
+  const mine = await db.from("tester_feedback").select("*").eq("user_id", to);
+  const had = new Map(((mine.data ?? []) as Answer[]).map((r) => [r.client_id, r]));
+  for (const row of rows) {
+    const clash = had.get(row.client_id);
+    if (!clash) continue;
+    const [older, newer] = row.updated_at > clash.updated_at ? [clash, row] : [row, clash];
+    const said = newer.answer !== null ? newer : older;
+    const merged = {
+      answer: said.answer,
+      note: said.note,
+      scores: said.scores,
+      felt: newer.felt ?? older.felt,
+      rep_id: newer.rep_id ?? older.rep_id,
+      updated_at: newer.updated_at,
+    };
+    const kept = await db.from("tester_feedback").update(merged).eq("user_id", to).eq("client_id", row.client_id);
+    if (kept.error) {
+      console.error("tester: carried answer not merged", kept.error.message);
+      continue;
+    }
+    const gone = await db.from("tester_feedback").delete().eq("user_id", from).eq("client_id", row.client_id);
+    if (gone.error) console.error("tester: merged answer left behind", gone.error.message);
+  }
+  const moved = await db.from("tester_feedback").update({ user_id: to }).eq("user_id", from);
+  if (moved.error) console.error("tester: carried answers left behind", moved.error.message);
 }

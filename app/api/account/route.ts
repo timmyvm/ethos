@@ -24,6 +24,14 @@
  *      row untouched, and the route is safe to retry.
  *   3. Rate-limit rows, which key on a subject string, not a foreign key:
  *      `u:<id>` and every route's `<route>:u:<id>`.
+ *   3b. A tester who signed in from an anonymous session that was testing
+ *      carried it here (app/api/tester `carry`, 0022 `carried_from`): its
+ *      recordings stayed under its own id, as every sign-in leaves them,
+ *      and "deleting your account deletes it too" is on the consent. So
+ *      each such session goes the same way, audio, rate limits and the
+ *      auth user, once the auth service confirms it is still anonymous.
+ *      A failure stops the route before the account goes, and a retry
+ *      finds the ones already gone and carries on.
  *   4. The auth user, last. Every table references auth.users with
  *      on delete cascade (migrations 0001 to 0004, billing in 0012, and
  *      the testers and tester_feedback rows in 0020), so this one call
@@ -171,6 +179,19 @@ export async function DELETE(req: NextRequest) {
   // `u:<id>` and `checkout:u:<id>` alike; a uuid holds no LIKE wildcard.
   await db.from("rate_limits").delete().like("subject", `%u:${auth.id}`);
 
+  const carriedLeft = await removeCarried(db, auth.id);
+  if (carriedLeft) {
+    return NextResponse.json(
+      {
+        error:
+          cancelled > 0
+            ? "Your plan is cancelled, but the account didn't delete. Try again in a minute."
+            : "The account didn't delete. Try again in a minute.",
+      },
+      { status: 502 }
+    );
+  }
+
   const del = await db.auth.admin.deleteUser(auth.id);
   if (del.error) {
     console.error("account delete: auth deletion failed", del.error.message);
@@ -186,4 +207,48 @@ export async function DELETE(req: NextRequest) {
   }
 
   return NextResponse.json({ ok: true });
+}
+
+/**
+ * The anonymous sessions a tester carried into this account (step 3b),
+ * removed as the account is: their audio, their rate-limit rows, then
+ * the auth user, whose cascade takes the rest. Only ids the auth service
+ * says are still anonymous: a real account is never removed by another's
+ * request. True when one could not be removed (the route stops there).
+ */
+async function removeCarried(db: NonNullable<ReturnType<typeof supabaseAdmin>>, userId: string): Promise<boolean> {
+  // Read whole: `carried_from` is 0022's, and a server without it has none.
+  const { data } = await db.from("testers").select("*").eq("user_id", userId).maybeSingle();
+  const carried = ((data as { carried_from?: unknown } | null)?.carried_from ?? []) as unknown[];
+  for (const id of carried) {
+    if (typeof id !== "string" || id === userId) continue;
+    const found = await db.auth.admin.getUserById(id);
+    // Already gone (an earlier try got this far): nothing left to do.
+    if (found.error || !found.data?.user) continue;
+    if (!found.data.user.is_anonymous) continue;
+    const { data: reps, error: readError } = await db
+      .from("reps")
+      .select("audio_path")
+      .eq("user_id", id)
+      .not("audio_path", "is", null);
+    if (readError) {
+      console.error("account delete: carried session's recordings unread", readError.message);
+      return true;
+    }
+    const paths = (reps ?? []).map((r) => r.audio_path as string).filter(Boolean);
+    for (let i = 0; i < paths.length; i += 100) {
+      const { error } = await db.storage.from("audio").remove(paths.slice(i, i + 100));
+      if (error) {
+        console.error("account delete: carried session's audio removal failed", error.message);
+        return true;
+      }
+    }
+    await db.from("rate_limits").delete().like("subject", `%u:${id}`);
+    const gone = await db.auth.admin.deleteUser(id);
+    if (gone.error) {
+      console.error("account delete: carried session's deletion failed", gone.error.message);
+      return true;
+    }
+  }
+  return false;
 }

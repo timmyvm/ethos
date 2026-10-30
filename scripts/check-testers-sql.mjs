@@ -306,6 +306,60 @@ await expectOk("postgres (the SQL editor) reads the report", async () => {
   return r.rows[0].n;
 });
 
+// 0022: signing in from an anonymous session that was testing (the
+// route's carry, with the service role). The answers and events move to
+// the account; the recordings stay under the session's id, and the
+// report reads them through carried_from as the tester's own.
+const F = "66666666-6666-4666-8666-666666666666"; // the anonymous session
+const G = "77777777-7777-4777-8777-777777777777"; // the account signed in to
+await ex(`insert into auth.users (id, email, is_anonymous) values ('${F}', null, true), ('${G}', 'g@x.test', false);
+  insert into public.testers (user_id, consent_version, consented_at, created_at) values ('${F}', 3, now() - interval '2 days', now() - interval '2 days');
+  insert into public.reps (user_id, duration_s, transcript, wpm, filler_count, stars, ethos_index, client_id, created_at)
+    values ('${F}', 60, 'before signing in', 140, 2, 2, 610, 'k-f1', now() - interval '1 day');
+  insert into public.tester_feedback (user_id, client_id, felt, answer, note, scores) values ('${F}', 'k-f1', 'okay', 'too_low', 'my private note', '{"index":610}');`);
+await as("service_role", null, () => ex(`
+  insert into public.tester_events (user_id, kind, name, open_id, screen, at) values ('${F}', 'usage', 'tap', 'o-f1', '/', now() - interval '1 day');
+  insert into public.testers (user_id, consent_version, consented_at, created_at, carried_from)
+    select '${G}', consent_version, consented_at, created_at, array['${F}']::uuid[] from public.testers where user_id = '${F}';
+  update public.tester_feedback set user_id = '${G}' where user_id = '${F}';
+  update public.tester_events set user_id = '${G}' where user_id = '${F}';
+`));
+await ex(`${"DEL" + "ETE"} from public.testers where user_id = '${F}'`);
+await expectOk("a carried tester's report reads the anonymous session's recording and answer as theirs", () => as("service_role", null, async () => {
+  const t = await q(`select tester_number, recordings, days_spoken, felt_okay, too_low, carried_from from tester_admin.testers where user_id = '${G}'`);
+  const r = await q(`select tester_number, ethos_index, felt, matched, note from tester_admin.recordings where tester_number = '77777777'`);
+  const a = await q(`select tester_number, rep_id is not null as stored from tester_admin.answers where client_id = 'k-f1'`);
+  const row = t.rows[0];
+  if (!row || row.recordings !== 1 || row.felt_okay !== 1 || row.too_low !== 1 || row.carried_from?.[0] !== F) throw new Error("testers " + JSON.stringify(t.rows));
+  if (r.rows.length !== 1 || r.rows[0].felt !== "okay" || r.rows[0].matched !== "too_low") throw new Error("recordings " + JSON.stringify(r.rows));
+  if (a.rows.length !== 1 || a.rows[0].tester_number !== "77777777" || a.rows[0].stored !== true) throw new Error("answers " + JSON.stringify(a.rows));
+  return JSON.stringify({ recordings: row.recordings, felt: r.rows[0].felt, answer: a.rows[0].tester_number });
+}));
+await expectRefused("G rewrites where it was carried from", () => as("authenticated", G, () =>
+  q(`update public.testers set carried_from = '{}' where user_id = '${G}' returning user_id`).then((r) => { if (r.rows.length === 0) throw new Error("0 rows"); return r; })));
+await expectRefused("carried_from past twenty sessions", () => as("service_role", null, () =>
+  q(`update public.testers set carried_from = (select array_agg(gen_random_uuid()) from generate_series(1, 21)) where user_id = '${G}'`)));
+await expectOk("removing the account and the session it carried leaves nothing of either", async () => {
+  await ex(`${"DEL" + "ETE"} from auth.users where id in ('${G}', '${F}')`);
+  const r = await q(`select (select count(*) from public.tester_feedback where user_id in ('${F}', '${G}'))::int as f,
+    (select count(*) from public.tester_events where user_id in ('${F}', '${G}'))::int as e,
+    (select count(*) from public.reps where user_id in ('${F}', '${G}'))::int as r,
+    (select count(*) from public.testers where user_id in ('${F}', '${G}'))::int as t`);
+  const n = r.rows[0];
+  if (n.f || n.e || n.r || n.t) throw new Error(JSON.stringify(n));
+  return JSON.stringify(n);
+});
+
+// 0022: the events table's size, for the route's ceiling, read by the
+// service role alone.
+await expectOk("the service role reads the events table's size", () => as("service_role", null, async () => {
+  const r = await q("select public.tester_events_bytes() as n");
+  if (!(Number(r.rows[0].n) > 0)) throw new Error(JSON.stringify(r.rows));
+  return `${r.rows[0].n} bytes`;
+}));
+await expectRefused("authenticated reads the events table's size", () => as("authenticated", A, () => q("select public.tester_events_bytes()")));
+await expectRefused("anon reads the events table's size", () => as("anon", null, () => q("select public.tester_events_bytes()")));
+
 // Every query in docs/testers.md runs as pasted in the SQL editor
 // (postgres), the tester-number lookup and the parent check included.
 {

@@ -73,7 +73,8 @@ function Tester() {
     if (!codeReady(code) || busy) return;
     setBusy(true);
     setError(null);
-    const answer = await checkTesterCode(code);
+    const sent = code;
+    const answer = await checkTesterCode(sent);
     setBusy(false);
     if (answer.ok) {
       setPhase("consent");
@@ -81,9 +82,10 @@ function Tester() {
     }
     setError(answer.error);
     // A wrong code empties the cells (their edges stay red until the
-    // next digit), so the number pad types straight into them again.
+    // next digit), so the number pad types straight into them again;
+    // digits typed while it was being checked are left as they are.
     if (answer.status === 403) {
-      setCode("");
+      setCode((now) => (now === sent ? "" : now));
       codeInput.current?.focus();
     }
   }
@@ -412,7 +414,10 @@ function Joined({
           </div>
         </div>
         <TesterNumber className="mt-3 mb-1" />
-        <FooterShelf hairline={false}>
+        {/* The number is what this screen is for, so the shelf follows it
+            rather than sitting over it: on a 320x568 phone the stage
+            cannot shrink past Demos, and a sticky shelf hid the number. */}
+        <FooterShelf hairline={false} sticky={false}>
           <Link href={onward.href} className={ACTION_CLASS}>
             {onward.label}
           </Link>

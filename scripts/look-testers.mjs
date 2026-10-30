@@ -15,7 +15,9 @@
  * tester-page (Settings' door for a tester), results (a tester's match
  * check, unanswered), results-yes, results-no (No, the note open and
  * typed), results-fail (the answer refused, its retry), results-plain
- * (a non-tester's results: nothing new), privacy (the Testers section).
+ * (a non-tester's results: nothing new), log (a stored recording's page,
+ * the answer reopened), privacy (the Testers section). The question is on
+ * the results' last step, so the results scenes walk there first.
  * /api/tester is answered here as the route would: 1234 right, anything
  * else wrong.
  */
@@ -36,7 +38,10 @@ const BASE = process.env.LOOK_BASE ?? "http://localhost:3123";
 const OUT = (process.env.LOOK_OUT ?? new URL("../docs/look/testers/", import.meta.url).pathname).replace(/\/?$/, "/");
 mkdirSync(OUT, { recursive: true });
 const WIDTH = Number(process.env.LOOK_WIDTH ?? 390) || 390;
-const WSUFFIX = WIDTH === 390 ? "" : `-${WIDTH}`;
+/* LOOK_HEIGHT: a short phone (667 an iPhone SE, 568 the 320 one, 664 a
+   390 in Safari with its bars showing), where the shelves matter. */
+const HEIGHT = Number(process.env.LOOK_HEIGHT ?? 844) || 844;
+const WSUFFIX = `${WIDTH === 390 ? "" : `-${WIDTH}`}${HEIGHT === 844 ? "" : `x${HEIGHT}`}`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const want = (name) => ONLY.length === 0 || ONLY.includes(name);
 
@@ -46,7 +51,7 @@ const browser = await chromium.launch({
 
 async function context(theme, { returning = true } = {}) {
   const ctx = await browser.newContext({
-    viewport: { width: WIDTH, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
+    viewport: { width: WIDTH, height: HEIGHT }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
     permissions: ["microphone"], locale: "en-AU", timezoneId: "Australia/Melbourne",
     colorScheme: theme, serviceWorkers: "block",
   });
@@ -57,10 +62,15 @@ async function context(theme, { returning = true } = {}) {
     await sleep(350);
     const body = route.request().postDataJSON() ?? {};
     if (body.code !== "1234") return route.fulfill(json({ error: "That code doesn't match. Check it and try again." }, 403));
-    if (body.agree === undefined) return route.fulfill(json({ ok: true, consentVersion: 1 }));
+    if (body.agree === undefined) return route.fulfill(json({ ok: true }));
     testerMode.tester = true;
-    return route.fulfill(json({ ok: true, tester: { consent_version: 1, consented_at: new Date().toISOString() } }));
+    testerMode.consentVersion = body.agree;
+    return route.fulfill(json({ ok: true, tester: { consent_version: body.agree, consented_at: new Date().toISOString() } }));
   });
+  // A real account id (the fixture's is "u1"), so the tester number has
+  // something to show once a fresh phone's anonymous session is minted.
+  await ctx.route("http://supabase.local/auth/v1/signup**", (route) =>
+    route.fulfill(json({ ...session, user: { ...session.user, id: "3f9a1c2e-0d4a-4c1e-9a77-3b2f5e8d1c40", is_anonymous: true, email: null } })));
   if (returning) await ctx.addInitScript(seed, { theme, session, pose: POSE_PREF });
   else
     await ctx.addInitScript((t) => {
@@ -86,10 +96,10 @@ async function shootTheme(theme) {
   };
   const step = async (names, fn) => {
     if (!names.some(want)) return;
-    try { await fn(); } catch (e) { console.log("STEP-FAILED", theme, names[0], String(e.message ?? e).split("\n")[0]); }
+    try { await fn(); } catch (e) { console.log("STEP-FAILED", theme, names[0], String(e.message ?? e).split("\n").slice(0, 6).join(" / ")); }
   };
 
-  // The introduction's first screen: the door sits under its tap.
+  // The introduction's first screen: the door is quiet, top right.
   await step(["welcome"], async () => {
     testerMode.tester = false;
     const { ctx, page } = await context(theme, { returning: false });
@@ -106,6 +116,7 @@ async function shootTheme(theme) {
     await page.goto(`${BASE}/welcome`);
     await page.waitForSelector("main h1");
     const door = page.getByRole("link", { name: "Tester code", exact: true });
+    await sleep(1200);
     if (await door.count()) await door.click();
     else await page.goto(`${BASE}/tester?from=welcome`);
     const field = page.getByLabel("Tester code");
@@ -113,7 +124,7 @@ async function shootTheme(theme) {
     if (want("code")) await shot(page, "code", { fullPage: false });
     await field.fill("1111");
     await page.getByRole("button", { name: "Continue" }).click();
-    await page.getByRole("alert").waitFor({ timeout: 5000 }).catch(() => {});
+    await page.getByText("That code doesn't match.").waitFor({ timeout: 5000 }).catch(() => {});
     if (want("code-wrong")) await shot(page, "code-wrong", { fullPage: false, settle: 400 });
     await field.fill("1234");
     if (want("code-right")) await shot(page, "code-right", { fullPage: false, settle: 300 });
@@ -122,7 +133,7 @@ async function shootTheme(theme) {
     if (want("consent")) await shot(page, "consent", { fullPage: false, settle: 900 });
     await page.getByRole("button", { name: "I agree" }).click();
     await page.getByText("You're testing Ethos").first().waitFor({ timeout: 8000 });
-    if (want("joined")) await shot(page, "joined", { fullPage: false, settle: 900 });
+    if (want("joined")) await shot(page, "joined", { fullPage: false, settle: 1500 });
     await ctx.close();
   });
 
@@ -157,6 +168,17 @@ async function shootTheme(theme) {
     await page.waitForSelector('[role="dialog"]', { state: "detached", timeout: 8000 }).catch(() => {});
     await sleep(3200);
   };
+  /* The question is asked on the last step, after the numbers: walk
+     there with the step's own tap. */
+  const toQuestion = async (page) => {
+    for (let i = 0; i < 3; i++) {
+      if (await page.getByText("Did this score match how it felt?").count()) return;
+      const next = page.locator("[data-step-action]").first();
+      if (!(await next.count()) || !/numbers|words/i.test(await next.innerText())) return;
+      await next.click();
+      await sleep(900);
+    }
+  };
   const scenes = [
     ["results", { tester: true }],
     ["results-yes", { tester: true, pick: "Yes" }],
@@ -171,6 +193,7 @@ async function shootTheme(theme) {
       testerMode.answers.length = 0;
       const { ctx, page } = await context(theme);
       await results(page);
+      if (o.tester) await toQuestion(page);
       if (o.pick) {
         await page.getByRole("radio", { name: o.pick, exact: true }).click();
         await sleep(500);
@@ -178,12 +201,34 @@ async function shootTheme(theme) {
       if (o.note) {
         await page.getByLabel("What felt off?").fill(o.note);
       }
-      await shot(page, name, { settle: 600 });
+      await shot(page, name, { settle: 600, fullPage: false });
       if (testerMode.answers.length) console.log("  sent", JSON.stringify(testerMode.answers.at(-1)).slice(0, 240));
       testerMode.feedback = "ok";
       await ctx.close();
     });
   }
+
+  // The Log: a stored recording's page asks too, and an answer given
+  // there reopens as it was left.
+  await step(["log"], async () => {
+    testerMode.tester = true;
+    testerMode.feedback = "ok";
+    testerMode.stored = {};
+    const { ctx, page } = await context(theme);
+    await page.goto(`${BASE}/rep/rep-3`);
+    const q = page.getByText("Did this score match how it felt?");
+    await q.waitFor({ timeout: 20000 });
+    await page.getByRole("radio", { name: "Roughly", exact: true }).click();
+    await page.getByLabel("What felt off?").fill("The pauses felt longer than that.");
+    await page.getByRole("button", { name: "Save note" }).click();
+    await sleep(600);
+    await page.reload();
+    await q.waitFor({ timeout: 20000 });
+    await sleep(1200);
+    await q.scrollIntoViewIfNeeded();
+    await shot(page, "log", { fullPage: false, settle: 500 });
+    await ctx.close();
+  });
 
   // Privacy's Testers section, cut from the page.
   await step(["privacy"], async () => {

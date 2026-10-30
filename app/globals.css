@@ -3782,6 +3782,16 @@ summary::-webkit-details-marker {
   animation: fade-in var(--duration-base) var(--ease-out);
 }
 
+/* The match check's note (components/tester/MatchCheck) while it is
+   being typed: a keyboard that shrinks the page (Android's in-app
+   browsers, Samsung Internet, Firefox) leaves too little height for the
+   note and a sticky shelf both, so the shelf steps back into the flow
+   until the note lets go. It holds its place in the layout either way,
+   so nothing above it moves. */
+:root:has(#match-note:focus) [data-shelf] {
+  position: static;
+}
+
 /* The tester code's cells (app/tester): the next empty cell holds a
    caret in the tap's colour while the field has focus, blinking at the
    system's rate. Reduced motion keeps it lit. */

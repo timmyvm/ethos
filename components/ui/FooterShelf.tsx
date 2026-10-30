@@ -32,6 +32,7 @@ export function FooterShelf({
 }) {
   return (
     <div
+      data-shelf=""
       className={`${sticky ? "sticky bottom-0 z-10" : ""} -mx-5 mt-auto bg-ground px-5 pt-4 pb-[max(16px,env(safe-area-inset-bottom))] ${
         hairline ? "border-t border-hairline" : ""
       } ${className}`}

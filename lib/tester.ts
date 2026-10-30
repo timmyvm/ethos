@@ -183,23 +183,23 @@ export interface StoredForSnapshot {
  * page shows, from the row. No previous Index (the Log shows none), and
  * the judged scores only when the coach's read was stored.
  */
-export function storedSnapshotInput(rep: StoredForSnapshot): SnapshotInput {
-  const pauses = rep.pauses ?? [];
-  const tier2 = rep.dimensions?.tier2 ?? null;
+export function storedSnapshotInput(stored: StoredForSnapshot): SnapshotInput {
+  const pauses = stored.pauses ?? [];
+  const tier2 = stored.dimensions?.tier2 ?? null;
   return {
-    ethosIndex: rep.ethos_index,
+    ethosIndex: stored.ethos_index,
     previousIndex: null,
     metrics: {
-      stars: rep.stars,
-      wpm: rep.wpm,
-      fillerCount: rep.filler_count,
-      durationS: rep.duration_s,
+      stars: stored.stars,
+      wpm: stored.wpm,
+      fillerCount: stored.filler_count,
+      durationS: stored.duration_s,
       pauses,
       heldPauses: pauses.filter((p) => p.kind !== "beat").length,
     },
-    tier1: rep.dimensions?.tier1 ?? {},
+    tier1: stored.dimensions?.tier1 ?? {},
     coach: tier2 ? { dimensions: tier2 } : null,
-    captureMode: rep.capture_mode,
+    captureMode: stored.capture_mode,
     judged: { ran: tier2 !== null },
   };
 }

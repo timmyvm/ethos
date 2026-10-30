@@ -151,9 +151,10 @@ export function MatchCheck({
             }}
             placeholder={MATCH_COPY.notePlaceholder}
             enterKeyHint="done"
-            /* Clear of the sticky shelf when the keyboard shrinks the
-               page and the browser scrolls the field into view. */
-            className={`${INPUT_CLASS} mt-1.5 block scroll-mb-36 resize-none py-2.5 leading-snug`}
+            /* While it has focus a sticky shelf steps back into the flow
+               (app/globals.css, #match-note), so a keyboard that shrinks
+               the page never leaves the shelf over the field. */
+            className={`${INPUT_CLASS} mt-1.5 block resize-none py-2.5 leading-snug`}
           />
         </div>
       )}

@@ -2082,7 +2082,7 @@ function Results({
               clientId={resultKey}
               repId={result.repId}
               scores={snapshot}
-              className="mt-6 mb-7 border-b border-hairline pb-2"
+              className="mt-6 mb-7 border-b border-hairline pb-4"
             />
           )}
 

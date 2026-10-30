@@ -19,19 +19,20 @@ import { DISABLED_CLASS, INPUT_CLASS } from "@/lib/ui";
 type Status = "idle" | "saving" | "saved" | "failed";
 
 /**
- * The match check (migration 0020, docs/testers.md): a tester's one
- * question about the score they were just shown. Testers only; the
+ * The match check (migrations 0020 and 0022, docs/testers.md): a
+ * tester's question about the score they were just shown, "Did the
+ * score feel right?", answered as a direction. Testers only; the
  * results screen decides that (`showsMatchCheck`) and a non-tester's
  * screen never mounts this.
  *
  * It is the screen's quiet second thing, never its tap: the neutral
  * segmented control (no terracotta, no lift), one tap to answer, and the
- * answer can change. Roughly and No open a note, optional, saved with
- * its own secondary button or when the field is left. Every save is the
- * whole row upserted on the recording's outbox key, so the last answer
+ * answer can change. Too low and Too high open a note, optional, saved
+ * with its own secondary button or when the field is left. Every save
+ * upserts the recording's row on its outbox key, so the last answer
  * wins and a retry sends exactly what is on screen; a save that has not
- * landed waits on the phone and goes again from the next recording
- * screen (lib/tester-client.ts).
+ * landed waits on the phone, with how it felt if that is waiting too,
+ * and goes again from the next recording screen (lib/tester-client.ts).
  *
  * It asks on the debrief's last step, after the score and the numbers,
  * and again at the foot of the recording's page in the Log, where an
@@ -69,7 +70,8 @@ export function MatchCheck({
     let live = true;
     fetchMatch(clientId)
       .then((given) => {
-        if (!live || !given || last.current) return;
+        // How it felt alone is no answer to this question.
+        if (!live || !given?.answer || last.current) return;
         if (given.scores) shown.current = given.scores;
         const n = given.note ?? "";
         last.current = { answer: given.answer, note: n };
@@ -95,7 +97,7 @@ export function MatchCheck({
       const ok = await saveMatch(row);
       if (mine !== latest.current) return;
       setStatus(ok ? "saved" : "failed");
-      if (ok) setSavedNote(row.note);
+      if (ok) setSavedNote(row.note ?? null);
     });
   }
 

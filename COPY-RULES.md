@@ -65,18 +65,23 @@ The friends testing the scores meet a few strings nobody else does. They
 follow every rule above, and `lib/tester.test.ts` checks the ones a test
 can.
 
-- **The consent says five things and one tap.** Title "Testing Ethos",
-  the line "Here's what happens to your recordings while you test.",
-  then, as lead and sentence:
-  - What's kept: Your recordings, transcripts and scores, your answer
-    after each one, and any name, age or email you gave.
-  - What for: Making the scores accurate.
+- **The consent names everything kept, then five things, and one tap.**
+  Title "Testing Ethos", the line "Everything Ethos keeps while you
+  test, and why." (a tester agreeing again reads "Testing keeps more
+  now. Read it all, then agree again."), then, as lead and sentence:
+  - What's kept, each named on its own line: Your recordings, Transcripts,
+    Your scores, Your answers, How you use it, Your device, Your
+    connection, Problems. Timothy's list of 30 Oct, every item kept; the
+    recordings line says the camera's numbers and "Video stays on your
+    phone.", because video never uploads (Privacy's first promise).
+  - What for: Making the scores accurate and fixing what breaks.
   - Who sees it: Only Timothy, who makes Ethos. Nothing is sold, and it
-    goes only to the services named in Privacy. ("Privacy" opens the
-    Privacy page's Testers section.)
-  - Deleting it: Ask Timothy and it's all deleted, any time. Deleting
-    your account in Settings deletes it too.
-  - Under 18?: A parent has said yes.
+    goes only to the services that run the app, named in Privacy.
+    ("Privacy" opens the Privacy page's Testers section.)
+  - How long: Up to 12 months after the test ends, then it's deleted.
+  - Deleting it: Ask Timothy and it's all deleted within 7 days.
+    Deleting your account in Settings deletes it too.
+  - Under 18?: A parent or guardian has said yes.
 
   "I agree" is the one tap, and it comes after the last line: on a
   short phone it is reached by scrolling past "Under 18?", never
@@ -86,15 +91,22 @@ can.
 - **The consent is versioned.** Change a word and `CONSENT_VERSION`
   goes up with it: the server stores the version each tester agreed to,
   and a tester on an older version reads the new one before anything
-  more is kept (version 2, 30 Oct, named the services; migration 0021).
+  more is kept (version 2, 30 Oct, named the services; migration 0021.
+  Version 3, 30 Oct, named everything; migration 0022). A tester on an
+  older version is asked once, on their next open, with no code to
+  type; Settings' row reads "Testing Ethos, Agree again" until they do.
 - **The tester number is how a friend says who they are.** "Your
   tester number", the account id's first eight characters in two fours
   ("3F9A 1C2E"), with Copy. On the moment it switches on, Demos says
   "Send Timothy your tester number."
-- **The match check is one question.** "Did this score match how it
-  felt?" Yes, Roughly, No. Roughly and No open "What felt off?",
-  optional. The save line says "Answer saved", "Note saved", or "Your
-  answer didn't save." with Try again.
+- **The match check is two questions, one either side of the score.**
+  Before the score shows, one tap: "How did that feel?" Rough, Okay,
+  Strong, or Skip; tapping goes straight on to the score. After the
+  score: "Did the score feel right?" Too low, About right, Too high.
+  Too low and Too high open "What felt off?", optional. The save line
+  says "Answer saved", "Note saved", or "Your answer didn't save." with
+  Try again. Both are plain grey controls, never terracotta: the
+  screen's one terracotta tap stays its own.
 - **The doors are named for what they hold.** "Tester code" (the
   top right of the introduction's first screen, caption size and
   muted, and Settings), then "Testing Ethos, On" for a tester, and

@@ -124,17 +124,17 @@ export default function SettingsPage() {
       : null;
   const [hadPlan, setHadPlan] = useState(false);
   /* Tester mode (docs/testers.md): the About group's last door is the
-     code for everyone else and "Testing Ethos, On" for a tester. The
-     device's last answer paints first; the account's own row decides. */
-  const [testing, setTesting] = useState(false);
+     code for everyone else, "Testing Ethos, On" for a tester, and
+     "Testing Ethos, Agree again" for one on an older consent, whose door
+     opens straight on the new one. The device's last answer paints
+     first; the account's own row decides. */
+  const [testing, setTesting] = useState<"no" | "on" | "renew">("no");
   useLayoutEffect(() => {
-    setTesting(readTesterHint());
+    setTesting(readTesterHint() ? "on" : "no");
   }, []);
   useEffect(() => {
-    // A tester on an older consent is offered the code again, which
-    // leads to the consent that replaced theirs.
     fetchTester()
-      .then((t) => setTesting(isCurrentTester(t)))
+      .then((t) => setTesting(isCurrentTester(t) ? "on" : t ? "renew" : "no"))
       .catch(() => {});
   }, []);
 
@@ -561,8 +561,14 @@ export default function SettingsPage() {
         <LinkRow href="/terms?from=settings" label="Terms" />
         <LinkRow
           href="/tester?from=settings"
-          label={testing ? DOOR_COPY.settingsTesting : DOOR_COPY.settingsCode}
-          value={testing ? DOOR_COPY.settingsOn : undefined}
+          label={testing === "no" ? DOOR_COPY.settingsCode : DOOR_COPY.settingsTesting}
+          value={
+            testing === "on"
+              ? DOOR_COPY.settingsOn
+              : testing === "renew"
+                ? DOOR_COPY.settingsRenew
+                : undefined
+          }
         />
         <LinkRow
           href="mailto:hello@speakethos.com"

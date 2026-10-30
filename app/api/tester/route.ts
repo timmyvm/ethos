@@ -15,13 +15,22 @@
  *                          session (anonymous-first ones count). An
  *                          account already on this consent keeps the
  *                          time it first agreed.
+ *   { agree: n }           No code: a tester on an older consent agreeing
+ *                          to the one on screen (consent version 3 named
+ *                          everything kept; the app asks a tester on 1 or
+ *                          2 once, on their next open). Their testers
+ *                          row is the proof, so an account without one is
+ *                          refused as a wrong code would be, and spends a
+ *                          guess.
  *   { carry: token }       Signing in from an anonymous session that was
  *                          testing (lib/auth.ts): the token is that
  *                          session's, the Authorization the account's.
  *                          The consent the person gave on this phone
  *                          moves to the account, version and time as
- *                          given, and the anonymous row goes. No code:
- *                          both sessions are proof enough.
+ *                          given, and the anonymous row goes, with the
+ *                          device, usage and error rows it had sent
+ *                          (0022). No code: both sessions are proof
+ *                          enough.
  *
  * The code is TESTER_CODE on the server, "1234" when unset (Timothy's
  * pick, 30 Oct). It is compared in constant time and appears in no
@@ -92,7 +101,14 @@ export async function POST(req: NextRequest) {
 
   const given = typeof body?.code === "string" ? body.code.trim() : "";
   const expected = process.env.TESTER_CODE?.trim() || "1234";
-  if (!given || !codesMatch(given, expected)) {
+  if (!given && body?.agree !== undefined && user) {
+    // Agreeing again, with no code: only an account that is a tester.
+    const found = await testerRow(user.id);
+    if (found === "unavailable") {
+      return NextResponse.json({ error: JOINED_COPY.saveFailed }, { status: 502 });
+    }
+    if (!found) return NextResponse.json({ error: CODE_COPY.wrong }, { status: 403 });
+  } else if (!given || !codesMatch(given, expected)) {
     return NextResponse.json({ error: CODE_COPY.wrong }, { status: 403 });
   }
   await giveBack();
@@ -157,6 +173,21 @@ export async function POST(req: NextRequest) {
   });
 }
 
+/** The account's testers row, null for none, or "unavailable" when it could not be read. */
+async function testerRow(
+  userId: string
+): Promise<{ consent_version: number; consented_at: string } | null | "unavailable"> {
+  const db = supabaseAdmin();
+  if (!db) return "unavailable";
+  const { data, error } = await db
+    .from("testers")
+    .select("consent_version, consented_at")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) return "unavailable";
+  return (data as { consent_version: number; consented_at: string } | null) ?? null;
+}
+
 /**
  * The testing a person agreed to on an anonymous session, moved to the
  * account they then signed in to. Only from an anonymous session: a
@@ -217,6 +248,14 @@ async function carry(
     // read as a second tester in the report.
     const { error } = await db.from("testers").delete().eq("user_id", from.user.id);
     if (error) console.error("tester: carried row left behind", error.message);
+    // What the phone sent while it was the anonymous session is the same
+    // person's, so it moves with them: the report reads one tester, and
+    // removing their data on request finds all of it (docs/testers.md).
+    const moved = await db
+      .from("tester_events")
+      .update({ user_id: user.id })
+      .eq("user_id", from.user.id);
+    if (moved.error) console.error("tester: carried events left behind", moved.error.message);
     return NextResponse.json({
       ok: true,
       tester: { consent_version: tester.consent_version, consented_at: tester.consented_at },

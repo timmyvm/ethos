@@ -3,9 +3,10 @@
  *
  * A tester is an account the server has flagged after a four-digit code
  * and one agree tap. The flag buys nothing: no Premium, no stars, no
- * coins. What it changes is one question on results, "Did this score
- * match how it felt?", whose answers, stored beside the numbers the
- * screen showed, are how the thresholds get tuned.
+ * coins. What it changes is two questions on results: "How did that
+ * feel?" before the score shows, and "Did the score feel right?" after
+ * it, whose answers, stored beside the numbers the screen showed, are
+ * how the thresholds get tuned (0020, 0022).
  *
  * Everything here is pure and runs in the browser, so the code is not
  * here: it lives in the route (app/api/tester) and nowhere else.
@@ -13,9 +14,26 @@
 
 import { CONSENT_VERSION } from "@/content/tester";
 
-export type MatchAnswer = "yes" | "roughly" | "no";
+/** Which way the score was off, if it was (0022). */
+export type MatchAnswer = "too_low" | "about_right" | "too_high";
 
-export const MATCH_ANSWERS: readonly MatchAnswer[] = ["yes", "roughly", "no"];
+export const MATCH_ANSWERS: readonly MatchAnswer[] = ["too_low", "about_right", "too_high"];
+
+/**
+ * 0020's answers ("Did this score match how it felt?"). Still in the
+ * table and in the report, never written again: an old one reopens as
+ * no answer, since it answered a different question.
+ */
+export type OldMatchAnswer = "yes" | "roughly" | "no";
+
+export function isMatchAnswer(v: unknown): v is MatchAnswer {
+  return typeof v === "string" && (MATCH_ANSWERS as readonly string[]).includes(v);
+}
+
+/** How the recording felt, the one tap before the score shows (0022). */
+export type Felt = "rough" | "okay" | "strong";
+
+export const FELT_ANSWERS: readonly Felt[] = ["rough", "okay", "strong"];
 
 /** The note's cap, the column's too (0020 tester_feedback.note). */
 export const NOTE_MAX = 280;
@@ -33,9 +51,9 @@ export function codeReady(code: string): boolean {
   return new RegExp(`^\\d{${CODE_LENGTH}}$`).test(code);
 }
 
-/** Roughly and No open the note; Yes needs nothing more. */
+/** Too low and Too high open the note; About right needs nothing more. */
 export function asksForNote(answer: MatchAnswer | null): boolean {
-  return answer === "roughly" || answer === "no";
+  return answer === "too_low" || answer === "too_high";
 }
 
 /** A note as stored: trimmed, capped, and nothing for an empty one. */
@@ -205,10 +223,31 @@ export function storedSnapshotInput(stored: StoredForSnapshot): SnapshotInput {
 }
 
 /**
- * One row of `tester_feedback`, as the browser upserts it on
- * (user_id, client_id); the owner is added by the write itself
- * (lib/tester-client.ts saveMatch), from the session. The note goes only
- * with an answer that asks for one: Yes after No clears it.
+ * One row of `tester_feedback` as the browser upserts it on
+ * (user_id, client_id), the owner added by the write itself
+ * (lib/tester-client.ts saveMatch) from the session. A key that is not
+ * here is left as the table has it: how it felt is saved before the
+ * score and the answer after it, as two saves of one row, and neither
+ * clears the other. The recording's id goes only once it is known.
+ */
+export interface FeedbackRow {
+  client_id: string;
+  rep_id?: string;
+  answer?: MatchAnswer;
+  note?: string | null;
+  scores?: ScoreSnapshot;
+  felt?: Felt;
+  updated_at: string;
+}
+
+/** A uuid or nothing: the column is uuid, and anything else would refuse the whole row. */
+function repIdOf(repId: string | null): { rep_id?: string } {
+  return repId && UUID.test(repId) ? { rep_id: repId } : {};
+}
+
+/**
+ * The answer after the score. The note goes only with an answer that
+ * asks for one: About right after Too low clears it.
  */
 export function feedbackRow({
   clientId,
@@ -224,12 +263,10 @@ export function feedbackRow({
   note: string | null;
   scores: ScoreSnapshot;
   now?: Date;
-}) {
+}): FeedbackRow {
   return {
     client_id: clientId,
-    // A uuid or nothing: the column is uuid, and anything else would
-    // refuse the whole row.
-    rep_id: repId && UUID.test(repId) ? repId : null,
+    ...repIdOf(repId),
     answer,
     note: asksForNote(answer) ? cleanNote(note) : null,
     scores,
@@ -237,20 +274,40 @@ export function feedbackRow({
   };
 }
 
-export type FeedbackRow = ReturnType<typeof feedbackRow>;
+/** How it felt, saved the moment it is tapped, before the score shows. */
+export function feltRow({
+  clientId,
+  repId,
+  felt,
+  now = new Date(),
+}: {
+  clientId: string;
+  repId: string | null;
+  felt: Felt;
+  now?: Date;
+}): FeedbackRow {
+  return { client_id: clientId, ...repIdOf(repId), felt, updated_at: now.toISOString() };
+}
+
+/** Two saves of one row as one: the newer's keys over the older's. */
+function merged<R extends FeedbackRow>(older: R, newer: R): R {
+  return { ...older, ...newer, updated_at: newer.updated_at > older.updated_at ? newer.updated_at : older.updated_at };
+}
 
 /**
  * Answers that have not landed yet, kept on the phone by recording
- * (lib/tester-client.ts): one per recording, the newest, so a later
- * save, on this screen or the next results screen, lands what the
- * tester last said. An older answer never replaces a newer one.
+ * (lib/tester-client.ts): one row per recording, so a later save, on
+ * this screen or the next results screen, lands what the tester last
+ * said. Saves of one recording merge: how it felt, waiting, rides with
+ * the answer after the score. An older value never replaces a newer one.
  */
 export type PendingMatches<R extends FeedbackRow = FeedbackRow> = Record<string, R>;
 
 export function withPending<R extends FeedbackRow>(map: PendingMatches<R>, row: R): PendingMatches<R> {
   const had = map[row.client_id];
-  if (had && had.updated_at > row.updated_at) return map;
-  return { ...map, [row.client_id]: row };
+  if (!had) return { ...map, [row.client_id]: row };
+  const next = had.updated_at > row.updated_at ? merged(row, had) : merged(had, row);
+  return { ...map, [row.client_id]: next };
 }
 
 /** A save landed: its answer stops waiting, unless a newer one took its place. */
@@ -264,7 +321,7 @@ export function withoutPending<R extends FeedbackRow>(map: PendingMatches<R>, ro
 
 /**
  * Whether a save would store what the last one stored: the same answer,
- * and the same note as the row keeps it (none after Yes). Leaving the
+ * and the same note as the row keeps it (none after About right). Leaving the
  * note's field saves it, so the Save note tap that left it is the same
  * save and sends nothing more.
  */
@@ -274,4 +331,35 @@ export function sameSave(
 ): boolean {
   if (!prev || prev.answer !== next.answer) return false;
   return !asksForNote(next.answer) || cleanNote(prev.note) === cleanNote(next.note);
+}
+
+/**
+ * A tester who agreed to an older consent reads the new one once, on
+ * their next open (components/tester/TesterLayer.tsx), and agrees again
+ * or not. Asked over a tab or Settings only: never mid-recording, never
+ * mid-introduction, never over a page they came to read.
+ */
+const ASK_AGAIN_ON = ["/", "/lessons", "/games", "/history", "/you", "/settings", "/shop"];
+
+export function asksAgain({
+  tester,
+  asked,
+  pathname,
+}: {
+  tester: TesterRow | null | undefined;
+  /** The consent version this device last asked about (0 for never). */
+  asked: number;
+  pathname: string;
+}): boolean {
+  return (
+    !!tester &&
+    tester.consent_version < CONSENT_VERSION &&
+    asked < CONSENT_VERSION &&
+    ASK_AGAIN_ON.includes(pathname)
+  );
+}
+
+/** Where the ask goes back to: the screen it opened over, or Today. */
+export function askedFrom(raw: string | null | undefined): string {
+  return raw && ASK_AGAIN_ON.includes(raw) ? raw : "/";
 }

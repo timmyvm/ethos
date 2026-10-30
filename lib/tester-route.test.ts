@@ -254,6 +254,35 @@ describe("POST /api/tester, the consent", () => {
     expect(again).toEqual(first);
   });
 
+  /*
+   * Consent version 3 names everything kept (30 Oct). A tester on 1 or
+   * 2 reads it once on their next open and agrees again, with no code
+   * to type: their row is the proof, and the slot comes back.
+   */
+  it("lets a tester on an older consent agree to the new one without the code", async () => {
+    db.put("testers", { user_id: USER, consent_version: CONSENT_VERSION - 1, consented_at: "2026-10-29T09:00:00.000Z" });
+    h.cap = LIMITS.user.hour;
+    const res = await call({ agree: CONSENT_VERSION });
+    expect(res.status).toBe(200);
+    expect(db.row("testers", USER)).toMatchObject({ consent_version: CONSENT_VERSION });
+    expect(res.body).toMatchObject({ ok: true, tester: { consent_version: CONSENT_VERSION } });
+    expect(h.slots.get(`tester:u:${USER}`)).toBe(0);
+  });
+
+  it("without the code, still refuses an account that is not a tester, and counts it as a guess", async () => {
+    const res = await call({ agree: CONSENT_VERSION });
+    expect(res).toEqual({ status: 403, body: { error: CODE_COPY.wrong } });
+    expect(h.slots.get(`tester:u:${USER}`)).toBe(1);
+    expect((await call({ agree: CONSENT_VERSION }, { token: null })).status).toBe(403);
+    expect(db.row("testers", USER)).toBeUndefined();
+  });
+
+  it("without the code, refuses a consent the screen no longer shows", async () => {
+    db.put("testers", { user_id: USER, consent_version: CONSENT_VERSION - 1, consented_at: "2026-10-29T09:00:00.000Z" });
+    expect((await call({ agree: CONSENT_VERSION + 1 })).status).toBe(409);
+    expect(db.row("testers", USER)).toMatchObject({ consent_version: CONSENT_VERSION - 1 });
+  });
+
   it("an older consent is replaced by the new one, with the new time", async () => {
     db.put("testers", { user_id: USER, consent_version: CONSENT_VERSION - 1, consented_at: "2026-10-29T09:00:00.000Z" });
     const res = await call({ code: "1234", agree: CONSENT_VERSION });
@@ -278,6 +307,14 @@ describe("POST /api/tester, carrying testing to the account signed in to", () =>
     expect(res).toEqual({ status: 200, body: { ok: true, tester: { consent_version: CONSENT_VERSION, consented_at: AT } } });
     expect(db.row("testers", USER)).toMatchObject({ consent_version: CONSENT_VERSION, consented_at: AT });
     expect(db.row("testers", ANON)).toBeUndefined();
+  });
+
+  it("moves what the phone sent as the anonymous session with them (0022)", async () => {
+    db.put("testers", { user_id: ANON, consent_version: CONSENT_VERSION, consented_at: AT });
+    db.put("tester_events", { user_id: ANON, kind: "device", name: "open" });
+    db.put("tester_events", { user_id: ANON, kind: "usage", name: "tap", label: "Start" });
+    expect((await call({ carry: "tok_anon" })).status).toBe(200);
+    expect(db.state.tables.tester_events.map((e) => e.user_id)).toEqual([USER, USER]);
   });
 
   it("keeps the account's own consent when it is as new", async () => {
@@ -316,7 +353,8 @@ describe("POST /api/tester, carrying testing to the account signed in to", () =>
 describe("deleting the account", () => {
   it("takes the tester row, the answers and the code's rate-limit rows with it", async () => {
     await call({ code: "1234", agree: CONSENT_VERSION });
-    db.put("tester_feedback", { user_id: USER, client_id: "k1", answer: "no", note: "Felt faster" });
+    db.put("tester_feedback", { user_id: USER, client_id: "k1", answer: "too_low", note: "Felt faster", felt: "rough" });
+    db.put("tester_events", { user_id: USER, kind: "device", name: "open" });
     db.put("rate_limits", { subject: `tester:u:${USER}` });
     // On Postgres the cascade on each user_id does this (0020); the fake
     // models the same references, and scripts/check-testers-sql.mjs
@@ -324,6 +362,7 @@ describe("deleting the account", () => {
     expect((await call(undefined, { method: "DELETE", handler: deleteAccount })).status).toBe(200);
     expect(db.row("testers", USER)).toBeUndefined();
     expect(db.row("tester_feedback", USER)).toBeUndefined();
+    expect(db.row("tester_events", USER)).toBeUndefined();
     expect(db.state.tables.rate_limits).toEqual([]);
   });
 });

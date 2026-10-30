@@ -288,7 +288,7 @@
  *
  * The steps are sized for the greyscale test: strip the colour, blur
  * to 5px, and the hero still dominates, because the separation is
- * weight and MASS rather than hue. Mass is why `lead` can win at 19px
+ * weight and MASS rather than hue. Mass is why `lead` can win at 20px
  * against a 15px name above it: three ink lines outweigh one.
  *
  * These sit alongside the locked display scale (#201) rather than
@@ -306,7 +306,7 @@
   --text-title--letter-spacing: -0.02em;
   --text-title--font-weight: 700;
 
-  --text-lead: 1.1875rem;
+  --text-lead: 1.25rem;
   --text-lead--line-height: 1.4;
   --text-lead--letter-spacing: -0.011em;
 
@@ -314,7 +314,7 @@
   --text-body--line-height: 1.5;
   --text-body--letter-spacing: -0.003em;
 
-  --text-caption: 0.78125rem;
+  --text-caption: 0.8125rem;
   --text-caption--line-height: 1.45;
   --text-caption--letter-spacing: 0.008em;
 
@@ -334,7 +334,7 @@
    *   num-l    36  a ring's or a card's number
    *   num-m    24  a stat column
    *   num-s    17  a number in a row
-   * The scale is 34 / 26 / 20 / 19 / 17 / 16 / 15 / 14 / 13 / 12.5 / 10
+   * The scale is 34 / 26 / 20 / 17 / 16 / 15 / 14 / 13 / 10
    * for copy (34 is `.large-title`, 20 `.section-head`). Arbitrary
    * `text-[Npx]` / `text-[Nrem]` sizes are counted by
    * lib/type-scale.test.ts, and the count may only go down.
@@ -3662,9 +3662,10 @@ summary::-webkit-details-marker {
 }
 .group-foot {
   padding: 7px 16px 0;
-  font-size: 0.78125rem;
-  line-height: 1.45;
-  letter-spacing: 0.008em;
+  /* The caption, by its token (E08), so it reads at the caption's 13. */
+  font-size: var(--text-caption);
+  line-height: var(--text-caption--line-height);
+  letter-spacing: var(--text-caption--letter-spacing);
   color: var(--color-stone-500);
 }
 .group-row {

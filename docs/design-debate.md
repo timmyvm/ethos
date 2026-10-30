@@ -75,6 +75,20 @@ When the three builds were merged, the sign-in page's Google button was brought 
 
 - **You** is 2,063pt tall at 390, against the 2,000 target (2,293 before the fix round folded the badges past the next three into one "4 more to earn" row).
 - **The paywall on a 375x667 phone** still scrolls to show the whole Stair. The terms now sit on their own shelf with a hairline, so they no longer read as printed on the bar tops. A smaller shelf that fits the whole ladder was built and withdrawn: it left the body 5px of scroll, and check-sheet-touch measures the sheet's scroll hand-off at exactly 375x667.
+- **The score step (S07)** fills its screen and Demos speaks under the score, but as three even bands with Demos about 228pt tall, not one tight group with Demos at 200 or less. At 390x844 the tight group would leave two empty bands of about 92pt, which the new gap gate fails.
+
+### Before and after
+
+Every tab and every screen these items touched, in `docs/look/debate/`: one strip per screen, with the debate's shot (before) beside the merged build (after), light then dark, captioned with what to look for and the items on it. Today and Practice lead:
+
+- Today: `01-today-first-view.jpg`, `02-today-whole-page.jpg`, `03-today-new-account.jpg`, `04-today-this-week.jpg`, `05-today-first-view-320.jpg`
+- Practice: `06-practice.jpg`
+- The other tabs: `07-lessons.jpg`, `08-lesson-page.jpg`, `09-log.jpg`, `10-log-new-account.jpg`, `11-you.jpg`, `12-you-new-account.jpg`, `13-you-premium.jpg`, `14-shop.jpg`, `15-settings.jpg`
+- The trait page and the unit intro: `16` and `17`
+- A recording, from Record to the words: `18` to `24`
+- The paywall: `25` to `27`
+- Sheets: the trait sheet (`28`, `29`), Manage plan (`30`, `31`) and the price drop (`32`)
+- The introduction, all of it: `33` to `45`
 
 ## Your one question: D21
 
@@ -110,3 +124,5 @@ The critic's last unanswered point: #361 removed exactly these two controls beca
 The three builds were merged in order (A, then B, then C). The only text conflict was the trait page's frame, which kept both the capped stage and the named back. The merged tree passes the type check and every unit test (108 files, 2684 tests). Every tab and the touched flows were shot in light after the merge and looked at.
 
 On a production build of the merge, every browser gate passes: no band over 64px on 76 screens, the Apple checks (28, including the new capitals count), Today's colour (22) and layout (15), the introduction (81), lessons (20), motion (25 and 12) and the Google return (45). The sheet touch gate passes 41 of 41 once its paywall caption selector follows the terms into the button's shelf. That gate belongs to another run, so the one-line fix waits for it.
+
+The last check ran on the tree after the fix round: the type check is clean, 108 files and 2,688 unit tests pass, and on a fresh production build every gate above passes again with the same counts. Every screen keeps one terracotta tap at most (the Log, the Shop and Settings have none). Today's Start opens a Pausing card on a Pausing day, the boss's idle screen fits 844pt without scrolling, and Practise on You's trait sheet opens that trait's next lesson with a back that says You.

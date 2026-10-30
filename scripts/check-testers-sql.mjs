@@ -181,6 +181,29 @@ await expectOk("postgres (the SQL editor) reads the report", async () => {
   return r.rows[0].n;
 });
 
+// Every query in docs/testers.md runs as pasted in the SQL editor
+// (postgres), the tester-number lookup and the parent check included.
+{
+  const guide = readFileSync(new URL("../docs/testers.md", import.meta.url), "utf8");
+  const blocks = [...guide.matchAll(/```sql\n([\s\S]*?)```/g)].map((m) => m[1].trim());
+  if (blocks.length < 7) {
+    fails++;
+    console.log("FAIL  the guide's queries: found", blocks.length);
+  }
+  for (const [i, sql] of blocks.entries()) {
+    await expectOk(`the guide's query ${i + 1} runs`, async () => {
+      const r = await q(sql.replace(/;\s*$/, ""));
+      return `${r.rows.length} rows`;
+    });
+  }
+  await expectOk("the guide finds a tester by the number they send", async () => {
+    const number = `${A.slice(0, 4)} ${A.slice(4, 8)}`.toUpperCase();
+    const r = await q(`select user_id from tester_admin.testers where upper(left(user_id::text, 8)) = upper(replace('${number}', ' ', ''))`);
+    if (r.rows.length !== 1 || r.rows[0].user_id !== A) throw new Error(JSON.stringify(r.rows));
+    return number;
+  });
+}
+
 // The account goes: every tester row with it.
 await ex(`${"DEL" + "ETE"} from auth.users where id = '${A}'`);
 await expectOk("A's account removal takes its tester rows", async () => {

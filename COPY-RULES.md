@@ -68,25 +68,37 @@ can.
 - **The consent says five things and one tap.** Title "Testing Ethos",
   the line "Here's what happens to your recordings while you test.",
   then, as lead and sentence:
-  - What's kept: Your recordings, transcripts and scores, and your
-    answer to one question after each recording.
+  - What's kept: Your recordings, transcripts and scores, your answer
+    after each one, and any name, age or email you gave.
   - What for: Making the scores accurate.
-  - Who sees it: Only Timothy, who makes Ethos. Nothing is shared or sold.
+  - Who sees it: Only Timothy, who makes Ethos. Nothing is sold, and it
+    goes only to the services named in Privacy. ("Privacy" opens the
+    Privacy page's Testers section.)
   - Deleting it: Ask Timothy and it's all deleted, any time. Deleting
     your account in Settings deletes it too.
   - Under 18?: A parent has said yes.
 
-  "I agree" is the one tap; "Not now" leaves and stores nothing. Its one
-  negation is "Nothing is shared or sold."
+  "I agree" is the one tap, and it comes after the last line: on a
+  short phone it is reached by scrolling past "Under 18?", never
+  before it. "Not now" leaves and stores nothing. Its one negation is
+  "Nothing is sold." It never says "Nothing is shared": every
+  recording goes to the services that score and store it.
 - **The consent is versioned.** Change a word and `CONSENT_VERSION`
-  goes up with it: the server stores the version each tester agreed to.
+  goes up with it: the server stores the version each tester agreed to,
+  and a tester on an older version reads the new one before anything
+  more is kept (version 2, 30 Oct, named the services; migration 0021).
+- **The tester number is how a friend says who they are.** "Your
+  tester number", the account id's first eight characters in two fours
+  ("3F9A 1C2E"), with Copy. On the moment it switches on, Demos says
+  "Send Timothy your tester number."
 - **The match check is one question.** "Did this score match how it
   felt?" Yes, Roughly, No. Roughly and No open "What felt off?",
   optional. The save line says "Answer saved", "Note saved", or "Your
   answer didn't save." with Try again.
 - **The doors are named for what they hold.** "Tester code" (the
-  introduction's first screen, Settings), then "Testing Ethos, On" for
-  a tester, and "You're testing Ethos" once it is on.
+  top right of the introduction's first screen, caption size and
+  muted, and Settings), then "Testing Ethos, On" for a tester, and
+  "You're testing Ethos" once it is on.
 
 ## The test for every string
 

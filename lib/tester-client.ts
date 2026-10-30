@@ -126,6 +126,57 @@ export async function joinTesting(code: string): Promise<CodeAnswer> {
   return answer;
 }
 
+/** sessionStorage: the anonymous session's token, across Google's round trip. */
+const CARRY_KEY = "ethos.tester.carry";
+
+/**
+ * Before a sign-in swaps the session: the anonymous session's token,
+ * when this phone joined testing on it, so the account signed in to can
+ * take that consent with it (app/api/tester `carry`). Null for a phone
+ * that never joined, or a session that is already an account.
+ */
+export async function testerCarryToken(): Promise<string | null> {
+  if (!readTesterHint()) return null;
+  const db = supabaseBrowser();
+  if (!db) return null;
+  try {
+    const { data } = await db.auth.getSession();
+    const s = data.session;
+    return s?.user?.is_anonymous ? s.access_token : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * After the sign-in: the account takes the testing the anonymous session
+ * agreed to. Best effort; a sign-in never fails for it.
+ */
+export async function carryTesting(token: string | null): Promise<boolean> {
+  if (!token) return false;
+  const answer = await post({ carry: token }, await sessionToken());
+  if (answer.ok) keepHint(true);
+  return answer.ok;
+}
+
+/** Google is about to take the page: the token waits in this tab. */
+export function stashTesterCarry(token: string | null): void {
+  try {
+    if (token) sessionStorage.setItem(CARRY_KEY, token);
+    else sessionStorage.removeItem(CARRY_KEY);
+  } catch {}
+}
+
+/** Back from Google signed in (/auth/callback): carried once, then gone. */
+export async function carryStashed(): Promise<boolean> {
+  let token: string | null = null;
+  try {
+    token = sessionStorage.getItem(CARRY_KEY);
+    sessionStorage.removeItem(CARRY_KEY);
+  } catch {}
+  return carryTesting(token);
+}
+
 /**
  * One answer, upserted on (user_id, client_id), so a changed answer
  * replaces the last one. False on any failure, which the screen says

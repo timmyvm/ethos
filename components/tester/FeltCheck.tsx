@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ScoringWave } from "@/components/ScoringWave";
 import { FELT_COPY } from "@/content/tester";
+import type { PracticeFamily } from "@/lib/practice-family";
 import type { Felt } from "@/lib/tester";
 
 /**
@@ -73,39 +74,51 @@ function ScaleMark({ level }: { level: number }) {
 /**
  * The felt step's stage (review D4: the question floated mid-screen over
  * 215px and 260px of empty ground at 390x844, against DESIGN rule 7).
- * The take just made, with no score: the scoring panel it was read on
- * (its length and its own wave, now at rest), so the question is about
- * that recording and the free height belongs to it. It grows into the
- * room the screen has, up to 40% of it; the question and the three
- * answers rest under it, in the thumb's reach. A phone under 640px tall
- * has no room to give, and the results leave it out.
+ * The take just made, with no score: its length and its own wave, at
+ * rest, so the question is about that recording and the free height
+ * belongs to it. It grows into the room the screen has, up to 40% of
+ * it; the question and the three answers rest under it, in the thumb's
+ * reach. A phone under 640px tall has no room to give, and the results
+ * leave it out.
+ *
+ * E56: it wears the take's colour, the topic card's family fill at radius
+ * 28 with white words, its wave in the live waveform's stroke, so the
+ * colour holds from Start through Stop to the score; the amber scoring
+ * panel broke it at the one step between them.
  */
 export function FeltStage({
   levels,
   seconds,
+  family,
   className = "",
 }: {
   levels: number[];
   seconds: number;
+  /** The take's colour family (lib/practice-family.ts), as its topic card wore. */
+  family: PracticeFamily;
   className?: string;
 }) {
   const s = Math.max(0, Math.round(seconds));
   return (
     <section
       aria-label={`${FELT_COPY.stage}, ${Math.floor(s / 60)} minutes ${s % 60} seconds`}
-      className={`topic-card scoring-panel flex min-h-[148px] flex-col justify-between overflow-hidden rounded-sheet px-5 pt-5 pb-4 ${className}`}
+      data-family={family}
+      className={`family-fill flex min-h-[148px] flex-col justify-between overflow-hidden px-5 pt-5 pb-4 ${className}`}
     >
       <div>
         {/* PRINCIPLES 4: a card's eyebrow is sentence case 13/600, in
             the stage's ink. */}
-        <div className="eyebrow topic-eyebrow">{FELT_COPY.stage}</div>
-        <div className="font-display mt-1.5 text-num-l tabular-nums text-ink">
+        <div className="eyebrow text-[var(--stage-ink)]">{FELT_COPY.stage}</div>
+        <div className="font-display mt-1.5 text-num-l tabular-nums">
           {Math.floor(s / 60)}:{String(s % 60).padStart(2, "0")}
         </div>
       </div>
       {/* The wave takes the panel's free height (absolute, so its 100%
-          is the measured box, not an indefinite flex chain). */}
-      <div className="relative -mx-1 mt-3 max-h-[120px] min-h-10 flex-1">
+          is the measured box, not an indefinite flex chain), its bars in
+          the card's own ink like its words. The live waveform's stroke
+          (the trait's tone) is drawn for the plain ground: on the
+          family's fill it held 2.0 to 2.3:1, white holds 12.4. */}
+      <div className="relative -mx-1 mt-3 max-h-[120px] min-h-10 flex-1 [&_.scoring-bar]:[--bar-lit:var(--stage-ink)]!">
         <div className="absolute inset-0 flex items-center">
           <ScoringWave levels={levels} height="100%" still />
         </div>

@@ -2176,6 +2176,7 @@ function Results({
             <FeltStage
               levels={wave}
               seconds={result.metrics.durationS}
+              family={family}
               className="max-h-[40dvh] flex-1 [@media(max-height:639px)]:hidden"
             />
             <FeltCheck onAnswer={feltDone} />

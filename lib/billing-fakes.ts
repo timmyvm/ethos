@@ -694,16 +694,19 @@ interface Result {
 const UNIQUE: Record<string, string[]> = {
   billing: ["user_id", "stripe_customer_id"],
   profiles: ["user_id"],
+  testers: ["user_id"],
 };
 
-/** Tables whose user_id references auth.users on delete cascade. */
-const OWNED = ["billing", "profiles", "reps"];
+/** Tables whose user_id references auth.users on delete cascade (testers: 0020). */
+const OWNED = ["billing", "profiles", "reps", "testers", "tester_feedback"];
 
 /** Columns typed uuid: Postgres refuses to compare one with anything else (22P02). */
 const UUID_COLUMNS: Record<string, string[]> = {
   billing: ["user_id"],
   profiles: ["user_id"],
   reps: ["user_id"],
+  testers: ["user_id"],
+  tester_feedback: ["user_id"],
 };
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

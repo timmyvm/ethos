@@ -1900,6 +1900,8 @@ function Results({
   /* Where this recording came from, if a lesson sent it (#258). Read
      here rather than threaded down through eighteen props. */
   const backTo = safeBack(searchParams.get("back"));
+  /* The family the take wore (D50), for the score step's coach stage. */
+  const family = practiceFamily(config, searchParams.get("trait"));
   const [step, setStep] = useState(0);
   const section = STEPS[step].key;
   /*
@@ -2204,7 +2206,12 @@ function Results({
             <TesterPaused back="/" className="mt-6 mb-7 border-b border-hairline pb-4" />
           )}
 
-          <div className={step === 0 ? "flex flex-1 flex-col" : undefined}>
+          {/* The take's colour (D50, E55): the score step's coach stage
+              reads `--tone-wash` from here; the sky's wash with none. */}
+          <div
+            className={step === 0 ? "flex flex-1 flex-col" : undefined}
+            data-trait={step === 0 && family !== "sky" ? family : undefined}
+          >
             <RepResult
               result={result}
               topic={config.topic}

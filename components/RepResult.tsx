@@ -108,10 +108,10 @@ export function RepResult({
   celebrate?: boolean;
   /**
    * The score step fills a flex column (the recording page's walk): the
-   * score and Demos with his line share the free height out in three
-   * even bands, over, between and under them (D19, D52), so neither a
-   * hole over the stars nor one over the shelf. The parent is a
-   * `flex flex-col` the height of the room.
+   * score at the top, then Demos on a coach stage in the take's colour
+   * that takes all the free height (E55), then his line. The parent is
+   * a `flex flex-col` the height of the room, and sets `data-trait` to
+   * the practice's family (the sky's wash where it has none).
    */
   spread?: boolean;
 }) {
@@ -202,14 +202,14 @@ export function RepResult({
   const spreads = spread && debrief;
   return (
     <>
-      {spreads && <div aria-hidden className="min-h-4 flex-1" />}
       {show("score") &&
         (debrief ? (
-          /* The debrief's score step (recording-6, M07, D52): one
+          /* The debrief's score step (recording-6, M07, D52, E55): one
              centred column, stars first, then the number, one delta,
-             one caption, then Demos and his line, 24px between the
-             parts. Nothing floats off to one side. */
-          <div className="flex flex-col items-center text-center">
+             one caption, on the ground 24px under the step bar; then
+             Demos on his stage and his line. Nothing floats off to one
+             side. */
+          <div className={`flex flex-col items-center text-center ${spreads ? "mt-6 [@media(max-height:600px)]:mt-4" : ""}`}>
             {ethosIndex !== null ? (
               <>
                 <span className="[&>span]:gap-3!">
@@ -302,46 +302,70 @@ export function RepResult({
 
       {show("score") && debrief && (
         /*
-         * D52: on the score step Demos stands under the score, scaled
-         * to the room (228 at 390x844, 139 at 667, 90 at 568: the
-         * round's 22vh left 98px bands at 844 and its 120 floor pushed
-         * his line under the shelf at 568), his line under him
-         * at the column's width with its tail up at his face, so the
-         * score and what he says about it read as one group down the
-         * step (`spread`). Beside a Demos that size the bubble would be 150px
-         * wide and his line three or four lines tall. The celebrate
-         * pose, with its sparkles and burst, is only for a new best
-         * Index or three stars (lib/rewards `celebrates`).
+         * E55, E58: the score step's free height is Demos's stage, not
+         * ground. Under the score (which stays the loudest thing, 665 at
+         * 72), a stage in the take's own colour (`--tone-wash` from the
+         * column's data-trait: #e6edff, #142333 dark, on a Pausing day;
+         * the sky's wash for the boss and the games) takes every spare
+         * pixel at radius 28, so the step reads as the score and a coach
+         * who stands somewhere. He stands centred on the introduction's
+         * soft contact shadow 20px over its foot, scaled to the stage
+         * (88 to 200: 100cqh less 20 over and 20 under), and his line
+         * hangs under it with its tail up at him. The celebrate pose,
+         * with its sparkles and burst, is only for a new best Index or
+         * three stars (lib/rewards `celebrates`). It used to be three
+         * even bands of bare ground with a 228px Demos as the step's
+         * biggest object (D52).
          */
-        <>
-        <div aria-hidden className={spreads ? "min-h-6 flex-1" : "h-6"} />
-        <div className="flex w-full flex-col items-center">
-          <div className="relative size-[clamp(88px,calc(50dvh_-_194px),228px)] [container-type:size]">
-            {celebrating ? (
-              <DemosArt
-                key="celebrate"
-                pose="celebrate"
-                size={228}
-                fit
-                greetAfterMs={0}
-                className="fade-in"
-              />
-            ) : (
-              <DemosArt
-                key="speaking"
-                pose="speaking"
-                size={228}
-                fit
-                greetAfterMs={timed && !celebrate ? bubbleAt + SAID_AFTER_MS : undefined}
-              />
-            )}
-            {celebrating && (
-              <span aria-hidden className="earned-burst">
-                {Array.from({ length: 12 }, (_, i) => (
-                  <i key={i} />
-                ))}
-              </span>
-            )}
+        <div className="flex w-full flex-1 flex-col items-center">
+          {/* The stage's room is an absolute inset-0 size container (as
+              `.demos-fit-room`): a flex-grown box's own height is not one
+              its container units can read. On a phone under 600px tall
+              (320x568) there is no spare height to give: the score and
+              the stage close up 8px each, the stage takes what is left
+              over his line, so the line stays over the shelf, and he
+              stands 8px over its foot from 64px up. */}
+          <div
+            data-coach-stage
+            className={`relative mt-5 w-full rounded-[28px] bg-[var(--tone-wash,var(--pop-sky-wash))] [@media(max-height:600px)]:mt-3 ${
+              spreads ? "min-h-[140px] flex-1 [@media(max-height:600px)]:min-h-0" : "h-[240px]"
+            }`}
+          >
+            <div className="absolute inset-0 [container-type:size]">
+            <div className="absolute bottom-5 left-1/2 size-[clamp(88px,calc(100cqh_-_40px),200px)] -translate-x-1/2 [container-type:size] [@media(max-height:600px)]:bottom-2 [@media(max-height:600px)]:size-[clamp(64px,calc(100cqh_-_12px),200px)]">
+              {celebrating ? (
+                /* The still, not the clip: the celebrate clip's alpha
+                   leaves a white matte over his head on a coloured
+                   stage (it only ever stood on the plain ground). */
+                <DemosArt
+                  key="celebrate"
+                  pose="celebrate"
+                  size={200}
+                  fit
+                  grounded
+                  idle={false}
+                  greetAfterMs={0}
+                  className="fade-in"
+                />
+              ) : (
+                <DemosArt
+                  key="speaking"
+                  pose="speaking"
+                  size={200}
+                  fit
+                  grounded
+                  greetAfterMs={timed && !celebrate ? bubbleAt + SAID_AFTER_MS : undefined}
+                />
+              )}
+              {celebrating && (
+                <span aria-hidden className="earned-burst">
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <i key={i} />
+                  ))}
+                </span>
+              )}
+            </div>
+            </div>
           </div>
           <div
             className={`mt-3 w-full text-left ${timed ? "arrive" : ""}`}
@@ -355,7 +379,6 @@ export function RepResult({
             )}
           </div>
         </div>
-        </>
       )}
 
       {show("score") && !debrief && (
@@ -414,7 +437,6 @@ export function RepResult({
           <AccuracyCard accuracy={result.accuracy} topic={topic} />
         </div>
       )}
-      {spreads && <div aria-hidden className="flex-1" />}
 
       {show("numbers") && (
         <>

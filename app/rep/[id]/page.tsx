@@ -51,9 +51,7 @@ interface Stored {
  */
 async function readStored(id: string): Promise<Stored> {
   const rep = await fetchRep(id);
-  const audio = rep?.audio_path
-    ? await repAudioUrl(rep.audio_path).catch(() => null)
-    : null;
+  const audio = rep?.audio_path ? await repAudioUrl(rep.id).catch(() => null) : null;
   return { rep, audio };
 }
 

@@ -4,7 +4,7 @@
  * honest empty states, never fake numbers.
  */
 
-import { supabaseBrowser } from "./supabase-browser";
+import { sessionToken, supabaseBrowser } from "./supabase-browser";
 import type { AccuracyResult } from "./accuracy";
 import type { JudgedDimension } from "./coach";
 import type { CoinRow } from "./coins";
@@ -186,13 +186,22 @@ export async function fetchXp(): Promise<{ total: number; week: number }> {
   return { total, week };
 }
 
-/** Short-lived signed URL for a rep's audio (the bucket stays private). */
-export async function repAudioUrl(path: string | null): Promise<string | null> {
-  if (!path) return null;
-  const db = supabaseBrowser();
-  if (!db) return null;
-  const { data } = await db.storage.from("audio").createSignedUrl(path, 3600);
-  return data?.signedUrl ?? null;
+/**
+ * A short-lived link to play one stored recording, or null. The server
+ * signs it (app/api/audio) after checking the recording is this
+ * account's: the bucket stays private and the browser never signs
+ * storage itself, so no storage policy has to let it.
+ */
+export async function repAudioUrl(repId: string): Promise<string | null> {
+  const token = await sessionToken();
+  if (!token) return null;
+  const res = await fetch(`/api/audio?rep=${encodeURIComponent(repId)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (!res.ok) return null;
+  const body = (await res.json().catch(() => null)) as { url?: unknown } | null;
+  return typeof body?.url === "string" ? body.url : null;
 }
 
 export interface ProfileRow {

@@ -35,7 +35,10 @@ const L: Record<string, [string, TipGlyph]> = {
   "Slow the sentence that carries the point, and only that one.": ["Slow the key sentence", "slow"],
   "Speed is a tool for the middle of a list and a liability at the end of an argument.": ["Never rush the ending", "slow"],
   "If you are rushing, you are usually afraid of the silence. Take the silence.": ["Take the silence", "pause"],
-  "Name the thing once properly, then use a pronoun. Repeating the full phrase is what reads as padding.": ["Name it once", "word"],
+  /* Not "Name it once": that is the lesson's title and a path angle,
+     and the heading over the tiles never repeats a tile (E50,
+     lib/daily-practice.test.ts). */
+  "Name the thing once properly, then use a pronoun. Repeating the full phrase is what reads as padding.": ["Name it, then a pronoun", "word"],
   "Your crutch word is the one you cannot hear. The recording can.": ["Catch your crutch word", "word"],
   "A short concrete noun beats a long abstract one every time.": ["Concrete nouns", "word"],
 
@@ -43,7 +46,8 @@ const L: Record<string, [string, TipGlyph]> = {
   "Say your position in the first sentence. Don't warm up to it.": ["Your side, sentence one", "start"],
   "One reason, one example, then stop.": ["One reason, one example", "one"],
   "Name the strongest objection and answer it in a line.": ["Answer the objection", "word"],
-  "Start in the middle of the action, not the background.": ["Start mid-action", "start"],
+  /* A non-breaking hyphen (U+2011): "mid-" never ends a tile's line. */
+  "Start in the middle of the action, not the background.": ["Start mid\u2011action", "start"],
   "One scene. Resist covering the whole week.": ["One scene only", "one"],
   "End on what changed, not on 'so yeah'.": ["End on what changed", "end"],
   "Open with what it IS in one sentence.": ["Say what it is", "start"],

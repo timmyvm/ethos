@@ -12,6 +12,7 @@
 import { COLD_TOPICS, weeklyTopic, type ColdTopic } from "./cold-topics";
 import { DRILLS, todaysDrill } from "./drills";
 import { lessonById } from "@/content/lessons";
+import { pathItemById } from "@/content/path";
 import {
   dailyQuestion,
   gameById,
@@ -61,6 +62,13 @@ export interface RepConfigInput {
   boss?: string | null;
   /** A roulette topic id — the user span for it rather than choosing. */
   topic?: string | null;
+  /**
+   * The path item Today's card printed (content/path.ts), when its Start
+   * opened that practice's topic (E52). The recording screen heads with
+   * its angle and leads with its tactic, so the tile under your thumb is
+   * the one the card promised. Ignored unless the item's topic is `topic`.
+   */
+  item?: string | null;
   /** A game id from the Games tab, with `q` naming the drawn question. */
   game?: string | null;
   q?: string | null;
@@ -163,17 +171,28 @@ export function resolveRepConfig(
 
   const roulette = topicById(input.topic);
   if (roulette) {
+    /*
+     * Today's Start carries the practice it printed (E52): the card said
+     * "Today's practice", the angle and "Pause after the full stop", so
+     * the recording screen says the same three things, the angle where a
+     * lesson's title goes and the tactic on tile 1. A spun topic carries
+     * no item: the roulette named its shape, so it keeps the shape's tips.
+     * The take itself is the topic's either way (`topic:<id>`): no star,
+     * gate or family moves with the item.
+     */
+    const item = pathItemById(input.item);
+    const practice = item && item.topicId === roulette.id ? item : null;
     return {
       ...base,
       kind: "daily",
       lessonId: `topic:${roulette.id}`,
-      unit: `Roulette · ${TOPIC_SHAPES[roulette.shape].label}`,
+      unit: practice ? "Today's practice" : `Roulette · ${TOPIC_SHAPES[roulette.shape].label}`,
       title: roulette.prompt,
-      prompt: "You didn't pick this one. Sixty to ninety seconds.",
+      prompt: practice ? practice.title : "Sixty to ninety seconds.",
       maxSeconds: tight ? TIGHT_MAX_SECONDS : DAILY_MAX_SECONDS,
       xpMultiplier: xpMultiplier(mods),
       topic: null,
-      tips: TOPIC_SHAPES[roulette.shape].tips,
+      tips: practice ? practice.tips : TOPIC_SHAPES[roulette.shape].tips,
       rouletteTopic: roulette,
     };
   }
@@ -276,11 +295,33 @@ export function resolveRepConfig(
   };
 }
 
+/**
+ * Which string is the TOPIC and which the heading under it. A lesson or a
+ * practice names itself in `title` and puts what you will talk about in
+ * `prompt`; a roulette spin (Today's practice included), a game question
+ * and a boss put the topic in `title` and the direction in `prompt`. The
+ * topic takes the card either way, and the other is the one line of what
+ * to do over the three tiles (COPY-RULES: one line).
+ */
+export function recordingText(
+  config: Pick<RepConfig, "kind" | "rouletteTopic" | "lessonId" | "title" | "prompt">
+): { topic: string; heading: string } {
+  const topicFirst =
+    config.kind === "boss" ||
+    config.rouletteTopic !== null ||
+    config.lessonId.startsWith("game:");
+  return topicFirst
+    ? { topic: config.title, heading: config.prompt }
+    : { topic: config.prompt, heading: config.title };
+}
+
 /** Query string for a configured rep — one place builds the link. */
 export function repHref(opts: {
   lesson?: string;
   boss?: string;
   topic?: string;
+  /** The path item Today's card printed, with its `topic` (E52). */
+  item?: string;
   game?: string;
   /** The drawn question, so a shared game link repeats the same rep. */
   q?: string;
@@ -303,8 +344,10 @@ export function repHref(opts: {
   else if (opts.game) {
     q.set("game", opts.game);
     if (opts.q) q.set("q", opts.q);
-  } else if (opts.topic) q.set("topic", opts.topic);
-  else if (opts.lesson) {
+  } else if (opts.topic) {
+    q.set("topic", opts.topic);
+    if (opts.item) q.set("item", opts.item);
+  } else if (opts.lesson) {
     q.set("lesson", opts.lesson);
     /* A lesson practice carries WHICH of its three. `q` used to be
        bound to the game branch alone, so a lesson could only ever
@@ -320,11 +363,12 @@ export function repHref(opts: {
 
 /**
  * Which recording a /rep address asks for: everything that changes the
- * take (lesson, topic, boss, game, question, mods), and nothing that only
+ * take or what its screen says (lesson, topic, item, boss, game,
+ * question, mods), and nothing that only
  * says where to go after it (`back`). The recording screen resets when
  * this changes, and only then.
  */
-const REP_KEY_PARAMS = ["lesson", "topic", "boss", "game", "q", "mods"] as const;
+const REP_KEY_PARAMS = ["lesson", "topic", "item", "boss", "game", "q", "mods"] as const;
 
 export function repKey(params: { get(k: string): string | null }): string {
   return REP_KEY_PARAMS.map((k) => params.get(k) ?? "").join("|");

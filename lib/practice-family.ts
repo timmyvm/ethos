@@ -32,3 +32,15 @@ export function practiceFamily(
   if (own) return own;
   return pressed && Object.prototype.hasOwnProperty.call(TRAIT, pressed) ? (pressed as TraitId) : "sky";
 }
+
+/**
+ * Day one's colour (E20): the family of the lesson day one's Start opens
+ * (`nextLesson`, The baseline for a new account, which is Fillers), so
+ * Today's first card, the unit intro it leads to and the recording card
+ * after that are one colour (D50). Pausing's blue, the house's, only
+ * when there is no lesson to name. Read by Today and by the
+ * introduction's plan, which previews that card.
+ */
+export function dayOneFamily(next: { lesson: { id: string } } | null): TraitId {
+  return (next && recordingTrait({ lesson_id: next.lesson.id })) ?? "pause";
+}

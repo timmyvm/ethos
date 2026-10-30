@@ -120,6 +120,7 @@ import { draw, gameById } from "@/lib/games";
 import { lessonById } from "@/content/lessons";
 import { parsePracticeId } from "@/lib/lesson-progress";
 import {
+  recordingText,
   repHref,
   repKey,
   resolveRepConfig,
@@ -274,6 +275,7 @@ function RepScreen() {
         lesson: searchParams.get("lesson"),
         boss: searchParams.get("boss"),
         topic: searchParams.get("topic"),
+        item: searchParams.get("item"),
         game: searchParams.get("game"),
         q: searchParams.get("q"),
         mods: searchParams.get("mods"),
@@ -1351,26 +1353,15 @@ function RepScreen() {
 
   const capLabel = fmt(config.maxSeconds);
   const promptHidden = config.hidePrompt && phase !== "idle";
-  /*
-   * Which string is the TOPIC. A lesson or a practice names itself in
-   * `title` and puts what you will talk about in `prompt`; a roulette
-   * spin, a game question and a boss put the topic in `title` and the
-   * direction in `prompt`. The topic takes the card either way, and the
-   * other becomes the one line of what to do (COPY-RULES: one line).
-   */
-  const topicFirst =
-    config.kind === "boss" ||
-    config.rouletteTopic !== null ||
-    config.lessonId.startsWith("game:");
-  const topicText = topicFirst ? config.title : config.prompt;
+  /* Which string is the TOPIC and which the line over the tiles
+     (lib/rep-config.ts `recordingText`, held by its tests). */
+  const { topic: topicText, heading } = recordingText(config);
   /* The boss's prompt carries a scoring rule after its first sentence
      ("wrong claims cost more"). It is not cut: it shows as a tactic
      face under the line, sentence on tap, because the score may not
      mark down something the screen never said (review, 25 Sep). */
   const bossParts = config.kind === "boss" ? splitPrompt(config.prompt) : null;
-  const doLine = topicFirst
-    ? (bossParts?.line ?? config.prompt)
-    : config.title;
+  const doLine = bossParts?.line ?? heading;
   const doRule = bossParts?.rule ?? null;
   /*
    * A tip yields to a live nudge: the nudge is about this second of this

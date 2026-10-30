@@ -66,6 +66,7 @@ import { introDue, introHref, nextLesson, UNITS } from "@/lib/path";
 import { DOOR_COPY } from "@/content/tester";
 import { buildPortfolio } from "@/lib/portfolio";
 import { readPrefs, writePrefs } from "@/lib/prefs";
+import { dayOneFamily } from "@/lib/practice-family";
 import { repHref } from "@/lib/rep-config";
 import { useHourLabel } from "@/lib/time-label";
 import { INPUT_ANSWER_CLASS } from "@/lib/ui";
@@ -1276,17 +1277,18 @@ function PlanSteps({ label, steps }: { label: string; steps: PlanStep[] }) {
 
 /**
  * Day one, previewed under the month (D49): Today's first card as it
- * will stand tomorrow morning, in Pausing's family (`.family-fill`, the
- * house's blue, with Today's feet), the hourglass at its corner and the
- * same words Today says on day one. Not a button: the plan's tap is
- * still Next. It fills the band the rail left over the shelf.
+ * will stand tomorrow morning, in the family of the lesson its Start
+ * opens (E20, `dayOneFamily`: The baseline, Fillers), the hourglass at
+ * its corner and the same words Today says on day one. Not a button:
+ * the plan's tap is still Next. It fills the band the rail left over
+ * the shelf.
  */
 function DayOne() {
   return (
     /* 160 at the least, taller where the room has it (216 at most), so
        the month and its first day fill the screen over Next. */
     <div
-      data-family="pause"
+      data-family={dayOneFamily(nextLesson({}))}
       className="family-fill mt-6 flex min-h-40 max-h-[216px] flex-1 flex-col justify-between rounded-[var(--radius-tile)]! p-5"
     >
       {/* eslint-disable-next-line @next/next/no-img-element -- lesson art is a plain img (#274) */}

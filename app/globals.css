@@ -1287,8 +1287,10 @@ body::after {
    and it arrives as the blur comes up rather than as a flat fade. */
 .sheet-scrim {
   background: color-mix(in srgb, var(--color-stage) 42%, transparent);
-  -webkit-backdrop-filter: blur(6px) saturate(120%);
-  backdrop-filter: blur(6px) saturate(120%);
+  /* D15: 2px, so the page behind a sheet stays the page you were on
+     (6px smeared You past recognition); the 42% dim does the work. */
+  -webkit-backdrop-filter: blur(2px) saturate(110%);
+  backdrop-filter: blur(2px) saturate(110%);
   animation: fade-in var(--duration-max) var(--ease-out) backwards;
 }
 .sheet-scrim[data-closing="true"] {

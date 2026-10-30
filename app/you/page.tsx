@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AchievementMark, IconFlame, IconGear, IconPencil } from "@/components/Icon";
 import { Overlay } from "@/components/ui/Overlay";
+import { SheetHead } from "@/components/ui/SheetHead";
 import { YouDemos } from "@/components/you/YouDemos";
 import { PremiumDoor, PremiumMark } from "@/components/PremiumMark";
 import { CountUp } from "@/components/CountUp";
@@ -34,6 +35,7 @@ import {
   type RepSpine,
 } from "@/lib/client-data";
 import { LEVEL_AT, DOUBLE_AT, rankedTraits, traitLevels, type TraitLevel } from "@/lib/traits";
+import { practiseHref, sheetReading } from "@/lib/trait-sheet";
 import { TRAIT, type TraitId } from "@/content/traits";
 import { syncFreezes } from "@/lib/freeze-sync";
 import { levelFromXp } from "@/lib/level";
@@ -1027,7 +1029,7 @@ export default function YouPage() {
       </div>
 
       {openTrait && (
-        <TraitSheet trait={openTrait} onClose={() => setOpenTrait(null)} />
+        <TraitSheet trait={openTrait} reps={history} onClose={() => setOpenTrait(null)} />
       )}
 
       {paywall && (
@@ -1241,49 +1243,68 @@ const WHAT: Record<string, string> = {
 
 /**
  * A trait, explained where you asked (26 Sep, Timothy: "trait click to
- * pop up explanation", #317). What it measures, the level, and the rule
- * that moves it, with its two numbers. COPY-RULES: the mechanic is
- * explained at the moment somebody reaches for it, never printed on the
- * page.
+ * pop up explanation", #317), and since D37 how you speak it: the last
+ * reading in its own unit and where it places you, what it measures,
+ * the level with the rule that moves it, and for the five the lessons
+ * teach, the way to practise it. COPY-RULES: the mechanic is explained
+ * at the moment somebody reaches for it, never printed on the page.
+ *
+ * It closes with Done at the top right, as every information sheet does
+ * (D15). Its "Practise" covers You's "Make the card", so each visible
+ * layer still has one terracotta.
  */
-function TraitSheet({ trait, onClose }: { trait: TraitLevel; onClose: () => void }) {
+function TraitSheet({
+  trait,
+  reps,
+  onClose,
+}: {
+  trait: TraitLevel;
+  reps: RepRow[];
+  onClose: () => void;
+}) {
   const toned = isToned(trait.key);
   const name = toned ? TRAIT[trait.key as TraitId].name : trait.name;
   const what = toned ? TRAIT[trait.key as TraitId].what : WHAT[trait.key];
+  const reading = sheetReading(trait.key, reps);
+  const practise = practiseHref(trait.key);
   return (
     <Overlay label={name} onClose={onClose}>
       <div
         data-trait={toned ? trait.key : undefined}
-        className="elev-3 w-full max-w-[430px] rounded-t-sheet bg-raised px-6 pb-8 pt-6"
+        className="elev-3 w-full max-w-[430px] rounded-t-sheet bg-raised px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2"
       >
-        <div aria-hidden className="mx-auto mb-5 h-1 w-10 rounded-full bg-stone-300" />
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="eyebrow flex items-center gap-1.5">
-              {toned && <span aria-hidden className="trait-dot" />}
-              Trait
-            </div>
-            <h2 className="font-display mt-1 text-title font-extrabold">{name}</h2>
-          </div>
+        <SheetHead onClose={onClose} />
+        <div className="eyebrow flex items-center gap-1.5">
+          {toned && <span aria-hidden className="trait-dot" />}
+          Trait
+        </div>
+        <h2 className="font-display mt-1 text-title font-extrabold">{name}</h2>
+        {/* How you speak it, before what it is (D37): the number at
+            num-l with its unit, then where it places you. */}
+        <p className="mt-3 flex items-baseline gap-1.5">
+          <span className="font-display text-num-l tabular-nums">{reading ? reading.value : "–"}</span>
+          {reading && <span className="font-display text-body font-semibold text-stone-500">{reading.unit}</span>}
+        </p>
+        {reading?.placement && (
+          <p className="font-display text-link text-stone-500">{reading.placement}</p>
+        )}
+        <p className="mt-4 text-read text-stone-800 text-pretty">{what}</p>
+        {/* The level and the rule that moves it, side by side. */}
+        <div className="mt-4 flex items-center gap-4">
           <div className="flex size-16 shrink-0 flex-col items-center justify-center rounded-card bg-surface">
-            <span className="font-display text-num-m tabular-nums">
-              {trait.level}
-            </span>
+            <span className="font-display text-num-m tabular-nums">{trait.level}</span>
             <span className="label-micro mt-1">Level</span>
           </div>
+          <p className="text-caption leading-relaxed text-stone-500">
+            A recording levels it when this is its best score and clears{" "}
+            {LEVEL_AT}. Over {DOUBLE_AT} counts twice.
+          </p>
         </div>
-        <p className="mt-4 text-read text-stone-800 text-pretty">{what}</p>
-        <p className="mt-3 text-caption leading-relaxed text-stone-500">
-          A recording levels it when this is its best score and clears{" "}
-          {LEVEL_AT}. Over {DOUBLE_AT} counts twice.
-        </p>
-        <button
-          type="button"
-          onClick={onClose}
-          className="press font-display mt-6 flex min-h-12 w-full items-center justify-center rounded-control bg-surface text-body font-bold"
-        >
-          Done
-        </button>
+        {practise && (
+          <Link href={practise} className={`${ACTION_CLASS} mt-6`}>
+            Practise {name}
+          </Link>
+        )}
       </div>
     </Overlay>
   );

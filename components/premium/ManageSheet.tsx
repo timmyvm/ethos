@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
 import { PremiumMark } from "@/components/PremiumMark";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { Overlay, useOverlayClose } from "@/components/ui/Overlay";
+import { SheetHead } from "@/components/ui/SheetHead";
 import { useAttempts, type Attempts } from "@/lib/attempt";
 import { cancelPlan, currentPath, openPortal, resumePlan, syncPlan } from "@/lib/billing-client";
 import type { BillingRow } from "@/lib/client-data";
@@ -226,28 +227,34 @@ function ManageBody({
       onClick={() => void portal("portal-row")}
     />
   );
-  const cancelRow = (
-    <Row
-      label={MANAGE_COPY.cancel}
-      disabled={locked}
-      expands
-      onClick={() => {
-        if (locked) return;
-        setError(null);
-        setConfirming(true);
-      }}
-    />
+  /* D44: Cancel plan is its own group, a centred red word with no
+     chevron, so it reads as the action it is, never as a door. One tap
+     still opens the confirm in place (#386). */
+  const cancelGroup = (
+    <div className={`${GROUP} mt-4`}>
+      <button
+        type="button"
+        onClick={() => {
+          if (locked) return;
+          setError(null);
+          setConfirming(true);
+        }}
+        aria-disabled={locked || undefined}
+        aria-expanded={false}
+        data-look="cancel-plan"
+        className="group-row press-row font-display flex w-full items-center justify-center text-center text-detail font-semibold text-destructive aria-disabled:text-stone-400"
+      >
+        {MANAGE_COPY.cancel}
+      </button>
+    </div>
   );
 
   return (
-    <div className="elev-3 max-h-[calc(100dvh-max(1rem,env(safe-area-inset-top)))] w-full max-w-[430px] overflow-x-hidden overflow-y-auto overscroll-contain rounded-t-sheet border border-b-0 border-transparent bg-raised px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-7 text-ink dark:border-card-edge dark:bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-raised),#fff_4.6%)_0,var(--color-raised)_88px)]">
-      <div aria-hidden className="mx-auto -mt-3 mb-3 h-1 w-10 rounded-full bg-stone-300" />
-      <div className="flex items-center justify-between">
-        <PremiumMark variant="chip" />
-        <button type="button" onClick={close} className="press font-display -mr-2 min-h-11 rounded-control px-2 text-row">
-          {MANAGE_COPY.done}
-        </button>
-      </div>
+    <div className="elev-3 max-h-[calc(100dvh-max(1rem,env(safe-area-inset-top)))] w-full max-w-[430px] overflow-x-hidden overflow-y-auto overscroll-contain rounded-t-sheet border border-b-0 border-transparent bg-raised px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2 text-ink dark:border-card-edge dark:bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-raised),#fff_4.6%)_0,var(--color-raised)_88px)]">
+      {/* The grabber and Done in one row, as every information sheet
+          closes (D15), then the tier's mark. */}
+      <SheetHead onClose={close} label={MANAGE_COPY.done} />
+      <PremiumMark variant="chip" />
       <p role="status" className="sr-only">
         {said}
       </p>
@@ -376,16 +383,16 @@ function ManageBody({
                 disabled={locked}
                 onClick={() => void portal("portal-row")}
               />
-              {cancelRow}
             </div>
+            {cancelGroup}
           </>
         ) : panel === "pending" ? (
           <div className={GROUP}>{updateRow}</div>
         ) : panel === "price" ? (
-          <div className={GROUP}>
-            {updateRow}
-            {cancelRow}
-          </div>
+          <>
+            <div className={GROUP}>{updateRow}</div>
+            {cancelGroup}
+          </>
         ) : null}
       </Morph>
 
@@ -428,15 +435,12 @@ function Row({
   note,
   busy = false,
   disabled = false,
-  expands = false,
   onClick,
 }: {
   label: string;
   note?: string;
   busy?: boolean;
   disabled?: boolean;
-  /** Opens the confirm in place rather than leaving the sheet. */
-  expands?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -447,7 +451,6 @@ function Row({
       }}
       aria-disabled={disabled || undefined}
       aria-busy={busy || undefined}
-      aria-expanded={expands ? false : undefined}
       className="group-row press-row flex w-full items-center gap-3 text-left"
     >
       <span className="min-w-0 flex-1">

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { clipSrc, hasClip, type ClipPose } from "@/lib/idle-clips";
+import { clipSrc, hasClip, restMs, type ClipPose } from "@/lib/idle-clips";
 import { onLayers, underLayer } from "@/lib/overlay-layers";
 import { prefersReducedMotion } from "@/lib/prefs";
 
@@ -34,15 +34,17 @@ export { hasClip, type ClipPose };
  *
  * It plays, rests, and plays again, because a character that never stops
  * moving is a screensaver: the first play waits `delayMs` (on a screen
- * where he speaks, until his words have landed, #288), then each rest is
- * a few seconds, drawn afresh each time so the rhythm never ticks. It
- * pauses while off screen, while the tab is hidden, and while a sheet is
- * up over him (`lib/overlay-layers.ts`); a clip inside the top sheet
- * plays on.
+ * where he speaks, until his words have landed, #288), then the first
+ * three plays rest a few seconds each and every later one a quarter to
+ * half a minute (`restMs`, E59), each rest drawn afresh so the rhythm
+ * never ticks. It pauses while off screen, while the tab is hidden, and
+ * while a sheet is up over him (`lib/overlay-layers.ts`); a clip inside
+ * the top sheet plays on.
+ *
+ * It costs nothing until he is seen: the video carries no source and
+ * preloads nothing until the observer first finds him on screen, so a
+ * clip mounted below the fold never downloads.
  */
-
-/** Rest between plays, drawn per rest so two screens never beat in time. */
-const REST_MS: [number, number] = [2600, 5200];
 
 const VERT = `
 attribute vec2 p;
@@ -88,6 +90,8 @@ export function DemosClip({
   const host = useRef<HTMLDivElement>(null);
   const onLiveRef = useRef(onLive);
   onLiveRef.current = onLive;
+  /* Plays finished on this mount: after the third he rests longer. */
+  const plays = useRef(0);
 
   useEffect(() => {
     if (prefersReducedMotion() || saveData()) return;
@@ -156,23 +160,31 @@ export function DemosClip({
     video.playsInline = true;
     video.setAttribute("playsinline", "");
     video.setAttribute("muted", "");
-    video.preload = "auto";
+    video.preload = "none";
     video.crossOrigin = "anonymous";
     video.setAttribute("aria-hidden", "true");
     video.style.cssText =
       "position:absolute;width:1px;height:1px;opacity:0;pointer-events:none";
-    for (const [ext, type] of [
-      ["webm", 'video/webm; codecs="vp9"'],
-      /* No codecs string: libx264's profile is its own choice, and a
-         hint that names the wrong one makes Safari skip a file it plays. */
-      ["mp4", "video/mp4"],
-    ] as const) {
-      const s = document.createElement("source");
-      s.src = clipSrc(pose, ext);
-      s.type = type;
-      video.appendChild(s);
-    }
     box.appendChild(video);
+    /* The sources go on, and the load starts, the first time he is
+       seen (E59): until then the clip has cost no bytes. */
+    let loaded = false;
+    const load = () => {
+      if (loaded) return;
+      loaded = true;
+      for (const [ext, type] of [
+        ["webm", 'video/webm; codecs="vp9"'],
+        /* No codecs string: libx264's profile is its own choice, and a
+           hint that names the wrong one makes Safari skip a file it plays. */
+        ["mp4", "video/mp4"],
+      ] as const) {
+        const s = document.createElement("source");
+        s.src = clipSrc(pose, ext);
+        s.type = type;
+        video.appendChild(s);
+      }
+      video.load();
+    };
 
     const draw = () => {
       if (disposed || video.readyState < 2) return;
@@ -233,11 +245,11 @@ export function DemosClip({
 
     const scheduleRest = (ms?: number) => {
       clearTimeout(rest);
-      const [lo, hi] = REST_MS;
-      rest = setTimeout(play, ms ?? lo + Math.random() * (hi - lo));
+      rest = setTimeout(play, ms ?? restMs(plays.current));
     };
 
     video.addEventListener("ended", () => {
+      plays.current += 1;
       draw();
       scheduleRest();
     });
@@ -249,6 +261,7 @@ export function DemosClip({
       ([entry]) => {
         const was = visible;
         visible = entry.isIntersecting;
+        if (visible) load();
         if (visible && !was) scheduleRest(shown ? undefined : delayMs);
         if (!visible) {
           clearTimeout(rest);

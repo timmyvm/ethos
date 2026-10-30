@@ -41,15 +41,3 @@ describe("the paywall places its head by the screen's height", () => {
     expect(grabber).toBeLessThan(scroll);
   });
 });
-
-describe("the paywall on a short screen", () => {
-  it("tightens below 760px tall, where the large Stair cannot clear the shelf", async () => {
-    const { paywallShort, PAYWALL_SHORT_MAX_HEIGHT } = await import("./paywall-head");
-    expect(PAYWALL_SHORT_MAX_HEIGHT).toBe(759);
-    expect(paywallShort(667)).toBe(true);
-    expect(paywallShort(568)).toBe(true);
-    expect(paywallShort(700)).toBe(true);
-    expect(paywallShort(844)).toBe(false);
-    expect(paywallShort(760)).toBe(false);
-  });
-});

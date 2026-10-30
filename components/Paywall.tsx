@@ -22,7 +22,7 @@ import {
   unpaidLine,
   type PlanView,
 } from "@/lib/plan-view";
-import { usePaywallHeadStays, usePaywallShort } from "@/lib/paywall-head";
+import { usePaywallHeadStays } from "@/lib/paywall-head";
 import { withPortalReturn } from "@/lib/plan-return";
 import { prefersReducedMotion } from "@/lib/prefs";
 import { supabaseBrowser } from "@/lib/supabase-browser";
@@ -373,7 +373,6 @@ export function Paywall({
   // says "premium" again (reasonLine). Above the scroll where the screen
   // has room for it, inside it where it does not (lib/paywall-head.ts).
   const headStays = usePaywallHeadStays();
-  const short = usePaywallShort();
   const head = (
     <>
       <PremiumMark variant="chip" />
@@ -414,7 +413,7 @@ export function Paywall({
               body gives back 24 (2px a benefit, 4 over the ladder, 4 at
               the top, 8 under the shelf): at 375x667 the stair stands
               where it stood before the move. */}
-          <ul className={`${headStays ? "" : "mt-4 "}${short ? "space-y-1" : "space-y-2"} text-body leading-snug text-cream/85`}>
+          <ul className={`${headStays ? "" : "mt-4 "}space-y-2 text-body leading-snug text-cream/85`}>
             {BENEFITS.map(({ Glyph, text }, i) => (
               <li key={i} className="flex items-start gap-3">
                 <span aria-hidden className="mt-px shrink-0 text-cream/60">
@@ -428,7 +427,7 @@ export function Paywall({
           {!unlocked && (
             /* The ladder: a head, the readout the stair drives, the
                stair. The facts stand over the tap, in the shelf (D40). */
-            <section aria-labelledby="paywall-ladder-head" className={`border-t border-cream/15 ${short ? "mt-3 pt-3" : "mt-4 pt-4"}`}>
+            <section aria-labelledby="paywall-ladder-head" className="mt-4 border-t border-cream/15 pt-4">
               <h3 id="paywall-ladder-head" className="detail-head text-cream">
                 {PAYWALL_COPY.head}
               </h3>
@@ -437,7 +436,7 @@ export function Paywall({
                   manage sheet's; "Month 1" sits on the price's baseline
                   (the last baseline of each side, so "Today" over it
                   never decides). */}
-              <div aria-hidden className={`${short ? "mt-1" : "mt-2"} flex items-baseline-last justify-between gap-3`}>
+              <div aria-hidden className="mt-2 flex items-baseline-last justify-between gap-3">
                 <p className="text-cream">
                   <Price cents={readout.cents} size="l" tone="plum" roll />
                 </p>
@@ -452,7 +451,7 @@ export function Paywall({
               </div>
               <Stair
                 tone="plum"
-                size={short ? "md" : "lg"}
+                size="lg"
                 at={1}
                 selected={step}
                 onSelect={(n) => setStep(n)}
@@ -463,13 +462,22 @@ export function Paywall({
                 label={PAYWALL_COPY.sliderLabel}
                 valueText={(n) => paywallStep(n, today).valueText}
                 summary={ladderSentence()}
-                className={short ? "mt-2" : "mt-3"}
+                className="mt-3"
               />
             </section>
           )}
         </div>
 
-        <div className="shrink-0 px-6 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        {/* The shelf is a surface the body scrolls under: 12px of air
+            and, while there is more under its edge, a hairline, so on a
+            short phone the terms never read as printed on the stair's
+            bar tops (375x667). The air is always there and only the
+            hairline's colour changes, so reaching the end moves nothing. */}
+        <div
+          className={`shrink-0 border-t px-6 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] ${
+            more ? "border-cream/15" : "border-transparent"
+          }`}
+        >
           <p role="status" className="sr-only">
             {spoken}
           </p>
@@ -612,26 +620,12 @@ export function Paywall({
             </>
           )}
 
-          {/* On a short screen "Not yet" and the money line share one row,
-              so the shelf gives the ladder back a line. Under 360 wide
-              the row cannot hold both and they stack, centred, as before. */}
-          {short && !twoUp && !unlocked ? (
-            <div className="mt-1 flex items-center justify-between gap-x-4 max-[359px]:flex-col">
-              <button type="button" onClick={notYet} className="font-display min-h-11 text-link text-cream/70 max-[359px]:w-full">
-                {PAYWALL_COPY.notYet}
-              </button>
-              <p className="text-caption text-cream/60 max-[359px]:mt-1 max-[359px]:text-center">{PAYWALL_COPY.closing}</p>
-            </div>
-          ) : (
-            <>
-              {!twoUp && !unlocked && (
-                <button type="button" onClick={notYet} className="font-display mt-1 min-h-11 w-full text-link text-cream/70">
-                  {PAYWALL_COPY.notYet}
-                </button>
-              )}
-              <p className={`${unlocked ? "mt-3" : "mt-1"} text-center text-caption text-cream/60`}>{PAYWALL_COPY.closing}</p>
-            </>
+          {!twoUp && !unlocked && (
+            <button type="button" onClick={notYet} className="font-display mt-1 min-h-11 w-full text-link text-cream/70">
+              {PAYWALL_COPY.notYet}
+            </button>
           )}
+          <p className={`${unlocked ? "mt-3" : "mt-1"} text-center text-caption text-cream/60`}>{PAYWALL_COPY.closing}</p>
         </div>
       </div>
     </Overlay>

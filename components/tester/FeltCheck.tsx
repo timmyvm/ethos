@@ -96,7 +96,9 @@ export function FeltStage({
       className={`topic-card scoring-panel flex min-h-[148px] flex-col justify-between overflow-hidden rounded-sheet px-5 pt-5 pb-4 ${className}`}
     >
       <div>
-        <div className="label-data topic-eyebrow">{FELT_COPY.stage}</div>
+        {/* PRINCIPLES 4: a card's eyebrow is sentence case 13/600, in
+            the stage's ink. */}
+        <div className="eyebrow topic-eyebrow">{FELT_COPY.stage}</div>
         <div className="font-display mt-1.5 text-num-l tabular-nums text-ink">
           {Math.floor(s / 60)}:{String(s % 60).padStart(2, "0")}
         </div>

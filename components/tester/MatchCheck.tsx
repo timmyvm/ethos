@@ -195,7 +195,7 @@ export function MatchCheck({
               type="button"
               onClick={saveNote}
               disabled={!noteDirty}
-              className={`press font-display min-h-11 shrink-0 rounded-control border border-edge bg-surface px-4 text-row ${DISABLED_CLASS}`}
+              className={`press font-display min-h-11 shrink-0 rounded-tap border border-edge bg-surface px-4 text-row ${DISABLED_CLASS}`}
             >
               {MATCH_COPY.saveNote}
             </button>

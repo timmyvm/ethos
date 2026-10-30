@@ -36,7 +36,7 @@ import { TraitChip } from "@/components/TraitChip";
 import { FeltCheck, FeltStage } from "@/components/tester/FeltCheck";
 import { MatchCheck } from "@/components/tester/MatchCheck";
 import { TesterPaused } from "@/components/tester/TesterPaused";
-import { FELT_COPY } from "@/content/tester";
+import { DOOR_COPY, FELT_COPY } from "@/content/tester";
 import { feltRow, pausedTester, scoreSnapshot, showsMatchCheck, type Felt, type TesterRow } from "@/lib/tester";
 import { saveMatch, useTester } from "@/lib/tester-client";
 import { testerRecord } from "@/lib/tester-signal";
@@ -2196,19 +2196,26 @@ function Results({
             </h2>
           )}
 
+          {/* E57: a tester's last step says what the question is for, in
+              the quiet head Settings' door uses ("Testing Ethos"), so the
+              match question never opens the step unannounced. Testers
+              only; everyone else's step is unchanged. */}
+          {last && ((match && resultKey) || pausedTester(tester)) && (
+            <p className="eyebrow mt-6">{DOOR_COPY.settingsTesting}</p>
+          )}
           {last && match && resultKey && (
             <MatchCheck
               key={resultKey}
               clientId={resultKey}
               repId={result.repId}
               scores={snapshot}
-              className="mt-6 mb-7 border-b border-hairline pb-4"
+              className="mt-2 mb-7 border-b border-hairline pb-4"
             />
           )}
           {/* A tester on an older consent: where the question would be,
               that testing is paused and the way back (review D1). */}
           {last && pausedTester(tester) && (
-            <TesterPaused back="/" className="mt-6 mb-7 border-b border-hairline pb-4" />
+            <TesterPaused back="/" className="mt-2 mb-7 border-b border-hairline pb-4" />
           )}
 
           {/* The take's colour (D50, E55): the score step's coach stage

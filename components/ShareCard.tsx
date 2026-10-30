@@ -2,9 +2,10 @@
 
 import { useRef, useState } from "react";
 import type { RepRow } from "@/lib/client-data";
+import { ALL_FILLERS_LABEL } from "@/lib/log";
 import { ACTION_CLASS } from "@/lib/ui";
 
-/** Fillers a minute, or `null` when a recording has no length to divide by. */
+/** All fillers a minute, or `null` when a recording has no length to divide by. */
 const fpm = (r: RepRow): number | null =>
   r.duration_s > 0 ? r.filler_count / (r.duration_s / 60) : null;
 
@@ -78,7 +79,7 @@ export function ShareCard({ reps, quiet = false }: { reps: RepRow[]; quiet?: boo
       // missing is left out rather than drawn as a zero.
       const rows: [string, string, string, boolean][] = [];
       if (was !== null && now !== null) {
-        rows.push(["Fillers / min", was.toFixed(1), now.toFixed(1), now < was]);
+        rows.push([ALL_FILLERS_LABEL.row, was.toFixed(1), now.toFixed(1), now < was]);
       }
       rows.push(
         [
@@ -147,7 +148,7 @@ export function ShareCard({ reps, quiet = false }: { reps: RepRow[]; quiet?: boo
   return (
     <section className="card p-5">
       <h2 className="detail-head">Day 1 vs now</h2>
-      <p className="mt-0.5 text-caption text-stone-500">Fillers a minute</p>
+      <p className="mt-0.5 text-caption text-stone-500">{ALL_FILLERS_LABEL.card}</p>
       {/* Then and now, side by side: the first reading in stone, the
           latest in ink, at num-l so the change outweighs the tap under
           it (the numbers are the product). A recording with no length

@@ -3083,6 +3083,13 @@ summary::-webkit-details-marker {
 }
 /* The Index's swatch is stone since the cohesion pass: its colour was the
    deep sage card's, and the card is the house stage now. */
+/* At 320 the label column is 2px short of "All fillers / min" with its
+   chevron on one line (E32): the swatch gives 2 of its air. */
+@media (max-width: 359px) {
+  .log-swatch {
+    margin-right: 2px;
+  }
+}
 .log-metric[data-index] .log-swatch {
   background: var(--color-stone-400);
 }

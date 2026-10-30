@@ -58,7 +58,7 @@ describe("movedRows", () => {
     const [index, fillers, pace, pauses] = rows;
     expect(index).toMatchObject({ then: "512", now: "643", change: "▲ +131", direction: "up" });
     expect(fillers).toMatchObject({ then: "6.0", now: "3.0", change: "▼ 3.0", direction: "up", invert: true });
-    expect(pace).toMatchObject({ then: "171", now: "138", change: "in 130–160", direction: "up" });
+    expect(pace).toMatchObject({ then: "171", now: "138", change: "in 130 to 160", direction: "up" });
     expect(pauses).toMatchObject({ then: "1", now: "4", change: "▲ +3", direction: "up" });
   });
 

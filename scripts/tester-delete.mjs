@@ -8,13 +8,14 @@
  *   1. their audio files, the one thing the cascade cannot reach;
  *   2. their rate-limit rows, keyed by a string, not a reference;
  *   3. the auth user, whose cascade takes every row they own:
- *      recordings, scores, transcripts, progress, the testers row and
- *      their match answers (migrations 0001 to 0020).
+ *      recordings, scores, transcripts, progress, the testers row,
+ *      their match answers, and their device, usage and error rows
+ *      (migrations 0001 to 0022).
  *
  * A dry run by default: it prints what it would delete. `--yes` does it.
  * `--tester-only` keeps the account and removes only the tester rows
- * (the consent and the match answers), for a friend who wants to stop
- * testing and keep practising.
+ * (the consent, the match answers, and the device, usage and error
+ * rows), for a friend who wants to stop testing and keep practising.
  *
  * It refuses an account with a plan on it: that one deletes itself from
  * Settings, which cancels the plan at Stripe first.
@@ -62,14 +63,16 @@ if (whoError || !who?.user) {
 const name = must("profile", await db.from("profiles").select("display_name").eq("user_id", id).maybeSingle())?.display_name;
 const tester = must("testers", await db.from("testers").select("consented_at").eq("user_id", id).maybeSingle());
 const answers = await count("tester_feedback");
+const events = await count("tester_events");
 console.log(`${name ?? "(no name)"} <${who.user.email ?? "anonymous"}> ${id}`);
-console.log(`  tester since ${tester?.consented_at ?? "never"}, ${answers} match answers`);
+console.log(`  tester since ${tester?.consented_at ?? "never"}, ${answers} match answers, ${events} device, usage and error rows`);
 
 if (testerOnly) {
   if (!yes) {
-    console.log("Dry run. Add --yes to remove the tester row and the match answers, keeping the account.");
+    console.log("Dry run. Add --yes to remove the tester row, the match answers and the device, usage and error rows, keeping the account.");
     process.exit(0);
   }
+  must("tester_events", await db.from("tester_events").delete().eq("user_id", id));
   must("tester_feedback", await db.from("tester_feedback").delete().eq("user_id", id));
   must("testers", await db.from("testers").delete().eq("user_id", id));
   console.log("Done: no longer a tester; the account and its recordings stay.");

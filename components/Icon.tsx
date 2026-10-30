@@ -273,6 +273,20 @@ export function IconFlame({ size }: { size?: number }) {
  */
 
 /** Tier 1, days 1 to 9. A spark: before it is a habit at all. */
+/**
+ * An idea: a bulb over two base lines (D47). The introduction's "Sharper
+ * at work or class", which used to wear the eight-rayed spark, the
+ * streak freeze's snowflake at a glance.
+ */
+export function IconBulb({ size }: { size?: number }) {
+  return (
+    <Glyph size={size} weight={2}>
+      <path d="M9.2 14.6c0-1.4-.8-2.2-1.5-3.1a5.5 5.5 0 1 1 8.6 0c-.7.9-1.5 1.7-1.5 3.1" />
+      <path d="M9.4 17.6h5.2M10.4 20.6h3.2" />
+    </Glyph>
+  );
+}
+
 export function IconSpark({ size }: { size?: number }) {
   return (
     <Glyph size={size}>

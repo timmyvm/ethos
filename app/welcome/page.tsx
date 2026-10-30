@@ -9,7 +9,9 @@ import {
   IconBars,
   IconBolt,
   IconBubble,
+  IconBulb,
   IconCap,
+  IconCheck,
   IconCase,
   IconEllipsis,
   IconFreeze,
@@ -18,7 +20,6 @@ import {
   IconMic,
   IconParagraph,
   IconPeople,
-  IconSpark,
   IconWave,
   IconWaveFlat,
 } from "@/components/Icon";
@@ -172,7 +173,7 @@ const QUESTION_POSES: Record<QuestionId, Pose> = {
  * screen.
  */
 const GLYPH: Record<GoalId | PainId | LevelId | ContextId, ReactNode> = {
-  sharper: <IconSpark size={24} />,
+  sharper: <IconBulb size={24} />,
   present: <IconMic size={24} />,
   feet: <IconBolt size={24} />,
   anyone: <IconBubble size={24} />,
@@ -850,15 +851,17 @@ const FOOT_LINK = "text-link mt-3 flex min-h-11 items-center justify-center";
 const PAIR_LINK = "text-link -mx-1 inline-flex min-h-11 items-center px-1";
 
 /**
- * An answer, chosen (M20, intro-a-14): the reference's accent edge,
- * tinted fill and accent label, never an inverted block. The dark wash
- * is the accent at 10% over the surface, because terracotta-50 in dark
- * is a brown slab. One constant, worn by a chosen row and by the name
- * field once a name is in it, so the typed answer and the tapped ones
- * light the same way.
+ * An answer, chosen (D47): drawn in ink, a 2px ink edge with its lip in
+ * ink, raised off the surface, ink words and an ink check at the right
+ * (Row). Terracotta means tap, so on a question screen it is only ever
+ * Next: two terracotta picks over a terracotta Next made three things
+ * that looked pressable (Duolingo's 04-question-answered picks in blue
+ * while its tap is green). Never an inverted block. One constant, worn
+ * by a chosen row and by the name field once a name is in it, so the
+ * typed answer and the tapped ones are chosen the same way; a field
+ * with the keyboard up still takes its terracotta focus edge (#249).
  */
-const PICKED_ROW =
-  "border-terracotta-500 bg-terracotta-50 text-terracotta-700 dark:bg-[color-mix(in_srgb,var(--color-terracotta-500)_10%,var(--color-surface))]";
+const PICKED_ROW = "border-ink bg-raised text-ink";
 
 /**
  * The answers to one question: a field for the name, checkboxes for
@@ -932,12 +935,13 @@ function NameField({
         onNext();
       }}
       placeholder={NAME_FIELD.placeholder}
-      /* Picked, the field holds its focus edge (1px border plus a 1px
-         inset), so a typed answer wears the same 2px terracotta edge as
-         a chosen row whether or not the keyboard is up. */
+      /* Picked, the field is 2px of ink (its 1px border plus a 1px
+         inset), the edge of a chosen row; focused, INPUT_SHAPE's
+         terracotta edge wins (a :focus utility outranks these), so a
+         field being typed in still says where the keys go. */
       className={`${INPUT_ANSWER_CLASS} font-display ${
         name
-          ? `${PICKED_ROW} shadow-[inset_0_0_0_1px_var(--color-terracotta-500)]`
+          ? `${PICKED_ROW} shadow-[inset_0_0_0_1px_var(--color-ink)]`
           : "border-edge bg-surface"
       }`}
     />
@@ -1162,6 +1166,11 @@ function Row({
           {detail}
         </span>
       )}
+      {/* The check's slot is held on every row, so a label never
+          rewraps under the finger when its row is picked. */}
+      <span aria-hidden className={`flex size-5 shrink-0 text-ink ${on ? "" : "invisible"}`}>
+        <IconCheck size={20} />
+      </span>
     </button>
   );
 }

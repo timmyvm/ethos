@@ -349,7 +349,13 @@ export default function Home() {
     ? "Day one starts today."
     : (chosen?.item.prompt ?? FALLBACK_TOPIC.prompt);
   const lead = dayOne ? "Your first recording" : streak.didToday ? "One more" : "Today's practice";
-  const object = heroObject(heroTrait, heroTip);
+  /* Day one stands the object the recording card will (the lesson its
+     Start opens, by its first tip: The baseline's Fillers door), so the
+     card's colour and its object name one trait (R2F-04: a crimson
+     card carried Pausing's blue hourglass). */
+  const object = dayOne
+    ? heroObject(heroFamily, next?.lesson.tips[0])
+    : heroObject(heroTrait, heroTip);
 
   return (
     <main className="home px-5 pb-[var(--nav-clear)] pt-7">
@@ -495,7 +501,7 @@ export default function Home() {
 
       {reps !== null &&
         (view === "today" ? (
-          <TodayTiles key="today" reps={history} challenge={challenge} focus={heroTrait} />
+          <TodayTiles key="today" reps={history} challenge={challenge} focus={dayOne ? heroFamily : heroTrait} />
         ) : (
           <WeekTiles key="week" week={weekView(lifetime, new Date())} />
         ))}

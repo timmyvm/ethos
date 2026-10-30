@@ -6,7 +6,7 @@ import { Suspense, useEffect, useRef, useState, type KeyboardEvent, type ReactNo
 import { preloadPose, type Pose, type Tone } from "@/components/DemosArt";
 import { IntroDemos } from "@/components/IntroDemos";
 import { GOOGLE_BUTTON, GoogleMark } from "@/components/AuthForm";
-import { HOUSE_OBJECT, objectSrc } from "@/lib/home";
+import { heroObject, objectSrc } from "@/lib/home";
 import {
   IconBars,
   IconBolt,
@@ -1280,24 +1280,28 @@ function PlanSteps({ label, steps }: { label: string; steps: PlanStep[] }) {
 /**
  * Day one, previewed under the month (D49): Today's first card as it
  * will stand tomorrow morning, in the family of the lesson its Start
- * opens (E20, `dayOneFamily`: The baseline, Fillers), the hourglass at
- * its corner and the same words Today says on day one. Not a button:
+ * opens (E20, `dayOneFamily`: The baseline, Fillers), that lesson's
+ * object at its corner as Today stands it (the Fillers door, not
+ * Pausing's hourglass, R2F-04), and the same words Today says on day
+ * one. Not a button:
  * the plan's tap is still Next. It fills the band the rail left over
  * the shelf.
  */
 function DayOne() {
+  const first = nextLesson({});
+  const family = dayOneFamily(first);
   return (
     /* 160 at the least, taller where the room has it (240 at most), so
        the month and its first day fill the screen over Next. 240, not
        216: the gap gate now measures to the shelf's first word (E18),
        and at 216 the band under the card read 72px at 390x844. */
     <div
-      data-family={dayOneFamily(nextLesson({}))}
+      data-family={family}
       className="family-fill mt-6 flex min-h-40 max-h-[240px] flex-1 flex-col justify-between rounded-[var(--radius-tile)]! p-5"
     >
       {/* eslint-disable-next-line @next/next/no-img-element -- lesson art is a plain img (#274) */}
       <img
-        src={objectSrc(HOUSE_OBJECT)}
+        src={objectSrc(heroObject(family, first?.lesson.tips[0]))}
         alt=""
         width={72}
         height={72}

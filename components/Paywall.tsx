@@ -625,7 +625,11 @@ export function Paywall({
               {PAYWALL_COPY.notYet}
             </button>
           )}
-          <p className={`${unlocked ? "mt-3" : "mt-1"} text-center text-caption text-cream/60`}>{PAYWALL_COPY.closing}</p>
+          {/* 2px under "Not yet"'s 44px hit area, whose own air already
+              parts them: the caption read at 13 (E08) took a pixel from
+              the scroll over this shelf, and on a 375x667 phone the
+              stair's columns stand right at its edge. */}
+          <p className={`${unlocked ? "mt-3" : "mt-0.5"} text-center text-caption text-cream/60`}>{PAYWALL_COPY.closing}</p>
         </div>
       </div>
     </Overlay>

@@ -13,7 +13,7 @@ import { TRAIT, type TraitId } from "@/content/traits";
  * the dark theme's ink reach it (Restarts takes the dark ink on its
  * ochre). lib/today-colour.test.ts holds every pair at 4.5:1.
  *
- * Sizes: `sm` 22px, 12.5/700 (the floor card, a recording); `md` 24px,
+ * Sizes: `sm` 22px, 13/700 (the floor card, a recording); `md` 24px,
  * 13/700 (the lesson page). The name is content/traits.ts's, as written.
  */
 export function TraitChip({

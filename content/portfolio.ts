@@ -51,7 +51,7 @@ export const GOALS = [
   { id: "sharper", label: "Sharper at work or class", headline: "Sharper in the room.", boss: "cold-topic" },
   { id: "present", label: "Hold a room when I present", headline: "Hold the room.", boss: "cold-topic" },
   { id: "feet", label: "Think on my feet when asked", headline: "Think on your feet.", boss: "hostile" },
-  { id: "anyone", label: "Talk to anyone without rehearsing", headline: "Talk to anyone.", boss: "hostile" },
+  { id: "anyone", label: "Talk to anyone off the cuff", headline: "Talk to anyone.", boss: "hostile" },
 ] as const satisfies readonly { id: string; label: string; headline: string; boss: keyof typeof BOSSES }[];
 
 /**

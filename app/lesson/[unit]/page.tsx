@@ -102,12 +102,11 @@ function LessonIntro() {
       line={unit.intro.line}
       howTo={unit.intro.howTo}
       lead="howTo"
-      /* D53: the stage stops short of the free height so the title and
-         the tips lead. 368, not the 280 the round set: a 180 mark on a
-         280 stage leaves 125px and 121px of ground over and under the
-         words at 390x844, and 368 is where every band comes out under
-         64 (check-gaps: 56, 58, 61, 51, 57). */
-      stageMax={368}
+      /* E18: the stage takes every spare pixel, so no flat ground pools
+         over the head or the shelf (a capped 368 stage left 61px over
+         the eyebrow and 73px between the tiles and Start's top). The
+         mark keeps its 180 cap and stands centred in it. */
+      stageGrows
       art={<UnitStage id={unit.id} />}
       action={{
         label: "Start",
@@ -124,9 +123,9 @@ function LessonIntro() {
  * The unit's mark on its stage (M19, #248, R3): the Demos pose made for
  * this unit, standing on the stage LessonScreen draws in the trait's
  * tone, with a contact shadow, scaled to the room (128 at the least,
- * 180 at the most, D53: the stage is capped at 280, so the mark takes
- * most of its room; the cut is 256px, so it stays crisp at 2x up to
- * 128 and soft only by a hair at the top). next/image is safe here
+ * 180 at the most, D53; the stage grows past that, E18, and he stands
+ * centred in it; the cut is 256px, so he stays crisp at 2x up to 128
+ * and soft only by a hair at the top). next/image is safe here
  * because the service worker does not pre-cache /unit/. It arrives
  * once, with the screen, and then breathes.
  */

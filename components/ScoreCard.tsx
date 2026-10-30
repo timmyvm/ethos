@@ -74,7 +74,7 @@ export function ScoreCard({
           <>
             <IndexHill values={hill} />
             {span && (
-              /* 12.5/600 in the stage's ink, 12 off the stage's foot, each
+              /* 13/600 in the stage's ink, 12 off the stage's foot, each
                  under its end of the line: the start at the box's left, the end 8 of 136 in,
                  where the line stops (the drawing fills the box's width
                  at every size, so a percentage holds it there). */

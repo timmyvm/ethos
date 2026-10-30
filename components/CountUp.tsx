@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { afterSplash, browserSplashEnv } from "@/lib/after-splash";
 import { DURATION } from "@/lib/motion";
 import { prefersReducedMotion } from "@/lib/prefs";
 
@@ -13,6 +14,9 @@ import { prefersReducedMotion } from "@/lib/prefs";
  * value is real either way; only the reveal is animated.
  *
  * Honours reduced motion by rendering the final number immediately.
+ * On a cold open it holds at its start until the splash has left
+ * (lib/after-splash.ts, E60), so the climb is seen rather than spent
+ * under the splash.
  * The default length is the celebration ceiling (DESIGN-RULES, motion):
  * the score landing is the rep-complete moment, and nothing else in
  * the product may take this long.
@@ -45,7 +49,7 @@ export function CountUp({
     }
     // Start low enough to feel like a climb without a silly long count.
     const from = Math.max(0, value * 0.82);
-    const start = performance.now();
+    let start = 0;
     setShown(from);
 
     const tick = (now: number) => {
@@ -57,8 +61,14 @@ export function CountUp({
       setShown(t < 1 ? from + (value - from) * eased : value);
       if (t < 1) raf.current = requestAnimationFrame(tick);
     };
-    raf.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf.current);
+    const cancel = afterSplash(() => {
+      start = performance.now();
+      raf.current = requestAnimationFrame(tick);
+    }, browserSplashEnv());
+    return () => {
+      cancel();
+      cancelAnimationFrame(raf.current);
+    };
   }, [value, durationMs]);
 
   return <span className={className}>{format(shown)}</span>;

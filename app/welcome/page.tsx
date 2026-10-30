@@ -1216,7 +1216,9 @@ function Row({
           {glyph}
         </span>
       )}
-      <span className={`min-w-0 flex-1 ${tabular ? "tabular-nums" : ""}`}>{word ?? label}</span>
+      {/* Balanced, so an answer that wraps at 320 breaks in its middle
+          ("Talk to anyone / off the cuff"), never leaving one word. */}
+      <span className={`min-w-0 flex-1 text-balance ${tabular ? "tabular-nums" : ""}`}>{word ?? label}</span>
       {detail && (
         <span aria-hidden className="font-body shrink-0 text-body font-normal tabular-nums text-stone-500">
           {detail}

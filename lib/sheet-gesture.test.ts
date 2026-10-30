@@ -18,6 +18,7 @@ import {
   sheetHoldsTouch,
   sheetTakesScrolledTouch,
   sheetTakesTopTouch,
+  slopCrossing,
   type HandOff,
 } from "./sheet-gesture";
 
@@ -271,6 +272,11 @@ describe("Overlay drives a swipe on scrolled content through the hand-off", () =
   it("starts a hand-off only with the sheet at rest", () => {
     expect(src).toMatch(/handOffFrom\(/);
   });
+  it("starts the content from where the finger crossed the slop, and the throw's first sample there", () => {
+    expect(src).toMatch(/slopCrossing\(\{ x: d\.x0, y: d\.y0 \}, before, d\.last\)/);
+    expect(src).toMatch(/under\.lastY = cross\.y;/);
+    expect(src).toMatch(/d\.samples = \[\{ t: cross\.t, y: handOffLine\(start\) \}\];/);
+  });
   it("clears the panel's transform only after a spring home that landed", () => {
     expect(src).toMatch(/\.then\(\(landed\) =>/);
   });
@@ -399,6 +405,46 @@ describe("sheetTakesTopTouch", () => {
     expect(sheetTakesTopTouch(5, 1, true)).toBe("sideways");
     expect(sheetTakesTopTouch(1, 0, true)).toBe("sideways");
     expect(sheetTakesTopTouch(-3, -1, true)).toBe("sideways");
+  });
+});
+
+/*
+ * Where the finger crossed the slop (handoff review). The content used to
+ * start from the move that crossed it, and Chromium sends its first
+ * touchmove 12 to 48px in: everything past the slop on that move was
+ * lost, so a quick swipe spent up to 70px before the content moved, and a
+ * flick that reached the page as one move scrolled nothing and threw
+ * nothing. From the crossing, the content follows the finger 1:1 past
+ * the slop (the browser's own scroll does the same), and the throw has a
+ * first sample there.
+ */
+describe("slopCrossing", () => {
+  const press = { x: 100, y: 200 };
+  it("finds where a straight move down left the slop, and when", () => {
+    const at = slopCrossing(press, { t: 1000, x: 100, y: 200 }, { t: 1034, x: 100, y: 234 });
+    expect(at.y).toBeCloseTo(210, 6);
+    expect(at.t).toBeCloseTo(1010, 6);
+  });
+  it("reads between the last reading inside the slop and the first outside it, not from the press", () => {
+    const at = slopCrossing(press, { t: 1500, x: 101, y: 201 }, { t: 1516, x: 101, y: 234 });
+    expect(at.y).toBeCloseTo(210, 6);
+    expect(at.t).toBeCloseTo(1500 + (16 * 9) / 33, 6);
+  });
+  it("reads the slop as sheetClaim does, a square: a move that left it sideways crossed where x reached it", () => {
+    const at = slopCrossing(press, { t: 0, x: 100, y: 200 }, { t: 30, x: 130, y: 215 });
+    expect(at.y).toBeCloseTo(205, 6);
+    expect(at.t).toBeCloseTo(10, 6);
+    const up = slopCrossing(press, { t: 0, x: 100, y: 200 }, { t: 20, x: 100, y: 180 });
+    expect(up.y).toBeCloseTo(190, 6);
+    expect(sheetClaim(0, 9.99, false, SHEET_SLOP_PX)).toBe("undecided");
+  });
+  it("is the reading itself when the finger was already past the slop, or never left it", () => {
+    expect(slopCrossing(press, { t: 5, x: 100, y: 214 }, { t: 21, x: 100, y: 230 })).toEqual({ t: 5, y: 214 });
+    expect(slopCrossing(press, { t: 5, x: 100, y: 202 }, { t: 21, x: 100, y: 205 })).toEqual({ t: 21, y: 205 });
+  });
+  it("gives a one-move flick the speed it had: the line from the crossing to the move", () => {
+    const at = slopCrossing(press, { t: 0, x: 100, y: 200 }, { t: 50, x: 100, y: 250 });
+    expect((250 - at.y) / ((50 - at.t) / 1000)).toBeCloseTo(1000, 6);
   });
 });
 

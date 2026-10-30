@@ -43,6 +43,10 @@ const check = (label, ok, detail = "") => {
 };
 
 const browser = await chromium.launch({ args: ["--font-render-hinting=none"] });
+/* Every body the browser sent to the collect route, read off the wire as
+   well as from the route's handler: a beacon sent as a page unloads can
+   leave before Playwright's handler sees it, though the phone sent it. */
+const wire = [];
 
 async function phone({ tester = false, version = 3, hint = false } = {}) {
   testerMode.tester = tester;
@@ -54,6 +58,10 @@ async function phone({ tester = false, version = 3, hint = false } = {}) {
     locale: "en-AU", timezoneId: "Australia/Melbourne", serviceWorkers: "block",
   });
   const reads = [];
+  wire.length = 0;
+  ctx.on("request", (r) => {
+    if (r.method() === "POST" && new URL(r.url()).pathname === "/api/tester/collect") wire.push(r.postData() ?? "");
+  });
   await ctx.route("http://supabase.local/**", (route) => {
     if (new URL(route.request().url()).pathname.startsWith("/rest/v1/testers")) reads.push(route.request().url());
     return supabaseRoute(route);
@@ -85,7 +93,27 @@ const show = (page) =>
     Object.defineProperty(document, "visibilityState", { get: () => "visible", configurable: true });
     document.dispatchEvent(new Event("visibilitychange"));
   });
-const events = () => testerMode.collected.flatMap((c) => c.body?.events ?? []);
+const parsed = (text) => {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+};
+/** Every event sent, once each, from the handler and the wire together. */
+const events = () => {
+  const seen = new Set();
+  return [...testerMode.collected.map((c) => c.body), ...wire.map(parsed)]
+    .flatMap((b) => b?.events ?? [])
+    .filter((e) => {
+      const k = JSON.stringify(e);
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+};
+/** Batches that left the phone, by either count. */
+const sentCount = () => Math.max(testerMode.collected.length, wire.length);
 
 // 1. A non-tester.
 {
@@ -98,7 +126,7 @@ const events = () => testerMode.collected.flatMap((c) => c.body?.events ?? []);
   await sleep(1200);
   await hide(page);
   await sleep(800);
-  check("a non-tester's phone sends nothing", testerMode.collected.length === 0, `${testerMode.collected.length} batches`);
+  check("a non-tester's phone sends nothing", sentCount() === 0, `${sentCount()} batches`);
   const loaded = await page.evaluate(() => performance.getEntriesByType("resource").some((r) => /tester-collect/.test(r.name)));
   check("a non-tester's phone never loads the collector", !loaded);
   await ctx.close();
@@ -114,7 +142,7 @@ const events = () => testerMode.collected.flatMap((c) => c.body?.events ?? []);
   await sleep(600);
   check("a stale hint reads the row once", reads.length === 1, `${reads.length} reads`);
   check("…then lets the hint go", (await page.evaluate(() => localStorage.getItem("ethos.tester"))) === null);
-  check("…and sends nothing", testerMode.collected.length === 0);
+  check("…and sends nothing", sentCount() === 0);
   await ctx.close();
 }
 
@@ -147,7 +175,7 @@ const events = () => testerMode.collected.flatMap((c) => c.body?.events ?? []);
   check("…and asks nothing there", (await page.getByText(/feel right\?/).count()) === 0);
   await hide(page);
   await sleep(600);
-  check("a version 2 tester's phone sends nothing", testerMode.collected.length === 0, `${testerMode.collected.length} batches`);
+  check("a version 2 tester's phone sends nothing", sentCount() === 0, `${sentCount()} batches`);
   await ctx.close();
 }
 
@@ -194,7 +222,7 @@ const events = () => testerMode.collected.flatMap((c) => c.body?.events ?? []);
   check("shown and hidden", all.some((e) => e.name === "hidden") && all.some((e) => e.name === "shown"));
   const err = all.find((e) => e.kind === "error");
   check("an error with its screen and what was on screen", !!err && /probe/.test(err.data?.message ?? "") && err.screen?.startsWith("/rep/") && (err.data?.before ?? []).some((b) => b.label === "Too high"), JSON.stringify(err ?? {}).slice(0, 200));
-  const raw = JSON.stringify(testerMode.collected);
+  const raw = JSON.stringify(testerMode.collected) + wire.join("\n");
   check("never what was typed", !raw.includes(SECRET) && !raw.includes(" more"));
   check("never the tester code", !raw.includes('"1234"'));
   await ctx.close();
@@ -231,13 +259,15 @@ const events = () => testerMode.collected.flatMap((c) => c.body?.events ?? []);
   await page.goto(`${BASE}/games`);
   await page.getByText("That screen didn").first().waitFor({ timeout: 20000 }).catch(() => {});
   if (!patched || !(await page.getByText("That screen didn").count())) {
-    console.log("skip a crash on the first screen (needs a production build: BASE pointing at next start)");
+    console.log(`skip a crash on the first screen (needs a production build: BASE pointing at next start; ${patched} wrappers patched, boundary ${await page.getByText("That screen didn").count()})`);
   } else {
     await sleep(3000);
     await hide(page);
     await sleep(1200);
+    // The patched chunk throws as it runs, or (when the patch races the
+    // load) fails to load at all: either is the first screen crashing.
     const crash = events().find((e) => e.kind === "error" && e.name === "boundary");
-    check("a crash on the first screen of an open is reported, under that screen", !!crash && crash.screen === "/games" && /first screen crashed/.test(crash.data?.message ?? ""), JSON.stringify(crash ?? events().map((e) => `${e.kind}:${e.name}`)).slice(0, 200));
+    check("a crash on the first screen of an open is reported, under that screen", !!crash && crash.screen === "/games" && /first screen crashed|ChunkLoadError/.test(crash.data?.message ?? ""), JSON.stringify(crash ?? events().map((e) => `${e.kind}:${e.name}`)).slice(0, 200));
   }
   await ctx.close();
 }

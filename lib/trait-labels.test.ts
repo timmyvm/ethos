@@ -60,6 +60,12 @@ function rep(over: Partial<RepRow>): RepRow {
   } as RepRow;
 }
 
+/** Every string literal the results' Since day one card draws as a label. */
+function comparisonCardLabels(): string[] {
+  const src = readFileSync("components/ComparisonCard.tsx", "utf8");
+  return [...src.matchAll(/(?:label|fillers|wpm|pause): "([^"]+)"/g)].map((m) => m[1]);
+}
+
 /** Every string literal the Day 1 vs now card draws as a row's label. */
 function shareCardLabels(): string[] {
   const src = readFileSync("components/ShareCard.tsx", "utf8");
@@ -73,6 +79,7 @@ const labels = [
   ALL_FILLERS_LABEL.row,
   ALL_FILLERS_LABEL.card,
   ...shareCardLabels(),
+  ...comparisonCardLabels(),
 ];
 
 describe("a label that names a trait prints that trait's unit", () => {
@@ -96,6 +103,11 @@ describe("a label that names a trait prints that trait's unit", () => {
     expect(ALL_FILLERS_LABEL).toEqual({ row: "All fillers / min", card: "All fillers a minute" });
     expect(movedRows(reps).find((r) => r.key === "fillers")!.label).toBe(ALL_FILLERS_LABEL.row);
     expect(readFileSync("components/ShareCard.tsx", "utf8")).not.toMatch(/"Fillers (\/ min|a minute)"/);
+    // The results' Since day one card prints the same number, so it
+    // borrows the same label.
+    const comparison = readFileSync("components/ComparisonCard.tsx", "utf8");
+    expect(comparison).not.toMatch(/"Fillers (\/ min|a minute)"/);
+    expect(comparison.match(/ALL_FILLERS_LABEL\.row/g)?.length).toBe(2);
     // The Fillers trait itself is not a minute rate, so the old label
     // broke the rule this file holds.
     expect(traitNamed("Fillers / min")?.id).toBe("fillers");

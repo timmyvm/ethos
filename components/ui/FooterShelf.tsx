@@ -25,6 +25,8 @@ export function FooterShelf({
 }) {
   return (
     <div
+      /* The floor scripts/check-gaps.mjs measures the last band to. */
+      data-footer-shelf=""
       className={`sticky bottom-0 z-10 -mx-5 mt-auto bg-ground px-5 pt-4 pb-[max(16px,env(safe-area-inset-bottom))] ${
         hairline ? "border-t border-hairline" : ""
       } ${className}`}

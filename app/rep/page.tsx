@@ -104,6 +104,7 @@ import { nextMilestones, repGains } from "@/lib/progress";
 import {
   anticipation,
   endNote,
+  celebrates,
   personalBests,
   type RewardMoment,
 } from "@/lib/rewards";
@@ -328,10 +329,8 @@ function RepScreen() {
   const [notes, setNotes] = useState("");
   const [coined, setCoined] = useState(false);
   /**
-   * A star landed or the streak held on this recording (M08): Demos
-   * swaps to his celebrate pose on the score step. The streak "held"
-   * when this recording is the one that closed today, not a second
-   * take on a day already counted.
+   * A new best Index or three stars on this recording (D52, lib/rewards
+   * `celebrates`): Demos swaps to his celebrate pose on the score step.
    */
   const [earnedNow, setEarnedNow] = useState(false);
   /**
@@ -648,9 +647,11 @@ function RepScreen() {
               unlockedUnit:
                 openNow.find((n) => !before.unitsOpen.includes(n)) ?? null,
             });
+            /* D52: the celebrate pose is for a new best Index or three
+               stars. A star or a held streak is said elsewhere (the
+               bests, the streak's own moment), not by spending it. */
             setEarnedNow(
-              totalStars(map) > before.stars ||
-                (!before.didToday && streak.current > 1)
+              celebrates(before.reps, analyzed.metrics.stars, analyzed.ethosIndex)
             );
             // before.reps is the history captured on mount — the true
             // "before", independent of whether this rep persisted.
@@ -1807,7 +1808,7 @@ function Results({
   config: RepConfig;
   bests: RewardMoment[];
   closing: RewardMoment | null;
-  /** A star landed or the streak held: Demos celebrates (M08). */
+  /** A new best Index or three stars: Demos celebrates (D52). */
   earned: boolean;
   presence: PresenceResult | null;
   /** The account's tester row: undefined while read, null for no. */
@@ -2050,11 +2051,13 @@ function Results({
           step runs it too, which is the results landing after the wait. */}
       {/*
        * The score step is short (a number, the stars and his line) and
-       * the button is on the shelf, so the column centres in the space
-       * the walk gives it, a little above the middle (M07, #287): a
+       * the button is on the shelf, so it fills the space the walk gives
+       * it (M07, #287, D52): the score and Demos with his line share the
+       * free height out in three even bands (RepResult's `spread`). A
        * top-aligned column left a 340px hole over the shelf and read as
-       * stopped rather than finished. The two longer steps flow from the
-       * top and scroll under the shelf.
+       * stopped rather than finished, and a centred one still left 98px
+       * over and under it. The two longer steps flow from the top and
+       * scroll under the shelf.
        */}
       <div
         className={`flex flex-1 flex-col ${
@@ -2070,7 +2073,7 @@ function Results({
             step === 0
               ? match
                 ? "pb-8 pt-8"
-                : "flex flex-1 flex-col justify-center pb-16 pt-4"
+                : "flex flex-1 flex-col"
               : "pb-8"
           }`}
         >
@@ -2080,7 +2083,7 @@ function Results({
             </h2>
           )}
 
-          <div>
+          <div className={step === 0 && !match ? "flex flex-1 flex-col" : undefined}>
             <RepResult
               result={result}
               topic={config.topic}
@@ -2088,6 +2091,7 @@ function Results({
               baseline={repCountBefore === 0}
               live
               celebrate={earned}
+              spread={step === 0 && !match}
               /* recording-13, recording-18: the evidence you can play sits
                  above the words it produced, inside the words section. */
               player={
@@ -2242,7 +2246,7 @@ function Results({
                 }
                 className={PRIMARY}
               >
-                Another round · {game.name}
+                Another round: {game.name}
               </button>
             ) : lesson && nextInLesson ? (
               <button
@@ -2270,7 +2274,7 @@ function Results({
                 onClick={() => exit(repHref({ lesson: next.id }))}
                 className={PRIMARY}
               >
-                {again ? "Go again" : "Next lesson"} · {next.title}
+                {again ? "Go again" : "Next lesson"}: {next.title}
               </button>
             )}
             {/* recording-22: the quiet pair under the one tap. Retake is

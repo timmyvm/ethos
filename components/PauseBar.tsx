@@ -14,9 +14,12 @@ interface Seg {
 /** The marks, one class each, shared by the bar and its legend, so the
     legend is the mark rather than a picture of it (recording-24, #304).
     A searching pause is hollow, so it differs from the speech ticks by
-    fill as well as by width. */
-const LANDED_MARK = "bg-sage-500";
-const SEARCHING_MARK = "border border-cream/50 bg-transparent";
+    fill as well as by width. On the raised card (D52) every mark holds
+    3:1 against the card in both themes (lib/pause-map.test.ts): speech
+    stone-400, landed sage-600, searching a 1.5px ink outline. */
+export const SPEECH_MARK = "bg-stone-400";
+export const LANDED_MARK = "bg-sage-600";
+export const SEARCHING_MARK = "border-[1.5px] border-ink bg-transparent";
 
 /** Whether a held pause landed a point: the verdict when there is one,
     the old kind check for rows recorded before verdicts existed. */
@@ -68,8 +71,11 @@ export function PauseBar({
   const searchingCount = held.length - landedCount;
 
   return (
-    <div className="card-stage elev-1 rounded-card px-4 pb-3.5 pt-4">
-      <div className="eyebrow text-cream/70">Pauses</div>
+    /* D52: a raised `.card` that follows the theme, like every other
+       card on the numbers step; the dark stage panel was the only black
+       card in the light theme. */
+    <div className="card px-4 pb-3.5 pt-4">
+      <div className="eyebrow">Pauses</div>
       <div
         role="img"
         aria-label={`${held.length} held pause${held.length === 1 ? "" : "s"}, ${landedCount} landed a point`}
@@ -81,7 +87,7 @@ export function PauseBar({
               <span
                 key={i}
                 aria-hidden
-                className="min-w-[2px] shrink bg-cream/40"
+                className={`min-w-[2px] shrink ${SPEECH_MARK}`}
                 style={{ flex: "0 1 5px", height: 16 + Math.min(34, s.len * 11) }}
               />
             );
@@ -91,7 +97,7 @@ export function PauseBar({
               <span
                 key={i}
                 aria-hidden
-                className="h-1.5 min-w-[3px] shrink bg-cream/40"
+                className={`h-1.5 min-w-[3px] shrink ${SPEECH_MARK}`}
                 style={{ flex: "0 1 6px" }}
               />
             );
@@ -109,7 +115,7 @@ export function PauseBar({
         })}
       </div>
       {held.length > 0 && (
-        <div aria-hidden className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-caption text-cream/70">
+        <div aria-hidden className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-caption text-stone-500">
           {landedCount > 0 && (
             <span className="inline-flex items-center gap-1.5">
               <span className={`inline-block h-1.5 w-2.5 ${LANDED_MARK}`} />

@@ -198,6 +198,20 @@ export function endNote(params: {
  * contains it, and the slice silently discards a real prior rep —
  * understating the record the user is being congratulated on beating.
  */
+/**
+ * Whether Demos celebrates on the score step (D52): a new best Ethos
+ * Index, or three stars. Nothing smaller, so the pose and its sparkles
+ * keep their meaning: a two-star recording three points up is said in
+ * the speaking pose. A first recording has no best to pass, so only
+ * three stars celebrate it.
+ */
+export function celebrates(prior: RepRow[], stars: number, index: number | null): boolean {
+  if (stars >= 3) return true;
+  if (index === null) return false;
+  const best = prior.reduce((a, r) => Math.max(a, r.ethos_index ?? 0), 0);
+  return best > 0 && index > best;
+}
+
 export function personalBests(
   prior: RepRow[],
   current: RepMetrics,

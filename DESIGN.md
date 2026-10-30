@@ -48,6 +48,7 @@ Installed in `.claude/skills`, pinned in `skills-lock.json`, refreshed with `npx
 - `image-to-code`: make or take a design image first, then build to match it. Written for Codex; here the image is a reference Timothy drops in or one an image tool generates.
 - `web-design-guidelines`: Vercel's interface checklist. Run it on a finished screen after the look loop and fix what it finds.
 - `playwright-cli`: drive the app by hand (open, click by ref, snapshot, screenshot) when the scripts below do not reach the moment.
+- `anti-slop-ajonai`: Timothy's pick for what reads as generated. Its decision sheet and its interaction-states file before a new screen; `node .claude/skills/anti-slop-ajonai/scripts/check.mjs app components` as a static pass after the look loop, where a flag is a question, not a verdict (a `tabIndex={-1}` focus target with no ring is right, and so is the Paw's ease-in landing). Two of its positions lose here: it allows em dashes and `COPY-RULES.md` does not, and its eyebrow and bento warnings yield to Timothy's calls (#393).
 
 ## The tools the loop runs on
 

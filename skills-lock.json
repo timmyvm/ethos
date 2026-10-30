@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "anti-slop-ajonai": {
+      "source": "ItsRealAJ/Anti-Slop-Frontend-Skill",
+      "sourceType": "github",
+      "skillPath": "Anti-Slop (AJONAI)/SKILL.md",
+      "computedHash": "df608dfc8403ffd15c15098f8b0331c36732cb90eff173653da83c45fb52a71e"
+    },
     "apple-design": {
       "source": "emilkowalski/skills",
       "sourceType": "github",

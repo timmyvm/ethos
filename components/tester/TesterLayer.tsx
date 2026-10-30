@@ -12,6 +12,7 @@ import {
 } from "@/lib/tester-client";
 import { sessionToken } from "@/lib/supabase-browser";
 import type { Collecting } from "@/lib/tester-collect";
+import { dropEarly, testerEarly } from "@/lib/tester-signal";
 
 /**
  * Tester mode on every screen, for the testers alone (consent version 3,
@@ -29,6 +30,12 @@ import type { Collecting } from "@/lib/tester-collect";
  *     there whichever way they answer;
  *   - signing out, agreeing, or the server answering stop changes the
  *     hint or says so (TESTER_CHANGED), and the row is read again.
+ *
+ * While the row is read and the collector's file loads, a window error
+ * or an unhandled rejection on a hinted device is held in memory
+ * (lib/tester-signal.ts, five at most, as the error boundary's are), so
+ * a crash on the first screen of an open is reported once collection
+ * starts (review F1). The row saying no lets them go.
  */
 export function TesterLayer() {
   const pathname = usePathname();
@@ -63,25 +70,47 @@ export function TesterLayer() {
     if (!readTesterHint()) {
       row.current = null;
       stop();
+      dropEarly();
       return;
+    }
+    /* Until the collector listens: what breaks is held, not lost. */
+    const onError = (ev: ErrorEvent) =>
+      testerEarly("window", ev.error ?? ev.message, {
+        file: ev.filename,
+        line: ev.lineno,
+        col: ev.colno,
+        message: ev.message,
+      });
+    const onRejection = (ev: PromiseRejectionEvent) => testerEarly("rejection", ev.reason);
+    const unwatch = () => {
+      window.removeEventListener("error", onError);
+      window.removeEventListener("unhandledrejection", onRejection);
+    };
+    if (!running.current) {
+      window.addEventListener("error", onError);
+      window.addEventListener("unhandledrejection", onRejection);
     }
     fetchTester()
       .then(async (t) => {
         if (!live) return;
         row.current = t;
         if (!collects(t)) {
+          unwatch();
+          dropEarly();
           stop();
           ask(window.location.pathname);
           return;
         }
-        if (running.current) return;
+        if (running.current) return unwatch();
         const { startCollecting } = await import("@/lib/tester-collect");
+        unwatch();
         if (!live || running.current || !collects(row.current)) return;
         running.current = startCollecting({ token: sessionToken });
       })
-      .catch(() => {});
+      .catch(unwatch);
     return () => {
       live = false;
+      unwatch();
     };
     // `ask` reads refs and the router only.
     // eslint-disable-next-line react-hooks/exhaustive-deps

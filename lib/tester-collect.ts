@@ -22,13 +22,13 @@
  * first; nothing is written to storage, so a closed app keeps nothing.
  */
 
-import { capText, EVENT_CAPS, screenOf, type ErrorName, type RawEvent, type UsageName } from "./tester-events";
-import { setTesterSink, type RecordSignal } from "./tester-signal";
+import { capText, EVENT_CAPS, ownStack, screenOf, type ErrorName, type RawEvent, type UsageName } from "./tester-events";
+import { setTesterSink, takeEarly, type EarlyError, type RecordSignal } from "./tester-signal";
 
 /** How often a waiting batch is sent. */
 export const SEND_EVERY_MS = 20_000;
 /** Errors one open reports: a loop that throws every frame says it twenty times, not thousands. */
-export const ERRORS_PER_OPEN = 20;
+export const ERRORS_PER_OPEN = EVENT_CAPS.errorsPerOpen;
 /** Room left in a body for the token the hiding batch carries. */
 const TOKEN_ROOM = 4_000;
 
@@ -139,6 +139,9 @@ export class Collector {
     if (this.stopped) return;
     if (this.since === null) this.since = this.env.now();
     this.push({ kind: "usage", name: "shown", screen: this.screen });
+    // Back from a pause that may have outlasted the session's token: the
+    // batch handed to the beacon as it hides again carries a fresh one.
+    void this.primeToken();
   }
 
   /** The page is going: count the screen and send what is left. */
@@ -148,19 +151,31 @@ export class Collector {
     this.beaconFlush();
   }
 
-  error(name: ErrorName, e: { message?: string | null; where?: string | null; stack?: string | null; digest?: string | null }): void {
+  /**
+   * An error, on the current screen, or on the screen and at the time it
+   * happened when that is known (a boundary caught mid-navigation, or one
+   * held from before the collector listened).
+   */
+  error(
+    name: ErrorName,
+    e: { message?: string | null; where?: string | null; stack?: string | null; digest?: string | null },
+    at?: { screen?: string; at?: number }
+  ): void {
     if (this.stopped || this.errors >= ERRORS_PER_OPEN) return;
-    const now = this.env.now();
+    const now = at?.at ?? this.env.now();
     const message = capText(e.message ?? "", EVENT_CAPS.message) ?? "";
     // The same error again within five seconds is the same error.
-    if (this.lastError && this.lastError.message === message && now - this.lastError.at < 5000) return;
+    if (this.lastError && this.lastError.message === message && Math.abs(now - this.lastError.at) < 5000) return;
     this.lastError = { message, at: now };
     this.errors++;
-    const before = this.recent.map((r) => ({ name: r.name, screen: r.screen, label: r.label, ms: r.ms, ago: now - r.at }));
+    const before = this.recent
+      .filter((r) => r.at <= now)
+      .map((r) => ({ name: r.name, screen: r.screen, label: r.label, ms: r.ms, ago: now - r.at }));
     this.push({
       kind: "error",
       name,
-      screen: this.screen,
+      at: now,
+      screen: (at?.screen && screenOf(at.screen)) || this.screen,
       data: { message, where: e.where ?? undefined, stack: e.stack ?? undefined, digest: e.digest ?? undefined, before },
     });
   }
@@ -189,7 +204,10 @@ export class Collector {
 
   /** The timer's send: one batch, with the session's token in its header. */
   async flush(): Promise<void> {
-    if (this.stopped || this.sending || this.queue.length === 0 || !this.env.online()) return;
+    if (this.stopped || this.sending) return;
+    // A quiet tick still keeps the token fresh for the next beacon.
+    if (this.queue.length === 0) return this.primeToken();
+    if (!this.env.online()) return;
     this.sending = true;
     try {
       const token = await this.env.token().catch(() => null);
@@ -348,11 +366,19 @@ export async function deviceSnapshot(): Promise<Record<string, unknown>> {
 }
 
 /** A path from a script URL on this origin, or null for one that is not Ethos's. */
-function ownPath(file: string | undefined): string | null | undefined {
+function ownPath(file: string | undefined, origin: string): string | null | undefined {
   if (!file) return undefined;
   try {
-    const u = new URL(file, window.location.href);
-    return u.origin === window.location.origin ? u.pathname : null;
+    const u = new URL(file, origin);
+    return u.origin === origin ? u.pathname : null;
+  } catch {
+    return null;
+  }
+}
+
+function hostOf(origin: string): string | null {
+  try {
+    return new URL(origin).host;
   } catch {
     return null;
   }
@@ -365,6 +391,58 @@ function describe(e: unknown): { message: string; stack: string | null } {
     return { message: JSON.stringify(e)?.slice(0, EVENT_CAPS.message) ?? String(e), stack: null };
   } catch {
     return { message: String(e), stack: null };
+  }
+}
+
+type Report = { message: string; where?: string | null; stack: string | null };
+
+/**
+ * A window error as Ethos reports it, or null when it is not Ethos's: a
+ * script on another origin (an extension, a cross-origin "Script
+ * error."), or a stack that names only other sites. The file keeps its
+ * path only, and the stack only this origin's lines.
+ */
+export function windowReport(
+  ev: { message?: string | null; filename?: string | null; lineno?: number; colno?: number; error?: unknown },
+  origin: string
+): Report | null {
+  const path = ownPath(ev.filename ?? undefined, origin);
+  if (path === null || (!ev.filename && /^script error\.?$/i.test(ev.message ?? ""))) return null;
+  const d = describe(ev.error ?? ev.message);
+  const own = ownStack(d.stack, hostOf(origin));
+  if (own.foreign) return null;
+  return {
+    message: ev.message || d.message,
+    where: path ? `${path}:${ev.lineno ?? 0}:${ev.colno ?? 0}` : null,
+    stack: own.stack,
+  };
+}
+
+/**
+ * An unhandled rejection as Ethos reports it, or null when its stack
+ * names only other sites (a browser extension's, say: review P5). One
+ * with no stack to tell by is kept (a failed fetch has none).
+ */
+export function rejectionReport(reason: unknown, origin: string): Report | null {
+  const d = describe(reason);
+  const own = ownStack(d.stack, hostOf(origin));
+  return own.foreign ? null : { message: d.message, stack: own.stack };
+}
+
+/** What broke before the collector listened (lib/tester-signal.ts), reported now, each on its own screen and time. */
+export function replayEarly(c: Collector, held: readonly EarlyError[], origin: string): void {
+  for (const e of held) {
+    const at = { screen: e.screen, at: e.at };
+    if (e.name === "boundary") {
+      const d = describe(e.error);
+      c.error("boundary", { ...d, stack: ownStack(d.stack, hostOf(origin)).stack, digest: e.digest ?? null }, at);
+      continue;
+    }
+    const r =
+      e.name === "window"
+        ? windowReport({ message: e.message, filename: e.file, lineno: e.line, colno: e.col, error: e.error }, origin)
+        : rejectionReport(e.error, origin);
+    if (r) c.error(e.name, r, at);
   }
 }
 
@@ -424,21 +502,16 @@ export function startCollecting({
     else c.shown();
   };
   const onLeave = () => c.leaving();
+  const origin = window.location.origin;
+  // Another origin's script (an extension, a cross-origin "Script
+  // error.", Google's sign-in) is not Ethos's to report.
   const onError = (ev: ErrorEvent) => {
-    const path = ownPath(ev.filename);
-    // Another origin's script (an extension, a cross-origin "Script
-    // error.") is not Ethos's to report.
-    if (path === null || (!ev.filename && /^script error\.?$/i.test(ev.message ?? ""))) return;
-    const d = describe(ev.error ?? ev.message);
-    c.error("window", {
-      message: ev.message || d.message,
-      where: path ? `${path}:${ev.lineno}:${ev.colno}` : null,
-      stack: d.stack,
-    });
+    const r = windowReport(ev, origin);
+    if (r) c.error("window", r);
   };
   const onRejection = (ev: PromiseRejectionEvent) => {
-    const d = describe(ev.reason);
-    c.error("rejection", d);
+    const r = rejectionReport(ev.reason, origin);
+    if (r) c.error("rejection", r);
   };
 
   document.addEventListener("click", onClick, { capture: true, passive: true });
@@ -449,8 +522,13 @@ export function startCollecting({
   const timer = window.setInterval(() => void c.flush(), SEND_EVERY_MS);
   setTesterSink({
     record: (name, data) => c.record(name, data),
-    boundary: (error, digest) => c.error("boundary", { ...describe(error), digest: digest ?? null }),
+    boundary: (error, digest, screen) => {
+      const d = describe(error);
+      c.error("boundary", { ...d, stack: ownStack(d.stack, hostOf(origin)).stack, digest: digest ?? null }, { screen });
+    },
   });
+  // What broke before this ran: the first screen's crash among it.
+  replayEarly(c, takeEarly(), origin);
 
   return {
     route: (path) => c.route(path),

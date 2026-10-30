@@ -1,11 +1,29 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { CONSENT_VERSION } from "@/content/tester";
-import { Collector, ERRORS_PER_OPEN, tapOf, type CollectorEnv, type TapTarget } from "./tester-collect";
+import {
+  Collector,
+  ERRORS_PER_OPEN,
+  rejectionReport,
+  replayEarly,
+  tapOf,
+  windowReport,
+  type CollectorEnv,
+  type TapTarget,
+} from "./tester-collect";
 import { askedFrom, asksAgain, collects } from "./tester";
 import { EVENT_CAPS } from "./tester-events";
-import { setTesterSink, testerBoundary, testerListening, testerRecord } from "./tester-signal";
+import {
+  dropEarly,
+  setTesterSink,
+  takeEarly,
+  testerBoundary,
+  testerEarly,
+  testerListening,
+  testerRecord,
+  TESTER_HINT_KEY,
+} from "./tester-signal";
 
 /**
  * Tester collection on the phone (consent version 3, lib/tester-collect.ts),
@@ -89,6 +107,99 @@ describe("who collects", () => {
     setTesterSink(null);
     testerRecord("record_start");
     expect(heard).toBe(2);
+    // On a phone that never saw a tester, nothing is even held.
+    expect(takeEarly()).toEqual([]);
+  });
+});
+
+/*
+ * Review F1: a crash on the first screen of an open came before the
+ * collector (it starts after the row is read and its file is loaded),
+ * so it was never reported; and a crash during a navigation was filed
+ * under the screen before. On a phone that last saw a tester, the few
+ * errors before the collector listens are held in memory, with the
+ * screen and time they happened on, and handed over once it starts.
+ */
+describe("an error before the collector listens", () => {
+  const page = (path: string, hinted: boolean) => {
+    const store = new Map<string, string>(hinted ? [[TESTER_HINT_KEY, "1"]] : []);
+    vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null });
+    vi.stubGlobal("window", { location: { pathname: path, origin: "https://speakethos.com" } });
+  };
+  afterEach(() => {
+    dropEarly();
+    vi.unstubAllGlobals();
+  });
+
+  it("is held, at most five, on the screen it happened on, only where a tester was last seen", () => {
+    page("/games", true);
+    testerBoundary(new Error("ChunkLoadError: Loading chunk 7 failed."), "d1");
+    for (let i = 0; i < 6; i++) testerEarly("rejection", new Error(`E${i}`));
+    const held = takeEarly();
+    expect(held).toHaveLength(5);
+    expect(held[0]).toMatchObject({ name: "rejection", screen: "/games" });
+    expect(takeEarly()).toEqual([]);
+
+    page("/games", false);
+    testerBoundary(new Error("x"));
+    testerEarly("window", new Error("y"));
+    expect(takeEarly()).toEqual([]);
+  });
+
+  it("is reported once the collector starts, under its own screen and time", () => {
+    page("/games", true);
+    testerBoundary(new Error("ChunkLoadError: Loading chunk 7 failed."), "d1");
+    const { env, api } = fakeEnv();
+    const c = new Collector(api, true);
+    env.t += 5000;
+    c.route("/");
+    replayEarly(c, takeEarly(), "https://speakethos.com");
+    const err = c.waiting.find((e) => e.kind === "error")!;
+    expect(err).toMatchObject({ name: "boundary", screen: "/games" });
+    expect(err.data).toMatchObject({ message: "Error: ChunkLoadError: Loading chunk 7 failed.", digest: "d1" });
+  });
+
+  it("is let go when the row says this phone does not collect", () => {
+    page("/", true);
+    testerEarly("window", new Error("z"));
+    dropEarly();
+    expect(takeEarly()).toEqual([]);
+  });
+
+  it("from a navigation is filed under the screen it happened on, not the one before", () => {
+    const { env, api } = fakeEnv();
+    const c = new Collector(api, true);
+    c.route("/");
+    env.t += 1000;
+    c.error("boundary", { message: "Error: x" }, { screen: "/games" });
+    expect(c.waiting.at(-1)).toMatchObject({ kind: "error", screen: "/games" });
+  });
+});
+
+/* Review P5, on the phone: another site's error is not Ethos's to send. */
+describe("what the phone reports as an error", () => {
+  const ORIGIN = "https://speakethos.com";
+  it("skips a rejection whose frames are all another site's, and keeps Ethos's own lines", () => {
+    const metamask = Object.assign(new Error("MetaMask: Failed to connect to MetaMask"), {
+      stack: "Error: MetaMask\n    at chrome-extension://nkbih/inpage.js:1:1",
+    });
+    expect(rejectionReport(metamask, ORIGIN)).toBeNull();
+    const google = Object.assign(new Error("x"), { stack: "Error: x\n    at a (https://accounts.google.com/gsi/client:1:2)" });
+    expect(rejectionReport(google, ORIGIN)).toBeNull();
+    const ours = Object.assign(new Error("y"), {
+      stack: "Error: y\n    at f (https://speakethos.com/_next/a.js:1:2)\n    at g (https://accounts.google.com/gsi/client:1:2)",
+    });
+    expect(rejectionReport(ours, ORIGIN)).toEqual({ message: "Error: y", stack: "Error: y\n    at f (https://speakethos.com/_next/a.js:1:2)" });
+    expect(rejectionReport("plain", ORIGIN)).toEqual({ message: "plain", stack: null });
+  });
+
+  it("skips a window error from another site's script, and keeps the file's path only", () => {
+    expect(windowReport({ message: "Script error.", filename: "" }, ORIGIN)).toBeNull();
+    expect(windowReport({ message: "x", filename: "chrome-extension://abc/x.js" }, ORIGIN)).toBeNull();
+    expect(windowReport({ message: "x", filename: "https://accounts.google.com/gsi/client" }, ORIGIN)).toBeNull();
+    expect(
+      windowReport({ message: "TypeError: x", filename: "https://speakethos.com/_next/a.js?dpl=d1", lineno: 1, colno: 2 }, ORIGIN)
+    ).toMatchObject({ message: "TypeError: x", where: "/_next/a.js:1:2" });
   });
 });
 
@@ -207,6 +318,32 @@ describe("the collector", () => {
     expect(env.beacons[0].token).toBe("tok");
     expect((env.beacons[0].events as { name: string }[]).map((e) => e.name)).toEqual(["tap", "hidden", "screen"]);
     expect(c.waiting).toHaveLength(0);
+  });
+
+  /*
+   * Review F3: the token rode only on a send, so after a long pause with
+   * nothing to send, the batch handed to the beacon as the app hid again
+   * carried an expired one and was refused, its glance lost.
+   */
+  it("takes a fresh token when the app is shown again and on a quiet tick, so the beacon never carries a stale one", async () => {
+    const { env, api } = fakeEnv();
+    const c = new Collector(api, true);
+    await c.primeToken();
+    c.hidden();
+    env.token = "tok2";
+    c.shown();
+    await new Promise((r) => setTimeout(r, 0));
+    c.tap("Start", "button");
+    c.hidden();
+    expect(env.beacons.at(-1)!.token).toBe("tok2");
+
+    // Nothing waiting: the timer's tick still takes a fresh one.
+    expect(c.waiting).toHaveLength(0);
+    env.token = "tok3";
+    await c.flush();
+    c.tap("Again", "button");
+    c.hidden();
+    expect(env.beacons.at(-1)!.token).toBe("tok3");
   });
 
   it("keeps the batch when the beacon is refused, for the next send", async () => {

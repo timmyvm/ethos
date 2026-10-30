@@ -24,6 +24,7 @@ import {
   type ScoreSnapshot,
   type TesterRow,
 } from "./tester";
+import { TESTER_HINT_KEY } from "./tester-signal";
 
 /**
  * This device last saw the account as a tester: Settings' row paints
@@ -31,7 +32,7 @@ import {
  * device that holds it (components/tester/TesterLayer.tsx), so nobody
  * else's open asks anything.
  */
-const HINT_KEY = "ethos.tester";
+const HINT_KEY = TESTER_HINT_KEY;
 
 /** Said on the window when this device's testing may have changed. */
 export const TESTER_CHANGED = "ethos:tester";

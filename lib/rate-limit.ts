@@ -18,6 +18,12 @@ import { supabaseAdmin } from "./db";
 export const LIMITS = {
   user: { hour: 10, day: 30 },
   anon: { hour: 3, day: 5 },
+  /**
+   * A tester's phone sending what it collected (app/api/tester/collect):
+   * a batch every 20 seconds while something happens, and one as the app
+   * hides. Four hours of steady use an hour, a long day's worth a day.
+   */
+  collect: { hour: 240, day: 1200 },
 } as const;
 
 export type LimitTier = keyof typeof LIMITS;

@@ -689,6 +689,8 @@ interface DbError {
 interface Result {
   data: unknown;
   error: DbError | null;
+  /** With select(cols, { count: "exact" }): the matching rows' number. */
+  count?: number | null;
 }
 
 const UNIQUE: Record<string, string[]> = {
@@ -768,18 +770,22 @@ export function fakeDb(users: string[]) {
     private columns = "*";
     private filters: ((r: Row) => boolean)[] = [];
     private payload: Row = {};
+    private many: Row[] | null = null;
     private conflict = "id";
     private typeError: DbError | null = null;
+    private counting: { head: boolean } | null = null;
 
     constructor(private readonly table: string) {}
 
-    select(columns = "*") {
+    select(columns = "*", opts?: { count?: "exact"; head?: boolean }) {
       if (this.op === "select") this.columns = columns;
+      if (opts?.count) this.counting = { head: !!opts.head };
       return this;
     }
-    insert(row: Row) {
+    insert(row: Row | Row[]) {
       this.op = "insert";
-      this.payload = row;
+      if (Array.isArray(row)) this.many = row;
+      else this.payload = row;
       return this;
     }
     upsert(row: Row, opts?: { onConflict?: string }) {
@@ -847,6 +853,22 @@ export function fakeDb(users: string[]) {
       if (injected) return { data: null, error: injected };
       if (this.typeError) return { data: null, error: this.typeError };
       const table = rows(this.table);
+
+      if (this.op === "select" && this.counting) {
+        const n = table.filter((r) => this.matches(r)).length;
+        return { data: this.counting.head ? null : clone(table.filter((r) => this.matches(r))), error: null, count: n };
+      }
+
+      if (this.op === "insert" && this.many) {
+        // One statement: every row lands, or none does.
+        const rowsIn = this.many.map((r) => ({ ...DEFAULTS[this.table], ...clone(r) }));
+        for (const row of rowsIn) {
+          const bad = violates(this.table, row, null);
+          if (bad) return { data: null, error: bad };
+        }
+        table.push(...rowsIn);
+        return { data: null, error: null };
+      }
 
       if (this.op === "select") {
         const cols =

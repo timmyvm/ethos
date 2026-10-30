@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { PATH } from "@/content/path";
 import { LESSONS } from "@/content/lessons";
 import { TOPICS } from "@/lib/topics";
-import { dayOneFamily } from "@/lib/practice-family";
+import { dayOneFamily, recordingObject } from "@/lib/practice-family";
+import { heroObject } from "@/lib/home";
 import { nextLesson } from "@/lib/path";
 import { recordingText, repHref, repKey, resolveRepConfig } from "@/lib/rep-config";
 import { tipFace } from "@/lib/tip-labels";
@@ -113,5 +114,37 @@ describe("day one's colour", () => {
   it("falls back to Pausing's blue with no lesson to name", () => {
     expect(dayOneFamily(null)).toBe("pause");
     expect(dayOneFamily({ lesson: { id: "nope" } })).toBe("pause");
+  });
+});
+
+/*
+ * The recording card's object (E51): the one Today's card held for
+ * Today's practice, the lesson's own for a lesson, none on the sky or
+ * for a spun topic.
+ */
+describe("the recording card's object", () => {
+  it("is Today's object for every path item", () => {
+    for (const item of PATH) {
+      expect(recordingObject(daily(item)), item.id).toBe(heroObject(item.trait, item.tips[0]));
+    }
+  });
+
+  it("is the lesson's own object on each of its practices", () => {
+    for (const lesson of LESSONS) {
+      lesson.practices.forEach((_, i) => {
+        expect(recordingObject(resolveRepConfig({ lesson: lesson.id, q: String(i + 1) }))).toBe(lesson.id);
+      });
+    }
+  });
+
+  it("is the trait's object on the road's lessons and the trait walks", () => {
+    expect(recordingObject(resolveRepConfig({ lesson: "h4" }))).toBe(heroObject("pause", resolveRepConfig({ lesson: "h4" }).tips[0]));
+    expect(recordingObject(resolveRepConfig({ lesson: "trait-pace" }))).not.toBeNull();
+  });
+
+  it("is none on the sky and for a spun topic", () => {
+    expect(recordingObject(resolveRepConfig({ boss: "1" }))).toBeNull();
+    expect(recordingObject(resolveRepConfig({ game: "interview", q: "iv1" }))).toBeNull();
+    expect(recordingObject(resolveRepConfig({ topic: "t6" }))).toBeNull();
   });
 });

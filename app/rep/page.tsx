@@ -45,7 +45,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { FooterShelf } from "@/components/ui/FooterShelf";
 import { BackLink } from "@/components/ui/ScreenHeader";
 import { recordingTrait } from "@/lib/log";
-import { practiceFamily } from "@/lib/practice-family";
+import { practiceFamily, recordingObject } from "@/lib/practice-family";
 import { animateSpring, SPRING, springEasing, springMs } from "@/lib/spring";
 import { useHourLabel } from "@/lib/time-label";
 import { achievements } from "@/lib/achievements";
@@ -286,6 +286,9 @@ function RepScreen() {
   /* The colour the screen wears (D50): the practice's trait family, as
      on the Today card that opened it, or the sky stage. */
   const family = practiceFamily(config, searchParams.get("trait"));
+  /* The glass object the recording card stands (E51): Today's, carried
+     through Start, or the lesson's own; none on the sky. */
+  const art = recordingObject(config);
 
   const [phase, setPhase] = useState<Phase>("idle");
   /** Which upload attempt is in flight, so the wait can say so. */
@@ -1434,6 +1437,7 @@ function RepScreen() {
             eyebrow={eyebrowOf(config.unit)}
             topic={promptHidden ? "Prompt hidden. That's the mod." : topicText}
             family={family}
+            art={art}
             compact={phase !== "idle"}
           />
         </div>

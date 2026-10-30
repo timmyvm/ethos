@@ -12,7 +12,7 @@
 import { COLD_TOPICS, weeklyTopic, type ColdTopic } from "./cold-topics";
 import { DRILLS, todaysDrill } from "./drills";
 import { lessonById } from "@/content/lessons";
-import { pathItemById } from "@/content/path";
+import { pathItemById, type PathItem } from "@/content/path";
 import {
   dailyQuestion,
   gameById,
@@ -51,6 +51,8 @@ export interface RepConfig {
   tips: string[];
   /** The roulette topic, when this rep came from a spin. */
   rouletteTopic: Topic | null;
+  /** The path item Today's card printed, when its Start opened it (E52). */
+  practice?: PathItem | null;
   /** no-notes: the prompt vanishes the moment recording starts. */
   hidePrompt: boolean;
   crowdNoise: boolean;
@@ -194,6 +196,7 @@ export function resolveRepConfig(
       topic: null,
       tips: practice ? practice.tips : TOPIC_SHAPES[roulette.shape].tips,
       rouletteTopic: roulette,
+      practice,
     };
   }
 

@@ -5347,8 +5347,10 @@ summary::-webkit-details-marker {
  * words are never on screen twice; what only Today's card says (the
  * chip, the tactic, Start) fades with the old card. An object the
  * recording card has no room for leaves in 120ms where it stood. The
- * page's own push sits out while the card moves (`data-vt`). Reduced
- * motion: a 200ms cross-fade, nothing travels.
+ * page's own push sits out while the card moves (`data-vt`), and the
+ * pages themselves do not cross-fade: Today's goes at once, the
+ * recording screen fades up under the card. Reduced motion: a 200ms
+ * cross-fade, nothing travels.
  */
 ::view-transition-group(practice-card),
 ::view-transition-group(practice-object),
@@ -5363,7 +5365,7 @@ summary::-webkit-details-marker {
 /* The card: the recording card's picture is its colour alone (its
    words and object travel on their own), drawn whole from the first
    frame; Today's, with what only it says (the chip, the tactic, Start),
-   lies over it and fades in 160ms. Both fill the moving box, so the
+   lies over it and fades in 80ms. Both fill the moving box, so the
    taller card never hangs out under the shorter one, and neither adds
    light to the other. */
 ::view-transition-old(practice-card),
@@ -5375,7 +5377,7 @@ summary::-webkit-details-marker {
 }
 ::view-transition-old(practice-card) {
   z-index: 1;
-  animation-duration: 160ms;
+  animation-duration: 80ms;
   animation-timing-function: ease-out;
 }
 ::view-transition-new(practice-card) {
@@ -5399,6 +5401,20 @@ summary::-webkit-details-marker {
 }
 :root[data-vt] .push-right {
   animation: none;
+}
+/* The pages under the card (R2F-01): Today's leaves at once and the
+   recording screen fades up under the moving card, instead of the
+   browser's cross-fade, which drew both screens double-exposed at 80ms
+   (Today's 1.8 under Record, its tab labels through the streak line).
+   Today's chip, tactic and Start fade with the old card in 80ms, so
+   they never ride the moving card. Reduced motion keeps the 200ms
+   cross-fade below. */
+:root[data-vt]:not([data-motion="reduce"])::view-transition-old(root) {
+  animation: none;
+  opacity: 0;
+}
+:root[data-vt]:not([data-motion="reduce"])::view-transition-new(root) {
+  animation: fade-in var(--duration-base) var(--ease-out) both;
 }
 /* Reduced motion: nothing travels; the page cross-fades in 200ms. */
 :root[data-motion="reduce"] .vt-shared {

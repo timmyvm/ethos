@@ -230,6 +230,19 @@ export function TopicCard({
       { duration: springMs(SPRING.base), easing: springEasing(SPRING.base) }
     );
     void anim.finished.then(() => el.style.removeProperty("transform-origin"), () => {});
+    /* The card's box scales unevenly (Today's is taller), so its words
+       take the inverse on the same spring and keep their shape (R4:
+       the eyebrow and the topic were drawn 22% tall for 300ms). They
+       still ride where the card puts them. */
+    for (const words of [brow.current?.parentElement, head.current]) {
+      if (!words) continue;
+      words.style.transformOrigin = "0 0";
+      const own = words.animate(
+        [{ transform: `scale(${1 / f.sx}, ${1 / f.sy})` }, { transform: "none" }],
+        { duration: springMs(SPRING.base), easing: springEasing(SPRING.base) }
+      );
+      void own.finished.then(() => words.style.removeProperty("transform-origin"), () => {});
+    }
     flight.current = { from, c, f, anim };
   }, [measured, compact]);
 

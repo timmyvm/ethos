@@ -26,8 +26,11 @@ import {
   tileObject,
   traitOrder,
   weekView,
+  wideLine,
 } from "./home";
+import { NORMS } from "@/content/norms";
 import { ART_BOUNDS } from "./lesson-art-bounds";
+import { percentile } from "./percentile";
 import type { TraitReading } from "./trait-readings";
 
 /*
@@ -87,13 +90,17 @@ describe("every practice has its object", () => {
     expect(heroObject(null)).toBe(HOUSE_OBJECT);
   });
 
-  it("a tile never repeats the card's object", () => {
+  it("each tile stands its trait's one emblem, whatever the card stands (D22)", () => {
+    expect(TRAITS.map((t) => tileObject(t.id))).toEqual([
+      "the-long-one", // Pausing, the hourglass
+      "the-cold-open", // Fillers, the door
+      "finish-it", // Restarts, the flag
+      "room-to-land", // Pace, the road
+      "name-it-once", // Variety, the tag
+    ]);
     for (const t of TRAITS) {
-      for (const hero of [...TACTIC_OBJECT[t.id], HOUSE_OBJECT, null]) {
-        const tile = tileObject(t.id, hero);
-        expect(tile).not.toBe(hero);
-        expect(lessonById(tile)?.trait).toBe(t.id);
-      }
+      expect(tileObject(t.id)).toBe(TRAIT_OBJECT[t.id]);
+      expect(lessonById(tileObject(t.id))?.trait).toBe(t.id);
     }
   });
 
@@ -125,16 +132,22 @@ describe("every object stands in the card's zone, by its visible box", () => {
     if (!m) throw new Error(`no --zone-${name}`);
     return m[1];
   };
-  /* calc(), clamp(), px and cqw: all the zone uses. */
-  const at = (expr: string, content: number) =>
+  /* calc(), clamp(), max(), px and cqw: all the zones use. */
+  const at = (expr: string, content: number, vars: Record<string, number> = {}) =>
     Function(
       "clamp",
+      "max",
       `return ${expr
+        .replace(/var\(--([\w-]+)(?:, ?([\d.]+)px)?\)/g, (_, n, d) => String(vars[n] ?? d))
         .replace(/calc\(/g, "(")
         .replace(/([\d.]+)cqw/g, (_, n) => `(${n}*${content}/100)`)
         .replace(/([\d.]+)px/g, "$1")};`
-    )((lo: number, v: number, hi: number) => Math.min(Math.max(lo, v), hi)) as number;
+    )((lo: number, v: number, hi: number) => Math.min(Math.max(lo, v), hi), Math.max) as number;
   const wordsMin = home.match(/\.home-hero-words \{[^}]*min-height: calc\(var\(--zone-b\) - (\d+)px\)/);
+  /* Under 360 (D22) the words take 56% and the zone its own edges. */
+  const narrowAt = home.indexOf("@media (max-width: 359px) {\n  .home-hero {");
+  const narrow = home.slice(narrowAt, home.indexOf("\n}\n", narrowAt));
+  const narrowZone = (name: string) => narrow.match(new RegExp(`--zone-${name}:\\s*([^;]+);`))?.[1] ?? null;
 
   it("reads a box for every lesson, and the card's zone from the CSS", () => {
     expect(Object.keys(ART_BOUNDS).sort()).toEqual(LESSONS.map((l) => l.id).sort());
@@ -143,6 +156,10 @@ describe("every object stands in the card's zone, by its visible box", () => {
       expect(b.b).toBeGreaterThan(b.t);
     }
     expect(wordsMin).not.toBeNull();
+    expect(narrowAt).toBeGreaterThan(0);
+    expect(narrowZone("l")).not.toBeNull();
+    expect(narrowZone("b")).toBe("calc(var(--zone-t) + 120px)");
+    expect(narrow).toMatch(/\.home-hero-words \{\s*max-width: 56%;/);
     expect(artBox("the-long-one")).toEqual({
       "--art-l": ART_BOUNDS["the-long-one"].l,
       "--art-t": ART_BOUNDS["the-long-one"].t,
@@ -151,15 +168,18 @@ describe("every object stands in the card's zone, by its visible box", () => {
     });
   });
 
-  for (const [width, rise] of [
-    [320, 22],
-    [390, 48],
+  for (const [width, rise, words] of [
+    [320, 22, 0.56],
+    [390, 48, 0.52],
   ] as const) {
     it(`at ${width}: all fifteen rise ${rise}px, clear the words by 12px, end above the topic, inside the card`, () => {
       const content = width - 40 - 40; // the column's gutters, then the card's padding
       const card = content + 40;
-      const [l, r, t, b] = ["l", "r", "t", "b"].map((n) => at(zone(n), content));
-      const column = 20 + 0.52 * content;
+      const small = width < 360;
+      const t = at(zone("t"), content);
+      const zoneOf = (n: string) => (small && narrowZone(n) ? narrowZone(n)! : zone(n));
+      const [l, r, b] = ["l", "r", "b"].map((n) => at(zoneOf(n), content, { "zone-t": t }));
+      const column = 20 + words * content;
       expect(t).toBeCloseTo(-rise, 0);
       // The topic starts 24px under the words, which hold the zone's height.
       const topic = 20 + (b - Number(wordsMin![1])) + 24;
@@ -167,9 +187,52 @@ describe("every object stands in the card's zone, by its visible box", () => {
         const box = artBox(id);
         const s = Math.min((b - t) / box["--art-h"], (r - l) / box["--art-w"]);
         const left = (l + r) / 2 - (s * box["--art-w"]) / 2;
-        expect(left - column, `${id} clear of the words`).toBeGreaterThanOrEqual(12);
+        expect(left - column + 1e-6, `${id} clear of the words`).toBeGreaterThanOrEqual(12);
         expect(left + s * box["--art-w"], `${id} inside the card`).toBeLessThanOrEqual(card - 8);
-        expect(t + s * box["--art-h"], `${id} above the topic`).toBeLessThanOrEqual(topic - 6);
+        expect(t + s * box["--art-h"] - 1e-6, `${id} above the topic`).toBeLessThanOrEqual(topic - 6);
+        if (small) expect(s * box["--art-h"], `${id} at 120px at most`).toBeLessThanOrEqual(120.01);
+      }
+    });
+  }
+
+  /*
+   * The tiles' emblems (D24): an object's visible top sits 12px or more
+   * inside its tile (only Variety's tag cord may reach the edge); it may
+   * run off the right by a fifth of its visible width and off the bottom
+   * by 15% of its height, never off the top; and it keeps clear of the
+   * name beside it and the number under it. Every trait can stand in
+   * the 2x2, so all five, at 320, 390 and 430.
+   */
+  const tileBlock = home.slice(home.indexOf("\n.home-tile[data-trait] {"), home.indexOf("}", home.indexOf("\n.home-tile[data-trait] {")));
+  const tileZone = (name: string) => {
+    const m = tileBlock.match(new RegExp(`--zone-${name}:\\s*([^;]+);`));
+    if (!m) throw new Error(`no tile --zone-${name}`);
+    return m[1];
+  };
+  const nameW = (id: TraitId) =>
+    Number(home.match(new RegExp(`\\.home-tile\\[data-trait="${id}"\\] \\{\\s*--name-w: (\\d+)px`))?.[1]);
+  for (const width of [320, 390, 430]) {
+    it(`at ${width}: every emblem stands inside its tile, cut at the right or foot only`, () => {
+      const W = (width - 40 - 12) / 2; // two tiles and their 12px gap in the column
+      const H = 172;
+      const content = W - 32;
+      const numTop = H - 16 - 4 - 10 - (content <= 120 ? 30 : 36);
+      for (const t of TRAITS) {
+        const box = artBox(tileObject(t.id));
+        const nw = nameW(t.id);
+        expect(nw, `${t.id} name width`).toBeGreaterThan(0);
+        const vars = { "name-w": nw };
+        const [l, r, top, b] = ["l", "r", "t", "b"].map((n) => at(tileZone(n), content, vars));
+        const s = Math.min((b - top) / box["--art-h"], (r - l) / box["--art-w"]);
+        const w = s * box["--art-w"];
+        const h = s * box["--art-h"];
+        const left = (l + r) / 2 - w / 2;
+        expect(top, `${t.id} top inside`).toBeGreaterThanOrEqual(t.id === "range" ? 0 : 12);
+        expect(left + w - W, `${t.id} off the right`).toBeLessThanOrEqual(0.2 * w);
+        expect(top + h - H, `${t.id} off the foot`).toBeLessThanOrEqual(0.15 * h);
+        expect(left, `${t.id} clear of its name`).toBeGreaterThanOrEqual(16 + nw + 8);
+        expect(top + h, `${t.id} clear of its number`).toBeLessThanOrEqual(numTop - 8);
+        expect(h, `${t.id} big enough to read`).toBeGreaterThanOrEqual(48);
       }
     });
   }
@@ -266,6 +329,25 @@ describe("the tiles", () => {
     const fewer = lineTile(line({ trait: "fillers", direction: "lower", line: 4, today: 2, closed: true }));
     expect(fewer.fill).toBeGreaterThanOrEqual(LINE_MARK);
     expect(fewer.caption).toBe("Under your line of 4.");
+  });
+
+  it("today's line in the wide tile is a tick on the bar's own scale, and names itself only when the tile does not", () => {
+    // The fixture's morning: the line and the tile's number are both 1.8.
+    const same = wideLine(line({}), 1.8);
+    expect(same).toMatchObject({ state: "open", caption: "Over it on 4 of your last 5." });
+    // The tick is the line's percentile on the same norm the bar's fill reads.
+    expect(same.tick).toBe(percentile(1.8, NORMS.pause));
+    expect(same.tick).toBeGreaterThanOrEqual(0);
+    expect(same.tick).toBeLessThanOrEqual(100);
+    // A tile printing another number: the caption says the line's.
+    expect(wideLine(line({}), 2.4).caption).toBe("Line 1.8. Over it on 4 of your last 5.");
+    expect(wideLine(line({}), null).caption).toBe("Line 1.8. Over it on 4 of your last 5.");
+    // Spoken today: lineTile's captions already carry the line where needed.
+    expect(wideLine(line({ today: 2.6, closed: true, value: 1 }), 2.6)).toMatchObject({
+      state: "closed",
+      caption: "Over your line of 1.8.",
+    });
+    expect(wideLine(line({ today: 0.9 }), 0.9)).toMatchObject({ state: "short", caption: "Your line is 1.8." });
   });
 
   const rep = (fillers: number[], duration = 60): RepRow =>

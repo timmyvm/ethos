@@ -10,9 +10,10 @@
  */
 
 /**
- * The one tap (brand.md: exactly one terracotta per screen). A 12px
- * rectangle, ink on terracotta, 48px tall, and no shadow — the colour
- * is the lift (DECISIONS #234).
+ * The one tap (brand.md: exactly one terracotta per screen). A pill
+ * (`rounded-tap`, D11: Today's Start was the first, and one action wears
+ * one shape on every screen), ink on terracotta, 48px tall, and no
+ * shadow — the colour is the lift (DECISIONS #234).
  *
  * No hover step (M15, today-21, practice-tab-24, recording-2, auth-10).
  * It used to hover to terracotta-600, which is the rust hex #b2432c:
@@ -27,7 +28,7 @@
  * device row of the content behind it show under its edge at 2x (B4).
  */
 export const ACTION_CLASS =
-  "press font-display block min-h-12 w-full rounded-control bg-terracotta-500 px-6 py-3.5 text-center text-body leading-5 font-bold text-on-accent transition-colors duration-200 ease-out";
+  "press font-display block min-h-12 w-full rounded-tap bg-terracotta-500 px-6 py-3.5 text-center text-body leading-5 font-bold text-on-accent transition-colors duration-200 ease-out";
 
 /**
  * Disabled, one value everywhere (#234): the control keeps its shape and

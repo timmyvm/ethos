@@ -76,6 +76,11 @@ const TREND_CELL = "max-[359px]:invisible max-[359px]:absolute";
    colour pass), and the lesson title keeps 4px more air off it. */
 const RECORD_GRID =
   "grid grid-cols-[40px_minmax(0,1fr)_44px_36px_36px] min-[360px]:grid-cols-[40px_minmax(0,1fr)_44px_36px_36px_36px] gap-1.5";
+/* The same table while every row waits: the Index column is the Go
+   pill's 56px (D11), since a 44px pill in a 44px column is a circle and
+   Record is the only circle. */
+const WAITING_GRID =
+  "grid grid-cols-[40px_minmax(0,1fr)_56px_36px_36px] min-[360px]:grid-cols-[40px_minmax(0,1fr)_56px_36px_36px_36px] gap-1.5";
 /* Under 360px the held column steps out of the recordings table, so a
    lesson's name wraps between its words: at 320 the column was 87px and
    "Punctuate" broke inside itself (the fix round). Held pauses are in
@@ -457,7 +462,7 @@ export default function HistoryPage() {
         <h2 className="section-head">
           {empty ? "Waiting to be logged" : "Every recording"}
         </h2>
-        <div aria-hidden className={`${RECORD_GRID} mt-3 pb-1.5`}>
+        <div aria-hidden className={`${empty ? WAITING_GRID : RECORD_GRID} mt-3 pb-1.5`}>
           <ColumnHead>date</ColumnHead>
           <ColumnHead>lesson</ColumnHead>
           <ColumnHead right>index</ColumnHead>
@@ -472,7 +477,7 @@ export default function HistoryPage() {
           ? waitingRows(3, { intros: !skipIntros }).map((row) => (
               <div
                 key={row.id}
-                className={`${RECORD_GRID} items-center border-t border-hairline py-3 text-stone-400`}
+                className={`${WAITING_GRID} items-center border-t border-hairline py-3 text-stone-400`}
               >
                 <DateTile trait={recordingTrait({ lesson_id: row.id })}>
                   <span className="font-display block text-num-s tabular-nums">
@@ -493,7 +498,7 @@ export default function HistoryPage() {
                 <Link
                   href={row.href}
                   aria-label={row.label}
-                  className="press font-display flex min-h-11 min-w-11 items-center justify-center justify-self-end rounded-control border border-edge bg-surface px-2.5 text-row text-ink"
+                  className="press font-display flex min-h-11 min-w-14 items-center justify-center justify-self-end rounded-tap border border-edge bg-surface px-4 text-row text-ink"
                 >
                   Go
                 </Link>

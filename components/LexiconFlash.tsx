@@ -35,7 +35,7 @@ export function LexiconFlash({
   const card = cards[i];
   const last = i === cards.length - 1;
   const step =
-    "press font-display mt-4 min-h-11 w-full rounded-control bg-surface px-4 py-3 text-row";
+    "press font-display mt-4 min-h-11 w-full rounded-tap bg-surface px-4 py-3 text-row";
 
   return (
     /* The card is produced by a tap (the button above it is replaced),

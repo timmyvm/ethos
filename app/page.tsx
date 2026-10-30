@@ -352,10 +352,12 @@ export default function Home() {
             {reps !== null && (
               /* Earned stars, beside the streak: the two standing scores
                  (#176), sage chips with a gold mark, never a tap. They
-                 land with the read, in one fade. */
+                 land with the read, in one fade. At zero both read as
+                 unlit zeros (D25) until the first recording lights them. */
               <span className="arrive flex items-center gap-2">
                 <HeaderCount
                   variant="chip"
+                  empty={totalStars(starMap) === 0}
                   glyph={<IconStar />}
                   value={<CountUp value={totalStars(starMap)} durationMs={DURATION.max} />}
                   label={`${totalStars(starMap)} stars`}
@@ -478,7 +480,7 @@ export default function Home() {
 
       {reps !== null &&
         (view === "today" ? (
-          <TodayTiles key="today" reps={history} challenge={challenge} focus={heroTrait} hero={object} />
+          <TodayTiles key="today" reps={history} challenge={challenge} focus={heroTrait} />
         ) : (
           <WeekTiles key="week" week={weekView(lifetime, new Date())} />
         ))}

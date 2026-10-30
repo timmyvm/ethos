@@ -205,7 +205,6 @@ export function RepResult({
                     n={m.stars}
                     size={40}
                     arch
-                    tone="sage-700"
                     land={live}
                     landAfterMs={COUNT_MS}
                   />
@@ -224,7 +223,7 @@ export function RepResult({
             ) : (
               <>
                 <span className="[&>span]:gap-3!">
-                  <Stars n={m.stars} size={40} arch tone="sage-700" land={live} />
+                  <Stars n={m.stars} size={40} arch land={live} />
                 </span>
                 <div className="mt-5 flex items-baseline justify-center gap-1.5">
                   <span className="font-display text-num-xl tabular-nums">
@@ -527,7 +526,7 @@ function NotScored({ metrics: m, centred = false }: { metrics: RepMetrics; centr
     <div className={centred ? "flex flex-col items-center" : "mt-5"}>
       {centred && (
         <span className="[&>span]:gap-3!">
-          <Stars n={1} size={40} arch tone="sage-700" />
+          <Stars n={1} size={40} arch />
         </span>
       )}
       <h2 className={`font-display text-title ${centred ? "mt-5" : ""}`}>

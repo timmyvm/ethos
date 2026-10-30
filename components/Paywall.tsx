@@ -493,7 +493,7 @@ export function Paywall({
                 <button
                   type="submit"
                   disabled={redeeming || !code.trim()}
-                  className="press font-display min-h-12 shrink-0 rounded-control bg-terracotta-500 px-6 text-body font-bold text-on-accent transition-colors disabled:bg-cream/10 disabled:text-cream/60"
+                  className="press font-display min-h-12 shrink-0 rounded-tap bg-terracotta-500 px-6 text-body font-bold text-on-accent transition-colors disabled:bg-cream/10 disabled:text-cream/60"
                 >
                   {redeeming ? PAYWALL_COPY.unlockBusy : PAYWALL_COPY.unlock}
                 </button>

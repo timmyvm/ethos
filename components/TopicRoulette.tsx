@@ -60,7 +60,7 @@ export function TopicRoulette({
         <button
           onClick={reel.spin}
           disabled={reel.rolling}
-          className={`press font-display min-h-12 shrink-0 rounded-control border border-edge bg-surface px-5 text-row ${DISABLED_CLASS}`}
+          className={`press font-display min-h-12 shrink-0 rounded-tap border border-edge bg-surface px-5 text-row ${DISABLED_CLASS}`}
         >
           Spin
         </button>

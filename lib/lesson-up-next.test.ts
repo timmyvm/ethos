@@ -139,9 +139,10 @@ describe("the lessons the page used to count", () => {
 
 /*
  * The trait tones (globals.css, "lessons (trait tones)"), read out of the
- * stylesheet and held to AA. The numbered square the button starts is
- * 13px bold on the solid tone, which is body text to WCAG, so 4.5:1:
- * white on it in light (the ochre takes the dark ink), the dark ink on it
+ * stylesheet and held to AA. Text on the solid tone (the trait chip; the
+ * lesson page's next square was too until D28 made it ink) is 13px bold,
+ * which is body text to WCAG, so 4.5:1: white on it in light (the ochre
+ * takes the dark ink, #12100b since D05 deepened it), the dark ink on it
  * in dark. The first cut had white on three of the light inks at 4.1 to
  * 4.4.
  */
@@ -157,9 +158,13 @@ describe("the lesson tones clear AA", () => {
       ? /:root\[data-theme="dark"\] \[data-trait="(\w+)"\] \{([^}]*)\}/g
       : /(?:^|\n)\[data-trait="(\w+)"\] \{([^}]*)\}/g;
     for (const [, trait, body] of block.matchAll(re)) {
-      out[trait] = Object.fromEntries(
-        [...body.matchAll(/--(tone(?:-wash|-ink)?):\s*(#[0-9a-f]{6})/gi)].map((m) => [m[1], m[2]])
-      );
+      // Merged: a trait's dark stage (D13) is a rule of its own.
+      out[trait] = {
+        ...out[trait],
+        ...Object.fromEntries(
+          [...body.matchAll(/--(tone(?:-wash|-ink)?):\s*(#[0-9a-f]{6})/gi)].map((m) => [m[1], m[2]])
+        ),
+      };
     }
     return out;
   };
@@ -184,7 +189,7 @@ describe("the lesson tones clear AA", () => {
   });
 
   for (const [trait, t] of Object.entries(light)) {
-    const on = trait === "repairs" ? "#16140f" : "#ffffff";
+    const on = trait === "repairs" ? "#12100b" : "#ffffff";
     it(`${trait}, light: the numeral on the solid, and the ink on the wash`, () => {
       expect(ratio(on, t.tone)).toBeGreaterThanOrEqual(4.5);
       expect(ratio(t["tone-ink"], t["tone-wash"])).toBeGreaterThanOrEqual(4.5);
@@ -192,7 +197,7 @@ describe("the lesson tones clear AA", () => {
   }
   for (const [trait, t] of Object.entries(dark)) {
     it(`${trait}, dark: the numeral on the solid, and the ink on the wash`, () => {
-      expect(ratio("#16140f", t.tone)).toBeGreaterThanOrEqual(4.5);
+      expect(ratio("#12100b", t.tone)).toBeGreaterThanOrEqual(4.5);
       expect(ratio(t["tone-ink"], t["tone-wash"])).toBeGreaterThanOrEqual(4.5);
     });
   }

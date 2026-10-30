@@ -328,7 +328,7 @@ export default function ShopPage() {
                   <button
                     key={justBought ? "equip-bought" : "equip"}
                     onClick={() => equip(pose === item.id ? null : item.id)}
-                    className={`press font-display mt-3 min-h-11 w-full rounded-control border border-sage-300 px-5 py-2.5 text-row text-sage-700 transition-colors ${
+                    className={`press font-display mt-3 min-h-11 w-full rounded-tap border border-sage-300 px-5 py-2.5 text-row text-sage-700 transition-colors ${
                       justBought ? "arrive " : ""
                     }${pose === item.id ? "bg-sage-100" : "bg-surface"}`}
                   >
@@ -347,7 +347,7 @@ export default function ShopPage() {
                     key={justBought ? "buy-bought" : "buy"}
                     onClick={() => void buy(item)}
                     disabled={busy !== null}
-                    className={`press font-display mt-3 min-h-11 w-full rounded-control border border-transparent bg-sage-700 px-5 py-2.5 text-row text-sage-ink transition-colors ${
+                    className={`press font-display mt-3 min-h-11 w-full rounded-tap border border-transparent bg-sage-700 px-5 py-2.5 text-row text-sage-ink transition-colors ${
                       justBought ? "arrive " : ""
                     }${DISABLED_CLASS}`}
                   >
@@ -359,7 +359,7 @@ export default function ShopPage() {
                   <div className="mt-3">
                     <div aria-hidden className="h-1.5 overflow-hidden bg-sand">
                       <div
-                        className="fill h-full bg-sage-500"
+                        className="fill h-full bg-sage-600"
                         style={{
                           width: `${Math.min(100, (coins / item.price) * 100)}%`,
                         }}

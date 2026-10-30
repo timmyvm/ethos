@@ -28,13 +28,14 @@ export function SegmentBar({
    * on the sand trough (`earned`); on the hero stage it draws in the
    * stage's own ink on its bone (`stage`). Grey is only ever the trough:
    * the cohesion pass's stone fill in Lessons' list was the fourth colour
-   * the app drew progress in.
+   * the app drew progress in. Sage-600 since D03: 3.65:1 on light sand,
+   * where 500 was 2.94.
    */
   tone?: "earned" | "stage";
 }) {
   if (unknown) return <div aria-hidden className={`h-1 w-full ${className}`} />;
   const [fill, trough] =
-    tone === "stage" ? ["stage-fill", "stage-trough"] : ["bg-sage-500", "bg-sand"];
+    tone === "stage" ? ["stage-fill", "stage-trough"] : ["bg-sage-600", "bg-sand"];
   return (
     <div aria-hidden className={`flex w-full gap-1 ${className}`}>
       {Array.from({ length: Math.max(0, total) }, (_, i) => (

@@ -128,7 +128,7 @@ function StreakRoll({
   return (
     <div
       aria-hidden
-      className="font-display mt-4 overflow-hidden text-num-hero leading-none text-sage-500 tabular-nums"
+      className="font-display mt-4 overflow-hidden text-num-hero leading-none text-sage-700 tabular-nums"
       style={{ height: LINE }}
     >
       <div

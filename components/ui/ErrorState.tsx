@@ -41,7 +41,7 @@ export function ErrorState({
         <button
           type="button"
           onClick={onRetry}
-          className="press font-display mt-3 min-h-11 w-full rounded-control border border-edge bg-surface px-4 py-2.5 text-row"
+          className="press font-display mt-3 min-h-11 w-full rounded-tap border border-edge bg-surface px-4 py-2.5 text-row"
         >
           {retryLabel}
         </button>

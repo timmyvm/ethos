@@ -192,7 +192,7 @@ export function DimensionList({
               </span>
               <span className="h-1.5 flex-1 overflow-hidden bg-sand">
                 <span
-                  className={`block h-full bg-sage-500 ${fill ? "fill" : ""}`}
+                  className={`block h-full bg-sage-600 ${fill ? "fill" : ""}`}
                   style={{ width: `${(points / row.weight) * 100}%` }}
                 />
               </span>

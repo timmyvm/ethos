@@ -1,11 +1,17 @@
 import { IconStar } from "@/components/Icon";
 
 /**
- * Stars: earned ones solid in sage, the rest an empty slot in the same
+ * Stars: earned ones solid in gold, the rest an empty slot in the same
  * shape (duolingo-path s10, log-22). The prize's own outline shows what
  * is still to earn; the old text glyph's stone-200 slot measured 1.3:1
  * and read "one star" where it meant "one of three". The unearned
  * outline is 1.5px stone-400 at every size.
+ *
+ * Gold since D03, one star in one colour everywhere: Today's chip, the
+ * results, the Log. An earned star fills --color-amber (#e0a800) through
+ * `.earned-lit`, which gives it a 1px #b88a00 rim in light (3.15:1 on
+ * white) and none in dark (8.7:1 on #121212). Earned glyphs are gold;
+ * earned fills, bars and numbers are sage.
  *
  * One image to a screen reader ("2 of 3 stars"), the marks hidden.
  *
@@ -16,8 +22,7 @@ import { IconStar } from "@/components/Icon";
  * them still: a value already on the screen never re-arrives.
  *
  * `arch` drops the middle star 4px, a shallow arch for the results
- * step. `tone` picks the earned colour: sage-500 by default, sage-700
- * where the stars sit on a sage wash.
+ * step.
  */
 export function Stars({
   n,
@@ -26,7 +31,6 @@ export function Stars({
   landAfterMs = 0,
   total = 3,
   arch = false,
-  tone = "sage-500",
 }: {
   n: number;
   size?: number;
@@ -34,9 +38,7 @@ export function Stars({
   landAfterMs?: number;
   total?: number;
   arch?: boolean;
-  tone?: "sage-500" | "sage-700";
 }) {
-  const earnedClass = tone === "sage-700" ? "text-sage-700" : "text-sage-500";
   const middle = (total + 1) / 2;
   return (
     <span
@@ -53,7 +55,7 @@ export function Stars({
           <span
             key={i}
             aria-hidden
-            className={`inline-flex ${earned ? earnedClass : "text-stone-400"} ${
+            className={`inline-flex ${earned ? "earned-lit" : "text-stone-400"} ${
               landing ? "star-land" : ""
             }`}
             style={{

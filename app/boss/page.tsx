@@ -308,7 +308,7 @@ export default function BossPage() {
                   type="button"
                   onClick={spinWheel}
                   disabled={reel.rolling || !topic}
-                  className={`press font-display min-h-12 shrink-0 rounded-control border border-edge bg-surface px-5 text-row ${DISABLED_CLASS}`}
+                  className={`press font-display min-h-12 shrink-0 rounded-tap border border-edge bg-surface px-5 text-row ${DISABLED_CLASS}`}
                 >
                   Spin
                 </button>
@@ -482,7 +482,7 @@ export default function BossPage() {
           <button
             type="button"
             onClick={() => setPhase("ready")}
-            className="press font-display mt-7 min-h-12 w-full rounded-control border border-edge bg-surface text-row"
+            className="press font-display mt-7 min-h-12 w-full rounded-tap border border-edge bg-surface text-row"
           >
             I&apos;m ready early
           </button>

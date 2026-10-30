@@ -116,6 +116,18 @@
    * the white ground; the dashed trough below stays firmer, as it
    * must. Neutral since #289. */
   --color-sand: #e4e4e4;
+  /* The segmented control's trough (D01): one step under the white
+     thumb, so the thumb reads at a glance (Today's surface trough was
+     1.1:1 against it). Ink at 8.5% rather than the opaque #ececec it
+     equals on the white ground: on Settings' surface rows an opaque
+     #ececec sat 1.07:1 on its row and the thumb fell to 1.18, where the
+     translucent trough lands at #e2e2e2, a step under the row. The
+     segmented controls only. */
+  --color-trough: rgba(32, 30, 29, 0.085);
+  /* Destructive (D39): deleting an account, cancelling a plan. Its own
+     red so terracotta-600 stays Stop's alone. 5.4:1 on white, 4.9:1 on
+     surface. */
+  --color-destructive: #d70015;
 
   /*
    * Semantic surfaces. `ground` is the room; `surface` and `raised`
@@ -168,10 +180,10 @@
 
   /*
    * Shape (#201, one scale in #231, one step warmer in #234): controls
-   * 12, cards 16, sheets and the largest surfaces 20. Chips are the only
-   * pills, Record is the only circle, the nav is the only square edge.
-   * `rounded-control`, `rounded-card`, `rounded-sheet`; never a bracketed
-   * pixel radius.
+   * 12, cards 16, sheets and the largest surfaces 20. Chips and taps are
+   * pills (D11), Record is the only circle, the nav is the only square
+   * edge. `rounded-control`, `rounded-card`, `rounded-sheet`,
+   * `rounded-tap`; never a bracketed pixel radius.
    *
    * No concentric arithmetic: a control keeps 12 wherever it sits and a
    * card inside a sheet keeps 16. Computing inner = outer − inset gives
@@ -184,6 +196,12 @@
   --radius-control: 12px;
   --radius-card: 16px;
   --radius-sheet: 20px;
+  /* Every tap is a pill (D11): the one terracotta tap and the 44 to 48px
+     secondary buttons on the surface recipe, so one action has one
+     shape on every screen. Today's Start was the first. Containers keep
+     their radii; inputs and answer rows keep the control's 12, because
+     they are answers, not taps. Record stays the only circle. */
+  --radius-tap: 999px;
 
   /*
    * Motion (DESIGN-RULES, motion; DECISIONS #221). These mirror
@@ -449,7 +467,14 @@ body {
    */
   --color-ground: #121212;
   --color-surface: #1c1c1c;
-  --color-raised: #262626;
+  /* #2a2a2a since D01 (was #262626, 1.24:1): a card separates from the
+     ground by its fill, 1.31:1, not only by its rim. */
+  --color-raised: #2a2a2a;
+  /* The segmented trough sits under the raised thumb, so in dark it is
+     the surface step, darker than the thumb. */
+  --color-trough: var(--color-surface);
+  /* 5.1:1 on raised #2a2a2a; #ff453a measured 4.21 there. */
+  --color-destructive: #ff6961;
   /* 1.57:1 on the dark ground, 1.29:1 on a dark card; was 1.16 on the
      card, where the dimension bars' troughs vanished (#287). */
   --color-sand: #333333;
@@ -672,14 +697,16 @@ body {
     border-radius: var(--radius-card);
     box-shadow: var(--shadow-1);
   }
-  /* The sheen: #303030 at the top edge, raised (#262626) by 88px. Written
-     as raised plus 4.6% white, which IS #303030 in dark, so the OS
+  /* The sheen: #303030 at the top edge, raised (#2a2a2a) by 88px. Written
+     as raised plus 3% white, which IS #303030 in dark (4.6% over #262626
+     until D01 lifted raised; at 3% the Shop's cards still separate in a
+     7px squint), so the OS
      fallback below cannot paint a grey band on a page whose tokens
      stayed light (no script, OS dark): there it mixes to white. */
   :root[data-theme="dark"] .card {
     background-image: linear-gradient(
       180deg,
-      color-mix(in srgb, var(--color-raised), #fff 4.6%) 0,
+      color-mix(in srgb, var(--color-raised), #fff 3%) 0,
       var(--color-raised) 88px
     );
   }
@@ -687,7 +714,7 @@ body {
     :root:not([data-theme="light"]) .card {
       background-image: linear-gradient(
         180deg,
-        color-mix(in srgb, var(--color-raised), #fff 4.6%) 0,
+        color-mix(in srgb, var(--color-raised), #fff 3%) 0,
         var(--color-raised) 88px
       );
     }
@@ -751,7 +778,10 @@ body {
 :root {
   /* Neutral since #289: the ground is white, so there is no hue to
    * tint from and a warm shadow on white reads as a stain. */
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.05), 0 6px 16px rgba(0, 0, 0, 0.08);
+  /* One tight layer since D12: a .card is its 1px card-edge and this
+     contact shadow, so only the elev-2 stage or sheet floats. The 16px
+     blur layer beside the border was the generated-UI pairing. */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.06);
   --shadow-2: 0 2px 4px rgba(0, 0, 0, 0.06), 0 14px 32px rgba(0, 0, 0, 0.12);
   --shadow-3: 0 4px 8px rgba(0, 0, 0, 0.08), 0 24px 48px rgba(0, 0, 0, 0.16);
 }
@@ -997,7 +1027,7 @@ body::after {
 :root[data-theme="dark"] .press.card:not(.bg-none):active {
   background-image:
     linear-gradient(var(--press-veil), var(--press-veil)),
-    linear-gradient(180deg, color-mix(in srgb, var(--color-raised), #fff 4.6%) 0, var(--color-raised) 88px);
+    linear-gradient(180deg, color-mix(in srgb, var(--color-raised), #fff 3%) 0, var(--color-raised) 88px);
 }
 
 /* Up is a spring, critically damped: a button you let go of comes back
@@ -2517,7 +2547,10 @@ summary::-webkit-details-marker {
   --tone-ink: #9a1a47;
 }
 [data-trait="repairs"] {
-  --tone: #e89a0c;
+  /* #b06f00 since D05 (was #e89a0c, 2.32:1 on white): 4.10:1 on white,
+     3.23:1 on sand, so its square and its ring measure, and 1.91:1
+     from gold #e0a800, so it never reads as a star. */
+  --tone: #b06f00;
   --tone-wash: #fff1d1;
   --tone-ink: #704800;
 }
@@ -2579,22 +2612,43 @@ summary::-webkit-details-marker {
 }
 /* Text on the solid tone: white on the light theme's inks, except the
    ochre, which is light enough to want the dark ink; dark on all of the
-   dark theme's lighter inks. */
+   dark theme's lighter inks. The ink is #12100b since D05 deepened the
+   ochre: 4.63:1 on #b06f00, where #16140f was 4.49 and white 4.10. */
 .tone-on {
   color: #ffffff;
 }
 [data-trait="repairs"] .tone-on,
 :root[data-theme="dark"] .tone-on {
-  color: #16140f;
+  color: #12100b;
 }
 /* M06, M18, M19 (B2 and B9's hook): the ground a trait's art or ring
-   stands on. The wash in light; in dark the tone at 22% into the ground,
+   stands on. The wash in light; in dark the five traits take their own
+   stage below, and anything else the tone at 22% into the ground,
    because the dark washes sit within a few percent of the page. */
 [data-trait] {
   --tone-stage: var(--tone-wash);
 }
 :root[data-theme="dark"] [data-trait] {
   --tone-stage: color-mix(in srgb, var(--tone) 22%, var(--color-ground));
+}
+/* D13: each trait's dark stage at dark sky's OKLCH lightness and chroma
+   (L .355, C .075) in its own hue. The 22% mix of the muted tone into
+   the ground sampled at chroma .025, which read as mud. Each is about
+   1.65:1 on #121212 and carries white at 10.8:1 or better. */
+:root[data-theme="dark"] [data-trait="pause"] {
+  --tone-stage: #283a63;
+}
+:root[data-theme="dark"] [data-trait="fillers"] {
+  --tone-stage: #5c2935;
+}
+:root[data-theme="dark"] [data-trait="repairs"] {
+  --tone-stage: #533401;
+}
+:root[data-theme="dark"] [data-trait="pace"] {
+  --tone-stage: #09472e;
+}
+:root[data-theme="dark"] [data-trait="range"] {
+  --tone-stage: #3a3460;
 }
 /* ========================== end of lessons (trait tones) ========================== */
 
@@ -2841,17 +2895,41 @@ summary::-webkit-details-marker {
  * ============================================================================ */
 :root {
   /* The earned mark's gold: a star, a lit flame, a badge's glyph, on
-     Today and You alike (one token since #311). 3.2:1 on sage-100, the
-     non-text floor for a mark. Earned, never a tap and never paid. */
-  --earned-gold: #ad7c00;
+     Today, the results, the Log and You alike. One gold since D03, the
+     mascot's amber, so a star is one colour everywhere (it was gold on
+     Today and olive on the results and the Log). In light the glyph
+     takes a 1px rim, #b88a00, which holds 3.15:1 on white and 2.7:1 on
+     the sage-100 chip where the amber alone is 2.1 and 1.9; in dark the
+     amber needs none (8.7:1 on #121212). Earned glyphs are gold;
+     earned fills, bars and numbers are sage. Never a tap, never paid. */
+  --earned-gold: var(--color-amber);
+  --earned-rim: #b88a00;
 }
 :root[data-theme="dark"] {
-  --earned-gold: #f0c64a;
+  --earned-rim: var(--color-amber);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --earned-gold: #f0c64a;
+    --earned-rim: var(--color-amber);
   }
+}
+/* A lit earned glyph. A filled glyph (the star) is the gold with its
+   1px rim; a line glyph (the flame) draws its line in the rim and fills
+   its closed core, the last path, in the gold, so it reads as the same
+   gold as the star beside it. */
+.earned-lit {
+  color: var(--earned-gold);
+}
+.earned-lit path[fill="currentColor"] {
+  stroke: var(--earned-rim);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+.earned-lit svg[fill="none"] > path:not([fill]) {
+  stroke: var(--earned-rim);
+}
+.earned-lit svg[fill="none"] > path:not([fill]):last-child {
+  fill: var(--earned-gold);
 }
 /* The header's stars and streak: earned chips, never a tap. Thumb size
    since M17 (Timothy #176, "make them more noticeable"; the sage-100
@@ -2894,17 +2972,21 @@ summary::-webkit-details-marker {
 .today-earned[data-open="true"] .today-earned-mark {
   color: var(--color-stone-400);
 }
-/* The ochre, light: a neutral tile, the ring on sand. Its solid is
-   1.9:1 on that trough, so the Restarts ring would stop measuring; a
-   deeper arc gives 3.6:1, and the other four tones and every tone in
-   dark clear 3:1 as they are. Held by lib/today-colour.test.ts. The
-   name keeps the lessons ochre ink, so Restarts reads as the same
-   colour as on /lessons. `.today-trait` is a trait tile and today's
-   line; `main[data-trait="repairs"]` is the trait page (LessonScreen's
-   `trait` prop), whose ring takes the same deeper ochre. */
-:root:not([data-theme="dark"]) :is(.today-trait[data-trait="repairs"], main[data-trait="repairs"]) {
-  --ring-arc: #9a6c14;
+/* An unlit filled glyph is one flat grey: its own stroke over the
+   translucent stone fill drew a darker ring. */
+.today-earned[data-open="true"] .today-earned-mark path[fill="currentColor"] {
+  stroke: none;
 }
+/* A zero (D25): the whole chip unlit at the same footprint, the surface
+   step in place of the wash and the number in stone, so day zero reads
+   as an unlit 0 rather than a gold star beside a zero. */
+.today-earned[data-empty="true"] {
+  background: var(--color-surface);
+  color: var(--color-stone-600);
+}
+/* The ochre's own deeper arc went with D05: Restarts' tone is #b06f00,
+   3.23:1 on sand, so its ring and bar are the tone like the other four
+   (lib/today-colour.test.ts). */
 /* ========================== end of today (colour pass) ========================== */
 
 /* ============================ log (colour pass) ============================
@@ -2997,7 +3079,6 @@ summary::-webkit-details-marker {
  * ============================================================================ */
 .you-gold {
   display: inline-flex;
-  color: var(--earned-gold);
 }
 /* A freeze: the sky's tile with its ink glyph (3.7:1 light, 6.8:1 dark,
    over the 3:1 a glyph needs), light from the top like Practice's tiles.
@@ -3725,7 +3806,9 @@ summary::-webkit-details-marker {
   /* system-12: on the scale. The track is a control (12) and the thumb
      sits 2px inside it (10); no other off-scale radius in the app. */
   border-radius: var(--radius-control);
-  background: color-mix(in srgb, var(--color-ink) 7%, transparent);
+  /* The trough token (D01): one step under the thumb in light, the
+     surface step under the lighter thumb in dark. */
+  background: var(--color-trough);
 }
 .segmented-thumb {
   position: absolute;
@@ -4568,20 +4651,13 @@ summary::-webkit-details-marker {
   font-size: 1.0625rem;
   font-weight: 800;
   color: var(--color-ink);
-  background:
-    radial-gradient(100% 100% at 30% 20%, rgb(255 255 255 / 0.9), transparent 60%),
-    linear-gradient(150deg, #efe7df, #d9cdc2);
-  box-shadow:
-    inset 0 0 0 1px rgb(0 0 0 / 0.06),
-    0 4px 12px -4px rgb(0 0 0 / 0.18);
+  /* The surface step with its hairline (D20): the beige gradient made
+     it the only beige object in the app. */
+  background: var(--color-surface);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.06);
 }
 :root[data-theme="dark"] .home-avatar {
-  background:
-    radial-gradient(100% 100% at 30% 20%, rgb(255 255 255 / 0.14), transparent 60%),
-    linear-gradient(150deg, #3a3633, #2a2725);
-  box-shadow:
-    inset 0 0 0 1px rgb(255 255 255 / 0.1),
-    0 4px 12px -4px rgb(0 0 0 / 0.5);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
 }
 
 /* The card: today's practice in its trait's family, the screen's one
@@ -4630,6 +4706,19 @@ summary::-webkit-details-marker {
      read is in flight. */
   background: var(--color-surface);
 }
+/* Under 360 (D22): the words take 56% of the card so the longest
+   tactic holds two lines at 320 (scripts/check-today.mjs), and the
+   object keeps to the right 44%, 12px clear of them, at 120px tall at
+   most, so the topic still starts under its foot. */
+@media (max-width: 359px) {
+  .home-hero {
+    --zone-l: calc(56cqw + 32px);
+    --zone-b: calc(var(--zone-t) + 120px);
+  }
+  .home-hero .home-hero-words {
+    max-width: 56%;
+  }
+}
 /* The colour is a layer, so it fades up over the neutral card when the
    read names the trait rather than cutting in (principle: nothing
    teleports). Its shadow, a glow in the family's own colour, comes with
@@ -4649,7 +4738,7 @@ summary::-webkit-details-marker {
   background:
     radial-gradient(46% 42% at 84% 6%, var(--home-lit) 0%, transparent 70%),
     radial-gradient(70% 50% at 0% 100%, var(--home-low) 0%, transparent 72%),
-    linear-gradient(172deg, var(--home-a) 0%, var(--home-b) 100%);
+    linear-gradient(172deg, var(--home-a) 0%, var(--home-b) 76%);
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.28),
     inset 0 0 0 1px rgb(255 255 255 / 0.06),
@@ -4661,38 +4750,43 @@ summary::-webkit-details-marker {
    ink. Dark: the same hue a step deeper and quieter. White 13px type
    holds 4.5:1 on every top colour in both themes, and the lit corner
    sits behind the object (lib/today-colour.test.ts). Day one and a
-   failed read take Pausing's blue, the house's, with no chip. */
+   failed read take Pausing's blue, the house's, with no chip.
+   The foot (D21): the gradient lands on --home-b at 76%, above Start's
+   row (its top at 82% of the 376px card), so Start stands on the solid
+   foot, and the light feet are deep enough to hold terracotta at 3.3:1
+   or better there (3.58, 3.38, 3.32, 3.55, 3.97; they were 2.4 to 3.3,
+   under 3 on Fillers and Restarts days). */
 .home-hero[data-family="pause"] {
   --home-a: #3d6ae6;
-  --home-b: #1c368a;
+  --home-b: #162c70;
   --home-lit: rgb(196 214 255 / 0.62);
   --home-low: rgb(14 30 92 / 0.5);
   --home-glow: rgb(47 95 224 / 0.6);
 }
 .home-hero[data-family="fillers"] {
   --home-a: #cc3a6c;
-  --home-b: #8a1640;
+  --home-b: #6a0f30;
   --home-lit: rgb(255 208 222 / 0.6);
   --home-low: rgb(80 8 34 / 0.5);
   --home-glow: rgb(214 47 104 / 0.55);
 }
 .home-hero[data-family="repairs"] {
   --home-a: #9e6200;
-  --home-b: #6b4200;
+  --home-b: #4f3000;
   --home-lit: rgb(255 226 160 / 0.6);
   --home-low: rgb(60 34 0 / 0.5);
   --home-glow: rgb(200 130 10 / 0.55);
 }
 .home-hero[data-family="pace"] {
   --home-a: #12845a;
-  --home-b: #084a30;
+  --home-b: #063a26;
   --home-lit: rgb(190 245 220 / 0.55);
   --home-low: rgb(4 40 26 / 0.5);
   --home-glow: rgb(13 132 87 / 0.55);
 }
 .home-hero[data-family="range"] {
   --home-a: #7652e6;
-  --home-b: #3b1f8f;
+  --home-b: #2e1670;
   --home-lit: rgb(222 210 255 / 0.6);
   --home-low: rgb(30 12 80 / 0.5);
   --home-glow: rgb(112 72 230 / 0.55);
@@ -4823,13 +4917,15 @@ summary::-webkit-details-marker {
   font-weight: 600;
   color: var(--stage-ink);
 }
-/* The topic: 40/800, three lines at most for a typical prompt. */
+/* The topic: 40/800, three lines at most for a typical prompt. Tracked
+   -0.015em since D08: at -0.035em the 40px 800 ran its letters into
+   each other ("nearly", "didn't"). */
 .home-display {
   font-family: var(--font-display-face), sans-serif;
   font-size: min(var(--text-display), 10.2vw);
   line-height: 1.02;
   font-weight: 800;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.015em;
   text-wrap: balance;
 }
 .home-display[data-long] {
@@ -4859,7 +4955,7 @@ summary::-webkit-details-marker {
   color: var(--home-b);
 }
 
-/* The one tap, a pill on the card (STATE's open experiment). 48px,
+/* The one tap, a pill on the card like every tap (D11). 48px,
    terracotta, ink. */
 .home-start {
   display: flex;
@@ -4868,7 +4964,7 @@ summary::-webkit-details-marker {
   justify-content: center;
   gap: 8px;
   min-height: 48px;
-  border-radius: 999px;
+  border-radius: var(--radius-tap);
   padding: 0 24px;
   background: var(--color-terracotta-500);
   color: var(--color-on-accent);
@@ -4930,7 +5026,7 @@ summary::-webkit-details-marker {
 .home-seg.segmented {
   padding: 4px;
   border-radius: 999px;
-  background: var(--color-surface);
+  background: var(--color-trough);
 }
 .home-seg .segmented-thumb {
   top: 4px;
@@ -4939,9 +5035,10 @@ summary::-webkit-details-marker {
   width: calc((100% - 8px) / var(--segments));
   border-radius: 999px;
   background: var(--color-raised);
+  /* A tight contact shadow and a half-pixel rim on the trough (D23). */
   box-shadow:
-    0 4px 12px -4px rgb(0 0 0 / 0.16),
-    0 0 0 0.5px rgb(0 0 0 / 0.05);
+    0 1px 3px rgba(0, 0, 0, 0.14),
+    0 0 0 0.5px rgba(0, 0, 0, 0.08);
 }
 :root[data-theme="dark"] .home-seg .segmented-thumb {
   background: #3d3d3d;
@@ -4986,6 +5083,30 @@ summary::-webkit-details-marker {
 .home-tile[data-compact] {
   min-height: 168px;
 }
+/* The clean run as one row (D23): its head and number at the left, the
+   bar and its two-line caption at the right. */
+.home-tile[data-row] {
+  min-height: 120px;
+}
+.home-row {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 16px;
+}
+/* The wide tile (D22, D23): the trait at the left 56%, today's line in
+   the right half, where its object used to stand. */
+.home-wide {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 56fr) minmax(0, 44fr);
+  column-gap: 16px;
+}
+.home-wide-line {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
 /* The caption's two lines, held whatever the caption says: "Over it on
    5 of your last 6." wraps where "On your line." does not, and the two
    numbers above them sat 18px apart. */
@@ -4996,18 +5117,19 @@ summary::-webkit-details-marker {
  * A tile's object zone, in the tile's box (16px padding included), the
  * card's rule at tile size: the object's visible box fits the zone and
  * is centred across it, its top on the zone's top. A half tile's zone
- * is its right half above the number's line, 12px over the top and 8px
- * past the edge, so an object is cut by the tile the way the workbench
- * cut the road and the flag; the
- * wide tile's is the right 44% beside the number, its full height.
- * Nothing in a zone reaches a name, a number or a unit, at 320 or 390.
+ * is its right half above the number's line, from 12px inside the top
+ * (D24: the road, the door and the flag were cut at the top) to 10px
+ * over the number, and 8px past the right edge, so a wide object may
+ * run off the right by a little and none runs off the top. The wide
+ * tile has no object (D22). Nothing in a zone reaches a name, a number
+ * or a unit, at 320, 390 or 430 (lib/home.test.ts).
  */
 .home-tile[data-trait] {
   /* Clear of the name too: at 320 "Restarts" runs past the half. */
   --zone-l: max(calc(50cqw + 22px), calc(var(--name-w, 56px) + 38px));
   --zone-r: calc(100cqw + 40px);
-  --zone-t: -12px;
-  --zone-b: 84px;
+  --zone-t: 12px;
+  --zone-b: 96px;
 }
 /* Each name's width at the tile's 14/700 (the dot and its gap are the
    38px above, with 8 to spare). */
@@ -5025,12 +5147,6 @@ summary::-webkit-details-marker {
 }
 .home-tile[data-trait="range"] {
   --name-w: 47px;
-}
-.home-tile[data-trait][data-wide] {
-  --zone-l: calc(56cqw + 26px);
-  --zone-r: calc(100cqw + 24px);
-  --zone-t: 10px;
-  --zone-b: 158px;
 }
 .home-tile[data-trait] {
   --art-s: min(
@@ -5056,9 +5172,6 @@ summary::-webkit-details-marker {
 }
 :root[data-theme="dark"] .home-tile-glow {
   background: radial-gradient(closest-side, color-mix(in srgb, var(--tone) 20%, transparent), transparent);
-}
-.home-tile[data-wide] .home-tile-glow {
-  --glow: 260px;
 }
 .home-tile-art {
   position: absolute;
@@ -5092,7 +5205,8 @@ summary::-webkit-details-marker {
 }
 .home-tile[data-wide] {
   --num-max: 3.5rem;
-  --num-room: calc(56cqw + 2px);
+  /* The left column: 56% of what is left beside the 16px gap. */
+  --num-room: calc((100cqw - 16px) * 0.56);
   --unit-size: 0.78125rem;
 }
 @container (max-width: 120px) {
@@ -5129,8 +5243,7 @@ summary::-webkit-details-marker {
   letter-spacing: 0;
   color: var(--color-stone-500);
 }
-/* A measured bar: sand trough, the trait's tone (or the ochre's deeper
-   arc in light, `.today-trait`'s --ring-arc). */
+/* A measured bar: sand trough, the trait's tone. */
 .home-bar {
   position: relative;
   height: 4px;
@@ -5142,7 +5255,7 @@ summary::-webkit-details-marker {
   position: absolute;
   inset: 0 auto 0 0;
   border-radius: 999px;
-  background: var(--ring-arc, var(--tone));
+  background: var(--tone);
 }
 /* What is earned fills in sage: clearing your line, a clean stretch.
    The ring's own `measured` sage, 600: the 500 is 2.9:1 on light sand,
@@ -5177,7 +5290,8 @@ summary::-webkit-details-marker {
   border-radius: 999px;
 }
 .home-check {
-  background: var(--color-sage-500);
+  /* Sage-600, the earned fills' step (D03): white holds 4.6:1 on it. */
+  background: var(--color-sage-600);
   color: #ffffff;
 }
 :root[data-theme="dark"] .home-check {

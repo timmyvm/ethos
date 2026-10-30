@@ -678,7 +678,7 @@ function AccountStep({
               the two read as a pair and only the fill ranks them. */}
           <Link
             href="/signup"
-            className="press font-display mt-3 flex min-h-12 w-full items-center justify-center rounded-control border border-edge bg-surface px-6 py-3.5 text-body font-bold"
+            className="press font-display mt-3 flex min-h-12 w-full items-center justify-center rounded-tap border border-edge bg-surface px-6 py-3.5 text-body font-bold"
           >
             Use an email instead
           </Link>

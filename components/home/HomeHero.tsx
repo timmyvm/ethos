@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState, type CSSProperties } from "react";
+import { useCallback, useRef, useState, type CSSProperties } from "react";
 import { IconShuffle, IconSliders } from "@/components/Icon";
 import { Reel, useReel } from "@/components/Reel";
 import { TipLine } from "@/components/rep/TipStrip";
@@ -10,7 +10,6 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import type { TraitId } from "@/content/traits";
 import { artBox, objectSrc } from "@/lib/home";
 import { spinForAnswers } from "@/lib/portfolio";
-import { DISABLED_CLASS } from "@/lib/ui";
 import { TOPIC_SHAPES, type Topic } from "@/lib/topics";
 
 /** The roulette, run inside the card (#393's fix round). */
@@ -49,11 +48,10 @@ export interface HeroRoulette {
  *
  * The card is the screen's one lifted thing (its own shadow in its
  * family's colour, `.home-hero`), and Start is the screen's one
- * terracotta, now a pill (STATE's open experiment, "a pill primary is
- * worth one experiment"). Every slot holds its height while the read is
- * in flight, on a neutral card, because the trait and so the colour are
- * not known yet; Start and the two glyphs stay live, as they always
- * have: an early tap goes to the recorder.
+ * terracotta, a pill like every tap (D11). Every slot holds its height
+ * while the read is in flight, on a neutral card, because the trait and
+ * so the colour are not known yet; Start and the two glyphs stay live,
+ * as they always have: an early tap goes to the recorder.
  *
  * The roulette runs in the same card, in the same colour with the same
  * object: the topic spins where the topic was and the pill takes it.
@@ -230,6 +228,21 @@ function RouletteBody({ topic, onSpin, onTake, headRef }: HeroRoulette) {
     draw: (exclude) => spinForAnswers(exclude),
     onLand: onSpin,
   });
+  /*
+   * The pill never waits on the wheel (D14): a tap mid-roll lands it on
+   * the topic it already drew, on the snappy spring, and takes that one.
+   * Taken once: a second tap, or the wheel's own stop in the same
+   * moment, cannot start a second recording.
+   */
+  const taken = useRef(false);
+  const take = () => {
+    if (taken.current) return;
+    reel.land((t) => {
+      if (taken.current) return;
+      taken.current = true;
+      onTake(t);
+    });
+  };
   return (
     <>
       <div className="home-hero-words arrive relative flex flex-col items-start gap-2">
@@ -256,12 +269,7 @@ function RouletteBody({ topic, onSpin, onTake, headRef }: HeroRoulette) {
         )}
       />
       <div className="relative mt-5 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => onTake(topic)}
-          disabled={reel.rolling}
-          className={`home-start press ${DISABLED_CLASS}`}
-        >
+        <button type="button" onClick={take} className="home-start press">
           Take this one
         </button>
         <button

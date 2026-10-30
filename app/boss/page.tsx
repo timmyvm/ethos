@@ -11,6 +11,7 @@ import { Paywall } from "@/components/Paywall";
 import { PremiumMark } from "@/components/PremiumMark";
 import { Reel, useReel } from "@/components/Reel";
 import { Disclosure } from "@/components/ui/Disclosure";
+import { FooterShelf } from "@/components/ui/FooterShelf";
 import { HeroStage } from "@/components/ui/HeroStage";
 import { BackLink } from "@/components/ui/ScreenHeader";
 import {
@@ -206,7 +207,7 @@ export default function BossPage() {
   return (
     <main
       className={`flex min-h-dvh flex-col px-5 pt-[env(safe-area-inset-top)] ${
-        phase === "lobby" ? "pb-12" : "pb-safe"
+        phase === "lobby" ? "" : "pb-safe"
       }`}
     >
       {/* Practice is where both bosses' doors live (modes-1). */}
@@ -220,9 +221,14 @@ export default function BossPage() {
               week's state from the same helper, and the clock Demos
               standing on its floor at the right, without his spring: his
               arrival stays Practice's weekly moment (#313). The title is
-              the page's h1. Nothing on the stage is a tap. */}
+              the page's h1. Nothing on the stage is a tap. On a pushed
+              screen with room to spare it takes the free height and he
+              grows with it (132 to 184), so the card you tapped on
+              Practice opens up here and no band of bare ground is left
+              over the shelf (R2F-09: 136pt at 390x844). */}
           <HeroStage
-            className="mt-4"
+            className="mt-4 flex-1"
+            artGrow={184}
             eyebrow="This week's boss"
             line={
               <p
@@ -232,7 +238,7 @@ export default function BossPage() {
                 {bossWeekLine(weekRead ? takenThisWeek : null, daysLeft)}
               </p>
             }
-            art={<DemosArt pose="clock" size={132} grounded halo={{ tone: "sky", kind: "stage" }} />}
+            art={<DemosArt pose="clock" size={184} fit grounded halo={{ tone: "sky", kind: "stage" }} />}
           >
             <h1 className="font-display mt-1.5 text-title font-extrabold">Cold Topic</h1>
             <p className="stage-ink font-display mt-1 text-body font-semibold">
@@ -297,21 +303,6 @@ export default function BossPage() {
               </span>
             )}
           </div>
-          <button
-            type="button"
-            onClick={() => setPhase("research")}
-            disabled={reel.rolling || !topic}
-            className={`${ACTION_CLASS} ${DISABLED_CLASS} mt-3`}
-          >
-            Start the 4 minutes
-          </button>
-          {locked && (
-            /* The week's run is spent: said where the take is, plainly.
-               The tier is the Premium head's to name. */
-            <p className="mt-2 text-caption text-stone-500">
-              You&apos;ve taken this week&apos;s boss. It resets Monday.
-            </p>
-          )}
 
           {/* Mods, folded (modes-3): optional, never suggested, so one
               row until it is asked for, the grammar Today uses. Its
@@ -452,6 +443,27 @@ export default function BossPage() {
               </div>
             </div>
           )}
+
+          {/* The take, docked at the foot as on every one-thing screen
+              (DESIGN 7, #355's offer): one y in thumb reach whatever the
+              library or the mods open above it. */}
+          <FooterShelf hairline={false}>
+            <button
+              type="button"
+              onClick={() => setPhase("research")}
+              disabled={reel.rolling || !topic}
+              className={`${ACTION_CLASS} ${DISABLED_CLASS}`}
+            >
+              Start the 4 minutes
+            </button>
+            {locked && (
+              /* The week's run is spent: said where the take is,
+                 plainly. The tier is the Premium head's to name. */
+              <p className="mt-2 text-center text-caption text-stone-500">
+                You&apos;ve taken this week&apos;s boss. It resets Monday.
+              </p>
+            )}
+          </FooterShelf>
         </>
       )}
 

@@ -43,7 +43,7 @@
  * One scene is reported, never failed: the settled streak celebration
  * (E18), a centred 2.3s moment no judge gave a passing layout for.
  *
- * Screens: the five tabs, the lesson page, the trait page, the unit
+ * Screens: the five tabs, /boss, the lesson page, the trait page, the unit
  * intro, the Shop, Settings, the paywall, recording idle and live, the
  * celebration, the three results steps, and every screen of the
  * introduction, with the name question also at 390x508, its keyboard
@@ -331,6 +331,8 @@ const SCREENS = [
   ["today", "/", "main .arrive"],
   ["lessons", "/lessons", "main h1"],
   ["games", "/games", "main h1"],
+  // /boss: a pushed screen with no tab bar, its tap in FooterShelf (R2F-09).
+  ["boss", "/boss", "main h1"],
   ["log", "/history", "main .arrive"],
   ["you", "/you", "main h1"],
   ["lesson", "/lessons/the-cold-open", "main h1"],

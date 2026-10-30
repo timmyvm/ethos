@@ -37,6 +37,7 @@ export function HeroStage({
   eyebrowWide = false,
   artBleed = false,
   artFluid = false,
+  artGrow,
   ...rest
 }: {
   /** Sentence case, the stage's ink. A node, so a trait chip can lead it. */
@@ -73,6 +74,15 @@ export function HeroStage({
    * drawing scales to fit.
    */
   artFluid?: boolean;
+  /**
+   * The most a figure grows to, in px, when the stage takes its
+   * column's free height (a pushed screen with room to spare: /boss).
+   * It starts at `artSize` and grows with the stage's height less 130
+   * (the words' block and the padding), so its top stays under the
+   * title and the lines however tall the stage gets. The art takes the
+   * box with DemosArt's `fit`.
+   */
+  artGrow?: number;
   "data-trait"?: string;
   "data-look"?: string;
 }) {
@@ -122,7 +132,21 @@ export function HeroStage({
           ))}
       </div>
       {corner && <div className="absolute right-3 top-3 z-[3] flex">{corner}</div>}
-      {art && (
+      {art && figure && artGrow ? (
+        /* The room is the stage's own box as a size container, so the
+           figure can read the stage's height (100cqh). */
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-[1] [container-type:size]">
+          <div
+            className="hero-figure absolute bottom-[2px] right-1 [container-type:size]"
+            style={{
+              width: `clamp(${artSize}px, calc(100cqh - 130px), ${artGrow}px)`,
+              height: `clamp(${artSize}px, calc(100cqh - 130px), ${artGrow}px)`,
+            }}
+          >
+            {art}
+          </div>
+        </div>
+      ) : art && (
         <div
           aria-hidden
           className={`absolute z-[1] ${artBleed ? "bottom-0 right-0" : "bottom-[2px] right-1"} ${

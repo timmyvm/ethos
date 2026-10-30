@@ -31,6 +31,7 @@ import { TipLine, TipStrip } from "@/components/rep/TipStrip";
 import { splitPrompt } from "@/lib/tip-labels";
 import { TopicCard } from "@/components/rep/TopicCard";
 import { StreakCelebration } from "@/components/StreakCelebration";
+import { weekView } from "@/lib/home";
 import { TraitChip } from "@/components/TraitChip";
 import { FeltCheck, FeltStage } from "@/components/tester/FeltCheck";
 import { MatchCheck } from "@/components/tester/MatchCheck";
@@ -1331,7 +1332,11 @@ function RepScreen() {
           onRetake={retake}
         />
         {celebrate !== null && (
-          <StreakCelebration streak={celebrate} onDone={celebrated} />
+          <StreakCelebration
+            streak={celebrate}
+            week={weekView(spineNow, new Date()).days}
+            onDone={celebrated}
+          />
         )}
         {paywall && (
           <Paywall

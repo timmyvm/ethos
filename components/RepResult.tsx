@@ -16,6 +16,7 @@ import type { CoachOutput } from "@/lib/coach";
 import type { ColdTopic } from "@/lib/cold-topics";
 import type { Tier1Scores, Tier2Anchors } from "@/lib/index-score";
 import type { FillerHit, RepMetrics } from "@/lib/metrics";
+import { scoreLine } from "@/lib/coach-line";
 import { repTraitGain } from "@/lib/traits";
 
 export interface ResultView {
@@ -131,21 +132,18 @@ export function RepResult({
       : null;
 
   /*
-   * What Demos says, one line. The coach's own line when it ran; a
-   * stored row keeps no line (app/rep/[id] passes ""), so it says
-   * tomorrow's focus instead (log-9). The line computed from the
-   * metrics is only for a recording the coach never read: it names the
-   * filler it can count, and never calls a take with fillers clean.
+   * What Demos says, one line, about THIS take (E54, E34): tomorrow is
+   * said once, on the last step. The coach's own line when it ran, its
+   * closing "Tomorrow…" sentence trimmed; a stored row keeps no line
+   * (app/rep/[id] passes ""), so it says the stored focus on its own
+   * (log-9). The line computed from the metrics is only for a recording
+   * the coach never read: it counts the fillers and names the one said
+   * most, and never calls a take with fillers clean (lib/coach-line.ts).
    */
-  const topFiller = m.topFiller ?? mostSaid(m.fillers);
-  const computedLine = `${m.fillerCount} filler${m.fillerCount === 1 ? "" : "s"} in ${Math.round(
-    m.durationS
-  )}s.${topFiller ? ` Tomorrow: kill “${topFiller}”.` : m.fillerCount === 0 ? " Clean take." : ""}`;
-  const line = coach?.coachLine?.trim()
-    ? coach.coachLine
-    : coach?.focus
-      ? `Tomorrow: ${coach.focus}`
-      : computedLine;
+  const line = scoreLine(coach, {
+    ...m,
+    topFiller: m.topFiller ?? mostSaid(m.fillers),
+  });
 
   /*
    * The trait this rep leveled (DECISIONS #160) — this rep's best
@@ -451,6 +449,25 @@ export function RepResult({
               {result.pauseHeadline}
             </p>
           )}
+
+          {/* Three stats in one card (log-7, recording-9; Imprint's Me):
+              columns split by hairlines, not three boxes. The concrete
+              three lead the step, under the pause map they read off,
+              over the nine score rows (E34). */}
+          <div className="card mt-5 grid grid-cols-3 divide-x divide-hairline">
+            <Metric label="WPM" value={String(m.wpm)} note={zone} />
+            <Metric
+              label="Held pauses"
+              value={String(m.heldPauses)}
+              note="≥0.8s each"
+            />
+            <Metric
+              label="Length"
+              value={String(Math.round(m.durationS))}
+              unit="s"
+              note={<span className="whitespace-nowrap">target 60 to 90s</span>}
+            />
+          </div>
         </>
       )}
 
@@ -475,22 +492,6 @@ export function RepResult({
             />
           </div>
 
-          {/* Three stats in one card (log-7, recording-9; Imprint's Me):
-              columns split by hairlines, not three boxes. */}
-          <div className="card mt-3 grid grid-cols-3 divide-x divide-hairline">
-            <Metric label="WPM" value={String(m.wpm)} note={zone} />
-            <Metric
-              label="Held pauses"
-              value={String(m.heldPauses)}
-              note="≥0.8s each"
-            />
-            <Metric
-              label="Length"
-              value={String(Math.round(m.durationS))}
-              unit="s"
-              note={<span className="whitespace-nowrap">target 60 to 90s</span>}
-            />
-          </div>
         </section>
       )}
 

@@ -2803,18 +2803,6 @@ summary::-webkit-details-marker {
   background: var(--tone);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
-/* Hostile Q&A: the hot seat, a warm charcoal with the page's light ink
-   for the shield (7.6:1). Not amber: gold on black is the usual Pro badge,
-   on a Premium row it read as a second paid mark, and amber is Demos's.
-   Not the full ink: at the squint that tile pulled the eye. */
-.game-tile-seat {
-  --tone: #524b46;
-  --tone-ink: #f2f2f2;
-}
-:root[data-theme="dark"] .game-tile-seat {
-  --tone: #0a0a0a;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
-}
 /* Bring your own: an input, not a game, so a neutral tint.
    practice-tab-12: full ink on the light tile (stone-700 read as a
    disabled control beside the mint), and the trough grey in dark,

@@ -17,7 +17,7 @@ import { PremiumMark } from "@/components/PremiumMark";
 import { ErrorLine } from "@/components/ui/ErrorState";
 import { HeroStage } from "@/components/ui/HeroStage";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { bossAnswerLine, bossReadLine } from "@/lib/boss";
+import { bossAnswerLine, bossReadLine, bossWeekLine, daysLeftInWeek } from "@/lib/boss";
 import { fetchProfile, fetchReps } from "@/lib/client-data";
 import { draw, GAMES, needsPremium, type Game } from "@/lib/games";
 import { HOSTILE_LINE } from "@/lib/hostile";
@@ -72,7 +72,6 @@ const PREMIUM_MODES = [
   { id: "hostile", name: "Hostile Q&A", line: HOSTILE_LINE },
 ];
 
-const DAY_MS = 86_400_000;
 /** The week (its start) the boss stage last welcomed Demos in. */
 const SEEN_KEY = "ethos.practice.bossSeen";
 
@@ -122,9 +121,7 @@ export default function GamesPage() {
       /* No storage: treat every visit as the first. */
     }
     setArrive(first);
-    setDaysLeft(
-      Math.max(1, 7 - Math.floor((Date.now() - week.getTime()) / DAY_MS))
-    );
+    setDaysLeft(daysLeftInWeek(week));
 
     readPlan();
     fetchReps()
@@ -142,15 +139,9 @@ export default function GamesPage() {
   }, []);
 
   /* A non-breaking space while either read is out, so the line keeps
-     its height and nothing under it moves when the words land. */
-  const weekState =
-    bossDone === null || daysLeft === null
-      ? " "
-      : bossDone
-        ? "Done this week"
-        : daysLeft === 1
-          ? "Last day"
-          : `${daysLeft} days left`;
+     its height and nothing under it moves when the words land; /boss's
+     stage says the same from the same helper (E30). */
+  const weekState = bossWeekLine(bossDone, daysLeft);
   const startLabel = bossDone ? "Again" : "Start";
 
   const free = GAMES.filter((g) => !needsPremium(g));
@@ -226,9 +217,9 @@ export default function GamesPage() {
         <h2 className="section-head">Free</h2>
         <div className="mt-3 grid grid-cols-2 gap-3">
           {free.map((g) => (
-            <GameTile key={g.id} glyph={GLYPH[g.id](22)} name={g.name} onPress={() => play(g)} />
+            <GameTile key={g.id} glyph={GLYPH[g.id](28)} name={g.name} onPress={() => play(g)} />
           ))}
-          <GameTile glyph={<IconUpload size={22} />} name="Upload a recording" href="/upload" />
+          <GameTile glyph={<IconUpload size={28} />} name="Upload a recording" href="/upload" />
         </div>
 
         {/* The tier's head, its name and its mark (D31, D04): the mark
@@ -248,9 +239,9 @@ export default function GamesPage() {
         ) : premium ? (
           <div className="arrive mt-3 grid grid-cols-3 gap-3">
             {paid.map((g) => (
-              <GameTile key={g.id} glyph={GLYPH[g.id](22)} name={g.name} onPress={() => play(g)} />
+              <GameTile key={g.id} glyph={GLYPH[g.id](28)} name={g.name} onPress={() => play(g)} />
             ))}
-            <GameTile glyph={GLYPH.hostile(22)} name="Hostile Q&A" href="/hostile" />
+            <GameTile glyph={GLYPH.hostile(28)} name="Hostile Q&A" href="/hostile" />
           </div>
         ) : (
           /* One card, crisp (D31): the three paid modes as rows that
@@ -292,8 +283,8 @@ export default function GamesPage() {
 }
 
 /**
- * One game, as a tile: its glyph in ink on the neutral surface tile
- * (D30), its name under it, nothing to read.
+ * One game, as a tile: its glyph bare in ink at 28 (E11; it stood on a
+ * neutral surface tile, D30), its name under it, nothing to read.
  */
 function GameTile({
   glyph,
@@ -308,7 +299,9 @@ function GameTile({
 }) {
   const inner = (
     <>
-      <span aria-hidden className="game-tile game-tile-plain">
+      {/* The bare glyph in ink, no tile of its own (E11): a filled tile
+          inside the card was a box in a box. */}
+      <span aria-hidden className="flex size-7 items-center justify-center text-ink">
         {glyph}
       </span>
       <span className="font-display block pt-2.5 text-row text-ink">{name}</span>

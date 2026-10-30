@@ -9,8 +9,9 @@ import { IconStar } from "@/components/Icon";
  *
  * Gold since D03, one star in one colour everywhere: Today's chip, the
  * results, the Log. An earned star fills --color-amber (#e0a800) through
- * `.earned-lit`, which gives it a 1px #b88a00 rim in light (3.15:1 on
- * white) and none in dark (8.7:1 on #121212). Earned glyphs are gold;
+ * `.earned-lit`, which gives it a 1px #a87e00 rim in light (3.72:1 on
+ * white, 3.22:1 on Today's sage-100 chip) and none in dark (8.7:1 on
+ * #121212). Earned glyphs are gold;
  * earned fills, bars and numbers are sage.
  *
  * One image to a screen reader ("2 of 3 stars"), the marks hidden.

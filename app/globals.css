@@ -2045,15 +2045,19 @@ summary::-webkit-details-marker {
 
 /* D06, dark only: the sun as a stage ground (the first intro screen)
    sampled mustard (#9e6d07) and a yellow cannot hold its hue at a dark
-   stage's lightness, so in dark that room is the dark sky: its ground,
-   its ink, its disc. The light sun, the mint rooms and the sun coins on
-   the questions are unchanged. */
+   stage's lightness, so in dark that room takes another tone's ground,
+   ink and disc. Not the sky: intro 2 is the sky, so the first swipe
+   changed only the words (D06 was written for sun on screens 1 and 3,
+   and screen 3 is mint). The dark mint, a teal that holds its hue,
+   so the three rooms read teal, sky, teal and every swipe changes the
+   room. The light sun, the mint rooms and the sun coins on the
+   questions are unchanged. */
 /* (Demos's own root on the stage wears the tone class too, for his disc.) */
 :root[data-theme="dark"] :is(.intro-stage.tone-sun, .intro-stage.tone-sun .tone-sun) {
-  --tone: var(--pop-sky);
-  --tone-disc: var(--pop-sky-disc);
-  --tone-ink: var(--pop-sky-ink);
-  --tone-wash: var(--pop-sky-wash);
+  --tone: var(--pop-mint);
+  --tone-disc: var(--pop-mint-disc);
+  --tone-ink: var(--pop-mint-ink);
+  --tone-wash: var(--pop-mint-wash);
 }
 
 /* The disc behind him: his studio light. Soft-edged so it reads as
@@ -2961,12 +2965,13 @@ summary::-webkit-details-marker {
      Today, the results, the Log and You alike. One gold since D03, the
      mascot's amber, so a star is one colour everywhere (it was gold on
      Today and olive on the results and the Log). In light the glyph
-     takes a 1px rim, #b88a00, which holds 3.15:1 on white and 2.7:1 on
-     the sage-100 chip where the amber alone is 2.1 and 1.9; in dark the
-     amber needs none (8.7:1 on #121212). Earned glyphs are gold;
-     earned fills, bars and numbers are sage. Never a tap, never paid. */
+     takes a 1px rim, #a87e00, which holds 3.72:1 on white, 3.22:1 on
+     the sage-100 chip and 3.38:1 on surface, where the amber alone is
+     2.1, 1.9 and 2.0 (#b88a00 was 2.73 on the chip); in dark the amber
+     needs none (8.7:1 on #121212). Earned glyphs are gold; earned
+     fills, bars and numbers are sage. Never a tap, never paid. */
   --earned-gold: var(--color-amber);
-  --earned-rim: #b88a00;
+  --earned-rim: #a87e00;
 }
 :root[data-theme="dark"] {
   --earned-rim: var(--color-amber);
@@ -3360,6 +3365,18 @@ summary::-webkit-details-marker {
    (239 measured at 390; at 320 two lines wrap and it lands taller). */
 .premium-card-slot {
   min-height: 239px;
+}
+/* A secondary pill on a raised card. In light the surface step reads
+   as a pill on white. In dark surface (#1c1c1c) is BELOW raised
+   (#2a2a2a), so the Unlock read as a slot cut into its card; there it
+   steps up from the card instead. */
+:root[data-theme="dark"] .pill-on-raised {
+  background-color: color-mix(in srgb, var(--color-raised), #fff 6%);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .pill-on-raised {
+    background-color: color-mix(in srgb, var(--color-raised), #fff 6%);
+  }
 }
 /* ========================== end of practice (Premium) ========================== */
 

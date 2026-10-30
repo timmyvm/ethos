@@ -8,7 +8,7 @@ import {
   IconBoss,
   IconBubble,
   IconGauge,
-  IconMic,
+  IconCase,
   IconUpload,
 } from "@/components/Icon";
 import { DemosArt } from "@/components/DemosArt";
@@ -56,7 +56,9 @@ import { usePaywallReturn } from "@/lib/use-paywall-return";
 const GLYPH: Record<string, (size: number) => ReactNode> = {
   qa: (s) => <IconBubble size={s} />,
   rush: (s) => <IconGauge size={s} />,
-  interview: (s) => <IconMic size={s} />,
+  /* The case, not the mic: the mic is Practice's own tab mark (D17),
+     so on this screen it means Practice and nothing else. */
+  interview: (s) => <IconCase size={s} />,
   hostile: (s) => <IconBoss size={s} />,
 };
 
@@ -276,7 +278,7 @@ export default function GamesPage() {
             <button
               type="button"
               onClick={() => setPaywall("Premium games")}
-              className="press premium-wall font-display mt-2 flex min-h-11 w-full items-center justify-center rounded-tap border border-edge bg-surface px-6 text-body font-bold text-ink"
+              className="press premium-wall pill-on-raised font-display mt-2 flex min-h-11 w-full items-center justify-center rounded-tap border border-edge bg-surface px-6 text-body font-bold text-ink"
             >
               Unlock
             </button>

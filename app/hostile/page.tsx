@@ -17,6 +17,7 @@ import { ensureSession } from "@/lib/supabase-browser";
 import { ACTION_CLASS } from "@/lib/ui";
 import {
   ANSWER_SECONDS,
+  HOSTILE_LINE,
   HOSTILE_PROMPTS,
   HOSTILE_ROUNDS,
   TAKE_SECONDS,
@@ -439,9 +440,7 @@ export default function HostilePage() {
       {phase === "intro" && (
         <>
           <p className="eyebrow mt-4">Hostile Q&amp;A</p>
-          <h1 className="font-display mt-1.5 text-title">
-            Hold a claim while Demos comes at it.
-          </h1>
+          <h1 className="font-display mt-1.5 text-title">{HOSTILE_LINE}</h1>
           <p className="mt-2 text-read text-stone-800 text-pretty">
             Argue the claim, then answer Demos on what you said.
           </p>

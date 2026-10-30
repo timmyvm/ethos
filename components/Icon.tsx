@@ -66,7 +66,7 @@ function Glyph({
  *   Today     sun.horizon: the sun rising over the floor line
  *   Lessons   square.grid.2x2: a collection you choose from (the old
  *             picture frame read as the Photos app)
- *   Practice  dice: the same recording, rolled conditions
+ *   Practice  mic: the recording itself (D17; it was a die, from Games)
  *   Log       list.bullet.rectangle: a page of rows, one per recording
  *             (the old three bars read as a menu button, and a menu is
  *             the one thing a tab must never look like)
@@ -89,34 +89,22 @@ export function IconToday({ size, active = false }: { size?: number; active?: bo
   );
 }
 
-/** Practice — a die: the same recording, rolled conditions. */
-export function IconGames({ size, active = false }: { size?: number; active?: boolean }) {
-  const pips = [
-    [8.6, 8.6],
-    [12, 12],
-    [15.4, 15.4],
-  ] as const;
+/**
+ * Practice: a microphone (D17). The die it replaces meant chance, left
+ * over from the tab's "Games" days, in an app whose claim is that it
+ * measures. A capsule head 8 by 13 at radius 4 with two grille lines,
+ * the U cradle, a 3px stem and an 8px base; on the tab you are on the
+ * capsule fills and the grille is knocked out in the bar's paper, the
+ * way Log's rows are. IconMic stays the heavier line for the
+ * achievements; this one is drawn for the bar.
+ */
+export function IconPractice({ size, active = false }: { size?: number; active?: boolean }) {
   return (
     <Glyph size={size} weight={TAB_WEIGHT}>
-      <rect
-        x="3.75"
-        y="3.75"
-        width="16.5"
-        height="16.5"
-        rx="4.6"
-        fill={active ? "currentColor" : "none"}
-      />
-      {pips.map(([x, y]) => (
-        <circle
-          key={x}
-          cx={x}
-          cy={y}
-          r={1.5}
-          stroke="none"
-          fill={active ? undefined : "currentColor"}
-          className={active ? "fill-raised" : undefined}
-        />
-      ))}
+      <rect x="8" y="2.5" width="8" height="13" rx="4" fill={active ? "currentColor" : "none"} />
+      <path d="M10.4 7.4h3.2M10.4 10.6h3.2" className={active ? "stroke-raised" : undefined} />
+      <path d="M5 11.25a7 7 0 0 0 14 0" />
+      <path d="M12 18.25v3M8 21.25h8" />
     </Glyph>
   );
 }

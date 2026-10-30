@@ -357,8 +357,12 @@ export const monthWord = (month: number) => `Month ${Math.max(1, Math.floor(mont
 
 export const PAYWALL_COPY = {
   head: "Your price drops every month you stay",
-  caption: `Renews monthly until you cancel, any time in the app. If a plan ends, the next one starts at ${aud(FIRST_PRICE_CENTS)}.`,
-  start: `Start at ${aud(FIRST_PRICE_CENTS)}`,
+  // In the tap's shelf (D40), so two lines at most at 320: 87 characters
+  // leave 14px of the line to spare.
+  caption: `Renews monthly until you cancel in the app. If a plan ends, the next starts at ${aud(FIRST_PRICE_CENTS)}.`,
+  // The tap names the period it commits to (D40), from the ladder's own
+  // first rung, so a scrub never changes what Start says.
+  start: `Start at ${aud(FIRST_PRICE_CENTS)} a month`,
   busy: "One moment…",
   notYet: "Not yet",
   closing: "Money never buys stars, streaks, or scores.",

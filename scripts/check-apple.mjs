@@ -9,6 +9,12 @@
  *   PLAYWRIGHT_MODULE=/opt/node22/lib/node_modules/playwright/index.mjs \
  *     node scripts/check-apple.mjs
  *
+ * And capitals (D10, DESIGN principle 4): on every screen it visits, no
+ * 844pt stretch of the page holds more than three lines of tracked caps
+ * (.label-data, .label-micro, the PremiumMark chip), a table's head row
+ * counting once. Settings' group heads and the Stair's months are named
+ * uses and do not count.
+ *
  * Shots land in docs/look/apple/ (APPLE_OUT to move them).
  */
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright");
@@ -120,6 +126,57 @@ const navWords = (page) =>
     };
   });
 
+/**
+ * Tracked-caps lines in the worst 844pt stretch of the page (D10). Every
+ * visible caps label is placed by its line on the page; labels on one
+ * line (a table's head row) count once; the window slides from each line
+ * down. Waits for the skeletons, so a label is counted where it lands.
+ */
+const CAPS_MAX = 3;
+async function capsLines(page) {
+  await page
+    .waitForFunction(() => document.querySelectorAll(".skeleton").length === 0, null, { timeout: 8000 })
+    .catch(() => {});
+  await sleep(300);
+  return page.evaluate(() => {
+    const H = 844;
+    const shown = (e) => {
+      for (let p = e; p; p = p.parentElement) {
+        const s = getComputedStyle(p);
+        if (s.visibility === "hidden" || s.display === "none" || s.opacity === "0") return false;
+      }
+      const r = e.getBoundingClientRect();
+      return r.width > 0 && r.height > 0 && e.textContent.trim() !== "";
+    };
+    const tops = [];
+    for (const e of document.querySelectorAll(".label-data, .label-micro")) {
+      if (e.closest(".group-head, .stair, nav")) continue;
+      if (getComputedStyle(e).textTransform !== "uppercase" || !shown(e)) continue;
+      const r = e.getBoundingClientRect();
+      const lh = parseFloat(getComputedStyle(e).lineHeight) || r.height;
+      const n = Math.max(1, Math.round(r.height / lh));
+      for (let i = 0; i < n; i++) tops.push({ y: Math.round(r.top + scrollY + i * lh), t: e.textContent.trim().slice(0, 14) });
+    }
+    tops.sort((a, b) => a.y - b.y);
+    const lines = [];
+    for (const t of tops) {
+      const last = lines[lines.length - 1];
+      if (last && Math.abs(t.y - last.y) <= 6) last.t.push(t.t);
+      else lines.push({ y: t.y, t: [t.t] });
+    }
+    let worst = [];
+    for (const l of lines) {
+      const win = lines.filter((m) => m.y >= l.y && m.y < l.y + H);
+      if (win.length > worst.length) worst = win;
+    }
+    return { count: worst.length, lines: worst.map((l) => `${l.y}:${l.t.join("|")}`) };
+  });
+}
+const capsOk = async (page, label) => {
+  const caps = await capsLines(page);
+  ok(`${label}: ${CAPS_MAX} or fewer lines of capitals per viewport`, caps.count <= CAPS_MAX, `${caps.count}: ${caps.lines.join(", ")}`);
+};
+
 const translateY = (page, sel) =>
   page.$eval(sel, (el) => new DOMMatrixReadOnly(getComputedStyle(el).transform).m42);
 
@@ -139,6 +196,7 @@ for (const theme of ["light", "dark"]) {
   await page.screenshot({ path: `${OUT}you-scrolled-${theme}.png`, clip: { x: 0, y: 0, width: 390, height: 320 } });
   await page.evaluate(() => window.scrollTo(0, 0));
   await sleep(300);
+  await capsOk(page, `${theme}: You`);
 
   // 2. The sheet: a slow short pull springs home; a flick dismisses;
   //    pushing up resists.
@@ -198,6 +256,7 @@ for (const theme of ["light", "dark"]) {
     // tab read as 68 is 1.2px off by the fourth tab.
     const step = await page.$eval(".nav-well", (el) => parseFloat(getComputedStyle(el).width));
     ok("and the well rests on it", Math.abs(wellX - step * 3) < 1, `${wellX.toFixed(1)} vs ${(step * 3).toFixed(1)}`);
+    await capsOk(page, "Log");
   }
 
   // 3b. The tab bar's words (round 2): five labels under the marks, the
@@ -224,6 +283,7 @@ for (const theme of ["light", "dark"]) {
   await page.goto(`${BASE}/settings`);
   await page.waitForSelector(".segmented");
   await sleep(600);
+  await capsOk(page, `${theme}: Settings`);
   const target = theme === "light" ? "dark" : "light";
   await page.getByRole("radio", { name: target }).click();
   await sleep(40);
@@ -243,6 +303,7 @@ for (const theme of ["light", "dark"]) {
   await sleep(600);
   const words = await navWords(page);
   ok("320px: every tab label is whole and apart", words.labels.length === 5 && words.whole, JSON.stringify(words.labels));
+  await capsOk(page, "320px: Lessons");
   await page.screenshot({ path: `${OUT}nav-labels-320.png`, clip: { x: 0, y: 596, width: 320, height: 104 } });
   await context.close();
 }

@@ -4,6 +4,7 @@ import Image from "next/image";
 import { notFound, useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { LessonScreen } from "@/components/LessonScreen";
+import { backFrom } from "@/lib/back-from";
 import { fetchReps } from "@/lib/client-data";
 import { recordingTrait } from "@/lib/log";
 import { starsByLesson, unitById } from "@/lib/path";
@@ -39,6 +40,9 @@ function LessonIntro() {
   // The lesson a door named (the Log's Go on a waiting row), when it is
   // one of this unit's.
   const asked = searchParams.get("lesson");
+  /* Who opened it (D18): Today's Start, the Log's Go or You's trait
+     sheet pass `?from=`; by URL alone it belongs to Lessons. */
+  const parent = backFrom(searchParams.get("from"), "lessons");
 
   /*
    * Which lesson [Start] opens: the first in this unit still short of
@@ -84,9 +88,10 @@ function LessonIntro() {
       /* This route draws no tab bar (Nav's BARE list) and this is its
          only screen, so without a back control the teaching screen is
          a one-way door into a recording (#279). It replaces this entry
-         with Today (practice-detail-24), so the OS back gesture from
-         Today does not open it again. */
-      onBack={() => router.replace("/")}
+         with the tab that opened it (practice-detail-24), so the OS back
+         gesture from that tab does not open it again, and names it. */
+      onBack={() => router.replace(parent.href)}
+      backLabel={parent.label}
       /* The unit's own name, as lib/path.ts writes it: a proper name,
          so its capitals stay. */
       eyebrow={unit.name}

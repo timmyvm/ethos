@@ -219,7 +219,7 @@ const PAIN_TRAIT: Record<PainId, TraitId | null> = {
 function firstRep(skipIntros: boolean): string {
   const unit = UNITS[0];
   return !skipIntros && introDue(unit, {})
-    ? introHref(unit.id)
+    ? introHref(unit.id, [], undefined, "today")
     : repHref({ lesson: nextLesson({})?.lesson.id });
 }
 

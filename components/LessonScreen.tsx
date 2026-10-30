@@ -332,6 +332,7 @@ export function LessonScreen({
   trait,
   replies,
   announce,
+  backLabel = "Back",
   ...body
 }: LessonBodyProps & {
   /**
@@ -457,6 +458,12 @@ export function LessonScreen({
   /** A walk's way back one step. Renders the rep screen's back link. */
   onBack?: () => void;
   /**
+   * What the back says: the screen it returns to (D18), "Today" or the
+   * previous step's title. "Back" is left only to the introduction,
+   * where the parent is the step before.
+   */
+  backLabel?: string;
+  /**
    * The art takes the screen's free height (R3, principle 7: no empty
    * band over 64px at 390x844). Opt-in, for the one-thing screens that
    * are an object, a name and a tap: the trait page and the unit intro.
@@ -568,6 +575,7 @@ export function LessonScreen({
       <StageScreen
         trait={trait}
         onBack={onBack}
+        backLabel={backLabel}
         art={art}
         stepKey={stepKey}
         controls={controls}
@@ -613,7 +621,7 @@ export function LessonScreen({
               className="screen-bar-back press -ml-3 shrink-0"
             >
               <IconBack size={22} />
-              <span>Back</span>
+              <span>{backLabel}</span>
             </button>
           )}
           {header && <div className="min-w-0 flex-1">{header}</div>}
@@ -717,6 +725,7 @@ export function LessonScreen({
 function StageScreen({
   trait,
   onBack,
+  backLabel,
   art,
   stepKey,
   controls,
@@ -726,6 +735,7 @@ function StageScreen({
 }: {
   trait?: TraitId;
   onBack?: () => void;
+  backLabel: string;
   art?: ReactNode;
   stepKey?: string | number;
   controls?: ReactNode;
@@ -818,7 +828,7 @@ function StageScreen({
               className="screen-bar-back press -ml-3 shrink-0"
             >
               <IconBack size={22} />
-              <span>Back</span>
+              <span>{backLabel}</span>
             </button>
           </div>
         )}

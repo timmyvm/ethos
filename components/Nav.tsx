@@ -4,9 +4,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useLayoutEffect, useRef, useState } from "react";
 import {
-  IconGames,
   IconLessons,
   IconLog,
+  IconPractice,
   IconToday,
   IconYou,
 } from "@/components/Icon";
@@ -17,7 +17,7 @@ import {
   releaseVelocity,
   rubberband,
 } from "@/lib/spring";
-import { TAB_HREFS } from "@/lib/tabs";
+import { TAB_HREFS, tabIndexFor } from "@/lib/tabs";
 
 /**
  * Bottom nav.
@@ -76,7 +76,7 @@ import { TAB_HREFS } from "@/lib/tabs";
 const TABS = [
   { href: "/", label: "Today", Icon: IconToday },
   { href: "/lessons", label: "Lessons", Icon: IconLessons },
-  { href: "/games", label: "Practice", Icon: IconGames },
+  { href: "/games", label: "Practice", Icon: IconPractice },
   { href: "/history", label: "Log", Icon: IconLog },
   { href: "/you", label: "You", Icon: IconYou },
 ] satisfies readonly {
@@ -184,9 +184,7 @@ export function Nav() {
       return;
     }
     el.style.transition = "scale var(--spring-snappy-duration) var(--spring-snappy)";
-    const tab = TABS.findIndex((t) =>
-      t.href === "/" ? path === "/" : path.startsWith(t.href)
-    );
+    const tab = tabIndexFor(path);
     const was = shownTab.current;
     shownTab.current = tab;
     // First paint, the same tab, or the thumb's own slide: nothing to travel.
@@ -213,9 +211,7 @@ export function Nav() {
 
   if (hidden) return null;
 
-  const current = TABS.findIndex((t) =>
-    t.href === "/" ? path === "/" : path.startsWith(t.href)
-  );
+  const current = tabIndexFor(path);
 
   /** One tab's width in px: the well's travel per step. The layout
    *  width, fractional and unscaled: offsetWidth rounds (a 67.6px tab

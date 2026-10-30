@@ -136,11 +136,12 @@ streaks, or scores." (the screen's one negation).
   - Right, stacked and right-aligned: the date line at `row` 14/700 cream ("Today", or
     "From 24 Jan") over "Month 1" (or "Month 7 on") at caption cream/70.
 - The Stair: plum, lg, slider mode, Paw on step 1, the floor step bleeding.
-- The caption: 12.5 cream/70, max two lines at 390: "Renews monthly until you cancel, any
-  time in the app. If a plan ends, the next one starts at A$12.99."
+- (The caption moved into the tap's shelf, D40, below.)
 
-**The tap** is `ACTION_CLASS`, "Start at A$12.99" (busy: "One moment…"). Under it are "Not
-yet" and the closing line.
+**The tap** is `ACTION_CLASS`, "Start at A$12.99 a month" (busy: "One moment…"). Over it,
+8px up, the terms at 13/500 white at 72%, two lines at most at 320: "Renews monthly until
+you cancel in the app. If a plan ends, the next starts at A$12.99." Under it are "Not yet"
+and the closing line. No line names the opener under the mark (D40).
 
 **Checkout open** (`NEXT_PUBLIC_CHECKOUT_OPEN === "1"`):
 - The tap calls `startCheckout` and sends the browser to `url`.

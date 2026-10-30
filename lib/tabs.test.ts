@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { TAB_HREFS } from "./tabs";
+import { TAB_HREFS, tabIndexFor } from "./tabs";
 
 /**
  * One tab bar, two files, and the bug that was waiting (#275).
@@ -83,5 +83,23 @@ describe("the tab bar is one list", () => {
   it("does not let /lesson swallow /lessons", () => {
     const nav = readFileSync("components/Nav.tsx", "utf8");
     expect(nav).toContain('path === b || path.startsWith(`${b}/`)');
+  });
+
+  /**
+   * D16: the Shop and Settings open from You, and the bar lit nothing
+   * on either, so it stopped saying where you were.
+   */
+  it("lights You on its children and each tab on its own routes", () => {
+    const you = TAB_HREFS.indexOf("/you");
+    expect(tabIndexFor("/shop")).toBe(you);
+    expect(tabIndexFor("/settings")).toBe(you);
+    expect(tabIndexFor("/settings/anything")).toBe(you);
+    expect(tabIndexFor("/shopping")).toBe(-1);
+    expect(tabIndexFor("/")).toBe(0);
+    expect(tabIndexFor("/history")).toBe(TAB_HREFS.indexOf("/history"));
+    expect(tabIndexFor("/games")).toBe(TAB_HREFS.indexOf("/games"));
+    expect(tabIndexFor("/upload")).toBe(-1);
+    const nav = readFileSync("components/Nav.tsx", "utf8");
+    expect(nav.match(/tabIndexFor\(path\)/g)?.length, "Nav resolves the lit tab in one place").toBe(2);
   });
 });

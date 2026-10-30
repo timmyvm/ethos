@@ -9,16 +9,18 @@ import {
   IconBubble,
   IconGauge,
   IconMic,
-  IconPremium,
   IconUpload,
 } from "@/components/Icon";
 import { DemosArt } from "@/components/DemosArt";
 import { Paywall } from "@/components/Paywall";
+import { PremiumMark } from "@/components/PremiumMark";
 import { ErrorLine } from "@/components/ui/ErrorState";
 import { HeroStage } from "@/components/ui/HeroStage";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { bossAnswerLine, bossReadLine } from "@/lib/boss";
 import { fetchProfile, fetchReps } from "@/lib/client-data";
 import { draw, GAMES, needsPremium, type Game } from "@/lib/games";
+import { HOSTILE_LINE } from "@/lib/hostile";
 import { weekStart } from "@/lib/level";
 import { repHref } from "@/lib/rep-config";
 import { ACTION_CLASS } from "@/lib/ui";
@@ -27,45 +29,46 @@ import { usePaywallReturn } from "@/lib/use-paywall-return";
 /**
  * Practice, the tab that was Tools (DECISIONS #157, #184, #292, #294).
  *
- * The weekly boss, then the games as tiles: Free above, Premium behind
- * a frosted plum wall (#317, Timothy: "games are tiles", no blurbs, a
- * white pill on the wall so the boss keeps the one tap).
+ * The weekly boss, then the games as tiles: Free above, then Premium as
+ * one card that names the three paid modes and has one door (D31). It
+ * was a frosted plum wall over blurred copies of the tiles (#317), which
+ * read as a failed image load; what #317 asked for stays: one block, the
+ * three names, and an Unlock that is not terracotta, so the boss keeps
+ * the one tap.
  *
  *  - The boss's sky stage IS its card (M13): the screen's one lifted
  *    thing, at the sheet radius, with Start on the ground under it. A
  *    card round a stage was a card in a card, and the button and the
  *    stage had different side insets (practice-tab-10).
- *  - One tile for every game (practice-tab-11): the glyph on its
- *    picture tone, the name under it, 96px. The Free grid, the Premium
- *    grid and the still copies behind the wall are the same tile, and
- *    a tile in a grid carries no chevron.
+ *  - One tile for every game (practice-tab-11): the glyph on a neutral
+ *    surface tile in ink (D30: Q&A's mint disagreed with Upload's grey),
+ *    the name under it, 96px. A tile in a grid carries no chevron.
  *  - Nothing moves on load and nothing is guessed (practice-tab-2,
  *    -14): the week is read on the device after mount, the plan slot
  *    holds a skeleton until the profile lands, and a failed read says
  *    so instead of showing a paying user the wall.
  *
  * Colour: the boss stage is the introduction's sky, with the full-body
- * clock pose standing in it, and every game has its own picture-tone
- * tile. Picture colour only: the tap stays terracotta, plum stays the
- * tier's, and no tile is a trait tone, because no game here practises
- * one trait and a trait's colour means that trait everywhere else.
+ * clock pose standing in it. Under the stage everything is neutral
+ * (STATE, #391): the tiles are surface with ink glyphs, the tap stays
+ * terracotta, and plum is only the PremiumMark.
  */
-const GLYPH: Record<string, ReactNode> = {
-  qa: <IconBubble size={22} />,
-  rush: <IconGauge size={22} />,
-  interview: <IconMic size={22} />,
+const GLYPH: Record<string, (size: number) => ReactNode> = {
+  qa: (s) => <IconBubble size={s} />,
+  rush: (s) => <IconGauge size={s} />,
+  interview: (s) => <IconMic size={s} />,
+  hostile: (s) => <IconBoss size={s} />,
 };
 
-/* Each game's tile tone (globals.css, `.tone-*` and "practice (/games)").
-   Mint, sun and sky from the introduction; Hostile Q&A stands in the
-   hot seat, a charcoal tile with a light shield (not gold: gold on black
-   reads as a Pro badge beside a plum mark), since the fourth pastel
-   (coral) is his coat and in terracotta's family. */
-const TILE: Record<string, string> = {
-  qa: "tone-mint",
-  rush: "tone-sun",
-  interview: "tone-sky",
-};
+/**
+ * The three paid modes as Premium's card lists them (D31): each one's
+ * own line, already written where the mode lives, so the card makes no
+ * new claim (COPY-RULES).
+ */
+const PREMIUM_MODES = [
+  ...GAMES.filter(needsPremium).map((g) => ({ id: g.id, name: g.name, line: g.blurb })),
+  { id: "hostile", name: "Hostile Q&A", line: HOSTILE_LINE },
+];
 
 const DAY_MS = 86_400_000;
 /** The week (its start) the boss stage last welcomed Demos in. */
@@ -150,14 +153,6 @@ export default function GamesPage() {
 
   const free = GAMES.filter((g) => !needsPremium(g));
   const paid = GAMES.filter(needsPremium);
-  /* Behind the wall: the charcoal seat in the middle, under the plum
-     mark, and the sky tile in a corner, so nothing blue peeks out
-     beside plum (practice-tab-7). */
-  const behind = [
-    ...paid.filter((g) => g.id === "rush"),
-    null,
-    ...paid.filter((g) => g.id !== "rush"),
-  ];
 
   function play(g: Game) {
     if (needsPremium(g) && premium !== true) {
@@ -185,7 +180,7 @@ export default function GamesPage() {
           titleId="boss-title"
           line={
             <p
-              className="practice-week font-display mt-auto text-link font-bold"
+              className="practice-week font-display mt-auto pt-3 text-link font-bold"
               data-done={bossDone || undefined}
             >
               {weekState}
@@ -202,7 +197,14 @@ export default function GamesPage() {
               />
             )
           }
-        />
+        >
+          {/* What the boss asks (D30), from its own two clocks, a
+              sentence a line so neither breaks mid-way at 390. */}
+          <p className="stage-ink font-display mt-1 text-body font-semibold">
+            <span className="block">{bossReadLine()}</span>
+            <span className="block">{bossAnswerLine()}</span>
+          </p>
+        </HeroStage>
         <Link
           href="/boss"
           aria-label={`${startLabel}: Cold Topic`}
@@ -222,72 +224,63 @@ export default function GamesPage() {
         <h2 className="section-head">Free</h2>
         <div className="mt-3 grid grid-cols-2 gap-3">
           {free.map((g) => (
-            <GameTile
-              key={g.id}
-              glyph={GLYPH[g.id]}
-              tile={TILE[g.id]}
-              name={g.name}
-              onPress={() => play(g)}
-            />
+            <GameTile key={g.id} glyph={GLYPH[g.id](22)} name={g.name} onPress={() => play(g)} />
           ))}
-          <GameTile
-            glyph={<IconUpload size={22} />}
-            tile="game-tile-plain"
-            name="Upload a recording"
-            href="/upload"
-          />
+          <GameTile glyph={<IconUpload size={22} />} name="Upload a recording" href="/upload" />
         </div>
 
-        <h2 className="section-head mt-7">Premium</h2>
+        {/* The tier's head, its name and its mark (D31, D04): the mark
+            is a label at the head, never a filled tile. */}
+        <div className="mt-7 flex items-center justify-between gap-3">
+          <h2 className="section-head">Premium</h2>
+          <PremiumMark variant="chip" />
+        </div>
         {planFailed ? (
           <ErrorLine onRetry={readPlan} className="mt-3">
             Your plan didn&apos;t load.
           </ErrorLine>
         ) : premium === null ? (
-          <Skeleton rounded="rounded-sheet" className="mt-3 h-[218px]" />
+          /* The free user's card at its landed height (principle 8);
+             a subscriber's grid is shorter and lands with .arrive. */
+          <Skeleton rounded="rounded-card" className="premium-card-slot mt-3" />
         ) : premium ? (
-          <div className="mt-3 grid grid-cols-3 gap-3">
+          <div className="arrive mt-3 grid grid-cols-3 gap-3">
             {paid.map((g) => (
-              <GameTile
-                key={g.id}
-                glyph={GLYPH[g.id]}
-                tile={TILE[g.id]}
-                name={g.name}
-                onPress={() => play(g)}
-              />
+              <GameTile key={g.id} glyph={GLYPH[g.id](22)} name={g.name} onPress={() => play(g)} />
             ))}
-            <GameTile
-              glyph={<IconBoss size={22} />}
-              tile="game-tile-seat"
-              name="Hostile Q&A"
-              href="/hostile"
-            />
+            <GameTile glyph={GLYPH.hostile(22)} name="Hostile Q&A" href="/hostile" />
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={() => setPaywall("Premium games")}
-            className="press premium-wall mt-3 block w-full rounded-sheet text-left"
-          >
-            <span aria-hidden className="premium-wall-behind grid grid-cols-3 gap-3">
-              {behind.map((g) =>
-                g ? (
-                  <GameTile key={g.id} glyph={GLYPH[g.id]} tile={TILE[g.id]} name={g.name} still />
-                ) : (
-                  <GameTile key="hostile" glyph={<IconBoss size={22} />} tile="game-tile-seat" name="Hostile Q&A" still />
-                )
-              )}
-            </span>
-            <span className="premium-wall-glass">
-              <span className="premium-wall-mark">
-                <IconPremium size={20} />
-              </span>
-              <span className="font-display mt-3 block text-row text-ink">
-                Speed rush, Interview, Hostile Q&amp;A
-              </span>
-              <span className="premium-wall-cta font-display mt-4">Unlock</span>
-            </span>
-          </button>
+          /* One card, crisp (D31): the three paid modes as rows that
+             say what each is, and one door. The rows are not doors; the
+             Unlock is, as the secondary pill, so the boss's Start stays
+             the screen's one terracotta. `premium-wall` is the hook the
+             camera and check-sheet-touch open the paywall by. */
+          <div className="card premium-card-slot arrive mt-3 px-4 pb-4">
+            <ul>
+              {PREMIUM_MODES.map((m) => (
+                <li
+                  key={m.id}
+                  className="flex min-h-14 items-center gap-3 border-t border-hairline py-2 first:border-t-0"
+                >
+                  <span aria-hidden className="shrink-0 text-ink">
+                    {GLYPH[m.id](24)}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="font-display block text-detail font-semibold text-ink">{m.name}</span>
+                    <span className="block text-link font-medium text-stone-500">{m.line}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              onClick={() => setPaywall("Premium games")}
+              className="press premium-wall font-display mt-2 flex min-h-11 w-full items-center justify-center rounded-tap border border-edge bg-surface px-6 text-body font-bold text-ink"
+            >
+              Unlock
+            </button>
+          </div>
         )}
       </div>
 
@@ -297,46 +290,29 @@ export default function GamesPage() {
 }
 
 /**
- * One game, as a tile: its glyph on its tone at the top, its name under
- * it, nothing to read. `still` draws it inert for the copies behind the
- * Premium wall, with a placeholder bar where the name would be, so no
- * half-legible word smears through the glass.
+ * One game, as a tile: its glyph in ink on the neutral surface tile
+ * (D30), its name under it, nothing to read.
  */
 function GameTile({
   glyph,
-  tile,
   name,
   href,
   onPress,
-  still = false,
 }: {
   glyph: ReactNode;
-  /** The tile's tone class: a `.tone-*`, or one of the two named tiles. */
-  tile: string;
   name: string;
   href?: string;
   onPress?: () => void;
-  still?: boolean;
 }) {
   const inner = (
     <>
-      <span aria-hidden className={`game-tile ${tile}`}>
+      <span aria-hidden className="game-tile game-tile-plain">
         {glyph}
       </span>
-      {still ? (
-        <span className="mt-2.5 block h-2.5 w-14 rounded-[3px] bg-sand" />
-      ) : (
-        <span className="font-display block pt-2.5 text-row text-ink">{name}</span>
-      )}
+      <span className="font-display block pt-2.5 text-row text-ink">{name}</span>
     </>
   );
   const cls = "game-card card flex min-h-24 flex-col p-3 text-left";
-  /* Behind the glass each glyph sits centred in its column and level
-     with the wall's mark (the glass centres a 130px stack in 200px, so
-     the mark's top is 34px into a copy): the seat hides under the mark
-     exactly and the sun and sky blur either side of it, rather than a
-     grey haze peeking out at the mark's corner (practice-tab-7). */
-  if (still) return <span className={`${cls} items-center pt-[34px]`}>{inner}</span>;
   return href ? (
     <Link href={href} className={`press ${cls}`}>
       {inner}

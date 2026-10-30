@@ -599,8 +599,10 @@ body {
  * THE CAPITALS RULE (M05, system-3). Tracked capitals are for data:
  * column heads (Log's METRIC, NOW, CHANGE) and stat labels, and nothing
  * else. Two registers and no third: `.label-data` 11/700/0.08em (#321
- * set the 0.08) and `.label-micro` 10/700/0.08em. `.group-head` and
- * `.log-date-month` are folded onto those values below. One idea per
+ * set the 0.08) and `.label-micro` 10/700/0.08em. `.group-head` is
+ * folded onto those values below (the Log's month left capitals, D33).
+ * At most three tracked-caps lines per 844pt viewport, a table's head
+ * row counting once (scripts/check-apple.mjs). One idea per
  * eyebrow, never a ' · ' compound ("Clean run", not "CLEAN RUN · LAST
  * RECORDING"). A line over a title inside a card is `.eyebrow`, sentence
  * case; a section head one step in is `.detail-head`.
@@ -1315,8 +1317,10 @@ body::after {
    and it arrives as the blur comes up rather than as a flat fade. */
 .sheet-scrim {
   background: color-mix(in srgb, var(--color-stage) 42%, transparent);
-  -webkit-backdrop-filter: blur(6px) saturate(120%);
-  backdrop-filter: blur(6px) saturate(120%);
+  /* D15: 2px, so the page behind a sheet stays the page you were on
+     (6px smeared You past recognition); the 42% dim does the work. */
+  -webkit-backdrop-filter: blur(2px) saturate(110%);
+  backdrop-filter: blur(2px) saturate(110%);
   animation: fade-in var(--duration-max) var(--ease-out) backwards;
 }
 .sheet-scrim[data-closing="true"] {
@@ -2789,11 +2793,6 @@ summary::-webkit-details-marker {
   background: var(--tone);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
-/* The dark sun, one step deeper on a tile only: #ffd166 on the stage's
-   #a06c04 is 3.1:1, on this 4.0:1. Still gold beside the mint and sky. */
-:root[data-theme="dark"] .game-tile.tone-sun {
-  --tone: #8a5c03;
-}
 /* Hostile Q&A: the hot seat, a warm charcoal with the page's light ink
    for the shield (7.6:1). Not amber: gold on black is the usual Pro badge,
    on a Premium row it read as a second paid mark, and amber is Demos's.
@@ -3081,11 +3080,10 @@ summary::-webkit-details-marker {
 .log-swatch-blank {
   background: transparent;
 }
-/* A recording's date as a tile: the plain surface and the ink in every
-   row (the cohesion pass; it was the trait's wash with its ink, a column
-   of blue and pink tiles), and the trait the recording practised as a
-   short bar in its tone at the tile's foot, 12 by 3. No bar when the
-   recording practised no one trait. */
+/* A waiting row's number as a tile (#394, unchanged): the plain surface
+   and the ink, and the trait the lesson practises as a short bar in its
+   tone at the tile's foot, 12 by 3. A logged recording's date is a bare
+   column since D33 (app/history/page.tsx). */
 .log-date {
   position: relative;
   display: flex;
@@ -3108,27 +3106,6 @@ summary::-webkit-details-marker {
   margin-left: -6px;
   border-radius: 1px;
   background: var(--tone);
-}
-/* The month over the day: the micro register, in the tile's own ink at
-   full strength (6.4:1 and up on every wash; faded, the ochre fell to
-   3.9 at 9px). Size alone puts it under the day. `.label-micro`'s
-   values exactly since system-3 (10/700/0.08em; it was 9px/0.06em), so
-   the app has two capitals registers, not four. */
-.log-date-month {
-  font-family: var(--font-display-face), sans-serif;
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-/* The one insight, ruled in its trait's tone: a 3px left rule, square,
-   no ring, and since the cohesion pass no wash (in dark it read as a
-   maroon callout). The ringed, rounded box it was read as a
-   card under a row that is itself a button, and invited a tap that did
-   nothing; a rule reads as an annotation of the table. At full strength
-   the wash was the second-heaviest mass on the squint. */
-.log-insight {
-  border-left: 3px solid var(--tone);
 }
 /* ========================== end of log (colour pass) ========================== */
 
@@ -3370,110 +3347,21 @@ summary::-webkit-details-marker {
 }
 /* ============================== end of nav (glass) ============================== */
 
-/* ============================ practice (the wall) ============================
- * Premium on Practice is a wall, not a chip (26 Sep): the paid games sit
- * behind frosted plum glass, visible enough to want and blurred enough
- * that nothing on them is a door. The whole wall is one tap to the
- * paywall. Plum is the tier; the button on it is the tier's own light
- * pill rather than terracotta, which stays the boss card's one tap.
+/* ============================ practice (Premium) ============================
+ * Premium on Practice is one crisp card (D31): the three paid modes as
+ * rows that say what each is, and one Unlock on the secondary pill. It
+ * was a frosted plum wall over blurred copies of the tiles (#317), which
+ * read as a failed image load; plum is only the PremiumMark at its head.
+ * `.premium-wall` stays on the Unlock as the hook the camera and
+ * check-sheet-touch open the paywall by, with no style of its own.
  * ============================================================================ */
-.premium-wall {
-  position: relative;
-  overflow: hidden;
-  border-radius: var(--radius-sheet);
-  /* practice-tab-8: 8px, the boss card's own inset (p-2). */
-  padding: 8px;
-  /* practice-tab-13 (B5's hook): the two plum glows as one token, so the
-     press veil below can lay itself over them instead of replacing
-     them (a bare `.press:active` background-image wiped the glow). */
-  --wall-glow:
-    radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--color-plum-500) 38%, transparent), transparent 60%),
-    radial-gradient(90% 80% at 100% 100%, color-mix(in srgb, var(--color-plum-400) 30%, transparent), transparent 60%);
-  background: var(--wall-glow), var(--color-plum-50);
-  border: 1px solid color-mix(in srgb, var(--color-plum-400) 45%, transparent);
-  /* practice-tab-15: a card's shadow. The boss card is the screen's one
-     lifted thing (elev-2); the wall sat at the same height beside it. */
-  box-shadow: var(--shadow-1);
+/* The card's landed height, which its skeleton holds (principle 8): three
+   56px rows, the Unlock's 44 and its 8 over it, the 16 under, the edge
+   (239 measured at 390; at 320 two lines wrap and it lands taller). */
+.premium-card-slot {
+  min-height: 239px;
 }
-/* practice-tab-13 (B5's hook): pressed, the veil over the glow. */
-.premium-wall.press:active {
-  background-image: linear-gradient(var(--press-veil), var(--press-veil)), var(--wall-glow);
-}
-/* practice-tab-7 (B5's hook): blurred enough that nothing behind the
-   glass reads as a door, only as colour and shape. */
-.premium-wall-behind {
-  filter: blur(10px) saturate(1.1);
-  opacity: 0.8;
-  transform: scale(1.02);
-}
-.premium-wall-glass {
-  position: absolute;
-  /* practice-tab-8: on the wall's 8px. */
-  inset: 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  border-radius: var(--radius-card);
-  padding: 16px;
-  background: linear-gradient(
-    to bottom,
-    color-mix(in srgb, var(--color-raised) 5%, transparent),
-    color-mix(in srgb, var(--color-raised) 55%, transparent) 70%
-  );
-  -webkit-backdrop-filter: blur(2px);
-  backdrop-filter: blur(2px);
-  /* practice-tab-8: no second frame inside the wall's own. */
-  border: 0;
-  box-shadow: none;
-}
-/* system-8, system-12: the tier's mark as a flat plum tile at the
-   control radius. No gradient and no glow: the only gradient icon tile
-   in the app, and a coloured glow is a tell. */
-.premium-wall-mark {
-  display: inline-flex;
-  width: 44px;
-  height: 44px;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-control);
-  color: #fff;
-  background: var(--color-plum-700);
-}
-:root[data-theme="dark"] .premium-wall-mark {
-  background: var(--color-plum-300);
-}
-/* system-8, practice-tab-1: the wall's button is a WHITE pill in both
-   themes (#317, Timothy: "a white pill, not terracotta", so the boss
-   card keeps the one tap). Never plum: plum has no fill role (#280). */
-.premium-wall-cta {
-  display: inline-flex;
-  min-height: 40px;
-  align-items: center;
-  padding: 0 22px;
-  border-radius: 999px;
-  font-size: 14px;
-  font-weight: 800;
-  color: var(--color-plum-900);
-  background: #ffffff;
-  box-shadow: 0 4px 14px -4px rgb(0 0 0 / 0.35);
-}
-/* practice-tab-1: on the pale light wall the white pill holds its edge
-   with a plum hairline and a softer drop. */
-:root:not([data-theme="dark"]) .premium-wall-cta {
-  box-shadow:
-    inset 0 0 0 1px var(--color-plum-300),
-    0 4px 14px -4px rgb(0 0 0 / 0.25);
-}
-/* The copies behind the glass: 200px tall (the Premium skeleton's 218px
-   counts on it, B5: keep the two in step), and no hairlines
-   (practice-tab-8), so the wall's own border is the one frame left. */
-.premium-wall .premium-wall-behind .game-card {
-  min-height: 200px;
-  border-color: transparent;
-}
-/* ========================== end of practice (the wall) ========================== */
+/* ========================== end of practice (Premium) ========================== */
 
 
 
@@ -3684,11 +3572,6 @@ summary::-webkit-details-marker {
   }
   .sheet-scrim {
     background: color-mix(in srgb, var(--color-stage) 62%, transparent);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
-  .premium-wall-glass {
-    background: color-mix(in srgb, var(--color-raised) 88%, transparent);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }

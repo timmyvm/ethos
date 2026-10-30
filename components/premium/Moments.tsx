@@ -4,10 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { DemosArt } from "@/components/DemosArt";
 import { SpeechBubble } from "@/components/SpeechBubble";
 import { Overlay, useOverlayClose } from "@/components/ui/Overlay";
+import { SheetHead } from "@/components/ui/SheetHead";
 import { CHECKOUT_COPY, checkoutReturnWords, dropWords, pictureLabel, stepLabels, type PlanView } from "@/lib/plan-view";
 import { prefersReducedMotion } from "@/lib/prefs";
 import { formatAud } from "@/lib/pricing";
-import { ACTION_CLASS } from "@/lib/ui";
 import { usePlan, usePriceDrop } from "@/lib/use-plan";
 import { Price, PriceCell } from "./PlanCard";
 import { HOP_DELAY_MS, Stair } from "./Stair";
@@ -146,8 +146,10 @@ function DropBody({
   const shown = landed ? words.toCents : words.fromCents;
 
   return (
-    <div className="card-premium max-h-[calc(100dvh-max(1rem,env(safe-area-inset-top)))] w-full max-w-[430px] overflow-x-hidden overflow-y-auto overscroll-contain rounded-t-sheet px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-7 text-cream">
-      <div aria-hidden className="mx-auto -mt-3 mb-3 h-1 w-10 rounded-full bg-cream/30" />
+    <div className="card-premium max-h-[calc(100dvh-max(1rem,env(safe-area-inset-top)))] w-full max-w-[430px] overflow-x-hidden overflow-y-auto overscroll-contain rounded-t-sheet px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2 text-cream">
+      {/* D45: Done at the top right in white, as every information sheet
+          closes (D15), so a billing event carries no terracotta. */}
+      <SheetHead onClose={close} plum />
       {/* His line on the plum sheet's own cream, balanced so each
           sentence keeps its line where it can and "Month 4" never
           parts: "Your price / dropped. / Month 4 / starts today." at
@@ -155,7 +157,10 @@ function DropBody({
       <div className="flex items-center gap-2">
         {/* Below 360 he steps down to 88, so his line has the room to
             set in three lines rather than four. */}
-        <DemosArt pose="celebrate" size={112} className="!mx-0 -ml-1 max-[359px]:!h-[88px] max-[359px]:!w-[88px]" />
+        {/* His hello (D45): a price that steps down is news, not a
+            streak, so the celebrate pose, its sparkles and its clip stay
+            the streak's. */}
+        <DemosArt pose="hello" size={112} className="!mx-0 -ml-1 max-[359px]:!h-[88px] max-[359px]:!w-[88px]" />
         <SpeechBubble tail="left" material="plum" className="min-w-0 flex-1 text-balance">
           {words.bubble.replace(/Month (\d+)/, "Month\u00a0$1")}
         </SpeechBubble>
@@ -179,9 +184,6 @@ function DropBody({
         label={pictureLabel(view, today)}
         className="mt-2"
       />
-      <button type="button" onClick={close} className={`${ACTION_CLASS} mt-7`}>
-        Done
-      </button>
     </div>
   );
 }

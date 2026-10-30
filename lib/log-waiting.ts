@@ -28,7 +28,7 @@ export function waitingRows(count = 3, { intros = true }: { intros?: boolean } =
     id: lesson.id,
     n: i + 1,
     title: lesson.title,
-    href: teach ? introHref(unit.id, [], lesson.id) : repHref({ lesson: lesson.id }),
+    href: teach ? introHref(unit.id, [], lesson.id, "log") : repHref({ lesson: lesson.id }),
     label: `Go: ${lesson.title}`,
   }));
 }

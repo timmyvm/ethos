@@ -119,8 +119,9 @@ export function PlanCard({ view, today, onOpen }: { view: PlanView; today: Date;
     >
       <span className="flex min-h-6 items-center gap-2">
         <PremiumMark variant="chip" />
+        {/* No chevron after the month (D44): the whole card is the
+            door, and a chevron beside "Month 3" read as a link on it. */}
         <span className="font-display ml-auto text-row tabular-nums text-stone-500">{w.month}</span>
-        <Disclosure />
       </span>
 
       {"title" in w.left ? (
@@ -164,7 +165,6 @@ export function PlanCardSkeleton({ status }: { status?: string }) {
       <div className="flex min-h-6 items-center gap-2">
         <Bar className="label-micro rounded-full border border-transparent px-2 py-0.5" text="Premium" />
         <Bar className="font-display ml-auto text-row" text="Month 3" />
-        <span className="w-2" />
       </div>
       <div className="mt-3 flex items-end justify-between gap-4">
         <span className="block">

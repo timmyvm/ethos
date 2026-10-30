@@ -326,9 +326,9 @@ describe("a trait's tone is only ever one of its forms", () => {
     ':root[data-theme="dark"] [data-trait]': "ground",
     ".trait-dot": "mark",
     ".log-swatch": "mark",
-    // The Log's date underline and the insight's rule go with S09 (D33).
+    // A waiting row's tile keeps its 3px trait tick (#394); a logged
+    // recording's date is a bare column and the insight has no rule (D33).
     ".log-date[data-trait]::after": "mark",
-    ".log-insight": "mark",
     ".home-tile-glow": "glow",
     ':root[data-theme="dark"] .home-tile-glow': "glow",
     ".home-bar > i": "measure",

@@ -15,11 +15,14 @@
  *
  * What counts as content: every line of text (the text's own line
  * boxes, not its element's), every image, svg, video and canvas, every
- * control, and the top and bottom edges of anything with a fill, a
- * border or a shadow, because the edge of a card or the arc at a
- * stage's foot is a thing the eye lands on. What does not: the tab
- * bar and its fade, the footer shelf (it is the floor), scrims, and
- * anything marked `data-gap-skip` (art layers that would hide a band).
+ * control, a card standing in the flow (filled in other than the
+ * ground's colour, under 70% of the screen tall: its padding is the
+ * card's, not ground), and the top and bottom edges of anything else
+ * with a fill, a border or a shadow, because the arc at a stage's foot
+ * is a thing the eye lands on. What does not: the tab bar and its
+ * fade, the footer shelf (it is the floor), scrims, the inside of an
+ * absolute or aria-hidden art layer (a stage's ground: the bands over
+ * it are the screen's), and anything marked `data-gap-skip`.
  *
  * Per screen the boxes in the first viewport are sorted by top and
  * merged, and every vertical gap between them is measured, the last
@@ -92,6 +95,8 @@ function measure({ scope }) {
     const cls = typeof el.className === "string" ? el.className.split(/\s+/).slice(0, 2).join(".") : "";
     return `${el.tagName.toLowerCase()}${cls ? "." + cls : ""}${text ? ` "${text}"` : alt ? ` [${alt}]` : ""}`;
   };
+  /* The page's ground, so a wrapper painted in it is not a card. */
+  const groundColour = getComputedStyle(document.body).backgroundColor;
   const boxes = [];
   const add = (top, bottom, left, right, el, kind) => {
     if (right <= 0 || left >= vw || bottom <= 0 || top >= floor) return;
@@ -120,15 +125,33 @@ function measure({ scope }) {
       continue;
     }
     if (el.matches(CONTROL)) add(r.top, r.bottom, r.left, r.right, el, "control");
-    // A surface: its edges are what the eye lands on, not its inside.
+    // A surface. A card standing in the flow (filled, not the ground's
+    // own colour, not an aria-hidden art layer) is a thing the eye
+    // lands on, inside and out: its padding is the card's, not a band
+    // of ground (principle 7: room goes to a stage or art, never to
+    // ground). Anything else drawn (an outline, a shadow, an absolute
+    // layer) counts by its edges only, so a stage's art layer never
+    // hides the bands over it.
     if (el === document.body || el.tagName === "MAIN" || el === document.documentElement) continue;
+    if (el === root) continue;
     const cs = getComputedStyle(el);
     const bg = cs.backgroundColor.match(/[\d.]+/g)?.map(Number) ?? [0, 0, 0, 0];
-    const filled = (bg.length < 4 || bg[3] > 0.05) && cs.backgroundColor !== "transparent";
+    const painted = (bg.length < 4 || bg[3] > 0.05) && cs.backgroundColor !== "transparent";
+    const inFlow = cs.position === "static" || cs.position === "relative";
+    /* A wrapper in the ground's colour is ground; an absolute shape in
+       it (the arc rising into a stage) is still an edge. */
+    const filled = painted && !(inFlow && cs.backgroundColor === groundColour);
     const imaged = cs.backgroundImage !== "none";
     const bordered = parseFloat(cs.borderTopWidth) > 0 && !/rgba\([^)]*,\s*0\)/.test(cs.borderTopColor);
     const shadowed = cs.boxShadow !== "none";
-    if (filled || imaged || bordered || shadowed) {
+    const card =
+      (filled || imaged) &&
+      inFlow &&
+      !el.closest("[aria-hidden]") &&
+      r.width >= vw * 0.4 &&
+      r.height < vh * 0.7;
+    if (card) add(r.top, r.bottom, r.left, r.right, el, "card");
+    else if (filled || imaged || bordered || shadowed) {
       add(r.top, r.top + 1, r.left, r.right, el, "edge");
       add(r.bottom - 1, r.bottom, r.left, r.right, el, "edge");
     }

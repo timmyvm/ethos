@@ -1,60 +1,50 @@
-import { DemosFigure } from "@/components/DemosClip";
+import type { PracticeFamily } from "@/lib/practice-family";
 
 /**
  * What you are about to talk about, as the hero (feedback round, 25 Sep).
  *
- * The recording screen used to open on an eyebrow, a bold name and a
- * grey paragraph, and the thing you would actually speak about was the
- * grey paragraph. Now the topic is the biggest thing on the screen, in
- * display type on a warm colour ground, with Demos standing on its top
- * edge: he is the coach, and this is the moment he coaches.
+ * The topic is the biggest thing on the screen, in display type on the
+ * practice's own colour (D50): the trait family Today's card wore when
+ * Start was pressed (`.family-fill`, the same layer and tokens as
+ * `.home-hero`), white words at radius 28, so the day's colour carries
+ * through the app's most important transition. A practice that
+ * measures no one trait (the boss, a game) stands on the sky stage.
  *
- * The ground is the mascot's amber running into a terracotta WASH, not
- * the terracotta fill: the fill is the Record button's and nothing
- * else's. In dark the same two hues drop to dark washes of themselves.
+ * Demos is not on it: he arrives as the listener when Record is
+ * pressed (D51), so the prompt is the one thing to read while idle.
  */
 export function TopicCard({
   eyebrow,
   topic,
+  family,
   compact = false,
-  demos = true,
 }: {
   eyebrow: string;
   topic: string;
-  /** While the clock runs: same card, a size down, no mascot. */
+  family: PracticeFamily;
+  /** While the clock runs: the same card, a size down, at the top. */
   compact?: boolean;
-  demos?: boolean;
 }) {
   return (
     <section
       aria-label="Your topic"
-      className={`topic-card relative rounded-sheet p-5 ${compact ? "" : "pb-6"}`}
+      data-family={family}
+      /* Idle, it stands as tall as the room allows (Today's card is
+         376): the eyebrow at the top, the topic at the foot, and the
+         idle screen's free height in the card rather than over it. */
+      className={`family-fill flex flex-col p-5 ${
+        compact ? "" : "min-h-[clamp(168px,34dvh,300px)] justify-between pb-6"
+      }`}
     >
-      {/* He stands ON the card's top edge, full body, with a contact
-          shadow where his feet meet it (review, 25 Sep: the half-body
-          render floated as a sticker showed its cut across his torso).
-          The card keeps its full width for the topic. */}
-      {demos && !compact && (
-        <div aria-hidden className="topic-demos pointer-events-none absolute bottom-[calc(100%-12px)] right-3 w-[112px]">
-          <span className="rep-ground" />
-          <DemosFigure
-            pose="speaking"
-            src="/demos-onboard-speaking.webp"
-            width={224}
-            height={224}
-            delayMs={900}
-            className="demos relative block h-auto w-full"
-          />
-        </div>
-      )}
-      {/* PRINCIPLES 4: an eyebrow inside a card is sentence case. */}
-      <div className="eyebrow topic-eyebrow">{eyebrow}</div>
+      {/* PRINCIPLES 4: an eyebrow inside a card is sentence case, here
+          in the card's own ink rather than the old amber. */}
+      <div className="eyebrow text-[var(--stage-ink)]">{eyebrow}</div>
       {/* recording-14: balanced in both sizes, so the last word never
           stands alone ("next / sentence."). recording-16: the padding is
           the same in both states, so on Record only the type steps down
           while the card glides up. */}
       <h1
-        className={`font-display text-balance text-ink ${
+        className={`font-display text-balance ${
           compact
             ? "mt-1.5 text-lead font-bold leading-snug"
             : "mt-2 text-title font-extrabold leading-[1.18]"

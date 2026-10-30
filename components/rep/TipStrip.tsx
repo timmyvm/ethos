@@ -113,8 +113,8 @@ export function TipStrip({
  * Eight marks on a 20px grid, drawn bare (no disc behind them, M14,
  * today-12): 24px in a tile, 20px in a TipLine, the stroke held at 2px
  * whatever the size. Their colour comes from `.tip-glyph` (globals.css):
- * `--rec-amber-ink` on a tile and on Today's amber card, stone-500 on
- * the plain ground.
+ * ink (stone-700) on a tile since D50, white on Today's card, stone-500
+ * on the plain ground.
  */
 function Glyph({ kind, size }: { kind: TipGlyph; size: number }) {
   const common = {

@@ -43,6 +43,8 @@ const WIDTH = Number(process.env.LOOK_WIDTH ?? 390) || 390;
 const HEIGHT = Number(process.env.LOOK_HEIGHT ?? 844) || 844;
 const WSUFFIX = `${WIDTH === 390 ? "" : `-${WIDTH}`}${HEIGHT === 844 ? "" : `x${HEIGHT}`}`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+/** The returning account's id: a uuid, so its tester number reads "0B5E 7A21". */
+const RETURNING_ID = "0b5e7a21-6c3d-4f8e-8a1b-2d9c4e6f7a10";
 const want = (name) => ONLY.length === 0 || ONLY.includes(name);
 
 const browser = await chromium.launch({
@@ -71,7 +73,10 @@ async function context(theme, { returning = true } = {}) {
   // something to show once a fresh phone's anonymous session is minted.
   await ctx.route("http://supabase.local/auth/v1/signup**", (route) =>
     route.fulfill(json({ ...session, user: { ...session.user, id: "3f9a1c2e-0d4a-4c1e-9a77-3b2f5e8d1c40", is_anonymous: true, email: null } })));
-  if (returning) await ctx.addInitScript(seed, { theme, session, pose: POSE_PREF });
+  /* A returning tester's account id is a uuid, as Supabase's are, so
+     the tester number on Settings' Testing Ethos page has something to
+     show (the fixture's own id, "u1", has no number and drew a blank). */
+  if (returning) await ctx.addInitScript(seed, { theme, session: { ...session, user: { ...session.user, id: RETURNING_ID } }, pose: POSE_PREF });
   else
     await ctx.addInitScript((t) => {
       localStorage.setItem("ethos.prefs", JSON.stringify({ theme: t, reducedMotion: false, haptics: false }));

@@ -39,6 +39,16 @@ for (const theme of ["light", "dark"]) {
   await page.waitForSelector("main .arrive-x", { timeout: 15000 });
   await page.waitForSelector('[role="dialog"]', { state: "detached", timeout: 8000 }).catch(() => {});
   await sleep(3200);
+  /* The question is asked on the results' last step (since 30 Oct),
+     after the numbers: walk there with the step's own tap, as
+     scripts/look-testers.mjs does. */
+  for (let i = 0; i < 3; i++) {
+    if (await page.locator('section[aria-labelledby="match-question"]').count()) break;
+    const next = page.locator("[data-step-action]").first();
+    if (!(await next.count()) || !/numbers|words/i.test(await next.innerText())) break;
+    await next.click();
+    await sleep(900);
+  }
   const box = await page.locator('section[aria-labelledby="match-question"]').boundingBox();
   const clip = { x: 0, y: box.y - 12, width: 390, height: 300 };
   // Frame 0 is the moment before the tap.

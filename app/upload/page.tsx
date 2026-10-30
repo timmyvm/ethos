@@ -234,7 +234,7 @@ export default function UploadPage() {
                 if (audioUrl) URL.revokeObjectURL(audioUrl);
                 setAudioUrl(null);
               }}
-              className="press font-display min-h-12 flex-1 rounded-control border border-edge bg-surface px-4 text-row"
+              className="press font-display min-h-12 flex-1 rounded-tap border border-edge bg-surface px-4 text-row"
             >
               Another file
             </button>

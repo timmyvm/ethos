@@ -141,7 +141,7 @@ export function ShareCard({ reps, quiet = false }: { reps: RepRow[]; quiet?: boo
   }
 
   const tap = quiet
-    ? "press font-display block min-h-12 w-full rounded-control bg-surface px-6 py-3.5 text-center text-body font-bold"
+    ? "press font-display block min-h-12 w-full rounded-tap bg-surface px-6 py-3.5 text-center text-body font-bold"
     : ACTION_CLASS;
 
   return (

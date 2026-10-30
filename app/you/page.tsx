@@ -494,7 +494,7 @@ export default function YouPage() {
                 />
                 <button
                   type="submit"
-                  className="press font-display min-h-11 shrink-0 rounded-control bg-surface px-4 text-row"
+                  className="press font-display min-h-11 shrink-0 rounded-tap bg-surface px-4 text-row"
                 >
                   Save
                 </button>

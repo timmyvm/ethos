@@ -323,7 +323,7 @@ export default function CalibratePage() {
               <button
                 type="button"
                 onClick={() => void startCamera()}
-                className="press font-display min-h-12 w-full rounded-control border border-edge bg-surface px-4 text-row"
+                className="press font-display min-h-12 w-full rounded-tap border border-edge bg-surface px-4 text-row"
               >
                 Try again
               </button>
@@ -465,13 +465,13 @@ export default function CalibratePage() {
                   .then(() => setCopied(true))
                   .catch(() => {});
               }}
-              className="press font-display min-h-12 flex-1 rounded-control border border-edge bg-surface px-4 text-row"
+              className="press font-display min-h-12 flex-1 rounded-tap border border-edge bg-surface px-4 text-row"
             >
               {copied ? "Copied" : "Copy for lib/presence.ts"}
             </button>
             <button
               onClick={download}
-              className="press font-display min-h-12 flex-1 rounded-control border border-edge bg-surface px-4 text-row"
+              className="press font-display min-h-12 flex-1 rounded-tap border border-edge bg-surface px-4 text-row"
             >
               Download takes
             </button>

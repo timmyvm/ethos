@@ -330,7 +330,7 @@ function ManageBody({
                   setError(null);
                   setConfirming(false);
                 }}
-                className="press font-display flex min-h-12 items-center justify-center rounded-control border-2 border-edge px-4 text-body font-bold text-ink aria-disabled:text-stone-400"
+                className="press font-display flex min-h-12 items-center justify-center rounded-tap border-2 border-edge px-4 text-body font-bold text-ink aria-disabled:text-stone-400"
               >
                 {MANAGE_COPY.keep}
               </button>

@@ -620,14 +620,14 @@ export default function SettingsPage() {
               <button
                 onClick={() => void runDelete()}
                 disabled={confirmText.trim() !== "DELETE" || deleting}
-                className={`press font-display min-h-11 flex-1 rounded-control border border-edge bg-surface px-4 py-2.5 text-row text-rust ${DISABLED_CLASS}`}
+                className={`press font-display min-h-11 flex-1 rounded-tap border border-edge bg-surface px-4 py-2.5 text-row text-rust ${DISABLED_CLASS}`}
               >
                 {deleting ? "Deleting…" : "Delete everything"}
               </button>
               <button
                 onClick={() => setArming(false)}
                 disabled={deleting}
-                className={`press font-display min-h-11 flex-1 rounded-control border border-edge bg-surface px-4 py-2.5 text-row ${DISABLED_CLASS}`}
+                className={`press font-display min-h-11 flex-1 rounded-tap border border-edge bg-surface px-4 py-2.5 text-row ${DISABLED_CLASS}`}
               >
                 Keep it
               </button>

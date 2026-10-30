@@ -2280,7 +2280,7 @@ function Results({
               {!again && (
                 <button
                   onClick={onRetake}
-                  className="press min-h-11 px-3 text-link text-stone-500"
+                  className="press min-h-11 rounded-tap px-3 text-link text-stone-500"
                 >
                   Retake this one
                 </button>
@@ -2289,7 +2289,7 @@ function Results({
                 onClick={() =>
                   exit(returnIsPrimary ? "/" : (backTo ?? (game ? "/games" : "/")))
                 }
-                className="press min-h-11 px-3 text-link text-stone-500"
+                className="press min-h-11 rounded-tap px-3 text-link text-stone-500"
               >
                 {returnIsPrimary
                   ? "Done for today"

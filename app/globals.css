@@ -168,10 +168,10 @@
 
   /*
    * Shape (#201, one scale in #231, one step warmer in #234): controls
-   * 12, cards 16, sheets and the largest surfaces 20. Chips are the only
-   * pills, Record is the only circle, the nav is the only square edge.
-   * `rounded-control`, `rounded-card`, `rounded-sheet`; never a bracketed
-   * pixel radius.
+   * 12, cards 16, sheets and the largest surfaces 20. Chips and taps are
+   * pills (D11), Record is the only circle, the nav is the only square
+   * edge. `rounded-control`, `rounded-card`, `rounded-sheet`,
+   * `rounded-tap`; never a bracketed pixel radius.
    *
    * No concentric arithmetic: a control keeps 12 wherever it sits and a
    * card inside a sheet keeps 16. Computing inner = outer − inset gives
@@ -184,6 +184,12 @@
   --radius-control: 12px;
   --radius-card: 16px;
   --radius-sheet: 20px;
+  /* Every tap is a pill (D11): the one terracotta tap and the 44 to 48px
+     secondary buttons on the surface recipe, so one action has one
+     shape on every screen. Today's Start was the first. Containers keep
+     their radii; inputs and answer rows keep the control's 12, because
+     they are answers, not taps. Record stays the only circle. */
+  --radius-tap: 999px;
 
   /*
    * Motion (DESIGN-RULES, motion; DECISIONS #221). These mirror
@@ -4859,7 +4865,7 @@ summary::-webkit-details-marker {
   color: var(--home-b);
 }
 
-/* The one tap, a pill on the card (STATE's open experiment). 48px,
+/* The one tap, a pill on the card like every tap (D11). 48px,
    terracotta, ink. */
 .home-start {
   display: flex;
@@ -4868,7 +4874,7 @@ summary::-webkit-details-marker {
   justify-content: center;
   gap: 8px;
   min-height: 48px;
-  border-radius: 999px;
+  border-radius: var(--radius-tap);
   padding: 0 24px;
   background: var(--color-terracotta-500);
   color: var(--color-on-accent);

@@ -11,21 +11,29 @@
  *
  * Scenes: welcome (the introduction's first screen, with the door),
  * code (empty), code-wrong, code-right (four digits in, Continue lit),
- * consent, joined, settings (a non-tester's row), settings-tester,
- * tester-page (Settings' door for a tester), results (a tester's match
- * check, unanswered), results-yes, results-no (No, the note open and
- * typed), results-fail (the answer refused, its retry), results-plain
- * (a non-tester's results: nothing new), log (a stored recording's page,
- * the answer reopened), privacy (the Testers section). The question is on
- * the results' last step, so the results scenes walk there first.
- * /api/tester is answered here as the route would: 1234 right, anything
- * else wrong.
+ * consent, consent-full (the whole list, to its foot), joined, renew (a
+ * tester on consent version 2 opening the app: the new consent, asked
+ * once), settings (a non-tester's row), settings-tester, settings-renew
+ * (a version 2 tester's row: Agree again), tester-page (Settings' door
+ * for a tester), felt (the one tap before the score), results (the
+ * direction question, unanswered), results-right (About right),
+ * results-low (Too low, the note open and typed), results-fail (the
+ * answer refused, its retry), results-plain (a non-tester's results:
+ * nothing new, the score first), log (a stored recording's page, the
+ * answer reopened), results-paused and log-paused (a tester on consent
+ * version 2 who said Not now: testing is paused, with Agree again,
+ * where the question would be), privacy (the Testers section). The direction is
+ * asked on the results' last step, so those scenes answer how it felt
+ * and walk there first. /api/tester is answered here as the route
+ * would: 1234 right, anything else wrong, and no code only for a tester
+ * agreeing again; /api/tester/collect takes every batch.
  */
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 import { mkdirSync } from "node:fs";
 import {
   supabaseRoute as supabase,
   analyzeBody as analyze,
+  collectRoute,
   json,
   session,
   testerMode,
@@ -47,11 +55,16 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const RETURNING_ID = "0b5e7a21-6c3d-4f8e-8a1b-2d9c4e6f7a10";
 const want = (name) => ONLY.length === 0 || ONLY.includes(name);
 
+/* LOOK_AUDIO: a WAV the fake microphone plays, so a take's wave has a
+   voice's shape rather than the default device's once-a-second beep. */
 const browser = await chromium.launch({
-  args: ["--font-render-hinting=none", "--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream", "--autoplay-policy=no-user-gesture-required"],
+  args: [
+    "--font-render-hinting=none", "--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream", "--autoplay-policy=no-user-gesture-required",
+    ...(process.env.LOOK_AUDIO ? [`--use-file-for-fake-audio-capture=${process.env.LOOK_AUDIO}`] : []),
+  ],
 });
 
-async function context(theme, { returning = true } = {}) {
+async function context(theme, { returning = true, hint = false, asked = 0 } = {}) {
   const ctx = await browser.newContext({
     viewport: { width: WIDTH, height: HEIGHT }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
     permissions: ["microphone"], locale: "en-AU", timezoneId: "Australia/Melbourne",
@@ -60,10 +73,12 @@ async function context(theme, { returning = true } = {}) {
   await ctx.route("http://supabase.local/**", supabase);
   await ctx.route("**/api/analyze", async (route) => { await sleep(600); await route.fulfill(json(analyze)); });
   await ctx.route("**/api/push", (route) => route.fulfill(json({ ok: true })));
+  await ctx.route("**/api/tester/collect", collectRoute);
   await ctx.route("**/api/tester", async (route) => {
     await sleep(350);
     const body = route.request().postDataJSON() ?? {};
-    if (body.code !== "1234") return route.fulfill(json({ error: "That code doesn't match. Check it and try again." }, 403));
+    const renewing = body.code === undefined && body.agree !== undefined && testerMode.tester;
+    if (!renewing && body.code !== "1234") return route.fulfill(json({ error: "That code doesn't match. Check it and try again." }, 403));
     if (body.agree === undefined) return route.fulfill(json({ ok: true }));
     testerMode.tester = true;
     testerMode.consentVersion = body.agree;
@@ -76,11 +91,13 @@ async function context(theme, { returning = true } = {}) {
   /* A returning tester's account id is a uuid, as Supabase's are, so
      the tester number on Settings' Testing Ethos page has something to
      show (the fixture's own id, "u1", has no number and drew a blank). */
-  if (returning) await ctx.addInitScript(seed, { theme, session: { ...session, user: { ...session.user, id: RETURNING_ID } }, pose: POSE_PREF });
+  if (returning) await ctx.addInitScript(seed, { theme, session: { ...session, user: { ...session.user, id: RETURNING_ID } }, pose: POSE_PREF, tester: hint });
   else
     await ctx.addInitScript((t) => {
       localStorage.setItem("ethos.prefs", JSON.stringify({ theme: t, reducedMotion: false, haptics: false }));
     }, theme);
+  // A tester already asked once on this device (the open's ask, TesterLayer).
+  if (asked) await ctx.addInitScript((v) => localStorage.setItem("ethos.tester.asked", String(v)), asked);
   await ctx.addInitScript(() => {
     const css = document.createElement("style");
     css.textContent = 'nextjs-portal{display:none!important} body{position:relative} nav[aria-label="Sections"]{position:absolute!important}';
@@ -115,7 +132,7 @@ async function shootTheme(theme) {
   });
 
   // The walk in from the introduction: code, consent, joined.
-  await step(["code", "code-wrong", "code-right", "consent", "joined"], async () => {
+  await step(["code", "code-wrong", "code-right", "consent", "consent-full", "joined"], async () => {
     testerMode.tester = false;
     const { ctx, page } = await context(theme, { returning: false });
     await page.goto(`${BASE}/welcome`);
@@ -136,17 +153,33 @@ async function shootTheme(theme) {
     await page.getByRole("button", { name: "Continue" }).click();
     await page.getByRole("button", { name: "I agree" }).waitFor({ timeout: 8000 });
     if (want("consent")) await shot(page, "consent", { fullPage: false, settle: 900 });
+    if (want("consent-full")) await shot(page, "consent-full", { fullPage: true, settle: 300 });
     await page.getByRole("button", { name: "I agree" }).click();
     await page.getByText("You're testing Ethos").first().waitFor({ timeout: 8000 });
     if (want("joined")) await shot(page, "joined", { fullPage: false, settle: 1500 });
     await ctx.close();
   });
 
+  // A tester on consent version 2 opens the app: the new consent, once.
+  await step(["renew"], async () => {
+    testerMode.tester = true;
+    testerMode.consentVersion = 2;
+    const { ctx, page } = await context(theme, { hint: true });
+    await page.goto(`${BASE}/`);
+    await page.waitForURL(/\/tester\?from=open/, { timeout: 20000 });
+    await page.getByRole("button", { name: "I agree" }).waitFor({ timeout: 8000 });
+    await shot(page, "renew", { fullPage: false, settle: 900 });
+    testerMode.consentVersion = 3;
+    await ctx.close();
+  });
+
   // Settings, as a non-tester and as a tester, and the tester's door.
-  for (const [name, isTester] of [["settings", false], ["settings-tester", true], ["tester-page", true]]) {
+  for (const [name, isTester, version] of [["settings", false, 3], ["settings-tester", true, 3], ["settings-renew", true, 2], ["tester-page", true, 3]]) {
     await step([name], async () => {
       testerMode.tester = isTester;
-      const { ctx, page } = await context(theme);
+      testerMode.consentVersion = version;
+      // A version 2 tester who already said Not now to the open's ask.
+      const { ctx, page } = await context(theme, { hint: isTester, asked: version < 3 ? 3 : 0 });
       await page.goto(`${BASE}/settings`);
       await page.waitForSelector("main .inset-group");
       await sleep(900);
@@ -157,6 +190,7 @@ async function shootTheme(theme) {
       } else {
         await shot(page, name, { settle: 400 });
       }
+      testerMode.consentVersion = 3;
       await ctx.close();
     });
   }
@@ -169,26 +203,42 @@ async function shootTheme(theme) {
     await page.waitForSelector('button[aria-label="Stop and score this recording"]');
     await sleep(2500);
     await page.click('button[aria-label="Stop and score this recording"]', { force: true });
-    await page.waitForSelector("main .arrive-x", { timeout: 15000 });
+    await page.waitForSelector("main .arrive-x, #felt-question", { timeout: 15000 });
     await page.waitForSelector('[role="dialog"]', { state: "detached", timeout: 8000 }).catch(() => {});
     await sleep(3200);
   };
-  /* The question is asked on the last step, after the numbers: walk
-     there with the step's own tap. */
-  const toQuestion = async (page) => {
+  /* How it felt comes first, one tap; the direction is asked on the
+     last step, after the numbers: walk there with the step's own tap. */
+  const toQuestion = async (page, felt = "Okay") => {
+    const pick = page.getByRole("button", { name: felt, exact: true });
+    if (await pick.count()) {
+      await pick.click();
+      await sleep(700);
+    }
     for (let i = 0; i < 3; i++) {
-      if (await page.getByText("Did this score match how it felt?").count()) return;
+      if (await page.getByText(/feel right\?/).count()) return;
       const next = page.locator("[data-step-action]").first();
       if (!(await next.count()) || !/numbers|words/i.test(await next.innerText())) return;
       await next.click();
       await sleep(900);
     }
   };
+  // The one tap before the score shows.
+  await step(["felt"], async () => {
+    testerMode.tester = true;
+    testerMode.feedback = "ok";
+    const { ctx, page } = await context(theme);
+    await results(page);
+    await page.getByText("How did that feel?").waitFor({ timeout: 8000 });
+    await shot(page, "felt", { settle: 400, fullPage: false });
+    await ctx.close();
+  });
+
   const scenes = [
     ["results", { tester: true }],
-    ["results-yes", { tester: true, pick: "Yes" }],
-    ["results-no", { tester: true, pick: "No", note: "Felt slower than 145 a minute." }],
-    ["results-fail", { tester: true, pick: "Roughly", feedback: "fail" }],
+    ["results-right", { tester: true, pick: "About right" }],
+    ["results-low", { tester: true, pick: "Too low", note: "Felt slower than 145 a minute." }],
+    ["results-fail", { tester: true, pick: "Too high", feedback: "fail" }],
     ["results-plain", { tester: false }],
   ];
   for (const [name, o] of scenes) {
@@ -198,7 +248,7 @@ async function shootTheme(theme) {
       testerMode.answers.length = 0;
       const { ctx, page } = await context(theme);
       await results(page);
-      if (o.tester) await toQuestion(page);
+      if (o.tester) await toQuestion(page, o.felt ?? "Okay");
       if (o.pick) {
         await page.getByRole("radio", { name: o.pick, exact: true }).click();
         await sleep(500);
@@ -213,6 +263,39 @@ async function shootTheme(theme) {
     });
   }
 
+  // A tester on consent version 2 who said Not now to the open's ask:
+  // where the question would be, testing is paused (review D1).
+  await step(["results-paused", "log-paused"], async () => {
+    testerMode.tester = true;
+    testerMode.consentVersion = 2;
+    testerMode.feedback = "ok";
+    if (want("results-paused")) {
+      const { ctx, page } = await context(theme, { hint: true, asked: 3 });
+      await results(page);
+      for (let i = 0; i < 3; i++) {
+        if (await page.getByText("Testing is paused.").count()) break;
+        const next = page.locator("[data-step-action]").first();
+        if (!(await next.count())) break;
+        await next.click();
+        await sleep(900);
+      }
+      await page.getByText("Testing is paused.").waitFor({ timeout: 8000 });
+      await shot(page, "results-paused", { settle: 600, fullPage: false });
+      await ctx.close();
+    }
+    if (want("log-paused")) {
+      const { ctx, page } = await context(theme, { hint: true, asked: 3 });
+      await page.goto(`${BASE}/rep/rep-3`);
+      const line = page.getByText("Testing is paused.");
+      await line.waitFor({ timeout: 20000 });
+      await sleep(1200);
+      await line.scrollIntoViewIfNeeded();
+      await shot(page, "log-paused", { fullPage: false, settle: 500 });
+      await ctx.close();
+    }
+    testerMode.consentVersion = 3;
+  });
+
   // The Log: a stored recording's page asks too, and an answer given
   // there reopens as it was left.
   await step(["log"], async () => {
@@ -221,9 +304,9 @@ async function shootTheme(theme) {
     testerMode.stored = {};
     const { ctx, page } = await context(theme);
     await page.goto(`${BASE}/rep/rep-3`);
-    const q = page.getByText("Did this score match how it felt?");
+    const q = page.getByText(/feel right\?/);
     await q.waitFor({ timeout: 20000 });
-    await page.getByRole("radio", { name: "Roughly", exact: true }).click();
+    await page.getByRole("radio", { name: "Too high", exact: true }).click();
     await page.getByLabel("What felt off?").fill("The pauses felt longer than that.");
     await page.getByRole("button", { name: "Save note" }).click();
     await sleep(600);
@@ -246,7 +329,7 @@ async function shootTheme(theme) {
       // Page coordinates: a full-page clip is measured from the document's top.
       const top = await section.evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
       const height = await section.evaluate((el) => el.getBoundingClientRect().height);
-      const clip = { x: 0, y: Math.max(0, top - 24), width: WIDTH, height: Math.min(844, height + 48) };
+      const clip = { x: 0, y: Math.max(0, top - 24), width: WIDTH, height: Math.min(2400, height + 48) };
       await page.screenshot({ path: `${OUT}privacy${WSUFFIX}-${TAG}-${theme}.png`, clip, fullPage: true });
       console.log(`shot  privacy${WSUFFIX}-${TAG}-${theme}`);
     } else {

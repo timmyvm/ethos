@@ -2407,6 +2407,12 @@ summary::-webkit-details-marker {
 .scoring-panel .scoring-cursor {
   border-color: var(--rec-bar-lit);
 }
+/* Read and done (a tester's question before the score): the bars rest
+   in the panel's lit amber, no sweep. */
+.scoring-still .scoring-bar {
+  animation: none;
+  background: var(--bar-lit);
+}
 /* His light: a soft spot on the panel behind him. */
 .scoring-spot {
   position: absolute;

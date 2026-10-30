@@ -15,22 +15,42 @@ import { CODE_COPY, CONSENT_VERSION } from "@/content/tester";
 import { currentSession, ensureSession, sessionToken, supabaseBrowser } from "./supabase-browser";
 import {
   isCurrentTester,
+  isMatchAnswer,
   withoutPending,
   withPending,
   type FeedbackRow,
+  type Felt,
   type MatchAnswer,
   type ScoreSnapshot,
   type TesterRow,
 } from "./tester";
+import { TESTER_HINT_KEY } from "./tester-signal";
 
-/** This device last saw the account as a tester: Settings' row paints right first. */
-const HINT_KEY = "ethos.tester";
+/**
+ * This device last saw the account as a tester: Settings' row paints
+ * right first, and the app's open reads the account's row only on a
+ * device that holds it (components/tester/TesterLayer.tsx), so nobody
+ * else's open asks anything.
+ */
+const HINT_KEY = TESTER_HINT_KEY;
+
+/** Said on the window when this device's testing may have changed. */
+export const TESTER_CHANGED = "ethos:tester";
+
+function announce(): void {
+  try {
+    window.dispatchEvent(new Event(TESTER_CHANGED));
+  } catch {}
+}
 
 function keepHint(on: boolean): void {
+  let was = false;
   try {
+    was = localStorage.getItem(HINT_KEY) === "1";
     if (on) localStorage.setItem(HINT_KEY, "1");
     else localStorage.removeItem(HINT_KEY);
   } catch {}
+  if (was !== on) announce();
 }
 
 /** Signing out: the next account on this device is someone else's. */
@@ -134,12 +154,17 @@ export function checkTesterCode(code: string): Promise<CodeAnswer> {
  * The agree tap: the code again and the consent version on screen, as
  * one request that the server answers with one write. A first visit
  * has no session yet, so this is where the anonymous one is made, the
- * same one the first recording would have made.
+ * same one the first recording would have made. A tester agreeing to a
+ * newer consent sends no code (null): the server finds their row.
  */
-export async function joinTesting(code: string): Promise<CodeAnswer> {
+export async function joinTesting(code: string | null): Promise<CodeAnswer> {
   const token = await ensureSession();
-  const answer = await post({ code, agree: CONSENT_VERSION }, token);
-  if (answer.ok) keepHint(true);
+  const answer = await post(code === null ? { agree: CONSENT_VERSION } : { code, agree: CONSENT_VERSION }, token);
+  if (answer.ok) {
+    keepHint(true);
+    // The consent changed even when the hint did not: collection starts.
+    announce();
+  }
   return answer;
 }
 
@@ -222,9 +247,12 @@ function writePending(map: Record<string, Pending>): void {
 }
 
 /**
- * One answer, upserted on (user_id, client_id), so a changed answer
- * replaces the last one. It waits on the phone until it lands. False on
- * any failure, which the screen says with its retry.
+ * One save, upserted on (user_id, client_id), so a changed answer
+ * replaces the last one. It waits on the phone, merged with anything
+ * still waiting about the same recording (how it felt, say), and the
+ * merged row is what goes: a save that lands lands everything said
+ * about that recording. False on any failure, which the screen says
+ * with its retry.
  */
 export async function saveMatch(row: FeedbackRow): Promise<boolean> {
   const db = supabaseBrowser();
@@ -233,12 +261,17 @@ export async function saveMatch(row: FeedbackRow): Promise<boolean> {
     const me = await currentSession();
     if (!me) return false;
     const owned: Pending = { ...row, user_id: me.userId };
-    writePending(withPending(readPending(), owned));
+    const waiting = readPending();
+    // A row left by another account on this phone is never merged in.
+    if (waiting[row.client_id] && waiting[row.client_id].user_id !== me.userId) delete waiting[row.client_id];
+    const now = withPending(waiting, owned);
+    writePending(now);
+    const sending = now[row.client_id];
     const { error } = await db
       .from("tester_feedback")
-      .upsert(owned, { onConflict: "user_id,client_id" });
+      .upsert(sending, { onConflict: "user_id,client_id" });
     if (error) return false;
-    writePending(withoutPending(readPending(), owned));
+    writePending(withoutPending(readPending(), sending));
     return true;
   } catch {
     return false;
@@ -256,11 +289,27 @@ export async function flushPendingMatches(): Promise<void> {
   }
 }
 
-/** An answer already given about this recording, as the match check reopens it. */
+/**
+ * What was already said about this recording, as the match check
+ * reopens it: the answer after the score (null for none, or for one of
+ * 0020's, which answered a different question), the note, the numbers
+ * it was given about, and how it felt.
+ */
 export interface GivenMatch {
-  answer: MatchAnswer;
+  answer: MatchAnswer | null;
   note: string | null;
   scores: ScoreSnapshot | null;
+  felt: Felt | null;
+}
+
+function given(row: { answer?: unknown; note?: string | null; scores?: ScoreSnapshot | null; felt?: Felt | null }): GivenMatch {
+  const answer = isMatchAnswer(row.answer) ? row.answer : null;
+  return {
+    answer,
+    note: answer ? (row.note ?? null) : null,
+    scores: row.scores && Object.keys(row.scores).length ? row.scores : null,
+    felt: row.felt ?? null,
+  };
 }
 
 /**
@@ -271,17 +320,34 @@ export interface GivenMatch {
 export async function fetchMatch(clientId: string): Promise<GivenMatch | null> {
   const waiting = readPending()[clientId];
   const me = await currentSession();
-  if (waiting && me && waiting.user_id === me.userId) {
-    return { answer: waiting.answer, note: waiting.note, scores: waiting.scores };
+  if (waiting && me && waiting.user_id === me.userId && waiting.answer) {
+    return given(waiting);
   }
   const db = supabaseBrowser();
   if (!db || !me) return null;
   const { data, error } = await db
     .from("tester_feedback")
-    .select("answer, note, scores")
+    .select("answer, note, scores, felt")
     .eq("user_id", me.userId)
     .eq("client_id", clientId)
     .maybeSingle();
   if (error) throw error;
-  return (data as GivenMatch | null) ?? null;
+  return data ? given(data as Parameters<typeof given>[0]) : null;
+}
+
+/** The consent version this device last asked a tester about, once (lib/tester.ts asksAgain). */
+const ASKED_KEY = "ethos.tester.asked";
+
+export function readAsked(): number {
+  try {
+    return Number(localStorage.getItem(ASKED_KEY)) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function markAsked(version: number = CONSENT_VERSION): void {
+  try {
+    localStorage.setItem(ASKED_KEY, String(version));
+  } catch {}
 }

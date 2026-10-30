@@ -25,6 +25,7 @@ import {
   saveRep,
   writeMeterState,
 } from "@/lib/db";
+import { neutralAudioName } from "@/lib/audio-name";
 import { localDate, meter } from "@/lib/metering";
 import {
   clientIp,
@@ -109,8 +110,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const filename =
-    audio instanceof File && audio.name ? audio.name : "rep.webm";
+  // "rep" and the extension, never an upload's own name (review P3).
+  const filename = neutralAudioName(audio instanceof File ? audio.name : null);
 
   // Anonymous-first: a valid token attributes the rep; absence never
   // blocks. A token that was SENT but does not resolve is different: the

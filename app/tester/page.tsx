@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { DemosArt } from "@/components/DemosArt";
 import { SpeechBubble } from "@/components/SpeechBubble";
@@ -9,6 +9,7 @@ import { FooterShelf } from "@/components/ui/FooterShelf";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { CODE_COPY, CONSENT, JOINED_COPY } from "@/content/tester";
 import {
+  askedFrom,
   CODE_LENGTH,
   codeDigits,
   codeReady,
@@ -33,7 +34,10 @@ import { ACTION_CLASS, DISABLED_CLASS } from "@/lib/ui";
  *
  * An account that is already a tester (Settings' "Testing Ethos" row)
  * opens on what it agreed to, since when, and its tester number. One
- * that agreed to an older consent is asked again, from the code.
+ * that agreed to an older consent opens on the new one, with no code to
+ * type (the server finds their row): from Settings, or once on their
+ * next open (`from=open`, components/tester/TesterLayer.tsx), which
+ * goes back to the screen it opened over.
  */
 export default function TesterPage() {
   return (
@@ -47,12 +51,21 @@ type Phase = "reading" | "code" | "consent" | "joined";
 
 function Tester() {
   const params = useSearchParams();
-  const from: "settings" | "welcome" = params.get("from") === "settings" ? "settings" : "welcome";
+  const router = useRouter();
+  const fromParam = params.get("from");
+  const from: "settings" | "welcome" | "open" =
+    fromParam === "settings" ? "settings" : fromParam === "open" ? "open" : "welcome";
+  /* Where back goes, after its slash: the door this came through, or,
+     for the ask on the way in, the screen it opened over. */
+  const backPath = (from === "open" ? askedFrom(params.get("back")) : `/${from}`).slice(1);
+  const backHref = `/${backPath}`;
   const backLabel = from === "settings" ? "Settings" : "Back";
   const onward = from === "settings" ? JOINED_COPY.toSettings : JOINED_COPY.toWelcome;
 
   const [phase, setPhase] = useState<Phase>("reading");
   const [tester, setTester] = useState<TesterRow | null>(null);
+  /** A tester on an older consent, reading the new one: no code asked. */
+  const [renewing, setRenewing] = useState(false);
   /** Joined on this visit: the moment gets Demos; a return visit does not. */
   const [justJoined, setJustJoined] = useState(false);
   const [code, setCode] = useState("");
@@ -64,7 +77,11 @@ function Tester() {
     fetchTester()
       .then((t) => {
         setTester(t);
-        setPhase(isCurrentTester(t) ? "joined" : "code");
+        if (isCurrentTester(t)) setPhase("joined");
+        else if (t) {
+          setRenewing(true);
+          setPhase("consent");
+        } else setPhase("code");
       })
       .catch(() => setPhase("code"));
   }, []);
@@ -103,18 +120,27 @@ function Tester() {
     if (busy) return;
     setBusy(true);
     setError(null);
-    const answer = await joinTesting(code);
+    const answer = await joinTesting(renewing ? null : code);
     setBusy(false);
     if (answer.ok && answer.tester) {
       setTester(answer.tester);
-      setJustJoined(true);
+      if (renewing && from === "open") {
+        // Asked on the way in: carry on where they were.
+        router.replace(backHref);
+        return;
+      }
+      // A first agree is the moment; agreeing again is just the facts.
+      setJustJoined(!renewing);
+      setRenewing(false);
       setPhase("joined");
       window.scrollTo({ top: 0 });
     } else if (!answer.ok) {
-      // A wrong code here means the screen sat open while it changed:
-      // back to the code, which says so.
+      // A wrong code here means the screen sat open while it changed, or
+      // the row a renewing tester had is gone: back to the code, which
+      // says so.
       if (answer.status === 403) {
         setCode("");
+        setRenewing(false);
         setPhase("code");
       }
       setError(answer.error);
@@ -130,8 +156,8 @@ function Tester() {
       <Joined
         tester={tester}
         moment={justJoined}
-        back={{ href: `/${from}`, label: backLabel }}
-        onward={{ href: `/${from}`, label: onward }}
+        back={{ href: `/${backPath}`, label: backLabel }}
+        onward={{ href: backHref, label: onward }}
       />
     );
   }
@@ -145,8 +171,8 @@ function Tester() {
       <main className="flex min-h-dvh flex-col px-5 pt-7">
         <ScreenHeader
           title={CONSENT.title}
-          subtitle={CONSENT.line}
-          back={{ href: `/${from}`, label: backLabel }}
+          subtitle={renewing ? CONSENT.renewLine : CONSENT.line}
+          back={{ href: `/${backPath}`, label: backLabel }}
         />
         <div key="consent" className="arrive-x mt-5 pb-8">
           <ConsentList />
@@ -168,7 +194,7 @@ function Tester() {
           {/* The decline leaves with nothing stored: the code was only
               checked, and no session was made for it. */}
           <div className="mt-1 flex justify-center">
-            <Link href={`/${from}`} className="text-link inline-flex min-h-11 items-center px-3">
+            <Link href={backHref} className="text-link inline-flex min-h-11 items-center px-3">
               {CONSENT.decline}
             </Link>
           </div>
@@ -182,7 +208,7 @@ function Tester() {
       <ScreenHeader
         title={CODE_COPY.title}
         subtitle={CODE_COPY.line}
-        back={{ href: `/${from}`, label: backLabel }}
+        back={{ href: `/${backPath}`, label: backLabel }}
       />
       <form
         className="mt-7"
@@ -295,10 +321,26 @@ function CodeField({
   );
 }
 
-/** What testing keeps, what for, who sees it, how it goes, and the parent. */
+/**
+ * What testing keeps (every item named, consent version 3), then what
+ * for, who sees it, how long, how it goes, and the parent: one list of
+ * leads, the first holding the named list as lines of its own.
+ */
 function ConsentList() {
   return (
     <dl className="divide-y divide-hairline border-y border-hairline">
+      <div className="py-3.5">
+        <dt className="font-display text-row text-ink">{CONSENT.keptLead}</dt>
+        <dd className="mt-1.5">
+          <ul className="list-disc space-y-2 pl-5 marker:text-stone-300">
+            {CONSENT.kept.map((k) => (
+              <li key={k.lead} className="text-body text-pretty text-stone-600">
+                <span className="font-semibold text-ink">{k.lead}.</span> {k.text}
+              </li>
+            ))}
+          </ul>
+        </dd>
+      </div>
       {CONSENT.items.map((item) => (
         <div key={item.lead} className="py-3.5">
           <dt className="font-display text-row text-ink">{item.lead}</dt>

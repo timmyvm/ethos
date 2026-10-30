@@ -41,7 +41,12 @@ function Lead({ children }: { children: React.ReactNode }) {
  *  - camera stays on-device: lib/pose-client.ts + app/rep/page.tsx
  *    (five numbers and timestamped notes, never frames)
  *  - what's stored: lib/db.ts saveRep + supabase/migrations/*
- *  - no analytics: nothing in package.json or app/ loads any
+ *  - an upload goes as it is: app/upload/page.tsx (audio or video
+ *    files) to app/api/analyze, stored by lib/db.ts saveRep under
+ *    "rep" and its extension (lib/audio-name.ts), never its own name
+ *  - no advertising trackers or third-party cookies; Vercel Speed
+ *    Insights (app/layout.tsx, @vercel/speed-insights) times page loads
+ *    without cookies
  *  - payments: lib/billing.ts (Stripe Checkout holds the card; the
  *    customer is made with the email and metadata.user_id only), the
  *    billing row in supabase/migrations/0012_price_ladder.sql (ids,
@@ -89,7 +94,8 @@ export default function Privacy() {
         Anthropic (Claude) turns the transcript and your numbers into written
         feedback. Both run under API terms that keep your audio and
         transcripts out of model training. All feedback in Ethos is
-        AI-generated.
+        AI-generated. A file you upload goes the same way, as it is, video
+        included.
       </p>
 
       <h2 className={HEAD}>What we store</h2>
@@ -142,16 +148,20 @@ export default function Privacy() {
 
       <h2 className={HEAD}>Cookies and analytics</h2>
       <p className={READ}>
-        Ethos runs no analytics scripts, advertising trackers or third-party
+        Ethos runs no advertising trackers and sets no third-party cookies.
+        Vercel Speed Insights measures how fast each page loads, without
         cookies. Your sign-in session is kept in your browser&apos;s own
-        storage by Supabase, our database and login provider.
+        storage by Supabase, our database and login provider. Testers also
+        send their usage, device and error details to our own server, as
+        the Testers section says.
       </p>
 
       <h2 className={HEAD}>Who touches the data</h2>
       <p className={READ}>
         Five processors, each doing one job: Supabase (accounts, database and
         audio storage), OpenAI (transcription), Anthropic (feedback), Stripe
-        (payments), and Vercel (hosting, with standard server logs). We never sell your data
+        (payments), and Vercel (hosting, with standard server logs and page
+        load timings). We never sell your data
         and never share it beyond these services.
       </p>
 
@@ -163,21 +173,66 @@ export default function Privacy() {
         progress can&apos;t be traced back to anyone, including you.
       </p>
 
-      {/* Tester mode: migration 0020 (testers, tester_feedback, the
-          tester_admin report only the service role reads),
-          app/api/tester, content/tester.ts CONSENT, docs/testers.md. */}
+      {/* Tester mode: migrations 0020 to 0022 (testers, tester_feedback,
+          tester_events, the tester_admin report only the service role
+          reads), app/api/tester and app/api/tester/collect,
+          lib/tester-collect.ts, content/tester.ts CONSENT (version 3),
+          docs/testers.md. Says what the consent says. */}
       <section id="testers">
         <h2 className={HEAD}>Testers</h2>
         <p className={READ}>
-          If you joined with a tester code, Timothy, who makes Ethos, reads
-          your recordings, transcripts and scores, your answer after each
-          recording about whether the score matched how it felt, and any
-          name, age or email you gave. He is the only person who reads them,
-          and only to make the scoring accurate. Like every recording, yours
-          go to the processors above that score and store them (Supabase,
-          OpenAI, Anthropic and Vercel), and to no one else. Ask him and
-          it&apos;s all deleted, any time; deleting your account in Settings
-          deletes it too. If you&apos;re under 18, a parent says yes first.
+          If you joined with a tester code and agreed to the list on the
+          consent screen, Ethos keeps all of this while you test:
+        </p>
+        <ul className="mt-3 list-disc space-y-2 pl-5 text-read text-stone-800 marker:text-stone-300">
+          <li>
+            <Lead>Your recordings.</Lead> Every audio recording, every file
+            you upload (video included), and the camera&apos;s numbers when
+            it&apos;s on. The live camera&apos;s video stays on your phone.
+          </li>
+          <li>
+            <Lead>Transcripts.</Lead> Everything you say, word for word, with
+            timestamps.
+          </li>
+          <li>
+            <Lead>Your scores.</Lead> Every score, star, streak and number
+            Ethos gives you.
+          </li>
+          <li>
+            <Lead>Your answers.</Lead> Everything you answer in the
+            introduction (your name, age, goal and the hour you picked), your
+            email if you make an account, and every answer and note after a
+            recording.
+          </li>
+          <li>
+            <Lead>How you use it.</Lead> Which screens you open, what you tap,
+            when, and for how long. A tap is kept by the button&apos;s name,
+            never by anything you type.
+          </li>
+          <li>
+            <Lead>Your device.</Lead> Phone model, operating system, browser,
+            screen size, language, time zone, and whether Ethos is on your
+            home screen.
+          </li>
+          <li>
+            <Lead>Your connection.</Lead> IP address and basic network info.
+          </li>
+          <li>
+            <Lead>Problems.</Lead> Errors and crashes, and what was on screen
+            when they happened.
+          </li>
+        </ul>
+        <p className={READ}>
+          It&apos;s for making the scores accurate and fixing what breaks.
+          Timothy, who makes Ethos, is the only person who reads it. Nothing is
+          sold, and it goes only to the services that run the app, the
+          processors above (Supabase, OpenAI, Anthropic and Vercel). It&apos;s
+          kept up to 12 months after the test ends, then deleted; if you keep
+          using Ethos, your recordings and scores stay in your account, as
+          everyone&apos;s do. Ask him and
+          it&apos;s all deleted within 7 days; deleting your account in
+          Settings deletes it too. If you&apos;re under 18, a parent or
+          guardian says yes first.
         </p>
       </section>
 

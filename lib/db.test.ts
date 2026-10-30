@@ -57,6 +57,7 @@ process.env.NEXT_PUBLIC_SUPABASE_URL = "http://supabase.test";
 process.env.SUPABASE_SERVICE_ROLE_KEY = "service";
 
 const { saveRep, resolveAuthHeader } = await import("./db");
+const { neutralAudioName } = await import("./audio-name");
 
 const metrics = {
   durationS: 60,
@@ -103,6 +104,30 @@ describe("saveRep", () => {
     await saveRep(params());
     const rep = inserts.find((i) => i.table === "reps")!.row;
     expect("created_at" in rep).toBe(false);
+  });
+});
+
+/*
+ * Review P3: an upload kept its camera-roll name in the stored path
+ * ("reps/<time>-John_Smith_interview.mp4") and sent it to the
+ * transcription service. A name can be a person's; the extension is all
+ * either needs.
+ */
+describe("a stored recording's name", () => {
+  it("is rep and its extension, never the name it was picked with", () => {
+    expect(neutralAudioName("John Smith interview.MP4")).toBe("rep.mp4");
+    expect(neutralAudioName("rep.webm")).toBe("rep.webm");
+    expect(neutralAudioName("voice memo")).toBe("rep.webm");
+    expect(neutralAudioName("../../evil.m4a")).toBe("rep.m4a");
+    expect(neutralAudioName("x.reallylongext")).toBe("rep.webm");
+    expect(neutralAudioName(null)).toBe("rep.webm");
+  });
+
+  it("is stored under that name, a time and a random part", async () => {
+    await saveRep(params({ filename: "Jane Doe pitch.mp4" }));
+    const rep = inserts.find((i) => i.table === "reps")!.row;
+    expect(rep.audio_path).toMatch(/^reps\/\d+-[0-9a-f]{8}-rep\.mp4$/);
+    expect(JSON.stringify(rep)).not.toMatch(/Jane|Doe|pitch/);
   });
 });
 

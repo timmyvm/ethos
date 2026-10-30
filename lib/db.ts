@@ -5,8 +5,10 @@
  * #15): reps attribute to whatever session exists, signup comes later.
  */
 
+import { randomUUID } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { AccuracyResult } from "./accuracy";
+import { neutralAudioName } from "./audio-name";
 import type { CoachOutput } from "./coach";
 import { isUnlocked } from "./entitlement";
 import type { Tier1Scores, Tier2Anchors } from "./index-score";
@@ -252,7 +254,9 @@ export async function saveRep(params: {
     params;
 
   let audioPath: string | null = null;
-  const path = `reps/${Date.now()}-${filename.replace(/[^\w.-]/g, "_")}`;
+  // Never the name the file was picked with (review P3); a random part
+  // so two recordings in one millisecond never share a path.
+  const path = `reps/${Date.now()}-${randomUUID().slice(0, 8)}-${neutralAudioName(filename)}`;
   const upload = await db.storage.from("audio").upload(path, audio, {
     contentType: audio.type || "audio/webm",
   });

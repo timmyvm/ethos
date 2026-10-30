@@ -32,9 +32,13 @@ import { splitPrompt } from "@/lib/tip-labels";
 import { TopicCard } from "@/components/rep/TopicCard";
 import { StreakCelebration } from "@/components/StreakCelebration";
 import { TraitChip } from "@/components/TraitChip";
+import { FeltCheck, FeltStage } from "@/components/tester/FeltCheck";
 import { MatchCheck } from "@/components/tester/MatchCheck";
-import { scoreSnapshot, showsMatchCheck, type TesterRow } from "@/lib/tester";
-import { useTester } from "@/lib/tester-client";
+import { TesterPaused } from "@/components/tester/TesterPaused";
+import { FELT_COPY } from "@/content/tester";
+import { feltRow, pausedTester, scoreSnapshot, showsMatchCheck, type Felt, type TesterRow } from "@/lib/tester";
+import { saveMatch, useTester } from "@/lib/tester-client";
+import { testerRecord } from "@/lib/tester-signal";
 import { readOnboarding } from "@/lib/answers";
 import { buildPortfolio } from "@/lib/portfolio";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -487,6 +491,8 @@ function RepScreen() {
   }, []);
 
   const recRef = useRef<Take | null>(null);
+  /** When the take on now started: a tester's record_stop says how long it ran. */
+  const takeStartedAt = useRef(0);
   const videoElRef = useRef<HTMLVideoElement | null>(null);
   /** A start is opening the device: further taps wait for it. */
   const startingRef = useRef(false);
@@ -741,6 +747,7 @@ function RepScreen() {
     // When it was spoken: the outbox sends this with the take
     // (`recordedAt`), so a late upload still lands on this day.
     const spokenAt = Date.now();
+    testerRecord("record_stop", { seconds: Math.round((spokenAt - takeStartedAt.current) / 100) / 10 });
     buzz([20, 40, 20]);
     setPhase("analyzing");
     setInterruption(null);
@@ -1033,6 +1040,9 @@ function RepScreen() {
       // changes, so the layout effect below can glide it to its new place.
       flipFrom.current = topicRef.current?.getBoundingClientRect().top ?? null;
       setPhase("recording");
+      // A tester on consent version 3 (a no-op for everyone else).
+      takeStartedAt.current = Date.now();
+      testerRecord("record_start", { video: captureModeRef.current === "voice_video" });
     } catch (e) {
       // Refused for a recording the screen has already left.
       if (lessonKeyRef.current !== key) return;
@@ -1123,6 +1133,7 @@ function RepScreen() {
         r.videoRecorder?.stop();
       } catch {}
       teardown();
+      testerRecord("record_stop", { discarded: true });
     }
     setInterruption(null);
     setRepCount((n) => baselineRef.current?.count ?? n);
@@ -1276,6 +1287,7 @@ function RepScreen() {
           presence={presence}
           tester={tester}
           resultKey={resultKey}
+          wave={scoringWave}
           clipUrl={clipUrl}
           audioUrl={audioUrl}
           premium={premium}
@@ -1792,6 +1804,7 @@ function Results({
   presence,
   tester,
   resultKey,
+  wave,
   clipUrl,
   audioUrl,
   premium,
@@ -1815,6 +1828,8 @@ function Results({
   tester: TesterRow | null | undefined;
   /** The outbox key this recording travelled under. */
   resultKey: string | null;
+  /** The take's loudness envelope, as the scoring wait drew it (the felt step's stage). */
+  wave: number[];
   clipUrl: string | null;
   audioUrl: string | null;
   premium: boolean;
@@ -1851,6 +1866,14 @@ function Results({
   const [snapshot] = useState(() =>
     scoreSnapshot(result, presence?.metrics.presenceScore ?? null)
   );
+  /*
+   * How it felt, asked before the score shows (0022): one tap, or Skip.
+   * Only when the tester is already known as the results land, so it is
+   * never asked once a number has been on screen. The answer is saved
+   * at once and waits on the phone if it cannot land; the answer after
+   * the score carries it then (lib/tester.ts withPending).
+   */
+  const [askingFelt, setAskingFelt] = useState(() => match);
   const last = step === STEPS.length - 1;
   // One answer to "what next": the path's (DECISIONS #220). Home's
   // floor and the road read nextLesson, so the debrief does too. Before
@@ -1965,6 +1988,21 @@ function Results({
   useEffect(() => () => {
     if (leaveTimer.current) clearTimeout(leaveTimer.current);
   }, []);
+  const feltDone = (felt: Felt | null) => {
+    if (leaving) return;
+    if (felt && resultKey) {
+      void saveMatch(feltRow({ clientId: resultKey, repId: result.repId, felt }));
+    }
+    if (prefersReducedMotion()) {
+      setAskingFelt(false);
+      return;
+    }
+    setLeaving(true);
+    leaveTimer.current = setTimeout(() => {
+      setLeaving(false);
+      setAskingFelt(false);
+    }, 200);
+  };
   const advance = () => {
     if (leaving || last) return;
     if (prefersReducedMotion()) {
@@ -2020,7 +2058,7 @@ function Results({
         <h1 className="font-display min-w-0 text-body font-bold text-ink">
           {practised}
         </h1>
-        {coined && step === 0 && (
+        {coined && step === 0 && !askingFelt && (
           <span className="flex shrink-0 items-center gap-1.5 text-link text-sage-700">
             <Coin size={18} /> +1
           </span>
@@ -2038,11 +2076,13 @@ function Results({
         aria-valuemax={STEPS.length}
         aria-valuenow={step + 1}
         aria-valuetext={`${STEPS[step].label}, ${step + 1} of ${STEPS.length}`}
+        aria-hidden={askingFelt || undefined}
         className="mt-4 h-1 bg-sand"
       >
+        {/* Empty while a tester says how it felt: nothing is seen yet. */}
         <div
           className="h-full bg-ink transition-[width] duration-(--spring-base-duration) ease-(--spring-base) [:root[data-motion=reduce]_&]:transition-none"
-          style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
+          style={{ width: askingFelt ? "0%" : `${((step + 1) / STEPS.length) * 100}%` }}
         />
       </div>
 
@@ -2064,6 +2104,22 @@ function Results({
           leaving ? "animate-[fade-out_var(--duration-base)_var(--ease-out)_forwards]" : ""
         }`}
       >
+        {askingFelt ? (
+          /* The take on a stage that takes the free height, the question
+             and its three answers resting under it in the thumb's reach
+             (review D4: centred, it left 215px and 260px of ground). */
+          <div key="felt" className="arrive flex flex-1 flex-col justify-center gap-8 pb-8 pt-5">
+            {/* A short phone has no free height to give: the question
+                alone, as before (the stage's floor would push the
+                answers under the shelf at 320x568). */}
+            <FeltStage
+              levels={wave}
+              seconds={result.metrics.durationS}
+              className="max-h-[40dvh] flex-1 [@media(max-height:639px)]:hidden"
+            />
+            <FeltCheck onAnswer={feltDone} />
+          </div>
+        ) : (
         <div
           key={step}
           className={`arrive-x [:root[data-motion=reduce]_&]:[animation-duration:var(--duration-base)]! ${
@@ -2084,6 +2140,11 @@ function Results({
               scores={snapshot}
               className="mt-6 mb-7 border-b border-hairline pb-4"
             />
+          )}
+          {/* A tester on an older consent: where the question would be,
+              that testing is paused and the way back (review D1). */}
+          {last && pausedTester(tester) && (
+            <TesterPaused back="/" className="mt-6 mb-7 border-b border-hairline pb-4" />
           )}
 
           <div>
@@ -2209,6 +2270,7 @@ function Results({
             />
           )}
         </div>
+        )}
       </div>
 
       {/*
@@ -2219,7 +2281,19 @@ function Results({
        * means most of them are never seen.
        */}
       <FooterShelf>
-        {last ? (
+        {askingFelt ? (
+          /* Skippable: the score is one quiet tap away, never a terracotta
+             one (the question is the step, and it is grey). */
+          <div className="flex min-h-12 items-center justify-center">
+            <button
+              type="button"
+              onClick={() => feltDone(null)}
+              className="text-link press inline-flex min-h-11 items-center px-4"
+            >
+              {FELT_COPY.skip}
+            </button>
+          </div>
+        ) : last ? (
           <>
             {/* Buttons, not Links: the exits go through exit(), which
                 may route via the save-progress wall first (#134). A game

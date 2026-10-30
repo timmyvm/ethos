@@ -359,7 +359,7 @@ export default function ShopPage() {
                   <div className="mt-3">
                     <div aria-hidden className="h-1.5 overflow-hidden bg-sand">
                       <div
-                        className="fill h-full bg-sage-500"
+                        className="fill h-full bg-sage-600"
                         style={{
                           width: `${Math.min(100, (coins / item.price) * 100)}%`,
                         }}

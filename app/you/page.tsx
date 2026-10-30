@@ -698,7 +698,7 @@ export default function YouPage() {
                     <span className="h-1.5 flex-1 overflow-hidden bg-sand">
                       {t.level > 0 && (
                         <span
-                          className="fill block h-full bg-sage-500"
+                          className="fill block h-full bg-sage-600"
                           style={{ width: `${(t.level / top) * 100}%` }}
                         />
                       )}
@@ -1098,7 +1098,7 @@ function Stat({
           <span className="relative inline-block">
             {value === null ? "–" : <CountUp value={value} durationMs={DURATION.max} />}
             {mark && value !== null && value > 0 && (
-              <span aria-hidden className="you-gold absolute left-full top-1/2 ml-1 -translate-y-1/2">
+              <span aria-hidden className="you-gold earned-lit absolute left-full top-1/2 ml-1 -translate-y-1/2">
                 <IconFlame size={18} />
               </span>
             )}

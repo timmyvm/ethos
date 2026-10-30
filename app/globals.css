@@ -2895,17 +2895,41 @@ summary::-webkit-details-marker {
  * ============================================================================ */
 :root {
   /* The earned mark's gold: a star, a lit flame, a badge's glyph, on
-     Today and You alike (one token since #311). 3.2:1 on sage-100, the
-     non-text floor for a mark. Earned, never a tap and never paid. */
-  --earned-gold: #ad7c00;
+     Today, the results, the Log and You alike. One gold since D03, the
+     mascot's amber, so a star is one colour everywhere (it was gold on
+     Today and olive on the results and the Log). In light the glyph
+     takes a 1px rim, #b88a00, which holds 3.15:1 on white and 2.7:1 on
+     the sage-100 chip where the amber alone is 2.1 and 1.9; in dark the
+     amber needs none (8.7:1 on #121212). Earned glyphs are gold;
+     earned fills, bars and numbers are sage. Never a tap, never paid. */
+  --earned-gold: var(--color-amber);
+  --earned-rim: #b88a00;
 }
 :root[data-theme="dark"] {
-  --earned-gold: #f0c64a;
+  --earned-rim: var(--color-amber);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --earned-gold: #f0c64a;
+    --earned-rim: var(--color-amber);
   }
+}
+/* A lit earned glyph. A filled glyph (the star) is the gold with its
+   1px rim; a line glyph (the flame) draws its line in the rim and fills
+   its closed core, the last path, in the gold, so it reads as the same
+   gold as the star beside it. */
+.earned-lit {
+  color: var(--earned-gold);
+}
+.earned-lit path[fill="currentColor"] {
+  stroke: var(--earned-rim);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+.earned-lit svg[fill="none"] > path:not([fill]) {
+  stroke: var(--earned-rim);
+}
+.earned-lit svg[fill="none"] > path:not([fill]):last-child {
+  fill: var(--earned-gold);
 }
 /* The header's stars and streak: earned chips, never a tap. Thumb size
    since M17 (Timothy #176, "make them more noticeable"; the sage-100
@@ -2947,6 +2971,18 @@ summary::-webkit-details-marker {
    replaces the words, which the chip keeps as sr-only text. */
 .today-earned[data-open="true"] .today-earned-mark {
   color: var(--color-stone-400);
+}
+/* An unlit filled glyph is one flat grey: its own stroke over the
+   translucent stone fill drew a darker ring. */
+.today-earned[data-open="true"] .today-earned-mark path[fill="currentColor"] {
+  stroke: none;
+}
+/* A zero (D25): the whole chip unlit at the same footprint, the surface
+   step in place of the wash and the number in stone, so day zero reads
+   as an unlit 0 rather than a gold star beside a zero. */
+.today-earned[data-empty="true"] {
+  background: var(--color-surface);
+  color: var(--color-stone-600);
 }
 /* The ochre's own deeper arc went with D05: Restarts' tone is #b06f00,
    3.23:1 on sand, so its ring and bar are the tone like the other four
@@ -3043,7 +3079,6 @@ summary::-webkit-details-marker {
  * ============================================================================ */
 .you-gold {
   display: inline-flex;
-  color: var(--earned-gold);
 }
 /* A freeze: the sky's tile with its ink glyph (3.7:1 light, 6.8:1 dark,
    over the 3:1 a glyph needs), light from the top like Practice's tiles.

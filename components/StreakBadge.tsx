@@ -25,7 +25,9 @@ export function StreakBadge({ streak }: { streak: StreakState }) {
   /*
    * Day zero shows too, unlit (26 Sep, Timothy: the corner read as
    * empty). A zero with an unlit flame is a number waiting to move, and
-   * the headline no longer says "day one" in words.
+   * the headline no longer says "day one" in words. Since D25 the whole
+   * chip is unlit at zero, the wash too; a running streak on an open day
+   * keeps its wash and greys only the flame.
    */
   const open = streak.current === 0 || streak.atRisk;
 
@@ -35,6 +37,7 @@ export function StreakBadge({ streak }: { streak: StreakState }) {
     <HeaderCount
       variant="chip"
       unlit={open}
+      empty={streak.current === 0}
       label={`Streak ${streak.current}${open ? ", today's open" : ""}`}
       glyph={<IconFlame size={18} />}
       value={<CountUp value={streak.current} durationMs={DURATION.max} />}

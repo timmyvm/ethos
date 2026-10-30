@@ -84,10 +84,10 @@ select name, email, days_spoken
 Everything, account included: the tester can do it themselves (Settings, Delete my account). For one who asks you instead, with the user id from `tester_admin.testers`:
 
 ```
-NEXT_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co \
-SUPABASE_SERVICE_ROLE_KEY=<service role key> \
-  node scripts/tester-delete.mjs <user id>         # dry run: prints what goes
-  node scripts/tester-delete.mjs <user id> --yes   # does it
+export NEXT_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co
+export SUPABASE_SERVICE_ROLE_KEY=<service role key>
+node scripts/tester-delete.mjs <user id>         # dry run: prints what goes
+node scripts/tester-delete.mjs <user id> --yes   # does it
 ```
 
 It removes their audio files, then the account, and the account's removal takes every row they own: recordings, transcripts, scores, progress, the tester row and the match answers. It refuses an account with a plan on it (that one deletes itself from Settings, which cancels the plan at Stripe first).

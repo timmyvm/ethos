@@ -25,9 +25,11 @@
  *   3. Rate-limit rows, which key on a subject string, not a foreign key:
  *      `u:<id>` and every route's `<route>:u:<id>`.
  *   4. The auth user, last. Every table references auth.users with
- *      on delete cascade (migrations 0001 to 0004, and billing in 0012),
- *      so this one call removes reps, lexicon, streaks, freezes,
- *      profiles, XP, coins and the billing row atomically.
+ *      on delete cascade (migrations 0001 to 0004, billing in 0012, and
+ *      the testers and tester_feedback rows in 0020), so this one call
+ *      removes reps, lexicon, streaks, freezes, profiles, XP, coins, the
+ *      billing row, and a tester's consent and match answers atomically
+ *      (lib/tester-route.test.ts, scripts/check-testers-sql.mjs).
  *
  * Works identically for anonymous-first accounts: they are real auth
  * users, and their token authorises deleting exactly themselves.

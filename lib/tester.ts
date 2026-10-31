@@ -67,6 +67,8 @@ export function cleanNote(raw: string | null | undefined): string | null {
 export interface TesterRow {
   consent_version: number;
   consented_at: string;
+  /** When the account joined (0020): the test's days count from here. A carried consent keeps the first. */
+  created_at?: string;
 }
 
 /**

@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { CODE_COPY, CONSENT, CONSENT_VERSION, DOOR_COPY, FELT_COPY, JOINED_COPY, MATCH_COPY, PAUSED_COPY } from "@/content/tester";
+import { CODE_COPY, CONSENT, CONSENT_VERSION, DOOR_COPY, FELT_COPY, JOINED_COPY, MATCH_COPY, PAUSED_COPY, TEST_COPY } from "@/content/tester";
 import {
   askedFrom,
   asksForNote,
@@ -57,17 +57,23 @@ describe("the code entry", () => {
   });
 });
 
-describe("the tester number's Copy", () => {
+describe("the tester number's Send", () => {
   /* A live region inside a button takes the button's name with it:
-     Chrome named it "" and VoiceOver read "button". The word stays the
-     button's own text, and "Copied" is said by a status beside it. */
-  it("keeps its name, and says Copied from outside the button", () => {
-    const page = readFileSync("app/tester/page.tsx", "utf8");
-    const buttons = page.match(/<button\b[\s\S]*?<\/button>/g) ?? [];
-    const copy = buttons.find((b) => b.includes("JOINED_COPY.copy"));
-    expect(copy).toBeDefined();
-    expect(copy).not.toMatch(/role="status"|aria-live/);
-    expect(page).toMatch(/role="status"[^>]*className="sr-only"[^>]*>\s*\{copied \? JOINED_COPY\.copied : ""\}/);
+     Chrome named it "" and VoiceOver read "button". The key's name is
+     its own (the word it shows, then whose number to whom), and "Sent"
+     or "Copied" is said by a status beside it (#402). */
+  it("keeps its name, and says Sent or Copied from outside the key", () => {
+    const send = readFileSync("components/tester/SendNumber.tsx", "utf8");
+    const buttons = send.match(/<button\b[\s\S]*?<\/button>/g) ?? [];
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0]).not.toMatch(/role="status"|aria-live/);
+    expect(buttons[0]).toMatch(/aria-label=\{canShare \? TEST_COPY\.sendLabel : TEST_COPY\.copyLabel\}/);
+    expect(send).toMatch(/<\/button>\s*<span role="status" className="sr-only">/);
+  });
+
+  it("is what the tester page and Today's tile give the number", () => {
+    expect(readFileSync("app/tester/page.tsx", "utf8")).toMatch(/<SendNumber number=\{number\}/);
+    expect(readFileSync("components/tester/TestTile.tsx", "utf8")).toMatch(/<SendNumber number=\{number\} surface="tile"/);
   });
 });
 
@@ -513,7 +519,7 @@ describe("tester copy", () => {
           : o && typeof o === "object"
             ? Object.values(o).flatMap(all)
             : [];
-  const strings = all([CONSENT, CODE_COPY, JOINED_COPY, FELT_COPY, MATCH_COPY, PAUSED_COPY, DOOR_COPY]);
+  const strings = all([CONSENT, CODE_COPY, JOINED_COPY, FELT_COPY, MATCH_COPY, PAUSED_COPY, DOOR_COPY, TEST_COPY]);
 
   it("has no em dash", () => {
     expect(strings.filter((s) => s.includes("—"))).toEqual([]);

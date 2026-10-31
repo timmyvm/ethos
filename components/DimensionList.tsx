@@ -76,8 +76,10 @@ export function DimensionList({
       score: tier1.fillers,
       weight: 100,
       // The score runs on every filler a minute, so the rate wears its
-      // one label (E32): the row's own name is the trait's.
-      detail: `${ALL_FILLERS_PER_MIN}: ${metrics.fillersPerMin} (${metrics.fillerCount} in all). None scores 100; 8 scores 0.${
+      // one label (E32): the row's own name is the trait's. Its scale
+      // keeps "a minute" on the 8, in the Restarts row's grammar: a bare
+      // "8 scores 0" read as 8 fillers.
+      detail: `${ALL_FILLERS_PER_MIN}: ${metrics.fillersPerMin} (${metrics.fillerCount} in all). None scores 100; 8 a minute scores 0.${
         metrics.topFiller ? ` Most of them were “${metrics.topFiller}”.` : ""
       }`,
       improve:

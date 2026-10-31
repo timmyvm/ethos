@@ -616,7 +616,9 @@ export default function HistoryPage() {
           >
             <span className="text-caption text-stone-500">
               {hidden} older recording{hidden === 1 ? "" : "s"} held since{" "}
-              {since}.
+              {/* The date holds together: at 320 "5" ended a line over a
+                  lone "Oct.". */}
+              <span className="whitespace-nowrap">{since}.</span>
             </span>
             {/* Terracotta said "tap" on a row that was already a
                 button, so the accent was carrying no information the
@@ -745,7 +747,7 @@ function MetricRow({
         />
         {/* Two lines at most, never an ellipsis: at 320px "Fillers /
             min" beside its chevron cut to "Fillers / ...". The label breaks
-            only just before its unit's slash (unitLabel), and the chevron
+            only just before its unit's slash (unitBreak), and the chevron
             follows the label's last word rather than the column's edge
             (the fix round). */}
         <span className="line-clamp-2 min-w-0 leading-tight">

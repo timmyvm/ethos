@@ -421,7 +421,10 @@ export function Paywall({
                 <span aria-hidden className="mt-px shrink-0 text-cream/60">
                   <Glyph size={18} />
                 </span>
-                <span className="min-w-0">{text}</span>
+                {/* Balanced: where a 320 phone breaks one, the halves
+                    match ("Presence on video, / with its moments"),
+                    instead of a lone "its moments". */}
+                <span className="min-w-0 text-balance">{text}</span>
               </li>
             ))}
           </ul>

@@ -19,6 +19,7 @@ import {
   sheetHoldsTouch,
   sheetTakesScrolledTouch,
   sheetTakesTopTouch,
+  slopCrossing,
   type HandOff,
 } from "@/lib/sheet-gesture";
 import {
@@ -130,6 +131,8 @@ type Grip = {
   sideways: boolean;
   /** Where the finger is now, for how far it has run from the press. */
   yNow: number;
+  /** Its latest reading, and when: between the last two, where it crossed the slop. */
+  last: { t: number; x: number; y: number };
   /** Where the sheet was when the finger took it. */
   held: number;
   /** Past the hysteresis. A ref, not the state: pointer events land
@@ -636,6 +639,7 @@ export function Overlay({
       scrolls,
       sideways,
       yNow: e.clientY,
+      last: { t: e.timeStamp, x: e.clientX, y: e.clientY },
       held: 0,
       active: false,
       under: scrolled
@@ -691,7 +695,8 @@ export function Overlay({
   /**
    * A finger on content already scrolled (handoff). Past the slop it
    * moves the content toward its top 1:1, from where the slop was
-   * crossed, and what is left of the move moves the sheet: finger travel
+   * crossed (slopCrossing, between this reading and the one `before`
+   * it), and what is left of the move moves the sheet: finger travel
    * is scroll travelled plus sheet offset at every move (handOff). Back
    * up, the sheet comes to rest first and the content scrolls again. The
    * samples follow the finger across both, so a release carries its speed
@@ -699,7 +704,13 @@ export function Overlay({
    * springing home), the sheet is the finger's from where it is, and the
    * content stays put (handOffFrom).
    */
-  function moveUnder(d: Grip, under: ScrolledUnder, e: React.PointerEvent<HTMLDivElement>, el: HTMLDivElement) {
+  function moveUnder(
+    d: Grip,
+    under: ScrolledUnder,
+    e: React.PointerEvent<HTMLDivElement>,
+    el: HTMLDivElement,
+    before: Grip["last"]
+  ) {
     if (handOffTakes(d, e.clientX, e.clientY) === false) {
       letGo(d);
       return;
@@ -728,10 +739,13 @@ export function Overlay({
         stopEdge();
         start.past = pastFromEdge(back.offset, content.clientHeight);
       }
+      // The line starts where the finger crossed the slop, and this move
+      // spends what it ran past it, so the content does not lose it
+      // (handoff review); the throw's first sample is there too.
+      const cross = slopCrossing({ x: d.x0, y: d.y0 }, before, d.last);
       under.at = start;
-      under.lastY = e.clientY;
-      d.samples = [{ t: e.timeStamp, y: handOffLine(start) }];
-      return;
+      under.lastY = cross.y;
+      d.samples = [{ t: cross.t, y: handOffLine(start) }];
     }
     const was = under.at.past ?? 0;
     under.at = handOff(under.at, e.clientY - under.lastY, content.scrollHeight - content.clientHeight);
@@ -751,8 +765,10 @@ export function Overlay({
     const el = panel.current;
     if (!d || d.id !== e.pointerId || !el) return;
     d.yNow = e.clientY;
+    const before = d.last;
+    d.last = { t: e.timeStamp, x: e.clientX, y: e.clientY };
     if (d.under) {
-      moveUnder(d, d.under, e, el);
+      moveUnder(d, d.under, e, el, before);
       return;
     }
     if (!d.active) {
@@ -843,6 +859,7 @@ export function Overlay({
   function letGoUnder(under: ScrolledUnder, velocity: number, fingerY: number, el: HTMLDivElement) {
     const end = handOffEnd({ at: under.at, velocity, height: el.offsetHeight, screen: window.innerHeight, fingerY });
     if (end === "back") {
+      el.style.transform = "";
       const from = edgeFromPast(under.at.past ?? 0, velocity, under.el.clientHeight);
       settleEdge(under.el, -1, from.offset, from.velocity, performance.now());
       return;

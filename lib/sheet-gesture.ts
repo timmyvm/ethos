@@ -202,6 +202,38 @@ export function handOffFrom(scroll: number, sheet: number): HandOff | null {
 }
 
 /**
+ * Where, and when, a finger crossed the slop (handoff review): on the
+ * straight line from its last reading inside the slop (`from`, or the
+ * press) to the first outside it (`to`), where it left the square of
+ * `slop` px around the `press` that sheetClaim reads. The hand-off's
+ * content follows the finger from there: started from the move that
+ * crossed it instead, the content lost all that move ran past the slop,
+ * which in Chromium (its first touchmove comes 12 to 48px in) was up to
+ * 70px of a quick swipe, and a flick that reached the page as one move
+ * scrolled nothing and threw nothing. The browser's own scroll starts
+ * from the slop too.
+ */
+export function slopCrossing(
+  press: { x: number; y: number },
+  from: { t: number; x: number; y: number },
+  to: { t: number; x: number; y: number },
+  slop = SHEET_SLOP_PX
+): { t: number; y: number } {
+  if (Math.max(Math.abs(from.x - press.x), Math.abs(from.y - press.y)) >= slop) return { t: from.t, y: from.y };
+  let s = 1;
+  for (const [a, b, c] of [
+    [from.x, to.x, press.x],
+    [from.y, to.y, press.y],
+  ]) {
+    const d = b - a;
+    if (d === 0) continue;
+    const k = (c + Math.sign(d) * slop - a) / d;
+    if (k >= 0 && k < s) s = k;
+  }
+  return { t: from.t + s * (to.t - from.t), y: from.y + s * (to.y - from.y) };
+}
+
+/**
  * Where a finger on scrolled content has put the three: the content's
  * scrollTop, the sheet's offset (down is positive), and how far the
  * finger has run up past the content's end (`past`, shown with

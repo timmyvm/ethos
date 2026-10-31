@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { TRAITS } from "@/content/traits";
 import type { RepRow } from "./client-data";
 import { ALL_FILLERS, ALL_FILLERS_PER_MIN, HELD_PER_RECORDING, movedRows, presenceRow } from "./log";
+import { unitBreak } from "./metric-labels";
 
 /*
  * One trait, one unit (E32). A row or a card label that reads as a
@@ -148,5 +149,16 @@ describe("one recording's held pauses (L08)", () => {
       expect(src, file).not.toMatch(/"Held pauses"/);
       expect(src, file).toMatch(/HELD_PER_RECORDING,/);
     }
+  });
+});
+
+describe("a label breaks only before its unit's slash", () => {
+  it("holds the subject's words and the unit each in one piece", () => {
+    const held = unitBreak(HELD_PER_RECORDING);
+    // The one break opportunity is the zero-width space before the slash.
+    expect(held).toBe("Held pauses ​/ recording");
+    expect(held.replace(/[  ]/g, " ").replace(/​/g, "")).toBe("Held pauses / recording");
+    expect(unitBreak(ALL_FILLERS_PER_MIN)).toBe("All fillers ​/ min");
+    expect(unitBreak("Ethos Index")).toBe("Ethos Index");
   });
 });

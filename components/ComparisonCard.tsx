@@ -1,5 +1,5 @@
 import type { RepRow } from "@/lib/client-data";
-import { ALL_FILLERS_PER_MIN, HELD_PER_RECORDING } from "@/lib/metric-labels";
+import { ALL_FILLERS_PER_MIN, HELD_PER_RECORDING, unitBreak } from "@/lib/metric-labels";
 
 /**
  * Day-1 vs day-N — the core retention asset AND the core marketing
@@ -82,7 +82,9 @@ export function ComparisonCard({
       <div className="mt-4 space-y-3">
         {rows.map((r) => (
           <div key={r.label} className="flex items-baseline gap-3">
-            <span className="w-28 text-caption text-cream/60">{r.label}</span>
+            {/* 112px: "Held pauses / recording" takes two lines, and
+                breaks only before its slash (L08). */}
+            <span className="w-28 shrink-0 text-caption text-cream/60">{unitBreak(r.label)}</span>
             <span className="font-display text-num-s tabular-nums text-cream/45">
               {r.a}
             </span>

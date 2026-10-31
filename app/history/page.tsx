@@ -25,6 +25,7 @@ import {
   type RepSpine,
 } from "@/lib/client-data";
 import { limit } from "@/lib/entitlement";
+import { unitBreak } from "@/lib/metric-labels";
 import { DURATION } from "@/lib/motion";
 import { waitingRows } from "@/lib/log-waiting";
 import { fillerHeatmap, insights } from "@/lib/insights";
@@ -690,10 +691,6 @@ function Cell({ children, className = "" }: { children: number; className?: stri
   );
 }
 
-/** "All fillers / min" with no-break thin spaces round the slash, so a
-    narrow column breaks between words and never at the unit. */
-const unitLabel = (label: string) => label.replace(/ \/ /g, "\u202F/\u202F");
-
 /**
  * One metric, five cells. Direction wears the colour (#195): sage when
  * the number moved the right way, rust when it didn't, stone when it
@@ -747,17 +744,16 @@ function MetricRow({
           className={`log-swatch ${trait || index ? "" : "log-swatch-blank"}`}
         />
         {/* Two lines at most, never an ellipsis: at 320px "Fillers /
-            min" beside its chevron cut to "Fillers / ...". A unit's slash
-            holds its words together (no-break thin spaces), so the label
-            breaks between words and never at the slash, and the chevron
+            min" beside its chevron cut to "Fillers / ...". The label breaks
+            only just before its unit's slash (unitLabel), and the chevron
             follows the label's last word rather than the column's edge
             (the fix round). */}
         <span className="line-clamp-2 min-w-0 leading-tight">
           {open === undefined ? (
-            unitLabel(row.label)
+            unitBreak(row.label)
           ) : (
             <>
-              {unitLabel(row.label)}
+              {unitBreak(row.label)}
               <span
                 aria-hidden
                 data-open={open}

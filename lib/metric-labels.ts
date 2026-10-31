@@ -21,3 +21,19 @@ export const ALL_FILLERS_PER_MIN = `${ALL_FILLERS} / min`;
  * Hostile take) keeps "Held pauses": the count is that take's.
  */
 export const HELD_PER_RECORDING = "Held pauses / recording";
+
+/**
+ * A label and its unit, each one piece: the subject's words hold
+ * together (no-break spaces), the unit holds to its slash (no-break thin
+ * spaces), and the one place a narrow column may break is just before
+ * the slash (a zero-width space). "All fillers / min" holds one line in
+ * the Log at 320 and from 375 up, and "Held pauses / recording" sets
+ * "Held pauses" over "/ recording" instead of stranding "Held" over a
+ * "pauses/recording" too wide for the column. A label with no unit is
+ * returned as it is.
+ */
+export function unitBreak(label: string): string {
+  const at = label.indexOf(" / ");
+  if (at < 0) return label;
+  return `${label.slice(0, at).replace(/ /g, "\u00A0")}\u202F\u200B/\u202F${label.slice(at + 3)}`;
+}

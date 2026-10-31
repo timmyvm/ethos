@@ -10,7 +10,9 @@
  *   node scripts/look-presence.mjs after today-tester-send  # a subset
  *
  * Env: LOOK_BASE (the server), LOOK_OUT (default docs/look/testers/presence/),
- * LOOK_SIZES ("390x844,320x568"), LOOK_THEMES ("light,dark").
+ * LOOK_SIZES ("390x844,320x568"), LOOK_THEMES ("light,dark"), LOOK_INSET
+ * (the home indicator's inset at 390x844, default 34, as on an iPhone 12
+ * to 16 opened from the home screen; 0 for the camera's old frame).
  *
  * The scenes are photographed on three days of the test, each on its own
  * Melbourne calendar: 31 October (test day 2), 12 November (day 14, the
@@ -31,10 +33,17 @@
  * Every shot is `${scene}-${W}x${H}-${TAG}-${theme}.png`. Today scenes at
  * a short phone add `-tile`, scrolled to the test tile (or, before it
  * existed, to the Today / This week switch). With TAG other than
- * "before", the tile is measured (#402 §14): it clears the floating nav
- * at 390x844 on the first screen, holds 208px in every state, its ask row
- * holds 44px, and the eyebrow says the test's day during it and the date
- * after. A failed measurement prints ASSERT-FAIL and the run exits 1.
+ * "before", the tile is measured (#402 §14): its ask row is above the
+ * floating nav at 390x844 on the first screen, measured against the nav
+ * as drawn with the home indicator's inset (a viewport with no inset
+ * passed while an iPhone hid "Send Timothy your tester number."), the
+ * tile holds 208px in every state, its ask row holds 44px, and the
+ * eyebrow says the test's day with the mark's flask during it and the
+ * date after. Answer opens the Log's question with its answers on
+ * screen and a way back to Today; the day turns on a phone left open
+ * overnight; a reload holds the tile's place from the first paint; and
+ * a history that did not load rings no day. A failed measurement prints
+ * ASSERT-FAIL and the run exits 1.
  */
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 import { spawnSync } from "node:child_process";
@@ -62,12 +71,14 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /** The returning account's id: its tester number reads "0B5E 7A21". */
 const RETURNING_ID = "0b5e7a21-6c3d-4f8e-8a1b-2d9c4e6f7a10";
 const SENT = "0B5E7A21";
+/** The home indicator's inset at 390x844: an iPhone opened from the home screen. */
+const INSET = Number(process.env.LOOK_INSET ?? 34);
 
 /** Each day's scenes. The camera runs once per day, LOOK_TODAY set. */
 const DAYS = {
   "2026-10-31": [
     "today-plain", "today-tester-send", "today-tester-record", "today-tester-paused", "today-tester-answer",
-    "today-tester-done", "today-tester-loading", "today-tester-unknown",
+    "today-tester-done", "today-tester-loading", "today-tester-unknown", "today-tester-unknown-ring", "today-tester-overnight", "today-tester-reload",
     "you-plain", "you-tester", "you-paused",
     "felt", "results-tester", "results-paused", "results-plain", "log-match",
     "settings-testing", "tester-page",
@@ -145,6 +156,12 @@ async function context(theme, [W, H], o = {}) {
     document.addEventListener("DOMContentLoaded", () => document.head.appendChild(css));
   }, blur);
   const page = await ctx.newPage();
+  /* An iPhone's home-screen app: the floating nav stands on the home
+     indicator's 34px inset, which a desktop viewport does not have. */
+  if (INSET && W === 390 && H === 844) {
+    const cdp = await ctx.newCDPSession(page);
+    await cdp.send("Emulation.setSafeAreaInsetsOverride", { insets: { top: 0, bottom: INSET, left: 0, right: 0 } });
+  }
   if (clock) await page.clock.setFixedTime(CLOCK);
   page.on("pageerror", (e) => console.log("PAGEERROR", page.url(), e.message.slice(0, 160)));
   page.on("console", (m) => { if (m.type() === "error" && !/CERT_AUTHORITY|Failed to load resource/.test(m.text())) console.log("CONSOLE", page.url(), m.text().slice(0, 200)); });
@@ -170,12 +187,16 @@ async function measure(page, name, size, { tile, eyebrow }) {
     const t = document.querySelector("[data-test]");
     const ask = document.querySelector("[data-test-ask]");
     const r = t?.getBoundingClientRect();
+    const a = ask?.getBoundingClientRect();
+    const nav = document.querySelector(".nav-dock .nav-glass")?.getBoundingClientRect();
     return {
       has: !!t,
-      bottom: r ? r.bottom + window.scrollY : null,
       height: r ? r.height : null,
-      ask: ask ? ask.getBoundingClientRect().height : null,
+      ask: a ? a.height : null,
+      askBottom: a ? a.bottom + window.scrollY : null,
+      navTop: nav ? nav.top : null,
       eyebrow: document.querySelector(".large-title-eyebrow")?.textContent?.trim() ?? null,
+      flask: !!document.querySelector(".large-title-eyebrow .test-eyebrow-mark svg"),
     };
   });
   const at = `${name} ${size}`;
@@ -183,10 +204,14 @@ async function measure(page, name, size, { tile, eyebrow }) {
   if (tile && m.has) {
     expectIt(`${at}: the tile holds 208px`, Math.abs(m.height - 208) <= 1, `${m.height}`);
     if (m.ask !== null) expectIt(`${at}: the ask row holds 44px`, Math.abs(m.ask - 44) <= 1, `${m.ask}`);
-    if (size === "390x844") expectIt(`${at}: the tile clears the nav on the first screen`, m.bottom <= 766, `${m.bottom}`);
+    if (size === "390x844" && m.askBottom !== null)
+      expectIt(`${at}: the ask is above the nav on the first screen (inset ${INSET})`, m.navTop !== null && m.askBottom <= m.navTop, `ask ${m.askBottom}, nav ${m.navTop}`);
   }
-  if (eyebrow === "test") expectIt(`${at}: the eyebrow says the test's day`, /^Test day \d+ of 14$/.test(m.eyebrow ?? ""), m.eyebrow ?? "none");
-  if (eyebrow === "date") expectIt(`${at}: the eyebrow is the date`, !/^Test day/.test(m.eyebrow ?? ""), m.eyebrow ?? "none");
+  if (eyebrow === "test") {
+    expectIt(`${at}: the eyebrow says the test's day`, /^Test day \d+ of 14$/.test(m.eyebrow ?? ""), m.eyebrow ?? "none");
+    expectIt(`${at}: the eyebrow wears the flask`, m.flask);
+  }
+  if (eyebrow === "date") expectIt(`${at}: the eyebrow is the date`, !/^Test day/.test(m.eyebrow ?? "") && !m.flask, m.eyebrow ?? "none");
 }
 
 async function shootAll() {
@@ -242,6 +267,68 @@ async function shootAll() {
       await today("today-tester-unknown", { ...tester, repsFail: true }, sent, { settle: 2500 });
       await today("today-tester-last", { ...tester, today: true, answered: true }, sent);
       await today("today-tester-over", tester, sent, { eyebrow: "date" });
+
+      /* A history that did not load rings no day: a ring by the dash read as a 0. */
+      if (TAG !== "before") {
+        await step("today-tester-unknown-ring", async () => {
+          state({ ...tester, repsFail: true });
+          const { ctx, page } = await context(theme, size, sent);
+          await page.goto(`${BASE}/`);
+          await page.waitForSelector("[data-test] .test-day[data-today]", { timeout: 30000 });
+          const ring = await page.evaluate(() => getComputedStyle(document.querySelector("[data-test] .test-day[data-today]"), "::after").content);
+          expectIt(`today-tester-unknown ${sz}: today's slot draws no ring while unknown`, ring === "none", ring);
+          await ctx.close();
+        });
+      }
+
+      /* Left open overnight (a home-screen app): shown again the next
+         morning, Today says the new day and asks for its recording. */
+      await step("today-tester-overnight", async () => {
+        state({ ...tester, today: true, answered: true });
+        const { ctx, page } = await context(theme, size, sent);
+        await page.clock.setFixedTime(new Date(`${LOOK_TODAY}T22:00:00+11:00`));
+        await page.goto(`${BASE}/`);
+        await page.getByText(/^Day \d+ is done\.$/).first().waitFor({ timeout: 30000 });
+        const dayOf = (text) => Number(/Test day (\d+)/.exec(text ?? "")?.[1]);
+        const was = dayOf(await page.locator(".large-title-eyebrow").first().textContent());
+        const next = new Date(new Date(`${LOOK_TODAY}T22:00:00+11:00`).getTime() + 10 * 3600_000);
+        await page.clock.setFixedTime(next);
+        await page.evaluate(() => {
+          Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true });
+          document.dispatchEvent(new Event("visibilitychange"));
+          Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });
+          document.dispatchEvent(new Event("visibilitychange"));
+        });
+        await page.getByText("Speak today, then answer both questions.").first().waitFor({ timeout: 5000 }).catch(() => {});
+        await shot(page, "today-tester-overnight", { settle: 600 });
+        const eyebrow = (await page.locator(".large-title-eyebrow").first().textContent())?.trim();
+        expectIt(`today-tester-overnight ${sz}: the eyebrow turns to the next day`, dayOf(eyebrow) === was + 1, `${was} -> ${eyebrow ?? "none"}`);
+        expectIt(`today-tester-overnight ${sz}: the ask is the new day's recording`, (await page.getByText("Speak today, then answer both questions.").count()) === 1);
+        await ctx.close();
+      });
+
+      /* A reload: the tile's place is held from the server's paint, so
+         nothing under the practice card moves when the page hydrates. */
+      await step("today-tester-reload", async () => {
+        if (TAG === "before") return;
+        state(tester);
+        const { ctx, page } = await context(theme, size, sent);
+        let hold = true;
+        await ctx.route("**/_next/static/chunks/**", async (route) => {
+          while (hold) await sleep(50);
+          return route.continue();
+        });
+        await page.goto(`${BASE}/`, { waitUntil: "commit" });
+        await page.waitForSelector(".home-seg", { timeout: 30000 });
+        await sleep(400);
+        const pre = await page.evaluate(() => Math.round(document.querySelector(".home-seg").getBoundingClientRect().top + scrollY));
+        hold = false;
+        await page.waitForSelector("[data-test]", { timeout: 30000 });
+        await sleep(800);
+        const post = await page.evaluate(() => Math.round(document.querySelector(".home-seg").getBoundingClientRect().top + scrollY));
+        expectIt(`today-tester-reload ${sz}: nothing moves when the tile mounts`, pre === post, `${pre} -> ${post}`);
+        await ctx.close();
+      });
 
       if (W === 390 && theme === "light") {
         await step("squint-today-tester-send", async () => {
@@ -329,14 +416,30 @@ async function shootAll() {
         await shot(page, "results-plain", { settle: 600 });
       });
 
-      /* The Log's page of today's recording, opened from Today's Answer. */
+      /* The Log's page of today's recording, opened by Today's Answer. */
       await step("log-match", async () => {
         state({ ...tester, today: true });
         const { ctx, page } = await context(theme, size, sent);
-        await page.goto(`${BASE}/rep/${TODAY_REP.id}#match`);
+        await page.goto(`${BASE}/`);
+        const answer = page.locator("[data-test] [data-test-ask] a", { hasText: "Answer" });
+        if (TAG === "before") {
+          await page.goto(`${BASE}/rep/${TODAY_REP.id}#match`);
+        } else {
+          await answer.waitFor({ timeout: 30000 });
+          await answer.click();
+          await page.waitForURL(/\/rep\//, { timeout: 15000 });
+        }
         await page.waitForSelector("main h1", { timeout: 30000 });
         await page.getByText(/feel right\?/).first().waitFor({ timeout: 20000 }).catch(() => {});
         await shot(page, "log-match", { settle: 1500 });
+        if (TAG !== "before") {
+          const m = await page.evaluate(() => {
+            const r = document.getElementById("match")?.getBoundingClientRect();
+            return { bottom: r ? r.bottom : null, ih: innerHeight, back: document.querySelector("main a[href='/']")?.textContent?.trim() ?? null };
+          });
+          expectIt(`log-match ${sz}: the question's answers are on screen`, m.bottom !== null && m.bottom <= m.ih, `${m.bottom} of ${m.ih}`);
+          expectIt(`log-match ${sz}: its way back is Today`, /Today/.test(m.back ?? ""), m.back ?? "none");
+        }
         await ctx.close();
       });
 

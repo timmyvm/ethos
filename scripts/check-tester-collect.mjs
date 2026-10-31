@@ -26,7 +26,11 @@
  *   7. a version 3 tester during the test (the page's clock on 31 October,
  *      #402): Today says the test, the testers row is read once across
  *      Today, You and Today again by the tab bar, and Send on the test
- *      tile is a tap collected by its name.
+ *      tile, pressed from the keyboard, is a tap collected by its name,
+ *      with focus kept in the tile when the next ask takes its place;
+ *   8. the same tester once the test is over (14 November): Today says
+ *      so, and the phone collects nothing (the consent keeps only what is
+ *      collected while you test).
  *
  * Phone 3 also reads the Log page's "Testing is paused." (review D1).
  * Phone 1 also opens You by the tab bar on the test's second day: no
@@ -314,16 +318,40 @@ const sentCount = () => Math.max(testerMode.collected.length, wire.length);
   await send.waitFor({ timeout: 20000 }).catch(() => {});
   await sleep(1200);
   check("the testers row is read once across Today, You and Today", reads.length === 1, `${reads.length} reads`);
-  await send.click();
+  // From the keyboard: when the next ask replaces the key, focus stays in the tile (it fell to <body>).
+  await send.focus();
+  await page.keyboard.press("Enter");
   await page.getByRole("status").filter({ hasText: "Sent" }).first().waitFor({ timeout: 5000 }).catch(() => {});
   const sentKey = await page.evaluate(() => localStorage.getItem("ethos.tester.sent"));
   check("Send remembers the number went", sentKey === "0B5E7A21", String(sentKey));
   await page.getByText("Speak today, then answer both questions.").waitFor({ timeout: 6000 }).catch(() => {});
   check("…and the tile moves on to the day's ask", (await page.getByText("Speak today, then answer both questions.").count()) === 1);
+  await sleep(300);
+  const focus = await page.evaluate(() => {
+    const a = document.activeElement;
+    return { inTile: !!a?.closest("[data-test]"), what: a === document.body ? "body" : `${a?.tagName} ${a?.getAttribute("data-test-ask") !== null ? "[data-test-ask]" : ""}` };
+  });
+  check("…with focus on the new ask, not thrown to the top", focus.inTile, focus.what);
   await hide(page);
   await sleep(1200);
   const taps = events().filter((e) => e.name === "tap");
   check("the tap on Send is collected by its name", taps.some((t) => t.label === "Send your tester number to Timothy"), taps.map((t) => t.label).join(" | "));
+  await ctx.close();
+}
+
+// 8. The same tester once the test is over (#402): nothing collected.
+{
+  const { ctx, page } = await phone({ tester: true, version: 3, hint: true, clock: new Date("2026-11-14T19:00:00+11:00") });
+  await page.goto(`${BASE}/`);
+  await page.waitForSelector("main h1", { timeout: 30000 });
+  await page.getByText("The test is over, and Timothy will message you about the chat.").waitFor({ timeout: 20000 }).catch(() => {});
+  check("after the test, Today says it is over", (await page.getByText("The test is over, and Timothy will message you about the chat.").count()) === 1);
+  await page.getByRole("link", { name: "You", exact: true }).first().click();
+  await page.waitForURL(/\/you$/, { timeout: 15000 });
+  await sleep(1500);
+  await hide(page);
+  await sleep(1500);
+  check("…and the phone collects nothing once it is", events().length === 0 && wire.length === 0, `${events().length} events, ${wire.length} sent`);
   await ctx.close();
 }
 

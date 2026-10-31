@@ -10,7 +10,7 @@
  * follow when this phone has reminders on (the zone it sent with them),
  * and the test's own, Melbourne, the calendar the window was announced
  * on, otherwise (`testZone`). With Melbourne's calendar a recording at
- * 23:50 on 30 October is day 1 whatever zone the phone or the server is
+ * 23:50 on 2 November is day 1 whatever zone the phone or the server is
  * in, and the one ten minutes later is day 2. Days are "YYYY-MM-DD" keys
  * and arithmetic on them is by date parts, so a daylight saving change
  * never moves a day. The test's end, where collection stops, is always
@@ -170,7 +170,8 @@ export type TestAsk =
   | { kind: "answer"; repId: string; index: number | null }
   | { kind: "done"; day: number }
   | { kind: "last" }
-  | { kind: "over" };
+  | { kind: "over" }
+  | { kind: "soon" };
 
 /** Today's question after the score, as the tile knows it. */
 export type TodayAnswer =
@@ -189,7 +190,7 @@ export type TodayAnswer =
  * it is unsent, else the test is over.
  */
 export function testAsk(a: {
-  phase: "on" | "after";
+  phase: "before" | "on" | "after";
   day: number;
   tester: "loading" | "failed" | TesterRow;
   number: string | null;
@@ -202,6 +203,7 @@ export function testAsk(a: {
   if (a.tester === "loading") return { kind: "wait" };
   if (a.tester !== "failed" && pausedTester(a.tester)) return { kind: "paused" };
   if (unsent) return { kind: "send" };
+  if (a.phase === "before") return { kind: "soon" };
   if (a.spokenToday === null) return { kind: "none" };
   if (!a.spokenToday) return { kind: "record" };
   if (a.answer.state === "loading") return { kind: "wait" };

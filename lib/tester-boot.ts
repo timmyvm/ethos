@@ -41,7 +41,7 @@ export const testerBootScript = `
   };
   var today;
   try { today = day(zone); } catch (e) { today = day(${JSON.stringify(TEST.zone)}); }
-  if (today >= ${JSON.stringify(TEST.first)} && today <= ${JSON.stringify(TEST_SHOWN_UNTIL)}) {
+  if (today >= ${JSON.stringify(TEST.shownFrom)} && today <= ${JSON.stringify(TEST_SHOWN_UNTIL)}) {
     document.documentElement.setAttribute('data-test-tile', '');
   }
 }catch(e){}})();

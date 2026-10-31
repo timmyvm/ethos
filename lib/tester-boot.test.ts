@@ -31,18 +31,18 @@ afterEach(() => {
 });
 
 describe("the tester boot script", () => {
-  it("marks a tester's device from the test's first day to a week after its last, on Melbourne's calendar", () => {
-    expect(TEST_SHOWN_UNTIL).toBe("2026-11-19");
+  it("marks a tester's device from the day testers could join to a week after the test's last, on Melbourne's calendar", () => {
+    expect(TEST_SHOWN_UNTIL).toBe("2026-11-22");
     expect(run("2026-10-29T12:59:00Z", HINT)).toBe(false); // 23:59 on 29 Oct in Melbourne
-    expect(run("2026-10-29T13:00:00Z", HINT)).toBe(true); // 00:00 on 30 Oct
-    expect(run("2026-10-31T08:00:00Z", HINT)).toBe(true);
-    expect(run("2026-11-19T12:59:00Z", HINT)).toBe(true); // 23:59 on 19 Nov
-    expect(run("2026-11-19T13:00:00Z", HINT)).toBe(false); // 00:00 on 20 Nov
+    expect(run("2026-10-29T13:00:00Z", HINT)).toBe(true); // 00:00 on 30 Oct, when testers could join (TEST.shownFrom)
+    expect(run("2026-11-03T08:00:00Z", HINT)).toBe(true);
+    expect(run("2026-11-22T12:59:00Z", HINT)).toBe(true); // 23:59 on 19 Nov
+    expect(run("2026-11-22T13:00:00Z", HINT)).toBe(false); // 00:00 on 20 Nov
   });
 
   it("marks nobody else's", () => {
-    expect(run("2026-10-31T08:00:00Z", {})).toBe(false);
-    expect(run("2026-10-31T08:00:00Z", { [TESTER_HINT_KEY]: "0" })).toBe(false);
+    expect(run("2026-11-03T08:00:00Z", {})).toBe(false);
+    expect(run("2026-11-03T08:00:00Z", { [TESTER_HINT_KEY]: "0" })).toBe(false);
   });
 
   it("counts in the reminders' zone on a phone with reminders, as Today's tile does", () => {

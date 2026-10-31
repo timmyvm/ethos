@@ -11,7 +11,7 @@
  */
 
 import { useEffect, useLayoutEffect, useState } from "react";
-import { CODE_COPY, CONSENT_VERSION } from "@/content/tester";
+import { CODE_COPY, CONSENT_VERSION, TEST } from "@/content/tester";
 import { currentSession, ensureSession, sessionToken, supabaseBrowser } from "./supabase-browser";
 import {
   isCurrentTester,
@@ -217,7 +217,8 @@ export function useTestPresence(): TestPresence {
       const today = zoneDayKey(Date.now(), zone);
       const day = testDay(today);
       const phase = testPhase(day);
-      const shown = readTesterHint() && (phase === "on" || phase === "after");
+      const shown =
+        readTesterHint() && (phase === "on" || phase === "after" || (phase === "before" && today >= TEST.shownFrom));
       /* The head's boot script held the tile's place (lib/tester-boot.ts);
          from here this keeps that mark in step, so a place held at the
          window's edge, or for a hint just gone, closes before paint. */

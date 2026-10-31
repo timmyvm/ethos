@@ -381,7 +381,7 @@ export function pausedTester(row: TesterRow | null | undefined): row is TesterRo
 }
 
 /**
- * Whether the test is over: from 00:00 on 13 November in Melbourne
+ * Whether the test is over: from 00:00 on 16 November in Melbourne
  * (`TEST.endsAt`), whatever zone the phone is in.
  */
 export function testOver(now: Date | number | string = Date.now()): boolean {

@@ -5,6 +5,13 @@ import { IconCheck, IconUpload } from "@/components/Icon";
 import { TEST_COPY } from "@/content/tester";
 import { markSent } from "@/lib/tester-client";
 
+/** The tile's key, Send and Answer alike: grey, raised on Today's surface tile, never terracotta (#402). */
+export function keyClass(surface: "ground" | "tile") {
+  return `press font-display inline-flex min-h-11 min-w-[96px] shrink-0 items-center justify-center gap-1.5 rounded-control border border-edge px-3.5 text-row text-ink max-[359px]:min-w-[76px] ${
+    surface === "tile" ? "bg-raised" : "bg-surface"
+  }`;
+}
+
 /**
  * The tester number's Send (#402): the phone's share sheet with the
  * number already typed in ("My Ethos tester number is 0B5E 7A21."), so
@@ -71,9 +78,7 @@ export function SendNumber({
         type="button"
         onClick={tap}
         aria-label={canShare ? TEST_COPY.sendLabel : TEST_COPY.copyLabel}
-        className={`press font-display inline-flex min-h-11 min-w-[96px] shrink-0 items-center justify-center gap-1.5 rounded-control border border-edge px-3.5 text-row text-ink max-[359px]:min-w-[76px] ${
-          surface === "tile" ? "bg-raised" : "bg-surface"
-        }`}
+        className={keyClass(surface)}
       >
         <span key={label} className="fade-in inline-flex items-center gap-1.5">
           {icon && <span className="inline-flex max-[359px]:hidden">{icon}</span>}

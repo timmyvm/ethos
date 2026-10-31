@@ -111,7 +111,7 @@ const expectIt = (label, ok, detail = "") => {
 };
 
 async function context(theme, [W, H], o = {}) {
-  const { hint = false, asked = 0, sent = null, lit = null, clock = true, blur = false, share = false } = o;
+  const { hint = false, asked = 0, sent = null, lit = null, clock = true, blur = false, share = true } = o;
   const ctx = await browser.newContext({
     viewport: { width: W, height: H }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
     permissions: ["microphone"], locale: "en-AU", timezoneId: "Australia/Melbourne",
@@ -121,7 +121,13 @@ async function context(theme, [W, H], o = {}) {
   await ctx.route("**/api/analyze", async (route) => { await sleep(600); await route.fulfill(json(analyze)); });
   await ctx.route("**/api/push", (route) => route.fulfill(json({ ok: true })));
   await ctx.route("**/api/tester/collect", collectRoute);
-  await ctx.addInitScript(seed, { theme, session: { ...session, user: { ...session.user, id: RETURNING_ID } }, pose: POSE_PREF, tester: hint });
+  /* The session expires a day after the page's clock, not the box's, and
+     a refresh answers with the same account: on 12 and 14 November the
+     seeded one had expired, the refresh came back as the fixture's "u1",
+     and the tile drew no tester number. */
+  const me = { ...session, user: { ...session.user, id: RETURNING_ID }, expires_at: Math.floor(CLOCK.getTime() / 1000) + 86_400 };
+  await ctx.route("http://supabase.local/auth/v1/token**", (route) => route.fulfill(json(me)));
+  await ctx.addInitScript(seed, { theme, session: me, pose: POSE_PREF, tester: hint });
   await ctx.addInitScript(
     ({ asked, sent, lit }) => {
       if (asked) localStorage.setItem("ethos.tester.asked", String(asked));
@@ -130,7 +136,8 @@ async function context(theme, [W, H], o = {}) {
     },
     { asked, sent, lit }
   );
-  // The phone's share sheet, answering after 300ms as a tap on a target would.
+  // The phone's share sheet (an iPhone has one, desktop Chromium does not),
+  // answering after 300ms as a tap on a contact would.
   if (share) await ctx.addInitScript(() => { navigator.share = () => new Promise((r) => setTimeout(r, 300)); });
   await ctx.addInitScript((blur) => {
     const css = document.createElement("style");
@@ -374,7 +381,7 @@ async function shootAll() {
         });
         await step("strip-send", async () => {
           state(tester);
-          const { ctx, page } = await context(theme, size, { hint: true, share: true });
+          const { ctx, page } = await context(theme, size, { hint: true });
           await page.goto(`${BASE}/`);
           const key = page.locator("[data-test] button[aria-label]").first();
           await key.waitFor({ timeout: 30000 });

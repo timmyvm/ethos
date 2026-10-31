@@ -76,7 +76,9 @@ describe("who collects", () => {
   it("loads the collector only after the row says so, and nothing imports it otherwise", () => {
     const layer = readFileSync("components/tester/TesterLayer.tsx", "utf8");
     const hint = layer.indexOf("if (!readTesterHint())");
-    const read = layer.indexOf("fetchTester()");
+    // The open's read of the row, shared with Today's test tile (#402): testerOnce is fetchTester, once per page life.
+    const read = layer.indexOf("testerOnce()");
+    expect(readFileSync("lib/tester-client.ts", "utf8")).toMatch(/export function testerOnce\(\)[\s\S]*?const p = fetchTester\(\);/);
     const gate = layer.indexOf("if (!collects(t))");
     const load = layer.indexOf('await import("@/lib/tester-collect")');
     expect(hint).toBeGreaterThan(0);

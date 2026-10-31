@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Skeleton, SkeletonRegion } from "@/components/ui/Skeleton";
-import { SendNumber } from "@/components/tester/SendNumber";
+import { keyClass, SendNumber } from "@/components/tester/SendNumber";
 import { TesterChip } from "@/components/tester/TesterChip";
 import { TesterPaused } from "@/components/tester/TesterPaused";
 import { CONSENT, MATCH_COPY, TEST, TEST_COPY } from "@/content/tester";
@@ -268,10 +268,12 @@ function AskRow({
     case "record":
       return line(TEST_COPY.ask.record);
     case "answer":
+      /* The day's one open action, in Send's grammar: the line in ink and
+         the key on the right, so neither ask is quieter than the other. */
       return (
         <div className={`flex min-h-11 items-center justify-between gap-3 ${className}`}>
-          <p className="text-body leading-snug text-stone-500">{MATCH_COPY.questionFor(ask.index)}</p>
-          <Link href={`/rep/${ask.repId}#match`} className="text-link press inline-flex min-h-11 shrink-0 items-center">
+          <p className="text-body leading-snug text-pretty font-semibold text-ink">{MATCH_COPY.questionFor(ask.index)}</p>
+          <Link href={`/rep/${ask.repId}#match`} className={keyClass("tile")}>
             {TEST_COPY.ask.answer}
           </Link>
         </div>

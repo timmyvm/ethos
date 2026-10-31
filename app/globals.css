@@ -5289,13 +5289,17 @@ summary::-webkit-details-marker {
 .test-day[data-state="spoken"] {
   background: var(--color-sage-600);
 }
+/* A day still to come: its outline at 1.5px, so the fourteen read as
+   fourteen at a glance and in dark (1px of edge vanished there). */
 .test-day[data-state="ahead"] {
   background: transparent;
-  box-shadow: inset 0 0 0 1px var(--color-edge);
+  box-shadow: inset 0 0 0 1.5px var(--color-edge);
 }
+/* Before they joined, or a history that did not load: the trough at 35%.
+   The fill fades, not the slot, so today's ring keeps its full ink. */
 .test-day[data-state="before"],
 .test-day[data-state="unknown"] {
-  opacity: 0.35;
+  background: color-mix(in srgb, var(--color-sand) 35%, transparent);
 }
 /* Today's slot filling, once a day on this device, as the tile lands. */
 .test-day-fill {

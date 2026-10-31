@@ -76,10 +76,11 @@ const keep = (s: string) => <span className="whitespace-nowrap">{s}</span>;
  * line in the 327px text column of a 375 phone (E40): the first keeps
  * the free allowance, the last names the modes Practice's Premium card
  * lists, so the Stair stands 40px higher on a short phone. On a 320
- * phone a line may still break, and the allowance keeps its tail whole.
+ * phone a line may still break, balanced, and only between its phrases:
+ * the read and its "always" hold together, and so does the allowance.
  */
 const BENEFITS = [
-  { Glyph: IconBubble, text: <>Demos&apos;s full read, always {keep("(free: 1 a day)")}</> },
+  { Glyph: IconBubble, text: <>{keep("Demos's full read, always")} {keep("(free: 1 a day)")}</> },
   { Glyph: IconMic, text: "Presence on video, with its moments" },
   { Glyph: IconTrend, text: "Your whole history, all nine skills" },
   { Glyph: IconSpark, text: "Every word you've earned, kept" },

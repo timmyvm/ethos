@@ -7,6 +7,7 @@ import { DemosArt } from "@/components/DemosArt";
 import { SpeechBubble } from "@/components/SpeechBubble";
 import { FooterShelf } from "@/components/ui/FooterShelf";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { SendNumber } from "@/components/tester/SendNumber";
 import { CODE_COPY, CONSENT, JOINED_COPY } from "@/content/tester";
 import {
   askedFrom,
@@ -14,11 +15,9 @@ import {
   codeDigits,
   codeReady,
   isCurrentTester,
-  testerNumber,
   type TesterRow,
 } from "@/lib/tester";
-import { checkTesterCode, fetchTester, joinTesting } from "@/lib/tester-client";
-import { currentSession } from "@/lib/supabase-browser";
+import { checkTesterCode, fetchTester, joinTesting, useTesterNumber } from "@/lib/tester-client";
 import { ACTION_CLASS, DISABLED_CLASS } from "@/lib/ui";
 
 /**
@@ -379,26 +378,13 @@ function Linked({ text, link }: { text: string; link: { word: string; href: stri
 
 /**
  * The tester number (lib/tester.ts): how a friend tells Timothy which
- * row in his report is theirs. Read from the session after mount; a
- * phone with no session shows nothing rather than a guess.
+ * row in his report is theirs, with Send (the share sheet, the number
+ * typed in, #402) or Copy where the phone has none. Read from the
+ * session after mount; a phone with no session shows nothing rather
+ * than a guess.
  */
 function TesterNumber({ className = "" }: { className?: string }) {
-  const [number, setNumber] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  useEffect(() => {
-    let live = true;
-    void currentSession().then((me) => {
-      if (live && me) setNumber(testerNumber(me.userId));
-    });
-    return () => {
-      live = false;
-    };
-  }, []);
-  useEffect(() => {
-    if (!copied) return;
-    const t = setTimeout(() => setCopied(false), 2000);
-    return () => clearTimeout(t);
-  }, [copied]);
+  const number = useTesterNumber() ?? null;
   return (
     <div className={`flex min-h-14 items-center justify-between gap-3 ${className}`}>
       <div className="min-w-0">
@@ -407,25 +393,8 @@ function TesterNumber({ className = "" }: { className?: string }) {
           {number ?? ""}
         </p>
       </div>
-      {number && (
-        <button
-          type="button"
-          onClick={() => {
-            void navigator.clipboard
-              ?.writeText(number)
-              .then(() => setCopied(true))
-              .catch(() => {});
-          }}
-          className="press font-display min-h-11 shrink-0 rounded-control border border-edge bg-surface px-4 text-row"
-        >
-          {copied ? JOINED_COPY.copied : JOINED_COPY.copy}
-        </button>
-      )}
-      {/* Said from beside the button, not inside it: a live region in a
-          button takes the button's name with it. */}
-      <span role="status" className="sr-only">
-        {copied ? JOINED_COPY.copied : ""}
-      </span>
+      {/* Sent and Copied are said from beside the key (SendNumber). */}
+      {number && <SendNumber number={number} />}
     </div>
   );
 }

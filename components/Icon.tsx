@@ -557,6 +557,16 @@ export function IconFlag({ size }: { size?: number }) {
   );
 }
 
+/** The tester's mark (#402): a flask, the test. */
+export function IconFlask({ size }: { size?: number }) {
+  return (
+    <Glyph size={size} weight={2.5}>
+      <path d="M9.5 3.5h5M10.5 3.5v5.2L5.3 17.6A2 2 0 0 0 7 20.5h10a2 2 0 0 0 1.7-2.9L13.5 8.7V3.5" />
+      <path d="M7.5 14.5h9" />
+    </Glyph>
+  );
+}
+
 export function IconCheck({ size }: { size?: number }) {
   return (
     <Glyph size={size}>

@@ -5248,3 +5248,68 @@ summary::-webkit-details-marker {
   pointer-events: none;
 }
 /* ========================== end of the home (#393) ========================== */
+
+/* tester presence (#402) */
+/* The tester's mark (components/tester/TesterChip.tsx): one mint chip,
+   the colour of the moment testing switched on (the joined screen's
+   stage), on Today's test tile and the two questions. A label: mint is
+   a picture colour here, never a tap, never earned. */
+.tester-chip {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px 0 8px;
+  border-radius: 9999px;
+  background: var(--pop-mint);
+  color: var(--color-ink);
+  white-space: nowrap;
+}
+:root[data-theme="dark"] .tester-chip {
+  color: var(--pop-mint-ink);
+}
+/* The test tile (components/tester/TestTile.tsx): one height in every
+   state, skeleton included: 16 + head 22 + 12 + count 36 + 12 + road 24
+   + 6 + ends 12 + 8 + ask 44 + 16. */
+.home-tile[data-test] {
+  min-height: 208px;
+}
+/* The fourteen days as a road: This week's day slots, one gap at every width. */
+.test-road {
+  display: grid;
+  grid-template-columns: repeat(14, minmax(0, 1fr));
+  gap: 4px;
+  height: 24px;
+}
+.test-day {
+  position: relative;
+  overflow: hidden;
+}
+.test-day[data-state="spoken"] {
+  background: var(--color-sage-600);
+}
+.test-day[data-state="ahead"] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-edge);
+}
+.test-day[data-state="before"],
+.test-day[data-state="unknown"] {
+  opacity: 0.35;
+}
+/* Today's slot filling, once a day on this device, as the tile lands. */
+.test-day-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--color-sage-600);
+}
+/* Today's ring sits over any fill, so where and done read together. */
+.test-day[data-today]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 2px var(--color-ink);
+}
+/* ========================== end of tester presence (#402) ========================== */

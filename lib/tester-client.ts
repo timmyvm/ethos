@@ -10,12 +10,13 @@
  * here, and the database refuses them from anyone who is not a tester.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { CODE_COPY, CONSENT_VERSION } from "@/content/tester";
 import { currentSession, ensureSession, sessionToken, supabaseBrowser } from "./supabase-browser";
 import {
   isCurrentTester,
   isMatchAnswer,
+  testerNumber,
   withoutPending,
   withPending,
   type FeedbackRow,
@@ -24,6 +25,7 @@ import {
   type ScoreSnapshot,
   type TesterRow,
 } from "./tester";
+import { testDay, testPhase, zoneDayKey, type TestPhase } from "./tester-days";
 import { TESTER_HINT_KEY } from "./tester-signal";
 
 /**
@@ -38,6 +40,8 @@ const HINT_KEY = TESTER_HINT_KEY;
 export const TESTER_CHANGED = "ethos:tester";
 
 function announce(): void {
+  // Whatever may have changed, the next shared read is a fresh one.
+  once = null;
   try {
     window.dispatchEvent(new Event(TESTER_CHANGED));
   } catch {}
@@ -57,6 +61,10 @@ function keepHint(on: boolean): void {
 export function forgetTesterHint(): void {
   keepHint(false);
   writePending({});
+  try {
+    localStorage.removeItem(SENT_KEY);
+    localStorage.removeItem(LIT_KEY);
+  } catch {}
 }
 
 export function readTesterHint(): boolean {
@@ -79,13 +87,145 @@ export async function fetchTester(): Promise<TesterRow | null> {
   if (!me) return null;
   const { data, error } = await db
     .from("testers")
-    .select("consent_version, consented_at")
+    .select("consent_version, consented_at, created_at")
     .eq("user_id", me.userId)
     .maybeSingle();
   if (error) throw error;
   const row = (data as TesterRow | null) ?? null;
   keepHint(row !== null);
   return row;
+}
+
+let once: Promise<TesterRow | null> | null = null;
+
+/**
+ * The account's testers row, read once per page life and shared by the
+ * open's layer (components/tester/TesterLayer.tsx) and Today's test tile,
+ * so a tab switch never reads it again. Cleared whenever testing may
+ * have changed (`announce`), and after a failed read.
+ */
+export function testerOnce(): Promise<TesterRow | null> {
+  if (!once) {
+    const p = fetchTester();
+    once = p;
+    p.catch(() => {
+      if (once === p) once = null;
+    });
+  }
+  return once;
+}
+
+/**
+ * The tester number as this device last sent it (components/tester/SendNumber.tsx),
+ * without its space: another account on the phone has another number, and
+ * is asked to send it.
+ */
+const SENT_KEY = "ethos.tester.sent";
+/** The test day whose slot last landed on Today's road on this device. */
+const LIT_KEY = "ethos.tester.lit";
+
+export function readSent(number: string): boolean {
+  try {
+    return localStorage.getItem(SENT_KEY) === number.replace(/\s/g, "");
+  } catch {
+    return false;
+  }
+}
+
+export function markSent(number: string): void {
+  try {
+    localStorage.setItem(SENT_KEY, number.replace(/\s/g, ""));
+  } catch {}
+}
+
+export function readLit(): string | null {
+  try {
+    return localStorage.getItem(LIT_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function markLit(key: string): void {
+  try {
+    localStorage.setItem(LIT_KEY, key);
+  } catch {}
+}
+
+/** The tester number of the session on this phone: undefined until known, null with none. No request. */
+export function useTesterNumber(): string | null | undefined {
+  const [n, setN] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    let live = true;
+    currentSession()
+      .then((me) => {
+        if (live) setN(me ? testerNumber(me.userId) : null);
+      })
+      .catch(() => {
+        if (live) setN(null);
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
+  return n;
+}
+
+/**
+ * Where this device stands in the test (#402): today's day in the
+ * test's zone, its phase, and whether Today shows the test, which is a
+ * device holding the tester hint during the test or the week after it.
+ * Read before the first paint, so the eyebrow and the tile's frame are
+ * there from the first frame; nobody else's Today reads anything, and
+ * the testers row is read (shared, once per page life) only when shown.
+ */
+export interface TestPresence {
+  shown: boolean;
+  today: string;
+  day: number;
+  phase: TestPhase;
+  tester: "loading" | "failed" | TesterRow;
+}
+
+export function useTestPresence(): TestPresence {
+  const [at, setAt] = useState<Omit<TestPresence, "tester">>({ shown: false, today: "", day: 0, phase: "before" });
+  const [generation, setGeneration] = useState(0);
+  const [tester, setTester] = useState<"loading" | "failed" | TesterRow>("loading");
+  useLayoutEffect(() => {
+    const read = () => {
+      const today = zoneDayKey(Date.now());
+      const day = testDay(today);
+      const phase = testPhase(day);
+      setAt({ shown: readTesterHint() && (phase === "on" || phase === "after"), today, day, phase });
+    };
+    read();
+    const again = () => {
+      read();
+      setGeneration((g) => g + 1);
+    };
+    window.addEventListener(TESTER_CHANGED, again);
+    return () => window.removeEventListener(TESTER_CHANGED, again);
+  }, []);
+  useEffect(() => {
+    if (!at.shown) return;
+    let live = true;
+    // A re-read keeps the last row until the new one lands.
+    testerOnce()
+      .then((row) => {
+        if (!live) return;
+        if (row) setTester(row);
+        // No row and the hint gone: the TESTER_CHANGED read hides the tile.
+        // No session at all leaves the hint: the row is unknown.
+        else if (readTesterHint()) setTester((t) => (t === "loading" ? "failed" : t));
+      })
+      .catch(() => {
+        if (live) setTester((t) => (t === "loading" ? "failed" : t));
+      });
+    return () => {
+      live = false;
+    };
+  }, [at.shown, generation]);
+  return { ...at, tester };
 }
 
 /**

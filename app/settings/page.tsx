@@ -39,8 +39,9 @@ import { supabaseBrowser } from "@/lib/supabase-browser";
 import { useHourLabel } from "@/lib/time-label";
 import { ACTION_CLASS, DISABLED_CLASS, INPUT_CLASS } from "@/lib/ui";
 import { useRovingRadio, type RovingItemProps } from "@/lib/use-roving-radio";
-import { DOOR_COPY } from "@/content/tester";
+import { DOOR_COPY, TEST, TEST_COPY } from "@/content/tester";
 import { isCurrentTester } from "@/lib/tester";
+import { testDay, zoneDayKey } from "@/lib/tester-days";
 import { fetchTester, forgetTesterHint, readTesterHint } from "@/lib/tester-client";
 
 /** The hours a reminder can ring at: two rows of three (you-17). */
@@ -129,8 +130,12 @@ export default function SettingsPage() {
      opens straight on the new one. The device's last answer paints
      first; the account's own row decides. */
   const [testing, setTesting] = useState<"no" | "on" | "renew">("no");
+  /* The test's day for a current tester's row, "Day 2 of 14", and
+     "Ended" after the 12th (#402); read with the hint, before paint. */
+  const [testDayNow, setTestDayNow] = useState<number | null>(null);
   useLayoutEffect(() => {
     setTesting(readTesterHint() ? "on" : "no");
+    setTestDayNow(testDay(zoneDayKey(Date.now())));
   }, []);
   useEffect(() => {
     fetchTester()
@@ -564,7 +569,11 @@ export default function SettingsPage() {
           label={testing === "no" ? DOOR_COPY.settingsCode : DOOR_COPY.settingsTesting}
           value={
             testing === "on"
-              ? DOOR_COPY.settingsOn
+              ? testDayNow !== null && testDayNow > TEST.days
+                ? TEST_COPY.settingsEnded
+                : testDayNow !== null && testDayNow >= 1
+                  ? TEST_COPY.settingsDay(testDayNow)
+                  : DOOR_COPY.settingsOn
               : testing === "renew"
                 ? DOOR_COPY.settingsRenew
                 : undefined

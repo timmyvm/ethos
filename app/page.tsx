@@ -21,6 +21,9 @@ import { usePlan, usePriceDrop } from "@/lib/use-plan";
 import { readable, readFailure } from "@/lib/load";
 import { StreakBadge } from "@/components/StreakBadge";
 import { TopicRoulette } from "@/components/TopicRoulette";
+import { TestTile } from "@/components/tester/TestTile";
+import { TEST_COPY } from "@/content/tester";
+import { useTestPresence } from "@/lib/tester-client";
 import {
   fetchProfile,
   fetchRepSpine,
@@ -190,6 +193,12 @@ export default function Home() {
   }, [greeting, name]);
   // Back from the paywall's account doors with paywall=1: the sheet reopens.
   usePaywallReturn(() => setPaywall("Premium"));
+  /* A tester during the test (#402): the eyebrow says the test's day in
+     the date's place, and the test tile stands under the practice card.
+     Read before the first paint from this device's hint and the clock;
+     everyone else's Today is exactly as it was, and reads nothing new. */
+  const test = useTestPresence();
+  const testEyebrow = test.shown && test.phase === "on" ? TEST_COPY.eyebrow(test.day) : null;
 
   /**
    * The history read, on its own so the retry can mean it. It used to
@@ -345,7 +354,8 @@ export default function Home() {
       <ScreenHeader
         title={greeting}
         barTitle="Today"
-        dated
+        dated={testEyebrow === null}
+        eyebrow={testEyebrow ?? undefined}
         leading={<AvatarCoin name={name} known={nameKnown} />}
         barTrailing={
           <span className="mr-3 flex h-9 items-center gap-2">
@@ -430,6 +440,17 @@ export default function Home() {
             />
           </div>
         )
+      )}
+
+      {/* The test, for a tester (#402): above the freeze card, so that
+          card landing late never moves it. It draws a failed history as
+          unknown rather than hiding. */}
+      {test.shown && (
+        <TestTile
+          presence={test}
+          recordings={failed ? "failed" : reps === null ? "loading" : { reps, spine }}
+          className="mt-3"
+        />
       )}
 
       {/* The freeze reconciliation is its own read, landing after the

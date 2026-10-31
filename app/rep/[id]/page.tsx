@@ -93,6 +93,13 @@ export default function RepDetail({
     else setFailed(true);
   }, [id]);
 
+  /* Opened from Today's Answer (#402): the question comes into view once
+     it has mounted, which is once the row and the tester state are read. */
+  useEffect(() => {
+    if (!stored?.rep || tester === undefined || window.location.hash !== "#match") return;
+    document.getElementById("match")?.scrollIntoView({ block: "center" });
+  }, [stored, tester]);
+
   useEffect(() => {
     void load();
     fetchProfile()

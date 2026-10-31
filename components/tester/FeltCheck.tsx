@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ScoringWave } from "@/components/ScoringWave";
+import { TesterChip } from "@/components/tester/TesterChip";
 import { FELT_COPY } from "@/content/tester";
 import type { Felt } from "@/lib/tester";
 
@@ -20,6 +21,10 @@ export function FeltCheck({ onAnswer, className = "" }: { onAnswer: (felt: Felt)
   const [picked, setPicked] = useState<Felt | null>(null);
   return (
     <section aria-labelledby="felt-question" className={`text-center ${className}`}>
+      {/* The tester's mark: this question is the test's (#402). */}
+      <div className="mb-3 flex justify-center">
+        <TesterChip />
+      </div>
       <h2 id="felt-question" tabIndex={-1} className="font-display text-title text-balance text-ink">
         {FELT_COPY.question}
       </h2>

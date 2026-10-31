@@ -72,16 +72,18 @@ const keep = (s: string) => <span className="whitespace-nowrap">{s}</span>;
 
 /**
  * What premium is, in expected-demand order (#199), each led by its own
- * glyph (practice-tab-5, -20, -21). No end punctuation. Two of the five
- * are wider than the 342px text column at 15px, so each keeps its tail
- * whole and breaks at the phrase.
+ * glyph (practice-tab-5, -20, -21). No end punctuation. Each holds one
+ * line in the 327px text column of a 375 phone (E40): the first keeps
+ * the free allowance, the last names the modes Practice's Premium card
+ * lists, so the Stair stands 40px higher on a short phone. On a 320
+ * phone a line may still break, and the allowance keeps its tail whole.
  */
 const BENEFITS = [
-  { Glyph: IconBubble, text: <>Demos&apos;s full read on every recording {keep("(free: 1 a day)")}</> },
+  { Glyph: IconBubble, text: <>Demos&apos;s full read, always {keep("(free: 1 a day)")}</> },
   { Glyph: IconMic, text: "Presence on video, with its moments" },
   { Glyph: IconTrend, text: "Your whole history, all nine skills" },
   { Glyph: IconSpark, text: "Every word you've earned, kept" },
-  { Glyph: IconBoss, text: <>Speed rush, Interview and Hostile Q&amp;A, {keep("any boss topic, any week")}</> },
+  { Glyph: IconBoss, text: <>Speed rush, Interview and Hostile Q&amp;A</> },
 ];
 
 /**

@@ -193,6 +193,27 @@ const setScroll = (page, where, sel = PAYWALL) =>
     },
     [where, sel]
   );
+/** The sheet's slop, px (lib/sheet-gesture.ts SHEET_SLOP_PX): the content follows the finger from there. */
+const SLOP = 10;
+/**
+ * The body scrolled to `where`, or further down when that leaves less
+ * than `room` px above it. Since the paywall's one-line benefits (E40)
+ * the 375x667 body scrolls 61px, so its middle is 31px down: a case
+ * whose finger must let go before the top, after a run that spends
+ * `room` px of scroll, starts lower, where the body has that room. If
+ * the body has less, it stops at its end and the case's own check of
+ * where the finger let go fails it.
+ */
+async function scrollWithRoom(page, where, room, sel = PAYWALL) {
+  await setScroll(page, where, sel);
+  const s = await scrollOf(page, sel);
+  if (s.top < room) await setScroll(page, Math.min(s.max, room), sel);
+  return scrollOf(page, sel);
+}
+/** The last frame the finger was down: where the content and the sheet were at the let go. */
+const letGo = (frames) => frames.filter((f) => f.touching).at(-1) ?? null;
+const beforeTop = (f) => !!f && f.st > 0.5 && (f.ty ?? 0) < 0.5;
+
 /** Where to put a finger on `sel`: inside its box, clear of the scroller's faded edges and the screen's. */
 const pointOf = (page, sel, scroller = PAYWALL) =>
   page.evaluate(
@@ -428,10 +449,15 @@ if (section(2)) {
     ok("hand-off: never both at once, and finger = scroll + sheet through the reversal", both === 0 && c.miss <= 1, `${both} frames moved both; worst ${c.miss}px over ${c.n} frames`);
   }
 
-  // A fast flick on mid-scroll content: it glides to the top and stops there.
+  // A fast flick on mid-scroll content: it glides to the top and stops
+  // there. The finger lets go before the top, so the glide reaches it:
+  // the flick spends 50px of scroll past the slop, and the body starts
+  // with 8px more than that (since E40 its middle, 31px, is less; a
+  // finger that runs past the top hands the rest to the sheet, and a
+  // throw that fast closes it, as the hand-off should).
   await paywall(p);
   {
-    await setScroll(page, "mid");
+    const s0 = await scrollWithRoom(page, "mid", 60 - SLOP + 8);
     await sleep(200);
     const pt = await pointOf(page, BENEFITS);
     await record(page, PAYWALL);
@@ -440,7 +466,8 @@ if (section(2)) {
     const frames = await stopRecord(page);
     const s1 = await scrollOf(page);
     const most = Math.max(...frames.map((f) => f.ty ?? 0));
-    ok("hand-off: a flick that glides to the top stops there, and the sheet stays", (await isOpen(page)) && s1.top <= 0.5 && most < 0.5, `scrollTop ${Math.round(s1.top)}, sheet max ${most}px`);
+    const at = letGo(frames);
+    ok("hand-off: a flick that glides to the top stops there, and the sheet stays", beforeTop(at) && (await isOpen(page)) && s1.top <= 0.5 && most < 0.5, `from scrollTop ${Math.round(s0.top)}, let go at ${at ? Math.round(at.st) : "?"}; scrollTop ${s1 ? Math.round(s1.top) : "closed"}, sheet max ${most}px`);
   }
 
   // Up first is the browser's own scroll, from mid-scroll.
@@ -819,7 +846,12 @@ if (section(6)) {
   }
 
   // Grabbed while it is still rising, the content scrolled: the sheet is
-  // the finger's from where it is, and the content stays put.
+  // the finger's from where it is, and the content stays put. The body
+  // must have room to take the finger's whole run (72px, read from 12px
+  // in), so a scroll of it would show in `moved` in full. It used to ask
+  // for 90px, the 100 it was set to on a body that scrolled 103; since
+  // the one-line benefits (E40) it scrolls 61 at 375x667, its end.
+  const RUN = 72 - 12;
   {
     let result = null;
     for (let tries = 0; tries < 3 && !result; tries++) {
@@ -850,7 +882,7 @@ if (section(6)) {
     }
     ok(
       "caught still rising over scrolled content, the sheet follows the finger and the content stays put",
-      !!result && result.st >= 90 && result.follow <= 1 && result.moved <= 0.5,
+      !!result && result.st >= RUN && result.follow <= 1 && result.moved <= 0.5,
       result ? `caught at ${Math.round(result.at)}px over scrollTop ${Math.round(result.st)}; sheet off the finger by ${result.follow.toFixed(1)}px, content moved ${result.moved.toFixed(1)}px` : "never caught it rising"
     );
   }
@@ -956,26 +988,29 @@ if (section(6)) {
       `scrollTop ${Math.round(s0)} -> ${Math.round(first)} on that move; worst ${miss.toFixed(1)}px over ${live.length} frames`
     );
   }
+  // The one move spends 40px of scroll, and the glide needs room past it
+  // (16px) to show it glides on: since E40 the body's middle (31px) has
+  // neither, so it starts lower; a move that ran past the top would hand
+  // the rest to the sheet, and a flick closes it.
   await paywall(p);
   {
-    await setScroll(page, "mid");
+    const s0 = (await scrollWithRoom(page, "mid", 50 - SLOP + 16)).top;
     await sleep(200);
-    const s0 = (await scrollOf(page)).top;
     const pt = await pointOf(page, BENEFITS);
     await record(page, PAYWALL);
     await touch("touchStart", pt.x, pt.y);
     await sleep(20);
     await touch("touchMove", pt.x, pt.y + 50);
     await sleep(20);
-    const moved = (await scrollOf(page)).top;
+    const moved = (await scrollOf(page))?.top ?? NaN;
     await touch("touchEnd");
     await sleep(1000);
     const frames = await stopRecord(page);
-    const end = (await scrollOf(page)).top;
+    const end = (await scrollOf(page))?.top ?? NaN;
     ok(
       "from the slop: a flick that reaches the page as one 50px move scrolls the content 40px and glides on; the sheet stays",
       Math.abs(s0 - moved - 40) <= 1 && end < moved - 5 && Math.max(...frames.map((f) => f.ty ?? 0)) < 0.5 && (await isOpen(page)),
-      `scrollTop ${Math.round(s0)} -> ${Math.round(moved)} on the move, ${Math.round(end)} after the glide`
+      `scrollTop ${Math.round(s0)} -> ${Math.round(moved)} on the move, ${Number.isNaN(end) ? "closed" : Math.round(end)} after the glide`
     );
   }
 
@@ -1035,15 +1070,22 @@ if (section(6)) {
       };
     }, PAYWALL);
   const stopEdge = () => page.evaluate(() => window.__stopEdge());
+  // The finger lets go 8px or more before the top, so it is the glide
+  // that meets it: the body set to 120 stops at its end, 61px since the
+  // one-line benefits (E40), and a 70px run would reach the top 1px from
+  // the let go; the run is that end, past the slop, less 8.
   await paywall(p);
   {
     await setScroll(page, 120);
     await sleep(200);
+    const s0 = await scrollOf(page);
+    const run = Math.min(70, s0.top + SLOP - 8);
     const pt = await pointOf(page, READOUT);
     await recordEdge();
-    await swipe(pt.x, pt.y, 0, 70, 2500, { hold: 0 });
+    await swipe(pt.x, pt.y, 0, run, 2500, { hold: 0 });
     await sleep(1000);
     const frames = await stopEdge();
+    const released = letGo(frames);
     const after = frames.filter((f) => !f.touching);
     const peak = Math.max(...after.map((f) => f.tr));
     const atTop = after.findIndex((f) => f.st <= 0.5);
@@ -1051,8 +1093,8 @@ if (section(6)) {
     const steps = after.slice(atTop >= 0 ? atTop : 0).map((f, i, a) => (i ? Math.abs(f.tr - a[i - 1].tr) : 0));
     ok(
       "glide: meeting the top with speed, the content goes past it and comes back; the sheet stays",
-      bounced && after.every((f) => f.tr >= -0.01) && (await shownEdge()) === 0 && Math.max(...frames.map((f) => f.ty ?? 0)) < 0.5 && (await isOpen(page)) && Math.max(...steps) < 12,
-      `${Math.round(peak)}px past the top at most, ${Math.max(...steps).toFixed(1)}px in a frame at most`
+      beforeTop(released) && bounced && after.every((f) => f.tr >= -0.01) && (await shownEdge()) === 0 && Math.max(...frames.map((f) => f.ty ?? 0)) < 0.5 && (await isOpen(page)) && Math.max(...steps) < 12,
+      `a ${Math.round(run)}px run from scrollTop ${Math.round(s0.top)}, let go at ${released ? Math.round(released.st) : "?"}; ${Math.round(peak)}px past the top at most, ${Math.max(...steps).toFixed(1)}px in a frame at most`
     );
   }
   await paywall(p);

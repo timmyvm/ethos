@@ -23,8 +23,14 @@
  *      the collector starts, arrives under that screen (review F1). It
  *      patches a production chunk's module wrappers, so run this gate
  *      against `next start` (BASE); on a dev server it says it skipped.
+ *   7. a version 3 tester during the test (the page's clock on 31 October,
+ *      #402): Today says the test, the testers row is read once across
+ *      Today, You and Today again by the tab bar, and Send on the test
+ *      tile is a tap collected by its name.
  *
  * Phone 3 also reads the Log page's "Testing is paused." (review D1).
+ * Phone 1 also opens You by the tab bar on the test's second day: no
+ * tester read, no answer read, no test tile, no mark, and the date.
  */
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 import { analyzeBody, collectRoute, json, seed, session, supabaseRoute, testerMode, POSE_PREF } from "./look-fixtures.mjs";
@@ -48,7 +54,10 @@ const browser = await chromium.launch({ args: ["--font-render-hinting=none"] });
    leave before Playwright's handler sees it, though the phone sent it. */
 const wire = [];
 
-async function phone({ tester = false, version = 3, hint = false } = {}) {
+/** 19:00 on the test's second day in Melbourne, for the phones that look at the test on Today (#402). */
+const TEST_DAY_2 = new Date("2026-10-31T19:00:00+11:00");
+
+async function phone({ tester = false, version = 3, hint = false, clock = null, share = false } = {}) {
   testerMode.tester = tester;
   testerMode.consentVersion = version;
   testerMode.collected.length = 0;
@@ -58,12 +67,15 @@ async function phone({ tester = false, version = 3, hint = false } = {}) {
     locale: "en-AU", timezoneId: "Australia/Melbourne", serviceWorkers: "block",
   });
   const reads = [];
+  const answerReads = [];
   wire.length = 0;
   ctx.on("request", (r) => {
     if (r.method() === "POST" && new URL(r.url()).pathname === "/api/tester/collect") wire.push(r.postData() ?? "");
   });
   await ctx.route("http://supabase.local/**", (route) => {
-    if (new URL(route.request().url()).pathname.startsWith("/rest/v1/testers")) reads.push(route.request().url());
+    const path = new URL(route.request().url()).pathname;
+    if (route.request().method() === "GET" && path.startsWith("/rest/v1/testers")) reads.push(route.request().url());
+    if (route.request().method() === "GET" && path.startsWith("/rest/v1/tester_feedback")) answerReads.push(route.request().url());
     return supabaseRoute(route);
   });
   await ctx.route("**/api/analyze", (route) => route.fulfill(json(analyzeBody)));
@@ -78,9 +90,12 @@ async function phone({ tester = false, version = 3, hint = false } = {}) {
     return route.fulfill(json({ error: "That code doesn't match. Check it and try again." }, 403));
   });
   await ctx.addInitScript(seed, { theme: "light", session: { ...session, user: { ...session.user, id: ID } }, pose: POSE_PREF, tester: hint });
+  // The phone's share sheet, answering at once (an iPhone has one; desktop Chromium does not).
+  if (share) await ctx.addInitScript(() => { navigator.share = () => Promise.resolve(); });
   const page = await ctx.newPage();
+  if (clock) await page.clock.setFixedTime(clock);
   page.on("pageerror", (e) => { if (!/probe/.test(e.message)) console.log("PAGEERROR", e.message.slice(0, 160)); });
-  return { ctx, page, reads };
+  return { ctx, page, reads, answerReads };
 }
 
 const hide = (page) =>
@@ -117,11 +132,20 @@ const sentCount = () => Math.max(testerMode.collected.length, wire.length);
 
 // 1. A non-tester.
 {
-  const { ctx, page, reads } = await phone();
+  const { ctx, page, reads, answerReads } = await phone({ clock: TEST_DAY_2 });
   await page.goto(`${BASE}/`);
   await page.waitForSelector("main h1", { timeout: 30000 });
   await sleep(1500);
   check("a non-tester's open reads no testers row", reads.length === 0, `${reads.length} reads`);
+  // During the test (#402): their Today is the one they always had.
+  await page.waitForSelector(".home-seg", { timeout: 20000 }).catch(() => {});
+  const eyebrow = (await page.locator(".large-title-eyebrow").first().textContent())?.trim() ?? "";
+  check("a non-tester's Today has no test tile and no Tester mark", (await page.locator("[data-test], .tester-chip").count()) === 0);
+  check("…and its eyebrow is the date", eyebrow.length > 0 && !/^Test day/.test(eyebrow), eyebrow);
+  await page.getByRole("link", { name: "You", exact: true }).first().click().catch(() => {});
+  await page.waitForURL(/\/you$/, { timeout: 15000 }).catch(() => {});
+  await sleep(1500);
+  check("…and Today then You read no testers row and no answer", reads.length === 0 && answerReads.length === 0, `${reads.length} tester reads, ${answerReads.length} answer reads`);
   await page.getByRole("link", { name: "Log" }).first().click().catch(() => {});
   await sleep(1200);
   await hide(page);
@@ -269,6 +293,37 @@ const sentCount = () => Math.max(testerMode.collected.length, wire.length);
     const crash = events().find((e) => e.kind === "error" && e.name === "boundary");
     check("a crash on the first screen of an open is reported, under that screen", !!crash && crash.screen === "/games" && /first screen crashed|ChunkLoadError/.test(crash.data?.message ?? ""), JSON.stringify(crash ?? events().map((e) => `${e.kind}:${e.name}`)).slice(0, 200));
   }
+  await ctx.close();
+}
+
+// 7. A version 3 tester during the test (#402).
+{
+  const { ctx, page, reads } = await phone({ tester: true, version: 3, hint: true, clock: TEST_DAY_2, share: true });
+  await page.goto(`${BASE}/`);
+  await page.waitForSelector("main h1", { timeout: 30000 });
+  const eyebrow = (await page.locator(".large-title-eyebrow").first().textContent())?.trim() ?? "";
+  check("a tester's Today says the test's day", eyebrow === "Test day 2 of 14", eyebrow);
+  const send = page.getByRole("button", { name: "Send your tester number to Timothy" });
+  await send.waitFor({ timeout: 20000 }).catch(() => {});
+  check("…with the test tile, its Tester mark and Send", (await page.locator("[data-test] .tester-chip").count()) === 1 && (await send.count()) === 1);
+  await page.getByRole("link", { name: "You", exact: true }).first().click();
+  await page.waitForURL(/\/you$/, { timeout: 15000 });
+  await sleep(1200);
+  await page.getByRole("link", { name: "Today", exact: true }).first().click();
+  await page.waitForURL((u) => new URL(u).pathname === "/", { timeout: 15000 });
+  await send.waitFor({ timeout: 20000 }).catch(() => {});
+  await sleep(1200);
+  check("the testers row is read once across Today, You and Today", reads.length === 1, `${reads.length} reads`);
+  await send.click();
+  await page.getByRole("status").filter({ hasText: "Sent" }).first().waitFor({ timeout: 5000 }).catch(() => {});
+  const sentKey = await page.evaluate(() => localStorage.getItem("ethos.tester.sent"));
+  check("Send remembers the number went", sentKey === "0B5E7A21", String(sentKey));
+  await page.getByText("Speak today, then answer both questions.").waitFor({ timeout: 6000 }).catch(() => {});
+  check("…and the tile moves on to the day's ask", (await page.getByText("Speak today, then answer both questions.").count()) === 1);
+  await hide(page);
+  await sleep(1200);
+  const taps = events().filter((e) => e.name === "tap");
+  check("the tap on Send is collected by its name", taps.some((t) => t.label === "Send your tester number to Timothy"), taps.map((t) => t.label).join(" | "));
   await ctx.close();
 }
 

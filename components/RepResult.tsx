@@ -109,10 +109,9 @@ export function RepResult({
   celebrate?: boolean;
   /**
    * The score step fills a flex column (the recording page's walk): the
-   * score at the top, then Demos on a coach stage in the take's colour
-   * that takes all the free height (E55), then his line. The parent is
-   * a `flex flex-col` the height of the room, and sets `data-trait` to
-   * the practice's family (the sky's wash where it has none).
+   * score at the top, then Demos on the plain ground, sized to all the
+   * free height (E55), then his line. The parent is a `flex flex-col`
+   * the height of the room.
    */
   spread?: boolean;
 }) {
@@ -198,15 +197,14 @@ export function RepResult({
   );
 
   const spreads = spread && debrief;
-  /* On a phone 700pt or taller the stage has room for his line too:
+  /* On a phone 700pt or taller his room has space for his line too:
      it hangs over his head with its tail down at his face, so the step
-     reads as the score, then Demos saying it on his own ground (R2F-02:
-     at 390x844 the stage was 359pt holding only him, about 139pt of
-     bare wash over his ears, his line in a second card under it). On a
-     shorter phone the stage is about his height and the line hangs
-     under it, tail up. */
+     reads as the score, then Demos saying it (R2F-02: at 390x844 the
+     room was 359pt holding only him, about 139pt of bare ground over
+     his ears, his line in a second card under it). On a shorter phone
+     the room is about his height and the line hangs under it, tail up. */
   const tallRoom = useTallRoom();
-  const lineInStage = spreads && tallRoom;
+  const lineInRoom = spreads && tallRoom;
   const bubble = (tail: "up" | "down", className: string) => (
     <div
       className={`${className} ${timed ? "arrive" : ""}`}
@@ -217,11 +215,9 @@ export function RepResult({
       </SpeechBubble>
     </div>
   );
-  /* With his line in the stage, what the stage cannot use over his
-     head (about 120pt at 390x844) is shared out: up to 32pt over the
-     stars and 32pt over the stage, and the stage keeps the rest, so
-     the score breathes and the wash over his line stays under 80. */
-  const air = lineInStage ? <div aria-hidden className="max-h-8 flex-1" /> : null;
+  /* With his line in his room, up to 32pt of the spare height goes
+     over the stars so the score breathes; Demos takes the rest. */
+  const air = lineInRoom ? <div aria-hidden className="max-h-8 flex-1" /> : null;
   return (
     <>
       {show("score") && air}
@@ -230,8 +226,7 @@ export function RepResult({
           /* The debrief's score step (recording-6, M07, D52, E55): one
              centred column, stars first, then the number, one delta,
              one caption, on the ground 24px under the step bar; then
-             Demos on his stage and his line. Nothing floats off to one
-             side. */
+             Demos and his line. Nothing floats off to one side. */
           <div className={`flex flex-col items-center text-center ${spreads ? "mt-6 [@media(max-height:600px)]:mt-4" : ""}`}>
             {ethosIndex !== null ? (
               <>
@@ -323,37 +318,34 @@ export function RepResult({
         </p>
       )}
 
-      {show("score") && debrief && air}
       {show("score") && debrief && (
         /*
-         * E55, E58: the score step's free height is Demos's stage, not
+         * E55, E58: the score step's free height is Demos's, not bare
          * ground. Under the score (which stays the loudest thing, 665 at
-         * 72), a stage in the take's own colour (`--tone-wash` from the
-         * column's data-trait: #e6edff, #142333 dark, on a Pausing day;
-         * the sky's wash for the boss and the games) takes every spare
-         * pixel at radius 28, so the step reads as the score and a coach
-         * who stands somewhere. He stands centred on the introduction's
-         * soft contact shadow 20px over its foot, scaled to the stage
-         * (88 to 200: 100cqh less 20 over and 20 under), and his line
-         * hangs under it with its tail up at him. The celebrate pose,
-         * with its sparkles and burst, is only for a new best Index or
-         * three stars (lib/rewards `celebrates`). It used to be three
-         * even bands of bare ground with a 228px Demos as the step's
-         * biggest object (D52).
+         * 72), he stands centred on the introduction's soft contact
+         * shadow, scaled to every spare pixel, with his line over his
+         * head on a tall phone and under him on a short one. No card
+         * behind him: Timothy took the stage in the take's colour out
+         * (T03 reverted, #400), so he stands on the screen's own ground
+         * the way he does in the introduction, and the height the stage
+         * filled is his: up to 270 on a tall phone, where 200 left 130pt
+         * of bare ground over his line at 390x844. The celebrate
+         * pose, with its sparkles and burst, is only for a new best
+         * Index or three stars (lib/rewards `celebrates`).
          */
         <div className="flex w-full flex-1 flex-col items-center">
-          {/* The stage's room is an absolute inset-0 size container (as
+          {/* His room is an absolute inset-0 size container (as
               `.demos-fit-room`): a flex-grown box's own height is not one
               its container units can read. On a phone under 600px tall
               (320x568) there is no spare height to give: the score and
-              the stage close up 8px each, the stage takes what is left
+              the room close up 8px each, the room takes what is left
               over his line, so the line stays over the shelf, and he
               stands 8px over its foot from 64px up. */}
           <div
-            data-coach-stage
-            data-line-in-stage={lineInStage || undefined}
-            className={`relative mt-5 w-full rounded-[28px] bg-[var(--tone-wash,var(--pop-sky-wash))] [@media(max-height:600px)]:mt-3 ${
-              lineInStage
+            data-coach-room
+            data-line-in-room={lineInRoom || undefined}
+            className={`relative mt-5 w-full [@media(max-height:600px)]:mt-3 ${
+              lineInRoom
                 ? "min-h-[300px] flex-1"
                 : spreads
                   ? "min-h-[140px] flex-1 [@media(max-height:600px)]:min-h-0"
@@ -361,24 +353,24 @@ export function RepResult({
             }`}
           >
             <div className="absolute inset-0 [container-type:size]">
-            {/* With his line in the stage, he gives it two lines of room
-                (78), 12px to his head and 20 to the stage's top: 88 to
-                200 from 100cqh less 130. */}
+            {/* With his line in his room, he gives it two lines of space
+                (78) and 12px to his head: 88 to 270 from 100cqh less
+                110. */}
             <div
               className={`absolute bottom-5 left-1/2 -translate-x-1/2 [container-type:size] ${
-                lineInStage
-                  ? "size-[clamp(88px,calc(100cqh_-_130px),200px)]"
+                lineInRoom
+                  ? "size-[clamp(88px,calc(100cqh_-_110px),270px)]"
                   : "size-[clamp(88px,calc(100cqh_-_40px),200px)] [@media(max-height:600px)]:bottom-2 [@media(max-height:600px)]:size-[clamp(64px,calc(100cqh_-_12px),200px)]"
               }`}
             >
               {celebrating ? (
                 /* The still, not the clip: the celebrate clip's alpha
-                   leaves a white matte over his head on a coloured
-                   stage (it only ever stood on the plain ground). */
+                   leaves a white matte over his head on anything but
+                   the plain light ground. */
                 <DemosArt
                   key="celebrate"
                   pose="celebrate"
-                  size={200}
+                  size={lineInRoom ? 270 : 200}
                   fit
                   grounded
                   idle={false}
@@ -389,7 +381,7 @@ export function RepResult({
                 <DemosArt
                   key="speaking"
                   pose="speaking"
-                  size={200}
+                  size={lineInRoom ? 270 : 200}
                   fit
                   grounded
                   greetAfterMs={timed && !celebrate ? bubbleAt + SAID_AFTER_MS : undefined}
@@ -403,14 +395,14 @@ export function RepResult({
                 </span>
               )}
             </div>
-            {lineInStage &&
+            {lineInRoom &&
               bubble(
                 "down",
-                "absolute inset-x-5 bottom-[calc(20px_+_clamp(88px,calc(100cqh_-_130px),200px)_+_12px)] text-left"
+                "absolute inset-x-5 bottom-[calc(20px_+_clamp(88px,calc(100cqh_-_110px),270px)_+_12px)] text-left"
               )}
             </div>
           </div>
-          {!lineInStage && bubble("up", "mt-3 w-full text-left")}
+          {!lineInRoom && bubble("up", "mt-3 w-full text-left")}
           {coach && (
             <p
               className={`mt-2 text-center text-caption text-stone-400 ${timed ? "arrive" : ""}`}

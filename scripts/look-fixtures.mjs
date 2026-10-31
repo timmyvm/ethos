@@ -18,13 +18,23 @@
    spoken ("One more", "On your line.") and the morning nobody had
    photographed. */
 const MEL = "Australia/Melbourne";
-const [MY, MM, MD] = new Intl.DateTimeFormat("en-CA", {
-  timeZone: MEL,
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-})
-  .format(new Date())
+/*
+ * LOOK_TODAY (YYYY-MM-DD): the camera's Melbourne "today", for a scene
+ * photographed on another day than the one it runs on (the tester test's
+ * last day, the week after it, #402). Every recording, period end and
+ * date column is then that many days from it; the camera fixes the
+ * page's clock to the same day (page.clock.setFixedTime).
+ */
+export const LOOK_TODAY = /^\d{4}-\d{2}-\d{2}$/.test(process.env.LOOK_TODAY ?? "") ? process.env.LOOK_TODAY : null;
+const [MY, MM, MD] = (
+  LOOK_TODAY ??
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: MEL,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date())
+)
   .split("-")
   .map(Number);
 /** Melbourne's offset from UTC at an instant, in minutes. */
@@ -316,6 +326,27 @@ export const testerMode = {
   stored: {},
   collected: [],
   collect: "ok",
+  /* When the account joined (testers.created_at): 14:00 on the test's
+     first day in Melbourne, so its 18:12 recording that day counts. */
+  joinedAt: "2026-10-30T03:00:00Z",
+  /* A recording made today at 09:12 (TODAY_REP), on the reps reads, so
+     Today shows a day already spoken and its question (#402). */
+  today: false,
+  /* The history read answers 500 (Today's unknown state). */
+  repsFail: false,
+  /* Milliseconds the testers row waits before it answers (the loading frame). */
+  testerDelay: 0,
+};
+
+/** Today's recording for `testerMode.today`: the newest fixture's, made at 09:12 today, its Index 665. */
+export const TODAY_REP = {
+  ...reps[reps.length - 1],
+  id: "7d1e2f30-4a5b-4c6d-8e9f-0a1b2c3d4e5f",
+  client_id: "k-today",
+  created_at: day(0, 9).toISOString(),
+  ethos_index: 665,
+  stars: 2,
+  lesson_id: "h4",
 };
 
 /** /api/tester/collect as the route answers it, every batch kept for the camera's checks. */
@@ -330,7 +361,7 @@ export async function collectRoute(route) {
   return route.fulfill(json({ ok: true, kept: Array.isArray(body?.events) ? body.events.length : 0 }));
 }
 /** A tester on the consent the app shows (content/tester.ts CONSENT_VERSION); set testerMode.consentVersion lower for one asked again. */
-const testerRow = () => ({ consent_version: testerMode.consentVersion, consented_at: iso(9) });
+const testerRow = () => ({ consent_version: testerMode.consentVersion, consented_at: iso(9), created_at: testerMode.joinedAt });
 
 async function supabase(route) {
   const req = route.request();
@@ -348,6 +379,7 @@ async function supabase(route) {
      "fail" refuses the match check's answers. Off, both behave as any
      table the account has no row in. */
   if (url.pathname.startsWith("/rest/v1/testers")) {
+    if (testerMode.testerDelay) await new Promise((r) => setTimeout(r, testerMode.testerDelay));
     const row = testerMode.tester ? testerRow() : null;
     if (single) return route.fulfill(row ? json(row) : json({ code: "PGRST116", message: "0 rows" }, 406));
     return route.fulfill(json(row ? [row] : []));
@@ -377,7 +409,9 @@ async function supabase(route) {
   }
   const table = url.pathname.replace("/rest/v1/", "").split("/")[0];
   if (req.method() !== "GET") return route.fulfill(json([]));
+  if (table === "reps" && testerMode.repsFail) return route.fulfill(json({ code: "XX000", message: "look: history refused" }, 500));
   let rows = TABLES[table] ?? [];
+  if (table === "reps" && testerMode.today && !FRESH) rows = [...rows, TODAY_REP];
   // PostgREST's order and limit, honoured, so a read for the newest N
   // gets the newest N (fetchReps asks descending and reverses).
   const order = url.searchParams.get("order");

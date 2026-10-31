@@ -14,7 +14,7 @@ import { ModPicker } from "@/components/ModPicker";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { HeaderCount } from "@/components/ui/HeaderCount";
 import { Segmented } from "@/components/ui/Segmented";
-import { IconBack, IconStar } from "@/components/Icon";
+import { IconBack, IconFlask, IconStar } from "@/components/Icon";
 import { Paywall } from "@/components/Paywall";
 import { PriceDropSheet } from "@/components/premium/Moments";
 import { usePlan, usePriceDrop } from "@/lib/use-plan";
@@ -198,7 +198,17 @@ export default function Home() {
      Read before the first paint from this device's hint and the clock;
      everyone else's Today is exactly as it was, and reads nothing new. */
   const test = useTestPresence();
-  const testEyebrow = test.shown && test.phase === "on" ? TEST_COPY.eyebrow(test.day) : null;
+  /* The mark's flask beside the day: on a short phone the tile is under
+     the nav when Today opens, and this line is the test's one sign. */
+  const testEyebrow =
+    test.shown && test.phase === "on" ? (
+      <span className="flex h-5 items-center gap-1.5">
+        <span aria-hidden className="test-eyebrow-mark inline-flex">
+          <IconFlask size={14} />
+        </span>
+        {TEST_COPY.eyebrow(test.day)}
+      </span>
+    ) : null;
 
   /**
    * The history read, on its own so the retry can mean it. It used to
@@ -445,12 +455,17 @@ export default function Home() {
       {/* The test, for a tester (#402): above the freeze card, so that
           card landing late never moves it. It draws a failed history as
           unknown rather than hiding. */}
-      {test.shown && (
+      {test.shown ? (
         <TestTile
           presence={test}
           recordings={failed ? "failed" : reps === null ? "loading" : { reps, spine }}
           className="mt-3"
         />
+      ) : (
+        /* Its place, held from the server's paint on a tester's device
+           until the tile takes it (lib/tester-boot.ts); nothing for
+           anyone else. */
+        <div aria-hidden className="test-tile-slot home-tile mt-3" />
       )}
 
       {/* The freeze reconciliation is its own read, landing after the

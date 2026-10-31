@@ -5316,4 +5316,42 @@ summary::-webkit-details-marker {
   border-radius: inherit;
   box-shadow: inset 0 0 0 2px var(--color-ink);
 }
+/* A history that did not load rings nothing: on a faded 14px slot, next
+   to the count's dash, a full ink ring read as a 0, a number the tile
+   cannot back. The eyebrow still says which day it is. */
+.test-day[data-state="unknown"][data-today]::after {
+  content: none;
+}
+/* The test tile's place, held from the server's first paint on a
+   tester's device (lib/tester-boot.ts marks html before paint), so a
+   reload never pushes Today down when the tile mounts. The surface step
+   with nothing on it until the tile replaces it at the same size. */
+.test-tile-slot {
+  display: none;
+}
+html[data-test-tile] .test-tile-slot {
+  display: block;
+  min-height: 208px;
+}
+/* The Log's question, opened from Today's Answer, comes to the screen's
+   foot with its answers clear of the edge and the home indicator. */
+#match {
+  scroll-margin-bottom: calc(24px + env(safe-area-inset-bottom));
+}
+/* The Send key's word changing (Send to Sent, Copy to Copied): from 40%,
+   so the key is never empty for a frame (components/tester/SendNumber.tsx). */
+@keyframes key-word-in {
+  from {
+    opacity: 0.4;
+  }
+}
+.key-word-in {
+  animation: key-word-in var(--duration-base) var(--ease-out) backwards;
+}
+/* The mark's glyph beside "Test day 2 of 14": on a short phone the tile
+   is under the nav when Today opens, and the eyebrow is the test's one
+   sign there. Mint ink, the chip's own colour, and no fill. */
+.test-eyebrow-mark {
+  color: var(--pop-mint-ink);
+}
 /* ========================== end of tester presence (#402) ========================== */

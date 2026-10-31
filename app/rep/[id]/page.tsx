@@ -31,8 +31,10 @@ import { pausedTester, scoreSnapshot, showsMatchCheck, storedSnapshotInput } fro
 import { useTester } from "@/lib/tester-client";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
 
-/** Where back goes, on every state of this screen. */
+/** Where back goes, on every state of this screen: the Log, or Today
+    when Today's test tile opened it (#402, its Answer: `?from=today`). */
 const BACK = { href: "/history", label: "Log" };
+const BACK_TODAY = { href: "/", label: "Today" };
 /** The date line's height with no date to print, so the title holds
     one y from the skeleton to whichever state replaces it. */
 const HELD = "\u00a0";
@@ -59,10 +61,14 @@ async function readStored(id: string): Promise<Stored> {
 /** One recording from the log, rebuilt from its stored row. */
 export default function RepDetail({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string | string[] }>;
 }) {
   const { id } = use(params);
+  const { from } = use(searchParams);
+  const back = from === "today" ? BACK_TODAY : BACK;
   const [stored, setStored] = useState<Stored | null>(null);
   const [failed, setFailed] = useState(false);
   /** The plan: null until the profile answers, and on a failed read.
@@ -94,10 +100,40 @@ export default function RepDetail({
   }, [id]);
 
   /* Opened from Today's Answer (#402): the question comes into view once
-     it has mounted, which is once the row and the tester state are read. */
+     it has mounted, which is once the row and the tester state are read.
+     It sits at the page's foot, so it is brought to the bottom of the
+     screen, its scroll margin keeping the answers clear of the edge.
+     Centring it was impossible, and the page arrives mid-push: while the
+     incoming screen still stands 24px to the right, a phone can lay the
+     page out wider (and so taller) for a few frames, and a scroll made
+     then left Too low, About right and Too high under the screen's edge.
+     So for a moment it is brought back whenever it hangs below the edge,
+     until the reader moves the page themselves. */
   useEffect(() => {
     if (!stored?.rep || tester === undefined || window.location.hash !== "#match") return;
-    document.getElementById("match")?.scrollIntoView({ block: "center" });
+    const match = document.getElementById("match");
+    if (!match) return;
+    const bring = () => match.scrollIntoView({ block: "end" });
+    bring();
+    let held = true;
+    let frame = 0;
+    const until = performance.now() + 1500;
+    const margin = parseFloat(getComputedStyle(match).scrollMarginBottom) || 0;
+    const settle = () => {
+      if (!held || performance.now() > until) return;
+      if (match.getBoundingClientRect().bottom > window.innerHeight - margin + 1) bring();
+      frame = requestAnimationFrame(settle);
+    };
+    frame = requestAnimationFrame(settle);
+    const mine = () => {
+      held = false;
+    };
+    const events = ["touchstart", "wheel", "keydown", "pointerdown"] as const;
+    for (const e of events) window.addEventListener(e, mine, { passive: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      for (const e of events) window.removeEventListener(e, mine);
+    };
   }, [stored, tester]);
 
   useEffect(() => {
@@ -110,7 +146,7 @@ export default function RepDetail({
   if (failed) {
     return (
       <main className="px-5 pb-8 pt-7">
-        <ScreenHeader title="Recording" eyebrow={HELD} back={BACK} />
+        <ScreenHeader title="Recording" eyebrow={HELD} back={back} />
         <ErrorState
           className="mt-4"
           {...readFailure("This recording")}
@@ -128,7 +164,7 @@ export default function RepDetail({
             what every recording is until its row says which. */}
         <ScreenHeader
           title="Recording"
-          back={BACK}
+          back={back}
           eyebrow={
             <span className="block py-1">
               <Skeleton className="h-3 w-36" />
@@ -145,7 +181,7 @@ export default function RepDetail({
   if (!rep) {
     return (
       <main className="px-5 pb-8 pt-7">
-        <ScreenHeader title="Recording" eyebrow={HELD} back={BACK} />
+        <ScreenHeader title="Recording" eyebrow={HELD} back={back} />
         <p className="font-display mt-4 text-row">Recording not found.</p>
       </main>
     );
@@ -217,7 +253,7 @@ export default function RepDetail({
       <ScreenHeader
         eyebrow={rep.mode === "boss" ? `${date}, boss` : date}
         title={recordingName(rep)}
-        back={BACK}
+        back={back}
       />
 
       {/* The trait it practised (M11) and what made it harder, as the

@@ -80,9 +80,18 @@ export function SendNumber({
         aria-label={canShare ? TEST_COPY.sendLabel : TEST_COPY.copyLabel}
         className={keyClass(surface)}
       >
-        <span key={label} className="fade-in inline-flex items-center gap-1.5">
-          {icon && <span className="inline-flex max-[359px]:hidden">{icon}</span>}
-          {label}
+        {/* The word never leaves the key: Send becomes Sent from 40%, and
+            only the glyph fades in whole. Keying the whole content left
+            an empty key for a frame on the one tap that matters. */}
+        <span className="inline-flex items-center gap-1.5">
+          {icon && (
+            <span key={status ?? (canShare ? "share" : "copy")} className="fade-in inline-flex max-[359px]:hidden">
+              {icon}
+            </span>
+          )}
+          <span key={label} className="key-word-in">
+            {label}
+          </span>
         </span>
       </button>
       <span role="status" className="sr-only">

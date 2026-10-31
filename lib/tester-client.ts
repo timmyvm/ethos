@@ -25,7 +25,8 @@ import {
   type ScoreSnapshot,
   type TesterRow,
 } from "./tester";
-import { testDay, testPhase, zoneDayKey, type TestPhase } from "./tester-days";
+import { remindersZone } from "./reminders-zone";
+import { testDay, testPhase, testZone, zoneDayKey, type TestPhase } from "./tester-days";
 import { TESTER_HINT_KEY } from "./tester-signal";
 
 /**
@@ -171,40 +172,82 @@ export function useTesterNumber(): string | null | undefined {
   return n;
 }
 
+/** The zone this phone counts the test's days in: the report's (lib/tester-days.ts `testZone`). */
+export function testZoneHere(): string {
+  return testZone(remindersZone());
+}
+
 /**
- * Where this device stands in the test (#402): today's day in the
- * test's zone, its phase, and whether Today shows the test, which is a
- * device holding the tester hint during the test or the week after it.
- * Read before the first paint, so the eyebrow and the tile's frame are
- * there from the first frame; nobody else's Today reads anything, and
- * the testers row is read (shared, once per page life) only when shown.
+ * Where this device stands in the test (#402): today's day in the zone
+ * the report counts the tester's days in, its phase, and whether Today
+ * shows the test, which is a device holding the tester hint during the
+ * test or the week after it. Read before the first paint, so the eyebrow
+ * and the tile's frame are there from the first frame; nobody else's
+ * Today reads anything, and the testers row is read (shared, once per
+ * page life) only when shown.
+ *
+ * Read again whenever the app comes back (shown again, restored from the
+ * back/forward cache, focused) and once a minute while it stays open, so
+ * a home-screen app left on Today overnight says the new day's number
+ * and asks for the new day's recording, never "Day 2 is done." on day 3.
  */
 export interface TestPresence {
   shown: boolean;
   today: string;
   day: number;
   phase: TestPhase;
+  /** The zone `today` is in, and the tile counts recordings' days in. */
+  zone: string;
   tester: "loading" | "failed" | TesterRow;
 }
 
 export function useTestPresence(): TestPresence {
-  const [at, setAt] = useState<Omit<TestPresence, "tester">>({ shown: false, today: "", day: 0, phase: "before" });
+  const [at, setAt] = useState<Omit<TestPresence, "tester">>({
+    shown: false,
+    today: "",
+    day: 0,
+    phase: "before",
+    zone: "",
+  });
   const [generation, setGeneration] = useState(0);
   const [tester, setTester] = useState<"loading" | "failed" | TesterRow>("loading");
   useLayoutEffect(() => {
     const read = () => {
-      const today = zoneDayKey(Date.now());
+      const zone = testZoneHere();
+      const today = zoneDayKey(Date.now(), zone);
       const day = testDay(today);
       const phase = testPhase(day);
-      setAt({ shown: readTesterHint() && (phase === "on" || phase === "after"), today, day, phase });
+      const shown = readTesterHint() && (phase === "on" || phase === "after");
+      /* The head's boot script held the tile's place (lib/tester-boot.ts);
+         from here this keeps that mark in step, so a place held at the
+         window's edge, or for a hint just gone, closes before paint. */
+      try {
+        document.documentElement.toggleAttribute("data-test-tile", shown);
+      } catch {}
+      setAt((was) =>
+        was.shown === shown && was.today === today && was.zone === zone ? was : { shown, today, day, phase, zone }
+      );
     };
     read();
     const again = () => {
       read();
       setGeneration((g) => g + 1);
     };
+    const resume = () => {
+      if (document.visibilityState === "visible") read();
+    };
     window.addEventListener(TESTER_CHANGED, again);
-    return () => window.removeEventListener(TESTER_CHANGED, again);
+    document.addEventListener("visibilitychange", resume);
+    window.addEventListener("pageshow", resume);
+    window.addEventListener("focus", resume);
+    const minute = window.setInterval(resume, 60_000);
+    return () => {
+      window.removeEventListener(TESTER_CHANGED, again);
+      document.removeEventListener("visibilitychange", resume);
+      window.removeEventListener("pageshow", resume);
+      window.removeEventListener("focus", resume);
+      window.clearInterval(minute);
+    };
   }, []);
   useEffect(() => {
     if (!at.shown) return;

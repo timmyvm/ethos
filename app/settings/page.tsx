@@ -42,7 +42,7 @@ import { useRovingRadio, type RovingItemProps } from "@/lib/use-roving-radio";
 import { DOOR_COPY, TEST, TEST_COPY } from "@/content/tester";
 import { isCurrentTester } from "@/lib/tester";
 import { testDay, zoneDayKey } from "@/lib/tester-days";
-import { fetchTester, forgetTesterHint, readTesterHint } from "@/lib/tester-client";
+import { fetchTester, forgetTesterHint, readTesterHint, testZoneHere } from "@/lib/tester-client";
 
 /** The hours a reminder can ring at: two rows of three (you-17). */
 const HOURS = [7, 8, 12, 18, 20, 21] as const;
@@ -135,7 +135,7 @@ export default function SettingsPage() {
   const [testDayNow, setTestDayNow] = useState<number | null>(null);
   useLayoutEffect(() => {
     setTesting(readTesterHint() ? "on" : "no");
-    setTestDayNow(testDay(zoneDayKey(Date.now())));
+    setTestDayNow(testDay(zoneDayKey(Date.now(), testZoneHere())));
   }, []);
   useEffect(() => {
     fetchTester()

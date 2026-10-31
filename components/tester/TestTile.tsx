@@ -5,8 +5,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperti
 import { Skeleton, SkeletonRegion } from "@/components/ui/Skeleton";
 import { keyClass, SendNumber } from "@/components/tester/SendNumber";
 import { TesterChip } from "@/components/tester/TesterChip";
-import { TesterPaused } from "@/components/tester/TesterPaused";
-import { CONSENT, MATCH_COPY, TEST, TEST_COPY } from "@/content/tester";
+import { CONSENT, MATCH_COPY, PAUSED_COPY, TEST, TEST_COPY } from "@/content/tester";
 import type { RepRow, RepSpine } from "@/lib/client-data";
 import { isCurrentTester, showsMatchCheck } from "@/lib/tester";
 import { testAsk, testRoad, zoneDayKey, type TestAsk, type TodayAnswer } from "@/lib/tester-days";
@@ -31,6 +30,12 @@ export type TileRecordings = "loading" | "failed" | { reps: RepRow[]; spine: Rep
  * agree again (paused), send the number to Timothy, speak today, answer
  * today's "Did 665 feel right?", or the day is done. After the 12th the
  * road stands still and the ask says the test is over.
+ *
+ * The ask sits right under the mark and the number, above the count and
+ * the road: on an iPhone the floating nav stands 34px higher than in a
+ * desktop browser (the home indicator's inset), and the tile's last row
+ * is under it when Today opens. "Send Timothy your tester number." is
+ * the one line that must never be there.
  *
  * The bento's flat surface step, not a card: the practice card above it
  * keeps the screen's one lift and its one terracotta tap. One fixed
@@ -73,8 +78,9 @@ export function TestTile({
         today: presence.today,
         joined: row?.created_at ?? null,
         spoken: recordings === "failed" ? null : (spine ?? []).map((r) => r.created_at),
+        zone: presence.zone,
       }),
-    [presence.today, row?.created_at, recordings, spine]
+    [presence.today, presence.zone, row?.created_at, recordings, spine]
   );
 
   /* Today's question after the score: the newest of today's recordings
@@ -84,11 +90,11 @@ export function TestTile({
     if (typeof recordings !== "object") return null;
     for (let i = recordings.reps.length - 1; i >= 0; i--) {
       const rep = recordings.reps[i];
-      if (zoneDayKey(rep.created_at) !== presence.today) continue;
+      if (zoneDayKey(rep.created_at, presence.zone) !== presence.today) continue;
       if (showsMatchCheck({ tester: row, scorable: rep.ethos_index !== null, clientId: rep.client_id })) return rep;
     }
     return null;
-  }, [row, presence.phase, presence.today, road.spokenToday, recordings]);
+  }, [row, presence.phase, presence.today, presence.zone, road.spokenToday, recordings]);
   const [given, setGiven] = useState<{ key: string; answer: TodayAnswer } | null>(null);
   useEffect(() => {
     if (!target?.client_id) return;
@@ -140,6 +146,24 @@ export function TestTile({
     if (lands) markLit(presence.today);
   }, [ready, land, ask.kind, road.spokenToday, presence.today]);
 
+  /* Focus across the ask's change after a Send: the key that held it
+     unmounts when the next ask arrives, and focus fell to <body>,
+     throwing a keyboard or VoiceOver user back to the top. It moves to
+     the new ask's row, which reads it out. Only after a tap here, never
+     when a read lands. */
+  const askRow = useRef<HTMLDivElement>(null);
+  const shownKind = useRef<TestAsk["kind"]>(ask.kind);
+  const tapped = useRef(false);
+  useLayoutEffect(() => {
+    const was = shownKind.current;
+    shownKind.current = ask.kind;
+    if (was === ask.kind || was !== "send" || !tapped.current) return;
+    tapped.current = false;
+    const active = document.activeElement;
+    const tile = askRow.current?.closest("[data-test]");
+    if (!active || active === document.body || tile?.contains(active)) askRow.current?.focus();
+  }, [ask.kind]);
+
   return (
     <section aria-label={CONSENT.title} data-test className={`home-tile ${className}`}>
       <div className="flex h-[22px] items-center justify-between gap-3">
@@ -155,6 +179,19 @@ export function TestTile({
       </div>
       {ready ? (
         <div key="ready" className="arrive">
+          <div ref={askRow} tabIndex={-1} data-test-ask className="mt-2 min-h-11 outline-none!">
+            <AskRow
+              key={ask.kind}
+              ask={ask}
+              number={number ?? null}
+              className={firstKind.current !== null && ask.kind !== firstKind.current ? "arrive" : ""}
+              onSent={() => {
+                tapped.current = true;
+                setSentFlag(true);
+                setHeld(true);
+              }}
+            />
+          </div>
           <TestNum n={road.spoken} />
           <div aria-hidden className="test-road mt-3">
             {road.slots.map((s) => {
@@ -172,21 +209,12 @@ export function TestTile({
             })}
           </div>
           <Ends />
-          <div data-test-ask className="mt-2 min-h-11">
-            <AskRow
-              key={ask.kind}
-              ask={ask}
-              number={number ?? null}
-              className={firstKind.current !== null && ask.kind !== firstKind.current ? "arrive" : ""}
-              onSent={() => {
-                setSentFlag(true);
-                setHeld(true);
-              }}
-            />
-          </div>
         </div>
       ) : (
         <SkeletonRegion label="Loading your test days">
+          <span data-test-ask className="mt-2 flex min-h-11 items-center">
+            <Skeleton className="h-3 w-48" />
+          </span>
           <span className="mt-3 flex h-9 items-center">
             <Skeleton className="h-7 w-24" />
           </span>
@@ -194,9 +222,6 @@ export function TestTile({
             <Skeleton className="h-6 w-full" />
           </span>
           <Ends />
-          <span data-test-ask className="mt-2 flex min-h-11 items-center">
-            <Skeleton className="h-3 w-48" />
-          </span>
         </SkeletonRegion>
       )}
     </section>
@@ -257,7 +282,18 @@ function AskRow({
     case "none":
       return <div className="min-h-11" />;
     case "paused":
-      return <TesterPaused back="/" className={className} />;
+      /* Ranked above every other ask (nothing is kept until they agree),
+         so it speaks in the tile's grammar: the line in ink and a key,
+         never quieter than Send. TesterPaused stays the results' and the
+         Log's way of saying it. */
+      return (
+        <div className={`flex min-h-11 items-center justify-between gap-3 ${className}`}>
+          <p className="text-body leading-snug text-pretty font-semibold text-ink">{PAUSED_COPY.line}</p>
+          <Link href="/tester?from=open&back=%2F" className={keyClass("tile")}>
+            {PAUSED_COPY.action}
+          </Link>
+        </div>
+      );
     case "send":
       return (
         <div className={`flex min-h-11 items-center justify-between gap-3 ${className}`}>
@@ -273,7 +309,7 @@ function AskRow({
       return (
         <div className={`flex min-h-11 items-center justify-between gap-3 ${className}`}>
           <p className="text-body leading-snug text-pretty font-semibold text-ink">{MATCH_COPY.questionFor(ask.index)}</p>
-          <Link href={`/rep/${ask.repId}#match`} className={keyClass("tile")}>
+          <Link href={`/rep/${ask.repId}?from=today#match`} className={keyClass("tile")}>
             {TEST_COPY.ask.answer}
           </Link>
         </div>

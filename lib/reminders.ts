@@ -21,6 +21,7 @@
  */
 
 import { insideQuietHours, readPrefs, type Prefs } from "./prefs";
+import { deviceZone, PUSH_ACK_KEY } from "./reminders-zone";
 import { ensureSession } from "./supabase-browser";
 
 /**
@@ -177,6 +178,9 @@ export async function armPush(prefs: Prefs = readPrefs()): Promise<boolean> {
       }));
     const token = await ensureSession();
     if (!token) return false;
+    // The zone itself, so the server follows its daylight-saving changes
+    // without waiting for this device to re-arm (0019).
+    const tz = deviceZone();
     const res = await fetch("/api/push", {
       method: "POST",
       headers: {
@@ -187,20 +191,12 @@ export async function armPush(prefs: Prefs = readPrefs()): Promise<boolean> {
         subscription: sub.toJSON(),
         reminderHour: prefs.reminderHour,
         tzOffset: new Date().getTimezoneOffset(),
-        // The zone itself, so the server follows its daylight-saving
-        // changes without waiting for this device to re-arm (0019).
-        tz: (() => {
-          try {
-            return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
-          } catch {
-            return undefined;
-          }
-        })(),
+        tz,
         quietFrom: prefs.quietFrom,
         quietTo: prefs.quietTo,
       }),
     });
-    if (res.ok) writeAck({ endpoint: sub.endpoint, hour: prefs.reminderHour });
+    if (res.ok) writeAck({ endpoint: sub.endpoint, hour: prefs.reminderHour, tz });
     return res.ok;
   } catch {
     return false;
@@ -213,11 +209,13 @@ export async function armPush(prefs: Prefs = readPrefs()): Promise<boolean> {
  * in place, still ringing at its hour, so a local tier on top of it would
  * ring the same day twice (#186). A local subscription alone proves
  * nothing: armPush subscribes before it posts, so a first post that
- * failed leaves a subscription the server never heard of.
+ * failed leaves a subscription the server never heard of. The zone it
+ * was sent with rides along: a tester's days are counted in it
+ * (lib/reminders-zone.ts).
  */
-const ACK_KEY = "ethos.push.ack";
+const ACK_KEY = PUSH_ACK_KEY;
 
-function writeAck(ack: { endpoint: string; hour: number } | null): void {
+function writeAck(ack: { endpoint: string; hour: number; tz?: string } | null): void {
   try {
     if (ack) localStorage.setItem(ACK_KEY, JSON.stringify(ack));
     else localStorage.removeItem(ACK_KEY);

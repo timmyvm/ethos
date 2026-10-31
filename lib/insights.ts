@@ -6,6 +6,7 @@
  */
 
 import type { RepRow } from "./client-data";
+import { ALL_FILLERS_PER_MIN } from "./metric-labels";
 
 export interface Insight {
   id: string;
@@ -155,7 +156,7 @@ export function insights(reps: RepRow[]): Insight[] {
     out.push({
       id: "best-hour",
       headline: `You speak cleanest around ${label}`,
-      detail: `${best.fpm.toFixed(1)} fillers a minute in that window, your lowest. Worth practicing there.`,
+      detail: `${ALL_FILLERS_PER_MIN} was ${best.fpm.toFixed(1)} in that window, your lowest. Worth practicing there.`,
     });
   }
 
@@ -168,7 +169,7 @@ export function insights(reps: RepRow[]): Insight[] {
       out.push({
         id: "consistent",
         headline: "Your floor is rising, not just your best day",
-        detail: `Fillers stay within ${sd.toFixed(1)}/min of ${m.toFixed(1)} in every recording. Consistency is the part that survives pressure.`,
+        detail: `${ALL_FILLERS_PER_MIN} stays within ${sd.toFixed(1)} of ${m.toFixed(1)} in every recording. Consistency is the part that survives pressure.`,
       });
     }
   }

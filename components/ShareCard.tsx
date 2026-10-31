@@ -2,10 +2,10 @@
 
 import { useRef, useState } from "react";
 import type { RepRow } from "@/lib/client-data";
-import { ALL_FILLERS_LABEL } from "@/lib/log";
+import { ALL_FILLERS_PER_MIN, HELD_PER_RECORDING } from "@/lib/metric-labels";
 import { ACTION_CLASS } from "@/lib/ui";
 
-/** All fillers a minute, or `null` when a recording has no length to divide by. */
+/** All fillers / min, or `null` when a recording has no length to divide by. */
 const fpm = (r: RepRow): number | null =>
   r.duration_s > 0 ? r.filler_count / (r.duration_s / 60) : null;
 
@@ -79,7 +79,7 @@ export function ShareCard({ reps, quiet = false }: { reps: RepRow[]; quiet?: boo
       // missing is left out rather than drawn as a zero.
       const rows: [string, string, string, boolean][] = [];
       if (was !== null && now !== null) {
-        rows.push([ALL_FILLERS_LABEL.row, was.toFixed(1), now.toFixed(1), now < was]);
+        rows.push([ALL_FILLERS_PER_MIN, was.toFixed(1), now.toFixed(1), now < was]);
       }
       rows.push(
         [
@@ -89,7 +89,7 @@ export function ShareCard({ reps, quiet = false }: { reps: RepRow[]; quiet?: boo
           Math.abs(last.wpm - 145) < Math.abs(first.wpm - 145),
         ],
         [
-          "Held pauses",
+          HELD_PER_RECORDING,
           String((first.pauses ?? []).filter((p) => p.kind !== "beat").length),
           String((last.pauses ?? []).filter((p) => p.kind !== "beat").length),
           true,
@@ -148,7 +148,7 @@ export function ShareCard({ reps, quiet = false }: { reps: RepRow[]; quiet?: boo
   return (
     <section className="card p-5">
       <h2 className="detail-head">Day 1 vs now</h2>
-      <p className="mt-0.5 text-caption text-stone-500">{ALL_FILLERS_LABEL.card}</p>
+      <p className="mt-0.5 text-caption text-stone-500">{ALL_FILLERS_PER_MIN}</p>
       {/* Then and now, side by side: the first reading in stone, the
           latest in ink, at num-l so the change outweighs the tap under
           it (the numbers are the product). A recording with no length

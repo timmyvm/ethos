@@ -75,12 +75,15 @@ export const UNITS: Unit[] = [
     blurb: "Cut the noise. Every 'um' you drop is a second of authority back.",
     unlocksAt: 0,
     lessons: lessonsFor("Filler Elimination"),
-    /* docs/voice.md Part 3, verbatim. The third tactic is the one only
-       somebody who has actually done the lesson would say, and it does
-       the work the old paragraph was reaching for. */
+    /* docs/voice.md Part 3, verbatim, but for the line: "No ums, no
+       ahs. You pause instead." under "No fillers" spent the screen's
+       one negation twice, so it says the move instead (E29, Timothy
+       31 October; voice.md keeps his first line). The third tactic is
+       the one only somebody who has actually done the lesson would say,
+       and it does the work the old paragraph was reaching for. */
     intro: {
       title: "No fillers",
-      line: "No ums, no ahs. You pause instead.",
+      line: "Pause where the um was.",
       howTo: [
         "Know your first sentence before you hit record.",
         'When you feel an "um" coming, just close your mouth.',

@@ -2,6 +2,7 @@ import { IconChevron } from "@/components/Icon";
 import { TRAIT, type TraitId } from "@/content/traits";
 import type { CoachOutput } from "@/lib/coach";
 import { dimensionPoints, type Tier1Scores, type Tier2Anchors } from "@/lib/index-score";
+import { ALL_FILLERS_PER_MIN } from "@/lib/metric-labels";
 import type { RepMetrics } from "@/lib/metrics";
 
 interface Row {
@@ -74,7 +75,9 @@ export function DimensionList({
       trait: "fillers",
       score: tier1.fillers,
       weight: 100,
-      detail: `${metrics.fillerCount} filler${metrics.fillerCount === 1 ? "" : "s"}, ${metrics.fillersPerMin} a minute. None scores 100; 8 a minute scores 0.${
+      // The score runs on every filler a minute, so the rate wears its
+      // one label (E32): the row's own name is the trait's.
+      detail: `${ALL_FILLERS_PER_MIN}: ${metrics.fillersPerMin} (${metrics.fillerCount} in all). None scores 100; 8 scores 0.${
         metrics.topFiller ? ` Most of them were “${metrics.topFiller}”.` : ""
       }`,
       improve:

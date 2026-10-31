@@ -1,5 +1,5 @@
 import type { RepRow } from "@/lib/client-data";
-import { ALL_FILLERS_LABEL } from "@/lib/log";
+import { ALL_FILLERS_PER_MIN, HELD_PER_RECORDING } from "@/lib/metric-labels";
 
 /**
  * Day-1 vs day-N — the core retention asset AND the core marketing
@@ -36,7 +36,7 @@ export function ComparisonCard({
 
   const rows: { label: string; a: string; b: string; better: boolean }[] = [
     {
-      label: ALL_FILLERS_LABEL.row,
+      label: ALL_FILLERS_PER_MIN,
       a: fpm(first).toFixed(1),
       b: fpm(last).toFixed(1),
       better: fpm(last) < fpm(first),
@@ -49,7 +49,7 @@ export function ComparisonCard({
         Math.abs(last.wpm - 145) < Math.abs(first.wpm - 145),
     },
     {
-      label: "Held pauses",
+      label: HELD_PER_RECORDING,
       a: String(held(first)),
       b: String(held(last)),
       better: held(last) > held(first),
@@ -66,9 +66,9 @@ export function ComparisonCard({
   }
 
   const LEAD_LABEL: Record<string, string> = {
-    fillers: ALL_FILLERS_LABEL.row,
+    fillers: ALL_FILLERS_PER_MIN,
     wpm: "Words / min",
-    pause: "Held pauses",
+    pause: HELD_PER_RECORDING,
   };
   const leadLabel = lead ? LEAD_LABEL[lead] : undefined;
   if (leadLabel) {

@@ -16,25 +16,13 @@ import { gameById } from "./games";
 import { parsePracticeId } from "./lesson-progress";
 import { dimensionPoints, INDEX_WEIGHTS } from "./index-score";
 import { TRAITS, type TraitKey } from "./traits";
+import { ALL_FILLERS_PER_MIN, HELD_PER_RECORDING } from "./metric-labels";
 
 /** The pace band the results walk already names (RepResult). */
 export const WPM_ZONE = { low: 130, high: 160 } as const;
 
-/**
- * Every filler counted (um, uh, like, you know), a minute (E32). The
- * Fillers trait is um or uh per hundred words (content/traits.ts), so
- * Today's tile and this rate are two different numbers: a row or a card
- * that printed this one under the trait's own name read as the same
- * trait in a second unit. The one label for it, in the row's and the
- * card's grammar (`lib/trait-labels.test.ts` holds every label to it).
- */
-export const ALL_FILLERS = "All fillers";
-export const ALL_FILLERS_LABEL = {
-  /** The What moved row and the shared picture's row. */
-  row: `${ALL_FILLERS} / min`,
-  /** The Day 1 vs now card's caption. */
-  card: `${ALL_FILLERS} a minute`,
-} as const;
+/** The Log's labels for the every-filler rate and one recording's held pauses. */
+export { ALL_FILLERS, ALL_FILLERS_PER_MIN, HELD_PER_RECORDING } from "./metric-labels";
 
 export type Direction = "up" | "down" | "flat";
 
@@ -144,9 +132,9 @@ export function movedRows(reps: RepRow[]): MovedRow[] {
     .map((r) => r.ethos_index as number);
   return [
     endpoints("index", "Ethos Index", index),
-    endpoints("fillers", ALL_FILLERS_LABEL.row, reps.map(fpm), { decimals: 1, invert: true }),
+    endpoints("fillers", ALL_FILLERS_PER_MIN, reps.map(fpm), { decimals: 1, invert: true }),
     paceRow(reps.map((r) => r.wpm)),
-    endpoints("held", "Held pauses", reps.map(held)),
+    endpoints("held", HELD_PER_RECORDING, reps.map(held)),
   ];
 }
 

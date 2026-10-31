@@ -23,6 +23,7 @@ import {
   TAKE_SECONDS,
   type HostilePrompt,
 } from "@/lib/hostile";
+import { ALL_FILLERS } from "@/lib/metric-labels";
 import { buzz } from "@/lib/prefs";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
@@ -717,7 +718,7 @@ export default function HostilePage() {
               <p className="eyebrow">Your take, measured</p>
               <div className="mt-3 flex gap-3">
                 <TakeStat
-                  label="Fillers"
+                  label={ALL_FILLERS}
                   value={String(takeResult.metrics.fillerCount)}
                   note={`${takeResult.metrics.fillersPerMin}/min`}
                 />

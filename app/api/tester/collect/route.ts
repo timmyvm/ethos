@@ -28,6 +28,11 @@
  *      reads it) on device rows only, then one insert with the service
  *      role.
  *
+ * Before any of it: once the test is over (00:00 on 13 November in
+ * Melbourne, `testOver`), nothing is taken from anyone and every phone
+ * is told to stop. The consent keeps what a phone collects "while you
+ * test", and from then on Today and Settings say the test ended (#402).
+ *
  * Answers with what the phone needs to know: 200 kept (the batch is
  * done, whatever was kept), 401 (a fresh token next time), 403 with
  * `stop` (collecting ends on this phone), 413 and 400 (the batch is
@@ -40,12 +45,14 @@ import { resolveAuthHeader, supabaseAdmin } from "@/lib/db";
 import { clientIp, consumeRateLimit } from "@/lib/rate-limit";
 import { cleanEvents, COLLECTS_FROM_VERSION, EVENT_CAPS, type EventRow } from "@/lib/tester-events";
 import { eventsTableFull } from "@/lib/tester-room";
+import { testOver } from "@/lib/tester";
 
 export const runtime = "nodejs";
 
 const json = (body: Record<string, unknown>, status = 200) => NextResponse.json(body, { status });
 
 export async function POST(req: NextRequest) {
+  if (testOver()) return json({ error: "The test is over.", stop: true }, 403);
   const declared = Number(req.headers.get("content-length") ?? 0);
   if (declared > EVENT_CAPS.body) return json({ error: "Too large." }, 413);
   const text = await req.text().catch(() => "");

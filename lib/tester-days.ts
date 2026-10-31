@@ -4,17 +4,24 @@
  * spoke on since joining, what today still needs, and when the test is
  * over. Today's eyebrow, its test tile and Settings' row read these.
  *
- * Every day here is a calendar day in the test's own zone
- * (content/tester.ts `TEST.zone`, Melbourne), the calendar the window
- * was announced on and the report counts `days_spoken` on (0022). A
- * recording at 23:50 on 30 October in Melbourne is day 1 whatever zone
- * the phone or the server is in, and the one ten minutes later is day 2.
- * Days are "YYYY-MM-DD" keys and arithmetic on them is by date parts, so
- * a daylight saving change never moves a day.
+ * Every day here is a calendar day in one zone: the zone the report
+ * counts the tester's `days_spoken` in (tester_admin.zones, 0020), so
+ * the tile's count is the report's. That is the zone their reminders
+ * follow when this phone has reminders on (the zone it sent with them),
+ * and the test's own, Melbourne, the calendar the window was announced
+ * on, otherwise (`testZone`). With Melbourne's calendar a recording at
+ * 23:50 on 30 October is day 1 whatever zone the phone or the server is
+ * in, and the one ten minutes later is day 2. Days are "YYYY-MM-DD" keys
+ * and arithmetic on them is by date parts, so a daylight saving change
+ * never moves a day. The test's end, where collection stops, is always
+ * Melbourne's (`testOver`, `TEST.endsAt`).
  */
 
 import { TEST } from "@/content/tester";
 import { pausedTester, type TesterRow } from "./tester";
+
+/* Whether the test is over (lib/tester.ts, where collection reads it). */
+export { testOver } from "./tester";
 
 /** Before the first day, the fourteen days, the week after (the tile stays), and gone. */
 export type TestPhase = "before" | "on" | "after" | "gone";
@@ -79,6 +86,23 @@ export function testPhase(day: number): TestPhase {
   return "gone";
 }
 
+/**
+ * The zone the test's days are counted in on this phone, the report's
+ * rule (tester_admin.zones): the reminders' zone when the server holds
+ * reminders for this phone (`reminders`, the zone it sent with them),
+ * and Melbourne's otherwise. A zone this runtime cannot read falls back
+ * to Melbourne's, as the server's own check does.
+ */
+export function testZone(reminders: string | null): string {
+  if (!reminders) return TEST.zone;
+  try {
+    new Intl.DateTimeFormat("en-CA", { timeZone: reminders });
+    return reminders;
+  } catch {
+    return TEST.zone;
+  }
+}
+
 /** The window's days, first to last. */
 export function testKeys(): string[] {
   return Array.from({ length: TEST.days }, (_, i) => addDays(TEST.first, i));
@@ -96,23 +120,26 @@ export function testRoad({
   today,
   joined,
   spoken,
+  zone = TEST.zone,
 }: {
-  /** Today's key, in the test's zone. */
+  /** Today's key, in `zone`. */
   today: string;
   /** testers.created_at; null counts from the first day. */
   joined: string | null;
   /** Every recording's created_at; null when the history read failed. */
   spoken: readonly string[] | null;
+  /** The zone the days are counted in (`testZone`), Melbourne's by default. */
+  zone?: string;
 }): { slots: TestSlot[]; spoken: number | null; spokenToday: boolean | null } {
   const keys = testKeys();
   const joinedAt = joined ? Date.parse(joined) : NaN;
-  const joinedKey = Number.isFinite(joinedAt) ? zoneDayKey(joinedAt) : null;
+  const joinedKey = Number.isFinite(joinedAt) ? zoneDayKey(joinedAt, zone) : null;
   const days = new Set<string>();
   for (const at of spoken ?? []) {
     const t = Date.parse(at);
     if (!Number.isFinite(t)) continue;
     if (Number.isFinite(joinedAt) && t < joinedAt) continue;
-    days.add(zoneDayKey(t));
+    days.add(zoneDayKey(t, zone));
   }
   const slots = keys.map((key): TestSlot => {
     const isToday = key === today;

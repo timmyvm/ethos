@@ -7,7 +7,9 @@ import {
   testDay,
   testKeys,
   testPhase,
+  testOver,
   testRoad,
+  testZone,
   zoneDayKey,
   type TodayAnswer,
 } from "./tester-days";
@@ -135,6 +137,53 @@ describe("the road", () => {
     expect(r.slots.slice(0, 13).every((s) => s.state === "missed")).toBe(true);
     expect(r.spoken).toBe(1);
     expect(r.spokenToday).toBe(false);
+  });
+
+  it("counts in the zone it is given, the report's for a phone with reminders in Brisbane", () => {
+    // 23:30 on Saturday 31 October in Brisbane (UTC+10) is 00:30 on 1 November in Melbourne.
+    const late = "2026-10-31T13:30:00Z";
+    const melbourne = testRoad({ today: zoneDayKey(late), joined: ROW.created_at, spoken: [at("2026-10-30"), late] });
+    expect(zoneDayKey(late)).toBe("2026-11-01");
+    expect(melbourne.slots[2]).toMatchObject({ state: "spoken", today: true });
+    const brisbane = testRoad({
+      today: zoneDayKey(late, "Australia/Brisbane"),
+      joined: ROW.created_at,
+      spoken: [at("2026-10-30"), late],
+      zone: "Australia/Brisbane",
+    });
+    expect(zoneDayKey(late, "Australia/Brisbane")).toBe("2026-10-31");
+    expect(brisbane.slots[1]).toMatchObject({ state: "spoken", today: true });
+    expect(brisbane.spokenToday).toBe(true);
+    expect(brisbane.spoken).toBe(2);
+  });
+});
+
+describe("the zone the days are counted in", () => {
+  it("is the reminders' zone when this phone has reminders, as the report counts them (tester_admin.zones)", () => {
+    expect(testZone("Australia/Brisbane")).toBe("Australia/Brisbane");
+    expect(testZone("Europe/London")).toBe("Europe/London");
+  });
+
+  it("is Melbourne's without reminders, and for a zone this runtime cannot read", () => {
+    expect(testZone(null)).toBe(TEST.zone);
+    expect(testZone("")).toBe(TEST.zone);
+    expect(testZone("Mars/Olympus_Mons")).toBe(TEST.zone);
+  });
+});
+
+describe("the test's end", () => {
+  it("is the first moment after the last day on Melbourne's calendar", () => {
+    const end = Date.parse(TEST.endsAt);
+    expect(zoneDayKey(end)).toBe(addDays(TEST.last, 1));
+    expect(zoneDayKey(end - 1)).toBe(TEST.last);
+  });
+
+  it("is 00:00 on 13 November in Melbourne, whatever zone the phone is in", () => {
+    expect(testOver("2026-10-31T08:00:00Z")).toBe(false);
+    expect(testOver("2026-11-12T12:59:59Z")).toBe(false);
+    expect(testOver("2026-11-12T13:00:00Z")).toBe(true);
+    expect(testOver(Date.parse("2026-11-20T00:00:00Z"))).toBe(true);
+    expect(testOver(new Date("2026-10-29T12:00:00Z"))).toBe(false);
   });
 });
 

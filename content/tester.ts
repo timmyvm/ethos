@@ -177,6 +177,13 @@ export const TEST = {
   last: "2026-11-12",
   days: 14,
   zone: "Australia/Melbourne",
+  /**
+   * 00:00 on Friday 13 November in Melbourne (AEDT, UTC+11): the test is
+   * over, Today says so, and a phone collects nothing more (the consent
+   * keeps what it collects "while you test"). lib/tester-days.test.ts
+   * holds it to the day after `last` on Melbourne's calendar.
+   */
+  endsAt: "2026-11-12T13:00:00Z",
   /** Days after the last that Today still shows the road and the number. */
   shownAfter: 7,
 } as const;

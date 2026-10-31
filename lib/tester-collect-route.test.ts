@@ -67,6 +67,10 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+/* The test's own days (30 October to 12 November 2026): the route takes
+   nothing once it is over, so the clock is held inside it. */
+vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-10-31T08:00:00.000Z") });
+
 const NOW = Date.now();
 const BATCH = [
   {
@@ -120,6 +124,26 @@ describe("POST /api/tester/collect, who it takes from", () => {
     expect((await call({ events: BATCH }, { token: null })).status).toBe(401);
     expect((await call({ events: BATCH }, { token: "tok_gone" })).status).toBe(401);
     expect(events()).toEqual([]);
+  });
+
+  it("takes nothing from anyone once the test is over, and tells every phone to stop", async () => {
+    vi.setSystemTime(new Date("2026-11-12T13:00:00.000Z"));
+    try {
+      const res = await call({ events: BATCH });
+      expect(res).toEqual({ status: 403, body: { error: "The test is over.", stop: true } });
+      expect(events()).toEqual([]);
+      expect(h.consumed).toEqual([]);
+      expect(db.state.log).toEqual([]);
+    } finally {
+      vi.setSystemTime(new Date("2026-10-31T08:00:00.000Z"));
+    }
+    // A minute before, on the last day, it still takes the batch.
+    vi.setSystemTime(new Date("2026-11-12T12:59:00.000Z"));
+    try {
+      expect((await call({ events: BATCH })).status).toBe(200);
+    } finally {
+      vi.setSystemTime(new Date("2026-10-31T08:00:00.000Z"));
+    }
   });
 
   it("reads the token from the body when the page is hiding (a beacon carries no headers)", async () => {

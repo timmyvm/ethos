@@ -4,11 +4,12 @@ About twenty friends speak for five minutes a day from Friday 30 October to Thur
 
 ## What a tester gets
 
-Tester mode switches on three things and nothing else:
+Tester mode switches on four things and nothing else:
 
 1. **The consent** (version 3, `content/tester.ts`): everything kept, what for, who sees it, how long, deleting it, and a parent or guardian for anyone under 18.
 2. **The two questions.** When a recording's results land, before any number shows: "How did that feel?" Rough, Okay or Strong, under the take's own wave and length, one tap that goes straight on to the score, or Skip. Then, on the results' last step after the score and the numbers, the question names the number it is about: "Did 665 feel right?" Too low, About right or Too high, changeable, with an optional "What felt off?" after Too low or Too high. The second question is asked again at the foot of the recording's page in the Log, where an answer already given reopens as it was left. Both are plain grey controls; the screen's one terracotta tap stays its own.
-3. **Collection** (`lib/tester-collect.ts`), only on consent version 3: a device snapshot each time the app opens, the screens opened and the time on each, taps by the button's or link's name, the app shown and hidden, recordings started and stopped, and errors with what was on screen (a crash on the first screen of an open included: it is held in memory until collection starts).
+3. **Presence** (#402): the test is on Today every day of it. Today's first line reads **Test day 2 of 14** in the date's place (the test's own calendar, Melbourne), and under the practice card a tile holds the **Tester** mark (a mint chip with a flask), their tester number, **1 of 14 days spoken**, the fourteen days as a road (sage where they spoke since joining, today ringed, sand for a day gone by, outlined ahead, faded before they joined) with 30 Oct and 12 Nov at its ends, and one ask, the first that applies: **Testing is paused.** with Agree again; **Send Timothy your tester number.** with Send (the phone's share sheet with "My Ethos tester number is 3F9A 1C2E." typed in, or Copy where there is none) until it is sent from that phone; **Speak today, then answer both questions.**; **Did 665 feel right?** with Answer, which opens that recording's question in the Log; or **Day 2 is done.** From 13 to 19 November the road stands still, the eyebrow is the date again, and the ask reads **The test is over, and Timothy will message you about the chat.** (or Send, while unsent); from 20 November the tile is gone. The same Tester mark sits over "How did that feel?" and beside "Did 665 feel right?", and Settings' row reads **Testing Ethos, Day 2 of 14**, then **Ended**. Nobody else's Today changes or reads anything new.
+4. **Collection** (`lib/tester-collect.ts`), only on consent version 3: a device snapshot each time the app opens, the screens opened and the time on each, taps by the button's or link's name, the app shown and hidden, recordings started and stopped, and errors with what was on screen (a crash on the first screen of an open included: it is held in memory until collection starts).
 
 It grants no Premium: 1234 is the first code anyone guesses, and Premium is what Ethos sells. To put a tester on Premium as well, send them the invite code too (`PREMIUM_UNLOCK_CODE`, entered from the paywall).
 
@@ -19,7 +20,7 @@ It grants no Premium: 1234 is the first code anyone guesses, and Premium is what
 3. On the introduction's first screen they tap **Tester code** (small, top right).
 4. They type the four digits (1234 unless `TESTER_CODE` is set) and tap Continue.
 5. They read the consent and tap **I agree**, which sits after the last line. Not now leaves with nothing stored.
-6. The next screen shows **Your tester number** (two groups of four, for example `3F9A 1C2E`) with Copy. They send it to you. It is how you find their rows in the report, pay them, check the parent's text, and delete their data when they ask.
+6. The next screen shows **Your tester number** (two groups of four, for example `3F9A 1C2E`) with Send (the phone's share sheet, the number already typed in) or Copy where there is none. They send it to you. It is how you find their rows in the report, pay them, check the parent's text, and delete their data when they ask.
 7. They tap **Back to the introduction** and carry on as anyone would.
 
 Already past the introduction, or already have an account? Settings, About, **Tester code** does the same. Afterwards that row reads **Testing Ethos, On** and opens the date they joined, their tester number and what they agreed to. A friend who joins on the introduction and then signs in to an account they already had keeps testing: signing in (password or Google) hands the consent to that account with the day they first joined, and their answers, notes, device and usage rows go with it. The recordings they made before signing in stay under the anonymous session, as every sign-in leaves them; the account remembers that session (`carried_from`), so the report counts those recordings as theirs and every deletion below reaches them.
@@ -286,12 +287,25 @@ SETUP (2 mins)
 2. iPhone: Safari > Share > Add to Home Screen. Android: Chrome > menu > Add to Home screen
 3. Open it from your home screen, tap Tester code (top right), enter 1234
 4. Read the consent, tap I agree, allow the mic
-5. Send me your tester number (it's on the screen with a Copy button)
+5. Send me your tester number (tap Send, on the screen after you agree or on Today under your practice)
 
 DATA
 I see your recordings, transcripts, scores, how you use the app, device info, your IP and any errors. It's only used to make the scoring accurate and fix bugs. Only I see it, it's never sold, and it only goes to the services that run the app (database and storage, hosting, transcription and AI feedback, all named in Privacy). I'll delete it anytime you ask.
 ```
 
-A friend who missed step 5 finds the number again in Settings, About, Testing Ethos.
+A friend who missed step 5 sees the number and a Send on Today, under the practice card, until they tap it, and the number stays there through 19 November; Settings, About, Testing Ethos always has it. A friend who joined anonymously and then signed in has a new number (the account's), and Send comes back on Today for it: the right nudge, since the report knows them by the account.
+
+Who tapped Send (collection keeps the tap by the key's name):
+
+```sql
+select t.tester_number, t.name, max(e.at) as tapped
+  from tester_admin.testers t
+  join public.tester_events e on e.user_id = t.user_id
+ where e.name = 'tap' and e.label = 'Send your tester number to Timothy'
+ group by t.tester_number, t.name
+ order by tapped;
+```
+
+Today's count mirrors the report's `days_spoken`: recordings since joining, by day on Melbourne's calendar. It can differ three ways: a recording still in the phone's outbox (it counts once it uploads), recordings left under an anonymous session a friend signed in from (`carried_from`: the report counts them, the phone's Today does not), and a friend whose reminders sit in another zone (the report counts their days in that zone). A tester on a new phone sees nothing on Today until they open Settings once, whose read of their row tells the phone they are testing.
 
 If you set `TESTER_CODE` in Vercel (do, before it goes out), put that code in step 3 instead of 1234.

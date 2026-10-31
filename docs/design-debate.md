@@ -194,7 +194,7 @@ When the three builds were merged, the plan screen's day-one card was allowed to
 
 ### What did not fully land
 
-- **The paywall on a 375x667 phone (T13).** The Stair still scrolls into view (the body scrolls 103pt). The held one-line benefits were built and fit one line each, but they cut the scroll to 62pt and the sheet run's gate then fails its reversal and flick cases at 375x667, so they are kept as a patch, not on the branch. It becomes a joint change with the sheet run (backlog L03).
+- **The paywall on a 375x667 phone (T13).** Settled by your E40 answer (below). The Stair still scrolls into view (the body scrolls 103pt). The held one-line benefits were built and fit one line each, but they cut the scroll to 62pt and the sheet run's gate then fails its reversal and flick cases at 375x667, so they are kept as a patch, not on the branch. It becomes a joint change with the sheet run (backlog L03).
 - **The felt stage's colour (T05, E56)** is built as its own commit, 8775e1f, and left on design-r2-b. It is not on design-merge until you say so.
 - **The recording card's object (T02)** shows at 390x844 and 320x844. On 375x667 and 320x568 the band is shorter than the object, so it stays hidden there.
 - **Question 3 at 320 (T11).** Every one of the four goals wraps there, because the label slot is 176pt and the goals measure 189 to 224pt. At 390 all four sit on one line.
@@ -219,6 +219,35 @@ When the three builds were merged, the plan screen's day-one card was allowed to
 7. **E59, Demos's rest.** Look at `docs/look/debate2/idle/`, a minute of You before and after. After his third play Demos now rests 15 to 30 seconds instead of 2.6 to 5.2. The number was the builder's, not yours, so you see it before design ships.
 8. **B06, Sign in with Apple.** It needs an Apple developer account and the Apple provider switched on in Supabase. Set both up, and an Apple pill joins Google and email as an equal on the account ask.
 
+## Your answers, 31 October
+
+You said: "ship when i say. yeah good picks." Every call went the recommended way, and all of it stays on design-merge until you say ship. The testers' run on main is untouched.
+
+- **Shipping:** nothing goes to main until you say.
+- **D21, the circles beside Start:** kept exactly as they are.
+- **E31, Practice's Premium:** round one's plain card stays, naming Speed rush, Interview and Hostile Q&A with one Unlock.
+- **E40, the paywall on a 375x667 phone:** the Stair still scrolls into view there, as you accepted, and the one-line benefits landed with the sheet run (L03). "Demos's full read, always (free: 1 a day)" and "Speed rush, Interview and Hostile Q&A" hold one line each from 375 up. The body now scrolls 61pt instead of 103, so at rest every price on the Stair is in view, and its months come in as it scrolls. The sheet run's one-swipe hand-off (82f8d65, 480d206, c73ec0b) is merged here first, and with it the reversal case passes at 375x667.
+
+  Four touch cases still failed: the flick, the one-move flick, the glide into the top and the catch while the sheet rises. Each assumed 90 to 103pt of scroll. From the body's middle (31pt), a 60pt flick ran past the top, handed 19pt to the sheet and closed it, which is what the hand-off should do. So the cases never reached the glide they claim to test. Each now starts where the body has room for its run, and checks that the finger let go before the top. The gesture code is unchanged. The sheet gate passes 65 of 65.
+
+  Look at `docs/look/debate-2/36-paywall.jpg`, `37-paywall-375x667.jpg` and `38-paywall-375x667-scrolled.jpg`.
+- **E56, the felt step's colour:** after the test ends on 12 November. The commit, 8775e1f, stays on design-r2-b.
+- **E29:** the line under "No fillers" reads "Pause where the um was." voice.md keeps your first line. See `19-unit-intro.jpg`.
+- **E32, one number per trait:** the every-filler rate reads "All fillers / min" everywhere it is printed:
+  - What moved
+  - Day 1 vs now, which said "All fillers a minute"
+  - the shared picture
+  - Since day one
+  - the Log's two insights
+  - the Index's Fillers row
+
+  A Hostile take's every-filler count reads "All fillers". The bare word Fillers now only ever means um and uh per hundred words.
+
+  L08 rides with it. Where two recordings' held pauses sit side by side (What moved, the shared picture, Since day one), the row reads "Held pauses / recording". A screen about one take keeps "Held pauses". A label breaks only just before its unit's slash, so at 320 the Log sets "Held pauses" over "/ recording" instead of cutting it to "pauses/recordin". See `11-log.jpg` and `13-you.jpg`.
+- **B06, Sign in with Apple:** later.
+
+E59, Demos's rest, was not in the list you answered, so it stays as built (15 to 30 seconds) until you say otherwise. The record is DECISIONS #403.
+
 ## Kept as built
 
 32 choices stand, each with its reason in the round's record. The ones you will recognise: the plain neutral ground (E01), the sky stage per tab (E07), your tab marks (E16), direction B's Start in thumb reach (E19), D21 exactly as it is (E21), your lesson art (E27), your ladder and its readout (E41), no Paw on the paywall (E43), the introduction's Demos as a still (E48), and the tester door until after 12 November (E46).
@@ -227,12 +256,12 @@ When the three builds were merged, the plan screen's day-one card was allowed to
 
 - **L01:** the coach prompt never names tomorrow. Waits until 13 November, because the coach call also returns the scores the testers rate; T04's display trim covers the screen now.
 - **L02:** the Tester code door moves to the account ask's foot row, or goes. After 12 November, your call.
-- **L03:** the full Stair-first paywall fit at 375x667, as a joint change with the sheet run. Waits on your E40 answer.
+- **L03:** the full Stair-first paywall fit at 375x667, as a joint change with the sheet run. Settled 31 October by your E40 answer: the one-line benefits landed with the sheet run, and the Stair scrolls into view on that phone.
 - **L04:** a smoother live wave (RMS per 50ms, rounded caps). Only if a real voice on a phone also draws spikes.
 - **L05:** a 900ms spring-settled topic reel. Not proposed: the reel already settles in about 900ms.
 - **L06:** dark-only lit chips on a raised #2a2a2a, shown as a squint pair only if you raise the chips.
 - **L07:** earlier weeks' Recordings bars in stone instead of sand. One judge.
-- **L08:** the Log's "Held pauses" becomes "Held pauses / recording". One judge; revisit with your E32 answer.
+- **L08:** the Log's "Held pauses" becomes "Held pauses / recording". Landed 31 October with your E32 answer.
 - **L09:** the Up next lesson on Lessons drops its "Carry on" word. One judge.
 - **L10:** the lesson page's art grows to 176pt. One judge; B03 is retired.
 - **L11:** "Use an email instead" becomes a text link under Google. One judge.

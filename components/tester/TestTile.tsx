@@ -124,7 +124,7 @@ export function TestTile({
 
   const ready = recordings !== "loading" && presence.tester !== "loading" && number !== undefined;
   const ask = testAsk({
-    phase: presence.phase === "after" ? "after" : "on",
+    phase: presence.phase === "after" ? "after" : presence.phase === "before" ? "before" : "on",
     day: presence.day,
     tester: presence.tester,
     number: number ?? null,
@@ -323,5 +323,7 @@ function AskRow({
       return line(TEST_COPY.ask.last);
     case "over":
       return line(TEST_COPY.ask.over);
+    case "soon":
+      return line(TEST_COPY.ask.soon);
   }
 }

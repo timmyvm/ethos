@@ -166,24 +166,27 @@ export const PAUSED_COPY = {
 } as const;
 
 /**
- * The test's window (docs/testers.md): Friday 30 October to Thursday 12
+ * The test's window (docs/testers.md): Monday 2 November to Sunday 15
  * November 2026, fourteen days on Melbourne's calendar, the one it was
- * announced on and the report counts days spoken on (0022). Today says
- * the test from its first day to a week after its last (#402,
- * lib/tester-days.ts).
+ * announced on and the report counts days spoken on (0022). Testers
+ * could join from Friday 30 October, so Today shows the tile from then,
+ * saying when the test starts, and says the test itself from its first
+ * day to a week after its last (#402, #404, lib/tester-days.ts).
  */
 export const TEST = {
-  first: "2026-10-30",
-  last: "2026-11-12",
+  first: "2026-11-02",
+  last: "2026-11-15",
+  /** The first day Today shows the tile: the day testers could join. */
+  shownFrom: "2026-10-30",
   days: 14,
   zone: "Australia/Melbourne",
   /**
-   * 00:00 on Friday 13 November in Melbourne (AEDT, UTC+11): the test is
+   * 00:00 on Monday 16 November in Melbourne (AEDT, UTC+11): the test is
    * over, Today says so, and a phone collects nothing more (the consent
    * keeps what it collects "while you test"). lib/tester-days.test.ts
    * holds it to the day after `last` on Melbourne's calendar.
    */
-  endsAt: "2026-11-12T13:00:00Z",
+  endsAt: "2026-11-15T13:00:00Z",
   /** Days after the last that Today still shows the road and the number. */
   shownAfter: 7,
 } as const;
@@ -214,6 +217,7 @@ export const TEST_COPY = {
     done: (day: number) => `Day ${day} is done.`,
     last: `Day ${TEST.days} is done, the last day of the test.`,
     over: "The test is over, and Timothy will message you about the chat.",
+    soon: "The test starts on Monday 2 November.",
   },
   settingsDay: (day: number) => `Day ${day} of ${TEST.days}`,
   settingsEnded: "Ended",

@@ -28,7 +28,7 @@
  *      reads it) on device rows only, then one insert with the service
  *      role.
  *
- * Before any of it: once the test is over (00:00 on 13 November in
+ * Before any of it: once the test is over (00:00 on 16 November in
  * Melbourne, `testOver`), nothing is taken from anyone and every phone
  * is told to stop. The consent keeps what a phone collects "while you
  * test", and from then on Today and Settings say the test ended (#402).

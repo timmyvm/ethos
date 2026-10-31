@@ -72,11 +72,11 @@ describe("who collects", () => {
   });
 
   /* The consent keeps what is collected "while you test": from 00:00 on
-     13 November in Melbourne, when Today says the test is over, nothing. */
+     16 November in Melbourne, when Today says the test is over, nothing. */
   it("nobody once the test is over", () => {
     const row = { consent_version: CONSENT_VERSION, consented_at: at };
-    expect(collects(row, Date.parse("2026-11-12T12:59:59.000Z"))).toBe(true);
-    expect(collects(row, Date.parse("2026-11-12T13:00:00.000Z"))).toBe(false);
+    expect(collects(row, Date.parse("2026-11-15T12:59:59.000Z"))).toBe(true);
+    expect(collects(row, Date.parse("2026-11-15T13:00:00.000Z"))).toBe(false);
     expect(collects(row, Date.parse("2026-11-20T00:00:00.000Z"))).toBe(false);
   });
 

@@ -127,7 +127,7 @@ describe("POST /api/tester/collect, who it takes from", () => {
   });
 
   it("takes nothing from anyone once the test is over, and tells every phone to stop", async () => {
-    vi.setSystemTime(new Date("2026-11-12T13:00:00.000Z"));
+    vi.setSystemTime(new Date("2026-11-15T13:00:00.000Z"));
     try {
       const res = await call({ events: BATCH });
       expect(res).toEqual({ status: 403, body: { error: "The test is over.", stop: true } });
@@ -138,7 +138,7 @@ describe("POST /api/tester/collect, who it takes from", () => {
       vi.setSystemTime(new Date("2026-10-31T08:00:00.000Z"));
     }
     // A minute before, on the last day, it still takes the batch.
-    vi.setSystemTime(new Date("2026-11-12T12:59:00.000Z"));
+    vi.setSystemTime(new Date("2026-11-15T12:59:00.000Z"));
     try {
       expect((await call({ events: BATCH })).status).toBe(200);
     } finally {

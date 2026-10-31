@@ -109,17 +109,21 @@ can.
   moment it switches on, Demos says "Send Timothy your tester number."
 - **The mark is one chip.** "Tester" with a flask, mint, on Today's
   test tile, the felt step and the match question, and nowhere else. A
-  label, never a tap.
+  label, never a tap. The flask alone, in mint ink with no fill, stands
+  before Today's "Test day 2 of 14": on a short phone that line is the
+  test's one sign on the first screen. No new words.
 - **Today says the test.** The eyebrow reads "Test day 2 of 14" for a
-  tester during the test. The test tile holds "1 of 14 days spoken", the
-  road with today ringed, the dates at its ends, and one ask, each one
-  sentence: "Send Timothy your tester number." with Send until it is
-  sent, then "Speak today, then answer both questions.", "Did 665 feel
-  right?" with Answer, or "Day 2 is done." ("Day 14 is done, the last
-  day of the test." on the 12th). After the 12th it reads "The test is
-  over, and Timothy will message you about the chat." No money and no
-  pay rule: the A$35 stays in Timothy's DM. Settings' row reads "Day 2
-  of 14", then "Ended".
+  tester during the test. The test tile holds the mark and the number,
+  then one ask, each one sentence: "Testing is paused." with Agree
+  again; "Send Timothy your tester number." with Send until it is sent;
+  "Speak today, then answer both questions."; "Did 665 feel right?"
+  with Answer; or "Day 2 is done." ("Day 14 is done, the last day of
+  the test." on the 12th). Under the ask, "1 of 14 days spoken", the
+  road with today ringed, and the dates at its ends. The ask comes
+  before the count so it is never under an iPhone's nav. After the
+  12th it reads "The test is over, and Timothy will message you about
+  the chat." No money and no pay rule: the A$35 stays in Timothy's DM.
+  Settings' row reads "Day 2 of 14", then "Ended".
 - **The match check is two questions, one either side of the score.**
   Before the score shows, one tap: "How did that feel?" over "Before
   you see the score.", Rough, Okay, Strong, or Skip; tapping goes

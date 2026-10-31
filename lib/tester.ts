@@ -12,7 +12,7 @@
  * here: it lives in the route (app/api/tester) and nowhere else.
  */
 
-import { CONSENT_VERSION } from "@/content/tester";
+import { CONSENT_VERSION, TEST } from "@/content/tester";
 
 /** Which way the score was off, if it was (0022). */
 export type MatchAnswer = "too_low" | "about_right" | "too_high";
@@ -67,6 +67,8 @@ export function cleanNote(raw: string | null | undefined): string | null {
 export interface TesterRow {
   consent_version: number;
   consented_at: string;
+  /** When the account joined (0020): the test's days count from here. A carried consent keeps the first. */
+  created_at?: string;
 }
 
 /**
@@ -379,10 +381,22 @@ export function pausedTester(row: TesterRow | null | undefined): row is TesterRo
 }
 
 /**
+ * Whether the test is over: from 00:00 on 13 November in Melbourne
+ * (`TEST.endsAt`), whatever zone the phone is in.
+ */
+export function testOver(now: Date | number | string = Date.now()): boolean {
+  return new Date(now).getTime() >= Date.parse(TEST.endsAt);
+}
+
+/**
  * Whether this account's phone collects device, usage and problems
  * (lib/tester-collect.ts): a tester on the consent that named them
- * (version 3) and on the one this app shows. Nobody else, ever.
+ * (version 3) and on the one this app shows, while the test runs. The
+ * consent keeps what is collected "while you test", so from the test's
+ * end (`testOver`, when Today and Settings say it ended) nothing is
+ * collected, and the server refuses it too (app/api/tester/collect).
+ * Nobody else, ever.
  */
-export function collects(row: TesterRow | null | undefined): boolean {
-  return isCurrentTester(row) && row.consent_version >= 3;
+export function collects(row: TesterRow | null | undefined, now: Date | number = Date.now()): boolean {
+  return isCurrentTester(row) && row.consent_version >= 3 && !testOver(now);
 }

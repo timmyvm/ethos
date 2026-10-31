@@ -62,12 +62,22 @@ function fakeEnv(opts: { status?: number; online?: boolean; token?: string | nul
 
 describe("who collects", () => {
   const at = "2026-10-30T09:00:00.000Z";
+  const during = Date.parse("2026-10-31T08:00:00.000Z");
   it("a tester on consent version 3, and nobody else, ever", () => {
-    expect(collects({ consent_version: CONSENT_VERSION, consented_at: at })).toBe(true);
-    expect(collects({ consent_version: 2, consented_at: at })).toBe(false);
-    expect(collects({ consent_version: 1, consented_at: at })).toBe(false);
-    expect(collects(null)).toBe(false);
-    expect(collects(undefined)).toBe(false);
+    expect(collects({ consent_version: CONSENT_VERSION, consented_at: at }, during)).toBe(true);
+    expect(collects({ consent_version: 2, consented_at: at }, during)).toBe(false);
+    expect(collects({ consent_version: 1, consented_at: at }, during)).toBe(false);
+    expect(collects(null, during)).toBe(false);
+    expect(collects(undefined, during)).toBe(false);
+  });
+
+  /* The consent keeps what is collected "while you test": from 00:00 on
+     13 November in Melbourne, when Today says the test is over, nothing. */
+  it("nobody once the test is over", () => {
+    const row = { consent_version: CONSENT_VERSION, consented_at: at };
+    expect(collects(row, Date.parse("2026-11-12T12:59:59.000Z"))).toBe(true);
+    expect(collects(row, Date.parse("2026-11-12T13:00:00.000Z"))).toBe(false);
+    expect(collects(row, Date.parse("2026-11-20T00:00:00.000Z"))).toBe(false);
   });
 
   /* The layer reads the row only on a device that last saw a tester, and
@@ -76,7 +86,9 @@ describe("who collects", () => {
   it("loads the collector only after the row says so, and nothing imports it otherwise", () => {
     const layer = readFileSync("components/tester/TesterLayer.tsx", "utf8");
     const hint = layer.indexOf("if (!readTesterHint())");
-    const read = layer.indexOf("fetchTester()");
+    // The open's read of the row, shared with Today's test tile (#402): testerOnce is fetchTester, once per page life.
+    const read = layer.indexOf("testerOnce()");
+    expect(readFileSync("lib/tester-client.ts", "utf8")).toMatch(/export function testerOnce\(\)[\s\S]*?const p = fetchTester\(\);/);
     const gate = layer.indexOf("if (!collects(t))");
     const load = layer.indexOf('await import("@/lib/tester-collect")');
     expect(hint).toBeGreaterThan(0);

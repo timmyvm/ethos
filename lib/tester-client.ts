@@ -10,12 +10,13 @@
  * here, and the database refuses them from anyone who is not a tester.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { CODE_COPY, CONSENT_VERSION } from "@/content/tester";
 import { currentSession, ensureSession, sessionToken, supabaseBrowser } from "./supabase-browser";
 import {
   isCurrentTester,
   isMatchAnswer,
+  testerNumber,
   withoutPending,
   withPending,
   type FeedbackRow,
@@ -24,6 +25,8 @@ import {
   type ScoreSnapshot,
   type TesterRow,
 } from "./tester";
+import { remindersZone } from "./reminders-zone";
+import { testDay, testPhase, testZone, zoneDayKey, type TestPhase } from "./tester-days";
 import { TESTER_HINT_KEY } from "./tester-signal";
 
 /**
@@ -38,6 +41,8 @@ const HINT_KEY = TESTER_HINT_KEY;
 export const TESTER_CHANGED = "ethos:tester";
 
 function announce(): void {
+  // Whatever may have changed, the next shared read is a fresh one.
+  once = null;
   try {
     window.dispatchEvent(new Event(TESTER_CHANGED));
   } catch {}
@@ -57,6 +62,10 @@ function keepHint(on: boolean): void {
 export function forgetTesterHint(): void {
   keepHint(false);
   writePending({});
+  try {
+    localStorage.removeItem(SENT_KEY);
+    localStorage.removeItem(LIT_KEY);
+  } catch {}
 }
 
 export function readTesterHint(): boolean {
@@ -79,13 +88,187 @@ export async function fetchTester(): Promise<TesterRow | null> {
   if (!me) return null;
   const { data, error } = await db
     .from("testers")
-    .select("consent_version, consented_at")
+    .select("consent_version, consented_at, created_at")
     .eq("user_id", me.userId)
     .maybeSingle();
   if (error) throw error;
   const row = (data as TesterRow | null) ?? null;
   keepHint(row !== null);
   return row;
+}
+
+let once: Promise<TesterRow | null> | null = null;
+
+/**
+ * The account's testers row, read once per page life and shared by the
+ * open's layer (components/tester/TesterLayer.tsx) and Today's test tile,
+ * so a tab switch never reads it again. Cleared whenever testing may
+ * have changed (`announce`), and after a failed read.
+ */
+export function testerOnce(): Promise<TesterRow | null> {
+  if (!once) {
+    const p = fetchTester();
+    once = p;
+    p.catch(() => {
+      if (once === p) once = null;
+    });
+  }
+  return once;
+}
+
+/**
+ * The tester number as this device last sent it (components/tester/SendNumber.tsx),
+ * without its space: another account on the phone has another number, and
+ * is asked to send it.
+ */
+const SENT_KEY = "ethos.tester.sent";
+/** The test day whose slot last landed on Today's road on this device. */
+const LIT_KEY = "ethos.tester.lit";
+
+export function readSent(number: string): boolean {
+  try {
+    return localStorage.getItem(SENT_KEY) === number.replace(/\s/g, "");
+  } catch {
+    return false;
+  }
+}
+
+export function markSent(number: string): void {
+  try {
+    localStorage.setItem(SENT_KEY, number.replace(/\s/g, ""));
+  } catch {}
+}
+
+export function readLit(): string | null {
+  try {
+    return localStorage.getItem(LIT_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function markLit(key: string): void {
+  try {
+    localStorage.setItem(LIT_KEY, key);
+  } catch {}
+}
+
+/** The tester number of the session on this phone: undefined until known, null with none. No request. */
+export function useTesterNumber(): string | null | undefined {
+  const [n, setN] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    let live = true;
+    currentSession()
+      .then((me) => {
+        if (live) setN(me ? testerNumber(me.userId) : null);
+      })
+      .catch(() => {
+        if (live) setN(null);
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
+  return n;
+}
+
+/** The zone this phone counts the test's days in: the report's (lib/tester-days.ts `testZone`). */
+export function testZoneHere(): string {
+  return testZone(remindersZone());
+}
+
+/**
+ * Where this device stands in the test (#402): today's day in the zone
+ * the report counts the tester's days in, its phase, and whether Today
+ * shows the test, which is a device holding the tester hint during the
+ * test or the week after it. Read before the first paint, so the eyebrow
+ * and the tile's frame are there from the first frame; nobody else's
+ * Today reads anything, and the testers row is read (shared, once per
+ * page life) only when shown.
+ *
+ * Read again whenever the app comes back (shown again, restored from the
+ * back/forward cache, focused) and once a minute while it stays open, so
+ * a home-screen app left on Today overnight says the new day's number
+ * and asks for the new day's recording, never "Day 2 is done." on day 3.
+ */
+export interface TestPresence {
+  shown: boolean;
+  today: string;
+  day: number;
+  phase: TestPhase;
+  /** The zone `today` is in, and the tile counts recordings' days in. */
+  zone: string;
+  tester: "loading" | "failed" | TesterRow;
+}
+
+export function useTestPresence(): TestPresence {
+  const [at, setAt] = useState<Omit<TestPresence, "tester">>({
+    shown: false,
+    today: "",
+    day: 0,
+    phase: "before",
+    zone: "",
+  });
+  const [generation, setGeneration] = useState(0);
+  const [tester, setTester] = useState<"loading" | "failed" | TesterRow>("loading");
+  useLayoutEffect(() => {
+    const read = () => {
+      const zone = testZoneHere();
+      const today = zoneDayKey(Date.now(), zone);
+      const day = testDay(today);
+      const phase = testPhase(day);
+      const shown = readTesterHint() && (phase === "on" || phase === "after");
+      /* The head's boot script held the tile's place (lib/tester-boot.ts);
+         from here this keeps that mark in step, so a place held at the
+         window's edge, or for a hint just gone, closes before paint. */
+      try {
+        document.documentElement.toggleAttribute("data-test-tile", shown);
+      } catch {}
+      setAt((was) =>
+        was.shown === shown && was.today === today && was.zone === zone ? was : { shown, today, day, phase, zone }
+      );
+    };
+    read();
+    const again = () => {
+      read();
+      setGeneration((g) => g + 1);
+    };
+    const resume = () => {
+      if (document.visibilityState === "visible") read();
+    };
+    window.addEventListener(TESTER_CHANGED, again);
+    document.addEventListener("visibilitychange", resume);
+    window.addEventListener("pageshow", resume);
+    window.addEventListener("focus", resume);
+    const minute = window.setInterval(resume, 60_000);
+    return () => {
+      window.removeEventListener(TESTER_CHANGED, again);
+      document.removeEventListener("visibilitychange", resume);
+      window.removeEventListener("pageshow", resume);
+      window.removeEventListener("focus", resume);
+      window.clearInterval(minute);
+    };
+  }, []);
+  useEffect(() => {
+    if (!at.shown) return;
+    let live = true;
+    // A re-read keeps the last row until the new one lands.
+    testerOnce()
+      .then((row) => {
+        if (!live) return;
+        if (row) setTester(row);
+        // No row and the hint gone: the TESTER_CHANGED read hides the tile.
+        // No session at all leaves the hint: the row is unknown.
+        else if (readTesterHint()) setTester((t) => (t === "loading" ? "failed" : t));
+      })
+      .catch(() => {
+        if (live) setTester((t) => (t === "loading" ? "failed" : t));
+      });
+    return () => {
+      live = false;
+    };
+  }, [at.shown, generation]);
+  return { ...at, tester };
 }
 
 /**

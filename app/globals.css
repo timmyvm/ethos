@@ -5248,3 +5248,110 @@ summary::-webkit-details-marker {
   pointer-events: none;
 }
 /* ========================== end of the home (#393) ========================== */
+
+/* tester presence (#402) */
+/* The tester's mark (components/tester/TesterChip.tsx): one mint chip,
+   the colour of the moment testing switched on (the joined screen's
+   stage), on Today's test tile and the two questions. A label: mint is
+   a picture colour here, never a tap, never earned. */
+.tester-chip {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px 0 8px;
+  border-radius: 9999px;
+  background: var(--pop-mint);
+  color: var(--color-ink);
+  white-space: nowrap;
+}
+:root[data-theme="dark"] .tester-chip {
+  color: var(--pop-mint-ink);
+}
+/* The test tile (components/tester/TestTile.tsx): one height in every
+   state, skeleton included: 16 + head 22 + 12 + count 36 + 12 + road 24
+   + 6 + ends 12 + 8 + ask 44 + 16. */
+.home-tile[data-test] {
+  min-height: 208px;
+}
+/* The fourteen days as a road: This week's day slots, one gap at every width. */
+.test-road {
+  display: grid;
+  grid-template-columns: repeat(14, minmax(0, 1fr));
+  gap: 4px;
+  height: 24px;
+}
+.test-day {
+  position: relative;
+  overflow: hidden;
+}
+.test-day[data-state="spoken"] {
+  background: var(--color-sage-600);
+}
+/* A day still to come: its outline at 1.5px, so the fourteen read as
+   fourteen at a glance and in dark (1px of edge vanished there). */
+.test-day[data-state="ahead"] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--color-edge);
+}
+/* Before they joined, or a history that did not load: the trough at 35%.
+   The fill fades, not the slot, so today's ring keeps its full ink. */
+.test-day[data-state="before"],
+.test-day[data-state="unknown"] {
+  background: color-mix(in srgb, var(--color-sand) 35%, transparent);
+}
+/* Today's slot filling, once a day on this device, as the tile lands. */
+.test-day-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--color-sage-600);
+}
+/* Today's ring sits over any fill, so where and done read together. */
+.test-day[data-today]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 2px var(--color-ink);
+}
+/* A history that did not load rings nothing: on a faded 14px slot, next
+   to the count's dash, a full ink ring read as a 0, a number the tile
+   cannot back. The eyebrow still says which day it is. */
+.test-day[data-state="unknown"][data-today]::after {
+  content: none;
+}
+/* The test tile's place, held from the server's first paint on a
+   tester's device (lib/tester-boot.ts marks html before paint), so a
+   reload never pushes Today down when the tile mounts. The surface step
+   with nothing on it until the tile replaces it at the same size. */
+.test-tile-slot {
+  display: none;
+}
+html[data-test-tile] .test-tile-slot {
+  display: block;
+  min-height: 208px;
+}
+/* The Log's question, opened from Today's Answer, comes to the screen's
+   foot with its answers clear of the edge and the home indicator. */
+#match {
+  scroll-margin-bottom: calc(24px + env(safe-area-inset-bottom));
+}
+/* The Send key's word changing (Send to Sent, Copy to Copied): from 40%,
+   so the key is never empty for a frame (components/tester/SendNumber.tsx). */
+@keyframes key-word-in {
+  from {
+    opacity: 0.4;
+  }
+}
+.key-word-in {
+  animation: key-word-in var(--duration-base) var(--ease-out) backwards;
+}
+/* The mark's glyph beside "Test day 2 of 14": on a short phone the tile
+   is under the nav when Today opens, and the eyebrow is the test's one
+   sign there. Mint ink, the chip's own colour, and no fill. */
+.test-eyebrow-mark {
+  color: var(--pop-mint-ink);
+}
+/* ========================== end of tester presence (#402) ========================== */

@@ -179,7 +179,10 @@ export function TestTile({
       </div>
       {ready ? (
         <div key="ready" className="arrive">
-          <div ref={askRow} tabIndex={-1} data-test-ask className="mt-2 min-h-11 outline-none!">
+          {/* Focusable only from code (after a Send); the global
+              :focus-visible ring shows where focus went for a keyboard,
+              never for a tap. */}
+          <div ref={askRow} tabIndex={-1} data-test-ask className="-mx-2 mt-2 min-h-11 rounded-control px-2">
             <AskRow
               key={ask.kind}
               ask={ask}

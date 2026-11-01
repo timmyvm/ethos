@@ -28,9 +28,8 @@
  *      Today, You and Today again by the tab bar, and Send on the test
  *      tile, pressed from the keyboard, is a tap collected by its name,
  *      with focus kept in the tile when the next ask takes its place;
- *   8. the same tester once the test is over (14 November): Today says
- *      so, and the phone collects nothing (the consent keeps only what is
- *      collected while you test).
+ *   8. the same tester once the test is over (17 November): Today says
+ *      so, and the phone still collects (#405).
  *
  * Phone 3 also reads the Log page's "Testing is paused." (review D1).
  * Phone 1 also opens You by the tab bar on the test's second day: no
@@ -59,7 +58,7 @@ const browser = await chromium.launch({ args: ["--font-render-hinting=none"] });
 const wire = [];
 
 /** 19:00 on the test's second day in Melbourne, for the phones that look at the test on Today (#402). */
-const TEST_DAY_2 = new Date("2026-10-31T19:00:00+11:00");
+const TEST_DAY_2 = new Date("2026-11-03T19:00:00+11:00");
 
 async function phone({ tester = false, version = 3, hint = false, clock = null, share = false } = {}) {
   testerMode.tester = tester;
@@ -93,7 +92,11 @@ async function phone({ tester = false, version = 3, hint = false, clock = null, 
     }
     return route.fulfill(json({ error: "That code doesn't match. Check it and try again." }, 403));
   });
-  await ctx.addInitScript(seed, { theme: "light", session: { ...session, user: { ...session.user, id: ID } }, pose: POSE_PREF, tester: hint });
+  /* The fixture's session lasts a day from when the gate runs; a scene on
+     a later clock gets one that lasts a day from its own clock, or the
+     app reads it as expired and the phone is signed out. */
+  const expiresAt = clock ? Math.floor(clock.getTime() / 1000) + 3600 * 24 : session.expires_at;
+  await ctx.addInitScript(seed, { theme: "light", session: { ...session, expires_at: expiresAt, user: { ...session.user, id: ID } }, pose: POSE_PREF, tester: hint });
   // The phone's share sheet, answering at once (an iPhone has one; desktop Chromium does not).
   if (share) await ctx.addInitScript(() => { navigator.share = () => Promise.resolve(); });
   const page = await ctx.newPage();
@@ -339,9 +342,11 @@ const sentCount = () => Math.max(testerMode.collected.length, wire.length);
   await ctx.close();
 }
 
-// 8. The same tester once the test is over (#402): nothing collected.
+// 8. The same tester once the test is over: Today says so, and collection carries on (#405).
 {
-  const { ctx, page } = await phone({ tester: true, version: 3, hint: true, clock: new Date("2026-11-14T19:00:00+11:00") });
+  const { ctx, page } = await phone({ tester: true, version: 3, hint: true, clock: new Date("2026-11-17T19:00:00+11:00") });
+  /* The number was sent during the test, so the tile's ask is the end. */
+  await ctx.addInitScript((n) => localStorage.setItem("ethos.tester.sent", n), ID.replace(/-/g, "").slice(0, 8).toUpperCase());
   await page.goto(`${BASE}/`);
   await page.waitForSelector("main h1", { timeout: 30000 });
   await page.getByText("The test is over, and Timothy will message you about the chat.").waitFor({ timeout: 20000 }).catch(() => {});
@@ -351,7 +356,7 @@ const sentCount = () => Math.max(testerMode.collected.length, wire.length);
   await sleep(1500);
   await hide(page);
   await sleep(1500);
-  check("…and the phone collects nothing once it is", events().length === 0 && wire.length === 0, `${events().length} events, ${wire.length} sent`);
+  check("…and the phone still collects after it", events().length > 0, `${events().length} events, ${wire.length} sent`);
   await ctx.close();
 }
 

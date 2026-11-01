@@ -739,6 +739,8 @@ The build had a critic and a fix round of 16 items. It passed 2478 tests and the
 
 404. 2026-10-31 · **The test runs Monday 2 November to Sunday 15 November** · Timothy: "Nah starts monday still." #399 read his "I wanna start now. let users agree" as the test starting on Friday 30 October; it meant friends could join and agree from then. The window in `content/tester.ts` is now 2 to 15 November on Melbourne's calendar, collection ends at 00:00 on 16 November, and Today keeps the tile until 22 November. From 30 October (`TEST.shownFrom`, when testers could join) to the start, a tester's Today shows the tile with the date as its first line and the road all ahead, and once the number is sent its ask reads "The test starts on Monday 2 November." Shipped as a hotfix the same day: for a few hours live Today said "Test day 2 of 14".
 
+405. 2026-11-01 · **Testers' collection carries on after the test** · Timothy: "No data collection continues." #402 stopped a tester's phone collecting at 00:00 on 16 November and the server refusing after it. Both gates are gone: `collects()` is a version 3 tester, nothing more, and `app/api/tester/collect` no longer answers 403 after the end. Today and Settings still say the test ended. Open: consent version 3 says "Everything Ethos keeps while you test", and the app has no way to leave tester mode short of deleting the account, so a friend who keeps using Ethos after 15 November keeps sending device, usage and errors with no switch to stop it. Either the consent and the Testing Ethos page say it continues, or there is a way out.
+
 ## Open queue (research-once, decide, move up)
 
 - Currency name — after launch copywriting pass

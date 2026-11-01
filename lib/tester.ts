@@ -391,12 +391,11 @@ export function testOver(now: Date | number | string = Date.now()): boolean {
 /**
  * Whether this account's phone collects device, usage and problems
  * (lib/tester-collect.ts): a tester on the consent that named them
- * (version 3) and on the one this app shows, while the test runs. The
- * consent keeps what is collected "while you test", so from the test's
- * end (`testOver`, when Today and Settings say it ended) nothing is
- * collected, and the server refuses it too (app/api/tester/collect).
- * Nobody else, ever.
+ * (version 3) and on the one this app shows, for as long as they are a
+ * tester. Timothy's call (#405): collection carries on after the test's
+ * last day, so the friends who keep using Ethos keep telling him how it
+ * behaves. Nobody else, ever.
  */
-export function collects(row: TesterRow | null | undefined, now: Date | number = Date.now()): boolean {
-  return isCurrentTester(row) && row.consent_version >= 3 && !testOver(now);
+export function collects(row: TesterRow | null | undefined): boolean {
+  return isCurrentTester(row) && row.consent_version >= 3;
 }

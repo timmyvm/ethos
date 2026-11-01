@@ -2,7 +2,7 @@
 
 Timothy's keep list of 21 for the test (Monday 2 November to Sunday 15 November 2026), saved 1 November. Everyone else he spoke to is out of this round. The tester number is the first eight characters of their account id (`docs/testers.md`); fill it in as each friend sends theirs, then match it to `tester_admin.testers` in the SQL editor.
 
-Status as of Sunday 1 November (from `tester_admin.testers`):
+Status as of Sunday 1 November, evening (from `tester_admin.testers`). Timothy's own account (C0A0 13E2) is a tester too and is left off the list.
 
 | # | Name | Tester number | Joined | Notes |
 |---|---|---|---|---|
@@ -14,7 +14,7 @@ Status as of Sunday 1 November (from `tester_admin.testers`):
 | 6 | Henry Troung | | | |
 | 7 | Param | | | |
 | 8 | Jamie Hoang | | | |
-| 9 | Berton | C459 5E93 | Fri 30 Oct | On consent 1: Today asks him to tap Agree again. Recorded twice already. |
+| 9 | Berton | C459 5E93 | Fri 30 Oct | Ready (agreed again to consent 3 on 1 Nov). |
 | 10 | Paul Pham | | | |
 | 11 | Alycia | | | |
 | 12 | Ryan Bui | | | |

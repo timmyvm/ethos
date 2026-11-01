@@ -1,0 +1,38 @@
+# Testers roster
+
+Timothy's keep list for the test (Monday 2 November to Sunday 15 November 2026), saved 1 November. Everyone else he spoke to is out of this round. The tester number is the first eight characters of their account id (`docs/testers.md`); fill it in as each friend sends theirs, then match it to `tester_admin.testers` in the SQL editor.
+
+Status as of Sunday 1 November (from `tester_admin.testers`):
+
+| # | Name | Tester number | Joined | Notes |
+|---|---|---|---|---|
+| 1 | Zouyu | | | |
+| 2 | Fiona | | | |
+| 3 | Vincent Le | | | |
+| 4 | Andrew Suresh | | | |
+| 5 | Luan | | | |
+| 6 | Henry Troung | | | |
+| 7 | Param | | | |
+| 8 | Jamie Hoang | | | |
+| 9 | Berton | C459 5E93 | Fri 30 Oct | On consent 1: Today asks him to tap Agree again. Recorded twice already. |
+| 10 | Paul Pham | | | |
+| 11 | Alycia | | | |
+| 12 | Ryan Bui | | | |
+| 13 | Mathias | | | |
+| 14 | Nick To | | | |
+| 15 | Az | | | |
+| 16 | William Rooney | EFEC 5C8C | Fri 30 Oct | Ready (named William in the app; confirm with his number). |
+| 17 | Ethan Lu | A3DE 2CF0 | Sat 31 Oct | Ready (named Ethan in the app; confirm with his number). |
+| 18 | Lachlan Tran | | | |
+| 19 | Jonathan | | | |
+
+Joined but not yet matched to a name (no account name, or not on the list):
+
+| Tester number | Joined | Consent | Notes |
+|---|---|---|---|
+| 3540 7A4D | Fri 30 Oct | 3 | Named Ali in the app. Not on the keep list unless Ali is Az. |
+| EDB2 16C4 | Fri 30 Oct | 3 | Ready, no name. |
+| 41EE 1588 | Fri 30 Oct | 1 | No name. Needs Agree again. |
+| D894 4FA5 | Fri 30 Oct | 2 | No name. Needs Agree again. |
+| 595A D2B1 | Fri 30 Oct | 2 | No name. Needs Agree again. |
+| D080 A30D | Fri 30 Oct | 2 | No name. Needs Agree again. |

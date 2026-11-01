@@ -7,7 +7,7 @@ Status as of Sunday 1 November (from `tester_admin.testers`):
 | # | Name | Tester number | Joined | Notes |
 |---|---|---|---|---|
 | 1 | Zouyu | | | |
-| 2 | Fiona | | | |
+| 2 | Fiona | DC6A CD24 | Sun 1 Nov | Ready (consent 3, no name in the app). |
 | 3 | Vincent Le | | | |
 | 4 | Andrew Suresh | | | |
 | 5 | Luan | | | |

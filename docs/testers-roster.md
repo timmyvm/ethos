@@ -1,6 +1,6 @@
 # Testers roster
 
-Timothy's keep list for the test (Monday 2 November to Sunday 15 November 2026), saved 1 November. Everyone else he spoke to is out of this round. The tester number is the first eight characters of their account id (`docs/testers.md`); fill it in as each friend sends theirs, then match it to `tester_admin.testers` in the SQL editor.
+Timothy's keep list of 20 for the test (Monday 2 November to Sunday 15 November 2026), saved 1 November. Everyone else he spoke to is out of this round. The tester number is the first eight characters of their account id (`docs/testers.md`); fill it in as each friend sends theirs, then match it to `tester_admin.testers` in the SQL editor.
 
 Status as of Sunday 1 November (from `tester_admin.testers`):
 
@@ -25,13 +25,13 @@ Status as of Sunday 1 November (from `tester_admin.testers`):
 | 17 | Ethan Lu | A3DE 2CF0 | Sat 31 Oct | Ready (named Ethan in the app; confirm with his number). |
 | 18 | Lachlan Tran | | | |
 | 19 | Jonathan | | | |
+| 20 | Alan Dinh | EDB2 16C4 | Fri 30 Oct | Ready (consent 3, no name in the app). |
 
 Joined but not yet matched to a name (no account name, or not on the list):
 
 | Tester number | Joined | Consent | Notes |
 |---|---|---|---|
 | 3540 7A4D | Fri 30 Oct | 3 | Named Ali in the app. Not on the keep list unless Ali is Az. |
-| EDB2 16C4 | Fri 30 Oct | 3 | Ready, no name. |
 | 41EE 1588 | Fri 30 Oct | 1 | No name. Needs Agree again. |
 | D894 4FA5 | Fri 30 Oct | 2 | No name. Needs Agree again. |
 | 595A D2B1 | Fri 30 Oct | 2 | No name. Needs Agree again. |

@@ -1,6 +1,6 @@
 # Testers roster
 
-Timothy's keep list of 20 for the test (Monday 2 November to Sunday 15 November 2026), saved 1 November. Everyone else he spoke to is out of this round. The tester number is the first eight characters of their account id (`docs/testers.md`); fill it in as each friend sends theirs, then match it to `tester_admin.testers` in the SQL editor.
+Timothy's keep list of 21 for the test (Monday 2 November to Sunday 15 November 2026), saved 1 November. Everyone else he spoke to is out of this round. The tester number is the first eight characters of their account id (`docs/testers.md`); fill it in as each friend sends theirs, then match it to `tester_admin.testers` in the SQL editor.
 
 Status as of Sunday 1 November (from `tester_admin.testers`):
 
@@ -26,6 +26,7 @@ Status as of Sunday 1 November (from `tester_admin.testers`):
 | 18 | Lachlan Tran | | | |
 | 19 | Jonathan | | | |
 | 20 | Alan Dinh | EDB2 16C4 | Fri 30 Oct | Ready (consent 3, no name in the app). |
+| 21 | Khoi Nguyen | 7ADD 13D7 | Sun 1 Nov | Ready (consent 3, named Khoi in the app). |
 
 Joined but not yet matched to a name (no account name, or not on the list):
 

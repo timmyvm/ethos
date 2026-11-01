@@ -20,7 +20,7 @@ Status as of Sunday 1 November (from `tester_admin.testers`):
 | 12 | Ryan Bui | | | |
 | 13 | Mathias | | | |
 | 14 | Nick To | | | |
-| 15 | Az | | | |
+| 15 | Az | 3540 7A4D | Fri 30 Oct | Ready (consent 3, named Ali in the app). |
 | 16 | William Rooney | EFEC 5C8C | Fri 30 Oct | Ready (named William in the app; confirm with his number). |
 | 17 | Ethan Lu | A3DE 2CF0 | Sat 31 Oct | Ready (named Ethan in the app; confirm with his number). |
 | 18 | Lachlan Tran | | | |
@@ -31,7 +31,6 @@ Joined but not yet matched to a name (no account name, or not on the list):
 
 | Tester number | Joined | Consent | Notes |
 |---|---|---|---|
-| 3540 7A4D | Fri 30 Oct | 3 | Named Ali in the app. Not on the keep list unless Ali is Az. |
 | 41EE 1588 | Fri 30 Oct | 1 | No name. Needs Agree again. |
 | D894 4FA5 | Fri 30 Oct | 2 | No name. Needs Agree again. |
 | 595A D2B1 | Fri 30 Oct | 2 | No name. Needs Agree again. |

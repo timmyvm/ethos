@@ -17,6 +17,7 @@
  */
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 import { mkdirSync, writeFileSync } from "node:fs";
+import { session } from "./look-fixtures.mjs";
 
 const BASE = process.env.LOOK_BASE ?? "http://localhost:3123";
 const OUT = new URL("../docs/devibe/motion-check/onboarding/", import.meta.url).pathname;
@@ -441,14 +442,24 @@ ok(
   (await page.getByRole("link", { name: "What Ethos is" }).getAttribute("href")) === "/about"
 );
 await shot("10b-account");
-const floorHref = await page.getByRole("link", { name: "Not now" }).getAttribute("href");
+/* An account comes before the first recording (#410): no decline, and
+   the email door carries the floor as where to come back to. */
+ok("there is no Not now: the account comes first", (await page.getByRole("link", { name: "Not now" }).count()) === 0);
+const emailHref = await page.getByRole("link", { name: /Use an email instead/ }).getAttribute("href");
+const floorHref = new URL(emailHref, BASE).searchParams.get("next") ?? "";
 ok("Take the floor skips the unit intro for an 'often' speaker", floorHref.startsWith("/rep"), floorHref);
-/* Nothing here is a gate: the decline is a plain link to the floor, which
-   is what keeps /about's "no signup until you've spoken" true. */
-ok("Not now is a real door, not a dismissal", floorHref === (await page.getByRole("link", { name: "Not now" }).getAttribute("href")));
 
-// 8. Home: the day-one note repeats the answer.
-await page.getByRole("link", { name: "Not now" }).click();
+// 7b. Without an account, the app sends them to sign up and back.
+await page.goto(`${BASE}/`);
+const sentToSignup = await page.waitForURL(/\/signup\?next=/, { timeout: 15000 }).then(() => true).catch(() => false);
+ok("a device without an account opening Today is sent to sign up, then back", sentToSignup && new URL(page.url()).searchParams.get("next") === "/", page.url());
+
+// 8. Home, once the account exists: the day-one note repeats the answer.
+await page.evaluate((s) => {
+  localStorage.setItem("sb-supabase-auth-token", JSON.stringify(s));
+  localStorage.setItem("sb-supabase.local-auth-token", JSON.stringify(s));
+}, session);
+await page.goto(`${BASE}${floorHref}`);
 await page.waitForURL(/\/rep/);
 await page.goto(`${BASE}/`);
 await page.getByText("Day one starts today.").waitFor();

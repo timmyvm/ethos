@@ -182,14 +182,22 @@ export function unitStates(starMap: Record<string, number>): UnitState[] {
   }));
 }
 
-/** The next lesson worth doing: first without 3 stars in an open unit. */
+/**
+ * The next lesson worth doing (#407): the first in an open unit not done
+ * yet, so the path moves on after any stars; once every open lesson has
+ * some, the first without three. It used to be the first without three
+ * from the start, so a lesson left on one or two stars came back ahead
+ * of every new one, and a tester read it as Today repeating itself.
+ */
 export function nextLesson(
   starMap: Record<string, number>
 ): { lesson: Drill; unit: Unit } | null {
-  for (const u of unitStates(starMap)) {
-    if (u.locked || u.boss) continue;
-    for (const l of u.lessons) {
-      if ((starMap[l.id] ?? 0) < 3) return { lesson: l, unit: u };
+  const open = unitStates(starMap).filter((u) => !u.locked && !u.boss);
+  for (const below of [1, 3]) {
+    for (const u of open) {
+      for (const l of u.lessons) {
+        if ((starMap[l.id] ?? 0) < below) return { lesson: l, unit: u };
+      }
     }
   }
   return null;

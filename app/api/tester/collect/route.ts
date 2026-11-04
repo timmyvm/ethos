@@ -28,6 +28,9 @@
  *      reads it) on device rows only, then one insert with the service
  *      role.
  *
+ * The test's last day does not stop it: a tester's phone keeps sending
+ * for as long as they are a tester (#405).
+ *
  * Answers with what the phone needs to know: 200 kept (the batch is
  * done, whatever was kept), 401 (a fresh token next time), 403 with
  * `stop` (collecting ends on this phone), 413 and 400 (the batch is

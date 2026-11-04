@@ -14,13 +14,16 @@ import { ModPicker } from "@/components/ModPicker";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { HeaderCount } from "@/components/ui/HeaderCount";
 import { Segmented } from "@/components/ui/Segmented";
-import { IconBack, IconStar } from "@/components/Icon";
+import { IconBack, IconFlask, IconStar } from "@/components/Icon";
 import { Paywall } from "@/components/Paywall";
 import { PriceDropSheet } from "@/components/premium/Moments";
 import { usePlan, usePriceDrop } from "@/lib/use-plan";
 import { readable, readFailure } from "@/lib/load";
 import { StreakBadge } from "@/components/StreakBadge";
 import { TopicRoulette } from "@/components/TopicRoulette";
+import { TestTile } from "@/components/tester/TestTile";
+import { TEST_COPY } from "@/content/tester";
+import { useTestPresence } from "@/lib/tester-client";
 import {
   fetchProfile,
   fetchRepSpine,
@@ -191,6 +194,22 @@ export default function Home() {
   }, [greeting, name]);
   // Back from the paywall's account doors with paywall=1: the sheet reopens.
   usePaywallReturn(() => setPaywall("Premium"));
+  /* A tester during the test (#402): the eyebrow says the test's day in
+     the date's place, and the test tile stands under the practice card.
+     Read before the first paint from this device's hint and the clock;
+     everyone else's Today is exactly as it was, and reads nothing new. */
+  const test = useTestPresence();
+  /* The mark's flask beside the day: on a short phone the tile is under
+     the nav when Today opens, and this line is the test's one sign. */
+  const testEyebrow =
+    test.shown && test.phase === "on" ? (
+      <span className="flex h-5 items-center gap-1.5">
+        <span aria-hidden className="test-eyebrow-mark inline-flex">
+          <IconFlask size={14} />
+        </span>
+        {TEST_COPY.eyebrow(test.day)}
+      </span>
+    ) : null;
 
   /**
    * The history read, on its own so the retry can mean it. It used to
@@ -366,7 +385,8 @@ export default function Home() {
       <ScreenHeader
         title={greeting}
         barTitle="Today"
-        dated
+        dated={testEyebrow === null}
+        eyebrow={testEyebrow ?? undefined}
         leading={<AvatarCoin name={name} known={nameKnown} />}
         barTrailing={
           <span className="mr-3 flex h-9 items-center gap-2">
@@ -453,6 +473,22 @@ export default function Home() {
             />
           </div>
         )
+      )}
+
+      {/* The test, for a tester (#402): above the freeze card, so that
+          card landing late never moves it. It draws a failed history as
+          unknown rather than hiding. */}
+      {test.shown ? (
+        <TestTile
+          presence={test}
+          recordings={failed ? "failed" : reps === null ? "loading" : { reps, spine }}
+          className="mt-3"
+        />
+      ) : (
+        /* Its place, held from the server's paint on a tester's device
+           until the tile takes it (lib/tester-boot.ts); nothing for
+           anyone else. */
+        <div aria-hidden className="test-tile-slot home-tile mt-3" />
       )}
 
       {/* The freeze reconciliation is its own read, landing after the

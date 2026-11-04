@@ -97,7 +97,7 @@ export default function About() {
         Take the floor
       </Link>
       <p className="mt-3 text-center text-caption text-stone-500">
-        No signup until you&apos;ve spoken.
+        One quick account, then you&apos;re speaking.
       </p>
 
       <section className="card elev-2 mt-12 p-5">

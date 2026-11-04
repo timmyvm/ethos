@@ -70,13 +70,21 @@ describe("who collects", () => {
     expect(collects(undefined)).toBe(false);
   });
 
+  /* Timothy's call (#405): the test's last day does not stop it. */
+  it("a tester on version 3 after the test as well", () => {
+    const row = { consent_version: CONSENT_VERSION, consented_at: at };
+    expect(collects(row)).toBe(true);
+  });
+
   /* The layer reads the row only on a device that last saw a tester, and
      the collector's file is imported only after the row says version 3:
      a non-tester's phone never loads it. */
   it("loads the collector only after the row says so, and nothing imports it otherwise", () => {
     const layer = readFileSync("components/tester/TesterLayer.tsx", "utf8");
     const hint = layer.indexOf("if (!readTesterHint())");
-    const read = layer.indexOf("fetchTester()");
+    // The open's read of the row, shared with Today's test tile (#402): testerOnce is fetchTester, once per page life.
+    const read = layer.indexOf("testerOnce()");
+    expect(readFileSync("lib/tester-client.ts", "utf8")).toMatch(/export function testerOnce\(\)[\s\S]*?const p = fetchTester\(\);/);
     const gate = layer.indexOf("if (!collects(t))");
     const load = layer.indexOf('await import("@/lib/tester-collect")');
     expect(hint).toBeGreaterThan(0);

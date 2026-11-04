@@ -68,6 +68,7 @@ import { buildPortfolio } from "@/lib/portfolio";
 import { readPrefs, writePrefs } from "@/lib/prefs";
 import { dayOneFamily } from "@/lib/practice-family";
 import { repHref } from "@/lib/rep-config";
+import { authHref } from "@/lib/use-paywall-return";
 import { useHourLabel } from "@/lib/time-label";
 import { INPUT_ANSWER_CLASS } from "@/lib/ui";
 import { useRovingRadio } from "@/lib/use-roving-radio";
@@ -647,7 +648,8 @@ function AccountStep({
 }) {
   /* The same hook as /signup: the button comes back when they do,
      whether or not Google finished (lib/use-oauth-return.ts). */
-  const { pending, error, start: google } = useGoogleSignIn("signup");
+  // Back from Google to the first recording (#410).
+  const { pending, error, start: google } = useGoogleSignIn("signup", floor);
 
   return (
     <LessonScreen
@@ -704,9 +706,8 @@ function AccountStep({
       }
       /*
        * Under the tap, in descending loudness: the second door, then
-       * the decline. The decline is a plain link at full tap height
-       * rather than a swallowed word, because it is the thing that
-       * keeps this screen honest.
+       * what Ethos is. There is no decline since #410: an account comes
+       * before the first recording.
        */
       footer={
         <>
@@ -715,21 +716,18 @@ function AccountStep({
               Google wears its own branded pill (S13), white on white with
               a #747775 edge, a surface fill here outweighed it; the email
               door is the edge alone, so Google's darker edge and its G
-              lead. */}
+              lead. Email comes back to the first recording once the inbox
+              link is on its way (#410). */}
           <Link
-            href="/signup"
+            href={authHref("signup", floor)}
             className="press font-display mt-3 flex min-h-12 w-full items-center justify-center rounded-tap border border-edge bg-transparent px-6 py-3.5 text-body font-bold"
           >
             Use an email instead
           </Link>
-          {/* -mx-1 px-1: the words line up with the buttons' edges and
-              keep the padding as hit area. */}
-          <div className="mt-2 flex items-center justify-between gap-4">
-            <Link href={floor} className="text-link -mx-1 inline-flex min-h-11 items-center px-1">
-              Not now
-            </Link>
-            {/* The one place inside the product where somebody deciding
-                whether to sign up can read what it is (#277). */}
+          {/* No "Not now" since #410: an account comes before the first
+              recording. The one place inside the product where somebody
+              deciding whether to sign up can read what it is (#277). */}
+          <div className="mt-2 flex items-center justify-center gap-4">
             <Link href="/about" className="text-link -mx-1 inline-flex min-h-11 items-center px-1">
               What Ethos is
             </Link>

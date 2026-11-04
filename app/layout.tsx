@@ -4,11 +4,13 @@ import { Nav } from "@/components/Nav";
 import { PageTransition } from "@/components/PageTransition";
 import { OutboxRetry } from "@/components/OutboxRetry";
 import { TesterLayer } from "@/components/tester/TesterLayer";
+import { AccountGate } from "@/components/AccountGate";
 import { ServiceWorker } from "@/components/ServiceWorker";
 import { ThemeSync } from "@/components/Theme";
 // From a plain module, never a "use client" one: see lib/theme-boot.ts.
 import { themeBootScript } from "@/lib/theme-boot";
 import { Splash, splashBootScript } from "@/components/Splash";
+import { testerBootScript } from "@/lib/tester-boot";
 import { SplashLift } from "@/components/SplashLift";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -88,6 +90,9 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
         {/* Also before paint: whether this open gets the splash. */}
         <script dangerouslySetInnerHTML={{ __html: splashBootScript }} />
+        {/* And whether Today holds the test tile's place from its first
+            paint: a tester's device, during the test (#402). */}
+        <script dangerouslySetInnerHTML={{ __html: testerBootScript }} />
       </head>
       <body
         className={`${outfit.variable} ${figtree.variable} antialiased`}
@@ -105,6 +110,7 @@ export default function RootLayout({
         {/* Testers on consent version 3 only (docs/testers.md): renders
             nothing, and on any other device reads nothing. */}
         <TesterLayer />
+        <AccountGate />
         {/* DESIGN.md: speed is the loudest signal. Vercel's Speed
             Insights is where the field numbers for that claim land. */}
         <SpeedInsights />

@@ -1,5 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
-import { clientIp, limitMessage } from "./rate-limit";
+import { analyzeTier, clientIp, limitMessage } from "./rate-limit";
+
+describe("analyzeTier (#408, #409)", () => {
+  it("gives any session, guest or account, an account's room", () => {
+    expect(analyzeTier({ anonymous: true })).toBe("user");
+    expect(analyzeTier({ anonymous: false })).toBe("user");
+  });
+  it("keeps a caller with no session on the visitor's", () => {
+    expect(analyzeTier(null)).toBe("anon");
+  });
+});
 
 describe("clientIp", () => {
   it("takes the first forwarded hop", () => {

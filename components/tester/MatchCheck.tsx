@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ErrorLine } from "@/components/ui/ErrorState";
 import { Segmented } from "@/components/ui/Segmented";
+import { TesterChip } from "@/components/tester/TesterChip";
 import { MATCH_COPY } from "@/content/tester";
 import { fetchMatch, saveMatch } from "@/lib/tester-client";
 import {
@@ -125,10 +126,15 @@ export function MatchCheck({
   };
 
   return (
-    <section aria-labelledby="match-question" className={`text-left ${className}`}>
-      <h2 id="match-question" className="font-display text-row text-ink">
-        {MATCH_COPY.questionFor(index)}
-      </h2>
+    <section id="match" aria-labelledby="match-question" className={`text-left ${className}`}>
+      {/* The question and the tester's mark on one row (#402); `#match`
+          is where Today's Answer opens the Log's page. */}
+      <div className="flex items-center justify-between gap-3">
+        <h2 id="match-question" className="font-display text-row text-ink">
+          {MATCH_COPY.questionFor(index)}
+        </h2>
+        <TesterChip />
+      </div>
       <Segmented
         label={MATCH_COPY.questionFor(index)}
         options={MATCH_COPY.options}

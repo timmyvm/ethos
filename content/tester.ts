@@ -165,6 +165,64 @@ export const PAUSED_COPY = {
   action: "Agree again",
 } as const;
 
+/**
+ * The test's window (docs/testers.md): Monday 2 November to Sunday 15
+ * November 2026, fourteen days on Melbourne's calendar, the one it was
+ * announced on and the report counts days spoken on (0022). Testers
+ * could join from Friday 30 October, so Today shows the tile from then,
+ * saying when the test starts, and says the test itself from its first
+ * day to a week after its last (#402, #404, lib/tester-days.ts).
+ */
+export const TEST = {
+  first: "2026-11-02",
+  last: "2026-11-15",
+  /** The first day Today shows the tile: the day testers could join. */
+  shownFrom: "2026-10-30",
+  days: 14,
+  zone: "Australia/Melbourne",
+  /**
+   * 00:00 on Monday 16 November in Melbourne (AEDT, UTC+11): the test is
+   * over and Today says so. Collection carries on (#405).
+   * lib/tester-days.test.ts
+   * holds it to the day after `last` on Melbourne's calendar.
+   */
+  endsAt: "2026-11-15T13:00:00Z",
+  /** Days after the last that Today still shows the road and the number. */
+  shownAfter: 7,
+} as const;
+
+/**
+ * Tester presence (#402): Today's eyebrow during the test, its test tile
+ * (the mark, the number, the days spoken, one ask), the number's Send,
+ * and Settings' row. One sentence per ask, no money, no pay rule.
+ */
+export const TEST_COPY = {
+  chip: "Tester",
+  eyebrow: (day: number) => `Test day ${day} of ${TEST.days}`,
+  /** After the count: "1 of 14 days spoken". */
+  unit: `of ${TEST.days} days spoken`,
+  send: "Send",
+  sent: "Sent",
+  copy: JOINED_COPY.copy,
+  copied: JOINED_COPY.copied,
+  /** The key's name begins with the word it shows. */
+  sendLabel: "Send your tester number to Timothy",
+  copyLabel: "Copy your tester number",
+  /** What the share sheet opens with. */
+  share: (number: string) => `My Ethos tester number is ${number}.`,
+  ask: {
+    send: JOINED_COPY.demos,
+    record: "Speak today, then answer both questions.",
+    answer: "Answer",
+    done: (day: number) => `Day ${day} is done.`,
+    last: `Day ${TEST.days} is done, the last day of the test.`,
+    over: "The test is over, and Timothy will message you about the chat.",
+    soon: "The test starts on Monday 2 November.",
+  },
+  settingsDay: (day: number) => `Day ${day} of ${TEST.days}`,
+  settingsEnded: "Ended",
+} as const;
+
 /** The doors in. */
 export const DOOR_COPY = {
   welcome: "Tester code",

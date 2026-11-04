@@ -146,6 +146,8 @@ import {
 } from "@/lib/supabase-browser";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 import type { TraitId } from "@/content/traits";
+import { MIN_TAKE_MS, TOO_SHORT_COPY, UNHEARD_COPY } from "@/lib/unheard";
+import { IconBack } from "@/components/Icon";
 
 /* D51: the live waveform's bars across the column, the left half the
    take so far, rolling left from the centre. */
@@ -576,12 +578,14 @@ function RepScreen() {
       });
       if (!outcome.ok && isFinalReject(outcome.status)) {
         // The server will never take this file (empty, unreadable, too
-        // large). Keeping it would resend it on every visit for good, so
-        // it goes, and the screen says to record it again.
+        // large, or a take the mic barely heard, #406). Keeping it would
+        // resend it on every visit for good, so it goes, and the screen
+        // says to record it again.
         if (outboxId) void outboxDelete(outboxId);
         if (!live()) return;
         pendingRef.current = null;
-        setError("The audio couldn't be read. Record it again.");
+        const unheardTake = (outcome.data as { unheard?: boolean } | null)?.unheard === true;
+        setError(unheardTake ? UNHEARD_COPY : "The audio couldn't be read. Record it again.");
         setPhase("error");
         return;
       }
@@ -816,6 +820,17 @@ function RepScreen() {
     // Only this take's devices: if the screen moved on, they were let go
     // already and recRef may hold a newer take.
     if (recRef.current === r) teardown();
+
+    // Stopped before there was anything to hear (#406): a tap on Record
+    // by mistake, or a mic that never started. Nothing is sent, so no
+    // hourly slot is spent on it.
+    if (spokenAt - takeStartedAt.current < MIN_TAKE_MS) {
+      if (!live()) return;
+      pendingRef.current = null;
+      setError(TOO_SHORT_COPY);
+      setPhase("error");
+      return;
+    }
 
     {
       const ext = blob.type.includes("mp4") ? "mp4" : "webm";
@@ -1084,6 +1099,32 @@ function RepScreen() {
       startingRef.current = false;
     }
   }, [stopRep]);
+
+  /**
+   * Start over (#407, Vincent: "I clicked record by accident"). The take
+   * in progress is thrown away on the phone: nothing is sent or stored,
+   * no hourly slot is spent, and Record is back for a fresh start.
+   */
+  const discardTake = useCallback(() => {
+    const r = recRef.current;
+    if (!r || phaseRef.current !== "recording") return;
+    // Claimed first, so the recorder's own stop event finds nothing to score.
+    phaseRef.current = "idle";
+    try {
+      r.recorder.onstop = null;
+      if (r.recorder.state !== "inactive") r.recorder.stop();
+    } catch {}
+    try {
+      if (r.videoRecorder && r.videoRecorder.state !== "inactive") r.videoRecorder.stop();
+    } catch {}
+    teardown();
+    setInterruption(null);
+    setSeconds(0);
+    meterLevel.current = 0;
+    meterPeak.current = 0;
+    meterFloor.current = 1;
+    setPhase("idle");
+  }, [teardown]);
 
   /**
    * Retake — same prompt, clean slate. The rep that just happened is
@@ -1762,6 +1803,17 @@ function RepScreen() {
           </p>
         )}
 
+        {/* The way out of a take started by mistake (#407): quiet, under
+            Stop, so the screen's one tap stays Stop. */}
+        {phase === "recording" && (
+          <button
+            onClick={discardTake}
+            className="press min-h-11 px-3 text-link text-stone-500"
+          >
+            Start over
+          </button>
+        )}
+
         {phase === "idle" && (repCount === 0 || captureMode === "voice_video") && (
           <p className="max-w-[280px] text-center text-caption text-stone-400">
             Mic is only on while you&apos;re recording.{" "}
@@ -2061,17 +2113,29 @@ function Results({
       setAskingFelt(false);
     }, 200);
   };
-  const advance = () => {
-    if (leaving || last) return;
+  /* Which way the last step went, so the next one arrives from where
+     the person is heading: the right going on, the left coming back. */
+  const [wentBack, setWentBack] = useState(false);
+  const move = (by: 1 | -1) => {
+    setWentBack(by < 0);
     if (prefersReducedMotion()) {
-      setStep((n) => n + 1);
+      setStep((n) => n + by);
       return;
     }
     setLeaving(true);
     leaveTimer.current = setTimeout(() => {
       setLeaving(false);
-      setStep((n) => n + 1);
+      setStep((n) => n + by);
     }, 200);
+  };
+  const advance = () => {
+    if (leaving || last) return;
+    move(1);
+  };
+  /* Back a step (#407, Jonathan): to see again what was just passed. */
+  const retreat = () => {
+    if (leaving || step === 0) return;
+    move(-1);
   };
 
   /*
@@ -2112,8 +2176,23 @@ function Results({
       {/* M07, recording-10: what was practised, as the page's h1 in the
           body size (the score is the hero, not the name), and the coin
           it earned on the right. */}
-      <div className="flex min-h-6 items-center justify-between gap-3">
-        <h1 className="font-display min-w-0 text-body font-bold text-ink">
+      {/* Past the score, the row's left is the way back a step, at
+          BackLink's geometry (#407); the practice's name stays the h1. */}
+      <div className="flex min-h-11 items-center justify-between gap-3">
+        {step > 0 && !askingFelt && (
+          <button
+            onClick={retreat}
+            className="screen-bar-back press -ml-3 inline-flex min-h-11 items-center"
+          >
+            <IconBack size={22} />
+            <span>{STEPS[step - 1].label}</span>
+          </button>
+        )}
+        <h1
+          className={`font-display min-w-0 text-body font-bold text-ink ${
+            step > 0 && !askingFelt ? "sr-only" : ""
+          }`}
+        >
           {practised}
         </h1>
         {coined && step === 0 && !askingFelt && (
@@ -2182,7 +2261,7 @@ function Results({
         ) : (
         <div
           key={step}
-          className={`arrive-x [:root[data-motion=reduce]_&]:[animation-duration:var(--duration-base)]! ${
+          className={`${wentBack ? "arrive-x-back" : "arrive-x"} [:root[data-motion=reduce]_&]:[animation-duration:var(--duration-base)]! ${
             /* The score step fills the walk's free height for everyone
                (D52): a tester's match question is on the last step now,
                so nothing opens under the score to lift it. */

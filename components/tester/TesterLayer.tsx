@@ -4,11 +4,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { asksAgain, collects, type TesterRow } from "@/lib/tester";
 import {
-  fetchTester,
   markAsked,
   readAsked,
   readTesterHint,
   TESTER_CHANGED,
+  testerOnce,
 } from "@/lib/tester-client";
 import { sessionToken } from "@/lib/supabase-browser";
 import type { Collecting } from "@/lib/tester-collect";
@@ -20,7 +20,7 @@ import { dropEarly, testerEarly } from "@/lib/tester-signal";
  *
  * On a device that last saw its account as a tester (the hint
  * lib/tester-client.ts keeps), the open reads the account's own testers
- * row. Nobody else's open reads anything, and nothing below happens
+ * row, once, shared with Today's test tile (testerOnce). Nobody else's open reads anything, and nothing below happens
  * for them:
  *
  *   - a tester on version 3 starts collection (lib/tester-collect.ts,
@@ -90,7 +90,7 @@ export function TesterLayer() {
       window.addEventListener("error", onError);
       window.addEventListener("unhandledrejection", onRejection);
     }
-    fetchTester()
+    testerOnce()
       .then(async (t) => {
         if (!live) return;
         row.current = t;

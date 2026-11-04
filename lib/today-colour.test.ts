@@ -451,3 +451,28 @@ describe("the tokens the colour round moved", () => {
     expect(shadow?.[1].trim()).toBe("0 1px 2px rgba(0, 0, 0, 0.06)");
   });
 });
+
+/* The tester's mark (#402): "Tester" on its mint chip clears body
+   contrast in both themes, ink on the light mint and the mint ink on the
+   dark one. */
+describe("the tester chip reads", () => {
+  const pop = (block: string, name: string) => {
+    const m = block.match(new RegExp(`--pop-${name}:\\s*(#[0-9a-f]{6})`, "i"));
+    if (!m) throw new Error(`no --pop-${name}`);
+    return m[1];
+  };
+  const lightPop = css.slice(css.indexOf("--pop-sun:"));
+  const darkPop = css.slice(css.indexOf(':root[data-theme="dark"] {\n  /* Gold, not mustard'));
+  const chip = css.slice(css.indexOf("/* tester presence (#402) */"));
+
+  it("is drawn in those colours", () => {
+    expect(chip).toMatch(/\.tester-chip \{[^}]*background: var\(--pop-mint\);[^}]*color: var\(--color-ink\);/);
+    expect(chip).toMatch(/:root\[data-theme="dark"\] \.tester-chip \{\s*color: var\(--pop-mint-ink\);/);
+  });
+  it("clears 4.5:1 in light", () => {
+    expect(ratio(token(css, "ink"), pop(lightPop, "mint"))).toBeGreaterThanOrEqual(4.5);
+  });
+  it("clears 4.5:1 in dark", () => {
+    expect(ratio(pop(darkPop, "mint-ink"), pop(darkPop, "mint"))).toBeGreaterThanOrEqual(4.5);
+  });
+});

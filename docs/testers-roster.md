@@ -18,7 +18,7 @@ Status as of Sunday 1 November, evening (from `tester_admin.testers`). Timothy's
 | 10 | Paul Pham | | | |
 | 11 | Alycia | | | |
 | 12 | Ryan Bui | | | |
-| 13 | Mathias | | | |
+| 13 | Mathias | D080 A30D | Fri 30 Oct | Recording since 2 Nov. His first takes on 2 Nov were under a second (mic not picking up) until he restarted his phone. |
 | 14 | Nick To | | | |
 | 15 | Az | 3540 7A4D | Fri 30 Oct | Ready (consent 3, named Ali in the app). |
 | 16 | William Rooney | EFEC 5C8C | Fri 30 Oct | Ready (named William in the app; confirm with his number). |
@@ -35,4 +35,3 @@ Joined but not yet matched to a name (no account name, or not on the list):
 | 41EE 1588 | Fri 30 Oct | 1 | No name. Needs Agree again. |
 | D894 4FA5 | Fri 30 Oct | 2 | No name. Needs Agree again. |
 | 595A D2B1 | Fri 30 Oct | 2 | No name. Needs Agree again. |
-| D080 A30D | Fri 30 Oct | 2 | No name. Needs Agree again. |

@@ -747,6 +747,8 @@ The build had a critic and a fix round of 16 items. It passed 2478 tests and the
 
 408. 2026-11-04 · **A tester gets an account's scoring allowance, guest or not** · Mathias kept being told his recording didn't score and to wait hours, and after waiting it still would not. He is a guest (he skipped making an account), and a guest's scoring allowance is the visitor's, 3 an hour and 5 a day, rolling, so his fifth take of the day closed scoring until the first aged out. 11 of the 18 testers are guests. `/api/analyze` now gives a tester the account's 10 an hour and 30 a day whether or not they made one (`analyzeTier`, `isTester` in `lib/rate-limit.ts`, a service-role read of `testers`); a guest who is not testing keeps the visitor's. Nothing to clear: at 5 in the day he is under 30 the moment this ships.
 
+409. 2026-11-04 · **Guests score like accounts, and only a saved recording uses up the limit** · Timothy: "give guests a higher limit please and also if they press start again dont treat it as a saved recording that sets the limit again." Replaces #408's tester-only rule: any session, guest or account, gets the account's 10 an hour and 30 a day (`analyzeTier`); only a caller with no session at all keeps the visitor's 3 and 5. And a slot is kept only when the call ends with a new stored recording: `/api/analyze` wraps its handler so that anything else (Whisper down, a take the mic barely heard, a resend of a recording already stored, a failed save, a crash) gives the slot back in one place. A file Whisper refuses still keeps its slot, so junk uploads cost one each.
+
 ## Open queue (research-once, decide, move up)
 
 - Currency name — after launch copywriting pass

@@ -33,7 +33,6 @@ import {
   limitMessage,
   refundRateLimit,
   analyzeTier,
-  isTester,
 } from "@/lib/rate-limit";
 import type { DeliveryMetrics, DeliveryMoment } from "@/lib/presence";
 import type { CaptureMode } from "@/lib/prefs";
@@ -88,7 +87,31 @@ export interface AnalyzeResponse {
   };
 }
 
+/**
+ * Only a saved recording keeps its slot (#409, Timothy: "don't treat it
+ * as a saved recording that sets the limit again"). Once a slot is
+ * taken, anything that ends without a new stored recording gives it
+ * back: Whisper down, a take the mic barely heard, a resend of one
+ * already stored, a failed save, a crash. A file Whisper refuses keeps
+ * its slot, so junk uploads still cost one each.
+ */
+interface Spend {
+  /** The throttle's subject once a slot was taken. */
+  subject: string | null;
+  /** The slot stays spent. */
+  keep: boolean;
+}
+
 export async function POST(req: NextRequest) {
+  const spend: Spend = { subject: null, keep: false };
+  try {
+    return await handle(req, spend);
+  } finally {
+    if (spend.subject && !spend.keep) await refundRateLimit(spend.subject);
+  }
+}
+
+async function handle(req: NextRequest, spend: Spend) {
   let form: FormData;
   try {
     form = await req.formData();
@@ -155,13 +178,13 @@ export async function POST(req: NextRequest) {
 
   /*
    * The throttle, BEFORE anything that costs money (Whisper runs on
-   * every upload). Real accounts train hard; anonymous sessions and
-   * sessionless callers get the visitor allowance (lib/rate-limit.ts).
+   * every upload). Any session, a guest or an account, gets the
+   * account's allowance; a caller with no session gets the visitor's
+   * (lib/rate-limit.ts). Only a saved recording keeps its slot (#409).
    */
   const subject = auth ? `u:${auth.id}` : `ip:${clientIp(req.headers)}`;
-  // A guest who is testing gets an account's room (#408).
-  const tester = auth?.anonymous ? await isTester(auth.id) : false;
-  const verdict = await consumeRateLimit(subject, analyzeTier(auth, tester));
+  // A session, guest or account, gets an account's room (#408, #409).
+  const verdict = await consumeRateLimit(subject, analyzeTier(auth));
   if (!verdict.allowed) {
     return NextResponse.json(
       {
@@ -175,6 +198,7 @@ export async function POST(req: NextRequest) {
       }
     );
   }
+  spend.subject = subject;
 
   // The client sends what it *ran*; the multiplier is recomputed here
   // from the mods this account is actually entitled to. A hand-edited
@@ -214,7 +238,7 @@ export async function POST(req: NextRequest) {
     // it back, or each retry of one recording costs another. A file
     // Whisper refuses (any 4xx but its 429) keeps its slot.
     const fileFault = /^Whisper API 4(?!29)\d\d/.test(message);
-    if (!fileFault) await refundRateLimit(subject);
+    spend.keep = fileFault;
     return NextResponse.json(
       { error: message },
       { status: unconfigured ? 503 : undecodable ? 422 : 502 }
@@ -228,7 +252,6 @@ export async function POST(req: NextRequest) {
    * phone says to check the mic. 422, so the outbox lets it go.
    */
   if (unheard(transcription.durationS, transcription.words.length)) {
-    await refundRateLimit(subject);
     return NextResponse.json({ error: UNHEARD_COPY, unheard: true }, { status: 422 });
   }
 
@@ -356,6 +379,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ repId: saved.id, duplicate: true });
     }
     repId = saved?.id ?? null;
+    spend.keep = repId !== null;
   } catch {
     repId = null;
   }

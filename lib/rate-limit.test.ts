@@ -1,15 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { analyzeTier, clientIp, limitMessage } from "./rate-limit";
 
-describe("analyzeTier (#408)", () => {
-  it("gives a tester an account's room whether or not they made one", () => {
-    expect(analyzeTier({ anonymous: true }, true)).toBe("user");
-    expect(analyzeTier({ anonymous: false }, true)).toBe("user");
+describe("analyzeTier (#408, #409)", () => {
+  it("gives any session, guest or account, an account's room", () => {
+    expect(analyzeTier({ anonymous: true })).toBe("user");
+    expect(analyzeTier({ anonymous: false })).toBe("user");
   });
-  it("keeps a guest who is not testing on the visitor's", () => {
-    expect(analyzeTier({ anonymous: true }, false)).toBe("anon");
-    expect(analyzeTier(null, false)).toBe("anon");
-    expect(analyzeTier({ anonymous: false }, false)).toBe("user");
+  it("keeps a caller with no session on the visitor's", () => {
+    expect(analyzeTier(null)).toBe("anon");
   });
 });
 

@@ -28,6 +28,29 @@ export const LIMITS = {
 
 export type LimitTier = keyof typeof LIMITS;
 
+/**
+ * Which allowance a scoring call gets (#408). An account gets the
+ * account's; a guest the visitor's; and a tester the account's whether
+ * or not they made one, since 11 of the 18 testers are guests and the
+ * visitor's 5 a day locked them out of the test they were paid to do.
+ */
+export function analyzeTier(auth: { anonymous: boolean } | null, tester: boolean): LimitTier {
+  if (!auth) return "anon";
+  return !auth.anonymous || tester ? "user" : "anon";
+}
+
+/** Whether this account is a tester, read with the service role; false if the read fails. */
+export async function isTester(userId: string): Promise<boolean> {
+  try {
+    const db = supabaseAdmin();
+    if (!db) return false;
+    const { data, error } = await db.from("testers").select("user_id").eq("user_id", userId).maybeSingle();
+    return !error && !!data;
+  } catch {
+    return false;
+  }
+}
+
 export interface RateVerdict {
   allowed: boolean;
   window: "hour" | "day" | null;

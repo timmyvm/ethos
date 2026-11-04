@@ -32,6 +32,8 @@ import {
   consumeRateLimit,
   limitMessage,
   refundRateLimit,
+  analyzeTier,
+  isTester,
 } from "@/lib/rate-limit";
 import type { DeliveryMetrics, DeliveryMoment } from "@/lib/presence";
 import type { CaptureMode } from "@/lib/prefs";
@@ -157,10 +159,9 @@ export async function POST(req: NextRequest) {
    * sessionless callers get the visitor allowance (lib/rate-limit.ts).
    */
   const subject = auth ? `u:${auth.id}` : `ip:${clientIp(req.headers)}`;
-  const verdict = await consumeRateLimit(
-    subject,
-    auth && !auth.anonymous ? "user" : "anon"
-  );
+  // A guest who is testing gets an account's room (#408).
+  const tester = auth?.anonymous ? await isTester(auth.id) : false;
+  const verdict = await consumeRateLimit(subject, analyzeTier(auth, tester));
   if (!verdict.allowed) {
     return NextResponse.json(
       {

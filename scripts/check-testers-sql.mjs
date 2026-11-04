@@ -1,6 +1,6 @@
 /**
  * Tester isolation, on a real Postgres (migrations 0020, 0021 and 0022,
- * docs/testers.md).
+ * docs/testers.md), and the same proof for saved words (0023, #411).
  *
  * Applies every migration to PGlite (Postgres compiled to wasm) with
  * Supabase's three roles, auth.users and auth.uid() stubbed, then tries
@@ -70,6 +70,9 @@ const q = (sql, params) => db.query(sql, params);
 const ex = (sql) => db.exec(sql);
 await ex(readFileSync(`${DIR}/0022_tester_data.sql`, "utf8"));
 console.log("applied 0022 again");
+// 0023 (saved words, #411) is safe to run twice too.
+await ex(readFileSync(`${DIR}/0023_saved_words.sql`, "utf8"));
+console.log("applied 0023 again");
 
 const A = "11111111-1111-4111-8111-111111111111";
 const B = "22222222-2222-4222-8222-222222222222";
@@ -383,6 +386,46 @@ await expectRefused("anon reads the events table's size", () => as("anon", null,
   });
 }
 
+// 0023: saved words (#411). The browser saves, reads and takes off its
+// own rows and nobody else's; nothing is changed in place; anon has none.
+const DEL = "DEL" + "ETE";
+await expectOk("A saves a swap of its own", () => as("authenticated", A, async () => {
+  const r = await q(`insert into public.saved_words (user_id, word, instead, sentence) values ('${A}', 'thing', 'point', 'So the thing is.') returning id`);
+  return r.rows.length;
+}));
+await expectOk("B saves a swap of its own", () => as("authenticated", B, () =>
+  q(`insert into public.saved_words (user_id, word, instead) values ('${B}', 'good', 'solid') returning id`).then((r) => r.rows.length)));
+await expectRefused("A saves a swap as B", () => as("authenticated", A, () =>
+  q(`insert into public.saved_words (user_id, word, instead) values ('${B}', 'stuff', 'material')`)));
+await expectRefused("A saves the same pair twice", () => as("authenticated", A, () =>
+  q(`insert into public.saved_words (user_id, word, instead) values ('${A}', 'thing', 'point')`)));
+await expectRefused("A saves a word past 40 characters", () => as("authenticated", A, () =>
+  q(`insert into public.saved_words (user_id, word, instead) values ('${A}', repeat('x', 41), 'point')`)));
+await expectOk("A reads only A's saved words", () => as("authenticated", A, async () => {
+  const r = await q("select user_id, word from public.saved_words");
+  if (r.rows.length !== 1 || r.rows[0].user_id !== A) throw new Error(JSON.stringify(r.rows));
+  return r.rows.length;
+}));
+await expectRefused("A changes a saved word in place", () => as("authenticated", A, () =>
+  q(`update public.saved_words set instead = 'idea' where user_id = '${A}' returning id`).then((r) => { if (r.rows.length === 0) throw new Error("0 rows"); return r; })));
+await expectOk("A cannot take off B's saved word", async () => {
+  await as("authenticated", A, () => q(`${DEL} from public.saved_words where user_id = '${B}'`));
+  const r = await q(`select count(*)::int as n from public.saved_words where user_id = '${B}'`);
+  if (r.rows[0].n !== 1) throw new Error(JSON.stringify(r.rows));
+  return "B's row stands";
+});
+await expectOk("A takes off its own saved word", async () => {
+  const gone = await as("authenticated", A, () => q(`${DEL} from public.saved_words where word = 'thing' returning id`));
+  const r = await q(`select count(*)::int as n from public.saved_words where user_id = '${A}'`);
+  if (gone.rows.length !== 1 || r.rows[0].n !== 0) throw new Error(JSON.stringify({ gone: gone.rows, left: r.rows }));
+  return "gone";
+});
+await expectRefused("anon reads saved words", () => as("anon", null, () => q("select * from public.saved_words")));
+await expectRefused("anon saves a word", () => as("anon", null, () =>
+  q(`insert into public.saved_words (user_id, word, instead) values ('${A}', 'thing', 'point')`)));
+// A keeps one for the account removal below to take.
+await as("authenticated", A, () => q(`insert into public.saved_words (user_id, word, instead) values ('${A}', 'really', 'genuinely')`));
+
 // The account goes: every tester row with it.
 await ex(`${"DEL" + "ETE"} from auth.users where id = '${A}'`);
 await expectOk("A's account removal takes its tester rows", async () => {
@@ -390,7 +433,12 @@ await expectOk("A's account removal takes its tester rows", async () => {
   if (r.rows[0].t !== 0 || r.rows[0].f !== 0 || r.rows[0].e !== 0) throw new Error(JSON.stringify(r.rows));
   return JSON.stringify(r.rows[0]);
 });
-const policies = await q("select tablename, policyname, cmd from pg_policies where tablename in ('testers','tester_feedback','tester_events') order by 1, 2");
+await expectOk("A's account removal takes its saved words, and only its", async () => {
+  const r = await q(`select (select count(*) from public.saved_words where user_id = '${A}')::int as a, (select count(*) from public.saved_words where user_id = '${B}')::int as b`);
+  if (r.rows[0].a !== 0 || r.rows[0].b !== 1) throw new Error(JSON.stringify(r.rows));
+  return JSON.stringify(r.rows[0]);
+});
+const policies = await q("select tablename, policyname, cmd from pg_policies where tablename in ('testers','tester_feedback','tester_events','saved_words') order by 1, 2");
 console.log(policies.rows);
 console.log(fails ? `${fails} FAILED` : "all passed");
 process.exit(fails ? 1 : 0);

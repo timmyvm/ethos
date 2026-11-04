@@ -64,6 +64,7 @@ import { DOOR_COPY } from "@/content/tester";
 import { buildPortfolio } from "@/lib/portfolio";
 import { readPrefs, writePrefs } from "@/lib/prefs";
 import { repHref } from "@/lib/rep-config";
+import { authHref } from "@/lib/use-paywall-return";
 import { useHourLabel } from "@/lib/time-label";
 import { INPUT_ANSWER_CLASS } from "@/lib/ui";
 import { useRovingRadio } from "@/lib/use-roving-radio";
@@ -630,7 +631,8 @@ function AccountStep({
 }) {
   /* The same hook as /signup: the button comes back when they do,
      whether or not Google finished (lib/use-oauth-return.ts). */
-  const { pending, error, start: google } = useGoogleSignIn("signup");
+  // Back from Google to the first recording (#410).
+  const { pending, error, start: google } = useGoogleSignIn("signup", floor);
 
   return (
     <LessonScreen
@@ -681,20 +683,18 @@ function AccountStep({
         <>
           {/* intro-b-14: the second door is Google's size and type, so
               the two read as a pair and only the fill ranks them. */}
+          {/* Email comes back to the first recording once the inbox
+              link is on its way (#410). */}
           <Link
-            href="/signup"
+            href={authHref("signup", floor)}
             className="press font-display mt-3 flex min-h-12 w-full items-center justify-center rounded-control border border-edge bg-surface px-6 py-3.5 text-body font-bold"
           >
             Use an email instead
           </Link>
-          {/* -mx-1 px-1: the words line up with the buttons' edges and
-              keep the padding as hit area. */}
-          <div className="mt-2 flex items-center justify-between gap-4">
-            <Link href={floor} className="text-link -mx-1 inline-flex min-h-11 items-center px-1">
-              Not now
-            </Link>
-            {/* The one place inside the product where somebody deciding
-                whether to sign up can read what it is (#277). */}
+          {/* No "Not now" since #410: an account comes before the first
+              recording. The one place inside the product where somebody
+              deciding whether to sign up can read what it is (#277). */}
+          <div className="mt-2 flex items-center justify-center gap-4">
             <Link href="/about" className="text-link -mx-1 inline-flex min-h-11 items-center px-1">
               What Ethos is
             </Link>

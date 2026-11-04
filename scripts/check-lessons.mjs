@@ -139,7 +139,7 @@ ok(
 // ---- 4. Record it --------------------------------------------------------
 await page.click('button[aria-label="Start recording"]', { force: true });
 await page.waitForSelector('button[aria-label="Stop and score this recording"]');
-await sleep(1200);
+await sleep(2500);
 await page.click('button[aria-label="Stop and score this recording"]', { force: true });
 await page.waitForSelector('[role="status"], main .arrive-x', { timeout: 20000 });
 await sleep(2500);

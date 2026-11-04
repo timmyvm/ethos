@@ -143,6 +143,7 @@ import {
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 import type { TraitId } from "@/content/traits";
 import { MIN_TAKE_MS, TOO_SHORT_COPY, UNHEARD_COPY } from "@/lib/unheard";
+import { IconBack } from "@/components/Icon";
 
 const METER_BARS = 36;
 const FRAME_SECONDS = 30;
@@ -1080,6 +1081,32 @@ function RepScreen() {
   }, [stopRep]);
 
   /**
+   * Start over (#407, Vincent: "I clicked record by accident"). The take
+   * in progress is thrown away on the phone: nothing is sent or stored,
+   * no hourly slot is spent, and Record is back for a fresh start.
+   */
+  const discardTake = useCallback(() => {
+    const r = recRef.current;
+    if (!r || phaseRef.current !== "recording") return;
+    // Claimed first, so the recorder's own stop event finds nothing to score.
+    phaseRef.current = "idle";
+    try {
+      r.recorder.onstop = null;
+      if (r.recorder.state !== "inactive") r.recorder.stop();
+    } catch {}
+    try {
+      if (r.videoRecorder && r.videoRecorder.state !== "inactive") r.videoRecorder.stop();
+    } catch {}
+    teardown();
+    setInterruption(null);
+    setSeconds(0);
+    meterLevel.current = 0;
+    meterPeak.current = 0;
+    meterFloor.current = 1;
+    setPhase("idle");
+  }, [teardown]);
+
+  /**
    * Retake — same prompt, clean slate. The rep that just happened is
    * already stored and still counts; this is another attempt at the
    * same thing, not an undo.
@@ -1718,6 +1745,17 @@ function RepScreen() {
           </p>
         )}
 
+        {/* The way out of a take started by mistake (#407): quiet, under
+            Stop, so the screen's one tap stays Stop. */}
+        {phase === "recording" && (
+          <button
+            onClick={discardTake}
+            className="press min-h-11 px-3 text-link text-stone-500"
+          >
+            Start over
+          </button>
+        )}
+
         {phase === "idle" && (repCount === 0 || captureMode === "voice_video") && (
           <p className="max-w-[280px] text-center text-caption text-stone-400">
             Mic is only on while you&apos;re recording.{" "}
@@ -2017,17 +2055,29 @@ function Results({
       setAskingFelt(false);
     }, 200);
   };
-  const advance = () => {
-    if (leaving || last) return;
+  /* Which way the last step went, so the next one arrives from where
+     the person is heading: the right going on, the left coming back. */
+  const [wentBack, setWentBack] = useState(false);
+  const move = (by: 1 | -1) => {
+    setWentBack(by < 0);
     if (prefersReducedMotion()) {
-      setStep((n) => n + 1);
+      setStep((n) => n + by);
       return;
     }
     setLeaving(true);
     leaveTimer.current = setTimeout(() => {
       setLeaving(false);
-      setStep((n) => n + 1);
+      setStep((n) => n + by);
     }, 200);
+  };
+  const advance = () => {
+    if (leaving || last) return;
+    move(1);
+  };
+  /* Back a step (#407, Jonathan): to see again what was just passed. */
+  const retreat = () => {
+    if (leaving || step === 0) return;
+    move(-1);
   };
 
   /*
@@ -2068,8 +2118,23 @@ function Results({
       {/* M07, recording-10: what was practised, as the page's h1 in the
           body size (the score is the hero, not the name), and the coin
           it earned on the right. */}
-      <div className="flex min-h-6 items-center justify-between gap-3">
-        <h1 className="font-display min-w-0 text-body font-bold text-ink">
+      {/* Past the score, the row's left is the way back a step, at
+          BackLink's geometry (#407); the practice's name stays the h1. */}
+      <div className="flex min-h-11 items-center justify-between gap-3">
+        {step > 0 && !askingFelt && (
+          <button
+            onClick={retreat}
+            className="screen-bar-back press -ml-3 inline-flex min-h-11 items-center"
+          >
+            <IconBack size={22} />
+            <span>{STEPS[step - 1].label}</span>
+          </button>
+        )}
+        <h1
+          className={`font-display min-w-0 text-body font-bold text-ink ${
+            step > 0 && !askingFelt ? "sr-only" : ""
+          }`}
+        >
           {practised}
         </h1>
         {coined && step === 0 && !askingFelt && (
@@ -2136,7 +2201,7 @@ function Results({
         ) : (
         <div
           key={step}
-          className={`arrive-x [:root[data-motion=reduce]_&]:[animation-duration:var(--duration-base)]! ${
+          className={`${wentBack ? "arrive-x-back" : "arrive-x"} [:root[data-motion=reduce]_&]:[animation-duration:var(--duration-base)]! ${
             step === 0 ? "flex flex-1 flex-col justify-center pb-16 pt-4" : "pb-8"
           }`}
         >

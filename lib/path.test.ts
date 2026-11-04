@@ -73,8 +73,24 @@ describe("nextLesson", () => {
     expect(nextLesson({ f1: 3 })?.lesson.id).toBe("f2");
   });
 
-  it("returns to a lesson that only scored partially", () => {
-    expect(nextLesson({ f1: 3, f2: 2, f3: 3 })?.lesson.id).toBe("f2");
+  it("moves on from a lesson that only scored partially (#407)", () => {
+    expect(nextLesson({ f1: 3, f2: 2, f3: 3 })?.lesson.id).toBe("f4");
+    expect(nextLesson({ f1: 1 })?.lesson.id).toBe("f2");
+  });
+
+  it("comes back to the first partial lesson once every open one is done", () => {
+    const once: Record<string, number> = {};
+    for (const id of [
+      "f1", "f2", "f3", "f4",
+      "p1", "p2", "p3", "p4",
+      "h1", "h2", "h3", "h4",
+      "s1", "s2", "s3", "s4", "s5",
+      "c1", "c2", "c3", "c4", "c5",
+      "t1", "t2", "t3", "t4", "t5",
+    ])
+      once[id] = 1;
+    expect(nextLesson(once)?.lesson.id).toBe("f1");
+    expect(nextLesson({ ...once, f1: 3 })?.lesson.id).toBe("f2");
   });
 
   it("never routes the daily loop into a boss unit", () => {

@@ -49,6 +49,7 @@ import { BOSS_XP_BASE } from "@/lib/rep-config";
 import { modIds, parseMods, xpMultiplier } from "@/lib/stress-mods";
 import { spokenAt } from "@/lib/spoken-at";
 import { transcribe } from "@/lib/transcribe";
+import { UNHEARD_COPY, unheard } from "@/lib/unheard";
 
 export const runtime = "nodejs";
 export const maxDuration = 60; // Vercel Hobby cap
@@ -217,6 +218,17 @@ export async function POST(req: NextRequest) {
       { error: message },
       { status: unconfigured ? 503 : undecodable ? 422 : 502 }
     );
+  }
+
+  /*
+   * A take the mic barely heard (#406): under a second and a half of
+   * audio, or more words than its length can hold (Whisper invents
+   * speech over silence). Nothing is stored, the slot goes back, and the
+   * phone says to check the mic. 422, so the outbox lets it go.
+   */
+  if (unheard(transcription.durationS, transcription.words.length)) {
+    await refundRateLimit(subject);
+    return NextResponse.json({ error: UNHEARD_COPY, unheard: true }, { status: 422 });
   }
 
   const metrics = computeMetrics(

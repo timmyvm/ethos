@@ -5,6 +5,7 @@ import { AccuracyCard } from "@/components/AccuracyCard";
 import { CountUp } from "@/components/CountUp";
 import { DemosArt, preloadPose } from "@/components/DemosArt";
 import { DimensionList } from "@/components/DimensionList";
+import { InteractiveTranscript } from "@/components/InteractiveTranscript";
 import { DURATION } from "@/lib/motion";
 import { PauseBar } from "@/components/PauseBar";
 import { Says, SAID_AFTER_MS } from "@/components/Says";
@@ -15,11 +16,20 @@ import type { AccuracyResult } from "@/lib/accuracy";
 import type { CoachOutput } from "@/lib/coach";
 import type { ColdTopic } from "@/lib/cold-topics";
 import type { Tier1Scores, Tier2Anchors } from "@/lib/index-score";
-import type { FillerHit, RepMetrics } from "@/lib/metrics";
+import type { FillerHit, RepMetrics, Word } from "@/lib/metrics";
 import { repTraitGain } from "@/lib/traits";
 
 export interface ResultView {
   transcript: string;
+  /**
+   * Whisper's words with their times (#411), so the transcript knows
+   * when each word was said. A stored row without its word list, or a
+   * reply from before #411, has none; the transcript then reads the
+   * text alone.
+   */
+  words?: Word[] | null;
+  /** The stored recording, filed with a swap saved from its words. */
+  repId?: string | null;
   metrics: RepMetrics;
   tier1: Tier1Scores;
   anchors: Tier2Anchors;
@@ -63,6 +73,7 @@ export function RepResult({
   live = false,
   player,
   hasPlayer = player != null,
+  onPlay,
   celebrate = false,
 }: {
   result: ResultView;
@@ -98,6 +109,11 @@ export function RepResult({
    * Defaults to whether `player` was passed.
    */
   hasPlayer?: boolean;
+  /**
+   * Plays the recording from a second (the player's own seek, #411):
+   * the word sheet's "Said at 0:14". Absent where nothing can play it.
+   */
+  onPlay?: (t: number) => void;
   /**
    * A star landed or the streak held (M08). With `live`, on the score
    * section: once the stars have landed, Demos swaps to the celebrate
@@ -466,7 +482,7 @@ export function RepResult({
       {show("words") && player && <div className="mt-7">{player}</div>}
 
       {/* Open, not hidden behind a disclosure (#56). Every score on this
-          screen is a claim about these words — you should be able to
+          screen is a claim about these words, so you should be able to
           read them without going looking. */}
       {show("words") && (
         <section className="mt-7">
@@ -478,9 +494,16 @@ export function RepResult({
               </span>
             )}
           </h2>
-          <p className="mt-3 text-read text-stone-800">
-            {result.transcript || "Nothing was picked up."}
-          </p>
+          {/* Every word a tap (#411): the sheet says when it was said and
+              what to say instead. */}
+          <InteractiveTranscript
+            transcript={result.transcript}
+            words={result.words}
+            fillers={m.fillers}
+            onPlay={hasPlayer ? onPlay : undefined}
+            repId={result.repId ?? null}
+            doorToWords={!live}
+          />
         </section>
       )}
     </>

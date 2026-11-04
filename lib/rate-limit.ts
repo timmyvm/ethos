@@ -24,6 +24,13 @@ export const LIMITS = {
    * hides. Four hours of steady use an hour, a long day's worth a day.
    */
   collect: { hour: 240, day: 1200 },
+  /**
+   * The word sheet's thesaurus (app/api/words, #411): a word the curated
+   * map does not hold. A tap is a second of curiosity, so the room is
+   * wide: sixty words an hour, three hundred a day. Answers the server
+   * or the phone already holds cost nothing.
+   */
+  words: { hour: 60, day: 300 },
 } as const;
 
 export type LimitTier = keyof typeof LIMITS;

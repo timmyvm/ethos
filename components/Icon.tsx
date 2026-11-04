@@ -575,6 +575,15 @@ export function IconCheck({ size }: { size?: number }) {
   );
 }
 
+/** Add: a plus, for saving a word to Your words (#411). */
+export function IconPlus({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="M12 5.5v13M5.5 12h13" />
+    </Glyph>
+  );
+}
+
 /** Settings: SF Symbols' gearshape, eight teeth round a hub, 2px line. */
 export function IconGear({ size }: { size?: number }) {
   return (

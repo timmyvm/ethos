@@ -5366,3 +5366,108 @@ html[data-test-tile] .test-tile-slot {
   color: var(--pop-mint-ink);
 }
 /* ========================== end of tester presence (#402) ========================== */
+
+/* ======================= the interactive transcript (#411) =======================
+ * What you said, as words you can tap (components/InteractiveTranscript.tsx;
+ * Timothy, after Kiku). Outfit at the section head's 20, 600 on 1.7, so
+ * the words read as the screen's content and not its caption. Every word
+ * is a control; its underline says what it is, in the colour that already
+ * means it: the Fillers tone for a filler (the Hear it back key's mark),
+ * Variety's for a vague word, Variety's dotted for a word said three
+ * times or more, and a hairline in `edge` under every other word, so the
+ * paragraph reads as tappable without a sentence saying so.
+ */
+.transcript {
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 1.25rem;
+  line-height: 1.7;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  color: var(--color-ink);
+  overflow-wrap: break-word;
+}
+/* A word. Inline, so it wraps and holds its punctuation like text; the
+   block padding grows the hit area to 44px without moving a line, and
+   the inline padding is given back by the margin. */
+.tw {
+  --tw-line: var(--color-edge);
+  --tw-weight: 1px;
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 5px 2px;
+  margin: 0 -2px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  text-decoration-line: underline;
+  text-decoration-color: var(--tw-line);
+  text-decoration-thickness: var(--tw-weight);
+  text-underline-offset: 0.3em;
+  text-decoration-skip-ink: auto;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+.tw[data-word-mark] {
+  --tw-line: var(--tone);
+  --tw-weight: 3px;
+}
+.tw[data-word-mark="repeat"] {
+  text-decoration-style: dotted;
+}
+/* Pressed, and the word whose sheet is up: the surface step, or the
+   mark's own wash. */
+.tw:active,
+.tw[data-open] {
+  background-color: var(--color-surface);
+}
+.tw[data-word-mark]:active,
+.tw[data-word-mark][data-open] {
+  background-color: var(--tone-wash);
+}
+.tw:focus-visible {
+  outline: 2px solid var(--color-terracotta-500);
+  outline-offset: 1px;
+}
+/* The key over the paragraph: a scrap of each underline. */
+.tw-key {
+  display: inline-block;
+  width: 16px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--tone);
+}
+.tw-key[data-word-mark="repeat"] {
+  border-radius: 0;
+  background: radial-gradient(circle, var(--tone) 1.5px, transparent 1.6px) 0 50% / 4px 3px repeat-x;
+}
+
+/* The word sheet (components/WordSheet.tsx): the raised sheet at the
+   column's width, scrolling inside itself when a short phone cannot
+   hold it, the word at the large title's 34/800. */
+.word-sheet {
+  max-height: calc(100dvh - 12px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: max(28px, calc(env(safe-area-inset-bottom) + 16px));
+}
+.word-sheet-word {
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 2.125rem;
+  line-height: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.028em;
+  color: var(--color-ink);
+}
+/* Four rows' height, held while the list loads or when it failed. */
+.word-sheet-list {
+  min-height: calc(4 * 52px);
+}
+.word-row {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-block: 4px;
+}
+/* ===================== end of the interactive transcript (#411) ===================== */

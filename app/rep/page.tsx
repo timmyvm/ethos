@@ -1902,6 +1902,8 @@ function Results({
   const backTo = safeBack(searchParams.get("back"));
   const [step, setStep] = useState(0);
   const section = STEPS[step].key;
+  /** The player's seek, for the transcript's word sheet (#411). */
+  const seekRef = useRef<((t: number) => void) | null>(null);
   /*
    * The match check (migration 0020): a tester's one question about the
    * score, at the top of the last step, so it is asked after the score
@@ -2243,10 +2245,13 @@ function Results({
                     durationS={result.metrics.durationS}
                     fillers={result.metrics.fillers}
                     pauses={result.metrics.pauses}
+                    seekRef={seekRef}
                   />
                 ) : undefined
               }
               hasPlayer={!!audioUrl}
+              /* A word's "Said at" plays the take from there (#411). */
+              onPlay={(t) => seekRef.current?.(t)}
             />
           </div>
 

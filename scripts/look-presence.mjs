@@ -14,14 +14,16 @@
  * (the home indicator's inset at 390x844, default 34, as on an iPhone 12
  * to 16 opened from the home screen; 0 for the camera's old frame).
  *
- * The scenes are photographed on three days of the test, each on its own
- * Melbourne calendar: 31 October (test day 2), 12 November (day 14, the
- * last) and 14 November (the test over). Without LOOK_TODAY the camera
- * runs itself once per day it has scenes for, each run with LOOK_TODAY
- * set, so the fixtures' recordings are dated from that day; the page's
- * clock is fixed to 19:00 that day (page.clock.setFixedTime), except on
- * the results walk, whose recorder times the take by the real clock (it
- * runs on 31 October only, and says so when the box's date is another).
+ * The scenes are photographed on three days of the test (#404: 2 to 15
+ * November), each on its own Melbourne calendar: a day during it (today
+ * in Melbourne while the test is on, else 3 November, day 2), 15
+ * November (day 14, the last) and 17 November (the test over). Without
+ * LOOK_TODAY the camera runs itself once per day it has scenes for, each
+ * run with LOOK_TODAY set, so the fixtures' recordings are dated from
+ * that day; the page's clock is fixed to 19:00 that day
+ * (page.clock.setFixedTime), except on the results walk, whose recorder
+ * times the take by the real clock (it runs on the day during only when
+ * that is the box's own day in Melbourne, and says so otherwise).
  *
  * Accounts: a non-tester (no hint, no row); a current tester (consent 3,
  * the device holding the hint); a paused tester (consent 2, already asked
@@ -74,9 +76,13 @@ const SENT = "0B5E7A21";
 /** The home indicator's inset at 390x844: an iPhone opened from the home screen. */
 const INSET = Number(process.env.LOOK_INSET ?? 34);
 
+const MEL_TODAY = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Melbourne" }).format(new Date());
+/** A day during the test: today in Melbourne while it runs, so the results walk can record. */
+const DURING = MEL_TODAY >= "2026-11-02" && MEL_TODAY <= "2026-11-14" ? MEL_TODAY : "2026-11-03";
+
 /** Each day's scenes. The camera runs once per day, LOOK_TODAY set. */
 const DAYS = {
-  "2026-10-31": [
+  [DURING]: [
     "today-plain", "today-tester-send", "today-tester-record", "today-tester-paused", "today-tester-answer",
     "today-tester-done", "today-tester-loading", "today-tester-unknown", "today-tester-unknown-ring", "today-tester-overnight", "today-tester-reload",
     "you-plain", "you-tester", "you-paused",
@@ -84,8 +90,8 @@ const DAYS = {
     "settings-testing", "tester-page",
     "squint-today-tester-send", "strip-today-land", "strip-send",
   ],
-  "2026-11-12": ["today-tester-last", "settings-last"],
-  "2026-11-14": ["today-tester-over", "you-over", "settings-over"],
+  "2026-11-15": ["today-tester-last", "settings-last"],
+  "2026-11-17": ["today-tester-over", "you-over", "settings-over"],
 };
 
 /** A scene runs on its own day, and only when asked for (or when nothing was named). */
@@ -108,7 +114,6 @@ if (!LOOK_TODAY) {
 
 mkdirSync(OUT, { recursive: true });
 const CLOCK = new Date(`${LOOK_TODAY}T19:00:00+11:00`);
-const MEL_TODAY = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Melbourne" }).format(new Date());
 const browser = await chromium.launch({
   args: ["--font-render-hinting=none", "--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream", "--autoplay-policy=no-user-gesture-required"],
 });
@@ -473,7 +478,7 @@ async function shootAll() {
       if (W === 390) {
         await step("strip-today-land", async () => {
           state({ ...tester, today: true, answered: true });
-          const { ctx, page } = await context(theme, size, { ...sent, lit: "2026-10-30" });
+          const { ctx, page } = await context(theme, size, { ...sent, lit: "2026-11-01" });
           await page.goto(`${BASE}/`);
           await page.waitForSelector("main h1", { timeout: 30000 });
           const frames = [await page.screenshot()];

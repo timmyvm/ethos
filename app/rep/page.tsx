@@ -1447,8 +1447,13 @@ function RepScreen() {
           Record and the amber card over it broke the day's colour at
           the one moment it should carry: the card wears the practice's
           family now, and Record is the screen's one warm thing. */}
+      {/* While the mic is hot the way back holds its row, so nothing
+          moves; under 600pt tall (320x568) the row folds away instead,
+          so Stop and Start over stand on the first screen (#412). */}
       <div
-        className={`flex self-start ${micHot ? "invisible pointer-events-none" : ""}`}
+        className={`flex self-start ${
+          micHot ? "invisible pointer-events-none [@media(max-height:600px)]:h-0 [@media(max-height:600px)]:overflow-hidden" : ""
+        }`}
         aria-hidden={micHot || undefined}
         inert={micHot || undefined}
       >
@@ -1524,6 +1529,10 @@ function RepScreen() {
       <div
         className={`flex flex-col items-center gap-6 [@media(max-height:700px)]:gap-3 ${
           phase === "idle" ? "" : "flex-1 justify-center"
+        } ${
+          /* Under 600pt the listener steps out (#412), and the room he
+             leaves keeps Stop's ring clear of the wave. */
+          phase === "recording" ? "[@media(max-height:600px)]:gap-4" : ""
         }`}
       >
         {phase === "frame" && (
@@ -1674,8 +1683,11 @@ function RepScreen() {
          * starts and a settle when it stops.
          */}
         {phase === "recording" && captureMode !== "voice_video" && (
-          /* D51: he listens in the column, scaled to the room. */
-          <div className="w-[clamp(120px,18vh,160px)]">
+          /* D51: he listens in the column, scaled to the room. Under
+             600pt tall there is no room for him and Stop and Start over
+             (#407) together, so he steps out there and the two taps
+             stay on the first screen (#412). */
+          <div className="w-[clamp(120px,18vh,160px)] [@media(max-height:600px)]:hidden">
             <DemosHears level={meterLevel} size={160} fluid />
           </div>
         )}
@@ -2274,11 +2286,14 @@ function Results({
             </h2>
           )}
 
-          {/* E57: a tester's last step says what the question is for, in
-              the quiet head Settings' door uses ("Testing Ethos"), so the
-              match question never opens the step unannounced. Testers
-              only; everyone else's step is unchanged. */}
-          {last && ((match && resultKey) || pausedTester(tester)) && (
+          {/* E57: a tester's last step says what the question is for, so
+              it never opens the step unannounced. The match question
+              wears the Tester chip on its own row (#402), which says it;
+              "Testing Ethos" over it said it twice (#412). A paused
+              tester's line has no chip, so it keeps the quiet head
+              Settings' door uses. Testers only; everyone else's step is
+              unchanged. */}
+          {last && !(match && resultKey) && pausedTester(tester) && (
             <p className="eyebrow mt-6">{DOOR_COPY.settingsTesting}</p>
           )}
           {last && match && resultKey && (
@@ -2287,7 +2302,7 @@ function Results({
               clientId={resultKey}
               repId={result.repId}
               scores={snapshot}
-              className="mt-2 mb-7 border-b border-hairline pb-4"
+              className="mt-6 mb-7 border-b border-hairline pb-4"
             />
           )}
           {/* A tester on an older consent: where the question would be,

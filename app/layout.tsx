@@ -4,6 +4,7 @@ import { Nav } from "@/components/Nav";
 import { PageTransition } from "@/components/PageTransition";
 import { OutboxRetry } from "@/components/OutboxRetry";
 import { TesterLayer } from "@/components/tester/TesterLayer";
+import { AccountGate } from "@/components/AccountGate";
 import { ServiceWorker } from "@/components/ServiceWorker";
 import { ThemeSync } from "@/components/Theme";
 // From a plain module, never a "use client" one: see lib/theme-boot.ts.
@@ -109,6 +110,7 @@ export default function RootLayout({
         {/* Testers on consent version 3 only (docs/testers.md): renders
             nothing, and on any other device reads nothing. */}
         <TesterLayer />
+        <AccountGate />
         {/* DESIGN.md: speed is the loudest signal. Vercel's Speed
             Insights is where the field numbers for that claim land. */}
         <SpeedInsights />

@@ -484,7 +484,7 @@ describe("rate limiting", () => {
     expect(transcribe).not.toHaveBeenCalled();
   });
 
-  it("keys real accounts to the user tier and visitors to the anon tier", async () => {
+  it("keys every session, guest or account, to the user tier and visitors to the anon tier (#409)", async () => {
     vi.mocked(transcribe).mockResolvedValue(FIXTURE);
     vi.mocked(coachRep).mockResolvedValue(null);
     vi.mocked(getUserFromAuthHeader).mockResolvedValue({
@@ -499,7 +499,7 @@ describe("rate limiting", () => {
       anonymous: true,
     });
     await post(audioForm());
-    expect(consumeRateLimit).toHaveBeenLastCalledWith("u:anon-1", "anon");
+    expect(consumeRateLimit).toHaveBeenLastCalledWith("u:anon-1", "user");
 
     vi.mocked(getUserFromAuthHeader).mockResolvedValue(null);
     await post(audioForm());
@@ -652,10 +652,26 @@ describe("the rate-limit slot of a failed transcription", () => {
     expect(refundRateLimit).not.toHaveBeenCalled();
   });
 
-  it("is kept when the recording scores", async () => {
+  it("is kept when the recording is saved", async () => {
     vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(saveRep).mockResolvedValue({ id: "rep-1" } as never);
     await post(audioForm());
     expect(refundRateLimit).not.toHaveBeenCalled();
+  });
+
+  /* Only a saved recording keeps its slot (#409). */
+  it("is given back when nothing was saved", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(saveRep).mockResolvedValue(null);
+    await post(audioForm());
+    expect(refundRateLimit).toHaveBeenCalledTimes(1);
+  });
+
+  it("is given back when the recording was already saved by an earlier send", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(saveRep).mockResolvedValue({ id: "rep-1", duplicate: true } as never);
+    await post(audioForm());
+    expect(refundRateLimit).toHaveBeenCalledTimes(1);
   });
 });
 

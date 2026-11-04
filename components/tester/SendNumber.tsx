@@ -7,11 +7,11 @@ import { markSent } from "@/lib/tester-client";
 
 /**
  * The tile's key, Send and Answer alike: grey, raised on Today's surface
- * tile, never terracotta (#402). A pill, as every 44 to 48px secondary
- * button is since round one (D11, DESIGN principle 2).
+ * tile, never terracotta (#402). At the control radius, not a pill:
+ * Timothy, on the merge (#412), "no pills pls."
  */
 export function keyClass(surface: "ground" | "tile") {
-  return `press font-display inline-flex min-h-11 min-w-[96px] shrink-0 items-center justify-center gap-1.5 rounded-tap border border-edge px-4 text-row text-ink max-[359px]:min-w-[76px] ${
+  return `press font-display inline-flex min-h-11 min-w-[96px] shrink-0 items-center justify-center gap-1.5 rounded-control border border-edge px-3.5 text-row text-ink max-[359px]:min-w-[76px] ${
     surface === "tile" ? "bg-raised" : "bg-surface"
   }`;
 }

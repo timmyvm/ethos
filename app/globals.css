@@ -5387,14 +5387,15 @@ html[data-test-tile] .test-tile-slot {
   overflow-wrap: break-word;
 }
 /* A word. Inline, so it wraps and holds its punctuation like text; the
-   block padding grows the hit area to 44px without moving a line, and
-   the inline padding is given back by the margin. */
+   block padding grows the hit area from the font's 25px to 44px without
+   moving a line (an inline box's padding takes no room), and the inline
+   padding, which would, is given back by the margin. */
 .tw {
-  --tw-line: var(--color-edge);
+  --tw-line: var(--color-hairline);
   --tw-weight: 1px;
   cursor: pointer;
-  border-radius: 6px;
-  padding: 5px 2px;
+  border-radius: 8px;
+  padding: 9.5px 2px;
   margin: 0 -2px;
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
@@ -5457,6 +5458,33 @@ html[data-test-tile] .test-tile-slot {
   font-weight: 800;
   letter-spacing: -0.028em;
   color: var(--color-ink);
+}
+/* The word in the sheet wears the paragraph's mark, heavier for its size. */
+.word-sheet-word[data-word-mark] {
+  text-decoration-line: underline;
+  text-decoration-color: var(--tone);
+  text-decoration-thickness: 4px;
+  text-underline-offset: 0.2em;
+  text-decoration-skip-ink: auto;
+}
+.word-sheet-word[data-word-mark="repeat"] {
+  text-decoration-style: dotted;
+}
+/* The word where it stood in its sentence. */
+.word-in-sentence {
+  font-weight: 600;
+  color: var(--color-ink);
+  text-decoration-line: underline;
+  text-decoration-color: var(--color-edge);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.25em;
+}
+.word-in-sentence[data-word-mark] {
+  text-decoration-color: var(--tone);
+  text-decoration-thickness: 2px;
+}
+.word-in-sentence[data-word-mark="repeat"] {
+  text-decoration-style: dotted;
 }
 /* Four rows' height, held while the list loads or when it failed. */
 .word-sheet-list {

@@ -14,7 +14,7 @@
  * screen), sheet-filler, sheet-vague, sheet-repeat, sheet-word,
  * sheet-word-loading, sheet-word-failed, sheet-saved (a swap saved,
  * the door to Your words), words-empty, words-loading, words-failed,
- * words (five rows). /api/words is answered here as the route would,
+ * words (five rows), stored and stored-sheet (a Log recording's transcript and a word's sheet), you-door (You's lexicon and the door under it). /api/words is answered here as the route would,
  * with a beat; `wordsApi.mode` holds it ("slow") or refuses it ("fail").
  */
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright");
@@ -97,7 +97,7 @@ async function shootTheme(theme) {
   const step = async (fn) => { try { await fn(); } catch (e) { console.log("STEP-FAILED", theme, String(e.message ?? e).split("\n")[0]); } };
 
   // ---- The words step, walked to from a live recording --------------------
-  const sheets = ["sheet-filler", "sheet-vague", "sheet-repeat", "sheet-word", "sheet-word-loading", "sheet-word-failed", "sheet-saved"];
+  const sheets = ["rise", "sheet-filler", "sheet-vague", "sheet-repeat", "sheet-word", "sheet-word-loading", "sheet-word-failed", "sheet-saved"];
   if (["step", "step-top", ...sheets].some(want)) {
     await step(async () => {
       savedWordsMode.rows = [];
@@ -151,6 +151,21 @@ async function shootTheme(theme) {
         wordsApi.mode = "ok";
         await close();
       });
+    // The rise, as a strip: 0 (before the tap), 80, 160, 240 and 400ms after it.
+    await step(async () => {
+      if (!want("rise")) return;
+      const word = page.locator('[data-word-key="compound"]').first();
+      await word.scrollIntoViewIfNeeded();
+      await page.screenshot({ path: `${OUT}rise-0${WSUFFIX}-${TAG}-${theme}.png` });
+      const t0 = Date.now();
+      await word.click();
+      for (const at of [80, 160, 240, 400]) {
+        await sleep(Math.max(0, at - (Date.now() - t0)));
+        await page.screenshot({ path: `${OUT}rise-${at}${WSUFFIX}-${TAG}-${theme}.png` });
+      }
+      console.log(`shot  rise${WSUFFIX}-${TAG}-${theme} (5 frames)`);
+      await close();
+    });
     await sheet("sheet-filler", '.tw[data-word-mark="filler"]');
     await sheet("sheet-vague", '.tw[data-word-mark="vague"]');
     await sheet("sheet-repeat", '.tw[data-word-mark="repeat"]');
@@ -186,6 +201,40 @@ async function shootTheme(theme) {
   await words("words-loading", SAVED_ROWS, { delay: 6000 });
   await words("words-failed", SAVED_ROWS, { fail: true });
   await words("words", SAVED_ROWS);
+
+  // A stored recording from the Log (no word list in the fixture: the
+  // text alone, its fillers timed from the stored list).
+  await step(async () => {
+    if (!want("stored") && !want("stored-sheet")) return;
+    await page.goto(`${BASE}/rep/rep-22`);
+    await page.waitForSelector("main h2.section-head:has-text('What you said')", { timeout: 20000 });
+    await page.evaluate(() => {
+      const head = [...document.querySelectorAll("main h2.section-head")].find((h) => /What you said/.test(h.textContent ?? ""));
+      head?.scrollIntoView({ block: "start" });
+      window.scrollBy(0, -16);
+    });
+    await shot("stored");
+    if (!want("stored-sheet")) return;
+    const word = page.locator('.tw[data-word-key="discipline"]').first();
+    await word.click();
+    await page.waitForSelector('[role="dialog"]', { timeout: 5000 });
+    await shot("stored-sheet", { settle: 900 });
+    await page.keyboard.press("Escape");
+  });
+
+  // You's door to it, beside the lexicon.
+  await step(async () => {
+    if (!want("you-door")) return;
+    await page.goto(`${BASE}/you`);
+    await page.waitForSelector("main h2.section-head:has-text('Your lexicon')", { timeout: 20000 });
+    await page.waitForFunction(() => document.querySelectorAll(".skeleton").length === 0, null, { timeout: 12000 }).catch(() => {});
+    await page.evaluate(() => {
+      const head = [...document.querySelectorAll("main h2.section-head")].find((h) => /Your lexicon/.test(h.textContent ?? ""));
+      head?.scrollIntoView({ block: "start" });
+      window.scrollBy(0, -80);
+    });
+    await shot("you-door");
+  });
 
   await context.close();
 }

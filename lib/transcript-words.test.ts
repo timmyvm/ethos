@@ -68,6 +68,10 @@ describe("transcriptPieces", () => {
     const compound = units.find((u) => u.key === "compound")!;
     expect(compound.start).toBeCloseTo(8 * 0.4);
     expect(compound.sentence).toBe("So the thing about habits is, um, they compound.");
+    expect(compound.sentence.slice(compound.inSentence, compound.inSentence + compound.text.length)).toBe("compound");
+    // The second "day" of a sentence is found where it was said, not at the first.
+    const days = units.filter((u) => u.key === "day" && u.sentence.startsWith("The day after"));
+    expect(days.map((u) => u.inSentence)).toEqual([4, 21]);
     expect(clockOf(74.6)).toBe("1:14");
   });
 

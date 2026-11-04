@@ -185,6 +185,7 @@ function Body({
           ? `Said ${unit.times} times`
           : null;
   const trait = unit.mark === "filler" ? "fillers" : unit.mark ? "range" : undefined;
+  const context = around(unit);
   const sameFiller = unit.filler ? fillers.filter((f) => f.word === unit.filler).length : 0;
 
   return (
@@ -204,7 +205,10 @@ function Body({
               </>
             )}
           </div>
-          <h2 className="word-sheet-word mt-1 break-words">{unit.display}</h2>
+          {/* The word lifted out of the paragraph, its mark with it. */}
+          <h2 className="word-sheet-word mt-1 break-words" data-word-mark={unit.mark ?? undefined}>
+            {unit.display}
+          </h2>
         </div>
         <button
           type="button"
@@ -214,6 +218,19 @@ function Body({
           Done
         </button>
       </div>
+
+      {/* The sentence it was said in, the word set apart where it stands:
+          the scrim hides the paragraph, and a swap is chosen for a
+          sentence, not a word. */}
+      {context && (
+        <p className="mt-3 line-clamp-3 text-body text-stone-500">
+          {context.before}
+          <span className="word-in-sentence" data-word-mark={unit.mark ?? undefined}>
+            {context.word}
+          </span>
+          {context.after}
+        </p>
+      )}
 
       {unit.start !== null &&
         (onPlay ? (
@@ -253,9 +270,9 @@ function Body({
             {alts.state === "loading" ? (
               <ul aria-hidden>
                 {Array.from({ length: HELD_ROWS }, (_, i) => (
-                  <li key={i} className="word-row border-b border-hairline">
+                  <li key={i} className="word-row border-b border-hairline last:border-b-0">
                     <Skeleton className="h-5 w-32" />
-                    <Skeleton className="h-11 w-[86px]" rounded="rounded-full" />
+                    <Skeleton className="h-11 w-[86px]" />
                   </li>
                 ))}
               </ul>
@@ -280,14 +297,14 @@ function Body({
                 {alts.list.map((alt) => {
                   const s = saved[alt.toLowerCase()];
                   return (
-                    <li key={alt} className="word-row border-b border-hairline">
+                    <li key={alt} className="word-row border-b border-hairline last:border-b-0">
                       <span className="font-display min-w-0 text-detail break-words">{alt}</span>
                       <button
                         type="button"
                         onClick={() => void toggle(alt)}
                         aria-pressed={!!s}
                         aria-label={s ? `Saved: ${alt} instead of ${unit.display}` : `Save ${alt} instead of ${unit.display}`}
-                        className={`press inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-link ${
+                        className={`press inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-control border px-3.5 text-link ${
                           s ? "border-transparent bg-surface text-ink" : "border-edge bg-raised text-ink"
                         }`}
                       >
@@ -328,4 +345,26 @@ function Body({
       </p>
     </div>
   );
+}
+
+/** Characters of the sentence kept either side of the word, so a long one still shows it. */
+const CONTEXT = 70;
+
+/** The sentence around the word: whole when short, cut at word breaks either side when long. */
+function around(unit: TranscriptUnit): { before: string; word: string; after: string } | null {
+  const s = unit.sentence;
+  if (!s) return null;
+  const at = unit.inSentence;
+  const end = at + unit.text.length;
+  let before = s.slice(0, at);
+  let after = s.slice(end);
+  if (before.length > CONTEXT) {
+    const cut = before.slice(-CONTEXT);
+    before = `\u2026${cut.slice(Math.max(0, cut.indexOf(" ") + 1))}`;
+  }
+  if (after.length > CONTEXT) {
+    const cut = after.slice(0, CONTEXT);
+    after = `${cut.slice(0, Math.max(1, cut.lastIndexOf(" ")))}\u2026`;
+  }
+  return { before, word: s.slice(at, end), after };
 }

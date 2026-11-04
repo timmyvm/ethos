@@ -122,11 +122,18 @@ export default function YourWords({
         /* A one-thing screen gives its free height to the card (#368):
            Demos and the example centred in it, the one tap at its foot. */
         <section className="card arrive mt-5 flex flex-1 flex-col p-5 text-center">
-          <div className="flex flex-1 flex-col items-center justify-center py-4">
-            <DemosArt pose="listening" size={144} idle={false} className="mx-auto" />
+          {/* He takes the card's free height (150 to 280px), standing on
+              the example, the pair centred in what is left, so a tall
+              phone gets more of him rather than ground. */}
+          <div className="flex flex-1 flex-col justify-center">
+            <div className="demos-fit w-full flex-1">
+              <div className="demos-fit-room">
+                <DemosArt pose="listening" size={280} fit />
+              </div>
+            </div>
             <div aria-hidden className="mt-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-detail font-normal">
               <span>thing</span>
-              <span className="text-stone-500">instead:</span>
+              <span className="text-body text-stone-500">instead:</span>
               <span className="you-word">point</span>
             </div>
             <p className="mx-auto mt-3 max-w-[30ch] text-body text-pretty text-stone-500">
@@ -155,7 +162,7 @@ export default function YourWords({
                 <div className="flex min-h-11 items-center gap-3">
                   <p className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 text-detail font-normal">
                     <span className="break-words">{r.word}</span>
-                    <span className="text-stone-500">instead:</span>
+                    <span className="text-body text-stone-500">instead:</span>
                     <span className="you-word break-words">{r.instead}</span>
                   </p>
                   <button
@@ -171,7 +178,7 @@ export default function YourWords({
                 </div>
                 {r.sentence && (
                   <p className="mt-0.5 line-clamp-2 pr-10 text-caption text-stone-500">
-                    “{r.sentence}”
+                    “<Said sentence={r.sentence} word={r.word} />”
                   </p>
                 )}
               </li>
@@ -180,5 +187,18 @@ export default function YourWords({
         </>
       )}
     </main>
+  );
+}
+
+/** The sentence with the word it came from in ink, where it was said. */
+function Said({ sentence, word }: { sentence: string; word: string }) {
+  const at = sentence.toLowerCase().search(new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`));
+  if (at < 0) return <>{sentence}</>;
+  return (
+    <>
+      {sentence.slice(0, at)}
+      <span className="font-semibold text-ink">{sentence.slice(at, at + word.length)}</span>
+      {sentence.slice(at + word.length)}
+    </>
   );
 }

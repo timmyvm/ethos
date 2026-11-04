@@ -48,6 +48,8 @@ export interface TranscriptUnit {
   small: boolean;
   /** The sentence it was said in. */
   sentence: string;
+  /** Where it starts in `sentence`, so the sheet can set it apart there. */
+  inSentence: number;
 }
 
 export interface TranscriptGap {
@@ -118,7 +120,8 @@ function sentences(text: string): { from: number; to: number; text: string }[] {
       if (re.lastIndex === m.index) re.lastIndex++;
       continue;
     }
-    out.push({ from: m.index, to: m.index + m[0].length, text: m[0].trim() });
+    const lead = m[0].length - m[0].trimStart().length;
+    out.push({ from: m.index + lead, to: m.index + m[0].length, text: m[0].trim() });
   }
   return out;
 }
@@ -192,7 +195,7 @@ export function transcriptPieces(
   });
 
   const spans = sentences(text);
-  const sentenceAt = (at: number) => spans.find((s) => at >= s.from && at < s.to)?.text ?? "";
+  const sentenceAt = (at: number) => spans.find((s) => at >= s.from && at < s.to);
   const startsSentence = (at: number) => {
     const before = text.slice(0, at).trimEnd();
     return before === "" || /[.!?]["')\]”’]*$/.test(before);
@@ -232,7 +235,8 @@ export function transcriptPieces(
       ...(c?.filler ? { filler: c.filler } : {}),
       ...(mark === "repeat" ? { times } : {}),
       small: !c && STOPWORDS.has(key),
-      sentence: sentenceAt(first.from),
+      sentence: sentenceAt(first.from)?.text ?? "",
+      inSentence: Math.max(0, first.from - (sentenceAt(first.from)?.from ?? first.from)),
     });
     cursor = end.to;
     i = last;

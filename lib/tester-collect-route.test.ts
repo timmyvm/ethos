@@ -126,19 +126,8 @@ describe("POST /api/tester/collect, who it takes from", () => {
     expect(events()).toEqual([]);
   });
 
-  it("takes nothing from anyone once the test is over, and tells every phone to stop", async () => {
-    vi.setSystemTime(new Date("2026-11-15T13:00:00.000Z"));
-    try {
-      const res = await call({ events: BATCH });
-      expect(res).toEqual({ status: 403, body: { error: "The test is over.", stop: true } });
-      expect(events()).toEqual([]);
-      expect(h.consumed).toEqual([]);
-      expect(db.state.log).toEqual([]);
-    } finally {
-      vi.setSystemTime(new Date("2026-10-31T08:00:00.000Z"));
-    }
-    // A minute before, on the last day, it still takes the batch.
-    vi.setSystemTime(new Date("2026-11-15T12:59:00.000Z"));
+  it("keeps taking a tester's batches after the test's last day (#405)", async () => {
+    vi.setSystemTime(new Date("2026-11-20T08:00:00.000Z"));
     try {
       expect((await call({ events: BATCH })).status).toBe(200);
     } finally {

@@ -38,12 +38,19 @@ export function AudioScrubber({
     };
   }, []);
 
+  /*
+   * Every start names its position (#406). On an iPhone the play key
+   * sounded nothing while the filler chips, which seek first, always
+   * did: a recording that has never been seeked can sit unloaded at 0.
+   * So play seeks too, a millisecond in when it starts from the top, and
+   * the key only shows pause once the audio really runs.
+   */
   function seek(to: number) {
     const a = ref.current;
     if (!a) return;
-    a.currentTime = Math.max(0, Math.min(durationS - 0.05, to));
-    void a.play();
+    a.currentTime = Math.max(0.001, Math.min(durationS - 0.05, to));
     setPlaying(true);
+    a.play().catch(() => setPlaying(false));
   }
 
   function toggle() {
@@ -53,8 +60,7 @@ export function AudioScrubber({
       a.pause();
       setPlaying(false);
     } else {
-      void a.play();
-      setPlaying(true);
+      seek(a.ended || a.currentTime >= durationS - 0.1 ? 0 : a.currentTime);
     }
   }
 

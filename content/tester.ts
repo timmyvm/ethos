@@ -182,8 +182,8 @@ export const TEST = {
   zone: "Australia/Melbourne",
   /**
    * 00:00 on Monday 16 November in Melbourne (AEDT, UTC+11): the test is
-   * over, Today says so, and a phone collects nothing more (the consent
-   * keeps what it collects "while you test"). lib/tester-days.test.ts
+   * over and Today says so. Collection carries on (#405).
+   * lib/tester-days.test.ts
    * holds it to the day after `last` on Melbourne's calendar.
    */
   endsAt: "2026-11-15T13:00:00Z",

@@ -142,6 +142,7 @@ import {
 } from "@/lib/supabase-browser";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 import type { TraitId } from "@/content/traits";
+import { MIN_TAKE_MS, TOO_SHORT_COPY, UNHEARD_COPY } from "@/lib/unheard";
 
 const METER_BARS = 36;
 const FRAME_SECONDS = 30;
@@ -559,12 +560,14 @@ function RepScreen() {
       });
       if (!outcome.ok && isFinalReject(outcome.status)) {
         // The server will never take this file (empty, unreadable, too
-        // large). Keeping it would resend it on every visit for good, so
-        // it goes, and the screen says to record it again.
+        // large, or a take the mic barely heard, #406). Keeping it would
+        // resend it on every visit for good, so it goes, and the screen
+        // says to record it again.
         if (outboxId) void outboxDelete(outboxId);
         if (!live()) return;
         pendingRef.current = null;
-        setError("The audio couldn't be read. Record it again.");
+        const unheardTake = (outcome.data as { unheard?: boolean } | null)?.unheard === true;
+        setError(unheardTake ? UNHEARD_COPY : "The audio couldn't be read. Record it again.");
         setPhase("error");
         return;
       }
@@ -797,6 +800,17 @@ function RepScreen() {
     // Only this take's devices: if the screen moved on, they were let go
     // already and recRef may hold a newer take.
     if (recRef.current === r) teardown();
+
+    // Stopped before there was anything to hear (#406): a tap on Record
+    // by mistake, or a mic that never started. Nothing is sent, so no
+    // hourly slot is spent on it.
+    if (spokenAt - takeStartedAt.current < MIN_TAKE_MS) {
+      if (!live()) return;
+      pendingRef.current = null;
+      setError(TOO_SHORT_COPY);
+      setPhase("error");
+      return;
+    }
 
     {
       const ext = blob.type.includes("mp4") ? "mp4" : "webm";

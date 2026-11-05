@@ -10,6 +10,7 @@ import { nextFrom, onwardLink } from "@/lib/use-paywall-return";
 import {
   callbackCarriesSession,
   callbackProblem,
+  callbackScreen,
   forgetOAuthAttempt,
   readOAuthAttempt,
   waitForAccount,
@@ -48,19 +49,11 @@ export default function CallbackPage() {
     // The link or Google's redirect carries it; a redirect that dropped
     // the query still has it in the page the attempt began on.
     setNext(nextFrom(window.location.search) ?? nextFrom(tried?.from));
-    const problem = callbackProblem(href);
-    if (problem.kind === "google") {
-      setState({ at: "google" });
-      return;
-    }
-    if (problem.kind === "taken") {
-      // A sign-up that met an account: GoogleTakenSwitch signs in with it
-      // (#414), so this page only waits. Anything else says it is taken.
-      if (tried?.mode !== "signup") setState({ at: "taken" });
-      return;
-    }
-    if (problem.kind === "link") {
-      setState({ at: "stale" });
+    // A sign-up that met an account is covered by GoogleTakenSwitch while
+    // it signs in with it (#414); the taken screen is what is under it.
+    const screen = callbackScreen(callbackProblem(href));
+    if (screen) {
+      setState({ at: screen });
       return;
     }
     // Only wait out a slow exchange when something is actually coming.

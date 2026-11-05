@@ -1,15 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { callbackProblem, readOAuthAttempt, signInWithGoogle } from "@/lib/auth";
-import { SWITCHED_KEY, TAKEN_KEY, markGoogleSwitching, shouldSwitch } from "@/lib/google-taken";
+import { GOOGLE_PENDING_MS, callbackProblem, readOAuthAttempt, signInWithGoogle } from "@/lib/auth";
+import {
+  SWITCHED_KEY,
+  TAKEN_KEY,
+  markGoogleSwitching,
+  onBackWithoutFinishing,
+  shouldSwitch,
+} from "@/lib/google-taken";
 import { nextFrom } from "@/lib/use-paywall-return";
 
 /**
  * Back from Google with "that Google account already has Ethos" (#414,
  * lib/google-taken.ts): sign in with it instead of landing on the
  * account ask again. A plain screen covers whatever page Supabase sent
- * the person to while the sign-in leaves for Google.
+ * the person to while the sign-in leaves for Google, and lets go when
+ * they come back without finishing.
  */
 export function GoogleTakenSwitch() {
   const [on, setOn] = useState(false);
@@ -29,17 +36,21 @@ export function GoogleTakenSwitch() {
     } catch {}
     markGoogleSwitching(true);
     setOn(true);
+    /* Backed out of Google or a dismissed sheet hands the page, and the
+       account gate, back. Not torn down with the effect: the cover stays
+       until one of these, or a failed call, lets it go. */
+    let stop = () => {};
+    const release = () => {
+      stop();
+      markGoogleSwitching(false);
+      setOn(false);
+    };
+    stop = onBackWithoutFinishing(release, GOOGLE_PENDING_MS);
     void signInWithGoogle("signin", nextFrom(window.location.search))
       .then((r) => {
-        if (!r.ok) {
-          markGoogleSwitching(false);
-          setOn(false);
-        }
+        if (!r.ok) release();
       })
-      .catch(() => {
-        markGoogleSwitching(false);
-        setOn(false);
-      });
+      .catch(release);
   }, []);
   if (!on) return null;
   return (

@@ -68,6 +68,28 @@ export function reminderTierNote(tier: ReminderTier): string {
 }
 
 /**
+ * What Settings draws under the hours while a reminder is on: the ask
+ * for permission, the browser's block, or the next time it rings. With
+ * no Notification API at all (an iPhone's Safari tab, an app's own
+ * browser) it is the way to get one: the ask drawn there could do
+ * nothing, however often it was tapped.
+ */
+export type ReminderLine = "ask" | "blocked" | "unsupported" | "armed";
+
+export function reminderLine(perm: string, canNotify: boolean): ReminderLine {
+  if (!canNotify) return "unsupported";
+  if (perm === "granted") return "armed";
+  return perm === "denied" ? "blocked" : "ask";
+}
+
+/** The way to a reminder from a browser with no notifications, inside an app's own (`app`) or not. */
+export function noNotificationsNote(app: string | null): string {
+  return app
+    ? `Notifications don't work inside ${app}. Open Ethos in your browser.`
+    : reminderTierNote("unsupported");
+}
+
+/**
  * Next occurrence of `hour` in local time, skipping quiet hours.
  *
  * When today's rep is already done, today's occurrence would ask for a

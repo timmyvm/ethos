@@ -44,6 +44,38 @@ export function markGoogleSwitching(on: boolean): void {
 }
 
 /**
+ * Calls `release` once, at the first sign the person is back on this
+ * page without having finished at Google, the same signs the Google
+ * button reads (lib/use-oauth-return.ts): the page restored from the
+ * back/forward cache, shown again, refocused after a dismissed sheet,
+ * or `ms` gone by. The switch's cover used to stay up for good after
+ * any of them, with nothing on it to tap. Returns the cleanup.
+ */
+export function onBackWithoutFinishing(release: () => void, ms: number): () => void {
+  const onPageShow = (e: Event) => {
+    if ((e as PageTransitionEvent).persisted) fire();
+  };
+  const onVisibility = () => {
+    if (document.visibilityState === "visible") fire();
+  };
+  const stop = () => {
+    window.removeEventListener("pageshow", onPageShow);
+    document.removeEventListener("visibilitychange", onVisibility);
+    window.removeEventListener("focus", fire);
+    window.clearTimeout(timer);
+  };
+  function fire() {
+    stop();
+    release();
+  }
+  window.addEventListener("pageshow", onPageShow);
+  document.addEventListener("visibilitychange", onVisibility);
+  window.addEventListener("focus", fire);
+  const timer = window.setTimeout(fire, ms);
+  return stop;
+}
+
+/**
  * Before React, before any redirect drops the URL's fragment: note that
  * this page opened with Google's "already linked" error. Plain ES5 in a
  * string, inlined into <head> (see lib/theme-boot.ts for why a string).

@@ -177,6 +177,9 @@ export function DemosClip({
 
     const draw = () => {
       if (disposed || video.readyState < 2) return;
+      // Only frames that are playing; the first is the exception, so the
+      // canvas has something before it fades in.
+      if (shown && (video.paused || video.ended)) return;
       const w = video.videoWidth;
       const h = video.videoHeight / 2;
       if (!w || !h) return;
@@ -238,8 +241,10 @@ export function DemosClip({
       rest = setTimeout(play, ms ?? lo + Math.random() * (hi - lo));
     };
 
+    /* No draw on "ended" (#412): the last decoded frame is already on
+       the canvas, and an upload from a paused, ended video is the one
+       WebKit loses the context over (bugs.webkit.org 261331). */
     video.addEventListener("ended", () => {
-      draw();
       scheduleRest();
     });
     video.addEventListener("error", () => {

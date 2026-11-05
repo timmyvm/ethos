@@ -480,6 +480,11 @@ function Joined({
 function StopTesting() {
   const [state, setState] = useState<"idle" | "sure" | "busy" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
+  const card = useRef<HTMLDivElement>(null);
+  // The question opens at the page's foot: bring its two answers into view.
+  useEffect(() => {
+    if (state === "sure") card.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [state]);
   const stop = async () => {
     setState("busy");
     setError(null);
@@ -509,7 +514,7 @@ function StopTesting() {
           {JOINED_COPY.stop}
         </button>
       ) : (
-        <div className="mt-3 rounded-card bg-surface p-4">
+        <div ref={card} className="mt-3 scroll-mb-6 rounded-card bg-surface p-4">
           <p className="text-body text-stone-700">{JOINED_COPY.stopSure}</p>
           {error && (
             <p role="alert" className="mt-2 text-caption text-terracotta-700">

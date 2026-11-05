@@ -5,6 +5,8 @@
  * first paint without a round trip.
  */
 
+import { liteGraphics } from "./graphics";
+
 export type Theme = "system" | "light" | "dark";
 
 /**
@@ -43,6 +45,12 @@ export interface Prefs {
   skipIntros: boolean;
   /** Honour prefers-reduced-motion overrides for the celebration. */
   reducedMotion: boolean;
+  /**
+   * Lite graphics (#412, lib/graphics.ts): true or false once chosen in
+   * Settings; null until then, when the device decides (a crash, a lost
+   * graphics context, a small iPhone).
+   */
+  liteGraphics: boolean | null;
   /** Light, dark, or follow the OS. */
   theme: Theme;
   /**
@@ -71,6 +79,7 @@ export const DEFAULT_PREFS: Prefs = {
   frameStep: false,
   skipIntros: false,
   reducedMotion: false,
+  liteGraphics: null,
   theme: "system",
   pose: null,
 };
@@ -132,9 +141,14 @@ export function buzz(pattern: number | number[]): void {
   } catch {}
 }
 
-/** True when the user (or the OS) has asked for less movement. */
+/**
+ * True when the user (or the OS) has asked for less movement, or the
+ * device draws lite (#412): lite is the reduced-motion app with its glass
+ * made solid, so Demos's WebGL clip, the count-ups and the celebration's
+ * flourishes all stand down through this one answer.
+ */
 export function prefersReducedMotion(): boolean {
-  if (readPrefs().reducedMotion) return true;
+  if (readPrefs().reducedMotion || liteGraphics()) return true;
   try {
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   } catch {

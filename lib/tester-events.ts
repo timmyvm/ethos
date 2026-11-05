@@ -273,6 +273,9 @@ export function cleanDevice(raw: Record<string, unknown>): Record<string, unknow
     downlink: inRange(raw.downlink, 0, 10_000),
     rtt: int(raw.rtt, 0, 60_000),
     save_data: bool(raw.save_data),
+    // Lite graphics (#412): what the phone draws, and why lite came on.
+    graphics: raw.graphics === "lite" || raw.graphics === "full" ? raw.graphics : null,
+    lite_why: raw.lite_why === "crash" || raw.lite_why === "gpu" || raw.lite_why === "device" ? raw.lite_why : null,
   };
   const described = describeDevice({
     ua: base.ua,
@@ -287,7 +290,8 @@ export function cleanDevice(raw: Record<string, unknown>): Record<string, unknow
 function cleanUsageData(name: UsageName, raw: Record<string, unknown>): Record<string, unknown> {
   if (name === "screen") return raw.cont === true ? { cont: true } : {};
   if (name === "tap") return present({ role: capText(raw.role, 20) });
-  if (name === "record_start") return present({ video: bool(raw.video) });
+  // `blocked`: the start the mic refused, by the browser's error name (#412).
+  if (name === "record_start") return present({ video: bool(raw.video), blocked: capText(raw.blocked, 40) });
   if (name === "record_stop") {
     return present({ seconds: inRange(raw.seconds, 0, 3600), discarded: bool(raw.discarded) });
   }

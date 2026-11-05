@@ -17,6 +17,7 @@ import {
   type Theme,
 } from "@/lib/prefs";
 import { applyMotion, applyTheme } from "@/components/Theme";
+import { applyGraphics, liteWhy, type LiteWhy } from "@/lib/graphics";
 import { ManageSheet } from "@/components/premium/ManageSheet";
 import { SettingsPlanRow, SettingsPlanRowSkeleton } from "@/components/premium/PlanCard";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -70,6 +71,8 @@ const THEMES = (["system", "light", "dark"] as const satisfies readonly Theme[])
  */
 export default function SettingsPage() {
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
+  /** Why this device went lite by itself (#412), read after mount. */
+  const [why, setWhy] = useState<LiteWhy | null>(null);
   const [perm, setPerm] = useState<string>("default");
   const [tier, setTier] = useState<ReminderTier>("unsupported");
   /** undefined while unknown (in flight, or both reads failed), null for
@@ -173,6 +176,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     setPrefs(readPrefs());
+    setWhy(liteWhy());
     if (typeof Notification !== "undefined") setPerm(Notification.permission);
     // Capability now, then the tier that's ACTUALLY live (push needs an
     // async look at the subscription) when it answers.
@@ -453,6 +457,19 @@ export default function SettingsPage() {
           onChange={(v) => {
             update({ reducedMotion: v });
             applyMotion(v);
+          }}
+        />
+        {/* #412: the switch shows what the phone draws now, chosen or
+            not; once touched, it is the person's and the device's
+            guesses stand aside. */}
+        <Toggle
+          label="Lite graphics"
+          note={liteNote(prefs.liteGraphics === null ? why : null)}
+          on={prefs.liteGraphics ?? why !== null}
+          onChange={(v) => {
+            update({ liteGraphics: v });
+            applyGraphics(v);
+            applyMotion(prefs.reducedMotion);
           }}
         />
       </Section>
@@ -898,4 +915,13 @@ function LinkRow({
       {inner}
     </Link>
   );
+}
+
+/** What the Lite graphics switch says under it (#412). */
+function liteNote(why: LiteWhy | null): string {
+  const what = "Demos stands still and nothing blurs or loops, for phones that struggle.";
+  if (why === "crash") return `On because Ethos closed on this phone. ${what}`;
+  if (why === "gpu") return `On because this phone's graphics gave out. ${what}`;
+  if (why === "device") return `On for this iPhone. ${what}`;
+  return what;
 }

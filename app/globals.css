@@ -3613,6 +3613,61 @@ summary::-webkit-details-marker {
   }
 }
 
+/* ============================== lite graphics ==============================
+ * #412: a phone that cannot carry the decoration does not get it
+ * (lib/graphics.ts sets `data-graphics="lite"` after a crash, a lost
+ * graphics context, on a small iPhone, or from Settings, and sets
+ * `data-motion="reduce"` with it, so every loop and entrance above is
+ * already still or a fade). What is left here is the glass and the blur:
+ * every backdrop filter on a full-width layer is a second copy of the
+ * screen the phone redraws each frame, and a blur filter is another. So
+ * the materials go solid exactly as they do for reduced transparency,
+ * and the decorative blurs go.
+ * ========================================================================= */
+:root[data-graphics="lite"] .screen-bar::before {
+  background: var(--color-ground);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  -webkit-mask-image: none;
+  mask-image: none;
+  inset: 0;
+  box-shadow: 0 1px 0 var(--color-hairline, rgb(0 0 0 / 0.08));
+}
+:root[data-graphics="lite"] .nav-glass {
+  background: var(--color-raised);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+:root[data-graphics="lite"] .sheet-scrim {
+  background: color-mix(in srgb, var(--color-stage) 62%, transparent);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+:root[data-graphics="lite"] .premium-wall-glass {
+  background: color-mix(in srgb, var(--color-raised) 88%, transparent);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+:root[data-graphics="lite"] .nav-dock::before {
+  height: 72px;
+  background: var(--color-ground);
+}
+:root[data-graphics="lite"] .home-glyph {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: rgb(255 255 255 / 0.22);
+}
+/* The pool under Today's object and the blurred door behind the
+   premium wall: a soft edge drawn by the gradient alone. */
+:root[data-graphics="lite"] :is(.home-hero-pool, .premium-wall-behind) {
+  filter: none;
+}
+/* Anything else that frosts: plain. */
+:root[data-graphics="lite"] * {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
 /* More contrast: near-solid surfaces with a defined edge (§14). */
 @media (prefers-contrast: more) {
   .screen-bar[data-edge]::before {

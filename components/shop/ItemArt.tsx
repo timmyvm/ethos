@@ -35,7 +35,7 @@ export function ItemArt({ id }: { id: string }) {
       className="flex h-14 w-14 shrink-0 items-end justify-center overflow-hidden rounded-control bg-surface dark:bg-[color-mix(in_srgb,var(--color-ink)_7%,transparent)]"
     >
       <Image
-        src={poseSrc(pose)}
+        src={poseSrc(pose, 128)}
         alt=""
         width={128}
         height={128}

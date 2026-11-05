@@ -358,8 +358,8 @@ function RepScreen() {
   /** The browser can do pose but the runtime would not load: a
    *  different cause, and the toggle says the true one (review, 25 Sep). */
   const [poseLoadFailed, setPoseLoadFailed] = useState(false);
-  /** Video is off because this device draws lite (#412). */
-  const [videoOffLite, setVideoOffLite] = useState(false);
+  /** Why Video is off on this device, when it is (#412). */
+  const [videoOff, setVideoOff] = useState<"lite" | "apple" | null>(null);
   /** The app whose browser this is (Instagram's, from the GC link), or null (#412). */
   const [inApp, setInApp] = useState<string | null>(null);
   const [ring, setRing] = useState<RingState>("ok");
@@ -434,9 +434,15 @@ function RepScreen() {
     // records Voice; the camera and the pose model are the heaviest
     // thing this screen can ask of it.
     const lite = liteGraphics();
-    setVideoOffLite(lite);
+    /* And on an iPhone or iPad for now (#412): every Voice + Video start
+       testers made there under collection took the page down, the pose
+       model alone adds about 110MB the page never gives back, and 80 of
+       80 takes in the test were Voice. Back once a Video take is
+       confirmed on an iPhone. */
+    const apple = onAppleMobile();
+    setVideoOff(lite ? "lite" : apple ? "apple" : null);
     setInApp(inAppBrowser(navigator.userAgent));
-    setPoseReady(poseCapable() && !lite);
+    setPoseReady(poseCapable() && !lite && !apple);
   }, []);
 
   /* Video not offered here: the take is Voice on this screen, and the
@@ -1677,9 +1683,11 @@ function RepScreen() {
               poseReady === false
                 ? poseLoadFailed
                   ? "Video couldn't load. Voice works."
-                  : videoOffLite
+                  : videoOff === "lite"
                     ? "Video is off with Lite graphics. Voice works."
-                    : "Video isn't available here."
+                    : videoOff === "apple"
+                      ? "Video is off on iPhone for now. Voice works."
+                      : "Video isn't available here."
                 : undefined
             }
             onChange={(m) => {

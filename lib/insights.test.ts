@@ -2,13 +2,17 @@ import { describe, expect, it } from "vitest";
 import { bestHour, fillerHeatmap, fillerTally, insights } from "./insights";
 import type { RepRow } from "./client-data";
 
+/** Enough words to score (`measured`): the rows below are real takes. */
+const SAID =
+  "The best part of my week was a long walk by the river with my sister after work on Friday, talking about nothing much.";
+
 function rep(over: Partial<RepRow> = {}): RepRow {
   return {
     id: Math.random().toString(36),
     lesson_id: "f1",
     created_at: new Date(2026, 7, 9, 12).toISOString(),
     duration_s: 60,
-    transcript: "",
+    transcript: SAID,
     wpm: 145,
     filler_count: 3,
     fillers: [],
@@ -160,6 +164,17 @@ describe("insights", () => {
       })
     );
     expect(has(insights([...early, ...later]), "silence-up")).toBe(true);
+  });
+
+  /* A one-word take at 7 wpm or 614 wpm is no pace, and its fillers no pattern. */
+  it("reads only recordings that measured something", () => {
+    const real = Array.from({ length: 8 }, () => rep({ wpm: 150 }));
+    const short = (wpm: number) =>
+      rep({ transcript: "Um so yeah.", wpm, duration_s: 2, fillers: [{ word: "um", t: 0 }] });
+    const reps = [...real, ...Array.from({ length: 5 }, () => short(614))];
+    expect(has(insights(reps), "pace-fast")).toBe(false);
+    expect(fillerTally(reps)).toEqual([]);
+    expect(fillerHeatmap(reps)).toEqual([0, 0, 0, 0, 0]);
   });
 
   it("every insight carries a detail line with numbers", () => {

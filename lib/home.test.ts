@@ -17,6 +17,7 @@ import {
   TRAIT_OBJECT,
   TRAIT_OBJECTS,
   cleanRunTile,
+  dayTurned,
   greetingName,
   heroObject,
   initialOf,
@@ -268,8 +269,11 @@ describe("the tiles", () => {
     expect(fewer.caption).toBe("Under your line of 4.");
   });
 
-  const rep = (fillers: number[], duration = 60): RepRow =>
-    ({ fillers: fillers.map((t) => ({ word: "um", t })), duration_s: duration }) as RepRow;
+  /** Enough words to score (`measured`). */
+  const SAID =
+    "The best part of my week was a long walk by the river with my sister after work on Friday, talking about nothing much.";
+  const rep = (fillers: number[], duration = 60, transcript = SAID): RepRow =>
+    ({ fillers: fillers.map((t) => ({ word: "um", t })), duration_s: duration, transcript }) as RepRow;
 
   it("the clean run reads the newest recording against its own length and the best before it", () => {
     expect(cleanRunTile([])).toBeNull();
@@ -279,6 +283,45 @@ describe("the tiles", () => {
     expect(short).toMatchObject({ s: 45, of: 65, best: 50, newBest: false, caption: "Of 65s. Best 50s." });
     const best = cleanRunTile([rep([20]), rep([])]);
     expect(best).toMatchObject({ s: 60, best: 40, newBest: true, caption: "Of 60s. A new best." });
+  });
+
+  /* A one-word 8s take read "Clean run 8s, of 8s". */
+  it("the clean run skips a take too short to score", () => {
+    const word = rep([], 8.3, "Hello.");
+    expect(cleanRunTile([rep([30]), word])).toMatchObject({ s: 30, of: 60, best: null });
+    expect(cleanRunTile([word])).toBeNull();
+  });
+
+  /*
+   * Pace's line is a distance from its zone (progress-2): "Inside it on
+   * 3 of your last 4" and "Inside your line of 100" said nothing true.
+   */
+  it("a pace line names the zone, never inside one number", () => {
+    const pace = (over: Partial<Challenge>) =>
+      line({ trait: "pace", direction: "band", line: 100, cleared: { n: 3, of: 4 }, ...over });
+    expect(lineTile(pace({})).caption).toBe("Cleared on 3 of your last 4.");
+    expect(lineTile(pace({ today: 178, closed: true })).caption).toBe("Nearer 130 to 160 than 100.");
+    expect(lineTile(pace({ today: 145, closed: true })).caption).toBe("Inside 130 to 160.");
+    expect(lineTile(pace({ today: 190, closed: true })).caption).toBe("As near 130 to 160 as 100.");
+    for (const today of [null, 178, 145, 190]) {
+      const caption = lineTile(pace({ today, closed: today !== null })).caption;
+      expect(caption).not.toMatch(/inside (it|your line|\d+\.)/i);
+      expect(caption).not.toMatch(/[\u2013\u2014]/);
+    }
+  });
+});
+
+/*
+ * Today left open across midnight kept yesterday's date, a lit streak
+ * and "One more" (progress-5): a return on a new local day reads again.
+ */
+describe("the day turning over", () => {
+  it("turns at local midnight, and never before the first read", () => {
+    const night = new Date(2026, 10, 5, 23, 50);
+    expect(dayTurned(night, new Date(2026, 10, 5, 23, 59))).toBe(false);
+    expect(dayTurned(night, new Date(2026, 10, 6, 0, 10))).toBe(true);
+    expect(dayTurned(new Date(2026, 10, 6, 0, 1), new Date(2026, 10, 6, 8, 20))).toBe(false);
+    expect(dayTurned(null, new Date(2026, 10, 6, 0, 10))).toBe(false);
   });
 });
 

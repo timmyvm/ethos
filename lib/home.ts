@@ -10,13 +10,13 @@
 import { lessonById } from "@/content/lessons";
 import { TRAIT, TRAITS, type TraitId } from "@/content/traits";
 import { cleanName } from "./answers";
-import type { Challenge } from "./challenge";
+import { bandClose, type Challenge } from "./challenge";
 import { longestCleanRun } from "./clean-run";
 import type { RepRow, RepSpine } from "./client-data";
 import { ART_BOUNDS } from "./lesson-art-bounds";
 import { weekStart } from "./level";
 import { standing } from "./next-practice";
-import { fmtRaw, type TraitReading } from "./trait-readings";
+import { fmtRaw, measured, type TraitReading } from "./trait-readings";
 
 /* ------------------------------------------------------------------ */
 /* The objects. */
@@ -175,10 +175,9 @@ export function traitOrder(
   }));
 }
 
-const VERB: Record<Challenge["direction"], string> = {
+const VERB: Record<"lower" | "higher", string> = {
   lower: "Under",
   higher: "Over",
-  band: "Inside",
 };
 
 export interface LineTile {
@@ -201,27 +200,37 @@ export const LINE_MARK = 0.8;
  * the same way as "more is better".
  */
 export function lineTile(c: Challenge): LineTile {
-  const verb = VERB[c.direction];
+  /* Pace's line is a distance from its zone, so it has no verb: never
+     "Inside it" or "Inside your line of 100" (lib/challenge.ts). */
+  const verb = c.direction === "band" ? null : VERB[c.direction];
   if (c.today === null) {
     return {
       shown: c.line,
       state: "open",
       fill: 0,
       mark: LINE_MARK,
-      caption: `${verb} it on ${c.cleared.n} of your last ${c.cleared.of}.`,
+      caption: verb
+        ? `${verb} it on ${c.cleared.n} of your last ${c.cleared.of}.`
+        : `Cleared on ${c.cleared.n} of your last ${c.cleared.of}.`,
     };
   }
   const lineS = Math.max(standing(c.trait, c.line), 0.05);
   const fill = Math.max(0, Math.min(1, (standing(c.trait, c.today) / lineS) * LINE_MARK));
   if (c.closed) {
     const on = fmtRaw(c.today) === fmtRaw(c.line);
+    let caption = "On your line.";
+    if (!on && verb) caption = `${verb} your line of ${fmtRaw(c.line)}.`;
+    if (!on && !verb) {
+      const said = bandClose(c);
+      caption = `${said[0].toUpperCase()}${said.slice(1)}.`;
+    }
     return {
       shown: c.today,
       state: "closed",
       /* A close always reaches the mark, whatever the rounding. */
       fill: Math.max(fill, LINE_MARK),
       mark: LINE_MARK,
-      caption: on ? "On your line." : `${verb} your line of ${fmtRaw(c.line)}.`,
+      caption,
     };
   }
   return {
@@ -249,8 +258,11 @@ export interface CleanRunTile {
  * its own length, with the best before it as the bar's mark.
  */
 export function cleanRunTile(reps: RepRow[]): CleanRunTile | null {
-  if (reps.length === 0) return null;
-  const runs = reps.map((r) => ({
+  /* A take too short to score is not a clean run: one word in 8s read
+     "8s, of 8s". Its runs are neither the tile nor the best before it. */
+  const kept = reps.filter(measured);
+  if (kept.length === 0) return null;
+  const runs = kept.map((r) => ({
     s: longestCleanRun(r.fillers ?? [], r.duration_s).seconds,
     of: r.duration_s,
   }));
@@ -382,6 +394,16 @@ export function weekView(spine: Pick<RepSpine, "created_at" | "ethos_index">[], 
     weeks,
     index,
   };
+}
+
+/**
+ * Whether Today's read was made on an earlier local day than `now`. A
+ * phone locked on Today at 23:50 and woken at 08:00 resumes the page
+ * without a reload, and it kept yesterday's date, its lit streak and
+ * "One more" while the card moved to the new day under them.
+ */
+export function dayTurned(loadedAt: Date | null, now: Date): boolean {
+  return loadedAt !== null && dayKey(loadedAt) !== dayKey(now);
 }
 
 /** A movement, signed: "+10", "−4" (a minus, not a hyphen), "0". */

@@ -22,9 +22,10 @@
  */
 
 import type { RepRow } from "./client-data";
-import type { RepMetrics } from "./metrics";
+import { isScorable, type RepMetrics } from "./metrics";
 import type { Milestone, RepGain } from "./progress";
 import type { StreakState } from "./streak";
+import { measured } from "./trait-readings";
 
 export interface RewardMoment {
   /** Short, coach register, never hype. */
@@ -152,22 +153,26 @@ export function endNote(params: {
   repCount: number;
 }): RewardMoment {
   const { metrics: m, streak, repCount } = params;
+  /* A take too short to score measured nothing, so it ends on no
+     number: "Zero fillers, 5 seconds, clean." stood under "Not enough
+     to score". Its streak and its count are still true. */
+  const scored = isScorable(m.substance);
 
-  if (m.composedPauses > 0) {
+  if (scored && m.composedPauses > 0) {
     return {
       headline: `${m.composedPauses} composed pause${m.composedPauses === 1 ? "" : "s"}`,
       detail: "Silence you chose, before a new point. That's the hard one.",
       tone: "earned",
     };
   }
-  if (m.fillerCount === 0) {
+  if (scored && m.fillerCount === 0) {
     return {
       headline: "Zero fillers",
       detail: `${Math.round(m.durationS)} seconds, clean.`,
       tone: "earned",
     };
   }
-  if (m.wpm >= 130 && m.wpm <= 160) {
+  if (scored && m.wpm >= 130 && m.wpm <= 160) {
     return {
       headline: `${m.wpm} words a minute`,
       detail: "Dead in the zone.",
@@ -199,10 +204,15 @@ export function endNote(params: {
  * understating the record the user is being congratulated on beating.
  */
 export function personalBests(
-  prior: RepRow[],
+  all: RepRow[],
   current: RepMetrics,
   currentIndex: number | null
 ): RewardMoment[] {
+  /* Only takes that measured something hold or break a record: a
+     two-word take read "Cleanest recording yet, 0/min", and a stored
+     one would stand as a best nothing could beat. */
+  if (!isScorable(current.substance)) return [];
+  const prior = all.filter(measured);
   if (prior.length === 0) return [];
   const out: RewardMoment[] = [];
 

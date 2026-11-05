@@ -2,13 +2,17 @@ import { describe, expect, it } from "vitest";
 import { achievements } from "./achievements";
 import type { RepRow } from "./client-data";
 
+/** Enough words to score (`measured`): the rows below are real takes. */
+const SAID =
+  "The best part of my week was a long walk by the river with my sister after work on Friday, talking about nothing much.";
+
 function rep(over: Partial<RepRow> = {}): RepRow {
   return {
     id: "r",
     lesson_id: "f1",
     created_at: new Date(2026, 7, 9).toISOString(),
     duration_s: 60,
-    transcript: "",
+    transcript: SAID,
     wpm: 145,
     filler_count: 5,
     fillers: [],
@@ -77,6 +81,15 @@ describe("achievements", () => {
     const reps = [rep({ ethos_index: 640 }), rep({ ethos_index: 712 })];
     expect(byId(reps, "seven").earned).toBe(true);
     expect(byId(reps, "eight").earned).toBe(false);
+  });
+
+  /* A two-word take at 0 fillers a minute earned "Under 3 fillers a minute". */
+  it("earns no number off a take too short to score, and still counts it", () => {
+    const short = rep({ transcript: "Okay then.", duration_s: 5, filler_count: 0, wpm: 145 });
+    const reps = [rep({ filler_count: 5 }), short];
+    expect(byId(reps, "clean").earned).toBe(false);
+    expect(byId(Array.from({ length: 5 }, () => short), "zone").progress).toBe(0);
+    expect(byId([short], "first").earned).toBe(true);
   });
 
   it("reports partial progress for unearned badges", () => {

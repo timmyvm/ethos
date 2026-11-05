@@ -13,7 +13,10 @@
  *
  * The take itself banks through /api/analyze like any recording; this
  * route never writes reps, XP or coins, so nothing here can be forged
- * into currency. Rate limits run BEFORE Whisper, same as /api/analyze.
+ * into currency. Rate limits run BEFORE Whisper, same as /api/analyze,
+ * on Hostile's own subject: a session is four calls (the take, two
+ * answers, the verdict), and on the recording allowance an account with
+ * six recordings that hour lost the verdict after both answers.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -28,11 +31,13 @@ import {
 import { hostileQuestion, hostileVerdict } from "@/lib/hostile-server";
 import { isPremium } from "@/lib/db";
 import { computeMetrics } from "@/lib/metrics";
-import { weekStart } from "@/lib/level";
+import { localDate } from "@/lib/metering";
 import {
+  analyzeTier,
   clientIp,
   consumeRateLimit,
   limitMessage,
+  refundRateLimit,
 } from "@/lib/rate-limit";
 import { transcribe } from "@/lib/transcribe";
 
@@ -60,7 +65,28 @@ function parseContext(raw: unknown): RoundsPayload | null {
   }
 }
 
+/**
+ * Only an answered call keeps its slot (#409, as /api/analyze): a
+ * question asked or a verdict given. Whisper down, an answer too short
+ * to read, a verdict that failed or a locked week give it back, so a
+ * retry never costs a second one. A file Whisper refuses keeps its slot,
+ * so junk uploads still cost one each.
+ */
+interface Spend {
+  subject: string | null;
+  keep: boolean;
+}
+
 export async function POST(req: NextRequest) {
+  const spend: Spend = { subject: null, keep: false };
+  try {
+    return await handle(req, spend);
+  } finally {
+    if (spend.subject && !spend.keep) await refundRateLimit(spend.subject);
+  }
+}
+
+async function handle(req: NextRequest, spend: Spend) {
   let form: FormData;
   try {
     form = await req.formData();
@@ -75,16 +101,17 @@ export async function POST(req: NextRequest) {
     req.headers.get("authorization")
   ).catch(() => null);
 
-  const verdict = await consumeRateLimit(
-    auth ? `u:${auth.id}` : `ip:${clientIp(req.headers)}`,
-    auth && !auth.anonymous ? "user" : "anon"
-  );
+  // Its own subject, never the recording allowance, and a guest gets the
+  // account's room, as /api/analyze gives them (#408, #409).
+  const subject = `hostile:${auth ? `u:${auth.id}` : `ip:${clientIp(req.headers)}`}`;
+  const verdict = await consumeRateLimit(subject, analyzeTier(auth));
   if (!verdict.allowed) {
     return NextResponse.json(
       { error: limitMessage(verdict), retryAfterS: verdict.retryAfterS },
       { status: 429, headers: { "Retry-After": String(verdict.retryAfterS) } }
     );
   }
+  spend.subject = subject;
 
   const phase = form.get("phase");
   const prompt = promptById((form.get("promptId") as string) ?? "");
@@ -115,6 +142,7 @@ export async function POST(req: NextRequest) {
         { status: 502 }
       );
     }
+    spend.keep = true;
     return NextResponse.json({ verdict: v });
   }
 
@@ -152,7 +180,10 @@ export async function POST(req: NextRequest) {
           .select("id", { count: "exact", head: true })
           .eq("user_id", auth.id)
           .eq("lesson_id", "hostile-take")
-          .gte("created_at", weekStart().toISOString());
+          .gte(
+            "created_at",
+            weekStartFor(new Date(), numberOrNull(form.get("tzOffset"))).toISOString()
+          );
         if ((count ?? 0) >= 1) {
           return NextResponse.json(
             { locked: true, error: "You've faced Demos this week. Premium reopens him now; otherwise it's Monday." },
@@ -168,6 +199,8 @@ export async function POST(req: NextRequest) {
     t = await transcribe(audio, "hostile.webm");
   } catch (e) {
     console.error("hostile transcription failed", e);
+    const message = e instanceof Error ? e.message : "";
+    spend.keep = /^Whisper API (400|413|415):/.test(message);
     return NextResponse.json(
       { error: "Transcription failed. Nothing was lost; try again." },
       { status: 502 }
@@ -213,6 +246,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  spend.keep = true;
   return NextResponse.json({
     transcript: t.text,
     fillersPerMin: metrics.fillersPerMin,
@@ -222,4 +256,25 @@ export async function POST(req: NextRequest) {
     question,
     finished,
   });
+}
+
+function numberOrNull(v: FormDataEntryValue | null): number | null {
+  const n = Number(v);
+  return typeof v === "string" && v !== "" && Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Monday 00:00 on the person's own calendar, from the offset the phone
+ * sends (getTimezoneOffset minutes): the week the screen counts with
+ * weekStart() on the phone. The server's clock is UTC, so its Monday
+ * began up to 14 hours off the phone's: a Melbourne Monday morning still
+ * held last Saturday's session, and the free one the screen offered was
+ * locked after the take. With no offset the week is UTC's, as before.
+ */
+function weekStartFor(now: Date, tzOffset: number | null): Date {
+  // Its UTC fields read the person's own clock (lib/metering.ts).
+  const wall = localDate(now, tzOffset);
+  const midnight = Date.UTC(wall.getUTCFullYear(), wall.getUTCMonth(), wall.getUTCDate());
+  const sinceMonday = (wall.getUTCDay() + 6) % 7;
+  return new Date(midnight - sinceMonday * 86_400_000 + (now.getTime() - wall.getTime()));
 }

@@ -354,6 +354,34 @@ describe("the collector", () => {
     expect(env.beacons.at(-1)!.token).toBe("tok3");
   });
 
+  /*
+   * On an iPhone a take the app going to the background ended (#413)
+   * stops after the hide's beacon has gone: the collector's listener
+   * came first. If iOS then discards the page, the stop was lost and the
+   * report read a start with no stop, the crash's signature.
+   */
+  it("sends a take's stop by beacon when it comes after the page hid", async () => {
+    const { env, api } = fakeEnv();
+    const c = new Collector(api, true);
+    await c.primeToken();
+    c.record("record_start");
+    env.t += 4000;
+    c.hidden();
+    c.record("record_stop", { seconds: 4 });
+    const beaconed = env.beacons.flatMap((b) => (b.events as { name: string }[]).map((e) => e.name));
+    expect(beaconed).toContain("record_stop");
+    expect(c.waiting).toHaveLength(0);
+  });
+
+  it("leaves a take's events for the timer while the page is shown", async () => {
+    const { env, api } = fakeEnv();
+    const c = new Collector(api, true);
+    await c.primeToken();
+    c.record("record_stop", { seconds: 4 });
+    expect(env.beacons).toHaveLength(0);
+    expect(c.waiting.map((e) => e.name)).toEqual(["record_stop"]);
+  });
+
   it("keeps the batch when the beacon is refused, for the next send", async () => {
     const { env, api } = fakeEnv({ beacon: false });
     const c = new Collector(api, true);

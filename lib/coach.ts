@@ -460,12 +460,23 @@ export function tier2Scores(
 }
 
 const MAX_ATTEMPTS = 3;
+/** No attempt starts with less than this left: it would be cut off before it answered. */
+export const MIN_ATTEMPT_MS = 10_000;
 
+/**
+ * `deadline` (epoch ms) is when the coach must be done by. The scoring
+ * function is killed at 60 seconds, and a killed function stores
+ * nothing, keeps the person's slot and is sent again whole; three
+ * sequential attempts after Whisper can reach that. Past the deadline
+ * the coach gives up, so the measured recording is still stored, the
+ * way any coach failure leaves it.
+ */
 export async function coachRep(
   transcript: string,
   metrics: RepMetrics,
   tier1: Tier1Scores,
-  anchors: Tier2Anchors
+  anchors: Tier2Anchors,
+  deadline?: number
 ): Promise<CoachOutput | null> {
   if (!process.env.ANTHROPIC_API_KEY) return null;
 
@@ -476,19 +487,36 @@ export async function coachRep(
   ];
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const response = await client.beta.messages.create({
-      model: "claude-opus-5",
-      max_tokens: 3000,
-      system: systemPrompt(),
-      // Short scoped task inside a ≤5-minute loop — latency matters.
-      output_config: {
-        effort: "low",
-        format: { type: "json_schema", schema: JSON_SCHEMA },
-      },
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      messages,
-    });
+    const left = deadline === undefined ? null : deadline - Date.now();
+    if (left !== null && left < MIN_ATTEMPT_MS) {
+      console.warn(`[coach] out of time before attempt ${attempt}`);
+      return null;
+    }
+    // One signal covers the SDK's own retries too, which a timeout would not.
+    const signal = left === null ? undefined : AbortSignal.timeout(left);
+    let response: Anthropic.Beta.BetaMessage;
+    try {
+      response = await client.beta.messages.create(
+        {
+          model: "claude-opus-5",
+          max_tokens: 3000,
+          system: systemPrompt(),
+          // Short scoped task inside a ≤5-minute loop — latency matters.
+          output_config: {
+            effort: "low",
+            format: { type: "json_schema", schema: JSON_SCHEMA },
+          },
+          betas: ["server-side-fallback-2026-07-01"],
+          fallbacks: "default",
+          messages,
+        },
+        signal ? { signal } : undefined
+      );
+    } catch (e) {
+      if (!signal?.aborted) throw e;
+      console.warn(`[coach] cut off at the deadline on attempt ${attempt}`);
+      return null;
+    }
 
     if (response.stop_reason === "refusal") return null;
 

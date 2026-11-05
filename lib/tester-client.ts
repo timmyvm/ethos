@@ -103,15 +103,20 @@ let once: Promise<TesterRow | null> | null = null;
  * The account's testers row, read once per page life and shared by the
  * open's layer (components/tester/TesterLayer.tsx) and Today's test tile,
  * so a tab switch never reads it again. Cleared whenever testing may
- * have changed (`announce`), and after a failed read.
+ * have changed (`announce`), and after a read with no answer: one that
+ * failed, or a null that left the hint standing (no session could be
+ * read, an open with no connection), so the next read asks again.
  */
 export function testerOnce(): Promise<TesterRow | null> {
   if (!once) {
     const p = fetchTester();
     once = p;
-    p.catch(() => {
+    const forget = () => {
       if (once === p) once = null;
-    });
+    };
+    p.then((row) => {
+      if (row === null && readTesterHint()) forget();
+    }, forget);
   }
   return once;
 }

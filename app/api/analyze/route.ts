@@ -54,6 +54,12 @@ import { UNHEARD_COPY, unheard } from "@/lib/unheard";
 
 export const runtime = "nodejs";
 export const maxDuration = 60; // Vercel Hobby cap
+/**
+ * The coach is done this long after the request came in, or gives up:
+ * the rest of the minute stores the recording. A function killed at the
+ * cap stores nothing and keeps the slot, and the phone sends it again.
+ */
+const COACH_BUDGET_MS = 45_000;
 
 export interface AnalyzeResponse {
   transcript: string;
@@ -111,13 +117,13 @@ interface Spend {
 export async function POST(req: NextRequest) {
   const spend: Spend = { subject: null, keep: false };
   try {
-    return await handle(req, spend);
+    return await handle(req, spend, Date.now());
   } finally {
     if (spend.subject && !spend.keep) await refundRateLimit(spend.subject);
   }
 }
 
-async function handle(req: NextRequest, spend: Spend) {
+async function handle(req: NextRequest, spend: Spend, startedAt: number) {
   let form: FormData;
   try {
     form = await req.formData();
@@ -241,10 +247,11 @@ async function handle(req: NextRequest, spend: Spend) {
     // fault on our side and stays a 502 to retry.
     const undecodable = /^Whisper API (400|413|415):/.test(message);
     // The slot was spent on our outage, not on the person's upload: give
-    // it back, or each retry of one recording costs another. A file
-    // Whisper refuses (any 4xx but its 429) keeps its slot.
-    const fileFault = /^Whisper API 4(?!29)\d\d/.test(message);
-    spend.keep = fileFault;
+    // it back, or each retry of one recording costs another. Only the
+    // file's own fault (the 422 above) keeps its slot: a 401, 403 or 404
+    // is our key or our model, answers 502, and is sent again up to four
+    // times, so keeping those locked every tester out for the hour.
+    spend.keep = undecodable;
     return NextResponse.json(
       { error: message },
       { status: unconfigured ? 503 : undecodable ? 422 : 502 }
@@ -328,7 +335,7 @@ async function handle(req: NextRequest, spend: Spend) {
   let accuracy: AccuracyResult | null = null;
   if (scorable && judgedAllowed) {
     const [coachResult, accuracyResult] = await Promise.allSettled([
-      coachRep(transcription.text, metrics, tier1, anchors),
+      coachRep(transcription.text, metrics, tier1, anchors, startedAt + COACH_BUDGET_MS),
       bossTopic
         ? judgeAccuracy(transcription.text, bossTopic)
         : Promise.resolve(null),

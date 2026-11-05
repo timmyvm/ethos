@@ -54,7 +54,9 @@ export default function CallbackPage() {
       return;
     }
     if (problem.kind === "taken") {
-      setState({ at: "taken" });
+      // A sign-up that met an account: GoogleTakenSwitch signs in with it
+      // (#414), so this page only waits. Anything else says it is taken.
+      if (tried?.mode !== "signup") setState({ at: "taken" });
       return;
     }
     if (problem.kind === "link") {

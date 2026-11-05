@@ -10,6 +10,8 @@ import { ThemeSync } from "@/components/Theme";
 // From a plain module, never a "use client" one: see lib/theme-boot.ts.
 import { themeBootScript } from "@/lib/theme-boot";
 import { graphicsBootScript } from "@/lib/graphics";
+import { googleTakenBootScript } from "@/lib/google-taken";
+import { GoogleTakenSwitch } from "@/components/GoogleTakenSwitch";
 import { Splash, splashBootScript } from "@/components/Splash";
 import { testerBootScript } from "@/lib/tester-boot";
 import { SplashLift } from "@/components/SplashLift";
@@ -92,6 +94,9 @@ export default function RootLayout({
         {/* After the theme's: lite graphics (#412), from the first paint
             of the page a crash reloads. */}
         <script dangerouslySetInnerHTML={{ __html: graphicsBootScript }} />
+        {/* And whether this open is Google saying the account already
+            has Ethos (#414), before a redirect drops the fragment. */}
+        <script dangerouslySetInnerHTML={{ __html: googleTakenBootScript }} />
         {/* Also before paint: whether this open gets the splash. */}
         <script dangerouslySetInnerHTML={{ __html: splashBootScript }} />
         {/* And whether Today holds the test tile's place from its first
@@ -114,6 +119,9 @@ export default function RootLayout({
         {/* Testers on consent version 3 only (docs/testers.md): renders
             nothing, and on any other device reads nothing. */}
         <TesterLayer />
+        {/* Before the gate: a Google account that already has Ethos signs
+            in instead of being asked to sign up again (#414). */}
+        <GoogleTakenSwitch />
         <AccountGate />
         {/* DESIGN.md: speed is the loudest signal. Vercel's Speed
             Insights is where the field numbers for that claim land. */}

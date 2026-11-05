@@ -237,6 +237,8 @@ interface Take {
    */
   envelope: number[];
   envelopeAt: number;
+  /** Takes off the listeners that end a take the phone stopped hearing (#412). */
+  offWatch: (() => void) | null;
 }
 
 export default function RepPage() {
@@ -536,8 +538,11 @@ function RepScreen() {
   const teardown = useCallback(() => {
     const r = recRef.current;
     if (!r) return;
+    r.offWatch?.();
     cancelAnimationFrame(r.raf);
     if (r.interruptTimer) clearTimeout(r.interruptTimer);
+    // The camera's frames, let go with the camera (#412).
+    if (videoElRef.current) videoElRef.current.srcObject = null;
     r.sampler?.stop();
     r.crowd?.stop();
     r.stream.getTracks().forEach((t) => t.stop());
@@ -757,6 +762,8 @@ function RepScreen() {
   useEffect(() => {
     if (phase !== "error") return;
     const retry = () => {
+      // Not over a take that is starting or live (#412).
+      if (startingRef.current || recRef.current) return;
       const p = pendingRef.current;
       if (p) void score(p.form, p.outboxId);
     };
@@ -819,9 +826,15 @@ function RepScreen() {
     // URL in this tab and nowhere else — never uploaded, never stored.
     if (r.videoRecorder && r.videoRecorder.state !== "inactive") {
       const clip = await new Promise<Blob>((resolve) => {
-        r.videoRecorder!.onstop = () =>
-          resolve(new Blob(r.videoChunks, { type: r.videoRecorder!.mimeType }));
-        r.videoRecorder!.stop();
+        const take = () => resolve(new Blob(r.videoChunks, { type: r.videoRecorder!.mimeType }));
+        r.videoRecorder!.onstop = take;
+        // A recorder that never reports back must not hold the take (#412).
+        setTimeout(take, 3000);
+        try {
+          r.videoRecorder!.stop();
+        } catch {
+          take();
+        }
       });
       if (clip.size > 0 && live()) setClipUrl(URL.createObjectURL(clip));
     }
@@ -908,6 +921,10 @@ function RepScreen() {
     unlockSfx();
     const cfg = configRef.current;
     let wantsVideo = captureModeRef.current === "voice_video";
+    /* What this start has opened so far (#412): a throw after the device
+       is open must not leave the mic live, a recorder running and a
+       context open behind the permission card. */
+    const opened: { stream?: MediaStream; recorder?: MediaRecorder; videoRecorder?: MediaRecorder | null; ctx?: AudioContext } = {};
     try {
       let stream: MediaStream;
       try {
@@ -928,6 +945,7 @@ function RepScreen() {
         captureModeRef.current = "voice";
         setCaptureMode("voice");
       }
+      opened.stream = stream;
       // The screen moved to another recording while the device opened.
       if (lessonKeyRef.current !== key) {
         stream.getTracks().forEach((t) => t.stop());
@@ -949,6 +967,7 @@ function RepScreen() {
         audioOnly,
         mime ? { mimeType: mime } : undefined
       );
+      opened.recorder = recorder;
       const chunks: Blob[] = [];
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunks.push(e.data);
@@ -978,6 +997,7 @@ function RepScreen() {
             if (e.data.size > 0) videoChunks.push(e.data);
           };
           videoRecorder.start(1000);
+          opened.videoRecorder = videoRecorder;
         } catch {
           videoRecorder = null; // playback is a bonus, never the rep
         }
@@ -986,6 +1006,7 @@ function RepScreen() {
       // Level meter. iOS Safari creates AudioContexts suspended even
       // inside a user gesture — resume explicitly.
       const ctx = new AudioContext();
+      opened.ctx = ctx;
       void ctx.resume().catch(() => {});
       const src = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
@@ -1040,9 +1061,38 @@ function RepScreen() {
         sampler: null,
         envelope: [],
         envelopeAt: 0,
+        offWatch: null,
       };
       recRef.current = rec;
       rec.raf = requestAnimationFrame(tick);
+
+      /*
+       * A take the phone stopped hearing ends there (#412). iOS takes the
+       * mic from a page that goes to the background (a notification
+       * opened, another app), and the clock used to run on over silence
+       * until Stop, so the take uploaded with its end missing (Alan,
+       * 4 Nov; Mathias, 2 Nov). Now what was heard is scored, and #406's
+       * guards turn away a take too short to score. Hidden counts only on
+       * an iPhone or iPad, where hidden means the mic is gone; anywhere,
+       * a track the system muted or ended does.
+       */
+      const track = stream.getAudioTracks()[0];
+      const onLost = () => {
+        if (recRef.current !== rec || phaseRef.current !== "recording") return;
+        const gone =
+          track?.readyState === "ended" ||
+          track?.muted === true ||
+          (document.visibilityState === "hidden" && onAppleMobile());
+        if (gone) void stopRep();
+      };
+      document.addEventListener("visibilitychange", onLost);
+      track?.addEventListener("mute", onLost);
+      track?.addEventListener("ended", onLost);
+      rec.offWatch = () => {
+        document.removeEventListener("visibilitychange", onLost);
+        track?.removeEventListener("mute", onLost);
+        track?.removeEventListener("ended", onLost);
+      };
 
       // Pose sampling + the live ring. Free for everyone (§2): it's
       // local compute at zero marginal cost, and it's the part that
@@ -1087,6 +1137,22 @@ function RepScreen() {
       takeStartedAt.current = Date.now();
       testerRecord("record_start", { video: captureModeRef.current === "voice_video" });
     } catch (e) {
+      // Let go of whatever this start opened before it threw (#412).
+      if (opened.stream && recRef.current?.stream === opened.stream) {
+        try {
+          recRef.current.recorder.onstop = null;
+          if (recRef.current.recorder.state !== "inactive") recRef.current.recorder.stop();
+          if (recRef.current.videoRecorder && recRef.current.videoRecorder.state !== "inactive") recRef.current.videoRecorder.stop();
+        } catch {}
+        teardown();
+      } else {
+        try {
+          if (opened.recorder && opened.recorder.state !== "inactive") opened.recorder.stop();
+          if (opened.videoRecorder && opened.videoRecorder.state !== "inactive") opened.videoRecorder.stop();
+        } catch {}
+        opened.stream?.getTracks().forEach((t) => t.stop());
+        void opened.ctx?.close().catch(() => {});
+      }
       // Refused for a recording the screen has already left.
       if (lessonKeyRef.current !== key) return;
       // A refusal and a missing device get the dedicated explainer
@@ -1106,7 +1172,7 @@ function RepScreen() {
     } finally {
       startingRef.current = false;
     }
-  }, [stopRep]);
+  }, [stopRep, teardown]);
 
   /**
    * Start over (#407, Vincent: "I clicked record by accident"). The take
@@ -1127,6 +1193,8 @@ function RepScreen() {
     } catch {}
     teardown();
     setInterruption(null);
+    setPoseFrames(null);
+    setRing("ok");
     setSeconds(0);
     meterLevel.current = 0;
     meterPeak.current = 0;
@@ -1717,8 +1785,9 @@ function RepScreen() {
               onRetry={
                 pendingRef.current
                   ? () => {
-                      const p = pendingRef.current!;
-                      void score(p.form, p.outboxId);
+                      if (startingRef.current || recRef.current) return;
+                      const p = pendingRef.current;
+                      if (p) void score(p.form, p.outboxId);
                     }
                   : undefined
               }

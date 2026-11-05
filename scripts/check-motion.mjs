@@ -36,8 +36,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // ---- Supabase mock -------------------------------------------------------
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
 const exp = Math.floor(Date.now() / 1000) + 3600;
-const jwt = `${b64({ alg: "HS256", typ: "JWT" })}.${b64({ sub: "u1", aud: "authenticated", role: "authenticated", exp, is_anonymous: true, session_id: "s1" })}.sig`;
-const user = { id: "u1", aud: "authenticated", role: "authenticated", email: null, is_anonymous: true, app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+/* An account, not a guest: since #410 a guest anywhere past the
+   introduction is sent to sign up, so a guest's walk never reached Today. */
+const jwt = `${b64({ alg: "HS256", typ: "JWT" })}.${b64({ sub: "u1", aud: "authenticated", role: "authenticated", exp, is_anonymous: false, session_id: "s1" })}.sig`;
+const user = { id: "u1", aud: "authenticated", role: "authenticated", email: "tim@example.com", is_anonymous: false, app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
 const session = { access_token: jwt, token_type: "bearer", expires_in: 3600, expires_at: exp, refresh_token: "r1", user };
 const reps = [];
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*", "Access-Control-Allow-Methods": "GET,POST,PATCH,PUT,DELETE,OPTIONS", "Access-Control-Expose-Headers": "*" };
@@ -122,6 +124,13 @@ await context.addInitScript(() => {
   css.textContent = "nextjs-portal{display:none!important}";
   document.addEventListener("DOMContentLoaded", () => document.head.appendChild(css));
 });
+/* The account's session on the device, as a signed-in phone holds it:
+   since #410 a device with no account that has been through the
+   introduction is sent to sign up from Today. */
+await context.addInitScript((s) => {
+  localStorage.setItem("sb-supabase-auth-token", JSON.stringify(s));
+  localStorage.setItem("sb-supabase.local-auth-token", JSON.stringify(s));
+}, session);
 const page = await context.newPage();
 page.on("pageerror", (e) => console.log("PAGEERROR", page.url(), e.message.slice(0, 80)));
 

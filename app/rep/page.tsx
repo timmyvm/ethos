@@ -39,6 +39,8 @@ import { FELT_COPY } from "@/content/tester";
 import { feltRow, pausedTester, scoreSnapshot, showsMatchCheck, type Felt, type TesterRow } from "@/lib/tester";
 import { saveMatch, useTester } from "@/lib/tester-client";
 import { testerRecord } from "@/lib/tester-signal";
+import { liteGraphics } from "@/lib/graphics";
+import { inAppBrowser, inAppLine } from "@/lib/in-app";
 import { readOnboarding } from "@/lib/answers";
 import { buildPortfolio } from "@/lib/portfolio";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -82,6 +84,7 @@ import { nextLesson, starsByLesson, totalStars, unitStates } from "@/lib/path";
 import { liveTipAt } from "@/lib/live-tips";
 import {
   loadPose,
+  onAppleMobile,
   poseCapable,
   samplePose,
   type PoseSampler,
@@ -355,6 +358,10 @@ function RepScreen() {
   /** The browser can do pose but the runtime would not load: a
    *  different cause, and the toggle says the true one (review, 25 Sep). */
   const [poseLoadFailed, setPoseLoadFailed] = useState(false);
+  /** Video is off because this device draws lite (#412). */
+  const [videoOffLite, setVideoOffLite] = useState(false);
+  /** The app whose browser this is (Instagram's, from the GC link), or null (#412). */
+  const [inApp, setInApp] = useState<string | null>(null);
   const [ring, setRing] = useState<RingState>("ok");
   /**
    * The sampler's live frame array, handed over once when sampling
@@ -423,8 +430,20 @@ function RepScreen() {
    * to record audio.
    */
   useEffect(() => {
-    setPoseReady(poseCapable());
+    // Lite graphics (#412): a phone that crashed or lost its graphics
+    // records Voice; the camera and the pose model are the heaviest
+    // thing this screen can ask of it.
+    const lite = liteGraphics();
+    setVideoOffLite(lite);
+    setInApp(inAppBrowser(navigator.userAgent));
+    setPoseReady(poseCapable() && !lite);
   }, []);
+
+  /* Video not offered here: the take is Voice on this screen, and the
+     saved preference stays as it was for a phone that can. */
+  useEffect(() => {
+    if (poseReady === false && captureMode === "voice_video") setCaptureMode("voice");
+  }, [poseReady, captureMode]);
 
   /**
    * The runtime itself loads only once Voice + Video is the mode, and
@@ -438,6 +457,9 @@ function RepScreen() {
    */
   useEffect(() => {
     if (poseReady !== true || captureMode !== "voice_video") return;
+    // Not on an iPhone (#412): the model loads at the Rec tap there, so
+    // a screen that is only being read never holds it.
+    if (onAppleMobile()) return;
     let live = true;
     loadPose()
       .then((p) => {
@@ -1655,7 +1677,9 @@ function RepScreen() {
               poseReady === false
                 ? poseLoadFailed
                   ? "Video couldn't load. Voice works."
-                  : "Video isn't available here."
+                  : videoOffLite
+                    ? "Video is off with Lite graphics. Voice works."
+                    : "Video isn't available here."
                 : undefined
             }
             onChange={(m) => {
@@ -1663,6 +1687,11 @@ function RepScreen() {
               writeCaptureMode(config.kind, m);
             }}
           />
+        )}
+        {phase === "idle" && inApp && (
+          <p className="mt-3 max-w-[320px] text-center text-caption text-stone-500">
+            {inAppLine(inApp)}
+          </p>
         )}
 
         {phase === "error" &&

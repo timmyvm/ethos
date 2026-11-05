@@ -66,6 +66,7 @@ export function ScoringStage({
             <span aria-hidden className="scoring-spot" />
             <span aria-hidden className="rep-ground" />
             <DemosFigure
+              still
               pose="listening"
               src="/demos-onboard-listening.webp"
               width={300}

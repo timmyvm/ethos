@@ -151,3 +151,16 @@ describe("lite graphics (#412)", () => {
     expect(takeCrash()).toBeNull();
   });
 });
+
+describe("the pose model on an iPhone (#412)", () => {
+  it("never tries the GPU delegate on an iPhone, an iPad or an in-app browser there", async () => {
+    const { appleMobileIn, poseDelegates } = await import("./pose-client");
+    const vincentIab =
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 26_5_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 453.0.0.39.58";
+    expect(appleMobileIn(vincentIab)).toBe(true);
+    expect(appleMobileIn("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15", 5)).toBe(true); // an iPad asking for desktop
+    expect(appleMobileIn("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15", 0)).toBe(false);
+    expect(poseDelegates(true)).toEqual(["CPU"]);
+    expect(poseDelegates(false)).toEqual(["GPU", "CPU"]);
+  });
+});

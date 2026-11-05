@@ -331,6 +331,7 @@ export function DemosFigure({
   height,
   className = "",
   delayMs,
+  still = false,
 }: {
   pose: ClipPose;
   src: string;
@@ -338,6 +339,11 @@ export function DemosFigure({
   height: number;
   className?: string;
   delayMs?: number;
+  /**
+   * The still alone, no clip (#412): the recording screen keeps the
+   * phone's graphics for the take, so he stands there as a picture.
+   */
+  still?: boolean;
 }) {
   const [live, setLive] = useState(false);
   return (
@@ -350,7 +356,7 @@ export function DemosFigure({
         priority
         className={`${className} ${live ? "opacity-0" : ""}`}
       />
-      <DemosClip pose={pose} delayMs={delayMs} onLive={setLive} />
+      {!still && <DemosClip pose={pose} delayMs={delayMs} onLive={setLive} />}
     </>
   );
 }

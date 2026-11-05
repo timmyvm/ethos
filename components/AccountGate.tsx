@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { needsAccount } from "@/lib/account-gate";
+import { googleSwitching } from "@/lib/google-taken";
 import { firstRun } from "@/lib/onboarding";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { authHref } from "@/lib/use-paywall-return";
@@ -26,7 +27,8 @@ export function AccountGate() {
     void db.auth
       .getSession()
       .then(({ data }) => {
-        if (!live) return;
+        // Leaving for Google to sign in with an account that exists (#414).
+        if (!live || googleSwitching()) return;
         const user = data.session?.user ?? null;
         const state = {
           signedIn: user !== null,

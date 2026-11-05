@@ -1,0 +1,58 @@
+/**
+ * "Continue with Google" with a Google account that already has Ethos
+ * (#414). The account ask links Google to the guest session the phone
+ * already holds (lib/auth.ts signInWithGoogle, `linkIdentity`), and when
+ * that Google account belongs to an Ethos account already, Supabase says
+ * "Identity is already linked to another user" and sends the person back
+ * with the error in the URL. Nothing read it there: the phone landed on
+ * Today, went to the introduction, reopened its account ask, and the
+ * Google button did the same again (Timothy, 5 Nov, three tries in
+ * fifteen seconds). Someone who taps Continue with Google with an
+ * account means "sign me in", so that is what happens: the sign-in runs
+ * with the same Google account, once, and testing joined on the guest
+ * rides along as it does for every sign-in (lib/tester-client.ts).
+ */
+import type { CallbackProblem, OAuthAttempt } from "./auth";
+
+/** Set by the boot script when the page opened carrying the error. */
+export const TAKEN_KEY = "ethos.google-taken";
+/** The attempt (its `at`) already switched to a sign-in, so it never loops. */
+export const SWITCHED_KEY = "ethos.google-switched";
+
+/** Whether this return should become a Google sign-in. */
+export function shouldSwitch(
+  taken: boolean,
+  attempt: OAuthAttempt | null,
+  switchedAt: string | null
+): boolean {
+  if (!taken || !attempt || attempt.mode !== "signup") return false;
+  return switchedAt !== String(attempt.at);
+}
+
+/** The callback's own reading of the URL, narrowed to this one case. */
+export function isTaken(problem: CallbackProblem): boolean {
+  return problem.kind === "taken";
+}
+
+let switching = false;
+/** True while the switch is leaving for Google; the account gate waits. */
+export function googleSwitching(): boolean {
+  return switching;
+}
+export function markGoogleSwitching(on: boolean): void {
+  switching = on;
+}
+
+/**
+ * Before React, before any redirect drops the URL's fragment: note that
+ * this page opened with Google's "already linked" error. Plain ES5 in a
+ * string, inlined into <head> (see lib/theme-boot.ts for why a string).
+ */
+export const googleTakenBootScript = `
+(function(){try{
+  var p = new URLSearchParams(location.hash.replace(/^#/, ''));
+  new URLSearchParams(location.search).forEach(function(v, k){ p.set(k, v); });
+  var c = p.get('error_code') || '', d = p.get('error_description') || '';
+  if (c === 'identity_already_exists' || /already linked/i.test(d)) sessionStorage.setItem('${TAKEN_KEY}', String(Date.now()));
+}catch(e){}})();
+`;

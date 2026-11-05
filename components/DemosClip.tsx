@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { clipSrc, hasClip, type ClipPose } from "@/lib/idle-clips";
 import { onLayers, underLayer } from "@/lib/overlay-layers";
 import { prefersReducedMotion } from "@/lib/prefs";
+import { autoLite } from "@/lib/graphics";
 
 export { hasClip, type ClipPose };
 
@@ -279,6 +280,10 @@ export function DemosClip({
 
     const onLost = (e: Event) => {
       e.preventDefault();
+      /* Lost under him while he played (cleanup loses it on purpose and
+         takes this listener off first): the phone's graphics gave out.
+         The device draws lite from here (#412), so no clip asks again. */
+      if (!disposed) autoLite("gpu");
       disposed = true;
       cv.style.opacity = "0";
       onLiveRef.current?.(false);

@@ -67,17 +67,27 @@ const GROUND: Record<string, string> = {
  */
 export type Tone = "sun" | "sky" | "coral" | "mint";
 
-export const poseSrc = (pose: Pose) => `/demos-onboard-${pose}.webp`;
+/**
+ * His file at a scale that fits where he stands (#412). The set is cut at
+ * 1024 for the big stages (280pt on a 3x phone wants 840) and again at
+ * 512 in /demos-512 for every place he stands 170pt or less, where the
+ * 1024 file was four times the pixels the phone had to decode and hold.
+ */
+export const SMALL_POSE_MAX = 170;
+export const poseSrc = (pose: Pose, size?: number) =>
+  size !== undefined && size <= SMALL_POSE_MAX
+    ? `/demos-512/demos-onboard-${pose}.webp`
+    : `/demos-onboard-${pose}.webp`;
 
 /**
  * Warm the next screen's pose while this one is being read (#288), so
  * the mascot is there before his bubble fills rather than arriving
  * after it. A no-op on the server and harmless if the file is cached.
  */
-export function preloadPose(pose: Pose): void {
+export function preloadPose(pose: Pose, size?: number): void {
   if (typeof window === "undefined") return;
   const img = new window.Image();
-  img.src = poseSrc(pose);
+  img.src = poseSrc(pose, size);
 }
 
 export function DemosArt({
@@ -214,7 +224,7 @@ export function DemosArt({
               before the screen that needs it arrives. The strip showed him
               landing 300ms after his own words. */}
           <Image
-            src={poseSrc(pose)}
+            src={poseSrc(pose, size)}
             alt=""
             width={size}
             height={size}

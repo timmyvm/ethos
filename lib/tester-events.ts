@@ -273,6 +273,9 @@ export function cleanDevice(raw: Record<string, unknown>): Record<string, unknow
     downlink: inRange(raw.downlink, 0, 10_000),
     rtt: int(raw.rtt, 0, 60_000),
     save_data: bool(raw.save_data),
+    // Lite graphics (#412): what the phone draws, and why lite came on.
+    graphics: raw.graphics === "lite" || raw.graphics === "full" ? raw.graphics : null,
+    lite_why: raw.lite_why === "crash" || raw.lite_why === "gpu" || raw.lite_why === "device" ? raw.lite_why : null,
   };
   const described = describeDevice({
     ua: base.ua,

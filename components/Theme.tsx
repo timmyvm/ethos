@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { readPrefs, type Theme } from "@/lib/prefs";
+import { applyGraphics, liteGraphics, markAlive, markGone } from "@/lib/graphics";
 
 /**
  * Applies the stored theme to <html> before paint.
@@ -40,17 +42,38 @@ export function applyTheme(theme: Theme): void {
 export function applyMotion(reduced: boolean): void {
   if (typeof document === "undefined") return;
   const os = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // Lite graphics is the reduced-motion app too (#412).
   document.documentElement.setAttribute(
     "data-motion",
-    reduced || os ? "reduce" : "full"
+    reduced || os || liteGraphics() ? "reduce" : "full"
   );
 }
 
 export function ThemeSync() {
+  const path = usePathname();
+  // The mark names the screen it died on, so it follows the route.
+  useEffect(() => {
+    if (document.visibilityState === "visible") markAlive(path ?? location.pathname);
+  }, [path]);
   useEffect(() => {
     const prefs = readPrefs();
     applyTheme(prefs.theme);
+    applyGraphics(liteGraphics());
     applyMotion(prefs.reducedMotion);
+    /* The alive mark (#412, lib/graphics.ts): up while a page is on
+       screen, down the moment it hides or goes. A page the phone kills on
+       screen (out of memory, its graphics lost) never takes it down, and
+       the next open's boot script reads that as a crash and draws lite. */
+    const onShow = () => {
+      if (document.visibilityState === "visible") markAlive(location.pathname);
+    };
+    const onHide = () => {
+      if (document.visibilityState === "hidden") markGone();
+    };
+    document.addEventListener("visibilitychange", onShow);
+    document.addEventListener("visibilitychange", onHide);
+    window.addEventListener("pagehide", markGone);
+    window.addEventListener("pageshow", onShow);
     // Following the OS means following it when it changes, too. Both
     // questions are the OS's to answer again mid-session: a phone that
     // flips to dark at sunset is answering the colour one.
@@ -65,6 +88,10 @@ export function ThemeSync() {
     return () => {
       motion.removeEventListener("change", onMotion);
       theme.removeEventListener("change", onTheme);
+      document.removeEventListener("visibilitychange", onShow);
+      document.removeEventListener("visibilitychange", onHide);
+      window.removeEventListener("pagehide", markGone);
+      window.removeEventListener("pageshow", onShow);
     };
   }, []);
   return null;

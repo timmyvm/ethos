@@ -148,11 +148,15 @@ export function RepResult({
   const computedLine = `${m.fillerCount} filler${m.fillerCount === 1 ? "" : "s"} in ${Math.round(
     m.durationS
   )}s.${topFiller ? ` Tomorrow: kill “${topFiller}”.` : m.fillerCount === 0 ? " Clean take." : ""}`;
+  /* A take too short to score measured nothing, so Demos counts no
+     fillers and calls nothing clean in it (#416 review). */
   const line = coach?.coachLine?.trim()
     ? coach.coachLine
     : coach?.focus
       ? `Tomorrow: ${coach.focus}`
-      : computedLine;
+      : result.scorable === false
+        ? "Give it 60 to 90 seconds and a real answer."
+        : computedLine;
 
   /*
    * The trait this rep leveled (DECISIONS #160) — this rep's best

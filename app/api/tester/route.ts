@@ -182,11 +182,12 @@ export async function POST(req: NextRequest) {
      replaces an older one, time and all. */
   const { data: had } = await db
     .from("testers")
-    .select("consent_version, consented_at")
+    .select("consent_version, consented_at, stopped_at")
     .eq("user_id", user.id)
     .maybeSingle();
-  const kept = had as { consent_version: number; consented_at: string } | null;
-  if (kept && kept.consent_version >= CONSENT_VERSION) {
+  const kept = had as { consent_version: number; consented_at: string; stopped_at?: string | null } | null;
+  // A tester who stopped (#416) and agrees again starts again: the write below.
+  if (kept && kept.consent_version >= CONSENT_VERSION && !kept.stopped_at) {
     return NextResponse.json({
       ok: true,
       tester: { consent_version: kept.consent_version, consented_at: kept.consented_at },
@@ -197,7 +198,7 @@ export async function POST(req: NextRequest) {
   const { error } = await db
     .from("testers")
     .upsert(
-      { user_id: user.id, consent_version: CONSENT_VERSION, consented_at: consentedAt },
+      { user_id: user.id, consent_version: CONSENT_VERSION, consented_at: consentedAt, stopped_at: null },
       { onConflict: "user_id" }
     );
   if (error) {
@@ -286,6 +287,7 @@ async function carry(
     consented_at: string;
     created_at?: string | null;
     carried_from?: string[] | null;
+    stopped_at?: string | null;
   };
   const read = async (id: string) => {
     const { data, error } = await db.from("testers").select("*").eq("user_id", id).maybeSingle();
@@ -317,6 +319,8 @@ async function carry(
           consent_version: tester.consent_version,
           consented_at: tester.consented_at,
           ...(joined ? { created_at: joined } : {}),
+          // Either session's stop holds (#416): signing in never restarts it.
+          stopped_at: given.stopped_at ?? own?.stopped_at ?? null,
         },
         { onConflict: "user_id" }
       );

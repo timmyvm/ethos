@@ -100,7 +100,9 @@ describe("Hostile's allowance", () => {
   it("gives a guest the account's room, as recording does, and a visitor the visitor's", async () => {
     vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "anon-1", anonymous: true });
     await answer();
-    expect(consumeRateLimit).toHaveBeenLastCalledWith("hostile:u:anon-1", "user");
+    expect(consumeRateLimit).toHaveBeenCalledWith("hostile:u:anon-1", "user");
+    // And every guest on the address shares one room (#416).
+    expect(vi.mocked(consumeRateLimit).mock.calls.some(([s, t]) => /^guest:ip:/.test(s) && t === "guestip")).toBe(true);
 
     vi.mocked(getUserFromAuthHeader).mockResolvedValue(null);
     await answer();
@@ -127,17 +129,30 @@ describe("Hostile's allowance", () => {
     expect(refundRateLimit).not.toHaveBeenCalled();
   });
 
-  it("gives the slot back for an answer too short to read", async () => {
+  /* #416: once Whisper has run, the slot is spent. Giving it back for a
+     short answer made every such call free, and a script could loop
+     transcriptions without end. */
+  it("keeps the slot for an answer too short to read, since Whisper ran", async () => {
     vi.mocked(transcribe).mockResolvedValue({ ...HEARD, text: "I", words: [{ word: "I", start: 0, end: 0.2 }] });
     const body = await (await answer()).json();
     expect(body.tooShort).toBe(true);
-    expect(refundRateLimit).toHaveBeenCalledWith("hostile:u:u-1");
+    expect(refundRateLimit).not.toHaveBeenCalledWith("hostile:u:u-1");
   });
 
-  it("gives the slot back when the verdict does not come back", async () => {
+  it("keeps the slot when the verdict model was called and failed (#416)", async () => {
+    vi.stubEnv("ANTHROPIC_API_KEY", "sk-test");
     vi.mocked(hostileVerdict).mockRejectedValueOnce(new Error("api down"));
     expect((await judge()).status).toBe(502);
+    expect(refundRateLimit).not.toHaveBeenCalledWith("hostile:u:u-1");
+    vi.unstubAllEnvs();
+  });
+
+  it("gives the slot back when there is no key to call the verdict with", async () => {
+    vi.stubEnv("ANTHROPIC_API_KEY", "");
+    vi.mocked(hostileVerdict).mockRejectedValueOnce(new Error("no key"));
+    expect((await judge()).status).toBe(502);
     expect(refundRateLimit).toHaveBeenCalledWith("hostile:u:u-1");
+    vi.unstubAllEnvs();
   });
 
   it("gives the slot back for a week already used", async () => {

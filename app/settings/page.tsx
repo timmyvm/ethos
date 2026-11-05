@@ -604,7 +604,9 @@ export default function SettingsPage() {
           value={
             testing === "on"
               ? testDayNow !== null && testDayNow > TEST.days
-                ? TEST_COPY.settingsEnded
+                ? // Collection carries on after the test (#405), so the row
+                  // says On, and opens on Stop testing (#416), never Ended.
+                  DOOR_COPY.settingsOn
                 : testDayNow !== null && testDayNow >= 1
                   ? TEST_COPY.settingsDay(testDayNow)
                   : DOOR_COPY.settingsOn

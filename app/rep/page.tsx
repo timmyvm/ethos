@@ -39,6 +39,7 @@ import { FELT_COPY } from "@/content/tester";
 import { feltRow, pausedTester, scoreSnapshot, showsMatchCheck, type Felt, type TesterRow } from "@/lib/tester";
 import { saveMatch, useTester } from "@/lib/tester-client";
 import { testerRecord } from "@/lib/tester-signal";
+import { dayTurned } from "@/lib/home";
 import { liteGraphics } from "@/lib/graphics";
 import { inAppBrowser, inAppLine } from "@/lib/in-app";
 import { readOnboarding } from "@/lib/answers";
@@ -429,7 +430,12 @@ function RepScreen() {
     didToday: boolean;
     /** How many recordings came before this one. */
     count: number;
+    /** When it was read: a screen left open past midnight reads a new day (#416 review). */
+    at: Date;
   } | null>(null);
+  /** The baseline's "done today", only while it is still that day. */
+  const doneToday = (b: { didToday: boolean; at: Date } | null) =>
+    !!b && b.didToday && !dayTurned(b.at, new Date());
 
   /**
    * Can this browser do on-device pose? Feature detection, answered the
@@ -510,6 +516,7 @@ function RepScreen() {
           reps: rows,
           didToday: streak.didToday,
           count: all.length,
+          at: new Date(),
         };
         const xp = await fetchXp().catch(() => ({ total: 0, week: 0 }));
         setAnticipate(
@@ -652,7 +659,7 @@ function RepScreen() {
           // Only the take that made today count rolls the streak up; a
           // second take of the day used to replay the roll and its chime.
           // Read before the baseline below takes this take in.
-          if (celebratesStreak(streak, baselineRef.current)) setCelebrate(streak.current);
+          if (celebratesStreak(streak, { didToday: doneToday(baselineRef.current) })) setCelebrate(streak.current);
           setStreakNow(streak.current);
           // Re-arm the reminder now that today's practice is DONE. A
           // reminder armed this morning is still scheduled for this
@@ -696,7 +703,7 @@ function RepScreen() {
             });
             setEarnedNow(
               totalStars(map) > before.stars ||
-                (!before.didToday && streak.current > 1)
+                (!doneToday(before) && streak.current > 1)
             );
             // before.reps is the history captured on mount — the true
             // "before", independent of whether this rep persisted.
@@ -731,6 +738,7 @@ function RepScreen() {
             // Spoken today, whether or not the row was stored.
             didToday: true,
             count: all.length,
+            at: new Date(),
           };
           // And the line under the next Record reads from it too: the
           // one from the screen's open said "keeps a 6-day streak alive"

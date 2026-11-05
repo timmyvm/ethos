@@ -110,7 +110,7 @@ describe("takeRewards", () => {
   it("ends an unscored take on the count, never a number read off it", () => {
     const r = takeRewards({ ...base, scorable: false, streak: streak({ current: 1, didToday: true }) });
     expect(r.closing.headline).toBe("Recording 9 logged");
-    expect(`${r.closing.headline} ${r.closing.detail}`).not.toMatch(/filler|clean|words a minute|pause/i);
+    expect(`${r.closing.headline} ${r.closing.detail}`).not.toMatch(/filler|clean|words a minute|pause|measured/i);
   });
 
   it("ends an unscored take on the streak when there is one", () => {

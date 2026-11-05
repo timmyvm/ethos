@@ -92,7 +92,11 @@ export async function fetchTester(): Promise<TesterRow | null> {
     .eq("user_id", me.userId)
     .maybeSingle();
   if (error) throw error;
-  const row = (data as TesterRow | null) ?? null;
+  const found = (data as TesterRow | null) ?? null;
+  /* A tester who stopped (#416) is no tester on this phone: no tile, no
+     questions, Settings' plain code row, and the code page to start
+     again. The row stays on the server, with what they agreed to. */
+  const row = found && !found.stopped_at ? found : null;
   keepHint(row !== null);
   return row;
 }

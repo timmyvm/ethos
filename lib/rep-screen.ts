@@ -100,7 +100,8 @@ export function takeRewards(p: {
     bests: [],
     closing: {
       headline: `Recording ${p.repCount} logged`,
-      detail: "Recorded, measured, kept. Same time tomorrow.",
+      // Nothing was measured, so it does not say so (#416 review).
+      detail: "Kept. Give the next one 60 to 90 seconds.",
       tone: "neutral",
     },
   };

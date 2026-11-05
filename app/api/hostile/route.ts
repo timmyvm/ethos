@@ -66,14 +66,18 @@ function parseContext(raw: unknown): RoundsPayload | null {
 }
 
 /**
- * Only an answered call keeps its slot (#409, as /api/analyze): a
- * question asked or a verdict given. Whisper down, an answer too short
- * to read, a verdict that failed or a locked week give it back, so a
- * retry never costs a second one. A file Whisper refuses keeps its slot,
- * so junk uploads still cost one each.
+ * A slot is given back only when nothing paid ran (#409, #416): Whisper
+ * down or unreachable, a locked week, a verdict with no key to call.
+ * Once Whisper has transcribed, or the verdict model has been called,
+ * the slot stays, whatever came of it: giving it back for an answer
+ * under ten words, or a verdict that failed, made every such call free,
+ * and a script could loop transcriptions and Opus verdicts without end.
+ * A file Whisper refuses keeps its slot too.
  */
 interface Spend {
   subject: string | null;
+  /** A guest's address-wide slot (#416), as /api/analyze takes. */
+  guestIp?: string | null;
   keep: boolean;
 }
 
@@ -83,6 +87,7 @@ export async function POST(req: NextRequest) {
     return await handle(req, spend);
   } finally {
     if (spend.subject && !spend.keep) await refundRateLimit(spend.subject);
+    if (spend.guestIp && !spend.keep) await refundRateLimit(spend.guestIp);
   }
 }
 
@@ -113,6 +118,20 @@ async function handle(req: NextRequest, spend: Spend) {
   }
   spend.subject = subject;
 
+  /* Every guest on one address shares one room (#416), here as on
+     /api/analyze, so minting sessions buys no more transcriptions. */
+  if (auth?.anonymous) {
+    const guestIp = `guest:ip:${clientIp(req.headers)}`;
+    const shared = await consumeRateLimit(guestIp, "guestip");
+    if (!shared.allowed) {
+      return NextResponse.json(
+        { error: limitMessage(shared), retryAfterS: shared.retryAfterS },
+        { status: 429, headers: { "Retry-After": String(shared.retryAfterS) } }
+      );
+    }
+    spend.guestIp = guestIp;
+  }
+
   const phase = form.get("phase");
   const prompt = promptById((form.get("promptId") as string) ?? "");
   if (!prompt) {
@@ -132,6 +151,9 @@ async function handle(req: NextRequest, spend: Spend) {
       take: ctx.take,
       rounds: ctx.rounds ?? [],
     };
+    // The model is called from here on: the slot is spent unless there
+    // is no key to call it with.
+    spend.keep = !!process.env.ANTHROPIC_API_KEY;
     const v = await hostileVerdict(full, ctx.roundNumbers ?? []).catch((e) => {
       console.error("hostile verdict failed", e);
       return null;
@@ -207,6 +229,8 @@ async function handle(req: NextRequest, spend: Spend) {
     );
   }
 
+  // Whisper ran: the slot is spent, a short answer included.
+  spend.keep = true;
   const metrics = computeMetrics(t.words, t.durationS, t.segments);
   if (metrics.wordCount < MIN_WORDS) {
     return NextResponse.json({

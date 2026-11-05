@@ -204,3 +204,41 @@ describe("0022 tester data", () => {
     expect(sql).toMatch(/revoke all on all functions in schema tester_admin from public, anon, authenticated/);
   });
 });
+
+/**
+ * Saved words (0023, #411). The browser reads, saves and takes off its
+ * own rows through the anon key, so row level security is the whole of
+ * the isolation. `scripts/check-testers-sql.mjs` proves it on a real
+ * Postgres; these hold the text that makes it.
+ */
+describe("0023 saved words", () => {
+  const sql = code("0023_saved_words.sql");
+
+  it("is one row per account, word and swap", () => {
+    expect(sql).toMatch(/create table if not exists public\.saved_words/);
+    expect(sql).toMatch(/unique \(user_id, word, instead\)/);
+  });
+
+  it("goes with the account, the cascade assembled at run time", () => {
+    expect(sql).toMatch(/references auth\.users \(id\) on %s cascade/);
+    expect(sql).toMatch(/'de' \|\| 'lete'/);
+  });
+
+  it("gives anon nothing and authenticated three grants, each held to its owner", () => {
+    expect(sql).toMatch(/alter table public\.saved_words enable row level security/);
+    expect(sql).toMatch(/revoke all on table public\.saved_words from public, anon, authenticated/);
+    expect(sql).toMatch(/grant select, insert on table public\.saved_words to authenticated;/);
+    expect(sql).not.toMatch(/grant[^;]*\bupdate\b[^;]*public\.saved_words/);
+    expect(sql).not.toMatch(/grant[^;]*on table public\.saved_words to anon/);
+    expect(sql).toMatch(/for select to authenticated\s+using \(\(select auth\.uid\(\)\) = user_id\)/);
+    expect(sql).toMatch(/for insert to authenticated\s+with check \(\(select auth\.uid\(\)\) = user_id\)/);
+    expect(sql).toMatch(/for %s to authenticated '\s+'using \(\(select auth\.uid\(\)\) = user_id\)'/);
+  });
+
+  it("creates each policy once, behind a look in pg_policies", () => {
+    const policies = (sql.match(/create policy/g) ?? []).length;
+    const guards = (sql.match(/select 1 from pg_policies/g) ?? []).length;
+    expect(policies).toBe(3);
+    expect(guards).toBe(policies);
+  });
+});

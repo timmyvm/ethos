@@ -338,6 +338,20 @@ export const testerMode = {
   testerDelay: 0,
 };
 
+/**
+ * Your words for the camera (#411, migration 0023): the rows the page
+ * reads, `fail` for its error, `delay` (ms) for its skeleton. SAVED_ROWS
+ * is a populated list; the default is empty, the page's first state.
+ */
+export const SAVED_ROWS = [
+  { id: "sw-1", word: "thing", instead: "point", sentence: "So the thing about habits is, um, they compound.", rep_id: null, created_at: iso(0) },
+  { id: "sw-2", word: "really", instead: "genuinely", sentence: "I would plan a week nobody could really do, then miss a day and quit the plan instead of the day.", rep_id: null, created_at: iso(1) },
+  { id: "sw-3", word: "a lot", instead: "plenty", sentence: "There are a lot of ways to start.", rep_id: null, created_at: iso(2) },
+  { id: "sw-4", word: "compound", instead: "build on themselves", sentence: "So the thing about habits is, um, they compound.", rep_id: null, created_at: iso(4) },
+  { id: "sw-5", word: "good", instead: "solid", sentence: "It was a good plan until the second week.", rep_id: null, created_at: iso(6) },
+];
+export const savedWordsMode = { rows: [], fail: false, delay: 0 };
+
 /** Today's recording for `testerMode.today`: the newest fixture's, made at 09:12 today, its Index 665. */
 export const TODAY_REP = {
   ...reps[reps.length - 1],
@@ -401,6 +415,32 @@ async function supabase(route) {
     const row = testerMode.stored[key] ?? null;
     if (single) return route.fulfill(row ? json(row) : json({ code: "PGRST116", message: "0 rows" }, 406));
     return route.fulfill(json(row ? [row] : []));
+  }
+  /* Your words (migration 0023): savedWordsMode.rows is the table;
+     "fail" refuses the read, "slow" holds it, and a write lands in rows. */
+  if (url.pathname.startsWith("/rest/v1/saved_words")) {
+    if (savedWordsMode.delay) await new Promise((r) => setTimeout(r, savedWordsMode.delay));
+    if (req.method() === "GET") {
+      if (savedWordsMode.fail) return route.fulfill(json({ code: "XX000", message: "look: refused" }, 500));
+      const rows = [...savedWordsMode.rows].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+      if (single) return route.fulfill(rows[0] ? json(rows[0]) : json({ code: "PGRST116", message: "0 rows" }, 406));
+      return route.fulfill(json(rows));
+    }
+    if (req.method() === "POST") {
+      let sent = null;
+      try {
+        sent = req.postDataJSON();
+      } catch {}
+      const row = { id: `sw-${savedWordsMode.rows.length + 1}-${Date.now()}`, created_at: new Date().toISOString(), sentence: null, rep_id: null, ...sent };
+      delete row.user_id;
+      savedWordsMode.rows.push(row);
+      return route.fulfill(json(single ? row : [row], 201));
+    }
+    if (req.method() === "DELETE") {
+      const id = (url.searchParams.get("id") ?? "").replace(/^eq\./, "");
+      savedWordsMode.rows = savedWordsMode.rows.filter((r) => r.id !== id);
+      return route.fulfill({ status: 204, headers: cors, body: "" });
+    }
   }
   if (url.pathname.startsWith("/rest/v1/billing")) {
     const row = plan.billing;
@@ -500,16 +540,46 @@ const LIVE_TIER2 = {
   engagement: dim(61, '"the big version arrives on its own"'),
   confidence: dim(66, '"you do the small version every day"'),
 };
+/*
+ * The live recording's words (#411): a transcript with the fillers the
+ * metrics below count actually in it, and Whisper's word list with a
+ * time for each, so the words step's transcript underlines what was
+ * counted and its sheet says when. Whisper's list carries no
+ * punctuation; the text does.
+ */
+const LIVE_TRANSCRIPT =
+  "So the thing about habits is, um, they compound. You do the small version every day and, like, it builds on its own. Um, the mistake people make is waiting to feel ready. You know, ready is a feeling that shows up after you start. I used to think discipline was the whole answer, and I would plan a week nobody could really do, then miss a day and quit the plan instead of the day. What changed was making the habit small enough that missing it felt stupid. Five minutes. Not an hour, just five minutes I can do standing in a kitchen. And the five minutes usually turns into more, but only because it was allowed to be five.";
+export const LIVE_WORDS = (() => {
+  const raw = LIVE_TRANSCRIPT.match(/[A-Za-z0-9']+/g);
+  // About 62 seconds, a little air after each full stop.
+  let t = 0.4;
+  return raw.map((word, i) => {
+    const w = { word, start: Math.round(t * 100) / 100, end: Math.round((t + 0.3) * 100) / 100 };
+    t += 0.38 + (/[.?!]/.test(LIVE_TRANSCRIPT.split(/\s+/)[i] ?? "") ? 0.9 : 0);
+    return w;
+  });
+})();
+/** The fillers the engine counts in LIVE_WORDS, with their times, in order. */
+const LIVE_FILLERS = (() => {
+  const out = [];
+  const w = LIVE_WORDS.map((x) => x.word.toLowerCase());
+  for (let i = 0; i < w.length; i++) {
+    if (w[i] === "you" && w[i + 1] === "know") out.push({ word: "you know", t: LIVE_WORDS[i++].start });
+    else if (w[i] === "um" || (w[i] === "like" && w[i + 1] === "it")) out.push({ word: w[i], t: LIVE_WORDS[i].start });
+  }
+  return out;
+})();
 const analyze = {
-  transcript: reps[0].transcript,
+  transcript: LIVE_TRANSCRIPT,
+  words: LIVE_WORDS,
   metrics: {
-    durationS: 62, wordCount: 150, wpm: 145, fillerCount: 4, fillersPerMin: 3.9,
-    fillers: [{ word: "um", t: 5.2 }, { word: "like", t: 18.4 }, { word: "um", t: 33.1 }, { word: "you know", t: 50.7 }],
+    durationS: 62, wordCount: LIVE_WORDS.length, wpm: 145, fillerCount: LIVE_FILLERS.length, fillersPerMin: 3.9,
+    fillers: LIVE_FILLERS,
     fillerCounts: { um: 2, like: 1, "you know": 1 }, topFiller: "um",
     repairCount: 1, repairsPerMin: 1, unvoicedHesitations: 1, disfluenciesPerMin: 4.8,
     pauses: [{ t: 2.1, len: 1.2, kind: "pre", verdict: "opening" }, { t: 20, len: 0.9, kind: "mid" }, { t: 41, len: 1.5, kind: "pre", verdict: "landing" }, { t: 58, len: 1.1, kind: "pre" }],
     heldPauses: 4, composedPauses: 3, midSentencePauses: 1, stars: 2,
-    substance: { wordCount: 150, distinctRatio: 0.62, repeatShare: 0.05 },
+    substance: { wordCount: LIVE_WORDS.length, distinctRatio: 0.62, repeatShare: 0.05 },
   },
   /* Pace and Variety a few points over the fixture's last recording, so
      the live Index (the sum of these, log-14) lands three above it. */

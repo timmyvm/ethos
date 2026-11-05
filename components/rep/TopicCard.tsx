@@ -38,6 +38,7 @@ export function TopicCard({
         <div aria-hidden className="topic-demos pointer-events-none absolute bottom-[calc(100%-12px)] right-3 w-[112px]">
           <span className="rep-ground" />
           <DemosFigure
+            still
             pose="speaking"
             src="/demos-onboard-speaking.webp"
             width={224}

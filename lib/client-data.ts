@@ -52,6 +52,13 @@ export interface RepRow {
   delivery_moments: DeliveryMoment[] | null;
   /** The outbox key it was uploaded under (0016); a tester's answer about it is filed by this (0020). */
   client_id?: string | null;
+  /**
+   * Whisper's words with their times, read out of the stored raw reply
+   * (`whisper_raw->words`) by `fetchRep` only (#411): the stored page's
+   * transcript taps each word to when it was said. The Log's list never
+   * reads it.
+   */
+  words?: { word: string; start: number; end: number }[] | null;
 }
 
 const REP_COLUMNS =
@@ -139,7 +146,7 @@ export async function fetchRep(id: string): Promise<RepRow | null> {
   if (!db) return null;
   const { data, error } = await db
     .from("reps")
-    .select(REP_COLUMNS)
+    .select(`${REP_COLUMNS}, words:whisper_raw->words`)
     .eq("id", id)
     .maybeSingle();
   if (error) throw error;

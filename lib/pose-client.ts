@@ -85,6 +85,36 @@ export function poseCapableIn(env: PoseEnvironment): boolean {
  * still turn into a null from `loadPose` (assets not staged, WASM
  * blocked by policy), and the caller handles that flip.
  */
+/**
+ * An iPhone, iPad or iPod: WebKit underneath every browser on them, the
+ * in-app ones included (Instagram's, where testers open the link). An
+ * iPad asking for the desktop site says Macintosh, and its touch points
+ * give it away.
+ */
+export function appleMobileIn(ua: string, maxTouchPoints = 0): boolean {
+  return /\b(iPhone|iPad|iPod)\b/.test(ua) || (/\bMacintosh\b/.test(ua) && maxTouchPoints > 1);
+}
+
+export function onAppleMobile(): boolean {
+  try {
+    return appleMobileIn(navigator.userAgent, navigator.maxTouchPoints);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Which delegates to try, in order (#412). On an iPhone the GPU delegate
+ * is not tried at all: it runs MediaPipe's WebGL2 graph in the same
+ * graphics process that draws the page and decodes the camera, and the
+ * one Voice + Video start testers made under collection took the page
+ * down with it (Alan, 3 Nov). The CPU delegate is slower and only costs
+ * frames of the ring.
+ */
+export function poseDelegates(appleMobile: boolean): ("GPU" | "CPU")[] {
+  return appleMobile ? ["CPU"] : ["GPU", "CPU"];
+}
+
 export function poseCapable(): boolean {
   return poseCapableIn({
     hasWindow: typeof window !== "undefined",
@@ -131,12 +161,17 @@ export function loadPose(): Promise<Landmarker | null> {
         });
       // GPU first for the frame rate; CPU when there is no usable WebGL
       // context (a policy-locked desktop, some in-app browsers). Slower
-      // is a mode that works, and null was a mode that didn't exist.
-      let landmarker: Awaited<ReturnType<typeof create>>;
-      try {
-        landmarker = await create("GPU");
-      } catch {
-        landmarker = await create("CPU");
+      // is a mode that works, and null was a mode that didn't exist. On
+      // an iPhone, CPU only (poseDelegates).
+      const order = poseDelegates(onAppleMobile());
+      let landmarker: Awaited<ReturnType<typeof create>> | null = null;
+      for (const delegate of order) {
+        try {
+          landmarker = await create(delegate);
+          break;
+        } catch (e) {
+          if (delegate === order[order.length - 1]) throw e;
+        }
       }
       return landmarker as unknown as Landmarker;
     } catch {

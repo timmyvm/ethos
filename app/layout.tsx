@@ -9,6 +9,7 @@ import { ServiceWorker } from "@/components/ServiceWorker";
 import { ThemeSync } from "@/components/Theme";
 // From a plain module, never a "use client" one: see lib/theme-boot.ts.
 import { themeBootScript } from "@/lib/theme-boot";
+import { graphicsBootScript } from "@/lib/graphics";
 import { Splash, splashBootScript } from "@/components/Splash";
 import { testerBootScript } from "@/lib/tester-boot";
 import { SplashLift } from "@/components/SplashLift";
@@ -88,6 +89,9 @@ export default function RootLayout({
       <head>
         {/* Before paint, or a dark-mode user gets a white flash. */}
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+        {/* After the theme's: lite graphics (#412), from the first paint
+            of the page a crash reloads. */}
+        <script dangerouslySetInnerHTML={{ __html: graphicsBootScript }} />
         {/* Also before paint: whether this open gets the splash. */}
         <script dangerouslySetInnerHTML={{ __html: splashBootScript }} />
         {/* And whether Today holds the test tile's place from its first

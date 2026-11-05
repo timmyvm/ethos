@@ -24,6 +24,7 @@
 
 import { capText, EVENT_CAPS, ownStack, screenOf, type ErrorName, type RawEvent, type UsageName } from "./tester-events";
 import { setTesterSink, takeEarly, type EarlyError, type RecordSignal } from "./tester-signal";
+import { liteWhy, takeCrash } from "./graphics";
 
 /** How often a waiting batch is sent. */
 export const SEND_EVERY_MS = 20_000;
@@ -340,6 +341,8 @@ export async function deviceSnapshot(): Promise<Record<string, unknown>> {
     tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   } catch {}
   return {
+    graphics: document.documentElement.getAttribute("data-graphics") ?? undefined,
+    lite_why: liteWhy() ?? undefined,
     ua: nav.userAgent,
     platform: uad?.platform || nav.platform || undefined,
     platform_version: hints.platformVersion || undefined,
@@ -521,7 +524,12 @@ export function startCollecting({
   window.addEventListener("unhandledrejection", onRejection);
   const timer = window.setInterval(() => void c.flush(), SEND_EVERY_MS);
   setTesterSink({
-    record: (name, data) => c.record(name, data),
+    record: (name, data) => {
+      c.record(name, data);
+      // A take that kills the page would take its start with it from the
+      // queue: the start goes now, so a crash mid take reads as one.
+      if (name === "record_start") void c.flush();
+    },
     boundary: (error, digest, screen) => {
       const d = describe(error);
       c.error("boundary", { ...d, stack: ownStack(d.stack, hostOf(origin)).stack, digest: digest ?? null }, { screen });
@@ -529,6 +537,16 @@ export function startCollecting({
   });
   // What broke before this ran: the first screen's crash among it.
   replayEarly(c, takeEarly(), origin);
+  // The page before this one died on screen (#412, lib/graphics.ts): the
+  // phone ran out of memory or lost its graphics, and Safari reloaded it.
+  const crash = takeCrash();
+  if (crash) {
+    c.error(
+      "window",
+      { message: "Ethos closed on screen: the page died and the phone reloaded it", where: "crash" },
+      { screen: crash.path, at: crash.at }
+    );
+  }
 
   return {
     route: (path) => c.route(path),

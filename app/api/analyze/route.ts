@@ -43,7 +43,7 @@ import {
   type Tier1Scores,
   type Tier2Anchors,
 } from "@/lib/index-score";
-import { computeMetrics, isScorable, type RepMetrics } from "@/lib/metrics";
+import { computeMetrics, isScorable, type RepMetrics, type Word } from "@/lib/metrics";
 import { parseEnvelope } from "@/lib/envelope";
 import { pauseReport } from "@/lib/pause-quality";
 import { BOSS_XP_BASE } from "@/lib/rep-config";
@@ -57,6 +57,12 @@ export const maxDuration = 60; // Vercel Hobby cap
 
 export interface AnalyzeResponse {
   transcript: string;
+  /**
+   * Whisper's words with their times (#411): the transcript on the words
+   * step taps each word to when it was said. Optional because a reply
+   * kept on the phone from before #411 has none.
+   */
+  words?: Word[];
   metrics: RepMetrics;
   tier1: Tier1Scores;
   anchors: Tier2Anchors;
@@ -386,6 +392,7 @@ async function handle(req: NextRequest, spend: Spend) {
 
   const body: AnalyzeResponse = {
     transcript: transcription.text,
+    words: transcription.words.map((w) => ({ word: w.word, start: w.start, end: w.end })),
     metrics,
     tier1,
     anchors,

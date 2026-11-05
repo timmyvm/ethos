@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { use, useCallback, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import { AudioScrubber } from "@/components/AudioScrubber";
 import { Paywall, type PaywallAsk } from "@/components/Paywall";
 import { PresenceDetail, PresenceScore } from "@/components/PresenceCard";
@@ -77,6 +77,8 @@ export default function RepDetail({
   /** The plan's read failed: unknown for good, drawn unlocked, never walled. */
   const [planFailed, setPlanFailed] = useState(false);
   const [paywall, setPaywall] = useState<PaywallAsk | null>(null);
+  /** The player's seek, for the transcript's word sheet (#411). */
+  const seekRef = useRef<((t: number) => void) | null>(null);
   /* Tester mode (docs/testers.md): a tester can answer, or change, the
      match question about any recording here, after the live results. */
   const tester = useTester();
@@ -213,6 +215,8 @@ export default function RepDetail({
   const dims = rep.dimensions;
   const view: ResultView = {
     transcript: rep.transcript,
+    words: Array.isArray(rep.words) ? rep.words : null,
+    repId: rep.id,
     metrics,
     tier1: dims?.tier1 ?? { pause: 0, fillers: 0, pace: 0, range: 0 },
     anchors: dims?.anchors ?? { hedgeCount: 0, restartCount: 0 },
@@ -318,10 +322,12 @@ export default function RepDetail({
               durationS={rep.duration_s}
               fillers={rep.fillers ?? []}
               pauses={rep.pauses ?? []}
+              seekRef={seekRef}
             />
           ) : undefined
         }
         hasPlayer={!!audio}
+        onPlay={(t) => seekRef.current?.(t)}
       />
 
       {/*

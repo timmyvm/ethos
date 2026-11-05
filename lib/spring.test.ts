@@ -15,6 +15,7 @@ import {
   springStateAt,
   springVelocity,
   velocityAt,
+  SHEET_LAUNCH,
 } from "./spring";
 
 const css = readFileSync("app/globals.css", "utf8");
@@ -28,6 +29,21 @@ describe("springs", () => {
     for (const [name, spring] of Object.entries(SPRING)) {
       expect(token(`spring-${name}`)).toBe(springEasing(spring));
       expect(token(`spring-${name}-duration`)).toBe(`${springMs(spring)}ms`);
+    }
+  });
+
+  it("mirrors the sheet's launched rise into CSS (#415)", () => {
+    expect(token("spring-sheet-in")).toBe(springEasing(SPRING.sheet, SHEET_LAUNCH));
+    expect(token("spring-sheet-in-duration")).toBe(`${springMs(SPRING.sheet, SHEET_LAUNCH)}ms`);
+    expect(css).toMatch(/\.sheet-panel \{\s*animation: sheet-in var\(--spring-sheet-in-duration\) var\(--spring-sheet-in\) backwards;/);
+  });
+
+  it("launches the sheet fast and still lands without a bounce (#415)", () => {
+    // Fast then slow: well past the from-rest curve at the first frame and at 50ms.
+    expect(springProgress(SPRING.sheet, 0.016, SHEET_LAUNCH)).toBeGreaterThan(0.1);
+    expect(springProgress(SPRING.sheet, 0.05, SHEET_LAUNCH)).toBeGreaterThan(2 * springProgress(SPRING.sheet, 0.05));
+    for (let t = 0; t <= springDuration(SPRING.sheet, SHEET_LAUNCH); t += 1 / 240) {
+      expect(springProgress(SPRING.sheet, t, SHEET_LAUNCH)).toBeLessThanOrEqual(1.0005);
     }
   });
 

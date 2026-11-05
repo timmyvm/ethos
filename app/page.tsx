@@ -53,7 +53,7 @@ import { buildChallenge, practiceRow } from "@/lib/challenge";
 import { readTraitsFromRow } from "@/lib/trait-readings";
 import { computeStreak, type StreakState } from "@/lib/streak";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
-import { greetingName, heroObject, weekView } from "@/lib/home";
+import { dayTurned, greetingName, heroObject, weekView } from "@/lib/home";
 
 const EMPTY: StreakState = {
   current: 0,
@@ -146,6 +146,10 @@ export default function Home() {
    * one line, and a name too long even then is greeted by itself.
    */
   const [nameAlone, setNameAlone] = useState<string | null>(null);
+  /** When the history was last read: the day the screen belongs to. */
+  const loadedAt = useRef<Date | null>(null);
+  /** The days this page has turned over while open: the header's key. */
+  const [dayTurn, setDayTurn] = useState(0);
   const greeting = nameKnown
     ? name
       ? nameAlone === name
@@ -190,7 +194,8 @@ export default function Home() {
       live = false;
       window.removeEventListener("resize", fit);
     };
-  }, [greeting, name]);
+    // dayTurn: the header remounts on a new day, and its new title is fitted again.
+  }, [greeting, name, dayTurn]);
   // Back from the paywall's account doors with paywall=1: the sheet reopens.
   usePaywallReturn(() => setPaywall("Premium"));
   /* A tester during the test (#402): the eyebrow says the test's day in
@@ -218,6 +223,7 @@ export default function Home() {
    * nothing on screen said why.
    */
   const load = useCallback(async () => {
+    loadedAt.current = new Date();
     setFailed(false);
     setReps(null);
     // The newest 90 whole rows for what reads a recording, and every
@@ -293,6 +299,33 @@ export default function Home() {
     void load();
   }, [load, router]);
 
+  /*
+   * Today left open across midnight. A phone locked on Today at 23:50
+   * and woken next morning resumes the page without a reload, and it
+   * kept yesterday's date, a lit streak and "One more" while the card
+   * moved to the new day under them. A return on a new local day reads
+   * again, and the header remounts for its date; the minute's check
+   * covers a screen left open and visible through midnight.
+   */
+  useEffect(() => {
+    const check = () => {
+      if (document.visibilityState !== "visible") return;
+      if (!dayTurned(loadedAt.current, new Date())) return;
+      setDayTurn((n) => n + 1);
+      void load();
+    };
+    document.addEventListener("visibilitychange", check);
+    window.addEventListener("pageshow", check);
+    window.addEventListener("focus", check);
+    const minute = window.setInterval(check, 60_000);
+    return () => {
+      document.removeEventListener("visibilitychange", check);
+      window.removeEventListener("pageshow", check);
+      window.removeEventListener("focus", check);
+      window.clearInterval(minute);
+    };
+  }, [load]);
+
   const history = reps ?? [];
   /* Lifetime numbers count every recording, not the newest 90. */
   const lifetime = reps === null ? [] : spine;
@@ -362,6 +395,7 @@ export default function Home() {
           takes "Today" when the greeting scrolls under it. Without a
           name the large title is the tab's own, "Today". */}
       <ScreenHeader
+        key={dayTurn}
         title={greeting}
         barTitle="Today"
         dated={testEyebrow === null}

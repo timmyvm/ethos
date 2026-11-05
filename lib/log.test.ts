@@ -15,13 +15,17 @@ import {
  * where it started, where it is, and the signed change, so nobody
  * subtracts. Pace prints its zone instead of a verdict.
  */
+/** Enough words to score (`measured`): the rows below are real takes. */
+const SAID =
+  "The best part of my week was a long walk by the river with my sister after work on Friday, talking about nothing much.";
+
 function rep(over: Partial<RepRow>): RepRow {
   return {
     id: "r",
     lesson_id: "f1",
     created_at: "2026-08-19T09:00:00Z",
     duration_s: 60,
-    transcript: "",
+    transcript: SAID,
     wpm: 140,
     filler_count: 4,
     fillers: [],
@@ -101,6 +105,20 @@ describe("movedRows", () => {
     expect(index.series).toEqual([590]);
     expect(fillers.series).toHaveLength(2);
   });
+
+  /* A one-word 8s take printed Words / min 128 to 7 and Fillers 9.3 to 0.0. */
+  it("leaves a take too short to score out of the measurements", () => {
+    const short = rep({ transcript: "Hello.", ethos_index: null, duration_s: 8.3, wpm: 7, filler_count: 0 });
+    const [, fillers, pace, pauses] = movedRows([
+      rep({ wpm: 120, filler_count: 9, pauses: held(1) }),
+      rep({ wpm: 128, filler_count: 9, pauses: held(2) }),
+      short,
+    ]);
+    expect(pace).toMatchObject({ now: "128", change: "under 130" });
+    expect(pace.series).toEqual([120, 128]);
+    expect(fillers.now).toBe("9.0");
+    expect(pauses.now).toBe("2");
+  });
 });
 
 describe("presenceRow", () => {
@@ -130,6 +148,8 @@ describe("skillRows", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].label).toBe("Pause");
     expect(rows[0].direction).toBe("up");
+    // A take too short to score made no Index, so its dimensions are no reading.
+    expect(skillRows([withPause(50), { ...withPause(10), transcript: "Hi there." }])).toEqual([]);
   });
 });
 

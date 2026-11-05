@@ -12,6 +12,7 @@ import {
   Q_MAX,
   Q_MIN,
   Q_START,
+  Q_STEP,
   readingToday,
 } from "./challenge";
 import type { RepRow } from "./client-data";
@@ -74,6 +75,23 @@ function rep(
 }
 
 const NOW = new Date(2026, 8, 14, 20, 0, 0); // a Monday evening
+
+/** A recording at a local moment, built on `rep`, with what the case needs changed. */
+function take(
+  when: Date,
+  over: { fillers?: number; held?: number; wpm?: number; transcript?: string; duration_s?: number } = {}
+): RepRow {
+  const r = rep(0, over.fillers ?? 0, `take-${when.getTime()}-${Math.random()}`, over.held ?? 3);
+  return {
+    ...r,
+    created_at: when.toISOString(),
+    wpm: over.wpm ?? r.wpm,
+    transcript: over.transcript ?? r.transcript,
+    duration_s: over.duration_s ?? r.duration_s,
+  };
+}
+/** A day in November 2026, at noon unless said. Mondays are the 2nd, 9th and 16th. */
+const nov = (d: number, h = 12) => new Date(2026, 10, d, h);
 
 describe("there is no line until there is a distribution", () => {
   it("gives nothing on day one", () => {
@@ -206,6 +224,42 @@ describe("the dial", () => {
   it("counts only days they recorded", () => {
     const { active } = closeRate([rep(1, 4), rep(1, 5), rep(3, 6)], NOW);
     expect(active).toBe(2);
+  });
+
+  /*
+   * The window is worst first, so a lower quantile is a looser line. The
+   * two steps ran backwards: a month of misses drew a harder line, and
+   * a month of closes an easier one.
+   */
+  it("loosens after a month of misses and tightens after a month of closes", () => {
+    const days = (fillers: (i: number) => number) =>
+      Array.from({ length: 36 }, (_, i) => take(new Date(2026, 9, 11 + i), { fillers: fillers(i), held: 7 }));
+    const missing = days((i) => 5 + i);
+    const closing = days((i) => 40 - i);
+    expect(closeRate(missing, nov(16, 0)).rate).toBe(0);
+    expect(closeRate(closing, nov(16, 0)).rate).toBe(1);
+    expect(openQuantile(missing, nov(16, 0))).toBeCloseTo(Q_START - Q_STEP);
+    expect(openQuantile(closing, nov(16, 0))).toBeCloseTo(Q_START + Q_STEP);
+  });
+
+  /*
+   * "Evaluated at the same Monday boundary as the line": three missed
+   * days after Monday moved the dial read up to now, and Thursday's line
+   * came from another quantile than Monday's.
+   */
+  it("reads the days before this Monday, so the line holds all week", () => {
+    const month = Array.from({ length: 36 }, (_, i) =>
+      take(new Date(2026, 9, 11 + i), { fillers: 40 - i, held: 7 })
+    );
+    const missed = [16, 17, 18].map((d) => take(nov(d), { fillers: 60, held: 7 }));
+    const reps = [...month, ...missed];
+    // The precondition: read up to now, the dial would move mid-week.
+    expect(openQuantile(reps, nov(19, 9))).not.toBe(openQuantile(reps, nov(16, 9)));
+    const monday = buildChallenge(reps, nov(16, 9))!;
+    const thursday = buildChallenge(reps, nov(19, 9))!;
+    expect(thursday.week).toBe(monday.week);
+    expect(thursday.q).toBe(monday.q);
+    expect(thursday.line).toBe(monday.line);
   });
 });
 
@@ -393,5 +447,108 @@ describe("the day's trait", () => {
     expect(practiceRow([yesterday, today], new Date(2026, 9, 26, 10))).toBe(yesterday);
     // Only today's: nothing earlier to choose from, so the newest stands in.
     expect(practiceRow([today], new Date(2026, 9, 26, 10))).toBe(today);
+  });
+});
+
+/*
+ * A take too short to score (under twenty words) says "Not enough to
+ * score" on its results. A one-word 8s take at 7 wpm the night before
+ * switched the next day's card to pace, and a short take today closed
+ * the line on numbers nothing measured.
+ */
+describe("a take too short to score is no reading", () => {
+  const week = [2, 3, 4, 5].map((d) => take(nov(d), { held: 2, wpm: 128 }));
+  const word = (when: Date, over: Parameters<typeof take>[1] = {}) =>
+    take(when, { transcript: "Hello.", duration_s: 8.3, wpm: 7, held: 0, ...over });
+
+  it("does not choose the day's trait", () => {
+    const night = word(nov(5, 22));
+    const morning = nov(6, 9);
+    expect(practiceRow([...week, night], morning)).toBe(week[week.length - 1]);
+    expect(buildChallenge([...week, night], nov(12, 9))?.trait).toBe(
+      buildChallenge(week, nov(12, 9))?.trait
+    );
+    expect(practiceRow([night], morning)).toBeUndefined();
+  });
+
+  it("clears nothing today and counts for nothing in the week", () => {
+    const base = [rep(1, 4), rep(2, 6), rep(3, 9), rep(4, 2), rep(5, 7)];
+    const short = { ...rep(0, 0, "short", 9, 140), transcript: "Okay, fine then." };
+    const c = buildChallenge([...base, short], NOW)!;
+    expect(c.today).toBeNull();
+    expect(c.closed).toBe(false);
+    const inWeek = [1, 2, 3].map((d) => ({ ...rep(d, 0, `short-${d}`, 9), transcript: "Okay." }));
+    expect(buildChallenge([...base, ...inWeek], NOW)!.cleared).toEqual(
+      buildChallenge(base, NOW)!.cleared
+    );
+  });
+});
+
+/*
+ * Pace has a zone, 130 to 160, where the others have a direction. Its
+ * line said "Inside 104 words a minute", and a 178 day "178 today,
+ * inside 104".
+ */
+describe("a pace line names the zone", () => {
+  const slow = [110, 120, 104, 100].map((wpm, i) => take(nov(3 + i), { wpm }));
+  const now = nov(12, 20);
+  const on = (wpm: number) => buildChallenge([...slow, take(nov(12, 9), { wpm })], now)!;
+
+  it("says nearer the zone than the line, open and closed", () => {
+    const open = buildChallenge(slow, now)!;
+    expect(open).toMatchObject({ trait: "pace", line: 104, direction: "band" });
+    expect(challengeLine(open)).toBe("Nearer 130 to 160 than 104 words a minute.");
+    expect(challengeFoot(open)).toBe("You cleared it on 3 of your last 4.");
+    expect(challengeLine(on(178))).toBe("178 words a minute today, nearer 130 to 160 than 104.");
+    expect(challengeLine(on(145))).toBe("145 words a minute today, inside 130 to 160.");
+    expect(on(210).closed).toBe(false);
+    expect(challengeLine(on(210))).toBe("210 words a minute today, further from 130 to 160 than 104.");
+  });
+
+  it("says inside the zone when the line is in it, and never inside one number", () => {
+    const inside = { ...buildChallenge(slow, now)!, line: 140 };
+    expect(challengeLine(inside)).toBe("Inside 130 to 160 words a minute.");
+    expect(challengeLine({ ...inside, today: 175, closed: false })).toBe(
+      "175 words a minute today, outside 130 to 160."
+    );
+    for (const c of [buildChallenge(slow, now)!, on(178), on(145), on(210), on(104), inside]) {
+      for (const s of [challengeLine(c), challengeFoot(c)]) {
+        expect(s).not.toMatch(/inside (?!130 to 160)\d/i);
+        expect(s).not.toMatch(/[\u2013\u2014]/);
+      }
+    }
+  });
+});
+
+/*
+ * Standing clamps, so readings at the floor tie: a week of 0, 0, 1, 2,
+ * 3 held pauses drew "Over 0" and a take with none closed it, and 16 um
+ * or uh per hundred words closed a line of 8 as "under 8".
+ */
+describe("a line something can miss", () => {
+  const now = nov(12, 20);
+
+  it("never draws a more-is-better line at 0", () => {
+    const week = [0, 0, 1, 2, 3].map((held, i) => take(nov(3 + i), { held }));
+    const c = buildChallenge(week, now)!;
+    expect(c).toMatchObject({ trait: "pause", line: 1, cleared: { n: 3, of: 5 } });
+    const none = buildChallenge([...week, take(nov(12, 9), { held: 0 })], now)!;
+    expect(none.closed).toBe(false);
+    // Nothing but 0 all week: no line at all, rather than one nobody can miss.
+    expect(buildChallenge([0, 0, 0, 0].map((held, i) => take(nov(3 + i), { held })), now)).toBeNull();
+  });
+
+  it("orders readings the clamp ties by their own value", () => {
+    // 150 words with 10, 12, 15, 18 ums: 6.7, 8, 10 and 12 per hundred.
+    const week = [10, 12, 15, 18].map((fillers, i) => take(nov(3 + i), { fillers }));
+    const worse = buildChallenge([...week, take(nov(12, 9), { fillers: 24 })], now)!;
+    expect(worse).toMatchObject({ trait: "fillers", line: 10, closed: false, cleared: { n: 3, of: 4 } });
+    expect(challengeLine(worse)).toBe("16 um or uh per hundred words today. The line is 10.");
+    // A close at the floor fills the ring.
+    const better = buildChallenge([...week, take(nov(12, 9), { fillers: 13 })], now)!;
+    expect(better).toMatchObject({ closed: true, value: 1 });
+    // A week of 20 per hundred pays no coin.
+    const heavy = [9, 10, 11, 12, 13].map((d) => take(nov(d), { fillers: 30 }));
+    expect(closesByWeek([...week, ...heavy], nov(15, 20))).toEqual([{ week: "2026-11-09", closed: 0 }]);
   });
 });

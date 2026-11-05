@@ -47,19 +47,22 @@
  */
 
 import { NORMS } from "@/content/norms";
-import type { TraitId } from "@/content/traits";
+import { TRAIT, type TraitId } from "@/content/traits";
 import type { RepRow } from "./client-data";
 import { weekStart } from "./level";
 import { choosePractice, standing } from "./next-practice";
-import { fmtRaw, withUnit } from "./trait-readings";
-import { readTraitsFromRow } from "./trait-readings";
+import { fmtRaw, measured, readTraitsFromRow, withUnit } from "./trait-readings";
 
 /** The share of days the line is sized to be cleared on (§5 row 8). */
 export const CLOSE_FLOOR = 0.7;
 /** The quantile of your own week the line is drawn at. */
 export const Q_START = 0.3;
 export const Q_STEP = 0.1;
-/** Never tighter than "eight in ten", never looser than your own median. */
+/**
+ * The dial's ends. The window is sorted worst first, so a LOWER quantile
+ * is a looser line: never looser than "eight in ten" (Q_MIN), never
+ * tighter than your own median (Q_MAX).
+ */
 export const Q_MIN = 0.2;
 export const Q_MAX = 0.5;
 export const WINDOW_DAYS = 7;
@@ -107,6 +110,34 @@ function rawFor(row: RepRow, trait: TraitId): number | null {
 }
 
 /**
+ * How far a reading is from good, in the trait's own unit, larger
+ * worse: the value for "fewer is better", its negative for "more is
+ * better", the distance outside the zone for a band.
+ */
+function shortfall(trait: TraitId, raw: number): number {
+  const n = NORMS[trait];
+  if (n.direction === "lower") return raw;
+  if (n.direction === "higher") return -raw;
+  const lo = n.band?.lo ?? raw;
+  const hi = n.band?.hi ?? raw;
+  return raw < lo ? lo - raw : raw > hi ? raw - hi : 0;
+}
+
+/**
+ * Negative when `a` is the worse reading. Standing orders, and the
+ * value in the trait's own direction breaks its ties: standing clamps,
+ * so 8 and 16 um or uh per hundred words both stood at 0, and "16
+ * today, under 8" closed the line.
+ */
+function worseFirst(
+  trait: TraitId,
+  a: { raw: number; s: number },
+  b: { raw: number; s: number }
+): number {
+  return a.s - b.s || shortfall(trait, b.raw) - shortfall(trait, a.raw);
+}
+
+/**
  * Today's BEST reading on a trait. Best-of rather than last, so a second
  * recording can only help, which is the only shape that never makes
  * speaking again a risk.
@@ -120,10 +151,12 @@ export function readingToday(
   let best: { raw: number; s: number } | null = null;
   for (const r of reps) {
     if (dayKey(new Date(r.created_at)) !== key) continue;
+    // A take too short to score measured nothing, so it clears nothing.
+    if (!measured(r)) continue;
     const raw = rawFor(r, trait);
     if (raw === null) continue;
     const s = standing(trait, raw);
-    if (!best || s > best.s) best = { raw, s };
+    if (!best || worseFirst(trait, best, { raw, s }) < 0) best = { raw, s };
   }
   return best ? best.raw : null;
 }
@@ -139,14 +172,14 @@ function windowValues(
   return reps
     .filter((r) => {
       const t = new Date(r.created_at);
-      return t >= from && t < week;
+      return t >= from && t < week && measured(r);
     })
     .map((r) => {
       const raw = rawFor(r, trait);
       return raw === null ? null : { raw, s: standing(trait, raw) };
     })
     .filter((v): v is { raw: number; s: number } => v !== null)
-    .sort((a, b) => a.s - b.s);
+    .sort((a, b) => worseFirst(trait, a, b));
 }
 
 /**
@@ -173,7 +206,7 @@ export function closeRate(
   from.setDate(from.getDate() - days);
   for (const r of reps) {
     const t = new Date(r.created_at);
-    if (t >= from && t <= now) seen.add(dayKey(t));
+    if (t >= from && t <= now && measured(r)) seen.add(dayKey(t));
   }
   let closed = 0;
   for (const key of seen) {
@@ -201,8 +234,10 @@ export function closeRate(
 export function openQuantile(reps: RepRow[], now: Date): number {
   const { rate, active } = closeRate(reps, now);
   if (active < DIAL_MIN_ACTIVE || rate === null) return Q_START;
-  if (rate < CLOSE_FLOOR) return Math.min(Q_MAX, Q_START + Q_STEP);
-  if (rate > 0.9) return Math.max(Q_MIN, Q_START - Q_STEP);
+  /* A lower quantile is a looser line (the window is worst first). The
+     two steps ran the other way, so someone missing got a harder line. */
+  if (rate < CLOSE_FLOOR) return Math.max(Q_MIN, Q_START - Q_STEP);
+  if (rate > 0.9) return Math.min(Q_MAX, Q_START + Q_STEP);
   return Q_START;
 }
 
@@ -218,11 +253,14 @@ export function practiceRow(
   reps: RepRow[],
   now: Date = new Date()
 ): RepRow | undefined {
+  /* Only a recording that measured something: a one-word take read
+     "7 words a minute" and switched the next day's card to pace. */
+  const kept = reps.filter(measured);
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const before = reps.filter((r) => new Date(r.created_at) < startOfToday);
+  const before = kept.filter((r) => new Date(r.created_at) < startOfToday);
   if (before.length > 0) return before[before.length - 1];
-  const upToNow = reps.filter((r) => new Date(r.created_at) <= now);
-  return upToNow[upToNow.length - 1] ?? reps[reps.length - 1];
+  const upToNow = kept.filter((r) => new Date(r.created_at) <= now);
+  return upToNow[upToNow.length - 1] ?? kept[kept.length - 1];
 }
 
 /**
@@ -248,25 +286,39 @@ export function buildChallenge(
   const rows = windowValues(reps, trait, week);
   if (rows.length < MIN_HISTORY) return null;
 
-  const quantile = q ?? openQuantile(reps, now);
-  const idx = Math.min(
+  /* The dial reads the days before this Monday, as the line does, so a
+     missed Tuesday cannot move Thursday's line. */
+  const quantile = q ?? openQuantile(reps, week);
+  let idx = Math.min(
     rows.length - 1,
     Math.max(0, Math.ceil(quantile * rows.length) - 1)
   );
-  const line = rows[idx].raw;
-  const lineS = rows[idx].s;
+  /* A line nothing can fall short of is no line. More-is-better counts
+     stop at 0, so a week of 0, 0, 1, 2, 3 held pauses drew "Over 0" and
+     a take with none closed it. The line steps to the first value above
+     0, and a week of nothing but 0 draws none. */
+  if (NORMS[trait].direction === "higher") {
+    while (idx < rows.length && rows[idx].raw <= 0) idx += 1;
+    if (idx === rows.length) return null;
+  }
+  const mark = rows[idx];
 
   const today = readingToday(reps, trait, now);
-  const todayS = today === null ? null : standing(trait, today);
+  const reading = today === null ? null : { raw: today, s: standing(trait, today) };
+  const closed = reading !== null && worseFirst(trait, reading, mark) >= 0;
 
   return {
     trait,
-    line,
+    line: mark.raw,
     direction: NORMS[trait].direction,
-    value: todayS === null ? 0 : clamp01(todayS / Math.max(lineS, 0.05)),
-    closed: todayS !== null && todayS >= lineS,
+    /* A close fills the ring, even on a line that stands at 0. */
+    value: closed ? 1 : reading === null ? 0 : clamp01(reading.s / Math.max(mark.s, 0.05)),
+    closed,
     today,
-    cleared: { n: rows.filter((r) => r.s >= lineS).length, of: rows.length },
+    cleared: {
+      n: rows.filter((r) => worseFirst(trait, r, mark) >= 0).length,
+      of: rows.length,
+    },
     week: dayKey(week),
     q: quantile,
   };
@@ -286,15 +338,50 @@ export function buildChallenge(
  * "this is the kind of day you usually have" without saying it, and
  * without a second person anywhere in the sentence.
  */
-const VERB: Record<Challenge["direction"], string> = {
+const VERB: Record<"lower" | "higher", string> = {
   lower: "Under",
   higher: "Over",
-  band: "Inside",
 };
+
+/**
+ * Pace has a zone where the others have a direction, so its sentences
+ * name the zone. "Inside 104 words a minute" meant nothing, and "178
+ * today, inside 104" was false: 178 clears a slow line by being nearer
+ * 130 to 160 than 104 is. Words, never a dash (COPY-RULES).
+ */
+function zoneWords(trait: TraitId): string {
+  const band = NORMS[trait].band;
+  return band ? `${band.lo} to ${band.hi}` : "the zone";
+}
+
+/** Whether a band trait's reading sits inside its zone. */
+function inZone(trait: TraitId, raw: number): boolean {
+  return shortfall(trait, raw) === 0;
+}
+
+/**
+ * What a closed band day was against the line, for the words after
+ * "today,": inside the zone, as near it as the line, or nearer.
+ */
+export function bandClose(c: Challenge): string {
+  const zone = zoneWords(c.trait);
+  const today = c.today ?? c.line;
+  if (inZone(c.trait, today)) return `inside ${zone}`;
+  const target = fmtRaw(c.line);
+  return shortfall(c.trait, today) === shortfall(c.trait, c.line)
+    ? `as near ${zone} as ${target}`
+    : `nearer ${zone} than ${target}`;
+}
 
 export function challengeLine(c: Challenge): string {
   const line = withUnit(c.trait, c.line);
-  if (c.today === null) return `${VERB[c.direction]} ${line}.`;
+  if (c.today === null) {
+    if (c.direction !== "band") return `${VERB[c.direction]} ${line}.`;
+    const zone = zoneWords(c.trait);
+    return inZone(c.trait, c.line)
+      ? `Inside ${zone} ${TRAIT[c.trait].unit}.`
+      : `Nearer ${zone} than ${line}.`;
+  }
   /*
    * Today's value carries its unit in every branch (today-7). The card
    * printed "1.8 today. The line is 2.3." beside a ring that said 1.8
@@ -310,17 +397,26 @@ export function challengeLine(c: Challenge): string {
      * A day that closes ON the line, or near enough that both numbers
      * print the same, cannot read "1.8 today, over 1.8": four words
      * that contradict each other (#287). Equality IS a close, because
-     * `closed` is `todayS >= lineS`, so it is said as one. The compare
+     * `closed` holds on a tie, so it is said as one. The compare
      * stays on the printed strings, not the floats.
      */
     if (today === target) return `${said} today, on the line.`;
+    if (c.direction === "band") return `${said} today, ${bandClose(c)}.`;
     return `${said} today, ${VERB[c.direction].toLowerCase()} ${target}.`;
+  }
+  /* "210 today. The line is 104." read as a clear: say which way. */
+  if (c.direction === "band") {
+    const zone = zoneWords(c.trait);
+    return inZone(c.trait, c.line)
+      ? `${said} today, outside ${zone}.`
+      : `${said} today, further from ${zone} than ${fmtRaw(c.line)}.`;
   }
   return `${said} today. The line is ${fmtRaw(c.line)}.`;
 }
 
 export function challengeFoot(c: Challenge): string {
   const { n, of } = c.cleared;
+  if (c.direction === "band") return `You cleared it on ${n} of your last ${of}.`;
   return `You were ${VERB[c.direction].toLowerCase()} it on ${n} of your last ${of}.`;
 }
 

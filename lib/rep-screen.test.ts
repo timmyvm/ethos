@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RepRow } from "./client-data";
-import { computeMetrics, type RepMetrics } from "./metrics";
+import { computeMetrics, substance, type RepMetrics } from "./metrics";
 import { resolveRepConfig } from "./rep-config";
 import {
   backLabel,
@@ -120,10 +120,15 @@ describe("takeRewards", () => {
   });
 
   it("leaves a scored take to the records and the end note", () => {
-    const m = metrics({ fillersPerMin: 1, fillerCount: 1, composedPauses: 1 });
+    /* A take and a history that measured something (lib/rewards.ts only
+       holds records on those): enough words to score, on both sides. */
+    const said =
+      "The best part of my week was a long walk by the river with my sister after work on Friday, talking about nothing much.";
+    const measuredPrior = prior.map((r) => ({ ...r, transcript: said }));
+    const m = metrics({ substance: substance(said), fillersPerMin: 1, fillerCount: 1, composedPauses: 1 });
     const s = streak({ current: 3, didToday: true });
-    const r = takeRewards({ ...base, metrics: m, ethosIndex: 640, scorable: true, streak: s });
-    expect(r.bests).toEqual(personalBests(prior, m, 640));
+    const r = takeRewards({ ...base, prior: measuredPrior, metrics: m, ethosIndex: 640, scorable: true, streak: s });
+    expect(r.bests).toEqual(personalBests(measuredPrior, m, 640));
     expect(r.bests.length).toBeGreaterThan(0);
     expect(r.closing).toEqual(endNote({ gains: [], metrics: m, streak: s, repCount: 9 }));
   });

@@ -186,10 +186,15 @@ describe("POST /api/analyze", () => {
     }
   });
 
-  it("keeps 502 for a Whisper refusal that is ours, not the file's", async () => {
-    for (const code of [401, 429]) {
+  it("keeps 502 for a Whisper refusal that is ours, not the file's, and gives the slot back", async () => {
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-1", anonymous: false });
+    for (const code of [401, 403, 404, 408, 429]) {
+      vi.mocked(refundRateLimit).mockClear();
       vi.mocked(transcribe).mockRejectedValue(new Error(`Whisper API ${code}: nope`));
-      expect((await post(audioForm())).status).toBe(502);
+      expect((await post(audioForm())).status, String(code)).toBe(502);
+      // The phone sends a 502 again up to four times: a kept slot each time
+      // locked every tester out for the hour of a key or model fault.
+      expect(refundRateLimit, String(code)).toHaveBeenCalledWith("u:u-1");
     }
   });
 
@@ -235,6 +240,16 @@ describe("POST /api/analyze", () => {
     expect(body.coach).toBeNull();
     expect(body.ethosIndex).toBeNull();
     expect(body.tier1.pause).toBeGreaterThan(0);
+  });
+
+  /* A function killed at 60 seconds stores nothing and keeps the slot. */
+  it("gives the coach a deadline well inside the function's minute", async () => {
+    coachedFixture();
+    const before = Date.now();
+    await post(audioForm());
+    const deadline = vi.mocked(coachRep).mock.calls[0][4];
+    expect(deadline).toBeGreaterThanOrEqual(before + 40_000);
+    expect(deadline).toBeLessThanOrEqual(Date.now() + 45_000);
   });
 
   it("recomputes the XP multiplier server-side and ignores the client's", async () => {
@@ -647,9 +662,21 @@ describe("the rate-limit slot of a failed transcription", () => {
   });
 
   it("is kept when the file itself is refused, so junk cannot loop for free", async () => {
-    vi.mocked(transcribe).mockRejectedValue(new Error("Whisper API 400: Invalid file format"));
-    await post(audioForm());
-    expect(refundRateLimit).not.toHaveBeenCalled();
+    for (const code of [400, 413, 415]) {
+      vi.mocked(refundRateLimit).mockClear();
+      vi.mocked(transcribe).mockRejectedValue(new Error(`Whisper API ${code}: Invalid file format`));
+      await post(audioForm());
+      expect(refundRateLimit, String(code)).not.toHaveBeenCalled();
+    }
+  });
+
+  it("is given back when Whisper refuses our key, our access or our model", async () => {
+    for (const code of [401, 403, 404, 408]) {
+      vi.mocked(refundRateLimit).mockClear();
+      vi.mocked(transcribe).mockRejectedValue(new Error(`Whisper API ${code}: nope`));
+      await post(audioForm());
+      expect(refundRateLimit, String(code)).toHaveBeenCalledWith("u:anon-1");
+    }
   });
 
   it("is kept when the recording is saved", async () => {

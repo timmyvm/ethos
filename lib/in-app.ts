@@ -9,8 +9,10 @@
  */
 const APPS: [RegExp, string][] = [
   [/\bInstagram\b/, "Instagram"],
+  // Before Facebook: Messenger's browser carries Facebook's marks too
+  // (FBAN/MessengerForiOS, FB_IAB/Orca-Android), and was named Facebook.
+  [/\bFBAN\/Messenger|\bFB_IAB\/Orca|\bMessenger\b/, "Messenger"],
   [/\bFBAN\/|\bFBAV\/|\bFB_IAB\b/, "Facebook"],
-  [/\bMessenger\b|\bFBAN\/Messenger/, "Messenger"],
   [/musical_ly|BytedanceWebview|\bTikTok\b/, "TikTok"],
   [/\bSnapchat\b/, "Snapchat"],
 ];

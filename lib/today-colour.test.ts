@@ -305,7 +305,7 @@ describe("Start stands on the card's foot", () => {
  */
 describe("a trait's tone is only ever one of its forms", () => {
   const FORMS = {
-    mark: "an 8px square or dot beside a trait's name, or a 3px tick on a track",
+    mark: "an 8px square or dot beside a trait's name, a 3px tick on a track, or the underline under a word the transcript counted",
     measure: "a ring's arc, a bar on sand, or the live waveform's stroke",
     sparkline: "a sparkline",
     chip: "TraitChip",
@@ -335,6 +335,14 @@ describe("a trait's tone is only ever one of its forms", () => {
     // The recording screen's live waveform (S08, D51).
     ".rec-wave": "measure",
     ':root[data-theme="dark"] .rec-wave': "measure",
+    // The transcript's counted words and the word sheet's word (#411):
+    // the Fillers tone under a filler, Variety's under a vague or
+    // repeated word, and the key's scrap of each line.
+    ".tw[data-word-mark]": "mark",
+    ".tw-key": "mark",
+    '.tw-key[data-word-mark="repeat"]': "mark",
+    ".word-sheet-word[data-word-mark]": "mark",
+    ".word-in-sentence[data-word-mark]": "mark",
   };
   const FILES: Record<string, Form> = {
     "app/lessons/[id]/page.tsx": "ground",

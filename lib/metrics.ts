@@ -187,19 +187,23 @@ function endsSentence(raw: string): boolean {
   return /[.?!]["')\]]*\s*$/.test(raw);
 }
 
-export function detectFillers(words: Word[]): {
-  fillers: FillerHit[];
-  fillerCounts: Record<string, number>;
-} {
-  const norm = words.map((w) => normalizeWord(w.word));
-  const fillers: FillerHit[] = [];
-  const fillerCounts: Record<string, number> = {};
-  const consumed = new Array(words.length).fill(false);
+/**
+ * Where each filler sits in the word list: the index of its first word,
+ * how many words it spans (two for "you know"), and its label. The one
+ * detector: `detectFillers` counts these, and the results screen's
+ * transcript underlines these (components/InteractiveTranscript.tsx), so
+ * a word is marked a filler exactly when it was counted as one.
+ */
+export interface FillerSpan {
+  index: number;
+  length: 1 | 2;
+  label: string;
+}
 
-  const hit = (label: string, t: number) => {
-    fillers.push({ word: label, t: round2(t) });
-    fillerCounts[label] = (fillerCounts[label] ?? 0) + 1;
-  };
+export function fillerSpans(words: { word: string }[]): FillerSpan[] {
+  const norm = words.map((w) => normalizeWord(w.word));
+  const spans: FillerSpan[] = [];
+  const consumed = new Array(words.length).fill(false);
 
   // Bigrams first so "you know" doesn't fall through to single-word passes.
   for (let i = 0; i < words.length - 1; i++) {
@@ -208,7 +212,7 @@ export function detectFillers(words: Word[]): {
       if (norm[i] === a && norm[i + 1] === b) {
         // "kind of a" / "sort of thing" are usually hedges — still counted.
         consumed[i] = consumed[i + 1] = true;
-        hit(`${a} ${b}`, words[i].start);
+        spans.push({ index: i, length: 2, label: `${a} ${b}` });
         break;
       }
     }
@@ -218,7 +222,7 @@ export function detectFillers(words: Word[]): {
     if (consumed[i]) continue;
     const w = norm[i];
     if (SIMPLE_FILLERS.has(w)) {
-      hit(w, words[i].start);
+      spans.push({ index: i, length: 1, label: w });
       continue;
     }
     if (w === "like") {
@@ -228,10 +232,23 @@ export function detectFillers(words: Word[]): {
       const prevEnds = i > 0 && endsSentence(words[i - 1].word);
       const prevSkips = !prevEnds && prev !== null && LIKE_PREV_SKIP.has(prev);
       const nextSkips = next !== null && LIKE_NEXT_SKIP.has(next);
-      if (!prevSkips && !nextSkips) hit("like", words[i].start);
+      if (!prevSkips && !nextSkips) spans.push({ index: i, length: 1, label: "like" });
     }
   }
 
+  return spans.sort((a, b) => a.index - b.index);
+}
+
+export function detectFillers(words: Word[]): {
+  fillers: FillerHit[];
+  fillerCounts: Record<string, number>;
+} {
+  const fillers: FillerHit[] = [];
+  const fillerCounts: Record<string, number> = {};
+  for (const s of fillerSpans(words)) {
+    fillers.push({ word: s.label, t: round2(words[s.index].start) });
+    fillerCounts[s.label] = (fillerCounts[s.label] ?? 0) + 1;
+  }
   fillers.sort((a, b) => a.t - b.t);
   return { fillers, fillerCounts };
 }

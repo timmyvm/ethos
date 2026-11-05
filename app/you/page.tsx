@@ -909,6 +909,12 @@ export default function YouPage() {
             )}
           </>
         )}
+        {/* The swaps you saved yourself, from any word of a recording's
+            transcript (#411): the lexicon's twin, one door away. */}
+        <Link href="/words" className={`${DOOR_CLASS} mt-3`}>
+          <span>Your words</span>
+          <Disclosure />
+        </Link>
       </section>
 
       {/*

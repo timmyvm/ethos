@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { IconPauseSm, IconPlay } from "@/components/Icon";
 import type { FillerHit, Pause } from "@/lib/metrics";
 
@@ -15,11 +15,18 @@ export function AudioScrubber({
   durationS,
   fillers,
   pauses,
+  seekRef,
 }: {
   src: string;
   durationS: number;
   fillers: FillerHit[];
   pauses: Pause[];
+  /**
+   * Handed this player's seek (#411), so something else on the screen
+   * can play the recording from a second: the transcript's word sheet,
+   * "Said at 0:14". Null again once the player is gone.
+   */
+  seekRef?: MutableRefObject<((t: number) => void) | null>;
 }) {
   const ref = useRef<HTMLAudioElement | null>(null);
   const [t, setT] = useState(0);
@@ -52,6 +59,16 @@ export function AudioScrubber({
     setPlaying(true);
     a.play().catch(() => setPlaying(false));
   }
+
+  useEffect(() => {
+    if (!seekRef) return;
+    seekRef.current = (to: number) => seek(to);
+    return () => {
+      seekRef.current = null;
+    };
+    // `seek` reads the audio through its ref and the length from props.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seekRef, durationS]);
 
   function toggle() {
     const a = ref.current;

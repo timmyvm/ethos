@@ -43,6 +43,9 @@ export function permissionSteps(
         `Choose Website Settings`,
         `Set ${device} to Allow`,
         `If it isn't listed there: Settings app → Safari → ${device}`,
+        // #412: iOS 26.3 to 26.6 can hold the mic after a media reset, with
+        // Allow already set, until the browser is quit (bugs.webkit.org 319706).
+        `Still blocked with Allow set? Swipe Safari (or the app you opened Ethos in) away in the app switcher, then open Ethos again`,
       ];
     case "safari":
       return [

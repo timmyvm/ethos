@@ -162,12 +162,17 @@ export function DemosClip({
     video.setAttribute("aria-hidden", "true");
     video.style.cssText =
       "position:absolute;width:1px;height:1px;opacity:0;pointer-events:none";
-    for (const [ext, type] of [
+    const sources = [
       ["webm", 'video/webm; codecs="vp9"'],
       /* No codecs string: libx264's profile is its own choice, and a
          hint that names the wrong one makes Safari skip a file it plays. */
       ["mp4", "video/mp4"],
-    ] as const) {
+    ] as const;
+    /* H.264 first on Apple (#412): Safari plays VP9 too, but an iPhone
+       without a VP9 decoder does it in software, every frame, while
+       H.264 has the hardware decoder. */
+    const apple = /\b(iPhone|iPad|iPod|Macintosh)\b/.test(navigator.userAgent) && !/Chrome|Firefox|Edg/.test(navigator.userAgent);
+    for (const [ext, type] of apple ? [...sources].reverse() : sources) {
       const s = document.createElement("source");
       s.src = clipSrc(pose, ext);
       s.type = type;

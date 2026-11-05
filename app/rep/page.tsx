@@ -1167,6 +1167,9 @@ function RepScreen() {
         video: captureModeRef.current === "voice_video",
         missing,
       });
+      // A start the mic refused, for tester collection (#412): iOS 26 can
+      // refuse with Allow set until Safari is quit (webkit 319706).
+      testerRecord("record_start", { video: captureModeRef.current === "voice_video", blocked: name || "unknown" });
       setError(null);
       setPhase("error");
     } finally {

@@ -75,12 +75,14 @@ export async function POST(req: NextRequest) {
 
   const { data: tester, error: readError } = await db
     .from("testers")
-    .select("consent_version")
+    .select("consent_version, stopped_at")
     .eq("user_id", user.id)
     .maybeSingle();
   if (readError) return json({ error: "Try again." }, 502);
-  const version = (tester as { consent_version?: number } | null)?.consent_version ?? 0;
-  if (version < COLLECTS_FROM_VERSION) return json({ error: "Not testing.", stop: true }, 403);
+  const row = tester as { consent_version?: number; stopped_at?: string | null } | null;
+  const version = row?.consent_version ?? 0;
+  // Stopped testing (#416): nothing more is taken, from the tap on.
+  if (version < COLLECTS_FROM_VERSION || row?.stopped_at) return json({ error: "Not testing.", stop: true }, 403);
 
   if (!(await consumeRateLimit(`tester-collect:u:${user.id}`, "collect")).allowed) {
     return json({ error: "Too many." }, 429);

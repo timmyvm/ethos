@@ -110,6 +110,8 @@ export interface AnalyzeResponse {
 interface Spend {
   /** The throttle's subject once a slot was taken. */
   subject: string | null;
+  /** A guest's address-wide slot (#416), given back or kept with the first. */
+  guestIp?: string | null;
   /** The slot stays spent. */
   keep: boolean;
 }
@@ -120,6 +122,7 @@ export async function POST(req: NextRequest) {
     return await handle(req, spend, Date.now());
   } finally {
     if (spend.subject && !spend.keep) await refundRateLimit(spend.subject);
+    if (spend.guestIp && !spend.keep) await refundRateLimit(spend.guestIp);
   }
 }
 
@@ -211,6 +214,20 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
     );
   }
   spend.subject = subject;
+
+  /* A guest also counts against every guest on its address (#416), so
+     minting sessions buys no more scoring. Accounts never do. */
+  if (auth?.anonymous) {
+    const guestIp = `guest:ip:${clientIp(req.headers)}`;
+    const shared = await consumeRateLimit(guestIp, "guestip");
+    if (!shared.allowed) {
+      return NextResponse.json(
+        { error: limitMessage(shared), rateLimited: true, retryAfterS: shared.retryAfterS },
+        { status: 429, headers: { "Retry-After": String(shared.retryAfterS) } }
+      );
+    }
+    spend.guestIp = guestIp;
+  }
 
   // The client sends what it *ran*; the multiplier is recomputed here
   // from the mods this account is actually entitled to. A hand-edited

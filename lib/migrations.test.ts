@@ -288,3 +288,22 @@ describe("0024 saved words cap", () => {
     expect(sql).not.toMatch(/security definer/);
   });
 });
+
+/*
+ * 0025: Stop testing (#416). Additive and idempotent: one nullable
+ * column the service role sets for the caller's own row; no policy or
+ * grant changes, and neither of the connector's words.
+ */
+describe("0025 tester stop", () => {
+  const raw = readFileSync(path.join(DIR, "0025_tester_stop.sql"), "utf8");
+  const sql = code("0025_tester_stop.sql");
+
+  it("holds neither of the connector's words, comments included", () => {
+    expect(raw).not.toMatch(/drop|delete/i);
+  });
+
+  it("adds the stop time, once, and touches nothing else", () => {
+    expect(sql).toMatch(/alter table public\.testers\s+add column if not exists stopped_at timestamptz;/);
+    expect(sql).not.toMatch(/policy|grant|revoke/i);
+  });
+});

@@ -88,7 +88,7 @@ export async function fetchTester(): Promise<TesterRow | null> {
   if (!me) return null;
   const { data, error } = await db
     .from("testers")
-    .select("consent_version, consented_at, created_at")
+    .select("consent_version, consented_at, created_at, stopped_at")
     .eq("user_id", me.userId)
     .maybeSingle();
   if (error) throw error;
@@ -352,6 +352,22 @@ export async function joinTesting(code: string | null): Promise<CodeAnswer> {
   if (answer.ok) {
     keepHint(true);
     // The consent changed even when the hint did not: collection starts.
+    announce();
+  }
+  return answer;
+}
+
+/**
+ * Stop testing (#416): the server marks this account's row, and this
+ * phone forgets it was a tester and tells collection, so nothing more
+ * is sent from this open on.
+ */
+export async function stopTesting(): Promise<CodeAnswer> {
+  const db = supabaseBrowser();
+  const token = db ? ((await db.auth.getSession()).data.session?.access_token ?? null) : null;
+  const answer = await post({ stop: true }, token);
+  if (answer.ok) {
+    keepHint(false);
     announce();
   }
   return answer;

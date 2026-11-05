@@ -25,6 +25,14 @@ export const LIMITS = {
    */
   collect: { hour: 240, day: 1200 },
   /**
+   * Every guest session on one address, together (#416). A guest gets an
+   * account's room (#409), and Supabase mints guest sessions for free,
+   * so without this one address could buy about 300 Whisper calls an
+   * hour by minting sessions. Thirty an hour is a room of friends on
+   * one Wi-Fi; accounts never count against it.
+   */
+  guestip: { hour: 30, day: 90 },
+  /**
    * The word sheet's thesaurus (app/api/words, #411): a word the curated
    * map does not hold. A tap is a second of curiosity, so the room is
    * wide: sixty words an hour, three hundred a day. Answers the server

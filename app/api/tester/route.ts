@@ -102,12 +102,36 @@ export async function POST(req: NextRequest) {
     code?: unknown;
     agree?: unknown;
     carry?: unknown;
+    stop?: unknown;
   } | null;
 
   if (body && "carry" in body) {
     const answer = await carry(user, body.carry);
     if (answer.status === 200) await giveBack();
     return answer;
+  }
+
+  /* Stop testing (#416): the caller's own row is marked with the time,
+     and from then nothing more is asked or collected. The row and what
+     was already sent under it stay, as the consent's "How long" says;
+     deleting it all is still Timothy's job or the account's. */
+  if (body && (body as { stop?: unknown }).stop === true) {
+    await giveBack();
+    if (!user) {
+      return NextResponse.json({ error: "That session has expired. Sign in and try again." }, { status: 401 });
+    }
+    const db = supabaseAdmin();
+    if (!db) return NextResponse.json({ error: "Accounts aren't configured on this server." }, { status: 503 });
+    const { error } = await db
+      .from("testers")
+      .update({ stopped_at: new Date().toISOString() })
+      .eq("user_id", user.id)
+      .is("stopped_at", null);
+    if (error) {
+      console.error("tester: stop failed", error.message);
+      return NextResponse.json({ error: JOINED_COPY.stopFailed }, { status: 502 });
+    }
+    return NextResponse.json({ ok: true, stopped: true });
   }
 
   const given = typeof body?.code === "string" ? body.code.trim() : "";

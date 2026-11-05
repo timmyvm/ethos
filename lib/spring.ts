@@ -48,6 +48,21 @@ export const SPRING = {
 } as const satisfies Record<string, Spring>;
 
 /**
+ * The speed a sheet leaves the bottom edge with (#415), in starting
+ * distances per second. Timothy, of the word sheet: "so laggy ... make
+ * it fast then slow". The rise used to start from rest, and a critically
+ * damped spring from rest has zero speed at t = 0: SPRING.sheet moved
+ * the panel 2% of the way in its first frame and 17% in its first 50ms,
+ * which reads as a tap that did nothing. A presented sheet has been
+ * thrown, so it leaves already moving: with launch speed v the offset is
+ * (1 + (w0 - v) t) e^(-w0 t), w0 = 2 pi / response. Any v up to w0
+ * still lands with no overshoot (v = w0 is pure exponential decay); 0.6
+ * w0 puts 35% of the way behind it at 50ms and 61% at 100ms, then the
+ * same unhurried landing.
+ */
+export const SHEET_LAUNCH = Math.round(0.6 * ((2 * Math.PI) / 0.42) * 10) / 10;
+
+/**
  * How far from the target the value still is, as a fraction of the
  * starting distance, `t` seconds in. 1 at the start, 0 at rest.
  *

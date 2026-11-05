@@ -34,6 +34,9 @@ export function safeNextPath(raw: unknown): string | null {
     const base = "https://ethos.invalid";
     const url = new URL(path, base);
     if (url.origin !== base) return null;
+    // "/.//evil.com" normalises to the path "//evil.com", which a browser
+    // reads as another host: signing in would leave the site.
+    if (url.pathname.startsWith("//")) return null;
     if (/^\/(signin|signup|auth)(\/|$)/.test(url.pathname)) return null;
     return `${url.pathname}${url.search}${url.hash}`;
   } catch {

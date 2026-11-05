@@ -5,7 +5,9 @@ import { useEffect, useRef, useState } from "react";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Skeleton, SkeletonRegion } from "@/components/ui/Skeleton";
 import { ACTION_CLASS, DISABLED_CLASS, INPUT_CLASS } from "@/lib/ui";
+import { backStays, readAccountState } from "@/lib/account-gate";
 import { fetchReps } from "@/lib/client-data";
+import { firstRun } from "@/lib/onboarding";
 import { computeStreak } from "@/lib/streak";
 import {
   MIN_PASSWORD,
@@ -18,6 +20,8 @@ import { asksForPaywall, authHref, useNextPath } from "@/lib/use-paywall-return"
 
 /** Where the auth screens' back goes unless a page says otherwise. */
 const TODAY = { href: "/", label: "Today" };
+
+type Back = { href: string; label: string };
 
 /**
  * How long the form waits for the session and this device's recordings
@@ -85,6 +89,8 @@ export function AuthForm({
   );
   const [sent, setSent] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  /** A sign-up with no guest session: the confirmed account is signed in to next. */
+  const [thenSignIn, setThenSignIn] = useState(false);
   const [ready, setReady] = useState(false);
   const [session, setSession] = useState<SessionState | null>(null);
   const [progress, setProgress] = useState({ recordings: 0, streak: 0 });
@@ -102,7 +108,25 @@ export function AuthForm({
   // Google's own state: it comes back when they do, and never touches
   // the email form below it (lib/use-oauth-return.ts).
   const google = useGoogleSignIn(mode, next);
-  const back = next ? { href: next, label: asksForPaywall(next) ? "Premium" : "Back" } : TODAY;
+  const to: Back = next ? { href: next, label: asksForPaywall(next) ? "Premium" : "Back" } : TODAY;
+  /*
+   * Offered only where the account gate lets this person stay: a guest
+   * sent here from Today was sent straight back, so the button looked
+   * dead (lib/account-gate.ts `backStays`). Hidden until the stored
+   * session is read, so it never shows and then goes.
+   */
+  const [backOk, setBackOk] = useState(false);
+  useEffect(() => {
+    let live = true;
+    const fresh = firstRun();
+    void readAccountState().then((s) => {
+      if (live) setBackOk(backStays(s, to.href, fresh));
+    });
+    return () => {
+      live = false;
+    };
+  }, [to.href]);
+  const back = backOk ? to : null;
 
   useEffect(() => {
     let live = true;
@@ -168,6 +192,7 @@ export function AuthForm({
     }
     if (result.checkInbox) {
       setNote(result.note ?? null);
+      setThenSignIn(result.thenSignIn === true);
       setSent(true);
     } else window.location.href = next ?? "/";
   }
@@ -191,7 +216,9 @@ export function AuthForm({
             from <Address>hello@speakethos.com</Address>.
             {emailOnly
               ? " Open it, set your password, and the account is live."
-              : " Open it and your account is live."}
+              : thenSignIn
+                ? " Open it, then sign in."
+                : " Open it and your account is live."}
           </p>
           {carrying && (
             <p className="mt-3 text-read text-stone-800 text-pretty">
@@ -206,11 +233,19 @@ export function AuthForm({
             </p>
           )}
           {/* Nothing to type here, so the tap sits at the bottom, under
-              the thumb (auth-11). */}
+              the thumb (auth-11). With no session on this device the
+              floor would only ask for an account again, so the tap is
+              the sign-in the confirmed account needs. */}
           <div className="mt-auto pt-8">
-            <Link href="/" className={ACTION_CLASS}>
-              Back to the floor
-            </Link>
+            {thenSignIn ? (
+              <Link href={authHref("signin", next)} className={ACTION_CLASS}>
+                Sign in
+              </Link>
+            ) : (
+              <Link href="/" className={ACTION_CLASS}>
+                Back to the floor
+              </Link>
+            )}
           </div>
         </div>
       </Shell>
@@ -461,12 +496,13 @@ export function Shell({
   children,
 }: {
   title: string;
-  back?: { href: string; label: string };
+  /** null: no way back is offered. */
+  back?: Back | null;
   children: React.ReactNode;
 }) {
   return (
     <main className="flex min-h-dvh flex-col px-5 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-7">
-      <ScreenHeader title={title} back={back} />
+      <ScreenHeader title={title} back={back ?? undefined} />
       {children}
     </main>
   );
@@ -492,7 +528,7 @@ export function AuthLoading({
   label: string;
   /** The card's height class, measured from the screen it stands for. */
   card: string;
-  back?: { href: string; label: string };
+  back?: Back | null;
 }) {
   return (
     <Shell title="" back={back}>

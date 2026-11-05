@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { callbackProblem } from "./auth";
-import { SWITCHED_KEY, TAKEN_KEY, googleTakenBootScript, shouldSwitch } from "./google-taken";
+import { SWITCHED_KEY, TAKEN_KEY, googleTakenBootScript, onBackWithoutFinishing, shouldSwitch } from "./google-taken";
 
 function boot(href: string) {
   const url = new URL(href);
@@ -48,5 +48,67 @@ describe("Continue with Google, with an account that already has Ethos (#414)", 
     expect(shouldSwitch(true, null, null)).toBe(false);
     expect(shouldSwitch(false, signup, null)).toBe(false);
     expect(SWITCHED_KEY).not.toBe(TAKEN_KEY);
+  });
+});
+
+/*
+ * The switch's cover leaves for Google. Backing out of Google, a
+ * dismissed sheet or a page restored from the back/forward cache used to
+ * leave it up for good, with nothing on it to tap.
+ */
+describe("the switch lets go when the person is back without finishing", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  function install() {
+    vi.useFakeTimers();
+    const win = Object.assign(new EventTarget(), {
+      setTimeout: (fn: () => void, ms: number) => setTimeout(fn, ms),
+      clearTimeout: (id: ReturnType<typeof setTimeout>) => clearTimeout(id),
+    });
+    const doc = Object.assign(new EventTarget(), { visibilityState: "hidden" });
+    vi.stubGlobal("window", win);
+    vi.stubGlobal("document", doc);
+    const release = vi.fn();
+    return { win, doc, release, stop: onBackWithoutFinishing(release, 5000) };
+  }
+
+  it("on a page restored from the back/forward cache, and not on a fresh load", () => {
+    const { win, release } = install();
+    win.dispatchEvent(Object.assign(new Event("pageshow"), { persisted: false }));
+    expect(release).not.toHaveBeenCalled();
+    win.dispatchEvent(Object.assign(new Event("pageshow"), { persisted: true }));
+    expect(release).toHaveBeenCalledTimes(1);
+  });
+
+  it("when the page is shown again or refocused after a dismissed sheet", () => {
+    const shown = install();
+    shown.doc.visibilityState = "visible";
+    shown.doc.dispatchEvent(new Event("visibilitychange"));
+    expect(shown.release).toHaveBeenCalledTimes(1);
+    vi.unstubAllGlobals();
+    const focused = install();
+    focused.win.dispatchEvent(new Event("focus"));
+    expect(focused.release).toHaveBeenCalledTimes(1);
+  });
+
+  it("after the bound if no sign ever comes, and only once", () => {
+    const { win, release } = install();
+    vi.advanceTimersByTime(4999);
+    expect(release).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(release).toHaveBeenCalledTimes(1);
+    win.dispatchEvent(new Event("focus"));
+    expect(release).toHaveBeenCalledTimes(1);
+  });
+
+  it("not at all once stopped", () => {
+    const { win, release, stop } = install();
+    stop();
+    win.dispatchEvent(new Event("focus"));
+    vi.advanceTimersByTime(10_000);
+    expect(release).not.toHaveBeenCalled();
   });
 });

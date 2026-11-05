@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nextFireTime, reminderBody, reminderTierNote } from "./reminders";
+import { nextFireTime, noNotificationsNote, reminderBody, reminderLine, reminderTierNote } from "./reminders";
 import { DEFAULT_PREFS, insideQuietHours } from "./prefs";
 
 const at = (day: number, hour: number) => new Date(2026, 7, day, hour, 30);
@@ -75,5 +75,26 @@ describe("reminderTierNote", () => {
 
   it("admits when it cannot fire at all", () => {
     expect(reminderTierNote("unsupported")).toMatch(/can't show notifications/i);
+  });
+});
+
+/*
+ * An iPhone's Safari tab and an app's own browser have no Notification
+ * API, so "Allow notifications" could do nothing there, on every tap,
+ * and the hour picked on the debrief never rang.
+ */
+describe("the line under a reminder's hours", () => {
+  it("names the way to notifications instead of asking where there are none", () => {
+    expect(reminderLine("default", false)).toBe("unsupported");
+    expect(reminderLine("denied", false)).toBe("unsupported");
+    expect(noNotificationsNote(null)).toBe(reminderTierNote("unsupported"));
+    expect(noNotificationsNote(null)).toMatch(/home screen/i);
+    expect(noNotificationsNote("Instagram")).toBe("Notifications don't work inside Instagram. Open Ethos in your browser.");
+  });
+
+  it("asks, says the block, or says when it rings where notifications exist", () => {
+    expect(reminderLine("default", true)).toBe("ask");
+    expect(reminderLine("denied", true)).toBe("blocked");
+    expect(reminderLine("granted", true)).toBe("armed");
   });
 });

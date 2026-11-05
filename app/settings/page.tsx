@@ -31,10 +31,14 @@ import {
   currentTier,
   disarmPush,
   nextFireTime,
+  noNotificationsNote,
+  reminderLine,
   reminderTier,
   reminderTierNote,
   type ReminderTier,
 } from "@/lib/reminders";
+import { inAppBrowser } from "@/lib/in-app";
+import { SIGNED_OUT_HOME } from "@/lib/account-gate";
 import { computeStreak } from "@/lib/streak";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { useHourLabel } from "@/lib/time-label";
@@ -74,6 +78,10 @@ export default function SettingsPage() {
   /** Why this device went lite by itself (#412), read after mount. */
   const [why, setWhy] = useState<LiteWhy | null>(null);
   const [perm, setPerm] = useState<string>("default");
+  /* Whether this browser has notifications at all, and whose browser it
+     is when it is an app's own: read after mount. */
+  const [canNotify, setCanNotify] = useState(true);
+  const [app, setApp] = useState<string | null>(null);
   const [tier, setTier] = useState<ReminderTier>("unsupported");
   /** undefined while unknown (in flight, or both reads failed), null for
    *  no account (anonymous or no session), the address once signed in.
@@ -178,6 +186,8 @@ export default function SettingsPage() {
     setPrefs(readPrefs());
     setWhy(liteWhy());
     if (typeof Notification !== "undefined") setPerm(Notification.permission);
+    else setCanNotify(false);
+    setApp(inAppBrowser(navigator.userAgent));
     // Capability now, then the tier that's ACTUALLY live (push needs an
     // async look at the subscription) when it answers.
     setTier(reminderTier());
@@ -328,7 +338,7 @@ export default function SettingsPage() {
   }
 
   const reminderOn = prefs.reminderHour !== null;
-  const needsPermission = reminderOn && perm !== "granted";
+  const line = reminderOn ? reminderLine(perm, canNotify) : null;
 
   return (
     <main className="px-5 pb-[var(--nav-clear)] pt-7">
@@ -358,25 +368,31 @@ export default function SettingsPage() {
         {/* The screen's one terracotta tap, and only while it is a real
             blocker: an armed hour that cannot fire is the broken state
             #42 exists to prevent. A browser-level block is information,
-            not a tap, so it stays a quiet line. */}
-        {needsPermission &&
-          (perm === "denied" ? (
-            <p className="group-row text-caption text-stone-500">
-              Notifications are blocked for this site in your browser
-              settings. Nothing can fire until that changes.
-            </p>
-          ) : (
-            <div className="group-row">
-              <button
-                onClick={() => void askPermission()}
-                className={ACTION_CLASS}
-              >
-                Allow notifications
-              </button>
-            </div>
-          ))}
+            not a tap, so it stays a quiet line, and so does a browser
+            with no notifications at all, where the tap did nothing. */}
+        {line === "unsupported" && (
+          <p className="group-row text-caption text-stone-500">
+            {noNotificationsNote(app)}
+          </p>
+        )}
+        {line === "blocked" && (
+          <p className="group-row text-caption text-stone-500">
+            Notifications are blocked for this site in your browser
+            settings. Nothing can fire until that changes.
+          </p>
+        )}
+        {line === "ask" && (
+          <div className="group-row">
+            <button
+              onClick={() => void askPermission()}
+              className={ACTION_CLASS}
+            >
+              Allow notifications
+            </button>
+          </div>
+        )}
 
-        {reminderOn && perm === "granted" && (
+        {line === "armed" && (
           <p className="group-row text-caption text-stone-500">
             <span className="font-semibold text-ink">
               {fireAt
@@ -522,7 +538,8 @@ export default function SettingsPage() {
               // The next account on this device is someone else's.
               forgetPlanHint();
               forgetTesterHint();
-              window.location.href = "/";
+              // Sign-in, not Today: a signed-out device is asked to make an account there.
+              window.location.href = SIGNED_OUT_HOME;
             }}
             className="group-row press-row font-display w-full text-left text-row"
           >

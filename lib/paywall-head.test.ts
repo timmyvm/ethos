@@ -41,3 +41,16 @@ describe("the paywall places its head by the screen's height", () => {
     expect(grabber).toBeLessThan(scroll);
   });
 });
+
+describe("the paywall's benefits (#403, E40)", () => {
+  const src = readFileSync("components/Paywall.tsx", "utf8");
+  const list = src.slice(src.indexOf("const BENEFITS = ["), src.indexOf("];", src.indexOf("const BENEFITS = [")));
+
+  it("keeps five one-line rows, the games in one, so every price on the Stair shows at rest at 375x667", () => {
+    // A sixth row (the games split in two) took the body from 61 to 90px
+    // of scroll and put 7.99 and 6.99 under the fade (regression review,
+    // edges F4); scripts/check-sheet-touch.mjs measures the fold itself.
+    expect(list.match(/\{ Glyph:/g)?.length).toBe(5);
+    expect(list).toContain("Speed rush, Interview and Hostile Q&amp;A");
+  });
+});

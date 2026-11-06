@@ -301,6 +301,24 @@ const valueNow = (page) => page.locator(SLIDER).getAttribute("aria-valuenow").ca
 if (section(1)) {
   const p = await phone(375, 667);
   const { page, swipe, touch, H } = p;
+  // At rest every price on the Stair shows (#403, E40: the one-line
+  // benefits, so the body scrolls about 61px and 6.99 stands in its 32px
+  // fade, read through it). A sixth benefit row pushed 7.99 to the body's
+  // edge and 6.99 past it (regression review, edges F4).
+  await paywall(p);
+  {
+    const fold = await page.evaluate((sel) => {
+      const sc = document.querySelector(sel);
+      const foot = sc.getBoundingClientRect().bottom;
+      const prices = [...sc.querySelectorAll(".stair-price")].map((e) => e.getBoundingClientRect().bottom);
+      return { n: prices.length, lowest: Math.round(Math.max(...prices)), foot: Math.round(foot), max: sc.scrollHeight - sc.clientHeight };
+    }, PAYWALL);
+    ok(
+      "at rest, every price on the Stair shows inside the body",
+      fold.n === 7 && fold.lowest <= fold.foot - 4,
+      `${fold.n} prices, the lowest's foot at ${fold.lowest}, the body's foot at ${fold.foot}, the body scrolls ${fold.max}px`
+    );
+  }
   for (const [region, sel] of REGIONS) {
     if (region === "caption") continue;
     await paywall(p);

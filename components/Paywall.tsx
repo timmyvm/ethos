@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { IconBoss, IconBubble, IconGauge, IconMic, IconSpark, IconTrend } from "@/components/Icon";
+import { IconBoss, IconBubble, IconMic, IconSpark, IconTrend } from "@/components/Icon";
 import { PremiumMark } from "@/components/PremiumMark";
 import { Price } from "@/components/premium/PlanCard";
 import { Stair } from "@/components/premium/Stair";
@@ -86,10 +86,10 @@ const BENEFITS = [
   { Glyph: IconMic, text: "Presence on video, with its moments" },
   { Glyph: IconTrend, text: "Your whole history, all nine skills" },
   { Glyph: IconSpark, text: "Every word you've earned, kept" },
-  /* The games say what is in them (the games plan, item 14): levels,
-     never a rung, a skipped cut-in or extra time. */
-  { Glyph: IconGauge, text: "Speed rush and Interview, three levels each" },
-  { Glyph: IconBoss, text: <>Hostile Q&amp;A, every day</> },
+  /* The games in one row (#403, Timothy's pick): a sixth row put the
+     Stair's last prices under the fold at 375x667 (regression review,
+     edges F4). Their levels are said on Practice's tiles. */
+  { Glyph: IconBoss, text: <>Speed rush, Interview and Hostile Q&amp;A</> },
 ];
 
 /**

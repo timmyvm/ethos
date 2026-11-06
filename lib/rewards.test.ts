@@ -5,6 +5,7 @@ import type { Milestone } from "./progress";
 import {
   anticipation,
   celebrates,
+  composedHeard,
   endNote,
   freshStart,
   landmark,
@@ -169,6 +170,26 @@ describe("endNote", () => {
       streak: streak({ current: 5 }),
     });
     expect(e.headline).toBe("2 composed pauses");
+  });
+
+  it("never counts a pause the take judged filled as composed (#422)", () => {
+    const pre = (t: number, verdict: string) => ({ t, len: 1.2, kind: "pre", verdict, note: "" });
+    const judged = metrics({
+      composedPauses: 3,
+      pauses: [pre(10, "landing"), pre(20, "filled"), pre(30, "landing")] as unknown as RepMetrics["pauses"],
+    });
+    expect(composedHeard(judged)).toBe(2);
+    expect(endNote({ ...base, metrics: judged, streak: streak() }).headline).toBe("2 composed pauses");
+
+    const allFilled = metrics({
+      composedPauses: 2,
+      fillerCount: 0,
+      pauses: [pre(10, "filled"), pre(20, "filled")] as unknown as RepMetrics["pauses"],
+    });
+    expect(endNote({ ...base, metrics: allFilled, streak: streak() }).headline).toBe("Zero fillers");
+
+    // No verdicts on the pauses (an older shape): the kind alone, as before.
+    expect(composedHeard(metrics({ composedPauses: 2 }))).toBe(2);
   });
 
   it("falls through to a clean rep, then the zone, then the streak", () => {

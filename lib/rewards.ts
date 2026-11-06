@@ -151,6 +151,19 @@ export function freshStart(now = new Date()): RewardMoment | null {
 }
 
 /**
+ * The take's composed pauses, as its own judged pauses tell them: a
+ * pause before a sentence that the take judged "filled" (a sound in it,
+ * #121) is not composure, so the closing line never counts what the
+ * pause list and the Pause score call filled (#422). Pauses carrying no
+ * verdict count by their kind alone, as `composedPauses` always has.
+ */
+export function composedHeard(m: Pick<RepMetrics, "pauses" | "composedPauses">): number {
+  const ps = m.pauses as ReadonlyArray<{ kind: string; verdict?: string }> | undefined;
+  if (!ps || !ps.some((p) => typeof p.verdict === "string")) return m.composedPauses;
+  return ps.filter((p) => p.kind === "pre" && p.verdict !== "filled").length;
+}
+
+/**
  * The closing line — the last thing on the results screen.
  *
  * The streak-end rule says the ending of a sequence carries
@@ -170,10 +183,11 @@ export function endNote(params: {
      number: "Zero fillers, 5 seconds, clean." stood under "Not enough
      to score". Its streak and its count are still true. */
   const scored = isScorable(m.substance);
+  const composed = composedHeard(m);
 
-  if (scored && m.composedPauses > 0) {
+  if (scored && composed > 0) {
     return {
-      headline: `${m.composedPauses} composed pause${m.composedPauses === 1 ? "" : "s"}`,
+      headline: `${composed} composed pause${composed === 1 ? "" : "s"}`,
       detail: "Silence you chose, before a new point. That's the hard one.",
       tone: "earned",
       trait: "pause",

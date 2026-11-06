@@ -1,3 +1,4 @@
+import { IconBubble } from "@/components/Icon";
 import type { Pause } from "@/lib/metrics";
 import type { PauseVerdict } from "@/lib/pause-quality";
 
@@ -5,7 +6,7 @@ import type { PauseVerdict } from "@/lib/pause-quality";
 type MaybeJudged = Pause & { verdict?: PauseVerdict };
 
 interface Seg {
-  type: "speech" | "pause";
+  type: "speech" | "pause" | "mark";
   len: number;
   kind?: Pause["kind"];
   verdict?: PauseVerdict;
@@ -43,11 +44,19 @@ const landed = (p: { kind?: Pause["kind"]; verdict?: PauseVerdict }) =>
 export function PauseBar({
   pauses,
   durationS,
+  marks = [],
 }: {
   pauses: MaybeJudged[];
   durationS: number;
+  /**
+   * Moments to stand on the map (the games plan, item 4): when Demos cut
+   * in, as a 2px ink rule at its second, with its line under the bar,
+   * so the answer pause reads beside the thing it answered.
+   */
+  marks?: { t: number; label: string }[];
 }) {
   const segs: Seg[] = [];
+  const pending = [...marks].filter((m) => Number.isFinite(m.t)).sort((a, b) => a.t - b.t);
   // Speech runs render as ticks sized so the whole rep fits one row,
   // with height varied deterministically for texture.
   const tick = Math.max(1.6, durationS / 34);
@@ -57,13 +66,24 @@ export function PauseBar({
       segs.push({ type: "speech", len: 2 + Math.sin(segs.length * 2.7) });
     }
   };
+  /* Speech up to `to`, with any mark that falls inside it set at its
+     second; a mark inside a pause stands at the pause's start. */
   let cursor = 0;
+  const speechTo = (to: number) => {
+    while (pending.length && pending[0].t <= to) {
+      const m = pending.shift()!;
+      if (m.t > cursor) speech(m.t - cursor);
+      segs.push({ type: "mark", len: 0 });
+      cursor = Math.max(cursor, m.t);
+    }
+    if (to > cursor) speech(to - cursor);
+  };
   for (const p of pauses) {
-    if (p.t > cursor) speech(p.t - cursor);
+    speechTo(p.t);
     segs.push({ type: "pause", len: p.len, kind: p.kind, verdict: p.verdict });
     cursor = p.t + p.len;
   }
-  if (durationS > cursor) speech(durationS - cursor);
+  speechTo(Math.max(durationS, cursor));
 
   // The bar's text alternative: held pauses exclude beats.
   const held = pauses.filter((p) => p.kind !== "beat");
@@ -81,7 +101,10 @@ export function PauseBar({
         aria-label={`${held.length} held pause${held.length === 1 ? "" : "s"}, ${landedCount} landed a point`}
         className="forced-color-adjust-none mt-3 flex h-14 items-center gap-[3px] overflow-hidden"
       >
-        {segs.slice(0, 48).map((s, i) => {
+        {clip(segs).map((s, i) => {
+          if (s.type === "mark") {
+            return <span key={i} aria-hidden className="h-full w-[2px] shrink-0 bg-ink" />;
+          }
           if (s.type === "speech") {
             return (
               <span
@@ -114,16 +137,24 @@ export function PauseBar({
           );
         })}
       </div>
-      {held.length > 0 && (
-        <div aria-hidden className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-caption text-stone-500">
+      {(held.length > 0 || marks.length > 0) && (
+        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-caption text-stone-500">
+          {marks.map((m, i) => (
+            <span key={`m${i}`} className="inline-flex items-center gap-1.5 text-ink">
+              <span aria-hidden className="inline-flex">
+                <IconBubble size={14} />
+              </span>
+              {m.label}
+            </span>
+          ))}
           {landedCount > 0 && (
-            <span className="inline-flex items-center gap-1.5">
+            <span aria-hidden className="inline-flex items-center gap-1.5">
               <span className={`inline-block h-1.5 w-2.5 ${LANDED_MARK}`} />
               landed a point
             </span>
           )}
           {searchingCount > 0 && (
-            <span className="inline-flex items-center gap-1.5">
+            <span aria-hidden className="inline-flex items-center gap-1.5">
               <span className={`inline-block h-1.5 w-2.5 ${SEARCHING_MARK}`} />
               searching
             </span>
@@ -132,4 +163,16 @@ export function PauseBar({
       )}
     </div>
   );
+}
+
+/** The bar holds 48 marks; a cut-in past them is kept in place of the last speech tick. */
+function clip(segs: Seg[]): Seg[] {
+  if (segs.length <= 48) return segs;
+  const head = segs.slice(0, 48);
+  const late = segs.slice(48).filter((s) => s.type === "mark");
+  for (const m of late) {
+    const at = head.map((s) => s.type).lastIndexOf("speech");
+    if (at >= 0) head[at] = m;
+  }
+  return head;
 }

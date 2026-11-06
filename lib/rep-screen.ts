@@ -8,6 +8,7 @@
 
 import { achievements } from "./achievements";
 import type { RepRow } from "./client-data";
+import type { LevelN } from "./games";
 import type { RepMetrics } from "./metrics";
 import { nextMilestones, type RepGain } from "./progress";
 import {
@@ -16,6 +17,7 @@ import {
   personalBests,
   type RewardMoment,
 } from "./rewards";
+import { bestMoment } from "./round-copy";
 import type { StreakState } from "./streak";
 
 /**
@@ -73,10 +75,25 @@ export function takeRewards(p: {
   gains: RepGain[];
   streak: StreakState;
   repCount: number;
+  /**
+   * A game round's best at its level (M4): `before` from the snapshot
+   * taken before the take (#53), `now` with this round in. "Best round
+   * yet" leads the records when it went up; a first round breaks nothing.
+   */
+  gameBest?: {
+    game: string;
+    level: LevelN;
+    before: number | null;
+    now: number | null;
+  } | null;
 }): { bests: RewardMoment[]; closing: RewardMoment } {
   if (p.scorable) {
+    const round = p.gameBest ? bestMoment({ gameId: p.gameBest.game, ...p.gameBest }) : null;
     return {
-      bests: personalBests(p.prior, p.metrics, p.ethosIndex),
+      bests: [
+        ...(round ? [round] : []),
+        ...personalBests(p.prior, p.metrics, p.ethosIndex),
+      ],
       closing: endNote({
         gains: p.gains,
         metrics: p.metrics,
@@ -105,6 +122,25 @@ export function takeRewards(p: {
       tone: "neutral",
     },
   };
+}
+
+/**
+ * The round's one sound (F5, #34, #140): the daily chime and the landing
+ * buzz when the reveal lands the game's one thing (Q&A held, Speed rush
+ * or Interview landed). Never on a miss, never twice in a round, and
+ * never when the streak celebration already played this round, since
+ * that was the round's one sound. The mic is torn down by the results,
+ * so it can never reach a recording.
+ */
+export function roundChimes(p: {
+  /** The reveal landed a win (`roundWon`). */
+  win: boolean;
+  /** The streak celebration played, or is up, for this round. */
+  streakCelebrated: boolean;
+  /** This round's reveal already chimed (a step back to the score). */
+  played: boolean;
+}): boolean {
+  return p.win && !p.streakCelebrated && !p.played;
 }
 
 /**

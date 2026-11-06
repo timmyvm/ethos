@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { IconBoss, IconBubble, IconMic, IconSpark, IconTrend } from "@/components/Icon";
+import { IconBoss, IconBubble, IconGauge, IconMic, IconSpark, IconTrend } from "@/components/Icon";
 import { PremiumMark } from "@/components/PremiumMark";
 import { Price } from "@/components/premium/PlanCard";
 import { Stair } from "@/components/premium/Stair";
@@ -62,6 +62,8 @@ import { readBilling } from "@/lib/use-plan";
 export interface PaywallAsk {
   reason: string;
   headline?: string;
+  /** One line under the headline, after a taste of a Premium game ("Play it any day."). */
+  taste?: string;
 }
 
 /** Live checkout, read once at module level: on only when it is exactly "1". */
@@ -84,7 +86,10 @@ const BENEFITS = [
   { Glyph: IconMic, text: "Presence on video, with its moments" },
   { Glyph: IconTrend, text: "Your whole history, all nine skills" },
   { Glyph: IconSpark, text: "Every word you've earned, kept" },
-  { Glyph: IconBoss, text: <>Speed rush, Interview and Hostile Q&amp;A</> },
+  /* The games say what is in them (the games plan, item 14): levels,
+     never a rung, a skipped cut-in or extra time. */
+  { Glyph: IconGauge, text: "Speed rush and Interview, three levels each" },
+  { Glyph: IconBoss, text: <>Hostile Q&amp;A, every day</> },
 ];
 
 /**
@@ -114,6 +119,7 @@ const LADDER_RISE_DELAY_MS = 180;
 
 export function Paywall({
   headline = "Premium opens everything",
+  taste,
   onClose,
   onUnlocked,
   returnTo,
@@ -130,6 +136,12 @@ export function Paywall({
    * the recording it holds. Never about what the user lacks.
    */
   headline?: string;
+  /**
+   * The ask after the taste (the games plan, item 13): one line under a
+   * headline built from the round just played ("Speed rush, level 1.
+   * 2.6s to spare."), saying what Premium changes about it.
+   */
+  taste?: string;
   onClose: () => void;
   /**
    * After a successful unlock. The default reloads, so every premium
@@ -381,7 +393,20 @@ export function Paywall({
       <PremiumMark variant="chip" />
       {/* No source line under the mark (D40): it said "Games" over a
           tab called Practice, and the headline already names the ask. */}
-      <h2 className="font-display mt-2.5 text-title text-cream">{headline}</h2>
+      <h2 className="font-display mt-2.5 text-title text-cream">
+        {/* After a taste the headline is the game and its level, then the
+            round's number: one sentence a line, so the number never
+            breaks from its unit. */}
+        {taste && headline.includes(". ") ? (
+          <>
+            <span className="block">{headline.slice(0, headline.indexOf(". ") + 1)}</span>{" "}
+            <span className="block">{headline.slice(headline.indexOf(". ") + 2)}</span>
+          </>
+        ) : (
+          headline
+        )}
+      </h2>
+      {taste && <p className="mt-1.5 text-body text-cream/80">{taste}</p>}
     </>
   );
 

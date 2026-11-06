@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type MutableRefObject, type ReactNode } from "react";
-import { IconPauseSm, IconPlay } from "@/components/Icon";
+import { IconBubble, IconPauseSm, IconPlay } from "@/components/Icon";
 import type { FillerHit, Pause } from "@/lib/metrics";
 
 /**
@@ -15,12 +15,19 @@ export function AudioScrubber({
   durationS,
   fillers,
   pauses,
+  marks = [],
   seekRef,
 }: {
   src: string;
   durationS: number;
   fillers: FillerHit[];
   pauses: Pause[];
+  /**
+   * When Demos cut in (the games plan, item 4): a rule on the track and a
+   * chip that plays from a second before him, so the moment can be found
+   * from every view of the take.
+   */
+  marks?: { t: number; label: string }[];
   /**
    * Handed this player's seek (#411), so something else on the screen
    * can play the recording from a second: the transcript's word sheet,
@@ -99,6 +106,11 @@ export function AudioScrubber({
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
         <div className="eyebrow">Hear it back</div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-stone-500">
+          {marks.length > 0 && (
+            <Key mark={CUT_IN_MARK} thin>
+              cut-in
+            </Key>
+          )}
           {fillers.length > 0 && (
             <Key mark={FILLER_MARK} thin>
               filler
@@ -154,6 +166,14 @@ export function AudioScrubber({
                 style={{ left: `${pct(f.t)}%` }}
               />
             ))}
+            {marks.map((m, i) => (
+              <span
+                key={`m${i}`}
+                aria-hidden
+                className={`absolute top-0 h-full w-[3px] ${CUT_IN_MARK}`}
+                style={{ left: `${pct(m.t)}%` }}
+              />
+            ))}
             <span
               className="absolute top-0 h-full w-[2px] bg-ink"
               style={{ left: `${pct(t)}%` }}
@@ -176,8 +196,27 @@ export function AudioScrubber({
         </span>
       </div>
 
-      {fillers.length > 0 && (
+      {(fillers.length > 0 || marks.length > 0) && (
         <div className="mt-3 flex flex-wrap gap-2">
+          {/* The cut-in first, played from a second before he spoke, so
+              you hear him land and how you came back. */}
+          {marks.map((m, i) => (
+            <button
+              key={`m${i}`}
+              onClick={() => seek(m.t - 1)}
+              aria-label={`Play from Demos's cut-in at ${Math.floor(m.t / 60)}:${String(Math.floor(m.t % 60)).padStart(2, "0")}`}
+              className="press inline-flex min-h-11 items-center gap-1.5 rounded-full border border-edge bg-surface py-1 pl-2.5 pr-3 text-link text-ink"
+            >
+              <span aria-hidden className="inline-flex text-stone-500">
+                <IconBubble size={14} />
+              </span>
+              {m.label}
+              <span className="font-normal tabular-nums text-stone-500">
+                {Math.floor(m.t / 60)}:
+                {String(Math.floor(m.t % 60)).padStart(2, "0")}
+              </span>
+            </button>
+          ))}
           {fillers.map((f, i) => (
             <button
               key={i}
@@ -207,6 +246,9 @@ export function AudioScrubber({
    pause stays sage, because it is earned. */
 const FILLER_MARK = "bg-[var(--tone)]";
 const PAUSE_MARK = { pre: "bg-sage-500/40", mid: "bg-stone-400/30" } as const;
+/* Demos's cut-in: ink, as on the pause map, at the filler's 3px so the
+   2px playhead stays its own mark. */
+const CUT_IN_MARK = "bg-ink/70";
 
 /** A key entry: the mark on a scrap of the track's own ground. */
 function Key({

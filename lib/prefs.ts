@@ -30,6 +30,14 @@ export interface Prefs {
    * setting would be wrong half the time.
    */
   captureMode: Record<"daily" | "boss", CaptureMode>;
+  /**
+   * Which of the two the person picked on the toggle, as against a
+   * default `writePrefs` stored along with every other preference. The
+   * boss's default moved to Voice (the games plan, item 16), and every
+   * device that ever saved a preference holds the old Video default for
+   * it, so only a boss mode picked since is kept.
+   */
+  captureChosen?: Partial<Record<"daily" | "boss", boolean>>;
   /** Local hour 0–23 for the one daily reminder, or null for off. */
   reminderHour: number | null;
   quietFrom: number;
@@ -66,10 +74,12 @@ export const DEFAULT_PREFS: Prefs = {
   /**
    * A daily lesson defaults to video OFF: the value of the daily loop is
    * that it works on a tram with headphones, and nagging for a camera
-   * there costs the habit. Boss modes default ON — being watched is the
-   * point of a boss.
+   * there costs the habit. The boss defaults to Voice too since the games
+   * plan (item 16): Video asked for the camera at the moment of the take,
+   * and the one tester who recorded a boss never got past 6 seconds.
+   * Video stays one tap away, and sticks once picked.
    */
-  captureMode: { daily: "voice", boss: "voice_video" },
+  captureMode: { daily: "voice", boss: "voice" },
   reminderHour: null,
   quietFrom: 22,
   quietTo: 7,
@@ -107,15 +117,24 @@ export function writePrefs(patch: Partial<Prefs>): Prefs {
 }
 
 export function readCaptureMode(kind: "daily" | "boss"): CaptureMode {
-  return readPrefs().captureMode?.[kind] ?? DEFAULT_PREFS.captureMode[kind];
+  const prefs = readPrefs();
+  // A boss mode nobody picked is the old default, stored with the rest.
+  if (kind === "boss" && prefs.captureChosen?.boss !== true) {
+    return DEFAULT_PREFS.captureMode.boss;
+  }
+  return prefs.captureMode?.[kind] ?? DEFAULT_PREFS.captureMode[kind];
 }
 
 export function writeCaptureMode(
   kind: "daily" | "boss",
   mode: CaptureMode
 ): void {
-  const current = readPrefs().captureMode ?? DEFAULT_PREFS.captureMode;
-  writePrefs({ captureMode: { ...current, [kind]: mode } });
+  const prefs = readPrefs();
+  const current = prefs.captureMode ?? DEFAULT_PREFS.captureMode;
+  writePrefs({
+    captureMode: { ...current, [kind]: mode },
+    captureChosen: { ...prefs.captureChosen, [kind]: true },
+  });
 }
 
 /**

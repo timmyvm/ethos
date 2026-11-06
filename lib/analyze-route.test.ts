@@ -19,6 +19,7 @@ vi.mock("@/lib/db", () => {
     return user ? { kind: "user", user } : { kind: "none" };
   }),
   previousEthosIndex: vi.fn(async () => null),
+  bossIndexBetween: vi.fn(async (_u: string, _from: Date, _to: Date): Promise<number | null> => null),
   previousPresence: vi.fn(async () => null),
   isPremium: vi.fn(async () => false),
   readMeterState: vi.fn(async () => ({
@@ -47,10 +48,12 @@ import { POST } from "@/app/api/analyze/route";
 import { judgeAccuracy } from "@/lib/accuracy";
 import { coachRep } from "@/lib/coach";
 import {
+  bossIndexBetween,
   findRepByClientId,
   getUserFromAuthHeader,
   resolveAuthHeader,
   isPremium,
+  previousEthosIndex,
   readMeterState,
   saveRep,
   writeMeterState,
@@ -133,6 +136,8 @@ beforeEach(() => {
     accruedOn: null,
     usedAt: null,
   });
+  vi.mocked(previousEthosIndex).mockResolvedValue(null);
+  vi.mocked(bossIndexBetween).mockResolvedValue(null);
 });
 
 /** A rep good enough to be judged, with the coach layer stubbed out. */
@@ -284,6 +289,85 @@ describe("POST /api/analyze", () => {
     expect(body.xpMultiplier).toBe(1.5);
     expect(body.accuracy.score).toBe(25);
     expect(vi.mocked(judgeAccuracy).mock.calls[0][1].id).toBe("crispr");
+  });
+
+  /* The games plan, item 16: the boss is the week's benchmark. */
+  it("runs the boss with no mods, whatever the form says it ran", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(coachRep).mockResolvedValue(null);
+    vi.mocked(isPremium).mockResolvedValue(true);
+    const form = audioForm();
+    form.append("bossTopicId", "crispr");
+    form.append("mods", "tight,crowd,interrupt");
+    const body = await (await post(form)).json();
+    expect(body.mode).toBe("boss");
+    expect(body.mods).toEqual([]);
+    expect(body.xpMultiplier).toBe(1.5);
+  });
+
+  /* Map 4: four empty boss takes each paid 15 XP. An unscored boss pays
+     what an unscored daily take pays, ×1, stored and answered alike. */
+  it("pays an unscored boss take ×1, as an unscored take anywhere", async () => {
+    vi.mocked(transcribe).mockResolvedValue(EMPTY_FIXTURE);
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-boss", anonymous: false });
+    vi.mocked(saveRep).mockResolvedValue({ id: "rep-boss", audioPath: null });
+    const form = audioForm();
+    form.append("bossTopicId", "crispr");
+    const body = await (await post(form)).json();
+    expect(body.scorable).toBe(false);
+    expect(body.mode).toBe("boss");
+    expect(body.xpMultiplier).toBe(1);
+    const saved = vi.mocked(saveRep).mock.calls[0][0];
+    expect(saved.mode).toBe("boss");
+    expect(saved.xpMultiplier).toBe(1);
+    expect(saved.mods).toEqual([]);
+    // And a daily take with nothing in it pays the same.
+    vi.mocked(saveRep).mockClear();
+    const daily = await (await post(audioForm())).json();
+    expect(daily.xpMultiplier).toBe(1);
+    expect(vi.mocked(saveRep).mock.calls[0][0].xpMultiplier).toBe(1);
+  });
+
+  it("compares a boss with last week's boss, in the speaker's own week", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(coachRep).mockResolvedValue(null);
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-boss", anonymous: false });
+    vi.mocked(previousEthosIndex).mockClear();
+    vi.mocked(previousEthosIndex).mockResolvedValue(700);
+    vi.mocked(bossIndexBetween).mockClear();
+    vi.mocked(bossIndexBetween).mockResolvedValue(648);
+    const form = audioForm();
+    form.append("bossTopicId", "crispr");
+    // Spoken Friday 6 Nov, 10:00 in Melbourne.
+    form.append("recordedAt", "2026-11-05T23:00:00.000Z");
+    form.append("tzOffset", "-660");
+    const body = await (await post(form)).json();
+    expect(body.previousIndex).toBe(648);
+    expect(previousEthosIndex).not.toHaveBeenCalled();
+    const [user, from, to] = vi.mocked(bossIndexBetween).mock.calls[0];
+    expect(user).toBe("u-boss");
+    // Monday 26 Oct to Monday 2 Nov, midnight in Melbourne.
+    expect(from.toISOString()).toBe("2026-10-25T13:00:00.000Z");
+    expect(to.toISOString()).toBe("2026-11-01T13:00:00.000Z");
+  });
+
+  it("gives a first boss no delta, and a daily take its latest Index as before", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(coachRep).mockResolvedValue(null);
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-boss", anonymous: false });
+    vi.mocked(previousEthosIndex).mockClear();
+    vi.mocked(previousEthosIndex).mockResolvedValue(700);
+    vi.mocked(bossIndexBetween).mockClear();
+    vi.mocked(bossIndexBetween).mockResolvedValue(null);
+    const form = audioForm();
+    form.append("bossTopicId", "crispr");
+    const first = await (await post(form)).json();
+    expect(first.previousIndex).toBeNull();
+    expect(previousEthosIndex).not.toHaveBeenCalled();
+
+    const daily = await (await post(audioForm())).json();
+    expect(daily.previousIndex).toBe(700);
+    expect(vi.mocked(bossIndexBetween)).toHaveBeenCalledTimes(1);
   });
 
   it("refuses to score a rep with nothing in it", async () => {

@@ -131,6 +131,12 @@ await shot("01-intro-1");
 // 1a. A short phone (375x667, the review of the swipe-and-pop round):
 // the stage gives up height, Demos shrinks to the room, and the one tap
 // and the door under it stay above the fold.
+// The resize waits out the push from / to /welcome: its 24px start lays
+// the document out 414px wide for about 350ms (PageTransition, B10), and
+// a mobile resize inside that keeps the page zoomed to 1.06 for the rest
+// of the walk, where the age question's Next is then hit under the
+// shelf (regression review, gates P1).
+await page.waitForFunction(() => document.documentElement.scrollWidth <= innerWidth, null, { timeout: 5000 }).catch(() => {});
 await page.setViewportSize({ width: 375, height: 667 });
 await sleep(400);
 const fold = await page.evaluate(() => {
@@ -144,6 +150,14 @@ ok("on a 667px phone Next and the sign-in door are above the fold", fold.next <=
 ok("and Demos fits the room at a size that still reads", fold.demos >= 150, String(fold.demos));
 await page.setViewportSize({ width: 390, height: 844 });
 await sleep(300);
+// And whatever the resize did to the page's scale is undone, so the walk
+// below is at 1, as a phone held still is.
+await cdp.send("Emulation.resetPageScaleFactor");
+ok(
+  "after the fold check the walk is at a scale of 1",
+  (await page.evaluate(() => window.visualViewport?.scale ?? 1)) === 1,
+  String(await page.evaluate(() => window.visualViewport?.scale))
+);
 
 // 1b. The introduction is a carousel (the swipe-and-pop round).
 const held = await swipe(-60, { hold: true });

@@ -47,7 +47,7 @@ import {
   type Tier2Anchors,
 } from "@/lib/index-score";
 import { computeMetrics, isScorable, type RepMetrics, type Word } from "@/lib/metrics";
-import { fitEnvelopeRate, parseEnvelope } from "@/lib/envelope";
+import { fitEnvelopeRate, parseEnvelope, pauseEnvelope } from "@/lib/envelope";
 import {
   gameDayWindow,
   gameMods,
@@ -340,22 +340,24 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
   // The mic's own account of the gaps. Independent of Whisper, which
   // deletes non-lexical fillers — so a gap the transcript shows as empty
   // can still have had a sound in it.
-  // Read at the rate it was really taken at: phones before the review
-  // sampled about 17 a second under a label of 20 (lib/envelope.ts).
-  const envelope = fitEnvelopeRate(
-    parseEnvelope(form.get("envelope") as string | null),
-    transcription.durationS
-  );
+  // The round reads it at the rate it was really taken at: phones before
+  // the review sampled about 17 a second under a label of 20
+  // (lib/envelope.ts). The pauses are judged only on one whose times
+  // are the phone's own (`pauseEnvelope`): a refitted one judges none.
+  const sent = parseEnvelope(form.get("envelope") as string | null);
+  const envelope = fitEnvelopeRate(sent, transcription.durationS);
   const pauses = pauseReport({
     pauses: metrics.pauses,
     words: transcription.words,
     fillers: metrics.fillers,
     durationS: metrics.durationS,
     segments: transcription.segments,
-    envelope,
+    envelope: pauseEnvelope(sent, transcription.durationS),
   });
   metrics.pauses = pauses.pauses;
-  const tier1 = tier1Scores(metrics, transcription.words, transcription.segments);
+  // Judged once: the Pause dimension scores the verdicts the take stores
+  // and shows, so a gap with a sound in it is never a landing (#121, #422).
+  const tier1 = tier1Scores(metrics, transcription.words, transcription.segments, pauses.pauses);
   const anchors = tier2Anchors(transcription.words, transcription.text);
 
   // Coach layer is best-effort — never blocks the numbers. A near-silent

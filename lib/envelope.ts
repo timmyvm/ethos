@@ -211,6 +211,21 @@ export function fitEnvelopeRate(env: Envelope | null, durationS: number): Envelo
   return { levels: env.levels, rate: heard };
 }
 
+/**
+ * The envelope a take's pauses are judged on: the one the phone sent,
+ * whenever its samples sit at the times it says. A refitted one
+ * (`fitEnvelopeRate`: unmarked, and short of its declared rate) has had
+ * its times spread evenly over the take, which is right for a page that
+ * never hid and seconds wrong after one that did, and the server cannot
+ * tell the two apart. So it judges no pause: each keeps the verdict its
+ * words give, stored, shown and scored alike, because a sound has to be
+ * heard to cost a pause (#122, #422). A game round still reads the
+ * refitted one.
+ */
+export function pauseEnvelope(sent: Envelope | null, durationS: number): Envelope | null {
+  return fitEnvelopeRate(sent, durationS) === sent ? sent : null;
+}
+
 export function parseEnvelope(raw: string | null): Envelope | null {
   if (!raw) return null;
   try {

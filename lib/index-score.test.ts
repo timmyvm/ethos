@@ -11,8 +11,10 @@ import {
   pauseScore,
   paceScore,
   rangeScore,
+  tier1Scores,
 } from "./index-score";
-import type { Pause, Segment, Word } from "./metrics";
+import { computeMetrics, type Pause, type Segment, type Word } from "./metrics";
+import { pauseReport, reportJudged } from "./pause-quality";
 
 const pre = (t: number, len = 1.2): Pause => ({ t, len, kind: "pre" });
 const mid = (t: number, len = 2.0): Pause => ({ t, len, kind: "mid" });
@@ -284,5 +286,133 @@ describe("fillers and repairs are scored apart", () => {
         { structure: 70, credibility: 70, engagement: 70, confidence: 70 }
       )
     ).toBeNull();
+  });
+});
+
+/**
+ * The Pause dimension reads the verdicts the take stores and shows
+ * (DECISIONS #422, #121). It used to judge the pauses a second time
+ * without the envelope, so a gap the pause list called "with a sound in
+ * it" scored as a landing: Pause 73 beside a headline saying two pauses
+ * had a sound in them.
+ */
+describe("tier1Scores reads the take's own pause verdicts", () => {
+  const SENTENCES = [
+    "The first thing I learned about speaking is that silence works.",
+    "Most people rush because they think a gap means they lost.",
+    "When I slow down the room actually leans in toward me.",
+    "My manager noticed it during the quarterly review last month.",
+    "She said the update finally sounded like a real decision.",
+  ];
+
+  /** Five sentences with a 1.4s held pause after each of the first four. */
+  function take() {
+    const words: Word[] = [];
+    let t = 0.4;
+    SENTENCES.forEach((s, k) => {
+      for (const raw of s.split(" ")) {
+        words.push({ word: ` ${raw}`, start: t, end: t + 0.3 });
+        t += 0.38;
+      }
+      if (k < SENTENCES.length - 1) t += 1.4;
+    });
+    const durationS = Math.round((t + 0.6) * 100) / 100;
+    const metrics = computeMetrics(words, durationS, []);
+    return { words, durationS, metrics };
+  }
+
+  /**
+   * A 20Hz envelope: speech loud, held gaps quiet, except the gaps named
+   * in `voiced` (an "um" the transcript dropped) and `unheard` (NaN, a
+   * window the phone never heard).
+   */
+  function envelope(
+    tk: ReturnType<typeof take>,
+    voiced: number[] = [],
+    unheard: number[] = []
+  ) {
+    const rate = 20;
+    const levels = new Array(Math.ceil(tk.durationS * rate)).fill(0.5);
+    const held = tk.metrics.pauses.filter((p) => p.kind !== "beat");
+    held.forEach((p, k) => {
+      for (let i = Math.round(p.t * rate); i < Math.round((p.t + p.len) * rate); i++) {
+        levels[i] = unheard.includes(k) ? NaN : voiced.includes(k) ? 0.3 : 0.02;
+      }
+    });
+    return { levels, rate, clock: true };
+  }
+
+  function judged(tk: ReturnType<typeof take>, env: ReturnType<typeof envelope> | null) {
+    return pauseReport({
+      pauses: tk.metrics.pauses,
+      words: tk.words,
+      fillers: tk.metrics.fillers,
+      durationS: tk.durationS,
+      envelope: env,
+    });
+  }
+
+  it("has four held pauses that land when the words alone are read", () => {
+    const tk = take();
+    const words = judged(tk, null);
+    expect(words.landings).toBe(4);
+    expect(words.filled).toBe(0);
+  });
+
+  it("scores a gap the take calls filled as filled, never as a landing", () => {
+    const tk = take();
+    const report = judged(tk, envelope(tk, [1, 2]));
+    expect(report.filled).toBe(2);
+    const scored = tier1Scores(tk.metrics, tk.words, [], report.pauses);
+    // The same number the take's own report gives, from the same verdicts.
+    expect(scored.pause).toBe(report.score);
+    expect(scored.pause).toBe(reportJudged(report.pauses, tk.durationS).score);
+    // Lower than the words alone give, which read both gaps as landings.
+    expect(scored.pause).toBeLessThan(tier1Scores(tk.metrics, tk.words, []).pause);
+  });
+
+  it("costs more with every voiced gap", () => {
+    const tk = take();
+    const scores = [[], [1], [1, 2], [0, 1, 2]].map(
+      (v) => tier1Scores(tk.metrics, tk.words, [], judged(tk, envelope(tk, v)).pauses).pause
+    );
+    for (let k = 1; k < scores.length; k++) expect(scores[k]).toBeLessThan(scores[k - 1]);
+  });
+
+  it("keeps the words' verdict where there is no envelope", () => {
+    const tk = take();
+    const report = judged(tk, null);
+    expect(tier1Scores(tk.metrics, tk.words, [], report.pauses)).toEqual(
+      tier1Scores(tk.metrics, tk.words, [])
+    );
+  });
+
+  it("keeps the words' verdict for a gap the phone never heard, however loud the rest", () => {
+    const tk = take();
+    // Gaps 1 and 2 would be voiced, but the phone has no samples for them.
+    const report = judged(tk, envelope(tk, [1, 2], [1, 2]));
+    expect(report.filled).toBe(0);
+    expect(report.pauses.map((p) => p.verdict)).toEqual(judged(tk, null).pauses.map((p) => p.verdict));
+    expect(tier1Scores(tk.metrics, tk.words, [], report.pauses).pause).toBe(
+      tier1Scores(tk.metrics, tk.words, []).pause
+    );
+  });
+
+  it("moves nothing on a take with no voiced gap", () => {
+    const tk = take();
+    const report = judged(tk, envelope(tk));
+    expect(report.filled).toBe(0);
+    expect(report.pauses.map((p) => p.verdict)).toEqual(judged(tk, null).pauses.map((p) => p.verdict));
+    expect(tier1Scores(tk.metrics, tk.words, [], report.pauses)).toEqual(
+      tier1Scores(tk.metrics, tk.words, [])
+    );
+  });
+
+  it("moves no other dimension, and no star", () => {
+    const tk = take();
+    const before = tier1Scores(tk.metrics, tk.words, []);
+    const after = tier1Scores(tk.metrics, tk.words, [], judged(tk, envelope(tk, [0, 1, 2])).pauses);
+    expect({ ...after, pause: 0 }).toEqual({ ...before, pause: 0 });
+    expect(tk.metrics.stars).toBe(computeMetrics(tk.words, tk.durationS, []).stars);
   });
 });

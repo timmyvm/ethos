@@ -230,9 +230,17 @@ export function pauseReport(params: {
   segments?: Segment[];
   envelope?: Envelope | null;
 }): PauseReport {
-  const judged = judgePauses(params);
-  const { durationS } = params;
+  return reportJudged(judgePauses(params), params.durationS);
+}
 
+/**
+ * The report, score included, of pauses already judged: read off their
+ * verdicts, never judged again (DECISIONS #422). A take judges its
+ * pauses once, with the envelope, and stores and shows those verdicts;
+ * the Index's Pause dimension scores the same ones through here, so a
+ * pause the take calls filled can never score as a landing (#121).
+ */
+export function reportJudged(judged: JudgedPause[], durationS: number): PauseReport {
   const held = judged.filter((p) => p.verdict !== "beat");
   const landings = judged.filter((p) => p.verdict === "landing").length;
   const opening = judged.filter((p) => p.verdict === "opening").length;

@@ -73,7 +73,7 @@ export function ScoringStage({
             <div className="font-display mt-1.5 text-num-hero tabular-nums">
               {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}
             </div>
-            {fact && <p className="mt-1 text-body font-semibold text-balance">{fact}</p>}
+            {fact && <Fact text={fact} />}
           </div>
           <div className="relative -mr-1 w-[150px] shrink-0">
             <span aria-hidden className="scoring-spot" />
@@ -158,3 +158,25 @@ const BOSS_STAGES = [
   "Checking your claims",
   "Demos reads it",
 ];
+
+/**
+ * The wait's one fact, beside Demos in a column about 160 wide: when it
+ * wraps, it breaks before its time ("The clock stopped it / at 0:20"),
+ * never inside the time. Filled line by line (`text-wrap`, over the
+ * base layer's `pretty` for every p): balancing or "pretty" moved the
+ * "it" down ("The clock stopped / it at 0:20").
+ */
+function Fact({ text }: { text: string }) {
+  const m = /^(.*) (at \d+:\d{2}\.?)$/.exec(text);
+  return (
+    <p className={`mt-1 text-body font-semibold ${m ? "text-wrap" : "text-balance"}`}>
+      {m ? (
+        <>
+          {m[1]} <span className="whitespace-nowrap">{m[2]}</span>
+        </>
+      ) : (
+        text
+      )}
+    </p>
+  );
+}

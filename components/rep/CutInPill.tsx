@@ -14,7 +14,9 @@ import { SPRING, springEasing, springMs } from "@/lib/spring";
  * stands in his place. His 36px speaking head and the line, on the
  * stage, popping in on the thrown spring. It never stands over Stop:
  * the page puts it in the live-tip row or inside the self-view's top
- * edge. Seen, not read (the page announces the line once).
+ * edge. Seen, not read (the page announces the line once). On the
+ * stage's material (`.card-stage`), so in dark it takes the surface step
+ * with an edge (B11) instead of the stage token that sits under the ground.
  */
 export function CutInPill({ line, className = "" }: { line: string; className?: string }) {
   const el = useRef<HTMLDivElement>(null);
@@ -37,7 +39,7 @@ export function CutInPill({ line, className = "" }: { line: string; className?: 
     <div
       ref={el}
       aria-hidden
-      className={`elev-3 flex w-max max-w-full items-center gap-2.5 rounded-card bg-stage py-2 pl-2 pr-4 text-cream ${className}`}
+      className={`card-stage elev-3 flex w-max max-w-full items-center gap-2.5 rounded-card py-2 pl-2 pr-4 text-cream ${className}`}
     >
       <Image
         src="/demos-speaking.webp"

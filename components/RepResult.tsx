@@ -428,7 +428,10 @@ export function RepResult({
               (320x568) there is no spare height to give: the score and
               the room close up 8px each, the room takes what is left
               over his line, so the line stays over the shelf, and he
-              stands 8px over its foot from 64px up. */}
+              stands 8px over its foot from 64px up. A game's round card
+              has already spent that height, so there the room keeps
+              84px of its own and the step scrolls: with none, he stood
+              on the Index and its delta. */}
           <div
             data-coach-room
             data-line-in-room={lineInRoom || undefined}
@@ -436,7 +439,7 @@ export function RepResult({
               lineInRoom
                 ? "min-h-[300px] flex-1"
                 : spreads
-                  ? "min-h-[140px] flex-1 [@media(max-height:600px)]:min-h-0"
+                  ? `min-h-[140px] flex-1 ${round ? "[@media(max-height:600px)]:min-h-[84px]" : "[@media(max-height:600px)]:min-h-0"}`
                   : "h-[240px]"
             }`}
           >

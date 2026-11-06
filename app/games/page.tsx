@@ -377,12 +377,16 @@ export default function GamesPage() {
                     key={g.id}
                     className="flex min-h-14 items-center gap-3 border-t border-hairline py-2 first:border-t-0"
                   >
-                    <span aria-hidden className="shrink-0 text-ink">
-                      {GLYPH[g.id](24)}
+                    {/* The tiles' own type over the tiles' own glyph: the
+                        name as a tile names its game, what the levels are
+                        in the ladder lines' grey, so the card reads as the
+                        grid's next row and never as a second scale. */}
+                    <span aria-hidden className="flex size-7 shrink-0 items-center justify-center text-ink">
+                      {GLYPH[g.id](28)}
                     </span>
                     <span className="min-w-0">
-                      <span className="font-display block text-detail font-semibold text-ink">{g.name}</span>
-                      <span className="block text-link font-medium text-stone-500">
+                      <span className="font-display block text-row text-ink">{g.name}</span>
+                      <span className="block text-caption text-stone-500">
                         {PREMIUM_DEPTH[g.id] ?? g.blurb}
                       </span>
                     </span>
@@ -452,10 +456,11 @@ function GameTile({
       <span className="font-display block pt-2.5 text-row text-ink">{name}</span>
       {/* The allowance, under the name it is about, in ink so it reads
           before the ladder's grey: what you can do today comes first.
-          Spent, it steps back to stone: it is a date, not a door. */}
+          Spent, it steps back to stone: it is a date, not a door. In the
+          body face, so it never reads as a second line of the name. */}
       {note && (
         <span
-          className={`font-display arrive block text-caption font-semibold ${paywall ? "text-stone-500" : "text-ink"}`}
+          className={`arrive mt-0.5 block text-caption font-semibold ${paywall ? "text-stone-500" : "text-ink"}`}
         >
           {note}
         </span>

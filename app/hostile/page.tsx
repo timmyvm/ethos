@@ -27,6 +27,7 @@ import {
   type HostilePrompt,
 } from "@/lib/hostile";
 import { ALL_FILLERS } from "@/lib/metric-labels";
+import { WPM_ZONE } from "@/lib/log";
 import { buzz, prefersReducedMotion } from "@/lib/prefs";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
@@ -746,11 +747,14 @@ export default function HostilePage() {
           <ErrorNote>{error}</ErrorNote>
           {/* The free height is his (principle 7), as on the intro: Demos
               speaking, 140 at the least so his clip plays, as big as the
-              room allows up to 264, standing on the claim you are
-              defending, so the screen has no band of empty ground. */}
+              room allows up to 330 (the column, at most), standing on the
+              claim you are defending. The question has no shape row and a
+              shorter claim under it than the intro, so at 264 he left a
+              band of about 200pt of bare ground under the question at
+              390x844 (the games look loop). */}
           <div aria-hidden className="relative mt-3 min-h-[128px] flex-1">
             <div className="absolute inset-0 [container-type:size]">
-              <div className="topic-demos pointer-events-none absolute -bottom-3 left-1/2 w-[clamp(140px,calc(100cqh+12px),264px)] -translate-x-1/2">
+              <div className="topic-demos pointer-events-none absolute -bottom-3 left-1/2 w-[clamp(140px,calc(100cqh+12px),min(330px,100cqw))] -translate-x-1/2">
                 <span className="rep-ground" />
                 <DemosFigure
                   pose="speaking"
@@ -830,10 +834,19 @@ export default function HostilePage() {
                   value={String(takeResult.metrics.fillerCount)}
                   note={`${takeResult.metrics.fillersPerMin}/min`}
                 />
+                {/* The results walk's own words for the pace band, one
+                    line in a column of four ("target 130-160" broke at
+                    its hyphen at 390). */}
                 <TakeStat
                   label="WPM"
                   value={String(takeResult.metrics.wpm)}
-                  note="target 130-160"
+                  note={
+                    takeResult.metrics.wpm > WPM_ZONE.high
+                      ? "sprinting"
+                      : takeResult.metrics.wpm >= WPM_ZONE.low
+                        ? "in the zone"
+                        : "strolling"
+                  }
                 />
                 <TakeStat
                   label="Held pauses"
@@ -959,8 +972,8 @@ function TakeStat({
       >
         {value}
       </div>
-      {/* The note reserves two lines so a wrapping one ("target
-          130-160") doesn't leave the row of four ragged. */}
+      {/* The note reserves two lines so a wrapping one never leaves
+          the row of four ragged. */}
       <div className="mt-1.5 min-h-[34px] text-caption leading-snug text-stone-500">
         {note}
       </div>

@@ -2237,9 +2237,14 @@ function RepScreen() {
               )}
             </div>
             {/* D51: the take as a waveform the column's width, 120 tall,
-                rolling left from the centre, in the practice's tone. */}
+                rolling left from the centre, in the practice's tone.
+                While Demos has the floor it steps back, so his line
+                stands over a quiet wave instead of cutting through its
+                bars (the games look loop, 390x844 and 320x568). */}
             <div
-              className="rec-wave w-full"
+              className={`rec-wave w-full transition-opacity duration-(--duration-base) ease-(--ease-out) ${
+                cutIn ? "opacity-25" : ""
+              }`}
               data-family={family}
               data-trait={family === "sky" ? undefined : family}
             >
@@ -3264,9 +3269,12 @@ function Results({
 
           {/* The ending carries disproportionate weight when someone
               decides whether to come back (streak-end rule), so it lands
-              on the last screen rather than halfway down the first. */}
+              on the last screen rather than halfway down the first. At a
+              section's distance (principle 7): a level opened or a game
+              mastered is the walk's peak, never a third card under
+              "Records broken" or a card pressed onto the words. */}
           {last && closingNow && (
-            <div className="mt-3">
+            <div className="mt-7">
               <Moment moment={closingNow} emphasis />
             </div>
           )}

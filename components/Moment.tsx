@@ -4,28 +4,19 @@ import { IconTrophy } from "@/components/Icon";
 import type { RewardMoment } from "@/lib/rewards";
 
 /**
- * One reward moment. Deliberately one component for every surface —
- * anticipation before a rep, near-miss on the path, fresh start on
- * Monday, the closing note after a rep — so the reward layer looks like
- * a system rather than a pile of one-off cards.
+ * One reward moment as an earned card: the records a take broke on the
+ * last results step. The closing note after them is not a card; it is
+ * the take's last word (components/rep/ClosingNote.tsx, #423).
  *
- * Amber is used here because every moment this renders is earned or
- * true (DECISIONS #4): a held-pause count, a streak, a date.
+ * Sage is used here because every moment this renders is earned or
+ * true (DECISIONS #4): a best broken, a held-pause count.
  */
-export function Moment({
-  moment,
-  emphasis = false,
-}: {
-  moment: RewardMoment | null;
-  emphasis?: boolean;
-}) {
+export function Moment({ moment }: { moment: RewardMoment | null }) {
   if (!moment) return null;
   const earned = moment.tone === "earned";
   const headline = (
     <div
-      className={`font-display font-bold leading-tight ${
-        emphasis ? "text-lead" : "text-body"
-      } ${earned ? "text-sage-700" : ""}`}
+      className={`font-display text-body font-bold leading-tight ${earned ? "text-sage-700" : ""}`}
     >
       {moment.headline}
     </div>

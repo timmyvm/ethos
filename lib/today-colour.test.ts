@@ -343,6 +343,9 @@ describe("a trait's tone is only ever one of its forms", () => {
     '.tw-key[data-word-mark="repeat"]': "mark",
     ".word-sheet-word[data-word-mark]": "mark",
     ".word-in-sentence[data-word-mark]": "mark",
+    // The closing note's short rule over a trait's reading (#423): a
+    // tick, its number in the tone's ink.
+    '.closing-note[data-ink="trait"] .closing-note-mark': "mark",
   };
   const FILES: Record<string, Form> = {
     "app/lessons/[id]/page.tsx": "ground",

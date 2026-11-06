@@ -14,14 +14,19 @@ import { ScoringStage } from "@/components/rep/ScoringStage";
  */
 const page = readFileSync("app/rep/page.tsx", "utf8");
 
-describe("the last step's closing card", () => {
-  it("stands at a section's distance only for a level opened or a game mastered", () => {
-    const at = page.indexOf("{last && closingNow && (");
+describe("the last step's closing", () => {
+  /* Was "stands at a section's distance only for a level opened or a
+     game mastered" (today F1): the closing was a card, and a card under
+     "Records broken" kept the stack's 12px. Since #423 (Timothy, 6 Nov)
+     no closing is a card: every one is the closing note, the take's
+     last word, at a section's distance for every recording alike, so
+     nothing a game round does can move another recording's ending. */
+  it("is the same note at the same distance for every recording, game or not", () => {
+    const at = page.indexOf("{last && closingNow && ");
     expect(at).toBeGreaterThan(0);
     const wrapper = page.slice(at, at + 120);
-    expect(wrapper).toContain('className={ladder?.moment ? "mt-7" : "mt-3"}');
-    // closingNow is the ladder's moment or the ordinary closing, so an
-    // unconditional class would move every recording's card.
+    expect(wrapper).toContain('<ClosingNote moment={closingNow} className="mt-7" />');
+    expect(wrapper).not.toContain("ladder?.moment ?");
     expect(page).toMatch(/const closingNow = ladder\?\.moment \?\? closing;/);
   });
 });

@@ -19,6 +19,7 @@ import { Coin } from "@/components/Coin";
 import { LevelMeter } from "@/components/LevelMeter";
 import { ModeToggle } from "@/components/ModeToggle";
 import { Moment } from "@/components/Moment";
+import { ClosingNote } from "@/components/rep/ClosingNote";
 import { ComparisonCard } from "@/components/ComparisonCard";
 import { Paywall, type PaywallAsk } from "@/components/Paywall";
 import { PermissionHelp } from "@/components/PermissionHelp";
@@ -3325,17 +3326,13 @@ function Results({
 
           {/* The ending carries disproportionate weight when someone
               decides whether to come back (streak-end rule), so it lands
-              on the last screen rather than halfway down the first. A
-              level opened or a game mastered is the walk's peak, so it
-              stands at a section's distance (principle 7), never a third
-              card under "Records broken" or a card pressed onto the
-              words. Every other closing keeps the card's 12px under the
-              block above (regression review, today F1). */}
-          {last && closingNow && (
-            <div className={ladder?.moment ? "mt-7" : "mt-3"}>
-              <Moment moment={closingNow} emphasis />
-            </div>
-          )}
+              on the last screen rather than halfway down the first. It is
+              the take's last word, never one more card (Timothy, 6 Nov,
+              #423): no card, a hairline at a section's distance from the
+              words or the records above, its number in the colour of
+              what it measured. A level opened or a game mastered is the
+              same note in sage. */}
+          {last && closingNow && <ClosingNote moment={closingNow} className="mt-7" />}
 
           {last && (
             <Tomorrow

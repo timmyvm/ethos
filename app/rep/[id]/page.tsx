@@ -31,10 +31,12 @@ import { pausedTester, scoreSnapshot, showsMatchCheck, storedSnapshotInput } fro
 import { useTester } from "@/lib/tester-client";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
 
-/** Where back goes, on every state of this screen: the Log, or Today
-    when Today's test tile opened it (#402, its Answer: `?from=today`). */
+/** Where back goes, on every state of this screen: the Log, Today when
+    Today's test tile opened it (#402, its Answer: `?from=today`), or
+    the boss's lobby when its spent week's See your take did (`?from=boss`). */
 const BACK = { href: "/history", label: "Log" };
 const BACK_TODAY = { href: "/", label: "Today" };
+const BACK_BOSS = { href: "/boss", label: "Boss" };
 /** The date line's height with no date to print, so the title holds
     one y from the skeleton to whichever state replaces it. */
 const HELD = "\u00a0";
@@ -68,7 +70,7 @@ export default function RepDetail({
 }) {
   const { id } = use(params);
   const { from } = use(searchParams);
-  const back = from === "today" ? BACK_TODAY : BACK;
+  const back = from === "today" ? BACK_TODAY : from === "boss" ? BACK_BOSS : BACK;
   const [stored, setStored] = useState<Stored | null>(null);
   const [failed, setFailed] = useState(false);
   /** The plan: null until the profile answers, and on a failed read.

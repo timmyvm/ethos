@@ -430,7 +430,7 @@ export default function BossPage() {
               not record. */}
           <FooterShelf hairline={false}>
             {locked && takeId ? (
-              <Link href={`/rep/${takeId}`} className={ACTION_CLASS}>
+              <Link href={`/rep/${takeId}?from=boss`} className={ACTION_CLASS}>
                 See your take
               </Link>
             ) : (

@@ -161,14 +161,14 @@ const INTERVIEW_LEVELS: Game["levels"] = [
   },
   {
     n: 2,
-    direction: "The question shows when you press Record. Finish between 1:00 and 1:30.",
+    direction: "Finish between 1:00 and 1:30.",
     cutIns: [],
     reveal: "record",
     condition: "The question shows when you press Record.",
   },
   {
     n: 3,
-    direction: "The question shows when you press Record. Demos asks one follow-up.",
+    direction: "Demos asks one follow-up. Finish between 1:00 and 1:30.",
     cutIns: [[35, 45]],
     reveal: "record",
     condition: "Demos asks one follow-up.",

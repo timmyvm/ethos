@@ -227,8 +227,8 @@ describe("levels (the games plan, item 2)", () => {
     expect(iv.levels.map((l) => l.cutIns)).toEqual([[], [], [[35, 45]]]);
     expect(iv.levels.map((l) => l.direction)).toEqual([
       "Answer like they asked you in the room. Finish between 1:00 and 1:30.",
-      "The question shows when you press Record. Finish between 1:00 and 1:30.",
-      "The question shows when you press Record. Demos asks one follow-up.",
+      "Finish between 1:00 and 1:30.",
+      "Demos asks one follow-up. Finish between 1:00 and 1:30.",
     ]);
     expect(iv.levels.slice(1).map((l) => l.condition)).toEqual([
       "The question shows when you press Record.",

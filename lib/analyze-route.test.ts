@@ -1220,6 +1220,23 @@ describe("the Index scores the pauses the take stores", () => {
     expect(replay.saved.tier1.pause).toBe(WORDS_ONLY);
   });
 
+  it("judges no pause on an unmarked envelope inside the 5% tolerance, so it scores as no envelope", async () => {
+    // 19.2 samples a second under a label of 20, no clock mark: what an
+    // older phone's frame-gated sampler sends, and not refitted. Read as
+    // sent, the late gaps are judged on the next sentence's speech.
+    const levels: number[] = [];
+    for (let t = 0; t < TAKE.durationS; t += 1 / 19.2) levels.push(heard(t, []));
+    expect(levels.length).toBeGreaterThanOrEqual(TAKE.durationS * ENVELOPE_RATE * 0.95);
+    const unmarked = await send({ levels, rate: ENVELOPE_RATE });
+    const report = consistent(unmarked);
+    expect(report.filled).toBe(0);
+    const none = await send(null);
+    expect(unmarked.saved.tier1.pause).toBe(none.saved.tier1.pause);
+    expect(unmarked.saved.tier1.pause).toBe(WORDS_ONLY);
+    expect(unmarked.saved.ethosIndex).toBe(none.saved.ethosIndex);
+    expect(unmarked.saved.metrics.pauses).toEqual(none.saved.metrics.pauses);
+  });
+
   it("moves no star and no other dimension", async () => {
     const none = await send(null);
     const filled = await send(clockEnvelope([0, 1, 3]));

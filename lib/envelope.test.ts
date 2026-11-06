@@ -261,19 +261,50 @@ describe("a take the page stopped hearing (regression review)", () => {
     }
   });
 
-  it("judges a take's pauses only on an envelope whose times are the phone's own (#422)", () => {
+  it("judges a take's pauses only on an envelope sampled on the take's clock (#422)", () => {
     // On the take's clock: judged as sent, a short tail included.
     const clock: Envelope = { levels: new Array(800).fill(0.2), rate: ENVELOPE_RATE, clock: true };
-    expect(pauseEnvelope(clock, 72)).toBe(clock);
-    // Unmarked but at its declared rate: its times are true, judged as sent.
+    expect(pauseEnvelope(clock)).toBe(clock);
+    // Unmarked, even full: only the older frame-gated sampler sends one,
+    // and it cannot say its samples sit at the times it claims.
     const full: Envelope = { levels: new Array(1440).fill(0.2), rate: ENVELOPE_RATE };
-    expect(pauseEnvelope(full, 72)).toBe(full);
+    expect(pauseEnvelope(full)).toBeNull();
+    // Unmarked and within 5% of its rate (19.2 a second), which
+    // fitEnvelopeRate leaves as sent: no pause is judged on it either.
+    const near: Envelope = { levels: new Array(1382).fill(0.2), rate: ENVELOPE_RATE };
+    expect(fitEnvelopeRate(near, 72)).toBe(near);
+    expect(pauseEnvelope(near)).toBeNull();
     // Unmarked and refitted (an outbox replay from before the review):
     // its times are a guess, so no pause is judged on it.
     const old: Envelope = { levels: new Array(1224).fill(0.2), rate: ENVELOPE_RATE };
     expect(fitEnvelopeRate(old, 72)).not.toBe(old);
-    expect(pauseEnvelope(old, 72)).toBeNull();
-    expect(pauseEnvelope(null, 72)).toBeNull();
+    expect(pauseEnvelope(old)).toBeNull();
+    expect(pauseEnvelope(null)).toBeNull();
+  });
+
+  it("reads a late silence on the next speech in an unmarked envelope inside the 5% tolerance", () => {
+    // main's sampler, a sample on the first frame 50ms after the last,
+    // on a 240Hz screen: just under 20 a second, so it is not refitted.
+    const levels: number[] = [];
+    let at = 0;
+    for (let k = 1; k * (1000 / 240) < 72_000; k++) {
+      const now = k * (1000 / 240) + 0.2 * Math.sin(k * 12.9898);
+      if (now - at >= 1000 / ENVELOPE_RATE) {
+        at = now;
+        levels.push(truth(now / 1000));
+      }
+    }
+    const sent: Envelope = { levels, rate: ENVELOPE_RATE };
+    expect(levels.length / 72).toBeGreaterThanOrEqual(ENVELOPE_RATE * 0.95);
+    expect(levels.length / 72).toBeLessThan(ENVELOPE_RATE);
+    expect(fitEnvelopeRate(sent, 72)).toBe(sent);
+    // Read as sent, every silence it reaches is judged partly on the
+    // speech after it, and all eleven read as filled.
+    for (const [a, b] of silences.filter(([, b]) => b < 70)) {
+      expect(classifyGap(sent, a, b)).toBe("voiced");
+    }
+    // So it judges no pause.
+    expect(pauseEnvelope(sent)).toBeNull();
   });
 
   it("still refits an older envelope without the mark (an outbox replay)", () => {

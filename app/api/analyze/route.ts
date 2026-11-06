@@ -342,8 +342,9 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
   // can still have had a sound in it.
   // The round reads it at the rate it was really taken at: phones before
   // the review sampled about 17 a second under a label of 20
-  // (lib/envelope.ts). The pauses are judged only on one whose times
-  // are the phone's own (`pauseEnvelope`): a refitted one judges none.
+  // (lib/envelope.ts). The pauses are judged only on one the phone
+  // sampled on the take's clock (`pauseEnvelope`): an unmarked one,
+  // refitted or not, judges none.
   const sent = parseEnvelope(form.get("envelope") as string | null);
   const envelope = fitEnvelopeRate(sent, transcription.durationS);
   const pauses = pauseReport({
@@ -352,7 +353,7 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
     fillers: metrics.fillers,
     durationS: metrics.durationS,
     segments: transcription.segments,
-    envelope: pauseEnvelope(sent, transcription.durationS),
+    envelope: pauseEnvelope(sent),
   });
   metrics.pauses = pauses.pauses;
   // Judged once: the Pause dimension scores the verdicts the take stores

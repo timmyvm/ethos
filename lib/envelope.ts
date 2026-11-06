@@ -213,17 +213,20 @@ export function fitEnvelopeRate(env: Envelope | null, durationS: number): Envelo
 
 /**
  * The envelope a take's pauses are judged on: the one the phone sent,
- * whenever its samples sit at the times it says. A refitted one
- * (`fitEnvelopeRate`: unmarked, and short of its declared rate) has had
- * its times spread evenly over the take, which is right for a page that
- * never hid and seconds wrong after one that did, and the server cannot
- * tell the two apart. So it judges no pause: each keeps the verdict its
- * words give, stored, shown and scored alike, because a sound has to be
- * heard to cost a pause (#122, #422). A game round still reads the
- * refitted one.
+ * when the phone marked it as sampled on the take's clock (`clock`), so
+ * its samples sit at the times it says. An unmarked one comes from the
+ * older frame-gated sampler, which runs at or under its label of 20 and
+ * takes nothing while the page is hidden. Read as sent, one up to 5%
+ * short (inside `RATE_TOLERANCE`) puts a late sample up to 3s early at
+ * 60s; refitted, its samples are spread evenly over the take, right for
+ * a page that never hid and seconds wrong after one that did. The server
+ * cannot tell which, so no unmarked envelope judges a pause: each keeps
+ * the verdict its words give, stored, shown and scored alike, because a
+ * sound has to be heard to cost a pause (#122, #422). A game round still
+ * reads it through `fitEnvelopeRate`.
  */
-export function pauseEnvelope(sent: Envelope | null, durationS: number): Envelope | null {
-  return fitEnvelopeRate(sent, durationS) === sent ? sent : null;
+export function pauseEnvelope(sent: Envelope | null): Envelope | null {
+  return sent?.clock === true ? sent : null;
 }
 
 export function parseEnvelope(raw: string | null): Envelope | null {

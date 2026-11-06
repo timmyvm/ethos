@@ -4,6 +4,7 @@ import type { LadderRow } from "./ladder";
 import type { GameRound } from "./round";
 import {
   bestLine,
+  bestParts,
   chainAt,
   cutInDue,
   firedCutIns,
@@ -185,6 +186,31 @@ describe("the best before Record (M4)", () => {
     expect(bestLine({ game: "interview", level: 2, best: 712, chain: 0 })).toBe(
       "Your best at level 2: 712."
     );
+  });
+
+  it("splits the best for the plaque, the number on its own", () => {
+    expect(bestParts({ game: "qa", level: 2, best: 31.4, chain: 0 })).toEqual({
+      head: "Your best at level 2",
+      value: "31s",
+      rest: "clean after the cut-in",
+      note: null,
+    });
+    expect(bestParts({ game: "qa", level: 1, best: 4.24, chain: 0 })?.value).toBe("4.2s");
+    expect(bestParts({ game: "rush", level: 2, best: 4, chain: 2 })).toEqual({
+      head: "Your best at level 2",
+      value: "4",
+      rest: "landed in a row",
+      note: "You're on 2.",
+    });
+    expect(bestParts({ game: "rush", level: 3, best: 4, chain: 0 })?.note).toBeNull();
+    expect(bestParts({ game: "interview", level: 2, best: 712, chain: 0 })).toEqual({
+      head: "Your best at level 2",
+      value: "712",
+      rest: "Index",
+      note: null,
+    });
+    expect(bestParts({ game: "qa", level: 2, best: null, chain: 0 })).toBeNull();
+    expect(bestParts(null)).toBeNull();
   });
 
   it("says nothing until a best exists at this level", () => {

@@ -3085,6 +3085,132 @@ summary::-webkit-details-marker {
   background: var(--color-surface);
   color: var(--color-stone-600);
 }
+/* A game's best before Record (Timothy, 6 Nov: "make your best stand
+   out more, it is an important milestone"). The record drawn as an
+   object: a sage-200 wash at card radius (one step past the earned
+   chips' 100, since it is earned), the cup gold in a gold-tinted well
+   like a medal, the number at num-l in sage-800, so after the prompt it
+   is the next thing the eye lands on. In dark it takes the card
+   hairline like the chips. Not a tap: no terracotta, no press.
+   `.best-slot` opens its row on the base spring when a best arrives
+   after the ladder is read, so the tips below glide rather than jump;
+   reduced motion and lite take the final height at once. */
+.best-slot {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--spring-base-duration) var(--spring-base);
+}
+.best-slot[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+.best-slot > * {
+  min-height: 0;
+  overflow: hidden;
+}
+:root[data-motion="reduce"] .best-slot,
+:root[data-graphics="lite"] .best-slot {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .best-slot {
+    transition: none;
+  }
+}
+.best-plaque {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px 10px 10px;
+  border-radius: var(--radius-card);
+  background: var(--color-sage-200);
+  color: var(--color-sage-800);
+  font-family: var(--font-display-face), sans-serif;
+}
+:root[data-theme="dark"] .best-plaque {
+  box-shadow: inset 0 0 0 1px var(--color-card-edge);
+}
+.best-plaque-mark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--earned-gold) 20%, var(--color-ground));
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--earned-rim) 30%, transparent);
+}
+.best-plaque-mark > svg {
+  width: 26px;
+  height: 26px;
+}
+.best-plaque-head {
+  display: block;
+  font-size: var(--text-caption);
+  line-height: 1.3;
+  font-weight: 600;
+  color: var(--color-sage-700);
+}
+.best-plaque-line {
+  display: block;
+  font-size: var(--text-body);
+  line-height: 1.2;
+  font-weight: 600;
+}
+.best-plaque-value {
+  font-size: var(--text-num-l);
+  line-height: var(--text-num-l--line-height);
+  letter-spacing: var(--text-num-l--letter-spacing);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.best-plaque-note {
+  flex: none;
+  align-self: flex-end;
+  font-size: var(--text-caption);
+  line-height: 1.3;
+  font-weight: 600;
+  color: var(--color-sage-700);
+}
+.best-plaque-short {
+  display: none;
+}
+/* Under 700pt tall (an SE, 375x667) the plaque is one line: the head
+   folds into "Best", the cup's well and the number step down, and the
+   prompt card above gives up 24 of its 168 so Record keeps its place
+   (the room the card holds is free height, not words). */
+@media (max-height: 700px) {
+  .best-plaque {
+    gap: 10px;
+    padding: 6px 14px 6px 6px;
+  }
+  .best-plaque-mark {
+    width: 32px;
+    height: 32px;
+  }
+  .best-plaque-mark > svg {
+    width: 18px;
+    height: 18px;
+  }
+  .best-plaque-head {
+    display: none;
+  }
+  .best-plaque-short {
+    display: inline;
+  }
+  .best-plaque-value {
+    font-size: 1.25rem;
+  }
+  .best-plaque-note {
+    align-self: center;
+  }
+}
+@media (min-height: 601px) and (max-height: 700px) {
+  [data-best-room="true"],
+  [data-best-room="true"] > * {
+    min-height: 144px;
+  }
+}
 /* The ochre's own deeper arc went with D05: Restarts' tone is #b06f00,
    3.23:1 on sand, so its ring and bar are the tone like the other four
    (lib/today-colour.test.ts). */

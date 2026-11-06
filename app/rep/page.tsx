@@ -13,6 +13,7 @@ import {
   useState,
 } from "react";
 import { AudioScrubber } from "@/components/AudioScrubber";
+import { BestPlaque } from "@/components/rep/BestPlaque";
 import { PremiumDoor } from "@/components/PremiumMark";
 import { Coin } from "@/components/Coin";
 import { LevelMeter } from "@/components/LevelMeter";
@@ -142,6 +143,7 @@ import { ladderState, roundsToday } from "@/lib/ladder";
 import { INTERVIEW_WINDOW, type StoppedBy } from "@/lib/round";
 import {
   bestLine,
+  bestParts,
   CUT_IN_HOLD_S,
   firedCutIns,
   gameBestSnapshot,
@@ -1810,6 +1812,7 @@ function RepScreen() {
   const cardEyebrow =
     game && level !== null && level > 1 ? `${game.name}, level ${level}` : eyebrowOf(config.unit);
   const gameBestLine = bestLine(gameBestBefore);
+  const gameBestParts = bestParts(gameBestBefore);
   /* Mods stacked on a game beyond the ones it stages: still named. */
   const gameExtras =
     game && level !== null
@@ -1895,6 +1898,9 @@ function RepScreen() {
            words, so Record rises into view (F12). */
         <div
           ref={topicRef}
+          /* A best's plaque below takes its room from this card's free
+             height on a short phone (globals.css, .best-plaque). */
+          data-best-room={phase === "idle" && gameBestParts ? "true" : undefined}
           className={
             phase === "idle"
               ? `mt-4 flex max-h-[300px] min-h-[168px] flex-1 flex-col [@media(max-height:600px)]:min-h-0 ${game ? "[@media(max-height:700px)]:mt-2" : ""}`
@@ -1922,11 +1928,22 @@ function RepScreen() {
           {/* recording-15: the instruction over the three tactics, a clear
               step above their 14px labels rather than a fourth label. */}
           <h2 className="font-display text-lead font-bold">{doLine}</h2>
-          {/* The best at this level, once there is one (M4). While the
-              ladder is read the line's room is held, so a best lands
-              without moving the tiles. */}
-          {game && (gameBestLine || gameRows === null) && (
-            <p className="arrive mt-1 min-h-[1lh] text-body text-stone-500">{gameBestLine}</p>
+          {/* The best at this level, once there is one (M4), as a plaque
+              (Timothy, 6 Nov: an important milestone). Its row opens on
+              the base spring once the ladder is read, so the tips glide
+              down rather than jump; no best, no row. */}
+          {game && (
+            <div className="best-slot" data-open={gameBestParts ? "true" : undefined}>
+              <div>
+                {gameBestParts && gameBestLine && (
+                  <BestPlaque
+                    parts={gameBestParts}
+                    label={gameBestLine}
+                    className="mt-4 [@media(max-height:700px)]:mt-2"
+                  />
+                )}
+              </div>
+            </div>
           )}
           {doRule && <TipLine tip={doRule} className="mt-2" />}
           <TipStrip

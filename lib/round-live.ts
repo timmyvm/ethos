@@ -168,6 +168,39 @@ export function bestLine(snap: GameBestSnapshot | null): string | null {
   return null;
 }
 
+/**
+ * The same best, split for the plaque the idle screen draws it on
+ * (Timothy, 6 Nov: "make your best stand out more, it is an important
+ * milestone"): a head, the number on its own so it can be set large,
+ * the rest of the sentence, and Speed rush's current run as a note.
+ * `bestLine` stays the sentence a screen reader hears.
+ *   Q&A        "Your best at level 2" / "31s" / "clean after the cut-in"
+ *   Speed rush "Your best at level 2" / "4" / "landed in a row" / "You're on 2."
+ *   Interview  "Your best at level 2" / "712" / "Index"
+ */
+export interface BestParts {
+  head: string;
+  value: string;
+  rest: string;
+  note: string | null;
+}
+
+export function bestParts(snap: GameBestSnapshot | null): BestParts | null {
+  if (!snap || snap.best === null || !Number.isFinite(snap.best)) return null;
+  const head = `Your best at level ${snap.level}`;
+  if (snap.game === "qa") {
+    return { head, value: secondsLabel(snap.best), rest: "clean after the cut-in", note: null };
+  }
+  if (snap.game === "rush") {
+    const note = snap.chain > 0 ? `You're on ${snap.chain}.` : null;
+    return { head, value: String(Math.round(snap.best)), rest: "landed in a row", note };
+  }
+  if (snap.game === "interview") {
+    return { head, value: String(Math.round(snap.best)), rest: "Index", note: null };
+  }
+  return null;
+}
+
 /** The levels the idle screen draws: the opened ones only, never a locked one. */
 export function levelChoices(open: LevelN): LevelN[] {
   return ([1, 2, 3] as const).filter((n) => n <= open);

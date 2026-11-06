@@ -142,7 +142,7 @@ const L: Record<string, [string, TipGlyph]> = {
   "Slower start, fewer rebuilds.": ["Start slower", "slow"],
 
   // lib/games.ts
-  "Pause before you answer the interruption. A held pause reads as composure, and the engine scores it.": ["Pause before answering", "pause"],
+  "Stop when he cuts in. Hold a second, then answer him. Your result times that pause.": ["Pause before answering", "pause"],
   "Answer the question asked, then walk back to your point.": ["Answer, then return", "word"],
   "Finish the sentence you started. A restart is scored as a repair.": ["Finish every sentence", "end"],
   "Your first sentence is the point. The wind-up is what the clock eats.": ["Point first", "start"],

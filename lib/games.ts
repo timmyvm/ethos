@@ -18,13 +18,46 @@
  * XP multiplies with the staged mods (#37); stars stay measured (#10);
  * a game rep is `kind: "daily"`, so streaks, coins and the judged meter
  * treat it exactly like any other rep.
+ *
+ * LEVELS (the games plan, item 2). Every game has three, and a level
+ * changes only the staging: when Demos cuts in, how long the clock runs,
+ * when the question shows. Stars, the Index and every threshold the
+ * round is measured against never move with the level, and money never
+ * buys one (the ladder is `lib/ladder.ts`, the measure `lib/round.ts`).
  */
 
-import { parseMods, xpMultiplier } from "./stress-mods";
+import {
+  MAX_XP_MULTIPLIER,
+  parseMods,
+  xpMultiplier,
+  type StressMod,
+} from "./stress-mods";
 
 export interface GameQuestion {
   id: string;
   prompt: string;
+}
+
+export type LevelN = 1 | 2 | 3;
+
+export const LEVELS: readonly LevelN[] = [1, 2, 3];
+
+export interface GameLevel {
+  n: LevelN;
+  /** One line of stage direction on the recording screen, under the question. */
+  direction: string;
+  /** The clock's cap in seconds. Absent: the daily cap, `GAME_CAP_S`. */
+  capS?: number;
+  /**
+   * Demos's cut-ins, one window each, in seconds into the take:
+   * `[aimLo, forceBy]`. He cuts in on the first voiced frame after an aim
+   * second drawn from the window, and at `forceBy` if you are silent then.
+   */
+  cutIns: [number, number][];
+  /** When the question shows: before Record, or when Record is pressed. */
+  reveal: "before" | "record";
+  /** What this level changes, one line: the detail when it opens. */
+  condition: string;
 }
 
 export interface Game {
@@ -34,15 +67,113 @@ export interface Game {
   glyph?: string;
   /** One line on the menu card. */
   blurb: string;
-  /** One line of stage direction on the rep screen, under the question. */
+  /**
+   * Level 1's direction, kept for callers that read one line. A level's
+   * own line is `gameLevel(game, n).direction`.
+   */
   direction: string;
   /** Behind the Premium wall on Practice (26 Sep, Timothy's call). */
   premium?: boolean;
-  /** Mods the game stages. The game IS its conditions. */
+  /** Mods the game stages at every level. The game IS its conditions. */
   modIds: string[];
+  /** Three, in order: level 1, 2, 3. */
+  levels: [GameLevel, GameLevel, GameLevel];
+  /** What Demos says when he cuts in. Empty for a game with no cut-in. */
+  cutInLines: string[];
+  /** The rule a round is measured by, one sentence (lib/round.ts). */
+  countsWhen: string;
   questions: GameQuestion[];
   tips: string[];
 }
+
+/**
+ * The daily cap, which a level without its own clock runs to. The same
+ * 90 as `DAILY_MAX_SECONDS` in lib/rep-config.ts (asserted in
+ * lib/games.test.ts); kept here so this file imports nothing that
+ * imports it back.
+ */
+export const GAME_CAP_S = 90;
+
+/** XP by level (#37: XP, never stars). Capped with the mods at MAX_XP_MULTIPLIER. */
+export const LEVEL_XP: Record<LevelN, number> = { 1: 1, 2: 1.25, 3: 1.5 };
+
+const QA_LEVELS: Game["levels"] = [
+  {
+    n: 1,
+    direction: "Take a side. When Demos cuts in, hold a second before you answer.",
+    cutIns: [[12, 20]],
+    reveal: "before",
+    condition: "Demos cuts in once.",
+  },
+  {
+    n: 2,
+    direction: "Take a side. Demos cuts in early. Hold a second before you answer.",
+    cutIns: [[6, 10]],
+    reveal: "before",
+    condition: "Demos cuts in early.",
+  },
+  {
+    n: 3,
+    direction: "Take a side. Demos cuts in twice. Hold a second each time.",
+    cutIns: [
+      [6, 10],
+      [30, 40],
+    ],
+    reveal: "before",
+    condition: "Demos cuts in twice.",
+  },
+];
+
+const RUSH_LEVELS: Game["levels"] = [
+  {
+    n: 1,
+    direction: "45 seconds. Land the ending before the clock does.",
+    capS: 45,
+    cutIns: [],
+    reveal: "before",
+    condition: "45 seconds.",
+  },
+  {
+    n: 2,
+    direction: "30 seconds. Land the ending before the clock does.",
+    capS: 30,
+    cutIns: [],
+    reveal: "before",
+    condition: "30 seconds.",
+  },
+  {
+    n: 3,
+    direction: "20 seconds. Land the ending before the clock does.",
+    capS: 20,
+    cutIns: [],
+    reveal: "before",
+    condition: "20 seconds.",
+  },
+];
+
+const INTERVIEW_LEVELS: Game["levels"] = [
+  {
+    n: 1,
+    direction: "Answer like they asked you in the room. Finish between 1:00 and 1:30.",
+    cutIns: [],
+    reveal: "before",
+    condition: "The question shows before you press Record.",
+  },
+  {
+    n: 2,
+    direction: "The question shows when you press Record. Finish between 1:00 and 1:30.",
+    cutIns: [],
+    reveal: "record",
+    condition: "The question shows when you press Record.",
+  },
+  {
+    n: 3,
+    direction: "The question shows when you press Record. Demos asks one follow-up.",
+    cutIns: [[35, 45]],
+    reveal: "record",
+    condition: "Demos asks one follow-up.",
+  },
+];
 
 export const GAMES: Game[] = [
   {
@@ -50,8 +181,17 @@ export const GAMES: Game[] = [
     name: "Q&A",
     glyph: "?",
     blurb: "Give your take. Demos cuts in with a question.",
-    direction: "Take a side and hold it. Demos will cut in once.",
+    direction: QA_LEVELS[0].direction,
     modIds: ["interrupt"],
+    levels: QA_LEVELS,
+    cutInLines: [
+      "So what?",
+      "Says who?",
+      "Give me an example.",
+      "Why does that matter?",
+      "Get to the point.",
+    ],
+    countsWhen: "A round counts when you hold 0.8s after each cut-in and keep two stars.",
     questions: [
       { id: "qa1", prompt: "Should everyone work a service job once?" },
       { id: "qa2", prompt: "Would you rather be respected or liked?" },
@@ -61,9 +201,25 @@ export const GAMES: Game[] = [
       { id: "qa6", prompt: "Do open offices work?" },
       { id: "qa7", prompt: "Should you always negotiate the price?" },
       { id: "qa8", prompt: "Are degrees still worth it?" },
+      { id: "qa9", prompt: "Is it better to be early or exactly on time?" },
+      { id: "qa10", prompt: "Should you tell a friend their idea is bad?" },
+      { id: "qa11", prompt: "Is a gap year a good idea?" },
+      { id: "qa12", prompt: "Should group projects be marked one person at a time?" },
+      { id: "qa13", prompt: "Are online friends real friends?" },
+      { id: "qa14", prompt: "Should tipping disappear?" },
+      { id: "qa15", prompt: "Is it worth learning to cook well?" },
+      { id: "qa16", prompt: "Should you tell people your goals?" },
+      { id: "qa17", prompt: "Is a side project worth more than a top mark?" },
+      { id: "qa18", prompt: "Should everyone learn a second language?" },
+      { id: "qa19", prompt: "Is it rude to check your phone at dinner?" },
+      { id: "qa20", prompt: "Is winning more important than playing well?" },
+      { id: "qa21", prompt: "Should you stay in the town you grew up in?" },
+      { id: "qa22", prompt: "Do rankings make people better?" },
+      { id: "qa23", prompt: "Should every exam be open book?" },
+      { id: "qa24", prompt: "Is it better to go deep on one thing or try everything?" },
     ],
     tips: [
-      "Pause before you answer the interruption. A held pause reads as composure, and the engine scores it.",
+      "Stop when he cuts in. Hold a second, then answer him. Your result times that pause.",
       "Answer the question asked, then walk back to your point.",
       "Finish the sentence you started. A restart is scored as a repair.",
     ],
@@ -72,10 +228,13 @@ export const GAMES: Game[] = [
     id: "rush",
     name: "Speed rush",
     glyph: "30",
-    blurb: "The whole answer in 30 seconds.",
+    blurb: "The whole answer before the clock.",
     premium: true,
-    direction: "30 seconds. Land the ending before the clock does.",
+    direction: RUSH_LEVELS[0].direction,
     modIds: ["tight"],
+    levels: RUSH_LEVELS,
+    cutInLines: [],
+    countsWhen: "A round counts when you finish before the clock and keep two stars.",
     questions: [
       { id: "ru1", prompt: "Explain what you do all day" },
       { id: "ru2", prompt: "Sell someone on your favorite app" },
@@ -85,6 +244,22 @@ export const GAMES: Game[] = [
       { id: "ru6", prompt: "Sell a tourist on your neighborhood" },
       { id: "ru7", prompt: "Explain the rules of a sport you know" },
       { id: "ru8", prompt: "Make the case for your favorite meal" },
+      { id: "ru9", prompt: "Explain how you would spend a free Saturday" },
+      { id: "ru10", prompt: "Sell someone on a book you liked" },
+      { id: "ru11", prompt: "Explain what makes a good teacher" },
+      { id: "ru12", prompt: "Explain why the sky is blue" },
+      { id: "ru13", prompt: "Sell someone on waking up an hour earlier" },
+      { id: "ru14", prompt: "Explain the best game you have played" },
+      { id: "ru15", prompt: "Explain how to split a restaurant bill fairly" },
+      { id: "ru16", prompt: "Sell someone on learning an instrument" },
+      { id: "ru17", prompt: "Explain how rain forms" },
+      { id: "ru18", prompt: "Explain how to get better at something fast" },
+      { id: "ru19", prompt: "Sell a friend on the last song you played twice" },
+      { id: "ru20", prompt: "Explain how a phone knows where you are" },
+      { id: "ru21", prompt: "Sell someone on a walk instead of a scroll" },
+      { id: "ru22", prompt: "Explain how you would teach a kid to ride a bike" },
+      { id: "ru23", prompt: "Explain why bread goes stale" },
+      { id: "ru24", prompt: "Sell someone on your favorite place to eat" },
     ],
     tips: [
       "Your first sentence is the point. The wind-up is what the clock eats.",
@@ -95,11 +270,20 @@ export const GAMES: Game[] = [
   {
     id: "interview",
     name: "Interview",
-    glyph: "\u201c",
+    glyph: "“",
     blurb: "Classic questions, answered on the spot.",
     premium: true,
-    direction: "Answer like they asked you in the room. Sixty to ninety seconds.",
+    direction: INTERVIEW_LEVELS[0].direction,
     modIds: [],
+    levels: INTERVIEW_LEVELS,
+    cutInLines: [
+      "What did you do, exactly?",
+      "What was the result?",
+      "Give me a number.",
+      "Why did that work?",
+      "What would you change now?",
+    ],
+    countsWhen: "A round counts when you finish inside 60 to 90 seconds and keep two stars.",
     questions: [
       { id: "iv1", prompt: "Tell me about yourself" },
       { id: "iv2", prompt: "Why should we pick you?" },
@@ -111,6 +295,16 @@ export const GAMES: Game[] = [
       { id: "iv8", prompt: "Where do you want to be in five years?" },
       { id: "iv9", prompt: "Tell me about a time you led without being asked" },
       { id: "iv10", prompt: "Why do you want this?" },
+      { id: "iv11", prompt: "Tell me about a time you had to learn something fast" },
+      { id: "iv12", prompt: "What would someone who has worked with you say about you?" },
+      { id: "iv13", prompt: "Tell me about a time you changed someone's mind" },
+      { id: "iv14", prompt: "What feedback changed how you work?" },
+      { id: "iv15", prompt: "Tell me about a time you missed a deadline" },
+      { id: "iv16", prompt: "How do you handle a week with too much to do?" },
+      { id: "iv17", prompt: "Tell me about something you started yourself" },
+      { id: "iv18", prompt: "What do you do when you don't know the answer?" },
+      { id: "iv19", prompt: "Tell me about a time you worked with someone difficult" },
+      { id: "iv20", prompt: "What should we know that isn't on your résumé?" },
     ],
     tips: [
       "Answer the question in your first sentence. The story comes second.",
@@ -125,12 +319,47 @@ export function gameById(id: string | null | undefined): Game | null {
   return GAMES.find((g) => g.id === id) ?? null;
 }
 
+/** The game a stored lesson id names (`game:<game>:<question>`), or null. */
+export function gameOfLessonId(lessonId: string | null | undefined): Game | null {
+  if (!lessonId?.startsWith("game:")) return null;
+  return gameById(lessonId.split(":")[1]);
+}
+
 export function questionById(
   game: Game,
   id: string | null | undefined
 ): GameQuestion | null {
   if (!id) return null;
   return game.questions.find((q) => q.id === id) ?? null;
+}
+
+/** Any input as a level: 2 or 3 when it says so, 1 for anything else. */
+export function clampLevel(n: unknown): LevelN {
+  const v = Math.floor(Number(n));
+  return v >= 3 ? 3 : v === 2 ? 2 : 1;
+}
+
+/** One of the game's three levels; a number outside 1 to 3 clamps. */
+export function gameLevel(game: Game, n: unknown): GameLevel {
+  return game.levels[clampLevel(n) - 1];
+}
+
+/** The clock a level runs to, in seconds. */
+export function levelCapS(game: Game, n: unknown): number {
+  return gameLevel(game, n).capS ?? GAME_CAP_S;
+}
+
+/**
+ * The mods a game stages at a level: its own, plus the interruption at a
+ * level where Demos cuts in (Interview's follow-up at level 3 is the same
+ * single scripted cut-in Q&A runs).
+ */
+export function gameModIds(game: Game, n: unknown): string[] {
+  const ids = [...game.modIds];
+  if (gameLevel(game, n).cutIns.length > 0 && !ids.includes("interrupt")) {
+    ids.push("interrupt");
+  }
+  return ids;
 }
 
 /**
@@ -145,6 +374,60 @@ export function draw(
   const pool = exclude
     ? game.questions.filter((q) => q.id !== exclude)
     : game.questions;
+  return pool[Math.floor(rand() * pool.length) % pool.length];
+}
+
+/** Never one of the last this many asked, even once the pool is spent. */
+export const RECENT_GUARD = 3;
+
+/**
+ * The question ids of `game` out of stored lesson ids, each once, in the
+ * order given: pass the lesson ids newest first and this is what
+ * `drawFresh` takes.
+ */
+export function askedIdsFrom(
+  lessonIds: readonly (string | null | undefined)[],
+  game: Game
+): string[] {
+  const prefix = `game:${game.id}:`;
+  const out: string[] = [];
+  for (const id of lessonIds) {
+    if (!id?.startsWith(prefix)) continue;
+    const q = id.slice(prefix.length);
+    if (q && !out.includes(q)) out.push(q);
+  }
+  return out;
+}
+
+/**
+ * The draw with a memory (proposal-mastery 7). `askedIds` are the
+ * question ids already answered in this game, NEWEST FIRST
+ * (`askedIdsFrom`). A question never asked comes first; once every one
+ * has been, the older half of the asked ones come back, and never one of
+ * the last three. `rand` is injected, as `draw` does.
+ */
+export function drawFresh(
+  game: Game,
+  askedIds: readonly string[],
+  rand: () => number = Math.random
+): GameQuestion {
+  const inPool = new Set(game.questions.map((q) => q.id));
+  const asked: string[] = [];
+  for (const id of askedIds) {
+    if (inPool.has(id) && !asked.includes(id)) asked.push(id);
+  }
+  const askedSet = new Set(asked);
+  const recent = new Set(asked.slice(0, RECENT_GUARD));
+
+  let pool = game.questions.filter((q) => !askedSet.has(q.id));
+  if (pool.length === 0) {
+    const older = new Set(asked.slice(Math.ceil(asked.length / 2)));
+    pool = game.questions.filter((q) => older.has(q.id) && !recent.has(q.id));
+  }
+  // Only a pool of three or fewer reaches these; every shipped pool has 20.
+  if (pool.length === 0) pool = game.questions.filter((q) => !recent.has(q.id));
+  if (pool.length === 0) pool = game.questions.filter((q) => q.id !== asked[0]);
+  if (pool.length === 0) pool = game.questions;
   return pool[Math.floor(rand() * pool.length) % pool.length];
 }
 
@@ -174,7 +457,79 @@ export function needsPremium(game: Game): boolean {
   return game.premium === true;
 }
 
-/** The XP multiplier the game's staged mods pay (#37: XP, never stars). */
+/** What the game's staged mods pay at level 1 with its cut-in made (#37: XP, never stars). */
 export function gameMultiplier(game: Game): number {
-  return xpMultiplier(parseMods(game.modIds.join(","), { premium: true }));
+  return gameXpMultiplier(game, 1, true);
+}
+
+/**
+ * The mods a game round is paid for. The game's staged mods at its level
+ * come as entitled on any plan (#194: premium gates the picker, never the
+ * games); the interruption only when Demos actually cut in. `extras` are
+ * the mods the player stacked, already parsed against their plan. Staged
+ * first, so an extra never squeezes one out of the two-mod cap.
+ */
+export function gameMods(
+  game: Game,
+  level: unknown,
+  opts: { cutInFired: boolean; extras?: readonly StressMod[] }
+): StressMod[] {
+  const ids = [...gameModIds(game, level), ...(opts.extras ?? []).map((m) => m.id)];
+  const kept = ids.filter((id) => id !== "interrupt" || opts.cutInFired);
+  return parseMods(kept.join(","), { premium: true });
+}
+
+/**
+ * What a game round pays: its mods' multiplier times the level's
+ * (×1, ×1.25, ×1.5), capped at MAX_XP_MULTIPLIER and rounded to 2dp.
+ * Interruption counts only when a cut-in fired.
+ */
+export function gameXpMultiplier(
+  game: Game,
+  level: unknown,
+  cutInFired: boolean,
+  extras: readonly StressMod[] = []
+): number {
+  const mods = gameMods(game, level, { cutInFired, extras });
+  const raw = xpMultiplier(mods) * LEVEL_XP[clampLevel(level)];
+  return Math.round(Math.min(MAX_XP_MULTIPLIER, raw) * 100) / 100;
+}
+
+/* ------------------------------------------------------------------ *
+ * Game of the day (the games plan, item 12). A free account plays one
+ * Premium game each day, in rotation, for a full round that counts.
+ * ------------------------------------------------------------------ */
+
+/** The Premium games, in the order the free days walk them. */
+export const DAY_ROTATION = ["rush", "interview"] as const;
+export type DayGameId = (typeof DAY_ROTATION)[number];
+
+/** Days since 1970-01-01 for a `YYYY-MM-DD` key (lib/challenge.ts `dayKey`), or null. */
+function dayNumber(dayKey: string): number | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dayKey);
+  if (!m) return null;
+  const t = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return Number.isFinite(t) ? Math.round(t / 86_400_000) : null;
+}
+
+/** Today's free Premium game, for a device-local `dayKey` ("2026-11-06"). */
+export function gameOfTheDay(dayKey: string): DayGameId {
+  const n = dayNumber(dayKey) ?? 0;
+  const size = DAY_ROTATION.length;
+  return DAY_ROTATION[((n % size) + size) % size];
+}
+
+/**
+ * Can this account start a round of `game` now? Q&A always. A Premium
+ * game for Premium, or for anyone when it is today's free game and they
+ * have not played a round of it today. `premium` null (not read yet) is
+ * not Premium.
+ */
+export function gameOpen(
+  game: Game,
+  opts: { premium: boolean | null; dayKey: string; roundsTodayOfGame: number }
+): boolean {
+  if (!needsPremium(game)) return true;
+  if (opts.premium === true) return true;
+  return gameOfTheDay(opts.dayKey) === game.id && opts.roundsTodayOfGame === 0;
 }

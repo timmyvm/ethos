@@ -14,10 +14,15 @@ import { DRILLS, todaysDrill } from "./drills";
 import { lessonById } from "@/content/lessons";
 import { pathItemById, type PathItem } from "@/content/path";
 import {
+  clampLevel,
   dailyQuestion,
   gameById,
   gameLessonId,
+  gameLevel,
+  gameModIds,
+  gameXpMultiplier,
   questionById,
+  type LevelN,
 } from "./games";
 import { topicById, TOPIC_SHAPES, type Topic } from "./topics";
 import {
@@ -57,6 +62,17 @@ export interface RepConfig {
   hidePrompt: boolean;
   crowdNoise: boolean;
   interrupt: boolean;
+  /** The game's level (1 to 3, clamped); null for anything that is not a game. */
+  level: LevelN | null;
+  /**
+   * When Demos cuts in, one `[aimLo, forceBy]` window per cut-in, seconds
+   * into the take (lib/games.ts GameLevel.cutIns). A game's level names
+   * its own; any other take with the interruption on gets the middle of
+   * its clock, `defaultCutInWindow`. Empty when nobody cuts in.
+   */
+  cutIns: [number, number][];
+  /** The question shows when Record is pressed, not before (Interview, levels 2 and 3). */
+  revealOnRecord: boolean;
 }
 
 export interface RepConfigInput {
@@ -74,8 +90,24 @@ export interface RepConfigInput {
   /** A game id from the Games tab, with `q` naming the drawn question. */
   game?: string | null;
   q?: string | null;
+  /** The game's level, from the link's `level`; clamped to 1 to 3. */
+  level?: string | number | null;
   mods?: string | null;
   premium?: boolean;
+}
+
+/**
+ * The interruption's window on a take that names none of its own (a mod
+ * from Today's picker, or an extra stacked on a game without a cut-in):
+ * the middle fifth of the clock, 40% to 60%, where it always fell.
+ */
+export function defaultCutInWindow(maxSeconds: number): [number, number] {
+  return [Math.round(maxSeconds * 0.4), Math.round(maxSeconds * 0.6)];
+}
+
+/** The cut-in windows of a take that is not a game's: the default one when it interrupts. */
+function plainCutIns(interrupt: boolean, maxSeconds: number): [number, number][] {
+  return interrupt ? [defaultCutInWindow(maxSeconds)] : [];
 }
 
 export function bossLessonId(topicId: string): string {
@@ -106,7 +138,10 @@ export function resolveRepConfig(
     hidePrompt: has("hide-prompt"),
     crowdNoise: has("crowd-noise"),
     interrupt: has("interrupt"),
+    level: null,
+    revealOnRecord: false,
   };
+  const plainMax = tight ? TIGHT_MAX_SECONDS : DAILY_MAX_SECONDS;
 
   if (input.boss) {
     const topic =
@@ -118,7 +153,8 @@ export function resolveRepConfig(
       unit: "Weekly boss · Cold Topic",
       title: topic.title,
       prompt: `Explain ${topic.title} from memory. Wrong claims stated as fact cost more than saying you're unsure.`,
-      maxSeconds: tight ? TIGHT_MAX_SECONDS : DAILY_MAX_SECONDS,
+      maxSeconds: plainMax,
+      cutIns: plainCutIns(base.interrupt, plainMax),
       xpMultiplier: xpMultiplier(mods, BOSS_XP_BASE),
       topic,
       tips: TOPIC_SHAPES.explain.tips,
@@ -136,37 +172,54 @@ export function resolveRepConfig(
    * Staged first so a stacked extra can never squeeze one out of the
    * two-mod cap; the name still never outruns the conditions.
    */
+  /*
+   * The level (the games plan, item 2) changes only the staging: its own
+   * clock, its cut-in windows, when the question shows, and Interview's
+   * follow-up at level 3, which stages the interruption. The XP shown
+   * here is the level's at full staging; the server pays what actually
+   * ran (lib/games.ts `gameXpMultiplier`, Interruption only once he cut in).
+   */
   const game = gameById(input.game);
   if (game) {
+    const level = clampLevel(input.level);
+    const lvl = gameLevel(game, level);
+    const stagedIds = gameModIds(game, level);
     const staged = parseMods(
       [
-        ...game.modIds,
+        ...stagedIds,
         ...parseMods(input.mods, { premium: input.premium }).map((m) => m.id),
       ].join(","),
       { premium: true }
     );
     const ran = (id: string) => staged.some((m) => m.id === id);
-    if (game.modIds.every(ran)) {
+    if (stagedIds.every(ran)) {
       const q = questionById(game, input.q) ?? dailyQuestion(game, now);
       const stagedHas = (effect: StressMod["effect"]) =>
         staged.some((m) => m.effect === effect);
+      const interrupt = stagedHas("interrupt");
+      const maxSeconds =
+        lvl.capS ??
+        (stagedHas("tight-timer") ? TIGHT_MAX_SECONDS : DAILY_MAX_SECONDS);
       return {
         mods: staged,
         hidePrompt: stagedHas("hide-prompt"),
         crowdNoise: stagedHas("crowd-noise"),
-        interrupt: stagedHas("interrupt"),
+        interrupt,
         kind: "daily",
         lessonId: gameLessonId(game, q),
         unit: `Games · ${game.name}`,
         title: q.prompt,
-        prompt: game.direction,
-        maxSeconds: stagedHas("tight-timer")
-          ? TIGHT_MAX_SECONDS
-          : DAILY_MAX_SECONDS,
-        xpMultiplier: xpMultiplier(staged),
+        prompt: lvl.direction,
+        maxSeconds,
+        xpMultiplier: gameXpMultiplier(game, level, true, staged),
         topic: null,
         tips: game.tips,
         rouletteTopic: null,
+        level,
+        cutIns: lvl.cutIns.length
+          ? lvl.cutIns.map(([lo, hi]) => [lo, hi] as [number, number])
+          : plainCutIns(interrupt, maxSeconds),
+        revealOnRecord: lvl.reveal === "record",
       };
     }
   }
@@ -191,7 +244,8 @@ export function resolveRepConfig(
       unit: practice ? "Today's practice" : `Roulette · ${TOPIC_SHAPES[roulette.shape].label}`,
       title: roulette.prompt,
       prompt: practice ? practice.title : "Sixty to ninety seconds.",
-      maxSeconds: tight ? TIGHT_MAX_SECONDS : DAILY_MAX_SECONDS,
+      maxSeconds: plainMax,
+      cutIns: plainCutIns(base.interrupt, plainMax),
       xpMultiplier: xpMultiplier(mods),
       topic: null,
       tips: practice ? practice.tips : TOPIC_SHAPES[roulette.shape].tips,
@@ -241,19 +295,22 @@ export function resolveRepConfig(
       { premium: input.premium }
     );
     const tightNow = withMod.some((m) => m.effect === "tight-timer");
+    const lessonInterrupt = withMod.some((m) => m.effect === "interrupt");
+    const lessonMax = tightNow ? TIGHT_MAX_SECONDS : DAILY_MAX_SECONDS;
     return {
       ...base,
       mods: withMod,
       hidePrompt: withMod.some((m) => m.effect === "hide-prompt"),
       crowdNoise: withMod.some((m) => m.effect === "crowd-noise"),
-      interrupt: withMod.some((m) => m.effect === "interrupt"),
+      interrupt: lessonInterrupt,
+      cutIns: plainCutIns(lessonInterrupt, lessonMax),
       kind: "daily",
       lessonId: `lesson:${lesson.id}:${n}`,
       unit: lesson.title,
       title: lesson.title,
       prompt: practice.prompt,
       tips: practice.tips,
-      maxSeconds: tightNow ? TIGHT_MAX_SECONDS : DAILY_MAX_SECONDS,
+      maxSeconds: lessonMax,
       xpMultiplier: xpMultiplier(withMod),
       topic: null,
       rouletteTopic: null,
@@ -274,7 +331,8 @@ export function resolveRepConfig(
       title: rotation.title,
       prompt: rotation.prompt,
       tips: rotation.tips,
-      maxSeconds: tight ? TIGHT_MAX_SECONDS : DAILY_MAX_SECONDS,
+      maxSeconds: plainMax,
+      cutIns: plainCutIns(base.interrupt, plainMax),
       xpMultiplier: xpMultiplier(mods),
       topic: null,
       rouletteTopic: null,
@@ -288,7 +346,8 @@ export function resolveRepConfig(
     unit: drill.unit,
     title: drill.title,
     prompt: drill.prompt,
-    maxSeconds: tight ? TIGHT_MAX_SECONDS : DAILY_MAX_SECONDS,
+    maxSeconds: plainMax,
+    cutIns: plainCutIns(base.interrupt, plainMax),
     xpMultiplier: xpMultiplier(mods),
     topic: null,
     // The lesson's own technique, not the generic shape tips: a lesson
@@ -328,6 +387,8 @@ export function repHref(opts: {
   game?: string;
   /** The drawn question, so a shared game link repeats the same rep. */
   q?: string;
+  /** A game's level. Level 1 is the default and is left off the link. */
+  level?: number;
   mods?: string[];
   /**
    * Where the recorder hands control back (#258). A lesson sends
@@ -347,6 +408,9 @@ export function repHref(opts: {
   else if (opts.game) {
     q.set("game", opts.game);
     if (opts.q) q.set("q", opts.q);
+    if (opts.level != null && clampLevel(opts.level) > 1) {
+      q.set("level", String(clampLevel(opts.level)));
+    }
   } else if (opts.topic) {
     q.set("topic", opts.topic);
     if (opts.item) q.set("item", opts.item);
@@ -367,11 +431,11 @@ export function repHref(opts: {
 /**
  * Which recording a /rep address asks for: everything that changes the
  * take or what its screen says (lesson, topic, item, boss, game,
- * question, mods), and nothing that only
+ * question, level, mods), and nothing that only
  * says where to go after it (`back`). The recording screen resets when
  * this changes, and only then.
  */
-const REP_KEY_PARAMS = ["lesson", "topic", "item", "boss", "game", "q", "mods"] as const;
+const REP_KEY_PARAMS = ["lesson", "topic", "item", "boss", "game", "q", "level", "mods"] as const;
 
 export function repKey(params: { get(k: string): string | null }): string {
   return REP_KEY_PARAMS.map((k) => params.get(k) ?? "").join("|");

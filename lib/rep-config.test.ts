@@ -114,6 +114,13 @@ describe("repHref", () => {
     expect(repHref({ game: "rush", topic: "t1" })).toBe("/rep?game=rush");
   });
 
+  it("carries a game's level past 1, clamped, and only on a game", () => {
+    expect(repHref({ game: "qa", q: "qa3", level: 2 })).toBe("/rep?game=qa&q=qa3&level=2");
+    expect(repHref({ game: "qa", q: "qa3", level: 9 })).toBe("/rep?game=qa&q=qa3&level=3");
+    expect(repHref({ game: "qa", q: "qa3", level: 1 })).toBe("/rep?game=qa&q=qa3");
+    expect(repHref({ lesson: "f1", level: 2 })).toBe("/rep?lesson=f1");
+  });
+
   it("carries mods", () => {
     expect(repHref({ lesson: "f1", mods: ["no-notes", "tight"] })).toBe(
       "/rep?lesson=f1&mods=no-notes%2Ctight"
@@ -128,6 +135,11 @@ describe("repKey and sameRepScreen (Go again)", () => {
     expect(repKey(here("lesson=f1&mods=tight"))).not.toBe(
       repKey(here("lesson=f1"))
     );
+  });
+
+  it("keys on a game's level, so another level is another screen", () => {
+    expect(repKey(here("game=qa&q=qa1&level=2"))).not.toBe(repKey(here("game=qa&q=qa1")));
+    expect(sameRepScreen(repHref({ game: "qa", q: "qa1", level: 2 }), here("game=qa&q=qa1&level=2"))).toBe(true);
   });
 
   it("ignores where the recording hands back to", () => {

@@ -68,10 +68,12 @@ const SWEEP_S = 2.4;
  * Max per bucket, scaled to the recording's own loudest moment, then
  * square-rooted so the quiet parts still show. The envelope is stored
  * at the engine's gain (lib/envelope.ts), which is tuned for gap
- * detection, not for drawing.
+ * detection, not for drawing. A sample the phone never heard (NaN,
+ * lib/envelope.ts) draws at the floor.
  */
-function bucket(levels: number[], bars: number): number[] {
-  if (levels.length === 0) return Array(bars).fill(0);
+export function bucket(raw: number[], bars: number): number[] {
+  if (raw.length === 0) return Array(bars).fill(0);
+  const levels = raw.map((v) => (Number.isFinite(v) ? v : 0));
   const size = levels.length / bars;
   const peak = Math.max(0.05, ...levels);
   return Array.from({ length: bars }, (_, i) => {

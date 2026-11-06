@@ -1146,7 +1146,9 @@ function RepScreen() {
     // The loudness envelope, captured alongside the meter. This is what
     // lets the engine tell a silent gap from one the mic heard a sound
     // in — i.e. an "um" the transcript dropped.
-    const envelope: Envelope = { levels: [...r.envelope], rate: ENVELOPE_RATE };
+    // On the take's clock (`clock`), so the server never stretches a
+    // tail the page had no frames for over the whole take (engine R1).
+    const envelope: Envelope = { levels: [...r.envelope], rate: ENVELOPE_RATE, clock: true };
     if (live()) setScoringWave(envelope.levels);
 
     // Score the body before tearing the camera down. Everything below
@@ -1331,19 +1333,17 @@ function RepScreen() {
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunks.push(e.data);
       };
-      /* The take's clock starts when the recorder says it has (F2): a
-         cut-in's second, the screen's clock, the cap and the envelope are
-         then all on the clock of the audio, which is the clock Whisper's
-         word times are on. Until the event, the moment start was asked
-         for. The envelope starts over with it, so its first sample is the
-         audio's first moment. The recorder itself starts below, once the
-         camera is up (games review, finding 1). */
+      /* The take's clock (F2): a cut-in's second, the screen's clock, the
+         cap and the envelope are all on the clock of the audio, which is
+         the clock Whisper's word times are on. It starts with
+         recorder.start() below, once the camera is up (games review,
+         finding 1), and the envelope starts empty with it, so its first
+         sample is the audio's first moment. The recorder records from
+         start(), so its later "start" event never restarts the clock: on
+         a Voice + Video take that event waits behind the camera's first
+         inference, seconds into the audio (regression review, edges F1). */
       const clock = { startedAt: performance.now() };
       const envelope: number[] = [];
-      recorder.addEventListener("start", () => {
-        clock.startedAt = performance.now();
-        envelope.length = 0;
-      });
       // If the recorder stops on its own (the mic was unplugged or taken
       // mid-take), score what it caught now instead of leaving the take
       // to a Stop tap or the cap, which would wait on a stop that never
@@ -1497,6 +1497,8 @@ function RepScreen() {
       // Pose sampling + the live ring. Free for everyone (§2): it's
       // local compute at zero marginal cost, and it's the part that
       // feels like magic in the first thirty seconds.
+      type Landmarker = NonNullable<Awaited<ReturnType<typeof loadPose>>>;
+      let pose: { video: HTMLVideoElement; landmarker: Landmarker } | null = null;
       if (wantsVideo && stream.getVideoTracks().length > 0) {
         const video = videoElRef.current;
         const landmarker = await loadPose();
@@ -1506,11 +1508,7 @@ function RepScreen() {
           video.srcObject = stream;
           await video.play().catch(() => {});
           if (recRef.current !== rec) return;
-          const sampler = samplePose(video, landmarker, (frames) =>
-            setRing(ringState(frames))
-          );
-          rec.sampler = sampler;
-          setPoseFrames(sampler.frames);
+          pose = { video, landmarker };
         }
       }
 
@@ -1532,6 +1530,17 @@ function RepScreen() {
         }
       }
       rec.raf = requestAnimationFrame(tick);
+      /* The body's frames start on the take's clock, after it: the
+         HOLDING chip and the seconds read one clock, and the camera's
+         first inference (seconds on a slow GPU) stalls a take already
+         running, whose envelope marks the stall unheard (edges F1). */
+      if (pose) {
+        const sampler = samplePose(pose.video, pose.landmarker, (frames) =>
+          setRing(ringState(frames))
+        );
+        rec.sampler = sampler;
+        setPoseFrames(sampler.frames);
+      }
       // recording-16: where the card stands now, read before the layout
       // changes, so the layout effect below can glide it to its new place.
       const was = topicRef.current?.getBoundingClientRect();

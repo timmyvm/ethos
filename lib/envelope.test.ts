@@ -219,3 +219,93 @@ describe("the recorder's sampler (games review, finding 2)", () => {
     expect(fitEnvelopeRate(tail, 0)).toBe(tail);
   });
 });
+
+/*
+ * The regression review of the games work (engine R1 and I1, edges F1):
+ * an envelope on the take's clock that the page stopped feeding (hidden,
+ * or a multi-second stall) is unheard where it has no frames, never
+ * stretched over the take and never filled with the level heard on return.
+ */
+describe("a take the page stopped hearing (regression review)", () => {
+  /** 72s of speech with a held silence 1.2s long closing every 6s (0:04.8 to 0:06). */
+  const truth = (t: number) => (t % 6 >= 4.8 ? 0.03 : 0.5);
+  const silences = Array.from({ length: 12 }, (_, k) => [6 * k + 4.8, 6 * k + 6] as const);
+
+  /** HEAD's sampler over 60Hz frames that stop at `stopS` (the page hid). */
+  function sampled(seconds: number, stopS: number): number[] {
+    const levels: number[] = [];
+    for (const now of frames(seconds)) {
+      if (now / 1000 >= stopS) break;
+      sampleEnvelope(levels, now, truth(now / 1000));
+    }
+    return levels;
+  }
+
+  it("keeps a clock envelope missing its tail at 20Hz, so a gap after the hide is unknown", () => {
+    const levels = sampled(72, 40);
+    expect(levels.length).toBeGreaterThanOrEqual(799);
+    expect(levels.length).toBeLessThanOrEqual(800);
+    const wire = serializeEnvelope({ levels, rate: ENVELOPE_RATE, clock: true });
+    const back = parseEnvelope(wire)!;
+    expect(back.clock).toBe(true);
+    const read = fitEnvelopeRate(back, 72)!;
+    expect(read.rate).toBe(ENVELOPE_RATE);
+    // Every silence heard before the hide reads silent, as on the phone.
+    for (const [a, b] of silences.filter(([, b]) => b < 40)) {
+      expect(classifyGap(read, a, b)).toBe("silent");
+    }
+    // A gap after 0:40 the phone never heard.
+    for (const [a, b] of silences.filter(([a]) => a > 40)) {
+      expect(classifyGap(read, a, b)).toBe("unknown");
+    }
+  });
+
+  it("still refits an older envelope without the mark (an outbox replay)", () => {
+    const old: Envelope = { levels: new Array(1224).fill(0.2), rate: ENVELOPE_RATE };
+    expect(fitEnvelopeRate(old, 72)!.rate).toBeCloseTo(1224 / 72, 6);
+    const wire = parseEnvelope(serializeEnvelope(old))!;
+    expect(wire.clock).toBeUndefined();
+    expect(fitEnvelopeRate(wire, 72)!.rate).toBeCloseTo(1224 / 72, 6);
+  });
+
+  it("marks a span without frames unheard, never the level heard on return", () => {
+    const levels: number[] = [];
+    for (const now of frames(60)) {
+      const t = now / 1000;
+      if (t >= 20 && t < 40) continue; // hidden: no animation frames
+      sampleEnvelope(levels, now, t >= 40 && t < 40.5 ? 1 : truth(t));
+    }
+    expect(Math.abs(levels.length - 1200)).toBeLessThanOrEqual(1);
+    // The return's level fills at most STALL_MS (5 samples) behind it.
+    const flat = levels.slice(400, 800);
+    expect(flat.filter((v) => v === 1).length).toBeLessThanOrEqual(5);
+    expect(flat.filter((v) => Number.isNaN(v)).length).toBeGreaterThanOrEqual(394);
+    // Missing travels as null and comes back unheard, never as silence.
+    const back = parseEnvelope(serializeEnvelope({ levels, rate: ENVELOPE_RATE, clock: true }))!;
+    expect(back.levels.slice(400, 790).every((v) => Number.isNaN(v))).toBe(true);
+    for (const [a, b] of silences.filter(([a, b]) => a > 20 && b < 40)) {
+      expect(classifyGap(back, a, b)).toBe("unknown");
+    }
+    // The heard parts still read, on a floor taken from what was heard.
+    expect(classifyGap(back, 4.8, 6)).toBe("silent");
+    expect(calibrate(back).speech).toBeGreaterThan(0.4);
+  });
+
+  it("still fills a short frame stall with the level heard", () => {
+    const levels: number[] = [];
+    sampleEnvelope(levels, 10, 0.1);
+    sampleEnvelope(levels, 110, 0.4); // a 100ms stall
+    expect(levels).toEqual([0.1, 0.4, 0.4]);
+  });
+
+  it("reads a recording whose first second the camera's first inference stalled", () => {
+    const levels: number[] = [];
+    sampleEnvelope(levels, 16, 0.5);
+    // The first pose inference blocks the main thread for 3.6s.
+    for (const now of frames(10).filter((n) => n > 3616)) sampleEnvelope(levels, now, truth(now / 1000));
+    expect(Math.abs(levels.length - 200)).toBeLessThanOrEqual(1);
+    expect(levels.slice(1, 67).every((v) => Number.isNaN(v))).toBe(true);
+    expect(classifyGap({ levels, rate: ENVELOPE_RATE, clock: true }, 1, 3)).toBe("unknown");
+    expect(classifyGap({ levels, rate: ENVELOPE_RATE, clock: true }, 4.8, 6)).toBe("silent");
+  });
+});

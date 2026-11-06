@@ -779,3 +779,133 @@ describe("a token that does not resolve", () => {
     expect(saveRep).toHaveBeenCalledTimes(1);
   });
 });
+
+/*
+ * The games plan, items 3 and 10: a game round is measured on the server
+ * and stored, and the XP shown is the XP paid, on any plan. A game's
+ * staged mods come as entitled (#194); Interruption only when Demos
+ * actually cut in; the level multiplies it, capped at 3.
+ */
+describe("a game round", () => {
+  /* Forty different words to 0:19.9, Demos at 0:20, 1.1s held, forty more to 0:39.08. */
+  const said = (from: number, n: number, tag: string) =>
+    Array.from({ length: n }, (_, i) => ({
+      word: ` ${tag}${String.fromCharCode(97 + (i % 26))}${String.fromCharCode(97 + Math.floor(i / 26))}`,
+      start: Math.round((from + i * 0.45) * 100) / 100,
+      end: Math.round((from + i * 0.45 + 0.43) * 100) / 100,
+    }));
+  const QA_WORDS = [...said(1.92, 40, "x"), ...said(21.1, 40, "y")];
+  const QA_FIXTURE = {
+    text: QA_WORDS.map((w) => w.word).join(""),
+    durationS: 40,
+    words: QA_WORDS,
+    segments: [],
+    raw: {},
+  };
+
+  function gameForm(lessonId: string, round?: unknown, mods?: string): FormData {
+    const form = audioForm();
+    form.append("lessonId", lessonId);
+    if (round !== undefined) form.append("round", JSON.stringify(round));
+    if (mods) form.append("mods", mods);
+    return form;
+  }
+
+  beforeEach(() => {
+    vi.mocked(transcribe).mockResolvedValue(QA_FIXTURE);
+    vi.mocked(coachRep).mockResolvedValue(null);
+    vi.mocked(isPremium).mockResolvedValue(false);
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "user-1", anonymous: false });
+  });
+
+  it("pays a free account ×2 for Q&A when Demos cut in, and stores the round", async () => {
+    const body = await (
+      await post(gameForm("game:qa:qa3", { game: "qa", level: 1, cutIns: [{ at: 20, line: "Says who?" }], stoppedBy: "you" }))
+    ).json();
+    expect(body.mods).toEqual(["interrupt"]);
+    expect(body.xpMultiplier).toBe(2);
+    expect(body.round).toMatchObject({
+      game: "qa",
+      level: 1,
+      stoppedBy: "you",
+      cutIns: [{ at: 20, line: "Says who?", verdict: "held", gap: 1.1 }],
+      counted: true,
+    });
+    const saved = vi.mocked(saveRep).mock.calls[0][0];
+    expect(saved).toMatchObject({ mods: ["interrupt"], xpMultiplier: 2, lessonId: "game:qa:qa3" });
+    expect(saved.round).toEqual(body.round);
+  });
+
+  it("pays ×1 when he never cut in, and stores the round as missed", async () => {
+    const body = await (
+      await post(gameForm("game:qa:qa3", { game: "qa", level: 1, cutIns: [], stoppedBy: "you" }))
+    ).json();
+    expect(body.mods).toEqual([]);
+    expect(body.xpMultiplier).toBe(1);
+    expect(body.round.cutIns[0].verdict).toBe("missed");
+    expect(body.round.counted).toBe(false);
+    expect(vi.mocked(saveRep).mock.calls[0][0]).toMatchObject({ mods: [], xpMultiplier: 1 });
+  });
+
+  it("pays ×1 and measures nothing when the phone sent no round", async () => {
+    const body = await (await post(gameForm("game:qa:qa3"))).json();
+    expect(body.xpMultiplier).toBe(1);
+    expect(body.mods).toEqual([]);
+    expect(body.round).toBeNull();
+    expect(vi.mocked(saveRep).mock.calls[0][0].round).toBeNull();
+  });
+
+  it("pays no Interruption for a cut-in the take could not have heard", async () => {
+    for (const at of [0.5, 39.6, 90]) {
+      vi.mocked(saveRep).mockClear();
+      const body = await (
+        await post(gameForm("game:qa:qa3", { level: 1, cutIns: [{ at, line: "So what?" }] }))
+      ).json();
+      expect(body.xpMultiplier, String(at)).toBe(1);
+    }
+  });
+
+  it("multiplies by the level, and files a forged level where its cut-in says", async () => {
+    const level2 = await (
+      await post(gameForm("game:qa:qa3", { level: 2, cutIns: [{ at: 8, line: "So what?" }] }))
+    ).json();
+    expect(level2.round.level).toBe(2);
+    expect(level2.xpMultiplier).toBe(2.5);
+
+    const forged = await (
+      await post(gameForm("game:qa:qa3", { level: 3, cutIns: [{ at: 25, line: "So what?" }] }))
+    ).json();
+    expect(forged.round.level).toBe(1);
+    expect(forged.xpMultiplier).toBe(2);
+  });
+
+  it("pays Speed rush's tight clock to a free account, at its level", async () => {
+    const body = await (
+      await post(gameForm("game:rush:ru2", { game: "rush", level: 1, cutIns: [], stoppedBy: "you" }))
+    ).json();
+    expect(body.mods).toEqual(["tight"]);
+    expect(body.xpMultiplier).toBe(1.5);
+    expect(body.round).toMatchObject({ game: "rush", level: 1, cap: 45, lastWord: 39.08, landed: true });
+  });
+
+  it("keeps the player's extras on their plan", async () => {
+    const round = { level: 1, cutIns: [{ at: 20, line: "So what?" }] };
+    const free = await (await post(gameForm("game:qa:qa3", round, "crowd"))).json();
+    expect(free.mods).toEqual(["interrupt"]);
+    expect(free.xpMultiplier).toBe(2);
+
+    vi.mocked(isPremium).mockResolvedValue(true);
+    const paid = await (await post(gameForm("game:qa:qa3", round, "crowd"))).json();
+    expect(paid.mods).toEqual(["interrupt", "crowd"]);
+    expect(paid.xpMultiplier).toBe(3);
+  });
+
+  it("measures no round on a take that is not a game", async () => {
+    const body = await (
+      await post(gameForm("topic:t1", { game: "qa", level: 1, cutIns: [{ at: 20, line: "So what?" }] }))
+    ).json();
+    expect(body.round).toBeNull();
+    expect(body.mods).toEqual([]);
+    expect(body.xpMultiplier).toBe(1);
+  });
+});

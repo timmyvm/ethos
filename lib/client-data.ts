@@ -15,6 +15,7 @@ import type { Tier1Scores, Tier2Anchors } from "./index-score";
 import type { Pause } from "./metrics";
 import type { DeliveryMoment } from "./presence";
 import type { CaptureMode } from "./prefs";
+import type { GameRound } from "./round";
 
 export interface RepRow {
   id: string;
@@ -59,10 +60,32 @@ export interface RepRow {
    * reads it.
    */
   words?: { word: string; start: number; end: number }[] | null;
+  /**
+   * A game round, measured on the server (lib/round.ts, migration 0026);
+   * null on everything that is not a game, and on games recorded before.
+   */
+  round?: GameRound | null;
 }
 
 const REP_COLUMNS =
-  "id, lesson_id, created_at, duration_s, transcript, wpm, filler_count, fillers, pauses, stars, focus, strength, supply, ethos_index, dimensions, audio_path, mode, mods, xp_multiplier, boss_topic_id, accuracy, capture_mode, delivery_metrics, presence_score, delivery_moments, client_id";
+  "id, lesson_id, created_at, duration_s, transcript, wpm, filler_count, fillers, pauses, stars, focus, strength, supply, ethos_index, dimensions, audio_path, mode, mods, xp_multiplier, boss_topic_id, accuracy, capture_mode, delivery_metrics, presence_score, delivery_moments, client_id, round";
+
+/**
+ * The columns again without `round`, for a database that has not had
+ * migration 0026 yet (it is applied by hand): a read that names a column
+ * the table lacks fails whole, and the Log, Today and You would all read
+ * as failed over a column only the games use.
+ */
+const REP_COLUMNS_BEFORE_0026 = REP_COLUMNS.replace(/, round$/, "");
+
+/** PostgREST's and Postgres's answers for a column the table does not have. */
+function missingRoundColumn(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  return (
+    (error.code === "42703" || error.code === "PGRST204" || /column/i.test(error.message ?? "")) &&
+    /\bround\b/.test(error.message ?? "")
+  );
+}
 
 export async function fetchReps(limit = 90): Promise<RepRow[]> {
   const db = supabaseBrowser();
@@ -72,18 +95,64 @@ export async function fetchReps(limit = 90): Promise<RepRow[]> {
   // The NEWEST `limit` rows. Ascending with a limit kept the oldest 90,
   // so anyone past 90 recordings lost this week's (the boss's "taken
   // this week", Hostile's allowance, today's streak day).
-  const { data, error } = await db
-    .from("reps")
-    .select(REP_COLUMNS)
-    .order("created_at", { ascending: false })
-    .limit(limit);
+  const read = (columns: string) =>
+    db
+      .from("reps")
+      .select(columns)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+  let { data, error } = await read(REP_COLUMNS);
+  if (missingRoundColumn(error)) ({ data, error } = await read(REP_COLUMNS_BEFORE_0026));
   // An answered error (500, an expired JWT's 401) used to come back as
   // [], and every screen drew its zero state over a read that never
   // happened. "Nothing yet" and "didn't load" are different screens
   // (DECISIONS #147); only a throw reaches the error card.
   if (error) throw error;
   // Handed back oldest first, the order every caller reads the log in.
-  return [...((data as RepRow[] | null) ?? [])].reverse();
+  return [...((data as unknown as RepRow[] | null) ?? [])].reverse();
+}
+
+/** One game round as the ladder reads it (lib/ladder.ts `LadderRow`). */
+export interface GameRoundRow {
+  id: string;
+  lesson_id: string | null;
+  created_at: string;
+  stars: number;
+  ethos_index: number | null;
+  round: GameRound | null;
+}
+
+/** The newest this many game recordings: months of rounds, so a level opened long ago stays open. */
+export const GAME_ROUNDS_LIMIT = 500;
+
+/**
+ * Every game recording the ladder needs (proposal-mastery 3): a few
+ * columns each, the newest 500 of `game:*`, handed back oldest first.
+ * `fetchReps` keeps 90 whole rows, which would lose a level opened past
+ * them. Throws on a failed read, as every fetcher here does (#147); a
+ * database without migration 0026 reads its game rows with `round` null.
+ */
+export async function fetchGameRounds(): Promise<GameRoundRow[]> {
+  const db = supabaseBrowser();
+  if (!db) return [];
+  const { data: session } = await db.auth.getSession();
+  if (!session.session) return [];
+  const read = (columns: string) =>
+    db
+      .from("reps")
+      .select(columns)
+      .like("lesson_id", "game:%")
+      .order("created_at", { ascending: false })
+      .limit(GAME_ROUNDS_LIMIT);
+  let { data, error } = await read("id, lesson_id, created_at, stars, ethos_index, round");
+  if (missingRoundColumn(error)) {
+    ({ data, error } = await read("id, lesson_id, created_at, stars, ethos_index"));
+  }
+  if (error) throw error;
+  return ((data as unknown as GameRoundRow[] | null) ?? [])
+    .filter((r) => r.lesson_id?.startsWith("game:"))
+    .map((r) => ({ ...r, round: r.round ?? null }))
+    .reverse();
 }
 
 /**
@@ -132,8 +201,13 @@ export function fetchRepSpine(): Promise<RepSpine[]> {
 }
 
 /** Every recording, whole, for the export: nothing capped, nothing guessed. */
-export function fetchAllReps(): Promise<RepRow[]> {
-  return readAll<RepRow>("reps", REP_COLUMNS);
+export async function fetchAllReps(): Promise<RepRow[]> {
+  try {
+    return await readAll<RepRow>("reps", REP_COLUMNS);
+  } catch (e) {
+    if (!missingRoundColumn(e as { code?: string; message?: string })) throw e;
+    return readAll<RepRow>("reps", REP_COLUMNS_BEFORE_0026);
+  }
 }
 
 /** Every lexicon upgrade, for the export. */
@@ -144,13 +218,16 @@ export function fetchAllLexicon(): Promise<LexiconRow[]> {
 export async function fetchRep(id: string): Promise<RepRow | null> {
   const db = supabaseBrowser();
   if (!db) return null;
-  const { data, error } = await db
-    .from("reps")
-    .select(`${REP_COLUMNS}, words:whisper_raw->words`)
-    .eq("id", id)
-    .maybeSingle();
+  const read = (columns: string) =>
+    db
+      .from("reps")
+      .select(`${columns}, words:whisper_raw->words`)
+      .eq("id", id)
+      .maybeSingle();
+  let { data, error } = await read(REP_COLUMNS);
+  if (missingRoundColumn(error)) ({ data, error } = await read(REP_COLUMNS_BEFORE_0026));
   if (error) throw error;
-  return (data as RepRow | null) ?? null;
+  return (data as unknown as RepRow | null) ?? null;
 }
 
 export interface LexiconRow {

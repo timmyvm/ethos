@@ -45,8 +45,15 @@ import {
 } from "@/lib/index-score";
 import { computeMetrics, isScorable, type RepMetrics, type Word } from "@/lib/metrics";
 import { parseEnvelope } from "@/lib/envelope";
+import { gameMods, gameOfLessonId, gameXpMultiplier } from "@/lib/games";
 import { pauseReport } from "@/lib/pause-quality";
 import { BOSS_XP_BASE } from "@/lib/rep-config";
+import {
+  cutInFired,
+  measureRound,
+  parseRoundField,
+  type GameRound,
+} from "@/lib/round";
 import { modIds, parseMods, xpMultiplier } from "@/lib/stress-mods";
 import { spokenAt } from "@/lib/spoken-at";
 import { transcribe } from "@/lib/transcribe";
@@ -89,6 +96,12 @@ export interface AnalyzeResponse {
   delivery: DeliveryMetrics | null;
   deliveryMoments: DeliveryMoment[];
   previousPresence: number | null;
+  /**
+   * A game round, measured (lib/round.ts): null on anything that is not a
+   * game, and on a game whose phone sent no round. Optional because a
+   * reply kept on the phone from before it has none.
+   */
+  round?: GameRound | null;
   /** What the judged tier did, and what's left of it (§3). */
   judged: {
     ran: boolean;
@@ -234,12 +247,24 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
   // URL or a forged form field can change the difficulty of your rep,
   // never the XP it pays.
   const premium = await isPremium(userId).catch(() => false);
-  const mods = parseMods(form.get("mods") as string | null, { premium });
+  const extras = parseMods(form.get("mods") as string | null, { premium });
   const bossTopic =
     COLD_TOPICS.find((t) => t.id === (form.get("bossTopicId") as string)) ??
     null;
   const mode: "daily" | "boss" = bossTopic ? "boss" : "daily";
-  const multiplier = xpMultiplier(mods, bossTopic ? BOSS_XP_BASE : 1);
+  let mods = extras;
+  let multiplier = xpMultiplier(mods, bossTopic ? BOSS_XP_BASE : 1);
+  const lessonId = (form.get("lessonId") as string) || undefined;
+  /*
+   * A game round (the games plan, items 3 and 10). The phone says what it
+   * ran (`round`: the level, when Demos cut in, who stopped it); the round
+   * is measured below against the words. A game's staged mods are paid
+   * as entitled on any plan (#194: premium gates the picker, never the
+   * games), Interruption only when he actually cut in, times the level's
+   * multiplier. Extras the player stacked still follow the plan above.
+   */
+  const game = bossTopic ? null : gameOfLessonId(lessonId);
+  const claim = game ? parseRoundField(form.get("round")) : null;
 
   const captureMode: CaptureMode =
     form.get("captureMode") === "voice_video" ? "voice_video" : "voice";
@@ -373,6 +398,30 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
     ? ethosIndex(tier1, coach ? tier2Scores(coach) : null)
     : null;
 
+  let round: GameRound | null = null;
+  if (game) {
+    if (claim) {
+      round = measureRound({
+        game: game.id,
+        level: claim.level,
+        cutIns: claim.cutIns,
+        stoppedBy: claim.stoppedBy,
+        words: transcription.words,
+        fillers: metrics.fillers,
+        durationS: metrics.durationS,
+        stars: metrics.stars,
+        scorable,
+        index,
+        envelope,
+      });
+    }
+    // The level the round is filed at, after the server's checks.
+    const level = round?.level ?? claim?.level ?? 1;
+    const fired = cutInFired(claim, metrics.durationS);
+    mods = gameMods(game, level, { cutInFired: fired, extras });
+    multiplier = gameXpMultiplier(game, level, fired, extras);
+  }
+
   const [previousIndex, prevPresence] = userId
     ? await Promise.all([
         previousEthosIndex(userId).catch(() => null),
@@ -393,7 +442,7 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
       ethosIndex: index,
       whisperRaw: transcription.raw,
       userId: userId ?? undefined,
-      lessonId: (form.get("lessonId") as string) || undefined,
+      lessonId,
       mode,
       mods: modIds(mods),
       xpMultiplier: multiplier,
@@ -404,6 +453,7 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
       deliveryMoments,
       createdAt: recordedAt?.toISOString(),
       clientId,
+      round,
     });
     if (saved?.duplicate) {
       return NextResponse.json({ repId: saved.id, duplicate: true });
@@ -434,6 +484,7 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
     delivery,
     deliveryMoments,
     previousPresence: prevPresence,
+    round,
     judged: {
       ran: coach !== null,
       unlimited: decision?.unlimited ?? false,

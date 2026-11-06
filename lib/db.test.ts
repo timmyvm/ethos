@@ -217,3 +217,62 @@ describe("saveRep before migration 0016 is applied", () => {
     expect("client_id" in reps[1].row).toBe(false);
   });
 });
+
+describe("saveRep and a game round (0026)", () => {
+  const round = { v: 1, game: "rush", level: 2, cap: 30, counted: true } as unknown as NonNullable<
+    Parameters<typeof saveRep>[0]["round"]
+  >;
+
+  it("stores the round on a game, and nothing on anything else", async () => {
+    await saveRep(params({ round }));
+    expect(inserts.find((i) => i.table === "reps")!.row.round).toEqual(round);
+    inserts = [];
+    await saveRep(params());
+    expect("round" in inserts.find((i) => i.table === "reps")!.row).toBe(false);
+  });
+
+  /** The reps insert refuses each named column it does not have yet. */
+  function tableWithout(columns: string[]) {
+    const realPush = inserts.push.bind(inserts);
+    inserts.push = (...items: Insert[]) => {
+      for (const i of items) {
+        if (i.table !== "reps") continue;
+        const missing = columns.find((c) => c in i.row);
+        repInsert = missing
+          ? { data: null, error: { code: "PGRST204", message: `Could not find the '${missing}' column of 'reps' in the schema cache` } }
+          : { data: { id: "rep-1" }, error: null };
+      }
+      return realPush(...items);
+    };
+  }
+
+  it("stores the recording without its round before migration 0026 is applied", async () => {
+    tableWithout(["round"]);
+    const saved = await saveRep(params({ round, clientId: "k1" }));
+    expect(saved?.id).toBe("rep-1");
+    const reps = inserts.filter((i) => i.table === "reps");
+    expect(reps).toHaveLength(2);
+    expect("round" in reps[1].row).toBe(false);
+    expect(reps[1].row.client_id).toBe("k1");
+    // The XP is still paid, at the multiplier the route worked out.
+    expect(inserts.find((i) => i.table === "xp_events")).toBeTruthy();
+  });
+
+  it("drops both columns, one at a time, on a table that has neither", async () => {
+    tableWithout(["client_id", "round"]);
+    const saved = await saveRep(params({ round, clientId: "k1" }));
+    expect(saved?.id).toBe("rep-1");
+    const reps = inserts.filter((i) => i.table === "reps");
+    expect(reps).toHaveLength(3);
+    expect(Object.keys(reps[2].row)).not.toContain("round");
+    expect(Object.keys(reps[2].row)).not.toContain("client_id");
+  });
+
+  it("never retries a taken key as a missing column", async () => {
+    repInsert = { data: null, error: { code: "23505", message: "duplicate key value violates unique constraint reps_user_client_id_uniq on round" } };
+    existing = { id: "rep-0" };
+    const saved = await saveRep(params({ round, clientId: "k1" }));
+    expect(saved).toEqual({ id: "rep-0", audioPath: null, duplicate: true });
+    expect(inserts.filter((i) => i.table === "reps")).toHaveLength(1);
+  });
+});

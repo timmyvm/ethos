@@ -307,3 +307,24 @@ describe("0025 tester stop", () => {
     expect(sql).not.toMatch(/policy|grant|revoke/i);
   });
 });
+
+/*
+ * 0026: a game round, measured (the games plan). Additive and
+ * idempotent: one nullable jsonb column on reps, which the existing reps
+ * policies already cover; no policy or grant changes, and neither of the
+ * connector's words.
+ */
+describe("0026 round", () => {
+  const raw = readFileSync(path.join(DIR, "0026_round.sql"), "utf8");
+  const sql = code("0026_round.sql");
+
+  it("holds neither of the connector's words, comments included", () => {
+    expect(raw).not.toMatch(/drop|delete/i);
+  });
+
+  it("adds the round, once, and touches nothing else", () => {
+    expect(sql).toMatch(/alter table public\.reps add column if not exists round jsonb;/);
+    expect(sql.match(/alter table/g)).toHaveLength(1);
+    expect(sql).not.toMatch(/policy|grant|revoke|not null|default/i);
+  });
+});

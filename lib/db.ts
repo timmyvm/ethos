@@ -16,6 +16,7 @@ import type { MeterState } from "./metering";
 import type { RepMetrics } from "./metrics";
 import { toRow, type DeliveryMetrics, type DeliveryMoment } from "./presence";
 import type { CaptureMode } from "./prefs";
+import type { GameRound } from "./round";
 
 export function supabaseAdmin(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -192,6 +193,13 @@ async function storedPremium(userId: string | null): Promise<boolean> {
 /** XP is the effort currency (DECISIONS #16) — logged from day one. */
 const XP_PER_REP = 10;
 
+/**
+ * Columns a recording is stored without when the table lacks them yet,
+ * because their migrations are applied by hand: the outbox key (0016) and
+ * a game's round (0026). Losing either is better than losing the take.
+ */
+const OPTIONAL_COLUMNS = ["client_id", "round"] as const;
+
 export interface SavedRep {
   id: string;
   audioPath: string | null;
@@ -246,6 +254,8 @@ export async function saveRep(params: {
   createdAt?: string;
   /** The outbox key (migration 0016): one stored row per key per account. */
   clientId?: string | null;
+  /** A game round, measured (lib/round.ts, migration 0026). */
+  round?: GameRound | null;
 }): Promise<SavedRep | null> {
   const db = supabaseAdmin();
   if (!db) return null;
@@ -299,13 +309,24 @@ export async function saveRep(params: {
   const insert = (r: Record<string, unknown>) =>
     db.from("reps").insert(r).select("id").single();
   // The key goes in only when there is one (/upload and /hostile send
-  // none), and a table without the column yet (migration 0016 is applied
-  // by hand) still stores the recording, without its key.
-  let { data, error } = await insert(
-    params.clientId ? { ...row, client_id: params.clientId } : row
-  );
-  if (params.clientId && error && error.code !== "23505" && /client_id/.test(error.message)) {
-    ({ data, error } = await insert(row));
+  // none), and the round only on a game. A table without either column
+  // yet (migrations 0016 and 0026 are applied by hand) still stores the
+  // recording, without what it has no column for.
+  let attempt: Record<string, unknown> = {
+    ...row,
+    ...(params.clientId ? { client_id: params.clientId } : {}),
+    ...(params.round ? { round: params.round } : {}),
+  };
+  let { data, error } = await insert(attempt);
+  // Once per optional column at most; a taken key (23505) is not a missing column.
+  for (let tries = 0; tries < OPTIONAL_COLUMNS.length && error && error.code !== "23505"; tries++) {
+    const message = error.message;
+    const missing = OPTIONAL_COLUMNS.find(
+      (k) => k in attempt && new RegExp(`\\b${k}\\b`).test(message)
+    );
+    if (!missing) break;
+    attempt = Object.fromEntries(Object.entries(attempt).filter(([k]) => k !== missing));
+    ({ data, error } = await insert(attempt));
   }
 
   // Two sends of one recording raced past the route's lookup and the

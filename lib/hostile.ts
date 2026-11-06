@@ -47,6 +47,9 @@ export function promptById(id: string): HostilePrompt | undefined {
  *  row on Practice's Premium card (D31). */
 export const HOSTILE_LINE = "Hold a claim while Demos comes at it.";
 
+/** The lesson id a Hostile take is banked under (/api/analyze), and counted by. */
+export const HOSTILE_TAKE_ID = "hostile-take";
+
 /** Questions Demos asks after the take. Two rounds is the boss. */
 export const HOSTILE_ROUNDS = 2;
 export const TAKE_SECONDS = 60;
@@ -132,4 +135,64 @@ export function validateHostileVerdict(
   ].join(" ");
   if (copy.includes("—")) problems.push("copy contains an em dash");
   return problems;
+}
+
+/**
+ * The verdict as it is stored, on the take it judged (`reps.round`,
+ * migration 0026; /api/hostile writes it). `game: "hostile"` tells it
+ * apart from a measured game round (lib/round.ts): a reader of
+ * `reps.round` checks `game` first. Its three scores are a model's read
+ * out of 100, kept beside the quotes they cite, never a measurement and
+ * never a rung.
+ */
+export interface HostileRecord {
+  v: 1;
+  game: "hostile";
+  /** The claim argued (`HOSTILE_PROMPTS`). */
+  claimId: string;
+  verdict: HostileVerdict;
+  /** What Demos asked, and the words of yours he quoted ("" for a fallback). */
+  questions: { question: string; quoted: string }[];
+}
+
+/** The stored record, from the server's own verdict; questions trimmed to the schema's sizes. */
+export function hostileRecord(
+  claimId: string,
+  verdict: HostileVerdict,
+  questions: readonly { question: string; quoted?: string }[]
+): HostileRecord {
+  return {
+    v: 1,
+    game: "hostile",
+    claimId,
+    verdict: {
+      held: verdict.held,
+      answered: verdict.answered,
+      composed: verdict.composed,
+      coachLine: verdict.coachLine,
+    },
+    questions: questions.slice(0, HOSTILE_ROUNDS).map((q) => ({
+      question: String(q.question ?? "").slice(0, 200),
+      quoted: String(q.quoted ?? "").slice(0, 160),
+    })),
+  };
+}
+
+const HostileRecordSchema = z.object({
+  v: z.literal(1),
+  game: z.literal("hostile"),
+  claimId: z.string(),
+  verdict: HostileVerdictSchema,
+  questions: z.array(z.object({ question: z.string(), quoted: z.string() })),
+});
+
+/** A stored `reps.round` read back as Hostile's verdict, or null when it is anything else. */
+export function hostileRecordOf(round: unknown): HostileRecord | null {
+  const parsed = HostileRecordSchema.safeParse(round);
+  return parsed.success ? parsed.data : null;
+}
+
+/** A recording's id as the client sends it back: a uuid, or anything short and plain. */
+export function isRepId(id: unknown): id is string {
+  return typeof id === "string" && /^[A-Za-z0-9-]{1,64}$/.test(id);
 }

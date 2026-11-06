@@ -5,6 +5,9 @@ import {
   HOSTILE_PROMPTS,
   HOSTILE_ROUNDS,
   TAKE_SECONDS,
+  hostileRecord,
+  hostileRecordOf,
+  isRepId,
   promptById,
   validateHostileVerdict,
   type HostileVerdict,
@@ -104,5 +107,57 @@ describe("validateHostileVerdict — the no-horoscope contract", () => {
     expect(validateHostileVerdict(v, session)).toContain(
       "copy contains an em dash"
     );
+  });
+});
+
+/*
+ * The verdict is stored on the take it judged (the games plan, item 15),
+ * in `reps.round` beside the measured game rounds, so it has to tell
+ * itself apart from them and read back only as itself.
+ */
+describe("the stored verdict", () => {
+  const verdict: HostileVerdict = {
+    held: { score: 68, citedMoment: 'You said "teams lose the hallway".', improve: "Name one team." },
+    answered: { score: 54, citedMoment: 'You said "it feels slower".', improve: "Answer first." },
+    composed: { score: 72, citedMoment: 'You paused before "fair, but".', improve: "Keep that pause." },
+    coachLine: "You held the claim.",
+  };
+
+  it("is marked as Hostile's, with the claim and the questions asked", () => {
+    const rec = hostileRecord("remote-work", verdict, [
+      { question: "Which team?", quoted: "teams lose the hallway" },
+      { question: "Slower how?" },
+      { question: "A third never asked" },
+    ]);
+    expect(rec).toEqual({
+      v: 1,
+      game: "hostile",
+      claimId: "remote-work",
+      verdict,
+      questions: [
+        { question: "Which team?", quoted: "teams lose the hallway" },
+        { question: "Slower how?", quoted: "" },
+      ],
+    });
+    expect(hostileRecordOf(JSON.parse(JSON.stringify(rec)))).toEqual(rec);
+  });
+
+  it("keeps only the verdict's own fields", () => {
+    const rec = hostileRecord("zoos", { ...verdict, overall: 99 } as HostileVerdict, []);
+    expect(Object.keys(rec.verdict).sort()).toEqual(["answered", "coachLine", "composed", "held"]);
+  });
+
+  it("reads a game round, nothing, or junk as not Hostile's", () => {
+    expect(hostileRecordOf(null)).toBeNull();
+    expect(hostileRecordOf({ v: 1, game: "qa", level: 2 })).toBeNull();
+    expect(hostileRecordOf({ v: 1, game: "hostile", claimId: "x", verdict: { held: 1 }, questions: [] })).toBeNull();
+  });
+
+  it("takes a recording id only in a plain shape", () => {
+    expect(isRepId("7d1e2f30-4a5b-4c6d-8e9f-0a1b2c3d4e5f")).toBe(true);
+    expect(isRepId("")).toBe(false);
+    expect(isRepId("x,eq.1")).toBe(false);
+    expect(isRepId(42)).toBe(false);
+    expect(isRepId("a".repeat(65))).toBe(false);
   });
 });

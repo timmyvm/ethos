@@ -2,6 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { NextRequest } from "next/server";
 
 const week = vi.hoisted(() => ({ since: null as string | null, count: 0 }));
+/* The verdict's one write: what was set, under which filters, and what the database answers. */
+const store = vi.hoisted(() => ({
+  writes: [] as { set: Record<string, unknown>; filters: Record<string, unknown> }[],
+  answer: { data: [{ id: "rep-1" }], error: null } as { data: unknown[] | null; error: { message: string } | null },
+}));
 
 vi.mock("@/lib/transcribe", () => ({ transcribe: vi.fn() }));
 vi.mock("@/lib/hostile-server", async (importOriginal) => ({
@@ -17,6 +22,18 @@ vi.mock("@/lib/db", () => {
     gte: async (_col: string, since: string) => {
       week.since = since;
       return { count: week.count };
+    },
+    update: (set: Record<string, unknown>) => {
+      const filters: Record<string, unknown> = {};
+      const write = {
+        eq: (col: string, v: unknown) => ((filters[col] = v), write),
+        is: (col: string, v: unknown) => ((filters[`${col} is`] = v), write),
+        select: async () => {
+          store.writes.push({ set, filters });
+          return store.answer;
+        },
+      };
+      return write;
     },
   };
   return {
@@ -76,6 +93,8 @@ beforeEach(() => {
   vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-1", anonymous: false });
   week.since = null;
   week.count = 0;
+  store.writes = [];
+  store.answer = { data: [{ id: "rep-1" }], error: null };
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
@@ -189,5 +208,84 @@ describe("the free week", () => {
     vi.setSystemTime(new Date("2026-11-08T21:00:00.000Z"));
     await take();
     expect(week.since).toBe("2026-11-02T00:00:00.000Z");
+  });
+});
+
+/*
+ * The verdict is kept (the games plan, item 15): the route files the
+ * verdict it judged itself on the caller's own banked take, once, and
+ * never a number the phone sent.
+ */
+describe("the verdict, stored", () => {
+  const VERDICT = {
+    held: { score: 68, citedMoment: `You said "${SAID.slice(0, 30)}".`, improve: "Name one team." },
+    answered: { score: 54, citedMoment: `You said "${SAID.slice(0, 30)}".`, improve: "Answer first." },
+    composed: { score: 72, citedMoment: `You said "${SAID.slice(0, 30)}".`, improve: "Keep that pause." },
+    coachLine: "You held the claim.",
+  };
+  const judgeWith = (extra: Record<string, unknown>) =>
+    post(
+      {
+        phase: "verdict",
+        context: JSON.stringify({
+          take: SAID,
+          rounds: [{ question: "Which teams?", answer: SAID, quoted: "teams worse" }],
+          ...extra,
+        }),
+      },
+      false
+    );
+
+  it("is filed on the caller's own take, once, as Hostile's", async () => {
+    vi.mocked(hostileVerdict).mockResolvedValueOnce(VERDICT);
+    const res = await judgeWith({ repId: "rep-1" });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ verdict: VERDICT, stored: true });
+    expect(store.writes).toHaveLength(1);
+    expect(store.writes[0].filters).toEqual({
+      id: "rep-1",
+      user_id: "u-1",
+      lesson_id: "hostile-take",
+      "round is": null,
+    });
+    expect(store.writes[0].set).toEqual({
+      round: {
+        v: 1,
+        game: "hostile",
+        claimId: "remote-work",
+        verdict: VERDICT,
+        questions: [{ question: "Which teams?", quoted: "teams worse" }],
+      },
+    });
+  });
+
+  it("stores the server's verdict, never the phone's numbers", async () => {
+    vi.mocked(hostileVerdict).mockResolvedValueOnce(VERDICT);
+    await judgeWith({ repId: "rep-1", verdict: { held: { score: 100 } }, held: 100 });
+    const set = store.writes[0].set.round as { verdict: typeof VERDICT };
+    expect(set.verdict.held.score).toBe(68);
+  });
+
+  it("writes nothing without a take to file it on, or for a visitor with no account", async () => {
+    vi.mocked(hostileVerdict).mockResolvedValue(VERDICT);
+    expect(await (await judgeWith({})).json()).toMatchObject({ stored: false });
+    expect(await (await judgeWith({ repId: "1,user_id.neq.x" })).json()).toMatchObject({ stored: false });
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue(null);
+    expect(await (await judgeWith({ repId: "rep-1" })).json()).toMatchObject({ stored: false });
+    expect(store.writes).toHaveLength(0);
+    vi.mocked(hostileVerdict).mockReset();
+    vi.mocked(hostileVerdict).mockImplementation(async () => ({ overall: 60 }) as never);
+  });
+
+  it("still gives the verdict when it cannot be stored (no 0026, no such take)", async () => {
+    vi.mocked(hostileVerdict).mockResolvedValueOnce(VERDICT);
+    store.answer = { data: null, error: { message: 'column "round" does not exist' } };
+    const res = await judgeWith({ repId: "rep-1" });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ verdict: VERDICT, stored: false });
+
+    vi.mocked(hostileVerdict).mockResolvedValueOnce(VERDICT);
+    store.answer = { data: [], error: null };
+    expect(await (await judgeWith({ repId: "rep-2" })).json()).toMatchObject({ stored: false });
   });
 });

@@ -3,10 +3,15 @@
  * is derived arithmetic over stored reps: no LLM, no guessing, and each
  * one carries the numbers it was computed from so the user can check it
  * (vision.md: no horoscope feedback).
+ *
+ * Each reads only recordings that measured something (`measured`): a
+ * take too short to score, a one-word 8s take at 7 wpm, is not a pace,
+ * a filler rate or an hour anyone speaks cleanest at.
  */
 
 import type { RepRow } from "./client-data";
 import { ALL_FILLERS_PER_MIN } from "./metric-labels";
+import { measured } from "./trait-readings";
 
 export interface Insight {
   id: string;
@@ -29,7 +34,7 @@ function mean(ns: number[]): number {
 /** Which filler dominates across the whole history. */
 export function fillerTally(reps: RepRow[]): [string, number][] {
   const tally: Record<string, number> = {};
-  for (const r of reps) {
+  for (const r of reps.filter(measured)) {
     for (const f of r.fillers ?? []) {
       tally[f.word] = (tally[f.word] ?? 0) + 1;
     }
@@ -44,7 +49,7 @@ export function fillerTally(reps: RepRow[]): [string, number][] {
  */
 export function fillerHeatmap(reps: RepRow[], buckets = 5): number[] {
   const out = new Array(buckets).fill(0);
-  for (const r of reps) {
+  for (const r of reps.filter(measured)) {
     if (r.duration_s <= 0) continue;
     for (const f of r.fillers ?? []) {
       const idx = Math.min(
@@ -58,7 +63,8 @@ export function fillerHeatmap(reps: RepRow[], buckets = 5): number[] {
 }
 
 /** Best hour of day by filler rate, once there's enough spread. */
-export function bestHour(reps: RepRow[]): { hour: number; fpm: number } | null {
+export function bestHour(all: RepRow[]): { hour: number; fpm: number } | null {
+  const reps = all.filter(measured);
   if (reps.length < 6) return null;
   const byHour: Record<number, number[]> = {};
   for (const r of reps) {
@@ -73,7 +79,8 @@ export function bestHour(reps: RepRow[]): { hour: number; fpm: number } | null {
   return ranked[0];
 }
 
-export function insights(reps: RepRow[]): Insight[] {
+export function insights(all: RepRow[]): Insight[] {
+  const reps = all.filter(measured);
   const out: Insight[] = [];
   if (reps.length < 3) return out;
 

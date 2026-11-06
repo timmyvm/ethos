@@ -24,6 +24,7 @@
  * one, so nothing migrates and nothing can be lost migrating.
  */
 
+import { rememberEmailAsked } from "./account-gate";
 import { supabaseBrowser } from "./supabase-browser";
 import { carryTesting, stashTesterCarry, testerCarryToken } from "./tester-client";
 import { safeNextPath } from "./use-paywall-return";
@@ -59,6 +60,12 @@ export interface AuthResult {
   checkInbox?: boolean;
   /** Quiet caveat under the check-inbox headline (slow email server). */
   note?: string;
+  /**
+   * The confirmed account is then signed in to by hand: a sign-up with
+   * no guest session makes no session, so the floor would only ask for
+   * an account again.
+   */
+  thenSignIn?: boolean;
   /**
    * The field the error is about, when it is one field's fault: the
    * form marks it invalid, ties the message to it and puts the cursor
@@ -175,6 +182,9 @@ export async function createAccount(
           "auth: email attach timed out (SMTP misconfig, BUILT.md):",
           upgrade.error.message
         );
+        // The session never learns the address, so the account gate is
+        // told the link is on its way (lib/account-gate.ts).
+        if (data.user) rememberEmailAsked(data.user.id);
         return { ok: true, checkInbox: true, note: SLOW_EMAIL_NOTE };
       }
       return { ok: false, error: humanise(upgrade.error.message) };
@@ -197,11 +207,11 @@ export async function createAccount(
   if (error) {
     if (emailTimedOut(error.message)) {
       console.error("auth: signup email timed out:", error.message);
-      return { ok: true, checkInbox: true, note: SLOW_EMAIL_NOTE };
+      return { ok: true, checkInbox: true, note: SLOW_EMAIL_NOTE, thenSignIn: true };
     }
     return { ok: false, error: humanise(error.message) };
   }
-  return { ok: true, checkInbox: true };
+  return { ok: true, checkInbox: true, thenSignIn: true };
 }
 
 /**
@@ -408,6 +418,27 @@ export function callbackProblem(href: string): CallbackProblem {
     return { kind: "taken", message: humanise("identity is already linked") };
   }
   return { kind: "google" };
+}
+
+/**
+ * The screen /auth/callback shows at once for an error in its URL, or
+ * null to wait for the session. A taken Google account always has its
+ * screen: GoogleTakenSwitch covers it while it signs in with that
+ * account (#414), and it is what is left when the switch lets go or has
+ * already run for this attempt. Waiting there instead was "Signing you
+ * in…" for good, with nothing to tap.
+ */
+export function callbackScreen(problem: CallbackProblem): "google" | "taken" | "stale" | null {
+  switch (problem.kind) {
+    case "google":
+      return "google";
+    case "taken":
+      return "taken";
+    case "link":
+      return "stale";
+    case "none":
+      return null;
+  }
 }
 
 /**

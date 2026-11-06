@@ -158,6 +158,7 @@ export function RepResult({
   const line = scoreLine(coach, {
     ...m,
     topFiller: m.topFiller ?? mostSaid(m.fillers),
+    scorable: result.scorable,
   });
 
   /*

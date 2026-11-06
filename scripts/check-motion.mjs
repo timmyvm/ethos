@@ -183,7 +183,12 @@ await sleep(500);
 await page.getByRole("button", { name: /Crowd noise/ }).click();
 await page.waitForSelector("[role=dialog] .sheet-panel");
 a = await anim(page, "[role=dialog] .sheet-panel");
-const scrim = await anim(page, "[role=dialog].sheet-scrim");
+// The scrim's material is the dialog's ::before, and only it fades (#415).
+const scrim = await page.evaluate(() => {
+  const d = document.querySelector("[role=dialog].sheet-scrim");
+  const a = d?.getAnimations({ subtree: true }).find((x) => x.effect?.pseudoElement === "::before");
+  return { name: a?.animationName ?? null };
+});
 ok("sheet rises on the sheet spring", a.name === "sheet-in" && a.easing.startsWith("linear("), `${a.name} ${a.easing.slice(0, 20)}`);
 ok("scrim fades on its own", scrim.name === "fade-in", scrim.name);
 await sleep(700);

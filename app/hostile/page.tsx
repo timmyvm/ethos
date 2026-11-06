@@ -202,6 +202,8 @@ export default function HostilePage() {
         form.append("phase", "question");
         form.append("promptId", prompt.id);
         form.append("audio", blob, "hostile.webm");
+        // The server counts the free week on this phone's calendar, as the screen does.
+        form.append("tzOffset", String(new Date().getTimezoneOffset()));
         form.append(
           "context",
           JSON.stringify({

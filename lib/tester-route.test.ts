@@ -187,6 +187,42 @@ describe("POST /api/tester, the code", () => {
   });
 });
 
+describe("POST /api/tester, stop testing (#416)", () => {
+  it("marks the caller's own row with the time and keeps it", async () => {
+    await call({ code: "1234", agree: CONSENT_VERSION });
+    const before = Date.now();
+    const res = await call({ stop: true });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true, stopped: true });
+    const row = db.row("testers", USER)!;
+    expect(row.consent_version).toBe(CONSENT_VERSION);
+    expect(Date.parse(row.stopped_at as string)).toBeGreaterThanOrEqual(before);
+  });
+
+  it("keeps the first stop's time when tapped again", async () => {
+    await call({ code: "1234", agree: CONSENT_VERSION });
+    await call({ stop: true });
+    const first = db.row("testers", USER)!.stopped_at;
+    await new Promise((r) => setTimeout(r, 5));
+    await call({ stop: true });
+    expect(db.row("testers", USER)!.stopped_at).toBe(first);
+  });
+
+  it("needs a session, and spends no guess", async () => {
+    const res = await call({ stop: true }, { token: null });
+    expect(res.status).toBe(401);
+  });
+
+  it("starts again when they enter the code and agree after stopping", async () => {
+    await call({ code: "1234", agree: CONSENT_VERSION });
+    await call({ stop: true });
+    expect(db.row("testers", USER)!.stopped_at).toBeTruthy();
+    const res = await call({ code: "1234", agree: CONSENT_VERSION });
+    expect(res.status).toBe(200);
+    expect(db.row("testers", USER)!.stopped_at ?? null).toBeNull();
+  });
+});
+
 describe("POST /api/tester, the consent", () => {
   it("writes the version and the time in the one row that makes a tester", async () => {
     const before = Date.now();
@@ -343,6 +379,12 @@ describe("POST /api/tester, carrying testing to the account signed in to", () =>
     expect(res).toEqual({ status: 200, body: { ok: true, tester: { consent_version: CONSENT_VERSION, consented_at: AT } } });
     expect(db.row("testers", USER)).toMatchObject({ consent_version: CONSENT_VERSION, consented_at: AT });
     expect(db.row("testers", ANON)).toBeUndefined();
+  });
+
+  it("keeps a stop through the sign-in (#416): signing in never restarts testing", async () => {
+    db.put("testers", { user_id: ANON, consent_version: CONSENT_VERSION, consented_at: AT, stopped_at: "2026-11-16T09:00:00.000Z" });
+    expect((await call({ carry: "tok_anon" })).status).toBe(200);
+    expect(db.row("testers", USER)!.stopped_at).toBe("2026-11-16T09:00:00.000Z");
   });
 
   it("moves what the phone sent as the anonymous session with them (0022)", async () => {

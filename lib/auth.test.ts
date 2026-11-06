@@ -5,13 +5,15 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const fake = vi.hoisted(() => ({
   anonymous: false,
   error: null as null | { message: string },
+  /** What updateUser (the guest's email attach) answers with. */
+  updateError: null as null | { message: string },
   /** Where each call asked the auth server to send the person back. */
   redirects: [] as { call: string; to: string | undefined }[],
 }));
 vi.mock("./supabase-browser", () => ({
   supabaseBrowser: () => ({
     auth: {
-      getUser: async () => ({ data: { user: { is_anonymous: fake.anonymous } } }),
+      getUser: async () => ({ data: { user: { id: "user-1", is_anonymous: fake.anonymous } } }),
       linkIdentity: async (a: { options?: { redirectTo?: string } }) => {
         fake.redirects.push({ call: "linkIdentity", to: a.options?.redirectTo });
         return { error: fake.error };
@@ -22,7 +24,7 @@ vi.mock("./supabase-browser", () => ({
       },
       updateUser: async (_: unknown, o?: { emailRedirectTo?: string }) => {
         fake.redirects.push({ call: "updateUser", to: o?.emailRedirectTo });
-        return { error: null };
+        return { error: fake.updateError };
       },
       signUp: async (a: { options?: { emailRedirectTo?: string } }) => {
         fake.redirects.push({ call: "signUp", to: a.options?.emailRedirectTo });
@@ -51,7 +53,9 @@ import {
   safeReturnPath,
   signIn,
   withNext,
+  callbackScreen,
 } from "./auth";
+import { EMAIL_ASKED_KEY, emailAskedFor } from "./account-gate";
 
 describe("password rules", () => {
   it("asks for length and nothing else", () => {
@@ -127,6 +131,16 @@ describe("the Google round trip, coming back", () => {
     const p = callbackProblem(`${CB}#error=server_error&error_code=identity_already_exists&error_description=Identity+is+already+linked+to+another+user`);
     expect(p.kind).toBe("taken");
     if (p.kind === "taken") expect(p.message).toMatch(/Sign in with it/);
+  });
+
+  it("always has a screen for a taken Google account, never a wait with nothing to tap", () => {
+    // GoogleTakenSwitch covers it while it signs in; this is what is left
+    // when the switch lets go, or has already run for this attempt.
+    const taken = `${CB}?next=%2Frep#error_code=identity_already_exists&error_description=Identity+is+already+linked+to+another+user`;
+    expect(callbackScreen(callbackProblem(taken))).toBe("taken");
+    expect(callbackScreen(callbackProblem(`${CB}?error=access_denied`))).toBe("google");
+    expect(callbackScreen(callbackProblem(`${CB}#error_code=otp_expired`))).toBe("stale");
+    expect(callbackScreen(callbackProblem(CB))).toBeNull();
   });
 
   it("sees nothing wrong in a clean return or a session in the URL", () => {
@@ -242,6 +256,7 @@ describe("sign-up carries where to come back to", () => {
 
   it("drops a next that could leave the site or loop", () => {
     expect(withNext("/auth/callback", "//evil.com")).toBe("/auth/callback");
+    expect(withNext("/auth/callback", "/.//evil.com")).toBe("/auth/callback");
     expect(withNext("/auth/callback", "https://evil.com/x")).toBe("/auth/callback");
     expect(withNext("/auth/callback", "/signup?next=%2Fyou")).toBe("/auth/callback");
     expect(withNext("/auth/callback", null)).toBe("/auth/callback");
@@ -256,8 +271,35 @@ describe("sign-up carries where to come back to", () => {
 
   it("sends a fresh sign-up's confirmation link to the callback with next", async () => {
     install();
-    expect(await createAccount("a@b.co", "longenough", next)).toEqual({ ok: true, checkInbox: true });
+    expect(await createAccount("a@b.co", "longenough", next)).toEqual({ ok: true, checkInbox: true, thenSignIn: true });
     expect(fake.redirects).toEqual([{ call: "signUp", to: `https://speakethos.com/auth/callback?next=${encoded}` }]);
+  });
+
+  it("asks a sign-up with no guest session to sign in once confirmed, never a guest", async () => {
+    install();
+    // signUp makes no session, so the floor would ask for an account again.
+    expect((await createAccount("a@b.co", "longenough")).thenSignIn).toBe(true);
+    fake.anonymous = true;
+    expect((await createAccount("a@b.co", "")).thenSignIn).toBeUndefined();
+  });
+
+  it("tells the account gate a guest's link is on its way when the server timed out", async () => {
+    install();
+    const store = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+    });
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
+    fake.anonymous = true;
+    fake.updateError = { message: "504: Gateway Timeout" };
+    const result = await createAccount("a@b.co", "", next);
+    fake.updateError = null;
+    quiet.mockRestore();
+    expect(result).toMatchObject({ ok: true, checkInbox: true });
+    const flag = store.get(EMAIL_ASKED_KEY);
+    expect(flag).toBeDefined();
+    expect(emailAskedFor(flag!, "user-1")).toBe(true);
   });
 
   it("sends Google back to the callback with next, linking or signing in", async () => {

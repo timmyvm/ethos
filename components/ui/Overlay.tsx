@@ -29,6 +29,7 @@ import {
   rubberband,
   springMs,
   springStateAt,
+  SHEET_LAUNCH,
 } from "@/lib/spring";
 
 /**
@@ -203,7 +204,10 @@ function riseVelocity(el: HTMLElement): number | null {
     );
   const ms = rise?.currentTime;
   if (typeof ms !== "number") return null;
-  return springStateAt({ from: el.offsetHeight, to: 0, velocity: 0, spring: SPRING.sheet }, ms / 1000).velocity;
+  // The rise leaves the edge already moving (#415): SHEET_LAUNCH edge
+  // heights a second, upward.
+  const h = el.offsetHeight;
+  return springStateAt({ from: h, to: 0, velocity: -SHEET_LAUNCH * h, spring: SPRING.sheet }, ms / 1000).velocity;
 }
 
 export function Overlay({

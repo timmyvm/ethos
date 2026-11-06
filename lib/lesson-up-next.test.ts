@@ -56,7 +56,8 @@ describe("the lesson that gets the Lessons page's one tap", () => {
 describe("the number a trait's section opens with", () => {
   const row = (over: Record<string, unknown> = {}) => ({
     duration_s: 60,
-    transcript: "So the thing about habits is they compound and the big version arrives on its own.",
+    transcript:
+      "So the thing about habits is they compound quietly, and the big version arrives on its own once the small daily version has been done for long enough.",
     wpm: 140,
     filler_count: 2,
     fillers: [{ word: "um" }, { word: "like" }],
@@ -85,6 +86,13 @@ describe("the number a trait's section opens with", () => {
   it("says nothing for a row with no length or no words", () => {
     expect(lastReadings([row({ duration_s: 0 })])).toEqual({});
     expect(lastReadings([row({ transcript: "" })])).toEqual({});
+  });
+
+  /* A take too short to score read "7 words a minute" as Your number. */
+  it("reads the last recording that measured something, past a take too short to score", () => {
+    const short = row({ transcript: "Um hello.", wpm: 7, duration_s: 8.3 });
+    expect(lastReadings([row({ wpm: 140 }), short]).pace).toBe(140);
+    expect(lastReadings([short])).toEqual({});
   });
 });
 

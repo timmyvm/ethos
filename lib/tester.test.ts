@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CODE_COPY, CONSENT, CONSENT_VERSION, DOOR_COPY, FELT_COPY, JOINED_COPY, MATCH_COPY, PAUSED_COPY, TEST_COPY } from "@/content/tester";
 import {
+  collects,
   askedFrom,
   asksForNote,
   cleanNote,
@@ -101,6 +102,22 @@ describe("who sees the match check", () => {
    * anything more is kept (0021 refuses their answers too): the question
    * waits until they have read the one that names the services.
    */
+  it("not a tester once they stopped testing (#416), consent and all kept", () => {
+    const stopped = { ...TESTER, stopped_at: "2026-11-16T09:00:00.000Z" };
+    expect(isCurrentTester(stopped)).toBe(false);
+    expect(collects(stopped)).toBe(false);
+    expect(isCurrentTester({ ...TESTER, stopped_at: null })).toBe(true);
+    expect(showsMatchCheck({ tester: stopped, scorable: true, clientId: KEY })).toBe(false);
+  });
+
+  it("says plainly that testing goes on after the test and how to stop it (#416)", () => {
+    for (const s of [JOINED_COPY.goesOn, JOINED_COPY.stopSure, JOINED_COPY.stop, JOINED_COPY.stopped]) {
+      expect(s).not.toMatch(/—|–/);
+      expect(s).not.toMatch(/\b(gym|workout|drill|rep|training)\b/i);
+    }
+    expect(JOINED_COPY.goesOn).toMatch(/after 15 November/);
+  });
+
   it("not a tester whose consent is older than the one on screen", () => {
     const older = { ...TESTER, consent_version: CONSENT_VERSION - 1 };
     expect(isCurrentTester(older)).toBe(false);

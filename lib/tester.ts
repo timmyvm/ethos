@@ -69,6 +69,8 @@ export interface TesterRow {
   consented_at: string;
   /** When the account joined (0020): the test's days count from here. A carried consent keeps the first. */
   created_at?: string;
+  /** When they tapped Stop testing (0025, #416): set, nothing more is asked or collected. */
+  stopped_at?: string | null;
 }
 
 /**
@@ -77,7 +79,8 @@ export interface TesterRow {
  * waits, Settings offers the code again, and 0021 refuses their answers.
  */
 export function isCurrentTester(row: TesterRow | null | undefined): row is TesterRow {
-  return !!row && row.consent_version >= CONSENT_VERSION;
+  // A tester who stopped (#416) is a tester no longer, on every screen.
+  return !!row && row.consent_version >= CONSENT_VERSION && !row.stopped_at;
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

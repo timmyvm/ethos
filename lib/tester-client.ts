@@ -88,11 +88,15 @@ export async function fetchTester(): Promise<TesterRow | null> {
   if (!me) return null;
   const { data, error } = await db
     .from("testers")
-    .select("consent_version, consented_at, created_at")
+    .select("consent_version, consented_at, created_at, stopped_at")
     .eq("user_id", me.userId)
     .maybeSingle();
   if (error) throw error;
-  const row = (data as TesterRow | null) ?? null;
+  const found = (data as TesterRow | null) ?? null;
+  /* A tester who stopped (#416) is no tester on this phone: no tile, no
+     questions, Settings' plain code row, and the code page to start
+     again. The row stays on the server, with what they agreed to. */
+  const row = found && !found.stopped_at ? found : null;
   keepHint(row !== null);
   return row;
 }
@@ -103,15 +107,20 @@ let once: Promise<TesterRow | null> | null = null;
  * The account's testers row, read once per page life and shared by the
  * open's layer (components/tester/TesterLayer.tsx) and Today's test tile,
  * so a tab switch never reads it again. Cleared whenever testing may
- * have changed (`announce`), and after a failed read.
+ * have changed (`announce`), and after a read with no answer: one that
+ * failed, or a null that left the hint standing (no session could be
+ * read, an open with no connection), so the next read asks again.
  */
 export function testerOnce(): Promise<TesterRow | null> {
   if (!once) {
     const p = fetchTester();
     once = p;
-    p.catch(() => {
+    const forget = () => {
       if (once === p) once = null;
-    });
+    };
+    p.then((row) => {
+      if (row === null && readTesterHint()) forget();
+    }, forget);
   }
   return once;
 }
@@ -347,6 +356,22 @@ export async function joinTesting(code: string | null): Promise<CodeAnswer> {
   if (answer.ok) {
     keepHint(true);
     // The consent changed even when the hint did not: collection starts.
+    announce();
+  }
+  return answer;
+}
+
+/**
+ * Stop testing (#416): the server marks this account's row, and this
+ * phone forgets it was a tester and tells collection, so nothing more
+ * is sent from this open on.
+ */
+export async function stopTesting(): Promise<CodeAnswer> {
+  const db = supabaseBrowser();
+  const token = db ? ((await db.auth.getSession()).data.session?.access_token ?? null) : null;
+  const answer = await post({ stop: true }, token);
+  if (answer.ok) {
+    keepHint(false);
     announce();
   }
   return answer;

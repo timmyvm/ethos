@@ -20,6 +20,7 @@
 
 import type { RepRow } from "./client-data";
 import { computeStreak } from "./streak";
+import { measured } from "./trait-readings";
 
 /** Which drawn mark sits beside it. Keyed by the thing measured. */
 export type AchievementIcon =
@@ -57,11 +58,15 @@ function fpm(r: RepRow): number {
 
 export function achievements(reps: RepRow[]): Achievement[] {
   const streak = computeStreak(reps.map((r) => new Date(r.created_at)));
+  /* Recording counts and the streak count every take; a badge that names
+     a number reads only takes that measured one. A two-word take at 0
+     fillers a minute earned "Under 3 fillers a minute". */
+  const kept = reps.filter(measured);
   const best = (fn: (r: RepRow) => number) =>
-    reps.length ? Math.max(...reps.map(fn)) : 0;
-  const cleanest = reps.length ? Math.min(...reps.map(fpm)) : Infinity;
-  const inZone = reps.filter((r) => r.wpm >= 130 && r.wpm <= 160).length;
-  const bestIndex = reps.reduce((a, r) => Math.max(a, r.ethos_index ?? 0), 0);
+    kept.length ? Math.max(...kept.map(fn)) : 0;
+  const cleanest = kept.length ? Math.min(...kept.map(fpm)) : Infinity;
+  const inZone = kept.filter((r) => r.wpm >= 130 && r.wpm <= 160).length;
+  const bestIndex = kept.reduce((a, r) => Math.max(a, r.ethos_index ?? 0), 0);
 
   /*
    * Ordered, hardest last. One rep can win the first four; the last

@@ -31,6 +31,17 @@ describe("safeNextPath", () => {
     }
   });
 
+  it("refuses a path that only becomes //host once it is normalised", () => {
+    for (const bad of ["/.//evil.com", "/%2e//evil.com", "/a/..//evil.com", "/.//evil.com/signin?x=1"]) {
+      expect(safeNextPath(bad)).toBeNull();
+    }
+    expect(nextFrom("?next=%2F.%2F%2Fevil.com")).toBeNull();
+    expect(onwardLink("/.//evil.com")).toEqual({ href: "/", label: "Back to the floor" });
+    expect(authHref("signin", "/.//evil.com")).toBe("/signin");
+    // A normalised path that stays on the site is still kept.
+    expect(safeNextPath("/./games")).toBe("/games");
+  });
+
   it("never sends anyone back to an auth screen", () => {
     expect(safeNextPath("/signin?next=/you")).toBeNull();
     expect(safeNextPath("/signup")).toBeNull();

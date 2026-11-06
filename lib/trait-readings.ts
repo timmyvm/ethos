@@ -21,7 +21,7 @@
 
 import { NORMS, type NormQuality } from "@/content/norms";
 import { TRAIT, TRAITS, type TraitId } from "@/content/traits";
-import { FILLED_PAUSES, per100, substance, type RepMetrics } from "./metrics";
+import { FILLED_PAUSES, isScorable, per100, substance, type RepMetrics } from "./metrics";
 import { REPAIR_ZERO_AT } from "./index-score";
 import { fraction, percentile, valueFor } from "./percentile";
 
@@ -236,6 +236,28 @@ export function nextLine(r: TraitReading): string | null {
     return `To reach the ${ordinal(step.target)}: ${TRAIT[r.id].move(n, step.up)}`;
   }
   return `Already near the top of this one. Holding ${withUnit(r.id, r.raw)} is the work now.`;
+}
+
+/**
+ * Whether a stored recording measured anything: the engine's own
+ * substance gate (`isScorable`), re-run on the transcript, as
+ * `lib/traits.ts` already does before a take may level a trait. A take
+ * under twenty words read "Not enough to score" on its results, and a
+ * one-word 8s take still came back as Pace 7 wpm, Fillers 0 and a clean
+ * run: every surface that reads a trait, a record or a badge off a row
+ * skips the rows this refuses. Not `ethos_index`: a meter-capped take is
+ * scorable and carries none.
+ *
+ * Remembered per row, because the challenge asks it of every row once a
+ * day for a month of days.
+ */
+const measuredRows = new WeakMap<object, boolean>();
+export function measured(row: { transcript: string | null }): boolean {
+  const known = measuredRows.get(row);
+  if (known !== undefined) return known;
+  const ok = isScorable(substance(row.transcript ?? ""));
+  measuredRows.set(row, ok);
+  return ok;
 }
 
 /**

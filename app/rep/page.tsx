@@ -40,6 +40,7 @@ import { DOOR_COPY, FELT_COPY } from "@/content/tester";
 import { feltRow, pausedTester, scoreSnapshot, showsMatchCheck, type Felt, type TesterRow } from "@/lib/tester";
 import { saveMatch, useTester } from "@/lib/tester-client";
 import { testerRecord } from "@/lib/tester-signal";
+import { dayTurned } from "@/lib/home";
 import { liteGraphics } from "@/lib/graphics";
 import { inAppBrowser, inAppLine } from "@/lib/in-app";
 import { readOnboarding } from "@/lib/answers";
@@ -51,7 +52,6 @@ import { recordingTrait } from "@/lib/log";
 import { practiceFamily, recordingObject } from "@/lib/practice-family";
 import { animateSpring, SPRING, springEasing, springMs } from "@/lib/spring";
 import { useHourLabel } from "@/lib/time-label";
-import { achievements } from "@/lib/achievements";
 import {
   fetchProfile,
   fetchRepSpine,
@@ -109,14 +109,16 @@ import {
   type CaptureMode,
 } from "@/lib/prefs";
 import { armReminder } from "@/lib/reminders";
-import { nextMilestones, repGains } from "@/lib/progress";
+import { repGains } from "@/lib/progress";
+import { celebrates, type RewardMoment } from "@/lib/rewards";
 import {
-  anticipation,
-  endNote,
-  celebrates,
-  personalBests,
-  type RewardMoment,
-} from "@/lib/rewards";
+  backLabel,
+  celebratesStreak,
+  defaultBack,
+  recordCue,
+  takeRewards,
+  thinksFirst,
+} from "@/lib/rep-screen";
 import { unlockSfx } from "@/lib/sfx";
 import { computeStreak } from "@/lib/streak";
 import { nextDrill } from "@/lib/drills";
@@ -209,6 +211,11 @@ const CAMERA_DEVICE_FAILURES = new Set([
 
 /** A failure we already have words for. Anything else gets the generic. */
 class ScoringFailure extends Error {}
+
+/** How long a take ran, to a tenth of a second: a tester's record_stop. */
+function ranFor(startedAt: number, now = Date.now()): number {
+  return Math.round((now - startedAt) / 100) / 10;
+}
 
 type Phase =
   | "idle"
@@ -439,7 +446,12 @@ function RepScreen() {
     didToday: boolean;
     /** How many recordings came before this one. */
     count: number;
+    /** When it was read: a screen left open past midnight reads a new day (#416 review). */
+    at: Date;
   } | null>(null);
+  /** The baseline's "done today", only while it is still that day. */
+  const doneToday = (b: { didToday: boolean; at: Date } | null) =>
+    !!b && b.didToday && !dayTurned(b.at, new Date());
 
   /**
    * Can this browser do on-device pose? Feature detection, answered the
@@ -520,20 +532,11 @@ function RepScreen() {
           reps: rows,
           didToday: streak.didToday,
           count: all.length,
+          at: new Date(),
         };
         const xp = await fetchXp().catch(() => ({ total: 0, week: 0 }));
         setAnticipate(
-          anticipation(
-            nextMilestones({
-              reps: rows,
-              starMap: map,
-              streak,
-              xp: xp.total,
-              freezesEquipped: 0,
-              achievements: achievements(rows),
-            }),
-            streak
-          )
+          recordCue({ reps: rows, starMap: map, streak, xp: xp.total })
         );
       })
       .catch(() => {});
@@ -545,6 +548,8 @@ function RepScreen() {
   const videoElRef = useRef<HTMLVideoElement | null>(null);
   /** A start is opening the device: further taps wait for it. */
   const startingRef = useRef(false);
+  /** This take's think time already ran out, so Record starts it. */
+  const thoughtRef = useRef(false);
   const phaseRef = useRef<Phase>("idle");
   phaseRef.current = phase;
   const configRef = useRef<RepConfig>(config);
@@ -667,7 +672,10 @@ function RepScreen() {
             streak: computeStreak(dates),
           }));
           if (!live()) return;
-          if (streak.current > 0) setCelebrate(streak.current);
+          // Only the take that made today count rolls the streak up; a
+          // second take of the day used to replay the roll and its chime.
+          // Read before the baseline below takes this take in.
+          if (celebratesStreak(streak, { didToday: doneToday(baselineRef.current) })) setCelebrate(streak.current);
           setStreakNow(streak.current);
           // Re-arm the reminder now that today's practice is DONE. A
           // reminder armed this morning is still scheduled for this
@@ -713,23 +721,26 @@ function RepScreen() {
                stars. A star or a held streak is said elsewhere (the
                bests, the streak's own moment), not by spending it. */
             setEarnedNow(
-              celebrates(before.reps, analyzed.metrics.stars, analyzed.ethosIndex)
+              analyzed.scorable &&
+                celebrates(before.reps, analyzed.metrics.stars, analyzed.ethosIndex)
             );
             // before.reps is the history captured on mount — the true
             // "before", independent of whether this rep persisted.
-            setBests(
-              personalBests(before.reps, analyzed.metrics, analyzed.ethosIndex)
-            );
             // Streak-end rule: the last thing on screen decides whether
             // they come back, so it is always something true and good.
-            setClosing(
-              endNote({
-                gains: nextGains,
-                metrics: analyzed.metrics,
-                streak,
-                repCount: all.length,
-              })
-            );
+            // A take too short to score breaks no record and ends on the
+            // streak or the count, never a number read off one word.
+            const rewards = takeRewards({
+              scorable: analyzed.scorable,
+              prior: before.reps,
+              metrics: analyzed.metrics,
+              ethosIndex: analyzed.ethosIndex,
+              gains: nextGains,
+              streak,
+              repCount: all.length,
+            });
+            setBests(rewards.bests);
+            setClosing(rewards.closing);
           }
           // The next take on this screen (Retake, Go again, Practice N
           // of 3, Next lesson, Another round all keep it mounted) is
@@ -746,7 +757,14 @@ function RepScreen() {
             // Spoken today, whether or not the row was stored.
             didToday: true,
             count: all.length,
+            at: new Date(),
           };
+          // And the line under the next Record reads from it too: the
+          // one from the screen's open said "keeps a 6-day streak alive"
+          // after the debrief had just said 7.
+          const xp = await fetchXp().catch(() => ({ total: 0, week: 0 }));
+          if (!live()) return;
+          setAnticipate(recordCue({ reps, starMap: mapNow, streak, xp: xp.total }));
         })
         .catch(() => {});
     } catch (e) {
@@ -805,7 +823,7 @@ function RepScreen() {
     // When it was spoken: the outbox sends this with the take
     // (`recordedAt`), so a late upload still lands on this day.
     const spokenAt = Date.now();
-    testerRecord("record_stop", { seconds: Math.round((spokenAt - takeStartedAt.current) / 100) / 10 });
+    testerRecord("record_stop", { seconds: ranFor(takeStartedAt.current, spokenAt) });
     buzz([20, 40, 20]);
     setPhase("analyzing");
     setInterruption(null);
@@ -1153,6 +1171,8 @@ function RepScreen() {
       const was = topicRef.current?.getBoundingClientRect();
       flipFrom.current = was ? { top: was.top, height: was.height } : null;
       setPhase("recording");
+      // The next take gets its own think time.
+      thoughtRef.current = false;
       // A tester on consent version 3 (a no-op for everyone else).
       takeStartedAt.current = Date.now();
       testerRecord("record_start", { video: captureModeRef.current === "voice_video" });
@@ -1215,6 +1235,12 @@ function RepScreen() {
       if (r.videoRecorder && r.videoRecorder.state !== "inactive") r.videoRecorder.stop();
     } catch {}
     teardown();
+    // A thrown-away take still ends for tester collection: without the
+    // stop, every Start over read as a page that died mid-take (#412).
+    testerRecord("record_stop", {
+      discarded: true,
+      seconds: ranFor(takeStartedAt.current),
+    });
     setInterruption(null);
     setPoseFrames(null);
     setRing("ok");
@@ -1237,6 +1263,10 @@ function RepScreen() {
     setClosing(null);
     setCelebrate(null);
     setEarnedNow(false);
+    // The coin belongs to the take that earned it: the retake's score
+    // step showed "+1" until its own coin read came back, or for good
+    // when that read failed.
+    setCoined(false);
     setSeconds(0);
     meterLevel.current = 0;
     meterPeak.current = 0;
@@ -1272,7 +1302,7 @@ function RepScreen() {
 
   /** Frame step (DECISIONS #35): opt-in think time before the clock. */
   const begin = useCallback(() => {
-    if (readPrefs().frameStep) {
+    if (thinksFirst(readPrefs().frameStep, thoughtRef.current)) {
       setFrameLeft(FRAME_SECONDS);
       setPhase("frame");
     } else {
@@ -1288,13 +1318,27 @@ function RepScreen() {
     // does, so the mic is never on behind a Record button.
     const r = recRef.current;
     if (r) {
+      // A take already stopping sent its own stop; a live one is thrown away.
+      const live = phaseRef.current === "recording";
       try {
         r.recorder.stop();
         r.videoRecorder?.stop();
       } catch {}
       teardown();
-      testerRecord("record_stop", { discarded: true });
+      if (live) {
+        testerRecord("record_stop", {
+          discarded: true,
+          seconds: ranFor(takeStartedAt.current),
+        });
+      }
     }
+    // The last recording's refused mic, failed upload and spent think
+    // time are not this one's: a refusal left the next recording an idle
+    // screen with no Record button and no help.
+    setMicBlock(null);
+    setError(null);
+    pendingRef.current = null;
+    thoughtRef.current = false;
     setInterruption(null);
     setRepCount((n) => baselineRef.current?.count ?? n);
     setResult(null);
@@ -1363,6 +1407,7 @@ function RepScreen() {
     const t = setInterval(() => {
       setFrameLeft((s) => {
         if (s <= 1) {
+          thoughtRef.current = true;
           setPhase("idle");
           return 0;
         }
@@ -1419,10 +1464,21 @@ function RepScreen() {
       // a discarded take, not one to score after the screen is gone.
       recRef.current = null;
       if (r) {
+        // Not stopped by Stop yet: the take is thrown away, and tester
+        // collection hears that rather than a take that died.
+        if (phaseRef.current === "recording") {
+          testerRecord("record_stop", {
+            discarded: true,
+            seconds: ranFor(takeStartedAt.current),
+          });
+        }
         try {
           r.recorder.stop();
           r.videoRecorder?.stop();
         } catch {}
+        // The lost-mic listeners (#412) held this take's audio in memory
+        // until a reload.
+        r.offWatch?.();
         cancelAnimationFrame(r.raf);
         if (r.interruptTimer) clearTimeout(r.interruptTimer);
         r.sampler?.stop();
@@ -1530,7 +1586,7 @@ function RepScreen() {
    * be an open redirect wearing a query string.
    */
   const backTo = safeBack(searchParams.get("back"));
-  const backHref = backTo ?? (config.kind === "boss" ? "/boss" : "/");
+  const backHref = backTo ?? defaultBack(config);
   /*
    * recording-3: while the mic is hot (and while its take is being
    * scored) Stop is the only control. Leaving would unmount the
@@ -1895,6 +1951,22 @@ function RepScreen() {
             >
               {phase === "recording" ? "Stop" : "Record"}
             </button>
+            {/* The way out of a take started by mistake (#407): quiet,
+                beside Stop so the screen's one tap stays Stop. Not under
+                it: Stop rises when the take starts, and that put Start
+                over exactly where Record had been, so a second tap on
+                Record threw the take away without a word. Beside the
+                circle it is clear of Record's footprint at every width. */}
+            {phase === "recording" && (
+              <span className="arrive absolute inset-y-0 right-full mr-4 flex items-center">
+                <button
+                  onClick={discardTake}
+                  className="press min-h-11 whitespace-nowrap px-3 text-link text-stone-500"
+                >
+                  Start over
+                </button>
+              </span>
+            )}
           </div>
         )}
 
@@ -1922,17 +1994,6 @@ function RepScreen() {
           >
             {anticipate.headline}
           </p>
-        )}
-
-        {/* The way out of a take started by mistake (#407): quiet, under
-            Stop, so the screen's one tap stays Stop. */}
-        {phase === "recording" && (
-          <button
-            onClick={discardTake}
-            className="press min-h-11 px-3 text-link text-stone-500"
-          >
-            Start over
-          </button>
         )}
 
         {phase === "idle" && (repCount === 0 || captureMode === "voice_video") && (
@@ -1978,18 +2039,6 @@ function RepScreen() {
 
 function fmt(s: number) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-}
-
-/**
- * recording-4: the back control names where it goes, like every other
- * back in the app (BackLink, system-4), never a lowercase "← back".
- */
-function backLabel(href: string): string {
-  const path = href.split(/[?#]/)[0];
-  if (path === "/") return "Today";
-  if (path === "/boss" || path.startsWith("/boss/")) return "Boss";
-  if (/^\/(lessons?|practice)\//.test(path)) return "Lesson";
-  return "Back";
 }
 
 /**

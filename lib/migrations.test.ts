@@ -242,3 +242,68 @@ describe("0023 saved words", () => {
     expect(guards).toBe(policies);
   });
 });
+
+/**
+ * 0024: saved words, bounded per account. Any session (an anonymous one
+ * is free) could save rows without end through the anon key and push
+ * the database toward its size cap, the risk 0021 closed for tester
+ * answers. An account keeps as many as Your words reads, and a pair
+ * saved already still reaches the unique key, which the phone reads
+ * back as the row it is.
+ */
+describe("0024 saved words cap", () => {
+  const raw = readFileSync(path.join(DIR, "0024_saved_words_cap.sql"), "utf8");
+  const sql = code("0024_saved_words_cap.sql");
+
+  it("holds neither of the connector's words, comments included", () => {
+    expect(raw).not.toMatch(/drop|delete/i);
+  });
+
+  it("caps an account's swaps with a row trigger, one writer per account", () => {
+    expect(sql).toMatch(/create or replace trigger saved_words_cap\s+before insert on public\.saved_words\s+for each row/);
+    expect(sql).toMatch(/pg_advisory_xact_lock\(hashtext\('saved_words:' \|\| new\.user_id::text\)\)/);
+    expect(sql).toMatch(/where s\.user_id = new\.user_id\) >= 500 then/);
+    expect(sql).toMatch(/errcode = 'check_violation'/);
+  });
+
+  it("caps at as many as Your words reads, so every kept swap is listed", () => {
+    const cap = Number(sql.match(/>= (\d+) then/)?.[1]);
+    const src = readFileSync(path.resolve(__dirname, "saved-words.ts"), "utf8");
+    const listed = Number(src.match(/fetchSavedWords\(limit = (\d+)\)/)?.[1]);
+    expect(cap).toBe(500);
+    expect(cap).toBeLessThanOrEqual(listed);
+  });
+
+  it("lets a pair saved already through to the unique key", () => {
+    const pair = sql.indexOf("s.word = new.word and s.instead = new.instead");
+    const count = sql.indexOf(">= 500 then");
+    expect(pair).toBeGreaterThan(0);
+    expect(pair).toBeLessThan(count);
+  });
+
+  it("is safe to run twice and runs only as the trigger", () => {
+    expect(sql).toMatch(/create or replace function public\.saved_words_cap\(\)/);
+    expect(sql).toMatch(/set search_path = ''/);
+    expect(sql).toMatch(/revoke execute on function public\.saved_words_cap\(\) from public, anon, authenticated/);
+    expect(sql).not.toMatch(/security definer/);
+  });
+});
+
+/*
+ * 0025: Stop testing (#416). Additive and idempotent: one nullable
+ * column the service role sets for the caller's own row; no policy or
+ * grant changes, and neither of the connector's words.
+ */
+describe("0025 tester stop", () => {
+  const raw = readFileSync(path.join(DIR, "0025_tester_stop.sql"), "utf8");
+  const sql = code("0025_tester_stop.sql");
+
+  it("holds neither of the connector's words, comments included", () => {
+    expect(raw).not.toMatch(/drop|delete/i);
+  });
+
+  it("adds the stop time, once, and touches nothing else", () => {
+    expect(sql).toMatch(/alter table public\.testers\s+add column if not exists stopped_at timestamptz;/);
+    expect(sql).not.toMatch(/policy|grant|revoke/i);
+  });
+});

@@ -111,6 +111,15 @@ export const JOINED_COPY = {
   demos: "Send Timothy your tester number.",
   copy: "Copy",
   copied: "Copied",
+  /* Stop testing (#416). Collection carries on after the test (#405), so
+     the way out is here, said plainly. */
+  goesOn: "Testing keeps going after 15 November until you stop it here. What you sent so far stays, as you agreed.",
+  stop: "Stop testing",
+  stopSure: "Stop testing? Ethos stops sending anything about how you use it, and stops asking after recordings.",
+  stopYes: "Yes, stop testing",
+  stopNo: "Keep testing",
+  stopFailed: "Testing didn't stop. Try again in a minute.",
+  stopped: "You've stopped testing. Thanks for everything you sent.",
 } as const;
 
 /**

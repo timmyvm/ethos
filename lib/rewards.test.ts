@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RepRow } from "./client-data";
-import { computeMetrics, type RepMetrics } from "./metrics";
+import { computeMetrics, substance, type RepMetrics } from "./metrics";
 import type { Milestone } from "./progress";
 import {
   anticipation,
@@ -39,8 +39,13 @@ const ms = (over: Partial<Milestone> = {}): Milestone => ({
   ...over,
 });
 
+/** Enough words to score (`isScorable`): these are real takes. */
+const SAID =
+  "The best part of my week was a long walk by the river with my sister after work on Friday, talking about nothing much.";
+
 const metrics = (over: Partial<RepMetrics> = {}): RepMetrics => ({
   ...computeMetrics([], 60),
+  substance: substance(SAID),
   durationS: 60,
   wpm: 145,
   fillerCount: 3,
@@ -56,6 +61,7 @@ const rep = (over: Partial<RepRow> = {}): RepRow =>
   ({
     id: Math.random().toString(36),
     duration_s: 60,
+    transcript: SAID,
     filler_count: 6,
     ethos_index: 600,
     pauses: [],
@@ -197,6 +203,23 @@ describe("endNote", () => {
     expect(e.detail).toMatch(/\w/);
   });
 
+  /* "Zero fillers, 5 seconds, clean." stood under "Not enough to score". */
+  it("ends a take too short to score on its streak or its count, never a number", () => {
+    const short = metrics({
+      substance: substance("Okay then."),
+      durationS: 5,
+      fillerCount: 0,
+      composedPauses: 1,
+      wpm: 145,
+    });
+    expect(endNote({ ...base, metrics: short, streak: streak({ current: 3 }) }).headline).toBe(
+      "3 days running"
+    );
+    expect(endNote({ ...base, metrics: short, streak: streak() }).headline).toBe(
+      "Recording 4 logged"
+    );
+  });
+
   it("never ends on a criticism", () => {
     const harsh = /too many|bad|poor|worse|failed|sloppy/i;
     for (const m of [
@@ -242,6 +265,22 @@ describe("personalBests", () => {
       600
     );
     expect(out).toEqual([]);
+  });
+
+  /* A two-word take read "Cleanest recording yet, 0/min, under your 3". */
+  it("holds and breaks no record with a take too short to score", () => {
+    const prior = [rep({ filler_count: 5 }), rep({ filler_count: 3 })];
+    const short = metrics({ substance: substance("Okay then."), fillersPerMin: 0, heldPauses: 9 });
+    expect(personalBests(prior, short, null)).toEqual([]);
+    // A stored short take at 0 fillers a minute is no best to beat.
+    const out = personalBests(
+      [...prior, rep({ transcript: "Hi.", filler_count: 0, duration_s: 3 })],
+      metrics({ fillersPerMin: 1 }),
+      null
+    );
+    expect(out.map((b) => b.detail)).toContain("1/min, under your 3");
+    // Nothing measured before it: nothing to beat, and no "past -Infinity".
+    expect(personalBests([rep({ transcript: "Hi." })], metrics({ heldPauses: 4 }), null)).toEqual([]);
   });
 
   it("names the number it beat, every time", () => {

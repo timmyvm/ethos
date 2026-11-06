@@ -12,6 +12,7 @@ import {
 } from "@/lib/tester-client";
 import { sessionToken } from "@/lib/supabase-browser";
 import type { Collecting } from "@/lib/tester-collect";
+import { readAgainWhenBack } from "@/lib/tester-retry";
 import { dropEarly, testerEarly } from "@/lib/tester-signal";
 
 /**
@@ -36,6 +37,12 @@ import { dropEarly, testerEarly } from "@/lib/tester-signal";
  * (lib/tester-signal.ts, five at most, as the error boundary's are), so
  * a crash on the first screen of an open is reported once collection
  * starts (review F1). The row saying no lets them go.
+ *
+ * A read that could not be answered (an open with no connection, or no
+ * session to read with) is read again once the phone is back
+ * (lib/tester-retry.ts), holding what breaks meanwhile: the read was
+ * never tried again, and a tester who opened the app offline was not
+ * collected for the rest of that page life.
  */
 export function TesterLayer() {
   const pathname = usePathname();
@@ -43,6 +50,8 @@ export function TesterLayer() {
   const running = useRef<Collecting | null>(null);
   const row = useRef<TesterRow | null>(null);
   const [check, setCheck] = useState(0);
+  /** Reads in a row that could not be answered, for the wait before the next. */
+  const misses = useRef(0);
 
   useEffect(() => {
     const again = () => setCheck((n) => n + 1);
@@ -90,9 +99,20 @@ export function TesterLayer() {
       window.addEventListener("error", onError);
       window.addEventListener("unhandledrejection", onRejection);
     }
+    let cancelAgain = () => {};
+    /* No answer, or the collector's file did not load: read again once the phone is back. */
+    const unknown = () => {
+      if (!live) return;
+      if (running.current) return unwatch();
+      misses.current += 1;
+      cancelAgain = readAgainWhenBack(misses.current, () => setCheck((n) => n + 1));
+    };
     testerOnce()
       .then(async (t) => {
         if (!live) return;
+        // No row while the hint stands: no session could be read, not a no.
+        if (t === null && readTesterHint()) return unknown();
+        misses.current = 0;
         row.current = t;
         if (!collects(t)) {
           unwatch();
@@ -107,9 +127,10 @@ export function TesterLayer() {
         if (!live || running.current || !collects(row.current)) return;
         running.current = startCollecting({ token: sessionToken });
       })
-      .catch(unwatch);
+      .catch(unknown);
     return () => {
       live = false;
+      cancelAgain();
       unwatch();
     };
     // `ask` reads refs and the router only.

@@ -820,6 +820,11 @@ export function fakeDb(users: string[]) {
       this.filters.push((r) => r[column] === value);
       return this;
     }
+    is(column: string, value: unknown) {
+      if (value === null) this.filters.push((r) => r[column] == null);
+      else this.filters.push((r) => r[column] === value);
+      return this;
+    }
     not(column: string, operator: string, value: unknown) {
       if (operator === "is" && value === null) this.filters.push((r) => r[column] != null);
       return this;

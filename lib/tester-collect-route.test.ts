@@ -107,6 +107,13 @@ async function call(
 const events = () => db.state.tables.tester_events ?? [];
 
 describe("POST /api/tester/collect, who it takes from", () => {
+  it("takes nothing more from a tester who stopped testing (#416)", async () => {
+    db.row("testers", TESTER)!.stopped_at = "2026-11-16T09:00:00.000Z";
+    const res = await call({ events: BATCH });
+    expect(res).toEqual({ status: 403, body: { error: "Not testing.", stop: true } });
+    expect(events()).toEqual([]);
+  });
+
   it("takes nothing from an account that is not a tester, and spends nothing for it", async () => {
     const res = await call({ events: BATCH }, { token: "tok_stranger" });
     expect(res).toEqual({ status: 403, body: { error: "Not testing.", stop: true } });

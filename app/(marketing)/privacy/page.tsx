@@ -182,7 +182,9 @@ export default function Privacy() {
         <h2 className={HEAD}>Testers</h2>
         <p className={READ}>
           If you joined with a tester code and agreed to the list on the
-          consent screen, Ethos keeps all of this while you test:
+          consent screen, Ethos keeps all of this while you test. Testing
+          keeps going after 15 November until you tap Stop testing in
+          Settings, Testing Ethos:
         </p>
         <ul className="mt-3 list-disc space-y-2 pl-5 text-read text-stone-800 marker:text-stone-300">
           <li>

@@ -15,14 +15,19 @@ export interface LineMetrics {
   durationS: number;
   fillers: { word: string }[];
   topFiller?: string | null;
+  /** False for a take too short to score: it measured nothing. */
+  scorable?: boolean;
 }
 
 /**
  * A line counted from the take, for one the coach never read: the
  * fillers, the length and the word said most. It never says tomorrow,
- * and never calls a take with fillers clean.
+ * and never calls a take with fillers clean. A take too short to score
+ * measured nothing, so it counts no fillers and calls nothing clean in
+ * it (#416 review): it asks for the length a score needs.
  */
 export function computedLine(m: LineMetrics): string {
+  if (m.scorable === false) return "Give it 60 to 90 seconds and a real answer.";
   const n = m.fillerCount;
   if (n === 0) return "Clean take.";
   const s = Math.round(m.durationS);

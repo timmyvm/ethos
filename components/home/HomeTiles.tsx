@@ -20,7 +20,7 @@ import {
   wideLine,
 } from "@/lib/home";
 import { DURATION } from "@/lib/motion";
-import { fmtRaw, ordinal, readTraitsFromRow, type TraitReading } from "@/lib/trait-readings";
+import { fmtRaw, measured, ordinal, readTraitsFromRow, type TraitReading } from "@/lib/trait-readings";
 
 /**
  * Today's bento (#393, D22 and D23): the card's trait wide, with today's
@@ -57,8 +57,12 @@ export function TodayTiles({
   focus: TraitId | null;
 }) {
   /* The readings are the newest recording's, today's included: the
-     numbers are the latest, the trait in the wide tile is the card's. */
-  const last = reps.length > 0 ? reps[reps.length - 1] : null;
+     numbers are the latest, the trait in the wide tile is the card's.
+     Newest that measured something: a take too short to score read
+     Pace 7 wpm and Fillers 0 here, under a results screen that said
+     nothing was measured. */
+  const kept = reps.filter(measured);
+  const last = kept.length > 0 ? kept[kept.length - 1] : null;
   const rows = traitOrder(last ? readTraitsFromRow(last) : [], focus);
   const run = cleanRunTile(reps);
   const [first, ...rest] = rows;

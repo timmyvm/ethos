@@ -15,6 +15,7 @@ import { DRILLS } from "./drills";
 import { gameById } from "./games";
 import { parsePracticeId } from "./lesson-progress";
 import { dimensionPoints, INDEX_WEIGHTS } from "./index-score";
+import { measured } from "./trait-readings";
 import { TRAITS, type TraitKey } from "./traits";
 import { ALL_FILLERS_PER_MIN, HELD_PER_RECORDING } from "./metric-labels";
 
@@ -125,16 +126,22 @@ export function rolling(series: number[], n: number): number[] {
   });
 }
 
-/** The four rows everyone sees, oldest recording first. */
+/**
+ * The four rows everyone sees, oldest recording first. The three
+ * measurements read only recordings that measured something: a one-word
+ * take printed Words / min 128 to 7 and Fillers 9.3 to 0.0 here. The
+ * Index row is already the scored ones.
+ */
 export function movedRows(reps: RepRow[]): MovedRow[] {
   const index = reps
     .filter((r) => r.ethos_index !== null)
     .map((r) => r.ethos_index as number);
+  const kept = reps.filter(measured);
   return [
     endpoints("index", "Ethos Index", index),
-    endpoints("fillers", ALL_FILLERS_PER_MIN, reps.map(fpm), { decimals: 1, invert: true }),
-    paceRow(reps.map((r) => r.wpm)),
-    endpoints("held", HELD_PER_RECORDING, reps.map(held)),
+    endpoints("fillers", ALL_FILLERS_PER_MIN, kept.map(fpm), { decimals: 1, invert: true }),
+    paceRow(kept.map((r) => r.wpm)),
+    endpoints("held", HELD_PER_RECORDING, kept.map(held)),
   ];
 }
 
@@ -149,14 +156,15 @@ export function presenceRow(reps: RepRow[]): MovedRow | null {
 
 /**
  * One row per Index dimension (#200), in the weighted points the
- * debrief speaks (#101), skipping recordings that never carried it.
+ * debrief speaks (#101), skipping recordings that never carried it, and
+ * takes too short to score, whose stored dimensions made no Index.
  */
 export function skillRows(reps: RepRow[]): MovedRow[] {
   return TRAITS.map((t) => {
     const series: number[] = [];
     for (const r of reps) {
       const d = r.dimensions;
-      if (!d) continue;
+      if (!d || !measured(r)) continue;
       const tier1 = d.tier1 as Partial<Record<TraitKey, number>>;
       const tier2 = d.tier2 as Partial<Record<TraitKey, { score: number }>> | null;
       const raw = tier1[t.key] ?? tier2?.[t.key]?.score;

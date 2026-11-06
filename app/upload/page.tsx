@@ -9,6 +9,7 @@ import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ensureSession } from "@/lib/supabase-browser";
 import { ACTION_CLASS } from "@/lib/ui";
+import { UPLOAD_MAX_MB, UPLOAD_TOO_BIG, uploadFailure, uploadTooBig } from "@/lib/upload";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 
 /**
@@ -28,7 +29,6 @@ import type { AnalyzeResponse } from "@/app/api/analyze/route";
  * and both light the focus ring when it has the keyboard (modes-21).
  */
 
-const MAX_MB = 25;
 /**
  * The scoring function has 60 seconds of wall time (Vercel Hobby), and
  * Whisper on a long meeting blows straight through it, reported live
@@ -72,8 +72,9 @@ export default function UploadPage() {
 
   async function analyze(file: File) {
     setError(null);
-    if (file.size > MAX_MB * 1024 * 1024) {
-      setError(`That file is over ${MAX_MB}MB. Trim it and try again.`);
+    // The real ceiling is the platform's, before the route runs (lib/upload.ts).
+    if (uploadTooBig(file.size)) {
+      setError(UPLOAD_TOO_BIG);
       return;
     }
     const duration = await readDuration(file);
@@ -100,12 +101,7 @@ export default function UploadPage() {
         | (AnalyzeResponse & { error?: string })
         | null;
       if (!res.ok || !data || data.error) {
-        throw new Error(
-          data?.error ??
-            (res.status === 504 || res.status === 502
-              ? `Scoring timed out. Files under about ${MAX_MINUTES} minutes work; trim it and try again.`
-              : "The scoring server didn't answer.")
-        );
+        throw new Error(uploadFailure(res.status, data?.error, MAX_MINUTES));
       }
       setResult(data);
       setAudioUrl(URL.createObjectURL(file));
@@ -162,7 +158,7 @@ export default function UploadPage() {
             </span>
             <span className="font-display text-row text-ink">Audio or video</span>
             <span className="text-caption tabular-nums text-stone-500">
-              Up to {MAX_MB}MB, {MAX_MINUTES} min
+              Up to {UPLOAD_MAX_MB}MB, {MAX_MINUTES} min
             </span>
           </label>
 

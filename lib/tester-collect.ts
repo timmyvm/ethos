@@ -126,6 +126,10 @@ export class Collector {
 
   record(name: RecordSignal, data?: Record<string, unknown>): void {
     this.push({ kind: "usage", name: name as UsageName, screen: this.screen, data: data ?? {} });
+    // A take the hide ended stops after the hide's beacon has gone (its
+    // listener came later), and the phone may never show the page again:
+    // the stop goes by beacon now, or the report reads a crash.
+    if (this.since === null) this.beaconFlush();
   }
 
   hidden(): void {

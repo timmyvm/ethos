@@ -237,6 +237,10 @@
   --spring-snappy-duration: 354ms;
   --spring-sheet: linear(0, 0.027, 0.091, 0.174, 0.266, 0.357, 0.444, 0.524, 0.596, 0.66, 0.715, 0.762, 0.803, 0.837, 0.866, 0.89, 0.91, 0.926, 0.94, 0.951, 0.96, 0.968, 0.974, 0.979, 0.983, 0.986, 0.989, 0.991, 0.993, 0.994, 0.995, 0.996, 0.997, 0.998, 0.998, 0.999, 0.999, 1);
   --spring-sheet-duration: 621ms;
+  /* A sheet rising: SPRING.sheet launched at SHEET_LAUNCH (#415), fast off
+     the edge and the same slow landing. */
+  --spring-sheet-in: linear(0, 0.142, 0.27, 0.383, 0.482, 0.567, 0.639, 0.701, 0.753, 0.797, 0.833, 0.863, 0.888, 0.909, 0.926, 0.939, 0.951, 0.96, 0.968, 0.974, 0.979, 0.983, 0.986, 0.989, 0.991, 0.993, 0.994, 0.995, 0.996, 0.997, 0.998, 0.998, 0.998, 0.999, 1);
+  --spring-sheet-in-duration: 562ms;
   --spring-thrown: linear(0, 0.036, 0.121, 0.232, 0.352, 0.47, 0.578, 0.673, 0.753, 0.82, 0.873, 0.915, 0.946, 0.97, 0.986, 0.997, 1.004, 1.008, 1.011, 1.011, 1.011, 1.01, 1.009, 1.007, 1.006, 1.005, 1.004, 1.003, 1.002, 1.001, 1);
   --spring-thrown-duration: 496ms;
 }
@@ -1309,9 +1313,9 @@ body::after {
  * Sheets (DECISIONS #222). The panel rises from the bottom edge, the
  * scrim fades in on its own clock, and on close both go back the way
  * they came: `<Overlay>` keeps the sheet mounted with `data-closing`
- * until the exit finishes. In at the ceiling (300ms, ease-out: quick
- * off the edge, gentle landing), out at the default (200ms, the
- * symmetric curve, because it is leaving).
+ * until the exit finishes. In on the sheet spring launched off the
+ * edge (#415: already moving at the first frame, a slow landing, no
+ * bounce), out on JavaScript's spring from wherever the sheet is.
  */
 @keyframes sheet-in {
   from {
@@ -1326,8 +1330,18 @@ body::after {
 
 /* The scrim is a material, not a tint (apple-design §12): it dims AND
    frosts, so the page behind steps back instead of just going grey,
-   and it arrives as the blur comes up rather than as a flat fade. */
-.sheet-scrim {
+   and it arrives as the blur comes up rather than as a flat fade.
+   #415: the material is the dialog's ::before, behind the sheet, and
+   only it fades. The dialog itself used to fade, and the sheet is its
+   child, so every sheet rose half see-through (the page's words and the
+   orange footer showed through the word sheet at 100ms), and the phone
+   had to redraw the sheet and the frosted page as one group each frame.
+   Now the sheet is solid from its first frame, as on an iPhone. */
+.sheet-scrim::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
   background: color-mix(in srgb, var(--color-stage) 42%, transparent);
   /* D15: 2px, so the page behind a sheet stays the page you were on
      (6px smeared You past recognition); the 42% dim does the work. */
@@ -1335,14 +1349,14 @@ body::after {
   backdrop-filter: blur(2px) saturate(110%);
   animation: fade-in var(--duration-max) var(--ease-out) backwards;
 }
-.sheet-scrim[data-closing="true"] {
+.sheet-scrim[data-closing="true"]::before {
   animation: fade-out 260ms var(--ease-out) forwards;
 }
 /* In on the sheet spring; out is JavaScript's (components/ui/Overlay),
    because a sheet leaves from wherever it IS, at whatever speed the
    finger gave it, and a keyframe can only leave from where it began. */
 .sheet-panel {
-  animation: sheet-in var(--spring-sheet-duration) var(--spring-sheet) backwards;
+  animation: sheet-in var(--spring-sheet-in-duration) var(--spring-sheet-in) backwards;
 }
 .sheet-panel[data-closing="true"] {
   animation: none;
@@ -3601,7 +3615,7 @@ summary::-webkit-details-marker {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
-  .sheet-scrim {
+  .sheet-scrim::before {
     background: color-mix(in srgb, var(--color-stage) 62%, transparent);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
@@ -3638,7 +3652,7 @@ summary::-webkit-details-marker {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
-:root[data-graphics="lite"] .sheet-scrim {
+:root[data-graphics="lite"] .sheet-scrim::before {
   background: color-mix(in srgb, var(--color-stage) 62%, transparent);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;

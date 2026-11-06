@@ -186,10 +186,15 @@ describe("POST /api/analyze", () => {
     }
   });
 
-  it("keeps 502 for a Whisper refusal that is ours, not the file's", async () => {
-    for (const code of [401, 429]) {
+  it("keeps 502 for a Whisper refusal that is ours, not the file's, and gives the slot back", async () => {
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-1", anonymous: false });
+    for (const code of [401, 403, 404, 408, 429]) {
+      vi.mocked(refundRateLimit).mockClear();
       vi.mocked(transcribe).mockRejectedValue(new Error(`Whisper API ${code}: nope`));
-      expect((await post(audioForm())).status).toBe(502);
+      expect((await post(audioForm())).status, String(code)).toBe(502);
+      // The phone sends a 502 again up to four times: a kept slot each time
+      // locked every tester out for the hour of a key or model fault.
+      expect(refundRateLimit, String(code)).toHaveBeenCalledWith("u:u-1");
     }
   });
 
@@ -235,6 +240,16 @@ describe("POST /api/analyze", () => {
     expect(body.coach).toBeNull();
     expect(body.ethosIndex).toBeNull();
     expect(body.tier1.pause).toBeGreaterThan(0);
+  });
+
+  /* A function killed at 60 seconds stores nothing and keeps the slot. */
+  it("gives the coach a deadline well inside the function's minute", async () => {
+    coachedFixture();
+    const before = Date.now();
+    await post(audioForm());
+    const deadline = vi.mocked(coachRep).mock.calls[0][4];
+    expect(deadline).toBeGreaterThanOrEqual(before + 40_000);
+    expect(deadline).toBeLessThanOrEqual(Date.now() + 45_000);
   });
 
   it("recomputes the XP multiplier server-side and ignores the client's", async () => {
@@ -498,13 +513,48 @@ describe("rate limiting", () => {
       id: "anon-1",
       anonymous: true,
     });
+    vi.mocked(consumeRateLimit).mockClear();
     await post(audioForm());
-    expect(consumeRateLimit).toHaveBeenLastCalledWith("u:anon-1", "user");
+    expect(consumeRateLimit).toHaveBeenCalledWith("u:anon-1", "user");
 
     vi.mocked(getUserFromAuthHeader).mockResolvedValue(null);
     await post(audioForm());
     expect(vi.mocked(consumeRateLimit).mock.lastCall?.[0]).toMatch(/^ip:/);
     expect(vi.mocked(consumeRateLimit).mock.lastCall?.[1]).toBe("anon");
+  });
+});
+
+describe("guests on one address share a ceiling (#416)", () => {
+  it("counts a guest against its address too, and an account never", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(coachRep).mockResolvedValue(null);
+    vi.mocked(consumeRateLimit).mockClear();
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "anon-1", anonymous: true });
+    await post(audioForm());
+    const guestCalls = vi.mocked(consumeRateLimit).mock.calls.filter((c) => c[1] === "guestip");
+    expect(guestCalls).toHaveLength(1);
+    expect(guestCalls[0][0]).toMatch(/^guest:ip:/);
+
+    vi.mocked(consumeRateLimit).mockClear();
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "user-1", anonymous: false });
+    await post(audioForm());
+    expect(vi.mocked(consumeRateLimit).mock.calls.some((c) => c[1] === "guestip")).toBe(false);
+  });
+
+  it("turns a guest away when its address is full, and gives its own slot back", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "anon-2", anonymous: true });
+    vi.mocked(consumeRateLimit).mockImplementation(async (subject: string) =>
+      subject.startsWith("guest:ip:")
+        ? { allowed: false, window: "hour", retryAfterS: 600 }
+        : { allowed: true, window: null, retryAfterS: 0 }
+    );
+    vi.mocked(refundRateLimit).mockClear();
+    vi.mocked(transcribe).mockClear();
+    const res = await post(audioForm());
+    expect(res.status).toBe(429);
+    expect(transcribe).not.toHaveBeenCalled();
+    expect(refundRateLimit).toHaveBeenCalledWith("u:anon-2");
   });
 });
 
@@ -647,9 +697,21 @@ describe("the rate-limit slot of a failed transcription", () => {
   });
 
   it("is kept when the file itself is refused, so junk cannot loop for free", async () => {
-    vi.mocked(transcribe).mockRejectedValue(new Error("Whisper API 400: Invalid file format"));
-    await post(audioForm());
-    expect(refundRateLimit).not.toHaveBeenCalled();
+    for (const code of [400, 413, 415]) {
+      vi.mocked(refundRateLimit).mockClear();
+      vi.mocked(transcribe).mockRejectedValue(new Error(`Whisper API ${code}: Invalid file format`));
+      await post(audioForm());
+      expect(refundRateLimit, String(code)).not.toHaveBeenCalled();
+    }
+  });
+
+  it("is given back when Whisper refuses our key, our access or our model", async () => {
+    for (const code of [401, 403, 404, 408]) {
+      vi.mocked(refundRateLimit).mockClear();
+      vi.mocked(transcribe).mockRejectedValue(new Error(`Whisper API ${code}: nope`));
+      await post(audioForm());
+      expect(refundRateLimit, String(code)).toHaveBeenCalledWith("u:anon-1");
+    }
   });
 
   it("is kept when the recording is saved", async () => {
@@ -664,14 +726,18 @@ describe("the rate-limit slot of a failed transcription", () => {
     vi.mocked(transcribe).mockResolvedValue(FIXTURE);
     vi.mocked(saveRep).mockResolvedValue(null);
     await post(audioForm());
-    expect(refundRateLimit).toHaveBeenCalledTimes(1);
+    // A guest's own slot and its address's (#416), each once.
+    expect(refundRateLimit).toHaveBeenCalledTimes(2);
+    expect(refundRateLimit).toHaveBeenCalledWith("u:anon-1");
+    expect(vi.mocked(refundRateLimit).mock.calls.some(([s]) => /^guest:ip:/.test(s))).toBe(true);
   });
 
   it("is given back when the recording was already saved by an earlier send", async () => {
     vi.mocked(transcribe).mockResolvedValue(FIXTURE);
     vi.mocked(saveRep).mockResolvedValue({ id: "rep-1", duplicate: true } as never);
     await post(audioForm());
-    expect(refundRateLimit).toHaveBeenCalledTimes(1);
+    expect(refundRateLimit).toHaveBeenCalledTimes(2);
+    expect(refundRateLimit).toHaveBeenCalledWith("u:anon-1");
   });
 });
 

@@ -77,4 +77,15 @@ describe("the score step's line", () => {
   it("is the computed line with no coach", () => {
     expect(scoreLine(null, take([]))).toBe("Clean take.");
   });
+
+  it("counts no fillers and calls nothing clean in a take too short to score (#416 review)", () => {
+    for (const words of [[], ["um"], ["um", "um", "like"]]) {
+      const line = scoreLine(null, { ...take(words, 8), scorable: false });
+      expect(line).toBe("Give it 60 to 90 seconds and a real answer.");
+      expect(line).not.toMatch(/clean|filler/i);
+    }
+    expect(scoreLine({ coachLine: "Tomorrow: kill 'um'." }, { ...take(["um"], 8), scorable: false })).toBe(
+      "Give it 60 to 90 seconds and a real answer."
+    );
+  });
 });

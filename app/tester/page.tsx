@@ -17,7 +17,7 @@ import {
   isCurrentTester,
   type TesterRow,
 } from "@/lib/tester";
-import { checkTesterCode, fetchTester, joinTesting, useTesterNumber } from "@/lib/tester-client";
+import { checkTesterCode, fetchTester, joinTesting, stopTesting, useTesterNumber } from "@/lib/tester-client";
 import { ACTION_CLASS, DISABLED_CLASS } from "@/lib/ui";
 
 /**
@@ -466,6 +466,80 @@ function Joined({
       <div className="mt-3">
         <ConsentList />
       </div>
+      <StopTesting />
     </main>
+  );
+}
+
+/**
+ * Stop testing (#416): collection carries on after the test (#405), so
+ * the page that says what was agreed to also says how to end it. Two
+ * taps, the second naming what stops; a quiet button, since it is the
+ * way out and not the page's job.
+ */
+function StopTesting() {
+  const [state, setState] = useState<"idle" | "sure" | "busy" | "done">("idle");
+  const [error, setError] = useState<string | null>(null);
+  const card = useRef<HTMLDivElement>(null);
+  // The question opens at the page's foot: bring its two answers into view.
+  useEffect(() => {
+    if (state === "sure") card.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [state]);
+  const stop = async () => {
+    setState("busy");
+    setError(null);
+    const answer = await stopTesting();
+    if (answer.ok) setState("done");
+    else {
+      setError(answer.error ?? JOINED_COPY.stopFailed);
+      setState("sure");
+    }
+  };
+  if (state === "done") {
+    return (
+      <p role="status" className="mt-8 text-body text-stone-600">
+        {JOINED_COPY.stopped}
+      </p>
+    );
+  }
+  return (
+    <section className="mt-8">
+      <p className="text-caption leading-relaxed text-stone-500">{JOINED_COPY.goesOn}</p>
+      {state === "idle" ? (
+        <button
+          type="button"
+          onClick={() => setState("sure")}
+          className="press mt-3 inline-flex min-h-11 items-center text-link text-stone-600 underline underline-offset-4"
+        >
+          {JOINED_COPY.stop}
+        </button>
+      ) : (
+        <div ref={card} className="mt-3 scroll-mb-6 rounded-card bg-surface p-4">
+          <p className="text-body text-stone-700">{JOINED_COPY.stopSure}</p>
+          {error && (
+            <p role="alert" className="mt-2 text-caption text-terracotta-700">
+              {error}
+            </p>
+          )}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void stop()}
+              disabled={state === "busy"}
+              className={`press inline-flex min-h-11 items-center rounded-tap bg-ink px-4 text-body font-semibold text-ground ${state === "busy" ? DISABLED_CLASS : ""}`}
+            >
+              {JOINED_COPY.stopYes}
+            </button>
+            <button
+              type="button"
+              onClick={() => setState("idle")}
+              className="press inline-flex min-h-11 items-center rounded-tap px-4 text-body font-semibold text-stone-600"
+            >
+              {JOINED_COPY.stopNo}
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }

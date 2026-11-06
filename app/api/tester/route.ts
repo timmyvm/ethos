@@ -102,12 +102,36 @@ export async function POST(req: NextRequest) {
     code?: unknown;
     agree?: unknown;
     carry?: unknown;
+    stop?: unknown;
   } | null;
 
   if (body && "carry" in body) {
     const answer = await carry(user, body.carry);
     if (answer.status === 200) await giveBack();
     return answer;
+  }
+
+  /* Stop testing (#416): the caller's own row is marked with the time,
+     and from then nothing more is asked or collected. The row and what
+     was already sent under it stay, as the consent's "How long" says;
+     deleting it all is still Timothy's job or the account's. */
+  if (body && (body as { stop?: unknown }).stop === true) {
+    await giveBack();
+    if (!user) {
+      return NextResponse.json({ error: "That session has expired. Sign in and try again." }, { status: 401 });
+    }
+    const db = supabaseAdmin();
+    if (!db) return NextResponse.json({ error: "Accounts aren't configured on this server." }, { status: 503 });
+    const { error } = await db
+      .from("testers")
+      .update({ stopped_at: new Date().toISOString() })
+      .eq("user_id", user.id)
+      .is("stopped_at", null);
+    if (error) {
+      console.error("tester: stop failed", error.message);
+      return NextResponse.json({ error: JOINED_COPY.stopFailed }, { status: 502 });
+    }
+    return NextResponse.json({ ok: true, stopped: true });
   }
 
   const given = typeof body?.code === "string" ? body.code.trim() : "";
@@ -158,11 +182,12 @@ export async function POST(req: NextRequest) {
      replaces an older one, time and all. */
   const { data: had } = await db
     .from("testers")
-    .select("consent_version, consented_at")
+    .select("consent_version, consented_at, stopped_at")
     .eq("user_id", user.id)
     .maybeSingle();
-  const kept = had as { consent_version: number; consented_at: string } | null;
-  if (kept && kept.consent_version >= CONSENT_VERSION) {
+  const kept = had as { consent_version: number; consented_at: string; stopped_at?: string | null } | null;
+  // A tester who stopped (#416) and agrees again starts again: the write below.
+  if (kept && kept.consent_version >= CONSENT_VERSION && !kept.stopped_at) {
     return NextResponse.json({
       ok: true,
       tester: { consent_version: kept.consent_version, consented_at: kept.consented_at },
@@ -173,7 +198,7 @@ export async function POST(req: NextRequest) {
   const { error } = await db
     .from("testers")
     .upsert(
-      { user_id: user.id, consent_version: CONSENT_VERSION, consented_at: consentedAt },
+      { user_id: user.id, consent_version: CONSENT_VERSION, consented_at: consentedAt, stopped_at: null },
       { onConflict: "user_id" }
     );
   if (error) {
@@ -262,6 +287,7 @@ async function carry(
     consented_at: string;
     created_at?: string | null;
     carried_from?: string[] | null;
+    stopped_at?: string | null;
   };
   const read = async (id: string) => {
     const { data, error } = await db.from("testers").select("*").eq("user_id", id).maybeSingle();
@@ -293,6 +319,8 @@ async function carry(
           consent_version: tester.consent_version,
           consented_at: tester.consented_at,
           ...(joined ? { created_at: joined } : {}),
+          // Either session's stop holds (#416): signing in never restarts it.
+          stopped_at: given.stopped_at ?? own?.stopped_at ?? null,
         },
         { onConflict: "user_id" }
       );

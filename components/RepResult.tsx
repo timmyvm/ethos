@@ -77,6 +77,12 @@ export function RepResult({
   onPlay,
   celebrate = false,
   spread = false,
+  round = null,
+  leadMs = 0,
+  hold = false,
+  lengthNote = "target 60 to 90s",
+  pauseMarks,
+  starSize = 40,
 }: {
   result: ResultView;
   topic?: ColdTopic | null;
@@ -130,6 +136,26 @@ export function RepResult({
    * the height of the room.
    */
   spread?: boolean;
+  /**
+   * A game's round card (components/rep/RoundCard.tsx, the games plan
+   * item 4): on the score step, above the stars. The stars, the Index and
+   * Demos's line then land `leadMs` later, once the round has had its
+   * reveal (F3).
+   */
+  round?: ReactNode;
+  leadMs?: number;
+  /**
+   * Live, hold the score step's reveal at its first frame (the streak
+   * celebration is up over it, so it would play unseen); it starts when
+   * this goes false.
+   */
+  hold?: boolean;
+  /** The Length tile's note: the game's own clock (M5), else the daily target. */
+  lengthNote?: string;
+  /** Moments the pause map marks, as Demos's cut-in (the games plan, item 4). */
+  pauseMarks?: { t: number; label: string }[];
+  /** The score step's stars, 40, or 32 where a round card needs the height for Demos. */
+  starSize?: number;
 }) {
   const show = (s: ResultSection) => section === "all" || section === s;
   const debrief = section === "score";
@@ -191,23 +217,43 @@ export function RepResult({
       document.documentElement.dataset.motion === "reduce"
   );
   const counts = ethosIndex !== null;
-  const landAfter = counts ? COUNT_MS : 0;
+  const timed = live && debrief;
+  /* A round card plays first (F3): everything after it moves back by its
+     length. Reduced motion has no sequence to wait on. */
+  const lead = timed && !reduced ? leadMs : 0;
+  const landAfter = (counts ? COUNT_MS : 0) + lead;
   const starsDone =
     landAfter + Math.max(0, m.stars - 1) * STAR_STEP_MS + STAR_MS;
-  const timed = live && debrief;
+  /* Held (the streak celebration is over it): nothing lands until it
+     has gone, and then the whole step runs from its first frame. Once
+     started it never holds again. */
+  const [go, setGo] = useState(!hold);
+  useEffect(() => {
+    if (!hold) setGo(true);
+  }, [hold]);
+  const waiting = timed && !go;
+  /* The count starts when the round's reveal is done. */
+  const [counting, setCounting] = useState(lead === 0 && !waiting);
+  useEffect(() => {
+    if (waiting || counting) return;
+    const t = setTimeout(() => setCounting(true), lead);
+    return () => clearTimeout(t);
+  }, [waiting, counting, lead]);
   const bubbleAt = timed && !reduced ? starsDone + (celebrate ? 240 : 0) : 0;
   const [celebrating, setCelebrating] = useState(false);
   useEffect(() => {
-    if (!celebrate || !timed) return;
+    if (!celebrate || !timed || waiting) return;
     preloadPose("celebrate");
     const t = setTimeout(() => setCelebrating(true), starsDone);
     return () => clearTimeout(t);
-  }, [celebrate, timed, starsDone]);
+  }, [celebrate, timed, waiting, starsDone]);
 
   /* Balanced, not pretty: his line is one or two short sentences, and
      balance breaks "4 fillers in 62s. / Tomorrow: kill ‘um’." where
      pretty left the last two words alone on the second line. */
-  const said = timed ? (
+  const said = waiting ? (
+    <p className="invisible text-balance">{line}</p>
+  ) : timed ? (
     <Says text={line} lead={bubbleAt + 160} className="text-balance" />
   ) : (
     <p className="text-balance">{line}</p>
@@ -221,11 +267,13 @@ export function RepResult({
      his ears, his line in a second card under it). On a shorter phone
      the room is about his height and the line hangs under it, tail up. */
   const tallRoom = useTallRoom();
-  const lineInRoom = spreads && tallRoom;
+  /* A round card above the score takes the height his line would hang
+     in: his line goes under him, as on a short phone. */
+  const lineInRoom = spreads && tallRoom && !round;
   const bubble = (tail: "up" | "down", className: string) => (
     <div
-      className={`${className} ${timed ? "arrive" : ""}`}
-      style={timed ? ({ animationDelay: `${bubbleAt}ms` } as CSSProperties) : undefined}
+      className={`${className} ${waiting ? "invisible" : timed ? "arrive" : ""}`}
+      style={timed && !waiting ? ({ animationDelay: `${bubbleAt}ms` } as CSSProperties) : undefined}
     >
       <SpeechBubble tail={tail} className="text-center">
         {said}
@@ -244,33 +292,54 @@ export function RepResult({
              centred column, stars first, then the number, one delta,
              one caption, on the ground 24px under the step bar; then
              Demos and his line. Nothing floats off to one side. */
-          <div className={`flex flex-col items-center text-center ${spreads ? "mt-6 [@media(max-height:600px)]:mt-4" : ""}`}>
+          <div
+            className={`flex flex-col items-center text-center ${
+              spreads ? (round ? "mt-4 [@media(max-height:600px)]:mt-3" : "mt-6 [@media(max-height:600px)]:mt-4") : ""
+            }`}
+          >
+            {round && <div className="mb-4 w-full [@media(max-height:600px)]:mb-3">{round}</div>}
             {ethosIndex !== null ? (
               <>
-                <span className="[&>span]:gap-3!">
+                <span className={`[&>span]:gap-3! ${waiting ? "invisible" : ""}`}>
                   <Stars
+                    key={waiting ? "wait" : "land"}
                     n={m.stars}
-                    size={40}
+                    size={starSize}
                     arch
-                    land={live}
-                    landAfterMs={COUNT_MS}
+                    land={live && !waiting}
+                    landAfterMs={landAfter}
                   />
                 </span>
-                <div className="mt-6 flex items-baseline justify-center gap-1">
+                <div
+                  className={`${round ? "mt-3" : "mt-6"} flex items-baseline justify-center gap-1 ${
+                    counting ? "" : "invisible"
+                  }`}
+                >
                   <span className="sr-only">Ethos</span>
                   <span data-score className="font-display text-num-xl tabular-nums">
-                    <CountUp value={ethosIndex} />
+                    {counting ? <CountUp value={ethosIndex} /> : ethosIndex}
                   </span>
                   <span className="text-body font-normal text-stone-500">/1000</span>
                 </div>
-                <Delta delta={delta} baseline={baseline} className="mt-2" />
+                <Delta
+                  delta={delta}
+                  baseline={baseline}
+                  className={`mt-2 ${counting ? "" : "invisible"}`}
+                />
               </>
             ) : result.scorable === false ? (
               <NotScored metrics={m} centred />
             ) : (
               <>
-                <span className="[&>span]:gap-3!">
-                  <Stars n={m.stars} size={40} arch land={live} />
+                <span className={`[&>span]:gap-3! ${waiting ? "invisible" : ""}`}>
+                  <Stars
+                    key={waiting ? "wait" : "land"}
+                    n={m.stars}
+                    size={starSize}
+                    arch
+                    land={live && !waiting}
+                    landAfterMs={lead}
+                  />
                 </span>
                 <div className="mt-6 flex items-baseline justify-center gap-1.5">
                   <span className="font-display text-num-xl tabular-nums">
@@ -285,7 +354,8 @@ export function RepResult({
                 </p>
               </>
             )}
-            {gainName && gain && (
+            {/* A game round's own number takes this line's place (M5). */}
+            {gainName && gain && !round && (
               <p className="mt-1.5 text-caption text-stone-500">
                 {gainName} leveled {gain.levels === 2 ? "twice" : "up"}
               </p>
@@ -361,7 +431,7 @@ export function RepResult({
           <div
             data-coach-room
             data-line-in-room={lineInRoom || undefined}
-            className={`relative mt-5 w-full [@media(max-height:600px)]:mt-3 ${
+            className={`relative ${round ? "mt-3" : "mt-5"} w-full [@media(max-height:600px)]:mt-3 ${
               lineInRoom
                 ? "min-h-[300px] flex-1"
                 : spreads
@@ -396,12 +466,12 @@ export function RepResult({
                 />
               ) : (
                 <DemosArt
-                  key="speaking"
+                  key={waiting ? "speaking-wait" : "speaking"}
                   pose="speaking"
                   size={lineInRoom ? 270 : 200}
                   fit
                   grounded
-                  greetAfterMs={timed && !celebrate ? bubbleAt + SAID_AFTER_MS : undefined}
+                  greetAfterMs={timed && !celebrate && !waiting ? bubbleAt + SAID_AFTER_MS : undefined}
                 />
               )}
               {celebrating && (
@@ -422,8 +492,8 @@ export function RepResult({
           {!lineInRoom && bubble("up", "mt-3 w-full text-left")}
           {coach && (
             <p
-              className={`mt-2 text-center text-caption text-stone-400 ${timed ? "arrive" : ""}`}
-              style={timed ? ({ animationDelay: `${bubbleAt}ms` } as CSSProperties) : undefined}
+              className={`mt-2 text-center text-caption text-stone-400 ${waiting ? "invisible" : timed ? "arrive" : ""}`}
+              style={timed && !waiting ? ({ animationDelay: `${bubbleAt}ms` } as CSSProperties) : undefined}
             >
               AI-generated feedback
             </p>
@@ -491,7 +561,7 @@ export function RepResult({
       {show("numbers") && (
         <>
           <div className="mt-7">
-            <PauseBar pauses={m.pauses} durationS={m.durationS} />
+            <PauseBar pauses={m.pauses} durationS={m.durationS} marks={pauseMarks} />
           </div>
 
           {/* What the silences actually DID. The bar shows where they
@@ -517,9 +587,16 @@ export function RepResult({
               label="Length"
               value={String(Math.round(m.durationS))}
               unit="s"
-              note={<span className="whitespace-nowrap">target 60 to 90s</span>}
+              note={<span className="whitespace-nowrap">{lengthNote}</span>}
             />
           </div>
+          {/* A game round's score step gives this line to the round (M5):
+              the trait it moved is said here, under the numbers it read. */}
+          {round && gainName && gain && (
+            <p className="mt-2.5 text-caption font-semibold text-stone-500">
+              {gainName} leveled {gain.levels === 2 ? "twice" : "up"}
+            </p>
+          )}
         </>
       )}
 

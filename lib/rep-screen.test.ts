@@ -7,6 +7,7 @@ import {
   celebratesStreak,
   defaultBack,
   recordCue,
+  roundChimes,
   takeRewards,
   thinksFirst,
 } from "./rep-screen";
@@ -131,6 +132,54 @@ describe("takeRewards", () => {
     expect(r.bests).toEqual(personalBests(measuredPrior, m, 640));
     expect(r.bests.length).toBeGreaterThan(0);
     expect(r.closing).toEqual(endNote({ gains: [], metrics: m, streak: s, repCount: 9 }));
+  });
+});
+
+describe("takeRewards, a game round's best (M4)", () => {
+  const said =
+    "The best part of my week was a long walk by the river with my sister after work on Friday, talking about nothing much.";
+  const m = metrics({ substance: substance(said), fillersPerMin: 1, fillerCount: 1 });
+  const base = {
+    prior: [],
+    metrics: m,
+    ethosIndex: 640,
+    gains: [],
+    repCount: 9,
+    streak: streak({ current: 3, didToday: true }),
+  };
+
+  it("leads the records with Best round yet when the level's best went up", () => {
+    const r = takeRewards({
+      ...base,
+      scorable: true,
+      gameBest: { game: "qa", level: 2, before: 22, now: 31 },
+    });
+    expect(r.bests[0]).toEqual({
+      headline: "Best round yet",
+      detail: "31s clean after the cut-in, past your 22s",
+      tone: "earned",
+    });
+  });
+
+  it("breaks nothing on a first round, a tie, or a take too short to score", () => {
+    expect(takeRewards({ ...base, scorable: true, gameBest: { game: "qa", level: 1, before: null, now: 20 } }).bests).toEqual([]);
+    expect(takeRewards({ ...base, scorable: true, gameBest: { game: "rush", level: 1, before: 4, now: 4 } }).bests).toEqual([]);
+    expect(takeRewards({ ...base, scorable: false, gameBest: { game: "qa", level: 1, before: 10, now: 30 } }).bests).toEqual([]);
+  });
+});
+
+describe("roundChimes (F5)", () => {
+  it("plays on the round's real win, once", () => {
+    expect(roundChimes({ win: true, streakCelebrated: false, played: false })).toBe(true);
+    expect(roundChimes({ win: true, streakCelebrated: false, played: true })).toBe(false);
+  });
+
+  it("never on a miss", () => {
+    expect(roundChimes({ win: false, streakCelebrated: false, played: false })).toBe(false);
+  });
+
+  it("stays quiet when the streak celebration was the round's one sound", () => {
+    expect(roundChimes({ win: true, streakCelebrated: true, played: false })).toBe(false);
   });
 });
 

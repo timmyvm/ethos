@@ -121,26 +121,31 @@ import {
   celebratesStreak,
   defaultBack,
   recordCue,
+  roundChimes,
   takeRewards,
   thinksFirst,
 } from "@/lib/rep-screen";
-import { unlockSfx } from "@/lib/sfx";
+import { playCelebration, unlockSfx } from "@/lib/sfx";
 import { computeStreak } from "@/lib/streak";
 import { nextDrill } from "@/lib/drills";
 import {
-  draw,
+  askedIdsFrom,
+  clampLevel,
+  drawFresh,
   gameById,
   gameModIds,
   gameOfLessonId,
+  gameOfTheDay,
   gameOpen,
   gameXpMultiplier,
+  levelCapS,
   needsPremium,
   type LevelN,
 } from "@/lib/games";
 import { dayKey } from "@/lib/challenge";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
-import { ladderState, roundsToday } from "@/lib/ladder";
-import { INTERVIEW_WINDOW, type StoppedBy } from "@/lib/round";
+import { bestFor, ladderState, roundsToday, type LadderRow } from "@/lib/ladder";
+import { INTERVIEW_WINDOW, type GameRound, type StoppedBy } from "@/lib/round";
 import {
   bestLine,
   bestParts,
@@ -183,6 +188,19 @@ import type { AnalyzeResponse } from "@/app/api/analyze/route";
 import type { TraitId } from "@/content/traits";
 import { MIN_TAKE_MS, TOO_SHORT_COPY, UNHEARD_COPY } from "@/lib/unheard";
 import { IconBack } from "@/components/Icon";
+import { RoundCard, ROUND_REVEAL_MS } from "@/components/rep/RoundCard";
+import {
+  heldInARow,
+  ladderView,
+  roundHeader,
+  roundReveal,
+  TASTE_LINE,
+  tasteHeadline,
+  tasteKey,
+  waitFact,
+  xpLine,
+  type LadderView,
+} from "@/lib/round-copy";
 
 /* D51: the live waveform's bars across the column, the left half the
    take so far, rolling left from the centre. */
@@ -239,6 +257,54 @@ const CAMERA_DEVICE_FAILURES = new Set([
 
 /** A failure we already have words for. Anything else gets the generic. */
 class ScoringFailure extends Error {}
+
+/** The taste's ask was shown for this game on this device (once per game, ever). */
+function tasteShown(gameId: string): boolean {
+  try {
+    return localStorage.getItem(tasteKey(gameId)) !== null;
+  } catch {
+    return false;
+  }
+}
+
+function markTasteShown(gameId: string): void {
+  try {
+    localStorage.setItem(tasteKey(gameId), new Date().toISOString());
+  } catch {}
+}
+
+/** A just-scored round's row: the stored recording's id, else its outbox key. */
+function roundRowId(r: AnalyzeResponse, key: string | null): string {
+  return r.repId ?? `local:${key ?? "take"}`;
+}
+
+/**
+ * The game's rows with this round in. The read after a take may not hold
+ * it yet (a save that failed, a read that beat the write), so it is added
+ * from the answer itself, newest, once.
+ */
+function withRound(
+  rows: GameRoundRow[],
+  r: AnalyzeResponse,
+  lessonId: string,
+  key: string | null
+): GameRoundRow[] {
+  const id = roundRowId(r, key);
+  if (rows.some((x) => x.id === id)) {
+    return rows.map((x) => (x.id === id && !x.round ? { ...x, round: r.round ?? null } : x));
+  }
+  return [
+    ...rows,
+    {
+      id,
+      lesson_id: lessonId,
+      created_at: new Date().toISOString(),
+      stars: r.metrics.stars,
+      ethos_index: r.ethosIndex,
+      round: r.round ?? null,
+    },
+  ];
+}
 
 /** How long a take ran, to a tenth of a second: a tester's record_stop. */
 function ranFor(startedAt: number, now = Date.now()): number {
@@ -362,6 +428,10 @@ function RepScreen() {
    * draws the level on the link and says no best, never a guess.
    */
   const [gameRows, setGameRows] = useState<GameRoundRow[] | null>(null);
+  /* The rows as they stand, for the result handler: before a take is
+     scored they are the round's "before" (#53). */
+  const gameRowsRef = useRef<GameRoundRow[] | null>(null);
+  gameRowsRef.current = gameRows;
   const loadGameRounds = useCallback(
     () =>
       fetchGameRounds()
@@ -511,6 +581,24 @@ function RepScreen() {
    * `celebrates`): Demos swaps to his celebrate pose on the score step.
    */
   const [earnedNow, setEarnedNow] = useState(false);
+  /**
+   * A game round's history (the games plan, items 5 and 6): the game's
+   * rows as they stood BEFORE this take (`gameRows`, read when the game
+   * opens and again after each round) and with this round in, for the
+   * ladder on Tomorrow, the round count in the header and "Best round
+   * yet". Null when the read failed: then nothing about the ladder is
+   * said.
+   */
+  const [walkRows, setWalkRows] = useState<{ before: GameRoundRow[]; now: GameRoundRow[] } | null>(null);
+  /** The streak celebration's call is made for this result: the round's reveal waits for it (F3, F5). */
+  const [rewardsReady, setRewardsReady] = useState(false);
+  /**
+   * What the phone knows at Stop (F7): the seconds Demos cut in at, from
+   * the take's fired cut-ins, and who stopped it (`stopRep`'s `by`). Null
+   * for a take this screen did not stop (a replay from the outbox): then
+   * the wait says nothing it cannot trace.
+   */
+  const waitRef = useRef<{ cutIns: number[]; stoppedBy: StoppedBy | null } | null>(null);
   /**
    * recording-16: the topic card's top just before Record's tap, so the
    * layout effect can FLIP it from there to its recording place on a
@@ -799,23 +887,32 @@ function RepScreen() {
       setResult(data as AnalyzeResponse);
       const key = form.get("clientId");
       setResultKey(typeof key === "string" ? key : null);
+      setRewardsReady(false);
+      setWalkRows(null);
       setPhase("results");
       pendingRef.current = null;
-      // A game round is on the ladder now: read it back, so the next
-      // round on this screen (Retake, Another round) draws the level,
-      // the best and today's free round from the rows that hold it.
-      if (typeof form.get("round") === "string") {
-        fetchGameRounds()
-          .then((rows) => {
-            if (live()) setGameRows(rows);
-          })
-          .catch(() => {});
-      }
       // Streak is derived from stored reps, so read it back rather than
       // guessing — a rep that failed to persist shouldn't celebrate.
       const analyzed = data as AnalyzeResponse;
-      Promise.all([fetchReps(), fetchRepSpine()])
-        .then(async ([reps, all]) => {
+      /* A game round's rows: as they stood before the take, and read
+         again with this round in (added here when the read does not hold
+         it yet: a save that failed, a slow replica). The read is also the
+         screen's rows from now on, so the next round here (Retake,
+         Another round) draws the level, the best and today's free round
+         from rows that hold this one. */
+      const lessonId = String(form.get("lessonId") ?? "");
+      const roundsBefore = gameRowsRef.current;
+      const gameRead = lessonId.startsWith("game:")
+        ? fetchGameRounds()
+            .then((rows) => {
+              const now = withRound(rows, analyzed, lessonId, typeof key === "string" ? key : null);
+              if (live()) setGameRows(now);
+              return now;
+            })
+            .catch(() => null)
+        : Promise.resolve(null);
+      Promise.all([fetchReps(), fetchRepSpine(), gameRead])
+        .then(async ([reps, all, gameNow]) => {
           if (!live()) return;
           setRepsNow(reps);
           setSpineNow(all);
@@ -831,7 +928,15 @@ function RepScreen() {
           // second take of the day used to replay the roll and its chime.
           // Read before the baseline below takes this take in.
           if (celebratesStreak(streak, { didToday: doneToday(baselineRef.current) })) setCelebrate(streak.current);
+          setRewardsReady(true);
           setStreakNow(streak.current);
+          /* Before the take: the snapshot, or, when it never landed, the
+             rows read now without this round. */
+          const gameBefore = gameNow
+            ? (roundsBefore ??
+              gameNow.filter((r) => r.id !== roundRowId(analyzed, typeof key === "string" ? key : null)))
+            : null;
+          if (gameNow && gameBefore) setWalkRows({ before: gameBefore, now: gameNow });
           // Re-arm the reminder now that today's practice is DONE. A
           // reminder armed this morning is still scheduled for this
           // evening; arming again cancels it and books tomorrow's
@@ -885,6 +990,11 @@ function RepScreen() {
             // they come back, so it is always something true and good.
             // A take too short to score breaks no record and ends on the
             // streak or the count, never a number read off one word.
+            const roundNow = analyzed.round ?? null;
+            /* The best the idle screen showed before Record (M4), held
+               from Stop; the rows' own when it was taken at another
+               level or never taken. */
+            const bestSnap = gameBestBeforeRef.current;
             const rewards = takeRewards({
               scorable: analyzed.scorable,
               prior: before.reps,
@@ -893,6 +1003,19 @@ function RepScreen() {
               gains: nextGains,
               streak,
               repCount: all.length,
+              // M4: the level's best before this take against with it.
+              gameBest:
+                roundNow && gameNow && gameBefore
+                  ? {
+                      game: roundNow.game,
+                      level: roundNow.level,
+                      before:
+                        bestSnap && bestSnap.game === roundNow.game && bestSnap.level === roundNow.level
+                          ? bestSnap.best
+                          : bestFor(gameBefore, roundNow.game, roundNow.level),
+                      now: bestFor(gameNow, roundNow.game, roundNow.level),
+                    }
+                  : null,
             });
             setBests(rewards.bests);
             setClosing(rewards.closing);
@@ -921,7 +1044,10 @@ function RepScreen() {
           if (!live()) return;
           setAnticipate(recordCue({ reps, starMap: mapNow, streak, xp: xp.total }));
         })
-        .catch(() => {});
+        .catch(() => {
+          // Unread, the reveal still plays: no streak celebration is coming.
+          if (live()) setRewardsReady(true);
+        });
     } catch (e) {
       // Another recording is on screen now; the outbox copy (if held)
       // is what sends this take later.
@@ -985,6 +1111,7 @@ function RepScreen() {
     const spokenAt = Date.now();
     testerRecord("record_stop", { seconds: ranFor(takeStartedAt.current, spokenAt) });
     buzz([20, 40, 20]);
+    waitRef.current = { cutIns: firedCutIns(r.cutPlan).map((c) => c.at), stoppedBy: by };
     setPhase("analyzing");
     setCutIn(null);
 
@@ -1315,6 +1442,7 @@ function RepScreen() {
         offWatch: null,
       };
       recRef.current = rec;
+      waitRef.current = null;
       rec.raf = requestAnimationFrame(tick);
 
       /*
@@ -1463,6 +1591,8 @@ function RepScreen() {
     setClosing(null);
     setCelebrate(null);
     setEarnedNow(false);
+    setWalkRows(null);
+    setRewardsReady(false);
     // The coin belongs to the take that earned it: the retake's score
     // step showed "+1" until its own coin read came back, or for good
     // when that read failed.
@@ -1552,6 +1682,8 @@ function RepScreen() {
     setClosing(null);
     setCelebrate(null);
     setEarnedNow(false);
+    setWalkRows(null);
+    setRewardsReady(false);
     setCoined(false);
     setSeconds(0);
     setRing("ok");
@@ -1747,6 +1879,9 @@ function RepScreen() {
           streakNow={streakNow}
           repsNow={repsNow}
           spineNow={spineNow}
+          walkRows={walkRows}
+          streakUp={celebrate !== null}
+          rewardsReady={rewardsReady}
           onUpgrade={setPaywall}
           onRetake={retake}
         />
@@ -1761,6 +1896,7 @@ function RepScreen() {
           <Paywall
             reason={paywall.reason}
             headline={paywall.headline}
+            taste={paywall.taste}
             // The debrief lives only in this page's memory, so the way
             // back from the account doors or Checkout is the stored
             // recording (which reopens the sheet), or You before it is
@@ -1842,6 +1978,26 @@ function RepScreen() {
    * tab order and the accessibility tree along with the pointer.
    */
   const micHot = phase === "recording" || phase === "analyzing";
+  /*
+   * The scoring wait's one line (F7): when Demos cut in, or who stopped
+   * the clock, as this screen saw it at Stop. A take it did not stop, or
+   * one the phone stopped hearing before the cap, says nothing it cannot
+   * trace.
+   */
+  const waitNow = phase === "analyzing" ? waitRef.current : null;
+  const waitStopped: StoppedBy | null =
+    waitNow?.stoppedBy ?? (seconds >= config.maxSeconds ? "clock" : null);
+  const cutInStaged = config.cutIns.length > 0;
+  const scoringFact =
+    waitNow && (cutInStaged || waitStopped)
+      ? waitFact({
+          gameId,
+          cutInStaged,
+          cutIns: waitNow.cutIns,
+          stoppedBy: waitStopped ?? "you",
+          seconds,
+        })
+      : null;
 
   return (
     <main
@@ -2098,6 +2254,8 @@ function RepScreen() {
             seconds={seconds}
             boss={config.kind === "boss"}
             attempt={attempt}
+            fact={scoringFact}
+            cutIns={waitNow?.cutIns ?? []}
           />
         )}
 
@@ -2449,6 +2607,9 @@ function Results({
   streakNow,
   repsNow,
   spineNow,
+  walkRows,
+  streakUp,
+  rewardsReady,
   onUpgrade,
   onRetake,
 }: {
@@ -2475,6 +2636,12 @@ function Results({
   repsNow: RepRow[];
   /** Every recording after this one, for the stars, days and count. */
   spineNow: RepSpine[];
+  /** A game's rows before this round and with it; null until read, or when the read failed. */
+  walkRows: { before: GameRoundRow[]; now: GameRoundRow[] } | null;
+  /** The streak celebration is up over the score step. */
+  streakUp: boolean;
+  /** Whether it will be is decided (the round's reveal waits on it). */
+  rewardsReady: boolean;
   onUpgrade: (ask: PaywallAsk) => void;
   onRetake: () => void;
 }) {
@@ -2527,6 +2694,17 @@ function Results({
   const game = config.lessonId.startsWith("game:")
     ? gameById(config.lessonId.split(":")[1])
     : null;
+  /* The round, as the server measured it (lib/round.ts): its own reveal
+     on the score step, the ladder on the last (the games plan, items 4
+     to 6). Null for anything that is not a game, and for a game whose
+     phone sent nothing to measure. */
+  const gameRound: GameRound | null =
+    game && result.round && result.round.game === game.id ? result.round : null;
+  /* The level this round ran at, which Another round keeps: the link's,
+     the config's, else the one it was filed at. */
+  const level = clampLevel(searchParams.get("level") ?? config.level ?? gameRound?.level ?? 1);
+  const roundRows: LadderRow[] | null = walkRows?.now ?? null;
+  const roundsNow = game && roundRows ? roundsToday(roundRows, game.id) : 1;
   /*
    * `lesson:<id>:<n>` — and a lesson rep keeps ITS identity for the
    * same reason (#273). A lesson is three practices that build on each
@@ -2585,10 +2763,70 @@ function Results({
     if (sameRepScreen(href, searchParams)) onRetake();
     else router.push(href);
   };
+  /*
+   * The ask after the taste (the games plan, item 13; research 5): a free
+   * account finishing today's free round of a Premium game meets the plum
+   * sheet once per game, on its way out of the walk, leading with that
+   * round's own number. Never mid-walk and never over the celebration;
+   * the decline goes on to wherever was tapped. The plan is read here, so
+   * an unread plan is never taken for free.
+   */
+  const [planFree, setPlanFree] = useState<boolean | null>(null);
+  const premiumGame = !!game && needsPremium(game);
+  useEffect(() => {
+    if (!premiumGame) return;
+    let live = true;
+    fetchProfile()
+      .then((p) => {
+        if (live) setPlanFree(p ? !p.premium : null);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [premiumGame]);
+  const freeTaste =
+    !!game && premiumGame && planFree === true && !premium && gameOfTheDay(dayKey(new Date())) === game.id;
+  const [tasteSeen, setTasteSeen] = useState(() => (game ? tasteShown(game.id) : true));
+  const tasteDue = freeTaste && !tasteSeen;
+  const [tasteTo, setTasteTo] = useState<string | null>(null);
+  /* Today's free round is spent: the game is not open to this account
+     again until tomorrow's, so Another round is a door to the sheet. */
+  const replayClosed =
+    !!game &&
+    freeTaste &&
+    roundRows !== null &&
+    !gameOpen(game, {
+      premium: false,
+      dayKey: dayKey(new Date()),
+      roundsTodayOfGame: roundsToday(roundRows, game.id),
+    });
+  const openTaste = (to: string) => {
+    if (!game) return;
+    markTasteShown(game.id);
+    setTasteSeen(true);
+    setTasteTo(to);
+  };
   const exit = (href: string) => {
     if (gate) setGateTo(href);
+    else if (tasteDue && !streakUp) openTaste(href);
     else if (proDue) setProTo(href);
     else go(href);
+  };
+  /* Another round (F6a, M7): the same game at the same level, a question
+     not answered lately (drawFresh over this game's own rows). */
+  const anotherRound = () => {
+    if (!game) return;
+    if (replayClosed) {
+      if (tasteDue) openTaste("/games");
+      else onUpgrade({ reason: "Premium games", headline: tasteHeadline(game, gameRound), taste: TASTE_LINE });
+      return;
+    }
+    const asked = askedIdsFrom(
+      [config.lessonId, ...[...(roundRows ?? [])].reverse().map((r) => r.lesson_id)],
+      game
+    );
+    exit(repHref({ game: game.id, q: drawFresh(game, asked).id, level }));
   };
 
   /*
@@ -2602,7 +2840,7 @@ function Results({
     : config.kind === "boss"
       ? "Cold Topic"
       : game
-        ? game.name
+        ? roundHeader(game.name, roundsNow)
         : "Today's practice";
   /*
    * recording-7, recording-21: one "Tomorrow", from the same source as
@@ -2676,6 +2914,80 @@ function Results({
     window.scrollTo({ top: 0 });
     if (step > 0) stepHead.current?.focus({ preventScroll: true });
   }, [step]);
+
+  /*
+   * The round's own reveal (F3) and its one sound (F5). The card waits
+   * while the streak celebration is up, or while it is still unknown
+   * whether one is coming (never more than 2.5s), so the reveal is seen
+   * and the round never has two sounds. A step back to the score shows
+   * it as it ended.
+   */
+  const [waitedOut, setWaitedOut] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setWaitedOut(true), 2500);
+    return () => clearTimeout(t);
+  }, []);
+  const streakSeen = useRef(false);
+  useEffect(() => {
+    if (streakUp) streakSeen.current = true;
+  }, [streakUp]);
+  const chimed = useRef(false);
+  const [revealed, setRevealed] = useState(false);
+  const roundHold = streakUp || (!rewardsReady && !waitedOut);
+  const reveal =
+    game && gameRound
+      ? roundReveal(game, gameRound, gameRound.game === "qa" && roundRows ? heldInARow(roundRows) : 0)
+      : null;
+  const landed = () => {
+    setRevealed(true);
+    if (
+      reveal &&
+      roundChimes({ win: reveal.win, streakCelebrated: streakSeen.current, played: chimed.current })
+    ) {
+      chimed.current = true;
+      playCelebration(false);
+      buzz([12, 40, 18]);
+    }
+  };
+  const roundCard =
+    gameRound && reveal ? (
+      <RoundCard
+        round={gameRound}
+        reveal={reveal}
+        xp={xpLine({
+          gameId: gameRound.game,
+          xpMultiplier: result.xpMultiplier,
+          mods: result.mods,
+          level: gameRound.level,
+        })}
+        words={result.words}
+        pauses={result.metrics.pauses}
+        audioUrl={audioUrl}
+        hold={roundHold}
+        played={revealed}
+        onLanded={landed}
+      />
+    ) : null;
+  /* Demos's cut-ins, marked wherever the take is drawn (the games plan,
+     item 4): the pause map and Hear it back. */
+  const cutInMarks = (gameRound && gameRound.game !== "rush" ? gameRound.cutIns : [])
+    .filter((f) => f.at !== null)
+    .map((f) => ({ t: f.at as number, line: f.line }));
+  /* The Length tile reads its own game (M5): Speed rush's clock. */
+  const lengthNote =
+    game?.id === "rush" ? `of ${gameRound?.cap ?? levelCapS(game, level)}s` : "target 60 to 90s";
+  /* Tomorrow names the ladder (M5), and a level opened or a game
+     mastered is the closing moment. */
+  const ladder: LadderView | null =
+    game && walkRows
+      ? ladderView(
+          game,
+          ladderState(walkRows.before, game.id),
+          ladderState(walkRows.now, game.id),
+          gameRound ? gameRound.counted : null
+        )
+      : null;
+  const closingNow = ladder?.moment ?? closing;
 
   if (gateTo !== null && gate !== null) {
     return (
@@ -2836,6 +3148,17 @@ function Results({
               live
               celebrate={earned}
               spread={step === 0}
+              round={roundCard}
+              /* The card takes the height Demos stands in: the stars give
+                 8px first, so he keeps 120 or more at 390x844 (F3). */
+              starSize={roundCard ? 32 : 40}
+              leadMs={roundCard ? ROUND_REVEAL_MS : 0}
+              hold={roundCard ? roundHold : false}
+              lengthNote={lengthNote}
+              pauseMarks={cutInMarks.map((c) => ({
+                t: c.t,
+                label: c.line ? `“${c.line}” ${fmt(Math.floor(c.t))}` : `Demos cut in at ${fmt(Math.floor(c.t))}`,
+              }))}
               /* recording-13, recording-18: the evidence you can play sits
                  above the words it produced, inside the words section. */
               player={
@@ -2845,6 +3168,7 @@ function Results({
                     durationS={result.metrics.durationS}
                     fillers={result.metrics.fillers}
                     pauses={result.metrics.pauses}
+                    marks={cutInMarks.map((c) => ({ t: c.t, label: c.line ?? "Demos" }))}
                     seekRef={seekRef}
                   />
                 ) : undefined
@@ -2941,15 +3265,16 @@ function Results({
           {/* The ending carries disproportionate weight when someone
               decides whether to come back (streak-end rule), so it lands
               on the last screen rather than halfway down the first. */}
-          {last && closing && (
+          {last && closingNow && (
             <div className="mt-3">
-              <Moment moment={closing} emphasis />
+              <Moment moment={closingNow} emphasis />
             </div>
           )}
 
           {last && (
             <Tomorrow
               next={pathPrimary ? { title: next.title, trait: nextTrait } : null}
+              ladder={ladder}
               streak={streakNow}
             />
           )}
@@ -2984,18 +3309,7 @@ function Results({
                 ends as a game (#194): another round or back to Practice,
                 never a push onto the path's next lesson. */}
             {game ? (
-              <button
-                data-step-action
-                onClick={() =>
-                  exit(
-                    repHref({
-                      game: game.id,
-                      q: draw(game, config.lessonId.split(":")[2] ?? null).id,
-                    })
-                  )
-                }
-                className={PRIMARY}
-              >
+              <button data-step-action onClick={anotherRound} className={PRIMARY}>
                 Another round: {game.name}
               </button>
             ) : lesson && nextInLesson ? (
@@ -3056,13 +3370,47 @@ function Results({
             </div>
           </>
         ) : (
-          /* M23: the verb alone, no arrow. Present from the first frame
-             of the step, before anything on it has landed. */
-          <button data-step-action onClick={advance} className={PRIMARY}>
-            {STEPS[step + 1].label}
-          </button>
+          <>
+            {/* M23: the verb alone, no arrow. Present from the first frame
+                of the step, before anything on it has landed. */}
+            <button data-step-action onClick={advance} className={PRIMARY}>
+              {STEPS[step + 1].label}
+            </button>
+            {/* F6a: a game's round is on its first step, so the next one
+                is a quiet tap under the numbers (recording-22's grammar),
+                never a second primary. Games only: a daily recording still
+                walks to its end. */}
+            {game && step === 0 && (
+              <div className="mt-1 flex justify-center">
+                <button
+                  onClick={anotherRound}
+                  className="press min-h-11 rounded-tap px-3 text-link text-stone-500"
+                >
+                  Another round
+                </button>
+              </div>
+            )}
+          </>
         )}
       </FooterShelf>
+      {tasteTo !== null && game && (
+        <Paywall
+          reason="Game of the day"
+          headline={tasteHeadline(game, gameRound)}
+          taste={TASTE_LINE}
+          returnTo={result.repId ? `/rep/${result.repId}` : "/you"}
+          onClose={() => {
+            const to = tasteTo;
+            setTasteTo(null);
+            if (to) go(to);
+          }}
+          onUnlocked={() => {
+            const to = tasteTo;
+            setTasteTo(null);
+            if (to) go(to);
+          }}
+        />
+      )}
     </main>
   );
 }
@@ -3230,10 +3578,13 @@ const PLAN_HOURS = [
  */
 function Tomorrow({
   next,
+  ladder = null,
   streak,
 }: {
   /** The path's next, when the button is the path's next; else null. */
   next: { title: string; trait: TraitId | null } | null;
+  /** A game round: the ladder in the path's place (M5). */
+  ladder?: LadderView | null;
   streak: number;
 }) {
   const hourLabel = useHourLabel();
@@ -3263,11 +3614,20 @@ function Tomorrow({
 
   // Already planned on an earlier day: the settings card owns it now.
   const asking = hour === null || picked;
-  if (!next && !asking) return null;
+  if (!next && !ladder && !asking) return null;
 
   return (
     <section className="mt-7">
       <h2 className="section-head">Tomorrow</h2>
+      {ladder && (
+        <div className="mt-3">
+          <p className="font-display text-detail">{ladder.head}</p>
+          <p className="mt-1 text-body text-stone-600 text-pretty">{ladder.line}</p>
+          {ladder.rule && (
+            <p className="mt-1 text-caption text-stone-500 text-pretty">{ladder.rule}</p>
+          )}
+        </div>
+      )}
       {next && (
         <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
           <span className="font-display text-detail">{next.title}</span>
@@ -3288,7 +3648,7 @@ function Tomorrow({
           <>
             {/* One line (feedback round, 25 Sep): the line asks, the
                 chips answer. */}
-            <p className={`${next ? "mt-4" : "mt-3"} text-body text-stone-500`}>
+            <p className={`${next || ladder ? "mt-4" : "mt-3"} text-body text-stone-500`}>
               Pick a time and Demos reminds you once a day.
             </p>
             <div className="mt-3 grid grid-cols-3 gap-2">

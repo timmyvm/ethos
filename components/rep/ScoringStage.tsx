@@ -1,6 +1,7 @@
 "use client";
 
 import { DemosFigure } from "@/components/DemosClip";
+import { IconBubble } from "@/components/Icon";
 import { useEffect, useState } from "react";
 import { ScoringWave } from "@/components/ScoringWave";
 
@@ -26,18 +27,29 @@ import { ScoringWave } from "@/components/ScoringWave";
  *
  * A retry (attempt > 0, the outbox resending) swaps the checks for the
  * one sentence that matters then: the recording is safe.
+ *
+ * A game round (proposal-feel F7) adds the one fact the phone already
+ * knows at Stop under the length: when Demos cut in, or who stopped the
+ * clock. The reveal answers the question it opens ("did I hold?"), and
+ * the cut-in stands on the wave as a 2px ink tick at its second.
  */
 export function ScoringStage({
   levels,
   seconds,
   boss = false,
   attempt = 0,
+  fact = null,
+  cutIns = [],
 }: {
   levels: number[];
   /** The recording's length, measured on this device. */
   seconds: number;
   boss?: boolean;
   attempt?: number;
+  /** A game round's one line ("Demos cut in at 0:17."); null for anything else. */
+  fact?: string | null;
+  /** Seconds into the take Demos cut in, each a tick on the wave. */
+  cutIns?: readonly number[];
 }) {
   const stages = boss ? BOSS_STAGES : STAGES;
   const [at, setAt] = useState(0);
@@ -61,6 +73,7 @@ export function ScoringStage({
             <div className="font-display mt-1.5 text-num-hero tabular-nums">
               {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}
             </div>
+            {fact && <p className="mt-1 text-body font-semibold text-balance">{fact}</p>}
           </div>
           <div className="relative -mr-1 w-[150px] shrink-0">
             <span aria-hidden className="scoring-spot" />
@@ -76,9 +89,31 @@ export function ScoringStage({
             />
           </div>
         </div>
-        <div className="-mx-1 -mt-1 pb-4">
-          <ScoringWave levels={levels} height={64} />
-        </div>
+        {/* The cut-ins on the take (F7): a 2px ink tick over the wave at
+            each second he cut in, its bubble glyph under the wave in the
+            panel's foot, clear of Demos standing on it. */}
+        {(() => {
+          const ticks = seconds > 0 ? cutIns.filter((t) => t > 0 && t < seconds) : [];
+          return (
+            <div className={`-mx-1 -mt-1 ${ticks.length ? "pb-6" : "pb-4"}`}>
+              <div className="relative mx-auto w-full max-w-[300px]">
+                <ScoringWave levels={levels} height={64} />
+                {ticks.map((t, i) => (
+                  <span
+                    key={i}
+                    aria-hidden
+                    className="absolute inset-y-0 w-[2px] -translate-x-1/2 bg-ink"
+                    style={{ left: `${(t / seconds) * 100}%` }}
+                  >
+                    <span className="absolute top-full left-1/2 mt-1 inline-flex -translate-x-1/2 text-ink">
+                      <IconBubble size={14} />
+                    </span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       </section>
 
       {attempt > 0 ? (

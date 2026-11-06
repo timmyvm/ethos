@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LIVE_TIPS, TIP_HOLD_S, liveTipAt } from "./live-tips";
+import { LIVE_TIPS, TIP_HOLD_S, liveTipAt, liveTipsFor, yieldsToCutIn } from "./live-tips";
 
 describe("liveTipAt", () => {
   it("opens with the beat-of-silence tip", () => {
@@ -58,5 +58,33 @@ describe("liveTipAt", () => {
         seen.add(tip.at);
       }
     }
+  });
+});
+
+describe("the games' tips (the games plan, items 1 and 9)", () => {
+  it("leaves Speed rush only the closing line, near the end", () => {
+    const tips = liveTipsFor("rush");
+    expect(tips.map((t) => t.text)).toEqual(["Last line is the one they keep."]);
+    expect(liveTipAt(2, 30, false, tips)).toBeNull();
+    expect(liveTipAt(26, 30, false, tips)).toBe("Last line is the one they keep.");
+    expect(liveTipAt(18, 20, false, tips)).toBe("Last line is the one they keep.");
+  });
+
+  it("keeps the house arc for every other take", () => {
+    expect(liveTipsFor("qa")).toBe(LIVE_TIPS);
+    expect(liveTipsFor(null)).toBe(LIVE_TIPS);
+  });
+
+  it("yields from one second before the aim to 3.5 seconds after he cut in", () => {
+    const waiting = [{ aim: 14, forceBy: 20, at: null }];
+    expect(yieldsToCutIn(12.9, waiting)).toBe(false);
+    expect(yieldsToCutIn(13, waiting)).toBe(true);
+    expect(yieldsToCutIn(19, waiting)).toBe(true);
+    const fired = [{ aim: 14, forceBy: 20, at: 15.2 }];
+    expect(yieldsToCutIn(14.1, fired)).toBe(false);
+    expect(yieldsToCutIn(14.2, fired)).toBe(true);
+    expect(yieldsToCutIn(18.6, fired)).toBe(true);
+    expect(yieldsToCutIn(18.7, fired)).toBe(false);
+    expect(yieldsToCutIn(30, [])).toBe(false);
   });
 });

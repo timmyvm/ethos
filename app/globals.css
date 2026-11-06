@@ -3323,10 +3323,13 @@ summary::-webkit-details-marker {
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
-/* A trait's number is text, so it takes the tone's ink (the form a
-   trait's words wear, D05), never the solid. */
+/* A trait's number is what it measured, so it takes the tone itself,
+   the colour of its ring and its bar, and of the rule over it. The
+   tone's ink is for words on its wash: in dark it is a near-white blue
+   that left "3" reading as the page's ink. Every tone clears 3:1 for
+   24px type on the ground in both themes (lib/today-colour.test.ts). */
 .closing-note[data-ink="trait"] .closing-note-value {
-  color: var(--tone-ink);
+  color: var(--tone);
 }
 .closing-note[data-ink="earned"] .closing-note-value {
   color: var(--color-sage-700);

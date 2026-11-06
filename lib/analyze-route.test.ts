@@ -20,6 +20,7 @@ vi.mock("@/lib/db", () => {
   }),
   previousEthosIndex: vi.fn(async () => null),
   bossIndexBetween: vi.fn(async (_u: string, _from: Date, _to: Date): Promise<number | null> => null),
+  gameRoundsBetween: vi.fn(async (_u: string, _g: string, _from: Date, _to: Date): Promise<number> => 0),
   previousPresence: vi.fn(async () => null),
   isPremium: vi.fn(async () => false),
   readMeterState: vi.fn(async () => ({
@@ -50,6 +51,7 @@ import { coachRep } from "@/lib/coach";
 import {
   bossIndexBetween,
   findRepByClientId,
+  gameRoundsBetween,
   getUserFromAuthHeader,
   resolveAuthHeader,
   isPremium,
@@ -58,6 +60,8 @@ import {
   saveRep,
   writeMeterState,
 } from "@/lib/db";
+import { bossWeekField } from "@/lib/boss";
+import { gameOfTheDay } from "@/lib/games";
 import { dateKey } from "@/lib/metering";
 import { consumeRateLimit, refundRateLimit } from "@/lib/rate-limit";
 import { transcribe } from "@/lib/transcribe";
@@ -138,6 +142,8 @@ beforeEach(() => {
   });
   vi.mocked(previousEthosIndex).mockResolvedValue(null);
   vi.mocked(bossIndexBetween).mockResolvedValue(null);
+  vi.mocked(gameRoundsBetween).mockReset();
+  vi.mocked(gameRoundsBetween).mockResolvedValue(0);
 });
 
 /** A rep good enough to be judged, with the coach layer stubbed out. */
@@ -349,6 +355,35 @@ describe("POST /api/analyze", () => {
     // Monday 26 Oct to Monday 2 Nov, midnight in Melbourne.
     expect(from.toISOString()).toBe("2026-10-25T13:00:00.000Z");
     expect(to.toISOString()).toBe("2026-11-01T13:00:00.000Z");
+  });
+
+  it("reads last week from the phone's own Mondays, and from the offset without them", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(coachRep).mockResolvedValue(null);
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-boss", anonymous: false });
+    const spoken = Date.now() - 60_000;
+    const week = bossWeekField(new Date(spoken));
+    const [from, to] = week.split("/");
+    vi.mocked(bossIndexBetween).mockClear();
+    const form = audioForm();
+    form.append("bossTopicId", "crispr");
+    form.append("recordedAt", String(spoken));
+    form.append("tzOffset", String(new Date(spoken).getTimezoneOffset()));
+    form.append("bossWeek", week);
+    await post(form);
+    const [, a, b] = vi.mocked(bossIndexBetween).mock.calls[0];
+    expect([a.toISOString(), b.toISOString()]).toEqual([from, to]);
+
+    // A week that is not the one before the take: the offset's week.
+    vi.mocked(bossIndexBetween).mockClear();
+    const forged = audioForm();
+    forged.append("bossTopicId", "crispr");
+    forged.append("recordedAt", String(spoken));
+    forged.append("tzOffset", "0");
+    forged.append("bossWeek", "2020-01-06T00:00:00.000Z/2020-01-13T00:00:00.000Z");
+    await post(forged);
+    const [, c] = vi.mocked(bossIndexBetween).mock.calls[0];
+    expect(c.getTime()).toBeGreaterThan(Date.parse("2026-01-01"));
   });
 
   it("gives a first boss no delta, and a daily take its latest Index as before", async () => {
@@ -963,13 +998,59 @@ describe("a game round", () => {
     expect(forged.xpMultiplier).toBe(2);
   });
 
-  it("pays Speed rush's tight clock to a free account, at its level", async () => {
-    const body = await (
-      await post(gameForm("game:rush:ru2", { game: "rush", level: 1, cutIns: [], stoppedBy: "you" }))
-    ).json();
+  /** A moment in the last day or two (UTC) when `game` is the free one. */
+  const freeDayOf = (game: string): number => {
+    const now = Date.now() - 60_000;
+    return gameOfTheDay(new Date(now).toISOString().slice(0, 10)) === game ? now : now - 86_400_000;
+  };
+  const onDay = (form: FormData, at: number) => {
+    form.append("recordedAt", String(at));
+    form.append("tzOffset", "0");
+    return form;
+  };
+  const rushRound = { game: "rush", level: 1, cutIns: [], stoppedBy: "you" };
+
+  it("pays Speed rush's tight clock to a free account on its free day, at its level", async () => {
+    const body = await (await post(onDay(gameForm("game:rush:ru2", rushRound), freeDayOf("rush")))).json();
     expect(body.mods).toEqual(["tight"]);
     expect(body.xpMultiplier).toBe(1.5);
     expect(body.round).toMatchObject({ game: "rush", level: 1, cap: 45, lastWord: 39.08, landed: true });
+    // Counted on the speaker's own day, for this game.
+    const [user, game, from, to] = vi.mocked(gameRoundsBetween).mock.calls[0];
+    expect([user, game]).toEqual(["user-1", "rush"]);
+    expect(to.getTime() - from.getTime()).toBe(86_400_000);
+  });
+
+  it("measures and pays no Premium round a free account was not given (games review, finding 3)", async () => {
+    // Speed rush on Interview's free day, forged at level 3.
+    const notToday = freeDayOf("interview");
+    const forged = await (
+      await post(onDay(gameForm("game:rush:ru1", { ...rushRound, level: 3 }), notToday))
+    ).json();
+    expect(forged.round).toBeNull();
+    expect(forged.mods).toEqual([]);
+    expect(forged.xpMultiplier).toBe(1);
+    expect(vi.mocked(saveRep).mock.calls[0][0]).toMatchObject({ round: null, mods: [], xpMultiplier: 1 });
+
+    // A second round on its free day: the first is already stored.
+    vi.mocked(saveRep).mockClear();
+    vi.mocked(gameRoundsBetween).mockResolvedValue(1);
+    const second = await (await post(onDay(gameForm("game:rush:ru2", rushRound), freeDayOf("rush")))).json();
+    expect(second.round).toBeNull();
+    expect(second.xpMultiplier).toBe(1);
+  });
+
+  it("opens every Premium round on Premium, and on a plan read that failed", async () => {
+    const notToday = freeDayOf("interview");
+    vi.mocked(isPremium).mockResolvedValue(true);
+    const paid = await (await post(onDay(gameForm("game:rush:ru1", rushRound), notToday))).json();
+    expect(paid.round).toMatchObject({ game: "rush", level: 1 });
+    expect(paid.xpMultiplier).toBe(1.5);
+    expect(gameRoundsBetween).not.toHaveBeenCalled();
+
+    vi.mocked(isPremium).mockRejectedValue(new Error("down"));
+    const unknown = await (await post(onDay(gameForm("game:rush:ru1", rushRound), notToday))).json();
+    expect(unknown.round).toMatchObject({ game: "rush" });
   });
 
   it("keeps the player's extras on their plan", async () => {

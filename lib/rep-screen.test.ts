@@ -8,6 +8,7 @@ import {
   defaultBack,
   recordCue,
   roundChimes,
+  streakChimes,
   takeRewards,
   thinksFirst,
 } from "./rep-screen";
@@ -179,6 +180,16 @@ describe("roundChimes (F5)", () => {
   });
 
   it("stays quiet when the streak celebration was the round's one sound", () => {
+    expect(roundChimes({ win: true, streakCelebrated: true, played: false })).toBe(false);
+  });
+
+  it("never lets the streak roll chime after the reveal did (games review, finding 6)", () => {
+    // The reveal's hold lifted at 2.5s and it chimed; the roll lands later.
+    const round = roundChimes({ win: true, streakCelebrated: false, played: false });
+    expect(round).toBe(true);
+    expect(streakChimes({ roundChimed: round })).toBe(false);
+    // A roll that lands first keeps its chime, and the reveal stays quiet.
+    expect(streakChimes({ roundChimed: false })).toBe(true);
     expect(roundChimes({ win: true, streakCelebrated: true, played: false })).toBe(false);
   });
 });

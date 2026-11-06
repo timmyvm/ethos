@@ -30,11 +30,17 @@ const FILL_AFTER_MS = 240;
 export function StreakCelebration({
   streak,
   week,
+  quiet = false,
   onDone,
 }: {
   streak: number;
   /** This week, Monday first (lib/home.ts `weekView`): the row under the count. */
   week?: WeekDay[] | null;
+  /**
+   * A game round's reveal already played the round's one sound (F5,
+   * lib/rep-screen.ts `streakChimes`): the roll lands without a chime.
+   */
+  quiet?: boolean;
   onDone: () => void;
 }) {
   const [leaving, setLeaving] = useState(false);
@@ -50,7 +56,7 @@ export function StreakCelebration({
    * has its own switch in settings.
    */
   useEffect(() => {
-    playCelebration(milestone);
+    if (!quiet) playCelebration(milestone);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -83,7 +89,7 @@ export function StreakCelebration({
         className="demos w-[200px]"
       />
       <LitFlame calm={calm} />
-      <StreakRoll streak={streak} milestone={milestone} calm={calm} />
+      <StreakRoll streak={streak} milestone={milestone} calm={calm} quiet={quiet} />
       <div className="mt-1 text-body font-semibold">
         day{streak === 1 ? "" : "s"} in a row
       </div>
@@ -121,10 +127,13 @@ function StreakRoll({
   streak,
   milestone,
   calm,
+  quiet,
 }: {
   streak: number;
   milestone: boolean;
   calm: boolean;
+  /** No chime played, so no haptic lands under it either. */
+  quiet: boolean;
 }) {
   const [rolled, setRolled] = useState(calm);
 
@@ -134,10 +143,10 @@ function StreakRoll({
     const landing = notes[notes.length - 1].at * 1000;
     const t = setTimeout(() => {
       setRolled(true);
-      buzz(30);
+      if (!quiet) buzz(30);
     }, landing);
     return () => clearTimeout(t);
-  }, [calm, milestone]);
+  }, [calm, milestone, quiet]);
 
   return (
     <div

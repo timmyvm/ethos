@@ -8,7 +8,7 @@ import type { Pause, Word } from "@/lib/metrics";
 import { DURATION } from "@/lib/motion";
 import { prefersReducedMotion } from "@/lib/prefs";
 import { INTERVIEW_WINDOW, type CutInFact, type GameRound } from "@/lib/round";
-import type { RoundReveal } from "@/lib/round-copy";
+import { stripLabel, type RoundReveal } from "@/lib/round-copy";
 import { SPRING, springEasing, springMs } from "@/lib/spring";
 
 /**
@@ -343,9 +343,8 @@ function Strip({
     on: speaking(t, half),
     h: 7 + Math.round(Math.abs(Math.sin(i * 2.7)) * 10),
   }));
-  const label = fired
-    .map((f) => `Demos cut in at ${Math.floor(f.at as number)} seconds, then ${f.gap ?? 0} seconds of silence`)
-    .join(". ");
+  // Rounded as the card writes it: "1.2 seconds", "under 0.3 seconds".
+  const label = stripLabel(fired);
 
   return (
     <div ref={outer} role="img" aria-label={label || "The take"} className="relative mt-2 h-9 overflow-hidden">

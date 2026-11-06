@@ -193,8 +193,26 @@ export default function GamesPage() {
     return tileLadder(rounds, g.id, now);
   }
 
+  /* A tap while the rounds are still being read waits for them (games
+     review, finding 7): the link would otherwise leave the level off, and
+     /rep only ever moves a level down, so a player with level 2 open
+     played a level 1 round the ladder skips. Once read, the tap is
+     played again, so a spent free game still meets its sheet. A read
+     that fails goes to level 1, the one level that is always open. */
+  const [pending, setPending] = useState<Game | null>(null);
+  useEffect(() => {
+    if (!pending || rounds === null || !now) return;
+    setPending(null);
+    play(pending);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending, rounds, now]);
+
   /** Into a round: a question not answered yet, at the level the ladder has open. */
   function go(g: Game) {
+    if (ladderOf(g) === "loading") {
+      setPending(g);
+      return;
+    }
     const rows = Array.isArray(rounds) ? rounds : [];
     const q = drawFresh(g, askedIdsFrom(lessonIdsNewestFirst(rows), g));
     const ladder = ladderOf(g);

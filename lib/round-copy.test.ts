@@ -14,6 +14,7 @@ import {
   roundReveal,
   roundWon,
   secs,
+  stripLabel,
   TASTE_LINE,
   tasteHeadline,
   tasteKey,
@@ -139,6 +140,19 @@ describe("the round card, Q&A (F3)", () => {
   it("held but stopped soon after says so, since that round does not count", () => {
     const r = roundReveal(QA, qa({ counted: false, cutIns: [fact({ spokeAfter: 2.2 })] }));
     expect(r.line).toBe("You stopped 2s after he cut in.");
+    // Not a win: no sage, no sound, since the ladder did not count it (plan 3, 11).
+    expect(r.win).toBe(false);
+    // The engine's own round, held 1.2s and stopped 2s after him, agrees.
+    const words: Word[] = [];
+    for (let t = 0.5; t < 16.9; t += 0.3) words.push({ word: " word", start: t, end: t + 0.28 });
+    words.push({ word: " so", start: 18.2, end: 18.5 }, { word: " no.", start: 18.6, end: 19.2 });
+    const measured = measureRound({
+      game: "qa", level: 1, cutIns: [{ at: 17, line: "Says who?" }], stoppedBy: "you",
+      words, fillers: [], durationS: 19.5, stars: 3, scorable: true,
+    }) as QaRound;
+    expect(measured.cutIns[0].verdict).toBe("held");
+    expect(measured.counted).toBe(false);
+    expect(roundWon(QA, measured)).toBe(measured.counted);
   });
 
   it("level 3: the cut-in that decides, both times in the eyebrow", () => {
@@ -212,6 +226,13 @@ describe("the round card, Speed rush (F3)", () => {
 
   it("too early, too close and too few words each say why", () => {
     expect(roundReveal(RUSH, rush({ lastWord: 9, spare: 21, landed: false })).line).toBe("A round counts from 0:15.");
+    // Level 1's half is 22.5s, said to the tenth: a 22.3s round has not passed it.
+    expect(
+      roundReveal(RUSH, rush({ level: 1, cap: 45, lastWord: 22.3, spare: 22.7, landed: false })).line
+    ).toBe("A round counts from 0:22.5.");
+    expect(roundReveal(RUSH, rush({ level: 3, cap: 20, lastWord: 8, spare: 12, landed: false })).line).toBe(
+      "A round counts from 0:10."
+    );
     expect(roundReveal(RUSH, rush({ lastWord: 29.7, spare: 0.3, landed: false })).line).toBe(
       "A round needs 0.5s to spare."
     );
@@ -239,6 +260,12 @@ describe("the round card, Interview (F3)", () => {
     expect(short.win).toBe(false);
     const clockStop = roundReveal(INTERVIEW, interview({ lastWord: 89.8, inWindow: false, stoppedBy: "clock" }));
     expect([clockStop.number, clockStop.note]).toEqual(["1:30", "the clock stopped you"]);
+  });
+
+  it("past the window by your own stop, to the tenth, so the number agrees with its note", () => {
+    const r = roundReveal(INTERVIEW, interview({ lastWord: 89.7, inWindow: false, stoppedBy: "you" }));
+    expect([r.number, r.note]).toEqual(["1:29.7", "past 1:29.5"]);
+    expect(r.win).toBe(false);
   });
 });
 
@@ -313,7 +340,16 @@ describe("Tomorrow names the ladder (M5)", () => {
     const v = ladderView(QA, null, state({ open: 3, of: 3, counted: 2 }), true);
     expect(v.line).toBe("2 of 3 days at three stars. One more on another day masters Q&A.");
     expect(ladderView(QA, null, state({ open: 3, of: 3, counted: 0, countedToday: false }), true).line).toBe(
-      "0 of 3 days at three stars. Three master Q&A."
+      "0 of 3 days at three stars. Three on three different days master Q&A."
+    );
+    expect(ladderView(QA, null, state({ open: 3, of: 3, counted: 1, countedToday: true }), true).line).toBe(
+      "1 of 3 days at three stars. Two more on other days master Q&A."
+    );
+    expect(ladderView(QA, null, state({ open: 3, of: 3, counted: 1, countedToday: false }), true).line).toBe(
+      "1 of 3 days at three stars. Two more master Q&A."
+    );
+    expect(ladderView(QA, null, state({ open: 3, of: 3, counted: 2, countedToday: false }), true).line).toBe(
+      "2 of 3 days at three stars. One more masters Q&A."
     );
   });
 
@@ -436,5 +472,20 @@ describe("copy rules on every string the walk prints", () => {
       for (const x of [v.head, v.line, v.rule, v.moment?.headline, v.moment?.detail]) clean(x);
     }
     clean(TASTE_LINE);
+  });
+});
+
+describe("the strip's spoken label (games review, finding 14)", () => {
+  it("says the silence as the card writes it", () => {
+    expect(stripLabel([fact({ at: 17.2, gap: 1.23 })])).toBe(
+      "Demos cut in at 17 seconds, then 1.2 seconds of silence"
+    );
+    expect(stripLabel([fact({ at: 17.2, gap: 0.2, verdict: "through" })])).toBe(
+      "Demos cut in at 17 seconds, then under 0.3 seconds of silence"
+    );
+    expect(stripLabel([fact({ at: null, verdict: "missed", gap: null })])).toBe("");
+    expect(
+      stripLabel([fact({ at: 8.1, gap: 1.0 }), fact({ at: 36.4, gap: 1.44 })])
+    ).toBe("Demos cut in at 8 seconds, then 1.0 seconds of silence. Demos cut in at 36 seconds, then 1.4 seconds of silence");
   });
 });

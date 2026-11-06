@@ -387,7 +387,9 @@ const MISSED: CutInFact = {
  *
  * When no word follows the cut-in at all, the silence runs to the take's
  * end: you stopped talking when he cut in, and that silence is measured
- * the same way (and `spokeAfter` says you never came back).
+ * the same way (and `spokeAfter` says you never came back). The take's
+ * start counts as a word's end, so a cut-in forced into the quiet before
+ * your first word is measured from him to that word, like any gap.
  */
 function cutInFact(c: CutInClaim, ctx: Ctx): CutInFact {
   const { words, fillers, durationS, lastWord } = ctx;
@@ -399,6 +401,7 @@ function cutInFact(c: CutInClaim, ctx: Ctx): CutInFact {
     const len = round2(end - from);
     if (len > 0 && (!best || len > best.len)) best = { from, to: end, len };
   };
+  if (words.length > 0) consider(0, words[0].start);
   for (let i = 0; i < words.length - 1; i++) {
     consider(words[i].end, words[i + 1].start);
   }

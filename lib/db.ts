@@ -128,6 +128,31 @@ export async function bossIndexBetween(
   return (data?.ethos_index as number | undefined) ?? null;
 }
 
+/**
+ * How many recordings of one game this account stored between two
+ * instants (`lesson_id` like `game:<id>:%`): the server's count of a
+ * free account's one round of today's Premium game (games review,
+ * finding 3). Throws on a failed read, so the caller decides.
+ */
+export async function gameRoundsBetween(
+  userId: string,
+  gameId: string,
+  from: Date,
+  to: Date
+): Promise<number> {
+  const db = supabaseAdmin();
+  if (!db) return 0;
+  const { count, error } = await db
+    .from("reps")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .like("lesson_id", `game:${gameId}:%`)
+    .gte("created_at", from.toISOString())
+    .lt("created_at", to.toISOString());
+  if (error) throw error;
+  return count ?? 0;
+}
+
 /** The user's latest stored Presence, for the second trendline. */
 export async function previousPresence(
   userId: string

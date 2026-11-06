@@ -183,6 +183,24 @@ describe("Q&A: when a round counts, and its best", () => {
     expect(qaTake(4).best).toBeNull();
   });
 
+  it("measures the quiet before your first word when he was forced in there", () => {
+    // Level 2, silent until he is forced in at 10.0; the first word at 11.0.
+    const words = talk(11, 40);
+    const round = measureRound(
+      input(words, { level: 2, cutIns: [{ at: 10, line: "Says who?" }] })
+    ) as QaRound;
+    expect(round.cutIns[0].verdict).toBe("held");
+    expect(round.cutIns[0].gap).toBe(1);
+    expect(round.cutIns[0].gapFrom).toBe(10);
+    expect(round.cutIns[0].gapTo).toBe(11);
+    expect(round.counted).toBe(true);
+    // A first word inside the settle is talking as he lands: not a reply.
+    const onTop = measureRound(
+      input(talk(10.05, 40), { level: 2, cutIns: [{ at: 10, line: "Says who?" }] })
+    ) as QaRound;
+    expect(onTop.cutIns[0].verdict).toBe("through");
+  });
+
   it("measures a stop at the cut-in as silence to the end, and never counts it", () => {
     const words = talk(0.5, 19.9);
     const round = measureRound(

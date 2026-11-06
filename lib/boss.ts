@@ -172,13 +172,50 @@ export function takeThisWeek<T extends BossTakeRow>(
   return inWeek.find((r) => r.ethos_index !== null) ?? inWeek[0] ?? null;
 }
 
+const HOUR_MS = 3_600_000;
+
 /**
- * Last week, on the speaker's own calendar, for the server: from Monday
- * 00:00 a week before the week `at` falls in, to that week's own Monday.
- * `tzOffset` is the phone's `getTimezoneOffset()` minutes, as
- * /api/analyze receives it; with none the week is UTC's. The score
- * step's delta compares a boss with last week's slot on the lobby's
- * record ("▲ 36 on last week's boss"), so both start a week on Monday.
+ * Last week as the lobby's record counts it, sent with a boss take
+ * (`bossWeek`): last Monday 00:00 and this Monday 00:00 on the device's
+ * calendar (`weekStart`, `addWeeks`), as ISO instants. The server reads
+ * the delta's week from these, so it names the take the lobby's slot
+ * shows across a clock change, which an offset from one moment cannot.
+ */
+export function bossWeekField(at: Date = new Date()): string {
+  const to = weekStart(at);
+  return `${addWeeks(to, -1).toISOString()}/${to.toISOString()}`;
+}
+
+/**
+ * The phone's last week (`bossWeekField`), checked: a week of 7 days,
+ * give or take a clock change's hour, ending at the Monday that starts
+ * the week `at` falls in. Anything else is null, and the server counts
+ * the week from the offset instead (`lastBossWeek`). A forged week moves
+ * only which boss the delta is drawn against: a lie to its author.
+ */
+export function parseBossWeek(raw: unknown, at: Date): { from: Date; to: Date } | null {
+  if (typeof raw !== "string" || raw.length > 80) return null;
+  const [a, b, extra] = raw.split("/");
+  if (!a || !b || extra !== undefined) return null;
+  const from = new Date(a);
+  const to = new Date(b);
+  if (!Number.isFinite(from.getTime()) || !Number.isFinite(to.getTime())) return null;
+  if (Math.abs(to.getTime() - from.getTime() - 7 * DAY_MS) > HOUR_MS) return null;
+  const into = at.getTime() - to.getTime();
+  if (into < 0 || into >= 7 * DAY_MS + HOUR_MS) return null;
+  return { from, to };
+}
+
+/**
+ * Last week, on the speaker's own calendar, for the server, when the
+ * phone sent no week of its own (a take from before `bossWeek`): from
+ * Monday 00:00 a week before the week `at` falls in, to that week's own
+ * Monday. `tzOffset` is the phone's `getTimezoneOffset()` minutes, as
+ * /api/analyze receives it; with none the week is UTC's. One offset
+ * serves both Mondays, so across a clock change either can sit an hour
+ * off the lobby's. The score step's delta compares a boss with last
+ * week's slot on the lobby's record ("▲ 36 on last week's boss"), so
+ * both start a week on Monday.
  */
 export function lastBossWeek(at: Date, tzOffset: number | null): { from: Date; to: Date } {
   const offset =

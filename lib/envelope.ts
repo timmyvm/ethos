@@ -135,6 +135,47 @@ export function serializeEnvelope(env: Envelope): string {
   });
 }
 
+/** Past this many samples an envelope is junk (a 90s take at 20Hz is 1800). */
+const MAX_SAMPLES = 20_000;
+
+/**
+ * The recorder's sampler: every sample the take's clock has reached by
+ * `elapsedMs`, each at the level heard now. Driven by animation frames,
+ * whose timing varies, so it counts by elapsed time and never by frames:
+ * sample i is taken on the first frame at or after i / rate seconds, and
+ * a late frame fills the samples it skipped, so the timebase stays even.
+ */
+export function sampleEnvelope(
+  levels: number[],
+  elapsedMs: number,
+  level: number,
+  rate: number = ENVELOPE_RATE
+): void {
+  const due = Math.min(MAX_SAMPLES, (elapsedMs * rate) / 1000);
+  while (levels.length < due) levels.push(level);
+}
+
+/** How far under its declared rate an envelope may run before it is read at its own. */
+export const RATE_TOLERANCE = 0.05;
+
+/**
+ * The envelope read at the rate it was really taken at. Phones before
+ * the games review sampled on animation frames, a sample on the first
+ * frame 50ms after the last, which at 60Hz is every third or fourth
+ * frame: about 17 a second under a label of 20, so sample 400, read as
+ * 0:20, was heard at about 0:23, and a silence at 0:20 was judged on
+ * speech three seconds later. When an envelope holds more than 5% fewer
+ * samples than its declared rate fills the take with, its samples are
+ * spread over the take's own length instead. More samples than the take
+ * holds are a tail past Stop, at the right times, and stay as they are.
+ */
+export function fitEnvelopeRate(env: Envelope | null, durationS: number): Envelope | null {
+  if (!env || !(durationS > 0) || env.levels.length === 0) return env;
+  const heard = env.levels.length / durationS;
+  if (heard >= env.rate * (1 - RATE_TOLERANCE)) return env;
+  return { levels: env.levels, rate: heard };
+}
+
 export function parseEnvelope(raw: string | null): Envelope | null {
   if (!raw) return null;
   try {
@@ -145,7 +186,7 @@ export function parseEnvelope(raw: string | null): Envelope | null {
       .map((v) => Math.min(1, Math.max(0, v)));
     const rate = typeof parsed.rate === "number" && parsed.rate > 0 ? parsed.rate : ENVELOPE_RATE;
     // A 90s rep at 20Hz is 1800 samples; anything far past that is junk.
-    if (levels.length > 20_000) return null;
+    if (levels.length > MAX_SAMPLES) return null;
     return { levels, rate };
   } catch {
     return null;

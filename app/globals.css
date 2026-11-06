@@ -3199,7 +3199,8 @@ summary::-webkit-details-marker {
     display: inline;
   }
   .best-plaque-value {
-    font-size: 1.25rem;
+    font-size: var(--text-num-m);
+    line-height: var(--text-num-m--line-height);
   }
   .best-plaque-note {
     align-self: center;

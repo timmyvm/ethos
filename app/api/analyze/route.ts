@@ -15,10 +15,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { judgeAccuracy, type AccuracyResult } from "@/lib/accuracy";
 import { coachRep, tier2Scores, type CoachOutput } from "@/lib/coach";
 import { COLD_TOPICS } from "@/lib/cold-topics";
-import { bossXpMultiplier, lastBossWeek } from "@/lib/boss";
+import { bossXpMultiplier, lastBossWeek, parseBossWeek } from "@/lib/boss";
 import {
   bossIndexBetween,
   findRepByClientId,
+  gameRoundsBetween,
   resolveAuthHeader,
   isPremium,
   previousEthosIndex,
@@ -46,8 +47,15 @@ import {
   type Tier2Anchors,
 } from "@/lib/index-score";
 import { computeMetrics, isScorable, type RepMetrics, type Word } from "@/lib/metrics";
-import { parseEnvelope } from "@/lib/envelope";
-import { gameMods, gameOfLessonId, gameXpMultiplier } from "@/lib/games";
+import { fitEnvelopeRate, parseEnvelope } from "@/lib/envelope";
+import {
+  gameDayWindow,
+  gameMods,
+  gameOfLessonId,
+  gameXpMultiplier,
+  needsPremium,
+  roundEntitled,
+} from "@/lib/games";
 import { pauseReport } from "@/lib/pause-quality";
 import {
   cutInFired,
@@ -247,7 +255,10 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
   // from the mods this account is actually entitled to. A hand-edited
   // URL or a forged form field can change the difficulty of your rep,
   // never the XP it pays.
-  const premium = await isPremium(userId).catch(() => false);
+  // A read that failed is unknown (null): extras pay as free, and a
+  // Premium game's round is not refused on it (below).
+  const premiumRead = await isPremium(userId).catch(() => null);
+  const premium = premiumRead === true;
   const extras = parseMods(form.get("mods") as string | null, { premium });
   const bossTopic =
     COLD_TOPICS.find((t) => t.id === (form.get("bossTopicId") as string)) ??
@@ -266,6 +277,8 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
    * as entitled on any plan (#194: premium gates the picker, never the
    * games), Interruption only when he actually cut in, times the level's
    * multiplier. Extras the player stacked still follow the plan above.
+   * A Premium game on a free plan is a round only as today's free game,
+   * once (checked below, against the stored rounds).
    */
   const game = bossTopic ? null : gameOfLessonId(lessonId);
   const claim = game ? parseRoundField(form.get("round")) : null;
@@ -327,7 +340,12 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
   // The mic's own account of the gaps. Independent of Whisper, which
   // deletes non-lexical fillers — so a gap the transcript shows as empty
   // can still have had a sound in it.
-  const envelope = parseEnvelope(form.get("envelope") as string | null);
+  // Read at the rate it was really taken at: phones before the review
+  // sampled about 17 a second under a label of 20 (lib/envelope.ts).
+  const envelope = fitEnvelopeRate(
+    parseEnvelope(form.get("envelope") as string | null),
+    transcription.durationS
+  );
   const pauses = pauseReport({
     pauses: metrics.pauses,
     words: transcription.words,
@@ -404,8 +422,26 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
     ? ethosIndex(tier1, coach ? tier2Scores(coach) : null)
     : null;
 
+  /*
+   * The game of the day, held where it cannot be forged (the games plan,
+   * item 12; games review, finding 3). A free account's Premium round is
+   * measured, stored and paid as the game only on the speaker's own day
+   * that game is free, and only while no round of it is stored that day,
+   * as /api/hostile counts its weekly take. Any other is a recording like
+   * any other: no round, and only the mods its plan pays. A count that
+   * fails degrades open, like the plan read.
+   */
+  let roundOpen = true;
+  if (game && needsPremium(game) && premiumRead !== true) {
+    const day = gameDayWindow(recordedAt ?? new Date(), numberOrNull(form.get("tzOffset")));
+    const storedToday = userId
+      ? await gameRoundsBetween(userId, game.id, day.from, day.to).catch(() => 0)
+      : 0;
+    roundOpen = roundEntitled(game, { premium: premiumRead, dayKey: day.dayKey, storedToday });
+  }
+
   let round: GameRound | null = null;
-  if (game) {
+  if (game && roundOpen) {
     if (claim) {
       round = measureRound({
         game: game.id,
@@ -435,8 +471,11 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
    * week, no delta: never one against a daily take, or against a week
    * the label would misname.
    */
+  /* The phone's own Mondays (`bossWeek`, lib/boss.ts), so the week is the
+     lobby's across a clock change; the offset's week for a take without. */
   const lastWeek = bossTopic
-    ? lastBossWeek(recordedAt ?? new Date(), numberOrNull(form.get("tzOffset")))
+    ? (parseBossWeek(form.get("bossWeek"), recordedAt ?? new Date()) ??
+      lastBossWeek(recordedAt ?? new Date(), numberOrNull(form.get("tzOffset"))))
     : null;
   const [previousIndex, prevPresence] = userId
     ? await Promise.all([

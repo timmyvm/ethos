@@ -144,6 +144,16 @@ export function roundChimes(p: {
 }
 
 /**
+ * The other side of the round's one sound: the streak celebration chimes
+ * unless the round's reveal already did. The reveal stops waiting for the
+ * rewards after 2.5s, so on a slow connection a held round can chime
+ * before the day's first streak roll lands; the roll then shows quiet.
+ */
+export function streakChimes(p: { roundChimed: boolean }): boolean {
+  return !p.roundChimed;
+}
+
+/**
  * Think time (DECISIONS #35) opens before a take, once. When it runs out
  * the screen goes back to Record, and that Record starts the take: it
  * used to open another thirty seconds, so only "I'm ready" could ever

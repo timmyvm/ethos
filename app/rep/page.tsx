@@ -64,9 +64,11 @@ import {
   type RepRow,
   type RepSpine,
 } from "@/lib/client-data";
+import { bossWeekField } from "@/lib/boss";
 import { syncCoins } from "@/lib/coin-sync";
 import {
   ENVELOPE_RATE,
+  sampleEnvelope,
   serializeEnvelope,
   VOICED_THRESHOLD,
   type Envelope,
@@ -122,6 +124,7 @@ import {
   defaultBack,
   recordCue,
   roundChimes,
+  streakChimes,
   takeRewards,
   thinksFirst,
 } from "@/lib/rep-screen";
@@ -356,11 +359,11 @@ interface Take {
   sampler: PoseSampler | null;
   /**
    * Loudness envelope. The meter already computes RMS every frame;
-   * this keeps it at a fixed rate so the engine can ask whether a gap
-   * between two words was actually silent (lib/envelope.ts).
+   * this keeps it at a fixed rate on the take's clock so the engine can
+   * ask whether a gap between two words was actually silent
+   * (lib/envelope.ts `sampleEnvelope`).
    */
   envelope: number[];
-  envelopeAt: number;
   /** Takes off the listeners that end a take the phone stopped hearing (#412). */
   offWatch: (() => void) | null;
 }
@@ -569,6 +572,9 @@ function RepScreen() {
     null
   );
   const [celebrate, setCelebrate] = useState<number | null>(null);
+  /* This take's reveal played the round's one sound (F5): a streak roll
+     landing after it shows quiet (games review, finding 6). */
+  const [roundChimed, setRoundChimed] = useState(false);
   /** Demos's line while he cuts in (F1); null while he listens. */
   const [cutIn, setCutIn] = useState<string | null>(null);
   const [anticipate, setAnticipate] = useState<RewardMoment | null>(null);
@@ -902,14 +908,18 @@ function RepScreen() {
          from rows that hold this one. */
       const lessonId = String(form.get("lessonId") ?? "");
       const roundsBefore = gameRowsRef.current;
+      /* A read that fails keeps the rows from before the take, with this
+         round in (games review, finding 3): today's free round is then
+         spent on this screen too, never offered again on stale rows. */
+      const roundKey = typeof key === "string" ? key : null;
       const gameRead = lessonId.startsWith("game:")
         ? fetchGameRounds()
-            .then((rows) => {
-              const now = withRound(rows, analyzed, lessonId, typeof key === "string" ? key : null);
-              if (live()) setGameRows(now);
+            .then((rows) => withRound(rows, analyzed, lessonId, roundKey))
+            .catch(() => (roundsBefore ? withRound(roundsBefore, analyzed, lessonId, roundKey) : null))
+            .then((now) => {
+              if (now && live()) setGameRows(now);
               return now;
             })
-            .catch(() => null)
         : Promise.resolve(null);
       Promise.all([fetchReps(), fetchRepSpine(), gameRead])
         .then(async ([reps, all, gameNow]) => {
@@ -1201,7 +1211,12 @@ function RepScreen() {
           moments: scored.moments,
         });
       }
-      if (cfg.topic) fields.bossTopicId = cfg.topic.id;
+      if (cfg.topic) {
+        fields.bossTopicId = cfg.topic.id;
+        // Last week as the lobby counts it, so the delta names the take
+        // its last-week slot shows across a clock change (finding 4).
+        fields.bossWeek = bossWeekField(new Date(spokenAt));
+      }
       /*
        * A game round says what it ran (the games plan, items 3 and 10):
        * its level, when Demos cut in and with what line, on the take's
@@ -1258,6 +1273,7 @@ function RepScreen() {
     setError(null);
     setMicBlock(null);
     setSeconds(0);
+    setRoundChimed(false);
     // The Rec tap is the gesture that licenses audio for the whole
     // session — the celebration chime minutes from now rides on it.
     // The chime itself never plays while the mic is hot (lib/sfx.ts).
@@ -1316,14 +1332,18 @@ function RepScreen() {
         if (e.data.size > 0) chunks.push(e.data);
       };
       /* The take's clock starts when the recorder says it has (F2): a
-         cut-in's second is then on the same clock as the audio, which is
-         the clock Whisper's word times are on. Until the event, the
-         moment start was asked for. */
+         cut-in's second, the screen's clock, the cap and the envelope are
+         then all on the clock of the audio, which is the clock Whisper's
+         word times are on. Until the event, the moment start was asked
+         for. The envelope starts over with it, so its first sample is the
+         audio's first moment. The recorder itself starts below, once the
+         camera is up (games review, finding 1). */
       const clock = { startedAt: performance.now() };
+      const envelope: number[] = [];
       recorder.addEventListener("start", () => {
         clock.startedAt = performance.now();
+        envelope.length = 0;
       });
-      recorder.start(1000);
       // If the recorder stops on its own (the mic was unplugged or taken
       // mid-take), score what it caught now instead of leaving the take
       // to a Stop tap or the cap, which would wait on a stop that never
@@ -1347,7 +1367,6 @@ function RepScreen() {
           videoRecorder.ondataavailable = (e) => {
             if (e.data.size > 0) videoChunks.push(e.data);
           };
-          videoRecorder.start(1000);
           opened.videoRecorder = videoRecorder;
         } catch {
           videoRecorder = null; // playback is a bonus, never the rep
@@ -1395,20 +1414,24 @@ function RepScreen() {
             if (due) {
               due.at = Math.round(elapsed * 100) / 100;
               due.line = pickLine(r.cutLines, r.cutPlan.map((p) => p.line));
+              /* No buzz: the mic is hot, and a phone's motor in the
+                 silence he asks for is a sound the envelope hears as
+                 yours (F1, F9b: a haptic here waits on the spike). */
               setCutIn(due.line);
-              buzz([40, 60, 40]);
               if (r.interruptTimer) clearTimeout(r.interruptTimer);
               r.interruptTimer = setTimeout(() => setCutIn(null), CUT_IN_HOLD_S * 1000);
             }
           }
-          // Fixed-rate sample for the envelope. rAF is 60Hz and varies
-          // with load; the engine needs an even timebase to line samples
-          // up against word timestamps.
-          const now = performance.now();
-          if (now - r.envelopeAt >= 1000 / ENVELOPE_RATE) {
-            r.envelopeAt = now;
-            r.envelope.push(Math.min(1, rms * 4));
-          }
+          // Fixed-rate samples for the envelope, counted on the take's
+          // clock: rAF varies with load and a frame-gated sample ran at
+          // about 17Hz, while the engine needs an even 20Hz timebase to
+          // line samples up against word timestamps.
+          sampleEnvelope(
+            r.envelope,
+            performance.now() - r.clock.startedAt,
+            Math.min(1, rms * 4),
+            ENVELOPE_RATE
+          );
           r.raf = requestAnimationFrame(tick);
         }
       };
@@ -1437,13 +1460,11 @@ function RepScreen() {
         videoRecorder,
         videoChunks,
         sampler: null,
-        envelope: [],
-        envelopeAt: 0,
+        envelope,
         offWatch: null,
       };
       recRef.current = rec;
       waitRef.current = null;
-      rec.raf = requestAnimationFrame(tick);
 
       /*
        * A take the phone stopped hearing ends there (#412). iOS takes the
@@ -1494,6 +1515,23 @@ function RepScreen() {
       }
 
       buzz(30);
+      /* The take starts here, with the screen's clock (games review,
+         finding 1). It used to start before the camera's model loaded,
+         so a Voice + Video take carried seconds of audio the screen's
+         clock never counted, and Speed rush and Interview were measured
+         seconds late against the clock you saw. */
+      recorder.start(1000);
+      clock.startedAt = performance.now();
+      envelope.length = 0;
+      if (videoRecorder) {
+        try {
+          videoRecorder.start(1000);
+        } catch {
+          rec.videoRecorder = null; // playback is a bonus, never the rep
+          opened.videoRecorder = null;
+        }
+      }
+      rec.raf = requestAnimationFrame(tick);
       // recording-16: where the card stands now, read before the layout
       // changes, so the layout effect below can glide it to its new place.
       const was = topicRef.current?.getBoundingClientRect();
@@ -1780,16 +1818,20 @@ function RepScreen() {
     return () => clearInterval(t);
   }, [phase, captureMode, ring]);
 
-  // Timer + hard cap (90s, or 45s with the tight-timer mod)
+  /* Timer + hard cap (the level's clock), read off the take's own clock
+     (games review, finding 1): the seconds on screen, the cap's stop and
+     the audio the server measures are one clock, so a round stopped at
+     0:17 on screen ended at 0:17 in the take. */
   useEffect(() => {
     if (phase !== "recording") return;
     const cap = config.maxSeconds;
     const t = setInterval(() => {
-      setSeconds((s) => {
-        if (s + 1 >= cap) void stopRep("clock");
-        return s + 1;
-      });
-    }, 1000);
+      const r = recRef.current;
+      if (!r) return;
+      const s = Math.max(0, Math.floor((performance.now() - r.clock.startedAt) / 1000));
+      setSeconds(Math.min(s, cap));
+      if (s >= cap) void stopRep("clock");
+    }, 100);
     return () => clearInterval(t);
   }, [phase, stopRep, config.maxSeconds]);
 
@@ -1882,12 +1924,14 @@ function RepScreen() {
           walkRows={walkRows}
           streakUp={celebrate !== null}
           rewardsReady={rewardsReady}
+          onChime={() => setRoundChimed(true)}
           onUpgrade={setPaywall}
           onRetake={retake}
         />
         {celebrate !== null && (
           <StreakCelebration
             streak={celebrate}
+            quiet={!streakChimes({ roundChimed })}
             week={weekView(spineNow, new Date()).days}
             onDone={celebrated}
           />
@@ -2460,6 +2504,9 @@ function RepScreen() {
                   ? "Stop and score this recording"
                   : "Start recording"
               }
+              /* A locked game's Record opens the plum sheet, as a
+                 Practice tile marks the same door (finding 16). */
+              aria-haspopup={phase !== "recording" && locked && game ? "dialog" : undefined}
               className={`press font-display elev-3 relative h-24 w-24 rounded-full text-body font-bold transition-colors dur-base ${
                 phase === "recording"
                   ? "bg-terracotta-600 text-cream"
@@ -2615,6 +2662,7 @@ function Results({
   walkRows,
   streakUp,
   rewardsReady,
+  onChime,
   onUpgrade,
   onRetake,
 }: {
@@ -2647,6 +2695,8 @@ function Results({
   streakUp: boolean;
   /** Whether it will be is decided (the round's reveal waits on it). */
   rewardsReady: boolean;
+  /** The round's reveal played the round's one sound. */
+  onChime: () => void;
   onUpgrade: (ask: PaywallAsk) => void;
   onRetake: () => void;
 }) {
@@ -2795,17 +2845,11 @@ function Results({
   const [tasteSeen, setTasteSeen] = useState(() => (game ? tasteShown(game.id) : true));
   const tasteDue = freeTaste && !tasteSeen;
   const [tasteTo, setTasteTo] = useState<string | null>(null);
-  /* Today's free round is spent: the game is not open to this account
-     again until tomorrow's, so Another round is a door to the sheet. */
-  const replayClosed =
-    !!game &&
-    freeTaste &&
-    roundRows !== null &&
-    !gameOpen(game, {
-      premium: false,
-      dayKey: dayKey(new Date()),
-      roundsTodayOfGame: roundsToday(roundRows, game.id),
-    });
+  /* Today's free round is spent: this was it, so the game is not open
+     to this account again until tomorrow's, and Another round is a door
+     to the sheet. Known from the round itself, whatever the rows read
+     after it did (games review, finding 3). */
+  const replayClosed = freeTaste;
   const openTaste = (to: string) => {
     if (!game) return;
     markTasteShown(game.id);
@@ -2950,6 +2994,7 @@ function Results({
       roundChimes({ win: reveal.win, streakCelebrated: streakSeen.current, played: chimed.current })
     ) {
       chimed.current = true;
+      onChime();
       playCelebration(false);
       buzz([12, 40, 18]);
     }

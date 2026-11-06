@@ -180,9 +180,9 @@ export function skillRows(reps: RepRow[]): MovedRow[] {
 /**
  * What a recording is called in its row. A stored `lesson_id` is one of
  * six shapes: a lesson's practice (`lesson:<id>:<n>`), a path item
- * (`pause-1-3`), a road drill (`f1`), a game (`game:<id>:<q>`), a boss
+ * (`pause-1-3`), a road lesson (`f1`), a game (`game:<id>:<q>`), a boss
  * topic (`boss:<id>`) or Hostile Q&A's take (`hostile-take`). Only the
- * road drill used to resolve, so every recording made from Today or a
+ * road lesson used to resolve, so every recording made from Today or a
  * lesson was called "Recording", and Hostile's still was (map 2.4).
  *
  * A game round measured on the server (`round`, lib/round.ts) names its

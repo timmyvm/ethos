@@ -9,6 +9,7 @@ import {
   GAME_CAP_S,
   GAMES,
   gameById,
+  gameDayWindow,
   gameLessonId,
   gameLevel,
   gameMods,
@@ -22,6 +23,7 @@ import {
   needsPremium,
   questionById,
   RECENT_GUARD,
+  roundEntitled,
 } from "./games";
 import { DAILY_MAX_SECONDS, resolveRepConfig } from "./rep-config";
 import { MAX_STACKED_MODS, MAX_XP_MULTIPLIER, modById, parseMods } from "./stress-mods";
@@ -255,8 +257,8 @@ describe("levels (the games plan, item 2)", () => {
   it("says the rule a round counts by, once per game", () => {
     expect(GAMES.map((g) => g.countsWhen)).toEqual([
       "A round counts when you hold 0.8s after each cut-in and keep two stars.",
-      "A round counts when you finish before the clock and keep two stars.",
-      "A round counts when you finish inside 60 to 90 seconds and keep two stars.",
+      "A round counts when you finish in the clock's second half, before it runs out, and keep two stars.",
+      "A round counts when you finish between 1:00 and 1:30 and keep two stars.",
     ]);
   });
 
@@ -468,5 +470,44 @@ describe("game of the day (the games plan, item 12)", () => {
     expect(open(other, false, 0)).toBe(false);
     expect(open(free, null, 0)).toBe(true);
     expect(open(other, null, 0)).toBe(false);
+  });
+  it("finds the speaker's own day on the server, the day the phone's rotation reads", () => {
+    // Melbourne (offset -660): Saturday 7 Nov 08:00 local is Friday 21:00 UTC.
+    const mel = gameDayWindow(new Date("2026-11-06T21:00:00Z"), -660);
+    expect(mel.dayKey).toBe("2026-11-07");
+    expect(mel.from.toISOString()).toBe("2026-11-06T13:00:00.000Z");
+    expect(mel.to.toISOString()).toBe("2026-11-07T13:00:00.000Z");
+    expect(gameOfTheDay(mel.dayKey)).toBe(gameOfTheDay("2026-11-07"));
+    // Los Angeles (offset 480): Friday 6 Nov 22:00 local is Saturday 06:00 UTC.
+    const la = gameDayWindow(new Date("2026-11-07T06:00:00Z"), 480);
+    expect(la.dayKey).toBe("2026-11-06");
+    expect(la.from.toISOString()).toBe("2026-11-06T08:00:00.000Z");
+    // No offset: UTC's day.
+    expect(gameDayWindow(new Date("2026-11-06T23:59:00Z"), null).dayKey).toBe("2026-11-06");
+  });
+});
+
+describe("the server's own check of a round (games review, finding 3)", () => {
+  const today = "2026-11-06";
+  const free = gameById(gameOfTheDay(today))!;
+  const other = GAMES.find((g) => needsPremium(g) && g.id !== free.id)!;
+  const qa = gameById("qa")!;
+
+  it("measures and pays a free account's Premium round only as today's first", () => {
+    expect(roundEntitled(free, { premium: false, dayKey: today, storedToday: 0 })).toBe(true);
+    expect(roundEntitled(free, { premium: false, dayKey: today, storedToday: 1 })).toBe(false);
+    expect(roundEntitled(other, { premium: false, dayKey: today, storedToday: 0 })).toBe(false);
+  });
+
+  it("opens every round on Premium, Q&A on any plan, and a plan it could not read", () => {
+    expect(roundEntitled(other, { premium: true, dayKey: today, storedToday: 9 })).toBe(true);
+    expect(roundEntitled(qa, { premium: false, dayKey: today, storedToday: 9 })).toBe(true);
+    expect(roundEntitled(other, { premium: null, dayKey: today, storedToday: 0 })).toBe(true);
+  });
+
+  it("pays a closed round only what the plan's own mods pay", () => {
+    // A free Speed rush round on a day it is not free: no tight timer, no level.
+    expect(gameXpMultiplier(gameById("rush")!, 3, false)).toBeGreaterThan(1);
+    expect(parseMods("tight", { premium: false })).toEqual([]);
   });
 });

@@ -92,6 +92,23 @@ function gapNumber(f: CutInFact): string {
   return secs(f.gap);
 }
 
+/**
+ * What a screen reader hears for Q&A's strip: each cut-in and the silence
+ * after it, rounded as the card writes the number ("1.2s", "<0.3s").
+ */
+export function stripLabel(facts: readonly CutInFact[]): string {
+  return facts
+    .filter((f) => f.at !== null)
+    .map((f) => {
+      const n = gapNumber(f);
+      const silence = n.startsWith("<")
+        ? `under ${BEAT_MIN_S} seconds of silence`
+        : `${n.slice(0, -1)} seconds of silence`;
+      return `Demos cut in at ${Math.floor(f.at as number)} seconds, then ${silence}`;
+    })
+    .join(". ");
+}
+
 /** What a Q&A verdict says under its number (F, "Every new string"). */
 function verdictLine(f: CutInFact): string | null {
   switch (f.verdict) {
@@ -138,6 +155,8 @@ function qaReveal(game: Game, round: QaRound, heldRun: number): RoundReveal {
   const f = decidingCutIn(round) as CutInFact;
   const allHeld = fired.every((x) => x.verdict === "held");
   const missedLater = round.cutIns.some((x) => x.at === null);
+  /* Plan item 3: held after each cut-in, and you kept talking. */
+  const keptTalking = (fired[fired.length - 1].spokeAfter ?? 0) >= SPOKE_AFTER_MIN_S;
   const eyebrow =
     fired.length === 1
       ? `Demos cut in at ${clock(fired[0].at as number)}`
@@ -148,7 +167,7 @@ function qaReveal(game: Game, round: QaRound, heldRun: number): RoundReveal {
     line = verdictLine(f);
   } else if (missedLater) {
     line = `You stopped at ${clock(stoppedAt)}, before he cut in again.`;
-  } else if (allHeld && (fired[fired.length - 1].spokeAfter ?? 0) < SPOKE_AFTER_MIN_S) {
+  } else if (allHeld && !keptTalking) {
     const last = fired[fired.length - 1];
     line = `You stopped ${Math.round(last.spokeAfter ?? 0)}s after he cut in.`;
   } else if (fired.length > 1) {
@@ -168,7 +187,7 @@ function qaReveal(game: Game, round: QaRound, heldRun: number): RoundReveal {
     value: f.gap ?? 0,
     note: f.verdict === "held" ? "held after he cut in" : "after he cut in",
     line,
-    win: round.scorable && allHeld && !missedLater,
+    win: round.scorable && allHeld && !missedLater && keptTalking,
   };
 }
 
@@ -192,7 +211,11 @@ function rushReveal(round: RushRound): RoundReveal {
   const win = round.landed && round.scorable;
   let line: string;
   if (short) line = `It takes ${MIN_WORDS_TO_SCORE} words to count.`;
-  else if (round.lastWord < round.cap / 2) line = `A round counts from ${clock(round.cap / 2)}.`;
+  else if (round.lastWord < round.cap / 2) {
+    // Level 1's half is 22.5s: never "0:22", a time a 22.3s round passed.
+    const half = round.cap / 2;
+    line = `A round counts from ${Number.isInteger(half) ? clock(half) : clockTenth(half)}.`;
+  }
   else if (spare < RUSH_MARGIN_S) line = `A round needs ${RUSH_MARGIN_S}s to spare.`;
   else line = `Last word at ${clockTenth(round.lastWord)}.`;
   return { game: "rush", eyebrow, number: secs(spare), value: spare, note: "to spare", line, win };
@@ -240,13 +263,14 @@ function interviewReveal(round: InterviewRound): RoundReveal {
       win: false,
     };
   }
-  // Past 1:29.5: the clock's, or a last word on the window's edge.
+  // Past 1:29.5: the clock's, or a last word on the window's edge, to the
+  // tenth, so 1:29.7 never reads "1:29" beside "past 1:29".
   return {
     game: "interview",
     eyebrow,
-    number: round.stoppedBy === "clock" ? clock(round.cap) : clock(last),
+    number: round.stoppedBy === "clock" ? clock(round.cap) : clockTenth(last),
     value: round.stoppedBy === "clock" ? round.cap : last,
-    note: round.stoppedBy === "clock" ? "the clock stopped you" : `past ${clock(hi)}`,
+    note: round.stoppedBy === "clock" ? "the clock stopped you" : `past ${clockTenth(hi)}`,
     line: round.stoppedBy === "clock" ? `Last word at ${clockTenth(last)}.` : null,
     win: false,
   };
@@ -387,11 +411,13 @@ export function ladderView(
     line = `${after.of} of ${after.of} days at three stars.`;
   } else if (after.open === 3) {
     const left = after.of - after.counted;
-    const more = after.counted === 0 ? WORD[left] : left === 1 ? "One more" : `${WORD[left]} more`;
-    const verb = left === 1 ? "masters" : "master";
-    line = `${after.counted} of ${after.of} days at three stars. ${more}${
-      after.countedToday ? " on another day" : ""
-    } ${verb} ${game.name}.`;
+    const rest =
+      after.counted === 0
+        ? `${WORD[after.of]} on ${WORD[after.of].toLowerCase()} different days master ${game.name}.`
+        : left === 1
+          ? `One more${after.countedToday ? " on another day" : ""} masters ${game.name}.`
+          : `${WORD[left]} more${after.countedToday ? " on other days" : ""} master ${game.name}.`;
+    line = `${after.counted} of ${after.of} days at three stars. ${rest}`;
   } else {
     const nextLevel = after.open + 1;
     line =

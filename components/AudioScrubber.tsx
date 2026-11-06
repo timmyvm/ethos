@@ -204,7 +204,9 @@ export function AudioScrubber({
             <button
               key={`m${i}`}
               onClick={() => seek(m.t - 1)}
-              aria-label={`Play from Demos's cut-in at ${Math.floor(m.t / 60)}:${String(Math.floor(m.t % 60)).padStart(2, "0")}`}
+              /* The chip's own words first, so "Says who? 0:17" is its
+                 name to Voice Control (WCAG 2.5.3), then what it does. */
+              aria-label={`${m.label} ${Math.floor(m.t / 60)}:${String(Math.floor(m.t % 60)).padStart(2, "0")}, play from a second before Demos cut in`}
               className="press inline-flex min-h-11 items-center gap-1.5 rounded-full border border-edge bg-surface py-1 pl-2.5 pr-3 text-link text-ink"
             >
               <span aria-hidden className="inline-flex text-stone-500">

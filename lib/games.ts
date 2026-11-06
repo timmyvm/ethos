@@ -234,7 +234,8 @@ export const GAMES: Game[] = [
     modIds: ["tight"],
     levels: RUSH_LEVELS,
     cutInLines: [],
-    countsWhen: "A round counts when you finish before the clock and keep two stars.",
+    countsWhen:
+      "A round counts when you finish in the clock's second half, before it runs out, and keep two stars.",
     questions: [
       { id: "ru1", prompt: "Explain what you do all day" },
       { id: "ru2", prompt: "Sell someone on your favorite app" },
@@ -283,7 +284,7 @@ export const GAMES: Game[] = [
       "Why did that work?",
       "What would you change now?",
     ],
-    countsWhen: "A round counts when you finish inside 60 to 90 seconds and keep two stars.",
+    countsWhen: "A round counts when you finish between 1:00 and 1:30 and keep two stars.",
     questions: [
       { id: "iv1", prompt: "Tell me about yourself" },
       { id: "iv2", prompt: "Why should we pick you?" },
@@ -520,6 +521,35 @@ export function gameOfTheDay(dayKey: string): DayGameId {
 }
 
 /**
+ * The speaker's own day, for the server (the games plan, item 12): the
+ * `dayKey` the phone's calendar gives `at`, and that day's start and end
+ * as instants, from the phone's `getTimezoneOffset()` minutes (west of
+ * UTC is positive, as /api/analyze receives it; with none the day is
+ * UTC's). What a free account's one round of today's Premium game is
+ * counted against, the same day the phone's `gameOpen` reads.
+ */
+export function gameDayWindow(
+  at: Date,
+  tzOffset: number | null
+): { dayKey: string; from: Date; to: Date } {
+  const offset =
+    tzOffset === null || !Number.isFinite(tzOffset)
+      ? 0
+      : Math.max(-14 * 60, Math.min(14 * 60, Math.trunc(tzOffset)));
+  // Its UTC fields read the speaker's own clock.
+  const wall = new Date(at.getTime() - offset * 60_000);
+  const y = wall.getUTCFullYear();
+  const m = wall.getUTCMonth();
+  const d = wall.getUTCDate();
+  const from = new Date(Date.UTC(y, m, d) + offset * 60_000);
+  return {
+    dayKey: `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
+    from,
+    to: new Date(from.getTime() + 86_400_000),
+  };
+}
+
+/**
  * Can this account start a round of `game` now? Q&A always. A Premium
  * game for Premium, or for anyone when it is today's free game and they
  * have not played a round of it today. `premium` null (not read yet) is
@@ -532,4 +562,27 @@ export function gameOpen(
   if (!needsPremium(game)) return true;
   if (opts.premium === true) return true;
   return gameOfTheDay(opts.dayKey) === game.id && opts.roundsTodayOfGame === 0;
+}
+
+/**
+ * Does the server measure, store and pay this round as the game it says
+ * it is (games review, finding 3)? The phone's `gameOpen`, checked where
+ * it cannot be forged: a Premium game on a free plan only as today's
+ * free game (`gameOfTheDay` of the speaker's own day, `gameDayWindow`),
+ * and only when no round of it is stored that day yet, as /api/hostile
+ * counts its weekly take. A plan read that failed (`premium` null) is
+ * unknown, never free, so it stays open. A round that is not open is
+ * still scored and stored as a recording, with no round and only the
+ * mods the plan pays.
+ */
+export function roundEntitled(
+  game: Game,
+  opts: { premium: boolean | null; dayKey: string; storedToday: number }
+): boolean {
+  if (opts.premium === null) return true;
+  return gameOpen(game, {
+    premium: opts.premium,
+    dayKey: opts.dayKey,
+    roundsTodayOfGame: opts.storedToday,
+  });
 }

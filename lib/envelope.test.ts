@@ -3,8 +3,10 @@ import {
   calibrate,
   classifyGap,
   ENVELOPE_RATE,
+  fitEnvelopeRate,
   levelBetween,
   parseEnvelope,
+  sampleEnvelope,
   serializeEnvelope,
   type Envelope,
 } from "./envelope";
@@ -153,5 +155,67 @@ describe("transport", () => {
   it("clamps values a forged client could send", () => {
     const back = parseEnvelope('{"rate":20,"levels":[-5,0.5,99,"x"]}')!;
     expect(back.levels).toEqual([0, 0.5, 1, 0]);
+  });
+});
+
+/**
+ * A 30s take on a 59.94Hz screen with ±0.3ms of frame jitter: speech,
+ * with silences at 5 to 7 and 20.0 to 21.2 (Q&A's cut-in at 0:20).
+ */
+const FRAME_MS = 1000 / 59.94;
+const heard = (t: number) => ((t >= 5 && t < 7) || (t >= 20 && t < 21.2) ? 0.03 : 0.5);
+function frames(seconds: number): number[] {
+  const out: number[] = [];
+  for (let k = 1; k * FRAME_MS < seconds * 1000; k++) {
+    out.push(k * FRAME_MS + 0.3 * Math.sin(k * 12.9898));
+  }
+  return out;
+}
+
+describe("the recorder's sampler (games review, finding 2)", () => {
+  it("samples at 20Hz on the take's clock, whatever the frames do", () => {
+    const levels: number[] = [];
+    for (const now of frames(30)) sampleEnvelope(levels, now, heard(now / 1000));
+    expect(Math.abs(levels.length - 30 * ENVELOPE_RATE)).toBeLessThanOrEqual(1);
+    const env: Envelope = { levels, rate: ENVELOPE_RATE };
+    expect(classifyGap(env, 20.08, 21.12)).toBe("silent");
+    expect(fitEnvelopeRate(env, 30)).toBe(env);
+  });
+
+  it("fills the samples a late frame skipped, so the timebase stays even", () => {
+    const levels: number[] = [];
+    sampleEnvelope(levels, 10, 0.1);
+    sampleEnvelope(levels, 260, 0.4);
+    expect(levels).toEqual([0.1, 0.4, 0.4, 0.4, 0.4, 0.4]);
+    sampleEnvelope(levels, 260, 0.9);
+    expect(levels).toHaveLength(6);
+  });
+
+  it("reads an envelope sampled by frames at the rate it was taken at", () => {
+    // The old sampler: a sample on the first frame 50ms after the last.
+    const levels: number[] = [];
+    let at = 0;
+    for (const now of frames(30)) {
+      if (now - at >= 1000 / ENVELOPE_RATE) {
+        at = now;
+        levels.push(heard(now / 1000));
+      }
+    }
+    expect(levels.length / 30).toBeLessThan(18);
+    const declared: Envelope = { levels, rate: ENVELOPE_RATE };
+    // Read at 20Hz the silence at 0:20 is judged on speech from about 0:23.
+    expect(classifyGap(declared, 20.08, 21.12)).toBe("voiced");
+    const fitted = fitEnvelopeRate(declared, 30)!;
+    expect(fitted.rate).toBeCloseTo(levels.length / 30, 6);
+    expect(classifyGap(fitted, 20.08, 21.12)).toBe("silent");
+  });
+
+  it("leaves a tail past Stop, a missing envelope and an unknown length alone", () => {
+    const tail: Envelope = { levels: new Array(620).fill(0.2), rate: ENVELOPE_RATE };
+    expect(fitEnvelopeRate(tail, 30)).toBe(tail);
+    const near: Envelope = { levels: new Array(575).fill(0.2), rate: ENVELOPE_RATE };
+    expect(fitEnvelopeRate(near, 30)).toBe(near);
+    expect(fitEnvelopeRate(null, 30)).toBeNull();
+    expect(fitEnvelopeRate(tail, 0)).toBe(tail);
   });
 });

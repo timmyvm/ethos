@@ -3282,6 +3282,62 @@ summary::-webkit-details-marker {
   font-weight: 500;
   color: var(--color-sage-700);
 }
+/* The closing note (#423): the take's last word, never one more card
+   under "Records broken". No fill, no edge, no shadow: at a section's
+   distance, centred like a sign-off under a short rule, the line set as
+   the step's closing sentence with its number in the colour of what it
+   measured (lib/closing-note.ts): a trait's tone, sage when it was
+   earned, the ink when it is a count. The number at num-m against the
+   words at detail size, so a level opened keeps its weight in sage. */
+.closing-note {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+/* A short rule, the sign-off's mark: thin and square-ended so it reads
+   as type, never as a sheet's grabber. */
+.closing-note-mark {
+  width: 32px;
+  height: 2px;
+  margin-bottom: 16px;
+  background: var(--color-edge);
+}
+.closing-note[data-ink="trait"] .closing-note-mark {
+  background: var(--tone);
+}
+.closing-note[data-ink="earned"] .closing-note-mark {
+  background: var(--color-sage-500);
+}
+.closing-note-line {
+  font-family: var(--font-display-face), sans-serif;
+  font-size: var(--text-detail);
+  line-height: 1.3;
+  font-weight: 700;
+  text-wrap: balance;
+}
+.closing-note-value {
+  font-size: var(--text-num-m);
+  line-height: 1;
+  letter-spacing: var(--text-num-m--letter-spacing);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+/* A trait's number is what it measured, so it takes the tone itself,
+   the colour of its ring and its bar, and of the rule over it. The
+   tone's ink is for words on its wash: in dark it is a near-white blue
+   that left "3" reading as the page's ink. Every tone clears 3:1 for
+   24px type on the ground in both themes (lib/today-colour.test.ts). */
+.closing-note[data-ink="trait"] .closing-note-value {
+  color: var(--tone);
+}
+.closing-note[data-ink="earned"] .closing-note-value {
+  color: var(--color-sage-700);
+}
+.closing-note-detail {
+  margin-top: 6px;
+  text-wrap: balance;
+}
 /* The ochre's own deeper arc went with D05: Restarts' tone is #b06f00,
    3.23:1 on sand, so its ring and bar are the tone like the other four
    (lib/today-colour.test.ts). */

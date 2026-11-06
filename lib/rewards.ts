@@ -21,6 +21,7 @@
  *   screen before they leave is always something true and good.
  */
 
+import type { TraitId } from "@/content/traits";
 import type { RepRow } from "./client-data";
 import { isScorable, type RepMetrics } from "./metrics";
 import type { Milestone, RepGain } from "./progress";
@@ -40,6 +41,11 @@ export interface RewardMoment {
    * screen reader hears.
    */
   record?: { value: string; rest: string; past: string };
+  /**
+   * The trait a closing line reads (endNote), so the last step's closing
+   * note sets its number in that trait's tone (lib/closing-note.ts, #423).
+   */
+  trait?: TraitId;
 }
 
 /** A milestone this close counts as within reach of one rep. */
@@ -170,6 +176,7 @@ export function endNote(params: {
       headline: `${m.composedPauses} composed pause${m.composedPauses === 1 ? "" : "s"}`,
       detail: "Silence you chose, before a new point. That's the hard one.",
       tone: "earned",
+      trait: "pause",
     };
   }
   if (scored && m.fillerCount === 0) {
@@ -177,6 +184,7 @@ export function endNote(params: {
       headline: "Zero fillers",
       detail: `${Math.round(m.durationS)} seconds, clean.`,
       tone: "earned",
+      trait: "fillers",
     };
   }
   if (scored && m.wpm >= 130 && m.wpm <= 160) {
@@ -184,6 +192,7 @@ export function endNote(params: {
       headline: `${m.wpm} words a minute`,
       detail: "Dead in the zone.",
       tone: "earned",
+      trait: "pace",
     };
   }
   if (streak.current > 1) {

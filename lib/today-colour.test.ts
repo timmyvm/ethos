@@ -105,6 +105,25 @@ describe("Today's trait rings still measure", () => {
 });
 
 /*
+ * The closing note's number (#423): the last results step sets the number
+ * a trait's closing measured ("3 composed pauses") in the trait's tone, at
+ * 24/800 on the ground, so the tone holds the 3:1 large type needs there,
+ * for all five tones in both themes.
+ */
+describe("the closing note's number reads on the ground", () => {
+  for (const [theme, set, ground] of [
+    ["light", tones(false), light.ground],
+    ["dark", tones(true), dark.ground],
+  ] as const) {
+    for (const [trait, t] of Object.entries(set)) {
+      it(`${trait}, ${theme}: the tone at 3:1 or better on the ground`, () => {
+        expect(ratio(t.tone, ground)).toBeGreaterThanOrEqual(3);
+      });
+    }
+  }
+});
+
+/*
  * What Today is built from, since the home round (#393, direction B,
  * "the object"; it replaced the cohesion pass's stage, rows and rings).
  * The card is the practice in its trait's own colour family, with white
@@ -306,7 +325,7 @@ describe("Start stands on the card's foot", () => {
 describe("a trait's tone is only ever one of its forms", () => {
   const FORMS = {
     mark: "an 8px square or dot beside a trait's name, a 3px tick on a track, or the underline under a word the transcript counted",
-    measure: "a ring's arc, a bar on sand, or the live waveform's stroke",
+    measure: "a ring's arc, a bar on sand, the live waveform's stroke, or the closing note's number (#423)",
     sparkline: "a sparkline",
     chip: "TraitChip",
     ground: "a named ground: Today's card, the lesson stage, the trait stage, the recording's topic card",
@@ -343,6 +362,10 @@ describe("a trait's tone is only ever one of its forms", () => {
     '.tw-key[data-word-mark="repeat"]': "mark",
     ".word-sheet-word[data-word-mark]": "mark",
     ".word-in-sentence[data-word-mark]": "mark",
+    // The closing note over a trait's reading (#423): its short rule, a
+    // tick, and the number the take measured.
+    '.closing-note[data-ink="trait"] .closing-note-mark': "mark",
+    '.closing-note[data-ink="trait"] .closing-note-value': "measure",
   };
   const FILES: Record<string, Form> = {
     "app/lessons/[id]/page.tsx": "ground",

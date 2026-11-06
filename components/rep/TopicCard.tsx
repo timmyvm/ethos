@@ -95,6 +95,7 @@ export function TopicCard({
   family,
   art,
   compact = false,
+  reveal = false,
 }: {
   eyebrow: string;
   topic: string;
@@ -103,6 +104,8 @@ export function TopicCard({
   art?: string | null;
   /** While the clock runs: the same card, a size down, at the top. */
   compact?: boolean;
+  /** The question is held back until Record (Interview), so its words fade in when it lands. */
+  reveal?: boolean;
 }) {
   const card = useRef<HTMLElement>(null);
   const zone = useRef<HTMLSpanElement>(null);
@@ -189,18 +192,20 @@ export function TopicCard({
      games plan item 2): when the words change as the card takes its
      recording place, the new ones fade in over the card's own glide
      (app/rep/page.tsx FLIPs the card), so the question arrives with the
-     take instead of being swapped under it. */
+     take instead of being swapped under it. Only a reveal fades: No
+     notes' "Prompt hidden." lands at full opacity, as it always has
+     (regression review, today F3). */
   const topicWords = useRef<HTMLSpanElement>(null);
   const lastTopic = useRef(topic);
   useLayoutEffect(() => {
     if (lastTopic.current === topic) return;
     lastTopic.current = topic;
-    if (!compact) return;
+    if (!compact || !reveal) return;
     topicWords.current?.animate([{ opacity: 0 }, { opacity: 1 }], {
       duration: DURATION.base,
       easing: EASE_OUT,
     });
-  }, [topic, compact]);
+  }, [topic, compact, reveal]);
 
   /* Arrived: on the page, measured, and its object drawn if it has
      one, so the view transition's new state is the card as it rests. */

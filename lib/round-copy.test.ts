@@ -19,6 +19,7 @@ import {
   tasteHeadline,
   tasteKey,
   waitFact,
+  waitTicks,
   xpLine,
 } from "./round-copy";
 
@@ -308,6 +309,15 @@ describe("the walk around the round", () => {
     expect(waitFact({ ...rushWait, stoppedBy: "you", seconds: 27 })).toBe("You stopped it at 0:27.");
     expect(waitFact({ ...rushWait, stoppedBy: "clock", seconds: 30 })).toBe("The clock stopped it at 0:30.");
     expect(waitFact({ gameId: null, cutInStaged: false, cutIns: [], stoppedBy: "you", seconds: 30 })).toBeNull();
+  });
+
+  it("marks the cut-in on the wait's wave only where the fact line says it (regression review)", () => {
+    expect(waitTicks({ gameId: "qa", cutIns: [17.4] })).toEqual([17.4]);
+    // A daily take with the Interruption mod: Demos cut in, but nothing
+    // on its wait or its results says so, so the wave carries no tick.
+    expect(waitTicks({ gameId: null, cutIns: [14.5] })).toEqual([]);
+    const fact = waitFact({ gameId: null, cutInStaged: true, cutIns: [14.5], stoppedBy: "clock", seconds: 30 });
+    expect(fact).toBeNull();
   });
 });
 

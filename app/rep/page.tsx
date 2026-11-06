@@ -201,6 +201,7 @@ import {
   tasteHeadline,
   tasteKey,
   waitFact,
+  waitTicks,
   xpLine,
   type LadderView,
 } from "@/lib/round-copy";
@@ -2128,6 +2129,7 @@ function RepScreen() {
             family={family}
             art={art}
             compact={phase !== "idle"}
+            reveal={config.revealOnRecord}
           />
         </div>
       )}
@@ -2313,7 +2315,7 @@ function RepScreen() {
             boss={config.kind === "boss"}
             attempt={attempt}
             fact={scoringFact}
-            cutIns={waitNow?.cutIns ?? []}
+            cutIns={waitTicks({ gameId, cutIns: waitNow?.cutIns ?? [] })}
           />
         )}
 
@@ -3323,12 +3325,14 @@ function Results({
 
           {/* The ending carries disproportionate weight when someone
               decides whether to come back (streak-end rule), so it lands
-              on the last screen rather than halfway down the first. At a
-              section's distance (principle 7): a level opened or a game
-              mastered is the walk's peak, never a third card under
-              "Records broken" or a card pressed onto the words. */}
+              on the last screen rather than halfway down the first. A
+              level opened or a game mastered is the walk's peak, so it
+              stands at a section's distance (principle 7), never a third
+              card under "Records broken" or a card pressed onto the
+              words. Every other closing keeps the card's 12px under the
+              block above (regression review, today F1). */}
           {last && closingNow && (
-            <div className="mt-7">
+            <div className={ladder?.moment ? "mt-7" : "mt-3"}>
               <Moment moment={closingNow} emphasis />
             </div>
           )}

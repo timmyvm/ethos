@@ -379,6 +379,20 @@ export function waitFact(p: {
     : `You stopped it at ${clock(p.seconds)}.`;
 }
 
+/**
+ * The cut-ins the wait marks on the wave (F7): a game round's, where the
+ * fact line above says when he cut in and the results mark them again.
+ * A plain take with the Interruption mod marks none, since nothing on
+ * its wait or its results would explain the tick (regression review,
+ * today F2).
+ */
+export function waitTicks(p: {
+  gameId: string | null;
+  cutIns: readonly number[];
+}): readonly number[] {
+  return p.gameId ? p.cutIns : [];
+}
+
 /** What the last step's Tomorrow says for a game round (M5). */
 export interface LadderView {
   /** "Q&A, level 2". */

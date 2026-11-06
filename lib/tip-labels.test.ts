@@ -78,7 +78,9 @@ describe("tip faces", () => {
     for (const t of COLD_TOPICS) {
       const c = resolveRepConfig({ boss: t.id });
       const { line, rule } = splitPrompt(c.prompt);
-      expect(line, t.id).toBe(`Explain ${t.title} from memory.`);
+      // The games plan, item 16: the reading is over when this screen
+      // opens, and the line says so; the topic is on the card above it.
+      expect(line.replace(/ /g, " "), t.id).toBe("Notes are gone. 90 seconds, from memory.");
       expect(rule, t.id).not.toBeNull();
       expect(hasTipFace(rule!), rule!).toBe(true);
     }
@@ -86,5 +88,14 @@ describe("tip faces", () => {
 
   it("splits a one-sentence prompt into a line and no rule", () => {
     expect(splitPrompt("Argue one thing.")).toEqual({ line: "Argue one thing.", rule: null });
+  });
+
+  it("takes the last sentence as the rule and keeps the rest as the line", () => {
+    expect(splitPrompt("Argue one thing. Cite it.")).toEqual({ line: "Argue one thing.", rule: "Cite it." });
+    expect(splitPrompt("Notes are gone. 90 seconds, from memory. Unsure beats wrong.")).toEqual({
+      line: "Notes are gone. 90 seconds, from memory.",
+      rule: "Unsure beats wrong.",
+    });
+    expect(splitPrompt("No stop at the end")).toEqual({ line: "No stop at the end", rule: null });
   });
 });

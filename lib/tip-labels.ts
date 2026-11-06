@@ -183,16 +183,18 @@ export function hasTipFace(tip: string): boolean {
 }
 
 /**
- * A prompt as the recording screen shows it: its first sentence as the
- * one line of what to do, and whatever follows as a rule that changes
- * how the recording is scored (the boss's "wrong claims cost more"). The
- * rule is not cut for being long: it shows as a tactic face, with the
- * sentence one tap away, because a score may not mark someone down for
- * something the screen never said.
+ * A prompt as the recording screen shows it: its last sentence, when it
+ * has more than one, as a rule that changes how the recording is scored
+ * (the boss's "wrong claims cost more"), and everything before it as the
+ * one line of what to do ("Notes are gone. 90 seconds, from memory.").
+ * The rule is not cut for being long: it shows as a tactic face, with
+ * the sentence one tap away, because a score may not mark someone down
+ * for something the screen never said.
  */
 export function splitPrompt(prompt: string): { line: string; rule: string | null } {
-  const m = prompt.match(/^[^.?!]*[.?!]/);
-  if (!m) return { line: prompt, rule: null };
-  const rest = prompt.slice(m[0].length).trim();
-  return { line: m[0], rule: rest.length > 0 ? rest : null };
+  const sentences = prompt.trim().match(/[^.?!]+[.?!]+/g);
+  if (!sentences || sentences.length < 2) return { line: prompt, rule: null };
+  const rule = sentences[sentences.length - 1].trim();
+  const line = sentences.slice(0, -1).join("").trim();
+  return { line, rule };
 }

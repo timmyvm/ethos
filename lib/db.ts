@@ -101,6 +101,33 @@ export async function previousEthosIndex(
   return (data?.ethos_index as number | undefined) ?? null;
 }
 
+/**
+ * The first scored boss Index in a window, for the boss's delta ("▲ 36
+ * on last week's boss", the games plan, item 16): last week's slot on
+ * the lobby's record, so the score step and the record agree. Null when
+ * that week holds no scored boss.
+ */
+export async function bossIndexBetween(
+  userId: string,
+  from: Date,
+  to: Date
+): Promise<number | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const { data } = await db
+    .from("reps")
+    .select("ethos_index")
+    .eq("user_id", userId)
+    .eq("mode", "boss")
+    .not("ethos_index", "is", null)
+    .gte("created_at", from.toISOString())
+    .lt("created_at", to.toISOString())
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return (data?.ethos_index as number | undefined) ?? null;
+}
+
 /** The user's latest stored Presence, for the second trendline. */
 export async function previousPresence(
   userId: string

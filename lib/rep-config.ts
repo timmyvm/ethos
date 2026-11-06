@@ -110,6 +110,18 @@ function plainCutIns(interrupt: boolean, maxSeconds: number): [number, number][]
   return interrupt ? [defaultCutInWindow(maxSeconds)] : [];
 }
 
+/** The fact-check's rule, said on the boss's recording screen (lib/tip-labels.ts gives it a face). */
+export const BOSS_RULE = "Wrong claims stated as fact cost more than saying you're unsure.";
+
+/**
+ * The boss's direction on the recording screen: "Notes are gone. 90
+ * seconds, from memory.", then its rule. The number keeps its unit on
+ * its line.
+ */
+export function bossPrompt(): string {
+  return `Notes are gone. ${DAILY_MAX_SECONDS} seconds, from memory. ${BOSS_RULE}`;
+}
+
 export function bossLessonId(topicId: string): string {
   return `boss:${topicId}`;
 }
@@ -143,19 +155,31 @@ export function resolveRepConfig(
   };
   const plainMax = tight ? TIGHT_MAX_SECONDS : DAILY_MAX_SECONDS;
 
+  /*
+   * The boss is the week's benchmark (the games plan, item 16): the same
+   * 90 seconds every week, so it runs no mods whatever the link carries,
+   * and its number compares with last week's. The reading is over by the
+   * time this screen opens, which is what the direction says; the
+   * fact-check's rule follows it, shown as a tactic face (splitPrompt),
+   * because the score may not mark down what the screen never said.
+   */
   if (input.boss) {
     const topic =
       COLD_TOPICS.find((t) => t.id === input.boss) ?? weeklyTopic(now);
     return {
       ...base,
+      mods: [],
+      hidePrompt: false,
+      crowdNoise: false,
+      interrupt: false,
       kind: "boss",
       lessonId: bossLessonId(topic.id),
       unit: "Weekly boss · Cold Topic",
       title: topic.title,
-      prompt: `Explain ${topic.title} from memory. Wrong claims stated as fact cost more than saying you're unsure.`,
-      maxSeconds: plainMax,
-      cutIns: plainCutIns(base.interrupt, plainMax),
-      xpMultiplier: xpMultiplier(mods, BOSS_XP_BASE),
+      prompt: bossPrompt(),
+      maxSeconds: DAILY_MAX_SECONDS,
+      cutIns: [],
+      xpMultiplier: BOSS_XP_BASE,
       topic,
       tips: TOPIC_SHAPES.explain.tips,
       rouletteTopic: null,

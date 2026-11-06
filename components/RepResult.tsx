@@ -263,7 +263,7 @@ export function RepResult({
                   </span>
                   <span className="text-body font-normal text-stone-500">/1000</span>
                 </div>
-                <Delta delta={delta} baseline={baseline} className="mt-2" />
+                <Delta delta={delta} baseline={baseline} boss={topic !== null} className="mt-2" />
               </>
             ) : result.scorable === false ? (
               <NotScored metrics={m} centred />
@@ -302,7 +302,7 @@ export function RepResult({
               <div className="text-body font-semibold">
                 your Ethos <span className="font-normal text-stone-500">/1000</span>
               </div>
-              <Delta delta={delta} baseline={baseline} small />
+              <Delta delta={delta} baseline={baseline} boss={topic !== null} small />
             </div>
             <span className="ml-auto self-center">
               <Stars n={m.stars} size={22} land={live} landAfterMs={COUNT_MS} />
@@ -639,15 +639,21 @@ export function RepResult({
   );
 }
 
-/** "▲ 3 since last time", or the first recording's floor line. */
+/**
+ * "▲ 3 since last time", or the first recording's floor line. A boss
+ * compares with last week's boss (the games plan, item 16): the server
+ * sends that Index as `previousIndex`, and none on a first boss.
+ */
 function Delta({
   delta,
   baseline,
+  boss = false,
   small = false,
   className = "",
 }: {
   delta: number | null;
   baseline: boolean;
+  boss?: boolean;
   small?: boolean;
   className?: string;
 }) {
@@ -655,7 +661,7 @@ function Delta({
   if (delta !== null && delta !== 0) {
     return (
       <p className={`${size} ${delta > 0 ? "text-sage-700" : "text-rust"} ${className}`}>
-        {delta > 0 ? "▲" : "▼"} {Math.abs(delta)} since last time
+        {delta > 0 ? "▲" : "▼"} {Math.abs(delta)} {boss ? "on last week's boss" : "since last time"}
       </p>
     );
   }

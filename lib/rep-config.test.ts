@@ -67,12 +67,24 @@ describe("resolveRepConfig", () => {
     expect(c.xpMultiplier).toBe(2.25);
   });
 
-  it("stacks boss and mod multipliers under the ceiling", () => {
+  /* The games plan, item 16: the boss is the week's benchmark, the same
+     90 seconds every week, so a link's mods never reach it. (It used to
+     stack them with the boss's ×1.5 under the ceiling.) */
+  it("runs the boss with no mods, whatever the link carries", () => {
     const c = resolveRepConfig(
-      { boss: "crispr", mods: "interrupt,tight", premium: true },
+      { boss: "crispr", mods: "interrupt,tight,crowd,no-notes", premium: true },
       NOW
     );
-    expect(c.xpMultiplier).toBe(MAX_XP_MULTIPLIER);
+    expect(c.mods).toEqual([]);
+    expect(c.maxSeconds).toBe(DAILY_MAX_SECONDS);
+    expect(c.interrupt).toBe(false);
+    expect(c.hidePrompt).toBe(false);
+    expect(c.crowdNoise).toBe(false);
+    expect(c.cutIns).toEqual([]);
+    expect(c.xpMultiplier).toBe(BOSS_XP_BASE);
+    expect(c.prompt.replace(/ /g, " ")).toBe(
+      "Notes are gone. 90 seconds, from memory. Wrong claims stated as fact cost more than saying you're unsure."
+    );
   });
 });
 

@@ -15,7 +15,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { judgeAccuracy, type AccuracyResult } from "@/lib/accuracy";
 import { coachRep, tier2Scores, type CoachOutput } from "@/lib/coach";
 import { COLD_TOPICS } from "@/lib/cold-topics";
+import { bossXpMultiplier, lastBossWeek } from "@/lib/boss";
 import {
+  bossIndexBetween,
   findRepByClientId,
   resolveAuthHeader,
   isPremium,
@@ -47,7 +49,6 @@ import { computeMetrics, isScorable, type RepMetrics, type Word } from "@/lib/me
 import { parseEnvelope } from "@/lib/envelope";
 import { gameMods, gameOfLessonId, gameXpMultiplier } from "@/lib/games";
 import { pauseReport } from "@/lib/pause-quality";
-import { BOSS_XP_BASE } from "@/lib/rep-config";
 import {
   cutInFired,
   measureRound,
@@ -252,8 +253,11 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
     COLD_TOPICS.find((t) => t.id === (form.get("bossTopicId") as string)) ??
     null;
   const mode: "daily" | "boss" = bossTopic ? "boss" : "daily";
-  let mods = extras;
-  let multiplier = xpMultiplier(mods, bossTopic ? BOSS_XP_BASE : 1);
+  /* The boss runs no mods (the games plan, item 16): the week's
+     benchmark keeps its conditions, whatever a form says it ran. Its
+     multiplier waits for the words: only a scored take pays the boss's. */
+  let mods = bossTopic ? [] : extras;
+  let multiplier = xpMultiplier(mods);
   const lessonId = (form.get("lessonId") as string) || undefined;
   /*
    * A game round (the games plan, items 3 and 10). The phone says what it
@@ -346,6 +350,8 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
   // isolation and the whole screen a lie. If there is no speech to
   // measure we say so instead of scoring the silence around it.
   const scorable = isScorable(metrics.substance);
+  // A boss take too short to score pays what an unscored take pays anywhere.
+  if (bossTopic) multiplier = bossXpMultiplier(scorable);
 
   /*
    * Judged-tier metering (§3). The measured tier above has already run
@@ -422,9 +428,22 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
     multiplier = gameXpMultiplier(game, level, fired, extras);
   }
 
+  /*
+   * The delta's other number. A boss compares like with like (the games
+   * plan, item 16): last week's first scored boss, the slot beside this
+   * one on the lobby's record, in the speaker's own week. No boss last
+   * week, no delta: never one against a daily take, or against a week
+   * the label would misname.
+   */
+  const lastWeek = bossTopic
+    ? lastBossWeek(recordedAt ?? new Date(), numberOrNull(form.get("tzOffset")))
+    : null;
   const [previousIndex, prevPresence] = userId
     ? await Promise.all([
-        previousEthosIndex(userId).catch(() => null),
+        (lastWeek
+          ? bossIndexBetween(userId, lastWeek.from, lastWeek.to)
+          : previousEthosIndex(userId)
+        ).catch(() => null),
         previousPresence(userId).catch(() => null),
       ])
     : [null, null];

@@ -56,6 +56,18 @@ describe("the boss says what it asks", () => {
       expect(page).toMatch(/<HeroStage\b/);
     }
   });
+
+  /* No Ready screen and no mods row: the reading's end goes straight to
+     the recording screen, and the boss carries no mods there. */
+  it("goes from the reading straight to the recording screen, with no mods", () => {
+    const boss = readFileSync("app/boss/page.tsx", "utf8");
+    expect(boss).not.toMatch(/"ready"/);
+    expect(boss).not.toMatch(/ModPicker|Stress mods/);
+    expect(boss).toContain("repHref({ boss: topic.id })");
+    expect(boss).toContain("I&apos;m ready early");
+    expect(boss).toContain("See your take");
+    expect(boss).toContain("Last six weeks");
+  });
 });
 
 /** The week's state at the foot of the boss stage, on Practice and /boss. */

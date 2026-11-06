@@ -65,6 +65,10 @@ import { gameOfTheDay } from "@/lib/games";
 import { dateKey } from "@/lib/metering";
 import { consumeRateLimit, refundRateLimit } from "@/lib/rate-limit";
 import { transcribe } from "@/lib/transcribe";
+import { ENVELOPE_RATE, serializeEnvelope, type Envelope } from "@/lib/envelope";
+import { ethosIndex, pauseScore, type Tier1Scores } from "@/lib/index-score";
+import { computeMetrics } from "@/lib/metrics";
+import { reportJudged, type JudgedPause } from "@/lib/pause-quality";
 
 function post(form: FormData | null): Promise<Response> {
   const req = new Request("http://test.local/api/analyze", {
@@ -85,7 +89,7 @@ function audioForm(): FormData {
 }
 
 const WORDS =
-  "So um my name is Tim and I am building a speech gym called Ethos " +
+  "So um my name is Tim and I am building a speech coach called Ethos " +
   "which measures the fillers pauses and pace in every rep you record";
 
 // A realistic rep: enough varied speech to clear the substance gate, so
@@ -1072,5 +1076,154 @@ describe("a game round", () => {
     expect(body.round).toBeNull();
     expect(body.mods).toEqual([]);
     expect(body.xpMultiplier).toBe(1);
+  });
+});
+
+/*
+ * The pause score and the envelope (DECISIONS #422, #121). The take
+ * judges its pauses once, with the envelope, and stores, shows and
+ * scores those verdicts: a gap the stored pause list says had a sound in
+ * it never scores as a landing, and a gap the phone did not hear keeps
+ * the verdict its words give.
+ */
+describe("the Index scores the pauses the take stores", () => {
+  const SENTENCES = [
+    "The first thing I learned about speaking is that silence works.",
+    "Most people rush because they think a gap means they have lost.",
+    "When I slow down the room actually leans in toward me.",
+    "My manager noticed it during the quarterly review last month.",
+    "She said the update finally sounded like a decision.",
+    "That changed how I prepare for every single meeting now.",
+  ];
+  /** Six sentences, a 1.3s held pause after each of the first five. */
+  const TAKE = (() => {
+    const words: { word: string; start: number; end: number }[] = [];
+    const gaps: [number, number][] = [];
+    let t = 0.5;
+    SENTENCES.forEach((s, k) => {
+      for (const raw of s.split(" ")) {
+        words.push({ word: words.length === 0 ? raw : ` ${raw}`, start: +t.toFixed(2), end: +(t + 0.3).toFixed(2) });
+        t += 0.42;
+      }
+      if (k < SENTENCES.length - 1) {
+        gaps.push([t - 0.12, t - 0.12 + 1.3]);
+        t += 1.3;
+      }
+    });
+    const durationS = Math.ceil(t + 0.5);
+    return { text: SENTENCES.join(" "), durationS, words, segments: [], raw: {}, gaps };
+  })();
+
+  /** What the mic heard at t: speech, room tone in a gap, a swallowed "um" mid-gap in a voiced one. */
+  function heard(t: number, voiced: number[]): number {
+    for (const [k, [a, b]] of TAKE.gaps.entries()) {
+      if (t >= a && t < b) return voiced.includes(k) && Math.abs(t - (a + b) / 2) < 0.3 ? 0.3 : 0.03;
+    }
+    return 0.5;
+  }
+  /** The phone's envelope, on the take's clock, with these gaps voiced and these never heard. */
+  function clockEnvelope(voiced: number[], unheard: number[] = []): Envelope {
+    const levels: number[] = [];
+    for (let i = 0; i < TAKE.durationS * ENVELOPE_RATE; i++) {
+      const t = i / ENVELOPE_RATE;
+      const gap = TAKE.gaps.findIndex(([a, b]) => t >= a && t < b);
+      levels.push(unheard.includes(gap) ? NaN : heard(t, voiced));
+    }
+    return { levels, rate: ENVELOPE_RATE, clock: true };
+  }
+
+  const dim = { score: 60, citedMoment: '"the first thing"', improve: "Open with the claim." };
+  const TIER2 = { structure: dim, credibility: dim, engagement: dim, confidence: dim };
+
+  async function send(envelope: Envelope | null) {
+    vi.mocked(saveRep).mockClear();
+    vi.mocked(transcribe).mockResolvedValue(TAKE);
+    vi.mocked(coachRep).mockResolvedValue({
+      focus: "Hold the gap.",
+      strength: "Five held pauses.",
+      supply: { original: "um", upgrade: "(pause)", note: "Silence reads as thought." },
+      coachLine: "Five pauses held.",
+      dimensions: TIER2,
+    });
+    const form = audioForm();
+    if (envelope) form.append("envelope", serializeEnvelope(envelope));
+    const body = await (await post(form)).json();
+    const saved = vi.mocked(saveRep).mock.calls[0][0] as unknown as {
+      metrics: { pauses: JudgedPause[]; durationS: number; stars: number };
+      tier1: Tier1Scores;
+      ethosIndex: number | null;
+    };
+    return { body, saved };
+  }
+
+  /** Every stored number agrees with the stored pause list. */
+  function consistent({ body, saved }: Awaited<ReturnType<typeof send>>) {
+    const report = reportJudged(saved.metrics.pauses, saved.metrics.durationS);
+    expect(saved.tier1.pause).toBe(report.score);
+    expect(saved.ethosIndex).toBe(
+      ethosIndex(saved.tier1, { structure: 60, credibility: 60, engagement: 60, confidence: 60 })
+    );
+    expect(body.tier1).toEqual(saved.tier1);
+    expect(body.ethosIndex).toBe(saved.ethosIndex);
+    expect(body.metrics.pauses).toEqual(saved.metrics.pauses);
+    expect(body.pauseHeadline).toBe(report.headline);
+    return report;
+  }
+
+  /** The take scored from its words alone, as before #422 and without an envelope. */
+  const WORDS_ONLY = (() => {
+    const m = computeMetrics(TAKE.words, TAKE.durationS, []);
+    return pauseScore(m.pauses, m.durationS, TAKE.words, m.fillers);
+  })();
+
+  it("stores an Index that scores the two pauses it calls filled as filled", async () => {
+    const sent = await send(clockEnvelope([1, 3]));
+    const report = consistent(sent);
+    expect(report.filled).toBe(2);
+    expect(sent.saved.metrics.pauses.filter((p) => p.verdict === "filled").map((p) => p.note)).toEqual([
+      expect.stringContaining("with a sound in it"),
+      expect.stringContaining("with a sound in it"),
+    ]);
+    expect(sent.body.pauseHeadline).toMatch(/^2 of your "pauses" had a sound in them/);
+    // Below the words' own score, which read both gaps as landings.
+    expect(sent.saved.tier1.pause).toBeLessThan(WORDS_ONLY);
+  });
+
+  it("scores a take with no voiced gap exactly as before", async () => {
+    const clean = await send(clockEnvelope([]));
+    consistent(clean);
+    const none = await send(null);
+    consistent(none);
+    expect(none.saved.tier1.pause).toBe(WORDS_ONLY);
+    expect(clean.saved.tier1).toEqual(none.saved.tier1);
+    expect(clean.saved.ethosIndex).toBe(none.saved.ethosIndex);
+    expect(clean.saved.metrics.pauses).toEqual(none.saved.metrics.pauses);
+  });
+
+  it("gives a gap the phone never heard the verdict its words give", async () => {
+    // Gaps 1 and 3 had a sound in them, but the page had no frames then.
+    const unheard = await send(clockEnvelope([1, 3], [1, 3]));
+    const report = consistent(unheard);
+    expect(report.filled).toBe(0);
+    expect(unheard.saved.tier1.pause).toBe(WORDS_ONLY);
+  });
+
+  it("judges no pause on a refitted envelope, an outbox replay from before the review", async () => {
+    // About 17 samples a second under a label of 20, no clock mark.
+    const truth = clockEnvelope([1, 3]);
+    const levels: number[] = [];
+    for (let t = 0; t < TAKE.durationS; t += 1 / 17) levels.push(heard(t, [1, 3]));
+    expect(levels.length).toBeLessThan(truth.levels.length * 0.95);
+    const replay = await send({ levels, rate: ENVELOPE_RATE });
+    const report = consistent(replay);
+    expect(report.filled).toBe(0);
+    expect(replay.saved.tier1.pause).toBe(WORDS_ONLY);
+  });
+
+  it("moves no star and no other dimension", async () => {
+    const none = await send(null);
+    const filled = await send(clockEnvelope([0, 1, 3]));
+    expect(filled.saved.metrics.stars).toBe(none.saved.metrics.stars);
+    expect({ ...filled.saved.tier1, pause: 0 }).toEqual({ ...none.saved.tier1, pause: 0 });
   });
 });

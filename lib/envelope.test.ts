@@ -6,6 +6,7 @@ import {
   fitEnvelopeRate,
   levelBetween,
   parseEnvelope,
+  pauseEnvelope,
   sampleEnvelope,
   serializeEnvelope,
   type Envelope,
@@ -258,6 +259,21 @@ describe("a take the page stopped hearing (regression review)", () => {
     for (const [a, b] of silences.filter(([a]) => a > 40)) {
       expect(classifyGap(read, a, b)).toBe("unknown");
     }
+  });
+
+  it("judges a take's pauses only on an envelope whose times are the phone's own (#422)", () => {
+    // On the take's clock: judged as sent, a short tail included.
+    const clock: Envelope = { levels: new Array(800).fill(0.2), rate: ENVELOPE_RATE, clock: true };
+    expect(pauseEnvelope(clock, 72)).toBe(clock);
+    // Unmarked but at its declared rate: its times are true, judged as sent.
+    const full: Envelope = { levels: new Array(1440).fill(0.2), rate: ENVELOPE_RATE };
+    expect(pauseEnvelope(full, 72)).toBe(full);
+    // Unmarked and refitted (an outbox replay from before the review):
+    // its times are a guess, so no pause is judged on it.
+    const old: Envelope = { levels: new Array(1224).fill(0.2), rate: ENVELOPE_RATE };
+    expect(fitEnvelopeRate(old, 72)).not.toBe(old);
+    expect(pauseEnvelope(old, 72)).toBeNull();
+    expect(pauseEnvelope(null, 72)).toBeNull();
   });
 
   it("still refits an older envelope without the mark (an outbox replay)", () => {

@@ -16,7 +16,7 @@ import {
   type Segment,
   type Word,
 } from "./metrics";
-import { pauseReport } from "./pause-quality";
+import { pauseReport, reportJudged, type JudgedPause } from "./pause-quality";
 
 export const INDEX_WEIGHTS = {
   // Tier 1 — measured
@@ -74,6 +74,10 @@ export interface Tier2Anchors {
  * Pause /100 — the signature dimension. Placement, not presence: see
  * `pause-quality.ts` for what the silence has to actually do to score.
  * This wrapper exists so the Index has one shape per dimension.
+ *
+ * Judged here from the words alone, with no envelope. A take that has
+ * judged its pauses with the envelope hands those verdicts to
+ * `tier1Scores` instead, which scores them as they are (#422).
  */
 export function pauseScore(
   pauses: Pause[],
@@ -181,13 +185,24 @@ export function rangeScore(words: Word[]): number {
   return clamp(score);
 }
 
+/**
+ * The five measured dimensions. `judged` is the take's own pause
+ * verdicts, judged once with the envelope: the ones it stores and
+ * shows. The Pause dimension reads those and never judges again, so a
+ * gap the mic heard a sound in scores as filled here as it reads on
+ * the pause list (#121, #422). Without them the pauses are judged from
+ * the words alone, which is also what a take without an envelope gets.
+ */
 export function tier1Scores(
   metrics: RepMetrics,
   words: Word[],
-  segments: Segment[]
+  segments: Segment[],
+  judged?: JudgedPause[]
 ): Tier1Scores {
   return {
-    pause: pauseScore(metrics.pauses, metrics.durationS, words, metrics.fillers),
+    pause: judged
+      ? reportJudged(judged, metrics.durationS).score
+      : pauseScore(metrics.pauses, metrics.durationS, words, metrics.fillers),
     fillers: fillerScore(metrics.fillersPerMin),
     repairs: repairScore(metrics.repairsPerMin),
     pace: paceScore(metrics.wpm, words, segments),

@@ -363,6 +363,70 @@ export const TODAY_REP = {
   lesson_id: "h4",
 };
 
+/*
+ * Game rounds for the camera (the games plan, items 7 and 12): rows
+ * filed `game:<id>:<q>` with `reps.round` set (migration 0026), so
+ * Practice's tiles show a ladder. Off by default, so every other shot
+ * keeps the three weeks it always had; LOOK_GAMES=1, or a camera setting
+ * gamesMode.on, adds them to the reps reads.
+ *   - Q&A at level 2, one of two days counted, best 31s clean.
+ *   - Speed rush mastered: two days at each level, three 3-star days at
+ *     level 3, four landed in a row there.
+ *   - Interview at level 1, one day counted, best Index 712.
+ * gamesMode.playedToday adds a round of today's free game (the rotation
+ * in lib/games.ts) at 09:12 today, so the free tile reads as spent;
+ * gamesMode.hostileUsed files this week's Hostile Q&A take.
+ *
+ *   LOOK_GAMES=1 node scripts/look.mjs after practice
+ */
+export const gamesMode = { on: process.env.LOOK_GAMES === "1", playedToday: false, hostileUsed: false };
+
+/** lib/games.ts `gameOfTheDay`, inlined (this file cannot import the TS lib). */
+function gameOfTheDayFixture(n = 0) {
+  const t = Date.UTC(MY, MM - 1, MD + n);
+  return ["rush", "interview"][Math.round(t / 86_400_000) % 2];
+}
+
+const cutIn = (at, gap, verdict, cleanAfter) => ({
+  at, line: "Says who?", gap, gapFrom: at + 0.2, gapTo: at + 0.2 + gap, verdict,
+  fillerAt: null, fillerWord: null, cleanAfter, spokeAfter: (cleanAfter ?? 0) + gap + 1,
+});
+const roundBase = (level, cap, durationS, stars, counted, best = null) => ({
+  v: 1, level, cap, durationS, stoppedBy: "you", lastWord: durationS - 0.6, stars, scorable: true, counted, best,
+});
+/** [days ago, game, question, stars, index, round] */
+const GAME_ROUNDS = [
+  [12, "qa", "qa2", 2, 588, { game: "qa", ...roundBase(1, 90, 48, 2, true, 22), cutIns: [cutIn(14.2, 1.1, "held", 22)] }],
+  [10, "qa", "qa9", 3, 640, { game: "qa", ...roundBase(1, 90, 52, 3, true, 26), cutIns: [cutIn(13.1, 1.3, "held", 26)] }],
+  [5, "qa", "qa14", 3, 652, { game: "qa", ...roundBase(2, 90, 49, 3, true, 31), cutIns: [cutIn(7.4, 1.2, "held", 31)] }],
+  [3, "qa", "qa17", 2, 611, { game: "qa", ...roundBase(2, 90, 41, 2, false, null), cutIns: [cutIn(8.2, 0.5, "breath", null)] }],
+  ...[[21, 1], [20, 1], [18, 2], [16, 2], [9, 3], [8, 3], [7, 3], [6, 3]].map(([ago, level], i) => {
+    const cap = [45, 30, 20][level - 1];
+    return [ago, "rush", `ru${i + 1}`, 3, 620 + i * 6, { game: "rush", ...roundBase(level, cap, cap - 2.4, 3, true), spare: 2.4, landed: true }];
+  }),
+  [2, "interview", "iv3", 2, 712, { game: "interview", ...roundBase(1, 90, 74, 2, true, 712), firstWord: 0.6, inWindow: true, numberAtEnd: "30 percent", cutIns: [] }],
+];
+function gameRows() {
+  const base = reps[reps.length - 1];
+  const row = (ago, h, id, lesson, stars, index, round) => ({
+    ...base, id, client_id: id, lesson_id: lesson, created_at: day(ago, h).toISOString(),
+    duration_s: round?.durationS ?? 60, stars, ethos_index: index, round,
+  });
+  const rows = GAME_ROUNDS.map(([ago, g, q, stars, index, round], i) =>
+    row(ago, 8, `game-${i + 1}`, `game:${g}:${q}`, stars, index, round)
+  );
+  if (gamesMode.playedToday) {
+    const g = gameOfTheDayFixture(0);
+    const round =
+      g === "rush"
+        ? { game: "rush", ...roundBase(1, 45, 41, 2, true), spare: 3.4, landed: true }
+        : { game: "interview", ...roundBase(1, 90, 71, 2, true, 668), firstWord: 0.8, inWindow: true, numberAtEnd: null, cutIns: [] };
+    rows.push(row(0, 9, "game-today", `game:${g}:${g === "rush" ? "ru20" : "iv14"}`, 2, 668, round));
+  }
+  if (gamesMode.hostileUsed) rows.push(row(0, 9, "hostile-today", "hostile-take", 2, 641, null));
+  return rows;
+}
+
 /** /api/tester/collect as the route answers it, every batch kept for the camera's checks. */
 export async function collectRoute(route) {
   const req = route.request();
@@ -452,6 +516,13 @@ async function supabase(route) {
   if (table === "reps" && testerMode.repsFail) return route.fulfill(json({ code: "XX000", message: "look: history refused" }, 500));
   let rows = TABLES[table] ?? [];
   if (table === "reps" && testerMode.today && !FRESH) rows = [...rows, TODAY_REP];
+  if (table === "reps" && gamesMode.on && !FRESH) {
+    rows = [...rows, ...gameRows()];
+    // fetchGameRounds asks for game:% rows; the mock honours that one filter.
+    if ((url.searchParams.get("lesson_id") ?? "").startsWith("like.game:")) {
+      rows = rows.filter((r) => (r.lesson_id ?? "").startsWith("game:"));
+    }
+  }
   // PostgREST's order and limit, honoured, so a read for the newest N
   // gets the newest N (fetchReps asks descending and reverses).
   const order = url.searchParams.get("order");

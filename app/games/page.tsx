@@ -14,14 +14,33 @@ import {
 import { DemosArt } from "@/components/DemosArt";
 import { Paywall } from "@/components/Paywall";
 import { PremiumMark } from "@/components/PremiumMark";
+import { Disclosure } from "@/components/ui/Disclosure";
 import { ErrorLine } from "@/components/ui/ErrorState";
 import { HeroStage } from "@/components/ui/HeroStage";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { bossAnswerLine, bossReadLine, bossWeekLine, daysLeftInWeek } from "@/lib/boss";
-import { fetchProfile, fetchReps } from "@/lib/client-data";
-import { draw, GAMES, needsPremium, type Game } from "@/lib/games";
-import { HOSTILE_LINE } from "@/lib/hostile";
+import { dayKey } from "@/lib/challenge";
+import { fetchGameRounds, fetchProfile, fetchReps, type GameRoundRow } from "@/lib/client-data";
+import {
+  askedIdsFrom,
+  drawFresh,
+  gameById,
+  gameOfTheDay,
+  GAMES,
+  needsPremium,
+  type Game,
+} from "@/lib/games";
 import { weekStart } from "@/lib/level";
+import {
+  dayState,
+  freeAgainLine,
+  hostileUsedThisWeek,
+  lessonIdsNewestFirst,
+  PREMIUM_DEPTH,
+  tileLadder,
+  tomorrowLine,
+  type TileLadder,
+} from "@/lib/practice-tiles";
 import { repHref } from "@/lib/rep-config";
 import { ACTION_CLASS } from "@/lib/ui";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
@@ -29,29 +48,34 @@ import { usePaywallReturn } from "@/lib/use-paywall-return";
 /**
  * Practice, the tab that was Tools (DECISIONS #157, #184, #292, #294).
  *
- * The weekly boss, then the games as tiles: Free above, then Premium as
- * one card that names the three paid modes and has one door (D31). It
- * was a frosted plum wall over blurred copies of the tiles (#317), which
- * read as a failed image load; what #317 asked for stays: one block, the
- * three names, and an Unlock that is not terracotta, so the boss keeps
- * the one tap.
+ * The weekly boss, then the games as tiles: Free above, then Premium.
+ * What #317 asked for stays: one Premium block, its paid modes named,
+ * and an Unlock that is not terracotta, so the boss keeps the one tap.
  *
  *  - The boss's sky stage IS its card (M13): the screen's one lifted
- *    thing, at the sheet radius, with Start on the ground under it. A
- *    card round a stage was a card in a card, and the button and the
- *    stage had different side insets (practice-tab-10).
- *  - One tile for every game (practice-tab-11): the glyph on a neutral
- *    surface tile in ink (D30: Q&A's mint disagreed with Upload's grey),
- *    the name under it, 96px. A tile in a grid carries no chevron.
+ *    thing, at the sheet radius, with Start on the ground under it.
+ *  - A game's tile carries its ladder (the games plan, item 7; M6): the
+ *    open level, pips toward the next count (sage when counted, earned),
+ *    and the best at that level. A mastered game's glyph turns sage.
+ *    Unknown is never drawn as Level 1: while the rounds are read the
+ *    tile holds its height with nothing in the ladder's place, and a
+ *    failed read leaves it the bare glyph and name it always was. A
+ *    tap draws a question you have not answered and opens your level.
+ *  - A free account plays one Premium game a day (item 12): today's is
+ *    a real tile, "Free today", and after its round it says when it is
+ *    free again and opens the paywall. The card names tomorrow's game
+ *    and what the levels are (item 14). Its weekly Hostile Q&A is a
+ *    door here too (item 15).
  *  - Nothing moves on load and nothing is guessed (practice-tab-2,
- *    -14): the week is read on the device after mount, the plan slot
- *    holds a skeleton until the profile lands, and a failed read says
- *    so instead of showing a paying user the wall.
+ *    -14): the week and the day are read on the device after mount, the
+ *    plan slot holds a skeleton until the profile lands, and a failed
+ *    read says so instead of showing a paying user the wall.
  *
  * Colour: the boss stage is the introduction's sky, with the full-body
  * clock pose standing in it. Under the stage everything is neutral
- * (STATE, #391): the tiles are surface with ink glyphs, the tap stays
- * terracotta, and plum is only the PremiumMark.
+ * (STATE, #391): the tiles are cards with ink glyphs, sage only for a
+ * counted pip and a mastered game, the tap stays terracotta, and plum is
+ * only the PremiumMark. No Demos on a tile: he is not furniture.
  */
 const GLYPH: Record<string, (size: number) => ReactNode> = {
   qa: (s) => <IconBubble size={s} />,
@@ -62,18 +86,11 @@ const GLYPH: Record<string, (size: number) => ReactNode> = {
   hostile: (s) => <IconBoss size={s} />,
 };
 
-/**
- * The three paid modes as Premium's card lists them (D31): each one's
- * own line, already written where the mode lives, so the card makes no
- * new claim (COPY-RULES).
- */
-const PREMIUM_MODES = [
-  ...GAMES.filter(needsPremium).map((g) => ({ id: g.id, name: g.name, line: g.blurb })),
-  { id: "hostile", name: "Hostile Q&A", line: HOSTILE_LINE },
-];
-
 /** The week (its start) the boss stage last welcomed Demos in. */
 const SEEN_KEY = "ethos.practice.bossSeen";
+
+/** The rounds the ladder reads: null while in flight, "failed" when the read did. */
+type Rounds = GameRoundRow[] | null | "failed";
 
 export default function GamesPage() {
   const router = useRouter();
@@ -92,11 +109,19 @@ export default function GamesPage() {
      holds its line); a failed read lands on false and the card says
      "days left", which is true either way. */
   const [bossDone, setBossDone] = useState<boolean | null>(null);
+  /* This week's free Hostile Q&A, from the same rows: null while in
+     flight or failed, and an unknown week opens the door (the route
+     decides, its own degrade-open rule). */
+  const [hostileUsed, setHostileUsed] = useState<boolean | null>(null);
   /* Days left in the week, from the DEVICE's own week. Read after
      mount, never in render (practice-tab-2): the server's week is UTC
      and the phone's is local, so on a Sunday morning in Melbourne the
      two disagreed by a day and React threw #418. */
   const [daysLeft, setDaysLeft] = useState<number | null>(null);
+  /* Today on the device, for the game of the day; null until mounted. */
+  const [now, setNow] = useState<Date | null>(null);
+  /* Every game round the ladder reads (lib/client-data.ts). */
+  const [rounds, setRounds] = useState<Rounds>(null);
   /* Demos springs onto the stage on the first visit of the week and
      stands still after that: he appears at moments, never as furniture,
      and a tab you come back to is not a moment. Null until read, so he
@@ -122,6 +147,7 @@ export default function GamesPage() {
     }
     setArrive(first);
     setDaysLeft(daysLeftInWeek(week));
+    setNow(new Date());
 
     readPlan();
     fetchReps()
@@ -134,8 +160,12 @@ export default function GamesPage() {
               new Date(r.created_at).getTime() >= since
           )
         );
+        setHostileUsed(hostileUsedThisWeek(rows));
       })
       .catch(() => setBossDone(false));
+    fetchGameRounds()
+      .then(setRounds)
+      .catch(() => setRounds("failed"));
   }, []);
 
   /* A non-breaking space while either read is out, so the line keeps
@@ -147,12 +177,39 @@ export default function GamesPage() {
   const free = GAMES.filter((g) => !needsPremium(g));
   const paid = GAMES.filter(needsPremium);
 
+  /* Today's free Premium game, once the device's day is known. */
+  const today = now ? dayKey(now) : null;
+  const dayGame = today ? gameById(gameOfTheDay(today)) : null;
+  const dayGameState = dayGame
+    ? dayState(dayGame, { dayKey: today, rows: rounds, now: now ?? undefined })
+    : "unknown";
+  /* What the card still sells a free account: every paid game but today's. */
+  const rest = paid.filter((g) => g.id !== dayGame?.id);
+
+  /** A game's ladder for its tile: "loading" while read, null when it failed. */
+  function ladderOf(g: Game): TileLadder | "loading" | null {
+    if (rounds === null || !now) return "loading";
+    if (rounds === "failed") return null;
+    return tileLadder(rounds, g.id, now);
+  }
+
+  /** Into a round: a question not answered yet, at the level the ladder has open. */
+  function go(g: Game) {
+    const rows = Array.isArray(rounds) ? rounds : [];
+    const q = drawFresh(g, askedIdsFrom(lessonIdsNewestFirst(rows), g));
+    const ladder = ladderOf(g);
+    const level = ladder && ladder !== "loading" ? ladder.level : 1;
+    router.push(repHref({ game: g.id, q: q.id, level }));
+  }
+
   function play(g: Game) {
     if (needsPremium(g) && premium !== true) {
+      // Today's free game, until its round is taken (an unknown day opens).
+      if (premium === false && g.id === dayGame?.id && dayGameState !== "spent") return go(g);
       setPaywall(g.name);
       return;
     }
-    router.push(repHref({ game: g.id, q: draw(g).id }));
+    go(g);
   }
 
   return (
@@ -208,16 +265,22 @@ export default function GamesPage() {
       </section>
 
       {/*
-       * Free first, then the wall (26 Sep, Timothy: "premium is blurry,
-       * blocked behind a physical wall, not just a colour, and free
-       * chillin above them"). No blurbs: the name and the glyph say what
-       * the game is, and the game's own screen says the rules.
+       * Free first, then Premium (26 Sep, Timothy: "free chillin above
+       * them"). No blurbs: the name and the glyph say what the game is,
+       * the ladder says where you are in it, and the game's own screen
+       * says the rules.
        */}
       <div className="stagger mt-7">
         <h2 className="section-head">Free</h2>
         <div className="mt-3 grid grid-cols-2 gap-3">
           {free.map((g) => (
-            <GameTile key={g.id} glyph={GLYPH[g.id](28)} name={g.name} onPress={() => play(g)} />
+            <GameTile
+              key={g.id}
+              glyph={GLYPH[g.id](28)}
+              name={g.name}
+              ladder={ladderOf(g)}
+              onPress={() => play(g)}
+            />
           ))}
           <GameTile glyph={<IconUpload size={28} />} name="Upload a recording" href="/upload" />
         </div>
@@ -233,46 +296,112 @@ export default function GamesPage() {
             Your plan didn&apos;t load.
           </ErrorLine>
         ) : premium === null ? (
-          /* The free user's card at its landed height (principle 8);
-             a subscriber's grid is shorter and lands with .arrive. */
-          <Skeleton rounded="rounded-card" className="premium-card-slot mt-3" />
+          /* The free account's block at its landed height (principle
+             8): a row of tiles with their allowance over the card, 312
+             at 390. A subscriber's grid is shorter and lands with
+             .arrive. */
+          <div aria-hidden className="mt-3">
+            <div className="grid grid-cols-2 gap-3">
+              <Skeleton rounded="rounded-card" className="h-[146px]" />
+              <Skeleton rounded="rounded-card" className="h-[146px]" />
+            </div>
+            <Skeleton rounded="rounded-card" className="mt-3 h-[154px]" />
+          </div>
         ) : premium ? (
-          <div className="arrive mt-3 grid grid-cols-3 gap-3">
+          <div className="arrive mt-3 grid grid-cols-2 gap-3">
             {paid.map((g) => (
-              <GameTile key={g.id} glyph={GLYPH[g.id](28)} name={g.name} onPress={() => play(g)} />
+              <GameTile
+                key={g.id}
+                glyph={GLYPH[g.id](28)}
+                name={g.name}
+                ladder={ladderOf(g)}
+                onPress={() => play(g)}
+              />
             ))}
-            <GameTile glyph={GLYPH.hostile(28)} name="Hostile Q&A" href="/hostile" />
+            {/* Hostile has no ladder (its numbers are a model's read,
+                never a rung), so it is the grid's one wide row: a door,
+                its chevron at the end. */}
+            <WideTile glyph={GLYPH.hostile(28)} name="Hostile Q&A" href="/hostile" />
           </div>
         ) : (
-          /* One card, crisp (D31): the three paid modes as rows that
-             say what each is, and one door. The rows are not doors; the
-             Unlock is, as the secondary pill, so the boss's Start stays
-             the screen's one terracotta. `premium-wall` is the hook the
-             camera and check-sheet-touch open the paywall by. */
-          <div className="card premium-card-slot arrive mt-3 px-4 pb-4">
-            <ul>
-              {PREMIUM_MODES.map((m) => (
-                <li
-                  key={m.id}
-                  className="flex min-h-14 items-center gap-3 border-t border-hairline py-2 first:border-t-0"
-                >
-                  <span aria-hidden className="shrink-0 text-ink">
-                    {GLYPH[m.id](24)}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="font-display block text-detail font-semibold text-ink">{m.name}</span>
-                    <span className="block text-link font-medium text-stone-500">{m.line}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <button
-              type="button"
-              onClick={() => setPaywall("Premium games")}
-              className="press premium-wall pill-on-raised font-display mt-2 flex min-h-11 w-full items-center justify-center rounded-tap border border-edge bg-surface px-6 text-body font-bold text-ink"
-            >
-              Unlock
-            </button>
+          <div className="arrive mt-3">
+            {/* What a free account can open today: the day's Premium
+                game and the week's Hostile Q&A, each a real door that
+                says why. Spent, each says when it is free again and
+                opens the paywall. */}
+            <div className="grid grid-cols-2 gap-3">
+              {dayGame && (
+                <GameTile
+                  glyph={GLYPH[dayGame.id](28)}
+                  name={dayGame.name}
+                  note={
+                    dayGameState === "open"
+                      ? "Free today"
+                      : dayGameState === "spent"
+                        ? (freeAgainLine(dayGame.id, now ?? undefined) ?? undefined)
+                        : undefined
+                  }
+                  ladder={ladderOf(dayGame)}
+                  paywall={dayGameState === "spent"}
+                  onPress={() => play(dayGame)}
+                />
+              )}
+              {hostileUsed === true ? (
+                <GameTile
+                  glyph={GLYPH.hostile(28)}
+                  name="Hostile Q&A"
+                  note="Free again Monday"
+                  paywall
+                  onPress={() => setPaywall("Hostile Q&A · once a week free")}
+                />
+              ) : (
+                <GameTile
+                  glyph={GLYPH.hostile(28)}
+                  name="Hostile Q&A"
+                  note={hostileUsed === false ? "1 free this week" : undefined}
+                  href="/hostile"
+                />
+              )}
+            </div>
+
+            {/* One card, crisp (D31): the rest of Premium as rows that
+                say what the levels are, tomorrow's free game, and one
+                door. The rows are not doors; the Unlock is, as the
+                secondary pill, so the boss's Start stays the screen's
+                one terracotta. `premium-wall` is the hook the camera and
+                check-sheet-touch open the paywall by. */}
+            <div className="card mt-3 px-4 pb-4">
+              <ul>
+                {rest.map((g) => (
+                  <li
+                    key={g.id}
+                    className="flex min-h-14 items-center gap-3 border-t border-hairline py-2 first:border-t-0"
+                  >
+                    <span aria-hidden className="shrink-0 text-ink">
+                      {GLYPH[g.id](24)}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="font-display block text-detail font-semibold text-ink">{g.name}</span>
+                      <span className="block text-link font-medium text-stone-500">
+                        {PREMIUM_DEPTH[g.id] ?? g.blurb}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {/* A line of its own height, so the card never grows
+                  when the day lands. */}
+              <p className="mt-1 min-h-5 text-caption text-stone-500">
+                {now ? tomorrowLine(now) : " "}
+              </p>
+              <button
+                type="button"
+                onClick={() => setPaywall("Premium games")}
+                className="press premium-wall pill-on-raised font-display mt-3 flex min-h-11 w-full items-center justify-center rounded-tap border border-edge bg-surface px-6 text-body font-bold text-ink"
+              >
+                Unlock
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -283,38 +412,126 @@ export default function GamesPage() {
 }
 
 /**
- * One game, as a tile: its glyph bare in ink at 28 (E11; it stood on a
- * neutral surface tile, D30), its name under it, nothing to read.
+ * One game, as a tile (M6): its glyph bare in ink at 28 (E11), its
+ * name, and for a game its ladder under them: the level with a pip per
+ * count it takes, then its best. `note` is the tile's allowance ("Free
+ * today", "1 free this week") under the name. About 124 tall (a note
+ * adds its line), so nothing moves when the rounds arrive.
  */
 function GameTile({
   glyph,
   name,
   href,
   onPress,
+  note,
+  ladder,
+  paywall = false,
 }: {
   glyph: ReactNode;
   name: string;
   href?: string;
   onPress?: () => void;
+  /** The allowance, under the name ("Free today"). */
+  note?: string;
+  /** A game's ladder; "loading" holds its place; absent or null draws none. */
+  ladder?: TileLadder | "loading" | null;
+  /** The tap opens the paywall. */
+  paywall?: boolean;
 }) {
+  const lad = ladder && ladder !== "loading" ? ladder : null;
   const inner = (
     <>
-      {/* The bare glyph in ink, no tile of its own (E11): a filled tile
-          inside the card was a box in a box. */}
-      <span aria-hidden className="flex size-7 items-center justify-center text-ink">
+      {/* The bare glyph in ink, no tile of its own (E11); sage once
+          the game is mastered, which is earned. */}
+      <span
+        aria-hidden
+        className={`flex size-7 shrink-0 items-center justify-center ${lad?.mastered ? "text-sage-600" : "text-ink"}`}
+      >
         {glyph}
       </span>
       <span className="font-display block pt-2.5 text-row text-ink">{name}</span>
+      {/* The allowance, under the name it is about, in ink so it reads
+          before the ladder's grey: what you can do today comes first.
+          Spent, it steps back to stone: it is a date, not a door. */}
+      {note && (
+        <span
+          className={`font-display arrive block text-caption font-semibold ${paywall ? "text-stone-500" : "text-ink"}`}
+        >
+          {note}
+        </span>
+      )}
+      {lad && <LadderLines ladder={lad} />}
     </>
   );
-  const cls = "game-card card flex min-h-24 flex-col p-3 text-left";
+  const cls = "game-card card flex min-h-[124px] flex-col p-3 text-left";
   return href ? (
     <Link href={href} className={`press ${cls}`}>
       {inner}
     </Link>
   ) : (
-    <button type="button" onClick={onPress} className={`press ${cls}`}>
+    <button
+      type="button"
+      onClick={onPress}
+      aria-haspopup={paywall ? "dialog" : undefined}
+      className={`press ${cls}`}
+    >
       {inner}
     </button>
+  );
+}
+
+/**
+ * The ladder's two lines: "Level 2" with its pips (sage counted,
+ * outlined on sand not yet), or "Mastered" in their place; then the
+ * best. The pips are pictures; the sentence beside them is what a
+ * screen reader hears.
+ */
+function LadderLines({ ladder }: { ladder: TileLadder }) {
+  return (
+    <span className="arrive mt-1.5 block">
+      <span className="flex items-center gap-2">
+        <span className="text-caption tabular-nums text-stone-500">Level {ladder.level}</span>
+        {ladder.mastered ? (
+          <span className="text-caption font-semibold text-sage-700">Mastered</span>
+        ) : (
+          <>
+            <span aria-hidden className="flex gap-1">
+              {Array.from({ length: ladder.of }, (_, i) => (
+                <span
+                  key={i}
+                  className={`size-2 rounded-[2px] ${
+                    i < ladder.counted ? "bg-sage-600" : "bg-sand shadow-[inset_0_0_0_1px_var(--color-edge)]"
+                  }`}
+                />
+              ))}
+            </span>
+            <span className="sr-only">
+              {ladder.counted} of {ladder.of} counted
+            </span>
+          </>
+        )}
+      </span>
+      {/* Its line is always there, so a tile with a best and one
+          without stand the same height. */}
+      <span className="block min-h-5 text-caption tabular-nums text-stone-500">
+        {ladder.best ?? " "}
+      </span>
+    </span>
+  );
+}
+
+/**
+ * A door the width of the grid, for the one mode with no ladder: its
+ * glyph, its name, the row's chevron.
+ */
+function WideTile({ glyph, name, href }: { glyph: ReactNode; name: string; href: string }) {
+  return (
+    <Link href={href} className="press game-card card col-span-2 flex min-h-14 items-center gap-3 px-3 py-2">
+      <span aria-hidden className="flex size-7 shrink-0 items-center justify-center text-ink">
+        {glyph}
+      </span>
+      <span className="font-display min-w-0 flex-1 text-row text-ink">{name}</span>
+      <Disclosure />
+    </Link>
   );
 }

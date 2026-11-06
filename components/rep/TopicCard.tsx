@@ -185,6 +185,23 @@ export function TopicCard({
     });
   }, [compact]);
 
+  /* A question held back until Record (Interview at levels 2 and 3, the
+     games plan item 2): when the words change as the card takes its
+     recording place, the new ones fade in over the card's own glide
+     (app/rep/page.tsx FLIPs the card), so the question arrives with the
+     take instead of being swapped under it. */
+  const topicWords = useRef<HTMLSpanElement>(null);
+  const lastTopic = useRef(topic);
+  useLayoutEffect(() => {
+    if (lastTopic.current === topic) return;
+    lastTopic.current = topic;
+    if (!compact) return;
+    topicWords.current?.animate([{ opacity: 0 }, { opacity: 1 }], {
+      duration: DURATION.base,
+      easing: EASE_OUT,
+    });
+  }, [topic, compact]);
+
   /* Arrived: on the page, measured, and its object drawn if it has
      one, so the view transition's new state is the card as it rests. */
   const settled = measured && (!art || !fits || loaded);
@@ -367,7 +384,11 @@ export function TopicCard({
             : "mt-2 text-title font-extrabold leading-[1.18]"
         }`}
       >
-        <span className="vt-shared block" style={compact ? undefined : { viewTransitionName: "practice-topic" }}>
+        <span
+          ref={topicWords}
+          className="vt-shared block"
+          style={compact ? undefined : { viewTransitionName: "practice-topic" }}
+        >
           {topic}
         </span>
       </h1>

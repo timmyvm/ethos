@@ -1457,6 +1457,18 @@ body::after {
 :root[data-motion="reduce"] .rec-ring-fill {
   transition: none;
 }
+/*
+ * Interview's window (the games plan, item 9; F4): 1:00 to 1:30 drawn on
+ * the track in the sky tone, so the sweep is seen running into it. A
+ * picture tone: never sage (nothing is earned yet), never terracotta
+ * (it is not a tap). The ink fill passes over it.
+ */
+.rec-ring-window {
+  stroke: var(--pop-sky);
+}
+:root[data-theme="dark"] .rec-ring-window {
+  stroke: var(--pop-sky-disc);
+}
 
 /*
  * The Record button, waiting (#242).

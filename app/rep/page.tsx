@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { ACTION_CLASS as PRIMARY } from "@/lib/ui";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -25,7 +24,9 @@ import { PermissionHelp } from "@/components/PermissionHelp";
 import { PoseSkeleton } from "@/components/PoseSkeleton";
 import { PresenceDetail, PresenceScore } from "@/components/PresenceCard";
 import { RepResult } from "@/components/RepResult";
+import { CutInPill } from "@/components/rep/CutInPill";
 import { DemosHears } from "@/components/rep/DemosHears";
+import { LevelControl } from "@/components/rep/LevelControl";
 import { ScoringStage } from "@/components/rep/ScoringStage";
 import { TipLine, TipStrip } from "@/components/rep/TipStrip";
 import { splitPrompt } from "@/lib/tip-labels";
@@ -53,10 +54,12 @@ import { practiceFamily, recordingObject } from "@/lib/practice-family";
 import { animateSpring, SPRING, springEasing, springMs } from "@/lib/spring";
 import { useHourLabel } from "@/lib/time-label";
 import {
+  fetchGameRounds,
   fetchProfile,
   fetchRepSpine,
   fetchReps,
   fetchXp,
+  type GameRoundRow,
   type RepRow,
   type RepSpine,
 } from "@/lib/client-data";
@@ -64,6 +67,7 @@ import { syncCoins } from "@/lib/coin-sync";
 import {
   ENVELOPE_RATE,
   serializeEnvelope,
+  VOICED_THRESHOLD,
   type Envelope,
 } from "@/lib/envelope";
 import { startCrowdNoise, type CrowdNoise } from "@/lib/crowd-noise";
@@ -83,7 +87,7 @@ import {
   proMomentShown,
 } from "@/lib/pro-moment";
 import { nextLesson, starsByLesson, totalStars, unitStates } from "@/lib/path";
-import { liveTipAt } from "@/lib/live-tips";
+import { liveTipAt, liveTipsFor, yieldsToCutIn } from "@/lib/live-tips";
 import {
   loadPose,
   onAppleMobile,
@@ -122,7 +126,31 @@ import {
 import { unlockSfx } from "@/lib/sfx";
 import { computeStreak } from "@/lib/streak";
 import { nextDrill } from "@/lib/drills";
-import { draw, gameById } from "@/lib/games";
+import {
+  draw,
+  gameById,
+  gameModIds,
+  gameOfLessonId,
+  gameOpen,
+  gameXpMultiplier,
+  needsPremium,
+  type LevelN,
+} from "@/lib/games";
+import { dayKey } from "@/lib/challenge";
+import { usePaywallReturn } from "@/lib/use-paywall-return";
+import { ladderState, roundsToday } from "@/lib/ladder";
+import { INTERVIEW_WINDOW, type StoppedBy } from "@/lib/round";
+import {
+  bestLine,
+  CUT_IN_HOLD_S,
+  firedCutIns,
+  gameBestSnapshot,
+  nextCutIn,
+  pickLine,
+  planCutIns,
+  type CutInPlan,
+  type GameBestSnapshot,
+} from "@/lib/round-live";
 import { lessonById } from "@/content/lessons";
 import { parsePracticeId } from "@/lib/lesson-progress";
 import {
@@ -186,14 +214,12 @@ const RING_TONE = "ring-stone-400";
  */
 const HOLD_REVEAL_S = 4;
 
-/** Demos' one interruption. Short, specific, never insulting. */
-const INTERRUPTIONS = [
-  "So what?",
-  "Says who?",
-  "Give me an example.",
-  "Why does that matter?",
-  "Get to the point.",
-];
+/**
+ * What Demos cuts in with on a take that is not a game's (the
+ * interruption from Today's picker): Q&A's lines, the one set of them
+ * (lib/games.ts). A game says its own (Interview's follow-ups).
+ */
+const CUT_IN_LINES = gameById("qa")?.cutInLines ?? [];
 
 /**
  * getUserMedia failures that are about the camera itself, not a refused
@@ -244,7 +270,18 @@ interface Take {
   raf: number;
   chunks: Blob[];
   crowd: CrowdNoise | null;
+  /** Clears Demos's line 3.5s after he cut in. */
   interruptTimer: ReturnType<typeof setTimeout> | null;
+  /**
+   * The take's own clock: `performance.now()` at the recorder's `start`
+   * event, so a cut-in's second is on the audio's clock, the one
+   * Whisper's word times are read on (F2).
+   */
+  clock: { startedAt: number };
+  /** When Demos cuts in on this take, and what he said (lib/round-live.ts). */
+  cutPlan: CutInPlan[];
+  /** What he cuts in with: the game's lines, or Q&A's. */
+  cutLines: readonly string[];
   /** Local-only video recorder. Its blob never touches the network. */
   videoRecorder: MediaRecorder | null;
   videoChunks: Blob[];
@@ -275,10 +312,19 @@ function RepScreen() {
   const routerRef = useRef(router);
   routerRef.current = router;
   const [premium, setPremium] = useState(false);
+  /**
+   * The plan as read, for the game of the day's gate: null until the
+   * read lands, and for good when it fails, because unknown is never
+   * free (#353). `premium` above stays the resolver's answer.
+   */
+  const [plan, setPlan] = useState<boolean | null>(null);
 
   useEffect(() => {
     fetchProfile()
-      .then((p) => setPremium(p?.premium ?? false))
+      .then((p) => {
+        setPremium(p?.premium ?? false);
+        setPlan(p?.premium ?? false);
+      })
       .catch(() => {});
   }, []);
 
@@ -293,11 +339,84 @@ function RepScreen() {
         item: searchParams.get("item"),
         game: searchParams.get("game"),
         q: searchParams.get("q"),
+        level: searchParams.get("level"),
         mods: searchParams.get("mods"),
         premium,
       }),
     [searchParams, premium]
   );
+  /**
+   * The game this take is a round of, and its level (the games plan,
+   * item 2), or null for anything else. The level is the link's
+   * (repHref), clamped; a level the ladder has not opened goes back to
+   * the open one once the ladder is read (below).
+   */
+  const game = config.level !== null ? gameOfLessonId(config.lessonId) : null;
+  const level: LevelN | null = game ? config.level : null;
+  /**
+   * This account's game rounds (lib/client-data.ts `fetchGameRounds`):
+   * the ladder, the bests and today's free round are read from them.
+   * Null while the read is out, and when it failed: then the screen
+   * draws the level on the link and says no best, never a guess.
+   */
+  const [gameRows, setGameRows] = useState<GameRoundRow[] | null>(null);
+  const loadGameRounds = useCallback(
+    () =>
+      fetchGameRounds()
+        .then(setGameRows)
+        .catch(() => {}),
+    []
+  );
+  const gameId = game?.id ?? null;
+  useEffect(() => {
+    if (gameId) void loadGameRounds();
+  }, [gameId, loadGameRounds]);
+  const ladder = useMemo(
+    () => (game && gameRows ? ladderState(gameRows, game.id) : null),
+    [game, gameRows]
+  );
+  /** This screen's address at another level, everything else kept. */
+  const levelHref = useCallback(
+    (n: LevelN) =>
+      repHref({
+        game: game?.id,
+        q: searchParams.get("q") ?? undefined,
+        level: n,
+        mods: searchParams.get("mods")?.split(",").filter(Boolean),
+        back: searchParams.get("back") ?? undefined,
+        trait: searchParams.get("trait") ?? undefined,
+      }),
+    [game, searchParams]
+  );
+  /**
+   * The game of the day (the games plan, item 12): a Premium game is a
+   * full round for a free account when it is today's free game and no
+   * round of it was played today (lib/games.ts `gameOpen`). Any other
+   * Premium game keeps today's door: Record opens the paywall. Read
+   * only once the plan is known to be free.
+   */
+  const locked =
+    game !== null &&
+    needsPremium(game) &&
+    plan === false &&
+    !gameOpen(game, {
+      premium: false,
+      dayKey: dayKey(new Date()),
+      roundsTodayOfGame: gameRows ? roundsToday(gameRows, game.id) : 0,
+    });
+  /**
+   * The best before this take (M4, #53): the snapshot the idle line
+   * reads, and what the results compare the round against. Taken while
+   * the take is not yet stored (idle, think time, recording), never
+   * after, so a round never breaks its own best.
+   */
+  const [gameBestBefore, setGameBestBefore] = useState<GameBestSnapshot | null>(null);
+  const gameBestBeforeRef = useRef<GameBestSnapshot | null>(null);
+  /** The dev camera's `?cutinAt=3`: the first cut-in at that second (never in production). */
+  const cutinAt =
+    process.env.NODE_ENV !== "production" ? Number(searchParams.get("cutinAt")) || null : null;
+  const cutinAtRef = useRef<number | null>(cutinAt);
+  cutinAtRef.current = cutinAt;
   /* The colour the screen wears (D50): the practice's trait family, as
      on the Today card that opened it, or the sky stage. */
   const family = practiceFamily(config, searchParams.get("trait"));
@@ -306,6 +425,25 @@ function RepScreen() {
   const art = recordingObject(config);
 
   const [phase, setPhase] = useState<Phase>("idle");
+
+  /* The snapshot of the best (M4): retaken whenever the rows or the
+     level change before the take is stored, held from Stop until the
+     next take is set up. */
+  useEffect(() => {
+    if (phase !== "idle" && phase !== "frame" && phase !== "recording") return;
+    const snap =
+      game && gameRows && level !== null ? gameBestSnapshot(gameRows, game.id, level) : null;
+    gameBestBeforeRef.current = snap;
+    setGameBestBefore(snap);
+  }, [phase, game, gameRows, level]);
+
+  /* A level the ladder has not opened (an old link, a hand-edited one)
+     plays the open one: the rung is climbed, never typed (M3). */
+  useEffect(() => {
+    if (phase !== "idle" || !ladder || level === null || level <= ladder.open) return;
+    router.replace(levelHref(ladder.open));
+  }, [phase, ladder, level, levelHref, router]);
+
   /** Which upload attempt is in flight, so the wait can say so. */
   const [attempt, setAttempt] = useState(0);
   /**
@@ -359,7 +497,8 @@ function RepScreen() {
     null
   );
   const [celebrate, setCelebrate] = useState<number | null>(null);
-  const [interruption, setInterruption] = useState<string | null>(null);
+  /** Demos's line while he cuts in (F1); null while he listens. */
+  const [cutIn, setCutIn] = useState<string | null>(null);
   const [anticipate, setAnticipate] = useState<RewardMoment | null>(null);
   const [closing, setClosing] = useState<RewardMoment | null>(null);
   const [bests, setBests] = useState<RewardMoment[]>([]);
@@ -404,6 +543,10 @@ function RepScreen() {
   /** The recording itself, held locally so the debrief can replay it. */
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [paywall, setPaywall] = useState<PaywallAsk | null>(null);
+  /* Back from the paywall's account doors or Checkout's back arrow on a
+     Premium game's idle screen (paywall=1): the sheet opens again. The
+     debrief's sheet sends its way back to the stored recording instead. */
+  usePaywallReturn(() => setPaywall({ reason: game?.name ?? "Premium games" }));
   const [repCount, setRepCount] = useState<number | null>(null);
   /* The tips disclosure is gone (#209): the tactics are the screen's
      content now, not a fold, because the four blocks of prose they were
@@ -656,6 +799,16 @@ function RepScreen() {
       setResultKey(typeof key === "string" ? key : null);
       setPhase("results");
       pendingRef.current = null;
+      // A game round is on the ladder now: read it back, so the next
+      // round on this screen (Retake, Another round) draws the level,
+      // the best and today's free round from the rows that hold it.
+      if (typeof form.get("round") === "string") {
+        fetchGameRounds()
+          .then((rows) => {
+            if (live()) setGameRows(rows);
+          })
+          .catch(() => {});
+      }
       // Streak is derived from stored reps, so read it back rather than
       // guessing — a rep that failed to persist shouldn't celebrate.
       const analyzed = data as AnalyzeResponse;
@@ -808,7 +961,12 @@ function RepScreen() {
     return () => window.removeEventListener("online", retry);
   }, [phase, score]);
 
-  const stopRep = useCallback(async () => {
+  /**
+   * Stop the take and send it. `by` is who stopped it (F4): "you" for
+   * the tap, "clock" for the cap's auto-stop, null when neither did (the
+   * phone stopped hearing it), which the server reads off the length.
+   */
+  const stopRep = useCallback(async (by: StoppedBy | null = null) => {
     const r = recRef.current;
     if (!r || phaseRef.current !== "recording") return;
     // Claim the stop now. phaseRef only syncs on render, and the
@@ -826,7 +984,7 @@ function RepScreen() {
     testerRecord("record_stop", { seconds: ranFor(takeStartedAt.current, spokenAt) });
     buzz([20, 40, 20]);
     setPhase("analyzing");
-    setInterruption(null);
+    setCutIn(null);
 
     const blob = await new Promise<Blob>((resolve) => {
       const take = () =>
@@ -915,6 +1073,25 @@ function RepScreen() {
         });
       }
       if (cfg.topic) fields.bossTopicId = cfg.topic.id;
+      /*
+       * A game round says what it ran (the games plan, items 3 and 10):
+       * its level, when Demos cut in and with what line, on the take's
+       * own clock, and who stopped it. The server measures the round
+       * from that and pays what ran: Interruption only when he cut in.
+       */
+      const roundGame = cfg.level !== null ? gameOfLessonId(cfg.lessonId) : null;
+      if (roundGame && cfg.level !== null) {
+        const cutIns = firedCutIns(r.cutPlan);
+        fields.round = JSON.stringify({
+          game: roundGame.id,
+          level: cfg.level,
+          cutIns,
+          stoppedBy: by,
+        });
+        fields.xpMultiplier = String(
+          gameXpMultiplier(roundGame, cfg.level, cutIns.length > 0, cfg.mods)
+        );
+      }
 
       // Into the outbox BEFORE the first upload attempt: from here the
       // recording survives a dead network, a killed tab, everything
@@ -1009,6 +1186,14 @@ function RepScreen() {
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunks.push(e.data);
       };
+      /* The take's clock starts when the recorder says it has (F2): a
+         cut-in's second is then on the same clock as the audio, which is
+         the clock Whisper's word times are on. Until the event, the
+         moment start was asked for. */
+      const clock = { startedAt: performance.now() };
+      recorder.addEventListener("start", () => {
+        clock.startedAt = performance.now();
+      });
       recorder.start(1000);
       // If the recorder stops on its own (the mic was unplugged or taken
       // mid-take), score what it caught now instead of leaving the take
@@ -1066,11 +1251,27 @@ function RepScreen() {
         meterPeak.current = Math.max(meterPeak.current * 0.985, rms);
         meterFloor.current = Math.min(meterFloor.current * 1.01 + 0.0005, rms);
         const span = Math.max(meterPeak.current - meterFloor.current, 0.03);
-        meterLevel.current = Math.sqrt(
-          Math.min(1, Math.max(0, (rms - meterFloor.current) / span))
-        );
+        const above = Math.min(1, Math.max(0, (rms - meterFloor.current) / span));
+        meterLevel.current = Math.sqrt(above);
         const r = recRef.current;
         if (r) {
+          /* Demos cuts in mid-word (F1): on the first frame at or after
+             his aim where this take's level clears the envelope's voiced
+             line (the same fraction of its floor-to-speech range the
+             engine hears a sound by), or at the window's end into a
+             silence. Never after Stop: Stop claims the phase first. */
+          if (phaseRef.current === "recording" && r.cutPlan.length > 0) {
+            const elapsed = (performance.now() - r.clock.startedAt) / 1000;
+            const due = nextCutIn(r.cutPlan, elapsed, above >= VOICED_THRESHOLD);
+            if (due) {
+              due.at = Math.round(elapsed * 100) / 100;
+              due.line = pickLine(r.cutLines, r.cutPlan.map((p) => p.line));
+              setCutIn(due.line);
+              buzz([40, 60, 40]);
+              if (r.interruptTimer) clearTimeout(r.interruptTimer);
+              r.interruptTimer = setTimeout(() => setCutIn(null), CUT_IN_HOLD_S * 1000);
+            }
+          }
           // Fixed-rate sample for the envelope. rAF is 60Hz and varies
           // with load; the engine needs an even timebase to line samples
           // up against word timestamps.
@@ -1085,6 +1286,14 @@ function RepScreen() {
 
       const crowd = cfg.crowdNoise ? startCrowdNoise(ctx) : null;
 
+      /* When Demos cuts in on this take (F1, M2): the level's windows, an
+         aim drawn in the first half of each. The dev camera's
+         `?cutinAt=3` sets the first one to that second. */
+      const windows = cfg.cutIns.map(([lo, hi]) => [lo, hi] as [number, number]);
+      const devAt = cutinAtRef.current;
+      if (devAt !== null && devAt > 0 && windows.length > 0) windows[0] = [devAt, devAt];
+      const cutGame = gameOfLessonId(cfg.lessonId);
+
       const rec: Take = {
         recorder,
         stream,
@@ -1093,6 +1302,9 @@ function RepScreen() {
         chunks,
         crowd,
         interruptTimer: null,
+        clock,
+        cutPlan: planCutIns(windows),
+        cutLines: cutGame?.cutInLines.length ? cutGame.cutInLines : CUT_IN_LINES,
         videoRecorder,
         videoChunks,
         sampler: null,
@@ -1149,20 +1361,6 @@ function RepScreen() {
           rec.sampler = sampler;
           setPoseFrames(sampler.frames);
         }
-      }
-
-      if (cfg.interrupt) {
-        // Somewhere in the middle third — early enough to recover from,
-        // late enough that you're committed to a thread.
-        const at = Math.round(cfg.maxSeconds * (0.4 + Math.random() * 0.2));
-        rec.interruptTimer = setTimeout(() => {
-          if (phaseRef.current !== "recording") return;
-          setInterruption(
-            INTERRUPTIONS[Math.floor(Math.random() * INTERRUPTIONS.length)]
-          );
-          buzz([40, 60, 40]);
-          setTimeout(() => setInterruption(null), 2600);
-        }, at * 1000);
       }
 
       buzz(30);
@@ -1241,7 +1439,7 @@ function RepScreen() {
       discarded: true,
       seconds: ranFor(takeStartedAt.current),
     });
-    setInterruption(null);
+    setCutIn(null);
     setPoseFrames(null);
     setRing("ok");
     setSeconds(0);
@@ -1302,7 +1500,12 @@ function RepScreen() {
 
   /** Frame step (DECISIONS #35): opt-in think time before the clock. */
   const begin = useCallback(() => {
-    if (thinksFirst(readPrefs().frameStep, thoughtRef.current)) {
+    // A question held back until Record (Interview, levels 2 and 3) is
+    // the level's whole condition: no think time in front of it.
+    if (
+      !configRef.current.revealOnRecord &&
+      thinksFirst(readPrefs().frameStep, thoughtRef.current)
+    ) {
       setFrameLeft(FRAME_SECONDS);
       setPhase("frame");
     } else {
@@ -1339,7 +1542,7 @@ function RepScreen() {
     setError(null);
     pendingRef.current = null;
     thoughtRef.current = false;
-    setInterruption(null);
+    setCutIn(null);
     setRepCount((n) => baselineRef.current?.count ?? n);
     setResult(null);
     setPresence(null);
@@ -1449,12 +1652,30 @@ function RepScreen() {
     const cap = config.maxSeconds;
     const t = setInterval(() => {
       setSeconds((s) => {
-        if (s + 1 >= cap) void stopRep();
+        if (s + 1 >= cap) void stopRep("clock");
         return s + 1;
       });
     }, 1000);
     return () => clearInterval(t);
   }, [phase, stopRep, config.maxSeconds]);
+
+  /*
+   * The clock is the game (F4). Speed rush's digits pop once a second
+   * through its last five, 1.06 back to 1 on the snappy spring, under
+   * the terracotta its last ten already wear. Visual only: the mic is
+   * hot, so nothing ticks. Reduced motion and lite keep them still.
+   */
+  const clockRef = useRef<HTMLSpanElement | null>(null);
+  useEffect(() => {
+    if (phase !== "recording" || gameId !== "rush") return;
+    const left = config.maxSeconds - seconds;
+    const el = clockRef.current;
+    if (left < 1 || left > 5 || !el || prefersReducedMotion()) return;
+    el.animate([{ transform: "scale(1.06)" }, { transform: "scale(1)" }], {
+      duration: springMs(SPRING.snappy),
+      easing: springEasing(SPRING.snappy),
+    });
+  }, [phase, gameId, seconds, config.maxSeconds]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -1547,6 +1768,7 @@ function RepScreen() {
             onClose={() => setPaywall(null)}
             onUnlocked={() => {
               setPremium(true);
+              setPlan(true);
               setPaywall(null);
             }}
           />
@@ -1573,9 +1795,31 @@ function RepScreen() {
    * read. `seconds` already ticks once a second, so this recomputes at
    * exactly the rate it needs to and no faster.
    */
+  /* And to Demos (F1): from a second before he may cut in to 3.5s after
+     he did, so his line and a tip never share the screen. Speed rush
+     keeps one tip, the closing line (F4). */
+  const cutPlan = phase === "recording" ? (recRef.current?.cutPlan ?? []) : [];
   const liveTip =
-    ring === "ok"
-      ? liveTipAt(seconds, config.maxSeconds, captureMode === "voice_video")
+    ring === "ok" && !yieldsToCutIn(seconds, cutPlan)
+      ? liveTipAt(seconds, config.maxSeconds, captureMode === "voice_video", liveTipsFor(game?.id))
+      : null;
+  /* Interview at levels 2 and 3 (M2): the question stays on the card's
+     back until Record, then arrives with the card's own glide. */
+  const questionHidden = config.revealOnRecord && phase !== "recording";
+  /* "Q&A, level 2": one idea, the game at its level; level 1 is the game. */
+  const cardEyebrow =
+    game && level !== null && level > 1 ? `${game.name}, level ${level}` : eyebrowOf(config.unit);
+  const gameBestLine = bestLine(gameBestBefore);
+  /* Mods stacked on a game beyond the ones it stages: still named. */
+  const gameExtras =
+    game && level !== null
+      ? config.mods.filter((m) => !gameModIds(game, level).includes(m.id))
+      : [];
+  /* Interview's window on the ring (F4): 1:00 to the clock's end, a
+     picture tone the sweep runs into. */
+  const ringWindow =
+    game?.id === "interview" && config.maxSeconds > INTERVIEW_WINDOW[0]
+      ? INTERVIEW_WINDOW[0] / config.maxSeconds
       : null;
 
   /*
@@ -1597,7 +1841,14 @@ function RepScreen() {
   const micHot = phase === "recording" || phase === "analyzing";
 
   return (
-    <main className="relative isolate flex min-h-dvh flex-col px-5 pb-8 pt-[env(safe-area-inset-top)]">
+    <main
+      className={`relative isolate flex min-h-dvh flex-col px-5 pb-8 pt-[env(safe-area-inset-top)] ${
+        /* A game's idle screen carries two more rows (the level, the
+           best): on a phone under 700pt tall (375x667) the rhythm steps
+           in so Record stays on the first screen. */
+        game ? "[@media(max-height:700px)]:pb-5" : ""
+      }`}
+    >
       {/* D50: the ground is the plain ground. The amber glow under
           Record and the amber card over it broke the day's colour at
           the one moment it should carry: the card wears the practice's
@@ -1629,7 +1880,13 @@ function RepScreen() {
           it, so the screen is the card, the tiles and the tap, not the
           tiles and then a hole above the tap (review, 25 Sep). Demos no
           longer stands on the card (D50): he arrives as the listener. */}
-      <div className={phase === "idle" ? "flex flex-1 flex-col justify-center pb-8" : ""}>
+      <div
+        className={
+          phase === "idle"
+            ? `flex flex-1 flex-col justify-center pb-8 ${game ? "[@media(max-height:700px)]:pb-4" : ""}`
+            : ""
+        }
+      >
       {phase !== "analyzing" && (
         /* Idle, the card takes the column's free height, 168 to 300, so a
            practice with more under it (the boss's tactic line) gets a
@@ -1638,11 +1895,21 @@ function RepScreen() {
            words, so Record rises into view (F12). */
         <div
           ref={topicRef}
-          className={phase === "idle" ? "mt-4 flex max-h-[300px] min-h-[168px] flex-1 flex-col [@media(max-height:600px)]:min-h-0" : "mt-4"}
+          className={
+            phase === "idle"
+              ? `mt-4 flex max-h-[300px] min-h-[168px] flex-1 flex-col [@media(max-height:600px)]:min-h-0 ${game ? "[@media(max-height:700px)]:mt-2" : ""}`
+              : "mt-4"
+          }
         >
           <TopicCard
-            eyebrow={eyebrowOf(config.unit)}
-            topic={promptHidden ? "Prompt hidden. That's the mod." : topicText}
+            eyebrow={cardEyebrow}
+            topic={
+              promptHidden
+                ? "Prompt hidden. That's the mod."
+                : questionHidden
+                  ? "Press Record to see the question."
+                  : topicText
+            }
             family={family}
             art={art}
             compact={phase !== "idle"}
@@ -1651,16 +1918,52 @@ function RepScreen() {
       )}
 
       {phase === "idle" && (
-        <div className="mt-6">
+        <div className={`mt-6 ${game ? "[@media(max-height:700px)]:mt-4" : ""}`}>
           {/* recording-15: the instruction over the three tactics, a clear
               step above their 14px labels rather than a fourth label. */}
           <h2 className="font-display text-lead font-bold">{doLine}</h2>
+          {/* The best at this level, once there is one (M4). While the
+              ladder is read the line's room is held, so a best lands
+              without moving the tiles. */}
+          {game && (gameBestLine || gameRows === null) && (
+            <p className="arrive mt-1 min-h-[1lh] text-body text-stone-500">{gameBestLine}</p>
+          )}
           {doRule && <TipLine tip={doRule} className="mt-2" />}
-          <TipStrip tips={config.tips} label={null} className="mt-3" />
+          <TipStrip
+            tips={config.tips}
+            label={null}
+            className={`mt-3 ${game ? "[@media(max-height:700px)]:mt-2" : ""}`}
+          />
         </div>
       )}
 
-      {config.mods.length > 0 && phase !== "analyzing" && (
+      {/* A game's chip row is its level (M2): the opened levels, the
+          XP the level pays. While the clock runs the card's eyebrow
+          carries the level, so the row steps out. */}
+      {game && level !== null && phase === "idle" && (
+        <LevelControl
+          className="mt-3 [@media(max-height:700px)]:mt-2"
+          level={level}
+          open={ladder?.open ?? null}
+          xp={config.xpMultiplier}
+          onChange={(n) => {
+            if (n !== level) router.replace(levelHref(n));
+          }}
+        />
+      )}
+      {game && gameExtras.length > 0 && phase === "idle" && (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {gameExtras.map((m) => (
+            <span
+              key={m.id}
+              className="rounded-full bg-surface px-2.5 py-1 text-caption font-bold text-ink"
+            >
+              {m.name}
+            </span>
+          ))}
+        </div>
+      )}
+      {!game && config.mods.length > 0 && phase !== "analyzing" && (
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
           {config.mods.map((m) => (
             <span
@@ -1728,7 +2031,9 @@ function RepScreen() {
                 config.maxSeconds - seconds <= 10 ? "text-terracotta-700" : ""
               }`}
             >
-              {fmt(seconds)}
+              <span ref={clockRef} className="inline-block">
+                {fmt(seconds)}
+              </span>
               {/* recording-17: the cap in the clock's own face, a step
                   down, so the two numbers read as one reading. */}
               <span className="font-display text-body font-semibold tracking-normal text-stone-500">
@@ -1742,7 +2047,7 @@ function RepScreen() {
              * — two messages at once is one message nobody reads — and
              * the row keeps its height either way so nothing jumps.
              */}
-            <div className="flex h-6 items-center">
+            <div className="relative flex h-6 items-center">
               <span
                 className={`text-center text-body leading-tight text-stone-500 transition-opacity dur-max ${
                   liveTip ? "opacity-100" : "opacity-0"
@@ -1750,6 +2055,13 @@ function RepScreen() {
               >
                 {liveTip ?? ""}
               </span>
+              {/* Under 600pt tall the listener steps out (#412), so his
+                  cut-in stands here, centred over the wave (F1). */}
+              {cutIn && captureMode !== "voice_video" && (
+                <div className="pointer-events-none absolute left-1/2 top-0 z-10 hidden w-max max-w-[calc(100vw-40px)] -translate-x-1/2 [@media(max-height:600px)]:block">
+                  <CutInPill line={cutIn} />
+                </div>
+              )}
             </div>
             {/* D51: the take as a waveform the column's width, 120 tall,
                 rolling left from the centre, in the practice's tone. */}
@@ -1811,6 +2123,13 @@ function RepScreen() {
               className="block w-[220px] -scale-x-100 bg-stage"
             />
             {poseFrames && <PoseSkeleton frames={poseFrames} ring={ring} />}
+            {/* In Video the self-view stands where he would (F1): his
+                cut-in sits inside its top edge, clear of Stop. */}
+            {cutIn && (
+              <div className="pointer-events-none absolute inset-x-2 top-2 flex justify-center">
+                <CutInPill line={cutIn} />
+              </div>
+            )}
             {/* The held run, in the video's own corner — close enough
                 that the eye doesn't leave your face to find it, off to
                 the side so it isn't sitting on your hands. `nowrap`
@@ -1843,7 +2162,7 @@ function RepScreen() {
              (#407) together, so he steps out there and the two taps
              stay on the first screen (#412). */
           <div className="w-[clamp(120px,18vh,160px)] [@media(max-height:600px)]:hidden">
-            <DemosHears level={meterLevel} size={160} fluid />
+            <DemosHears level={meterLevel} size={160} fluid speaking={cutIn} />
           </div>
         )}
 
@@ -1920,6 +2239,20 @@ function RepScreen() {
               viewBox="0 0 120 120"
             >
               <circle className="rec-ring-track" cx="60" cy="60" r={RING_R} fill="none" strokeWidth="4" />
+              {/* Interview's 1:00 to 1:30 (F4), on the track, under the sweep. */}
+              {ringWindow !== null && (
+                <circle
+                  className="rec-ring-window"
+                  cx="60"
+                  cy="60"
+                  r={RING_R}
+                  fill="none"
+                  strokeWidth="4"
+                  strokeDasharray={`${RING_C * (1 - ringWindow)} ${RING_C}`}
+                  strokeDashoffset={-RING_C * ringWindow}
+                  transform="rotate(-90 60 60)"
+                />
+              )}
               <circle
                 className="rec-ring-fill"
                 cx="60"
@@ -1936,7 +2269,11 @@ function RepScreen() {
             </svg>
             <button
               onClick={
-                phase === "recording" ? () => void stopRep() : () => begin()
+                phase === "recording"
+                  ? () => void stopRep("you")
+                  : locked && game
+                    ? () => setPaywall({ reason: game.name })
+                    : () => begin()
               }
               aria-label={
                 phase === "recording"
@@ -2017,21 +2354,22 @@ function RepScreen() {
         )}
       </div>
 
-      {interruption && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-24 z-40 flex justify-center px-5">
-          <div className="arrive elev-3 flex max-w-[340px] items-center gap-3 rounded-card bg-stage px-4 py-3 text-cream">
-            <Image
-              src="/demos-speaking.webp"
-              alt=""
-              width={36}
-              height={36}
-              className="demos w-9 shrink-0"
-            />
-            <span className="font-display text-detail font-extrabold">
-              {interruption}
-            </span>
-          </div>
-        </div>
+      {/* His line, said once to a screen reader: every bubble that
+          draws it is seen, not read. */}
+      <p role="status" className="sr-only">
+        {cutIn ?? ""}
+      </p>
+      {paywall && (
+        <Paywall
+          reason={paywall.reason}
+          headline={paywall.headline}
+          onClose={() => setPaywall(null)}
+          onUnlocked={() => {
+            setPremium(true);
+            setPlan(true);
+            setPaywall(null);
+          }}
+        />
       )}
     </main>
   );

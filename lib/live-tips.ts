@@ -80,3 +80,39 @@ export function liveTipAt(
   }
   return best?.text ?? null;
 }
+
+/**
+ * Speed rush's tips (the games plan, item 9): in a round of 20 to 45
+ * seconds six tips at six seconds each are nearly constant text, and the
+ * clock is the game. One line is left, near the end.
+ */
+export const RUSH_TIPS: LiveTip[] = LIVE_TIPS.filter(
+  (t) => t.text === "Last line is the one they keep."
+);
+
+/** The arc a take runs: a game's own, or the house one. */
+export function liveTipsFor(gameId: string | null | undefined): LiveTip[] {
+  return gameId === "rush" ? RUSH_TIPS : LIVE_TIPS;
+}
+
+/** A tip stands down this long before Demos may cut in (F1)... */
+export const CUT_IN_QUIET_BEFORE_S = 1;
+/** ...and this long after he did, while his line is up. */
+export const CUT_IN_QUIET_AFTER_S = 3.5;
+
+/**
+ * Does the live tip yield to a cut-in at `elapsed`? From one second
+ * before his aim (he may cut in on any voiced frame after it) until he
+ * has, and for 3.5 seconds after, so two messages never share the
+ * screen. `at` null is a cut-in still waiting for its word.
+ */
+export function yieldsToCutIn(
+  elapsed: number,
+  cutIns: readonly { aim: number; forceBy: number; at: number | null }[]
+): boolean {
+  return cutIns.some((c) =>
+    c.at === null
+      ? elapsed >= c.aim - CUT_IN_QUIET_BEFORE_S && elapsed <= c.forceBy + CUT_IN_QUIET_AFTER_S
+      : elapsed >= c.at - CUT_IN_QUIET_BEFORE_S && elapsed < c.at + CUT_IN_QUIET_AFTER_S
+  );
+}

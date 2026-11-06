@@ -426,6 +426,7 @@ describe("Best round yet (M4)", () => {
       headline: "Best round yet",
       detail: "31s clean after the cut-in, past your 22s",
       tone: "earned",
+      record: { value: "31s", rest: "clean after the cut-in", past: "past your 22s" },
     });
     expect(bestMoment({ gameId: "rush", level: 1, before: 4, now: 5 })?.detail).toBe("5 landed in a row, past your 4");
     expect(bestMoment({ gameId: "interview", level: 2, before: 712, now: 741 })?.detail).toBe(
@@ -443,6 +444,37 @@ describe("Best round yet (M4)", () => {
     expect(bestMoment({ gameId: "qa", level: 1, before: 22.1, now: 22.4 })?.detail).toBe(
       "22.4s clean after the cut-in, past your 22.1s"
     );
+    expect(bestMoment({ gameId: "qa", level: 1, before: 22.1, now: 22.4 })?.record).toEqual({
+      value: "22.4s",
+      rest: "clean after the cut-in",
+      past: "past your 22.1s",
+    });
+  });
+
+  it("splits the same words for the eye: the new number, its words, the best it beat (#421)", () => {
+    expect(bestMoment({ gameId: "rush", level: 1, before: 4, now: 5 })?.record).toEqual({
+      value: "5",
+      rest: "landed in a row",
+      past: "past your 4",
+    });
+    expect(bestMoment({ gameId: "interview", level: 2, before: 712, now: 741 })?.record).toEqual({
+      value: "741",
+      rest: "Index at level 2",
+      past: "past your 712",
+    });
+    // Every word the eye reads is in the sentence a screen reader hears.
+    for (const m of [
+      bestMoment({ gameId: "qa", level: 2, before: 22, now: 31 }),
+      bestMoment({ gameId: "rush", level: 1, before: 4, now: 5 }),
+    ]) {
+      const r = m?.record;
+      expect(r).toBeTruthy();
+      expect(m?.detail).toBe(`${r?.value} ${r?.rest}, ${r?.past}`);
+    }
+    for (const part of Object.values(bestMoment({ gameId: "qa", level: 2, before: 22, now: 31 })?.record ?? {})) {
+      expect(part).not.toMatch(/—/);
+      expect(part).not.toMatch(/\b(reps?|gym|workout|drill|training)\b/i);
+    }
   });
 });
 

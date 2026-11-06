@@ -9,6 +9,7 @@ import {
   IconBubble,
   IconGauge,
   IconCase,
+  IconTrophy,
   IconUpload,
 } from "@/components/Icon";
 import { DemosArt } from "@/components/DemosArt";
@@ -534,11 +535,24 @@ function LadderLines({ ladder }: { ladder: TileLadder }) {
           </>
         )}
       </span>
-      {/* Its line is always there, so a tile with a best and one
-          without stand the same height. */}
-      <span className="block min-h-5 text-caption tabular-nums text-stone-500">
-        {ladder.best ?? " "}
-      </span>
+      {/* The best in the plaque's grammar at a tile's size (BestPlaque):
+          the cup gold and bare, the number set apart in sage, since a
+          best is earned. Its line is always there, so a tile with a best
+          and one without stand the same height. A screen reader hears
+          the one sentence. */}
+      {ladder.bestParts ? (
+        <span className="tile-best">
+          <span className="sr-only">{ladder.best}</span>
+          <span aria-hidden className="tile-best-cup earned-lit">
+            <IconTrophy size={16} />
+          </span>
+          <span aria-hidden className="min-w-0 truncate">
+            <span className="tile-best-value">{ladder.bestParts.value}</span> {ladder.bestParts.rest}
+          </span>
+        </span>
+      ) : (
+        <span aria-hidden className="tile-best" />
+      )}
     </span>
   );
 }

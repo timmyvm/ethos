@@ -490,7 +490,16 @@ export function bestMoment(p: {
       : p.gameId === "rush"
         ? `${a} landed in a row, past your ${b}`
         : `${a}, past your ${p.before}`;
-  return { headline: "Best round yet", detail, tone: "earned" };
+  /* The same words for the eye (#421): the new best on its own so it
+     can be set large, then the rest of its sentence over the best it
+     beat. */
+  const record =
+    p.gameId === "qa"
+      ? { value: a, rest: "clean after the cut-in", past: `past your ${b}` }
+      : p.gameId === "rush"
+        ? { value: a, rest: "landed in a row", past: `past your ${b}` }
+        : { value: String(p.now), rest: `Index at level ${p.level}`, past: `past your ${p.before}` };
+  return { headline: "Best round yet", detail, tone: "earned", record };
 }
 
 // --- the ask after the taste (plan 13) ----------------------------------

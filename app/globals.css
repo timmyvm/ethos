@@ -3129,7 +3129,8 @@ summary::-webkit-details-marker {
 :root[data-theme="dark"] .best-plaque {
   box-shadow: inset 0 0 0 1px var(--color-card-edge);
 }
-.best-plaque-mark {
+.best-plaque-mark,
+.best-moment-mark {
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -3140,7 +3141,8 @@ summary::-webkit-details-marker {
   background: color-mix(in oklab, var(--earned-gold) 20%, var(--color-ground));
   box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--earned-rim) 30%, transparent);
 }
-.best-plaque-mark > svg {
+.best-plaque-mark > svg,
+.best-moment-mark > svg {
   width: 26px;
   height: 26px;
 }
@@ -3211,6 +3213,74 @@ summary::-webkit-details-marker {
   [data-best-room="true"] > * {
     min-height: 144px;
   }
+}
+/* The plaque's grammar where else a game's best stands (#421): the cup
+   gold, the number set apart in sage, the rest of its words beside it.
+   Practice's tile carries it at a tile's size: the cup bare (a 124px
+   tile has no room for its well), the number at 17/800, the words at
+   caption, all one 20px line so a tile with a best and one without
+   stand the same height. */
+.tile-best {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 20px;
+  font-family: var(--font-display-face), sans-serif;
+  font-size: var(--text-caption);
+  line-height: 1.2;
+  font-weight: 600;
+  color: var(--color-sage-800);
+}
+/* The cup's handles sit 2.5px inside its 16px box: pulled out by 2 so
+   its edge lines up with "Level" above it. */
+.tile-best-cup {
+  display: inline-flex;
+  flex: none;
+  margin-left: -2px;
+}
+.tile-best-value {
+  font-size: var(--text-num-s);
+  line-height: 1;
+  letter-spacing: var(--text-num-s--letter-spacing);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+/* "Best round yet" on the results walk keeps Moment's earned card and
+   takes the plaque's cup in its well (the same well, same size), the
+   new best large in sage, and its words over the best it beat beside
+   the number ("clean after the cut-in" / "past your 22s"). Not shrunk on
+   a short phone as the plaque is: the walk scrolls, Record is not under it. */
+.best-moment {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.best-moment-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  font-family: var(--font-display-face), sans-serif;
+  color: var(--color-sage-800);
+}
+.best-moment-value {
+  flex: none;
+  font-size: var(--text-num-l);
+  line-height: var(--text-num-l--line-height);
+  letter-spacing: var(--text-num-l--letter-spacing);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.best-moment-words {
+  min-width: 0;
+  font-size: var(--text-caption);
+  line-height: 1.3;
+  font-weight: 600;
+}
+.best-moment-past {
+  display: block;
+  font-weight: 500;
+  color: var(--color-sage-700);
 }
 /* The ochre's own deeper arc went with D05: Restarts' tone is #b06f00,
    3.23:1 on sand, so its ring and bar are the tone like the other four

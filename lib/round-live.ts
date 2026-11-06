@@ -144,8 +144,11 @@ export function gameBestSnapshot(
   };
 }
 
-/** Seconds as the best line says them: whole from 10, one decimal under. */
-function secondsLabel(s: number): string {
+/**
+ * Seconds as a best is said, wherever it is drawn (the plaque here,
+ * Practice's tile): whole from 10, one decimal under.
+ */
+export function secondsLabel(s: number): string {
   return s >= 10 ? `${Math.round(s)}s` : `${Math.round(s * 10) / 10}s`;
 }
 

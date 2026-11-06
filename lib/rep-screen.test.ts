@@ -159,6 +159,7 @@ describe("takeRewards, a game round's best (M4)", () => {
       headline: "Best round yet",
       detail: "31s clean after the cut-in, past your 22s",
       tone: "earned",
+      record: { value: "31s", rest: "clean after the cut-in", past: "past your 22s" },
     });
   });
 

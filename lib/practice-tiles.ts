@@ -19,6 +19,7 @@ import { DAY_ROTATION, gameById, gameOfTheDay, gameOpen, type Game, type LevelN 
 import { HOSTILE_TAKE_ID } from "./hostile";
 import { ladderState, roundsToday, type LadderRow } from "./ladder";
 import { weekStart } from "./level";
+import { secondsLabel } from "./round-live";
 
 /** A game's tile, as its ladder draws it. */
 export interface TileLadder {
@@ -28,8 +29,30 @@ export interface TileLadder {
   /** Pips drawn: 2 toward the next level, 3 toward mastery at level 3. */
   of: 2 | 3;
   mastered: boolean;
-  /** "Best 31s clean", "Best 4 in a row", "Best 712"; null with none yet. */
+  /** "Best 31s clean", "Best 4 in a row", "Best 712"; null with none yet. What a screen reader hears. */
   best: string | null;
+  /** The same best for the eye, split so the number can be set apart; null with none yet. */
+  bestParts: TileBest | null;
+}
+
+/**
+ * A tile's best as the eye reads it, in the plaque's grammar (Timothy,
+ * 6 Nov: the best is "an important milestone"): the gold cup, the number
+ * set apart in sage, then the rest of its words. The number is said the
+ * way the plaque before Record says it, so one best reads alike in both.
+ *   Q&A "31s" / "clean", Speed rush "4" / "in a row", Interview "712" / "Index"
+ */
+export interface TileBest {
+  value: string;
+  rest: string;
+}
+
+export function tileBest(gameId: string, best: number | null): TileBest | null {
+  if (best === null || !Number.isFinite(best)) return null;
+  if (gameId === "qa") return Math.round(best) >= 1 ? { value: secondsLabel(best), rest: "clean" } : null;
+  if (gameId === "rush") return best >= 1 ? { value: String(Math.round(best)), rest: "in a row" } : null;
+  if (gameId === "interview") return best > 0 ? { value: String(Math.round(best)), rest: "Index" } : null;
+  return null;
 }
 
 /**
@@ -38,14 +61,9 @@ export interface TileLadder {
  * landed rounds in a row, the Index.
  */
 export function bestLine(gameId: string, best: number | null): string | null {
-  if (best === null || !Number.isFinite(best)) return null;
-  if (gameId === "qa") {
-    const s = Math.round(best);
-    return s >= 1 ? `Best ${s}s clean` : null;
-  }
-  if (gameId === "rush") return best >= 1 ? `Best ${Math.round(best)} in a row` : null;
-  if (gameId === "interview") return best > 0 ? `Best ${Math.round(best)}` : null;
-  return null;
+  const p = tileBest(gameId, best);
+  if (!p) return null;
+  return gameId === "interview" ? `Best ${p.value}` : `Best ${p.value} ${p.rest}`;
 }
 
 /** The ladder a tile draws, from the account's game rounds. */
@@ -57,6 +75,7 @@ export function tileLadder(rows: readonly LadderRow[], gameId: string, now: Date
     of: s.of,
     mastered: s.mastered,
     best: bestLine(gameId, s.best[s.open]),
+    bestParts: tileBest(gameId, s.best[s.open]),
   };
 }
 

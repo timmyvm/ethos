@@ -33,6 +33,13 @@ export interface RewardMoment {
   /** The number underneath it. Always present. */
   detail: string;
   tone: "earned" | "neutral";
+  /**
+   * A game's best broken (M4), split for the eye so Moment can draw it
+   * in the plaque's grammar (#421): the new number set large, the rest
+   * of its words, and the best it beat. `detail` stays the sentence a
+   * screen reader hears.
+   */
+  record?: { value: string; rest: string; past: string };
 }
 
 /** A milestone this close counts as within reach of one rep. */

@@ -10,9 +10,11 @@ import {
   lessonIdsNewestFirst,
   nextFreeDay,
   PREMIUM_DEPTH,
+  tileBest,
   tileLadder,
   tomorrowLine,
 } from "./practice-tiles";
+import { bestParts, secondsLabel } from "./round-live";
 import type { GameRound } from "./round";
 
 /** Noon on day `d` of November 2026, on the device's calendar. Fri 6 Nov is Interview's day. */
@@ -39,12 +41,19 @@ const row = (day: number, r: GameRound | null, lesson?: string): LadderRow => ({
 
 describe("a tile's ladder (M6)", () => {
   it("a game never played reads Level 1 with two empty pips and no best", () => {
-    expect(tileLadder([], "qa", NOW)).toEqual({ level: 1, counted: 0, of: 2, mastered: false, best: null });
+    expect(tileLadder([], "qa", NOW)).toEqual({ level: 1, counted: 0, of: 2, mastered: false, best: null, bestParts: null });
   });
 
   it("level 2 with one pip and the best at level 2", () => {
     const rows = [row(1, round("qa", 1, { best: 22 })), row(2, round("qa", 1, { best: 26 })), row(4, round("qa", 2))];
-    expect(tileLadder(rows, "qa", NOW)).toEqual({ level: 2, counted: 1, of: 2, mastered: false, best: "Best 31s clean" });
+    expect(tileLadder(rows, "qa", NOW)).toEqual({
+      level: 2,
+      counted: 1,
+      of: 2,
+      mastered: false,
+      best: "Best 31s clean",
+      bestParts: { value: "31s", rest: "clean" },
+    });
   });
 
   it("level 3 counts three pips toward mastery, then reads Mastered", () => {
@@ -52,12 +61,12 @@ describe("a tile's ladder (M6)", () => {
     const one = tileLadder([...climb, row(5, round("rush", 3))], "rush", NOW);
     expect(one).toMatchObject({ level: 3, counted: 1, of: 3, mastered: false });
     const all = tileLadder([...climb, ...[5, 6, 7, 8].map((d) => row(d, round("rush", 3)))], "rush", on(9));
-    expect(all).toMatchObject({ level: 3, of: 3, mastered: true, best: "Best 4 in a row" });
+    expect(all).toMatchObject({ level: 3, of: 3, mastered: true, best: "Best 4 in a row", bestParts: { value: "4", rest: "in a row" } });
   });
 
   it("a level just opened has no best of its own yet", () => {
     const rows = [row(1, round("interview", 1)), row(2, round("interview", 1))];
-    expect(tileLadder(rows, "interview", NOW)).toMatchObject({ level: 2, counted: 0, best: null });
+    expect(tileLadder(rows, "interview", NOW)).toMatchObject({ level: 2, counted: 0, best: null, bestParts: null });
   });
 });
 
@@ -74,6 +83,29 @@ describe("the best, in the tile's words (M4)", () => {
     expect(bestLine("rush", 0)).toBeNull();
     expect(bestLine("interview", Number.NaN)).toBeNull();
     expect(bestLine("hostile", 70)).toBeNull();
+  });
+});
+
+describe("the best, for the eye (the plaque's grammar on a tile)", () => {
+  it("sets the number apart from the rest of its words", () => {
+    expect(tileBest("qa", 31.4)).toEqual({ value: "31s", rest: "clean" });
+    expect(tileBest("rush", 4)).toEqual({ value: "4", rest: "in a row" });
+    expect(tileBest("interview", 712.4)).toEqual({ value: "712", rest: "Index" });
+  });
+
+  it("says the seconds the way the plaque before Record says them", () => {
+    expect(tileBest("qa", 8.46)?.value).toBe(secondsLabel(8.46));
+    expect(tileBest("qa", 8.46)?.value).toBe("8.5s");
+    expect(bestLine("qa", 8.46)).toBe("Best 8.5s clean");
+    const plaque = bestParts({ game: "qa", level: 2, best: 31.4, chain: 0 });
+    expect(tileBest("qa", 31.4)?.value).toBe(plaque?.value);
+  });
+
+  it("draws nothing where the sentence says nothing", () => {
+    for (const [g, v] of [["qa", null], ["qa", 0.2], ["rush", 0], ["interview", Number.NaN], ["hostile", 70]] as const) {
+      expect(tileBest(g, v)).toBeNull();
+      expect(bestLine(g, v)).toBeNull();
+    }
   });
 });
 
@@ -137,6 +169,7 @@ describe("Practice's copy (COPY-RULES)", () => {
     freeAgainLine("interview", NOW) ?? "",
     bestLine("qa", 31) ?? "",
     bestLine("rush", 4) ?? "",
+    ...(["qa", "rush", "interview"] as const).flatMap((g) => Object.values(tileBest(g, 31) ?? {})),
   ];
   it("keeps the depth lines the plan wrote", () => {
     expect(PREMIUM_DEPTH).toEqual({

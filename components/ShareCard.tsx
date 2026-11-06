@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import type { RepRow } from "@/lib/client-data";
+import { sinceDayOne } from "@/lib/log";
 import { ALL_FILLERS_PER_MIN, HELD_PER_RECORDING } from "@/lib/metric-labels";
 import { ACTION_CLASS } from "@/lib/ui";
 
@@ -28,10 +29,9 @@ export function ShareCard({ reps, quiet = false }: { reps: RepRow[]; quiet?: boo
   const [url, setUrl] = useState<string | null>(null);
   const busy = useRef(false);
 
-  if (reps.length < 2) return null;
-
-  const first = reps[0];
-  const last = reps[reps.length - 1];
+  const ends = sinceDayOne(reps);
+  if (!ends) return null;
+  const { first, last } = ends;
   const was = fpm(first);
   const now = fpm(last);
 

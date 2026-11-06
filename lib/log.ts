@@ -10,13 +10,14 @@
 import type { RepRow } from "./client-data";
 import { lessonById } from "@/content/lessons";
 import { pathItemById } from "@/content/path";
-import type { TraitId } from "@/content/traits";
+import { TRAIT, type TraitId } from "@/content/traits";
 import { DRILLS } from "./drills";
 import { gameOfLessonId } from "./games";
 import { HOSTILE_TAKE_ID } from "./hostile";
 import { parsePracticeId } from "./lesson-progress";
 import { dimensionPoints, INDEX_WEIGHTS } from "./index-score";
 import { measured } from "./trait-readings";
+import { topicById } from "./topics";
 import { TRAITS, type TraitKey } from "./traits";
 import { ALL_FILLERS_PER_MIN, HELD_PER_RECORDING } from "./metric-labels";
 
@@ -128,6 +129,18 @@ export function rolling(series: number[], n: number): number[] {
 }
 
 /**
+ * Day 1 vs now (ComparisonCard, ShareCard): the first and the latest
+ * recordings that measured something, by the rule What moved reads its
+ * three measurements with. A take too short to score is stored with no
+ * fillers and no pauses, and as "now" it printed fillers 9.3 to 0.0 in
+ * green (regression review, edges F5). Null under two.
+ */
+export function sinceDayOne(reps: RepRow[]): { first: RepRow; last: RepRow } | null {
+  const kept = reps.filter(measured);
+  return kept.length < 2 ? null : { first: kept[0], last: kept[kept.length - 1] };
+}
+
+/**
  * The four rows everyone sees, oldest recording first. The three
  * measurements read only recordings that measured something: a one-word
  * take printed Words / min 128 to 7 and Fillers 9.3 to 0.0 here. The
@@ -207,7 +220,19 @@ export function recordingName(
     return level === 1 || level === 2 || level === 3 ? `${game.name}, level ${level}` : game.name;
   }
   if (id === HOSTILE_TAKE_ID) return "Hostile Q&A";
+  /* Today's own take and a trait's walk had no name here, so they read
+     "Recording" among named lessons (regression review, edges F6): the
+     first takes the label its card wears, the second its trait's. */
+  if (id?.startsWith("topic:") && topicById(id.slice("topic:".length))) return "Today's practice";
+  const walk = traitWalk(id);
+  if (walk) return TRAIT[walk].name;
   return r.mode === "boss" ? "Boss" : "Recording";
+}
+
+/** The trait of a trait's walk (`practice:trait-pause`, lib/rep-config.ts), or null. */
+function traitWalk(id: string | null): TraitId | null {
+  const m = id?.match(/^practice:trait-(\w+)$/);
+  return m && Object.prototype.hasOwnProperty.call(TRAIT, m[1]) ? (m[1] as TraitId) : null;
 }
 
 /** The road's three trait-shaped units; the rest name no single trait. */
@@ -227,6 +252,8 @@ const UNIT_TRAIT: Record<string, TraitId> = {
 export function recordingTrait(r: Pick<RepRow, "lesson_id">): TraitId | null {
   const id = r.lesson_id;
   if (!id) return null;
+  const walk = traitWalk(id);
+  if (walk) return walk;
   const practice = parsePracticeId(id);
   if (practice) return lessonById(practice.lessonId)?.trait ?? null;
   const item = pathItemById(id);

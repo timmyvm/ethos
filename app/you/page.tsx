@@ -37,6 +37,7 @@ import {
 import { LEVEL_AT, DOUBLE_AT, rankedTraits, traitLevels, type TraitLevel } from "@/lib/traits";
 import { practiseHref, sheetReading } from "@/lib/trait-sheet";
 import { lessonProgress } from "@/lib/lesson-progress";
+import { sinceDayOne } from "@/lib/log";
 import { TRAIT, type TraitId } from "@/content/traits";
 import { syncFreezes } from "@/lib/freeze-sync";
 import { levelFromXp } from "@/lib/level";
@@ -646,7 +647,7 @@ export default function YouPage() {
           because the numbers are the product. While the account gate
           under it is showing, its button keeps the screen's one
           terracotta and this one steps down to the surface door. */}
-      {history.length >= 2 && (
+      {sinceDayOne(history) && (
         <div className="mt-3">
           <ShareCard reps={history} quiet={showGate} />
         </div>

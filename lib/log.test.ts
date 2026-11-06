@@ -1,4 +1,7 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { ComparisonCard } from "@/components/ComparisonCard";
 import type { RepRow } from "./client-data";
 import {
   movedRows,
@@ -7,6 +10,7 @@ import {
   recordingTrait,
   rolling,
   rowTrait,
+  sinceDayOne,
   skillRows,
 } from "./log";
 
@@ -181,6 +185,57 @@ describe("recordingName, every stored shape", () => {
     // A round of another game, or a level out of range, names none.
     expect(recordingName({ lesson_id: "game:qa:qa2", mode: "daily", round: level("rush", 2) })).toBe("Q&A");
     expect(recordingName({ lesson_id: "game:qa:qa2", mode: "daily", round: level("qa", 7) })).toBe("Q&A");
+  });
+});
+
+/* Regression review, edges F6: Today's own take (`topic:<id>`) and a
+   trait's walk (`practice:trait-<id>`) read "Recording" among named lessons. */
+describe("recordingName, Today's take and a trait's walk", () => {
+  it("names Today's take by its card and a walk by its trait", () => {
+    expect(recordingName({ lesson_id: "topic:t4", mode: "daily" })).toBe("Today's practice");
+    expect(recordingName({ lesson_id: "practice:trait-pause", mode: "daily" })).toBe("Pausing");
+    expect(recordingName({ lesson_id: "practice:trait-range", mode: "daily" })).toBe("Variety");
+    // An id that names nothing stays a recording.
+    expect(recordingName({ lesson_id: "topic:nope", mode: "daily" })).toBe("Recording");
+    expect(recordingName({ lesson_id: "practice:trait-nope", mode: "daily" })).toBe("Recording");
+  });
+
+  it("gives a trait's walk its trait's tone, and Today's take none", () => {
+    expect(recordingTrait({ lesson_id: "practice:trait-pause" })).toBe("pause");
+    expect(recordingTrait({ lesson_id: "practice:trait-nope" })).toBeNull();
+    expect(recordingTrait({ lesson_id: "topic:t4" })).toBeNull();
+  });
+});
+
+/* Regression review, edges F5: a take too short to score is stored with
+   no fillers, 73 wpm and no pauses, and Day 1 vs now read it as "now". */
+describe("sinceDayOne", () => {
+  it("reads the first and the latest recordings that measured something", () => {
+    const first = rep({ id: "a", filler_count: 9, wpm: 128 });
+    const scored = rep({ id: "b", filler_count: 3, wpm: 141 });
+    const unscored = rep({ id: "c", transcript: "um so yeah", filler_count: 0, wpm: 73, ethos_index: null });
+    const ends = sinceDayOne([first, scored, unscored])!;
+    expect(ends.first.id).toBe("a");
+    expect(ends.last.id).toBe("b");
+    // A meter-capped take is measured but carries no Index: it is still "now".
+    const capped = rep({ id: "d", ethos_index: null });
+    expect(sinceDayOne([first, scored, capped])!.last.id).toBe("d");
+    expect(sinceDayOne([first, unscored])).toBeNull();
+  });
+
+  it("keeps the progress moment's card on the last measured recording", () => {
+    const reps = [
+      rep({ id: "a", filler_count: 9, wpm: 128, duration_s: 60, created_at: "2026-10-10T09:00:00Z" }),
+      rep({ id: "b", filler_count: 3, wpm: 141, duration_s: 60, created_at: "2026-11-05T09:00:00Z" }),
+      rep({ id: "c", transcript: "um so yeah", filler_count: 0, wpm: 73, duration_s: 4.1, ethos_index: null, created_at: "2026-11-06T09:00:00Z" }),
+    ];
+    const html = renderToStaticMarkup(createElement(ComparisonCard, { reps }));
+    expect(html).toContain("Day 1 to day 27");
+    expect(html).toContain(">3.0<");
+    expect(html).not.toContain(">0.0<");
+    expect(html).toContain(">141<");
+    expect(html).not.toContain(">73<");
+    expect(html).toContain("3 recordings.");
   });
 });
 

@@ -167,6 +167,21 @@ describe("recordingName, every stored shape", () => {
     expect(recordingName({ lesson_id: "pause-1-1", mode: "daily" })).not.toBe("Recording");
     expect(recordingName({ lesson_id: "game:qa:x", mode: "daily" })).toBe("Q&A");
   });
+
+  /* The games plan, item 15 and map 2.4: Hostile's take was "Recording",
+     and a game round names the rung it was played at. */
+  it("names Hostile Q&A's take, and a measured round's level", () => {
+    expect(recordingName({ lesson_id: "hostile-take", mode: "daily" })).toBe("Hostile Q&A");
+    const level = (game: string, n: unknown) => ({ game, level: n });
+    expect(recordingName({ lesson_id: "game:qa:qa2", mode: "daily", round: level("qa", 2) })).toBe("Q&A, level 2");
+    expect(recordingName({ lesson_id: "game:rush:ru1", mode: "daily", round: level("rush", 1) })).toBe("Speed rush, level 1");
+    expect(recordingName({ lesson_id: "game:interview:iv3", mode: "daily", round: level("interview", 3) })).toBe("Interview, level 3");
+    // Before 0026 there is no round, so no level to name.
+    expect(recordingName({ lesson_id: "game:qa:qa2", mode: "daily", round: null })).toBe("Q&A");
+    // A round of another game, or a level out of range, names none.
+    expect(recordingName({ lesson_id: "game:qa:qa2", mode: "daily", round: level("rush", 2) })).toBe("Q&A");
+    expect(recordingName({ lesson_id: "game:qa:qa2", mode: "daily", round: level("qa", 7) })).toBe("Q&A");
+  });
 });
 
 /*

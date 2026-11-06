@@ -2,10 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { DemosFigure } from "@/components/DemosClip";
 import { Paywall } from "@/components/Paywall";
 import { PremiumMark } from "@/components/PremiumMark";
+import { RollNumber } from "@/components/premium/RollNumber";
+import { Says } from "@/components/Says";
 import { SpeechBubble } from "@/components/SpeechBubble";
 import { IconShuffle } from "@/components/Icon";
 import { Disclosure } from "@/components/ui/Disclosure";
@@ -20,11 +22,12 @@ import {
   HOSTILE_LINE,
   HOSTILE_PROMPTS,
   HOSTILE_ROUNDS,
+  HOSTILE_TAKE_ID,
   TAKE_SECONDS,
   type HostilePrompt,
 } from "@/lib/hostile";
 import { ALL_FILLERS } from "@/lib/metric-labels";
-import { buzz } from "@/lib/prefs";
+import { buzz, prefersReducedMotion } from "@/lib/prefs";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
 
@@ -34,10 +37,28 @@ import { usePaywallReturn } from "@/lib/use-paywall-return";
  * the speaker's own words. A verdict scores how the position held.
  *
  * The take banks through /api/analyze as a normal recording (streak,
- * coin, XP), fired in the background the moment it's transcribed; the
- * interrogation itself is the boss experience around it and lives on
- * this screen only, which the debrief says plainly.
+ * coin, XP), fired in the background the moment it's transcribed. The
+ * verdict is stored on that recording (`reps.round`, by /api/hostile,
+ * only on the caller's own take), so a later screen can read it; the
+ * Log names the take "Hostile Q&A".
+ *
+ * Delivery (the games plan, item 15; F8): the question is said, in
+ * order. "You said" lands a word at a time, then, 300ms later, the
+ * question as the screen's title, while Record is live from the first
+ * frame. The verdict's three rows land one at a time, 300ms apart, each
+ * number rolling, then Demos's line. Nothing chimes: they are a model's
+ * read, and the screen labels them so. The end offers another claim
+ * when a take is left, and goes back to Practice, never to Today.
  */
+
+/** When "You said" starts landing, after the screen arrives. */
+const QUOTE_LEAD_MS = 150;
+/** Says lands any line in about this long (components/Says.tsx). */
+const SAYS_LINE_MS = 220;
+/** The beat between the quote and the question, and between verdict rows. */
+const BEAT_MS = 300;
+/** The verdict's first row, after the screen arrives. */
+const ROW_LEAD_MS = 250;
 
 type Phase =
   | "intro"
@@ -100,7 +121,7 @@ export default function HostilePage() {
         setUsedThisWeek(
           reps.some(
             (r) =>
-              r.lesson_id === "hostile-take" && new Date(r.created_at) >= since
+              r.lesson_id === HOSTILE_TAKE_ID && new Date(r.created_at) >= since
           )
         );
       })
@@ -119,6 +140,11 @@ export default function HostilePage() {
     quoted: string;
   } | null>(null);
   const [verdict, setVerdict] = useState<VerdictView | null>(null);
+  /* How much of the verdict has landed: 1 to 3 rows, then 4 is Demos's
+     line. Reduced motion shows the end state at once. */
+  const [landed, setLanded] = useState(0);
+  /* Reduced motion (or lite): the numbers stand at their value, unrolled. */
+  const [still, setStill] = useState(false);
   const [banked, setBanked] = useState(false);
   /** The take's full engine result: the speech numbers the daily
    *  debrief gets, reported missing here by Timothy. */
@@ -136,6 +162,8 @@ export default function HostilePage() {
     timer: ReturnType<typeof setInterval>;
   } | null>(null);
   const lastBlob = useRef<Blob | null>(null);
+  /** The banked take's id, once /api/analyze has stored it: the verdict is filed on it. */
+  const bank = useRef<Promise<string | null> | null>(null);
   /** Live mic level 0–1 (#193): the proof on screen that it's
    *  listening. Reported by Timothy: a bare countdown read as
    *  think-time, and he prepped silently into a hot mic. */
@@ -163,12 +191,12 @@ export default function HostilePage() {
 
   /** Bank the take as a normal recording, off the critical path. */
   function bankTake(blob: Blob) {
-    void (async () => {
+    bank.current = (async (): Promise<string | null> => {
       try {
         const token = await ensureSession();
         const form = new FormData();
         form.append("audio", blob, "rep.webm");
-        form.append("lessonId", "hostile-take");
+        form.append("lessonId", HOSTILE_TAKE_ID);
         form.append("captureMode", "voice");
         form.append("tzOffset", String(new Date().getTimezoneOffset()));
         const res = await fetch("/api/analyze", {
@@ -183,11 +211,13 @@ export default function HostilePage() {
             | AnalyzeResponse
             | null;
           if (data?.metrics) setTakeResult(data);
+          return data?.repId ?? null;
         }
       } catch {
         // The interrogation stands on its own; a failed bank only means
         // the log shows nothing, and the debrief doesn't claim it does.
       }
+      return null;
     })();
   }
 
@@ -291,6 +321,13 @@ export default function HostilePage() {
     setPhase("judging");
     try {
       const token = await ensureSession();
+      /* The take was banked two answers ago; its id files the verdict.
+         A bank still out after a few seconds is not waited on: the
+         verdict is shown either way, and only its storing is skipped. */
+      const repId = await Promise.race([
+        bank.current ?? Promise.resolve(null),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
+      ]);
       const form = new FormData();
       form.append("phase", "verdict");
       form.append("promptId", prompt.id);
@@ -301,8 +338,10 @@ export default function HostilePage() {
           rounds: rounds.current.map((r) => ({
             question: r.question,
             answer: r.answer,
+            quoted: r.quoted,
           })),
           roundNumbers: roundNumbers.current,
+          repId: repId ?? undefined,
         })
       );
       const res = await fetch("/api/hostile", {
@@ -318,7 +357,7 @@ export default function HostilePage() {
         throw new Error(data?.error ?? "The verdict didn't come back.");
       }
       setVerdict(data.verdict);
-      buzz([20, 40, 20]);
+      // No buzz and no sound: the rows are a model's read (F8).
       setPhase("verdict");
     } catch (e) {
       setError(e instanceof Error ? e.message : "That didn't go through.");
@@ -416,6 +455,49 @@ export default function HostilePage() {
     r.stream.getTracks().forEach((t) => t.stop());
     buzz([20, 40, 20]);
     await submit(blob);
+  }
+
+  /* The verdict lands in order: each row 300ms after the last, its
+     number rolling, then Demos's line. Reduced motion shows the end. */
+  useEffect(() => {
+    if (phase !== "verdict" || !verdict) return;
+    if (prefersReducedMotion()) {
+      setStill(true);
+      setLanded(4);
+      return;
+    }
+    setLanded(0);
+    const timers = [1, 2, 3, 4].map((n) =>
+      setTimeout(() => setLanded(n), ROW_LEAD_MS + (n - 1) * BEAT_MS)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [phase, verdict]);
+
+  /* Another claim is offered while a take is left this week: always on
+     Premium, and on a free account until its one is banked. Unknown
+     offers it, and the server decides, its own degrade-open rule. */
+  const takeLeft = !(premium === false && usedThisWeek === true);
+
+  /** A fresh claim, the session cleared, back to the intro. */
+  function anotherClaim() {
+    teardown();
+    take.current = null;
+    rounds.current = [];
+    roundNumbers.current = [];
+    lastBlob.current = null;
+    bank.current = null;
+    setPending(null);
+    setVerdict(null);
+    setLanded(0);
+    setBanked(false);
+    setTakeResult(null);
+    setError(null);
+    setPrompt((p) => {
+      const pool = HOSTILE_PROMPTS.filter((x) => x.id !== p.id);
+      return pool[Math.floor(Math.random() * pool.length)] ?? p;
+    });
+    setPhase("intro");
+    window.scrollTo(0, 0);
   }
 
   const answeredSoFar = rounds.current.length;
@@ -643,36 +725,51 @@ export default function HostilePage() {
           <p className="eyebrow mt-4">
             Question {answeredSoFar + 1} of {HOSTILE_ROUNDS}
           </p>
+          {/* Said in order (F8): what you said lands first, then, a beat
+              later, his question as the screen's title. Record is live
+              from the first frame; nothing waits on the words. */}
           {pending.quoted && (
-            <p className="mt-3 text-body text-stone-500">
-              You said:{" "}
-              <span className="font-semibold text-ink">
-                &ldquo;{pending.quoted}&rdquo;
-              </span>
-            </p>
-          )}
-          <h1 className="font-display mt-3 text-title">{pending.question}</h1>
-          <ErrorNote>{error}</ErrorNote>
-          {/* Demos composites onto the ground: the art ships with a real
-              alpha channel, and the tile it sat in was a box around a
-              mascot (globals.css, `.demos`). */}
-          <div className="mt-7 flex items-end gap-3">
-            <Image
-              src="/demos-speaking.webp"
-              alt="Demos"
-              width={62}
-              height={62}
-              className="demos w-[62px] shrink-0"
+            <QuoteLine
+              key={`q:${pending.question}`}
+              quoted={pending.quoted}
+              lead={QUOTE_LEAD_MS}
+              className="mt-3 text-body text-stone-500"
             />
-            <p className="text-caption leading-relaxed text-stone-500">
-              He&apos;s arguing with the take, never with you.
-            </p>
+          )}
+          <Says
+            key={pending.question}
+            as="h1"
+            text={pending.question}
+            lead={pending.quoted ? QUOTE_LEAD_MS + SAYS_LINE_MS + BEAT_MS : QUOTE_LEAD_MS}
+            className="font-display mt-3 text-title text-balance"
+          />
+          <ErrorNote>{error}</ErrorNote>
+          {/* The free height is his (principle 7), as on the intro: Demos
+              speaking, 140 at the least so his clip plays, as big as the
+              room allows up to 264, standing on the claim you are
+              defending, so the screen has no band of empty ground. */}
+          <div aria-hidden className="relative mt-3 min-h-[128px] flex-1">
+            <div className="absolute inset-0 [container-type:size]">
+              <div className="topic-demos pointer-events-none absolute -bottom-3 left-1/2 w-[clamp(140px,calc(100cqh+12px),264px)] -translate-x-1/2">
+                <span className="rep-ground" />
+                <DemosFigure
+                  pose="speaking"
+                  src="/demos-onboard-speaking.webp"
+                  width={528}
+                  height={528}
+                  className="demos relative block h-auto w-full"
+                />
+              </div>
+            </div>
           </div>
-          <div className="flex-1" />
+          <section aria-label="The claim" className="card relative rounded-sheet px-5 py-4">
+            <p className="eyebrow">The claim</p>
+            <p className="font-display mt-1 text-detail font-bold text-balance">{prompt.claim}</p>
+          </section>
           <button
             type="button"
             onClick={() => void startRecording()}
-            className={`${ACTION_CLASS} mt-7`}
+            className={`${ACTION_CLASS} mt-4`}
           >
             Record my answer · {ANSWER_SECONDS}s
           </button>
@@ -685,19 +782,22 @@ export default function HostilePage() {
           <h1 className="font-display mt-1.5 text-title">{prompt.claim}</h1>
 
           {/* Three judged dimensions, so the dimension card's grammar:
-              one card, rows under hairlines (#234). Three separate cards
-              at 12px was the 12px pile the results screen lost. The tap
-              is Done, on the ground, so this card stays at level 1. */}
-          <div className="card arrive-lift mt-7 px-4 py-1">
-            <VerdictRow name="Held the claim" dim={verdict.held} />
-            <VerdictRow name="Answered the question" dim={verdict.answered} />
-            <VerdictRow name="Stayed steady" dim={verdict.composed} />
+              one card, rows under hairlines (#234). They are a model's
+              read, never a measurement, and the label over them says
+              whose read it is (map 2.4). The rows land one at a time,
+              each number rolling up from zero. */}
+          <p className="mt-7 text-caption text-stone-500">Demos&apos;s read, out of 100</p>
+          <div className="card mt-2 px-4 py-1">
+            <VerdictRow name="Held the claim" dim={verdict.held} shown={landed >= 1} still={still} />
+            <VerdictRow name="Answered the question" dim={verdict.answered} shown={landed >= 2} still={still} />
+            <VerdictRow name="Stayed steady" dim={verdict.composed} shown={landed >= 3} still={still} />
           </div>
 
           {/* Demos speaks the way he does on results (A4): his voice in
-              the one bubble, beside him, with no terracotta wash. That
-              wash read as the tap colour on something you cannot tap. */}
-          <div className="mt-7 flex items-start gap-3">
+              the one bubble, beside him, with no terracotta wash. He
+              comes in after the rows, and his line lands a word at a
+              time; the bubble holds its size from the first frame. */}
+          <div className={`mt-7 flex items-start gap-3 ${landed >= 4 ? "arrive" : "opacity-0"}`}>
             <Image
               src="/demos-speaking.webp"
               alt="Demos"
@@ -706,7 +806,13 @@ export default function HostilePage() {
               className="demos w-[62px] shrink-0"
             />
             <div className="min-w-0 flex-1">
-              <SpeechBubble tail="left">{verdict.coachLine}</SpeechBubble>
+              <SpeechBubble tail="left">
+                {landed >= 4 ? (
+                  <Says text={verdict.coachLine} lead={120} />
+                ) : (
+                  <p className="invisible">{verdict.coachLine}</p>
+                )}
+              </SpeechBubble>
               <p className="mt-2 pl-1 text-caption text-stone-400">
                 AI-generated feedback
               </p>
@@ -744,7 +850,7 @@ export default function HostilePage() {
                 )}
               </div>
               {/* A door, so the row's chevron, never a typed arrow and
-                  never the tap colour: Done is this screen's tap. */}
+                  never the tap colour: the foot holds this screen's tap. */}
               <Link
                 href="/history"
                 className="text-link press mt-1 inline-flex min-h-11 items-center gap-1.5"
@@ -762,9 +868,30 @@ export default function HostilePage() {
           </p>
 
           <div className="flex-1" />
-          <Link href="/" className={`${ACTION_CLASS} mt-7`}>
-            Done
-          </Link>
+          {/* The end (F8): another claim while a take is left, with
+              Practice as the quiet way out; with none left, Practice is
+              the tap. Never Today: you came from Practice. */}
+          {takeLeft ? (
+            <>
+              <button
+                type="button"
+                onClick={anotherClaim}
+                className={`${ACTION_CLASS} mt-7`}
+              >
+                Another claim
+              </button>
+              <Link
+                href="/games"
+                className="text-link press mx-auto mt-1 inline-flex min-h-11 items-center"
+              >
+                Back to Practice
+              </Link>
+            </>
+          ) : (
+            <Link href="/games" className={`${ACTION_CLASS} mt-7`}>
+              Back to Practice
+            </Link>
+          )}
         </>
       )}
 
@@ -841,14 +968,27 @@ function TakeStat({
   );
 }
 
-function VerdictRow({ name, dim }: { name: string; dim: VerdictDim }) {
+function VerdictRow({
+  name,
+  dim,
+  shown,
+  still = false,
+}: {
+  name: string;
+  dim: VerdictDim;
+  /** Landed: the row arrives and its number rolls up from zero. */
+  shown: boolean;
+  /** Reduced motion: the number is simply there. */
+  still?: boolean;
+}) {
   return (
-    <div className="border-b border-hairline py-3 last:border-b-0">
+    <div
+      className={`border-b border-hairline py-3 last:border-b-0 ${shown ? "arrive" : "opacity-0"}`}
+    >
       <div className="flex items-baseline justify-between gap-3">
         <div className="font-display text-row leading-tight">{name}</div>
         <div className="font-display shrink-0 text-num-m leading-none tabular-nums">
-          {dim.score}
-          <span className="text-caption font-bold text-stone-400">/100</span>
+          <RollNumber text={shown ? String(dim.score) : "0"} value={shown ? dim.score : 0} instant={still} />
         </div>
       </div>
       <p className="mt-2 text-caption leading-relaxed text-stone-500">
@@ -858,5 +998,53 @@ function VerdictRow({ name, dim }: { name: string; dim: VerdictDim }) {
         {dim.improve}
       </p>
     </div>
+  );
+}
+
+/**
+ * "You said: “…”", landing a word at a time on Says's clock
+ * (components/Says.tsx, the same `.says-word` and its variables), with
+ * the quote in ink: Says sets one style for a line, and this one has
+ * two. Screen readers get the sentence once, whole.
+ */
+function QuoteLine({
+  quoted,
+  lead,
+  className,
+}: {
+  quoted: string;
+  lead: number;
+  className?: string;
+}) {
+  const words = [
+    ...["You", "said:"].map((w) => ({ w, quote: false })),
+    ...`“${quoted}”`.split(" ").map((w) => ({ w, quote: true })),
+  ];
+  const step = Math.min(30, SAYS_LINE_MS / words.length);
+  return (
+    <p
+      className={className}
+      style={
+        {
+          "--says-step": `${step.toFixed(1)}ms`,
+          "--says-lead": `${lead}ms`,
+        } as CSSProperties
+      }
+    >
+      <span className="sr-only">You said: “{quoted}”</span>
+      <span aria-hidden>
+        {words.map(({ w, quote }, i) => (
+          <Fragment key={i}>
+            {i > 0 && " "}
+            <span
+              className={`says-word ${quote ? "font-semibold text-ink" : ""}`}
+              style={{ "--i": i } as CSSProperties}
+            >
+              {w}
+            </span>
+          </Fragment>
+        ))}
+      </span>
+    </p>
   );
 }

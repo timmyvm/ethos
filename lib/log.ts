@@ -12,7 +12,8 @@ import { lessonById } from "@/content/lessons";
 import { pathItemById } from "@/content/path";
 import type { TraitId } from "@/content/traits";
 import { DRILLS } from "./drills";
-import { gameById } from "./games";
+import { gameOfLessonId } from "./games";
+import { HOSTILE_TAKE_ID } from "./hostile";
 import { parsePracticeId } from "./lesson-progress";
 import { dimensionPoints, INDEX_WEIGHTS } from "./index-score";
 import { measured } from "./trait-readings";
@@ -178,12 +179,20 @@ export function skillRows(reps: RepRow[]): MovedRow[] {
 
 /**
  * What a recording is called in its row. A stored `lesson_id` is one of
- * five shapes: a lesson's practice (`lesson:<id>:<n>`), a path item
- * (`pause-1-3`), a road drill (`f1`), a game (`game:<id>:<q>`) or a
- * boss topic (`boss:<id>`). Only the road drill used to resolve, so
- * every recording made from Today or a lesson was called "Recording".
+ * six shapes: a lesson's practice (`lesson:<id>:<n>`), a path item
+ * (`pause-1-3`), a road drill (`f1`), a game (`game:<id>:<q>`), a boss
+ * topic (`boss:<id>`) or Hostile Q&A's take (`hostile-take`). Only the
+ * road drill used to resolve, so every recording made from Today or a
+ * lesson was called "Recording", and Hostile's still was (map 2.4).
+ *
+ * A game round measured on the server (`round`, lib/round.ts) names its
+ * level, "Q&A, level 2": the ladder is per level, so the row says which
+ * rung it was. A round recorded before 0026, with no `round`, keeps the
+ * game's name alone, since its level was never stored.
  */
-export function recordingName(r: Pick<RepRow, "lesson_id" | "mode">): string {
+export function recordingName(
+  r: Pick<RepRow, "lesson_id" | "mode"> & { round?: { game?: unknown; level?: unknown } | null }
+): string {
   const id = r.lesson_id;
   const practice = parsePracticeId(id);
   const lesson = practice ? lessonById(practice.lessonId) : null;
@@ -192,8 +201,12 @@ export function recordingName(r: Pick<RepRow, "lesson_id" | "mode">): string {
   if (item) return item.title;
   const drill = id ? DRILLS.find((d) => d.id === id) : null;
   if (drill) return drill.title;
-  const game = id?.startsWith("game:") ? gameById(id.split(":")[1]) : null;
-  if (game) return game.name;
+  const game = gameOfLessonId(id);
+  if (game) {
+    const level = r.round?.game === game.id ? r.round.level : null;
+    return level === 1 || level === 2 || level === 3 ? `${game.name}, level ${level}` : game.name;
+  }
+  if (id === HOSTILE_TAKE_ID) return "Hostile Q&A";
   return r.mode === "boss" ? "Boss" : "Recording";
 }
 

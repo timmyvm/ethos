@@ -12,8 +12,10 @@
  *                   verdict, every score citing a quote.
  *
  * The take itself banks through /api/analyze like any recording; this
- * route never writes reps, XP or coins, so nothing here can be forged
- * into currency. Rate limits run BEFORE Whisper, same as /api/analyze,
+ * route writes no XP and no coins, so nothing here can be forged into
+ * currency. Its one write is the verdict it judged itself, filed on the
+ * caller's own banked take (`reps.round`, as `{ game: "hostile" }`), so
+ * a later screen can read it; never a client's numbers. Rate limits run BEFORE Whisper, same as /api/analyze,
  * on Hostile's own subject: a session is four calls (the take, two
  * answers, the verdict), and on the recording allowance an account with
  * six recordings that hour lost the verdict after both answers.
@@ -25,8 +27,12 @@ import {
   ANSWER_SECONDS,
   FALLBACK_QUESTIONS,
   HOSTILE_ROUNDS,
+  HOSTILE_TAKE_ID,
+  hostileRecord,
+  isRepId,
   promptById,
   type HostileContext,
+  type HostileRecord,
 } from "@/lib/hostile";
 import { hostileQuestion, hostileVerdict } from "@/lib/hostile-server";
 import { isPremium } from "@/lib/db";
@@ -50,10 +56,12 @@ const MIN_WORDS = 10;
 interface RoundsPayload {
   claim?: string;
   take?: string;
-  rounds?: { question: string; answer: string }[];
+  rounds?: { question: string; answer: string; quoted?: string }[];
   pendingQuestion?: string;
   pendingQuoted?: string;
   roundNumbers?: { fillersPerMin: number; midSentencePauses: number }[];
+  /** The banked take's id (/api/analyze's `repId`): where the verdict is filed. */
+  repId?: string;
 }
 
 function parseContext(raw: unknown): RoundsPayload | null {
@@ -165,7 +173,17 @@ async function handle(req: NextRequest, spend: Spend) {
       );
     }
     spend.keep = true;
-    return NextResponse.json({ verdict: v });
+    // Filed on the caller's own take, never a client's numbers: the
+    // record is built here from the verdict the model just gave.
+    const stored =
+      auth && isRepId(ctx.repId)
+        ? await storeVerdict(
+            auth.id,
+            ctx.repId,
+            hostileRecord(prompt.id, v, (ctx.rounds ?? []).map((r) => ({ question: r.question, quoted: r.quoted ?? "" })))
+          )
+        : false;
+    return NextResponse.json({ verdict: v, stored });
   }
 
   // phase=question — the default: transcribe the newest recording,
@@ -201,7 +219,7 @@ async function handle(req: NextRequest, spend: Spend) {
           .from("reps")
           .select("id", { count: "exact", head: true })
           .eq("user_id", auth.id)
-          .eq("lesson_id", "hostile-take")
+          .eq("lesson_id", HOSTILE_TAKE_ID)
           .gte(
             "created_at",
             weekStartFor(new Date(), numberOrNull(form.get("tzOffset"))).toISOString()
@@ -280,6 +298,36 @@ async function handle(req: NextRequest, spend: Spend) {
     question,
     finished,
   });
+}
+
+/**
+ * The verdict onto the take it judged: the caller's own row, banked as
+ * Hostile's take, once (a take with a verdict already keeps it). With
+ * the service client, so the filter IS the policy: id, owner, kind and
+ * an empty `round`. Never throws; false when nothing was written (no
+ * database, migration 0026 not applied yet, or no such take).
+ */
+async function storeVerdict(userId: string, repId: string, record: HostileRecord): Promise<boolean> {
+  const db = supabaseAdmin();
+  if (!db) return false;
+  try {
+    const { data, error } = await db
+      .from("reps")
+      .update({ round: record })
+      .eq("id", repId)
+      .eq("user_id", userId)
+      .eq("lesson_id", HOSTILE_TAKE_ID)
+      .is("round", null)
+      .select("id");
+    if (error) {
+      console.error("hostile verdict not stored", error.message);
+      return false;
+    }
+    return (data?.length ?? 0) > 0;
+  } catch (e) {
+    console.error("hostile verdict not stored", e);
+    return false;
+  }
 }
 
 function numberOrNull(v: FormDataEntryValue | null): number | null {

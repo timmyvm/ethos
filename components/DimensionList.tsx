@@ -6,7 +6,7 @@ import type { CoachOutput } from "@/lib/coach";
 import { dimensionPoints, type Tier1Scores, type Tier2Anchors } from "@/lib/index-score";
 import { ALL_FILLERS_PER_MIN } from "@/lib/metric-labels";
 import type { RepMetrics } from "@/lib/metrics";
-import { filledMoments, type FilledMoment, type FilledMoments } from "@/lib/pause-quality";
+import { filledMoments, saysFilled, type FilledMoment, type FilledMoments, type MomentsPart } from "@/lib/pause-quality";
 
 interface Row {
   name: string;
@@ -68,8 +68,10 @@ export function DimensionList({
   fill?: boolean;
 }) {
   /* The filled pauses' moments, read off the verdicts the take stored
-     (#422): nothing is judged again or rescored here. */
-  const moments = filledMoments(metrics.pauses);
+     (#422): nothing is judged again or rescored here. Where the detail
+     is the filled headline, which already says how many had a sound in
+     them, the moments say only where. */
+  const moments = filledMoments(metrics.pauses, { counted: saysFilled(pauseDetail) });
 
   const measured: Row[] = [
     {
@@ -281,55 +283,48 @@ function PauseMoments({
   take: TakeAudio | null;
 }) {
   const { parts } = moments;
-  const out: ReactNode[] = [];
-  for (let i = 0; i < parts.length; i++) {
-    const part = parts[i];
-    if (part.kind === "text") {
-      out.push(
-        part.keep ? (
-          <span key={i} className="whitespace-nowrap">
-            {part.text}
-          </span>
-        ) : (
-          <Fragment key={i}>{part.text}</Fragment>
-        )
+  const draw = (part: MomentsPart, i: number): ReactNode => {
+    if (part.kind === "moment") {
+      return take ? (
+        <MomentChip key={i} moment={part.moment} take={take} />
+      ) : (
+        <span key={i} data-pause-moment className="font-semibold tabular-nums text-ink">
+          {part.moment.clock}
+        </span>
       );
-      continue;
     }
-    const time = take ? (
-      <MomentChip moment={part.moment} take={take} />
-    ) : (
-      <span data-pause-moment className="font-semibold tabular-nums text-ink">
-        {part.moment.clock}
+    return part.keep ? (
+      <span key={i} className="whitespace-nowrap">
+        {part.text}
       </span>
+    ) : (
+      <Fragment key={i}>{part.text}</Fragment>
     );
-    /* A list's comma stays with the time before it, so a narrow phone
-       never starts a line on it. */
-    const next = parts[i + 1];
-    if (next?.kind === "text" && next.text.startsWith(",")) {
-      out.push(
-        <span key={i} className="whitespace-nowrap">
-          {time},
-        </span>,
-        next.text.slice(1)
-      );
-      i++;
-    } else {
-      out.push(<Fragment key={i}>{time}</Fragment>);
-    }
-  }
-  /* Balanced, so a list that wraps breaks into two even lines ("0:15,
-     0:27, 0:40" over "and 1 more had a sound in them.") rather than
-     leaving a word or two under a full line. Chips take a 28px line so
-     two rows of them never touch; plain times keep the detail's own. */
+  };
+  /* The run of times and the words between them ("0:15, 0:27 and 0:40")
+     never breaks, so the chips share one line and their 44px targets
+     never stack (review of #424: three chips balanced into two lines
+     and a tap on 0:15's lower edge played 0:40). Three chips and their
+     words take about 210px; the line at 320 holds about 245. The line
+     breaks in the words after them, balanced. */
+  const at = parts.flatMap((p, i) => (p.kind === "moment" ? [i] : []));
+  const [first, last] = [at[0], at[at.length - 1]];
   return (
-    <p data-trait="pause" className={`text-balance ${take ? "mt-1 leading-7" : ""}`}>
-      {out}
+    <p className={`text-balance ${take ? "mt-1 leading-7" : ""}`}>
+      {parts.slice(0, first).map(draw)}
+      <span data-moment-run className="whitespace-nowrap">
+        {parts.slice(first, last + 1).map((p, i) => draw(p, first + i))}
+      </span>
+      {parts.slice(last + 1).map((p, i) => draw(p, last + 1 + i))}
     </p>
   );
 }
 
-/** One moment: plays its stretch of the take, or stops it while it plays. */
+/**
+ * One moment: plays its stretch of the take, or stops it while it plays.
+ * Hear it back's chip grammar: surface, edge and ink, the glyph in the
+ * tap's terracotta like the filler chips' and the play key's beside it.
+ */
 function MomentChip({ moment, take }: { moment: FilledMoment; take: TakeAudio }) {
   const playing =
     take.span !== null && take.span.from === moment.from && take.span.until === moment.until;
@@ -343,7 +338,7 @@ function MomentChip({ moment, take }: { moment: FilledMoment; take: TakeAudio })
       className="moment-chip align-baseline"
     >
       <span className="moment-pill" data-playing={playing || undefined}>
-        <svg aria-hidden width="8" height="8" viewBox="0 0 10 10" className="shrink-0 text-[var(--tone)]">
+        <svg aria-hidden width="8" height="8" viewBox="0 0 10 10" className="shrink-0 text-terracotta-500">
           {playing ? (
             <path d="M1.5 1h2.5v8H1.5zM6 1h2.5v8H6z" fill="currentColor" />
           ) : (

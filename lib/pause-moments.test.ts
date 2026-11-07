@@ -86,6 +86,18 @@ describe("the moments a take's filled pauses are heard at", () => {
     expect(moment.label.startsWith(`Play ${moment.clock}`)).toBe(true);
   });
 
+  it("says only where when the line above already counted them (review of #424)", () => {
+    const one = filledMoments([stored(15.3, "filled")], { counted: true });
+    expect(one?.sentence).toBe("At 0:15.");
+    const two = filledMoments([stored(15.3, "filled"), stored(40.2, "filled")], { counted: true });
+    expect(two?.sentence).toBe("At 0:15 and 0:40.");
+    const five = filledMoments([10, 20, 30, 40, 50].map((t) => stored(t, "filled")), { counted: true });
+    expect(five?.sentence).toBe("At 0:10, 0:20, 0:30 and 2 more.");
+    // The same moments, the same chips: only the words around them change.
+    expect(five?.moments).toEqual(filledMoments([10, 20, 30, 40, 50].map((t) => stored(t, "filled")))?.moments);
+    expect(filledMoments([stored(15.3, "landing")], { counted: true })).toBeNull();
+  });
+
   it("gives nothing for a row stored before pauses had verdicts", () => {
     expect(filledMoments([stored(15.3, undefined), stored(40.2, undefined), { t: 50, len: 0.4, kind: "beat" }])).toBeNull();
   });

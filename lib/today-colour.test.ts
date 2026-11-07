@@ -366,9 +366,6 @@ describe("a trait's tone is only ever one of its forms", () => {
     // tick, and the number the take measured.
     '.closing-note[data-ink="trait"] .closing-note-mark': "mark",
     '.closing-note[data-ink="trait"] .closing-note-value': "measure",
-    // The Pause row's moment playing (#424): the chip's edge in the tone
-    // its glyph already wears.
-    ".moment-pill[data-playing]": "mark",
   };
   const FILES: Record<string, Form> = {
     "app/lessons/[id]/page.tsx": "ground",

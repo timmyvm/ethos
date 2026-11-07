@@ -165,14 +165,56 @@ export function PauseBar({
   );
 }
 
-/** The bar holds 48 marks; a cut-in past them is kept in place of the last speech tick. */
+/** The most marks the bar holds: at 390 each is 2px or more with a 3px gap. */
+const MAX_MARKS = 48;
+
+/**
+ * The bar fitted to MAX_MARKS without losing a pause (review of #424).
+ * It used to keep the first 48 marks, so a take with more than about 24
+ * gaps lost its tail, and the Pause row under it named moments the map
+ * never drew. Speech gives way first, thinned across the whole take so
+ * each run between two pauses keeps a tick; then the beats, drawn in
+ * speech's grey, fold into the speech around them. Every held pause and
+ * every cut-in stays. A take with more held pauses than the bar has room
+ * for loses the ones that landed first, so a pause the row names is
+ * always hollow on the map.
+ */
 function clip(segs: Seg[]): Seg[] {
-  if (segs.length <= 48) return segs;
-  const head = segs.slice(0, 48);
-  const late = segs.slice(48).filter((s) => s.type === "mark");
-  for (const m of late) {
-    const at = head.map((s) => s.type).lastIndexOf("speech");
-    if (at >= 0) head[at] = m;
+  if (segs.length <= MAX_MARKS) return segs;
+  const thinned = thin(segs);
+  if (thinned.length <= MAX_MARKS) return thinned;
+  const unbeaten = segs.filter((s) => !(s.type === "pause" && s.kind === "beat"));
+  const folded = thin(unbeaten);
+  if (folded.length <= MAX_MARKS) return folded;
+  return crowd(unbeaten);
+}
+
+/** Each run of speech cut to its share of the room left, one tick at least. */
+function thin(segs: Seg[]): Seg[] {
+  const items: (Seg | Seg[])[] = [];
+  for (const s of segs) {
+    const last = items[items.length - 1];
+    if (s.type !== "speech") items.push(s);
+    else if (Array.isArray(last)) last.push(s);
+    else items.push([s]);
   }
-  return head;
+  const runs = items.filter((it): it is Seg[] => Array.isArray(it));
+  const extra = MAX_MARKS - (items.length - runs.length) - runs.length;
+  const spare = runs.reduce((n, r) => n + r.length - 1, 0);
+  return items.flatMap((it) => {
+    if (!Array.isArray(it)) return [it];
+    const share = extra > 0 && spare > 0 ? Math.floor(((it.length - 1) * extra) / spare) : 0;
+    return it.slice(0, 1 + Math.min(it.length - 1, share));
+  });
+}
+
+/** More held pauses than room: they and the cut-ins first, landed ones last, then speech spread over what is left. */
+function crowd(segs: Seg[]): Seg[] {
+  const marks = segs.flatMap((s, i) => (s.type === "speech" ? [] : [i]));
+  const speech = segs.flatMap((s, i) => (s.type === "speech" ? [i] : []));
+  marks.sort((a, b) => Number(landed(segs[a])) - Number(landed(segs[b])) || a - b);
+  const kept = new Set(marks.slice(0, MAX_MARKS));
+  const room = Math.min(MAX_MARKS - kept.size, speech.length);
+  for (let k = 0; k < room; k++) kept.add(speech[Math.round(((k + 1) * speech.length) / room) - 1]);
+  return segs.filter((_, i) => kept.has(i));
 }

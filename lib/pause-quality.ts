@@ -323,15 +323,33 @@ export interface FilledMoments {
   sentence: string;
 }
 
+/** What the filled headline says of them, so a line can tell it already said it. */
+const HAD_A_SOUND = "had a sound in them";
+
+/**
+ * The line over the Pause row's moments already says how many pauses had
+ * a sound in them: the live results' filled headline. The moments then
+ * say only where ("At 0:15 and 0:40."), so the row never says it twice
+ * (review of #424). A stored recording's counts line, or the dead-air
+ * headline, does not, and the moments say it whole.
+ */
+export function saysFilled(line: string | null | undefined): boolean {
+  return !!line && line.includes(HAD_A_SOUND);
+}
+
 /**
  * The pauses a take judged filled, as moments you can hear back: "0:15
  * and 0:40 had a sound in them." Read off the verdicts the take stored
  * and showed (#422), never judged again and never rescored, so a stored
  * recording names the moments its own pauses carry, and a row stored
  * before verdicts existed names none. Null when nothing was filled.
+ * `counted`: the line above already says how many had a sound in them
+ * (`saysFilled`), so the sentence says where and nothing more: "At 0:15
+ * and 0:40."
  */
 export function filledMoments(
-  pauses: readonly (Pause & { verdict?: PauseVerdict })[] | null | undefined
+  pauses: readonly (Pause & { verdict?: PauseVerdict })[] | null | undefined,
+  { counted = false }: { counted?: boolean } = {}
 ): FilledMoments | null {
   const moments = (pauses ?? [])
     .filter((p) => p.verdict === "filled" && Number.isFinite(p.t) && Number.isFinite(p.len))
@@ -350,7 +368,7 @@ export function filledMoments(
 
   const named = moments.slice(0, MOMENTS_NAMED);
   const more = moments.length - named.length;
-  const parts: MomentsPart[] = [];
+  const parts: MomentsPart[] = counted ? [{ kind: "text", text: "At " }] : [];
   named.forEach((moment, i) => {
     if (i > 0) {
       const last = i === named.length - 1 && more === 0;
@@ -363,7 +381,7 @@ export function filledMoments(
   }
   parts.push({
     kind: "text",
-    text: moments.length === 1 ? " had a sound in it." : " had a sound in them.",
+    text: counted ? "." : moments.length === 1 ? " had a sound in it." : ` ${HAD_A_SOUND}.`,
   });
   const sentence = parts
     .map((p) => (p.kind === "moment" ? p.moment.clock : p.text))
@@ -404,7 +422,7 @@ function headline(counts: {
     return `${dead} pause${dead === 1 ? "" : "s"} ran past ${DEAD_AIR_S}s into dead air. A pause lands at one to two seconds; past that a listener starts wondering if you're lost.`;
   }
   if (filled > 0) {
-    return `${filled} of your "pauses" had a sound in them. Silence INSTEAD of the "um", not either side of it.`;
+    return `${filled} of your "pauses" ${HAD_A_SOUND}. Silence INSTEAD of the "um", not either side of it.`;
   }
   if (hesitations > landings) {
     return `${hesitations} of your pauses were mid-sentence and ${landings} landed after a finished point. Same silence, opposite read: one is thinking, one is composure.`;

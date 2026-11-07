@@ -12,7 +12,8 @@ export interface TakeSpan {
  * The take's one audio element and the one way to play it (#424). Hear
  * it back's player, its filler and cut-in chips, a word's "Said at" and
  * the Pause row's moments all play through here, so one recording never
- * sounds twice over itself and a new play always replaces the last.
+ * sounds twice over itself and a new play always replaces the last. Any
+ * other player on the screen gives way to it, and it to them.
  */
 export interface TakeAudio {
   /** The element, to render once on the screen. Null when there is no take. */
@@ -25,6 +26,36 @@ export interface TakeAudio {
   /** Play from `from`; with `until`, stop there. */
   play: (from: number, until?: number) => void;
   pause: () => void;
+}
+
+/** What the screen's other players share with an <audio> or <video>. */
+interface MediaLike {
+  muted: boolean;
+  paused: boolean;
+  pause: () => void;
+}
+
+/** A moment given an end has reached it, and stops there. */
+export function shouldStop(currentTime: number, stopAt: number | null): boolean {
+  return stopAt !== null && currentTime >= stopAt;
+}
+
+/**
+ * Whether something that just started playing sounds over the take: any
+ * other <audio> or <video> on the page that is not muted. A Premium
+ * Voice + Video take's Playback card is a `<video controls>` of the same
+ * speech on the numbers step, beside the Pause row's moments (review of
+ * #424); the camera's self-view is muted and never counts.
+ */
+export function soundsOver(target: unknown, own: unknown): boolean {
+  if (!target || target === own || typeof target !== "object") return false;
+  const m = target as Partial<MediaLike>;
+  return typeof m.pause === "function" && m.muted === false;
+}
+
+/** Pause everything else on the page that would sound over the take. */
+export function hushOthers(media: Iterable<MediaLike>, own: unknown): void {
+  for (const m of media) if (soundsOver(m, own) && !m.paused) m.pause();
 }
 
 export function useTakeAudio(src: string | null | undefined, durationS: number): TakeAudio {
@@ -56,6 +87,10 @@ export function useTakeAudio(src: string | null | undefined, durationS: number):
       } else {
         endSpan();
       }
+      /* One sound on the screen at a time: the moment replaces the
+         Playback card's video, or any other player, the way a new play
+         replaces the last on this element. */
+      hushOthers(document.querySelectorAll<HTMLMediaElement>("audio, video"), a);
       a.play().catch((e: unknown) => {
         if (e instanceof DOMException && e.name === "NotSupportedError" && src) setFailed(src);
         endSpan();
@@ -69,6 +104,19 @@ export function useTakeAudio(src: string | null | undefined, durationS: number):
   // A new take is a new element: nothing carries over from the last.
   useEffect(() => endSpan, [src, endSpan]);
 
+  /* And the other way round: anything else that starts to sound (the
+     Playback card's video, played from its own controls) stops the
+     take. Media events do not bubble, so the document listens in the
+     capture phase. */
+  useEffect(() => {
+    if (!src) return;
+    const onPlay = (e: Event) => {
+      if (soundsOver(e.target, ref.current)) ref.current?.pause();
+    };
+    document.addEventListener("play", onPlay, true);
+    return () => document.removeEventListener("play", onPlay, true);
+  }, [src]);
+
   const element = src ? (
     /* eslint-disable-next-line jsx-a11y/media-has-caption */
     <audio
@@ -77,8 +125,7 @@ export function useTakeAudio(src: string | null | undefined, durationS: number):
       preload="metadata"
       data-take
       onTimeUpdate={(e) => {
-        const at = stopAt.current;
-        if (at !== null && e.currentTarget.currentTime >= at) e.currentTarget.pause();
+        if (shouldStop(e.currentTarget.currentTime, stopAt.current)) e.currentTarget.pause();
       }}
       onPause={endSpan}
       onEnded={endSpan}

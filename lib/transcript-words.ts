@@ -13,7 +13,9 @@
  *  - filler: exactly the engine's (lib/metrics.ts fillerSpans), run on
  *    the same word list the score was counted from, so an underline is
  *    a counted filler and nothing else is;
- *  - vague: lib/thesaurus.ts VAGUE, two-word phrases first ("a lot");
+ *  - vague: lib/thesaurus.ts VAGUE, two-word phrases first ("a lot"),
+ *    except inside a set phrase where the word is exact ("good luck",
+ *    SET_PHRASES, #428): those words stay unmarked, as the sheet's keep;
  *  - repeat: a word that is not small (STOPWORDS), said three times or
  *    more, plural and singular counted together.
  *
@@ -23,7 +25,7 @@
  */
 
 import { fillerSpans, type FillerHit, type Word } from "./metrics";
-import { STOPWORDS, VAGUE_BIGRAMS, VAGUE_SET, wordKey } from "./thesaurus";
+import { SET_PHRASES, STOPWORDS, VAGUE_BIGRAMS, VAGUE_SET, wordKey } from "./thesaurus";
 
 export type WordMark = "filler" | "vague" | "repeat" | null;
 
@@ -172,8 +174,23 @@ export function transcriptPieces(
     }
   }
 
+  /* Set phrases (#428): a vague word doing exact work ("good luck",
+     "the very end") is not underlined, since the sheet's answer for it is
+     keep. Matched on consecutive words with only spaces between. */
+  const exact = new Set<number>();
+  for (const phrase of SET_PHRASES) {
+    const parts = phrase.split(" ");
+    for (let i = 0; i + parts.length <= tokens.length; i++) {
+      const fits = parts.every(
+        (p, k) => tokens[i + k].key === p && (k === 0 || /^\s+$/.test(text.slice(tokens[i + k - 1].to, tokens[i + k].from)))
+      );
+      if (fits) for (let k = 0; k < parts.length; k++) exact.add(i + k);
+    }
+  }
+
   // Vague: the two-word phrases first, then single words.
   for (let i = 0; i < tokens.length - 1; i++) {
+    if (exact.has(i) || exact.has(i + 1)) continue;
     for (const [a, b] of VAGUE_BIGRAMS) {
       if (tokens[i].key === a && tokens[i + 1].key === b && /^\s+$/.test(text.slice(tokens[i].to, tokens[i + 1].from))) {
         claim({ first: i, last: i + 1, mark: "vague" });
@@ -181,7 +198,7 @@ export function transcriptPieces(
     }
   }
   tokens.forEach((t, i) => {
-    if (VAGUE_SET.has(t.key)) claim({ first: i, last: i, mark: "vague" });
+    if (VAGUE_SET.has(t.key) && !exact.has(i)) claim({ first: i, last: i, mark: "vague" });
   });
 
   // Repeats: words that are not small, said three times or more.

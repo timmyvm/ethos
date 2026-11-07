@@ -344,11 +344,14 @@ export const testerMode = {
  * is a populated list; the default is empty, the page's first state.
  */
 export const SAVED_ROWS = [
-  { id: "sw-1", word: "thing", instead: "point", sentence: "So the thing about habits is, um, they compound.", rep_id: null, created_at: iso(0) },
-  { id: "sw-2", word: "really", instead: "genuinely", sentence: "I would plan a week nobody could really do, then miss a day and quit the plan instead of the day.", rep_id: null, created_at: iso(1) },
-  { id: "sw-3", word: "a lot", instead: "plenty", sentence: "There are a lot of ways to start.", rep_id: null, created_at: iso(2) },
-  { id: "sw-4", word: "compound", instead: "build on themselves", sentence: "So the thing about habits is, um, they compound.", rep_id: null, created_at: iso(4) },
-  { id: "sw-5", word: "good", instead: "solid", sentence: "It was a good plan until the second week.", rep_id: null, created_at: iso(6) },
+  /* Pairs that pass the word sheet's rule (#428): each keeps the meaning
+     and says it better in its sentence, a phrase where the idiom or the
+     intensifier is the unit. */
+  { id: "sw-1", word: "thing", instead: "problem", sentence: "We need to fix the thing with the login page before Friday.", rep_id: null, created_at: iso(0) },
+  { id: "sw-2", word: "very cold", instead: "freezing", sentence: "It was very cold on the walk home.", rep_id: null, created_at: iso(1) },
+  { id: "sw-3", word: "got", instead: "landed", sentence: "I got the job last week.", rep_id: null, created_at: iso(2) },
+  { id: "sw-4", word: "switch things up", instead: "shake things up", sentence: "I think today's the day I switch things up.", rep_id: null, created_at: iso(4) },
+  { id: "sw-5", word: "a lot of people", instead: "crowds", sentence: "There were a lot of people at the protest on Saturday.", rep_id: null, created_at: iso(6) },
 ];
 export const savedWordsMode = { rows: [], fail: false, delay: 0 };
 

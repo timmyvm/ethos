@@ -40,11 +40,12 @@ const WSUFFIX = `${WIDTH === 390 ? "" : `-${WIDTH}`}${HEIGHT === 844 ? "" : `x${
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const want = (name) => ONLY.length === 0 || ONLY.includes(name);
 
-/** What /api/words answers: a list that fits most words, after a beat. */
+/** What /api/words answers, as the v2 route would (#428): swap or keep for the word in its sentence, after a beat. */
 const wordsApi = { mode: "ok", asked: [] };
-const ALTERNATIVES = {
-  compound: ["build on themselves", "snowball", "add up", "multiply"],
-  discipline: ["willpower", "self-control", "routine", "rigour"],
+const ANSWERS = {
+  compound: { verdict: "swap", replaces: "compound", alternatives: ["snowball", "build on themselves"], note: "" },
+  discipline: { verdict: "keep", replaces: "discipline", alternatives: [], note: "It's already the precise word." },
+  thing: { verdict: "swap", replaces: "the thing about", alternatives: ["what matters about", "the point about"], note: "" },
 };
 async function wordsRoute(route) {
   let body = null;
@@ -58,8 +59,9 @@ async function wordsRoute(route) {
   }
   await sleep(350);
   if (wordsApi.mode === "fail") return route.fulfill(json({ error: "The alternatives didn't load." }, 502));
-  const word = String(body?.word ?? "").toLowerCase();
-  return route.fulfill(json({ alternatives: ALTERNATIVES[word] ?? ["moment", "turn", "point", "beat"], source: "model" }));
+  const word = String(body?.word ?? "");
+  const answer = ANSWERS[word.toLowerCase()] ?? { verdict: "swap", replaces: word, alternatives: ["moment", "turn"], note: "" };
+  return route.fulfill(json({ v: 2, ...answer, source: "model" }));
 }
 
 const browser = await chromium.launch({
@@ -82,7 +84,7 @@ async function shootTheme(theme) {
     css.textContent = "nextjs-portal{display:none!important}";
     document.addEventListener("DOMContentLoaded", () => document.head.appendChild(css));
     // The phone's copy of past answers starts empty, so every shot asks.
-    try { localStorage.removeItem("ethos.words"); } catch {}
+    try { localStorage.removeItem("ethos.words"); localStorage.removeItem("ethos.words.v2"); } catch {}
   });
   const page = await context.newPage();
   page.on("pageerror", (e) => console.log("PAGEERROR", page.url(), e.message.slice(0, 160)));

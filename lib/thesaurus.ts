@@ -1,20 +1,25 @@
 /**
- * The thesaurus behind the transcript's word sheet (#411, Timothy: "instead
- * of the definition of the word I'd like a thesaurus").
+ * The word lists behind the transcript's word sheet (#411, #428).
  *
- * Three lists, all instant and all on the phone:
+ * All instant and all on the phone:
  *
- *  - VAGUE: the words the transcript underlines as vague. Each one says
- *    less than the sentence needed (thing, stuff, good, really). A word the
- *    engine already counts as a filler (basically, actually, literally,
- *    kind of, sort of) is not here: it is underlined as the filler it was
- *    counted as, so the two marks never disagree with the number.
- *  - CURATED: alternatives for the vague words and the words people lean
- *    on most. Context-neutral, so each one fits most sentences the word
- *    fits, three to six each. Any other word asks the server
- *    (app/api/words), which reads the sentence it was said in.
+ *  - VAGUE: the words the transcript underlines as vague. Each one often
+ *    says less than the sentence needed (thing, stuff, good, really). The
+ *    underline is display only: no score reads it. A word the engine
+ *    already counts as a filler (basically, actually, literally, kind of,
+ *    sort of) is not here: it is underlined as the filler it was counted
+ *    as, so the two marks never disagree with the number.
+ *  - SET_PHRASES: phrases where a vague word is doing exact work ("good
+ *    luck", "just in case"). Their words are not underlined, since the
+ *    sheet's honest answer for them is keep.
  *  - STOPWORDS: the small words that hold a sentence together. Never
  *    counted as repeated, never sent to the server.
+ *
+ * What to say instead is never answered from a list (#428, Timothy: "the
+ * try instead words are shittt"). The curated map that used to answer
+ * here could not read the sentence, so it offered "points" for "switch
+ * things up". Every word now goes to the server (app/api/words), which
+ * reads the word in its sentence and says swap or keep.
  *
  * Copy rules apply (COPY-RULES.md): no em dashes, no gym words, and no
  * word that manufactures insecurity.
@@ -57,67 +62,27 @@ export const VAGUE_BIGRAMS: readonly (readonly [string, string])[] = VAGUE.filte
 ).map((v) => v.split(" ") as [string, string]);
 
 /**
- * Alternatives, three to six each, good in most sentences the word is
- * good in. `lib/thesaurus.test.ts` holds the shape.
+ * Phrases where a vague word is the plain, exact way to say it. The
+ * transcript leaves their words unmarked (lib/transcript-words.ts), so
+ * the underline and the sheet's "Keep it." agree. Idioms that do have a
+ * better phrasing ("switch things up") are not here and keep their mark.
  */
-export const CURATED: Readonly<Record<string, readonly string[]>> = {
-  // The vague words.
-  thing: ["point", "idea", "part", "detail", "issue", "step"],
-  things: ["points", "ideas", "parts", "details", "steps"],
-  stuff: ["material", "details", "the rest", "everything else"],
-  really: ["truly", "deeply", "genuinely", "seriously"],
-  very: ["deeply", "highly", "extremely", "especially"],
-  just: ["only", "simply", "merely"],
-  "a lot": ["many", "much", "plenty", "a great deal"],
-  good: ["strong", "solid", "useful", "sound", "effective"],
-  bad: ["weak", "poor", "harmful", "costly", "wrong"],
-  nice: ["pleasant", "kind", "welcome", "warm", "thoughtful"],
-  big: ["large", "major", "significant", "serious"],
-  great: ["excellent", "strong", "remarkable", "outstanding"],
-  huge: ["vast", "enormous", "major", "massive"],
-  amazing: ["remarkable", "striking", "impressive", "extraordinary"],
-  awesome: ["excellent", "impressive", "superb", "first-rate"],
-  // The words people lean on most.
-  important: ["central", "essential", "key", "vital", "critical"],
-  interesting: ["striking", "curious", "surprising", "telling", "unusual"],
-  different: ["distinct", "separate", "unlike", "other", "varied"],
-  hard: ["difficult", "demanding", "tough", "testing"],
-  easy: ["simple", "clear", "painless", "smooth"],
-  problem: ["issue", "obstacle", "difficulty", "snag", "challenge"],
-  problems: ["issues", "obstacles", "difficulties", "snags"],
-  help: ["support", "assist", "aid", "serve"],
-  change: ["shift", "move", "turn", "adjust"],
-  show: ["reveal", "prove", "display", "demonstrate"],
-  shows: ["reveals", "proves", "displays", "demonstrates"],
-  make: ["build", "create", "produce", "form"],
-  get: ["gain", "earn", "reach", "receive", "find"],
-  got: ["gained", "earned", "reached", "received", "found"],
-  use: ["apply", "employ", "draw on", "rely on"],
-  think: ["believe", "expect", "suspect", "reckon"],
-  know: ["understand", "see", "recognise", "realise"],
-  want: ["need", "hope", "aim", "wish"],
-  start: ["begin", "open", "launch", "set out"],
-  try: ["attempt", "test", "aim for", "set out"],
-  idea: ["plan", "notion", "proposal", "thought", "concept"],
-  people: ["everyone", "others", "listeners", "the public"],
-  way: ["method", "approach", "route", "means", "manner"],
-  many: ["numerous", "plenty of", "countless", "several"],
-  maybe: ["perhaps", "possibly", "likely"],
-  also: ["too", "as well", "besides", "plus"],
-  quite: ["fairly", "rather", "notably"],
-  always: ["every time", "reliably", "without fail", "constantly"],
-  never: ["not once", "at no point", "not ever"],
-  obviously: ["clearly", "plainly", "evidently"],
-  definitely: ["certainly", "surely", "without doubt"],
-  totally: ["fully", "completely", "entirely", "wholly"],
-  cool: ["impressive", "clever", "neat", "sharp"],
-  fun: ["enjoyable", "lively", "engaging", "playful"],
-  happy: ["glad", "pleased", "content", "delighted"],
-  sad: ["low", "down", "disappointed", "unhappy"],
-  small: ["minor", "modest", "slight", "little"],
-  fast: ["quick", "rapid", "swift", "prompt"],
-  slow: ["gradual", "unhurried", "steady", "measured"],
-};
+export const SET_PHRASES: readonly string[] = [
+  "just in case",
+  "just in time",
+  "just now",
+  "good luck",
+  "good morning",
+  "good night",
+  "for good",
+  "the very first",
+  "the very last",
+  "the very same",
+  "the very end",
+  "the very beginning",
+  "the big picture",
+  "thanks a lot",
+];
 
 /**
  * Small words. Not counted as repeated (everyone says "the" forty times),
@@ -143,11 +108,6 @@ export const STOPWORDS: ReadonlySet<string> = new Set([
   "didn't", "isn't", "aren't", "wasn't", "weren't", "can't", "couldn't", "won't", "wouldn't",
   "shouldn't", "haven't", "hasn't", "let's", "what's",
 ]);
-
-/** Instant alternatives for a word or a two-word phrase, or null when the server has to read the sentence. */
-export function curatedFor(word: string): readonly string[] | null {
-  return CURATED[wordKey(word)] ?? null;
-}
 
 export function isStopword(word: string): boolean {
   return STOPWORDS.has(wordKey(word));

@@ -49,6 +49,18 @@ describe("transcriptPieces", () => {
     expect(vague).toEqual(["thing", "a lot"]);
   });
 
+  it("leaves a vague word inside a set phrase unmarked, as the sheet's keep (#428)", () => {
+    const text = "Good luck with it. We stayed until the very end, thanks a lot. I switch things up, just in case.";
+    const units = words(text);
+    expect(units.filter((u) => u.mark === "vague").map((u) => u.text)).toEqual(["things"]);
+    // Still tappable, and still asked about in its sentence.
+    const good = units.find((u) => u.key === "good");
+    expect(good?.mark).toBeNull();
+    expect(good?.small).toBe(false);
+    // The same word outside the phrase keeps its mark.
+    expect(words("It was a good plan.").find((u) => u.key === "good")?.mark).toBe("vague");
+  });
+
   it("marks a word said three times or more, and not the small ones", () => {
     const units = words(TEXT);
     const day = units.filter((u) => u.key === "day");

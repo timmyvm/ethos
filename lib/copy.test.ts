@@ -223,7 +223,7 @@ describe("retired vocabulary", () => {
    * exactly what `lib/hostile-server.ts` had been doing.
    */
   it("never tells a model that Ethos is a gym", () => {
-    for (const file of ["lib/coach.ts", "lib/accuracy.ts", "lib/hostile-server.ts"]) {
+    for (const file of ["lib/coach.ts", "lib/accuracy.ts", "lib/hostile-server.ts", "lib/words-server.ts"]) {
       const source = readFileSync(file, "utf8");
       // Prompts are template literals; the ban is on what they SAY.
       const prompts = [...source.matchAll(/`([^`]{120,})`/g)].map((m) => m[1]);

@@ -132,9 +132,9 @@ export default function YourWords({
               </div>
             </div>
             <div aria-hidden className="mt-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-detail font-normal">
-              <span>thing</span>
+              <span>very cold</span>
               <span className="text-body text-stone-500">instead:</span>
-              <span className="you-word">point</span>
+              <span className="you-word">freezing</span>
             </div>
             <p className="mx-auto mt-3 max-w-[30ch] text-body text-pretty text-stone-500">
               Tap any word in a recording to find a better one.

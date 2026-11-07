@@ -1,26 +1,29 @@
 /**
- * POST /api/words: the word sheet's thesaurus (#411). JSON in,
- * `{ word, sentence }`; JSON out, `{ alternatives }`, three to six words
- * that fit the sentence the word was said in.
+ * POST /api/words: the word sheet's answer (#411, #428). JSON in,
+ * `{ word, sentence, at }` (`at` is where the word starts in the
+ * sentence; an old client leaves it out and the word's first place
+ * stands in). JSON out, `{ v: 2, verdict, replaces, alternatives, note,
+ * source }`: swap with one to three ways to say `replaces` better, or
+ * keep with one line that says why (lib/words.ts).
  *
  * In this order:
  *   1. The body: JSON, 2,000 characters at most, one word or a short
- *      phrase and its sentence (lib/words.ts cleanWordAsk).
+ *      phrase standing in its sentence (lib/words.ts cleanWordAsk).
  *   2. A session, guests' included (resolveAuthHeader): a stranger gets
  *      401 and the model is never asked.
- *   3. The curated map (lib/thesaurus.ts) and this instance's memory,
- *      by word and sentence: an answer already held costs nothing.
+ *   3. This instance's memory, by version, word, place and sentence: an
+ *      answer already held costs nothing. No list answers before the
+ *      sentence is read (the curated map left in #428).
  *   4. The limiter, per account (lib/rate-limit.ts `words`).
  *   5. Claude Haiku 5.5 (lib/words-server.ts); a failed or refused
- *      answer is 502, and the sheet offers its retry.
+ *      answer is 502, never remembered, and the sheet offers its retry.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { resolveAuthHeader } from "@/lib/db";
 import { consumeRateLimit } from "@/lib/rate-limit";
-import { curatedFor } from "@/lib/thesaurus";
-import { cleanWordAsk, wordCacheKey } from "@/lib/words";
-import { recallWords, rememberWords, suggestAlternatives } from "@/lib/words-server";
+import { WORDS_VERSION, cleanWordAsk, wordCacheKey } from "@/lib/words";
+import { recallAnswer, rememberAnswer, suggestAnswer } from "@/lib/words-server";
 
 export const runtime = "nodejs";
 
@@ -49,11 +52,9 @@ export async function POST(req: NextRequest) {
   if (auth.kind === "unavailable") return json({ error: "Try again." }, 503);
   if (auth.kind !== "user") return json({ error: "Sign in again." }, 401);
 
-  const curated = curatedFor(ask.word);
-  if (curated) return json({ alternatives: [...curated], source: "curated" });
   const key = wordCacheKey(ask);
-  const held = recallWords(key);
-  if (held) return json({ alternatives: held, source: "memory" });
+  const held = recallAnswer(key);
+  if (held) return json({ v: WORDS_VERSION, ...held, source: "memory" });
 
   const verdict = await consumeRateLimit(`words:u:${auth.user.id}`, "words");
   if (!verdict.allowed) {
@@ -67,11 +68,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const alternatives = await suggestAlternatives(ask).catch((e) => {
+  const answer = await suggestAnswer(ask).catch((e) => {
     console.error("words: the model call failed", e);
     return null;
   });
-  if (!alternatives) return json({ error: "The alternatives didn't load." }, 502);
-  rememberWords(key, alternatives);
-  return json({ alternatives, source: "model" });
+  if (!answer) return json({ error: "The alternatives didn't load." }, 502);
+  rememberAnswer(key, answer);
+  return json({ v: WORDS_VERSION, ...answer, source: "model" });
 }

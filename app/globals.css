@@ -6051,9 +6051,24 @@ html[data-test-tile] .test-tile-slot {
 .word-in-sentence[data-word-mark="repeat"] {
   text-decoration-style: dotted;
 }
-/* Four rows' height, held while the list loads or when it failed. */
-.word-sheet-list {
-  min-height: calc(4 * 52px);
+/* When the answer replaces the phrase around the word (#428), the set
+   apart span widens to it; the ink and the underline fade onto the
+   words that join it rather than cutting on. A colour fade, so reduced
+   motion keeps it. */
+.word-in-sentence[data-widened] {
+  animation: word-widen var(--duration-base) var(--ease-out) backwards;
+}
+@keyframes word-widen {
+  from {
+    color: var(--color-stone-500);
+    text-decoration-color: transparent;
+  }
+}
+/* Three rows' height (a typical swap), held only while the answer loads
+   or when it failed (#428): a landed answer takes its own height, and
+   the region glides there (components/WordSheet.tsx). */
+.word-sheet-list[data-held] {
+  min-height: calc(3 * 52px);
 }
 .word-row {
   display: flex;

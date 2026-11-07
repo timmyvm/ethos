@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, type MutableRefObject, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { IconBubble, IconPauseSm, IconPlay } from "@/components/Icon";
+import type { TakeAudio } from "@/components/TakeAudio";
 import type { FillerHit, Pause } from "@/lib/metrics";
 
 /**
@@ -11,14 +12,19 @@ import type { FillerHit, Pause } from "@/lib/metrics";
  * for it (vision.md: every claim traces to a timestamp).
  */
 export function AudioScrubber({
-  src,
+  take,
   durationS,
   fillers,
   pauses,
   marks = [],
-  seekRef,
 }: {
-  src: string;
+  /**
+   * The take's one audio element (components/TakeAudio.tsx, #424), held
+   * by the screen rather than by this card, so the transcript's word
+   * sheet ("Said at 0:14", #411) and the Pause row's moments play the
+   * same recording through the same element, one sound at a time.
+   */
+  take: TakeAudio;
   durationS: number;
   fillers: FillerHit[];
   pauses: Pause[];
@@ -28,61 +34,48 @@ export function AudioScrubber({
    * from every view of the take.
    */
   marks?: { t: number; label: string }[];
-  /**
-   * Handed this player's seek (#411), so something else on the screen
-   * can play the recording from a second: the transcript's word sheet,
-   * "Said at 0:14". Null again once the player is gone.
-   */
-  seekRef?: MutableRefObject<((t: number) => void) | null>;
 }) {
-  const ref = useRef<HTMLAudioElement | null>(null);
   const [t, setT] = useState(0);
   const [playing, setPlaying] = useState(false);
 
+  /* The element outlives this card (the walk's other steps play it too),
+     so the key and the playhead read it as it is when the card mounts,
+     then follow its events: a moment played elsewhere stops itself, and
+     the key turns back to play when it does. */
   useEffect(() => {
-    const a = ref.current;
+    const a = take.ref.current;
     if (!a) return;
+    setT(a.currentTime);
+    setPlaying(!a.paused && !a.ended);
     const onTime = () => setT(a.currentTime);
-    const onEnd = () => setPlaying(false);
+    const onPlay = () => setPlaying(true);
+    const onStop = () => setPlaying(false);
     a.addEventListener("timeupdate", onTime);
-    a.addEventListener("ended", onEnd);
+    a.addEventListener("play", onPlay);
+    a.addEventListener("pause", onStop);
+    a.addEventListener("ended", onStop);
     return () => {
       a.removeEventListener("timeupdate", onTime);
-      a.removeEventListener("ended", onEnd);
+      a.removeEventListener("play", onPlay);
+      a.removeEventListener("pause", onStop);
+      a.removeEventListener("ended", onStop);
     };
-  }, []);
+  }, [take.ref]);
 
   /*
-   * Every start names its position (#406). On an iPhone the play key
-   * sounded nothing while the filler chips, which seek first, always
-   * did: a recording that has never been seeked can sit unloaded at 0.
-   * So play seeks too, a millisecond in when it starts from the top, and
-   * the key only shows pause once the audio really runs.
+   * Every start names its position (#406): the take's play seeks first,
+   * a millisecond in when it starts from the top, and the key shows
+   * pause once the element says it is playing.
    */
   function seek(to: number) {
-    const a = ref.current;
-    if (!a) return;
-    a.currentTime = Math.max(0.001, Math.min(durationS - 0.05, to));
-    setPlaying(true);
-    a.play().catch(() => setPlaying(false));
+    take.play(to);
   }
 
-  useEffect(() => {
-    if (!seekRef) return;
-    seekRef.current = (to: number) => seek(to);
-    return () => {
-      seekRef.current = null;
-    };
-    // `seek` reads the audio through its ref and the length from props.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seekRef, durationS]);
-
   function toggle() {
-    const a = ref.current;
+    const a = take.ref.current;
     if (!a) return;
     if (playing) {
       a.pause();
-      setPlaying(false);
     } else {
       seek(a.ended || a.currentTime >= durationS - 0.1 ? 0 : a.currentTime);
     }
@@ -124,9 +117,6 @@ export function AudioScrubber({
           )}
         </div>
       </div>
-      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-      <audio ref={ref} src={src} preload="metadata" />
-
       <div className="mt-4 flex items-center gap-3">
         {/* A key in the pills' own grammar: surface, hairline, the tap's
             colour in the glyph. The screen's one terracotta FILL is its

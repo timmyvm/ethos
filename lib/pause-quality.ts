@@ -283,6 +283,94 @@ export function reportJudged(judged: JudgedPause[], durationS: number): PauseRep
   };
 }
 
+// --- the moments a filled pause is heard at (DECISIONS #424) ---------
+
+/** A moment plays from this long before its pause starts... */
+export const MOMENT_LEAD_S = 1;
+/** ...to this long after it ends, so the sound is heard in its context. */
+export const MOMENT_TAIL_S = 1;
+/** The sentence names this many moments, then counts the rest. */
+export const MOMENTS_NAMED = 3;
+
+/** One filled pause, as the Pause row names it and plays it. */
+export interface FilledMoment {
+  /** Where the pause starts, in seconds on the take's clock. */
+  t: number;
+  /** "0:15", exactly as the pause's own stored note writes it. */
+  clock: string;
+  /** Where playback starts: a second before the pause, never before 0. */
+  from: number;
+  /** Where playback stops: a second after the pause ends. */
+  until: number;
+  /** The chip's accessible name: its visible text, then what it does. */
+  label: string;
+}
+
+/**
+ * The sentence in pieces, so each named moment can be drawn as a chip.
+ * A piece that `keep`s is never broken across lines ("and 2 more").
+ */
+export type MomentsPart =
+  | { kind: "moment"; moment: FilledMoment }
+  | { kind: "text"; text: string; keep?: boolean };
+
+export interface FilledMoments {
+  /** Every filled pause, in the order they were said. */
+  moments: FilledMoment[];
+  /** The sentence, the named moments standing in it. */
+  parts: MomentsPart[];
+  /** The same sentence as plain text. */
+  sentence: string;
+}
+
+/**
+ * The pauses a take judged filled, as moments you can hear back: "0:15
+ * and 0:40 had a sound in them." Read off the verdicts the take stored
+ * and showed (#422), never judged again and never rescored, so a stored
+ * recording names the moments its own pauses carry, and a row stored
+ * before verdicts existed names none. Null when nothing was filled.
+ */
+export function filledMoments(
+  pauses: readonly (Pause & { verdict?: PauseVerdict })[] | null | undefined
+): FilledMoments | null {
+  const moments = (pauses ?? [])
+    .filter((p) => p.verdict === "filled" && Number.isFinite(p.t) && Number.isFinite(p.len))
+    .sort((a, b) => a.t - b.t)
+    .map((p): FilledMoment => {
+      const at = clock(Math.max(0, p.t));
+      return {
+        t: p.t,
+        clock: at,
+        from: Math.max(0, p.t - MOMENT_LEAD_S),
+        until: p.t + p.len + MOMENT_TAIL_S,
+        label: `Play ${at}, a pause with a sound in it`,
+      };
+    });
+  if (moments.length === 0) return null;
+
+  const named = moments.slice(0, MOMENTS_NAMED);
+  const more = moments.length - named.length;
+  const parts: MomentsPart[] = [];
+  named.forEach((moment, i) => {
+    if (i > 0) {
+      const last = i === named.length - 1 && more === 0;
+      parts.push({ kind: "text", text: last ? " and " : ", " });
+    }
+    parts.push({ kind: "moment", moment });
+  });
+  if (more > 0) {
+    parts.push({ kind: "text", text: " " }, { kind: "text", text: `and ${more} more`, keep: true });
+  }
+  parts.push({
+    kind: "text",
+    text: moments.length === 1 ? " had a sound in it." : " had a sound in them.",
+  });
+  const sentence = parts
+    .map((p) => (p.kind === "moment" ? p.moment.clock : p.text))
+    .join("");
+  return { moments, parts, sentence };
+}
+
 function landedTheEnding(judged: JudgedPause[], durationS: number): boolean {
   if (durationS <= 0) return false;
   return judged.some(

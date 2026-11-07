@@ -11,6 +11,7 @@ import { PauseBar } from "@/components/PauseBar";
 import { Says, SAID_AFTER_MS } from "@/components/Says";
 import { SpeechBubble } from "@/components/SpeechBubble";
 import { Stars } from "@/components/Stars";
+import type { TakeAudio } from "@/components/TakeAudio";
 import { TRAIT, type TraitId } from "@/content/traits";
 import type { AccuracyResult } from "@/lib/accuracy";
 import type { CoachOutput } from "@/lib/coach";
@@ -75,6 +76,7 @@ export function RepResult({
   player,
   hasPlayer = player != null,
   onPlay,
+  take = null,
   celebrate = false,
   spread = false,
   round = null,
@@ -122,6 +124,13 @@ export function RepResult({
    * the word sheet's "Said at 0:14". Absent where nothing can play it.
    */
   onPlay?: (t: number) => void;
+  /**
+   * The take's audio (components/TakeAudio.tsx, #424), for the Pause
+   * row's moments: each filled pause's timestamp plays that stretch of
+   * the recording. Absent where nothing can play it, and the moments
+   * read as plain text.
+   */
+  take?: TakeAudio | null;
   /**
    * A star landed or the streak held (M08). With `live`, on the score
    * section: once the stars have landed, Demos swaps to the celebrate
@@ -621,6 +630,7 @@ export function RepResult({
               metrics={m}
               coach={coach}
               pauseDetail={result.pauseHeadline ?? undefined}
+              take={take}
               fill={live}
             />
           </div>

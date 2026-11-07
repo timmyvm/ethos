@@ -3338,6 +3338,59 @@ summary::-webkit-details-marker {
   margin-top: 6px;
   text-wrap: balance;
 }
+/* The Pause row's moments (#424): a filled pause's timestamp, standing
+   in its sentence ("0:15 and 0:40 had a sound in them.") as a chip that
+   plays the take there. The button is the 44px target, its padding
+   pulled back by negative margins so the sentence keeps its lines; the
+   pill inside is what is seen, in Hear it back's chip grammar (surface,
+   edge, ink, the glyph in the trait's tone), so the press and the focus
+   ring are drawn on the pill and never on the invisible target. */
+.moment-chip {
+  display: inline-flex;
+  padding-block: 11px;
+  margin-block: -11px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.moment-chip:focus-visible {
+  outline: none;
+}
+.moment-chip:focus-visible > .moment-pill {
+  outline: 2px solid var(--color-terracotta-500);
+  outline-offset: 2px;
+}
+.moment-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding-inline: 7px 8px;
+  border: 1px solid var(--color-edge);
+  border-radius: 9999px;
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  transition:
+    transform var(--spring-snappy-duration) var(--spring-snappy),
+    border-color var(--duration-fast) var(--ease-out);
+}
+/* Playing: its edge takes the tone its glyph wears, the glyph turns to
+   pause, until the moment has played. */
+.moment-pill[data-playing] {
+  border-color: var(--tone);
+}
+.moment-chip:active > .moment-pill {
+  transform: scale(0.97);
+  background-image: linear-gradient(var(--press-veil), var(--press-veil));
+}
+:root[data-motion="reduce"] .moment-pill {
+  transition: none;
+}
+:root[data-motion="reduce"] .moment-chip:active > .moment-pill {
+  transform: none;
+}
 /* The ochre's own deeper arc went with D05: Restarts' tone is #b06f00,
    3.23:1 on sand, so its ring and bar are the tone like the other four
    (lib/today-colour.test.ts). */

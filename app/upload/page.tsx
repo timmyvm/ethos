@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { AudioScrubber } from "@/components/AudioScrubber";
+import { useTakeAudio } from "@/components/TakeAudio";
 import { IconUpload } from "@/components/Icon";
 import { RepResult } from "@/components/RepResult";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
@@ -69,6 +70,9 @@ export default function UploadPage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  /* The file's one audio element (#424): Hear it back and the Pause
+     row's moments play through it. No file kept, nothing to play. */
+  const take = useTakeAudio(audioUrl, result?.metrics.durationS ?? 0);
 
   async function analyze(file: File) {
     setError(null);
@@ -207,19 +211,21 @@ export default function UploadPage() {
           {/* The player rides on the words section, above the
               transcript, and the static filler chips go, since the
               pills on the player play them (A4's RepResult props). */}
+          {take.element}
           <RepResult
             result={result}
             section="all"
             player={
               audioUrl ? (
                 <AudioScrubber
-                  src={audioUrl}
+                  take={take}
                   durationS={result.metrics.durationS}
                   fillers={result.metrics.fillers}
                   pauses={result.metrics.pauses}
                 />
               ) : undefined
             }
+            take={take}
           />
           <div className="mt-7 flex gap-3">
             <button

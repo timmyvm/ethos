@@ -1,9 +1,12 @@
+import { Fragment, type ReactNode } from "react";
 import { IconChevron } from "@/components/Icon";
+import type { TakeAudio } from "@/components/TakeAudio";
 import { TRAIT, type TraitId } from "@/content/traits";
 import type { CoachOutput } from "@/lib/coach";
 import { dimensionPoints, type Tier1Scores, type Tier2Anchors } from "@/lib/index-score";
 import { ALL_FILLERS_PER_MIN } from "@/lib/metric-labels";
 import type { RepMetrics } from "@/lib/metrics";
+import { filledMoments, type FilledMoment, type FilledMoments } from "@/lib/pause-quality";
 
 interface Row {
   name: string;
@@ -17,6 +20,8 @@ interface Row {
   score: number;
   weight: number;
   detail: string;
+  /** The Pause row's moments (#424), under its detail. */
+  moments?: ReactNode;
   improve?: string;
 }
 
@@ -41,6 +46,7 @@ export function DimensionList({
   metrics,
   coach,
   pauseDetail,
+  take = null,
   fill = false,
 }: {
   tier1: Tier1Scores;
@@ -50,11 +56,21 @@ export function DimensionList({
   /** The pause report's own line, when the results screen has one. */
   pauseDetail?: string;
   /**
+   * The take's audio (#424): each filled pause the Pause row names plays
+   * from a second before it to a second after. Null, or a take that
+   * cannot play, and the timestamps are plain text.
+   */
+  take?: TakeAudio | null;
+  /**
    * The debrief only (DECISIONS #225): the bars fill from nothing as
    * the numbers arrive. A stored recording's bars are already there.
    */
   fill?: boolean;
 }) {
+  /* The filled pauses' moments, read off the verdicts the take stored
+     (#422): nothing is judged again or rescored here. */
+  const moments = filledMoments(metrics.pauses);
+
   const measured: Row[] = [
     {
       name: TRAIT.pause.name,
@@ -69,6 +85,9 @@ export function DimensionList({
           ? ` Plus ${metrics.unvoicedHesitations} short mid-sentence gaps, under the held-pause bar: quiet hesitation.`
           : ""
       }`,
+      moments: moments ? (
+        <PauseMoments moments={moments} take={take?.playable ? take : null} />
+      ) : undefined,
     },
     {
       name: TRAIT.fillers.name,
@@ -213,6 +232,7 @@ export function DimensionList({
                 open and never on the page's load. */}
             <div className="reveal mt-2 pl-[11px] text-caption leading-relaxed text-stone-500">
               {row.detail}
+              {row.moments}
               {row.improve && (
                 <div className="mt-1 text-stone-600">↳ {row.improve}</div>
               )}
@@ -243,6 +263,96 @@ export function DimensionList({
         </p>
       )}
     </div>
+  );
+}
+
+/**
+ * "0:15 and 0:40 had a sound in them." (#424): the moments a lower Pause
+ * score comes from, each a chip that plays the take a second either side
+ * of its pause, so the number traces to something you can hear. With no
+ * take to play (a stored recording whose audio is gone, an upload that
+ * was not kept, a file that would not decode) the times are plain text.
+ */
+function PauseMoments({
+  moments,
+  take,
+}: {
+  moments: FilledMoments;
+  take: TakeAudio | null;
+}) {
+  const { parts } = moments;
+  const out: ReactNode[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (part.kind === "text") {
+      out.push(
+        part.keep ? (
+          <span key={i} className="whitespace-nowrap">
+            {part.text}
+          </span>
+        ) : (
+          <Fragment key={i}>{part.text}</Fragment>
+        )
+      );
+      continue;
+    }
+    const time = take ? (
+      <MomentChip moment={part.moment} take={take} />
+    ) : (
+      <span data-pause-moment className="font-semibold tabular-nums text-ink">
+        {part.moment.clock}
+      </span>
+    );
+    /* A list's comma stays with the time before it, so a narrow phone
+       never starts a line on it. */
+    const next = parts[i + 1];
+    if (next?.kind === "text" && next.text.startsWith(",")) {
+      out.push(
+        <span key={i} className="whitespace-nowrap">
+          {time},
+        </span>,
+        next.text.slice(1)
+      );
+      i++;
+    } else {
+      out.push(<Fragment key={i}>{time}</Fragment>);
+    }
+  }
+  /* Balanced, so a list that wraps breaks into two even lines ("0:15,
+     0:27, 0:40" over "and 1 more had a sound in them.") rather than
+     leaving a word or two under a full line. Chips take a 28px line so
+     two rows of them never touch; plain times keep the detail's own. */
+  return (
+    <p data-trait="pause" className={`text-balance ${take ? "mt-1 leading-7" : ""}`}>
+      {out}
+    </p>
+  );
+}
+
+/** One moment: plays its stretch of the take, or stops it while it plays. */
+function MomentChip({ moment, take }: { moment: FilledMoment; take: TakeAudio }) {
+  const playing =
+    take.span !== null && take.span.from === moment.from && take.span.until === moment.until;
+  return (
+    <button
+      type="button"
+      data-pause-moment
+      aria-label={moment.label}
+      aria-pressed={playing}
+      onClick={() => (playing ? take.pause() : take.play(moment.from, moment.until))}
+      className="moment-chip align-baseline"
+    >
+      <span className="moment-pill" data-playing={playing || undefined}>
+        <svg aria-hidden width="8" height="8" viewBox="0 0 10 10" className="shrink-0 text-[var(--tone)]">
+          {playing ? (
+            <path d="M1.5 1h2.5v8H1.5zM6 1h2.5v8H6z" fill="currentColor" />
+          ) : (
+            <path d="M2 1l7 4-7 4z" fill="currentColor" />
+          )}
+        </svg>
+        {moment.clock}
+      </span>
+    </button>
   );
 }
 

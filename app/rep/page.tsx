@@ -13,6 +13,7 @@ import {
   useState,
 } from "react";
 import { AudioScrubber } from "@/components/AudioScrubber";
+import { useTakeAudio } from "@/components/TakeAudio";
 import { BestPlaque } from "@/components/rep/BestPlaque";
 import { PremiumDoor } from "@/components/PremiumMark";
 import { Coin } from "@/components/Coin";
@@ -2719,8 +2720,13 @@ function Results({
   const backTo = safeBack(searchParams.get("back"));
   const [step, setStep] = useState(0);
   const section = STEPS[step].key;
-  /** The player's seek, for the transcript's word sheet (#411). */
-  const seekRef = useRef<((t: number) => void) | null>(null);
+  /*
+   * The take's one audio element (#424), held for the whole walk: Hear
+   * it back, a word's "Said at" (#411) and the Pause row's moments all
+   * play through it, one sound at a time. A step left behind stops it,
+   * as leaving the words step always did.
+   */
+  const take = useTakeAudio(audioUrl, result.metrics.durationS);
   /*
    * The match check (migration 0020): a tester's one question about the
    * score, at the top of the last step, so it is asked after the score
@@ -2745,6 +2751,10 @@ function Results({
    * the score carries it then (lib/tester.ts withPending).
    */
   const [askingFelt, setAskingFelt] = useState(() => match);
+  const stopTake = take.pause;
+  useEffect(() => {
+    stopTake();
+  }, [step, askingFelt, stopTake]);
   const last = step === STEPS.length - 1;
   // One answer to "what next": the path's (DECISIONS #220). Home's
   // floor and the road read nextLesson, so the debrief does too. Before
@@ -3107,6 +3117,8 @@ function Results({
           the sand trough, a third per step, sliding on the base spring
           (M07, Duolingo's walk). No segments and no label: the bar is
           the count, and terracotta stays the tap's. */}
+      {take.element}
+
       <div
         role="progressbar"
         aria-label="Debrief"
@@ -3226,18 +3238,19 @@ function Results({
               player={
                 audioUrl ? (
                   <AudioScrubber
-                    src={audioUrl}
+                    take={take}
                     durationS={result.metrics.durationS}
                     fillers={result.metrics.fillers}
                     pauses={result.metrics.pauses}
                     marks={cutInMarks.map((c) => ({ t: c.t, label: c.line ?? "Demos" }))}
-                    seekRef={seekRef}
                   />
                 ) : undefined
               }
               hasPlayer={!!audioUrl}
               /* A word's "Said at" plays the take from there (#411). */
-              onPlay={(t) => seekRef.current?.(t)}
+              onPlay={(t) => take.play(t)}
+              /* The Pause row's moments play their stretch of it (#424). */
+              take={take}
             />
           </div>
 

@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 import { AudioScrubber } from "@/components/AudioScrubber";
+import { useTakeAudio } from "@/components/TakeAudio";
 import { Paywall, type PaywallAsk } from "@/components/Paywall";
 import { PresenceDetail, PresenceScore } from "@/components/PresenceCard";
 import { RepResult, type ResultView } from "@/components/RepResult";
@@ -79,8 +80,9 @@ export default function RepDetail({
   /** The plan's read failed: unknown for good, drawn unlocked, never walled. */
   const [planFailed, setPlanFailed] = useState(false);
   const [paywall, setPaywall] = useState<PaywallAsk | null>(null);
-  /** The player's seek, for the transcript's word sheet (#411). */
-  const seekRef = useRef<((t: number) => void) | null>(null);
+  /* The recording's one audio element (#424): Hear it back, a word's
+     "Said at" (#411) and the Pause row's moments play through it. */
+  const take = useTakeAudio(stored?.audio ?? null, stored?.rep?.duration_s ?? 0);
   /* Tester mode (docs/testers.md): a tester can answer, or change, the
      match question about any recording here, after the live results. */
   const tester = useTester();
@@ -314,22 +316,24 @@ export default function RepDetail({
         </Link>
       )}
 
+      {take.element}
       <RepResult
         result={view}
         topic={topic}
         player={
           audio ? (
             <AudioScrubber
-              src={audio}
+              take={take}
               durationS={rep.duration_s}
               fillers={rep.fillers ?? []}
               pauses={rep.pauses ?? []}
-              seekRef={seekRef}
             />
           ) : undefined
         }
         hasPlayer={!!audio}
-        onPlay={(t) => seekRef.current?.(t)}
+        onPlay={(t) => take.play(t)}
+        /* The Pause row's moments play from the stored audio (#424). */
+        take={take}
       />
 
       {/*

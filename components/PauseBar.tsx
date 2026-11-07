@@ -1,5 +1,6 @@
 import { IconBubble } from "@/components/Icon";
 import type { Pause } from "@/lib/metrics";
+import { heldPauseMarks, landedPause as landed, PAUSE_MARK_WORDS } from "@/lib/pause-mark";
 import type { PauseVerdict } from "@/lib/pause-quality";
 
 /** Stored rows carry a verdict once they've been judged. */
@@ -22,11 +23,6 @@ export const SPEECH_MARK = "bg-stone-400";
 export const LANDED_MARK = "bg-sage-600";
 export const SEARCHING_MARK = "border-[1.5px] border-ink bg-transparent";
 
-/** Whether a held pause landed a point: the verdict when there is one,
-    the old kind check for rows recorded before verdicts existed. */
-const landed = (p: { kind?: Pause["kind"]; verdict?: PauseVerdict }) =>
-  p.verdict ? p.verdict === "landing" || p.verdict === "opening" : p.kind === "pre";
-
 /**
  * The signature element (DECISIONS.md #8): silence rendered sage as
  * achievement.
@@ -36,7 +32,8 @@ const landed = (p: { kind?: Pause["kind"]; verdict?: PauseVerdict }) =>
  * dead air, is still a pre-sentence pause — but it isn't an
  * achievement, and painting it as one was the same flattery the pause
  * score itself was guilty of. Rows recorded before the verdicts existed
- * fall back to the old kind check.
+ * fall back to the old kind check. The rule is lib/pause-mark.ts, which
+ * Hear it back's track on the words step draws by too.
  *
  * The eyebrow names the thing and nothing else (log-10, recording-11):
  * the legend carries what the colours mean, once.
@@ -86,9 +83,7 @@ export function PauseBar({
   speechTo(Math.max(durationS, cursor));
 
   // The bar's text alternative: held pauses exclude beats.
-  const held = pauses.filter((p) => p.kind !== "beat");
-  const landedCount = held.filter(landed).length;
-  const searchingCount = held.length - landedCount;
+  const { held: heldCount, landed: landedCount, searching: searchingCount } = heldPauseMarks(pauses);
 
   return (
     /* D52: a raised `.card` that follows the theme, like every other
@@ -98,7 +93,7 @@ export function PauseBar({
       <div className="eyebrow">Pauses</div>
       <div
         role="img"
-        aria-label={`${held.length} held pause${held.length === 1 ? "" : "s"}, ${landedCount} landed a point`}
+        aria-label={`${heldCount} held pause${heldCount === 1 ? "" : "s"}, ${landedCount} ${PAUSE_MARK_WORDS.landed}`}
         className="forced-color-adjust-none mt-3 flex h-14 items-center gap-[3px] overflow-hidden"
       >
         {clip(segs).map((s, i) => {
@@ -137,7 +132,7 @@ export function PauseBar({
           );
         })}
       </div>
-      {(held.length > 0 || marks.length > 0) && (
+      {(heldCount > 0 || marks.length > 0) && (
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-caption text-stone-500">
           {marks.map((m, i) => (
             <span key={`m${i}`} className="inline-flex items-center gap-1.5 text-ink">
@@ -150,13 +145,13 @@ export function PauseBar({
           {landedCount > 0 && (
             <span aria-hidden className="inline-flex items-center gap-1.5">
               <span className={`inline-block h-1.5 w-2.5 ${LANDED_MARK}`} />
-              landed a point
+              {PAUSE_MARK_WORDS.landed}
             </span>
           )}
           {searchingCount > 0 && (
             <span aria-hidden className="inline-flex items-center gap-1.5">
               <span className={`inline-block h-1.5 w-2.5 ${SEARCHING_MARK}`} />
-              searching
+              {PAUSE_MARK_WORDS.searching}
             </span>
           )}
         </div>

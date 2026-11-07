@@ -16,12 +16,17 @@
  * focus (two, the first chip focused by key), long (an 88s take with 34
  * gaps: the map draws the pause the row names), video (the one-sound probe,
  * no shot), stored, stored-playing, stored-silent, stored-broken.
+ * Hear it back's track on the words step, marked by verdict as the map
+ * is: words-two (two filled, one before a sentence), words-clean,
+ * words-stored, words-upload (needs LOOK_WAV) and words-round (a Q&A
+ * round, its cut-in on the track); its shots are tagged hear-, as in
+ *   LOOK_WAV=/path/to/62s.wav node scripts/look-pause-moments.mjs hear-after words-two words-clean words-stored words-round
  * LOOK_THEMES=light,dark picks the themes. Every probe prints a line
  * that starts PROBE; a broken promise prints FAIL.
  */
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 import { mkdirSync, readFileSync } from "node:fs";
-import { supabaseRoute as supabase, analyzeBody, json, session, seed, POSE_PREF, reps } from "./look-fixtures.mjs";
+import { supabaseRoute as supabase, analyzeBody, json, session, seed, POSE_PREF, reps, resetPlan } from "./look-fixtures.mjs";
 
 const [, , TAG = "after", ...ONLY] = process.argv;
 const BASE = process.env.LOOK_BASE ?? "http://localhost:3123";
@@ -102,6 +107,26 @@ const LONG = (() => {
   return { pauses: out, durationS: Math.round(t + 0.5) };
 })();
 const live = { body: bodyFor(SETS.two) };
+
+/* Hear it back's track on the words step (DECISIONS #424, its last
+   line): two pauses the take judged filled, one before a sentence (the
+   kind the track used to draw sage; the mic heard it, so no filler tick
+   stands on it) and one mid-sentence; a clean take,
+   whose track draws as it always did; the same two on a stored
+   recording; and a Q&A round, whose cut-in still stands on the track. */
+const HEAR = {
+  two: [P.opening, P.hes, P.b, { t: 36.8, len: 1.0, kind: "mid", verdict: "filled" }, P.land],
+  clean: [P.opening, P.hes, { t: 30.2, len: 1.3, kind: "pre", verdict: "landing" }, P.land],
+};
+const cleanBody = () => ({ ...bodyFor(HEAR.clean), pauseHeadline: "Three silences landed a point; one was searching." });
+const roundBody = () => ({
+  ...bodyFor(HEAR.two),
+  mode: "game",
+  round: {
+    game: "qa", v: 1, level: 1, cap: 90, durationS: 62, stoppedBy: "you", lastWord: 61.4, stars: 2, scorable: true, counted: true, best: 22,
+    cutIns: [{ at: 24.2, line: "Says who?", gap: 1.1, gapFrom: 24.4, gapTo: 25.5, verdict: "held", fillerAt: null, fillerWord: null, cleanAfter: 22, spokeAfter: 30 }],
+  },
+});
 
 /* A stored recording with its audio: rep-22 keeps its row, with these
    pauses and an audio path the audio route answers. */
@@ -229,6 +254,115 @@ async function shootTheme(theme) {
     await page.waitForSelector("details summary:has-text('Pausing')", { timeout: 8000 });
     await sleep(600);
   };
+
+  /**
+   * Hear it back's track, read off the page: each pause band's second
+   * and colour, the cut-in rules, the legend's words. A band the take
+   * judged filled drawn sage, or one that landed drawn without it, is a
+   * FAIL; so is a round whose cut-in left the track.
+   */
+  const probeTrack = async (scene, pauses, durationS, cutIns = 0) => {
+    const t = await page.evaluate(() => {
+      const card = [...document.querySelectorAll("main .eyebrow")].find((e) => e.textContent === "Hear it back")?.closest(".card");
+      const bar = card?.querySelector(".relative.h-8");
+      const spans = [...(bar?.children ?? [])].map((s) => ({ cls: String(s.className), left: parseFloat(s.style.left), width: parseFloat(s.style.width) }));
+      const legend = [...(card?.querySelector(".eyebrow")?.nextElementSibling?.children ?? [])].map((k) => k.textContent.trim());
+      const chips = [...(card?.querySelectorAll("button[aria-label]") ?? [])].map((b) => b.getAttribute("aria-label"));
+      const head = card?.querySelector(".eyebrow")?.parentElement?.getBoundingClientRect();
+      const keys = [...(card?.querySelector(".eyebrow")?.nextElementSibling?.children ?? [])].map((k) => k.getBoundingClientRect());
+      const keysW = keys.length ? Math.max(...keys.map((r) => r.right)) - Math.min(...keys.map((r) => r.left)) : 0;
+      return { found: !!card, spans, legend, chips, headH: head?.height ?? 0, headW: head?.width ?? 0, keysW, hScroll: document.documentElement.scrollWidth > window.innerWidth };
+    });
+    if (!t.found) return fail(`${scene} ${theme}: no Hear it back card`);
+    const bands = t.spans.filter((s) => Number.isFinite(s.width));
+    const drawn = bands.map((b) => ({ at: +((b.left * durationS) / 100).toFixed(1), sage: /sage/.test(b.cls), cls: b.cls.replace(/absolute top-0 h-full ?/, "") }));
+    const rules = t.spans.filter((s) => /bg-ink\/70/.test(s.cls)).length;
+    console.log(`PROBE ${scene} ${WIDTH}x${HEIGHT} ${theme}: legend ${JSON.stringify(t.legend)} ${Math.round(t.keysW)} of ${Math.round(t.headW)}px, header ${Math.round(t.headH)}px tall, ${rules} cut-in rule(s)`);
+    console.log(`PROBE   bands ${JSON.stringify(drawn.map((d) => [d.at, d.cls]))}`);
+    for (const p of pauses.filter((x) => x.kind !== "beat")) {
+      const band = drawn.find((d) => Math.abs(d.at - p.t) < 0.2);
+      if (!band) { fail(`${scene} ${theme}: no band at ${p.t}s`); continue; }
+      const landed = p.verdict ? p.verdict === "landing" || p.verdict === "opening" : p.kind === "pre";
+      if (band.sage !== landed) fail(`${scene} ${WIDTH}x${HEIGHT} ${theme}: ${p.t}s (${p.kind}, ${p.verdict ?? "no verdict"}) is ${band.sage ? "sage" : "not sage"} on the track`);
+    }
+    if (rules !== cutIns) fail(`${scene} ${theme}: ${rules} cut-in rules on the track, ${cutIns} expected`);
+    if (cutIns && !t.chips.some((c) => /^Says who\?/.test(c ?? ""))) fail(`${scene} ${theme}: no cut-in chip`);
+    if (t.hScroll) fail(`${scene} ${WIDTH}x${HEIGHT} ${theme}: the page scrolls sideways`);
+  };
+  /** Hear it back near the top of the screen, the transcript under it. */
+  const showHear = async () => {
+    await page.waitForSelector('input[aria-label="Playback position"]', { timeout: 8000 });
+    await page.evaluate(() => {
+      const card = [...document.querySelectorAll("main .eyebrow")].find((e) => e.textContent === "Hear it back")?.closest(".card");
+      window.scrollBy(0, (card?.getBoundingClientRect().top ?? 0) - 120);
+    });
+    await sleep(400);
+  };
+  const toWords = async () => {
+    await page.getByRole("button", { name: /Your words/ }).first().click();
+    await showHear();
+  };
+  for (const [scene, body, pauses] of [
+    ["words-two", () => bodyFor(HEAR.two), HEAR.two],
+    ["words-clean", cleanBody, HEAR.clean],
+  ]) {
+    if (!want(scene)) continue;
+    await step(async () => {
+      await walk(body());
+      await toWords();
+      await probeTrack(scene, pauses, 62);
+      await shot(scene);
+    });
+  }
+  if (want("words-stored")) {
+    await step(async () => {
+      stored.pauses = HEAR.two.map((p) => ({ ...p }));
+      stored.audio_path = "look/rep-22.webm";
+      audio.mode = "ok";
+      await page.goto(`${BASE}/rep/rep-22`);
+      await showHear();
+      await probeTrack("words-stored", HEAR.two, stored.duration_s);
+      await shot("words-stored");
+    });
+  }
+  /* An upload: the file goes in as it is, the same take comes back. */
+  if (want("words-upload") && WAV) {
+    await step(async () => {
+      live.body = bodyFor(HEAR.two);
+      await page.goto(`${BASE}/upload`);
+      await page.setInputFiles("#upload-file", { name: "take.wav", mimeType: "audio/wav", buffer: WAV });
+      await showHear();
+      await probeTrack("words-upload", HEAR.two, 62);
+      await shot("words-upload");
+    });
+  }
+  /* A Q&A round (Premium, so the plan is an invite code's for it). */
+  if (want("words-round")) {
+    await step(async () => {
+      resetPlan("code");
+      try {
+        live.body = roundBody();
+        await page.goto(`${BASE}/rep?game=qa&q=qa2`);
+        await page.waitForSelector('button[aria-label="Start recording"]', { timeout: 30000 });
+        await sleep(800);
+        await page.click('button[aria-label="Start recording"]', { force: true });
+        await page.waitForSelector('button[aria-label="Stop and score this recording"]');
+        await sleep(2600);
+        await page.click('button[aria-label="Stop and score this recording"]', { force: true });
+        await page.waitForSelector("main .arrive-x", { timeout: 30000 });
+        await page.waitForSelector('[role="dialog"]', { state: "detached", timeout: 8000 }).catch(() => {});
+        await sleep(4000);
+        await page.getByRole("button", { name: /The numbers/ }).first().click();
+        await page.waitForSelector("details summary:has-text('Pausing')", { timeout: 8000 });
+        await sleep(600);
+        await toWords();
+        await probeTrack("words-round", HEAR.two, 62, 1);
+        await shot("words-round");
+      } finally {
+        resetPlan();
+      }
+    });
+  }
 
   for (const n of ["two", "three", "four"]) {
     if (!want(n) && !(n === "two" && want("focus"))) continue;

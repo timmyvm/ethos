@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { IconBubble, IconPauseSm, IconPlay } from "@/components/Icon";
 import type { TakeAudio } from "@/components/TakeAudio";
 import type { FillerHit, Pause } from "@/lib/metrics";
+import { heldPauseMarks, pauseMark, PAUSE_MARK_WORDS, type MarkedPause, type PauseMark } from "@/lib/pause-mark";
 
 /**
  * Play the rep back with its own timeline marked up: tap any filler to
@@ -27,7 +28,13 @@ export function AudioScrubber({
   take: TakeAudio;
   durationS: number;
   fillers: FillerHit[];
-  pauses: Pause[];
+  /**
+   * The take's pauses with the verdicts it stored and showed: each band
+   * is marked by its verdict, as the pause map marks it, so a pause the
+   * Pause row calls filled is never drawn as earned here (#424). A row
+   * from before verdicts is marked by its kind.
+   */
+  pauses: (Pause & MarkedPause)[];
   /**
    * When Demos cut in (the games plan, item 4): a rule on the track and a
    * chip that plays from a second before him, so the moment can be found
@@ -82,6 +89,7 @@ export function AudioScrubber({
   }
 
   const pct = (n: number) => (durationS > 0 ? (n / durationS) * 100 : 0);
+  const held = heldPauseMarks(pauses);
 
   return (
     /* The card is the Fillers trait's ground (recording-20, system-9):
@@ -109,11 +117,11 @@ export function AudioScrubber({
               filler
             </Key>
           )}
-          {pauses.some((p) => p.kind === "pre") && (
-            <Key mark={PAUSE_MARK.pre}>held pause</Key>
+          {held.landed > 0 && (
+            <Key mark={PAUSE_MARK.landed}>{PAUSE_MARK_WORDS.landed}</Key>
           )}
-          {pauses.some((p) => p.kind === "mid") && (
-            <Key mark={PAUSE_MARK.mid}>mid-sentence</Key>
+          {held.searching > 0 && (
+            <Key mark={PAUSE_MARK.searching}>{PAUSE_MARK_WORDS.searching}</Key>
           )}
         </div>
       </div>
@@ -139,15 +147,18 @@ export function AudioScrubber({
           <div className="relative h-8 overflow-hidden bg-sand">
             {pauses
               .filter((p) => p.kind !== "beat")
-              .map((p, i) => (
-                <span
-                  key={`p${i}`}
-                  className={`absolute top-0 h-full ${
-                    p.kind === "pre" ? PAUSE_MARK.pre : PAUSE_MARK.mid
-                  }`}
-                  style={{ left: `${pct(p.t)}%`, width: `${pct(p.len)}%` }}
-                />
-              ))}
+              .map((p, i) => {
+                const mark = pauseMark(p);
+                return (
+                  <span
+                    key={`p${i}`}
+                    aria-hidden
+                    data-pause-mark={mark}
+                    className={`absolute top-0 h-full ${PAUSE_MARK[mark]}`}
+                    style={{ left: `${pct(p.t)}%`, width: `${pct(p.len)}%` }}
+                  />
+                );
+              })}
             {fillers.map((f, i) => (
               <span
                 key={`f${i}`}
@@ -234,10 +245,16 @@ export function AudioScrubber({
 
 /* One class per mark, shared by the track and its key, so the key is
    the mark rather than a picture of it (review, 25 Sep). A filler wears
-   the Fillers tone from the card's data-trait (recording-20); a held
-   pause stays sage, because it is earned. */
+   the Fillers tone from the card's data-trait (recording-20). A held
+   pause is sage only when it landed a point, by the verdict the take
+   stored (lib/pause-mark.ts, the pause map's rule); every other held
+   pause is the track's neutral stone, with the pause map's words in the
+   key. Not the map's hollow outline: a band is drawn to the take's
+   scale, a second of a minute is about 4px on a phone, and an ink
+   outline that narrow reads as a solid rule beside the cut-in and the
+   playhead. */
 const FILLER_MARK = "bg-[var(--tone)]";
-const PAUSE_MARK = { pre: "bg-sage-500/40", mid: "bg-stone-400/30" } as const;
+const PAUSE_MARK: Record<PauseMark, string> = { landed: "bg-sage-500/40", searching: "bg-stone-400/30" };
 /* Demos's cut-in: ink, as on the pause map, at the filler's 3px so the
    2px playhead stays its own mark. */
 const CUT_IN_MARK = "bg-ink/70";
@@ -254,7 +271,8 @@ function Key({
 }) {
   /* gap-1: the swatch sits 4px from its word and 12px from the next key,
      so each pair reads as one, and the three keys at the 13px caption
-     (B05) still fit one line in a 320 card (248pt: 242 used). */
+     (B05) still fit one line in a 320 card ("filler", "landed a point",
+     "searching": 239 of 246pt, measured by scripts/look-pause-moments.mjs). */
   return (
     <span className="inline-flex items-center gap-1">
       <span aria-hidden className="relative grid h-3 w-3 place-items-center overflow-hidden bg-sand">

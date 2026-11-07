@@ -21,13 +21,19 @@ describe("the last step's closing", () => {
      no closing is a card: every one is the closing note, the take's
      last word, at a section's distance for every recording alike, so
      nothing a game round does can move another recording's ending. */
+  /* #427: the closing is the last word of the door's sheet. Every
+     section there, the closing included, stands at the same distance
+     from the one above it, drawn by RepResult's "detail", so nothing a
+     game round does can move another recording's ending. */
   it("is the same note at the same distance for every recording, game or not", () => {
-    const at = page.indexOf("{last && closingNow && ");
+    const at = page.indexOf("closing: closingNow ? ");
     expect(at).toBeGreaterThan(0);
-    const wrapper = page.slice(at, at + 120);
-    expect(wrapper).toContain('<ClosingNote moment={closingNow} className="mt-7" />');
+    const wrapper = page.slice(at, at + 80);
+    expect(wrapper).toContain("<ClosingNote moment={closingNow} />");
     expect(wrapper).not.toContain("ladder?.moment ?");
     expect(page).toMatch(/const closingNow = ladder\?\.moment \?\? closing;/);
+    const detail = readFileSync("components/RepResult.tsx", "utf8");
+    expect(detail).toContain('<div key={k} data-sheet-section={k} className={i === 0 ? "" : "mt-7"}>');
   });
 });
 

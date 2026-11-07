@@ -6,6 +6,7 @@ import {
   backLabel,
   celebratesStreak,
   defaultBack,
+  exitBeat,
   recordCue,
   roundChimes,
   streakChimes,
@@ -228,5 +229,32 @@ describe("the recording screen's back link", () => {
     expect(backLabel("/practice/x")).toBe("Lesson");
     expect(backLabel("/games#qa")).toBe("Practice");
     expect(backLabel("/you")).toBe("Back");
+  });
+});
+
+describe("exitBeat (#427): at most one beat per exit, and none between practices", () => {
+  const none = { gate: false, tasteDue: false, proDue: false, reminderDue: false, leaves: true, streakUp: false };
+  it("never shows Since day one or the reminder ask on an exit that stays (Practice N of 3, Another round, Retake)", () => {
+    for (const proDue of [true, false]) {
+      for (const reminderDue of [true, false]) {
+        const beat = exitBeat({ ...none, leaves: false, proDue, reminderDue });
+        expect(beat === "pro" || beat === "reminder").toBe(false);
+      }
+    }
+  });
+  it("puts the save wall over everything, on any exit", () => {
+    expect(exitBeat({ gate: true, tasteDue: true, proDue: true, reminderDue: true, leaves: true, streakUp: false })).toBe("gate");
+    expect(exitBeat({ ...none, gate: true, leaves: false })).toBe("gate");
+  });
+  it("orders the rest: the taste, Since day one, the reminder ask, one at a time", () => {
+    expect(exitBeat({ ...none, tasteDue: true, proDue: true, reminderDue: true })).toBe("taste");
+    expect(exitBeat({ ...none, proDue: true, reminderDue: true })).toBe("pro");
+    expect(exitBeat({ ...none, reminderDue: true })).toBe("reminder");
+    expect(exitBeat(none)).toBeNull();
+  });
+  it("keeps the taste's guard: never over the streak celebration", () => {
+    expect(exitBeat({ ...none, tasteDue: true, streakUp: true })).toBeNull();
+    expect(exitBeat({ ...none, tasteDue: true, streakUp: true, proDue: true })).toBe("pro");
+    expect(exitBeat({ ...none, tasteDue: true, leaves: false })).toBe("taste");
   });
 });

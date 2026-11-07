@@ -24,6 +24,7 @@
 import type { TraitId } from "@/content/traits";
 import type { RepRow } from "./client-data";
 import { isScorable, type RepMetrics } from "./metrics";
+import { heldPauseMarks } from "./pause-mark";
 import type { Milestone, RepGain } from "./progress";
 import type { StreakState } from "./streak";
 import { measured } from "./trait-readings";
@@ -164,6 +165,20 @@ export function composedHeard(m: Pick<RepMetrics, "pauses" | "composedPauses">):
 }
 
 /**
+ * The take's landed pauses (DECISIONS #427): the count the track, the
+ * pause map's key and the glance all give, `heldPauseMarks(pauses).landed`,
+ * so one take never says "3 landed" in one place and "3 composed" read
+ * another way in the next. A pause before a sentence judged filled or
+ * dead is not one; a pause carrying no verdict counts by its kind. A
+ * metrics object with no pause list (an older shape) keeps its count.
+ */
+export function landedHeard(m: Pick<RepMetrics, "pauses" | "composedPauses">): number {
+  const ps = m.pauses as RepMetrics["pauses"] | undefined;
+  if (!ps || ps.length === 0) return m.composedPauses;
+  return heldPauseMarks(ps).landed;
+}
+
+/**
  * The closing line — the last thing on the results screen.
  *
  * The streak-end rule says the ending of a sequence carries
@@ -183,12 +198,14 @@ export function endNote(params: {
      number: "Zero fillers, 5 seconds, clean." stood under "Not enough
      to score". Its streak and its count are still true. */
   const scored = isScorable(m.substance);
-  const composed = composedHeard(m);
+  const landed = landedHeard(m);
 
-  if (scored && composed > 0) {
+  /* One word and one count for a good pause, "landed", as the track and
+     the glance say it (#427); each detail keeps its first sentence. */
+  if (scored && landed > 0) {
     return {
-      headline: `${composed} composed pause${composed === 1 ? "" : "s"}`,
-      detail: "Silence you chose, before a new point. That's the hard one.",
+      headline: `${landed} landed pause${landed === 1 ? "" : "s"}`,
+      detail: "Silence you chose, before a new point.",
       tone: "earned",
       trait: "pause",
     };
@@ -212,13 +229,13 @@ export function endNote(params: {
   if (streak.current > 1) {
     return {
       headline: `${streak.current} days running`,
-      detail: "You showed up again. That's the whole mechanism.",
+      detail: "You showed up again.",
       tone: "earned",
     };
   }
   return {
     headline: `Recording ${repCount} logged`,
-    detail: "Recorded, measured, kept. Same time tomorrow.",
+    detail: "Recorded, measured, kept.",
     tone: "neutral",
   };
 }

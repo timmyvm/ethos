@@ -108,7 +108,7 @@ export function takeRewards(p: {
       bests: [],
       closing: {
         headline: `${p.streak.current} days running`,
-        detail: "You showed up again. That's the whole mechanism.",
+        detail: "You showed up again.",
         tone: "earned",
       },
     };
@@ -161,6 +161,39 @@ export function streakChimes(p: { roundChimed: boolean }): boolean {
  */
 export function thinksFirst(frameStep: boolean, thoughtAlready: boolean): boolean {
   return frameStep && !thoughtAlready;
+}
+
+/**
+ * What stands between a tapped exit and where it goes (DECISIONS #427):
+ * at most one beat per exit, in this order. The save wall (#134) and a
+ * free account's taste of a Premium game (#419) on any exit, as before;
+ * Since day one (#11, #198 a) and the reminder ask only on an exit that
+ * leaves the session (the header's back, Back to the lesson, Next
+ * lesson, Go again), never between a lesson's practices, on Another
+ * round or on Retake. A beat not shown stays due for the next exit that
+ * leaves.
+ */
+export type ExitBeat = "gate" | "taste" | "pro" | "reminder" | null;
+
+export function exitBeat(p: {
+  /** The save wall is due (gateMoment). */
+  gate: boolean;
+  /** A free account's taste of a Premium game is due. */
+  tasteDue: boolean;
+  /** Since day one is due (proMomentDue). */
+  proDue: boolean;
+  /** The reminder ask is due (lib/reminder-ask.ts reminderDue). */
+  reminderDue: boolean;
+  /** The exit leaves the session. */
+  leaves: boolean;
+  /** The streak celebration is up: the taste never plays over it. */
+  streakUp: boolean;
+}): ExitBeat {
+  if (p.gate) return "gate";
+  if (p.tasteDue && !p.streakUp) return "taste";
+  if (p.leaves && p.proDue) return "pro";
+  if (p.leaves && p.reminderDue) return "reminder";
+  return null;
 }
 
 /**

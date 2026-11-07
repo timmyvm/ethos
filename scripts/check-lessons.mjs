@@ -148,15 +148,14 @@ ok("the recording is filed against the practice", filedAs === `lesson:${LESSON}:
 // ---- 5. The debrief ends the lesson inside the lesson --------------------
 const dialog = await page.$('[role="dialog"]');
 if (dialog) await page.keyboard.press("Escape").catch(() => {});
-for (let i = 0; i < 6; i++) {
-  const next = page.locator("main button").filter({ hasText: /The numbers|Your words|What moved|Next/ }).first();
-  if ((await next.count()) === 0) break;
-  await next.click({ force: true }).catch(() => {});
-  await sleep(500);
-}
+/* #427: the results are one glance; there are no steps to walk, so the
+   tap and the exits are on screen from its first frame. */
 await sleep(600);
+/* A button's name: what a screen reader says, its aria-label or its text. */
 const buttons = await page.$$eval("main button", (els) =>
-  els.map((e) => (e.textContent ?? "").replace(/\s+/g, " ").trim()).filter(Boolean)
+  els
+    .map((e) => (e.getAttribute("aria-label") ?? e.textContent ?? "").replace(/\s+/g, " ").trim())
+    .filter(Boolean)
 );
 /* The loudest button is the one wearing the accent fill (lib/ui.ts's
    ACTION_CLASS), not the first one in the document — the debrief's
@@ -176,9 +175,12 @@ ok(
   !buttons.some((b) => /Next lesson/.test(b)),
   buttons.join(" | ").slice(0, 120)
 );
+/* #427: the quiet exit moved into the header: its back reads the
+   practice's name, and its name starts with that name and says where it
+   goes, "The cold open, back to the lesson" (its review, WCAG 2.5.3). */
 ok(
   "the quiet exit is back to the lesson",
-  buttons.some((b) => /Back to the lesson/.test(b)),
+  buttons.some((b) => /^\S.*, back to the lesson$/.test(b)),
   buttons.join(" | ").slice(0, 120)
 );
 

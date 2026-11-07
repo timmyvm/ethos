@@ -34,7 +34,8 @@ type Saved = { id: string | null; busy: boolean };
  * The word sheet (#411): a tapped word, large, rising on the app's sheet
  * (components/ui/Overlay.tsx), with when it was said and what to say
  * instead. Kiku's card, Ethos's grammar: the raised sheet, the grabber,
- * Outfit at the large title's 34/800, one quiet Done.
+ * Outfit at the large title's 34/800, and the information sheets' one
+ * Done (D15) on the word's row.
  *
  *  - A filler offers no synonyms: "Pause instead." and one sentence on
  *    why, then its share of the recording's fillers, counted.
@@ -194,26 +195,29 @@ function Body({
       className="word-sheet elev-3 rounded-t-sheet bg-raised px-6 pt-3"
     >
       <div aria-hidden className="mx-auto mb-4 h-1 w-10 rounded-full bg-stone-300" />
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          {/* The line over the word holds its height with or without a kind. */}
-          <div className="eyebrow flex min-h-[18px] items-center gap-1.5">
-            {eyebrow && (
-              <>
-                <span aria-hidden className="trait-dot" />
-                {eyebrow}
-              </>
-            )}
-          </div>
-          {/* The word lifted out of the paragraph, its mark with it. */}
-          <h2 className="word-sheet-word mt-1 break-words" data-word-mark={unit.mark ?? undefined}>
-            {unit.display}
-          </h2>
-        </div>
+      {/* The line over the word holds its height with or without a kind. */}
+      <div className="eyebrow flex min-h-[18px] items-center gap-1.5">
+        {eyebrow && (
+          <>
+            <span aria-hidden className="trait-dot" />
+            {eyebrow}
+          </>
+        )}
+      </div>
+      {/* The word lifted out of the paragraph, its mark with it, and Done
+          on its row at the right: the one Done every information sheet
+          wears (D15), Outfit 17/600 in ink, beside the sheet's title as
+          "Every number" has it, so the two never stack in two styles (the
+          #427 review). */}
+      <div className="mt-1 flex items-start justify-between gap-4">
+        <h2 className="word-sheet-word min-w-0 break-words" data-word-mark={unit.mark ?? undefined}>
+          {unit.display}
+        </h2>
         <button
           type="button"
           onClick={close}
-          className="press -mr-2 -mt-1 inline-flex min-h-11 shrink-0 items-center px-2 text-link text-stone-500"
+          data-look="sheet-done"
+          className="press font-display -mr-3 min-h-11 min-w-11 shrink-0 rounded-control px-3 text-detail font-semibold text-ink"
         >
           Done
         </button>

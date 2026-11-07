@@ -1,12 +1,13 @@
 import { Fragment, type ReactNode } from "react";
 import { IconChevron } from "@/components/Icon";
+import { MomentChip } from "@/components/rep/MomentChip";
 import type { TakeAudio } from "@/components/TakeAudio";
 import { TRAIT, type TraitId } from "@/content/traits";
 import type { CoachOutput } from "@/lib/coach";
 import { dimensionPoints, type Tier1Scores, type Tier2Anchors } from "@/lib/index-score";
 import { ALL_FILLERS_PER_MIN } from "@/lib/metric-labels";
 import type { RepMetrics } from "@/lib/metrics";
-import { filledMoments, saysFilled, type FilledMoment, type FilledMoments, type MomentsPart } from "@/lib/pause-quality";
+import { filledMoments, saysFilled, type FilledMoments, type MomentsPart } from "@/lib/pause-quality";
 
 interface Row {
   name: string;
@@ -48,6 +49,9 @@ export function DimensionList({
   pauseDetail,
   take = null,
   fill = false,
+  open,
+  brief = false,
+  gain = null,
 }: {
   tier1: Tier1Scores;
   anchors: Tier2Anchors;
@@ -66,6 +70,25 @@ export function DimensionList({
    * the numbers arrive. A stored recording's bars are already there.
    */
   fill?: boolean;
+  /**
+   * The trait whose row starts open (DECISIONS #427): in "The whole
+   * recording", the practice's own trait, so its numbers are one scroll
+   * in. Pausing opens the Pause row, Fillers the Fillers row, and so on.
+   */
+  open?: TraitId;
+  /**
+   * The door's sheet (the #427 review): a row's detail says what the take
+   * did, never how the score is computed ("None scores 100; 8 a minute
+   * scores 0." was the scoring rule, not feedback). The Log's ledger
+   * keeps the rule.
+   */
+  brief?: boolean;
+  /**
+   * #160's one quiet line ("Leveled twice"), in the row of the dimension
+   * it leveled: a measured row by its trait, a judged row by its name
+   * (lib/traits.ts names Steadiness as this list does).
+   */
+  gain?: { key: string; name: string; text: string } | null;
 }) {
   /* The filled pauses' moments, read off the verdicts the take stored
      (#422): nothing is judged again or rescored here. Where the detail
@@ -100,9 +123,13 @@ export function DimensionList({
       // one label (E32): the row's own name is the trait's. Its scale
       // keeps "a minute" on the 8, in the Restarts row's grammar: a bare
       // "8 scores 0" read as 8 fillers.
-      detail: `${ALL_FILLERS_PER_MIN}: ${metrics.fillersPerMin} (${metrics.fillerCount} in all). None scores 100; 8 a minute scores 0.${
-        metrics.topFiller ? ` Most of them were “${metrics.topFiller}”.` : ""
-      }`,
+      detail: brief
+        ? metrics.fillerCount === 0
+          ? "None."
+          : `${metrics.fillerCount} in all${metrics.topFiller ? `, most were “${metrics.topFiller}”` : ""}.`
+        : `${ALL_FILLERS_PER_MIN}: ${metrics.fillersPerMin} (${metrics.fillerCount} in all). None scores 100; 8 a minute scores 0.${
+            metrics.topFiller ? ` Most of them were “${metrics.topFiller}”.` : ""
+          }`,
       improve:
         metrics.fillerCount > 0
           ? "Replace it with silence, not a different word."
@@ -118,7 +145,9 @@ export function DimensionList({
             trait: "repairs" as const,
             score: tier1.repairs,
             weight: 50,
-            detail: `${metrics.repairCount ?? 0} restarted phrase${(metrics.repairCount ?? 0) === 1 ? "" : "s"}, ${metrics.repairsPerMin ?? 0} a minute. None scores 100; 3 a minute scores 0.`,
+            detail: `${metrics.repairCount ?? 0} restarted phrase${(metrics.repairCount ?? 0) === 1 ? "" : "s"}, ${metrics.repairsPerMin ?? 0} a minute.${
+              brief ? "" : " None scores 100; 3 a minute scores 0."
+            }`,
             improve:
               (metrics.repairCount ?? 0) > 0
                 ? "Finish the sentence, then say the better one. A restart makes the listener re-follow you."
@@ -131,7 +160,9 @@ export function DimensionList({
       trait: "pace",
       score: tier1.pace,
       weight: 100,
-      detail: `${metrics.wpm} words a minute against the 130 to 160 zone, plus a bonus when pace moves.`,
+      detail: brief
+        ? `${metrics.wpm} words a minute, against the 130 to 160 zone.`
+        : `${metrics.wpm} words a minute against the 130 to 160 zone, plus a bonus when pace moves.`,
     },
     {
       name: TRAIT.range.name,
@@ -199,6 +230,7 @@ export function DimensionList({
              round every row. Nothing on the row reads a group variant. */
           <details
             key={row.name}
+            open={(open !== undefined && row.trait === open) || undefined}
             className="border-b border-hairline py-3 last:border-b-0"
           >
             <summary
@@ -234,6 +266,7 @@ export function DimensionList({
                 open and never on the page's load. */}
             <div className="reveal mt-2 pl-[11px] text-caption leading-relaxed text-stone-500">
               {row.detail}
+              {gain && (row.trait ? row.trait === gain.key : row.name === gain.name) && <div className="mt-1 font-semibold text-sage-700">{gain.text}</div>}
               {row.moments}
               {row.improve && (
                 <div className="mt-1 text-stone-600">↳ {row.improve}</div>
@@ -317,37 +350,6 @@ function PauseMoments({
       </span>
       {parts.slice(last + 1).map((p, i) => draw(p, last + 1 + i))}
     </p>
-  );
-}
-
-/**
- * One moment: plays its stretch of the take, or stops it while it plays.
- * Hear it back's chip grammar: surface, edge and ink, the glyph in the
- * tap's terracotta like the filler chips' and the play key's beside it.
- */
-function MomentChip({ moment, take }: { moment: FilledMoment; take: TakeAudio }) {
-  const playing =
-    take.span !== null && take.span.from === moment.from && take.span.until === moment.until;
-  return (
-    <button
-      type="button"
-      data-pause-moment
-      aria-label={moment.label}
-      aria-pressed={playing}
-      onClick={() => (playing ? take.pause() : take.play(moment.from, moment.until))}
-      className="moment-chip align-baseline"
-    >
-      <span className="moment-pill" data-playing={playing || undefined}>
-        <svg aria-hidden width="8" height="8" viewBox="0 0 10 10" className="shrink-0 text-terracotta-500">
-          {playing ? (
-            <path d="M1.5 1h2.5v8H1.5zM6 1h2.5v8H6z" fill="currentColor" />
-          ) : (
-            <path d="M2 1l7 4-7 4z" fill="currentColor" />
-          )}
-        </svg>
-        {moment.clock}
-      </span>
-    </button>
   );
 }
 

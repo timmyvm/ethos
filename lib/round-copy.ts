@@ -175,7 +175,9 @@ function qaReveal(game: Game, round: QaRound, heldRun: number): RoundReveal {
   } else if (heldRun >= 2) {
     line = `You've held ${heldRun} in a row.`;
   } else if (f.cleanAfter !== null && f.cleanAfter >= 1) {
-    line = `You spoke ${run(f.cleanAfter)} clean after it.`;
+    /* Its subject named (the #427 review: "after it" pointed at nothing
+       once the line stood apart from the card's number). */
+    line = `After Demos cut in at ${clock(f.at as number)}, you spoke ${run(f.cleanAfter)} clean.`;
   } else {
     line = null;
   }

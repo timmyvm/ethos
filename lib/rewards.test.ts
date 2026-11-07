@@ -163,13 +163,13 @@ describe("freshStart", () => {
 describe("endNote", () => {
   const base = { gains: [], repCount: 4 };
 
-  it("prefers a composed pause — the hardest thing to do", () => {
+  it("prefers a landed pause, the hardest thing to do (#427: one word, landed)", () => {
     const e = endNote({
       ...base,
       metrics: metrics({ composedPauses: 2 }),
       streak: streak({ current: 5 }),
     });
-    expect(e.headline).toBe("2 composed pauses");
+    expect(e.headline).toBe("2 landed pauses");
   });
 
   it("never counts a pause the take judged filled as composed (#422)", () => {
@@ -179,7 +179,7 @@ describe("endNote", () => {
       pauses: [pre(10, "landing"), pre(20, "filled"), pre(30, "landing")] as unknown as RepMetrics["pauses"],
     });
     expect(composedHeard(judged)).toBe(2);
-    expect(endNote({ ...base, metrics: judged, streak: streak() }).headline).toBe("2 composed pauses");
+    expect(endNote({ ...base, metrics: judged, streak: streak() }).headline).toBe("2 landed pauses");
 
     const allFilled = metrics({
       composedPauses: 2,

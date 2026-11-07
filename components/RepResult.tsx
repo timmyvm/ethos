@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
+import { Fragment, useEffect, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import { AccuracyCard } from "@/components/AccuracyCard";
 import { CountUp } from "@/components/CountUp";
 import { DemosArt, preloadPose } from "@/components/DemosArt";
@@ -8,6 +8,7 @@ import { DimensionList } from "@/components/DimensionList";
 import { InteractiveTranscript } from "@/components/InteractiveTranscript";
 import { DURATION } from "@/lib/motion";
 import { PauseBar } from "@/components/PauseBar";
+import { MomentChip } from "@/components/rep/MomentChip";
 import { Says, SAID_AFTER_MS } from "@/components/Says";
 import { SpeechBubble } from "@/components/SpeechBubble";
 import { Stars } from "@/components/Stars";
@@ -17,6 +18,7 @@ import type { AccuracyResult } from "@/lib/accuracy";
 import type { CoachOutput } from "@/lib/coach";
 import type { ColdTopic } from "@/lib/cold-topics";
 import type { Tier1Scores, Tier2Anchors } from "@/lib/index-score";
+import type { GlanceMoment, GlancePart, SheetSection } from "@/lib/glance";
 import type { FillerHit, RepMetrics, Word } from "@/lib/metrics";
 import { scoreLine } from "@/lib/coach-line";
 import { repTraitGain } from "@/lib/traits";
@@ -52,8 +54,34 @@ export interface ResultView {
  * eight dimensions, every filler timestamp and the transcript in one
  * scroll, which meant most of it was never read. The log renders "all"
  * because a stored rep is reference, not a debrief.
+ *
+ * Since #427 the live results are one screen and one door: "glance" is
+ * the screen (the score, Demos's one measured line, its moment and cue)
+ * and "detail" is the door's sheet, "The whole recording". The walk's
+ * "score", "numbers" and "words" are no longer used live; "all" (the
+ * Log, an upload) renders exactly as it did.
  */
-export type ResultSection = "score" | "numbers" | "words" | "all";
+export type ResultSection = "score" | "numbers" | "words" | "all" | "glance" | "detail";
+
+/**
+ * What the glance says (DECISIONS #427, lib/glance.ts): Demos's one
+ * measured line with its moment, the cue for next time, and the earned
+ * line under the delta, already fitted to the glance's budget.
+ */
+export interface GlanceView {
+  parts: GlancePart[];
+  moment: GlanceMoment | null;
+  cue: string | null;
+  earned: { text: string; tone: "earned" | "plain"; delta?: number | null } | null;
+}
+
+/** The sheet's body (section "detail"): its sections in order, and those Results draws. */
+export interface SheetView {
+  sections: SheetSection[];
+  /** The practice's trait, whose dimension row starts open. */
+  open?: TraitId;
+  slots?: Partial<Record<SheetSection, ReactNode>>;
+}
 
 /** The count the Index runs before the stars may land (#225). */
 const COUNT_MS = DURATION.celebrate;
@@ -85,6 +113,11 @@ export function RepResult({
   lengthNote = "target 60 to 90s",
   pauseMarks,
   starSize = 40,
+  glance = null,
+  cappedNote = null,
+  under = null,
+  sheet = null,
+  moment = false,
 }: {
   result: ResultView;
   topic?: ColdTopic | null;
@@ -165,6 +198,23 @@ export function RepResult({
   pauseMarks?: { t: number; label: string }[];
   /** The score step's stars, 40, or 32 where a round card needs the height for Demos. */
   starSize?: number;
+  /** The glance's words (section "glance", #427). */
+  glance?: GlanceView | null;
+  /** On the glance of a capped take, under its hero: "Measured, not judged." or the plum line. */
+  cappedNote?: ReactNode;
+  /**
+   * On the glance, under Demos's line: a tester's match question. Demos
+   * then stands beside his line at 112, as on the Log, to make the room.
+   */
+  under?: ReactNode;
+  /** The sheet's body (section "detail", #427). */
+  sheet?: SheetView | null;
+  /**
+   * On the glance: a moment (a best, the first recording, a lesson's
+   * ending, a ladder rung), where Demos takes his share of the height
+   * first. On an ordinary practice the bands take theirs (#427 review).
+   */
+  moment?: boolean;
 }) {
   const show = (s: ResultSection) => section === "all" || section === s;
   const debrief = section === "score";
@@ -226,7 +276,8 @@ export function RepResult({
       document.documentElement.dataset.motion === "reduce"
   );
   const counts = ethosIndex !== null;
-  const timed = live && debrief;
+  const glancing = section === "glance";
+  const timed = live && (debrief || glancing);
   /* A round card plays first (F3): everything after it moves back by its
      length. Reduced motion has no sequence to wait on. */
   const lead = timed && !reduced ? leadMs : 0;
@@ -292,6 +343,179 @@ export function RepResult({
   /* With his line in his room, up to 32pt of the spare height goes
      over the stars so the score breathes; Demos takes the rest. */
   const air = lineInRoom ? <div aria-hidden className="max-h-8 flex-1" /> : null;
+
+  /* Under 600pt of height (320x568) the glance has no room for Demos:
+     his line stays, as plain text where the bubble was. */
+  const shortRoom = useShortRoom();
+
+  if (glancing) {
+    return (
+      <Glance
+        view={glance ?? { parts: [{ kind: "text", text: line }], moment: null, cue: null, earned: null }}
+        metrics={m}
+        ethosIndex={ethosIndex}
+        scorable={result.scorable !== false}
+        delta={delta}
+        baseline={baseline}
+        boss={topic !== null}
+        live={live}
+        waiting={waiting}
+        timed={timed}
+        counting={counting}
+        landAfter={landAfter}
+        lead={lead}
+        bubbleAt={bubbleAt}
+        celebrate={celebrate}
+        celebrating={celebrating}
+        starSize={starSize}
+        take={take}
+        cappedNote={cappedNote}
+        under={under}
+        short={shortRoom}
+        tall={tallRoom}
+        moment={moment}
+      />
+    );
+  }
+
+  if (section === "detail") {
+    const view = sheet ?? { sections: [] };
+    const draw = (k: SheetSection): ReactNode => {
+      if (view.slots?.[k] !== undefined) return view.slots[k];
+      switch (k) {
+        case "accuracy":
+          return result.accuracy ? <AccuracyCard accuracy={result.accuracy} topic={topic} /> : null;
+        case "hear":
+          return player ?? null;
+        case "fillers":
+          return m.fillers.length > 0 ? (
+            <section>
+              <h2 className="section-head">
+                Every filler
+                <span className="section-head-count">{m.fillers.length}</span>
+              </h2>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {m.fillers.map((f, i) => (
+                  <span key={i} className="rounded-full bg-stone-100 px-2.5 py-1 text-caption text-ink">
+                    {f.word} <span className="tabular-nums text-stone-500">{clock(f.t)}</span>
+                  </span>
+                ))}
+              </div>
+            </section>
+          ) : null;
+        case "coach":
+          /* The coach's two under one head, the caption under the head so
+             it covers both (M-2, the #427 review: "Kept:" was a headless
+             line and the caption trailed under Say this instead alone):
+             the only text on the screen a model wrote. */
+          return coach && (coach.strength || coach.supply) ? (
+            <section>
+              <h2 className="section-head">Demos&apos;s read</h2>
+              <p className="mt-1 text-caption text-stone-400">AI-generated feedback</p>
+              {coach.strength && (
+                <div className="mt-3">
+                  <h3 className="detail-head">Kept</h3>
+                  <p className="mt-1 text-body text-stone-600 text-pretty">{coach.strength}</p>
+                </div>
+              )}
+              {coach.supply && (
+                <div className={coach.strength ? "mt-4" : "mt-3"}>
+                  <h3 className="detail-head">Say this instead</h3>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-body">
+                    <span className="text-stone-500 line-through">{coach.supply.original}</span>
+                    <svg
+                      aria-hidden
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                      className="shrink-0 text-stone-400"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.75"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M2.5 8h10M9 4.5 12.5 8 9 11.5" />
+                    </svg>
+                    <span className="font-semibold">{coach.supply.upgrade}</span>
+                  </div>
+                  {coach.supply.note && <p className="mt-1.5 text-caption text-stone-500">{coach.supply.note}</p>}
+                </div>
+              )}
+            </section>
+          ) : null;
+        case "capped":
+          /* A measured fact, both halves (the review: the streak line was
+             gone everywhere on a capped take). */
+          return (
+            <p className="text-body text-stone-500">
+              Demos&apos;s full read is back tomorrow. It still counted toward your streak.
+            </p>
+          );
+        case "dimensions":
+          return (
+            <section>
+              <h2 className="section-head">{coach ? "Every dimension" : "The measured dimensions"}</h2>
+              {/* The take's length against its target (the review: the
+                  three tiles went and took the length with them). #160's
+                  line is in its own row now, not here. */}
+              <p data-take-length className="mt-1 text-caption text-stone-500">
+                Length {Math.round(m.durationS)}s{lengthNote.startsWith("of ") ? " " : ", "}
+                {lengthNote}
+              </p>
+              <div className="mt-3">
+                <DimensionList
+                  tier1={tier1}
+                  anchors={anchors}
+                  metrics={m}
+                  coach={coach}
+                  pauseDetail={result.pauseHeadline ?? undefined}
+                  take={take}
+                  fill={live}
+                  open={view.open}
+                  brief
+                  gain={gain ? { key: gain.key, name: gain.name, text: `Leveled ${gain.levels === 2 ? "twice" : "up"}` } : null}
+                />
+              </div>
+            </section>
+          );
+        case "words":
+          return (
+            <section>
+              <h2 className="section-head">
+                What you said
+                {typeof m.substance?.wordCount === "number" && (
+                  <span className="section-head-count">
+                    {m.substance.wordCount} word{m.substance.wordCount === 1 ? "" : "s"}
+                  </span>
+                )}
+              </h2>
+              <InteractiveTranscript
+                transcript={result.transcript}
+                words={result.words}
+                fillers={m.fillers}
+                onPlay={hasPlayer ? onPlay : undefined}
+                repId={result.repId ?? null}
+                doorToWords={!live}
+              />
+            </section>
+          );
+        default:
+          return null;
+      }
+    };
+    const drawn = view.sections.map((k) => [k, draw(k)] as const).filter(([, n]) => n !== null && n !== false);
+    return (
+      <>
+        {drawn.map(([k, node], i) => (
+          <div key={k} data-sheet-section={k} className={i === 0 ? "" : "mt-7"}>
+            {node}
+          </div>
+        ))}
+      </>
+    );
+  }
+
   return (
     <>
       {show("score") && air}
@@ -857,5 +1081,306 @@ function useTallRoom(): boolean {
     },
     () => window.matchMedia(TALL_ROOM).matches,
     () => false
+  );
+}
+
+/** A phone under 600pt tall: the glance's Demos steps off (#427). */
+const SHORT_ROOM = "(max-height: 599px)";
+
+function useShortRoom(): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      const query = window.matchMedia(SHORT_ROOM);
+      query.addEventListener("change", onChange);
+      return () => query.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia(SHORT_ROOM).matches,
+    () => false
+  );
+}
+
+/**
+ * The glance (DECISIONS #427, its review): the results' one screen. The
+ * score as one centred column (the stars, the 72px Index, its delta with
+ * its words, the earned line when something was earned), then Demos with
+ * his one measured line over his head at his introduction's 20px: the
+ * moment that plays and the cue for next time, arriving whole once the
+ * stars have landed. The spare height is two bands of at most 64 (score
+ * to his line, his feet to the door) and Demos takes the rest, up to 220;
+ * at a moment (a best, the first recording, a lesson's ending, a ladder
+ * rung) he takes his share first. Nothing on it is the coach's text, so
+ * nothing on it needs the caption.
+ */
+function Glance({
+  view,
+  metrics: m,
+  ethosIndex,
+  scorable,
+  delta,
+  baseline,
+  boss,
+  live,
+  waiting,
+  timed,
+  counting,
+  landAfter,
+  lead,
+  bubbleAt,
+  celebrate,
+  celebrating,
+  starSize,
+  take,
+  cappedNote,
+  under,
+  short,
+  tall,
+  moment,
+}: {
+  view: GlanceView;
+  metrics: RepMetrics;
+  ethosIndex: number | null;
+  scorable: boolean;
+  delta: number | null;
+  baseline: boolean;
+  boss: boolean;
+  live: boolean;
+  waiting: boolean;
+  timed: boolean;
+  counting: boolean;
+  landAfter: number;
+  lead: number;
+  bubbleAt: number;
+  celebrate: boolean;
+  celebrating: boolean;
+  starSize: number;
+  take: TakeAudio | null;
+  cappedNote: ReactNode;
+  under: ReactNode;
+  short: boolean;
+  /** A phone 700pt or taller: a tester's question fits under Demos in his room. */
+  tall: boolean;
+  /** A moment (a best, the first recording, a lesson's ending, a rung): Demos takes his share first. */
+  moment: boolean;
+}) {
+  const chip = view.moment ? (
+    take?.playable ? (
+      <MomentChip moment={view.moment} take={take} marker="glance" />
+    ) : (
+      /* Nothing can play it (a lost clip): the time as text, never a dead button (#424). */
+      <span data-glance-chip className="font-semibold tabular-nums">
+        {view.moment.clock}
+      </span>
+    )
+  ) : null;
+  /* The clause before the chip is bound to it ("first ▶0:02", "1
+     searching at ▶0:20"), so the time never wraps away from what it
+     times (the review: "4 fillers, first / at ▶0:02 ."): from the last
+     comma when that is four words or fewer, else the last word. */
+  const parts: ReactNode[] = [];
+  view.parts.forEach((p, i) => {
+    if (p.kind === "moment") return;
+    const next = view.parts[i + 1];
+    if (next?.kind !== "moment") {
+      parts.push(<Fragment key={i}>{p.text}</Fragment>);
+      return;
+    }
+    const text = p.text.trimEnd();
+    const comma = text.lastIndexOf(", ");
+    const clause = comma >= 0 ? text.slice(comma + 2) : null;
+    const cut = clause !== null && clause.split(" ").length <= 4 ? comma + 2 : text.lastIndexOf(" ") + 1;
+    const head = text.slice(0, cut);
+    const tail = text.slice(cut).replace(/ /g, "\u00a0");
+    parts.push(
+      <Fragment key={i}>
+        {head}
+        <span className="whitespace-nowrap">
+          {tail}
+          {tail ? "\u00a0" : ""}
+          {chip}
+        </span>
+      </Fragment>
+    );
+  });
+  if (view.parts[0]?.kind === "moment") parts.unshift(<Fragment key="m">{chip}</Fragment>);
+  const spoken = (
+    <>
+      <p data-glance-line className="text-balance">
+        {parts}
+      </p>
+      {view.cue && (
+        <p data-glance-cue className="mt-0.5 text-balance text-detail leading-[24px] font-normal text-stone-500">
+          {view.cue}
+        </p>
+      )}
+    </>
+  );
+  const arrival = waiting ? "invisible" : timed ? "arrive" : "";
+  const arrivalStyle = timed && !waiting ? ({ animationDelay: `${bubbleAt}ms` } as CSSProperties) : undefined;
+  const burst = celebrating ? (
+    <span aria-hidden className="earned-burst">
+      {Array.from({ length: 12 }, (_, i) => (
+        <i key={i} />
+      ))}
+    </span>
+  ) : null;
+  const greet = timed && !celebrate && !waiting ? bubbleAt + SAID_AFTER_MS : undefined;
+  const demos = (size: number, fit: boolean) =>
+    celebrating ? (
+      /* The still, not the clip: the celebrate clip's alpha leaves a
+         white matte over his head on anything but the plain ground. */
+      <DemosArt key="celebrate" pose="celebrate" size={size} fit={fit} grounded={fit} idle={false} greetAfterMs={0} className="fade-in" />
+    ) : (
+      <DemosArt
+        key={waiting ? "speaking-wait" : "speaking"}
+        pose="speaking"
+        size={size}
+        fit={fit}
+        grounded={fit}
+        idle={fit ? undefined : false}
+        greetAfterMs={greet}
+      />
+    );
+  const stars = (n: number, after: number) => (
+    <span className={`[&>span]:gap-3! ${waiting ? "invisible" : ""}`}>
+      <Stars key={waiting ? "wait" : "land"} n={n as 1 | 2 | 3} size={starSize} arch land={live && !waiting} landAfterMs={after} />
+    </span>
+  );
+
+  /* Demos in his room, his line over his head: everywhere but a phone
+     under 600pt, and a tester's glance on one under 700pt, where he
+     stands beside his line at 112 so the question fits. */
+  const beside = !short && !!under && !tall;
+  const plain = short;
+  return (
+    <div data-glance className="flex w-full flex-1 flex-col">
+      {/* Up to 24pt over the stars, so the header's back to the stars
+          stays near 48 under a lesson's bar and under 64 without one (the
+          review: the old 32pt spacer left a 70pt band under the header). */}
+      {!plain && !beside && <div aria-hidden className="max-h-6 flex-1 basis-0" />}
+      <div className="mt-5 flex flex-col items-center text-center [@media(max-height:700px)]:mt-3">
+        {ethosIndex !== null ? (
+          <>
+            {stars(m.stars, landAfter)}
+            <div
+              className={`mt-4 flex items-baseline justify-center gap-1 [@media(max-height:700px)]:mt-2 ${
+                counting ? "" : "invisible"
+              }`}
+            >
+              <span className="sr-only">Ethos</span>
+              <span data-score className="font-display text-num-xl tabular-nums">
+                {counting ? <CountUp value={ethosIndex} /> : ethosIndex}
+              </span>
+              <span className="text-body font-normal text-stone-500">/1000</span>
+            </div>
+            {/* "▲ 3 since last time", the words on the screen (the review:
+                a bare "▲ 3" said nothing about what it was against). */}
+            <Delta delta={delta} baseline={baseline} boss={boss} className={`mt-1 ${counting ? "" : "invisible"}`} />
+          </>
+        ) : !scorable ? (
+          <>
+            {/* The one star a take too short to score still earns, named
+                where it stands (the review: a gold star over "Not enough
+                to score." was an earned glyph with no label). */}
+            <span className="[&>span]:gap-3!">
+              <Stars n={1} size={starSize} arch />
+            </span>
+            <p data-unscored-star className="mt-1 text-caption text-stone-500">
+              1 star for showing up
+            </p>
+            <h2 className="font-display mt-3 text-title">Not scored.</h2>
+          </>
+        ) : (
+          <>
+            {stars(m.stars, lead)}
+            <div className="mt-4 flex items-baseline justify-center gap-1.5 [@media(max-height:700px)]:mt-2">
+              <span className="font-display text-num-xl tabular-nums">{m.fillerCount}</span>
+              <span className="text-body font-normal text-stone-500">filler{m.fillerCount === 1 ? "" : "s"}</span>
+            </div>
+            {cappedNote && <div className="mt-1">{cappedNote}</div>}
+          </>
+        )}
+        {view.earned && (
+          <p
+            data-earned
+            className={`mt-1 text-body font-semibold ${view.earned.tone === "earned" ? "text-sage-700" : "text-ink"} ${
+              counting || ethosIndex === null ? "" : "invisible"
+            }`}
+          >
+            {view.earned.text}
+            {view.earned.delta ? (
+              <span className={view.earned.delta > 0 ? "text-sage-700" : "text-rust"}>
+                {" "}
+                {view.earned.delta > 0 ? "▲" : "▼"} {Math.abs(view.earned.delta)}
+              </span>
+            ) : null}
+          </p>
+        )}
+      </div>
+
+      {plain ? (
+        /* Under 600pt: no room for him; his line stays, plain, the chip in it. */
+        <div
+          className={`mt-3 flex flex-1 flex-col justify-center text-left font-body text-detail leading-[24px] font-normal text-ink ${arrival}`}
+          style={arrivalStyle}
+        >
+          <div className="text-center">{spoken}</div>
+          {under}
+        </div>
+      ) : beside ? (
+        /* A tester's glance on a phone under 700pt: Demos beside his line
+           at 112 (the Log's layout), so the match question fits under it. */
+        <div className="mt-5 flex w-full flex-col [@media(max-height:700px)]:mt-3">
+          <div className="flex w-full items-start gap-3 text-left">
+            <div className="relative shrink-0">
+              {demos(112, false)}
+              {burst}
+            </div>
+            <div className={`min-w-0 flex-1 ${arrival}`} style={arrivalStyle}>
+              <SpeechBubble tail="left">{spoken}</SpeechBubble>
+            </div>
+          </div>
+          {under}
+        </div>
+      ) : (
+        <>
+          {/* The band from the score to his line: 12 to 56, so with the
+              delta's line box it stays under rule 7's 64. */}
+          <div aria-hidden data-glance-band className="min-h-4 max-h-14 flex-1 basis-0 [@media(max-height:700px)]:min-h-3" />
+          {/* His line over his head, its tail at his face, at his
+              introduction's 20px (the review: at 17 regular it was the
+              faintest thing on the screen and the only one that traces to
+              a moment). */}
+          <div data-coach-room className={`shrink-0 ${arrival}`} style={arrivalStyle}>
+            <SpeechBubble tail="down" voice="lead" className="text-center">
+              {spoken}
+            </SpeechBubble>
+          </div>
+          {/* Demos takes what the bands leave, from 88: at a moment his
+              share comes first, on an ordinary practice the bands' (about
+              200 at 390x844). Up to 240 beside the number; up to 270
+              (#400's ceiling) on a take too short to score, where there is
+              no number for him to outweigh and he is the message. */}
+          <div
+            className={`relative mt-3 min-h-[88px] basis-0 ${scorable ? "max-h-[240px]" : "max-h-[270px]"} ${
+              moment ? "grow-[4]" : "grow"
+            }`}
+          >
+            <div className="absolute inset-0 [container-type:size]">
+              <div
+                className={`absolute bottom-0 left-1/2 -translate-x-1/2 [container-type:size] ${
+                  scorable ? "size-[min(100cqh,240px)]" : "size-[min(100cqh,270px)]"
+                }`}
+              >
+                {demos(scorable ? 240 : 270, true)}
+                {burst}
+              </div>
+            </div>
+          </div>
+          {under}
+          {/* His feet to the door: up to 48, the door's own 12 on top of it. */}
+          <div aria-hidden data-glance-band className="max-h-12 flex-1 basis-0" />
+        </>
+      )}
+    </div>
   );
 }

@@ -1,0 +1,231 @@
+{
+  "tag": "after",
+  "variant": "unscored",
+  "sizes": [
+    {
+      "size": "390x844-light",
+      "beats": [
+        {
+          "maxBand": 60,
+          "band": [
+            603,
+            663
+          ],
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 25,
+          "wordsNoTranscript": 25,
+          "wordsNoRound": 25,
+          "numbers": 6,
+          "text": "The cold open 1 star for showing up Not scored. 12 words. Give it 60 to 90 seconds. Every number Retake Practice 2 of 3",
+          "scrollH": 844,
+          "innerH": 844,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "glance",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-unscored-390x844-light-glance-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-unscored-390x844-light-glance-full.png"
+          ],
+          "screens": 1
+        },
+        {
+          "maxBand": 0,
+          "band": null,
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 98,
+          "wordsNoTranscript": 87,
+          "wordsNoRound": 98,
+          "numbers": 24,
+          "text": "Every number Done Hear it back filler 0:00 um 0:02 The measured dimensions Length 9s, target 60 to 90s Pausing 108/150 Fillers 55/100 1 in all, most were “um”. ↳ Replace it with silence, not a different word. Restarts 33/50 Pace 93/100 Variety 66/100 5 dimensions, added up 355/500 The coach didn't run this time. These 5 measured dimensions cover 500 of the 1000; without the judged ones there is no Ethos Index. What you said 12 words filler vague So the thing about habits is, um, they compound. You do 6 days running You showed up again. Retake",
+          "scrollH": 844,
+          "innerH": 844,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "sheet",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-unscored-390x844-light-sheet-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-unscored-390x844-light-sheet-s1.png"
+          ],
+          "screens": 2
+        },
+        {
+          "maxBand": 55,
+          "band": [
+            557,
+            611
+          ],
+          "doorClear": null,
+          "backDuringFelt": false,
+          "words": 36,
+          "wordsNoTranscript": 36,
+          "wordsNoRound": 36,
+          "numbers": 1,
+          "text": "Lesson The cold open The most overrated piece of advice you've been given The cold open Close your mouth Slow the run-up Your side, sentence one Voice Video Record This one keeps a 6-day streak alive",
+          "scrollH": 844,
+          "innerH": 844,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "exit-tap",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-unscored-390x844-light-exit-tap-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-unscored-390x844-light-exit-tap-full.png"
+          ],
+          "screens": 1
+        }
+      ],
+      "tapLiveMs": 6
+    },
+    {
+      "size": "390x844-dark",
+      "beats": [
+        {
+          "maxBand": 60,
+          "band": [
+            603,
+            663
+          ],
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 25,
+          "wordsNoTranscript": 25,
+          "wordsNoRound": 25,
+          "numbers": 6,
+          "text": "The cold open 1 star for showing up Not scored. 12 words. Give it 60 to 90 seconds. Every number Retake Practice 2 of 3",
+          "scrollH": 844,
+          "innerH": 844,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "glance",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-unscored-390x844-dark-glance-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-unscored-390x844-dark-glance-full.png"
+          ],
+          "screens": 1
+        },
+        {
+          "maxBand": 0,
+          "band": null,
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 98,
+          "wordsNoTranscript": 87,
+          "wordsNoRound": 98,
+          "numbers": 24,
+          "text": "Every number Done Hear it back filler 0:00 um 0:02 The measured dimensions Length 9s, target 60 to 90s Pausing 108/150 Fillers 55/100 1 in all, most were “um”. ↳ Replace it with silence, not a different word. Restarts 33/50 Pace 93/100 Variety 66/100 5 dimensions, added up 355/500 The coach didn't run this time. These 5 measured dimensions cover 500 of the 1000; without the judged ones there is no Ethos Index. What you said 12 words filler vague So the thing about habits is, um, they compound. You do 6 days running You showed up again. Retake",
+          "scrollH": 844,
+          "innerH": 844,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "sheet",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-unscored-390x844-dark-sheet-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-unscored-390x844-dark-sheet-s1.png"
+          ],
+          "screens": 2
+        },
+        {
+          "maxBand": 55,
+          "band": [
+            557,
+            611
+          ],
+          "doorClear": null,
+          "backDuringFelt": false,
+          "words": 36,
+          "wordsNoTranscript": 36,
+          "wordsNoRound": 36,
+          "numbers": 1,
+          "text": "Lesson The cold open The most overrated piece of advice you've been given The cold open Close your mouth Slow the run-up Your side, sentence one Voice Video Record This one keeps a 6-day streak alive",
+          "scrollH": 844,
+          "innerH": 844,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "exit-tap",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-unscored-390x844-dark-exit-tap-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-unscored-390x844-dark-exit-tap-full.png"
+          ],
+          "screens": 1
+        }
+      ],
+      "tapLiveMs": 5
+    },
+    {
+      "size": "375x667-light",
+      "beats": [
+        {
+          "maxBand": 58,
+          "band": [
+            428,
+            486
+          ],
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 25,
+          "wordsNoTranscript": 25,
+          "wordsNoRound": 25,
+          "numbers": 6,
+          "text": "The cold open 1 star for showing up Not scored. 12 words. Give it 60 to 90 seconds. Every number Retake Practice 2 of 3",
+          "scrollH": 667,
+          "innerH": 667,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "glance",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-unscored-375x667-light-glance-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-unscored-375x667-light-glance-full.png"
+          ],
+          "screens": 1
+        },
+        {
+          "maxBand": 0,
+          "band": null,
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 98,
+          "wordsNoTranscript": 87,
+          "wordsNoRound": 98,
+          "numbers": 24,
+          "text": "Every number Done Hear it back filler 0:00 um 0:02 The measured dimensions Length 9s, target 60 to 90s Pausing 108/150 Fillers 55/100 1 in all, most were “um”. ↳ Replace it with silence, not a different word. Restarts 33/50 Pace 93/100 Variety 66/100 5 dimensions, added up 355/500 The coach didn't run this time. These 5 measured dimensions cover 500 of the 1000; without the judged ones there is no Ethos Index. What you said 12 words filler vague So the thing about habits is, um, they compound. You do 6 days running You showed up again. Retake",
+          "scrollH": 667,
+          "innerH": 667,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "sheet",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-unscored-375x667-light-sheet-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-unscored-375x667-light-sheet-s1.png"
+          ],
+          "screens": 2
+        },
+        {
+          "maxBand": 49,
+          "band": [
+            204,
+            253
+          ],
+          "doorClear": null,
+          "backDuringFelt": false,
+          "words": 36,
+          "wordsNoTranscript": 36,
+          "wordsNoRound": 36,
+          "numbers": 1,
+          "text": "Lesson The cold open The most overrated piece of advice you've been given The cold open Close your mouth Slow the run-up Your side, sentence one Voice Video Record This one keeps a 6-day streak alive",
+          "scrollH": 668,
+          "innerH": 667,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "exit-tap",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-unscored-375x667-light-exit-tap-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-unscored-375x667-light-exit-tap-full.png"
+          ],
+          "screens": 1
+        }
+      ],
+      "tapLiveMs": 4
+    }
+  ]
+}

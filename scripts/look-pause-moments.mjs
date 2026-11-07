@@ -254,13 +254,13 @@ async function shootTheme(theme) {
     if (!(await page.locator("details:has(summary:has-text('Pausing'))[open]").count())) await summary.click();
     await page.waitForSelector("details[open] [data-pause-moment]", { timeout: 5000 });
     await page.evaluate(() => {
-      const map = [...document.querySelectorAll("main .eyebrow")].find((e) => e.textContent === "Pauses");
+      const map = [...document.querySelectorAll(":is(main, [role=dialog]) .eyebrow")].find((e) => e.textContent === "Pauses");
       const row = document.querySelector("details[open] [data-pause-moment]")?.closest("details");
       const top = (map ?? row)?.getBoundingClientRect().top ?? 0;
-      window.scrollBy(0, top - 72);
+      (document.querySelector("[data-sheet-scroll]") ?? window).scrollBy(0, top - 72);
       const r = row?.getBoundingClientRect();
       // Keep the row's moments in view on a short phone.
-      if (r && r.bottom > window.innerHeight - 120) window.scrollBy(0, r.bottom - window.innerHeight + 120);
+      if (r && r.bottom > window.innerHeight - 120) (document.querySelector("[data-sheet-scroll]") ?? window).scrollBy(0, r.bottom - window.innerHeight + 120);
     });
     await sleep(400);
   };
@@ -323,7 +323,8 @@ async function shootTheme(theme) {
     await page.waitForSelector("main .arrive-x", { timeout: 30000 });
     await page.waitForSelector('[role="dialog"]', { state: "detached", timeout: 8000 }).catch(() => {});
     await sleep(1200);
-    await page.getByRole("button", { name: /The numbers/ }).first().click();
+    /* #427: the Pause row and Hear it back are in the glance's door, "Every number". */
+    await page.locator("main [data-glance-door]").click();
     await page.waitForSelector("details summary:has-text('Pausing')", { timeout: 8000 });
     await sleep(600);
   };
@@ -336,7 +337,7 @@ async function shootTheme(theme) {
    */
   const probeTrack = async (scene, pauses, durationS, cutIns = 0) => {
     const t = await page.evaluate(() => {
-      const card = [...document.querySelectorAll("main .eyebrow")].find((e) => e.textContent === "Hear it back")?.closest(".card");
+      const card = [...document.querySelectorAll(":is(main, [role=dialog]) .eyebrow")].find((e) => e.textContent === "Hear it back")?.closest(".card");
       const bar = card?.querySelector(".relative.h-8");
       const spans = [...(bar?.children ?? [])].map((s) => ({ cls: String(s.className), left: parseFloat(s.style.left), width: parseFloat(s.style.width) }));
       const legend = [...(card?.querySelector(".eyebrow")?.nextElementSibling?.children ?? [])].map((k) => k.textContent.trim());
@@ -383,7 +384,7 @@ async function shootTheme(theme) {
     await sleep(600);
     await page
       .waitForFunction(() => {
-        const card = [...document.querySelectorAll("main .eyebrow")].find((e) => e.textContent === "Hear it back")?.closest(".card");
+        const card = [...document.querySelectorAll(":is(main, [role=dialog]) .eyebrow")].find((e) => e.textContent === "Hear it back")?.closest(".card");
         const bar = card?.querySelector(".relative.h-8");
         if (!bar) return false;
         for (let el = card; el; el = el.parentElement) if (getComputedStyle(el).opacity !== "1") return false;
@@ -394,7 +395,7 @@ async function shootTheme(theme) {
       }, null, { timeout: 5000 })
       .catch(() => console.log(`PROBE ${scene}${extra} ${theme}: something still stands over the track`));
     const m = await page.evaluate(() => {
-      const card = [...document.querySelectorAll("main .eyebrow")].find((e) => e.textContent === "Hear it back")?.closest(".card");
+      const card = [...document.querySelectorAll(":is(main, [role=dialog]) .eyebrow")].find((e) => e.textContent === "Hear it back")?.closest(".card");
       const bar = card?.querySelector(".relative.h-8");
       if (!card || !bar) return null;
       const box = (r) => ({ x: r.left, y: r.top, w: r.width, h: r.height });
@@ -530,7 +531,7 @@ async function shootTheme(theme) {
     const hex = (c) => "#" + c.map((v) => v.toString(16).padStart(2, "0")).join("");
     // The landed band's own colour, off its key's swatch: sage or not.
     const swatch = await page.evaluate(() => {
-      const card = [...document.querySelectorAll("main .eyebrow")].find((e) => e.textContent === "Hear it back")?.closest(".card");
+      const card = [...document.querySelectorAll(":is(main, [role=dialog]) .eyebrow")].find((e) => e.textContent === "Hear it back")?.closest(".card");
       const key = [...(card?.querySelector(".eyebrow")?.nextElementSibling?.children ?? [])].find((k) => k.textContent.trim() === "landed a point");
       const r = key?.firstElementChild.getBoundingClientRect();
       return r ? { x: Math.round(r.left + r.width / 2) - 2, y: Math.round(r.top + r.height / 2) - 2, width: 4, height: 4 } : null;
@@ -554,7 +555,7 @@ async function shootTheme(theme) {
       if (ok === null) return fail(`${scene} ${theme}: no audio long enough to seek to ${at}s, the playhead not read`);
       await sleep(250);
       const g = await page.evaluate(() => {
-        const card = [...document.querySelectorAll("main .eyebrow")].find((e) => e.textContent === "Hear it back")?.closest(".card");
+        const card = [...document.querySelectorAll(":is(main, [role=dialog]) .eyebrow")].find((e) => e.textContent === "Hear it back")?.closest(".card");
         const bar = card.querySelector(".relative.h-8");
         const b = bar.getBoundingClientRect();
         const head = bar.querySelector("[data-playhead]") ?? bar.lastElementChild;
@@ -624,13 +625,13 @@ async function shootTheme(theme) {
   const showHear = async () => {
     await page.waitForSelector('input[aria-label="Playback position"]', { timeout: 8000 });
     await page.evaluate(() => {
-      const card = [...document.querySelectorAll("main .eyebrow")].find((e) => e.textContent === "Hear it back")?.closest(".card");
-      window.scrollBy(0, (card?.getBoundingClientRect().top ?? 0) - 120);
+      const card = [...document.querySelectorAll(":is(main, [role=dialog]) .eyebrow")].find((e) => e.textContent === "Hear it back")?.closest(".card");
+      (document.querySelector("[data-sheet-scroll]") ?? window).scrollBy(0, (card?.getBoundingClientRect().top ?? 0) - 120);
     });
     await sleep(400);
   };
+  /* #427: Hear it back is the sheet's first section; the walk already opened it. */
   const toWords = async () => {
-    await page.getByRole("button", { name: /Your words/ }).first().click();
     await showHear();
   };
   for (const [scene, body, pauses] of [
@@ -711,7 +712,7 @@ async function shootTheme(theme) {
         await page.waitForSelector("main .arrive-x", { timeout: 30000 });
         await page.waitForSelector('[role="dialog"]', { state: "detached", timeout: 8000 }).catch(() => {});
         await sleep(4000);
-        await page.getByRole("button", { name: /The numbers/ }).first().click();
+        await page.locator("main [data-glance-door]").click();
         await page.waitForSelector("details summary:has-text('Pausing')", { timeout: 8000 });
         await sleep(600);
         await toWords();
@@ -824,7 +825,7 @@ async function shootTheme(theme) {
       await probe("stored");
       await page.evaluate(() => {
         const row = document.querySelector("details[open] [data-pause-moment]")?.closest("details");
-        window.scrollBy(0, (row?.getBoundingClientRect().top ?? 0) - 260);
+        (document.querySelector("[data-sheet-scroll]") ?? window).scrollBy(0, (row?.getBoundingClientRect().top ?? 0) - 260);
       });
       if (want("stored")) await shot("stored");
       if (want("stored-playing")) {
@@ -856,7 +857,7 @@ async function shootTheme(theme) {
       if (buttons) fail(`stored-${mode}: ${buttons} live chips with nothing to play`);
       await page.evaluate(() => {
         const row = document.querySelector("details[open] [data-pause-moment]")?.closest("details");
-        window.scrollBy(0, (row?.getBoundingClientRect().top ?? 0) - 260);
+        (document.querySelector("[data-sheet-scroll]") ?? window).scrollBy(0, (row?.getBoundingClientRect().top ?? 0) - 260);
       });
       await shot(`stored-${mode}`);
     });

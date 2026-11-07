@@ -55,15 +55,15 @@ const ladder = (over: Partial<LadderState> = {}): LadderState => ({
 });
 
 describe("closingLook, every closing the walk ends on", () => {
-  it("sets a composed-pause close's number in Pausing's tone, a sentence to a line", () => {
+  it("sets a landed-pause close's number in Pausing's tone, its first sentence only (#427)", () => {
     const m = endNote({ ...base, metrics: metrics({ composedPauses: 3 }), streak: streak({ current: 5 }) });
     expect(closingLook(m)).toEqual({
       pre: "",
       value: "3",
-      post: " composed pauses",
+      post: " landed pauses",
       ink: "trait",
       trait: "pause",
-      lines: ["Silence you chose, before a new point.", "That's the hard one."],
+      lines: ["Silence you chose, before a new point."],
     });
   });
 
@@ -78,13 +78,13 @@ describe("closingLook, every closing the walk ends on", () => {
   it("sets a streak close in sage, since a streak is earned and no trait's", () => {
     const run = closingLook(endNote({ ...base, metrics: metrics(), streak: streak({ current: 4 }) }));
     expect([run.value, run.post, run.ink, run.trait]).toEqual(["4", " days running", "earned", null]);
-    expect(run.lines).toEqual(["You showed up again.", "That's the whole mechanism."]);
+    expect(run.lines).toEqual(["You showed up again."]);
   });
 
   it("leaves a plain count in the ink, its number mid-line", () => {
     const count = closingLook(endNote({ ...base, metrics: metrics(), streak: streak({ current: 1 }) }));
     expect([count.pre, count.value, count.post, count.ink]).toEqual(["Recording ", "22", " logged", "plain"]);
-    expect(count.lines).toEqual(["Recorded, measured, kept.", "Same time tomorrow."]);
+    expect(count.lines).toEqual(["Recorded, measured, kept."]);
   });
 
   it("closes an unscored take on its streak or its count, never in a trait's tone", () => {
@@ -136,8 +136,8 @@ describe("ClosingNote", () => {
     expect(html).toContain('data-look="closing-note"');
     expect(html).toContain('data-trait="pause"');
     expect(html).toContain('data-ink="trait"');
-    expect(html).toContain('<span class="closing-note-value">3</span> composed pauses');
-    expect(html).toContain('<span class="block">Silence you chose, before a new point. </span>');
+    expect(html).toContain('<span class="closing-note-value">3</span> landed pauses');
+    expect(html).toContain('<span class="block">Silence you chose, before a new point.</span>');
   });
 
   it("carries no trait on an earned close", () => {
@@ -148,11 +148,14 @@ describe("ClosingNote", () => {
   });
 });
 
-describe("the last step's closing on app/rep/page.tsx", () => {
+describe("the closing on app/rep/page.tsx", () => {
   const page = readFileSync("app/rep/page.tsx", "utf8");
 
-  it("ends on the closing note at a section's distance, and keeps the records as cards", () => {
-    expect(page).toContain('{last && closingNow && <ClosingNote moment={closingNow} className="mt-7" />}');
+  /* #427: the closing note is the last word of "The whole recording", the
+     door's sheet, drawn at a section's distance by RepResult's "detail"
+     (sheetSections puts it after the transcript); it was the last step's. */
+  it("ends the sheet on the closing note, and keeps the records as cards", () => {
+    expect(page).toContain("closing: closingNow ? <ClosingNote moment={closingNow} /> : null,");
     expect(page).not.toMatch(/<Moment moment=\{closingNow\}/);
     expect(page).toContain("<Moment key={i} moment={b} />");
     expect(page).toMatch(/const closingNow = ladder\?\.moment \?\? closing;/);

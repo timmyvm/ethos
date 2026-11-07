@@ -379,13 +379,9 @@ async function shootAll() {
           await pick.click();
           await sleep(700);
         }
-        for (let i = 0; i < 4; i++) {
-          if (await page.getByText(until).count()) break;
-          const next = page.locator("[data-step-action]").first();
-          if (!(await next.count()) || !/numbers|words/i.test(await next.innerText())) break;
-          await next.click();
-          await sleep(900);
-        }
+        /* The question is on the glance (#427): nothing to walk to, and
+           the step's tap is the exit now. */
+        await page.getByText(until).first().waitFor({ timeout: 8000 }).catch(() => {});
       };
       const walk = async (name, s, ctxOpts, fn) =>
         step(name, async () => {

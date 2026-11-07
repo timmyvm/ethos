@@ -103,13 +103,13 @@ describe("the round card, Q&A (F3)", () => {
     expect(r.eyebrow).toBe("Demos cut in at 0:17");
     expect(r.number).toBe("1.2s");
     expect(r.note).toBe("held after he cut in");
-    expect(r.line).toBe("You spoke 22s clean after it.");
+    expect(r.line).toBe("After Demos cut in at 0:17, you spoke 22s clean.");
     expect(r.win).toBe(true);
   });
 
   it("says a run of holds when there is one", () => {
     expect(roundReveal(QA, qa(), 3).line).toBe("You've held 3 in a row.");
-    expect(roundReveal(QA, qa(), 1).line).toBe("You spoke 22s clean after it.");
+    expect(roundReveal(QA, qa(), 1).line).toBe("After Demos cut in at 0:17, you spoke 22s clean.");
   });
 
   it("breath, filled, long and through each say their own line, and none is a win", () => {

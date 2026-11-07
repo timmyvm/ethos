@@ -1,10 +1,16 @@
 /**
- * Service worker. The daily loop has to survive a train tunnel: the
- * shell and brand assets are cached so the app opens offline, but
- * /api/analyze is never cached — a rep that can't reach the engine
- * should fail honestly rather than return stale numbers.
+ * Service worker. The daily loop has to survive a tunnel: the shell and
+ * brand assets are cached so the app opens offline, but /api/analyze is
+ * never cached: a recording that can't reach the engine should fail
+ * honestly rather than return stale numbers.
+ *
+ * CACHE is bumped when pages or scripts cached by an earlier build must
+ * never run again offline; activate deletes every other cache. v17
+ * (#428 review): a page cached before #428 loads its own cached scripts
+ * offline, and those still hold the curated word map that answered
+ * "things" in "switch things up" with "points, ideas, parts".
  */
-const CACHE = "ethos-v16";
+const CACHE = "ethos-v17";
 
 const SHELL = [
   "/",
@@ -106,8 +112,8 @@ self.addEventListener("push", (e) => {
 });
 
 /**
- * A tapped reminder goes straight to the rep — the notification exists
- * to start one, so it can't land on a menu.
+ * A tapped reminder goes straight to the recording screen: the
+ * notification exists to start one, so it can't land on a menu.
  */
 self.addEventListener("notificationclick", (e) => {
   e.notification.close();
@@ -145,11 +151,11 @@ self.addEventListener("fetch", (e) => {
 
   /*
    * The on-device pose runtime is ~25MB of WASM plus a 5.5MB model.
-   * Left to the rules below it would land in the cache whole — a
+   * Left to the rules below it would land in the cache whole: a
    * quota error on a mid-range phone, and an eviction that takes the
    * shell down with it. The browser's own HTTP cache handles repeat
-   * loads perfectly well; a first video rep in a tunnel simply reports
-   * Voice + Video as unavailable, which is the honest answer.
+   * loads perfectly well; a first video recording in a tunnel simply
+   * reports Voice + Video as unavailable, which is the honest answer.
    */
   if (url.pathname.startsWith("/pose/")) return;
 

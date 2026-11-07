@@ -189,7 +189,7 @@ describe("an answer, cleaned", () => {
     ]);
   });
 
-  it("falls back to the word when replaces is not in the sentence over it", () => {
+  it("keeps a keep for the word when replaces is not in the sentence over it", () => {
     // Not in the sentence at all: a keep is kept for the word.
     expect(cleanAnswer({ verdict: "keep", replaces: "one dollar per hour wage", alternatives: [], note: "A currency says it exactly." }, DOLLAR)?.replaces).toBe(
       "dollar"
@@ -197,13 +197,33 @@ describe("an answer, cleaned", () => {
     // In the sentence but not over the tapped word: the second "dollar" is not the first.
     const second = { ...DOLLAR, at: DOLLAR_SENTENCE.lastIndexOf("dollar") };
     expect(cleanAnswer({ verdict: "keep", replaces: "billion dollar", alternatives: [], note: "" }, second)?.replaces).toBe("dollar");
+    expect(cleanAnswer({ verdict: "keep", alternatives: [], note: "" }, DOLLAR)?.replaces).toBe("dollar");
+  });
+
+  it("fails a swap whose replaces is not in the sentence over the word, rather than pin its options on the word", () => {
+    // Changed in the #428 review (design §2.3: "swap returns null"). It
+    // fell back to the word and kept the options one word long, so
+    // "plans", written for a phrase the sentence does not hold, stood in
+    // for "things": "I switch plans up", Timothy's screenshot again.
+    expect(cleanAnswer({ verdict: "swap", replaces: "switch thing up", alternatives: ["shake things up", "plans"], note: "" }, THINGS)).toBeNull();
     // Half a word is not words of the sentence.
-    expect(cleanAnswer({ verdict: "swap", replaces: "witch things", alternatives: ["plans"], note: "" }, THINGS)?.replaces).toBe("things");
-    // A swap falling back keeps only options that can stand where one word stood.
-    expect(
-      cleanAnswer({ verdict: "swap", replaces: "switch thing up", alternatives: ["shake things up", "plans"], note: "" }, THINGS)
-    ).toEqual({ verdict: "swap", replaces: "things", alternatives: ["plans"], note: "" });
-    expect(cleanAnswer({ verdict: "swap", replaces: "switch thing up", alternatives: ["shake things up"], note: "" }, THINGS)).toBeNull();
+    expect(cleanAnswer({ verdict: "swap", replaces: "witch things", alternatives: ["plans"], note: "" }, THINGS)).toBeNull();
+    // Another word of the sentence, or the other "dollar", is not the one tapped.
+    expect(cleanAnswer({ verdict: "swap", replaces: "today's", alternatives: ["now"], note: "" }, THINGS)).toBeNull();
+    const second = { ...DOLLAR, at: DOLLAR_SENTENCE.lastIndexOf("dollar") };
+    expect(cleanAnswer({ verdict: "swap", replaces: "billion dollar", alternatives: ["billion-pound"], note: "" }, second)).toBeNull();
+    // Past six words or forty characters, or no replaces at all.
+    const sentence = "We went to the shops and then we went to the beach and then home.";
+    const beach: WordAsk = { word: "beach", sentence, at: sentence.indexOf("beach") };
+    expect(cleanAnswer({ verdict: "swap", replaces: "we went to the beach and then home", alternatives: ["coast"], note: "" }, beach)).toBeNull();
+    expect(cleanAnswer({ verdict: "swap", alternatives: ["plans"], note: "" }, THINGS)).toBeNull();
+    // The same options for words the sentence does hold over the tap are an answer.
+    expect(cleanAnswer({ verdict: "swap", replaces: "Things", alternatives: ["plans"], note: "" }, THINGS)).toEqual({
+      verdict: "swap",
+      replaces: "things",
+      alternatives: ["plans"],
+      note: "",
+    });
   });
 
   it("matches replaces whatever its case, quotes or apostrophes, and returns the sentence's own spelling", () => {

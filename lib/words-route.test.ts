@@ -261,6 +261,17 @@ describe("POST /api/words", () => {
     expect(await (await post(DOLLAR)).json()).toMatchObject({ verdict: "keep", replaces: "dollar" });
   });
 
+  it("is a 502, never remembered, for a swap whose replaces is not in the sentence over the word", async () => {
+    // The #428 review: options for a phrase the sentence does not hold
+    // never stand in for the tapped word ("I switch plans up").
+    answers(swap("switch thing up", ["shake things up", "plans"]));
+    expect((await post(THINGS)).status).toBe(502);
+    answers(swap("switch things up", ["shake things up"]));
+    const res = await post(THINGS);
+    expect(await res.json()).toMatchObject({ replaces: "switch things up", alternatives: ["shake things up"], source: "model" });
+    expect(h.create).toHaveBeenCalledTimes(2);
+  });
+
   it("is a 429 past the limit, before the model is asked", async () => {
     h.limited = true;
     const res = await post(ASK);

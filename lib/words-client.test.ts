@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
@@ -144,5 +145,19 @@ describe("answerFor", () => {
     expect(await answerFor(things()).catch((e: unknown) => e)).toBeInstanceOf(WordsUnavailable);
     // None of them was kept.
     expect(heldAnswer(things())).toBeNull();
+  });
+});
+
+describe("the pages a phone cached before #428", () => {
+  it("are purged by the service worker, so offline never runs the curated map again", () => {
+    // The #428 review: pages are cached network-first and scripts
+    // cache-first, so a page last opened before #428 would load, offline,
+    // the scripts that answered "things" with "points, ideas, parts".
+    // Activate deletes every cache but the current one; v17 is the first
+    // name that holds nothing from before #428.
+    const sw = readFileSync("public/sw.js", "utf8");
+    const version = Number(sw.match(/const CACHE = "ethos-v(\d+)";/)?.[1]);
+    expect(version).toBeGreaterThanOrEqual(17);
+    expect(sw).toMatch(/keys\.filter\(\(k\) => k !== CACHE\)\.map\(\(k\) => caches\.delete\(k\)\)/);
   });
 });

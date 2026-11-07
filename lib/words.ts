@@ -213,7 +213,7 @@ function spanOf(raw: unknown, ask: WordAsk): string | null {
  * word or filler that the replaced words did not already hold, nothing
  * from the banned register. Null when none survive.
  */
-function cleanOptions(list: unknown, replaces: string, word: string, maxWords: number): string[] | null {
+function cleanOptions(list: unknown, replaces: string, word: string): string[] | null {
   if (!Array.isArray(list)) return null;
   const was = plain(replaces);
   const refused = new Set([was, plain(word)]);
@@ -225,7 +225,7 @@ function cleanOptions(list: unknown, replaces: string, word: string, maxWords: n
       .trim()
       .replace(/^["'“‘(]+|["'”’.,;:!?)]+$/g, "");
     if (!alt || alt.length > WORD_LIMITS.altChars) continue;
-    if (alt.split(" ").length > maxWords) continue;
+    if (alt.split(" ").length > WORD_LIMITS.altWords) continue;
     if (/[–—]/.test(alt) || !WORD_SHAPE.test(alt)) continue;
     const key = plain(alt);
     if (refused.has(key) || seen.has(key)) continue;
@@ -242,27 +242,29 @@ function cleanOptions(list: unknown, replaces: string, word: string, maxWords: n
 /**
  * A reply made safe to show, or null when it is not an answer. Keep is
  * a full answer: no options, and a note from KEEP_NOTES (any other note
- * becomes the default). A swap needs at least one option that survives
- * cleanOptions. When `replaces` is not in the sentence over the tapped
- * word, the answer falls back to the word itself, and a swap then keeps
- * only options no longer than the word, since a phrase cannot stand
- * where one word stood.
+ * becomes the default); when its `replaces` is not in the sentence over
+ * the tapped word, it is kept for the word itself. A swap needs a
+ * `replaces` that is whole words of the sentence over the tapped word,
+ * and at least one option that survives cleanOptions. A swap whose
+ * `replaces` cannot be found is a failed answer, never a list for the
+ * word: its options were written for words the sentence does not hold
+ * ("plans" for "switch thing up" would read "I switch plans up"), which
+ * is the grammar-only fit #428 exists to stop (the #428 review).
  */
 export function cleanAnswer(raw: unknown, ask: WordAsk): WordAnswer | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const reply = raw as { verdict?: unknown; replaces?: unknown; alternatives?: unknown; note?: unknown };
   if (reply.verdict !== "swap" && reply.verdict !== "keep") return null;
   const span = spanOf(reply.replaces, ask);
-  const replaces = span ?? ask.word;
   if (reply.verdict === "keep") {
     const note =
       typeof reply.note === "string" && (KEEP_NOTES as readonly string[]).includes(reply.note) ? reply.note : DEFAULT_KEEP_NOTE;
-    return { verdict: "keep", replaces, alternatives: [], note };
+    return { verdict: "keep", replaces: span ?? ask.word, alternatives: [], note };
   }
-  const maxWords = span ? WORD_LIMITS.altWords : ask.word.split(" ").length;
-  const alternatives = cleanOptions(reply.alternatives, replaces, ask.word, maxWords);
+  if (!span) return null;
+  const alternatives = cleanOptions(reply.alternatives, span, ask.word);
   if (!alternatives) return null;
-  return { verdict: "swap", replaces, alternatives, note: "" };
+  return { verdict: "swap", replaces: span, alternatives, note: "" };
 }
 
 /** Whether a swap replaces more than the tapped word (the sheet then says what it replaces). */

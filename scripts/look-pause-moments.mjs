@@ -13,7 +13,8 @@
  *   LOOK_WIDTH=320 LOOK_HEIGHT=568 node scripts/look-pause-moments.mjs after three  # a subset
  *
  * Scenes: two, three, four (the live numbers step, the Pause row open),
- * focus (two, the first chip focused by key), video (the one-sound probe,
+ * focus (two, the first chip focused by key), long (an 88s take with 34
+ * gaps: the map draws the pause the row names), video (the one-sound probe,
  * no shot), stored, stored-playing, stored-silent, stored-broken.
  * LOOK_THEMES=light,dark picks the themes. Every probe prints a line
  * that starts PROBE; a broken promise prints FAIL.
@@ -77,6 +78,29 @@ const SHORT = [
   { t: 1.2, len: 1.0, kind: "pre", verdict: "filled" },
   { t: 3.4, len: 0.9, kind: "pre", verdict: "filled" },
 ];
+/* A long take (the review's map finding): 175 words at 2.5 a second, a
+   0.45s beat every 5 words, a 1.2s held pause every 30, and a filler
+   beside the last held pause, so 34 gaps and the filled one at 1:16,
+   judged as lib/pause-map.test.ts judges the same take. */
+const LONG = (() => {
+  const out = [];
+  let t = 0.4;
+  let held = 0;
+  for (let i = 0; i < 175; i++) {
+    const end = Math.round((t + 0.35) * 100) / 100;
+    t += 0.4;
+    if (i === 174) break;
+    if ((i + 1) % 30 === 0) {
+      held++;
+      out.push({ t: end, len: 1.25, kind: "pre", verdict: held === 5 ? "filled" : "landing" });
+      t += 1.2;
+    } else if ((i + 1) % 5 === 0) {
+      out.push({ t: end, len: 0.5, kind: "beat", verdict: "beat" });
+      t += 0.45;
+    }
+  }
+  return { pauses: out, durationS: Math.round(t + 0.5) };
+})();
 const live = { body: bodyFor(SETS.two) };
 
 /* A stored recording with its audio: rep-22 keeps its row, with these
@@ -220,6 +244,30 @@ async function shootTheme(theme) {
         const box = await page.locator("details[open] .reveal").first().boundingBox();
         await shot("two", { extra: "-focus", clip: { x: 0, y: Math.max(0, box.y - 24), width: WIDTH, height: box.height + 48 } });
       }
+    });
+  }
+
+  /* The long take: the map draws the filled pause the row names. */
+  if (want("long")) {
+    await step(async () => {
+      await walk(bodyFor(LONG.pauses, { durationS: LONG.durationS, heldPauses: 5 }));
+      await openPauseRow();
+      const map = await page.evaluate(() => {
+        const bar = document.querySelector('[role="img"][aria-label*="held pause"]');
+        const spans = [...(bar?.children ?? [])].map((s) => s.className);
+        return {
+          marks: spans.length,
+          hollow: spans.filter((c) => c.includes("border-[1.5px]")).length,
+          landed: spans.filter((c) => c.includes("bg-sage-600")).length,
+          beats: spans.filter((c) => c.includes("min-w-[3px]")).length,
+          overflow: bar ? bar.scrollWidth > bar.clientWidth + 1 : false,
+        };
+      });
+      console.log(`PROBE long ${WIDTH}x${HEIGHT} ${theme}: ${JSON.stringify(map)}`);
+      if (map.hollow < 1) fail(`long ${theme}: the row names 1:16 and the map draws no hollow mark`);
+      if (map.landed + map.hollow !== 5) fail(`long ${theme}: the map draws ${map.landed + map.hollow} of 5 held pauses`);
+      if (map.overflow) fail(`long ${theme}: the map overflows its card`);
+      await shot("long");
     });
   }
 

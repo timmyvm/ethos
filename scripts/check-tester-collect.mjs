@@ -36,7 +36,15 @@
  * tester read, no answer read, no test tile, no mark, and the date.
  */
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright");
-import { analyzeBody, collectRoute, json, seed, session, supabaseRoute, testerMode, POSE_PREF } from "./look-fixtures.mjs";
+/* The fixture's three weeks end the day before its "today", which is the
+   real date unless LOOK_TODAY says otherwise. Phone 7's page clock is 19:00
+   on 3 November, and once the real date passed it the fixture held an 18:12
+   recording on that very day, so Today rightly read the day as spoken and
+   never asked "Speak today" (35/38 from 4 November, #410). The fixture's
+   today is the test's second day unless a run names another, so the gate
+   reads the same on any date. Set before the import, which reads it once. */
+process.env.LOOK_TODAY ??= "2026-11-03";
+const { analyzeBody, collectRoute, json, seed, session, supabaseRoute, testerMode, POSE_PREF } = await import("./look-fixtures.mjs");
 
 const BASE = process.env.BASE ?? process.env.LOOK_BASE ?? "http://localhost:3123";
 const ID = "0b5e7a21-6c3d-4f8e-8a1b-2d9c4e6f7a10";
@@ -56,6 +64,24 @@ const browser = await chromium.launch({ args: ["--font-render-hinting=none"] });
    well as from the route's handler: a beacon sent as a page unloads can
    leave before Playwright's handler sees it, though the phone sent it. */
 const wire = [];
+/* Every body the phone handed to navigator.sendBeacon and the browser took,
+   mirrored into the tab's sessionStorage as it went. A beacon sent from a
+   page that is unloading (a full navigation, Phone 4's goto) never reaches
+   Playwright's route or its request event, though it does leave the phone:
+   a logging proxy in front of the server received the one Phone 4 sends
+   from /lessons, with both screens and the Lessons tap in it. Read back
+   with `drain` while the tab is still open. */
+const mirrored = [];
+const drain = async (page) => {
+  const bodies = await page
+    .evaluate(() => {
+      const list = JSON.parse(sessionStorage.getItem("check.beacons") ?? "[]");
+      sessionStorage.removeItem("check.beacons");
+      return list;
+    })
+    .catch(() => []);
+  mirrored.push(...bodies);
+};
 
 /** 19:00 on the test's second day in Melbourne, for the phones that look at the test on Today (#402). */
 const TEST_DAY_2 = new Date("2026-11-03T19:00:00+11:00");
@@ -72,6 +98,22 @@ async function phone({ tester = false, version = 3, hint = false, clock = null, 
   const reads = [];
   const answerReads = [];
   wire.length = 0;
+  mirrored.length = 0;
+  await ctx.addInitScript(() => {
+    const real = typeof navigator.sendBeacon === "function" ? navigator.sendBeacon.bind(navigator) : null;
+    if (!real) return;
+    navigator.sendBeacon = (url, body) => {
+      const took = real(url, body);
+      if (took && new URL(String(url), location.href).pathname === "/api/tester/collect") {
+        try {
+          const list = JSON.parse(sessionStorage.getItem("check.beacons") ?? "[]");
+          list.push(String(body));
+          sessionStorage.setItem("check.beacons", JSON.stringify(list));
+        } catch {}
+      }
+      return took;
+    };
+  });
   ctx.on("request", (r) => {
     if (r.method() === "POST" && new URL(r.url()).pathname === "/api/tester/collect") wire.push(r.postData() ?? "");
   });
@@ -125,7 +167,7 @@ const parsed = (text) => {
 /** Every event sent, once each, from the handler and the wire together. */
 const events = () => {
   const seen = new Set();
-  return [...testerMode.collected.map((c) => c.body), ...wire.map(parsed)]
+  return [...testerMode.collected.map((c) => c.body), ...wire.map(parsed), ...mirrored.map(parsed)]
     .flatMap((b) => b?.events ?? [])
     .filter((e) => {
       const k = JSON.stringify(e);
@@ -134,8 +176,8 @@ const events = () => {
       return true;
     });
 };
-/** Batches that left the phone, by either count. */
-const sentCount = () => Math.max(testerMode.collected.length, wire.length);
+/** Batches that left the phone, by any count. */
+const sentCount = () => Math.max(testerMode.collected.length, wire.length, mirrored.length);
 
 // 1. A non-tester.
 {
@@ -157,6 +199,7 @@ const sentCount = () => Math.max(testerMode.collected.length, wire.length);
   await sleep(1200);
   await hide(page);
   await sleep(800);
+  await drain(page);
   check("a non-tester's phone sends nothing", sentCount() === 0, `${sentCount()} batches`);
   const loaded = await page.evaluate(() => performance.getEntriesByType("resource").some((r) => /tester-collect/.test(r.name)));
   check("a non-tester's phone never loads the collector", !loaded);
@@ -173,6 +216,7 @@ const sentCount = () => Math.max(testerMode.collected.length, wire.length);
   await sleep(600);
   check("a stale hint reads the row once", reads.length === 1, `${reads.length} reads`);
   check("…then lets the hint go", (await page.evaluate(() => localStorage.getItem("ethos.tester"))) === null);
+  await drain(page);
   check("…and sends nothing", sentCount() === 0);
   await ctx.close();
 }
@@ -206,6 +250,7 @@ const sentCount = () => Math.max(testerMode.collected.length, wire.length);
   check("…and asks nothing there", (await page.getByText(/feel right\?/).count()) === 0);
   await hide(page);
   await sleep(600);
+  await drain(page);
   check("a version 2 tester's phone sends nothing", sentCount() === 0, `${sentCount()} batches`);
   await ctx.close();
 }
@@ -242,6 +287,7 @@ const sentCount = () => Math.max(testerMode.collected.length, wire.length);
   const timed = testerMode.collected.filter((c) => c.auth?.startsWith("Bearer "));
   check("the timer sends what waits, the session in its header", timed.length >= 1, `${timed.length} timed`);
 
+  await drain(page);
   const all = events();
   const device = all.find((e) => e.kind === "device");
   check("a device snapshot on the open", !!device && typeof device.data?.ua === "string" && device.data?.screen_w > 0 && typeof device.data?.tz === "string" && typeof device.data?.home_screen === "boolean", JSON.stringify(device?.data ?? {}).slice(0, 160));
@@ -270,6 +316,7 @@ const sentCount = () => Math.max(testerMode.collected.length, wire.length);
   await sleep(2500);
   await hide(page);
   await sleep(800);
+  await drain(page);
   check("…and collection starts", events().some((e) => e.kind === "device"), `${events().length} events`);
   await ctx.close();
 }
@@ -297,6 +344,7 @@ const sentCount = () => Math.max(testerMode.collected.length, wire.length);
     await sleep(1200);
     // The patched chunk throws as it runs, or (when the patch races the
     // load) fails to load at all: either is the first screen crashing.
+    await drain(page);
     const crash = events().find((e) => e.kind === "error" && e.name === "boundary");
     check("a crash on the first screen of an open is reported, under that screen", !!crash && crash.screen === "/games" && /first screen crashed|ChunkLoadError/.test(crash.data?.message ?? ""), JSON.stringify(crash ?? events().map((e) => `${e.kind}:${e.name}`)).slice(0, 200));
   }
@@ -337,6 +385,7 @@ const sentCount = () => Math.max(testerMode.collected.length, wire.length);
   check("…with focus on the new ask, not thrown to the top", focus.inTile, focus.what);
   await hide(page);
   await sleep(1200);
+  await drain(page);
   const taps = events().filter((e) => e.name === "tap");
   check("the tap on Send is collected by its name", taps.some((t) => t.label === "Send your tester number to Timothy"), taps.map((t) => t.label).join(" | "));
   await ctx.close();
@@ -356,6 +405,7 @@ const sentCount = () => Math.max(testerMode.collected.length, wire.length);
   await sleep(1500);
   await hide(page);
   await sleep(1500);
+  await drain(page);
   check("…and the phone still collects after it", events().length > 0, `${events().length} events, ${wire.length} sent`);
   await ctx.close();
 }

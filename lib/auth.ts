@@ -179,8 +179,11 @@ export interface AuthResult {
 export const EXISTING_COPY = {
   /** The form's title once it is that account's sign-in: /signin's own. */
   title: "Welcome back",
-  ask: "That email has an Ethos account. Enter its password to sign in.",
-  mismatch: "That email has an Ethos account. This password doesn't match it.",
+  /* Most testers made their account with Google, so it has no password
+     to type: both lines point at Continue with Google, which stays on
+     the card above (7 Nov). */
+  ask: "That email has an account. Sign in with its password or Google.",
+  mismatch: "This password doesn't match that account. Try Google if you used it.",
 } as const;
 
 /** What the auth server answered with, as much of it as these checks read. */

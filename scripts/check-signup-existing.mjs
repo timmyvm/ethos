@@ -249,7 +249,7 @@ if (run("guest")) {
   const asked = await passwordField(page).waitFor({ timeout: 3000 }).then(() => true, () => false);
   ok("guest: the account's password is asked for in place", asked);
   const said = ((await page.locator('[role="status"], [role="alert"]').allTextContents()).join(" ") || "").trim();
-  ok("guest: it says the email has an account", /already has an Ethos account|has an Ethos account/.test(said), said);
+  ok("guest: it says the email has an account and offers its password or Google", /has an (Ethos )?account/.test(said) && /Google/.test(said), said);
   ok("guest: the old send-back line is gone", !/Sign in instead/.test(said), said);
   const title = ((await page.locator("main h1").first().textContent({ timeout: 2000 }).catch(() => "")) ?? "").trim();
   ok("guest: the screen is the sign-in's own now (its title)", title === "Welcome back", title);
@@ -287,7 +287,7 @@ for (const [theme, width, height] of run("wrong") ? [["light", 390, 844], ["dark
   const alert = ((await page.locator('[role="alert"]').allTextContents()).join(" ") || "").trim();
   if (first) {
     ok("wrong password: it stays on the form", path(page) === "/signup", page.url());
-    ok("wrong password: it says the email has an account and the password doesn't match it", /has an Ethos account/.test(alert) && /match/.test(alert), alert);
+    ok("wrong password: it says the password doesn't match that account and points at Google", /doesn't match that account/.test(alert) && /Google/.test(alert), alert);
     ok("wrong password: the email is kept", (await emailField(page).inputValue({ timeout: 2000 }).catch(() => "")) === EMAIL);
     ok("wrong password: the password is cleared for another go, cursor in it", (await passwordField(page).inputValue({ timeout: 2000 }).catch(() => "x")) === "" && (await passwordField(page).evaluate((el) => el === document.activeElement, null, { timeout: 2000 }).catch(() => false)));
     ok("wrong password: Sign in is the tap", /^Sign in$/.test(((await submit(page).textContent({ timeout: 2000 }).catch(() => "")) ?? "").trim()));
@@ -372,7 +372,7 @@ for (const [theme, width, height] of run("none") ? [["light", 390, 844], ["dark"
   if (first) {
     const alert = ((await page.locator('[role="alert"]').allTextContents()).join(" ") || "").trim();
     ok("no session, wrong password: it stays on the form", path(page) === "/signup" && !/Check your inbox/.test((await page.locator("main h1").first().textContent({ timeout: 4000 }).catch(() => "")) ?? ""), page.url());
-    ok("no session, wrong password: it says the email has an account and the password doesn't match", /has an Ethos account/.test(alert) && /match/.test(alert), alert);
+    ok("no session, wrong password: it says the password doesn't match that account and points at Google", /doesn't match that account/.test(alert) && /Google/.test(alert), alert);
     ok("no session, wrong password: the email is kept, the password cleared", (await emailField(page).inputValue({ timeout: 2000 }).catch(() => "")) === EMAIL && (await passwordField(page).inputValue({ timeout: 2000 }).catch(() => "x")) === "");
     ok("no session, wrong password: Sign in is the tap", /^Sign in$/.test(((await submit(page).textContent({ timeout: 2000 }).catch(() => "")) ?? "").trim()));
     const href = await page.getByRole("link", { name: /Forgot/ }).first().getAttribute("href", { timeout: 2000 }).catch(() => null);

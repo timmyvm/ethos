@@ -216,8 +216,11 @@ describe("a sign-up with no session meets a confirmed account", () => {
     fake.signInError = WRONG;
     const r = await createAccount(EMAIL, "not the password", NEXT);
     expect(r).toEqual({ ok: false, existing: true, error: EXISTING_COPY.mismatch, field: "password" });
-    expect(r.error).toMatch(/has an Ethos account/);
-    expect(r.error).toMatch(/doesn't match/);
+    expect(r.error).toMatch(/doesn't match that account/);
+    // An account made with Google has no password to type (7 Nov).
+    expect(r.error).toMatch(/Google/);
+    expect(EXISTING_COPY.ask).toMatch(/has an account/);
+    expect(EXISTING_COPY.ask).toMatch(/Google/);
     expect(called("signUp")).toHaveLength(1);
     expect(called("resend")).toHaveLength(0);
   });

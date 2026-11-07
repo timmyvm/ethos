@@ -104,11 +104,15 @@ describe("every screen that holds the take renders it, and the walk stops it", (
     });
   }
 
-  it("the results walk pauses the take whenever its step changes", () => {
+  /* #427: no steps are left to leave. The felt question going still
+     stops the take; the door's sheet does not, so a moment started on
+     the glance keeps playing in Hear it back under it. */
+  it("the results pause the take when the felt question goes, and never on the door", () => {
     const page = src("app/rep/page.tsx");
     const results = page.slice(page.indexOf("function Results("));
     expect(results).toMatch(/const take = useTakeAudio\(audioUrl, result\.metrics\.durationS\);/);
-    expect(results).toMatch(/const stopTake = take\.pause;\s*useEffect\(\(\) => \{\s*stopTake\(\);\s*\}, \[step, askingFelt, stopTake\]\);/);
+    expect(results).toMatch(/const stopTake = take\.pause;\s*useEffect\(\(\) => \{\s*stopTake\(\);\s*\}, \[askingFelt, stopTake\]\);/);
+    expect(results).not.toMatch(/\[sheetOpen[^\]]*stopTake\]/);
   });
 
   it("the Pause row is handed a take only when it can play", () => {

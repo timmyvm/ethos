@@ -366,6 +366,7 @@ export function RepResult({
         cappedNote={cappedNote}
         under={under}
         short={shortRoom}
+        tall={tallRoom}
       />
     );
   }
@@ -1129,6 +1130,7 @@ function Glance({
   cappedNote,
   under,
   short,
+  tall,
 }: {
   view: GlanceView;
   metrics: RepMetrics;
@@ -1152,6 +1154,8 @@ function Glance({
   cappedNote: ReactNode;
   under: ReactNode;
   short: boolean;
+  /** A phone 700pt or taller: a tester's question fits under Demos in his room. */
+  tall: boolean;
 }) {
   const chip = view.moment ? (
     take?.playable ? (
@@ -1209,8 +1213,16 @@ function Glance({
     </span>
   );
 
+  /* Demos in his room, his line over his head: everywhere but a phone
+     under 600pt, and a tester's glance on one under 700pt, where he
+     stands beside his line at 112 so the question fits. With no question
+     under him, up to 32pt of the spare height goes over the stars so the
+     score breathes. */
+  const beside = !short && !!under && !tall;
+  const roomy = !short && !under;
   return (
     <div data-glance className="flex w-full flex-1 flex-col">
+      {roomy && !round && <div aria-hidden className="max-h-8 flex-1 [@media(max-height:700px)]:hidden" />}
       <div
         className={`flex flex-col items-center text-center ${
           round ? "mt-3" : "mt-5 [@media(max-height:700px)]:mt-3"
@@ -1274,9 +1286,9 @@ function Glance({
           {spoken}
           {under}
         </div>
-      ) : under ? (
-        /* A tester's glance: Demos beside his line at 112 (the Log's
-           layout), so the match question fits under it. */
+      ) : beside ? (
+        /* A tester's glance on a phone under 700pt: Demos beside his line
+           at 112 (the Log's layout), so the match question fits under it. */
         <div className="mt-5 flex w-full flex-col [@media(max-height:700px)]:mt-3">
           <div className="flex w-full items-start gap-3 text-left">
             <div className="relative shrink-0">
@@ -1291,22 +1303,26 @@ function Glance({
         </div>
       ) : (
         /* His line over his head, its tail at his face, and Demos under
-           it taking the free height from 88 to 200; what is left over
-           sits above his line. */
-        <div data-coach-room className="mt-4 flex w-full flex-1 flex-col justify-end [@media(max-height:700px)]:mt-2">
+           it taking the free height from 88 to 270, #400's own ceiling
+           (#427: at 200 a 120pt band stood over his line at 390x844,
+           past rule 7's 64). A shorter hero (a take too short to score)
+           leaves more than he can take: it is shared over his line and
+           under his feet, so he and his line stay one group. */
+        <div data-coach-room className="mt-4 flex w-full flex-1 flex-col justify-center [@media(max-height:700px)]:mt-2">
           <div className={`shrink-0 ${arrival}`} style={arrivalStyle}>
             <SpeechBubble tail="down" className="text-center">
               {spoken}
             </SpeechBubble>
           </div>
-          <div className="relative mt-3 max-h-[200px] min-h-[88px] flex-1 basis-0">
+          <div className="relative mt-3 max-h-[270px] min-h-[88px] flex-1 basis-0">
             <div className="absolute inset-0 [container-type:size]">
-              <div className="absolute bottom-0 left-1/2 size-[min(100cqh,200px)] -translate-x-1/2 [container-type:size]">
-                {demos(200, true)}
+              <div className="absolute bottom-0 left-1/2 size-[min(100cqh,270px)] -translate-x-1/2 [container-type:size]">
+                {demos(270, true)}
                 {burst}
               </div>
             </div>
           </div>
+          {under}
         </div>
       )}
     </div>

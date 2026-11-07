@@ -21,12 +21,14 @@ import { LevelMeter } from "@/components/LevelMeter";
 import { ModeToggle } from "@/components/ModeToggle";
 import { Moment } from "@/components/Moment";
 import { ClosingNote } from "@/components/rep/ClosingNote";
+import { ReminderAsk } from "@/components/rep/ReminderAsk";
+import { WHOLE_RECORDING, WholeRecording } from "@/components/rep/WholeRecording";
 import { ComparisonCard } from "@/components/ComparisonCard";
 import { Paywall, type PaywallAsk } from "@/components/Paywall";
 import { PermissionHelp } from "@/components/PermissionHelp";
 import { PoseSkeleton } from "@/components/PoseSkeleton";
-import { PresenceDetail, PresenceScore } from "@/components/PresenceCard";
-import { RepResult } from "@/components/RepResult";
+import { PresenceDetail } from "@/components/PresenceCard";
+import { RepResult, type GlanceView } from "@/components/RepResult";
 import { CutInPill } from "@/components/rep/CutInPill";
 import { DemosHears } from "@/components/rep/DemosHears";
 import { LevelControl } from "@/components/rep/LevelControl";
@@ -36,7 +38,6 @@ import { splitPrompt } from "@/lib/tip-labels";
 import { TopicCard } from "@/components/rep/TopicCard";
 import { StreakCelebration } from "@/components/StreakCelebration";
 import { weekView } from "@/lib/home";
-import { TraitChip } from "@/components/TraitChip";
 import { FeltCheck, FeltStage } from "@/components/tester/FeltCheck";
 import { MatchCheck } from "@/components/tester/MatchCheck";
 import { TesterPaused } from "@/components/tester/TesterPaused";
@@ -50,12 +51,12 @@ import { inAppBrowser, inAppLine } from "@/lib/in-app";
 import { readOnboarding } from "@/lib/answers";
 import { buildPortfolio } from "@/lib/portfolio";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { Disclosure } from "@/components/ui/Disclosure";
 import { FooterShelf } from "@/components/ui/FooterShelf";
+import { SegmentBar } from "@/components/ui/SegmentBar";
 import { BackLink } from "@/components/ui/ScreenHeader";
-import { recordingTrait } from "@/lib/log";
 import { practiceFamily, recordingObject } from "@/lib/practice-family";
 import { animateSpring, SPRING, springEasing, springMs } from "@/lib/spring";
-import { useHourLabel } from "@/lib/time-label";
 import {
   fetchGameRounds,
   fetchProfile,
@@ -114,7 +115,6 @@ import {
   prefersReducedMotion,
   readPrefs,
   writeCaptureMode,
-  writePrefs,
   type CaptureMode,
 } from "@/lib/prefs";
 import { armReminder } from "@/lib/reminders";
@@ -124,6 +124,7 @@ import {
   backLabel,
   celebratesStreak,
   defaultBack,
+  exitBeat,
   recordCue,
   roundChimes,
   streakChimes,
@@ -148,6 +149,19 @@ import {
   type LevelN,
 } from "@/lib/games";
 import { dayKey } from "@/lib/challenge";
+import {
+  cueLead,
+  earnedLine,
+  fitGlance,
+  GLANCE_WORDS,
+  GLANCE_WORDS_FIRST,
+  GLANCE_WORDS_TESTER,
+  glanceLine,
+  glanceTrait,
+  ladderLine,
+  sheetSections,
+} from "@/lib/glance";
+import { askedOn, notificationState, reminderDue } from "@/lib/reminder-ask";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
 import { bestFor, ladderState, roundsToday, type LadderRow } from "@/lib/ladder";
 import { INTERVIEW_WINDOW, type GameRound, type StoppedBy } from "@/lib/round";
@@ -190,7 +204,6 @@ import {
   sessionToken,
 } from "@/lib/supabase-browser";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
-import type { TraitId } from "@/content/traits";
 import { MIN_TAKE_MS, TOO_SHORT_COPY, UNHEARD_COPY } from "@/lib/unheard";
 import { IconBack } from "@/components/Icon";
 import { RoundCard, ROUND_REVEAL_MS } from "@/components/rep/RoundCard";
@@ -1673,10 +1686,10 @@ function RepScreen() {
   const celebrated = useCallback(() => {
     setCelebrate(null);
     // The overlay hands focus back to its opener, and the opener (Stop)
-    // is gone: land on the step button so a keyboard does not restart
-    // from the top of the page.
+    // is gone: land on the results' name (#427), so a keyboard and a
+    // screen reader start from the top of the glance, not the page's.
     requestAnimationFrame(() =>
-      document.querySelector<HTMLElement>("main [data-step-action]")?.focus()
+      document.querySelector<HTMLElement>("main [data-results-head]")?.focus({ preventScroll: true })
     );
   }, []);
 
@@ -2634,25 +2647,22 @@ function article(n: number): string {
 }
 
 /*
- * Results, walked one screen at a time.
+ * Results, as one glance and one door (DECISIONS #427).
  *
- * The old version put the score, eight dimensions, every filler
- * timestamp, the transcript, records, tomorrow's focus and two buttons
- * in a single scroll — so the top was read and the rest was scrolled
- * past on the way to "Done". Three steps, one job each, and no way out
- * until the last one: you finish the debrief, then you leave.
+ * Timothy, 7 Nov: "there is so much to consume post lesson. like so much
+ * to read." The three-step walk asked for 300 words and three taps after
+ * a 62s take, and it had "deliberately no exit until the debrief is
+ * finished", so the nine-row ledger and the transcript were compulsory,
+ * three times a lesson. Now a take ends on one screen with no scroll:
+ * the stars, the Index and its delta, one earned line when something was
+ * earned, Demos's one measured line about the practice's own trait with
+ * the moment that plays and one target for next time, the door, and the
+ * tap, live from the first frame. Everything else is in "The whole
+ * recording", a sheet opened in place, pulled and never pushed.
  *
- * Nothing is hidden by this; the log renders the same component with
- * section="all", because a stored rep is reference rather than a
- * debrief.
+ * Nothing is lost: the sheet holds every number and every word, and the
+ * Log renders the same component with section="all".
  */
-
-const STEPS = [
-  { key: "score", label: "The score" },
-  { key: "numbers", label: "The numbers" },
-  { key: "words", label: "Your words" },
-] as const;
-
 function Results({
   result,
   config,
@@ -2704,7 +2714,7 @@ function Results({
   spineNow: RepSpine[];
   /** A game's rows before this round and with it; null until read, or when the read failed. */
   walkRows: { before: GameRoundRow[]; now: GameRoundRow[] } | null;
-  /** The streak celebration is up over the score step. */
+  /** The streak celebration is up over the glance. */
   streakUp: boolean;
   /** Whether it will be is decided (the round's reveal waits on it). */
   rewardsReady: boolean;
@@ -2718,22 +2728,20 @@ function Results({
   /* Where this recording came from, if a lesson sent it (#258). Read
      here rather than threaded down through eighteen props. */
   const backTo = safeBack(searchParams.get("back"));
-  const [step, setStep] = useState(0);
-  const section = STEPS[step].key;
   /*
-   * The take's one audio element (#424), held for the whole walk: Hear
-   * it back, a word's "Said at" (#411) and the Pause row's moments all
-   * play through it, one sound at a time. A step left behind stops it,
-   * as leaving the words step always did.
+   * The take's one audio element (#424): the glance's moment, Hear it
+   * back, a word's "Said at" (#411) and the Pause row's moments all play
+   * through it, one sound at a time. It stays on the page under the
+   * sheet, so a moment started on the glance keeps playing in the sheet.
    */
   const take = useTakeAudio(audioUrl, result.metrics.durationS);
   /*
    * The match check (migration 0020): a tester's one question about the
-   * score, at the top of the last step, so it is asked after the score
-   * and the numbers it is about have both been on screen, it opens above
-   * the shelf on the shortest phone, and the step's own tap no longer
-   * walks past it. The numbers are frozen as they land, so a later
-   * change on this screen can never rewrite what was being answered.
+   * score, on the glance under Demos's line, so it is asked after the
+   * score and beside it (#427: it was at the top of the last step, "since
+   * the score is two steps back by then"). The numbers are frozen as they
+   * land, so a later change on this screen can never rewrite what was
+   * being answered.
    */
   const match = showsMatchCheck({
     tester,
@@ -2751,11 +2759,12 @@ function Results({
    * the score carries it then (lib/tester.ts withPending).
    */
   const [askingFelt, setAskingFelt] = useState(() => match);
+  /* The door's sheet, "The whole recording", over the glance. */
+  const [sheetOpen, setSheetOpen] = useState(false);
   const stopTake = take.pause;
   useEffect(() => {
     stopTake();
-  }, [step, askingFelt, stopTake]);
-  const last = step === STEPS.length - 1;
+  }, [askingFelt, stopTake]);
   // One answer to "what next": the path's (DECISIONS #220). Home's
   // floor and the road read nextLesson, so the debrief does too. Before
   // the history lands, or once every lesson holds three stars, the
@@ -2772,9 +2781,9 @@ function Results({
     ? gameById(config.lessonId.split(":")[1])
     : null;
   /* The round, as the server measured it (lib/round.ts): its own reveal
-     on the score step, the ladder on the last (the games plan, items 4
-     to 6). Null for anything that is not a game, and for a game whose
-     phone sent nothing to measure. */
+     on the glance, the ladder in Demos's line and the sheet (the games
+     plan, items 4 to 6). Null for anything that is not a game, and for a
+     game whose phone sent nothing to measure. */
   const gameRound: GameRound | null =
     game && result.round && result.round.game === game.id ? result.round : null;
   /* The level this round ran at, which Another round keeps: the link's,
@@ -2803,7 +2812,7 @@ function Results({
 
   /*
    * The save-progress wall (DECISIONS #134). The exits route through
-   * it rather than it replacing the last screen: the debrief stays a
+   * it rather than it replacing the glance: the debrief stays a
    * debrief, #105's ending stays "Next lesson", and the decline
    * continues to exactly the destination that was tapped — a wall that
    * eats the tap it intercepted reads as a bait-and-switch.
@@ -2817,9 +2826,10 @@ function Results({
   });
 
   /*
-   * The day-3 progress moment (DECISIONS #11's placement, lib/pro-moment).
-   * The save wall outranks it: the account ask comes before the money
-   * ask, and a deferred moment stays due for a later exit.
+   * The day-3 progress moment (DECISIONS #11's placement, lib/pro-moment),
+   * since #427 only on an exit that leaves: "Practice 2 of 3" goes
+   * straight on, so nothing stands between a lesson's practices. The save
+   * wall outranks it, and a deferred moment stays due for a later exit.
    */
   const [proTo, setProTo] = useState<string | null>(null);
   const daysSpoken = trainedDays(spineNow).length;
@@ -2829,6 +2839,9 @@ function Results({
     repCount: spineNow.length,
     shown: proMomentShown(),
   });
+  /* The reminder ask (#427, lib/reminder-ask.ts): the last step's
+     Tomorrow picker, now on an exit that leaves, once a day. */
+  const [askTo, setAskTo] = useState<string | null>(null);
   /*
    * Every exit lands here. "Go again" from the address already on screen
    * would push the same URL, which Next treats as nothing (same route,
@@ -2843,10 +2856,10 @@ function Results({
   /*
    * The ask after the taste (the games plan, item 13; research 5): a free
    * account finishing today's free round of a Premium game meets the plum
-   * sheet once per game, on its way out of the walk, leading with that
-   * round's own number. Never mid-walk and never over the celebration;
-   * the decline goes on to wherever was tapped. The plan is read here, so
-   * an unread plan is never taken for free.
+   * sheet once per game, on its way out, leading with that round's own
+   * number. Never over the celebration; the decline goes on to wherever
+   * was tapped. The plan is read here, so an unread plan is never taken
+   * for free.
    */
   const [planFree, setPlanFree] = useState<boolean | null>(null);
   const premiumGame = !!game && needsPremium(game);
@@ -2878,14 +2891,37 @@ function Results({
     setTasteSeen(true);
     setTasteTo(to);
   };
-  const exit = (href: string) => {
-    if (gate) setGateTo(href);
-    else if (tasteDue && !streakUp) openTaste(href);
-    else if (proDue) setProTo(href);
+  /*
+   * At most one beat between a tapped exit and where it goes, in
+   * exitBeat's order (#427): the save wall, the taste, then, only on an
+   * exit that leaves the session, Since day one or the reminder ask.
+   */
+  const exit = (href: string, { leaves }: { leaves: boolean }) => {
+    const beat = exitBeat({
+      gate: gate !== null,
+      tasteDue,
+      proDue,
+      reminderDue:
+        leaves &&
+        reminderDue({
+          hour: readPrefs().reminderHour,
+          askedOn: askedOn(),
+          today: dayKey(new Date()),
+          leaves,
+          notifications: notificationState(),
+        }),
+      leaves,
+      streakUp,
+    });
+    if (beat === "gate") setGateTo(href);
+    else if (beat === "taste") openTaste(href);
+    else if (beat === "pro") setProTo(href);
+    else if (beat === "reminder") setAskTo(href);
     else go(href);
   };
   /* Another round (F6a, M7): the same game at the same level, a question
-     not answered lately (drawFresh over this game's own rows). */
+     not answered lately (drawFresh over this game's own rows). It stays
+     in the session, so nothing but the walls stands before it. */
   const anotherRound = () => {
     if (!game) return;
     if (replayClosed) {
@@ -2897,11 +2933,11 @@ function Results({
       [config.lessonId, ...[...(roundRows ?? [])].reverse().map((r) => r.lesson_id)],
       game
     );
-    exit(repHref({ game: game.id, q: drawFresh(game, asked).id, level }));
+    exit(repHref({ game: game.id, q: drawFresh(game, asked).id, level }), { leaves: false });
   };
 
   /*
-   * M07: what was practised names the walk, read from the rep config:
+   * M07: what was practised names the results, read from the rep config:
    * the lesson's title, the boss's Cold Topic, the game's name, or
    * Today's practice. Never "Lesson complete" on a recording that was
    * not a lesson (most of them are the floor, a boss or a game).
@@ -2913,21 +2949,17 @@ function Results({
       : game
         ? roundHeader(game.name, roundsNow)
         : "Today's practice";
-  /*
-   * recording-7, recording-21: one "Tomorrow", from the same source as
-   * the button, so the walk gives one answer to what next (#220). It
-   * names the path's next only where the button IS the path's next; a
-   * game, a lesson's next practice and a return to the lesson say their
-   * own next on the button and nothing here contradicts it.
-   */
-  const pathPrimary = !game && !(lesson && nextInLesson) && !returnIsPrimary;
-  const nextTrait = recordingTrait({ lesson_id: next.id });
+  /* The header's back (#427): what was practised is its visible label,
+     at BackLink's geometry; where it goes is its name. It leaves the
+     session, as "Done for today" and "Back to the lesson" did. */
+  const backHref = returnIsPrimary ? "/" : (backTo ?? (game ? "/games" : "/"));
+  const backName =
+    backHref === "/" ? "Back to Today" : backHref === "/games" ? "Back to Practice" : "Back to the lesson";
 
   /*
-   * Between steps the content fades out as one block (200ms ease-out),
-   * then the next step arrives from the right (M07, #223). The button
-   * never leaves the shelf. Reduced motion skips the fade out, and the
-   * arrival is its one 200ms fade.
+   * The felt question fades out as one block (200ms ease-out), then the
+   * glance arrives from the right. Reduced motion skips the fade out, and
+   * the arrival is its one 200ms fade.
    */
   const [leaving, setLeaving] = useState(false);
   const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -2949,49 +2981,12 @@ function Results({
       setAskingFelt(false);
     }, 200);
   };
-  /* Which way the last step went, so the next one arrives from where
-     the person is heading: the right going on, the left coming back. */
-  const [wentBack, setWentBack] = useState(false);
-  const move = (by: 1 | -1) => {
-    setWentBack(by < 0);
-    if (prefersReducedMotion()) {
-      setStep((n) => n + by);
-      return;
-    }
-    setLeaving(true);
-    leaveTimer.current = setTimeout(() => {
-      setLeaving(false);
-      setStep((n) => n + by);
-    }, 200);
-  };
-  const advance = () => {
-    if (leaving || last) return;
-    move(1);
-  };
-  /* Back a step (#407, Jonathan): to see again what was just passed. */
-  const retreat = () => {
-    if (leaving || step === 0) return;
-    move(-1);
-  };
-
-  /*
-   * Each step starts at the top: landing halfway down the next screen
-   * because the last one was long is how a step gets skipped. And focus
-   * moves to the step's own heading (recording-23), so a screen reader
-   * hears the new step instead of the same button with a new label.
-   */
-  const stepHead = useRef<HTMLHeadingElement | null>(null);
-  useEffect(() => {
-    window.scrollTo({ top: 0 });
-    if (step > 0) stepHead.current?.focus({ preventScroll: true });
-  }, [step]);
 
   /*
    * The round's own reveal (F3) and its one sound (F5). The card waits
    * while the streak celebration is up, or while it is still unknown
    * whether one is coming (never more than 2.5s), so the reveal is seen
-   * and the round never has two sounds. A step back to the score shows
-   * it as it ended.
+   * and the round never has two sounds.
    */
   const [waitedOut, setWaitedOut] = useState(false);
   useEffect(() => {
@@ -3021,17 +3016,27 @@ function Results({
       buzz([12, 40, 18]);
     }
   };
-  const roundCard =
-    gameRound && reveal ? (
-      <RoundCard
-        round={gameRound}
-        reveal={reveal}
-        xp={xpLine({
+  const xp =
+    gameRound
+      ? xpLine({
           gameId: gameRound.game,
           xpMultiplier: result.xpMultiplier,
           mods: result.mods,
           level: gameRound.level,
-        })}
+        })
+      : null;
+  /* The card's note line ("You spoke 22s clean after it.", "×2 for the
+     cut-in") moves to the top of the sheet (#427), its strings unchanged;
+     a card whose readout IS its line (no number) keeps it. */
+  const noteMoves = !!reveal && reveal.number !== null;
+  const roundNote =
+    reveal && xp && noteMoves && (reveal.line || xp.note) ? { line: reveal.line, xp: xp.note } : null;
+  const roundCard =
+    gameRound && reveal && xp ? (
+      <RoundCard
+        round={gameRound}
+        reveal={noteMoves ? { ...reveal, line: null } : reveal}
+        xp={{ ...xp, note: null }}
         words={result.words}
         pauses={result.metrics.pauses}
         audioUrl={audioUrl}
@@ -3040,16 +3045,13 @@ function Results({
         onLanded={landed}
       />
     ) : null;
-  /* Demos's cut-ins, marked wherever the take is drawn (the games plan,
-     item 4): the pause map and Hear it back. */
+  /* Demos's cut-ins, marked on Hear it back's track (the games plan, item 4). */
   const cutInMarks = (gameRound && gameRound.game !== "rush" ? gameRound.cutIns : [])
     .filter((f) => f.at !== null)
     .map((f) => ({ t: f.at as number, line: f.line }));
-  /* The Length tile reads its own game (M5): Speed rush's clock. */
-  const lengthNote =
-    game?.id === "rush" ? `of ${gameRound?.cap ?? levelCapS(game, level)}s` : "target 60 to 90s";
-  /* Tomorrow names the ladder (M5), and a level opened or a game
-     mastered is the closing moment. */
+  /* The ladder (M5): Demos's line on the glance is its first sentence,
+     the sheet keeps all of it, and a level opened or a game mastered is
+     the earned line and the closing moment. */
   const ladder: LadderView | null =
     game && walkRows
       ? ladderView(
@@ -3060,6 +3062,213 @@ function Results({
         )
       : null;
   const closingNow = ladder?.moment ?? closing;
+
+  /*
+   * What the glance says (lib/glance.ts): Demos's one line about the
+   * practice's own trait, its moment and its cue; a game's ladder in its
+   * place; and the earned line. Fitted to the budget with everything else
+   * on the screen, so the cue is what goes first.
+   */
+  const scorable = result.scorable !== false;
+  const capped = result.judged.capped && result.ethosIndex === null && scorable;
+  const trait = glanceTrait(config);
+  const lead = cueLead({
+    lesson: lesson && practiceOf ? { practice: practiceOf.practice, of: lesson.practices.length } : null,
+    boss: config.kind === "boss",
+    game: !!game,
+  });
+  const said = ladder && scorable
+    ? { parts: [{ kind: "text" as const, text: ladderLine(ladder.line) }], sentence: ladderLine(ladder.line), moment: null, cue: null }
+    : glanceLine({
+        trait,
+        metrics: result.metrics,
+        words: result.words,
+        transcript: result.transcript,
+        capped,
+        scorable,
+        lead,
+      });
+  const earnedNow = scorable
+    ? earnedLine({
+        bests,
+        ladderMoment: ladder?.moment ?? null,
+        trait,
+        presence:
+          presence && premium
+            ? { score: presence.metrics.presenceScore, previous: result.previousPresence ?? null }
+            : null,
+        accuracy: result.accuracy?.score ?? null,
+      })
+    : null;
+  const cappedLine = capped
+    ? daysSpoken >= PRO_MOMENT_DAYS
+      ? "Premium reads every recording"
+      : "Measured, not judged."
+    : null;
+  /* The primary's words, the same in the shelf and the sheet's foot. */
+  const primaryLabel = game
+    ? `Another round: ${game.name}`
+    : lesson && nextInLesson
+      ? `Practice ${nextInLesson} of ${lesson.practices.length}`
+      : returnIsPrimary
+        ? "Back to the lesson"
+        : `${again ? "Go again" : "Next lesson"}: ${next.title}`;
+  const delta =
+    result.ethosIndex !== null && result.previousIndex !== null ? result.ethosIndex - result.previousIndex : null;
+  const baseline = repCountBefore === 0;
+  const scoreWords =
+    result.ethosIndex !== null
+      ? [
+          String(result.ethosIndex),
+          "/1000",
+          delta !== null && delta !== 0
+            ? `▲ ${Math.abs(delta)}${config.kind === "boss" ? " on last week's boss" : ""}`
+            : delta === null && baseline
+              ? "Day 0. Everything after this has a number to beat."
+              : "",
+        ]
+      : !scorable
+        ? ["Not enough to score."]
+        : [String(result.metrics.fillerCount), "fillers", cappedLine ?? ""];
+  const testerWords = match && resultKey ? `Tester Did ${snapshot.index ?? "the score"} feel right? Too low About right Too high` : "";
+  const fit = fitGlance(
+    {
+      fixed: [
+        practised,
+        coined ? "+1" : "",
+        ...scoreWords,
+        WHOLE_RECORDING,
+        primaryLabel,
+        again ? "" : "Retake",
+        testerWords,
+      ],
+      line: said.sentence,
+      cue: said.cue,
+      earned: earnedNow,
+    },
+    testerWords ? GLANCE_WORDS_TESTER : delta === null && baseline ? GLANCE_WORDS_FIRST : GLANCE_WORDS
+  );
+  const glance: GlanceView = {
+    parts: said.parts,
+    moment: said.moment,
+    cue: fit.cue,
+    earned: earnedNow && fit.earned ? { text: fit.earned, tone: earnedNow.tone, delta: earnedNow.delta } : null,
+  };
+  const upgradeRead = () =>
+    onUpgrade({
+      reason: "The judged read · 1 a day free",
+      headline: "Keep the coaching coming.",
+    });
+  const cappedNote = cappedLine ? (
+    daysSpoken >= PRO_MOMENT_DAYS ? (
+      /* The map's #1 surface (docs/growth/04 §1.1): came back for a
+         second read the same day, right after finished work. One quiet
+         line, day 3 on; before that, the three words. */
+      <button onClick={upgradeRead} className="press min-h-11 text-link text-plum-700">
+        <PremiumDoor>{cappedLine}</PremiumDoor>
+      </button>
+    ) : (
+      <p className="font-display text-body font-bold text-stone-500">{cappedLine}</p>
+    )
+  ) : null;
+  /* The tester's question, on the glance under Demos's line: after the
+     score and beside it, its strings and grey controls unchanged. A
+     tester on an older consent reads that testing is paused instead. */
+  const under =
+    match && resultKey ? (
+      <MatchCheck key={resultKey} clientId={resultKey} repId={result.repId} scores={snapshot} className="mt-4" />
+    ) : pausedTester(tester) ? (
+      <div className="mt-4">
+        <p className="eyebrow">{DOOR_COPY.settingsTesting}</p>
+        <TesterPaused back="/" className="mt-1" />
+      </div>
+    ) : null;
+
+  /* The sheet's body, in sheetSections' order (#427). */
+  const sections = sheetSections({
+    bests: bests.length,
+    accuracy: !!result.accuracy,
+    roundNote: !!roundNote,
+    audio: !!audioUrl,
+    fillers: result.metrics.fillers.length,
+    coach: !!(result.coach?.strength || result.coach?.supply),
+    capped: result.judged.capped,
+    presence: !!presence,
+    closing: !!closingNow,
+    ladder: !!ladder,
+  });
+  const sheetSlots = {
+    records: (
+      <section>
+        <h2 className="section-head">Records broken</h2>
+        <div className="mt-3 space-y-3">
+          {bests.map((b, i) => (
+            <Moment key={i} moment={b} />
+          ))}
+        </div>
+      </section>
+    ),
+    "round-note": roundNote ? (
+      <section>
+        {roundNote.line && <p className="text-body text-stone-600 text-pretty">{roundNote.line}</p>}
+        {roundNote.xp && (
+          <p className={`${roundNote.line ? "mt-1 " : ""}text-caption text-stone-500`}>{roundNote.xp}</p>
+        )}
+      </section>
+    ) : null,
+    presence: presence ? (
+      <div className="*:mt-0!">
+        <PresenceDetail
+          metrics={presence.metrics}
+          moments={presence.moments}
+          premium={premium}
+          videoUrl={clipUrl}
+          onUpgrade={() =>
+            onUpgrade({
+              reason: "Delivery readout · premium",
+              headline: "See what the camera measured.",
+            })
+          }
+        />
+      </div>
+    ) : null,
+    /* The ending (#423, bent by #427): the sheet's last word, no card,
+       its number in the colour of what it measured. A level opened or a
+       game mastered is the same note in sage. */
+    closing: closingNow ? <ClosingNote moment={closingNow} /> : null,
+    ladder: ladder ? (
+      <section>
+        <p className="font-display text-detail">{ladder.head}</p>
+        <p className="mt-1 text-body text-stone-600 text-pretty">{ladder.line}</p>
+        {ladder.rule && <p className="mt-1 text-caption text-stone-500 text-pretty">{ladder.rule}</p>}
+      </section>
+    ) : null,
+  };
+
+  /*
+   * The one way forward (M07, #273, #194, #220), live from the glance's
+   * first frame, and the same tap at the sheet's foot. Buttons, not
+   * Links: the exits go through exit(), which may route via a wall first.
+   */
+  const primary = (where: "shelf" | "sheet") => {
+    const mark = where === "shelf" ? { "data-step-action": "" } : {};
+    const onClick = game
+      ? anotherRound
+      : lesson && nextInLesson
+        ? () =>
+            exit(
+              repHref({ lesson: lesson.id, q: String(nextInLesson), back: backTo ?? `/lessons/${lesson.id}` }),
+              { leaves: false }
+            )
+        : returnIsPrimary && backTo
+          ? () => exit(backTo, { leaves: true })
+          : () => exit(repHref({ lesson: next.id }), { leaves: true });
+    return (
+      <button {...mark} onClick={onClick} className={PRIMARY}>
+        {primaryLabel}
+      </button>
+    );
+  };
 
   if (gateTo !== null && gate !== null) {
     return (
@@ -3083,392 +3292,181 @@ function Results({
   }
 
   return (
-    <main className="flex min-h-dvh flex-col px-5 pt-7">
-      {/* M07, recording-10: what was practised, as the page's h1 in the
-          body size (the score is the hero, not the name), and the coin
-          it earned on the right. */}
-      {/* Past the score, the row's left is the way back a step, at
-          BackLink's geometry (#407); the practice's name stays the h1. */}
-      <div className="flex min-h-11 items-center justify-between gap-3">
-        {step > 0 && !askingFelt && (
-          <button
-            onClick={retreat}
-            className="screen-bar-back press -ml-3 inline-flex min-h-11 items-center"
-          >
-            <IconBack size={22} />
-            <span>{STEPS[step - 1].label}</span>
-          </button>
-        )}
-        <h1
-          className={`font-display min-w-0 text-body font-bold text-ink ${
-            step > 0 && !askingFelt ? "sr-only" : ""
-          }`}
-        >
+    <>
+      <main className="flex min-h-dvh flex-col px-5 pt-[env(safe-area-inset-top)]">
+        {/* M07, recording-10: what was practised, the page's h1 for a
+            screen reader, and the header's back for everyone (#427), at
+            BackLink's geometry; the coin it earned on the right. */}
+        <h1 tabIndex={-1} data-results-head className="sr-only">
           {practised}
         </h1>
-        {coined && step === 0 && !askingFelt && (
-          <span className="flex shrink-0 items-center gap-1.5 text-link text-sage-700">
-            <Coin size={18} /> +1
-          </span>
+        <div className="flex min-h-11 items-center justify-between gap-3">
+          <button
+            type="button"
+            data-results-back
+            onClick={() => exit(backHref, { leaves: true })}
+            aria-label={backName}
+            className="screen-bar-back press -ml-3 inline-flex min-h-11 min-w-0 items-center"
+          >
+            <IconBack size={22} />
+            <span aria-hidden className="truncate">
+              {practised}
+            </span>
+          </button>
+          {coined && !askingFelt && (
+            <span className="flex shrink-0 items-center gap-1.5 text-link text-sage-700">
+              <Coin size={18} /> +1
+            </span>
+          )}
+        </div>
+
+        {take.element}
+
+        {/* A lesson practice's place in its lesson: sage on the sand,
+            the practices done with this one (M10). */}
+        {lesson && practiceOf && !askingFelt && (
+          <SegmentBar
+            className="mt-2"
+            total={lesson.practices.length}
+            done={Math.min(practiceOf.practice, lesson.practices.length)}
+          />
         )}
-      </div>
 
-      {/* Where you are and how much is left: one continuous ink bar on
-          the sand trough, a third per step, sliding on the base spring
-          (M07, Duolingo's walk). No segments and no label: the bar is
-          the count, and terracotta stays the tap's. */}
-      {take.element}
-
-      <div
-        role="progressbar"
-        aria-label="Debrief"
-        aria-valuemin={1}
-        aria-valuemax={STEPS.length}
-        aria-valuenow={step + 1}
-        aria-valuetext={`${STEPS[step].label}, ${step + 1} of ${STEPS.length}`}
-        aria-hidden={askingFelt || undefined}
-        className="mt-4 h-1 bg-sand"
-      >
-        {/* Empty while a tester says how it felt: nothing is seen yet. */}
         <div
-          className="h-full bg-ink transition-[width] duration-(--spring-base-duration) ease-(--spring-base) [:root[data-motion=reduce]_&]:transition-none"
-          style={{ width: askingFelt ? "0%" : `${((step + 1) / STEPS.length) * 100}%` }}
-        />
-      </div>
-
-      {/* The step, as one block: it fades out whole when the button is
-          pressed, and the next one comes in from the right where the
-          button pointed (DECISIONS #223). Keyed on the step, so React
-          mounts it fresh and the arrival runs once per step; the first
-          step runs it too, which is the results landing after the wait. */}
-      {/*
-       * The score step is short (a number, the stars and his line) and
-       * the button is on the shelf, so it fills the space the walk gives
-       * it (M07, #287, D52): the score and Demos with his line share the
-       * free height out in three even bands (RepResult's `spread`). A
-       * top-aligned column left a 340px hole over the shelf and read as
-       * stopped rather than finished, and a centred one still left 98px
-       * over and under it. The two longer steps flow from the top and
-       * scroll under the shelf.
-       */}
-      <div
-        className={`flex flex-1 flex-col ${
-          leaving ? "animate-[fade-out_var(--duration-base)_var(--ease-out)_forwards]" : ""
-        }`}
-      >
-        {askingFelt ? (
-          /* The take on a stage that takes the free height, the question
-             and its three answers resting under it in the thumb's reach
-             (review D4: centred, it left 215px and 260px of ground). */
-          <div key="felt" className="arrive flex flex-1 flex-col justify-center gap-8 pb-8 pt-5">
-            {/* A short phone has no free height to give: the question
-                alone, as before (the stage's floor would push the
-                answers under the shelf at 320x568). */}
-            <FeltStage
-              levels={wave}
-              seconds={result.metrics.durationS}
-              className="max-h-[40dvh] flex-1 [@media(max-height:639px)]:hidden"
-            />
-            <FeltCheck onAnswer={feltDone} />
-          </div>
-        ) : (
-        <div
-          key={step}
-          className={`${wentBack ? "arrive-x-back" : "arrive-x"} [:root[data-motion=reduce]_&]:[animation-duration:var(--duration-base)]! ${
-            /* The score step fills the walk's free height for everyone
-               (D52): a tester's match question is on the last step now,
-               so nothing opens under the score to lift it. */
-            step === 0 ? "flex flex-1 flex-col" : "pb-8"
+          className={`flex flex-1 flex-col ${
+            leaving ? "animate-[fade-out_var(--duration-base)_var(--ease-out)_forwards]" : ""
           }`}
         >
-          {step > 0 && (
-            <h2 ref={stepHead} tabIndex={-1} className="sr-only">
-              {STEPS[step].label}
-            </h2>
-          )}
-
-          {/* E57: a tester's last step says what the question is for, so
-              it never opens the step unannounced. The match question
-              wears the Tester chip on its own row (#402), which says it;
-              "Testing Ethos" over it said it twice (#412). A paused
-              tester's line has no chip, so it keeps the quiet head
-              Settings' door uses. Testers only; everyone else's step is
-              unchanged. */}
-          {last && !(match && resultKey) && pausedTester(tester) && (
-            <p className="eyebrow mt-6">{DOOR_COPY.settingsTesting}</p>
-          )}
-          {last && match && resultKey && (
-            <MatchCheck
-              key={resultKey}
-              clientId={resultKey}
-              repId={result.repId}
-              scores={snapshot}
-              className="mt-6 mb-7 border-b border-hairline pb-4"
-            />
-          )}
-          {/* A tester on an older consent: where the question would be,
-              that testing is paused and the way back (review D1). */}
-          {last && pausedTester(tester) && (
-            <TesterPaused back="/" className="mt-2 mb-7 border-b border-hairline pb-4" />
-          )}
-
-          {/* The score step's column (E55): Demos takes its free height. */}
-          <div className={step === 0 ? "flex flex-1 flex-col" : undefined}>
-            <RepResult
-              result={result}
-              topic={config.topic}
-              section={section}
-              baseline={repCountBefore === 0}
-              live
-              celebrate={earned}
-              spread={step === 0}
-              round={roundCard}
-              /* The card takes the height Demos stands in: the stars give
-                 8px first, so he keeps 120 or more at 390x844 (F3). */
-              starSize={roundCard ? 32 : 40}
-              leadMs={roundCard ? ROUND_REVEAL_MS : 0}
-              hold={roundCard ? roundHold : false}
-              lengthNote={lengthNote}
-              pauseMarks={cutInMarks.map((c) => ({
-                t: c.t,
-                label: c.line ? `“${c.line}” ${fmt(Math.floor(c.t))}` : `Demos cut in at ${fmt(Math.floor(c.t))}`,
-              }))}
-              /* recording-13, recording-18: the evidence you can play sits
-                 above the words it produced, inside the words section. */
-              player={
-                audioUrl ? (
-                  <AudioScrubber
-                    take={take}
-                    durationS={result.metrics.durationS}
-                    fillers={result.metrics.fillers}
-                    pauses={result.metrics.pauses}
-                    marks={cutInMarks.map((c) => ({ t: c.t, label: c.line ?? "Demos" }))}
-                  />
-                ) : undefined
-              }
-              hasPlayer={!!audioUrl}
-              /* A word's "Said at" plays the take from there (#411). */
-              onPlay={(t) => take.play(t)}
-              /* The Pause row's moments play their stretch of it (#424). */
-              take={take}
-            />
-          </div>
-
-          {/*
-           * Presence — a SECOND score, beside the Index at the same size.
-           * The Index is audio-only and stays that way, so the trendline
-           * and the leagues remain comparable whichever mode was picked.
-           */}
-          {section === "score" && presence && (
-            <div className="mt-7 border-t border-hairline pt-4">
-              <PresenceScore
-                score={presence.metrics.presenceScore}
-                previous={result.previousPresence}
-                premium={premium}
-                onUpgrade={() =>
-                  onUpgrade({
-                    reason: "Presence · premium",
-                    headline: "See what the camera measured.",
-                  })
-                }
+          {askingFelt ? (
+            /* The take on a stage that takes the free height, the question
+               and its three answers resting under it in the thumb's reach
+               (review D4: centred, it left 215px and 260px of ground). */
+            <div key="felt" className="arrive flex flex-1 flex-col justify-center gap-8 pb-8 pt-5">
+              {/* A short phone has no free height to give: the question
+                  alone, as before (the stage's floor would push the
+                  answers under the shelf at 320x568). */}
+              <FeltStage
+                levels={wave}
+                seconds={result.metrics.durationS}
+                className="max-h-[40dvh] flex-1 [@media(max-height:639px)]:hidden"
+              />
+              <FeltCheck onAnswer={feltDone} />
+            </div>
+          ) : (
+            /* The glance lands from the right after the wait (#223). */
+            <div
+              key="glance"
+              className="arrive-x flex flex-1 flex-col [:root[data-motion=reduce]_&]:[animation-duration:var(--duration-base)]!"
+            >
+              <RepResult
+                result={result}
+                topic={config.topic}
+                section="glance"
+                glance={glance}
+                cappedNote={cappedNote}
+                under={under}
+                baseline={baseline}
+                live
+                celebrate={earned}
+                round={roundCard}
+                /* The card takes the height Demos stands in: the stars
+                   give 8px first (F3). */
+                starSize={roundCard ? 32 : 40}
+                leadMs={roundCard ? ROUND_REVEAL_MS : 0}
+                hold={roundCard ? roundHold : false}
+                take={take}
               />
             </div>
           )}
-          {section === "numbers" && presence && (
-            <PresenceDetail
-              metrics={presence.metrics}
-              moments={presence.moments}
-              premium={premium}
-              videoUrl={clipUrl}
-              onUpgrade={() =>
-                onUpgrade({
-                  reason: "Delivery readout · premium",
-                  headline: "See what the camera measured.",
-                })
-              }
-            />
-          )}
-
-          {/*
-           * The judged tier ran out (§3). Said plainly, never framed as a
-           * failed rep — the rep counted, the streak stands, and every
-           * measured number is real.
-           */}
-          {section === "score" && result.judged.capped && (
-            <section className="mt-7 border-t border-hairline pt-4">
-              <h2 className="font-display text-lead font-bold leading-tight">
-                Measured, not judged.
-              </h2>
-              <p className="mt-2 text-body text-stone-500">
-                These are counted from the recording. The cited moments, the word
-                upgrade and Demos&apos;s take are back tomorrow.
-              </p>
-              <p className="mt-2 text-caption text-stone-500">
-                It still counted toward your streak.
-              </p>
-              {/* The map's #1 surface (docs/growth/04 §1.1): came back for
-                  a second read the same day, right after finished work.
-                  One quiet line, day 3 on; before that, meter state only. */}
-              {daysSpoken >= PRO_MOMENT_DAYS && (
-                <button
-                  onClick={() =>
-                    onUpgrade({
-                      reason: "The judged read · 1 a day free",
-                      headline: "Keep the coaching coming.",
-                    })
-                  }
-                  className="press mt-2 min-h-11 text-left text-link text-plum-700"
-                >
-                  <PremiumDoor>Premium gets the full read, every time</PremiumDoor>
-                </button>
-              )}
-            </section>
-          )}
-
-          {/* recording-10: a ground section, so a sentence-case head. */}
-          {section === "words" && bests.length > 0 && (
-            <section className="mt-7">
-              <h2 className="section-head">Records broken</h2>
-              <div className="mt-3 space-y-3">
-                {bests.map((b, i) => (
-                  <Moment key={i} moment={b} />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* The ending carries disproportionate weight when someone
-              decides whether to come back (streak-end rule), so it lands
-              on the last screen rather than halfway down the first. It is
-              the take's last word, never one more card (Timothy, 6 Nov,
-              #423): no card, a hairline at a section's distance from the
-              words or the records above, its number in the colour of
-              what it measured. A level opened or a game mastered is the
-              same note in sage. */}
-          {last && closingNow && <ClosingNote moment={closingNow} className="mt-7" />}
-
-          {last && (
-            <Tomorrow
-              next={pathPrimary ? { title: next.title, trait: nextTrait } : null}
-              ladder={ladder}
-              streak={streakNow}
-            />
-          )}
         </div>
-        )}
-      </div>
 
-      {/*
-       * One way forward per screen, on the shelf every step shares, so
-       * the tap never moves while the steps turn (M07). There is
-       * deliberately no exit until the debrief is finished — the numbers
-       * are the product, and a "Done" button beside the first screen
-       * means most of them are never seen.
-       */}
-      <FooterShelf>
-        {askingFelt ? (
-          /* Skippable: the score is one quiet tap away, never a terracotta
-             one (the question is the step, and it is grey). */
-          <div className="flex min-h-12 items-center justify-center">
-            <button
-              type="button"
-              onClick={() => feltDone(null)}
-              className="text-link press inline-flex min-h-11 items-center px-4"
-            >
-              {FELT_COPY.skip}
-            </button>
-          </div>
-        ) : last ? (
-          <>
-            {/* Buttons, not Links: the exits go through exit(), which
-                may route via the save-progress wall first (#134). A game
-                ends as a game (#194): another round or back to Practice,
-                never a push onto the path's next lesson. */}
-            {game ? (
-              <button data-step-action onClick={anotherRound} className={PRIMARY}>
-                Another round: {game.name}
-              </button>
-            ) : lesson && nextInLesson ? (
+        {/* The door (#427): one row, named for what is behind it, so its
+            opens are filed under one label (lib/tester-collect.ts tapOf). */}
+        {!askingFelt && (
+          <button
+            type="button"
+            data-glance-door
+            aria-haspopup="dialog"
+            aria-label={WHOLE_RECORDING}
+            onClick={() => setSheetOpen(true)}
+            className="press-row -mx-5 mt-3 flex min-h-[52px] shrink-0 items-center justify-between gap-3 border-t border-hairline px-5 text-left"
+          >
+            <span className="detail-head">{WHOLE_RECORDING}</span>
+            <Disclosure />
+          </button>
+        )}
+
+        <FooterShelf className={askingFelt ? "" : "pt-3"}>
+          {askingFelt ? (
+            /* Skippable: the score is one quiet tap away, never a terracotta
+               one (the question is the step, and it is grey). */
+            <div className="flex min-h-12 items-center justify-center">
               <button
-                data-step-action
-                onClick={() =>
-                  exit(
-                    repHref({
-                      lesson: lesson.id,
-                      q: String(nextInLesson),
-                      back: backTo ?? `/lessons/${lesson.id}`,
-                    })
-                  )
-                }
-                className={PRIMARY}
+                type="button"
+                onClick={() => feltDone(null)}
+                className="text-link press inline-flex min-h-11 items-center px-4"
               >
-                Practice {nextInLesson} of {lesson.practices.length}
-              </button>
-            ) : returnIsPrimary ? (
-              <button data-step-action onClick={() => exit(backTo)} className={PRIMARY}>
-                Back to the lesson
-              </button>
-            ) : (
-              <button
-                data-step-action
-                onClick={() => exit(repHref({ lesson: next.id }))}
-                className={PRIMARY}
-              >
-                {again ? "Go again" : "Next lesson"}: {next.title}
-              </button>
-            )}
-            {/* recording-22: the quiet pair under the one tap. Retake is
-                a text button beside the exit, never a second primary,
-                and the exit centres alone when Retake hides (#220). */}
-            <div className="mt-1 flex items-center justify-center gap-6">
-              {!again && (
-                <button
-                  onClick={onRetake}
-                  className="press min-h-11 rounded-tap px-3 text-link text-stone-500"
-                >
-                  Retake this one
-                </button>
-              )}
-              <button
-                onClick={() =>
-                  exit(returnIsPrimary ? "/" : (backTo ?? (game ? "/games" : "/")))
-                }
-                className="press min-h-11 rounded-tap px-3 text-link text-stone-500"
-              >
-                {returnIsPrimary
-                  ? "Done for today"
-                  : backTo
-                    ? "Back to the lesson"
-                    : game
-                      ? "Back to Practice"
-                      : "Done for today"}
+                {FELT_COPY.skip}
               </button>
             </div>
-          </>
-        ) : (
-          <>
-            {/* M23: the verb alone, no arrow. Present from the first frame
-                of the step, before anything on it has landed. */}
-            <button data-step-action onClick={advance} className={PRIMARY}>
-              {STEPS[step + 1].label}
-            </button>
-            {/* F6a: a game's round is on its first step, so the next one
-                is a quiet tap under the numbers (recording-22's grammar),
-                never a second primary. Games only: a daily recording still
-                walks to its end. */}
-            {game && step === 0 && (
-              <div className="mt-1 flex justify-center">
-                <button
-                  onClick={anotherRound}
-                  className="press min-h-11 rounded-tap px-3 text-link text-stone-500"
-                >
-                  Another round
-                </button>
-              </div>
-            )}
-          </>
-        )}
-      </FooterShelf>
+          ) : (
+            <>
+              {primary("shelf")}
+              {/* recording-22: Retake is the quiet tap under the one tap,
+                  never a second primary, and hides on Go again (#220). */}
+              {!again && (
+                <div className="mt-1 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={onRetake}
+                    className="press min-h-11 rounded-tap px-3 text-link text-stone-500"
+                  >
+                    Retake
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </FooterShelf>
+      </main>
+
+      {sheetOpen && (
+        <WholeRecording onClose={() => setSheetOpen(false)} foot={primary("sheet")}>
+          <RepResult
+            result={result}
+            topic={config.topic}
+            section="detail"
+            sheet={{ sections, open: trait, slots: sheetSlots }}
+            live
+            player={
+              audioUrl ? (
+                <AudioScrubber
+                  take={take}
+                  durationS={result.metrics.durationS}
+                  fillers={result.metrics.fillers}
+                  pauses={result.metrics.pauses}
+                  marks={cutInMarks.map((c) => ({ t: c.t, label: c.line ?? "Demos" }))}
+                />
+              ) : undefined
+            }
+            hasPlayer={!!audioUrl}
+            /* A word's "Said at" plays the take from there (#411). */
+            onPlay={(t) => take.play(t)}
+            /* The Pause row's moments play their stretch of it (#424). */
+            take={take}
+          />
+        </WholeRecording>
+      )}
+      {askTo !== null && (
+        <ReminderAsk
+          streak={streakNow}
+          onDone={() => {
+            const to = askTo;
+            setAskTo(null);
+            go(to);
+          }}
+        />
+      )}
       {tasteTo !== null && game && (
         <Paywall
           reason="Game of the day"
@@ -3487,7 +3485,7 @@ function Results({
           }}
         />
       )}
-    </main>
+    </>
   );
 }
 
@@ -3625,124 +3623,5 @@ function ProgressMoment({
         />
       )}
     </main>
-  );
-}
-
-/**
- * The when-plan (DECISIONS #136). Implementation intentions — a
- * concrete when, not a pledge — are the largest effect in the
- * onboarding research pass (d = 0.65, Gollwitzer & Sheeran), and the
- * tap doubles as the notification-permission primer: the OS dialog
- * only ever appears after the user picks a time, so the reminder is
- * theirs, not ours. Renders only while no reminder hour is set, and
- * disappears for good once one is.
- */
-const PLAN_HOURS = [
-  { h: 8, name: "Morning" },
-  { h: 12, name: "Lunch" },
-  { h: 18, name: "Evening" },
-];
-
-/**
- * recording-7, recording-21: the one "Tomorrow" on the last step. What
- * comes next, from the same source as the button (the path's next, its
- * title and its trait), and the when-plan under the same head, while
- * no reminder hour is set. One formatter for the chips and the line
- * after a pick (A2's useHourLabel: "6 pm" on the device, the padded
- * 24 hour form until mount, so both renders agree), so the two can
- * never say the hour two ways. Renders nothing when it has neither.
- */
-function Tomorrow({
-  next,
-  ladder = null,
-  streak,
-}: {
-  /** The path's next, when the button is the path's next; else null. */
-  next: { title: string; trait: TraitId | null } | null;
-  /** A game round: the ladder in the path's place (M5). */
-  ladder?: LadderView | null;
-  streak: number;
-}) {
-  const hourLabel = useHourLabel();
-  const [hour, setHour] = useState<number | null>(
-    () => readPrefs().reminderHour
-  );
-  const [granted, setGranted] = useState<boolean | null>(null);
-  const [picked, setPicked] = useState(false);
-
-  async function pick(h: number) {
-    writePrefs({ reminderHour: h });
-    setHour(h);
-    setPicked(true);
-    if (typeof Notification === "undefined") {
-      setGranted(false);
-      return;
-    }
-    const p =
-      Notification.permission === "default"
-        ? await Notification.requestPermission()
-        : Notification.permission;
-    setGranted(p === "granted");
-    if (p === "granted") {
-      await armReminder({ streak, didToday: true });
-    }
-  }
-
-  // Already planned on an earlier day: the settings card owns it now.
-  const asking = hour === null || picked;
-  if (!next && !ladder && !asking) return null;
-
-  return (
-    <section className="mt-7">
-      <h2 className="section-head">Tomorrow</h2>
-      {ladder && (
-        <div className="mt-3">
-          <p className="font-display text-detail">{ladder.head}</p>
-          <p className="mt-1 text-body text-stone-600 text-pretty">{ladder.line}</p>
-          {ladder.rule && (
-            <p className="mt-1 text-caption text-stone-500 text-pretty">{ladder.rule}</p>
-          )}
-        </div>
-      )}
-      {next && (
-        <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
-          <span className="font-display text-detail">{next.title}</span>
-          {next.trait && <TraitChip trait={next.trait} />}
-        </div>
-      )}
-      {asking &&
-        (picked && hour !== null ? (
-          <p role="status" className="mt-3 text-body text-stone-600">
-            {hourLabel(hour)}.{" "}
-            {granted === null
-              ? null
-              : granted
-                ? "Demos will nudge you once, never more."
-                : "Noted. Notifications are off in this browser; Settings names the fix."}
-          </p>
-        ) : (
-          <>
-            {/* One line (feedback round, 25 Sep): the line asks, the
-                chips answer. */}
-            <p className={`${next || ladder ? "mt-4" : "mt-3"} text-body text-stone-500`}>
-              Pick a time and Demos reminds you once a day.
-            </p>
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              {PLAN_HOURS.map((p) => (
-                <button
-                  key={p.h}
-                  onClick={() => void pick(p.h)}
-                  className="press flex min-h-14 flex-col items-center justify-center rounded-control border border-edge bg-surface px-2 py-2"
-                >
-                  <span className="font-display text-row">{p.name}</span>
-                  <span className="text-caption text-stone-500">
-                    {hourLabel(p.h)}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </>
-        ))}
-    </section>
   );
 }

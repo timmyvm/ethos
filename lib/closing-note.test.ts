@@ -148,11 +148,14 @@ describe("ClosingNote", () => {
   });
 });
 
-describe("the last step's closing on app/rep/page.tsx", () => {
+describe("the closing on app/rep/page.tsx", () => {
   const page = readFileSync("app/rep/page.tsx", "utf8");
 
-  it("ends on the closing note at a section's distance, and keeps the records as cards", () => {
-    expect(page).toContain('{last && closingNow && <ClosingNote moment={closingNow} className="mt-7" />}');
+  /* #427: the closing note is the last word of "The whole recording", the
+     door's sheet, drawn at a section's distance by RepResult's "detail"
+     (sheetSections puts it after the transcript); it was the last step's. */
+  it("ends the sheet on the closing note, and keeps the records as cards", () => {
+    expect(page).toContain("closing: closingNow ? <ClosingNote moment={closingNow} /> : null,");
     expect(page).not.toMatch(/<Moment moment=\{closingNow\}/);
     expect(page).toContain("<Moment key={i} moment={b} />");
     expect(page).toMatch(/const closingNow = ladder\?\.moment \?\? closing;/);

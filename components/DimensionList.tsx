@@ -50,6 +50,8 @@ export function DimensionList({
   take = null,
   fill = false,
   open,
+  brief = false,
+  gain = null,
 }: {
   tier1: Tier1Scores;
   anchors: Tier2Anchors;
@@ -74,6 +76,19 @@ export function DimensionList({
    * in. Pausing opens the Pause row, Fillers the Fillers row, and so on.
    */
   open?: TraitId;
+  /**
+   * The door's sheet (the #427 review): a row's detail says what the take
+   * did, never how the score is computed ("None scores 100; 8 a minute
+   * scores 0." was the scoring rule, not feedback). The Log's ledger
+   * keeps the rule.
+   */
+  brief?: boolean;
+  /**
+   * #160's one quiet line ("Leveled twice"), in the row of the dimension
+   * it leveled: a measured row by its trait, a judged row by its name
+   * (lib/traits.ts names Steadiness as this list does).
+   */
+  gain?: { key: string; name: string; text: string } | null;
 }) {
   /* The filled pauses' moments, read off the verdicts the take stored
      (#422): nothing is judged again or rescored here. Where the detail
@@ -108,9 +123,13 @@ export function DimensionList({
       // one label (E32): the row's own name is the trait's. Its scale
       // keeps "a minute" on the 8, in the Restarts row's grammar: a bare
       // "8 scores 0" read as 8 fillers.
-      detail: `${ALL_FILLERS_PER_MIN}: ${metrics.fillersPerMin} (${metrics.fillerCount} in all). None scores 100; 8 a minute scores 0.${
-        metrics.topFiller ? ` Most of them were “${metrics.topFiller}”.` : ""
-      }`,
+      detail: brief
+        ? metrics.fillerCount === 0
+          ? "None."
+          : `${metrics.fillerCount} in all${metrics.topFiller ? `, most were “${metrics.topFiller}”` : ""}.`
+        : `${ALL_FILLERS_PER_MIN}: ${metrics.fillersPerMin} (${metrics.fillerCount} in all). None scores 100; 8 a minute scores 0.${
+            metrics.topFiller ? ` Most of them were “${metrics.topFiller}”.` : ""
+          }`,
       improve:
         metrics.fillerCount > 0
           ? "Replace it with silence, not a different word."
@@ -126,7 +145,9 @@ export function DimensionList({
             trait: "repairs" as const,
             score: tier1.repairs,
             weight: 50,
-            detail: `${metrics.repairCount ?? 0} restarted phrase${(metrics.repairCount ?? 0) === 1 ? "" : "s"}, ${metrics.repairsPerMin ?? 0} a minute. None scores 100; 3 a minute scores 0.`,
+            detail: `${metrics.repairCount ?? 0} restarted phrase${(metrics.repairCount ?? 0) === 1 ? "" : "s"}, ${metrics.repairsPerMin ?? 0} a minute.${
+              brief ? "" : " None scores 100; 3 a minute scores 0."
+            }`,
             improve:
               (metrics.repairCount ?? 0) > 0
                 ? "Finish the sentence, then say the better one. A restart makes the listener re-follow you."
@@ -139,7 +160,9 @@ export function DimensionList({
       trait: "pace",
       score: tier1.pace,
       weight: 100,
-      detail: `${metrics.wpm} words a minute against the 130 to 160 zone, plus a bonus when pace moves.`,
+      detail: brief
+        ? `${metrics.wpm} words a minute, against the 130 to 160 zone.`
+        : `${metrics.wpm} words a minute against the 130 to 160 zone, plus a bonus when pace moves.`,
     },
     {
       name: TRAIT.range.name,
@@ -243,6 +266,7 @@ export function DimensionList({
                 open and never on the page's load. */}
             <div className="reveal mt-2 pl-[11px] text-caption leading-relaxed text-stone-500">
               {row.detail}
+              {gain && (row.trait ? row.trait === gain.key : row.name === gain.name) && <div className="mt-1 font-semibold text-sage-700">{gain.text}</div>}
               {row.moments}
               {row.improve && (
                 <div className="mt-1 text-stone-600">↳ {row.improve}</div>

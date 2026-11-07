@@ -17,10 +17,18 @@
  *   LOOK_BEST=1 node scripts/look-glance.mjs after best
  *   LOOK_FRESH=1 node scripts/look-glance.mjs after first
  *
- * Variants: lesson (The cold open, practice 1 of 3), daily (Today's card,
- * Pausing), unscored (12 words), game (a Q&A round), capped (a free
- * account's second take today), tester, best (LOOK_BEST=1), first
- * (LOOK_FRESH=1), video (a Premium Voice + Video take), boss, upload.
+ * Variants: lesson (The cold open, practice 1 of 3), lesson3 (its last
+ * practice, the first two taken earlier today: the lesson's ending, and
+ * its exit; LOOK_PLAN=code for Premium), daily (Today's card, Pausing),
+ * unscored (12 words), game (a Q&A round), capped (a free account's
+ * second take today), tester, best (LOOK_BEST=1), first (LOOK_FRESH=1),
+ * video (a Premium Voice + Video take, with Presence 72 since 68), boss,
+ * upload.
+ *
+ * The #427 review added: every glance's bands (no gap over 64 between
+ * the header's back and the shelf at 390x844, reported elsewhere), the
+ * door wholly above the shelf, no back while "How did that feel?" is
+ * asked, and playback started in the sheet stopping with it.
  * Sizes: LOOK_SIZES, default "390x844-light,390x844-dark,375x667-light".
  * Shots: LOOK_OUT, default docs/look/results-lighter/, as
  * <tag>-<variant>-<size>-<beat>-<s0|full>.png, and a JSON report of every
@@ -57,6 +65,7 @@ const A = F.analyzeBody;
 const UNSCORED_WORDS = F.LIVE_WORDS.slice(0, 12);
 const bodies = {
   lesson: () => A,
+  lesson3: () => ({ ...A, previousIndex: 662, ethosIndex: 689 }),
   daily: () => A,
   tester: () => A,
   best: () => A,
@@ -83,7 +92,7 @@ const bodies = {
       cutIns: [{ at: 17.2, line: "Says who?", gap: 1.2, gapFrom: 17.4, gapTo: 18.6, verdict: "held", fillerAt: null, fillerWord: null, cleanAfter: 22, spokeAfter: 30 }],
     },
   }),
-  video: () => ({ ...A, captureMode: "video", previousPresence: 68 }),
+  video: () => ({ ...A, captureMode: "video", previousPresence: 680 }),
   boss: () => ({
     ...A,
     mode: "boss",
@@ -93,6 +102,25 @@ const bodies = {
 };
 if (!bodies[VARIANT]) throw new Error(`unknown variant ${VARIANT}`);
 const premium = ["game", "video"].includes(VARIANT) || process.env.LOOK_PLAN === "code";
+/* lesson3: the lesson's first two practices, taken earlier today, so the
+   last practice is the lesson's ending ("Lesson done: 6, 4, 4 fillers"). */
+if (VARIANT === "lesson3") {
+  const at = (min) => new Date(new Date(F.TODAY_REP.created_at).getTime() + min * 60000).toISOString();
+  const fillers = (n) => Array.from({ length: n }, (_, k) => ({ word: k % 2 ? "like" : "um", t: 2.7 + k * 9.1 }));
+  F.extraReps.push(
+    { ...F.TODAY_REP, id: "lesson3-p1", client_id: "lesson3-p1", lesson_id: "lesson:the-cold-open:1", created_at: at(0), filler_count: 6, fillers: fillers(6), ethos_index: 650 },
+    { ...F.TODAY_REP, id: "lesson3-p2", client_id: "lesson3-p2", lesson_id: "lesson:the-cold-open:2", created_at: at(9), filler_count: 4, fillers: fillers(4), ethos_index: 662 }
+  );
+}
+/* video: the Presence a pose model would have measured, which a headless
+   browser has none of (app/rep/page.tsx cameraPresence). */
+const PRESENCE = {
+  metrics: { gestureRate: 6, postureDrift: 0.08, headStability: 0.82, eyeLinePct: 71, headLift: 0.4, neckGap: 0.2, presenceScore: 720 },
+  dimensions: [],
+  moments: [{ t: 21.4, kind: "eyes-down", seconds: 3, note: "0:21, eyes down for 3 seconds." }],
+  usableFrames: 240,
+  scorable: true,
+};
 
 /* ---- the measuring tape: walk.mjs's, so before and after count alike --- */
 const MEASURE = (scope) => {
@@ -142,7 +170,51 @@ const MEASURE = (scope) => {
   };
   const within = scope === "dialog" ? root : document.querySelector("main");
   const count = (sel) => (within ? [...within.querySelectorAll(sel)].filter(vis).length : 0);
+  /* The bands (DESIGN rule 7, the #427 review): every vertical gap between
+     painted things in main, from the header's back to the shelf's first
+     control. Text by its line boxes, art and controls by their boxes. */
+  const boxes = [];
+  const mainEl = document.querySelector("main");
+  if (scope === "page" && mainEl) {
+    for (const c of chunks) if (c.top !== undefined) boxes.push([c.top - scrollY, c.top - scrollY + 1]);
+    const walker2 = document.createTreeWalker(mainEl, NodeFilter.SHOW_TEXT);
+    while (walker2.nextNode()) {
+      const n = walker2.currentNode;
+      if (!(n.nodeValue ?? "").trim() || hidden(n.parentElement)) continue;
+      const range = document.createRange();
+      range.selectNodeContents(n);
+      for (const r of range.getClientRects()) if (r.height > 0) boxes.push([r.top, r.bottom]);
+    }
+    for (const el of mainEl.querySelectorAll("img, svg, video, canvas, button, [data-glance-door], .card")) {
+      if (hidden(el) || el.closest("[data-footer-shelf]")) continue;
+      const r = el.getBoundingClientRect();
+      if (r.height > 0 && r.width > 0) boxes.push([r.top, r.bottom]);
+    }
+  }
+  const shelf = document.querySelector("main [data-footer-shelf]");
+  const shelfTop = shelf ? Math.min(...[...shelf.querySelectorAll("button, a, p")].map((e) => e.getBoundingClientRect().top).filter((t) => t > 0)) : innerHeight;
+  const sorted = boxes.filter(([a, b]) => b > 0 && a < shelfTop).sort((x, y) => x[0] - y[0]);
+  let maxBand = 0;
+  let band = null;
+  let reach = sorted.length ? sorted[0][1] : 0;
+  for (const [a, b] of sorted.slice(1)) {
+    if (a - reach > maxBand) {
+      maxBand = a - reach;
+      band = [Math.round(reach), Math.round(a)];
+    }
+    reach = Math.max(reach, b);
+  }
+  if (shelfTop - reach > maxBand && sorted.length) {
+    maxBand = shelfTop - reach;
+    band = [Math.round(reach), Math.round(shelfTop)];
+  }
+  const door = document.querySelector("main [data-glance-door]")?.getBoundingClientRect();
+  const shelfBox = shelf?.getBoundingClientRect();
   return {
+    maxBand: Math.round(maxBand),
+    band,
+    doorClear: door && shelfBox ? door.bottom <= shelfBox.top + 1 : null,
+    backDuringFelt: !!document.querySelector("main [data-results-back]"),
     words: words(all),
     wordsNoTranscript: words(join(chunks.filter((c) => !c.transcript))),
     wordsNoRound: words(join(chunks.filter((c) => !c.round))),
@@ -191,6 +263,18 @@ for (const size of SIZES) {
       try {
         const p = JSON.parse(localStorage.getItem("ethos.prefs") ?? "{}");
         localStorage.setItem("ethos.prefs", JSON.stringify({ ...p, captureMode: "video" }));
+      } catch {}
+    });
+    await context.addInitScript((presence) => {
+      window.__ethosLookPresence = presence;
+    }, PRESENCE);
+  }
+  if (VARIANT === "lesson3") {
+    /* A phone that has never been asked: the reminder ask can show. */
+    await context.addInitScript(() => {
+      try {
+        Object.defineProperty(Notification, "permission", { get: () => "default" });
+        Notification.requestPermission = () => Promise.resolve("default");
       } catch {}
     });
   }
@@ -252,6 +336,9 @@ for (const size of SIZES) {
       if (m.scrollH > m.innerH + 1) fail(`${at} ${name}: scrolls (${m.scrollH} over ${m.innerH})`);
       if (m.terracotta !== 1) fail(`${at} ${name}: ${m.terracotta} terracotta fills`);
       if (m.chips > 1) fail(`${at} ${name}: ${m.chips} moment chips`);
+      if (m.doorClear === false) fail(`${at} ${name}: the door is under the shelf`);
+      console.log(`${at} ${name}: largest band ${m.maxBand}pt ${JSON.stringify(m.band)}`);
+      if (size.w === 390 && size.h === 844 && m.maxBand > 64) fail(`${at} ${name}: a ${m.maxBand}pt band (rule 7's 64)`);
     }
     return m;
   }
@@ -262,6 +349,8 @@ for (const size of SIZES) {
   } else if (VARIANT === "boss") {
     /* Where /boss's Start reading lands once the 90s read is over. */
     await page.goto(`${BASE}/rep?boss=week`);
+  } else if (VARIANT === "lesson3") {
+    await page.goto(`${BASE}/rep?lesson=the-cold-open&q=3&mods=no-notes&back=${encodeURIComponent("/lessons/the-cold-open")}`);
   } else if (["daily", "capped", "video"].includes(VARIANT)) {
     await page.goto(`${BASE}/`);
     await page.waitForSelector("main .arrive", { timeout: 30000 });
@@ -285,7 +374,8 @@ for (const size of SIZES) {
   if (VARIANT === "tester") {
     await page.waitForSelector("text=How did that feel?", { timeout: 20000 });
     await sleep(900);
-    await beat("felt");
+    const felt = await beat("felt");
+    if (felt.backDuringFelt) fail(`${at}: the header's back is offered while "How did that feel?" is asked`);
     await page.getByRole("button", { name: "Okay" }).click();
   }
 
@@ -300,7 +390,7 @@ for (const size of SIZES) {
 
   if (glance) {
     /* ---- the glance ----------------------------------------------------- */
-    const ceiling = VARIANT === "tester" ? 36 : VARIANT === "first" ? 28 : 25;
+    const ceiling = VARIANT === "tester" ? 36 : VARIANT === "first" ? 28 : VARIANT === "lesson3" ? 30 : 25;
     await beat("glance", { ceiling });
     console.log(`${at} glance: the tap is live ${tapLiveMs}ms after the first frame`);
     if (tapLiveMs > 400) fail(`${at}: the tap took ${tapLiveMs}ms to be live`);
@@ -332,7 +422,7 @@ for (const size of SIZES) {
     } else {
       await door.click();
     }
-    await page.waitForSelector('[role="dialog"][aria-label="The whole recording"]', { timeout: 5000 });
+    await page.waitForSelector('[role="dialog"][aria-label="Every number"]', { timeout: 5000 });
     await sleep(500);
     /* The take's one <audio> stays on the page under the sheet: the
        moment started on the glance is still playing with the sheet up. */
@@ -371,17 +461,40 @@ for (const size of SIZES) {
       await page.keyboard.press("Escape");
       await sleep(700);
     }
+    /* Hear it back's Play, started in the sheet, stops when the sheet
+       closes: nothing on the glance could stop it (the review). */
+    const hearPlay = page.locator('[role="dialog"] button[aria-label="Play"]').first();
+    if ((await hearPlay.count()) > 0) {
+      await hearPlay.scrollIntoViewIfNeeded();
+      await hearPlay.click();
+      await sleep(400);
+    }
     await page.keyboard.press("Escape");
     await sleep(700);
+    if ((await hearPlay.count().catch(() => 0)) >= 0) {
+      const after = await page.evaluate(() => {
+        const a = document.querySelector("main audio");
+        return a ? { paused: a.paused, t: +a.currentTime.toFixed(2) } : null;
+      });
+      if (after && !after.paused) fail(`${at}: Hear it back played on after the sheet closed (${JSON.stringify(after)})`);
+      else console.log(`${at} the sheet's playback stopped with it (${JSON.stringify(after)})`);
+    }
     const back = await page.evaluate(() => ({
-      open: !!document.querySelector('[role="dialog"][aria-label="The whole recording"]'),
+      open: !!document.querySelector('[role="dialog"][aria-label="Every number"]'),
       onDoor: !!document.activeElement?.matches("[data-glance-door]"),
     }));
     if (back.open) fail(`${at}: Escape left the sheet open`);
     if (!back.onDoor) fail(`${at}: closing the sheet did not hand focus back to the door`);
 
     /* ---- on the way out ------------------------------------------------- */
-    if (["daily", "lesson"].includes(VARIANT) && size.name === SIZES[0].name) {
+    if (VARIANT === "lesson3") {
+      /* The ending's tap leaves for the next lesson: Since day one for a
+         free account, the reminder ask for Premium, once a day. */
+      console.log(`${at} tap: ${(await page.locator("main [data-step-action]").innerText()).trim()}`);
+      await page.locator("main [data-step-action]").click();
+      await sleep(2200);
+      await beat("exit-tap");
+    } else if (["daily", "lesson"].includes(VARIANT) && size.name === SIZES[0].name) {
       /* An exit that leaves: the header's back. Since day one is a free
          account's once per browser; with it shown, the reminder ask. */
       await page.locator("main [data-results-back]").click();

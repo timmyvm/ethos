@@ -266,14 +266,14 @@ const rolling = before === "none" || /^matrix\(1, 0, 0, 1, 0, -?(\d+(\.\d+)?)\)$
 ok("streak number rolls up one line on the landing note", rolling && after.transform === "matrix(1, 0, 0, 1, 0, -64)" && after.dur === "0.3s", `${before} → ${after.transform} ${after.dur}`);
 await page.waitForSelector('[role="dialog"]', { state: "detached", timeout: 5000 });
 await sleep(300);
-/* #427: the results are one glance and one door. The door's sheet, "The
-   whole recording", rises on the sheet spring and holds the dimension
+/* #427: the results are one glance and one door. The door's sheet,
+   "Every number", rises on the sheet spring and holds the dimension
    bars, which fill as it opens; Escape closes it back to the door. */
 await page.locator("main [data-glance-door]").click();
-const SHEET = '[role="dialog"][aria-label="The whole recording"]';
+const SHEET = '[role="dialog"][aria-label="Every number"]';
 await page.waitForSelector(SHEET, { timeout: 1500 });
 a = await anim(page, `${SHEET} > .sheet-panel`);
-ok("the whole recording rises on the sheet spring", a.name === "sheet-in", a.name);
+ok("Every number rises on the sheet spring", a.name === "sheet-in", a.name);
 await page.waitForSelector(`${SHEET} .fill`, { timeout: 1500 });
 const fills = await page.$$eval(`${SHEET} .fill`, (els) => els.map((el) => getComputedStyle(el).animationName));
 ok("dimension bars fill as the sheet opens", fills.length >= 5 && fills.every((n) => n === "fill"), `${fills.length} bars`);

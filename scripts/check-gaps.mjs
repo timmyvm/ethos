@@ -416,7 +416,7 @@ for (const theme of ["light", "dark"]) {
          sheet, measured inside the sheet as the paywall is. */
       if (want("rep-sheet")) {
         await page.locator("main [data-glance-door]").click();
-        await page.waitForSelector('[role="dialog"][aria-label="The whole recording"]', { timeout: 4000 });
+        await page.waitForSelector('[role="dialog"][aria-label="Every number"]', { timeout: 4000 });
         await sleep(900);
         await check(page, "rep-sheet", theme, { scope: '[role="dialog"] [data-whole-recording]' });
       }

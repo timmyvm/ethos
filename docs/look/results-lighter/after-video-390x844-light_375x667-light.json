@@ -1,0 +1,162 @@
+{
+  "tag": "after",
+  "variant": "video",
+  "sizes": [
+    {
+      "size": "390x844-light",
+      "beats": [
+        {
+          "maxBand": 60,
+          "band": [
+            603,
+            663
+          ],
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 25,
+          "wordsNoTranscript": 25,
+          "wordsNoRound": 25,
+          "numbers": 7,
+          "text": "Today's practice 665 /1000 ▲ 3 since last time Presence 720 3 pauses landed, 1 searching at 0:20 Every number Next lesson: The steady state Retake",
+          "scrollH": 844,
+          "innerH": 844,
+          "terracotta": 1,
+          "chips": 1,
+          "beat": "glance",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-video-390x844-light-glance-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-video-390x844-light-glance-full.png"
+          ],
+          "screens": 1
+        },
+        {
+          "maxBand": 0,
+          "band": null,
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 267,
+          "wordsNoTranscript": 146,
+          "wordsNoRound": 267,
+          "numbers": 40,
+          "text": "Every number Done Demos's read AI-generated feedback Kept Held the pause before ‘the mistake people make’. Say this instead the thing about what matters about Names the point instead of pointing at it. Hear it back filler landed a point searching 0:04 um 0:02 like 0:07 um 0:10 you know 0:15 Every dimension Length 62s, target 60 to 90s Pausing 108/150 Three silences landed a point; one was searching. Fillers 55/100 Restarts 33/50 Pace 93/100 Variety 66/100 Structure 96/150 Credibility 87/150 Engagement 61/100 Steadiness 66/100 9 dimensions, added up 665/1000 720 your Presence /1000 ▲ 40 since last video Delivery 0:21, eyes down for 3 seconds. Eye line 71% head up, facing Gestures 6 per minute Posture 0.08 drift, lower is steadier What you said 121 words filler vague said 3+ times So the thing about habits is, um, they compound. You do the small version every day and, like, it builds on its own. Um, the mistake people make is waiting to feel ready. You know, ready is a feeling that shows up after you start. I used to think discipline was the whole answer, and I would plan a week nobody could really do, then miss a day and quit the plan instead of the day. What changed was making the habit small enough that missing it felt stupid. Five minutes. Not an hour, just five minutes I can do standing in a kitchen. And the five minutes usually turns into more, but only because it was allowed to be five. 3 landed pauses Silence you chose, before a new point. Next lesson: The steady state",
+          "scrollH": 844,
+          "innerH": 844,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "sheet",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-video-390x844-light-sheet-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-video-390x844-light-sheet-s1.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-video-390x844-light-sheet-s2.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-video-390x844-light-sheet-s3.png"
+          ],
+          "screens": 4
+        },
+        {
+          "maxBand": 55,
+          "band": [
+            557,
+            611
+          ],
+          "doorClear": null,
+          "backDuringFelt": false,
+          "words": 44,
+          "wordsNoTranscript": 44,
+          "wordsNoRound": 44,
+          "numbers": 5,
+          "text": "Today Pace Control Explain how something everyday works: a coffee machine, a traffic light. Hold 130 to 160 wpm. The steady state 130 to 160 a minute Breathe at full stops Finish, pause, resume Voice Video Record This one keeps a 6-day streak alive",
+          "scrollH": 844,
+          "innerH": 844,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "exit-tap",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-video-390x844-light-exit-tap-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-video-390x844-light-exit-tap-full.png"
+          ],
+          "screens": 1
+        }
+      ],
+      "tapLiveMs": 8
+    },
+    {
+      "size": "375x667-light",
+      "beats": [
+        {
+          "maxBand": 31,
+          "band": [
+            44,
+            75
+          ],
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 25,
+          "wordsNoTranscript": 25,
+          "wordsNoRound": 25,
+          "numbers": 7,
+          "text": "Today's practice 665 /1000 ▲ 3 since last time Presence 720 3 pauses landed, 1 searching at 0:20 Every number Next lesson: The steady state Retake",
+          "scrollH": 667,
+          "innerH": 667,
+          "terracotta": 1,
+          "chips": 1,
+          "beat": "glance",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-video-375x667-light-glance-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-video-375x667-light-glance-full.png"
+          ],
+          "screens": 1
+        },
+        {
+          "maxBand": 0,
+          "band": null,
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 267,
+          "wordsNoTranscript": 146,
+          "wordsNoRound": 267,
+          "numbers": 40,
+          "text": "Every number Done Demos's read AI-generated feedback Kept Held the pause before ‘the mistake people make’. Say this instead the thing about what matters about Names the point instead of pointing at it. Hear it back filler landed a point searching 0:04 um 0:02 like 0:07 um 0:10 you know 0:15 Every dimension Length 62s, target 60 to 90s Pausing 108/150 Three silences landed a point; one was searching. Fillers 55/100 Restarts 33/50 Pace 93/100 Variety 66/100 Structure 96/150 Credibility 87/150 Engagement 61/100 Steadiness 66/100 9 dimensions, added up 665/1000 720 your Presence /1000 ▲ 40 since last video Delivery 0:21, eyes down for 3 seconds. Eye line 71% head up, facing Gestures 6 per minute Posture 0.08 drift, lower is steadier What you said 121 words filler vague said 3+ times So the thing about habits is, um, they compound. You do the small version every day and, like, it builds on its own. Um, the mistake people make is waiting to feel ready. You know, ready is a feeling that shows up after you start. I used to think discipline was the whole answer, and I would plan a week nobody could really do, then miss a day and quit the plan instead of the day. What changed was making the habit small enough that missing it felt stupid. Five minutes. Not an hour, just five minutes I can do standing in a kitchen. And the five minutes usually turns into more, but only because it was allowed to be five. 3 landed pauses Silence you chose, before a new point. Next lesson: The steady state",
+          "scrollH": 667,
+          "innerH": 667,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "sheet",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-video-375x667-light-sheet-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-video-375x667-light-sheet-s1.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-video-375x667-light-sheet-s2.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-video-375x667-light-sheet-s3.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-video-375x667-light-sheet-s4.png"
+          ],
+          "screens": 5
+        },
+        {
+          "maxBand": 49,
+          "band": [
+            229,
+            278
+          ],
+          "doorClear": null,
+          "backDuringFelt": false,
+          "words": 44,
+          "wordsNoTranscript": 44,
+          "wordsNoRound": 44,
+          "numbers": 5,
+          "text": "Today Pace Control Explain how something everyday works: a coffee machine, a traffic light. Hold 130 to 160 wpm. The steady state 130 to 160 a minute Breathe at full stops Finish, pause, resume Voice Video Record This one keeps a 6-day streak alive",
+          "scrollH": 693,
+          "innerH": 667,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "exit-tap",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-video-375x667-light-exit-tap-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-video-375x667-light-exit-tap-s1.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-video-375x667-light-exit-tap-full.png"
+          ],
+          "screens": 1.04
+        }
+      ],
+      "tapLiveMs": 4
+    }
+  ]
+}

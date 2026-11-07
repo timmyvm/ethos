@@ -323,7 +323,7 @@ async function shootTheme(theme) {
     await page.waitForSelector("main .arrive-x", { timeout: 30000 });
     await page.waitForSelector('[role="dialog"]', { state: "detached", timeout: 8000 }).catch(() => {});
     await sleep(1200);
-    /* #427: the Pause row and Hear it back are in the glance's door, "The whole recording". */
+    /* #427: the Pause row and Hear it back are in the glance's door, "Every number". */
     await page.locator("main [data-glance-door]").click();
     await page.waitForSelector("details summary:has-text('Pausing')", { timeout: 8000 });
     await sleep(600);

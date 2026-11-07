@@ -352,6 +352,13 @@ export const SAVED_ROWS = [
 ];
 export const savedWordsMode = { rows: [], fail: false, delay: 0 };
 
+/**
+ * Rows a camera adds to the reps reads (scripts/look-glance.mjs's lesson3:
+ * the lesson's first two practices, taken earlier today). Empty by
+ * default, so every other shot keeps the three weeks it always had.
+ */
+export const extraReps = [];
+
 /** Today's recording for `testerMode.today`: the newest fixture's, made at 09:12 today, its Index 665. */
 export const TODAY_REP = {
   ...reps[reps.length - 1],
@@ -516,6 +523,7 @@ async function supabase(route) {
   if (table === "reps" && testerMode.repsFail) return route.fulfill(json({ code: "XX000", message: "look: history refused" }, 500));
   let rows = TABLES[table] ?? [];
   if (table === "reps" && testerMode.today && !FRESH) rows = [...rows, TODAY_REP];
+  if (table === "reps" && extraReps.length > 0 && !FRESH) rows = [...rows, ...extraReps];
   if (table === "reps" && gamesMode.on && !FRESH) {
     rows = [...rows, ...gameRows()];
     // fetchGameRounds asks for game:% rows; the mock honours that one filter.

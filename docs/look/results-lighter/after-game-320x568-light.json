@@ -1,0 +1,87 @@
+{
+  "tag": "after",
+  "variant": "game",
+  "sizes": [
+    {
+      "size": "320x568-light",
+      "beats": [
+        {
+          "maxBand": 67,
+          "band": [
+            320,
+            387
+          ],
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 25,
+          "wordsNoTranscript": 25,
+          "wordsNoRound": 25,
+          "numbers": 6,
+          "text": "Q&A 665 /1000 ▲ 3 since last time Held 1.2s after my cut-in 0:17 Another day's round opens level 2. Every number Another round: Q&A Retake",
+          "scrollH": 568,
+          "innerH": 568,
+          "terracotta": 1,
+          "chips": 1,
+          "beat": "glance",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-game-320x568-light-glance-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-game-320x568-light-glance-full.png"
+          ],
+          "screens": 1
+        },
+        {
+          "maxBand": 0,
+          "band": null,
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 284,
+          "wordsNoTranscript": 163,
+          "wordsNoRound": 259,
+          "numbers": 43,
+          "text": "Every number Done Demos cut in at 0:17 Hear it 1.2s held after he cut in +10 XP After Demos cut in at 0:17, you spoke 22s clean. Demos's read AI-generated feedback Kept Held the pause before ‘the mistake people make’. Say this instead the thing about what matters about Names the point instead of pointing at it. Hear it back cut-in filler landed a point searching 0:04 Says who? 0:17 um 0:02 like 0:07 um 0:10 you know 0:15 Every dimension Length 62s, target 60 to 90s Pausing 108/150 Fillers 55/100 4 in all, most were “um”. ↳ Replace it with silence, not a different word. Restarts 33/50 Pace 93/100 Variety 66/100 Structure 96/150 Credibility 87/150 Engagement 61/100 Steadiness 66/100 9 dimensions , added up 665/1000 What you said 121 words filler vague said 3+ times So the thing about habits is, um, they compound. You do the small version every day and, like, it builds on its own. Um, the mistake people make is waiting to feel ready. You know, ready is a feeling that shows up after you start. I used to think discipline was the whole answer, and I would plan a week nobody could really do, then miss a day and quit the plan instead of the day. What changed was making the habit small enough that missing it felt stupid. Five minutes. Not an hour, just five minutes I can do standing in a kitchen. And the five minutes usually turns into more, but only because it was allowed to be five. 3 landed pauses Silence you chose, before a new point. Q&A, level 1 1 of 2 counted. One more on another day opens level 2. Another round: Q&A",
+          "scrollH": 568,
+          "innerH": 568,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "sheet",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-game-320x568-light-sheet-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-game-320x568-light-sheet-s1.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-game-320x568-light-sheet-s2.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-game-320x568-light-sheet-s3.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-game-320x568-light-sheet-s4.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-game-320x568-light-sheet-s5.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-game-320x568-light-sheet-s6.png"
+          ],
+          "screens": 7
+        },
+        {
+          "maxBand": 40,
+          "band": [
+            160,
+            200
+          ],
+          "doorClear": null,
+          "backDuringFelt": false,
+          "words": 50,
+          "wordsNoTranscript": 50,
+          "wordsNoRound": 50,
+          "numbers": 4,
+          "text": "Practice Q&A Should you tell people your goals? Take a side. When Demos cuts in, hold a second before you answer. Best 22s clean after the cut-in Pause before answering Answer, then return Finish every sentence Level 1 ×2 XP Voice Video Record This one keeps a 6-day streak alive",
+          "scrollH": 743,
+          "innerH": 568,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "exit-tap",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-game-320x568-light-exit-tap-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-game-320x568-light-exit-tap-s1.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-game-320x568-light-exit-tap-full.png"
+          ],
+          "screens": 1.31
+        }
+      ],
+      "tapLiveMs": 7
+    }
+  ]
+}

@@ -22,12 +22,12 @@ import { ModeToggle } from "@/components/ModeToggle";
 import { Moment } from "@/components/Moment";
 import { ClosingNote } from "@/components/rep/ClosingNote";
 import { ReminderAsk } from "@/components/rep/ReminderAsk";
-import { WHOLE_RECORDING, WholeRecording } from "@/components/rep/WholeRecording";
+import { SHEET_NAME, WholeRecording } from "@/components/rep/WholeRecording";
 import { ComparisonCard } from "@/components/ComparisonCard";
 import { Paywall, type PaywallAsk } from "@/components/Paywall";
 import { PermissionHelp } from "@/components/PermissionHelp";
 import { PoseSkeleton } from "@/components/PoseSkeleton";
-import { PresenceDetail } from "@/components/PresenceCard";
+import { PresenceDetail, PresenceScore } from "@/components/PresenceCard";
 import { RepResult, type GlanceView } from "@/components/RepResult";
 import { CutInPill } from "@/components/rep/CutInPill";
 import { DemosHears } from "@/components/rep/DemosHears";
@@ -150,17 +150,25 @@ import {
 } from "@/lib/games";
 import { dayKey } from "@/lib/challenge";
 import {
+  comeBackLine,
   cueLead,
   earnedLine,
   fitGlance,
   GLANCE_WORDS,
   GLANCE_WORDS_FIRST,
+  GLANCE_WORDS_LESSON_DONE,
   GLANCE_WORDS_TESTER,
   glanceLine,
   glanceTrait,
-  ladderLine,
+  ladderCue,
+  lessonDone,
+  lessonTakes,
+  playsOnAfterSheet,
+  roundGlance,
   sheetSections,
 } from "@/lib/glance";
+import { upNextLesson, traitForSaid } from "@/lib/lesson-up-next";
+import { DURATION } from "@/lib/motion";
 import { askedOn, notificationState, reminderDue } from "@/lib/reminder-ask";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
 import { bestFor, ladderState, roundsToday, type LadderRow } from "@/lib/ladder";
@@ -178,7 +186,7 @@ import {
   type GameBestSnapshot,
 } from "@/lib/round-live";
 import { lessonById } from "@/content/lessons";
-import { parsePracticeId } from "@/lib/lesson-progress";
+import { lessonProgress, parsePracticeId } from "@/lib/lesson-progress";
 import {
   recordingText,
   repHref,
@@ -206,7 +214,7 @@ import {
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 import { MIN_TAKE_MS, TOO_SHORT_COPY, UNHEARD_COPY } from "@/lib/unheard";
 import { IconBack } from "@/components/Icon";
-import { RoundCard, ROUND_REVEAL_MS } from "@/components/rep/RoundCard";
+import { RoundCard } from "@/components/rep/RoundCard";
 import {
   heldInARow,
   ladderView,
@@ -220,6 +228,18 @@ import {
   xpLine,
   type LadderView,
 } from "@/lib/round-copy";
+
+/**
+ * The look camera's Presence (scripts/look-glance.mjs, the #427 review):
+ * a headless browser has no pose model, so a take never comes back with
+ * Presence there and its two placements were never seen rendered. The
+ * camera sets this before the page loads; nothing else does, so for
+ * everyone else it is null and nothing changes.
+ */
+function cameraPresence(): PresenceResult | null {
+  const set = (globalThis as { __ethosLookPresence?: PresenceResult }).__ethosLookPresence;
+  return set && typeof set === "object" && set.scorable ? set : null;
+}
 
 /* D51: the live waveform's bars across the column, the left half the
    take so far, rolling left from the centre. */
@@ -1171,7 +1191,7 @@ function RepScreen() {
     // this line is five numbers and a list of timestamps — the frames
     // themselves are dropped with the sampler.
     const frames = r.sampler?.stop() ?? [];
-    const scored = frames.length > 0 ? scorePresence(frames) : null;
+    const scored = frames.length > 0 ? scorePresence(frames) : cameraPresence();
     if (live()) setPresence(scored?.scorable ? scored : null);
 
     // The local clip, for Premium playback with markers. Held as an object
@@ -2804,11 +2824,29 @@ function Results({
     lesson && practiceOf && practiceOf.practice < lesson.practices.length
       ? practiceOf.practice + 1
       : null;
-  /* Whatever sent this rep gets the loudest button back. Everything
-     that sets `back` is a place worth returning to: a lesson that has
-     more in it, or the trait walk's closing screen, which is the whole
-     reason that walk exists. */
-  const returnIsPrimary = !game && !nextInLesson && backTo !== null;
+  /* A lesson's last practice is its ending (the #427 review: practice 3's
+     glance looked exactly like practice 1's, and its one tap repeated the
+     header). The lesson the tap goes on to is Lessons' Up next, read
+     with this take in; a practice of this lesson still without a take
+     comes first. */
+  const lessonEnd = !!lesson && !!practiceOf && !nextInLesson;
+  const lessonDoneNow = lessonEnd && lesson ? lessonProgress([...spineNow, { lesson_id: config.lessonId }]) : null;
+  const missingPractice =
+    lessonEnd && lesson && lessonDoneNow && (lessonDoneNow[lesson.id] ?? 0) < lesson.practices.length
+      ? (lesson.practices
+          .map((_, i) => i + 1)
+          .find(
+            (n) =>
+              n !== practiceOf?.practice &&
+              !spineNow.some((r) => r.lesson_id === `lesson:${lesson.id}:${n}`)
+          ) ?? null)
+      : null;
+  const [focusTrait] = useState(() => traitForSaid(buildPortfolio(readOnboarding().answers).focus?.said ?? null));
+  const upNext = lessonEnd && lessonDoneNow && missingPractice === null ? upNextLesson(lessonDoneNow, focusTrait) : null;
+  /* Whatever sent this rep gets the loudest button back: the trait
+     walk's closing screen, the whole reason that walk exists. A lesson
+     says its own next, above. */
+  const returnIsPrimary = !game && !lesson && backTo !== null;
 
   /*
    * The save-progress wall (DECISIONS #134). The exits route through
@@ -2950,11 +2988,17 @@ function Results({
         ? roundHeader(game.name, roundsNow)
         : "Today's practice";
   /* The header's back (#427): what was practised is its visible label,
-     at BackLink's geometry; where it goes is its name. It leaves the
-     session, as "Done for today" and "Back to the lesson" did. */
-  const backHref = returnIsPrimary ? "/" : (backTo ?? (game ? "/games" : "/"));
-  const backName =
-    backHref === "/" ? "Back to Today" : backHref === "/games" ? "Back to Practice" : "Back to the lesson";
+     at BackLink's geometry; its name starts with that label and says
+     where it goes (WCAG 2.5.3, the review: "tap The cold open" matched
+     nothing). It leaves the session. A lesson's practice goes back to
+     its lesson, the last one too: the tap there names the next lesson. */
+  const backHref = lesson
+    ? (backTo ?? `/lessons/${lesson.id}`)
+    : returnIsPrimary
+      ? "/"
+      : (backTo ?? (game ? "/games" : "/"));
+  const backWhere = backHref === "/" ? "back to Today" : backHref === "/games" ? "back to Practice" : "back to the lesson";
+  const backName = `${practised}, ${backWhere}`;
 
   /*
    * The felt question fades out as one block (200ms ease-out), then the
@@ -3025,33 +3069,42 @@ function Results({
           level: gameRound.level,
         })
       : null;
-  /* The card's note line ("You spoke 22s clean after it.", "×2 for the
-     cut-in") moves to the top of the sheet (#427), its strings unchanged;
-     a card whose readout IS its line (no number) keeps it. */
-  const noteMoves = !!reveal && reveal.number !== null;
-  const roundNote =
-    reveal && xp && noteMoves && (reveal.line || xp.note) ? { line: reveal.line, xp: xp.note } : null;
+  /* The round card, whole (its track, its number, its line and the XP),
+     is the top of the sheet (the #427 review): on the glance it was a
+     second hero and seven numbers, and the glance now has every other
+     glance's shape, Demos saying the round's result with its moment. In
+     the sheet it is drawn at its end state; its line keeps its card, so
+     "after it" has its cut-in beside it. */
   const roundCard =
     gameRound && reveal && xp ? (
       <RoundCard
         round={gameRound}
-        reveal={noteMoves ? { ...reveal, line: null } : reveal}
-        xp={{ ...xp, note: null }}
+        reveal={reveal}
+        xp={xp}
         words={result.words}
         pauses={result.metrics.pauses}
         audioUrl={audioUrl}
-        hold={roundHold}
-        played={revealed}
-        onLanded={landed}
+        played
       />
     ) : null;
+  /* The round's one sound (F5) rides the glance's count now the card is
+     behind the door: once the streak's moment has gone and the Index has
+     counted, never twice. */
+  const landedRef = useRef(landed);
+  landedRef.current = landed;
+  const hasReveal = !!reveal;
+  useEffect(() => {
+    if (!hasReveal || revealed || roundHold) return;
+    const t = setTimeout(() => landedRef.current(), prefersReducedMotion() ? 0 : DURATION.celebrate);
+    return () => clearTimeout(t);
+  }, [hasReveal, revealed, roundHold]);
   /* Demos's cut-ins, marked on Hear it back's track (the games plan, item 4). */
   const cutInMarks = (gameRound && gameRound.game !== "rush" ? gameRound.cutIns : [])
     .filter((f) => f.at !== null)
     .map((f) => ({ t: f.at as number, line: f.line }));
-  /* The ladder (M5): Demos's line on the glance is its first sentence,
-     the sheet keeps all of it, and a level opened or a game mastered is
-     the earned line and the closing moment. */
+  /* The ladder (M5): its meaning is the glance's cue ("One more round
+     opens level 2."), the sheet keeps all of it, and a level opened or a
+     game mastered is the earned line and the closing moment. */
   const ladder: LadderView | null =
     game && walkRows
       ? ladderView(
@@ -3072,24 +3125,55 @@ function Results({
   const scorable = result.scorable !== false;
   const capped = result.judged.capped && result.ethosIndex === null && scorable;
   const trait = glanceTrait(config);
-  const lead = cueLead({
-    lesson: lesson && practiceOf ? { practice: practiceOf.practice, of: lesson.practices.length } : null,
-    boss: config.kind === "boss",
-    game: !!game,
-  });
-  const said = ladder && scorable
-    ? { parts: [{ kind: "text" as const, text: ladderLine(ladder.line) }], sentence: ladderLine(ladder.line), moment: null, cue: null }
-    : glanceLine({
-        trait,
-        metrics: result.metrics,
-        words: result.words,
-        transcript: result.transcript,
-        capped,
-        scorable,
-        lead,
+  /* The lesson's ending (the #427 review): its three practices' own
+     counts in the earned slot, read off the newest take of each and this
+     one off the screen. */
+  const lessonLine =
+    lessonEnd && lesson && practiceOf && scorable && missingPractice === null
+      ? lessonDone(
+          trait,
+          lessonTakes({
+            lessonId: lesson.id,
+            of: lesson.practices.length,
+            practice: practiceOf.practice,
+            current: {
+              fillers: result.metrics.fillerCount,
+              pauses: result.metrics.pauses,
+              wpm: result.metrics.wpm,
+              index: result.ethosIndex,
+            },
+            rows: repsNow,
+          })
+        )
+      : null;
+  /* No cue on a lesson's ending: the tap names the next lesson and the
+     line under Retake the next day. A practice still owed names itself. */
+  const lead = lessonEnd
+    ? missingPractice !== null
+      ? `Practice ${missingPractice}:`
+      : null
+    : cueLead({
+        lesson: lesson && practiceOf ? { practice: practiceOf.practice, of: lesson.practices.length } : null,
+        boss: config.kind === "boss",
+        game: !!game,
       });
+  /* A game round: Demos says the round's result with its moment, and the
+     cue is what the ladder's count means (the #427 review). */
+  const said =
+    gameRound && reveal && scorable
+      ? roundGlance({ round: gameRound, reveal, cue: ladder ? ladderCue(ladder.line) : null })
+      : glanceLine({
+          trait,
+          metrics: result.metrics,
+          words: result.words,
+          transcript: result.transcript,
+          capped,
+          scorable,
+          lead,
+        });
   const earnedNow = scorable
-    ? earnedLine({
+    ? (lessonLine ??
+      earnedLine({
         bests,
         ladderMoment: ladder?.moment ?? null,
         trait,
@@ -3098,37 +3182,67 @@ function Results({
             ? { score: presence.metrics.presenceScore, previous: result.previousPresence ?? null }
             : null,
         accuracy: result.accuracy?.score ?? null,
-      })
+      }))
     : null;
   const cappedLine = capped
     ? daysSpoken >= PRO_MOMENT_DAYS
       ? "Premium reads every recording"
       : "Measured, not judged."
     : null;
-  /* The primary's words, the same in the shelf and the sheet's foot. */
-  const primaryLabel = game
-    ? `Another round: ${game.name}`
+  /* The way on, the same in the shelf and the sheet's foot: its words and
+     where it goes. A lesson's ending names the next lesson, Lessons' Up
+     next; the header's back is the way to this one. */
+  const lessonBack = lesson ? (backTo ?? `/lessons/${lesson.id}`) : null;
+  const wayOn: { label: string; go: () => void } = game
+    ? { label: `Another round: ${game.name}`, go: () => anotherRound() }
     : lesson && nextInLesson
-      ? `Practice ${nextInLesson} of ${lesson.practices.length}`
-      : returnIsPrimary
-        ? "Back to the lesson"
-        : `${again ? "Go again" : "Next lesson"}: ${next.title}`;
+      ? {
+          label: `Practice ${nextInLesson} of ${lesson.practices.length}`,
+          go: () => exit(repHref({ lesson: lesson.id, q: String(nextInLesson), back: lessonBack ?? undefined }), { leaves: false }),
+        }
+      : lesson && missingPractice !== null
+        ? {
+            label: `Practice ${missingPractice} of ${lesson.practices.length}`,
+            go: () => exit(repHref({ lesson: lesson.id, q: String(missingPractice), back: lessonBack ?? undefined }), { leaves: false }),
+          }
+        : lesson
+          ? upNext
+            ? { label: `Next lesson: ${upNext.title}`, go: () => exit(`/lessons/${upNext.id}`, { leaves: true }) }
+            : { label: "Done for today", go: () => exit("/", { leaves: true }) }
+          : returnIsPrimary && backTo
+            ? { label: "Back to the lesson", go: () => exit(backTo, { leaves: true }) }
+            : {
+                label: `${again ? "Go again" : "Next lesson"}: ${next.title}`,
+                go: () => exit(repHref({ lesson: next.id }), { leaves: true }),
+              };
+  /* A take too short to score: the one tap is Retake, so it does what
+     Demos just asked, and the way on is the quiet link (the review: the
+     tap moved on while he said "Give it 60 to 90 seconds"). On Go again
+     the two are one. */
+  const retakeFirst = !scorable && !again;
+  const primaryLabel = retakeFirst ? "Retake" : wayOn.label;
+  const quietLabel = again ? null : retakeFirst ? wayOn.label : "Retake";
+  /* The ending's one quiet line under Retake: the streak's next day. */
+  const comeBack = lessonEnd && missingPractice === null ? comeBackLine(streakNow) : null;
+
   const delta =
     result.ethosIndex !== null && result.previousIndex !== null ? result.ethosIndex - result.previousIndex : null;
   const baseline = repCountBefore === 0;
+  /* A moment: Demos takes his share of the glance's height first. */
+  const bigMoment = earned || baseline || !!lessonLine || !!ladder?.moment;
   const scoreWords =
     result.ethosIndex !== null
       ? [
           String(result.ethosIndex),
           "/1000",
           delta !== null && delta !== 0
-            ? `▲ ${Math.abs(delta)}${config.kind === "boss" ? " on last week's boss" : ""}`
+            ? `▲ ${Math.abs(delta)} ${config.kind === "boss" ? "on last week's boss" : "since last time"}`
             : delta === null && baseline
               ? "Day 0. Everything after this has a number to beat."
               : "",
         ]
       : !scorable
-        ? ["Not enough to score."]
+        ? ["1 star for showing up", "Not scored."]
         : [String(result.metrics.fillerCount), "fillers", cappedLine ?? ""];
   const testerWords = match && resultKey ? `Tester Did ${snapshot.index ?? "the score"} feel right? Too low About right Too high` : "";
   const fit = fitGlance(
@@ -3137,16 +3251,23 @@ function Results({
         practised,
         coined ? "+1" : "",
         ...scoreWords,
-        WHOLE_RECORDING,
+        SHEET_NAME,
         primaryLabel,
-        again ? "" : "Retake",
+        quietLabel ?? "",
+        comeBack ?? "",
         testerWords,
       ],
       line: said.sentence,
       cue: said.cue,
       earned: earnedNow,
     },
-    testerWords ? GLANCE_WORDS_TESTER : delta === null && baseline ? GLANCE_WORDS_FIRST : GLANCE_WORDS
+    testerWords
+      ? GLANCE_WORDS_TESTER
+      : lessonLine
+        ? GLANCE_WORDS_LESSON_DONE
+        : delta === null && baseline
+          ? GLANCE_WORDS_FIRST
+          : GLANCE_WORDS
   );
   const glance: GlanceView = {
     parts: said.parts,
@@ -3194,7 +3315,7 @@ function Results({
   const sections = sheetSections({
     bests: bests.length,
     accuracy: !!result.accuracy,
-    roundNote: !!roundNote,
+    round: !!roundCard,
     audio: !!audioUrl,
     fillers: result.metrics.fillers.length,
     coach: !!(result.coach?.strength || result.coach?.supply),
@@ -3214,16 +3335,21 @@ function Results({
         </div>
       </section>
     ),
-    "round-note": roundNote ? (
-      <section>
-        {roundNote.line && <p className="text-body text-stone-600 text-pretty">{roundNote.line}</p>}
-        {roundNote.xp && (
-          <p className={`${roundNote.line ? "mt-1 " : ""}text-caption text-stone-500`}>{roundNote.xp}</p>
-        )}
-      </section>
-    ) : null,
+    round: roundCard,
+    /* Presence's number heads its section, so it is always behind the
+       door (the review: the glance's earned line shows it only when
+       nothing else was earned, and the sheet drew the video and the
+       moments but never the score). A free account's door stays as it was. */
     presence: presence ? (
-      <div className="*:mt-0!">
+      <div className="[&>*:first-child]:mt-0!">
+        {premium && (
+          <PresenceScore
+            score={presence.metrics.presenceScore}
+            previous={result.previousPresence ?? null}
+            premium
+            onUpgrade={() => {}}
+          />
+        )}
         <PresenceDetail
           metrics={presence.metrics}
           moments={presence.moments}
@@ -3258,19 +3384,8 @@ function Results({
    */
   const primary = (where: "shelf" | "sheet") => {
     const mark = where === "shelf" ? { "data-step-action": "" } : {};
-    const onClick = game
-      ? anotherRound
-      : lesson && nextInLesson
-        ? () =>
-            exit(
-              repHref({ lesson: lesson.id, q: String(nextInLesson), back: backTo ?? `/lessons/${lesson.id}` }),
-              { leaves: false }
-            )
-        : returnIsPrimary && backTo
-          ? () => exit(backTo, { leaves: true })
-          : () => exit(repHref({ lesson: next.id }), { leaves: true });
     return (
-      <button {...mark} onClick={onClick} className={PRIMARY}>
+      <button {...mark} onClick={retakeFirst ? onRetake : wayOn.go} className={PRIMARY}>
         {primaryLabel}
       </button>
     );
@@ -3307,18 +3422,28 @@ function Results({
           {practised}
         </h1>
         <div className="flex min-h-11 items-center justify-between gap-3">
-          <button
-            type="button"
-            data-results-back
-            onClick={() => exit(backHref, { leaves: true })}
-            aria-label={backName}
-            className="screen-bar-back press -ml-3 inline-flex min-h-11 min-w-0 items-center"
-          >
-            <IconBack size={22} />
-            <span aria-hidden className="truncate">
+          {askingFelt ? (
+            /* While "How did that feel?" is asked there is no way past it
+               but an answer or Skip (the review: the back skipped the felt
+               answer, the score and the match question). The name stays,
+               as text, where the back will be; the h1 says it already. */
+            <span aria-hidden className="inline-flex min-h-11 min-w-0 items-center truncate font-display text-detail">
               {practised}
             </span>
-          </button>
+          ) : (
+            <button
+              type="button"
+              data-results-back
+              onClick={() => exit(backHref, { leaves: true })}
+              aria-label={backName}
+              className="screen-bar-back press -ml-3 inline-flex min-h-11 min-w-0 items-center"
+            >
+              <IconBack size={22} />
+              <span aria-hidden className="truncate">
+                {practised}
+              </span>
+            </button>
+          )}
           {coined && !askingFelt && (
             <span className="flex shrink-0 items-center gap-1.5 text-link text-sage-700">
               <Coin size={18} /> +1
@@ -3373,13 +3498,9 @@ function Results({
                 under={under}
                 baseline={baseline}
                 live
-                celebrate={earned}
-                round={roundCard}
-                /* The card takes the height Demos stands in: the stars
-                   give 8px first (F3). */
-                starSize={roundCard ? 32 : 40}
-                leadMs={roundCard ? ROUND_REVEAL_MS : 0}
-                hold={roundCard ? roundHold : false}
+                /* A lesson's ending is a moment too: he celebrates it. */
+                celebrate={earned || !!lessonLine}
+                moment={bigMoment}
                 take={take}
               />
             </div>
@@ -3387,17 +3508,19 @@ function Results({
         </div>
 
         {/* The door (#427): one row, named for what is behind it, so its
-            opens are filed under one label (lib/tester-collect.ts tapOf). */}
+            opens are filed under one label (lib/tester-collect.ts tapOf).
+            17/600, under Demos's line and the tap (the review: at the
+            detail head's 700 it outweighed both). */}
         {!askingFelt && (
           <button
             type="button"
             data-glance-door
             aria-haspopup="dialog"
-            aria-label={WHOLE_RECORDING}
+            aria-label={SHEET_NAME}
             onClick={() => setSheetOpen(true)}
             className="press-row -mx-5 mt-3 flex min-h-[52px] shrink-0 items-center justify-between gap-3 border-t border-hairline px-5 text-left"
           >
-            <span className="detail-head">{WHOLE_RECORDING}</span>
+            <span className="font-display text-detail font-semibold">{SHEET_NAME}</span>
             <Disclosure />
           </button>
         )}
@@ -3419,17 +3542,26 @@ function Results({
             <>
               {primary("shelf")}
               {/* recording-22: Retake is the quiet tap under the one tap,
-                  never a second primary, and hides on Go again (#220). */}
-              {!again && (
+                  never a second primary, and hides on Go again (#220). On
+                  a take too short to score the two trade places. */}
+              {quietLabel && (
                 <div className="mt-1 flex justify-center">
                   <button
                     type="button"
-                    onClick={onRetake}
+                    data-quiet-action
+                    onClick={retakeFirst ? wayOn.go : onRetake}
                     className="press min-h-11 rounded-tap px-3 text-link text-stone-500"
                   >
-                    Retake
+                    {quietLabel}
                   </button>
                 </div>
+              )}
+              {/* A lesson's ending points at coming back, one quiet line,
+                  its height held until the streak is read. */}
+              {lessonEnd && missingPractice === null && (
+                <p data-come-back className="-mt-1 min-h-[17px] text-center text-caption text-stone-500">
+                  {comeBack}
+                </p>
               )}
             </>
           )}
@@ -3437,12 +3569,24 @@ function Results({
       </main>
 
       {sheetOpen && (
-        <WholeRecording onClose={() => setSheetOpen(false)} foot={primary("sheet")}>
+        <WholeRecording
+          onClose={() => {
+            /* Playback started in the sheet stops with it: nothing on the
+               glance could stop it (the review). The glance's own moment,
+               started from its chip, plays on. */
+            if (!playsOnAfterSheet(take.span, glance.moment)) take.pause();
+            setSheetOpen(false);
+          }}
+          foot={primary("sheet")}
+        >
           <RepResult
             result={result}
             topic={config.topic}
             section="detail"
             sheet={{ sections, open: trait, slots: sheetSlots }}
+            /* The length line under the dimensions' head reads its own
+               game's clock (M5): Speed rush's cap, else the daily target. */
+            lengthNote={game?.id === "rush" ? `of ${gameRound?.cap ?? levelCapS(game, level)}s` : "target 60 to 90s"}
             live
             player={
               audioUrl ? (

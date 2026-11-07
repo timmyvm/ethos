@@ -445,12 +445,12 @@ async function shootTheme(theme) {
     await sleep(1600);
     await shot("rep-results", { settle: 200 });
     /* #427: the results are one glance (rep-results, once it has all
-       landed, is rep-glance) and its door's sheet, "The whole recording". */
+       landed, is rep-glance) and its door's sheet, "Every number". */
     if (want("rep-glance")) await shot("rep-glance", { fullPage: false, settle: 1600 });
     const door = page.locator("main [data-glance-door]");
     if (want("rep-sheet") && (await door.count())) {
       await door.click();
-      await page.waitForSelector('[role="dialog"][aria-label="The whole recording"]', { timeout: 4000 });
+      await page.waitForSelector('[role="dialog"][aria-label="Every number"]', { timeout: 4000 });
       await shot("rep-sheet", { fullPage: false, settle: 900 });
     }
   }

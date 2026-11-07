@@ -176,10 +176,11 @@ ok(
   buttons.join(" | ").slice(0, 120)
 );
 /* #427: the quiet exit moved into the header: its back reads the
-   practice's name and is named "Back to the lesson". */
+   practice's name, and its name starts with that name and says where it
+   goes, "The cold open, back to the lesson" (its review, WCAG 2.5.3). */
 ok(
   "the quiet exit is back to the lesson",
-  buttons.some((b) => /Back to the lesson/.test(b)),
+  buttons.some((b) => /^\S.*, back to the lesson$/.test(b)),
   buttons.join(" | ").slice(0, 120)
 );
 

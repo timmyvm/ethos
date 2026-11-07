@@ -6,11 +6,18 @@
       "size": "390x844-light",
       "beats": [
         {
-          "words": 23,
-          "wordsNoTranscript": 23,
-          "wordsNoRound": 23,
+          "maxBand": 60,
+          "band": [
+            603,
+            663
+          ],
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 25,
+          "wordsNoTranscript": 25,
+          "wordsNoRound": 25,
           "numbers": 8,
-          "text": "The cold open 849 /1000 ▲ 187 Best yet, past 690 4 fillers, first at 0:02 . The whole recording Practice 2 of 3 Retake",
+          "text": "The cold open 849 /1000 ▲ 187 since last time Best yet, past your 690 4 fillers, first 0:02 Every number Practice 2 of 3 Retake",
           "scrollH": 844,
           "innerH": 844,
           "terracotta": 1,
@@ -23,11 +30,15 @@
           "screens": 1
         },
         {
-          "words": 259,
-          "wordsNoTranscript": 138,
-          "wordsNoRound": 259,
-          "numbers": 38,
-          "text": "The whole recording Done Records broken Best Ethos yet 849, past your 690 Hear it back filler landed a point searching 0:03 um 0:02 like 0:07 um 0:10 you know 0:15 Kept:Held the pause before ‘the mistake people make’. Say this instead the thing about what matters about Names the point instead of pointing at it. AI-generated feedback Every dimension Pace leveled twice Pausing 138/150 Fillers 88/100 All fillers / min: 3.9 (4 in all). None scores 100; 8 a minute scores 0. Most of them were “um”. ↳ Replace it with silence, not a different word. Restarts 45/50 Pace 96/100 Variety 84/100 Structure 129/150 Credibility 123/150 Engagement 80/100 Steadiness 66/100 9 dimensions, added up 849/1000 What you said 121 words filler vague said 3+ times So the thing about habits is, um, they compound. You do the small version every day and, like, it builds on its own. Um, the mistake people make is waiting to feel ready. You know, ready is a feeling that shows up after you start. I used to think discipline was the whole answer, and I would plan a week nobody could really do, then miss a day and quit the plan instead of the day. What changed was making the habit small enough that missing it felt stupid. Five minutes. Not an hour, just five minutes I can do standing in a kitchen. And the five minutes usually turns into more, but only because it was allowed to be five. 3 landed pauses Silence you chose, before a new point. Practice 2 of 3",
+          "maxBand": 0,
+          "band": null,
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 250,
+          "wordsNoTranscript": 129,
+          "wordsNoRound": 250,
+          "numbers": 37,
+          "text": "Every number Done Demos's read AI-generated feedback Kept Held the pause before ‘the mistake people make’. Say this instead the thing about what matters about Names the point instead of pointing at it. Records broken Best Ethos yet 849, past your 690 Hear it back filler landed a point searching 0:02 um 0:02 like 0:07 um 0:10 you know 0:15 Every dimension Length 62s, target 60 to 90s Pausing 138/150 Fillers 88/100 4 in all, most were “um”. ↳ Replace it with silence, not a different word. Restarts 45/50 Pace 96/100 Variety 84/100 Structure 129/150 Credibility 123/150 Engagement 80/100 Steadiness 66/100 9 dimensions, added up 849/1000 What you said 121 words filler vague said 3+ times So the thing about habits is, um, they compound. You do the small version every day and, like, it builds on its own. Um, the mistake people make is waiting to feel ready. You know, ready is a feeling that shows up after you start. I used to think discipline was the whole answer, and I would plan a week nobody could really do, then miss a day and quit the plan instead of the day. What changed was making the habit small enough that missing it felt stupid. Five minutes. Not an hour, just five minutes I can do standing in a kitchen. And the five minutes usually turns into more, but only because it was allowed to be five. 3 landed pauses Silence you chose, before a new point. Practice 2 of 3",
           "scrollH": 844,
           "innerH": 844,
           "terracotta": 1,
@@ -42,6 +53,13 @@
           "screens": 4
         },
         {
+          "maxBand": 64,
+          "band": [
+            229,
+            293
+          ],
+          "doorClear": null,
+          "backDuringFelt": false,
           "words": 34,
           "wordsNoTranscript": 34,
           "wordsNoRound": 34,
@@ -59,17 +77,24 @@
           "screens": 1
         }
       ],
-      "tapLiveMs": 9
+      "tapLiveMs": 6
     },
     {
       "size": "390x844-dark",
       "beats": [
         {
-          "words": 23,
-          "wordsNoTranscript": 23,
-          "wordsNoRound": 23,
+          "maxBand": 60,
+          "band": [
+            603,
+            663
+          ],
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 25,
+          "wordsNoTranscript": 25,
+          "wordsNoRound": 25,
           "numbers": 8,
-          "text": "The cold open 849 /1000 ▲ 187 Best yet, past 690 4 fillers, first at 0:02 . The whole recording Practice 2 of 3 Retake",
+          "text": "The cold open 849 /1000 ▲ 187 since last time Best yet, past your 690 4 fillers, first 0:02 Every number Practice 2 of 3 Retake",
           "scrollH": 844,
           "innerH": 844,
           "terracotta": 1,
@@ -82,11 +107,15 @@
           "screens": 1
         },
         {
-          "words": 259,
-          "wordsNoTranscript": 138,
-          "wordsNoRound": 259,
-          "numbers": 38,
-          "text": "The whole recording Done Records broken Best Ethos yet 849, past your 690 Hear it back filler landed a point searching 0:02 um 0:02 like 0:07 um 0:10 you know 0:15 Kept:Held the pause before ‘the mistake people make’. Say this instead the thing about what matters about Names the point instead of pointing at it. AI-generated feedback Every dimension Pace leveled twice Pausing 138/150 Fillers 88/100 All fillers / min: 3.9 (4 in all). None scores 100; 8 a minute scores 0. Most of them were “um”. ↳ Replace it with silence, not a different word. Restarts 45/50 Pace 96/100 Variety 84/100 Structure 129/150 Credibility 123/150 Engagement 80/100 Steadiness 66/100 9 dimensions, added up 849/1000 What you said 121 words filler vague said 3+ times So the thing about habits is, um, they compound. You do the small version every day and, like, it builds on its own. Um, the mistake people make is waiting to feel ready. You know, ready is a feeling that shows up after you start. I used to think discipline was the whole answer, and I would plan a week nobody could really do, then miss a day and quit the plan instead of the day. What changed was making the habit small enough that missing it felt stupid. Five minutes. Not an hour, just five minutes I can do standing in a kitchen. And the five minutes usually turns into more, but only because it was allowed to be five. 3 landed pauses Silence you chose, before a new point. Practice 2 of 3",
+          "maxBand": 0,
+          "band": null,
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 250,
+          "wordsNoTranscript": 129,
+          "wordsNoRound": 250,
+          "numbers": 37,
+          "text": "Every number Done Demos's read AI-generated feedback Kept Held the pause before ‘the mistake people make’. Say this instead the thing about what matters about Names the point instead of pointing at it. Records broken Best Ethos yet 849, past your 690 Hear it back filler landed a point searching 0:02 um 0:02 like 0:07 um 0:10 you know 0:15 Every dimension Length 62s, target 60 to 90s Pausing 138/150 Fillers 88/100 4 in all, most were “um”. ↳ Replace it with silence, not a different word. Restarts 45/50 Pace 96/100 Variety 84/100 Structure 129/150 Credibility 123/150 Engagement 80/100 Steadiness 66/100 9 dimensions, added up 849/1000 What you said 121 words filler vague said 3+ times So the thing about habits is, um, they compound. You do the small version every day and, like, it builds on its own. Um, the mistake people make is waiting to feel ready. You know, ready is a feeling that shows up after you start. I used to think discipline was the whole answer, and I would plan a week nobody could really do, then miss a day and quit the plan instead of the day. What changed was making the habit small enough that missing it felt stupid. Five minutes. Not an hour, just five minutes I can do standing in a kitchen. And the five minutes usually turns into more, but only because it was allowed to be five. 3 landed pauses Silence you chose, before a new point. Practice 2 of 3",
           "scrollH": 844,
           "innerH": 844,
           "terracotta": 1,
@@ -101,6 +130,13 @@
           "screens": 4
         },
         {
+          "maxBand": 64,
+          "band": [
+            229,
+            293
+          ],
+          "doorClear": null,
+          "backDuringFelt": false,
           "words": 34,
           "wordsNoTranscript": 34,
           "wordsNoRound": 34,
@@ -118,7 +154,7 @@
           "screens": 1
         }
       ],
-      "tapLiveMs": 4
+      "tapLiveMs": 5
     }
   ]
 }

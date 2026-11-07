@@ -117,6 +117,7 @@ export function RepResult({
   cappedNote = null,
   under = null,
   sheet = null,
+  moment = false,
 }: {
   result: ResultView;
   topic?: ColdTopic | null;
@@ -208,6 +209,12 @@ export function RepResult({
   under?: ReactNode;
   /** The sheet's body (section "detail", #427). */
   sheet?: SheetView | null;
+  /**
+   * On the glance: a moment (a best, the first recording, a lesson's
+   * ending, a ladder rung), where Demos takes his share of the height
+   * first. On an ordinary practice the bands take theirs (#427 review).
+   */
+  moment?: boolean;
 }) {
   const show = (s: ResultSection) => section === "all" || section === s;
   const debrief = section === "score";
@@ -360,13 +367,13 @@ export function RepResult({
         bubbleAt={bubbleAt}
         celebrate={celebrate}
         celebrating={celebrating}
-        round={round}
         starSize={starSize}
         take={take}
         cappedNote={cappedNote}
         under={under}
         short={shortRoom}
         tall={tallRoom}
+        moment={moment}
       />
     );
   }
@@ -397,19 +404,24 @@ export function RepResult({
             </section>
           ) : null;
         case "coach":
-          /* The coach's two, then the caption once under both (M-2): the
-             only text on the screen a model wrote. */
+          /* The coach's two under one head, the caption under the head so
+             it covers both (M-2, the #427 review: "Kept:" was a headless
+             line and the caption trailed under Say this instead alone):
+             the only text on the screen a model wrote. */
           return coach && (coach.strength || coach.supply) ? (
             <section>
+              <h2 className="section-head">Demos&apos;s read</h2>
+              <p className="mt-1 text-caption text-stone-400">AI-generated feedback</p>
               {coach.strength && (
-                <p className="text-body text-stone-600 text-pretty">
-                  <span className="font-semibold text-ink">Kept:</span> {coach.strength}
-                </p>
+                <div className="mt-3">
+                  <h3 className="detail-head">Kept</h3>
+                  <p className="mt-1 text-body text-stone-600 text-pretty">{coach.strength}</p>
+                </div>
               )}
               {coach.supply && (
-                <div className={coach.strength ? "mt-5" : ""}>
-                  <h2 className="section-head">Say this instead</h2>
-                  <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-body">
+                <div className={coach.strength ? "mt-4" : "mt-3"}>
+                  <h3 className="detail-head">Say this instead</h3>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-body">
                     <span className="text-stone-500 line-through">{coach.supply.original}</span>
                     <svg
                       aria-hidden
@@ -430,21 +442,27 @@ export function RepResult({
                   {coach.supply.note && <p className="mt-1.5 text-caption text-stone-500">{coach.supply.note}</p>}
                 </div>
               )}
-              <p className="mt-3 text-caption text-stone-400">AI-generated feedback</p>
             </section>
           ) : null;
         case "capped":
-          return <p className="text-body text-stone-500">Demos&apos;s full read is back tomorrow.</p>;
+          /* A measured fact, both halves (the review: the streak line was
+             gone everywhere on a capped take). */
+          return (
+            <p className="text-body text-stone-500">
+              Demos&apos;s full read is back tomorrow. It still counted toward your streak.
+            </p>
+          );
         case "dimensions":
           return (
             <section>
               <h2 className="section-head">{coach ? "Every dimension" : "The measured dimensions"}</h2>
-              {/* #160's one quiet line, under the ledger's head. */}
-              {gainName && gain && (
-                <p className="mt-1 text-caption text-stone-500">
-                  {gainName} leveled {gain.levels === 2 ? "twice" : "up"}
-                </p>
-              )}
+              {/* The take's length against its target (the review: the
+                  three tiles went and took the length with them). #160's
+                  line is in its own row now, not here. */}
+              <p data-take-length className="mt-1 text-caption text-stone-500">
+                Length {Math.round(m.durationS)}s{lengthNote.startsWith("of ") ? " " : ", "}
+                {lengthNote}
+              </p>
               <div className="mt-3">
                 <DimensionList
                   tier1={tier1}
@@ -455,6 +473,8 @@ export function RepResult({
                   take={take}
                   fill={live}
                   open={view.open}
+                  brief
+                  gain={gain ? { key: gain.key, name: gain.name, text: `Leveled ${gain.levels === 2 ? "twice" : "up"}` } : null}
                 />
               </div>
             </section>
@@ -944,35 +964,15 @@ function Delta({
   baseline,
   boss = false,
   small = false,
-  bare = false,
   className = "",
 }: {
   delta: number | null;
   baseline: boolean;
   boss?: boolean;
   small?: boolean;
-  /**
-   * The glance's delta (#427): the glyph and the number, "▲ 3", with its
-   * words for a screen reader. A boss keeps "on last week's boss" visible,
-   * since the comparison is not the usual one.
-   */
-  bare?: boolean;
   className?: string;
 }) {
   const size = small ? "text-caption font-semibold" : "font-display text-body font-bold";
-  if (bare && !boss && delta !== null && delta !== 0) {
-    const up = delta > 0;
-    return (
-      <p className={`${size} ${up ? "text-sage-700" : "text-rust"} ${className}`}>
-        <span aria-hidden>
-          {up ? "▲" : "▼"} {Math.abs(delta)}
-        </span>
-        <span className="sr-only">
-          {up ? "Up" : "Down"} {Math.abs(delta)} since last time
-        </span>
-      </p>
-    );
-  }
   if (delta !== null && delta !== 0) {
     return (
       <p className={`${size} ${delta > 0 ? "text-sage-700" : "text-rust"} ${className}`}>
@@ -1100,12 +1100,16 @@ function useShortRoom(): boolean {
 }
 
 /**
- * The glance (DECISIONS #427): the results' one screen. The score as one
- * centred column (the stars, the 72px Index, one delta, the earned line
- * when something was earned), then Demos with his one measured line over
- * his head: the moment that plays and the cue for next time, arriving
- * whole once the stars have landed. He takes the free height up to 200.
- * Nothing on it is the coach's text, so nothing on it needs the caption.
+ * The glance (DECISIONS #427, its review): the results' one screen. The
+ * score as one centred column (the stars, the 72px Index, its delta with
+ * its words, the earned line when something was earned), then Demos with
+ * his one measured line over his head at his introduction's 20px: the
+ * moment that plays and the cue for next time, arriving whole once the
+ * stars have landed. The spare height is two bands of at most 64 (score
+ * to his line, his feet to the door) and Demos takes the rest, up to 220;
+ * at a moment (a best, the first recording, a lesson's ending, a ladder
+ * rung) he takes his share first. Nothing on it is the coach's text, so
+ * nothing on it needs the caption.
  */
 function Glance({
   view,
@@ -1124,13 +1128,13 @@ function Glance({
   bubbleAt,
   celebrate,
   celebrating,
-  round,
   starSize,
   take,
   cappedNote,
   under,
   short,
   tall,
+  moment,
 }: {
   view: GlanceView;
   metrics: RepMetrics;
@@ -1148,7 +1152,6 @@ function Glance({
   bubbleAt: number;
   celebrate: boolean;
   celebrating: boolean;
-  round: ReactNode;
   starSize: number;
   take: TakeAudio | null;
   cappedNote: ReactNode;
@@ -1156,6 +1159,8 @@ function Glance({
   short: boolean;
   /** A phone 700pt or taller: a tester's question fits under Demos in his room. */
   tall: boolean;
+  /** A moment (a best, the first recording, a lesson's ending, a rung): Demos takes his share first. */
+  moment: boolean;
 }) {
   const chip = view.moment ? (
     take?.playable ? (
@@ -1167,15 +1172,43 @@ function Glance({
       </span>
     )
   ) : null;
+  /* The clause before the chip is bound to it ("first ▶0:02", "1
+     searching at ▶0:20"), so the time never wraps away from what it
+     times (the review: "4 fillers, first / at ▶0:02 ."): from the last
+     comma when that is four words or fewer, else the last word. */
+  const parts: ReactNode[] = [];
+  view.parts.forEach((p, i) => {
+    if (p.kind === "moment") return;
+    const next = view.parts[i + 1];
+    if (next?.kind !== "moment") {
+      parts.push(<Fragment key={i}>{p.text}</Fragment>);
+      return;
+    }
+    const text = p.text.trimEnd();
+    const comma = text.lastIndexOf(", ");
+    const clause = comma >= 0 ? text.slice(comma + 2) : null;
+    const cut = clause !== null && clause.split(" ").length <= 4 ? comma + 2 : text.lastIndexOf(" ") + 1;
+    const head = text.slice(0, cut);
+    const tail = text.slice(cut).replace(/ /g, "\u00a0");
+    parts.push(
+      <Fragment key={i}>
+        {head}
+        <span className="whitespace-nowrap">
+          {tail}
+          {tail ? "\u00a0" : ""}
+          {chip}
+        </span>
+      </Fragment>
+    );
+  });
+  if (view.parts[0]?.kind === "moment") parts.unshift(<Fragment key="m">{chip}</Fragment>);
   const spoken = (
     <>
       <p data-glance-line className="text-balance">
-        {view.parts.map((p, i) => (
-          <Fragment key={i}>{p.kind === "moment" ? chip : p.text}</Fragment>
-        ))}
+        {parts}
       </p>
       {view.cue && (
-        <p data-glance-cue className="text-balance text-stone-500">
+        <p data-glance-cue className="mt-0.5 text-balance text-detail leading-[24px] font-normal text-stone-500">
           {view.cue}
         </p>
       )}
@@ -1215,29 +1248,21 @@ function Glance({
 
   /* Demos in his room, his line over his head: everywhere but a phone
      under 600pt, and a tester's glance on one under 700pt, where he
-     stands beside his line at 112 so the question fits. With no question
-     under him, up to 32pt of the spare height goes over the stars so the
-     score breathes. */
+     stands beside his line at 112 so the question fits. */
   const beside = !short && !!under && !tall;
-  /* A game's round card has spent the height Demos would stand in: on a
-     phone under 700pt his line stays, plain, and he steps off, so the
-     glance still fits without a scroll (375x667). */
-  const plain = short || (!!round && !tall);
-  const roomy = !plain && !under;
+  const plain = short;
   return (
     <div data-glance className="flex w-full flex-1 flex-col">
-      {roomy && !round && <div aria-hidden className="max-h-8 flex-1 [@media(max-height:700px)]:hidden" />}
-      <div
-        className={`flex flex-col items-center text-center ${
-          round ? "mt-3" : "mt-5 [@media(max-height:700px)]:mt-3"
-        }`}
-      >
-        {round && <div className="mb-3 w-full">{round}</div>}
+      {/* Up to 24pt over the stars, so the header's back to the stars
+          stays near 48 under a lesson's bar and under 64 without one (the
+          review: the old 32pt spacer left a 70pt band under the header). */}
+      {!plain && !beside && <div aria-hidden className="max-h-6 flex-1 basis-0" />}
+      <div className="mt-5 flex flex-col items-center text-center [@media(max-height:700px)]:mt-3">
         {ethosIndex !== null ? (
           <>
             {stars(m.stars, landAfter)}
             <div
-              className={`${round ? "mt-2" : "mt-4 [@media(max-height:700px)]:mt-2"} flex items-baseline justify-center gap-1 ${
+              className={`mt-4 flex items-baseline justify-center gap-1 [@media(max-height:700px)]:mt-2 ${
                 counting ? "" : "invisible"
               }`}
             >
@@ -1247,14 +1272,22 @@ function Glance({
               </span>
               <span className="text-body font-normal text-stone-500">/1000</span>
             </div>
-            <Delta delta={delta} baseline={baseline} boss={boss} bare className={`mt-1 ${counting ? "" : "invisible"}`} />
+            {/* "▲ 3 since last time", the words on the screen (the review:
+                a bare "▲ 3" said nothing about what it was against). */}
+            <Delta delta={delta} baseline={baseline} boss={boss} className={`mt-1 ${counting ? "" : "invisible"}`} />
           </>
         ) : !scorable ? (
           <>
+            {/* The one star a take too short to score still earns, named
+                where it stands (the review: a gold star over "Not enough
+                to score." was an earned glyph with no label). */}
             <span className="[&>span]:gap-3!">
               <Stars n={1} size={starSize} arch />
             </span>
-            <h2 className="font-display mt-4 text-title">Not enough to score.</h2>
+            <p data-unscored-star className="mt-1 text-caption text-stone-500">
+              1 star for showing up
+            </p>
+            <h2 className="font-display mt-3 text-title">Not scored.</h2>
           </>
         ) : (
           <>
@@ -1285,8 +1318,7 @@ function Glance({
       </div>
 
       {plain ? (
-        /* Under 600pt, or a round under 700: no room for him; his line
-           stays, plain, the chip in it. */
+        /* Under 600pt: no room for him; his line stays, plain, the chip in it. */
         <div
           className={`mt-3 flex flex-1 flex-col justify-center text-left font-body text-detail leading-[24px] font-normal text-ink ${arrival}`}
           style={arrivalStyle}
@@ -1310,27 +1342,44 @@ function Glance({
           {under}
         </div>
       ) : (
-        /* His line over his head, its tail at his face, and Demos under
-           it taking the free height from 88 to 220 (#427: at 200 a 120pt
-           band stood over his line at 390x844, past rule 7's 64; at 270
-           he outweighed the 665). What he cannot take is shared over his
-           line and under his feet, so he and his line stay one group. */
-        <div data-coach-room className="mt-4 flex w-full flex-1 flex-col justify-center [@media(max-height:700px)]:mt-2">
-          <div className={`shrink-0 ${arrival}`} style={arrivalStyle}>
-            <SpeechBubble tail="down" className="text-center">
+        <>
+          {/* The band from the score to his line: 12 to 56, so with the
+              delta's line box it stays under rule 7's 64. */}
+          <div aria-hidden data-glance-band className="min-h-4 max-h-14 flex-1 basis-0 [@media(max-height:700px)]:min-h-3" />
+          {/* His line over his head, its tail at his face, at his
+              introduction's 20px (the review: at 17 regular it was the
+              faintest thing on the screen and the only one that traces to
+              a moment). */}
+          <div data-coach-room className={`shrink-0 ${arrival}`} style={arrivalStyle}>
+            <SpeechBubble tail="down" voice="lead" className="text-center">
               {spoken}
             </SpeechBubble>
           </div>
-          <div className="relative mt-3 max-h-[220px] min-h-[88px] flex-1 basis-0">
+          {/* Demos takes what the bands leave, from 88: at a moment his
+              share comes first, on an ordinary practice the bands' (about
+              200 at 390x844). Up to 240 beside the number; up to 270
+              (#400's ceiling) on a take too short to score, where there is
+              no number for him to outweigh and he is the message. */}
+          <div
+            className={`relative mt-3 min-h-[88px] basis-0 ${scorable ? "max-h-[240px]" : "max-h-[270px]"} ${
+              moment ? "grow-[4]" : "grow"
+            }`}
+          >
             <div className="absolute inset-0 [container-type:size]">
-              <div className="absolute bottom-0 left-1/2 size-[min(100cqh,220px)] -translate-x-1/2 [container-type:size]">
-                {demos(220, true)}
+              <div
+                className={`absolute bottom-0 left-1/2 -translate-x-1/2 [container-type:size] ${
+                  scorable ? "size-[min(100cqh,240px)]" : "size-[min(100cqh,270px)]"
+                }`}
+              >
+                {demos(scorable ? 240 : 270, true)}
                 {burst}
               </div>
             </div>
           </div>
           {under}
-        </div>
+          {/* His feet to the door: up to 48, the door's own 12 on top of it. */}
+          <div aria-hidden data-glance-band className="max-h-12 flex-1 basis-0" />
+        </>
       )}
     </div>
   );

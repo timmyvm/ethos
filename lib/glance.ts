@@ -8,8 +8,8 @@
  * and one tap: the stars, the Index and its delta, Demos's one measured
  * line about the practice's own trait with one moment that plays and one
  * target for next time, the door, and the tap. Everything else is in
- * "The whole recording", pulled, never pushed (NN/g's progressive
- * disclosure; Chiviacowsky's self-controlled feedback).
+ * "Every number", pulled, never pushed (NN/g's progressive disclosure;
+ * Chiviacowsky's self-controlled feedback).
  *
  * Every digit Demos says here is a field of the take or a time in it,
  * so the line traces to a number or a timestamp (vision.md). Nothing
@@ -18,10 +18,12 @@
 
 import type { TraitId } from "@/content/traits";
 import { recordingTrait } from "./log";
-import type { RepMetrics, Word } from "./metrics";
+import type { Pause, RepMetrics, Word } from "./metrics";
 import { heldPauseMarks, landedPause } from "./pause-mark";
 import { filledMoments, MOMENT_LEAD_S, MOMENT_TAIL_S } from "./pause-quality";
 import type { RewardMoment } from "./rewards";
+import type { GameRound } from "./round";
+import { clockTenth, decidingCutIn, secs as tenths, type RoundReveal } from "./round-copy";
 import { transcriptPieces, type TranscriptUnit } from "./transcript-words";
 
 /** The glance's ceiling, in words as `countWords` counts them. */
@@ -29,6 +31,12 @@ export const GLANCE_WORDS = 25;
 /** Named exceptions, each held at its own ceiling by the camera. */
 export const GLANCE_WORDS_TESTER = 36;
 export const GLANCE_WORDS_FIRST = 28;
+/**
+ * A lesson's last practice (the #427 review): the ending says how the
+ * three practices went ("Lesson done: 4, 4, 3 fillers"), names the next
+ * lesson on the tap and the streak's next day under it.
+ */
+export const GLANCE_WORDS_LESSON_DONE = 30;
 
 /** A filler's moment plays from a second before it to 1.5s after. */
 export const FILLER_LEAD_S = 1;
@@ -106,7 +114,11 @@ export function cueLead(p: {
   return "Next time:";
 }
 
-/** A sentence with a chip in it, built from its two sides. */
+/**
+ * A sentence with a chip in it, built from its two sides. A sentence the
+ * chip ends takes no full stop (the #427 review: "first at (▶ 0:02) ."
+ * left the stop floating outside the pill).
+ */
 function withMoment(before: string, moment: GlanceMoment, after: string): Pick<GlanceLine, "parts" | "sentence" | "moment"> {
   const parts: GlancePart[] = [];
   if (before) parts.push({ kind: "text", text: before });
@@ -140,7 +152,10 @@ export function unscoredReason(m: Pick<RepMetrics, "substance">): string {
  * sentence of at most seven words about the practice's trait, the first
  * thing that cost it or, when nothing did, its best moment, with at most
  * one chip that plays it; then one target for next time, its number the
- * one in the sentence.
+ * one in the sentence. Every line names its trait ("pauses", "fillers"),
+ * so "landed" and "searching" are never app words on their own. A capped
+ * take's hero is its filler count, so its line follows the hero: the
+ * same trait, never a second one under it (the #427 review).
  */
 export function glanceLine(p: {
   trait: TraitId;
@@ -157,10 +172,11 @@ export function glanceLine(p: {
 }): GlanceLine {
   const m = p.metrics;
   if (p.scorable === false) return { ...plain(unscoredReason(m)), cue: null };
+  const trait: TraitId = p.capped ? "fillers" : p.trait;
   const secs = Math.round(m.durationS);
   const cue = (target: string | null): string | null => (p.lead && target ? `${p.lead} ${target}` : null);
 
-  if (p.trait === "pause") {
+  if (trait === "pause") {
     const pauses = m.pauses ?? [];
     const marks = heldPauseMarks(pauses);
     const filled = filledMoments(pauses);
@@ -168,7 +184,7 @@ export function glanceLine(p: {
       const first = filled.moments[0];
       const moment: GlanceMoment = { t: first.t, clock: first.clock, from: first.from, until: first.until, label: first.label };
       const n = filled.moments.length;
-      const said = n === 1 ? withMoment("", moment, " had a sound in it.") : withMoment(`${n} pauses had a sound, first `, moment, ".");
+      const said = n === 1 ? withMoment("1 pause had a sound, at ", moment, "") : withMoment(`${n} pauses had a sound, first `, moment, "");
       return { ...said, cue: cue("none with a sound.") };
     }
     const held = pauses.filter((x) => x.kind !== "beat");
@@ -176,11 +192,12 @@ export function glanceLine(p: {
     if (searching.length > 0) {
       const s = searching[0];
       const moment = windowAt(s.t, MOMENT_LEAD_S, s.t + s.len + MOMENT_TAIL_S, "Play %, a searching pause");
-      const landed = marks.landed === 0 ? "None landed" : `${marks.landed} landed`;
+      const landed =
+        marks.landed === 0 ? "No pauses landed" : `${marks.landed} pause${marks.landed === 1 ? "" : "s"} landed`;
       const said =
         searching.length === 1
-          ? withMoment(`${landed}, 1 searching at `, moment, ".")
-          : withMoment(`${landed}, ${searching.length} searching, first `, moment, ".");
+          ? withMoment(`${landed}, 1 searching at `, moment, "")
+          : withMoment(`${landed}, ${searching.length} searching, first `, moment, "");
       return { ...said, cue: cue(`land ${marks.held}.`) };
     }
     if (marks.landed > 0) {
@@ -192,27 +209,29 @@ export function glanceLine(p: {
         longest.t + longest.len + MOMENT_TAIL_S,
         one ? "Play %, the landed pause" : "Play %, the longest landed pause"
       );
-      const said = one ? withMoment("1 landed, at ", moment, ".") : withMoment(`All ${marks.landed} landed, longest at `, moment, ".");
+      const said = one
+        ? withMoment("1 pause landed, at ", moment, "")
+        : withMoment(`All ${marks.landed} pauses landed, longest at `, moment, "");
       return { ...said, cue: cue(`land ${marks.landed + 1}.`) };
     }
     return { ...plain(`No held pauses in ${secs}s.`), cue: cue("hold 1 after a point.") };
   }
 
-  if (p.trait === "repairs") {
+  if (trait === "repairs") {
     const n = m.repairCount ?? 0;
     if (n >= 2) return { ...plain(`${n} restarts in ${secs}s.`), cue: cue(`under ${n}.`) };
     if (n === 1) return { ...plain(`1 restart in ${secs}s.`), cue: cue("none.") };
     return { ...plain(`No restarts in ${secs}s.`), cue: cue("none again.") };
   }
 
-  if (p.trait === "pace") {
+  if (trait === "pace") {
     const [lo, hi] = PACE_ZONE;
     if (m.wpm >= lo && m.wpm <= hi) return { ...plain(`${m.wpm} words a minute, in the zone.`), cue: cue(`${lo} to ${hi} again.`) };
     if (m.wpm > hi) return { ...plain(`${m.wpm} words a minute.`), cue: cue(`under ${hi}.`) };
     return { ...plain(`${m.wpm} words a minute.`), cue: cue(`over ${lo}.`) };
   }
 
-  if (p.trait === "range") {
+  if (trait === "range") {
     const units = transcriptPieces(p.transcript ?? "", p.words, m.fillers).filter(
       (u): u is TranscriptUnit => u.kind === "word"
     );
@@ -224,7 +243,7 @@ export function glanceLine(p: {
       const word = `“${first.display}”`;
       const said =
         first.start !== null
-          ? withMoment(`${word} ${top.times} times, first `, windowAt(first.start, FILLER_LEAD_S, first.start + FILLER_TAIL_S, `Play %, ${word}`), ".")
+          ? withMoment(`${word} ${top.times} times, first `, windowAt(first.start, FILLER_LEAD_S, first.start + FILLER_TAIL_S, `Play %, ${word}`), "")
           : plain(`${word} ${top.times} times.`);
       return { ...said, cue: cue(`${word} once.`) };
     }
@@ -253,22 +272,81 @@ export function glanceLine(p: {
   const moment = windowAt(t, FILLER_LEAD_S, t + FILLER_TAIL_S, label);
   const target = n === 1 ? "none." : `under ${n}.`;
   if (p.capped) {
-    /* The hero is the count: the line says where. */
-    const said = n === 1 ? withMoment("At ", moment, ".") : withMoment("The first at ", moment, ".");
+    /* The hero is the count: the line says where, and names it. */
+    const said = n === 1 ? withMoment("The filler at ", moment, "") : withMoment("First filler at ", moment, "");
     return { ...said, cue: cue(target) };
   }
-  const said = n === 1 ? withMoment("1 filler, at ", moment, ".") : withMoment(`${n} fillers, first at `, moment, ".");
+  /* "first ▶0:02", not "first at": the delta's "since last time" is paid
+     for here (the #427 review), and the chip ends the sentence. */
+  const said = n === 1 ? withMoment("1 filler, at ", moment, "") : withMoment(`${n} fillers, first `, moment, "");
   return { ...said, cue: cue(target) };
 }
 
-/**
- * A game's line (the ladder's first sentence, "1 of 2 counted."): the
- * round card already holds the round's number and moment, so Demos says
- * where the ladder stands, and nothing else.
- */
+/** The ladder line's first sentence ("1 of 2 counted."). */
 export function ladderLine(line: string): string {
   const first = line.split(/(?<=[.!?])\s+(?=\S)/)[0] ?? line;
   return first.trim();
+}
+
+/**
+ * A game's cue (the #427 review): what the ladder's count means, its
+ * second sentence, with the noun it left to the first ("One more round
+ * opens level 2.", "Another day's round opens level 3."), in six words or
+ * fewer so it fits the glance beside the round's line. "1 of 2 counted."
+ * on its own said nothing. Null once a game is mastered, where the line
+ * is one sentence.
+ */
+export function ladderCue(line: string): string | null {
+  const rest = line
+    .split(/(?<=[.!?])\s+(?=\S)/)
+    .slice(1)
+    .join(" ")
+    .trim();
+  if (!rest) return null;
+  return rest
+    .replace(/^One more on another day opens/, "Another day's round opens")
+    .replace(/^One more(?= opens)/, "One more round")
+    .replace(/^Two on two different days open/, "Two days' rounds open");
+}
+
+/**
+ * A game round's line on the glance (the #427 review): the round's own
+ * result in Demos's words, with its moment, the same shape as every
+ * other glance. The round card moved behind the door, so the line
+ * carries what it said: how long you held after he cut in, and where.
+ * Every number is the round's (lib/round.ts) or a time in the take.
+ */
+export function roundGlance(p: { round: GameRound; reveal: RoundReveal; cue: string | null }): GlanceLine {
+  const { round, reveal, cue } = p;
+  if (round.game === "qa") {
+    const f = decidingCutIn(round);
+    if (f && f.at !== null && reveal.number !== null) {
+      const end = f.gapTo ?? f.at + (f.gap ?? 0);
+      const moment = windowAt(f.at, FILLER_LEAD_S, Math.max(end, f.at) + FILLER_TAIL_S, "Play %, where I cut in");
+      /* "after my cut-in ▶0:17": the chip is the cut-in's time, and six
+         words leave the ladder's cue its room under the budget. */
+      const said =
+        f.verdict === "through"
+          ? withMoment("You talked through my cut-in ", moment, "")
+          : f.verdict === "held"
+            ? withMoment(`Held ${reveal.number} after my cut-in `, moment, "")
+            : withMoment(`${reveal.number} after my cut-in `, moment, "");
+      return { ...said, cue };
+    }
+    const stopped = round.lastWord ?? round.durationS;
+    return { ...plain(`You stopped at ${clock(stopped)}, before I cut in.`), cue };
+  }
+  if (reveal.note === "the clock stopped you" && reveal.number !== null) {
+    return { ...plain(`The clock stopped you at ${reveal.number}.`), cue };
+  }
+  if (round.game === "rush") {
+    if (reveal.note === "to spare" && reveal.number !== null) return { ...plain(`${reveal.number} to spare.`), cue };
+    if (round.lastWord !== null) return { ...plain(`Last word at ${clockTenth(round.lastWord)}.`), cue };
+    return { ...plain(reveal.line ?? `Stopped at ${tenths(round.durationS)}.`), cue };
+  }
+  /* Interview: where the last word fell against the window. */
+  if (reveal.number !== null && reveal.note) return { ...plain(`Last word at ${reveal.number}, ${reveal.note}.`), cue };
+  return { ...plain(reveal.line ?? `Stopped at ${tenths(round.durationS)}.`), cue };
 }
 
 /** The earned slot under the delta: one line, sage when earned, ink when a second score. */
@@ -305,17 +383,121 @@ export function earnedLine(p: {
   const index = p.bests.find((b) => b.headline === "Best Ethos yet");
   if (index) {
     const past = /past your (\d+)/.exec(index.detail)?.[1];
-    return past ? { text: `Best yet, past ${past}`, short: "Best yet", tone: "earned" } : { text: "Best yet", short: null, tone: "earned" };
+    /* "past your 690", as the sheet's record says: "past 690" left a
+       stranger guessing what 690 was (the #427 review). */
+    return past
+      ? { text: `Best yet, past your ${past}`, short: "Best yet", tone: "earned" }
+      : { text: "Best yet", short: null, tone: "earned" };
   }
   const record = TRAIT_RECORD[p.trait];
   if (record && p.bests.some((b) => b.headline === record)) return { text: record, short: null, tone: "earned" };
   if (p.bests.some((b) => b.headline === "Best round yet")) return { text: "Best round yet", short: null, tone: "earned" };
   if (p.presence) {
-    const delta = p.presence.previous !== null ? p.presence.score - p.presence.previous : null;
-    return { text: `Presence ${p.presence.score}`, short: null, tone: "plain", delta: delta === 0 ? null : delta };
+    /* The number alone: a bare "▲ 40" beside it said nothing about what it
+       was against (the #427 review), and "since last video" is the
+       sheet's, where Presence heads its section. */
+    return { text: `Presence ${p.presence.score}`, short: null, tone: "plain" };
   }
   if (typeof p.accuracy === "number") return { text: `Accuracy ${p.accuracy}`, short: null, tone: "plain" };
   return null;
+}
+
+/** What a lesson's ending reads off one practice: a stored row, or the take on screen. */
+export interface PracticeTake {
+  fillers: number;
+  pauses: Pause[];
+  wpm: number;
+  index: number | null;
+}
+
+/**
+ * A practice's count on a lesson's ending, in the lesson's trait: its
+ * fillers, its landed pauses (heldPauseMarks, the glance's one count) or
+ * its words a minute. Restarts and Variety have no count a stored row
+ * keeps, so those lessons count the Index. Null where there is none.
+ */
+export function practiceCount(trait: TraitId, t: PracticeTake): number | null {
+  if (trait === "fillers") return t.fillers;
+  if (trait === "pause") return heldPauseMarks(t.pauses ?? []).landed;
+  if (trait === "pace") return t.wpm;
+  return t.index;
+}
+
+/**
+ * The lesson's three practices, newest take of each (rows oldest first,
+ * as fetchReps returns them), this practice read off the take on screen
+ * so a save still in flight is counted. Null when a practice has no take:
+ * a lesson is done when all of its practices are.
+ */
+export function lessonTakes(p: {
+  lessonId: string;
+  of: number;
+  practice: number;
+  current: PracticeTake;
+  rows: readonly {
+    lesson_id: string | null;
+    filler_count: number;
+    pauses: Pause[] | null;
+    wpm: number;
+    ethos_index: number | null;
+  }[];
+}): PracticeTake[] | null {
+  const out: PracticeTake[] = [];
+  for (let n = 1; n <= p.of; n++) {
+    if (n === p.practice) {
+      out.push(p.current);
+      continue;
+    }
+    const id = `lesson:${p.lessonId}:${n}`;
+    const row = [...p.rows].reverse().find((r) => r.lesson_id === id);
+    if (!row) return null;
+    out.push({ fillers: row.filler_count, pauses: row.pauses ?? [], wpm: row.wpm, index: row.ethos_index });
+  }
+  return out;
+}
+
+const LESSON_UNIT: Partial<Record<TraitId, string>> = {
+  fillers: "fillers",
+  pause: "landed pauses",
+  pace: "words a minute",
+};
+
+/**
+ * The lesson's ending in the earned slot (the #427 review: practice 3's
+ * glance looked exactly like practice 1's): one sage line built from the
+ * three practices' own counts, "Lesson done: 4, 4, 3 fillers". Earned
+ * and measured. Over budget it keeps the numbers and drops the unit.
+ */
+export function lessonDone(trait: TraitId, takes: readonly PracticeTake[] | null): EarnedLine | null {
+  if (!takes || takes.length === 0) return null;
+  const counts = takes.map((t) => practiceCount(trait, t));
+  if (counts.some((c) => c === null)) return null;
+  const head = `Lesson done: ${counts.join(", ")}`;
+  const unit = LESSON_UNIT[trait];
+  return unit ? { text: `${head} ${unit}`, short: head, tone: "earned" } : { text: head, short: null, tone: "earned" };
+}
+
+/**
+ * The one quiet line under Retake on a lesson's ending: the streak's
+ * next day, from the count Tomorrow and the closing note read, so the
+ * ending points at coming back without a section.
+ */
+export function comeBackLine(streak: number): string | null {
+  return streak >= 1 ? `Day ${streak + 1} tomorrow` : null;
+}
+
+/**
+ * Whether the take plays on when the door's sheet closes (the #427
+ * review): only the glance's own moment, started on the glance, which
+ * its chip can stop. Anything started in the sheet (Hear it back, a
+ * word's "Said at", a Pause row's moment) stops with it, since nothing on
+ * the glance could.
+ */
+export function playsOnAfterSheet(
+  span: { from: number; until: number } | null,
+  moment: Pick<GlanceMoment, "from" | "until"> | null
+): boolean {
+  return !!span && !!moment && span.from === moment.from && span.until === moment.until;
 }
 
 /**
@@ -338,18 +520,18 @@ export function fitGlance(
 }
 
 /**
- * What is behind the door, in order (DECISIONS #427): "The whole
- * recording", one flat scroll. Records first when a best fell, the
- * boss's accuracy and the round's note, then the evidence (Hear it back,
- * or every filler where nothing can play), the coach's two under one
- * caption (or the capped line), every dimension with the practice's row
- * open, Presence, the transcript, the closing note as its last word, and
- * a game's ladder.
+ * What is behind the door, in order (DECISIONS #427, its review): "Every
+ * number", one flat scroll. A game's round card first (moved off the
+ * glance), then the coach's two under one head, the thing worth reading
+ * (or the capped line), the records when a best fell, the boss's
+ * accuracy, the evidence (Hear it back, or every filler where nothing
+ * can play), every dimension with the practice's row open, Presence, the
+ * transcript, the closing note as its last word, and a game's ladder.
  */
 export type SheetSection =
+  | "round"
   | "records"
   | "accuracy"
-  | "round-note"
   | "hear"
   | "fillers"
   | "coach"
@@ -363,7 +545,7 @@ export type SheetSection =
 export function sheetSections(p: {
   bests: number;
   accuracy: boolean;
-  roundNote: boolean;
+  round: boolean;
   audio: boolean;
   fillers: number;
   coach: boolean;
@@ -373,13 +555,13 @@ export function sheetSections(p: {
   ladder: boolean;
 }): SheetSection[] {
   const out: SheetSection[] = [];
-  if (p.bests > 0) out.push("records");
-  if (p.accuracy) out.push("accuracy");
-  if (p.roundNote) out.push("round-note");
-  if (p.audio) out.push("hear");
-  else if (p.fillers > 0) out.push("fillers");
+  if (p.round) out.push("round");
   if (p.coach) out.push("coach");
   else if (p.capped) out.push("capped");
+  if (p.bests > 0) out.push("records");
+  if (p.accuracy) out.push("accuracy");
+  if (p.audio) out.push("hear");
+  else if (p.fillers > 0) out.push("fillers");
   out.push("dimensions");
   if (p.presence) out.push("presence");
   out.push("words");

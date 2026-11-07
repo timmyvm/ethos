@@ -111,7 +111,7 @@ async function shootTheme(theme) {
       await page.waitForSelector("main .arrive-x", { timeout: 20000 });
       await page.waitForSelector('[role="dialog"]', { state: "detached", timeout: 8000 }).catch(() => {});
       await sleep(1200);
-      /* #427: the transcript is in the glance's door, "The whole recording". */
+      /* #427: the transcript is in the glance's door, "Every number". */
       await page.locator("main [data-glance-door]").click();
       await sleep(900);
       await page.waitForSelector(":is(main, [role=dialog]) h2.section-head:has-text('What you said')", { timeout: 8000 });

@@ -6,11 +6,18 @@
       "size": "390x844-light",
       "beats": [
         {
-          "words": 23,
-          "wordsNoTranscript": 23,
-          "wordsNoRound": 23,
-          "numbers": 5,
-          "text": "The cold open Not enough to score. 12 words. Give it 60 to 90 seconds. The whole recording Practice 2 of 3 Retake",
+          "maxBand": 60,
+          "band": [
+            603,
+            663
+          ],
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 25,
+          "wordsNoTranscript": 25,
+          "wordsNoRound": 25,
+          "numbers": 6,
+          "text": "The cold open 1 star for showing up Not scored. 12 words. Give it 60 to 90 seconds. Every number Retake Practice 2 of 3",
           "scrollH": 844,
           "innerH": 844,
           "terracotta": 1,
@@ -23,11 +30,15 @@
           "screens": 1
         },
         {
-          "words": 110,
-          "wordsNoTranscript": 99,
-          "wordsNoRound": 110,
-          "numbers": 27,
-          "text": "The whole recording Done Hear it back filler 0:00 um 0:02 The measured dimensions Pausing 108/150 Fillers 55/100 All fillers / min: 6.7 (1 in all). None scores 100; 8 a minute scores 0. Most of them were “um”. ↳ Replace it with silence, not a different word. Restarts 33/50 Pace 93/100 Variety 66/100 5 dimensions, added up 355/500 The coach didn't run this time. These 5 measured dimensions cover 500 of the 1000; without the judged ones there is no Ethos Index. What you said 12 words filler vague So the thing about habits is, um, they compound. You do 6 days running You showed up again. Practice 2 of 3",
+          "maxBand": 0,
+          "band": null,
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 98,
+          "wordsNoTranscript": 87,
+          "wordsNoRound": 98,
+          "numbers": 24,
+          "text": "Every number Done Hear it back filler 0:00 um 0:02 The measured dimensions Length 9s, target 60 to 90s Pausing 108/150 Fillers 55/100 1 in all, most were “um”. ↳ Replace it with silence, not a different word. Restarts 33/50 Pace 93/100 Variety 66/100 5 dimensions, added up 355/500 The coach didn't run this time. These 5 measured dimensions cover 500 of the 1000; without the judged ones there is no Ethos Index. What you said 12 words filler vague So the thing about habits is, um, they compound. You do 6 days running You showed up again. Retake",
           "scrollH": 844,
           "innerH": 844,
           "terracotta": 1,
@@ -40,11 +51,18 @@
           "screens": 2
         },
         {
-          "words": 34,
-          "wordsNoTranscript": 34,
-          "wordsNoRound": 34,
+          "maxBand": 55,
+          "band": [
+            557,
+            611
+          ],
+          "doorClear": null,
+          "backDuringFelt": false,
+          "words": 36,
+          "wordsNoTranscript": 36,
+          "wordsNoRound": 36,
           "numbers": 1,
-          "text": "Lesson The cold open Explain why the sky changes colour at sunset The cold open Slow the run-up Let the gap sit One comparison Voice Video Record This one keeps a 6-day streak alive",
+          "text": "Lesson The cold open The most overrated piece of advice you've been given The cold open Close your mouth Slow the run-up Your side, sentence one Voice Video Record This one keeps a 6-day streak alive",
           "scrollH": 844,
           "innerH": 844,
           "terracotta": 1,
@@ -63,11 +81,18 @@
       "size": "390x844-dark",
       "beats": [
         {
-          "words": 23,
-          "wordsNoTranscript": 23,
-          "wordsNoRound": 23,
-          "numbers": 5,
-          "text": "The cold open Not enough to score. 12 words. Give it 60 to 90 seconds. The whole recording Practice 2 of 3 Retake",
+          "maxBand": 60,
+          "band": [
+            603,
+            663
+          ],
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 25,
+          "wordsNoTranscript": 25,
+          "wordsNoRound": 25,
+          "numbers": 6,
+          "text": "The cold open 1 star for showing up Not scored. 12 words. Give it 60 to 90 seconds. Every number Retake Practice 2 of 3",
           "scrollH": 844,
           "innerH": 844,
           "terracotta": 1,
@@ -80,11 +105,15 @@
           "screens": 1
         },
         {
-          "words": 110,
-          "wordsNoTranscript": 99,
-          "wordsNoRound": 110,
-          "numbers": 27,
-          "text": "The whole recording Done Hear it back filler 0:00 um 0:02 The measured dimensions Pausing 108/150 Fillers 55/100 All fillers / min: 6.7 (1 in all). None scores 100; 8 a minute scores 0. Most of them were “um”. ↳ Replace it with silence, not a different word. Restarts 33/50 Pace 93/100 Variety 66/100 5 dimensions, added up 355/500 The coach didn't run this time. These 5 measured dimensions cover 500 of the 1000; without the judged ones there is no Ethos Index. What you said 12 words filler vague So the thing about habits is, um, they compound. You do 6 days running You showed up again. Practice 2 of 3",
+          "maxBand": 0,
+          "band": null,
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 98,
+          "wordsNoTranscript": 87,
+          "wordsNoRound": 98,
+          "numbers": 24,
+          "text": "Every number Done Hear it back filler 0:00 um 0:02 The measured dimensions Length 9s, target 60 to 90s Pausing 108/150 Fillers 55/100 1 in all, most were “um”. ↳ Replace it with silence, not a different word. Restarts 33/50 Pace 93/100 Variety 66/100 5 dimensions, added up 355/500 The coach didn't run this time. These 5 measured dimensions cover 500 of the 1000; without the judged ones there is no Ethos Index. What you said 12 words filler vague So the thing about habits is, um, they compound. You do 6 days running You showed up again. Retake",
           "scrollH": 844,
           "innerH": 844,
           "terracotta": 1,
@@ -97,11 +126,18 @@
           "screens": 2
         },
         {
-          "words": 34,
-          "wordsNoTranscript": 34,
-          "wordsNoRound": 34,
+          "maxBand": 55,
+          "band": [
+            557,
+            611
+          ],
+          "doorClear": null,
+          "backDuringFelt": false,
+          "words": 36,
+          "wordsNoTranscript": 36,
+          "wordsNoRound": 36,
           "numbers": 1,
-          "text": "Lesson The cold open Explain why the sky changes colour at sunset The cold open Slow the run-up Let the gap sit One comparison Voice Video Record This one keeps a 6-day streak alive",
+          "text": "Lesson The cold open The most overrated piece of advice you've been given The cold open Close your mouth Slow the run-up Your side, sentence one Voice Video Record This one keeps a 6-day streak alive",
           "scrollH": 844,
           "innerH": 844,
           "terracotta": 1,
@@ -114,17 +150,24 @@
           "screens": 1
         }
       ],
-      "tapLiveMs": 7
+      "tapLiveMs": 5
     },
     {
       "size": "375x667-light",
       "beats": [
         {
-          "words": 23,
-          "wordsNoTranscript": 23,
-          "wordsNoRound": 23,
-          "numbers": 5,
-          "text": "The cold open Not enough to score. 12 words. Give it 60 to 90 seconds. The whole recording Practice 2 of 3 Retake",
+          "maxBand": 58,
+          "band": [
+            428,
+            486
+          ],
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 25,
+          "wordsNoTranscript": 25,
+          "wordsNoRound": 25,
+          "numbers": 6,
+          "text": "The cold open 1 star for showing up Not scored. 12 words. Give it 60 to 90 seconds. Every number Retake Practice 2 of 3",
           "scrollH": 667,
           "innerH": 667,
           "terracotta": 1,
@@ -137,11 +180,15 @@
           "screens": 1
         },
         {
-          "words": 110,
-          "wordsNoTranscript": 99,
-          "wordsNoRound": 110,
-          "numbers": 27,
-          "text": "The whole recording Done Hear it back filler 0:00 um 0:02 The measured dimensions Pausing 108/150 Fillers 55/100 All fillers / min: 6.7 (1 in all). None scores 100; 8 a minute scores 0. Most of them were “um”. ↳ Replace it with silence, not a different word. Restarts 33/50 Pace 93/100 Variety 66/100 5 dimensions, added up 355/500 The coach didn't run this time. These 5 measured dimensions cover 500 of the 1000; without the judged ones there is no Ethos Index. What you said 12 words filler vague So the thing about habits is, um, they compound. You do 6 days running You showed up again. Practice 2 of 3",
+          "maxBand": 0,
+          "band": null,
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 98,
+          "wordsNoTranscript": 87,
+          "wordsNoRound": 98,
+          "numbers": 24,
+          "text": "Every number Done Hear it back filler 0:00 um 0:02 The measured dimensions Length 9s, target 60 to 90s Pausing 108/150 Fillers 55/100 1 in all, most were “um”. ↳ Replace it with silence, not a different word. Restarts 33/50 Pace 93/100 Variety 66/100 5 dimensions, added up 355/500 The coach didn't run this time. These 5 measured dimensions cover 500 of the 1000; without the judged ones there is no Ethos Index. What you said 12 words filler vague So the thing about habits is, um, they compound. You do 6 days running You showed up again. Retake",
           "scrollH": 667,
           "innerH": 667,
           "terracotta": 1,
@@ -154,12 +201,19 @@
           "screens": 2
         },
         {
-          "words": 34,
-          "wordsNoTranscript": 34,
-          "wordsNoRound": 34,
+          "maxBand": 49,
+          "band": [
+            204,
+            253
+          ],
+          "doorClear": null,
+          "backDuringFelt": false,
+          "words": 36,
+          "wordsNoTranscript": 36,
+          "wordsNoRound": 36,
           "numbers": 1,
-          "text": "Lesson The cold open Explain why the sky changes colour at sunset The cold open Slow the run-up Let the gap sit One comparison Voice Video Record This one keeps a 6-day streak alive",
-          "scrollH": 667,
+          "text": "Lesson The cold open The most overrated piece of advice you've been given The cold open Close your mouth Slow the run-up Your side, sentence one Voice Video Record This one keeps a 6-day streak alive",
+          "scrollH": 668,
           "innerH": 667,
           "terracotta": 1,
           "chips": 0,
@@ -171,7 +225,7 @@
           "screens": 1
         }
       ],
-      "tapLiveMs": 5
+      "tapLiveMs": 4
     }
   ]
 }

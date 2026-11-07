@@ -4,16 +4,24 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Overlay, useOverlayClose } from "@/components/ui/Overlay";
 import { usePaywallHeadStays } from "@/lib/paywall-head";
 
-/** The sheet's name: its head, its dialog label, and the door's. */
-export const WHOLE_RECORDING = "The whole recording";
+/**
+ * The sheet's name: its head, its dialog label, and the door's visible
+ * text and accessible name, one fixed string (tapOf files every open
+ * under it). "The whole recording" read as the audio, which is one chip
+ * away on the glance (the #427 review); the door is named for what it
+ * holds (COPY-RULES): every number the take has, the coach's two among
+ * them.
+ */
+export const SHEET_NAME = "Every number";
 
 /**
- * "The whole recording" (DECISIONS #427): everything a take measured
- * that is not on the glance, in one flat scroll, opened in place from
- * the glance's door. Records, Hear it back, the coach's two, every
- * dimension with the practice's row open, Presence, the transcript, and
- * the closing note as its last word. Pulled, never pushed: the glance is
- * the finished debrief, and this is for whoever wants the rest.
+ * "Every number" (DECISIONS #427): everything a take measured that is
+ * not on the glance, in one flat scroll, opened in place from the
+ * glance's door. A game's round, the coach's two, records, Hear it back,
+ * every dimension with the practice's row open, Presence, the
+ * transcript, and the closing note as its last word. Pulled, never
+ * pushed: the glance is the finished debrief, and this is for whoever
+ * wants the rest.
  *
  * The app's sheet (components/ui/Overlay.tsx): it rises on the sheet
  * spring, a finger pulls it down from anywhere not mid-scroll, Escape and
@@ -36,7 +44,7 @@ export function WholeRecording({
   children: ReactNode;
 }) {
   return (
-    <Overlay label={WHOLE_RECORDING} onClose={onClose} className="w-full max-w-[430px]">
+    <Overlay label={SHEET_NAME} onClose={onClose} className="w-full max-w-[430px]">
       <Body onClose={onClose} foot={foot}>
         {children}
       </Body>
@@ -61,7 +69,7 @@ function Body({ onClose, foot, children }: { onClose: () => void; foot: ReactNod
   const title = (
     <div className="flex min-h-11 items-center justify-between gap-3">
       <h2 ref={head} tabIndex={-1} className="detail-head min-w-0 outline-none">
-        {WHOLE_RECORDING}
+        {SHEET_NAME}
       </h2>
       <button
         type="button"

@@ -72,19 +72,26 @@ vi.mock("./supabase-browser", () => {
 import {
   EXISTING_COPY,
   OAUTH_KEY,
+  callbackWelcome,
+  carriedEmail,
   createAccount,
   emailFrom,
+  parseOAuthAttempt,
   readOAuthAttempt,
+  resentLink,
   signIn,
   signInExisting,
   signInWithGoogle,
   withEmail,
 } from "./auth";
+import { LINK_CARRY_KEY, LINK_CARRY_TTL_MS, carryKeptForLink, forgetTesterHint } from "./tester-client";
 
 const EMAIL = "tim@example.com";
 const PASSWORD = "the right password";
 const NEXT = "/you?paywall=1";
 const BACK = `https://speakethos.com/auth/callback?next=${encodeURIComponent(NEXT)}`;
+/** The link an unconfirmed account gets again lands marked (#426, review). */
+const RESENT_BACK = `https://speakethos.com/auth/callback?resent=1&next=${encodeURIComponent(NEXT)}`;
 const now = "2026-11-07T09:00:00.000Z";
 const called = (name: string) => fake.calls.filter((c) => c.call === name);
 
@@ -244,14 +251,15 @@ describe("an account that signed up with this email and never confirmed it", () 
     expect(await createAccount(EMAIL, PASSWORD, NEXT)).toEqual({ ok: true, checkInbox: true, thenSignIn: true, resent: true });
   });
 
-  it("a guest: the sign-in hears email_not_confirmed and the link goes again, to the callback with next", async () => {
+  it("a guest: the sign-in hears email_not_confirmed and the link goes again, to the callback marked, with next", async () => {
     guest();
     fake.signInError = UNCONFIRMED;
     const r = await signInExisting(EMAIL, PASSWORD, NEXT);
     expect(r).toEqual({ ok: true, checkInbox: true, thenSignIn: true, resent: true });
     expect(called("resend")).toEqual([
-      { call: "resend", args: { type: "signup", email: EMAIL, options: { emailRedirectTo: BACK } } },
+      { call: "resend", args: { type: "signup", email: EMAIL, options: { emailRedirectTo: RESENT_BACK } } },
     ]);
+    expect(BACK).not.toBe(RESENT_BACK);
   });
 
   it("a guest whose link went under a minute ago: the inbox, not another wall", async () => {
@@ -367,5 +375,139 @@ describe("the address carried between auth screens", () => {
     expect(emailFrom(`?email=${"a".repeat(250)}%40example.com`)).toBeNull();
     expect(emailFrom("")).toBeNull();
     expect(emailFrom(null)).toBeNull();
+  });
+});
+
+/*
+ * The review of #426 (7 Nov). Three findings, each held here:
+ * 1. A crafted /signup?email= filled a guest's email-only form, whose one
+ *    tap sends the link confirming THIS guest's user to that address.
+ * 2. The link an unconfirmed account got again said the guest's
+ *    recordings came along (they stay on the guest), and lost the
+ *    testing the guest had joined, since the link opens in another tab.
+ * 3. Google from a guest holding recordings, to a Google account that
+ *    has Ethos, signed in without saying the recordings stay behind.
+ */
+describe("a link's address fills a sign-in, never a sign-up (review 1)", () => {
+  const crafted = `?email=${encodeURIComponent("attacker@evil.test")}`;
+
+  it("a sign-up opens empty whatever the link says, with or without next", () => {
+    expect(carriedEmail("signup", crafted)).toBeNull();
+    expect(carriedEmail("signup", `?next=%2Fhistory&email=${encodeURIComponent(EMAIL)}`)).toBeNull();
+  });
+
+  it("a sign-in still opens with the inbox's address, and only a real one", () => {
+    expect(carriedEmail("signin", withEmail("/signin?next=%2Fyou", EMAIL).slice("/signin".length))).toBe(EMAIL);
+    expect(carriedEmail("signin", crafted)).toBe("attacker@evil.test");
+    expect(carriedEmail("signin", "?email=<script>")).toBeNull();
+    expect(carriedEmail("signin", "")).toBeNull();
+  });
+});
+
+describe("the link an unconfirmed account gets again (review 2)", () => {
+  const account = () => {
+    fake.session = { access_token: "tok_account", user: { id: "account", is_anonymous: false } };
+  };
+
+  it("keeps a testing guest's token on this device, not in this tab, and carries nothing yet", async () => {
+    guest();
+    localStorage.setItem("ethos.tester", "1");
+    fake.signInError = UNCONFIRMED;
+    await signInExisting(EMAIL, PASSWORD, NEXT);
+    expect(JSON.parse(localStorage.getItem(LINK_CARRY_KEY) ?? "null")).toMatchObject({ token: "tok_guest" });
+    expect(sessionStorage.length).toBe(0);
+    expect(posts).toEqual([]);
+  });
+
+  it("opened, it carries that testing to the account once, then nothing", async () => {
+    guest();
+    localStorage.setItem("ethos.tester", "1");
+    fake.signInError = UNCONFIRMED;
+    await signInExisting(EMAIL, PASSWORD, NEXT);
+    account();
+    expect(await carryKeptForLink()).toBe(true);
+    expect(posts).toEqual([{ body: { carry: "tok_guest" }, auth: "Bearer tok_account" }]);
+    expect(localStorage.getItem(LINK_CARRY_KEY)).toBeNull();
+    expect(await carryKeptForLink()).toBe(false);
+    expect(posts).toHaveLength(1);
+  });
+
+  it("a link sent under a minute ago keeps it too: that link is the one coming", async () => {
+    guest();
+    localStorage.setItem("ethos.tester", "1");
+    fake.signInError = UNCONFIRMED;
+    fake.resendError = TOO_SOON;
+    await signInExisting(EMAIL, PASSWORD, NEXT);
+    expect(localStorage.getItem(LINK_CARRY_KEY)).not.toBeNull();
+  });
+
+  it("keeps nothing for a guest who is not testing, or a resend that was refused", async () => {
+    guest();
+    fake.signInError = UNCONFIRMED;
+    await signInExisting(EMAIL, PASSWORD, NEXT);
+    expect(localStorage.getItem(LINK_CARRY_KEY)).toBeNull();
+    localStorage.setItem("ethos.tester", "1");
+    fake.resendError = { message: "Email rate limit exceeded", status: 429, code: "over_email_send_rate_limit" };
+    await signInExisting(EMAIL, PASSWORD, NEXT);
+    expect(localStorage.getItem(LINK_CARRY_KEY)).toBeNull();
+  });
+
+  it("carries nothing past the link's own life, and signing out forgets it", async () => {
+    account();
+    const at = Date.parse(now);
+    localStorage.setItem(LINK_CARRY_KEY, JSON.stringify({ token: "tok_guest", at }));
+    expect(await carryKeptForLink(at + LINK_CARRY_TTL_MS + 1)).toBe(false);
+    expect(posts).toEqual([]);
+    localStorage.setItem(LINK_CARRY_KEY, JSON.stringify({ token: "tok_guest", at }));
+    forgetTesterHint();
+    expect(localStorage.getItem(LINK_CARRY_KEY)).toBeNull();
+  });
+
+  it("the callback reads the mark from the link it lands on", () => {
+    expect(resentLink(new URL(RESENT_BACK).search)).toBe(true);
+    expect(resentLink(new URL(BACK).search)).toBe(false);
+    expect(resentLink("")).toBe(false);
+  });
+
+  it("says only that the email is confirmed, never that the guest's recordings came along", () => {
+    expect(callbackWelcome({ email: EMAIL, google: null, resent: true })).toBe(`${EMAIL} is confirmed.`);
+    // Even in the tab a Google sign-up began in: the link is an email link.
+    expect(callbackWelcome({ email: EMAIL, google: { mode: "signup" }, resent: true })).toBe(`${EMAIL} is confirmed.`);
+    // Every other return says what it said before.
+    expect(callbackWelcome({ email: EMAIL, google: null, resent: false })).toBe(
+      `${EMAIL} is confirmed. Everything you've already recorded came with you.`
+    );
+    expect(callbackWelcome({ email: EMAIL, google: { mode: "signup" }, resent: false })).toBe(
+      `Signed in as ${EMAIL}. Everything you've already recorded came with you.`
+    );
+    expect(callbackWelcome({ email: EMAIL, google: { mode: "signin" }, resent: false })).toBe(`Signed in as ${EMAIL}.`);
+    expect(callbackWelcome({ email: null, google: { mode: "signin" }, resent: false })).toBe("Signed in with Google.");
+    expect(callbackWelcome({ email: null, google: null, resent: true })).toBe("Your email is confirmed.");
+  });
+});
+
+describe("Google from a guest holding recordings (review 3)", () => {
+  it("remembers what the guest holds on the sign-up's attempt", async () => {
+    guest();
+    expect(await signInWithGoogle("signup", NEXT, undefined, 22)).toEqual({ ok: true });
+    expect(readOAuthAttempt()).toMatchObject({ from: "/signup", mode: "signup", recordings: 22 });
+    expect(called("linkIdentity")).toHaveLength(1);
+  });
+
+  it("a guest holding none, and every sign-in, remember nothing of it", async () => {
+    guest();
+    await signInWithGoogle("signup", NEXT);
+    expect(readOAuthAttempt()?.recordings).toBeUndefined();
+    await signInWithGoogle("signin", NEXT, "/signup", 22);
+    expect(readOAuthAttempt()).toMatchObject({ from: "/signup", mode: "signin" });
+    expect(readOAuthAttempt()?.recordings).toBeUndefined();
+  });
+
+  it("reads back only a whole positive count", () => {
+    const t = Date.now();
+    const raw = (recordings: unknown) => JSON.stringify({ from: "/signup", mode: "signup", at: t, recordings });
+    expect(parseOAuthAttempt(raw(22), t)?.recordings).toBe(22);
+    for (const bad of [0, -3, 2.5, "22", null]) expect(parseOAuthAttempt(raw(bad), t)?.recordings).toBeUndefined();
+    expect(parseOAuthAttempt(JSON.stringify({ from: "/signup", mode: "signin", at: t, recordings: 22 }), t)?.recordings).toBeUndefined();
   });
 });

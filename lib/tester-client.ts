@@ -65,6 +65,8 @@ export function forgetTesterHint(): void {
   try {
     localStorage.removeItem(SENT_KEY);
     localStorage.removeItem(LIT_KEY);
+    // A guest's testing kept for a link is never someone else's to carry.
+    localStorage.removeItem(LINK_CARRY_KEY);
   } catch {}
 }
 
@@ -424,6 +426,48 @@ export async function carryStashed(): Promise<boolean> {
   try {
     token = sessionStorage.getItem(CARRY_KEY);
     sessionStorage.removeItem(CARRY_KEY);
+  } catch {}
+  return carryTesting(token);
+}
+
+/**
+ * localStorage: the guest's token for a confirmation link that will make
+ * this device an account that already existed and never confirmed
+ * (#426, review). The link opens in whatever tab the mail app picks, so
+ * this tab's sessionStorage is no place for it.
+ */
+export const LINK_CARRY_KEY = "ethos.tester.carry.link";
+/** As long as GoTrue's confirmation link lives. Past it, nothing is carried. */
+export const LINK_CARRY_TTL_MS = 24 * 3600_000;
+
+/** The link went: the guest's token waits for it on this device, or any old one goes. */
+export function keepCarryForLink(token: string | null, now: number = Date.now()): void {
+  try {
+    if (token) localStorage.setItem(LINK_CARRY_KEY, JSON.stringify({ token, at: now }));
+    else localStorage.removeItem(LINK_CARRY_KEY);
+  } catch {}
+}
+
+/**
+ * Back from that link signed in (/auth/callback?resent=1): carried once,
+ * then gone. Only a token kept inside the link's life; the server takes
+ * it only while it is still the guest's valid session.
+ */
+export async function carryKeptForLink(now: number = Date.now()): Promise<boolean> {
+  let token: string | null = null;
+  try {
+    const raw = localStorage.getItem(LINK_CARRY_KEY);
+    localStorage.removeItem(LINK_CARRY_KEY);
+    const kept = raw ? (JSON.parse(raw) as { token?: unknown; at?: unknown }) : null;
+    if (
+      kept &&
+      typeof kept.token === "string" &&
+      typeof kept.at === "number" &&
+      now - kept.at <= LINK_CARRY_TTL_MS &&
+      kept.at <= now + 60_000
+    ) {
+      token = kept.token;
+    }
   } catch {}
   return carryTesting(token);
 }

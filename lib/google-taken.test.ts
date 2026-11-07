@@ -1,6 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { callbackProblem } from "./auth";
-import { SWITCHED_KEY, TAKEN_KEY, googleTakenBootScript, onBackWithoutFinishing, shouldSwitch } from "./google-taken";
+import {
+  SWITCHED_KEY,
+  TAKEN_KEY,
+  googleTakenBootScript,
+  onBackWithoutFinishing,
+  shouldSwitch,
+  takenScreenHref,
+  warnsFirst,
+} from "./google-taken";
 
 function boot(href: string) {
   const url = new URL(href);
@@ -48,6 +56,32 @@ describe("Continue with Google, with an account that already has Ethos (#414)", 
     expect(shouldSwitch(true, null, null)).toBe(false);
     expect(shouldSwitch(false, signup, null)).toBe(false);
     expect(SWITCHED_KEY).not.toBe(TAKEN_KEY);
+  });
+
+  /*
+   * #426's review: a pre-#410 guest's recordings stay on the guest when
+   * it signs in, and the switch did it without a word. A sign-up begun
+   * by a guest holding recordings waits on the taken screen instead,
+   * which says what stays before the sign-in.
+   */
+  it("waits for a guest holding recordings, on the taken screen, instead of signing in", () => {
+    const holding = { ...signup, recordings: 22 };
+    expect(warnsFirst(true, holding)).toBe(true);
+    expect(shouldSwitch(true, holding, null)).toBe(false);
+    // Nothing held, a sign-in, or no error: as before.
+    expect(warnsFirst(true, signup)).toBe(false);
+    expect(warnsFirst(true, { ...holding, mode: "signin" })).toBe(false);
+    expect(warnsFirst(false, holding)).toBe(false);
+    expect(warnsFirst(true, null)).toBe(false);
+  });
+
+  it("sends a return that landed elsewhere to that screen, with next", () => {
+    const href = takenScreenHref("/history");
+    const url = new URL(href, "https://speakethos.com");
+    expect(url.pathname).toBe("/auth/callback");
+    expect(url.searchParams.get("next")).toBe("/history");
+    expect(callbackProblem(url.href).kind).toBe("taken");
+    expect(new URL(takenScreenHref(null), "https://speakethos.com").search).toBe("");
   });
 });
 

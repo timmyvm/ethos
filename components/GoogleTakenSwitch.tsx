@@ -8,6 +8,8 @@ import {
   markGoogleSwitching,
   onBackWithoutFinishing,
   shouldSwitch,
+  takenScreenHref,
+  warnsFirst,
 } from "@/lib/google-taken";
 import { nextFrom } from "@/lib/use-paywall-return";
 
@@ -30,6 +32,19 @@ export function GoogleTakenSwitch() {
     } catch {}
     if (!taken) taken = callbackProblem(window.location.href).kind === "taken";
     const attempt = readOAuthAttempt();
+    /* A guest holding recordings reads what a sign-in leaves before it
+       signs in: the callback's taken screen says it (#426, review). A
+       return that landed anywhere else is taken there, the account gate
+       held while it goes. */
+    if (warnsFirst(taken, attempt)) {
+      if (window.location.pathname !== "/auth/callback") {
+        markGoogleSwitching(true);
+        window.location.replace(
+          takenScreenHref(nextFrom(window.location.search) ?? nextFrom(attempt!.from))
+        );
+      }
+      return;
+    }
     if (!shouldSwitch(taken, attempt, switchedAt)) return;
     try {
       sessionStorage.setItem(SWITCHED_KEY, String(attempt!.at));

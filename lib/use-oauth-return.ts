@@ -24,7 +24,9 @@ export function useGoogleSignIn(
   /** The page to come back to once signed in (lib/auth.ts `withNext`). */
   next: string | null = null,
   /** Where the attempt began, when not on this page (lib/auth.ts `signInWithGoogle`). */
-  from?: string
+  from?: string,
+  /** The recordings a guest's sign-up holds (lib/auth.ts `signInWithGoogle`). */
+  recordings?: number
 ) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +55,7 @@ export function useGoogleSignIn(
   const start = useCallback(async () => {
     setError(null);
     setPending(true);
-    const result = await signInWithGoogle(mode, next, from).catch(() => ({
+    const result = await signInWithGoogle(mode, next, from, recordings).catch(() => ({
       ok: false,
       error: undefined,
     }));
@@ -63,7 +65,7 @@ export function useGoogleSignIn(
       setPending(false);
       setError(result.error ?? "Google didn't answer. Try again.");
     }
-  }, [mode, next, from]);
+  }, [mode, next, from, recordings]);
 
   return { pending, error, start };
 }

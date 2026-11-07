@@ -26,7 +26,33 @@ export function shouldSwitch(
   switchedAt: string | null
 ): boolean {
   if (!taken || !attempt || attempt.mode !== "signup") return false;
+  // A guest holding recordings hears what a sign-in leaves first (`warnsFirst`).
+  if (warnsFirst(taken, attempt)) return false;
   return switchedAt !== String(attempt.at);
+}
+
+/**
+ * A sign-up by a guest holding recordings (a pre-#410 guest) met a
+ * Google account with Ethos (#426, review). Signing in to it leaves the
+ * recordings on the guest, as every sign-in does (#414), and the email
+ * path says so before its sign-in; so this one is not switched on its
+ * own. The callback's taken screen says what stays, with Google's
+ * sign-in and the email form that keeps them.
+ */
+export function warnsFirst(taken: boolean, attempt: OAuthAttempt | null): boolean {
+  return taken && attempt?.mode === "signup" && (attempt.recordings ?? 0) > 0;
+}
+
+/**
+ * The callback's taken screen, for a return that landed anywhere else
+ * (Supabase's Site URL when it drops the redirect): the same error in
+ * the fragment, and the page to go on to in `next`, which the callback
+ * reads back through `nextFrom` as it reads any. Type-only imports here:
+ * the layout inlines this module's boot script on the server.
+ */
+export function takenScreenHref(next: string | null | undefined): string {
+  const query = next ? `?next=${encodeURIComponent(next)}` : "";
+  return `/auth/callback${query}#error=server_error&error_code=identity_already_exists&error_description=Identity+is+already+linked+to+another+user`;
 }
 
 /** The callback's own reading of the URL, narrowed to this one case. */

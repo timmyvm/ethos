@@ -26,7 +26,7 @@
 
 import { rememberEmailAsked } from "./account-gate";
 import { supabaseBrowser } from "./supabase-browser";
-import { carryTesting, stashTesterCarry, testerCarryToken } from "./tester-client";
+import { carryTesting, keepCarryForLink, stashTesterCarry, testerCarryToken } from "./tester-client";
 import { safeNextPath } from "./use-paywall-return";
 
 /** Where confirmation and reset links come back to. */
@@ -73,6 +73,68 @@ export function emailFrom(search: string | null | undefined): string | null {
   }
   e = e?.trim() ?? "";
   return e && !emailProblem(e) && e.length <= 254 ? e : null;
+}
+
+/**
+ * The address an auth form opens with: sign-in's only (#426, review).
+ * A sign-up never takes one from its link. A guest's sign-up asks for
+ * the email alone, and its one tap sends the link that confirms THIS
+ * guest's user to that address, so whoever opens it sets the password
+ * and owns everything the guest recorded: a crafted /signup?email= would
+ * hand the guest to the address in it. Nothing in the app sends a
+ * sign-up an address; the inbox's Sign in does, and Forgot? fills
+ * /auth/forgot, whose mail goes only to that address's owner.
+ */
+export function carriedEmail(
+  mode: "signup" | "signin",
+  search: string | null | undefined
+): string | null {
+  return mode === "signin" ? emailFrom(search) : null;
+}
+
+/**
+ * Where the link an unconfirmed account gets again lands (#426, review):
+ * the callback, marked, so it says only that the email is confirmed (the
+ * guest's recordings stay on the guest, as every sign-in leaves them)
+ * and carries the testing the guest kept for it (`carryKeptForLink`).
+ */
+export const RESENT_LANDING = "/auth/callback?resent=1";
+
+/** True when the callback was opened from that resent link. */
+export function resentLink(search: string | null | undefined): boolean {
+  try {
+    return new URLSearchParams(search ?? "").get("resent") === "1";
+  } catch {
+    return false;
+  }
+}
+
+const CAME_WITH_YOU = "Everything you've already recorded came with you.";
+
+/**
+ * What /auth/callback says once signed in, under "You're in". Only what
+ * happened: a Google sign-up linked to the guest took its recordings
+ * with it, and a sign-up's own confirmation keeps the line it always
+ * had; a sign-in, the switch's included (#414), and the link an account
+ * that never confirmed got again (#426) leave the guest's recordings on
+ * the guest, so they say nothing of them.
+ */
+export function callbackWelcome({
+  email,
+  google,
+  resent,
+}: {
+  email: string | null;
+  /** The Google attempt this return answers, or null for an email link. */
+  google: { mode: "signup" | "signin" } | null;
+  resent: boolean;
+}): string {
+  if (google && !resent) {
+    const who = email ? `Signed in as ${email}.` : "Signed in with Google.";
+    return google.mode === "signup" ? `${who} ${CAME_WITH_YOU}` : who;
+  }
+  const confirmed = email ? `${email} is confirmed.` : "Your email is confirmed.";
+  return resent ? confirmed : `${confirmed} ${CAME_WITH_YOU}`;
 }
 
 export interface AuthResult {
@@ -390,16 +452,26 @@ export async function signInExisting(
     return { ok: false, existing: true, error: EXISTING_COPY.mismatch, field: "password" };
   }
   if (notConfirmed(error)) {
+    /*
+     * The link makes this device that account when it is opened, most
+     * often in a new tab from the mail app, where this tab's session and
+     * sessionStorage are not: testing joined on the guest waits for it in
+     * localStorage, and the link lands marked, so the callback carries
+     * it and never says the guest's recordings came along (#426, review).
+     */
+    const carry = await testerCarryToken();
     const sent = await db.auth.resend({
       type: "signup",
       email: email.trim(),
-      options: { emailRedirectTo: `${siteUrl()}${withNext("/auth/callback", next)}` },
+      options: { emailRedirectTo: `${siteUrl()}${withNext(RESENT_LANDING, next)}` },
     });
     if (!sent.error || linkJustSent(sent.error)) {
+      keepCarryForLink(carry);
       return { ok: true, checkInbox: true, thenSignIn: true, resent: true };
     }
     if (emailTimedOut(sent.error.message)) {
       console.error("auth: confirmation resend timed out:", sent.error.message);
+      keepCarryForLink(carry);
       return { ok: true, checkInbox: true, thenSignIn: true, resent: true, note: SLOW_EMAIL_NOTE };
     }
     return { ok: false, existing: true, error: humanise(sent.error.message) };
@@ -446,7 +518,13 @@ export async function signInWithGoogle(
    * auth server turned back (#414) signs in from /auth/callback, and its
    * attempt still began where the person tapped Google (#426).
    */
-  from?: string
+  from?: string,
+  /**
+   * The recordings this guest holds (the sign-up form's tile). A sign-up
+   * that meets a Google account with Ethos then says what signing in
+   * leaves before it signs in (#426, review; lib/google-taken.ts).
+   */
+  recordings?: number
 ): Promise<AuthResult> {
   const db = supabaseBrowser();
   if (!db) return { ok: false, error: "Accounts aren't configured yet." };
@@ -456,7 +534,7 @@ export async function signInWithGoogle(
   // call because a successful call is already navigating; every failure
   // below takes it back, so a call that never left leaves no attempt
   // behind to mislabel a later /auth/callback visit.
-  rememberOAuthAttempt(mode, from);
+  rememberOAuthAttempt(mode, from, recordings);
   const failed = (message: string): AuthResult => {
     forgetOAuthAttempt();
     return { ok: false, error: humanise(message) };
@@ -522,6 +600,12 @@ export interface OAuthAttempt {
   from: string;
   mode: "signup" | "signin";
   at: number;
+  /**
+   * A sign-up begun by a guest holding this many recordings (#426,
+   * review): what a sign-in to a Google account that has Ethos would
+   * leave on the guest. Absent for none, and for a sign-in.
+   */
+  recordings?: number;
 }
 
 /**
@@ -550,20 +634,34 @@ export function parseOAuthAttempt(
     if (typeof p.at !== "number" || now - p.at > OAUTH_TTL_MS || p.at > now + 60_000) {
       return null;
     }
-    return { from, mode: p.mode, at: p.at };
+    const held =
+      p.mode === "signup" && typeof p.recordings === "number" && Number.isInteger(p.recordings) && p.recordings > 0
+        ? p.recordings
+        : 0;
+    return { from, mode: p.mode, at: p.at, ...(held ? { recordings: held } : {}) };
   } catch {
     return null;
   }
 }
 
-export function rememberOAuthAttempt(mode: "signup" | "signin", began?: string): void {
+export function rememberOAuthAttempt(
+  mode: "signup" | "signin",
+  began?: string,
+  recordings?: number
+): void {
   if (typeof window === "undefined") return;
   const from = safeReturnPath(began ?? window.location.pathname + window.location.search);
   if (!from) return;
+  const held = mode === "signup" && recordings && recordings > 0 ? Math.floor(recordings) : 0;
   try {
     sessionStorage.setItem(
       OAUTH_KEY,
-      JSON.stringify({ from, mode, at: Date.now() } satisfies OAuthAttempt)
+      JSON.stringify({
+        from,
+        mode,
+        at: Date.now(),
+        ...(held ? { recordings: held } : {}),
+      } satisfies OAuthAttempt)
     );
   } catch {}
 }

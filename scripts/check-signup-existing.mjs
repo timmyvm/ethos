@@ -23,6 +23,15 @@
  *     to a Google sign-in (#414) from /signup and from the introduction,
  *     and ends signed in; the leftover screen signs in with one tap.
  *
+ * And the review of #426:
+ *   crafted: a link's `?email=` fills sign-in only, never a sign-up, so
+ *     nobody can hand a guest a form already holding another address.
+ *   resent-link: the link a guest's unconfirmed account got again, opened
+ *     in a new tab of this browser, says only what happened and carries
+ *     the guest's testing to the account.
+ *   google-recordings: a guest holding recordings whose Google account
+ *     already has Ethos is told what signing in leaves before it signs in.
+ *
  *   PLAYWRIGHT_MODULE=/opt/node22/lib/node_modules/playwright/index.mjs \
  *     BASE=http://localhost:3123 node scripts/check-signup-existing.mjs
  *   SHOTS=before|after   also writes docs/look/signup-existing/*.png
@@ -116,7 +125,8 @@ function host({ existing = "confirmed", recordings = 0, tester = false } = {}) {
       return route.fulfill(json(accountSession));
     }
     if (p === "/auth/v1/resend") {
-      calls.resend.push(body);
+      // auth-js sends the link's landing as `redirect_to` on the query.
+      calls.resend.push({ ...body, redirect_to: url.searchParams.get("redirect_to") });
       return route.fulfill(json({}));
     }
     if (p === "/auth/v1/recover") {
@@ -516,6 +526,164 @@ if (run("leftover")) {
     const inn = await signedInAfter(page);
     ok("Google, the leftover screen: one tap ends signed in", inn && calls.authorize.at(-1) === "signin", `${calls.authorize.join(",")} ${page.url()} ${((await page.locator("main").first().textContent({ timeout: 2000 }).catch(() => "")) ?? "").slice(0, 120)}`);
   }
+  await close();
+}
+
+// ---- 9. A crafted link cannot fill a sign-up's email --------------------
+// A guest's sign-up asks for the email alone, and its one tap sends the
+// confirmation link for this guest's own user to that address: whoever
+// opens it owns the guest's recordings. Only sign-in reads `?email=`.
+const ATTACKER = "attacker@evil.test";
+if (run("crafted")) {
+  {
+    const { page, calls, close } = await open({ who: "anon", existing: "confirmed" });
+    await page.goto(`${BASE}/signup?email=${encodeURIComponent(ATTACKER)}`, { waitUntil: "networkidle" });
+    await emailField(page).waitFor({ timeout: 10000 });
+    await sleep(900);
+    const value = await emailField(page).inputValue().catch(() => "?");
+    ok("crafted: a guest's sign-up opens with the email empty, whatever the link says", value === "", JSON.stringify(value));
+    ok("crafted: and nothing was offered to this guest on the way", calls.updateUser.length === 0, `updateUser ${calls.updateUser.length}`);
+    await shot(page, "crafted-guest-light");
+    // Tapped as it stands, it is an empty field to fill, never a link to someone else.
+    await clickSoft(submit(page));
+    await sleep(700);
+    ok("crafted: its tap sends no link anywhere", calls.updateUser.length === 0, JSON.stringify(calls.updateUser));
+    await close();
+  }
+  {
+    const { page, close } = await open({ who: "none", existing: "confirmed" });
+    await page.goto(`${BASE}/signup?email=${encodeURIComponent(ATTACKER)}`, { waitUntil: "networkidle" });
+    await emailField(page).waitFor({ timeout: 10000 });
+    await sleep(900);
+    const value = await emailField(page).inputValue().catch(() => "?");
+    ok("crafted: a sign-up with no session opens with the email empty too", value === "", JSON.stringify(value));
+    await close();
+  }
+  {
+    const { page, close } = await open({ who: "anon", existing: "confirmed" });
+    await page.goto(`${BASE}/signin?email=${encodeURIComponent(EMAIL)}`, { waitUntil: "networkidle" });
+    await emailField(page).waitFor({ timeout: 10000 });
+    await sleep(900);
+    ok("crafted: sign-in still opens with the address its link carries (the inbox's Sign in)", (await emailField(page).inputValue().catch(() => "")) === EMAIL);
+    await close();
+  }
+}
+
+// ---- 10. The link an unconfirmed account got again, opened here ---------
+// A guest tester holding recordings signs up with the email of an account
+// that never confirmed: the right password sends that account's link
+// again. Opened in a new tab of this browser (a mail app's link), the
+// session becomes the account, and the guest's recordings stay on the
+// guest: the screen says only that the email is confirmed, and the
+// testing the guest joined goes to the account, as a sign-in carries it.
+const linkLanding = (redirect) =>
+  `${redirect}#access_token=${accountSession.access_token}&expires_in=86400&expires_at=${exp}&refresh_token=r1&token_type=bearer&type=signup`;
+for (const theme of run("resent-link") ? ["light", "dark"] : []) {
+  const first = theme === "light";
+  const { context, page, calls, close } = await open({ who: "anon", existing: "unconfirmed", recordings: 22 }, { theme, tester: true });
+  await page.goto(`${BASE}/signup?next=${encodeURIComponent("/history")}`, { waitUntil: "networkidle" });
+  await typeEmailAndSend(page, EMAIL);
+  await passwordField(page).waitFor({ timeout: 3000 }).catch(() => {});
+  await fillSoft(passwordField(page), PASSWORD);
+  await clickSoft(submit(page));
+  await page.getByText("Check your inbox").first().waitFor({ timeout: 5000 }).catch(() => {});
+  const redirect = calls.resend[0]?.redirect_to ?? null;
+  if (first) {
+    ok("resent link: the link went again", calls.resend.length === 1, JSON.stringify(calls.resend));
+    let marked = false;
+    try {
+      const u = new URL(redirect);
+      marked = u.pathname === "/auth/callback" && u.searchParams.get("resent") === "1" && u.searchParams.get("next") === "/history";
+    } catch {}
+    ok("resent link: it lands on the callback marked as sent again, with next", marked, String(redirect));
+    ok("resent link: no testing was carried before the link is opened", calls.carry.length === 0, String(calls.carry.length));
+  }
+  // The mail app opens it in a new tab: this browser's storage, not this tab's.
+  const tab = await context.newPage();
+  await tab.goto(linkLanding(redirect ?? `${BASE}/auth/callback?next=%2Fhistory`), { waitUntil: "networkidle" });
+  await tab.getByText("You're in", { exact: true }).waitFor({ timeout: 12000 }).catch(() => {});
+  await sleep(1200);
+  const said = ((await tab.locator("main").first().textContent({ timeout: 4000 }).catch(() => "")) ?? "").replace(/\s+/g, " ");
+  if (first) {
+    ok("resent link: the session is the account", (await storedUser(tab))?.id === accountUser.id, JSON.stringify((await storedUser(tab))?.id));
+    ok("resent link: it says the email is confirmed", said.includes(`${accountUser.email} is confirmed`) || /is confirmed/.test(said), said.slice(0, 200));
+    ok("resent link: and never that what the guest recorded came along", !/came with you/.test(said), said.slice(0, 200));
+    ok(
+      "resent link: the guest's testing goes to the account, once",
+      calls.carry.length === 1 && calls.carry[0].body?.carry === guestToken && calls.carry[0].auth === `Bearer ${accountSession.access_token}`,
+      JSON.stringify(calls.carry.map((c) => ({ carry: c.body?.carry === guestToken ? "guest" : c.body?.carry, auth: c.auth?.slice(0, 14) })))
+    );
+    const onward = await tab.getByRole("link").filter({ hasText: /\S/ }).last().getAttribute("href", { timeout: 2000 }).catch(() => null);
+    ok("resent link: the way on is the page that asked", onward === "/history", String(onward));
+    // A second open of the same landing carries nothing again.
+    const again = await context.newPage();
+    await again.goto(linkLanding(redirect ?? `${BASE}/auth/callback`), { waitUntil: "networkidle" });
+    await again.getByText("You're in", { exact: true }).waitFor({ timeout: 12000 }).catch(() => {});
+    await sleep(800);
+    ok("resent link: kept for one carry, then gone", calls.carry.length === 1, String(calls.carry.length));
+    await again.close();
+  }
+  await shot(tab, `resent-link-${theme}`);
+  await close();
+}
+
+// ---- 11. Google, a guest holding recordings, an account already there ---
+// The pre-#410 guest's recordings stay on the guest when it signs in to
+// the Google account that has Ethos (#414). The email path says so before
+// its sign-in (#426); so does Google now, where it learns the account is
+// there: the switch waits on the taken screen and says what stays.
+const TAKEN_HASH = "#error=server_error&error_code=identity_already_exists&error_description=Identity+is+already+linked+to+another+user";
+for (const theme of run("google-recordings") ? ["light", "dark"] : []) {
+  const first = theme === "light";
+  const { page, calls, visited, close } = await open({ who: "anon", existing: "confirmed", recordings: 22 }, { theme });
+  await page.goto(`${BASE}/signup?next=${encodeURIComponent("/history")}`, { waitUntil: "networkidle" });
+  const google = page.getByRole("button", { name: /Continue with Google/ }).first();
+  await google.waitFor({ timeout: 8000 }).catch(() => {});
+  await sleep(400);
+  const tapped = visited.length;
+  await clickSoft(google);
+  await page.waitForURL(/\/auth\/callback/, { timeout: 8000 }).catch(() => {});
+  await page.getByText(/That Google account already has Ethos|You're in/).first().waitFor({ timeout: 10000 }).catch(() => {});
+  await sleep(1500);
+  const said = ((await page.locator("main").first().textContent({ timeout: 4000 }).catch(() => "")) ?? "").replace(/\s+/g, " ");
+  if (first) {
+    ok("Google with recordings: the link is tried, and no sign-in runs on its own", calls.link === 1 && calls.authorize.join(",") === "link", calls.authorize.join(","));
+    ok("Google with recordings: the guest is still this device's session", (await storedUser(page))?.is_anonymous === true, JSON.stringify((await storedUser(page))?.id));
+    ok("Google with recordings: it says that account already has Ethos", /That Google account already has Ethos/.test(said), said.slice(0, 200));
+    ok("Google with recordings: and, before any sign-in, what signing in leaves", /leaves your 22 recordings on this device/.test(said), said.slice(0, 220));
+    const email = page.getByRole("link", { name: "Keep them with an email" });
+    ok("Google with recordings: the way to keep them is one tap, back to the form", (await email.getAttribute("href", { timeout: 2000 }).catch(() => null)) === `/signup?next=${encodeURIComponent("/history")}`);
+  }
+  await shot(page, `google-recordings-${theme}`);
+  if (first) {
+    await clickSoft(page.getByRole("button", { name: /Continue with Google/ }).first());
+    const inn = await signedInAfter(page);
+    const text = ((await page.locator("main").first().textContent({ timeout: 4000 }).catch(() => "")) ?? "").replace(/\s+/g, " ");
+    ok("Google with recordings: Continue with Google there signs in", inn && calls.authorize.join(",") === "link,signin" && (await storedUser(page))?.is_anonymous === false, `${calls.authorize.join(",")} ${page.url()}`);
+    ok("Google with recordings: greeted as a sign-in, nothing claimed", /Signed in as/.test(text) && !/came with you/.test(text), text.slice(0, 160));
+    const after = visited.slice(tapped).map((u) => new URL(u).pathname);
+    ok("Google with recordings: never back on the sign-up screen on the way", !after.includes("/signup"), after.join(" > "));
+  }
+  await close();
+}
+if (run("google-recordings")) {
+  // Supabase landing the error somewhere other than the callback (its Site
+  // URL): the guest holding recordings is taken to the taken screen, not
+  // signed in.
+  const { page, calls, close } = await open({ who: "anon", existing: "confirmed", recordings: 22 });
+  await page.goto(`${BASE}/about`, { waitUntil: "networkidle" });
+  const at = Date.now();
+  await page.evaluate((at) => {
+    sessionStorage.setItem("ethos.oauth", JSON.stringify({ from: "/signup?next=%2Fhistory", mode: "signup", at, recordings: 22 }));
+  }, at);
+  await page.goto(`${BASE}/${TAKEN_HASH}`, { waitUntil: "networkidle" });
+  await page.waitForURL(/\/auth\/callback/, { timeout: 8000 }).catch(() => {});
+  await sleep(1500);
+  const said = ((await page.locator("main").first().textContent({ timeout: 4000 }).catch(() => "")) ?? "").replace(/\s+/g, " ");
+  ok("Google with recordings, landed elsewhere: on the taken screen with the warning", path(page) === "/auth/callback" && /leaves your 22 recordings/.test(said), `${page.url()} ${said.slice(0, 120)}`);
+  ok("Google with recordings, landed elsewhere: nothing signed in", calls.authorize.length === 0 && (await storedUser(page))?.is_anonymous === true, calls.authorize.join(","));
+  const onward = await page.getByRole("link", { name: "Keep them with an email" }).getAttribute("href", { timeout: 2000 }).catch(() => null);
+  ok("Google with recordings, landed elsewhere: next is kept", onward === `/signup?next=${encodeURIComponent("/history")}`, String(onward));
   await close();
 }
 

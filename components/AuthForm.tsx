@@ -12,7 +12,7 @@ import { computeStreak } from "@/lib/streak";
 import {
   EXISTING_COPY,
   MIN_PASSWORD,
-  emailFrom,
+  carriedEmail,
   sessionState,
   signInExisting,
   withEmail,
@@ -121,9 +121,18 @@ export function AuthForm({
    * page they land on can send them on (lib/auth.ts `withNext`).
    */
   const next = useNextPath();
+  /* This device's recordings, when a guest holds them (pre-#410). */
+  const carrying = session?.anonymous === true && progress.recordings > 0;
   // Google's own state: it comes back when they do, and never touches
-  // the email form below it (lib/use-oauth-return.ts).
-  const google = useGoogleSignIn(mode, next);
+  // the email form below it (lib/use-oauth-return.ts). A guest's sign-up
+  // tells it what it holds, so meeting a Google account that has Ethos
+  // says what signing in leaves before it signs in (lib/google-taken.ts).
+  const google = useGoogleSignIn(
+    mode,
+    next,
+    undefined,
+    carrying && mode === "signup" ? progress.recordings : undefined
+  );
   /*
    * The way back, read after mount as `next` is: localStorage has no
    * server answer. A stranger (firstRun) goes back to the introduction,
@@ -193,13 +202,14 @@ export function AuthForm({
     if (errorField === "password") passwordRef.current?.focus();
   }, [errorField, error]);
 
-  /* An address carried in from another auth screen (#426: the inbox's
-     Sign in, Forgot?), so nobody types it twice. Read after mount, like
-     `next`, and never over something already typed. */
+  /* An address carried in from the inbox's Sign in (#426), so nobody
+     types it twice. Read after mount, like `next`, and never over
+     something already typed. Sign-in's only: a sign-up's field starts
+     empty whatever its link says (lib/auth.ts `carriedEmail`). */
   useEffect(() => {
-    const carried = emailFrom(window.location.search);
+    const carried = carriedEmail(mode, window.location.search);
     if (carried) setEmail((typed) => typed || carried);
-  }, []);
+  }, [mode]);
 
   /* The password field a guest's form grows when its email has an
      account (#426): the cursor goes to it, since that is the one thing
@@ -208,7 +218,6 @@ export function AuthForm({
     if (existing) passwordRef.current?.focus();
   }, [existing]);
 
-  const carrying = session?.anonymous === true && progress.recordings > 0;
   /*
    * An anonymous upgrade collects EMAIL ONLY (#142): GoTrue refuses a
    * password on an anonymous user, so the password is set on the page

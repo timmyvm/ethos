@@ -5,15 +5,17 @@ import { DemosArt } from "@/components/DemosArt";
 import { useEffect, useState } from "react";
 import { GOOGLE_BUTTON, GoogleMark } from "@/components/AuthForm";
 import { ACTION_CLASS } from "@/components/LessonScreen";
-import { carryStashed } from "@/lib/tester-client";
+import { carryKeptForLink, carryStashed } from "@/lib/tester-client";
 import { useGoogleSignIn } from "@/lib/use-oauth-return";
 import { authHref, nextFrom, onwardLink } from "@/lib/use-paywall-return";
 import {
   callbackCarriesSession,
   callbackProblem,
   callbackScreen,
+  callbackWelcome,
   forgetOAuthAttempt,
   readOAuthAttempt,
+  resentLink,
   waitForAccount,
   type OAuthAttempt,
 } from "@/lib/auth";
@@ -41,12 +43,16 @@ export default function CallbackPage() {
   const [attempt, setAttempt] = useState<OAuthAttempt | null>(null);
   /** The page that asked for the account, read after mount. */
   const [next, setNext] = useState<string | null>(null);
+  /** The link an account that never confirmed got again (#426, review). */
+  const [resent, setResent] = useState(false);
 
   useEffect(() => {
     let live = true;
     const href = window.location.href;
     const tried = readOAuthAttempt();
+    const again = resentLink(window.location.search);
     setAttempt(tried);
+    setResent(again);
     // The link or Google's redirect carries it; a redirect that dropped
     // the query still has it in the page the attempt began on.
     setNext(nextFrom(window.location.search) ?? nextFrom(tried?.from));
@@ -64,22 +70,25 @@ export default function CallbackPage() {
         if (!live) return;
         if (s.signedIn && !s.anonymous) {
           forgetOAuthAttempt();
-          // Testing joined on the session this sign-in replaced (lib/auth.ts).
-          void carryStashed();
+          // Testing joined on the session this sign-in replaced: Google's
+          // waits in this tab, a resent link's on this device (lib/auth.ts).
+          void (again ? carryKeptForLink() : carryStashed());
           setState({ at: "ok", email: s.email });
         } else {
           // Back from Google with nothing to show for it is a Google
           // that did not finish, not a used link.
-          setState({ at: tried ? "google" : "stale" });
+          setState({ at: tried && !again ? "google" : "stale" });
         }
       })
-      .catch(() => live && setState({ at: tried ? "google" : "stale" }));
+      .catch(() => live && setState({ at: tried && !again ? "google" : "stale" }));
     return () => {
       live = false;
     };
   }, []);
 
-  const viaGoogle = attempt !== null;
+  /* An email link opened in the tab a Google attempt began in is still
+     an email link. */
+  const viaGoogle = attempt !== null && !resent;
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center px-5 text-center">
@@ -96,15 +105,7 @@ export default function CallbackPage() {
           <DemosArt pose="celebrate" size={140} />
           <h1 className="font-display mt-6 text-title">You&apos;re in</h1>
           <p className="mt-3 max-w-[300px] text-body leading-relaxed text-stone-500">
-            {viaGoogle
-              ? state.email
-                ? `Signed in as ${state.email}.`
-                : "Signed in with Google."
-              : state.email
-                ? `${state.email} is confirmed.`
-                : "Your email is confirmed."}
-            {(!viaGoogle || attempt?.mode === "signup") &&
-              " Everything you've already recorded came with you."}
+            {callbackWelcome({ email: state.email, google: viaGoogle ? attempt : null, resent })}
           </p>
           {/* On to the page that asked for the account (the Premium
               sheet included), or the floor. */}
@@ -165,14 +166,20 @@ export default function CallbackPage() {
  */
 function Taken({ attempt, next }: { attempt: OAuthAttempt | null; next: string | null }) {
   const google = useGoogleSignIn("signin", next, attempt?.from ?? "/signin");
+  /* A pre-#410 guest's recordings stay on the guest when it signs in
+     (#414): said here, before the sign-in, as the email path says it
+     before its own (#426, review). GoogleTakenSwitch waits for this. */
+  const held = attempt?.mode === "signup" ? (attempt.recordings ?? 0) : 0;
   return (
     <>
       <GoogleTile />
       <h1 className="font-display mt-5 text-title text-balance">
         That Google account already has Ethos
       </h1>
-      <p className="mt-3 max-w-[300px] text-body leading-relaxed text-stone-500">
-        Sign in with it.
+      <p className="mt-3 max-w-[300px] text-body leading-relaxed text-stone-500 text-pretty">
+        {held > 0
+          ? `Signing in to it leaves your ${held} recording${held === 1 ? "" : "s"} on this device.`
+          : "Sign in with it."}
       </p>
       {/* Google's own button, as on the auth screens (D49): it is the
           screen's one tap, so there is no terracotta here. Held, never
@@ -193,12 +200,13 @@ function Taken({ attempt, next }: { attempt: OAuthAttempt | null; next: string |
           {google.error}
         </p>
       )}
-      {/* The email form itself, coming back to the same page. */}
+      {/* The email form itself, coming back to the same page: where a
+          guest's recordings attach to an email new to Ethos. */}
       <Link
         href={authHref("signup", next)}
         className="text-link press mt-2 inline-flex min-h-11 items-center px-3"
       >
-        Use an email instead
+        {held > 0 ? "Keep them with an email" : "Use an email instead"}
       </Link>
     </>
   );

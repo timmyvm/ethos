@@ -54,10 +54,36 @@ export function heldPauseMarks(pauses: readonly MarkedPause[]): {
 }
 
 /**
- * Whether the second `t` falls inside a held pause that landed, so Hear
- * it back's playhead can be read over the sage band it crosses (#425).
- * Beats are never drawn on the track and never count.
+ * Hear it back's track, in px (#425): a landed band is never drawn
+ * narrower than LANDED_MIN_PX, grown rightward from its pause's second,
+ * and the playhead is PLAYHEAD_PX wide from its own second. The
+ * component's classes (`min-w-[4px]`, `w-[2px]`) are held to these in
+ * lib/pause-mark.test.ts.
  */
-export function landedAt(pauses: readonly (MarkedPause & { t: number; len: number })[], t: number): boolean {
-  return pauses.some((p) => p.kind !== "beat" && landedPause(p) && t >= p.t && t <= p.t + p.len);
+export const LANDED_MIN_PX = 4;
+export const PLAYHEAD_PX = 2;
+
+/**
+ * Whether Hear it back's playhead, at second `t`, stands in a held pause
+ * that landed as the track draws it, so it can be read over the sage
+ * band it crosses (#425). Decided by the drawn geometry, not the pause's
+ * seconds alone (the review of #425): on a long take a short landing is
+ * drawn wider than its seconds, and a playhead crossing those extra
+ * pixels in the light ink was 2.25:1 on the sage in dark. So a band is
+ * [p.t, p.t + max(p.len, LANDED_MIN_PX px)) and what stands on it is the
+ * playhead's centre, PLAYHEAD_PX / 2 right of `t`; a centre past the
+ * band's end is off it. `secondsPerPx` is the track's scale, the take's
+ * seconds over the track's drawn width; 0, before the track is measured,
+ * reads the pause's own seconds and the playhead as a point. Beats are
+ * never drawn on the track and never count.
+ */
+export function landedAt(
+  pauses: readonly (MarkedPause & { t: number; len: number })[],
+  t: number,
+  secondsPerPx = 0
+): boolean {
+  const px = Number.isFinite(secondsPerPx) && secondsPerPx > 0 ? secondsPerPx : 0;
+  const centre = t + (PLAYHEAD_PX / 2) * px;
+  const floor = LANDED_MIN_PX * px;
+  return pauses.some((p) => p.kind !== "beat" && landedPause(p) && centre >= p.t && centre < p.t + Math.max(p.len, floor));
 }

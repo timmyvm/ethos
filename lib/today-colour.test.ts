@@ -513,9 +513,11 @@ describe("the tester chip reads", () => {
  * well-held pause barely showed beside the filler ticks). The track is
  * `sand`, and its marks are graphics: a pause that landed a point is the
  * pause map's solid sage-600, which holds the 3:1 a mark needs on sand
- * in both themes, as the filler ticks do; a searching pause stays a
- * quiet stone, told from the sand at 1.5 to 2:1 and well under the
- * landed band; and the playhead, crossing a landed band, holds 3:1
+ * in both themes, as the filler ticks do; a searching pause stays the
+ * quiet stone it was before #425, told from the sand at 1.4 to 2:1 and
+ * well under the landed band (its review: at /35 and 4px a long take's
+ * ten searching pauses were a fifth of the track, so it is /30 again,
+ * drawn to scale); and the playhead, crossing a landed band, holds 3:1
  * against the sage (the dark theme's light ink is 2.25:1 there, so it
  * takes the ground's near-black). Not a trait's tone: sage is earned,
  * and the classes are read from the component, so changing one without
@@ -545,6 +547,7 @@ describe("Hear it back's pause bands read on the track (#425)", async () => {
   it("stands its marks on sand", () => {
     expect(src("components/AudioScrubber.tsx")).toContain('className="relative h-8 overflow-hidden bg-sand"');
     expect(PAUSE_MARK.landed).toBe("bg-sage-600");
+    expect(PAUSE_MARK.searching).toBe("bg-stone-400/30");
   });
   for (const [theme, block, sand] of themes) {
     const landed = ratio(fill(block, PAUSE_MARK.landed, sand), sand);
@@ -552,8 +555,8 @@ describe("Hear it back's pause bands read on the track (#425)", async () => {
     it(`${theme}: a landed band at 3:1 or better on the sand`, () => {
       expect(landed).toBeGreaterThanOrEqual(3);
     });
-    it(`${theme}: a searching band quiet, 1.5 to 2:1 on the sand, under half the landed band's weight`, () => {
-      expect(quiet).toBeGreaterThanOrEqual(1.5);
+    it(`${theme}: a searching band quiet, 1.4 to 2:1 on the sand, under half the landed band's weight`, () => {
+      expect(quiet).toBeGreaterThanOrEqual(1.4);
       expect(quiet).toBeLessThanOrEqual(2);
       expect(landed / quiet).toBeGreaterThanOrEqual(2);
     });
@@ -563,8 +566,8 @@ describe("Hear it back's pause bands read on the track (#425)", async () => {
       expect(ratio(fill(block, head, sand), fill(block, PAUSE_MARK.landed, sand))).toBeGreaterThanOrEqual(3);
     });
   }
-  it("measures what the comment and the log say: 3.65 and 5.02 landed, 1.59 and 1.86 searching", () => {
+  it("measures what the comment and the log say: 3.65 and 5.02 landed, 1.48 and 1.69 searching", () => {
     const at = (theme: number, cls: string) => ratio(fill(themes[theme][1], cls, themes[theme][2]), themes[theme][2]).toFixed(2);
-    expect([at(0, PAUSE_MARK.landed), at(1, PAUSE_MARK.landed), at(0, PAUSE_MARK.searching), at(1, PAUSE_MARK.searching)]).toEqual(["3.65", "5.02", "1.59", "1.86"]);
+    expect([at(0, PAUSE_MARK.landed), at(1, PAUSE_MARK.landed), at(0, PAUSE_MARK.searching), at(1, PAUSE_MARK.searching)]).toEqual(["3.65", "5.02", "1.48", "1.69"]);
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { IconBubble, IconPauseSm, IconPlay } from "@/components/Icon";
 import { LANDED_MARK } from "@/components/PauseBar";
 import type { TakeAudio } from "@/components/TakeAudio";
@@ -45,6 +45,21 @@ export function AudioScrubber({
 }) {
   const [t, setT] = useState(0);
   const [playing, setPlaying] = useState(false);
+  /* The track's drawn width, so the playhead is read against the bands
+     as they are drawn, a short landing widened to 4px included (the
+     review of #425). 0 until it is measured. */
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [trackW, setTrackW] = useState(0);
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    // Layout width, not the painted box: the card can arrive scaled.
+    setTrackW(el.offsetWidth);
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([entry]) => setTrackW(entry.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   /* The element outlives this card (the walk's other steps play it too),
      so the key and the playhead read it as it is when the card mounts,
@@ -91,7 +106,7 @@ export function AudioScrubber({
 
   const pct = (n: number) => (durationS > 0 ? (n / durationS) * 100 : 0);
   const held = heldPauseMarks(pauses);
-  const onLanded = landedAt(pauses, t);
+  const onLanded = landedAt(pauses, t, trackW > 0 && durationS > 0 ? durationS / trackW : 0);
 
   return (
     /* The card is the Fillers trait's ground (recording-20, system-9):
@@ -146,10 +161,12 @@ export function AudioScrubber({
           {/* Track with pause bands and filler ticks. The ticks are marks,
               not controls: the range lies over them, so no tap could
               reach one, and each pill below already plays its filler.
-              A band starts at its pause's second and is never under
-              4px: a short pause on a long take grows to the right, so
-              where it starts stays true (#425). */}
-          <div className="relative h-8 overflow-hidden bg-sand">
+              A landed band starts at its pause's second and is never
+              under 4px: a short landing on a long take grows to the
+              right, so where it starts stays true (#425). A searching
+              band is drawn to the take's scale, a hairline on a long
+              take, so the quiet marks stay quiet (its review). */}
+          <div ref={trackRef} className="relative h-8 overflow-hidden bg-sand">
             {pauses
               .filter((p) => p.kind !== "beat")
               .map((p, i) => {
@@ -159,7 +176,7 @@ export function AudioScrubber({
                     key={`p${i}`}
                     aria-hidden
                     data-pause-mark={mark}
-                    className={`absolute top-0 h-full ${BAND_MIN} ${PAUSE_MARK[mark]}`}
+                    className={`absolute top-0 h-full ${mark === "landed" ? `${BAND_MIN} ` : ""}${PAUSE_MARK[mark]}`}
                     style={{ left: `${pct(p.t)}%`, width: `${pct(p.len)}%` }}
                   />
                 );
@@ -185,7 +202,9 @@ export function AudioScrubber({
                 sage, so it turns to the ground's near-black (7.45:1) and
                 the band still shows either side of it. A rim of sand
                 around it read, but it covered a 4px band entirely, so the
-                landing vanished while it played (#425). */}
+                landing vanished while it played (#425). Inside means its
+                centre stands on the band as drawn, 4px at least, not on
+                the pause's seconds alone (`landedAt`, the review). */}
             <span
               data-playhead
               data-on={onLanded ? "landed" : undefined}
@@ -269,12 +288,14 @@ export function AudioScrubber({
    Since #425 (Timothy: a well-held pause barely showed beside the
    filler ticks) a landed band is the pause map's own solid sage-600,
    3.65:1 on the light sand and 5.02:1 on the dark (the ticks are 3.70
-   and 5.30), and a searching band stays a quiet stone, 1.59 and 1.86:1,
-   so the earned silence is the mark that reads. Both are measured in
-   lib/today-colour.test.ts. */
+   and 5.30), and a searching band stays the quiet stone it was, 1.48
+   and 1.69:1, so the earned silence is the mark that reads. Both are
+   measured in lib/today-colour.test.ts. */
 const FILLER_MARK = "bg-[var(--tone)]";
-export const PAUSE_MARK: Record<PauseMark, string> = { landed: LANDED_MARK, searching: "bg-stone-400/35" };
-/** No band under 4px, grown rightward from its pause's start. */
+export const PAUSE_MARK: Record<PauseMark, string> = { landed: LANDED_MARK, searching: "bg-stone-400/30" };
+/** No landed band under 4px (LANDED_MIN_PX), grown rightward from its
+    pause's start. A searching band has no floor: on a 90s take ten of
+    them at 4px were a fifth of the track (the review of #425). */
 export const BAND_MIN = "min-w-[4px]";
 /* Demos's cut-in: ink, as on the pause map, at the filler's 3px so the
    2px playhead stays its own mark. */

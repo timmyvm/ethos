@@ -25,9 +25,19 @@
  * (-track) and reads the bands' contrast off that crop's pixels: a
  * landed band holds 3:1 on the track's sand, a searching band 1.4:1 to
  * 2.2:1 and under the landed one, each key's swatch is its band's
- * colour, and no band is under 4px (DECISIONS #425). With LOOK_WAV,
- * words-stored also stops the playhead inside the landing and crops it
- * (-playhead), so the playhead is read over a sage band.
+ * colour, no landed band is under 4px and every searching band is drawn
+ * to the take's own scale (DECISIONS #425 and its review). With
+ * LOOK_WAV, words-stored also stops the playhead inside the landing and
+ * crops it (-playhead), so the playhead is read over a sage band.
+ * words-long is the review's 90s stored take (a long take on a phone, so
+ * a short landing is widened to 4px): 13 held pauses, 3 landed and 10
+ * searching, one landing 0.8s at 61.0s. Its audio is made here, 90s of
+ * silence, so it needs no LOOK_WAV. The playhead is stopped every 0.1s
+ * across the 61.0s and 35.0s landings, past both ends of the drawn band,
+ * and each stop is read off the pixels: the playhead's colour follows the
+ * band its centre stands in, by the drawn geometry, and it holds 3:1
+ * against that ground beside it. The stops are cropped into one strip
+ * (-heads), every 0.2s across the 61.0s landing.
  * LOOK_THEMES=light,dark picks the themes. Every probe prints a line
  * that starts PROBE; a broken promise prints FAIL.
  */
@@ -44,6 +54,18 @@ const WIDTH = Number(process.env.LOOK_WIDTH ?? 390) || 390;
 const HEIGHT = Number(process.env.LOOK_HEIGHT ?? 844) || 844;
 const THEMES = (process.env.LOOK_THEMES ?? "light,dark").split(",");
 const WAV = process.env.LOOK_WAV ? readFileSync(process.env.LOOK_WAV) : null;
+/* words-long's take: 90s of 8kHz 8-bit mono silence, so the player can
+   seek anywhere in a long take without a file on disk. */
+const LONG_WAV = (() => {
+  const rate = 8000;
+  const n = rate * 90;
+  const b = Buffer.alloc(44 + n, 128);
+  b.write("RIFF", 0); b.writeUInt32LE(36 + n, 4); b.write("WAVE", 8);
+  b.write("fmt ", 12); b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22);
+  b.writeUInt32LE(rate, 24); b.writeUInt32LE(rate, 28); b.writeUInt16LE(1, 32); b.writeUInt16LE(8, 34);
+  b.write("data", 36); b.writeUInt32LE(n, 40);
+  return b;
+})();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /* WCAG contrast between two [r, g, b] pixels. */
 const lum = (c) => {
@@ -135,6 +157,26 @@ const HEAR = {
   two: [P.opening, P.hes, P.b, { t: 36.8, len: 1.0, kind: "mid", verdict: "filled" }, P.land],
   clean: [P.opening, P.hes, { t: 30.2, len: 1.3, kind: "pre", verdict: "landing" }, P.land],
 };
+/* The review of #425: a 90s stored take on a phone, where a second is
+   2.3px of a 390 track and 1.5px of a 320 one, so a short landing is
+   drawn wider than its seconds and a searching pause is a hairline. 13
+   held pauses: the opening, two landings (1.4s at 35.0s, 0.8s at 61.0s)
+   and ten searching, 0.8 to 1.2s. */
+const LONG_HEAR = [
+  { t: 2.1, len: 1.2, kind: "pre", verdict: "opening" },
+  { t: 9.0, len: 0.9, kind: "mid", verdict: "hesitation" },
+  { t: 16.0, len: 0.8, kind: "mid", verdict: "hesitation" },
+  { t: 22.5, len: 1.0, kind: "pre", verdict: "filled" },
+  { t: 29.0, len: 0.85, kind: "mid", verdict: "hesitation" },
+  { t: 35.0, len: 1.4, kind: "pre", verdict: "landing" },
+  { t: 41.0, len: 0.9, kind: "mid", verdict: "hesitation" },
+  { t: 48.0, len: 0.8, kind: "mid", verdict: "hesitation" },
+  { t: 54.0, len: 1.1, kind: "pre", verdict: "filled" },
+  { t: 61.0, len: 0.8, kind: "pre", verdict: "landing" },
+  { t: 67.0, len: 0.9, kind: "mid", verdict: "hesitation" },
+  { t: 73.0, len: 0.8, kind: "mid", verdict: "hesitation" },
+  { t: 80.0, len: 1.2, kind: "mid", verdict: "dead" },
+];
 const cleanBody = () => ({ ...bodyFor(HEAR.clean), pauseHeadline: "Three silences landed a point; one was searching." });
 const roundBody = () => ({
   ...bodyFor(HEAR.two),
@@ -151,7 +193,22 @@ const stored = reps.find((r) => r.id === "rep-22");
 const audio = { mode: "ok" };
 async function audioRoute(route) {
   if (audio.mode === "broken") return route.fulfill(json({ url: `${BASE}/__look/broken.wav` }));
+  if (audio.mode === "long") return route.fulfill(json({ url: `${BASE}/__look/long.wav` }));
   return route.fulfill(json({ url: `${BASE}/__look/take.wav` }));
+}
+/* A take served with byte ranges, as storage serves one, so the player
+   can seek into it (the playhead probes stop it inside a landing). */
+function serveWav(route, wav) {
+  if (!wav) return route.fulfill({ status: 404, body: "" });
+  const range = /bytes=(\d+)-(\d*)/.exec(route.request().headers()["range"] ?? "");
+  if (!range) return route.fulfill({ status: 200, contentType: "audio/wav", headers: { "accept-ranges": "bytes" }, body: wav });
+  const from = Number(range[1]);
+  const to = range[2] ? Math.min(Number(range[2]), wav.length - 1) : wav.length - 1;
+  return route.fulfill({
+    status: 206, contentType: "audio/wav",
+    headers: { "accept-ranges": "bytes", "content-range": `bytes ${from}-${to}/${wav.length}`, "content-length": String(to - from + 1) },
+    body: wav.subarray(from, to + 1),
+  });
 }
 
 const browser = await chromium.launch({
@@ -169,20 +226,8 @@ async function shootTheme(theme) {
   await context.route("**/api/words", (route) => route.fulfill(json({ alternatives: [], source: "model" })));
   await context.route("**/api/push", (route) => route.fulfill(json({ ok: true })));
   await context.route("**/api/audio**", audioRoute);
-  /* Served with byte ranges, as storage serves a take, so the player can
-     seek into it (the playhead probe stops it inside the landing). */
-  await context.route("**/__look/take.wav", (route) => {
-    if (!WAV) return route.fulfill({ status: 404, body: "" });
-    const range = /bytes=(\d+)-(\d*)/.exec(route.request().headers()["range"] ?? "");
-    if (!range) return route.fulfill({ status: 200, contentType: "audio/wav", headers: { "accept-ranges": "bytes" }, body: WAV });
-    const from = Number(range[1]);
-    const to = range[2] ? Math.min(Number(range[2]), WAV.length - 1) : WAV.length - 1;
-    return route.fulfill({
-      status: 206, contentType: "audio/wav",
-      headers: { "accept-ranges": "bytes", "content-range": `bytes ${from}-${to}/${WAV.length}`, "content-length": String(to - from + 1) },
-      body: WAV.subarray(from, to + 1),
-    });
-  });
+  await context.route("**/__look/take.wav", (route) => serveWav(route, WAV));
+  await context.route("**/__look/long.wav", (route) => serveWav(route, LONG_WAV));
   await context.route("**/__look/broken.wav", (route) => route.fulfill({ status: 200, contentType: "audio/wav", body: "not a wav" }));
   await context.addInitScript(seed, { theme, session, pose: POSE_PREF });
   await context.addInitScript(() => {
@@ -320,13 +365,17 @@ async function shootTheme(theme) {
 
   /**
    * Hear it back's head and track as a 2x crop, its marks read off the
-   * crop's own pixels (DECISIONS #425): each band's colour where nothing
-   * else stands on it, the sand beside it, and each key's swatch. A
-   * landed band under 3:1 on the sand, a searching band outside 1.4 to
-   * 2.2:1 or not under the landed one, a swatch that is not its band's
-   * colour, or a band narrower than 4px prints FAIL. `extra` names the
-   * crop (-track, -playhead); the playhead's own contrast against the
-   * pixels either side of it is printed too.
+   * crop's own pixels (DECISIONS #425): each band's colour at its core,
+   * where nothing else stands within 2px of it, the sand beside it, and each
+   * key's swatch. A landed band under 3:1 on the sand, a searching band
+   * over 2.2:1 or not under the landed one, one 3px or wider under
+   * 1.4:1 (a narrower hairline blends into the sand at 2x, so its floor
+   * is not read), a swatch that is not its widest band's colour, a
+   * landed band narrower than 4px, or a searching band wider than its
+   * own seconds draw it (the floor is the landing's alone, so a long
+   * take's searching pauses stay hairlines, the review of #425) prints
+   * FAIL. `extra` names the crop (-track, -playhead); the playhead's own
+   * contrast against the pixels either side of it is printed too.
    */
   const measureTrack = async (scene, extra = "-track") => {
     /* Settle as a shot does, and wait out anything still fading over the
@@ -338,6 +387,8 @@ async function shootTheme(theme) {
         const bar = card?.querySelector(".relative.h-8");
         if (!bar) return false;
         for (let el = card; el; el = el.parentElement) if (getComputedStyle(el).opacity !== "1") return false;
+        // Nor still arriving: a card mid-rise is resampled and its hairlines blur.
+        if (document.getAnimations().some((a) => a.playState === "running" && a.effect?.target instanceof Element && a.effect.target.contains(card))) return false;
         const r = bar.getBoundingClientRect();
         return document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)?.closest(".relative.flex-1") === bar.parentElement;
       }, null, { timeout: 5000 })
@@ -352,6 +403,8 @@ async function shootTheme(theme) {
       const marks = [...bar.children].map((s, i, all) => ({
         kind: s.dataset.pauseMark ?? (/var\(--tone\)/.test(s.className) ? "filler" : /bg-ink\/70/.test(s.className) ? "cut-in" : i === all.length - 1 ? "playhead" : "other"),
         ...box(s.getBoundingClientRect()),
+        // The width its seconds alone draw, in px.
+        scaled: s.style.width ? (parseFloat(s.style.width) / 100) * b.width : null,
       }));
       const keys = [...(card.querySelector(".eyebrow")?.nextElementSibling?.children ?? [])].map((k) => ({
         word: k.textContent.trim(),
@@ -377,14 +430,23 @@ async function shootTheme(theme) {
     for (let x = m.bar.x + 2; x < m.bar.x + m.bar.w - 2 && sandX === null; x += 0.5) if (clear(x, 5, null)) sandX = x;
     const sand = px(sandX, mid);
     const hex = (c) => "#" + c.map((v) => v.toString(16).padStart(2, "0")).join("");
-    const read = { landed: [], searching: [], filler: [], narrow: [] };
+    const read = { landed: [], searching: [], filler: [], narrow: [], grown: [] };
     for (const mark of m.marks.filter((x) => x.kind === "landed" || x.kind === "searching" || x.kind === "filler")) {
-      if (mark.kind !== "filler" && mark.w < 3.95) read.narrow.push(`${mark.kind} ${mark.w.toFixed(1)}px`);
-      // The band's own pixel: its middle third, clear of every other mark.
-      let at = null;
-      for (let x = mark.x + mark.w * 0.34; x <= mark.x + mark.w * 0.66 && at === null; x += 0.25) if (clear(x, 0.6, mark)) at = x;
-      if (at === null) continue;
-      const colour = px(at, mid);
+      if (mark.kind === "landed" && mark.w < 3.95) read.narrow.push(`${mark.kind} ${mark.w.toFixed(1)}px`);
+      if (mark.kind === "searching" && mark.scaled !== null && mark.w > mark.scaled + 0.1) read.grown.push(`${mark.w.toFixed(1)}px for ${mark.scaled.toFixed(1)}px of seconds`);
+      // The band's own colour: its core, the pixel across it that stands
+      // furthest from the sand, inside its own edges and clear of every
+      // other mark by 2px, past the device pixels a neighbour's edge
+      // blends into at the camera's 2x. A hairline's edges blend into the
+      // sand, so its core is what it reads as.
+      let colour = null;
+      const inset = mark.w >= 2 ? 0.5 : 0;
+      for (let x = mark.x + inset; x <= mark.x + mark.w - inset; x += 0.25) {
+        if (!clear(x, 2, mark)) continue;
+        const c = px(x, mid);
+        if (!colour || contrast(c, sand) > contrast(colour, sand)) colour = c;
+      }
+      if (!colour) continue;
       read[mark.kind].push({ hex: hex(colour), ratio: contrast(colour, sand), w: mark.w });
     }
     const worst = (list) => (list.length ? Math.min(...list.map((r) => r.ratio)) : null);
@@ -393,17 +455,30 @@ async function shootTheme(theme) {
     console.log(`PROBE ${scene}${extra} ${WIDTH}x${HEIGHT} ${theme}: sand ${hex(sand)}; landed [${fmt(read.landed)}]; searching [${fmt(read.searching)}]; filler [${fmt(read.filler)}]`);
     const landed = worst(read.landed);
     const quietTop = best(read.searching);
-    const quietLow = worst(read.searching);
+    // The floor is the colour's, read where a band is wide enough to hold
+    // it: a hairline under 3px blends into the sand at the camera's 2x.
+    const quietLow = worst(read.searching.filter((r) => r.w >= 3));
     if (landed !== null && landed < 3) fail(`${scene} ${WIDTH}x${HEIGHT} ${theme}: a landed band is ${landed.toFixed(2)}:1 on the sand, under 3:1`);
-    if (quietLow !== null && (quietLow < 1.4 || quietTop > 2.2)) fail(`${scene} ${WIDTH}x${HEIGHT} ${theme}: a searching band is ${quietLow.toFixed(2)} to ${quietTop.toFixed(2)}:1, outside 1.4 to 2.2`);
+    if ((quietLow !== null && quietLow < 1.4) || (quietTop !== null && quietTop > 2.2)) fail(`${scene} ${WIDTH}x${HEIGHT} ${theme}: a searching band is ${(quietLow ?? worst(read.searching)).toFixed(2)} to ${quietTop.toFixed(2)}:1, outside 1.4 to 2.2`);
     if (landed !== null && quietTop !== null && landed < quietTop * 1.5) fail(`${scene} ${WIDTH}x${HEIGHT} ${theme}: landed ${landed.toFixed(2)}:1 is not clearly over searching ${quietTop.toFixed(2)}:1`);
-    if (read.narrow.length) fail(`${scene} ${WIDTH}x${HEIGHT} ${theme}: bands under 4px: ${read.narrow.join(", ")}`);
+    if (read.narrow.length) fail(`${scene} ${WIDTH}x${HEIGHT} ${theme}: landed bands under 4px: ${read.narrow.join(", ")}`);
+    if (read.grown.length) fail(`${scene} ${WIDTH}x${HEIGHT} ${theme}: searching bands drawn wider than their seconds: ${read.grown.join(", ")}`);
+    const searchingPx = m.marks.filter((x) => x.kind === "searching").reduce((sum, x) => sum + x.w, 0);
+    if (searchingPx) console.log(`PROBE   searching bands ${searchingPx.toFixed(1)}px of the ${m.bar.w.toFixed(0)}px track (${((searchingPx / m.bar.w) * 100).toFixed(1)}%)`);
     // Each key's swatch is its band: the swatch's middle against the band's pixel.
     for (const key of m.keys) {
       const kind = key.word === "landed a point" ? "landed" : key.word === "searching" ? "searching" : null;
       if (!kind || !read[kind].length) continue;
       const swatch = hex(px(key.x + key.w / 2, key.y + key.h / 2));
-      const band = read[kind][0].hex;
+      // Against the widest band of its kind, whose core is its colour; a
+      // hairline's core is a blend, so it is not compared (the classes
+      // are, in lib/pause-mark.test.ts).
+      const widest = read[kind].reduce((a, b) => (b.w > a.w ? b : a));
+      if (widest.w < 3) {
+        console.log(`PROBE   key "${key.word}" not read against its bands, hairlines of ${widest.w.toFixed(1)}px at most`);
+        continue;
+      }
+      const band = widest.hex;
       const off = Math.max(...[1, 3, 5].map((i) => Math.abs(parseInt(swatch.slice(i, i + 2), 16) - parseInt(band.slice(i, i + 2), 16))));
       console.log(`PROBE   key "${key.word}" ${swatch}, its band ${band}`);
       if (off > 3) fail(`${scene} ${theme}: the "${key.word}" key ${swatch} is not its band's ${band}`);
@@ -440,6 +515,110 @@ async function shootTheme(theme) {
     const r = await measureTrack(scene, "-playhead");
     if (!r || r.under !== "landed") return fail(`${scene} ${theme}: the playhead did not stop inside the landing`);
     if (Math.min(...r.sides) < 3) fail(`${scene} ${WIDTH}x${HEIGHT} ${theme}: the playhead is ${Math.min(...r.sides).toFixed(2)}:1 beside the sage band`);
+  };
+  /**
+   * The playhead stopped at each of `times`, read off the pixels (the
+   * review of #425): the colour it wears follows the band its centre
+   * stands in by the drawn geometry, so a landing widened to 4px holds
+   * the dark ink across all four and lets it go where the sage ends, and
+   * it reads at 3:1 against that ground beside it. A playhead whose
+   * colour disagrees with the band under its centre, or that reads under
+   * 3:1 on its own ground, prints FAIL. The stops in `strip` are cropped
+   * side by side around the landing at `stripAt` seconds (-heads).
+   */
+  const sweepPlayhead = async (scene, times, { durationS, strip = [], stripAt = null }) => {
+    const hex = (c) => "#" + c.map((v) => v.toString(16).padStart(2, "0")).join("");
+    // The landed band's own colour, off its key's swatch: sage or not.
+    const swatch = await page.evaluate(() => {
+      const card = [...document.querySelectorAll("main .eyebrow")].find((e) => e.textContent === "Hear it back")?.closest(".card");
+      const key = [...(card?.querySelector(".eyebrow")?.nextElementSibling?.children ?? [])].find((k) => k.textContent.trim() === "landed a point");
+      const r = key?.firstElementChild.getBoundingClientRect();
+      return r ? { x: Math.round(r.left + r.width / 2) - 2, y: Math.round(r.top + r.height / 2) - 2, width: 4, height: 4 } : null;
+    });
+    if (!swatch) return fail(`${scene} ${theme}: no "landed a point" key to read the sage from`);
+    const sw = await sharp(await page.screenshot({ clip: swatch })).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+    const at0 = ((sw.info.height / 2) * sw.info.width + sw.info.width / 2) * 3;
+    const sage = [sw.data[at0], sw.data[at0 + 1], sw.data[at0 + 2]];
+    const isSage = (c) => Math.max(...c.map((v, i) => Math.abs(v - sage[i]))) <= 10;
+    const frames = [];
+    let held = 0;
+    for (const at of times) {
+      const ok = await page.evaluate(async (to) => {
+        const a = document.querySelector("audio[data-take]");
+        if (!a || !Number.isFinite(a.duration) || a.duration < to) return null;
+        a.pause();
+        a.currentTime = to;
+        await new Promise((r) => a.addEventListener("seeked", r, { once: true }));
+        return a.currentTime;
+      }, at);
+      if (ok === null) return fail(`${scene} ${theme}: no audio long enough to seek to ${at}s, the playhead not read`);
+      await sleep(250);
+      const g = await page.evaluate(() => {
+        const card = [...document.querySelectorAll("main .eyebrow")].find((e) => e.textContent === "Hear it back")?.closest(".card");
+        const bar = card.querySelector(".relative.h-8");
+        const b = bar.getBoundingClientRect();
+        const head = bar.querySelector("[data-playhead]") ?? bar.lastElementChild;
+        const h = head.getBoundingClientRect();
+        const landed = [...bar.querySelectorAll('[data-pause-mark="landed"]')].map((s) => {
+          const r = s.getBoundingClientRect();
+          return { l: r.left, r: r.right };
+        });
+        return { bar: { x: b.left, y: b.top, w: b.width, h: b.height }, head: { x: h.left, w: h.width }, on: head.dataset.on ?? null, landed };
+      });
+      const clip = { x: Math.floor(g.bar.x), y: Math.floor(g.bar.y), width: Math.ceil(g.bar.w) + 1, height: Math.floor(g.bar.h) };
+      const buf = await page.screenshot({ clip });
+      const { data, info } = await sharp(buf).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+      const sc = info.width / clip.width;
+      const row = Math.floor((g.bar.h / 2) * sc);
+      const px = (x) => {
+        const i = (row * info.width + Math.floor((x - clip.x) * sc)) * 3;
+        return [data[i], data[i + 1], data[i + 2]];
+      };
+      const c = g.head.x + g.head.w / 2;
+      const inSage = g.landed.some((b) => c >= b.l && c < b.r);
+      const edge = Math.min(...g.landed.flatMap((b) => [Math.abs(c - b.l), Math.abs(c - b.r)]));
+      const ink = px(c);
+      // A device pixel clear of the playhead either side of it.
+      const sides = [px(g.head.x - 0.75), px(g.head.x + g.head.w + 0.75)];
+      const ground = sides.filter((s) => isSage(s) === inSage);
+      const reads = ground.map((s) => contrast(ink, s));
+      console.log(
+        `PROBE   ${ok.toFixed(1)}s head ${(g.head.x - g.bar.x).toFixed(2)}px, centre ${inSage ? "in the sage" : "off it"}${edge < 0.1 ? " (on its edge)" : ""}, data-on ${g.on ?? "none"}, ink ${hex(ink)}; ` +
+          `either side ${sides.map((s) => `${hex(s)} ${contrast(ink, s).toFixed(2)}`).join(" and ")}:1`
+      );
+      if (edge >= 0.1) {
+        if ((g.on === "landed") !== inSage)
+          fail(`${scene} ${WIDTH}x${HEIGHT} ${theme}: at ${ok.toFixed(1)}s the playhead's centre is ${inSage ? "inside" : "outside"} a landed band but data-on is ${g.on ?? "none"}`);
+        if (!reads.length) fail(`${scene} ${WIDTH}x${HEIGHT} ${theme}: at ${ok.toFixed(1)}s neither side of the playhead is the ground under its centre`);
+        else if (Math.min(...reads) < 3)
+          fail(`${scene} ${WIDTH}x${HEIGHT} ${theme}: at ${ok.toFixed(1)}s the playhead ${hex(ink)} is ${Math.min(...reads).toFixed(2)}:1 on the ${inSage ? "sage" : "sand"} it stands in`);
+        else held++;
+      }
+      if (strip.includes(at) && stripAt !== null) {
+        // The landing nearest stripAt, 6px before it to 12px after.
+        const x = g.bar.x + (stripAt / durationS) * g.bar.w;
+        const band = g.landed.reduce((a, b) => (Math.abs(b.l - x) < Math.abs(a.l - x) ? b : a));
+        const left = Math.max(0, Math.round((band.l - 6 - clip.x) * sc));
+        const frame = await sharp(buf).extract({ left, top: 0, width: Math.round(18 * sc), height: info.height }).resize({ width: Math.round(18 * sc) * 3, kernel: "nearest" }).png().toBuffer();
+        frames.push({ buf: frame, label: `${ok.toFixed(1)}s`, on: g.on === "landed" });
+      }
+    }
+    console.log(`PROBE ${scene} ${WIDTH}x${HEIGHT} ${theme}: ${held} of ${times.length} stops read at 3:1 or better on their own ground`);
+    if (frames.length) {
+      const { width: fw, height: fh } = await sharp(frames[0].buf).metadata();
+      const gap = 4;
+      const lab = 30;
+      const w = frames.length * (fw + gap) - gap;
+      const svg = `<svg width="${w}" height="${lab}" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#ffffff"/>${frames
+        .map((f, i) => `<text x="${i * (fw + gap) + fw / 2}" y="21" font-family="DejaVu Sans, sans-serif" font-size="15" text-anchor="middle" fill="#222">${f.label}${f.on ? " \u25cf" : ""}</text>`)
+        .join("")}</svg>`;
+      const file = name(scene, "-heads");
+      await sharp({ create: { width: w, height: fh + lab, channels: 3, background: "#808080" } })
+        .composite([...frames.map((f, i) => ({ input: f.buf, left: i * (fw + gap), top: 0 })), { input: Buffer.from(svg), left: 0, top: fh }])
+        .png()
+        .toFile(`${OUT}${file}`);
+      console.log(`shot  ${file} (a dot under a stop: data-on="landed")`);
+    }
   };
   /** Hear it back near the top of the screen, the transcript under it. */
   const showHear = async () => {
@@ -478,6 +657,30 @@ async function shootTheme(theme) {
       await shot("words-stored");
       await measureTrack("words-stored");
       await playheadOverLanding("words-stored", P.land.t + P.land.len / 3);
+    });
+  }
+  /* The review of #425: a 90s stored take, its playhead stopped every
+     0.1s across two landings and past both ends of each drawn band. */
+  if (want("words-long")) {
+    await step(async () => {
+      const was = stored.duration_s;
+      stored.pauses = LONG_HEAR.map((p) => ({ ...p }));
+      stored.duration_s = 90;
+      stored.audio_path = "look/rep-22.webm";
+      audio.mode = "long";
+      try {
+        await page.goto(`${BASE}/rep/rep-22`);
+        await showHear();
+        await probeTrack("words-long", LONG_HEAR, 90);
+        await shot("words-long");
+        await measureTrack("words-long");
+        const across = (from, to) => Array.from({ length: Math.round((to - from) * 10) + 1 }, (_, i) => +(from + i / 10).toFixed(1));
+        const short = across(60.4, 63.8);
+        await sweepPlayhead("words-long", [...short, ...across(34.6, 38.0)], { durationS: 90, strip: short.filter((_, i) => i % 2 === 0), stripAt: 61.0 });
+      } finally {
+        stored.duration_s = was;
+        audio.mode = "ok";
+      }
     });
   }
   /* An upload: the file goes in as it is, the same take comes back. */

@@ -3176,7 +3176,13 @@ function Results({
      tester on an older consent reads that testing is paused instead. */
   const under =
     match && resultKey ? (
-      <MatchCheck key={resultKey} clientId={resultKey} repId={result.repId} scores={snapshot} className="mt-4" />
+      <MatchCheck
+        key={resultKey}
+        clientId={resultKey}
+        repId={result.repId}
+        scores={snapshot}
+        className="mt-4 [@media(max-height:599px)]:mt-2"
+      />
     ) : pausedTester(tester) ? (
       <div className="mt-4">
         <p className="eyebrow">{DOOR_COPY.settingsTesting}</p>

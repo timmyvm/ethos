@@ -111,20 +111,17 @@ async function shootTheme(theme) {
       await page.waitForSelector("main .arrive-x", { timeout: 20000 });
       await page.waitForSelector('[role="dialog"]', { state: "detached", timeout: 8000 }).catch(() => {});
       await sleep(1200);
-      for (const label of [/The numbers/, /Your words/]) {
-        const button = page.getByRole("button", { name: label });
-        if (!(await button.count())) break;
-        await button.first().click();
-        await sleep(600);
-      }
-      await page.waitForSelector("main h2.section-head:has-text('What you said')", { timeout: 8000 });
+      /* #427: the transcript is in the glance's door, "The whole recording". */
+      await page.locator("main [data-glance-door]").click();
+      await sleep(900);
+      await page.waitForSelector(":is(main, [role=dialog]) h2.section-head:has-text('What you said')", { timeout: 8000 });
       await sleep(500);
       await shot("step", { fullPage: true });
       // The transcript in view, as a thumb meets it.
       await page.evaluate(() => {
-        const head = [...document.querySelectorAll("main h2.section-head")].find((h) => /What you said/.test(h.textContent ?? ""));
+        const head = [...document.querySelectorAll(":is(main, [role=dialog]) h2.section-head")].find((h) => /What you said/.test(h.textContent ?? ""));
         head?.scrollIntoView({ block: "start" });
-        window.scrollBy(0, -16);
+        (document.querySelector("[data-sheet-scroll]") ?? window).scrollBy(0, -16);
       });
       await shot("step-top");
     });

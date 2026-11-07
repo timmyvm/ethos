@@ -1219,7 +1219,11 @@ function Glance({
      under him, up to 32pt of the spare height goes over the stars so the
      score breathes. */
   const beside = !short && !!under && !tall;
-  const roomy = !short && !under;
+  /* A game's round card has spent the height Demos would stand in: on a
+     phone under 700pt his line stays, plain, and he steps off, so the
+     glance still fits without a scroll (375x667). */
+  const plain = short || (!!round && !tall);
+  const roomy = !plain && !under;
   return (
     <div data-glance className="flex w-full flex-1 flex-col">
       {roomy && !round && <div aria-hidden className="max-h-8 flex-1 [@media(max-height:700px)]:hidden" />}
@@ -1280,10 +1284,14 @@ function Glance({
         )}
       </div>
 
-      {short ? (
-        /* Under 600pt: no room for him; his line stays, plain, the chip in it. */
-        <div className={`mt-4 text-left font-body text-detail leading-[24px] text-ink ${arrival}`} style={arrivalStyle}>
-          {spoken}
+      {plain ? (
+        /* Under 600pt, or a round under 700: no room for him; his line
+           stays, plain, the chip in it. */
+        <div
+          className={`mt-3 flex flex-1 flex-col justify-center text-left font-body text-detail leading-[24px] font-normal text-ink ${arrival}`}
+          style={arrivalStyle}
+        >
+          <div className="text-center">{spoken}</div>
           {under}
         </div>
       ) : beside ? (
@@ -1303,21 +1311,20 @@ function Glance({
         </div>
       ) : (
         /* His line over his head, its tail at his face, and Demos under
-           it taking the free height from 88 to 270, #400's own ceiling
-           (#427: at 200 a 120pt band stood over his line at 390x844,
-           past rule 7's 64). A shorter hero (a take too short to score)
-           leaves more than he can take: it is shared over his line and
-           under his feet, so he and his line stay one group. */
+           it taking the free height from 88 to 220 (#427: at 200 a 120pt
+           band stood over his line at 390x844, past rule 7's 64; at 270
+           he outweighed the 665). What he cannot take is shared over his
+           line and under his feet, so he and his line stay one group. */
         <div data-coach-room className="mt-4 flex w-full flex-1 flex-col justify-center [@media(max-height:700px)]:mt-2">
           <div className={`shrink-0 ${arrival}`} style={arrivalStyle}>
             <SpeechBubble tail="down" className="text-center">
               {spoken}
             </SpeechBubble>
           </div>
-          <div className="relative mt-3 max-h-[270px] min-h-[88px] flex-1 basis-0">
+          <div className="relative mt-3 max-h-[220px] min-h-[88px] flex-1 basis-0">
             <div className="absolute inset-0 [container-type:size]">
-              <div className="absolute bottom-0 left-1/2 size-[min(100cqh,270px)] -translate-x-1/2 [container-type:size]">
-                {demos(270, true)}
+              <div className="absolute bottom-0 left-1/2 size-[min(100cqh,220px)] -translate-x-1/2 [container-type:size]">
+                {demos(220, true)}
                 {burst}
               </div>
             </div>

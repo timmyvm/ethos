@@ -1,0 +1,234 @@
+{
+  "tag": "before",
+  "variant": "unscored",
+  "sizes": [
+    {
+      "size": "390x844-light",
+      "beats": [
+        {
+          "words": 38,
+          "wordsNoTranscript": 38,
+          "wordsNoRound": 38,
+          "numbers": 6,
+          "text": "The cold open Not enough to score. 12 words isn't enough yet. Give it 60 to 90 seconds and a real answer. 1 star, nothing measured Give it 60 to 90 seconds and a real answer. The numbers",
+          "scrollH": 844,
+          "innerH": 844,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "score",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-390x844-light-score-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-390x844-light-score-full.png"
+          ],
+          "screens": 1
+        },
+        {
+          "words": 62,
+          "wordsNoTranscript": 62,
+          "wordsNoRound": 62,
+          "numbers": 22,
+          "text": "The score Pauses WPM 80 strolling Held pauses 0 ≥0.8s each Length 9 s target 60 to 90s The measured dimensions Pausing 108/150 Fillers 55/100 Restarts 33/50 Pace 93/100 Variety 66/100 5 dimensions, added up 355/500 The coach didn't run this time. These 5 measured dimensions cover 500 of the 1000; without the judged ones there is no Ethos Index. Your words",
+          "scrollH": 930,
+          "innerH": 844,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "numbers",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-390x844-light-numbers-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-390x844-light-numbers-s1.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-390x844-light-numbers-full.png"
+          ],
+          "screens": 1.1
+        },
+        {
+          "words": 69,
+          "wordsNoTranscript": 58,
+          "wordsNoRound": 69,
+          "numbers": 9,
+          "text": "The numbers Hear it back filler 0:00 um 0:02 What you said 12 words filler vague So the thing about habits is, um, they compound. You do 6 days running You showed up again. That's the whole mechanism. Tomorrow Pick a time and Demos reminds you once a day. Morning 8 am Lunch 12 pm Evening 6 pm Practice 2 of 3 Retake this one Back to the lesson",
+          "scrollH": 887,
+          "innerH": 844,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "words",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-390x844-light-words-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-390x844-light-words-s1.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-390x844-light-words-full.png"
+          ],
+          "screens": 1.05
+        },
+        {
+          "words": 54,
+          "wordsNoTranscript": 54,
+          "wordsNoRound": 54,
+          "numbers": 12,
+          "text": "Since day one Day 1 to day 26 All fillers ​/ min 9.3 → 2.8 Ethos 611 → 662 Words ​/ min 128 → 155 Held pauses ​/ recording 2 → 3 22 recordings. Every number measured, none awarded. Free shows the last 7 days and reads one recording a day. Premium opens all of it. Keep every number Not now",
+          "scrollH": 844,
+          "innerH": 844,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "exit-tap",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-390x844-light-exit-tap-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-390x844-light-exit-tap-full.png"
+          ],
+          "screens": 1
+        }
+      ],
+      "tapLiveMs": 5
+    },
+    {
+      "size": "390x844-dark",
+      "beats": [
+        {
+          "words": 38,
+          "wordsNoTranscript": 38,
+          "wordsNoRound": 38,
+          "numbers": 6,
+          "text": "The cold open Not enough to score. 12 words isn't enough yet. Give it 60 to 90 seconds and a real answer. 1 star, nothing measured Give it 60 to 90 seconds and a real answer. The numbers",
+          "scrollH": 844,
+          "innerH": 844,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "score",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-390x844-dark-score-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-390x844-dark-score-full.png"
+          ],
+          "screens": 1
+        },
+        {
+          "words": 62,
+          "wordsNoTranscript": 62,
+          "wordsNoRound": 62,
+          "numbers": 22,
+          "text": "The score Pauses WPM 80 strolling Held pauses 0 ≥0.8s each Length 9 s target 60 to 90s The measured dimensions Pausing 108/150 Fillers 55/100 Restarts 33/50 Pace 93/100 Variety 66/100 5 dimensions, added up 355/500 The coach didn't run this time. These 5 measured dimensions cover 500 of the 1000; without the judged ones there is no Ethos Index. Your words",
+          "scrollH": 930,
+          "innerH": 844,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "numbers",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-390x844-dark-numbers-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-390x844-dark-numbers-s1.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-390x844-dark-numbers-full.png"
+          ],
+          "screens": 1.1
+        },
+        {
+          "words": 69,
+          "wordsNoTranscript": 58,
+          "wordsNoRound": 69,
+          "numbers": 9,
+          "text": "The numbers Hear it back filler 0:00 um 0:02 What you said 12 words filler vague So the thing about habits is, um, they compound. You do 6 days running You showed up again. That's the whole mechanism. Tomorrow Pick a time and Demos reminds you once a day. Morning 8 am Lunch 12 pm Evening 6 pm Practice 2 of 3 Retake this one Back to the lesson",
+          "scrollH": 887,
+          "innerH": 844,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "words",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-390x844-dark-words-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-390x844-dark-words-s1.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-390x844-dark-words-full.png"
+          ],
+          "screens": 1.05
+        },
+        {
+          "words": 54,
+          "wordsNoTranscript": 54,
+          "wordsNoRound": 54,
+          "numbers": 12,
+          "text": "Since day one Day 1 to day 26 All fillers ​/ min 9.3 → 2.8 Ethos 611 → 662 Words ​/ min 128 → 155 Held pauses ​/ recording 2 → 3 22 recordings. Every number measured, none awarded. Free shows the last 7 days and reads one recording a day. Premium opens all of it. Keep every number Not now",
+          "scrollH": 844,
+          "innerH": 844,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "exit-tap",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-390x844-dark-exit-tap-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-390x844-dark-exit-tap-full.png"
+          ],
+          "screens": 1
+        }
+      ],
+      "tapLiveMs": 5
+    },
+    {
+      "size": "375x667-light",
+      "beats": [
+        {
+          "words": 38,
+          "wordsNoTranscript": 38,
+          "wordsNoRound": 38,
+          "numbers": 6,
+          "text": "The cold open Not enough to score. 12 words isn't enough yet. Give it 60 to 90 seconds and a real answer. 1 star, nothing measured Give it 60 to 90 seconds and a real answer. The numbers",
+          "scrollH": 667,
+          "innerH": 667,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "score",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-375x667-light-score-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-375x667-light-score-full.png"
+          ],
+          "screens": 1
+        },
+        {
+          "words": 62,
+          "wordsNoTranscript": 62,
+          "wordsNoRound": 62,
+          "numbers": 22,
+          "text": "The score Pauses WPM 80 strolling Held pauses 0 ≥0.8s each Length 9 s target 60 to 90s The measured dimensions Pausing 108/150 Fillers 55/100 Restarts 33/50 Pace 93/100 Variety 66/100 5 dimensions, added up 355/500 The coach didn't run this time. These 5 measured dimensions cover 500 of the 1000; without the judged ones there is no Ethos Index. Your words",
+          "scrollH": 930,
+          "innerH": 667,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "numbers",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-375x667-light-numbers-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-375x667-light-numbers-s1.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-375x667-light-numbers-full.png"
+          ],
+          "screens": 1.39
+        },
+        {
+          "words": 69,
+          "wordsNoTranscript": 58,
+          "wordsNoRound": 69,
+          "numbers": 9,
+          "text": "The numbers Hear it back filler 0:00 um 0:02 What you said 12 words filler vague So the thing about habits is, um, they compound. You do 6 days running You showed up again. That's the whole mechanism. Tomorrow Pick a time and Demos reminds you once a day. Morning 8 am Lunch 12 pm Evening 6 pm Practice 2 of 3 Retake this one Back to the lesson",
+          "scrollH": 887,
+          "innerH": 667,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "words",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-375x667-light-words-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-375x667-light-words-s1.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-375x667-light-words-full.png"
+          ],
+          "screens": 1.33
+        },
+        {
+          "words": 54,
+          "wordsNoTranscript": 54,
+          "wordsNoRound": 54,
+          "numbers": 12,
+          "text": "Since day one Day 1 to day 26 All fillers ​/ min 9.3 → 2.8 Ethos 611 → 662 Words ​/ min 128 → 155 Held pauses ​/ recording 2 → 3 22 recordings. Every number measured, none awarded. Free shows the last 7 days and reads one recording a day. Premium opens all of it. Keep every number Not now",
+          "scrollH": 667,
+          "innerH": 667,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "exit-tap",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-375x667-light-exit-tap-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/before-unscored-375x667-light-exit-tap-full.png"
+          ],
+          "screens": 1
+        }
+      ],
+      "tapLiveMs": 5
+    }
+  ]
+}

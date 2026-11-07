@@ -45,7 +45,7 @@
  *
  * Screens: the five tabs, /boss, the lesson page, the trait page, the unit
  * intro, the Shop, Settings, the paywall, recording idle and live, the
- * celebration, the three results steps, and every screen of the
+ * celebration, the results' glance and its sheet, and every screen of the
  * introduction, with the name question also at 390x508, its keyboard
  * up.
  */
@@ -382,7 +382,7 @@ for (const theme of ["light", "dark"]) {
     }
   }
 
-  const rep = ["rep-idle", "rep-live", "rep-celebration", "rep-results", "rep-numbers", "rep-words"];
+  const rep = ["rep-idle", "rep-live", "rep-celebration", "rep-results", "rep-sheet"];
   if (rep.some(want)) {
     try {
       await page.goto(`${BASE}/rep?lesson=h4`);
@@ -412,13 +412,13 @@ for (const theme of ["light", "dark"]) {
       await page.waitForSelector('[role="dialog"]', { state: "detached", timeout: 20000 }).catch(() => {});
       await sleep(2400);
       if (want("rep-results")) await check(page, "rep-results", theme);
-      for (const [name, label] of [["rep-numbers", /The numbers/], ["rep-words", /Your words/]]) {
-        const button = page.getByRole("button", { name: label });
-        if (!(await button.count())) break;
-        await button.first().click();
-        await sleep(600);
-        await page.evaluate(() => window.scrollTo(0, 0));
-        if (want(name)) await check(page, name, theme);
+      /* #427: the results are one glance (rep-results) and its door's
+         sheet, measured inside the sheet as the paywall is. */
+      if (want("rep-sheet")) {
+        await page.locator("main [data-glance-door]").click();
+        await page.waitForSelector('[role="dialog"][aria-label="The whole recording"]', { timeout: 4000 });
+        await sleep(900);
+        await check(page, "rep-sheet", theme, { scope: '[role="dialog"] [data-whole-recording]' });
       }
     } catch (e) {
       failed += 1;

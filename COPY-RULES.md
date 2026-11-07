@@ -128,7 +128,7 @@ can.
   Before the score shows, one tap: "How did that feel?" over "Before
   you see the score.", Rough, Okay, Strong, or Skip; tapping goes
   straight on to the score. After the
-  score, by its number, since the score is two steps back by then:
+  score, by its number, on the same screen as it (the glance, #427):
   "Did 665 feel right?" ("Did the score feel right?" when there is no
   number). Too low, About right, Too high. Too low and Too high open
   "What felt off?", optional. The save line says "Answer saved" for

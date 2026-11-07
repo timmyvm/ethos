@@ -13,7 +13,7 @@
  *
  * Screens: today, lessons, lesson, log, you, shop, games, settings,
  * rep-detail (the stored result the log links to), rep-idle,
- * rep-recording, rep-results, rep-numbers, rep-words; off the bar,
+ * rep-recording, rep-results, rep-glance, rep-sheet; off the bar,
  * practice, unit, boss, hostile, calibrate, upload, upload-results,
  * paywall, splash
  * (with splash-lift, the lift about 100ms in);
@@ -426,7 +426,7 @@ async function shootTheme(theme) {
 
   // The loop: idle, recording, results (live, via the scoring mock).
   await step(async () => {
-  const walk = ["rep-recording", "rep-results", "rep-numbers", "rep-words"].some(want);
+  const walk = ["rep-recording", "rep-results", "rep-glance", "rep-sheet"].some(want);
   if (!walk && !want("rep-idle")) return;
   await go("/rep?lesson=h4", 'button[aria-label="Start recording"]');
   await shot("rep-idle", { fullPage: false });
@@ -444,13 +444,14 @@ async function shootTheme(theme) {
     await page.waitForSelector('[role="dialog"]', { state: "detached", timeout: 8000 }).catch(() => {});
     await sleep(1600);
     await shot("rep-results", { settle: 200 });
-    // The walk has three steps and the camera only ever saw the first.
-    for (const [name, label] of [["rep-numbers", /The numbers/], ["rep-words", /Your words/]]) {
-      const button = page.getByRole("button", { name: label });
-      if (!(await button.count())) break;
-      await button.first().click();
-      await sleep(500);
-      await shot(name, { settle: 400 });
+    /* #427: the results are one glance (rep-results, once it has all
+       landed, is rep-glance) and its door's sheet, "The whole recording". */
+    if (want("rep-glance")) await shot("rep-glance", { fullPage: false, settle: 1600 });
+    const door = page.locator("main [data-glance-door]");
+    if (want("rep-sheet") && (await door.count())) {
+      await door.click();
+      await page.waitForSelector('[role="dialog"][aria-label="The whole recording"]', { timeout: 4000 });
+      await shot("rep-sheet", { fullPage: false, settle: 900 });
     }
   }
   });

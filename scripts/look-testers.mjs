@@ -208,20 +208,16 @@ async function shootTheme(theme) {
     await sleep(3200);
   };
   /* How it felt comes first, one tap; the direction is asked on the
-     last step, after the numbers: walk there with the step's own tap. */
+     glance, beside the score (#427): there is no step to walk to, and
+     the step's tap is the exit now. */
   const toQuestion = async (page, felt = "Okay") => {
     const pick = page.getByRole("button", { name: felt, exact: true });
     if (await pick.count()) {
       await pick.click();
       await sleep(700);
     }
-    for (let i = 0; i < 3; i++) {
-      if (await page.getByText(/feel right\?/).count()) return;
-      const next = page.locator("[data-step-action]").first();
-      if (!(await next.count()) || !/numbers|words/i.test(await next.innerText())) return;
-      await next.click();
-      await sleep(900);
-    }
+    await page.getByText(/feel right\?/).first().waitFor({ timeout: 8000 }).catch(() => {});
+    await sleep(2400);
   };
   // The one tap before the score shows.
   await step(["felt"], async () => {
@@ -272,13 +268,7 @@ async function shootTheme(theme) {
     if (want("results-paused")) {
       const { ctx, page } = await context(theme, { hint: true, asked: 3 });
       await results(page);
-      for (let i = 0; i < 3; i++) {
-        if (await page.getByText("Testing is paused.").count()) break;
-        const next = page.locator("[data-step-action]").first();
-        if (!(await next.count())) break;
-        await next.click();
-        await sleep(900);
-      }
+      /* On the glance (#427), under Demos's line: nothing to walk to. */
       await page.getByText("Testing is paused.").waitFor({ timeout: 8000 });
       await shot(page, "results-paused", { settle: 600, fullPage: false });
       await ctx.close();

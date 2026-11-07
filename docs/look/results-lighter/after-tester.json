@@ -1,0 +1,232 @@
+{
+  "tag": "after",
+  "variant": "tester",
+  "sizes": [
+    {
+      "size": "390x844-light",
+      "beats": [
+        {
+          "words": 19,
+          "wordsNoTranscript": 19,
+          "wordsNoRound": 19,
+          "numbers": 1,
+          "text": "The cold open Recorded 1:02 Tester How did that feel? Before you see the score. Rough Okay Strong Skip",
+          "scrollH": 844,
+          "innerH": 844,
+          "terracotta": 0,
+          "chips": 0,
+          "beat": "felt",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-390x844-light-felt-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-390x844-light-felt-full.png"
+          ],
+          "screens": 1
+        },
+        {
+          "words": 34,
+          "wordsNoTranscript": 34,
+          "wordsNoRound": 34,
+          "numbers": 10,
+          "text": "The cold open 665 /1000 ▲ 3 4 fillers, first at 0:02 . Practice 2: under 4. Did 665 feel right? Tester Too low About right Too high The whole recording Practice 2 of 3 Retake",
+          "scrollH": 844,
+          "innerH": 844,
+          "terracotta": 1,
+          "chips": 1,
+          "beat": "glance",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-390x844-light-glance-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-390x844-light-glance-full.png"
+          ],
+          "screens": 1
+        },
+        {
+          "words": 250,
+          "wordsNoTranscript": 129,
+          "wordsNoRound": 250,
+          "numbers": 36,
+          "text": "The whole recording Done Hear it back filler landed a point searching 0:02 um 0:02 like 0:07 um 0:10 you know 0:15 Kept:Held the pause before ‘the mistake people make’. Say this instead the thing about what matters about Names the point instead of pointing at it. AI-generated feedback Every dimension Pace leveled twice Pausing 108/150 Fillers 55/100 All fillers / min: 3.9 (4 in all). None scores 100; 8 a minute scores 0. Most of them were “um”. ↳ Replace it with silence, not a different word. Restarts 33/50 Pace 93/100 Variety 66/100 Structure 96/150 Credibility 87/150 Engagement 61/100 Steadiness 66/100 9 dimensions, added up 665/1000 What you said 121 words filler vague said 3+ times So the thing about habits is, um, they compound. You do the small version every day and, like, it builds on its own. Um, the mistake people make is waiting to feel ready. You know, ready is a feeling that shows up after you start. I used to think discipline was the whole answer, and I would plan a week nobody could really do, then miss a day and quit the plan instead of the day. What changed was making the habit small enough that missing it felt stupid. Five minutes. Not an hour, just five minutes I can do standing in a kitchen. And the five minutes usually turns into more, but only because it was allowed to be five. 3 landed pauses Silence you chose, before a new point. Practice 2 of 3",
+          "scrollH": 844,
+          "innerH": 844,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "sheet",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-390x844-light-sheet-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-390x844-light-sheet-s1.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-390x844-light-sheet-s2.png"
+          ],
+          "screens": 3
+        },
+        {
+          "words": 34,
+          "wordsNoTranscript": 34,
+          "wordsNoRound": 34,
+          "numbers": 1,
+          "text": "Lesson The cold open Explain why the sky changes colour at sunset The cold open Slow the run-up Let the gap sit One comparison Voice Video Record This one keeps a 6-day streak alive",
+          "scrollH": 844,
+          "innerH": 844,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "exit-tap",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-390x844-light-exit-tap-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-390x844-light-exit-tap-full.png"
+          ],
+          "screens": 1
+        }
+      ],
+      "tapLiveMs": 5
+    },
+    {
+      "size": "390x844-dark",
+      "beats": [
+        {
+          "words": 19,
+          "wordsNoTranscript": 19,
+          "wordsNoRound": 19,
+          "numbers": 1,
+          "text": "The cold open Recorded 1:02 Tester How did that feel? Before you see the score. Rough Okay Strong Skip",
+          "scrollH": 844,
+          "innerH": 844,
+          "terracotta": 0,
+          "chips": 0,
+          "beat": "felt",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-390x844-dark-felt-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-390x844-dark-felt-full.png"
+          ],
+          "screens": 1
+        },
+        {
+          "words": 34,
+          "wordsNoTranscript": 34,
+          "wordsNoRound": 34,
+          "numbers": 10,
+          "text": "The cold open 665 /1000 ▲ 3 4 fillers, first at 0:02 . Practice 2: under 4. Did 665 feel right? Tester Too low About right Too high The whole recording Practice 2 of 3 Retake",
+          "scrollH": 844,
+          "innerH": 844,
+          "terracotta": 1,
+          "chips": 1,
+          "beat": "glance",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-390x844-dark-glance-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-390x844-dark-glance-full.png"
+          ],
+          "screens": 1
+        },
+        {
+          "words": 250,
+          "wordsNoTranscript": 129,
+          "wordsNoRound": 250,
+          "numbers": 36,
+          "text": "The whole recording Done Hear it back filler landed a point searching 0:02 um 0:02 like 0:07 um 0:10 you know 0:15 Kept:Held the pause before ‘the mistake people make’. Say this instead the thing about what matters about Names the point instead of pointing at it. AI-generated feedback Every dimension Pace leveled twice Pausing 108/150 Fillers 55/100 All fillers / min: 3.9 (4 in all). None scores 100; 8 a minute scores 0. Most of them were “um”. ↳ Replace it with silence, not a different word. Restarts 33/50 Pace 93/100 Variety 66/100 Structure 96/150 Credibility 87/150 Engagement 61/100 Steadiness 66/100 9 dimensions, added up 665/1000 What you said 121 words filler vague said 3+ times So the thing about habits is, um, they compound. You do the small version every day and, like, it builds on its own. Um, the mistake people make is waiting to feel ready. You know, ready is a feeling that shows up after you start. I used to think discipline was the whole answer, and I would plan a week nobody could really do, then miss a day and quit the plan instead of the day. What changed was making the habit small enough that missing it felt stupid. Five minutes. Not an hour, just five minutes I can do standing in a kitchen. And the five minutes usually turns into more, but only because it was allowed to be five. 3 landed pauses Silence you chose, before a new point. Practice 2 of 3",
+          "scrollH": 844,
+          "innerH": 844,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "sheet",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-390x844-dark-sheet-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-390x844-dark-sheet-s1.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-390x844-dark-sheet-s2.png"
+          ],
+          "screens": 3
+        },
+        {
+          "words": 34,
+          "wordsNoTranscript": 34,
+          "wordsNoRound": 34,
+          "numbers": 1,
+          "text": "Lesson The cold open Explain why the sky changes colour at sunset The cold open Slow the run-up Let the gap sit One comparison Voice Video Record This one keeps a 6-day streak alive",
+          "scrollH": 844,
+          "innerH": 844,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "exit-tap",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-390x844-dark-exit-tap-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-390x844-dark-exit-tap-full.png"
+          ],
+          "screens": 1
+        }
+      ],
+      "tapLiveMs": 5
+    },
+    {
+      "size": "375x667-light",
+      "beats": [
+        {
+          "words": 19,
+          "wordsNoTranscript": 19,
+          "wordsNoRound": 19,
+          "numbers": 1,
+          "text": "The cold open Recorded 1:02 Tester How did that feel? Before you see the score. Rough Okay Strong Skip",
+          "scrollH": 667,
+          "innerH": 667,
+          "terracotta": 0,
+          "chips": 0,
+          "beat": "felt",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-375x667-light-felt-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-375x667-light-felt-full.png"
+          ],
+          "screens": 1
+        },
+        {
+          "words": 34,
+          "wordsNoTranscript": 34,
+          "wordsNoRound": 34,
+          "numbers": 10,
+          "text": "The cold open 665 /1000 ▲ 3 4 fillers, first at 0:02 . Practice 2: under 4. Did 665 feel right? Tester Too low About right Too high The whole recording Practice 2 of 3 Retake",
+          "scrollH": 667,
+          "innerH": 667,
+          "terracotta": 1,
+          "chips": 1,
+          "beat": "glance",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-375x667-light-glance-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-375x667-light-glance-full.png"
+          ],
+          "screens": 1
+        },
+        {
+          "words": 250,
+          "wordsNoTranscript": 129,
+          "wordsNoRound": 250,
+          "numbers": 36,
+          "text": "The whole recording Done Hear it back filler landed a point searching 0:02 um 0:02 like 0:07 um 0:10 you know 0:15 Kept:Held the pause before ‘the mistake people make’. Say this instead the thing about what matters about Names the point instead of pointing at it. AI-generated feedback Every dimension Pace leveled twice Pausing 108/150 Fillers 55/100 All fillers / min: 3.9 (4 in all). None scores 100; 8 a minute scores 0. Most of them were “um”. ↳ Replace it with silence, not a different word. Restarts 33/50 Pace 93/100 Variety 66/100 Structure 96/150 Credibility 87/150 Engagement 61/100 Steadiness 66/100 9 dimensions, added up 665/1000 What you said 121 words filler vague said 3+ times So the thing about habits is, um, they compound. You do the small version every day and, like, it builds on its own. Um, the mistake people make is waiting to feel ready. You know, ready is a feeling that shows up after you start. I used to think discipline was the whole answer, and I would plan a week nobody could really do, then miss a day and quit the plan instead of the day. What changed was making the habit small enough that missing it felt stupid. Five minutes. Not an hour, just five minutes I can do standing in a kitchen. And the five minutes usually turns into more, but only because it was allowed to be five. 3 landed pauses Silence you chose, before a new point. Practice 2 of 3",
+          "scrollH": 667,
+          "innerH": 667,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "sheet",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-375x667-light-sheet-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-375x667-light-sheet-s1.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-375x667-light-sheet-s2.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-375x667-light-sheet-s3.png"
+          ],
+          "screens": 4
+        },
+        {
+          "words": 34,
+          "wordsNoTranscript": 34,
+          "wordsNoRound": 34,
+          "numbers": 1,
+          "text": "Lesson The cold open Explain why the sky changes colour at sunset The cold open Slow the run-up Let the gap sit One comparison Voice Video Record This one keeps a 6-day streak alive",
+          "scrollH": 667,
+          "innerH": 667,
+          "terracotta": 1,
+          "chips": 0,
+          "beat": "exit-tap",
+          "files": [
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-375x667-light-exit-tap-s0.png",
+            "/home/user/ethos-wt/results/docs/look/results-lighter/after-tester-375x667-light-exit-tap-full.png"
+          ],
+          "screens": 1
+        }
+      ],
+      "tapLiveMs": 16
+    }
+  ]
+}

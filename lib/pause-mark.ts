@@ -52,3 +52,12 @@ export function heldPauseMarks(pauses: readonly MarkedPause[]): {
   const landed = held.filter(landedPause).length;
   return { held: held.length, landed, searching: held.length - landed };
 }
+
+/**
+ * Whether the second `t` falls inside a held pause that landed, so Hear
+ * it back's playhead can be read over the sage band it crosses (#425).
+ * Beats are never drawn on the track and never count.
+ */
+export function landedAt(pauses: readonly (MarkedPause & { t: number; len: number })[], t: number): boolean {
+  return pauses.some((p) => p.kind !== "beat" && landedPause(p) && t >= p.t && t <= p.t + p.len);
+}

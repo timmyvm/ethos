@@ -2,9 +2,10 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { IconBubble, IconPauseSm, IconPlay } from "@/components/Icon";
+import { LANDED_MARK } from "@/components/PauseBar";
 import type { TakeAudio } from "@/components/TakeAudio";
 import type { FillerHit, Pause } from "@/lib/metrics";
-import { heldPauseMarks, pauseMark, PAUSE_MARK_WORDS, type MarkedPause, type PauseMark } from "@/lib/pause-mark";
+import { heldPauseMarks, landedAt, pauseMark, PAUSE_MARK_WORDS, type MarkedPause, type PauseMark } from "@/lib/pause-mark";
 
 /**
  * Play the rep back with its own timeline marked up: tap any filler to
@@ -90,6 +91,7 @@ export function AudioScrubber({
 
   const pct = (n: number) => (durationS > 0 ? (n / durationS) * 100 : 0);
   const held = heldPauseMarks(pauses);
+  const onLanded = landedAt(pauses, t);
 
   return (
     /* The card is the Fillers trait's ground (recording-20, system-9):
@@ -143,7 +145,10 @@ export function AudioScrubber({
         <div className="relative flex-1 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-terracotta-500">
           {/* Track with pause bands and filler ticks. The ticks are marks,
               not controls: the range lies over them, so no tap could
-              reach one, and each pill below already plays its filler. */}
+              reach one, and each pill below already plays its filler.
+              A band starts at its pause's second and is never under
+              4px: a short pause on a long take grows to the right, so
+              where it starts stays true (#425). */}
           <div className="relative h-8 overflow-hidden bg-sand">
             {pauses
               .filter((p) => p.kind !== "beat")
@@ -154,7 +159,7 @@ export function AudioScrubber({
                     key={`p${i}`}
                     aria-hidden
                     data-pause-mark={mark}
-                    className={`absolute top-0 h-full ${PAUSE_MARK[mark]}`}
+                    className={`absolute top-0 h-full ${BAND_MIN} ${PAUSE_MARK[mark]}`}
                     style={{ left: `${pct(p.t)}%`, width: `${pct(p.len)}%` }}
                   />
                 );
@@ -175,8 +180,16 @@ export function AudioScrubber({
                 style={{ left: `${pct(m.t)}%` }}
               />
             ))}
+            {/* The playhead, as it always was, except inside a pause that
+                landed: there the dark theme's light ink is 2.25:1 on the
+                sage, so it turns to the ground's near-black (7.45:1) and
+                the band still shows either side of it. A rim of sand
+                around it read, but it covered a 4px band entirely, so the
+                landing vanished while it played (#425). */}
             <span
-              className="absolute top-0 h-full w-[2px] bg-ink"
+              data-playhead
+              data-on={onLanded ? "landed" : undefined}
+              className={`absolute top-0 h-full w-[2px] ${onLanded ? PLAYHEAD_ON_LANDED : PLAYHEAD}`}
               style={{ left: `${pct(t)}%` }}
             />
           </div>
@@ -252,12 +265,23 @@ export function AudioScrubber({
    key. Not the map's hollow outline: a band is drawn to the take's
    scale, a second of a minute is about 4px on a phone, and an ink
    outline that narrow reads as a solid rule beside the cut-in and the
-   playhead. */
+   playhead.
+   Since #425 (Timothy: a well-held pause barely showed beside the
+   filler ticks) a landed band is the pause map's own solid sage-600,
+   3.65:1 on the light sand and 5.02:1 on the dark (the ticks are 3.70
+   and 5.30), and a searching band stays a quiet stone, 1.59 and 1.86:1,
+   so the earned silence is the mark that reads. Both are measured in
+   lib/today-colour.test.ts. */
 const FILLER_MARK = "bg-[var(--tone)]";
-const PAUSE_MARK: Record<PauseMark, string> = { landed: "bg-sage-500/40", searching: "bg-stone-400/30" };
+export const PAUSE_MARK: Record<PauseMark, string> = { landed: LANDED_MARK, searching: "bg-stone-400/35" };
+/** No band under 4px, grown rightward from its pause's start. */
+export const BAND_MIN = "min-w-[4px]";
 /* Demos's cut-in: ink, as on the pause map, at the filler's 3px so the
    2px playhead stays its own mark. */
 const CUT_IN_MARK = "bg-ink/70";
+/** The playhead: ink, and the ground's near-black over a landed band in dark. */
+export const PLAYHEAD = "bg-ink";
+export const PLAYHEAD_ON_LANDED = "bg-ink dark:bg-ground";
 
 /** A key entry: the mark on a scrap of the track's own ground. */
 function Key({

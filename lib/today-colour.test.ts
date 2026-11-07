@@ -507,3 +507,64 @@ describe("the tester chip reads", () => {
     expect(ratio(pop(darkPop, "mint-ink"), pop(darkPop, "mint"))).toBeGreaterThanOrEqual(4.5);
   });
 });
+
+/*
+ * Hear it back's pause bands on the track's sand (#425, Timothy: a
+ * well-held pause barely showed beside the filler ticks). The track is
+ * `sand`, and its marks are graphics: a pause that landed a point is the
+ * pause map's solid sage-600, which holds the 3:1 a mark needs on sand
+ * in both themes, as the filler ticks do; a searching pause stays a
+ * quiet stone, told from the sand at 1.5 to 2:1 and well under the
+ * landed band; and the playhead, crossing a landed band, holds 3:1
+ * against the sage (the dark theme's light ink is 2.25:1 there, so it
+ * takes the ground's near-black). Not a trait's tone: sage is earned,
+ * and the classes are read from the component, so changing one without
+ * measuring it fails here.
+ */
+describe("Hear it back's pause bands read on the track (#425)", async () => {
+  const { PAUSE_MARK, PLAYHEAD_ON_LANDED } = await import("@/components/AudioScrubber");
+  const darkBlock = css.slice(css.indexOf(':root[data-theme="dark"] {'));
+  const lightBlock = css.slice(0, css.indexOf(':root[data-theme="dark"] {'));
+  /** A `bg-<token>[/<pct>]` class as an opaque colour over `under`. */
+  const fill = (block: string, cls: string, under: string) => {
+    const m = cls.match(/^bg-([a-z]+(?:-\d+)?)(?:\/(\d+))?$/);
+    if (!m) throw new Error(`not a token fill: ${cls}`);
+    const v = block.match(new RegExp(`--color-${m[1]}:\\s*([^;]+);`))?.[1].trim();
+    if (!v) throw new Error(`no --color-${m[1]}`);
+    const opacity = m[2] ? Number(m[2]) / 100 : 1;
+    const rgba = v.match(/^rgba\(\s*(\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\s*\)$/);
+    const [c, a] = rgba ? [[1, 2, 3].map((i) => Number(rgba[i])), Number(rgba[4]) * opacity] : [rgb(v), opacity];
+    const u = rgb(under);
+    return "#" + c.map((x, i) => Math.round(x * a + u[i] * (1 - a)).toString(16).padStart(2, "0")).join("");
+  };
+  const themes = [
+    ["light", lightBlock, light.sand],
+    ["dark", darkBlock, dark.sand],
+  ] as const;
+
+  it("stands its marks on sand", () => {
+    expect(src("components/AudioScrubber.tsx")).toContain('className="relative h-8 overflow-hidden bg-sand"');
+    expect(PAUSE_MARK.landed).toBe("bg-sage-600");
+  });
+  for (const [theme, block, sand] of themes) {
+    const landed = ratio(fill(block, PAUSE_MARK.landed, sand), sand);
+    const quiet = ratio(fill(block, PAUSE_MARK.searching, sand), sand);
+    it(`${theme}: a landed band at 3:1 or better on the sand`, () => {
+      expect(landed).toBeGreaterThanOrEqual(3);
+    });
+    it(`${theme}: a searching band quiet, 1.5 to 2:1 on the sand, under half the landed band's weight`, () => {
+      expect(quiet).toBeGreaterThanOrEqual(1.5);
+      expect(quiet).toBeLessThanOrEqual(2);
+      expect(landed / quiet).toBeGreaterThanOrEqual(2);
+    });
+    it(`${theme}: the playhead at 3:1 or better over a landed band`, () => {
+      const [base, darkOnly] = PLAYHEAD_ON_LANDED.split(" ");
+      const head = theme === "dark" && darkOnly ? darkOnly.replace(/^dark:/, "") : base;
+      expect(ratio(fill(block, head, sand), fill(block, PAUSE_MARK.landed, sand))).toBeGreaterThanOrEqual(3);
+    });
+  }
+  it("measures what the comment and the log say: 3.65 and 5.02 landed, 1.59 and 1.86 searching", () => {
+    const at = (theme: number, cls: string) => ratio(fill(themes[theme][1], cls, themes[theme][2]), themes[theme][2]).toFixed(2);
+    expect([at(0, PAUSE_MARK.landed), at(1, PAUSE_MARK.landed), at(0, PAUSE_MARK.searching), at(1, PAUSE_MARK.searching)]).toEqual(["3.65", "5.02", "1.59", "1.86"]);
+  });
+});

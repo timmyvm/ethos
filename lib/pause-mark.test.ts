@@ -1,11 +1,11 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { AudioScrubber } from "@/components/AudioScrubber";
+import { AudioScrubber, BAND_MIN, PAUSE_MARK, PLAYHEAD, PLAYHEAD_ON_LANDED } from "@/components/AudioScrubber";
 import { LANDED_MARK, PauseBar } from "@/components/PauseBar";
 import type { TakeAudio } from "@/components/TakeAudio";
 import type { Pause } from "./metrics";
-import { heldPauseMarks, landedPause, PAUSE_MARK_WORDS, pauseMark, type MarkedPause } from "./pause-mark";
+import { heldPauseMarks, landedAt, landedPause, PAUSE_MARK_WORDS, pauseMark, type MarkedPause } from "./pause-mark";
 import type { PauseVerdict } from "./pause-quality";
 
 /*
@@ -135,5 +135,86 @@ describe("Hear it back's track marks pauses as the pause map does", () => {
     expect(legend(html)[0]).toBe("cut-in");
     expect(html).toMatch(/class="absolute top-0 h-full w-\[3px\] bg-ink\/70" style="left:39\.0322/);
     expect(html).toContain('aria-label="Says who? 0:24, play from a second before Demos cut in"');
+  });
+});
+
+/*
+ * Landed pauses read on the track (#425, Timothy's "yeah do it"): a
+ * well-held pause was a 40% sage wash, about 1.5:1 on the sand beside
+ * the solid filler ticks. Now it is the pause map's own solid sage, the
+ * searching band stays a quiet stone, no band is under 4px, and the key
+ * wears the band's own class. Their contrast is measured from the tokens
+ * in lib/today-colour.test.ts.
+ */
+describe("Hear it back's landed pauses read (#425)", () => {
+  /** Every span on the track, in order, as [kind, class]. */
+  function track(html: string) {
+    const bar = html.slice(html.indexOf('class="relative h-8 overflow-hidden bg-sand"'), html.indexOf("<input"));
+    return [...bar.matchAll(/<span([^>]*)class="([^"]*)"/g)].map(([, attrs, cls]) => {
+      const mark = attrs.match(/data-pause-mark="(\w+)"/)?.[1];
+      return [mark ?? (attrs.includes("data-playhead") ? "playhead" : cls.includes("var(--tone)") ? "filler" : "cut-in"), cls] as const;
+    });
+  }
+  /** The legend's swatches, as [word, the swatch's mark class]. */
+  function keys(html: string) {
+    const head = html.slice(0, html.indexOf('type="range"'));
+    return [...head.matchAll(/<span class="inline-flex items-center gap-1"><span aria-hidden="true" class="[^"]*"><span class="([^"]*)"><\/span><\/span>([^<]+)<\/span>/g)].map(
+      ([, cls, word]) => [word, cls] as const
+    );
+  }
+
+  it("draws a landed pause in the pause map's solid sage, a searching one in a quiet stone", () => {
+    expect(PAUSE_MARK.landed).toBe(LANDED_MARK);
+    expect(PAUSE_MARK.landed).toBe("bg-sage-600");
+    expect(PAUSE_MARK.searching).toBe("bg-stone-400/35");
+    const bands = track(scrubber(TWO_FILLED)).filter(([k]) => k === "landed" || k === "searching");
+    expect(bands.map(([k]) => k)).toEqual(["landed", "searching", "searching", "searching", "landed"]);
+    for (const [kind, cls] of bands) {
+      expect(cls).toBe(`absolute top-0 h-full ${BAND_MIN} ${PAUSE_MARK[kind as "landed" | "searching"]}`);
+    }
+  });
+
+  it("keeps every band at full height and 4px at least, from its own second", () => {
+    expect(BAND_MIN).toBe("min-w-[4px]");
+    // A 0.4s landing on a 62s take: 0.65% wide, about 1.3px on a phone.
+    const html = scrubber([p(30, "pre", "landing", 0.4)]);
+    expect(html).toMatch(/data-pause-mark="landed" class="absolute top-0 h-full min-w-\[4px\] bg-sage-600" style="left:48\.387\d*%;width:0\.645\d*%"/);
+  });
+
+  it("draws a row from before verdicts by its kind at the same strength", () => {
+    const bands = track(scrubber(UNJUDGED)).filter(([k]) => k === "landed" || k === "searching");
+    expect(bands.map(([k]) => k)).toEqual(["landed", "searching", "landed"]);
+    expect(bands[0][1]).toContain("bg-sage-600");
+    expect(bands[1][1]).toContain("bg-stone-400/35");
+  });
+
+  it("keys each pause with its band's own class", () => {
+    const k = Object.fromEntries(keys(scrubber(TWO_FILLED)));
+    expect(k[PAUSE_MARK_WORDS.landed]).toBe(`absolute inset-0 ${PAUSE_MARK.landed}`);
+    expect(k[PAUSE_MARK_WORDS.searching]).toBe(`absolute inset-0 ${PAUSE_MARK.searching}`);
+  });
+
+  it("leaves the fillers, the cut-in and the playhead as they were", () => {
+    const marks = track(scrubber(TWO_FILLED, [{ t: 24.2, label: "Says who?" }]));
+    expect(marks.find(([k]) => k === "filler")?.[1]).toBe("absolute top-0 h-full w-[3px] bg-[var(--tone)]");
+    expect(marks.find(([k]) => k === "cut-in")?.[1]).toBe("absolute top-0 h-full w-[3px] bg-ink/70");
+    // At 0:00 the playhead is the plain 2px ink rule it always was.
+    expect(marks.at(-1)).toEqual(["playhead", `absolute top-0 h-full w-[2px] ${PLAYHEAD}`]);
+    expect(PLAYHEAD).toBe("bg-ink");
+    // Inside a landed band, only the dark theme's ink changes.
+    expect(PLAYHEAD_ON_LANDED).toBe("bg-ink dark:bg-ground");
+  });
+
+  it("knows when the playhead stands in a pause that landed, by the same rule", () => {
+    const pauses = [p(2, "pre", "opening", 1.2), p(10, "pre", "filled", 1), p(20, "mid", "hesitation", 1), p(30, "pre"), p(40, "beat", undefined, 0.5)];
+    expect(landedAt(pauses, 2)).toBe(true);
+    expect(landedAt(pauses, 2.6)).toBe(true);
+    expect(landedAt(pauses, 3.2)).toBe(true);
+    expect(landedAt(pauses, 3.3)).toBe(false);
+    expect(landedAt(pauses, 10.5)).toBe(false); // filled before a sentence: not earned
+    expect(landedAt(pauses, 20.5)).toBe(false);
+    expect(landedAt(pauses, 30.5)).toBe(true); // no verdict: by its kind
+    expect(landedAt(pauses, 40.2)).toBe(false); // beats are never drawn
+    expect(landedAt([], 1)).toBe(false);
   });
 });

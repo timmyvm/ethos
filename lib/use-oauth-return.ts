@@ -22,7 +22,9 @@ import { GOOGLE_PENDING_MS, signInWithGoogle } from "@/lib/auth";
 export function useGoogleSignIn(
   mode: "signup" | "signin",
   /** The page to come back to once signed in (lib/auth.ts `withNext`). */
-  next: string | null = null
+  next: string | null = null,
+  /** Where the attempt began, when not on this page (lib/auth.ts `signInWithGoogle`). */
+  from?: string
 ) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +53,7 @@ export function useGoogleSignIn(
   const start = useCallback(async () => {
     setError(null);
     setPending(true);
-    const result = await signInWithGoogle(mode, next).catch(() => ({
+    const result = await signInWithGoogle(mode, next, from).catch(() => ({
       ok: false,
       error: undefined,
     }));
@@ -61,7 +63,7 @@ export function useGoogleSignIn(
       setPending(false);
       setError(result.error ?? "Google didn't answer. Try again.");
     }
-  }, [mode, next]);
+  }, [mode, next, from]);
 
   return { pending, error, start };
 }

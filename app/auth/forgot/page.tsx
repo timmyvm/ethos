@@ -9,7 +9,7 @@ import {
   Shell,
 } from "@/components/AuthForm";
 import { ACTION_CLASS, DISABLED_CLASS } from "@/lib/ui";
-import { sendReset } from "@/lib/auth";
+import { emailFrom, sendReset } from "@/lib/auth";
 
 export default function ForgotPage() {
   const [email, setEmail] = useState("");
@@ -23,6 +23,13 @@ export default function ForgotPage() {
   useEffect(() => {
     if (error) field.current?.focus();
   }, [error]);
+
+  /* Forgot? from a sign-up that met an account carries the address
+     (#426): it is filled, never typed twice. Read after mount. */
+  useEffect(() => {
+    const carried = emailFrom(window.location.search);
+    if (carried) setEmail((typed) => typed || carried);
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

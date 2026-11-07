@@ -52,6 +52,29 @@ export function withNext(path: string, next: string | null | undefined): string 
   return `${path}${path.includes("?") ? "&" : "?"}next=${encodeURIComponent(safe)}`;
 }
 
+/**
+ * `href` with the address typed so far, so the page it opens has it
+ * filled (#426): Forgot? from a sign-up that met an account, and the
+ * inbox screen's Sign in. A malformed address is left off.
+ */
+export function withEmail(href: string, email: string | null | undefined): string {
+  const e = email?.trim() ?? "";
+  if (!e || emailProblem(e) || e.length > 254) return href;
+  return `${href}${href.includes("?") ? "&" : "?"}email=${encodeURIComponent(e)}`;
+}
+
+/** The address a `withEmail` link carries, or null for none or a malformed one. */
+export function emailFrom(search: string | null | undefined): string | null {
+  let e: string | null = null;
+  try {
+    e = new URLSearchParams(search ?? "").get("email");
+  } catch {
+    return null;
+  }
+  e = e?.trim() ?? "";
+  return e && !emailProblem(e) && e.length <= 254 ? e : null;
+}
+
 export interface AuthResult {
   ok: boolean;
   /** Shown to the user verbatim. Plain, never blaming. */
@@ -72,6 +95,103 @@ export interface AuthResult {
    * back in it (auth-19). Absent for anything the server said.
    */
   field?: "email" | "password";
+  /**
+   * The email already has an Ethos account (#426). The sign-up form
+   * becomes that account's sign-in where it stands: the email kept, its
+   * password asked for, Sign in the tap. With `error` when a password
+   * was tried and is not that account's.
+   */
+  existing?: boolean;
+  /**
+   * The inbox is for an account that signed up with this email and
+   * never confirmed it: its link went again (#426).
+   */
+  resent?: boolean;
+}
+
+/**
+ * What the sign-up form says when the email it was given already has an
+ * account (#426). `ask`: a guest's form had no password field, so it
+ * asks for one. `mismatch`: the password typed is not that account's.
+ */
+export const EXISTING_COPY = {
+  /** The form's title once it is that account's sign-in: /signin's own. */
+  title: "Welcome back",
+  ask: "That email has an Ethos account. Enter its password to sign in.",
+  mismatch: "That email has an Ethos account. This password doesn't match it.",
+} as const;
+
+/** What the auth server answered with, as much of it as these checks read. */
+type AuthError = { message: string; code?: string; status?: number };
+
+/**
+ * The email belongs to an account already. A guest's `updateUser` hears
+ * `email_exists` ("A user with this email address has already been
+ * registered", 422); a sign-up with confirmations off hears
+ * `user_already_exists` ("User already registered"). Read by code, and
+ * by the words for an auth server that sends none.
+ */
+function emailTaken(error: AuthError): boolean {
+  if (error.code === "email_exists" || error.code === "user_already_exists") return true;
+  const m = error.message.toLowerCase();
+  return (
+    m.includes("already been registered") ||
+    m.includes("already registered") ||
+    m.includes("user already exists") ||
+    m.includes("email address is taken")
+  );
+}
+
+function wrongPassword(error: AuthError): boolean {
+  return error.code === "invalid_credentials" || /invalid login credentials/i.test(error.message);
+}
+
+function notConfirmed(error: AuthError): boolean {
+  return error.code === "email_not_confirmed" || /email not confirmed/i.test(error.message);
+}
+
+/**
+ * A link went to this address under a minute ago, so the auth server
+ * will not send another yet ("For security purposes, you can only
+ * request this after 42 seconds."). Not the project-wide "email rate
+ * limit exceeded", which sent nothing.
+ */
+function linkJustSent(error: AuthError): boolean {
+  return /only request this after/i.test(error.message);
+}
+
+/**
+ * A sign-up for an email that is confirmed already, with confirmations
+ * on: GoTrue answers 200 with a made-up user, no identities and no
+ * session, so nobody can learn who has an account. No mail is sent, so
+ * the inbox screen would wait for good.
+ */
+function obfuscatedUser(
+  user: { identities?: unknown[] | null } | null | undefined,
+  session: unknown
+): boolean {
+  return !!user && !session && Array.isArray(user.identities) && user.identities.length === 0;
+}
+
+/**
+ * Longer than any one sign-up takes to make its user and send its link,
+ * and longer than the minute GoTrue makes an address wait between links.
+ */
+const EARLIER_MS = 60_000;
+
+/**
+ * A sign-up for an email that signed up before and never confirmed:
+ * GoTrue sends that account's link again and answers with its real user,
+ * made well before the link it just sent. A new account's user is made
+ * in the same request as its link.
+ */
+function resentToEarlier(
+  user: { created_at?: string; confirmation_sent_at?: string } | null | undefined
+): boolean {
+  if (!user?.created_at || !user.confirmation_sent_at) return false;
+  const made = Date.parse(user.created_at);
+  const sent = Date.parse(user.confirmation_sent_at);
+  return Number.isFinite(made) && Number.isFinite(sent) && sent - made > EARLIER_MS;
 }
 
 /**
@@ -144,6 +264,11 @@ export async function sessionState(): Promise<SessionState> {
  * The upgrade path is the one that matters and it is deliberately NOT
  * "sign up, then move the data across": the password and the email are
  * attached to the existing user, so the reps were never anywhere else.
+ *
+ * An email that already has an account is never "sign in instead"
+ * (#426): with a password typed it signs in to that account here
+ * (`signInExisting`); a guest's form, which asked for none, comes back
+ * `existing` and asks for it in place.
  */
 export async function createAccount(
   email: string,
@@ -187,6 +312,12 @@ export async function createAccount(
         if (data.user) rememberEmailAsked(data.user.id);
         return { ok: true, checkInbox: true, note: SLOW_EMAIL_NOTE };
       }
+      /* The email has an account already (#426). The person meant
+         "sign me in", and this form asked for no password: it asks for
+         that account's now, where it stands. The guest is never signed
+         up again, and nothing is signed in to but the account this
+         email names. */
+      if (emailTaken(upgrade.error)) return { ok: false, existing: true, field: "password" };
       return { ok: false, error: humanise(upgrade.error.message) };
     }
     return { ok: true, checkInbox: true };
@@ -199,7 +330,7 @@ export async function createAccount(
     return { ok: false, error: passwordWrong, field: "password" };
   }
 
-  const { error } = await db.auth.signUp({
+  const { data: signedUp, error } = await db.auth.signUp({
     email: email.trim(),
     password,
     options: { emailRedirectTo: `${siteUrl()}${withNext("/auth/callback", next)}` },
@@ -209,9 +340,91 @@ export async function createAccount(
       console.error("auth: signup email timed out:", error.message);
       return { ok: true, checkInbox: true, note: SLOW_EMAIL_NOTE, thenSignIn: true };
     }
+    // The account exists and confirmations are off: sign in to it (#426).
+    if (emailTaken(error)) return signInExisting(email, password, next);
+    // This address signed up under a minute ago: its link is on its way.
+    if (linkJustSent(error)) return { ok: true, checkInbox: true, thenSignIn: true, resent: true };
     return { ok: false, error: humanise(error.message) };
   }
+  // A confirmed account, and confirmations on: no mail is coming (#426).
+  if (obfuscatedUser(signedUp?.user, signedUp?.session)) return signInExisting(email, password, next);
+  // Confirmations off: the new account is signed in already.
+  if (signedUp?.session) return { ok: true };
+  // Signed up before and never confirmed: its link went again.
+  if (resentToEarlier(signedUp?.user)) return { ok: true, checkInbox: true, thenSignIn: true, resent: true };
   return { ok: true, checkInbox: true, thenSignIn: true };
+}
+
+/**
+ * Sign-up met an account that already has this email (#426, Timothy:
+ * "If i try sign up instead of sign in just sign me in instead of
+ * sending me back"): sign in to it here, with the email and password
+ * typed, exactly as /signin does, testing carried (`carried_from`). It
+ * never makes a second account and never signs in to any account but
+ * the one this email names.
+ *
+ * - The password matches: `{ ok: true }`, and the form goes where a
+ *   sign-in goes.
+ * - It does not: `existing` with the mismatch line, so the form stays a
+ *   sign-in for this email with the password cleared and Forgot? on it.
+ * - The account never confirmed its email: its link goes again and the
+ *   inbox screen says so, with Sign in under it, rather than a form
+ *   that can only fail again.
+ */
+export async function signInExisting(
+  email: string,
+  password: string,
+  /** Where that account's confirmation link sends them on (`withNext`). */
+  next?: string | null
+): Promise<AuthResult> {
+  const emailWrong = emailProblem(email);
+  if (emailWrong) return { ok: false, error: emailWrong, field: "email" };
+  if (!password) {
+    return { ok: false, existing: true, error: "Enter your password.", field: "password" };
+  }
+  const db = supabaseBrowser();
+  if (!db) return { ok: false, error: "Accounts aren't configured yet." };
+  const error = await passwordSignIn(email, password);
+  if (!error) return { ok: true };
+  if (wrongPassword(error)) {
+    return { ok: false, existing: true, error: EXISTING_COPY.mismatch, field: "password" };
+  }
+  if (notConfirmed(error)) {
+    const sent = await db.auth.resend({
+      type: "signup",
+      email: email.trim(),
+      options: { emailRedirectTo: `${siteUrl()}${withNext("/auth/callback", next)}` },
+    });
+    if (!sent.error || linkJustSent(sent.error)) {
+      return { ok: true, checkInbox: true, thenSignIn: true, resent: true };
+    }
+    if (emailTimedOut(sent.error.message)) {
+      console.error("auth: confirmation resend timed out:", sent.error.message);
+      return { ok: true, checkInbox: true, thenSignIn: true, resent: true, note: SLOW_EMAIL_NOTE };
+    }
+    return { ok: false, existing: true, error: humanise(sent.error.message) };
+  }
+  return { ok: false, existing: true, error: humanise(error.message) };
+}
+
+/**
+ * The one email-and-password sign-in, /signin's and sign-up's (#426):
+ * a phone that joined testing on its anonymous session takes that
+ * testing into the account (docs/testers.md), so the token is read
+ * before the sign-in swaps the session out. The auth server's error, or
+ * null once signed in.
+ */
+async function passwordSignIn(email: string, password: string): Promise<AuthError | null> {
+  const db = supabaseBrowser();
+  if (!db) return { message: "Accounts aren't configured yet." };
+  const carry = await testerCarryToken();
+  const { error } = await db.auth.signInWithPassword({
+    email: email.trim(),
+    password,
+  });
+  if (error) return error;
+  await carryTesting(carry);
+  return null;
 }
 
 /**
@@ -227,7 +440,13 @@ export async function createAccount(
 export async function signInWithGoogle(
   mode: "signup" | "signin",
   /** Where the callback sends them on once they are in (`withNext`). */
-  next?: string | null
+  next?: string | null,
+  /**
+   * Where the attempt began, when that is not this page: a sign-up the
+   * auth server turned back (#414) signs in from /auth/callback, and its
+   * attempt still began where the person tapped Google (#426).
+   */
+  from?: string
 ): Promise<AuthResult> {
   const db = supabaseBrowser();
   if (!db) return { ok: false, error: "Accounts aren't configured yet." };
@@ -237,7 +456,7 @@ export async function signInWithGoogle(
   // call because a successful call is already navigating; every failure
   // below takes it back, so a call that never left leaves no attempt
   // behind to mislabel a later /auth/callback visit.
-  rememberOAuthAttempt(mode);
+  rememberOAuthAttempt(mode, from);
   const failed = (message: string): AuthResult => {
     forgetOAuthAttempt();
     return { ok: false, error: humanise(message) };
@@ -337,9 +556,9 @@ export function parseOAuthAttempt(
   }
 }
 
-export function rememberOAuthAttempt(mode: "signup" | "signin"): void {
+export function rememberOAuthAttempt(mode: "signup" | "signin", began?: string): void {
   if (typeof window === "undefined") return;
-  const from = safeReturnPath(window.location.pathname + window.location.search);
+  const from = safeReturnPath(began ?? window.location.pathname + window.location.search);
   if (!from) return;
   try {
     sessionStorage.setItem(
@@ -524,16 +743,8 @@ export async function signIn(
   }
   const db = supabaseBrowser();
   if (!db) return { ok: false, error: "Accounts aren't configured yet." };
-  /* A phone that joined testing on its anonymous session takes that
-     testing into the account (docs/testers.md): the token is read before
-     the sign-in swaps it out. */
-  const carry = await testerCarryToken();
-  const { error } = await db.auth.signInWithPassword({
-    email: email.trim(),
-    password,
-  });
+  const error = await passwordSignIn(email, password);
   if (error) return { ok: false, error: humanise(error.message) };
-  await carryTesting(carry);
   return { ok: true };
 }
 

@@ -10,8 +10,12 @@ import { fetchReps } from "@/lib/client-data";
 import { firstRun } from "@/lib/onboarding";
 import { computeStreak } from "@/lib/streak";
 import {
+  EXISTING_COPY,
   MIN_PASSWORD,
+  emailFrom,
   sessionState,
+  signInExisting,
+  withEmail,
   type AuthResult,
   type SessionState,
 } from "@/lib/auth";
@@ -95,6 +99,14 @@ export function AuthForm({
   const [note, setNote] = useState<string | null>(null);
   /** A sign-up with no guest session: the confirmed account is signed in to next. */
   const [thenSignIn, setThenSignIn] = useState(false);
+  /**
+   * The address a sign-up met an account with (#426), lower case: while
+   * the field still holds it, the form is that account's sign-in. Typing
+   * another address makes it a sign-up again.
+   */
+  const [existing, setExisting] = useState<string | null>(null);
+  /** The inbox is for an account that never confirmed: its link went again (#426). */
+  const [resent, setResent] = useState(false);
   const [ready, setReady] = useState(false);
   const [session, setSession] = useState<SessionState | null>(null);
   const [progress, setProgress] = useState({ recordings: 0, streak: 0 });
@@ -181,6 +193,21 @@ export function AuthForm({
     if (errorField === "password") passwordRef.current?.focus();
   }, [errorField, error]);
 
+  /* An address carried in from another auth screen (#426: the inbox's
+     Sign in, Forgot?), so nobody types it twice. Read after mount, like
+     `next`, and never over something already typed. */
+  useEffect(() => {
+    const carried = emailFrom(window.location.search);
+    if (carried) setEmail((typed) => typed || carried);
+  }, []);
+
+  /* The password field a guest's form grows when its email has an
+     account (#426): the cursor goes to it, since that is the one thing
+     left to type. */
+  useEffect(() => {
+    if (existing) passwordRef.current?.focus();
+  }, [existing]);
+
   const carrying = session?.anonymous === true && progress.recordings > 0;
   /*
    * An anonymous upgrade collects EMAIL ONLY (#142): GoTrue refuses a
@@ -189,23 +216,53 @@ export function AuthForm({
    * was how the upgrade shipped broken and stayed broken.
    */
   const emailOnly = mode === "signup" && session?.anonymous === true;
-  const heading = carrying && progressTitle ? progressTitle : title;
+  /*
+   * A sign-up whose email already has an account is that account's
+   * sign-in, here, with the email kept (#426, Timothy: "just sign me in
+   * instead of sending me back"). It asks for the password a guest's
+   * form never had, and signs in as /signin does.
+   */
+  const signingIn = mode === "signup" && existing !== null;
+  /* Sign-in's own title once it is one: "Create your account" over a
+     Sign in tap said two things. */
+  const heading = signingIn
+    ? EXISTING_COPY.title
+    : carrying && progressTitle
+      ? progressTitle
+      : title;
+
+  function changeEmail(value: string) {
+    setEmail(value);
+    if (existing !== null && value.trim().toLowerCase() !== existing) {
+      setExisting(null);
+      setError(null);
+      setErrorField(null);
+    }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError(null);
     setErrorField(null);
-    const result = await onSubmit(email, password, next);
+    const result = signingIn
+      ? await signInExisting(email, password, next)
+      : await onSubmit(email, password, next);
     setBusy(false);
     if (!result.ok) {
-      setError(result.error ?? "That didn't work.");
-      setErrorField(result.field ?? null);
+      if (result.existing) {
+        setExisting(email.trim().toLowerCase());
+        // The password typed is not that account's: an empty field to try again in.
+        if (result.error && result.field === "password") setPassword("");
+      }
+      setError(result.error ?? (result.existing ? null : "That didn't work."));
+      setErrorField(result.error ? (result.field ?? null) : null);
       return;
     }
     if (result.checkInbox) {
       setNote(result.note ?? null);
       setThenSignIn(result.thenSignIn === true);
+      setResent(result.resent === true);
       setSent(true);
     } else window.location.href = next ?? "/";
   }
@@ -224,16 +281,26 @@ export function AuthForm({
     return (
       <Shell title="Check your inbox" back={back}>
         <div className="arrive flex flex-1 flex-col">
-          <p className="mt-3 text-read text-stone-800 text-pretty">
-            We&apos;ve sent a confirmation link to <Address>{email}</Address>{" "}
-            from <Address>hello@speakethos.com</Address>.
-            {emailOnly
-              ? " Open it, set your password, and the account is live."
-              : thenSignIn
-                ? " Open it, then sign in."
-                : " Open it and your account is live."}
-          </p>
-          {carrying && (
+          {resent ? (
+            /* The account was there already and never confirmed (#426):
+               its own link, again, and then the sign-in, never this form. */
+            <p className="mt-3 text-read text-stone-800 text-pretty">
+              <Address>{email}</Address> already has an account that was never
+              confirmed. We&apos;ve sent its link again from{" "}
+              <Address>hello@speakethos.com</Address>. Open it, then sign in.
+            </p>
+          ) : (
+            <p className="mt-3 text-read text-stone-800 text-pretty">
+              We&apos;ve sent a confirmation link to <Address>{email}</Address>{" "}
+              from <Address>hello@speakethos.com</Address>.
+              {emailOnly
+                ? " Open it, set your password, and the account is live."
+                : thenSignIn
+                  ? " Open it, then sign in."
+                  : " Open it and your account is live."}
+            </p>
+          )}
+          {carrying && !resent && (
             <p className="mt-3 text-read text-stone-800 text-pretty">
               Your {progress.recordings} recording
               {progress.recordings === 1 ? " is" : "s are"} already attached
@@ -251,7 +318,7 @@ export function AuthForm({
               the sign-in the confirmed account needs. */}
           <div className="mt-auto pt-8">
             {thenSignIn ? (
-              <Link href={authHref("signin", next)} className={ACTION_CLASS}>
+              <Link href={withEmail(authHref("signin", next), email)} className={ACTION_CLASS}>
                 Sign in
               </Link>
             ) : (
@@ -290,7 +357,15 @@ export function AuthForm({
               )}
             </div>
             <p className="mt-3 text-caption leading-relaxed text-stone-600">
-              {mode === "signup" ? (
+              {signingIn ? (
+                /* A pre-#410 guest's recordings stay on the guest when
+                   it signs in to the account its email has (#414, #426):
+                   said before the tap, as /signin says it. */
+                <>
+                  Signing in to that account leaves them on this device. Use
+                  another email to keep them.
+                </>
+              ) : mode === "signup" ? (
                 <>Your account attaches to them where they are.</>
               ) : (
                 <>
@@ -340,7 +415,9 @@ export function AuthForm({
           {google.error && (
             <FormError id="google-error">{google.error}</FormError>
           )}
-          {carrying && mode === "signup" && (
+          {/* Not while the form signs in to an account: the tile above
+              says then what that leaves behind. */}
+          {carrying && mode === "signup" && !signingIn && (
             <p className="mt-2 text-center text-caption text-stone-400">
               Your recordings attach to it the same way.
             </p>
@@ -368,20 +445,31 @@ export function AuthForm({
               spellCheck={false}
               required
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => changeEmail(e.target.value)}
               placeholder="you@email.com"
               aria-invalid={emailInvalid || undefined}
               aria-describedby={emailInvalid ? "form-error" : undefined}
               className={FIELD_CLASS}
             />
 
-            {!emailOnly && (
+            {(!emailOnly || signingIn) && (
               <>
                 <div className="mt-4 flex items-baseline justify-between">
                   <label className={LABEL_CLASS} htmlFor="password">
                     Password
                   </label>
-                  {passwordAside}
+                  {signingIn ? (
+                    /* Recovery on the field it recovers, as on /signin
+                       (auth-16), with the address already in it. */
+                    <Link
+                      href={withEmail("/auth/forgot", email)}
+                      className="text-link press -my-3 inline-flex min-h-11 items-center"
+                    >
+                      Forgot?
+                    </Link>
+                  ) : (
+                    passwordAside
+                  )}
                 </div>
                 <input
                   ref={passwordRef}
@@ -389,7 +477,7 @@ export function AuthForm({
                   name="password"
                   type="password"
                   autoComplete={
-                    mode === "signup" ? "new-password" : "current-password"
+                    mode === "signup" && !signingIn ? "new-password" : "current-password"
                   }
                   required
                   value={password}
@@ -397,7 +485,8 @@ export function AuthForm({
                   aria-invalid={passwordInvalid || undefined}
                   aria-describedby={
                     [
-                      mode === "signup" ? "password-help" : "",
+                      mode === "signup" && !signingIn ? "password-help" : "",
+                      signingIn && !error ? "form-note" : "",
                       passwordInvalid ? "form-error" : "",
                     ]
                       .filter(Boolean)
@@ -405,7 +494,7 @@ export function AuthForm({
                   }
                   className={FIELD_CLASS}
                 />
-                {mode === "signup" && (
+                {mode === "signup" && !signingIn && (
                   <p
                     id="password-help"
                     className="mt-2 text-caption leading-relaxed text-stone-400"
@@ -415,14 +504,18 @@ export function AuthForm({
                 )}
               </>
             )}
-            {emailOnly && (
+            {emailOnly && !signingIn && (
               <p className="mt-2 text-caption leading-relaxed text-stone-400">
                 Two steps: the link confirms this address, then you pick the
                 password you&apos;ll sign in with.
               </p>
             )}
 
-            {error && <FormError>{error}</FormError>}
+            {error ? (
+              <FormError>{error}</FormError>
+            ) : (
+              signingIn && <FormNote>{EXISTING_COPY.ask}</FormNote>
+            )}
 
             <button
               type="submit"
@@ -430,17 +523,21 @@ export function AuthForm({
               className={`${ACTION_CLASS} ${DISABLED_CLASS} mt-5`}
             >
               {busy
-                ? emailOnly
-                  ? "Sending…"
-                  : mode === "signin"
-                    ? "Signing in…"
+                ? signingIn || mode === "signin"
+                  ? "Signing in…"
+                  : emailOnly
+                    ? "Sending…"
                     : "Creating…"
-                : submitLabel}
+                : signingIn
+                  ? "Sign in"
+                  : submitLabel}
             </button>
           </form>
         </div>
 
-        <div className="mt-5 text-center">{footer}</div>
+        {/* "Already have one? Sign in" is what the form has become, so
+            it goes while it is that; another email brings it back. */}
+        {!signingIn && <div className="mt-5 text-center">{footer}</div>}
       </div>
     </Shell>
   );
@@ -577,6 +674,24 @@ export const LABEL_CLASS = "font-display block text-row text-ink";
  * same misread as the old bullets (auth-8).
  */
 export const FIELD_CLASS = `mt-2 h-12 ${INPUT_CLASS} placeholder:font-normal`;
+
+/**
+ * What the form says that is not a failure (#426: the email has an
+ * account, so its password is asked for). FormError's slot and shape, so
+ * a wrong password then lands in the same place, in the app's ink:
+ * nothing went wrong yet.
+ */
+export function FormNote({ children }: { children: React.ReactNode }) {
+  return (
+    <p
+      id="form-note"
+      role="status"
+      className="mt-4 rounded-control border border-edge bg-surface px-4 py-3 text-caption leading-relaxed text-stone-700"
+    >
+      {children}
+    </p>
+  );
+}
 
 /**
  * A failure the form caused. It used to wear `terracotta-50`, which is

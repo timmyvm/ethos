@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { DemosArt } from "@/components/DemosArt";
 import { useEffect, useState } from "react";
-import { GoogleMark } from "@/components/AuthForm";
+import { GOOGLE_BUTTON, GoogleMark } from "@/components/AuthForm";
 import { ACTION_CLASS } from "@/components/LessonScreen";
 import { carryStashed } from "@/lib/tester-client";
-import { nextFrom, onwardLink } from "@/lib/use-paywall-return";
+import { useGoogleSignIn } from "@/lib/use-oauth-return";
+import { authHref, nextFrom, onwardLink } from "@/lib/use-paywall-return";
 import {
   callbackCarriesSession,
   callbackProblem,
@@ -137,31 +138,7 @@ export default function CallbackPage() {
         </>
       )}
 
-      {state.at === "taken" && (
-        <>
-          <GoogleTile />
-          <h1 className="font-display mt-5 text-title">
-            That Google account is taken
-          </h1>
-          {/* The headline already says whose it is; the body only says
-              what to do. humanise()'s longer line is for the inline
-              AuthForm error, which has no headline over it. */}
-          <p className="mt-3 max-w-[300px] text-body leading-relaxed text-stone-500">
-            Sign in with it instead.
-          </p>
-          <Link href="/signin" className={`${ACTION_CLASS} mt-7 max-w-[320px]`}>
-            Sign in
-          </Link>
-          {/* The email form itself, wherever the attempt began: from the
-              introduction, "back where you started" is its plan. */}
-          <Link
-            href="/signup"
-            className="text-link press mt-2 inline-flex min-h-11 items-center px-3"
-          >
-            Use an email instead
-          </Link>
-        </>
-      )}
+      {state.at === "taken" && <Taken attempt={attempt} next={next} />}
 
       {state.at === "stale" && (
         <>
@@ -175,6 +152,55 @@ export default function CallbackPage() {
         </>
       )}
     </main>
+  );
+}
+
+/**
+ * A Google sign-up whose Google account already has Ethos, when
+ * GoogleTakenSwitch has let go or already ran for this attempt (#414).
+ * It was "That Google account is taken" over a Sign in that went to
+ * /signin, where Google had to be found and tapped again: Timothy's
+ * "sending me back" (#426). The account is theirs, so the one tap is
+ * Google's own sign-in, here, begun where they first tapped Google.
+ */
+function Taken({ attempt, next }: { attempt: OAuthAttempt | null; next: string | null }) {
+  const google = useGoogleSignIn("signin", next, attempt?.from ?? "/signin");
+  return (
+    <>
+      <GoogleTile />
+      <h1 className="font-display mt-5 text-title text-balance">
+        That Google account already has Ethos
+      </h1>
+      <p className="mt-3 max-w-[300px] text-body leading-relaxed text-stone-500">
+        Sign in with it.
+      </p>
+      {/* Google's own button, as on the auth screens (D49): it is the
+          screen's one tap, so there is no terracotta here. Held, never
+          greyed, while the browser leaves (#307). */}
+      <button
+        type="button"
+        onClick={() => {
+          if (!google.pending) void google.start();
+        }}
+        aria-busy={google.pending || undefined}
+        className={`${GOOGLE_BUTTON} mt-7 max-w-[320px]`}
+      >
+        <GoogleMark />
+        {google.pending ? "Opening Google…" : "Continue with Google"}
+      </button>
+      {google.error && (
+        <p role="alert" className="mt-3 max-w-[300px] text-caption text-rust">
+          {google.error}
+        </p>
+      )}
+      {/* The email form itself, coming back to the same page. */}
+      <Link
+        href={authHref("signup", next)}
+        className="text-link press mt-2 inline-flex min-h-11 items-center px-3"
+      >
+        Use an email instead
+      </Link>
+    </>
   );
 }
 

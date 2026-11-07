@@ -46,7 +46,11 @@ export function GoogleTakenSwitch() {
       setOn(false);
     };
     stop = onBackWithoutFinishing(release, GOOGLE_PENDING_MS);
-    void signInWithGoogle("signin", nextFrom(window.location.search))
+    /* A sign-in from here on, begun where they tapped Google: the
+       callback then greets a sign-in, and never says what this guest
+       recorded came with it (#426). Its new attempt is a sign-in, so a
+       reload of this return is never switched twice. */
+    void signInWithGoogle("signin", nextFrom(window.location.search) ?? nextFrom(attempt!.from), attempt!.from)
       .then((r) => {
         if (!r.ok) release();
       })

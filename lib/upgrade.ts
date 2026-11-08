@@ -58,8 +58,8 @@ export type DropReason =
 
 /* ---- words ------------------------------------------------------------- */
 
-/** Lowercase, curly apostrophes straightened. */
-const fold = (s: string) => s.toLowerCase().replace(/[‘’]/g, "'");
+/** Lowercase, apostrophes straightened: curly, and the modifier letter (U+02BC) some keyboards and models write. */
+const fold = (s: string) => s.toLowerCase().replace(/[‘’ʼ]/g, "'");
 /** Matching ignores apostrophes too, so "dont" finds "don’t"; the words shown are the transcript's own. */
 const bare = (w: string) => w.replace(/'/g, "");
 /** A word: letters and digits, with inner apostrophes ("don't", "rock'n'roll"). */
@@ -119,6 +119,18 @@ export function saidIn(phrase: string, transcript: string): { said: string; sent
 const UPGRADE_FILLERS: readonly string[] = [...FILLERS, "like", "i mean", "so yeah", "yeah"];
 /** The commonest stronger claim: more of these than the speaker said. */
 const INTENSIFIERS: readonly string[] = ["very", "really", "so", "extremely", "totally", "absolutely", "incredibly", "super", "completely", "utterly"];
+/** After "so", these make it the conjunction ("so we left", "so that"), which claims nothing: a short way round "and because of that". */
+const SO_JOINS = new Set([
+  "i", "i'm", "i'd", "i'll", "i've", "we", "you", "he", "she", "they", "it", "it's", "that", "this", "these", "those",
+  "the", "a", "an", "there", "then", "now", "if", "when", "my", "our", "your", "his", "her", "their", "its",
+]);
+/** How many intensifiers a word key holds; "so" counts only where it modifies the word after it. */
+function intensifiers(key: string): number {
+  const w = key.split(" ");
+  return w.filter((x, i) => INTENSIFIERS.includes(x) && (x !== "so" || (i + 1 < w.length && !SO_JOINS.has(w[i + 1])))).length;
+}
+/** "I" and its contractions are a word, never a name, wherever they sit. */
+const I_WORD = /^I(?:['’ʼ](?:m|d|ll|ve))?$/;
 const HYPE: readonly string[] = [...HYPE_PHRASES, ...BANNED_PHRASES, "phenomenal", "outstanding", "unbelievable"];
 /** A written word for a spoken one. */
 const BOOKISH: readonly string[] = [
@@ -141,14 +153,22 @@ function onlyFillers(words: string[]): boolean {
   return true;
 }
 
-/** A model's string, trimmed, single-spaced, its quotes and end punctuation gone (brackets stay, so "(pause)" is not a word). */
-const strip = (s: unknown) =>
-  typeof s === "string"
-    ? s
-        .replace(/\s+/g, " ")
-        .trim()
-        .replace(/^["'“‘]+|["'”’.,;:!?]+$/g, "")
-    : "";
+/**
+ * A model's string, trimmed, single-spaced, its quotes and end
+ * punctuation gone (brackets stay, so "(pause)" is not a word). Single
+ * quotes go only when they wrap the whole string: one at the end alone
+ * is an apostrophe ("my parents'"), the speaker's grammar.
+ */
+function strip(s: unknown): string {
+  if (typeof s !== "string") return "";
+  let t = s.replace(/\s+/g, " ").trim();
+  for (let was = ""; was !== t; ) {
+    was = t;
+    t = t.replace(/^["“”]+|["“”]+$/g, "").replace(/[.,;:!?]+$/, "").trim();
+    if (t.length > 1 && /^['‘’]/.test(t) && /['‘’]$/.test(t)) t = t.slice(1, -1).trim();
+  }
+  return t;
+}
 
 /* ---- the checks -------------------------------------------------------- */
 
@@ -159,16 +179,17 @@ type Checked = { ok: true; said: string; from: string; to: string } | { ok: fals
  * speaker's, said once in a sentence and not only fillers; the to is
  * words, with no dash, different from the from, and not the banned register.
  */
-function checkPair(original: unknown, upgrade: unknown, transcript: string): Checked {
+function checkPair(original: unknown, upgrade: unknown, transcript: string, { limits = true } = {}): Checked {
   const from = strip(original);
   const to = strip(upgrade);
   if (!from || !to) return { ok: false, dropped: "shape" };
   const fromT = tokens(from);
   const toT = tokens(to);
-  if (fromT.length === 0 || fromT.length > UPGRADE_LIMITS.fromWords || from.length > UPGRADE_LIMITS.fromChars) {
+  if (fromT.length === 0 || toT.length === 0) return { ok: false, dropped: "long" };
+  if (limits && (fromT.length > UPGRADE_LIMITS.fromWords || from.length > UPGRADE_LIMITS.fromChars)) {
     return { ok: false, dropped: "long" };
   }
-  if (toT.length === 0 || toT.length > UPGRADE_LIMITS.toWords || to.length > UPGRADE_LIMITS.toChars) {
+  if (limits && (toT.length > UPGRADE_LIMITS.toWords || to.length > UPGRADE_LIMITS.toChars)) {
     return { ok: false, dropped: "long" };
   }
   const place = saidIn(from, transcript);
@@ -205,19 +226,18 @@ export function cleanUpgrade(raw: unknown, transcript: string): { supply: Supply
   if (brings(HYPE)) return { supply: null, dropped: "hype" };
   if (brings(VAGUE_WORDS)) return { supply: null, dropped: "vague" };
   if (brings(UPGRADE_FILLERS)) return { supply: null, dropped: "filler" };
-  const count = (key: string) => key.split(" ").filter((w) => INTENSIFIERS.includes(w)).length;
-  if (count(toKey) > count(fromKey)) return { supply: null, dropped: "intensifier" };
+  if (intensifiers(toKey) > intensifiers(fromKey)) return { supply: null, dropped: "intensifier" };
   if (brings(BOOKISH)) return { supply: null, dropped: "bookish" };
   const digits = (s: string): string[] => s.match(/\d+/g) ?? [];
   const fromText = strip(r.original);
   if (digits(to).some((d) => !digits(fromText).includes(d))) return { supply: null, dropped: "number" };
   if (NUMBER_WORDS.test(to) && !NUMBER_WORDS.test(fromText)) return { supply: null, dropped: "number" };
-  // A name the speaker never said is a new fact (the first word may be capitalised by position; "I" is a word).
+  // A name the speaker never said is a new fact (the first word may be capitalised by position; "I", "I'd" are words).
   const said = new Set(tokens(transcript).map(bare));
   const names = [...to.matchAll(WORD)]
     .slice(1)
     .map((m) => m[0])
-    .filter((w) => /^\p{Lu}/u.test(w) && w !== "I");
+    .filter((w) => /^\p{Lu}/u.test(w) && !I_WORD.test(w));
   if (names.some((n) => !said.has(bare(fold(n))))) return { supply: null, dropped: "new-name" };
   const why = typeof r.why === "string" && Object.prototype.hasOwnProperty.call(UPGRADE_NOTES, r.why) ? (r.why as UpgradeWhy) : "precise";
   const note = UPGRADE_NOTES[why];
@@ -229,10 +249,11 @@ export function cleanUpgrade(raw: unknown, transcript: string): { supply: Supply
  * checks any pair must (said in a sentence of its take, not only
  * fillers, words with no dash, different, not the banned register), or
  * null. Old rows held "um" to "(pause)" and the register's verbs; those
- * stop showing. It cannot catch an old change of meaning, and the stored
- * note stays.
+ * stop showing. Today's length limits are for new answers: a row stored
+ * under the old ones (120 characters) is not wrong for being longer. It
+ * cannot catch an old change of meaning, and the stored note stays.
  */
 export function shownSupply(stored: Supply | null | undefined, transcript: string): Supply | null {
   if (!stored) return null;
-  return checkPair(stored.original, stored.upgrade, transcript).ok ? stored : null;
+  return checkPair(stored.original, stored.upgrade, transcript, { limits: false }).ok ? stored : null;
 }

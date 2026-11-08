@@ -192,6 +192,52 @@ describe("cleanUpgrade: what it keeps", () => {
   });
 });
 
+/*
+ * Review of #429: the check must never drop an honest upgrade over how
+ * a model or Whisper writes an apostrophe, a quote or a capital, and the
+ * shapes it counts as a stronger claim or a name must be the ones it
+ * means.
+ */
+describe("cleanUpgrade: apostrophes, quotes and capitals never cost an honest upgrade", () => {
+  it("reads the modifier-letter apostrophe as an apostrophe", () => {
+    expect(saidIn("didnʼt go up", "The pay didn't go up in three years.")?.said).toBe("didn't go up");
+    expect(saidIn("didn't go up", "The pay didnʼt go up in three years.")?.said).toBe("didnʼt go up");
+    expect(clean("didnʼt go up", "stalled", "The pay didn't go up in three years.").supply?.original).toBe("didn't go up");
+  });
+
+  it("takes I and its contractions as words, never as a name the speaker did not say", () => {
+    const take = "Honestly the thing that I would do is call him. Then I will wash up.";
+    expect(clean("the thing that I would do is", "what I'd do is", take).supply?.upgrade).toBe("what I'd do is");
+    expect(clean("the thing that I would do is", "what I’d do is", take).supply?.upgrade).toBe("what I’d do is");
+    expect(clean("Then I will wash up", "then I'll wash up", take).supply).not.toBeNull();
+    expect(clean("the thing that I would do is", "what I’ve done is", take).supply).not.toBeNull();
+    // A capital that is a name still is.
+    expect(clean("call him", "call Dave", take).dropped).toBe("new-name");
+    expect(clean("call him", "call Ivy", take).dropped).toBe("new-name");
+  });
+
+  it("keeps an apostrophe that ends the upgrade, and still takes off quotes that wrap it", () => {
+    const take = "We stayed at my mum and dad's place.";
+    expect(clean("my mum and dad's", "my parents'", take).supply?.upgrade).toBe("my parents'");
+    expect(clean("my mum and dad's", "my parents’", take).supply?.upgrade).toBe("my parents’");
+    expect(clean("really dirty", "‘filthy’", "The hostel was really dirty.").supply?.upgrade).toBe("filthy");
+    expect(clean("really dirty", "'filthy.'", "The hostel was really dirty.").supply?.upgrade).toBe("filthy");
+    expect(clean("“really dirty,”", "“filthy.”", "The hostel was really dirty.").supply).toEqual({
+      original: "really dirty",
+      upgrade: "filthy",
+      note: UPGRADE_NOTES.precise,
+    });
+  });
+
+  it("counts so as a stronger claim only where it modifies a word, not where it joins two", () => {
+    const take = "We missed the bus and because of that we were late.";
+    expect(clean("and because of that we", "so we", take).supply?.upgrade).toBe("so we");
+    expect(clean("and because of that", "so that", take).supply).not.toBeNull();
+    expect(clean("cold", "so cold", "It was cold.").dropped).toBe("intensifier");
+    expect(clean("busy", "so so busy", "I was busy.").dropped).toBe("intensifier");
+  });
+});
+
 describe("the 24 cases the prompt was judged on", () => {
   it("are the eval's: 11 upgrades, 13 none", () => {
     expect(cases).toHaveLength(24);
@@ -232,6 +278,17 @@ describe("shownSupply: a stored pair, read back on the Log", () => {
     expect(shownSupply({ original: "um", upgrade: "(pause)", note: "Silence reads as thought." }, TIM)).toBeNull();
     expect(shownSupply({ original: "build speech apps", upgrade: "train speech under pressure", note: "" }, TIM)).toBeNull();
     expect(shownSupply({ original: "Tim. I", upgrade: "Tim, I", note: "" }, TIM)).toBeNull();
+  });
+
+  it("keeps an old row longer than today's limits: they are for new answers, and old rows had 120 characters", () => {
+    const take = "The reason why I decided to leave the company was because the pay stayed flat for three years.";
+    const stored = {
+      original: "The reason why I decided to leave the company was because",
+      upgrade: "I left the company because the pay stalled",
+      note: "Gets to the point faster.",
+    };
+    expect(clean(stored.original, stored.upgrade, take).dropped).toBe("long");
+    expect(shownSupply(stored, take)).toBe(stored);
   });
 
   it("is nothing for nothing", () => {

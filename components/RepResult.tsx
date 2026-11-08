@@ -421,23 +421,29 @@ export function RepResult({
               {coach.supply && (
                 <div className={coach.strength ? "mt-4" : "mt-3"}>
                   <h3 className="detail-head">Say this instead</h3>
+                  {/* The arrow travels with what it points at (#429): a
+                      longer phrase of the speaker's wraps the pair, and the
+                      second line reads "→ an impossible week", never an
+                      arrow left at the end of the first. */}
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-body">
                     <span className="text-stone-500 line-through">{coach.supply.original}</span>
-                    <svg
-                      aria-hidden
-                      width="16"
-                      height="16"
-                      viewBox="0 0 16 16"
-                      className="shrink-0 text-stone-400"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.75"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M2.5 8h10M9 4.5 12.5 8 9 11.5" />
-                    </svg>
-                    <span className="font-semibold">{coach.supply.upgrade}</span>
+                    <span className="flex min-w-0 items-center gap-x-3">
+                      <svg
+                        aria-hidden
+                        width="16"
+                        height="16"
+                        viewBox="0 0 16 16"
+                        className="shrink-0 text-stone-400"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.75"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M2.5 8h10M9 4.5 12.5 8 9 11.5" />
+                      </svg>
+                      <span className="font-semibold">{coach.supply.upgrade}</span>
+                    </span>
                   </div>
                   {coach.supply.note && <p className="mt-1.5 text-caption text-stone-500">{coach.supply.note}</p>}
                 </div>
@@ -899,21 +905,24 @@ export function RepResult({
             <span className="text-stone-500 line-through">
               {coach.supply.original}
             </span>
-            <svg
-              aria-hidden
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              className="shrink-0 text-stone-400"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M2.5 8h10M9 4.5 12.5 8 9 11.5" />
-            </svg>
-            <span className="font-semibold">{coach.supply.upgrade}</span>
+            {/* The arrow travels with what it points at (#429). */}
+            <span className="flex min-w-0 items-center gap-x-3">
+              <svg
+                aria-hidden
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                className="shrink-0 text-stone-400"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M2.5 8h10M9 4.5 12.5 8 9 11.5" />
+              </svg>
+              <span className="font-semibold">{coach.supply.upgrade}</span>
+            </span>
           </div>
           {coach.supply.note && (
             <p className="mt-1.5 text-caption text-stone-500">

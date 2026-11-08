@@ -391,8 +391,9 @@ export async function saveRep(params: {
   }
   if (error || !data) return null;
 
-  if (coach) {
+  if (coach?.supply) {
     // Supply accumulates into the personal lexicon (DECISIONS.md #12).
+    // No upgrade, no lexicon row: the coach may say none (#429).
     await db.from("lexicon").insert({
       user_id: params.userId ?? null,
       original: coach.supply.original,

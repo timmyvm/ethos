@@ -245,6 +245,31 @@ describe("POST /api/analyze", () => {
     expect(body.ethosIndex).toBeLessThanOrEqual(1000);
   });
 
+  /* #429: the coach may say none, or its upgrade may be dropped. The take
+     keeps its coach and the judged half of its Index all the same. */
+  it("scores a take whose coach has no upgrade exactly as one that has", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    const dim = { score: 60, citedMoment: '"my name is Tim"', improve: "Open with the claim." };
+    const coach = {
+      focus: "Kill 'um', 1 filler.",
+      strength: "Held 1 pause.",
+      supply: { original: "my name is Tim", upgrade: "I'm Tim", note: "It says the same in fewer words." },
+      coachLine: "1 filler in 60 seconds.",
+      dimensions: { structure: dim, credibility: dim, engagement: dim, confidence: dim },
+    };
+    vi.mocked(coachRep).mockResolvedValue(coach);
+    const withIt = await (await post(audioForm())).json();
+    vi.mocked(coachRep).mockResolvedValue({ ...coach, supply: null });
+    const res = await post(audioForm());
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.coach.supply).toBeNull();
+    expect(body.coach.strength).toBe("Held 1 pause.");
+    expect(body.ethosIndex).toBe(withIt.ethosIndex);
+    expect(body.ethosIndex).toBeGreaterThan(300);
+    expect(vi.mocked(saveRep).mock.lastCall?.[0].coach?.supply).toBeNull();
+  });
+
   it("still returns the numbers when the coach layer fails — no partial index", async () => {
     vi.mocked(transcribe).mockResolvedValue(FIXTURE);
     vi.mocked(coachRep).mockRejectedValue(new Error("api down"));

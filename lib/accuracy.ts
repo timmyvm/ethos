@@ -1,9 +1,9 @@
 /**
- * Boss-mode accuracy judging (mechanics.md Cold Topic): the rep is
+ * Boss-mode accuracy judging (mechanics.md Cold Topic): the recording is
  * scored on delivery by the normal engine AND on whether the claims are
  * actually true.
  *
- * The LLM's job here is narrow — extract the factual claims the speaker
+ * The LLM's job here is narrow: extract the factual claims the speaker
  * made, quote each one verbatim, and mark it against the topic's ground
  * truth. The score itself is arithmetic over those verdicts, so the
  * number is reproducible from the report (DECISIONS #19, #30: no
@@ -157,7 +157,7 @@ export function scoreAccuracy(
 const MAX_ATTEMPTS = 2;
 
 /**
- * Best-effort, exactly like the coach layer: a boss rep that can't be
+ * Best-effort, exactly like the coach layer: a boss take that can't be
  * fact-checked still returns its delivery numbers.
  */
 export async function judgeAccuracy(

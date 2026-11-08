@@ -35,7 +35,7 @@ const result: ResultView = {
   coach: {
     focus: "x",
     strength: "Held the pause before ‘the mistake people make’.",
-    supply: { original: "the thing about", upgrade: "what matters about", note: "Names the point instead of pointing at it." },
+    supply: { original: "making the thing small", upgrade: "making the habit small", note: "It says exactly what you meant." },
     coachLine: "4 fillers in 62s. Tomorrow: kill ‘um’.",
     dimensions: { structure: dim(64), credibility: dim(58), engagement: dim(61), confidence: dim(66) },
   } as unknown as ResultView["coach"],
@@ -158,5 +158,61 @@ describe("the sheet's body, in order", () => {
   it("a capped take says the read is back tomorrow and that it still counted", () => {
     const html = renderToStaticMarkup(createElement(RepResult, { result, section: "detail", sheet: { sections: ["capped"] } }));
     expect(visible(html)).toBe("Demos's full read is back tomorrow. It still counted toward your streak.");
+  });
+});
+
+/*
+ * #429: the coach may say none, or its upgrade may be dropped. Then
+ * Demos's read is Kept alone, and nothing else on the glance or the
+ * sheet moves.
+ */
+describe("a take with no upgrade", () => {
+  const coach = result.coach!;
+  const none: ResultView = { ...result, coach: { ...coach, supply: null } };
+  const sections = sheetSections({
+    bests: 0, accuracy: false, round: false, audio: false, fillers: 4,
+    coach: true, capped: false, presence: false, closing: false, ladder: false,
+  });
+
+  it("leaves the glance exactly as it is with one", () => {
+    const withIt = renderToStaticMarkup(createElement(RepResult, { result, section: "glance", glance: view }));
+    const without = renderToStaticMarkup(createElement(RepResult, { result: none, section: "glance", glance: view }));
+    expect(without).toBe(withIt);
+  });
+
+  it("shows Demos's read with Kept alone: no Say this instead, no empty pair", () => {
+    const html = renderToStaticMarkup(createElement(RepResult, { result: none, section: "detail", sheet: { sections, open: "fillers" } }));
+    expect(html).toContain('<h2 class="section-head">Demos&#x27;s read</h2>');
+    expect(html.match(/AI-generated feedback/g)).toHaveLength(1);
+    expect(html).toContain(">Kept<");
+    expect(visible(html)).toContain("Held the pause before ‘the mistake people make’.");
+    expect(html).not.toContain("Say this instead");
+    expect(html).not.toContain("line-through");
+    // Everything after the coach is the sheet it was.
+    const withIt = renderToStaticMarkup(createElement(RepResult, { result, section: "detail", sheet: { sections, open: "fillers" } }));
+    const after = (h: string) => h.slice(h.indexOf('data-sheet-section="fillers"'));
+    expect(after(html)).toBe(after(withIt));
+  });
+
+  it("shows the pair and its fixed note when there is one", () => {
+    const html = renderToStaticMarkup(createElement(RepResult, { result, section: "detail", sheet: { sections, open: "fillers" } }));
+    expect(visible(html)).toContain("Say this instead making the thing small making the habit small It says exactly what you meant.");
+  });
+
+  it("drops Demos's read altogether when there is nothing kept either", () => {
+    const empty: ResultView = { ...result, coach: { ...coach, strength: "", supply: null } };
+    const html = renderToStaticMarkup(createElement(RepResult, { result: empty, section: "detail", sheet: { sections, open: "fillers" } }));
+    expect(html).not.toContain("Demos&#x27;s read");
+    expect(html).not.toContain("AI-generated feedback");
+    expect(html).toContain('data-sheet-section="fillers"');
+  });
+
+  it("on the Log's page, shows Kept and the dimensions and no Say this instead section", () => {
+    const all = renderToStaticMarkup(createElement(RepResult, { result: none, section: "all" }));
+    expect(all).toContain("Kept:");
+    expect(all).toContain("Every dimension");
+    expect(all).not.toContain("Say this instead");
+    const withIt = renderToStaticMarkup(createElement(RepResult, { result, section: "all" }));
+    expect(all).toBe(withIt.replace(/<section class="mt-7"><h2 class="section-head">Say this instead<\/h2>[\s\S]*?<\/section>/, ""));
   });
 });

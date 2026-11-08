@@ -27,6 +27,7 @@ import { recordingName, recordingTrait } from "@/lib/log";
 import { computeMetrics, substance } from "@/lib/metrics";
 import { fromRow } from "@/lib/presence";
 import { topicFromLessonId } from "@/lib/rep-config";
+import { shownSupply } from "@/lib/upgrade";
 import { modById } from "@/lib/stress-mods";
 import { pausedTester, scoreSnapshot, showsMatchCheck, storedSnapshotInput } from "@/lib/tester";
 import { useTester } from "@/lib/tester-client";
@@ -224,12 +225,16 @@ export default function RepDetail({
     metrics,
     tier1: dims?.tier1 ?? { pause: 0, fillers: 0, pace: 0, range: 0 },
     anchors: dims?.anchors ?? { hedgeCount: 0, restartCount: 0 },
+    /* The coach no longer needs an upgrade (#429): one that said none
+       keeps its Kept and its judged dimensions. A stored pair shows only
+       while it still passes the checks any pair must, so an old
+       "um" to "(pause)" stops showing. */
     coach:
-      rep.focus && rep.supply && dims?.tier2
+      rep.focus && dims?.tier2
         ? {
             focus: rep.focus,
             strength: rep.strength ?? "",
-            supply: rep.supply,
+            supply: shownSupply(rep.supply, rep.transcript),
             coachLine: "",
             dimensions: dims.tier2,
           }

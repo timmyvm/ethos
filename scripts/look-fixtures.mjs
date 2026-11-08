@@ -154,7 +154,7 @@ const reps = SPOKE.map((ago, i) => {
       stars,
       focus: focusFor(fillers),
       strength: "Held the pause before \u2018the mistake people make\u2019.",
-      supply: { original: "the thing about", upgrade: "what matters about", note: "Names the point instead of pointing at it." },
+      supply: { original: "making the thing small", upgrade: "making the habit small", note: "It says exactly what you meant." },
       ethos_index: indexOf(tier1, TIER2),
       audio_path: null,
       dimensions: {
@@ -199,11 +199,13 @@ const coin_ledger = [
   { id: "spent-1", kind: "spent", amount: POSE_PRICE[BOUGHT], reason: `shop:${BOUGHT}`, earned_on: null, created_at: iso(9) },
 ];
 const lexicon = [
-  { id: "l1", original: "really good", upgrade: "compelling", created_at: iso(1) },
-  { id: "l2", original: "sort of shows", upgrade: "demonstrates", created_at: iso(3) },
-  { id: "l3", original: "a lot of people", upgrade: "most of us", created_at: iso(5) },
-  { id: "l4", original: "the thing about", upgrade: "what matters about", created_at: iso(8) },
-  { id: "l5", original: "kind of like", upgrade: "resembles", created_at: iso(12) },
+  /* Pairs that pass #429's rule in their own takes: the speaker's words,
+     said better, at the same strength. */
+  { id: "l1", original: "really good", upgrade: "so moving", created_at: iso(1) },
+  { id: "l2", original: "doing stuff for", upgrade: "getting ready for", created_at: iso(3) },
+  { id: "l3", original: "a lot of rain", upgrade: "heavy rain", created_at: iso(5) },
+  { id: "l4", original: "making the thing small", upgrade: "making the habit small", created_at: iso(8) },
+  { id: "l5", original: "make a decision about", upgrade: "decide on", created_at: iso(12) },
 ];
 const profile = { display_name: "Timothy", premium: false, premium_until: null, equipped_pose: POSE_PREF };
 
@@ -681,7 +683,7 @@ const analyze = {
   coach: {
     focus: "Kill \u2018um\u2019. 2 of your 4 fillers.",
     strength: "Held the pause before \u2018the mistake people make\u2019.",
-    supply: { original: "the thing about", upgrade: "what matters about", note: "Names the point instead of pointing at it." },
+    supply: { original: "a week nobody could really do", upgrade: "an impossible week", note: "It says the same in fewer words." },
     coachLine: "4 fillers in 62s. Tomorrow: kill \u2018um\u2019.",
     dimensions: LIVE_TIER2,
   },

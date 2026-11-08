@@ -78,7 +78,7 @@ const analyze = {
   coach: {
     focus: "Kill 'um'. 2 of your 4 fillers.",
     strength: "Held the pause before 'the mistake people make'.",
-    supply: { original: "the thing about", upgrade: "what matters about", note: "Names the point instead of pointing at it." },
+    supply: { original: "a week nobody could really do", upgrade: "an impossible week", note: "It says the same in fewer words." },
     coachLine: "4 fillers in 62s. Tomorrow: kill 'um'.",
     dimensions: {
       structure: dim(64, '"the mistake people make is waiting to feel ready"'),

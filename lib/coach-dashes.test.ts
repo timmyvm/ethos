@@ -55,12 +55,12 @@ const dim = {
   improve: `Open with the claim ${EM} then one example.`,
 };
 const dashed = {
-  focus: `Kill "um" ${EM} 1 filler this rep.`,
+  focus: `Kill "um" ${EM} 1 filler this take.`,
   strength: `1 held pause ${EN} before a sentence.`,
   supply: {
-    original: "build speech apps",
-    upgrade: "train speech under pressure",
-    note: `Names the outcome ${EM} not the artifact.`,
+    original: "my name is Tim",
+    upgrade: "I'm Tim",
+    note: `It says the same ${EM} in fewer words.`,
   },
   coachLine: `1 filler in 60 seconds ${EM} kill the um.`,
   dimensions: { structure: dim, credibility: dim, engagement: dim, confidence: dim },
@@ -86,13 +86,13 @@ describe("the coach's copy, cleaned", () => {
     const read = [
       fixed.focus,
       fixed.strength,
-      fixed.supply.upgrade,
-      fixed.supply.note,
+      fixed.supply!.upgrade,
+      fixed.supply!.note,
       fixed.coachLine,
       ...Object.values(fixed.dimensions).flatMap((d) => [d.improve, d.citedMoment]),
     ];
     expect(read.filter(hasDash)).toEqual([]);
-    expect(fixed.supply.original).toBe(dashed.supply.original);
+    expect(fixed.supply!.original).toBe(dashed.supply.original);
     expect(splitSentences(fixed.coachLine)).toHaveLength(splitSentences(dashed.coachLine).length);
   });
 
@@ -103,11 +103,16 @@ describe("the coach's copy, cleaned", () => {
 
   it("cleans a reply that passes validation first time", async () => {
     process.env.ANTHROPIC_API_KEY = "test";
-    reply = JSON.stringify(dashed);
+    // The model's reply shape since #429: the supply is a verdict and a pair.
+    reply = JSON.stringify({
+      ...dashed,
+      supply: { verdict: "upgrade", original: "my name is Tim", upgrade: "I'm Tim", why: "shorter" },
+    });
     const f = fixture();
     const got = await coachRep(f.transcript, f.metrics, f.tier1, f.anchors);
     expect(got).not.toBeNull();
     expect(hasDash(got!.coachLine) || hasDash(got!.focus)).toBe(false);
+    expect(got!.supply).toEqual({ original: "my name is Tim", upgrade: "I'm Tim", note: "It says the same in fewer words." });
   });
 });
 

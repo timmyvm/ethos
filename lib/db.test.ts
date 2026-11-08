@@ -151,6 +151,38 @@ describe("saveRep and a recording sent twice", () => {
 });
 
 /*
+ * #429: the coach may say none. The take is stored with its coach, its
+ * XP is paid, and no lexicon row is written for an upgrade that is not
+ * there.
+ */
+describe("saveRep and the coach's upgrade", () => {
+  const coach = (supply: unknown) =>
+    ({
+      focus: "Hold a pause.",
+      strength: "0 fillers.",
+      supply,
+      coachLine: "0 fillers.",
+      dimensions: {},
+    }) as never;
+
+  it("stores a coached take with no upgrade, pays its XP and writes no lexicon row", async () => {
+    const saved = await saveRep(params({ coach: coach(null) }));
+    expect(saved).toEqual({ id: "rep-1", audioPath: expect.any(String) });
+    const rep = inserts.find((i) => i.table === "reps")!.row;
+    expect(rep.supply).toBeNull();
+    expect(rep.focus).toBe("Hold a pause.");
+    expect(inserts.some((i) => i.table === "xp_events")).toBe(true);
+    expect(inserts.some((i) => i.table === "lexicon")).toBe(false);
+  });
+
+  it("adds an upgrade to the lexicon, as before", async () => {
+    await saveRep(params({ coach: coach({ original: "making the thing small", upgrade: "making the habit small", note: "It says exactly what you meant." }) }));
+    const row = inserts.find((i) => i.table === "lexicon")!.row;
+    expect(row).toMatchObject({ user_id: "user-1", original: "making the thing small", upgrade: "making the habit small", rep_id: "rep-1" });
+  });
+});
+
+/*
  * A token that does not resolve used to look like no token at all, and
  * the recording was stored with no owner while the client deleted its
  * only copy. The route needs to tell four answers apart.

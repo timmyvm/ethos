@@ -14,6 +14,7 @@
  * before anyone sees it.
  */
 
+import { GYM_REGISTER } from "./register";
 import { VAGUE } from "./thesaurus";
 
 /**
@@ -174,12 +175,10 @@ export function wordCacheKey(ask: WordAsk): string {
   return `v${WORDS_VERSION}|${ask.word.toLowerCase()}|${ask.at}|${sentenceHash(ask.sentence.toLowerCase())}`;
 }
 
-/** Words an option may not bring in when what it replaces did not already say them. */
-const VAGUE_WORDS: readonly string[] = [...VAGUE, "lots", "loads", "tons", "heaps", "so many"];
+/** Words an option may not bring in when what it replaces did not already say them (and "Say this instead", lib/upgrade.ts). */
+export const VAGUE_WORDS: readonly string[] = [...VAGUE, "lots", "loads", "tons", "heaps", "so many"];
 /** The engine's fillers (lib/metrics.ts fillerSpans): never offered as a better word. */
-const FILLERS: readonly string[] = ["um", "uh", "erm", "basically", "actually", "literally", "you know", "kind of", "sort of"];
-/** CLAUDE.md's banned register, as lib/copy.test.ts reads it. */
-const BANNED_REGISTER = /\b(gyms?|workouts?|drills?|training|reps?|train(?:s|ed)?)\b/i;
+export const FILLERS: readonly string[] = ["um", "uh", "erm", "basically", "actually", "literally", "you know", "kind of", "sort of"];
 
 /** Whether `phrase` is in `text` as whole words. */
 const holds = (text: string, phrase: string) => ` ${text} `.includes(` ${phrase} `);
@@ -231,7 +230,7 @@ function cleanOptions(list: unknown, replaces: string, word: string): string[] |
     if (refused.has(key) || seen.has(key)) continue;
     if (VAGUE_WORDS.some((v) => holds(key, v) && !holds(was, v))) continue;
     if (FILLERS.some((f) => holds(key, f) && !holds(was, f)) || key === "like") continue;
-    if (BANNED_REGISTER.test(alt) && !BANNED_REGISTER.test(replaces)) continue;
+    if (GYM_REGISTER.test(alt) && !GYM_REGISTER.test(replaces)) continue;
     seen.add(key);
     out.push(alt);
     if (out.length === WORD_LIMITS.altMax) break;

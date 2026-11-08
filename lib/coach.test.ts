@@ -47,12 +47,12 @@ const dim = (partial = {}) => ({
 
 function out(partial: Partial<CoachOutput> = {}): CoachOutput {
   return {
-    focus: 'Kill "um" — 1 filler this rep.',
+    focus: 'Kill "um" — 1 filler this take.',
     strength: "1 held pause landed before a sentence.",
     supply: {
-      original: "build speech apps",
-      upgrade: "train speech under pressure",
-      note: "Names the outcome, not the artifact.",
+      original: "my name is Tim",
+      upgrade: "I'm Tim",
+      note: "It says the same in fewer words.",
     },
     coachLine: "1 filler in 60 seconds. 1 held pause landed before a sentence.",
     dimensions: {
@@ -259,7 +259,7 @@ describe("sentence counting survives the numbers", () => {
 
   it("still counts real sentences", () => {
     expect(splitSentences("One. Two. Three.")).toHaveLength(3);
-    expect(splitSentences("Clean rep! Now hold a pause?")).toHaveLength(2);
+    expect(splitSentences("Clean take! Now hold a pause?")).toHaveLength(2);
   });
 
   it("handles a number ending a sentence", () => {

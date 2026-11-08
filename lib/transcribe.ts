@@ -1,7 +1,7 @@
 /**
- * Whisper transcription — BUILD-PLAN step 1, layer 2.
+ * Whisper transcription: BUILD-PLAN step 1, layer 2.
  * verbose_json with word-level timestamps; the raw response is stored
- * alongside the rep so metrics can be recomputed as the engine tunes.
+ * alongside the recording so metrics can be recomputed as the engine tunes.
  */
 
 import type { Segment, Word } from "./metrics";
@@ -9,7 +9,7 @@ import type { Segment, Word } from "./metrics";
 /**
  * The single most load-bearing string in the engine. Do not "tidy" it.
  *
- * Whisper is trained on cleaned subtitle text and deletes non-lexical
+ * Whisper learned from cleaned subtitle text and deletes non-lexical
  * fillers by default. Measured on 11 Aug against generated speech
  * containing a known 3 "um" and 2 "uh":
  *
@@ -20,12 +20,12 @@ import type { Segment, Word } from "./metrics";
  * Ethos silently scores a transcript with the evidence removed.
  *
  * It is also deliberately SHORT. A longer, denser version was tried the
- * same day on the theory that more priming would catch more — it
+ * same day on the theory that more priming would catch more; it
  * recovered exactly the same 3 and 2, and then hallucinated "Thank you
  * for watching." onto six seconds of near-silence, where the short
  * prompt returned nothing. A long prompt gives Whisper more to fall back
  * on when there's no signal, and an invented sentence would sail
- * straight through the substance gate as a real rep. Longer is not
+ * straight through the substance gate as a real recording. Longer is not
  * safer here; it is strictly worse.
  */
 export const DISFLUENCY_PROMPT =

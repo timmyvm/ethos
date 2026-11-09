@@ -1,0 +1,1242 @@
+{
+  "free-alive 390-light": {
+    "today": {
+      "words": {
+        "first": 39,
+        "below": 50,
+        "nav": 5,
+        "text": "T 35 6 Test day 8 of 14 Hi, Timothy Today's practice About 70 seconds The last time you were genuinely nervous Start Another topic Tester 0B5E 7A21 Speak today, then answer both questions. 6 of 14 days spoken"
+      },
+      "taps": {
+        "first": 3,
+        "below": 8,
+        "labels": [
+          "You",
+          "Start",
+          "Another topic"
+        ]
+      },
+      "start": {
+        "top": 468,
+        "bottom": 516
+      },
+      "record": null,
+      "title": "Hi, Timothy",
+      "lead": "Today's practice"
+    },
+    "rep": {
+      "words": {
+        "first": 25,
+        "below": 0,
+        "nav": 0,
+        "text": "Today Today's practice The last time you were genuinely nervous Pause after the full stop Voice Video Record This one keeps a 6-day streak alive"
+      },
+      "taps": {
+        "first": 5,
+        "below": 0,
+        "labels": [
+          "Today",
+          "Pause after the full stop. Show the full tip.",
+          "Voice",
+          "Video",
+          "Start recording"
+        ]
+      },
+      "start": null,
+      "record": {
+        "top": 680,
+        "bottom": 778
+      },
+      "title": null,
+      "lead": null
+    },
+    "repUrl": "/rep?topic=t7&item=pause-1-7&trait=pause&ready=1",
+    "timing": {
+      "startVisible": 157,
+      "cardReady": 355,
+      "startToRecord": 153,
+      "recordToLive": 105
+    },
+    "repIphone": {
+      "words": {
+        "first": 23,
+        "below": 0,
+        "nav": 0,
+        "text": "Today Today's practice The last time you were genuinely nervous Pause after the full stop Record This one keeps a 6-day streak alive"
+      },
+      "taps": {
+        "first": 3,
+        "below": 0,
+        "labels": [
+          "Today",
+          "Pause after the full stop. Show the full tip.",
+          "Start recording"
+        ]
+      },
+      "start": null,
+      "record": {
+        "top": 681,
+        "bottom": 777
+      },
+      "title": null,
+      "lead": null
+    }
+  },
+  "free-alive 390-dark": {
+    "today": {
+      "words": {
+        "first": 39,
+        "below": 50,
+        "nav": 5,
+        "text": "T 35 6 Test day 8 of 14 Hi, Timothy Today's practice About 70 seconds The last time you were genuinely nervous Start Another topic Tester 0B5E 7A21 Speak today, then answer both questions. 6 of 14 days spoken"
+      },
+      "taps": {
+        "first": 3,
+        "below": 8,
+        "labels": [
+          "You",
+          "Start",
+          "Another topic"
+        ]
+      },
+      "start": {
+        "top": 468,
+        "bottom": 516
+      },
+      "record": null,
+      "title": "Hi, Timothy",
+      "lead": "Today's practice"
+    },
+    "rep": {
+      "words": {
+        "first": 25,
+        "below": 0,
+        "nav": 0,
+        "text": "Today Today's practice The last time you were genuinely nervous Pause after the full stop Voice Video Record This one keeps a 6-day streak alive"
+      },
+      "taps": {
+        "first": 5,
+        "below": 0,
+        "labels": [
+          "Today",
+          "Pause after the full stop. Show the full tip.",
+          "Voice",
+          "Video",
+          "Start recording"
+        ]
+      },
+      "start": null,
+      "record": {
+        "top": 680,
+        "bottom": 778
+      },
+      "title": null,
+      "lead": null
+    }
+  },
+  "free-alive 375-light": {
+    "today": {
+      "words": {
+        "first": 25,
+        "below": 64,
+        "nav": 5,
+        "text": "T 35 6 Test day 8 of 14 Hi, Timothy Today's practice About 70 seconds The last time you were genuinely nervous Start Another topic"
+      },
+      "taps": {
+        "first": 3,
+        "below": 8,
+        "labels": [
+          "You",
+          "Start",
+          "Another topic"
+        ]
+      },
+      "start": {
+        "top": 468,
+        "bottom": 516
+      },
+      "record": null,
+      "title": "Hi, Timothy",
+      "lead": "Today's practice"
+    },
+    "rep": {
+      "words": {
+        "first": 25,
+        "below": 0,
+        "nav": 0,
+        "text": "Today Today's practice The last time you were genuinely nervous Pause after the full stop Voice Video Record This one keeps a 6-day streak alive"
+      },
+      "taps": {
+        "first": 5,
+        "below": 0,
+        "labels": [
+          "Today",
+          "Pause after the full stop. Show the full tip.",
+          "Voice",
+          "Video",
+          "Start recording"
+        ]
+      },
+      "start": null,
+      "record": {
+        "top": 515,
+        "bottom": 613
+      },
+      "title": null,
+      "lead": null
+    }
+  },
+  "premium-alive 390-light": {
+    "today": {
+      "words": {
+        "first": 39,
+        "below": 50,
+        "nav": 5,
+        "text": "T 35 6 Test day 8 of 14 Hi, Timothy Today's practice About 70 seconds The last time you were genuinely nervous Start Another topic Tester 0B5E 7A21 Speak today, then answer both questions. 6 of 14 days spoken"
+      },
+      "taps": {
+        "first": 3,
+        "below": 8,
+        "labels": [
+          "You",
+          "Start",
+          "Another topic"
+        ]
+      },
+      "start": {
+        "top": 468,
+        "bottom": 516
+      },
+      "record": null,
+      "title": "Hi, Timothy",
+      "lead": "Today's practice"
+    },
+    "rep": {
+      "words": {
+        "first": 25,
+        "below": 0,
+        "nav": 0,
+        "text": "Today Today's practice The last time you were genuinely nervous Pause after the full stop Voice Video Record This one keeps a 6-day streak alive"
+      },
+      "taps": {
+        "first": 5,
+        "below": 0,
+        "labels": [
+          "Today",
+          "Pause after the full stop. Show the full tip.",
+          "Voice",
+          "Video",
+          "Start recording"
+        ]
+      },
+      "start": null,
+      "record": {
+        "top": 680,
+        "bottom": 778
+      },
+      "title": null,
+      "lead": null
+    },
+    "repUrl": "/rep?topic=t7&item=pause-1-7&trait=pause&ready=1",
+    "timing": {
+      "startVisible": 147,
+      "cardReady": 350,
+      "startToRecord": 122,
+      "recordToLive": 63
+    }
+  },
+  "premium-alive 390-dark": {
+    "today": {
+      "words": {
+        "first": 39,
+        "below": 50,
+        "nav": 5,
+        "text": "T 35 6 Test day 8 of 14 Hi, Timothy Today's practice About 70 seconds The last time you were genuinely nervous Start Another topic Tester 0B5E 7A21 Speak today, then answer both questions. 6 of 14 days spoken"
+      },
+      "taps": {
+        "first": 3,
+        "below": 8,
+        "labels": [
+          "You",
+          "Start",
+          "Another topic"
+        ]
+      },
+      "start": {
+        "top": 468,
+        "bottom": 516
+      },
+      "record": null,
+      "title": "Hi, Timothy",
+      "lead": "Today's practice"
+    },
+    "rep": {
+      "words": {
+        "first": 25,
+        "below": 0,
+        "nav": 0,
+        "text": "Today Today's practice The last time you were genuinely nervous Pause after the full stop Voice Video Record This one keeps a 6-day streak alive"
+      },
+      "taps": {
+        "first": 5,
+        "below": 0,
+        "labels": [
+          "Today",
+          "Pause after the full stop. Show the full tip.",
+          "Voice",
+          "Video",
+          "Start recording"
+        ]
+      },
+      "start": null,
+      "record": {
+        "top": 680,
+        "bottom": 778
+      },
+      "title": null,
+      "lead": null
+    }
+  },
+  "premium-alive 375-light": {
+    "today": {
+      "words": {
+        "first": 25,
+        "below": 64,
+        "nav": 5,
+        "text": "T 35 6 Test day 8 of 14 Hi, Timothy Today's practice About 70 seconds The last time you were genuinely nervous Start Another topic"
+      },
+      "taps": {
+        "first": 3,
+        "below": 8,
+        "labels": [
+          "You",
+          "Start",
+          "Another topic"
+        ]
+      },
+      "start": {
+        "top": 468,
+        "bottom": 516
+      },
+      "record": null,
+      "title": "Hi, Timothy",
+      "lead": "Today's practice"
+    },
+    "rep": {
+      "words": {
+        "first": 25,
+        "below": 0,
+        "nav": 0,
+        "text": "Today Today's practice The last time you were genuinely nervous Pause after the full stop Voice Video Record This one keeps a 6-day streak alive"
+      },
+      "taps": {
+        "first": 5,
+        "below": 0,
+        "labels": [
+          "Today",
+          "Pause after the full stop. Show the full tip.",
+          "Voice",
+          "Video",
+          "Start recording"
+        ]
+      },
+      "start": null,
+      "record": {
+        "top": 515,
+        "bottom": 613
+      },
+      "title": null,
+      "lead": null
+    }
+  },
+  "free-broken 390-light": {
+    "today": {
+      "words": {
+        "first": 39,
+        "below": 50,
+        "nav": 5,
+        "text": "T 34 0 Test day 8 of 14 Welcome back Today's practice About 70 seconds The last time you were genuinely nervous Start Another topic Tester 0B5E 7A21 Speak today, then answer both questions. 5 of 14 days spoken"
+      },
+      "taps": {
+        "first": 3,
+        "below": 8,
+        "labels": [
+          "You",
+          "Start",
+          "Another topic"
+        ]
+      },
+      "start": {
+        "top": 468,
+        "bottom": 516
+      },
+      "record": null,
+      "title": "Welcome back",
+      "lead": "Today's practice"
+    },
+    "rep": {
+      "words": {
+        "first": 23,
+        "below": 0,
+        "nav": 0,
+        "text": "Today Today's practice The last time you were genuinely nervous Pause after the full stop Voice Video Record Ethos 700 10 to go"
+      },
+      "taps": {
+        "first": 5,
+        "below": 0,
+        "labels": [
+          "Today",
+          "Pause after the full stop. Show the full tip.",
+          "Voice",
+          "Video",
+          "Start recording"
+        ]
+      },
+      "start": null,
+      "record": {
+        "top": 680,
+        "bottom": 778
+      },
+      "title": null,
+      "lead": null
+    },
+    "repUrl": "/rep?topic=t7&item=pause-1-7&trait=pause&ready=1",
+    "timing": {
+      "startVisible": 200,
+      "cardReady": 337,
+      "startToRecord": 137,
+      "recordToLive": 92
+    }
+  },
+  "free-broken 390-dark": {
+    "today": {
+      "words": {
+        "first": 39,
+        "below": 50,
+        "nav": 5,
+        "text": "T 34 0 Test day 8 of 14 Welcome back Today's practice About 70 seconds The last time you were genuinely nervous Start Another topic Tester 0B5E 7A21 Speak today, then answer both questions. 5 of 14 days spoken"
+      },
+      "taps": {
+        "first": 3,
+        "below": 8,
+        "labels": [
+          "You",
+          "Start",
+          "Another topic"
+        ]
+      },
+      "start": {
+        "top": 468,
+        "bottom": 516
+      },
+      "record": null,
+      "title": "Welcome back",
+      "lead": "Today's practice"
+    },
+    "rep": {
+      "words": {
+        "first": 23,
+        "below": 0,
+        "nav": 0,
+        "text": "Today Today's practice The last time you were genuinely nervous Pause after the full stop Voice Video Record Ethos 700 10 to go"
+      },
+      "taps": {
+        "first": 5,
+        "below": 0,
+        "labels": [
+          "Today",
+          "Pause after the full stop. Show the full tip.",
+          "Voice",
+          "Video",
+          "Start recording"
+        ]
+      },
+      "start": null,
+      "record": {
+        "top": 680,
+        "bottom": 778
+      },
+      "title": null,
+      "lead": null
+    }
+  },
+  "free-broken 375-light": {
+    "today": {
+      "words": {
+        "first": 25,
+        "below": 64,
+        "nav": 5,
+        "text": "T 34 0 Test day 8 of 14 Welcome back Today's practice About 70 seconds The last time you were genuinely nervous Start Another topic"
+      },
+      "taps": {
+        "first": 3,
+        "below": 8,
+        "labels": [
+          "You",
+          "Start",
+          "Another topic"
+        ]
+      },
+      "start": {
+        "top": 468,
+        "bottom": 516
+      },
+      "record": null,
+      "title": "Welcome back",
+      "lead": "Today's practice"
+    },
+    "rep": {
+      "words": {
+        "first": 23,
+        "below": 0,
+        "nav": 0,
+        "text": "Today Today's practice The last time you were genuinely nervous Pause after the full stop Voice Video Record Ethos 700 10 to go"
+      },
+      "taps": {
+        "first": 5,
+        "below": 0,
+        "labels": [
+          "Today",
+          "Pause after the full stop. Show the full tip.",
+          "Voice",
+          "Video",
+          "Start recording"
+        ]
+      },
+      "start": null,
+      "record": {
+        "top": 515,
+        "bottom": 613
+      },
+      "title": null,
+      "lead": null
+    }
+  },
+  "premium-broken 390-light": {
+    "today": {
+      "words": {
+        "first": 39,
+        "below": 50,
+        "nav": 5,
+        "text": "T 34 0 Test day 8 of 14 Welcome back Today's practice About 70 seconds The last time you were genuinely nervous Start Another topic Tester 0B5E 7A21 Speak today, then answer both questions. 5 of 14 days spoken"
+      },
+      "taps": {
+        "first": 3,
+        "below": 8,
+        "labels": [
+          "You",
+          "Start",
+          "Another topic"
+        ]
+      },
+      "start": {
+        "top": 468,
+        "bottom": 516
+      },
+      "record": null,
+      "title": "Welcome back",
+      "lead": "Today's practice"
+    },
+    "rep": {
+      "words": {
+        "first": 23,
+        "below": 0,
+        "nav": 0,
+        "text": "Today Today's practice The last time you were genuinely nervous Pause after the full stop Voice Video Record Ethos 700 10 to go"
+      },
+      "taps": {
+        "first": 5,
+        "below": 0,
+        "labels": [
+          "Today",
+          "Pause after the full stop. Show the full tip.",
+          "Voice",
+          "Video",
+          "Start recording"
+        ]
+      },
+      "start": null,
+      "record": {
+        "top": 680,
+        "bottom": 778
+      },
+      "title": null,
+      "lead": null
+    },
+    "repUrl": "/rep?topic=t7&item=pause-1-7&trait=pause&ready=1",
+    "timing": {
+      "startVisible": 120,
+      "cardReady": 385,
+      "startToRecord": 133,
+      "recordToLive": 58
+    }
+  },
+  "premium-broken 390-dark": {
+    "today": {
+      "words": {
+        "first": 39,
+        "below": 50,
+        "nav": 5,
+        "text": "T 34 0 Test day 8 of 14 Welcome back Today's practice About 70 seconds The last time you were genuinely nervous Start Another topic Tester 0B5E 7A21 Speak today, then answer both questions. 5 of 14 days spoken"
+      },
+      "taps": {
+        "first": 3,
+        "below": 8,
+        "labels": [
+          "You",
+          "Start",
+          "Another topic"
+        ]
+      },
+      "start": {
+        "top": 468,
+        "bottom": 516
+      },
+      "record": null,
+      "title": "Welcome back",
+      "lead": "Today's practice"
+    },
+    "rep": {
+      "words": {
+        "first": 23,
+        "below": 0,
+        "nav": 0,
+        "text": "Today Today's practice The last time you were genuinely nervous Pause after the full stop Voice Video Record Ethos 700 10 to go"
+      },
+      "taps": {
+        "first": 5,
+        "below": 0,
+        "labels": [
+          "Today",
+          "Pause after the full stop. Show the full tip.",
+          "Voice",
+          "Video",
+          "Start recording"
+        ]
+      },
+      "start": null,
+      "record": {
+        "top": 680,
+        "bottom": 778
+      },
+      "title": null,
+      "lead": null
+    }
+  },
+  "premium-broken 375-light": {
+    "today": {
+      "words": {
+        "first": 25,
+        "below": 64,
+        "nav": 5,
+        "text": "T 34 0 Test day 8 of 14 Welcome back Today's practice About 70 seconds The last time you were genuinely nervous Start Another topic"
+      },
+      "taps": {
+        "first": 3,
+        "below": 8,
+        "labels": [
+          "You",
+          "Start",
+          "Another topic"
+        ]
+      },
+      "start": {
+        "top": 468,
+        "bottom": 516
+      },
+      "record": null,
+      "title": "Welcome back",
+      "lead": "Today's practice"
+    },
+    "rep": {
+      "words": {
+        "first": 23,
+        "below": 0,
+        "nav": 0,
+        "text": "Today Today's practice The last time you were genuinely nervous Pause after the full stop Voice Video Record Ethos 700 10 to go"
+      },
+      "taps": {
+        "first": 5,
+        "below": 0,
+        "labels": [
+          "Today",
+          "Pause after the full stop. Show the full tip.",
+          "Voice",
+          "Video",
+          "Start recording"
+        ]
+      },
+      "start": null,
+      "record": {
+        "top": 515,
+        "bottom": 613
+      },
+      "title": null,
+      "lead": null
+    }
+  },
+  "free-away4 390-light": {
+    "today": {
+      "words": {
+        "first": 39,
+        "below": 44,
+        "nav": 5,
+        "text": "T 30 0 Test day 8 of 14 Welcome back Today's practice About 70 seconds The last time you were genuinely nervous Start Another topic Tester 0B5E 7A21 Speak today, then answer both questions. 2 of 14 days spoken"
+      },
+      "taps": {
+        "first": 3,
+        "below": 8,
+        "labels": [
+          "You",
+          "Start",
+          "Another topic"
+        ]
+      },
+      "start": {
+        "top": 468,
+        "bottom": 516
+      },
+      "record": null,
+      "title": "Welcome back",
+      "lead": "Today's practice"
+    },
+    "rep": {
+      "words": {
+        "first": 23,
+        "below": 0,
+        "nav": 0,
+        "text": "Today Today's practice The last time you were genuinely nervous Pause after the full stop Voice Video Record Ethos 700 15 to go"
+      },
+      "taps": {
+        "first": 5,
+        "below": 0,
+        "labels": [
+          "Today",
+          "Pause after the full stop. Show the full tip.",
+          "Voice",
+          "Video",
+          "Start recording"
+        ]
+      },
+      "start": null,
+      "record": {
+        "top": 680,
+        "bottom": 778
+      },
+      "title": null,
+      "lead": null
+    },
+    "repUrl": "/rep?topic=t7&item=pause-1-7&trait=pause&ready=1",
+    "timing": {
+      "startVisible": 155,
+      "cardReady": 323,
+      "startToRecord": 128,
+      "recordToLive": 63
+    }
+  },
+  "free-away4 390-dark": {
+    "today": {
+      "words": {
+        "first": 39,
+        "below": 44,
+        "nav": 5,
+        "text": "T 30 0 Test day 8 of 14 Welcome back Today's practice About 70 seconds The last time you were genuinely nervous Start Another topic Tester 0B5E 7A21 Speak today, then answer both questions. 2 of 14 days spoken"
+      },
+      "taps": {
+        "first": 3,
+        "below": 8,
+        "labels": [
+          "You",
+          "Start",
+          "Another topic"
+        ]
+      },
+      "start": {
+        "top": 468,
+        "bottom": 516
+      },
+      "record": null,
+      "title": "Welcome back",
+      "lead": "Today's practice"
+    },
+    "rep": {
+      "words": {
+        "first": 23,
+        "below": 0,
+        "nav": 0,
+        "text": "Today Today's practice The last time you were genuinely nervous Pause after the full stop Voice Video Record Ethos 700 15 to go"
+      },
+      "taps": {
+        "first": 5,
+        "below": 0,
+        "labels": [
+          "Today",
+          "Pause after the full stop. Show the full tip.",
+          "Voice",
+          "Video",
+          "Start recording"
+        ]
+      },
+      "start": null,
+      "record": {
+        "top": 680,
+        "bottom": 778
+      },
+      "title": null,
+      "lead": null
+    }
+  },
+  "free-away4 375-light": {
+    "today": {
+      "words": {
+        "first": 25,
+        "below": 58,
+        "nav": 5,
+        "text": "T 30 0 Test day 8 of 14 Welcome back Today's practice About 70 seconds The last time you were genuinely nervous Start Another topic"
+      },
+      "taps": {
+        "first": 3,
+        "below": 8,
+        "labels": [
+          "You",
+          "Start",
+          "Another topic"
+        ]
+      },
+      "start": {
+        "top": 468,
+        "bottom": 516
+      },
+      "record": null,
+      "title": "Welcome back",
+      "lead": "Today's practice"
+    },
+    "rep": {
+      "words": {
+        "first": 23,
+        "below": 0,
+        "nav": 0,
+        "text": "Today Today's practice The last time you were genuinely nervous Pause after the full stop Voice Video Record Ethos 700 15 to go"
+      },
+      "taps": {
+        "first": 5,
+        "below": 0,
+        "labels": [
+          "Today",
+          "Pause after the full stop. Show the full tip.",
+          "Voice",
+          "Video",
+          "Start recording"
+        ]
+      },
+      "start": null,
+      "record": {
+        "top": 515,
+        "bottom": 613
+      },
+      "title": null,
+      "lead": null
+    }
+  },
+  "plain-free-alive 390-light": {
+    "today": {
+      "words": {
+        "first": 30,
+        "below": 39,
+        "nav": 5,
+        "text": "T 35 6 Monday 9 November Hi, Timothy Today's practice About 70 seconds The last time you were genuinely nervous Start Another topic Today This week Pausing 1.8 Today's line"
+      },
+      "taps": {
+        "first": 6,
+        "below": 5,
+        "labels": [
+          "You",
+          "Start",
+          "Another topic",
+          "Today",
+          "This week",
+          "Pausing, 1.8 held pauses a minute, 18th percenti"
+        ]
+      },
+      "start": {
+        "top": 468,
+        "bottom": 516
+      },
+      "record": null,
+      "title": "Hi, Timothy",
+      "lead": "Today's practice"
+    },
+    "rep": {
+      "words": {
+        "first": 25,
+        "below": 0,
+        "nav": 0,
+        "text": "Today Today's practice The last time you were genuinely nervous Pause after the full stop Voice Video Record This one keeps a 6-day streak alive"
+      },
+      "taps": {
+        "first": 5,
+        "below": 0,
+        "labels": [
+          "Today",
+          "Pause after the full stop. Show the full tip.",
+          "Voice",
+          "Video",
+          "Start recording"
+        ]
+      },
+      "start": null,
+      "record": {
+        "top": 680,
+        "bottom": 778
+      },
+      "title": null,
+      "lead": null
+    },
+    "repUrl": "/rep?topic=t7&item=pause-1-7&trait=pause&ready=1",
+    "timing": {
+      "startVisible": 173,
+      "cardReady": 515,
+      "startToRecord": 146,
+      "recordToLive": 62
+    }
+  },
+  "plain-free-alive 390-dark": {
+    "today": {
+      "words": {
+        "first": 30,
+        "below": 39,
+        "nav": 5,
+        "text": "T 35 6 Monday 9 November Hi, Timothy Today's practice About 70 seconds The last time you were genuinely nervous Start Another topic Today This week Pausing 1.8 Today's line"
+      },
+      "taps": {
+        "first": 6,
+        "below": 5,
+        "labels": [
+          "You",
+          "Start",
+          "Another topic",
+          "Today",
+          "This week",
+          "Pausing, 1.8 held pauses a minute, 18th percenti"
+        ]
+      },
+      "start": {
+        "top": 468,
+        "bottom": 516
+      },
+      "record": null,
+      "title": "Hi, Timothy",
+      "lead": "Today's practice"
+    },
+    "rep": {
+      "words": {
+        "first": 25,
+        "below": 0,
+        "nav": 0,
+        "text": "Today Today's practice The last time you were genuinely nervous Pause after the full stop Voice Video Record This one keeps a 6-day streak alive"
+      },
+      "taps": {
+        "first": 5,
+        "below": 0,
+        "labels": [
+          "Today",
+          "Pause after the full stop. Show the full tip.",
+          "Voice",
+          "Video",
+          "Start recording"
+        ]
+      },
+      "start": null,
+      "record": {
+        "top": 680,
+        "bottom": 778
+      },
+      "title": null,
+      "lead": null
+    }
+  },
+  "plain-free-alive 375-light": {
+    "today": {
+      "words": {
+        "first": 23,
+        "below": 46,
+        "nav": 5,
+        "text": "T 35 6 Monday 9 November Hi, Timothy Today's practice About 70 seconds The last time you were genuinely nervous Start Another topic"
+      },
+      "taps": {
+        "first": 3,
+        "below": 8,
+        "labels": [
+          "You",
+          "Start",
+          "Another topic"
+        ]
+      },
+      "start": {
+        "top": 468,
+        "bottom": 516
+      },
+      "record": null,
+      "title": "Hi, Timothy",
+      "lead": "Today's practice"
+    },
+    "rep": {
+      "words": {
+        "first": 25,
+        "below": 0,
+        "nav": 0,
+        "text": "Today Today's practice The last time you were genuinely nervous Pause after the full stop Voice Video Record This one keeps a 6-day streak alive"
+      },
+      "taps": {
+        "first": 5,
+        "below": 0,
+        "labels": [
+          "Today",
+          "Pause after the full stop. Show the full tip.",
+          "Voice",
+          "Video",
+          "Start recording"
+        ]
+      },
+      "start": null,
+      "record": {
+        "top": 515,
+        "bottom": 613
+      },
+      "title": null,
+      "lead": null
+    }
+  },
+  "spoke-today 390-light": {
+    "today": {
+      "words": {
+        "first": 43,
+        "below": 43,
+        "nav": 5,
+        "text": "T 36 7 Test day 8 of 14 Hi, Timothy One more Pausing Pause after the full stop The last time you were genuinely nervous Start Tester 0B5E 7A21 Did 665 feel right? Answer 7 of 14 days spoken 2 Nov 15 Nov"
+      },
+      "taps": {
+        "first": 6,
+        "below": 8,
+        "labels": [
+          "You",
+          "Pause after the full stop. Show the full tip.",
+          "Start",
+          "Spin a new topic",
+          "Turn up the difficulty",
+          "Answer"
+        ]
+      },
+      "start": {
+        "top": 468,
+        "bottom": 516
+      },
+      "record": null,
+      "title": "Hi, Timothy",
+      "lead": "One more"
+    },
+    "rep": {
+      "words": {
+        "first": 34,
+        "below": 0,
+        "nav": 0,
+        "text": "Today Today's practice The last time you were genuinely nervous The pause nobody fills Pause after the full stop Hold one to two seconds Start mid-action Voice Video Record Ethos 700 10 to go"
+      },
+      "taps": {
+        "first": 7,
+        "below": 0,
+        "labels": [
+          "Today",
+          "Pause after the full stop. Show the full tip.",
+          "Hold one to two seconds. Show the full tip.",
+          "Start mid-action. Show the full tip.",
+          "Voice",
+          "Video",
+          "Start recording"
+        ]
+      },
+      "start": null,
+      "record": {
+        "top": 680,
+        "bottom": 778
+      },
+      "title": null,
+      "lead": null
+    },
+    "repUrl": "/rep?topic=t7&item=pause-1-7&trait=pause",
+    "timing": {
+      "startVisible": 160,
+      "cardReady": 445,
+      "startToRecord": 148,
+      "recordToLive": 52
+    },
+    "repIphone": {
+      "words": {
+        "first": 32,
+        "below": 0,
+        "nav": 0,
+        "text": "Today Today's practice The last time you were genuinely nervous The pause nobody fills Pause after the full stop Hold one to two seconds Start mid-action Record Ethos 700 10 to go"
+      },
+      "taps": {
+        "first": 5,
+        "below": 0,
+        "labels": [
+          "Today",
+          "Pause after the full stop. Show the full tip.",
+          "Hold one to two seconds. Show the full tip.",
+          "Start mid-action. Show the full tip.",
+          "Start recording"
+        ]
+      },
+      "start": null,
+      "record": {
+        "top": 681,
+        "bottom": 777
+      },
+      "title": null,
+      "lead": null
+    }
+  },
+  "spoke-today 390-dark": {
+    "today": {
+      "words": {
+        "first": 43,
+        "below": 43,
+        "nav": 5,
+        "text": "T 36 7 Test day 8 of 14 Hi, Timothy One more Pausing Pause after the full stop The last time you were genuinely nervous Start Tester 0B5E 7A21 Did 665 feel right? Answer 7 of 14 days spoken 2 Nov 15 Nov"
+      },
+      "taps": {
+        "first": 6,
+        "below": 8,
+        "labels": [
+          "You",
+          "Pause after the full stop. Show the full tip.",
+          "Start",
+          "Spin a new topic",
+          "Turn up the difficulty",
+          "Answer"
+        ]
+      },
+      "start": {
+        "top": 468,
+        "bottom": 516
+      },
+      "record": null,
+      "title": "Hi, Timothy",
+      "lead": "One more"
+    },
+    "rep": {
+      "words": {
+        "first": 34,
+        "below": 0,
+        "nav": 0,
+        "text": "Today Today's practice The last time you were genuinely nervous The pause nobody fills Pause after the full stop Hold one to two seconds Start mid-action Voice Video Record Ethos 700 10 to go"
+      },
+      "taps": {
+        "first": 7,
+        "below": 0,
+        "labels": [
+          "Today",
+          "Pause after the full stop. Show the full tip.",
+          "Hold one to two seconds. Show the full tip.",
+          "Start mid-action. Show the full tip.",
+          "Voice",
+          "Video",
+          "Start recording"
+        ]
+      },
+      "start": null,
+      "record": {
+        "top": 680,
+        "bottom": 778
+      },
+      "title": null,
+      "lead": null
+    }
+  },
+  "spoke-today 375-light": {
+    "today": {
+      "words": {
+        "first": 29,
+        "below": 57,
+        "nav": 5,
+        "text": "T 36 7 Test day 8 of 14 Hi, Timothy One more Pausing Pause after the full stop The last time you were genuinely nervous Start Tester 0B5E 7A21"
+      },
+      "taps": {
+        "first": 5,
+        "below": 9,
+        "labels": [
+          "You",
+          "Pause after the full stop. Show the full tip.",
+          "Start",
+          "Spin a new topic",
+          "Turn up the difficulty"
+        ]
+      },
+      "start": {
+        "top": 468,
+        "bottom": 516
+      },
+      "record": null,
+      "title": "Hi, Timothy",
+      "lead": "One more"
+    },
+    "rep": {
+      "words": {
+        "first": 34,
+        "below": 0,
+        "nav": 0,
+        "text": "Today Today's practice The last time you were genuinely nervous The pause nobody fills Pause after the full stop Hold one to two seconds Start mid-action Voice Video Record Ethos 700 10 to go"
+      },
+      "taps": {
+        "first": 7,
+        "below": 0,
+        "labels": [
+          "Today",
+          "Pause after the full stop. Show the full tip.",
+          "Hold one to two seconds. Show the full tip.",
+          "Start mid-action. Show the full tip.",
+          "Voice",
+          "Video",
+          "Start recording"
+        ]
+      },
+      "start": null,
+      "record": {
+        "top": 515,
+        "bottom": 613
+      },
+      "title": null,
+      "lead": null
+    }
+  },
+  "push": {
+    "url": "/rep?topic=t7&item=pause-1-7&trait=pause&ready=1",
+    "rep": {
+      "words": {
+        "first": 25,
+        "below": 0,
+        "nav": 0,
+        "text": "Today Today's practice The last time you were genuinely nervous Pause after the full stop Voice Video Record This one keeps a 6-day streak alive"
+      },
+      "taps": {
+        "first": 5,
+        "below": 0,
+        "labels": [
+          "Today",
+          "Pause after the full stop. Show the full tip.",
+          "Voice",
+          "Video",
+          "Start recording"
+        ]
+      },
+      "start": null,
+      "record": {
+        "top": 680,
+        "bottom": 778
+      },
+      "title": null,
+      "lead": null
+    }
+  }
+}

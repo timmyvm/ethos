@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import type { NextRequest } from "next/server";
 
 vi.mock("@/lib/transcribe", () => ({ transcribe: vi.fn() }));
@@ -364,6 +364,15 @@ describe("POST /api/analyze", () => {
   });
 
   it("compares a boss with last week's boss, in the speaker's own week", async () => {
+    /* The clock is the recording's morning: the route keeps a phone's
+       recordedAt only within 72 hours of now (lib/spoken-at.ts), so on
+       9 Nov this take read as spoken on the 6th's last allowed instant
+       and the week moved on with the calendar. */
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-06T00:30:00.000Z"));
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     vi.mocked(transcribe).mockResolvedValue(FIXTURE);
     vi.mocked(coachRep).mockResolvedValue(null);
     vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-boss", anonymous: false });
@@ -373,20 +382,10 @@ describe("POST /api/analyze", () => {
     vi.mocked(bossIndexBetween).mockResolvedValue(648);
     const form = audioForm();
     form.append("bossTopicId", "crispr");
-    // Spoken Friday 6 Nov, 10:00 in Melbourne, and sent an hour later: the
-    // clock is pinned so the route's slack on recordedAt (lib/spoken-at.ts)
-    // keeps the take on its own day whatever day the suite runs (it read
-    // today's week once 9 Nov came).
+    // Spoken Friday 6 Nov, 10:00 in Melbourne (the clock is pinned above).
     form.append("recordedAt", "2026-11-05T23:00:00.000Z");
     form.append("tzOffset", "-660");
-    vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-11-06T00:00:00.000Z"));
-    let body: { previousIndex?: number };
-    try {
-      body = await (await post(form)).json();
-    } finally {
-      vi.useRealTimers();
-    }
+    const body = await (await post(form)).json();
     expect(body.previousIndex).toBe(648);
     expect(previousEthosIndex).not.toHaveBeenCalled();
     const [user, from, to] = vi.mocked(bossIndexBetween).mock.calls[0];

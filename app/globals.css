@@ -5345,6 +5345,51 @@ summary::-webkit-details-marker {
   color: var(--home-b);
 }
 
+/* What the first take costs (#431), under the lead beside the object:
+   the lead's size and face, a step back in the card's ink, so the two
+   read as one label and the topic stays the card's words. */
+.home-hero-cost {
+  margin-top: -6px;
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: rgb(255 255 255 / 0.9);
+}
+.home-hero[data-family="none"] .home-hero-cost {
+  color: var(--color-stone-500);
+}
+/* A day not yet spoken (#431): the card is a row taller, for "Another
+   topic" under Start, and the roulette it opens keeps the same height
+   with its way back in that row, so the pill stands where Start stood
+   and nothing under the card moves when it spins up. */
+.home-hero[data-spin="link"] {
+  min-height: 416px;
+}
+/* "Another topic" (#431): the roulette's door on a day not yet spoken,
+   a text tap under Start rather than a circle beside it. 44px tall,
+   the card's width, centred, in the card's ink; it tucks 8px into the
+   card's foot so its words sit as far from the edge as Start's do. */
+.home-another {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-top: 4px;
+  margin-bottom: -8px;
+  border-radius: var(--radius-tap);
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+  font-weight: 600;
+  color: rgb(255 255 255 / 0.86);
+}
+.home-hero[data-family="none"] .home-another {
+  color: var(--color-stone-600);
+}
+
 /* The one tap, a pill on the card like every tap (D11). 48px,
    terracotta, ink. */
 .home-start {
@@ -5898,6 +5943,32 @@ summary::-webkit-details-marker {
 .test-day[data-state="unknown"][data-today]::after {
   content: none;
 }
+/* Who is active (#431, app/active): a day on a tester's strip and in
+   the day totals, in the test road's grammar. Recorded is the road's
+   sage; opened without recording an outline in stone (on the road an
+   outline is a day to come; here every day has passed, and the legend
+   names it); nothing the bare trough. Fill, ring and flat tell the three
+   apart without colour. */
+.active-day {
+  border-radius: 3px;
+  /* The road's faded sand in light; in dark the surface step below the
+     raised card, a recess (the faded sand vanished there). */
+  background: color-mix(in srgb, var(--color-sand) 35%, transparent);
+}
+:root[data-theme="dark"] .active-day[data-mark="none"] {
+  background: var(--color-surface);
+}
+.active-day[data-mark="recorded"] {
+  background: var(--color-sage-600);
+}
+.active-day[data-mark="opened"] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--color-stone-400);
+}
+.active-flame {
+  color: var(--color-amber);
+}
+
 /* The test tile's place, held from the server's first paint on a
    tester's device (lib/tester-boot.ts marks html before paint), so a
    reload never pushes Today down when the tile mounts. The surface step

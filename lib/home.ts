@@ -11,14 +11,15 @@ import { lessonById } from "@/content/lessons";
 import { NORMS } from "@/content/norms";
 import { TRAIT, TRAITS, type TraitId } from "@/content/traits";
 import { cleanName } from "./answers";
-import { bandClose, type Challenge } from "./challenge";
+import { bandClose, practiceRow, type Challenge } from "./challenge";
 import { longestCleanRun } from "./clean-run";
 import type { RepRow, RepSpine } from "./client-data";
 import { ART_BOUNDS } from "./lesson-art-bounds";
 import { weekStart } from "./level";
-import { standing } from "./next-practice";
+import { choosePractice, standing, type Chosen } from "./next-practice";
 import { percentile } from "./percentile";
-import { measured, type TraitReading } from "./trait-readings";
+import { repHref } from "./rep-config";
+import { measured, readTraitsFromRow, type TraitReading } from "./trait-readings";
 
 /* ------------------------------------------------------------------ */
 /* The objects. */
@@ -456,4 +457,200 @@ export function signed(n: number): string {
   if (n > 0) return `+${n}`;
   if (n < 0) return `−${-n}`;
   return "0";
+}
+
+/* ------------------------------------------------------------------ */
+/* Open straight into speaking (#431). */
+
+/**
+ * No practice could be chosen (a failed read, a history with nothing
+ * measured): a topic anyone can take, and the one Start opens, so the
+ * card promises what the tap keeps.
+ */
+export const FALLBACK_TOPIC_ID = "t2";
+
+/** The columns a practice is chosen from: what `readTraitsFromRow` and `measured` read. */
+export type PracticeRow = Pick<
+  RepRow,
+  "created_at" | "duration_s" | "transcript" | "wpm" | "filler_count" | "fillers" | "pauses" | "dimensions"
+>;
+
+/**
+ * Today's practice: the one selector (#268) on the newest measured
+ * recording before today, so the card, today's line, the wide tile and
+ * now the reminder name one topic.
+ */
+export function todaysPractice(history: PracticeRow[], now: Date = new Date()): Chosen | null {
+  const row = practiceRow(history, now);
+  return row ? choosePractice(readTraitsFromRow(row), now) : null;
+}
+
+/**
+ * Where a practice opens: the topic and tactic the card printed (E52)
+ * in the colour it wore (D50), with no practice the fallback topic in
+ * the house's blue. `ready` on a day not yet spoken: the recording
+ * screen opens on the topic, one tactic and Record.
+ */
+export function practiceHref(
+  chosen: Chosen | null,
+  opts: { mods?: string[]; ready?: boolean } = {}
+): string {
+  return repHref({
+    topic: chosen?.item.topicId ?? FALLBACK_TOPIC_ID,
+    item: chosen?.item.id,
+    mods: opts.mods,
+    trait: chosen?.trait ?? "pause",
+    ready: opts.ready,
+  });
+}
+
+/** The device's local day of an instant, "YYYY-MM-DD". */
+export function localDay(at: Date): string {
+  return dayKey(at);
+}
+
+/** The local day of the newest recording, or null with none. */
+export function lastSpokeOn(rows: { created_at: string }[]): string | null {
+  let newest = -Infinity;
+  for (const r of rows) newest = Math.max(newest, Date.parse(r.created_at));
+  return Number.isFinite(newest) ? dayKey(new Date(newest)) : null;
+}
+
+/** Whole local days from day key `a` to day key `b`, by date parts. */
+function daysFrom(a: string, b: string): number {
+  const utc = (k: string) => Date.UTC(Number(k.slice(0, 4)), Number(k.slice(5, 7)) - 1, Number(k.slice(8, 10)));
+  return Math.round((utc(b) - utc(a)) / 86_400_000);
+}
+
+/**
+ * The day, from the local day of the newest recording: spoken today,
+ * open, or open after a break. A break is a last recording two or more
+ * days before today, so one missed day (the day the flame falls to 0)
+ * counts, and so does four days away: that is when a welcome is needed
+ * most (fresh start, Dai, Milkman and Riis 2014). The gap is never put
+ * into words; this says only whether to welcome.
+ */
+export function dayOf(lastDay: string | null, now: Date = new Date()): "none" | "spoken" | "open" | "back" {
+  if (!lastDay) return "none";
+  const gap = daysFrom(lastDay, dayKey(now));
+  if (gap <= 0) return "spoken";
+  return gap >= 2 ? "back" : "open";
+}
+
+/**
+ * The address a reminder opens (#431): Today's own practice, the one
+ * Today's Start opens, ready to record. It used to be bare /rep, the
+ * demoted road's rotation, so every reminder opened a different topic
+ * from Today's and filed the take against the road's. With no
+ * recording yet it is Today, which knows day one's lesson.
+ */
+export function todayHref(history: PracticeRow[], now: Date = new Date()): string {
+  if (history.length === 0) return "/";
+  const spoken = dayOf(lastSpokeOn(history), now) === "spoken";
+  return practiceHref(todaysPractice(history, now), { ready: !spoken });
+}
+
+/**
+ * An instant as it reads on a wall clock `tzOffset` minutes behind UTC
+ * (`Date.getTimezoneOffset`'s sign, as push_subscriptions stores it):
+ * a Date whose LOCAL fields are that wall clock's, wherever this runs.
+ * The selector reads local days (the person's own calendar, #77), so the
+ * server hands it the subscriber's.
+ */
+export function onWall(at: Date, tzOffset: number): Date {
+  const s = new Date(at.getTime() - tzOffset * 60_000);
+  return new Date(
+    s.getUTCFullYear(),
+    s.getUTCMonth(),
+    s.getUTCDate(),
+    s.getUTCHours(),
+    s.getUTCMinutes(),
+    s.getUTCSeconds(),
+    s.getUTCMilliseconds()
+  );
+}
+
+/** `todayHref` on a subscriber's calendar, for the server's reminder. */
+export function todayHrefOn(history: PracticeRow[], now: Date, tzOffset: number): string {
+  const wall = history.map((r) => ({
+    ...r,
+    created_at: onWall(new Date(r.created_at), tzOffset).toISOString(),
+  }));
+  return todayHref(wall, onWall(now, tzOffset));
+}
+
+/**
+ * What the card shows (#431). Someone who opens Today and has not
+ * spoken stays about seven seconds and leaves without tapping Start
+ * (the test, 8 Nov: a median of 6.7s), so on an open day the card is
+ * one decision: the topic, what it costs, one full-width Start, and a
+ * way to another topic as a link under it. The trait chip, the tactic
+ * and the difficulty glyph are a second take's tools, and stay on "One
+ * more"; the tactic moves to the recording screen as its one line. The
+ * difficulty glyph stays for someone who turned one up this week, whose
+ * first take uses it.
+ */
+export interface CardFace {
+  lead: "Your first recording" | "Today's practice" | "One more";
+  /** The trait chip and the tactic beside the object. */
+  tactic: boolean;
+  /** "About 60 seconds" beside the object. */
+  cost: boolean;
+  /** Spin as the glyph beside Start, or as "Another topic" under a full-width Start. */
+  spin: "glyph" | "link";
+  /** The difficulty glyph beside Start. */
+  mods: boolean;
+  /** Start opens the recording screen ready to record. */
+  ready: boolean;
+}
+
+export function cardFace(day: { dayOne: boolean; spokeToday: boolean; usedMods: boolean }): CardFace {
+  if (day.dayOne) {
+    return { lead: "Your first recording", tactic: false, cost: false, spin: "glyph", mods: true, ready: false };
+  }
+  if (day.spokeToday) {
+    return { lead: "One more", tactic: true, cost: false, spin: "glyph", mods: true, ready: false };
+  }
+  return { lead: "Today's practice", tactic: false, cost: true, spin: "link", mods: day.usedMods, ready: true };
+}
+
+/** A take with difficulty turned up in the last seven days. */
+export function usedModsLately(reps: Pick<RepRow, "created_at" | "mods">[], now: Date = new Date()): boolean {
+  const since = now.getTime() - 7 * 86_400_000;
+  return reps.some((r) => (r.mods?.length ?? 0) > 0 && Date.parse(r.created_at) >= since);
+}
+
+/**
+ * What the day's take costs, from the person's own takes: the median
+ * length of their last seven measured practice recordings, to the
+ * nearest ten seconds, 30 to 90 (the daily cap). Under three, 60: the
+ * daily take's middle. A number from their own recordings, not a promise.
+ */
+export function aboutSeconds(reps: Pick<RepRow, "duration_s" | "transcript" | "lesson_id" | "mode">[]): number {
+  const takes = reps
+    .filter((r) => r.mode === "daily" && !(r.lesson_id ?? "").startsWith("game:") && measured(r))
+    .slice(-7)
+    .map((r) => r.duration_s)
+    .sort((a, b) => a - b);
+  if (takes.length < 3) return 60;
+  const mid = takes.length / 2;
+  const median = takes.length % 2 ? takes[Math.floor(mid)] : (takes[mid - 1] + takes[mid]) / 2;
+  return Math.min(90, Math.max(30, Math.round(median / 10) * 10));
+}
+
+export function costLine(seconds: number): string {
+  return `About ${seconds} seconds`;
+}
+
+/**
+ * The greeting (#393, #431): "Hi, Timothy", or "Welcome back, Timothy"
+ * on a return after a break, never a count of the days away. `short` is
+ * what the title shows when the whole line cannot hold one line at 26px:
+ * the name alone, and on a return "Welcome back", which keeps the
+ * welcome rather than the name. With no name the tab's own "Today", or
+ * "Welcome back".
+ */
+export function greeting(name: string | null, back: boolean): { full: string; short: string | null } {
+  if (back) return name ? { full: `Welcome back, ${name}`, short: "Welcome back" } : { full: "Welcome back", short: null };
+  return name ? { full: `Hi, ${name}`, short: name } : { full: "Today", short: null };
 }

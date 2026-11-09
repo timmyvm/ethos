@@ -106,6 +106,9 @@ const BARE = [
   /* Tester mode's door (docs/testers.md): a code, a consent, one tap
      each, reached from the introduction or Settings. */
   "/tester",
+  /* Who is active (#431): Timothy's page, not an app screen (#255's
+     reason for the workbench). */
+  "/active",
   "/about",
   "/privacy",
   "/terms",

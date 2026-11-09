@@ -114,15 +114,20 @@ function subsQuery() {
 
 function repsQuery() {
   let head = false;
+  let cols = "";
   const q = {
-    select: (_c: string, opts?: { head?: boolean }) => {
+    select: (c: string, opts?: { head?: boolean }) => {
       head = !!opts?.head;
+      cols = c;
       return q;
     },
     eq: () => q,
     gte: () => q,
     order: () => q,
-    limit: () => Promise.resolve({ data: recent, error: null }),
+    // The address's read (#431, the one with the transcript) finds no
+    // measured recording here, so the reminder opens Today; the address
+    // itself is lib/push-cron-url.test.ts's subject.
+    limit: () => Promise.resolve({ data: cols.includes("transcript") ? [] : recent, error: null }),
     then: (ok: (v: unknown) => unknown) =>
       Promise.resolve(
         head ? (countError ? { count: null, error: countError } : { count: repsToday, error: null }) : { data: [], error: null }
@@ -304,7 +309,7 @@ describe("the reminder cron, #430", () => {
         { filler_count: 4, duration_s: 61.6 },
       ];
       expect((await (await tick()).json()).sent).toBe(1);
-      expect(payloads[0]).toEqual({ title: "Your 6 pm practice", body: "Last time: 4 fillers in 62 seconds.", url: "/rep" });
+      expect(payloads[0]).toEqual({ title: "Your 6 pm practice", body: "Last time: 4 fillers in 62 seconds.", url: "/" });
     } finally {
       vi.useRealTimers();
     }
@@ -317,7 +322,7 @@ describe("the reminder cron, #430", () => {
       vi.setSystemTime(new Date("2026-11-08T10:16:26Z"));
       subs = [{ ...due(1), reminder_hour: 12, tz: "Australia/Melbourne", quiet_from: 22, quiet_to: 7 }];
       expect((await (await tick()).json()).sent).toBe(1);
-      expect(payloads[0]).toEqual({ title: "Today's practice", body: "It takes about a minute.", url: "/rep" });
+      expect(payloads[0]).toEqual({ title: "Today's practice", body: "It takes about a minute.", url: "/" });
     } finally {
       vi.useRealTimers();
     }

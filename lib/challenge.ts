@@ -249,10 +249,10 @@ export function openQuantile(reps: RepRow[], now: Date): number {
  * later. With nothing before today, the newest row up to `now` stands in
  * (the window is empty then, so no challenge is drawn from it anyway).
  */
-export function practiceRow(
-  reps: RepRow[],
+export function practiceRow<R extends Pick<RepRow, "created_at" | "transcript">>(
+  reps: R[],
   now: Date = new Date()
-): RepRow | undefined {
+): R | undefined {
   /* Only a recording that measured something: a one-word take read
      "7 words a minute" and switched the next day's card to pace. */
   const kept = reps.filter(measured);

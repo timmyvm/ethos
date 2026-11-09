@@ -21,6 +21,7 @@
  */
 
 import { insideQuietHours, readPrefs, type Prefs } from "./prefs";
+import { reminderCopy, takeLine, type LastTake } from "./reminder-copy";
 import { deviceZone, PUSH_ACK_KEY } from "./reminders-zone";
 import { ensureSession } from "./supabase-browser";
 
@@ -118,18 +119,20 @@ export function nextFireTime(
 }
 
 export interface ReminderContext {
-  streak: number;
+  /** Callers still pass it; the words no longer name it (#430). */
+  streak?: number;
   didToday: boolean;
+  /** The last take worth quoting, when the caller has it. */
+  last?: LastTake | null;
 }
 
 /**
- * Coach register. Names the streak, never scolds. No sad mascot, no
- * shame state (DECISIONS #26).
+ * The body, the same words the server sends (lib/reminder-copy.ts, #430):
+ * a number from the last take, never the streak. No sad mascot, no shame
+ * state (DECISIONS #26).
  */
 export function reminderBody(ctx: ReminderContext): string {
-  if (ctx.streak >= 2) return `${ctx.streak} days. Five minutes keeps it.`;
-  if (ctx.streak === 1) return "Day two is the one that makes it a habit.";
-  return "Five minutes. One prompt. Take the floor.";
+  return takeLine(ctx.last ?? null);
 }
 
 function sameLocalDay(a: Date, b: Date): boolean {
@@ -354,6 +357,7 @@ export async function armReminder(
   if (!fireAt) return null;
 
   const tier = reminderTier();
+  const { title } = reminderCopy({ hour: prefs.reminderHour, onTime: true, last: ctx.last ?? null });
   const payload = {
     tag: TAG,
     body: reminderBody(ctx),
@@ -366,7 +370,7 @@ export async function armReminder(
     const Trigger = timestampTrigger();
     try {
       const reg = await navigator.serviceWorker.ready;
-      await reg.showNotification("Ethos", {
+      await reg.showNotification(title, {
         ...payload,
         // Not in lib.dom yet — feature-detected above.
         showTrigger: new Trigger!(fireAt.getTime()),
@@ -386,7 +390,7 @@ export async function armReminder(
     // tomorrow (fireAt is tomorrow's hour) is firing about a new day.
     if (ctx.didToday && sameLocalDay(at, now)) return;
     try {
-      new Notification("Ethos", payload);
+      new Notification(title, payload);
       markFired(at);
     } catch {}
   }, Math.max(0, delay));

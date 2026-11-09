@@ -89,15 +89,23 @@ export function inQuietRange(
 }
 
 /**
- * Hours a late or dropped tick is made up in. The scheduler (GitHub's
- * hourly cron) runs late at the top of the hour and drops runs under
- * load, and the route reads the clock when it runs: an exact-hour match
- * lost the day's reminder to a tick that ran at 19:03 for 18:00.
+ * How a late or dropped tick is made up (#430). The scheduler that called
+ * this hourly ran it about four times a day (GitHub, 25 Oct to 9 Nov: 60
+ * runs, gaps up to 10 h 40 m), and a three-hour window served 28 of 60
+ * chosen hour-days in Melbourne. The window now runs from the chosen hour
+ * until quiet hours begin, the same local day: a tick that comes late
+ * still finds a day nobody has practised in, and nothing rings once quiet
+ * hours start, nor the next morning about last night. A reliable hourly
+ * caller (pg_cron at minute 1, supabase/migrations/0027_push_tick.sql)
+ * serves every hour at HH:01; the window is the backstop for when it misses.
+ *
+ * A reminder that comes late does not name the hour (`onTime`): "Your
+ * 12 pm practice" at 6 pm is not the plan the person made.
  */
-export const CATCH_UP_HOURS = 3;
+export const ON_TIME_HOURS = 2;
 
 /**
- * Should this hourly cron tick send to this subscription?
+ * Should this tick send to this subscription?
  * `didToday` is the #143 check, answered by the database.
  */
 export function shouldSend(
@@ -106,16 +114,27 @@ export function shouldSend(
   now: Date
 ): boolean {
   const hour = localClock(now, w.tzOffset).getUTCHours();
-  // The chosen hour or the next few, the same local day (hour is 0-23,
-  // so the window never wraps into tomorrow).
-  if (hour < w.reminderHour || hour >= w.reminderHour + CATCH_UP_HOURS) return false;
-  if (inQuietRange(w.reminderHour, w.quietFrom, w.quietTo)) return false;
-  // A catch-up never rings inside quiet hours.
-  if (inQuietRange(hour, w.quietFrom, w.quietTo)) return false;
+  // The chosen hour or later, the same local day (hour is 0-23, so the
+  // window never wraps into tomorrow).
+  if (hour < w.reminderHour) return false;
+  // Every hour from the chosen one to now is outside quiet hours: a
+  // quiet-hours choice never sends, and a catch-up stops at the first
+  // quiet hour after the chosen one and never resumes that day.
+  for (let h = w.reminderHour; h <= hour; h++) {
+    if (inQuietRange(h, w.quietFrom, w.quietTo)) return false;
+  }
   if (didToday) return false;
-  // One send per local day, whatever the scheduler does.
+  // One send per local day, whatever the scheduler does (the cron also
+  // claims the day in the database before it sends, so two callers in
+  // the same minute cannot both ring).
   if (w.lastSentOn === localDayKey(now, w.tzOffset)) return false;
   return true;
+}
+
+/** True while a send is close enough to the chosen hour to name it. */
+export function onTime(w: Pick<PushWindow, "reminderHour" | "tzOffset">, now: Date): boolean {
+  const hour = localClock(now, w.tzOffset).getUTCHours();
+  return hour >= w.reminderHour && hour - w.reminderHour < ON_TIME_HOURS;
 }
 
 /**

@@ -373,10 +373,20 @@ describe("POST /api/analyze", () => {
     vi.mocked(bossIndexBetween).mockResolvedValue(648);
     const form = audioForm();
     form.append("bossTopicId", "crispr");
-    // Spoken Friday 6 Nov, 10:00 in Melbourne.
+    // Spoken Friday 6 Nov, 10:00 in Melbourne, and sent an hour later: the
+    // clock is pinned so the route's slack on recordedAt (lib/spoken-at.ts)
+    // keeps the take on its own day whatever day the suite runs (it read
+    // today's week once 9 Nov came).
     form.append("recordedAt", "2026-11-05T23:00:00.000Z");
     form.append("tzOffset", "-660");
-    const body = await (await post(form)).json();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-06T00:00:00.000Z"));
+    let body: { previousIndex?: number };
+    try {
+      body = await (await post(form)).json();
+    } finally {
+      vi.useRealTimers();
+    }
     expect(body.previousIndex).toBe(648);
     expect(previousEthosIndex).not.toHaveBeenCalled();
     const [user, from, to] = vi.mocked(bossIndexBetween).mock.calls[0];

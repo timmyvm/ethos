@@ -523,11 +523,21 @@ export default function Home() {
                 onTake: (t) =>
                   router.push(repHref({ topic: t.id, mods, trait: heroFamily, ready: face.ready })),
                 headRef: rouletteHead,
+                back:
+                  face.spin === "link"
+                    ? {
+                        label: "Today's practice",
+                        onBack: () => {
+                          toggled.current = true;
+                          setTopic(null);
+                        },
+                      }
+                    : undefined,
               }
             : null
         }
       />
-      {topic ? (
+      {topic && face.spin === "link" ? null : topic ? (
         /* The way back, in the app's one back grammar: a button, because
            it changes this screen's state, not its route. */
         <button

@@ -5355,10 +5355,17 @@ summary::-webkit-details-marker {
   line-height: 1.125rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: rgb(255 255 255 / 0.78);
+  color: rgb(255 255 255 / 0.9);
 }
 .home-hero[data-family="none"] .home-hero-cost {
   color: var(--color-stone-500);
+}
+/* A day not yet spoken (#431): the card is a row taller, for "Another
+   topic" under Start, and the roulette it opens keeps the same height
+   with its way back in that row, so the pill stands where Start stood
+   and nothing under the card moves when it spins up. */
+.home-hero[data-spin="link"] {
+  min-height: 416px;
 }
 /* "Another topic" (#431): the roulette's door on a day not yet spoken,
    a text tap under Start rather than a circle beside it. 44px tall,

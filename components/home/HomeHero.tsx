@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState, type CSSProperties, type MouseEvent } from "react";
-import { IconShuffle, IconSliders } from "@/components/Icon";
+import { IconBack, IconShuffle, IconSliders } from "@/components/Icon";
 import { Reel, useReel } from "@/components/Reel";
 import { CARD_FROM_KEY, topicCardArrival, type CardFrom } from "@/components/rep/TopicCard";
 import { TipLine } from "@/components/rep/TipStrip";
@@ -21,6 +21,14 @@ export interface HeroRoulette {
   onTake: (t: Topic) => void;
   /** The heading focus moves to when the roulette opens. */
   headRef: React.Ref<HTMLHeadingElement>;
+  /**
+   * The way back, inside the card in the link's place, on a day not yet
+   * spoken (#431): there the card is a row taller than the roulette's
+   * own, and holding one height for both keeps the pill where Start was
+   * and everything under the card still. Absent, the way back is the
+   * screen's own, under the card.
+   */
+  back?: { label: string; onBack: () => void; ref?: React.Ref<HTMLButtonElement> };
 }
 
 /**
@@ -177,6 +185,7 @@ export function HomeHero({
       <div
         ref={cardRef}
         data-family={loading ? "none" : family}
+        data-spin={face.spin}
         className="home-hero vt-shared"
         style={{
           ...(loading ? {} : (artBox(object) as CSSProperties)),
@@ -328,7 +337,7 @@ export function HomeHero({
  * the pill takes it. Spin again is the shuffle glyph that opened it.
  * The way back stays under the card, in the app's back grammar.
  */
-function RouletteBody({ topic, onSpin, onTake, headRef }: HeroRoulette) {
+function RouletteBody({ topic, onSpin, onTake, headRef, back }: HeroRoulette) {
   /* The wheel is components/Reel.tsx (#278), shared with the boss's. */
   const reel = useReel<Topic>({
     current: topic,
@@ -389,6 +398,12 @@ function RouletteBody({ topic, onSpin, onTake, headRef }: HeroRoulette) {
           <IconShuffle size={20} />
         </button>
       </div>
+      {back && (
+        <button ref={back.ref} type="button" onClick={back.onBack} className="home-another press gap-1">
+          <IconBack size={18} />
+          {back.label}
+        </button>
+      )}
     </>
   );
 }

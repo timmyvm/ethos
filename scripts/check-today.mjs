@@ -8,10 +8,15 @@
  *    runs off the right by a fifth of its visible width at most and off
  *    the foot by 15% at most, at 320, 390 and 430, in both themes.
  * 3. The tactic in two lines. At 320 every tactic label the card can
- *    show (lib/tip-labels.ts) holds two lines in the card's words.
+ *    show (lib/tip-labels.ts) holds two lines in the card's words. The
+ *    card shows the tactic once the day is spoken ("One more", #431),
+ *    so this runs on a day with a recording in it; an open day's card
+ *    shows no tactic at all, which is checked too.
  * 4. Start never waits on a spin. Mid-roll, "Take this one" is live; a
  *    tap lands the reel on the topic it drew, on the snappy spring, and
- *    goes to that topic's recording, once.
+ *    goes to that topic's recording, once. From both doors: "Another
+ *    topic" under Start on a day not yet spoken (#431), the shuffle
+ *    glyph on "One more"; an open day's take opens ready to record.
  *
  *   NEXT_PUBLIC_SUPABASE_URL=http://supabase.local \
  *   NEXT_PUBLIC_SUPABASE_ANON_KEY=anon npx next dev -p 3123
@@ -20,7 +25,7 @@
  */
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 import { readFileSync } from "node:fs";
-import { seed, session, supabaseRoute } from "./look-fixtures.mjs";
+import { seed, session, supabaseRoute, testerMode } from "./look-fixtures.mjs";
 
 const BASE = process.env.LOOK_BASE ?? "http://localhost:3123";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -115,8 +120,20 @@ for (const theme of ["light", "dark"]) {
   }
 }
 
-// 3: the tactic at 320.
+// 3: the tactic at 320, on a day already spoken ("One more", #431).
 {
+  const { context: openCtx, page: openPage } = await open("light", 320);
+  const openDay = await openPage.evaluate(() => ({
+    lead: document.querySelector(".home-hero-lead")?.textContent ?? "",
+    tactic: document.querySelector(".home-hero .stage-ink.font-display") !== null,
+  }));
+  ok(
+    "320: a day not yet spoken shows no tactic on the card",
+    /Today's practice/.test(openDay.lead) && !openDay.tactic,
+    JSON.stringify(openDay)
+  );
+  await openCtx.close();
+  testerMode.today = true;
   const { context, page } = await open("light", 320);
   const lines = await page.evaluate((labels) => {
     const span = document.querySelector(".home-hero .stage-ink.font-display");
@@ -139,14 +156,20 @@ for (const theme of ["light", "dark"]) {
     over.length ? JSON.stringify(over) : `${labels.length} labels`
   );
   await context.close();
+  testerMode.today = false;
 }
 
-// 4: a tap mid-roll.
-for (const theme of ["light", "dark"]) {
+// 4: a tap mid-roll, from an open day's link and from One more's glyph.
+for (const [theme, spoken] of [
+  ["light", false],
+  ["dark", false],
+  ["light", true],
+]) {
+  testerMode.today = spoken;
   const { context, page } = await open(theme, 390);
   const pushes = [];
   page.on("framenavigated", (f) => f === page.mainFrame() && pushes.push(f.url()));
-  await page.click('button[aria-label="Spin a new topic"]');
+  await page.click(spoken ? 'button[aria-label="Spin a new topic"]' : 'button.home-another:has-text("Another topic")');
   await sleep(900);
   await page.click('button[aria-label="Spin again"]');
   await sleep(600);
@@ -159,14 +182,16 @@ for (const theme of ["light", "dark"]) {
   const landing = await page.evaluate(() => document.querySelector(".home-hero .stage-chip")?.textContent ?? "");
   await page.waitForURL(/\/rep\?topic=/, { timeout: 15000 }).catch(() => {});
   await sleep(600);
-  const reps = pushes.filter((u) => u.includes("/rep?topic=")).length;
+  const reps = pushes.filter((u) => u.includes("/rep?topic="));
+  const ready = reps.length === 1 && new URL(reps[0]).searchParams.get("ready") === "1";
   ok(
-    `${theme}: Take this one is live mid-roll and a tap goes to the drawn topic once`,
-    live && reps === 1 && landing.length > 0,
-    `live ${live}, ${reps} navigation(s) to /rep, chip "${landing}"`
+    `${theme} ${spoken ? "One more" : "open day"}: Take this one is live mid-roll and a tap goes to the drawn topic once${spoken ? "" : ", ready"}`,
+    live && reps.length === 1 && landing.length > 0 && ready === !spoken,
+    `live ${live}, ${reps.length} navigation(s) to /rep, chip "${landing}", ready ${ready}`
   );
   await context.close();
 }
+testerMode.today = false;
 
 await browser.close();
 const failed = findings.filter((f) => !f.pass).length;

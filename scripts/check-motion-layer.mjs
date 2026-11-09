@@ -14,7 +14,7 @@
  *     node scripts/check-motion-layer.mjs
  */
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright");
-import { seed, session, supabaseRoute } from "./look-fixtures.mjs";
+import { seed, session, supabaseRoute, testerMode } from "./look-fixtures.mjs";
 
 const BASE = process.env.LOOK_BASE ?? "http://localhost:3123";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -149,6 +149,10 @@ const wait = await page.$eval('button[aria-label="Start recording"]', (el) => ({
 ok("the Record button breathes while it waits", wait.name === "rec-wait" && wait.count === "infinite", `${wait.name} ${wait.dur}`);
 
 // ---- 5. A sheet follows the finger ---------------------------------------
+/* The difficulty sheet is the vehicle. Its glyph is on Today's card once
+   the day is spoken ("One more"); a day not yet spoken keeps the card to
+   Start (#431), so the fixtures carry a recording made today here. */
+testerMode.today = true;
 await page.goto(`${BASE}/`);
 await page.waitForSelector("main");
 await sleep(800);
@@ -181,6 +185,7 @@ const gone = await page
   .then(() => true)
   .catch(() => false);
 ok("a long pull closes it", gone);
+testerMode.today = false;
 
 // ---- 6. Reduced motion collapses all of it -------------------------------
 // The fixture seed writes `ethos.prefs` on every navigation, so flipping

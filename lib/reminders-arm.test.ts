@@ -81,7 +81,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const { armInTap, armedHere, readyRegistration, WORKER_WAIT_MS } = await import("./reminders");
+const { armInTap, armedHere, readyRegistration, sendTestPush, WORKER_WAIT_MS } = await import("./reminders");
 const prefs = () => JSON.parse(store.get("ethos.prefs") ?? "{}") as { reminderHour?: number | null };
 
 describe("armInTap", () => {
@@ -193,5 +193,37 @@ describe("armedHere", () => {
     expect(armedHere()).toBe(true);
     permission = "denied";
     expect(armedHere()).toBe(false);
+  });
+});
+
+describe("sendTestPush", () => {
+  const held = () =>
+    ({ pushManager: { subscribe, getSubscription: async () => sub } }) as unknown as ServiceWorkerRegistration;
+
+  it("asks the server to send this phone's own endpoint, and says how it went", async () => {
+    let status = 200;
+    const sentTo: unknown[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init: RequestInit) => {
+        sentTo.push({ url, body: JSON.parse(String(init.body)) });
+        return new Response("{}", { status });
+      })
+    );
+    expect(await sendTestPush(held())).toBe("sent");
+    expect(sentTo[0]).toEqual({ url: "/api/push/test", body: { endpoint: sub.endpoint } });
+    status = 429;
+    expect(await sendTestPush(held())).toBe("wait");
+    status = 502;
+    expect(await sendTestPush(held())).toBe("failed");
+  });
+
+  it("a lapsed subscription is no reminder: the acknowledgement goes", async () => {
+    store.set("ethos.push.ack", JSON.stringify({ endpoint: sub.endpoint, hour: 18 }));
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 410 })));
+    expect(await sendTestPush(held())).toBe("gone");
+    expect(store.has("ethos.push.ack")).toBe(false);
+    const none = { pushManager: { getSubscription: async () => null } } as unknown as ServiceWorkerRegistration;
+    expect(await sendTestPush(none)).toBe("gone");
   });
 });

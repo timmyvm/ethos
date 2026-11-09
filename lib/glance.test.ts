@@ -348,11 +348,12 @@ describe("fitGlance, the budget", () => {
     expect(GLANCE_WORDS).toBe(25);
     expect(GLANCE_WORDS_LESSON_DONE).toBe(30);
   });
-  it("carries the reminder ask's own words on top, up to 15, and never more (#430)", () => {
+  it("carries the reminder ask's own words on top, up to 16, and never more (#430)", () => {
     expect(askBudget(GLANCE_WORDS, "Same time tomorrow? Remind me at 6 pm Not now")).toBe(35);
     expect(askBudget(GLANCE_WORDS, "")).toBe(25);
-    expect(askBudget(GLANCE_WORDS, "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen")).toBe(40);
-    expect(GLANCE_WORDS_ASK).toBe(15);
+    expect(askBudget(GLANCE_WORDS, "Add Ethos to your Home Screen to get reminders. Tap Share, then Add to Home Screen.")).toBe(41);
+    expect(askBudget(GLANCE_WORDS, "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen")).toBe(41);
+    expect(GLANCE_WORDS_ASK).toBe(16);
   });
 });
 

@@ -253,6 +253,12 @@ for (const size of SIZES) {
   await context.route("**/api/billing/*", F.billingApiRoute);
   await context.route("**/api/tester/collect", F.collectRoute);
   await context.addInitScript(F.seed, { theme: size.theme, session: F.session, pose: F.POSE_PREF, tester: VARIANT === "tester" });
+  /* The reminder ask (#430) has had its showing today on this phone, so
+     each variant's glance is its own; the daily walk below shoots the ask. */
+  await context.addInitScript(() => {
+    const d = new Date();
+    localStorage.setItem("ethos.reminder.asked", `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
+  });
   await context.addInitScript(() => {
     const css = document.createElement("style");
     css.textContent = "nextjs-portal{display:none!important}";
@@ -286,7 +292,8 @@ for (const size of SIZES) {
   report.sizes.push(entry);
 
   /** One beat: its counts, a phone screen at a time, and the whole page. */
-  async function beat(name, { scope = "page", scroller = null, ceiling = null, full = true } = {}) {
+  async function beat(name, { scope = "page", scroller = null, ceiling: base = null, full = true } = {}) {
+    let ceiling = base;
     if (!scroller) await page.evaluate(() => window.scrollTo(0, 0));
     await sleep(300);
     const m = await page.evaluate(MEASURE, scope);
@@ -331,6 +338,12 @@ for (const size of SIZES) {
     const outside = VARIANT === "game" && m.wordsNoRound !== m.words ? `, ${m.wordsNoRound} outside the round card` : "";
     console.log(`${at} ${name}: ${m.words} words (${m.wordsNoTranscript} outside the transcript${outside}), ${m.numbers} numbers, ${m.screens} screens, ${m.terracotta} terracotta, ${m.chips} chips`);
     if (ceiling !== null) {
+      /* The reminder ask's own words ride on the ceiling, up to 16 (#430, GLANCE_WORDS_ASK). */
+      const askWords = await page.evaluate(() => {
+        const a = document.querySelector("main [data-reminder-ask]");
+        return a ? a.innerText.split(/\s+/).filter((w) => /[A-Za-z0-9]/.test(w)).length : 0;
+      });
+      ceiling += Math.min(16, askWords);
       const counted = VARIANT === "game" ? m.wordsNoRound : m.words;
       if (counted > ceiling) fail(`${at} ${name}: ${counted} words over the ceiling of ${ceiling}`);
       if (m.scrollH > m.innerH + 1) fail(`${at} ${name}: scrolls (${m.scrollH} over ${m.innerH})`);
@@ -526,7 +539,7 @@ for (const size of SIZES) {
   await context.close();
 }
 
-/* The reminder ask, once: the daily take's leaving exit with Since day one spent. */
+/* The reminder ask, once: on the daily take's glance, the day's first scored take (#430). */
 if (VARIANT === "daily" && process.env.LOOK_ASK !== "0") {
   const size = SIZES[0];
   F.resetPlan("free");
@@ -569,16 +582,29 @@ if (VARIANT === "daily" && process.env.LOOK_ASK !== "0") {
   await page.click('button[aria-label="Stop and score this recording"]', { force: true });
   await page.waitForSelector("main .arrive-x", { timeout: 30000 });
   await sleep(3500);
-  if (await page.$("main [data-results-back]")) {
-    await page.locator("main [data-results-back]").click();
-    const asked = await page.waitForSelector('[role="dialog"][aria-label="Remind you tomorrow?"]', { timeout: 4000 }).catch(() => null);
-    await sleep(900);
+  {
+    const asked = await page.waitForSelector("main [data-reminder-ask]", { timeout: 4000 }).catch(() => null);
+    await sleep(600);
     const f = `${OUT}${TAG}-daily-${size.name}-reminder-ask-s0.png`;
     await page.screenshot({ path: f });
-    const m = await page.evaluate(MEASURE, "dialog");
-    console.log(`daily ${size.name} reminder-ask: ${asked ? `${m.words} words` : "not shown"}`);
-    if (!asked) fail("the reminder ask did not show on a leaving exit");
-    report.reminderAsk = { words: m.words, text: m.text };
+    const m = await page.evaluate(MEASURE, "page");
+    const askText = asked
+      ? await asked.evaluate((e) => {
+          let t = "";
+          const w = document.createTreeWalker(e, NodeFilter.SHOW_TEXT);
+          while (w.nextNode()) if (!w.currentNode.parentElement?.closest("select, .sr-only")) t += ` ${w.currentNode.nodeValue}`;
+          return t.replace(/\s+/g, " ").trim();
+        })
+      : "";
+    const askWords = askText.split(/\s+/).filter((w) => /[A-Za-z0-9]/.test(w)).length;
+    console.log(`daily ${size.name} reminder-ask: ${asked ? `"${askText}", ${m.words} words on the glance` : "not shown"}`);
+    if (!asked) fail("the reminder ask did not show on the day's first scored take");
+    if (m.words > 25 + Math.min(16, askWords)) fail(`the glance with the ask says ${m.words} words`);
+    if (m.scrollH > m.innerH + 1) fail("the glance with the ask scrolls");
+    if (m.terracotta !== 1) fail(`the glance with the ask has ${m.terracotta} terracotta fills`);
+    console.log(`daily ${size.name} reminder-ask: largest band ${m.maxBand}pt ${JSON.stringify(m.band)}`);
+    if (size.w === 390 && size.h === 844 && m.maxBand > 64) fail(`the glance with the ask has a ${m.maxBand}pt band`);
+    report.reminderAsk = { words: m.words, askWords, text: askText };
   }
   await context.close();
 }

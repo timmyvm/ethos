@@ -2770,6 +2770,7 @@ function Results({
     scored: result.scorable !== false,
     firstToday,
     startedAt,
+    compact: showsMatchCheck({ tester, scorable: result.scorable !== false, clientId: resultKey }),
   });
   /*
    * The match check (migration 0020): a tester's one question about the

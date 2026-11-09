@@ -15,7 +15,7 @@
  * Shots: LOOK_OUT (default docs/look/comeback-reminders/), as
  * <tag>-<scene>-<theme>.png at 390x844; LOOK_SIZES as in look-glance.mjs.
  * On the glance it asserts no scroll, exactly one terracotta fill, and the
- * ask's own words within GLANCE_WORDS_ASK (15).
+ * ask's own words within GLANCE_WORDS_ASK (16).
  */
 import { createRequire } from "node:module";
 import { mkdirSync } from "node:fs";
@@ -57,6 +57,9 @@ const SCENES = {
   "glance-denied": { at: "glance", perm: "default", answer: "denied", standalone: true, tap: "remind" },
   "glance-blocked": { at: "glance", perm: "denied", standalone: true },
   "glance-install": { at: "glance", tab: true },
+  /* A tester: "How did that feel?" first, then the glance holds the match question and the ask. */
+  "glance-tester": { at: "glance", perm: "default", answer: "granted", standalone: true, tester: true },
+  "glance-tester-armed": { at: "glance", perm: "granted", standalone: true, hour: 18, ack: true, subscribed: true, tester: true },
   "glance-armed": { at: "glance", perm: "granted", standalone: true, hour: 18, ack: true, subscribed: true },
   "settings-off": { at: "settings", perm: "default", standalone: true },
   "settings-on": { at: "settings", perm: "default", answer: "granted", standalone: true, tap: "switch" },
@@ -126,9 +129,22 @@ const MEASURE = () => {
     const r = el.getBoundingClientRect();
     return r.width > 0 && r.height > 0;
   };
+  /* What is on screen: no closed picker's options, no screen-reader-only words. */
+  let seen = "";
+  if (ask) {
+    const walker = document.createTreeWalker(ask, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      const p = walker.currentNode.parentElement;
+      if (!p || p.closest("select, option, .sr-only")) continue;
+      const r = p.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) continue;
+      seen += ` ${walker.currentNode.nodeValue}`;
+    }
+    seen = seen.replace(/\s+/g, " ").trim();
+  }
   return {
-    ask: ask ? ask.innerText.replace(/\s+/g, " ").trim() : null,
-    askWords: ask ? words(ask.innerText) : 0,
+    ask: ask ? seen : null,
+    askWords: ask ? words(seen) : 0,
     scrollH: document.scrollingElement.scrollHeight,
     innerH: innerHeight,
     terracotta: [...document.querySelectorAll('main [class*="bg-terracotta-500"]')].filter(vis).length,
@@ -143,7 +159,7 @@ for (const [name, s] of Object.entries(SCENES)) {
   if (ONLY.length && !ONLY.includes(name)) continue;
   for (const size of SIZES) {
     F.resetPlan("free");
-    F.testerMode.tester = false;
+    F.testerMode.tester = !!s.tester;
     F.testerMode.today = false;
     const context = await browser.newContext({
       viewport: { width: size.w, height: size.h }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
@@ -161,7 +177,7 @@ for (const [name, s] of Object.entries(SCENES)) {
     );
     await context.route("**/api/push/test", (r) => r.fulfill(F.json({ ok: true })));
     await context.route("**/api/tester/collect", F.collectRoute);
-    await context.addInitScript(F.seed, { theme: size.theme, session: F.session, pose: F.POSE_PREF });
+    await context.addInitScript(F.seed, { theme: size.theme, session: F.session, pose: F.POSE_PREF, tester: !!s.tester });
     await context.addInitScript(() => {
       const css = document.createElement("style");
       css.textContent = "nextjs-portal{display:none!important}";
@@ -192,6 +208,11 @@ for (const [name, s] of Object.entries(SCENES)) {
       await page.waitForSelector('button[aria-label="Stop and score this recording"]', { timeout: 20000 });
       await sleep(3000);
       await page.click('button[aria-label="Stop and score this recording"]', { force: true });
+      if (s.tester) {
+        await page.waitForSelector("text=How did that feel?", { timeout: 20000 });
+        await sleep(900);
+        await page.getByRole("button", { name: "Okay" }).click();
+      }
       await page.waitForSelector("main .arrive-x", { timeout: 30000 });
       await sleep(3800);
       if (s.tap === "remind") {
@@ -207,8 +228,8 @@ for (const [name, s] of Object.entries(SCENES)) {
       if (TAG !== "before") {
         if (m.scrollH > m.innerH + 1) fail(`${name} ${size.name}: the glance scrolls`);
         if (m.terracotta !== 1) fail(`${name} ${size.name}: ${m.terracotta} terracotta fills`);
-        if (m.askWords > 15) fail(`${name} ${size.name}: the ask says ${m.askWords} words`);
-        const want = { "glance-armed": false, "glance-blocked": true, "glance-install": true };
+        if (m.askWords > 16) fail(`${name} ${size.name}: the ask says ${m.askWords} words`);
+        const want = { "glance-armed": false, "glance-tester-armed": false, "glance-blocked": true, "glance-install": true };
         if (name in want && !!m.ask !== want[name]) fail(`${name} ${size.name}: the ask ${m.ask ? "showed" : "did not show"}`);
         if (!(name in want) && !m.ask) fail(`${name} ${size.name}: no ask`);
       }

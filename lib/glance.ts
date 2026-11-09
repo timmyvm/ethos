@@ -42,9 +42,9 @@ export const GLANCE_WORDS_LESSON_DONE = 30;
  * phone has no reminder, its own words ride on top of whichever ceiling
  * holds, up to this many, and the cue for next time gives up its slot.
  * Once a day at most; "Same time tomorrow? Remind me at 6 pm Not now" is
- * 10, the iPhone's Home Screen steps 15.
+ * 10, the iPhone's Home Screen line and its steps 16, shown once ever.
  */
-export const GLANCE_WORDS_ASK = 15;
+export const GLANCE_WORDS_ASK = 16;
 
 /** The ceiling with the reminder ask's words on it. */
 export function askBudget(budget: number, askWords: string): number {

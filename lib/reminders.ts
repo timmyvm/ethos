@@ -384,6 +384,42 @@ async function finishArm(
   return { ok: true, hour };
 }
 
+/** What Settings' "Send a test" came to (#430, POST /api/push/test). */
+export type TestOutcome = "sent" | "wait" | "gone" | "failed";
+
+/**
+ * Send this phone's reminder now, through the whole path the daily one
+ * takes. "gone" when the server or the browser no longer holds this
+ * phone's subscription: the acknowledgement goes with it, so the screens
+ * stop saying the reminder is on.
+ */
+export async function sendTestPush(reg: ServiceWorkerRegistration | null): Promise<TestOutcome> {
+  try {
+    const r = reg ?? (await readyRegistration());
+    const sub = r ? await r.pushManager.getSubscription() : null;
+    if (!sub) {
+      writeAck(null);
+      return "gone";
+    }
+    const token = await ensureSession().catch(() => null);
+    if (!token) return "failed";
+    const res = await fetch("/api/push/test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ endpoint: sub.endpoint }),
+    });
+    if (res.ok) return "sent";
+    if (res.status === 429) return "wait";
+    if (res.status === 404 || res.status === 410) {
+      writeAck(null);
+      return "gone";
+    }
+    return "failed";
+  } catch {
+    return "failed";
+  }
+}
+
 /**
  * Whether the server holds a reminder for this phone at its hour, as far
  * as this phone can tell without asking: notifications granted, and the

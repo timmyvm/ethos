@@ -26,17 +26,24 @@ import { DELETE_ANY_PLAN, deletePlanLine, hasPlan } from "@/lib/plan-view";
 import { forgetPlanHint, keepPlanHint, readPlanHint, settingsRowSlot } from "@/lib/plan-hint";
 import { usePlan, useStripeReturn, useStripeReturns } from "@/lib/use-plan";
 import {
+  armInTap,
   armReminder,
   cancelReminder,
   currentTier,
   disarmPush,
   nextFireTime,
   noNotificationsNote,
+  readyRegistration,
   reminderLine,
   reminderTier,
   reminderTierNote,
+  sendTestPush,
   type ReminderTier,
+  type TestOutcome,
 } from "@/lib/reminders";
+import { ASK_COPY, askPlatform, deniedLine, markSwitchedOff } from "@/lib/reminder-ask";
+import { saveAccountHour } from "@/lib/reminder-account";
+import { testerNote } from "@/lib/tester-signal";
 import { inAppBrowser } from "@/lib/in-app";
 import { SIGNED_OUT_HOME } from "@/lib/account-gate";
 import { computeStreak } from "@/lib/streak";
@@ -83,6 +90,16 @@ export default function SettingsPage() {
   const [canNotify, setCanNotify] = useState(true);
   const [app, setApp] = useState<string | null>(null);
   const [tier, setTier] = useState<ReminderTier>("unsupported");
+  /* The tier the browser actually holds has been read (a push
+     subscription takes an async look): until then nothing says it failed. */
+  const [tierRead, setTierRead] = useState(false);
+  /* An iPhone or not, from the Home Screen or not, push or not (#430). */
+  const [plat, setPlat] = useState({ ios: false, standalone: false, push: false });
+  /* The registration a tap subscribes on, fetched before the tap. */
+  const [reg, setReg] = useState<ServiceWorkerRegistration | null>(null);
+  /* Turning the reminder on: in flight, or the server never took it. */
+  const [arm, setArm] = useState<"idle" | "saving" | "failed">("idle");
+  const [test, setTest] = useState<"idle" | "sending" | TestOutcome>("idle");
   /** undefined while unknown (in flight, or both reads failed), null for
    *  no account (anonymous or no session), the address once signed in.
    *  Unknown is never drawn as "Anonymous" (DESIGN principle 8). */
@@ -193,7 +210,10 @@ export default function SettingsPage() {
     setTier(reminderTier());
     currentTier()
       .then(setTier)
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setTierRead(true));
+    setPlat(askPlatform());
+    void readyRegistration().then(setReg);
     /* The stored session answers at once (offline too); the server then
        confirms it. auth-js hands a failed getUser back as user null with
        an error, which used to read as "no account": a failed server read
@@ -228,18 +248,60 @@ export default function SettingsPage() {
     setPrefs(writePrefs(patch));
   }
 
-  async function setHour(h: number | null) {
+  /*
+   * The switch and the hours (#430): turning the reminder on asks for
+   * notifications in the same tap, through armInTap, whose first await is
+   * the subscribe that raises the iPhone's Allow prompt. Nothing says it
+   * is on until the server has it. Off is an answer the glance respects.
+   */
+  function setHour(h: number | null) {
     update({ reminderHour: h });
+    markSwitchedOff(h === null);
+    setTest("idle");
     if (h === null) {
       cancelReminder();
       void disarmPush();
       setTier(reminderTier());
+      setArm("idle");
       return;
     }
-    if (typeof Notification !== "undefined" && Notification.permission !== "granted") {
+    turnOn(h);
+  }
+
+  function turnOn(h: number) {
+    if (typeof Notification === "undefined") return;
+    if (Notification.permission === "denied") {
+      setPerm("denied");
       return;
     }
-    await rearm();
+    if (!plat.push) {
+      // No push here (an old desktop browser): its own ask, in the tap,
+      // then the local tiers.
+      void Notification.requestPermission().then((p) => {
+        setPerm(p);
+        if (p === "granted") void rearm();
+      });
+      return;
+    }
+    setArm("saving");
+    void armInTap(h, reg, (x) => saveAccountHour(x)).then((r) => {
+      if (typeof Notification !== "undefined") setPerm(Notification.permission);
+      if (r.ok) {
+        setArm("idle");
+        setTier("push");
+        testerNote(`Reminder: saved for ${h}:00 in Settings`);
+        return;
+      }
+      testerNote(`Reminder: ${r.why === "denied" || r.why === "dismissed" ? r.why : `failed, ${r.why}${r.status ? ` ${r.status}` : ""}`} in Settings`);
+      if (r.why === "denied" || r.why === "dismissed") {
+        setArm("idle");
+        return;
+      }
+      setArm("failed");
+      // A desktop tab keeps its own timer while the server is away; a
+      // phone has none worth offering.
+      if (!plat.ios) void rearm();
+    });
   }
 
   async function rearm() {
@@ -250,16 +312,13 @@ export default function SettingsPage() {
     if (armed) setTier(armed);
   }
 
-  async function askPermission() {
-    if (typeof Notification === "undefined") return;
-    const p = await Notification.requestPermission();
-    setPerm(p);
-    if (p === "granted") {
-      new Notification("Ethos", {
-        body: "That's the reminder. One a day, never more.",
-      });
-      await rearm();
-    }
+  function sendTest() {
+    setTest("sending");
+    void sendTestPush(reg).then((o) => {
+      setTest(o);
+      if (o === "gone") setTier(reminderTier());
+      testerNote(`Reminder: test ${o}`);
+    });
   }
 
   /**
@@ -350,41 +409,64 @@ export default function SettingsPage() {
           ink "Off" slab, the heaviest object on the screen, is gone. */}
       <Section
         title="Reminders"
-        footer="One notification a day, naming your streak."
+        footer="One notification a day, with a number from your last take."
       >
         <Toggle
           label="Daily reminder"
           on={reminderOn}
-          onChange={(v) => void setHour(v ? DEFAULT_HOUR : null)}
+          onChange={(v) => setHour(v ? DEFAULT_HOUR : null)}
         />
         {reminderOn && (
           <HourSet
             value={prefs.reminderHour}
-            onChange={(h) => void setHour(h)}
+            onChange={(h) => setHour(h)}
             label={hour}
           />
         )}
 
         {/* The screen's one terracotta tap, and only while it is a real
             blocker: an armed hour that cannot fire is the broken state
-            #42 exists to prevent. A browser-level block is information,
-            not a tap, so it stays a quiet line, and so does a browser
-            with no notifications at all, where the tap did nothing. */}
+            #42 exists to prevent. A block is information, not a tap, so
+            it stays a quiet line naming where the fix is (iPhone Settings
+            on an iPhone, #430), and so does a browser with no
+            notifications at all: an iPhone's Safari tab gets the two
+            steps to the Home Screen, never a tap that cannot work. */}
         {line === "unsupported" && (
-          <p className="group-row text-caption text-stone-500">
-            {noNotificationsNote(app)}
+          <p data-reminder-line className="group-row text-caption text-stone-500">
+            {plat.ios && !plat.standalone && !app ? (
+              <>
+                {ASK_COPY.install} <span className="font-semibold text-stone-600">{ASK_COPY.installSteps}</span>
+              </>
+            ) : (
+              noNotificationsNote(app)
+            )}
           </p>
         )}
         {line === "blocked" && (
-          <p className="group-row text-caption text-stone-500">
-            Notifications are blocked for this site in your browser
-            settings. Nothing can fire until that changes.
+          <p data-reminder-line className="group-row text-caption text-stone-500">
+            {deniedLine(plat.ios)}
           </p>
         )}
-        {line === "ask" && (
+        {(line === "ask" || line === "armed") && arm === "saving" && (
+          <p data-reminder-line role="status" className="group-row text-caption text-stone-500">
+            Saving
+          </p>
+        )}
+        {(line === "ask" || line === "armed") &&
+          arm !== "saving" &&
+          (arm === "failed" || (line === "armed" && plat.standalone && plat.push && tierRead && tier !== "push")) && (
+            /* The server never took it: on a phone already on its Home
+               Screen, never "install it" (#430). */
+            <div data-reminder-line className="group-row">
+              <ErrorLine onRetry={() => prefs.reminderHour !== null && turnOn(prefs.reminderHour)}>
+                The reminder didn&apos;t reach the server.
+              </ErrorLine>
+            </div>
+          )}
+        {line === "ask" && arm === "idle" && (
           <div className="group-row">
             <button
-              onClick={() => void askPermission()}
+              onClick={() => prefs.reminderHour !== null && turnOn(prefs.reminderHour)}
               className={ACTION_CLASS}
             >
               Allow notifications
@@ -392,19 +474,49 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {line === "armed" && (
-          <p className="group-row text-caption text-stone-500">
-            <span className="font-semibold text-ink">
-              {fireAt
-                ? `Next: ${fireAt.toLocaleString(undefined, {
-                    weekday: "short",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}.`
-                : "That hour falls inside your quiet hours, so nothing will fire."}
-            </span>{" "}
-            {reminderTierNote(tier)}
-          </p>
+        {line === "armed" &&
+          arm === "idle" &&
+          !(plat.standalone && plat.push && tierRead && tier !== "push") && (
+            <p data-reminder-line className="group-row text-caption text-stone-500">
+              <span className="font-semibold text-ink">
+                {fireAt
+                  ? `Next: ${fireAt.toLocaleString(undefined, {
+                      weekday: "short",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}.`
+                  : "That hour falls inside your quiet hours, so nothing will fire."}
+              </span>{" "}
+              {reminderTierNote(tier)}
+            </p>
+          )}
+
+        {/* The whole path in ten seconds (#430): the server sends this
+            phone's reminder now. */}
+        {line === "armed" && arm === "idle" && tier === "push" && (
+          <button
+            type="button"
+            onClick={sendTest}
+            disabled={test === "sending"}
+            className="group-row press-row flex w-full items-center gap-3 text-left"
+          >
+            <span className="min-w-0 flex-1">
+              <span className="font-display block text-row">Send a test</span>
+              <span role="status" className="mt-0.5 block text-caption text-pretty text-stone-500">
+                {test === "sending"
+                  ? "Sending"
+                  : test === "sent"
+                    ? "Sent. It arrives in a few seconds."
+                    : test === "wait"
+                      ? "One test a minute."
+                      : test === "gone"
+                        ? "This phone's reminder has lapsed. Turn it off and on."
+                        : test === "failed"
+                          ? "That didn't send. Tap to try again."
+                          : "The server sends this phone's reminder now."}
+              </span>
+            </span>
+          </button>
         )}
 
         <InfoRow

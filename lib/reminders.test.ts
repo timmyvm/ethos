@@ -56,8 +56,13 @@ describe("nextFireTime", () => {
 });
 
 describe("reminderBody", () => {
-  it("names the streak once there is one to lose", () => {
-    expect(reminderBody({ streak: 6, didToday: false })).toContain("6 days");
+  // #430 changed this expectation (the change is the point): the body
+  // quotes the last take's numbers and never the streak to keep.
+  it("quotes the last take, never the streak", () => {
+    expect(reminderBody({ streak: 6, didToday: false })).toBe("It takes about a minute.");
+    expect(reminderBody({ streak: 6, didToday: false, last: { fillers: 4, seconds: 62 } })).toBe(
+      "Last time: 4 fillers in 62 seconds."
+    );
   });
 
   it("has no guilt language in any state", () => {

@@ -20,7 +20,8 @@
  * allowed, guilt is not.
  */
 
-import { insideQuietHours, readPrefs, type Prefs } from "./prefs";
+import { insideQuietHours, readPrefs, writePrefs, type Prefs } from "./prefs";
+import { reminderCopy, takeLine, type LastTake } from "./reminder-copy";
 import { deviceZone, PUSH_ACK_KEY } from "./reminders-zone";
 import { ensureSession } from "./supabase-browser";
 
@@ -118,18 +119,20 @@ export function nextFireTime(
 }
 
 export interface ReminderContext {
-  streak: number;
+  /** Callers still pass it; the words no longer name it (#430). */
+  streak?: number;
   didToday: boolean;
+  /** The last take worth quoting, when the caller has it. */
+  last?: LastTake | null;
 }
 
 /**
- * Coach register. Names the streak, never scolds. No sad mascot, no
- * shame state (DECISIONS #26).
+ * The body, the same words the server sends (lib/reminder-copy.ts, #430):
+ * a number from the last take, never the streak. No sad mascot, no shame
+ * state (DECISIONS #26).
  */
 export function reminderBody(ctx: ReminderContext): string {
-  if (ctx.streak >= 2) return `${ctx.streak} days. Five minutes keeps it.`;
-  if (ctx.streak === 1) return "Day two is the one that makes it a habit.";
-  return "Five minutes. One prompt. Take the floor.";
+  return takeLine(ctx.last ?? null);
 }
 
 function sameLocalDay(a: Date, b: Date): boolean {
@@ -198,12 +201,30 @@ export async function armPush(prefs: Prefs = readPrefs()): Promise<boolean> {
         userVisibleOnly: true,
         applicationServerKey: key as BufferSource,
       }));
-    const token = await ensureSession();
-    if (!token) return false;
-    // The zone itself, so the server follows its daylight-saving changes
-    // without waiting for this device to re-arm (0019).
-    const tz = deviceZone();
-    const res = await fetch("/api/push", {
+    return (await postSubscription(sub, prefs.reminderHour, prefs)).ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * POST this device's subscription with the hour, its zone and its quiet
+ * hours; on the server's 200, write the acknowledgement. The one place a
+ * subscription reaches the server, for a re-arm and for a tap alike.
+ */
+async function postSubscription(
+  sub: PushSubscription,
+  hour: number,
+  prefs: Prefs
+): Promise<{ ok: true } | { ok: false; why: "no-session" | "offline" | "server"; status?: number }> {
+  const token = await ensureSession().catch(() => null);
+  if (!token) return { ok: false, why: "no-session" };
+  // The zone itself, so the server follows its daylight-saving changes
+  // without waiting for this device to re-arm (0019).
+  const tz = deviceZone();
+  let res: Response;
+  try {
+    res = await fetch("/api/push", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -211,15 +232,223 @@ export async function armPush(prefs: Prefs = readPrefs()): Promise<boolean> {
       },
       body: JSON.stringify({
         subscription: sub.toJSON(),
-        reminderHour: prefs.reminderHour,
+        reminderHour: hour,
         tzOffset: new Date().getTimezoneOffset(),
         tz,
         quietFrom: prefs.quietFrom,
         quietTo: prefs.quietTo,
       }),
     });
-    if (res.ok) writeAck({ endpoint: sub.endpoint, hour: prefs.reminderHour, tz });
-    return res.ok;
+  } catch {
+    return { ok: false, why: "offline" };
+  }
+  if (!res.ok) return { ok: false, why: "server", status: res.status };
+  writeAck({ endpoint: sub.endpoint, hour, tz });
+  return { ok: true };
+}
+
+/** Why a reminder could not be turned on, in the words the screens choose from. */
+export type ArmFail =
+  /** No Notification or PushManager here: an iPhone's Safari tab, an app's own browser. */
+  | "unsupported"
+  /** Blocked: only the phone's or the browser's settings can change it. */
+  | "denied"
+  /** The prompt was closed without an answer (a desktop browser can). */
+  | "dismissed"
+  /** No service worker answered in time. */
+  | "no-worker"
+  /** The build has no VAPID key. */
+  | "no-key"
+  /** The browser refused the subscription for another reason. */
+  | "subscribe"
+  /** No session could be made to own the subscription. */
+  | "no-session"
+  /** The request never reached the server. */
+  | "offline"
+  /** The server answered, and not with a 200. */
+  | "server";
+
+export type ArmResult = { ok: true; hour: number } | { ok: false; why: ArmFail; status?: number };
+
+/** How long a missing service worker is waited for before the tap says so. */
+export const WORKER_WAIT_MS = 6000;
+
+/**
+ * This page's service worker registration, or null once `ms` pass with
+ * none: `serviceWorker.ready` never settles where the worker never
+ * registered, and a tap that waited on it hung with no word (#430).
+ */
+export function readyRegistration(ms = WORKER_WAIT_MS): Promise<ServiceWorkerRegistration | null> {
+  if (!pushSupported()) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const t = setTimeout(() => resolve(null), ms);
+    navigator.serviceWorker.ready.then(
+      (reg) => {
+        clearTimeout(t);
+        resolve(reg);
+      },
+      () => {
+        clearTimeout(t);
+        resolve(null);
+      }
+    );
+  });
+}
+
+/**
+ * Turn the reminder on from a tap (#430), and say so only when the server
+ * has it. Call it straight from the tap's handler with nothing awaited
+ * before it: on an iPhone the tap's permission to raise the Allow prompt
+ * ends at the first await, so `pushManager.subscribe` is that first await,
+ * on the registration the screen fetched when it mounted. Subscribing
+ * raises the prompt and subscribes in one step. Without a registration
+ * yet, the permission is asked first, in the tap, and the worker is
+ * waited for (never forever) before subscribing.
+ *
+ * On the server's 200: the hour is this device's, the acknowledgement is
+ * written, and the hour goes on the account too (onboarding.reminder_hour)
+ * so a new phone or the installed app can offer it in one tap.
+ */
+export function armInTap(
+  hour: number,
+  reg: ServiceWorkerRegistration | null,
+  onAccount: (hour: number) => Promise<unknown> = async () => {}
+): Promise<ArmResult> {
+  if (typeof Notification === "undefined" || !pushSupported()) {
+    return Promise.resolve({ ok: false, why: "unsupported" });
+  }
+  if (Notification.permission === "denied") return Promise.resolve({ ok: false, why: "denied" });
+  const key = vapidKey();
+  if (!key) return Promise.resolve({ ok: false, why: "no-key" });
+  const opts = { userVisibleOnly: true, applicationServerKey: key as BufferSource };
+  // The first await, in the tap: nothing above this line waits.
+  let subscribing: Promise<PushSubscription> | null = null;
+  let asking: Promise<NotificationPermission> | null = null;
+  try {
+    if (reg) subscribing = reg.pushManager.subscribe(opts);
+    else if (Notification.permission === "default") asking = Notification.requestPermission();
+  } catch {
+    subscribing = null;
+  }
+  return finishArm(hour, reg, subscribing, asking, opts, onAccount);
+}
+
+async function finishArm(
+  hour: number,
+  reg: ServiceWorkerRegistration | null,
+  subscribing: Promise<PushSubscription> | null,
+  asking: Promise<NotificationPermission> | null,
+  opts: PushSubscriptionOptionsInit,
+  onAccount: (hour: number) => Promise<unknown>
+): Promise<ArmResult> {
+  const refused = (): ArmResult | null => {
+    const p = Notification.permission;
+    if (p === "denied") return { ok: false, why: "denied" };
+    if (p === "default") return { ok: false, why: "dismissed" };
+    return null;
+  };
+  let sub: PushSubscription | null = null;
+  if (subscribing) {
+    try {
+      sub = await subscribing;
+    } catch {
+      const no = refused();
+      if (no) return no;
+    }
+  } else if (asking) {
+    const p = await asking.catch(() => Notification.permission);
+    if (p !== "granted") return { ok: false, why: p === "denied" ? "denied" : "dismissed" };
+  }
+  if (!sub) {
+    // Granted, but no subscription yet: the worker the screen did not
+    // have, or one held under an old key. No prompt can come now.
+    const r = reg ?? (await readyRegistration());
+    if (!r) return { ok: false, why: "no-worker" };
+    try {
+      sub = await r.pushManager.subscribe(opts);
+    } catch {
+      try {
+        const old = await r.pushManager.getSubscription();
+        if (old) await old.unsubscribe();
+        sub = await r.pushManager.subscribe(opts);
+      } catch {
+        return refused() ?? { ok: false, why: "subscribe" };
+      }
+    }
+  }
+  const prefs = readPrefs();
+  const posted = await postSubscription(sub, hour, prefs);
+  if (!posted.ok) return posted;
+  writePrefs({ reminderHour: hour });
+  void onAccount(hour).catch(() => {});
+  return { ok: true, hour };
+}
+
+/** What Settings' "Send a test" came to (#430, POST /api/push/test). */
+export type TestOutcome = "sent" | "wait" | "gone" | "failed";
+
+/**
+ * Send this phone's reminder now, through the whole path the daily one
+ * takes. "gone" when the server or the browser no longer holds this
+ * phone's subscription: the acknowledgement goes with it, so the screens
+ * stop saying the reminder is on.
+ */
+export async function sendTestPush(reg: ServiceWorkerRegistration | null): Promise<TestOutcome> {
+  try {
+    const r = reg ?? (await readyRegistration());
+    const sub = r ? await r.pushManager.getSubscription() : null;
+    if (!sub) {
+      writeAck(null);
+      return "gone";
+    }
+    const token = await ensureSession().catch(() => null);
+    if (!token) return "failed";
+    const res = await fetch("/api/push/test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ endpoint: sub.endpoint }),
+    });
+    if (res.ok) return "sent";
+    if (res.status === 429) return "wait";
+    if (res.status === 404 || res.status === 410) {
+      writeAck(null);
+      return "gone";
+    }
+    return "failed";
+  } catch {
+    return "failed";
+  }
+}
+
+/**
+ * Whether the server holds a reminder for this phone at its hour, as far
+ * as this phone can tell without asking: notifications granted, and the
+ * server's last acknowledgement names the hour set here (#430). An hour
+ * picked in the introduction, or restored from the account, is set and
+ * not armed, so the ask still comes.
+ */
+export function armedHere(prefs: Prefs = readPrefs()): boolean {
+  try {
+    if (prefs.reminderHour === null) return false;
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") return false;
+    const ack = JSON.parse(localStorage.getItem(ACK_KEY) ?? "null") as { hour?: unknown; endpoint?: unknown } | null;
+    return !!ack && typeof ack.endpoint === "string" && ack.hour === prefs.reminderHour;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The same, checked against the browser's own subscription: an
+ * acknowledgement for an endpoint the browser no longer holds (the app
+ * removed and added back) is no reminder.
+ */
+export async function armedHereChecked(reg: ServiceWorkerRegistration | null, prefs: Prefs = readPrefs()): Promise<boolean> {
+  if (!armedHere(prefs) || !reg) return false;
+  try {
+    const sub = await reg.pushManager.getSubscription();
+    const ack = JSON.parse(localStorage.getItem(ACK_KEY) ?? "null") as { endpoint?: string } | null;
+    return !!sub && sub.endpoint === ack?.endpoint;
   } catch {
     return false;
   }
@@ -354,6 +583,7 @@ export async function armReminder(
   if (!fireAt) return null;
 
   const tier = reminderTier();
+  const { title } = reminderCopy({ hour: prefs.reminderHour, onTime: true, last: ctx.last ?? null });
   const payload = {
     tag: TAG,
     body: reminderBody(ctx),
@@ -366,7 +596,7 @@ export async function armReminder(
     const Trigger = timestampTrigger();
     try {
       const reg = await navigator.serviceWorker.ready;
-      await reg.showNotification("Ethos", {
+      await reg.showNotification(title, {
         ...payload,
         // Not in lib.dom yet — feature-detected above.
         showTrigger: new Trigger!(fireAt.getTime()),
@@ -386,7 +616,7 @@ export async function armReminder(
     // tomorrow (fireAt is tomorrow's hour) is firing about a new day.
     if (ctx.didToday && sameLocalDay(at, now)) return;
     try {
-      new Notification("Ethos", payload);
+      new Notification(title, payload);
       markFired(at);
     } catch {}
   }, Math.max(0, delay));

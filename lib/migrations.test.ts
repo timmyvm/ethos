@@ -328,3 +328,28 @@ describe("0026 round", () => {
     expect(sql).not.toMatch(/policy|grant|revoke|not null|default/i);
   });
 });
+
+/**
+ * The sender's clock (0027, #430): pg_cron calls the cron route at minute
+ * 1 of every hour. The file must be safe on any database it reaches, so
+ * it carries neither the production URL nor a secret: both come from Vault,
+ * set by hand in production, and without them the job calls nobody.
+ */
+describe("0027 push tick", () => {
+  const sql = code("0027_push_tick.sql");
+
+  it("holds no URL and no secret, and reads both from Vault", () => {
+    expect(sql).not.toMatch(/https?:\/\//);
+    expect(sql).not.toMatch(/speakethos/);
+    expect(sql).toMatch(/from vault\.decrypted_secrets where name = 'push_tick_url'/);
+    expect(sql).toMatch(/from vault\.decrypted_secrets where name = 'push_tick_secret'/);
+    expect(sql).toMatch(/if coalesce\(tick_url, ''\) = '' or coalesce\(tick_secret, ''\) = '' then\s+return null;/);
+  });
+
+  it("ticks at minute 1 of every hour, by name, through a function the API cannot reach", () => {
+    expect(sql).toMatch(/select cron\.schedule\('push-tick', '1 \* \* \* \*', \$\$select private\.push_tick\(\)\$\$\);/);
+    expect(sql).toMatch(/revoke all on schema private from public, anon, authenticated/);
+    expect(sql).toMatch(/revoke all on function private\.push_tick\(\) from public, anon, authenticated/);
+    expect(sql).toMatch(/set search_path = ''/);
+  });
+});

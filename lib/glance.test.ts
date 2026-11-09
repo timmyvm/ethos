@@ -9,6 +9,8 @@ import {
   fitGlance,
   GLANCE_WORDS,
   GLANCE_WORDS_LESSON_DONE,
+  GLANCE_WORDS_ASK,
+  askBudget,
   glanceLine,
   glanceTrait,
   ladderCue,
@@ -345,6 +347,13 @@ describe("fitGlance, the budget", () => {
   it("is 25 words, 30 on a lesson's ending", () => {
     expect(GLANCE_WORDS).toBe(25);
     expect(GLANCE_WORDS_LESSON_DONE).toBe(30);
+  });
+  it("carries the reminder ask's own words on top, up to 16, and never more (#430)", () => {
+    expect(askBudget(GLANCE_WORDS, "Same time tomorrow? Remind me at 6 pm Not now")).toBe(35);
+    expect(askBudget(GLANCE_WORDS, "")).toBe(25);
+    expect(askBudget(GLANCE_WORDS, "Add Ethos to your Home Screen to get reminders. Tap Share, then Add to Home Screen.")).toBe(41);
+    expect(askBudget(GLANCE_WORDS, "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen")).toBe(41);
+    expect(GLANCE_WORDS_ASK).toBe(16);
   });
 });
 

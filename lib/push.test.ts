@@ -66,8 +66,10 @@ describe("shouldSend", () => {
   it("skips the hours before the chosen one and after its window", () => {
     // 07:00 UTC is 17:00 in Melbourne, before the chosen 18.
     expect(shouldSend(window(), false, new Date(Date.UTC(2026, 7, 1, 7, 0)))).toBe(false);
-    // 11:00 UTC is 21:00, past the three-hour catch-up window.
-    expect(shouldSend(window(), false, new Date(Date.UTC(2026, 7, 1, 11, 0)))).toBe(false);
+    // #430 widened the window to quiet hours (the change is the point):
+    // 21:00 is still the same evening, 22:00 is quiet.
+    expect(shouldSend(window(), false, new Date(Date.UTC(2026, 7, 1, 11, 0)))).toBe(true);
+    expect(shouldSend(window(), false, new Date(Date.UTC(2026, 7, 1, 12, 0)))).toBe(false);
   });
 
   it("a quiet-hours choice never sends", () => {

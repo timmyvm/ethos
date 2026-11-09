@@ -1,20 +1,33 @@
-# The reminder scheduler (DECISIONS #186). Vercel Hobby crons are
-# daily-only, so GitHub fires the hourly tick instead: the endpoint does
-# all the deciding (local hour, quiet hours, already-practiced days) and
-# a tick where nobody qualifies sends nothing. Requires the CRON_SECRET
-# repository secret to match the Vercel env var of the same name.
+# The reminder sender's backup clock (DECISIONS #186, #430). The main
+# clock is the database's pg_cron job at minute 1 of every hour
+# (supabase/migrations/0027_push_tick.sql). GitHub ran a single hourly
+# schedule about 4 times a day (25 Oct to 9 Nov: 60 runs, gaps up to
+# 10 h 40 m), so it is best-effort only: three schedules off the top of
+# the hour roughly triple its chances, and the endpoint claims each
+# person's day before it sends, so a GitHub tick in the same minute as the
+# database's never rings anyone twice. The endpoint does all the deciding
+# (local hour, quiet hours, already-practised days) and a tick where
+# nobody qualifies sends nothing; its answer says why.
+#
+# Requires the CRON_SECRET repository secret to match the Vercel env var
+# of the same name. Vercel Hobby crons are daily-only.
 name: push-cron
 on:
   schedule:
-    # Off the top of the hour, which GitHub names as its busiest and most
-    # delayed; a late or dropped tick is made up by the next ones
-    # (lib/push.ts CATCH_UP_HOURS).
-    - cron: "17 * * * *"
+    - cron: "7 * * * *"
+    - cron: "29 * * * *"
+    - cron: "48 * * * *"
   workflow_dispatch: {}
+
+# One tick at a time; a queued one waits rather than being dropped.
+concurrency:
+  group: push-cron
+  cancel-in-progress: false
 
 jobs:
   tick:
     runs-on: ubuntu-latest
+    timeout-minutes: 3
     steps:
       - name: Tick the reminder cron
         run: |

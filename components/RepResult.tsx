@@ -115,6 +115,7 @@ export function RepResult({
   starSize = 40,
   glance = null,
   cappedNote = null,
+  ask = null,
   under = null,
   sheet = null,
   moment = false,
@@ -202,6 +203,11 @@ export function RepResult({
   glance?: GlanceView | null;
   /** On the glance of a capped take, under its hero: "Measured, not judged." or the plum line. */
   cappedNote?: ReactNode;
+  /**
+   * On the glance, in the slot of Demos's cue for next time: the reminder
+   * ask (#430, components/rep/ReminderAsk.tsx), when there is one.
+   */
+  ask?: ReactNode;
   /**
    * On the glance, under Demos's line: a tester's match question. Demos
    * then stands beside his line at 112, as on the Log, to make the room.
@@ -370,6 +376,7 @@ export function RepResult({
         starSize={starSize}
         take={take}
         cappedNote={cappedNote}
+        ask={ask}
         under={under}
         short={shortRoom}
         tall={tallRoom}
@@ -1140,6 +1147,7 @@ function Glance({
   starSize,
   take,
   cappedNote,
+  ask,
   under,
   short,
   tall,
@@ -1164,6 +1172,8 @@ function Glance({
   starSize: number;
   take: TakeAudio | null;
   cappedNote: ReactNode;
+  /** The reminder ask (#430), in the cue's slot. */
+  ask: ReactNode;
   under: ReactNode;
   short: boolean;
   /** A phone 700pt or taller: a tester's question fits under Demos in his room. */
@@ -1216,11 +1226,12 @@ function Glance({
       <p data-glance-line className="text-balance">
         {parts}
       </p>
-      {view.cue && (
-        <p data-glance-cue className="mt-0.5 text-balance text-detail leading-[24px] font-normal text-stone-500">
-          {view.cue}
-        </p>
-      )}
+      {ask ??
+        (view.cue && (
+          <p data-glance-cue className="mt-0.5 text-balance text-detail leading-[24px] font-normal text-stone-500">
+            {view.cue}
+          </p>
+        ))}
     </>
   );
   const arrival = waiting ? "invisible" : timed ? "arrive" : "";

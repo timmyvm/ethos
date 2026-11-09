@@ -92,9 +92,10 @@ self.addEventListener("activate", (e) => {
  * this only has to show it.
  */
 self.addEventListener("push", (e) => {
+  // The fallback says what lib/reminder-copy.ts says with no take to quote.
   let payload = {
-    title: "Ethos",
-    body: "Five minutes. One prompt. Take the floor.",
+    title: "Today's practice",
+    body: "It takes about a minute.",
     url: "/rep",
   };
   try {

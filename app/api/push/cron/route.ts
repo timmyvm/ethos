@@ -1,27 +1,35 @@
 /**
- * GET /api/push/cron — the hourly send (DECISIONS #186).
+ * GET /api/push/cron — the hourly send (DECISIONS #186, #430).
  *
- * Called by a scheduler (GitHub Actions; Vercel Hobby crons are
- * daily-only) with `Authorization: Bearer ${CRON_SECRET}`. Each tick:
- * pick the subscriptions whose LOCAL hour is their chosen hour, drop
- * anyone inside quiet hours, drop anyone whose local day already has
- * practice in it (#143 — answered by the reps table, not a guess), send
- * one push each, stamp their local date so a rerun is a no-op. A 404 or
- * 410 from the push service means the browser revoked the endpoint;
- * the row is deleted rather than retried forever.
+ * Called by two schedulers with a bearer secret (lib/cron-auth.ts): the
+ * database's pg_cron job at minute 1 of every hour (PUSH_TICK_SECRET,
+ * supabase/migrations/0027_push_tick.sql), and GitHub's best-effort
+ * backup (CRON_SECRET; Vercel Hobby crons are daily-only). Each tick:
+ * pick the subscriptions whose local day has reached their chosen hour
+ * and not yet quiet hours (lib/push.ts shouldSend), drop anyone whose
+ * local day already has practice in it (#143, answered by the reps
+ * table, not a guess), claim the day on the row before sending so two
+ * callers in the same minute cannot both ring, send one push each, and
+ * hand the claim back if the push service failed. A 404 or 410 means
+ * the browser revoked the endpoint: the row is deleted, not retried.
+ *
+ * The answer says why nothing went, not only that nothing did: how many
+ * rows were read, how many were due, how many had already practised, how
+ * many another tick had claimed, and what was sent, failed or dropped.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import webpush from "web-push";
 import { supabaseAdmin } from "@/lib/db";
+import { bearerMatches, tickSecrets } from "@/lib/cron-auth";
 import {
   localDayKey,
   localDayStartUtc,
-  localStreak,
+  onTime,
   shouldSend,
   tzOffsetAt,
 } from "@/lib/push";
-import { reminderBody } from "@/lib/reminders";
+import { lastTake, reminderCopy } from "@/lib/reminder-copy";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -44,8 +52,7 @@ interface SubRow {
 }
 
 export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (!bearerMatches(req.headers.get("authorization"), tickSecrets())) {
     return NextResponse.json({ error: "Not authorised." }, { status: 401 });
   }
 
@@ -95,8 +102,22 @@ export async function GET(req: NextRequest) {
   }
 
   const now = new Date();
-  let sent = 0;
-  let dropped = 0;
+  /* Why a tick sent what it sent (#430): GitHub's log and pg_net's
+     net._http_response both keep this body. */
+  const report = {
+    subs: subs.length,
+    /** At or past their hour today, before quiet hours, not yet sent. */
+    due: 0,
+    /** Due, but today already has practice in it (#143). */
+    done: 0,
+    /** Due, but the done-today check could not answer: skipped. */
+    unsure: 0,
+    /** Due, but another tick claimed the day first. */
+    taken: 0,
+    sent: 0,
+    failed: 0,
+    dropped: 0,
+  };
 
   for (const sub of subs) {
     if (sub.reminder_hour === null) continue;
@@ -114,6 +135,7 @@ export async function GET(req: NextRequest) {
 
     // Cheap gates first; the DB check only runs for real candidates.
     if (!shouldSend(win, false, now)) continue;
+    report.due++;
 
     const dayStart = localDayStartUtc(now, off).toISOString();
     const { count, error: doneErr } = await db
@@ -127,22 +149,46 @@ export async function GET(req: NextRequest) {
     // one (#143).
     if (doneErr) {
       console.error("push cron: done-today check failed", doneErr.message);
+      report.unsure++;
       continue;
     }
-    if ((count ?? 0) > 0) continue; // #143: today is already done.
+    if ((count ?? 0) > 0) {
+      report.done++; // #143: today is already done.
+      continue;
+    }
 
-    // The streak for the body text, in their local calendar.
-    const { data: repRows } = await db
+    /* Claim the day before sending (#430): the update only lands on a row
+       not already stamped today, so of two ticks in the same minute (the
+       database's and GitHub's) exactly one gets the row back. */
+    const today = localDayKey(now, off);
+    const { data: claimed, error: claimErr } = await db
+      .from("push_subscriptions")
+      .update({ last_sent_on: today })
+      .eq("endpoint", sub.endpoint)
+      .or(`last_sent_on.is.null,last_sent_on.neq.${today}`)
+      .select("endpoint");
+    if (claimErr) {
+      console.error("push cron: claim failed", claimErr.message);
+      report.failed++;
+      continue;
+    }
+    if (!claimed || claimed.length === 0) {
+      report.taken++;
+      continue;
+    }
+
+    // One number from their own last take for the body (lib/reminder-copy.ts).
+    const { data: recent } = await db
       .from("reps")
-      .select("created_at")
+      .select("filler_count, duration_s")
       .eq("user_id", sub.user_id)
       .order("created_at", { ascending: false })
-      .limit(120);
-    const streak = localStreak(
-      (repRows ?? []).map((r) => new Date(r.created_at as string)),
-      off,
-      now
-    );
+      .limit(5);
+    const copy = reminderCopy({
+      hour: sub.reminder_hour,
+      onTime: onTime(win, now),
+      last: lastTake((recent ?? []) as { filler_count?: number | null; duration_s?: number | string | null }[]),
+    });
 
     try {
       await webpush.sendNotification(
@@ -150,17 +196,9 @@ export async function GET(req: NextRequest) {
           endpoint: sub.endpoint,
           keys: { p256dh: sub.p256dh, auth: sub.auth },
         },
-        JSON.stringify({
-          title: "Ethos",
-          body: reminderBody({ streak, didToday: false }),
-          url: "/rep",
-        })
+        JSON.stringify({ ...copy, url: "/rep" })
       );
-      sent++;
-      await db
-        .from("push_subscriptions")
-        .update({ last_sent_on: localDayKey(now, off) })
-        .eq("endpoint", sub.endpoint);
+      report.sent++;
     } catch (e) {
       const status = (e as { statusCode?: number }).statusCode;
       if (status === 404 || status === 410) {
@@ -168,12 +206,20 @@ export async function GET(req: NextRequest) {
           .from("push_subscriptions")
           .delete()
           .eq("endpoint", sub.endpoint);
-        dropped++;
+        report.dropped++;
       } else {
         console.error("push cron: send failed", status, sub.endpoint.slice(0, 40));
+        report.failed++;
+        // Hand the day back, so a later tick before quiet hours retries.
+        // Only this tick's own claim: a row stamped otherwise is left be.
+        await db
+          .from("push_subscriptions")
+          .update({ last_sent_on: sub.last_sent_on })
+          .eq("endpoint", sub.endpoint)
+          .eq("last_sent_on", today);
       }
     }
   }
 
-  return NextResponse.json({ ok: true, sent, dropped });
+  return NextResponse.json({ ok: true, ...report });
 }

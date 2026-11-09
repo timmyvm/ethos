@@ -6,9 +6,16 @@
  * or cron-job.org holds it). Two, so either copy can be rotated without the
  * other caller going dark.
  *
- * A secret under 32 characters is ignored, so a short or hand-typed value
- * fails closed rather than guarding the route weakly (#430 review); the
- * server says so once in its log. `openssl rand -hex 32` makes one of 64.
+ * A `PUSH_TICK_SECRET` under 32 characters is ignored, so a short or
+ * hand-typed value fails closed rather than guarding the route weakly (#430
+ * review); the server says so once in its log. `CRON_SECRET` keeps the rule
+ * it shipped with (any value set), because GitHub's backup already holds
+ * it and a floor on a length nobody can read would stop the backup on
+ * deploy.
+ *
+ * The database's own clock needs no Vercel setting at all: its secret is
+ * made inside the database and never leaves it (0028), and the sender asks
+ * the database whether a bearer is that secret (`dbTickMatches`).
  *
  * Compared in constant time on their digests, so neither the value nor
  * its length leaks through how long a wrong guess takes. Server only.
@@ -35,7 +42,7 @@ export function namedTickSecrets(
   for (const name of TICK_SECRET_NAMES) {
     const value = env[name];
     if (typeof value !== "string" || value.trim().length === 0) continue;
-    if (value.trim().length < TICK_SECRET_MIN) {
+    if (name === "PUSH_TICK_SECRET" && value.trim().length < TICK_SECRET_MIN) {
       if (!warned.has(name)) {
         warned.add(name);
         console.error(
@@ -98,4 +105,26 @@ export function tickCaller(userAgent: string | null): TickCaller {
   if (ua.includes("cron-job.org")) return "cron-job.org";
   if (ua.includes("github")) return "github";
   return "other";
+}
+
+/**
+ * Whether `header` carries the database clock's secret (0028): the secret
+ * is made and kept in Vault, and `public.push_tick_ok` compares a bearer
+ * with it inside the database, callable by the service role only. Any
+ * failure answers false, so a missing function or a down database is a
+ * refusal, never an opening.
+ */
+export async function dbTickMatches(
+  db: { rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }> },
+  header: string | null
+): Promise<boolean> {
+  if (!header || !header.startsWith("Bearer ")) return false;
+  const token = header.slice("Bearer ".length);
+  if (token.trim().length < TICK_SECRET_MIN) return false;
+  try {
+    const { data, error } = await db.rpc("push_tick_ok", { token });
+    return !error && data === true;
+  } catch {
+    return false;
+  }
 }

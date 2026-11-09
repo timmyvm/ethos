@@ -27,7 +27,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import webpush from "web-push";
 import { supabaseAdmin } from "@/lib/db";
-import { matchedSecret, namedTickSecrets, tickCaller, type TickCaller, type TickSecretName } from "@/lib/cron-auth";
+import { dbTickMatches, matchedSecret, namedTickSecrets, tickCaller, type TickCaller, type TickSecretName } from "@/lib/cron-auth";
 import { TICK_KEEP_HOURS, tickSubject, TICK_PREFIX } from "@/lib/push-clock";
 import {
   localDayKey,
@@ -62,7 +62,13 @@ interface SubRow {
 }
 
 export async function GET(req: NextRequest) {
-  const secret = matchedSecret(req.headers.get("authorization"), namedTickSecrets());
+  const authorization = req.headers.get("authorization");
+  let secret: TickSecretName | null = matchedSecret(authorization, namedTickSecrets());
+  /* The database clock's secret lives only in the database (0028): ask it. */
+  if (!secret) {
+    const admin = supabaseAdmin();
+    if (admin && (await dbTickMatches(admin, authorization))) secret = "PUSH_TICK_SECRET";
+  }
   if (!secret) {
     return NextResponse.json({ error: "Not authorised." }, { status: 401 });
   }

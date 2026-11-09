@@ -353,3 +353,34 @@ describe("0027 push tick", () => {
     expect(sql).toMatch(/set search_path = ''/);
   });
 });
+
+/**
+ * The secrets that need no hosting setting (0028, #430 and #431): the
+ * clock's bearer is checked inside the database, and /active's founder list
+ * lives there too. Both functions answer the service role only, and the
+ * file carries no secret, no address and no URL.
+ */
+describe("0028 database-held secrets", () => {
+  const sql = code("0028_db_held_secrets.sql");
+
+  it("carries no secret, URL or email", () => {
+    expect(sql).not.toMatch(/https?:\/\//);
+    expect(sql).not.toMatch(/@[a-z0-9-]+\.[a-z]/i);
+  });
+
+  it("compares the bearer inside the database, a secret of 32 or more, service role only", () => {
+    expect(sql).toMatch(/where s\.name = 'push_tick_secret'/);
+    expect(sql).toMatch(/length\(btrim\(coalesce\(s\.decrypted_secret, ''\)\)\) >= 32/);
+    expect(sql).toMatch(/revoke all on function public\.push_tick_ok\(text\) from public, anon, authenticated;/);
+    expect(sql).toMatch(/grant execute on function public\.push_tick_ok\(text\) to service_role;/);
+    expect(sql).toMatch(/revoke all on function public\.is_founder_email\(text\) from public, anon, authenticated;/);
+    expect(sql).toMatch(/grant execute on function public\.is_founder_email\(text\) to service_role;/);
+    expect(sql.match(/security definer/g)).toHaveLength(2);
+    expect(sql.match(/set search_path = ''/g)).toHaveLength(2);
+  });
+
+  it("keeps the founder list closed to the API", () => {
+    expect(sql).toMatch(/revoke all on private\.founders from public, anon, authenticated;/);
+    expect(sql).toMatch(/revoke all on schema private from public, anon, authenticated;/);
+  });
+});

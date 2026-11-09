@@ -1,8 +1,9 @@
 # Reminders that reach people: what production needs (DECISIONS #430)
 
-Branch `comeback/reminders`. Everything below the line "Timothy" is a
-production step: nobody else runs it, and nothing in the branch runs it for
-you.
+The production steps below were run from the session on 9 Nov, after the
+deploy (#432). They need no Vercel setting: the clock's secret is made inside
+the database and never leaves it, and the founder list for `/active` is a
+table there. Rerun them only for a new project.
 
 **The hourly clock is the ship gate, not a follow-up (#430 review).** The
 code alone does not deliver the evening reminders: replayed on GitHub's real
@@ -11,8 +12,8 @@ days and the 9 pm one (the hour both introduction pickers chose) on 2,
 because a 9 pm pick can only be served by a tick between 21:00 and 21:59 and
 quiet hours begin at 22. GitHub's three new schedules have never been
 measured. So the branch ships with a clock at minute 1 of every hour, either
-the database's (steps 2 to 7) or cron-job.org's (the two-minute route under
-"If you would rather not touch the database"), and `/active`'s "Reminder
+the database's (steps 2 to 5) or cron-job.org's (the route under "Without
+the database's clock"), and `/active`'s "Reminder
 clock" saying "N of 24 hours" the next day.
 
 ## Why
@@ -26,61 +27,49 @@ clock" saying "N of 24 hours" the next day.
 
 ## What ships in the branch (code only)
 
-- The sender (`app/api/push/cron`) accepts `PUSH_TICK_SECRET` beside
-  `CRON_SECRET`, claims each person's day before it sends (two callers in the
+- The sender (`app/api/push/cron`) accepts `CRON_SECRET`, `PUSH_TICK_SECRET`
+  (32 characters or more), or a bearer the database says is its own clock's
+  secret (`public.push_tick_ok`, 0028, service role only), claims each person's day before it sends (two callers in the
   same minute ring once), serves a late tick until quiet hours begin (not
   naming an hour that has passed), and answers why: `{ ok, subs, due, done,
   unsure, taken, sent, failed, dropped }`.
 - `.github/workflows/push-cron.yml`: the backup, three schedules an hour
   (:07, :29, :48) and a concurrency group. Uses the existing `CRON_SECRET`.
 - `supabase/migrations/0027_push_tick.sql`: pg_cron + pg_net, minute 1 of
-  every hour, URL and secret read from Vault. **Written, not applied.** It
-  holds no URL and no secret, and without the two Vault entries it calls
-  nobody, so a branch or local database never rings production.
+  every hour, URL and secret read from Vault. It holds no URL and no secret,
+  and without the two Vault entries it calls nobody, so a branch or local
+  database never rings production.
+- `supabase/migrations/0028_db_held_secrets.sql`: `public.push_tick_ok`
+  (is this bearer the Vault secret?) and `public.is_founder_email` (is this
+  address in `private.founders`?), both callable by the service role only.
 - `POST /api/push/test` behind Settings' "Send a test".
 
-## Timothy, in this order
+## Production, in this order
 
-1. **Deploy the branch** to production (merge as usual). Migration 0026 is
-   still owed before this ships (STATE.md, the games); apply it first.
+1. **Deploy** (main). Migration 0026 goes first if a new project lacks it.
 
-2. **Make the secret** on your laptop:
-   ```
-   openssl rand -hex 32
-   ```
-   Keep it for steps 3 and 5. It is never pasted anywhere else.
+2. **Supabase, extensions and migrations**: apply
+   `supabase/migrations/0027_push_tick.sql` then `0028_db_held_secrets.sql`
+   (they create pg_cron and pg_net; if a project refuses, enable both in the
+   dashboard first: Integrations, Cron; Database, Extensions, `pg_net`). 0027
+   schedules the job `push-tick` at `1 * * * *` (UTC, so HH:01 in every
+   whole-hour zone).
 
-3. **Vercel**: Project, Settings, Environment Variables, add, Production
-   only:
-   - `PUSH_TICK_SECRET` = the value. The sender ignores any secret under 32
-     characters (it logs "PUSH_TICK_SECRET is ignored"), so a short one
-     fails closed.
-   - `ADMIN_EMAILS` = your account's email (confirmed), for `/active`.
-     Unset, the page answers you as if it did not exist.
-   - Check `CRON_SECRET` is 32 characters or more. A shorter one is now
-     ignored too: GitHub's push-cron run fails with 401. Make a new one with
-     `openssl rand -hex 32` and set it here and in GitHub (Settings,
-     Secrets and variables, Actions, `CRON_SECRET`).
-
-   Redeploy (Deployments, the latest, Redeploy), so the route reads them.
-
-4. **Supabase, extensions**: Dashboard, Integrations, Cron, Enable (that is
-   pg_cron); Database, Extensions, search `pg_net`, Enable. (The migration
-   also runs `create extension if not exists` for both; enabling them in the
-   dashboard first means it cannot fail on permissions.)
-
-5. **Supabase, Vault** (SQL editor, one run):
+3. **Vault** (SQL editor, one run). The secret is made here and is never
+   copied anywhere:
    ```sql
    select vault.create_secret('https://speakethos.com/api/push/cron', 'push_tick_url', 'The reminder sender');
-   select vault.create_secret('PASTE-THE-SECRET-FROM-STEP-2', 'push_tick_secret', 'Bearer for /api/push/cron');
+   select vault.create_secret(encode(extensions.gen_random_bytes(32), 'hex'), 'push_tick_secret', 'Bearer for /api/push/cron, checked by public.push_tick_ok');
    ```
 
-6. **Apply the migration**: paste `supabase/migrations/0027_push_tick.sql`
-   into the SQL editor and run it (or `supabase db push` if that is how 0026
-   went in). It schedules the job `push-tick` at `1 * * * *` (UTC, so HH:01
-   in every whole-hour zone).
+4. **The founder**, for `/active` (a confirmed, non-anonymous account):
+   ```sql
+   insert into private.founders (email) values (lower('<your account email>'));
+   ```
+   `ADMIN_EMAILS` in Vercel still works beside it; neither set, the page
+   answers as if it did not exist.
 
-7. **Check, after the next HH:01** (SQL editor):
+5. **Check, after the next HH:01** (SQL editor):
    ```sql
    select status, start_time, return_message
      from cron.job_run_details
@@ -92,10 +81,11 @@ clock" saying "N of 24 hours" the next day.
    ```
    Want: `succeeded`, and `200` with a body like
    `{"ok":true,"subs":4,"due":0,"done":0,"unsure":0,"taken":0,"sent":0,"failed":0,"dropped":0}`.
-   A `401` means the Vault secret and Vercel's differ (step 3 or 5); a `403`
-   means Vercel's bot protection is on for the route.
+   A `401` means the deploy is older than 0028's check, or the Vault secret
+   is under 32 characters; a `403` means Vercel's bot protection is on for
+   the route.
 
-8. **Your iPhone** (the whole path, about a minute):
+6. **Your iPhone** (the whole path, about a minute):
    - Open speakethos.com in Safari, Share, Add to Home Screen, open it from
      the Home Screen.
    - Record a take. On the results, "Same time tomorrow?" with "Remind me at
@@ -104,19 +94,24 @@ clock" saying "N of 24 hours" the next day.
    - Settings, Reminders: "Send a test". It should arrive in seconds with the
      app closed. If it does not: iPhone Settings, Notifications, Ethos.
 
-9. **The next day**, open `speakethos.com/active` signed in: "Reminder
+7. **The next day**, open `speakethos.com/active` signed in: "Reminder
    clock" lists each caller with its last tick and how many of the last 24
    hours it reached. The database's row should read 24 of 24 hours. "No
    tick in the last hour" means the clock stopped.
 
-## If you would rather not touch the database
+**Rotate the secret** (both sides read Vault, so the next tick uses it):
+```sql
+select vault.update_secret((select id from vault.secrets where name = 'push_tick_secret'),
+                           encode(extensions.gen_random_bytes(32), 'hex'));
+```
 
-cron-job.org (free, about two minutes): a job every hour at minute 1, GET
-`https://speakethos.com/api/push/cron`, header
-`Authorization: Bearer <PUSH_TICK_SECRET>` (step 3 first; `CRON_SECRET`
-works too if it is 32 characters or more). `/active` shows it as
-"cron-job.org". Or store the secret as `push_tick_secret` in step 5 and skip
-the rest of step 3.
+## Without the database's clock
+
+cron-job.org (free, about two minutes): set `PUSH_TICK_SECRET` in Vercel
+(`openssl rand -hex 32`; under 32 characters it is ignored and logged), then
+a job every hour at minute 1, GET `https://speakethos.com/api/push/cron`,
+header `Authorization: Bearer <PUSH_TICK_SECRET>`. `/active` shows it as
+"cron-job.org".
 
 ## Stop or roll back
 

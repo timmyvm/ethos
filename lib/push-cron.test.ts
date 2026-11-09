@@ -34,6 +34,10 @@ let sendFails: number | null = null;
 const stamped: string[] = [];
 const sent: string[] = [];
 const payloads: { title: string; body: string; url: string }[] = [];
+/** The token the database's Vault holds (0028), or null for none; and each token it was asked about. */
+let vaultToken: string | null = null;
+let rpcError: { message: string } | null = null;
+const asked: string[] = [];
 
 /* An update's filters, as PostgREST applies them: eq, and the claim's
    `or(last_sent_on.is.null,last_sent_on.neq.<day>)`. */
@@ -182,6 +186,12 @@ function notesQuery() {
 vi.mock("@/lib/db", () => ({
   supabaseAdmin: () => ({
     from: (t: string) => (t === "push_subscriptions" ? subsQuery() : t === "rate_limits" ? notesQuery() : repsQuery()),
+    rpc: async (fn: string, args: { token: string }) => {
+      if (fn !== "push_tick_ok") return { data: null, error: { message: "no such function" } };
+      asked.push(args.token);
+      if (rpcError) return { data: null, error: rpcError };
+      return { data: vaultToken !== null && args.token === vaultToken, error: null };
+    },
   }),
 }));
 
@@ -243,6 +253,9 @@ beforeEach(() => {
   sent.length = 0;
   payloads.length = 0;
   delete process.env.PUSH_TICK_SECRET;
+  vaultToken = null;
+  rpcError = null;
+  asked.length = 0;
 });
 
 describe("the reminder cron", () => {
@@ -348,6 +361,33 @@ describe("the reminder cron, #430", () => {
     expect((await tick(DB)).status).toBe(200);
     expect((await tick(GH)).status).toBe(200);
     expect((await tick("wrong")).status).toBe(401);
+  });
+
+  it("takes the secret the database holds, with no hosting setting (0028)", async () => {
+    subs = [due(1)];
+    vaultToken = DB;
+    const res = await tick(DB, "pg_net push-tick");
+    expect(res.status).toBe(200);
+    expect((await res.json()).sent).toBe(1);
+    expect(notes.map((n) => n.subject)).toEqual(["push-tick:PUSH_TICK_SECRET:database"]);
+    // GitHub's secret matches on the server and never reaches the database.
+    asked.length = 0;
+    expect((await tick(GH)).status).toBe(200);
+    expect(asked).toEqual([]);
+  });
+
+  it("refuses what the database refuses, and refuses when the database cannot answer", async () => {
+    subs = [due(1)];
+    vaultToken = DB;
+    expect((await tick("x".repeat(40))).status).toBe(401);
+    rpcError = { message: "function public.push_tick_ok does not exist" };
+    expect((await tick(DB)).status).toBe(401);
+    // A token too short to be the secret is never sent to the database.
+    rpcError = null;
+    asked.length = 0;
+    expect((await tick("short")).status).toBe(401);
+    expect(asked).toEqual([]);
+    expect(sent).toEqual([]);
   });
 
   it("refuses a secret under 32 characters, so a weak one fails closed", async () => {

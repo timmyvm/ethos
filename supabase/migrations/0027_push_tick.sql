@@ -16,7 +16,10 @@
 -- in Vault, set by hand in production only (docs/reminders-ops.md):
 --
 --   select vault.create_secret('https://speakethos.com/api/push/cron', 'push_tick_url');
---   select vault.create_secret('<PUSH_TICK_SECRET, as in Vercel>', 'push_tick_secret');
+--   select vault.create_secret(encode(extensions.gen_random_bytes(32), 'hex'), 'push_tick_secret');
+--
+-- The secret is made in the database and never leaves it: the sender asks
+-- the database whether a bearer is it (0028, public.push_tick_ok).
 --
 -- Until both exist the job wakes, finds nothing and calls nobody, so a
 -- branch database, a local stack or a restored copy never rings production.

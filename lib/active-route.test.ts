@@ -11,6 +11,9 @@ import type { NextRequest } from "next/server";
 type User = { id: string; email?: string; is_anonymous?: boolean; email_confirmed_at?: string | null };
 let user: User | null = null;
 const reads: { table: string; columns: string }[] = [];
+/* The database's founder list (0028), as is_founder_email answers it. */
+let dbFounders: string[] = [];
+const rpcs: [string, Record<string, unknown>][] = [];
 const T1 = "0b5e7a21-6c3d-4f8e-8a1b-2d9c4e6f7a10";
 const ME = "c0a013e2-0000-4000-8000-000000000000";
 
@@ -49,6 +52,11 @@ vi.mock("@/lib/db", () => ({
       getUser: async () => (user ? { data: { user }, error: null } : { data: { user: null }, error: { status: 401 } }),
     },
     from: (t: string) => query(t),
+    rpc: async (fn: string, args: Record<string, unknown>) => {
+      rpcs.push([fn, args]);
+      if (fn === "is_founder_email") return { data: dbFounders.includes(String(args.addr)), error: null };
+      return { data: null, error: { message: "no such function" } };
+    },
   }),
 }));
 
@@ -64,6 +72,8 @@ function get(token: string | null = "t") {
 beforeEach(() => {
   user = null;
   reads.length = 0;
+  rpcs.length = 0;
+  dbFounders = [];
   process.env.ADMIN_EMAILS = "timothy@example.com";
 });
 
@@ -87,6 +97,27 @@ describe("GET /api/active", () => {
   it("lets nobody in while ADMIN_EMAILS is unset", async () => {
     delete process.env.ADMIN_EMAILS;
     user = { id: ME, email: "timothy@example.com", email_confirmed_at: "2026-10-01T00:00:00Z" };
+    expect((await get()).status).toBe(404);
+    expect(reads).toEqual([]);
+  });
+
+  it("lets in a confirmed email on the database's founder list, with no ADMIN_EMAILS (0028)", async () => {
+    delete process.env.ADMIN_EMAILS;
+    dbFounders = ["timothy@example.com"];
+    user = { id: ME, email: "Timothy@Example.com", email_confirmed_at: "2026-10-01T00:00:00Z" };
+    expect((await get()).status).toBe(200);
+    expect(rpcs).toEqual([["is_founder_email", { addr: "timothy@example.com" }]]);
+  });
+
+  it("never asks the database for an anonymous or unconfirmed account, and a listed stranger stays out", async () => {
+    delete process.env.ADMIN_EMAILS;
+    dbFounders = ["timothy@example.com"];
+    user = { id: ME, email: "timothy@example.com", email_confirmed_at: null };
+    expect((await get()).status).toBe(404);
+    user = { id: ME, is_anonymous: true, email_confirmed_at: null };
+    expect((await get()).status).toBe(404);
+    expect(rpcs).toEqual([]);
+    user = { id: T1, email: "friend@example.com", email_confirmed_at: "2026-10-30T00:00:00Z" };
     expect((await get()).status).toBe(404);
     expect(reads).toEqual([]);
   });

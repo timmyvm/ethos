@@ -68,14 +68,16 @@ export async function GET(req: NextRequest) {
     const status = (authError as { status?: number } | null)?.status ?? 0;
     return status >= 500 ? json({ error: "Try again." }, 503) : json({ error: "Sign in." }, 401);
   }
-  const founder = isFounder(
-    {
-      email: user.email ?? null,
-      anonymous: user.is_anonymous ?? false,
-      confirmed: Boolean(user.email_confirmed_at),
-    },
-    process.env.ADMIN_EMAILS
-  );
+  const who = {
+    email: user.email ?? null,
+    anonymous: user.is_anonymous ?? false,
+    confirmed: Boolean(user.email_confirmed_at),
+  };
+  /* ADMIN_EMAILS on the server, or the database's own list (0028), which
+     needs no hosting setting: a confirmed, non-anonymous email either way. */
+  const founder =
+    isFounder(who, process.env.ADMIN_EMAILS) ||
+    (!who.anonymous && who.confirmed && !!who.email && (await founderInDb(db, who.email)));
   if (!founder) return json({ error: "Not found." }, 404);
 
   try {
@@ -85,6 +87,18 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     console.error("active: read failed", (e as { message?: string })?.message);
     return json({ error: "Read failed." }, 502);
+  }
+}
+
+/** The database's founder list (0028), asked by the service role; any failure is no. */
+async function founderInDb(db: Db, email: string): Promise<boolean> {
+  try {
+    const { data, error } = await (db as unknown as {
+      rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }>;
+    }).rpc("is_founder_email", { addr: email.trim().toLowerCase() });
+    return !error && data === true;
+  } catch {
+    return false;
   }
 }
 

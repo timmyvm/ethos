@@ -20,7 +20,7 @@
  * allowed, guilt is not.
  */
 
-import { insideQuietHours, readPrefs, type Prefs } from "./prefs";
+import { insideQuietHours, readPrefs, writePrefs, type Prefs } from "./prefs";
 import { reminderCopy, takeLine, type LastTake } from "./reminder-copy";
 import { deviceZone, PUSH_ACK_KEY } from "./reminders-zone";
 import { ensureSession } from "./supabase-browser";
@@ -201,12 +201,30 @@ export async function armPush(prefs: Prefs = readPrefs()): Promise<boolean> {
         userVisibleOnly: true,
         applicationServerKey: key as BufferSource,
       }));
-    const token = await ensureSession();
-    if (!token) return false;
-    // The zone itself, so the server follows its daylight-saving changes
-    // without waiting for this device to re-arm (0019).
-    const tz = deviceZone();
-    const res = await fetch("/api/push", {
+    return (await postSubscription(sub, prefs.reminderHour, prefs)).ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * POST this device's subscription with the hour, its zone and its quiet
+ * hours; on the server's 200, write the acknowledgement. The one place a
+ * subscription reaches the server, for a re-arm and for a tap alike.
+ */
+async function postSubscription(
+  sub: PushSubscription,
+  hour: number,
+  prefs: Prefs
+): Promise<{ ok: true } | { ok: false; why: "no-session" | "offline" | "server"; status?: number }> {
+  const token = await ensureSession().catch(() => null);
+  if (!token) return { ok: false, why: "no-session" };
+  // The zone itself, so the server follows its daylight-saving changes
+  // without waiting for this device to re-arm (0019).
+  const tz = deviceZone();
+  let res: Response;
+  try {
+    res = await fetch("/api/push", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -214,15 +232,187 @@ export async function armPush(prefs: Prefs = readPrefs()): Promise<boolean> {
       },
       body: JSON.stringify({
         subscription: sub.toJSON(),
-        reminderHour: prefs.reminderHour,
+        reminderHour: hour,
         tzOffset: new Date().getTimezoneOffset(),
         tz,
         quietFrom: prefs.quietFrom,
         quietTo: prefs.quietTo,
       }),
     });
-    if (res.ok) writeAck({ endpoint: sub.endpoint, hour: prefs.reminderHour, tz });
-    return res.ok;
+  } catch {
+    return { ok: false, why: "offline" };
+  }
+  if (!res.ok) return { ok: false, why: "server", status: res.status };
+  writeAck({ endpoint: sub.endpoint, hour, tz });
+  return { ok: true };
+}
+
+/** Why a reminder could not be turned on, in the words the screens choose from. */
+export type ArmFail =
+  /** No Notification or PushManager here: an iPhone's Safari tab, an app's own browser. */
+  | "unsupported"
+  /** Blocked: only the phone's or the browser's settings can change it. */
+  | "denied"
+  /** The prompt was closed without an answer (a desktop browser can). */
+  | "dismissed"
+  /** No service worker answered in time. */
+  | "no-worker"
+  /** The build has no VAPID key. */
+  | "no-key"
+  /** The browser refused the subscription for another reason. */
+  | "subscribe"
+  /** No session could be made to own the subscription. */
+  | "no-session"
+  /** The request never reached the server. */
+  | "offline"
+  /** The server answered, and not with a 200. */
+  | "server";
+
+export type ArmResult = { ok: true; hour: number } | { ok: false; why: ArmFail; status?: number };
+
+/** How long a missing service worker is waited for before the tap says so. */
+export const WORKER_WAIT_MS = 6000;
+
+/**
+ * This page's service worker registration, or null once `ms` pass with
+ * none: `serviceWorker.ready` never settles where the worker never
+ * registered, and a tap that waited on it hung with no word (#430).
+ */
+export function readyRegistration(ms = WORKER_WAIT_MS): Promise<ServiceWorkerRegistration | null> {
+  if (!pushSupported()) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const t = setTimeout(() => resolve(null), ms);
+    navigator.serviceWorker.ready.then(
+      (reg) => {
+        clearTimeout(t);
+        resolve(reg);
+      },
+      () => {
+        clearTimeout(t);
+        resolve(null);
+      }
+    );
+  });
+}
+
+/**
+ * Turn the reminder on from a tap (#430), and say so only when the server
+ * has it. Call it straight from the tap's handler with nothing awaited
+ * before it: on an iPhone the tap's permission to raise the Allow prompt
+ * ends at the first await, so `pushManager.subscribe` is that first await,
+ * on the registration the screen fetched when it mounted. Subscribing
+ * raises the prompt and subscribes in one step. Without a registration
+ * yet, the permission is asked first, in the tap, and the worker is
+ * waited for (never forever) before subscribing.
+ *
+ * On the server's 200: the hour is this device's, the acknowledgement is
+ * written, and the hour goes on the account too (onboarding.reminder_hour)
+ * so a new phone or the installed app can offer it in one tap.
+ */
+export function armInTap(
+  hour: number,
+  reg: ServiceWorkerRegistration | null,
+  onAccount: (hour: number) => Promise<unknown> = async () => {}
+): Promise<ArmResult> {
+  if (typeof Notification === "undefined" || !pushSupported()) {
+    return Promise.resolve({ ok: false, why: "unsupported" });
+  }
+  if (Notification.permission === "denied") return Promise.resolve({ ok: false, why: "denied" });
+  const key = vapidKey();
+  if (!key) return Promise.resolve({ ok: false, why: "no-key" });
+  const opts = { userVisibleOnly: true, applicationServerKey: key as BufferSource };
+  // The first await, in the tap: nothing above this line waits.
+  let subscribing: Promise<PushSubscription> | null = null;
+  let asking: Promise<NotificationPermission> | null = null;
+  try {
+    if (reg) subscribing = reg.pushManager.subscribe(opts);
+    else if (Notification.permission === "default") asking = Notification.requestPermission();
+  } catch {
+    subscribing = null;
+  }
+  return finishArm(hour, reg, subscribing, asking, opts, onAccount);
+}
+
+async function finishArm(
+  hour: number,
+  reg: ServiceWorkerRegistration | null,
+  subscribing: Promise<PushSubscription> | null,
+  asking: Promise<NotificationPermission> | null,
+  opts: PushSubscriptionOptionsInit,
+  onAccount: (hour: number) => Promise<unknown>
+): Promise<ArmResult> {
+  const refused = (): ArmResult | null => {
+    const p = Notification.permission;
+    if (p === "denied") return { ok: false, why: "denied" };
+    if (p === "default") return { ok: false, why: "dismissed" };
+    return null;
+  };
+  let sub: PushSubscription | null = null;
+  if (subscribing) {
+    try {
+      sub = await subscribing;
+    } catch {
+      const no = refused();
+      if (no) return no;
+    }
+  } else if (asking) {
+    const p = await asking.catch(() => Notification.permission);
+    if (p !== "granted") return { ok: false, why: p === "denied" ? "denied" : "dismissed" };
+  }
+  if (!sub) {
+    // Granted, but no subscription yet: the worker the screen did not
+    // have, or one held under an old key. No prompt can come now.
+    const r = reg ?? (await readyRegistration());
+    if (!r) return { ok: false, why: "no-worker" };
+    try {
+      sub = await r.pushManager.subscribe(opts);
+    } catch {
+      try {
+        const old = await r.pushManager.getSubscription();
+        if (old) await old.unsubscribe();
+        sub = await r.pushManager.subscribe(opts);
+      } catch {
+        return refused() ?? { ok: false, why: "subscribe" };
+      }
+    }
+  }
+  const prefs = readPrefs();
+  const posted = await postSubscription(sub, hour, prefs);
+  if (!posted.ok) return posted;
+  writePrefs({ reminderHour: hour });
+  void onAccount(hour).catch(() => {});
+  return { ok: true, hour };
+}
+
+/**
+ * Whether the server holds a reminder for this phone at its hour, as far
+ * as this phone can tell without asking: notifications granted, and the
+ * server's last acknowledgement names the hour set here (#430). An hour
+ * picked in the introduction, or restored from the account, is set and
+ * not armed, so the ask still comes.
+ */
+export function armedHere(prefs: Prefs = readPrefs()): boolean {
+  try {
+    if (prefs.reminderHour === null) return false;
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") return false;
+    const ack = JSON.parse(localStorage.getItem(ACK_KEY) ?? "null") as { hour?: unknown; endpoint?: unknown } | null;
+    return !!ack && typeof ack.endpoint === "string" && ack.hour === prefs.reminderHour;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The same, checked against the browser's own subscription: an
+ * acknowledgement for an endpoint the browser no longer holds (the app
+ * removed and added back) is no reminder.
+ */
+export async function armedHereChecked(reg: ServiceWorkerRegistration | null, prefs: Prefs = readPrefs()): Promise<boolean> {
+  if (!armedHere(prefs) || !reg) return false;
+  try {
+    const sub = await reg.pushManager.getSubscription();
+    const ack = JSON.parse(localStorage.getItem(ACK_KEY) ?? "null") as { endpoint?: string } | null;
+    return !!sub && sub.endpoint === ack?.endpoint;
   } catch {
     return false;
   }

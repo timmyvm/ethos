@@ -233,23 +233,23 @@ describe("the recording screen's back link", () => {
 });
 
 describe("exitBeat (#427): at most one beat per exit, and none between practices", () => {
-  const none = { gate: false, tasteDue: false, proDue: false, reminderDue: false, leaves: true, streakUp: false };
-  it("never shows Since day one or the reminder ask on an exit that stays (Practice N of 3, Another round, Retake)", () => {
+  /* #430 took the reminder ask off the exit and onto the glance (people
+     glance and leave), so its beat and its expectations here are gone:
+     that move is the point. The rest is unchanged. */
+  const none = { gate: false, tasteDue: false, proDue: false, leaves: true, streakUp: false };
+  it("never shows Since day one on an exit that stays (Practice N of 3, Another round, Retake)", () => {
     for (const proDue of [true, false]) {
-      for (const reminderDue of [true, false]) {
-        const beat = exitBeat({ ...none, leaves: false, proDue, reminderDue });
-        expect(beat === "pro" || beat === "reminder").toBe(false);
-      }
+      const beat = exitBeat({ ...none, leaves: false, proDue });
+      expect(beat === "pro").toBe(false);
     }
   });
   it("puts the save wall over everything, on any exit", () => {
-    expect(exitBeat({ gate: true, tasteDue: true, proDue: true, reminderDue: true, leaves: true, streakUp: false })).toBe("gate");
+    expect(exitBeat({ gate: true, tasteDue: true, proDue: true, leaves: true, streakUp: false })).toBe("gate");
     expect(exitBeat({ ...none, gate: true, leaves: false })).toBe("gate");
   });
-  it("orders the rest: the taste, Since day one, the reminder ask, one at a time", () => {
-    expect(exitBeat({ ...none, tasteDue: true, proDue: true, reminderDue: true })).toBe("taste");
-    expect(exitBeat({ ...none, proDue: true, reminderDue: true })).toBe("pro");
-    expect(exitBeat({ ...none, reminderDue: true })).toBe("reminder");
+  it("orders the rest: the taste, then Since day one, one at a time", () => {
+    expect(exitBeat({ ...none, tasteDue: true, proDue: true })).toBe("taste");
+    expect(exitBeat({ ...none, proDue: true })).toBe("pro");
     expect(exitBeat(none)).toBeNull();
   });
   it("keeps the taste's guard: never over the streak celebration", () => {

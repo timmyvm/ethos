@@ -23,6 +23,13 @@ export const TESTER_HINT_KEY = "ethos.tester";
 
 export interface TesterSink {
   record(name: RecordSignal, data?: Record<string, unknown>): void;
+  /**
+   * An outcome nobody tapped, filed as a tap with the role `reminder`
+   * (#430): what became of a reminder turned on, so a tester whose
+   * phone holds no subscription says why ("Reminder failed: server 502").
+   * A tap row needs no new event name, so no migration.
+   */
+  note?(label: string): void;
   /** `screen` is the path as the boundary caught it: the crash's own screen. */
   boundary(error: unknown, digest?: string, screen?: string): void;
 }
@@ -71,6 +78,11 @@ function hold(e: Omit<EarlyError, "screen" | "at">): void {
 /** The collector, once it runs; null again when it stops. */
 export function setTesterSink(next: TesterSink | null): void {
   sink = next;
+}
+
+/** What became of a reminder turned on, for a tester's report (#430). A no-op for everyone else. */
+export function testerNote(label: string): void {
+  sink?.note?.(label);
 }
 
 /** A recording started or stopped (app/rep/page.tsx). */

@@ -21,7 +21,8 @@ import { LevelMeter } from "@/components/LevelMeter";
 import { ModeToggle } from "@/components/ModeToggle";
 import { Moment } from "@/components/Moment";
 import { ClosingNote } from "@/components/rep/ClosingNote";
-import { ReminderAsk } from "@/components/rep/ReminderAsk";
+import { useGlanceReminder } from "@/components/rep/ReminderAsk";
+import { firstScoredToday } from "@/lib/reminder-ask";
 import { SHEET_NAME, WholeRecording } from "@/components/rep/WholeRecording";
 import { ComparisonCard } from "@/components/ComparisonCard";
 import { Paywall, type PaywallAsk } from "@/components/Paywall";
@@ -154,6 +155,7 @@ import {
   cueLead,
   earnedLine,
   fitGlance,
+  askBudget,
   GLANCE_WORDS,
   GLANCE_WORDS_FIRST,
   GLANCE_WORDS_LESSON_DONE,
@@ -169,7 +171,6 @@ import {
 } from "@/lib/glance";
 import { upNextLesson, traitForSaid } from "@/lib/lesson-up-next";
 import { DURATION } from "@/lib/motion";
-import { askedOn, notificationState, reminderDue } from "@/lib/reminder-ask";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
 import { bestFor, ladderState, roundsToday, type LadderRow } from "@/lib/ladder";
 import { INTERVIEW_WINDOW, type GameRound, type StoppedBy } from "@/lib/round";
@@ -1966,6 +1967,8 @@ function RepScreen() {
           streakNow={streakNow}
           repsNow={repsNow}
           spineNow={spineNow}
+          firstToday={firstScoredToday(baselineRef.current)}
+          startedAt={takeStartedAt.current}
           walkRows={walkRows}
           streakUp={celebrate !== null}
           rewardsReady={rewardsReady}
@@ -2702,6 +2705,8 @@ function Results({
   streakNow,
   repsNow,
   spineNow,
+  firstToday,
+  startedAt,
   walkRows,
   streakUp,
   rewardsReady,
@@ -2732,6 +2737,10 @@ function Results({
   repsNow: RepRow[];
   /** Every recording after this one, for the stars, days and count. */
   spineNow: RepSpine[];
+  /** No scored take earlier today (the reminder ask, #430). */
+  firstToday: boolean;
+  /** When this take started (ms), for the hour the reminder ask offers. */
+  startedAt: number;
   /** A game's rows before this round and with it; null until read, or when the read failed. */
   walkRows: { before: GameRoundRow[]; now: GameRoundRow[] } | null;
   /** The streak celebration is up over the glance. */
@@ -2755,6 +2764,13 @@ function Results({
    * sheet, so a moment started on the glance keeps playing in the sheet.
    */
   const take = useTakeAudio(audioUrl, result.metrics.durationS);
+  /* The reminder ask (#430, lib/reminder-ask.ts): on the day's first
+     scored take, in the cue's slot, when this phone has no reminder. */
+  const reminder = useGlanceReminder({
+    scored: result.scorable !== false,
+    firstToday,
+    startedAt,
+  });
   /*
    * The match check (migration 0020): a tester's one question about the
    * score, on the glance under Demos's line, so it is asked after the
@@ -2877,9 +2893,6 @@ function Results({
     repCount: spineNow.length,
     shown: proMomentShown(),
   });
-  /* The reminder ask (#427, lib/reminder-ask.ts): the last step's
-     Tomorrow picker, now on an exit that leaves, once a day. */
-  const [askTo, setAskTo] = useState<string | null>(null);
   /*
    * Every exit lands here. "Go again" from the address already on screen
    * would push the same URL, which Next treats as nothing (same route,
@@ -2932,29 +2945,20 @@ function Results({
   /*
    * At most one beat between a tapped exit and where it goes, in
    * exitBeat's order (#427): the save wall, the taste, then, only on an
-   * exit that leaves the session, Since day one or the reminder ask.
+   * exit that leaves the session, Since day one. The reminder ask is on
+   * the glance itself (#430).
    */
   const exit = (href: string, { leaves }: { leaves: boolean }) => {
     const beat = exitBeat({
       gate: gate !== null,
       tasteDue,
       proDue,
-      reminderDue:
-        leaves &&
-        reminderDue({
-          hour: readPrefs().reminderHour,
-          askedOn: askedOn(),
-          today: dayKey(new Date()),
-          leaves,
-          notifications: notificationState(),
-        }),
       leaves,
       streakUp,
     });
     if (beat === "gate") setGateTo(href);
     else if (beat === "taste") openTaste(href);
     else if (beat === "pro") setProTo(href);
-    else if (beat === "reminder") setAskTo(href);
     else go(href);
   };
   /* Another round (F6a, M7): the same game at the same level, a question
@@ -3256,18 +3260,23 @@ function Results({
         quietLabel ?? "",
         comeBack ?? "",
         testerWords,
+        reminder.words,
       ],
       line: said.sentence,
-      cue: said.cue,
+      /* The reminder ask takes the cue's slot (#430). */
+      cue: reminder.node ? null : said.cue,
       earned: earnedNow,
     },
-    testerWords
-      ? GLANCE_WORDS_TESTER
-      : lessonLine
-        ? GLANCE_WORDS_LESSON_DONE
-        : delta === null && baseline
-          ? GLANCE_WORDS_FIRST
-          : GLANCE_WORDS
+    askBudget(
+      testerWords
+        ? GLANCE_WORDS_TESTER
+        : lessonLine
+          ? GLANCE_WORDS_LESSON_DONE
+          : delta === null && baseline
+            ? GLANCE_WORDS_FIRST
+            : GLANCE_WORDS,
+      reminder.words
+    )
   );
   const glance: GlanceView = {
     parts: said.parts,
@@ -3494,6 +3503,7 @@ function Results({
                 topic={config.topic}
                 section="glance"
                 glance={glance}
+                ask={reminder.node}
                 cappedNote={cappedNote}
                 under={under}
                 baseline={baseline}
@@ -3606,16 +3616,6 @@ function Results({
             take={take}
           />
         </WholeRecording>
-      )}
-      {askTo !== null && (
-        <ReminderAsk
-          streak={streakNow}
-          onDone={() => {
-            const to = askTo;
-            setAskTo(null);
-            go(to);
-          }}
-        />
       )}
       {tasteTo !== null && game && (
         <Paywall

@@ -37,6 +37,19 @@ export const GLANCE_WORDS_FIRST = 28;
  * lesson on the tap and the streak's next day under it.
  */
 export const GLANCE_WORDS_LESSON_DONE = 30;
+/**
+ * The reminder ask (#430): on the day's first scored take, when this
+ * phone has no reminder, its own words ride on top of whichever ceiling
+ * holds, up to this many, and the cue for next time gives up its slot.
+ * Once a day at most; "Same time tomorrow? Remind me at 6 pm Not now" is
+ * 10, the iPhone's Home Screen steps 15.
+ */
+export const GLANCE_WORDS_ASK = 15;
+
+/** The ceiling with the reminder ask's words on it. */
+export function askBudget(budget: number, askWords: string): number {
+  return budget + Math.min(GLANCE_WORDS_ASK, countWords(askWords));
+}
 
 /** A filler's moment plays from a second before it to 1.5s after. */
 export const FILLER_LEAD_S = 1;

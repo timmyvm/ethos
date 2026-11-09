@@ -69,3 +69,12 @@ export function reminderCopy(p: { hour: number | null; onTime: boolean; last: La
     body: takeLine(p.last),
   };
 }
+
+/** Settings' "Send a test" (#430): what the test notification says. */
+export const TEST_COPY = {
+  title: "Your reminder",
+  body: "This is how it arrives, once a day at your hour.",
+} as const;
+
+/** A test goes at most once a minute per phone. */
+export const TEST_EVERY_MS = 60_000;

@@ -534,6 +534,7 @@ export function startCollecting({
       // queue: the start goes now, so a crash mid take reads as one.
       if (name === "record_start") void c.flush();
     },
+    note: (label) => c.tap(label, "reminder"),
     boundary: (error, digest, screen) => {
       const d = describe(error);
       c.error("boundary", { ...d, stack: ownStack(d.stack, hostOf(origin)).stack, digest: digest ?? null }, { screen });

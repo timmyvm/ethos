@@ -5936,6 +5936,32 @@ summary::-webkit-details-marker {
 .test-day[data-state="unknown"][data-today]::after {
   content: none;
 }
+/* Who is active (#431, app/active): a day on a tester's strip and in
+   the day totals, in the test road's grammar. Recorded is the road's
+   sage; opened without recording an outline in stone (on the road an
+   outline is a day to come; here every day has passed, and the legend
+   names it); nothing the bare trough. Fill, ring and flat tell the three
+   apart without colour. */
+.active-day {
+  border-radius: 3px;
+  /* The road's faded sand in light; in dark the surface step below the
+     raised card, a recess (the faded sand vanished there). */
+  background: color-mix(in srgb, var(--color-sand) 35%, transparent);
+}
+:root[data-theme="dark"] .active-day[data-mark="none"] {
+  background: var(--color-surface);
+}
+.active-day[data-mark="recorded"] {
+  background: var(--color-sage-600);
+}
+.active-day[data-mark="opened"] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--color-stone-400);
+}
+.active-flame {
+  color: var(--color-amber);
+}
+
 /* The test tile's place, held from the server's first paint on a
    tester's device (lib/tester-boot.ts marks html before paint), so a
    reload never pushes Today down when the tile mounts. The surface step

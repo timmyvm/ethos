@@ -5345,6 +5345,44 @@ summary::-webkit-details-marker {
   color: var(--home-b);
 }
 
+/* What the first take costs (#431), under the lead beside the object:
+   the lead's size and face, a step back in the card's ink, so the two
+   read as one label and the topic stays the card's words. */
+.home-hero-cost {
+  margin-top: -6px;
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: rgb(255 255 255 / 0.78);
+}
+.home-hero[data-family="none"] .home-hero-cost {
+  color: var(--color-stone-500);
+}
+/* "Another topic" (#431): the roulette's door on a day not yet spoken,
+   a text tap under Start rather than a circle beside it. 44px tall,
+   the card's width, centred, in the card's ink; it tucks 8px into the
+   card's foot so its words sit as far from the edge as Start's do. */
+.home-another {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-top: 4px;
+  margin-bottom: -8px;
+  border-radius: var(--radius-tap);
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+  font-weight: 600;
+  color: rgb(255 255 255 / 0.86);
+}
+.home-hero[data-family="none"] .home-another {
+  color: var(--color-stone-600);
+}
+
 /* The one tap, a pill on the card like every tap (D11). 48px,
    terracotta, ink. */
 .home-start {

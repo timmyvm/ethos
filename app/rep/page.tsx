@@ -45,7 +45,7 @@ import { DOOR_COPY, FELT_COPY } from "@/content/tester";
 import { feltRow, pausedTester, scoreSnapshot, showsMatchCheck, type Felt, type TesterRow } from "@/lib/tester";
 import { saveMatch, useTester } from "@/lib/tester-client";
 import { testerRecord } from "@/lib/tester-signal";
-import { dayTurned } from "@/lib/home";
+import { dayTurned, lastSpokeOn } from "@/lib/home";
 import { liteGraphics } from "@/lib/graphics";
 import { inAppBrowser, inAppLine } from "@/lib/in-app";
 import { readOnboarding } from "@/lib/answers";
@@ -118,6 +118,7 @@ import {
   type CaptureMode,
 } from "@/lib/prefs";
 import { armReminder } from "@/lib/reminders";
+import { writeSpokeHint } from "@/lib/spoke-hint";
 import { repGains } from "@/lib/progress";
 import { celebrates, type RewardMoment } from "@/lib/rewards";
 import {
@@ -734,8 +735,12 @@ function RepScreen() {
    * runtime, so the toggle sat greyed behind "Checking…" for as long as
    * ~15MB took to arrive, on every cold open, for people who were about
    * to record audio.
+   *
+   * Before paint (#431): the toggle shows only where Video can be had,
+   * so on a phone that cannot, the screen Start lands on is drawn
+   * without it from its first frame rather than losing it a frame later.
    */
-  useEffect(() => {
+  useLayoutEffect(() => {
     // Lite graphics (#412): a phone that crashed or lost its graphics
     // records Voice; the camera and the pose model are the heaviest
     // thing this screen can ask of it.
@@ -992,6 +997,8 @@ function RepScreen() {
             streak: streak.current,
             didToday: streak.didToday,
           });
+          // Today, opened next, draws a spoken day's card from its first frame (#431).
+          writeSpokeHint(lastSpokeOn(all));
           // The upload minted the session if there wasn't one, so this
           // is the earliest moment the answer is real.
           sessionState()
@@ -2017,6 +2024,18 @@ function RepScreen() {
   const doLine = bossParts?.line ?? heading;
   const doRule = bossParts?.rule ?? null;
   /*
+   * Ready (#431): the day's first take, opened from Today's Start or
+   * the reminder on a day not yet spoken. The screen is the topic, its
+   * one tactic (the one Today's card used to print) and Record: the
+   * practice's title under the topic was a second headline, and tactics
+   * two and three still come as the live tips once the clock runs
+   * (#129). Nothing records by itself and the mic is asked for only by
+   * Record (#135). A second take, a game and the boss keep the full
+   * screen.
+   */
+  const ready =
+    searchParams.get("ready") === "1" && !game && config.kind !== "boss" && config.tips.length > 0;
+  /*
    * A tip yields to a live nudge: the nudge is about this second of this
    * rep, the tip is general advice, and stacking them means neither gets
    * read. `seconds` already ticks once a second, so this recomputes at
@@ -2148,7 +2167,12 @@ function RepScreen() {
           data-best-room={phase === "idle" && gameBestParts ? "true" : undefined}
           className={
             phase === "idle"
-              ? `mt-4 flex max-h-[300px] min-h-[168px] flex-1 flex-col [@media(max-height:600px)]:min-h-0 ${game ? "[@media(max-height:700px)]:mt-2" : ""}`
+              ? `mt-4 flex ${
+                  /* Ready (#431) has one line under the card, not a
+                     heading and three tiles, and gives the room to the
+                     stage rather than to the ground (DESIGN rule 7). */
+                  ready ? "max-h-[440px]" : "max-h-[300px]"
+                } min-h-[168px] flex-1 flex-col [@media(max-height:600px)]:min-h-0 ${game ? "[@media(max-height:700px)]:mt-2" : ""}`
               : "mt-4"
           }
         >
@@ -2173,7 +2197,7 @@ function RepScreen() {
         <div className={`mt-6 ${game ? "[@media(max-height:700px)]:mt-4" : ""}`}>
           {/* recording-15: the instruction over the three tactics, a clear
               step above their 14px labels rather than a fourth label. */}
-          <h2 className="font-display text-lead font-bold">{doLine}</h2>
+          {!ready && <h2 className="font-display text-lead font-bold">{doLine}</h2>}
           {/* The best at this level, once there is one (M4), as a plaque
               (Timothy, 6 Nov: an important milestone). Its row opens on
               the base spring once the ladder is read, so the tips glide
@@ -2192,11 +2216,15 @@ function RepScreen() {
             </div>
           )}
           {doRule && <TipLine tip={doRule} className="mt-2" />}
-          <TipStrip
-            tips={config.tips}
-            label={null}
-            className={`mt-3 ${game ? "[@media(max-height:700px)]:mt-2" : ""}`}
-          />
+          {ready ? (
+            <TipLine tip={config.tips[0]} />
+          ) : (
+            <TipStrip
+              tips={config.tips}
+              label={null}
+              className={`mt-3 ${game ? "[@media(max-height:700px)]:mt-2" : ""}`}
+            />
+          )}
         </div>
       )}
 
@@ -2443,7 +2471,12 @@ function RepScreen() {
          * by default on a daily lesson, so nothing is asked for that
          * nobody chose.
          */}
-        {phase === "idle" && (
+        {/* Only where Video can be had (#431): on an iPhone and with Lite
+            graphics every take is Voice (#412), and a pair with one half
+            greyed under a sentence saying why was a choice with nothing
+            to choose. A Video load that failed keeps the toggle, so the
+            person who chose it reads why it is off. */}
+        {phase === "idle" && (poseReady === true || poseLoadFailed) && (
           <ModeToggle
             mode={captureMode}
             available={poseReady === true}

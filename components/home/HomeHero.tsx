@@ -10,7 +10,7 @@ import { TipLine } from "@/components/rep/TipStrip";
 import { StageChip } from "@/components/ui/HeroStage";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { TraitId } from "@/content/traits";
-import { artBox, objectSrc } from "@/lib/home";
+import { artBox, objectSrc, type CardFace } from "@/lib/home";
 import { spinForAnswers } from "@/lib/portfolio";
 import { TOPIC_SHAPES, type Topic } from "@/lib/topics";
 
@@ -57,11 +57,18 @@ export interface HeroRoulette {
  *
  * The roulette runs in the same card, in the same colour with the same
  * object: the topic spins where the topic was and the pill takes it.
+ *
+ * On a day not yet spoken the card is one decision (#431): the lead and
+ * what the take costs beside the object, the topic, Start across the
+ * card, and "Another topic" under it, which opens the roulette. The
+ * trait chip, the tactic and the difficulty glyph are a second take's
+ * tools and come back on "One more" (`cardFace`, lib/home.ts).
  */
 export function HomeHero({
   loading,
   family,
-  lead,
+  face,
+  cost,
   trait,
   tip,
   title,
@@ -78,8 +85,10 @@ export function HomeHero({
   loading: boolean;
   /** The colour family: the practice's trait, or Pausing's blue (the house's) with none. */
   family: TraitId;
-  /** "Today's practice", "One more" or "Your first recording". */
-  lead: string;
+  /** What the card shows on this day: its lead, and which of its tools. */
+  face: CardFace;
+  /** "About 60 seconds", on a day not yet spoken. */
+  cost: string | null;
   /** The trait the practice works on; null on day one and on a failed read. */
   trait: TraitId | null;
   /** The tactic, five words on the card with the sentence a tap away. */
@@ -106,6 +115,8 @@ export function HomeHero({
      column beside it. */
   const [tipOpen, setTipOpen] = useState(false);
   const tipPanel = "home-tactic-tip";
+  const lead = face.lead;
+  const showTactic = face.tactic && !!tip;
 
   /*
    * Start carries the card (E51, B02): the card you pressed moves into
@@ -191,10 +202,19 @@ export function HomeHero({
                   <span className="flex h-[18px] items-center">
                     <Skeleton className="h-2.5 w-24" />
                   </span>
-                  <Skeleton className="h-[22px] w-20" rounded="rounded-full" />
-                  <span className="flex h-11 w-full items-center">
-                    <Skeleton className="h-3 w-full" />
-                  </span>
+                  {face.tactic && (
+                    <>
+                      <Skeleton className="h-[22px] w-20" rounded="rounded-full" />
+                      <span className="flex h-11 w-full items-center">
+                        <Skeleton className="h-3 w-full" />
+                      </span>
+                    </>
+                  )}
+                  {face.cost && (
+                    <span className="flex h-[18px] items-center">
+                      <Skeleton className="h-2.5 w-28" />
+                    </span>
+                  )}
                 </div>
               ) : (
                 <div className={`flex w-full flex-col items-start gap-2 ${lands}`}>
@@ -208,8 +228,10 @@ export function HomeHero({
                   >
                     {lead}
                   </span>
-                  {trait && <StageChip trait={trait} />}
-                  {tip && (
+                  {/* What the take costs, beside what it is (#431). */}
+                  {face.cost && cost && <span className="home-hero-cost">{cost}</span>}
+                  {face.tactic && trait && <StageChip trait={trait} />}
+                  {showTactic && tip && (
                     <TipLine
                       tip={tip}
                       compact
@@ -225,7 +247,7 @@ export function HomeHero({
 
             {/* The tactic's sentence, under the object, the card's width. */}
             <div id={tipPanel} aria-live="polite" className="relative">
-              {tip && tipOpen && <p className="home-hero-tip reveal">{tip}</p>}
+              {showTactic && tipOpen && <p className="home-hero-tip reveal">{tip}</p>}
             </div>
 
             {loading ? (
@@ -251,36 +273,47 @@ export function HomeHero({
               </h2>
             )}
 
-            {/* The one tap, then spin and difficulty: 48px each, on the card. */}
+            {/* The one tap, then spin and difficulty: 48px each, on the card.
+                On a day not yet spoken Start takes the row, and spin is
+                the link under it (#431). */}
             <div className="relative mt-5 flex items-center gap-2">
               <Link href={href} onClick={start} className="home-start press">
                 Start
               </Link>
-              <button
-                ref={spinRef}
-                type="button"
-                onClick={onSpin}
-                aria-label="Spin a new topic"
-                className="home-glyph press"
-              >
-                <IconShuffle size={20} />
-              </button>
-              <button
-                type="button"
-                onClick={onMods}
-                aria-label={modsOpen ? "Hide difficulty" : "Turn up the difficulty"}
-                aria-expanded={modsOpen}
-                className="home-glyph press"
-              >
-                <IconSliders size={20} />
-                {/* How many mods are on, on the glyph's corner. */}
-                {mods.length > 0 && (
-                  <span className="home-glyph-count font-display text-suffix font-extrabold tabular-nums">
-                    {mods.length}
-                  </span>
-                )}
-              </button>
+              {face.spin === "glyph" && (
+                <button
+                  ref={spinRef}
+                  type="button"
+                  onClick={onSpin}
+                  aria-label="Spin a new topic"
+                  className="home-glyph press"
+                >
+                  <IconShuffle size={20} />
+                </button>
+              )}
+              {face.mods && (
+                <button
+                  type="button"
+                  onClick={onMods}
+                  aria-label={modsOpen ? "Hide difficulty" : "Turn up the difficulty"}
+                  aria-expanded={modsOpen}
+                  className="home-glyph press"
+                >
+                  <IconSliders size={20} />
+                  {/* How many mods are on, on the glyph's corner. */}
+                  {mods.length > 0 && (
+                    <span className="home-glyph-count font-display text-suffix font-extrabold tabular-nums">
+                      {mods.length}
+                    </span>
+                  )}
+                </button>
+              )}
             </div>
+            {face.spin === "link" && (
+              <button ref={spinRef} type="button" onClick={onSpin} className="home-another press">
+                Another topic
+              </button>
+            )}
           </>
         )}
       </div>

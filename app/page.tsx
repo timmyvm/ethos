@@ -53,7 +53,22 @@ import { buildChallenge, practiceRow } from "@/lib/challenge";
 import { readTraitsFromRow } from "@/lib/trait-readings";
 import { computeStreak, type StreakState } from "@/lib/streak";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
-import { dayTurned, greetingName, heroObject, weekView } from "@/lib/home";
+import {
+  aboutSeconds,
+  cardFace,
+  costLine,
+  dayOf,
+  dayTurned,
+  FALLBACK_TOPIC_ID,
+  greeting as greetingFor,
+  greetingName,
+  heroObject,
+  lastSpokeOn,
+  practiceHref,
+  usedModsLately,
+  weekView,
+} from "@/lib/home";
+import { readSpokeHint, writeSpokeHint } from "@/lib/spoke-hint";
 import { dayOneFamily } from "@/lib/practice-family";
 
 const EMPTY: StreakState = {
@@ -66,7 +81,7 @@ const EMPTY: StreakState = {
 
 /** No practice could be chosen (a failed read): a topic anyone can take,
     and the one Start opens, so the card promises what the tap keeps. */
-const FALLBACK_TOPIC = topicById("t2")!;
+const FALLBACK_TOPIC = topicById(FALLBACK_TOPIC_ID)!;
 
 /*
  * Today, "the object" (#393). Timothy, on the five home pages in
@@ -144,27 +159,45 @@ export default function Home() {
    * The greeting fits one line (#393's fix round: "Hi, Maximiliana" left
    * "Hi," alone over the name and pushed the card down 40px). Measured
    * before paint: the title steps down from 34 to as small as 26 to keep
-   * one line, and a name too long even then is greeted by itself.
+   * one line, and a line too long even then gives way to its short form
+   * (`greeting`, lib/home.ts): the name by itself, or "Welcome back".
+   * Holds the full line that did not fit.
    */
-  const [nameAlone, setNameAlone] = useState<string | null>(null);
+  const [tooLong, setTooLong] = useState<string | null>(null);
   /** When the history was last read: the day the screen belongs to. */
   const loadedAt = useRef<Date | null>(null);
   /** The days this page has turned over while open: the header's key. */
   const [dayTurn, setDayTurn] = useState(0);
+  /*
+   * The local day this device last saw a recording land (#431), read
+   * before the first paint so the card and the greeting are the day's
+   * own from their first frame; the history read, when it lands, decides.
+   */
+  const [spokeHint, setSpokeHint] = useState<string | null>(null);
+  useLayoutEffect(() => {
+    setSpokeHint(readSpokeHint());
+  }, []);
+  const lastDay = reps !== null ? lastSpokeOn(spine) : spokeHint;
+  const day = dayOf(lastDay, new Date());
+  /* Back after a break (#431): a last recording two or more days ago.
+     Greeted, never counted: no number of days and no word about the
+     streak; the flame chip keeps its honest 0. */
+  const back = day === "back";
+  const lines = greetingFor(name, back);
   const greeting = nameKnown
-    ? name
-      ? nameAlone === name
-        ? name
-        : `Hi, ${name}`
-      : "Today"
+    ? tooLong === lines.full && lines.short
+      ? lines.short
+      : lines.full
     : "\u00a0";
   useLayoutEffect(() => {
     const title = document.querySelector<HTMLElement>(".home .large-title");
     if (!title) return;
-    if (!name) {
+    if (!lines.short) {
       title.style.removeProperty("font-size");
       return;
     }
+    const full = lines.full;
+    const short = lines.short;
     /* Both versions are measured off the page in the title's own type,
        so the choice is made again when the webfont lands and a guess
        made on the fallback face never sticks. */
@@ -179,12 +212,12 @@ export default function Home() {
         return probe.getBoundingClientRect().width;
       };
       const room = title.clientWidth;
-      const full = width(`Hi, ${name}`);
-      const aloneW = width(name);
+      const fullW = width(full);
+      const shortW = width(short);
       probe.remove();
-      const alone = full * (26 / 34) > room;
-      setNameAlone(alone ? name : null);
-      const natural = alone ? aloneW : full;
+      const alone = fullW * (26 / 34) > room;
+      setTooLong(alone ? full : null);
+      const natural = alone ? shortW : fullW;
       if (natural > room) title.style.fontSize = `${Math.max(26, Math.floor(34 * (room / natural)))}px`;
     };
     fit();
@@ -196,7 +229,7 @@ export default function Home() {
       window.removeEventListener("resize", fit);
     };
     // dayTurn: the header remounts on a new day, and its new title is fitted again.
-  }, [greeting, name, dayTurn]);
+  }, [greeting, lines.full, lines.short, dayTurn]);
   // Back from the paywall's account doors with paywall=1: the sheet reopens.
   usePaywallReturn(() => setPaywall("Premium"));
   /* A tester during the test (#402): the eyebrow says the test's day in
@@ -238,6 +271,7 @@ export default function Home() {
     const [rows, all] = read.data;
     setSpine(all);
     setReps(rows);
+    writeSpokeHint(lastSpokeOn(all));
     const dates = all.map((r) => new Date(r.created_at));
     // Optimistic: show the unfrozen streak immediately, then reconcile
     // freezes (which may involve a write).
@@ -380,6 +414,19 @@ export default function Home() {
   /* The colour it wears, which the recording card keeps (D50). Day one
      wears the family of the lesson its Start opens (E20). */
   const heroFamily = dayOne ? dayOneFamily(next) : (heroTrait ?? "pause");
+  /*
+   * What the card shows on this day (#431): on a day not yet spoken, the
+   * topic, what it costs, Start across the card and "Another topic";
+   * once spoken, "One more" with the tactic, spin and difficulty, as it
+   * was. While the read is in flight the hint decides, so the card holds
+   * the height it lands at.
+   */
+  const face = cardFace({
+    dayOne,
+    spokeToday: day === "spoken",
+    usedMods: usedModsLately(history),
+  });
+  const cost = face.cost ? costLine(aboutSeconds(history)) : null;
   const startHref =
     introOwns && next
       ? introHref(next.unit.id, mods, undefined, "today")
@@ -388,19 +435,18 @@ export default function Home() {
              intro would have opened, so the card's colour is the
              recording's, not the day's rotation. */
           repHref({ lesson: next.lesson.id, mods })
-        : repHref({
-            topic: chosen?.item.topicId ?? (fallback ? FALLBACK_TOPIC.id : undefined),
-            /* The practice the card printed, so the recording screen
-               heads with its angle and leads with its tactic (E52). */
-            item: chosen?.item.id,
-            mods,
-            trait: heroFamily,
-          });
+        : chosen || fallback
+          ? /* The practice the card printed, so the recording screen
+               heads with its angle and leads with its tactic (E52), and
+               on a day not yet spoken opens ready to record (#431): the
+               address the reminder opens too (lib/home.ts `todayHref`). */
+            practiceHref(chosen, { mods, ready: face.ready })
+          : /* An early tap, before the read: the recorder. */
+            repHref({ mods, trait: heroFamily });
   const heroTip = dayOne ? null : (chosen?.item.tips[0] ?? null);
   const heroTitle = dayOne
     ? "Day one starts today."
     : (chosen?.item.prompt ?? FALLBACK_TOPIC.prompt);
-  const lead = dayOne ? "Your first recording" : streak.didToday ? "One more" : "Today's practice";
   /* Day one stands the object the recording card will (the lesson its
      Start opens, by its first tip: The baseline's Fillers door), so the
      card's colour and its object name one trait (R2F-04: a crimson
@@ -453,7 +499,8 @@ export default function Home() {
       <HomeHero
         loading={loading}
         family={heroFamily}
-        lead={lead}
+        face={face}
+        cost={cost}
         trait={heroTrait}
         tip={heroTip}
         title={heroTitle}
@@ -473,7 +520,8 @@ export default function Home() {
             ? {
                 topic,
                 onSpin: setTopic,
-                onTake: (t) => router.push(repHref({ topic: t.id, mods, trait: heroFamily })),
+                onTake: (t) =>
+                  router.push(repHref({ topic: t.id, mods, trait: heroFamily, ready: face.ready })),
                 headRef: rouletteHead,
               }
             : null

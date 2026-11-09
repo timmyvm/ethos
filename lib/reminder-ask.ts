@@ -11,10 +11,15 @@
  *
  *   ask      one tap, "Remind me at 6 pm", the hour they just practised
  *            (or the hour they already chose) and a picker to change it;
- *            Not now. Once a day; two Not nows rest it for a week.
+ *            Not now. A showing left with no tap counts as a Not now (the
+ *            #430 review: people glance and swipe away, so the ask came
+ *            back every day without end). Two declined showings rest it
+ *            a week; after that each declined showing rests it 30 days.
+ *            Never daily again.
  *   install  an iPhone's Safari tab, where there is no notification API to
  *            ask with: the two steps to the Home Screen, once, never a
- *            button that cannot work.
+ *            button that cannot work. Not inside another app's browser
+ *            (Instagram's), which has no Share, Add to Home Screen.
  *   denied   notifications blocked: where to turn them on, once. Never
  *            asked again on this phone.
  *
@@ -38,8 +43,13 @@ export const DENIED_TOLD_KEY = "ethos.reminder.denied";
 /** The reminder was switched off in Settings: the glance does not ask. */
 export const OFF_KEY = "ethos.reminder.off";
 
-/** Days the ask rests after the second Not now. */
+/** The day an ask was shown and not yet answered, on this device. */
+export const UNANSWERED_KEY = "ethos.reminder.unanswered";
+
+/** Days the ask rests after the second declined showing. */
 export const REST_DAYS = 7;
+/** Days it rests after each declined showing once it has rested once. */
+export const LONG_REST_DAYS = 30;
 
 /** What the browser can do about a notification. */
 export type NotificationState = "default" | "granted" | "denied" | "unsupported";
@@ -67,9 +77,12 @@ export function reminderAsk(p: {
   restUntil: string | null;
   installTold: boolean;
   deniedTold: boolean;
+  /** Inside another app's browser (lib/in-app.ts): no reminder can live there. */
+  inApp?: boolean;
 }): AskKind | null {
   if (!p.scored || !p.firstToday) return null;
   if (p.armed || p.declined) return null;
+  if (p.inApp) return null;
   if (p.askedOn === p.today) return null;
   if (p.notifications === "denied") return p.deniedTold ? null : "denied";
   if (p.notifications === "unsupported" || !p.push) {
@@ -125,14 +138,17 @@ export function askHours(prefs: Pick<Prefs, "quietFrom" | "quietTo">): number[] 
 /** The words, in one place (COPY-RULES: short, no dashes, one line each). */
 export const ASK_COPY = {
   fresh: "Same time tomorrow?",
-  chosen: (hour: string) => `You picked ${hour}.`,
+  /* An hour chosen before (the introduction, Settings) that nothing ever
+     armed: the pill already names it, so the line says what is true
+     (#430 review; "You picked 9 pm." read as on, and said the hour twice). */
+  chosen: "Your reminder isn't on yet.",
   button: (hour: string) => `Remind me at ${hour}`,
   notNow: "Not now",
   saved: (hour: string) => `Tomorrow, ${hour}.`,
   failed: "That didn't save.",
   retry: "Try again",
-  install: "Add Ethos to your Home Screen to get reminders.",
-  installSteps: "Tap Share, then Add to Home Screen.",
+  install: "To get reminders,",
+  installSteps: "tap Share, then Add to Home Screen.",
   deniedIos: "Notifications are off for Ethos. Turn them on in Settings, Notifications, Ethos.",
   deniedBrowser: "Notifications are blocked for Ethos. Allow them in this browser's site settings.",
   picker: "Reminder hour",
@@ -196,6 +212,31 @@ export function markAsked(today: string): void {
   set(ASKED_KEY, today);
 }
 
+/**
+ * The ask with its tap on screen was shown today and nothing was tapped
+ * yet. Swiping the app away ends no React tree, so an ignored showing is
+ * only known the next time the glance decides (`settleUnanswered`).
+ */
+export function markUnanswered(today: string): void {
+  set(UNANSWERED_KEY, today);
+}
+
+/** A tap on the ask (Remind me, Not now): this showing was answered. */
+export function markAnswered(): void {
+  set(UNANSWERED_KEY, null);
+}
+
+/**
+ * Before the glance decides: a showing from an earlier day that was never
+ * answered counts as a Not now on the day it was shown. Never throws.
+ */
+export function settleUnanswered(today: string): void {
+  const day = get(UNANSWERED_KEY);
+  if (!day || day >= today) return;
+  set(UNANSWERED_KEY, null);
+  markNotNow(day);
+}
+
 /** The day key `days` after `day` ("YYYY-MM-DD"). */
 export function addDays(day: string, days: number): string {
   const [y, m, d] = day.split("-").map(Number);
@@ -213,22 +254,34 @@ export function restUntil(): string | null {
 }
 
 /**
- * Not now: the first waits for tomorrow, the second rests the ask for a
- * week, and the count starts again after it.
+ * A declined showing (Not now, or shown and left): the first waits for
+ * tomorrow, the second rests the ask for a week, and after that rest each
+ * declined showing rests it 30 days. It never goes back to asking daily.
  */
 export function markNotNow(today: string): void {
   let count = 0;
+  let rests = 0;
   try {
-    const v = JSON.parse(get(NOT_NOW_KEY) ?? "null") as { count?: unknown } | null;
+    const v = JSON.parse(get(NOT_NOW_KEY) ?? "null") as { count?: unknown; rests?: unknown } | null;
     count = typeof v?.count === "number" ? v.count : 0;
+    rests = typeof v?.rests === "number" ? v.rests : 0;
   } catch {}
+  set(UNANSWERED_KEY, null);
+  if (rests > 0) {
+    set(NOT_NOW_KEY, JSON.stringify({ count: 0, rests: rests + 1, until: addDays(today, LONG_REST_DAYS) }));
+    return;
+  }
   count += 1;
-  set(NOT_NOW_KEY, JSON.stringify(count >= 2 ? { count: 0, until: addDays(today, REST_DAYS) } : { count, until: null }));
+  set(
+    NOT_NOW_KEY,
+    JSON.stringify(count >= 2 ? { count: 0, rests: 1, until: addDays(today, REST_DAYS) } : { count, rests: 0, until: null })
+  );
 }
 
 /** A reminder turned on clears the rest. */
 export function clearNotNow(): void {
   set(NOT_NOW_KEY, null);
+  set(UNANSWERED_KEY, null);
 }
 
 export const installTold = (): boolean => get(INSTALL_TOLD_KEY) === "1";

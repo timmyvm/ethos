@@ -2,8 +2,18 @@
 
 Branch `comeback/reminders`. Everything below the line "Timothy" is a
 production step: nobody else runs it, and nothing in the branch runs it for
-you. The code works without any of it (GitHub keeps ticking, now three times
-an hour); the steps make the clock reliable.
+you.
+
+**The hourly clock is the ship gate, not a follow-up (#430 review).** The
+code alone does not deliver the evening reminders: replayed on GitHub's real
+ticks, 30 Oct to 8 Nov in Melbourne, the 8 pm reminder went out on 4 of 10
+days and the 9 pm one (the hour both introduction pickers chose) on 2,
+because a 9 pm pick can only be served by a tick between 21:00 and 21:59 and
+quiet hours begin at 22. GitHub's three new schedules have never been
+measured. So the branch ships with a clock at minute 1 of every hour, either
+the database's (steps 2 to 7) or cron-job.org's (the two-minute route under
+"If you would rather not touch the database"), and `/active`'s "Reminder
+clock" saying "N of 24 hours" the next day.
 
 ## Why
 
@@ -40,9 +50,19 @@ an hour); the steps make the clock reliable.
    ```
    Keep it for steps 3 and 5. It is never pasted anywhere else.
 
-3. **Vercel**: Project, Settings, Environment Variables, add
-   `PUSH_TICK_SECRET` = the value, Production only. Redeploy (Deployments,
-   the latest, Redeploy), so the route reads it.
+3. **Vercel**: Project, Settings, Environment Variables, add, Production
+   only:
+   - `PUSH_TICK_SECRET` = the value. The sender ignores any secret under 32
+     characters (it logs "PUSH_TICK_SECRET is ignored"), so a short one
+     fails closed.
+   - `ADMIN_EMAILS` = your account's email (confirmed), for `/active`.
+     Unset, the page answers you as if it did not exist.
+   - Check `CRON_SECRET` is 32 characters or more. A shorter one is now
+     ignored too: GitHub's push-cron run fails with 401. Make a new one with
+     `openssl rand -hex 32` and set it here and in GitHub (Settings,
+     Secrets and variables, Actions, `CRON_SECRET`).
+
+   Redeploy (Deployments, the latest, Redeploy), so the route reads them.
 
 4. **Supabase, extensions**: Dashboard, Integrations, Cron, Enable (that is
    pg_cron); Database, Extensions, search `pg_net`, Enable. (The migration
@@ -84,13 +104,19 @@ an hour); the steps make the clock reliable.
    - Settings, Reminders: "Send a test". It should arrive in seconds with the
      app closed. If it does not: iPhone Settings, Notifications, Ethos.
 
+9. **The next day**, open `speakethos.com/active` signed in: "Reminder
+   clock" lists each caller with its last tick and how many of the last 24
+   hours it reached. The database's row should read 24 of 24 hours. "No
+   tick in the last hour" means the clock stopped.
+
 ## If you would rather not touch the database
 
-The code also works with the existing secret and no new Vercel variable:
-store `CRON_SECRET`'s value as `push_tick_secret` in step 5 and skip step 3.
-Or use cron-job.org (free): a job every hour at minute 1, GET
+cron-job.org (free, about two minutes): a job every hour at minute 1, GET
 `https://speakethos.com/api/push/cron`, header
-`Authorization: Bearer <PUSH_TICK_SECRET or CRON_SECRET>`.
+`Authorization: Bearer <PUSH_TICK_SECRET>` (step 3 first; `CRON_SECRET`
+works too if it is 32 characters or more). `/active` shows it as
+"cron-job.org". Or store the secret as `push_tick_secret` in step 5 and skip
+the rest of step 3.
 
 ## Stop or roll back
 

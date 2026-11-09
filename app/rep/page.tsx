@@ -2172,9 +2172,13 @@ function RepScreen() {
             phase === "idle"
               ? `mt-4 flex ${
                   /* Ready (#431) has one line under the card, not a
-                     heading and three tiles, and gives the room to the
-                     stage rather than to the ground (DESIGN rule 7). */
-                  ready ? "max-h-[440px]" : "max-h-[300px]"
+                     heading and three tiles, so the card takes the room
+                     (DESIGN 7: at 390x844 and 393x852 no band over 64,
+                     Record within 64 of the tactic) and fills it with
+                     Today's type and an object at Today's size (#430
+                     review: at 440 with the recorder's 26px and a 112px
+                     object it was 260px of blank colour). */
+                  ready ? "max-h-[480px]" : "max-h-[300px]"
                 } min-h-[168px] flex-1 flex-col [@media(max-height:600px)]:min-h-0 ${game ? "[@media(max-height:700px)]:mt-2" : ""}`
               : "mt-4"
           }
@@ -2192,6 +2196,7 @@ function RepScreen() {
             art={art}
             compact={phase !== "idle"}
             reveal={config.revealOnRecord}
+            display={ready}
           />
         </div>
       )}
@@ -2799,11 +2804,17 @@ function Results({
   const take = useTakeAudio(audioUrl, result.metrics.durationS);
   /* The reminder ask (#430, lib/reminder-ask.ts): on the day's first
      scored take, in the cue's slot, when this phone has no reminder. */
+  /* One question at a time (#430 review): on a tester's glance the ask
+     waits until "Did 665 feel right?" is answered, then takes the cue's
+     slot. Before, both asked at once: eleven taps, Demos at 85px. */
+  const [matchAnswered, setMatchAnswered] = useState(false);
+  const asksMatch = showsMatchCheck({ tester, scorable: result.scorable !== false, clientId: resultKey });
   const reminder = useGlanceReminder({
     scored: result.scorable !== false,
     firstToday,
     startedAt,
-    compact: showsMatchCheck({ tester, scorable: result.scorable !== false, clientId: resultKey }),
+    compact: asksMatch,
+    hold: asksMatch && !matchAnswered,
   });
   /*
    * The match check (migration 0020): a tester's one question about the
@@ -3346,6 +3357,8 @@ function Results({
         repId={result.repId}
         scores={snapshot}
         className="mt-4 [@media(max-height:599px)]:mt-2"
+        onAnswered={() => setMatchAnswered(true)}
+        glance
       />
     ) : pausedTester(tester) ? (
       <div className="mt-4">

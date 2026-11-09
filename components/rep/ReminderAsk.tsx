@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { IconChevron } from "@/components/Icon";
 import { dayKey } from "@/lib/challenge";
+import { inAppBrowser } from "@/lib/in-app";
 import { readPrefs } from "@/lib/prefs";
 import { saveAccountHour } from "@/lib/reminder-account";
 import {
@@ -16,14 +17,17 @@ import {
   deniedLine,
   deniedTold,
   installTold,
+  markAnswered,
   markAsked,
   markDeniedTold,
   markInstallTold,
   markNotNow,
   markSwitchedOff,
+  markUnanswered,
   notificationState,
   reminderAsk,
   restUntil,
+  settleUnanswered,
   type AskKind,
 } from "@/lib/reminder-ask";
 import { armedHere, armInTap, readyRegistration, type ArmResult } from "@/lib/reminders";
@@ -51,12 +55,18 @@ interface Setup {
  *
  * `words` is what it puts on screen, so the glance's budget can name it
  * (lib/glance.ts GLANCE_WORDS_ASK); `node` is the slot, or null.
+ *
+ * `hold` keeps it off screen, and unspent, while another question is
+ * open: a tester's glance asks "Did 665 feel right?" first and this
+ * after the answer saves, one question at a time (#430 review). Nothing
+ * is marked until it shows.
  */
 export function useGlanceReminder({
   scored,
   firstToday,
   startedAt,
   compact = false,
+  hold = false,
 }: {
   scored: boolean;
   firstToday: boolean;
@@ -68,18 +78,23 @@ export function useGlanceReminder({
    * not a pill (the pill wrapped "Remind me at 3 / pm" and scrolled).
    */
   compact?: boolean;
+  /** Another question is open on the glance: wait until it is answered. */
+  hold?: boolean;
 }): { kind: AskKind | null; words: string; node: ReactNode } {
   const hourLabel = useHourLabel();
   const [setup, setSetup] = useState<Setup | null>(null);
   const [status, setStatus] = useState<Status>("ask");
   const [hour, setHour] = useState(0);
   const [reg, setReg] = useState<ServiceWorkerRegistration | null>(null);
+  const [shown, setShown] = useState(false);
 
   /* Decided once, after mount: everything it reads is this phone's. */
   useEffect(() => {
     const prefs = readPrefs();
     const today = dayKey(new Date());
     const plat = askPlatform();
+    // A showing on an earlier day that got no tap was a Not now.
+    settleUnanswered(today);
     const kind = reminderAsk({
       scored,
       firstToday,
@@ -94,24 +109,13 @@ export function useGlanceReminder({
       restUntil: restUntil(),
       installTold: installTold(),
       deniedTold: deniedTold(),
+      inApp: inAppBrowser(navigator.userAgent) !== null,
     });
     if (!kind) return;
     const h = askHour(new Date(startedAt || Date.now()), prefs.reminderHour, prefs);
     setSetup({ kind, hour: h, chosen: prefs.reminderHour === h, ios: plat.ios, hours: askHours(prefs) });
     setHour(h);
     setStatus(kind);
-    markAsked(today);
-    if (kind === "install") {
-      markInstallTold();
-      // No reminder can be armed in this tab: the hour goes on the
-      // account, for the installed app (signed in) to offer back.
-      void saveAccountHour(h, { onlyIfUnset: true });
-      testerNote("Reminder: Home Screen steps shown");
-    }
-    if (kind === "denied") {
-      markDeniedTold();
-      testerNote("Reminder: blocked line shown");
-    }
     if (kind === "ask") {
       // The registration the tap subscribes on, ready before the tap.
       void readyRegistration().then(setReg);
@@ -119,6 +123,26 @@ export function useGlanceReminder({
     // Once, on mount: the take does not change under the results.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /* Marked when it first shows, not when it is decided: a held ask that
+     never showed has not spent the day. No hour goes on the account from
+     the Safari tab (#430 review): nobody chose it there, and the
+     installed app read it back as "picked". */
+  useEffect(() => {
+    if (!setup || hold || shown) return;
+    setShown(true);
+    const today = dayKey(new Date());
+    markAsked(today);
+    if (setup.kind === "ask") markUnanswered(today);
+    if (setup.kind === "install") {
+      markInstallTold();
+      testerNote("Reminder: Home Screen steps shown");
+    }
+    if (setup.kind === "denied") {
+      markDeniedTold();
+      testerNote("Reminder: blocked line shown");
+    }
+  }, [setup, hold, shown]);
 
   const settle = useCallback((h: number, r: ArmResult) => {
     if (r.ok) {
@@ -143,6 +167,7 @@ export function useGlanceReminder({
      subscribe that raises the iPhone's Allow prompt is inside it. */
   const remind = () => {
     const h = hour;
+    markAnswered();
     setStatus("saving");
     void armInTap(h, reg, (x) => saveAccountHour(x)).then((r) => settle(h, r));
   };
@@ -152,9 +177,9 @@ export function useGlanceReminder({
     testerNote("Reminder: not now");
   };
 
-  if (!setup || status === "gone") return { kind: null, words: "", node: null };
+  if (!setup || hold || status === "gone") return { kind: null, words: "", node: null };
   const label = hourLabel(hour);
-  const question = setup.chosen ? ASK_COPY.chosen(hourLabel(setup.hour)) : ASK_COPY.fresh;
+  const question = setup.chosen ? ASK_COPY.chosen : ASK_COPY.fresh;
 
   let words = "";
   let node: ReactNode = null;
@@ -221,7 +246,9 @@ export function useGlanceReminder({
         {compact && (
           /* The narrow bubble beside Demos: the same two taps as words in
              his line's grey, each with a 44pt reach of its own. */
-          <p className={`hidden flex-wrap items-center justify-center gap-x-3 font-body text-detail leading-[24px] text-stone-500 [@media(max-height:599px)]:leading-[20px] [@media(max-height:700px)]:flex ${status === "saving" ? "opacity-60" : ""}`}>
+          /* On the bubble's own text edge, as its line is (#430 review);
+             under 600pt there is no bubble and the line is centred. */
+          <p className={`hidden flex-wrap items-center justify-start gap-x-3 self-stretch [@media(max-height:599px)]:justify-center font-body text-detail leading-[24px] text-stone-500 [@media(max-height:599px)]:leading-[20px] [@media(max-height:700px)]:flex ${status === "saving" ? "opacity-60" : ""}`}>
             <span className="inline-flex items-center gap-0.5 whitespace-nowrap">
               <button
                 type="button"
@@ -234,11 +261,12 @@ export function useGlanceReminder({
               </button>
               {picker("h-6 w-6 [@media(max-height:599px)]:h-5", 16, "-inset-[10px]")}
             </span>
+            {/* The cue's weight: the decline never reads louder than the accept. */}
             <button
               type="button"
               onClick={notNow}
               disabled={status === "saving"}
-              className="relative whitespace-nowrap after:absolute after:-inset-x-2 after:-inset-y-[10px] after:content-['']"
+              className="relative whitespace-nowrap font-normal text-stone-500 after:absolute after:-inset-x-2 after:-inset-y-[10px] after:content-['']"
             >
               {ASK_COPY.notNow}
             </button>

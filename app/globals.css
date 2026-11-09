@@ -5360,12 +5360,31 @@ summary::-webkit-details-marker {
 .home-hero[data-family="none"] .home-hero-cost {
   color: var(--color-stone-500);
 }
-/* A day not yet spoken (#431): the card is a row taller, for "Another
-   topic" under Start, and the roulette it opens keeps the same height
-   with its way back in that row, so the pill stands where Start stood
-   and nothing under the card moves when it spins up. */
-.home-hero[data-spin="link"] {
-  min-height: 416px;
+/* A day not yet spoken (#431) holds the card's 376 too (#430 review):
+   "Another topic" under Start takes its row from the band between the
+   cost and the topic (84px of bare colour at 416), not from the ground,
+   where 416 put the tester's road under the nav at 390x844 and 393x852.
+   The object zone's foot rises 40px, so the words hold 40px less and the
+   topic rises with it: an object the zone's width sets (Pausing's pills)
+   keeps its size, a tall one stands 40px shorter, and the topic still
+   starts under every foot. The roulette it opens keeps the same height,
+   its way back in that row and the same 40px gone from the band over
+   its reel, so the pill stands where Start stood and nothing under the
+   card moves when it spins up. Under 360 the card is already 376. */
+@media (min-width: 360px) {
+  .home-hero[data-spin="link"] {
+    --zone-b: clamp(100px, calc(31.4px + 28.57cqw), 120px);
+  }
+}
+/* Start stands 40px higher on that card (its top at 71% of 376, where
+   the foot below lands at 76%), so the colour lands on its solid foot
+   sooner, at 64%, and Start keeps D21's 3:1 on every family
+   (scripts/check-colour.mjs: Fillers and Restarts read 2.9 without it). */
+.home-hero[data-spin="link"]::before {
+  background:
+    radial-gradient(46% 42% at 84% 6%, var(--home-lit) 0%, transparent 70%),
+    radial-gradient(70% 50% at 0% 100%, var(--home-low) 0%, transparent 72%),
+    linear-gradient(172deg, var(--home-a) 0%, var(--home-b) 64%);
 }
 /* "Another topic" (#431): the roulette's door on a day not yet spoken,
    a text tap under Start rather than a circle beside it. 44px tall,

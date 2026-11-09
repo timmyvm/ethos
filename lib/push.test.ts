@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   inQuietRange,
   localDayKey,
+  localDayStartIn,
   localDayStartUtc,
   localStreak,
+  sendTtl,
   shouldSend,
   tzOffsetAt,
   type PushWindow,
@@ -170,5 +172,62 @@ describe("tzOffsetAt", () => {
 
   it("answers null for a zone it does not know", () => {
     expect(tzOffsetAt(new Date(), "Mars/Olympus_Mons")).toBeNull();
+  });
+});
+
+/*
+ * The done-today check's midnight (#430 review): the offset in force at
+ * that midnight, not at the tick. On the three days below the tick's
+ * offset put midnight an hour out.
+ */
+describe("localDayStartIn", () => {
+  const at = (iso: string, tz: string) => {
+    const now = new Date(iso);
+    return localDayStartIn(now, tzOffsetAt(now, tz)!, tz).toISOString();
+  };
+
+  it("an ordinary day is the plain local midnight", () => {
+    expect(at("2026-11-09T07:01:00Z", "Australia/Melbourne")).toBe("2026-11-08T13:00:00.000Z");
+  });
+
+  it("Melbourne, Sun 5 Apr 2026: the morning was still AEDT", () => {
+    expect(at("2026-04-05T08:01:00Z", "Australia/Melbourne")).toBe("2026-04-04T13:00:00.000Z");
+  });
+
+  it("New York, Sun 1 Nov 2026: the morning was still EDT", () => {
+    expect(at("2026-11-01T23:01:00Z", "America/New_York")).toBe("2026-11-01T04:00:00.000Z");
+  });
+
+  it("Melbourne, Sun 4 Oct 2026: the morning was still AEST", () => {
+    expect(at("2026-10-04T07:01:00Z", "Australia/Melbourne")).toBe("2026-10-03T14:00:00.000Z");
+  });
+
+  it("without a zone, the offset it was given", () => {
+    const now = new Date("2026-04-05T08:01:00Z");
+    expect(localDayStartIn(now, -600, null).toISOString()).toBe(localDayStartUtc(now, -600).toISOString());
+  });
+});
+
+/* How long a push service may hold a reminder (#430 review). */
+describe("sendTtl", () => {
+  const w = { tzOffset: MEL, quietFrom: 22, quietTo: 7 };
+  // 18:01 local in Melbourne (UTC+10) is 08:01 UTC.
+  const local = (h: number, m: number) => new Date(Date.UTC(2026, 6, 1, h - 10, m));
+
+  it("runs out when quiet hours begin", () => {
+    expect(sendTtl(w, local(18, 1))).toBe((22 * 60 - (18 * 60 + 1)) * 60);
+  });
+
+  it("is never under a minute", () => {
+    expect(sendTtl(w, local(21, 59))).toBe(60);
+  });
+
+  it("with no quiet hours, runs out at midnight", () => {
+    expect(sendTtl({ ...w, quietFrom: 7, quietTo: 7 }, local(18, 0))).toBe(6 * 3600);
+  });
+
+  it("never runs past midnight into tomorrow", () => {
+    // Quiet hours from 1 to 7: the next quiet hour is tomorrow, midnight comes first.
+    expect(sendTtl({ ...w, quietFrom: 1, quietTo: 7 }, local(23, 0))).toBe(3600);
   });
 });

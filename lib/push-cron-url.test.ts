@@ -108,7 +108,9 @@ vi.mock("web-push", () => ({
   },
 }));
 
-process.env.CRON_SECRET = "s";
+/* A secret of the length the sender takes (32 or more, lib/cron-auth.ts). */
+const SECRET = "s".repeat(40);
+process.env.CRON_SECRET = SECRET;
 process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY = "pub";
 process.env.VAPID_PRIVATE_KEY = "priv";
 
@@ -116,7 +118,7 @@ const { GET } = await import("@/app/api/push/cron/route");
 const { todayHrefOn } = await import("@/lib/home");
 
 function tick() {
-  const req = new Request("http://test.local/api/push/cron", { headers: { authorization: "Bearer s" } });
+  const req = new Request("http://test.local/api/push/cron", { headers: { authorization: `Bearer ${SECRET}` } });
   return GET(req as unknown as NextRequest);
 }
 

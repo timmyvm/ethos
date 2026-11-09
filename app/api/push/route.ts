@@ -8,11 +8,17 @@
  * could never be cleaned up or updated. The row is upserted by
  * endpoint: re-registering on every app open is how hour and timezone
  * changes propagate, so it has to be a no-op when nothing changed.
+ *
+ * A new hour that has already passed today rings first tomorrow, as
+ * Settings and the glance both promise (#430 review): the sender serves
+ * from the chosen hour until quiet hours, so a 12 pm picked at 3:30 pm
+ * rang at 4:01 pm. The row is read first, so the re-arm on every open,
+ * with the same hour, never touches the day's stamp.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromAuthHeader, supabaseAdmin } from "@/lib/db";
-import { validZone } from "@/lib/push";
+import { localClock, localDayKey, tzOffsetAt, validZone } from "@/lib/push";
 
 export const runtime = "nodejs";
 
@@ -70,17 +76,17 @@ export async function POST(req: NextRequest) {
     quiet_from: clampHour(body?.quietFrom, 22),
     quiet_to: clampHour(body?.quietTo, 7),
   };
+  const tz = validZone(body?.tz);
+  const stamp = await firstRingTomorrow(db, endpoint, row.reminder_hour, tz, row.tz_offset, new Date());
+  const saved = stamp ? { ...row, last_sent_on: stamp } : row;
   const table = db.from("push_subscriptions");
-  let { error } = await table.upsert(
-    { ...row, tz: validZone(body?.tz) },
-    { onConflict: "endpoint" }
-  );
+  let { error } = await table.upsert({ ...saved, tz }, { onConflict: "endpoint" });
   // Until migration 0019 adds the column, the zone is refused by name:
   // save the reminder without it rather than not at all.
   if (error && /\btz\b/.test(error.message)) {
     ({ error } = await db
       .from("push_subscriptions")
-      .upsert(row, { onConflict: "endpoint" }));
+      .upsert(saved, { onConflict: "endpoint" }));
   }
   if (error) {
     console.error("push subscribe failed", error.message);
@@ -121,6 +127,41 @@ export async function DELETE(req: NextRequest) {
     .eq("endpoint", body.endpoint)
     .eq("user_id", auth.id);
   return NextResponse.json({ ok: true });
+}
+
+/**
+ * Today's local day key when this save sets an hour that has already
+ * passed today (a new row, or a changed hour), so the sender's first ring
+ * is tomorrow; null when the stamp should be left as it is. A row read
+ * that fails stamps nothing: the reminder still saves.
+ */
+async function firstRingTomorrow(
+  db: NonNullable<ReturnType<typeof supabaseAdmin>>,
+  endpoint: string,
+  hour: number | null,
+  tz: string | null,
+  storedOffset: number,
+  now: Date
+): Promise<string | null> {
+  if (hour === null) return null;
+  let data: unknown;
+  try {
+    const read = await db
+      .from("push_subscriptions")
+      .select("reminder_hour")
+      .eq("endpoint", endpoint)
+      .maybeSingle();
+    if (read.error) return null;
+    data = read.data;
+  } catch {
+    return null;
+  }
+  const before = (data as { reminder_hour: number | null } | null)?.reminder_hour;
+  if (data && before === hour) return null;
+  const off = (tz ? tzOffsetAt(now, tz) : null) ?? storedOffset;
+  // Settings' nextFireTime: an hour whose :00 has gone is tomorrow's.
+  if (localClock(now, off).getUTCHours() < hour) return null;
+  return localDayKey(now, off);
 }
 
 function clampHour(v: number | undefined, fallback: number): number {

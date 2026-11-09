@@ -121,6 +121,13 @@ describe("the card's face", () => {
     }
   });
 
+  it("welcomes back on the lead after a break, in Today's practice's place (#430 review)", () => {
+    expect(cardFace({ dayOne: false, spokeToday: false, usedMods: false, back: true }).lead).toBe("Welcome back");
+    // Spoken today is not a return, and day one is a first.
+    expect(cardFace({ dayOne: false, spokeToday: true, usedMods: false, back: true }).lead).toBe("One more");
+    expect(cardFace({ dayOne: true, spokeToday: false, usedMods: false, back: true }).lead).toBe("Your first recording");
+  });
+
   it("is unchanged on day one", () => {
     expect(cardFace({ dayOne: true, spokeToday: false, usedMods: false })).toEqual({
       lead: "Your first recording",
@@ -177,19 +184,16 @@ describe("what the take costs", () => {
 });
 
 describe("the greeting", () => {
-  it("says hi on a day like any other, and welcomes back after a break", () => {
-    expect(greeting("Timothy", false)).toEqual({ full: "Hi, Timothy", short: "Timothy" });
-    expect(greeting("Timothy", true)).toEqual({ full: "Welcome back, Timothy", short: "Welcome back" });
-    expect(greeting(null, false)).toEqual({ full: "Today", short: null });
-    expect(greeting(null, true)).toEqual({ full: "Welcome back", short: null });
+  it("says hi by name every day; the welcome after a break is the card's lead (the #430 review's change, and the point)", () => {
+    expect(greeting("Timothy")).toEqual({ full: "Hi, Timothy", short: "Timothy" });
+    expect(greeting(null)).toEqual({ full: "Today", short: null });
   });
 
   it("never counts the days away or names the streak", () => {
-    for (const back of [false, true]) {
-      const g = greeting("Timothy", back);
-      for (const line of [g.full, g.short ?? ""]) {
-        expect(line).not.toMatch(/\d|streak|broke|lost|again|miss/i);
-      }
+    const g = greeting("Timothy");
+    const lead = cardFace({ dayOne: false, spokeToday: false, usedMods: false, back: true }).lead;
+    for (const line of [g.full, g.short ?? "", lead]) {
+      expect(line).not.toMatch(/\d|streak|broke|lost|again|miss/i);
     }
   });
 });

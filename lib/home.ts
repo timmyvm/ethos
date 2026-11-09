@@ -591,7 +591,8 @@ export function todayHrefOn(history: PracticeRow[], now: Date, tzOffset: number)
  * first take uses it.
  */
 export interface CardFace {
-  lead: "Your first recording" | "Today's practice" | "One more";
+  /** "Welcome back" in "Today's practice"'s place after a break (#430 review). */
+  lead: "Your first recording" | "Today's practice" | "Welcome back" | "One more";
   /** The trait chip and the tactic beside the object. */
   tactic: boolean;
   /** "About 60 seconds" beside the object. */
@@ -604,14 +605,21 @@ export interface CardFace {
   ready: boolean;
 }
 
-export function cardFace(day: { dayOne: boolean; spokeToday: boolean; usedMods: boolean }): CardFace {
+export function cardFace(day: { dayOne: boolean; spokeToday: boolean; usedMods: boolean; back?: boolean }): CardFace {
   if (day.dayOne) {
     return { lead: "Your first recording", tactic: false, cost: false, spin: "glyph", mods: true, ready: false };
   }
   if (day.spokeToday) {
     return { lead: "One more", tactic: true, cost: false, spin: "glyph", mods: true, ready: false };
   }
-  return { lead: "Today's practice", tactic: false, cost: true, spin: "link", mods: day.usedMods, ready: true };
+  return {
+    lead: day.back ? "Welcome back" : "Today's practice",
+    tactic: false,
+    cost: true,
+    spin: "link",
+    mods: day.usedMods,
+    ready: true,
+  };
 }
 
 /** A take with difficulty turned up in the last seven days. */
@@ -643,14 +651,13 @@ export function costLine(seconds: number): string {
 }
 
 /**
- * The greeting (#393, #431): "Hi, Timothy", or "Welcome back, Timothy"
- * on a return after a break, never a count of the days away. `short` is
- * what the title shows when the whole line cannot hold one line at 26px:
- * the name alone, and on a return "Welcome back", which keeps the
- * welcome rather than the name. With no name the tab's own "Today", or
- * "Welcome back".
+ * The greeting (#393): "Hi, Timothy", every day. `short` is what the
+ * title shows when the whole line cannot hold one line at 26px: the name
+ * alone. With no name the tab's own "Today". A return after a break is
+ * welcomed on the card's lead instead (`cardFace`, #430 review): in the
+ * title "Welcome back, Timothy" set smaller than "Hi, Timothy" and never
+ * kept the name, and a tester's eyebrow must stay the test's day.
  */
-export function greeting(name: string | null, back: boolean): { full: string; short: string | null } {
-  if (back) return name ? { full: `Welcome back, ${name}`, short: "Welcome back" } : { full: "Welcome back", short: null };
+export function greeting(name: string | null): { full: string; short: string | null } {
   return name ? { full: `Hi, ${name}`, short: name } : { full: "Today", short: null };
 }

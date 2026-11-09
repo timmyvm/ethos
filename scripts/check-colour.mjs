@@ -37,13 +37,11 @@ const ok = (name, pass, detail = "") => {
  * round (#393), most of it the wide tile's hourglass repeating the
  * card's object; with the wide tile's object gone (D22) it measures
  * 0.09% in both themes, pinned at 0.1. The ceiling is the pin plus the
- * 10% headroom. Since #431 a day not yet spoken holds the card at 416px,
- * 40 taller, so the same 64 coloured pixels (the card trait's 8px mark,
- * the only colour there) measure 0.12% of a band 134px deep instead of
- * 0.09% of 174: pinned at 0.12, whose ceiling allows 69 coloured pixels
- * where 0.1 over the old band allowed 74, so no looser in pixels.
+ * 10% headroom. #431 held a day not yet spoken at 416px and re-pinned
+ * this at 0.12 over a band 40px shorter; the #430 review put that card
+ * back at 376, so the band is 174 deep again and the pin is 0.1 again.
  */
-const TODAY_COLOUR_PIN = { light: 0.12, dark: 0.12 };
+const TODAY_COLOUR_PIN = { light: 0.1, dark: 0.1 };
 const HEADROOM = 1.1;
 
 const FAMILIES = ["pause", "fillers", "repairs", "pace", "range"];

@@ -46,11 +46,24 @@ export function MatchCheck({
   repId,
   scores,
   className = "",
+  onAnswered,
+  glance = false,
 }: {
   clientId: string;
   repId: string | null;
   scores: ScoreSnapshot;
   className?: string;
+  /** An answer is saved (or was already given): the glance's next question may come (#430 review). */
+  onAnswered?: () => void;
+  /**
+   * On the glance (#430 review), where the reminder ask follows a saved
+   * answer: under 700pt the save line holds a line's height, not a
+   * button's, while there is no note to save (375x667 ran 21px over); under
+   * 600pt, where Demos steps off, "Answer saved" is said to a screen reader
+   * only, the ask arriving being the sign it saved (320x568 ran 26 over).
+   * Saving and a failed save show as ever.
+   */
+  glance?: boolean;
 }) {
   const [answer, setAnswer] = useState<MatchAnswer | null>(null);
   const [note, setNote] = useState("");
@@ -67,6 +80,9 @@ export function MatchCheck({
   const shown = useRef(scores);
   /** The Index the question names: those numbers' own. */
   const [index, setIndex] = useState<number | null>(scores.index);
+  /* The latest callback, so a save landing after a re-render calls the current one. */
+  const answered = useRef(onAnswered);
+  answered.current = onAnswered;
 
   /* An answer already given about this recording opens as it was left,
      unless the tester has already picked. A failed read asks afresh. */
@@ -85,6 +101,7 @@ export function MatchCheck({
         setAnswer(given.answer);
         setNote(n);
         setSavedNote(given.note);
+        answered.current?.();
       })
       .catch(() => {});
     return () => {
@@ -104,7 +121,10 @@ export function MatchCheck({
       const ok = await saveMatch(row);
       if (mine !== latest.current) return;
       setStatus(ok ? "saved" : "failed");
-      if (ok) setSavedNote(row.note ?? null);
+      if (ok) {
+        setSavedNote(row.note ?? null);
+        answered.current?.();
+      }
     });
   }
 
@@ -177,7 +197,11 @@ export function MatchCheck({
           button when there is a note. Its height is held from the first
           answer on, so the line changing never moves the screen. */}
       {answer !== null && (
-        <div className="mt-2 flex min-h-11 items-center justify-between gap-3">
+        <div
+          className={`mt-2 flex min-h-11 items-center justify-between gap-3 ${
+            glance && !noteOpen ? "[@media(max-height:700px)]:mt-1 [@media(max-height:700px)]:min-h-6" : ""
+          } ${glance && !noteOpen && status === "saved" ? "[@media(max-height:599px)]:sr-only" : ""}`}
+        >
           {status === "failed" ? (
             <ErrorLine onRetry={retry}>
               {MATCH_COPY.failed}

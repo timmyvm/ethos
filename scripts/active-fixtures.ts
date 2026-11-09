@@ -6,6 +6,7 @@
  *
  *   npx vite-node --config vitest.config.ts scripts/active-fixtures.ts > view.json
  */
+import { clockView, tickSubject } from "@/lib/push-clock";
 import { activeView, type ActiveInput } from "@/lib/active";
 
 const NOW = new Date("2026-11-09T09:30:00Z"); // 20:30 in Melbourne, Monday 9 Nov
@@ -74,4 +75,15 @@ for (const d of [1, 2, 3, 4, 5, 6, 7, 8, 9]) reps.push({ user_id: VIEWER, create
 pushes.push({ user_id: VIEWER, reminder_hour: 8, tz: "Australia/Melbourne", created_at: "2026-10-30T08:00:00Z" });
 
 const view = activeView({ testers, reps, events, pushes, freezes: [], viewerId: VIEWER, now: NOW });
-process.stdout.write(JSON.stringify({ view }));
+
+/* The reminder clock (#430 review): the database at minute 1 of every
+   hour, and GitHub's backup at the gaps it actually kept (3 to 7 hours). */
+const ticks: { subject: string; at: string }[] = [];
+for (let h = 0; h < 30; h++) {
+  ticks.push({ subject: tickSubject("PUSH_TICK_SECRET", "database"), at: new Date(NOW.getTime() - h * 3_600_000 - 29 * 60_000).toISOString() });
+}
+for (const hoursAgo of [2.4, 7.1, 13.9, 18.7, 22.6, 26.4]) {
+  ticks.push({ subject: tickSubject("CRON_SECRET", "github"), at: new Date(NOW.getTime() - hoursAgo * 3_600_000).toISOString() });
+}
+const clock = clockView(ticks, NOW);
+process.stdout.write(JSON.stringify({ view, clock }));

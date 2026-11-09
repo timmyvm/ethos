@@ -303,6 +303,23 @@ describe("Start stands on the card's foot", () => {
     expect(g, "the card's linear gradient").not.toBeNull();
     expect(Number(g![1]) / 100).toBeLessThanOrEqual(START_ROW);
   });
+
+  it("on a day not yet spoken the card holds 376, its object zone's foot 40px higher (#430 review)", () => {
+    // 416 put a tester's road under the nav at 390x844 and 393x852.
+    expect(css).not.toMatch(/\.home-hero\[data-spin="link"\]\s*\{\s*min-height:\s*416px/);
+    expect(block(".home-hero")).toContain("--zone-b: clamp(140px, calc(71.4px + 28.57cqw), 160px);");
+    expect(css).toMatch(/\.home-hero\[data-spin="link"\]\s*\{\s*--zone-b: clamp\(100px, calc\(31\.4px \+ 28\.57cqw\), 120px\);/);
+  });
+
+  it("on a day not yet spoken, where Start stands 40px higher, the foot comes sooner (#430 review)", () => {
+    // 376 tall, Start's row then "Another topic" (40) and the padding (20) under it.
+    const OPEN_START_ROW = (376 - 20 - 40 - 48) / 376;
+    const g = block('.home-hero[data-spin="link"]::before').match(
+      /linear-gradient\(\d+deg, var\(--home-a\) 0%, var\(--home-b\) (\d+)%\)/
+    );
+    expect(g, "the open-day card's linear gradient").not.toBeNull();
+    expect(Number(g![1]) / 100).toBeLessThanOrEqual(OPEN_START_ROW);
+  });
   for (const f of ["pause", "fillers", "repairs", "pace", "range"]) {
     it(`${f}: the foot holds Start at 3:1 or better, light and dark`, () => {
       for (const sel of [`.home-hero[data-family="${f}"]`, `:root[data-theme="dark"] .home-hero[data-family="${f}"]`]) {

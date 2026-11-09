@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   addDays,
@@ -9,12 +10,15 @@ import {
   declined,
   deniedLine,
   firstScoredToday,
+  markAnswered,
   markAsked,
   markNotNow,
   markSwitchedOff,
+  markUnanswered,
   notificationState,
   reminderAsk,
   restUntil,
+  settleUnanswered,
 } from "./reminder-ask";
 import { BANNED_PHRASES, saysGym } from "./register";
 
@@ -79,6 +83,12 @@ describe("reminderAsk", () => {
     expect(ask({ notifications: "default", push: false, ios: false, standalone: false })).toBeNull();
   });
 
+  it("never inside another app's browser, where Share, Add to Home Screen does not exist (#430 review)", () => {
+    const tab = { notifications: "unsupported" as const, push: false, standalone: false };
+    expect(ask({ ...tab, inApp: true })).toBeNull();
+    expect(ask({ inApp: true })).toBeNull();
+  });
+
   it("where notifications are blocked, says where to turn them on, once, and never asks", () => {
     expect(ask({ notifications: "denied" })).toBe("denied");
     expect(ask({ notifications: "denied", deniedTold: true })).toBeNull();
@@ -129,7 +139,7 @@ describe("the ask's words", () => {
   it("are short, calm, plain, and never a dash", () => {
     const all = [
       ASK_COPY.fresh,
-      ASK_COPY.chosen("9 pm"),
+      ASK_COPY.chosen,
       ASK_COPY.button("6 pm"),
       ASK_COPY.notNow,
       ASK_COPY.saved("6 pm"),
@@ -145,7 +155,10 @@ describe("the ask's words", () => {
       for (const p of BANNED_PHRASES) expect(s.toLowerCase()).not.toContain(p);
       expect(s).not.toMatch(/streak|don't lose|before it's gone|tonight/i);
     }
-    expect(ASK_COPY.install).toBe("Add Ethos to your Home Screen to get reminders.");
+    // #430 review: ten words, the Home Screen named once (it was 16, at the glance's ceiling).
+    expect(`${ASK_COPY.install} ${ASK_COPY.installSteps}`).toBe("To get reminders, tap Share, then Add to Home Screen.");
+    // An hour chosen and never armed: what is true, not the hour again (the pill names it).
+    expect(ASK_COPY.chosen).toBe("Your reminder isn't on yet.");
     expect(deniedLine(true)).toMatch(/Settings, Notifications, Ethos/);
   });
 });
@@ -170,14 +183,55 @@ describe("the ask's storage", () => {
     expect(askedOn()).toBe("2026-11-07");
   });
 
-  it("rests a week after the second Not now, then starts the count again", () => {
+  it("rests a week after the second Not now, then a month after each one, never daily again", () => {
     memory();
     markNotNow("2026-11-09");
     expect(restUntil()).toBeNull();
     markNotNow("2026-11-10");
     expect(restUntil()).toBe("2026-11-17");
     expect(addDays("2026-11-28", 7)).toBe("2026-12-05");
+    // The #430 review's change, and the point: the count no longer starts
+    // again after the week (it asked daily again), each decline rests 30 days.
     markNotNow("2026-11-17");
+    expect(restUntil()).toBe("2026-12-17");
+    markNotNow("2026-12-17");
+    expect(restUntil()).toBe("2027-01-16");
+  });
+
+  it("a showing left with no tap is a Not now: shown, ignored, shown the next day, ignored, then a week of nothing", () => {
+    memory();
+    /* One glance a day: settle yesterday's, decide, and mark what showed,
+       as useGlanceReminder does. The person swipes away each time. */
+    const glance = (today: string) => {
+      settleUnanswered(today);
+      const kind = ask({ today, askedOn: askedOn(), restUntil: restUntil() });
+      if (kind === "ask") {
+        markAsked(today);
+        markUnanswered(today);
+      }
+      return kind;
+    };
+    expect(glance("2026-11-09")).toBe("ask");
+    expect(glance("2026-11-10")).toBe("ask");
+    for (const d of ["2026-11-11", "2026-11-12", "2026-11-13", "2026-11-14", "2026-11-15", "2026-11-16"]) {
+      expect(glance(d), d).toBeNull();
+    }
+    expect(glance("2026-11-17")).toBe("ask");
+    // Ignored once more after the rest: a month.
+    expect(glance("2026-11-18")).toBeNull();
+    expect(restUntil()).toBe("2026-12-17");
+  });
+
+  it("a tapped showing is not a decline", () => {
+    memory();
+    markAsked("2026-11-09");
+    markUnanswered("2026-11-09");
+    markAnswered();
+    settleUnanswered("2026-11-10");
+    expect(restUntil()).toBeNull();
+    markUnanswered("2026-11-10");
+    settleUnanswered("2026-11-10");
+    // The same day is still open: it is only settled on a later one.
     expect(restUntil()).toBeNull();
   });
 
@@ -217,5 +271,19 @@ describe("the ask's storage", () => {
     expect(notificationState()).toBe("denied");
     vi.stubGlobal("Notification", { permission: "default" });
     expect(notificationState()).toBe("default");
+  });
+});
+
+/*
+ * #430 review: the Safari tab's install line saved the take's hour to the
+ * account, and the installed app read it back as "You picked 4 pm." and as
+ * on. The hour goes on the account only through the arm, which a tap runs.
+ */
+describe("the account's hour", () => {
+  it("is written only by the arm, never by the install line", () => {
+    const src = readFileSync(new URL("../components/rep/ReminderAsk.tsx", import.meta.url), "utf8");
+    expect(src.match(/saveAccountHour\([^)]*\)/g)).toEqual(["saveAccountHour(x)"]);
+    expect(src).toMatch(/armInTap\(h, reg, \(x\) => saveAccountHour\(x\)\)/);
+    expect(src).not.toMatch(/onlyIfUnset/);
   });
 });

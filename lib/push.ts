@@ -76,6 +76,48 @@ export function localDayStartUtc(now: Date, tzOffset: number): Date {
   return new Date(dayStart + tzOffset * 60_000);
 }
 
+/**
+ * Start of the subscriber's local day in the zone `tz`, as a real UTC
+ * instant, taken at the offset in force at that midnight rather than at
+ * `now`. On the day a clock goes back (Melbourne 5 Apr, New York 1 Nov)
+ * the morning ran an hour ahead of the evening, so the evening's offset
+ * put midnight an hour late and missed a take at 00:30; on the day a
+ * clock goes forward it put midnight an hour early and counted last
+ * night's 23:30 as today. `off` is the offset at `now`; with no zone
+ * (rows armed before 0019) it is all there is.
+ */
+export function localDayStartIn(now: Date, off: number, tz: string | null | undefined): Date {
+  const guess = localDayStartUtc(now, off);
+  if (!tz) return guess;
+  const offMid = tzOffsetAt(guess, tz) ?? off;
+  return new Date(guess.getTime() + (offMid - off) * 60_000);
+}
+
+/**
+ * How long a push service may hold a reminder for a phone that is off or
+ * out of signal (#430 review): until the earlier of the next quiet hour
+ * and local midnight, never under a minute. web-push's own default is
+ * four weeks, so a 6 pm reminder to a phone in flight mode arrived at
+ * 2 am, or the next day after the person had practised, with yesterday's
+ * topic. Seconds, from the offset at `now`.
+ */
+export function sendTtl(w: Pick<PushWindow, "tzOffset" | "quietFrom" | "quietTo">, now: Date): number {
+  const local = localClock(now, w.tzOffset);
+  const hour = local.getUTCHours();
+  const intoDay = hour * 3600 + local.getUTCMinutes() * 60 + local.getUTCSeconds();
+  let end = 24;
+  for (let h = hour + 1; h < 24; h++) {
+    if (inQuietRange(h, w.quietFrom, w.quietTo)) {
+      end = h;
+      break;
+    }
+  }
+  return Math.max(60, end * 3600 - intoDay);
+}
+
+/** Every reminder is one topic at the push service: a newer one replaces a stale one. */
+export const PUSH_TOPIC = "ethos-daily";
+
 /** mechanics.md quiet hours, on a bare range instead of device prefs. */
 export function inQuietRange(
   hour: number,

@@ -15,12 +15,19 @@ mkdirSync(OUT, { recursive: true });
 const VIEW = readFileSync(process.env.ACTIVE_VIEW ?? "/tmp/active-view.json", "utf8");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const browser = await chromium.launch({ args: ["--font-render-hinting=none"] });
+/* The clock stopped: GitHub's backup alone, its last tick hours ago (#430 review). */
+const DEAD = (() => {
+  const v = JSON.parse(VIEW);
+  v.clock = { alive: false, sources: (v.clock?.sources ?? []).filter((s) => s.caller === "github") };
+  return JSON.stringify(v);
+})();
 async function shot(name, { w = 390, h = 844, theme = "light", answer = "ok", full = false, delay = 0 }) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: "en-AU", timezoneId: "Australia/Melbourne", colorScheme: theme, serviceWorkers: "block" });
   await ctx.route("http://supabase.local/**", supabase);
   await ctx.route("**/api/active", async (route) => {
     if (delay) await sleep(delay);
     if (answer === "ok") return route.fulfill({ status: 200, contentType: "application/json", body: VIEW });
+    if (answer === "dead") return route.fulfill({ status: 200, contentType: "application/json", body: DEAD });
     if (answer === "fail") return route.fulfill({ status: 502, contentType: "application/json", body: '{"error":"Read failed."}' });
     return route.fulfill({ status: 404, contentType: "application/json", body: '{"error":"Not found."}' });
   });
@@ -51,4 +58,5 @@ await shot("active-375-light", { w: 375, h: 667 });
 await shot("active-loading-390-light", { delay: 4000 });
 await shot("active-failed-390-light", { answer: "fail" });
 await shot("active-not-founder-390-light", { answer: "none" });
+await shot("active-clock-stopped-390-light-full", { answer: "dead", full: true });
 await browser.close();

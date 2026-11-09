@@ -23,6 +23,8 @@ const TABLES: Record<string, unknown[]> = {
   tester_events: [{ user_id: T1, at: new Date().toISOString() }],
   push_subscriptions: [{ user_id: T1, reminder_hour: 18, tz: "Australia/Melbourne", created_at: "2026-11-01T00:00:00Z" }],
   streak_freezes: [],
+  // The reminder clock's notes (#430 review): when, which secret, who called.
+  rate_limits: [{ subject: "push-tick:PUSH_TICK_SECRET:database", at: new Date(Date.now() - 10 * 60_000).toISOString() }],
 };
 
 function query(table: string) {
@@ -32,6 +34,7 @@ function query(table: string) {
       return q;
     },
     in: () => q,
+    like: () => q,
     gte: () => q,
     or: () => q,
     order: () => q,
@@ -102,16 +105,34 @@ describe("GET /api/active", () => {
     expect(view.totals).toHaveLength(14);
   });
 
+  it("shows whether the reminder clock is ticking, and which secret it carries", async () => {
+    user = { id: ME, email: "timothy@example.com", email_confirmed_at: "2026-10-01T00:00:00Z" };
+    const { clock } = (await (await get()).json()) as {
+      clock: { alive: boolean; sources: { secret: string; caller: string; hours: number }[] };
+    };
+    expect(clock.alive).toBe(true);
+    expect(clock.sources).toEqual([expect.objectContaining({ secret: "PUSH_TICK_SECRET", caller: "database", hours: 1 })]);
+  });
+
   it("reads who and when, never a transcript, a file, a score, a name or an address", async () => {
     user = { id: ME, email: "timothy@example.com", email_confirmed_at: "2026-10-01T00:00:00Z" };
     await get();
     expect(reads.map((r) => r.table).sort()).toEqual(
-      ["push_subscriptions", "reps", "streak_freezes", "tester_events", "testers"].sort()
+      ["push_subscriptions", "rate_limits", "reps", "streak_freezes", "tester_events", "testers"].sort()
     );
     for (const r of reads) {
       expect(r.columns, r.table).not.toMatch(
         /\*|transcript|audio|ethos_index|stars|dimensions|score|display_name|email|endpoint|p256dh|auth|ip|data|label|screen/
       );
     }
+  });
+});
+
+/* #430 review: the shell anyone gets says nothing about the page. */
+describe("/active's shell", () => {
+  it("carries the app's own title, and stays out of search", async () => {
+    const { metadata } = await import("@/app/active/layout");
+    expect(metadata.title).toBeUndefined();
+    expect(metadata.robots).toEqual({ index: false, follow: false });
   });
 });

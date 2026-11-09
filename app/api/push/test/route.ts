@@ -61,7 +61,11 @@ export async function POST(req: NextRequest) {
   try {
     await webpush.sendNotification(
       { endpoint: row.endpoint as string, keys: { p256dh: row.p256dh as string, auth: row.auth as string } },
-      JSON.stringify({ ...TEST_COPY, url: "/" })
+      JSON.stringify({ ...TEST_COPY, url: "/" }),
+      // A test proves the path now or not at all: a phone that is off
+      // never gets it later (#430 review). Its own topic, so it never
+      // replaces a real reminder waiting at the push service.
+      { TTL: 60, urgency: "high", topic: "ethos-test" }
     );
   } catch (e) {
     const status = (e as { statusCode?: number }).statusCode;

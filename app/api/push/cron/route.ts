@@ -16,16 +16,25 @@
  * The answer says why nothing went, not only that nothing did: how many
  * rows were read, how many were due, how many had already practised, how
  * many another tick had claimed, and what was sent, failed or dropped.
+ *
+ * Each tick that passes the gate is noted (when, which secret, who
+ * called: lib/cron-auth.ts `tickCaller`) so /active shows whether the
+ * hourly clock is alive; a dead clock used to be silent (#430 review).
+ * Each push carries a TTL that runs out at quiet hours or midnight, so a
+ * phone that was off never gets yesterday's reminder at 2 am.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import webpush from "web-push";
 import { supabaseAdmin } from "@/lib/db";
-import { bearerMatches, tickSecrets } from "@/lib/cron-auth";
+import { matchedSecret, namedTickSecrets, tickCaller, type TickCaller, type TickSecretName } from "@/lib/cron-auth";
+import { TICK_KEEP_HOURS, tickSubject, TICK_PREFIX } from "@/lib/push-clock";
 import {
   localDayKey,
-  localDayStartUtc,
+  localDayStartIn,
   onTime,
+  PUSH_TOPIC,
+  sendTtl,
   shouldSend,
   tzOffsetAt,
 } from "@/lib/push";
@@ -53,7 +62,8 @@ interface SubRow {
 }
 
 export async function GET(req: NextRequest) {
-  if (!bearerMatches(req.headers.get("authorization"), tickSecrets())) {
+  const secret = matchedSecret(req.headers.get("authorization"), namedTickSecrets());
+  if (!secret) {
     return NextResponse.json({ error: "Not authorised." }, { status: 401 });
   }
 
@@ -75,6 +85,7 @@ export async function GET(req: NextRequest) {
   if (!db) {
     return NextResponse.json({ error: "No database." }, { status: 503 });
   }
+  await noteTick(db, secret, tickCaller(req.headers.get("user-agent")), new Date());
 
   /*
    * Every subscription, paged. One read answered at most PostgREST's
@@ -138,7 +149,9 @@ export async function GET(req: NextRequest) {
     if (!shouldSend(win, false, now)) continue;
     report.due++;
 
-    const dayStart = localDayStartUtc(now, off).toISOString();
+    // Midnight at the offset in force then, not at this tick: on a day the
+    // clocks change the two differ by an hour (#430 review).
+    const dayStart = localDayStartIn(now, off, sub.tz).toISOString();
     const { count, error: doneErr } = await db
       .from("reps")
       .select("id", { count: "exact", head: true })
@@ -200,7 +213,10 @@ export async function GET(req: NextRequest) {
           endpoint: sub.endpoint,
           keys: { p256dh: sub.p256dh, auth: sub.auth },
         },
-        JSON.stringify({ ...copy, url })
+        JSON.stringify({ ...copy, url }),
+        // Held for a phone that is off only until quiet hours or midnight,
+        // whichever is first; one topic, so a newer reminder replaces it.
+        { TTL: sendTtl(win, now), urgency: "normal", topic: PUSH_TOPIC }
       );
       report.sent++;
     } catch (e) {
@@ -258,5 +274,30 @@ async function practiceUrl(
   } catch (e) {
     console.error("push cron: practice address failed", (e as Error).message);
     return "/";
+  }
+}
+
+/**
+ * The tick's note (#430 review): one row in rate_limits (0006, already on
+ * production, closed to the API) under `push-tick:<secret>:<caller>`, and
+ * anything older than two days swept. A note that fails is logged and the
+ * tick goes on: the reminders matter more than the record of them.
+ */
+async function noteTick(
+  db: NonNullable<ReturnType<typeof supabaseAdmin>>,
+  secret: TickSecretName,
+  caller: TickCaller,
+  now: Date
+): Promise<void> {
+  try {
+    const { error } = await db.from("rate_limits").insert({ subject: tickSubject(secret, caller), at: now.toISOString() });
+    if (error) console.error("push cron: tick note failed", error.message);
+    await db
+      .from("rate_limits")
+      .delete()
+      .like("subject", `${TICK_PREFIX}%`)
+      .lt("at", new Date(now.getTime() - TICK_KEEP_HOURS * 3_600_000).toISOString());
+  } catch (e) {
+    console.error("push cron: tick note failed", (e as Error).message);
   }
 }

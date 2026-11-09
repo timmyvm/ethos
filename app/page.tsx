@@ -180,10 +180,11 @@ export default function Home() {
   const lastDay = reps !== null ? lastSpokeOn(spine) : spokeHint;
   const day = dayOf(lastDay, new Date());
   /* Back after a break (#431): a last recording two or more days ago.
-     Greeted, never counted: no number of days and no word about the
-     streak; the flame chip keeps its honest 0. */
+     Welcomed on the card's lead (#430 review), never counted: no number
+     of days and no word about the streak; the flame chip keeps its
+     honest 0. The title stays "Hi, Timothy" at 34. */
   const back = day === "back";
-  const lines = greetingFor(name, back);
+  const lines = greetingFor(name);
   const greeting = nameKnown
     ? tooLong === lines.full && lines.short
       ? lines.short
@@ -425,6 +426,7 @@ export default function Home() {
     dayOne,
     spokeToday: day === "spoken",
     usedMods: usedModsLately(history),
+    back,
   });
   const cost = face.cost ? costLine(aboutSeconds(history)) : null;
   const startHref =

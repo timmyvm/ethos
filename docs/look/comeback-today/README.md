@@ -31,3 +31,11 @@ Timings are in the reports but are not comparable: `before/` ran on a dev server
 5. **The recorder.** The do-line heading and two tactic tiles gone; the card grows from 300 to as much as 440 to take the room; on an iPhone the Voice/Video pair is gone, so Record is the only control under the tactic.
 
 Fixed in the loop: the cost line's ink (78% to 90%), the roulette's 40px cut, and the ready recorder's two empty bands (125px and 150px of ground, now the card's).
+
+## The #430 review (9 Nov)
+
+The `after/` shots were re-shot on the review's build; the five lines above describe the #431 build, and these correct them.
+
+1. **Card height.** The open-day card is 376 again, not 416: the object zone's foot rises 40px on an open day, so the topic rises 40px into the band under the cost line, and the tester's road and its dates clear the nav glass at 390x844 and 393x852 (they sat under it at 738 to 762). The roulette holds 376 too, with its way back inside.
+2. **The greeting.** "Hi, Timothy" at 34/800 every day. The return's welcome is the card's lead, "Welcome back" in "Today's practice"'s place. (The line above said "34/800"; what rendered was 29 at 390, 28 at 375, 32 at 430, and the name never survived.)
+3. **The recorder.** The ready card takes the room up to 480 (Record 52px under the tactic at 390x844, the band over the card 37), its topic in Today's 40/800 on the same lines as the card that was tapped, and its object in a box up to 160, about Today's size, where it was 26px words and a 112px object in 440px of colour.

@@ -15,6 +15,9 @@
  *      was opened (a device open or a return to it, tester_events), the
  *      reminder rows' hour and zone, and the freeze days. Never a
  *      transcript, a file, a score, a name or an address. Read only.
+ *   4. The reminder clock's last two days of ticks (lib/push-clock.ts),
+ *      so a clock that stopped shows here rather than nowhere. A failed
+ *      read of it is null, never the page's failure.
  *
  * The answer is the aggregate (lib/active.ts `activeView`) and is never
  * cached.
@@ -23,6 +26,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/db";
 import { ACTIVE_DAYS, activeView, isFounder, type ActiveInput } from "@/lib/active";
+import { clockView, TICK_KEEP_HOURS, TICK_PREFIX, type ClockView } from "@/lib/push-clock";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -75,8 +79,9 @@ export async function GET(req: NextRequest) {
   if (!founder) return json({ error: "Not found." }, 404);
 
   try {
-    const view = await read(db, user.id, new Date());
-    return json({ view });
+    const now = new Date();
+    const [view, clock] = await Promise.all([read(db, user.id, now), readClock(db, now)]);
+    return json({ view, clock });
   } catch (e) {
     console.error("active: read failed", (e as { message?: string })?.message);
     return json({ error: "Read failed." }, 502);
@@ -150,4 +155,23 @@ async function read(db: Db, viewerId: string, now: Date) {
   ]);
 
   return activeView({ testers, reps, events, pushes, freezes, viewerId, now });
+}
+
+/** The reminder clock's ticks: when, which secret, who called. Nothing else is in those rows. */
+async function readClock(db: Db, now: Date): Promise<ClockView | null> {
+  try {
+    const rows = await paged<{ subject: string; at: string }>((from, to) =>
+      db
+        .from("rate_limits")
+        .select("subject, at")
+        .like("subject", `${TICK_PREFIX}%`)
+        .gte("at", new Date(now.getTime() - TICK_KEEP_HOURS * 3_600_000).toISOString())
+        .order("at", { ascending: false })
+        .range(from, to)
+    );
+    return clockView(rows, now);
+  } catch (e) {
+    console.error("active: clock read failed", (e as { message?: string })?.message);
+    return null;
+  }
 }

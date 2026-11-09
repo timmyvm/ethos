@@ -7,6 +7,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { ActiveRow, ActiveView, DayMark } from "@/lib/active";
+import type { ClockSource, ClockView } from "@/lib/push-clock";
 import { readFailure } from "@/lib/load";
 import { sessionToken } from "@/lib/supabase-browser";
 import { useHourLabel } from "@/lib/time-label";
@@ -27,7 +28,7 @@ import { useHourLabel } from "@/lib/time-label";
 
 type Load =
   | { kind: "loading" }
-  | { kind: "ok"; view: ActiveView }
+  | { kind: "ok"; view: ActiveView; clock: ClockView | null }
   | { kind: "none" }
   | { kind: "failed" };
 
@@ -53,8 +54,8 @@ export default function ActivePage() {
       });
       if (res.status === 401 || res.status === 404) return setLoad({ kind: "none" });
       if (!res.ok) return setLoad({ kind: "failed" });
-      const body = (await res.json()) as { view?: ActiveView };
-      setLoad(body.view ? { kind: "ok", view: body.view } : { kind: "failed" });
+      const body = (await res.json()) as { view?: ActiveView; clock?: ClockView | null };
+      setLoad(body.view ? { kind: "ok", view: body.view, clock: body.clock ?? null } : { kind: "failed" });
     } catch {
       setLoad({ kind: "failed" });
     }
@@ -80,13 +81,13 @@ export default function ActivePage() {
       ) : load.kind === "loading" ? (
         <ActiveSkeleton />
       ) : (
-        <Active view={load.view} />
+        <Active view={load.view} clock={load.clock} />
       )}
     </main>
   );
 }
 
-function Active({ view }: { view: ActiveView }) {
+function Active({ view, clock }: { view: ActiveView; clock: ClockView | null }) {
   const watched = view.rows.filter((r) => !r.you).length;
   const today = view.totals[view.totals.length - 1];
   return (
@@ -102,6 +103,8 @@ function Active({ view }: { view: ActiveView }) {
         </div>
         <Totals view={view} scale={Math.max(1, ...view.totals.map((t) => t.recorded + t.opened))} />
       </section>
+
+      <Clock clock={clock} />
 
       <section aria-labelledby="active-testers" className="mt-7">
         <div className="flex items-baseline justify-between pr-4">
@@ -121,6 +124,69 @@ function Active({ view }: { view: ActiveView }) {
         <Legend />
       </section>
     </div>
+  );
+}
+
+const CALLER: Record<ClockSource["caller"], string> = {
+  database: "Database",
+  "cron-job.org": "cron-job.org",
+  github: "GitHub",
+  other: "Other",
+};
+
+/** "6:01 pm", or "Sun 6:01 pm" before today, on this device's clock. */
+function tickTime(iso: string): string {
+  const at = new Date(iso);
+  const sameDay = at.toDateString() === new Date().toDateString();
+  return new Intl.DateTimeFormat(undefined, {
+    weekday: sameDay ? undefined : "short",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(at);
+}
+
+/**
+ * The reminder clock (#430 review): each caller's last tick and how many
+ * of the last 24 hours it reached, and a plain line when nothing ticked
+ * in the last hour, because a chosen hour is only served by a tick inside
+ * it. GitHub alone reached about one hour in six.
+ */
+function Clock({ clock }: { clock: ClockView | null }) {
+  return (
+    <section aria-labelledby="active-clock" className="mt-7">
+      <h2 id="active-clock" className="font-display text-lead font-bold">
+        Reminder clock
+      </h2>
+      <div className="card mt-3 px-4" role="status">
+        {clock === null ? (
+          <p className="py-3 text-body text-stone-500">The clock&apos;s record didn&apos;t load.</p>
+        ) : (
+          <>
+            {!clock.alive && (
+              <p className="border-b border-hairline py-3 text-body font-semibold last:border-b-0">
+                {clock.sources.length === 0 ? "No tick in two days." : "No tick in the last hour."} Reminders are not
+                going out on time.
+              </p>
+            )}
+            {clock.sources.map((s) => (
+              <div
+                key={`${s.secret}:${s.caller}`}
+                className="flex items-center justify-between gap-3 border-b border-hairline py-3 last:border-b-0"
+              >
+                <div className="min-w-0">
+                  <div className="font-display text-body font-bold">{CALLER[s.caller]}</div>
+                  <div className="truncate text-caption text-stone-500">{s.secret}</div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <div className="font-display text-body font-bold tabular-nums">{tickTime(s.last)}</div>
+                  <div className="text-caption text-stone-500 tabular-nums">{s.hours} of 24 hours</div>
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -282,6 +348,13 @@ function ActiveSkeleton() {
       <div className="card mt-5 h-[254px] p-4">
         <Skeleton className="h-9 w-12" />
         <Skeleton className="mt-3 h-3 w-24" />
+      </div>
+      <div className="mt-7 flex h-7 items-center">
+        <Skeleton className="h-5 w-36" />
+      </div>
+      <div className="card mt-3 flex h-[66px] items-center justify-between px-4">
+        <Skeleton className="h-4 w-28" />
+        <Skeleton className="h-4 w-20" />
       </div>
       <div className="mt-7 flex h-7 items-center">
         <Skeleton className="h-5 w-28" />

@@ -13,6 +13,10 @@ const CLEAR = 8;
 /** The smallest the object stands at where the band is short (a 375x667
  *  phone's band holds about 80): below it, it is not drawn. */
 const MIN_BOX = 72;
+/** Ready's box (#430 review): about the size Today's card stood the
+ *  object at, so Start carries it over without shrinking it, and the
+ *  card's room holds the object rather than bare colour. */
+const DISPLAY_BOX = 160;
 
 /*
  * Start carries the card (E51, B02). Today's Start runs its navigation
@@ -96,6 +100,7 @@ export function TopicCard({
   art,
   compact = false,
   reveal = false,
+  display = false,
 }: {
   eyebrow: string;
   topic: string;
@@ -106,6 +111,13 @@ export function TopicCard({
   compact?: boolean;
   /** The question is held back until Record (Interview), so its words fade in when it lands. */
   reveal?: boolean;
+  /**
+   * Ready (#431): the topic in Today's card type, 40/800 (34 past 40
+   * characters, `.home-display`), so the card Start carried over keeps
+   * its words' size and lines rather than shrinking them inside a bigger
+   * slab (#430 review: 26px in a 440px card read as a placeholder).
+   */
+  display?: boolean;
 }) {
   const card = useRef<HTMLElement>(null);
   const zone = useRef<HTMLSpanElement>(null);
@@ -137,13 +149,17 @@ export function TopicCard({
       /* The box the band holds: the full box, or what is left over the
          topic's first line (the box is pinned top right, so its top and
          right edges never move). */
-      const full = window.matchMedia("(max-width: 359px)").matches ? 96 : 112;
-      const size = Math.min(full, Math.floor(h.top - CLEAR - z.top));
+      const narrow = window.matchMedia("(max-width: 359px)").matches;
+      const full = display ? (narrow ? 112 : DISPLAY_BOX) : narrow ? 96 : 112;
+      let size = Math.min(full, Math.floor(h.top - CLEAR - z.top));
+      /* Ready's larger box also keeps clear of the eyebrow across: the
+         widest box whose visible object stands 8px right of its words. */
+      if (display) size = Math.min(size, Math.floor((2 * (z.right - e.right - CLEAR)) / (1 + Math.min(1, w / t))));
       /* The visible object's width inside the box, centred across it. */
       const shown = Math.min(1, w / t) * size;
       const left = z.right - size + (size - shown) / 2;
       setFits(size >= MIN_BOX && e.right + CLEAR <= left);
-      setBoxPx(size < full ? size : null);
+      setBoxPx(display || size < full ? size : null);
       setMeasured(true);
     };
     measure();
@@ -151,7 +167,7 @@ export function TopicCard({
     if (el) ro.observe(el);
     if (head.current) ro.observe(head.current);
     return () => ro.disconnect();
-  }, [art, compact]);
+  }, [art, compact, display]);
 
   /* Record: the object scales to 0.6 and fades on the card's own shrink
      spring (app/rep/page.tsx glides the card on SPRING.base), into the
@@ -383,10 +399,13 @@ export function TopicCard({
           while the card glides up. */}
       <h1
         ref={head}
+        data-long={display && !compact && topic.length > 40 ? true : undefined}
         className={`relative font-display text-balance ${
           compact
             ? "mt-1.5 text-lead font-bold leading-snug"
-            : "mt-2 text-title font-extrabold leading-[1.18]"
+            : display
+              ? "home-display mt-2"
+              : "mt-2 text-title font-extrabold leading-[1.18]"
         }`}
       >
         <span

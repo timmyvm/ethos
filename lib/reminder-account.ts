@@ -10,23 +10,24 @@
  * An update, never an insert: a row made here with only the hour would
  * read on a new phone as a finished introduction with every answer empty.
  * A person with no row yet gets it from their introduction's own sync.
+ * Only an hour the person chose goes here, through the arm (`armInTap`):
+ * the Safari tab's install steps save none (#430 review), because the
+ * installed app read an hour nobody picked as "picked" and as on.
  */
 
 import { supabaseBrowser } from "./supabase-browser";
 
-export async function saveAccountHour(hour: number, { onlyIfUnset = false } = {}): Promise<boolean> {
+export async function saveAccountHour(hour: number): Promise<boolean> {
   const db = supabaseBrowser();
   if (!db) return false;
   try {
     const { data } = await db.auth.getSession();
     const uid = data.session?.user?.id;
     if (!uid) return false;
-    let q = db
+    const { error } = await db
       .from("onboarding")
       .update({ reminder_hour: hour, updated_at: new Date().toISOString() })
       .eq("user_id", uid);
-    if (onlyIfUnset) q = q.is("reminder_hour", null);
-    const { error } = await q;
     return !error;
   } catch {
     return false;

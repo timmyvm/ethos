@@ -57,8 +57,11 @@ const SCENES = {
   "glance-denied": { at: "glance", perm: "default", answer: "denied", standalone: true, tap: "remind" },
   "glance-blocked": { at: "glance", perm: "denied", standalone: true },
   "glance-install": { at: "glance", tab: true },
-  /* A tester: "How did that feel?" first, then the glance holds the match question and the ask. */
+  /* A tester: "How did that feel?" first, then the glance asks "Did 665
+     feel right?" alone; the ask waits for the answer and then takes the
+     cue's slot, one question at a time (#430 review). */
   "glance-tester": { at: "glance", perm: "default", answer: "granted", standalone: true, tester: true },
+  "glance-tester-answered": { at: "glance", perm: "default", answer: "granted", standalone: true, tester: true, match: "About right" },
   "glance-tester-armed": { at: "glance", perm: "granted", standalone: true, hour: 18, ack: true, subscribed: true, tester: true },
   "glance-armed": { at: "glance", perm: "granted", standalone: true, hour: 18, ack: true, subscribed: true },
   "settings-off": { at: "settings", perm: "default", standalone: true },
@@ -215,6 +218,10 @@ for (const [name, s] of Object.entries(SCENES)) {
       }
       await page.waitForSelector("main .arrive-x", { timeout: 30000 });
       await sleep(3800);
+      if (s.match) {
+        await page.getByRole("radio", { name: s.match }).click();
+        await sleep(1500);
+      }
       if (s.tap === "remind") {
         const btn = page.locator("[data-reminder-remind]");
         if (await btn.count()) {
@@ -229,7 +236,15 @@ for (const [name, s] of Object.entries(SCENES)) {
         if (m.scrollH > m.innerH + 1) fail(`${name} ${size.name}: the glance scrolls`);
         if (m.terracotta !== 1) fail(`${name} ${size.name}: ${m.terracotta} terracotta fills`);
         if (m.askWords > 16) fail(`${name} ${size.name}: the ask says ${m.askWords} words`);
-        const want = { "glance-armed": false, "glance-tester-armed": false, "glance-blocked": true, "glance-install": true };
+        const want = {
+          "glance-armed": false,
+          "glance-tester-armed": false,
+          "glance-blocked": true,
+          "glance-install": true,
+          /* Held while the match question is open, shown once it is answered. */
+          "glance-tester": false,
+          "glance-tester-answered": true,
+        };
         if (name in want && !!m.ask !== want[name]) fail(`${name} ${size.name}: the ask ${m.ask ? "showed" : "did not show"}`);
         if (!(name in want) && !m.ask) fail(`${name} ${size.name}: no ask`);
       }

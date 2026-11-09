@@ -21,6 +21,12 @@ type Sub = {
 let subs: Sub[] = [];
 let countError: { message: string } | null = null;
 let repsToday = 0;
+/** When set, the done-today count is these rows at or after the route's own gte, as PostgREST counts them. */
+let repRows: { user_id: string; created_at: string }[] | null = null;
+/** Each send's options (TTL, urgency, topic). */
+const sendOptions: unknown[] = [];
+/** The tick notes the route wrote to rate_limits. */
+let notes: { subject: string; at: string }[] = [];
 /** The newest takes, newest first, as the body's read gets them. */
 let recent: { filler_count: number; duration_s: number }[] = [];
 /** A push service error's statusCode for the next sends, or null. */
@@ -115,14 +121,22 @@ function subsQuery() {
 function repsQuery() {
   let head = false;
   let cols = "";
+  let user = "";
+  let from = "";
   const q = {
     select: (c: string, opts?: { head?: boolean }) => {
       head = !!opts?.head;
       cols = c;
       return q;
     },
-    eq: () => q,
-    gte: () => q,
+    eq: (_c: string, v: string) => {
+      user = v;
+      return q;
+    },
+    gte: (_c: string, v: string) => {
+      from = v;
+      return q;
+    },
     order: () => q,
     // The address's read (#431, the one with the transcript) finds no
     // measured recording here, so the reminder opens Today; the address
@@ -130,24 +144,54 @@ function repsQuery() {
     limit: () => Promise.resolve({ data: cols.includes("transcript") ? [] : recent, error: null }),
     then: (ok: (v: unknown) => unknown) =>
       Promise.resolve(
-        head ? (countError ? { count: null, error: countError } : { count: repsToday, error: null }) : { data: [], error: null }
+        head
+          ? countError
+            ? { count: null, error: countError }
+            : {
+                count: repRows
+                  ? repRows.filter((r) => r.user_id === user && Date.parse(r.created_at) >= Date.parse(from)).length
+                  : repsToday,
+                error: null,
+              }
+          : { data: [], error: null }
       ).then(ok),
   };
   return q;
 }
 
+/* rate_limits, where each tick is noted (#430 review). */
+function notesQuery() {
+  return {
+    insert: async (row: { subject: string; at: string }) => {
+      notes.push(row);
+      return { error: null };
+    },
+    delete: () => {
+      const d = {
+        like: () => d,
+        lt: (_c: string, v: string) => {
+          notes = notes.filter((n) => n.at >= v);
+          return Promise.resolve({ error: null });
+        },
+      };
+      return d;
+    },
+  };
+}
+
 vi.mock("@/lib/db", () => ({
   supabaseAdmin: () => ({
-    from: (t: string) => (t === "push_subscriptions" ? subsQuery() : repsQuery()),
+    from: (t: string) => (t === "push_subscriptions" ? subsQuery() : t === "rate_limits" ? notesQuery() : repsQuery()),
   }),
 }));
 
 vi.mock("web-push", () => ({
   default: {
     setVapidDetails: () => {},
-    sendNotification: async (s: { endpoint: string }, body: string) => {
+    sendNotification: async (s: { endpoint: string }, body: string, options?: unknown) => {
       // A real send takes a moment: two ticks at once interleave here.
       await Promise.resolve();
+      sendOptions.push(options);
       if (sendFails !== null) throw Object.assign(new Error("push service"), { statusCode: sendFails });
       sent.push(s.endpoint);
       payloads.push(JSON.parse(body));
@@ -155,14 +199,19 @@ vi.mock("web-push", () => ({
   },
 }));
 
-process.env.CRON_SECRET = "s";
+/* Secrets of the length the sender takes (32 or more, lib/cron-auth.ts). */
+const GH = "s".repeat(40);
+const DB = "t0k".repeat(12);
+process.env.CRON_SECRET = GH;
 process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY = "pub";
 process.env.VAPID_PRIVATE_KEY = "priv";
 
 const { GET } = await import("@/app/api/push/cron/route");
 
-function tick(secret = "s") {
-  const req = new Request("http://test.local/api/push/cron", { headers: { authorization: `Bearer ${secret}` } });
+function tick(secret = GH, userAgent = "github-actions push-cron") {
+  const req = new Request("http://test.local/api/push/cron", {
+    headers: { authorization: `Bearer ${secret}`, "user-agent": userAgent },
+  });
   return GET(req as unknown as NextRequest);
 }
 
@@ -185,6 +234,9 @@ beforeEach(() => {
   subs = [];
   countError = null;
   repsToday = 0;
+  repRows = null;
+  sendOptions.length = 0;
+  notes = [];
   recent = [];
   sendFails = null;
   stamped.length = 0;
@@ -291,11 +343,18 @@ describe("the reminder cron, #430", () => {
 
   it("accepts the database's own secret beside GitHub's, and nothing else", async () => {
     subs = [due(1)];
-    expect((await tick("t0k")).status).toBe(401);
-    process.env.PUSH_TICK_SECRET = "t0k";
-    expect((await tick("t0k")).status).toBe(200);
-    expect((await tick("s")).status).toBe(200);
+    expect((await tick(DB)).status).toBe(401);
+    process.env.PUSH_TICK_SECRET = DB;
+    expect((await tick(DB)).status).toBe(200);
+    expect((await tick(GH)).status).toBe(200);
     expect((await tick("wrong")).status).toBe(401);
+  });
+
+  it("refuses a secret under 32 characters, so a weak one fails closed", async () => {
+    subs = [due(1)];
+    process.env.PUSH_TICK_SECRET = "short-but-set";
+    expect((await tick("short-but-set")).status).toBe(401);
+    expect(sent).toEqual([]);
   });
 
   it("names the hour they chose and one number from their last take", async () => {
@@ -326,5 +385,75 @@ describe("the reminder cron, #430", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+/*
+ * The #430 review. The done-today check's midnight on the days the clocks
+ * change, through the real route with a reps table that honours the
+ * route's own gte(created_at, dayStart); the push's lifetime at the push
+ * service; and the note each tick leaves for /active.
+ */
+describe("the reminder cron, #430 review", () => {
+  async function at(iso: string) {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(iso));
+    try {
+      return await (await tick()).json();
+    } finally {
+      vi.useRealTimers();
+    }
+  }
+  const six = (tz: string): Sub => ({ ...due(1), user_id: "u1", reminder_hour: 18, tz, quiet_from: 22, quiet_to: 7 });
+
+  it("an ordinary Melbourne day: practised at 00:30, the 6 pm reminder stays silent", async () => {
+    subs = [six("Australia/Melbourne")];
+    repRows = [{ user_id: "u1", created_at: "2026-11-08T13:30:00.000Z" }]; // 9 Nov 00:30 AEDT
+    expect(await at("2026-11-09T07:01:00Z")).toMatchObject({ due: 1, done: 1, sent: 0 });
+  });
+
+  it("Melbourne, Sun 5 Apr 2026: practised at 00:30 AEDT, no ring at 18:01 AEST", async () => {
+    subs = [six("Australia/Melbourne")];
+    repRows = [{ user_id: "u1", created_at: "2026-04-04T13:30:00.000Z" }];
+    expect(await at("2026-04-05T08:01:00Z")).toMatchObject({ due: 1, done: 1, sent: 0 });
+  });
+
+  it("New York, Sun 1 Nov 2026: practised at 00:30 EDT, no ring at 18:01 EST", async () => {
+    subs = [six("America/New_York")];
+    repRows = [{ user_id: "u1", created_at: "2026-11-01T04:30:00.000Z" }];
+    expect(await at("2026-11-01T23:01:00Z")).toMatchObject({ due: 1, done: 1, sent: 0 });
+  });
+
+  it("Melbourne, Sun 4 Oct 2026: last practised 23:30 AEST the night before, it rings at 18:01 AEDT", async () => {
+    subs = [six("Australia/Melbourne")];
+    repRows = [{ user_id: "u1", created_at: "2026-10-03T13:30:00.000Z" }];
+    expect(await at("2026-10-04T07:01:00Z")).toMatchObject({ due: 1, done: 0, sent: 1 });
+  });
+
+  it("a push lives until quiet hours begin, at normal urgency, under one topic", async () => {
+    subs = [six("Australia/Melbourne")];
+    expect((await at("2026-11-09T07:01:00Z")).sent).toBe(1); // 18:01 AEDT
+    expect(sendOptions).toEqual([{ TTL: (22 * 60 - (18 * 60 + 1)) * 60, urgency: "normal", topic: "ethos-daily" }]);
+  });
+
+  it("a late push lives at least a minute", async () => {
+    subs = [six("Australia/Melbourne")];
+    expect((await at("2026-11-09T10:59:30Z")).sent).toBe(1); // 21:59:30 AEDT
+    expect(sendOptions).toEqual([expect.objectContaining({ TTL: 60 })]);
+  });
+
+  it("notes each tick it lets in, with the secret and the caller, and nothing it refuses", async () => {
+    process.env.PUSH_TICK_SECRET = DB;
+    await tick(DB, "pg_net push-tick");
+    await tick(GH, "github-actions push-cron");
+    await tick("wrong", "github-actions push-cron");
+    expect(notes.map((n) => n.subject)).toEqual(["push-tick:PUSH_TICK_SECRET:database", "push-tick:CRON_SECRET:github"]);
+  });
+
+  it("sweeps notes older than two days", async () => {
+    notes = [{ subject: "push-tick:CRON_SECRET:github", at: new Date(Date.now() - 49 * 3_600_000).toISOString() }];
+    await tick();
+    expect(notes).toHaveLength(1);
+    expect(Date.now() - Date.parse(notes[0].at)).toBeLessThan(60_000);
   });
 });

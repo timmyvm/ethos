@@ -56,7 +56,8 @@ begin
   -- The request id; pg_net answers in net._http_response.
   return net.http_get(
     url := tick_url,
-    headers := jsonb_build_object('Authorization', 'Bearer ' || tick_secret),
+    -- The agent names the caller on /active's reminder clock (#430 review).
+    headers := jsonb_build_object('Authorization', 'Bearer ' || tick_secret, 'User-Agent', 'pg_net push-tick'),
     timeout_milliseconds := 30000
   );
 end;

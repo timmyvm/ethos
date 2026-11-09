@@ -5,7 +5,7 @@ import type { NextRequest } from "next/server";
 type Row = { endpoint: string; user_id: string; p256dh: string; auth: string };
 let rows: Row[] = [];
 let sendFails: number | null = null;
-const sent: { endpoint: string; body: string }[] = [];
+const sent: { endpoint: string; body: string; options?: unknown }[] = [];
 
 vi.mock("@/lib/db", () => ({
   getUserFromAuthHeader: async (h: string | null) => (h === "Bearer t" ? { id: "u1", anonymous: false } : null),
@@ -33,9 +33,9 @@ vi.mock("@/lib/db", () => ({
 vi.mock("web-push", () => ({
   default: {
     setVapidDetails: () => {},
-    sendNotification: async (s: { endpoint: string }, body: string) => {
+    sendNotification: async (s: { endpoint: string }, body: string, options?: unknown) => {
       if (sendFails !== null) throw Object.assign(new Error("push"), { statusCode: sendFails });
-      sent.push({ endpoint: s.endpoint, body });
+      sent.push({ endpoint: s.endpoint, body, options });
     },
   },
 }));
@@ -70,6 +70,13 @@ describe("POST /api/push/test", () => {
     expect((await post(e)).status).toBe(200);
     expect(sent[0].endpoint).toBe(e);
     expect(JSON.parse(sent[0].body)).toMatchObject({ title: "Your reminder" });
+  });
+
+  it("lives a minute at the push service, so a phone that was off never gets it later", async () => {
+    const e = mine();
+    rows = [{ endpoint: e, user_id: "u1", p256dh: "k", auth: "a" }];
+    expect((await post(e)).status).toBe(200);
+    expect(sent[0].options).toMatchObject({ TTL: 60 });
   });
 
   it("never to someone else's, and never without a session", async () => {

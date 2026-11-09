@@ -366,6 +366,12 @@ describe("0028 database-held secrets", () => {
   it("carries no secret, URL or email", () => {
     expect(sql).not.toMatch(/https?:\/\//);
     expect(sql).not.toMatch(/@[a-z0-9-]+\.[a-z]/i);
+    // No literal secret: no long hex or base64 run, and Vault is only read
+    // (the one create_secret is the comment that makes it in the database).
+    expect(sql).not.toMatch(/[0-9a-f]{32,}/i);
+    expect(sql).not.toMatch(/[A-Za-z0-9+/]{40,}={0,2}/);
+    const live = sql.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
+    expect(live).not.toMatch(/vault\.(create|update)_secret/);
   });
 
   it("compares the bearer inside the database, a secret of 32 or more, service role only", () => {

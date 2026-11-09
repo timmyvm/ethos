@@ -1,9 +1,10 @@
 # Reminders that reach people: what production needs (DECISIONS #430)
 
-The production steps below were run from the session on 9 Nov, after the
-deploy (#432). They need no Vercel setting: the clock's secret is made inside
-the database and never leaves it, and the founder list for `/active` is a
-table there. Rerun them only for a new project.
+The production steps below need no Vercel setting: the clock's secret is
+made inside the database and never leaves it, and the founder list for
+`/active` is a table there (#432). Steps 1 to 5 are the session's, with the
+deploy; 6 is Timothy's phone; 7 is the next day. STATE.md's Open list says
+which are done.
 
 **The hourly clock is the ship gate, not a follow-up (#430 review).** The
 code alone does not deliver the evening reminders: replayed on GitHub's real
@@ -46,7 +47,8 @@ clock" saying "N of 24 hours" the next day.
 
 ## Production, in this order
 
-1. **Deploy** (main). Migration 0026 goes first if a new project lacks it.
+1. **Deploy** (main). A new project needs migrations up to 0026 first
+   (production has them).
 
 2. **Supabase, extensions and migrations**: apply
    `supabase/migrations/0027_push_tick.sql` then `0028_db_held_secrets.sql`

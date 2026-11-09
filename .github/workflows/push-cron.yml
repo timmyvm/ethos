@@ -10,9 +10,9 @@
 # nobody qualifies sends nothing; its answer says why.
 #
 # Requires the CRON_SECRET repository secret to match the Vercel env var
-# of the same name, 32 characters or more (the sender ignores a shorter
-# one: a 401 here means make a new one with `openssl rand -hex 32` and set
-# it in both). The agent names this caller on /active's reminder clock.
+# of the same name (a 401 here means they differ: make a new one with
+# `openssl rand -hex 32` and set it in both). The agent names this caller
+# on /active's reminder clock.
 # Vercel Hobby crons are daily-only.
 name: push-cron
 on:

@@ -22,6 +22,7 @@ import {
   tzOffsetAt,
 } from "@/lib/push";
 import { reminderBody } from "@/lib/reminders";
+import { todayHrefOn, type PracticeRow } from "@/lib/home";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -144,6 +145,9 @@ export async function GET(req: NextRequest) {
       now
     );
 
+    // Today's own topic, ready to record (#431).
+    const url = await practiceUrl(db, sub.user_id, now, off);
+
     try {
       await webpush.sendNotification(
         {
@@ -153,7 +157,7 @@ export async function GET(req: NextRequest) {
         JSON.stringify({
           title: "Ethos",
           body: reminderBody({ streak, didToday: false }),
-          url: "/rep",
+          url,
         })
       );
       sent++;
@@ -176,4 +180,30 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({ ok: true, sent, dropped });
+}
+
+/**
+ * Where the reminder opens (#431): the address Today's Start opens on a
+ * day not yet spoken, the same topic on the same day, ready to record
+ * (lib/home.ts `todayHref`, read on the subscriber's calendar). It used
+ * to be bare /rep, the demoted road's rotation, so every reminder opened
+ * a different topic from Today's. The practice is chosen from the newest
+ * measured recording, so the newest thirty are read; a read that fails
+ * opens Today, which chooses for itself.
+ */
+async function practiceUrl(
+  db: NonNullable<ReturnType<typeof supabaseAdmin>>,
+  userId: string,
+  now: Date,
+  tzOffset: number
+): Promise<string> {
+  const { data, error } = await db
+    .from("reps")
+    .select("created_at, duration_s, transcript, wpm, filler_count, fillers, pauses, dimensions")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(30);
+  if (error || !data) return "/";
+  const rows = (data as PracticeRow[]).slice().reverse();
+  return todayHrefOn(rows, now, tzOffset);
 }

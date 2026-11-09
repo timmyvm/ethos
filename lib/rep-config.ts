@@ -426,6 +426,12 @@ export function repHref(opts: {
    * names no trait: Today's topic. Colour only, never part of the take.
    */
   trait?: string;
+  /**
+   * The day's first take, opened ready to record (#431): Today's Start
+   * on a day not yet spoken, and the reminder. The recording screen
+   * shows the topic, one tactic and Record. Never part of the take.
+   */
+  ready?: boolean;
 }): string {
   const q = new URLSearchParams();
   if (opts.boss) q.set("boss", opts.boss);
@@ -448,6 +454,7 @@ export function repHref(opts: {
   if (opts.mods?.length) q.set("mods", opts.mods.join(","));
   if (opts.back) q.set("back", opts.back);
   if (opts.trait) q.set("trait", opts.trait);
+  if (opts.ready) q.set("ready", "1");
   const s = q.toString();
   return s ? `/rep?${s}` : "/rep";
 }

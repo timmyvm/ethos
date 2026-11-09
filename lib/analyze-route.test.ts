@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import type { NextRequest } from "next/server";
 
 vi.mock("@/lib/transcribe", () => ({ transcribe: vi.fn() }));
@@ -364,6 +364,15 @@ describe("POST /api/analyze", () => {
   });
 
   it("compares a boss with last week's boss, in the speaker's own week", async () => {
+    /* The clock is the recording's morning: the route keeps a phone's
+       recordedAt only within 72 hours of now (lib/spoken-at.ts), so on
+       9 Nov this take read as spoken on the 6th's last allowed instant
+       and the week moved on with the calendar. */
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-06T00:30:00.000Z"));
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     vi.mocked(transcribe).mockResolvedValue(FIXTURE);
     vi.mocked(coachRep).mockResolvedValue(null);
     vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-boss", anonymous: false });

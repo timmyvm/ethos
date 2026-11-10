@@ -98,7 +98,7 @@ Q&A (free), Speed rush and Interview (Premium), each with three levels in `lib/g
 
 ## Open, with the leaning answer. Take it unless Timothy says otherwise.
 
-- **The hourly reminder clock is live (9 Nov, #432); confirm it tomorrow.** Migrations 0027 and 0028 applied, Vault holds the URL and a secret made in the database, `private.founders` holds the founder; no Vercel setting. The job `push-tick` runs at `1 * * * *`; the first tick by hand at 08:02 UTC answered 200 (`subs 5, due 5, done 1, sent 4, failed 0`) and was noted as `push-tick:PUSH_TICK_SECRET:database`. Done when `/active`'s Reminder clock reads 24 of 24 hours for the database (10 Nov), and Timothy's iPhone has passed `docs/reminders-ops.md` step 6.
+- **The hourly reminder clock is live and confirmed (#432).** Migrations 0027 and 0028 applied, Vault holds the URL and a secret made in the database, `private.founders` holds the founder; no Vercel setting. The job `push-tick` runs at `1 * * * *`; the first tick (by hand, 9 Nov 08:02 UTC) answered 200 and sent 4. Over the 24 hours to 10 Nov 13:37 UTC the database ticked 24 of 24 hours, every run succeeded, and GitHub's backup ticked 8 of 24. Still owed: Timothy's iPhone through `docs/reminders-ops.md` step 6, on the account `/active` lets in (his phone's reminder is on another account).
 
 - The one tap is a rectangle at 12. A pill primary (Headspace) or Duolingo's lip on the tap is worth one experiment, app-wide.
 - Desktop shell: same stage, constrained, side rail with Demos and the streak.

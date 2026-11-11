@@ -31,7 +31,7 @@ const STUBS = `
   create function auth.role() returns text language sql stable as $$
     select current_setting('request.jwt.claim.role', true) $$;
   create schema storage;
-  create table storage.buckets (id text primary key, name text, public boolean);
+  create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint);
   grant usage on schema public to anon, authenticated, service_role;
   grant usage on schema auth to anon, authenticated, service_role;
   alter default privileges in schema public grant all on tables to anon, authenticated, service_role;

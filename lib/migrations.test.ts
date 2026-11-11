@@ -390,3 +390,34 @@ describe("0028 database-held secrets", () => {
     expect(sql).toMatch(/revoke all on schema private from public, anon, authenticated;/);
   });
 });
+
+/**
+ * Least privilege (0029, the 11 Nov security audit). The early tables
+ * kept Supabase's ALL for the browser's roles; from here a table gives
+ * exactly the verbs its policies answer.
+ */
+describe("0029 least privilege", () => {
+  const sql = code("0029_least_privilege.sql");
+
+  it("gives the browser nothing on the server's own tables", () => {
+    for (const t of ["rate_limits", "push_subscriptions", "shop_prices"]) {
+      expect(sql).toMatch(new RegExp(`revoke all on table public\\.${t} from public, anon, authenticated`));
+      expect(sql).not.toMatch(new RegExp(`grant[^;]*public\\.${t}`));
+    }
+  });
+
+  it("takes every grant back before giving the used ones", () => {
+    expect(sql).toMatch(/array\['profiles', 'onboarding', 'streaks', 'streak_freezes', 'coin_ledger'\]/);
+    expect(sql).toMatch(/array\['reps', 'lexicon', 'xp_events', 'billing'\]/);
+    const revokes = sql.match(/revoke all on table public\.%I from public, anon, authenticated/g) ?? [];
+    expect(revokes.length).toBe(2);
+  });
+
+  it("never lets a caller with no session write", () => {
+    expect(sql).not.toMatch(/grant[^;]*(insert|update|all)[^;]*to[^;]*anon/i);
+  });
+
+  it("starts a later table with no grant for the browser", () => {
+    expect(sql).toMatch(/alter default privileges for role postgres in schema public\s+revoke all on tables from anon, authenticated/);
+  });
+});

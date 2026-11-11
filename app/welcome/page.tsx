@@ -68,6 +68,7 @@ import { buildPortfolio } from "@/lib/portfolio";
 import { readPrefs, writePrefs } from "@/lib/prefs";
 import { dayOneFamily } from "@/lib/practice-family";
 import { repHref } from "@/lib/rep-config";
+import { legalHref } from "@/lib/legal-href";
 import { authHref } from "@/lib/use-paywall-return";
 import { useHourLabel } from "@/lib/time-label";
 import { INPUT_ANSWER_CLASS } from "@/lib/ui";
@@ -731,6 +732,13 @@ function AccountStep({
             <Link href="/about" className="text-link -mx-1 inline-flex min-h-11 items-center px-1">
               What Ethos is
             </Link>
+            {/* #446: what an account agrees to, readable before it is made. */}
+            <Link href={legalHref("/privacy", "welcome")} className="text-link -mx-1 inline-flex min-h-11 items-center px-1">
+              Privacy
+            </Link>
+            <Link href={legalHref("/terms", "welcome")} className="text-link -mx-1 inline-flex min-h-11 items-center px-1">
+              Terms
+            </Link>
           </div>
         </>
       }
@@ -977,6 +985,7 @@ function NameField({
       maxLength={MAX_NAME}
       autoComplete="given-name"
       autoCapitalize="words"
+      autoCorrect="off"
       spellCheck={false}
       enterKeyHint="next"
       value={name ?? ""}

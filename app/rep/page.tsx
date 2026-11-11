@@ -98,7 +98,7 @@ import { liveTipAt, liveTipsFor, yieldsToCutIn } from "@/lib/live-tips";
 import {
   loadPose,
   onAppleMobile,
-  poseCapable,
+  videoOffered,
   samplePose,
   type PoseSampler,
 } from "@/lib/pose-client";
@@ -762,7 +762,7 @@ function RepScreen() {
     const apple = onAppleMobile();
     setVideoOff(lite ? "lite" : apple ? "apple" : null);
     setInApp(inAppBrowser(navigator.userAgent));
-    setPoseReady(poseCapable() && !lite && !apple);
+    setPoseReady(videoOffered(lite));
   }, []);
 
   /* Video not offered here: the take is Voice on this screen, and the
@@ -2319,6 +2319,10 @@ function RepScreen() {
             <TipStrip tips={config.tips} label={null} className="mt-3" />
 
             <textarea
+              /* Named for a screen reader and for dictation: the hint in
+                 it is gone at the first letter typed (#446). */
+              aria-label="Notes"
+              name="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}

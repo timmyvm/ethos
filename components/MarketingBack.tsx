@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 import { BackLink, ScreenHeader } from "@/components/ui/ScreenHeader";
+import { authHref, useNextPath } from "@/lib/use-paywall-return";
 
 /**
  * The way back off the marketing pages (marketing-2, marketing-3).
@@ -15,6 +16,11 @@ import { BackLink, ScreenHeader } from "@/components/ui/ScreenHeader";
  * there. Settings links in with `?from=settings`, and that is the only
  * thing these pages read.
  *
+ * The two account asks link to Privacy and Terms too (#446,
+ * lib/legal-href.ts). Their back is the ask that was left
+ * (`from=signup`, with the `next` it was carrying, and `from=welcome`,
+ * where the walk resumes on its account step).
+ *
  * Read here, in a client component under Suspense, so the pages stay
  * statically rendered: an async `searchParams` in the page would make
  * all three dynamic for the sake of one link. The static HTML is the
@@ -22,8 +28,16 @@ import { BackLink, ScreenHeader } from "@/components/ui/ScreenHeader";
  * and somebody from Settings gets their back in the same slot once the
  * page hydrates, at the same height, so nothing below it moves.
  */
+const ORIGINS = ["settings", "signup", "welcome"] as const;
+type Origin = (typeof ORIGINS)[number];
+
+function useOrigin(): Origin | null {
+  const from = useSearchParams().get("from");
+  return (ORIGINS as readonly string[]).includes(from ?? "") ? (from as Origin) : null;
+}
+
 function useFromSettings(): boolean {
-  return useSearchParams().get("from") === "settings";
+  return useOrigin() === "settings";
 }
 
 /**
@@ -44,14 +58,19 @@ export function MarketingBack({ stranger }: { stranger: ReactNode }) {
 /** The legal pages' header: back to Settings from inside the app,
     back to the landing page for everyone else. */
 export function MarketingHeader({ title }: { title: string }) {
-  const fromSettings = useFromSettings();
+  const origin = useOrigin();
+  const next = useNextPath();
   return (
     <ScreenHeader
       title={title}
       back={
-        fromSettings
+        origin === "settings"
           ? { href: "/settings", label: "Settings" }
-          : { href: "/about", label: "Ethos" }
+          : origin === "signup"
+            ? { href: authHref("signup", next), label: "Back" }
+            : origin === "welcome"
+              ? { href: "/welcome", label: "Back" }
+              : { href: "/about", label: "Ethos" }
       }
     />
   );
@@ -60,7 +79,8 @@ export function MarketingHeader({ title }: { title: string }) {
 /**
  * A link between the three pages that keeps `?from=settings`, so
  * somebody who opened About from Settings and then read the terms
- * still has Settings as their way back.
+ * still has Settings as their way back. (From an account ask the legal
+ * pages are a step off it and back; they do not carry it between them.)
  */
 export function MarketingLink({
   href,

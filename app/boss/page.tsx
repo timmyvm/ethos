@@ -386,10 +386,17 @@ export default function BossPage() {
                 type="search"
                 name="topic"
                 autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="none"
                 spellCheck={false}
                 enterKeyHint="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                /* The list filters as it is typed, so the keyboard's
+                   Search key has one job left: get out of its way (#446). */
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") e.currentTarget.blur();
+                }}
                 placeholder={`Search ${COLD_TOPICS.length} topics…`}
                 className={INPUT_CLASS}
               />

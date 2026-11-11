@@ -548,6 +548,10 @@ export default function YouPage() {
                   autoFocus
                   name="displayName"
                   autoComplete="nickname"
+                  /* A name is not a word to correct, and it starts with
+                     a capital (#446). */
+                  autoCapitalize="words"
+                  autoCorrect="off"
                   enterKeyHint="done"
                   spellCheck={false}
                   aria-label="Display name"

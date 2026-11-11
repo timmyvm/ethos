@@ -233,6 +233,28 @@ const lit = (page) => page.evaluate(() => document.querySelector('nav a[aria-cur
   ok("a back named for where it goes keeps its name", named.text === "You" && named.hidden === false, JSON.stringify(named));
   await context.close();
 }
+{
+  /* And the name is drawn whole. Its text was always right; what a
+     person saw on the recorder was "To…": the word's box had lost 12px
+     to its own negative margin (#442's regression). Measured, on every
+     screen that has a back, in the bar or by itself. */
+  const { context, page } = await open();
+  const cut = [];
+  let seen = 0;
+  for (const where of ["/rep?lesson=h4", "/boss", "/hostile", "/upload", "/shop", "/words", "/settings", "/calibrate", "/rep/rep-22", "/lessons/h4", "/tester"]) {
+    await page.goto(`${BASE}${where}`);
+    await settle(page);
+    const words = await page.evaluate(() =>
+      [...document.querySelectorAll(".screen-bar-back > span:not(.sr-only)")]
+        .filter((w) => w.getBoundingClientRect().width > 0)
+        .map((w) => ({ text: w.textContent.trim(), cut: w.scrollWidth > w.clientWidth + 1 }))
+    );
+    seen += words.length;
+    for (const w of words) if (w.cut) cut.push(`${where}: ${w.text}`);
+  }
+  ok("no back's word is cut short at 390, on any screen", seen >= 8 && cut.length === 0, cut.length ? cut.join(" | ") : `${seen} backs`);
+  await context.close();
+}
 
 await browser.close();
 const failed = findings.filter((f) => !f.pass);

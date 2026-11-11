@@ -19,7 +19,8 @@ import {
   type Theme,
 } from "@/lib/prefs";
 import { applyMotion, applyTheme } from "@/components/Theme";
-import { applyGraphics, liteWhy, type LiteWhy } from "@/lib/graphics";
+import { applyGraphics, liteGraphics, liteWhy, type LiteWhy } from "@/lib/graphics";
+import { videoOffered } from "@/lib/pose-client";
 import { ManageSheet } from "@/components/premium/ManageSheet";
 import { SettingsPlanRow, SettingsPlanRowSkeleton } from "@/components/premium/PlanCard";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -43,7 +44,7 @@ import {
   type ReminderTier,
   type TestOutcome,
 } from "@/lib/reminders";
-import { ASK_COPY, askPlatform, deniedLine, markSwitchedOff } from "@/lib/reminder-ask";
+import { ASK_COPY, askHours, askPlatform, deniedLine, markSwitchedOff } from "@/lib/reminder-ask";
 import { saveAccountHour } from "@/lib/reminder-account";
 import { testerNote } from "@/lib/tester-signal";
 import { inAppBrowser } from "@/lib/in-app";
@@ -52,14 +53,11 @@ import { computeStreak } from "@/lib/streak";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { useHourLabel } from "@/lib/time-label";
 import { ACTION_CLASS, DISABLED_CLASS, INPUT_CLASS } from "@/lib/ui";
-import { useRovingRadio, type RovingItemProps } from "@/lib/use-roving-radio";
 import { DOOR_COPY, TEST, TEST_COPY } from "@/content/tester";
 import { isCurrentTester } from "@/lib/tester";
 import { testDay, zoneDayKey } from "@/lib/tester-days";
 import { fetchTester, forgetTesterHint, readTesterHint, testZoneHere } from "@/lib/tester-client";
 
-/** The hours a reminder can ring at: two rows of three (you-17). */
-const HOURS = [7, 8, 12, 18, 20, 21] as const;
 /** Where the switch lands when it goes on: the evening, after the day. */
 const DEFAULT_HOUR = 20;
 
@@ -156,8 +154,17 @@ export default function SettingsPage() {
      billing read, and nothing under it moves when it lands. Read before
      paint, so a visit from You never draws the page without it. */
   const [hint, setHint] = useState(false);
+  /* What this phone can do (#446): a row for something it cannot is a
+     switch that does nothing. An iPhone has no vibration a page can ask
+     for, and takes no Video (#412), so it is offered neither Haptics nor
+     the camera score's bench. Read before paint, so no row is drawn and
+     then taken away. */
+  const [canBuzz, setCanBuzz] = useState(false);
+  const [canVideo, setCanVideo] = useState(false);
   useLayoutEffect(() => {
     setHint(readPlanHint());
+    setCanBuzz(typeof navigator !== "undefined" && typeof navigator.vibrate === "function");
+    setCanVideo(videoOffered(liteGraphics()));
   }, []);
   useEffect(() => {
     if (plan.today) keepPlanHint(plan.view, plan.failed);
@@ -432,8 +439,7 @@ export default function SettingsPage() {
 
       {/* Reminders first: it's the habit lever, so it's the one thing
           people come back here to change. One switch says whether it
-          rings (you-17); the hours appear only while it does, so the
-          ink "Off" slab, the heaviest object on the screen, is gone. */}
+          rings (you-17); its Time row appears only while it does. */}
       <Section
         title="Reminders"
         footer="One notification a day, with a number from your last take."
@@ -443,9 +449,10 @@ export default function SettingsPage() {
           on={reminderOn}
           onChange={(v) => setHour(v ? DEFAULT_HOUR : null)}
         />
-        {reminderOn && (
-          <HourSet
+        {prefs.reminderHour !== null && (
+          <TimeRow
             value={prefs.reminderHour}
+            hours={askHours(prefs)}
             onChange={(h) => setHour(h)}
             label={hour}
           />
@@ -568,27 +575,32 @@ export default function SettingsPage() {
           onChange={(v) => update({ verbatim: v })}
         />
         {/* The Presence bench (#187): four labeled takes tune the camera
-            score's thresholds to a real body. */}
-        <LinkRow
-          href="/calibrate"
-          label="Calibrate the camera score"
-          note="Four short takes tune it to your body."
-        />
+            score's thresholds to a real body. Only where a take can be
+            Video at all (#446). */}
+        {canVideo && (
+          <LinkRow
+            href="/calibrate"
+            label="Calibrate the camera score"
+            note="Four short takes tune it to your body."
+          />
+        )}
       </Section>
 
-      <Section title="Sound and haptics">
+      <Section title={canBuzz ? "Sound and haptics" : "Sound"}>
         <Toggle
           label="Sound"
           note="One chime at the streak celebration."
           on={prefs.sound}
           onChange={(v) => update({ sound: v })}
         />
-        <Toggle
-          label="Haptics"
-          note="A tap when recording starts and stops."
-          on={prefs.haptics}
-          onChange={(v) => update({ haptics: v })}
-        />
+        {canBuzz && (
+          <Toggle
+            label="Haptics"
+            note="A tap when recording starts and stops."
+            on={prefs.haptics}
+            onChange={(v) => update({ haptics: v })}
+          />
+        )}
       </Section>
 
       <Section title="Appearance">
@@ -607,7 +619,7 @@ export default function SettingsPage() {
         </div>
         <Toggle
           label="Reduced motion"
-          note="Every animation becomes a plain fade. Your OS setting is honoured either way."
+          note="Every animation becomes a plain fade. Your phone's own setting still counts."
           on={prefs.reducedMotion}
           onChange={(v) => {
             update({ reducedMotion: v });
@@ -697,7 +709,7 @@ export default function SettingsPage() {
           className={`group-row press-row flex w-full items-center gap-3 text-left ${DISABLED_CLASS}`}
         >
           <span className="font-display min-w-0 flex-1 text-row">
-            {exporting ? "Building your file…" : "Export everything as JSON"}
+            {exporting ? "Building your file…" : "Export everything"}
           </span>
           {/* The row's affordance (you-18): a download mark in the
               functional glyph colour, never a hue. */}
@@ -925,75 +937,63 @@ function Toggle({
 }
 
 /**
- * The reminder's hour: one radio group (you-19), two rows of three that
- * end flush with the row (you-17). It wears the segmented control's
- * grammar, a quiet track per option and a raised thumb on the chosen
- * one, so the screen shows a choice one way, not two (system-13).
+ * The reminder's hour, as a row: its name, the hour it rings at, and
+ * the phone's own picker under the whole row (#446, breaking #349's
+ * 3x2 grid). The grid offered six hours and the results glance offers
+ * every hour outside quiet hours (#430), so an hour chosen there (9 am)
+ * left Settings with the switch on over six unlit options: a control
+ * that could not show its own value. One picker and the same hours in
+ * both places; an hour kept from before that now falls inside quiet
+ * hours is still listed, so the row never shows a time it does not hold.
  */
-function HourSet({
+function TimeRow({
   value,
+  hours,
   onChange,
   label,
 }: {
-  value: number | null;
+  value: number;
+  hours: number[];
   onChange: (h: number) => void;
   label: (h: number) => string;
 }) {
-  const { getItemProps } = useRovingRadio<number>({
-    values: HOURS,
-    value,
-    onChange,
-  });
+  const options = hours.includes(value) ? hours : [...hours, value].sort((x, y) => x - y);
   return (
-    <div
-      role="radiogroup"
-      aria-label="Reminder hour"
-      className="group-row grid grid-cols-3 gap-1.5"
-    >
-      {HOURS.map((h, i) => (
-        <Choice
-          key={h}
-          selected={value === h}
-          onSelect={() => onChange(h)}
-          {...getItemProps(h, i)}
-        >
-          {label(h)}
-        </Choice>
-      ))}
-    </div>
-  );
-}
-
-/** One option in the hour set: a radio, roved by its group. */
-function Choice({
-  selected,
-  onSelect,
-  children,
-  tabIndex,
-  onKeyDown,
-  ref,
-}: {
-  selected: boolean;
-  onSelect: () => void;
-  children: React.ReactNode;
-} & RovingItemProps) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={selected}
-      tabIndex={tabIndex}
-      onKeyDown={onKeyDown}
-      ref={ref}
-      onClick={onSelect}
-      className={`press font-display min-h-11 w-full rounded-control border px-2 text-link font-bold tabular-nums transition-colors ${
-        selected
-          ? "border-transparent bg-raised text-ink shadow-[var(--shadow-1)] dark:bg-[#4a4a4a] dark:shadow-[0_0_0_0.5px_rgb(255_255_255/0.08)]"
-          : "border-transparent bg-[color-mix(in_srgb,var(--color-ink)_7%,transparent)] text-stone-600"
-      }`}
-    >
-      {children}
-    </button>
+    <label className="group-row press-row flex w-full items-center gap-3 focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-ink">
+      <span className="font-display min-w-0 flex-1 text-row">Time</span>
+      <span aria-hidden className="shrink-0 text-row font-normal text-stone-500 tabular-nums">
+        {label(value)}
+      </span>
+      {/* The mark iOS puts on a row that opens a list of values. */}
+      <svg
+        aria-hidden
+        width="9"
+        height="14"
+        viewBox="0 0 9 14"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="shrink-0 text-stone-400"
+      >
+        <path d="m1.5 5 3-3.2 3 3.2M1.5 9l3 3.2 3-3.2" />
+      </svg>
+      {/* The reading step, 16px, so an iPhone does not zoom the page to it. */}
+      <select
+        data-reminder-hour
+        aria-label="Reminder time"
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="absolute inset-0 h-full w-full cursor-pointer appearance-none text-read opacity-0"
+      >
+        {options.map((h) => (
+          <option key={h} value={h}>
+            {label(h)}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 

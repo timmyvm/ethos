@@ -264,10 +264,11 @@ for (const [name, s] of Object.entries(SCENES)) {
         } else if (TAG !== "before") fail(`${name} ${size.name}: no Send a test row`);
       }
       if (name === "settings-failed") {
-        // A re-arm that fails: the hour changes, the server answers 502.
-        const h = page.getByRole("radio").nth(5);
+        // A re-arm that fails: the hour changes (the Time row's picker,
+        // #446), the server answers 502.
+        const h = page.locator("main select[data-reminder-hour]");
         if (await h.count()) {
-          await h.click();
+          await h.selectOption("21");
           await sleep(1500);
         }
       }

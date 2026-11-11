@@ -176,15 +176,21 @@ for (const theme of ["light", "dark"]) {
   await settle(page);
   const read = () =>
     page.evaluate(() => {
-      const a = (v) => Number((v.match(/,\s*([0-9.]+)\)\s*$/) ?? [0, 1])[1]);
-      const cs = getComputedStyle(document.documentElement);
-      const caption = document.querySelector("main .group-foot");
-      return {
-        hairline: a(cs.getPropertyValue("--color-hairline")),
-        edge: a(cs.getPropertyValue("--color-edge")),
-        muted: a(cs.getPropertyValue("--color-stone-400")),
-        caption: caption ? getComputedStyle(caption).color : null,
+      /* The token as the browser resolves it, never as it is written: a
+         build rewrites `rgba(32, 30, 29, 0.08)` to a hex with alpha, and
+         a check that parsed the text read every strength as 1. */
+      const probe = document.createElement("i");
+      document.body.appendChild(probe);
+      const a = (token) => {
+        probe.style.color = `var(${token})`;
+        const m = getComputedStyle(probe).color.match(/rgba?\(([^)]+)\)/);
+        const parts = m ? m[1].split(/[,\s/]+/).filter(Boolean) : [];
+        return parts.length > 3 ? Number(parts[3]) : 1;
       };
+      const out = { hairline: a("--color-hairline"), edge: a("--color-edge"), muted: a("--color-stone-400") };
+      probe.remove();
+      const caption = document.querySelector("main .group-foot");
+      return { ...out, caption: caption ? getComputedStyle(caption).color : null };
     });
   const normal = await read();
   await page.emulateMedia({ contrast: "more", colorScheme: theme });

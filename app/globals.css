@@ -4231,6 +4231,14 @@ summary::-webkit-details-marker {
   color: var(--color-stone-500);
   transition: color 200ms var(--ease-out);
 }
+/* 40 tall inside the track's 2px of padding: the option's reach takes
+   that padding too, so the whole 44px height of the control is a press
+   on the option under it (#439). */
+.segmented-option::after {
+  content: "";
+  position: absolute;
+  inset: -2px 0;
+}
 .segmented[data-size="lg"] .segmented-option {
   min-height: 44px;
   font-size: 15px;

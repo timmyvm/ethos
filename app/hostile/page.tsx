@@ -15,7 +15,9 @@ import { FooterShelf } from "@/components/ui/FooterShelf";
 import { BackLink } from "@/components/ui/ScreenHeader";
 import { fetchProfile, fetchReps } from "@/lib/client-data";
 import { weekStart } from "@/lib/level";
-import { ensureSession } from "@/lib/supabase-browser";
+import { hostileKey } from "@/lib/client-key";
+import { sendWithRetry } from "@/lib/rep-outbox";
+import { ensureSession, sessionToken } from "@/lib/supabase-browser";
 import { ACTION_CLASS } from "@/lib/ui";
 import {
   ANSWER_SECONDS,
@@ -192,25 +194,29 @@ export default function HostilePage() {
 
   /** Bank the take as a normal recording, off the critical path. */
   function bankTake(blob: Blob) {
+    /* The take's own key (#436), made once and sent with both tries: a
+       bank whose answer was lost and goes again stores one recording.
+       The second try is what the key buys, for a dropped connection or
+       a gateway 5xx. */
+    const key = hostileKey();
     bank.current = (async (): Promise<string | null> => {
       try {
-        const token = await ensureSession();
         const form = new FormData();
         form.append("audio", blob, "rep.webm");
         form.append("lessonId", HOSTILE_TAKE_ID);
         form.append("captureMode", "voice");
         form.append("tzOffset", String(new Date().getTimezoneOffset()));
-        const res = await fetch("/api/analyze", {
-          method: "POST",
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-          body: form,
-        });
-        if (res.ok) {
+        form.append("clientId", key);
+        const out = await sendWithRetry(
+          form,
+          (force) => (force ? sessionToken(true) : ensureSession()),
+          undefined,
+          2
+        );
+        if (out.ok) {
           setBanked(true);
           setUsedThisWeek(true);
-          const data = (await res.json().catch(() => null)) as
-            | AnalyzeResponse
-            | null;
+          const data = out.data as AnalyzeResponse | null;
           if (data?.metrics) setTakeResult(data);
           return data?.repId ?? null;
         }

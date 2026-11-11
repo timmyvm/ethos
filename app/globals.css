@@ -6287,3 +6287,76 @@ html[data-test-tile] .test-tile-slot {
   animation: fade-out var(--duration-base) var(--ease-out) forwards;
 }
 /* ========================== end of the undo toast (#435) ========================== */
+
+/* ========================= continuous corners (#437) =========================
+ * Where the browser can draw them (Chromium today; every other browser
+ * skips this block whole and keeps the round corners above), a surface's
+ * corner is a superellipse instead of a quarter circle: the curve starts
+ * earlier along each edge and never kinks where it meets the straight,
+ * the way a card's corner is cut on iOS.
+ *
+ * Drawn at the same radius a superellipse cuts tighter than the circle
+ * it replaces, and every card would look squarer. So each surface radius
+ * is drawn a third larger (`--corner-k`), which puts the curve's
+ * shoulder back where the round one's was: the same roundness, a
+ * smoother edge. The base values are the theme's own
+ * (`lib/corners.test.ts` holds the two in step).
+ *
+ * Surfaces only: cards, stages, sheets, tiles, inputs and answer rows.
+ * A pill stays a pill and Record stays a circle, so `rounded-tap`,
+ * `rounded-full` and `rounded-none` are named back to round for any
+ * element that is also a surface. A layer that borrows its surface's
+ * radius (`border-radius: inherit`) borrows its corner too.
+ * ============================================================================ */
+@supports (corner-shape: superellipse(1.5)) {
+  :root {
+    --corner: superellipse(1.5);
+    --corner-k: 1.35;
+    --radius-control: calc(12px * var(--corner-k));
+    --radius-card: calc(16px * var(--corner-k));
+    --radius-sheet: calc(20px * var(--corner-k));
+    --radius-hero: calc(28px * var(--corner-k));
+    --radius-tile: calc(22px * var(--corner-k));
+  }
+  .card,
+  .best-plaque,
+  .inset-group,
+  .segmented,
+  .practice-stage,
+  .family-fill,
+  .home-hero,
+  .home-tile,
+  .rounded-control,
+  .rounded-card,
+  .rounded-sheet,
+  .rounded-t-sheet {
+    corner-shape: var(--corner);
+  }
+  /* Two surfaces that wrote their radius out: the introduction's stage
+     (a sheet-radius panel) and the segmented control's thumb, which
+     sits 2px inside its track and so takes the track's corner less 2. */
+  .intro-stage {
+    border-radius: var(--radius-sheet);
+    corner-shape: var(--corner);
+  }
+  .segmented-thumb {
+    border-radius: calc(var(--radius-control) - 2px);
+    corner-shape: var(--corner);
+  }
+  .family-fill::before,
+  .home-hero::before,
+  .test-day-fill,
+  .test-day[data-today]::after {
+    corner-shape: inherit;
+  }
+  /* Today's Today / This week switch is a pill, thumb and all, though it
+     is a segmented control. */
+  .home-seg,
+  .home-seg .segmented-thumb,
+  .rounded-tap,
+  .rounded-full,
+  .rounded-none {
+    corner-shape: round;
+  }
+}
+/* ======================= end of continuous corners (#437) ======================= */

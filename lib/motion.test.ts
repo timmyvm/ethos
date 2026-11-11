@@ -52,6 +52,35 @@ describe("motion tokens", () => {
 });
 
 /**
+ * A skeleton waits before it draws (#434): a read that lands inside the
+ * wait never flashes a placeholder. The wait is a token, it is on every
+ * bone, and reduced motion keeps it (a wait is not motion).
+ */
+describe("the skeleton's wait", () => {
+  const rule = (selector: string) => {
+    const at = css.indexOf(`${selector} {`);
+    return at === -1 ? "" : css.slice(at, css.indexOf("}", at));
+  };
+
+  it("is about 300ms, from one token", () => {
+    expect(token("skeleton-wait")).toBe("300ms");
+  });
+
+  it("delays every bone's first paint by it, then sweeps", () => {
+    const bone = rule("\n.skeleton");
+    expect(bone).toMatch(/skeleton-in var\(--duration-fast\) var\(--ease-out\) var\(--skeleton-wait\) backwards/);
+    expect(bone).toMatch(/skeleton-sweep/);
+    expect(css).toMatch(/@keyframes skeleton-in \{\s*from \{\s*opacity: 0;/);
+  });
+
+  it("keeps the wait under reduced motion, without the sweep", () => {
+    const still = rule(':root[data-motion="reduce"] .skeleton');
+    expect(still).toMatch(/skeleton-in 1ms step-end var\(--skeleton-wait\) backwards/);
+    expect(still).not.toMatch(/skeleton-sweep/);
+  });
+});
+
+/**
  * The spin is the one motion past the celebration ceiling. It used to
  * live inside DURATION.max as a 300ms flick of three candidates; a
  * first-time user asked for a longer spin, and Timothy's live call

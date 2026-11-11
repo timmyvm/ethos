@@ -193,7 +193,7 @@ async function shootTheme(theme) {
   await sheet("sheet-keep", '.tw[data-word-key="dollar"]');
   await sheet("sheet-swap", '.tw[data-word-key="really"]');
   await sheet("sheet-word", '.tw[data-word-key="thing"]');
-  await sheet("sheet-loading", '.tw[data-word-key="corporations"]', { before: () => (api.mode = "slow"), settle: 300 });
+  await sheet("sheet-loading", '.tw[data-word-key="corporations"]', { before: () => (api.mode = "slow"), settle: 700 }); // past the skeleton's wait (#434)
 
   // ---- The answer landing, as a strip --------------------------------------
   const strip = (name, selector, nth = 0) =>

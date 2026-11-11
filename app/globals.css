@@ -1722,7 +1722,16 @@ summary::-webkit-details-marker {
  * theme's redefinition of both without a second rule, and it sits at low
  * contrast on purpose: a placeholder that pulses hard competes with the
  * content it is standing in for.
+ *
+ * A bone waits before it draws (#434). It holds its height from the
+ * first frame, as it always did, so nothing moves; but a read that
+ * lands inside `--skeleton-wait` never flashes a placeholder at all,
+ * and one that takes longer gets its bones in a short fade. A skeleton
+ * says "this is taking a moment", and under 300ms it is not.
  */
+:root {
+  --skeleton-wait: 300ms;
+}
 .skeleton {
   background-color: var(--color-sand);
   background-image: linear-gradient(
@@ -1733,7 +1742,15 @@ summary::-webkit-details-marker {
   );
   background-size: 200% 100%;
   background-repeat: no-repeat;
-  animation: skeleton-sweep 1.5s ease-in-out infinite;
+  animation:
+    skeleton-in var(--duration-fast) var(--ease-out) var(--skeleton-wait) backwards,
+    skeleton-sweep 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-in {
+  from {
+    opacity: 0;
+  }
 }
 
 @keyframes skeleton-sweep {
@@ -1751,9 +1768,10 @@ summary::-webkit-details-marker {
   animation-delay: 0ms;
 }
 
-/* Still a visible placeholder, just a still one. */
+/* Still a visible placeholder, just a still one. The wait is not
+   motion, so it stays: the bone appears whole when the wait is up. */
 :root[data-motion="reduce"] .skeleton {
-  animation: none;
+  animation: skeleton-in 1ms step-end var(--skeleton-wait) backwards;
   background-image: none;
 }
 

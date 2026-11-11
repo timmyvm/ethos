@@ -146,7 +146,8 @@ async function shootTheme(theme) {
         if (!want(name)) return;
         if (before) before();
         if (!(await open(selector))) return console.log("NO-WORD", name, selector);
-        await shot(name, { settle: name.endsWith("loading") ? 250 : 900 });
+        /* A loading shot waits out the skeleton's own wait (#434, 300ms and a 120ms fade). */
+        await shot(name, { settle: name.endsWith("loading") ? 700 : 900 });
         wordsApi.mode = "ok";
         await close();
       });

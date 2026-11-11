@@ -20,7 +20,10 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { session } from "./look-fixtures.mjs";
 
 const BASE = process.env.LOOK_BASE ?? "http://localhost:3123";
-const OUT = new URL("../docs/devibe/motion-check/onboarding/", import.meta.url).pathname;
+/* CHECK_OUT: somewhere outside the repo when the app is `next dev`, whose
+   watcher rebuilds on every frame of a video written into the repo and
+   serves a cut-off chunk meanwhile (scripts/check-motion.mjs). */
+const OUT = `${(process.env.CHECK_OUT ?? new URL("../docs/devibe/motion-check/", import.meta.url).pathname).replace(/\/?$/, "/")}onboarding/`;
 mkdirSync(OUT, { recursive: true });
 const findings = [];
 const ok = (name, pass, detail = "") => { findings.push({ name, pass, detail }); console.log(`${pass ? "PASS" : "FAIL"}  ${name}${detail ? "  (" + detail + ")" : ""}`); };

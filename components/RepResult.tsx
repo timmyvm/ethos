@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
+import { SwapFrom, SwapTo, TrendMark } from "@/components/ui/TrendMark";
 import { AccuracyCard } from "@/components/AccuracyCard";
 import { CountUp } from "@/components/CountUp";
 import { DemosArt, preloadPose } from "@/components/DemosArt";
@@ -433,7 +434,10 @@ export function RepResult({
                       second line reads "→ an impossible week", never an
                       arrow left at the end of the first. */}
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-body">
-                    <span className="text-stone-500 line-through">{coach.supply.original}</span>
+                    <span className="text-stone-500 line-through">
+                      <SwapFrom />
+                      {coach.supply.original}
+                    </span>
                     <span className="flex min-w-0 items-center gap-x-3">
                       <svg
                         aria-hidden
@@ -449,7 +453,10 @@ export function RepResult({
                       >
                         <path d="M2.5 8h10M9 4.5 12.5 8 9 11.5" />
                       </svg>
-                      <span className="font-semibold">{coach.supply.upgrade}</span>
+                      <span className="font-semibold">
+                        <SwapTo />
+                        {coach.supply.upgrade}
+                      </span>
                     </span>
                   </div>
                   {coach.supply.note && <p className="mt-1.5 text-caption text-stone-500">{coach.supply.note}</p>}
@@ -910,6 +917,7 @@ export function RepResult({
           <h2 className="section-head">Say this instead</h2>
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-body">
             <span className="text-stone-500 line-through">
+              <SwapFrom />
               {coach.supply.original}
             </span>
             {/* The arrow travels with what it points at (#429). */}
@@ -928,7 +936,10 @@ export function RepResult({
               >
                 <path d="M2.5 8h10M9 4.5 12.5 8 9 11.5" />
               </svg>
-              <span className="font-semibold">{coach.supply.upgrade}</span>
+              <span className="font-semibold">
+                <SwapTo />
+                {coach.supply.upgrade}
+              </span>
             </span>
           </div>
           {coach.supply.note && (
@@ -992,7 +1003,7 @@ function Delta({
   if (delta !== null && delta !== 0) {
     return (
       <p className={`${size} ${delta > 0 ? "text-sage-700" : "text-rust"} ${className}`}>
-        {delta > 0 ? "▲" : "▼"} {Math.abs(delta)} {boss ? "on last week's boss" : "since last time"}
+        <TrendMark up={delta > 0} /> {Math.abs(delta)} {boss ? "on last week's boss" : "since last time"}
       </p>
     );
   }
@@ -1330,7 +1341,7 @@ function Glance({
             {view.earned.delta ? (
               <span className={view.earned.delta > 0 ? "text-sage-700" : "text-rust"}>
                 {" "}
-                {view.earned.delta > 0 ? "▲" : "▼"} {Math.abs(view.earned.delta)}
+                <TrendMark up={view.earned.delta > 0} /> {Math.abs(view.earned.delta)}
               </span>
             ) : null}
           </p>

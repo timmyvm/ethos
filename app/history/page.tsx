@@ -1,5 +1,6 @@
 "use client";
 
+import { TrendMark } from "@/components/ui/TrendMark";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
@@ -569,13 +570,17 @@ export default function HistoryPage() {
               const name = recordingName(r);
               /* log-21: the row's name, not four bare numbers. The
                  column heads are hidden from assistive tech, so the
-                 label carries what they said. */
+                 label carries what they said: every number the row
+                 shows (#448; it stopped at the stars, and the fillers,
+                 the pace and the pauses were on screen and unsaid). */
               const label = `${name}, ${d.toLocaleDateString(undefined, {
                 day: "numeric",
                 month: "long",
               })}, ${
                 r.ethos_index === null ? "not scored" : `Ethos ${r.ethos_index}`
-              }, ${r.stars} of 3 stars`;
+              }, ${r.stars} of 3 stars, ${r.filler_count} filler${r.filler_count === 1 ? "" : "s"}, ${
+                r.wpm
+              } words a minute, ${held} held pause${held === 1 ? "" : "s"}`;
               return (
                 <Link
                   key={r.id}
@@ -684,6 +689,22 @@ function Line({ className, width }: { className: string; width: string }) {
       <span className="invisible">Ag</span>
       <Skeleton className={`absolute inset-y-[22%] left-0 ${width}`} />
     </div>
+  );
+}
+
+/**
+ * A row's change as lib/log writes it ("▲ +131", "▼ 3.3", or words like
+ * "in 130 to 160"): the triangle for the eye, Up or Down for a screen
+ * reader (#448). One span, so the cell's flex row keeps the space
+ * between the mark and its number.
+ */
+function Change({ text }: { text: string }) {
+  const m = /^([▲▼])\s?(.*)$/.exec(text);
+  if (!m) return <>{text}</>;
+  return (
+    <span>
+      <TrendMark up={m[1] === "▲"} /> {m[2]}
+    </span>
   );
 }
 
@@ -815,7 +836,7 @@ function MetricRow({
           dim ? "" : tone
         }`}
       >
-        {row.change ?? DASH}
+        {row.change ? <Change text={row.change} /> : DASH}
       </span>
       {/* log-23: the track draws a trailing mean of three, so a noisy
           series reads as a direction; every point stays, so the line

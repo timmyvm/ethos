@@ -198,8 +198,8 @@ async function shootTheme(theme) {
   // Results: record a take on the floor, stop, wait out the celebration.
   const results = async (page) => {
     await page.goto(`${BASE}/rep?lesson=h4`);
-    await page.waitForSelector('button[aria-label="Start recording"]', { timeout: 20000 });
-    await page.click('button[aria-label="Start recording"]', { force: true });
+    await page.waitForSelector('button[data-record="start"]', { timeout: 20000 });
+    await page.click('button[data-record="start"]', { force: true });
     await page.waitForSelector('button[aria-label="Stop and score this recording"]');
     await sleep(2500);
     await page.click('button[aria-label="Stop and score this recording"]', { force: true });

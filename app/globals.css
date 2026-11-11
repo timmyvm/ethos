@@ -4091,6 +4091,33 @@ summary::-webkit-details-marker {
 
 /* More contrast: near-solid surfaces with a defined edge (§14). */
 @media (prefers-contrast: more) {
+  /* And the room itself (#448). Increase Contrast on the phone asks for
+     firmer edges and stronger second-rank text; the rules below only
+     answered for the bar and the dock. The neutrals are one ink at
+     several strengths, so the answer is the same ink, stronger, and
+     every caption, glyph, hairline and edge that reads them follows:
+     muted text from 5.0:1 to about 8:1 in light, the hairline from 8%
+     of ink to 30%. Nothing here changes a hue. */
+  :root {
+    --color-hairline: rgba(32, 30, 29, 0.3);
+    --color-card-edge: rgba(32, 30, 29, 0.32);
+    --color-edge: rgba(32, 30, 29, 0.5);
+    --color-stone-200: rgba(32, 30, 29, 0.3);
+    --color-stone-300: rgba(32, 30, 29, 0.45);
+    --color-stone-400: rgba(32, 30, 29, 0.8);
+    --color-stone-500: rgba(32, 30, 29, 0.86);
+    --color-stone-600: rgba(32, 30, 29, 0.9);
+  }
+  :root[data-theme="dark"] {
+    --color-hairline: rgba(242, 242, 242, 0.3);
+    --color-card-edge: rgba(242, 242, 242, 0.34);
+    --color-edge: rgba(242, 242, 242, 0.5);
+    --color-stone-200: rgba(242, 242, 242, 0.3);
+    --color-stone-300: rgba(242, 242, 242, 0.45);
+    --color-stone-400: rgba(242, 242, 242, 0.8);
+    --color-stone-500: rgba(242, 242, 242, 0.86);
+    --color-stone-600: rgba(242, 242, 242, 0.9);
+  }
   .screen-bar[data-edge]::before {
     background: var(--color-ground);
     -webkit-mask-image: none;

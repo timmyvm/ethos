@@ -217,9 +217,9 @@ for (const [name, width, height] of [["390", 390, 844], ["320", 320, 568]]) {
 for (const theme of ["dark", "light"]) {
   const { context, page } = await open({ theme });
   await page.goto(`${BASE}/rep?lesson=h4`);
-  await page.waitForSelector('button[aria-label="Start recording"]', { timeout: 20000 });
+  await page.waitForSelector('button[data-record="start"]', { timeout: 20000 });
   await sleep(700);
-  await page.click('button[aria-label="Start recording"]', { force: true });
+  await page.click('button[data-record="start"]', { force: true });
   await page.waitForSelector('button[aria-label="Stop and score this recording"]', { timeout: 15000 });
   await sleep(2800);
   await page.click('button[aria-label="Stop and score this recording"]', { force: true });

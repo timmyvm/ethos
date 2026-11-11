@@ -18,13 +18,20 @@
  *   PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node scripts/check-motion.mjs
  *
  * Writes findings.json, a screenshot and a 390px video of the run next
- * to itself under docs/devibe/motion-check/.
+ * to itself under docs/devibe/motion-check/, or under CHECK_OUT (set it
+ * to a folder outside the repo when the app is `next dev`).
  */
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 import { mkdirSync, writeFileSync } from "node:fs";
 
 const BASE = process.env.LOOK_BASE ?? "http://localhost:3123";
-const OUT = new URL("../docs/devibe/motion-check/", import.meta.url).pathname;
+/* CHECK_OUT sends the video and the findings somewhere else. Against
+   `next dev` it has to: the dev server watches the repo, a video being
+   written into it is a change on every frame, and a page loaded during
+   the rebuild that follows is handed a layout chunk cut off part way
+   ("Invalid or unexpected token", an empty <main>). A built app has no
+   watcher, so the default is fine there. */
+const OUT = (process.env.CHECK_OUT ?? new URL("../docs/devibe/motion-check/", import.meta.url).pathname).replace(/\/?$/, "/");
 mkdirSync(OUT, { recursive: true });
 const findings = [];
 const ok = (name, pass, detail = "") => {
@@ -225,13 +232,13 @@ if (page.url().includes("/lesson/")) {
   await page.getByRole("link", { name: "Start" }).click();
   await page.waitForURL(/\/rep/);
 }
-await page.waitForSelector('button[aria-label="Start recording"]');
+await page.waitForSelector('button[data-record="start"]');
 let ring = await anim(page, ".rec-ring");
 ok("ring is hidden before recording", ring.opacity === "0", ring.opacity);
 await sleep(600);
 // The Record button breathes while it waits (#242), so the
 // actionability check would wait for a stillness that never comes.
-await page.click('button[aria-label="Start recording"]', { force: true });
+await page.click('button[data-record="start"]', { force: true });
 await page.waitForSelector('button[aria-label="Stop and score this recording"]');
 await sleep(350);
 ring = await anim(page, '.rec-ring[data-on="true"]');

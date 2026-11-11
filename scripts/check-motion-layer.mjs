@@ -105,7 +105,7 @@ ok(
 // On /rep, because the Record button is the app's clearest case of a
 // control that is both levelled and tappable.
 await page.goto(`${BASE}/rep?lesson=h4`);
-await page.waitForSelector('button[aria-label="Start recording"]');
+await page.waitForSelector('button[data-record="start"]');
 const pressed = await page.evaluate(async () => {
   const el = document.querySelector(".press.elev-3, .press.elev-2, .press.elev-1");
   if (!el) return null;
@@ -143,8 +143,8 @@ ok("the spring is a token", norm(spring) === "cubic-bezier(0.34,1.56,0.64,1)", s
 
 // ---- 4. The Record button waits ------------------------------------------
 await page.goto(`${BASE}/rep?lesson=h4`);
-await page.waitForSelector('button[aria-label="Start recording"]');
-const wait = await page.$eval('button[aria-label="Start recording"]', (el) => ({
+await page.waitForSelector('button[data-record="start"]');
+const wait = await page.$eval('button[data-record="start"]', (el) => ({
   name: getComputedStyle(el).animationName,
   dur: getComputedStyle(el).animationDuration,
   count: getComputedStyle(el).animationIterationCount,
@@ -217,8 +217,8 @@ const calm = await page.evaluate(() => {
 ok("reduced motion turns a stagger into one fade", calm.motion === "reduce" && calm.rowAnim === "fade-in" && calm.rowDelay === "0s", `${calm.rowAnim} ${calm.rowDelay}`);
 
 await page.goto(`${BASE}/rep?lesson=h4`);
-await page.waitForSelector('button[aria-label="Start recording"]');
-const calmRec = await page.$eval('button[aria-label="Start recording"]', (el) => getComputedStyle(el).animationName);
+await page.waitForSelector('button[data-record="start"]');
+const calmRec = await page.$eval('button[data-record="start"]', (el) => getComputedStyle(el).animationName);
 ok("reduced motion stops the Record button breathing", calmRec === "none", calmRec);
 await page.evaluate(() => localStorage.removeItem("ethos.prefs"));
 

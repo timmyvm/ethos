@@ -80,7 +80,7 @@ async function open({ iphone = false, micDenied = false } = {}) {
   return { context, page };
 }
 const awake = (page) => page.evaluate(() => ({ ...window.__awake }));
-const START = 'button[aria-label="Start recording"]';
+const START = 'button[data-record="start"]';
 const STOP = 'button[aria-label="Stop and score this recording"]';
 
 // ---- 1. awake from Record to the result -------------------------------------

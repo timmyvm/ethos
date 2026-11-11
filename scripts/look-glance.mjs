@@ -375,9 +375,9 @@ for (const size of SIZES) {
     await sleep(600);
     await page.getByRole("link", { name: "Start", exact: true }).click();
   }
-  await page.waitForSelector('button[aria-label="Start recording"]', { timeout: 30000 });
+  await page.waitForSelector('button[data-record="start"]', { timeout: 30000 });
   await sleep(900);
-  await page.click('button[aria-label="Start recording"]', { force: true });
+  await page.click('button[data-record="start"]', { force: true });
   await page.waitForSelector('button[aria-label="Stop and score this recording"]', { timeout: 20000 });
   /* Five seconds of the fake mic, so the glance's first moment (0:01.7
      to 0:04.2) is inside the take and can be heard playing on. */
@@ -574,9 +574,9 @@ if (VARIANT === "daily" && process.env.LOOK_ASK !== "0") {
   await page.waitForSelector("main .arrive", { timeout: 30000 });
   await sleep(800);
   await page.locator('main a[href^="/rep"], main button:has-text("Start")').first().click();
-  await page.waitForSelector('button[aria-label="Start recording"]', { timeout: 30000 });
+  await page.waitForSelector('button[data-record="start"]', { timeout: 30000 });
   await sleep(900);
-  await page.click('button[aria-label="Start recording"]', { force: true });
+  await page.click('button[data-record="start"]', { force: true });
   await page.waitForSelector('button[aria-label="Stop and score this recording"]');
   await sleep(2600);
   await page.click('button[aria-label="Stop and score this recording"]', { force: true });

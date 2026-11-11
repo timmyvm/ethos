@@ -674,15 +674,17 @@ export default function HostilePage() {
                 driven by the live level, so they move when you speak,
                 which is the only proof of listening a screen can give. */}
             <div className="flex items-center gap-2">
+              {/* Live is rust, as a warning is (#448): terracotta on this
+                  screen is Done, and nothing else. */}
               <span
                 aria-hidden
-                className="h-2.5 w-2.5 rounded-full bg-terracotta-700"
+                className="h-2.5 w-2.5 rounded-full bg-rust"
                 style={{
                   transform: `scale(${1 + level * 1.4})`,
                   opacity: 0.55 + level * 0.45,
                 }}
               />
-              <span className="label-micro !text-terracotta-700">
+              <span className="label-micro !text-rust">
                 recording
               </span>
             </div>

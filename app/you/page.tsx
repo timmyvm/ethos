@@ -1,5 +1,6 @@
 "use client";
 
+import { SwapFrom, SwapTo } from "@/components/ui/TrendMark";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { HeroStage } from "@/components/ui/HeroStage";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
@@ -1019,6 +1020,17 @@ export default function YouPage() {
                   </span>
                   <span className="mt-0.5 block text-caption text-stone-400">
                     {a.requirement}
+                    {/* Earned or not is the mark's colour and nothing
+                        else, so it is also said (#448). */}
+                    {!loading && (
+                      <span className="sr-only">
+                        {a.earned
+                          ? ". Earned."
+                          : a.progress > 0
+                            ? `. Not earned yet, ${Math.round(a.progress * 100)}% of the way.`
+                            : ". Not earned yet."}
+                      </span>
+                    )}
                   </span>
                   {!loading && !a.earned && a.progress > 0 && (
                     <span className="mt-1.5 block h-1 overflow-hidden bg-sand">
@@ -1263,7 +1275,10 @@ const SWAP_ROW = "flex min-h-14 flex-wrap items-center gap-x-2.5 gap-y-1 py-3 te
 function Swap({ original, upgrade }: { original: string; upgrade: string }) {
   return (
     <>
-      <span className="text-stone-400 line-through">{original}</span>
+      <span className="text-stone-400 line-through">
+        <SwapFrom />
+        {original}
+      </span>
       <svg
         aria-hidden
         width="16"
@@ -1278,7 +1293,10 @@ function Swap({ original, upgrade }: { original: string; upgrade: string }) {
       >
         <path d="M2.5 8h10.5M9.5 4.5 13 8l-3.5 3.5" />
       </svg>
-      <span className="you-word">{upgrade}</span>
+      <span className="you-word">
+        <SwapTo />
+        {upgrade}
+      </span>
     </>
   );
 }

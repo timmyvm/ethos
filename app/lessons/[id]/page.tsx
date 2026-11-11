@@ -10,6 +10,7 @@ import { lessonById } from "@/content/lessons";
 import { backFrom } from "@/lib/back-from";
 import { TRAIT } from "@/content/traits";
 import { fetchRepSpine, fetchReps, heldReps, heldSpine } from "@/lib/client-data";
+import { objectSrc } from "@/lib/home";
 import { useStill, useWarm } from "@/lib/use-warm";
 import { readable } from "@/lib/load";
 import { lessonProgress, nextPractice } from "@/lib/lesson-progress";
@@ -159,15 +160,17 @@ export default function LessonPage() {
               {/* The glass object alone, standing in the room (the fix
                   round): the render's own square was a full-strength
                   tile of tone on the stage, the brightest thing one tap
-                  past Lessons. Keyed off its ground at 360px
-                  (scripts/key-lesson-art.py); a plain img (#274). */}
+                  past Lessons. Keyed off its ground
+                  (scripts/key-lesson-art.py); a plain img (#274). The
+                  560 cut (#448): at 176pt a 3x iPhone draws 528px, and
+                  the list's 360 thumbnail was being stretched to it. */}
               <img
-                src={lesson.art}
+                src={objectSrc(lesson.id, true)}
                 alt=""
                 loading="eager"
                 decoding="async"
-                width={360}
-                height={360}
+                width={560}
+                height={560}
                 className="absolute inset-0 h-full w-full object-cover"
               />
             </span>

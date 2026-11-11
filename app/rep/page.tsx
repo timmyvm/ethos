@@ -2337,9 +2337,12 @@ function RepScreen() {
 
         {phase === "recording" && (
           <div className="arrive flex w-full flex-col items-center gap-6 [@media(max-height:700px)]:gap-3">
+            {/* The last ten seconds warn in rust, the colour every warning
+                and error wears. Terracotta is the tap's (#448): a clock
+                in it borrowed the one colour that means "press this". */}
             <div
               className={`font-display text-num-hero tabular-nums transition-colors ${
-                config.maxSeconds - seconds <= 10 ? "text-terracotta-700" : ""
+                config.maxSeconds - seconds <= 10 ? "text-rust" : ""
               }`}
             >
               <span ref={clockRef} className="inline-block">
@@ -2599,11 +2602,14 @@ function RepScreen() {
                     ? () => setPaywall({ reason: game.name })
                     : () => begin()
               }
-              aria-label={
-                phase === "recording"
-                  ? "Stop and score this recording"
-                  : "Start recording"
-              }
+              /* Named by the word on it while it waits (#448): "Record"
+                 is what a person sees, so it is what a voice asks for
+                 ("Tap Record") and what a screen reader says. "Start
+                 recording" was a name nobody could see. Stop keeps its
+                 longer one, which starts with the word shown. */
+              aria-label={phase === "recording" ? "Stop and score this recording" : undefined}
+              /* The cameras' hook, so no gate depends on the wording. */
+              data-record={phase === "recording" ? "stop" : "start"}
               /* A locked game's Record opens the plum sheet, as a
                  Practice tile marks the same door (finding 16). */
               aria-haspopup={phase !== "recording" && locked && game ? "dialog" : undefined}
@@ -2853,6 +2859,23 @@ function Results({
    * the score carries it then (lib/tester.ts withPending).
    */
   const [askingFelt, setAskingFelt] = useState(() => match);
+  /*
+   * What a screen reader is told when the result lands (#448). Stop,
+   * the control that held the focus, is gone by then, and with no
+   * streak moment to hand the focus on (any take after the day's first)
+   * it fell to the page and the result arrived in silence. The focus
+   * goes to the results' name, and the name carries the number once the
+   * number is on screen: never while "How did that feel?" is still
+   * being asked, which comes before the score.
+   */
+  const head = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    head.current?.focus({ preventScroll: true });
+  }, []);
+  const heardScore =
+    !askingFelt && result.scorable !== false && result.ethosIndex !== null
+      ? `Your Ethos, ${result.ethosIndex} of 1000.`
+      : "";
   /* The door's sheet, "The whole recording", over the glance. */
   const [sheetOpen, setSheetOpen] = useState(false);
   const stopTake = take.pause;
@@ -3487,8 +3510,9 @@ function Results({
         {/* M07, recording-10: what was practised, the page's h1 for a
             screen reader, and the header's back for everyone (#427), at
             BackLink's geometry; the coin it earned on the right. */}
-        <h1 tabIndex={-1} data-results-head className="sr-only">
+        <h1 ref={head} tabIndex={-1} data-results-head className="sr-only">
           {practised}
+          {heardScore && `. ${heardScore}`}
         </h1>
         <div className="flex min-h-11 items-center justify-between gap-3">
           {askingFelt ? (

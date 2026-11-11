@@ -428,13 +428,13 @@ async function shootTheme(theme) {
   await step(async () => {
   const walk = ["rep-recording", "rep-results", "rep-glance", "rep-sheet"].some(want);
   if (!walk && !want("rep-idle")) return;
-  await go("/rep?lesson=h4", 'button[aria-label="Start recording"]');
+  await go("/rep?lesson=h4", 'button[data-record="start"]');
   await shot("rep-idle", { fullPage: false });
   if (walk) {
     // `force`, because the Record button breathes while it waits and
     // Playwright's actionability check waits for an element to stop
     // moving — which this one never does (#242).
-    await page.click('button[aria-label="Start recording"]', { force: true });
+    await page.click('button[data-record="start"]', { force: true });
     await page.waitForSelector('button[aria-label="Stop and score this recording"]');
     await sleep(2500);
     await shot("rep-recording", { fullPage: false, settle: 100 });

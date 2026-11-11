@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Figtree, Outfit } from "next/font/google";
+import { CommandMenu } from "@/components/CommandMenu";
 import { Nav } from "@/components/Nav";
 import { PageTransition } from "@/components/PageTransition";
 import { OutboxRetry } from "@/components/OutboxRetry";
@@ -112,6 +113,9 @@ export default function RootLayout({
           <PageTransition>{children}</PageTransition>
         </div>
         <Nav />
+        {/* ⌘K and the tabs by number (#438): a keyboard's way around. A
+            phone, with no key to press, never loads the sheet. */}
+        <CommandMenu />
         <ServiceWorker />
         <ThemeSync />
         <SplashLift />

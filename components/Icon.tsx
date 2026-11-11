@@ -358,6 +358,16 @@ export function IconBack({ size }: { size?: number }) {
   );
 }
 
+/** A lens: the command menu's field (#438). */
+export function IconSearch({ size }: { size?: number }) {
+  return (
+    <Glyph size={size} weight={2.25}>
+      <circle cx="10.5" cy="10.5" r="6" />
+      <path d="m15 15 4.5 4.5" />
+    </Glyph>
+  );
+}
+
 export function IconChevron({ size }: { size?: number }) {
   return (
     <Glyph size={size}>

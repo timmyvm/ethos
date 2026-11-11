@@ -352,6 +352,8 @@ export function Nav() {
               key={t.href}
               href={t.href}
               aria-current={active ? "page" : undefined}
+              /* Its number opens it from a keyboard (#438, components/CommandMenu.tsx). */
+              aria-keyshortcuts={String(i + 1)}
               draggable={false}
               className={`nav-tab relative z-[1] flex min-w-0 flex-1 flex-col items-center justify-center rounded-full ${
                 active ? "text-ink" : "text-stone-500"

@@ -6288,6 +6288,124 @@ html[data-test-tile] .test-tile-slot {
 }
 /* ========================== end of the undo toast (#435) ========================== */
 
+
+/* ============================ the command menu (#438) ============================
+ * components/CommandMenu.tsx and CommandSheet.tsx. A sheet at one
+ * height, so its field holds still while the list under it changes; a
+ * lit row on the surface step; a key drawn as a key. The hint stands in
+ * the window's corner only where a pointer can hover and the window is
+ * wider than the column has any use for: a phone never draws it.
+ * ============================================================================== */
+.command-sheet {
+  height: min(560px, calc(100dvh - 56px));
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.command-field {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 12px 0;
+  border-bottom: 1px solid var(--color-hairline);
+  padding: 6px 4px 10px 8px;
+}
+.command-input {
+  min-width: 0;
+  flex: 1;
+  height: 44px;
+  background: transparent;
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: var(--text-detail, 1.0625rem);
+  font-weight: 600;
+  outline: none;
+}
+.command-input::placeholder {
+  color: var(--color-stone-400);
+  font-weight: 500;
+}
+.command-esc {
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+}
+.command-list {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 12px 12px;
+  scroll-padding-block: 36px 12px;
+}
+.command-group {
+  padding: 14px 12px 4px;
+}
+.command-row {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+  border-radius: var(--radius-control);
+  padding: 0 12px;
+  color: var(--color-ink);
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: var(--text-body, 0.9375rem);
+  font-weight: 600;
+}
+.command-row[aria-selected="true"] {
+  background: var(--color-surface);
+}
+/* A key, drawn as one: the shortcut beside what it does. */
+.keycap {
+  display: inline-flex;
+  min-width: 22px;
+  height: 22px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-edge);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  padding: 0 6px;
+  background: var(--color-raised);
+  color: var(--color-stone-500);
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+.command-hint {
+  display: none;
+}
+@media (hover: hover) and (pointer: fine) and (min-width: 900px) {
+  .command-hint {
+    position: fixed;
+    z-index: 20;
+    right: 24px;
+    bottom: 24px;
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    gap: 8px;
+    border-radius: var(--radius-tap);
+    padding: 0 14px;
+    color: var(--color-stone-500);
+    font-family: var(--font-display);
+    font-size: var(--text-link, 0.8125rem);
+    font-weight: 600;
+  }
+  .command-hint:hover {
+    color: var(--color-ink);
+  }
+}
+/* ========================== end of the command menu (#438) ========================== */
+
 /* ========================= continuous corners (#437) =========================
  * Where the browser can draw them (Chromium today; every other browser
  * skips this block whole and keeps the round corners above), a surface's
@@ -6326,6 +6444,8 @@ html[data-test-tile] .test-tile-slot {
   .family-fill,
   .home-hero,
   .home-tile,
+  .command-row,
+  .command-esc,
   .rounded-control,
   .rounded-card,
   .rounded-sheet,

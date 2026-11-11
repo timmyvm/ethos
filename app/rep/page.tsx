@@ -134,6 +134,7 @@ import {
   thinksFirst,
 } from "@/lib/rep-screen";
 import { playCelebration, unlockSfx } from "@/lib/sfx";
+import { holdAwake } from "@/lib/wake-lock";
 import { computeStreak } from "@/lib/streak";
 import { nextDrill } from "@/lib/drills";
 import {
@@ -538,6 +539,13 @@ function RepScreen() {
   const art = recordingObject(config);
 
   const [phase, setPhase] = useState<Phase>("idle");
+
+  /* The screen stays awake while a take is spoken and scored (#440). An
+     iPhone locks after 30 seconds by default, a locked phone hides the
+     page, and a hidden page loses the mic: the take ended there with its
+     end missing. A recorder holds the screen for its take. */
+  const takeLive = phase === "recording" || phase === "analyzing";
+  useEffect(() => (takeLive ? holdAwake() : undefined), [takeLive]);
 
   /* The snapshot of the best (M4): retaken whenever the rows or the
      level change before the take is stored, held from Stop until the
@@ -2387,6 +2395,7 @@ function RepScreen() {
             attempt={attempt}
             fact={scoringFact}
             cutIns={waitTicks({ gameId, cutIns: waitNow?.cutIns ?? [] })}
+            leave={{ href: backHref, label: backLabel(backHref) }}
           />
         )}
 

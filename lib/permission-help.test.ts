@@ -24,6 +24,35 @@ describe("browserFamily", () => {
   });
 });
 
+describe("an iPhone running Ethos from its Home Screen (#440)", () => {
+  it("is its own family: there is no address bar to send anyone to", () => {
+    expect(browserFamily(UA.iphone, true)).toBe("ios-installed");
+    expect(browserFamily(UA.iphone, false)).toBe("ios-safari");
+    // Only an iPhone or iPad: an installed desktop app keeps its browser's steps.
+    expect(browserFamily(UA.chrome, true)).toBe("chromium");
+  });
+
+  it("is told to open the app again, never to find a button in a bar it does not have", () => {
+    const steps = permissionSteps("ios-installed", false);
+    const all = steps.join(" ");
+    expect(all).not.toMatch(/address bar|aA|Website Settings|puzzle/);
+    expect(steps[0]).toMatch(/Close Ethos/);
+    expect(all).toMatch(/Open Ethos again/);
+    expect(all).toMatch(/Tap Allow/);
+    expect(all).toMatch(/Settings app → Apps → Safari → Microphone/);
+    expect(permissionSteps("ios-installed", true).join(" ")).toMatch(/Camera/);
+  });
+
+  it("keeps the copy rules", () => {
+    for (const video of [false, true]) {
+      for (const step of permissionSteps("ios-installed", video)) {
+        expect(step).not.toMatch(/—|–/);
+        expect(step.length).toBeLessThan(110);
+      }
+    }
+  });
+});
+
 describe("permissionSteps", () => {
   it("every family gets concrete steps, never an empty shrug", () => {
     for (const f of [

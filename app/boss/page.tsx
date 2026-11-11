@@ -30,6 +30,7 @@ import { COLD_TOPICS, weeklyTopic, type ColdTopic } from "@/lib/cold-topics";
 import { HOSTILE_LINE } from "@/lib/hostile";
 import { weekStart } from "@/lib/level";
 import { prefersReducedMotion } from "@/lib/prefs";
+import { holdAwake } from "@/lib/wake-lock";
 import { repHref } from "@/lib/rep-config";
 import { SPRING, springEasing, springMs } from "@/lib/spring";
 import { ACTION_CLASS, DISABLED_CLASS, INPUT_CLASS } from "@/lib/ui";
@@ -183,6 +184,9 @@ export default function BossPage() {
     const t = setInterval(() => setLeft((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(t);
   }, [phase]);
+  /* Ninety seconds of reading is ninety seconds of not touching the
+     phone: the screen stays awake for it (#440). */
+  useEffect(() => (phase === "research" ? holdAwake() : undefined), [phase]);
 
   useEffect(() => {
     if (phase === "research" && left === 0) takeTheFloor();

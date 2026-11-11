@@ -30,7 +30,9 @@ import {
 } from "@/lib/hostile";
 import { ALL_FILLERS } from "@/lib/metric-labels";
 import { WPM_ZONE } from "@/lib/log";
+import { PermissionHelp } from "@/components/PermissionHelp";
 import { buzz, prefersReducedMotion } from "@/lib/prefs";
+import { holdAwake } from "@/lib/wake-lock";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
 
@@ -132,6 +134,12 @@ export default function HostilePage() {
   }, []);
   const locked = premium === false && usedThisWeek === true;
   const [phase, setPhase] = useState<Phase>("intro");
+  /* The screen stays awake from the take to the verdict (#440): the
+     session is spoken and listened to, not touched. */
+  const sessionLive = phase === "recording" || phase === "thinking" || phase === "question" || phase === "judging";
+  useEffect(() => (sessionLive ? holdAwake() : undefined), [sessionLive]);
+  /** The mic did not open: this phone's own steps stand where the error line would. */
+  const [micBlocked, setMicBlocked] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [paywall, setPaywall] = useState<string | null>(null);
@@ -374,6 +382,7 @@ export default function HostilePage() {
 
   async function startRecording() {
     setError(null);
+    setMicBlocked(false);
     // The take is the gated part; an answer mid-session never is.
     if (take.current === null && locked) {
       setPaywall("Hostile Q&A · once a week free");
@@ -440,9 +449,9 @@ export default function HostilePage() {
       buzz(20);
       setPhase("recording");
     } catch {
-      setError(
-        "The microphone didn't open. Check the permission and try again."
-      );
+      // The steps for this phone, not a shrug (#440); the screen's own
+      // tap is the check.
+      setMicBlocked(true);
     }
   }
 
@@ -609,7 +618,13 @@ export default function HostilePage() {
             </div>
           </section>
 
-          <ErrorNote>{error}</ErrorNote>
+          {micBlocked ? (
+            <div className="mt-4">
+              <PermissionHelp video={false} missing={false} />
+            </div>
+          ) : (
+            <ErrorNote>{error}</ErrorNote>
+          )}
 
           {/* The boss's shape, flat on the ground: three numbers and
               their stat labels, no card. */}
@@ -750,7 +765,13 @@ export default function HostilePage() {
             lead={pending.quoted ? QUOTE_LEAD_MS + SAYS_LINE_MS + BEAT_MS : QUOTE_LEAD_MS}
             className="font-display mt-3 text-title text-balance"
           />
-          <ErrorNote>{error}</ErrorNote>
+          {micBlocked ? (
+            <div className="mt-4">
+              <PermissionHelp video={false} missing={false} />
+            </div>
+          ) : (
+            <ErrorNote>{error}</ErrorNote>
+          )}
           {/* The free height is his (principle 7), as on the intro: Demos
               speaking, 140 at the least so his clip plays, as big as the
               room allows up to 330 (the column, at most), standing on the

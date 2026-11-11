@@ -1,5 +1,6 @@
 "use client";
 
+import { setAudioSession } from "@/lib/audio-session";
 import { ACTION_CLASS as PRIMARY } from "@/lib/ui";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -1333,6 +1334,9 @@ function RepScreen() {
     const opened: { stream?: MediaStream; recorder?: MediaRecorder; videoRecorder?: MediaRecorder | null; ctx?: AudioContext } = {};
     try {
       let stream: MediaStream;
+      /* A take played a moment ago asked the phone for its speaker;
+         a session left that way has no microphone (lib/audio-session.ts). */
+      setAudioSession("auto");
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           audio: true,

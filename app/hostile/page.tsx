@@ -13,6 +13,7 @@ import { IconShuffle } from "@/components/Icon";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { FooterShelf } from "@/components/ui/FooterShelf";
 import { BackLink } from "@/components/ui/ScreenHeader";
+import { setAudioSession } from "@/lib/audio-session";
 import { fetchProfile, fetchReps } from "@/lib/client-data";
 import { weekStart } from "@/lib/level";
 import { ensureSession } from "@/lib/supabase-browser";
@@ -374,6 +375,8 @@ export default function HostilePage() {
       return;
     }
     try {
+      // The browser's own audio session, which has a microphone (lib/audio-session.ts).
+      setAudioSession("auto");
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
       });

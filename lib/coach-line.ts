@@ -78,6 +78,56 @@ export function withoutTomorrow(line: string): string {
 }
 
 /**
+ * A stored line in its two parts: what the take did, and what to do
+ * tomorrow (Timothy, 12 Nov: "Ethos dialogue feedback is drowned out.
+ * try ... making a new line at something like tomorrow since yk its a
+ * new statement. or tomorrow can be its own section"; #436). The coach
+ * writes a recording's focus as one run, "7 mid-sentence pauses against
+ * 1 composed pause. Tomorrow: finish each sentence in one breath, then
+ * pause.", and in a narrow bubble the instruction, the one thing to
+ * carry out of the screen, was the fourth line of five.
+ *
+ * `tomorrow` is everything from the first sentence that begins with the
+ * word, without the word (the screen prints it as a label) and
+ * capitalised; null when the line names no tomorrow.
+ */
+export function splitTomorrow(line: string): { read: string; tomorrow: string | null } {
+  const parts = sentences(line.trim());
+  const at = parts.findIndex((p) => /^tomorrow\b/i.test(p));
+  if (at === -1) return { read: parts.join(" "), tomorrow: null };
+  const rest = parts
+    .slice(at)
+    .join(" ")
+    .replace(/^tomorrow\b\s*[:,]?\s*/i, "");
+  return {
+    read: parts.slice(0, at).join(" "),
+    tomorrow: rest ? rest[0].toUpperCase() + rest.slice(1) : null,
+  };
+}
+
+/** The three plain numbers `takeLine` puts into words. */
+export interface TakeNumbers {
+  durationS: number;
+  wpm: number;
+  heldPauses: number;
+}
+
+/**
+ * How long, how fast, how many held pauses, said once and quietly
+ * (Timothy, 12 Nov, of the three tiles: "not sure if its needed, it is
+ * but is there another way to communicate it"; #436). They were a card
+ * of three boxes under the pause map; the Pace and Pausing rows under
+ * them already score both, so the boxes said it twice at the size of a
+ * headline. One caption line keeps the numbers and gives the room back.
+ */
+export function takeLine(m: TakeNumbers): string {
+  const s = Math.round(m.durationS);
+  const held =
+    m.heldPauses === 0 ? "no held pauses" : `${m.heldPauses} held pause${m.heldPauses === 1 ? "" : "s"}`;
+  return `${s} second${s === 1 ? "" : "s"} at ${Math.round(m.wpm)} words a minute, with ${held}.`;
+}
+
+/**
  * The score step's line: the coach's own, its tomorrow trimmed; a
  * stored focus on its own, capitalised (no "Tomorrow:" in front); or the
  * computed line when neither leaves anything to say.

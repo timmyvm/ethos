@@ -60,6 +60,9 @@ export function contentSecurityPolicy(env: HeaderEnv): string {
       // The on-device pose model compiles wasm (Calibrate, Video).
       "'wasm-unsafe-eval'",
       env.dev && "'unsafe-eval'",
+      // Speed Insights' debug script, which only `next dev` asks for; a
+      // deployed page loads its own from /_vercel on this origin.
+      env.dev && "https://va.vercel-scripts.com",
       ...live
     ),
     "style-src": list("'self'", "'unsafe-inline'", ...live),

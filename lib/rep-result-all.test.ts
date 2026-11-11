@@ -7,9 +7,13 @@ import type { RepMetrics, Word } from "./metrics";
 /*
  * The Log's stored recording (`/rep/[id]`) and an upload render RepResult
  * with section="all". The glance and its sheet (DECISIONS #427) gave the
- * live results their own sections; this holds "all" to the markup it had
- * at e2fd1cd, recorded before the change, so the Log's page is the page
- * it was.
+ * live results their own sections; this holds "all" to its markup, so a
+ * change meant for the live results never moves the Log's page.
+ *
+ * The baseline moved once, on purpose (Timothy, 12 Nov, #436): the pause
+ * map and the three stat tiles went, their numbers became one line under
+ * "Every dimension", and a stored line that names a tomorrow is drawn in
+ * two parts. The tests under the snapshots say those three in words.
  */
 const TRANSCRIPT =
   "So the thing about habits is, um, they compound. You do the small version every day and, like, it builds on its own. Um, the mistake people make is waiting to feel ready. You know, ready is a feeling that shows up after you start.";
@@ -82,7 +86,7 @@ const view: ResultView = {
 };
 
 describe("RepResult section=\"all\", the Log's page (#427)", () => {
-  it("renders exactly as it did at e2fd1cd", () => {
+  it("renders exactly as it did at #436", () => {
     expect(renderToStaticMarkup(createElement(RepResult, { result: view, section: "all" }))).toMatchSnapshot();
   });
   it("and a stored recording that could not be scored, likewise", () => {
@@ -94,5 +98,50 @@ describe("RepResult section=\"all\", the Log's page (#427)", () => {
       scorable: false,
     };
     expect(renderToStaticMarkup(createElement(RepResult, { result: unscored, section: "all" }))).toMatchSnapshot();
+  });
+
+  /* Timothy, 12 Nov (#436), each in his words. */
+  const html = (v: ResultView) => renderToStaticMarkup(createElement(RepResult, { result: v, section: "all" }));
+  const text = (h: string) => h.replace(/<[^>]+>/g, " ").replace(/&#x27;|&apos;/g, "'").replace(/\s+/g, " ");
+
+  it("draws no pause map (\"the recording lines. get rid of it\")", () => {
+    const h = html(view);
+    // The map's own key, a swatch and a word each, is nowhere on the page.
+    expect(h).not.toMatch(/>\s*searching\s*</);
+    expect(h).not.toMatch(/>\s*landed a point\s*</);
+    // The sentence that read off the map went from under it; the Pausing
+    // row still opens on it, once.
+    expect(text(h).split("Three silences landed a point; one was searching.").length - 1).toBe(1);
+  });
+
+  it("says length, pace and held pauses once, as a line, where three tiles stood", () => {
+    const h = html(view);
+    expect(h).not.toContain("label-micro whitespace-nowrap");
+    expect(h).not.toContain(">WPM<");
+    expect(h).not.toContain(">Held pauses<");
+    const line = /<p data-take-line="true"[^>]*>([^<]+)<\/p>/.exec(h)?.[1];
+    expect(line).toBe(`${Math.round(metrics.durationS)} seconds at ${Math.round(metrics.wpm)} words a minute, with ${metrics.heldPauses} held pause${metrics.heldPauses === 1 ? "" : "s"}.`);
+  });
+
+  it("draws a stored line's tomorrow as its own statement, under its own label", () => {
+    const told: ResultView = {
+      ...view,
+      coach: {
+        ...(view.coach as object),
+        focus: "7 mid-sentence pauses against 1 composed pause. Tomorrow: finish each sentence in one breath, then pause.",
+      } as unknown as ResultView["coach"],
+    };
+    const h = html(told);
+    expect(h).toContain('<p class="text-balance">7 mid-sentence pauses against 1 composed pause.</p>');
+    expect(h).toContain('<span class="eyebrow block">Tomorrow</span>');
+    expect(h).toContain('<span class="mt-0.5 block font-semibold text-balance">Finish each sentence in one breath, then pause.</span>');
+    // The word is the label now, so the line does not say it twice.
+    expect(text(h)).not.toContain("Tomorrow:");
+  });
+
+  it("leaves a line that names no tomorrow as one paragraph", () => {
+    const h = html(view);
+    expect(h).not.toContain(">Tomorrow<");
+    expect(text(h)).toContain("Kill ‘um’. 2 of your 4 fillers.");
   });
 });

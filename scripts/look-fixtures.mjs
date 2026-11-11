@@ -152,7 +152,9 @@ const reps = SPOKE.map((ago, i) => {
       fillers,
       pauses: pauses(2 + (i % 4)),
       stars,
-      focus: focusFor(fillers),
+      /* LOOK_FOCUS: a stored line as the coach writes one, read and
+         instruction together ("... Tomorrow: ..."), for the Log's detail. */
+      focus: process.env.LOOK_FOCUS ?? focusFor(fillers),
       strength: "Held the pause before \u2018the mistake people make\u2019.",
       supply: { original: "making the thing small", upgrade: "making the habit small", note: "It says exactly what you meant." },
       ethos_index: indexOf(tier1, TIER2),

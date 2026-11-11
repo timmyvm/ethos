@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { setAudioSession } from "@/lib/audio-session";
 
 /** A stretch of the take being played, start and stop on its clock. */
 export interface TakeSpan {
@@ -69,6 +70,13 @@ export function useTakeAudio(src: string | null | undefined, durationS: number):
     stopAt.current = null;
     setSpan(null);
   }, []);
+  /* The take has stopped sounding: the phone's audio session goes back
+     to the browser's own choice, so the next recording gets its mic
+     (lib/audio-session.ts). */
+  const stopped = useCallback(() => {
+    setAudioSession("auto");
+    endSpan();
+  }, [endSpan]);
 
   /*
    * Every start names its position (#406). On an iPhone a recording that
@@ -91,7 +99,11 @@ export function useTakeAudio(src: string | null | undefined, durationS: number):
          Playback card's video, or any other player, the way a new play
          replaces the last on this element. */
       hushOthers(document.querySelectorAll<HTMLMediaElement>("audio, video"), a);
+      /* Out of the speaker, at media volume: an iPhone that has just
+         recorded would play this through the earpiece (#436). */
+      setAudioSession("playback");
       a.play().catch((e: unknown) => {
+        setAudioSession("auto");
         if (e instanceof DOMException && e.name === "NotSupportedError" && src) setFailed(src);
         endSpan();
       });
@@ -101,8 +113,9 @@ export function useTakeAudio(src: string | null | undefined, durationS: number):
 
   const pause = useCallback(() => ref.current?.pause(), []);
 
-  // A new take is a new element: nothing carries over from the last.
-  useEffect(() => endSpan, [src, endSpan]);
+  // A new take is a new element: nothing carries over from the last,
+  // the session it asked for included.
+  useEffect(() => stopped, [src, stopped]);
 
   /* And the other way round: anything else that starts to sound (the
      Playback card's video, played from its own controls) stops the
@@ -127,8 +140,8 @@ export function useTakeAudio(src: string | null | undefined, durationS: number):
       onTimeUpdate={(e) => {
         if (shouldStop(e.currentTarget.currentTime, stopAt.current)) e.currentTarget.pause();
       }}
-      onPause={endSpan}
-      onEnded={endSpan}
+      onPause={stopped}
+      onEnded={stopped}
       onError={() => setFailed(src)}
     />
   ) : null;

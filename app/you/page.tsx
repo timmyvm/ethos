@@ -15,7 +15,6 @@ import { ErrorLine, ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Paywall, type PaywallAsk } from "@/components/Paywall";
 import { LexiconFlash } from "@/components/LexiconFlash";
-import { ShareCard } from "@/components/ShareCard";
 import { ManageSheet } from "@/components/premium/ManageSheet";
 import { CheckoutReturn, PriceDropSheet } from "@/components/premium/Moments";
 import { PlanCard, PlanCardSkeleton } from "@/components/premium/PlanCard";
@@ -37,7 +36,6 @@ import {
 import { LEVEL_AT, DOUBLE_AT, rankedTraits, traitLevels, type TraitLevel } from "@/lib/traits";
 import { practiseHref, sheetReading } from "@/lib/trait-sheet";
 import { lessonProgress } from "@/lib/lesson-progress";
-import { sinceDayOne } from "@/lib/log";
 import { TRAIT, type TraitId } from "@/content/traits";
 import { syncFreezes } from "@/lib/freeze-sync";
 import { levelFromXp } from "@/lib/level";
@@ -61,6 +59,11 @@ import { usePaywallReturn } from "@/lib/use-paywall-return";
 
 // Free tier gets today's swap, not the archive, when the paywall is on.
 const FREE_LEXICON = 3;
+/** Upgrades the test needs before it has three to ask (LexiconFlash). */
+const TEST_FROM = 3;
+/** The tap's shape on the surface: Test yourself while the account gate holds the page's one terracotta. */
+const QUIET_TAP =
+  "press font-display block min-h-12 w-full rounded-tap bg-surface px-6 py-3.5 text-center text-body leading-5 font-bold";
 
 /** The nine rows the Traits list always draws (lib/traits.ts TRAITS). */
 const TRAIT_ROWS_FREE = 5;
@@ -642,20 +645,9 @@ export default function YouPage() {
         </div>
       </section>
 
-      {/* Day 1 vs now (you-11, M23; D36 moved it up from the foot): one
-          card with the two numbers and the page's one tap, near the top,
-          because the numbers are the product. While the account gate
-          under it is showing, its button keeps the screen's one
-          terracotta and this one steps down to the surface door. */}
-      {sinceDayOne(history) && (
-        <div className="mt-3">
-          <ShareCard reps={history} quiet={showGate} />
-        </div>
-      )}
-
       {showGate && (
-        /* p-5 and a detail head, like Day 1 vs now above it, so the two
-           stacked cards share one inner edge and one title size. */
+        /* p-5 and a detail head: the account gate, straight under the
+           numbers since Day 1 vs now went (#436). */
         <section className="card mt-3 p-5">
           <h2 className="detail-head">Save your progress</h2>
           <p className="mt-1 text-caption text-stone-500">
@@ -676,12 +668,131 @@ export default function YouPage() {
         </section>
       )}
 
+      {/*
+       * Your lexicon, the first thing under the numbers (Timothy, 12 Nov:
+       * "Your words, test yourself. GREAT FEATURES ... truly great for
+       * improving speech which is what the app is for"; #436). It sat
+       * under Trait levels with its test behind a text link; Day 1 vs
+       * now and its Make the card held this place and the page's one
+       * tap, and went the same day ("not a great feature"). So the
+       * words a recording earned are what You opens on, and the tap is
+       * the test of them.
+       *
+       * The supply layer's archive (DECISIONS #12): a section with its
+       * count, the swaps at reading size, an example when empty (#317).
+       * A word you have now is a neutral label in ink (the cohesion
+       * pass).
+       */}
+      <section className="mt-7">
+        <h2 className="section-head">
+          Your lexicon
+          {lexicon !== null && <span className="section-head-count">{lexicon.length}</span>}
+        </h2>
+        {lexiconFailed ? (
+          <ErrorLine className="mt-3" onRetry={() => void loadLexicon()}>
+            Your lexicon didn&apos;t load.
+          </ErrorLine>
+        ) : lexicon === null || profileRead === "loading" ? (
+          /* Three rows, the free tier's share, at the height of the real
+             ones so nothing under them moves when they land. Held until
+             the plan is read too, so a free list never lands long and
+             then shrinks to its three (a failed plan read shows all). */
+          <div aria-busy="true">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className={`${SWAP_ROW} border-b border-hairline`}>
+                <Skeleton className="h-6 w-48" />
+              </div>
+            ))}
+          </div>
+        ) : lexicon.length === 0 ? (
+          /* The example card (#317): one swap, drawn the way a real one
+             will be, so the empty section shows what arrives here. */
+          <div className="card mt-3 px-5 py-4">
+            <div aria-hidden className={SWAP_ROW}>
+              <Swap original="the thing is" upgrade="the point is" />
+            </div>
+            <p className="text-caption text-stone-500">
+              Upgrades from your own recordings collect here.
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* The archive is a list, so it assembles itself (#245): one
+                row every 40ms, capped at the eighth. Nothing above it
+                carries an `.arrive`, so this is the block's one
+                entrance. */}
+            {/* No margin: the rows' own 12px top padding is the head's
+                mt-3 (system-7), so a word sits 12px under "Your lexicon"
+                like every section's content. */}
+            <ul className="stagger">
+              {lexicon.slice(0, lexiconCap ?? lexicon.length).map((l) => (
+                <li key={l.id} className={`${SWAP_ROW} border-b border-hairline`}>
+                  <Swap original={l.original} upgrade={l.upgrade} />
+                </li>
+              ))}
+            </ul>
+
+            {lexiconCap !== null && lexicon.length > FREE_LEXICON && (
+              <button
+                type="button"
+                onClick={() =>
+                  setPaywall({
+                    reason: "Full lexicon",
+                    headline: "Every word you've earned, kept.",
+                  })
+                }
+                className="press mt-1 flex min-h-11 w-full items-center justify-between gap-3 py-3 text-left text-row font-semibold text-stone-500"
+              >
+                <span>
+                  {lexicon.length - FREE_LEXICON} more upgrade
+                  {lexicon.length - FREE_LEXICON === 1 ? "" : "s"} in your
+                  archive
+                </span>
+                <span className="flex shrink-0 items-center gap-3">
+                  <PremiumMark variant="chip" />
+                  <Disclosure />
+                </span>
+              </button>
+            )}
+
+            {/* The test: three of your own upgrades, recalled cold
+                (components/LexiconFlash.tsx). The page's one tap, and
+                its card takes the tap's place when pressed. While the
+                account gate above is showing, that gate keeps the
+                screen's one terracotta and this steps down to a door. */}
+            {flashing ? (
+              <div className="mt-4">
+                <LexiconFlash lexicon={lexicon} onDone={() => setFlashing(false)} />
+              </div>
+            ) : lexicon.length >= TEST_FROM ? (
+              <button
+                type="button"
+                onClick={() => setFlashing(true)}
+                className={showGate ? `${QUIET_TAP} mt-4` : `${ACTION_CLASS} mt-4`}
+              >
+                Test yourself
+              </button>
+            ) : (
+              <p className="mt-3 text-caption text-stone-500">
+                Test yourself opens at {TEST_FROM} upgrades.
+              </p>
+            )}
+          </>
+        )}
+        {/* The swaps you saved yourself, from any word of a recording's
+            transcript (#411): the lexicon's twin, one door away. */}
+        <Link href="/words" className={`${DOOR_CLASS} mt-3`}>
+          <span>Your words</span>
+          <Disclosure />
+        </Link>
+      </section>
+
       {/* The road (#232, D36): its headline, the unit for what was
           noticed, and how far its gate is, as its own card door, because
           an answer is allowed to change. "Plan" is left to Premium. Its
           three lines are reserved while the device is read. */}
       {onboarding === undefined ? (
-        <div aria-hidden className="card mt-3 p-4 text-left">
+        <div aria-hidden className="card mt-7 p-4 text-left">
           <Line className="eyebrow" bar="w-16" align="left" />
           <Line className="font-display mt-0.5 text-row" bar="w-40" align="left" />
           <Line className="mt-0.5 text-caption" bar="w-32" align="left" />
@@ -810,113 +921,6 @@ export default function YouPage() {
       {/* The league card sat here until 27 Aug: shelved (Timothy's call,
           #173) until there are users to rank. lib/level.ts and xp_events
           stay; a future league reads them unchanged. */}
-
-      {/* Personal lexicon: the supply layer's archive (DECISIONS #12),
-          grown into the room the shop left (#317): a section with its
-          count, the swaps at reading size, an example when empty. It
-          wore Variety's tone (you-4) until the cohesion pass: purple
-          chips under a sky stage read as a second colour world. A word
-          you have now is a neutral label in ink. */}
-      <section className="mt-7">
-        {/* The flash cards' door rides the head row (E36): a text link
-            with its 44px hit area, where the row under the words was a
-            filled 56px door of its own. */}
-        <div className="flex items-baseline justify-between gap-3">
-          <h2 className="section-head">
-            Your lexicon
-            {lexicon !== null && (
-              <span className="section-head-count">{lexicon.length}</span>
-            )}
-          </h2>
-          {!lexiconFailed && lexicon !== null && profileRead !== "loading" && lexicon.length >= 3 && !flashing && (
-            <button type="button" onClick={() => setFlashing(true)} className="text-link shrink-0">
-              Test yourself
-            </button>
-          )}
-        </div>
-        {lexiconFailed ? (
-          <ErrorLine className="mt-3" onRetry={() => void loadLexicon()}>
-            Your lexicon didn&apos;t load.
-          </ErrorLine>
-        ) : lexicon === null || profileRead === "loading" ? (
-          /* Three rows, the free tier's share, at the height of the real
-             ones so nothing under them moves when they land. Held until
-             the plan is read too, so a free list never lands long and
-             then shrinks to its three (a failed plan read shows all). */
-          <div aria-busy="true">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className={`${SWAP_ROW} border-b border-hairline`}>
-                <Skeleton className="h-6 w-48" />
-              </div>
-            ))}
-          </div>
-        ) : lexicon.length === 0 ? (
-          /* The example card (#317): one swap, drawn the way a real one
-             will be, so the empty section shows what arrives here. */
-          <div className="card mt-3 px-5 py-4">
-            <div aria-hidden className={SWAP_ROW}>
-              <Swap original="the thing is" upgrade="the point is" />
-            </div>
-            <p className="text-caption text-stone-500">
-              Upgrades from your own recordings collect here.
-            </p>
-          </div>
-        ) : (
-          <>
-            {/* The archive is a list, so it assembles itself (#245): one
-                row every 40ms, capped at the eighth. Nothing above it
-                carries an `.arrive`, so this is the block's one
-                entrance. */}
-            {/* No margin: the rows' own 12px top padding is the head's
-                mt-3 (system-7), so a word sits 12px under "Your lexicon"
-                like every section's content. */}
-            <ul className="stagger">
-              {lexicon.slice(0, lexiconCap ?? lexicon.length).map((l) => (
-                <li key={l.id} className={`${SWAP_ROW} border-b border-hairline`}>
-                  <Swap original={l.original} upgrade={l.upgrade} />
-                </li>
-              ))}
-            </ul>
-            {flashing && (
-              <div className="mt-3">
-                <LexiconFlash
-                  lexicon={lexicon}
-                  onDone={() => setFlashing(false)}
-                />
-              </div>
-            )}
-
-            {lexiconCap !== null && lexicon.length > FREE_LEXICON && (
-              <button
-                type="button"
-                onClick={() =>
-                  setPaywall({
-                    reason: "Full lexicon",
-                    headline: "Every word you've earned, kept.",
-                  })
-                }
-                className="press mt-1 flex min-h-11 w-full items-center justify-between gap-3 py-3 text-left text-row font-semibold text-stone-500"
-              >
-                <span>
-                  {lexicon.length - FREE_LEXICON} more upgrade
-                  {lexicon.length - FREE_LEXICON === 1 ? "" : "s"} in your
-                  archive
-                </span>
-                <span className="flex shrink-0 items-center gap-3">
-                  <PremiumMark variant="chip" />
-                  <Disclosure />
-                </span>
-              </button>
-            )}
-          </>
-        )}
-        {/* The swaps you saved yourself, from any word of a recording's
-            transcript (#411): the lexicon's twin, one door away. */}
-        <Link href="/words" className={`${DOOR_CLASS} mt-3`}>
-          <span>Your words</span>
-          <Disclosure />
-        </Link>
-      </section>
 
       {/*
        * The shelf. A ladder, not a grid: hardest last, no tier labels,
@@ -1237,8 +1241,8 @@ function gateLine(unitName: string, toGo: number | null): string {
   return `${unitName} opens in ${toGo} star${toGo === 1 ? "" : "s"}`;
 }
 
-/** The road's card: its own door under Day 1 vs now (D36). */
-const ROAD_CARD = "card press mt-3 flex min-h-11 items-center gap-3 p-4 text-left";
+/** The road's card: its own door, under the lexicon since #436 (D36). */
+const ROAD_CARD = "card press mt-7 flex min-h-11 items-center gap-3 p-4 text-left";
 
 /**
  * The road (#232, D36): the portfolio's headline, the unit for what was
@@ -1296,7 +1300,7 @@ const WHAT: Record<string, string> = {
  * at the moment somebody reaches for it, never printed on the page.
  *
  * It closes with Done at the top right, as every information sheet does
- * (D15). Its "Practise" covers You's "Make the card", so each visible
+ * (D15). Its "Practise" covers You's "Test yourself", so each visible
  * layer still has one terracotta.
  */
 function TraitSheet({

@@ -51,6 +51,9 @@ describe("contentSecurityPolicy", () => {
 
   it("gives eval to the dev server only", () => {
     expect(part(contentSecurityPolicy({ ...prod, dev: true }), "script-src")).toContain("'unsafe-eval'");
+    // And the one outside script `next dev` asks for, there only.
+    expect(part(contentSecurityPolicy({ ...prod, dev: true }), "script-src")).toContain("https://va.vercel-scripts.com");
+    expect(csp).not.toContain("va.vercel-scripts.com");
   });
 
   it("lets the preview toolbar load on a preview only", () => {

@@ -238,7 +238,11 @@ describe("Today's materials", () => {
 
   it("the card holds the one tap, 48px, and spin and difficulty as 48px glyphs", () => {
     expect(block(".home-start")).toMatch(/min-height: 48px;/);
-    expect(block(".home-start")).toContain("background: var(--color-terracotta-500);");
+    // Cut from the card since #437 (lib/tap.test.ts holds its colours):
+    // the family's tint and its deep tone, white and ink with no colour yet.
+    expect(block(".home-start")).toContain("background: var(--tap-tint, #ffffff);");
+    expect(block(".home-start")).toContain("color: var(--tap-tint-ink, #201e1d);");
+    expect(block(".home-start")).not.toContain("terracotta");
     expect(block(".home-glyph")).toMatch(/width: 48px;\s*height: 48px;/);
     expect(hero).toContain('aria-label="Spin a new topic"');
     // Nothing else on Today is terracotta-filled.

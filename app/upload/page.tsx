@@ -167,7 +167,7 @@ export default function UploadPage() {
           </label>
 
           {/* A failure in the error grammar (system-10): rust on the
-              control surface, never terracotta, which means tap. It takes
+              control surface, never the tap's fill, which means go. It takes
               the caption's place, and the tile gives up the height it
               needs, so the button below stays put. */}
           {error ? (

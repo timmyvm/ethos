@@ -31,7 +31,7 @@ export const SHEET_NAME = "Every number";
  * <audio> stays on the page under it, so a moment started on the glance
  * keeps playing here. Its foot repeats the glance's tap, so whoever reads
  * to the end goes on without closing it; the glance's own tap is under
- * the sheet, so one terracotta fill shows.
+ * the sheet, so one filled tap shows.
  */
 export function WholeRecording({
   onClose,

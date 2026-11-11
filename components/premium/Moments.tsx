@@ -97,7 +97,7 @@ export function CheckoutReturn({ view, today }: { view: PlanView; today: Date })
  * speaking. Demos says it; the readout shows last month's price until
  * the Paw lands on this month's step, and on that frame the digits roll
  * (10.99 to 9.99: two places turn, ".99" holds), the step takes its
- * weight and the haptic fires. One terracotta tap, "Done". Reduced
+ * weight and the haptic fires. One way out, "Done". Reduced
  * motion draws the end state with a fade.
  */
 export function PriceDropSheet({

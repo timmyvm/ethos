@@ -6,20 +6,23 @@
  * The GROUND is plain since #289, Timothy's call: white in light and a
  * neutral near-black in dark, the backgrounds every common app stands
  * on, in place of the cream and the amber-tinted dark. The accents and
- * the ink stay warm. Two accents with fixed jobs: terracotta is "tap
- * here" and nothing else; sage is "you earned this" and nothing else.
- * Amber is retired again — it lasted one commit as the tap and Timothy
- * called it back.
+ * the ink stay warm. The tap has no colour of its own since #437: ink
+ * on the page and cut from the card on a coloured card (`.tap`,
+ * `.tap-tonal`, below). Terracotta, which was the tap, is the warm
+ * accent that is left: a link, the mark that plays a moment, the caret,
+ * the focus ring, and Stop's deeper red. Sage is "you earned this" and
+ * nothing else. Amber is retired again: it lasted one commit as the
+ * tap and Timothy called it back.
  */
 @theme {
   /*
-   * Terracotta. 500 is the one tap per screen, and it has NO hover step
-   * (M15): the `.press` veil answers every pointer. 600 is the recording
-   * state's Stop fill (cream on it, 5.2:1) and the scrubber's filler
-   * marks, never a hover: it is the rust hex, ink on it is 2.9:1, and a
-   * tap that hovered into it read as "wrong direction". 700 is accent
-   * TEXT and 800 is text on the 100 wash, both remapped in dark so the
-   * roles keep their contrast. Ink (`on-accent`) sits on a 500 fill.
+   * Terracotta. 500 was the one tap's fill until #437 (the tap is ink
+   * now, or cut from its card); it is still the play marks, the code
+   * caret and every focus ring. 600 is the recording state's Stop fill
+   * (cream on it, 5.2:1) and the scrubber's filler marks: it is the
+   * rust hex. 700 is accent TEXT and 800 is text on the 100 wash, both
+   * remapped in dark so the roles keep their contrast. Ink
+   * (`on-accent`) sat on the 500 fill.
    */
   --color-terracotta-50: #fbeee1;
   --color-terracotta-100: #f6ddc9;
@@ -70,9 +73,9 @@
    * colour of what you earn.
    *
    * 700 is premium TEXT, 300 its border, 50/100 its wash. There is
-   * deliberately NO plum fill role: terracotta owns the press, plum
-   * owns the label, and a premium card with an action is a plum card
-   * with a terracotta button on it.
+   * deliberately NO plum fill role: plum owns the label, and a premium
+   * card's action is cut from the card as a tap on any coloured card
+   * is (#437, `.tap-tonal`: a pale tint, the plum for its word).
    *
    * Hue 288 rather than a redder plum, which collapses onto terracotta
    * for a tritanope. Every one of these is reached through a Tailwind
@@ -105,10 +108,11 @@
    * sites use it and a token's name is never on screen. */
   --color-cream: #f7f7f7;
   /*
-   * The label on the one tap (#231). Ink, not cream: cream on
-   * terracotta-500 is 3.35:1 and fails AA at the button's size, ink on
+   * The label on a terracotta-500 fill (#231). Ink, not cream: cream on
+   * terracotta-500 is 3.35:1 and fails AA at a button's size, ink on
    * the same fill is 4.6:1. Never swaps with the theme, because the
-   * fill doesn't either.
+   * fill doesn't either. No tap in the app wears that fill since #437;
+   * the kept experiments in app/workbench still do.
    */
   --color-on-accent: #201e1d;
   /* Progress-bar troughs, empty slots. Square-cornered (#201). Firm
@@ -196,7 +200,7 @@
   --radius-control: 12px;
   --radius-card: 16px;
   --radius-sheet: 20px;
-  /* Every tap is a pill (D11): the one terracotta tap and the 44 to 48px
+  /* Every tap is a pill (D11): the one tap and the 44 to 48px
      secondary buttons on the surface recipe, so one action has one
      shape on every screen. Today's Start was the first. Containers keep
      their radii; inputs and answer rows keep the control's 12, because
@@ -623,6 +627,74 @@ body {
  *     modifier (`text-sage-700!`) against these, and only these.
  */
 @layer components {
+  /* THE TAP (#437). Timothy, 12 Nov, on the flat orange button beside
+     the cards' 3D objects: "8 for home and 10 for feedback" (Tonal and
+     Arrow, docs/look/buttons). A tap has no colour of its own any more.
+     It takes one of two fills from where it stands:
+
+       .tap        on the page: ink, the darkest thing there, the
+                   ground's colour for its label. Dark swaps both with
+                   the theme, so there it is the lightest thing.
+       .tap-tonal  on a coloured card: cut from the card. A pale tint
+                   of the card's colour, its deep tone for the label,
+                   read from `--tap-tint` and `--tap-tint-ink`, which
+                   the card sets (Today's families, the plum sheet). A
+                   card with no colour yet gives it white and ink.
+
+     In this layer, so a spacing or size utility beside them still
+     wins; the colours are here and not utilities so the two can never
+     meet on one element and leave the order of the build to decide.
+     Each sets the veil a press draws over it (`.press`): the page's
+     default veil is ink at 5%, which says nothing on an ink fill. */
+  .tap {
+    background-color: var(--color-ink);
+    color: var(--color-ground);
+    --press-veil: rgb(255 255 255 / 0.16);
+  }
+  :root[data-theme="dark"] .tap {
+    --press-veil: rgb(18 18 18 / 0.1);
+  }
+  .tap-tonal {
+    background-color: var(--tap-tint, #ffffff);
+    color: var(--tap-tint-ink, #201e1d);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.9),
+      0 10px 22px -10px rgb(0 0 0 / 0.5);
+    --press-veil: rgb(32 30 29 / 0.07);
+  }
+  /* The way on (direction 10): a tap that moves you to the next thing
+     carries its arrow, in a disc of the ground's colour at its right
+     end, and its words start at the left. The disc is the label's
+     colour with the fill's colour for the arrow, so it turns with the
+     theme and stands on either fill. */
+  .tap-arrow-disc {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    background-color: currentColor;
+  }
+  .tap-arrow-disc > svg {
+    color: var(--color-ink);
+    transition: transform var(--spring-snappy-duration) var(--spring-snappy);
+  }
+  .tap-tonal .tap-arrow-disc > svg {
+    color: var(--tap-tint, #ffffff);
+  }
+  /* Pressed, the arrow leans the way it points. */
+  .press:active .tap-arrow-disc > svg {
+    transform: translateX(2px);
+  }
+  :root[data-motion="reduce"] .press:active .tap-arrow-disc > svg {
+    transform: none;
+  }
+  /* A tap that is waiting (DISABLED_CLASS) keeps the disc and dims it. */
+  :is(:disabled, [aria-disabled="true"]) > .tap-arrow-disc {
+    opacity: 0.35;
+  }
+
   /* M05, system-3: the line over a title inside a card. Sentence case
      at reading size: Outfit 13/600 on 18, no tracking, stone-500. Its
      colour comes from context (a utility, or a parent's role). */
@@ -732,14 +804,19 @@ body {
 /* practice-tab-4: the paywall sheet is plum, the tier's own surface.
    Hexes on purpose: the plum tokens invert in dark (900 becomes a near
    black), and this surface is deep plum in both themes, as the score
-   card is deep sage in both. Plum is never a tap, so its action is
-   still a terracotta button on it. Unlayered, like `.card-score`, its
-   sibling material: its `background` beats the dark `.card` sheen even
-   if both classes land on one element. */
+   card is deep sage in both. Its action is cut from it, as a tap on
+   any coloured card is since #437 (`.tap-tonal`): plum-500 at 16% on
+   white for the pill, the sheet's own plum for its word (11.3:1), the
+   two as hexes for the reason the surface is one. It was a terracotta
+   button on the plum. Unlayered, like `.card-score`, its sibling
+   material: its `background` beats the dark `.card` sheen even if both
+   classes land on one element. */
 .card-premium {
   background: #3c2043;
   border: 1px solid transparent;
   box-shadow: var(--shadow-3);
+  --tap-tint: #ece2ee;
+  --tap-tint-ink: #3c2043;
 }
 :root[data-theme="dark"] .card-premium {
   border-color: #6a3f6f;
@@ -1996,9 +2073,9 @@ summary::-webkit-details-marker {
  * comes in as ILLUSTRATION, never as a second tap: three tones (sun,
  * sky, coral) that mean nothing but "this is a picture", used for the
  * stage Demos stands on, the disc behind him, the answer glyphs' tiles
- * and the plan's steps. Terracotta keeps the tap, sage keeps earned,
- * plum keeps paid, amber stays his accent. No tone is ever a fill on a
- * control.
+ * and the plan's steps. The tap keeps its own fill (ink since #437; it
+ * was terracotta when this was written), sage keeps earned, plum keeps
+ * paid, amber stays his accent. No tone is ever a fill on a control.
  *
  * Each tone is four values: the stage fill, the lighter disc behind
  * him (his studio light), the ink a glyph is drawn in, and the wash a
@@ -2453,7 +2530,8 @@ summary::-webkit-details-marker {
  * One block, owned by the recording-flow pass: the topic card, the tip
  * tiles, the scoring stage. Amber is Demos's accent, so the washes that
  * frame what he coaches are amber running into a terracotta WASH; the
- * terracotta FILL stays the Record button's alone.
+ * terracotta FILL was the Record button's alone, and since #437 Record
+ * is ink like every tap on the page and only Stop is red.
  * ========================================================================== */
 :root {
   --rec-topic-from: #fdefc6;
@@ -2683,8 +2761,9 @@ summary::-webkit-details-marker {
  * list reads as five places you move through rather than one shop
  * window of pictures (feedback round, "lesson pictures look like ads").
  * Risograph inks, picked to sit with the lesson art and to stay clear of
- * the three hues that already carry a job: terracotta (tap), sage
- * (earned), plum (paid). A tone is a ground and a label, never a tap.
+ * the three hues that already carry a job: terracotta (the warm mark;
+ * the tap until #437), sage (earned), plum (paid). A tone is a ground
+ * and a label, never a tap.
  *   --tone       the solid ink: a swatch, a rule, the numbered square
  *                the lesson's button starts. White on it clears 4.5:1
  *                in light (the ochre takes dark ink instead), and the
@@ -2829,8 +2908,9 @@ summary::-webkit-details-marker {
  * The tabs' colour pass, Practice's block. Picture colour only: the boss
  * card's top is the introduction's sky stage (`.intro-stage.tone-sky`,
  * Demos full-body with his halo and contact shadow), and each game's
- * glyph sits on a tile in its own tone. The tap stays terracotta, the
- * Premium chip stays the only plum, and no tile is a trait tone.
+ * glyph sits on a tile in its own tone. The tap is the page's ink
+ * (#437), the Premium chip stays the only plum, and no tile is a trait
+ * tone.
  */
 /* M13, modes-29 (B5 and B6's hook): the stage IS the boss card's top,
    so it takes the sheet radius (20), the card's own. It replaces the
@@ -3147,7 +3227,7 @@ summary::-webkit-details-marker {
    chips' 100, since it is earned), the cup gold in a gold-tinted well
    like a medal, the number at num-l in sage-800, so after the prompt it
    is the next thing the eye lands on. In dark it takes the card
-   hairline like the chips. Not a tap: no terracotta, no press.
+   hairline like the chips. Not a tap: no fill of one, no press.
    `.best-slot` opens its row on the base spring when a best arrives
    after the ladder is read, so the tips below glide rather than jump;
    reduced motion and lite take the final height at once. */
@@ -3399,7 +3479,7 @@ summary::-webkit-details-marker {
    plays the take there. The button is the 44px target, its padding
    pulled back by negative margins so the sentence keeps its lines; the
    pill inside is what is seen, in Hear it back's chip grammar (surface,
-   edge, ink, the glyph in the tap's terracotta), so the press and the
+   edge, ink, the glyph in the play marks' terracotta), so the press and the
    focus ring are drawn on the pill and never on the invisible target.
    The times share one unbroken line (DimensionList), so two targets
    never stack. */
@@ -5272,6 +5352,17 @@ summary::-webkit-details-marker {
   --home-low: rgb(14 6 34 / 0.55);
   --home-glow: rgb(90 60 190 / 0.42);
 }
+/* What a tap on the colour is cut from (#437, `.tap-tonal` and Today's
+   Start): the family's top colour at 16% on white, and its foot for
+   the word. Light in both themes, as the object is: 9.7:1 or better
+   for the word in every family, and the pill 9.7:1 or better on the
+   foot it stands on, 3.8 on the family's top colour
+   (scripts/check-colour.mjs measures the pill on the card). */
+.family-fill:not([data-family="none"]),
+.home-hero:not([data-family="none"]) {
+  --tap-tint: color-mix(in srgb, var(--home-a) 16%, #ffffff);
+  --tap-tint-ink: var(--home-b);
+}
 /* While the read is in flight the trait is unknown, so the card has no
    colour yet: the surface step at the card's height, its bars on sand. */
 .home-hero[data-family="none"] {
@@ -5465,8 +5556,17 @@ summary::-webkit-details-marker {
   color: var(--color-stone-600);
 }
 
-/* The one tap, a pill on the card like every tap (D11). 48px,
-   terracotta, ink. */
+/* The one tap, a pill on the card like every tap (D11), 48px. Since
+   #437 (Timothy: "8 for home", direction 8 of docs/look/buttons) it is
+   cut from the card it stands on, the tonal tap: a pale tint of the
+   family's colour and the family's deep tone for its word, so beside
+   the object nothing on the card is a second colour. It was a flat
+   terracotta pill ("the orange button is ugly ... a futuristic gradient
+   3D against a flat button"). The families give it its two colours
+   (`--tap-tint`, `--tap-tint-ink`, below); a card with no colour yet
+   gives it white and ink, a step from where it lands. Its colours turn
+   in the time the card's own colour fades up, which `.press` reads from
+   `--tw-duration`. */
 .home-start {
   display: flex;
   flex: 1;
@@ -5476,15 +5576,17 @@ summary::-webkit-details-marker {
   min-height: 48px;
   border-radius: var(--radius-tap);
   padding: 0 24px;
-  background: var(--color-terracotta-500);
-  color: var(--color-on-accent);
+  background: var(--tap-tint, #ffffff);
+  color: var(--tap-tint-ink, #201e1d);
   font-family: var(--font-display-face), sans-serif;
   font-size: 0.9375rem;
   line-height: 1.25rem;
   font-weight: 700;
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.3),
-    0 8px 18px -8px rgb(0 0 0 / 0.45);
+    inset 0 1px 0 rgb(255 255 255 / 0.9),
+    0 10px 22px -10px rgb(0 0 0 / 0.5);
+  --press-veil: rgb(32 30 29 / 0.07);
+  --tw-duration: var(--duration-max);
 }
 /* Spin and difficulty: 48px glass circles in the card's veil. */
 .home-glyph {

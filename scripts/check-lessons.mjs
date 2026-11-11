@@ -75,12 +75,14 @@ ok("every lesson row has its picture", art.length >= 15 && art.every((w) => w > 
 /* The feedback round after #296: the gallery read as a paid store. The
    list is rows, one tap on top, and nothing paid anywhere near it. The
    tap is the one under Up next's stage (the cohesion pass; it was the
-   card's terracotta square, M03): one fill on the page, and it is the
-   link that starts the next practice. */
+   card's terracotta square, M03): one filled tap on the page, and it is
+   the link that starts the next practice. A tap is found by its fill's
+   class since #437 (`.tap` on the page, `.tap-tonal` on a coloured
+   card); it was the terracotta utility. */
 const list = await page.evaluate(() => ({
   rows: document.querySelectorAll("main a[data-lesson]").length,
-  taps: document.querySelectorAll('main [class*="bg-terracotta-500"]').length,
-  tapIsUpNext: !!document.querySelector('main a[data-up-next][href*="lesson="][class*="bg-terracotta-500"]'),
+  taps: document.querySelectorAll("main :is(.tap, .tap-tonal)").length,
+  tapIsUpNext: !!document.querySelector('main a[data-up-next][href*="lesson="].tap'),
   upNext: document.querySelector("main [data-up-next]")?.getAttribute("data-up-next") ?? null,
   paid: /premium/i.test(document.querySelector("main")?.textContent ?? "") ||
     !!document.querySelector('main [class*="plum-"]'),
@@ -157,15 +159,12 @@ const buttons = await page.$$eval("main button", (els) =>
     .map((e) => (e.getAttribute("aria-label") ?? e.textContent ?? "").replace(/\s+/g, " ").trim())
     .filter(Boolean)
 );
-/* The loudest button is the one wearing the accent fill (lib/ui.ts's
-   ACTION_CLASS), not the first one in the document — the debrief's
-   first button is the transcript's play control. */
+/* The loudest button is the one wearing the tap's fill (lib/ui.ts:
+   `.tap`, ink since #437), not the first one in the document: the
+   debrief's first button is the transcript's play control. */
 const primary = await page.$$eval("main button", (els) => {
   const hit = els.find(
-    (e) =>
-      e.className.includes("bg-terracotta-500") &&
-      e.className.includes("w-full") &&
-      e.className.includes("min-h-12")
+    (e) => e.classList.contains("tap") && e.className.includes("w-full") && e.className.includes("min-h-12")
   );
   return (hit?.textContent ?? "").replace(/\s+/g, " ").trim();
 });

@@ -51,7 +51,7 @@ import { usePaywallReturn } from "@/lib/use-paywall-return";
  *
  * The weekly boss, then the games as tiles: Free above, then Premium.
  * What #317 asked for stays: one Premium block, its paid modes named,
- * and an Unlock that is not terracotta, so the boss keeps the one tap.
+ * and an Unlock that is not the tap's fill, so the boss keeps the one tap.
  *
  *  - The boss's sky stage IS its card (M13): the screen's one lifted
  *    thing, at the sheet radius, with Start on the ground under it.
@@ -75,7 +75,7 @@ import { usePaywallReturn } from "@/lib/use-paywall-return";
  * Colour: the boss stage is the introduction's sky, with the full-body
  * clock pose standing in it. Under the stage everything is neutral
  * (STATE, #391): the tiles are cards with ink glyphs, sage only for a
- * counted pip and a mastered game, the tap stays terracotta, and plum is
+ * counted pip and a mastered game, the tap is the page's ink (#437), and plum is
  * only the PremiumMark. No Demos on a tile: he is not furniture.
  */
 const GLYPH: Record<string, (size: number) => ReactNode> = {
@@ -387,7 +387,7 @@ export default function GamesPage() {
                 say what the levels are, tomorrow's free game, and one
                 door. The rows are not doors; the Unlock is, as the
                 secondary pill, so the boss's Start stays the screen's
-                one terracotta. `premium-wall` is the hook the camera and
+                one tap. `premium-wall` is the hook the camera and
                 check-sheet-touch open the paywall by. */}
             <div className="card mt-3 px-4 pb-4">
               <ul>

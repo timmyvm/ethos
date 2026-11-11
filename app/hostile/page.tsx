@@ -937,7 +937,7 @@ export default function HostilePage() {
 /**
  * A failure in the error grammar (system-10, #246): the control surface
  * with rust words, as the auth forms and Upload draw it. Never
- * terracotta, which means tap, and never the coach's wash, which reads
+ * the tap's fill, which means go, and never the coach's wash, which reads
  * as Demos talking.
  */
 function ErrorNote({ children }: { children: string | null }) {

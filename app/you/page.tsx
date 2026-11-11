@@ -61,7 +61,7 @@ import { usePaywallReturn } from "@/lib/use-paywall-return";
 const FREE_LEXICON = 3;
 /** Upgrades the test needs before it has three to ask (LexiconFlash). */
 const TEST_FROM = 3;
-/** The tap's shape on the surface: Test yourself while the account gate holds the page's one terracotta. */
+/** The tap's shape on the surface: Test yourself while the account gate holds the page's one tap. */
 const QUIET_TAP =
   "press font-display block min-h-12 w-full rounded-tap bg-surface px-6 py-3.5 text-center text-body leading-5 font-bold";
 
@@ -759,7 +759,7 @@ export default function YouPage() {
                 (components/LexiconFlash.tsx). The page's one tap, and
                 its card takes the tap's place when pressed. While the
                 account gate above is showing, that gate keeps the
-                screen's one terracotta and this steps down to a door. */}
+                screen's one tap and this steps down to a door. */}
             {flashing ? (
               <div className="mt-4">
                 <LexiconFlash lexicon={lexicon} onDone={() => setFlashing(false)} />
@@ -1301,7 +1301,7 @@ const WHAT: Record<string, string> = {
  *
  * It closes with Done at the top right, as every information sheet does
  * (D15). Its "Practise" covers You's "Test yourself", so each visible
- * layer still has one terracotta.
+ * layer still has one tap.
  */
 function TraitSheet({
   trait,

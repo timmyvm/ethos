@@ -325,7 +325,7 @@ export default function BossPage() {
           {/* Premium, as Practice draws it (E30, D31): the tier's head
               with its one mark, over one plain card of rows, each a bare
               ink glyph, the name, one line and the chevron. No
-              terracotta: the room's one tap is the take. Pick a topic
+              filled tap: the room's one tap is the take. Pick a topic
               opens the library on a plan and the paywall without one;
               Hostile Q&A goes to its own screen, which says a free
               account's one a week before the take. */}
@@ -516,7 +516,7 @@ export default function BossPage() {
  * week last. A slot holds the week's first boss Index at num-s; a missed
  * week stays an empty outlined slot, never a zero; a week whose take was
  * too short to score holds a dash. This week's slot is ringed in ink,
- * never terracotta: the screen's one tap is the take. Each Monday's date
+ * an outline and never a fill: the screen's one tap is the take. Each Monday's date
  * sits under its slot. Until the read lands the slots shimmer at their
  * landed size; a failed read shows dashes, unknown rather than missed.
  */

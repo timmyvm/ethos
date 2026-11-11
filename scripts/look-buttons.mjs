@@ -4,6 +4,12 @@
  * heaps of different button styles ... just the home screen and the
  * first feedback screen").
  *
+ * Kept as the record of the choice. Timothy picked 8 for Home and 10
+ * for the feedback screen, and #437 shipped them (lib/ui.ts, `.tap`,
+ * `.tap-tonal`; `scripts/look-taps.mjs` shoots the result). Run again
+ * now, "As it ships" is drawn from the app as it is today, not from the
+ * terracotta pill its note describes.
+ *
  * Nothing in the app changes. The camera opens Today, then walks a take
  * to its results, and on each screen swaps a stylesheet that redraws
  * only the main tap (Today's Start, the results' way on), shooting each

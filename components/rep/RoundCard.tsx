@@ -14,7 +14,7 @@ import { SPRING, springEasing, springMs } from "@/lib/spring";
 /**
  * "The round" (proposal-feel F3, the games plan item 4): the game's own
  * reveal on a game's score step, above the stars. One `.card`, compact,
- * no card inside it, no terracotta (the shelf keeps the one tap) and no
+ * no card inside it, no filled tap (the shelf keeps the one tap) and no
  * second Demos: Q&A's mark is the bubble, its tile's own glyph.
  *
  * - Q&A: the take as a strip in the pause map's marks, an ink rule where

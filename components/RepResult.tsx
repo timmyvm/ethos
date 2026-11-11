@@ -747,7 +747,7 @@ export function RepResult({
         /*
          * Demos speaks from his bubble (M08, log-8): the full-body
          * speaking pose at 112, the bubble's tail at his face, and no
-         * wash, because terracotta is the tap and nothing here is one.
+         * wash, because a filled thing reads as a tap and nothing here is one.
          * One line in it. The caption that says a model wrote it sits
          * under the bubble, outside it, and only when a coach ran: the
          * fallback line is computed from the metrics.

@@ -33,7 +33,7 @@ import { TAB_HREFS, tabIndexFor } from "@/lib/tabs";
  *
  * Instrument grammar (#201): the bar sits on the raised paper behind a
  * hairline; the active tab is ink at 800, inactive tabs faint — no
- * accent colour, no pill, no indicator bar. The one terracotta on a
+ * accent colour, no pill, no indicator bar. The one filled thing on a
  * screen is its tap, and a tab you are already on is not one.
  */
 /*

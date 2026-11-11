@@ -1,7 +1,7 @@
 "use client";
 
 import { setAudioSession } from "@/lib/audio-session";
-import { ACTION_CLASS as PRIMARY } from "@/lib/ui";
+import { ACTION_ARROW_CLASS, ACTION_CLASS as PRIMARY } from "@/lib/ui";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -56,6 +56,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { FooterShelf } from "@/components/ui/FooterShelf";
 import { SegmentBar } from "@/components/ui/SegmentBar";
+import { TapArrow } from "@/components/ui/TapArrow";
 import { BackLink } from "@/components/ui/ScreenHeader";
 import { practiceFamily, recordingObject } from "@/lib/practice-family";
 import { animateSpring, SPRING, springEasing, springMs } from "@/lib/spring";
@@ -2602,7 +2603,7 @@ function RepScreen() {
               className={`press font-display elev-3 relative h-24 w-24 rounded-full text-body font-bold transition-colors dur-base ${
                 phase === "recording"
                   ? "bg-terracotta-600 text-cream"
-                  : "rec-wait bg-terracotta-500 text-on-accent"
+                  : "rec-wait tap"
               }`}
             >
               {phase === "recording" ? "Stop" : "Record"}
@@ -2665,7 +2666,7 @@ function RepScreen() {
           <button
             onClick={() => void startRep()}
             /* The think time's one tap: Record is not on this screen, so
-               the start is the terracotta (PRINCIPLES 2). */
+               the start is the screen's one tap (PRINCIPLES 2). */
             className={PRIMARY}
           >
             I&apos;m ready
@@ -3442,12 +3443,19 @@ function Results({
    * The one way forward (M07, #273, #194, #220), live from the glance's
    * first frame, and the same tap at the sheet's foot. Buttons, not
    * Links: the exits go through exit(), which may route via a wall first.
+   *
+   * It wears the arrow (#437, Timothy: "10 for feedback"): this is the
+   * tap that moves you on, so its words start at the left and the
+   * arrow stands at its right end.
    */
   const primary = (where: "shelf" | "sheet") => {
     const mark = where === "shelf" ? { "data-step-action": "" } : {};
     return (
-      <button {...mark} onClick={retakeFirst ? onRetake : wayOn.go} className={PRIMARY}>
-        {primaryLabel}
+      <button {...mark} onClick={retakeFirst ? onRetake : wayOn.go} className={ACTION_ARROW_CLASS}>
+        {/* 4px over and under, for the two longest lesson names at 320,
+            which take two lines: one line is still the 48px pill. */}
+        <span className="min-w-0 py-1 text-balance">{primaryLabel}</span>
+        <TapArrow />
       </button>
     );
   };
@@ -3589,7 +3597,7 @@ function Results({
 
         <FooterShelf className={askingFelt ? "" : "pt-3"}>
           {askingFelt ? (
-            /* Skippable: the score is one quiet tap away, never a terracotta
+            /* Skippable: the score is one quiet tap away, never a filled
                one (the question is the step, and it is grey). */
             <div className="flex min-h-12 items-center justify-center">
               <button

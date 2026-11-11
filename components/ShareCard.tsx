@@ -181,6 +181,8 @@ export function ShareCard({ reps, quiet = false }: { reps: RepRow[]; quiet?: boo
           <img
             src={url}
             alt="Your progress card"
+            /* A picture made to be kept: a held thumb may still save it (#444). */
+            data-keeps=""
             width={1080}
             height={1920}
             className="aspect-[1080/1920] w-full rounded-control border border-card-edge"

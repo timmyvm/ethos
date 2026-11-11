@@ -562,6 +562,45 @@ body {
 }
 
 /*
+ * Touch and hold (#444, from Apple's edit menus and gestures pages: let
+ * people copy content, never a control's label). Ethos runs in a
+ * browser's engine, and a browser answers a held thumb with its own
+ * furniture: a link lifts a preview with Open, Copy and Share, a
+ * picture offers Save to Photos, a title grows selection handles and a
+ * Copy bar. On the tab bar it also cancels the press that was sliding
+ * the well. An app's controls do none of that.
+ *
+ * So: no callout on anything pressable or drawn, and no text selection
+ * on a control or on the screen's own furniture (titles, heads, the
+ * bars). What a person wrote or said, and what Ethos says about it,
+ * stays text they can select and copy: the transcript's words, Demos's
+ * read, an error, a number, a policy. A link set inside a paragraph is
+ * a web link and keeps the browser's manners, and the progress card is
+ * a picture made to be saved. In the base layer, so one utility on one
+ * element can still say otherwise.
+ */
+@layer base {
+  :where(a, button, summary, label, img, svg, video, [role="button"], [role="radio"], [role="switch"], [role="option"], [role="tab"]) {
+    -webkit-touch-callout: none;
+  }
+  :where(a, button, summary, [role="button"], [role="radio"], [role="switch"], [role="option"], [role="tab"]),
+  :where(nav, .large-title, .screen-bar, .section-head, .detail-head, .eyebrow, .label-data, .label-micro, .group-head, .toast) {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  /* The transcript is what was said: every word is a tap, and still text. */
+  :where(.tw),
+  :where(p) :where(a) {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  :where(p) :where(a),
+  :where(img[data-keeps]) {
+    -webkit-touch-callout: default;
+  }
+}
+
+/*
  * Section eyebrows — the Instrument register: 11px, 700, tracked,
  * uppercase, muted: the handoff has ONE label voice, and a section
  * heading earns its rank from the hairline above it and the space

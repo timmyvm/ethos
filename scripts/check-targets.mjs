@@ -1,7 +1,8 @@
 /**
- * Tap targets and tabular digits, swept across the app (#439).
+ * Tap targets, tabular digits and touch-and-hold, swept across the app
+ * (#439, #444).
  *
- * Two of the things a finger and an eye notice without knowing why:
+ * Three of the things a finger and an eye notice without knowing why:
  *
  *  - every control can be hit: its target is at least 44 by 44, counting
  *    the invisible reach a small mark is given (a `::before` or
@@ -11,6 +12,9 @@
  *  - every number that stands as a number (Outfit: a score, a count, a
  *    clock, a price, a table's column) sets its digits at one width, so
  *    a changing value never shifts what sits beside it.
+ *  - a held thumb selects no control's label (the browser's Copy bar on
+ *    a button), while the transcript's words, which are taps too, stay
+ *    text a person can select.
  *
  *   NEXT_PUBLIC_SUPABASE_URL=http://supabase.local \
  *   NEXT_PUBLIC_SUPABASE_ANON_KEY=anon npx next dev -p 3123
@@ -106,7 +110,15 @@ const sweep = () => {
     if (/tabular-nums/.test(cs.fontVariantNumeric)) continue;
     loose.push(`${name(el)}`);
   }
-  return { small: [...new Set(small)], loose: [...new Set(loose)], controls: controls.length };
+  // ---- touch and hold (#444): a control's label is not text to select; what was said is ----
+  const selectable = [];
+  for (const el of controls) {
+    if (el.closest("nextjs-portal") || !visible(el)) continue;
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || el.classList.contains("tw") || el.closest("p")) continue;
+    if (getComputedStyle(el).userSelect !== "none") selectable.push(name(el));
+  }
+  const said = [...document.querySelectorAll(".tw")].slice(0, 5).filter((el) => getComputedStyle(el).userSelect === "none").length;
+  return { small: [...new Set(small)], loose: [...new Set(loose)], selectable: [...new Set(selectable)], said, controls: controls.length };
 };
 
 const browser = await chromium.launch({ args: ["--font-render-hinting=none", "--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"] });
@@ -131,6 +143,7 @@ for (const [name, path] of SCREENS) {
   checked += res.controls;
   ok(`${name}: every control is a 44px target`, res.small.length === 0, res.small.slice(0, 6).join(" | "));
   ok(`${name}: every standing number sets tabular digits`, res.loose.length === 0, res.loose.slice(0, 6).join(" | "));
+  ok(`${name}: no control's label can be selected, and what was said still can`, res.selectable.length === 0 && res.said === 0, res.selectable.slice(0, 6).join(" | ") + (res.said ? ` (${res.said} transcript words unselectable)` : ""));
 }
 // A sheet, open: the paywall from Practice.
 await page.goto(`${BASE}/games?paywall=1`);

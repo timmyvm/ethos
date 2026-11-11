@@ -6187,3 +6187,103 @@ html[data-test-tile] .test-tile-slot {
   padding-block: 4px;
 }
 /* ===================== end of the interactive transcript (#411) ===================== */
+
+/* ============================ the undo toast (#435) ============================
+ * One line and one Undo, floating 10px over the tab bar's capsule, in
+ * the app's column (components/ui/Toast.tsx). Ink where the page is
+ * ground: the one surface that is neither the page nor a card, so it
+ * reads as passing through. Level 3, like everything that floats. It
+ * rises on the snappy spring and leaves in a fade; reduced motion fades
+ * both ways. The key hint shows only where there is a keyboard to hold.
+ * ============================================================================ */
+.toast-dock {
+  position: fixed;
+  z-index: 25;
+  left: 50%;
+  bottom: calc(var(--nav-h) + max(14px, env(safe-area-inset-bottom)) + 10px);
+  display: flex;
+  width: 100%;
+  max-width: 430px;
+  justify-content: center;
+  padding-inline: 20px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  max-width: 350px;
+  min-height: 48px;
+  align-items: center;
+  gap: 12px;
+  border-radius: var(--radius-tap);
+  padding: 6px 6px 6px 18px;
+  background: var(--color-ink);
+  color: var(--color-ground);
+  box-shadow: var(--shadow-3);
+  font-family: var(--font-display);
+  pointer-events: auto;
+  animation: toast-in var(--spring-snappy-duration) var(--spring-snappy) backwards;
+}
+.toast[data-leaving] {
+  animation: fade-out var(--duration-base) var(--ease-out) forwards;
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+}
+.toast-text {
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--text-row);
+  font-weight: 600;
+  line-height: var(--text-row--line-height);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The one thing to press: a lighter capsule in the capsule, 36 tall to
+   the eye and 44 to the thumb (the ::after carries the rest). */
+.toast-action {
+  position: relative;
+  display: inline-flex;
+  min-height: 36px;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  border-radius: var(--radius-tap);
+  padding-inline: 14px;
+  background: color-mix(in srgb, var(--color-ground) 16%, transparent);
+  color: var(--color-ground);
+  font-size: var(--text-row);
+  font-weight: 700;
+}
+.toast-action::after {
+  content: "";
+  position: absolute;
+  inset: -4px -2px;
+}
+.toast-action:focus-visible {
+  outline: 2px solid var(--color-ground);
+  outline-offset: 2px;
+}
+.toast-key {
+  display: none;
+  font-family: inherit;
+  font-size: var(--text-suffix, 0.625rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  opacity: 0.6;
+}
+@media (hover: hover) and (pointer: fine) {
+  .toast-key {
+    display: inline;
+  }
+}
+:root[data-motion="reduce"] .toast {
+  animation: fade-in var(--duration-base) var(--ease-out) backwards;
+}
+:root[data-motion="reduce"] .toast[data-leaving] {
+  animation: fade-out var(--duration-base) var(--ease-out) forwards;
+}
+/* ========================== end of the undo toast (#435) ========================== */

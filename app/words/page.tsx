@@ -1,13 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { use, useCallback, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import { DemosArt } from "@/components/DemosArt";
 import { ErrorLine, ErrorState } from "@/components/ui/ErrorState";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Skeleton, SkeletonRegion } from "@/components/ui/Skeleton";
+import { UndoToast } from "@/components/ui/Toast";
 import { readable } from "@/lib/load";
-import { fetchSavedWords, noteRemoved, removeSavedWord, type SavedWord } from "@/lib/saved-words";
+import {
+  fetchSavedWords,
+  noteRemoved,
+  noteSaved,
+  removeSavedWord,
+  restoreSavedWord,
+  withRow,
+  type SavedWord,
+} from "@/lib/saved-words";
 import { ACTION_CLASS } from "@/lib/ui";
 
 /** Where back goes: You, or the recording whose sheet opened this. */
@@ -27,8 +36,10 @@ function backOf(from: string | string[] | undefined) {
  * The lexicon's grammar (You, #317): rows on the ground split by
  * hairlines at reading size, the new word as a neutral label in ink, an
  * example drawn the way a real row will be when there is none. A removal
- * is off the list at once and back with a line if it fails. A failed
- * read is a retry, never an empty list (#147).
+ * is off the list at once, with no "are you sure", and for a few seconds
+ * a toast offers Undo (#435), which puts the same row back in its place;
+ * a removal or an undo that fails says so in a line with its retry. A
+ * failed read is a retry, never an empty list (#147).
  */
 export default function YourWords({
   searchParams,
@@ -41,6 +52,12 @@ export default function YourWords({
   const [failed, setFailed] = useState(false);
   /** A removal that did not land: its row is back, and this says so. */
   const [unremoved, setUnremoved] = useState<string | null>(null);
+  /** An undo that did not land: its row is off again, and this says so. */
+  const [unrestored, setUnrestored] = useState<SavedWord | null>(null);
+  /** The removal the toast offers to take back: the newest one only. */
+  const [undo, setUndo] = useState<SavedWord | null>(null);
+  /** Each removal's own request, so an undo never overtakes the removal it undoes. */
+  const leaving = useRef(new Map<string, Promise<boolean>>());
   const [said, setSaid] = useState("");
 
   const load = useCallback(async () => {
@@ -55,18 +72,47 @@ export default function YourWords({
     void load();
   }, [load]);
 
-  const remove = async (row: SavedWord) => {
+  const remove = async (row: SavedWord, from?: HTMLElement | null) => {
     setUnremoved(null);
+    setUnrestored(null);
+    /* The keyboard stays in the list: the next row's own button (or the
+       one before the last), since the one pressed leaves with its row. */
+    const li = from?.closest("li");
+    const next = (li?.nextElementSibling ?? li?.previousElementSibling)?.querySelector("button");
     setRows((now) => now?.filter((r) => r.id !== row.id) ?? now);
-    setSaid(`${row.instead} removed`);
+    // The toast is the status: it says the removal and offers it back.
+    setSaid("");
+    setUndo(row);
     noteRemoved(row.word, row.instead);
+    if (next instanceof HTMLElement) next.focus({ preventScroll: true });
+    const gone = removeSavedWord(row.id).then(
+      () => true,
+      () => false
+    );
+    leaving.current.set(row.id, gone);
+    if (await gone) return;
+    leaving.current.delete(row.id);
+    setUndo((now) => (now?.id === row.id ? null : now));
+    setRows((now) => (now ? withRow(now, row) : now));
+    noteSaved(row);
+    setUnremoved(row.instead);
+  };
+
+  /** Undo: the same row, back in its place, once its removal has answered. */
+  const putBack = async (row: SavedWord) => {
+    setUndo(null);
+    setUnrestored(null);
+    setRows((now) => (now ? withRow(now, row) : now));
+    setSaid(`${row.instead} is back`);
+    const gone = await (leaving.current.get(row.id) ?? Promise.resolve(true));
+    leaving.current.delete(row.id);
+    // The removal never landed: the row is still saved, and already back on screen.
+    if (!gone) return;
     try {
-      await removeSavedWord(row.id);
+      noteSaved(await restoreSavedWord(row));
     } catch {
-      setRows((now) =>
-        now ? [...now, row].sort((a, b) => (a.created_at < b.created_at ? 1 : -1)) : now
-      );
-      setUnremoved(row.instead);
+      setRows((now) => now?.filter((r) => r.id !== row.id) ?? now);
+      setUnrestored(row);
       setSaid("");
     }
   };
@@ -95,6 +141,13 @@ export default function YourWords({
       <p role="status" className="sr-only">
         {said}
       </p>
+      {/* Over whatever the list now is, the empty page included: an undo
+          that did not land. */}
+      {unrestored && rows !== null && (
+        <ErrorLine className="mt-3" onRetry={() => void putBack(unrestored)}>
+          {unrestored.instead} didn&apos;t come back.
+        </ErrorLine>
+      )}
 
       {failed ? (
         <ErrorState
@@ -154,6 +207,7 @@ export default function YourWords({
               {unremoved} didn&apos;t come off the list.
             </ErrorLine>
           )}
+
           {/* No margin: each row's 12px top padding is the header's mt-3
               (system-7), as the lexicon's rows are. */}
           <ul className="stagger mt-2">
@@ -167,7 +221,7 @@ export default function YourWords({
                   </p>
                   <button
                     type="button"
-                    onClick={() => void remove(r)}
+                    onClick={(e) => void remove(r, e.currentTarget)}
                     aria-label={`Remove ${r.instead} instead of ${r.word}`}
                     className="press -mr-2 flex size-11 shrink-0 items-center justify-center rounded-full text-stone-400"
                   >
@@ -185,6 +239,14 @@ export default function YourWords({
             ))}
           </ul>
         </>
+      )}
+      {undo && (
+        <UndoToast
+          key={undo.id}
+          message={`${undo.instead} removed`}
+          onUndo={() => void putBack(undo)}
+          onDone={() => setUndo((now) => (now?.id === undo.id ? null : now))}
+        />
       )}
     </main>
   );

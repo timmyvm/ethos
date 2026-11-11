@@ -17,7 +17,7 @@ The target, described so you can see it, not policed so you can grep it.
 
 ## What this pass enforces
 
-Ten principles from the design pass (#326) and an eleventh from Apple's guidelines (#440 to #448), each a thing you can count on a screenshot. Break one only where the screen looks better for it, and log why.
+Ten principles from the design pass (#326) and an eleventh from Apple's guidelines (#440 to #449), each a thing you can count on a screenshot. Break one only where the screen looks better for it, and log why.
 
 1. **One lifted thing.** At most one `elev-2` per screen, the card holding the one tap. Every other card is `.card`. No card inside a card, no filled tile inside a card.
 2. **One tap colour, one tap shape.** Exactly one terracotta fill per screen and no hover step; terracotta-600 is only Stop. Chips and taps are pills (`rounded-tap`: the one tap and every 44 to 48px secondary button), Record the only circle. Plum only as PremiumMark and the two Premium surfaces. Earned glyphs (a star, a lit flame, a coin) are gold, `--color-amber` with a 1px rim in light; earned fills, bars and numbers are sage, and sage is only ever something earned. The Shop's Buy and its On You toggle, which spend and wear what speaking earned, are the named sage taps (#165).
@@ -29,7 +29,7 @@ Ten principles from the design pass (#326) and an eleventh from Apple's guidelin
 8. **Nothing moves on load, and unknown is never zero.** Every async slot reserves its height and lands with `.arrive`; loading or failed shows a skeleton or a dash.
 9. **Demos speaks in one voice.** One tailed SpeechBubble in Figtree regular (20 in the introduction, 17 elsewhere) against Outfit 700 answers; one Demos per screen, never on a terracotta wash, and at 120px or more his idle clip plays, except in the introduction, where he arrives and stays a picture (`IntroDemos`, notes1). He is not on the idle recording screen: the prompt is the one thing to read there, and he arrives as the listener when Record is pressed (D50). Shop pose thumbnails are product art, not a Demos on screen.
 10. **Every control is reachable and announced.** 44px targets, focus drawn inside clipped containers, radio groups on `useRovingRadio` with arrow keys, `role=status` or `role=alert` on every async result, Demos's lines read once. A control's name starts with the word on it; a shape is never the whole message (a triangle is "Up", a struck word is "Instead of", a badge says "Earned"); a number on screen is in the row's name (#448).
-11. **It behaves like the phone it is on** (#440 to #448, Apple's guidelines). A setting shows the value it holds and is not drawn where the phone cannot do it. A confirm opens in view, cancel leading. Every way out of a sheet is the same exit, and a sheet keeps what was typed into it. The keyboard never covers the one tap. A held thumb selects what was said, never a label. A picture leaves through the share sheet. Terracotta is the tap and never a warning; rust is.
+11. **It behaves like the phone it is on** (#440 to #448, Apple's guidelines). A setting shows the value it holds and is not drawn where the phone cannot do it. A confirm opens in view, cancel leading. Every way out of a sheet is the same exit, and a sheet keeps what was typed into it. The keyboard never covers the one tap. A held thumb selects what was said, never a label. A picture leaves through the share sheet. Terracotta is the tap and never a warning; rust is. A tap that matters ticks (#449): `<TapTick />` as the last child of a button, never a link, never a disabled control.
 
 ## Tokens
 
@@ -79,6 +79,7 @@ node scripts/check-fields.mjs                  # the keyboard and the one tap, S
 node scripts/check-a11y.mjs                    # what a screen reader is given, and Increase Contrast (#448)
 node scripts/check-awake.mjs                   # the wake lock, a stalled send, a blocked mic (#440)
 node scripts/check-share.mjs                   # the progress card and the share sheet (#447)
+node scripts/check-haptics.mjs                 # an iPhone's tick: the tap reaches the hidden switch, the button is pressed once (#449)
 CHECK_OUT=/tmp/motion node scripts/check-motion.mjs   # on `next dev`: its video must land outside the repo
 
 # playwright-cli by hand; in the cloud container it needs the preinstalled Chromium

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
+import { TapTick } from "@/components/ui/TapTick";
 import { DemosArt } from "@/components/DemosArt";
 import { IconBoss, IconGlobe } from "@/components/Icon";
 import { Paywall } from "@/components/Paywall";
@@ -316,6 +317,7 @@ export default function BossPage() {
                   className={`press font-display min-h-11 shrink-0 rounded-tap border border-edge bg-surface px-5 text-row ${DISABLED_CLASS}`}
                 >
                   Spin
+                  {!(reel.rolling || !topic) && <TapTick />}
                 </button>
                 {premium === false && spinsUsed !== null && (
                   <span className="text-link tabular-nums text-stone-500">

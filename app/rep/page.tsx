@@ -12,6 +12,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { TapTick } from "@/components/ui/TapTick";
 import { AudioScrubber } from "@/components/AudioScrubber";
 import { useTakeAudio } from "@/components/TakeAudio";
 import { BestPlaque } from "@/components/rep/BestPlaque";
@@ -2620,6 +2621,8 @@ function RepScreen() {
               }`}
             >
               {phase === "recording" ? "Stop" : "Record"}
+              {/* An iPhone's tick under the tap, start and stop (#449). */}
+              <TapTick />
             </button>
             {/* The way out of a take started by mistake (#407): quiet,
                 beside Stop so the screen's one tap stays Stop. Not under

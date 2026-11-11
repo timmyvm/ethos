@@ -108,10 +108,21 @@ export function readPrefs(): Prefs {
   }
 }
 
+/**
+ * Said on the window each time a preference is written, for the few
+ * things on screen that read one while they stand (the tap's tick,
+ * lib/tap-tick.ts: Haptics switched off stops it at once, on the screen
+ * that switched it).
+ */
+export const PREFS_CHANGED = "ethos:prefs";
+
 export function writePrefs(patch: Partial<Prefs>): Prefs {
   const next = { ...readPrefs(), ...patch };
   try {
     localStorage.setItem(KEY, JSON.stringify(next));
+  } catch {}
+  try {
+    window.dispatchEvent(new Event(PREFS_CHANGED));
   } catch {}
   return next;
 }
@@ -152,7 +163,13 @@ export function captureModeFor(kind: "daily" | "boss"): CaptureMode {
   return readCaptureMode(kind);
 }
 
-/** Haptics — opt-out lives in settings; silently absent on desktop. */
+/**
+ * Haptics, where the browser has a Vibration API. The opt-out lives in
+ * Settings; it is silently absent on a desktop. An iPhone has no such
+ * API: there the haptic is the tick under a tap, which cannot be asked
+ * for and is drawn into the controls that carry it (lib/tap-tick.ts,
+ * #449), under the same switch.
+ */
 export function buzz(pattern: number | number[]): void {
   try {
     if (!readPrefs().haptics) return;

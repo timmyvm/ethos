@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Fragment, useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { TapTick } from "@/components/ui/TapTick";
 import { DemosFigure } from "@/components/DemosClip";
 import { Paywall } from "@/components/Paywall";
 import { PremiumMark } from "@/components/PremiumMark";
@@ -650,6 +651,7 @@ export default function HostilePage() {
               className={ACTION_CLASS}
             >
               Record my take
+              <TapTick />
             </button>
           </FooterShelf>
         </>
@@ -715,6 +717,7 @@ export default function HostilePage() {
             className={`${ACTION_CLASS} mt-7`}
           >
             Done
+            <TapTick />
           </button>
         </div>
       )}
@@ -805,6 +808,7 @@ export default function HostilePage() {
             className={`${ACTION_CLASS} mt-4`}
           >
             Record my answer · {ANSWER_SECONDS}s
+            <TapTick />
           </button>
         </div>
       )}

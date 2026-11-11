@@ -10,8 +10,9 @@
  *   3. A setting shows the value it holds. The reminder's hour is a Time
  *      row over the phone's own picker with every hour the results
  *      glance offers, so an hour chosen there is the hour shown here.
- *   4. No row for what this phone cannot do: no Haptics switch without a
- *      vibration to ask for, no camera bench where no take is Video.
+ *   4. No row for what this phone cannot do: no Haptics switch where
+ *      the phone can give no haptic (a vibration, or an iPhone's tick,
+ *      #449), no camera bench where no take is Video.
  *   5. Privacy and Terms are a tap from both account asks, and their
  *      back is the ask that was left.
  *
@@ -209,7 +210,9 @@ for (const [name, width, height, kbd] of [["390x844", 390, 844, 336], ["375x667"
 // ---- 4. no row for what this phone cannot do ---------------------------------
 for (const [name, opts, want] of [
   ["a phone that vibrates and takes Video", { vibrate: true }, { haptics: true, bench: true, head: "Sound and haptics" }],
-  ["an iPhone", { vibrate: false, iphone: true }, { haptics: false, bench: false, head: "Sound" }],
+  // An iPhone has no vibration to ask for, and ticks under a tap all the same (#449).
+  ["an iPhone", { vibrate: false, iphone: true }, { haptics: true, bench: false, head: "Sound and haptics" }],
+  ["a browser with no haptic at all", { vibrate: false }, { haptics: false, bench: true, head: "Sound" }],
 ]) {
   const { context, page } = await account(opts);
   await page.goto(`${BASE}/settings`);

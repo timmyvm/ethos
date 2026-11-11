@@ -1,5 +1,6 @@
 "use client";
 
+import { TapTick } from "@/components/ui/TapTick";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Segmented } from "@/components/ui/Segmented";
@@ -21,6 +22,7 @@ import {
 import { applyMotion, applyTheme } from "@/components/Theme";
 import { applyGraphics, liteGraphics, liteWhy, type LiteWhy } from "@/lib/graphics";
 import { videoOffered } from "@/lib/pose-client";
+import { hapticsHere } from "@/lib/tap-tick";
 import { ManageSheet } from "@/components/premium/ManageSheet";
 import { SettingsPlanRow, SettingsPlanRowSkeleton } from "@/components/premium/PlanCard";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -155,15 +157,15 @@ export default function SettingsPage() {
      paint, so a visit from You never draws the page without it. */
   const [hint, setHint] = useState(false);
   /* What this phone can do (#446): a row for something it cannot is a
-     switch that does nothing. An iPhone has no vibration a page can ask
-     for, and takes no Video (#412), so it is offered neither Haptics nor
-     the camera score's bench. Read before paint, so no row is drawn and
-     then taken away. */
+     switch that does nothing. An iPhone takes no Video (#412), so it is
+     not offered the camera score's bench. Haptics is offered wherever
+     the phone can give one: a vibration, or on an iPhone the tap's tick
+     (#449). Read before paint, so no row is drawn and then taken away. */
   const [canBuzz, setCanBuzz] = useState(false);
   const [canVideo, setCanVideo] = useState(false);
   useLayoutEffect(() => {
     setHint(readPlanHint());
-    setCanBuzz(typeof navigator !== "undefined" && typeof navigator.vibrate === "function");
+    setCanBuzz(hapticsHere());
     setCanVideo(videoOffered(liteGraphics()));
   }, []);
   useEffect(() => {
@@ -932,6 +934,9 @@ function Toggle({
       <span aria-hidden className="switch" data-on={on || undefined}>
         <span className="switch-knob" />
       </span>
+      {/* A switch ticks when it is thrown, as every switch on the phone
+          does (#449). */}
+      <TapTick />
     </button>
   );
 }

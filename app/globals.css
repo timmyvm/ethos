@@ -562,6 +562,38 @@ body {
 }
 
 /*
+ * The tap's tick (#449, components/ui/TapTick.tsx). On an iPhone a
+ * transparent label lies over a button and hands the person's own tap to
+ * a hidden native switch, which is the one thing a page can do to make
+ * the phone tick. The label takes the button's shape so its corners are
+ * not a tap; the switch is one pixel, hidden by `visibility`, and keeps
+ * its native look on purpose (WebKit plays nothing for a restyled one).
+ * The button under it is positioned by the base rule, which any
+ * position utility on the button outranks.
+ */
+@layer base {
+  :where(button):has(> .tap-tick) {
+    position: relative;
+  }
+}
+.tap-tick {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  cursor: inherit;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.tap-tick > input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  visibility: hidden;
+}
+
+/*
  * Touch and hold (#444, from Apple's edit menus and gestures pages: let
  * people copy content, never a control's label). Ethos runs in a
  * browser's engine, and a browser answers a held thumb with its own
@@ -6565,7 +6597,8 @@ html[data-test-tile] .test-tile-slot {
   .family-fill::before,
   .home-hero::before,
   .test-day-fill,
-  .test-day[data-today]::after {
+  .test-day[data-today]::after,
+  .tap-tick {
     corner-shape: inherit;
   }
   /* Today's Today / This week switch is a pill, thumb and all, though it

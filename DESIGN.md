@@ -32,7 +32,7 @@ Ten principles from the design pass (#326), each a thing you can count on a scre
 
 ## Tokens
 
-Colour, radius and motion live in `app/globals.css`, `lib/motion.ts` and `lib/spring.ts`. Movement is a spring (damping, response), critically damped unless the gesture carried momentum; fades are curves. The `apple-design` skill (`.claude/skills/apple-design`) is the reference for motion, materials and type feel. Radius: control 12 (inputs and answer rows, which are answers, not taps), card 16, sheet 20; chips and taps are pills (`--radius-tap`), Record the only circle. Three dark layers plus stage. Text roles that clear AA. The named motion classes in `STATE.md`. Extend them whenever the reference asks for something they lack; a value goes into the tokens first and gets used second.
+Colour, radius and motion live in `app/globals.css`, `lib/motion.ts` and `lib/spring.ts`. Movement is a spring (damping, response), critically damped unless the gesture carried momentum; fades are curves. The `apple-design` skill (`.claude/skills/apple-design`) is the reference for motion, materials and type feel. Radius: control 12 (inputs and answer rows, which are answers, not taps), card 16, sheet 20; chips and taps are pills (`--radius-tap`), Record the only circle. Where the browser can draw one, a surface's corner is continuous rather than a quarter circle (#437, the last block of `app/globals.css`); a new surface class that sets one of these radii joins that block, and `scripts/check-corners.mjs` finds the ones that did not. Three dark layers plus stage. Text roles that clear AA. The named motion classes in `STATE.md`. Extend them whenever the reference asks for something they lack; a value goes into the tokens first and gets used second.
 
 ## References
 
@@ -68,6 +68,10 @@ node scripts/look-welcome.mjs after            # the introduction, walked and sh
 node scripts/check-motion-layer.mjs            # the motion layer, asserted
 node scripts/check-motion.mjs                  # the older motion layer, asserted
 node scripts/check-onboarding.mjs              # the eleven-screen walk, asserted
+node scripts/check-held.mjs                    # the tabs open on what the visit holds (#433)
+node scripts/check-corners.mjs                 # no round corner meets a continuous one (#437)
+node scripts/check-targets.mjs                 # every control 44px, every number tabular (#439)
+node scripts/look-command.mjs after            # the command menu, a desktop window (#438)
 
 # playwright-cli by hand; in the cloud container it needs the preinstalled Chromium
 export PLAYWRIGHT_MCP_BROWSER=chromium PLAYWRIGHT_MCP_EXECUTABLE_PATH=/opt/pw-browsers/chromium

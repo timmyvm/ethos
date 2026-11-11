@@ -21,7 +21,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { resolveAuthHeader } from "@/lib/db";
-import { consumeRateLimit } from "@/lib/rate-limit";
+import { clientIp, consumeRateLimit } from "@/lib/rate-limit";
 import { WORDS_VERSION, cleanWordAsk, wordCacheKey } from "@/lib/words";
 import { recallAnswer, rememberAnswer, suggestAnswer } from "@/lib/words-server";
 
@@ -56,7 +56,14 @@ export async function POST(req: NextRequest) {
   const held = recallAnswer(key);
   if (held) return json({ v: WORDS_VERSION, ...held, source: "memory" });
 
-  const verdict = await consumeRateLimit(`words:u:${auth.user.id}`, "words");
+  // A guest's words also count against their address, together: a new
+  // guest session is free to make, and each one would bring its own 300
+  // a day (security audit, 11 Nov; #416 did the same for recordings).
+  const own = await consumeRateLimit(`words:u:${auth.user.id}`, "words");
+  const verdict =
+    own.allowed && auth.user.anonymous
+      ? await consumeRateLimit(`words:guest:ip:${clientIp(req.headers)}`, "words")
+      : own;
   if (!verdict.allowed) {
     return json(
       {

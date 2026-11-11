@@ -22,6 +22,9 @@ on:
     - cron: "48 * * * *"
   workflow_dispatch: {}
 
+# The job reads nothing from the repository: its token holds no rights.
+permissions: {}
+
 # One tick at a time; a queued one waits rather than being dropped.
 concurrency:
   group: push-cron
@@ -33,8 +36,10 @@ jobs:
     timeout-minutes: 3
     steps:
       - name: Tick the reminder cron
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           curl -sS --fail-with-body --max-time 55 \
             -A "github-actions push-cron" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Authorization: Bearer $CRON_SECRET" \
             "https://speakethos.com/api/push/cron"

@@ -27,6 +27,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import webpush from "web-push";
 import { supabaseAdmin } from "@/lib/db";
+import { PUSH_SEND_TIMEOUT_MS, pushEndpointOk } from "@/lib/push-endpoint";
 import { dbTickMatches, matchedSecret, namedTickSecrets, tickCaller, type TickCaller, type TickSecretName } from "@/lib/cron-auth";
 import { TICK_KEEP_HOURS, tickSubject, TICK_PREFIX } from "@/lib/push-clock";
 import {
@@ -152,6 +153,9 @@ export async function GET(req: NextRequest) {
     };
 
     // Cheap gates first; the DB check only runs for real candidates.
+    // A row saved before the endpoint list (lib/push-endpoint.ts) that is
+    // not a push service's is never called.
+    if (!pushEndpointOk(sub.endpoint)) continue;
     if (!shouldSend(win, false, now)) continue;
     report.due++;
 
@@ -222,7 +226,7 @@ export async function GET(req: NextRequest) {
         JSON.stringify({ ...copy, url }),
         // Held for a phone that is off only until quiet hours or midnight,
         // whichever is first; one topic, so a newer reminder replaces it.
-        { TTL: sendTtl(win, now), urgency: "normal", topic: PUSH_TOPIC }
+        { TTL: sendTtl(win, now), urgency: "normal", topic: PUSH_TOPIC, timeout: PUSH_SEND_TIMEOUT_MS }
       );
       report.sent++;
     } catch (e) {

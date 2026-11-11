@@ -118,7 +118,12 @@ self.addEventListener("push", (e) => {
  */
 self.addEventListener("notificationclick", (e) => {
   e.notification.close();
-  const url = (e.notification.data && e.notification.data.url) || "/rep";
+  // Only ever a page of this app, whatever the payload said.
+  let url = "/rep";
+  try {
+    const u = new URL((e.notification.data && e.notification.data.url) || "/rep", self.location.origin);
+    if (u.origin === self.location.origin) url = u.pathname + u.search + u.hash;
+  } catch {}
   e.waitUntil(
     self.clients
       .matchAll({ type: "window", includeUncontrolled: true })
@@ -178,8 +183,12 @@ self.addEventListener("fetch", (e) => {
         (hit) =>
           hit ||
           fetch(e.request).then((res) => {
-            const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(e.request, copy));
+            // Only a good answer is kept: a 404 or 500 stored here was
+            // served from the cache until the next version.
+            if (res.ok) {
+              const copy = res.clone();
+              caches.open(CACHE).then((c) => c.put(e.request, copy));
+            }
             return res;
           })
       )
@@ -190,8 +199,10 @@ self.addEventListener("fetch", (e) => {
   e.respondWith(
     fetch(e.request)
       .then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(e.request, copy));
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(e.request, copy));
+        }
         return res;
       })
       .catch(() => caches.match(e.request).then((hit) => hit || caches.match("/")))

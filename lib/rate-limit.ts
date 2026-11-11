@@ -4,7 +4,7 @@
  * /api/analyze calls Whisper on every upload and Claude on scorable
  * ones; this is the server-side check that runs BEFORE either. Subjects
  * are user ids when a session exists (anonymous-first sessions count),
- * the caller's IP otherwise. Real accounts get room to train hard;
+ * the caller's IP otherwise. Real accounts get room to practise hard;
  * sessionless callers get enough to try the product and no more.
  *
  * Fail-open by design: if the limiter's own query breaks, scoring still
@@ -39,6 +39,12 @@ export const LIMITS = {
    * or the phone already holds cost nothing.
    */
   words: { hour: 60, day: 300 },
+  /**
+   * Slots given back after Whisper was paid for (/api/analyze, security
+   * audit 11 Nov): a take the mic barely heard, a resend, a failed save.
+   * Six an hour covers a bad microphone; past it the slot stays spent.
+   */
+  refund: { hour: 6, day: 12 },
 } as const;
 
 export type LimitTier = keyof typeof LIMITS;
@@ -60,14 +66,24 @@ export interface RateVerdict {
 }
 
 const OPEN: RateVerdict = { allowed: true, window: null, retryAfterS: 0 };
+/** What a check that could not run answers when it guards a secret. */
+const SHUT: RateVerdict = { allowed: false, window: "hour", retryAfterS: 300 };
 
+/**
+ * `failClosed` is for the checks in front of a guessable secret (a
+ * redeem code, security audit 11 Nov): there a limiter that cannot
+ * answer must refuse, or its outage is unlimited guesses. Practice
+ * stays fail-open, as the note at the top says.
+ */
 export async function consumeRateLimit(
   subject: string,
-  tier: LimitTier
+  tier: LimitTier,
+  opts: { failClosed?: boolean } = {}
 ): Promise<RateVerdict> {
+  const broken = opts.failClosed ? SHUT : OPEN;
   try {
     const db = supabaseAdmin();
-    if (!db) return OPEN;
+    if (!db) return broken;
     const { data, error } = await db.rpc("consume_rate_limit", {
       p_subject: subject,
       p_hour_limit: LIMITS[tier].hour,
@@ -75,7 +91,7 @@ export async function consumeRateLimit(
     });
     if (error || !data) {
       console.error("rate-limit check failed", error?.message);
-      return OPEN;
+      return broken;
     }
     const v = data as {
       allowed?: boolean;
@@ -89,7 +105,7 @@ export async function consumeRateLimit(
     };
   } catch (e) {
     console.error("rate-limit check threw", e);
-    return OPEN;
+    return broken;
   }
 }
 

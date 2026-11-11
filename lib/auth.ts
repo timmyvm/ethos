@@ -617,9 +617,10 @@ export interface OAuthAttempt {
  */
 export function safeReturnPath(path: unknown): string | null {
   if (typeof path !== "string") return null;
-  if (!path.startsWith("/") || path.startsWith("//") || path.startsWith("/\\")) {
-    return null;
-  }
+  // A backslash or a control character anywhere: a browser drops a tab
+  // and reads "/\t/host" as another site.
+  if (/[\\\u0000-\u001f\u007f]/.test(path)) return null;
+  if (!path.startsWith("/") || path.startsWith("//")) return null;
   if (path.startsWith("/auth/")) return null;
   return path;
 }

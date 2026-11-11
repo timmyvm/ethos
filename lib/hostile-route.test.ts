@@ -289,3 +289,38 @@ describe("the verdict, stored", () => {
     expect(await (await judgeWith({ repId: "rep-2" })).json()).toMatchObject({ stored: false });
   });
 });
+
+/* Security audit, 11 Nov: the context is the phone's copy of the session
+   and goes into the verdict's prompt, so its size is the server's to set. */
+describe("POST /api/hostile and the context's size", () => {
+  it("cuts a take, the answers and the round count to what speech can hold", async () => {
+    vi.mocked(hostileVerdict).mockClear();
+    await post(
+      {
+        phase: "verdict",
+        context: JSON.stringify({
+          take: "word ".repeat(900),
+          rounds: Array.from({ length: 3 }, () => ({ question: "q".repeat(500), answer: "a".repeat(3100) })),
+          roundNumbers: Array.from({ length: 5 }, () => ({ fillersPerMin: "many", midSentencePauses: 1e12 })),
+        }),
+      },
+      false
+    );
+    const [ctx, numbers] = vi.mocked(hostileVerdict).mock.calls[0];
+    expect(ctx.take.length).toBeLessThanOrEqual(4000);
+    expect(ctx.rounds.length).toBeLessThanOrEqual(2);
+    for (const r of ctx.rounds) {
+      expect(r.question.length).toBeLessThanOrEqual(400);
+      expect(r.answer.length).toBeLessThanOrEqual(3000);
+    }
+    expect(numbers.length).toBeLessThanOrEqual(2);
+    expect(numbers[0]).toEqual({ fillersPerMin: 0, midSentencePauses: 1000 });
+  });
+
+  it("reads a context too long to be a session as no context", async () => {
+    vi.mocked(hostileVerdict).mockClear();
+    await post({ phase: "verdict", context: JSON.stringify({ take: "x".repeat(60_000), rounds: [] }) }, false);
+    const ctx = vi.mocked(hostileVerdict).mock.calls[0]?.[0];
+    expect(ctx?.take ?? "").toBe("");
+  });
+});

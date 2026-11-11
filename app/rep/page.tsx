@@ -172,7 +172,7 @@ import {
 } from "@/lib/glance";
 import { upNextLesson, traitForSaid } from "@/lib/lesson-up-next";
 import { DURATION } from "@/lib/motion";
-import { usePaywallReturn } from "@/lib/use-paywall-return";
+import { safeNextPath, usePaywallReturn } from "@/lib/use-paywall-return";
 import { bestFor, ladderState, roundsToday, type LadderRow } from "@/lib/ladder";
 import { INTERVIEW_WINDOW, type GameRound, type StoppedBy } from "@/lib/round";
 import {
@@ -366,9 +366,10 @@ type Phase =
  * target taken from a query string is the oldest hole there is.
  */
 function safeBack(raw: string | null): string | null {
-  if (!raw) return null;
-  if (!raw.startsWith("/") || raw.startsWith("//")) return null;
-  return raw;
+  // The one check every return path goes through: "/\\host" and a tab
+  // before a second slash both read as another site in a browser, and
+  // the two-line test that stood here let them by (security audit, 11 Nov).
+  return safeNextPath(raw);
 }
 
 /** One take while the mic is hot: its devices, recorders and readings. */

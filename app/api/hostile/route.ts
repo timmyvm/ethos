@@ -64,13 +64,64 @@ interface RoundsPayload {
   repId?: string;
 }
 
+/**
+ * The context is the phone's copy of the session, and it goes into the
+ * verdict's prompt, so nothing in it is trusted for size or shape
+ * (security audit, 11 Nov): a take is a minute of speech and an answer
+ * 45 seconds, so each string is cut to a length real speech cannot
+ * reach, the rounds to the game's own count, and the numbers to finite
+ * ones. Without this one request could carry a book into three Opus
+ * calls.
+ */
+const CONTEXT_MAX_CHARS = 20_000;
+const TAKE_MAX_CHARS = 4_000;
+const ANSWER_MAX_CHARS = 3_000;
+const QUESTION_MAX_CHARS = 400;
+const QUOTED_MAX_CHARS = 200;
+
+const text = (v: unknown, max: number): string | undefined =>
+  typeof v === "string" ? v.replace(/\u0000/g, "").slice(0, max) : undefined;
+const finite = (v: unknown): number =>
+  typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.min(v, 1000)) : 0;
+
 function parseContext(raw: unknown): RoundsPayload | null {
-  if (typeof raw !== "string") return null;
+  if (typeof raw !== "string" || raw.length > CONTEXT_MAX_CHARS) return null;
+  let j: unknown;
   try {
-    return JSON.parse(raw) as RoundsPayload;
+    j = JSON.parse(raw);
   } catch {
     return null;
   }
+  if (!j || typeof j !== "object" || Array.isArray(j)) return null;
+  const o = j as Record<string, unknown>;
+  const rounds = Array.isArray(o.rounds)
+    ? o.rounds.slice(0, HOSTILE_ROUNDS).map((r) => {
+        const row = (r && typeof r === "object" ? r : {}) as Record<string, unknown>;
+        return {
+          question: text(row.question, QUESTION_MAX_CHARS) ?? "",
+          answer: text(row.answer, ANSWER_MAX_CHARS) ?? "",
+          quoted: text(row.quoted, QUOTED_MAX_CHARS),
+        };
+      })
+    : undefined;
+  const roundNumbers = Array.isArray(o.roundNumbers)
+    ? o.roundNumbers.slice(0, HOSTILE_ROUNDS).map((n) => {
+        const row = (n && typeof n === "object" ? n : {}) as Record<string, unknown>;
+        return {
+          fillersPerMin: finite(row.fillersPerMin),
+          midSentencePauses: finite(row.midSentencePauses),
+        };
+      })
+    : undefined;
+  return {
+    claim: text(o.claim, QUESTION_MAX_CHARS),
+    take: text(o.take, TAKE_MAX_CHARS),
+    rounds,
+    pendingQuestion: text(o.pendingQuestion, QUESTION_MAX_CHARS),
+    pendingQuoted: text(o.pendingQuoted, QUOTED_MAX_CHARS),
+    roundNumbers,
+    repId: text(o.repId, 64),
+  };
 }
 
 /**

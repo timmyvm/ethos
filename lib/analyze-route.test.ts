@@ -664,7 +664,7 @@ describe("rate limiting", () => {
       anonymous: false,
     });
     await post(audioForm());
-    expect(consumeRateLimit).toHaveBeenLastCalledWith("u:user-1", "user");
+    expect(consumeRateLimit).toHaveBeenCalledWith("u:user-1", "user");
 
     vi.mocked(getUserFromAuthHeader).mockResolvedValue({
       id: "anon-1",
@@ -676,8 +676,8 @@ describe("rate limiting", () => {
 
     vi.mocked(getUserFromAuthHeader).mockResolvedValue(null);
     await post(audioForm());
-    expect(vi.mocked(consumeRateLimit).mock.lastCall?.[0]).toMatch(/^ip:/);
-    expect(vi.mocked(consumeRateLimit).mock.lastCall?.[1]).toBe("anon");
+    const visitor = vi.mocked(consumeRateLimit).mock.calls.find(([subject]) => /^ip:/.test(subject));
+    expect(visitor?.[1]).toBe("anon");
   });
 });
 
@@ -887,6 +887,22 @@ describe("the rate-limit slot of a failed transcription", () => {
     expect(refundRateLimit).toHaveBeenCalledTimes(2);
     expect(refundRateLimit).toHaveBeenCalledWith("u:anon-1");
     expect(vi.mocked(refundRateLimit).mock.calls.some(([s]) => /^guest:ip:/.test(s))).toBe(true);
+  });
+
+  /* Security audit, 11 Nov: Whisper was paid for, so a slot comes back
+     only while the subject's paid give-backs last. */
+  it("stays spent once the hour's paid give-backs are used up", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(saveRep).mockResolvedValue(null);
+    vi.mocked(consumeRateLimit).mockImplementation(async (subject: string) =>
+      subject.startsWith("refund:")
+        ? { allowed: false, window: "hour", retryAfterS: 600 }
+        : { allowed: true, window: null, retryAfterS: 0 }
+    );
+    await post(audioForm());
+    expect(consumeRateLimit).toHaveBeenCalledWith("refund:u:anon-1", "refund");
+    expect(refundRateLimit).not.toHaveBeenCalled();
+    vi.mocked(consumeRateLimit).mockImplementation(async () => ({ allowed: true, window: null, retryAfterS: 0 }));
   });
 
   it("is given back when the recording was already saved by an earlier send", async () => {

@@ -15,7 +15,7 @@
  * (DECISIONS #19).
  */
 
-import { z } from "zod";
+import { z } from "./zod";
 
 export interface HostilePrompt {
   id: string;

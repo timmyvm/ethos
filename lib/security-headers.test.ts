@@ -41,6 +41,14 @@ describe("contentSecurityPolicy", () => {
     expect(contentSecurityPolicy({})).not.toMatch(/undefined|null/);
   });
 
+  it("names the fixtures' http project on a laptop, and upgrades nothing there", () => {
+    const local = contentSecurityPolicy({ supabaseUrl: "http://supabase.local", dev: true });
+    expect(part(local, "connect-src")).toContain("http://supabase.local");
+    expect(local).not.toContain("upgrade-insecure-requests");
+    expect(csp).not.toContain("upgrade-insecure-requests");
+    expect(contentSecurityPolicy({ ...prod, hosted: true })).toContain("upgrade-insecure-requests");
+  });
+
   it("gives eval to the dev server only", () => {
     expect(part(contentSecurityPolicy({ ...prod, dev: true }), "script-src")).toContain("'unsafe-eval'");
   });

@@ -10,6 +10,7 @@
  * routes answer 503 and the paywall keeps its invite-code path.
  */
 
+import "server-only";
 import Stripe from "stripe";
 
 let cached: { key: string; client: Stripe } | null = null;

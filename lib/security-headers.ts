@@ -25,15 +25,21 @@ export interface HeaderEnv {
   dev?: boolean;
   /** A Vercel preview: its comment toolbar loads from vercel.live. */
   preview?: boolean;
+  /** Served by Vercel, over https only: plain-http requests are upgraded. */
+  hosted?: boolean;
 }
 
+/**
+ * The project's origin as the build was given it. It is this app's own
+ * setting, so its scheme is taken as it comes: the look scripts and the
+ * gates run against `http://supabase.local`, answered by Playwright, and
+ * a policy that named only https would stop every one of them.
+ */
 function origin(url: string | undefined): string | null {
   if (!url) return null;
   try {
     const u = new URL(url);
-    return u.protocol === "https:" || u.hostname === "localhost" || u.hostname === "127.0.0.1"
-      ? u.origin
-      : null;
+    return u.protocol === "https:" || u.protocol === "http:" ? u.origin : null;
   } catch {
     return null;
   }
@@ -71,7 +77,9 @@ export function contentSecurityPolicy(env: HeaderEnv): string {
     "object-src": "'none'",
   };
   const policy = Object.entries(directives).map(([k, v]) => `${k} ${v}`);
-  if (!env.dev) policy.push("upgrade-insecure-requests");
+  // Only where every request is https already: on a laptop it would turn
+  // the fixtures' http://supabase.local into an https nobody answers.
+  if (env.hosted) policy.push("upgrade-insecure-requests");
   return policy.join("; ");
 }
 

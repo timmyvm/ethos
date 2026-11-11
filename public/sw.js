@@ -10,7 +10,7 @@
  * offline, and those still hold the curated word map that answered
  * "things" in "switch things up" with "points, ideas, parts".
  */
-const CACHE = "ethos-v17";
+const CACHE = "ethos-v18";
 
 const SHELL = [
   "/",
@@ -142,10 +142,13 @@ self.addEventListener("notificationclick", (e) => {
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET") return;
-  // Never serve a cached score, and never cache someone's audio.
-  if (url.pathname.startsWith("/api/") || url.hostname.includes("supabase")) {
-    return;
-  }
+  // Only this app's own files are ever kept. Another origin's answer
+  // (the Supabase project's data and signed recordings) goes straight to
+  // the network. The test used to be the word "supabase" in the host,
+  // which a project on its own domain would not have had.
+  if (url.origin !== self.location.origin) return;
+  // Never serve a cached score.
+  if (url.pathname.startsWith("/api/")) return;
 
   /*
    * Vercel's own endpoints (Speed Insights' script and its vitals
@@ -196,15 +199,25 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
+  // A page opened with something in its query (a sign-in link's ?email=)
+  // is served and never kept: the cache would hold that address on a
+  // shared phone. Offline it falls back to the page without the query.
+  // Next's own ?_rsc= requests are payloads, kept as before.
+  const keep = !url.search || url.searchParams.has("_rsc");
   e.respondWith(
     fetch(e.request)
       .then((res) => {
-        if (res.ok) {
+        if (res.ok && keep) {
           const copy = res.clone();
           caches.open(CACHE).then((c) => c.put(e.request, copy));
         }
         return res;
       })
-      .catch(() => caches.match(e.request).then((hit) => hit || caches.match("/")))
+      .catch(() =>
+        caches
+          .match(e.request)
+          .then((hit) => hit || (keep ? undefined : caches.match(url.pathname)))
+          .then((hit) => hit || caches.match("/"))
+      )
   );
 });

@@ -6,6 +6,7 @@ describe("pushEndpointOk", () => {
     for (const e of [
       "https://web.push.apple.com/QGk3abc",
       "https://fcm.googleapis.com/fcm/send/abc:def",
+      "https://jmt17.google.com/fcm/send/abc:def",
       "https://updates.push.services.mozilla.com/wpush/v2/gAAAA",
       "https://wns2-par02p.notify.windows.com/w/?token=abc",
     ]) expect(pushEndpointOk(e), e).toBe(true);
@@ -17,6 +18,8 @@ describe("pushEndpointOk", () => {
       "http://web.push.apple.com/x",
       "https://web.push.apple.com.attacker.tld/x",
       "https://attacker.tld/?web.push.apple.com",
+      // A host where anyone can run a slow script is never on the list.
+      "https://script.google.com/macros/s/abc/exec",
       "https://user:pw@fcm.googleapis.com/x",
       "https://fcm.googleapis.com:8443/x",
       "https://169.254.169.254/latest/meta-data",

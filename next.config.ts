@@ -24,6 +24,7 @@ const nextConfig: NextConfig = {
           supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
           dev: process.env.NODE_ENV !== "production",
           preview: process.env.VERCEL_ENV === "preview",
+          hosted: process.env.VERCEL === "1",
         }),
       },
     ];

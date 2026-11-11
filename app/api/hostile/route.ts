@@ -39,6 +39,8 @@ import { isPremium } from "@/lib/db";
 import { computeMetrics } from "@/lib/metrics";
 import { localDate } from "@/lib/metering";
 import {
+  GUEST_CEILING,
+  GUEST_FULL_COPY,
   analyzeTier,
   clientIp,
   consumeRateLimit,
@@ -137,6 +139,8 @@ interface Spend {
   subject: string | null;
   /** A guest's address-wide slot (#416), as /api/analyze takes. */
   guestIp?: string | null;
+  /** A guest's or visitor's slot under the shared ceiling (`guestall`). */
+  ceiling?: string | null;
   keep: boolean;
 }
 
@@ -147,6 +151,7 @@ export async function POST(req: NextRequest) {
   } finally {
     if (spend.subject && !spend.keep) await refundRateLimit(spend.subject);
     if (spend.guestIp && !spend.keep) await refundRateLimit(spend.guestIp);
+    if (spend.ceiling && !spend.keep) await refundRateLimit(spend.ceiling);
   }
 }
 
@@ -189,6 +194,19 @@ async function handle(req: NextRequest, spend: Spend) {
       );
     }
     spend.guestIp = guestIp;
+  }
+
+  /* And every guest and visitor shares one ceiling, as on /api/analyze
+     (11 Nov): the count a script with many addresses cannot get round. */
+  if (!auth || auth.anonymous) {
+    const all = await consumeRateLimit(GUEST_CEILING, "guestall");
+    if (!all.allowed) {
+      return NextResponse.json(
+        { error: GUEST_FULL_COPY, guestFull: true, retryAfterS: all.retryAfterS },
+        { status: 429, headers: { "Retry-After": String(all.retryAfterS) } }
+      );
+    }
+    spend.ceiling = GUEST_CEILING;
   }
 
   const phase = form.get("phase");

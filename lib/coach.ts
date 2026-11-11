@@ -15,8 +15,9 @@
  * upgrade is never a retry and never costs the take its coach or Index.
  */
 
+import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
-import { z } from "zod";
+import { z } from "./zod";
 import type { Tier1Scores, Tier2Anchors, Tier2Dimension } from "./index-score";
 import type { RepMetrics } from "./metrics";
 import { BANNED_PHRASES, GYM_REGISTER, HYPE_PHRASES } from "./register";
@@ -65,7 +66,7 @@ export type CoachOutput = z.infer<typeof CoachOutputSchema>;
  * upgrade is never a schema retry, because it is the one field the take
  * can do without.
  */
-export const CoachReplySchema = CoachOutputSchema.extend({ supply: z.unknown() });
+export const CoachReplySchema = CoachOutputSchema.extend({ supply: z.unknown().optional() });
 
 const DIMENSION_JSON = {
   type: "object",

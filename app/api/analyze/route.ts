@@ -31,6 +31,8 @@ import {
 import { neutralAudioName } from "@/lib/audio-name";
 import { localDate, meter } from "@/lib/metering";
 import {
+  GUEST_CEILING,
+  GUEST_FULL_COPY,
   clientIp,
   consumeRateLimit,
   limitMessage,
@@ -145,6 +147,13 @@ interface Spend {
    * transcribe without end.
    */
   paid?: boolean;
+  /**
+   * A guest's or a visitor's slot under the ceiling they all share
+   * (`guestall`, lib/rate-limit.ts). It comes back only when nothing
+   * paid ran: the ceiling is the one count a thousand addresses cannot
+   * get round, so a paid call stays counted whatever came of it.
+   */
+  ceiling?: string | null;
 }
 
 /** Give the slot back, unless this subject's paid give-backs are used up. */
@@ -153,6 +162,8 @@ async function settle(spend: Spend) {
   if (spend.paid) {
     const room = await consumeRateLimit(`refund:${spend.subject}`, "refund");
     if (!room.allowed) return;
+  } else if (spend.ceiling) {
+    await refundRateLimit(spend.ceiling);
   }
   await refundRateLimit(spend.subject);
   if (spend.guestIp) await refundRateLimit(spend.guestIp);
@@ -276,6 +287,21 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
     spend.guestIp = guestIp;
   }
 
+  /* And every guest and visitor, wherever they come from, shares one
+     ceiling (11 Nov): an address is cheap to change, so the rooms above
+     put no end on what scripted guests could spend. Accounts never
+     count, and a full ceiling says how to go on. */
+  if (!auth || auth.anonymous) {
+    const all = await consumeRateLimit(GUEST_CEILING, "guestall");
+    if (!all.allowed) {
+      return NextResponse.json(
+        { error: GUEST_FULL_COPY, rateLimited: true, guestFull: true, retryAfterS: all.retryAfterS },
+        { status: 429, headers: { "Retry-After": String(all.retryAfterS) } }
+      );
+    }
+    spend.ceiling = GUEST_CEILING;
+  }
+
   // The client sends what it *ran*; the multiplier is recomputed here
   // from the mods this account is actually entitled to. A hand-edited
   // URL or a forged form field can change the difficulty of your rep,
@@ -343,7 +369,8 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
     spend.keep = undecodable;
     return NextResponse.json(
       // The upstream's own words stay in the log, never in the answer.
-      { error: undecodable ? "That file couldn't be read. Try recording again." : "Transcription failed. Nothing was lost; try again." },
+      // Upload shows this line as it is (lib/upload.ts uploadFailure).
+      { error: undecodable ? "The audio couldn't be read." : "Transcription failed. Nothing was lost; try again." },
       { status: unconfigured ? 503 : undecodable ? 422 : 502 }
     );
   }
@@ -523,7 +550,16 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
     : [null, null];
 
   let repId: string | null = null;
-  try {
+  /*
+   * A take sent with no session has no owner. No screen could show it
+   * again, no account removal could reach it, and the phone already
+   * counts it as never stored (lib/rep-outbox.ts, `settled`), so a voice
+   * kept here was kept for nobody: five from August were, the only ones
+   * ever (security audit, 11 Nov). It is scored, answered and let go,
+   * and its slot stays spent, since nothing will be stored to keep it.
+   */
+  if (!userId) spend.keep = true;
+  else try {
     const saved = await saveRep({
       audio,
       filename,
@@ -534,7 +570,7 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
       coach,
       ethosIndex: index,
       whisperRaw: transcription.raw,
-      userId: userId ?? undefined,
+      userId,
       lessonId,
       mode,
       mods: modIds(mods),

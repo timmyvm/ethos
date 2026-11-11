@@ -1,0 +1,29 @@
+# Known holes in what the app ships (security audit, 11 Nov).
+#
+# Next.js sat on a critical advisory for weeks with nothing to say so. This
+# asks npm, once a week and on every push to main, whether a dependency the
+# app runs in production has a high or critical advisory, and fails when one
+# does. `npm audit fix` clears most; the ones it cannot are in STATE.md.
+# The test tools (vitest) are left out: they never run in production.
+name: audit
+on:
+  schedule:
+    - cron: "23 3 * * 1"
+  push:
+    branches: [main]
+    paths: ["package.json", "package-lock.json", ".github/workflows/audit.yml"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  production-dependencies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm audit --omit=dev --audit-level=high

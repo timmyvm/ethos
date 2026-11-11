@@ -29,7 +29,7 @@ import webpush from "web-push";
 import { supabaseAdmin } from "@/lib/db";
 import { PUSH_SEND_TIMEOUT_MS, pushEndpointOk } from "@/lib/push-endpoint";
 import { dbTickMatches, matchedSecret, namedTickSecrets, tickCaller, type TickCaller, type TickSecretName } from "@/lib/cron-auth";
-import { TICK_KEEP_HOURS, tickSubject, TICK_PREFIX } from "@/lib/push-clock";
+import { TICK_KEEP_HOURS, tickSubject } from "@/lib/push-clock";
 import {
   localDayKey,
   localDayStartIn,
@@ -292,6 +292,12 @@ async function practiceUrl(
  * production, closed to the API) under `push-tick:<secret>:<caller>`, and
  * anything older than two days swept. A note that fails is logged and the
  * tick goes on: the reminders matter more than the record of them.
+ *
+ * Since the 11 Nov audit the sweep takes every subject's old rows, not
+ * only the ticks'. The limiter clears a subject's rows only when that
+ * subject comes back (0006), so an address or a guest seen once left
+ * its rows for good and the table could only grow. No limit looks back
+ * further than a day, so a row two days old counts for nothing.
  */
 async function noteTick(
   db: NonNullable<ReturnType<typeof supabaseAdmin>>,
@@ -305,7 +311,6 @@ async function noteTick(
     await db
       .from("rate_limits")
       .delete()
-      .like("subject", `${TICK_PREFIX}%`)
       .lt("at", new Date(now.getTime() - TICK_KEEP_HOURS * 3_600_000).toISOString());
   } catch (e) {
     console.error("push cron: tick note failed", (e as Error).message);

@@ -14,6 +14,7 @@
 const HOSTS = new Set([
   "fcm.googleapis.com", // Chrome, Edge on Android, Samsung Internet
   "android.googleapis.com", // Chrome's older endpoints
+  "jmt17.google.com", // Chrome's newer ones, on some phones
   "updates.push.services.mozilla.com", // Firefox
 ]);
 const SUFFIXES = [

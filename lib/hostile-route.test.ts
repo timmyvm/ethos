@@ -124,9 +124,59 @@ describe("Hostile's allowance", () => {
     expect(vi.mocked(consumeRateLimit).mock.calls.some(([s, t]) => /^guest:ip:/.test(s) && t === "guestip")).toBe(true);
 
     vi.mocked(getUserFromAuthHeader).mockResolvedValue(null);
+    vi.mocked(consumeRateLimit).mockClear();
     await answer();
-    expect(vi.mocked(consumeRateLimit).mock.lastCall?.[0]).toMatch(/^hostile:ip:/);
-    expect(vi.mocked(consumeRateLimit).mock.lastCall?.[1]).toBe("anon");
+    const visitor = vi.mocked(consumeRateLimit).mock.calls.find(([s]) => /^hostile:ip:/.test(s));
+    expect(visitor?.[1]).toBe("anon");
+  });
+
+  /* Security audit, 11 Nov: one ceiling for every guest and visitor, the
+     count a script with many addresses cannot get round. */
+  it("counts a guest and a visitor against the ceiling they all share, and never an account", async () => {
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "anon-1", anonymous: true });
+    await answer();
+    expect(consumeRateLimit).toHaveBeenCalledWith("guest:all", "guestall");
+
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue(null);
+    vi.mocked(consumeRateLimit).mockClear();
+    await answer();
+    expect(consumeRateLimit).toHaveBeenCalledWith("guest:all", "guestall");
+
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-1", anonymous: false });
+    vi.mocked(consumeRateLimit).mockClear();
+    await answer();
+    expect(vi.mocked(consumeRateLimit).mock.calls.some(([s]) => s === "guest:all")).toBe(false);
+  });
+
+  it("turns a guest away at the ceiling before anything paid runs, and gives every slot back", async () => {
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "anon-1", anonymous: true });
+    vi.mocked(consumeRateLimit).mockImplementation(async (subject: string) =>
+      subject === "guest:all"
+        ? { allowed: false, window: "hour", retryAfterS: 900 }
+        : { allowed: true, window: null, retryAfterS: 0 }
+    );
+    vi.mocked(transcribe).mockClear();
+    const res = await answer();
+    expect(res.status).toBe(429);
+    const body = await res.json();
+    expect(body.guestFull).toBe(true);
+    expect(body.error).toBe("Recording without an account is full for now. Create an account to keep going.");
+    expect(transcribe).not.toHaveBeenCalled();
+    expect(refundRateLimit).toHaveBeenCalledWith("hostile:u:anon-1");
+    expect(vi.mocked(refundRateLimit).mock.calls.some(([s]) => /^guest:ip:/.test(s))).toBe(true);
+    // The ceiling's own slot was never taken, so it is not given back.
+    expect(vi.mocked(refundRateLimit).mock.calls.some(([s]) => s === "guest:all")).toBe(false);
+    vi.mocked(consumeRateLimit).mockImplementation(async () => ({ allowed: true, window: null, retryAfterS: 0 }));
+  });
+
+  it("keeps the ceiling's slot once Whisper has run, and gives it back when Whisper was down", async () => {
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "anon-1", anonymous: true });
+    expect((await answer()).status).toBe(200);
+    expect(refundRateLimit).not.toHaveBeenCalled();
+
+    vi.mocked(transcribe).mockRejectedValue(new Error("Whisper API 500: boom"));
+    expect((await answer()).status).toBe(502);
+    expect(refundRateLimit).toHaveBeenCalledWith("guest:all");
   });
 
   it("keeps the slot of a question asked and a verdict given", async () => {

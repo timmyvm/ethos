@@ -5,12 +5,14 @@ import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Segmented } from "@/components/ui/Segmented";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { deleteAccount, signOut } from "@/lib/auth";
 import { fetchAllLexicon, fetchAllReps, fetchReps } from "@/lib/client-data";
 import { readable } from "@/lib/load";
 import {
   DEFAULT_PREFS,
+  prefersReducedMotion,
   readPrefs,
   writePrefs,
   type Prefs,
@@ -112,6 +114,31 @@ export default function SettingsPage() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleted, setDeleted] = useState(false);
+  const deleteDoor = useRef<HTMLButtonElement>(null);
+  const confirmCard = useRef<HTMLDivElement>(null);
+  const confirmField = useRef<HTMLInputElement>(null);
+  /*
+   * The confirm opens where "Delete my account" stood, the last thing on
+   * the page, and it is five times that row's height: its field landed
+   * under the tab bar and both buttons below the screen (#445). It comes
+   * into view whole and its field takes the focus, in the tap's own
+   * stack so an iPhone raises its keyboard with it, the way an alert
+   * with a field does.
+   */
+  function armDelete() {
+    flushSync(() => {
+      setArming(true);
+      setConfirmText("");
+      setDeleteError(null);
+    });
+    confirmField.current?.focus({ preventScroll: true });
+    confirmCard.current?.scrollIntoView({ block: "nearest", behavior: prefersReducedMotion() ? "auto" : "smooth" });
+  }
+  /** Backing out puts the focus back on the row that opened it. */
+  function disarmDelete() {
+    flushSync(() => setArming(false));
+    deleteDoor.current?.focus({ preventScroll: true });
+  }
   /* The next time the reminder rings. Read after mount and after every
      change that moves it, never during render: a clock read in render
      is a different answer on the server and the phone (#418). */
@@ -746,18 +773,15 @@ export default function SettingsPage() {
         {!arming ? (
           <div className="inset-group">
             <button
-              onClick={() => {
-                setArming(true);
-                setConfirmText("");
-                setDeleteError(null);
-              }}
+              ref={deleteDoor}
+              onClick={armDelete}
               className="group-row press-row font-display w-full text-center text-row text-destructive"
             >
               Delete my account
             </button>
           </div>
         ) : (
-          <div className="card p-4">
+          <div ref={confirmCard} className="card scroll-mb-[var(--nav-clear)] scroll-mt-16 p-4">
             <p className="text-read text-pretty text-stone-800">
               This permanently deletes every recording, transcript, score,
               streak and the account itself.
@@ -767,13 +791,22 @@ export default function SettingsPage() {
               Type DELETE to confirm
             </label>
             <input
+              ref={confirmField}
               id="delete-confirm"
               name="confirm"
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
+              onKeyDown={(e) => {
+                // Return puts the keyboard away and deletes nothing: the
+                // one tap that does is the button, in sight once it has.
+                if (e.key === "Enter") e.currentTarget.blur();
+                if (e.key === "Escape" && !deleting) disarmDelete();
+              }}
               autoComplete="off"
+              autoCorrect="off"
               spellCheck={false}
               autoCapitalize="characters"
+              enterKeyHint="done"
               placeholder="DELETE"
               className={`${INPUT_CLASS} mt-1.5`}
             />
@@ -782,20 +815,23 @@ export default function SettingsPage() {
                 {deleteError}
               </p>
             )}
+            {/* The way back leads, the deletion trails: the order every
+                confirm on the phone uses, so a thumb that knows where
+                Cancel is finds "Keep it" there (#445). */}
             <div className="mt-3 flex gap-2">
+              <button
+                onClick={disarmDelete}
+                disabled={deleting}
+                className={`press font-display min-h-11 flex-1 rounded-tap border border-edge bg-surface px-4 py-2.5 text-row ${DISABLED_CLASS}`}
+              >
+                Keep it
+              </button>
               <button
                 onClick={() => void runDelete()}
                 disabled={confirmText.trim() !== "DELETE" || deleting}
                 className={`press font-display min-h-11 flex-1 rounded-tap border border-edge bg-surface px-4 py-2.5 text-row text-destructive ${DISABLED_CLASS}`}
               >
                 {deleting ? "Deleting…" : "Delete everything"}
-              </button>
-              <button
-                onClick={() => setArming(false)}
-                disabled={deleting}
-                className={`press font-display min-h-11 flex-1 rounded-tap border border-edge bg-surface px-4 py-2.5 text-row ${DISABLED_CLASS}`}
-              >
-                Keep it
               </button>
             </div>
           </div>

@@ -358,8 +358,10 @@ export default function Home() {
       .catch(() => undefined)
       .then((p) => {
         if (p !== undefined) setPremium(p?.premium ?? false);
-        // The account's name wins; the device's stands in without one.
-        setName(greetingName(p?.display_name) ?? local);
+        // The account's name wins; the device's stands in without one. A
+        // read that failed leaves a name already drawn from what the
+        // visit holds (#433), rather than trading it for the device's.
+        setName((was) => greetingName(p?.display_name) ?? (p === undefined ? was : null) ?? local);
         setNameKnown(true);
         // The introduction's answers follow the account (#232): a
         // finished walk goes up, or the account's answers come down.

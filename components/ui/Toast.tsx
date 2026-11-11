@@ -39,9 +39,12 @@ export function UndoToast({
   const since = useRef(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const done = useRef(onDone);
-  done.current = onDone;
   const undo = useRef(onUndo);
-  undo.current = onUndo;
+  // The caller's newest handlers, kept in step after every render.
+  useEffect(() => {
+    done.current = onDone;
+    undo.current = onUndo;
+  });
 
   const leave = useCallback(() => {
     setLeaving(true);

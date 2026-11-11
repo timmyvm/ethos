@@ -130,6 +130,8 @@ const toast = (page) =>
   await page.waitForSelector(".toast");
   const focused = await page.evaluate(() => document.activeElement?.getAttribute("aria-label"));
   ok("the keyboard stays in the list, on the next row's button", focused === "Remove landed instead of got", String(focused));
+  // A beat, as a hand takes: the toast learns the keyboard's name after it mounts.
+  await sleep(200);
   await page.keyboard.press("Control+z");
   await sleep(500);
   ok("Ctrl+Z undoes", (await list(page)).includes("freezing") && (await toast(page)) === null);

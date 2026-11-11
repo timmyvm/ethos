@@ -34,7 +34,10 @@ export function revalidateDue(input: {
  */
 export function useRevalidate(read: () => void, gapMs: number = REVALIDATE_GAP_MS): void {
   const fn = useRef(read);
-  fn.current = read;
+  // The newest read is the one a return runs: kept in step after every render.
+  useEffect(() => {
+    fn.current = read;
+  });
   useEffect(() => {
     let lastAt = Date.now();
     const ask = (online: boolean) => {

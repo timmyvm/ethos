@@ -43,6 +43,12 @@ export interface Prefs {
   quietFrom: number;
   quietTo: number;
   haptics: boolean;
+  /**
+   * Whether Ethos follows the phone's text size (#451, lib/text-size.ts).
+   * On unless switched off; read by the head's boot script, so a change
+   * takes a reload.
+   */
+  followTextSize: boolean;
   /** Synthesized celebration sound (lib/sfx.ts). Never fires mid-rep. */
   sound: boolean;
   verbatim: boolean;
@@ -84,6 +90,7 @@ export const DEFAULT_PREFS: Prefs = {
   quietFrom: 22,
   quietTo: 7,
   haptics: true,
+  followTextSize: true,
   sound: true,
   verbatim: true,
   frameStep: false,

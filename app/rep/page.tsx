@@ -2121,10 +2121,14 @@ function RepScreen() {
 
   return (
     <main
-      className={`relative isolate flex min-h-dvh flex-col px-5 pb-8 pt-[env(safe-area-inset-top)] ${
+      className={`relative isolate flex min-h-dvh flex-col px-5 pb-8 pt-[env(safe-area-inset-top)] max-[359px]:pb-5 ${
         /* A game's idle screen carries two more rows (the level, the
            best): on a phone under 700pt tall (375x667) the rhythm steps
-           in so Record stays on the first screen. */
+           in so Record stays on the first screen. Every practice takes
+           the same steps on a layout under 360 wide, which is what an
+           iPhone lays out once its text size is followed (#451: 390x844
+           two steps up is 320x692): the instruction and the tactics run
+           a line deeper each there, on a screen that is shorter too. */
         game ? "[@media(max-height:700px)]:pb-5" : ""
       }`}
     >
@@ -2162,7 +2166,7 @@ function RepScreen() {
       <div
         className={
           phase === "idle"
-            ? `flex flex-1 flex-col justify-center pb-8 ${game ? "[@media(max-height:700px)]:pb-4" : ""}`
+            ? `flex flex-1 flex-col justify-center pb-8 max-[359px]:pb-4 ${game ? "[@media(max-height:700px)]:pb-4" : ""}`
             : ""
         }
       >
@@ -2170,8 +2174,9 @@ function RepScreen() {
         /* Idle, the card takes the column's free height, 168 to 300, so a
            practice with more under it (the boss's tactic line) gets a
            shorter card rather than a screen that scrolls Record's caption
-           off the bottom. Under 600pt tall (320x568) it is as tall as its
-           words, so Record rises into view (F12). */
+           off the bottom. Under 600pt tall (320x568), and under 360 wide
+           (a followed text size, #451), it may be as short as its words,
+           so Record rises into view (F12). */
         <div
           ref={topicRef}
           /* A best's plaque below takes its room from this card's free
@@ -2188,7 +2193,7 @@ function RepScreen() {
                      review: at 440 with the recorder's 26px and a 112px
                      object it was 260px of blank colour). */
                   ready ? "max-h-[480px]" : "max-h-[300px]"
-                } min-h-[168px] flex-1 flex-col [@media(max-height:600px)]:min-h-0 ${game ? "[@media(max-height:700px)]:mt-2" : ""}`
+                } min-h-[168px] flex-1 flex-col max-[359px]:mt-2 max-[359px]:min-h-0 [@media(max-height:600px)]:min-h-0 ${game ? "[@media(max-height:700px)]:mt-2" : ""}`
               : "mt-4"
           }
         >
@@ -2211,7 +2216,7 @@ function RepScreen() {
       )}
 
       {phase === "idle" && (
-        <div className={`mt-6 ${game ? "[@media(max-height:700px)]:mt-4" : ""}`}>
+        <div className={`mt-6 max-[359px]:mt-4 ${game ? "[@media(max-height:700px)]:mt-4" : ""}`}>
           {/* recording-15: the instruction over the three tactics, a clear
               step above their 14px labels rather than a fourth label. */}
           {!ready && <h2 className="font-display text-lead font-bold">{doLine}</h2>}
@@ -2239,7 +2244,7 @@ function RepScreen() {
             <TipStrip
               tips={config.tips}
               label={null}
-              className={`mt-3 ${game ? "[@media(max-height:700px)]:mt-2" : ""}`}
+              className={`mt-3 max-[359px]:mt-2 ${game ? "[@media(max-height:700px)]:mt-2" : ""}`}
             />
           )}
         </div>
@@ -2483,8 +2488,11 @@ function RepScreen() {
           /* D51: he listens in the column, scaled to the room. Under
              600pt tall there is no room for him and Stop and Start over
              (#407) together, so he steps out there and the two taps
-             stay on the first screen (#412). */
-          <div className="w-[clamp(120px,18vh,160px)] [@media(max-height:600px)]:hidden">
+             stay on the first screen (#412). Under 360 wide (a followed
+             text size, #451) the topic over him runs a line deeper, so
+             he takes a smaller share of the height and Stop's ring
+             stays whole on the first screen. */
+          <div className="w-[clamp(120px,18vh,160px)] max-[359px]:w-[clamp(96px,14vh,160px)] [@media(max-height:600px)]:hidden">
             <DemosHears level={meterLevel} size={160} fluid speaking={cutIn} />
           </div>
         )}

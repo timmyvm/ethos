@@ -2705,6 +2705,17 @@ summary::-webkit-details-marker {
 .family-fill[data-family="sky"]::before {
   content: none;
 }
+/* The topic's words at rest, sized to the screen as Today's are
+   (.home-display): 26px on a 390pt phone and wider, the same share of
+   a narrower one. A topic runs 52 to 93 characters, so at 26px in a
+   320 layout it stood six lines deep and took Record off the first
+   screen: on a 360pt phone before this, and on any iPhone once its
+   text size is followed (#451), which lays the app out narrower and
+   shows it larger. Sized to the screen, the topic is the same size on
+   the glass at every text size, as Today's is, and the rest grows. */
+.topic-rest {
+  font-size: min(var(--text-title), 6.667vw);
+}
 /* The live waveform's stroke (D51): the trait's tone (muted in dark), or
    the sky stage's ink. */
 .rec-wave {

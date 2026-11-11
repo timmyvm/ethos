@@ -23,6 +23,7 @@ import { applyMotion, applyTheme } from "@/components/Theme";
 import { applyGraphics, liteGraphics, liteWhy, type LiteWhy } from "@/lib/graphics";
 import { videoOffered } from "@/lib/pose-client";
 import { hapticsHere } from "@/lib/tap-tick";
+import { askedTextZoom } from "@/lib/text-size";
 import { ManageSheet } from "@/components/premium/ManageSheet";
 import { SettingsPlanRow, SettingsPlanRowSkeleton } from "@/components/premium/PlanCard";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -160,13 +161,17 @@ export default function SettingsPage() {
      switch that does nothing. An iPhone takes no Video (#412), so it is
      not offered the camera score's bench. Haptics is offered wherever
      the phone can give one: a vibration, or on an iPhone the tap's tick
-     (#449). Read before paint, so no row is drawn and then taken away. */
+     (#449). Larger text is offered where the phone's text is set larger
+     than the default and the screen has the room to follow it (#451).
+     Read before paint, so no row is drawn and then taken away. */
   const [canBuzz, setCanBuzz] = useState(false);
   const [canVideo, setCanVideo] = useState(false);
+  const [canGrow, setCanGrow] = useState(false);
   useLayoutEffect(() => {
     setHint(readPlanHint());
     setCanBuzz(hapticsHere());
     setCanVideo(videoOffered(liteGraphics()));
+    setCanGrow(askedTextZoom() > 1);
   }, []);
   useEffect(() => {
     if (plan.today) keepPlanHint(plan.view, plan.failed);
@@ -628,6 +633,21 @@ export default function SettingsPage() {
             applyMotion(v);
           }}
         />
+        {/* #451: Ethos is shown at the size the phone's text is set to.
+            The size is read as the page loads (lib/text-size.ts), so the
+            switch saves and loads the page again: the one path that is
+            the same as opening the app. */}
+        {canGrow && (
+          <Toggle
+            label="Larger text"
+            note="Follows your phone's text size."
+            on={prefs.followTextSize}
+            onChange={(v) => {
+              update({ followTextSize: v });
+              window.location.reload();
+            }}
+          />
+        )}
         {/* #412: the switch shows what the phone draws now, chosen or
             not; once touched, it is the person's and the device's
             guesses stand aside. */}

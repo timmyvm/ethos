@@ -331,14 +331,16 @@
    *                   field (16 stops iOS zooming on focus)
    *   row     14/700  a row's title, a control's label
    *   link    13/600  a text link (the `.text-link` role adds the rest)
-   *   suffix  10/700  the ring's ordinal suffix ("th"), nothing else
+   *   suffix  11/700  the ring's ordinal suffix ("th"), a unit beside a
+   *                   number, a weekday's letter. 11 is the floor (#450):
+   *                   nothing a person reads is set smaller
    * Number steps, always with `font-display` (Outfit 800, tabular):
    *   num-xl   72  the results score step only
    *   num-hero 56  the screen's one big number (Log index, You level)
    *   num-l    36  a ring's or a card's number
    *   num-m    24  a stat column
    *   num-s    17  a number in a row
-   * The scale is 34 / 26 / 20 / 17 / 16 / 15 / 14 / 13 / 10
+   * The scale is 34 / 26 / 20 / 17 / 16 / 15 / 14 / 13 / 11
    * for copy (34 is `.large-title`, 20 `.section-head`). Arbitrary
    * `text-[Npx]` / `text-[Nrem]` sizes are counted by
    * lib/type-scale.test.ts, and the count may only go down.
@@ -362,7 +364,7 @@
   --text-link--letter-spacing: 0em;
   --text-link--font-weight: 600;
 
-  --text-suffix: 0.625rem;
+  --text-suffix: 0.6875rem;
   --text-suffix--line-height: 1;
   --text-suffix--letter-spacing: 0.02em;
   --text-suffix--font-weight: 700;
@@ -649,6 +651,12 @@ body {
  * Tracking drops from 0.14em to 0.10em. At 11px, 0.14em is spec-sheet
  * tracking: it put "INDEX" at 44px inside a 44px column and wrapped
  * "HELD PAUSES" onto two lines in a tile 84px wide.
+ *
+ * ONE size since #450: 11px is the smallest type on an iPhone (Apple's
+ * Caption 2), and `.label-micro` was 10. Both registers are 11/700 at
+ * 0.08em now. The two names stay for what they say about the job: a
+ * section's one eyebrow, or a column head, a chip, a tile's label. The
+ * Log's columns were re-cut for it (app/history/page.tsx).
  */
 .label-data {
   font-family: var(--font-display-face), sans-serif;
@@ -662,7 +670,7 @@ body {
 
 .label-micro {
   font-family: var(--font-display-face), sans-serif;
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -673,8 +681,8 @@ body {
 /*
  * THE CAPITALS RULE (M05, system-3). Tracked capitals are for data:
  * column heads (Log's METRIC, NOW, CHANGE) and stat labels, and nothing
- * else. Two registers and no third: `.label-data` 11/700/0.08em (#321
- * set the 0.08) and `.label-micro` 10/700/0.08em. `.group-head` is
+ * else. Two registers and no third, one size since #450:
+ * `.label-data` and `.label-micro`, both 11/700/0.08em. `.group-head` is
  * folded onto those values below (the Log's month left capitals, D33).
  * At most three tracked-caps lines per 844pt viewport, a table's head
  * row counting once (scripts/check-apple.mjs). One idea per
@@ -4624,7 +4632,13 @@ summary::-webkit-details-marker {
   padding-top: 6px;
 }
 .stair-cents {
-  font-size: var(--text-suffix);
+  /* Its own 10px, not the suffix token: the one piece of type left
+     under the 11px floor (#450). The cents are a price's superscript,
+     cut to the step's width by the thresholds below ("12.99" is 34.7px
+     at 17/10); at 11 the size where they drop lands on a 375pt phone's
+     stair, to the third of a pixel. The whole price stands at reading
+     size in the readout over the stair. */
+  font-size: 0.625rem;
   /* The cents' tops meet the dollars' cap height, as a shelf tag sets them. */
   vertical-align: 0.45em;
   letter-spacing: 0;
@@ -5798,7 +5812,9 @@ summary::-webkit-details-marker {
  * with the number's and the unit's em widths from lib/home.ts (`numEm`,
  * `UNIT_EM`). So "9.8 /100 words" holds one line in a half tile at 320
  * (102px) and a unit never wraps under its number.
- *   half tile   36, 30 under a 120px column; the unit 11, 10 there
+ *   half tile   36, 30 under a 120px column; the unit 11 in both
+ *               (#450: it was 10 under 120px; the number, whose size is
+ *               computed from the unit's, gives up the pixel instead)
  *   wide tile   56; its room is the left 56%, beside the object
  */
 .home-tile {
@@ -5815,7 +5831,6 @@ summary::-webkit-details-marker {
 @container (max-width: 120px) {
   .home-num-line {
     --num-max: 1.875rem;
-    --unit-size: 0.625rem;
   }
 }
 .home-num-line {
@@ -6401,7 +6416,7 @@ html[data-test-tile] .test-tile-slot {
 .toast-key {
   display: none;
   font-family: inherit;
-  font-size: var(--text-suffix, 0.625rem);
+  font-size: var(--text-suffix, 0.6875rem);
   font-weight: 700;
   letter-spacing: 0.02em;
   opacity: 0.6;

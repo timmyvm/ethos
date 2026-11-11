@@ -74,23 +74,29 @@ function decimalsOf(printed: string): (value: number) => string {
     name keeps room to be read: at 320 it truncated to "Eth..." and
     "F...". E32's "All fillers / min" is 104px with its chevron, so the
     number columns are as narrow as their contents and the gaps 6: Day 1
-    28 under 360 (its values reach 25; its head hangs 4px into the gap
-    by the empty end of "Metric", since right-aligned heads and changes
-    overflow to their left and keep one right edge) and 32 over it, Now
+    30 under 360 (its values reach 25; its head, 35.5 since the heads
+    went to 11px in #450, hangs 5.5px into the gap by the empty end of
+    "Metric", since right-aligned heads and changes overflow to their
+    left and keep one right edge) and 32 over it (hanging 3.5), Now
     36 and 38 (its widest, "12.3", is 34), Change 76 ("in 130 to 160" is
-    75.5), Trend 40 (its head is 38). The label and its chevron hold one
+    75.5), Trend 44 (its head is 41.6 at 11px; at 40 it stood 4px off
+    the end of CHANGE and the two read as one phrase). The label and its chevron hold one
     line at 320 and from 375 up; at 360 it takes two, as it did before. */
 const MOVED_GRID =
-  "grid grid-cols-[minmax(0,1fr)_28px_36px_76px] gap-1.5 min-[360px]:grid-cols-[minmax(0,1fr)_32px_38px_76px_40px]";
+  "grid grid-cols-[minmax(0,1fr)_30px_36px_76px] gap-1.5 min-[360px]:grid-cols-[minmax(0,1fr)_32px_38px_76px_44px]";
 /* Out of the flow and unseen under 360px, rather than `display: none`:
    toggling display restarts the line's unroll (`.fill`), and the
    camera's full-page capture caught it part way. */
 const TREND_CELL = "max-[359px]:invisible max-[359px]:absolute";
 /* The date is a bare 40px column, the day over its month (D33), and the
    number columns are as wide as their heads, so the lesson's name gets
-   the width: "Punctuate with silence" sets on one line at 390. */
+   the width: "Punctuate with silence" sets on one line at 390. The
+   heads are 11px since #450 (the smallest type an iPhone sets): INDEX
+   is 38.7 and hangs 2.7 into its 4px gap, WPM is 29.9 in its 30, and
+   HELD, 32.8, took its column from 28 to 33, where it had printed over
+   the end of WPM. The 5px came from the name's column, 151 at 390. */
 const RECORD_GRID =
-  "grid grid-cols-[40px_minmax(0,1fr)_36px_28px_30px_8px] min-[360px]:grid-cols-[40px_minmax(0,1fr)_36px_28px_30px_28px_8px] gap-1";
+  "grid grid-cols-[40px_minmax(0,1fr)_36px_28px_30px_8px] min-[360px]:grid-cols-[40px_minmax(0,1fr)_36px_28px_30px_33px_8px] gap-1";
 /* The table while every row waits keeps the old grid (#394), with the
    Index column at the Go pill's 56px (D11), since a 44px pill in a 44px
    column is a circle and Record is the only circle. */

@@ -21,7 +21,7 @@ Ten principles from the design pass (#326) and an eleventh from Apple's guidelin
 
 1. **One lifted thing.** At most one `elev-2` per screen, the card holding the one tap. Every other card is `.card`. No card inside a card, no filled tile inside a card.
 2. **One tap colour, one tap shape.** Exactly one terracotta fill per screen and no hover step; terracotta-600 is only Stop. Chips and taps are pills (`rounded-tap`: the one tap and every 44 to 48px secondary button), Record the only circle. Plum only as PremiumMark and the two Premium surfaces. Earned glyphs (a star, a lit flame, a coin) are gold, `--color-amber` with a 1px rim in light; earned fills, bars and numbers are sage, and sage is only ever something earned. The Shop's Buy and its On You toggle, which spend and wear what speaking earned, are the named sage taps (#165).
-3. **Type has a scale.** 34 / 26 / 20 / 17 / 16 / 15 / 14 / 13 / 10, numbers 72 / 56 / 36 / 24 / 17 at 800 tabular. The count of arbitrary `text-[…]` sizes only goes down.
+3. **Type has a scale.** 34 / 26 / 20 / 17 / 16 / 15 / 14 / 13 / 11, numbers 72 / 56 / 36 / 24 / 17 at 800 tabular. 11 is the floor (#450): the smallest type an iPhone sets, and nothing a person reads goes under it. The count of arbitrary `text-[…]` sizes only goes down.
 4. **Capitals are for data.** Tracked caps only on data column heads and stat labels (plus the PremiumMark and Settings' iOS group heads), three lines per 844pt viewport at most, a table's head row counting as one (Settings' group heads and the Stair's months are named uses), one idea per eyebrow, no ` · ` compounds. `scripts/check-apple.mjs` counts them. An eyebrow in a card is sentence case 13/600.
 5. **One header, one way back.** ScreenHeader's large title or a BackLink at the same 44px geometry, its chevron at the bar's x and y; no ← or → in a label; every row-shaped door ends in the same stone-400 Disclosure. Back retraces: it returns the parent as it was left (#442), and a back with nowhere to name is the chevron alone. Tabs swap in place and keep their place (#443).
 6. **A trait wears its colour and its name**, everywhere it appears, from `content/traits.ts`.
@@ -79,6 +79,7 @@ node scripts/check-fields.mjs                  # the keyboard and the one tap, S
 node scripts/check-a11y.mjs                    # what a screen reader is given, and Increase Contrast (#448)
 node scripts/check-awake.mjs                   # the wake lock, a stalled send, a blocked mic (#440)
 node scripts/check-share.mjs                   # the progress card and the share sheet (#447)
+node scripts/check-type.mjs                    # nothing under 11px, no crowded heads, the Log at five widths (#450)
 node scripts/check-haptics.mjs                 # an iPhone's tick: the tap reaches the hidden switch, the button is pressed once (#449)
 CHECK_OUT=/tmp/motion node scripts/check-motion.mjs   # on `next dev`: its video must land outside the repo
 

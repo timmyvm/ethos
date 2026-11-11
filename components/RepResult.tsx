@@ -844,7 +844,10 @@ export function RepResult({
               label="Length"
               value={String(Math.round(m.durationS))}
               unit="s"
-              note={<span className="whitespace-nowrap">{lengthNote}</span>}
+              /* One line where it fits. Under 360px a tile holds 69px
+                 and "target 60 to 90s" is 95: it ran out of the card's
+                 right edge, so there it takes two (#450). */
+              note={<span className="whitespace-nowrap max-[359px]:whitespace-normal">{lengthNote}</span>}
             />
           </div>
           {/* A game round's score step gives this line to the round (M5):
@@ -1063,7 +1066,11 @@ function Metric({
 }) {
   return (
     <div className="min-w-0 px-3 py-4">
-      <div className="label-micro whitespace-nowrap">{label}</div>
+      {/* One line, except under 360px: "HELD PAUSES" at the 11px floor
+          (#450) is 82px and a tile there holds 68, so it takes two lines,
+          and all three labels keep two lines' room so the numbers under
+          them stay on one line across the card. */}
+      <div className="label-micro whitespace-nowrap max-[359px]:min-h-[2lh] max-[359px]:whitespace-normal">{label}</div>
       <div className="font-display mt-1.5 text-num-m tabular-nums">
         {value}
         {unit && <span className="text-body font-bold text-stone-500">{unit}</span>}

@@ -16,6 +16,7 @@ import {
   SkeletonScoreCard,
 } from "@/components/ui/Skeleton";
 import { Stars } from "@/components/Stars";
+import { Disclosure } from "@/components/ui/Disclosure";
 import { ErrorState } from "@/components/ui/ErrorState";
 import {
   fetchProfile,
@@ -88,7 +89,7 @@ const TREND_CELL = "max-[359px]:invisible max-[359px]:absolute";
    number columns are as wide as their heads, so the lesson's name gets
    the width: "Punctuate with silence" sets on one line at 390. */
 const RECORD_GRID =
-  "grid grid-cols-[40px_minmax(0,1fr)_36px_28px_30px] min-[360px]:grid-cols-[40px_minmax(0,1fr)_36px_28px_30px_28px] gap-1";
+  "grid grid-cols-[40px_minmax(0,1fr)_36px_28px_30px_8px] min-[360px]:grid-cols-[40px_minmax(0,1fr)_36px_28px_30px_28px_8px] gap-1";
 /* The table while every row waits keeps the old grid (#394), with the
    Index column at the Go pill's 56px (D11), since a 44px pill in a 44px
    column is a circle and Record is the only circle. */
@@ -614,6 +615,9 @@ export default function HistoryPage() {
                   <Cell>{r.filler_count}</Cell>
                   <Cell>{r.wpm}</Cell>
                   <Cell className={HELD_CELL}>{held}</Cell>
+                  {/* The row opens its recording, and says so the way every
+                      other row that is a door does (#442, #330's rule). */}
+                  <Disclosure className="justify-self-end text-stone-400" />
                 </Link>
               );
             })}

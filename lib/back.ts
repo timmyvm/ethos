@@ -64,3 +64,29 @@ export function takeOwnBack(): boolean {
   ownBack = false;
   return was;
 }
+
+/*
+ * The move through history that brought the screen now being drawn, if
+ * one did: `own` when a chevron asked for it, otherwise the phone's
+ * (the edge swipe, a hardware back, the browser's own buttons). Set as
+ * the move happens, read while the next screen renders, settled once it
+ * has.
+ */
+let move: { own: boolean } | null = null;
+
+/** Hear each move through history. Mounted once, by the page transition. */
+export function watchHistory(): () => void {
+  const onPop = () => {
+    move = { own: takeOwnBack() };
+  };
+  window.addEventListener("popstate", onPop);
+  return () => window.removeEventListener("popstate", onPop);
+}
+
+export function historyMove(): { own: boolean } | null {
+  return move;
+}
+
+export function settleHistory(): void {
+  move = null;
+}

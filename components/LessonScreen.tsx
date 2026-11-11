@@ -636,7 +636,8 @@ export function LessonScreen({
               className="screen-bar-back press -ml-3 shrink-0"
             >
               <IconBack size={22} />
-              <span>{backLabel}</span>
+              {/* The chevron alone where the word would be "Back" (#442). */}
+              <span className={backLabel === "Back" ? "sr-only" : undefined}>{backLabel}</span>
             </button>
           )}
           {header && <div className="min-w-0 flex-1">{header}</div>}

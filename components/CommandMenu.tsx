@@ -67,7 +67,8 @@ export function CommandMenu() {
       const href = tabForKey(e.key);
       if (!href || href === path) return;
       e.preventDefault();
-      router.push(href);
+      // The tab lands on its own place (#443, components/Nav.tsx).
+      router.push(href, { scroll: false });
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

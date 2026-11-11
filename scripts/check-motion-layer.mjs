@@ -49,7 +49,7 @@ await context.addInitScript(() => {
 const page = await context.newPage();
 page.on("pageerror", (e) => console.log("PAGEERROR", page.url(), e.message.slice(0, 100)));
 
-// ---- 1. Page changes push, and they push the right way -------------------
+// ---- 1. Going deeper pushes, the right way; tabs swap ---------------------
 await page.goto(`${BASE}/`);
 await page.waitForSelector("main");
 await sleep(700);
@@ -62,13 +62,16 @@ async function pushClass() {
   });
 }
 
+/* Tab to tab is a swap in place since #443 (Apple: no motion on what
+   people do constantly; an iPhone's tab bar does not slide its content).
+   The well's slide along the bar is the answer to the tap. */
 await page.click('nav a[href="/history"]');
 await page.waitForURL(/history/);
-ok("going right along the tab bar pushes from the right", (await pushClass()).includes("push-right"), await pushClass());
+ok("along the tab bar the page swaps in place, no push", !/push-(right|left)/.test(await pushClass()), await pushClass());
 
 await page.click('nav a[href="/"]');
 await page.waitForURL(/:\d+\/$/);
-ok("coming back along the tab bar pushes from the left", (await pushClass()).includes("push-left"), await pushClass());
+ok("and back along it the same", !/push-(right|left)/.test(await pushClass()), await pushClass());
 
 await page.goto(`${BASE}/you`);
 await page.waitForSelector("main");

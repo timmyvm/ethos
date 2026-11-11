@@ -3762,7 +3762,11 @@ summary::-webkit-details-marker {
   height: calc(var(--bar-h) + env(safe-area-inset-top));
   padding: env(safe-area-inset-top) 0.5rem 0;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  /* Each column may give way (#442): `1fr auto 1fr` could not shrink, so
+     at 320 a long title printed over the back's label ("SettingsCalibrate
+     the camera"). The title keeps its words as long as it can; a side
+     that runs out of room ends in an ellipsis. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto) minmax(0, 1fr);
   align-items: center;
   gap: 8px;
 }
@@ -3800,6 +3804,8 @@ summary::-webkit-details-marker {
   font-weight: 700;
   letter-spacing: -0.005em;
   color: var(--color-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
   opacity: 0;
   transform: translateY(5px);
@@ -3807,12 +3813,22 @@ summary::-webkit-details-marker {
     opacity 160ms var(--ease-out),
     transform var(--spring-snappy-duration) var(--spring-snappy);
 }
+/* At rest the small title is unseen, and must not hold room either: its
+   width would squeeze the back's word into an ellipsis under a title
+   nobody can see. It takes its width as it is handed the bar (#442). */
+.screen-bar:not([data-collapsed]) .screen-bar-title {
+  width: 0;
+}
 .screen-bar[data-collapsed] .screen-bar-title {
   opacity: 1;
   transform: none;
 }
 .screen-bar-back {
   display: inline-flex;
+  /* 44 wide as well as tall: a back that is the chevron alone (#442)
+     is still a whole target. */
+  min-width: 44px;
+  max-width: 100%;
   min-height: 44px;
   align-items: center;
   gap: 1px;
@@ -3823,7 +3839,15 @@ summary::-webkit-details-marker {
   border-radius: 999px;
 }
 .screen-bar-back > svg {
+  flex: none;
   margin-left: -2px;
+}
+/* The back's word gives way before the title does. */
+.screen-bar-back > span:not(.sr-only) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .screen-bar-link {
   display: inline-flex;

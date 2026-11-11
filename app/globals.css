@@ -1184,6 +1184,62 @@ body::after {
 }
 
 /*
+ * The swipe between the tabs (components/TabSwipe.tsx, #435). A finger
+ * pulls a tab's page sideways and its neighbour comes in beside it, as
+ * a picture on a pane fixed over the app column. The page, the pane and
+ * the bar's well are moved by transform from the hook; this is only
+ * where they stand.
+ */
+.swipe-root {
+  /* A page pulled aside leaves the column, not the screen beside it on
+     anything wider than a phone. `clip`, as on the page's own wrapper,
+     so nothing becomes a scroll container and sticky still sticks. */
+  overflow-x: clip;
+}
+.tab-swipe {
+  /* Up and down stay the browser's scroll; sideways comes to the swipe
+     (the lesson walk's rule). Pinch stays too. */
+  touch-action: pan-y pinch-zoom;
+}
+/* While a finger swipes, nothing on the page is being pressed: the
+   button it landed on comes back up. The pointer is captured by the
+   element around the page, so the swipe itself hears every move. */
+.swipe-root[data-swiping] > [data-page] {
+  pointer-events: none;
+}
+.swipe-clip {
+  position: fixed;
+  inset: 0;
+  margin-inline: auto;
+  width: 100%;
+  max-width: 430px;
+  overflow: hidden;
+  pointer-events: none;
+  /* Over the page and its sticky bar (30), under the tab bar (40). */
+  z-index: 35;
+}
+.swipe-pane {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--color-ground);
+  will-change: transform;
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+/* The page under it is up: the picture lets go. */
+.swipe-pane[data-leaving] {
+  opacity: 0;
+}
+/* A picture, not a page: nothing in it arrives, loops or eases. Run to
+   their last frame at once, entrances show what they end on. */
+.swipe-pane :is(*, *::before, *::after) {
+  animation-duration: 1ms !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+  transition: none !important;
+}
+
+/*
  * Lists mount with a stagger (#242): the rows land one after another,
  * 40ms apart, so a list assembles itself instead of appearing whole.
  *

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   IconLessons,
   IconLog,
@@ -17,6 +17,7 @@ import {
   releaseVelocity,
   rubberband,
 } from "@/lib/spring";
+import { arrivedBySwipe, onSwipeHeading, swipeHeading } from "@/lib/tab-swipe";
 import { TAB_HREFS, tabIndexFor } from "@/lib/tabs";
 
 /**
@@ -129,6 +130,9 @@ const DETAIL = ["/lessons"];
 
 export function Nav() {
   const path = usePathname();
+  /* The tab a let-go swipe is on its way to, lit from the lift
+     (lib/tab-swipe.ts). Null on the server and at rest. */
+  const heading = useSyncExternalStore(onSwipeHeading, swipeHeading, () => null);
   const router = useRouter();
   const glass = useRef<HTMLDivElement>(null);
   const well = useRef<HTMLSpanElement>(null);
@@ -190,8 +194,11 @@ export function Nav() {
     const tab = tabIndexFor(path);
     const was = shownTab.current;
     shownTab.current = tab;
-    // First paint, the same tab, or the thumb's own slide: nothing to travel.
+    // First paint, the same tab, or the thumb's own slide: nothing to
+    // travel. Nor after a swipe between the tabs, which carried the well
+    // here under the finger (components/TabSwipe.tsx).
     if (was === null || was < 0 || tab < 0 || was === tab || lens.current) return;
+    if (arrivedBySwipe(path)) return;
     const w = parseFloat(getComputedStyle(el).width) || 0;
     const moving = el
       .getAnimations()
@@ -316,7 +323,7 @@ export function Nav() {
   return (
     <nav
       aria-label="Sections"
-      className={`nav-dock fixed bottom-0 left-1/2 z-20 w-full max-w-[430px] -translate-x-1/2 px-5 ${
+      className={`nav-dock fixed bottom-0 left-1/2 z-40 w-full max-w-[430px] -translate-x-1/2 px-5 ${
         returned ? "nav-return" : ""
       }`}
     >
@@ -346,12 +353,14 @@ export function Nav() {
           />
         )}
         {TABS.map((t, i) => {
-          const active = i === current;
+          // Lit from the moment a swipe is let go toward it (#435); the
+          // page it names is still the one the app is on.
+          const active = i === (heading ?? current);
           return (
             <Link
               key={t.href}
               href={t.href}
-              aria-current={active ? "page" : undefined}
+              aria-current={i === current ? "page" : undefined}
               draggable={false}
               className={`nav-tab relative z-[1] flex min-w-0 flex-1 flex-col items-center justify-center rounded-full ${
                 active ? "text-ink" : "text-stone-500"

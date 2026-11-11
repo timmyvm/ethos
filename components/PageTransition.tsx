@@ -2,6 +2,9 @@
 
 import { usePathname } from "next/navigation";
 import { Fragment, useEffect, useRef, useState } from "react";
+import { useTabSwipe } from "@/components/TabSwipe";
+import { PAGE_ATTR } from "@/lib/tab-stand-in";
+import { arrivedBySwipe, swipeTabIndex } from "@/lib/tab-swipe";
 import { TAB_HREFS } from "@/lib/tabs";
 
 /**
@@ -84,6 +87,17 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
    */
   const cold = previous.current === null;
 
+  /*
+   * The swipe between the tabs (components/TabSwipe.tsx, #435). The
+   * element a finger pulls is this page's wrapper; the one that hears
+   * the finger is the element around it, which stays put when the page
+   * has gone from under the thumb. A tab a swipe carried in has already
+   * arrived, under the finger, so it plays no push.
+   */
+  const page = useRef<HTMLDivElement>(null);
+  const swipe = useTabSwipe(path, page);
+  const carried = arrivedBySwipe(path);
+
   /* overflow-x: clip (B10): the 24px the push starts from widened the
      page to 414px for a frame, and a phone can zoom out to show it.
      `clip`, not `hidden`, so the wrapper never becomes a scroll
@@ -99,10 +113,20 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
      unkeyed fragment that is the only child. */
   return (
     <div
-      key={path}
-      className={`overflow-x-clip ${cold ? "" : direction === "right" ? "push-right" : "push-left"}`}
+      className={`swipe-root ${swipeTabIndex(path) < 0 ? "" : "tab-swipe"}`}
+      {...swipe.handlers}
     >
-      <Fragment key="page">{children}</Fragment>
+      <div
+        key={path}
+        ref={page}
+        {...{ [PAGE_ATTR]: path }}
+        className={`overflow-x-clip ${
+          cold || carried ? "" : direction === "right" ? "push-right" : "push-left"
+        }`}
+      >
+        <Fragment key="page">{children}</Fragment>
+      </div>
+      {swipe.pane}
     </div>
   );
 }

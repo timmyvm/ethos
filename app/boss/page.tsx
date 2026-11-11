@@ -373,7 +373,7 @@ export default function BossPage() {
                 <span className="font-display block text-detail font-semibold text-ink">
                   Hostile Q&amp;A
                 </span>
-                <span className="block text-link font-medium text-stone-500">{HOSTILE_LINE}</span>
+                <span className="block text-link font-medium text-stone-500">{HOSTILE_LINE}.</span>
               </span>
               <Disclosure />
             </Link>

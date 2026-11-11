@@ -424,7 +424,7 @@ export default function SettingsPage() {
           className="demos w-[160px]"
         />
         <h1 className="font-display mt-5 text-title font-extrabold">
-          All gone.
+          All gone
         </h1>
         <p className="mt-2 max-w-[280px] text-body text-pretty text-stone-500">
           {hadPlan && "Plan ended. "}Recordings, scores, streaks, account: deleted. Thanks for

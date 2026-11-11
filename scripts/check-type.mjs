@@ -14,7 +14,14 @@
  *   3. the Log, at five widths: its heads stand apart, a recording's
  *      name takes one line at 390 and two at most below it;
  *   4. a recording's three tiles at 320: every label and note inside its
- *      tile, the three numbers on one line.
+ *      tile, the three numbers on one line;
+ *   5. no heavy line of letters is tracked past -0.015em (#454): Outfit
+ *      at 700 and over is drawn close, and past that its pairs touch
+ *      ("st", "ct", "with"). Numbers are not letters and keep their own
+ *      tracking; the roulette's reel is the one named exception;
+ *   6. no title ends in a full stop (#454): a heading of one sentence is
+ *      a name, and two sentences keep both stops. What Demos says, in
+ *      his bubble, is speech and keeps its own.
  *
  *   NEXT_PUBLIC_SUPABASE_URL=http://supabase.local \
  *   NEXT_PUBLIC_SUPABASE_ANON_KEY=anon npx next dev -p 3123
@@ -26,6 +33,8 @@ import { analyzeBody, json, seed, session, supabaseRoute, SAVED_ROWS, savedWords
 
 const BASE = process.env.LOOK_BASE ?? "http://localhost:3123";
 const FLOOR = 11;
+/** The tightest a line of letters at weight 700 or over may be tracked, in em (scripts/look-kerning.mjs). */
+const TRACK_FLOOR = -0.015;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const findings = [];
 const ok = (name, pass, detail = "") => {
@@ -40,9 +49,10 @@ const SCREENS = [
 ];
 
 /** In the page: type under the floor, and small labels that crowd or cover a neighbour. */
-const measure = (floor) => {
+const measure = ({ floor, trackFloor }) => {
   const under = [];
   const crowded = [];
+  const tight = [];
   const inkOf = (el) => {
     const range = document.createRange();
     range.selectNodeContents(el);
@@ -61,6 +71,12 @@ const measure = (floor) => {
     const text = (el.textContent ?? "").trim().replace(/\s+/g, " ").slice(0, 26);
     const size = parseFloat(cs.fontSize);
     if (size < floor - 0.01 && !el.closest(".stair-cents")) under.push(`${size}px “${text}”`);
+    // A heavy line of letters, tracked in further than the face allows.
+    const own = [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.nodeValue).join("");
+    if (Number(cs.fontWeight) >= 700 && /[A-Za-z]{2}/.test(own) && !el.closest(".home-reel")) {
+      const em = (parseFloat(cs.letterSpacing) || 0) / size;
+      if (em < trackFloor - 0.0005) tight.push(`${Math.round(em * 1000) / 1000}em at ${size}px/${cs.fontWeight} “${text}”`);
+    }
 
     const cls = typeof el.className === "string" ? el.className : "";
     if (!/label-micro|label-data|text-suffix|home-unit/.test(cls)) continue;
@@ -74,8 +90,22 @@ const measure = (floor) => {
     }
     if (cs.whiteSpace === "nowrap" && el.scrollWidth > el.clientWidth + 1 && cs.overflow !== "visible") crowded.push(`“${text}” is cut`);
   }
+  // Titles: every heading on the screen that is not something Demos says.
+  const stops = [];
+  for (const el of document.querySelectorAll("h1, h2, h3, h4, .large-title, .section-head, .detail-head")) {
+    if (el.closest("nextjs-portal, .sr-only, [data-speech]")) continue;
+    const cs = getComputedStyle(el);
+    const box = el.getBoundingClientRect();
+    if (cs.display === "none" || cs.visibility === "hidden" || box.width === 0) continue;
+    const text = (el.textContent ?? "").replace(/\s+/g, " ").trim();
+    // One sentence and a full stop: a stop inside, then a space, is a second sentence.
+    if (/[^.]\.$/.test(text) && !/[.!?]\s/.test(text.slice(0, -1))) stops.push(`“${text.slice(0, 48)}”`);
+  }
   const de = document.documentElement;
-  return { under: [...new Set(under)], crowded: [...new Set(crowded)], sideways: Math.max(0, de.scrollWidth - de.clientWidth) };
+  return {
+    under: [...new Set(under)], crowded: [...new Set(crowded)], tight: [...new Set(tight)], stops: [...new Set(stops)],
+    sideways: Math.max(0, de.scrollWidth - de.clientWidth),
+  };
 };
 
 const browser = await chromium.launch({
@@ -113,13 +143,17 @@ for (const width of [390, 320]) {
   const { context, page } = await open(width);
   const under = [];
   const crowded = [];
+  const tight = [];
+  const stops = [];
   const sideways = [];
   let screens = 0;
   const take = async (name) => {
-    const res = await page.evaluate(measure, FLOOR);
+    const res = await page.evaluate(measure, { floor: FLOOR, trackFloor: TRACK_FLOOR });
     screens += 1;
     for (const u of res.under) under.push(`${name}: ${u}`);
     for (const c of res.crowded) crowded.push(`${name}: ${c}`);
+    for (const t of res.tight) tight.push(`${name}: ${t}`);
+    for (const t of res.stops) stops.push(`${name}: ${t}`);
     if (res.sideways > 1) sideways.push(`${name}: ${res.sideways}px`);
   };
   for (const path of SCREENS) {
@@ -150,6 +184,8 @@ for (const width of [390, 320]) {
   ok(`${width}: nothing a person reads is under ${FLOOR}px, on ${screens} screens`, screens >= 25 && under.length === 0, under.slice(0, 5).join(" | "));
   ok(`${width}: no head or label crowds or covers its neighbour`, crowded.length === 0, crowded.slice(0, 5).join(" | "));
   ok(`${width}: no page scrolls sideways`, sideways.length === 0, sideways.join(" | "));
+  ok(`${width}: no heavy line of letters is tracked past ${TRACK_FLOOR}em`, tight.length === 0, `${tight.length}: ${tight.slice(0, 5).join(" | ")}`);
+  ok(`${width}: no title ends in a full stop`, stops.length === 0, `${stops.length}: ${stops.slice(0, 8).join(" | ")}`);
 
   // The exception, held to what it is: the stair's cents, and nothing smaller than the spec's 8.
   await page.goto(`${BASE}/games?paywall=1`);

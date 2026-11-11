@@ -366,7 +366,7 @@ export default function RepDetail({
             onUpgrade={() =>
               setPaywall({
                 reason: "Presence · premium",
-                headline: "See what the camera measured.",
+                headline: "See what the camera measured",
               })
             }
           />
@@ -378,7 +378,7 @@ export default function RepDetail({
             onUpgrade={() =>
               setPaywall({
                 reason: "Delivery readout · premium",
-                headline: "See what the camera measured.",
+                headline: "See what the camera measured",
               })
             }
           />

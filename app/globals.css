@@ -306,8 +306,14 @@
      the larger the line, the tighter; fine print opens up a hair.
      intro-b-1: back to -0.02em. #323 opened it to -0.012em because
      "Think on your feet" read as two words, but that was the camera
-     hinting fonts (#325); unhinted, every word gap holds at -0.02. */
-  --text-title--letter-spacing: -0.02em;
+     hinting fonts (#325); unhinted, every word gap holds at -0.02.
+     #454: -0.012em again, for the letters and not the word gaps.
+     Outfit at 700 and over is drawn close, and past -0.015em its
+     pairs run into each other: at -0.02em "st", "ct" and "ru" touch
+     in the app's own headings (scripts/look-kerning.mjs draws every
+     pair and counts). The ceiling for heavy type is -0.015em at 34
+     and over and -0.012em under it; lib/type-tracking.test.ts. */
+  --text-title--letter-spacing: -0.012em;
   --text-title--font-weight: 700;
 
   --text-lead: 1.25rem;
@@ -3074,7 +3080,7 @@ summary::-webkit-details-marker {
   font-size: 1.25rem;
   line-height: 1.5rem;
   font-weight: 800;
-  letter-spacing: -0.018em;
+  letter-spacing: -0.012em;
 }
 /* A tactic's glyph and its expand cue on the stage, in the stage's ink. */
 .practice-stage .tip-glyph,
@@ -3970,13 +3976,18 @@ summary::-webkit-details-marker {
 }
 /* Apple's Large Title, set for Outfit: 34 on 40, heavy, and tracked in
    because big geometric type reads loose (§15). It grows from its
-   leading edge when the page is pulled down past the top. */
+   leading edge when the page is pulled down past the top. Tracked in
+   as far as the letters allow and no further (#454): at -0.028em
+   nineteen pairs in the app's headings touched ("st" nine times,
+   "with", "at it", "Punctuate"); at -0.015em, the home card's value
+   since D08, nine do, two more than the face draws joined with no
+   tracking at all. */
 .large-title {
   font-family: var(--font-display-face), sans-serif;
   font-size: 2.125rem;
   line-height: 2.5rem;
   font-weight: 800;
-  letter-spacing: -0.028em;
+  letter-spacing: -0.015em;
   color: var(--color-ink);
   transform-origin: 0% 100%;
 }
@@ -4021,7 +4032,7 @@ summary::-webkit-details-marker {
   font-size: 1.25rem;
   line-height: 1.5rem;
   font-weight: 800;
-  letter-spacing: -0.018em;
+  letter-spacing: -0.012em;
   color: var(--color-ink);
 }
 /* wellspoken-home s8: a trait section's head in its tone's ink (Lessons'
@@ -5471,6 +5482,9 @@ summary::-webkit-details-marker {
   --reel-cell: calc(4 * 1.06 * var(--reel-fs));
   font-size: var(--reel-fs);
   line-height: 1.06;
+  /* The one heavy line still past the ceiling (#454): the window is
+     cut for four lines of the longest prompt at this tracking, and a
+     fifth would be clipped. Re-cut the window before opening it. */
   letter-spacing: -0.03em;
   box-sizing: content-box;
 }
@@ -5495,7 +5509,6 @@ summary::-webkit-details-marker {
 .home-display[data-long] {
   font-size: min(2.125rem, 8.8vw);
   line-height: 1.06;
-  letter-spacing: -0.03em;
 }
 /* TipLine on the card: its glyph, its cue and its open sentence in the
    card's ink. */
@@ -6310,7 +6323,7 @@ html[data-test-tile] .test-tile-slot {
   font-size: 2.125rem;
   line-height: 2.5rem;
   font-weight: 800;
-  letter-spacing: -0.028em;
+  letter-spacing: -0.015em;
   color: var(--color-ink);
 }
 /* The word in the sheet wears the paragraph's mark, heavier for its size. */

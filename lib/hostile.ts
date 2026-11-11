@@ -44,8 +44,9 @@ export function promptById(id: string): HostilePrompt | undefined {
 }
 
 /** What Hostile Q&A is, in one line: its own screen's title, and its
- *  row on Practice's Premium card (D31). */
-export const HOSTILE_LINE = "Hold a claim while Demos comes at it.";
+ *  row on Practice's Premium card (D31). A title takes no full stop
+ *  (#454); the row's line is a sentence and adds its own. */
+export const HOSTILE_LINE = "Hold a claim while Demos comes at it";
 
 /** The lesson id a Hostile take is banked under (/api/analyze), and counted by. */
 export const HOSTILE_TAKE_ID = "hostile-take";

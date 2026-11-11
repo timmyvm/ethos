@@ -152,7 +152,7 @@ export default function YourWords({
       {failed ? (
         <ErrorState
           className="mt-5"
-          title="Your words didn't load."
+          title="Your words didn't load"
           body="They're still saved. Check your connection and try again."
           onRetry={() => void load()}
         />

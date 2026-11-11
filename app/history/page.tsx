@@ -442,7 +442,7 @@ export default function HistoryPage() {
               onTap={() =>
                 setPaywall({
                   reason: "Presence trendline · premium",
-                  headline: "See what the camera measured.",
+                  headline: "See what the camera measured",
                 })
               }
             />
@@ -638,7 +638,7 @@ export default function HistoryPage() {
             onClick={() =>
               setPaywall({
                 reason: "Full history · premium",
-                headline: "Your first recording is still here.",
+                headline: "Your first recording is still here",
               })
             }
             /* mt-2: air between the last tile and the plum chip, so a

@@ -25,6 +25,7 @@ import {
   type RushRound,
   type StoppedBy,
 } from "./round";
+import { asTitle } from "./title";
 
 // --- numbers as the screen writes them ---------------------------------
 
@@ -512,11 +513,13 @@ export const TASTE_LINE = "Play it any day.";
 /**
  * The plum sheet's headline after today's free round of a Premium game:
  * the game, the level and that round's real number. "Speed rush, level 1.
- * 2.6s to spare."
+ * 2.6s to spare." With no number to give it is the game and the level
+ * alone, one sentence, and a title of one sentence takes no full stop
+ * (#454).
  */
 export function tasteHeadline(game: Game, round: GameRound | null): string {
   const lead = `${game.name}, level ${round?.level ?? 1}.`;
-  if (!round || round.lastWord === null || !round.scorable) return lead;
+  if (!round || round.lastWord === null || !round.scorable) return asTitle(lead);
   if (round.game === "rush") {
     return round.stoppedBy === "you"
       ? `${lead} ${secs(round.spare ?? 0)} to spare.`
@@ -528,7 +531,7 @@ export function tasteHeadline(game: Game, round: GameRound | null): string {
       : `${lead} Finished at ${clock(round.lastWord)}.`;
   }
   const f = decidingCutIn(round);
-  return f && f.gap !== null ? `${lead} ${secs(f.gap)} after he cut in.` : lead;
+  return f && f.gap !== null ? `${lead} ${secs(f.gap)} after he cut in.` : asTitle(lead);
 }
 
 /** Once per game, ever, on this device (localStorage). */

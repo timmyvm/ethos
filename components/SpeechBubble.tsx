@@ -57,6 +57,9 @@ export function SpeechBubble({
   const plum = material === "plum";
   return (
     <div
+      /* What Demos says. Speech keeps its full stops where a title has
+         none (#454), and the type gate tells the two apart by this. */
+      data-speech=""
       className={`relative px-4 py-3.5 font-body font-normal ${
         plum ? "rounded-card border border-cream/16 bg-[#4f3655] text-cream" : "card text-ink"
       } ${voice === "lead" ? "text-lead leading-[26px]" : "text-detail leading-[24px]"} ${className}`}

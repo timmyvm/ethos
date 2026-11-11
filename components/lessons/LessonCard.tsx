@@ -152,19 +152,10 @@ function Progress({
   );
 }
 
-/**
- * The inset rule between rows: a hairline from the title's edge (20 gutter
- * + 44 art + 14 gap = 78px) to the row's end, the `.inset-group` icon-inset
- * grammar on the open ground. None above a section's first row.
- */
-const RULE =
-  "before:absolute before:left-[78px] before:right-0 before:top-0 before:h-px before:origin-top before:scale-y-50 before:bg-hairline";
-
 export function LessonRow({
   lesson,
   done,
   pending = true,
-  first = false,
   eager = false,
   cue = null,
 }: {
@@ -183,7 +174,6 @@ export function LessonRow({
    * on its picture.
    */
   pending?: boolean;
-  first?: boolean;
   /** Above the fold: load the thumbnail at once (lessons-21). */
   eager?: boolean;
   /** "Up next" or "Carry on" on the row the Up next card points at. */
@@ -197,14 +187,18 @@ export function LessonRow({
    * pulls away from the rows beside it (`.press-row`, lessons-4). The
    * focus ring is drawn inside, because outside it would sit on the
    * screen's edge (lessons-5).
+   *
+   * No rule between rows (#454). Each row already draws a line of its
+   * own, its three practices as segments, and an inset hairline 20px
+   * under that made two lines a row down a list of fifteen: the rules
+   * were the loudest thing in it. The art's 44px tile and the row's
+   * 68px keep the rows apart.
    */
   return (
     <Link
       href={`/lessons/${lesson.id}`}
       data-lesson={lesson.id}
-      className={`press-row relative -mx-5 flex items-center gap-3.5 px-5 py-3 focus-visible:-outline-offset-3! ${
-        first ? "" : RULE
-      }`}
+      className="press-row relative -mx-5 flex items-center gap-3.5 px-5 py-3 focus-visible:-outline-offset-3!"
     >
       <LessonArt lesson={lesson} size={44} eager={eager} />
       <span className="min-w-0 flex-1">

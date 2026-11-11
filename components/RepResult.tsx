@@ -1034,7 +1034,7 @@ function NotScored({ metrics: m, centred = false }: { metrics: RepMetrics; centr
         </span>
       )}
       <h2 className={`font-display text-title ${centred ? "mt-5" : ""}`}>
-        Not enough to score.
+        Not enough to score
       </h2>
       <p className="mt-2 text-body text-stone-500 text-pretty">
         {m.substance.wordCount < 20
@@ -1325,7 +1325,7 @@ function Glance({
             <p data-unscored-star className="mt-1 text-caption text-stone-500">
               1 star for showing up
             </p>
-            <h2 className="font-display mt-3 text-title">Not scored.</h2>
+            <h2 className="font-display mt-3 text-title">Not scored</h2>
           </>
         ) : (
           <>

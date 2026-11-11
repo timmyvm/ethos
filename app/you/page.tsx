@@ -68,6 +68,7 @@ import { adoptAccountPose } from "@/lib/pose-save";
 import type { CoinRow } from "@/lib/coins";
 import { usePlan, usePriceDrop, useStripeReturn, useStripeReturns, type ProfileRead } from "@/lib/use-plan";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
+import { asTitle } from "@/lib/title";
 
 // Free tier gets today's swap, not the archive, when the paywall is on.
 const FREE_LEXICON = 3;
@@ -899,7 +900,7 @@ export default function YouPage() {
              then shrinks to its three (a failed plan read shows all). */
           <div aria-busy="true">
             {[0, 1, 2].map((i) => (
-              <div key={i} className={`${SWAP_ROW} border-b border-hairline`}>
+              <div key={i} className={SWAP_ROW}>
                 <Skeleton className="h-6 w-48" />
               </div>
             ))}
@@ -926,7 +927,7 @@ export default function YouPage() {
                 like every section's content. */}
             <ul className="stagger">
               {lexicon.slice(0, lexiconCap ?? lexicon.length).map((l) => (
-                <li key={l.id} className={`${SWAP_ROW} border-b border-hairline`}>
+                <li key={l.id} className={SWAP_ROW}>
                   <Swap original={l.original} upgrade={l.upgrade} />
                 </li>
               ))}
@@ -946,7 +947,7 @@ export default function YouPage() {
                 onClick={() =>
                   setPaywall({
                     reason: "Full lexicon",
-                    headline: "Every word you've earned, kept.",
+                    headline: "Every word you've earned, kept",
                   })
                 }
                 className="press mt-1 flex min-h-11 w-full items-center justify-between gap-3 py-3 text-left text-row font-semibold text-stone-500"
@@ -988,9 +989,13 @@ export default function YouPage() {
             </span>
           )}
         </h2>
-        {/* An open hairline list on the ground (E11), Trait levels' and
-            the lexicon's grammar: no card, no tile inside it. The rows'
-            own 12px top padding is the head's mt-3. */}
+        {/* An open list on the ground (E11), Trait levels' and the
+            lexicon's grammar: no card, no tile inside it, and since #454
+            no rule between rows. A badge part earned draws its progress
+            along the row's foot, and a hairline under that was two lines
+            for one row; the mark, the two lines of words and 56px a row
+            keep them apart. The rows' own 12px top padding is the head's
+            mt-3. */}
         <div className="stagger" aria-busy={loading || undefined}>
           {shownBadges.map((a) => {
             const earned = !loading && a.earned;
@@ -998,7 +1003,7 @@ export default function YouPage() {
               <Link
                 key={a.id}
                 href={a.href}
-                className="press-row flex min-h-14 items-center gap-3.5 border-b border-hairline py-3"
+                className="press-row flex min-h-14 items-center gap-3.5 py-3"
               >
                 {/* The bare mark at 24 (E11): sage when earned, the
                     accent rule's one colour for it; stone while not. */}
@@ -1052,11 +1057,11 @@ export default function YouPage() {
             );
           })}
           {foldedBadges > 0 && (
-            /* The last hairline row: the count in the names' column. */
+            /* The last row: the count in the names' column. */
             <button
               type="button"
               onClick={() => setAllBadges(true)}
-              className="press-row flex min-h-14 w-full items-center gap-3.5 border-b border-hairline py-3 text-left"
+              className="press-row flex min-h-14 w-full items-center gap-3.5 py-3 text-left"
             >
               <span aria-hidden className="w-6 shrink-0" />
               <span className="font-display min-w-0 flex-1 text-row text-stone-500">
@@ -1338,8 +1343,10 @@ function RoadCard({ state, stars }: { state: OnboardingState; stars: number | nu
     <Link href="/welcome?step=plan" className={ROAD_CARD}>
       <span className="min-w-0 flex-1">
         <span className="eyebrow block">The road</span>
+        {/* The plan's headline is Demos's line in the introduction; here
+            it is the card's title, so its full stop goes (lib/title.ts). */}
         <span className="font-display mt-0.5 block truncate text-row">
-          {plan.headline}
+          {asTitle(plan.headline)}
         </span>
         <span className="mt-0.5 block truncate text-caption tabular-nums text-stone-500">
           {plan.focus ? gateLine(plan.focus.unitName, toGo) : "The road, one unit at a time"}

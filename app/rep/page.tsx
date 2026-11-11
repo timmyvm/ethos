@@ -2546,7 +2546,7 @@ function RepScreen() {
           ) : (
             <ErrorState
               className="w-full"
-              title="That recording didn't score."
+              title="That recording didn't score"
               body={error ?? "The scoring server didn't answer."}
               onRetry={
                 pendingRef.current
@@ -3379,7 +3379,7 @@ function Results({
   const upgradeRead = () =>
     onUpgrade({
       reason: "The judged read · 1 a day free",
-      headline: "Keep the coaching coming.",
+      headline: "Keep the coaching coming",
     });
   const cappedNote = cappedLine ? (
     daysSpoken >= PRO_MOMENT_DAYS ? (
@@ -3461,7 +3461,7 @@ function Results({
           onUpgrade={() =>
             onUpgrade({
               reason: "Delivery readout · premium",
-              headline: "See what the camera measured.",
+              headline: "See what the camera measured",
             })
           }
         />

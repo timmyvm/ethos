@@ -179,13 +179,12 @@ export default function LessonsPage() {
               pending={!failed}
             />
             <div className="stagger mt-2">
-              {mine.map((l, i) => (
+              {mine.map((l) => (
                 <LessonRow
                   key={l.id}
                   lesson={l}
                   done={count(l.id)}
                   pending={!failed}
-                  first={i === 0}
                   eager={t.id === TRAITS[0].id}
                   cue={cue(l.id)}
                 />

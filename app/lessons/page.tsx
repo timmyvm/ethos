@@ -1,13 +1,15 @@
 "use client";
 
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { LessonRow, UpNextCard } from "@/components/lessons/LessonCard";
 import { ErrorLine } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { LESSONS } from "@/content/lessons";
 import { TRAITS, type TraitDef, type TraitId } from "@/content/traits";
-import { fetchRepSpine, fetchReps } from "@/lib/client-data";
+import { fetchRepSpine, fetchReps, heldReps, heldSpine } from "@/lib/client-data";
+import { useRevalidate } from "@/lib/use-revalidate";
+import { useStill, useWarm } from "@/lib/use-warm";
 import { readable } from "@/lib/load";
 import { lessonProgress } from "@/lib/lesson-progress";
 import { lastReadings, traitForSaid, upNextLesson } from "@/lib/lesson-up-next";
@@ -46,11 +48,24 @@ import { buildPortfolio } from "@/lib/portfolio";
 export default function LessonsPage() {
   /* null while the log is in flight, so the up-next card never shows
      one lesson and then swaps to another (Skeleton's rule 1). */
-  const [done, setDone] = useState<Record<string, number> | null>(null);
+  /* What this visit last read (#433, lib/held.ts): Lessons opens on its
+     progress in the first frame and reads it again behind that. Never
+     while the server's page hydrates (`warm`). */
+  const warm = useWarm();
+  const [done, setDone] = useState<Record<string, number> | null>(() => {
+    const all = warm ? heldSpine() : null;
+    return all && heldReps(200) ? lessonProgress(all) : null;
+  });
   /* Each trait's last reading, null while the log is in flight. */
   const [readings, setReadings] = useState<Partial<
     Record<TraitId, number>
-  > | null>(null);
+  > | null>(() => {
+    const rows = warm ? heldReps(200) : null;
+    return rows && heldSpine() ? lastReadings(rows) : null;
+  });
+  /** Progress is on screen: a later read is quiet, and its failure leaves it. */
+  const drawn = useRef(done !== null);
+  useStill(drawn.current);
   /* A failed read is its own state, never an empty log (#147). It used
      to land as done = {}, and the page said "Start" on a lesson they may
      have finished: no card, no bars, a line and a retry instead. */
@@ -62,12 +77,18 @@ export default function LessonsPage() {
     // in the retry, never a skeleton for good. Progress counts every
     // recording (the newest 200 lost lesson practices past 200).
     void readable(() => Promise.all([fetchReps(200), fetchRepSpine()])).then((r) => {
-      if (!r.ok) return setFailed(true);
+      // Only a page with nothing to show says the read failed (#433).
+      if (!r.ok) return drawn.current ? undefined : setFailed(true);
+      drawn.current = true;
+      // A read that lands after a failed one (the network came back) takes its place.
+      setFailed(false);
       const [reps, all] = r.data;
       setDone(lessonProgress(all));
       setReadings(lastReadings(reps));
     });
   }, []);
+  // Looked at again after a while, or back on the network: read again, quietly.
+  useRevalidate(load);
 
   useEffect(() => {
     const answers = readOnboarding().answers;
@@ -76,6 +97,7 @@ export default function LessonsPage() {
   }, [load]);
 
   const retry = () => {
+    drawn.current = false;
     setFailed(false);
     setDone(null);
     setReadings(null);

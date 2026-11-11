@@ -2,7 +2,7 @@
 
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import Link from "next/link";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { CountUp } from "@/components/CountUp";
 import { PremiumDoor, PremiumMark } from "@/components/PremiumMark";
 import { IconChevron } from "@/components/Icon";
@@ -21,9 +21,14 @@ import {
   fetchProfile,
   fetchRepSpine,
   fetchReps,
+  heldPremium,
+  heldReps,
+  heldSpine,
   type RepRow,
   type RepSpine,
 } from "@/lib/client-data";
+import { useRevalidate } from "@/lib/use-revalidate";
+import { useStill, useWarm } from "@/lib/use-warm";
 import { limit } from "@/lib/entitlement";
 import { unitBreak } from "@/lib/metric-labels";
 import { DURATION } from "@/lib/motion";
@@ -133,12 +138,19 @@ function keepPlace() {
 }
 
 export default function HistoryPage() {
-  const [reps, setReps] = useState<RepRow[] | null>(null);
+  /* What this visit last read (#433, lib/held.ts): the Log opens on its
+     rows in the first frame and reads them again behind that. Never
+     while the server's page hydrates (`warm`). */
+  const warm = useWarm();
+  const [reps, setReps] = useState<RepRow[] | null>(() => (warm && heldSpine() ? heldReps() : null));
   /** Every recording, a few columns each: the counts and Day 1. */
-  const [spine, setSpine] = useState<RepSpine[]>([]);
+  const [spine, setSpine] = useState<RepSpine[]>(() => (warm ? heldSpine() : null) ?? []);
+  /** Rows are on screen: a later read is quiet, and its failure leaves them. */
+  const drawn = useRef(reps !== null);
+  useStill(drawn.current);
   /* The clock the free window is cut against, read when the data
      lands rather than on every render. */
-  const [readAt, setReadAt] = useState(0);
+  const [readAt, setReadAt] = useState(() => (drawn.current ? Date.now() : 0));
   const [failed, setFailed] = useState(false);
   const [paywall, setPaywall] = useState<PaywallAsk | null>(null);
   // Back from the paywall's account doors or Checkout's back arrow
@@ -146,7 +158,7 @@ export default function HistoryPage() {
   usePaywallReturn(() => setPaywall({ reason: "Premium" }));
   /** The plan: null until the profile answers, and on a failed read.
    *  Unknown is never free (#353): no cut, no teaser, until it says so. */
-  const [premium, setPremium] = useState<boolean | null>(null);
+  const [premium, setPremium] = useState<boolean | null>(() => (warm ? heldPremium() : null));
   // Whether a waiting row's Go meets the unit's teaching screen first, as
   // Today's Start does (#232: the introduction can turn intros off).
   const [skipIntros, setSkipIntros] = useState(false);
@@ -159,17 +171,21 @@ export default function HistoryPage() {
 
   const load = useCallback(async () => {
     setFailed(false);
-    setReps(null);
+    // Rows on screen stay there while they are read again (#433).
+    if (!drawn.current) setReps(null);
     // The newest 90 whole rows for the tables, and every recording's
     // date, stars and Index for the counts and Day 1, which the newest 90
     // stopped holding past 90 recordings.
     const read = await readable(() => Promise.all([fetchReps(), fetchRepSpine()]));
     if (read.ok) {
+      drawn.current = true;
       setReadAt(Date.now());
       setSpine(read.data[1]);
       setReps(read.data[0]);
-    } else setFailed(true);
+    } else if (!drawn.current) setFailed(true);
   }, []);
+  // Looked at again after a while, or back on the network: read again, quietly.
+  useRevalidate(() => void load());
 
   /*
    * The Log's place, kept across opening a recording. Both ways back (the

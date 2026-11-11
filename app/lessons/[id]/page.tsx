@@ -3,13 +3,14 @@
 import { BackLink } from "@/components/ui/ScreenHeader";
 import Link from "next/link";
 import { notFound, useParams, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { IconCheck } from "@/components/Icon";
 import { TraitChip } from "@/components/TraitChip";
 import { lessonById } from "@/content/lessons";
 import { backFrom } from "@/lib/back-from";
 import { TRAIT } from "@/content/traits";
-import { fetchRepSpine, fetchReps } from "@/lib/client-data";
+import { fetchRepSpine, fetchReps, heldReps, heldSpine } from "@/lib/client-data";
+import { useStill, useWarm } from "@/lib/use-warm";
 import { readable } from "@/lib/load";
 import { lessonProgress, nextPractice } from "@/lib/lesson-progress";
 import { lastReadings } from "@/lib/lesson-up-next";
@@ -50,9 +51,28 @@ export default function LessonPage() {
    * time. Unknown draws neutral squares and a button that cannot be
    * pressed; a failed read draws a retry, never a zero.
    */
-  const [done, setDone] = useState<number | null>(null);
+  /*
+   * Opened from Lessons, the log this visit last read is already here
+   * (#433, lib/held.ts): the squares and Start are drawn from it in the
+   * first frame, and the read below runs again behind them. What is held
+   * is dropped the moment a recording lands, so the count Start files
+   * against is never one from before a take made on this phone.
+   */
+  const warm = useWarm();
+  const [done, setDone] = useState<number | null>(() => {
+    const all = warm ? heldSpine() : null;
+    return all && heldReps(200) ? (lessonProgress(all)[id] ?? 0) : null;
+  });
   /* The trait's last reading: undefined in flight, null when there is none. */
-  const [reading, setReading] = useState<number | null | undefined>(undefined);
+  const [reading, setReading] = useState<number | null | undefined>(() => {
+    const rows = warm && heldSpine() ? heldReps(200) : null;
+    if (!rows) return undefined;
+    const trait = lessonById(id)?.trait;
+    return trait ? (lastReadings(rows)[trait] ?? null) : null;
+  });
+  /** Progress is on screen: a later read is quiet, and its failure leaves it. */
+  const drawn = useRef(done !== null);
+  useStill(drawn.current);
   const [failed, setFailed] = useState(false);
 
   const load = useCallback(() => {
@@ -60,7 +80,8 @@ export default function LessonPage() {
     // never "Loading your progress" for good. Progress counts every
     // recording.
     void readable(() => Promise.all([fetchReps(200), fetchRepSpine()])).then((r) => {
-      if (!r.ok) return setFailed(true);
+      if (!r.ok) return drawn.current ? undefined : setFailed(true);
+      drawn.current = true;
       const [reps, all] = r.data;
       setDone(lessonProgress(all)[id] ?? 0);
       const trait = lessonById(id)?.trait;
@@ -73,6 +94,7 @@ export default function LessonPage() {
   }, [load]);
 
   const retry = () => {
+    drawn.current = false;
     setFailed(false);
     setDone(null);
     setReading(undefined);

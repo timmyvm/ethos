@@ -20,7 +20,7 @@ import { ManageSheet } from "@/components/premium/ManageSheet";
 import { CheckoutReturn, PriceDropSheet } from "@/components/premium/Moments";
 import { PlanCard, PlanCardSkeleton } from "@/components/premium/PlanCard";
 import { achievements } from "@/lib/achievements";
-import { syncCoins } from "@/lib/coin-sync";
+import { heldCoins, syncCoins } from "@/lib/coin-sync";
 import { limit } from "@/lib/entitlement";
 import { DURATION } from "@/lib/motion";
 import {
@@ -33,13 +33,22 @@ import {
   type LexiconRow,
   type RepRow,
   type RepSpine,
+  heldLexicon,
+  heldPremium,
+  heldProfile,
+  heldReps,
+  heldSpine,
+  heldXp,
 } from "@/lib/client-data";
 import { LEVEL_AT, DOUBLE_AT, rankedTraits, traitLevels, type TraitLevel } from "@/lib/traits";
 import { practiseHref, sheetReading } from "@/lib/trait-sheet";
 import { lessonProgress } from "@/lib/lesson-progress";
 import { sinceDayOne } from "@/lib/log";
 import { TRAIT, type TraitId } from "@/content/traits";
-import { syncFreezes } from "@/lib/freeze-sync";
+import { heldFreezes, syncFreezes } from "@/lib/freeze-sync";
+import { held, hold } from "@/lib/held";
+import { useRevalidate } from "@/lib/use-revalidate";
+import { useStill, useWarm } from "@/lib/use-warm";
 import { levelFromXp } from "@/lib/level";
 import { readable, readFailure, withTimeout } from "@/lib/load";
 import { starsByLesson, totalStars } from "@/lib/path";
@@ -73,6 +82,9 @@ const TRAIT_ROWS_FREE = 5;
  */
 const TONED = new Set<string>(["pause", "fillers", "repairs", "pace", "range"]);
 const isToned = (key: string): key is TraitId => TONED.has(key);
+
+/** Whether this session is a guest's, as this visit last asked (lib/held.ts). */
+const GUEST_KEY = "guest";
 
 const EMPTY_STREAK: StreakState = {
   current: 0,
@@ -111,9 +123,20 @@ export default function YouPage() {
    * numbers that were not true. The card holds each line's exact
    * height with a bar instead, and `lib/load` is what lets them end.
    */
-  const [reps, setReps] = useState<RepRow[] | null>(null);
+  /*
+   * What this visit last read (#433, lib/held.ts): You opens on its
+   * numbers, its name and its words in the first frame and reads them
+   * again behind that. Never while the server's page hydrates (`warm`).
+   * The plan's own row is not held: a price is read, never remembered.
+   */
+  const warm = useWarm();
+  const heldAccount = warm ? heldProfile() : undefined;
+  const [reps, setReps] = useState<RepRow[] | null>(() => (warm && heldSpine() ? heldReps() : null));
   /** Every recording, a few columns each: the lifetime numbers. */
-  const [spine, setSpine] = useState<RepSpine[]>([]);
+  const [spine, setSpine] = useState<RepSpine[]>(() => (warm ? heldSpine() : null) ?? []);
+  /** The numbers are on screen: a later read is quiet, and its failure leaves them. */
+  const drawn = useRef(reps !== null);
+  useStill(drawn.current);
   const [failed, setFailed] = useState(false);
   const [allBadges, setAllBadges] = useState(false);
   /**
@@ -122,7 +145,8 @@ export default function YouPage() {
    * long as the fetch took. A failed read is its own state, with a
    * retry, never drawn as an empty lexicon (PRINCIPLES 8).
    */
-  const [lexicon, setLexicon] = useState<LexiconRow[] | null>(null);
+  const [lexicon, setLexicon] = useState<LexiconRow[] | null>(() => (warm ? heldLexicon() : null));
+  const lexiconDrawn = useRef(lexicon !== null);
   const [lexiconFailed, setLexiconFailed] = useState(false);
   /**
    * `null` until the XP read lands, for the same reason `reps` is: the
@@ -130,9 +154,10 @@ export default function YouPage() {
    * not arrived yet would COUNT UP to the truth a moment later. A failed
    * read shows a dash and a retry, never Level 1.
    */
-  const [xp, setXp] = useState<{ total: number; week: number } | null>(null);
+  const [xp, setXp] = useState<{ total: number; week: number } | null>(() => (warm ? heldXp() : null));
+  const xpDrawn = useRef(xp !== null);
   const [xpFailed, setXpFailed] = useState(false);
-  const [anon, setAnon] = useState<boolean | null>(null);
+  const [anon, setAnon] = useState<boolean | null>(() => (warm ? (held<boolean>(GUEST_KEY) ?? null) : null));
   const [paywall, setPaywall] = useState<PaywallAsk | null>(null);
   /* Coins and freezes still sync (the streak's freezes are real), but
      neither is drawn here since 26 Sep: the shop and the freeze shelf
@@ -140,7 +165,11 @@ export default function YouPage() {
   const [, setCoins] = useState<number | null | undefined>(undefined);
   /** The trait whose sheet is open. */
   const [openTrait, setOpenTrait] = useState<TraitLevel | null>(null);
-  const [streak, setStreak] = useState<StreakState>(EMPTY_STREAK);
+  const [streak, setStreak] = useState<StreakState>(() => {
+    const all = warm ? heldSpine() : null;
+    if (!all) return EMPTY_STREAK;
+    return heldFreezes()?.streak ?? computeStreak(all.map((r) => new Date(r.created_at)));
+  });
   const [flashing, setFlashing] = useState(false);
   /** `undefined` pending, `null` failed: the same split as `coins`. */
   const [, setFreezes] = useState<{
@@ -149,11 +178,11 @@ export default function YouPage() {
   } | null | undefined>(undefined);
   /** `null` until the profile answers, so "Add your name" can't flash
       over a name that merely hasn't arrived. */
-  const [name, setName] = useState<string | null>(null);
-  const [nameKnown, setNameKnown] = useState(false);
+  const [name, setName] = useState<string | null>(heldAccount?.display_name ?? null);
+  const [nameKnown, setNameKnown] = useState(heldAccount !== undefined);
   /** The plan: null until the profile answers, and on a failed read.
    *  Unknown is never free (#353): the lexicon is not cut until it says so. */
-  const [premium, setPremium] = useState<boolean | null>(null);
+  const [premium, setPremium] = useState<boolean | null>(() => (warm ? heldPremium() : null));
   /** The introduction's answers (#232): undefined until the device has been read. */
   const [onboarding, setOnboarding] = useState<OnboardingState | undefined>(undefined);
   const [editingName, setEditingName] = useState(false);
@@ -168,7 +197,7 @@ export default function YouPage() {
    * first step is celebrated in the card's place; back from the portal,
    * one sync quietly takes the row Stripe now has.
    */
-  const [profileRead, setProfileRead] = useState<ProfileRead>("loading");
+  const [profileRead, setProfileRead] = useState<ProfileRead>(heldAccount === undefined ? "loading" : heldAccount);
   const plan = usePlan(profileRead);
   const stripeReturn = useStripeReturn();
   const { arrival, rereading } = useStripeReturns(stripeReturn, plan, setPremium);
@@ -192,7 +221,7 @@ export default function YouPage() {
    * so a visit reads the ledger once.
    */
   const [worn, setWorn] = useState<string | null | undefined>(undefined);
-  const [poseLedger, setPoseLedger] = useState<CoinRow[] | null>(null);
+  const [poseLedger, setPoseLedger] = useState<CoinRow[] | null>(() => (warm ? (heldCoins()?.ledger ?? null) : null));
   // Before paint, so a tab switch to You never draws an empty stage first.
   useLayoutEffect(() => setWorn(readPrefs().pose), []);
   useEffect(() => {
@@ -247,19 +276,24 @@ export default function YouPage() {
 
   const load = useCallback(async () => {
     setFailed(false);
-    setReps(null);
+    // Numbers on screen stay there while they are read again (#433).
+    const quiet = drawn.current;
+    if (!quiet) setReps(null);
     // The newest 90 whole rows for the traits and the badges, and every
     // recording's date and stars for the numbers that count from day one.
     const read = await readable(() => Promise.all([fetchReps(), fetchRepSpine()]));
     if (!read.ok) {
-      setFailed(true);
+      // Only a screen with nothing to show says the read failed.
+      if (!drawn.current) setFailed(true);
       return;
     }
+    drawn.current = true;
     const [rows, all] = read.data;
     setSpine(all);
     setReps(rows);
     const dates = all.map((r) => new Date(r.created_at));
-    setStreak(computeStreak(dates));
+    // The bare count stands in only where no reconciled streak is drawn.
+    if (!quiet) setStreak(computeStreak(dates));
     void loadFreezes(dates);
     // The coin sync pays new days, which are always among the newest, so
     // the 90 rows' dates suffice; its ledger read is whole, and the stage's
@@ -272,19 +306,29 @@ export default function YouPage() {
      an empty lexicon, and never a skeleton for good (#147). */
   const loadLexicon = useCallback(async () => {
     setLexiconFailed(false);
-    setLexicon(null);
+    if (!lexiconDrawn.current) setLexicon(null);
     const read = await readable(() => fetchLexicon());
-    if (read.ok) setLexicon(read.data);
-    else setLexiconFailed(true);
+    if (read.ok) {
+      lexiconDrawn.current = true;
+      setLexicon(read.data);
+    } else if (!lexiconDrawn.current) setLexiconFailed(true);
   }, []);
 
   const loadXp = useCallback(async () => {
     setXpFailed(false);
-    setXp(null);
+    if (!xpDrawn.current) setXp(null);
     const read = await readable(fetchXp);
-    if (read.ok) setXp(read.data);
-    else setXpFailed(true);
+    if (read.ok) {
+      xpDrawn.current = true;
+      setXp(read.data);
+    } else if (!xpDrawn.current) setXpFailed(true);
   }, []);
+  // Looked at again after a while, or back on the network: read again, quietly.
+  useRevalidate(() => {
+    void load();
+    void loadLexicon();
+    void loadXp();
+  });
 
   useEffect(() => {
     void load();
@@ -317,8 +361,13 @@ export default function YouPage() {
     const db = supabaseBrowser();
     db?.auth
       .getUser()
-      .then(({ data }) => setAnon(data.user?.is_anonymous ?? null))
-      .catch(() => setAnon(null));
+      .then(({ data }) => {
+        const guest = data.user?.is_anonymous ?? null;
+        if (guest !== null) hold(GUEST_KEY, guest);
+        setAnon(guest);
+      })
+      // A failed ask leaves what the visit already knew.
+      .catch(() => {});
   }, [load, loadLexicon, loadXp]);
 
   /** The plan's read failed: read it again, and the profile with it if that was the one. */

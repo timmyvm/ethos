@@ -12,6 +12,7 @@ import { closesByWeek } from "./challenge";
 import type { RepRow } from "./client-data";
 import { fetchWholeLedger as fetchCoinLedger, grantCoins } from "./client-data";
 import { balance, unpaidChallengeWeeks, unpaidDays, type CoinRow } from "./coins";
+import { COINS_KEY, held, heldMark, hold } from "./held";
 
 export interface CoinSync {
   ledger: CoinRow[];
@@ -20,6 +21,14 @@ export interface CoinSync {
   granted: string[];
 }
 
+/**
+ * The ledger and its balance as the last sync left them this visit
+ * (lib/held.ts, #433): what You's count and its stage's pose open on.
+ * The Shop never opens on it: a balance something is bought against is
+ * read, not remembered. A payout is its own load's news, never held.
+ */
+export const heldCoins = (): CoinSync | null => held<CoinSync>(COINS_KEY) ?? null;
+
 export async function syncCoins(
   repDates: Date[],
   /* The rows themselves, when the caller has them: the challenge coin
@@ -27,6 +36,7 @@ export async function syncCoins(
      reconciles, which is what every caller did before #281. */
   reps: RepRow[] = []
 ): Promise<CoinSync> {
+  const mark = heldMark();
   // A failed first read rejects, so the caller draws the balance as
   // unread (a dash and a retry), never as zero.
   let ledger = await fetchCoinLedger();
@@ -55,5 +65,6 @@ export async function syncCoins(
     if (written > 0) ledger = await fetchCoinLedger().catch(() => ledger);
   }
 
+  hold(COINS_KEY, { ledger, balance: balance(ledger), granted: [] }, mark);
   return { ledger, balance: balance(ledger), granted };
 }

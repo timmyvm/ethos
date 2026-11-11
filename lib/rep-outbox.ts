@@ -15,6 +15,8 @@
  * product's floor is the old behavior, never a crash.
  */
 
+import { forgetRecordings } from "./held";
+
 export interface OutboxRep {
   /** Client-generated: `<timestamp>-<lessonId>-<random>`. */
   id: string;
@@ -244,6 +246,8 @@ export async function sendWithRetry(
       }
       const data = await res.json().catch(() => null);
       if (res.ok && data) {
+        // A recording landed: no tab opens on the numbers from before it.
+        forgetRecordings();
         const repId = (data as { repId?: string | null }).repId ?? null;
         return { ok: true, status: res.status, settled: repId !== null || !sent, data };
       }

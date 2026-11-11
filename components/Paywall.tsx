@@ -22,6 +22,7 @@ import {
   unpaidLine,
   type PlanView,
 } from "@/lib/plan-view";
+import { forgetProfile } from "@/lib/held";
 import { usePaywallHeadStays } from "@/lib/paywall-head";
 import { withPortalReturn } from "@/lib/plan-return";
 import { prefersReducedMotion } from "@/lib/prefs";
@@ -366,6 +367,7 @@ export function Paywall({
         return;
       }
       setUnlocked(true);
+      forgetProfile();
       // Every premium read on the page behind this sheet is stale now;
       // a reload is the honest refresh.
       setTimeout(() => (onUnlocked ? onUnlocked() : window.location.reload()), 900);

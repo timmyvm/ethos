@@ -28,12 +28,18 @@ import {
   fetchProfile,
   fetchRepSpine,
   fetchReps,
+  heldPremium,
+  heldProfile,
+  heldReps,
+  heldSpine,
   type RepRow,
   type RepSpine,
 } from "@/lib/client-data";
 import { topicById, type Topic } from "@/lib/topics";
 import { sessionState } from "@/lib/auth";
-import { syncFreezes } from "@/lib/freeze-sync";
+import { heldFreezes, syncFreezes } from "@/lib/freeze-sync";
+import { useRevalidate } from "@/lib/use-revalidate";
+import { useStill, useWarm } from "@/lib/use-warm";
 import { firstRun, markWelcomed } from "@/lib/onboarding";
 import {
   introDue,
@@ -105,13 +111,27 @@ const FALLBACK_TOPIC = topicById(FALLBACK_TOPIC_ID)!;
  */
 export default function Home() {
   const router = useRouter();
-  const [reps, setReps] = useState<RepRow[] | null>(null);
+  /*
+   * What this visit last read (#433, lib/held.ts): coming back along the
+   * tab bar, Today opens on its history, streak and plan in the first
+   * frame and reads them again behind that. Never while the server's
+   * page hydrates (`warm`), so the two always agree.
+   */
+  const warm = useWarm();
+  const [reps, setReps] = useState<RepRow[] | null>(() => (warm && heldSpine() ? heldReps() : null));
   /** Every recording, a few columns each: the lifetime numbers. */
-  const [spine, setSpine] = useState<RepSpine[]>([]);
-  const [streak, setStreak] = useState<StreakState>(EMPTY);
+  const [spine, setSpine] = useState<RepSpine[]>(() => (warm ? heldSpine() : null) ?? []);
+  const [streak, setStreak] = useState<StreakState>(() => {
+    const all = warm ? heldSpine() : null;
+    if (!all) return EMPTY;
+    return heldFreezes()?.streak ?? computeStreak(all.map((r) => new Date(r.created_at)));
+  });
+  /** A history is on screen: a later read is quiet, and its failure leaves the screen as it is. */
+  const drawn = useRef(reps !== null);
+  useStill(drawn.current);
   const [rescued, setRescued] = useState(0);
   /** The plan: null until the profile answers, and on a failed read. */
-  const [premium, setPremium] = useState<boolean | null>(null);
+  const [premium, setPremium] = useState<boolean | null>(() => (warm ? heldPremium() : null));
   const [mods, setMods] = useState<string[]>([]);
   const [showMods, setShowMods] = useState(false);
   const [paywall, setPaywall] = useState<string | null>(null);
@@ -257,42 +277,57 @@ export default function Home() {
    * didn't arrive: the day counter reset, the numbers vanished, and
    * nothing on screen said why.
    */
-  const load = useCallback(async () => {
+  const load = useCallback(async (again = false) => {
     loadedAt.current = new Date();
     setFailed(false);
-    setReps(null);
+    // A history on screen stays there while it is read again (#433).
+    const quiet = drawn.current;
+    if (!quiet) setReps(null);
     // The newest 90 whole rows for what reads a recording, and every
     // recording's date and stars for what counts from day one: the
     // streak, the freezes it earns, the week and the stars.
     const read = await readable(() => Promise.all([fetchReps(), fetchRepSpine()]));
     if (!read.ok) {
-      setFailed(true);
+      // Only a screen with nothing to show says the read failed.
+      if (!drawn.current) setFailed(true);
       return;
     }
+    drawn.current = true;
     const [rows, all] = read.data;
     setSpine(all);
     setReps(rows);
     writeSpokeHint(lastSpokeOn(all));
     const dates = all.map((r) => new Date(r.created_at));
     // Optimistic: show the unfrozen streak immediately, then reconcile
-    // freezes (which may involve a write).
-    setStreak(computeStreak(dates));
+    // freezes (which may involve a write). A screen already showing a
+    // reconciled streak keeps it until the next one lands, so the flame
+    // never dips to the bare count and back.
+    if (!quiet) setStreak(computeStreak(dates));
     const sync = await readable(() => syncFreezes(dates));
     if (!sync.ok) return;
     setStreak(sync.data.streak);
-    setRescued(sync.data.rescued.length);
+    // A rescue is said by the load that made it; a quiet read never unsays it.
+    if (!again || sync.data.rescued.length > 0) setRescued(sync.data.rescued.length);
+    // Armed once a visit, and at a day's turn, as before: a return to the
+    // app reads the history again but leaves the reminder where it is.
+    if (again) return;
     void armReminder({
       streak: sync.data.streak.current,
       didToday: sync.data.streak.didToday,
     });
   }, []);
+  // Looked at again after a while, or back on the network: read again, quietly.
+  useRevalidate(() => void load(true));
 
-  /* This device's name, before the first paint (a tab switch never shows
-     the line empty). A first open is under the splash meanwhile. */
+  /* The name, before the first paint (a tab switch never shows the line
+     empty): the account's as this visit last read it, else this
+     device's. A first open is under the splash meanwhile. */
   useLayoutEffect(() => {
     const local = greetingName(readOnboarding().answers.name);
-    if (local) {
-      setName(local);
+    const p = heldProfile();
+    const known = (p !== undefined ? greetingName(p?.display_name) : null) ?? local;
+    if (known || p !== undefined) {
+      setName(known);
       setNameKnown(true);
     }
   }, []);
@@ -348,6 +383,8 @@ export default function Home() {
       if (document.visibilityState !== "visible") return;
       if (!dayTurned(loadedAt.current, new Date())) return;
       setDayTurn((n) => n + 1);
+      // A new day is a new screen: yesterday's numbers do not stand in for it.
+      drawn.current = false;
       void load();
     };
     document.addEventListener("visibilitychange", check);

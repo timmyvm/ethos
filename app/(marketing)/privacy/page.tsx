@@ -47,6 +47,26 @@ function Lead({ children }: { children: React.ReactNode }) {
  *  - no advertising trackers or third-party cookies; Vercel Speed
  *    Insights (app/layout.tsx, @vercel/speed-insights) times page loads
  *    without cookies
+ *  - the introduction's answers: supabase/migrations/0009_onboarding.sql
+ *    and 0010 (age band, goal, up to three pains, level, context, the
+ *    reminder hour, the plan built from them), moved from the device to
+ *    the account by lib/answers-sync.ts; the name is
+ *    profiles.display_name
+ *  - an account before the first recording: lib/account-gate.ts (#410,
+ *    4 November 2026). A guest session (Supabase anonymous) is still
+ *    made by lib/supabase-browser.ts ensureSession for a tester who
+ *    enters a code first (lib/tester-client.ts), and older guests keep
+ *    theirs; lib/auth.ts attaches either to the account, same user id
+ *  - Google: lib/auth.ts signInWithGoogle asks Supabase's Google
+ *    provider for nothing beyond its defaults (email and profile), and
+ *    no screen reads the profile (no user_metadata anywhere in the app)
+ *  - reminders: supabase/migrations/0008_push_subscriptions.sql and
+ *    0019 (the browser's push address and keys, the hour, the zone,
+ *    quiet hours, the last day sent), written by app/api/push/route.ts;
+ *    app/api/push/cron/route.ts sends through web-push, which encrypts
+ *    the message to the browser's own keys
+ *  - on the device only: lib/prefs.ts (theme, sound, haptics, text
+ *    size and the rest), the sign-in session, lib/rep-outbox.ts
  *  - payments: lib/billing.ts (Stripe Checkout holds the card; the
  *    customer is made with the email and metadata.user_id only), the
  *    billing row in supabase/migrations/0012_price_ladder.sql (ids,
@@ -68,7 +88,7 @@ export default function Privacy() {
       >
         <MarketingHeader title="Privacy" />
       </Suspense>
-      <p className="mt-2 text-caption text-stone-400">Last updated 30 October 2026</p>
+      <p className="mt-2 text-caption text-stone-400">Last updated 11 November 2026</p>
 
       <p className="mt-5 text-read text-stone-800">
         You record yourself, the recording gets measured, you get feedback.
@@ -114,8 +134,21 @@ export default function Privacy() {
           word upgrades pulled from your own transcripts.
         </li>
         <li>
-          <Lead>Your account.</Lead> Email address once you create one, an
-          optional display name, and your plan, detailed under Payments.
+          <Lead>Your answers.</Lead> What you tell the introduction: your
+          age range, your goal, up to three things you notice in your own
+          speaking, how much you have practised, where you speak most, and
+          the plan built from them.
+        </li>
+        <li>
+          <Lead>Your account.</Lead> Your email address, the name you gave
+          if you gave one, and your plan, detailed under Payments. If you
+          sign in with Google, Google also passes on the name and profile
+          picture address on your Google account. Ethos uses neither.
+        </li>
+        <li>
+          <Lead>Reminders.</Lead> If you turn them on: the address your
+          browser gives us to send them to, the hour you chose, and your
+          time zone.
         </li>
         <li>
           <Lead>Abuse protection.</Lead> Request timestamps keyed to your
@@ -123,8 +156,8 @@ export default function Privacy() {
         </li>
       </ul>
       <p className={READ}>
-        Some things stay on your device only: preferences like theme and
-        reminder hour, your sign-in session, and any recording waiting to
+        Some things stay on your device only: preferences like theme, sound
+        and text size, your sign-in session, and any recording waiting to
         upload.
       </p>
 
@@ -161,16 +194,30 @@ export default function Privacy() {
         Five processors, each doing one job: Supabase (accounts, database and
         audio storage), OpenAI (transcription), Anthropic (feedback), Stripe
         (payments), and Vercel (hosting, with standard server logs and page
-        load timings). We never sell your data
-        and never share it beyond these services.
+        load timings). Two more take part only if you use them. Google, when
+        you sign in with it, confirms who you are and learns that you use
+        Ethos. Your browser maker&apos;s push service (Apple, Google or
+        Mozilla) delivers a reminder, encrypted so that only your browser can
+        read it. We never sell your data and never share it beyond these
+        services.
       </p>
 
-      <h2 className={HEAD}>Practising without an account</h2>
+      {/* #452. Until 4 November a person could practise first and sign
+          up later (#15, #134); #410 put the account before the first
+          recording, and this section still promised the old order. */}
+      <h2 className={HEAD}>Before you have an account</h2>
       <p className={READ}>
-        You can practise before signing up. That progress is tied to an
-        anonymous session in your browser; creating an account later attaches
-        it to you. If you clear your browser data first, the anonymous
-        progress can&apos;t be traced back to anyone, including you.
+        The introduction asks its questions before you have an account.
+        Your answers stay in your browser until you make one, then they are
+        saved to it. Ethos asks for the account before your first recording.
+      </p>
+      <p className={READ}>
+        A few people have a guest session in their browser from before
+        their account: a tester who entered a code first, or anyone who used
+        Ethos before 4 November 2026. What they answered and recorded is
+        kept under it, and making the account attaches it to them. If the
+        browser&apos;s data is cleared first, they can no longer sign in to
+        it, and it carries no email address.
       </p>
 
       {/* Tester mode: migrations 0020 to 0022 (testers, tester_feedback,

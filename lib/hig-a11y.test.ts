@@ -86,3 +86,47 @@ describe("terracotta is the tap's (#448)", () => {
     expect(hostile).not.toMatch(/bg-terracotta-700|!text-terracotta-700/);
   });
 });
+
+/** The declarations of the one rule whose selector is exactly `selector`. */
+const rule = (selector: string): string => {
+  const at = css.indexOf(`\n${selector} {`);
+  if (at === -1) throw new Error(`no rule for ${selector}`);
+  return css.slice(at, css.indexOf("}", at));
+};
+
+describe("the transcript's three marks are three shapes (#453)", () => {
+  /* A filler's and a vague word's underline were both a 3px bar, told
+     apart by rose against violet alone. */
+  it("a filler is a bar: the marked word's rule names no other line", () => {
+    expect(rule(".tw[data-word-mark]")).not.toMatch(/text-decoration-style/);
+  });
+
+  it("a vague word is a wave, drawn whole under a descender", () => {
+    for (const where of [".tw", ".word-sheet-word", ".word-in-sentence"]) {
+      const vague = rule(`${where}[data-word-mark="vague"]`);
+      expect(vague, where).toMatch(/text-decoration-style: wavy;/);
+      expect(vague, where).toMatch(/text-decoration-skip-ink: none;/);
+    }
+  });
+
+  it("a repeat is a row of dots, everywhere the mark is drawn", () => {
+    for (const where of [".tw", ".word-sheet-word", ".word-in-sentence"]) {
+      expect(rule(`${where}[data-word-mark="repeat"]`), where).toMatch(/text-decoration-style: dotted;/);
+    }
+  });
+
+  it("the key has a scrap of each: a bar, a wave cut from it, dots", () => {
+    expect(rule(".tw-key")).toMatch(/background: var\(--tone\);/);
+    const wave = rule('.tw-key[data-word-mark="vague"]');
+    expect(wave).toMatch(/-webkit-mask: url\("data:image\/svg\+xml,/);
+    expect(wave).toMatch(/\n  mask: url\("data:image\/svg\+xml,/);
+    expect(rule('.tw-key[data-word-mark="repeat"]')).toMatch(/radial-gradient/);
+  });
+
+  it("a screen reader is still told which, in words", () => {
+    const transcript = readFileSync("components/InteractiveTranscript.tsx", "utf8");
+    expect(transcript).toContain('filler: ", filler"');
+    expect(transcript).toContain('vague: ", vague"');
+    expect(transcript).toContain('repeat: ", said 3 or more times"');
+  });
+});

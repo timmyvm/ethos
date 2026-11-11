@@ -13,6 +13,9 @@
  *   6. A badge says whether it is earned.
  *   7. Increase Contrast makes every hairline and caption firmer, in
  *      both themes.
+ *   8. The transcript's three marks are three shapes (#453): a bar, a
+ *      wave and a row of dots, in the words and in the key, so none is
+ *      told from another by its colour alone.
  *
  *   NEXT_PUBLIC_SUPABASE_URL=http://supabase.local \
  *   NEXT_PUBLIC_SUPABASE_ANON_KEY=anon npx next dev -p 3123
@@ -111,6 +114,33 @@ const heard = (el) => {
     return row ? { heard: heard(row), seen: row.innerText.replace(/\s+/g, " ").trim() } : null;
   }, heard.toString());
   ok("a swap says which half is which", !!swap && /^Instead of .+ say .+$/.test(swap.heard), JSON.stringify(swap));
+
+  // 8. The transcript's marks, as the browser draws them.
+  const shapes = await page.evaluate(() => {
+    const word = (mark) => {
+      const w = document.querySelector(`[data-whole-recording] .tw[data-word-mark="${mark}"]`);
+      return w ? getComputedStyle(w).textDecorationStyle : null;
+    };
+    const scrap = (mark) => {
+      const k = document.querySelector(`[data-whole-recording] .tw-key[data-word-mark="${mark}"]`);
+      if (!k) return null;
+      const cs = getComputedStyle(k);
+      const masked = (cs.maskImage && cs.maskImage !== "none") || (cs.webkitMaskImage && cs.webkitMaskImage !== "none");
+      return masked ? "wave" : cs.backgroundImage !== "none" ? "dots" : "bar";
+    };
+    const plain = document.querySelector("[data-whole-recording] .tw:not([data-word-mark])");
+    return {
+      words: { filler: word("filler"), vague: word("vague"), repeat: word("repeat") },
+      key: { filler: scrap("filler"), vague: scrap("vague"), repeat: scrap("repeat") },
+      plain: plain ? getComputedStyle(plain).textDecorationStyle : null,
+    };
+  });
+  ok(
+    "a filler, a vague word and a repeat are underlined in three shapes",
+    shapes.words.filler === "solid" && shapes.words.vague === "wavy" && shapes.words.repeat === "dotted",
+    JSON.stringify(shapes.words)
+  );
+  ok("the key draws a scrap of each shape", shapes.key.filler === "bar" && shapes.key.vague === "wave" && shapes.key.repeat === "dots", JSON.stringify(shapes.key));
   ok("the recorder threw nothing", errors.length === 0, errors.join(" | "));
   await context.close();
 }

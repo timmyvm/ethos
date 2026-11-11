@@ -6206,6 +6206,14 @@ html[data-test-tile] .test-tile-slot {
  * Variety's for a vague word, Variety's dotted for a word said three
  * times or more, and a hairline in `edge` under every other word, so the
  * paragraph reads as tappable without a sentence saying so.
+ *
+ * And in a shape of its own (#453): a filler's is a bar, a vague word's
+ * a wave, a repeat's a row of dots. A filler and a vague word were both
+ * a 3px bar, told apart by rose against violet and nothing else: with
+ * the phone in Greyscale (Accessibility, Colour Filters) they were the
+ * same bar, in the paragraph and in its key. The wave is the mark every
+ * word processor puts under a word it has a better one for, and a vague
+ * word's sheet is where the better ones are.
  */
 .transcript {
   font-family: var(--font-display-face), sans-serif;
@@ -6242,6 +6250,15 @@ html[data-test-tile] .test-tile-slot {
   --tw-line: var(--tone);
   --tw-weight: 3px;
 }
+/* The wave is drawn whole under a descender, never broken around it:
+   a wave with gaps reads as dashes. 2px, since a wave puts down more
+   ink than a bar the same weight, and a little lower, clear of a g. */
+.tw[data-word-mark="vague"] {
+  --tw-weight: 2px;
+  text-decoration-style: wavy;
+  text-decoration-skip-ink: none;
+  text-underline-offset: 0.36em;
+}
 .tw[data-word-mark="repeat"] {
   text-decoration-style: dotted;
 }
@@ -6266,6 +6283,13 @@ html[data-test-tile] .test-tile-slot {
   height: 3px;
   border-radius: 2px;
   background: var(--tone);
+}
+/* A wave's scrap: the bar's colour, cut to two crests. */
+.tw-key[data-word-mark="vague"] {
+  height: 6px;
+  border-radius: 0;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 6'%3E%3Cpath d='M1 3q1.75-2.6 3.5 0t3.5 0 3.5 0 3.5 0' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 6'%3E%3Cpath d='M1 3q1.75-2.6 3.5 0t3.5 0 3.5 0 3.5 0' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
 }
 .tw-key[data-word-mark="repeat"] {
   border-radius: 0;
@@ -6297,6 +6321,12 @@ html[data-test-tile] .test-tile-slot {
   text-underline-offset: 0.2em;
   text-decoration-skip-ink: auto;
 }
+.word-sheet-word[data-word-mark="vague"] {
+  text-decoration-style: wavy;
+  text-decoration-thickness: 3px;
+  text-decoration-skip-ink: none;
+  text-underline-offset: 0.26em;
+}
 .word-sheet-word[data-word-mark="repeat"] {
   text-decoration-style: dotted;
 }
@@ -6312,6 +6342,12 @@ html[data-test-tile] .test-tile-slot {
 .word-in-sentence[data-word-mark] {
   text-decoration-color: var(--tone);
   text-decoration-thickness: 2px;
+}
+.word-in-sentence[data-word-mark="vague"] {
+  text-decoration-style: wavy;
+  text-decoration-thickness: 1.5px;
+  text-decoration-skip-ink: none;
+  text-underline-offset: 0.3em;
 }
 .word-in-sentence[data-word-mark="repeat"] {
   text-decoration-style: dotted;

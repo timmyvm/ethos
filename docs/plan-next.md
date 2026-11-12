@@ -2,7 +2,7 @@
 
 Timothy's notes of 12 November 2026, organised. The app works and is nearly done; these are the things that stand between "done" and "people love it". Nothing here is built yet.
 
-**The short version:** the first minute becomes a scene (an interviewer, "sell me this pen", you speak, he reacts), the swipe gets fixed first, one thing glows, the mascot becomes an illustrated elephant who listens, Settings grows up, Hostile Q&A goes free and moves to the front door with the boss, Premium becomes "support the maker", numbers get meaning, the weekly boss gets prep material and scenarios, and feedback has to stick.
+**The short version:** the first minute becomes a scripted scene (an interviewer, "sell me this pen", you speak, he turns you down, no numbers), the swipe gets fixed first, one thing glows, the mascot becomes an illustrated elephant who listens, Settings grows up, Hostile Q&A goes free and moves to the front door with the boss, Premium becomes "support the maker", numbers get meaning, the weekly boss gets prep material and scenarios, and feedback has to stick.
 
 ---
 
@@ -217,32 +217,35 @@ Each scenario is a set of prompts, a way of being scored that fits it (an interv
 2. **You're in the room.** A 2D flat illustrated scene, first person: an interviewer across the desk, man in a suit, feet up on the table. The room moves a little as you tilt the phone (parallax from the phone's direction), so it feels like you're there.
 3. **He says:** "Sell me this pen."
 4. **You speak.**
-5. **He reacts to what you actually said** (the Hostile Q&A engine already does this): "What are you even saying?" or "Why would I need this pen?"
+5. **He pushes back,** scripted: "What are you even saying?" then "Why would I need this pen?"
 6. **You answer again.**
-7. **His verdict,** from how it really went.
-8. **Demos (or the elephant) steps in:** "That wasn't great. What if that was real?" Then the rest of the introduction, now with a reason to care.
+7. **His verdict,** scripted: "I'm sorry, but you're not who we're looking for."
+8. **Demos (or the elephant) steps in,** in words only: "That was alright." or "That was horrible." Then "What if that was real?" and the rest of the introduction.
 
-**Keep it honest.** The rule is that we measure the gap and never manufacture insecurity. So the scene must judge what they actually did, not script a rejection:
-- If it went badly, the interviewer turns them down, and Demos points at the real numbers from those 30 seconds: "6 ums in 20 seconds, and you never said what the pen does."
-- If it went well, he says "Not bad. Sit down." and Demos says "Good. Now let's make that every time."
+**Timothy's calls (12 Nov), as given**
+- **No AI on onboarding.** Every new person would cost a Whisper and a Claude call. The interviewer's lines are scripted, the same for everyone.
+- **No numbers yet.** No score, no "6 ums". Just "that was alright" or "that was horrible".
+- **They should feel they started rough.** It probably won't go well anyway, and a rough start makes room in the mind to grow.
 
-Either way the first thing they hear is their own voice, measured. Never a fake failure.
+**How Demos picks "alright" or "horrible" without AI:** from the microphone level on the phone, which costs nothing. Long silences or barely speaking is "horrible", steady speech is "alright". Nothing is sent anywhere and no number is shown.
+
+This breaks a line in CLAUDE.md ("we never manufacture insecurity"): the rejection is scripted, whatever was said. Timothy's call wins; it gets logged as a decision when it's built.
 
 **Why it works**
 - It sells the outcome (confident, concise, people listen) without saying it.
-- It's the fun bit (Hostile Q&A) first, not a form.
+- It's the fun bit (a Hostile Q&A-style scene) first, not a form.
 - It's the start of scenarios (section 8): the same room hosts the job interview, the pitch, the date, the debate.
 
 **What it needs**
 - **Art:** one scene, layered for parallax (background, desk, interviewer, foreground pen). Flat 2D vector, bold shapes and colour, in the spirit of the explainer-video look Timothy likes; commissioned or drawn as our own, not copied from any studio.
 - **Motion:** `DeviceOrientation` for the tilt, gentle and capped; reduced motion holds it still.
 - **Voice:** the interviewer's lines spoken aloud (text to speech, or recorded) so it feels like a conversation.
-- **Engine:** two Hostile Q&A rounds with a sales prompt and a verdict, which the app already has.
+- **No model calls:** the scene is a script with two pauses for the person to speak, and a mic-level check on the phone for alright or horrible.
 - **Then:** today's introduction questions follow, shorter, since the scene did the convincing.
 
 **To decide:** the voice (recorded actor, or generated); whether the account ask comes before the scene (today an account comes before the first recording) or right after it; which scenes come next (interview, pitch, small talk).
 
-**Size:** large (art and voice), medium (code: the engine exists).
+**Size:** large (art and voice), small to medium (code: a scripted scene, the mic, the tilt).
 
 ---
 

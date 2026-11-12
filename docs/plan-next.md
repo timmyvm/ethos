@@ -2,7 +2,7 @@
 
 Timothy's notes of 12 November 2026, organised. The app works and is nearly done; these are the things that stand between "done" and "people love it". Nothing here is built yet.
 
-**The short version:** the swipe gets fixed first, one thing glows, the mascot becomes an illustrated elephant who listens, Settings grows up, Hostile Q&A goes free and moves to the front door with the boss, Premium becomes "support the maker", numbers get meaning, the weekly boss gets prep material and scenarios, and feedback has to stick.
+**The short version:** the first minute becomes a scene (an interviewer, "sell me this pen", you speak, he reacts), the swipe gets fixed first, one thing glows, the mascot becomes an illustrated elephant who listens, Settings grows up, Hostile Q&A goes free and moves to the front door with the boss, Premium becomes "support the maker", numbers get meaning, the weekly boss gets prep material and scenarios, and feedback has to stick.
 
 ---
 
@@ -208,9 +208,48 @@ Each scenario is a set of prompts, a way of being scored that fits it (an interv
 
 ---
 
+## 12. The big idea: put them in the room first
+
+**Timothy's insight, 12 Nov.** Don't teach a skill people don't feel they need. Put them in a scene where they need it, in the first ten seconds, and let them feel the gap themselves. This is the new onboarding, and the answer to section 6.
+
+**The flow (about one minute)**
+1. **Open the app:** one button, "Hold to step in". Holding it is the tap that lets the phone ask for the microphone and the motion sensor (iPhone only asks for motion on a tap).
+2. **You're in the room.** A 2D flat illustrated scene, first person: an interviewer across the desk, man in a suit, feet up on the table. The room moves a little as you tilt the phone (parallax from the phone's direction), so it feels like you're there.
+3. **He says:** "Sell me this pen."
+4. **You speak.**
+5. **He reacts to what you actually said** (the Hostile Q&A engine already does this): "What are you even saying?" or "Why would I need this pen?"
+6. **You answer again.**
+7. **His verdict,** from how it really went.
+8. **Demos (or the elephant) steps in:** "That wasn't great. What if that was real?" Then the rest of the introduction, now with a reason to care.
+
+**Keep it honest.** The rule is that we measure the gap and never manufacture insecurity. So the scene must judge what they actually did, not script a rejection:
+- If it went badly, the interviewer turns them down, and Demos points at the real numbers from those 30 seconds: "6 ums in 20 seconds, and you never said what the pen does."
+- If it went well, he says "Not bad. Sit down." and Demos says "Good. Now let's make that every time."
+
+Either way the first thing they hear is their own voice, measured. Never a fake failure.
+
+**Why it works**
+- It sells the outcome (confident, concise, people listen) without saying it.
+- It's the fun bit (Hostile Q&A) first, not a form.
+- It's the start of scenarios (section 8): the same room hosts the job interview, the pitch, the date, the debate.
+
+**What it needs**
+- **Art:** one scene, layered for parallax (background, desk, interviewer, foreground pen). Flat 2D vector, bold shapes and colour, in the spirit of the explainer-video look Timothy likes; commissioned or drawn as our own, not copied from any studio.
+- **Motion:** `DeviceOrientation` for the tilt, gentle and capped; reduced motion holds it still.
+- **Voice:** the interviewer's lines spoken aloud (text to speech, or recorded) so it feels like a conversation.
+- **Engine:** two Hostile Q&A rounds with a sales prompt and a verdict, which the app already has.
+- **Then:** today's introduction questions follow, shorter, since the scene did the convincing.
+
+**To decide:** the voice (recorded actor, or generated); whether the account ask comes before the scene (today an account comes before the first recording) or right after it; which scenes come next (interview, pitch, small talk).
+
+**Size:** large (art and voice), medium (code: the engine exists).
+
+---
+
 ## Suggested order
 
-1. **Fix the swipe**: a bug felt on every tab change.
+1. **Fix the swipe**: a bug felt on every tab change (done, #465; to merge and try on a phone).
+1a. **Put them in the room** (section 12): the new first minute. Start the art now; it is the longest lead.
 2. **Kill the glow** and **Hostile Q&A free**: fast, visible, nothing to decide on art except the lesson images.
 3. **Hostile Q&A and the boss on Today**: the bike in the room.
 4. **Feedback that sticks** (one cue, rehearsed, checked the next day): the biggest change to whether people actually improve.

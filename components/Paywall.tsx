@@ -27,7 +27,7 @@ import { usePaywallHeadStays } from "@/lib/paywall-head";
 import { withPortalReturn } from "@/lib/plan-return";
 import { prefersReducedMotion } from "@/lib/prefs";
 import { supabaseBrowser } from "@/lib/supabase-browser";
-import { ACTION_CLASS } from "@/lib/ui";
+import { ACTION_TONAL_CLASS } from "@/lib/ui";
 import { authHref, withPaywall } from "@/lib/use-paywall-return";
 import { readBilling } from "@/lib/use-plan";
 
@@ -38,8 +38,9 @@ import { readBilling } from "@/lib/use-plan";
  *
  * The sheet is plum (`.card-premium`, practice-tab-4): the tier's own
  * surface, so tapping the plum wall on Practice lands on plum. No sage on
- * it, the PremiumMark once as its eyebrow, and the one tap terracotta: a
- * premium card with an action is a plum card with a terracotta button.
+ * it, the PremiumMark once as its eyebrow, and the one tap cut from the
+ * plum (#459, `.tap-tonal`): a premium card's action is a pale tint of
+ * the card with the plum for its word, as a tap on any coloured card is.
  *
  * Kept from before: the grabber, the mark, the reason line, the headline,
  * the five benefits (ordered by expected demand, #199) and the closing
@@ -549,12 +550,13 @@ export function Paywall({
                   placeholder="Invite code…"
                   className="min-h-12 w-0 min-w-0 flex-1 rounded-control border border-cream/25 bg-cream/10 px-4 text-read text-cream placeholder:text-cream/50 focus:border-terracotta-500 focus:shadow-[inset_0_0_0_1px_var(--color-terracotta-500)] focus-visible:outline-none!"
                 />
-                {/* Disabled on plum: the fill steps back to the field's
-                    own cream/10, never a faded terracotta. */}
+                {/* On plum a tap is cut from the plum (#459, `.tap-tonal`).
+                    Disabled, the fill steps back to the field's own
+                    cream/10, never a faded tint. */}
                 <button
                   type="submit"
                   disabled={redeeming || !code.trim()}
-                  className="press font-display min-h-12 shrink-0 rounded-tap bg-terracotta-500 px-6 text-body font-bold text-on-accent transition-colors disabled:bg-cream/10 disabled:text-cream/60"
+                  className="press font-display tap-tonal min-h-12 shrink-0 rounded-tap px-6 text-body font-bold transition-colors disabled:bg-cream/10 disabled:text-cream/60 disabled:shadow-none"
                 >
                   {redeeming ? PAYWALL_COPY.unlockBusy : PAYWALL_COPY.unlock}
                 </button>
@@ -566,7 +568,7 @@ export function Paywall({
               )}
               {/* The code is the second way in, never the only one: a
                   mis-tap on it keeps Start a tap away, as text, so the
-                  sheet still has one terracotta (Unlock). */}
+                  sheet still has one tap (Unlock). */}
               {twoUp && (
                 <div className="mt-1 grid grid-cols-2">
                   <button type="button" onClick={() => void start()} className="font-display min-h-11 text-link text-cream">
@@ -587,7 +589,7 @@ export function Paywall({
               >
                 {PAYWALL_COPY.needsAccount}
               </p>
-              <Link href={authHref("signup", here)} className={`${ACTION_CLASS} mt-3`}>
+              <Link href={authHref("signup", here)} className={`${ACTION_TONAL_CLASS} mt-3`}>
                 {PAYWALL_COPY.createAccount}
               </Link>
               <Link
@@ -633,7 +635,7 @@ export function Paywall({
                 onClick={() => void (held ? openCard() : start())}
                 aria-disabled={phase === "busy" || undefined}
                 aria-busy={phase === "busy" || undefined}
-                className={ACTION_CLASS}
+                className={ACTION_TONAL_CLASS}
               >
                 {phase === "busy"
                   ? PAYWALL_COPY.busy

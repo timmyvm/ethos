@@ -14,6 +14,7 @@ import { IconShuffle } from "@/components/Icon";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { FooterShelf } from "@/components/ui/FooterShelf";
 import { BackLink } from "@/components/ui/ScreenHeader";
+import { setAudioSession } from "@/lib/audio-session";
 import { fetchProfile, fetchReps } from "@/lib/client-data";
 import { weekStart } from "@/lib/level";
 import { hostileKey } from "@/lib/client-key";
@@ -390,6 +391,8 @@ export default function HostilePage() {
       return;
     }
     try {
+      // The browser's own audio session, which has a microphone (lib/audio-session.ts).
+      setAudioSession("auto");
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
       });
@@ -967,7 +970,7 @@ export default function HostilePage() {
 /**
  * A failure in the error grammar (system-10, #246): the control surface
  * with rust words, as the auth forms and Upload draw it. Never
- * terracotta, which means tap, and never the coach's wash, which reads
+ * the tap's fill, which means go, and never the coach's wash, which reads
  * as Demos talking.
  */
 function ErrorNote({ children }: { children: string | null }) {

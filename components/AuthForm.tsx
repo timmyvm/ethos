@@ -483,7 +483,7 @@ export function AuthForm({
                   )}
                 </div>
                 {mode === "signup" && !signingIn ? (
-                  /* A new password (#455): the outline closes as it
+                  /* A new password (#462): the outline closes as it
                      grows, and a password everyone tries is said at once. */
                   <NewPasswordField
                     inputRef={passwordRef}
@@ -496,7 +496,7 @@ export function AuthForm({
                     inputClassName={FIELD_BARE_CLASS}
                   />
                 ) : (
-                  /* Show / Hide here too (#456): every password field. */
+                  /* Show / Hide here too (#463): every password field. */
                   <div className="relative mt-2">
                   <input
                     ref={passwordRef}
@@ -693,7 +693,7 @@ export const LABEL_CLASS = "font-display block text-row text-ink";
  * same misread as the old bullets (auth-8).
  */
 export const FIELD_CLASS = `mt-2 h-12 ${INPUT_CLASS} placeholder:font-normal`;
-/** The same field with no top margin, for a field whose wrapper takes it (#455). */
+/** The same field with no top margin, for a field whose wrapper takes it (#462). */
 export const FIELD_BARE_CLASS = `h-12 ${INPUT_CLASS} placeholder:font-normal`;
 
 /**

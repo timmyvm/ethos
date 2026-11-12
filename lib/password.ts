@@ -1,5 +1,5 @@
 /**
- * What a new password is checked against while it is typed (#455, from
+ * What a new password is checked against while it is typed (#462, from
  * Charles Liu's password reel: "reward early, punish late" and "inline
  * validation").
  *

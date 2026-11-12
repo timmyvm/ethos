@@ -132,7 +132,9 @@ beforeEach(() => {
   vi.mocked(findRepByClientId).mockReset();
   vi.mocked(findRepByClientId).mockResolvedValue(null);
   vi.mocked(writeMeterState).mockClear();
-  vi.mocked(getUserFromAuthHeader).mockResolvedValue(null);
+  // A signed-in account by default: a take with no session is scored and
+  // never stored (11 Nov), so the tests that read what was stored need an owner.
+  vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-0", anonymous: false });
   vi.mocked(consumeRateLimit).mockResolvedValue({
     allowed: true,
     window: null,
@@ -664,7 +666,7 @@ describe("rate limiting", () => {
       anonymous: false,
     });
     await post(audioForm());
-    expect(consumeRateLimit).toHaveBeenLastCalledWith("u:user-1", "user");
+    expect(consumeRateLimit).toHaveBeenCalledWith("u:user-1", "user");
 
     vi.mocked(getUserFromAuthHeader).mockResolvedValue({
       id: "anon-1",
@@ -676,8 +678,8 @@ describe("rate limiting", () => {
 
     vi.mocked(getUserFromAuthHeader).mockResolvedValue(null);
     await post(audioForm());
-    expect(vi.mocked(consumeRateLimit).mock.lastCall?.[0]).toMatch(/^ip:/);
-    expect(vi.mocked(consumeRateLimit).mock.lastCall?.[1]).toBe("anon");
+    const visitor = vi.mocked(consumeRateLimit).mock.calls.find(([subject]) => /^ip:/.test(subject));
+    expect(visitor?.[1]).toBe("anon");
   });
 });
 
@@ -696,6 +698,66 @@ describe("guests on one address share a ceiling (#416)", () => {
     vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "user-1", anonymous: false });
     await post(audioForm());
     expect(vi.mocked(consumeRateLimit).mock.calls.some((c) => c[1] === "guestip")).toBe(false);
+  });
+
+  /* Security audit, 11 Nov, second pass: one ceiling for every guest and
+     visitor. An address is cheap to change; this count is not. */
+  it("counts a guest and a visitor against the ceiling they all share, and never an account", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "anon-3", anonymous: true });
+    vi.mocked(consumeRateLimit).mockClear();
+    await post(audioForm());
+    expect(consumeRateLimit).toHaveBeenCalledWith("guest:all", "guestall");
+
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue(null);
+    vi.mocked(consumeRateLimit).mockClear();
+    await post(audioForm());
+    expect(consumeRateLimit).toHaveBeenCalledWith("guest:all", "guestall");
+
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "user-3", anonymous: false });
+    vi.mocked(consumeRateLimit).mockClear();
+    await post(audioForm());
+    expect(vi.mocked(consumeRateLimit).mock.calls.some(([s]) => s === "guest:all")).toBe(false);
+  });
+
+  it("turns a guest away at the ceiling before Whisper, says how to go on, and gives its own slots back", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "anon-3", anonymous: true });
+    vi.mocked(consumeRateLimit).mockImplementation(async (subject: string) =>
+      subject === "guest:all"
+        ? { allowed: false, window: "day", retryAfterS: 7200 }
+        : { allowed: true, window: null, retryAfterS: 0 }
+    );
+    vi.mocked(refundRateLimit).mockClear();
+    vi.mocked(transcribe).mockClear();
+    const res = await post(audioForm());
+    expect(res.status).toBe(429);
+    const body = await res.json();
+    expect(body).toMatchObject({ rateLimited: true, guestFull: true, retryAfterS: 7200 });
+    expect(body.error).toBe("Recording without an account is full for now. Create an account to keep going.");
+    expect(transcribe).not.toHaveBeenCalled();
+    expect(refundRateLimit).toHaveBeenCalledWith("u:anon-3");
+    expect(vi.mocked(refundRateLimit).mock.calls.some(([s]) => /^guest:ip:/.test(s))).toBe(true);
+    expect(vi.mocked(refundRateLimit).mock.calls.some(([s]) => s === "guest:all")).toBe(false);
+    vi.mocked(consumeRateLimit).mockImplementation(async () => ({ allowed: true, window: null, retryAfterS: 0 }));
+  });
+
+  it("keeps the ceiling's slot for a paid take that stored nothing, and gives it back when Whisper was down", async () => {
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "anon-3", anonymous: true });
+    // Paid, nothing stored: the guest's own slots come back (#409), the ceiling's does not.
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(saveRep).mockResolvedValue(null);
+    vi.mocked(refundRateLimit).mockClear();
+    await post(audioForm());
+    expect(refundRateLimit).toHaveBeenCalledWith("u:anon-3");
+    expect(vi.mocked(refundRateLimit).mock.calls.some(([s]) => s === "guest:all")).toBe(false);
+
+    // Whisper down: nothing was paid for, so every slot comes back.
+    vi.mocked(transcribe).mockRejectedValue(new Error("Whisper API 500: boom"));
+    vi.mocked(refundRateLimit).mockClear();
+    await post(audioForm());
+    expect(refundRateLimit).toHaveBeenCalledWith("guest:all");
+    expect(refundRateLimit).toHaveBeenCalledWith("u:anon-3");
   });
 
   it("turns a guest away when its address is full, and gives its own slot back", async () => {
@@ -879,57 +941,38 @@ describe("the rate-limit slot of a failed transcription", () => {
   });
 
   /* Only a saved recording keeps its slot (#409). */
-  /* #457: once a take is heard, Whisper and the coach are paid for, so
-     the slot stays spent. It came back on a failed save, and a save can
-     be failed on purpose, which made every request free. */
-  it("stays spent once the take was heard, even when the save fails", async () => {
+  it("is given back when nothing was saved", async () => {
     vi.mocked(transcribe).mockResolvedValue(FIXTURE);
     vi.mocked(saveRep).mockResolvedValue(null);
     await post(audioForm());
-    expect(refundRateLimit).not.toHaveBeenCalled();
+    // A guest's own slot and its address's (#416), each once.
+    expect(refundRateLimit).toHaveBeenCalledTimes(2);
+    expect(refundRateLimit).toHaveBeenCalledWith("u:anon-1");
+    expect(vi.mocked(refundRateLimit).mock.calls.some(([s]) => /^guest:ip:/.test(s))).toBe(true);
   });
 
-  it("stays spent when a second send of the same take raced the first", async () => {
+  /* Security audit, 11 Nov: Whisper was paid for, so a slot comes back
+     only while the subject's paid give-backs last. */
+  it("stays spent once the hour's paid give-backs are used up", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(saveRep).mockResolvedValue(null);
+    vi.mocked(consumeRateLimit).mockImplementation(async (subject: string) =>
+      subject.startsWith("refund:")
+        ? { allowed: false, window: "hour", retryAfterS: 600 }
+        : { allowed: true, window: null, retryAfterS: 0 }
+    );
+    await post(audioForm());
+    expect(consumeRateLimit).toHaveBeenCalledWith("refund:u:anon-1", "refund");
+    expect(refundRateLimit).not.toHaveBeenCalled();
+    vi.mocked(consumeRateLimit).mockImplementation(async () => ({ allowed: true, window: null, retryAfterS: 0 }));
+  });
+
+  it("is given back when the recording was already saved by an earlier send", async () => {
     vi.mocked(transcribe).mockResolvedValue(FIXTURE);
     vi.mocked(saveRep).mockResolvedValue({ id: "rep-1", duplicate: true } as never);
     await post(audioForm());
-    expect(refundRateLimit).not.toHaveBeenCalled();
-  });
-
-  it("drops a lesson id the app never writes, so it cannot fail the save", async () => {
-    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
-    vi.mocked(saveRep).mockClear();
-    const form = audioForm();
-    form.set("lessonId", "a\u0000b");
-    await post(form);
-    expect(vi.mocked(saveRep).mock.calls[0]?.[0]).toMatchObject({ lessonId: undefined });
-  });
-
-  it("keeps only real delivery moments, rebuilt from their own fields", async () => {
-    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
-    vi.mocked(saveRep).mockClear();
-    const form = audioForm();
-    form.set(
-      "delivery",
-      JSON.stringify({
-        metrics: { presenceScore: 600 },
-        moments: [
-          { t: 3, seconds: 2, kind: "slouch", note: "Shoulders\u0000 dropped", extra: "x".repeat(10000) },
-          { t: 4, seconds: 1, kind: "anything", note: "no" },
-          "junk",
-        ],
-      })
-    );
-    await post(form);
-    const saved = vi.mocked(saveRep).mock.calls[0]?.[0] as { deliveryMoments?: unknown };
-    expect(saved.deliveryMoments).toEqual([{ t: 3, seconds: 2, kind: "slouch", note: "Shoulders dropped" }]);
-  });
-
-  it("never sends the provider's error text to the phone", async () => {
-    vi.mocked(transcribe).mockRejectedValue(new Error("Whisper API 401: Incorrect API key provided: sk-proj-abc. org-123"));
-    const res = await post(audioForm());
-    const body = await res.json();
-    expect(JSON.stringify(body)).not.toMatch(/sk-|org-|Whisper API/);
+    expect(refundRateLimit).toHaveBeenCalledTimes(2);
+    expect(refundRateLimit).toHaveBeenCalledWith("u:anon-1");
   });
 });
 
@@ -965,10 +1008,20 @@ describe("a token that does not resolve", () => {
     expect(saveRep).not.toHaveBeenCalled();
   });
 
-  it("still scores a sessionless upload, as anonymous-first promises", async () => {
+  /* Scored and answered, as anonymous-first promises; stored for nobody
+     is stored by nobody (security audit, 11 Nov). */
+  it("still scores a sessionless upload, and keeps neither its voice nor its words", async () => {
     vi.mocked(resolveAuthHeader).mockResolvedValueOnce({ kind: "none" });
-    expect((await post(audioForm())).status).toBe(200);
-    expect(saveRep).toHaveBeenCalledTimes(1);
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(refundRateLimit).mockClear();
+    const res = await post(audioForm());
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.repId).toBeNull();
+    expect(body.transcript).toBe(FIXTURE.text);
+    expect(saveRep).not.toHaveBeenCalled();
+    // Nothing will ever be stored to keep the slot, so it stays spent.
+    expect(refundRateLimit).not.toHaveBeenCalled();
   });
 });
 

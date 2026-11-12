@@ -1,0 +1,68 @@
+[
+  {
+    "n": 0,
+    "id": "now",
+    "name": "As it ships",
+    "note": "Terracotta, flat, ink label. The one you called ugly, for comparison."
+  },
+  {
+    "n": 1,
+    "id": "ember",
+    "name": "Ember",
+    "note": "Terracotta, lit. Hotter orange, a white label, light on its top edge and its own glow under it."
+  },
+  {
+    "n": 2,
+    "id": "apricot",
+    "name": "Apricot",
+    "note": "Terracotta, lightened. The same family three steps paler, ink label: soft where the orange was heavy."
+  },
+  {
+    "n": 3,
+    "id": "lip",
+    "name": "Lip",
+    "note": "Terracotta as an object. A hard lower edge, like the path's tiles: a thing you press, not a sticker."
+  },
+  {
+    "n": 4,
+    "id": "white",
+    "name": "White",
+    "note": "No colour of its own. White on the card, ink on the page: whatever stands out most where it sits."
+  },
+  {
+    "n": 5,
+    "id": "ink",
+    "name": "Ink",
+    "note": "Near-black everywhere, white label. The card keeps all the colour; the tap is the darkest thing on it."
+  },
+  {
+    "n": 6,
+    "id": "cream",
+    "name": "Cream",
+    "note": "Warm paper, ink label. White's quiet with the brand's warmth left in."
+  },
+  {
+    "n": 7,
+    "id": "mark",
+    "name": "White, terracotta mark",
+    "note": "Terracotta shrinks to a signal: a small play mark on a white tap (ink on the page)."
+  },
+  {
+    "n": 8,
+    "id": "tonal",
+    "name": "Tonal",
+    "note": "The lesson's own colour. A pale tint of the card on the card, the trait's deep colour on the page."
+  },
+  {
+    "n": 9,
+    "id": "outline",
+    "name": "Outline",
+    "note": "No fill at all. A drawn edge and a label; the lightest a main tap can be."
+  },
+  {
+    "n": 10,
+    "id": "arrow",
+    "name": "Arrow",
+    "note": "A different shape of tap: the label at the left, a round arrow at the right end, moving on drawn in."
+  }
+]

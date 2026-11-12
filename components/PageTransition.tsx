@@ -2,7 +2,10 @@
 
 import { usePathname } from "next/navigation";
 import { Fragment, useEffect, useRef, useState } from "react";
+import { useTabSwipe } from "@/components/TabSwipe";
 import { historyMove, settleHistory, watchHistory } from "@/lib/back";
+import { PAGE_ATTR } from "@/lib/tab-stand-in";
+import { swipeTabIndex } from "@/lib/tab-swipe";
 import { TAB_HREFS } from "@/lib/tabs";
 
 /**
@@ -29,10 +32,12 @@ import { TAB_HREFS } from "@/lib/tabs";
  *
  *  - Tab to tab is a swap in place. An iPhone's tab bar changes the
  *    content without travel; the well's slide along the bar is the
- *    answer to the tap. The sideways push told a thumb the tabs could be
- *    swiped, and they cannot, and with each tab drawn whole in its first
- *    frame (#433) it was the only wait left. This breaks #242's "moving
- *    along the tab bar goes the way the tabs go".
+ *    answer to the tap. With each tab drawn whole in its first frame
+ *    (#433) the push was the only wait left, and it promised a thumb a
+ *    swipe the tabs did not have. They have one since #457
+ *    (components/TabSwipe.tsx): there the page moves because a finger
+ *    is moving it, and a tap on the bar still swaps in place. This
+ *    breaks #242's "moving along the tab bar goes the way the tabs go".
  *  - A back the phone made (the edge swipe, a hardware key, the
  *    browser's buttons) has already been drawn by the system, so the
  *    screen it lands on is simply there. A back the chevron made slides
@@ -105,6 +110,17 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
   const move = historyMove();
   const still = cold || direction === "swap" || (move !== null && !move.own);
 
+  /*
+   * The swipe between the tabs (components/TabSwipe.tsx, #457). The
+   * element a finger pulls is this page's wrapper; the one that hears
+   * the finger is the element around it, which stays put when the page
+   * has gone from under the thumb. A tab a swipe brought in arrived
+   * under the finger, and tab to tab is a swap for everyone (#443), so
+   * it is simply there: nothing here needs to know how it came.
+   */
+  const page = useRef<HTMLDivElement>(null);
+  const swipe = useTabSwipe(path, page);
+
   /* overflow-x: clip (B10): the 24px the push starts from widened the
      page to 414px for a frame, and a phone can zoom out to show it.
      `clip`, not `hidden`, so the wrapper never becomes a scroll
@@ -120,10 +136,18 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
      unkeyed fragment that is the only child. */
   return (
     <div
-      key={path}
-      className={`overflow-x-clip ${still ? "" : direction === "right" ? "push-right" : "push-left"}`}
+      className={`swipe-root ${swipeTabIndex(path) < 0 ? "" : "tab-swipe"}`}
+      {...swipe.handlers}
     >
-      <Fragment key="page">{children}</Fragment>
+      <div
+        key={path}
+        ref={page}
+        {...{ [PAGE_ATTR]: path }}
+        className={`overflow-x-clip ${still ? "" : direction === "right" ? "push-right" : "push-left"}`}
+      >
+        <Fragment key="page">{children}</Fragment>
+      </div>
+      {swipe.pane}
     </div>
   );
 }

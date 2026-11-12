@@ -182,7 +182,7 @@ function Taken({ attempt, next }: { attempt: OAuthAttempt | null; next: string |
           : "Sign in with it."}
       </p>
       {/* Google's own button, as on the auth screens (D49): it is the
-          screen's one tap, so there is no terracotta here. Held, never
+          screen's one tap, so there is no filled tap here. Held, never
           greyed, while the browser leaves (#307). */}
       <button
         type="button"

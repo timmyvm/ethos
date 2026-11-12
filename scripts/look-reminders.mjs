@@ -14,7 +14,7 @@
  *
  * Shots: LOOK_OUT (default docs/look/comeback-reminders/), as
  * <tag>-<scene>-<theme>.png at 390x844; LOOK_SIZES as in look-glance.mjs.
- * On the glance it asserts no scroll, exactly one terracotta fill, and the
+ * On the glance it asserts no scroll, exactly one filled tap (`.tap`), and the
  * ask's own words within GLANCE_WORDS_ASK (16).
  */
 import { createRequire } from "node:module";
@@ -150,7 +150,7 @@ const MEASURE = () => {
     askWords: ask ? words(seen) : 0,
     scrollH: document.scrollingElement.scrollHeight,
     innerH: innerHeight,
-    terracotta: [...document.querySelectorAll('main [class*="bg-terracotta-500"]')].filter(vis).length,
+    taps: [...document.querySelectorAll("main :is(.tap, .tap-tonal)")].filter(vis).length,
   };
 };
 
@@ -231,10 +231,10 @@ for (const [name, s] of Object.entries(SCENES)) {
       }
       const m = await page.evaluate(MEASURE);
       await page.screenshot({ path: file });
-      console.log(`${name} ${size.name}: ${m.ask ? `"${m.ask}" (${m.askWords} words)` : "no ask"}, ${m.terracotta} terracotta, ${m.scrollH > m.innerH + 1 ? `SCROLLS ${m.scrollH}/${m.innerH}` : "no scroll"}`);
+      console.log(`${name} ${size.name}: ${m.ask ? `"${m.ask}" (${m.askWords} words)` : "no ask"}, ${m.taps} filled tap(s), ${m.scrollH > m.innerH + 1 ? `SCROLLS ${m.scrollH}/${m.innerH}` : "no scroll"}`);
       if (TAG !== "before") {
         if (m.scrollH > m.innerH + 1) fail(`${name} ${size.name}: the glance scrolls`);
-        if (m.terracotta !== 1) fail(`${name} ${size.name}: ${m.terracotta} terracotta fills`);
+        if (m.taps !== 1) fail(`${name} ${size.name}: ${m.taps} filled taps`);
         if (m.askWords > 16) fail(`${name} ${size.name}: the ask says ${m.askWords} words`);
         const want = {
           "glance-armed": false,

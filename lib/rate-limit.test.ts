@@ -125,3 +125,51 @@ describe("refundRateLimit", () => {
     vi.doUnmock("./db");
   });
 });
+
+/* Security audit, 11 Nov, second pass. */
+describe("the ceiling every guest shares", () => {
+  it("is far above a real day and still a number", async () => {
+    const { LIMITS } = await import("./rate-limit");
+    // The busiest day so far: 6 guest recordings, 37 in all.
+    expect(LIMITS.guestall.day).toBeGreaterThanOrEqual(100);
+    expect(LIMITS.guestall.day).toBeLessThanOrEqual(1000);
+    expect(LIMITS.guestall.hour).toBeLessThan(LIMITS.guestall.day);
+    // One address's guests can never use the whole ceiling by themselves.
+    expect(LIMITS.guestip.day).toBeLessThan(LIMITS.guestall.day);
+  });
+
+  it("says how to go on, in one line, with no dash", async () => {
+    const { GUEST_FULL_COPY } = await import("./rate-limit");
+    expect(GUEST_FULL_COPY).toBe("Recording without an account is full for now. Create an account to keep going.");
+    expect(GUEST_FULL_COPY).not.toMatch(/[\u2014\u2013]/);
+  });
+});
+
+/* Second pass: an IPv6 caller owns a whole /64, so that is the key. */
+describe("ipv6Block", () => {
+  it("keys every address in one /64 the same", async () => {
+    const { ipv6Block } = await import("./rate-limit");
+    const a = ipv6Block("2001:db8:abcd:12:1111:2222:3333:4444");
+    expect(a).toBe("2001:db8:abcd:12::/64");
+    expect(ipv6Block("2001:0db8:abcd:0012:ffff:ffff:ffff:ffff")).toBe(a);
+    expect(ipv6Block("2001:db8:abcd:12::1")).toBe(a);
+    expect(ipv6Block("[2001:db8:abcd:12::1]")).toBe(a);
+    expect(ipv6Block("2001:db8:abcd:13::1")).not.toBe(a);
+    expect(ipv6Block("::1")).toBe("0:0:0:0::/64");
+  });
+
+  it("reads an IPv4 address written as IPv6 as that address, and leaves IPv4 alone", async () => {
+    const { ipv6Block } = await import("./rate-limit");
+    expect(ipv6Block("::ffff:203.0.113.9")).toBe("203.0.113.9");
+    expect(ipv6Block("203.0.113.9")).toBeNull();
+    expect(ipv6Block("unknown")).toBeNull();
+    expect(ipv6Block("1:2:3")).toBeNull();
+    expect(ipv6Block("gggg::1")).toBeNull();
+    expect(ipv6Block("1::2::3")).toBeNull();
+  });
+
+  it("is what clientIp answers for an IPv6 caller", () => {
+    expect(clientIp(new Headers({ "x-forwarded-for": "2001:db8:abcd:12:1:2:3:4, 10.0.0.1" }))).toBe("2001:db8:abcd:12::/64");
+    expect(clientIp(new Headers({ "x-forwarded-for": "203.0.113.7, 10.0.0.1" }))).toBe("203.0.113.7");
+  });
+});

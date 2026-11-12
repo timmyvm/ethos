@@ -228,7 +228,7 @@ function tick(secret = GH, userAgent = "github-actions push-cron") {
 /** A subscriber whose chosen hour is the current UTC hour (offset 0). */
 function due(i: number): Sub {
   return {
-    endpoint: `https://push.test/${String(i).padStart(5, "0")}`,
+    endpoint: `https://web.push.apple.com/${String(i).padStart(5, "0")}`,
     user_id: `u${i}`,
     p256dh: "k",
     auth: "a",
@@ -473,8 +473,7 @@ describe("the reminder cron, #430 review", () => {
   it("a push lives until quiet hours begin, at normal urgency, under one topic", async () => {
     subs = [six("Australia/Melbourne")];
     expect((await at("2026-11-09T07:01:00Z")).sent).toBe(1); // 18:01 AEDT
-    // And a push service that never answers is let go after ten seconds (#457).
-    expect(sendOptions).toEqual([{ TTL: (22 * 60 - (18 * 60 + 1)) * 60, urgency: "normal", topic: "ethos-daily", timeout: 10000 }]);
+    expect(sendOptions).toEqual([{ TTL: (22 * 60 - (18 * 60 + 1)) * 60, urgency: "normal", topic: "ethos-daily", timeout: 8000 }]);
   });
 
   it("a late push lives at least a minute", async () => {

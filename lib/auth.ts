@@ -288,7 +288,7 @@ function emailTimedOut(message: string): boolean {
  * after the fact. One rule: length. Composition rules ("one symbol, one
  * digit") measurably push people toward `Password1!` and we'd rather
  * have a long simple one. And not one of the few everyone tries first
- * (#455, lib/password.ts), which the field has already said as it was
+ * (#462, lib/password.ts), which the field has already said as it was
  * typed; the email is passed where there is one, so it is not that either.
  */
 export function passwordProblem(password: string, email = ""): string | null {
@@ -621,9 +621,10 @@ export interface OAuthAttempt {
  */
 export function safeReturnPath(path: unknown): string | null {
   if (typeof path !== "string") return null;
-  if (!path.startsWith("/") || path.startsWith("//") || path.startsWith("/\\")) {
-    return null;
-  }
+  // A backslash or a control character anywhere: a browser drops a tab
+  // and reads "/\t/host" as another site.
+  if (/[\\\u0000-\u001f\u007f]/.test(path)) return null;
+  if (!path.startsWith("/") || path.startsWith("//")) return null;
   if (path.startsWith("/auth/")) return null;
   return path;
 }

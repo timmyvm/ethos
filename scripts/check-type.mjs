@@ -13,8 +13,8 @@
  *      to it than 3px, and no page scrolls sideways;
  *   3. the Log, at five widths: its heads stand apart, a recording's
  *      name takes one line at 390 and two at most below it;
- *   4. a recording's three tiles at 320: every label and note inside its
- *      tile, the three numbers on one line;
+ *   4. a recording's take line at 320 (the three tiles' place since
+ *      #458): one line of words, on the column, at the floor or over;
  *   5. no heavy line of letters is tracked past -0.015em (#454): Outfit
  *      at 700 and over is drawn close, and past that its pairs touch
  *      ("st", "ct", "with"). Numbers are not letters and keep their own
@@ -235,37 +235,34 @@ for (const width of [320, 360, 375, 390, 430]) {
   await context.close();
 }
 
-// ---- 4. a recording's three tiles at 320 --------------------------------------------
+// ---- 4. a recording's take line at 320 -----------------------------------------------
+/* Length, pace and held pauses were three tiles here, whose labels this
+   section kept inside their tiles at the 11px floor (#450). They are one
+   line of words since #458 ("is there another way to communicate it"),
+   so what is held now is that line: no tile left, every word of it on
+   the page's column, at the floor or over it. */
 {
   const { context, page } = await open(320);
   await page.goto(`${BASE}/rep/rep-22`);
   await settle(page);
-  const tiles = await page.evaluate(() => {
-    const label = [...document.querySelectorAll("main .label-micro")].find((l) => l.textContent.trim() === "Held pauses");
-    const card = label?.closest(".card");
-    if (!card) return null;
-    const c = card.getBoundingClientRect();
-    const out = [];
-    let numbers = [];
-    for (const tile of card.children) {
-      const t = tile.getBoundingClientRect();
-      const walker = document.createTreeWalker(tile, NodeFilter.SHOW_TEXT);
-      let worst = 0;
-      while (walker.nextNode()) {
-        if (!walker.currentNode.nodeValue?.trim()) continue;
-        const r = document.createRange();
-        r.selectNodeContents(walker.currentNode);
-        const ink = r.getBoundingClientRect();
-        worst = Math.max(worst, ink.right - t.right, t.left - ink.left);
-      }
-      out.push(Math.round(worst * 10) / 10);
-      const num = tile.querySelector(".tabular-nums");
-      if (num) numbers.push(Math.round(num.getBoundingClientRect().top));
-    }
-    return { past: out, numbers, card: Math.round(c.width) };
+  const line = await page.evaluate(() => {
+    const tiles = [...document.querySelectorAll("main .label-micro")].some((l) => l.textContent.trim() === "Held pauses");
+    const el = document.querySelector("main [data-take-line]");
+    if (!el) return { tiles, found: false };
+    const column = el.parentElement.getBoundingClientRect();
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const ink = range.getBoundingClientRect();
+    return {
+      tiles,
+      found: true,
+      text: el.textContent.trim(),
+      size: parseFloat(getComputedStyle(el).fontSize),
+      past: Math.round(Math.max(ink.right - column.right, column.left - ink.left) * 10) / 10,
+    };
   });
-  ok("a recording at 320: every tile's label and note stay inside the tile", !!tiles && tiles.past.every((p) => p <= 0), JSON.stringify(tiles?.past));
-  ok("and its three numbers stand on one line", !!tiles && tiles.numbers.length === 3 && new Set(tiles.numbers).size === 1, JSON.stringify(tiles?.numbers));
+  ok("a recording at 320: the three tiles are gone, and one line says them", !line.tiles && line.found && /\d+ seconds at \d+ words a minute/.test(line.text ?? ""), JSON.stringify(line.text ?? null));
+  ok("and it stays on the page's column, at 11px or over", line.found && line.past <= 0 && line.size >= 11, `${line.size}px, ${line.past} past the column`);
   await context.close();
 }
 

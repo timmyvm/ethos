@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   IconLessons,
   IconLog,
@@ -19,6 +19,7 @@ import {
 } from "@/lib/spring";
 import { historyMove } from "@/lib/back";
 import { forgetTab, leaveTab, tabPlace } from "@/lib/tab-places";
+import { arrivedBySwipe, onSwipeHeading, swipeHeading } from "@/lib/tab-swipe";
 import { STORED_RECORDING, TAB_HREFS, tabIndexFor } from "@/lib/tabs";
 
 /**
@@ -34,7 +35,7 @@ import { STORED_RECORDING, TAB_HREFS, tabIndexFor } from "@/lib/tabs";
  *
  * Instrument grammar (#201): the bar sits on the raised paper behind a
  * hairline; the active tab is ink at 800, inactive tabs faint — no
- * accent colour, no pill, no indicator bar. The one terracotta on a
+ * accent colour, no pill, no indicator bar. The one filled thing on a
  * screen is its tap, and a tab you are already on is not one.
  */
 /*
@@ -131,6 +132,9 @@ const DETAIL = ["/lessons"];
 
 export function Nav() {
   const path = usePathname();
+  /* The tab a let-go swipe is on its way to, lit from the lift
+     (lib/tab-swipe.ts). Null on the server and at rest. */
+  const heading = useSyncExternalStore(onSwipeHeading, swipeHeading, () => null);
   const router = useRouter();
   const glass = useRef<HTMLDivElement>(null);
   const well = useRef<HTMLSpanElement>(null);
@@ -227,8 +231,11 @@ export function Nav() {
     const tab = tabIndexFor(path);
     const was = shownTab.current;
     shownTab.current = tab;
-    // First paint, the same tab, or the thumb's own slide: nothing to travel.
+    // First paint, the same tab, or the thumb's own slide: nothing to
+    // travel. Nor after a swipe between the tabs, which carried the well
+    // here under the finger (components/TabSwipe.tsx).
     if (was === null || was < 0 || tab < 0 || was === tab || lens.current) return;
+    if (arrivedBySwipe(path)) return;
     const w = parseFloat(getComputedStyle(el).width) || 0;
     const moving = el
       .getAnimations()
@@ -353,7 +360,7 @@ export function Nav() {
   return (
     <nav
       aria-label="Sections"
-      className={`nav-dock fixed bottom-0 left-1/2 z-20 w-full max-w-[430px] -translate-x-1/2 px-5 ${
+      className={`nav-dock fixed bottom-0 left-1/2 z-40 w-full max-w-[430px] -translate-x-1/2 px-5 ${
         returned ? "nav-return" : ""
       }`}
     >
@@ -383,7 +390,9 @@ export function Nav() {
           />
         )}
         {TABS.map((t, i) => {
-          const active = i === current;
+          // Lit from the moment a swipe is let go toward it (#457); the
+          // page it names is still the one the app is on.
+          const active = i === (heading ?? current);
           return (
             <Link
               key={t.href}
@@ -396,7 +405,7 @@ export function Nav() {
                 e.preventDefault();
                 toTop();
               }}
-              aria-current={active ? "page" : undefined}
+              aria-current={i === current ? "page" : undefined}
               /* Its number opens it from a keyboard (#438, components/CommandMenu.tsx). */
               aria-keyshortcuts={String(i + 1)}
               draggable={false}

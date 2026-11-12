@@ -534,8 +534,8 @@ export default function Home() {
       {/*
        * The roulette runs INSIDE the card rather than beside it (#393's
        * fix round): the same colour, the same object, the topic spinning
-       * in the topic's place and the pill taking it, so the one
-       * terracotta tap is still the card's. The way back sits under it.
+       * in the topic's place and the pill taking it, so the one tap is
+       * still the card's. The way back sits under it.
        */}
       <HomeHero
         loading={loading}
@@ -678,7 +678,7 @@ export default function Home() {
       {/*
        * The standing soft-wall surface (DECISIONS #137): the honest
        * statement of risk for everyone who declined the loud ask, kept
-       * quiet so the card's one terracotta tap stays uncontested. A
+       * quiet so the card's one tap stays uncontested. A
        * sentence and a text link (today-17).
        */}
       {anon === true && lifetime.length > 0 && (

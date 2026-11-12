@@ -50,7 +50,7 @@ interface Setup {
  * The reminder ask on the glance (DECISIONS #430): Demos's cue for next
  * time gives its slot to it on the person's first scored take of the
  * day, when this phone has no reminder the server holds
- * (lib/reminder-ask.ts). Grey, never terracotta: the screen's one tap
+ * (lib/reminder-ask.ts). Grey, never the tap's fill: the screen's one tap
  * stays the way on.
  *
  * `words` is what it puts on screen, so the glance's budget can name it

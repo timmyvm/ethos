@@ -39,6 +39,8 @@ import { isPremium } from "@/lib/db";
 import { computeMetrics } from "@/lib/metrics";
 import { localDate } from "@/lib/metering";
 import {
+  GUEST_CEILING,
+  GUEST_FULL_COPY,
   analyzeTier,
   clientIp,
   consumeRateLimit,
@@ -65,37 +67,63 @@ interface RoundsPayload {
 }
 
 /**
- * What a session may carry back to the model (#457). Every string the
- * phone sends here goes into Opus's prompt, up to three times a call,
- * so each is capped to what the take and its answers can hold: a
- * 60-second take and 45-second answers run well under these at any
- * pace. Over a cap, or more rounds than the boss asks, is refused, not
- * cut: a cut take would be judged on words that were never said.
+ * The context is the phone's copy of the session, and it goes into the
+ * verdict's prompt, so nothing in it is trusted for size or shape
+ * (security audit, 11 Nov): a take is a minute of speech and an answer
+ * 45 seconds, so each string is cut to a length real speech cannot
+ * reach, the rounds to the game's own count, and the numbers to finite
+ * ones. Without this one request could carry a book into three Opus
+ * calls.
  */
-const CONTEXT_CAPS = { take: 4000, answer: 3000, question: 400, quoted: 400, claim: 400 } as const;
+const CONTEXT_MAX_CHARS = 20_000;
+const TAKE_MAX_CHARS = 4_000;
+const ANSWER_MAX_CHARS = 3_000;
+const QUESTION_MAX_CHARS = 400;
+const QUOTED_MAX_CHARS = 200;
 
-function parseContext(raw: unknown): RoundsPayload | "too-big" | null {
-  if (typeof raw !== "string") return null;
-  if (raw.length > 20000) return "too-big";
-  let ctx: RoundsPayload;
+const text = (v: unknown, max: number): string | undefined =>
+  typeof v === "string" ? v.replace(/\u0000/g, "").slice(0, max) : undefined;
+const finite = (v: unknown): number =>
+  typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.min(v, 1000)) : 0;
+
+function parseContext(raw: unknown): RoundsPayload | null {
+  if (typeof raw !== "string" || raw.length > CONTEXT_MAX_CHARS) return null;
+  let j: unknown;
   try {
-    ctx = JSON.parse(raw) as RoundsPayload;
+    j = JSON.parse(raw);
   } catch {
     return null;
   }
-  if (!ctx || typeof ctx !== "object") return null;
-  const long = (v: unknown, max: number) => v !== undefined && (typeof v !== "string" || v.length > max);
-  if (long(ctx.take, CONTEXT_CAPS.take) || long(ctx.claim, CONTEXT_CAPS.claim)) return "too-big";
-  if (long(ctx.pendingQuestion, CONTEXT_CAPS.question) || long(ctx.pendingQuoted, CONTEXT_CAPS.quoted)) return "too-big";
-  if (ctx.rounds !== undefined) {
-    if (!Array.isArray(ctx.rounds) || ctx.rounds.length > HOSTILE_ROUNDS) return "too-big";
-    for (const r of ctx.rounds) {
-      if (!r || typeof r !== "object" || typeof r.question !== "string" || typeof r.answer !== "string") return "too-big";
-      if (long(r.question, CONTEXT_CAPS.question) || long(r.answer, CONTEXT_CAPS.answer) || long(r.quoted, CONTEXT_CAPS.quoted)) return "too-big";
-    }
-  }
-  if (ctx.roundNumbers !== undefined && (!Array.isArray(ctx.roundNumbers) || ctx.roundNumbers.length > HOSTILE_ROUNDS)) return "too-big";
-  return ctx;
+  if (!j || typeof j !== "object" || Array.isArray(j)) return null;
+  const o = j as Record<string, unknown>;
+  const rounds = Array.isArray(o.rounds)
+    ? o.rounds.slice(0, HOSTILE_ROUNDS).map((r) => {
+        const row = (r && typeof r === "object" ? r : {}) as Record<string, unknown>;
+        return {
+          question: text(row.question, QUESTION_MAX_CHARS) ?? "",
+          answer: text(row.answer, ANSWER_MAX_CHARS) ?? "",
+          quoted: text(row.quoted, QUOTED_MAX_CHARS),
+        };
+      })
+    : undefined;
+  const roundNumbers = Array.isArray(o.roundNumbers)
+    ? o.roundNumbers.slice(0, HOSTILE_ROUNDS).map((n) => {
+        const row = (n && typeof n === "object" ? n : {}) as Record<string, unknown>;
+        return {
+          fillersPerMin: finite(row.fillersPerMin),
+          midSentencePauses: finite(row.midSentencePauses),
+        };
+      })
+    : undefined;
+  return {
+    claim: text(o.claim, QUESTION_MAX_CHARS),
+    take: text(o.take, TAKE_MAX_CHARS),
+    rounds,
+    pendingQuestion: text(o.pendingQuestion, QUESTION_MAX_CHARS),
+    pendingQuoted: text(o.pendingQuoted, QUOTED_MAX_CHARS),
+    roundNumbers,
+    repId: text(o.repId, 64),
+  };
 }
 
 /**
@@ -111,6 +139,8 @@ interface Spend {
   subject: string | null;
   /** A guest's address-wide slot (#416), as /api/analyze takes. */
   guestIp?: string | null;
+  /** A guest's or visitor's slot under the shared ceiling (`guestall`). */
+  ceiling?: string | null;
   keep: boolean;
 }
 
@@ -121,6 +151,7 @@ export async function POST(req: NextRequest) {
   } finally {
     if (spend.subject && !spend.keep) await refundRateLimit(spend.subject);
     if (spend.guestIp && !spend.keep) await refundRateLimit(spend.guestIp);
+    if (spend.ceiling && !spend.keep) await refundRateLimit(spend.ceiling);
   }
 }
 
@@ -165,29 +196,38 @@ async function handle(req: NextRequest, spend: Spend) {
     spend.guestIp = guestIp;
   }
 
+  /* And every guest and visitor shares one ceiling, as on /api/analyze
+     (11 Nov): the count a script with many addresses cannot get round. */
+  if (!auth || auth.anonymous) {
+    const all = await consumeRateLimit(GUEST_CEILING, "guestall");
+    if (!all.allowed) {
+      return NextResponse.json(
+        { error: GUEST_FULL_COPY, guestFull: true, retryAfterS: all.retryAfterS },
+        { status: 429, headers: { "Retry-After": String(all.retryAfterS) } }
+      );
+    }
+    spend.ceiling = GUEST_CEILING;
+  }
+
   const phase = form.get("phase");
   const prompt = promptById((form.get("promptId") as string) ?? "");
   if (!prompt) {
     return NextResponse.json({ error: "Unknown prompt." }, { status: 400 });
   }
-  const parsed = parseContext(form.get("context"));
-  if (parsed === "too-big") {
-    return NextResponse.json({ error: "That session is too long to read." }, { status: 413 });
-  }
-  const ctx = parsed ?? {};
+  const ctx = parseContext(form.get("context")) ?? {};
   const isTake = !ctx.take;
 
   /*
    * Free gets one interrogation a week, premium runs them at will: the
-   * cold-topic pattern (#36) applied to this boss. Checked on every
-   * call (#457), not only the take: the take was the one place it was
-   * asked, and whether a call is the take was the phone's word (a
-   * `take` in its context), so a free account could skip it. The week's
-   * banked take is the server's own record: a take is refused once one
-   * exists this week; a round or a verdict is let through while this
-   * week's one take is under an hour old (a session mid-flight is never
-   * cut off) or still on its way to being banked. Only when there's a
-   * database to ask: degrade open, like everything else.
+   * cold-topic pattern (#36) applied to this boss. Checked on every call
+   * (#464), not only the take: whether a call was the take was the
+   * phone's word (a `take` in its context), so a free account could skip
+   * the check by saying it had one. A take is refused once the week holds
+   * one; a round or a verdict is let through while this week's one take
+   * is under an hour old (a session mid-flight is never cut off) or still
+   * on its way to being banked. A stopgap: a caller that never banks is
+   * still never locked, which a week held on the server closes (STATE).
+   * Only when there's a database to ask: degrade open, like everything else.
    */
   if (await weekLocked(auth, isTake, numberOrNull(form.get("tzOffset")))) {
     return NextResponse.json(
@@ -368,10 +408,10 @@ function weekStartFor(now: Date, tzOffset: number | null): Date {
   return new Date(midnight - sinceMonday * 86_400_000 + (now.getTime() - wall.getTime()));
 }
 
-/** How long a round or a verdict may follow the week's take (#457). */
+/** How long a round or a verdict may follow the week's take (#464). */
 const SESSION_WINDOW_MS = 60 * 60 * 1000;
 
-/** Whether this call is past a free account's one Hostile session a week (#457). */
+/** Whether this call is past a free account's one Hostile session a week (#464). */
 async function weekLocked(
   auth: { id: string } | null,
   isTake: boolean,

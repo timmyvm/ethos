@@ -38,7 +38,7 @@ export type TileRecordings = "loading" | "failed" | { reps: RepRow[]; spine: Rep
  * the one line that must never be there.
  *
  * The bento's flat surface step, not a card: the practice card above it
- * keeps the screen's one lift and its one terracotta tap. One fixed
+ * keeps the screen's one lift and its one tap. One fixed
  * height, 208px, in every state, skeleton included, so nothing below it
  * moves when the reads land (DESIGN rule 8). It mounts only on a device
  * holding the tester hint (lib/tester-client.ts useTestPresence), so

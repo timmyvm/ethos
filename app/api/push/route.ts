@@ -18,8 +18,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromAuthHeader, supabaseAdmin } from "@/lib/db";
-import { MAX_SUBSCRIPTIONS, pushEndpointAllowed, pushKeyOk } from "@/lib/push-endpoint";
 import { localClock, localDayKey, tzOffsetAt, validZone } from "@/lib/push";
+import { MAX_SUBSCRIPTIONS, pushEndpointOk, pushKeysOk } from "@/lib/push-endpoint";
 
 export const runtime = "nodejs";
 
@@ -64,25 +64,33 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
-  // A push service's address and its keys, or nothing is stored (#457).
-  if (!pushEndpointAllowed(endpoint) || !pushKeyOk(p256dh, 200) || !pushKeyOk(authKey, 100)) {
+  // Only a browser maker's push service, and keys of a subscription's
+  // shape: the server sends to this address later (lib/push-endpoint.ts).
+  if (!pushEndpointOk(endpoint) || !pushKeysOk(p256dh, authKey)) {
     return NextResponse.json(
-      { error: "That isn't a browser's push subscription." },
+      { error: "That subscription can't be used here." },
       { status: 400 }
     );
   }
-  // A handful of browsers an account; a new one past that is refused,
-  // and the ones already there keep ringing (#457).
-  const { count: held } = await db
+  // A phone that changes accounts keeps its endpoint, so a row another
+  // account holds moves with the phone; only a new row counts against
+  // the account's room.
+  const { data: held } = await db
     .from("push_subscriptions")
-    .select("endpoint", { count: "exact", head: true })
-    .eq("user_id", auth.id)
-    .neq("endpoint", endpoint);
-  if ((held ?? 0) >= MAX_SUBSCRIPTIONS) {
-    return NextResponse.json(
-      { error: "Reminders are on in too many browsers. Turn one off first." },
-      { status: 429 }
-    );
+    .select("user_id")
+    .eq("endpoint", endpoint)
+    .maybeSingle();
+  if ((held as { user_id?: string | null } | null)?.user_id !== auth.id) {
+    const { count } = await db
+      .from("push_subscriptions")
+      .select("endpoint", { count: "exact", head: true })
+      .eq("user_id", auth.id);
+    if ((count ?? 0) >= MAX_SUBSCRIPTIONS) {
+      return NextResponse.json(
+        { error: "This account has reminders on too many devices. Turn one off first." },
+        { status: 409 }
+      );
+    }
   }
 
   const hour = body?.reminderHour;

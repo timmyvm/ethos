@@ -519,7 +519,7 @@ function Walk() {
         }
         /*
          * Next waits for an answer on EVERY question (#288, the
-         * reference's grey Continue): the button lighting terracotta is
+         * reference's grey Continue): the button lighting up is
          * the reward for answering, and a button that is always lit
          * rewards nothing. Skip, in the top row beside the bar (M20), is
          * the way past without one, so nothing became mandatory, and the
@@ -627,7 +627,7 @@ function Walk() {
  * tap on the thing being asked for, a neutral second door, and a quiet
  * decline that continues. The tap is Google's own button since D49
  * (its fill, edge, words and four-colour G, as Google's branding asks),
- * so this is the one screen with no terracotta tap.
+ * so this is the one screen with no main tap.
  *
  * Google first because it is one tap and the identity is already
  * wired: `signInWithGoogle("signup")` links the provider to the
@@ -689,7 +689,7 @@ function AccountStep({
       /* D49: Google's own button, as its branding asks (white with a
          #747775 edge and #1f1f1f words in light, #131314 with #8e918f
          and #e3e3e3 in dark, the unmodified G), a pill like every tap.
-         So this screen has no terracotta tap, by design: the one thing
+         So this screen has no main tap, by design: the one thing
          to press is a brand's. */
       action={{
         label: pending ? "Opening Google…" : "Continue with Google",
@@ -898,8 +898,8 @@ const TOP_DOOR = "text-link inline-flex min-h-11 items-center text-caption text-
 /**
  * An answer, chosen (D47): drawn in ink, a 2px ink edge with its lip in
  * ink, raised off the surface, ink words and an ink check at the right
- * (Row). Terracotta means tap, so on a question screen it is only ever
- * Next: two terracotta picks over a terracotta Next made three things
+ * (Row). The tap's fill means tap, so on a question screen it is only
+ * ever Next: two filled picks over a filled Next made three things
  * that looked pressable (Duolingo's 04-question-answered picks in blue
  * while its tap is green). Never an inverted block. One constant, worn
  * by a chosen row and by the name field once a name is in it, so the

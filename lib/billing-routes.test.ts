@@ -584,7 +584,7 @@ describe("POST /api/redeem", () => {
     // A brand-new anonymous session, its own limit untouched.
     const res = await call(redeem, { token: "tok_anon", body: { code: "ETHOS-INVITE" }, headers: from });
     expect(res.status).toBe(429);
-    expect(consumeRateLimit).toHaveBeenCalledWith("redeem:ip:203.0.113.9", "user");
+    expect(consumeRateLimit).toHaveBeenCalledWith("redeem:ip:203.0.113.9", "user", { failClosed: true });
     expect(db.row("profiles", ANON)).toBeUndefined();
 
     // Another address, the same code: the per-account limit still applies.
@@ -595,7 +595,7 @@ describe("POST /api/redeem", () => {
       headers: { "x-forwarded-for": "198.51.100.7" },
     });
     expect(ok.status).toBe(200);
-    expect(consumeRateLimit).toHaveBeenCalledWith(`redeem:u:${ANON}`, "anon");
+    expect(consumeRateLimit).toHaveBeenCalledWith(`redeem:u:${ANON}`, "anon", { failClosed: true });
   });
 
   it("writes a code's premium as 'code', which a plan ending never switches off", async () => {

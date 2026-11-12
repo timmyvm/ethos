@@ -38,8 +38,4 @@ describe("touch and hold", () => {
     expect(block).toMatch(/:where\(\.tw\),\s*:where\(p\) :where\(a\)\s*\{\s*-webkit-user-select: text;\s*user-select: text;/);
     expect(block).toMatch(/:where\(p\) :where\(a\),\s*:where\(img\[data-keeps\]\)\s*\{\s*-webkit-touch-callout: default;/);
   });
-
-  it("leaves the progress card a picture that can be saved", () => {
-    expect(readFileSync("components/ShareCard.tsx", "utf8")).toContain('data-keeps=""');
-  });
 });

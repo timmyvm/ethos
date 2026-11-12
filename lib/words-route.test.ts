@@ -112,7 +112,13 @@ describe("POST /api/words", () => {
       note: "",
       source: "model",
     });
-    expect(h.consumed).toEqual([`words:words:u:${GUEST}`]);
+    // A guest's word counts for the account and for the address (11 Nov).
+    expect(h.consumed).toEqual([
+      `words:words:u:${GUEST}`,
+      "words:words:guest:ip:unknown",
+      // And for every guest there is, together (the second pass).
+      "guestwords:words:guest:all",
+    ]);
   });
 
   it("asks Claude Haiku 5.5 at low effort, the prompt cached, the word marked where it stands", async () => {
@@ -213,7 +219,7 @@ describe("POST /api/words", () => {
     expect((await res.json()).source).toBe("model");
     expect(h.create).toHaveBeenCalledTimes(1);
     expect(h.create.mock.calls[0][0].messages[0].content).toContain("I switch ⟦things⟧ up.");
-    expect(h.consumed).toHaveLength(1);
+    expect(h.consumed).toHaveLength(3);
   });
 
   it("remembers an answer by word, place and sentence, so the second tap costs nothing", async () => {
@@ -229,7 +235,7 @@ describe("POST /api/words", () => {
       source: "memory",
     });
     expect(h.create).toHaveBeenCalledTimes(1);
-    expect(h.consumed).toHaveLength(1);
+    expect(h.consumed).toHaveLength(3);
     // Another sentence is another question.
     answers(swap("compound", ["mixture"]));
     await post({ word: "compound", sentence: "A compound of two metals.", at: 2 });

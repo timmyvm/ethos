@@ -81,8 +81,8 @@ export type LessonAction = {
   label: string;
   /**
    * A brand button in the tap's place (the account ask's Google button,
-   * D49): its own classes instead of the terracotta ACTION_CLASS, and a
-   * mark before the label. The screen then has no terracotta tap.
+   * D49): its own classes instead of ACTION_CLASS, and a
+   * mark before the label. The screen then has no main tap.
    */
   brand?: { className: string; mark: ReactNode };
 } & (
@@ -407,7 +407,7 @@ export function LessonScreen({
    * six answers from growing into a paragraph.
    */
   speech?: "above" | "beside";
-  /** The one terracotta tap (brand.md: exactly one per screen). */
+  /** The one tap (brand.md: exactly one per screen). */
   action: LessonAction;
   /** Bottom, small, muted. */
   fineprint?: string;

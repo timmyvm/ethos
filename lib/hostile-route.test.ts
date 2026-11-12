@@ -21,7 +21,7 @@ vi.mock("@/lib/db", () => {
     eq: () => chain,
     gte: (_col: string, since: string) => {
       week.since = since;
-      // The count, awaited; or the week's latest take, ordered (#457).
+      // The count, awaited; or the week's latest take, ordered (#464).
       return Object.assign(Promise.resolve({ count: week.count }), {
         order: () => ({
           limit: async () => ({ data: week.latest ? [{ created_at: week.latest }] : [] }),
@@ -130,9 +130,59 @@ describe("Hostile's allowance", () => {
     expect(vi.mocked(consumeRateLimit).mock.calls.some(([s, t]) => /^guest:ip:/.test(s) && t === "guestip")).toBe(true);
 
     vi.mocked(getUserFromAuthHeader).mockResolvedValue(null);
+    vi.mocked(consumeRateLimit).mockClear();
     await answer();
-    expect(vi.mocked(consumeRateLimit).mock.lastCall?.[0]).toMatch(/^hostile:ip:/);
-    expect(vi.mocked(consumeRateLimit).mock.lastCall?.[1]).toBe("anon");
+    const visitor = vi.mocked(consumeRateLimit).mock.calls.find(([s]) => /^hostile:ip:/.test(s));
+    expect(visitor?.[1]).toBe("anon");
+  });
+
+  /* Security audit, 11 Nov: one ceiling for every guest and visitor, the
+     count a script with many addresses cannot get round. */
+  it("counts a guest and a visitor against the ceiling they all share, and never an account", async () => {
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "anon-1", anonymous: true });
+    await answer();
+    expect(consumeRateLimit).toHaveBeenCalledWith("guest:all", "guestall");
+
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue(null);
+    vi.mocked(consumeRateLimit).mockClear();
+    await answer();
+    expect(consumeRateLimit).toHaveBeenCalledWith("guest:all", "guestall");
+
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-1", anonymous: false });
+    vi.mocked(consumeRateLimit).mockClear();
+    await answer();
+    expect(vi.mocked(consumeRateLimit).mock.calls.some(([s]) => s === "guest:all")).toBe(false);
+  });
+
+  it("turns a guest away at the ceiling before anything paid runs, and gives every slot back", async () => {
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "anon-1", anonymous: true });
+    vi.mocked(consumeRateLimit).mockImplementation(async (subject: string) =>
+      subject === "guest:all"
+        ? { allowed: false, window: "hour", retryAfterS: 900 }
+        : { allowed: true, window: null, retryAfterS: 0 }
+    );
+    vi.mocked(transcribe).mockClear();
+    const res = await answer();
+    expect(res.status).toBe(429);
+    const body = await res.json();
+    expect(body.guestFull).toBe(true);
+    expect(body.error).toBe("Recording without an account is full for now. Create an account to keep going.");
+    expect(transcribe).not.toHaveBeenCalled();
+    expect(refundRateLimit).toHaveBeenCalledWith("hostile:u:anon-1");
+    expect(vi.mocked(refundRateLimit).mock.calls.some(([s]) => /^guest:ip:/.test(s))).toBe(true);
+    // The ceiling's own slot was never taken, so it is not given back.
+    expect(vi.mocked(refundRateLimit).mock.calls.some(([s]) => s === "guest:all")).toBe(false);
+    vi.mocked(consumeRateLimit).mockImplementation(async () => ({ allowed: true, window: null, retryAfterS: 0 }));
+  });
+
+  it("keeps the ceiling's slot once Whisper has run, and gives it back when Whisper was down", async () => {
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "anon-1", anonymous: true });
+    expect((await answer()).status).toBe(200);
+    expect(refundRateLimit).not.toHaveBeenCalled();
+
+    vi.mocked(transcribe).mockRejectedValue(new Error("Whisper API 500: boom"));
+    expect((await answer()).status).toBe(502);
+    expect(refundRateLimit).toHaveBeenCalledWith("guest:all");
   });
 
   it("keeps the slot of a question asked and a verdict given", async () => {
@@ -296,8 +346,43 @@ describe("the verdict, stored", () => {
   });
 });
 
+/* Security audit, 11 Nov: the context is the phone's copy of the session
+   and goes into the verdict's prompt, so its size is the server's to set. */
+describe("POST /api/hostile and the context's size", () => {
+  it("cuts a take, the answers and the round count to what speech can hold", async () => {
+    vi.mocked(hostileVerdict).mockClear();
+    await post(
+      {
+        phase: "verdict",
+        context: JSON.stringify({
+          take: "word ".repeat(900),
+          rounds: Array.from({ length: 3 }, () => ({ question: "q".repeat(500), answer: "a".repeat(3100) })),
+          roundNumbers: Array.from({ length: 5 }, () => ({ fillersPerMin: "many", midSentencePauses: 1e12 })),
+        }),
+      },
+      false
+    );
+    const [ctx, numbers] = vi.mocked(hostileVerdict).mock.calls[0];
+    expect(ctx.take.length).toBeLessThanOrEqual(4000);
+    expect(ctx.rounds.length).toBeLessThanOrEqual(2);
+    for (const r of ctx.rounds) {
+      expect(r.question.length).toBeLessThanOrEqual(400);
+      expect(r.answer.length).toBeLessThanOrEqual(3000);
+    }
+    expect(numbers.length).toBeLessThanOrEqual(2);
+    expect(numbers[0]).toEqual({ fillersPerMin: 0, midSentencePauses: 1000 });
+  });
+
+  it("reads a context too long to be a session as no context", async () => {
+    vi.mocked(hostileVerdict).mockClear();
+    await post({ phase: "verdict", context: JSON.stringify({ take: "x".repeat(60_000), rounds: [] }) }, false);
+    const ctx = vi.mocked(hostileVerdict).mock.calls[0]?.[0];
+    expect(ctx?.take ?? "").toBe("");
+  });
+});
+
 /*
- * The free week, held on every call (#457). Whether a call was the take
+ * The free week, held on every call (#464). Whether a call was the take
  * was the phone's word (a `take` in its context), and only the take was
  * checked, so a free account could skip the lock by saying it had one.
  */
@@ -325,25 +410,5 @@ describe("the free week, on every call", () => {
   it("refuses a round once the week holds more than one take", async () => {
     week.count = 2;
     expect((await answer()).status).toBe(403);
-  });
-});
-
-describe("what a session may send the model (#457)", () => {
-  it("refuses a take longer than a take can be", async () => {
-    const res = await post({ phase: "verdict", context: JSON.stringify({ take: "word ".repeat(1000), rounds: [{ question: "Why?", answer: SAID }] }) }, false);
-    expect(res.status).toBe(413);
-  });
-
-  it("refuses more rounds than the boss asks", async () => {
-    const rounds = Array.from({ length: 5 }, () => ({ question: "Why?", answer: SAID }));
-    expect((await post({ phase: "verdict", context: JSON.stringify({ take: SAID, rounds }) }, false)).status).toBe(413);
-  });
-
-  it("refuses a round that is not a question and an answer", async () => {
-    expect((await post({ phase: "verdict", context: JSON.stringify({ take: SAID, rounds: [{ question: 7 }] }) }, false)).status).toBe(413);
-  });
-
-  it("refuses a context too big to be a session at all", async () => {
-    expect((await post({ phase: "verdict", context: "x".repeat(25000) }, false)).status).toBe(413);
   });
 });

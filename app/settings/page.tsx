@@ -465,7 +465,7 @@ export default function SettingsPage() {
           />
         )}
 
-        {/* The screen's one terracotta tap, and only while it is a real
+        {/* The screen's one tap, and only while it is a real
             blocker: an armed hour that cannot fire is the broken state
             #42 exists to prevent. A block is information, not a tap, so
             it stays a quiet line naming where the fix is (iPhone Settings

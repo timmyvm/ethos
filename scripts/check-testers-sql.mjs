@@ -31,7 +31,7 @@ const STUBS = `
   create function auth.role() returns text language sql stable as $$
     select current_setting('request.jwt.claim.role', true) $$;
   create schema storage;
-  create table storage.buckets (id text primary key, name text, public boolean);
+  create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint);
   grant usage on schema public to anon, authenticated, service_role;
   grant usage on schema auth to anon, authenticated, service_role;
   alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
@@ -39,11 +39,23 @@ const STUBS = `
   alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
 `;
 
+/**
+ * Two files need what only the host has (pg_cron, pg_net and Vault), so
+ * PGlite cannot run them. They hold the reminder clock and its secret,
+ * no table a browser reaches, and are passed over here by name: since
+ * 0027 landed the run had stopped at it, checking nothing after.
+ */
+const HOST_ONLY = new Set(["0027_push_tick.sql", "0028_db_held_secrets.sql"]);
+
 /** A fresh Postgres with Supabase's roles stubbed and the migrations up to `last` applied. */
 async function migrated(last = Infinity, { quiet = false } = {}) {
   const pg = new PGlite();
   await pg.exec(STUBS);
   for (const f of FILES.filter((f) => Number(f.slice(0, 4)) <= last)) {
+    if (HOST_ONLY.has(f)) {
+      if (!quiet) console.log("passed over", f, "(needs the host's pg_cron and Vault)");
+      continue;
+    }
     try {
       await pg.exec(readFileSync(`${DIR}/${f}`, "utf8"));
       if (!quiet) console.log("applied", f);
@@ -425,6 +437,73 @@ await expectRefused("anon saves a word", () => as("anon", null, () =>
   q(`insert into public.saved_words (user_id, word, instead) values ('${A}', 'thing', 'point')`)));
 // A keeps one for the account removal below to take.
 await as("authenticated", A, () => q(`insert into public.saved_words (user_id, word, instead) values ('${A}', 'really', 'genuinely')`));
+
+/*
+ * Least privilege (0029) and bounded writes (0030), the 11 Nov security
+ * audit: the browser's roles hold only the verbs a policy answers, and
+ * no table a session can write grows without end.
+ */
+await ex(readFileSync(`${DIR}/0029_least_privilege.sql`, "utf8"));
+await ex(readFileSync(`${DIR}/0030_bounded_writes.sql`, "utf8"));
+console.log("applied 0029 and 0030 again");
+for (const t of ["rate_limits", "push_subscriptions", "shop_prices"]) {
+  await expectRefused(`B (signed in) reads ${t}`, () => as("authenticated", B, () => q(`select * from public.${t} limit 1`)));
+  await expectRefused(`anon reads ${t}`, () => as("anon", null, () => q(`select * from public.${t} limit 1`)));
+}
+await expectRefused("B empties its own recordings", () => as("authenticated", B, () => q(`${DEL} from public.reps where user_id = '${B}'`)));
+await expectRefused("B rewrites its own score", () => as("authenticated", B, () =>
+  q(`update public.reps set ethos_index = 999 where user_id = '${B}' returning id`).then((r) => { if (r.rows.length === 0) throw new Error("0 rows"); return r; })));
+await expectRefused("anon writes a profile", () => as("anon", null, () => q(`insert into public.profiles (user_id, display_name) values ('${C}', 'x')`)));
+await expectOk("B still reads its own recordings", () => as("authenticated", B, async () => {
+  const r = await q("select user_id from public.reps");
+  if (r.rows.length !== 1 || r.rows[0].user_id !== B) throw new Error(JSON.stringify(r.rows));
+  return r.rows.length;
+}));
+await expectOk("B spends a freeze on yesterday, as the app does", () => as("authenticated", B, () =>
+  q(`insert into public.streak_freezes (user_id, used_on) values ('${B}', current_date - 1) on conflict (user_id, used_on) do nothing returning id`).then((r) => r.rows.length)));
+await expectOk("B sends the same day again and nothing is written", () => as("authenticated", B, async () => {
+  const r = await q(`insert into public.streak_freezes (user_id, used_on) values ('${B}', current_date - 1) on conflict (user_id, used_on) do nothing returning id`);
+  if (r.rows.length !== 0) throw new Error(JSON.stringify(r.rows));
+}));
+await expectRefused("B freezes a day next month", () => as("authenticated", B, () =>
+  q(`insert into public.streak_freezes (user_id, used_on) values ('${B}', current_date + 30)`)));
+await expectRefused("B fills the table: 50,000 days in one insert", () => as("authenticated", B, () =>
+  q(`insert into public.streak_freezes (user_id, used_on) select '${B}', date '2000-01-01' + g from generate_series(1, 50000) g`)));
+await expectOk("B keeps 400 freeze days, and the 401st is refused", async () => {
+  await as("authenticated", B, () => q(`insert into public.streak_freezes (user_id, used_on) select '${B}', date '2000-01-01' + g from generate_series(1, 399) g`));
+  let refused = false;
+  try { await as("authenticated", B, () => q(`insert into public.streak_freezes (user_id, used_on) values ('${B}', date '1999-01-01')`)); } catch { refused = true; }
+  const r = await q(`select count(*)::int as n from public.streak_freezes where user_id = '${B}'`);
+  if (!refused || r.rows[0].n !== 400) throw new Error(JSON.stringify({ refused, n: r.rows[0].n }));
+  // At the cap a day already spent still goes through to the unique key.
+  await as("authenticated", B, () => q(`insert into public.streak_freezes (user_id, used_on) values ('${B}', current_date - 1) on conflict (user_id, used_on) do nothing`));
+  return r.rows[0].n;
+});
+await expectRefused("C's freezes are not B's to write", () => as("authenticated", B, () =>
+  q(`insert into public.streak_freezes (user_id, used_on) values ('${C}', current_date - 1)`)));
+await expectOk("B names itself in 24 characters, the app's limit", () => as("authenticated", B, () =>
+  q(`update public.profiles set display_name = repeat('n', 24) where user_id = '${B}'`)));
+await expectRefused("B stores a 2 MB name", () => as("authenticated", B, () =>
+  q(`update public.profiles set display_name = repeat('x', 2000000) where user_id = '${B}'`)));
+await expectRefused("B stores a 2 MB pose id", () => as("authenticated", B, () =>
+  q(`update public.profiles set equipped_pose = repeat('x', 2000000) where user_id = '${B}'`)));
+await expectOk("B saves its introduction answers and plan", () => as("authenticated", B, () =>
+  q(`insert into public.onboarding (user_id, pains, portfolio) values ('${B}', array['fillers','rambling','freezing'], jsonb_build_object('headline', repeat('h', 900)))
+     on conflict (user_id) do update set pains = excluded.pains, portfolio = excluded.portfolio`)));
+await expectRefused("B stores a 2 MB plan", () => as("authenticated", B, () =>
+  q(`update public.onboarding set portfolio = jsonb_build_object('x', repeat('y', 2000000)) where user_id = '${B}'`)));
+await expectRefused("B stores a 2 MB pain", () => as("authenticated", B, () =>
+  q(`update public.onboarding set pains = array[repeat('z', 2000000)] where user_id = '${B}'`)));
+await expectOk("a function made later answers the server and nobody in the browser", async () => {
+  await ex("create function public.made_later() returns int language sql as 'select 1';");
+  const r = await q("select has_function_privilege('anon', 'public.made_later()', 'execute') as a, has_function_privilege('authenticated', 'public.made_later()', 'execute') as u, has_function_privilege('service_role', 'public.made_later()', 'execute') as s");
+  if (r.rows[0].a || r.rows[0].u || !r.rows[0].s) throw new Error(JSON.stringify(r.rows[0]));
+});
+await expectOk("a table made later gives the browser nothing", async () => {
+  await ex("create table public.made_later_t (id int);");
+  const r = await q("select count(*)::int as n from information_schema.role_table_grants where table_schema = 'public' and table_name = 'made_later_t' and grantee in ('anon', 'authenticated')");
+  if (r.rows[0].n !== 0) throw new Error(JSON.stringify(r.rows[0]));
+});
 
 // The account goes: every tester row with it.
 await ex(`${"DEL" + "ETE"} from auth.users where id = '${A}'`);

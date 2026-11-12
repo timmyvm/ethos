@@ -27,8 +27,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import webpush from "web-push";
 import { supabaseAdmin } from "@/lib/db";
+import { PUSH_SEND_TIMEOUT_MS, pushEndpointOk } from "@/lib/push-endpoint";
 import { dbTickMatches, matchedSecret, namedTickSecrets, tickCaller, type TickCaller, type TickSecretName } from "@/lib/cron-auth";
-import { TICK_KEEP_HOURS, tickSubject, TICK_PREFIX } from "@/lib/push-clock";
+import { TICK_KEEP_HOURS, tickSubject } from "@/lib/push-clock";
 import {
   localDayKey,
   localDayStartIn,
@@ -40,7 +41,6 @@ import {
 } from "@/lib/push";
 import { lastTake, reminderCopy } from "@/lib/reminder-copy";
 import { todayHrefOn, type PracticeRow } from "@/lib/home";
-import { PUSH_TIMEOUT_MS } from "@/lib/push-endpoint";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -153,6 +153,9 @@ export async function GET(req: NextRequest) {
     };
 
     // Cheap gates first; the DB check only runs for real candidates.
+    // A row saved before the endpoint list (lib/push-endpoint.ts) that is
+    // not a push service's is never called.
+    if (!pushEndpointOk(sub.endpoint)) continue;
     if (!shouldSend(win, false, now)) continue;
     report.due++;
 
@@ -223,9 +226,7 @@ export async function GET(req: NextRequest) {
         JSON.stringify({ ...copy, url }),
         // Held for a phone that is off only until quiet hours or midnight,
         // whichever is first; one topic, so a newer reminder replaces it.
-        // A push service that never answers is let go after ten seconds,
-        // so one slow row cannot stall every reminder after it (#457).
-        { TTL: sendTtl(win, now), urgency: "normal", topic: PUSH_TOPIC, timeout: PUSH_TIMEOUT_MS }
+        { TTL: sendTtl(win, now), urgency: "normal", topic: PUSH_TOPIC, timeout: PUSH_SEND_TIMEOUT_MS }
       );
       report.sent++;
     } catch (e) {
@@ -291,6 +292,12 @@ async function practiceUrl(
  * production, closed to the API) under `push-tick:<secret>:<caller>`, and
  * anything older than two days swept. A note that fails is logged and the
  * tick goes on: the reminders matter more than the record of them.
+ *
+ * Since the 11 Nov audit the sweep takes every subject's old rows, not
+ * only the ticks'. The limiter clears a subject's rows only when that
+ * subject comes back (0006), so an address or a guest seen once left
+ * its rows for good and the table could only grow. No limit looks back
+ * further than a day, so a row two days old counts for nothing.
  */
 async function noteTick(
   db: NonNullable<ReturnType<typeof supabaseAdmin>>,
@@ -304,7 +311,6 @@ async function noteTick(
     await db
       .from("rate_limits")
       .delete()
-      .like("subject", `${TICK_PREFIX}%`)
       .lt("at", new Date(now.getTime() - TICK_KEEP_HOURS * 3_600_000).toISOString());
   } catch (e) {
     console.error("push cron: tick note failed", (e as Error).message);

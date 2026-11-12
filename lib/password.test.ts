@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { COMMON_LINE, MIN_PASSWORD, commonPassword, passwordState, progress } from "./password";
 import { passwordProblem } from "./auth";
 
-describe("a password everyone tries first (#455)", () => {
+describe("a password everyone tries first (#462)", () => {
   it("is caught, with the digits and punctuation people add", () => {
     for (const p of ["password", "Password1!", "password123", "passw0rd", "football2024", "Sunshine99", "iloveyou!", "qwertyuiop", "1q2w3e4r", "letmein12"]) {
       expect(commonPassword(p), p).toBe(true);

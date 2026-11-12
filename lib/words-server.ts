@@ -24,6 +24,7 @@
  * answer, never remembered, and the sheet offers its retry.
  */
 
+import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { KEEP_NOTES, cleanAnswer, type WordAnswer, type WordAsk } from "./words";
 

@@ -4,9 +4,13 @@
  * 1. Start stands out on every day's card. For each of the five trait
  *    families, in both themes, at 390 and 320, the card's own pixels
  *    around Start's row (left of it, and just over and under it at its
- *    left, middle and right) hold 3:1 or better against Start's
- *    terracotta. The foot used to land at the card's last pixel, so
- *    Start stood on a mid-gradient at 2.4 to 3.0:1.
+ *    left, middle and right) hold 3:1 or better against Start's fill,
+ *    read off the screen. Since #459 that fill is cut from the card (a
+ *    pale tint of the family, its deep tone for the word), so the same
+ *    pass holds the word on the fill at 4.5:1 and the fill to a pale
+ *    tint: never ink, and never the terracotta it was. The foot used to
+ *    land at the card's last pixel, so the terracotta Start stood on a
+ *    mid-gradient at 2.4 to 3.0:1.
  * 2. Today's colour stays on the card. The share of chromatic pixels
  *    between the card's foot and the tab bar at 390x844 stays inside
  *    its pin, the figure measured after the home round (#393) plus 10%
@@ -45,7 +49,11 @@ const TODAY_COLOUR_PIN = { light: 0.1, dark: 0.1 };
 const HEADROOM = 1.1;
 
 const FAMILIES = ["pause", "fillers", "repairs", "pace", "range"];
-const START = "#c67139";
+/** A computed `rgb(r, g, b)` or `color(srgb r g b)` as three 0 to 255 channels. */
+const channels = (css) => {
+  const n = css.match(/-?\d*\.?\d+/g).map(Number);
+  return css.startsWith("color(") ? n.slice(0, 3).map((v) => Math.round(v * 255)) : n.slice(0, 3);
+};
 const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 const lum = ([r, g, b]) => {
   const f = (v) => {
@@ -122,15 +130,28 @@ for (const theme of ["light", "dark"]) {
         };
         const mid = s.top + s.height / 2;
         const xs = [s.left + 12, s.left + s.width / 2, s.right - 12];
-        return [
-          at((card.left + s.left) / 2, mid),
-          ...xs.map((x) => at(x, s.top - 3)),
-          ...xs.map((x) => at(x, s.bottom + 3)),
-        ];
+        const style = getComputedStyle(document.querySelector(".home-start"));
+        return {
+          around: [
+            at((card.left + s.left) / 2, mid),
+            ...xs.map((x) => at(x, s.top - 3)),
+            ...xs.map((x) => at(x, s.bottom + 3)),
+          ],
+          fill: style.backgroundColor,
+          word: style.color,
+        };
       });
-      const ratios = worst.map((p) => ratio(p, rgb(START)));
-      const min = Math.min(...ratios);
+      const fill = channels(worst.fill);
+      const word = channels(worst.word);
+      const min = Math.min(...worst.around.map((p) => ratio(p, fill)));
       ok(`${theme} ${width}: Start on the ${family} card at 3:1 or better`, min >= 3, min.toFixed(2));
+      if (width === 390) {
+        const onFill = ratio(word, fill);
+        const chroma = Math.max(...fill) - Math.min(...fill);
+        ok(`${theme}: Start's word on its ${family} tint at 4.5:1 or better`, onFill >= 4.5, onFill.toFixed(2));
+        // Cut from the card: pale (every channel over 200) and still the family's colour, not white.
+        ok(`${theme}: Start is a pale tint of the ${family} card`, Math.min(...fill) > 200 && chroma >= 8, `rgb ${fill.join(" ")}`);
+      }
     }
     await context.close();
   }

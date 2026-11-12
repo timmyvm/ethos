@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type Ref, type RefObject 
 import { COMMON_LINE, passwordState, progress } from "@/lib/password";
 
 /**
- * A new password's field and the line under it (#455, Charles Liu's
+ * A new password's field and the line under it (#462, Charles Liu's
  * password reel, three of its eight). Sign-up and the reset page share it.
  *
  *  - Closure: the field's outline draws itself in ink as the password
@@ -22,7 +22,7 @@ import { COMMON_LINE, passwordState, progress } from "@/lib/password";
  * dots that morph into letters (Show swaps them at once: a morph needs a
  * monospaced field, and the field is set in the app's own face).
  *
- * Show and Hide (#456, Timothy: "make sure it has a show password
+ * Show and Hide (#463, Timothy: "make sure it has a show password
  * button"): `ShowPassword`, inside the field's right edge, on every
  * password field the app has.
  *
@@ -162,7 +162,7 @@ export function useHidOnSubmit(field: RefObject<HTMLInputElement | null>): [bool
 }
 
 /**
- * Show / Hide, inside a password field's right edge (#456). The word is
+ * Show / Hide, inside a password field's right edge (#463). The word is
  * the button, as iOS's own fields say it: a 44px target in the link's
  * voice, named "Show password" so "Tap Show" finds it. A press never
  * takes the focus from the field, so the keyboard stays up and the

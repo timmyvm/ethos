@@ -8,7 +8,8 @@
  * (The score, The numbers, Your words) or the glance and its door (The
  * whole recording). On the glance it also asserts the rules the glance is
  * held to: at most 25 visible words (named exceptions at their own
- * ceiling), no scroll, exactly one terracotta fill, at most one moment
+ * ceiling), no scroll, exactly one filled tap (`.tap` since #459; it
+ * counted the terracotta fill), at most one moment
  * chip, and the tap live from the first frame.
  *
  *   NEXT_DIST_DIR=.next-glance NEXT_PUBLIC_SUPABASE_URL=http://supabase.local \
@@ -222,7 +223,7 @@ const MEASURE = (scope) => {
     text: all,
     scrollH: document.scrollingElement.scrollHeight,
     innerH: innerHeight,
-    terracotta: count('[class*="bg-terracotta-500"]'),
+    taps: count(".tap, .tap-tonal"),
     chips: count("[data-glance-chip], [data-pause-moment]"),
   };
 };
@@ -336,7 +337,7 @@ for (const size of SIZES) {
     m.screens = scroller ? i : +(m.scrollH / m.innerH).toFixed(2);
     entry.beats.push(m);
     const outside = VARIANT === "game" && m.wordsNoRound !== m.words ? `, ${m.wordsNoRound} outside the round card` : "";
-    console.log(`${at} ${name}: ${m.words} words (${m.wordsNoTranscript} outside the transcript${outside}), ${m.numbers} numbers, ${m.screens} screens, ${m.terracotta} terracotta, ${m.chips} chips`);
+    console.log(`${at} ${name}: ${m.words} words (${m.wordsNoTranscript} outside the transcript${outside}), ${m.numbers} numbers, ${m.screens} screens, ${m.taps} filled tap(s), ${m.chips} chips`);
     if (ceiling !== null) {
       /* The reminder ask's own words ride on the ceiling, up to 16 (#430, GLANCE_WORDS_ASK). */
       const askWords = await page.evaluate(() => {
@@ -347,7 +348,7 @@ for (const size of SIZES) {
       const counted = VARIANT === "game" ? m.wordsNoRound : m.words;
       if (counted > ceiling) fail(`${at} ${name}: ${counted} words over the ceiling of ${ceiling}`);
       if (m.scrollH > m.innerH + 1) fail(`${at} ${name}: scrolls (${m.scrollH} over ${m.innerH})`);
-      if (m.terracotta !== 1) fail(`${at} ${name}: ${m.terracotta} terracotta fills`);
+      if (m.taps !== 1) fail(`${at} ${name}: ${m.taps} filled taps`);
       if (m.chips > 1) fail(`${at} ${name}: ${m.chips} moment chips`);
       if (m.doorClear === false) fail(`${at} ${name}: the door is under the shelf`);
       console.log(`${at} ${name}: largest band ${m.maxBand}pt ${JSON.stringify(m.band)}`);
@@ -601,7 +602,7 @@ if (VARIANT === "daily" && process.env.LOOK_ASK !== "0") {
     if (!asked) fail("the reminder ask did not show on the day's first scored take");
     if (m.words > 25 + Math.min(16, askWords)) fail(`the glance with the ask says ${m.words} words`);
     if (m.scrollH > m.innerH + 1) fail("the glance with the ask scrolls");
-    if (m.terracotta !== 1) fail(`the glance with the ask has ${m.terracotta} terracotta fills`);
+    if (m.taps !== 1) fail(`the glance with the ask has ${m.taps} filled taps`);
     console.log(`daily ${size.name} reminder-ask: largest band ${m.maxBand}pt ${JSON.stringify(m.band)}`);
     if (size.w === 390 && size.h === 844 && m.maxBand > 64) fail(`the glance with the ask has a ${m.maxBand}pt band`);
     report.reminderAsk = { words: m.words, askWords, text: askText };

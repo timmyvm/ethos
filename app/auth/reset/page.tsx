@@ -176,7 +176,7 @@ function ResetScreen() {
             <label className={LABEL_CLASS} htmlFor="password">
               {first ? "Password" : "New password"}
             </label>
-            {/* The outline closes as the password grows (#455). */}
+            {/* The outline closes as the password grows (#462). */}
             <NewPasswordField
               inputRef={field}
               value={password}

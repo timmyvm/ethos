@@ -13,8 +13,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import webpush from "web-push";
 import { getUserFromAuthHeader, supabaseAdmin } from "@/lib/db";
+import { PUSH_SEND_TIMEOUT_MS, pushEndpointOk } from "@/lib/push-endpoint";
 import { TEST_COPY, TEST_EVERY_MS } from "@/lib/reminder-copy";
-import { PUSH_TIMEOUT_MS } from "@/lib/push-endpoint";
 
 export const runtime = "nodejs";
 
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   if (error) {
     return NextResponse.json({ error: "Read failed." }, { status: 502 });
   }
-  if (!row) {
+  if (!row || !pushEndpointOk(row.endpoint)) {
     return NextResponse.json({ error: "The server holds no reminder for this phone." }, { status: 404 });
   }
 
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
       // A test proves the path now or not at all: a phone that is off
       // never gets it later (#430 review). Its own topic, so it never
       // replaces a real reminder waiting at the push service.
-      { TTL: 60, urgency: "high", topic: "ethos-test", timeout: PUSH_TIMEOUT_MS }
+      { TTL: 60, urgency: "high", topic: "ethos-test", timeout: PUSH_SEND_TIMEOUT_MS }
     );
   } catch (e) {
     const status = (e as { statusCode?: number }).statusCode;

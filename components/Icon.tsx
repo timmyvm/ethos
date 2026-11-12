@@ -358,6 +358,15 @@ export function IconBack({ size }: { size?: number }) {
   );
 }
 
+/** Onward: the arrow in the disc at the end of a tap that moves you on (#459). */
+export function IconOnward({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="M5 12h14M13 6l6 6-6 6" />
+    </Glyph>
+  );
+}
+
 /** A lens: the command menu's field (#438). */
 export function IconSearch({ size }: { size?: number }) {
   return (

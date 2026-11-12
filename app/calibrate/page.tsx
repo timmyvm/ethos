@@ -29,7 +29,7 @@ const TAKE_SECONDS = 20;
 
 /** A failure or a warning in the error grammar (system-10, #246): the
  *  control surface with rust words, as the auth forms and Upload draw
- *  it. Terracotta means tap. */
+ *  it. Never the tap's own fill, which means go. */
 const NOTICE_CLASS =
   "rounded-control border border-edge bg-surface px-4 py-3 text-caption leading-relaxed text-rust";
 

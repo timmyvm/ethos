@@ -306,8 +306,14 @@
      the larger the line, the tighter; fine print opens up a hair.
      intro-b-1: back to -0.02em. #323 opened it to -0.012em because
      "Think on your feet" read as two words, but that was the camera
-     hinting fonts (#325); unhinted, every word gap holds at -0.02. */
-  --text-title--letter-spacing: -0.02em;
+     hinting fonts (#325); unhinted, every word gap holds at -0.02.
+     #454: -0.012em again, for the letters and not the word gaps.
+     Outfit at 700 and over is drawn close, and past -0.015em its
+     pairs run into each other: at -0.02em "st", "ct" and "ru" touch
+     in the app's own headings (scripts/look-kerning.mjs draws every
+     pair and counts). The ceiling for heavy type is -0.015em at 34
+     and over and -0.012em under it; lib/type-tracking.test.ts. */
+  --text-title--letter-spacing: -0.012em;
   --text-title--font-weight: 700;
 
   --text-lead: 1.25rem;
@@ -331,14 +337,16 @@
    *                   field (16 stops iOS zooming on focus)
    *   row     14/700  a row's title, a control's label
    *   link    13/600  a text link (the `.text-link` role adds the rest)
-   *   suffix  10/700  the ring's ordinal suffix ("th"), nothing else
+   *   suffix  11/700  the ring's ordinal suffix ("th"), a unit beside a
+   *                   number, a weekday's letter. 11 is the floor (#450):
+   *                   nothing a person reads is set smaller
    * Number steps, always with `font-display` (Outfit 800, tabular):
    *   num-xl   72  the results score step only
    *   num-hero 56  the screen's one big number (Log index, You level)
    *   num-l    36  a ring's or a card's number
    *   num-m    24  a stat column
    *   num-s    17  a number in a row
-   * The scale is 34 / 26 / 20 / 17 / 16 / 15 / 14 / 13 / 10
+   * The scale is 34 / 26 / 20 / 17 / 16 / 15 / 14 / 13 / 11
    * for copy (34 is `.large-title`, 20 `.section-head`). Arbitrary
    * `text-[Npx]` / `text-[Nrem]` sizes are counted by
    * lib/type-scale.test.ts, and the count may only go down.
@@ -362,7 +370,7 @@
   --text-link--letter-spacing: 0em;
   --text-link--font-weight: 600;
 
-  --text-suffix: 0.625rem;
+  --text-suffix: 0.6875rem;
   --text-suffix--line-height: 1;
   --text-suffix--letter-spacing: 0.02em;
   --text-suffix--font-weight: 700;
@@ -562,6 +570,77 @@ body {
 }
 
 /*
+ * The tap's tick (#449, components/ui/TapTick.tsx). On an iPhone a
+ * transparent label lies over a button and hands the person's own tap to
+ * a hidden native switch, which is the one thing a page can do to make
+ * the phone tick. The label takes the button's shape so its corners are
+ * not a tap; the switch is one pixel, hidden by `visibility`, and keeps
+ * its native look on purpose (WebKit plays nothing for a restyled one).
+ * The button under it is positioned by the base rule, which any
+ * position utility on the button outranks.
+ */
+@layer base {
+  :where(button):has(> .tap-tick) {
+    position: relative;
+  }
+}
+.tap-tick {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  cursor: inherit;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.tap-tick > input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  visibility: hidden;
+}
+
+/*
+ * Touch and hold (#444, from Apple's edit menus and gestures pages: let
+ * people copy content, never a control's label). Ethos runs in a
+ * browser's engine, and a browser answers a held thumb with its own
+ * furniture: a link lifts a preview with Open, Copy and Share, a
+ * picture offers Save to Photos, a title grows selection handles and a
+ * Copy bar. On the tab bar it also cancels the press that was sliding
+ * the well. An app's controls do none of that.
+ *
+ * So: no callout on anything pressable or drawn, and no text selection
+ * on a control or on the screen's own furniture (titles, heads, the
+ * bars). What a person wrote or said, and what Ethos says about it,
+ * stays text they can select and copy: the transcript's words, Demos's
+ * read, an error, a number, a policy. A link set inside a paragraph is
+ * a web link and keeps the browser's manners, and the progress card is
+ * a picture made to be saved. In the base layer, so one utility on one
+ * element can still say otherwise.
+ */
+@layer base {
+  :where(a, button, summary, label, img, svg, video, [role="button"], [role="radio"], [role="switch"], [role="option"], [role="tab"]) {
+    -webkit-touch-callout: none;
+  }
+  :where(a, button, summary, [role="button"], [role="radio"], [role="switch"], [role="option"], [role="tab"]),
+  :where(nav, .large-title, .screen-bar, .section-head, .detail-head, .eyebrow, .label-data, .label-micro, .group-head, .toast) {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  /* The transcript is what was said: every word is a tap, and still text. */
+  :where(.tw),
+  :where(p) :where(a) {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  :where(p) :where(a),
+  :where(img[data-keeps]) {
+    -webkit-touch-callout: default;
+  }
+}
+
+/*
  * Section eyebrows — the Instrument register: 11px, 700, tracked,
  * uppercase, muted: the handoff has ONE label voice, and a section
  * heading earns its rank from the hairline above it and the space
@@ -578,6 +657,12 @@ body {
  * Tracking drops from 0.14em to 0.10em. At 11px, 0.14em is spec-sheet
  * tracking: it put "INDEX" at 44px inside a 44px column and wrapped
  * "HELD PAUSES" onto two lines in a tile 84px wide.
+ *
+ * ONE size since #450: 11px is the smallest type on an iPhone (Apple's
+ * Caption 2), and `.label-micro` was 10. Both registers are 11/700 at
+ * 0.08em now. The two names stay for what they say about the job: a
+ * section's one eyebrow, or a column head, a chip, a tile's label. The
+ * Log's columns were re-cut for it (app/history/page.tsx).
  */
 .label-data {
   font-family: var(--font-display-face), sans-serif;
@@ -591,7 +676,7 @@ body {
 
 .label-micro {
   font-family: var(--font-display-face), sans-serif;
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -602,8 +687,8 @@ body {
 /*
  * THE CAPITALS RULE (M05, system-3). Tracked capitals are for data:
  * column heads (Log's METRIC, NOW, CHANGE) and stat labels, and nothing
- * else. Two registers and no third: `.label-data` 11/700/0.08em (#321
- * set the 0.08) and `.label-micro` 10/700/0.08em. `.group-head` is
+ * else. Two registers and no third, one size since #450:
+ * `.label-data` and `.label-micro`, both 11/700/0.08em. `.group-head` is
  * folded onto those values below (the Log's month left capitals, D33).
  * At most three tracked-caps lines per 844pt viewport, a table's head
  * row counting once (scripts/check-apple.mjs). One idea per
@@ -1722,7 +1807,16 @@ summary::-webkit-details-marker {
  * theme's redefinition of both without a second rule, and it sits at low
  * contrast on purpose: a placeholder that pulses hard competes with the
  * content it is standing in for.
+ *
+ * A bone waits before it draws (#434). It holds its height from the
+ * first frame, as it always did, so nothing moves; but a read that
+ * lands inside `--skeleton-wait` never flashes a placeholder at all,
+ * and one that takes longer gets its bones in a short fade. A skeleton
+ * says "this is taking a moment", and under 300ms it is not.
  */
+:root {
+  --skeleton-wait: 300ms;
+}
 .skeleton {
   background-color: var(--color-sand);
   background-image: linear-gradient(
@@ -1733,7 +1827,15 @@ summary::-webkit-details-marker {
   );
   background-size: 200% 100%;
   background-repeat: no-repeat;
-  animation: skeleton-sweep 1.5s ease-in-out infinite;
+  animation:
+    skeleton-in var(--duration-fast) var(--ease-out) var(--skeleton-wait) backwards,
+    skeleton-sweep 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-in {
+  from {
+    opacity: 0;
+  }
 }
 
 @keyframes skeleton-sweep {
@@ -1751,9 +1853,10 @@ summary::-webkit-details-marker {
   animation-delay: 0ms;
 }
 
-/* Still a visible placeholder, just a still one. */
+/* Still a visible placeholder, just a still one. The wait is not
+   motion, so it stays: the bone appears whole when the wait is up. */
 :root[data-motion="reduce"] .skeleton {
-  animation: none;
+  animation: skeleton-in 1ms step-end var(--skeleton-wait) backwards;
   background-image: none;
 }
 
@@ -2608,6 +2711,17 @@ summary::-webkit-details-marker {
 .family-fill[data-family="sky"]::before {
   content: none;
 }
+/* The topic's words at rest, sized to the screen as Today's are
+   (.home-display): 26px on a 390pt phone and wider, the same share of
+   a narrower one. A topic runs 52 to 93 characters, so at 26px in a
+   320 layout it stood six lines deep and took Record off the first
+   screen: on a 360pt phone before this, and on any iPhone once its
+   text size is followed (#451), which lays the app out narrower and
+   shows it larger. Sized to the screen, the topic is the same size on
+   the glass at every text size, as Today's is, and the rest grows. */
+.topic-rest {
+  font-size: min(var(--text-title), 6.667vw);
+}
 /* The live waveform's stroke (D51): the trait's tone (muted in dark), or
    the sky stage's ink. */
 .rec-wave {
@@ -2966,7 +3080,7 @@ summary::-webkit-details-marker {
   font-size: 1.25rem;
   line-height: 1.5rem;
   font-weight: 800;
-  letter-spacing: -0.018em;
+  letter-spacing: -0.012em;
 }
 /* A tactic's glyph and its expand cue on the stage, in the stage's ink. */
 .practice-stage .tip-glyph,
@@ -3744,7 +3858,11 @@ summary::-webkit-details-marker {
   height: calc(var(--bar-h) + env(safe-area-inset-top));
   padding: env(safe-area-inset-top) 0.5rem 0;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  /* Each column may give way (#442): `1fr auto 1fr` could not shrink, so
+     at 320 a long title printed over the back's label ("SettingsCalibrate
+     the camera"). The title keeps its words as long as it can; a side
+     that runs out of room ends in an ellipsis. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto) minmax(0, 1fr);
   align-items: center;
   gap: 8px;
 }
@@ -3782,6 +3900,8 @@ summary::-webkit-details-marker {
   font-weight: 700;
   letter-spacing: -0.005em;
   color: var(--color-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
   opacity: 0;
   transform: translateY(5px);
@@ -3789,12 +3909,21 @@ summary::-webkit-details-marker {
     opacity 160ms var(--ease-out),
     transform var(--spring-snappy-duration) var(--spring-snappy);
 }
+/* At rest the small title is unseen, and must not hold room either: its
+   width would squeeze the back's word into an ellipsis under a title
+   nobody can see. It takes its width as it is handed the bar (#442). */
+.screen-bar:not([data-collapsed]) .screen-bar-title {
+  width: 0;
+}
 .screen-bar[data-collapsed] .screen-bar-title {
   opacity: 1;
   transform: none;
 }
 .screen-bar-back {
   display: inline-flex;
+  /* 44 wide as well as tall: a back that is the chevron alone (#442)
+     is still a whole target. */
+  min-width: 44px;
   min-height: 44px;
   align-items: center;
   gap: 1px;
@@ -3805,7 +3934,22 @@ summary::-webkit-details-marker {
   border-radius: 999px;
 }
 .screen-bar-back > svg {
+  flex: none;
   margin-left: -2px;
+}
+/* In the bar, the back's word gives way before the title does. Only in
+   the bar: a back that stands by itself (the recorder's, a walk's) is
+   as wide as its word. Capped at its parent's width there, it lost the
+   12px of its own negative margin and "Today" read "To…" (#442's
+   regression, caught on the frame step). */
+.screen-bar-side > .screen-bar-back {
+  max-width: 100%;
+}
+.screen-bar-side > .screen-bar-back > span:not(.sr-only) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .screen-bar-link {
   display: inline-flex;
@@ -3832,13 +3976,18 @@ summary::-webkit-details-marker {
 }
 /* Apple's Large Title, set for Outfit: 34 on 40, heavy, and tracked in
    because big geometric type reads loose (§15). It grows from its
-   leading edge when the page is pulled down past the top. */
+   leading edge when the page is pulled down past the top. Tracked in
+   as far as the letters allow and no further (#454): at -0.028em
+   nineteen pairs in the app's headings touched ("st" nine times,
+   "with", "at it", "Punctuate"); at -0.015em, the home card's value
+   since D08, nine do, two more than the face draws joined with no
+   tracking at all. */
 .large-title {
   font-family: var(--font-display-face), sans-serif;
   font-size: 2.125rem;
   line-height: 2.5rem;
   font-weight: 800;
-  letter-spacing: -0.028em;
+  letter-spacing: -0.015em;
   color: var(--color-ink);
   transform-origin: 0% 100%;
 }
@@ -3883,7 +4032,7 @@ summary::-webkit-details-marker {
   font-size: 1.25rem;
   line-height: 1.5rem;
   font-weight: 800;
-  letter-spacing: -0.018em;
+  letter-spacing: -0.012em;
   color: var(--color-ink);
 }
 /* wellspoken-home s8: a trait section's head in its tone's ink (Lessons'
@@ -4004,6 +4153,33 @@ summary::-webkit-details-marker {
 
 /* More contrast: near-solid surfaces with a defined edge (§14). */
 @media (prefers-contrast: more) {
+  /* And the room itself (#448). Increase Contrast on the phone asks for
+     firmer edges and stronger second-rank text; the rules below only
+     answered for the bar and the dock. The neutrals are one ink at
+     several strengths, so the answer is the same ink, stronger, and
+     every caption, glyph, hairline and edge that reads them follows:
+     muted text from 5.0:1 to about 8:1 in light, the hairline from 8%
+     of ink to 30%. Nothing here changes a hue. */
+  :root {
+    --color-hairline: rgba(32, 30, 29, 0.3);
+    --color-card-edge: rgba(32, 30, 29, 0.32);
+    --color-edge: rgba(32, 30, 29, 0.5);
+    --color-stone-200: rgba(32, 30, 29, 0.3);
+    --color-stone-300: rgba(32, 30, 29, 0.45);
+    --color-stone-400: rgba(32, 30, 29, 0.8);
+    --color-stone-500: rgba(32, 30, 29, 0.86);
+    --color-stone-600: rgba(32, 30, 29, 0.9);
+  }
+  :root[data-theme="dark"] {
+    --color-hairline: rgba(242, 242, 242, 0.3);
+    --color-card-edge: rgba(242, 242, 242, 0.34);
+    --color-edge: rgba(242, 242, 242, 0.5);
+    --color-stone-200: rgba(242, 242, 242, 0.3);
+    --color-stone-300: rgba(242, 242, 242, 0.45);
+    --color-stone-400: rgba(242, 242, 242, 0.8);
+    --color-stone-500: rgba(242, 242, 242, 0.86);
+    --color-stone-600: rgba(242, 242, 242, 0.9);
+  }
   .screen-bar[data-edge]::before {
     background: var(--color-ground);
     -webkit-mask-image: none;
@@ -4073,11 +4249,6 @@ summary::-webkit-details-marker {
 }
 .group-row:is(.flex) {
   display: flex;
-}
-/* A row that lays out a grid (Settings' hour set): the utility's display
-   would lose to `.group-row`'s, which sits outside the utility layer. */
-.group-row:is(.grid) {
-  display: grid;
 }
 .group-row + .group-row::before {
   content: "";
@@ -4212,6 +4383,14 @@ summary::-webkit-details-marker {
   font-weight: 700;
   color: var(--color-stone-500);
   transition: color 200ms var(--ease-out);
+}
+/* 40 tall inside the track's 2px of padding: the option's reach takes
+   that padding too, so the whole 44px height of the control is a press
+   on the option under it (#439). */
+.segmented-option::after {
+  content: "";
+  position: absolute;
+  inset: -2px 0;
 }
 .segmented[data-size="lg"] .segmented-option {
   min-height: 44px;
@@ -4475,7 +4654,13 @@ summary::-webkit-details-marker {
   padding-top: 6px;
 }
 .stair-cents {
-  font-size: var(--text-suffix);
+  /* Its own 10px, not the suffix token: the one piece of type left
+     under the 11px floor (#450). The cents are a price's superscript,
+     cut to the step's width by the thresholds below ("12.99" is 34.7px
+     at 17/10); at 11 the size where they drop lands on a 375pt phone's
+     stair, to the third of a pixel. The whole price stands at reading
+     size in the readout over the stair. */
+  font-size: 0.625rem;
   /* The cents' tops meet the dollars' cap height, as a shelf tag sets them. */
   vertical-align: 0.45em;
   letter-spacing: 0;
@@ -5297,6 +5482,9 @@ summary::-webkit-details-marker {
   --reel-cell: calc(4 * 1.06 * var(--reel-fs));
   font-size: var(--reel-fs);
   line-height: 1.06;
+  /* The one heavy line still past the ceiling (#454): the window is
+     cut for four lines of the longest prompt at this tracking, and a
+     fifth would be clipped. Re-cut the window before opening it. */
   letter-spacing: -0.03em;
   box-sizing: content-box;
 }
@@ -5321,7 +5509,6 @@ summary::-webkit-details-marker {
 .home-display[data-long] {
   font-size: min(2.125rem, 8.8vw);
   line-height: 1.06;
-  letter-spacing: -0.03em;
 }
 /* TipLine on the card: its glyph, its cue and its open sentence in the
    card's ink. */
@@ -5649,7 +5836,9 @@ summary::-webkit-details-marker {
  * with the number's and the unit's em widths from lib/home.ts (`numEm`,
  * `UNIT_EM`). So "9.8 /100 words" holds one line in a half tile at 320
  * (102px) and a unit never wraps under its number.
- *   half tile   36, 30 under a 120px column; the unit 11, 10 there
+ *   half tile   36, 30 under a 120px column; the unit 11 in both
+ *               (#450: it was 10 under 120px; the number, whose size is
+ *               computed from the unit's, gives up the pixel instead)
  *   wide tile   56; its room is the left 56%, beside the object
  */
 .home-tile {
@@ -5666,7 +5855,6 @@ summary::-webkit-details-marker {
 @container (max-width: 120px) {
   .home-num-line {
     --num-max: 1.875rem;
-    --unit-size: 0.625rem;
   }
 }
 .home-num-line {
@@ -6031,6 +6219,14 @@ html[data-test-tile] .test-tile-slot {
  * Variety's for a vague word, Variety's dotted for a word said three
  * times or more, and a hairline in `edge` under every other word, so the
  * paragraph reads as tappable without a sentence saying so.
+ *
+ * And in a shape of its own (#453): a filler's is a bar, a vague word's
+ * a wave, a repeat's a row of dots. A filler and a vague word were both
+ * a 3px bar, told apart by rose against violet and nothing else: with
+ * the phone in Greyscale (Accessibility, Colour Filters) they were the
+ * same bar, in the paragraph and in its key. The wave is the mark every
+ * word processor puts under a word it has a better one for, and a vague
+ * word's sheet is where the better ones are.
  */
 .transcript {
   font-family: var(--font-display-face), sans-serif;
@@ -6067,6 +6263,15 @@ html[data-test-tile] .test-tile-slot {
   --tw-line: var(--tone);
   --tw-weight: 3px;
 }
+/* The wave is drawn whole under a descender, never broken around it:
+   a wave with gaps reads as dashes. 2px, since a wave puts down more
+   ink than a bar the same weight, and a little lower, clear of a g. */
+.tw[data-word-mark="vague"] {
+  --tw-weight: 2px;
+  text-decoration-style: wavy;
+  text-decoration-skip-ink: none;
+  text-underline-offset: 0.36em;
+}
 .tw[data-word-mark="repeat"] {
   text-decoration-style: dotted;
 }
@@ -6092,6 +6297,13 @@ html[data-test-tile] .test-tile-slot {
   border-radius: 2px;
   background: var(--tone);
 }
+/* A wave's scrap: the bar's colour, cut to two crests. */
+.tw-key[data-word-mark="vague"] {
+  height: 6px;
+  border-radius: 0;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 6'%3E%3Cpath d='M1 3q1.75-2.6 3.5 0t3.5 0 3.5 0 3.5 0' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 6'%3E%3Cpath d='M1 3q1.75-2.6 3.5 0t3.5 0 3.5 0 3.5 0' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+}
 .tw-key[data-word-mark="repeat"] {
   border-radius: 0;
   background: radial-gradient(circle, var(--tone) 1.5px, transparent 1.6px) 0 50% / 4px 3px repeat-x;
@@ -6111,7 +6323,7 @@ html[data-test-tile] .test-tile-slot {
   font-size: 2.125rem;
   line-height: 2.5rem;
   font-weight: 800;
-  letter-spacing: -0.028em;
+  letter-spacing: -0.015em;
   color: var(--color-ink);
 }
 /* The word in the sheet wears the paragraph's mark, heavier for its size. */
@@ -6121,6 +6333,12 @@ html[data-test-tile] .test-tile-slot {
   text-decoration-thickness: 4px;
   text-underline-offset: 0.2em;
   text-decoration-skip-ink: auto;
+}
+.word-sheet-word[data-word-mark="vague"] {
+  text-decoration-style: wavy;
+  text-decoration-thickness: 3px;
+  text-decoration-skip-ink: none;
+  text-underline-offset: 0.26em;
 }
 .word-sheet-word[data-word-mark="repeat"] {
   text-decoration-style: dotted;
@@ -6137,6 +6355,12 @@ html[data-test-tile] .test-tile-slot {
 .word-in-sentence[data-word-mark] {
   text-decoration-color: var(--tone);
   text-decoration-thickness: 2px;
+}
+.word-in-sentence[data-word-mark="vague"] {
+  text-decoration-style: wavy;
+  text-decoration-thickness: 1.5px;
+  text-decoration-skip-ink: none;
+  text-underline-offset: 0.3em;
 }
 .word-in-sentence[data-word-mark="repeat"] {
   text-decoration-style: dotted;
@@ -6169,3 +6393,297 @@ html[data-test-tile] .test-tile-slot {
   padding-block: 4px;
 }
 /* ===================== end of the interactive transcript (#411) ===================== */
+
+/* ============================ the undo toast (#435) ============================
+ * One line and one Undo, floating 10px over the tab bar's capsule, in
+ * the app's column (components/ui/Toast.tsx). Ink where the page is
+ * ground: the one surface that is neither the page nor a card, so it
+ * reads as passing through. Level 3, like everything that floats. It
+ * rises on the snappy spring and leaves in a fade; reduced motion fades
+ * both ways. The key hint shows only where there is a keyboard to hold.
+ * ============================================================================ */
+.toast-dock {
+  position: fixed;
+  z-index: 25;
+  left: 50%;
+  bottom: calc(var(--nav-h) + max(14px, env(safe-area-inset-bottom)) + 10px);
+  display: flex;
+  width: 100%;
+  max-width: 430px;
+  justify-content: center;
+  padding-inline: 20px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  max-width: 350px;
+  min-height: 48px;
+  align-items: center;
+  gap: 12px;
+  border-radius: var(--radius-tap);
+  padding: 6px 6px 6px 18px;
+  background: var(--color-ink);
+  color: var(--color-ground);
+  box-shadow: var(--shadow-3);
+  font-family: var(--font-display);
+  pointer-events: auto;
+  animation: toast-in var(--spring-snappy-duration) var(--spring-snappy) backwards;
+}
+.toast[data-leaving] {
+  animation: fade-out var(--duration-base) var(--ease-out) forwards;
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+}
+.toast-text {
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--text-row);
+  font-weight: 600;
+  line-height: var(--text-row--line-height);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The one thing to press: a lighter capsule in the capsule, 36 tall to
+   the eye and 44 to the thumb (the ::after carries the rest). */
+.toast-action {
+  position: relative;
+  display: inline-flex;
+  min-height: 36px;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  border-radius: var(--radius-tap);
+  padding-inline: 14px;
+  background: color-mix(in srgb, var(--color-ground) 16%, transparent);
+  color: var(--color-ground);
+  font-size: var(--text-row);
+  font-weight: 700;
+}
+.toast-action::after {
+  content: "";
+  position: absolute;
+  inset: -4px -2px;
+}
+.toast-action:focus-visible {
+  outline: 2px solid var(--color-ground);
+  outline-offset: 2px;
+}
+.toast-key {
+  display: none;
+  font-family: inherit;
+  font-size: var(--text-suffix, 0.6875rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  opacity: 0.6;
+}
+@media (hover: hover) and (pointer: fine) {
+  .toast-key {
+    display: inline;
+  }
+}
+:root[data-motion="reduce"] .toast {
+  animation: fade-in var(--duration-base) var(--ease-out) backwards;
+}
+:root[data-motion="reduce"] .toast[data-leaving] {
+  animation: fade-out var(--duration-base) var(--ease-out) forwards;
+}
+/* ========================== end of the undo toast (#435) ========================== */
+
+
+/* ============================ the command menu (#438) ============================
+ * components/CommandMenu.tsx and CommandSheet.tsx. A sheet at one
+ * height, so its field holds still while the list under it changes; a
+ * lit row on the surface step; a key drawn as a key. The hint stands in
+ * the window's corner only where a pointer can hover and the window is
+ * wider than the column has any use for: a phone never draws it.
+ * ============================================================================== */
+.command-sheet {
+  height: min(560px, calc(100dvh - 56px));
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.command-field {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 12px 0;
+  border-bottom: 1px solid var(--color-hairline);
+  padding: 6px 4px 10px 8px;
+}
+.command-input {
+  min-width: 0;
+  flex: 1;
+  height: 44px;
+  background: transparent;
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: var(--text-detail, 1.0625rem);
+  font-weight: 600;
+  outline: none;
+}
+.command-input::placeholder {
+  color: var(--color-stone-400);
+  font-weight: 500;
+}
+.command-esc {
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+}
+.command-list {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 12px 12px;
+  scroll-padding-block: 36px 12px;
+}
+.command-group {
+  padding: 14px 12px 4px;
+}
+.command-row {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+  border-radius: var(--radius-control);
+  padding: 0 12px;
+  color: var(--color-ink);
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: var(--text-body, 0.9375rem);
+  font-weight: 600;
+}
+.command-row[aria-selected="true"] {
+  background: var(--color-surface);
+}
+/* A key, drawn as one: the shortcut beside what it does. */
+.keycap {
+  display: inline-flex;
+  min-width: 22px;
+  height: 22px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-edge);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  padding: 0 6px;
+  background: var(--color-raised);
+  color: var(--color-stone-500);
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+.command-hint {
+  display: none;
+}
+@media (hover: hover) and (pointer: fine) and (min-width: 900px) {
+  .command-hint {
+    position: fixed;
+    z-index: 20;
+    right: 24px;
+    bottom: 24px;
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    gap: 8px;
+    border-radius: var(--radius-tap);
+    padding: 0 14px;
+    color: var(--color-stone-500);
+    font-family: var(--font-display);
+    font-size: var(--text-link, 0.8125rem);
+    font-weight: 600;
+  }
+  .command-hint:hover {
+    color: var(--color-ink);
+  }
+}
+/* ========================== end of the command menu (#438) ========================== */
+
+/* ========================= continuous corners (#437) =========================
+ * Where the browser can draw them (Chromium today; every other browser
+ * skips this block whole and keeps the round corners above), a surface's
+ * corner is a superellipse instead of a quarter circle: the curve starts
+ * earlier along each edge and never kinks where it meets the straight,
+ * the way a card's corner is cut on iOS.
+ *
+ * Drawn at the same radius a superellipse cuts tighter than the circle
+ * it replaces, and every card would look squarer. So each surface radius
+ * is drawn a third larger (`--corner-k`), which puts the curve's
+ * shoulder back where the round one's was: the same roundness, a
+ * smoother edge. The base values are the theme's own
+ * (`lib/corners.test.ts` holds the two in step).
+ *
+ * Surfaces only: cards, stages, sheets, tiles, inputs and answer rows.
+ * A pill stays a pill and Record stays a circle, so `rounded-tap`,
+ * `rounded-full` and `rounded-none` are named back to round for any
+ * element that is also a surface. A layer that borrows its surface's
+ * radius (`border-radius: inherit`) borrows its corner too.
+ * ============================================================================ */
+@supports (corner-shape: superellipse(1.5)) {
+  :root {
+    --corner: superellipse(1.5);
+    --corner-k: 1.35;
+    --radius-control: calc(12px * var(--corner-k));
+    --radius-card: calc(16px * var(--corner-k));
+    --radius-sheet: calc(20px * var(--corner-k));
+    --radius-hero: calc(28px * var(--corner-k));
+    --radius-tile: calc(22px * var(--corner-k));
+  }
+  .card,
+  .best-plaque,
+  .inset-group,
+  .segmented,
+  .practice-stage,
+  .family-fill,
+  .home-hero,
+  .home-tile,
+  .command-row,
+  .command-esc,
+  .rounded-control,
+  .rounded-card,
+  .rounded-sheet,
+  .rounded-t-sheet {
+    corner-shape: var(--corner);
+  }
+  /* Two surfaces that wrote their radius out: the introduction's stage
+     (a sheet-radius panel) and the segmented control's thumb, which
+     sits 2px inside its track and so takes the track's corner less 2. */
+  .intro-stage {
+    border-radius: var(--radius-sheet);
+    corner-shape: var(--corner);
+  }
+  .segmented-thumb {
+    border-radius: calc(var(--radius-control) - 2px);
+    corner-shape: var(--corner);
+  }
+  .family-fill::before,
+  .home-hero::before,
+  .test-day-fill,
+  .test-day[data-today]::after,
+  .tap-tick {
+    corner-shape: inherit;
+  }
+  /* Today's Today / This week switch is a pill, thumb and all, though it
+     is a segmented control. */
+  .home-seg,
+  .home-seg .segmented-thumb,
+  .rounded-tap,
+  .rounded-full,
+  .rounded-none {
+    corner-shape: round;
+  }
+}
+/* ======================= end of continuous corners (#437) ======================= */

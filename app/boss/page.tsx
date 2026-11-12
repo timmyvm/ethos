@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
+import { TapTick } from "@/components/ui/TapTick";
 import { DemosArt } from "@/components/DemosArt";
 import { IconBoss, IconGlobe } from "@/components/Icon";
 import { Paywall } from "@/components/Paywall";
@@ -30,6 +31,7 @@ import { COLD_TOPICS, weeklyTopic, type ColdTopic } from "@/lib/cold-topics";
 import { HOSTILE_LINE } from "@/lib/hostile";
 import { weekStart } from "@/lib/level";
 import { prefersReducedMotion } from "@/lib/prefs";
+import { holdAwake } from "@/lib/wake-lock";
 import { repHref } from "@/lib/rep-config";
 import { SPRING, springEasing, springMs } from "@/lib/spring";
 import { ACTION_CLASS, DISABLED_CLASS, INPUT_CLASS } from "@/lib/ui";
@@ -183,6 +185,9 @@ export default function BossPage() {
     const t = setInterval(() => setLeft((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(t);
   }, [phase]);
+  /* Ninety seconds of reading is ninety seconds of not touching the
+     phone: the screen stays awake for it (#440). */
+  useEffect(() => (phase === "research" ? holdAwake() : undefined), [phase]);
 
   useEffect(() => {
     if (phase === "research" && left === 0) takeTheFloor();
@@ -312,6 +317,7 @@ export default function BossPage() {
                   className={`press font-display min-h-11 shrink-0 rounded-tap border border-edge bg-surface px-5 text-row ${DISABLED_CLASS}`}
                 >
                   Spin
+                  {!(reel.rolling || !topic) && <TapTick />}
                 </button>
                 {premium === false && spinsUsed !== null && (
                   <span className="text-link tabular-nums text-stone-500">
@@ -367,7 +373,7 @@ export default function BossPage() {
                 <span className="font-display block text-detail font-semibold text-ink">
                   Hostile Q&amp;A
                 </span>
-                <span className="block text-link font-medium text-stone-500">{HOSTILE_LINE}</span>
+                <span className="block text-link font-medium text-stone-500">{HOSTILE_LINE}.</span>
               </span>
               <Disclosure />
             </Link>
@@ -382,10 +388,17 @@ export default function BossPage() {
                 type="search"
                 name="topic"
                 autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="none"
                 spellCheck={false}
                 enterKeyHint="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                /* The list filters as it is typed, so the keyboard's
+                   Search key has one job left: get out of its way (#446). */
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") e.currentTarget.blur();
+                }}
                 placeholder={`Search ${COLD_TOPICS.length} topics…`}
                 className={INPUT_CLASS}
               />

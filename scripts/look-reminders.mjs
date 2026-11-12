@@ -205,9 +205,9 @@ for (const [name, s] of Object.entries(SCENES)) {
       await page.waitForSelector("main .arrive", { timeout: 30000 });
       await sleep(800);
       await page.locator('main a[href^="/rep"], main button:has-text("Start")').first().click();
-      await page.waitForSelector('button[aria-label="Start recording"]', { timeout: 30000 });
+      await page.waitForSelector('button[data-record="start"]', { timeout: 30000 });
       await sleep(900);
-      await page.click('button[aria-label="Start recording"]', { force: true });
+      await page.click('button[data-record="start"]', { force: true });
       await page.waitForSelector('button[aria-label="Stop and score this recording"]', { timeout: 20000 });
       await sleep(3000);
       await page.click('button[aria-label="Stop and score this recording"]', { force: true });
@@ -264,10 +264,11 @@ for (const [name, s] of Object.entries(SCENES)) {
         } else if (TAG !== "before") fail(`${name} ${size.name}: no Send a test row`);
       }
       if (name === "settings-failed") {
-        // A re-arm that fails: the hour changes, the server answers 502.
-        const h = page.getByRole("radio").nth(5);
+        // A re-arm that fails: the hour changes (the Time row's picker,
+        // #446), the server answers 502.
+        const h = page.locator("main select[data-reminder-hour]");
         if (await h.count()) {
-          await h.click();
+          await h.selectOption("21");
           await sleep(1500);
         }
       }

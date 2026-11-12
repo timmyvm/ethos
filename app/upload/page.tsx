@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AudioScrubber } from "@/components/AudioScrubber";
 import { useTakeAudio } from "@/components/TakeAudio";
@@ -8,7 +9,9 @@ import { IconUpload } from "@/components/Icon";
 import { RepResult } from "@/components/RepResult";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { ensureSession } from "@/lib/supabase-browser";
+import { uploadKey } from "@/lib/client-key";
+import { sendWithRetry } from "@/lib/rep-outbox";
+import { ensureSession, sessionToken } from "@/lib/supabase-browser";
 import { ACTION_CLASS } from "@/lib/ui";
 import { UPLOAD_MAX_MB, UPLOAD_TOO_BIG, uploadFailure, uploadTooBig } from "@/lib/upload";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
@@ -66,6 +69,7 @@ function readDuration(file: File): Promise<number | null> {
 }
 
 export default function UploadPage() {
+  const router = useRouter();
   const [phase, setPhase] = useState<"pick" | "analyzing" | "done">("pick");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
@@ -90,22 +94,32 @@ export default function UploadPage() {
     }
     setPhase("analyzing");
     try {
-      const token = await ensureSession();
       const form = new FormData();
       form.append("audio", file, file.name || "upload.webm");
       form.append("lessonId", "upload");
       form.append("captureMode", "voice");
       form.append("tzOffset", String(new Date().getTimezoneOffset()));
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        body: form,
-      });
-      const data = (await res.json().catch(() => null)) as
-        | (AnalyzeResponse & { error?: string })
+      /* The file's own key (#436): every try of this file carries it, so
+         the server stores it once. One quiet retry rides on that (a
+         dropped connection, a gateway 5xx), and the same file picked
+         again after a send that landed without its answer opens the
+         recording already stored instead of filing a second. */
+      form.append("clientId", uploadKey(file));
+      const out = await sendWithRetry(
+        form,
+        (force) => (force ? sessionToken(true) : ensureSession()),
+        undefined,
+        2
+      );
+      const data = out.data as
+        | (AnalyzeResponse & { error?: string; duplicate?: boolean })
         | null;
-      if (!res.ok || !data || data.error) {
-        throw new Error(uploadFailure(res.status, data?.error, MAX_MINUTES));
+      if (!out.ok || !data || data.error) {
+        throw new Error(uploadFailure(out.status, data?.error, MAX_MINUTES));
+      }
+      if (data.duplicate && data.repId) {
+        router.replace(`/rep/${data.repId}`);
+        return;
       }
       setResult(data);
       setAudioUrl(URL.createObjectURL(file));

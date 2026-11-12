@@ -5,6 +5,7 @@
  */
 
 import { sessionToken, supabaseBrowser } from "./supabase-browser";
+import { PROFILE_KEY, forgetBalance, forgetProfile, held, heldMark, hold } from "./held";
 import type { AccuracyResult } from "./accuracy";
 import type { JudgedDimension } from "./coach";
 import type { CoinRow } from "./coins";
@@ -90,6 +91,7 @@ function missingRoundColumn(error: { code?: string; message?: string } | null): 
 export async function fetchReps(limit = 90): Promise<RepRow[]> {
   const db = supabaseBrowser();
   if (!db) return [];
+  const mark = heldMark();
   const { data: session } = await db.auth.getSession();
   if (!session.session) return [];
   // The NEWEST `limit` rows. Ascending with a limit kept the oldest 90,
@@ -109,7 +111,41 @@ export async function fetchReps(limit = 90): Promise<RepRow[]> {
   // (DECISIONS #147); only a throw reaches the error card.
   if (error) throw error;
   // Handed back oldest first, the order every caller reads the log in.
-  return [...((data as unknown as RepRow[] | null) ?? [])].reverse();
+  return hold(repsKey(limit), [...((data as unknown as RepRow[] | null) ?? [])].reverse(), mark);
+}
+
+/*
+ * What this visit last read (lib/held.ts, #433): a screen draws these in
+ * its first frame and reads again behind them. null (undefined for the
+ * profile, whose own null means no backend) is "not read yet", which is
+ * the skeleton's cue, exactly as before.
+ */
+const repsKey = (limit: number) => `reps:${limit}`;
+const SPINE_KEY = "spine";
+const ROUNDS_KEY = "rounds";
+const XP_KEY = "xp";
+const lexiconKey = (limit: number) => `lexicon:${limit}`;
+
+/**
+ * The newest `limit` rows as last read. The other size read this visit
+ * (Lessons reads 200, every other screen 90) stands in until this one
+ * lands: the newest of a longer read, or all of a shorter one.
+ */
+export function heldReps(limit = 90): RepRow[] | null {
+  const own = held<RepRow[]>(repsKey(limit));
+  if (own) return own;
+  const other = held<RepRow[]>(repsKey(limit === 90 ? 200 : 90));
+  return other ? other.slice(-limit) : null;
+}
+export const heldSpine = (): RepSpine[] | null => held<RepSpine[]>(SPINE_KEY) ?? null;
+export const heldGameRounds = (): GameRoundRow[] | null => held<GameRoundRow[]>(ROUNDS_KEY) ?? null;
+export const heldLexicon = (limit = 100): LexiconRow[] | null => held<LexiconRow[]>(lexiconKey(limit)) ?? null;
+export const heldXp = (): { total: number; week: number } | null => held<{ total: number; week: number }>(XP_KEY) ?? null;
+export const heldProfile = (): ProfileRow | null | undefined => held<ProfileRow | null>(PROFILE_KEY);
+/** The plan as last read: null is unknown, never free (#353). */
+export function heldPremium(): boolean | null {
+  const p = heldProfile();
+  return p === undefined ? null : (p?.premium ?? false);
 }
 
 /** One game round as the ladder reads it (lib/ladder.ts `LadderRow`). */
@@ -135,6 +171,7 @@ export const GAME_ROUNDS_LIMIT = 500;
 export async function fetchGameRounds(): Promise<GameRoundRow[]> {
   const db = supabaseBrowser();
   if (!db) return [];
+  const mark = heldMark();
   const { data: session } = await db.auth.getSession();
   if (!session.session) return [];
   const read = (columns: string) =>
@@ -149,10 +186,14 @@ export async function fetchGameRounds(): Promise<GameRoundRow[]> {
     ({ data, error } = await read("id, lesson_id, created_at, stars, ethos_index"));
   }
   if (error) throw error;
-  return ((data as unknown as GameRoundRow[] | null) ?? [])
-    .filter((r) => r.lesson_id?.startsWith("game:"))
-    .map((r) => ({ ...r, round: r.round ?? null }))
-    .reverse();
+  return hold(
+    ROUNDS_KEY,
+    ((data as unknown as GameRoundRow[] | null) ?? [])
+      .filter((r) => r.lesson_id?.startsWith("game:"))
+      .map((r) => ({ ...r, round: r.round ?? null }))
+      .reverse(),
+    mark
+  );
 }
 
 /**
@@ -196,8 +237,9 @@ async function readAll<T>(
   }
 }
 
-export function fetchRepSpine(): Promise<RepSpine[]> {
-  return readAll<RepSpine>("reps", "created_at, lesson_id, stars, ethos_index");
+export async function fetchRepSpine(): Promise<RepSpine[]> {
+  const mark = heldMark();
+  return hold(SPINE_KEY, await readAll<RepSpine>("reps", "created_at, lesson_id, stars, ethos_index"), mark);
 }
 
 /** Every recording, whole, for the export: nothing capped, nothing guessed. */
@@ -240,6 +282,7 @@ export interface LexiconRow {
 export async function fetchLexicon(limit = 100): Promise<LexiconRow[]> {
   const db = supabaseBrowser();
   if (!db) return [];
+  const mark = heldMark();
   const { data, error } = await db
     .from("lexicon")
     .select("id, original, upgrade, created_at")
@@ -247,12 +290,13 @@ export async function fetchLexicon(limit = 100): Promise<LexiconRow[]> {
     .limit(limit);
   // An answered error is "didn't load", not "no upgrades yet" (#147).
   if (error) throw error;
-  return (data as LexiconRow[] | null) ?? [];
+  return hold(lexiconKey(limit), (data as LexiconRow[] | null) ?? [], mark);
 }
 
 export async function fetchXp(): Promise<{ total: number; week: number }> {
   const db = supabaseBrowser();
   if (!db) return { total: 0, week: 0 };
+  const mark = heldMark();
   // Every event, paged: a read capped at the newest 1000 stopped the
   // total (and the Level) rising after about 1000 recordings. A failed
   // page throws: a failed read is not Level 1 (#147).
@@ -267,7 +311,7 @@ export async function fetchXp(): Promise<{ total: number; week: number }> {
   const week = rows
     .filter((r) => new Date(r.created_at) >= monday)
     .reduce((a, r) => a + r.amount, 0);
-  return { total, week };
+  return hold(XP_KEY, { total, week }, mark);
 }
 
 /**
@@ -305,6 +349,7 @@ export interface ProfileRow {
 export async function fetchProfile(): Promise<ProfileRow | null> {
   const db = supabaseBrowser();
   if (!db) return null;
+  const mark = heldMark();
   const { data, error } = await db
     .from("profiles")
     .select("display_name, premium, premium_until, equipped_pose")
@@ -318,12 +363,16 @@ export async function fetchProfile(): Promise<ProfileRow | null> {
   // webhook that ends a plan never lands, the flag still runs out.
   const until = row?.premium_until ?? null;
   const stored = (row?.premium ?? false) && (!until || new Date(until) > new Date());
-  return {
-    display_name: row?.display_name ?? null,
-    premium: isUnlocked(stored),
-    premium_until: row?.premium_until ?? null,
-    equipped_pose: row?.equipped_pose ?? null,
-  };
+  return hold(
+    PROFILE_KEY,
+    {
+      display_name: row?.display_name ?? null,
+      premium: isUnlocked(stored),
+      premium_until: row?.premium_until ?? null,
+      equipped_pose: row?.equipped_pose ?? null,
+    },
+    mark
+  );
 }
 
 /**
@@ -418,6 +467,7 @@ export async function updateEquippedPose(
   const { error } = await db
     .from("profiles")
     .upsert({ user_id: uid, equipped_pose: pose }, { onConflict: "user_id" });
+  if (!error) forgetProfile();
   return !error;
 }
 
@@ -442,6 +492,7 @@ export async function updateDisplayName(name: string): Promise<boolean> {
       { user_id: uid, display_name: clean },
       { onConflict: "user_id" }
     );
+  if (!error) forgetProfile();
   return !error;
 }
 
@@ -606,6 +657,8 @@ export async function spendCoins(
   });
   if (error) return { ok: false, balance: 0, detail: error.message };
   const row = Array.isArray(data) ? data[0] : data;
+  // Spent: no screen opens on the balance from before it (lib/held.ts).
+  if (row?.ok) forgetBalance();
   return {
     ok: !!row?.ok,
     balance: row?.balance ?? 0,

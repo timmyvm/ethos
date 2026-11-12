@@ -264,7 +264,7 @@ export function AuthForm({
         // The password typed is not that account's: an empty field to try again in.
         if (result.error && result.field === "password") setPassword("");
       }
-      setError(result.error ?? (result.existing ? null : "That didn't work."));
+      setError(result.error ?? (result.existing ? null : "That didn't go through. Try again."));
       setErrorField(result.error ? (result.field ?? null) : null);
       return;
     }

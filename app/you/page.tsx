@@ -1,5 +1,6 @@
 "use client";
 
+import { SwapFrom, SwapTo } from "@/components/ui/TrendMark";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { HeroStage } from "@/components/ui/HeroStage";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
@@ -20,7 +21,7 @@ import { ManageSheet } from "@/components/premium/ManageSheet";
 import { CheckoutReturn, PriceDropSheet } from "@/components/premium/Moments";
 import { PlanCard, PlanCardSkeleton } from "@/components/premium/PlanCard";
 import { achievements } from "@/lib/achievements";
-import { syncCoins } from "@/lib/coin-sync";
+import { heldCoins, syncCoins } from "@/lib/coin-sync";
 import { limit } from "@/lib/entitlement";
 import { DURATION } from "@/lib/motion";
 import {
@@ -33,13 +34,22 @@ import {
   type LexiconRow,
   type RepRow,
   type RepSpine,
+  heldLexicon,
+  heldPremium,
+  heldProfile,
+  heldReps,
+  heldSpine,
+  heldXp,
 } from "@/lib/client-data";
 import { LEVEL_AT, DOUBLE_AT, rankedTraits, traitLevels, type TraitLevel } from "@/lib/traits";
 import { practiseHref, sheetReading } from "@/lib/trait-sheet";
 import { lessonProgress } from "@/lib/lesson-progress";
 import { sinceDayOne } from "@/lib/log";
 import { TRAIT, type TraitId } from "@/content/traits";
-import { syncFreezes } from "@/lib/freeze-sync";
+import { heldFreezes, syncFreezes } from "@/lib/freeze-sync";
+import { held, hold } from "@/lib/held";
+import { useRevalidate } from "@/lib/use-revalidate";
+import { useStill, useWarm } from "@/lib/use-warm";
 import { levelFromXp } from "@/lib/level";
 import { readable, readFailure, withTimeout } from "@/lib/load";
 import { starsByLesson, totalStars } from "@/lib/path";
@@ -58,6 +68,7 @@ import { adoptAccountPose } from "@/lib/pose-save";
 import type { CoinRow } from "@/lib/coins";
 import { usePlan, usePriceDrop, useStripeReturn, useStripeReturns, type ProfileRead } from "@/lib/use-plan";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
+import { asTitle } from "@/lib/title";
 
 // Free tier gets today's swap, not the archive, when the paywall is on.
 const FREE_LEXICON = 3;
@@ -73,6 +84,9 @@ const TRAIT_ROWS_FREE = 5;
  */
 const TONED = new Set<string>(["pause", "fillers", "repairs", "pace", "range"]);
 const isToned = (key: string): key is TraitId => TONED.has(key);
+
+/** Whether this session is a guest's, as this visit last asked (lib/held.ts). */
+const GUEST_KEY = "guest";
 
 const EMPTY_STREAK: StreakState = {
   current: 0,
@@ -111,9 +125,20 @@ export default function YouPage() {
    * numbers that were not true. The card holds each line's exact
    * height with a bar instead, and `lib/load` is what lets them end.
    */
-  const [reps, setReps] = useState<RepRow[] | null>(null);
+  /*
+   * What this visit last read (#433, lib/held.ts): You opens on its
+   * numbers, its name and its words in the first frame and reads them
+   * again behind that. Never while the server's page hydrates (`warm`).
+   * The plan's own row is not held: a price is read, never remembered.
+   */
+  const warm = useWarm();
+  const heldAccount = warm ? heldProfile() : undefined;
+  const [reps, setReps] = useState<RepRow[] | null>(() => (warm && heldSpine() ? heldReps() : null));
   /** Every recording, a few columns each: the lifetime numbers. */
-  const [spine, setSpine] = useState<RepSpine[]>([]);
+  const [spine, setSpine] = useState<RepSpine[]>(() => (warm ? heldSpine() : null) ?? []);
+  /** The numbers are on screen: a later read is quiet, and its failure leaves them. */
+  const drawn = useRef(reps !== null);
+  useStill(drawn.current);
   const [failed, setFailed] = useState(false);
   const [allBadges, setAllBadges] = useState(false);
   /**
@@ -122,7 +147,8 @@ export default function YouPage() {
    * long as the fetch took. A failed read is its own state, with a
    * retry, never drawn as an empty lexicon (PRINCIPLES 8).
    */
-  const [lexicon, setLexicon] = useState<LexiconRow[] | null>(null);
+  const [lexicon, setLexicon] = useState<LexiconRow[] | null>(() => (warm ? heldLexicon() : null));
+  const lexiconDrawn = useRef(lexicon !== null);
   const [lexiconFailed, setLexiconFailed] = useState(false);
   /**
    * `null` until the XP read lands, for the same reason `reps` is: the
@@ -130,9 +156,10 @@ export default function YouPage() {
    * not arrived yet would COUNT UP to the truth a moment later. A failed
    * read shows a dash and a retry, never Level 1.
    */
-  const [xp, setXp] = useState<{ total: number; week: number } | null>(null);
+  const [xp, setXp] = useState<{ total: number; week: number } | null>(() => (warm ? heldXp() : null));
+  const xpDrawn = useRef(xp !== null);
   const [xpFailed, setXpFailed] = useState(false);
-  const [anon, setAnon] = useState<boolean | null>(null);
+  const [anon, setAnon] = useState<boolean | null>(() => (warm ? (held<boolean>(GUEST_KEY) ?? null) : null));
   const [paywall, setPaywall] = useState<PaywallAsk | null>(null);
   /* Coins and freezes still sync (the streak's freezes are real), but
      neither is drawn here since 26 Sep: the shop and the freeze shelf
@@ -140,7 +167,11 @@ export default function YouPage() {
   const [, setCoins] = useState<number | null | undefined>(undefined);
   /** The trait whose sheet is open. */
   const [openTrait, setOpenTrait] = useState<TraitLevel | null>(null);
-  const [streak, setStreak] = useState<StreakState>(EMPTY_STREAK);
+  const [streak, setStreak] = useState<StreakState>(() => {
+    const all = warm ? heldSpine() : null;
+    if (!all) return EMPTY_STREAK;
+    return heldFreezes()?.streak ?? computeStreak(all.map((r) => new Date(r.created_at)));
+  });
   const [flashing, setFlashing] = useState(false);
   /** `undefined` pending, `null` failed: the same split as `coins`. */
   const [, setFreezes] = useState<{
@@ -149,11 +180,11 @@ export default function YouPage() {
   } | null | undefined>(undefined);
   /** `null` until the profile answers, so "Add your name" can't flash
       over a name that merely hasn't arrived. */
-  const [name, setName] = useState<string | null>(null);
-  const [nameKnown, setNameKnown] = useState(false);
+  const [name, setName] = useState<string | null>(heldAccount?.display_name ?? null);
+  const [nameKnown, setNameKnown] = useState(heldAccount !== undefined);
   /** The plan: null until the profile answers, and on a failed read.
    *  Unknown is never free (#353): the lexicon is not cut until it says so. */
-  const [premium, setPremium] = useState<boolean | null>(null);
+  const [premium, setPremium] = useState<boolean | null>(() => (warm ? heldPremium() : null));
   /** The introduction's answers (#232): undefined until the device has been read. */
   const [onboarding, setOnboarding] = useState<OnboardingState | undefined>(undefined);
   const [editingName, setEditingName] = useState(false);
@@ -168,7 +199,7 @@ export default function YouPage() {
    * first step is celebrated in the card's place; back from the portal,
    * one sync quietly takes the row Stripe now has.
    */
-  const [profileRead, setProfileRead] = useState<ProfileRead>("loading");
+  const [profileRead, setProfileRead] = useState<ProfileRead>(heldAccount === undefined ? "loading" : heldAccount);
   const plan = usePlan(profileRead);
   const stripeReturn = useStripeReturn();
   const { arrival, rereading } = useStripeReturns(stripeReturn, plan, setPremium);
@@ -192,7 +223,7 @@ export default function YouPage() {
    * so a visit reads the ledger once.
    */
   const [worn, setWorn] = useState<string | null | undefined>(undefined);
-  const [poseLedger, setPoseLedger] = useState<CoinRow[] | null>(null);
+  const [poseLedger, setPoseLedger] = useState<CoinRow[] | null>(() => (warm ? (heldCoins()?.ledger ?? null) : null));
   // Before paint, so a tab switch to You never draws an empty stage first.
   useLayoutEffect(() => setWorn(readPrefs().pose), []);
   useEffect(() => {
@@ -247,19 +278,24 @@ export default function YouPage() {
 
   const load = useCallback(async () => {
     setFailed(false);
-    setReps(null);
+    // Numbers on screen stay there while they are read again (#433).
+    const quiet = drawn.current;
+    if (!quiet) setReps(null);
     // The newest 90 whole rows for the traits and the badges, and every
     // recording's date and stars for the numbers that count from day one.
     const read = await readable(() => Promise.all([fetchReps(), fetchRepSpine()]));
     if (!read.ok) {
-      setFailed(true);
+      // Only a screen with nothing to show says the read failed.
+      if (!drawn.current) setFailed(true);
       return;
     }
+    drawn.current = true;
     const [rows, all] = read.data;
     setSpine(all);
     setReps(rows);
     const dates = all.map((r) => new Date(r.created_at));
-    setStreak(computeStreak(dates));
+    // The bare count stands in only where no reconciled streak is drawn.
+    if (!quiet) setStreak(computeStreak(dates));
     void loadFreezes(dates);
     // The coin sync pays new days, which are always among the newest, so
     // the 90 rows' dates suffice; its ledger read is whole, and the stage's
@@ -272,19 +308,29 @@ export default function YouPage() {
      an empty lexicon, and never a skeleton for good (#147). */
   const loadLexicon = useCallback(async () => {
     setLexiconFailed(false);
-    setLexicon(null);
+    if (!lexiconDrawn.current) setLexicon(null);
     const read = await readable(() => fetchLexicon());
-    if (read.ok) setLexicon(read.data);
-    else setLexiconFailed(true);
+    if (read.ok) {
+      lexiconDrawn.current = true;
+      setLexicon(read.data);
+    } else if (!lexiconDrawn.current) setLexiconFailed(true);
   }, []);
 
   const loadXp = useCallback(async () => {
     setXpFailed(false);
-    setXp(null);
+    if (!xpDrawn.current) setXp(null);
     const read = await readable(fetchXp);
-    if (read.ok) setXp(read.data);
-    else setXpFailed(true);
+    if (read.ok) {
+      xpDrawn.current = true;
+      setXp(read.data);
+    } else if (!xpDrawn.current) setXpFailed(true);
   }, []);
+  // Looked at again after a while, or back on the network: read again, quietly.
+  useRevalidate(() => {
+    void load();
+    void loadLexicon();
+    void loadXp();
+  });
 
   useEffect(() => {
     void load();
@@ -317,8 +363,13 @@ export default function YouPage() {
     const db = supabaseBrowser();
     db?.auth
       .getUser()
-      .then(({ data }) => setAnon(data.user?.is_anonymous ?? null))
-      .catch(() => setAnon(null));
+      .then(({ data }) => {
+        const guest = data.user?.is_anonymous ?? null;
+        if (guest !== null) hold(GUEST_KEY, guest);
+        setAnon(guest);
+      })
+      // A failed ask leaves what the visit already knew.
+      .catch(() => {});
   }, [load, loadLexicon, loadXp]);
 
   /** The plan's read failed: read it again, and the profile with it if that was the one. */
@@ -499,6 +550,10 @@ export default function YouPage() {
                   autoFocus
                   name="displayName"
                   autoComplete="nickname"
+                  /* A name is not a word to correct, and it starts with
+                     a capital (#446). */
+                  autoCapitalize="words"
+                  autoCorrect="off"
                   enterKeyHint="done"
                   spellCheck={false}
                   aria-label="Display name"
@@ -845,7 +900,7 @@ export default function YouPage() {
              then shrinks to its three (a failed plan read shows all). */
           <div aria-busy="true">
             {[0, 1, 2].map((i) => (
-              <div key={i} className={`${SWAP_ROW} border-b border-hairline`}>
+              <div key={i} className={SWAP_ROW}>
                 <Skeleton className="h-6 w-48" />
               </div>
             ))}
@@ -872,7 +927,7 @@ export default function YouPage() {
                 like every section's content. */}
             <ul className="stagger">
               {lexicon.slice(0, lexiconCap ?? lexicon.length).map((l) => (
-                <li key={l.id} className={`${SWAP_ROW} border-b border-hairline`}>
+                <li key={l.id} className={SWAP_ROW}>
                   <Swap original={l.original} upgrade={l.upgrade} />
                 </li>
               ))}
@@ -892,7 +947,7 @@ export default function YouPage() {
                 onClick={() =>
                   setPaywall({
                     reason: "Full lexicon",
-                    headline: "Every word you've earned, kept.",
+                    headline: "Every word you've earned, kept",
                   })
                 }
                 className="press mt-1 flex min-h-11 w-full items-center justify-between gap-3 py-3 text-left text-row font-semibold text-stone-500"
@@ -934,9 +989,13 @@ export default function YouPage() {
             </span>
           )}
         </h2>
-        {/* An open hairline list on the ground (E11), Trait levels' and
-            the lexicon's grammar: no card, no tile inside it. The rows'
-            own 12px top padding is the head's mt-3. */}
+        {/* An open list on the ground (E11), Trait levels' and the
+            lexicon's grammar: no card, no tile inside it, and since #454
+            no rule between rows. A badge part earned draws its progress
+            along the row's foot, and a hairline under that was two lines
+            for one row; the mark, the two lines of words and 56px a row
+            keep them apart. The rows' own 12px top padding is the head's
+            mt-3. */}
         <div className="stagger" aria-busy={loading || undefined}>
           {shownBadges.map((a) => {
             const earned = !loading && a.earned;
@@ -944,7 +1003,7 @@ export default function YouPage() {
               <Link
                 key={a.id}
                 href={a.href}
-                className="press-row flex min-h-14 items-center gap-3.5 border-b border-hairline py-3"
+                className="press-row flex min-h-14 items-center gap-3.5 py-3"
               >
                 {/* The bare mark at 24 (E11): sage when earned, the
                     accent rule's one colour for it; stone while not. */}
@@ -966,6 +1025,17 @@ export default function YouPage() {
                   </span>
                   <span className="mt-0.5 block text-caption text-stone-400">
                     {a.requirement}
+                    {/* Earned or not is the mark's colour and nothing
+                        else, so it is also said (#448). */}
+                    {!loading && (
+                      <span className="sr-only">
+                        {a.earned
+                          ? ". Earned."
+                          : a.progress > 0
+                            ? `. Not earned yet, ${Math.round(a.progress * 100)}% of the way.`
+                            : ". Not earned yet."}
+                      </span>
+                    )}
                   </span>
                   {!loading && !a.earned && a.progress > 0 && (
                     <span className="mt-1.5 block h-1 overflow-hidden bg-sand">
@@ -987,11 +1057,11 @@ export default function YouPage() {
             );
           })}
           {foldedBadges > 0 && (
-            /* The last hairline row: the count in the names' column. */
+            /* The last row: the count in the names' column. */
             <button
               type="button"
               onClick={() => setAllBadges(true)}
-              className="press-row flex min-h-14 w-full items-center gap-3.5 border-b border-hairline py-3 text-left"
+              className="press-row flex min-h-14 w-full items-center gap-3.5 py-3 text-left"
             >
               <span aria-hidden className="w-6 shrink-0" />
               <span className="font-display min-w-0 flex-1 text-row text-stone-500">
@@ -1210,7 +1280,10 @@ const SWAP_ROW = "flex min-h-14 flex-wrap items-center gap-x-2.5 gap-y-1 py-3 te
 function Swap({ original, upgrade }: { original: string; upgrade: string }) {
   return (
     <>
-      <span className="text-stone-400 line-through">{original}</span>
+      <span className="text-stone-400 line-through">
+        <SwapFrom />
+        {original}
+      </span>
       <svg
         aria-hidden
         width="16"
@@ -1225,7 +1298,10 @@ function Swap({ original, upgrade }: { original: string; upgrade: string }) {
       >
         <path d="M2.5 8h10.5M9.5 4.5 13 8l-3.5 3.5" />
       </svg>
-      <span className="you-word">{upgrade}</span>
+      <span className="you-word">
+        <SwapTo />
+        {upgrade}
+      </span>
     </>
   );
 }
@@ -1267,8 +1343,10 @@ function RoadCard({ state, stars }: { state: OnboardingState; stars: number | nu
     <Link href="/welcome?step=plan" className={ROAD_CARD}>
       <span className="min-w-0 flex-1">
         <span className="eyebrow block">The road</span>
+        {/* The plan's headline is Demos's line in the introduction; here
+            it is the card's title, so its full stop goes (lib/title.ts). */}
         <span className="font-display mt-0.5 block truncate text-row">
-          {plan.headline}
+          {asTitle(plan.headline)}
         </span>
         <span className="mt-0.5 block truncate text-caption tabular-nums text-stone-500">
           {plan.focus ? gateLine(plan.focus.unitName, toGo) : "The road, one unit at a time"}

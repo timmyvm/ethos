@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import type { RepRow } from "@/lib/client-data";
 import { sinceDayOne } from "@/lib/log";
 import { ALL_FILLERS_PER_MIN, HELD_PER_RECORDING } from "@/lib/metric-labels";
+import { canShareFile, shareFile } from "@/lib/share-file";
 import { ACTION_CLASS } from "@/lib/ui";
 
 /** All fillers / min, or `null` when a recording has no length to divide by. */
@@ -21,12 +22,19 @@ const fpm = (r: RepRow): number | null =>
  * days. Canvas-drawn (no html2canvas): fewer deps, exact control, and it
  * works offline in the PWA.
  *
+ * The picture goes out through the phone's own share sheet where the
+ * browser can hand it a file (#447, lib/share-file.ts): Save Image,
+ * Messages, a story. Where it cannot, "Save the card" is the download
+ * it always was, and a held thumb on the picture still keeps it (#444).
+ *
  * It carries no outer margin; the parent places it (STATE). `quiet`
  * steps the button down to the surface door when something else on the
  * screen holds the one terracotta tap.
  */
 export function ShareCard({ reps, quiet = false }: { reps: RepRow[]; quiet?: boolean }) {
-  const [url, setUrl] = useState<string | null>(null);
+  /* The card once drawn: its picture, and the file the share sheet
+     takes, or null where this browser shares no files (or refused to). */
+  const [card, setCard] = useState<{ url: string; file: File | null } | null>(null);
   const busy = useRef(false);
 
   const ends = sinceDayOne(reps);
@@ -135,7 +143,22 @@ export function ShareCard({ reps, quiet = false }: { reps: RepRow[]; quiet?: boo
       g.fillStyle = "#c67139";
       g.fillRect(90, H - 100, 120, 8);
 
-      setUrl(c.toDataURL("image/png"));
+      /* The file is made here, with the picture, so the share tap has
+         nothing to wait for: a share sheet only rises inside its tap. */
+      const blob = await new Promise<Blob | null>((done) => c.toBlob(done, "image/png"));
+      const file = blob ? new File([blob], "ethos-progress.png", { type: "image/png" }) : null;
+      setCard({ url: c.toDataURL("image/png"), file: file && canShareFile(file) ? file : null });
+    } finally {
+      busy.current = false;
+    }
+  }
+
+  async function share() {
+    if (!card?.file || busy.current) return;
+    busy.current = true;
+    try {
+      // Refused (not closed): the link takes over, so the card can still be kept.
+      if ((await shareFile(card.file)) === "failed") setCard({ url: card.url, file: null });
     } finally {
       busy.current = false;
     }
@@ -169,7 +192,7 @@ export function ShareCard({ reps, quiet = false }: { reps: RepRow[]; quiet?: boo
           </dd>
         </div>
       </dl>
-      {url ? (
+      {card ? (
         /* The card the tap produced: it arrives in place of the button
            it replaced, rather than cutting in when the canvas finishes. */
         <div className="arrive mt-5">
@@ -179,15 +202,23 @@ export function ShareCard({ reps, quiet = false }: { reps: RepRow[]; quiet?: boo
               mid-animation. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={url}
+            src={card.url}
             alt="Your progress card"
+            /* A picture made to be kept: a held thumb may still save it (#444). */
+            data-keeps=""
             width={1080}
             height={1920}
             className="aspect-[1080/1920] w-full rounded-control border border-card-edge"
           />
-          <a href={url} download="ethos-progress.png" className={`${tap} mt-3`}>
-            Save the card
-          </a>
+          {card.file ? (
+            <button type="button" onClick={() => void share()} className={`${tap} mt-3`}>
+              Share the card
+            </button>
+          ) : (
+            <a href={card.url} download="ethos-progress.png" className={`${tap} mt-3`}>
+              Save the card
+            </a>
+          )}
         </div>
       ) : (
         <button type="button" onClick={draw} className={`${tap} mt-5`}>

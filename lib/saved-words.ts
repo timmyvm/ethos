@@ -93,6 +93,40 @@ export async function removeSavedWord(id: string): Promise<void> {
   if (error) throw new SaveFailed(error.message);
 }
 
+/**
+ * Put back a swap that was just taken off (#435, the undo): the same
+ * row, its id and its date with it, so it returns to its own place in
+ * the list. A row that never left (the removal had not landed, or
+ * another phone saved the pair again) answers as kept.
+ */
+export async function restoreSavedWord(row: SavedWord): Promise<SavedWord> {
+  const db = supabaseBrowser();
+  const me = await currentSession();
+  if (!db || !me) throw new SaveFailed("no session");
+  const { data, error } = await db
+    .from("saved_words")
+    .insert({
+      id: row.id,
+      user_id: me.userId,
+      word: row.word,
+      instead: row.instead,
+      sentence: row.sentence,
+      rep_id: row.rep_id,
+      created_at: row.created_at,
+    })
+    .select(COLUMNS)
+    .single();
+  if (!error && data) return data as SavedWord;
+  if ((error as { code?: string } | null)?.code === "23505") return row;
+  throw new SaveFailed(error?.message);
+}
+
+/** A row in its place in the list: newest first, as the read orders it. */
+export function withRow(rows: SavedWord[], row: SavedWord): SavedWord[] {
+  if (rows.some((r) => r.id === row.id)) return rows;
+  return [...rows, row].sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0));
+}
+
 /*
  * The pairs this account has saved, as the phone last knew them, so a
  * word sheet opens with a swap already saved marked as saved. Read once a

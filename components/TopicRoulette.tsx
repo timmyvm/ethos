@@ -1,5 +1,6 @@
 "use client";
 
+import { TapTick } from "@/components/ui/TapTick";
 import { Reel, useReel } from "@/components/Reel";
 import { ACTION_CLASS, DISABLED_CLASS } from "@/lib/ui";
 import { spinForAnswers as spin } from "@/lib/portfolio";
@@ -63,6 +64,7 @@ export function TopicRoulette({
           className={`press font-display min-h-12 shrink-0 rounded-tap border border-edge bg-surface px-5 text-row ${DISABLED_CLASS}`}
         >
           Spin
+          {!reel.rolling && <TapTick />}
         </button>
         {/* The same one tap the floor and every lesson screen declare. */}
         <button

@@ -152,7 +152,7 @@ export default function RepDetail({
 
   if (failed) {
     return (
-      <main className="px-5 pb-8 pt-7">
+      <main className="px-5 pb-[var(--nav-clear)] pt-7">
         <ScreenHeader title="Recording" eyebrow={HELD} back={back} />
         <ErrorState
           className="mt-4"
@@ -165,7 +165,7 @@ export default function RepDetail({
 
   if (stored === null) {
     return (
-      <main className="px-5 pb-8 pt-7">
+      <main className="px-5 pb-[var(--nav-clear)] pt-7">
         {/* The header is drawn for real, so the way back works while
             the read is in flight; only the date waits. "Recording" is
             what every recording is until its row says which. */}
@@ -187,7 +187,7 @@ export default function RepDetail({
 
   if (!rep) {
     return (
-      <main className="px-5 pb-8 pt-7">
+      <main className="px-5 pb-[var(--nav-clear)] pt-7">
         <ScreenHeader title="Recording" eyebrow={HELD} back={back} />
         <p className="font-display mt-4 text-row">Recording not found.</p>
       </main>
@@ -258,7 +258,8 @@ export default function RepDetail({
   const lesson = practice ? lessonById(practice.lessonId) : null;
 
   return (
-    <main className="px-5 pb-8 pt-7">
+    /* The tab bar stays on this page, Log lit (#442): the foot clears it. */
+    <main className="px-5 pb-[var(--nav-clear)] pt-7">
       {/* log-3: the screen names the recording the Log row named, with
           the date over it, and its way back stays in the bar from the
           transcript down. One idea per eyebrow: a boss says so after a
@@ -365,7 +366,7 @@ export default function RepDetail({
             onUpgrade={() =>
               setPaywall({
                 reason: "Presence · premium",
-                headline: "See what the camera measured.",
+                headline: "See what the camera measured",
               })
             }
           />
@@ -377,7 +378,7 @@ export default function RepDetail({
             onUpgrade={() =>
               setPaywall({
                 reason: "Delivery readout · premium",
-                headline: "See what the camera measured.",
+                headline: "See what the camera measured",
               })
             }
           />

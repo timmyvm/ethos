@@ -1,23 +1,29 @@
 "use client";
 
+import { TapTick } from "@/components/ui/TapTick";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Segmented } from "@/components/ui/Segmented";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { deleteAccount, signOut } from "@/lib/auth";
 import { fetchAllLexicon, fetchAllReps, fetchReps } from "@/lib/client-data";
 import { readable } from "@/lib/load";
 import {
   DEFAULT_PREFS,
+  prefersReducedMotion,
   readPrefs,
   writePrefs,
   type Prefs,
   type Theme,
 } from "@/lib/prefs";
 import { applyMotion, applyTheme } from "@/components/Theme";
-import { applyGraphics, liteWhy, type LiteWhy } from "@/lib/graphics";
+import { applyGraphics, liteGraphics, liteWhy, type LiteWhy } from "@/lib/graphics";
+import { videoOffered } from "@/lib/pose-client";
+import { hapticsHere } from "@/lib/tap-tick";
+import { askedTextZoom } from "@/lib/text-size";
 import { ManageSheet } from "@/components/premium/ManageSheet";
 import { SettingsPlanRow, SettingsPlanRowSkeleton } from "@/components/premium/PlanCard";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -41,7 +47,7 @@ import {
   type ReminderTier,
   type TestOutcome,
 } from "@/lib/reminders";
-import { ASK_COPY, askPlatform, deniedLine, markSwitchedOff } from "@/lib/reminder-ask";
+import { ASK_COPY, askHours, askPlatform, deniedLine, markSwitchedOff } from "@/lib/reminder-ask";
 import { saveAccountHour } from "@/lib/reminder-account";
 import { testerNote } from "@/lib/tester-signal";
 import { inAppBrowser } from "@/lib/in-app";
@@ -50,14 +56,11 @@ import { computeStreak } from "@/lib/streak";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { useHourLabel } from "@/lib/time-label";
 import { ACTION_CLASS, DISABLED_CLASS, INPUT_CLASS } from "@/lib/ui";
-import { useRovingRadio, type RovingItemProps } from "@/lib/use-roving-radio";
 import { DOOR_COPY, TEST, TEST_COPY } from "@/content/tester";
 import { isCurrentTester } from "@/lib/tester";
 import { testDay, zoneDayKey } from "@/lib/tester-days";
 import { fetchTester, forgetTesterHint, readTesterHint, testZoneHere } from "@/lib/tester-client";
 
-/** The hours a reminder can ring at: two rows of three (you-17). */
-const HOURS = [7, 8, 12, 18, 20, 21] as const;
 /** Where the switch lands when it goes on: the evening, after the day. */
 const DEFAULT_HOUR = 20;
 
@@ -112,6 +115,31 @@ export default function SettingsPage() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleted, setDeleted] = useState(false);
+  const deleteDoor = useRef<HTMLButtonElement>(null);
+  const confirmCard = useRef<HTMLDivElement>(null);
+  const confirmField = useRef<HTMLInputElement>(null);
+  /*
+   * The confirm opens where "Delete my account" stood, the last thing on
+   * the page, and it is five times that row's height: its field landed
+   * under the tab bar and both buttons below the screen (#445). It comes
+   * into view whole and its field takes the focus, in the tap's own
+   * stack so an iPhone raises its keyboard with it, the way an alert
+   * with a field does.
+   */
+  function armDelete() {
+    flushSync(() => {
+      setArming(true);
+      setConfirmText("");
+      setDeleteError(null);
+    });
+    confirmField.current?.focus({ preventScroll: true });
+    confirmCard.current?.scrollIntoView({ block: "nearest", behavior: prefersReducedMotion() ? "auto" : "smooth" });
+  }
+  /** Backing out puts the focus back on the row that opened it. */
+  function disarmDelete() {
+    flushSync(() => setArming(false));
+    deleteDoor.current?.focus({ preventScroll: true });
+  }
   /* The next time the reminder rings. Read after mount and after every
      change that moves it, never during render: a clock read in render
      is a different answer on the server and the phone (#418). */
@@ -129,8 +157,21 @@ export default function SettingsPage() {
      billing read, and nothing under it moves when it lands. Read before
      paint, so a visit from You never draws the page without it. */
   const [hint, setHint] = useState(false);
+  /* What this phone can do (#446): a row for something it cannot is a
+     switch that does nothing. An iPhone takes no Video (#412), so it is
+     not offered the camera score's bench. Haptics is offered wherever
+     the phone can give one: a vibration, or on an iPhone the tap's tick
+     (#449). Larger text is offered where the phone's text is set larger
+     than the default and the screen has the room to follow it (#451).
+     Read before paint, so no row is drawn and then taken away. */
+  const [canBuzz, setCanBuzz] = useState(false);
+  const [canVideo, setCanVideo] = useState(false);
+  const [canGrow, setCanGrow] = useState(false);
   useLayoutEffect(() => {
     setHint(readPlanHint());
+    setCanBuzz(hapticsHere());
+    setCanVideo(videoOffered(liteGraphics()));
+    setCanGrow(askedTextZoom() > 1);
   }, []);
   useEffect(() => {
     if (plan.today) keepPlanHint(plan.view, plan.failed);
@@ -383,7 +424,7 @@ export default function SettingsPage() {
           className="demos w-[160px]"
         />
         <h1 className="font-display mt-5 text-title font-extrabold">
-          All gone.
+          All gone
         </h1>
         <p className="mt-2 max-w-[280px] text-body text-pretty text-stone-500">
           {hadPlan && "Plan ended. "}Recordings, scores, streaks, account: deleted. Thanks for
@@ -405,8 +446,7 @@ export default function SettingsPage() {
 
       {/* Reminders first: it's the habit lever, so it's the one thing
           people come back here to change. One switch says whether it
-          rings (you-17); the hours appear only while it does, so the
-          ink "Off" slab, the heaviest object on the screen, is gone. */}
+          rings (you-17); its Time row appears only while it does. */}
       <Section
         title="Reminders"
         footer="One notification a day, with a number from your last take."
@@ -416,9 +456,10 @@ export default function SettingsPage() {
           on={reminderOn}
           onChange={(v) => setHour(v ? DEFAULT_HOUR : null)}
         />
-        {reminderOn && (
-          <HourSet
+        {prefs.reminderHour !== null && (
+          <TimeRow
             value={prefs.reminderHour}
+            hours={askHours(prefs)}
             onChange={(h) => setHour(h)}
             label={hour}
           />
@@ -541,27 +582,32 @@ export default function SettingsPage() {
           onChange={(v) => update({ verbatim: v })}
         />
         {/* The Presence bench (#187): four labeled takes tune the camera
-            score's thresholds to a real body. */}
-        <LinkRow
-          href="/calibrate"
-          label="Calibrate the camera score"
-          note="Four short takes tune it to your body."
-        />
+            score's thresholds to a real body. Only where a take can be
+            Video at all (#446). */}
+        {canVideo && (
+          <LinkRow
+            href="/calibrate"
+            label="Calibrate the camera score"
+            note="Four short takes tune it to your body."
+          />
+        )}
       </Section>
 
-      <Section title="Sound and haptics">
+      <Section title={canBuzz ? "Sound and haptics" : "Sound"}>
         <Toggle
           label="Sound"
           note="One chime at the streak celebration."
           on={prefs.sound}
           onChange={(v) => update({ sound: v })}
         />
-        <Toggle
-          label="Haptics"
-          note="A tap when recording starts and stops."
-          on={prefs.haptics}
-          onChange={(v) => update({ haptics: v })}
-        />
+        {canBuzz && (
+          <Toggle
+            label="Haptics"
+            note="A tap when recording starts and stops."
+            on={prefs.haptics}
+            onChange={(v) => update({ haptics: v })}
+          />
+        )}
       </Section>
 
       <Section title="Appearance">
@@ -580,13 +626,28 @@ export default function SettingsPage() {
         </div>
         <Toggle
           label="Reduced motion"
-          note="Every animation becomes a plain fade. Your OS setting is honoured either way."
+          note="Every animation becomes a plain fade. Your phone's own setting still counts."
           on={prefs.reducedMotion}
           onChange={(v) => {
             update({ reducedMotion: v });
             applyMotion(v);
           }}
         />
+        {/* #451: Ethos is shown at the size the phone's text is set to.
+            The size is read as the page loads (lib/text-size.ts), so the
+            switch saves and loads the page again: the one path that is
+            the same as opening the app. */}
+        {canGrow && (
+          <Toggle
+            label="Larger text"
+            note="Follows your phone's text size."
+            on={prefs.followTextSize}
+            onChange={(v) => {
+              update({ followTextSize: v });
+              window.location.reload();
+            }}
+          />
+        )}
         {/* #412: the switch shows what the phone draws now, chosen or
             not; once touched, it is the person's and the device's
             guesses stand aside. */}
@@ -670,7 +731,7 @@ export default function SettingsPage() {
           className={`group-row press-row flex w-full items-center gap-3 text-left ${DISABLED_CLASS}`}
         >
           <span className="font-display min-w-0 flex-1 text-row">
-            {exporting ? "Building your file…" : "Export everything as JSON"}
+            {exporting ? "Building your file…" : "Export everything"}
           </span>
           {/* The row's affordance (you-18): a download mark in the
               functional glyph colour, never a hue. */}
@@ -746,18 +807,15 @@ export default function SettingsPage() {
         {!arming ? (
           <div className="inset-group">
             <button
-              onClick={() => {
-                setArming(true);
-                setConfirmText("");
-                setDeleteError(null);
-              }}
+              ref={deleteDoor}
+              onClick={armDelete}
               className="group-row press-row font-display w-full text-center text-row text-destructive"
             >
               Delete my account
             </button>
           </div>
         ) : (
-          <div className="card p-4">
+          <div ref={confirmCard} className="card scroll-mb-[var(--nav-clear)] scroll-mt-16 p-4">
             <p className="text-read text-pretty text-stone-800">
               This permanently deletes every recording, transcript, score,
               streak and the account itself.
@@ -767,13 +825,22 @@ export default function SettingsPage() {
               Type DELETE to confirm
             </label>
             <input
+              ref={confirmField}
               id="delete-confirm"
               name="confirm"
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
+              onKeyDown={(e) => {
+                // Return puts the keyboard away and deletes nothing: the
+                // one tap that does is the button, in sight once it has.
+                if (e.key === "Enter") e.currentTarget.blur();
+                if (e.key === "Escape" && !deleting) disarmDelete();
+              }}
               autoComplete="off"
+              autoCorrect="off"
               spellCheck={false}
               autoCapitalize="characters"
+              enterKeyHint="done"
               placeholder="DELETE"
               className={`${INPUT_CLASS} mt-1.5`}
             />
@@ -782,20 +849,23 @@ export default function SettingsPage() {
                 {deleteError}
               </p>
             )}
+            {/* The way back leads, the deletion trails: the order every
+                confirm on the phone uses, so a thumb that knows where
+                Cancel is finds "Keep it" there (#445). */}
             <div className="mt-3 flex gap-2">
+              <button
+                onClick={disarmDelete}
+                disabled={deleting}
+                className={`press font-display min-h-11 flex-1 rounded-tap border border-edge bg-surface px-4 py-2.5 text-row ${DISABLED_CLASS}`}
+              >
+                Keep it
+              </button>
               <button
                 onClick={() => void runDelete()}
                 disabled={confirmText.trim() !== "DELETE" || deleting}
                 className={`press font-display min-h-11 flex-1 rounded-tap border border-edge bg-surface px-4 py-2.5 text-row text-destructive ${DISABLED_CLASS}`}
               >
                 {deleting ? "Deleting…" : "Delete everything"}
-              </button>
-              <button
-                onClick={() => setArming(false)}
-                disabled={deleting}
-                className={`press font-display min-h-11 flex-1 rounded-tap border border-edge bg-surface px-4 py-2.5 text-row ${DISABLED_CLASS}`}
-              >
-                Keep it
               </button>
             </div>
           </div>
@@ -884,80 +954,71 @@ function Toggle({
       <span aria-hidden className="switch" data-on={on || undefined}>
         <span className="switch-knob" />
       </span>
+      {/* A switch ticks when it is thrown, as every switch on the phone
+          does (#449). */}
+      <TapTick />
     </button>
   );
 }
 
 /**
- * The reminder's hour: one radio group (you-19), two rows of three that
- * end flush with the row (you-17). It wears the segmented control's
- * grammar, a quiet track per option and a raised thumb on the chosen
- * one, so the screen shows a choice one way, not two (system-13).
+ * The reminder's hour, as a row: its name, the hour it rings at, and
+ * the phone's own picker under the whole row (#446, breaking #349's
+ * 3x2 grid). The grid offered six hours and the results glance offers
+ * every hour outside quiet hours (#430), so an hour chosen there (9 am)
+ * left Settings with the switch on over six unlit options: a control
+ * that could not show its own value. One picker and the same hours in
+ * both places; an hour kept from before that now falls inside quiet
+ * hours is still listed, so the row never shows a time it does not hold.
  */
-function HourSet({
+function TimeRow({
   value,
+  hours,
   onChange,
   label,
 }: {
-  value: number | null;
+  value: number;
+  hours: number[];
   onChange: (h: number) => void;
   label: (h: number) => string;
 }) {
-  const { getItemProps } = useRovingRadio<number>({
-    values: HOURS,
-    value,
-    onChange,
-  });
+  const options = hours.includes(value) ? hours : [...hours, value].sort((x, y) => x - y);
   return (
-    <div
-      role="radiogroup"
-      aria-label="Reminder hour"
-      className="group-row grid grid-cols-3 gap-1.5"
-    >
-      {HOURS.map((h, i) => (
-        <Choice
-          key={h}
-          selected={value === h}
-          onSelect={() => onChange(h)}
-          {...getItemProps(h, i)}
-        >
-          {label(h)}
-        </Choice>
-      ))}
-    </div>
-  );
-}
-
-/** One option in the hour set: a radio, roved by its group. */
-function Choice({
-  selected,
-  onSelect,
-  children,
-  tabIndex,
-  onKeyDown,
-  ref,
-}: {
-  selected: boolean;
-  onSelect: () => void;
-  children: React.ReactNode;
-} & RovingItemProps) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={selected}
-      tabIndex={tabIndex}
-      onKeyDown={onKeyDown}
-      ref={ref}
-      onClick={onSelect}
-      className={`press font-display min-h-11 w-full rounded-control border px-2 text-link font-bold tabular-nums transition-colors ${
-        selected
-          ? "border-transparent bg-raised text-ink shadow-[var(--shadow-1)] dark:bg-[#4a4a4a] dark:shadow-[0_0_0_0.5px_rgb(255_255_255/0.08)]"
-          : "border-transparent bg-[color-mix(in_srgb,var(--color-ink)_7%,transparent)] text-stone-600"
-      }`}
-    >
-      {children}
-    </button>
+    <label className="group-row press-row flex w-full items-center gap-3 focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-ink">
+      <span className="font-display min-w-0 flex-1 text-row">Time</span>
+      <span aria-hidden className="shrink-0 text-row font-normal text-stone-500 tabular-nums">
+        {label(value)}
+      </span>
+      {/* The mark iOS puts on a row that opens a list of values. */}
+      <svg
+        aria-hidden
+        width="9"
+        height="14"
+        viewBox="0 0 9 14"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="shrink-0 text-stone-400"
+      >
+        <path d="m1.5 5 3-3.2 3 3.2M1.5 9l3 3.2 3-3.2" />
+      </svg>
+      {/* The reading step, 16px, so an iPhone does not zoom the page to it. */}
+      <select
+        data-reminder-hour
+        aria-label="Reminder time"
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="absolute inset-0 h-full w-full cursor-pointer appearance-none text-read opacity-0"
+      >
+        {options.map((h) => (
+          <option key={h} value={h}>
+            {label(h)}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 

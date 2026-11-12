@@ -41,7 +41,11 @@ export function TipStrip({
    * "Pause after the full stop" over three lines. Three tiles take 14px
    * labels, 10px sides and an 8px gutter, so every label in
    * lib/tip-labels.ts reads in two lines (B4's recipe, once, here, where
-   * /rep, the unit intro and the trait page used to copy it).
+   * /rep, the unit intro and the trait page used to copy it). Under 360
+   * wide a label runs to three lines, so the tile steps its top and
+   * bottom in by 4px each: that is the layout an iPhone gets once its
+   * text size is followed (#451), and the recorder's Record stands
+   * under these.
    */
   const tight = shown.length === 3;
 
@@ -73,7 +77,7 @@ export function TipStrip({
               aria-expanded={on}
               aria-controls={`${id}-tip`}
               onClick={() => setOpen(on ? null : i)}
-              className={`tip-tile press flex flex-col items-start rounded-card border text-left ${tight ? "px-2.5 py-4" : "p-4"}`}
+              className={`tip-tile press flex flex-col items-start rounded-card border text-left ${tight ? "px-2.5 py-4 max-[359px]:py-3" : "p-4"}`}
               data-on={on || undefined}
             >
               <span className="flex w-full items-center justify-between">

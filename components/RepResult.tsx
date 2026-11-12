@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
+import { SwapFrom, SwapTo, TrendMark } from "@/components/ui/TrendMark";
 import { AccuracyCard } from "@/components/AccuracyCard";
 import { CountUp } from "@/components/CountUp";
 import { DemosArt, preloadPose } from "@/components/DemosArt";
@@ -433,7 +434,10 @@ export function RepResult({
                       second line reads "→ an impossible week", never an
                       arrow left at the end of the first. */}
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-body">
-                    <span className="text-stone-500 line-through">{coach.supply.original}</span>
+                    <span className="text-stone-500 line-through">
+                      <SwapFrom />
+                      {coach.supply.original}
+                    </span>
                     <span className="flex min-w-0 items-center gap-x-3">
                       <svg
                         aria-hidden
@@ -449,7 +453,10 @@ export function RepResult({
                       >
                         <path d="M2.5 8h10M9 4.5 12.5 8 9 11.5" />
                       </svg>
-                      <span className="font-semibold">{coach.supply.upgrade}</span>
+                      <span className="font-semibold">
+                        <SwapTo />
+                        {coach.supply.upgrade}
+                      </span>
                     </span>
                   </div>
                   {coach.supply.note && <p className="mt-1.5 text-caption text-stone-500">{coach.supply.note}</p>}
@@ -837,7 +844,10 @@ export function RepResult({
               label="Length"
               value={String(Math.round(m.durationS))}
               unit="s"
-              note={<span className="whitespace-nowrap">{lengthNote}</span>}
+              /* One line where it fits. Under 360px a tile holds 69px
+                 and "target 60 to 90s" is 95: it ran out of the card's
+                 right edge, so there it takes two (#450). */
+              note={<span className="whitespace-nowrap max-[359px]:whitespace-normal">{lengthNote}</span>}
             />
           </div>
           {/* A game round's score step gives this line to the round (M5):
@@ -910,6 +920,7 @@ export function RepResult({
           <h2 className="section-head">Say this instead</h2>
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-body">
             <span className="text-stone-500 line-through">
+              <SwapFrom />
               {coach.supply.original}
             </span>
             {/* The arrow travels with what it points at (#429). */}
@@ -928,7 +939,10 @@ export function RepResult({
               >
                 <path d="M2.5 8h10M9 4.5 12.5 8 9 11.5" />
               </svg>
-              <span className="font-semibold">{coach.supply.upgrade}</span>
+              <span className="font-semibold">
+                <SwapTo />
+                {coach.supply.upgrade}
+              </span>
             </span>
           </div>
           {coach.supply.note && (
@@ -992,7 +1006,7 @@ function Delta({
   if (delta !== null && delta !== 0) {
     return (
       <p className={`${size} ${delta > 0 ? "text-sage-700" : "text-rust"} ${className}`}>
-        {delta > 0 ? "▲" : "▼"} {Math.abs(delta)} {boss ? "on last week's boss" : "since last time"}
+        <TrendMark up={delta > 0} /> {Math.abs(delta)} {boss ? "on last week's boss" : "since last time"}
       </p>
     );
   }
@@ -1020,7 +1034,7 @@ function NotScored({ metrics: m, centred = false }: { metrics: RepMetrics; centr
         </span>
       )}
       <h2 className={`font-display text-title ${centred ? "mt-5" : ""}`}>
-        Not enough to score.
+        Not enough to score
       </h2>
       <p className="mt-2 text-body text-stone-500 text-pretty">
         {m.substance.wordCount < 20
@@ -1052,7 +1066,11 @@ function Metric({
 }) {
   return (
     <div className="min-w-0 px-3 py-4">
-      <div className="label-micro whitespace-nowrap">{label}</div>
+      {/* One line, except under 360px: "HELD PAUSES" at the 11px floor
+          (#450) is 82px and a tile there holds 68, so it takes two lines,
+          and all three labels keep two lines' room so the numbers under
+          them stay on one line across the card. */}
+      <div className="label-micro whitespace-nowrap max-[359px]:min-h-[2lh] max-[359px]:whitespace-normal">{label}</div>
       <div className="font-display mt-1.5 text-num-m tabular-nums">
         {value}
         {unit && <span className="text-body font-bold text-stone-500">{unit}</span>}
@@ -1307,7 +1325,7 @@ function Glance({
             <p data-unscored-star className="mt-1 text-caption text-stone-500">
               1 star for showing up
             </p>
-            <h2 className="font-display mt-3 text-title">Not scored.</h2>
+            <h2 className="font-display mt-3 text-title">Not scored</h2>
           </>
         ) : (
           <>
@@ -1330,7 +1348,7 @@ function Glance({
             {view.earned.delta ? (
               <span className={view.earned.delta > 0 ? "text-sage-700" : "text-rust"}>
                 {" "}
-                {view.earned.delta > 0 ? "▲" : "▼"} {Math.abs(view.earned.delta)}
+                <TrendMark up={view.earned.delta > 0} /> {Math.abs(view.earned.delta)}
               </span>
             ) : null}
           </p>

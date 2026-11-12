@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Fragment, useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { TapTick } from "@/components/ui/TapTick";
 import { DemosFigure } from "@/components/DemosClip";
 import { Paywall } from "@/components/Paywall";
 import { PremiumMark } from "@/components/PremiumMark";
@@ -15,7 +16,9 @@ import { FooterShelf } from "@/components/ui/FooterShelf";
 import { BackLink } from "@/components/ui/ScreenHeader";
 import { fetchProfile, fetchReps } from "@/lib/client-data";
 import { weekStart } from "@/lib/level";
-import { ensureSession } from "@/lib/supabase-browser";
+import { hostileKey } from "@/lib/client-key";
+import { sendWithRetry } from "@/lib/rep-outbox";
+import { ensureSession, sessionToken } from "@/lib/supabase-browser";
 import { ACTION_CLASS } from "@/lib/ui";
 import {
   ANSWER_SECONDS,
@@ -28,7 +31,9 @@ import {
 } from "@/lib/hostile";
 import { ALL_FILLERS } from "@/lib/metric-labels";
 import { WPM_ZONE } from "@/lib/log";
+import { PermissionHelp } from "@/components/PermissionHelp";
 import { buzz, prefersReducedMotion } from "@/lib/prefs";
+import { holdAwake } from "@/lib/wake-lock";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
 
@@ -130,6 +135,12 @@ export default function HostilePage() {
   }, []);
   const locked = premium === false && usedThisWeek === true;
   const [phase, setPhase] = useState<Phase>("intro");
+  /* The screen stays awake from the take to the verdict (#440): the
+     session is spoken and listened to, not touched. */
+  const sessionLive = phase === "recording" || phase === "thinking" || phase === "question" || phase === "judging";
+  useEffect(() => (sessionLive ? holdAwake() : undefined), [sessionLive]);
+  /** The mic did not open: this phone's own steps stand where the error line would. */
+  const [micBlocked, setMicBlocked] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [paywall, setPaywall] = useState<string | null>(null);
@@ -192,25 +203,29 @@ export default function HostilePage() {
 
   /** Bank the take as a normal recording, off the critical path. */
   function bankTake(blob: Blob) {
+    /* The take's own key (#436), made once and sent with both tries: a
+       bank whose answer was lost and goes again stores one recording.
+       The second try is what the key buys, for a dropped connection or
+       a gateway 5xx. */
+    const key = hostileKey();
     bank.current = (async (): Promise<string | null> => {
       try {
-        const token = await ensureSession();
         const form = new FormData();
         form.append("audio", blob, "rep.webm");
         form.append("lessonId", HOSTILE_TAKE_ID);
         form.append("captureMode", "voice");
         form.append("tzOffset", String(new Date().getTimezoneOffset()));
-        const res = await fetch("/api/analyze", {
-          method: "POST",
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-          body: form,
-        });
-        if (res.ok) {
+        form.append("clientId", key);
+        const out = await sendWithRetry(
+          form,
+          (force) => (force ? sessionToken(true) : ensureSession()),
+          undefined,
+          2
+        );
+        if (out.ok) {
           setBanked(true);
           setUsedThisWeek(true);
-          const data = (await res.json().catch(() => null)) as
-            | AnalyzeResponse
-            | null;
+          const data = out.data as AnalyzeResponse | null;
           if (data?.metrics) setTakeResult(data);
           return data?.repId ?? null;
         }
@@ -368,6 +383,7 @@ export default function HostilePage() {
 
   async function startRecording() {
     setError(null);
+    setMicBlocked(false);
     // The take is the gated part; an answer mid-session never is.
     if (take.current === null && locked) {
       setPaywall("Hostile Q&A · once a week free");
@@ -434,9 +450,9 @@ export default function HostilePage() {
       buzz(20);
       setPhase("recording");
     } catch {
-      setError(
-        "The microphone didn't open. Check the permission and try again."
-      );
+      // The steps for this phone, not a shrug (#440); the screen's own
+      // tap is the check.
+      setMicBlocked(true);
     }
   }
 
@@ -603,7 +619,13 @@ export default function HostilePage() {
             </div>
           </section>
 
-          <ErrorNote>{error}</ErrorNote>
+          {micBlocked ? (
+            <div className="mt-4">
+              <PermissionHelp video={false} missing={false} />
+            </div>
+          ) : (
+            <ErrorNote>{error}</ErrorNote>
+          )}
 
           {/* The boss's shape, flat on the ground: three numbers and
               their stat labels, no card. */}
@@ -629,6 +651,7 @@ export default function HostilePage() {
               className={ACTION_CLASS}
             >
               Record my take
+              <TapTick />
             </button>
           </FooterShelf>
         </>
@@ -653,15 +676,17 @@ export default function HostilePage() {
                 driven by the live level, so they move when you speak,
                 which is the only proof of listening a screen can give. */}
             <div className="flex items-center gap-2">
+              {/* Live is rust, as a warning is (#448): terracotta on this
+                  screen is Done, and nothing else. */}
               <span
                 aria-hidden
-                className="h-2.5 w-2.5 rounded-full bg-terracotta-700"
+                className="h-2.5 w-2.5 rounded-full bg-rust"
                 style={{
                   transform: `scale(${1 + level * 1.4})`,
                   opacity: 0.55 + level * 0.45,
                 }}
               />
-              <span className="label-micro !text-terracotta-700">
+              <span className="label-micro !text-rust">
                 recording
               </span>
             </div>
@@ -692,6 +717,7 @@ export default function HostilePage() {
             className={`${ACTION_CLASS} mt-7`}
           >
             Done
+            <TapTick />
           </button>
         </div>
       )}
@@ -744,7 +770,13 @@ export default function HostilePage() {
             lead={pending.quoted ? QUOTE_LEAD_MS + SAYS_LINE_MS + BEAT_MS : QUOTE_LEAD_MS}
             className="font-display mt-3 text-title text-balance"
           />
-          <ErrorNote>{error}</ErrorNote>
+          {micBlocked ? (
+            <div className="mt-4">
+              <PermissionHelp video={false} missing={false} />
+            </div>
+          ) : (
+            <ErrorNote>{error}</ErrorNote>
+          )}
           {/* The free height is his (principle 7), as on the intro: Demos
               speaking, 140 at the least so his clip plays, as big as the
               room allows up to 330 (the column, at most), standing on the
@@ -776,6 +808,7 @@ export default function HostilePage() {
             className={`${ACTION_CLASS} mt-4`}
           >
             Record my answer · {ANSWER_SECONDS}s
+            <TapTick />
           </button>
         </div>
       )}

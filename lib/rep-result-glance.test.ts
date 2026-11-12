@@ -91,9 +91,9 @@ describe("the glance", () => {
     const out = renderToStaticMarkup(
       createElement(RepResult, { result: unscored, section: "glance", glance: { parts: u.parts, moment: null, cue: null, earned: null } })
     );
-    /* The review: a gold star over "Not enough to score." was an earned
+    /* The review: a gold star over "Not enough to score" was an earned
        glyph with no label. */
-    expect(visible(out)).toBe("1 star for showing up Not scored. 12 words. Give it 60 to 90 seconds.");
+    expect(visible(out)).toBe("1 star for showing up Not scored 12 words. Give it 60 to 90 seconds.");
     expect(out).not.toContain("nothing measured");
   });
 });

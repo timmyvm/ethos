@@ -3,6 +3,7 @@ import { CountUp } from "@/components/CountUp";
 import { DemosArt } from "@/components/DemosArt";
 import { HeroStage } from "@/components/ui/HeroStage";
 import { DURATION } from "@/lib/motion";
+import { TrendMark } from "@/components/ui/TrendMark";
 
 /**
  * The score card: the hero of every data screen (#18, #165, #217).
@@ -125,7 +126,7 @@ export function ScoreCard({
           under the hero, in words, in the stage's ink with its arrow. */}
       {delta !== null && delta !== 0 && (
         <div className="stage-ink font-display mt-0.5 text-link font-bold tabular-nums">
-          {delta > 0 ? "▲ +" : "▼ "}
+          <TrendMark up={delta > 0} /> {delta > 0 ? "+" : ""}
           {Math.abs(delta)} since day one
         </div>
       )}

@@ -102,7 +102,7 @@ function ResetScreen() {
     const result = await setNewPassword(password);
     setBusy(false);
     if (result.ok) setDone(true);
-    else setError(result.error ?? "That didn't work.");
+    else setError(result.error ?? "That didn't go through. Try again.");
   }
 
   if (ready === null && !done) return <Checking />;

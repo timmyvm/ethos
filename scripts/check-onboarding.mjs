@@ -20,7 +20,10 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { session } from "./look-fixtures.mjs";
 
 const BASE = process.env.LOOK_BASE ?? "http://localhost:3123";
-const OUT = new URL("../docs/devibe/motion-check/onboarding/", import.meta.url).pathname;
+/* CHECK_OUT: somewhere outside the repo when the app is `next dev`, whose
+   watcher rebuilds on every frame of a video written into the repo and
+   serves a cut-off chunk meanwhile (scripts/check-motion.mjs). */
+const OUT = `${(process.env.CHECK_OUT ?? new URL("../docs/devibe/motion-check/", import.meta.url).pathname).replace(/\/?$/, "/")}onboarding/`;
 mkdirSync(OUT, { recursive: true });
 const findings = [];
 const ok = (name, pass, detail = "") => { findings.push({ name, pass, detail }); console.log(`${pass ? "PASS" : "FAIL"}  ${name}${detail ? "  (" + detail + ")" : ""}`); };
@@ -511,9 +514,16 @@ ok("the roulette never draws a job prompt for an under-18", !job, `${drawn.size}
 // 9. /you: the plan row, and reopening the plan to change an answer.
 await page.goto(`${BASE}/you`);
 await page.getByText("The road", { exact: true }).waitFor();
+/* The gate's count is read after the card is drawn: until the stars
+   land the line is the unit's name alone (gateLine), so the check waits
+   for the count instead of reading the frame the eyebrow arrived in. */
 ok(
   "/you shows the road card with the unit and its gate",
-  await page.getByText(/^Pace Control (opens in \d+ stars?|is open)$/).isVisible()
+  await page
+    .getByText(/^Pace Control (opens in \d+ stars?|is open)$/)
+    .waitFor({ timeout: 8000 })
+    .then(() => true)
+    .catch(() => false)
 );
 await shot("12-you");
 await page.getByRole("link", { name: /The road/ }).click();

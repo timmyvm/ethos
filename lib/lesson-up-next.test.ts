@@ -123,8 +123,10 @@ describe("the lesson screens never look paid", () => {
     const lesson = readFileSync(path.join(root, "app/lessons/[id]/page.tsx"), "utf8");
     /* The list's tap is the one under Up next's stage (the cohesion
        pass: it was the card's terracotta square, M03), rendered once;
-       rows never carry one, and the stage has no second button. */
-    expect(card.match(/\$\{ACTION_CLASS\}/g)?.length ?? 0).toBe(1);
+       rows never carry one, and the stage has no second button. Since
+       #438 it is the tap with the arrow, as the results' way on is. */
+    expect(card.match(/\$\{ACTION_ARROW_CLASS\}/g)?.length ?? 0).toBe(1);
+    expect(card).not.toMatch(/\bACTION_CLASS\b/);
     expect(card).not.toMatch(/bg-terracotta-500/);
     expect(list.match(/<UpNextCard/g)?.length).toBe(1);
     expect(list).not.toMatch(/ACTION_CLASS|bg-terracotta-500/);

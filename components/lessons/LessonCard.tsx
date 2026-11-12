@@ -3,11 +3,12 @@
 import { Disclosure } from "@/components/ui/Disclosure";
 import { HeroStage, StageChip } from "@/components/ui/HeroStage";
 import { SegmentBar } from "@/components/ui/SegmentBar";
+import { TapArrow } from "@/components/ui/TapArrow";
 import Link from "next/link";
 import type { Lesson } from "@/content/lessons";
 import { nextPractice } from "@/lib/lesson-progress";
 import { repHref } from "@/lib/rep-config";
-import { ACTION_CLASS } from "@/lib/ui";
+import { ACTION_ARROW_CLASS } from "@/lib/ui";
 
 /**
  * A lesson, as a row you move through rather than a tile you buy.
@@ -238,6 +239,11 @@ export function LessonRow({
  * the render's whole square, a tile of tone on the sky (the fix round). The tap says what it does: "Carry on" part way in,
  * "Start" before. One tap from the tab to recording is what "you just
  * start it" looks like.
+ *
+ * It wears the arrow (#438, Timothy: "go" to the same arrow on Lessons'
+ * "Carry on"): it is the tap that keeps you going, as the results' way
+ * on is, so the two look alike. Its word starts at the left and the
+ * round arrow stands at its right end.
  */
 export function UpNextCard({ lesson, done }: { lesson: Lesson; done: number }) {
   const total = lesson.practices.length;
@@ -279,9 +285,10 @@ export function UpNextCard({ lesson, done }: { lesson: Lesson; done: number }) {
         })}
         data-up-next={lesson.id}
         aria-label={`${verb} ${lesson.title}, practice ${next} of ${total}`}
-        className={`${ACTION_CLASS} mt-3`}
+        className={`${ACTION_ARROW_CLASS} mt-3`}
       >
-        {verb}
+        <span className="min-w-0">{verb}</span>
+        <TapArrow />
       </Link>
     </div>
   );

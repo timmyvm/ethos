@@ -12,7 +12,8 @@
  *  2. The paywall's taps are cut from the plum, never ink on it.
  *  3. Record is ink and round, the take in progress is still red, and
  *     the results' way on is 48px with its words at the left and a 36px
- *     arrow disc 6px from its right end, at 390 and at 320.
+ *     arrow disc 6px from its right end, at 390 and at 320. The tap under
+ *     Lessons' Up next wears the same arrow (#438).
  *
  * Today's Start on each family's card is `scripts/check-colour.mjs`.
  *
@@ -207,9 +208,9 @@ for (const theme of ["light", "dark"]) {
   await page.click('button[aria-label="Stop and score this recording"]', { force: true });
   await page.waitForSelector("main [data-step-action]", { state: "visible", timeout: 45000 });
   await sleep(2600);
-  const wayOn = () =>
-    page.evaluate(() => {
-      const el = document.querySelector("main [data-step-action]");
+  const wayOn = (selector = "main [data-step-action]") =>
+    page.evaluate((sel) => {
+      const el = document.querySelector(sel);
       const disc = el.querySelector(".tap-arrow-disc");
       const label = el.querySelector("span:not(.tap-arrow-disc)");
       const [b, d, l] = [el, disc, label].map((n) => n.getBoundingClientRect());
@@ -233,8 +234,9 @@ for (const theme of ["light", "dark"]) {
         arrow: getComputedStyle(disc.querySelector("svg")).color,
         tap: el.classList.contains("tap"),
         hidden: disc.getAttribute("aria-hidden"),
+        name: el.getAttribute("aria-label") ?? el.innerText.trim(),
       };
-    });
+    }, selector);
   const on = await wayOn();
   hold(theme, "results", await page.evaluate(measure), { taps: { ink: 1, tonal: 0 } });
   ok(`${theme} way on: an ink tap, 48px`, on.tap && near(on.h, 48, 0.5) && on.fill === tokens.ink, `${on.h}px`);
@@ -245,6 +247,19 @@ for (const theme of ["light", "dark"]) {
   await sleep(500);
   const narrow = await wayOn();
   ok(`${theme} way on at 320: two lines at most, the disc still 6px from the end`, narrow.lines <= 2 && near(narrow.discFromRight, 6) && narrow.wordsEndBeforeDisc >= 12 && narrow.h <= 60, `${narrow.lines} line(s), ${narrow.h}px`);
+
+  /* ---- 3b. Lessons' Up next wears the same arrow (#438) -------------------- */
+  for (const width of [390, 320]) {
+    await page.setViewportSize({ width, height: 844 });
+    await go("/lessons", "main a[data-up-next]");
+    const up = await wayOn("main a[data-up-next]");
+    ok(
+      `${theme} Lessons at ${width}: its tap is the results' way on, 48px, words 22px in, a 36px disc 6px from the end`,
+      up.tap && near(up.h, 48, 0.5) && near(up.wordsFromLeft, 22, 1.5) && near(up.discW, 36, 0.5) && near(up.discFromRight, 6) && near(up.discFromTop, 6) && up.lines === 1,
+      `${up.h}px, ${up.wordsFromLeft.toFixed(1)} in, ${up.discFromRight.toFixed(1)} from the end`
+    );
+    ok(`${theme} Lessons at ${width}: the disc is the word's colour, the arrow the fill's, and the link keeps its whole name`, up.discFill === up.word && up.arrow === up.fill && up.hidden !== null && /^(Carry on|Start) .+, practice \d of \d$/.test(up.name), up.name);
+  }
   await context.close();
 
   /* ---- 4. The doors a stranger sees ----------------------------------------- */

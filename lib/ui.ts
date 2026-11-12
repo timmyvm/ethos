@@ -49,7 +49,8 @@ export const ACTION_TONAL_CLASS = `${ACTION_SHAPE} tap-tonal`;
  * moves you to the next thing: its words start at the left and a round
  * arrow stands at its right end, drawn by `<TapArrow />` as its last
  * child. 48px like the others (6 + the 36px disc + 6); words that wrap
- * grow it. The results' way on wears it.
+ * grow it. The results' way on wears it, and since #438 the tap under
+ * Lessons' Up next ("Carry on"): the two that keep you going.
  */
 export const ACTION_ARROW_CLASS =
   "press font-display flex min-h-12 w-full items-center justify-between gap-3 rounded-tap py-1.5 pr-1.5 pl-5.5 text-left text-body leading-5 font-bold transition-colors duration-200 ease-out tap";

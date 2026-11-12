@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { ACTION_ARROW_CLASS, ACTION_CLASS, ACTION_TONAL_CLASS, DISABLED_CLASS } from "./ui";
@@ -188,6 +188,26 @@ describe("the tap that moves you on carries its arrow", () => {
     const arrow = read("components/ui/TapArrow.tsx");
     expect(arrow).toMatch(/<span aria-hidden className="tap-arrow-disc">\s*<IconOnward size=\{16\} \/>\s*<\/span>/);
     expect(arrow).not.toMatch(/"use client"|onClick|<button|<a /);
+  });
+
+  it("is the tap under Lessons' Up next, whichever word it says (#438)", () => {
+    const card = code("components/lessons/LessonCard.tsx");
+    const hero = card.slice(card.indexOf("export function UpNextCard"));
+    expect(hero).toContain('const verb = done > 0 ? "Carry on" : "Start";');
+    expect(hero).toContain("className={`${ACTION_ARROW_CLASS} mt-3`}");
+    expect(hero).toMatch(/<span className="min-w-0">\{verb\}<\/span>\s*<TapArrow \/>/);
+    // The link's name is still its whole sentence: the arrow adds no word.
+    expect(hero).toContain("aria-label={`${verb} ${lesson.title}, practice ${next} of ${total}`}");
+    expect(card.match(/<TapArrow \/>/g)).toHaveLength(1);
+  });
+
+  it("is on those two and nowhere else", () => {
+    const walk = (dir: string): string[] =>
+      readdirSync(path.join(root, dir), { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory() ? (e.name === "workbench" ? [] : walk(`${dir}/${e.name}`)) : /\.tsx$/.test(e.name) ? [`${dir}/${e.name}`] : []
+      );
+    const wearers = [...walk("app"), ...walk("components")].filter((f) => /<TapArrow \/>/.test(code(f)));
+    expect(wearers.sort()).toEqual(["app/rep/page.tsx", "components/lessons/LessonCard.tsx"]);
   });
 
   it("is the results' way on, on the glance and at the sheet's foot", () => {

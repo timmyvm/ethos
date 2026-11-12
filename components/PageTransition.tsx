@@ -3,8 +3,9 @@
 import { usePathname } from "next/navigation";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useTabSwipe } from "@/components/TabSwipe";
+import { historyMove, settleHistory, watchHistory } from "@/lib/back";
 import { PAGE_ATTR } from "@/lib/tab-stand-in";
-import { arrivedBySwipe, swipeTabIndex } from "@/lib/tab-swipe";
+import { swipeTabIndex } from "@/lib/tab-swipe";
 import { TAB_HREFS } from "@/lib/tabs";
 
 /**
@@ -24,6 +25,23 @@ import { TAB_HREFS } from "@/lib/tabs";
  * travel with the opacity ramp finished in the first third: it reads as
  * motion with a direction, not as a dissolve. When the API lands, this
  * component is the one place that changes.
+ *
+ * Two moves do not push (#442, #443, from Apple's motion and tab bar
+ * guidance: no motion on what people do constantly, and never the same
+ * step drawn twice).
+ *
+ *  - Tab to tab is a swap in place. An iPhone's tab bar changes the
+ *    content without travel; the well's slide along the bar is the
+ *    answer to the tap. With each tab drawn whole in its first frame
+ *    (#433) the push was the only wait left, and it promised a thumb a
+ *    swipe the tabs did not have. They have one since #457
+ *    (components/TabSwipe.tsx): there the page moves because a finger
+ *    is moving it, and a tap on the bar still swaps in place. This
+ *    breaks #242's "moving along the tab bar goes the way the tabs go".
+ *  - A back the phone made (the edge swipe, a hardware key, the
+ *    browser's buttons) has already been drawn by the system, so the
+ *    screen it lands on is simply there. A back the chevron made slides
+ *    in from the left, as before.
  */
 
 /**
@@ -51,12 +69,12 @@ function depth(path: string): number {
   return 1;
 }
 
-function directionFor(from: string | null, to: string): "left" | "right" {
+function directionFor(from: string | null, to: string): "left" | "right" | "swap" {
   if (from === null) return "right";
   const a = TABS.indexOf(from);
   const b = TABS.indexOf(to);
-  // Both are tabs: follow the tab bar.
-  if (a !== -1 && b !== -1) return b > a ? "right" : "left";
+  // Both are tabs: a swap in place, no travel.
+  if (a !== -1 && b !== -1) return "swap";
   const da = depth(from);
   const db = depth(to);
   if (db === da) return "right";
@@ -66,10 +84,12 @@ function directionFor(from: string | null, to: string): "left" | "right" {
 export function PageTransition({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const previous = useRef<string | null>(null);
-  const [direction, setDirection] = useState<"left" | "right">("right");
+  const [direction, setDirection] = useState<"left" | "right" | "swap">("right");
 
+  useEffect(() => watchHistory(), []);
   useEffect(() => {
     previous.current = path;
+    settleHistory();
   }, [path]);
 
   /*
@@ -86,17 +106,20 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
    * between the user and the first thing they came to do.
    */
   const cold = previous.current === null;
+  /* The phone's own back or forward: the system drew the move. */
+  const move = historyMove();
+  const still = cold || direction === "swap" || (move !== null && !move.own);
 
   /*
    * The swipe between the tabs (components/TabSwipe.tsx, #457). The
    * element a finger pulls is this page's wrapper; the one that hears
    * the finger is the element around it, which stays put when the page
-   * has gone from under the thumb. A tab a swipe carried in has already
-   * arrived, under the finger, so it plays no push.
+   * has gone from under the thumb. A tab a swipe brought in arrived
+   * under the finger, and tab to tab is a swap for everyone (#443), so
+   * it is simply there: nothing here needs to know how it came.
    */
   const page = useRef<HTMLDivElement>(null);
   const swipe = useTabSwipe(path, page);
-  const carried = arrivedBySwipe(path);
 
   /* overflow-x: clip (B10): the 24px the push starts from widened the
      page to 414px for a frame, and a phone can zoom out to show it.
@@ -120,9 +143,7 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
         key={path}
         ref={page}
         {...{ [PAGE_ATTR]: path }}
-        className={`overflow-x-clip ${
-          cold || carried ? "" : direction === "right" ? "push-right" : "push-left"
-        }`}
+        className={`overflow-x-clip ${still ? "" : direction === "right" ? "push-right" : "push-left"}`}
       >
         <Fragment key="page">{children}</Fragment>
       </div>

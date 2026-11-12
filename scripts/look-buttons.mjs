@@ -197,12 +197,12 @@ console.log("home: shot", Object.keys(home).length);
 
 /* ---- the first feedback screen: a take, walked to its results ------------ */
 await page.locator('main a[href^="/rep"], main button:has-text("Start")').first().click();
-await page.waitForSelector('button[aria-label="Start recording"]', { timeout: 30000 });
+await page.waitForSelector('button[data-record="start"]', { timeout: 30000 });
 await sleep(900);
-await page.click('button[aria-label="Start recording"]', { force: true });
-await page.waitForSelector('button[aria-label="Stop and score this recording"]', { timeout: 20000 });
+await page.click('button[data-record="start"]', { force: true });
+await page.waitForSelector('button[data-record="stop"]', { timeout: 20000 });
 await sleep(5000);
-await page.click('button[aria-label="Stop and score this recording"]', { force: true });
+await page.click('button[data-record="stop"]', { force: true });
 await page.waitForSelector("main .arrive-x", { timeout: 30000 });
 await page.waitForSelector(TAP, { state: "visible", timeout: 15000 });
 await sleep(3400);

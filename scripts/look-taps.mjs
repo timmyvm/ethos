@@ -164,13 +164,13 @@ for (const theme of THEMES) {
   await page.waitForSelector("main .home-start", { timeout: 60000 });
   await sleep(1500);
   await page.locator("main .home-start").first().click();
-  await page.waitForSelector('button[aria-label="Start recording"]', { timeout: 60000 });
+  await page.waitForSelector('button[data-record="start"]', { timeout: 60000 });
   await sleep(1500);
-  cells.push(...(await states('button[aria-label="Start recording"]', "Record", [120, 26])));
-  await page.click('button[aria-label="Start recording"]', { force: true });
-  await page.waitForSelector('button[aria-label="Stop and score this recording"]', { timeout: 20000 });
+  cells.push(...(await states('button[data-record="start"]', "Record", [120, 26])));
+  await page.click('button[data-record="start"]', { force: true });
+  await page.waitForSelector('button[data-record="stop"]', { timeout: 20000 });
   await sleep(5000);
-  await page.click('button[aria-label="Stop and score this recording"]', { force: true });
+  await page.click('button[data-record="stop"]', { force: true });
   await page.waitForSelector("main [data-step-action]", { state: "visible", timeout: 45000 });
   await sleep(3400);
   cells.push(...(await states("main [data-step-action]", "The way on (results)", [20, 26])));

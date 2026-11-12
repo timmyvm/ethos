@@ -11,6 +11,7 @@ import {
 import { DURATION } from "@/lib/motion";
 import { prefersReducedMotion } from "@/lib/prefs";
 import { SPRING, animateSpring, releaseVelocity, rubberband } from "@/lib/spring";
+import { tabPlace } from "@/lib/tab-places";
 import { keepPage, standInFor, wantFirstPaint } from "@/lib/tab-stand-in";
 import {
   SWIPE_EDGE_PX,
@@ -45,9 +46,14 @@ import { TAB_HREFS } from "@/lib/tabs";
  * changed nothing.
  *
  * The neighbour is a picture until then (lib/tab-stand-in.ts): the tab
- * as it was last left, or its first paint. Its own code runs only once
- * the app has moved, under the picture, which fades when the page under
- * it has what it was waiting for.
+ * as it was last left, at the place it was left (#443), or its first
+ * paint. Its own code runs only once the app has moved, under the
+ * picture, which fades when the page under it has what it was waiting
+ * for.
+ *
+ * A tap on the bar is the other way between tabs, and it swaps in place
+ * with no travel (#443, Apple's tab bar). The two do not disagree: here
+ * the page moves because a finger is moving it.
  *
  * And it is the lesson walk's swipe (LessonScreen `useSwipe`), not a
  * second idea of one: pointer events on a page that keeps
@@ -192,6 +198,7 @@ export function useTabSwipe(path: string, page: RefObject<HTMLDivElement | null>
     el.replaceChildren();
     el.removeAttribute("data-leaving");
     el.style.transform = "";
+    el.scrollTop = 0;
     if (el.parentElement) el.parentElement.hidden = true;
   };
 
@@ -207,10 +214,17 @@ export function useTabSwipe(path: string, page: RefObject<HTMLDivElement | null>
     el.removeAttribute("data-leaving");
     el.replaceChildren(...(standIn ? [standIn.el] : []));
     el.dataset.kind = standIn?.kind ?? "blank";
-    // A page left mid-load is a picture of placeholders: nothing to wait for.
+    // The picture is the tab, whole: a page left mid-load is a picture of placeholders.
     el.dataset.settled = standIn?.kind === "seen" && !standIn.el.querySelector(".skeleton") ? "1" : "";
     shownTab.current = to;
     if (el.parentElement) el.parentElement.hidden = false;
+    /* A tab comes back where it was left (#443, lib/tab-places.ts), so
+       its picture stands there too: the pane is scrolled to the tab's
+       place, which also sticks the picture's own bar to the pane's top
+       as the page's sticks to the screen's. Set once the pane is shown
+       (a hidden box has nothing to scroll); the pane holds it to what
+       the picture can scroll, and 0 is a tab that was at its top. */
+    el.scrollTop = tabPlace(TAB_HREFS[to]);
   };
 
   /** Which side of the page a tab's picture sits on: +1 right, -1 left. */
@@ -302,7 +316,8 @@ export function useTabSwipe(path: string, page: RefObject<HTMLDivElement | null>
       swipeArrival.path = href;
       swipeArrival.landed = false;
       leaving.current = true;
-      router.push(href);
+      // The bar puts the tab where it was left (#443); the router leaves the scroll alone.
+      router.push(href, { scroll: false });
       clearTimeout(timers.current.arrival);
       timers.current.arrival = setTimeout(() => {
         if (swipeArrival.path !== href || swipeArrival.landed) return;
@@ -370,10 +385,15 @@ export function useTabSwipe(path: string, page: RefObject<HTMLDivElement | null>
     clearTimeout(timers.current.arrival);
     const el = pane.current;
     if (!el || shownTab.current === null) return;
-    // A picture of the tab as it was left waits for the page under it to
-    // finish loading, so a full screen never fades to placeholders and
-    // back. A first paint is what the page starts as: nothing to wait for.
-    const waits = el.dataset.settled === "1";
+    /* A picture waits for the page under it to finish loading, so a
+       full screen never fades to placeholders and back. A first paint
+       waits too since #434: the page's own placeholders hold their
+       height and draw nothing for their first 300ms, so a picture of
+       placeholders let go at once fell to a bare page before the words
+       came. Bare ground has nothing to wait behind. */
+    const waits = el.dataset.kind !== "blank";
+    /** The picture was this tab, whole, not a picture of its placeholders. */
+    const whole = el.dataset.settled === "1";
     const since = performance.now();
     const t = timers.current;
     const tick = () => {
@@ -389,7 +409,7 @@ export function useTabSwipe(path: string, page: RefObject<HTMLDivElement | null>
          its rows would still be fading in while the picture fades out,
          and for a moment the screen is half of each (the look loop
          caught it: a washed frame 240ms after the lift). */
-      if (waits && loaded) arrive(fresh);
+      if (whole && loaded) arrive(fresh);
       el.setAttribute("data-leaving", "");
       t.fade = setTimeout(dropPane, DURATION.base + 40);
     };
@@ -425,7 +445,7 @@ export function useTabSwipe(path: string, page: RefObject<HTMLDivElement | null>
     if (s.reduced) {
       // Reduced motion: no travel to land, so the app simply moves, and
       // the page arrives with the fade every other change gets.
-      if (commit) router.push(TAB_HREFS[toward]);
+      if (commit) router.push(TAB_HREFS[toward], { scroll: false });
       return;
     }
     settle(s, commit ? toward : null, velocity);

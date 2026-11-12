@@ -31,8 +31,8 @@ for (const theme of ["light", "dark"]) {
   await ctx.addInitScript(seed, { theme, session, pose: POSE_PREF });
   const page = await ctx.newPage();
   await page.goto(`${BASE}/rep?lesson=h4`);
-  await page.waitForSelector('button[aria-label="Start recording"]', { timeout: 20000 });
-  await page.click('button[aria-label="Start recording"]', { force: true });
+  await page.waitForSelector('button[data-record="start"]', { timeout: 20000 });
+  await page.click('button[data-record="start"]', { force: true });
   await page.waitForSelector('button[aria-label="Stop and score this recording"]');
   await sleep(2000);
   await page.click('button[aria-label="Stop and score this recording"]', { force: true });

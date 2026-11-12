@@ -6,7 +6,7 @@ import { IconBoss, IconBubble, IconMic, IconSpark, IconTrend } from "@/component
 import { PremiumMark } from "@/components/PremiumMark";
 import { Price } from "@/components/premium/PlanCard";
 import { Stair } from "@/components/premium/Stair";
-import { Overlay } from "@/components/ui/Overlay";
+import { Overlay, useOverlayClose } from "@/components/ui/Overlay";
 import { useAttempts } from "@/lib/attempt";
 import { currentPath, openPortal, startCheckout } from "@/lib/billing-client";
 import {
@@ -22,6 +22,7 @@ import {
   unpaidLine,
   type PlanView,
 } from "@/lib/plan-view";
+import { forgetProfile } from "@/lib/held";
 import { usePaywallHeadStays } from "@/lib/paywall-head";
 import { withPortalReturn } from "@/lib/plan-return";
 import { prefersReducedMotion } from "@/lib/prefs";
@@ -118,6 +119,9 @@ type Phase = "ready" | "busy" | "error" | "needsAccount" | "code";
 /** The paywall's ladder rises once the sheet has nearly settled. */
 const LADDER_RISE_DELAY_MS = 180;
 
+/** A code typed into the sheet and not yet sent. Memory only: a reload starts clean. */
+let keptCode = "";
+
 export function Paywall({
   headline = "Premium opens everything",
   taste,
@@ -166,7 +170,14 @@ export function Paywall({
   const [step, setStep] = useState(1);
   const [phase, setPhase] = useState<Phase>("ready");
   const [error, setError] = useState<string | null>(null);
-  const [code, setCode] = useState("");
+  // A code typed and not yet sent outlives the sheet (#445): a sheet goes
+  // down under a stray swipe, and what was typed is still in its field
+  // when it comes back up.
+  const [code, setCodeState] = useState(() => keptCode);
+  const setCode = (next: string) => {
+    keptCode = next;
+    setCodeState(next);
+  };
   const [redeeming, setRedeeming] = useState(false);
   const [codeError, setCodeError] = useState<string | null>(null);
   const [unlocked, setUnlocked] = useState(false);
@@ -367,6 +378,8 @@ export function Paywall({
         return;
       }
       setUnlocked(true);
+      keptCode = "";
+      forgetProfile();
       // Every premium read on the page behind this sheet is stale now;
       // a reload is the honest refresh.
       setTimeout(() => (onUnlocked ? onUnlocked() : window.location.reload()), 900);
@@ -380,10 +393,6 @@ export function Paywall({
   // With checkout live, a second row under the shelf: the code (or, in
   // the code's own form, the way back to Start) beside "Not yet".
   const twoUp = CHECKOUT_OPEN && !unlocked && phase !== "needsAccount";
-  const notYet = () => {
-    attempts.abandon();
-    onClose();
-  };
 
   // The tier's own mark, once, then what was tapped. The reason never
   // says "premium" again (reasonLine). Above the scroll where the screen
@@ -533,6 +542,7 @@ export function Paywall({
                   onChange={(e) => setCode(e.target.value)}
                   autoComplete="off"
                   autoCapitalize="off"
+                  autoCorrect="off"
                   spellCheck={false}
                   enterKeyHint="go"
                   aria-invalid={!!codeError}
@@ -564,9 +574,7 @@ export function Paywall({
                   <button type="button" onClick={() => void start()} className="font-display min-h-11 text-link text-cream">
                     {PAYWALL_COPY.start}
                   </button>
-                  <button type="button" onClick={notYet} className="font-display min-h-11 text-link text-cream/70">
-                    {PAYWALL_COPY.notYet}
-                  </button>
+                  <NotYet onClose={onClose} className="font-display min-h-11 text-link text-cream/70" />
                 </div>
               )}
             </form>
@@ -645,18 +653,14 @@ export function Paywall({
                   <button type="button" onClick={openCode} className="font-display min-h-11 text-link text-cream">
                     {PAYWALL_COPY.haveCode}
                   </button>
-                  <button type="button" onClick={notYet} className="font-display min-h-11 text-link text-cream/70">
-                    {PAYWALL_COPY.notYet}
-                  </button>
+                  <NotYet onClose={onClose} className="font-display min-h-11 text-link text-cream/70" />
                 </div>
               )}
             </>
           )}
 
           {!twoUp && !unlocked && (
-            <button type="button" onClick={notYet} className="font-display mt-1 min-h-11 w-full text-link text-cream/70">
-              {PAYWALL_COPY.notYet}
-            </button>
+            <NotYet onClose={onClose} className="font-display mt-1 min-h-11 w-full text-link text-cream/70" />
           )}
           {/* 2px under "Not yet"'s 44px hit area, whose own air already
               parts them: the caption read at 13 (E08) took a pixel from
@@ -666,5 +670,20 @@ export function Paywall({
         </div>
       </div>
     </Overlay>
+  );
+}
+
+/**
+ * "Not yet" leaves the way Escape, the scrim and a pull do (#445): the
+ * sheet goes back down, then closes. It called `onClose` itself, so the
+ * one way out with a name on it was the one that cut to nothing. The
+ * sheet's own exit abandons a request in flight (Overlay's `onLeave`).
+ */
+function NotYet({ onClose, className }: { onClose: () => void; className: string }) {
+  const close = useOverlayClose(onClose);
+  return (
+    <button type="button" onClick={close} className={className}>
+      {PAYWALL_COPY.notYet}
+    </button>
   );
 }

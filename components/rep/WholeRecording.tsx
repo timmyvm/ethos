@@ -32,6 +32,11 @@ export const SHEET_NAME = "Every number";
  * keeps playing here. Its foot repeats the glance's tap, so whoever reads
  * to the end goes on without closing it; the glance's own tap is under
  * the sheet, so one filled tap shows.
+ *
+ * In dark it stands one step up from the page (#445): the page is the
+ * ground, the sheet the surface over it, its cards the raised step over
+ * that, the way iOS lifts a sheet with a lighter base. In light the
+ * shadow does that work and the sheet stays the ground's white.
  */
 export function WholeRecording({
   onClose,
@@ -84,7 +89,7 @@ function Body({ onClose, foot, children }: { onClose: () => void; foot: ReactNod
   return (
     <div
       data-whole-recording
-      className="elev-3 flex max-h-[calc(100dvh-max(12px,env(safe-area-inset-top)))] w-full max-w-[430px] flex-col overflow-hidden rounded-t-sheet border border-b-0 border-transparent bg-ground text-ink dark:border-card-edge"
+      className="elev-3 flex max-h-[calc(100dvh-max(12px,env(safe-area-inset-top)))] w-full max-w-[430px] flex-col overflow-hidden rounded-t-sheet border border-b-0 border-transparent bg-ground text-ink dark:border-card-edge dark:bg-surface"
     >
       <div
         className={`shrink-0 border-b px-5 pt-2 transition-colors duration-(--duration-base) ${

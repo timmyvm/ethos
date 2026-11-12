@@ -26,6 +26,7 @@ import {
   springMs,
   springProgress,
 } from "@/lib/spring";
+import { useKeyboardUp } from "@/lib/keyboard-up";
 import { ACTION_CLASS, DISABLED_CLASS } from "@/lib/ui";
 
 /*
@@ -379,9 +380,13 @@ export function LessonScreen({
    */
   swipe?: { next?: () => void; back?: () => void };
   /**
-   * With the keyboard up (a viewport under 540px tall), the shelf
-   * follows the words 16px under them instead of standing at the foot,
-   * so the field and its Next are one reach (the name question, D19).
+   * With the keyboard up, the shelf follows the words 16px under them
+   * instead of standing at the foot, so the field and its Next are one
+   * reach (the name question, D19). Two ways to know it is up (#441):
+   * where the keyboard resizes the page, a viewport under 540px tall;
+   * on an iPhone, where it lies over the page and the layout never
+   * hears of it, the visual viewport (lib/keyboard-up.ts). The media
+   * query alone left Next at the foot of the page, under the keys.
    */
   shelfFollows?: boolean;
   /**
@@ -555,6 +560,8 @@ export function LessonScreen({
      the one tap and the door under it stay above the fold. Screens that
      do not swipe keep the template's spacing. (The top row already sits
      where the bar does, so the top has nothing left to give.) */
+  const keyboard = useKeyboardUp();
+  const follows = shelfFollows && keyboard;
   const short = swipe
     ? {
         stage: "[@media(max-height:740px)]:mt-2",
@@ -636,7 +643,8 @@ export function LessonScreen({
               className="screen-bar-back press -ml-3 shrink-0"
             >
               <IconBack size={22} />
-              <span>{backLabel}</span>
+              {/* The chevron alone where the word would be "Back" (#442). */}
+              <span className={backLabel === "Back" ? "sr-only" : undefined}>{backLabel}</span>
             </button>
           )}
           {header && <div className="min-w-0 flex-1">{header}</div>}
@@ -645,7 +653,7 @@ export function LessonScreen({
       <div
         className={`flex flex-1 flex-col ${center && !stage ? "justify-center" : ""} ${
           swipe ? `pb-4 ${short.body}` : ""
-        } ${shelfFollows ? "[@media(max-height:540px)]:flex-none" : ""}`}
+        } ${shelfFollows ? "[@media(max-height:540px)]:flex-none" : ""} ${follows ? "flex-none" : ""}`}
       >
         {/* A flex column like its parent, so the art and the text block
             stay flex items (the art centres with `mx-auto`) whether or
@@ -697,8 +705,13 @@ export function LessonScreen({
          * be a stray rule.
          */
         <FooterShelf
-          hairline={controls !== undefined && speech === "beside"}
-          className={`${short.foot} ${shelfFollows ? "[@media(max-height:540px)]:mt-4" : ""}`}
+          /* Following the field it is no longer a shelf the page
+             scrolls under, so it draws no edge: a rule between a field
+             and its own button is a stray one. */
+          hairline={controls !== undefined && speech === "beside" && !follows}
+          className={`${short.foot} ${
+            shelfFollows ? "[@media(max-height:540px)]:mt-4 [@media(max-height:540px)]:border-transparent" : ""
+          } ${follows ? "mt-4!" : ""}`}
         >
           {aside && <div className="mb-3">{aside}</div>}
           {fineprint && (

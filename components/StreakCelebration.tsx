@@ -11,6 +11,10 @@ import { SPRING, springEasing, springMs } from "@/lib/spring";
 
 /** Today's block fills this long after the flame lights (E03). */
 const FILL_AFTER_MS = 240;
+/** A tap's fade: the celebration leaves at the speed of the tap that asked. */
+const SKIP_FADE_MS = DURATION.base;
+/** Taps before this are the last screen's, still landing. */
+const SKIP_AFTER_MS = 300;
 
 /**
  * The one celebration moment. Duolingo earns its streak screen by
@@ -44,6 +48,10 @@ export function StreakCelebration({
   onDone: () => void;
 }) {
   const [leaving, setLeaving] = useState(false);
+  /* A tap anywhere takes it away (#445): the moment is earned, never a
+     wait someone has to sit through to reach their numbers. */
+  const [skipped, setSkipped] = useState(false);
+  const shownAt = useRef(0);
   // Read once: the reference must not change mid-celebration.
   const calm = useMemo(() => prefersReducedMotion(), []);
 
@@ -61,50 +69,63 @@ export function StreakCelebration({
   }, []);
 
   useEffect(() => {
-    const hold = calm ? 1200 : 1800;
+    shownAt.current = performance.now();
+  }, []);
+
+  useEffect(() => {
+    const hold = skipped ? 0 : calm ? 1200 : 1800;
+    const fade = calm ? 100 : skipped ? SKIP_FADE_MS : 500;
     const a = setTimeout(() => setLeaving(true), hold);
-    const b = setTimeout(onDone, hold + (calm ? 100 : 500));
+    const b = setTimeout(onDone, hold + fade);
     return () => {
       clearTimeout(a);
       clearTimeout(b);
     };
-  }, [onDone, calm]);
+  }, [onDone, calm, skipped]);
+
+  /* The tap that brought the screen here is not the tap that sends it
+     away: a second touch landing while it is still fading in is ignored. */
+  const skip = () => {
+    if (performance.now() - shownAt.current >= SKIP_AFTER_MS) setSkipped(true);
+  };
 
   return (
     <Overlay
       label={`${streak} day${streak === 1 ? "" : "s"} in a row`}
       onClose={onDone}
       variant="full"
-      className={`flex h-full w-full flex-col items-center justify-center bg-ground ${
-        calm ? "" : "transition-opacity"
-      } ${leaving ? "opacity-0" : "opacity-100"}`}
-      style={calm ? undefined : { transitionDuration: `${DURATION.celebrate}ms` }}
+      className={`h-full w-full bg-ground ${calm ? "" : "transition-opacity"} ${leaving ? "opacity-0" : "opacity-100"}`}
+      style={calm ? undefined : { transitionDuration: `${skipped ? SKIP_FADE_MS : DURATION.celebrate}ms` }}
     >
-      <Image
-        src="/demos-celebrate.webp"
-        alt=""
-        width={200}
-        height={200}
-        priority
-        className="demos w-[200px]"
-      />
-      <LitFlame calm={calm} />
-      <StreakRoll streak={streak} milestone={milestone} calm={calm} quiet={quiet} />
-      <div className="mt-1 text-body font-semibold">
-        day{streak === 1 ? "" : "s"} in a row
+      {/* The whole screen is the way on. No button is drawn: the moment
+          leaves by itself, and a tap only brings that forward. */}
+      <div data-look="streak-moment" onClick={skip} className="flex h-full w-full flex-col items-center justify-center">
+        <Image
+          src="/demos-celebrate.webp"
+          alt=""
+          width={200}
+          height={200}
+          priority
+          className="demos w-[200px]"
+        />
+        <LitFlame calm={calm} />
+        <StreakRoll streak={streak} milestone={milestone} calm={calm} quiet={quiet} />
+        <div className="mt-1 text-body font-semibold">
+          day{streak === 1 ? "" : "s"} in a row
+        </div>
+        {week && week.length === 7 && <WeekRow days={week} calm={calm} />}
+        <p
+          className={`max-w-[260px] text-center text-link font-normal text-stone-500 ${
+            week && week.length === 7 ? "mt-4" : "mt-2"
+          }`}
+        >
+          {streak === 1
+            ? "Day one is the hard one. It's done."
+            : milestone
+              ? `${streak} straight. That's not motivation any more, that's a habit.`
+              : "Same time tomorrow."}
+        </p>
       </div>
-      {week && week.length === 7 && <WeekRow days={week} calm={calm} />}
-      <p
-        className={`max-w-[260px] text-center text-link font-normal text-stone-500 ${
-          week && week.length === 7 ? "mt-4" : "mt-2"
-        }`}
-      >
-        {streak === 1
-          ? "Day one is the hard one. It's done."
-          : milestone
-            ? `${streak} straight. That's not motivation any more, that's a habit.`
-            : "Same time tomorrow."}
-      </p>
     </Overlay>
   );
 }

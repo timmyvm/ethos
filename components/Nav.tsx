@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   IconLessons,
   IconLog,
@@ -17,8 +17,10 @@ import {
   releaseVelocity,
   rubberband,
 } from "@/lib/spring";
+import { historyMove } from "@/lib/back";
+import { forgetTab, leaveTab, tabPlace } from "@/lib/tab-places";
 import { arrivedBySwipe, onSwipeHeading, swipeHeading } from "@/lib/tab-swipe";
-import { TAB_HREFS, tabIndexFor } from "@/lib/tabs";
+import { STORED_RECORDING, TAB_HREFS, tabIndexFor } from "@/lib/tabs";
 
 /**
  * Bottom nav.
@@ -156,8 +158,43 @@ export function Nav() {
   const [dragging, setDragging] = useState(false);
 
   const hidden =
-    BARE.some((b) => path === b || path.startsWith(`${b}/`)) ||
+    (BARE.some((b) => path === b || path.startsWith(`${b}/`)) && !STORED_RECORDING.test(path)) ||
     DETAIL.some((d) => path.startsWith(`${d}/`));
+
+  /*
+   * A tab keeps its place (#443, lib/tab-places.ts). On an iPhone a tab
+   * comes back the way it was left; here every switch landed at the top.
+   * How far down the screen is gets noted as it scrolls, kept for the
+   * tab being left, and given back when that tab opens again, in the
+   * frame it is drawn (a tab opened again is whole in its first frame,
+   * #433). A move through history is the browser's to restore, so it is
+   * left alone. The tab links ask the router not to scroll for them.
+   */
+  const at = useRef({ path, y: 0 });
+  useEffect(() => {
+    const note = () => {
+      at.current = { path: at.current.path, y: window.scrollY };
+    };
+    window.addEventListener("scroll", note, { passive: true });
+    return () => window.removeEventListener("scroll", note);
+  }, []);
+  useLayoutEffect(() => {
+    const was = at.current;
+    if (was.path === path) return;
+    leaveTab(was.path, was.y);
+    at.current = { path, y: window.scrollY };
+    if (historyMove() || !(TAB_HREFS as readonly string[]).includes(path)) return;
+    const room = document.documentElement.scrollHeight - window.innerHeight;
+    const y = tabPlace(path, room);
+    window.scrollTo(0, y);
+    at.current = { path, y };
+  }, [path]);
+
+  /** The tab you are on, tapped: to the top, as an iPhone's does. */
+  const toTop = () => {
+    forgetTab(path);
+    window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? "auto" : "smooth" });
+  };
   /*
    * Coming back to a tab from a screen without the bar (a lesson, a
    * recording), the bar rises back in with the page's push rather than
@@ -300,7 +337,7 @@ export function Nav() {
       // Back to the percentage React writes, so a resize keeps it true.
       if (well.current) well.current.style.transform = `translateX(${target * 100}%)`;
     });
-    if (target !== current) router.push(TABS[target].href);
+    if (target !== current) router.push(TABS[target].href, { scroll: false });
   }
 
   function onPointerCancel() {
@@ -360,7 +397,17 @@ export function Nav() {
             <Link
               key={t.href}
               href={t.href}
+              /* Where the page lands is the tab's own place (#443), set
+                 above; the router leaves the scroll alone. */
+              scroll={false}
+              onClick={(e) => {
+                if (path !== t.href || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                e.preventDefault();
+                toTop();
+              }}
               aria-current={i === current ? "page" : undefined}
+              /* Its number opens it from a keyboard (#438, components/CommandMenu.tsx). */
+              aria-keyshortcuts={String(i + 1)}
               draggable={false}
               className={`nav-tab relative z-[1] flex min-w-0 flex-1 flex-col items-center justify-center rounded-full ${
                 active ? "text-ink" : "text-stone-500"

@@ -124,7 +124,7 @@ ok(
 
 // ---- 3. Into the first practice -----------------------------------------
 await page.getByRole("link", { name: "Start", exact: true }).click();
-await page.waitForSelector('button[aria-label="Start recording"]');
+await page.waitForSelector('button[data-record="start"]');
 const url = new URL(page.url());
 ok(
   "the practice number travels with the lesson",
@@ -139,7 +139,7 @@ ok(
 );
 
 // ---- 4. Record it --------------------------------------------------------
-await page.click('button[aria-label="Start recording"]', { force: true });
+await page.click('button[data-record="start"]', { force: true });
 await page.waitForSelector('button[aria-label="Stop and score this recording"]');
 await sleep(2500);
 await page.click('button[aria-label="Stop and score this recording"]', { force: true });

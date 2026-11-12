@@ -75,6 +75,20 @@ describe("sendWithRetry", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("a send that lands drops what the visit held about recordings; one that fails keeps it (#433)", async () => {
+    const { held, hold, resetHeld, PROFILE_KEY } = await import("./held");
+    resetHeld();
+    hold("spine", [1]);
+    hold(PROFILE_KEY, { premium: false });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(429, { error: "slow down" })));
+    await sendWithRetry(replayForm(rep()), "token");
+    expect(held("spine")).toEqual([1]);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, { repId: "r1" })));
+    await sendWithRetry(replayForm(rep()), "token");
+    expect(held("spine")).toBeUndefined();
+    expect(held(PROFILE_KEY)).toEqual({ premium: false });
+  });
+
   it("a 200 without a stored id settles only when nothing could store it", async () => {
     vi.stubGlobal(
       "fetch",

@@ -38,6 +38,25 @@ const SHELL = [
   "/lessons/name-it-once.webp",
   "/lessons/short-and-concrete.webp",
   "/lessons/second-pass.webp",
+  /* And each lesson's own screen, where the object stands 176pt wide:
+     the 560 cut, since a 3x iPhone asks 528px of it and the 360 file
+     went soft (#448). Shell too, so a lesson opened in a tunnel still
+     has its picture. */
+  "/lessons/large/the-landing.webp",
+  "/lessons/large/inside-or-after.webp",
+  "/lessons/large/the-long-one.webp",
+  "/lessons/large/the-cold-open.webp",
+  "/lessons/large/closed-mouth.webp",
+  "/lessons/large/the-crutch.webp",
+  "/lessons/large/finish-it.webp",
+  "/lessons/large/know-the-landing.webp",
+  "/lessons/large/or-rather.webp",
+  "/lessons/large/room-to-land.webp",
+  "/lessons/large/one-gear-down.webp",
+  "/lessons/large/change-gear.webp",
+  "/lessons/large/name-it-once.webp",
+  "/lessons/large/short-and-concrete.webp",
+  "/lessons/large/second-pass.webp",
   "/boss",
   "/hostile",
   "/upload",
@@ -65,7 +84,7 @@ self.addEventListener("install", (e) => {
        * One at a time, NOT addAll. addAll is atomic: a single 404 in
        * SHELL rejects the whole thing and the offline shell ends up
        * empty, and the .catch() here used to swallow exactly that.
-       * demos-workout.webp had been deleted in #249 and left in this
+       * One of Demos's poses had been deleted in #249 and left in this
        * list, so every install since then cached nothing at all.
        */
       .then((c) =>

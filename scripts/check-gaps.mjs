@@ -386,11 +386,11 @@ for (const theme of ["light", "dark"]) {
   if (rep.some(want)) {
     try {
       await page.goto(`${BASE}/rep?lesson=h4`);
-      await page.waitForSelector('button[aria-label="Start recording"]', { timeout: 20000 });
+      await page.waitForSelector('button[data-record="start"]', { timeout: 20000 });
       await sleep(600);
       if (want("rep-idle")) await check(page, "rep-idle", theme);
       // `force`: Record breathes, and Playwright waits for it to hold still (#242).
-      await page.click('button[aria-label="Start recording"]', { force: true });
+      await page.click('button[data-record="start"]', { force: true });
       await page.waitForSelector('button[aria-label="Stop and score this recording"]');
       await sleep(2500);
       if (want("rep-live")) await check(page, "rep-live", theme);

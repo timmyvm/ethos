@@ -178,7 +178,7 @@ for (const theme of ["light", "dark"]) {
   /* ---- 3. Record, the take, and the way on --------------------------------- */
   await go("/", "main .home-start");
   await page.locator("main .home-start").first().click();
-  await page.waitForSelector('button[aria-label="Start recording"]', { timeout: 60000 });
+  await page.waitForSelector('button[data-record="start"]', { timeout: 60000 });
   await sleep(1200);
   const tokens = await page.evaluate(() => {
     const probe = document.createElement("i");
@@ -192,20 +192,20 @@ for (const theme of ["light", "dark"]) {
     return out;
   });
   const record = await page.evaluate(() => {
-    const el = document.querySelector('button[aria-label="Start recording"]');
+    const el = document.querySelector('button[data-record="start"]');
     const s = getComputedStyle(el);
     const r = el.getBoundingClientRect();
     return { fill: s.backgroundColor, word: s.color, w: Math.round(r.width), h: Math.round(r.height), radius: parseFloat(s.borderTopLeftRadius), tap: el.classList.contains("tap") };
   });
   ok(`${theme} Record: ink, the ground's colour for its word`, record.tap && record.fill === tokens.ink && record.word === tokens.ground, `${record.fill} with ${record.word}`);
   ok(`${theme} Record: still the only circle, 96px`, record.w === 96 && record.h === 96 && record.radius >= 48, `${record.w} by ${record.h}`);
-  await page.click('button[aria-label="Start recording"]', { force: true });
-  await page.waitForSelector('button[aria-label="Stop and score this recording"]', { timeout: 20000 });
+  await page.click('button[data-record="start"]', { force: true });
+  await page.waitForSelector('button[data-record="stop"]', { timeout: 20000 });
   await sleep(900);
-  const stop = await page.evaluate(() => getComputedStyle(document.querySelector('button[aria-label="Stop and score this recording"]')).backgroundColor);
+  const stop = await page.evaluate(() => getComputedStyle(document.querySelector('button[data-record="stop"]')).backgroundColor);
   ok(`${theme} Stop: the take in progress keeps its red`, stop === tokens.stop, stop);
   await sleep(3200);
-  await page.click('button[aria-label="Stop and score this recording"]', { force: true });
+  await page.click('button[data-record="stop"]', { force: true });
   await page.waitForSelector("main [data-step-action]", { state: "visible", timeout: 45000 });
   await sleep(2600);
   const wayOn = (selector = "main [data-step-action]") =>

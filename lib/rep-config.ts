@@ -267,7 +267,9 @@ export function resolveRepConfig(
       lessonId: `topic:${roulette.id}`,
       unit: practice ? "Today's practice" : `Roulette · ${TOPIC_SHAPES[roulette.shape].label}`,
       title: roulette.prompt,
-      prompt: practice ? practice.title : "Sixty to ninety seconds.",
+      /* The recorder sets this as its heading over the tactics, and a
+         heading takes no full stop (#454), as a practice's title has none. */
+      prompt: practice ? practice.title : "Sixty to ninety seconds",
       maxSeconds: plainMax,
       cutIns: plainCutIns(base.interrupt, plainMax),
       xpMultiplier: xpMultiplier(mods),

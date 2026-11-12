@@ -3,7 +3,7 @@
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   IconBoss,
   IconBubble,
@@ -21,7 +21,18 @@ import { HeroStage } from "@/components/ui/HeroStage";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { bossAnswerLine, bossReadLine, bossWeekLine, daysLeftInWeek } from "@/lib/boss";
 import { dayKey } from "@/lib/challenge";
-import { fetchGameRounds, fetchProfile, fetchReps, type GameRoundRow } from "@/lib/client-data";
+import {
+  fetchGameRounds,
+  fetchProfile,
+  fetchReps,
+  heldGameRounds,
+  heldPremium,
+  heldReps,
+  type GameRoundRow,
+  type RepRow,
+} from "@/lib/client-data";
+import { useRevalidate } from "@/lib/use-revalidate";
+import { useStill, useWarm } from "@/lib/use-warm";
 import {
   askedIdsFrom,
   drawFresh,
@@ -93,11 +104,31 @@ const SEEN_KEY = "ethos.practice.bossSeen";
 /** The rounds the ladder reads: null while in flight, "failed" when the read did. */
 type Rounds = GameRoundRow[] | null | "failed";
 
+/** Whether this week's boss has a recording behind it, from the log's rows. */
+function bossTaken(rows: RepRow[], week: Date): boolean {
+  const since = week.getTime();
+  return rows.some(
+    (r) => (r.lesson_id ?? "").startsWith("boss:") && new Date(r.created_at).getTime() >= since
+  );
+}
+
 export default function GamesPage() {
   const router = useRouter();
+  /*
+   * What this visit last read (#433, lib/held.ts): Practice opens on its
+   * plan, its week and its ladders in the first frame and reads them
+   * again behind that. Never while the server's page hydrates (`warm`),
+   * which is also why the device's clock may be read here: a warm mount
+   * has no server markup to disagree with (practice-tab-2).
+   */
+  const warm = useWarm();
+  const heldRows = warm ? heldReps() : null;
   /* Null while the profile is in flight: a paying user must never see
      the wall flash and collapse into their grid (practice-tab-14). */
-  const [premium, setPremium] = useState<boolean | null>(null);
+  const [premium, setPremium] = useState<boolean | null>(() => (warm ? heldPremium() : null));
+  /** The plan is on screen: a later read is quiet, and its failure leaves it. */
+  const planKnown = useRef(premium !== null);
+  useStill(planKnown.current);
   /* The profile read failed: the slot says so and offers the retry,
      rather than showing a paying user the wall (#146). */
   const [planFailed, setPlanFailed] = useState(false);
@@ -109,20 +140,24 @@ export default function GamesPage() {
      from the same rows the log shows. Null while in flight (the label
      holds its line); a failed read lands on false and the card says
      "days left", which is true either way. */
-  const [bossDone, setBossDone] = useState<boolean | null>(null);
+  const [bossDone, setBossDone] = useState<boolean | null>(() =>
+    heldRows ? bossTaken(heldRows, weekStart()) : null
+  );
   /* This week's free Hostile Q&A, from the same rows: null while in
      flight or failed, and an unknown week opens the door (the route
      decides, its own degrade-open rule). */
-  const [hostileUsed, setHostileUsed] = useState<boolean | null>(null);
+  const [hostileUsed, setHostileUsed] = useState<boolean | null>(() =>
+    heldRows ? hostileUsedThisWeek(heldRows) : null
+  );
   /* Days left in the week, from the DEVICE's own week. Read after
      mount, never in render (practice-tab-2): the server's week is UTC
      and the phone's is local, so on a Sunday morning in Melbourne the
      two disagreed by a day and React threw #418. */
-  const [daysLeft, setDaysLeft] = useState<number | null>(null);
+  const [daysLeft, setDaysLeft] = useState<number | null>(() => (warm ? daysLeftInWeek(weekStart()) : null));
   /* Today on the device, for the game of the day; null until mounted. */
-  const [now, setNow] = useState<Date | null>(null);
+  const [now, setNow] = useState<Date | null>(() => (warm ? new Date() : null));
   /* Every game round the ladder reads (lib/client-data.ts). */
-  const [rounds, setRounds] = useState<Rounds>(null);
+  const [rounds, setRounds] = useState<Rounds>(() => (warm ? heldGameRounds() : null));
   /* Demos springs onto the stage on the first visit of the week and
      stands still after that: he appears at moments, never as furniture,
      and a tab you come back to is not a moment. Null until read, so he
@@ -131,11 +166,37 @@ export default function GamesPage() {
 
   function readPlan() {
     setPlanFailed(false);
-    setPremium(null);
+    // A plan on screen stays there while it is read again (#433).
+    if (!planKnown.current) setPremium(null);
     fetchProfile()
-      .then((p) => setPremium(p?.premium ?? false))
-      .catch(() => setPlanFailed(true));
+      .then((p) => {
+        planKnown.current = true;
+        setPremium(p?.premium ?? false);
+      })
+      .catch(() => {
+        if (!planKnown.current) setPlanFailed(true);
+      });
   }
+
+  /** The week's rows and the ladders, read behind whatever is drawn. */
+  function readWeek(week: Date) {
+    fetchReps()
+      .then((rows) => {
+        setBossDone(bossTaken(rows, week));
+        setHostileUsed(hostileUsedThisWeek(rows));
+      })
+      // A failed first read lands on "days left", true either way; a
+      // failed later one leaves what the screen says.
+      .catch(() => setBossDone((was) => was ?? false));
+    fetchGameRounds()
+      .then(setRounds)
+      .catch(() => setRounds((was) => (was === null ? "failed" : was)));
+  }
+  // Looked at again after a while, or back on the network: read again, quietly.
+  useRevalidate(() => {
+    readPlan();
+    readWeek(weekStart());
+  });
 
   useEffect(() => {
     const week = weekStart();
@@ -151,22 +212,7 @@ export default function GamesPage() {
     setNow(new Date());
 
     readPlan();
-    fetchReps()
-      .then((rows) => {
-        const since = week.getTime();
-        setBossDone(
-          rows.some(
-            (r) =>
-              (r.lesson_id ?? "").startsWith("boss:") &&
-              new Date(r.created_at).getTime() >= since
-          )
-        );
-        setHostileUsed(hostileUsedThisWeek(rows));
-      })
-      .catch(() => setBossDone(false));
-    fetchGameRounds()
-      .then(setRounds)
-      .catch(() => setRounds("failed"));
+    readWeek(week);
   }, []);
 
   /* A non-breaking space while either read is out, so the line keeps

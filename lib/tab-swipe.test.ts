@@ -205,9 +205,35 @@ describe("the swipe and what it stands beside", () => {
   const nav = readFileSync("components/Nav.tsx", "utf8");
   const hook = readFileSync("components/TabSwipe.tsx", "utf8");
 
-  it("plays no push on a page a swipe carried in", () => {
-    expect(pt).toContain("const carried = arrivedBySwipe(path);");
-    expect(pt).toMatch(/cold \|\| carried \? "" :/);
+  it("plays no push on a page a swipe brought in, because tab to tab is a swap for everyone", () => {
+    // #443: a tab change has no travel, however it was made, so the page
+    // transition does not need to know a swipe brought this tab in.
+    expect(pt).toContain('if (a !== -1 && b !== -1) return "swap";');
+    expect(pt).toMatch(/const still = cold \|\| direction === "swap" \|\|/);
+    expect(pt).toMatch(/\$\{still \? "" : direction === "right" \? "push-right" : "push-left"\}/);
+    expect(pt).not.toContain("arrivedBySwipe");
+  });
+
+  it("lands where the tab was left, and shows its picture there", () => {
+    // #443 (lib/tab-places.ts): the bar restores a tab's place, so the
+    // swipe asks the router to leave the scroll alone, both times.
+    expect(hook.match(/router\.push\([^)]*\{ scroll: false \}\)/g)).toHaveLength(2);
+    // The pane is scrolled to that place, which also sticks the picture's bar.
+    expect(hook).toContain("el.scrollTop = tabPlace(TAB_HREFS[to]);");
+    const drop = hook.slice(hook.indexOf("const dropPane = () => {"), hook.indexOf("/** Put `to`'s picture in the pane"));
+    expect(drop).toContain("el.scrollTop = 0;");
+    // And the bar still does the restoring: a tab link and its own slide leave the scroll too.
+    expect(nav).toContain("const y = tabPlace(path, room);");
+    expect(nav).toContain("scroll={false}");
+  });
+
+  it("holds a picture until the page under it has loaded, and stands in for its entrance only when it was whole", () => {
+    // #434: a page's placeholders draw nothing for 300ms, so a picture
+    // of placeholders let go at once fell to a bare page.
+    expect(hook).toContain('const waits = el.dataset.kind !== "blank";');
+    expect(hook).toContain('const whole = el.dataset.settled === "1";');
+    expect(hook).toContain("if (waits && !loaded && performance.now() - since < HANDOFF_MAX_MS) {");
+    expect(hook).toContain("if (whole && loaded) arrive(fresh);");
   });
 
   it("does not send the bar's well a second time", () => {
@@ -253,9 +279,9 @@ describe("the swipe and what it stands beside", () => {
     const pushes = [...hook.matchAll(/router\.push\(/g)];
     expect(pushes).toHaveLength(2);
     const landing = hook.slice(hook.indexOf("Promise.all([pageRun, paneRun, wellRun])"), hook.indexOf("/* A tab's page, kept"));
-    expect(landing).toContain("router.push(href)");
+    expect(landing).toContain("router.push(href, { scroll: false })");
     expect(landing.indexOf("!pageLanded || !paneLanded")).toBeGreaterThan(-1);
-    expect(landing.indexOf("!pageLanded || !paneLanded")).toBeLessThan(landing.indexOf("router.push(href)"));
+    expect(landing.indexOf("!pageLanded || !paneLanded")).toBeLessThan(landing.indexOf("router.push(href, { scroll: false })"));
   });
 
   it("lands the page whoever takes the bar's well mid-landing", () => {

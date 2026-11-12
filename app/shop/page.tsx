@@ -1,5 +1,6 @@
 "use client";
 
+import { TapTick } from "@/components/ui/TapTick";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CountUp } from "@/components/CountUp";
@@ -332,6 +333,7 @@ export default function ShopPage() {
                     }${pose === item.id ? "bg-sage-100" : "bg-surface"}`}
                   >
                     {pose === item.id ? "On You" : "Wear it on You"}
+                    <TapTick />
                   </button>
                 ) : state.ok ? (
                   /*

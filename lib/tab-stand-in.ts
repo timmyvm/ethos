@@ -10,7 +10,9 @@
  * DOM, and nothing in it runs:
  *
  *  - the tab as it was last left: the very nodes React let go of when
- *    the app moved on, kept instead of collected, so no copy is made; or
+ *    the app moved on, kept instead of collected, so no copy is made,
+ *    and shown at the place the tab was left (#443: the pane is
+ *    scrolled there, components/TabSwipe.tsx); or
  *  - for a tab not opened yet, its first paint. Every tab is
  *    prerendered, so its address answers with the screen exactly as a
  *    visit first draws it, title and placeholders in place; or

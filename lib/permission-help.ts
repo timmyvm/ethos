@@ -7,19 +7,23 @@
 
 export type BrowserFamily =
   | "ios-safari"
+  /* Ethos on an iPhone's Home Screen (#440): no address bar, no aA
+     button, no Website Settings. The iPhone asks again each time the
+     app is opened, so the fix is to open it again. */
+  | "ios-installed"
   | "safari"
   | "firefox"
   | "chromium"
   | "unknown";
 
-export function browserFamily(ua: string): BrowserFamily {
+export function browserFamily(ua: string, standalone = false): BrowserFamily {
   const u = ua.toLowerCase();
   const apple =
     /iphone|ipad|ipod/.test(u) ||
     // iPadOS reports itself as a Mac with touch; Macs don't have touch.
     (u.includes("macintosh") && typeof navigator !== "undefined" &&
       (navigator.maxTouchPoints ?? 0) > 1);
-  if (apple) return "ios-safari";
+  if (apple) return standalone ? "ios-installed" : "ios-safari";
   if (u.includes("firefox")) return "firefox";
   if (u.includes("safari") && !u.includes("chrome") && !u.includes("chromium")) {
     return "safari";
@@ -46,6 +50,13 @@ export function permissionSteps(
         // #412: iOS 26.3 to 26.6 can hold the mic after a media reset, with
         // Allow already set, until the browser is quit (bugs.webkit.org 319706).
         `Still blocked with Allow set? Swipe Safari (or the app you opened Ethos in) away in the app switcher, then open Ethos again`,
+      ];
+    case "ios-installed":
+      return [
+        `Close Ethos: swipe up from the bottom edge, then swipe Ethos away`,
+        `Open Ethos again and tap Record`,
+        `Tap Allow when your iPhone asks for the ${device.toLowerCase()}`,
+        `If it never asks: Settings app → Apps → Safari → ${video ? "Microphone, then Camera" : "Microphone"}, and choose Ask`,
       ];
     case "safari":
       return [

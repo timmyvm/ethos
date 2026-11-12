@@ -14,7 +14,7 @@
  * screen), sheet-filler, sheet-vague, sheet-repeat, sheet-word,
  * sheet-word-loading, sheet-word-failed, sheet-saved (a swap saved,
  * the door to Your words), words-empty, words-loading, words-failed,
- * words (five rows), stored and stored-sheet (a Log recording's transcript and a word's sheet), you-door (You's lexicon and the door under it). /api/words is answered here as the route would,
+ * words (five rows), words-undo and words-undone (a row taken off with the toast up, then taken back, #435), stored and stored-sheet (a Log recording's transcript and a word's sheet), you-door (You's lexicon and the door under it). /api/words is answered here as the route would,
  * with a beat; `wordsApi.mode` holds it ("slow") or refuses it ("fail").
  */
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright");
@@ -104,9 +104,9 @@ async function shootTheme(theme) {
     await step(async () => {
       savedWordsMode.rows = [];
       await page.goto(`${BASE}/rep?lesson=h4`);
-      await page.waitForSelector('button[aria-label="Start recording"]', { timeout: 20000 });
+      await page.waitForSelector('button[data-record="start"]', { timeout: 20000 });
       await sleep(800);
-      await page.click('button[aria-label="Start recording"]', { force: true });
+      await page.click('button[data-record="start"]', { force: true });
       await page.waitForSelector('button[aria-label="Stop and score this recording"]');
       await sleep(2600);
       await page.click('button[aria-label="Stop and score this recording"]', { force: true });
@@ -146,7 +146,8 @@ async function shootTheme(theme) {
         if (!want(name)) return;
         if (before) before();
         if (!(await open(selector))) return console.log("NO-WORD", name, selector);
-        await shot(name, { settle: name.endsWith("loading") ? 250 : 900 });
+        /* A loading shot waits out the skeleton's own wait (#434, 300ms and a 120ms fade). */
+        await shot(name, { settle: name.endsWith("loading") ? 700 : 900 });
         wordsApi.mode = "ok";
         await close();
       });
@@ -192,7 +193,8 @@ async function shootTheme(theme) {
       if (!mode.delay) {
         await page.waitForFunction(() => document.querySelectorAll(".skeleton").length === 0, null, { timeout: 12000 }).catch(() => {});
       }
-      await shot(name, { settle: mode.delay ? 300 : 900, fullPage: !mode.delay });
+      // A loading shot waits out the skeleton's own wait (#434).
+      await shot(name, { settle: mode.delay ? 700 : 900, fullPage: !mode.delay });
       savedWordsMode.fail = false;
       savedWordsMode.delay = 0;
     });
@@ -200,6 +202,21 @@ async function shootTheme(theme) {
   await words("words-loading", SAVED_ROWS, { delay: 6000 });
   await words("words-failed", SAVED_ROWS, { fail: true });
   await words("words", SAVED_ROWS);
+
+  // The undo toast (#435): the second row taken off with the offer
+  // standing over the tab bar, then taken back into its own place.
+  await step(async () => {
+    if (!want("words-undo") && !want("words-undone")) return;
+    savedWordsMode.rows = SAVED_ROWS.map((r) => ({ ...r }));
+    await page.goto(`${BASE}/words`);
+    await page.waitForSelector("main ul li", { timeout: 20000 });
+    await sleep(600);
+    await page.locator('main ul li button[aria-label^="Remove"]').nth(1).click();
+    await page.waitForSelector(".toast", { timeout: 5000 });
+    await shot("words-undo", { settle: 700 });
+    await page.locator(".toast-action").click();
+    await shot("words-undone", { settle: 700 });
+  });
 
   // A stored recording from the Log (no word list in the fixture: the
   // text alone, its fillers timed from the stored list).

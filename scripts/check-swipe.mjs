@@ -93,6 +93,8 @@ async function phone({ reduced = false } = {}) {
         lit: [...document.querySelectorAll('nav[aria-label="Sections"] a')].findIndex((a) => a.classList.contains("text-ink")),
         named: [...document.querySelectorAll('nav[aria-label="Sections"] a')].findIndex((a) => a.getAttribute("aria-current") === "page"),
         scrollY: Math.round(window.scrollY),
+        // How far down the neighbour's picture stands in its pane.
+        paneScroll: Math.round(pane?.scrollTop ?? 0),
       };
     });
   const open = async (path) => {
@@ -157,7 +159,8 @@ async function phone({ reduced = false } = {}) {
   await p.page.locator('nav[aria-label="Sections"] a[href="/"]').tap();
   await p.page.waitForFunction(() => location.pathname === "/");
   const tapped = await p.page.evaluate(() => document.querySelector("[data-page]")?.className ?? "");
-  ok("a tab tapped after a swipe still pushes in", /push-left/.test(tapped), tapped);
+  // Tab to tab is a swap in place since #443: a tap has no travel, a swipe is the finger's.
+  ok("a tab tapped after a swipe swaps in place, with no push", !/push-(left|right)/.test(tapped), tapped);
   await p.context.close();
 }
 
@@ -267,14 +270,31 @@ async function phone({ reduced = false } = {}) {
   const scrolled = await p.where();
   ok("a drag up scrolls the page and moves nothing sideways", scrolled.scrollY > 100 && scrolled.page === 0 && !scrolled.paneShown && scrolled.path === "/lessons", `scrollY ${scrolled.scrollY}`);
 
-  /* A swipe from a scrolled page lands the next tab at its top. */
+  /* A swipe from a scrolled page lands a tab not yet opened at its top. */
   await p.finger.down(300, 420);
   await p.finger.move(300, 80);
   const mid = await p.where();
   ok("a scrolled page is pulled aside where it is", mid.scrollY === scrolled.scrollY && near(mid.page, -210), `scrollY ${mid.scrollY}, page ${mid.page}`);
   await p.finger.up();
   const top = await p.landed("/games");
-  ok("and the tab it lands on opens at its top", top.path === "/games" && top.scrollY === 0, `scrollY ${top.scrollY}`);
+  ok("and a tab not opened before lands at its top", top.path === "/games" && top.scrollY === 0, `scrollY ${top.scrollY}`);
+
+  /* Back toward the tab that was left scrolled: a tab keeps its place
+     (#443, lib/tab-places.ts), so its picture stands at that place while
+     the finger holds it, and the tab lands there. */
+  await p.finger.down(90, 420);
+  await p.finger.move(90, 250);
+  await sleep(120);
+  const backHeld = await p.where();
+  ok(
+    "a tab left scrolled shows its picture at the place it was left",
+    backHeld.paneKind === "seen" && near(backHeld.paneScroll, scrolled.scrollY, 2),
+    `picture at ${backHeld.paneScroll}, left at ${scrolled.scrollY}`
+  );
+  await p.finger.move(250, 340);
+  await p.finger.up();
+  const back = await p.landed("/lessons");
+  ok("and lands there", back.path === "/lessons" && near(back.scrollY, scrolled.scrollY, 2), `scrollY ${back.scrollY}`);
 
   await p.open("/lessons");
   await p.finger.down(200, 500);

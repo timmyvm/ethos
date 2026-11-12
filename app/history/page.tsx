@@ -1,8 +1,9 @@
 "use client";
 
+import { TrendMark } from "@/components/ui/TrendMark";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import Link from "next/link";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { CountUp } from "@/components/CountUp";
 import { PremiumDoor, PremiumMark } from "@/components/PremiumMark";
 import { IconChevron } from "@/components/Icon";
@@ -16,14 +17,20 @@ import {
   SkeletonScoreCard,
 } from "@/components/ui/Skeleton";
 import { Stars } from "@/components/Stars";
+import { Disclosure } from "@/components/ui/Disclosure";
 import { ErrorState } from "@/components/ui/ErrorState";
 import {
   fetchProfile,
   fetchRepSpine,
   fetchReps,
+  heldPremium,
+  heldReps,
+  heldSpine,
   type RepRow,
   type RepSpine,
 } from "@/lib/client-data";
+import { useRevalidate } from "@/lib/use-revalidate";
+import { useStill, useWarm } from "@/lib/use-warm";
 import { limit } from "@/lib/entitlement";
 import { unitBreak } from "@/lib/metric-labels";
 import { DURATION } from "@/lib/motion";
@@ -67,23 +74,29 @@ function decimalsOf(printed: string): (value: number) => string {
     name keeps room to be read: at 320 it truncated to "Eth..." and
     "F...". E32's "All fillers / min" is 104px with its chevron, so the
     number columns are as narrow as their contents and the gaps 6: Day 1
-    28 under 360 (its values reach 25; its head hangs 4px into the gap
-    by the empty end of "Metric", since right-aligned heads and changes
-    overflow to their left and keep one right edge) and 32 over it, Now
+    30 under 360 (its values reach 25; its head, 35.5 since the heads
+    went to 11px in #450, hangs 5.5px into the gap by the empty end of
+    "Metric", since right-aligned heads and changes overflow to their
+    left and keep one right edge) and 32 over it (hanging 3.5), Now
     36 and 38 (its widest, "12.3", is 34), Change 76 ("in 130 to 160" is
-    75.5), Trend 40 (its head is 38). The label and its chevron hold one
+    75.5), Trend 44 (its head is 41.6 at 11px; at 40 it stood 4px off
+    the end of CHANGE and the two read as one phrase). The label and its chevron hold one
     line at 320 and from 375 up; at 360 it takes two, as it did before. */
 const MOVED_GRID =
-  "grid grid-cols-[minmax(0,1fr)_28px_36px_76px] gap-1.5 min-[360px]:grid-cols-[minmax(0,1fr)_32px_38px_76px_40px]";
+  "grid grid-cols-[minmax(0,1fr)_30px_36px_76px] gap-1.5 min-[360px]:grid-cols-[minmax(0,1fr)_32px_38px_76px_44px]";
 /* Out of the flow and unseen under 360px, rather than `display: none`:
    toggling display restarts the line's unroll (`.fill`), and the
    camera's full-page capture caught it part way. */
 const TREND_CELL = "max-[359px]:invisible max-[359px]:absolute";
 /* The date is a bare 40px column, the day over its month (D33), and the
    number columns are as wide as their heads, so the lesson's name gets
-   the width: "Punctuate with silence" sets on one line at 390. */
+   the width: "Punctuate with silence" sets on one line at 390. The
+   heads are 11px since #450 (the smallest type an iPhone sets): INDEX
+   is 38.7 and hangs 2.7 into its 4px gap, WPM is 29.9 in its 30, and
+   HELD, 32.8, took its column from 28 to 33, where it had printed over
+   the end of WPM. The 5px came from the name's column, 151 at 390. */
 const RECORD_GRID =
-  "grid grid-cols-[40px_minmax(0,1fr)_36px_28px_30px] min-[360px]:grid-cols-[40px_minmax(0,1fr)_36px_28px_30px_28px] gap-1";
+  "grid grid-cols-[40px_minmax(0,1fr)_36px_28px_30px_8px] min-[360px]:grid-cols-[40px_minmax(0,1fr)_36px_28px_30px_33px_8px] gap-1";
 /* The table while every row waits keeps the old grid (#394), with the
    Index column at the Go pill's 56px (D11), since a 44px pill in a 44px
    column is a circle and Record is the only circle. */
@@ -133,12 +146,19 @@ function keepPlace() {
 }
 
 export default function HistoryPage() {
-  const [reps, setReps] = useState<RepRow[] | null>(null);
+  /* What this visit last read (#433, lib/held.ts): the Log opens on its
+     rows in the first frame and reads them again behind that. Never
+     while the server's page hydrates (`warm`). */
+  const warm = useWarm();
+  const [reps, setReps] = useState<RepRow[] | null>(() => (warm && heldSpine() ? heldReps() : null));
   /** Every recording, a few columns each: the counts and Day 1. */
-  const [spine, setSpine] = useState<RepSpine[]>([]);
+  const [spine, setSpine] = useState<RepSpine[]>(() => (warm ? heldSpine() : null) ?? []);
+  /** Rows are on screen: a later read is quiet, and its failure leaves them. */
+  const drawn = useRef(reps !== null);
+  useStill(drawn.current);
   /* The clock the free window is cut against, read when the data
      lands rather than on every render. */
-  const [readAt, setReadAt] = useState(0);
+  const [readAt, setReadAt] = useState(() => (drawn.current ? Date.now() : 0));
   const [failed, setFailed] = useState(false);
   const [paywall, setPaywall] = useState<PaywallAsk | null>(null);
   // Back from the paywall's account doors or Checkout's back arrow
@@ -146,7 +166,7 @@ export default function HistoryPage() {
   usePaywallReturn(() => setPaywall({ reason: "Premium" }));
   /** The plan: null until the profile answers, and on a failed read.
    *  Unknown is never free (#353): no cut, no teaser, until it says so. */
-  const [premium, setPremium] = useState<boolean | null>(null);
+  const [premium, setPremium] = useState<boolean | null>(() => (warm ? heldPremium() : null));
   // Whether a waiting row's Go meets the unit's teaching screen first, as
   // Today's Start does (#232: the introduction can turn intros off).
   const [skipIntros, setSkipIntros] = useState(false);
@@ -159,17 +179,21 @@ export default function HistoryPage() {
 
   const load = useCallback(async () => {
     setFailed(false);
-    setReps(null);
+    // Rows on screen stay there while they are read again (#433).
+    if (!drawn.current) setReps(null);
     // The newest 90 whole rows for the tables, and every recording's
     // date, stars and Index for the counts and Day 1, which the newest 90
     // stopped holding past 90 recordings.
     const read = await readable(() => Promise.all([fetchReps(), fetchRepSpine()]));
     if (read.ok) {
+      drawn.current = true;
       setReadAt(Date.now());
       setSpine(read.data[1]);
       setReps(read.data[0]);
-    } else setFailed(true);
+    } else if (!drawn.current) setFailed(true);
   }, []);
+  // Looked at again after a while, or back on the network: read again, quietly.
+  useRevalidate(() => void load());
 
   /*
    * The Log's place, kept across opening a recording. Both ways back (the
@@ -418,7 +442,7 @@ export default function HistoryPage() {
               onTap={() =>
                 setPaywall({
                   reason: "Presence trendline · premium",
-                  headline: "See what the camera measured.",
+                  headline: "See what the camera measured",
                 })
               }
             />
@@ -552,13 +576,17 @@ export default function HistoryPage() {
               const name = recordingName(r);
               /* log-21: the row's name, not four bare numbers. The
                  column heads are hidden from assistive tech, so the
-                 label carries what they said. */
+                 label carries what they said: every number the row
+                 shows (#448; it stopped at the stars, and the fillers,
+                 the pace and the pauses were on screen and unsaid). */
               const label = `${name}, ${d.toLocaleDateString(undefined, {
                 day: "numeric",
                 month: "long",
               })}, ${
                 r.ethos_index === null ? "not scored" : `Ethos ${r.ethos_index}`
-              }, ${r.stars} of 3 stars`;
+              }, ${r.stars} of 3 stars, ${r.filler_count} filler${r.filler_count === 1 ? "" : "s"}, ${
+                r.wpm
+              } words a minute, ${held} held pause${held === 1 ? "" : "s"}`;
               return (
                 <Link
                   key={r.id}
@@ -598,6 +626,9 @@ export default function HistoryPage() {
                   <Cell>{r.filler_count}</Cell>
                   <Cell>{r.wpm}</Cell>
                   <Cell className={HELD_CELL}>{held}</Cell>
+                  {/* The row opens its recording, and says so the way every
+                      other row that is a door does (#442, #330's rule). */}
+                  <Disclosure className="justify-self-end text-stone-400" />
                 </Link>
               );
             })}
@@ -607,7 +638,7 @@ export default function HistoryPage() {
             onClick={() =>
               setPaywall({
                 reason: "Full history · premium",
-                headline: "Your first recording is still here.",
+                headline: "Your first recording is still here",
               })
             }
             /* mt-2: air between the last tile and the plum chip, so a
@@ -664,6 +695,22 @@ function Line({ className, width }: { className: string; width: string }) {
       <span className="invisible">Ag</span>
       <Skeleton className={`absolute inset-y-[22%] left-0 ${width}`} />
     </div>
+  );
+}
+
+/**
+ * A row's change as lib/log writes it ("▲ +131", "▼ 3.3", or words like
+ * "in 130 to 160"): the triangle for the eye, Up or Down for a screen
+ * reader (#448). One span, so the cell's flex row keeps the space
+ * between the mark and its number.
+ */
+function Change({ text }: { text: string }) {
+  const m = /^([▲▼])\s?(.*)$/.exec(text);
+  if (!m) return <>{text}</>;
+  return (
+    <span>
+      <TrendMark up={m[1] === "▲"} /> {m[2]}
+    </span>
   );
 }
 
@@ -795,7 +842,7 @@ function MetricRow({
           dim ? "" : tone
         }`}
       >
-        {row.change ?? DASH}
+        {row.change ? <Change text={row.change} /> : DASH}
       </span>
       {/* log-23: the track draws a trailing mean of three, so a noisy
           series reads as a direction; every point stays, so the line

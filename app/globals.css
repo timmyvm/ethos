@@ -6687,3 +6687,55 @@ html[data-test-tile] .test-tile-slot {
   }
 }
 /* ======================= end of continuous corners (#437) ======================= */
+
+/* ======================= a new password's field (#455) =======================
+ * components/NewPassword.tsx. The outline draws itself over the field's
+ * own 1px edge as the password grows and closes at the length rule:
+ * ink, the colour of a state (a switch's ON), never terracotta, which is
+ * the tap, and never sage, which is earned. Rust the moment the password
+ * is one everyone tries first. The line under the field says the rule,
+ * then ticks it, in ink; nothing says "too short" while typing.
+ */
+/* 2px wide on a centre 1px in: exactly the band the focus edge paints
+   (the 1px border and its 1px inset shadow, lib/ui.ts), so the line
+   covers the terracotta as it grows and nothing shows beside it. */
+.new-password-line {
+  position: absolute;
+  inset: 1px;
+  width: calc(100% - 2px);
+  height: calc(100% - 2px);
+  overflow: visible;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+.new-password-line rect {
+  stroke: var(--color-ink);
+  transition:
+    stroke-dashoffset 240ms var(--ease-out),
+    stroke var(--duration-fast) var(--ease-out);
+}
+.new-password:not([data-state="empty"]) .new-password-line[data-measured] {
+  opacity: 1;
+}
+.new-password[data-state="common"] .new-password-line rect {
+  stroke: var(--color-rust);
+}
+.new-password-help {
+  color: var(--color-stone-400);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+.new-password-help[data-state="good"] {
+  color: var(--color-stone-600);
+}
+.new-password-help[data-state="common"] {
+  color: var(--color-rust);
+}
+:root[data-motion="reduce"] .new-password-line rect {
+  transition: stroke var(--duration-fast) var(--ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .new-password-line rect {
+    transition: stroke var(--duration-fast) var(--ease-out);
+  }
+}

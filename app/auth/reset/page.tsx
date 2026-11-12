@@ -5,12 +5,13 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import {
   AuthLoading,
-  FIELD_CLASS,
+  FIELD_BARE_CLASS,
   FormError,
   LABEL_CLASS,
   PASSWORD_HELP,
   Shell,
 } from "@/components/AuthForm";
+import { NewPasswordField } from "@/components/NewPassword";
 import { ACTION_CLASS, DISABLED_CLASS } from "@/lib/ui";
 import { resetReady, sessionState, setNewPassword } from "@/lib/auth";
 import { authHref, nextFrom, onwardLink } from "@/lib/use-paywall-return";
@@ -99,7 +100,7 @@ function ResetScreen() {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const result = await setNewPassword(password);
+    const result = await setNewPassword(password, email);
     setBusy(false);
     if (result.ok) setDone(true);
     else setError(result.error ?? "That didn't go through. Try again.");
@@ -175,27 +176,17 @@ function ResetScreen() {
             <label className={LABEL_CLASS} htmlFor="password">
               {first ? "Password" : "New password"}
             </label>
-            <input
-              ref={field}
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              required
+            {/* The outline closes as the password grows (#455). */}
+            <NewPasswordField
+              inputRef={field}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              aria-invalid={error ? true : undefined}
-              aria-describedby={
-                error ? "password-help form-error" : "password-help"
-              }
-              className={FIELD_CLASS}
+              onChange={setPassword}
+              email={email}
+              invalid={!!error}
+              errorId="form-error"
+              help={PASSWORD_HELP}
+              inputClassName={FIELD_BARE_CLASS}
             />
-            <p
-              id="password-help"
-              className="mt-2 text-caption leading-relaxed text-stone-400"
-            >
-              {PASSWORD_HELP}
-            </p>
             {error && <FormError>{error}</FormError>}
             <button
               type="submit"

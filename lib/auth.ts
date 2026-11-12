@@ -28,6 +28,7 @@ import { rememberEmailAsked } from "./account-gate";
 import { supabaseBrowser } from "./supabase-browser";
 import { carryTesting, keepCarryForLink, stashTesterCarry, testerCarryToken } from "./tester-client";
 import { safeNextPath } from "./use-paywall-return";
+import { COMMON_LINE, MIN_PASSWORD, commonPassword } from "./password";
 
 /** Where confirmation and reset links come back to. */
 export function siteUrl(): string {
@@ -37,7 +38,7 @@ export function siteUrl(): string {
   return "https://speakethos.com";
 }
 
-export const MIN_PASSWORD = 8;
+export { MIN_PASSWORD } from "./password";
 
 /**
  * `path` with the page to come back to after the account is made, when
@@ -286,12 +287,15 @@ function emailTimedOut(message: string): boolean {
  * Password rules, stated up front rather than enforced by a red border
  * after the fact. One rule: length. Composition rules ("one symbol, one
  * digit") measurably push people toward `Password1!` and we'd rather
- * have a long simple one.
+ * have a long simple one. And not one of the few everyone tries first
+ * (#455, lib/password.ts), which the field has already said as it was
+ * typed; the email is passed where there is one, so it is not that either.
  */
-export function passwordProblem(password: string): string | null {
+export function passwordProblem(password: string, email = ""): string | null {
   if (password.length < MIN_PASSWORD) {
     return `Use ${MIN_PASSWORD} characters or more.`;
   }
+  if (commonPassword(password, email)) return COMMON_LINE;
   return null;
 }
 
@@ -390,7 +394,7 @@ export async function createAccount(
 
   const emailWrong = emailProblem(email);
   if (emailWrong) return { ok: false, error: emailWrong, field: "email" };
-  const passwordWrong = passwordProblem(password);
+  const passwordWrong = passwordProblem(password, email);
   if (passwordWrong) {
     return { ok: false, error: passwordWrong, field: "password" };
   }
@@ -869,10 +873,10 @@ export async function sendReset(email: string): Promise<AuthResult> {
   return { ok: true, checkInbox: true };
 }
 
-export async function setNewPassword(password: string): Promise<AuthResult> {
+export async function setNewPassword(password: string, email = ""): Promise<AuthResult> {
   const db = supabaseBrowser();
   if (!db) return { ok: false, error: "Accounts aren't configured yet." };
-  const problem = passwordProblem(password);
+  const problem = passwordProblem(password, email);
   if (problem) return { ok: false, error: problem, field: "password" };
   const { error } = await db.auth.updateUser({ password });
   if (error) return { ok: false, error: humanise(error.message) };

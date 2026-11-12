@@ -58,24 +58,27 @@ export function swipeNeighbour(current: number, dx: number): number | null {
   return to >= 0 && to < TAB_HREFS.length ? to : null;
 }
 
-/** Dragged this share of the width, a swipe goes by itself (#465: was a quarter). */
+/** A throw that would come to rest past this share of the width goes (#465, #466). */
 export const SWIPE_COMMIT_SHARE = 0.15;
-/** A throw that would come to rest past this share goes (#465: was half). */
-export const SWIPE_CARRY_SHARE = 0.3;
-/** A flick this fast toward the neighbour goes from any distance, px/s (#465). */
+/** A flick at least this fast is decided by its direction alone, px/s (#465, #466). */
 export const SWIPE_FLICK_PX_S = 300;
-/** A flick back at least this fast cancels, px/s. */
-const SWIPE_REVERSE_PX_S = 150;
 
 /**
- * Does a released drag go to the neighbour? By where the throw would
- * come to REST (§6): a quick flick goes, a slow haul that stops short
- * stays, and a flick back the other way cancels whatever the position.
- * Easy to go (Timothy, 12 Nov: "lower the distance and velocity needed
- * to swipe"): 15% of the width dragged goes by itself, a throw that
- * would rest past 30% goes, and a flick toward the neighbour at 300 px/s
- * goes from any distance. `dx`: where the page is, px from rest.
- * `velocity`: the finger's at the lift, px/s.
+ * Does a released drag go to the neighbour? Decided once, at the lift,
+ * the way iOS pages decide (#466, Timothy: "copy apples swipe logic").
+ *
+ *  - A real flick, 300 px/s or faster, goes the way it was thrown: toward
+ *    the neighbour it goes, back toward home it comes home.
+ *  - Anything slower goes by where the page would come to REST (§6):
+ *    where it is now plus where its momentum would carry it. Past 15% of
+ *    the width toward the neighbour, it goes.
+ *
+ * What this replaced: a flick back of only 150 px/s cancelled whatever
+ * the distance, and a thumb leaving the glass often rolls back a few
+ * pixels as it lifts. A swipe dragged most of the way then bounced home
+ * one time in a few, the same drag that went the time before. Now a
+ * small roll at the lift only shortens the throw a little.
+ * `dx`: where the page is, px from rest. `velocity`: px/s at the lift.
  */
 export function swipeCommits({
   dx,
@@ -87,12 +90,9 @@ export function swipeCommits({
   width: number;
 }): boolean {
   if (dx === 0 || width <= 0) return false;
-  const toward = Math.sign(velocity) === Math.sign(dx);
-  if (!toward && Math.abs(velocity) > SWIPE_REVERSE_PX_S) return false;
-  if (Math.abs(dx) > width * SWIPE_COMMIT_SHARE) return true;
-  if (!toward) return false;
-  if (Math.abs(velocity) >= SWIPE_FLICK_PX_S) return true;
-  return Math.abs(dx + project(velocity)) > width * SWIPE_CARRY_SHARE;
+  if (Math.abs(velocity) >= SWIPE_FLICK_PX_S) return Math.sign(velocity) === Math.sign(dx);
+  const rest = dx + project(velocity);
+  return Math.sign(rest) === Math.sign(dx) && Math.abs(rest) > width * SWIPE_COMMIT_SHARE;
 }
 
 /**

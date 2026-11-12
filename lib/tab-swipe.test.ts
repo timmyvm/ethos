@@ -89,53 +89,38 @@ describe("the tab a pull makes room for", () => {
   });
 });
 
-describe("go or stay", () => {
-  /* #465, Timothy: "lower the distance and velocity needed to swipe".
-     A sixth of the width, a throw resting past 30%, or a 300 px/s flick
-     toward the neighbour; it was a quarter, half and nothing. */
-  it("goes once 15% of the width has been dragged, however slowly", () => {
+describe("go or stay, decided at the lift (#466)", () => {
+  it("goes when the page would come to rest past 15% of the width", () => {
     expect(swipeCommits({ dx: -(W * 0.15 + 1), velocity: 0, width: W })).toBe(true);
     expect(swipeCommits({ dx: W * 0.15 + 1, velocity: 0, width: W })).toBe(true);
-    // A quarter, the old line, goes with room to spare.
-    expect(swipeCommits({ dx: -(W * 0.25 - 1), velocity: 0, width: W })).toBe(true);
-  });
-
-  it("stays on a short slow drag", () => {
-    expect(swipeCommits({ dx: -(W * 0.15 - 1), velocity: 0, width: W })).toBe(false);
-    expect(swipeCommits({ dx: 30, velocity: 40, width: W })).toBe(false);
-    expect(swipeCommits({ dx: -30, velocity: -40, width: W })).toBe(false);
-  });
-
-  it("goes on a quick flick toward the neighbour from any distance", () => {
-    expect(swipeCommits({ dx: -12, velocity: -300, width: W })).toBe(true);
-    expect(swipeCommits({ dx: 12, velocity: 300, width: W })).toBe(true);
-    expect(swipeCommits({ dx: -30, velocity: -900, width: W })).toBe(true);
-  });
-
-  it("goes on a slower throw that would come to rest past 30%", () => {
     const dx = -40;
     const velocity = -250;
-    expect(Math.abs(dx + project(velocity))).toBeGreaterThan(W * 0.3);
+    expect(Math.abs(dx + project(velocity))).toBeGreaterThan(W * 0.15);
     expect(swipeCommits({ dx, velocity, width: W })).toBe(true);
   });
 
-  it("stays on a slow nudge that would not", () => {
-    const dx = -20;
-    const velocity = -60;
-    expect(Math.abs(dx + project(velocity))).toBeLessThan(W * 0.3);
-    expect(swipeCommits({ dx, velocity, width: W })).toBe(false);
+  it("stays on a short slow pull that would come to rest short of it", () => {
+    expect(swipeCommits({ dx: -(W * 0.15 - 1), velocity: 0, width: W })).toBe(false);
+    expect(swipeCommits({ dx: -20, velocity: -40, width: W })).toBe(false);
   });
 
-  it("stays on a flick back the other way, wherever the page is", () => {
-    // Dragged most of the way to the next tab, then thrown home.
+  it("a real flick goes the way it was thrown, from any distance", () => {
+    expect(swipeCommits({ dx: -12, velocity: -300, width: W })).toBe(true);
+    expect(swipeCommits({ dx: 12, velocity: 300, width: W })).toBe(true);
     expect(swipeCommits({ dx: -300, velocity: 400, width: W })).toBe(false);
     expect(swipeCommits({ dx: 300, velocity: -400, width: W })).toBe(false);
   });
 
-  it("does not read a finger's drift at the lift as a flick back", () => {
-    // Past the line, lifting with a little backward drift: still goes.
-    expect(swipeCommits({ dx: -200, velocity: 120, width: W })).toBe(true);
-    expect(swipeCommits({ dx: 200, velocity: -120, width: W })).toBe(true);
+  /* The bounce Timothy saw: dragged most of the way, the thumb rolls back
+     a little as it leaves the glass. A roll back under a real flick only
+     shortens the throw; it used to cancel the swipe at 150 px/s. */
+  it("a thumb rolling back as it lifts does not bounce a swipe home", () => {
+    for (const roll of [80, 150, 220]) {
+      expect(swipeCommits({ dx: -200, velocity: roll, width: W }), `roll ${roll}`).toBe(true);
+      expect(swipeCommits({ dx: 200, velocity: -roll, width: W }), `roll ${roll}`).toBe(true);
+    }
+    // A short drag rolled back far enough to come to rest short of 15% stays.
+    expect(swipeCommits({ dx: -70, velocity: 250, width: W })).toBe(false);
   });
 
   it("stays at rest and on a page with no width", () => {
@@ -290,18 +275,21 @@ describe("the swipe and what it stands beside", () => {
     expect(pushes).toHaveLength(2);
     const landing = hook.slice(hook.indexOf("Promise.all([pageRun, paneRun, wellRun])"), hook.indexOf("/* A tab's page, kept"));
     expect(landing).toContain("router.push(href, { scroll: false })");
-    expect(landing.indexOf("!pageLanded || !paneLanded")).toBeGreaterThan(-1);
-    expect(landing.indexOf("!pageLanded || !paneLanded")).toBeLessThan(landing.indexOf("router.push(href, { scroll: false })"));
+    // Home is the only way a landing ends without moving the app (#466).
+    expect(landing.indexOf("if (to === null) {")).toBeGreaterThan(-1);
+    expect(landing.indexOf("if (to === null) {")).toBeLessThan(landing.indexOf("router.push(href, { scroll: false })"));
   });
 
-  it("lands the page whoever takes the bar's well mid-landing", () => {
+  it("lands the page whoever takes the bar's well or the page mid-landing", () => {
     // The well's run is asked how it ended and never decides the landing:
     // only a finger on the page (flight replaced) or the page's own run can.
     const landing = hook.slice(hook.indexOf("Promise.all([pageRun, paneRun, wellRun])"), hook.indexOf("/* A tab's page, kept"));
     expect(landing.length).toBeGreaterThan(0);
     expect(landing).toContain("if (flight.current !== f) return;");
     expect(landing).toContain("const well = wellLanded ? s.well : null;");
-    expect(landing).toContain("if (to === null || !pageLanded || !paneLanded) {");
+    // A swipe decided at the lift always arrives: no run cut short sends it home (#466).
+    expect(landing).toContain("if (to === null) {");
+    expect(landing).not.toMatch(/!pageLanded|!paneLanded/);
     expect(landing).not.toMatch(/!wellLanded\)? return/);
   });
 

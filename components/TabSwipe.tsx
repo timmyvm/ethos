@@ -301,9 +301,14 @@ export function useTabSwipe(path: string, page: RefObject<HTMLDivElement | null>
          page parked off-screen under a picture, with the app never told
          to move. */
       const well = wellLanded ? s.well : null;
-      if (to === null || !pageLanded || !paneLanded) {
-        // Home, or the page's own run was taken by something that is
-        // not a finger on it: back to rest, nothing navigated.
+      /* The decision was made at the lift (#466): the slide only shows it.
+         A run cut short by something that is not a finger (a finger on it
+         is caught above) used to send the page home without moving the
+         app, so a swipe that had been decided as going bounced back. Now
+         a decided swipe always arrives. */
+      void pageLanded;
+      void paneLanded;
+      if (to === null) {
         setSwipeHeading(null);
         rest(well);
         return;

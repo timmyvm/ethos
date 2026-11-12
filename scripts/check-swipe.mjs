@@ -8,7 +8,8 @@
  * well under the same thumb, and held there while the finger drifts
  * up and down, with no scroll and no jump (#465); nothing navigates
  * until the motion lands;
- * a throw goes, a short pull comes home, a flick back cancels; the ends
+ * a throw goes, a short pull comes home, a flick back cancels, a thumb
+ * rolling back as it lifts still lands (#466); the ends
  * of the bar give and return; up and down is still the page's scroll;
  * the screen's edges, a field, a sheet and a detail page are not the
  * swipe's; a landing can be caught and turned round; reduced motion
@@ -465,6 +466,27 @@ async function phone({ reduced = false } = {}) {
   await p.finger.up();
   const flicked = await p.landed("/games");
   ok("a quick flick of 50px, under the 15% line, goes to the next tab", flicked.path === "/games", flicked.path);
+  await p.context.close();
+}
+
+/* ---- #466. A thumb that rolls back as it lifts still lands, every time ---- */
+{
+  const p = await phone();
+  await p.open("/lessons");
+  const results = [];
+  for (let i = 0; i < 6; i++) {
+    const left = i % 2 === 0;
+    const [x0, x1] = left ? [300, 120] : [100, 280];
+    await p.finger.down(x0, 500);
+    await p.finger.move(x0, x1, { y: 500, steps: 8, gap: 12 });
+    // The roll: the last few pixels come back toward where the thumb began.
+    await p.finger.move(x1, x1 + (left ? 8 : -8), { y: 500, steps: 2, gap: 8 });
+    await p.finger.up();
+    const want = left ? "/games" : "/lessons";
+    const there = await p.landed(want, 3000);
+    results.push(there.path === want ? "ok" : `MISS ${there.path}`);
+  }
+  ok("six swipes with a roll back at the lift all change the tab", results.every((r) => r === "ok"), results.join(" "));
   await p.context.close();
 }
 

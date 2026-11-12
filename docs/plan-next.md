@@ -206,6 +206,8 @@ Each scenario is a set of prompts, a way of being scored that fits it (an interv
 
 **Done (#465, 12 Nov):** lower thresholds (15% of the width, or a 300 px/s flick), vertical scroll refused while a swipe holds the finger, and a mid-swipe cancel lands instead of snapping home. Needs Timothy's iPhone to confirm the jumping is gone.
 
+**Done (#466, 12 Nov):** the bounce back is gone. The decision is made once at the lift (a 300 px/s flick goes its way, otherwise the resting point past 15% goes), a thumb rolling back as it lifts no longer cancels, and an interrupted landing still arrives.
+
 ---
 
 ## 12. The big idea: put them in the room first
@@ -251,7 +253,7 @@ This breaks a line in CLAUDE.md ("we never manufacture insecurity"): the rejecti
 
 ## Suggested order
 
-1. **Fix the swipe**: a bug felt on every tab change (done, #465; to merge and try on a phone).
+1. **Fix the swipe**: a bug felt on every tab change (done, #465 and #466; to merge and try on a phone).
 1a. **Put them in the room** (section 12): the new first minute. Start the art now; it is the longest lead.
 2. **Kill the glow** and **Hostile Q&A free**: fast, visible, nothing to decide on art except the lesson images.
 3. **Hostile Q&A and the boss on Today**: the bike in the room.

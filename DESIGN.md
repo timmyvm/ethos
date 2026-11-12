@@ -81,6 +81,7 @@ node scripts/check-a11y.mjs                    # what a screen reader is given, 
 node scripts/check-awake.mjs                   # the wake lock, a stalled send, a blocked mic (#440)
 node scripts/check-share.mjs                   # the progress card and the share sheet (#447)
 node scripts/check-type.mjs                    # nothing under 11px, no crowded heads, no heavy line tracked past -0.015em, no title with a full stop (#450, #454)
+node scripts/check-show-password.mjs           # Show / Hide on every password field: focus, caret, hidden again on send (#456)
 node scripts/look-kerning.mjs                  # prints which letter pairs of the app's headings touch at each tracking (#454)
 node scripts/check-haptics.mjs                 # an iPhone's tick: the tap reaches the hidden switch, the button is pressed once (#449)
 node scripts/check-text-size.mjs               # an iPhone's text size, followed: one viewport tag, Record on the first screen at 320x692 (#451)

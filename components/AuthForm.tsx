@@ -19,7 +19,7 @@ import {
   type AuthResult,
   type SessionState,
 } from "@/lib/auth";
-import { NewPasswordField } from "@/components/NewPassword";
+import { NewPasswordField, ShowPassword, useHidOnSubmit } from "@/components/NewPassword";
 import { useGoogleSignIn } from "@/lib/use-oauth-return";
 import { asksForPaywall, authHref, useNextPath } from "@/lib/use-paywall-return";
 
@@ -113,6 +113,7 @@ export function AuthForm({
   const [progress, setProgress] = useState({ recordings: 0, streak: 0 });
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
+  const [shownCurrent, setShownCurrent] = useHidOnSubmit(passwordRef);
   /*
    * Where a signed-in person goes next: a safe same-origin `next=` (the
    * paywall's account ask sends its page with paywall=1, so the sheet
@@ -495,11 +496,16 @@ export function AuthForm({
                     inputClassName={FIELD_BARE_CLASS}
                   />
                 ) : (
+                  /* Show / Hide here too (#456): every password field. */
+                  <div className="relative mt-2">
                   <input
                     ref={passwordRef}
                     id="password"
                     name="password"
-                    type="password"
+                    type={shownCurrent ? "text" : "password"}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
                     autoComplete="current-password"
                     required
                     value={password}
@@ -510,8 +516,10 @@ export function AuthForm({
                         .filter(Boolean)
                         .join(" ") || undefined
                     }
-                    className={FIELD_CLASS}
+                    className={`${FIELD_BARE_CLASS} pr-18`}
                   />
+                  <ShowPassword shown={shownCurrent} onToggle={() => setShownCurrent(!shownCurrent)} />
+                  </div>
                 )}
               </>
             )}

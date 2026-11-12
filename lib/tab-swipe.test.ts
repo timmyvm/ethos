@@ -90,29 +90,39 @@ describe("the tab a pull makes room for", () => {
 });
 
 describe("go or stay", () => {
-  it("goes once a quarter of the width has been dragged, however slowly", () => {
-    expect(swipeCommits({ dx: -(W * 0.25 + 1), velocity: 0, width: W })).toBe(true);
-    expect(swipeCommits({ dx: W * 0.25 + 1, velocity: 0, width: W })).toBe(true);
+  /* #465, Timothy: "lower the distance and velocity needed to swipe".
+     A sixth of the width, a throw resting past 30%, or a 300 px/s flick
+     toward the neighbour; it was a quarter, half and nothing. */
+  it("goes once 15% of the width has been dragged, however slowly", () => {
+    expect(swipeCommits({ dx: -(W * 0.15 + 1), velocity: 0, width: W })).toBe(true);
+    expect(swipeCommits({ dx: W * 0.15 + 1, velocity: 0, width: W })).toBe(true);
+    // A quarter, the old line, goes with room to spare.
+    expect(swipeCommits({ dx: -(W * 0.25 - 1), velocity: 0, width: W })).toBe(true);
   });
 
   it("stays on a short slow drag", () => {
-    expect(swipeCommits({ dx: -(W * 0.25 - 1), velocity: 0, width: W })).toBe(false);
-    expect(swipeCommits({ dx: 60, velocity: 40, width: W })).toBe(false);
-    expect(swipeCommits({ dx: -60, velocity: -40, width: W })).toBe(false);
+    expect(swipeCommits({ dx: -(W * 0.15 - 1), velocity: 0, width: W })).toBe(false);
+    expect(swipeCommits({ dx: 30, velocity: 40, width: W })).toBe(false);
+    expect(swipeCommits({ dx: -30, velocity: -40, width: W })).toBe(false);
   });
 
-  it("goes on a short flick that would carry past halfway", () => {
-    const dx = -30;
-    const velocity = -900;
-    expect(Math.abs(dx + project(velocity))).toBeGreaterThan(W * 0.5);
+  it("goes on a quick flick toward the neighbour from any distance", () => {
+    expect(swipeCommits({ dx: -12, velocity: -300, width: W })).toBe(true);
+    expect(swipeCommits({ dx: 12, velocity: 300, width: W })).toBe(true);
+    expect(swipeCommits({ dx: -30, velocity: -900, width: W })).toBe(true);
+  });
+
+  it("goes on a slower throw that would come to rest past 30%", () => {
+    const dx = -40;
+    const velocity = -250;
+    expect(Math.abs(dx + project(velocity))).toBeGreaterThan(W * 0.3);
     expect(swipeCommits({ dx, velocity, width: W })).toBe(true);
-    expect(swipeCommits({ dx: 30, velocity: 900, width: W })).toBe(true);
   });
 
-  it("stays on a short flick that would not", () => {
-    const dx = -30;
-    const velocity = -200;
-    expect(Math.abs(dx + project(velocity))).toBeLessThan(W * 0.5);
+  it("stays on a slow nudge that would not", () => {
+    const dx = -20;
+    const velocity = -60;
+    expect(Math.abs(dx + project(velocity))).toBeLessThan(W * 0.3);
     expect(swipeCommits({ dx, velocity, width: W })).toBe(false);
   });
 
@@ -123,7 +133,7 @@ describe("go or stay", () => {
   });
 
   it("does not read a finger's drift at the lift as a flick back", () => {
-    // Past a quarter, lifting with a little backward drift: still goes.
+    // Past the line, lifting with a little backward drift: still goes.
     expect(swipeCommits({ dx: -200, velocity: 120, width: W })).toBe(true);
     expect(swipeCommits({ dx: 200, velocity: -120, width: W })).toBe(true);
   });

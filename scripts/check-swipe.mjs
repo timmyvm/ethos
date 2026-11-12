@@ -5,7 +5,9 @@
  * Drives real touch events through CDP and reads where the page, the
  * neighbour's pane and the bar's well actually are. What it holds:
  * the page follows the finger 1:1 with its neighbour beside it and the
- * well under the same thumb; nothing navigates until the motion lands;
+ * well under the same thumb, and held there while the finger drifts
+ * up and down, with no scroll and no jump (#465); nothing navigates
+ * until the motion lands;
  * a throw goes, a short pull comes home, a flick back cancels; the ends
  * of the bar give and return; up and down is still the page's scroll;
  * the screen's edges, a field, a sheet and a detail page are not the
@@ -133,7 +135,7 @@ async function phone({ reduced = false } = {}) {
   await p.finger.move(180, 60);
   await p.finger.up();
   const there = await p.landed("/lessons");
-  ok("let go past a quarter of the way, it lands on the next tab", there.path === "/lessons");
+  ok("let go past 15% of the way, it lands on the next tab", there.path === "/lessons");
   ok("and leaves nothing behind", !there.paneShown && there.paneKids === 0 && there.pageInline === "" && !there.moving && !there.swiping, JSON.stringify({ shown: there.paneShown, kids: there.paneKids, inline: there.pageInline, moving: there.moving }));
   ok("the page it carried in plays no second push", !/push-(left|right)/.test(there.pageClass), there.pageClass);
   ok("the well is on Lessons", near(there.well, there.step), `well at ${there.well}`);
@@ -152,7 +154,7 @@ async function phone({ reduced = false } = {}) {
   await p.finger.up();
   await sleep(1200);
   const home = await p.where();
-  ok("a pull that stops short of a quarter comes home", home.path === "/lessons" && home.page === 0 && !home.paneShown && home.pageInline === "", JSON.stringify({ path: home.path, page: home.page, shown: home.paneShown }));
+  ok("a pull that stops short of 15% comes home", home.path === "/lessons" && home.page === 0 && !home.paneShown && home.pageInline === "", JSON.stringify({ path: home.path, page: home.page, shown: home.paneShown }));
   ok("with the well back on its tab", near(home.well, home.step), `well at ${home.well}`);
 
   /* ---- 4. A tap on the bar afterwards is an ordinary tab change ----------- */
@@ -426,6 +428,43 @@ async function phone({ reduced = false } = {}) {
   await p.finger.up();
   const moved = await p.landed("/lessons");
   ok("and the swipe still changes the tab", moved.path === "/lessons", moved.path);
+  await p.context.close();
+}
+
+/* ---- #465. A held swipe stays under the finger, and nothing scrolls ------- */
+{
+  const p = await phone();
+  await p.open("/lessons");
+  const before = await p.where();
+  await p.finger.down(280, 500);
+  await p.finger.move(280, 200, { y: 500, steps: 8 });
+  // Held, the thumb drifts up and down as a real one does.
+  const trace = [];
+  for (const [x, y] of [[198, 440], [196, 560], [201, 380], [199, 600], [200, 470]]) {
+    await p.finger.move(trace.length ? trace[trace.length - 1].x : 200, x, { y: trace.length ? trace[trace.length - 1].y : 500, y2: y, steps: 4 });
+    const at = await p.where();
+    trace.push({ x, y, page: at.page, scrollY: at.scrollY, moving: at.moving });
+  }
+  ok("held, the page stays under the finger while it drifts up and down", trace.every((t) => near(t.page, t.x - 270, 2) && !t.moving), JSON.stringify(trace.map((t) => Math.round(t.page))));
+  ok("and the page under it does not scroll", trace.every((t) => t.scrollY === before.scrollY), JSON.stringify(trace.map((t) => t.scrollY)));
+  // Let go slowly, past 15% of the way (70px is 18%): it goes.
+  await p.finger.up();
+  const there = await p.landed("/games");
+  ok("let go slowly past 15%, it goes", there.path === "/games", there.path);
+  await p.context.close();
+}
+
+/* ---- #465. A quick short flick goes ------------------------------------- */
+{
+  const p = await phone();
+  await p.open("/lessons");
+  // 50px, under the 15% line (58px at 390), thrown quickly.
+  await p.finger.down(250, 500);
+  // Two moves: this harness sends a touch about every 40ms, a phone every 8 to 16.
+  await p.finger.move(250, 200, { y: 500, steps: 2, gap: 0 });
+  await p.finger.up();
+  const flicked = await p.landed("/games");
+  ok("a quick flick of 50px, under the 15% line, goes to the next tab", flicked.path === "/games", flicked.path);
   await p.context.close();
 }
 

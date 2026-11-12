@@ -204,6 +204,8 @@ Each scenario is a set of prompts, a way of being scored that fits it (an interv
 
 **Size:** small once found. **Do this first: it's a bug, and people feel it on every tab change.**
 
+**Done (#465, 12 Nov):** lower thresholds (15% of the width, or a 300 px/s flick), vertical scroll refused while a swipe holds the finger, and a mid-swipe cancel lands instead of snapping home. Needs Timothy's iPhone to confirm the jumping is gone.
+
 ---
 
 ## Suggested order

@@ -58,13 +58,24 @@ export function swipeNeighbour(current: number, dx: number): number | null {
   return to >= 0 && to < TAB_HREFS.length ? to : null;
 }
 
+/** Dragged this share of the width, a swipe goes by itself (#465: was a quarter). */
+export const SWIPE_COMMIT_SHARE = 0.15;
+/** A throw that would come to rest past this share goes (#465: was half). */
+export const SWIPE_CARRY_SHARE = 0.3;
+/** A flick this fast toward the neighbour goes from any distance, px/s (#465). */
+export const SWIPE_FLICK_PX_S = 300;
+/** A flick back at least this fast cancels, px/s. */
+const SWIPE_REVERSE_PX_S = 150;
+
 /**
  * Does a released drag go to the neighbour? By where the throw would
- * come to REST (§6): a short quick flick carries the page past the
- * halfway line and goes, a long slow haul that stops short stays. A
- * quarter of the width dragged counts by itself, and a flick back the
- * other way cancels whatever the position. `dx`: where the page is, px
- * from rest. `velocity`: the finger's at the lift, px/s.
+ * come to REST (§6): a quick flick goes, a slow haul that stops short
+ * stays, and a flick back the other way cancels whatever the position.
+ * Easy to go (Timothy, 12 Nov: "lower the distance and velocity needed
+ * to swipe"): 15% of the width dragged goes by itself, a throw that
+ * would rest past 30% goes, and a flick toward the neighbour at 300 px/s
+ * goes from any distance. `dx`: where the page is, px from rest.
+ * `velocity`: the finger's at the lift, px/s.
  */
 export function swipeCommits({
   dx,
@@ -76,11 +87,12 @@ export function swipeCommits({
   width: number;
 }): boolean {
   if (dx === 0 || width <= 0) return false;
-  const reversing = Math.sign(velocity) === -Math.sign(dx) && Math.abs(velocity) > 150;
-  if (reversing) return false;
-  const carried =
-    Math.sign(velocity) === Math.sign(dx) && Math.abs(dx + project(velocity)) > width * 0.5;
-  return Math.abs(dx) > width * 0.25 || carried;
+  const toward = Math.sign(velocity) === Math.sign(dx);
+  if (!toward && Math.abs(velocity) > SWIPE_REVERSE_PX_S) return false;
+  if (Math.abs(dx) > width * SWIPE_COMMIT_SHARE) return true;
+  if (!toward) return false;
+  if (Math.abs(velocity) >= SWIPE_FLICK_PX_S) return true;
+  return Math.abs(dx + project(velocity)) > width * SWIPE_CARRY_SHARE;
 }
 
 /**

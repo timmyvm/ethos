@@ -329,6 +329,22 @@ export function useTabSwipe(path: string, page: RefObject<HTMLDivElement | null>
     });
   };
 
+  /* While a swipe has the finger, the page does not scroll (#465). The
+     page is `touch-action: pan-y` so a vertical drag is still its own
+     scroll, and on a phone a sideways swipe that drifted up or down was
+     taken by that scroll half way: the browser cancelled the swipe and
+     the page jumped. Once the swipe is decided, every touch move is
+     refused to the scroll until the finger lifts, so the page stays
+     exactly under the finger. Not passive, or it could not refuse. */
+  useEffect(() => {
+    if (current < 0) return;
+    const hold = (e: TouchEvent) => {
+      if (drag.current?.locked && e.cancelable) e.preventDefault();
+    };
+    document.addEventListener("touchmove", hold, { passive: false });
+    return () => document.removeEventListener("touchmove", hold);
+  }, [current]);
+
   /* A tab's page, kept as the app leaves it: the picture a later swipe
      back toward it slides in (lib/tab-stand-in.ts). By the time this
      cleanup runs React has let the old wrapper go, which is what makes
@@ -438,10 +454,28 @@ export function useTabSwipe(path: string, page: RefObject<HTMLDivElement | null>
     e.currentTarget.style.userSelect = "";
     delete e.currentTarget.dataset.swiping;
     swallowClick();
-    const velocity = cancelled ? 0 : releaseVelocity(s.samples, e.timeStamp);
+    /* A cancel once the swipe has the finger is the browser taking the
+       gesture, not the person changing their mind (#465): it lands where
+       the finger was, as a lift does. It used to snap the page home, and
+       the next move grabbed it again: the page jumped back and forth
+       under a finger that never let go. */
+    void cancelled;
+    /* The lift is the throw's last sample when it moved (#465). A quick
+       flick's moves come coalesced, a frame's worth at a time, and the
+       few left were all the speed there was to read; where the finger
+       left the glass, if it is further on, is the most recent fact. A
+       lift where the last move was adds nothing: the stop it implies is
+       already in the release's own clock. A cancel carries no position. */
+    if (e.type === "pointerup" && e.clientX !== 0) {
+      const lifted = Math.max(-s.w, Math.min(s.w, e.clientX - s.x0));
+      if (lifted !== s.dx) {
+        s.dx = lifted;
+        s.samples.push({ t: e.timeStamp, y: s.dx });
+      }
+    }
+    const velocity = releaseVelocity(s.samples, e.timeStamp);
     const toward = swipeNeighbour(current, s.dx);
-    const commit =
-      !cancelled && toward !== null && swipeCommits({ dx: s.dx, velocity, width: s.w });
+    const commit = toward !== null && swipeCommits({ dx: s.dx, velocity, width: s.w });
     if (s.reduced) {
       // Reduced motion: no travel to land, so the app simply moves, and
       // the page arrives with the fade every other change gets.

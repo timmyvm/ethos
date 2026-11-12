@@ -68,7 +68,7 @@ describe("one sound on the screen at a time", () => {
     const play = hook.slice(hook.indexOf("const play = useCallback"), hook.indexOf("const pause = useCallback"));
     expect(play).toMatch(/hushOthers\(document\.querySelectorAll<HTMLMediaElement>\("audio, video"\), a\);\s*(\/\*[\s\S]*?\*\/\s*)?(setAudioSession\("playback"\);\s*)?a\.play\(\)/);
     // And asks the phone for its speaker first, giving it back whenever
-    // the take stops sounding (#436, lib/audio-session.ts): a session
+    // the take stops sounding (#458, lib/audio-session.ts): a session
     // left on "playback" has no microphone for the next recording.
     expect(play).toMatch(/setAudioSession\("playback"\);\s*a\.play\(\)\.catch\(\(e: unknown\) => \{\s*setAudioSession\("auto"\);/);
     expect(hook).toMatch(/const stopped = useCallback\(\(\) => \{\s*setAudioSession\("auto"\);\s*endSpan\(\);/);

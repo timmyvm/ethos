@@ -8,7 +8,7 @@
  * (The score, The numbers, Your words) or the glance and its door (The
  * whole recording). On the glance it also asserts the rules the glance is
  * held to: at most 25 visible words (named exceptions at their own
- * ceiling), no scroll, exactly one filled tap (`.tap` since #437; it
+ * ceiling), no scroll, exactly one filled tap (`.tap` since #459; it
  * counted the terracotta fill), at most one moment
  * chip, and the tap live from the first frame.
  *

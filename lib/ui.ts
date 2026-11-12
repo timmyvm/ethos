@@ -14,7 +14,7 @@
  * (`rounded-tap`, D11: Today's Start was the first, and one action wears
  * one shape on every screen), 48px tall, and no shadow.
  *
- * Its fill is ink since #437 (Timothy, 12 Nov: "the orange button is
+ * Its fill is ink since #459 (Timothy, 12 Nov: "the orange button is
  * ugly ... a futuristic gradient 3D against a flat button", then "8 for
  * home and 10 for feedback" from the ten directions in
  * docs/look/buttons). A tap has no colour of its own now: on the page
@@ -45,11 +45,11 @@ export const ACTION_CLASS = `${ACTION_SHAPE} tap`;
 export const ACTION_TONAL_CLASS = `${ACTION_SHAPE} tap-tonal`;
 
 /**
- * The way on (#437, direction 10: "10 for feedback"). The tap that
+ * The way on (#459, direction 10: "10 for feedback"). The tap that
  * moves you to the next thing: its words start at the left and a round
  * arrow stands at its right end, drawn by `<TapArrow />` as its last
  * child. 48px like the others (6 + the 36px disc + 6); words that wrap
- * grow it. The results' way on wears it, and since #438 the tap under
+ * grow it. The results' way on wears it, and since #460 the tap under
  * Lessons' Up next ("Carry on"): the two that keep you going.
  */
 export const ACTION_ARROW_CLASS =

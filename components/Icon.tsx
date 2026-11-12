@@ -358,7 +358,7 @@ export function IconBack({ size }: { size?: number }) {
   );
 }
 
-/** Onward: the arrow in the disc at the end of a tap that moves you on (#437). */
+/** Onward: the arrow in the disc at the end of a tap that moves you on (#459). */
 export function IconOnward({ size }: { size?: number }) {
   return (
     <Glyph size={size}>

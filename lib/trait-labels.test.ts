@@ -79,7 +79,7 @@ const labels = [
 describe("a label that names a trait prints that trait's unit", () => {
   it("finds the labels it holds to the rule", () => {
     // The Log's four rows, Presence, the two labels, and the card's rows.
-    // (You's Day 1 vs now card and its shared picture went on 12 Nov, #436.)
+    // (You's Day 1 vs now card and its shared picture went on 12 Nov, #458.)
     expect(labels.length).toBeGreaterThanOrEqual(8);
   });
 

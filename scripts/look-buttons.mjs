@@ -5,7 +5,7 @@
  * first feedback screen").
  *
  * Kept as the record of the choice. Timothy picked 8 for Home and 10
- * for the feedback screen, and #437 shipped them (lib/ui.ts, `.tap`,
+ * for the feedback screen, and #459 shipped them (lib/ui.ts, `.tap`,
  * `.tap-tonal`; `scripts/look-taps.mjs` shoots the result). Run again
  * now, "As it ships" is drawn from the app as it is today, not from the
  * terracotta pill its note describes.

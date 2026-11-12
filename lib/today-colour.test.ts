@@ -238,7 +238,7 @@ describe("Today's materials", () => {
 
   it("the card holds the one tap, 48px, and spin and difficulty as 48px glyphs", () => {
     expect(block(".home-start")).toMatch(/min-height: 48px;/);
-    // Cut from the card since #437 (lib/tap.test.ts holds its colours):
+    // Cut from the card since #459 (lib/tap.test.ts holds its colours):
     // the family's tint and its deep tone, white and ink with no colour yet.
     expect(block(".home-start")).toContain("background: var(--tap-tint, #ffffff);");
     expect(block(".home-start")).toContain("color: var(--tap-tint-ink, #201e1d);");

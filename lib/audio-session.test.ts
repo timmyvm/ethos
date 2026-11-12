@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { setAudioSession } from "./audio-session";
 
-/* The playback bug (#436): an iPhone that has just recorded plays a take
+/* The playback bug (#458): an iPhone that has just recorded plays a take
    through the earpiece until the page asks for the speaker. */
 describe("setAudioSession", () => {
   it("asks an iPhone for the speaker, and for its own choice again", () => {

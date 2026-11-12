@@ -38,7 +38,7 @@ import { readBilling } from "@/lib/use-plan";
  * The sheet is plum (`.card-premium`, practice-tab-4): the tier's own
  * surface, so tapping the plum wall on Practice lands on plum. No sage on
  * it, the PremiumMark once as its eyebrow, and the one tap cut from the
- * plum (#437, `.tap-tonal`): a premium card's action is a pale tint of
+ * plum (#459, `.tap-tonal`): a premium card's action is a pale tint of
  * the card with the plum for its word, as a tap on any coloured card is.
  *
  * Kept from before: the grabber, the mark, the reason line, the headline,
@@ -540,7 +540,7 @@ export function Paywall({
                   placeholder="Invite code…"
                   className="min-h-12 w-0 min-w-0 flex-1 rounded-control border border-cream/25 bg-cream/10 px-4 text-read text-cream placeholder:text-cream/50 focus:border-terracotta-500 focus:shadow-[inset_0_0_0_1px_var(--color-terracotta-500)] focus-visible:outline-none!"
                 />
-                {/* On plum a tap is cut from the plum (#437, `.tap-tonal`).
+                {/* On plum a tap is cut from the plum (#459, `.tap-tonal`).
                     Disabled, the fill steps back to the field's own
                     cream/10, never a faded tint. */}
                 <button

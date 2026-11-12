@@ -1,5 +1,5 @@
 /**
- * The tap, checked in a real browser (#437; Timothy, 12 Nov: "the orange
+ * The tap, checked in a real browser (#459; Timothy, 12 Nov: "the orange
  * button is ugly", then "8 for home and 10 for feedback").
  *
  * A tap has no colour of its own: ink on the page, cut from the card on
@@ -13,7 +13,7 @@
  *  3. Record is ink and round, the take in progress is still red, and
  *     the results' way on is 48px with its words at the left and a 36px
  *     arrow disc 6px from its right end, at 390 and at 320. The tap under
- *     Lessons' Up next wears the same arrow (#438).
+ *     Lessons' Up next wears the same arrow (#460).
  *
  * Today's Start on each family's card is `scripts/check-colour.mjs`.
  *
@@ -248,7 +248,7 @@ for (const theme of ["light", "dark"]) {
   const narrow = await wayOn();
   ok(`${theme} way on at 320: two lines at most, the disc still 6px from the end`, narrow.lines <= 2 && near(narrow.discFromRight, 6) && narrow.wordsEndBeforeDisc >= 12 && narrow.h <= 60, `${narrow.lines} line(s), ${narrow.h}px`);
 
-  /* ---- 3b. Lessons' Up next wears the same arrow (#438) -------------------- */
+  /* ---- 3b. Lessons' Up next wears the same arrow (#460) -------------------- */
   for (const width of [390, 320]) {
     await page.setViewportSize({ width, height: 844 });
     await go("/lessons", "main a[data-up-next]");

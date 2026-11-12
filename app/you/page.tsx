@@ -647,7 +647,7 @@ export default function YouPage() {
 
       {showGate && (
         /* p-5 and a detail head: the account gate, straight under the
-           numbers since Day 1 vs now went (#436). */
+           numbers since Day 1 vs now went (#458). */
         <section className="card mt-3 p-5">
           <h2 className="detail-head">Save your progress</h2>
           <p className="mt-1 text-caption text-stone-500">
@@ -671,7 +671,7 @@ export default function YouPage() {
       {/*
        * Your lexicon, the first thing under the numbers (Timothy, 12 Nov:
        * "Your words, test yourself. GREAT FEATURES ... truly great for
-       * improving speech which is what the app is for"; #436). It sat
+       * improving speech which is what the app is for"; #458). It sat
        * under Trait levels with its test behind a text link; Day 1 vs
        * now and its Make the card held this place and the page's one
        * tap, and went the same day ("not a great feature"). So the
@@ -1241,7 +1241,7 @@ function gateLine(unitName: string, toGo: number | null): string {
   return `${unitName} opens in ${toGo} star${toGo === 1 ? "" : "s"}`;
 }
 
-/** The road's card: its own door, under the lexicon since #436 (D36). */
+/** The road's card: its own door, under the lexicon since #458 (D36). */
 const ROAD_CARD = "card press mt-7 flex min-h-11 items-center gap-3 p-4 text-left";
 
 /**

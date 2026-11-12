@@ -353,7 +353,7 @@ export function Nav() {
           />
         )}
         {TABS.map((t, i) => {
-          // Lit from the moment a swipe is let go toward it (#435); the
+          // Lit from the moment a swipe is let go toward it (#457); the
           // page it names is still the one the app is on.
           const active = i === (heading ?? current);
           return (

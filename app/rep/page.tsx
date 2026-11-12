@@ -3444,7 +3444,7 @@ function Results({
    * first frame, and the same tap at the sheet's foot. Buttons, not
    * Links: the exits go through exit(), which may route via a wall first.
    *
-   * It wears the arrow (#437, Timothy: "10 for feedback"): this is the
+   * It wears the arrow (#459, Timothy: "10 for feedback"): this is the
    * tap that moves you on, so its words start at the left and the
    * arrow stands at its right end.
    */

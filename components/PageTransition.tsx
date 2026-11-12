@@ -88,7 +88,7 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
   const cold = previous.current === null;
 
   /*
-   * The swipe between the tabs (components/TabSwipe.tsx, #435). The
+   * The swipe between the tabs (components/TabSwipe.tsx, #457). The
    * element a finger pulls is this page's wrapper; the one that hears
    * the finger is the element around it, which stays put when the page
    * has gone from under the thumb. A tab a swipe carried in has already

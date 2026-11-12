@@ -75,7 +75,7 @@ import { usePaywallReturn } from "@/lib/use-paywall-return";
  * Colour: the boss stage is the introduction's sky, with the full-body
  * clock pose standing in it. Under the stage everything is neutral
  * (STATE, #391): the tiles are cards with ink glyphs, sage only for a
- * counted pip and a mastered game, the tap is the page's ink (#437), and plum is
+ * counted pip and a mastered game, the tap is the page's ink (#459), and plum is
  * only the PremiumMark. No Demos on a tile: he is not furniture.
  */
 const GLYPH: Record<string, (size: number) => ReactNode> = {

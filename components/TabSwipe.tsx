@@ -27,7 +27,7 @@ import { TAB_HREFS } from "@/lib/tabs";
 
 /**
  * The swipe between the tabs (Timothy, 11 Nov: "swipe between screens
- * add"; DECISIONS #435).
+ * add"; DECISIONS #457).
  *
  * Put a finger on Today, Lessons, Practice, Log or You and pull
  * sideways: the page comes with it 1:1, its neighbour along the bar

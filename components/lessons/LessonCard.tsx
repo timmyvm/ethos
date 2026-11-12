@@ -240,7 +240,7 @@ export function LessonRow({
  * "Start" before. One tap from the tab to recording is what "you just
  * start it" looks like.
  *
- * It wears the arrow (#438, Timothy: "go" to the same arrow on Lessons'
+ * It wears the arrow (#460, Timothy: "go" to the same arrow on Lessons'
  * "Carry on"): it is the tap that keeps you going, as the results' way
  * on is, so the two look alike. Its word starts at the left and the
  * round arrow stands at its right end.

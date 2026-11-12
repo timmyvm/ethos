@@ -100,7 +100,7 @@ export function useTakeAudio(src: string | null | undefined, durationS: number):
          replaces the last on this element. */
       hushOthers(document.querySelectorAll<HTMLMediaElement>("audio, video"), a);
       /* Out of the speaker, at media volume: an iPhone that has just
-         recorded would play this through the earpiece (#436). */
+         recorded would play this through the earpiece (#458). */
       setAudioSession("playback");
       a.play().catch((e: unknown) => {
         setAudioSession("auto");

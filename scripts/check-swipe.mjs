@@ -1,5 +1,5 @@
 /**
- * The swipe between the tabs, checked with a finger (DECISIONS #435,
+ * The swipe between the tabs, checked with a finger (DECISIONS #457,
  * components/TabSwipe.tsx, lib/tab-swipe.ts).
  *
  * Drives real touch events through CDP and reads where the page, the

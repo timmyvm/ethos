@@ -5,7 +5,7 @@
  *    families, in both themes, at 390 and 320, the card's own pixels
  *    around Start's row (left of it, and just over and under it at its
  *    left, middle and right) hold 3:1 or better against Start's fill,
- *    read off the screen. Since #437 that fill is cut from the card (a
+ *    read off the screen. Since #459 that fill is cut from the card (a
  *    pale tint of the family, its deep tone for the word), so the same
  *    pass holds the word on the fill at 4.5:1 and the fill to a pale
  *    tint: never ink, and never the terracotta it was. The foot used to

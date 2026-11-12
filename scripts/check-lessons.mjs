@@ -77,7 +77,7 @@ ok("every lesson row has its picture", art.length >= 15 && art.every((w) => w > 
    tap is the one under Up next's stage (the cohesion pass; it was the
    card's terracotta square, M03): one filled tap on the page, and it is
    the link that starts the next practice. A tap is found by its fill's
-   class since #437 (`.tap` on the page, `.tap-tonal` on a coloured
+   class since #459 (`.tap` on the page, `.tap-tonal` on a coloured
    card); it was the terracotta utility. */
 const list = await page.evaluate(() => ({
   rows: document.querySelectorAll("main a[data-lesson]").length,
@@ -160,7 +160,7 @@ const buttons = await page.$$eval("main button", (els) =>
     .filter(Boolean)
 );
 /* The loudest button is the one wearing the tap's fill (lib/ui.ts:
-   `.tap`, ink since #437), not the first one in the document: the
+   `.tap`, ink since #459), not the first one in the document: the
    debrief's first button is the transcript's play control. */
 const primary = await page.$$eval("main button", (els) => {
   const hit = els.find(

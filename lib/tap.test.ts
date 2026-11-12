@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { ACTION_ARROW_CLASS, ACTION_CLASS, ACTION_TONAL_CLASS, DISABLED_CLASS } from "./ui";
 
 /**
- * The tap (#437). Timothy, 12 Nov, on the flat orange button beside the
+ * The tap (#459). Timothy, 12 Nov, on the flat orange button beside the
  * cards' 3D objects: "8 for home and 10 for feedback", Tonal and Arrow
  * of the ten directions in docs/look/buttons. A tap has no colour of
  * its own any more: ink on the page, cut from the card on a coloured
@@ -190,7 +190,7 @@ describe("the tap that moves you on carries its arrow", () => {
     expect(arrow).not.toMatch(/"use client"|onClick|<button|<a /);
   });
 
-  it("is the tap under Lessons' Up next, whichever word it says (#438)", () => {
+  it("is the tap under Lessons' Up next, whichever word it says (#460)", () => {
     const card = code("components/lessons/LessonCard.tsx");
     const hero = card.slice(card.indexOf("export function UpNextCard"));
     expect(hero).toContain('const verb = done > 0 ? "Carry on" : "Start";');

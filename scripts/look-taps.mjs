@@ -1,5 +1,5 @@
 /**
- * The three taps, photographed (#437; Timothy, 12 Nov: "8 for home and
+ * The three taps, photographed (#459; Timothy, 12 Nov: "8 for home and
  * 10 for feedback", from the ten directions in docs/look/buttons).
  *
  * A tap has no colour of its own: ink on the page, cut from the card on

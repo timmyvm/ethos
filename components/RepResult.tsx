@@ -241,7 +241,7 @@ export function RepResult({
     topFiller: m.topFiller ?? mostSaid(m.fillers),
     scorable: result.scorable,
   });
-  /** The Log's bubble draws a stored line's read and its tomorrow apart (#436). */
+  /** The Log's bubble draws a stored line's read and its tomorrow apart (#458). */
   const parts = splitTomorrow(line);
 
   /*
@@ -786,7 +786,7 @@ export function RepResult({
           >
             {/* Two statements, drawn as two (Timothy, 12 Nov: "Ethos
                 dialouge feedback is drowned out ... a new line at
-                something like tomorrow"; #436). The coach writes the
+                something like tomorrow"; #458). The coach writes the
                 read and the instruction as one run, and beside him at
                 112 that run was five lines with the instruction fourth.
                 The read stays his voice; tomorrow gets its own label
@@ -831,7 +831,7 @@ export function RepResult({
           <h2 className="section-head">
             {coach ? "Every dimension" : "The measured dimensions"}
           </h2>
-          {/* Length, pace and held pauses in one line of words (#436).
+          {/* Length, pace and held pauses in one line of words (#458).
               They were a pause map drawn as bars ("the recording lines.
               get rid of it. not needed") over a card of three tiles
               ("is there another way to communicate it"): both said

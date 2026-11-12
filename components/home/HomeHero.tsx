@@ -58,7 +58,7 @@ export interface HeroRoulette {
  *
  * The card is the screen's one lifted thing (its own shadow in its
  * family's colour, `.home-hero`), and Start is the screen's one tap,
- * cut from the card's own colour since #437 (`.home-start`: a pale tint
+ * cut from the card's own colour since #459 (`.home-start`: a pale tint
  * of the family, its deep tone for the word), a pill like every tap
  * (D11). Every slot holds its height
  * while the read is in flight, on a neutral card, because the trait and

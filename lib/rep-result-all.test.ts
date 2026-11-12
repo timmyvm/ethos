@@ -10,7 +10,7 @@ import type { RepMetrics, Word } from "./metrics";
  * live results their own sections; this holds "all" to its markup, so a
  * change meant for the live results never moves the Log's page.
  *
- * The baseline moved once, on purpose (Timothy, 12 Nov, #436): the pause
+ * The baseline moved once, on purpose (Timothy, 12 Nov, #458): the pause
  * map and the three stat tiles went, their numbers became one line under
  * "Every dimension", and a stored line that names a tomorrow is drawn in
  * two parts. The tests under the snapshots say those three in words.
@@ -86,7 +86,7 @@ const view: ResultView = {
 };
 
 describe("RepResult section=\"all\", the Log's page (#427)", () => {
-  it("renders exactly as it did at #436", () => {
+  it("renders exactly as it did at #458", () => {
     expect(renderToStaticMarkup(createElement(RepResult, { result: view, section: "all" }))).toMatchSnapshot();
   });
   it("and a stored recording that could not be scored, likewise", () => {
@@ -100,7 +100,7 @@ describe("RepResult section=\"all\", the Log's page (#427)", () => {
     expect(renderToStaticMarkup(createElement(RepResult, { result: unscored, section: "all" }))).toMatchSnapshot();
   });
 
-  /* Timothy, 12 Nov (#436), each in his words. */
+  /* Timothy, 12 Nov (#458), each in his words. */
   const html = (v: ResultView) => renderToStaticMarkup(createElement(RepResult, { result: v, section: "all" }));
   const text = (h: string) => h.replace(/<[^>]+>/g, " ").replace(/&#x27;|&apos;/g, "'").replace(/\s+/g, " ");
 

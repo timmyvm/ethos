@@ -81,7 +81,7 @@ export function withoutTomorrow(line: string): string {
  * A stored line in its two parts: what the take did, and what to do
  * tomorrow (Timothy, 12 Nov: "Ethos dialogue feedback is drowned out.
  * try ... making a new line at something like tomorrow since yk its a
- * new statement. or tomorrow can be its own section"; #436). The coach
+ * new statement. or tomorrow can be its own section"; #458). The coach
  * writes a recording's focus as one run, "7 mid-sentence pauses against
  * 1 composed pause. Tomorrow: finish each sentence in one breath, then
  * pause.", and in a narrow bubble the instruction, the one thing to
@@ -115,7 +115,7 @@ export interface TakeNumbers {
 /**
  * How long, how fast, how many held pauses, said once and quietly
  * (Timothy, 12 Nov, of the three tiles: "not sure if its needed, it is
- * but is there another way to communicate it"; #436). They were a card
+ * but is there another way to communicate it"; #458). They were a card
  * of three boxes under the pause map; the Pace and Pausing rows under
  * them already score both, so the boxes said it twice at the size of a
  * headline. One caption line keeps the numbers and gives the room back.

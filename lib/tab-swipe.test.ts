@@ -18,7 +18,7 @@ import {
 import { TAB_HREFS } from "./tabs";
 
 /**
- * The swipe between the tabs (#435), as numbers. What a finger's travel
+ * The swipe between the tabs (#457), as numbers. What a finger's travel
  * means is decided here with no page under it; the hand that uses these
  * is components/TabSwipe.tsx, and `scripts/check-swipe.mjs` drives that
  * with a real touch against a build.

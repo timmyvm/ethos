@@ -1,7 +1,7 @@
 import { IconOnward } from "@/components/Icon";
 
 /**
- * The arrow at the end of a tap that moves you on (#437, direction 10,
+ * The arrow at the end of a tap that moves you on (#459, direction 10,
  * Timothy: "10 for feedback"). A 36px disc in the label's colour with
  * the arrow in the fill's, so it stands on ink and on a card's tint and
  * turns with the theme (`.tap-arrow-disc`, globals.css). The last child

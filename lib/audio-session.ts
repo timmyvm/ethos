@@ -1,5 +1,5 @@
 /**
- * Where an iPhone sends a take's sound (the playback bug, 12 Nov, #436).
+ * Where an iPhone sends a take's sound (the playback bug, 12 Nov, #458).
  *
  * Timothy: "Playback doesnt work." His phone's own record of it (he is
  * a tester) reads: Play on a stored take, Pause four seconds later, Play

@@ -91,7 +91,7 @@ describe("the score step's line", () => {
 });
 
 /*
- * The Log's bubble in two parts (Timothy, 12 Nov, #436): what the take
+ * The Log's bubble in two parts (Timothy, 12 Nov, #458): what the take
  * did, then tomorrow as its own statement under its own label.
  */
 describe("a stored line, split at its tomorrow", () => {

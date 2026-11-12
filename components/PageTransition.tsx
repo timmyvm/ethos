@@ -1,8 +1,10 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTabSwipe } from "@/components/TabSwipe";
+import { finishEntrances } from "@/lib/entrances";
+import { reuseHeld } from "@/lib/held";
 import { historyMove, settleHistory, watchHistory } from "@/lib/back";
 import { PAGE_ATTR } from "@/lib/tab-stand-in";
 import { swipeTabIndex } from "@/lib/tab-swipe";
@@ -69,6 +71,16 @@ function depth(path: string): number {
   return 1;
 }
 
+/**
+ * The tabs drawn this visit (#467). Coming back to one is not its
+ * arrival: what it held is drawn in its first frame (#433), so its rows
+ * do not fade and stagger in again on every swipe or tap back to it.
+ * What it reads afterwards that is new still arrives as new.
+ */
+const drawn = new Set<string>();
+/** How long a return holds its late arrivals to the rule. */
+const RETURN_SETTLE_MS = 900;
+
 function directionFor(from: string | null, to: string): "left" | "right" | "swap" {
   if (from === null) return "right";
   const a = TABS.indexOf(from);
@@ -98,6 +110,11 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
    * frame of every navigation in the previous direction.
    */
   const next = directionFor(previous.current, path);
+  /* Set as this screen draws, before its reads start in its effects:
+     tab to tab hands back what was read a moment ago (lib/held.ts, #467). */
+  reuseHeld(
+    previous.current !== null && TABS.includes(previous.current) && TABS.includes(path)
+  );
   if (next !== direction) setDirection(next);
 
   /*
@@ -120,6 +137,27 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
    */
   const page = useRef<HTMLDivElement>(null);
   const swipe = useTabSwipe(path, page);
+
+  /* Before the first paint, so a return never shows a frame of rows
+     at the start of their entrance. What lands a beat later (the streak
+     and coin syncs answer after the first frame) is held to the same
+     rule for a moment: a mutation is seen before the frame it would
+     paint in, and whatever it set going is run to its end. */
+  useLayoutEffect(() => {
+    if (!TABS.includes(path)) return;
+    const el = page.current;
+    const returning = drawn.has(path);
+    drawn.add(path);
+    if (!returning || !el) return;
+    finishEntrances(el);
+    const settle = new MutationObserver(() => finishEntrances(el));
+    settle.observe(el, { subtree: true, childList: true, attributes: true });
+    const done = setTimeout(() => settle.disconnect(), RETURN_SETTLE_MS);
+    return () => {
+      clearTimeout(done);
+      settle.disconnect();
+    };
+  }, [path]);
 
   /* overflow-x: clip (B10): the 24px the push starts from widened the
      page to 414px for a frame, and a phone can zoom out to show it.

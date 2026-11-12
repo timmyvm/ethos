@@ -16,7 +16,7 @@ import {
   purchasedFreezes,
   spendFreezes,
 } from "./client-data";
-import { FREEZES_KEY, held, heldMark, hold } from "./held";
+import { FREEZES_KEY, held, heldMark, hold, once } from "./held";
 import { outboxAll, ownedBy } from "./rep-outbox";
 import { currentSession } from "./supabase-browser";
 import {
@@ -61,9 +61,13 @@ export interface FreezeSync {
  */
 export const heldFreezes = (): FreezeSync | null => held<FreezeSync>(FREEZES_KEY) ?? null;
 
-export async function syncFreezes(
+export function syncFreezes(repDates: Date[], now = new Date()): Promise<FreezeSync> {
+  return once(FREEZES_KEY, () => runFreezeSync(repDates, now));
+}
+
+async function runFreezeSync(
   repDates: Date[],
-  now = new Date()
+  now: Date
 ): Promise<FreezeSync> {
   const mark = heldMark();
   // A failed read rejects, before anything is written: missing rows must

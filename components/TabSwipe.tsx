@@ -9,6 +9,7 @@ import {
   type RefObject,
 } from "react";
 import { DURATION } from "@/lib/motion";
+import { finishEntrances } from "@/lib/entrances";
 import { prefersReducedMotion } from "@/lib/prefs";
 import { SPRING, animateSpring, releaseVelocity, rubberband } from "@/lib/spring";
 import { tabPlace } from "@/lib/tab-places";
@@ -126,23 +127,6 @@ function scrollsSideways(from: Element, root: Element): boolean {
     }
   }
   return false;
-}
-
-/**
- * Run everything `el` was going to play to its end: entrances, staggers,
- * the fade its content arrives with. A loop (a placeholder's sweep, an
- * idle) has no end and is left alone.
- */
-function arrive(el: HTMLElement) {
-  for (const a of el.getAnimations({ subtree: true })) {
-    const end = Number(a.effect?.getComputedTiming().endTime);
-    if (a.playState !== "running" || !Number.isFinite(end)) continue;
-    try {
-      a.finish();
-    } catch {
-      // Gone between the look and the call: nothing left to finish.
-    }
-  }
 }
 
 /**
@@ -430,7 +414,7 @@ export function useTabSwipe(path: string, page: RefObject<HTMLDivElement | null>
          its rows would still be fading in while the picture fades out,
          and for a moment the screen is half of each (the look loop
          caught it: a washed frame 240ms after the lift). */
-      if (whole && loaded) arrive(fresh);
+      if (whole && loaded) finishEntrances(fresh);
       el.setAttribute("data-leaving", "");
       t.fade = setTimeout(dropPane, DURATION.base + 40);
     };

@@ -26,6 +26,24 @@
 import { supabaseBrowser } from "./supabase-browser";
 
 const store = new Map<string, unknown>();
+/** When each held answer was kept. */
+const at = new Map<string, number>();
+/** Reads out now, by key: a second asker shares the first's answer. */
+const flying = new Map<string, Promise<unknown>>();
+/** Set by components/PageTransition.tsx: this screen came from another tab. */
+let tabToTab = false;
+
+/**
+ * How long a held answer stands in for a read when moving tab to tab
+ * (#467). Swiping along the bar used to read every tab's rows again on
+ * each arrival: the whole recording spine and every XP event, paged, a
+ * dozen times a minute for numbers that had not moved. Inside this a
+ * return draws what it held and asks nothing. Only tab to tab: every
+ * screen that writes (a recording, Hostile, the boss, Settings, Your
+ * words) is off the bar, so coming back from one reads fresh, and the
+ * drops below still empty a key the moment a write lands.
+ */
+export const REUSE_MS = 60_000;
 /** Bumped by every drop: a read begun before it must not be kept after. */
 let epoch = 0;
 /** The account the store belongs to; undefined until the session is known. */
@@ -59,8 +77,35 @@ export function heldMark(): number {
 /** Keep a read's answer, unless the store was dropped while it was out. */
 export function hold<T>(key: string, value: T, mark: number = epoch): T {
   watch();
-  if (mark === epoch) store.set(key, value);
+  if (mark === epoch) {
+    store.set(key, value);
+    at.set(key, Date.now());
+  }
   return value;
+}
+
+/** Called as a screen draws: whether it was reached from another tab. */
+export function reuseHeld(on: boolean): void {
+  tabToTab = on;
+}
+
+/**
+ * A read, asked once. Moving tab to tab, an answer held under `key` in
+ * the last minute is handed back without asking; and a read already out
+ * under `key` is shared, so two parts of one screen asking for the same
+ * rows make one request.
+ */
+export function once<T>(key: string, run: () => Promise<T>, now: number = Date.now()): Promise<T> {
+  if (tabToTab && store.has(key) && now - (at.get(key) ?? 0) < REUSE_MS) {
+    return Promise.resolve(store.get(key) as T);
+  }
+  const going = flying.get(key);
+  if (going) return going as Promise<T>;
+  const read = run().finally(() => {
+    if (flying.get(key) === read) flying.delete(key);
+  });
+  flying.set(key, read);
+  return read;
 }
 
 /** What was last read under this key this visit, or undefined. */
@@ -73,9 +118,12 @@ export function forget(only?: (key: string) => boolean): void {
   epoch += 1;
   if (!only) {
     store.clear();
+    at.clear();
+    flying.clear();
     return;
   }
   for (const key of [...store.keys()]) if (only(key)) store.delete(key);
+  for (const key of [...flying.keys()]) if (only(key)) flying.delete(key);
 }
 
 /** The account's own row: a recording does not change it. */
@@ -102,6 +150,9 @@ export function forgetBalance(): void {
 /** Tests only: an empty store that belongs to nobody yet. */
 export function resetHeld(): void {
   store.clear();
+  at.clear();
+  flying.clear();
+  tabToTab = false;
   epoch = 0;
   owner = undefined;
 }

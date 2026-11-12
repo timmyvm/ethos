@@ -5,7 +5,7 @@
  */
 
 import { sessionToken, supabaseBrowser } from "./supabase-browser";
-import { PROFILE_KEY, forgetBalance, forgetProfile, held, heldMark, hold } from "./held";
+import { PROFILE_KEY, forgetBalance, forgetProfile, held, heldMark, hold, once } from "./held";
 import type { AccuracyResult } from "./accuracy";
 import type { JudgedDimension } from "./coach";
 import type { CoinRow } from "./coins";
@@ -88,7 +88,11 @@ function missingRoundColumn(error: { code?: string; message?: string } | null): 
   );
 }
 
-export async function fetchReps(limit = 90): Promise<RepRow[]> {
+export function fetchReps(limit = 90): Promise<RepRow[]> {
+  return once(repsKey(limit), () => readReps(limit));
+}
+
+async function readReps(limit = 90): Promise<RepRow[]> {
   const db = supabaseBrowser();
   if (!db) return [];
   const mark = heldMark();
@@ -168,7 +172,11 @@ export const GAME_ROUNDS_LIMIT = 500;
  * them. Throws on a failed read, as every fetcher here does (#147); a
  * database without migration 0026 reads its game rows with `round` null.
  */
-export async function fetchGameRounds(): Promise<GameRoundRow[]> {
+export function fetchGameRounds(): Promise<GameRoundRow[]> {
+  return once(ROUNDS_KEY, readGameRounds);
+}
+
+async function readGameRounds(): Promise<GameRoundRow[]> {
   const db = supabaseBrowser();
   if (!db) return [];
   const mark = heldMark();
@@ -237,7 +245,11 @@ async function readAll<T>(
   }
 }
 
-export async function fetchRepSpine(): Promise<RepSpine[]> {
+export function fetchRepSpine(): Promise<RepSpine[]> {
+  return once(SPINE_KEY, readRepSpine);
+}
+
+async function readRepSpine(): Promise<RepSpine[]> {
   const mark = heldMark();
   return hold(SPINE_KEY, await readAll<RepSpine>("reps", "created_at, lesson_id, stars, ethos_index"), mark);
 }
@@ -279,7 +291,11 @@ export interface LexiconRow {
   created_at: string;
 }
 
-export async function fetchLexicon(limit = 100): Promise<LexiconRow[]> {
+export function fetchLexicon(limit = 100): Promise<LexiconRow[]> {
+  return once(lexiconKey(limit), () => readLexicon(limit));
+}
+
+async function readLexicon(limit = 100): Promise<LexiconRow[]> {
   const db = supabaseBrowser();
   if (!db) return [];
   const mark = heldMark();
@@ -293,7 +309,11 @@ export async function fetchLexicon(limit = 100): Promise<LexiconRow[]> {
   return hold(lexiconKey(limit), (data as LexiconRow[] | null) ?? [], mark);
 }
 
-export async function fetchXp(): Promise<{ total: number; week: number }> {
+export function fetchXp(): Promise<{ total: number; week: number }> {
+  return once(XP_KEY, readXp);
+}
+
+async function readXp(): Promise<{ total: number; week: number }> {
   const db = supabaseBrowser();
   if (!db) return { total: 0, week: 0 };
   const mark = heldMark();
@@ -346,7 +366,11 @@ export interface ProfileRow {
  * applied once rather than in eight components. The stored flag is left
  * untouched underneath — this is a view of it, not a write.
  */
-export async function fetchProfile(): Promise<ProfileRow | null> {
+export function fetchProfile(): Promise<ProfileRow | null> {
+  return once(PROFILE_KEY, readProfile);
+}
+
+async function readProfile(): Promise<ProfileRow | null> {
   const db = supabaseBrowser();
   if (!db) return null;
   const mark = heldMark();

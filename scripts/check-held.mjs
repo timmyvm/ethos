@@ -10,7 +10,9 @@
  *   1. no skeleton stands where held numbers can be drawn (the plan's
  *      own card on You is the named exception: a price is read, never
  *      remembered);
- *   2. the screen still read again (Supabase was asked after the tap);
+ *   2. tab to tab, a read held less than a minute is not asked again
+ *      (#467: it used to be read again behind every arrival); the plan
+ *      and the session check are asked every time, never remembered;
  *   3. nothing on it replays its arrival (`.arrive` is for content that
  *      lands over a skeleton);
  *   4. a cold open of every tab still hydrates clean and shows its
@@ -53,9 +55,14 @@ async function open(theme = "light") {
     viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
     locale: "en-AU", timezoneId: "Australia/Melbourne", colorScheme: theme, serviceWorkers: "block",
   });
-  const asked = { n: 0 };
+  const asked = { n: 0, data: 0 };
   await context.route("http://supabase.local/**", async (route) => {
-    if (route.request().method() !== "OPTIONS") asked.n += 1;
+    if (route.request().method() !== "OPTIONS") {
+      asked.n += 1;
+      // Rows only: the session check (/auth) and the plan are asked every time.
+      const url = route.request().url();
+      if (url.includes("/rest/v1/") && !url.includes("/rest/v1/billing")) asked.data += 1;
+    }
     await sleep(LATENCY);
     return supabaseRoute(route);
   });
@@ -113,6 +120,7 @@ const settled = async (page) => {
   for (const round of [1, 2]) {
     for (const tab of TABS) {
       const before = asked.n;
+      const beforeData = asked.data;
       await page.locator(`nav a[href="${tab.href}"]`).click({ force: true });
       await page.waitForURL((u) => new URL(u).pathname === tab.href);
       await page.waitForSelector("main");
@@ -133,7 +141,9 @@ const settled = async (page) => {
       else ok(`${tab.name}, visit ${round}: opens on its numbers, no skeleton`, n === 0, `${n} bones`);
       ok(`${tab.name}, visit ${round}: nothing replays its arrival`, moving === 0, `${moving} arriving`);
       await sleep(LATENCY * 3 + 300);
-      ok(`${tab.name}, visit ${round}: read again behind what it drew`, asked.n > before, `${asked.n - before} reads`);
+      if (round === 2) {
+        ok(`${tab.name}, visit 2: asks again for nothing it read a moment ago`, asked.data === beforeData, `${asked.data - beforeData} reads`);
+      }
       await settled(page);
     }
   }

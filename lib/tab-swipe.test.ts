@@ -228,7 +228,7 @@ describe("the swipe and what it stands beside", () => {
     expect(hook).toContain('const waits = el.dataset.kind !== "blank";');
     expect(hook).toContain('const whole = el.dataset.settled === "1";');
     expect(hook).toContain("if (waits && !loaded && performance.now() - since < HANDOFF_MAX_MS) {");
-    expect(hook).toContain("if (whole && loaded) arrive(fresh);");
+    expect(hook).toContain("if (whole && loaded) finishEntrances(fresh);");
   });
 
   it("does not send the bar's well a second time", () => {

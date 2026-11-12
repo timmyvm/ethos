@@ -12,7 +12,7 @@ import { closesByWeek } from "./challenge";
 import type { RepRow } from "./client-data";
 import { fetchWholeLedger as fetchCoinLedger, grantCoins } from "./client-data";
 import { balance, unpaidChallengeWeeks, unpaidDays, type CoinRow } from "./coins";
-import { COINS_KEY, held, heldMark, hold } from "./held";
+import { COINS_KEY, held, heldMark, hold, once } from "./held";
 
 export interface CoinSync {
   ledger: CoinRow[];
@@ -29,7 +29,16 @@ export interface CoinSync {
  */
 export const heldCoins = (): CoinSync | null => held<CoinSync>(COINS_KEY) ?? null;
 
-export async function syncCoins(
+/**
+ * Tab to tab inside a minute this hands back what the last sync held
+ * (lib/held.ts `once`, #467): nothing is owed that was not owed a moment
+ * ago, and a recording or a purchase drops it first.
+ */
+export function syncCoins(repDates: Date[], reps: RepRow[] = []): Promise<CoinSync> {
+  return once(COINS_KEY, () => runCoinSync(repDates, reps));
+}
+
+async function runCoinSync(
   repDates: Date[],
   /* The rows themselves, when the caller has them: the challenge coin
      needs the readings, not just the dates. Omitted, only the day coin

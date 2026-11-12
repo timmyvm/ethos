@@ -19,8 +19,9 @@
  *    drop is not kept (`heldMark`).
  * 3. **Memory only.** Nothing is written to the phone: a transcript
  *    stays where Privacy says it is, and a cold open reads as it always
- *    did. Coins in the Shop and the plan are never held (a balance is
- *    read, not remembered).
+ *    did. Coins in the Shop are never held (a balance is read, not
+ *    remembered). The plan is held for a first frame only (#468): it is
+ *    read again on every mount, never handed back by `once`.
  */
 
 import { supabaseBrowser } from "./supabase-browser";
@@ -128,18 +129,20 @@ export function forget(only?: (key: string) => boolean): void {
 
 /** The account's own row: a recording does not change it. */
 export const PROFILE_KEY = "profile";
+/** The billing row (lib/client-data.ts `heldBilling`): goes with the profile. */
+export const BILLING_KEY = "billing";
 /** The coin sync's answer (lib/coin-sync.ts) and the freeze sync's (lib/freeze-sync.ts). */
 export const COINS_KEY = "coins";
 export const FREEZES_KEY = "freezes";
 
 /** A recording was stored: everything counted from recordings is read again. */
 export function forgetRecordings(): void {
-  forget((key) => key !== PROFILE_KEY);
+  forget((key) => key !== PROFILE_KEY && key !== BILLING_KEY);
 }
 
 /** The name, the pose worn or the plan changed: the profile is read again. */
 export function forgetProfile(): void {
-  forget((key) => key === PROFILE_KEY);
+  forget((key) => key === PROFILE_KEY || key === BILLING_KEY);
 }
 
 /** Coins were spent: the balance, and the freezes it may have bought, are read again. */

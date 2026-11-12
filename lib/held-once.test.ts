@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { REUSE_MS, forget, forgetRecordings, hold, once, resetHeld, reuseHeld } from "./held";
+import { BILLING_KEY, REUSE_MS, forget, forgetProfile, forgetRecordings, held, hold, once, resetHeld, reuseHeld } from "./held";
 
 vi.mock("./supabase-browser", () => ({ supabaseBrowser: () => null }));
 
@@ -43,5 +43,17 @@ describe("tab to tab reads once (#467)", () => {
     forget();
     void once("xp", run);
     expect(run).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("the plan row is held for a first frame (#468)", () => {
+  beforeEach(resetHeld);
+
+  it("stays across a recording and goes with the profile", () => {
+    hold(BILLING_KEY, { status: "active" });
+    forgetRecordings();
+    expect(held(BILLING_KEY)).toEqual({ status: "active" });
+    forgetProfile();
+    expect(held(BILLING_KEY)).toBeUndefined();
   });
 });

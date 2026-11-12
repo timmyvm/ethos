@@ -5,7 +5,7 @@
  */
 
 import { sessionToken, supabaseBrowser } from "./supabase-browser";
-import { PROFILE_KEY, forgetBalance, forgetProfile, held, heldMark, hold, once } from "./held";
+import { BILLING_KEY, PROFILE_KEY, forgetBalance, forgetProfile, held, heldMark, hold, once } from "./held";
 import type { AccuracyResult } from "./accuracy";
 import type { JudgedDimension } from "./coach";
 import type { CoinRow } from "./coins";
@@ -414,9 +414,20 @@ export interface BillingRow {
   cancel_at_period_end: boolean;
 }
 
+/**
+ * The plan row as this visit last read it (#468), for a page's first
+ * frame only: You's plan card drew its placeholder for the length of a
+ * read on every arrival, a paying account included. It is never handed
+ * back in place of a read (`usePlan` reads on every mount, and `once`
+ * is not used here), and any billing route's answer replaces it.
+ * Undefined is not read yet.
+ */
+export const heldBilling = (): BillingRow | null | undefined => held<BillingRow | null>(BILLING_KEY);
+
 export async function fetchBilling(): Promise<BillingRow | null> {
   const db = supabaseBrowser();
   if (!db) return null;
+  const mark = heldMark();
   const { data, error } = await db
     .from("billing")
     .select(
@@ -424,7 +435,7 @@ export async function fetchBilling(): Promise<BillingRow | null> {
     )
     .maybeSingle();
   if (error) throw error;
-  return (data as BillingRow | null) ?? null;
+  return hold(BILLING_KEY, (data as BillingRow | null) ?? null, mark);
 }
 
 /**

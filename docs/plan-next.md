@@ -2,7 +2,7 @@
 
 Timothy's notes of 12 November 2026, organised. The app works and is nearly done; these are the things that stand between "done" and "people love it". Nothing here is built yet.
 
-**The short version:** one thing glows, the mascot becomes an illustrated elephant who listens, Settings grows up, Hostile Q&A goes free, Premium becomes "support the maker", numbers get meaning, the weekly boss gets prep material and scenarios, and feedback has to stick.
+**The short version:** the swipe gets fixed first, one thing glows, the mascot becomes an illustrated elephant who listens, Settings grows up, Hostile Q&A goes free and moves to the front door with the boss, Premium becomes "support the maker", numbers get meaning, the weekly boss gets prep material and scenarios, and feedback has to stick.
 
 ---
 
@@ -170,15 +170,53 @@ Each scenario is a set of prompts, a way of being scored that fits it (an interv
 
 ---
 
+## 10. Hostile Q&A and the boss, in the room, not in the garage
+
+**Timothy's point.** You ride your bike more if it's in your room. You do pull-ups more if the bar is on your door. If you have to walk to the garage, you do it less. Hostile Q&A and the weekly boss are in the garage: on another tab, in the corner.
+
+**And the daily isn't everything.** The daily came from Duolingo, but speaking isn't a language. There are many ways to have a conversation, and the daily covers one of them.
+
+**What changes**
+- Today shows three things side by side, each one tap away: **Today's practice**, **Hostile Q&A**, and **this week's boss**. Not one card and two links lower down.
+- Hostile Q&A becomes a headline mode: its own place on Today, free (section 4), with a reason to come back (a best, a streak of rounds held, the claim of the day).
+- The boss becomes an event: the topic shown from Monday with its prep page (section 8), a countdown to the week's end, and the result kept on the Log.
+- Practice (the tab) keeps the full list of games and scenarios. Today is where the three big ones live.
+
+**To decide:** does Today become three cards of equal weight, or the daily first and the two others beside it, smaller? Only the one thing to do today glows (section 1), so this needs a layout where the other two stand out without glowing.
+
+**Size:** medium. Today's layout plus Hostile's free access.
+
+---
+
+## 11. The swipe between tabs feels broken
+
+**What's wrong.** Holding a swipe, the page jumps back and forth under the finger. It's choppy where Apple's is smooth.
+
+**What Apple does (and what the code already decides the same way).** When you let go, it looks at how far across you are, how fast your finger is moving, and where the page would come to rest a moment later, then goes or comes back. Ethos already does this (`lib/tab-swipe.ts`: where the throw would rest, a quarter of the width, a flick back cancels), so the commit decision is not the problem.
+
+**So the problem is while you hold.** The page should sit exactly under the finger, every frame, and nothing else should move it. The likely causes, to find on a phone:
+- the page's own scroll and the swipe both reacting to the same finger;
+- the neighbour's picture being loaded or swapped mid-drag;
+- the drag being re-decided (sideways or scrolling) after it started;
+- a spring still running from a previous swipe fighting the finger.
+
+**What changes:** reproduce it on an iPhone (it does not show on a desktop browser), fix the cause, and add a gate that holds a drag still for a second and checks the page does not move.
+
+**Size:** small once found. **Do this first: it's a bug, and people feel it on every tab change.**
+
+---
+
 ## Suggested order
 
-1. **Kill the glow** and **Hostile Q&A free**: fast, visible, nothing to decide on art except the lesson images.
-2. **Feedback that sticks** (one cue, rehearsed, checked the next day): the biggest change to whether people actually improve.
-3. **Numbers that mean something**: makes every result readable to a newcomer.
-4. **Settings**: expected basics, low risk.
-5. **Premium as support the maker**: copy and plan checks.
-6. **Weekly boss prep and scenarios**: biggest build, mostly content.
-7. **The elephant**: when the art is ready.
+1. **Fix the swipe**: a bug felt on every tab change.
+2. **Kill the glow** and **Hostile Q&A free**: fast, visible, nothing to decide on art except the lesson images.
+3. **Hostile Q&A and the boss on Today**: the bike in the room.
+4. **Feedback that sticks** (one cue, rehearsed, checked the next day): the biggest change to whether people actually improve.
+5. **Numbers that mean something**: makes every result readable to a newcomer.
+6. **Settings**: expected basics, low risk.
+7. **Premium as support the maker**: copy and plan checks.
+8. **Weekly boss prep and scenarios**: biggest build, mostly content.
+9. **The elephant**: when the art is ready.
 
 ## Open questions for Timothy
 
@@ -187,3 +225,5 @@ Each scenario is a set of prompts, a way of being scored that fits it (an interv
 - What supporters get, and the price.
 - Which scenario to build first (job interview is the likeliest spike).
 - For feedback that sticks: start with "one cue, rehearsed before the take, checked the next day"?
+- Today with three big things: equal weight, or the daily first with Hostile and the boss beside it?
+- The swipe: which tab and which phone shows the jumping most? (It helps to reproduce it exactly.)

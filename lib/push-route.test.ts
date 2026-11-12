@@ -7,12 +7,20 @@ let upserts: Record<string, unknown>[] = [];
 let hasTzColumn = true;
 /** The row already stored for the endpoint, as the route reads it first. */
 let stored: { reminder_hour: number | null } | null = null;
+/** Other browsers the account already has a reminder on (#457). */
+let held = 0;
 
 vi.mock("@/lib/db", () => ({
   getUserFromAuthHeader: async () => ({ id: "u1", anonymous: false }),
   supabaseAdmin: () => ({
     from: () => ({
-      select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: stored, error: null }) }) }),
+      // The row stored for the endpoint, or (#457) how many browsers the account keeps.
+      select: () => ({
+        eq: () => ({
+          maybeSingle: async () => ({ data: stored, error: null }),
+          neq: async () => ({ count: held, error: null }),
+        }),
+      }),
       upsert: async (row: Record<string, unknown>) => {
         if (!hasTzColumn && "tz" in row) {
           return { error: { code: "PGRST204", message: "Could not find the 'tz' column of 'push_subscriptions' in the schema cache" } };
@@ -36,7 +44,7 @@ function post(body: unknown) {
 }
 
 const base = {
-  subscription: { endpoint: "https://push.test/a", keys: { p256dh: "k", auth: "a" } },
+  subscription: { endpoint: "https://fcm.googleapis.com/fcm/send/abc123", keys: { p256dh: "BKk0", auth: "a1" } },
   reminderHour: 18,
   tzOffset: 240,
 };
@@ -107,5 +115,55 @@ describe("POST /api/push and the first ring", () => {
     stored = { reminder_hour: 18 };
     await postAt("2026-11-09T04:30:00Z", { ...mel, reminderHour: 12 });
     expect(upserts[0]).toMatchObject({ last_sent_on: "2026-11-09" });
+  });
+});
+
+describe("POST /api/push and where a reminder may go (#457)", () => {
+  beforeEach(() => {
+    upserts = [];
+    hasTzColumn = true;
+    stored = null;
+    held = 0;
+  });
+
+  it("takes the push services browsers use", async () => {
+    for (const endpoint of [
+      "https://fcm.googleapis.com/fcm/send/abc",
+      "https://web.push.apple.com/QGx",
+      "https://updates.push.services.mozilla.com/wpush/v2/abc",
+      "https://wns2-par02p.notify.windows.com/w/?token=abc",
+    ]) {
+      const res = await post({ ...base, subscription: { ...base.subscription, endpoint } });
+      expect(res.status, endpoint).toBe(200);
+    }
+  });
+
+  it("refuses any other address, so the sender never calls a stranger's server", async () => {
+    for (const endpoint of [
+      "https://a.attacker.tld/",
+      "http://fcm.googleapis.com/fcm/send/abc",
+      "https://fcm.googleapis.com.attacker.tld/x",
+      "https://user:pw@fcm.googleapis.com/x",
+      "https://fcm.googleapis.com:8443/x",
+      "https://169.254.169.254/latest",
+      "not a url",
+    ]) {
+      const res = await post({ ...base, subscription: { ...base.subscription, endpoint } });
+      expect(res.status, endpoint).toBe(400);
+    }
+    expect(upserts).toEqual([]);
+  });
+
+  it("refuses keys that are not keys", async () => {
+    const res = await post({ ...base, subscription: { ...base.subscription, keys: { p256dh: "k".repeat(500), auth: "a" } } });
+    expect(res.status).toBe(400);
+  });
+
+  it("keeps a handful of browsers an account, and refuses the next", async () => {
+    held = 10;
+    expect((await post(base)).status).toBe(429);
+    expect(upserts).toEqual([]);
+    held = 9;
+    expect((await post(base)).status).toBe(200);
   });
 });

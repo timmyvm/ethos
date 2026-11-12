@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { NextRequest } from "next/server";
 
-const week = vi.hoisted(() => ({ since: null as string | null, count: 0 }));
+const week = vi.hoisted(() => ({ since: null as string | null, count: 0, latest: null as string | null }));
 /* The verdict's one write: what was set, under which filters, and what the database answers. */
 const store = vi.hoisted(() => ({
   writes: [] as { set: Record<string, unknown>; filters: Record<string, unknown> }[],
@@ -19,9 +19,14 @@ vi.mock("@/lib/db", () => {
   const chain = {
     select: () => chain,
     eq: () => chain,
-    gte: async (_col: string, since: string) => {
+    gte: (_col: string, since: string) => {
       week.since = since;
-      return { count: week.count };
+      // The count, awaited; or the week's latest take, ordered (#457).
+      return Object.assign(Promise.resolve({ count: week.count }), {
+        order: () => ({
+          limit: async () => ({ data: week.latest ? [{ created_at: week.latest }] : [] }),
+        }),
+      });
     },
     update: (set: Record<string, unknown>) => {
       const filters: Record<string, unknown> = {};
@@ -93,6 +98,7 @@ beforeEach(() => {
   vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-1", anonymous: false });
   week.since = null;
   week.count = 0;
+  week.latest = null;
   store.writes = [];
   store.answer = { data: [{ id: "rep-1" }], error: null };
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -287,5 +293,57 @@ describe("the verdict, stored", () => {
     vi.mocked(hostileVerdict).mockResolvedValueOnce(VERDICT);
     store.answer = { data: [], error: null };
     expect(await (await judgeWith({ repId: "rep-2" })).json()).toMatchObject({ stored: false });
+  });
+});
+
+/*
+ * The free week, held on every call (#457). Whether a call was the take
+ * was the phone's word (a `take` in its context), and only the take was
+ * checked, so a free account could skip the lock by saying it had one.
+ */
+describe("the free week, on every call", () => {
+  it("lets the session's own rounds and verdict through while its take is under an hour old", async () => {
+    week.count = 1;
+    week.latest = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    expect((await answer()).status).toBe(200);
+    expect((await judge()).status).toBe(200);
+  });
+
+  it("lets a round through while the take is still being banked", async () => {
+    week.count = 0;
+    expect((await answer()).status).toBe(200);
+  });
+
+  it("refuses a round or a verdict hours after the week's take", async () => {
+    week.count = 1;
+    week.latest = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+    expect((await answer()).status).toBe(403);
+    expect((await judge()).status).toBe(403);
+    expect(transcribe).not.toHaveBeenCalled();
+  });
+
+  it("refuses a round once the week holds more than one take", async () => {
+    week.count = 2;
+    expect((await answer()).status).toBe(403);
+  });
+});
+
+describe("what a session may send the model (#457)", () => {
+  it("refuses a take longer than a take can be", async () => {
+    const res = await post({ phase: "verdict", context: JSON.stringify({ take: "word ".repeat(1000), rounds: [{ question: "Why?", answer: SAID }] }) }, false);
+    expect(res.status).toBe(413);
+  });
+
+  it("refuses more rounds than the boss asks", async () => {
+    const rounds = Array.from({ length: 5 }, () => ({ question: "Why?", answer: SAID }));
+    expect((await post({ phase: "verdict", context: JSON.stringify({ take: SAID, rounds }) }, false)).status).toBe(413);
+  });
+
+  it("refuses a round that is not a question and an answer", async () => {
+    expect((await post({ phase: "verdict", context: JSON.stringify({ take: SAID, rounds: [{ question: 7 }] }) }, false)).status).toBe(413);
+  });
+
+  it("refuses a context too big to be a session at all", async () => {
+    expect((await post({ phase: "verdict", context: "x".repeat(25000) }, false)).status).toBe(413);
   });
 });

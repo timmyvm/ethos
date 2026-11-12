@@ -18,6 +18,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromAuthHeader, supabaseAdmin } from "@/lib/db";
+import { MAX_SUBSCRIPTIONS, pushEndpointAllowed, pushKeyOk } from "@/lib/push-endpoint";
 import { localClock, localDayKey, tzOffsetAt, validZone } from "@/lib/push";
 
 export const runtime = "nodejs";
@@ -61,6 +62,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: "Missing subscription fields." },
       { status: 400 }
+    );
+  }
+  // A push service's address and its keys, or nothing is stored (#457).
+  if (!pushEndpointAllowed(endpoint) || !pushKeyOk(p256dh, 200) || !pushKeyOk(authKey, 100)) {
+    return NextResponse.json(
+      { error: "That isn't a browser's push subscription." },
+      { status: 400 }
+    );
+  }
+  // A handful of browsers an account; a new one past that is refused,
+  // and the ones already there keep ringing (#457).
+  const { count: held } = await db
+    .from("push_subscriptions")
+    .select("endpoint", { count: "exact", head: true })
+    .eq("user_id", auth.id)
+    .neq("endpoint", endpoint);
+  if ((held ?? 0) >= MAX_SUBSCRIPTIONS) {
+    return NextResponse.json(
+      { error: "Reminders are on in too many browsers. Turn one off first." },
+      { status: 429 }
     );
   }
 

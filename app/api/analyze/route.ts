@@ -67,6 +67,7 @@ import { modIds, parseMods, xpMultiplier } from "@/lib/stress-mods";
 import { spokenAt } from "@/lib/spoken-at";
 import { transcribe } from "@/lib/transcribe";
 import { UNHEARD_COPY, unheard } from "@/lib/unheard";
+import { cleanId, cleanText } from "@/lib/form-input";
 
 export const runtime = "nodejs";
 export const maxDuration = 60; // Vercel Hobby cap
@@ -124,10 +125,17 @@ export interface AnalyzeResponse {
 /**
  * Only a saved recording keeps its slot (#409, Timothy: "don't treat it
  * as a saved recording that sets the limit again"). Once a slot is
- * taken, anything that ends without a new stored recording gives it
- * back: Whisper down, a take the mic barely heard, a resend of one
- * already stored, a failed save, a crash. A file Whisper refuses keeps
- * its slot, so junk uploads still cost one each.
+ * taken, anything that ends before the take is heard gives it back:
+ * Whisper down, a take the mic barely heard, a resend of one already
+ * stored. A file Whisper refuses keeps its slot, so junk uploads still
+ * cost one each.
+ *
+ * Once a take has been heard, the slot is spent whether or not the row
+ * saves (#457). It used to come back on a failed save, which came after
+ * Whisper and Opus had both been paid for, and a save can be failed on
+ * purpose (a NUL in a field Postgres stores): every request was then
+ * free, with no session at all. A start-again never reaches the server
+ * (#406), so #409's "start again" still costs nothing.
  */
 interface Spend {
   /** The throttle's subject once a slot was taken. */
@@ -269,7 +277,9 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
      multiplier waits for the words: only a scored take pays the boss's. */
   let mods = bossTopic ? [] : extras;
   let multiplier = xpMultiplier(mods);
-  const lessonId = (form.get("lessonId") as string) || undefined;
+  // An id the app made: letters, digits, "_", "-", ":" and ".", short.
+  // Anything else (a NUL, a megabyte) is no lesson at all (#457).
+  const lessonId = cleanId(form.get("lessonId"));
   /*
    * A game round (the games plan, items 3 and 10). The phone says what it
    * ran (`round`: the level, when Demos cut in, who stopped it); the round
@@ -311,8 +321,17 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
     // is our key or our model, answers 502, and is sent again up to four
     // times, so keeping those locked every tester out for the hour.
     spend.keep = undecodable;
+    // The provider's own words stay in the log (#457): its body can name
+    // the account behind the key. The phone gets a sentence of ours.
+    console.error("analyze transcription failed", message);
     return NextResponse.json(
-      { error: message },
+      {
+        error: unconfigured
+          ? "Scoring isn't set up on this server yet."
+          : undecodable
+            ? "That file couldn't be read. Try a different recording."
+            : "Transcription failed. Nothing was lost; try again.",
+      },
       { status: unconfigured ? 503 : undecodable ? 422 : 502 }
     );
   }
@@ -326,6 +345,8 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
   if (unheard(transcription.durationS, transcription.words.length)) {
     return NextResponse.json({ error: UNHEARD_COPY, unheard: true }, { status: 422 });
   }
+  // Heard: from here the models are paid for, so the slot is too (#457).
+  spend.keep = true;
 
   const metrics = computeMetrics(
     transcription.words,
@@ -520,7 +541,6 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
       return NextResponse.json({ repId: saved.id, duplicate: true });
     }
     repId = saved?.id ?? null;
-    spend.keep = repId !== null;
   } catch {
     repId = null;
   }
@@ -599,11 +619,25 @@ function parseDelivery(raw: string | null): {
             : null,
         presenceScore: Math.max(0, Math.min(1000, Math.round(m.presenceScore))),
       },
+      // Each moment rebuilt from its own fields (#457): stored as JSON,
+      // so anything else a form carried (a NUL, a megabyte) never is.
       deliveryMoments: Array.isArray(parsed.moments)
-        ? parsed.moments.slice(0, 40)
+        ? parsed.moments.slice(0, 40).flatMap((x) => {
+            const m = x as Partial<DeliveryMoment> | null;
+            if (!m || typeof m !== "object" || !MOMENT_KINDS.has(m.kind as string)) return [];
+            const t = num(m.t);
+            const seconds = num(m.seconds);
+            if (t < 0 || t > 3600 || seconds < 0 || seconds > 3600) return [];
+            const note = typeof m.note === "string" ? cleanText(m.note, 160) : "";
+            return [{ t, seconds, kind: m.kind as DeliveryMoment["kind"], note }];
+          })
         : [],
     };
   } catch {
     return { delivery: null, deliveryMoments: [] };
   }
 }
+
+/** The four things the camera says (lib/presence.ts `MomentKind`). */
+const MOMENT_KINDS = new Set(["eyes-down", "slouch", "hands-gone", "stillness"]);
+

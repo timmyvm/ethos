@@ -64,13 +64,38 @@ interface RoundsPayload {
   repId?: string;
 }
 
-function parseContext(raw: unknown): RoundsPayload | null {
+/**
+ * What a session may carry back to the model (#457). Every string the
+ * phone sends here goes into Opus's prompt, up to three times a call,
+ * so each is capped to what the take and its answers can hold: a
+ * 60-second take and 45-second answers run well under these at any
+ * pace. Over a cap, or more rounds than the boss asks, is refused, not
+ * cut: a cut take would be judged on words that were never said.
+ */
+const CONTEXT_CAPS = { take: 4000, answer: 3000, question: 400, quoted: 400, claim: 400 } as const;
+
+function parseContext(raw: unknown): RoundsPayload | "too-big" | null {
   if (typeof raw !== "string") return null;
+  if (raw.length > 20000) return "too-big";
+  let ctx: RoundsPayload;
   try {
-    return JSON.parse(raw) as RoundsPayload;
+    ctx = JSON.parse(raw) as RoundsPayload;
   } catch {
     return null;
   }
+  if (!ctx || typeof ctx !== "object") return null;
+  const long = (v: unknown, max: number) => v !== undefined && (typeof v !== "string" || v.length > max);
+  if (long(ctx.take, CONTEXT_CAPS.take) || long(ctx.claim, CONTEXT_CAPS.claim)) return "too-big";
+  if (long(ctx.pendingQuestion, CONTEXT_CAPS.question) || long(ctx.pendingQuoted, CONTEXT_CAPS.quoted)) return "too-big";
+  if (ctx.rounds !== undefined) {
+    if (!Array.isArray(ctx.rounds) || ctx.rounds.length > HOSTILE_ROUNDS) return "too-big";
+    for (const r of ctx.rounds) {
+      if (!r || typeof r !== "object" || typeof r.question !== "string" || typeof r.answer !== "string") return "too-big";
+      if (long(r.question, CONTEXT_CAPS.question) || long(r.answer, CONTEXT_CAPS.answer) || long(r.quoted, CONTEXT_CAPS.quoted)) return "too-big";
+    }
+  }
+  if (ctx.roundNumbers !== undefined && (!Array.isArray(ctx.roundNumbers) || ctx.roundNumbers.length > HOSTILE_ROUNDS)) return "too-big";
+  return ctx;
 }
 
 /**
@@ -145,7 +170,31 @@ async function handle(req: NextRequest, spend: Spend) {
   if (!prompt) {
     return NextResponse.json({ error: "Unknown prompt." }, { status: 400 });
   }
-  const ctx = parseContext(form.get("context")) ?? {};
+  const parsed = parseContext(form.get("context"));
+  if (parsed === "too-big") {
+    return NextResponse.json({ error: "That session is too long to read." }, { status: 413 });
+  }
+  const ctx = parsed ?? {};
+  const isTake = !ctx.take;
+
+  /*
+   * Free gets one interrogation a week, premium runs them at will: the
+   * cold-topic pattern (#36) applied to this boss. Checked on every
+   * call (#457), not only the take: the take was the one place it was
+   * asked, and whether a call is the take was the phone's word (a
+   * `take` in its context), so a free account could skip it. The week's
+   * banked take is the server's own record: a take is refused once one
+   * exists this week; a round or a verdict is let through while this
+   * week's one take is under an hour old (a session mid-flight is never
+   * cut off) or still on its way to being banked. Only when there's a
+   * database to ask: degrade open, like everything else.
+   */
+  if (await weekLocked(auth, isTake, numberOrNull(form.get("tzOffset")))) {
+    return NextResponse.json(
+      { locked: true, error: "You've faced Demos this week. Premium reopens him now; otherwise it's Monday." },
+      { status: 403 }
+    );
+  }
 
   if (phase === "verdict") {
     if (!ctx.take || (ctx.rounds?.length ?? 0) === 0) {
@@ -200,38 +249,6 @@ async function handle(req: NextRequest, spend: Spend) {
       { error: "Audio exceeds 25MB limit." },
       { status: 413 }
     );
-  }
-
-  const isTake = !ctx.take;
-
-  /*
-   * Free gets one interrogation a week, premium runs them at will —
-   * the cold-topic pattern (#36) applied to this boss. Checked only at
-   * the take (a session mid-flight is never cut off), and only when
-   * there's a database to ask: degrade open, like everything else.
-   */
-  if (isTake && auth) {
-    const premium = await isPremium(auth.id).catch(() => false);
-    if (!premium) {
-      const db = supabaseAdmin();
-      if (db) {
-        const { count } = await db
-          .from("reps")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", auth.id)
-          .eq("lesson_id", HOSTILE_TAKE_ID)
-          .gte(
-            "created_at",
-            weekStartFor(new Date(), numberOrNull(form.get("tzOffset"))).toISOString()
-          );
-        if ((count ?? 0) >= 1) {
-          return NextResponse.json(
-            { locked: true, error: "You've faced Demos this week. Premium reopens him now; otherwise it's Monday." },
-            { status: 403 }
-          );
-        }
-      }
-    }
   }
 
   let t;
@@ -349,4 +366,45 @@ function weekStartFor(now: Date, tzOffset: number | null): Date {
   const midnight = Date.UTC(wall.getUTCFullYear(), wall.getUTCMonth(), wall.getUTCDate());
   const sinceMonday = (wall.getUTCDay() + 6) % 7;
   return new Date(midnight - sinceMonday * 86_400_000 + (now.getTime() - wall.getTime()));
+}
+
+/** How long a round or a verdict may follow the week's take (#457). */
+const SESSION_WINDOW_MS = 60 * 60 * 1000;
+
+/** Whether this call is past a free account's one Hostile session a week (#457). */
+async function weekLocked(
+  auth: { id: string } | null,
+  isTake: boolean,
+  tzOffset: number | null
+): Promise<boolean> {
+  if (!auth) return false;
+  const premium = await isPremium(auth.id).catch(() => false);
+  if (premium) return false;
+  const db = supabaseAdmin();
+  if (!db) return false;
+  const since = weekStartFor(new Date(), tzOffset).toISOString();
+  try {
+    const { count } = await db
+      .from("reps")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", auth.id)
+      .eq("lesson_id", HOSTILE_TAKE_ID)
+      .gte("created_at", since);
+    const n = count ?? 0;
+    if (isTake) return n >= 1;
+    if (n === 0) return false; // the take is still on its way to being banked
+    if (n > 1) return true;
+    const { data } = await db
+      .from("reps")
+      .select("created_at")
+      .eq("user_id", auth.id)
+      .eq("lesson_id", HOSTILE_TAKE_ID)
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const at = Date.parse((data as { created_at?: string }[] | null)?.[0]?.created_at ?? "");
+    return Number.isFinite(at) && Date.now() - at > SESSION_WINDOW_MS;
+  } catch {
+    return false;
+  }
 }

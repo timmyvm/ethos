@@ -40,6 +40,7 @@ import {
 } from "@/lib/push";
 import { lastTake, reminderCopy } from "@/lib/reminder-copy";
 import { todayHrefOn, type PracticeRow } from "@/lib/home";
+import { PUSH_TIMEOUT_MS } from "@/lib/push-endpoint";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -222,7 +223,9 @@ export async function GET(req: NextRequest) {
         JSON.stringify({ ...copy, url }),
         // Held for a phone that is off only until quiet hours or midnight,
         // whichever is first; one topic, so a newer reminder replaces it.
-        { TTL: sendTtl(win, now), urgency: "normal", topic: PUSH_TOPIC }
+        // A push service that never answers is let go after ten seconds,
+        // so one slow row cannot stall every reminder after it (#457).
+        { TTL: sendTtl(win, now), urgency: "normal", topic: PUSH_TOPIC, timeout: PUSH_TIMEOUT_MS }
       );
       report.sent++;
     } catch (e) {

@@ -879,22 +879,57 @@ describe("the rate-limit slot of a failed transcription", () => {
   });
 
   /* Only a saved recording keeps its slot (#409). */
-  it("is given back when nothing was saved", async () => {
+  /* #457: once a take is heard, Whisper and the coach are paid for, so
+     the slot stays spent. It came back on a failed save, and a save can
+     be failed on purpose, which made every request free. */
+  it("stays spent once the take was heard, even when the save fails", async () => {
     vi.mocked(transcribe).mockResolvedValue(FIXTURE);
     vi.mocked(saveRep).mockResolvedValue(null);
     await post(audioForm());
-    // A guest's own slot and its address's (#416), each once.
-    expect(refundRateLimit).toHaveBeenCalledTimes(2);
-    expect(refundRateLimit).toHaveBeenCalledWith("u:anon-1");
-    expect(vi.mocked(refundRateLimit).mock.calls.some(([s]) => /^guest:ip:/.test(s))).toBe(true);
+    expect(refundRateLimit).not.toHaveBeenCalled();
   });
 
-  it("is given back when the recording was already saved by an earlier send", async () => {
+  it("stays spent when a second send of the same take raced the first", async () => {
     vi.mocked(transcribe).mockResolvedValue(FIXTURE);
     vi.mocked(saveRep).mockResolvedValue({ id: "rep-1", duplicate: true } as never);
     await post(audioForm());
-    expect(refundRateLimit).toHaveBeenCalledTimes(2);
-    expect(refundRateLimit).toHaveBeenCalledWith("u:anon-1");
+    expect(refundRateLimit).not.toHaveBeenCalled();
+  });
+
+  it("drops a lesson id the app never writes, so it cannot fail the save", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(saveRep).mockClear();
+    const form = audioForm();
+    form.set("lessonId", "a\u0000b");
+    await post(form);
+    expect(vi.mocked(saveRep).mock.calls[0]?.[0]).toMatchObject({ lessonId: undefined });
+  });
+
+  it("keeps only real delivery moments, rebuilt from their own fields", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(saveRep).mockClear();
+    const form = audioForm();
+    form.set(
+      "delivery",
+      JSON.stringify({
+        metrics: { presenceScore: 600 },
+        moments: [
+          { t: 3, seconds: 2, kind: "slouch", note: "Shoulders\u0000 dropped", extra: "x".repeat(10000) },
+          { t: 4, seconds: 1, kind: "anything", note: "no" },
+          "junk",
+        ],
+      })
+    );
+    await post(form);
+    const saved = vi.mocked(saveRep).mock.calls[0]?.[0] as { deliveryMoments?: unknown };
+    expect(saved.deliveryMoments).toEqual([{ t: 3, seconds: 2, kind: "slouch", note: "Shoulders dropped" }]);
+  });
+
+  it("never sends the provider's error text to the phone", async () => {
+    vi.mocked(transcribe).mockRejectedValue(new Error("Whisper API 401: Incorrect API key provided: sk-proj-abc. org-123"));
+    const res = await post(audioForm());
+    const body = await res.json();
+    expect(JSON.stringify(body)).not.toMatch(/sk-|org-|Whisper API/);
   });
 });
 

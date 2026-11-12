@@ -473,7 +473,8 @@ describe("the reminder cron, #430 review", () => {
   it("a push lives until quiet hours begin, at normal urgency, under one topic", async () => {
     subs = [six("Australia/Melbourne")];
     expect((await at("2026-11-09T07:01:00Z")).sent).toBe(1); // 18:01 AEDT
-    expect(sendOptions).toEqual([{ TTL: (22 * 60 - (18 * 60 + 1)) * 60, urgency: "normal", topic: "ethos-daily" }]);
+    // And a push service that never answers is let go after ten seconds (#457).
+    expect(sendOptions).toEqual([{ TTL: (22 * 60 - (18 * 60 + 1)) * 60, urgency: "normal", topic: "ethos-daily", timeout: 10000 }]);
   });
 
   it("a late push lives at least a minute", async () => {

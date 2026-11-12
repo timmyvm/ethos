@@ -21,18 +21,21 @@
  * nothing (the same no-migration property lib/auth.ts documents).
  */
 
-import { timingSafeEqual } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromAuthHeader, supabaseAdmin } from "@/lib/db";
 import { clientIp, consumeRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
+/**
+ * Compared as two digests of one length, as the tester code is (#457):
+ * comparing the codes themselves had to stop at a length mismatch first,
+ * which told a timer how long the code is.
+ */
 function codesMatch(given: string, expected: string): boolean {
-  const a = Buffer.from(given);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(a, b);
+  const digest = (s: string) => createHash("sha256").update(s).digest();
+  return timingSafeEqual(digest(given), digest(expected));
 }
 
 export async function POST(req: NextRequest) {

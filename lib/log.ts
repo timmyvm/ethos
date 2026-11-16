@@ -206,6 +206,11 @@ export function skillRows(reps: RepRow[]): MovedRow[] {
  * level, "Q&A, level 2": the ladder is per level, so the row says which
  * rung it was. A round recorded before 0026, with no `round`, keeps the
  * game's name alone, since its level was never stored.
+ *
+ * A road lesson (lib/drills.ts) is "Today's practice" since #493: the
+ * road was the day's practice, its results were headed "Today's
+ * practice", and its own titles ("Punctuate with silence") are lessons
+ * the Lessons tab does not list (the morning tour, 17 Nov).
  */
 export function recordingName(
   r: Pick<RepRow, "lesson_id" | "mode"> & { round?: { game?: unknown; level?: unknown } | null }
@@ -216,8 +221,7 @@ export function recordingName(
   if (lesson) return lesson.title;
   const item = pathItemById(id);
   if (item) return item.title;
-  const drill = id ? DRILLS.find((d) => d.id === id) : null;
-  if (drill) return drill.title;
+  if (id && DRILLS.some((d) => d.id === id)) return TODAYS_PRACTICE;
   const game = gameOfLessonId(id);
   if (game) {
     const level = r.round?.game === game.id ? r.round.level : null;
@@ -227,7 +231,7 @@ export function recordingName(
   /* Today's own take and a trait's walk had no name here, so they read
      "Recording" among named lessons (regression review, edges F6): the
      first takes the label its card wears, the second its trait's. */
-  if (id?.startsWith("topic:") && topicById(id.slice("topic:".length))) return "Today's practice";
+  if (id?.startsWith("topic:") && topicById(id.slice("topic:".length))) return TODAYS_PRACTICE;
   const walk = traitWalk(id);
   if (walk) return TRAIT[walk].name;
   return r.mode === "boss" ? "Boss" : "Recording";

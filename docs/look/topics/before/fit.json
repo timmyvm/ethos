@@ -1,0 +1,573 @@
+{
+  "phase": "before",
+  "topics": 20,
+  "longest": {
+    "id": "t12",
+    "prompt": "Explain how interest works to someone who's never had a bank account",
+    "shape": "explain"
+  },
+  "longestNew": null,
+  "card 390-light": {
+    "natural": "A rule you think everyone should break"
+  },
+  "reroll 390-light": {
+    "card": "A rule you think everyone should break",
+    "opened": "Whether being busy is a choice",
+    "spun": "Explain how interest works to someone who's never had a bank account"
+  },
+  "ready 390-light": {
+    "record": {
+      "top": 680,
+      "bottom": 778
+    },
+    "vh": 844
+  },
+  "card 390-dark": {
+    "natural": "A rule you think everyone should break"
+  },
+  "reroll 390-dark": {
+    "card": "A rule you think everyone should break",
+    "opened": "Pitch a book or film you love, without spoiling it",
+    "spun": "A decision you nearly didn't make"
+  },
+  "ready 390-dark": {
+    "record": {
+      "top": 680,
+      "bottom": 778
+    },
+    "vh": 844
+  },
+  "card 375-light": {
+    "natural": "A rule you think everyone should break"
+  },
+  "reroll 375-light": {
+    "card": "A rule you think everyone should break",
+    "opened": "Explain your work to a ten-year-old",
+    "spun": "A decision you nearly didn't make"
+  },
+  "ready 375-light": {
+    "record": {
+      "top": 515,
+      "bottom": 613
+    },
+    "vh": 667
+  },
+  "fit": {
+    "320": {
+      "cardAtRest": 376,
+      "cardMax": 381,
+      "cardGrows": [
+        "t12 381"
+      ],
+      "cardLinesMax": 5,
+      "reelLinesMax": 4,
+      "reelOverflow": [],
+      "rows": [
+        {
+          "id": "t1",
+          "len": 52,
+          "cardLines": 4,
+          "card": 376,
+          "reelLines": 3,
+          "reelFits": true
+        },
+        {
+          "id": "t2",
+          "len": 47,
+          "cardLines": 4,
+          "card": 376,
+          "reelLines": 3,
+          "reelFits": true
+        },
+        {
+          "id": "t3",
+          "len": 38,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 3,
+          "reelFits": true
+        },
+        {
+          "id": "t4",
+          "len": 30,
+          "cardLines": 2,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t5",
+          "len": 32,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t6",
+          "len": 42,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 3,
+          "reelFits": true
+        },
+        {
+          "id": "t7",
+          "len": 40,
+          "cardLines": 4,
+          "card": 376,
+          "reelLines": 3,
+          "reelFits": true
+        },
+        {
+          "id": "t8",
+          "len": 38,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 3,
+          "reelFits": true
+        },
+        {
+          "id": "t9",
+          "len": 33,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t10",
+          "len": 30,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t11",
+          "len": 35,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t12",
+          "len": 68,
+          "cardLines": 5,
+          "card": 381,
+          "reelLines": 4,
+          "reelFits": true
+        },
+        {
+          "id": "t13",
+          "len": 44,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 3,
+          "reelFits": true
+        },
+        {
+          "id": "t14",
+          "len": 55,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 3,
+          "reelFits": true
+        },
+        {
+          "id": "t15",
+          "len": 32,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t16",
+          "len": 49,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 3,
+          "reelFits": true
+        },
+        {
+          "id": "t17",
+          "len": 50,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 3,
+          "reelFits": true
+        },
+        {
+          "id": "t18",
+          "len": 49,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 3,
+          "reelFits": true
+        },
+        {
+          "id": "t19",
+          "len": 51,
+          "cardLines": 4,
+          "card": 376,
+          "reelLines": 3,
+          "reelFits": true
+        },
+        {
+          "id": "t20",
+          "len": 44,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 3,
+          "reelFits": true
+        }
+      ]
+    },
+    "375": {
+      "cardAtRest": 376,
+      "cardMax": 425,
+      "cardGrows": [
+        "t12 425"
+      ],
+      "cardLinesMax": 5,
+      "reelLinesMax": 4,
+      "reelOverflow": [],
+      "rows": [
+        {
+          "id": "t1",
+          "len": 52,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 3,
+          "reelFits": true
+        },
+        {
+          "id": "t2",
+          "len": 47,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 3,
+          "reelFits": true
+        },
+        {
+          "id": "t3",
+          "len": 38,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t4",
+          "len": 30,
+          "cardLines": 2,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t5",
+          "len": 32,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t6",
+          "len": 42,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 3,
+          "reelFits": true
+        },
+        {
+          "id": "t7",
+          "len": 40,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t8",
+          "len": 38,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t9",
+          "len": 33,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t10",
+          "len": 30,
+          "cardLines": 2,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t11",
+          "len": 35,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t12",
+          "len": 68,
+          "cardLines": 5,
+          "card": 425,
+          "reelLines": 4,
+          "reelFits": true
+        },
+        {
+          "id": "t13",
+          "len": 44,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 3,
+          "reelFits": true
+        },
+        {
+          "id": "t14",
+          "len": 55,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 3,
+          "reelFits": true
+        },
+        {
+          "id": "t15",
+          "len": 32,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t16",
+          "len": 49,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 3,
+          "reelFits": true
+        },
+        {
+          "id": "t17",
+          "len": 50,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t18",
+          "len": 49,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t19",
+          "len": 51,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 3,
+          "reelFits": true
+        },
+        {
+          "id": "t20",
+          "len": 44,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        }
+      ]
+    },
+    "390": {
+      "cardAtRest": 376,
+      "cardMax": 434,
+      "cardGrows": [
+        "t12 434"
+      ],
+      "cardLinesMax": 5,
+      "reelLinesMax": 4,
+      "reelOverflow": [],
+      "rows": [
+        {
+          "id": "t1",
+          "len": 52,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 3,
+          "reelFits": true
+        },
+        {
+          "id": "t2",
+          "len": 47,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t3",
+          "len": 38,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t4",
+          "len": 30,
+          "cardLines": 2,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t5",
+          "len": 32,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t6",
+          "len": 42,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 3,
+          "reelFits": true
+        },
+        {
+          "id": "t7",
+          "len": 40,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t8",
+          "len": 38,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t9",
+          "len": 33,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t10",
+          "len": 30,
+          "cardLines": 2,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t11",
+          "len": 35,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t12",
+          "len": 68,
+          "cardLines": 5,
+          "card": 434,
+          "reelLines": 4,
+          "reelFits": true
+        },
+        {
+          "id": "t13",
+          "len": 44,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t14",
+          "len": 55,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 3,
+          "reelFits": true
+        },
+        {
+          "id": "t15",
+          "len": 32,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t16",
+          "len": 49,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 3,
+          "reelFits": true
+        },
+        {
+          "id": "t17",
+          "len": 50,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t18",
+          "len": 49,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        },
+        {
+          "id": "t19",
+          "len": 51,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 3,
+          "reelFits": true
+        },
+        {
+          "id": "t20",
+          "len": 44,
+          "cardLines": 3,
+          "card": 376,
+          "reelLines": 2,
+          "reelFits": true
+        }
+      ]
+    }
+  }
+}

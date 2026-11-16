@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { RepResult, type GlanceView, type ResultView } from "@/components/RepResult";
+import { NO_INDEX_LINE, RepResult, type GlanceView, type ResultView } from "@/components/RepResult";
 import { countWords, fitGlance, glanceLine, sheetSections } from "./glance";
 import { computeMetrics, type RepMetrics } from "./metrics";
 
@@ -121,7 +121,8 @@ describe("the sheet's body, in order", () => {
     expect(html).not.toContain("Kept");
     expect(html.indexOf("AI-generated feedback")).toBeLessThan(html.indexOf(">What went well<"));
     expect(html.indexOf(">What went well<")).toBeLessThan(html.indexOf("Say this instead"));
-    expect(html).toContain('<h2 class="section-head">Every dimension</h2>');
+    expect(html).toContain('<h2 class="section-head">Your scores</h2>');
+    expect(html).not.toMatch(/dimension<\/h2>/i);
     expect(html).toContain('<details open=""');
   });
 
@@ -158,6 +159,20 @@ describe("the sheet's body, in order", () => {
     expect(html).not.toMatch(/level/i);
   });
 
+  it("says why there is no Ethos number where the coach did not run, once, and not on a capped take, which says so itself", () => {
+    const measured: ResultView = { ...result, coach: null, ethosIndex: null };
+    const failed = renderToStaticMarkup(
+      createElement(RepResult, { result: measured, section: "detail", sheet: { sections: ["dimensions"] } })
+    );
+    expect(visible(failed)).toContain(`Length 62s, target 60 to 90s ${NO_INDEX_LINE}`);
+    const capped = renderToStaticMarkup(
+      createElement(RepResult, { result: measured, section: "detail", sheet: { sections: ["capped", "dimensions"] } })
+    );
+    expect(capped).not.toContain("data-no-index");
+    const coached = renderToStaticMarkup(createElement(RepResult, { result, section: "detail", sheet: { sections: ["dimensions"] } }));
+    expect(coached).not.toContain("data-no-index");
+  });
+
   it("a capped take says the read is back tomorrow and that it still counted", () => {
     const html = renderToStaticMarkup(createElement(RepResult, { result, section: "detail", sheet: { sections: ["capped"] } }));
     expect(visible(html)).toBe("Demos's full read is back tomorrow. It still counted toward your streak.");
@@ -166,7 +181,7 @@ describe("the sheet's body, in order", () => {
 
 /*
  * #429: the coach may say none, or its upgrade may be dropped. Then
- * Demos's read is Kept alone, and nothing else on the glance or the
+ * Demos's read is What went well alone (it read "Kept" until #484), and nothing else on the glance or the
  * sheet moves.
  */
 describe("a take with no upgrade", () => {
@@ -183,7 +198,7 @@ describe("a take with no upgrade", () => {
     expect(without).toBe(withIt);
   });
 
-  it("shows Demos's read with Kept alone: no Say this instead, no empty pair", () => {
+  it("shows Demos's read with What went well alone: no Say this instead, no empty pair", () => {
     const html = renderToStaticMarkup(createElement(RepResult, { result: none, section: "detail", sheet: { sections, open: "fillers" } }));
     expect(html).toContain('<h2 class="section-head">Demos&#x27;s read</h2>');
     expect(html.match(/AI-generated feedback/g)).toHaveLength(1);
@@ -214,7 +229,7 @@ describe("a take with no upgrade", () => {
     const all = renderToStaticMarkup(createElement(RepResult, { result: none, section: "all" }));
     expect(all).toContain("What went well:");
     expect(all).not.toContain("Kept");
-    expect(all).toContain("Every dimension");
+    expect(all).toContain("Your scores");
     expect(all).not.toContain("Say this instead");
     const withIt = renderToStaticMarkup(createElement(RepResult, { result, section: "all" }));
     expect(all).toBe(withIt.replace(/<section class="mt-7"><h2 class="section-head">Say this instead<\/h2>[\s\S]*?<\/section>/, ""));

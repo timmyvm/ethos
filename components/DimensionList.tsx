@@ -50,9 +50,11 @@ interface Detail {
  * The rows end on their last row (#484, Timothy 16 Nov: the foot,
  * "9 dimensions, added up 624/1000" and then #471's "Rows are out of
  * 100. In the Index, ... count up to 150 each ...", underlined, remove).
- * The Ethos number over the page already says the total, every row says
- * its own "out of 100", and nothing on the card adds up to a different
- * number, so there is nothing left for a foot to square.
+ * The Ethos number over the page already says the total. A row's scale
+ * is drawn, not printed: its bar runs the row's width at 100 (a screen
+ * reader hears "out of 100"). The rows are weighted into the total, so
+ * they do not add up to it; #471's foot said so, and Timothy struck it,
+ * so nothing on the card offers a sum to check.
  */
 export function DimensionList({
   tier1,

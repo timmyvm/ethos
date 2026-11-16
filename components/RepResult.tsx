@@ -28,6 +28,23 @@ import { scoreLine, splitTomorrow } from "@/lib/coach-line";
  */
 export const WENT_WELL = "What went well";
 
+/**
+ * The rows' head (#484): "Every dimension", and "The measured
+ * dimensions" when the coach did not run, named the rows with a word a
+ * first-time reader has to stop on. They are the take's scores, each out
+ * of 100.
+ */
+export const SCORES_HEAD = "Your scores";
+
+/**
+ * Under the head when the coach did not run on a take that could be
+ * scored (#484): the rows' old foot ("The coach didn't run this time.
+ * These 5 measured rows count for up to 600 of the 1000; ...") went with
+ * the foot Timothy struck, and it was the only line that said why the
+ * top of the page shows fillers where the Ethos number stands.
+ */
+export const NO_INDEX_LINE = "Demos didn't judge this one, so it has no Ethos number.";
+
 export interface ResultView {
   transcript: string;
   /**
@@ -469,7 +486,7 @@ export function RepResult({
         case "dimensions":
           return (
             <section>
-              <h2 className="section-head">{coach ? "Every dimension" : "The measured dimensions"}</h2>
+              <h2 className="section-head">{SCORES_HEAD}</h2>
               {/* The take's length against its target (the review: the
                   three tiles went and took the length with them). It
                   stays live (#484): one plain fact with its target, not
@@ -478,6 +495,13 @@ export function RepResult({
                 Length {Math.round(m.durationS)}s{lengthNote.startsWith("of ") ? " " : ", "}
                 {lengthNote}
               </p>
+              {/* Why there is no Ethos number, where the coach did not run
+                  (a capped take says so in its own section). */}
+              {!coach && result.scorable !== false && !view.sections.includes("capped") && (
+                <p data-no-index className="mt-1 text-caption text-stone-500">
+                  {NO_INDEX_LINE}
+                </p>
+              )}
               <div className="mt-3">
                 <DimensionList
                   tier1={tier1}
@@ -826,16 +850,21 @@ export function RepResult({
               rep, including ones where the coach layer never ran and
               only the measured half existed. The rows say they open
               with their own chevrons, so the head says nothing about
-              tapping. */}
-          <h2 className="section-head">
-            {coach ? "Every dimension" : "The measured dimensions"}
-          </h2>
+              tapping. Since #484 it names them for what they are, the
+              take's scores, coached or not. */}
+          <h2 className="section-head">{SCORES_HEAD}</h2>
           {/* Nothing under the head but the rows' own headline (#484,
               Timothy 16 Nov: "60 seconds at 115 words a minute, with 8
               held pauses." underlined, remove). The line had stood in
               for #458's pause map and three tiles, and said again what
               the Pace and Pausing rows under it score; Hear it back
-              still marks every pause on its track. */}
+              still marks every pause on its track. Where the coach did
+              not run, one line says why the top shows no Ethos number. */}
+          {!coach && result.scorable !== false && (
+            <p data-no-index className="mt-1 text-caption text-stone-500">
+              {NO_INDEX_LINE}
+            </p>
+          )}
           <div className="mt-3">
             <DimensionList
               tier1={tier1}

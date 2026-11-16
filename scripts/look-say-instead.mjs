@@ -79,7 +79,7 @@ async function shoot(state, theme) {
     const found = {
       kept: await kept.count(),
       say: await page.locator("main h2:has-text('Say this instead')").count(),
-      dims: await page.locator("main h2:has-text('Every dimension')").count(),
+      dims: await page.locator("main h2:has-text('Your scores')").count(),
     };
     console.log(`log   ${theme} ${JSON.stringify(found)}`);
     if (found.kept) {

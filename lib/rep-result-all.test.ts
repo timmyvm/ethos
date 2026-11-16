@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { RepResult, type ResultView } from "@/components/RepResult";
+import { NO_INDEX_LINE, RepResult, type ResultView } from "@/components/RepResult";
 import type { RepMetrics, Word } from "./metrics";
 
 /*
@@ -22,8 +22,9 @@ import type { RepMetrics, Word } from "./metrics";
  *
  * And again (#484, Timothy 16 Nov, two marked shots of this page): the
  * level-up line under the Ethos number, the line under "Every dimension"
- * and the rows' foot are gone, and the coach's strength is headed "What
- * went well", not "Kept".
+ * and the rows' foot are gone, the coach's strength is headed "What
+ * went well", not "Kept", and the rows' head is "Your scores" (the
+ * #484 review: "dimension" is a word a first-time reader stops on).
  */
 const TRANSCRIPT =
   "So the thing about habits is, um, they compound. You do the small version every day and, like, it builds on its own. Um, the mistake people make is waiting to feel ready. You know, ready is a feeling that shows up after you start.";
@@ -124,7 +125,7 @@ describe("RepResult section=\"all\", the Log's page (#427)", () => {
     expect(text(h).split("Three silences landed a point; one was searching.").length - 1).toBe(1);
   });
 
-  it("draws no tiles, and since #484 no line under \"Every dimension\" either", () => {
+  it("draws no tiles, and since #484 no line under the rows' head either", () => {
     const h = html(view);
     expect(h).not.toContain("label-micro whitespace-nowrap");
     expect(h).not.toContain(">WPM<");
@@ -134,7 +135,7 @@ describe("RepResult section=\"all\", the Log's page (#427)", () => {
     expect(text(h)).not.toMatch(/words a minute, with \d+ held pause/);
     expect(text(h)).not.toMatch(/held pause/i);
     // The head is followed straight by the rows' headline.
-    expect(h).toMatch(/<h2 class="section-head">Every dimension<\/h2><div class="mt-3"><p data-dimension-headline/);
+    expect(h).toMatch(/<h2 class="section-head">Your scores<\/h2><div class="mt-3"><p data-dimension-headline/);
   });
 
   /* Timothy, 16 Nov (#484): underlined, remove. */
@@ -205,11 +206,23 @@ describe("the Log's dimension rows read at a glance (#471)", () => {
     expect(card.slice(card.lastIndexOf("</details>") + "</details>".length)).toMatch(/^<\/div>/);
   });
 
-  it("and a recording the coach never read has no foot either", () => {
+  it("and a recording the coach never read has no foot either, one line under its head saying why there is no Ethos number", () => {
     const measured: ResultView = { ...view, coach: null, ethosIndex: null };
     const h = renderToStaticMarkup(createElement(RepResult, { result: measured, section: "all" }));
     expect(h).not.toContain("data-dimension-foot");
     expect(h).not.toContain("The coach didn");
+    // The #484 review: with the old foot gone, nothing said why the top
+    // shows "4 fillers" where 616 stands on every other recording.
+    expect(h).toContain(
+      `<h2 class="section-head">Your scores</h2><p data-no-index="true" class="mt-1 text-caption text-stone-500">${NO_INDEX_LINE.replace("'", "&#x27;")}</p>`
+    );
+    expect(h).not.toMatch(/dimension<\/h2>/i);
+  });
+
+  it("and only there: a coached recording and a take too short to score say nothing of it", () => {
+    expect(html).not.toContain("data-no-index");
+    const unscored: ResultView = { ...view, ethosIndex: null, coach: null, scorable: false };
+    expect(renderToStaticMarkup(createElement(RepResult, { result: unscored, section: "all" }))).not.toContain("data-no-index");
   });
 
   it("claims nothing in words for a take too short to score", () => {

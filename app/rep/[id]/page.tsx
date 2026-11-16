@@ -26,7 +26,7 @@ import { readable, readFailure } from "@/lib/load";
 import { recordingName, recordingTrait } from "@/lib/log";
 import { computeMetrics, substance } from "@/lib/metrics";
 import { fromRow } from "@/lib/presence";
-import { plainRead } from "@/lib/plain-read";
+import { plainRead, tracedStrength } from "@/lib/plain-read";
 import { topicFromLessonId } from "@/lib/rep-config";
 import { shownSupply } from "@/lib/upgrade";
 import { modById } from "@/lib/stress-mods";
@@ -232,13 +232,15 @@ export default function RepDetail({
        "um" to "(pause)" stops showing. A stored read keeps its text and
        is drawn with the app's own pause labels in plain words (#484,
        lib/plain-read.ts): "7 mid-sentence pauses against 1 composed
-       pause." reads "7 pauses mid-sentence against 1 pause between
-       sentences.". */
+       pause." reads "You paused mid-sentence 7 times and between
+       sentences once.", and what went well shows only its sentences
+       that trace to a number or a quote ("0 fillers in 59 seconds.
+       Nothing filled the gaps." reads "0 fillers in 59 seconds."). */
     coach:
       rep.focus && dims?.tier2
         ? {
             focus: plainRead(rep.focus),
-            strength: plainRead(rep.strength ?? ""),
+            strength: tracedStrength(plainRead(rep.strength ?? "")),
             supply: shownSupply(rep.supply, rep.transcript),
             coachLine: "",
             dimensions: dims.tier2,
@@ -441,7 +443,7 @@ function RecordingSkeleton() {
         <Skeleton className="size-28 shrink-0" rounded="rounded-full" />
         <Skeleton className="h-20 flex-1" rounded="rounded-card" />
       </div>
-      {/* "Every dimension" (#484: no caption under it any more), the
+      {/* "Your scores" (#484: no caption under it any more), the
           rows' headline in two lines of body, then the nine rows out of
           100 with no foot, at DimensionList's height (576 at 390, 375
           and 320 with no row open). */}

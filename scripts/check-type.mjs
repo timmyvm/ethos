@@ -238,7 +238,7 @@ for (const width of [320, 360, 375, 390, 430]) {
 // ---- 4. a recording's head at 320 -----------------------------------------------------
 /* Length, pace and held pauses were three tiles here, whose labels this
    section kept inside their tiles at the 11px floor (#450), then one line
-   of words under "Every dimension" (#458). That line went too (#484,
+   of words under the rows' head (#458). That line went too (#484,
    Timothy 16 Nov: underlined, remove), so what is held now is the head
    with the rows' headline straight under it: no tile, no take line, and
    the headline on the page's column at the floor or over it. */

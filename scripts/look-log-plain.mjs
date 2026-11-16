@@ -12,8 +12,12 @@
  * 1 composed pause. Tomorrow: ..." and its stored Kept "0 fillers in 59
  * seconds. Nothing filled the gaps.", with no upgrade. The live scene
  * walks a Pace lesson's practice to its glance and opens "Every number":
- * the coach's Kept alone over the rows, Pace at 93 (its open row carries
- * the level-up), the analyze reply otherwise the fixtures' own.
+ * the coach's strength alone over the rows, Pace at 93 (its open row
+ * carried the level-up), the analyze reply otherwise the fixtures' own.
+ * The live strength is written from that take's own numbers (3 pauses
+ * between sentences), in the plain words the prompt now asks for: the
+ * Log's "0 fillers" over a take with 4 fillers read as the app
+ * contradicting itself (the #484 review).
  *
  *   NEXT_DIST_DIR=.next-build npx next start -p 3891
  *   LOOK_BASE=http://localhost:3891 node scripts/look-log-plain.mjs before [log|sheet]
@@ -88,12 +92,29 @@ extraReps.push({
   dimensions: { ...base.dimensions, tier1 },
 });
 
-/* ---- the live take: Kept alone, the rest the fixtures' reply ---------------- */
+/* ---- a recording the coach never read (the #484 review) --------------------- */
+/* No focus, no judged four, no Index: the top shows its fillers, and the
+   one line under "Your scores" says why there is no Ethos number. */
+const MEASURED_ID = "5c9f3a2b-7d4e-4f60-9bac-1d2e3f4a5b6c";
+extraReps.push({
+  ...base,
+  id: MEASURED_ID,
+  client_id: "k-log-measured",
+  created_at: new Date(Date.now() - 5 * 3600_000).toISOString(),
+  focus: null,
+  strength: null,
+  supply: null,
+  ethos_index: null,
+  dimensions: { tier1: base.dimensions.tier1, anchors: base.dimensions.anchors },
+});
+
+/* ---- the live take: its strength alone, the rest the fixtures' reply ------- */
 const live = {
   ...analyzeBody,
   coach: {
     ...analyzeBody.coach,
-    strength: process.env.LOOK_STRENGTH ?? "0 fillers in 59 seconds. Nothing filled the gaps.",
+    /* The fixture take's own numbers: composedPauses 3 (lib/coach.ts Task A item 5's words). */
+    strength: process.env.LOOK_LIVE_STRENGTH ?? `You paused between sentences ${analyzeBody.metrics.composedPauses} times.`,
     supply: null,
   },
 };
@@ -173,9 +194,9 @@ for (const size of SIZES) {
       await page.waitForFunction(() => document.querySelectorAll(".skeleton").length === 0, null, { timeout: 12000 }).catch(() => {});
       await sleep(1600);
       await shoot("log", "top");
-      /* "Every dimension" and what stands under it. */
+      /* The rows' head ("Your scores", "Every dimension" before #484) and what stands under it. */
       const dims = await page.evaluate(() => {
-        const h = [...document.querySelectorAll("main h2.section-head")].find((e) => /dimension/i.test(e.textContent));
+        const h = [...document.querySelectorAll("main h2.section-head")].find((e) => /dimension|^Your scores/i.test(e.textContent.trim()));
         if (h) window.scrollTo(0, h.getBoundingClientRect().top + window.scrollY - 72);
         return !!h;
       });
@@ -200,6 +221,19 @@ for (const size of SIZES) {
       await page.evaluate(() => window.scrollTo(0, 0));
       await shoot("log", "full", { full: true });
       if (size.name === "390x844" && theme === "dark") lines.log = await read("main");
+    }
+
+    /* ---- the Log's recording with no coach --------------------------------- */
+    if (want("measured")) {
+      await page.goto(`${BASE}/rep/${MEASURED_ID}`);
+      await page.waitForSelector("main h2.section-head", { timeout: 30000 });
+      await page.waitForFunction(() => document.querySelectorAll(".skeleton").length === 0, null, { timeout: 12000 }).catch(() => {});
+      await sleep(1600);
+      await shoot("measured", "top");
+      const head = await bring("main [data-no-index]", 140);
+      if (head) await shoot("measured", "dims");
+      else console.log(`MISSING measured line ${at}`);
+      if (size.name === "390x844" && theme === "dark") lines.measured = await read("main");
     }
 
     /* ---- a live take, its glance, and "Every number" ----------------------- */

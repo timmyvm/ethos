@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { COACH_SCHEMA, COACH_SYSTEM } from "./coach";
+import { plainRead } from "./plain-read";
 
 /*
  * Demos's read in plain words (#484). Timothy, 16 Nov, bracketed two of
@@ -26,12 +27,28 @@ describe("the read's instructions name the plain words (Task A)", () => {
     expect(taskA).toContain('never write "composed", "held pause", "mid-sentence pause", "landed" or "landing"');
   });
 
-  it("give Timothy's line its plain words, with the numbers kept", () => {
-    expect(taskA).toContain('Write "You paused mid-sentence 7 times and after a finished sentence once.", not "7 mid-sentence pauses against 1 composed pause."');
+  it("name the plain words for a pause, the ones a stored read is drawn in", () => {
+    expect(taskA).toContain('a pause is "between sentences" or "mid-sentence".');
+    // lib/plain-read.ts draws Timothy's stored line in the same words.
+    expect(plainRead("7 mid-sentence pauses against 1 composed pause.")).toBe(
+      "You paused mid-sentence 7 times and between sentences once."
+    );
+  });
+
+  it("give the shape of Timothy's line in plain words, with numbers that are not his to copy", () => {
+    expect(taskA).toContain('Write "You paused mid-sentence 5 times and between sentences twice.", not "5 mid-sentence pauses against 2 composed pauses."');
+    // The model is told what to write; a number in an example is one it
+    // could copy, and the validator fails any number the take lacks.
+    // Timothy's take had 7, 1 and 59: none of them is in the examples
+    // (the 0 of "0 fillers" stays, the count that line is about).
+    const item5 = taskA.split("\n").find((l) => l.startsWith("5. ")) ?? "";
+    expect(item5).toContain("between sentences twice");
+    expect(item5).not.toMatch(/\b(7|1|59)\b/);
+    expect(item5).not.toContain("after a finished sentence");
   });
 
   it("ask for one idea said once, by the line that said it twice", () => {
-    expect(taskA).toContain('Write "0 fillers in 59 seconds." and stop there, not "0 fillers in 59 seconds. Nothing filled the gaps.": one idea, said once.');
+    expect(taskA).toContain('Write "0 fillers in 72 seconds." and stop there, not "0 fillers in 72 seconds. Nothing filled the gaps.": one idea, said once.');
   });
 
   it("follow the copy rules they ask for: no dash", () => {

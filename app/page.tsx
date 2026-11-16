@@ -488,6 +488,9 @@ export default function Home() {
   const heroTitle = dayOne
     ? "Day one starts today."
     : (chosen?.item.prompt ?? FALLBACK_TOPIC.prompt);
+  /* The topic the card shows, which the roulette counts as seen and
+     never opens on (#473); none on day one or while the read is out. */
+  const cardTopicId = dayOne || loading ? null : (chosen?.item.topicId ?? FALLBACK_TOPIC_ID);
   /* Day one stands the object the recording card will (the lesson its
      Start opens, by its first tip: The baseline's Fillers door), so the
      card's colour and its object name one trait (R2F-04: a crimson
@@ -551,7 +554,7 @@ export default function Home() {
         onSpin={() => {
           toggled.current = true;
           setShowMods(false);
-          setTopic(spinForAnswers(null));
+          setTopic(spinForAnswers(cardTopicId));
         }}
         spinRef={spinGlyph}
         onMods={() => setShowMods((v) => !v)}

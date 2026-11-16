@@ -145,16 +145,23 @@ function tipsFor(trait: TraitId, topic: Topic, i: number): string[] {
 
 function build(): PathItem[] {
   const out: PathItem[] = [];
-  for (const trait of Object.keys(ANGLES) as TraitId[]) {
+  (Object.keys(ANGLES) as TraitId[]).forEach((trait, t) => {
     for (const tier of [1, 2] as const) {
       const pool = topicsForTier(tier);
       ANGLES[trait].forEach((title, i) => {
-        /* The topic pool is smaller than twelve, so it wraps. That is
-           the point: the same prompt under a different angle is a
-           different practice, and it is what makes 120 affordable. The
-           offset keeps a trait's two tiers from pairing the same topic
-           with the same position. */
-        const topic = pool[(i + (tier === 2 ? 3 : 0)) % pool.length];
+        /* Each trait takes its own twelve from the tier's pool, starting
+           where the trait before it stopped, and wraps (#473). With ten
+           topics a tier every trait took the same ten and two of them
+           twice, so someone whose weakest trait held for a fortnight met
+           the same prompts in it, and again when the trait changed. With
+           thirty a tier, a trait's twelve are twelve different topics,
+           and every topic serves two traits. The same prompt under a
+           different angle is still a different practice, which is what
+           makes 120 affordable. The tier 2 offset is the one the path
+           always had, so Pausing's first ten at tier 1 and first seven
+           at tier 2 keep the topics they shipped with; the rest of the
+           path pairs anew. */
+        const topic = pool[(t * ANGLES[trait].length + i + (tier === 2 ? 3 : 0)) % pool.length];
         out.push({
           id: `${trait}-${tier}-${i + 1}`,
           trait,
@@ -166,7 +173,7 @@ function build(): PathItem[] {
         });
       });
     }
-  }
+  });
   return out;
 }
 

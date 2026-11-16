@@ -73,14 +73,21 @@ export const LAND_MS = springMs(SPRING.snappy);
  *
  * `draw` takes the id to exclude, which is the signature both existing
  * pools already have (`spin` in lib/topics.ts, the boss's own picker).
+ * It is called once a spin, for the landing. `pass` fills the strip that
+ * flashes past, as often as it takes; without one it is `draw`. A draw
+ * with a memory (Today's topics, #473) passes a plain one, so twenty
+ * candidates nobody reads are not remembered as shown, and the strip is
+ * not drawn from the few topics a walk has left near its end.
  */
 export function useReel<T extends { id: string }>({
   current,
   draw,
+  pass = draw,
   onLand,
 }: {
   current: T;
   draw: (excludeId: string | null) => T;
+  pass?: (excludeId: string | null) => T;
   onLand: (item: T) => void;
 }): ReelState<T> {
   const [strip, setStrip] = useState<T[] | null>(null);
@@ -111,11 +118,11 @@ export function useReel<T extends { id: string }>({
        that for the bounce to show. No two neighbours repeat, and
        neither the prompt it leaves nor the one it lands on flashes past
        mid-spin: seeing the landing a cell early, in the slowest part,
-       reads as a stutter. `draw` only excludes one id, so the rest is a
+       reads as a stutter. `pass` only excludes one id, so the rest is a
        retry; the pools run to fifty and more, so it rarely takes two. */
     const avoid = (...ids: string[]) => {
-      let t = draw(ids[0]);
-      for (let tries = 0; tries < 8 && ids.includes(t.id); tries++) t = draw(ids[0]);
+      let t = pass(ids[0]);
+      for (let tries = 0; tries < 8 && ids.includes(t.id); tries++) t = pass(ids[0]);
       return t;
     };
     const lead: T[] = [];

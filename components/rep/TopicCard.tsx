@@ -7,6 +7,7 @@ import { DURATION, EASE_OUT } from "@/lib/motion";
 import type { PracticeFamily } from "@/lib/practice-family";
 import { prefersReducedMotion } from "@/lib/prefs";
 import { SPRING, springEasing, springMs } from "@/lib/spring";
+import { LONG_TOPIC, LONGER_TOPIC } from "@/lib/topics";
 
 /** Clear space between the object's box and the words, either side. */
 const CLEAR = 8;
@@ -113,9 +114,10 @@ export function TopicCard({
   reveal?: boolean;
   /**
    * Ready (#431): the topic in Today's card type, 40/800 (34 past 40
-   * characters, `.home-display`), so the card Start carried over keeps
-   * its words' size and lines rather than shrinking them inside a bigger
-   * slab (#430 review: 26px in a 440px card read as a placeholder).
+   * characters, 28 past 60 since #473, `.home-display`), so the card
+   * Start carried over keeps its words' size and lines rather than
+   * shrinking them inside a bigger slab (#430 review: 26px in a 440px
+   * card read as a placeholder).
    */
   display?: boolean;
 }) {
@@ -400,7 +402,8 @@ export function TopicCard({
           while the card glides up. */}
       <h1
         ref={head}
-        data-long={display && !compact && topic.length > 40 ? true : undefined}
+        data-long={display && !compact && topic.length > LONG_TOPIC ? true : undefined}
+        data-longer={display && !compact && topic.length > LONGER_TOPIC ? true : undefined}
         className={`relative font-display text-balance ${
           compact
             ? "mt-1.5 text-lead font-bold leading-snug"

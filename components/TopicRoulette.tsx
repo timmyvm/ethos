@@ -3,7 +3,7 @@
 import { TapTick } from "@/components/ui/TapTick";
 import { Reel, useReel } from "@/components/Reel";
 import { ACTION_CLASS, DISABLED_CLASS } from "@/lib/ui";
-import { spinForAnswers as spin } from "@/lib/portfolio";
+import { passingForAnswers, spinForAnswers as spin } from "@/lib/portfolio";
 import { TOPIC_SHAPES, type Topic } from "@/lib/topics";
 
 /**
@@ -27,7 +27,8 @@ export function TopicRoulette({
      which used to be a near-verbatim copy of the flicker this replaced. */
   const reel = useReel<Topic>({
     current: topic,
-    draw: (exclude) => spin(exclude),
+    draw: (onScreen) => spin(onScreen),
+    pass: passingForAnswers,
     onLand: onSpin,
   });
 

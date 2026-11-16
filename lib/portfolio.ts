@@ -27,6 +27,7 @@ import {
 import { type Answers, type PainId, readOnboarding } from "./answers";
 import { UNITS, type Unit } from "./path";
 import { spin, TOPICS, type Topic } from "./topics";
+import { nextTopic } from "./topic-walk";
 
 export interface Portfolio {
   headline: string;
@@ -149,9 +150,26 @@ export function topicsFor(pool: Pool, topics: Topic[] = TOPICS): Topic[] {
   return kept.length > 0 && kept.length < topics.length ? kept : topics;
 }
 
-/** The roulette, drawn from this device's pool. */
-export function spinForAnswers(exclude: string | null): Topic {
-  return spin(exclude, Math.random, topicsFor(poolFor(readOnboarding().answers)));
+/** This device's pool, from its introduction's answers. */
+function poolHere(): Topic[] {
+  return topicsFor(poolFor(readOnboarding().answers));
+}
+
+/**
+ * The roulette's draw, from this device's pool: `onScreen` counts as
+ * seen, and the topic drawn is one this device has not been shown in
+ * this walk of the pool (#473, lib/topic-walk.ts), remembered as shown.
+ */
+export function spinForAnswers(onScreen: string | null): Topic {
+  return nextTopic(poolHere(), onScreen);
+}
+
+/**
+ * A topic flashing past the reel's window mid-spin: any of the pool but
+ * `exclude`, and nothing remembered, because nobody reads it.
+ */
+export function passingForAnswers(exclude: string | null): Topic {
+  return spin(exclude, Math.random, poolHere());
 }
 
 /** The floor's day-one line, in their words: "fillers, rushing". */

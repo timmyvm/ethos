@@ -104,6 +104,11 @@ type Step =
   | { kind: "plan" }
   | { kind: "account" };
 
+/*
+ * The order is stored as a number (lib/answers.ts): change it and
+ * WALK_LAYOUT goes up with a `stepFromStore` that moves an old step to
+ * the same screen, or someone part way through lands somewhere else.
+ */
 const STEPS: Step[] = [
   /*
    * The room (#475): the first run opens here and nobody else sees it

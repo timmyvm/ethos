@@ -9,6 +9,8 @@ import {
   MAX_NAME,
   MAX_PAINS,
   readOnboarding,
+  stepFromStore,
+  WALK_LAYOUT,
   writeOnboarding,
 } from "./answers";
 
@@ -111,5 +113,49 @@ describe("persistence", () => {
     localStorage.setItem("ethos.onboarding", JSON.stringify({ step: -4, answers: { pains: "fillers" } }));
     expect(readOnboarding().step).toBe(0);
     expect(readOnboarding().answers.pains).toEqual([]);
+  });
+});
+
+/*
+ * The room (#475) took the place of the three pitch screens, so a step
+ * stored by the old walk counts two ahead of today's. Someone who left
+ * part way through comes back to the screen they left.
+ */
+describe("a walk stored before the room", () => {
+  beforeEach(() => {
+    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+  });
+  afterEach(() => {
+    delete (globalThis as { localStorage?: Storage }).localStorage;
+  });
+
+  /* The old walk: pitch 0 to 2, the six questions 3 to 8, the beat 9,
+     the hour 10, the plan 11, the account ask 12. Today's: the room 0,
+     the questions 1 to 6, the beat 7, the hour 8, the plan 9, the ask 10. */
+  it("lands on the question it was on, not two further", () => {
+    expect(stepFromStore(3, undefined)).toBe(1); // the name
+    expect(stepFromStore(5, undefined)).toBe(3); // the third question
+    expect(stepFromStore(9, undefined)).toBe(7); // the beat
+    expect(stepFromStore(11, undefined)).toBe(9); // the plan
+    expect(stepFromStore(12, undefined)).toBe(10); // the account ask
+  });
+
+  it("puts the pitch's three screens on the room", () => {
+    expect([0, 1, 2].map((n) => stepFromStore(n, undefined))).toEqual([0, 0, 0]);
+  });
+
+  it("reads an old store in today's steps, and moves it only once", () => {
+    localStorage.setItem("ethos.onboarding", JSON.stringify({ answers: { name: "Tim", pains: [] }, step: 5, done: false, synced: false }));
+    expect(readOnboarding().step).toBe(3);
+    /* A write that is not about the step (the sync) keeps it where it is. */
+    writeOnboarding({ synced: true });
+    expect(readOnboarding().step).toBe(3);
+    expect(JSON.parse(localStorage.getItem("ethos.onboarding")!).walk).toBe(WALK_LAYOUT);
+  });
+
+  it("never moves a step today's walk wrote", () => {
+    writeOnboarding({ step: 5 });
+    expect(readOnboarding().step).toBe(5);
+    expect(stepFromStore(5, WALK_LAYOUT)).toBe(5);
   });
 });

@@ -142,9 +142,10 @@ for (const theme of ["light", "dark"]) {
   ok("the room's door: no round corner meets a continuous one", door.clashes.length === 0, door.clashes.slice(0, 3).join(" | "));
   ok("the room's door: its hold is still round", door.pills.length === 0, door.pills.slice(0, 4).join(" | "));
   /* The beat (step 7: the room, six questions, then the beat) stands
-     Demos on the walk's stage. */
+     Demos on the walk's stage. `walk: 2` is today's walk (lib/answers.ts):
+     a step with no mark is read as the old walk's, two screens later. */
   await page.evaluate(() =>
-    localStorage.setItem("ethos.onboarding", JSON.stringify({ answers: { name: "Tim", pains: [] }, step: 7, done: false, synced: false }))
+    localStorage.setItem("ethos.onboarding", JSON.stringify({ answers: { name: "Tim", pains: [] }, step: 7, done: false, synced: false, walk: 2 }))
   );
   await page.reload();
   await page.waitForSelector("main .intro-stage", { timeout: 20000 }).catch(() => {});

@@ -149,10 +149,38 @@ export const AVATAR_COPY = {
   remove: "Remove photo",
   saving: "Saving your photo…",
   /** 400, 413, 415: what was picked is not a photo the card can use. */
-  notPhoto: "That file isn't a photo. Try another.",
+  notPhoto: "That file isn't a photo.",
   /** 503: the bucket's migration is not applied yet. */
-  notYet: "Photos aren't on yet. Try again soon.",
-  failed: "Your photo didn't save. Try again.",
-  removeFailed: "Your photo didn't remove. Try again.",
+  notYet: "Photos aren't on yet.",
+  /** 429: past the hour's allowance (lib/rate-limit.ts `avatar`). */
+  tooMany: "Too many photos for now. Try again in an hour.",
+  failed: "Your photo didn't save.",
+  removeFailed: "Your photo wasn't removed.",
   expired: "That session has expired. Sign in and try again.",
 } as const;
+
+/** What the server's answer to a save means for the person, in AVATAR_COPY's words. */
+export function avatarError(status: number): string {
+  if (status === 401) return AVATAR_COPY.expired;
+  if (status === 400 || status === 413 || status === 415) return AVATAR_COPY.notPhoto;
+  if (status === 503) return AVATAR_COPY.notYet;
+  if (status === 429) return AVATAR_COPY.tooMany;
+  return AVATAR_COPY.failed;
+}
+
+/**
+ * The one door under a failed line, and what it does: the same photo
+ * sent again, a new one picked, the removal again, or none where a tap
+ * now could not help (photos not on yet, the hour's allowance spent, a
+ * session to sign in to, each line saying what to do). Never the same
+ * unusable file again (#485 review: "That file isn't a photo" offered
+ * "Try again" on the file it had just refused).
+ */
+export type AvatarRetry = { label: "Try again" | "Choose another"; does: "again" | "choose" | "remove" } | null;
+
+export function avatarRetry(error: string): AvatarRetry {
+  if (error === AVATAR_COPY.failed) return { label: "Try again", does: "again" };
+  if (error === AVATAR_COPY.removeFailed) return { label: "Try again", does: "remove" };
+  if (error === AVATAR_COPY.notPhoto) return { label: "Choose another", does: "choose" };
+  return null;
+}

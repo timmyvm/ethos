@@ -31,7 +31,7 @@ const STUBS = `
   create function auth.role() returns text language sql stable as $$
     select current_setting('request.jwt.claim.role', true) $$;
   create schema storage;
-  create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint);
+  create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
   grant usage on schema public to anon, authenticated, service_role;
   grant usage on schema auth to anon, authenticated, service_role;
   alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
@@ -504,6 +504,29 @@ await expectOk("a table made later gives the browser nothing", async () => {
   const r = await q("select count(*)::int as n from information_schema.role_table_grants where table_schema = 'public' and table_name = 'made_later_t' and grantee in ('anon', 'authenticated')");
   if (r.rows[0].n !== 0) throw new Error(JSON.stringify(r.rows[0]));
 });
+
+// The profile photo's bucket (#485, `*_avatars.sql`): private, 512 KB a
+// file, WebP and JPEG only, and safe to run twice. Its file is found by
+// name, so the check holds whichever number it lands at.
+{
+  const file = FILES.find((f) => /^\d{4}_avatars\.sql$/.test(f));
+  await expectOk("the avatars bucket is private, capped and typed", async () => {
+    if (!file) throw new Error("no *_avatars.sql migration");
+    await ex(readFileSync(`${DIR}/${file}`, "utf8"));
+    const r = await q("select public, file_size_limit::int as cap, allowed_mime_types as types from storage.buckets where id = 'avatars'");
+    const row = r.rows[0];
+    if (r.rows.length !== 1 || row.public !== false || row.cap !== 524288 || row.types.join() !== "image/webp,image/jpeg") {
+      throw new Error(JSON.stringify(r.rows));
+    }
+    return `${file} twice: ${JSON.stringify(row)}`;
+  });
+  await expectOk("a bucket made public by hand is closed again by the avatars migration", async () => {
+    await ex("update storage.buckets set public = true where id = 'avatars'");
+    await ex(readFileSync(`${DIR}/${file}`, "utf8"));
+    const r = await q("select public from storage.buckets where id = 'avatars'");
+    if (r.rows[0].public !== false) throw new Error(JSON.stringify(r.rows));
+  });
+}
 
 // The account goes: every tester row with it.
 await ex(`${"DEL" + "ETE"} from auth.users where id = '${A}'`);

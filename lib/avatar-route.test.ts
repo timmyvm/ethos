@@ -4,7 +4,9 @@ import { fakeDb, type FakeDb } from "./billing-fakes";
 import {
   AVATAR_COPY,
   AVATAR_MAX_BYTES,
+  avatarError,
   avatarPath,
+  avatarRetry,
   avatarSize,
   centreSquare,
   newestAvatar,
@@ -140,6 +142,27 @@ describe("the photo's bytes", () => {
     expect(newestAvatar([])).toBeNull();
   });
 
+  it("say what a refused save means, and offer only a door that can help", () => {
+    expect(avatarError(415)).toBe(AVATAR_COPY.notPhoto);
+    expect(avatarError(413)).toBe(AVATAR_COPY.notPhoto);
+    expect(avatarError(503)).toBe(AVATAR_COPY.notYet);
+    expect(avatarError(429)).toBe(AVATAR_COPY.tooMany);
+    expect(avatarError(401)).toBe(AVATAR_COPY.expired);
+    expect(avatarError(502)).toBe(AVATAR_COPY.failed);
+    // A file refused is never sent again: the door picks another.
+    expect(avatarRetry(AVATAR_COPY.notPhoto)).toEqual({ label: "Choose another", does: "choose" });
+    expect(avatarRetry(AVATAR_COPY.failed)).toEqual({ label: "Try again", does: "again" });
+    expect(avatarRetry(AVATAR_COPY.removeFailed)).toEqual({ label: "Try again", does: "remove" });
+    // Where a tap now cannot help, no door: the line says what to do.
+    for (const e of [AVATAR_COPY.notYet, AVATAR_COPY.tooMany, AVATAR_COPY.expired]) expect(avatarRetry(e)).toBeNull();
+    // A line and its door never say "try again" twice.
+    for (const e of Object.values(AVATAR_COPY)) {
+      const door = avatarRetry(e);
+      if (door) expect(`${e} ${door.label}`.match(/try again/gi)?.length ?? 0).toBeLessThanOrEqual(1);
+    }
+    for (const e of Object.values(AVATAR_COPY)) expect(e).not.toMatch(/—/);
+  });
+
   it("keep the photo drawn when only the link's token changed", () => {
     const a = "https://x.supabase.co/storage/v1/object/sign/avatars/u/1.webp?token=a";
     const b = "https://x.supabase.co/storage/v1/object/sign/avatars/u/1.webp?token=b";
@@ -220,6 +243,7 @@ describe("POST /api/avatar", () => {
     h.limited = true;
     const res = await json(await saveRoute(req("POST", { type: "image/webp", body: webp(256, 256) })));
     expect(res.status).toBe(429);
+    expect(res.body.error).toBe(AVATAR_COPY.tooMany);
     expect(db.state.uploaded).toEqual([]);
   });
 

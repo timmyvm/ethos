@@ -465,3 +465,32 @@ describe("0030 bounded writes", () => {
     expect(sql).toMatch(/alter default privileges for role postgres in schema public\s+revoke execute on functions from anon, authenticated;/);
   });
 });
+
+/**
+ * The profile photo's bucket (#485), found by name so it holds at
+ * whichever number it lands. Kept as the recordings are: private, the
+ * server's alone, with no storage policy a browser could use, and the
+ * route's own limits written into the bucket as a second wall.
+ * `scripts/check-testers-sql.mjs` runs it twice on a real Postgres.
+ */
+describe("the avatars bucket", () => {
+  const file = files.find((f) => /^\d{4}_avatars\.sql$/.test(f));
+  const sql = file ? code(file) : "";
+
+  it("exists, and is private however often it runs", () => {
+    expect(file).toBeTruthy();
+    expect(sql).toMatch(/insert into storage\.buckets \(id, name, public, file_size_limit, allowed_mime_types\)/);
+    expect(sql).toMatch(/values \('avatars', 'avatars', false,/);
+    expect(sql).toMatch(/on conflict \(id\) do update\s+set public = false/);
+  });
+
+  it("caps a file and its type where the route does, and opens nothing to the browser", async () => {
+    const { AVATAR_MAX_BYTES, AVATAR_TYPES } = await import("./avatar");
+    const cap = Number(sql.match(/false, (\d+), array\[/)?.[1]);
+    expect(cap).toBeGreaterThanOrEqual(AVATAR_MAX_BYTES);
+    expect(cap).toBeLessThanOrEqual(1024 * 1024);
+    for (const t of AVATAR_TYPES) expect(sql).toContain(`'${t}'`);
+    expect(sql).not.toMatch(/image\/(png|svg|gif)/);
+    expect(sql).not.toMatch(/create policy|storage\.objects|grant /i);
+  });
+});

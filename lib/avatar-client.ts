@@ -13,7 +13,7 @@
  * return and reads it again behind it. Nothing is written to the phone.
  */
 
-import { AVATAR_COPY, AVATAR_SIDE, centreSquare, type AvatarType } from "./avatar";
+import { AVATAR_COPY, AVATAR_SIDE, avatarError, centreSquare, type AvatarType } from "./avatar";
 import { held, heldMark, hold, once } from "./held";
 import { ensureSession, sessionToken } from "./supabase-browser";
 
@@ -43,22 +43,26 @@ async function readAvatar(): Promise<string | null> {
 
 export type AvatarResult = { ok: true; url: string | null } | { ok: false; error: string };
 
-/** What the server's answer means for the person, in AVATAR_COPY's words. */
-export function avatarError(status: number): string {
-  if (status === 401) return AVATAR_COPY.expired;
-  if (status === 400 || status === 413 || status === 415) return AVATAR_COPY.notPhoto;
-  if (status === 503) return AVATAR_COPY.notYet;
-  return AVATAR_COPY.failed;
-}
-
 /** A picked file, made into the card's photo and saved. A guest's own session keeps it. */
 export async function saveAvatar(file: Blob): Promise<AvatarResult> {
-  let picture: { blob: Blob; type: AvatarType };
+  let picture: MadeAvatar;
   try {
     picture = await makeAvatar(file);
   } catch {
     return { ok: false, error: AVATAR_COPY.notPhoto };
   }
+  return uploadAvatar(picture);
+}
+
+/** The photo the phone made (makeAvatar): the 256px square, WebP or JPEG. */
+export type MadeAvatar = { blob: Blob; type: AvatarType };
+
+/**
+ * A made photo, saved. The coin draws the same made square while this
+ * runs (components/you/Avatar.tsx), never the camera's original: a 48 MP
+ * photo decoded for a 64px coin is a phone's whole memory for nothing.
+ */
+export async function uploadAvatar(picture: MadeAvatar): Promise<AvatarResult> {
   const token = await ensureSession();
   if (!token) return { ok: false, error: AVATAR_COPY.failed };
   try {
@@ -149,7 +153,7 @@ function encode(canvas: HTMLCanvasElement, type: AvatarType): Promise<Blob | nul
 }
 
 /** The picked file as the card's photo: its centred square at AVATAR_SIDE, WebP or JPEG. */
-export async function makeAvatar(file: Blob): Promise<{ blob: Blob; type: AvatarType }> {
+export async function makeAvatar(file: Blob): Promise<MadeAvatar> {
   const picture = await decode(file);
   try {
     const { sx, sy, side } = centreSquare(picture.width, picture.height);

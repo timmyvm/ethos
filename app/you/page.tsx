@@ -634,9 +634,17 @@ export default function YouPage() {
               <p data-look="level-line" className="font-display mt-2 text-row font-bold tabular-nums">
                 {levelLine(xp?.total ?? 0)}
               </p>
-              <p data-look="reach-line" className="mt-0.5 text-caption text-stone-500">
-                {reachLine(xp?.total ?? 0, streak.didToday)}
-              </p>
+              {/* Which line it is ("Today's practice" or "One more
+                  recording") rests on whether today is spoken, which only
+                  the recordings know: until they are read the line holds
+                  its place, so it never says one and then the other. */}
+              {loading ? (
+                <Line className="mt-0.5 text-caption" bar="w-44" align="left" />
+              ) : (
+                <p data-look="reach-line" className="mt-0.5 text-caption text-stone-500">
+                  {reachLine(xp?.total ?? 0, streak.didToday)}
+                </p>
+              )}
             </>
           )}
         </div>

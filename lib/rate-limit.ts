@@ -59,7 +59,7 @@ export const LIMITS = {
   /** The same ceiling for guests' word lookups, which cost far less each. */
   guestwords: { hour: 600, day: 3000 },
   /**
-   * A profile photo saved or removed (app/api/avatar, #485). A person
+   * A profile photo saved (app/api/avatar's POST, #485). A person
    * trying a few pictures in a sitting is a handful; past twenty an hour
    * it is a script filling the bucket.
    */

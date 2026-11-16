@@ -51,6 +51,14 @@ describe("the one card", () => {
     expect(you).not.toMatch(/aria-label="Your numbers" className="card/);
   });
 
+  it("holds the reach line until the recordings say whether today is spoken", () => {
+    // Before they are read the streak is the empty one (today not spoken),
+    // so the line would say "Today's practice" and then "One more recording".
+    expect(you).toMatch(
+      /\{loading \? \(\s*<Line [^>]*\/>\s*\) : \(\s*<p data-look="reach-line"[^>]*>\s*\{reachLine\(xp\?\.total \?\? 0, streak\.didToday\)\}/
+    );
+  });
+
   it("marks each number: the flames by today, XP with its own glyph", () => {
     expect(you).toMatch(/label="Streak"[\s\S]{0,200}mark=\{<IconFlame size=\{20\} \/>\}/);
     expect(you).toMatch(/label="Best streak"[\s\S]{0,200}mark=\{<IconFlame size=\{20\} \/>\}/);
@@ -90,6 +98,27 @@ describe("XP's purple", () => {
     expect(ratio(d, "#2a2a2a")).toBeGreaterThanOrEqual(4.5);
   });
 
+  it("holds under Increase Contrast too, deeper in light and lighter in dark, its hue kept", () => {
+    const icAt = css.indexOf("@media screen and (prefers-contrast: more) {\n  :root {\n    --xp:");
+    expect(icAt).toBeGreaterThan(-1);
+    const ic = css.slice(icAt, css.indexOf("\n}\n", icAt));
+    const icLight = ic.slice(0, ic.indexOf(":root[data-theme"));
+    const icDark = ic.slice(ic.indexOf(':root[data-theme="dark"]'));
+    const l = value(icLight, "--xp")!;
+    const d = value(icDark, "--xp")!;
+    // Stronger than the plain values, never weaker: the card, the surface and the trough.
+    for (const ground of ["#ffffff", "#f4f4f4", "#e4e4e4"]) {
+      expect(ratio(l, ground)).toBeGreaterThan(ratio(value(light, "--xp")!, ground));
+      expect(ratio(l, ground)).toBeGreaterThanOrEqual(4.5);
+    }
+    for (const ground of ["#2a2a2a", "#333333"]) {
+      expect(ratio(d, ground)).toBeGreaterThan(ratio(value(dark, "--xp")!, ground));
+      expect(ratio(d, ground)).toBeGreaterThanOrEqual(4.5);
+    }
+    // It comes after the plain and dark blocks, so it is the one that applies.
+    expect(icAt).toBeGreaterThan(darkAt);
+  });
+
   it("is never plum or Variety's violet", () => {
     for (const v of [value(light, "--xp"), value(dark, "--xp")]) {
       expect(v).not.toBe("#62336c");
@@ -100,6 +129,27 @@ describe("XP's purple", () => {
     // The bar, the glyph and today's XP read the token, never a plum or tone class.
     const card = you.slice(you.indexOf('data-look="you-card"'), you.indexOf("</section>", you.indexOf('data-look="you-card"')));
     expect(card).not.toMatch(/plum-|--tone|\btone-/);
+  });
+});
+
+describe("the photo's coin while it saves", () => {
+  it("draws the square the phone made, never the camera's original", () => {
+    const coin = strip(readFileSync("components/you/Avatar.tsx", "utf8"));
+    const keep = coin.slice(coin.indexOf("async function keep("), coin.indexOf("async function drop("));
+    expect(keep).toMatch(/picture = await makeAvatar\(file\)/);
+    expect(keep).toMatch(/setLocal\(URL\.createObjectURL\(picture\.blob\)\)/);
+    expect(keep).toMatch(/await uploadAvatar\(picture\)/);
+    expect(keep).not.toMatch(/createObjectURL\(file\)/);
+    // The made square is drawn before it is sent.
+    expect(keep.indexOf("setLocal(")).toBeLessThan(keep.indexOf("uploadAvatar("));
+  });
+
+  it("puts under a failed line only the door avatarRetry names, its own words on it", () => {
+    const coin = strip(readFileSync("components/you/Avatar.tsx", "utf8"));
+    expect(coin).toMatch(/const retry = error \? avatarRetry\(error\) : null;/);
+    expect(coin).toMatch(/\{retry && again && \(/);
+    expect(coin).toMatch(/\{retry\.label\}/);
+    expect(coin).not.toMatch(/>\s*Try again\s*</);
   });
 });
 

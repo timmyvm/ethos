@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
   if (!db) return unconfigured();
 
   const verdict = await consumeRateLimit(`avatar:u:${user.id}`, "avatar");
-  if (!verdict.allowed) return json({ error: "Too many photos for now. Try again in an hour." }, 429);
+  if (!verdict.allowed) return json({ error: AVATAR_COPY.tooMany }, 429);
 
   const bytes = new Uint8Array(await req.arrayBuffer().catch(() => new ArrayBuffer(0)));
   if (bytes.byteLength === 0) return json({ error: AVATAR_COPY.notPhoto }, 400);

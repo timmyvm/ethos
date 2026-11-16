@@ -4,8 +4,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { IconCamera, IconYou } from "@/components/Icon";
 import { Overlay } from "@/components/ui/Overlay";
 import { SheetHead } from "@/components/ui/SheetHead";
-import { AVATAR_COPY, samePhoto } from "@/lib/avatar";
-import { fetchAvatar, heldAvatar, removeAvatar, saveAvatar } from "@/lib/avatar-client";
+import { AVATAR_COPY, avatarRetry, samePhoto } from "@/lib/avatar";
+import { fetchAvatar, heldAvatar, makeAvatar, removeAvatar, uploadAvatar, type MadeAvatar } from "@/lib/avatar-client";
 import { initialOf } from "@/lib/home";
 import { useRevalidate } from "@/lib/use-revalidate";
 import { useWarm } from "@/lib/use-warm";
@@ -68,8 +68,19 @@ export function useYouAvatar({
     lastFile.current = file;
     setError(null);
     setSaving(true);
-    setLocal(URL.createObjectURL(file));
-    const saved = await saveAvatar(file);
+    // The square the server will keep is made first, and that is what
+    // the coin draws while it saves: the same crop, 256px, never the
+    // camera's 12 to 48 MP original decoded for a 64px coin.
+    let picture: MadeAvatar;
+    try {
+      picture = await makeAvatar(file);
+    } catch {
+      setSaving(false);
+      setError(AVATAR_COPY.notPhoto);
+      return;
+    }
+    setLocal(URL.createObjectURL(picture.blob));
+    const saved = await uploadAvatar(picture);
     setSaving(false);
     if (!saved.ok) {
       setLocal(null);
@@ -150,22 +161,32 @@ export function useYouAvatar({
     </>
   );
 
+  /* One door under the line, or none where a tap now could not help
+     (lib/avatar.ts `avatarRetry`): never the refused file sent again. */
+  const retry = error ? avatarRetry(error) : null;
+  const again =
+    retry?.does === "again" && lastFile.current
+      ? () => void keep(lastFile.current!)
+      : retry?.does === "remove"
+        ? () => void drop()
+        : retry
+          ? choose
+          : null;
   const problem = error ? (
     <p role="alert" data-look="avatar-error" className="mt-2 text-caption text-stone-500">
-      {error}{" "}
-      <button
-        type="button"
-        onClick={
-          lastFile.current && error !== AVATAR_COPY.removeFailed
-            ? () => void keep(lastFile.current!)
-            : error === AVATAR_COPY.removeFailed
-              ? () => void drop()
-              : choose
-        }
-        className="relative font-semibold text-stone-600 underline underline-offset-2 after:absolute after:-inset-x-2 after:-inset-y-[13px] after:content-['']"
-      >
-        Try again
-      </button>
+      {error}
+      {retry && again && (
+        <>
+          {" "}
+          <button
+            type="button"
+            onClick={again}
+            className="relative font-semibold text-stone-600 underline underline-offset-2 after:absolute after:-inset-x-2 after:-inset-y-[13px] after:content-['']"
+          >
+            {retry.label}
+          </button>
+        </>
+      )}
     </p>
   ) : null;
 

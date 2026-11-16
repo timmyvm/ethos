@@ -13,8 +13,9 @@ export const HAVE_TITLE = "What Premium gives you";
  * You've got Premium 🎉" on You, Timothy's "Explore ->". The paywall's
  * own list, word for word and glyph for glyph (Paywall's BENEFITS), so
  * the two never say different things, on a neutral sheet: someone who
- * has the tier is not being sold it, so nothing here is plum but the
- * mark that names it, and there is no price and no tap. It informs, so
+ * has the tier is not being sold it, so the sheet is raised neutral, the
+ * plum only in the mark that names the tier and the glyphs of what it
+ * gives, and there is no price and no tap. It informs, so
  * it closes with Done at its top right (D15).
  */
 export function PremiumHave({ onClose }: { onClose: () => void }) {

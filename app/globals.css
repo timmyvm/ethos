@@ -5657,6 +5657,12 @@ summary::-webkit-details-marker {
   font-size: min(2.125rem, 8.8vw);
   line-height: 1.06;
 }
+/* Past 60 characters (#473, `LONGER_TOPIC`): the reel's own 28px. At 34
+   "Explain how interest works to someone who's never had a bank
+   account" ran five lines and stood Today's card 58px past its 376. */
+.home-display[data-longer] {
+  font-size: min(1.75rem, 7.4vw);
+}
 /* TipLine on the card: its glyph, its cue and its open sentence in the
    card's ink. */
 .home-hero .tip-glyph,

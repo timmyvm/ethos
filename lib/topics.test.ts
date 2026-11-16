@@ -4,7 +4,7 @@ import { LESSONS } from "@/content/lessons";
 import { TRAITS } from "@/content/traits";
 import { topicsFor } from "./portfolio";
 import { BANNED_PHRASES, HYPE_PHRASES, gymWord } from "./register";
-import { TOPICS, TOPIC_SHAPES, topicById } from "./topics";
+import { LONG_TOPIC, LONGER_TOPIC, TOPICS, TOPIC_SHAPES, topicById } from "./topics";
 
 /**
  * The topic pool (#473): sixty since the test, when the roulette "kept
@@ -173,5 +173,13 @@ describe("every trait, covered", () => {
     const tier2 = ["t14", "t15", "t16", "t17", "t18", "t19", "t20"];
     tier1.forEach((id, i) => expect(PATH.find((p) => p.id === `pause-1-${i + 1}`)?.topicId).toBe(id));
     tier2.forEach((id, i) => expect(PATH.find((p) => p.id === `pause-2-${i + 1}`)?.topicId).toBe(id));
+  });
+});
+
+describe("the display steps", () => {
+  it("steps down past 40 characters and again past 60, where only t12 stands", () => {
+    expect(LONG_TOPIC).toBe(40);
+    expect(LONGER_TOPIC).toBe(60);
+    expect(TOPICS.filter((t) => t.prompt.length > LONGER_TOPIC).map((t) => t.id)).toEqual(["t12"]);
   });
 });

@@ -25,6 +25,15 @@ describe("the ready card's topic", () => {
     expect(card("Explain how interest works to someone who has never had a loan", true)).toMatch(/<h1[^>]*data-long="true"/);
   });
 
+  /* #473: at 34px the one prompt over 60 ran five lines on Today's card
+     and here; past 60 both take the reel's 28. */
+  it("steps down again past 60 characters, and only past 60", () => {
+    const longest = card("Explain how interest works to someone who's never had a bank account", true);
+    expect(longest).toMatch(/<h1[^>]*data-long="true"/);
+    expect(longest).toMatch(/<h1[^>]*data-longer="true"/);
+    expect(card("Whether to be great at one thing or good at many", true)).not.toMatch(/data-longer/);
+  });
+
   it("keeps the recorder's own type when not ready, and the compact type while recording", () => {
     expect(card("The last time you were genuinely nervous", false)).toMatch(/<h1[^>]*text-title/);
     const live = card("The last time you were genuinely nervous", true, true);

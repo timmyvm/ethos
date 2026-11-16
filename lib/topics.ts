@@ -169,3 +169,13 @@ export function topicById(id: string | null | undefined): Topic | null {
 export function tipsFor(shape: TopicShape): string[] {
   return TOPIC_SHAPES[shape].tips;
 }
+
+/**
+ * Where a topic in display type (Today's card, the recorder's ready
+ * card, `.home-display`) steps down a size: past 40 characters to 34px,
+ * and past 60 to 28, the reel's own size (#473). At 34px t12, the one
+ * prompt over 60, ran five lines and stretched Today's card 58px past
+ * its 376 at 390 (docs/look/topics/before/card-longest-390-light.png).
+ */
+export const LONG_TOPIC = 40;
+export const LONGER_TOPIC = 60;

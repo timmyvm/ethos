@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import type { TraitId } from "@/content/traits";
 import { artBox, objectSrc, type CardFace } from "@/lib/home";
 import { passingForAnswers, spinForAnswers } from "@/lib/portfolio";
-import { TOPIC_SHAPES, type Topic } from "@/lib/topics";
+import { LONG_TOPIC, LONGER_TOPIC, TOPIC_SHAPES, type Topic } from "@/lib/topics";
 
 /** The roulette, run inside the card (#393's fix round). */
 export interface HeroRoulette {
@@ -275,7 +275,8 @@ export function HomeHero({
               <h2
                 id="home-topic"
                 className={`home-display relative mt-auto pt-6 ${lands}`}
-                data-long={title.length > 40 || undefined}
+                data-long={title.length > LONG_TOPIC || undefined}
+                data-longer={title.length > LONGER_TOPIC || undefined}
               >
                 {/* A block, not an inline: a name on a box that breaks
                     across lines is not one the transition can carry. */}

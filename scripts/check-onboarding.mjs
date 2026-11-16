@@ -1,6 +1,8 @@
 /**
  * The introduction, walked in a real browser (DECISIONS #232, #233,
- * #249): eleven screens, one typed answer and six tapped ones,
+ * #249, #475): the room's door and its Not now (the scene itself is
+ * scripts/check-room.mjs), then the questions, one typed answer and six
+ * tapped ones,
  * persistence across a refresh, back, skip, Demos replying where an
  * answer changes something and only nodding where it does not, the plan
  * built from the answers, and what the answers change afterwards (the
@@ -122,18 +124,26 @@ const nextTop = async (name) => {
 const arrival = () =>
   page.$eval("main [class*='step-in-']", (el) => (/step-in-(next|back)/.exec(el.className) || [])[1]);
 
-// 1. A fresh browser lands on the introduction.
+// 1. A fresh browser lands on the introduction, which opens on the
+// room (#475): the scene behind frosted glass, one hold, and the doors.
 await page.goto(`${BASE}/`);
 await page.waitForURL(/\/welcome/);
-await said("Hey. I know why you're here.").waitFor();
-ok("a fresh browser is routed to the introduction", true);
-const wave = await anim("main img.demos");
-ok("the wave sways", wave === "sway", wave);
-await shot("01-intro-1");
+await page.waitForSelector("[data-room-hold]");
+ok("a fresh browser is routed to the introduction, and it opens on the room", true);
+ok(
+  "the room's door is one hold, with Not now under it",
+  (await page.locator("[data-room-hold]", { hasText: "Hold to step in" }).count()) === 1 &&
+    (await page.getByRole("button", { name: "Not now" }).count()) === 1
+);
+ok(
+  "and the doors the first screen always had: sign in, and the tester's",
+  (await page.getByRole("link", { name: "Sign in" }).getAttribute("href")) === "/signin" &&
+    (await page.getByRole("link", { name: "Tester code" }).getAttribute("href")) === "/tester?from=welcome"
+);
+await shot("01-room-door");
 
 // 1a. A short phone (375x667, the review of the swipe-and-pop round):
-// the stage gives up height, Demos shrinks to the room, and the one tap
-// and the door under it stay above the fold.
+// the one tap and the door under it stay above the fold.
 // The resize waits out the push from / to /welcome: its 24px start lays
 // the document out 414px wide for about 350ms (PageTransition, B10), and
 // a mobile resize inside that keeps the page zoomed to 1.06 for the rest
@@ -144,13 +154,11 @@ await page.setViewportSize({ width: 375, height: 667 });
 await sleep(400);
 const fold = await page.evaluate(() => {
   const bottom = (el) => (el ? Math.round(el.getBoundingClientRect().bottom) : 9999);
-  const next = [...document.querySelectorAll("main button")].find((b) => b.textContent.trim() === "Next");
-  const door = [...document.querySelectorAll("main a")].find((a) => a.textContent.includes("already have an account"));
-  const demos = document.querySelector("main .demos-fit-room > div");
-  return { next: bottom(next), door: bottom(door), demos: demos ? Math.round(demos.getBoundingClientRect().height) : 0 };
+  const hold = document.querySelector("[data-room-hold]");
+  const notNow = [...document.querySelectorAll("main button")].find((b) => b.textContent.trim() === "Not now");
+  return { hold: bottom(hold), notNow: bottom(notNow) };
 });
-ok("on a 667px phone Next and the sign-in door are above the fold", fold.next <= 667 && fold.door <= 667, JSON.stringify(fold));
-ok("and Demos fits the room at a size that still reads", fold.demos >= 150, String(fold.demos));
+ok("on a 667px phone the hold and Not now are above the fold", fold.hold <= 667 && fold.notNow <= 667, JSON.stringify(fold));
 await page.setViewportSize({ width: 390, height: 844 });
 await sleep(300);
 // And whatever the resize did to the page's scale is undone, so the walk
@@ -162,53 +170,10 @@ ok(
   String(await page.evaluate(() => window.visualViewport?.scale))
 );
 
-// 1b. The introduction is a carousel (the swipe-and-pop round).
-const held = await swipe(-60, { hold: true });
-ok("the screen follows the finger", /translate3d\(-?\d/.test(held ?? "") && held !== "translate3d(0px, 0px, 0px)", held);
-ok("a short drag springs back", (await heading()) === "Hey. I know why you're here.");
-await swipe(90);
-ok("the first screen rubber-bands a swipe back", (await heading()) === "Hey. I know why you're here.");
-await swipe(-200);
-ok("swipe left goes forward", (await heading()) === "Sixty seconds a day.");
-ok("and the next screen arrives from the right", (await arrival()) === "next");
-const landed = await page.$eval("main [class*='step-in-']", (el) => ({
-  arrival: el.dataset.arrival ?? null,
-  delay: getComputedStyle(el.querySelector(".says-word")).animationDelay,
-}));
-ok("a swiped page brings its words with it", landed.arrival === "gesture" && landed.delay === "0s", JSON.stringify(landed));
-ok(
-  "the pager follows the page",
-  (await page.$eval("main .intro-dot[data-on]", (el) => el.parentElement.getAttribute("aria-label"))) === "Page 2"
-);
-await swipe(200);
-ok("swipe right goes back", (await heading()) === "Hey. I know why you're here.");
-ok("and the screen before arrives from the left", (await arrival()) === "back");
-await swipe(8, { dy: -220, y: 640 });
-ok("a vertical drag is left to the page", (await heading()) === "Hey. I know why you're here.");
-await page.keyboard.press("ArrowRight");
-await sleep(400);
-ok("the right arrow key steps forward", (await heading()) === "Sixty seconds a day.");
-await page.keyboard.press("ArrowLeft");
-await sleep(400);
-ok("and the left arrow steps back", (await heading()) === "Hey. I know why you're here.");
-const grounded = await page.$$eval("main .demos-ground > span, main .demos-halo, main .demos-pop", (els) => els.length);
-ok("Demos stands on a stage with a disc, a shadow and a spring", grounded === 3 && (await page.$$("main .intro-stage")).length === 1, String(grounded));
-await page.getByRole("button", { name: "Next", exact: true }).click();
-await sleep(400);
-ok(
-  "a tapped Next keeps the said-then-moves order",
-  (await page.$eval("main [class*='step-in-']", (el) => el.dataset.arrival ?? null)) === null
-);
-const arcs = await page.$$eval("main svg .arc", (els) => els.map((e) => getComputedStyle(e).animationName));
-ok("the speaking pose draws its arcs in code, animated", arcs.length === 3 && arcs.every((a) => a === "arc-in"), arcs.join(","));
-await shot("02-intro-2");
-await page.getByRole("button", { name: "Next", exact: true }).click();
-await sleep(400);
-const sparks = await page.$$eval("main svg .spark", (els) => els.length);
-ok("the celebrate pose has three sparkles", sparks === 3, String(sparks));
-await shot("03-intro-3");
-await page.getByRole("button", { name: "Next", exact: true }).click();
-await sleep(400);
+// 1b. Not now goes straight to the questions (on a train, in a library).
+await page.getByRole("button", { name: "Not now" }).click();
+await said("What do I call you?").waitFor();
+ok("Not now goes straight to the questions, the name first", true);
 
 // 2. Question 1: the name. The one answer you type, and the one he
 // repeats straight back.
@@ -242,6 +207,39 @@ ok("and a screen reader hears it once the name settles", (await announced()) ===
 const nodded = await page.$eval("main img.demos", (el) => el.parentElement.className);
 ok("and he nods when he hears it", /demos-nod/.test(nodded), nodded);
 await shot("04-q-name");
+
+// 2a. The walk is a carousel (the swipe-and-pop round), from the name on.
+const held = await swipe(-60, { hold: true });
+ok("the screen follows the finger", /translate3d\(-?\d/.test(held ?? "") && held !== "translate3d(0px, 0px, 0px)", held);
+ok("a short drag springs back", (await heading()) === "What do I call you?");
+await swipe(-200);
+ok("swipe left goes forward", (await heading()) === "How old are you?");
+ok("and the next screen arrives from the right", (await arrival()) === "next");
+const landed = await page.$eval("main [class*='step-in-']", (el) => ({
+  arrival: el.dataset.arrival ?? null,
+  delay: getComputedStyle(el.querySelector(".says-word")).animationDelay,
+}));
+ok("a swiped page brings its words with it", landed.arrival === "gesture" && landed.delay === "0s", JSON.stringify(landed));
+await swipe(200);
+ok("swipe right goes back", (await heading()) === "What do I call you?");
+ok("and the screen before arrives from the left", (await arrival()) === "back");
+await swipe(8, { dy: -220, y: 640 });
+ok("a vertical drag is left to the page", (await heading()) === "What do I call you?");
+await page.evaluate(() => document.activeElement?.blur());
+await page.keyboard.press("ArrowRight");
+await sleep(400);
+ok("the right arrow key steps forward", (await heading()) === "How old are you?");
+await page.keyboard.press("ArrowLeft");
+await sleep(400);
+ok("and the left arrow steps back", (await heading()) === "What do I call you?");
+// Back from the name is the room it came from (#475), and Not now again
+// is the name, its answer kept.
+await swipe(200);
+ok("a swipe back from the name is the room's door", await page.locator("[data-room-hold]").isVisible().catch(() => false));
+await page.getByRole("button", { name: "Not now" }).click();
+await said("Good to meet you, Tim.").waitFor().catch(() => {});
+ok("and Not now again is the name, as it was left", (await heading()) === "What do I call you?" && (await page.getByLabel("Your name").inputValue()) === "Tim");
+
 await swipe(-220);
 ok("an answered question swipes forward like Next", (await heading()) === "How old are you?");
 // intro-a-2: the keyboard's own Next key, on the name, is the screen's Next.
@@ -250,6 +248,10 @@ await said("What do I call you?").waitFor();
 await page.getByLabel("Your name").press("Enter");
 await sleep(400);
 ok("the keyboard's Next key on the name goes forward", (await heading()) === "How old are you?");
+ok(
+  "a step not made by a swipe keeps the said-then-moves order",
+  (await page.$eval("main [class*='step-in-']", (el) => el.dataset.arrival ?? null)) === null
+);
 const rowBox = await page.getByRole("radio", { name: "25 to 34" }).boundingBox();
 await swipe(-80, { y: rowBox.y + rowBox.height / 2 });
 ok(
@@ -382,6 +384,23 @@ await said("Practice with a set time gets done.").waitFor();
 await nextTop("beat");
 ok("a beat breaks the run of questions before the hour is asked", (await page.getByRole("radio").count()) === 0);
 ok("and the bar stays at 6 of 7 across it", (await at()) === "6");
+const grounded = await page.$$eval("main .demos-ground > span, main .demos-halo, main .demos-pop", (els) => els.length);
+ok("Demos stands on a stage with a disc, a shadow and a spring", grounded === 3 && (await page.$$("main .intro-stage")).length === 1, String(grounded));
+const arcs = await page.$$eval("main svg .arc", (els) => els.map((e) => getComputedStyle(e).animationName));
+ok("the speaking pose draws its arcs in code, animated", arcs.length === 3 && arcs.every((a) => a === "arc-in"), arcs.join(","));
+// A short phone: the stage gives up height and Demos shrinks to the room.
+await page.setViewportSize({ width: 375, height: 667 });
+await sleep(400);
+const beatFold = await page.evaluate(() => {
+  const next = [...document.querySelectorAll("main button")].find((b) => b.textContent.trim() === "Next");
+  const demos = document.querySelector("main .demos-fit-room > div");
+  return { next: next ? Math.round(next.getBoundingClientRect().bottom) : 9999, demos: demos ? Math.round(demos.getBoundingClientRect().height) : 0 };
+});
+ok("on a 667px phone the beat's Next is above the fold", beatFold.next <= 667, JSON.stringify(beatFold));
+ok("and Demos fits the room at a size that still reads", beatFold.demos >= 150, String(beatFold.demos));
+await page.setViewportSize({ width: 390, height: 844 });
+await sleep(300);
+await cdp.send("Emulation.resetPageScaleFactor");
 await shot("08b-beat");
 await page.getByRole("button", { name: "Next", exact: true }).click();
 

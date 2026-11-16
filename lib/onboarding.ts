@@ -17,42 +17,14 @@
 
 export const WELCOMED_KEY = "ethos.welcomed";
 
-/**
- * The three introduction screens, docs/voice.md Part 3, verbatim
- * (DECISIONS #209).
- *
- * The warmth is on screen 1, the positioning on screen 2, the promise
- * on screen 3, and not one of them explains anything. Screen 1 opens on
- * an acknowledgement rather than a claim about the reader: "I know why
- * you're here" says something about us, where "you already know the
- * gap" told the reader something about themselves, which is a
- * horoscope. The promise stays deliberately small, because a small
- * specific claim outsells a grand one.
- *
- * Here rather than in the page so the budget test can read it.
+/*
+ * The three introduction screens (docs/voice.md Part 3, #209: "Hey. I
+ * know why you're here.", "Sixty seconds a day.", "That's the whole
+ * ask.") went with #475. They were the pitch, said; the room
+ * (lib/room-script.ts, components/room/Room.tsx) is the pitch, felt, in
+ * their place. The walk now opens on the room for a first run and on
+ * the name for everyone else.
  */
-export const WELCOME_STEPS = [
-  {
-    art: "/demos-onboard-listening.webp",
-    title: "Hey. I know why you're here.",
-    line: "You can already talk. You just want to be better at it.",
-  },
-  {
-    art: "/demos-onboard-speaking.webp",
-    /* D46: the price claim went. "$5,000" was a US figure in an A$ app
-       and a pitch-deck line. The line is a sentence, not the round's
-       fragment ("Every one of them measured."): COPY-RULES allows no
-       fragment used as a sentence in the app, and read aloud it is the
-       same claim. */
-    title: "Sixty seconds a day.",
-    line: "Every one of them is measured.",
-  },
-  {
-    art: "/demos-onboard-celebrate.webp",
-    title: "That's the whole ask.",
-    line: "You won't notice it working. Other people will.",
-  },
-] as const;
 
 export type QuestionId =
   | "name"
@@ -165,6 +137,21 @@ export function isFirstRun(keys: string[]): boolean {
   return !keys.some((k) => SB_SESSION.test(k));
 }
 
+/** Every key this browser holds, or none where storage cannot be read. */
+export function storageKeys(): string[] {
+  if (typeof localStorage === "undefined") return [];
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k !== null) keys.push(k);
+    }
+    return keys;
+  } catch {
+    return [];
+  }
+}
+
 export function firstRun(): boolean {
   if (typeof localStorage === "undefined") return false;
   try {
@@ -177,6 +164,28 @@ export function firstRun(): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Whether the walk opens on the room (#475): a person on their first
+ * run, and nobody else. Not a deep link into the walk (`?step=`, You's
+ * plan row), not a walk already finished or already past the room
+ * (a refresh on the name lands on the name), and not a browser holding a
+ * session, which is someone who has been here before: signed-in
+ * returning people never see it.
+ */
+export function roomDue(a: {
+  /** The `?step=` the walk was opened with, or null. */
+  asked: string | null;
+  done: boolean;
+  /** The stored step; the room is step 0. */
+  step: number;
+  keys: readonly string[];
+}): boolean {
+  if (a.asked !== null) return false;
+  if (a.done) return false;
+  if (a.step > 0) return false;
+  return !a.keys.some((k) => SB_SESSION.test(k));
 }
 
 export function markWelcomed(): void {

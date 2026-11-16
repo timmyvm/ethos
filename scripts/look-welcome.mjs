@@ -107,10 +107,11 @@ async function shootTheme(theme) {
   await page.goto(`${BASE}/welcome`);
   await page.waitForSelector("main h1");
 
-  for (let n = 1; n <= 3; n++) {
-    await shot(`intro-${n}`);
-    await next();
-  }
+  /* The room's door (#475); the scene has its own camera,
+     scripts/look-room.mjs. Not now is the way to the questions. */
+  await shot("room-door");
+  await page.getByRole("button", { name: "Not now", exact: true }).click();
+  await sleep(450);
 
   let k = 0;
   for (const q of ANSWERS) {

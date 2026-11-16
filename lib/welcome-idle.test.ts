@@ -14,6 +14,8 @@ import { CLIP_POSES } from "./idle-clips";
  * off on every screen of /welcome, and on everywhere else.
  */
 const welcome = readFileSync("app/welcome/page.tsx", "utf8");
+/* The room (#475) is the walk's first screen, and its Demos is the walk's. */
+const room = readFileSync("components/room/Room.tsx", "utf8");
 const art = readFileSync("components/DemosArt.tsx", "utf8");
 
 /*
@@ -53,17 +55,20 @@ describe("the introduction's Demos", () => {
   it("is drawn through one wrapper that turns the idle clip off", () => {
     const wrapper = readFileSync("components/IntroDemos.tsx", "utf8");
     expect(wrapper).toMatch(/<DemosArt \{\.\.\.props\} idle=\{false\} \/>/);
-    expect(welcome).toMatch(/import \{ IntroDemos \} from "@\/components\/IntroDemos"/);
+    for (const file of [welcome, room]) {
+      expect(file).toMatch(/import \{ IntroDemos \} from "@\/components\/IntroDemos"/);
+    }
   });
 
   it("has no Demos that skips the wrapper", () => {
-    const raw = welcome.match(/<DemosArt\b/g) ?? [];
-    expect(raw.length).toBe(0);
-    expect((welcome.match(/<IntroDemos\b/g) ?? []).length).toBeGreaterThanOrEqual(5);
+    for (const file of [welcome, room]) expect(file.match(/<DemosArt\b/g) ?? []).toHaveLength(0);
+    /* The beat, the questions, the plan and the account ask; and the room's ending. */
+    expect((welcome.match(/<IntroDemos\b/g) ?? []).length).toBeGreaterThanOrEqual(4);
+    expect((room.match(/<IntroDemos\b/g) ?? []).length).toBe(1);
   });
 
   it("never mounts the clip itself", () => {
-    expect(welcome).not.toMatch(/DemosClip|DemosFigure/);
+    for (const file of [welcome, room]) expect(file).not.toMatch(/DemosClip|DemosFigure/);
   });
 });
 

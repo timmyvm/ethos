@@ -6979,7 +6979,8 @@ html[data-test-tile] .test-tile-slot {
   }
 }
 
-/* ======================= an icon swap (#474) =======================
+/* ======================= an icon swap (#474) ================}
+
  * components/ui/IconSwap.tsx: two marks in one grid cell, Hear it back's
  * Play and Pause, a word's Save and Saved. The mark leaving blurs as it
  * fades and shrinks a little; the one arriving sharpens out of the same
@@ -7014,4 +7015,464 @@ html[data-test-tile] .test-tile-slot {
 /* Lite graphics drops the blur, as it drops every decorative one (#412). */
 :root[data-graphics="lite"] .icon-swap > [data-off] {
   filter: none;
+=======
+/*
+ * The room (#475, components/room/Room.tsx). The first minute: a scene
+ * behind frosted glass, a hold that clears it, his lines streaming into
+ * a white bubble by his head, your turn on a frosted bar with a live
+ * level, and Demos rising in on a sheet of the app's own ground.
+ *
+ * The room is a picture, so what stands on it is cut from it: white
+ * pills with the scene's deep tone for their words (DESIGN.md, the tap
+ * on a coloured card), white words on the glass. The sheet Demos
+ * stands on is the app again, in the app's own tokens and theme.
+ */
+/* The bubble's anchor over his head (components/room/art/room.module.css),
+   registered so it can glide between his poses, and every length worked
+   out from it glides with it. */
+@property --room-ax {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0.5;
+}
+@property --room-ay {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0.25;
+}
+.room {
+  --room-deep: #191a36;
+  position: relative;
+  height: 100dvh;
+  overflow: hidden;
+  isolation: isolate;
+  /* His bubble measures itself against the room, not the window: on a
+     desktop the room is the 430px column. */
+  container-type: inline-size;
+  background: var(--room-deep);
+  color: #ffffff;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.room button {
+  -webkit-tap-highlight-color: transparent;
+}
+/* The scene. Behind frosted glass on the door; the hold clears it. */
+.room-art {
+  position: absolute;
+  inset: 0;
+  transition:
+    filter 700ms var(--ease-out),
+    transform 900ms var(--ease-out);
+}
+.room[data-stage="door"] .room-art {
+  filter: blur(9px) saturate(0.85) brightness(0.82);
+  transform: scale(1.06);
+}
+.room-dim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: rgb(10 10 28 / 0.26);
+  transition: opacity 700ms var(--ease-out);
+}
+.room[data-stage="scene"] .room-dim {
+  opacity: 0;
+}
+.room[data-stage="ending"] .room-dim {
+  background: rgb(10 10 28 / 0.32);
+}
+/* The door's words stand on a little dark at the foot. */
+.room-shade {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 42%;
+  pointer-events: none;
+  background: linear-gradient(to top, rgb(10 10 28 / 0.62), rgb(10 10 28 / 0));
+  transition: opacity 500ms var(--ease-out);
+}
+.room:not([data-stage="door"]) .room-shade {
+  opacity: 0;
+}
+
+/* The top row: Sign in and the tester's door on the door, Skip in the scene. */
+.room-top {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: env(safe-area-inset-top) 20px 0;
+}
+.room-top-end {
+  justify-content: flex-end;
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+.room-top-end[data-gone] {
+  opacity: 0;
+  pointer-events: none;
+}
+.room-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgb(255 255 255 / 0.82);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+.room-link:active {
+  color: #ffffff;
+}
+.room-link:focus-visible,
+.room-hold:focus-visible,
+.room-tap:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 3px;
+  border-radius: 9999px;
+}
+
+.room-foot {
+  position: absolute;
+  inset: auto 0 0 0;
+  z-index: 2;
+  padding: 0 20px max(16px, env(safe-area-inset-bottom));
+}
+/* The door's words leave as the glass clears (kept a moment for the
+   tap's tick, Room.tsx). */
+.room-door-layer[data-fading] {
+  opacity: 0;
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+.room-door {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.room-not-now {
+  margin-top: 4px;
+  font-size: 15px;
+}
+
+/*
+ * Hold to step in. Frosted glass with white words at rest, the way a
+ * phone's own lock-screen controls sit on a picture; held, white sweeps
+ * across it left to right and the words turn the scene's deep tone
+ * exactly where it has passed (a second copy of the word, clipped to the
+ * fill), so it reads as filling and stays legible all the way. Full, it
+ * is a solid white pill with a soft ring: charged, waiting for the lift.
+ * (It was a white pill filling with the deep tone, which on the dark
+ * room read as the button going out, not filling up.)
+ */
+.room-hold {
+  --hold: 0;
+  position: relative;
+  display: grid;
+  width: 100%;
+  min-height: 56px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 9999px;
+  padding: 0 24px;
+  background: rgb(255 255 255 / 0.18);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  backdrop-filter: blur(18px) saturate(1.4);
+  color: #ffffff;
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.34),
+    0 0 0 0 rgb(255 255 255 / 0),
+    0 16px 32px -14px rgb(6 6 20 / 0.6);
+  transition:
+    transform var(--spring-snappy-duration) var(--spring-snappy),
+    box-shadow var(--duration-base) var(--ease-out);
+}
+.room-hold[data-pressing] {
+  transform: scale(0.97);
+}
+.room-hold[data-full] {
+  transform: scale(1.02);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.3),
+    0 0 0 7px rgb(255 255 255 / 0.16),
+    0 16px 32px -14px rgb(6 6 20 / 0.6);
+}
+.room-hold-label {
+  position: relative;
+  grid-area: 1 / 1;
+  pointer-events: none;
+}
+/* At rest a light passes along the words now and then, the way a lock
+   screen once said "slide to unlock": something here is waiting for a
+   finger. Gone while it is held, and under reduced motion. */
+.room-hold-shine {
+  background: linear-gradient(100deg, rgb(255 255 255 / 0.74) 40%, #ffffff 50%, rgb(255 255 255 / 0.74) 60%) 100% 0 / 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: room-shine 3.2s var(--ease-out) 1.2s infinite;
+}
+@keyframes room-shine {
+  0% {
+    background-position: 100% 0;
+  }
+  45%,
+  100% {
+    background-position: 0% 0;
+  }
+}
+.room-hold:is([data-pressing], [data-full]) .room-hold-shine {
+  animation: none;
+  background: none;
+  color: #ffffff;
+}
+.room-hold-fill {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #ffffff;
+  color: var(--room-deep);
+  pointer-events: none;
+  clip-path: inset(0 calc((1 - var(--hold)) * 100%) 0 0);
+}
+
+/* Your turn: a frosted bar with the level, the cue and Done. */
+.room-turn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 9999px;
+  padding: 6px 6px 6px 18px;
+  background: rgb(16 17 40 / 0.62);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  backdrop-filter: blur(16px) saturate(1.3);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.12),
+    0 16px 32px -16px rgb(0 0 0 / 0.6);
+  animation: room-rise var(--spring-sheet-in-duration) var(--spring-sheet-in) backwards;
+}
+@keyframes room-rise {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+}
+.room-meter {
+  display: flex;
+  height: 24px;
+  flex: none;
+  align-items: center;
+  gap: 3px;
+}
+.room-meter > span {
+  width: 4px;
+  height: 24px;
+  border-radius: 2px;
+  background: #ffffff;
+  transform: scaleY(calc(0.16 + var(--l, 0) * 0.84));
+  transition: transform 70ms linear;
+}
+.room-turn-label {
+  min-width: 0;
+  flex: 1;
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.012em;
+}
+.room-tap {
+  position: relative;
+  min-height: 48px;
+  flex: none;
+  border-radius: 9999px;
+  padding: 0 22px;
+  background: #ffffff;
+  color: var(--room-deep);
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  --press-veil: rgb(23 24 47 / 0.07);
+}
+
+/*
+ * His bubble, placed by the art over his head (RoomArt's `bubble`).
+ * Large words on white paper, a tail at its foot pointing down at him.
+ * It opens at the width the whole line takes (`.room-bubble-ghost`, a
+ * hidden copy of the line with no height) and grows upward a line at a
+ * time as the words wrap (`.room-grow`), so a chunk landing never moves
+ * a word already there.
+ *
+ * Its place comes from the art's lengths (components/room/art/
+ * room.module.css): wider than `--room-bubble-room`, the room right of
+ * the anchor, it slides left by the difference, never so far that the
+ * tail leaves its foot, and the tail slides right by the same amount so
+ * it stays on the anchor. `--room-bubble-w` is its own width (HisBubble).
+ */
+.room-bubble-shell {
+  position: relative;
+  width: max-content;
+}
+.room-bubble {
+  --room-slide: clamp(0px, var(--room-bubble-w, 0px) - var(--room-bubble-room, 100vw), var(--room-bubble-w, 0px) - 52px);
+  position: relative;
+  width: max-content;
+  max-width: var(--room-bubble-max, min(300px, calc(100cqw - 88px)));
+  translate: calc(-1 * var(--room-slide)) 0;
+  border-radius: 22px;
+  background: #ffffff;
+  color: #16172e;
+  font-family: var(--font-body);
+  /* 20px from 390 wide, 17 at 320 (the art's root is the container). */
+  font-size: clamp(17px, 5.15cqw, 20px);
+  font-weight: 500;
+  line-height: 1.3;
+  box-shadow:
+    0 14px 30px -14px rgb(8 8 24 / 0.6),
+    0 2px 6px rgb(8 8 24 / 0.16);
+  transform-origin: calc(26px + var(--room-slide)) 100%;
+  animation: room-bubble-in var(--spring-snappy-duration) var(--spring-snappy) backwards;
+}
+.room-bubble::after {
+  content: "";
+  position: absolute;
+  left: calc(18px + var(--room-slide));
+  bottom: -6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  background: #ffffff;
+  transform: rotate(45deg);
+}
+@keyframes room-bubble-in {
+  from {
+    opacity: 0;
+    transform: scale(0.55);
+  }
+}
+.room-bubble-text {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: 12px 17px 13px;
+}
+/* The whole line, unseen and with no height: it sets the bubble's width. */
+.room-bubble-ghost {
+  height: 0;
+  margin: 0;
+  padding: 0 17px;
+  overflow: hidden;
+  visibility: hidden;
+}
+.room-grow {
+  overflow: hidden;
+  transition: height var(--duration-base) var(--ease-out);
+}
+/* Each chunk pops in as it lands. */
+.room-chunk {
+  display: inline-block;
+  animation: room-chunk-in 180ms var(--ease-out) backwards;
+}
+@keyframes room-chunk-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.24em) scale(0.9);
+  }
+}
+
+/* Demos, on a sheet of the app's ground rising over the room: as tall
+   as he and his words are and no taller, so the room stays in view
+   above him. */
+.room-sheet {
+  position: absolute;
+  inset: auto 0 0 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 20px 0;
+  background: var(--color-ground);
+  color: var(--color-ink);
+  box-shadow: 0 -18px 40px -20px rgb(0 0 0 / 0.5);
+  animation: room-sheet-up var(--spring-sheet-duration) var(--spring-sheet) backwards;
+}
+@keyframes room-sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+.room-sheet-foot {
+  padding: 16px 0 max(16px, env(safe-area-inset-bottom));
+}
+/* Next: the ground rises from the sheet's top over the whole room, under
+   the sheet, while Demos's words fade, and the name question comes up on
+   that same ground (Room.tsx, HAND_OFF_MS). */
+.room-cover {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: var(--color-ground);
+  animation: room-cover-up var(--spring-sheet-duration) var(--spring-sheet) both;
+}
+@keyframes room-cover-up {
+  from {
+    clip-path: inset(var(--room-cover-from) 0 0 0 round 20px 20px 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0 round 0);
+  }
+}
+.room-sheet[data-leaving] {
+  box-shadow: none;
+  transition: box-shadow var(--duration-fast) var(--ease-out);
+}
+.room-sheet[data-leaving] > * {
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+.room-demos-bubble {
+  transform-origin: 0 22px;
+  animation: room-bubble-in var(--spring-snappy-duration) var(--spring-snappy) backwards;
+}
+
+/* Reduced motion: no tilt (the flow sends none), lines whole, fades only. */
+:root[data-motion="reduce"] .room-art,
+:root[data-motion="reduce"] .room[data-stage="door"] .room-art {
+  transform: none;
+  transition: filter var(--duration-base) var(--ease-out);
+}
+:root[data-motion="reduce"] :is(.room-chunk, .room-bubble, .room-demos-bubble) {
+  animation: none;
+}
+:root[data-motion="reduce"] .room-cover {
+  animation: room-fade var(--duration-base) var(--ease-out) both;
+}
+:root[data-motion="reduce"] :is(.room-turn, .room-sheet) {
+  animation: room-fade var(--duration-base) var(--ease-out) backwards;
+}
+@keyframes room-fade {
+  from {
+    opacity: 0;
+  }
+}
+:root[data-motion="reduce"] :is(.room-grow, .room-bubble),
+:root[data-motion="reduce"] .room-bubble::after {
+  transition: none;
+}
+:root[data-motion="reduce"] .room-hold-shine {
+  animation: none;
+  background: none;
+  color: #ffffff;
+}
+:root[data-motion="reduce"] :is(.room-hold, .room-hold[data-pressing], .room-hold[data-full]) {
+  transform: none;
+  transition: none;
 }

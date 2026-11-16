@@ -126,15 +126,34 @@ export function answered(a: Answers): boolean {
 
 const KEY = "ethos.onboarding";
 
+/**
+ * The walk the stored step counts in (#475). Until the room, the walk
+ * opened on three pitch screens (#209), so its steps ran two ahead of
+ * today's: the room stands where those three stood. A step stored then
+ * carries no mark; every write since carries this one.
+ */
+export const WALK_LAYOUT = 2;
+
+/**
+ * A stored step in today's walk. Someone who left part way through the
+ * old walk lands on the question they left, never two further on: the
+ * pitch's three screens become the room (step 0), and every screen after
+ * them moves up two, the plan and the account ask included.
+ */
+export function stepFromStore(step: number, layout: unknown): number {
+  if (layout === WALK_LAYOUT) return step;
+  return step <= 2 ? 0 : step - 2;
+}
+
 export function readOnboarding(): OnboardingState {
   if (typeof localStorage === "undefined") return EMPTY_STATE;
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return EMPTY_STATE;
-    const p = JSON.parse(raw) as Partial<OnboardingState>;
+    const p = JSON.parse(raw) as Partial<OnboardingState> & { walk?: unknown };
     return {
       answers: cleanAnswers(p.answers),
-      step: Number.isInteger(p.step) && (p.step as number) >= 0 ? (p.step as number) : 0,
+      step: Number.isInteger(p.step) && (p.step as number) >= 0 ? stepFromStore(p.step as number, p.walk) : 0,
       done: p.done === true,
       synced: p.synced === true,
     };
@@ -156,7 +175,8 @@ export function writeOnboarding(patch: Partial<OnboardingState>): OnboardingStat
     synced: patch.synced ?? (patch.answers ? false : current.synced),
   };
   try {
-    localStorage.setItem(KEY, JSON.stringify(next));
+    /* Marked with today's walk, so the step is never moved twice. */
+    localStorage.setItem(KEY, JSON.stringify({ ...next, walk: WALK_LAYOUT }));
   } catch {}
   return next;
 }

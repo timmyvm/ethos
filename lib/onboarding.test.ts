@@ -1,5 +1,36 @@
 import { describe, expect, it } from "vitest";
-import { GATE_STREAK, gateMoment, isFirstRun, WELCOMED_KEY } from "./onboarding";
+import { GATE_STREAK, gateMoment, isFirstRun, roomDue, WELCOMED_KEY } from "./onboarding";
+
+/**
+ * The room (#475): a first run opens on it, and nobody else sees it.
+ */
+describe("roomDue", () => {
+  const fresh = { asked: null, done: false, step: 0, keys: [] as string[] };
+
+  it("opens a first run on the room", () => {
+    expect(roomDue(fresh)).toBe(true);
+    // The walk marks the browser welcomed on mount: the room still plays.
+    expect(roomDue({ ...fresh, keys: [WELCOMED_KEY, "ethos.prefs"] })).toBe(true);
+  });
+
+  it("never opens for someone signed in, or anyone holding a session", () => {
+    expect(roomDue({ ...fresh, keys: ["sb-abcdefgh-auth-token"] })).toBe(false);
+  });
+
+  it("never opens on a finished introduction", () => {
+    expect(roomDue({ ...fresh, done: true })).toBe(false);
+  });
+
+  it("never opens past the room: a refresh on the name lands on the name", () => {
+    expect(roomDue({ ...fresh, step: 1 })).toBe(false);
+    expect(roomDue({ ...fresh, step: 4 })).toBe(false);
+  });
+
+  it("never opens on a deep link into the walk", () => {
+    expect(roomDue({ ...fresh, asked: "plan" })).toBe(false);
+    expect(roomDue({ ...fresh, asked: "ageBand" })).toBe(false);
+  });
+});
 
 /**
  * The first-session pathway (DECISIONS #133–#134). These assert the two

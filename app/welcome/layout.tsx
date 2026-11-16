@@ -4,8 +4,8 @@ import type { Metadata } from "next";
  * place to declare it. Renders nothing of its own. */
 export const metadata: Metadata = {
   title: "Welcome · Ethos",
-  description: "Meet daily speaking practice. Three screens and you're on the floor.",
-  openGraph: { title: "Welcome · Ethos", description: "Meet daily speaking practice. Three screens and you're on the floor." },
+  description: "Step into an interview, then meet daily speaking practice.",
+  openGraph: { title: "Welcome · Ethos", description: "Step into an interview, then meet daily speaking practice." },
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {

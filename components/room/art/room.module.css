@@ -1,0 +1,220 @@
+/*
+ * The room (#475). The scene is one stage at 9:16 that covers whatever
+ * holds it, cropping rather than squashing: wider than 9:16 it crops top
+ * and bottom, taller it crops the sides (390x844 shows x 81 to 819 of the
+ * 900 drawn). Every layer is a full-stage SVG that draws past its own
+ * edges, so a layer moved by the tilt never shows one.
+ */
+.root {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  container-type: size;
+  background: #191641;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100cqw, 56.25cqh);
+  height: max(100cqh, 177.7778cqw);
+  transform: translate(-50%, -50%);
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+  pointer-events: none;
+}
+
+.layer > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  display: block;
+}
+
+/* A soft edge to the frame; it stays put while the room moves. */
+.vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(150% 100% at 50% 45%, transparent 66%, rgba(8, 6, 26, 0.4) 100%);
+}
+
+/* The pen's layer rolls about the pen, not the stage's middle. */
+.roll {
+  transform-origin: 66% 78%;
+}
+
+/*
+ * The bubble's anchor. Its bottom-left corner sits just over his head,
+ * so the flow's bubble grows up from it with its tail at its bottom-left,
+ * pointing down at him, into the sky over his chair.
+ *
+ *   --room-bubble-max    the widest a bubble is: 300px, or the screen
+ *                        less a 44px gutter each side (12px, plus most of
+ *                        the 34px his layer travels at full tilt)
+ *   --room-bubble-room   from the anchor to the right gutter, at rest; a
+ *                        bubble wider than this slides left over his head
+ *                        by the difference (the flow does the sliding)
+ *
+ * The anchor (`--room-ax`, `--room-ay`, registered in globals.css so they
+ * can be animated) glides with his pose, and both lengths glide with it.
+ */
+.bubble {
+  position: absolute;
+  left: calc(var(--room-ax) * 100%);
+  bottom: calc(100% - var(--room-ay) * 100%);
+  width: max-content;
+  --room-bubble-max: min(300px, 100cqw - 88px);
+  --room-bubble-room: calc(50cqw + max(100cqw, 56.25cqh) * (0.5 - var(--room-ax)) - 44px);
+  max-width: var(--room-bubble-max);
+  pointer-events: auto;
+  transition:
+    --room-ax var(--spring-sheet-duration) var(--spring-sheet),
+    --room-ay var(--spring-sheet-duration) var(--spring-sheet);
+}
+
+/* ---- his parts: poses fade, moves glide ---- */
+
+.part {
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+.move {
+  transition: transform var(--spring-sheet-duration) var(--spring-sheet);
+}
+
+.off {
+  opacity: 0;
+}
+
+/* His feet come off the desk, back toward him, rather than vanish. */
+.drop {
+  transition:
+    opacity var(--duration-base) var(--ease-out),
+    transform var(--spring-sheet-duration) var(--spring-sheet);
+}
+
+/* Speaking: the mouth runs three frames, A B A rest B A, 75ms each. */
+.mouthA,
+.mouthB {
+  opacity: 0;
+}
+
+.talking .mouthRest {
+  animation: talk-rest 450ms step-end infinite;
+}
+
+.talking .mouthA {
+  animation: talk-a 450ms step-end infinite;
+}
+
+.talking .mouthB {
+  animation: talk-b 450ms step-end infinite;
+}
+
+@keyframes talk-a {
+  0% { opacity: 1; }
+  16.66% { opacity: 0; }
+  33.33% { opacity: 1; }
+  50% { opacity: 0; }
+  83.33% { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+@keyframes talk-b {
+  0% { opacity: 0; }
+  16.66% { opacity: 1; }
+  33.33% { opacity: 0; }
+  66.66% { opacity: 1; }
+  83.33% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes talk-rest {
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+  66.66% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* Idle life: he breathes, blinks, and his top foot keeps time. */
+.breathe {
+  animation: breathe 4.6s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px) scale(1.004); }
+}
+
+.blink {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: blink 5.3s infinite;
+}
+
+@keyframes blink {
+  0%, 93%, 97.5%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.12); }
+}
+
+.tap {
+  animation: tap 2.8s ease-in-out infinite;
+}
+
+@keyframes tap {
+  0%, 62%, 100% { transform: rotate(0deg); }
+  70% { transform: rotate(5deg); }
+  78% { transform: rotate(0deg); }
+  86% { transform: rotate(5deg); }
+}
+
+.drum {
+  transform-box: fill-box;
+  transform-origin: center top;
+  animation: drum 1.6s ease-in-out infinite;
+}
+
+@keyframes drum {
+  0%, 30%, 100% { transform: translateY(0) scaleY(1); }
+  12% { transform: translateY(-5px) scaleY(0.82); }
+}
+
+.twinkle {
+  animation: twinkle 3.4s ease-in-out infinite alternate;
+}
+
+@keyframes twinkle {
+  from { opacity: 0.25; }
+  to { opacity: 0.85; }
+}
+
+/* Reduced motion: nothing loops, nothing glides; poses still fade. */
+.still .move,
+.still .bubble {
+  transition: none;
+}
+
+.still .drop {
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+.still .breathe,
+.still .blink,
+.still .tap,
+.still .drum,
+.still .twinkle,
+.still .mouthRest,
+.still .mouthA,
+.still .mouthB {
+  animation: none;
+}

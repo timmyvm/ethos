@@ -107,10 +107,9 @@ for (const [name, width, height, kbd] of [["390x844", 390, 844, 336], ["375x667"
   await page.goto(`${BASE}/`);
   await page.waitForURL(/\/welcome/);
   await sleep(900);
-  for (let i = 0; i < 3; i++) {
-    await page.getByRole("button", { name: "Next", exact: true }).click();
-    await sleep(450);
-  }
+  /* The walk opens on the room (#475); Not now is the way to the name. */
+  await page.getByRole("button", { name: "Not now", exact: true }).click();
+  await sleep(450);
   const field = page.getByLabel("Your name");
   await field.waitFor();
   await sleep(500);

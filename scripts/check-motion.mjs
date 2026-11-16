@@ -158,6 +158,9 @@ await sleep(400);
 /* Restarted means it began after the tap, measured against the tap's
    own pointerdown rather than a wall-clock limit: under load the
    click's own wait pushed a fresh arrival past a fixed 150ms (R7). */
+/* A signed-in browser opens on the name (#475), whose Next waits for one. */
+await page.getByLabel("Your name").fill("Tim");
+await sleep(200);
 await page.evaluate(() => {
   window.__tapAt = null;
   document.addEventListener("pointerdown", () => (window.__tapAt = performance.now()), { once: true, capture: true });

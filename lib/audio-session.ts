@@ -20,8 +20,14 @@
  * Not heard on a phone from here. If a stored take still plays silent
  * with this in, the next suspect is the recording's format: WebM from
  * the iPhone's own recorder, played through Safari's newer WebM path.
+ *
+ * "ambient" is the room's (#475, lib/room-sound.ts): the pops under a
+ * streamed line mix with whatever else is playing and stay quiet when
+ * the silent switch is on. Like "playback" it has no microphone, so the
+ * room says "auto" before every turn opens the mic and "ambient" again
+ * once the turn has closed it.
  */
-export type AudioSessionType = "auto" | "playback";
+export type AudioSessionType = "auto" | "playback" | "ambient";
 
 /**
  * Ask for a session type. True when the browser has the API and took

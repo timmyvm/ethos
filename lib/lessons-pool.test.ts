@@ -205,7 +205,7 @@ describe("the lesson page before the pool is read (#492)", () => {
 });
 
 describe("where a lesson's topic is read (#492)", () => {
-  it("day one and the introduction open the road's first drill, which is no lesson and no dropped topic", () => {
+  it("day one and the introduction open the road's first entry, which is no lesson and no dropped topic", () => {
     const first = nextLesson({})!;
     expect(lessonById(first.lesson.id)).toBeNull();
     expect(DROPPED_PROMPTS.has(first.lesson.prompt)).toBe(false);

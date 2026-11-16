@@ -295,6 +295,96 @@ ok(
   await ctx.close();
 }
 
+// ---- 7. The lessons follow the school pool (#492) ------------------------
+/* Six lesson practices named a topic that needs a job (lib/topics.ts
+   `not`). Someone under 18 is shown the lesson's stand-in on the lesson
+   page and on the recorder its Start opens, cold or opened from Lessons;
+   a grown-up sees the lesson as written; and the page the server sends,
+   which knows nobody's answers, names none of the three. */
+{
+  const SIX = [["closed-mouth", 3], ["finish-it", 2], ["or-rather", 2], ["change-gear", 2], ["short-and-concrete", 1], ["second-pass", 1]];
+  const JOB = /worst job you(?:'|&#x27;|&#39;)ve ever done|Explain your work to a ten-year-old|job you(?:'|&#x27;|&#39;)re not qualified for/i;
+  const person = async (ageBand) => {
+    const ctx = await browser.newContext({
+      viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true,
+      locale: "en-AU", timezoneId: "Australia/Melbourne", serviceWorkers: "block",
+    });
+    await ctx.route("http://supabase.local/**", supabaseRoute);
+    await ctx.addInitScript(seed, { theme: "light", session });
+    await ctx.addInitScript((a) => {
+      const o = JSON.parse(localStorage.getItem("ethos.onboarding") ?? "{}");
+      o.answers = { ...o.answers, ageBand: a, context: null };
+      localStorage.setItem("ethos.onboarding", JSON.stringify(o));
+    }, ageBand);
+    return ctx;
+  };
+  /* Practice q's line once the page has read the pool ("Ag" is a held line's invisible measure). */
+  const lineOf = async (p, q) => {
+    await p.waitForFunction(
+      (n) => {
+        const t = document.querySelectorAll("main ol li p.text-read")[n - 1]?.textContent?.trim();
+        return !!t && t !== "Ag";
+      },
+      q,
+      { timeout: 10000 }
+    ).catch(() => {});
+    return p.$$eval("main ol li p.text-read", (ps, n) => ps[n - 1]?.textContent?.trim() ?? null, q);
+  };
+  const recorderTopic = async (p, id, q) => {
+    await p.goto(`${BASE}/rep?lesson=${id}&q=${q}`);
+    await p.waitForSelector('button[data-record="start"]', { timeout: 20000 }).catch(() => {});
+    return p.$eval("main h1", (e) => e.textContent.replace(/\s+/g, " ").trim()).catch(() => null);
+  };
+  const seen = {};
+  for (const [tag, ageBand] of [["under 18", "u18"], ["grown-up", "18_24"]]) {
+    const ctx = await person(ageBand);
+    const p = await ctx.newPage();
+    seen[tag] = [];
+    for (const [id, q] of SIX) {
+      const server = await ctx.request.get(`${BASE}/lessons/${id}`).then((r) => r.text());
+      await p.goto(`${BASE}/lessons/${id}`);
+      const line = await lineOf(p, q);
+      const topic = await recorderTopic(p, id, q);
+      seen[tag].push({ id, q, server: JOB.test(server), line, topic });
+    }
+    if (tag === "under 18") {
+      /* Opened from Lessons, the topic is drawn in the first frame: no held line, no job. */
+      await p.goto(`${BASE}/lessons`);
+      await p.waitForSelector('main a[data-lesson="closed-mouth"]');
+      await p.evaluate(() => {
+        window.__lines = [];
+        new MutationObserver(() =>
+          document.querySelectorAll("main ol li p.text-read").forEach((e) => window.__lines.push(e.textContent))
+        ).observe(document.body, { subtree: true, childList: true, characterData: true });
+      });
+      await p.click('main a[data-lesson="closed-mouth"]');
+      await p.waitForURL("**/lessons/closed-mouth**");
+      await lineOf(p, 3);
+      const lines = await p.evaluate(() => window.__lines ?? null);
+      ok(
+        "opened from Lessons, the under-18's stand-in is there in the first frame",
+        Array.isArray(lines) && lines.length > 0 && !lines.includes("Ag") && !lines.some((t) => JOB.test(t)),
+        lines ? `${lines.length} frames` : "a full load, not an open from inside the app"
+      );
+    }
+    await ctx.close();
+  }
+  const all = [...seen["under 18"], ...seen["grown-up"]];
+  ok("the page the server sends names no job prompt on the six lessons", all.every((r) => !r.server), JSON.stringify(all.filter((r) => r.server).map((r) => r.id)));
+  const minor = seen["under 18"];
+  ok(
+    "someone under 18 meets a stand-in, the same on the lesson and on its recorder",
+    minor.every((r) => r.line && !JOB.test(r.line) && r.topic?.includes(r.line)),
+    JSON.stringify(minor.filter((r) => !(r.line && !JOB.test(r.line) && r.topic?.includes(r.line))))
+  );
+  const grown = seen["grown-up"];
+  ok(
+    "a grown-up meets the six as written",
+    grown.every((r) => JOB.test(r.line ?? "") && r.topic?.includes(r.line)),
+    JSON.stringify(grown.filter((r) => !(JOB.test(r.line ?? "") && r.topic?.includes(r.line))))
+  );
+}
+
 await browser.close();
 const failed = findings.filter((f) => !f.pass).length;
 console.log(`\n${findings.length - failed}/${findings.length} checks passed`);

@@ -357,14 +357,22 @@ describe("the reminder cron, #430", () => {
   });
 
   it("says why nothing went: due, already practised, check failed", async () => {
-    subs = [due(1), { ...due(2), reminder_hour: (new Date().getUTCHours() + 1) % 24 }];
-    repsToday = 1;
-    const done = await (await tick()).json();
-    expect(done).toMatchObject({ ok: true, subs: 2, due: 1, done: 1, sent: 0 });
-    repsToday = 0;
-    countError = { message: "statement timeout" };
-    const unsure = await (await tick()).json();
-    expect(unsure).toMatchObject({ due: 1, unsure: 1, sent: 0 });
+    /* A fixed noon: from 23:00 UTC the next hour wraps to 0, which is
+       earlier the same day and so due, and the second row counted too. */
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date(Date.UTC(2026, 10, 16, 12, 5)));
+      subs = [due(1), { ...due(2), reminder_hour: (new Date().getUTCHours() + 1) % 24 }];
+      repsToday = 1;
+      const done = await (await tick()).json();
+      expect(done).toMatchObject({ ok: true, subs: 2, due: 1, done: 1, sent: 0 });
+      repsToday = 0;
+      countError = { message: "statement timeout" };
+      const unsure = await (await tick()).json();
+      expect(unsure).toMatchObject({ due: 1, unsure: 1, sent: 0 });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("accepts the database's own secret beside GitHub's, and nothing else", async () => {

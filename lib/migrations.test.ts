@@ -494,3 +494,44 @@ describe("the avatars bucket", () => {
     expect(sql).not.toMatch(/create policy|storage\.objects|grant /i);
   });
 });
+
+/**
+ * The carried cue (0034, #477; written as 0033 beside #485's avatars): one nullable column on profiles, the
+ * browser's own to write under the policies and grants profiles already
+ * has, held to a size so a session cannot fill the table with it.
+ */
+describe("0034 carried cue", () => {
+  const sql = code("0034_carried_cue.sql");
+
+  it("adds one nullable jsonb column, and nothing else to the table", () => {
+    expect(sql).toMatch(/alter table public\.profiles add column if not exists carried_cue jsonb;/);
+    expect(sql).not.toMatch(/\bgrant\b|create policy|not null/i);
+  });
+
+  it("holds it to 2,000 bytes, added once behind a look in pg_constraint", () => {
+    expect(sql).toMatch(/check \(carried_cue is null or octet_length\(carried_cue::text\) <= 2000\)/);
+    expect(sql).toMatch(/if not exists \(\s+select 1 from pg_constraint\s+where conname = 'profiles_carried_cue_size'/);
+  });
+
+  it("holds the most the app can write, every aside slot full (the #477 review)", async () => {
+    const { PAUSE_MARK, ASIDE_MAX } = await import("./carried-cue");
+    const longest = {
+      v: 1,
+      cue: {
+        kind: "repeat",
+        word: "x".repeat(40),
+        from: 9999,
+        last: 9999,
+        givenOn: "2026-11-16",
+        answeredOn: "2026-11-17",
+        tries: 2,
+        line: { text: `${"w".repeat(118)} ${PAUSE_MARK} ${"w".repeat(119)}`, at: 9999.99 },
+      },
+      aside: Array.from({ length: ASIDE_MAX }, () => ({ key: `filler:${"x".repeat(40)}`, until: "2026-11-23" })),
+      at: new Date().toISOString(),
+    };
+    expect(longest.cue.line.text.length).toBe(240);
+    /* Postgres measures jsonb's text form, which spaces each key from its value: a quarter's room for that. */
+    expect(new TextEncoder().encode(JSON.stringify(longest)).length).toBeLessThan(2000 * 0.75);
+  });
+});

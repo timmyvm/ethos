@@ -95,6 +95,12 @@ export interface GlanceView {
   moment: GlanceMoment | null;
   cue: string | null;
   earned: { text: string; tone: "earned" | "plain"; delta?: number | null } | null;
+  /**
+   * The line answers yesterday's cue and it held (#477): its count is
+   * drawn in sage, and a screen reader is told "Held." after it, since a
+   * colour is never the whole message.
+   */
+  held?: boolean;
 }
 
 /** The sheet's body (section "detail"): its sections in order, and those Results draws. */
@@ -1187,6 +1193,15 @@ function Glance({
   view.parts.forEach((p, i) => {
     if (p.kind === "moment") return;
     const next = view.parts[i + 1];
+    if (p.earned) {
+      /* The count of a carried cue that held (#477): earned, so sage. */
+      parts.push(
+        <span key={i} data-glance-held className="font-semibold text-sage-700">
+          {p.text}
+        </span>
+      );
+      return;
+    }
     if (next?.kind !== "moment") {
       parts.push(<Fragment key={i}>{p.text}</Fragment>);
       return;
@@ -1213,6 +1228,7 @@ function Glance({
     <>
       <p data-glance-line className="text-balance">
         {parts}
+        {view.held && <span className="sr-only"> Held.</span>}
       </p>
       {ask ??
         (view.cue && (

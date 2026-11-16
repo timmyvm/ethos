@@ -330,7 +330,7 @@ describe("fitGlance, the budget", () => {
   it("keeps everything under the budget, the delta's words counted", () => {
     expect(countWords(fixed.join(" "))).toBe(17);
     const f = fitGlance({ fixed, line: "4 fillers, first 0:02", cue: "Practice 2: under 4.", earned: null });
-    expect(f).toEqual({ cue: "Practice 2: under 4.", earned: null, words: 25 });
+    expect(f).toEqual({ cue: "Practice 2: under 4.", earned: null, words: 25, short: false });
   });
   it("over it, the cue goes first, then the earned line's tail", () => {
     const best = earnedLine({ bests: [{ headline: "Best Ethos yet", detail: "849, past your 690", tone: "earned" }], trait: "fillers" });

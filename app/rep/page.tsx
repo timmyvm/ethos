@@ -174,6 +174,9 @@ import {
   sheetSections,
 } from "@/lib/glance";
 import { fillerTrend } from "@/lib/dimension-rows";
+import { carryCue, cueDay, cueGlance, warmsUp, type CueState } from "@/lib/carried-cue";
+import { skipWarmup, useCarriedCue, warmupSkipped } from "@/lib/cue-store";
+import { CueWarmup } from "@/components/rep/CueWarmup";
 import { upNextLesson, traitForSaid } from "@/lib/lesson-up-next";
 import { DURATION } from "@/lib/motion";
 import { safeNextPath, usePaywallReturn } from "@/lib/use-paywall-return";
@@ -433,6 +436,17 @@ function RepScreen() {
    * free (#353). `premium` above stays the resolver's answer.
    */
   const [plan, setPlan] = useState<boolean | null>(null);
+  /*
+   * The cue being carried (#477, lib/carried-cue.ts): this phone's copy
+   * in the first frame, the account's once read. The ready recorder warms
+   * up on it, and the results answer it and say the next one.
+   */
+  const carried = useCarriedCue();
+  /* Skipped today on this phone: the tactic stands in its slot until tomorrow. */
+  const [warmupGone, setWarmupGone] = useState(() => typeof window !== "undefined" && warmupSkipped(cueDay(new Date())));
+  /* While Skip's two slots trade heights, both clip (globals.css `.cue-slot`). */
+  const [warmupMoving, setWarmupMoving] = useState(false);
+  const tacticSlot = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchProfile()
@@ -1984,6 +1998,8 @@ function RepScreen() {
           repsNow={repsNow}
           spineNow={spineNow}
           firstToday={firstScoredToday(baselineRef.current)}
+          cueBefore={carried.state}
+          onCue={carried.save}
           startedAt={takeStartedAt.current}
           walkRows={walkRows}
           streakUp={celebrate !== null}
@@ -2047,6 +2063,22 @@ function RepScreen() {
    */
   const ready =
     searchParams.get("ready") === "1" && !game && config.kind !== "boss" && config.tips.length > 0;
+  /*
+   * The warm-up (#477, plan section 9, idea 2): on the day's first take,
+   * the cue carried from an earlier day and not yet answered, rehearsed
+   * alone in the tactic's slot before Record. Skip trades the two slots
+   * on the base spring and keeps it away for the rest of the day.
+   */
+  const cueToday = cueDay(new Date());
+  const warmCue = ready ? warmsUp(carried.state, cueToday) : null;
+  const warmOpen = !!warmCue && !warmupGone;
+  const skipWarm = () => {
+    skipWarmup(cueToday);
+    setWarmupMoving(true);
+    setWarmupGone(true);
+    setTimeout(() => setWarmupMoving(false), springMs(SPRING.base));
+    requestAnimationFrame(() => tacticSlot.current?.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true }));
+  };
   /*
    * A tip yields to a live nudge: the nudge is about this second of this
    * rep, the tip is general advice, and stacking them means neither gets
@@ -2238,7 +2270,33 @@ function RepScreen() {
             </div>
           )}
           {doRule && <TipLine tip={doRule} className="mt-2" />}
-          {ready ? (
+          {ready && warmCue ? (
+            <>
+              <div
+                className="cue-slot"
+                data-open={warmOpen}
+                data-moving={warmupMoving || undefined}
+                aria-hidden={!warmOpen || undefined}
+                inert={!warmOpen || undefined}
+              >
+                <div>
+                  <CueWarmup cue={warmCue} onSkip={skipWarm} />
+                </div>
+              </div>
+              <div
+                ref={tacticSlot}
+                className="cue-slot"
+                data-open={!warmOpen}
+                data-moving={warmupMoving || undefined}
+                aria-hidden={warmOpen || undefined}
+                inert={warmOpen || undefined}
+              >
+                <div>
+                  <TipLine tip={config.tips[0]} />
+                </div>
+              </div>
+            </>
+          ) : ready ? (
             <TipLine tip={config.tips[0]} />
           ) : (
             <TipStrip
@@ -2775,6 +2833,8 @@ function Results({
   repsNow,
   spineNow,
   firstToday,
+  cueBefore,
+  onCue,
   startedAt,
   walkRows,
   streakUp,
@@ -2808,6 +2868,10 @@ function Results({
   spineNow: RepSpine[];
   /** No scored take earlier today (the reminder ask, #430). */
   firstToday: boolean;
+  /** The cue carried into this take (#477): undefined while it is read, null for none. */
+  cueBefore: CueState | null | undefined;
+  /** Keeps the cue carried out of it. */
+  onCue: (next: CueState) => void;
   /** When this take started (ms), for the hour the reminder ask offers. */
   startedAt: number;
   /** A game's rows before this round and with it; null until read, or when the read failed. */
@@ -3254,12 +3318,45 @@ function Results({
         boss: config.kind === "boss",
         game: !!game,
       });
+  /*
+   * The cue being carried (#477, lib/carried-cue.ts). On a take whose cue
+   * is "Next time:" (Today's practice, a topic of your own; never a
+   * lesson's practice, a game or the boss, whose cues point at the next
+   * practice, the ladder and next week), the glance's cue is the one
+   * carried to tomorrow: the take's weakest measurable thing, phrased as
+   * what to do instead. The day's first take answers yesterday's first,
+   * with its number, in Demos's line. Worked out once, from the cue as it
+   * was when the take landed, so the save below never feeds back into
+   * it. While the cue is still being read (unknown), nothing is answered
+   * or written, and the glance keeps its own line.
+   */
+  const [cueStep] = useState(() =>
+    lead === "Next time:" && scorable && !capped && cueBefore !== undefined
+      ? carryCue({
+          before: cueBefore,
+          take: { metrics: result.metrics, tier1: result.tier1, transcript: result.transcript, words: result.words },
+          today: cueDay(new Date(startedAt)),
+          practice: config.practice?.trait ?? null,
+        })
+      : null
+  );
+  const cueSaid = cueStep
+    ? cueGlance(cueStep, { metrics: result.metrics, tier1: result.tier1, transcript: result.transcript, words: result.words })
+    : null;
+  const cueNext = cueStep?.next ?? null;
+  useEffect(() => {
+    if (cueNext) onCue(cueNext);
+    // Once per take: the step is fixed when the take lands.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cueNext]);
   /* A game round: Demos says the round's result with its moment, and the
      cue is what the ladder's count means (the #427 review). */
   const said =
     gameRound && reveal && scorable
       ? roundGlance({ round: gameRound, reveal, cue: ladder ? ladderCue(ladder.line) : null })
-      : glanceLine({
+      : cueSaid
+        ? { ...cueSaid.line, cue: cueSaid.cue }
+        : glanceLine({
           trait,
           metrics: result.metrics,
           words: result.words,
@@ -3359,6 +3456,10 @@ function Results({
       /* The reminder ask takes the cue's slot (#430). */
       cue: reminder.node ? null : said.cue,
       earned: earnedNow,
+      /* The carried cue's shorter forms (#477): the line's number without
+         its chip, the cue without "Tomorrow:", tried before the cue goes. */
+      lineShort: cueSaid ? cueSaid.lineShort.sentence : null,
+      cueShort: cueSaid && !reminder.node ? cueSaid.cueShort : null,
     },
     askBudget(
       testerWords
@@ -3371,11 +3472,13 @@ function Results({
       reminder.words
     )
   );
+  const shown = fit.short && cueSaid ? cueSaid.lineShort : said;
   const glance: GlanceView = {
-    parts: said.parts,
-    moment: said.moment,
+    parts: shown.parts,
+    moment: shown.moment,
     cue: fit.cue,
     earned: earnedNow && fit.earned ? { text: fit.earned, tone: earnedNow.tone, delta: earnedNow.delta } : null,
+    held: cueSaid?.held ?? false,
   };
   const upgradeRead = () =>
     onUpgrade({

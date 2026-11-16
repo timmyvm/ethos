@@ -7,6 +7,7 @@ import { calibrate, classifyGap, type Envelope } from "./envelope";
 import { dimensionPoints } from "./index-score";
 import { computeMetrics, type FillerHit, type Pause, type Segment, type Word } from "./metrics";
 import { pauseReport, type PauseVerdict } from "./pause-quality";
+import { sentenceEnds } from "./sentence-ends";
 
 /*
  * supabase/replay/pause-replay.sql against the TypeScript (#476).
@@ -245,7 +246,7 @@ function synth(seed: number, style: Style): SpokenSegment[] {
 }
 
 /** The phone's envelope, with these held gaps voiced (a swallowed sound mid-gap). */
-function envelopeFor(take: WhisperTake, voiced: number[]): Envelope {
+function envelopeFor(take: Pick<WhisperTake, "words" | "durationS">, voiced: number[]): Envelope {
   const rate = 20;
   const levels: number[] = [];
   const gaps: [number, number][] = [];
@@ -527,5 +528,260 @@ describe("the replay's answer", () => {
     expect(Number(line("stored held-pause verdicts rebuilt").current)).toBe(1);
     expect(Number(line("people with 3+ felt").stored)).toBeGreaterThanOrEqual(3);
     expect(line("within-person corr with felt").new).not.toBeNull();
+  });
+});
+
+/*
+ * Harder than the takes above, which a fixture writes cleanly: Whisper's
+ * rougher spellings, timed the way it really times them, and the
+ * thresholds hit exactly. Each recording is a run of segments whose text
+ * and word list are written separately:
+ *  - numbers, money, times and contractions ("1,000", "$20", "9:30",
+ *    "it’s"), split or joined in the word list ("3.5" or "3" "5",
+ *    "five-minute" or "five" "minute"), and abbreviations ("U.S.",
+ *    "e.g.", the known miss);
+ *  - accented and non-Latin words, a dash the text has and the list does
+ *    not, and one the list has as a word of no letters;
+ *  - every way a sentence can end or not: . ? ! ?! "..." "…" "...?" ".\""
+ *    and ". . .", and words that carry their own punctuation, as older
+ *    fixtures did;
+ *  - segments that start where the last ended, up to 1.6s before their
+ *    first word, or up to 1.4s after it (past the slack, so they do not
+ *    align), a word added to or dropped from the text, empty text, a
+ *    segment repeated whole;
+ *  - gaps of exactly 0.3, 0.8 and 3.5s and a hair either side, and an um
+ *    exactly half a second from a pause.
+ * Postgres and the TypeScript must find the same sentence ends, word by
+ * word, under both rules, and the same four scores. These run on the
+ * columns the replay reads, without the migrations, so there can be many.
+ */
+describe("the replay on Whisper's rougher shapes", () => {
+  const TOKENS: [string, string[]][] = [
+    ["talk", ["talk"]], ["the", ["the"]], ["room", ["room"]], ["point", ["point"]], ["we", ["we"]],
+    ["really", ["really"]], ["people", ["people"]], ["stayed", ["stayed"]], ["quiet", ["quiet"]],
+    ["landed", ["landed"]], ["finally", ["finally"]], ["because", ["because"]],
+    ["don't", ["don't"]], ["it’s", ["it’s"]], ["I've", ["I've"]], ["3.5", ["3.5"]], ["3.5", ["3", "5"]],
+    ["1,000", ["1,000"]], ["1,000", ["1000"]], ["$20", ["$20"]], ["$20", ["20"]], ["50%", ["50%"]],
+    ["9:30", ["9:30"]], ["2019", ["2019"]], ["five-minute", ["five-minute"]], ["five-minute", ["five", "minute"]],
+    ["U.S.", ["U.S."]], ["e.g.", ["e.g."]], ["café", ["café"]], ["naïve", ["naïve"]], ["日本", ["日本"]],
+    ["—", []], ["—", ["—"]], ["\"Why", ["Why"]], ["um,", ["um"]], ["Uh,", ["Uh"]], ["erm", ["erm"]],
+    ["like,", ["like"]], ["you", ["you"]], ["know,", ["know"]], ["basically,", ["basically"]],
+  ];
+  const ENDS = ["", "", "", "", "", ",", ".", ".", "?", "!", "...", "…", "...?", "?!", ".\"", ". . ."];
+  /** Gaps on and either side of every line the rules draw, and ordinary ones. */
+  const EDGES = [0.3, 0.29, 0.31, 0.8, 0.79, 0.81, 3.5, 3.49, 3.51];
+
+  interface Rough {
+    words: Word[];
+    segments: Segment[];
+    durationS: number;
+    voiced: number[];
+  }
+
+  function rough(seed: number): Rough {
+    const next = rng(seed);
+    const pick = <T,>(xs: T[]) => xs[Math.floor(next() * xs.length)];
+    const words: Word[] = [];
+    const segments: Segment[] = [];
+    let t = r2(next() * 1.5);
+    let prevEnd = 0;
+    const gapAfter = () => {
+      const r = next();
+      if (r < 0.08) return pick(EDGES);
+      if (r < 0.7) return 0.04 + next() * 0.2;
+      if (r < 0.8) return 0.3 + next() * 0.5;
+      if (r < 0.97) return 0.8 + next() * 2.7;
+      return 3.5 + next() * 2;
+    };
+    const segs = 3 + Math.floor(next() * 12);
+    for (let s = 0; s < segs; s++) {
+      const shown: string[] = [];
+      const first = words.length;
+      const n = 2 + Math.floor(next() * 12);
+      for (let k = 0; k < n; k++) {
+        const [text, forms] = pick(TOKENS);
+        const end = pick(ENDS);
+        shown.push(text + end);
+        const ownPunctuation = next() < 0.04;
+        forms.forEach((form, f) => {
+          const dur = r2(0.1 + next() * 0.5);
+          const word = ownPunctuation && f === forms.length - 1 ? form + end : form;
+          words.push({ word, start: t, end: r2(t + dur) });
+          // An um that ends exactly half a second before the next word starts.
+          const edge = /^(um|uh|erm)$/i.test(form) && next() < 0.3 ? 0.5 : null;
+          t = r2(t + dur + (edge ?? gapAfter()));
+        });
+      }
+      const d = next();
+      if (d < 0.05) shown.splice(Math.floor(next() * shown.length), 0, "actually");
+      else if (d < 0.09 && shown.length > 1) shown.splice(Math.floor(next() * shown.length), 1);
+      const mine = words.slice(first);
+      const firstStart = mine[0]?.start ?? t;
+      const w = next();
+      const start =
+        w < 0.4 ? r2(Math.max(0, firstStart - 0.04))
+        : w < 0.65 ? prevEnd
+        : w < 0.82 ? r2(Math.max(0, firstStart - next() * 1.6))
+        : r2(firstStart + next() * 1.4);
+      const end = r2((mine[mine.length - 1]?.end ?? firstStart) + next() * 0.3);
+      const text = next() < 0.03 ? "" : " " + shown.join(" ");
+      segments.push({ start, end, text });
+      if (next() < 0.04) segments.push({ start, end, text });
+      prevEnd = end;
+    }
+    const durationS = r2((words[words.length - 1]?.end ?? 0) + next() * 1.5);
+    const voiced = Array.from({ length: 40 }, (_, k) => k).filter(() => next() < 0.15);
+    return { words, segments, durationS, voiced };
+  }
+
+  /** The rule before #476, word by word: its own punctuation, or the next word starts a segment. */
+  function legacyStops(words: Word[], segments: Segment[]): boolean[] {
+    const segStarts = new Set(segments.map((s) => Math.round(s.start * 100)));
+    const startsSegment = (w: Word) => {
+      for (let ms = -5; ms <= 5; ms++) if (segStarts.has(Math.round(w.start * 100) + ms)) return true;
+      return false;
+    };
+    return words.map((w, i) => endsSentence(w.word) || (i + 1 < words.length && startsSegment(words[i + 1])));
+  }
+
+  /** Said without one held pause: beats only, so 20 under both rules. */
+  function rushed(): Rough {
+    const words = "We really stayed in the room because the point finally landed".split(" ").map((word, i) => ({
+      word,
+      start: r2(0.4 + i * 0.5),
+      end: r2(0.4 + i * 0.5 + (i % 3 === 0 ? 0.15 : 0.4)),
+    }));
+    const segments = [{ start: 0.36, end: 6.4, text: " We really stayed in the room, because the point finally landed." }];
+    return { words, segments, durationS: 7, voiced: [] };
+  }
+
+  /**
+   * Every line drawn exactly, in times a double holds exactly: an um that
+   * starts half a second after a pause ends and one that ends half a
+   * second before the next starts (both filled: the line is "within"), a
+   * 3.5s silence (held, not dead air: dead is past it), and a landing at
+   * exactly four fifths of the take (the ending).
+   */
+  function edges(): Rough {
+    const at = (word: string, start: number, end: number): Word => ({ word, start, end });
+    const words = [
+      ..."We really stayed in the room together".split(" ").map((w, k) => at(w, 0.5 + k * 0.5, 0.75 + k * 0.5)),
+      at("So", 4.75, 5), // 1.0s after "together."
+      at("um", 5.25, 5.5), // starts 0.5s after that pause ends
+      at("it", 5.5, 5.75),
+      at("stopped", 5.75, 6), // ends 0.5s after the um does
+      ..."Then the whole room went".split(" ").map((w, k) => at(w, 9.5 + k * 0.5, 9.75 + k * 0.5)), // 3.5s on
+      at("quiet", 11.75, 12),
+      at("And", 13, 13.25), // 1.0s on, at 12.0: four fifths of 15
+      at("it", 13.5, 13.75),
+      at("landed", 14, 14.25),
+    ];
+    const segments = [
+      { start: 0.46, end: 3.8, text: " We really stayed in the room together." },
+      { start: 4.71, end: 6.05, text: " So, um, it stopped." },
+      { start: 9.46, end: 12.05, text: " Then the whole room went quiet." },
+      { start: 12.96, end: 14.3, text: " And it landed." },
+    ];
+    return { words, segments, durationS: 15, voiced: [] };
+  }
+
+  const ROUGH = [...Array.from({ length: 120 }, (_, k) => rough(4760 + k)), rushed(), edges()];
+  const roughId = (k: number) => `00000000-0000-4000-9000-${String(k + 1).padStart(12, "0")}`;
+  let pg: PGlite;
+
+  function tsOf(r: Rough) {
+    const m = computeMetrics(r.words, r.durationS, r.segments);
+    const envelope = envelopeFor({ words: r.words, durationS: m.durationS }, r.voiced);
+    const now = (e: Envelope | null) =>
+      pauseReport({ pauses: m.pauses, words: r.words, fillers: m.fillers, durationS: m.durationS, segments: r.segments, envelope: e }).score;
+    const old = legacyPauses(r.words, r.segments);
+    const was = (e: Envelope | null) => legacyScore(legacyJudge(old, r.words, m.fillers, e), m.durationS);
+    return {
+      m,
+      stored: legacyJudge(old, r.words, m.fillers, envelope),
+      scores: { new: now(envelope), new_noenv: now(null), current: was(envelope), current_noenv: was(null) },
+    };
+  }
+  const TS = ROUGH.map(tsOf);
+
+  beforeAll(async () => {
+    pg = new PGlite();
+    await pg.exec(`
+      create schema tester_admin;
+      create table tester_admin.recordings (
+        rep_id uuid, user_id uuid, felt text, ethos_index int, pause_score numeric, spoken_on date
+      );
+      create table public.reps (id uuid, duration_s numeric, whisper_raw jsonb, pauses jsonb, fillers jsonb);
+    `);
+    for (const [k, r] of ROUGH.entries()) {
+      const { m, stored } = TS[k];
+      await pg.query(`insert into public.reps values ($1, $2, $3::jsonb, $4::jsonb, $5::jsonb)`, [
+        roughId(k),
+        m.durationS,
+        JSON.stringify({ text: "", words: r.words, segments: r.segments }),
+        JSON.stringify(stored),
+        JSON.stringify(m.fillers),
+      ]);
+      await pg.query(`insert into tester_admin.recordings values ($1, $2, null, 500, $3, '2026-11-09')`, [
+        roughId(k),
+        roughId(k % 5),
+        TS[k].scores.current,
+      ]);
+    }
+  }, 120_000);
+
+  afterAll(async () => {
+    await pg?.close();
+  });
+
+  const core = () => SQL.slice(0, SQL.indexOf(MARKER));
+
+  it("covers what it says it does", () => {
+    const texts = ROUGH.flatMap((r) => r.segments.map((s) => s.text)).join("|");
+    for (const shape of ["U.S.", "1,000", "it’s", "…", "...?", "?!", ". . .", "—", "日本"]) expect(texts).toContain(shape);
+    const aligned = ROUGH.map((r) => sentenceEnds(r.words, r.segments));
+    const segs = aligned.reduce((n, a) => n + a.segments, 0);
+    const lined = aligned.reduce((n, a) => n + a.aligned, 0);
+    // Most segments line up; enough do not that the fallback is exercised.
+    expect(lined / segs).toBeGreaterThan(0.5);
+    expect(segs - lined).toBeGreaterThan(50);
+    const gaps = ROUGH.flatMap((r) => r.words.slice(1).map((w, i) => r2(w.start - r.words[i].end)));
+    for (const edge of [0.3, 0.8, 3.5]) expect(gaps).toContain(edge);
+    expect(TS.some((x) => x.scores.new === 20)).toBe(true);
+    // The exact lines: both ums fill their pauses, 3.5s is held, and the
+    // landing at 12.0 of 15 lands the ending.
+    const e = ROUGH[ROUGH.length - 1];
+    const judged = pauseReport({
+      pauses: TS[ROUGH.length - 1].m.pauses, words: e.words, fillers: TS[ROUGH.length - 1].m.fillers,
+      durationS: 15, segments: e.segments,
+    });
+    expect(judged.pauses.filter((p) => p.verdict !== "beat").map((p) => `${p.t}:${p.verdict}`)).toEqual([
+      "3.75:filled", "6:filled", "12:landing",
+    ]);
+    expect(judged.landedTheEnding).toBe(true);
+    expect(TS.some((x) => x.scores.new !== x.scores.new_noenv)).toBe(true);
+  });
+
+  it("finds the same sentence ends, word by word, under both rules", async () => {
+    const res = await pg.query<{ rep_id: string; i: number; stop_new: boolean; stop_cur: boolean }>(
+      `${core()}\nselect rep_id, i, stop_new, stop_cur from wstop order by rep_id, i`
+    );
+    for (const [k, r] of ROUGH.entries()) {
+      const rows = res.rows.filter((x) => x.rep_id === roughId(k));
+      expect(rows.map((x) => x.stop_new), `recording ${k}, #476`).toEqual(sentenceEnds(r.words, r.segments).stops);
+      expect(rows.map((x) => x.stop_cur), `recording ${k}, before`).toEqual(legacyStops(r.words, r.segments));
+    }
+  });
+
+  it("gives every recording the TypeScript's four scores", async () => {
+    const res = await pg.query<{ rep_id: string; new: number; new_noenv: number; current: number; current_noenv: number }>(
+      `${core()}\nselect rep_id, new, new_noenv, current, current_noenv from per_recording order by rep_id`
+    );
+    expect(res.rows).toHaveLength(ROUGH.length);
+    for (const [k] of ROUGH.entries()) {
+      const row = res.rows.find((x) => x.rep_id === roughId(k))!;
+      const sql = { new: row.new, new_noenv: row.new_noenv, current: row.current, current_noenv: row.current_noenv };
+      expect(sql, `recording ${k}`).toEqual(TS[k].scores);
+    }
   });
 });

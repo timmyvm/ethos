@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SHAPED_TAKE, whisperTake } from "./__fixtures__/whisper-take";
+import { INDEX_WEIGHTS } from "./index-score";
 import { computeMetrics, detectFillers, detectPauses, type FillerHit, type Word } from "./metrics";
 import { pauseReport, reportJudged, DEAD_AIR_S, PENALTY_CAP, type JudgedPause, type PauseVerdict } from "./pause-quality";
 
@@ -395,6 +396,20 @@ describe("the score's parts (#476)", () => {
     ];
     expect(reportJudged(one, 60).score).toBe(63);
     expect(reportJudged(two, 120).score).toBe(63); // 53 and 33 before #476
+  });
+
+  it("leaves the Index's weights as they were: only the Pause dimension's input moves", () => {
+    expect(INDEX_WEIGHTS).toEqual({
+      pause: 150,
+      fillers: 100,
+      repairs: 50,
+      pace: 100,
+      range: 100,
+      structure: 150,
+      credibility: 150,
+      engagement: 100,
+      confidence: 100,
+    });
   });
 
   it("still scores a take with no held pause 20", () => {

@@ -24,7 +24,12 @@
 -- heard it, the transcript didn't." Both rule sets check it at the same
 -- point on the same gaps, so "new" and "current" read those stored notes
 -- as the envelope, and "new_noenv" and "current_noenv" ignore it: the
--- like-for-like pair.
+-- like-for-like pair. One caution on the notes: until #422's amendment
+-- on 6 Nov any envelope judged a pause, including the unmarked ones
+-- #422 then stopped trusting (a sample seconds off reads speech as a
+-- sound in the gap), so a note from 2 to 5 Nov may be a sound the phone
+-- placed wrong, and those takes' "new" can sit lower than today's route
+-- would score them. Read new_noenv against current_noenv first.
 --
 -- The rules (lib/sentence-ends.ts and lib/pause-quality.ts are the
 -- reference; lib/pause-replay.test.ts runs this file on Postgres over
@@ -279,9 +284,12 @@ shorts as (
   group by rep_id, pi
 ),
 -- The pauses as the take stored them: their verdicts, and the envelope's.
+-- Matched to the rebuilt gaps on the centisecond both were rounded to (an
+-- equality, so Postgres can hash it rather than compare every pair).
 stored_p as (
   select
-    s.rep_id, (sp ->> 't')::float8 as t, sp ->> 'verdict' as verdict, coalesce(sp ->> 'note', '') as note
+    s.rep_id, floor((sp ->> 't')::float8 * 100 + 0.5) as cs, sp ->> 'verdict' as verdict,
+    coalesce(sp ->> 'note', '') as note
   from scope s
   cross join lateral jsonb_array_elements(s.stored_pauses) as sp
 ),
@@ -291,7 +299,7 @@ stored_at as (
     bool_or(sp.verdict = 'filled' and sp.note like '%The mic heard it%') as voiced,
     min(sp.verdict) as stored_verdict
   from gaps p
-  join stored_p sp on sp.rep_id = p.rep_id and abs(sp.t - p.t) < 0.001
+  join stored_p sp on sp.rep_id = p.rep_id and sp.cs = floor(p.t * 100 + 0.5)
   group by p.rep_id, p.i
 ),
 facts as (

@@ -83,6 +83,50 @@ describe("a sentence end, from the segment text", () => {
   });
 });
 
+describe("more of Whisper's spellings", () => {
+  it("reads money, thousands, times and a curly apostrophe without a false stop", () => {
+    const words = said("it’s 1,000 people at $20 by 9:30");
+    const segments: Segment[] = [{ start: 0, end: 4, text: " It’s 1,000 people at $20 by 9:30." }];
+    expect(marked(words, sentenceEnds(words, segments).marks)).toBe("it’s 1,000 people at $20 by 9:30.");
+  });
+
+  it("takes ?! and a quoted question as ends, and a dash only the text has as nothing", () => {
+    const words = said("Why she asked we stopped then we went");
+    const segments: Segment[] = [{ start: 0, end: 4, text: ' "Why?" she asked. We stopped?! Then — we went…' }];
+    const { marks, aligned } = sentenceEnds(words, segments);
+    expect(aligned).toBe(1);
+    // "…" at the end of the segment is a trail-off, not a full stop.
+    expect(marked(words, marks)).toBe("Why. she asked. we stopped. then we went");
+  });
+
+  it("lines up a segment only within a second of its first word, and otherwise keeps the rule before", () => {
+    const words = said("we stopped then we went");
+    const text = " We stopped. Then we went.";
+    expect(sentenceEnds(words, [{ start: 0.9, end: 2, text }]).aligned).toBe(1);
+    const late = sentenceEnds(words, [{ start: 1.2, end: 2, text }]);
+    expect(late.aligned).toBe(0);
+    expect(marked(words, late.marks)).toBe("we? stopped? then? we? went?");
+  });
+
+  it("skips a segment with no text, and a segment Whisper repeats whole aligns once more to the same words", () => {
+    const words = said("we stopped okay");
+    const segments: Segment[] = [
+      { start: 0, end: 0.7, text: " We stopped." },
+      { start: 0, end: 0.7, text: " We stopped." },
+      { start: 0.8, end: 1.1, text: "" },
+    ];
+    const { marks, aligned } = sentenceEnds(words, segments);
+    expect(aligned).toBe(2);
+    expect(marked(words, marks)).toBe("we stopped. okay?");
+  });
+
+  it("reads an abbreviation's full stop as a sentence end: the known miss, pinned so a fix is a decision", () => {
+    const words = said("in the U.S. we stopped");
+    const segments: Segment[] = [{ start: 0, end: 3, text: " In the U.S. we stopped." }];
+    expect(marked(words, sentenceEnds(words, segments).marks)).toBe("in the U.S.. we stopped.");
+  });
+});
+
 describe("a segment whose text and words disagree", () => {
   const words = [...said("we had", 0), ...said("20 people stayed", 1.5), ...said("and then", 3.5)];
   const segments: Segment[] = [

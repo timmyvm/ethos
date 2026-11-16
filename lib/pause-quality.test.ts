@@ -2,7 +2,15 @@ import { describe, expect, it } from "vitest";
 import { SHAPED_TAKE, whisperTake } from "./__fixtures__/whisper-take";
 import { INDEX_WEIGHTS } from "./index-score";
 import { computeMetrics, detectFillers, detectPauses, type FillerHit, type Word } from "./metrics";
-import { pauseReport, reportJudged, DEAD_AIR_S, PENALTY_CAP, type JudgedPause, type PauseVerdict } from "./pause-quality";
+import {
+  pauseReport,
+  reportJudged,
+  DEAD_AIR_S,
+  MIC_FILLS_PAUSE,
+  PENALTY_CAP,
+  type JudgedPause,
+  type PauseVerdict,
+} from "./pause-quality";
 
 /**
  * Build a word stream from sentences with explicit gaps between them.
@@ -201,11 +209,15 @@ describe("the headline", () => {
  * engine as an empty stretch of timeline — and was being scored as
  * composure. The envelope closes that: silence you made a noise in is
  * not silence, whatever the transcript says.
+ *
+ * Off for new takes since #476 (`MIC_FILLS_PAUSE`: the trace ranked the
+ * cohort's recordings backwards), so these judge with `micFills` on: the
+ * path stays proved for the day it is switched back.
  */
 describe("gaps the mic heard a sound in", () => {
   const parts = [SENTENCE_A, 1.4, SENTENCE_B, 1.4, SENTENCE_C];
 
-  function withEnvelope(gapWasVoiced: boolean) {
+  function withEnvelope(gapWasVoiced: boolean, micFills: boolean | undefined = true) {
     const { words, durationS } = speech(parts);
     const pauses = detectPauses(words);
     // Loud speech throughout, with a floor of real silence so the rep
@@ -226,6 +238,7 @@ describe("gaps the mic heard a sound in", () => {
       fillers: [],
       durationS,
       envelope: { levels, rate },
+      micFills,
     });
   }
 
@@ -262,6 +275,64 @@ describe("gaps the mic heard a sound in", () => {
     });
     expect(base.filled).toBe(0);
     expect(base.landings).toBeGreaterThan(0);
+  });
+});
+
+/*
+ * #476: for a new take the trace fills no pause. Replayed over the tester
+ * cohort, it called 16.5% of held pauses voiced, mostly in the recordings
+ * people felt were their best, and turned the ranking backwards. A gap it
+ * calls voiced is judged on its words like any other: a landing if it is
+ * one. Only an um, uh or erm the transcript can point at fills it.
+ */
+describe("a new take's pauses and the phone's trace (#476)", () => {
+  const parts = [SENTENCE_A, 1.4, SENTENCE_B, 1.4, SENTENCE_C];
+
+  /** Every held gap loud in the trace, as the mic test's voiced take. */
+  function voicedTake(opts: { micFills?: boolean; fillers?: FillerHit[] } = {}) {
+    const { words, durationS } = speech(parts);
+    const pauses = detectPauses(words);
+    const rate = 20;
+    const levels = new Array(Math.ceil(durationS * rate) + 40).fill(0.5);
+    for (let i = levels.length - 40; i < levels.length; i++) levels[i] = 0.02;
+    for (const p of pauses.filter((x) => x.kind !== "beat")) {
+      for (let i = Math.round(p.t * rate); i < Math.round((p.t + p.len) * rate); i++) levels[i] = 0.3;
+    }
+    const input = { pauses, words, fillers: opts.fillers ?? [], durationS, envelope: { levels, rate, clock: true } };
+    return {
+      report: pauseReport("micFills" in opts ? { ...input, micFills: opts.micFills } : input),
+      words: pauseReport({ ...input, envelope: null }),
+      pauses,
+    };
+  }
+
+  it("is off by default", () => {
+    expect(MIC_FILLS_PAUSE).toBe(false);
+  });
+
+  it("judges a gap the trace calls voiced on its words: a landing if it is one", () => {
+    const { report, words } = voicedTake();
+    // The same gaps with the trace on are filled (the mic test above).
+    expect(voicedTake({ micFills: true }).report.filled).toBe(2);
+    expect(report.filled).toBe(0);
+    expect(report.landings).toBe(2);
+    expect(report.pauses).toEqual(words.pauses);
+    expect(report.score).toBe(words.score);
+    expect(report.pauses.some((p) => p.note.includes("The mic heard it"))).toBe(false);
+  });
+
+  it("says micFills false the same as the default", () => {
+    expect(voicedTake({ micFills: false }).report).toEqual(voicedTake().report);
+  });
+
+  it("still fills a voiced gap an um leans on, and says so by the um", () => {
+    const { pauses } = voicedTake();
+    const first = pauses.find((p) => p.kind !== "beat")!;
+    const { report } = voicedTake({ fillers: [{ word: "um", t: first.t + first.len + 0.1 }] });
+    expect(report.filled).toBe(1);
+    const filled = report.pauses.find((p) => p.verdict === "filled")!;
+    expect(filled.t).toBe(first.t);
+    expect(filled.note).toContain("filler leaning on it");
   });
 });
 

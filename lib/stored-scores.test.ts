@@ -50,7 +50,9 @@ const judgedDim = (score: number) => ({ score, citedMoment: '"the first thing"',
 /**
  * A row as the route stored it before #422: the pauses judged with the
  * envelope (gaps 1 and 2 voiced, so filled), and the Pause score judged
- * again from the words alone (both gaps landings).
+ * again from the words alone (both gaps landings). The trace filled
+ * pauses then; since #476 a new take's does not (`MIC_FILLS_PAUSE`), so
+ * the fixture judges with `micFills` on, as the route did.
  */
 function storedBefore(id: string, createdAt: string): RepRow {
   const tk = take();
@@ -69,6 +71,7 @@ function storedBefore(id: string, createdAt: string): RepRow {
     fillers: tk.metrics.fillers,
     durationS: tk.durationS,
     envelope: { levels, rate, clock: true },
+    micFills: true,
   });
   const tier1: Tier1Scores = {
     pause: pauseScore(shown.pauses, tk.durationS, tk.words, tk.metrics.fillers),

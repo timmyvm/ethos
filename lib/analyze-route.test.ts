@@ -1204,10 +1204,14 @@ describe("a game round", () => {
 
 /*
  * The pause score and the envelope (DECISIONS #422, #121). The take
- * judges its pauses once, with the envelope, and stores, shows and
- * scores those verdicts: a gap the stored pause list says had a sound in
- * it never scores as a landing, and a gap the phone did not hear keeps
- * the verdict its words give.
+ * judges its pauses once and stores, shows and scores those verdicts: a
+ * gap the stored pause list calls filled never scores as a landing.
+ *
+ * Since #476 a new take's trace fills no pause (`MIC_FILLS_PAUSE`): a
+ * pause is filled by an um, uh or erm beside it, and a gap the trace
+ * calls voiced keeps the verdict its words give. The envelope cases
+ * below (unheard, refitted, unmarked) hold the gate that stays in front
+ * of the trace for the day it is switched back on.
  */
 describe("the Index scores the pauses the take stores", () => {
   const SENTENCES = [
@@ -1218,14 +1222,20 @@ describe("the Index scores the pauses the take stores", () => {
     "She said the update finally sounded like a decision.",
     "That changed how I prepare for every single meeting now.",
   ];
-  /** Six sentences, a 1.3s held pause after each of the first five. */
-  const TAKE = (() => {
+  /**
+   * Six sentences, a 1.3s held pause after each of the first five, and an
+   * "um," said straight after the held pauses named in `ums`.
+   */
+  function takeWith(ums: number[]) {
     const words: { word: string; start: number; end: number }[] = [];
+    const said: string[] = [];
     const gaps: [number, number][] = [];
     let t = 0.5;
     SENTENCES.forEach((s, k) => {
-      for (const raw of s.split(" ")) {
+      const spoken = ums.includes(k - 1) ? ["um,", ...s.split(" ")] : s.split(" ");
+      for (const raw of spoken) {
         words.push({ word: words.length === 0 ? raw : ` ${raw}`, start: +t.toFixed(2), end: +(t + 0.3).toFixed(2) });
+        said.push(raw);
         t += 0.42;
       }
       if (k < SENTENCES.length - 1) {
@@ -1234,8 +1244,9 @@ describe("the Index scores the pauses the take stores", () => {
       }
     });
     const durationS = Math.ceil(t + 0.5);
-    return { text: SENTENCES.join(" "), durationS, words, segments: [], raw: {}, gaps };
-  })();
+    return { text: said.join(" "), durationS, words, segments: [], raw: {}, gaps };
+  }
+  const TAKE = takeWith([]);
 
   /** What the mic heard at t: speech, room tone in a gap, a swallowed "um" mid-gap in a voiced one. */
   function heard(t: number, voiced: number[]): number {
@@ -1258,9 +1269,9 @@ describe("the Index scores the pauses the take stores", () => {
   const dim = { score: 60, citedMoment: '"the first thing"', improve: "Open with the claim." };
   const TIER2 = { structure: dim, credibility: dim, engagement: dim, confidence: dim };
 
-  async function send(envelope: Envelope | null) {
+  async function send(envelope: Envelope | null, take: ReturnType<typeof takeWith> = TAKE) {
     vi.mocked(saveRep).mockClear();
-    vi.mocked(transcribe).mockResolvedValue(TAKE);
+    vi.mocked(transcribe).mockResolvedValue(take);
     vi.mocked(coachRep).mockResolvedValue({
       focus: "Hold the gap.",
       strength: "Five held pauses.",
@@ -1300,16 +1311,32 @@ describe("the Index scores the pauses the take stores", () => {
   })();
 
   it("stores an Index that scores the two pauses it calls filled as filled", async () => {
-    const sent = await send(clockEnvelope([1, 3]));
+    // An "um," straight after gaps 1 and 3.
+    const sent = await send(null, takeWith([1, 3]));
     const report = consistent(sent);
     expect(report.filled).toBe(2);
-    expect(sent.saved.metrics.pauses.filter((p) => p.verdict === "filled").map((p) => p.note)).toEqual([
-      expect.stringContaining("with a sound in it"),
-      expect.stringContaining("with a sound in it"),
+    const held = sent.saved.metrics.pauses.filter((p) => p.verdict !== "beat");
+    expect(held.map((p) => p.verdict)).toEqual(["landing", "filled", "landing", "filled", "landing"]);
+    expect(held.filter((p) => p.verdict === "filled").map((p) => p.note)).toEqual([
+      expect.stringContaining("filler leaning on it"),
+      expect.stringContaining("filler leaning on it"),
     ]);
     expect(sent.body.pauseHeadline).toMatch(/^2 of your "pauses" had a sound in them/);
-    // Below the words' own score, which read both gaps as landings.
+    // Below the same take said clean, where both gaps land.
     expect(sent.saved.tier1.pause).toBeLessThan(WORDS_ONLY);
+  });
+
+  it("judges a new take's voiced gaps on their words: the trace fills no pause (#476)", async () => {
+    // The phone heard a sound mid-gap in gaps 1 and 3, with no um beside either.
+    const voiced = await send(clockEnvelope([1, 3]));
+    const report = consistent(voiced);
+    expect(report.filled).toBe(0);
+    expect(voiced.saved.metrics.pauses.some((p) => p.note.includes("The mic heard it"))).toBe(false);
+    const none = await send(null);
+    expect(voiced.saved.metrics.pauses).toEqual(none.saved.metrics.pauses);
+    expect(voiced.saved.tier1).toEqual(none.saved.tier1);
+    expect(voiced.saved.ethosIndex).toBe(none.saved.ethosIndex);
+    expect(voiced.saved.tier1.pause).toBe(WORDS_ONLY);
   });
 
   it("scores a take with no voiced gap exactly as before", async () => {

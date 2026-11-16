@@ -295,6 +295,11 @@ describe("fillers and repairs are scored apart", () => {
  * without the envelope, so a gap the pause list called "with a sound in
  * it" scored as a landing: Pause 73 beside a headline saying two pauses
  * had a sound in them.
+ *
+ * Since #476 a new take's trace fills no pause (`MIC_FILLS_PAUSE`), so a
+ * new take's filled pauses here are an "um" said beside the gap. A take
+ * stored with the trace on (`micFills`) keeps verdicts that say "The mic
+ * heard it", and those still score as filled.
  */
 describe("tier1Scores reads the take's own pause verdicts", () => {
   const SENTENCES = [
@@ -305,11 +310,18 @@ describe("tier1Scores reads the take's own pause verdicts", () => {
     "She said the update finally sounded like a real decision.",
   ];
 
-  /** Five sentences with a 1.4s held pause after each of the first four. */
-  function take() {
+  /**
+   * Five sentences with a 1.4s held pause after each of the first four,
+   * and an "um," said straight after the held pauses named in `ums`.
+   */
+  function take(ums: number[] = []) {
     const words: Word[] = [];
     let t = 0.4;
     SENTENCES.forEach((s, k) => {
+      if (ums.includes(k - 1)) {
+        words.push({ word: " um,", start: t, end: t + 0.3 });
+        t += 0.38;
+      }
       for (const raw of s.split(" ")) {
         words.push({ word: ` ${raw}`, start: t, end: t + 0.3 });
         t += 0.38;
@@ -342,13 +354,15 @@ describe("tier1Scores reads the take's own pause verdicts", () => {
     return { levels, rate, clock: true };
   }
 
-  function judged(tk: ReturnType<typeof take>, env: ReturnType<typeof envelope> | null) {
+  /** The take's verdicts, as the route judges them; `micFills` as a take stored with the trace on. */
+  function judged(tk: ReturnType<typeof take>, env: ReturnType<typeof envelope> | null, micFills?: boolean) {
     return pauseReport({
       pauses: tk.metrics.pauses,
       words: tk.words,
       fillers: tk.metrics.fillers,
       durationS: tk.durationS,
       envelope: env,
+      ...(micFills === undefined ? {} : { micFills }),
     });
   }
 
@@ -360,23 +374,65 @@ describe("tier1Scores reads the take's own pause verdicts", () => {
   });
 
   it("scores a gap the take calls filled as filled, never as a landing", () => {
-    const tk = take();
-    const report = judged(tk, envelope(tk, [1, 2]));
+    const tk = take([1, 2]);
+    const report = judged(tk, null);
     expect(report.filled).toBe(2);
+    expect(report.landings).toBe(2);
+    const held = report.pauses.filter((p) => p.verdict !== "beat");
+    expect(held.map((p) => p.verdict)).toEqual(["landing", "filled", "filled", "landing"]);
+    expect(held[1].note).toContain("filler leaning on it");
     const scored = tier1Scores(tk.metrics, tk.words, [], report.pauses);
     // The same number the take's own report gives, from the same verdicts.
     expect(scored.pause).toBe(report.score);
     expect(scored.pause).toBe(reportJudged(report.pauses, tk.durationS).score);
-    // Lower than the words alone give, which read both gaps as landings.
-    expect(scored.pause).toBeLessThan(tier1Scores(tk.metrics, tk.words, []).pause);
+    // Lower than the same take said clean, where both gaps land.
+    const clean = take();
+    expect(scored.pause).toBeLessThan(tier1Scores(clean.metrics, clean.words, [], judged(clean, null).pauses).pause);
   });
 
-  it("costs more with every voiced gap", () => {
+  it("costs more with every filled gap", () => {
+    const scores = [[], [1], [1, 2], [0, 1, 2]].map((ums) => {
+      const tk = take(ums);
+      const report = judged(tk, null);
+      expect(report.filled).toBe(ums.length);
+      return tier1Scores(tk.metrics, tk.words, [], report.pauses).pause;
+    });
+    for (let k = 1; k < scores.length; k++) expect(scores[k]).toBeLessThan(scores[k - 1]);
+  });
+
+  it("scores a stored verdict the mic called filled as filled", () => {
+    // Stored before #476, judged with the trace on: gaps 1 and 2 voiced.
+    const tk = take();
+    const stored = judged(tk, envelope(tk, [1, 2]), true);
+    expect(stored.filled).toBe(2);
+    expect(stored.pauses.filter((p) => p.verdict === "filled").map((p) => p.note)).toEqual([
+      expect.stringContaining("The mic heard it"),
+      expect.stringContaining("The mic heard it"),
+    ]);
+    const scored = tier1Scores(tk.metrics, tk.words, [], stored.pauses);
+    expect(scored.pause).toBe(stored.score);
+    expect(scored.pause).toBe(reportJudged(stored.pauses, tk.durationS).score);
+    // Lower than the words alone give, which read both gaps as landings.
+    expect(scored.pause).toBeLessThan(tier1Scores(tk.metrics, tk.words, []).pause);
+    // The same filled count an um beside each gap gives, and the same score.
+    const ums = take([1, 2]);
+    expect(scored.pause).toBe(tier1Scores(ums.metrics, ums.words, [], judged(ums, null).pauses).pause);
+  });
+
+  it("costs more with every gap the mic called voiced, stored that way", () => {
     const tk = take();
     const scores = [[], [1], [1, 2], [0, 1, 2]].map(
-      (v) => tier1Scores(tk.metrics, tk.words, [], judged(tk, envelope(tk, v)).pauses).pause
+      (v) => tier1Scores(tk.metrics, tk.words, [], judged(tk, envelope(tk, v), true).pauses).pause
     );
     for (let k = 1; k < scores.length; k++) expect(scores[k]).toBeLessThan(scores[k - 1]);
+  });
+
+  it("scores a new take's voiced gaps on their words: the trace fills none (#476)", () => {
+    const tk = take();
+    const report = judged(tk, envelope(tk, [0, 1, 2]));
+    expect(report.filled).toBe(0);
+    expect(report.pauses).toEqual(judged(tk, null).pauses);
+    expect(tier1Scores(tk.metrics, tk.words, [], report.pauses)).toEqual(tier1Scores(tk.metrics, tk.words, []));
   });
 
   it("keeps the words' verdict where there is no envelope", () => {
@@ -390,7 +446,7 @@ describe("tier1Scores reads the take's own pause verdicts", () => {
   it("keeps the words' verdict for a gap the phone never heard, however loud the rest", () => {
     const tk = take();
     // Gaps 1 and 2 would be voiced, but the phone has no samples for them.
-    const report = judged(tk, envelope(tk, [1, 2], [1, 2]));
+    const report = judged(tk, envelope(tk, [1, 2], [1, 2]), true);
     expect(report.filled).toBe(0);
     expect(report.pauses.map((p) => p.verdict)).toEqual(judged(tk, null).pauses.map((p) => p.verdict));
     expect(tier1Scores(tk.metrics, tk.words, [], report.pauses).pause).toBe(
@@ -400,7 +456,7 @@ describe("tier1Scores reads the take's own pause verdicts", () => {
 
   it("moves nothing on a take with no voiced gap", () => {
     const tk = take();
-    const report = judged(tk, envelope(tk));
+    const report = judged(tk, envelope(tk), true);
     expect(report.filled).toBe(0);
     expect(report.pauses.map((p) => p.verdict)).toEqual(judged(tk, null).pauses.map((p) => p.verdict));
     expect(tier1Scores(tk.metrics, tk.words, [], report.pauses)).toEqual(
@@ -411,7 +467,8 @@ describe("tier1Scores reads the take's own pause verdicts", () => {
   it("moves no other dimension, and no star", () => {
     const tk = take();
     const before = tier1Scores(tk.metrics, tk.words, []);
-    const after = tier1Scores(tk.metrics, tk.words, [], judged(tk, envelope(tk, [0, 1, 2])).pauses);
+    const after = tier1Scores(tk.metrics, tk.words, [], judged(tk, envelope(tk, [0, 1, 2]), true).pauses);
+    expect(after.pause).toBeLessThan(before.pause);
     expect({ ...after, pause: 0 }).toEqual({ ...before, pause: 0 });
     expect(tk.metrics.stars).toBe(computeMetrics(tk.words, tk.durationS, []).stars);
   });

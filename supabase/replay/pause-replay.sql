@@ -9,6 +9,20 @@
 -- returns aggregates only: no transcript, no word, no id. Stored scores
 -- stay as they are; this only reads them.
 --
+-- What ships is new_noenv (DECISIONS #476, 16 Nov): a new take's pauses
+-- are judged without the phone's trace (MIC_FILLS_PAUSE false in
+-- lib/pause-quality.ts), so a pause is filled only by an um, uh or erm
+-- beside it. Why, from this file run on production on 16 Nov (aggregates
+-- only): from 6 Nov (after #422's amendment, 67 recordings) new_noenv
+-- scored a median 60 with 25% under 40, felt strong +10.1 against the
+-- person's own mean and a within-person correlation with felt of +0.23;
+-- new scored a median 48 with 39% under 40, felt strong -6.3 and -0.18.
+-- The trace called 16.5% of held pauses voiced, mostly in the recordings
+-- that felt best. Over all 108 (2 to 15 Nov): new_noenv a median 56 and
+-- +0.31, new a median 20 and -0.10. "new" keeps its name and stays #476
+-- with the trace read from the notes (micFills true in
+-- lib/pause-replay.test.ts), for the day the trace is read again.
+--
 -- From the stored columns: reps.whisper_raw (`words[]` {word, start,
 -- end} and `segments[]` {text, start, end}, exactly what the route
 -- scored), reps.fillers ([{word, t}], t the filler's start), reps.pauses
@@ -56,7 +70,7 @@
 --   stored          the Pause score each recording stored
 --   current_noenv   the rules before #476, without the envelope
 --   current         the rules before #476, the envelope from the notes
---   new_noenv       #476's rules, without the envelope
+--   new_noenv       #476's rules, without the envelope: what ships
 --   new             #476's rules, the envelope from the notes
 -- The checks: "share equal to stored" should be near 1 for current (a
 -- recording scored before #422 on 6 Nov stored its words-only score, so a

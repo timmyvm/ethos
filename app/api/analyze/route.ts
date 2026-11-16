@@ -403,7 +403,9 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
   // the review sampled about 17 a second under a label of 20
   // (lib/envelope.ts). The pauses are judged only on one the phone
   // sampled on the take's clock (`pauseEnvelope`): an unmarked one,
-  // refitted or not, judges none.
+  // refitted or not, judges none. And since #476 not even that one fills
+  // a pause (`MIC_FILLS_PAUSE`, off): it is passed so that turning the
+  // trace back on is one line, and judges nothing until then.
   const sent = parseEnvelope(field(form, "envelope"));
   const envelope = fitEnvelopeRate(sent, transcription.durationS);
   const pauses = pauseReport({

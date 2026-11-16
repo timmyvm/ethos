@@ -6,7 +6,7 @@ import { SHAPED_TAKE, whisperTake, type SpokenSegment, type WhisperTake } from "
 import { calibrate, classifyGap, type Envelope } from "./envelope";
 import { dimensionPoints } from "./index-score";
 import { computeMetrics, type FillerHit, type Pause, type Segment, type Word } from "./metrics";
-import { pauseReport, type PauseVerdict } from "./pause-quality";
+import { MIC_FILLS_PAUSE, pauseReport, type PauseVerdict } from "./pause-quality";
 import { sentenceEnds } from "./sentence-ends";
 
 /*
@@ -17,9 +17,11 @@ import { sentenceEnds } from "./sentence-ends";
  * aggregates. Here it runs on Postgres (PGlite, every migration applied,
  * so tester_admin.recordings is the real view) over synthetic recordings
  * stored the way the route stores them, and each recording's numbers from
- * its per-recording core must equal the TypeScript's: #476's scorer for
- * "new", and the scorer before #476 (`legacy` below) for "current". The
- * aggregate must read only aggregates, and the file must write nothing.
+ * its per-recording core must equal the TypeScript's: #476's scorer with
+ * the trace allowed to fill a pause (`micFills: true`) for "new", the same
+ * scorer as it ships (`MIC_FILLS_PAUSE`, off) for "new_noenv", and the
+ * scorer before #476 (`legacy` below) for "current". The aggregate must
+ * read only aggregates, and the file must write nothing.
  */
 
 const ROOT = path.resolve(__dirname, "..");
@@ -310,19 +312,40 @@ function recordings(): Recording[] {
 
 const RECORDINGS = recordings();
 
+/**
+ * #476's score for a take, the phone's trace passed as the route passes
+ * it. `micFills` true is the SQL's "new" (the trace read from the stored
+ * notes); left to the default, `MIC_FILLS_PAUSE` (off), it is "new_noenv",
+ * the rule that ships.
+ */
+function newScoreOf(
+  take: { words: Word[]; segments: Segment[] },
+  m: ReturnType<typeof computeMetrics>,
+  envelope: Envelope | null,
+  micFills?: boolean
+): number {
+  return pauseReport({
+    pauses: m.pauses,
+    words: take.words,
+    fillers: m.fillers,
+    durationS: m.durationS,
+    segments: take.segments,
+    envelope,
+    ...(micFills === undefined ? {} : { micFills }),
+  }).score;
+}
+
 /** The scores the TypeScript gives one recording. */
 function scoresOf(r: Recording) {
   const { words, segments, durationS } = r.take;
   const m = computeMetrics(words, durationS, segments);
-  const now = (envelope: Envelope | null) =>
-    pauseReport({ pauses: m.pauses, words, fillers: m.fillers, durationS: m.durationS, segments, envelope }).score;
   const old = legacyPauses(words, segments);
   const was = (envelope: Envelope | null) => legacyScore(legacyJudge(old, words, m.fillers, envelope), m.durationS);
   const storedPauses = legacyJudge(old, words, m.fillers, r.envelope);
   return {
     metrics: m,
-    newScore: now(r.envelope),
-    newNoEnv: now(null),
+    newScore: newScoreOf(r.take, m, r.envelope, true),
+    newNoEnv: newScoreOf(r.take, m, r.envelope),
     current: was(r.envelope),
     currentNoEnv: was(null),
     storedPauses,
@@ -425,6 +448,13 @@ async function perRecording() {
 describe("the replay's per-recording core", () => {
   it("is built on synthetic recordings of every kind", () => {
     expect(RECORDINGS.length).toBeGreaterThanOrEqual(20);
+    // "new_noenv" is what ships: the trace passed and left out, as with none.
+    expect(MIC_FILLS_PAUSE).toBe(false);
+    for (const r of RECORDINGS) {
+      const e = EXPECTED.get(r.name)!;
+      expect(e.newNoEnv, r.name).toBe(newScoreOf(r.take, e.metrics, null, true));
+      expect(e.newNoEnv, r.name).toBe(newScoreOf(r.take, e.metrics, r.envelope, false));
+    }
     // The shaped take (lib/__fixtures__/whisper-take.ts), both ways.
     expect(EXPECTED.get("shaped")).toMatchObject({ newScore: 73, current: 26, stored: 26 });
     const scores = [...EXPECTED.values()];
@@ -457,6 +487,7 @@ describe("the replay's per-recording core", () => {
     }
     // Not merely within a point: the same doubles, the same numbers.
     expect(rows.map((x) => x.new)).toEqual(RECORDINGS.map((r) => EXPECTED.get(r.name)!.newScore));
+    expect(rows.map((x) => x.new_noenv)).toEqual(RECORDINGS.map((r) => EXPECTED.get(r.name)!.newNoEnv));
   });
 
   it("reads the envelope back only from the notes it wrote", async () => {
@@ -692,14 +723,17 @@ describe("the replay on Whisper's rougher shapes", () => {
   function tsOf(r: Rough) {
     const m = computeMetrics(r.words, r.durationS, r.segments);
     const envelope = envelopeFor({ words: r.words, durationS: m.durationS }, r.voiced);
-    const now = (e: Envelope | null) =>
-      pauseReport({ pauses: m.pauses, words: r.words, fillers: m.fillers, durationS: m.durationS, segments: r.segments, envelope: e }).score;
     const old = legacyPauses(r.words, r.segments);
     const was = (e: Envelope | null) => legacyScore(legacyJudge(old, r.words, m.fillers, e), m.durationS);
     return {
       m,
       stored: legacyJudge(old, r.words, m.fillers, envelope),
-      scores: { new: now(envelope), new_noenv: now(null), current: was(envelope), current_noenv: was(null) },
+      scores: {
+        new: newScoreOf(r, m, envelope, true),
+        new_noenv: newScoreOf(r, m, envelope),
+        current: was(envelope),
+        current_noenv: was(null),
+      },
     };
   }
   const TS = ROUGH.map(tsOf);

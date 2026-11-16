@@ -72,8 +72,10 @@ export function ScoringStage({
   return (
     /* The column's whole height: the panel at the top, the stages at the
        foot, and the words taking what is left between them, so the room
-       goes to what was said rather than to ground (#368). */
-    <div className="arrive flex w-full flex-1 flex-col items-center" role="status">
+       goes to what was said rather than to ground (#368). Only the stages
+       are a live region: the words are read where they stand, never
+       announced whole when they land (#472 review). */
+    <div data-scoring-wait className="arrive flex w-full flex-1 flex-col items-center">
       {/* One warm panel, the topic card's ground (review, 25 Sep: the
           card's colour stopped at this screen): the length on the left,
           Demos standing on the recording itself, which runs along the
@@ -130,24 +132,26 @@ export function ScoringStage({
 
       <Words early={wait.early} />
 
-      {attempt > 0 ? (
-        <div className="arrive mt-5 flex max-w-[260px] shrink-0 flex-col items-center text-center">
-          <p className="text-body font-semibold">
-            Still sending. The recording is safe on this device.
-          </p>
-          {leave && (
-            <Link href={leave.href} className="text-link mt-3 text-terracotta-700">
-              Back to {leave.label}
-            </Link>
-          )}
-        </div>
-      ) : (
-        <ol className="mt-5 w-full shrink-0" aria-label="Scoring">
-          {rows.map((r) => (
-            <Row key={r.key} row={r} />
-          ))}
-        </ol>
-      )}
+      <div role="status" className="mt-5 flex w-full shrink-0 flex-col items-center">
+        {attempt > 0 ? (
+          <div className="arrive flex max-w-[260px] flex-col items-center text-center">
+            <p className="text-body font-semibold">
+              Still sending. The recording is safe on this device.
+            </p>
+            {leave && (
+              <Link href={leave.href} className="text-link mt-3 text-terracotta-700">
+                Back to {leave.label}
+              </Link>
+            )}
+          </div>
+        ) : (
+          <ol className="w-full" aria-label="Scoring">
+            {rows.map((r) => (
+              <Row key={r.key} row={r} />
+            ))}
+          </ol>
+        )}
+      </div>
     </div>
   );
 }
@@ -166,10 +170,10 @@ function Words({ early }: { early: EarlyRead | null }) {
   );
   return (
     /* The room is the column's leftover height (its words are laid over
-       it, so a long take never pushes the stages off the screen). Read
-       where it stands, never announced whole: the stages' rows are the
-       wait's live news. */
-    <div className="wait-words relative mt-5 w-full flex-1" aria-live="off">
+       it, so a long take never pushes the stages off the screen). Outside
+       the stages' live region: read where it stands, never announced
+       whole; the stages' rows are the wait's live news. */
+    <div className="wait-words relative mt-5 w-full flex-1">
       <div className="wait-words-in absolute inset-0">
       {pieces.length > 0 ? (
         <p className="wait-words-text arrive">

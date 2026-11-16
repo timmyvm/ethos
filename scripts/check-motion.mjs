@@ -247,7 +247,9 @@ a = await anim(page, "main .arrive");
 ok("recording phase arrives as one block", a.name === "arrive", a.name);
 await sleep(3000);
 await page.click('button[aria-label="Stop and score this recording"]', { force: true });
-await page.waitForSelector('[role="status"].arrive');
+/* The wait arrives as one block; since #472 only its stages are the live
+   region, so the block is found by its own hook. */
+await page.waitForSelector('[data-scoring-wait].arrive:has([role="status"])');
 ok("scoring wait arrives", true);
 const dialogP = page.waitForSelector('[role="dialog"][aria-label="1 day in a row"]', { timeout: 8000 });
 await page.waitForSelector("main .arrive-x", { timeout: 8000 });

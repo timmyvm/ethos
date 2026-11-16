@@ -81,6 +81,16 @@ export function waitRows(state: WaitState, { boss = false }: { boss?: boolean } 
   const wordsState = step("received", "reading");
   const measured: RowState = e ? "past" : "next";
   const readState: RowState = e && !e.reads ? "skip" : step("reading", "saving");
+  /* A read that is not coming says why in words: the dash beside it is
+     a shape, and a shape is never the whole message (DESIGN principle
+     10). Too little speech to judge, or no read left: the Log's "Demos's
+     full read is back tomorrow" (components/RepResult.tsx). */
+  const skipped = readState === "skip";
+  const readLabel = !skipped
+    ? "Demos reads it"
+    : e?.scorable
+      ? "Demos's read is back tomorrow"
+      : "Not enough for Demos to read";
   const rows: WaitRow[] = [
     { key: "send", label: sendState === "past" ? "Sent" : "Sending", value: null, state: sendState },
     {
@@ -91,10 +101,15 @@ export function waitRows(state: WaitState, { boss = false }: { boss?: boolean } 
     },
     { key: "fillers", label: "Fillers", value: e ? fillerValue(e) : null, state: measured },
     { key: "pace", label: "Pace", value: e ? `${Math.round(e.wpm)} words a minute` : null, state: measured },
-    { key: "read", label: "Demos reads it", value: null, state: readState },
+    { key: "read", label: readLabel, value: null, state: readState },
   ];
   if (boss) {
-    rows.push({ key: "claims", label: "Checking your claims", value: null, state: readState });
+    rows.push({
+      key: "claims",
+      label: skipped ? "Claims not checked" : "Checking your claims",
+      value: null,
+      state: readState,
+    });
   }
   rows.push({ key: "save", label: "Saving", value: null, state: at >= rank("saving") ? "now" : "next" });
   return rows;

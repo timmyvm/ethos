@@ -12,7 +12,7 @@ import { StageChip } from "@/components/ui/HeroStage";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { TraitId } from "@/content/traits";
 import { artBox, objectSrc, type CardFace } from "@/lib/home";
-import { spinForAnswers } from "@/lib/portfolio";
+import { passingForAnswers, spinForAnswers } from "@/lib/portfolio";
 import { TOPIC_SHAPES, type Topic } from "@/lib/topics";
 
 /** The roulette, run inside the card (#393's fix round). */
@@ -343,10 +343,13 @@ export function HomeHero({
  * The way back stays under the card, in the app's back grammar.
  */
 function RouletteBody({ topic, onSpin, onTake, headRef, back }: HeroRoulette) {
-  /* The wheel is components/Reel.tsx (#278), shared with the boss's. */
+  /* The wheel is components/Reel.tsx (#278), shared with the boss's.
+     Its landing is drawn from what this device has not been shown
+     (#473); what flashes past on the way is not. */
   const reel = useReel<Topic>({
     current: topic,
-    draw: (exclude) => spinForAnswers(exclude),
+    draw: (onScreen) => spinForAnswers(onScreen),
+    pass: passingForAnswers,
     onLand: onSpin,
   });
   /*

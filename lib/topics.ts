@@ -87,6 +87,62 @@ export const TOPICS: Topic[] = [
   { id: "t18", prompt: "Pitch yourself for a job you're not qualified for", shape: "pitch", not: ["school"] },
   { id: "t19", prompt: "Pitch a change your workplace or school should make", shape: "pitch" },
   { id: "t20", prompt: "Pitch the last thing you spent real money on", shape: "pitch" },
+  /*
+   * The second forty (#473). The test's roulette cycled: "it kept
+   * cycling over the same ones", "I always get the same few when
+   * rerolling", and Spin again was tapped 15 times by three people on
+   * one day. Written for someone 16 to 28 who wants more, and held to
+   * the rule above: answerable cold in 60 to 90 seconds, by anyone, with
+   * nothing to look up, no money to have spent and no job to have held,
+   * so none of them leaves a pool. The shapes take turns, opinion,
+   * story, explain, pitch, so the path's slice of each tier
+   * (content/path.ts) gets both of that tier's shapes, whichever trait
+   * it is cut for. The longest is 48 characters, and each was measured
+   * holding Today's card in three lines at 375 and 390 and the reel's
+   * four-line window at 320 (scripts/look-topics.mjs `fit`, its numbers
+   * in docs/look/topics/after/fit.json): characters are only a proxy,
+   * so a new topic is measured, not counted.
+   */
+  { id: "t21", prompt: "Whether phones belong in classrooms", shape: "opinion" },
+  { id: "t22", prompt: "A time you stood up for someone", shape: "story" },
+  { id: "t23", prompt: "Explain how to make your favourite meal", shape: "explain" },
+  { id: "t24", prompt: "Pitch a new public holiday", shape: "pitch" },
+  { id: "t25", prompt: "Whether talent or effort matters more", shape: "opinion" },
+  { id: "t26", prompt: "A time you were properly lost", shape: "story" },
+  { id: "t27", prompt: "Explain the rules of a game you know well", shape: "explain" },
+  { id: "t28", prompt: "Pitch a club you'd want to start", shape: "pitch" },
+  { id: "t29", prompt: "The skill school should teach and doesn't", shape: "opinion" },
+  { id: "t30", prompt: "Something you taught yourself", shape: "story" },
+  { id: "t31", prompt: "Explain how you'd pack for a week away", shape: "explain" },
+  { id: "t32", prompt: "Pitch a habit you swear by", shape: "pitch" },
+  { id: "t33", prompt: "Whether you need a five-year plan", shape: "opinion" },
+  { id: "t34", prompt: "The hardest thing you've ever finished", shape: "story" },
+  { id: "t35", prompt: "Explain how a group chat falls apart", shape: "explain" },
+  { id: "t36", prompt: "Pitch an app that doesn't exist yet", shape: "pitch" },
+  { id: "t37", prompt: "The most underrated app on your phone", shape: "opinion" },
+  { id: "t38", prompt: "The kindest thing a stranger did for you", shape: "story" },
+  { id: "t39", prompt: "Explain how you decide what to watch next", shape: "explain" },
+  { id: "t40", prompt: "Pitch a fix for something that annoys everyone", shape: "pitch" },
+  { id: "t41", prompt: "A trend you hope disappears", shape: "opinion" },
+  { id: "t42", prompt: "Your first day somewhere new", shape: "story" },
+  { id: "t43", prompt: "Explain how to start talking to a stranger", shape: "explain" },
+  { id: "t44", prompt: "Pitch a game to someone who doesn't play games", shape: "pitch" },
+  { id: "t45", prompt: "Whether morning people really get more done", shape: "opinion" },
+  { id: "t46", prompt: "A day that didn't go to plan", shape: "story" },
+  { id: "t47", prompt: "Explain how you learn something new fast", shape: "explain" },
+  { id: "t48", prompt: "Pitch someone you know for an award", shape: "pitch" },
+  { id: "t49", prompt: "A food everyone loves that you don't", shape: "opinion" },
+  { id: "t50", prompt: "The last time you laughed until it hurt", shape: "story" },
+  { id: "t51", prompt: "Explain how you'd teach someone to ride a bike", shape: "explain" },
+  { id: "t52", prompt: "Pitch a four-day week", shape: "pitch" },
+  { id: "t53", prompt: "The best way to spend a free Sunday", shape: "opinion" },
+  { id: "t54", prompt: "A time you changed someone's mind", shape: "story" },
+  { id: "t55", prompt: "Explain how to tell if a news story is true", shape: "explain" },
+  { id: "t56", prompt: "Pitch your favourite season", shape: "pitch" },
+  { id: "t57", prompt: "Whether to be great at one thing or good at many", shape: "opinion" },
+  { id: "t58", prompt: "Something you made or fixed with your hands", shape: "story" },
+  { id: "t59", prompt: "Explain what makes a good teacher", shape: "explain" },
+  { id: "t60", prompt: "Pitch a song everyone should hear once", shape: "pitch" },
 ];
 
 /**

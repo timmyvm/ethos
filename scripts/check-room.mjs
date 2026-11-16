@@ -22,6 +22,9 @@
  *   click      a press that is not a finger's (a screen reader's double
  *              tap, a mouse) opens the room on its click
  *   frames     no frame loop runs while nothing moves
+ *   places     a finished walk, and a walk left part way through the
+ *              old three-screen pitch, never land on the room or off
+ *              their place
  *
  * Against a production build (the room's timings are real: the walk
  * takes about two and a half minutes):
@@ -147,8 +150,17 @@ async function open({ wav = wavs.speaking, width = 390, height = 844, reduced = 
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
+  /* Everything the page sends that is not a read of the app's own pages
+     and files (an API, the database, anyone else, any write): the room
+     must send nothing. */
+  const sent = [];
+  page.on("request", (r) => {
+    const u = new URL(r.url());
+    const own = u.origin === new URL(BASE).origin && r.method() === "GET" && !u.pathname.startsWith("/api/");
+    if (!own) sent.push(`${r.method()} ${u.origin}${u.pathname}`);
+  });
   const cdp = await context.newCDPSession(page);
-  return { browser, context, page, cdp, errors };
+  return { browser, context, page, cdp, errors, sent };
 }
 
 const room = (page) =>
@@ -172,6 +184,14 @@ async function hold(page, cdp, ms = 950) {
   return fill;
 }
 
+/* Demos's bubble, whole, stands clear of Next: never over it. */
+const clearOfNext = (page) =>
+  page.evaluate(() => {
+    const b = document.querySelector(".room-demos-bubble")?.getBoundingClientRect();
+    const n = [...document.querySelectorAll("main.room button")].find((x) => x.textContent === "Next")?.getBoundingClientRect();
+    return b && n ? { gap: Math.round(n.top - b.bottom), clear: b.bottom <= n.top } : { gap: null, clear: false };
+  });
+
 const tiltTo = (page, beta, gamma) =>
   page.evaluate(
     ([beta, gamma]) => window.dispatchEvent(new DeviceOrientationEvent("deviceorientation", { alpha: 0, beta, gamma })),
@@ -188,7 +208,7 @@ const digits = (page) =>
 
 /* ------------------------------------------------------------------ */
 if (want("speaking")) {
-  const { browser, page, cdp, errors } = await open();
+  const { browser, page, cdp, errors, sent } = await open();
   await page.goto(`${BASE}/`);
   await page.waitForURL(/\/welcome/, { timeout: 20_000 });
   await page.waitForSelector("[data-room-hold]");
@@ -205,6 +225,7 @@ if (want("speaking")) {
   ok("and the fill empties again", (await page.$eval("[data-room-hold]", (b) => Number(b.style.getPropertyValue("--hold") || 0))) < 0.05);
   ok("nothing was asked for by a tap", (await log(page)).opened === 0);
 
+  const sentAtDoor = sent.length;
   const filled = await hold(page, cdp, 950);
   ok("held, it fills all the way", filled >= 0.99, filled.toFixed(2));
   await page.waitForFunction(() => document.querySelector("main.room")?.dataset.stage === "scene", null, { timeout: 3000 }).catch(() => {});
@@ -267,6 +288,8 @@ if (want("speaking")) {
   const r = await log(page);
   const end = await room(page);
   ok("steady speech is alright", end?.verdict === "alright", end?.verdict);
+  const clear390 = await clearOfNext(page);
+  ok("Demos's bubble stands clear of Next", clear390.clear, `${clear390.gap}px`);
   ok("Demos says so, then what if it was real", (r.demos.at(-1) ?? "").trim() === "That was alright.What if that was real?" || /That was alright\.\s*What if that was real\?/.test(r.demos.at(-1) ?? ""), r.demos.at(-1));
   for (const line of LINES) {
     const partial = r.bubble.filter((t) => t.length < line.length && line.startsWith(t) && t.length > 0);
@@ -280,6 +303,8 @@ if (want("speaking")) {
   ok("the mic opened for the two turns and the ask, nothing more", r.opened === 3, String(r.opened));
   ok("the room shows no number", (await digits(page)) === "", await digits(page));
   ok("the scene over, no mic track is live", r.live === 0, String(r.live));
+  const asked = sent.slice(sentAtDoor);
+  ok("from the lift to Demos's Next, nothing was sent anywhere", asked.length === 0, asked.slice(0, 4).join(" | "));
   const f0 = (await log(page)).frames;
   await sleep(1500);
   const idle = (await log(page)).frames - f0;
@@ -333,7 +358,8 @@ if (want("notnow")) {
 
 /* ------------------------------------------------------------------ */
 if (want("denied")) {
-  const { browser, page, cdp, errors } = await open({ deny: true, motion: "denied" });
+  /* At the smallest phone: his line wraps the most there. */
+  const { browser, page, cdp, errors } = await open({ deny: true, motion: "denied", width: 320, height: 568 });
   await page.goto(`${BASE}/welcome`);
   await page.waitForSelector("[data-room-hold]");
   await hold(page, cdp, 950);
@@ -346,6 +372,8 @@ if (want("denied")) {
   ok("mic denied: no turn ever opened", r.opened === 0 && !r.said.includes("Your turn"), JSON.stringify(r.said));
   ok("mic denied: Demos says it plainly", /I couldn't hear you, so let's get you set up\./.test(r.demos.at(-1) ?? ""), r.demos.at(-1));
   ok("mic denied: and no verdict is made up", (await room(page))?.verdict === undefined);
+  const clear320 = await clearOfNext(page);
+  ok("mic denied: at 320x568 his bubble stands clear of Next", clear320.clear, `${clear320.gap}px`);
   ok("motion denied: nothing is said about it", !r.said.some((s) => /motion|tilt/i.test(s)));
   await page.getByRole("button", { name: "Next", exact: true }).click();
   await page.waitForFunction(() => /What do I call you\?/.test(document.querySelector("main h1")?.textContent ?? ""), null, { timeout: 5000 }).catch(() => {});
@@ -506,6 +534,35 @@ if (want("frames")) {
   ok("frames: once the room has landed it stops again", still <= 3, `${still} frames in 1.5 s`);
   ok("frames: where the phone points", (await tiltX(page)) > 0.7, String(await tiltX(page)));
   await browser.close();
+}
+
+/* ------------------------------------------------------------------ */
+if (want("places")) {
+  const seed = async (state) => {
+    const o = await open();
+    await o.context.addInitScript((s) => localStorage.setItem("ethos.onboarding", JSON.stringify(s)), state);
+    await o.page.goto(`${BASE}/welcome`);
+    await o.page.waitForSelector("main h1");
+    await sleep(800);
+    return o;
+  };
+  {
+    const { browser, page } = await seed({ answers: { name: "Tim", pains: [] }, step: 9, done: true, synced: false, walk: 2 });
+    ok("places: a finished walk opens on its plan, never the room", (await room(page)) === null && (await page.locator("[data-room-hold]").count()) === 0, await heading(page));
+    await browser.close();
+  }
+  {
+    /* Left on the third question of the old walk (step 5, no mark). */
+    const { browser, page } = await seed({ answers: { name: "Tim", ageBand: "19-22", pains: [] }, step: 5, done: false, synced: false });
+    ok("places: a walk left on the old third question comes back to it", (await room(page)) === null && /What do you want this for\?/.test((await heading(page)) ?? ""), await heading(page));
+    await browser.close();
+  }
+  {
+    /* Left in the old pitch: the room stands where it stood. */
+    const { browser, page } = await seed({ answers: { name: null, pains: [] }, step: 2, done: false, synced: false });
+    ok("places: a walk left in the old pitch opens on the room in its place", (await room(page))?.stage === "door");
+    await browser.close();
+  }
 }
 
 const failed = findings.filter((f) => !f.pass).length;

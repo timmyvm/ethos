@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import {
+  Fragment,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -230,14 +231,28 @@ function TiltedArt({ store, ...rest }: Omit<RoomArtProps, "tilt"> & { store: Til
 /* Streamed words.                                                     */
 /* ------------------------------------------------------------------ */
 
-/** The chunks landed so far, each popping in as it lands. */
+/**
+ * The chunks landed so far, each popping in as it lands. Each word is its
+ * own box, so a chunk of two ("hear you,") pops in together but wraps
+ * between its words exactly as the plain line does: the whole line, set
+ * invisibly, holds the bubble's room, and a chunk that would not break
+ * where the line breaks wrapped a line further, past that room and, on
+ * a 320 screen, over Next.
+ */
 function Chunks({ plan, shown }: { plan: StreamPlan; shown: number }) {
   return (
     <>
       {plan.chunks.slice(0, shown).map((c, i) => (
         <span key={i}>
-          {i > 0 && " "}
-          <span className="room-chunk">{c.text.trimStart()}</span>
+          {c.text
+            .trim()
+            .split(/\s+/)
+            .map((w, j) => (
+              <Fragment key={j}>
+                {(i > 0 || j > 0) && " "}
+                <span className="room-chunk">{w}</span>
+              </Fragment>
+            ))}
         </span>
       ))}
     </>

@@ -154,12 +154,13 @@ async function walk([width, height]) {
   await browser.close();
 }
 
-async function ending({ theme = "light", deny = false, name }) {
-  const { browser, page, cdp } = await open({ width: 390, height: 844, theme, deny });
+async function ending({ theme = "light", deny = false, name, width = 390, height = 844 }) {
+  const tag = `${width}x${height}`;
+  const { browser, page, cdp } = await open({ width, height, theme, deny });
   await page.goto(`${BASE}/welcome`);
   await page.waitForSelector("[data-room-hold]");
   await sleep(400);
-  if (theme === "dark") await page.screenshot({ path: `${OUT}390x844-${name}-door.png` });
+  if (theme === "dark") await page.screenshot({ path: `${OUT}${tag}-${name}-door.png` });
   const box = await page.locator("[data-room-hold]").boundingBox();
   await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: box.x + box.width / 2, y: box.y + box.height / 2 }] });
   await sleep(950);
@@ -167,7 +168,7 @@ async function ending({ theme = "light", deny = false, name }) {
   await onBeat(page, "demos", 80_000);
   await until(page, () => [...document.querySelectorAll("main.room button")].some((b) => b.textContent === "Next" && !b.disabled), null, 20_000);
   await sleep(500);
-  await page.screenshot({ path: `${OUT}390x844-${name}.png` });
+  await page.screenshot({ path: `${OUT}${tag}-${name}.png` });
   await browser.close();
 }
 
@@ -179,4 +180,8 @@ if (!process.env.SIZES) {
   await ending({ theme: "dark", name: "dark-ending" });
   await ending({ deny: true, name: "no-mic-ending" });
   console.log("shot the endings");
+} else if (process.env.ENDINGS) {
+  /* SIZES=320x568 ENDINGS=1: the no-mic ending at each size too. */
+  for (const [width, height] of SIZES) await ending({ deny: true, name: "no-mic-ending", width, height });
+  console.log("shot the no-mic endings");
 }

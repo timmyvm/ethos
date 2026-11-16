@@ -173,26 +173,21 @@ describe("takeRewards, a game round's best (M4)", () => {
 
 describe("roundChimes (F5)", () => {
   it("plays on the round's real win, once", () => {
-    expect(roundChimes({ win: true, streakCelebrated: false, played: false })).toBe(true);
-    expect(roundChimes({ win: true, streakCelebrated: false, played: true })).toBe(false);
+    expect(roundChimes({ win: true, played: false })).toBe(true);
+    expect(roundChimes({ win: true, played: true })).toBe(false);
   });
 
   it("never on a miss", () => {
-    expect(roundChimes({ win: false, streakCelebrated: false, played: false })).toBe(false);
+    expect(roundChimes({ win: false, played: false })).toBe(false);
   });
 
-  it("stays quiet when the streak celebration was the round's one sound", () => {
-    expect(roundChimes({ win: true, streakCelebrated: true, played: false })).toBe(false);
-  });
-
-  it("never lets the streak roll chime after the reveal did (games review, finding 6)", () => {
-    // The reveal's hold lifted at 2.5s and it chimed; the roll lands later.
-    const round = roundChimes({ win: true, streakCelebrated: false, played: false });
+  it("keeps one sound a take: the streak's moment on the way out is quiet after the reveal chimed (#480)", () => {
+    // The reveal lands on the glance; the moment comes later, on the exit.
+    const round = roundChimes({ win: true, played: false });
     expect(round).toBe(true);
     expect(streakChimes({ roundChimed: round })).toBe(false);
-    // A roll that lands first keeps its chime, and the reveal stays quiet.
+    // A take with no round (the daily practice, a lesson) keeps its chime for the moment.
     expect(streakChimes({ roundChimed: false })).toBe(true);
-    expect(roundChimes({ win: true, streakCelebrated: true, played: false })).toBe(false);
   });
 });
 
@@ -236,15 +231,15 @@ describe("exitBeat (#427): at most one beat per exit, and none between practices
   /* #430 took the reminder ask off the exit and onto the glance (people
      glance and leave), so its beat and its expectations here are gone:
      that move is the point. The rest is unchanged. */
-  const none = { gate: false, tasteDue: false, proDue: false, leaves: true, streakUp: false };
+  const none = { gate: false, tasteDue: false, proDue: false, leaves: true, streakDue: false };
   it("never shows Since day one on an exit that stays (Practice N of 3, Another round, Retake)", () => {
     for (const proDue of [true, false]) {
       const beat = exitBeat({ ...none, leaves: false, proDue });
       expect(beat === "pro").toBe(false);
     }
   });
-  it("puts the save wall over everything, on any exit", () => {
-    expect(exitBeat({ gate: true, tasteDue: true, proDue: true, leaves: true, streakUp: false })).toBe("gate");
+  it("puts the save wall over every other ask, on any exit", () => {
+    expect(exitBeat({ gate: true, tasteDue: true, proDue: true, leaves: true, streakDue: false })).toBe("gate");
     expect(exitBeat({ ...none, gate: true, leaves: false })).toBe("gate");
   });
   it("orders the rest: the taste, then Since day one, one at a time", () => {
@@ -252,9 +247,25 @@ describe("exitBeat (#427): at most one beat per exit, and none between practices
     expect(exitBeat({ ...none, proDue: true })).toBe("pro");
     expect(exitBeat(none)).toBeNull();
   });
-  it("keeps the taste's guard: never over the streak celebration", () => {
-    expect(exitBeat({ ...none, tasteDue: true, streakUp: true })).toBeNull();
-    expect(exitBeat({ ...none, tasteDue: true, streakUp: true, proDue: true })).toBe("pro");
-    expect(exitBeat({ ...none, tasteDue: true, leaves: false })).toBe("taste");
+});
+
+describe("exitBeat and the streak's moment (#480): after the results, before Today", () => {
+  const none = { gate: false, tasteDue: false, proDue: false, leaves: true, streakDue: false };
+  it("plays the moment first on an exit that leaves, whatever else is due", () => {
+    expect(exitBeat({ ...none, streakDue: true })).toBe("streak");
+    expect(exitBeat({ gate: true, tasteDue: true, proDue: true, leaves: true, streakDue: true })).toBe("streak");
+  });
+  it("never between a lesson's practices, on Another round or on Retake: it waits, owed", () => {
+    expect(exitBeat({ ...none, leaves: false, streakDue: true })).toBeNull();
+    // The asks of a staying exit are unchanged by an owed moment.
+    expect(exitBeat({ ...none, leaves: false, streakDue: true, tasteDue: true })).toBe("taste");
+    expect(exitBeat({ ...none, leaves: false, streakDue: true, gate: true })).toBe("gate");
+  });
+  it("after Continue, lets only the save wall stand in the same exit", () => {
+    const after = { ...none, streakDue: true, afterStreak: true };
+    expect(exitBeat({ ...after, gate: true })).toBe("gate");
+    expect(exitBeat({ ...after, tasteDue: true })).toBeNull();
+    expect(exitBeat({ ...after, proDue: true })).toBeNull();
+    expect(exitBeat(after)).toBeNull();
   });
 });

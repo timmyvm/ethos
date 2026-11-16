@@ -395,21 +395,11 @@ for (const theme of ["light", "dark"]) {
       await sleep(2500);
       if (want("rep-live")) await check(page, "rep-live", theme);
       await page.click('button[aria-label="Stop and score this recording"]', { force: true });
-      /* The streak's own moment, settled (its rise is 600ms, its hold
-         2.3s): measured inside its sheet and reported, never failed. */
-      if (want("rep-celebration")) {
-        const up = await page.waitForSelector('[role="dialog"]', { timeout: 15000 }).catch(() => null);
-        if (up) {
-          await sleep(600);
-          await check(page, "rep-celebration", theme, {
-            scope: '[role="dialog"]',
-            report: "a centred 2.3s moment",
-          });
-        } else lines.push(`note  rep-celebration (${theme}): no celebration came up`);
-      }
+      /* The streak's moment no longer rises over the results: since #480
+         it is a screen of its own on the way out, photographed and held
+         by scripts/look-streak.mjs. */
+      if (want("rep-celebration")) lines.push(`note  rep-celebration (${theme}): the streak's moment is on the exit since #480 (look-streak.mjs)`);
       await page.waitForSelector("main .arrive-x", { timeout: 15000 });
-      // The streak's own moment holds the screen first; the step is under it.
-      await page.waitForSelector('[role="dialog"]', { state: "detached", timeout: 20000 }).catch(() => {});
       await sleep(2400);
       if (want("rep-results")) await check(page, "rep-results", theme);
       /* #427: the results are one glance (rep-results) and its door's

@@ -251,46 +251,24 @@ await page.click('button[aria-label="Stop and score this recording"]', { force: 
    region, so the block is found by its own hook. */
 await page.waitForSelector('[data-scoring-wait].arrive:has([role="status"])');
 ok("scoring wait arrives", true);
-const dialogP = page.waitForSelector('[role="dialog"][aria-label="1 day in a row"]', { timeout: 8000 });
 await page.waitForSelector("main .arrive-x", { timeout: 8000 });
 /* The Index is read the moment the results land, before anything else is
-   awaited: waiting on the streak dialog first let a slow machine (software
-   WebGL drawing Demos's clip on the scoring wait) finish the count before
-   the first reading, and the check failed on a count that had run. */
+   awaited: a slow machine (software WebGL drawing Demos's clip on the
+   scoring wait) can finish the count before the first reading. */
 /* RepResult marks the Index with data-score (A4): the score step's
    number moved from text-[64px] to the num-xl token, and a hook that
    names the job outlives any size. */
 const SCORE = "main .arrive-x [data-score]";
 const early = await page.$eval(SCORE, (el) => el.textContent);
-const dialog = await dialogP;
-const before = await dialog.$eval("[aria-hidden] > div", (el) => getComputedStyle(el).transform);
 await sleep(900);
 const late = await page.$eval(SCORE, (el) => el.textContent);
 ok("the Index counts up to 612", Number(early) < 612 && late === "612", `${early} → ${late}`);
 const stars = await page.$$eval(".star-land", (els) => els.map((el) => getComputedStyle(el).animationDelay));
 ok("two earned stars land after the count, staggered", stars.length === 2 && stars[0] === "0.6s" && stars[1] === "0.72s", stars.join(","));
-// The celebration: rolled 0 → 1 on the chime's landing note (read at mount, then now).
-const after = await dialog.$eval("[aria-hidden] > div", (el) => ({ transform: getComputedStyle(el).transform, dur: getComputedStyle(el).transitionDuration }));
-const rolling = before === "none" || /^matrix\(1, 0, 0, 1, 0, -?(\d+(\.\d+)?)\)$/.test(before);
-ok("streak number rolls up one line on the landing note", rolling && after.transform === "matrix(1, 0, 0, 1, 0, -64)" && after.dur === "0.3s", `${before} → ${after.transform} ${after.dur}`);
-// STREAK_SHOT=path keeps a frame of the moment, the count landed, for the look loop.
-if (process.env.STREAK_SHOT) await page.screenshot({ path: process.env.STREAK_SHOT });
-/* #445: a tap takes the moment away. Untouched it holds 1.8s and fades
-   for 0.5; tapped, it is gone in its 200ms fade. The page keeps the
-   clock, from the tap to the dialog leaving the DOM. */
-await page.evaluate(() => {
-  const t = (window.__skip = {});
-  document.addEventListener("click", () => { t.tap = performance.now(); }, { capture: true, once: true });
-  const mo = new MutationObserver(() => {
-    if (!document.querySelector("[role=dialog]")) { t.gone = performance.now(); mo.disconnect(); }
-  });
-  mo.observe(document.body, { subtree: true, childList: true });
-});
-await page.mouse.click(195, 760);
-await page.waitForSelector('[role="dialog"]', { state: "detached", timeout: 5000 });
-const skip = await page.evaluate(() => ({ tap: window.__skip.tap ?? null, gone: window.__skip.gone ?? null }));
-const skipMs = skip.tap === null || skip.gone === null ? NaN : Math.round(skip.gone - skip.tap);
-ok("a tap takes the celebration away in its own short fade", skipMs >= 150 && skipMs < 500, `${skipMs}ms after the tap`);
+/* #480: nothing rises over the results now; the streak's moment waits for
+   the way out. */
+const over = await page.$$eval('[role="dialog"]', (els) => els.length);
+ok("nothing rises over the results (the streak's moment waits for the exit)", over === 0, `${over} dialog(s)`);
 await sleep(300);
 /* #427: the results are one glance and one door. The door's sheet,
    "Every number", rises on the sheet spring and holds the dimension
@@ -316,7 +294,43 @@ await page.keyboard.press("Escape");
 await page.waitForSelector(SHEET, { state: "detached", timeout: 2000 });
 const onDoor = await page.evaluate(() => !!document.activeElement?.matches("[data-glance-door]"));
 ok("Escape closes the sheet and hands focus back to the door", onDoor);
+/* #480: the take made today count (a new account, 0 to 1), so the way
+   out plays the streak's moment first: the flame lights on the thrown
+   spring as the chime starts, and the count rolls one place on the
+   chime's landing note, with today's day filling under it. */
 await page.locator("main [data-results-back]").click();
+await page.waitForSelector("[data-streak-moment]", { timeout: 4000 });
+const moment = await page.$eval("[data-streak-moment]", (el) => {
+  const of = (sel) => el.querySelector(sel)?.getAnimations()[0] ?? null;
+  const timing = (a) => (a ? { delay: a.effect.getTiming().delay, easing: a.effect.getTiming().easing, end: a.effect.getKeyframes().at(-1)?.transform ?? null } : null);
+  return {
+    from: el.getAttribute("data-from"),
+    to: el.getAttribute("data-to"),
+    lightAt: Number(el.getAttribute("data-light-at")),
+    rollAt: Number(el.getAttribute("data-roll-at")),
+    lit: timing(of("[data-flame='lit']")),
+    turn: timing(of("[data-turn]")),
+    fill: timing(of("[data-fill]")),
+  };
+});
+ok("the streak's moment comes on the way out, 0 to 1", moment.from === "0" && moment.to === "1", `${moment.from} → ${moment.to}`);
+ok(
+  "the flame lights on the thrown spring as the chime starts",
+  moment.lit !== null && moment.lit.delay === moment.lightAt && moment.lit.easing.startsWith("linear("),
+  JSON.stringify(moment.lit)
+);
+ok(
+  "the count rolls one place on the chime's landing note (320ms after the light)",
+  moment.turn !== null && moment.turn.delay === moment.rollAt && moment.rollAt - moment.lightAt === 320 && moment.turn.end === "translateY(-50%)",
+  JSON.stringify(moment.turn)
+);
+ok("today's day fills with the roll", moment.fill !== null && moment.fill.delay === moment.rollAt, JSON.stringify(moment.fill));
+// STREAK_SHOT=path keeps a frame of the moment, landed, for the look loop.
+await sleep(1600);
+if (process.env.STREAK_SHOT) await page.screenshot({ path: process.env.STREAK_SHOT });
+await page.locator("[data-streak-moment] [data-continue]").click();
+await page.waitForSelector("[data-streak-moment]", { state: "detached", timeout: 5000 });
+ok("Continue goes on to where the exit was going", !new URL(page.url()).pathname.startsWith("/rep"), new URL(page.url()).pathname);
 await sleep(800);
 
 // 4. Reduced motion via the Settings switch reaches CSS at once.

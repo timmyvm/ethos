@@ -39,8 +39,8 @@ import { ScoringStage } from "@/components/rep/ScoringStage";
 import { TipLine, TipStrip } from "@/components/rep/TipStrip";
 import { splitPrompt } from "@/lib/tip-labels";
 import { TopicCard } from "@/components/rep/TopicCard";
-import { StreakCelebration } from "@/components/StreakCelebration";
-import { weekView } from "@/lib/home";
+import { StreakMoment } from "@/components/StreakMoment";
+import { momentShownOn, streakMoment, type StreakMomentView } from "@/lib/streak-moment";
 import { FeltCheck, FeltStage } from "@/components/tester/FeltCheck";
 import { MatchCheck } from "@/components/tester/MatchCheck";
 import { TesterPaused } from "@/components/tester/TesterPaused";
@@ -127,7 +127,6 @@ import { repGains } from "@/lib/progress";
 import { celebrates, type RewardMoment } from "@/lib/rewards";
 import {
   backLabel,
-  celebratesStreak,
   defaultBack,
   exitBeat,
   recordCue,
@@ -639,9 +638,15 @@ function RepScreen() {
   const pendingRef = useRef<{ form: FormData; outboxId: string | null } | null>(
     null
   );
-  const [celebrate, setCelebrate] = useState<number | null>(null);
-  /* This take's reveal played the round's one sound (F5): a streak roll
-     landing after it shows quiet (games review, finding 6). */
+  /**
+   * The streak's moment this screen owes (#480): set by the take that
+   * made today count, kept through Retake, Practice N of 3 and Another
+   * round, and played on the first exit that leaves (lib/rep-screen.ts
+   * `exitBeat`). Cleared once it has played.
+   */
+  const [owedMoment, setOwedMoment] = useState<StreakMomentView | null>(null);
+  /* This take's reveal played the round's one sound (F5): the streak's
+     moment on the way out shows quiet (games review, finding 6). */
   const [roundChimed, setRoundChimed] = useState(false);
   /** Demos's line while he cuts in (F1); null while he listens. */
   const [cutIn, setCutIn] = useState<string | null>(null);
@@ -664,8 +669,6 @@ function RepScreen() {
    * said.
    */
   const [walkRows, setWalkRows] = useState<{ before: GameRoundRow[]; now: GameRoundRow[] } | null>(null);
-  /** The streak celebration's call is made for this result: the round's reveal waits for it (F3, F5). */
-  const [rewardsReady, setRewardsReady] = useState(false);
   /**
    * What the phone knows at Stop (F7): the seconds Demos cut in at, from
    * the take's fired cut-ins, and who stopped it (`stopRep`'s `by`). Null
@@ -978,7 +981,6 @@ function RepScreen() {
       setResult(data as AnalyzeResponse);
       const key = form.get("clientId");
       setResultKey(typeof key === "string" ? key : null);
-      setRewardsReady(false);
       setWalkRows(null);
       setPhase("results");
       pendingRef.current = null;
@@ -1013,17 +1015,27 @@ function RepScreen() {
           setSpineNow(all);
           // The streak and the freezes it earns count from day one.
           const dates = all.map((x) => new Date(x.created_at));
-          // A failed freeze read rejects now; the debrief's celebration,
-          // coins and closing note still land on the plain streak.
-          const { streak } = await syncFreezes(dates).catch(() => ({
+          // A failed freeze read rejects now; the streak's moment, the
+          // coins and the closing note still land on the plain streak.
+          const { streak, frozenDays } = await syncFreezes(dates).catch(() => ({
             streak: computeStreak(dates),
+            frozenDays: [] as Date[],
           }));
           if (!live()) return;
-          // Only the take that made today count rolls the streak up; a
-          // second take of the day used to replay the roll and its chime.
-          // Read before the baseline below takes this take in.
-          if (celebratesStreak(streak, { didToday: doneToday(baselineRef.current) })) setCelebrate(streak.current);
-          setRewardsReady(true);
+          // Only the take that made today count owes the streak's moment
+          // (#480), once a day on this phone; a second take of the day
+          // used to replay the roll and its chime. Read before the
+          // baseline below takes this take in. A later take never clears
+          // a moment still owed: it plays on the first exit that leaves.
+          const owed = streakMoment({
+            streak,
+            before: { didToday: doneToday(baselineRef.current) },
+            repDates: dates,
+            frozenDays,
+            now: new Date(),
+            shownOn: momentShownOn(),
+          });
+          if (owed) setOwedMoment(owed);
           setStreakNow(streak.current);
           /* Before the take: the snapshot, or, when it never landed, the
              rows read now without this round. */
@@ -1142,8 +1154,8 @@ function RepScreen() {
           setAnticipate(recordCue({ reps, starMap: mapNow, streak, xp: xp.total }));
         })
         .catch(() => {
-          // Unread, the reveal still plays: no streak celebration is coming.
-          if (live()) setRewardsReady(true);
+          // Unread, nothing is owed: a streak the screen could not read
+          // back is never celebrated.
         });
     } catch (e) {
       // Another recording is on screen now; the outbox copy (if held)
@@ -1728,10 +1740,9 @@ function RepScreen() {
     setResult(null);
     setBests([]);
     setClosing(null);
-    setCelebrate(null);
+    // A streak's moment still owed stays owed (#480): the retake's exit plays it.
     setEarnedNow(false);
     setWalkRows(null);
-    setRewardsReady(false);
     // The coin belongs to the take that earned it: the retake's score
     // step showed "+1" until its own coin read came back, or for good
     // when that read failed.
@@ -1750,23 +1761,6 @@ function RepScreen() {
     });
     setPhase("idle");
     window.scrollTo({ top: 0 });
-  }, []);
-
-  /*
-   * The celebration's end. Stable, because StreakCelebration keys its
-   * hold timers on this callback: an inline arrow was a new function on
-   * every render of this screen, and each late result (the coin, the
-   * session, the bests) restarted the 1.8s hold, so the overlay stayed
-   * up for as long as answers kept landing.
-   */
-  const celebrated = useCallback(() => {
-    setCelebrate(null);
-    // The overlay hands focus back to its opener, and the opener (Stop)
-    // is gone: land on the results' name (#427), so a keyboard and a
-    // screen reader start from the top of the glance, not the page's.
-    requestAnimationFrame(() =>
-      document.querySelector<HTMLElement>("main [data-results-head]")?.focus({ preventScroll: true })
-    );
   }, []);
 
   /** Frame step (DECISIONS #35): opt-in think time before the clock. */
@@ -1819,10 +1813,8 @@ function RepScreen() {
     setPresence(null);
     setBests([]);
     setClosing(null);
-    setCelebrate(null);
     setEarnedNow(false);
     setWalkRows(null);
-    setRewardsReady(false);
     setCoined(false);
     setSeconds(0);
     setRing("ok");
@@ -2027,20 +2019,13 @@ function RepScreen() {
           onCue={carried.save}
           startedAt={takeStartedAt.current}
           walkRows={walkRows}
-          streakUp={celebrate !== null}
-          rewardsReady={rewardsReady}
+          streakMoment={owedMoment}
+          streakQuiet={!streakChimes({ roundChimed })}
+          onStreakShown={() => setOwedMoment(null)}
           onChime={() => setRoundChimed(true)}
           onUpgrade={setPaywall}
           onRetake={retake}
         />
-        {celebrate !== null && (
-          <StreakCelebration
-            streak={celebrate}
-            quiet={!streakChimes({ roundChimed })}
-            week={weekView(spineNow, new Date()).days}
-            onDone={celebrated}
-          />
-        )}
         {paywall && (
           <Paywall
             reason={paywall.reason}
@@ -2862,8 +2847,9 @@ function Results({
   onCue,
   startedAt,
   walkRows,
-  streakUp,
-  rewardsReady,
+  streakMoment: owedStreak,
+  streakQuiet,
+  onStreakShown,
   onChime,
   onUpgrade,
   onRetake,
@@ -2901,10 +2887,12 @@ function Results({
   startedAt: number;
   /** A game's rows before this round and with it; null until read, or when the read failed. */
   walkRows: { before: GameRoundRow[]; now: GameRoundRow[] } | null;
-  /** The streak celebration is up over the glance. */
-  streakUp: boolean;
-  /** Whether it will be is decided (the round's reveal waits on it). */
-  rewardsReady: boolean;
+  /** The streak's moment the screen owes (#480): played on the first exit that leaves. */
+  streakMoment: StreakMomentView | null;
+  /** The take's round already chimed, so the moment shows quiet (one sound a take). */
+  streakQuiet: boolean;
+  /** The moment has played: the screen owes it no longer. */
+  onStreakShown: () => void;
   /** The round's reveal played the round's one sound. */
   onChime: () => void;
   onUpgrade: (ask: PaywallAsk) => void;
@@ -2962,9 +2950,9 @@ function Results({
   const [askingFelt, setAskingFelt] = useState(() => match);
   /*
    * What a screen reader is told when the result lands (#448). Stop,
-   * the control that held the focus, is gone by then, and with no
-   * streak moment to hand the focus on (any take after the day's first)
-   * it fell to the page and the result arrived in silence. The focus
+   * the control that held the focus, is gone by then (and the streak's
+   * moment comes after the results since #480, on the way out), so it
+   * fell to the page and the result arrived in silence. The focus
    * goes to the results' name, and the name carries the number once the
    * number is on screen: never while "How did that feel?" is still
    * being asked, which comes before the score.
@@ -3126,19 +3114,25 @@ function Results({
   };
   /*
    * At most one beat between a tapped exit and where it goes, in
-   * exitBeat's order (#427): the save wall, the taste, then, only on an
-   * exit that leaves the session, Since day one. The reminder ask is on
-   * the glance itself (#430).
+   * exitBeat's order (#427, #480): the streak's moment on the first exit
+   * that leaves after the take that made today count, the save wall, the
+   * taste, then, only on an exit that leaves the session, Since day one.
+   * The moment's Continue carries on with the same exit, where only the
+   * save wall may still stand. The reminder ask is on the glance itself
+   * (#430).
    */
-  const exit = (href: string, { leaves }: { leaves: boolean }) => {
+  const [streakTo, setStreakTo] = useState<{ href: string; moment: StreakMomentView } | null>(null);
+  const exit = (href: string, { leaves }: { leaves: boolean }, afterStreak = false) => {
     const beat = exitBeat({
       gate: gate !== null,
       tasteDue,
       proDue,
       leaves,
-      streakUp,
+      streakDue: owedStreak !== null,
+      afterStreak,
     });
-    if (beat === "gate") setGateTo(href);
+    if (beat === "streak" && owedStreak) setStreakTo({ href, moment: owedStreak });
+    else if (beat === "gate") setGateTo(href);
     else if (beat === "taste") openTaste(href);
     else if (beat === "pro") setProTo(href);
     else go(href);
@@ -3213,23 +3207,13 @@ function Results({
   };
 
   /*
-   * The round's own reveal (F3) and its one sound (F5). The card waits
-   * while the streak celebration is up, or while it is still unknown
-   * whether one is coming (never more than 2.5s), so the reveal is seen
-   * and the round never has two sounds.
+   * The round's own reveal (F3) and its one sound (F5). Nothing rises
+   * over the glance since #480 (the streak's moment comes on the way
+   * out), so the reveal no longer waits for a celebration; the moment
+   * shows quiet when this reveal chimed, so the take has one sound.
    */
-  const [waitedOut, setWaitedOut] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => setWaitedOut(true), 2500);
-    return () => clearTimeout(t);
-  }, []);
-  const streakSeen = useRef(false);
-  useEffect(() => {
-    if (streakUp) streakSeen.current = true;
-  }, [streakUp]);
   const chimed = useRef(false);
   const [revealed, setRevealed] = useState(false);
-  const roundHold = streakUp || (!rewardsReady && !waitedOut);
   const reveal =
     game && gameRound
       ? roundReveal(game, gameRound, gameRound.game === "qa" && roundRows ? heldInARow(roundRows) : 0)
@@ -3238,7 +3222,7 @@ function Results({
     setRevealed(true);
     if (
       reveal &&
-      roundChimes({ win: reveal.win, streakCelebrated: streakSeen.current, played: chimed.current })
+      roundChimes({ win: reveal.win, played: chimed.current })
     ) {
       chimed.current = true;
       onChime();
@@ -3274,16 +3258,15 @@ function Results({
       />
     ) : null;
   /* The round's one sound (F5) rides the glance's count now the card is
-     behind the door: once the streak's moment has gone and the Index has
-     counted, never twice. */
+     behind the door: once the Index has counted, never twice. */
   const landedRef = useRef(landed);
   landedRef.current = landed;
   const hasReveal = !!reveal;
   useEffect(() => {
-    if (!hasReveal || revealed || roundHold) return;
+    if (!hasReveal || revealed) return;
     const t = setTimeout(() => landedRef.current(), prefersReducedMotion() ? 0 : DURATION.celebrate);
     return () => clearTimeout(t);
-  }, [hasReveal, revealed, roundHold]);
+  }, [hasReveal, revealed]);
   /* Demos's cut-ins, marked on Hear it back's track (the games plan, item 4). */
   const cutInMarks = (gameRound && gameRound.game !== "rush" ? gameRound.cutIns : [])
     .filter((f) => f.at !== null)
@@ -3661,6 +3644,23 @@ function Results({
         reps={repsNow}
         days={daysSpoken}
         onSkip={() => go(proTo)}
+      />
+    );
+  }
+
+  /* The streak's moment (#480), between the results and where the exit
+     was going. It stays drawn until the page it hands on to arrives, so
+     the glance never flashes back in between; a save wall still due
+     takes its place first. */
+  if (streakTo !== null) {
+    return (
+      <StreakMoment
+        moment={streakTo.moment}
+        quiet={streakQuiet}
+        onContinue={() => {
+          onStreakShown();
+          exit(streakTo.href, { leaves: true }, true);
+        }}
       />
     );
   }

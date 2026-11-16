@@ -1,5 +1,7 @@
+import { weekStart } from "./level";
+
 /**
- * Cold Topic content (mechanics.md boss mode): topics the user almost
+ * The weekly boss's topics (mechanics.md boss mode): topics the user almost
  * certainly hasn't studied. The point is compression under ignorance —
  * research window, then explain from memory, scored on delivery AND
  * accuracy. The `truth` field is the ground truth the judge checks
@@ -607,11 +609,39 @@ export const COLD_TOPICS: ColdTopic[] = [
   },
 ];
 
-/** One boss topic per ISO week, rotating. */
-export function weeklyTopic(now = new Date()): ColdTopic {
-  const start = new Date(now.getFullYear(), 0, 1);
-  const week = Math.floor(
-    (now.getTime() - start.getTime()) / (7 * 86_400_000)
-  );
-  return COLD_TOPICS[week % COLD_TOPICS.length];
+/**
+ * The Monday the rotation counts its weeks from: the first Monday of
+ * 2026, at local midnight. Chosen so the week of Monday 16 November 2026
+ * keeps the topic it already showed (#494): the turn moved, the topic on
+ * screen that day did not.
+ */
+const FIRST_MONDAY: readonly [number, number, number] = [2026, 0, 5];
+
+const WEEK_MS = 7 * 86_400_000;
+
+/**
+ * Which boss week `now` falls in, counted from `FIRST_MONDAY`: the same
+ * Monday-to-Sunday week the boss's lock, Today's tile and the Log's
+ * Weekly boss count (`weekStart`). Two local Mondays are a whole number
+ * of weeks apart, give or take a clock change's hour, so the division is
+ * rounded, never floored: a span holding the start of summer time is
+ * an hour short of its weeks and would otherwise count one fewer. Negative
+ * before the first Monday.
+ */
+export function bossWeekNumber(now: Date = new Date()): number {
+  const [y, m, d] = FIRST_MONDAY;
+  return Math.round((weekStart(now).getTime() - new Date(y, m, d).getTime()) / WEEK_MS);
+}
+
+/**
+ * This week's boss topic, one per week, in list order. It turns on
+ * Monday, with the boss's week: counted in 7-day blocks from 1 January
+ * it turned on whatever weekday the year began (a Thursday in 2026), so
+ * from Thursday to Sunday Today's tile named a topic the week's lock had
+ * not reached (#494). A take names its own topic (`boss:<id>`), so what
+ * is stored never moves with this.
+ */
+export function weeklyTopic(now: Date = new Date()): ColdTopic {
+  const n = COLD_TOPICS.length;
+  return COLD_TOPICS[((bossWeekNumber(now) % n) + n) % n];
 }

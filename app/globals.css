@@ -3133,6 +3133,36 @@ summary::-webkit-details-marker {
 :root[data-theme="dark"] .practice-week[data-done] {
   color: var(--color-sage-800);
 }
+/* The week's topic as the boss stage's title (#494), on Practice and on
+   /boss: one size under the title step (the lead's 20, heavy, set tight)
+   because a topic is a phrase in the stage's narrow column, not a name,
+   and at the title's 26 three topics overflowed it at 390 and nineteen
+   took three lines or more at 320. The box is always three lines tall,
+   the most any topic takes at 320, so the stage is one height every
+   week and the topic stands at its middle; on /boss it is the reel's
+   window too (`--reel-cell`), so Spin turns in the title's own slot. */
+.boss-topic {
+  --boss-topic-lh: 1.15;
+  --reel-cell: calc(3 * var(--boss-topic-lh) * var(--text-lead));
+  display: flex;
+  align-items: center;
+  height: var(--reel-cell);
+  font-size: var(--text-lead);
+  line-height: var(--boss-topic-lh);
+  letter-spacing: -0.012em;
+  font-weight: 800;
+  text-wrap: balance;
+  hyphens: auto;
+}
+/* A game's ladder, a dot per count it takes toward the next level:
+   sage once counted (earned), sand not yet. Round and 6px, the size of
+   a bullet beside its words. */
+.ladder-dot {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+}
 /* A game's tile: the tone itself with its ink glyph (3.1 to 3.8:1, over
    the 3:1 a glyph needs), a little light from the top so it has a face
    rather than reading as a flat swatch. 44px, a control's radius. */

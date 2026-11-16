@@ -75,9 +75,9 @@ export interface Tier2Anchors {
  * `pause-quality.ts` for what the silence has to actually do to score.
  * This wrapper exists so the Index has one shape per dimension.
  *
- * Judged here from the words alone, with no envelope. A take that has
- * judged its pauses with the envelope hands those verdicts to
- * `tier1Scores` instead, which scores them as they are (#422).
+ * Judged here from the words alone, with no envelope. A take hands the
+ * verdicts it judged and stored to `tier1Scores` instead, which scores
+ * them as they are (#422).
  */
 export function pauseScore(
   pauses: Pause[],
@@ -187,11 +187,12 @@ export function rangeScore(words: Word[]): number {
 
 /**
  * The five measured dimensions. `judged` is the take's own pause
- * verdicts, judged once with the envelope: the ones it stores and
- * shows. The Pause dimension reads those and never judges again, so a
- * gap the mic heard a sound in scores as filled here as it reads on
- * the pause list (#121, #422). Without them the pauses are judged from
- * the words alone, which is also what a take without an envelope gets.
+ * verdicts, judged once: the ones it stores and shows. The Pause
+ * dimension reads those and never judges again, so a pause the list
+ * calls filled scores as filled here, whether an um leaned on it or,
+ * stored before #476, the mic heard a sound in it (#121, #422). Without
+ * them the pauses are judged from the words alone, which is what a new
+ * take's own judge does too while `MIC_FILLS_PAUSE` is off.
  */
 export function tier1Scores(
   metrics: RepMetrics,

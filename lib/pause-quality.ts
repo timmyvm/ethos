@@ -35,16 +35,27 @@
  *   lost.
  *
  * Deterministic, no LLM, every verdict traceable to a timestamp.
+ *
+ * Since #476 (16 Nov), for new takes only: a sentence ends where
+ * Whisper's punctuated segment text says so (`lib/sentence-ends.ts`),
+ * not where Whisper happened to start a segment; "filled" means an um,
+ * uh or erm (the Fillers ring's own set) within half a second of the
+ * pause, and no longer a sound the phone's loudness trace heard in it
+ * (`MIC_FILLS_PAUSE`); the opening's unreachable bonus is placement's;
+ * and filled and dead air cost at most 15 together. Stored recordings
+ * keep the scores and verdicts they were given, "The mic heard it"
+ * included.
  */
 
 import { calibrate, classifyGap, type Envelope } from "./envelope";
-import type { FillerHit, Pause, Segment, Word } from "./metrics";
+import { FILLED_PAUSES, normalizeWord, type FillerHit, type Pause, type Segment, type Word } from "./metrics";
+import { sentenceEnds } from "./sentence-ends";
 
 export type PauseVerdict =
   | "landing" // held, at a boundary, after a real sentence — the good one
   | "opening" // held, before the first word — composure before you start
   | "hesitation" // held, mid-clause — searching
-  | "filled" // a sound in it: a filler beside it, or one we HEARD in it
+  | "filled" // a filler beside it (stored before #476, also one the mic HEARD in it)
   | "dead" // held far too long — lost, not composed
   | "beat"; // under the held threshold — rhythm, not scored
 
@@ -76,8 +87,20 @@ export interface PauseReport {
 export const LANDING_MIN_S = 0.8;
 /** Over this it stops reading as composure. */
 export const DEAD_AIR_S = 3.5;
-/** A filler this close to a silence means the silence was bought back. */
+/**
+ * A game round's cut-in: a filler (any of them) this close to either edge
+ * of the silence after Demos cut in means it was bought back
+ * (`lib/round.ts`). The Pause dimension used it too until #476.
+ */
 export const FILLER_ADJACENCY_S = 1.2;
+/**
+ * The Pause dimension's own: an um, uh or erm ending this close before a
+ * pause, or starting this close after it, is leaning on it (#476). Only
+ * the filled pauses the Fillers ring counts (`FILLED_PAUSES`): a "like" or
+ * a "you know" near a silence is its own thing, and the ring leaves it out
+ * for the same reason.
+ */
+export const FILLED_EDGE_S = 0.5;
 /** A sentence has to be worth landing before the pause after it counts. */
 export const SUBSTANTIAL_SENTENCE_WORDS = 6;
 /** Landing pauses per minute that read as paced rather than sparse/stalling. */
@@ -85,57 +108,126 @@ export const LANDING_ZONE: [number, number] = [2, 9];
 
 // --- weights ---------------------------------------------------------
 
-const PLACEMENT_MAX = 60;
+/*
+ * Placement took the opening's 7 (#476). The opening bonus paid for a
+ * pause before the first word, and that silence is never a gap between
+ * two words, so a take all but never earned it and its ceiling was 93.
+ * The "opening" verdict stays (a held pause right after a first word
+ * said that quickly still gets it) and counts as placement.
+ */
+const PLACEMENT_MAX = 67;
 const RATE_MAX = 25;
-const OPENING_BONUS = 7;
 const ENDING_BONUS = 8;
 const FILLED_PENALTY = 10;
 const DEAD_PENALTY = 12;
+/**
+ * Filled pauses and dead air cost this much at most, together (#476). The
+ * ratio already counts each one as a held pause that did not land; a cost
+ * past that, uncapped, made a longer take lose more for the same habit.
+ */
+export const PENALTY_CAP = 15;
+
+/**
+ * Whether the phone's loudness trace may call a pause filled (#476). Off
+ * for new takes. Replayed over the tester cohort's 67 recordings from
+ * 6 Nov (after #422's amendment), #476's rules scored a median 60 and
+ * ranked recordings the way people felt them (felt strong +10 against
+ * their own mean, within-person correlation +0.23) without the trace,
+ * and a median 48 ranking them backwards (felt strong -6, -0.18) with it:
+ * the trace called 16.5% of held pauses voiced, most of them in the
+ * recordings that felt best. Until the trace is shown to hear a swallowed
+ * "um" and not a breath or a word's tail, a pause is filled only by an
+ * um, uh or erm the transcript can point at (CLAUDE.md: feedback traces
+ * to a timestamp). Stored verdicts that said "The mic heard it" keep
+ * saying it; only new takes are judged without the trace.
+ *
+ * The route and every caller take this default. `judgePauses`'s
+ * `micFills` keeps the trace's path alive and tested, so turning it back
+ * on is this one line.
+ */
+export const MIC_FILLS_PAUSE = false;
 
 function clock(t: number): string {
   return `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
 }
 
-/** Words closed off by the sentence ending at or before `t`. */
-function wordsInSentenceEndingAt(words: Word[], t: number): number {
+/**
+ * Words closed off by the sentence ending at or before `t`: walk back to
+ * the previous sentence end. `stops[i]` says a sentence ends after word i
+ * (`lib/sentence-ends.ts`); before #476 this read the word's own
+ * punctuation, which Whisper's word list never has, so it found no full
+ * stop and counted up to 41.
+ */
+function wordsInSentenceEndingAt(words: Word[], stops: boolean[], t: number): number {
   let count = 0;
   for (let i = words.length - 1; i >= 0; i--) {
     if (words[i].end > t + 0.05) continue;
     count++;
-    // Walk back to the previous sentence end.
-    if (count > 1 && /[.?!]["')\]]*\s*$/.test(words[i].word)) return count - 1;
+    if (count > 1 && stops[i]) return count - 1;
     if (count > 40) break;
   }
   return count;
 }
 
 /**
- * Judge every pause. `words` and `fillers` come straight from the
- * engine, so nothing here needs the transcript or the LLM.
+ * The filled pauses (um, uh, erm) as spans of the take: from where each
+ * was said to where its word ends, when the word list has it.
  */
-export function judgePauses(params: {
+function filledSpans(fillers: FillerHit[], words: Word[]): { from: number; to: number }[] {
+  return fillers
+    .filter((f) => FILLED_PAUSES.has(f.word))
+    .map((f) => {
+      const word = words.find(
+        (w) => Math.abs(w.start - f.t) < 0.006 && normalizeWord(w.word) === f.word
+      );
+      return { from: f.t, to: word ? Math.max(f.t, word.end) : f.t };
+    });
+}
+
+/** How far a span is from an instant: 0 when it covers it. */
+function distance(span: { from: number; to: number }, at: number): number {
+  return Math.max(0, span.from - at, at - span.to);
+}
+
+/** What a take's pauses are judged from. */
+export interface PauseInput {
   pauses: Pause[];
   words: Word[];
   fillers: FillerHit[];
   durationS: number;
   segments?: Segment[];
+  /** The phone's loudness trace, when it sent one on the take's clock. */
   envelope?: Envelope | null;
-}): JudgedPause[] {
-  const { pauses, words, fillers, durationS, envelope } = params;
+  /**
+   * May the trace call a pause filled? `MIC_FILLS_PAUSE` (off) unless a
+   * caller says otherwise; only tests do, to keep the trace's path proved.
+   */
+  micFills?: boolean;
+}
+
+/**
+ * Judge every pause. `words` and `fillers` come straight from the
+ * engine, so nothing here needs the transcript or the LLM.
+ */
+export function judgePauses(params: PauseInput): JudgedPause[] {
+  const { pauses, words, fillers, durationS, micFills = MIC_FILLS_PAUSE } = params;
+  // The trace is read only where it may fill a pause.
+  const envelope = micFills ? params.envelope : null;
   const firstWordAt = words[0]?.start ?? 0;
   // Calibrate once for the whole rep, not per gap.
   const floor = envelope ? calibrate(envelope) : undefined;
+  const { stops } = sentenceEnds(words, params.segments);
+  const ums = filledSpans(fillers, words);
 
   return pauses.map((p): JudgedPause => {
     if (p.kind === "beat") {
       return { ...p, verdict: "beat", note: `${clock(p.t)} · a beat.` };
     }
 
-    // A filler leaning on either side means the silence was bought back
-    // with an "um" rather than used instead of one.
-    const nearFiller = fillers.some(
-      (f) => Math.abs(f.t - p.t) <= FILLER_ADJACENCY_S ||
-        Math.abs(f.t - (p.t + p.len)) <= FILLER_ADJACENCY_S
+    // An um, uh or erm leaning on either side means the silence was
+    // bought back with it rather than used instead of it.
+    const nearFiller = ums.some(
+      (u) => distance(u, p.t) <= FILLED_EDGE_S || distance(u, p.t + p.len) <= FILLED_EDGE_S
     );
 
     /*
@@ -143,7 +235,9 @@ export function judgePauses(params: {
      * sound in this gap. Whisper deletes non-lexical fillers, so a
      * swallowed "um" arrives here as an empty stretch of timeline — and
      * before this check it was being scored as composure. Silence you
-     * made a noise in is not silence.
+     * made a noise in is not silence. Only with `micFills` (#476: off for
+     * new takes, see `MIC_FILLS_PAUSE`); without it the gap is judged on
+     * its words like any other.
      */
     const heard = envelope
       ? classifyGap(envelope, p.t, p.t + p.len, floor)
@@ -194,7 +288,7 @@ export function judgePauses(params: {
       };
     }
 
-    const closed = wordsInSentenceEndingAt(words, p.t);
+    const closed = wordsInSentenceEndingAt(words, stops, p.t);
     if (closed < SUBSTANTIAL_SENTENCE_WORDS) {
       return {
         ...p,
@@ -215,28 +309,23 @@ export function judgePauses(params: {
 }
 
 /**
- * Pause /100 = placement (60) + usage (40), minus what was bought back.
+ * Pause /100 = placement (67) + usage (25 for the rate, 8 for landing
+ * the ending), minus what was bought back (at most 15).
  *
  * Placement is a RATIO, not a count: five landings and five
  * hesitations is half marks, because half your silences were you
  * looking for a word. That is the specific thing the old score could
  * not see.
  */
-export function pauseReport(params: {
-  pauses: Pause[];
-  words: Word[];
-  fillers: FillerHit[];
-  durationS: number;
-  segments?: Segment[];
-  envelope?: Envelope | null;
-}): PauseReport {
+export function pauseReport(params: PauseInput): PauseReport {
   return reportJudged(judgePauses(params), params.durationS);
 }
 
 /**
  * The report, score included, of pauses already judged: read off their
  * verdicts, never judged again (DECISIONS #422). A take judges its
- * pauses once, with the envelope, and stores and shows those verdicts;
+ * pauses once (with the envelope while `MIC_FILLS_PAUSE` allowed it, so
+ * stored verdicts may say "The mic heard it") and stores and shows them;
  * the Index's Pause dimension scores the same ones through here, so a
  * pause the take calls filled can never score as a landing (#121).
  */
@@ -264,10 +353,8 @@ export function reportJudged(judged: JudgedPause[], durationS: number): PauseRep
     score =
       placement +
       rate +
-      (opening > 0 ? OPENING_BONUS : 0) +
       (landedTheEnding(judged, durationS) ? ENDING_BONUS : 0) -
-      filled * FILLED_PENALTY -
-      dead * DEAD_PENALTY;
+      Math.min(PENALTY_CAP, filled * FILLED_PENALTY + dead * DEAD_PENALTY);
   }
 
   return {

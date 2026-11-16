@@ -114,6 +114,9 @@ describe("the moments a take's filled pauses are heard at", () => {
  * Both ways a pause is judged filled reach the row: a filler leaning on
  * the silence, and a sound the mic heard in it that the transcript lost.
  * The moment's clock is the one the pause's own note was written with.
+ * The mic's kind is judged with `micFills` on: new takes leave the trace
+ * out since #476 (`MIC_FILLS_PAUSE`), and a recording stored with it
+ * still names its moments.
  */
 describe("both kinds of filled pause", () => {
   /** Two sentences with a held 1.4s gap between them, the second starting near 4.9s. */
@@ -132,7 +135,7 @@ describe("both kinds of filled pause", () => {
     return { words, durationS: Math.round(t * 100) / 100 };
   }
 
-  function judged(opts: { filler?: boolean; heard?: boolean }): JudgedPause[] {
+  function judged(opts: { filler?: boolean; heard?: boolean; micFills?: boolean }): JudgedPause[] {
     const { words, durationS } = take();
     const pauses = detectPauses(words);
     const gap = pauses.find((p) => p.kind !== "beat")!;
@@ -148,6 +151,7 @@ describe("both kinds of filled pause", () => {
       fillers: opts.filler ? [{ word: "um", t: gap.t + gap.len + 0.2 }] : [],
       durationS,
       envelope: { levels, rate },
+      micFills: opts.micFills ?? true,
     });
   }
 
@@ -171,5 +175,15 @@ describe("both kinds of filled pause", () => {
 
   it("names nothing for the same take left clean", () => {
     expect(filledMoments(judged({}))).toBeNull();
+  });
+
+  it("names nothing a new take's mic heard, with the trace off (#476)", () => {
+    const pauses = judged({ heard: true, micFills: false });
+    expect(pauses.some((p) => p.verdict === "filled")).toBe(false);
+    expect(filledMoments(pauses)).toBeNull();
+    // An um beside the same gap is still named, by the um.
+    const um = judged({ heard: true, filler: true, micFills: false });
+    expect(um.find((p) => p.verdict === "filled")!.note).toContain("filler leaning on it");
+    expect(filledMoments(um)!.moments).toHaveLength(1);
   });
 });

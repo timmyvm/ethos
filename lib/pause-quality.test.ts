@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { detectPauses, type FillerHit, type Word } from "./metrics";
-import { pauseReport, DEAD_AIR_S } from "./pause-quality";
+import { SHAPED_TAKE, whisperTake } from "./__fixtures__/whisper-take";
+import { INDEX_WEIGHTS } from "./index-score";
+import { computeMetrics, detectFillers, detectPauses, type FillerHit, type Word } from "./metrics";
+import {
+  pauseReport,
+  reportJudged,
+  DEAD_AIR_S,
+  MIC_FILLS_PAUSE,
+  PENALTY_CAP,
+  type JudgedPause,
+  type PauseVerdict,
+} from "./pause-quality";
 
 /**
  * Build a word stream from sentences with explicit gaps between them.
@@ -199,11 +209,15 @@ describe("the headline", () => {
  * engine as an empty stretch of timeline — and was being scored as
  * composure. The envelope closes that: silence you made a noise in is
  * not silence, whatever the transcript says.
+ *
+ * Off for new takes since #476 (`MIC_FILLS_PAUSE`: the trace ranked the
+ * cohort's recordings backwards), so these judge with `micFills` on: the
+ * path stays proved for the day it is switched back.
  */
 describe("gaps the mic heard a sound in", () => {
   const parts = [SENTENCE_A, 1.4, SENTENCE_B, 1.4, SENTENCE_C];
 
-  function withEnvelope(gapWasVoiced: boolean) {
+  function withEnvelope(gapWasVoiced: boolean, micFills: boolean | undefined = true) {
     const { words, durationS } = speech(parts);
     const pauses = detectPauses(words);
     // Loud speech throughout, with a floor of real silence so the rep
@@ -224,6 +238,7 @@ describe("gaps the mic heard a sound in", () => {
       fillers: [],
       durationS,
       envelope: { levels, rate },
+      micFills,
     });
   }
 
@@ -260,5 +275,215 @@ describe("gaps the mic heard a sound in", () => {
     });
     expect(base.filled).toBe(0);
     expect(base.landings).toBeGreaterThan(0);
+  });
+});
+
+/*
+ * #476: for a new take the trace fills no pause. Replayed over the tester
+ * cohort, it called 16.5% of held pauses voiced, mostly in the recordings
+ * people felt were their best, and turned the ranking backwards. A gap it
+ * calls voiced is judged on its words like any other: a landing if it is
+ * one. Only an um, uh or erm the transcript can point at fills it.
+ */
+describe("a new take's pauses and the phone's trace (#476)", () => {
+  const parts = [SENTENCE_A, 1.4, SENTENCE_B, 1.4, SENTENCE_C];
+
+  /** Every held gap loud in the trace, as the mic test's voiced take. */
+  function voicedTake(opts: { micFills?: boolean; fillers?: FillerHit[] } = {}) {
+    const { words, durationS } = speech(parts);
+    const pauses = detectPauses(words);
+    const rate = 20;
+    const levels = new Array(Math.ceil(durationS * rate) + 40).fill(0.5);
+    for (let i = levels.length - 40; i < levels.length; i++) levels[i] = 0.02;
+    for (const p of pauses.filter((x) => x.kind !== "beat")) {
+      for (let i = Math.round(p.t * rate); i < Math.round((p.t + p.len) * rate); i++) levels[i] = 0.3;
+    }
+    const input = { pauses, words, fillers: opts.fillers ?? [], durationS, envelope: { levels, rate, clock: true } };
+    return {
+      report: pauseReport("micFills" in opts ? { ...input, micFills: opts.micFills } : input),
+      words: pauseReport({ ...input, envelope: null }),
+      pauses,
+    };
+  }
+
+  it("is off by default", () => {
+    expect(MIC_FILLS_PAUSE).toBe(false);
+  });
+
+  it("judges a gap the trace calls voiced on its words: a landing if it is one", () => {
+    const { report, words } = voicedTake();
+    // The same gaps with the trace on are filled (the mic test above).
+    expect(voicedTake({ micFills: true }).report.filled).toBe(2);
+    expect(report.filled).toBe(0);
+    expect(report.landings).toBe(2);
+    expect(report.pauses).toEqual(words.pauses);
+    expect(report.score).toBe(words.score);
+    expect(report.pauses.some((p) => p.note.includes("The mic heard it"))).toBe(false);
+  });
+
+  it("says micFills false the same as the default", () => {
+    expect(voicedTake({ micFills: false }).report).toEqual(voicedTake().report);
+  });
+
+  it("still fills a voiced gap an um leans on, and says so by the um", () => {
+    const { pauses } = voicedTake();
+    const first = pauses.find((p) => p.kind !== "beat")!;
+    const { report } = voicedTake({ fillers: [{ word: "um", t: first.t + first.len + 0.1 }] });
+    expect(report.filled).toBe(1);
+    const filled = report.pauses.find((p) => p.verdict === "filled")!;
+    expect(filled.t).toBe(first.t);
+    expect(filled.note).toContain("filler leaning on it");
+  });
+});
+
+/*
+ * #476, for new takes. Every test above uses punctuated words, which
+ * Whisper never returns; these read what it does return: words with no
+ * punctuation, and segments whose text has it.
+ */
+describe("a take as Whisper returns it (#476)", () => {
+  const take = whisperTake(SHAPED_TAKE);
+  const m = computeMetrics(take.words, take.durationS, take.segments);
+  const r = pauseReport({
+    pauses: m.pauses,
+    words: take.words,
+    fillers: m.fillers,
+    durationS: m.durationS,
+    segments: take.segments,
+  });
+  const held = r.pauses.filter((p) => p.verdict !== "beat");
+
+  it("finds its sentence ends in the segment text", () => {
+    expect(take.words.some((w) => /[.?!,]/.test(w.word.replace(/^\d+\.\d+$/, "")))).toBe(false);
+    expect(held.map((p) => p.kind)).toEqual(["pre", "mid", "pre", "pre", "pre", "pre", "mid", "pre"]);
+  });
+
+  it("judges each held pause by what came before it", () => {
+    // talk. | say... | losing. (mid-segment) | left. | thing. (fallback, then "Like,")
+    // | them. (an um 1.1s on) | um, | lands. (the last fifth)
+    expect(held.map((p) => p.verdict)).toEqual([
+      "landing",
+      "hesitation",
+      "landing",
+      "landing",
+      "landing",
+      "landing",
+      "filled",
+      "landing",
+    ]);
+    expect(r.landedTheEnding).toBe(true);
+  });
+
+  it("counts the words of a finished point back to the last full stop", () => {
+    // "So um I've been thinking. About why most." The pause after "most"
+    // closes 3 words: no point to land yet. Before #476 the walk back found
+    // no full stop in Whisper's words and counted every word to the start.
+    const words = take.words.slice(0, 8).map((w) => w.word);
+    const short = whisperTake([
+      { text: words.slice(0, 5).join(" ") + ". " + words.slice(5).join(" ") + ". [1.2]" },
+      { text: "That was the point." },
+    ]);
+    const sm = computeMetrics(short.words, short.durationS, short.segments);
+    const sr = pauseReport({ pauses: sm.pauses, words: short.words, fillers: sm.fillers, durationS: sm.durationS, segments: short.segments });
+    const pause = sr.pauses.find((p) => p.verdict !== "beat")!;
+    expect(pause.kind).toBe("pre");
+    expect(pause.verdict).toBe("hesitation");
+    expect(pause.note).toContain("a pause after 3 words");
+  });
+
+  it("scores it 73: placement 6 of 8 (50.25), the rate (25), the ending (8), one filled (-10)", () => {
+    expect(r.score).toBe(73);
+  });
+});
+
+describe("filled means an um, uh or erm leaning on the pause (#476)", () => {
+  const { words, durationS } = speech([SENTENCE_A, 1.4, SENTENCE_B]);
+  const gapAt = words.find((w) => /looks\.$/.test(w.word))!.end;
+  const gapEnd = gapAt + 1.4;
+  const judge = (fillers: FillerHit[]) =>
+    pauseReport({ pauses: detectPauses(words), words, fillers, durationS }).pauses.find((p) => p.verdict !== "beat")!
+      .verdict;
+
+  it("is the Fillers ring's set: a like or a you know beside a silence does not fill it", () => {
+    expect(judge([{ word: "like", t: gapEnd }])).toBe("landing");
+    expect(judge([{ word: "you know", t: gapEnd }])).toBe("landing");
+    expect(judge([{ word: "basically", t: gapAt - 0.4 }])).toBe("landing");
+    expect(judge([{ word: "uh", t: gapEnd }])).toBe("filled");
+    expect(judge([{ word: "erm", t: gapEnd }])).toBe("filled");
+  });
+
+  it("leans within half a second of either edge, not 1.2", () => {
+    expect(judge([{ word: "um", t: gapEnd + 0.4 }])).toBe("filled");
+    expect(judge([{ word: "um", t: gapEnd + 0.7 }])).toBe("landing");
+    expect(judge([{ word: "um", t: gapAt - 0.45 }])).toBe("filled");
+  });
+
+  it("measures from where a long um ends, not where it began", () => {
+    // A 0.9s "um" right before the silence: its start is 0.9s away, its end 0.
+    const said = speech([SENTENCE_A]).words;
+    const last = said[said.length - 1].end;
+    const um: Word = { word: " um", start: Math.round((last + 0.05) * 100) / 100, end: Math.round((last + 0.95) * 100) / 100 };
+    const next = speech([SENTENCE_B]).words.map((w) => ({ ...w, start: w.start + um.end + 1.3, end: w.end + um.end + 1.3 }));
+    const all = [...said, um, ...next];
+    const { fillers } = detectFillers(all);
+    const r = pauseReport({ pauses: detectPauses(all), words: all, fillers, durationS: next[next.length - 1].end + 0.5 });
+    const pause = r.pauses.find((p) => p.verdict !== "beat")!;
+    expect(pause.t).toBeCloseTo(um.end, 2);
+    expect(pause.verdict).toBe("filled");
+  });
+});
+
+describe("the score's parts (#476)", () => {
+  const jp = (t: number, verdict: PauseVerdict): JudgedPause => ({ t, len: 1.2, kind: "pre", verdict, note: "" });
+  const landings = (ts: number[]) => ts.map((t) => jp(t, "landing"));
+
+  it("reaches 100 with no opening: placement took the opening's 7 points", () => {
+    // Before #476 this was 93, the most any take could score: the opening
+    // bonus paid for silence before the first word, which is never a gap.
+    expect(reportJudged(landings([10, 30, 50]), 60).score).toBe(100);
+  });
+
+  it("counts an opening as placement only", () => {
+    const withOpening = reportJudged([jp(0.6, "opening"), ...landings([20, 50])], 60).score;
+    const without = reportJudged([jp(0.6, "hesitation"), ...landings([20, 50])], 60).score;
+    expect(withOpening - without).toBe(22); // 67 / 3, rounded
+  });
+
+  it(`caps filled and dead air together at ${PENALTY_CAP}`, () => {
+    const pauses = [...landings([10, 20]), jp(30, "filled"), jp(35, "filled"), jp(40, "filled"), jp(45, "dead"), jp(52, "dead")];
+    // 2 of 7 placed (19.14) + the rate (25) - 15, where it was 30 + 24 off: 0.
+    expect(reportJudged(pauses, 60).score).toBe(29);
+    expect(reportJudged([...landings([10, 20]), jp(30, "filled")], 60).score).toBe(
+      reportJudged(landings([10, 20]), 60).score - 22 - 10
+    );
+  });
+
+  it("costs the same habit the same at any length", () => {
+    // 4 landings and 2 filled a minute, for one minute and for two.
+    const one = [...landings([5, 15, 25, 50]), jp(30, "filled"), jp(40, "filled")];
+    const two = [
+      ...landings([5, 15, 25, 35, 45, 55, 65, 100]),
+      ...[70, 75, 80, 85].map((t) => jp(t, "filled")),
+    ];
+    expect(reportJudged(one, 60).score).toBe(63);
+    expect(reportJudged(two, 120).score).toBe(63); // 53 and 33 before #476
+  });
+
+  it("leaves the Index's weights as they were: only the Pause dimension's input moves", () => {
+    expect(INDEX_WEIGHTS).toEqual({
+      pause: 150,
+      fillers: 100,
+      repairs: 50,
+      pace: 100,
+      range: 100,
+      structure: 150,
+      credibility: 150,
+      engagement: 100,
+      confidence: 100,
+    });
+  });
+
+  it("still scores a take with no held pause 20", () => {
+    expect(reportJudged([{ t: 3, len: 0.5, kind: "beat", verdict: "beat", note: "" }], 60).score).toBe(20);
   });
 });

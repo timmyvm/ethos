@@ -132,14 +132,35 @@ describe("detectPauses", () => {
     expect(pauses[0].kind).toBe("mid");
   });
 
-  it("uses segment starts when punctuation is missing", () => {
+  /*
+   * Changed by #476, and the change is the point: a segment boundary is
+   * not a sentence end. Whisper starts segments mid-sentence, and before
+   * #476 every gap it started one after counted as before a sentence.
+   * The segment's own text now says: "done" has no full stop, so the gap
+   * after it is mid-sentence. (This test was "uses segment starts when
+   * punctuation is missing" and expected "pre".)
+   */
+  it("reads the segment text's punctuation, not the segment boundary", () => {
     const words = w(["done", 0, 0.4], [" next", 1.5, 1.8]);
-    const segments: Segment[] = [
+    const unpunctuated: Segment[] = [
       { start: 0, end: 0.4, text: "done" },
       { start: 1.5, end: 1.8, text: "next" },
     ];
-    const pauses = detectPauses(words, segments);
-    expect(pauses[0].kind).toBe("pre");
+    expect(detectPauses(words, unpunctuated)[0].kind).toBe("mid");
+    const punctuated: Segment[] = [
+      { start: 0, end: 0.4, text: " Done." },
+      { start: 1.5, end: 1.8, text: " Next." },
+    ];
+    expect(detectPauses(words, punctuated)[0].kind).toBe("pre");
+  });
+
+  it("still uses segment starts where the text cannot be lined up with the words", () => {
+    const words = w(["twenty", 0, 0.4], [" next", 1.5, 1.8]);
+    const segments: Segment[] = [
+      { start: 0, end: 0.4, text: " 20" },
+      { start: 1.5, end: 1.8, text: " next" },
+    ];
+    expect(detectPauses(words, segments)[0].kind).toBe("pre");
   });
 });
 

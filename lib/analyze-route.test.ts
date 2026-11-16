@@ -47,6 +47,22 @@ vi.mock("@/lib/accuracy", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/accuracy")>()),
   judgeAccuracy: vi.fn(async () => null),
 }));
+/*
+ * The route judges its pauses with `MIC_FILLS_PAUSE`, off since #476. A
+ * test that sets `trace.micFills` judges them as if that one line were
+ * switched back on, so the gate in front of the trace (`pauseEnvelope`)
+ * stays proved through the route. Left undefined, the route's own
+ * default runs untouched.
+ */
+const trace = vi.hoisted(() => ({ micFills: undefined as boolean | undefined }));
+vi.mock("@/lib/pause-quality", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@/lib/pause-quality")>();
+  return {
+    ...real,
+    pauseReport: (params: Parameters<typeof real.pauseReport>[0]) =>
+      real.pauseReport(trace.micFills === undefined ? params : { ...params, micFills: trace.micFills }),
+  };
+});
 
 import { POST } from "@/app/api/analyze/route";
 import { judgeAccuracy } from "@/lib/accuracy";
@@ -76,6 +92,7 @@ import { ENVELOPE_RATE, serializeEnvelope, type Envelope } from "@/lib/envelope"
 import { ethosIndex, pauseScore, type Tier1Scores } from "@/lib/index-score";
 import { computeMetrics } from "@/lib/metrics";
 import { reportJudged, type JudgedPause } from "@/lib/pause-quality";
+import { SHAPED_TAKE, whisperTake } from "@/lib/__fixtures__/whisper-take";
 
 function post(form: FormData | null): Promise<Response> {
   const req = new Request("http://test.local/api/analyze", {
@@ -1213,10 +1230,17 @@ describe("a game round", () => {
 
 /*
  * The pause score and the envelope (DECISIONS #422, #121). The take
- * judges its pauses once, with the envelope, and stores, shows and
- * scores those verdicts: a gap the stored pause list says had a sound in
- * it never scores as a landing, and a gap the phone did not hear keeps
- * the verdict its words give.
+ * judges its pauses once and stores, shows and scores those verdicts: a
+ * gap the stored pause list calls filled never scores as a landing.
+ *
+ * Since #476 a new take's trace fills no pause (`MIC_FILLS_PAUSE`): a
+ * pause is filled by an um, uh or erm beside it, and a gap the trace
+ * calls voiced keeps the verdict its words give. The envelope cases
+ * below (heard, unheard, refitted, unmarked, the stars) judge with the
+ * trace switched back on (`traceOn`), so the gate in front of it and the
+ * Index's read of the verdicts it stores stay proved for the day it
+ * comes back: an um's filled pause scores the same from the words alone,
+ * so only a heard one can tell the two apart here.
  */
 describe("the Index scores the pauses the take stores", () => {
   const SENTENCES = [
@@ -1227,14 +1251,20 @@ describe("the Index scores the pauses the take stores", () => {
     "She said the update finally sounded like a decision.",
     "That changed how I prepare for every single meeting now.",
   ];
-  /** Six sentences, a 1.3s held pause after each of the first five. */
-  const TAKE = (() => {
+  /**
+   * Six sentences, a 1.3s held pause after each of the first five, and an
+   * "um," said straight after the held pauses named in `ums`.
+   */
+  function takeWith(ums: number[]) {
     const words: { word: string; start: number; end: number }[] = [];
+    const said: string[] = [];
     const gaps: [number, number][] = [];
     let t = 0.5;
     SENTENCES.forEach((s, k) => {
-      for (const raw of s.split(" ")) {
+      const spoken = ums.includes(k - 1) ? ["um,", ...s.split(" ")] : s.split(" ");
+      for (const raw of spoken) {
         words.push({ word: words.length === 0 ? raw : ` ${raw}`, start: +t.toFixed(2), end: +(t + 0.3).toFixed(2) });
+        said.push(raw);
         t += 0.42;
       }
       if (k < SENTENCES.length - 1) {
@@ -1243,8 +1273,9 @@ describe("the Index scores the pauses the take stores", () => {
       }
     });
     const durationS = Math.ceil(t + 0.5);
-    return { text: SENTENCES.join(" "), durationS, words, segments: [], raw: {}, gaps };
-  })();
+    return { text: said.join(" "), durationS, words, segments: [], raw: {}, gaps };
+  }
+  const TAKE = takeWith([]);
 
   /** What the mic heard at t: speech, room tone in a gap, a swallowed "um" mid-gap in a voiced one. */
   function heard(t: number, voiced: number[]): number {
@@ -1267,9 +1298,9 @@ describe("the Index scores the pauses the take stores", () => {
   const dim = { score: 60, citedMoment: '"the first thing"', improve: "Open with the claim." };
   const TIER2 = { structure: dim, credibility: dim, engagement: dim, confidence: dim };
 
-  async function send(envelope: Envelope | null) {
+  async function send(envelope: Envelope | null, take: ReturnType<typeof takeWith> = TAKE) {
     vi.mocked(saveRep).mockClear();
-    vi.mocked(transcribe).mockResolvedValue(TAKE);
+    vi.mocked(transcribe).mockResolvedValue(take);
     vi.mocked(coachRep).mockResolvedValue({
       focus: "Hold the gap.",
       strength: "Five held pauses.",
@@ -1308,13 +1339,51 @@ describe("the Index scores the pauses the take stores", () => {
     return pauseScore(m.pauses, m.durationS, TAKE.words, m.fillers);
   })();
 
+  /** For this test, the route judges as if `MIC_FILLS_PAUSE` were switched back on. */
+  function traceOn() {
+    trace.micFills = true;
+    onTestFinished(() => {
+      trace.micFills = undefined;
+    });
+  }
+
   it("stores an Index that scores the two pauses it calls filled as filled", async () => {
+    // An "um," straight after gaps 1 and 3.
+    const sent = await send(null, takeWith([1, 3]));
+    const report = consistent(sent);
+    expect(report.filled).toBe(2);
+    const held = sent.saved.metrics.pauses.filter((p) => p.verdict !== "beat");
+    expect(held.map((p) => p.verdict)).toEqual(["landing", "filled", "landing", "filled", "landing"]);
+    expect(held.filter((p) => p.verdict === "filled").map((p) => p.note)).toEqual([
+      expect.stringContaining("filler leaning on it"),
+      expect.stringContaining("filler leaning on it"),
+    ]);
+    expect(sent.body.pauseHeadline).toMatch(/^2 of your "pauses" had a sound in them/);
+    // Below the same take said clean, where both gaps land.
+    expect(sent.saved.tier1.pause).toBeLessThan(WORDS_ONLY);
+  });
+
+  it("judges a new take's voiced gaps on their words: the trace fills no pause (#476)", async () => {
+    // The phone heard a sound mid-gap in gaps 1 and 3, with no um beside either.
+    const voiced = await send(clockEnvelope([1, 3]));
+    const report = consistent(voiced);
+    expect(report.filled).toBe(0);
+    expect(voiced.saved.metrics.pauses.some((p) => p.note.includes("The mic heard it"))).toBe(false);
+    const none = await send(null);
+    expect(voiced.saved.metrics.pauses).toEqual(none.saved.metrics.pauses);
+    expect(voiced.saved.tier1).toEqual(none.saved.tier1);
+    expect(voiced.saved.ethosIndex).toBe(none.saved.ethosIndex);
+    expect(voiced.saved.tier1.pause).toBe(WORDS_ONLY);
+  });
+
+  it("with the trace switched back on, stores the gaps it heard as filled and scores them so", async () => {
+    traceOn();
     const sent = await send(clockEnvelope([1, 3]));
     const report = consistent(sent);
     expect(report.filled).toBe(2);
     expect(sent.saved.metrics.pauses.filter((p) => p.verdict === "filled").map((p) => p.note)).toEqual([
-      expect.stringContaining("with a sound in it"),
-      expect.stringContaining("with a sound in it"),
+      expect.stringContaining("The mic heard it"),
+      expect.stringContaining("The mic heard it"),
     ]);
     expect(sent.body.pauseHeadline).toMatch(/^2 of your "pauses" had a sound in them/);
     // Below the words' own score, which read both gaps as landings.
@@ -1333,6 +1402,7 @@ describe("the Index scores the pauses the take stores", () => {
   });
 
   it("gives a gap the phone never heard the verdict its words give", async () => {
+    traceOn();
     // Gaps 1 and 3 had a sound in them, but the page had no frames then.
     const unheard = await send(clockEnvelope([1, 3], [1, 3]));
     const report = consistent(unheard);
@@ -1341,6 +1411,7 @@ describe("the Index scores the pauses the take stores", () => {
   });
 
   it("judges no pause on a refitted envelope, an outbox replay from before the review", async () => {
+    traceOn();
     // About 17 samples a second under a label of 20, no clock mark.
     const truth = clockEnvelope([1, 3]);
     const levels: number[] = [];
@@ -1353,6 +1424,7 @@ describe("the Index scores the pauses the take stores", () => {
   });
 
   it("judges no pause on an unmarked envelope inside the 5% tolerance, so it scores as no envelope", async () => {
+    traceOn();
     // 19.2 samples a second under a label of 20, no clock mark: what an
     // older phone's frame-gated sampler sends, and not refitted. Read as
     // sent, the late gaps are judged on the next sentence's speech.
@@ -1370,8 +1442,10 @@ describe("the Index scores the pauses the take stores", () => {
   });
 
   it("moves no star and no other dimension", async () => {
+    traceOn();
     const none = await send(null);
     const filled = await send(clockEnvelope([0, 1, 3]));
+    expect(filled.saved.tier1.pause).toBeLessThan(none.saved.tier1.pause);
     expect(filled.saved.metrics.stars).toBe(none.saved.metrics.stars);
     expect({ ...filled.saved.tier1, pause: 0 }).toEqual({ ...none.saved.tier1, pause: 0 });
   });
@@ -1605,5 +1679,55 @@ describe("what does not wait on the words starts beside Whisper (#472)", () => {
     expect(answered).toBe(false);
     write.release();
     expect((await answer).status).toBe(200);
+  });
+});
+
+/*
+ * #476, end to end: Whisper's reply as it really comes (words with no
+ * punctuation, segments with it, "..." at a hesitation, a segment whose
+ * text says "Twenty" where the words say "20"), through the route, to
+ * what it stores. The pause list, the Pause score and the Index agree,
+ * and the raw reply is stored whole, so a replay can read it again.
+ */
+describe("a take as Whisper returns it (#476)", () => {
+  const take = whisperTake(SHAPED_TAKE);
+  const dim = { score: 60, citedMoment: '"most of us rush"', improve: "Land the first point." };
+
+  it("stores sentence ends from the segment text and scores them", async () => {
+    vi.mocked(saveRep).mockClear();
+    vi.mocked(transcribe).mockResolvedValue(take);
+    vi.mocked(coachRep).mockResolvedValue({
+      focus: "Hold the gap.",
+      strength: "Six landed.",
+      supply: { original: "um", upgrade: "(pause)", note: "Silence reads as thought." },
+      coachLine: "Six pauses landed.",
+      dimensions: { structure: dim, credibility: dim, engagement: dim, confidence: dim },
+    });
+    const body = await (await post(audioForm())).json();
+    const saved = vi.mocked(saveRep).mock.calls[0][0] as unknown as {
+      metrics: { pauses: JudgedPause[]; durationS: number };
+      tier1: Tier1Scores;
+      ethosIndex: number | null;
+      whisperRaw: unknown;
+    };
+    const held = saved.metrics.pauses.filter((p) => p.kind !== "beat");
+    expect(held.map((p) => `${p.kind}:${p.verdict}`)).toEqual([
+      "pre:landing", // talk.
+      "mid:hesitation", // say...
+      "pre:landing", // losing. (mid-segment)
+      "pre:landing", // left.
+      "pre:landing", // thing. (the "Twenty" segment: its segment-start rule)
+      "pre:landing", // them. (the um 1.1s on does not lean on it)
+      "mid:filled", // um,
+      "pre:landing", // lands. (the last fifth)
+    ]);
+    expect(saved.tier1.pause).toBe(73);
+    expect(saved.tier1.pause).toBe(reportJudged(saved.metrics.pauses, saved.metrics.durationS).score);
+    expect(saved.ethosIndex).toBe(
+      ethosIndex(saved.tier1, { structure: 60, credibility: 60, engagement: 60, confidence: 60 })
+    );
+    expect(body.tier1).toEqual(saved.tier1);
+    expect(body.metrics.pauses).toEqual(saved.metrics.pauses);
+    expect(saved.whisperRaw).toEqual(take.raw);
   });
 });

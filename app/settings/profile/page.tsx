@@ -1,49 +1,34 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { ErrorLine } from "@/components/ui/ErrorState";
-import { TapTick } from "@/components/ui/TapTick";
-import { CheckMark, LinkRow, PAGE_CLASS, PoseAvatar, Section } from "@/components/settings/Rows";
+import { LinkRow, PAGE_CLASS, Section } from "@/components/settings/Rows";
+import { PictureChoices, PictureProblem } from "@/components/picture/PictureChoices";
+import { usePicture } from "@/components/picture/usePicture";
 import { cleanName, MAX_NAME, readOnboarding, writeOnboarding } from "@/lib/answers";
-import { fetchProfile, fetchWholeLedger, updateDisplayName, updateEquippedPose } from "@/lib/client-data";
-import { adoptAccountPose, wearPose } from "@/lib/pose-save";
-import { readPrefs } from "@/lib/prefs";
+import { fetchProfile, updateDisplayName } from "@/lib/client-data";
+import { PICTURE_COPY } from "@/lib/picture";
 import { goalWord } from "@/lib/settings-index";
-import { POSE_STAGE, SHOP, ownedFrom } from "@/lib/shop";
-import { useRovingRadio } from "@/lib/use-roving-radio";
-
-/** Hello is worn when nothing is: the pose every account has. */
-const HELLO = "hello";
-
-/** A pose's name in the picker: the Shop's, without "Demos, ". */
-function poseName(id: string): string {
-  if (id === HELLO) return "Hello";
-  const name = SHOP.find((s) => s.id === id)?.name.replace(/^Demos,\s*/, "") ?? id;
-  return `${name[0].toUpperCase()}${name.slice(1)}`;
-}
 
 /**
- * Profile (#479): the picture, the name and the goal. The picture is
- * Demos in a pose the account owns (the Shop's poses, #395): hello for
- * everyone, and each pose the coin ledger proves was bought; wearing one
- * here wears it on You, saved through the same pending mark the Shop
- * uses (lib/pose-save.ts). The name is `profiles.display_name`, the one
- * field you type. The goal is the introduction's answer.
+ * Profile (#479): the name, the picture and the goal. The name is
+ * `profiles.display_name`, the one field you type. The picture is the
+ * person's one picture (#488, components/picture/usePicture.tsx): your
+ * photo, your initial, Demos's hello, or a pose the coin ledger proves
+ * you bought, with the photo's own doors under them. The same rows open
+ * from You's coin, so both doors set one thing, and every surface that
+ * shows a picture of you draws what is checked here. The goal is the
+ * introduction's answer.
  */
 export default function ProfilePage() {
-  const [worn, setWorn] = useState<string | null>(null);
-  /** Poses the ledger proves; undefined until it is read. */
-  const [owned, setOwned] = useState<string[] | undefined>(undefined);
-  const [poseNote, setPoseNote] = useState<string | null>(null);
-  const turn = useRef(0);
   const [name, setName] = useState<string | null | undefined>(undefined);
   const [draft, setDraft] = useState("");
   const [nameSave, setNameSave] = useState<"idle" | "saving" | "saved" | "failed">("idle");
   const [goal, setGoal] = useState<string | null | undefined>(undefined);
+  const picture = usePicture({ name: name ?? null, nameKnown: name !== undefined, choices: true });
 
   useEffect(() => {
-    setWorn(readPrefs().pose);
     setGoal(readOnboarding().answers.goal);
     const local = cleanName(readOnboarding().answers.name);
     fetchProfile()
@@ -51,38 +36,12 @@ export default function ProfilePage() {
         const n = cleanName(p?.display_name) ?? local;
         setName(n);
         setDraft(n ?? "");
-        if (p) setWorn(adoptAccountPose(p.equipped_pose));
       })
       .catch(() => {
         setName(local);
         setDraft(local ?? "");
       });
-    fetchWholeLedger()
-      .then((rows) => setOwned([...ownedFrom(rows).ids].filter((id) => id in POSE_STAGE)))
-      .catch(() => setOwned([]));
   }, []);
-
-  /* Hello, then every pose owned, and the one worn even before the
-     ledger answers, so the picture on screen is always a choice here. */
-  const poses = [HELLO, ...SHOP.filter((s) => s.id in POSE_STAGE && ((owned ?? []).includes(s.id) || s.id === worn)).map((s) => s.id)];
-  const chosen = worn && poses.includes(worn) ? worn : HELLO;
-
-  function wear(id: string) {
-    const pose = id === HELLO ? null : id;
-    setWorn(pose);
-    setPoseNote(null);
-    const mine = ++turn.current;
-    void wearPose(pose, updateEquippedPose).then((saved) => {
-      if (saved || mine !== turn.current) return;
-      setPoseNote("Wearing it didn't save. Try again.");
-      fetchProfile()
-        .then((p) => {
-          if (p && mine === turn.current) setWorn(adoptAccountPose(p.equipped_pose));
-        })
-        .catch(() => {});
-    });
-  }
-  const { getItemProps } = useRovingRadio({ values: poses, value: chosen, onChange: wear });
 
   async function saveName() {
     const next = cleanName(draft);
@@ -152,29 +111,16 @@ export default function ProfilePage() {
         </form>
       </Section>
 
-      {/* The picture: Hello and every pose owned, one row each with a
-          check on the one worn, the same list as Goal's and Focus's. */}
-      <Section title="Picture" footer={poseNote ? <span role="alert" className="text-rust">{poseNote}</span> : "Demos stands on You in the pose you pick."}>
-        <div role="radiogroup" aria-label="Picture" data-inset="icon">
-          {poses.map((id, i) => (
-            <button
-              key={id}
-              type="button"
-              role="radio"
-              aria-checked={chosen === id}
-              onClick={() => wear(id)}
-              {...getItemProps(id, i)}
-              className="group-row press-row flex w-full items-center gap-3.5 py-2 text-left"
-            >
-              <PoseAvatar pose={id === HELLO ? null : id} size={40} />
-              <span className="font-display min-w-0 flex-1 text-row">{poseName(id)}</span>
-              {chosen === id && <CheckMark />}
-              <TapTick />
-            </button>
-          ))}
-        </div>
-        <LinkRow href="/shop" label="More poses in the Shop" />
+      {/* The picture (#488): every picture you can wear, one row each
+          with a check on the one worn, the photo's doors, the Shop. The
+          same rows You's coin opens on a sheet. */}
+      <Section
+        title={PICTURE_COPY.section}
+        footer={picture.error ? <PictureProblem state={picture} className="" /> : undefined}
+      >
+        <PictureChoices state={picture} />
       </Section>
+      {picture.input}
 
       <Section title="About you">
         <LinkRow href="/settings/profile/goal" label="Goal" value={goal === undefined ? null : goalWord(goal)} />

@@ -180,9 +180,9 @@ const reps = SPOKE.map((ago, i) => {
 
 const xp_events = reps.map((r, i) => ({ amount: 40 + (i % 3) * 15, created_at: r.created_at }));
 /*
- * LOOK_POSE: the Demos pose the account wears on You's stage. The default
+ * LOOK_POSE: the Demos pose the account wears as its picture (#488). The default
  * buys and wears the speaking pose; "none" keeps it bought and takes it
- * off (You's own "hello"); another shop pose id is bought instead, at
+ * off (no choice: the initial); another shop pose id is bought instead, at
  * its catalog price, and worn.
  *
  *   LOOK_POSE=none node scripts/look.mjs after-bare you

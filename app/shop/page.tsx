@@ -4,7 +4,7 @@ import { TapTick } from "@/components/ui/TapTick";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CountUp } from "@/components/CountUp";
-import { IconCoin } from "@/components/Icon";
+import { IconCheck, IconCoin } from "@/components/Icon";
 import { ItemArt } from "@/components/shop/ItemArt";
 import { Skeleton, SkeletonRegion } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -27,12 +27,15 @@ import {
   ownedFrom,
   reasonFor,
   SHOP,
+  SHOP_PICTURE,
   type ShopItem,
 } from "@/lib/shop";
 import { DURATION } from "@/lib/motion";
 import { MAX_EQUIPPED_FREEZES } from "@/lib/streak";
 import { adoptAccountPose, wearPose } from "@/lib/pose-save";
-import { buzz, readPrefs } from "@/lib/prefs";
+import { buzz } from "@/lib/prefs";
+import { PICTURE_COPY } from "@/lib/picture";
+import { deviceChoice } from "@/lib/picture-client";
 import { DISABLED_CLASS } from "@/lib/ui";
 
 /**
@@ -104,10 +107,12 @@ export default function ShopPage() {
   }, []);
 
   useEffect(() => {
-    // The local copy paints first; the account's answer wins when it
-    // lands, because the account is what follows you to a new device,
-    // unless a pose worn here is still on its way there (lib/pose-save).
-    setPose(readPrefs().pose);
+    // The picture's choice (#488, lib/picture.ts), where the worn pose
+    // always lived: the local copy paints first; the account's answer
+    // wins when it lands, because the account is what follows you to a
+    // new device, unless a choice made here is still on its way there
+    // (lib/pose-save).
+    setPose(deviceChoice());
     fetchProfile()
       .then((p) => {
         if (p) setPose(adoptAccountPose(p.equipped_pose));
@@ -117,9 +122,11 @@ export default function ShopPage() {
   }, [refresh]);
 
   /**
-   * Equipping is free and reversible: the coins bought the option. The
+   * Wearing is free and reversible: the coins bought the option. A pose
+   * worn here is the person's picture (#488); taken off, the picture goes
+   * back to no choice (the photo if one is kept, else the initial). The
    * device has it at once and the account in the background; a save that
-   * fails twice puts the account's pose back on the button and says so.
+   * fails twice puts the account's choice back on the button and says so.
    */
   function equip(id: string | null) {
     setPose(id);
@@ -127,7 +134,7 @@ export default function ShopPage() {
     const turn = ++wearing.current;
     void wearPose(id, updateEquippedPose).then((saved) => {
       if (saved || turn !== wearing.current) return;
-      setNote("Wearing it didn't save. Try again.");
+      setNote(PICTURE_COPY.failed);
       fetchProfile()
         .then((p) => {
           if (p && turn === wearing.current) setPose(adoptAccountPose(p.equipped_pose));
@@ -148,15 +155,16 @@ export default function ShopPage() {
       buzz([20, 40, 20]);
       setBought(item.id);
       // A cosmetic that changes nothing until you find a second switch
-      // is a cosmetic that reads as broken. Buying equips it, and the
-      // note names where it went: You's stage, since #393 took Demos
-      // off Today. It leaves the pose's name to its card: the names
-      // carry a comma, and "Demos, mid-practice bought" read as an
-      // order given to Demos.
+      // is a cosmetic that reads as broken. Buying wears it as your
+      // picture (#488), the latest choice, which You, Today and Settings
+      // all draw; a photo you kept stays one tap away in the picture's
+      // list, never deleted. The note names where it went and leaves the
+      // pose's name to its card: the names carry a comma, and "Demos,
+      // mid-practice bought" read as an order given to Demos.
       if (item.kind === "cosmetic") equip(item.id);
       setNote(
         item.kind === "cosmetic"
-          ? "It's yours, and it's on You."
+          ? SHOP_PICTURE.bought
           : `${item.name} bought.`,
       );
       await refresh();
@@ -290,9 +298,9 @@ export default function ShopPage() {
               <div key={item.id} className="card p-4">
                 <div className="flex gap-3.5">
                   <ItemArt id={item.id} />
-                  <div className="min-w-0 flex-1">
+                  <div className={`min-w-0 flex-1${isOwned ? " self-center" : ""}`}>
                     {/* Owned leaves the price's slot empty (E38): the
-                        price has done its job, and the On You pill under
+                        price has done its job, and the wear button under
                         it says the state, so a second word doubled it. */}
                     <div className="flex items-baseline justify-between gap-3">
                       <span className="font-display text-detail">
@@ -310,9 +318,15 @@ export default function ShopPage() {
                         </span>
                       )}
                     </div>
-                    <p className="mt-1 text-caption text-pretty text-stone-500">
-                      {item.blurb}
-                    </p>
+                    {/* Owned, the blurb goes the way the price went
+                        (E38): "Wear it as your picture." over a button
+                        that says "Wear it as your picture" said it twice
+                        (#488 review). The button carries the words. */}
+                    {isOwned ? null : (
+                      <p className="mt-1 text-caption text-pretty text-stone-500">
+                        {item.blurb}
+                      </p>
+                    )}
                     {full && (
                       <p className="mt-1.5 text-caption font-semibold tabular-nums text-ink">
                         {state.reason}
@@ -322,17 +336,19 @@ export default function ShopPage() {
                 </div>
                 {isOwned ? (
                   /* Owned cosmetics stop offering a sale and offer the
-                     only thing left to decide: whether it's the one You's
-                     stage wears. Its label is its state, so it carries no
-                     aria-pressed (you-25). */
+                     only thing left to decide: whether it's your picture
+                     (#488). Worn, the label is the state with a check;
+                     a tap takes it off. Its label is its state, so it
+                     carries no aria-pressed (you-25). */
                   <button
                     key={justBought ? "equip-bought" : "equip"}
                     onClick={() => equip(pose === item.id ? null : item.id)}
-                    className={`press font-display mt-3 min-h-11 w-full rounded-tap border border-sage-300 px-5 py-2.5 text-row text-sage-700 transition-colors ${
+                    className={`press font-display mt-3 flex min-h-11 w-full items-center justify-center gap-1.5 rounded-tap border border-sage-300 px-5 py-2.5 text-row text-sage-700 transition-colors ${
                       justBought ? "arrive " : ""
                     }${pose === item.id ? "bg-sage-100" : "bg-surface"}`}
                   >
-                    {pose === item.id ? "On You" : "Wear it on You"}
+                    {pose === item.id && <IconCheck size={16} />}
+                    {pose === item.id ? SHOP_PICTURE.worn : SHOP_PICTURE.wear}
                     <TapTick />
                   </button>
                 ) : state.ok ? (

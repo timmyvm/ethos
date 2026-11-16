@@ -426,8 +426,9 @@ export interface ProfileRow {
   display_name: string | null;
   premium: boolean;
   premium_until: string | null;
-  /** Which owned Demos pose stands on You's stage. Synced since 27 Aug
-   *  so a bought cosmetic follows the account across devices. */
+  /** The person's picture, as chosen (#488, lib/picture.ts): a bought
+   *  pose's id, "photo", "initial", "hello", or null for none. Synced
+   *  since 27 Aug so a bought cosmetic follows the account across devices. */
   equipped_pose: string | null;
 }
 
@@ -555,11 +556,11 @@ export async function upsertOnboarding(row: OnboardingRow): Promise<boolean> {
 }
 
 /**
- * Which owned pose stands on You's stage. Upserted like the display
- * name (profiles are created lazily); `null` puts his hello back.
- * localStorage keeps a copy so the stage paints right on first render,
- * but the account is the truth — this is what makes a cosmetic follow
- * its owner to the next device.
+ * The person's picture, as chosen (#488): a bought pose's id, "photo",
+ * "initial" or "hello"; `null` is no choice. Upserted like the display
+ * name (profiles are created lazily). localStorage keeps a copy so the
+ * picture paints right on first render, but the account is the truth:
+ * this is what makes a cosmetic follow its owner to the next device.
  */
 export async function updateEquippedPose(
   pose: string | null

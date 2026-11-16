@@ -3981,37 +3981,50 @@ summary::-webkit-details-marker {
 .streak-lit svg[fill="none"] > path:not([fill]):last-child {
   fill: var(--streak);
 }
-/* The photo's coin (components/you/Avatar.tsx): Today's initial coin,
-   larger, holding the photo when there is one. */
-.you-avatar {
+/* A picture of the person (#488, components/picture/PictureCoin.tsx):
+   one coin for every surface, sized by --coin (You 64, Settings 56,
+   Today 44, a row of the choices 40). The initial stands on a step of
+   ink over whatever the coin sits on, so it reads on the white card,
+   the grey list and the dark ground alike; Demos's bust stands on his
+   sky, the app icon's ground; the photo fills the circle. */
+.picture-coin {
+  --coin: 44px;
   position: relative;
   display: grid;
   place-items: center;
-  width: 64px;
-  height: 64px;
+  width: var(--coin);
+  height: var(--coin);
   flex-shrink: 0;
   border-radius: 999px;
   font-family: var(--font-display-face), sans-serif;
-  font-size: 1.625rem;
+  /* 17 at 44, 26 at 64: the letter's share of its coin. */
+  font-size: calc(var(--coin) * 0.4);
   font-weight: 800;
+  line-height: 1;
   color: var(--color-ink);
-  background: var(--color-surface);
+  background: color-mix(in srgb, var(--color-ink) 6%, transparent);
   box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.06);
 }
-:root[data-theme="dark"] .you-avatar {
-  background: #333333;
+:root[data-theme="dark"] .picture-coin {
+  background: color-mix(in srgb, var(--color-ink) 12%, transparent);
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
 }
-.you-avatar img {
+.picture-coin[data-picture="pose"] {
+  background: var(--pop-sky);
+}
+.picture-coin > img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   border-radius: 999px;
   object-fit: cover;
+  -webkit-user-drag: none;
+  user-select: none;
 }
-/* The photo's own hairline over it, so a white photo keeps its edge on the white card. */
-.you-avatar[data-photo]::after {
+/* The picture's own hairline over it, so a white photo keeps its edge on
+   the white card and the sky its edge on the grey list. */
+.picture-coin:is([data-picture="photo"], [data-picture="pose"])::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -4019,8 +4032,29 @@ summary::-webkit-details-marker {
   box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08);
   pointer-events: none;
 }
-:root[data-theme="dark"] .you-avatar[data-photo]::after {
+:root[data-theme="dark"] .picture-coin:is([data-picture="photo"], [data-picture="pose"])::after {
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
+}
+/* A picture changed on screen (a row picked, a photo kept): the new one
+   grows in on the snappy spring where the old one stood, so the coin
+   never cuts from a letter to a face. Never on a first paint. */
+@keyframes picture-swap {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+}
+.picture-swap {
+  animation: picture-swap var(--spring-snappy-duration) var(--spring-snappy) backwards;
+}
+:root[data-motion="reduce"] .picture-swap {
+  animation: fade-in var(--duration-base) var(--ease-out) backwards;
+}
+/* The choices on You's sheet: in dark the sheet is the raised step, and
+   the surface group sank into it as a well. A step up from the sheet,
+   as Settings' groups stand up from their ground. */
+:root[data-theme="dark"] .picture-sheet-group {
+  background: color-mix(in srgb, var(--color-ink) 7%, var(--color-raised));
 }
 /* The camera's badge at the coin's foot: it says the coin takes a photo. */
 .you-avatar-badge {
@@ -5657,24 +5691,15 @@ summary::-webkit-details-marker {
 .home .screen-bar > .screen-bar-side:last-child {
   grid-column: 3;
 }
+/* Today's corner (#393): the person's picture (#488, .picture-coin at
+   44), a door to You. The link is the coin's own size, so its target is
+   the 44 the coin draws. */
 .home-avatar {
   display: grid;
-  place-items: center;
   width: 44px;
   height: 44px;
   flex-shrink: 0;
   border-radius: 999px;
-  font-family: var(--font-display-face), sans-serif;
-  font-size: 1.0625rem;
-  font-weight: 800;
-  color: var(--color-ink);
-  /* The surface step with its hairline (D20): the beige gradient made
-     it the only beige object in the app. */
-  background: var(--color-surface);
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.06);
-}
-:root[data-theme="dark"] .home-avatar {
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
 }
 
 /* The card: today's practice in its trait's family, the screen's one

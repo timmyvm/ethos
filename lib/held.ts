@@ -134,6 +134,8 @@ export const BILLING_KEY = "billing";
 /** The coin sync's answer (lib/coin-sync.ts) and the freeze sync's (lib/freeze-sync.ts). */
 export const COINS_KEY = "coins";
 export const FREEZES_KEY = "freezes";
+/** The poses the coin ledger proves (lib/picture-client.ts), which a picture is checked against (#488). */
+export const POSES_KEY = "poses";
 
 /** A recording was stored: everything counted from recordings is read again. */
 export function forgetRecordings(): void {
@@ -145,9 +147,9 @@ export function forgetProfile(): void {
   forget((key) => key === PROFILE_KEY || key === BILLING_KEY);
 }
 
-/** Coins were spent: the balance, and the freezes it may have bought, are read again. */
+/** Coins were spent: the balance, and the freezes or the pose it may have bought, are read again. */
 export function forgetBalance(): void {
-  forget((key) => key === COINS_KEY || key === FREEZES_KEY);
+  forget((key) => key === COINS_KEY || key === FREEZES_KEY || key === POSES_KEY);
 }
 
 /** Tests only: an empty store that belongs to nobody yet. */

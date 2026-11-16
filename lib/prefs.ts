@@ -68,10 +68,12 @@ export interface Prefs {
   /** Light, dark, or follow the OS. */
   theme: Theme;
   /**
-   * Which bought Demos pose stands on You's stage, or null for his
-   * hello. This device's copy, for the first paint: the account's
-   * `equipped_pose` wins when it answers (#175), and what a cosmetic
-   * *is* lives on the server (the ledger proves you bought it).
+   * The person's picture, as chosen (#488, lib/picture.ts): a bought
+   * pose's Shop id, "photo", "initial" or "hello", or null for no choice
+   * (the photo if one is kept, else the initial). This device's copy,
+   * for the first paint: the account's `equipped_pose` wins when it
+   * answers (#175), and what a cosmetic *is* lives on the server (the
+   * ledger proves you bought it).
    */
   pose: string | null;
 }

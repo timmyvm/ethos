@@ -5,11 +5,12 @@ import { useEffect, useLayoutEffect, useState } from "react";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { ActionRow, LinkRow, PAGE_CLASS, PoseAvatar, Section } from "@/components/settings/Rows";
+import { ActionRow, LinkRow, PAGE_CLASS, Section } from "@/components/settings/Rows";
+import { PictureCoin } from "@/components/picture/PictureCoin";
+import { usePicture } from "@/components/picture/usePicture";
 import { signOut } from "@/lib/auth";
 import { fetchProfile, heldProfile } from "@/lib/client-data";
 import { cleanName, readOnboarding } from "@/lib/answers";
-import { adoptAccountPose } from "@/lib/pose-save";
 import { DEFAULT_PREFS, readPrefs, type Prefs } from "@/lib/prefs";
 import { forgetPlanHint } from "@/lib/plan-hint";
 import { usePlan, type ProfileRead } from "@/lib/use-plan";
@@ -38,7 +39,6 @@ import { fetchTester, forgetTesterHint, readTesterHint, testZoneHere } from "@/l
 export default function SettingsPage() {
   const { account } = useAccount();
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
-  const [pose, setPose] = useState<string | null>(null);
   /* The name: the account's as this visit last read it, else the
      introduction's, before paint; the account's own when it lands. */
   const [name, setName] = useState<string | null | undefined>(undefined);
@@ -55,7 +55,6 @@ export default function SettingsPage() {
   useLayoutEffect(() => {
     const p = readPrefs();
     setPrefs(p);
-    setPose(p.pose);
     const held = heldProfile();
     const local = cleanName(readOnboarding().answers.name);
     if (held !== undefined) setName(cleanName(held?.display_name) ?? local);
@@ -69,7 +68,6 @@ export default function SettingsPage() {
       .then((p) => {
         setProfileRead(p);
         setName(cleanName(p?.display_name) ?? cleanName(readOnboarding().answers.name));
-        if (p) setPose(adoptAccountPose(p.equipped_pose));
       })
       .catch(() => {
         setProfileRead("failed");
@@ -90,6 +88,9 @@ export default function SettingsPage() {
     window.location.href = SIGNED_OUT_HOME;
   }
 
+  /* The person's one picture (#488): the same coin You and Today draw. */
+  const { picture } = usePicture({ name: name ?? null, nameKnown: name !== undefined });
+
   const signedIn = account?.kind === "account";
   const planValue = plan.failed ? "Didn't load" : plan.today ? planWord(plan.view.kind) : null;
 
@@ -98,14 +99,14 @@ export default function SettingsPage() {
       <ScreenHeader title="Settings" back={{ href: "/you", label: "You" }} />
 
       {/* The profile on top, as a phone's Settings puts its owner: the
-          picture is the pose worn on You, the name, then the email. */}
+          person's picture, the name, then the email. */}
       <div className="inset-group mt-5">
         <Link
           href="/settings/profile"
           data-look="settings-profile"
           className="group-row press-row flex w-full items-center gap-3.5 text-left"
         >
-          <PoseAvatar pose={pose} size={56} />
+          <PictureCoin picture={picture} size={56} />
           <span className="min-w-0 flex-1">
             {name === undefined ? (
               <Skeleton className="h-5 w-28" />

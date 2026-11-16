@@ -1,7 +1,7 @@
 "use client";
 
 import { CountUp } from "@/components/CountUp";
-import { IconFlame } from "@/components/Icon";
+import { StatIcon } from "@/components/StatIcon";
 import { HeaderCount } from "@/components/ui/HeaderCount";
 import { DURATION } from "@/lib/motion";
 import type { StreakState } from "@/lib/streak";
@@ -31,15 +31,17 @@ export function StreakBadge({ streak }: { streak: StreakState }) {
    */
   const open = streak.current === 0 || streak.atRisk;
 
-  /* M17: the flame at 18px and the number at 15/700, on the shared
-     header count (HeaderCount's chip, the earned register). */
+  /* M17: the flame and the number at 15/700, on the shared header
+     count (HeaderCount's chip, the earned register). The flame is the
+     3D one since #487, at 20 because an object without a stroke reads
+     a size smaller than a line glyph; unlit it is the same file greyed. */
   return (
     <HeaderCount
       variant="chip"
       unlit={open}
       empty={streak.current === 0}
       label={`Streak ${streak.current}${open ? ", today's open" : ""}`}
-      glyph={<IconFlame size={18} />}
+      glyph={<StatIcon kind="streak" lit={!open} size={20} />}
       value={<CountUp value={streak.current} durationMs={DURATION.max} />}
     />
   );

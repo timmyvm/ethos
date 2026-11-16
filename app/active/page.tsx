@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import NotFound from "@/app/not-found";
-import { IconFlame } from "@/components/Icon";
+import { StatIcon } from "@/components/StatIcon";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -297,9 +297,7 @@ function TesterRow({ row, days }: { row: ActiveRow; days: string[] }) {
             className="flex w-10 items-center justify-end gap-1 font-display text-body font-extrabold tabular-nums"
             aria-label={`Streak ${row.streak}`}
           >
-            <span aria-hidden className={row.streak > 0 ? "active-flame" : "text-stone-300"}>
-              <IconFlame size={14} />
-            </span>
+            <StatIcon kind="streak" lit={row.streak > 0} size={16} />
             {row.streak}
           </span>
           <span

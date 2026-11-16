@@ -9,12 +9,12 @@ import {
   IconBubble,
   IconGauge,
   IconCase,
-  IconTrophy,
   IconUpload,
 } from "@/components/Icon";
 import { DemosArt } from "@/components/DemosArt";
 import { Paywall } from "@/components/Paywall";
 import { PremiumMark } from "@/components/PremiumMark";
+import { StatIcon } from "@/components/StatIcon";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { ErrorLine } from "@/components/ui/ErrorState";
 import { HeroStage } from "@/components/ui/HeroStage";
@@ -586,8 +586,8 @@ function LadderLines({ ladder }: { ladder: TileLadder }) {
       {ladder.bestParts ? (
         <span className="tile-best">
           <span className="sr-only">{ladder.best}</span>
-          <span aria-hidden className="tile-best-cup earned-lit">
-            <IconTrophy size={16} />
+          <span aria-hidden className="tile-best-cup">
+            <StatIcon kind="trophy" size={18} />
           </span>
           <span aria-hidden className="min-w-0 truncate">
             <span className="tile-best-value">{ladder.bestParts.value}</span> {ladder.bestParts.rest}

@@ -725,25 +725,8 @@ export function IconStar({ size, filled = true }: { size?: number; filled?: bool
   );
 }
 
-/**
- * A cup (6 Nov): a game's best at its level, the record you set and
- * chase. Solid like the earned star, so `.earned-lit` gives it the gold
- * and the 1px rim; the handles are strokes the rim colours, read as the
- * metal's edge. The body is the last path and carries its own fill, so
- * `.earned-lit`'s last-child fill never doubles it.
- */
-export function IconTrophy({ size }: { size?: number }) {
-  return (
-    <Glyph size={size} weight={2}>
-      <path d="M7.2 5.6H5.4a1.6 1.6 0 0 0-1.6 1.6c0 2.1 1.6 3.7 3.9 3.8" />
-      <path d="M16.8 5.6h1.8a1.6 1.6 0 0 1 1.6 1.6c0 2.1-1.6 3.7-3.9 3.8" />
-      <path
-        d="M7 3.5h10v5.6a5 5 0 0 1-4 4.9v2.9h2.4a1.6 1.6 0 0 1 1.6 1.6V20a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5v-1.5A1.6 1.6 0 0 1 8.6 16.9H11V14a5 5 0 0 1-4-4.9z"
-        fill="currentColor"
-      />
-    </Glyph>
-  );
-}
+/* A game's best (the cup) is the 3D trophy since #487:
+   components/StatIcon.tsx, kind "trophy". */
 
 /**
  * The coin (B8): the gold disc the Shop's balance and prices wear, as an

@@ -153,7 +153,7 @@ async function count(page) {
       words: { first: words.first.length, below: words.below.length, nav: words.nav.length, text: words.first.join(" ") },
       taps: { first: taps.first.length, below: taps.below.length, labels: taps.first },
       start: box(".home-start"),
-      record: box('button[aria-label="Start recording"]'),
+      record: box('button[data-record="start"]'),
       title: document.querySelector(".home .large-title")?.textContent ?? null,
       lead: document.querySelector(".home-hero-lead")?.textContent ?? null,
     };
@@ -199,14 +199,14 @@ for (const [name, s] of Object.entries(SCENES)) {
       const t1 = Date.now();
       await page.click(".home-start");
       await page.waitForURL(/\/rep/);
-      await page.waitForSelector('button[aria-label="Start recording"]', { state: "visible" });
+      await page.waitForSelector('button[data-record="start"]', { state: "visible" });
       const startToRecord = Date.now() - t1;
       await sleep(1500);
       const repUrl = page.url().replace(BASE, "");
       await page.screenshot({ path: `${OUT}rep-from-${name}-${v.tag}.png` });
       const rep = await count(page);
       const t2 = Date.now();
-      await page.click('button[aria-label="Start recording"]', { force: true });
+      await page.click('button[data-record="start"]', { force: true });
       await page.waitForSelector('button[aria-label="Stop and score this recording"]', { state: "visible", timeout: 15000 });
       const recordToLive = Date.now() - t2;
       report[key].rep = rep;
@@ -218,7 +218,7 @@ for (const [name, s] of Object.entries(SCENES)) {
       if (name === "free-alive" || name === "spoke-today") {
         const ip = await context(s, v, IPHONE);
         await ip.page.goto(`${BASE}${repUrl}`, { waitUntil: "networkidle" });
-        await ip.page.waitForSelector('button[aria-label="Start recording"]', { state: "visible" });
+        await ip.page.waitForSelector('button[data-record="start"]', { state: "visible" });
         await sleep(1500);
         await ip.page.screenshot({ path: `${OUT}rep-iphone-${name}-${v.tag}.png` });
         report[key].repIphone = await count(ip.page);
@@ -228,7 +228,7 @@ for (const [name, s] of Object.entries(SCENES)) {
       /* The recording screen Start opens, in this theme and size. */
       await page.click(".home-start");
       await page.waitForURL(/\/rep/);
-      await page.waitForSelector('button[aria-label="Start recording"]', { state: "visible" });
+      await page.waitForSelector('button[data-record="start"]', { state: "visible" });
       await sleep(1500);
       await page.screenshot({ path: `${OUT}rep-from-${name}-${v.tag}.png` });
       report[key].rep = await count(page);
@@ -262,7 +262,7 @@ if (!ONLY.length || ONLY.includes("push")) {
   const { ctx, page } = await context({ tester: true }, v);
   const url = process.env.PUSH_URL ?? "/rep";
   await page.goto(`${BASE}${url}`, { waitUntil: "networkidle" });
-  await page.waitForSelector('button[aria-label="Start recording"]', { state: "visible" });
+  await page.waitForSelector('button[data-record="start"]', { state: "visible" });
   await sleep(1500);
   await page.screenshot({ path: `${OUT}rep-from-push-${v.tag}.png` });
   report.push = { url, rep: await count(page) };

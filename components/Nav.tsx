@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   IconLessons,
   IconLog,
@@ -17,7 +17,10 @@ import {
   releaseVelocity,
   rubberband,
 } from "@/lib/spring";
-import { TAB_HREFS, tabIndexFor } from "@/lib/tabs";
+import { historyMove } from "@/lib/back";
+import { forgetTab, leaveTab, tabPlace } from "@/lib/tab-places";
+import { arrivedBySwipe, onSwipeHeading, swipeHeading } from "@/lib/tab-swipe";
+import { STORED_RECORDING, TAB_HREFS, tabIndexFor } from "@/lib/tabs";
 
 /**
  * Bottom nav.
@@ -32,7 +35,7 @@ import { TAB_HREFS, tabIndexFor } from "@/lib/tabs";
  *
  * Instrument grammar (#201): the bar sits on the raised paper behind a
  * hairline; the active tab is ink at 800, inactive tabs faint — no
- * accent colour, no pill, no indicator bar. The one terracotta on a
+ * accent colour, no pill, no indicator bar. The one filled thing on a
  * screen is its tap, and a tab you are already on is not one.
  */
 /*
@@ -129,6 +132,9 @@ const DETAIL = ["/lessons"];
 
 export function Nav() {
   const path = usePathname();
+  /* The tab a let-go swipe is on its way to, lit from the lift
+     (lib/tab-swipe.ts). Null on the server and at rest. */
+  const heading = useSyncExternalStore(onSwipeHeading, swipeHeading, () => null);
   const router = useRouter();
   const glass = useRef<HTMLDivElement>(null);
   const well = useRef<HTMLSpanElement>(null);
@@ -152,8 +158,43 @@ export function Nav() {
   const [dragging, setDragging] = useState(false);
 
   const hidden =
-    BARE.some((b) => path === b || path.startsWith(`${b}/`)) ||
+    (BARE.some((b) => path === b || path.startsWith(`${b}/`)) && !STORED_RECORDING.test(path)) ||
     DETAIL.some((d) => path.startsWith(`${d}/`));
+
+  /*
+   * A tab keeps its place (#443, lib/tab-places.ts). On an iPhone a tab
+   * comes back the way it was left; here every switch landed at the top.
+   * How far down the screen is gets noted as it scrolls, kept for the
+   * tab being left, and given back when that tab opens again, in the
+   * frame it is drawn (a tab opened again is whole in its first frame,
+   * #433). A move through history is the browser's to restore, so it is
+   * left alone. The tab links ask the router not to scroll for them.
+   */
+  const at = useRef({ path, y: 0 });
+  useEffect(() => {
+    const note = () => {
+      at.current = { path: at.current.path, y: window.scrollY };
+    };
+    window.addEventListener("scroll", note, { passive: true });
+    return () => window.removeEventListener("scroll", note);
+  }, []);
+  useLayoutEffect(() => {
+    const was = at.current;
+    if (was.path === path) return;
+    leaveTab(was.path, was.y);
+    at.current = { path, y: window.scrollY };
+    if (historyMove() || !(TAB_HREFS as readonly string[]).includes(path)) return;
+    const room = document.documentElement.scrollHeight - window.innerHeight;
+    const y = tabPlace(path, room);
+    window.scrollTo(0, y);
+    at.current = { path, y };
+  }, [path]);
+
+  /** The tab you are on, tapped: to the top, as an iPhone's does. */
+  const toTop = () => {
+    forgetTab(path);
+    window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? "auto" : "smooth" });
+  };
   /*
    * Coming back to a tab from a screen without the bar (a lesson, a
    * recording), the bar rises back in with the page's push rather than
@@ -190,8 +231,11 @@ export function Nav() {
     const tab = tabIndexFor(path);
     const was = shownTab.current;
     shownTab.current = tab;
-    // First paint, the same tab, or the thumb's own slide: nothing to travel.
+    // First paint, the same tab, or the thumb's own slide: nothing to
+    // travel. Nor after a swipe between the tabs, which carried the well
+    // here under the finger (components/TabSwipe.tsx).
     if (was === null || was < 0 || tab < 0 || was === tab || lens.current) return;
+    if (arrivedBySwipe(path)) return;
     const w = parseFloat(getComputedStyle(el).width) || 0;
     const moving = el
       .getAnimations()
@@ -293,7 +337,7 @@ export function Nav() {
       // Back to the percentage React writes, so a resize keeps it true.
       if (well.current) well.current.style.transform = `translateX(${target * 100}%)`;
     });
-    if (target !== current) router.push(TABS[target].href);
+    if (target !== current) router.push(TABS[target].href, { scroll: false });
   }
 
   function onPointerCancel() {
@@ -316,7 +360,7 @@ export function Nav() {
   return (
     <nav
       aria-label="Sections"
-      className={`nav-dock fixed bottom-0 left-1/2 z-20 w-full max-w-[430px] -translate-x-1/2 px-5 ${
+      className={`nav-dock fixed bottom-0 left-1/2 z-40 w-full max-w-[430px] -translate-x-1/2 px-5 ${
         returned ? "nav-return" : ""
       }`}
     >
@@ -346,12 +390,24 @@ export function Nav() {
           />
         )}
         {TABS.map((t, i) => {
-          const active = i === current;
+          // Lit from the moment a swipe is let go toward it (#457); the
+          // page it names is still the one the app is on.
+          const active = i === (heading ?? current);
           return (
             <Link
               key={t.href}
               href={t.href}
-              aria-current={active ? "page" : undefined}
+              /* Where the page lands is the tab's own place (#443), set
+                 above; the router leaves the scroll alone. */
+              scroll={false}
+              onClick={(e) => {
+                if (path !== t.href || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                e.preventDefault();
+                toTop();
+              }}
+              aria-current={i === current ? "page" : undefined}
+              /* Its number opens it from a keyboard (#438, components/CommandMenu.tsx). */
+              aria-keyshortcuts={String(i + 1)}
               draggable={false}
               className={`nav-tab relative z-[1] flex min-w-0 flex-1 flex-col items-center justify-center rounded-full ${
                 active ? "text-ink" : "text-stone-500"

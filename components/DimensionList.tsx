@@ -235,7 +235,10 @@ export function DimensionList({
           >
             <summary
               data-trait={row.trait}
-              className="flex min-h-6 cursor-pointer select-none list-none items-center gap-3 [&::-webkit-details-marker]:hidden"
+              /* The row is 24 tall to the eye and 44 to the thumb (#439):
+                 its reach runs 10px past it into the row's own padding,
+                 above and below, so no row's reach meets the next. */
+              className="relative flex min-h-6 cursor-pointer select-none list-none items-center gap-3 after:absolute after:inset-x-0 after:-inset-y-2.5 after:content-[''] [&::-webkit-details-marker]:hidden"
             >
               {/* A 3px slot on every row, the tone swatch on the five
                   measured ones, so the nine names share one left edge. */}

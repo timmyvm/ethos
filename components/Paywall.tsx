@@ -6,7 +6,7 @@ import { IconBoss, IconBubble, IconMic, IconSpark, IconTrend } from "@/component
 import { PremiumMark } from "@/components/PremiumMark";
 import { Price } from "@/components/premium/PlanCard";
 import { Stair } from "@/components/premium/Stair";
-import { Overlay } from "@/components/ui/Overlay";
+import { Overlay, useOverlayClose } from "@/components/ui/Overlay";
 import { useAttempts } from "@/lib/attempt";
 import { currentPath, openPortal, startCheckout } from "@/lib/billing-client";
 import {
@@ -22,11 +22,12 @@ import {
   unpaidLine,
   type PlanView,
 } from "@/lib/plan-view";
+import { forgetProfile } from "@/lib/held";
 import { usePaywallHeadStays } from "@/lib/paywall-head";
 import { withPortalReturn } from "@/lib/plan-return";
 import { prefersReducedMotion } from "@/lib/prefs";
 import { supabaseBrowser } from "@/lib/supabase-browser";
-import { ACTION_CLASS } from "@/lib/ui";
+import { ACTION_TONAL_CLASS } from "@/lib/ui";
 import { authHref, withPaywall } from "@/lib/use-paywall-return";
 import { readBilling } from "@/lib/use-plan";
 
@@ -37,8 +38,9 @@ import { readBilling } from "@/lib/use-plan";
  *
  * The sheet is plum (`.card-premium`, practice-tab-4): the tier's own
  * surface, so tapping the plum wall on Practice lands on plum. No sage on
- * it, the PremiumMark once as its eyebrow, and the one tap terracotta: a
- * premium card with an action is a plum card with a terracotta button.
+ * it, the PremiumMark once as its eyebrow, and the one tap cut from the
+ * plum (#459, `.tap-tonal`): a premium card's action is a pale tint of
+ * the card with the plum for its word, as a tap on any coloured card is.
  *
  * Kept from before: the grabber, the mark, the reason line, the headline,
  * the five benefits (ordered by expected demand, #199) and the closing
@@ -117,6 +119,9 @@ type Phase = "ready" | "busy" | "error" | "needsAccount" | "code";
 /** The paywall's ladder rises once the sheet has nearly settled. */
 const LADDER_RISE_DELAY_MS = 180;
 
+/** A code typed into the sheet and not yet sent. Memory only: a reload starts clean. */
+let keptCode = "";
+
 export function Paywall({
   headline = "Premium opens everything",
   taste,
@@ -165,7 +170,14 @@ export function Paywall({
   const [step, setStep] = useState(1);
   const [phase, setPhase] = useState<Phase>("ready");
   const [error, setError] = useState<string | null>(null);
-  const [code, setCode] = useState("");
+  // A code typed and not yet sent outlives the sheet (#445): a sheet goes
+  // down under a stray swipe, and what was typed is still in its field
+  // when it comes back up.
+  const [code, setCodeState] = useState(() => keptCode);
+  const setCode = (next: string) => {
+    keptCode = next;
+    setCodeState(next);
+  };
   const [redeeming, setRedeeming] = useState(false);
   const [codeError, setCodeError] = useState<string | null>(null);
   const [unlocked, setUnlocked] = useState(false);
@@ -366,6 +378,8 @@ export function Paywall({
         return;
       }
       setUnlocked(true);
+      keptCode = "";
+      forgetProfile();
       // Every premium read on the page behind this sheet is stale now;
       // a reload is the honest refresh.
       setTimeout(() => (onUnlocked ? onUnlocked() : window.location.reload()), 900);
@@ -379,10 +393,6 @@ export function Paywall({
   // With checkout live, a second row under the shelf: the code (or, in
   // the code's own form, the way back to Start) beside "Not yet".
   const twoUp = CHECKOUT_OPEN && !unlocked && phase !== "needsAccount";
-  const notYet = () => {
-    attempts.abandon();
-    onClose();
-  };
 
   // The tier's own mark, once, then what was tapped. The reason never
   // says "premium" again (reasonLine). Above the scroll where the screen
@@ -532,6 +542,7 @@ export function Paywall({
                   onChange={(e) => setCode(e.target.value)}
                   autoComplete="off"
                   autoCapitalize="off"
+                  autoCorrect="off"
                   spellCheck={false}
                   enterKeyHint="go"
                   aria-invalid={!!codeError}
@@ -539,12 +550,13 @@ export function Paywall({
                   placeholder="Invite code…"
                   className="min-h-12 w-0 min-w-0 flex-1 rounded-control border border-cream/25 bg-cream/10 px-4 text-read text-cream placeholder:text-cream/50 focus:border-terracotta-500 focus:shadow-[inset_0_0_0_1px_var(--color-terracotta-500)] focus-visible:outline-none!"
                 />
-                {/* Disabled on plum: the fill steps back to the field's
-                    own cream/10, never a faded terracotta. */}
+                {/* On plum a tap is cut from the plum (#459, `.tap-tonal`).
+                    Disabled, the fill steps back to the field's own
+                    cream/10, never a faded tint. */}
                 <button
                   type="submit"
                   disabled={redeeming || !code.trim()}
-                  className="press font-display min-h-12 shrink-0 rounded-tap bg-terracotta-500 px-6 text-body font-bold text-on-accent transition-colors disabled:bg-cream/10 disabled:text-cream/60"
+                  className="press font-display tap-tonal min-h-12 shrink-0 rounded-tap px-6 text-body font-bold transition-colors disabled:bg-cream/10 disabled:text-cream/60 disabled:shadow-none"
                 >
                   {redeeming ? PAYWALL_COPY.unlockBusy : PAYWALL_COPY.unlock}
                 </button>
@@ -556,15 +568,13 @@ export function Paywall({
               )}
               {/* The code is the second way in, never the only one: a
                   mis-tap on it keeps Start a tap away, as text, so the
-                  sheet still has one terracotta (Unlock). */}
+                  sheet still has one tap (Unlock). */}
               {twoUp && (
                 <div className="mt-1 grid grid-cols-2">
                   <button type="button" onClick={() => void start()} className="font-display min-h-11 text-link text-cream">
                     {PAYWALL_COPY.start}
                   </button>
-                  <button type="button" onClick={notYet} className="font-display min-h-11 text-link text-cream/70">
-                    {PAYWALL_COPY.notYet}
-                  </button>
+                  <NotYet onClose={onClose} className="font-display min-h-11 text-link text-cream/70" />
                 </div>
               )}
             </form>
@@ -579,7 +589,7 @@ export function Paywall({
               >
                 {PAYWALL_COPY.needsAccount}
               </p>
-              <Link href={authHref("signup", here)} className={`${ACTION_CLASS} mt-3`}>
+              <Link href={authHref("signup", here)} className={`${ACTION_TONAL_CLASS} mt-3`}>
                 {PAYWALL_COPY.createAccount}
               </Link>
               <Link
@@ -625,7 +635,7 @@ export function Paywall({
                 onClick={() => void (held ? openCard() : start())}
                 aria-disabled={phase === "busy" || undefined}
                 aria-busy={phase === "busy" || undefined}
-                className={ACTION_CLASS}
+                className={ACTION_TONAL_CLASS}
               >
                 {phase === "busy"
                   ? PAYWALL_COPY.busy
@@ -643,18 +653,14 @@ export function Paywall({
                   <button type="button" onClick={openCode} className="font-display min-h-11 text-link text-cream">
                     {PAYWALL_COPY.haveCode}
                   </button>
-                  <button type="button" onClick={notYet} className="font-display min-h-11 text-link text-cream/70">
-                    {PAYWALL_COPY.notYet}
-                  </button>
+                  <NotYet onClose={onClose} className="font-display min-h-11 text-link text-cream/70" />
                 </div>
               )}
             </>
           )}
 
           {!twoUp && !unlocked && (
-            <button type="button" onClick={notYet} className="font-display mt-1 min-h-11 w-full text-link text-cream/70">
-              {PAYWALL_COPY.notYet}
-            </button>
+            <NotYet onClose={onClose} className="font-display mt-1 min-h-11 w-full text-link text-cream/70" />
           )}
           {/* 2px under "Not yet"'s 44px hit area, whose own air already
               parts them: the caption read at 13 (E08) took a pixel from
@@ -664,5 +670,20 @@ export function Paywall({
         </div>
       </div>
     </Overlay>
+  );
+}
+
+/**
+ * "Not yet" leaves the way Escape, the scrim and a pull do (#445): the
+ * sheet goes back down, then closes. It called `onClose` itself, so the
+ * one way out with a name on it was the one that cut to nothing. The
+ * sheet's own exit abandons a request in flight (Overlay's `onLeave`).
+ */
+function NotYet({ onClose, className }: { onClose: () => void; className: string }) {
+  const close = useOverlayClose(onClose);
+  return (
+    <button type="button" onClick={close} className={className}>
+      {PAYWALL_COPY.notYet}
+    </button>
   );
 }

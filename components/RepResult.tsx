@@ -1,13 +1,13 @@
 "use client";
 
 import { Fragment, useEffect, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
+import { SwapFrom, SwapTo, TrendMark } from "@/components/ui/TrendMark";
 import { AccuracyCard } from "@/components/AccuracyCard";
 import { CountUp } from "@/components/CountUp";
 import { DemosArt, preloadPose } from "@/components/DemosArt";
 import { DimensionList } from "@/components/DimensionList";
 import { InteractiveTranscript } from "@/components/InteractiveTranscript";
 import { DURATION } from "@/lib/motion";
-import { PauseBar } from "@/components/PauseBar";
 import { MomentChip } from "@/components/rep/MomentChip";
 import { Says, SAID_AFTER_MS } from "@/components/Says";
 import { SpeechBubble } from "@/components/SpeechBubble";
@@ -20,7 +20,7 @@ import type { ColdTopic } from "@/lib/cold-topics";
 import type { Tier1Scores, Tier2Anchors } from "@/lib/index-score";
 import type { GlanceMoment, GlancePart, SheetSection } from "@/lib/glance";
 import type { FillerHit, RepMetrics, Word } from "@/lib/metrics";
-import { scoreLine } from "@/lib/coach-line";
+import { scoreLine, splitTomorrow, takeLine } from "@/lib/coach-line";
 import { repTraitGain } from "@/lib/traits";
 
 export interface ResultView {
@@ -111,7 +111,6 @@ export function RepResult({
   leadMs = 0,
   hold = false,
   lengthNote = "target 60 to 90s",
-  pauseMarks,
   starSize = 40,
   glance = null,
   cappedNote = null,
@@ -195,8 +194,6 @@ export function RepResult({
   hold?: boolean;
   /** The Length tile's note: the game's own clock (M5), else the daily target. */
   lengthNote?: string;
-  /** Moments the pause map marks, as Demos's cut-in (the games plan, item 4). */
-  pauseMarks?: { t: number; label: string }[];
   /** The score step's stars, 40, or 32 where a round card needs the height for Demos. */
   starSize?: number;
   /** The glance's words (section "glance", #427). */
@@ -226,12 +223,6 @@ export function RepResult({
   const debrief = section === "score";
   const { metrics: m, coach, tier1, anchors, ethosIndex, previousIndex } =
     result;
-  const zone =
-    m.wpm >= 130 && m.wpm <= 160
-      ? "in the zone"
-      : m.wpm > 160
-        ? "sprinting"
-        : "strolling";
   const delta =
     ethosIndex !== null && previousIndex !== null
       ? ethosIndex - previousIndex
@@ -251,6 +242,8 @@ export function RepResult({
     topFiller: m.topFiller ?? mostSaid(m.fillers),
     scorable: result.scorable,
   });
+  /** The Log's bubble draws a stored line's read and its tomorrow apart (#458). */
+  const parts = splitTomorrow(line);
 
   /*
    * The trait this rep leveled (DECISIONS #160) — this rep's best
@@ -433,7 +426,10 @@ export function RepResult({
                       second line reads "→ an impossible week", never an
                       arrow left at the end of the first. */}
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-body">
-                    <span className="text-stone-500 line-through">{coach.supply.original}</span>
+                    <span className="text-stone-500 line-through">
+                      <SwapFrom />
+                      {coach.supply.original}
+                    </span>
                     <span className="flex min-w-0 items-center gap-x-3">
                       <svg
                         aria-hidden
@@ -449,7 +445,10 @@ export function RepResult({
                       >
                         <path d="M2.5 8h10M9 4.5 12.5 8 9 11.5" />
                       </svg>
-                      <span className="font-semibold">{coach.supply.upgrade}</span>
+                      <span className="font-semibold">
+                        <SwapTo />
+                        {coach.supply.upgrade}
+                      </span>
                     </span>
                   </div>
                   {coach.supply.note && <p className="mt-1.5 text-caption text-stone-500">{coach.supply.note}</p>}
@@ -755,7 +754,7 @@ export function RepResult({
         /*
          * Demos speaks from his bubble (M08, log-8): the full-body
          * speaking pose at 112, the bubble's tail at his face, and no
-         * wash, because terracotta is the tap and nothing here is one.
+         * wash, because a filled thing reads as a tap and nothing here is one.
          * One line in it. The caption that says a model wrote it sits
          * under the bubble, outside it, and only when a coach ran: the
          * fallback line is computed from the metrics.
@@ -792,7 +791,28 @@ export function RepResult({
             className={`min-w-0 flex-1 ${timed ? "arrive" : ""}`}
             style={timed ? ({ animationDelay: `${bubbleAt}ms` } as CSSProperties) : undefined}
           >
-            <SpeechBubble tail="left">{said}</SpeechBubble>
+            {/* Two statements, drawn as two (Timothy, 12 Nov: "Ethos
+                dialouge feedback is drowned out ... a new line at
+                something like tomorrow"; #458). The coach writes the
+                read and the instruction as one run, and beside him at
+                112 that run was five lines with the instruction fourth.
+                The read stays his voice; tomorrow gets its own label
+                and a step more weight, because it is the one line to
+                carry out of the screen. Where he speaks word by word
+                (a live take), the line plays whole as before. */}
+            <SpeechBubble tail="left">
+              {timed || !parts.tomorrow ? (
+                said
+              ) : (
+                <>
+                  {parts.read && <p className="text-balance">{parts.read}</p>}
+                  <p className={parts.read ? "mt-2.5 border-t border-hairline pt-2.5" : undefined}>
+                    <span className="eyebrow block">Tomorrow</span>
+                    <span className="mt-0.5 block font-semibold text-balance">{parts.tomorrow}</span>
+                  </p>
+                </>
+              )}
+            </SpeechBubble>
             {coach && (
               <p className="mt-2 pl-1 text-caption text-stone-400">
                 AI-generated feedback
@@ -809,48 +829,6 @@ export function RepResult({
       )}
 
       {show("numbers") && (
-        <>
-          <div className="mt-7">
-            <PauseBar pauses={m.pauses} durationS={m.durationS} marks={pauseMarks} />
-          </div>
-
-          {/* What the silences actually DID. The bar shows where they
-              fell; this says whether they were earned. */}
-          {result.pauseHeadline && (
-            <p className="mt-2.5 text-body text-stone-600">
-              {result.pauseHeadline}
-            </p>
-          )}
-
-          {/* Three stats in one card (log-7, recording-9; Imprint's Me):
-              columns split by hairlines, not three boxes. The concrete
-              three lead the step, under the pause map they read off,
-              over the nine score rows (E34). */}
-          <div className="card mt-5 grid grid-cols-3 divide-x divide-hairline">
-            <Metric label="WPM" value={String(m.wpm)} note={zone} />
-            <Metric
-              label="Held pauses"
-              value={String(m.heldPauses)}
-              note="≥0.8s each"
-            />
-            <Metric
-              label="Length"
-              value={String(Math.round(m.durationS))}
-              unit="s"
-              note={<span className="whitespace-nowrap">{lengthNote}</span>}
-            />
-          </div>
-          {/* A game round's score step gives this line to the round (M5):
-              the trait it moved is said here, under the numbers it read. */}
-          {round && gainName && gain && (
-            <p className="mt-2.5 text-caption font-semibold text-stone-500">
-              {gainName} leveled {gain.levels === 2 ? "twice" : "up"}
-            </p>
-          )}
-        </>
-      )}
-
-      {show("numbers") && (
         <section className="mt-7">
           {/* Counted, not asserted. The head read "The eight" on every
               rep, including ones where the coach layer never ran and
@@ -860,6 +838,22 @@ export function RepResult({
           <h2 className="section-head">
             {coach ? "Every dimension" : "The measured dimensions"}
           </h2>
+          {/* Length, pace and held pauses in one line of words (#458).
+              They were a pause map drawn as bars ("the recording lines.
+              get rid of it. not needed") over a card of three tiles
+              ("is there another way to communicate it"): both said
+              again what the Pausing and Pace rows under them score, at
+              the size of a headline. Hear it back still marks every
+              pause on its track, where it can be played. */}
+          <p data-take-line className="mt-1 text-caption text-stone-500">
+            {takeLine(m)}
+          </p>
+          {/* A game round's trait gain, said under the numbers it read (M5). */}
+          {round && gainName && gain && (
+            <p className="mt-1 text-caption font-semibold text-stone-500">
+              {gainName} leveled {gain.levels === 2 ? "twice" : "up"}
+            </p>
+          )}
           <div className="mt-3">
             <DimensionList
               tier1={tier1}
@@ -910,6 +904,7 @@ export function RepResult({
           <h2 className="section-head">Say this instead</h2>
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-body">
             <span className="text-stone-500 line-through">
+              <SwapFrom />
               {coach.supply.original}
             </span>
             {/* The arrow travels with what it points at (#429). */}
@@ -928,7 +923,10 @@ export function RepResult({
               >
                 <path d="M2.5 8h10M9 4.5 12.5 8 9 11.5" />
               </svg>
-              <span className="font-semibold">{coach.supply.upgrade}</span>
+              <span className="font-semibold">
+                <SwapTo />
+                {coach.supply.upgrade}
+              </span>
             </span>
           </div>
           {coach.supply.note && (
@@ -992,7 +990,7 @@ function Delta({
   if (delta !== null && delta !== 0) {
     return (
       <p className={`${size} ${delta > 0 ? "text-sage-700" : "text-rust"} ${className}`}>
-        {delta > 0 ? "▲" : "▼"} {Math.abs(delta)} {boss ? "on last week's boss" : "since last time"}
+        <TrendMark up={delta > 0} /> {Math.abs(delta)} {boss ? "on last week's boss" : "since last time"}
       </p>
     );
   }
@@ -1020,7 +1018,7 @@ function NotScored({ metrics: m, centred = false }: { metrics: RepMetrics; centr
         </span>
       )}
       <h2 className={`font-display text-title ${centred ? "mt-5" : ""}`}>
-        Not enough to score.
+        Not enough to score
       </h2>
       <p className="mt-2 text-body text-stone-500 text-pretty">
         {m.substance.wordCount < 20
@@ -1035,29 +1033,6 @@ function NotScored({ metrics: m, centred = false }: { metrics: RepMetrics; centr
           <span className="text-caption text-stone-500">1 star, nothing measured</span>
         </div>
       )}
-    </div>
-  );
-}
-
-function Metric({
-  label,
-  value,
-  unit,
-  note,
-}: {
-  label: string;
-  value: string;
-  unit?: string;
-  note: ReactNode;
-}) {
-  return (
-    <div className="min-w-0 px-3 py-4">
-      <div className="label-micro whitespace-nowrap">{label}</div>
-      <div className="font-display mt-1.5 text-num-m tabular-nums">
-        {value}
-        {unit && <span className="text-body font-bold text-stone-500">{unit}</span>}
-      </div>
-      <div className="mt-1 text-caption text-balance text-stone-500">{note}</div>
     </div>
   );
 }
@@ -1307,7 +1282,7 @@ function Glance({
             <p data-unscored-star className="mt-1 text-caption text-stone-500">
               1 star for showing up
             </p>
-            <h2 className="font-display mt-3 text-title">Not scored.</h2>
+            <h2 className="font-display mt-3 text-title">Not scored</h2>
           </>
         ) : (
           <>
@@ -1330,7 +1305,7 @@ function Glance({
             {view.earned.delta ? (
               <span className={view.earned.delta > 0 ? "text-sage-700" : "text-rust"}>
                 {" "}
-                {view.earned.delta > 0 ? "▲" : "▼"} {Math.abs(view.earned.delta)}
+                <TrendMark up={view.earned.delta > 0} /> {Math.abs(view.earned.delta)}
               </span>
             ) : null}
           </p>

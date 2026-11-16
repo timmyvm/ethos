@@ -115,6 +115,17 @@ export function poseDelegates(appleMobile: boolean): ("GPU" | "CPU")[] {
   return appleMobile ? ["CPU"] : ["GPU", "CPU"];
 }
 
+/**
+ * Whether a take can be Voice + Video on this device at all: the
+ * recorder's rule (#412, #431), named so the screens that point at
+ * Video (Settings' bench row, #446) ask the same question. Not with
+ * Lite graphics, not on an iPhone or iPad for now, and only where the
+ * pose runtime can load.
+ */
+export function videoOffered(lite: boolean): boolean {
+  return poseCapable() && !lite && !onAppleMobile();
+}
+
 export function poseCapable(): boolean {
   return poseCapableIn({
     hasWindow: typeof window !== "undefined",

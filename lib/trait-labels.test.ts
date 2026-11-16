@@ -67,27 +67,20 @@ function comparisonCardLabels(): string[] {
   return [...src.matchAll(/(?:label|fillers|wpm|pause): "([^"]+)"/g)].map((m) => m[1]);
 }
 
-/** Every string literal the Day 1 vs now card draws as a row's label. */
-function shareCardLabels(): string[] {
-  const src = readFileSync("components/ShareCard.tsx", "utf8");
-  return [...src.matchAll(/\[\s*"([^"]+)",/g)].map((m) => m[1]);
-}
-
 const reps = [rep({}), rep({ created_at: "2026-10-29T09:00:00Z", filler_count: 2 })];
 const labels = [
   ...movedRows(reps).map((r) => r.label),
   presenceRow(reps)!.label,
   ALL_FILLERS_PER_MIN,
   HELD_PER_RECORDING,
-  ...shareCardLabels(),
   ...comparisonCardLabels(),
 ];
 
 describe("a label that names a trait prints that trait's unit", () => {
   it("finds the labels it holds to the rule", () => {
-    // The Log's four rows, Presence, the two labels, and the cards' rows.
+    // The Log's four rows, Presence, the two labels, and the card's rows.
+    // (You's Day 1 vs now card and its shared picture went on 12 Nov, #458.)
     expect(labels.length).toBeGreaterThanOrEqual(8);
-    expect(shareCardLabels()).toEqual(expect.arrayContaining(["Words / min"]));
   });
 
   for (const label of labels) {
@@ -101,15 +94,9 @@ describe("a label that names a trait prints that trait's unit", () => {
   }
 
   it("calls the every-filler rate All fillers / min, everywhere it is printed", () => {
-    // Timothy, 31 October (E32): one label, so Day 1 vs now's caption
-    // no longer says "All fillers a minute".
+    // Timothy, 31 October (E32): one label wherever the rate is printed.
     expect(ALL_FILLERS_PER_MIN).toBe("All fillers / min");
     expect(movedRows(reps).find((r) => r.key === "fillers")!.label).toBe(ALL_FILLERS_PER_MIN);
-    const share = readFileSync("components/ShareCard.tsx", "utf8");
-    expect(share).not.toMatch(/"(All )?[Ff]illers (\/ min|a minute)"/);
-    // The shared picture's row and the Day 1 vs now caption.
-    expect(share).toMatch(/rows\.push\(\[ALL_FILLERS_PER_MIN,/);
-    expect(share).toMatch(/>\{ALL_FILLERS_PER_MIN\}<\/p>/);
     // The results' Since day one card prints the same number, so it
     // borrows the same label.
     const comparison = readFileSync("components/ComparisonCard.tsx", "utf8");
@@ -144,7 +131,7 @@ describe("one recording's held pauses (L08)", () => {
   it("read Held pauses / recording wherever two recordings are compared", () => {
     expect(HELD_PER_RECORDING).toBe("Held pauses / recording");
     expect(movedRows(reps).find((r) => r.key === "held")!.label).toBe(HELD_PER_RECORDING);
-    for (const file of ["components/ShareCard.tsx", "components/ComparisonCard.tsx"]) {
+    for (const file of ["components/ComparisonCard.tsx"]) {
       const src = readFileSync(file, "utf8");
       expect(src, file).not.toMatch(/"Held pauses"/);
       expect(src, file).toMatch(/HELD_PER_RECORDING,/);

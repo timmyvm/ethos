@@ -10,7 +10,7 @@
  * offline, and those still hold the curated word map that answered
  * "things" in "switch things up" with "points, ideas, parts".
  */
-const CACHE = "ethos-v17";
+const CACHE = "ethos-v18";
 
 const SHELL = [
   "/",
@@ -38,6 +38,25 @@ const SHELL = [
   "/lessons/name-it-once.webp",
   "/lessons/short-and-concrete.webp",
   "/lessons/second-pass.webp",
+  /* And each lesson's own screen, where the object stands 176pt wide:
+     the 560 cut, since a 3x iPhone asks 528px of it and the 360 file
+     went soft (#448). Shell too, so a lesson opened in a tunnel still
+     has its picture. */
+  "/lessons/large/the-landing.webp",
+  "/lessons/large/inside-or-after.webp",
+  "/lessons/large/the-long-one.webp",
+  "/lessons/large/the-cold-open.webp",
+  "/lessons/large/closed-mouth.webp",
+  "/lessons/large/the-crutch.webp",
+  "/lessons/large/finish-it.webp",
+  "/lessons/large/know-the-landing.webp",
+  "/lessons/large/or-rather.webp",
+  "/lessons/large/room-to-land.webp",
+  "/lessons/large/one-gear-down.webp",
+  "/lessons/large/change-gear.webp",
+  "/lessons/large/name-it-once.webp",
+  "/lessons/large/short-and-concrete.webp",
+  "/lessons/large/second-pass.webp",
   "/boss",
   "/hostile",
   "/upload",
@@ -65,7 +84,7 @@ self.addEventListener("install", (e) => {
        * One at a time, NOT addAll. addAll is atomic: a single 404 in
        * SHELL rejects the whole thing and the offline shell ends up
        * empty, and the .catch() here used to swallow exactly that.
-       * demos-workout.webp had been deleted in #249 and left in this
+       * One of Demos's poses had been deleted in #249 and left in this
        * list, so every install since then cached nothing at all.
        */
       .then((c) =>
@@ -118,7 +137,12 @@ self.addEventListener("push", (e) => {
  */
 self.addEventListener("notificationclick", (e) => {
   e.notification.close();
-  const url = (e.notification.data && e.notification.data.url) || "/rep";
+  // Only ever a page of this app, whatever the payload said.
+  let url = "/rep";
+  try {
+    const u = new URL((e.notification.data && e.notification.data.url) || "/rep", self.location.origin);
+    if (u.origin === self.location.origin) url = u.pathname + u.search + u.hash;
+  } catch {}
   e.waitUntil(
     self.clients
       .matchAll({ type: "window", includeUncontrolled: true })
@@ -137,10 +161,13 @@ self.addEventListener("notificationclick", (e) => {
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET") return;
-  // Never serve a cached score, and never cache someone's audio.
-  if (url.pathname.startsWith("/api/") || url.hostname.includes("supabase")) {
-    return;
-  }
+  // Only this app's own files are ever kept. Another origin's answer
+  // (the Supabase project's data and signed recordings) goes straight to
+  // the network. The test used to be the word "supabase" in the host,
+  // which a project on its own domain would not have had.
+  if (url.origin !== self.location.origin) return;
+  // Never serve a cached score.
+  if (url.pathname.startsWith("/api/")) return;
 
   /*
    * Vercel's own endpoints (Speed Insights' script and its vitals
@@ -178,8 +205,12 @@ self.addEventListener("fetch", (e) => {
         (hit) =>
           hit ||
           fetch(e.request).then((res) => {
-            const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(e.request, copy));
+            // Only a good answer is kept: a 404 or 500 stored here was
+            // served from the cache until the next version.
+            if (res.ok) {
+              const copy = res.clone();
+              caches.open(CACHE).then((c) => c.put(e.request, copy));
+            }
             return res;
           })
       )
@@ -187,13 +218,25 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
+  // A page opened with something in its query (a sign-in link's ?email=)
+  // is served and never kept: the cache would hold that address on a
+  // shared phone. Offline it falls back to the page without the query.
+  // Next's own ?_rsc= requests are payloads, kept as before.
+  const keep = !url.search || url.searchParams.has("_rsc");
   e.respondWith(
     fetch(e.request)
       .then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(e.request, copy));
+        if (res.ok && keep) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(e.request, copy));
+        }
         return res;
       })
-      .catch(() => caches.match(e.request).then((hit) => hit || caches.match("/")))
+      .catch(() =>
+        caches
+          .match(e.request)
+          .then((hit) => hit || (keep ? undefined : caches.match(url.pathname)))
+          .then((hit) => hit || caches.match("/"))
+      )
   );
 });

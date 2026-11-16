@@ -13,9 +13,10 @@
  * That's the whole point of the boss.
  */
 
+import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { stripProseDashes } from "./coach";
-import { z } from "zod";
+import { z } from "./zod";
 import type { ColdTopic } from "./cold-topics";
 
 export const AccuracyClaimSchema = z.object({

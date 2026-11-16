@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Figtree, Outfit } from "next/font/google";
+import { CommandMenu } from "@/components/CommandMenu";
 import { Nav } from "@/components/Nav";
 import { PageTransition } from "@/components/PageTransition";
 import { OutboxRetry } from "@/components/OutboxRetry";
@@ -9,6 +10,7 @@ import { ServiceWorker } from "@/components/ServiceWorker";
 import { ThemeSync } from "@/components/Theme";
 // From a plain module, never a "use client" one: see lib/theme-boot.ts.
 import { themeBootScript } from "@/lib/theme-boot";
+import { textSizeBootScript, VIEWPORT_PLAIN } from "@/lib/text-size";
 import { graphicsBootScript } from "@/lib/graphics";
 import { googleTakenBootScript } from "@/lib/google-taken";
 import { GoogleTakenSwitch } from "@/components/GoogleTakenSwitch";
@@ -71,13 +73,19 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#ffffff",
-  width: "device-width",
-  initialScale: 1,
-  /* today-14: without cover, iOS resolves every env(safe-area-inset-*)
-     to 0, so the nav dock, `.pb-safe`, the sticky header and
-     `--nav-clear` (globals.css) all assumed a phone with no home
-     indicator. */
-  viewportFit: "cover",
+  /*
+   * No viewport tag from Next (#451): `width` and `initialScale` are
+   * named and left undefined, which overrides Next's defaults with
+   * nothing, and a viewport with nothing in it is not rendered. The
+   * page's one viewport tag is written by the head's first script
+   * (lib/text-size.ts), which is where an iPhone's text size is
+   * followed. It cannot be Next's: Next re-inserts its tag on every
+   * client navigation, and the last viewport tag in the head wins.
+   * `viewport-fit=cover` lives in that tag now (today-14: without cover,
+   * iOS resolves every env(safe-area-inset-*) to 0).
+   */
+  width: undefined,
+  initialScale: undefined,
 };
 
 export default function RootLayout({
@@ -89,6 +97,12 @@ export default function RootLayout({
        wrong first paint half the time. */
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* First: the page's one viewport tag, at the scale this phone's
+            text size asks for (#451). Before anything is laid out. */}
+        <script dangerouslySetInnerHTML={{ __html: textSizeBootScript }} />
+        <noscript>
+          <meta name="viewport" content={VIEWPORT_PLAIN} />
+        </noscript>
         {/* Before paint, or a dark-mode user gets a white flash. */}
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
         {/* After the theme's: lite graphics (#412), from the first paint
@@ -112,6 +126,9 @@ export default function RootLayout({
           <PageTransition>{children}</PageTransition>
         </div>
         <Nav />
+        {/* ⌘K and the tabs by number (#438): a keyboard's way around. A
+            phone, with no key to press, never loads the sheet. */}
+        <CommandMenu />
         <ServiceWorker />
         <ThemeSync />
         <SplashLift />

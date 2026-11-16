@@ -390,3 +390,78 @@ describe("0028 database-held secrets", () => {
     expect(sql).toMatch(/revoke all on schema private from public, anon, authenticated;/);
   });
 });
+
+/**
+ * Least privilege (0029, the 11 Nov security audit). The early tables
+ * kept Supabase's ALL for the browser's roles; from here a table gives
+ * exactly the verbs its policies answer.
+ */
+describe("0029 least privilege", () => {
+  const sql = code("0029_least_privilege.sql");
+
+  it("gives the browser nothing on the server's own tables", () => {
+    for (const t of ["rate_limits", "push_subscriptions", "shop_prices"]) {
+      expect(sql).toMatch(new RegExp(`revoke all on table public\\.${t} from public, anon, authenticated`));
+      expect(sql).not.toMatch(new RegExp(`grant[^;]*public\\.${t}`));
+    }
+  });
+
+  it("takes every grant back before giving the used ones", () => {
+    expect(sql).toMatch(/array\['profiles', 'onboarding', 'streaks', 'streak_freezes', 'coin_ledger'\]/);
+    expect(sql).toMatch(/array\['reps', 'lexicon', 'xp_events', 'billing'\]/);
+    const revokes = sql.match(/revoke all on table public\.%I from public, anon, authenticated/g) ?? [];
+    expect(revokes.length).toBe(2);
+  });
+
+  it("never lets a caller with no session write", () => {
+    expect(sql).not.toMatch(/grant[^;]*(insert|update|all)[^;]*to[^;]*anon/i);
+  });
+
+  it("starts a later table with no grant for the browser", () => {
+    expect(sql).toMatch(/alter default privileges for role postgres in schema public\s+revoke all on tables from anon, authenticated/);
+  });
+});
+
+/**
+ * Bounded writes (0030, the same audit's second pass). 0021 and 0024
+ * capped the tables a tester and a saved word write; these are the
+ * three older ones a guest session could still fill.
+ * `scripts/check-testers-sql.mjs` tries each write on a real Postgres.
+ */
+describe("0030 bounded writes", () => {
+  const sql = code("0030_bounded_writes.sql");
+
+  it("caps an account's freeze days and refuses a day that has not come", () => {
+    expect(sql).toMatch(/create or replace trigger streak_freezes_cap\s+before insert on public\.streak_freezes\s+for each row/);
+    expect(sql).toMatch(/>= 400 then/);
+    expect(sql).toMatch(/new\.used_on > \(\(now\(\) at time zone 'utc'\) \+ interval '14 hours'\)::date/);
+    // A day already spent goes through to the unique key, at the cap too.
+    expect(sql).toMatch(/f\.user_id = new\.user_id and f\.used_on = new\.used_on\s+\) then\s+return new;/);
+  });
+
+  it("keeps the cap's function out of the browser's reach", () => {
+    expect(sql).toMatch(/revoke execute on function public\.streak_freezes_cap\(\) from public, anon, authenticated/);
+  });
+
+  it("holds the four open columns to a size", () => {
+    for (const name of [
+      "profiles_display_name_len",
+      "profiles_equipped_pose_len",
+      "onboarding_pains_len",
+      "onboarding_portfolio_size",
+    ]) expect(sql, name).toContain(`'${name}'`);
+    // Each added once, behind a look in pg_constraint.
+    expect(sql).toMatch(/if not exists \(\s+select 1 from pg_constraint/);
+  });
+
+  it("leaves room for the longest name the app takes", async () => {
+    const { MAX_NAME } = await import("./answers");
+    const limit = Number(sql.match(/char_length\(display_name\) <= (\d+)/)?.[1]);
+    expect(limit).toBeGreaterThanOrEqual(MAX_NAME * 2);
+  });
+
+  it("starts a later function with no caller in the browser", () => {
+    expect(sql).toMatch(/alter default privileges for role postgres\s+revoke execute on functions from public;/);
+    expect(sql).toMatch(/alter default privileges for role postgres in schema public\s+revoke execute on functions from anon, authenticated;/);
+  });
+});

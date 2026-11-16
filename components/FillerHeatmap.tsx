@@ -3,7 +3,7 @@ import type { RepRow } from "@/lib/client-data";
 
 /**
  * Where fillers land inside a rep, and which words they are. Sage is
- * earned-only and terracotta is the tap, so the bars wear the Fillers
+ * earned-only and ink is the tap, so the bars wear the Fillers
  * trait's own tone (`data-trait="fillers"`, lagoon): the colour this
  * trait is on Today, on /lessons and on the row that opens this panel.
  */

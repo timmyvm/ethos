@@ -68,11 +68,11 @@ export function readFailure(subject: string): { title: string; body: string } {
     typeof navigator !== "undefined" && navigator.onLine === false;
   return offline
     ? {
-        title: `${subject} needs a connection.`,
+        title: `${subject} needs a connection`,
         body: "You're offline. It loads when you're back.",
       }
     : {
-        title: `${subject} didn't load.`,
+        title: `${subject} didn't load`,
         body: "The server didn't answer. Your recordings are safe.",
       };
 }

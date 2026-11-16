@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computedLine, scoreLine, sentences, withoutTomorrow } from "@/lib/coach-line";
+import { computedLine, scoreLine, sentences, splitTomorrow, takeLine, withoutTomorrow } from "@/lib/coach-line";
 
 const take = (words: string[], durationS = 62) => ({
   fillerCount: words.length,
@@ -87,5 +87,65 @@ describe("the score step's line", () => {
     expect(scoreLine({ coachLine: "Tomorrow: kill 'um'." }, { ...take(["um"], 8), scorable: false })).toBe(
       "Give it 60 to 90 seconds and a real answer."
     );
+  });
+});
+
+/*
+ * The Log's bubble in two parts (Timothy, 12 Nov, #458): what the take
+ * did, then tomorrow as its own statement under its own label.
+ */
+describe("a stored line, split at its tomorrow", () => {
+  it("parts the read from the instruction and drops the word the label prints", () => {
+    expect(
+      splitTomorrow("7 mid-sentence pauses against 1 composed pause. Tomorrow: finish each sentence in one breath, then pause.")
+    ).toEqual({
+      read: "7 mid-sentence pauses against 1 composed pause.",
+      tomorrow: "Finish each sentence in one breath, then pause.",
+    });
+  });
+
+  it("keeps a decimal whole and a quoted word with its sentence", () => {
+    expect(splitTomorrow("1.5 fillers a minute, most of them \u201cum.\u201d Tomorrow, kill \u2018um.\u2019")).toEqual({
+      read: "1.5 fillers a minute, most of them \u201cum.\u201d",
+      tomorrow: "Kill \u2018um.\u2019",
+    });
+  });
+
+  it("takes everything after the word, when the instruction runs to a second sentence", () => {
+    expect(splitTomorrow("11 fillers. Tomorrow: kill \u2018like\u2019. Then hold the pause.")).toEqual({
+      read: "11 fillers.",
+      tomorrow: "Kill \u2018like\u2019. Then hold the pause.",
+    });
+  });
+
+  it("is all instruction when the line is only a tomorrow, and all read when it names none", () => {
+    expect(splitTomorrow("Tomorrow: one gear down.")).toEqual({ read: "", tomorrow: "One gear down." });
+    expect(splitTomorrow("Kill \u2018like\u2019. 2 of your 3 fillers.")).toEqual({
+      read: "Kill \u2018like\u2019. 2 of your 3 fillers.",
+      tomorrow: null,
+    });
+    // A word that only starts the same is not the label.
+    expect(splitTomorrow("Tomorrows are not promised.").tomorrow).toBeNull();
+  });
+});
+
+describe("a take's three numbers, as one line", () => {
+  it("says length, pace and held pauses in words", () => {
+    expect(takeLine({ durationS: 64.6, wpm: 155, heldPauses: 3 })).toBe(
+      "65 seconds at 155 words a minute, with 3 held pauses."
+    );
+  });
+
+  it("counts one and none the way a person would", () => {
+    expect(takeLine({ durationS: 59.66, wpm: 115, heldPauses: 1 })).toBe(
+      "60 seconds at 115 words a minute, with 1 held pause."
+    );
+    expect(takeLine({ durationS: 1, wpm: 80, heldPauses: 0 })).toBe(
+      "1 second at 80 words a minute, with no held pauses."
+    );
+  });
+
+  it("carries no dash", () => {
+    expect(takeLine({ durationS: 60, wpm: 140, heldPauses: 2 })).not.toMatch(/[\u2014\u2013]/);
   });
 });

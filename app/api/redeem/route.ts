@@ -21,7 +21,7 @@
  * nothing (the same no-migration property lib/auth.ts documents).
  */
 
-import { timingSafeEqual } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromAuthHeader, supabaseAdmin } from "@/lib/db";
 import { clientIp, consumeRateLimit } from "@/lib/rate-limit";
@@ -29,9 +29,10 @@ import { clientIp, consumeRateLimit } from "@/lib/rate-limit";
 export const runtime = "nodejs";
 
 function codesMatch(given: string, expected: string): boolean {
-  const a = Buffer.from(given);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length) return false;
+  // Hashed first, so the comparison takes the same time whatever the
+  // guess's length and says nothing about the code's.
+  const a = createHash("sha256").update(given).digest();
+  const b = createHash("sha256").update(expected).digest();
   return timingSafeEqual(a, b);
 }
 
@@ -54,9 +55,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const byAddress = await consumeRateLimit(`redeem:ip:${clientIp(req.headers)}`, "user");
+  const byAddress = await consumeRateLimit(`redeem:ip:${clientIp(req.headers)}`, "user", { failClosed: true });
   const verdict = byAddress.allowed
-    ? await consumeRateLimit(`redeem:u:${auth.id}`, "anon")
+    ? await consumeRateLimit(`redeem:u:${auth.id}`, "anon", { failClosed: true })
     : byAddress;
   if (!verdict.allowed) {
     return NextResponse.json(
@@ -66,9 +67,9 @@ export async function POST(req: NextRequest) {
   }
 
   const body = (await req.json().catch(() => null)) as {
-    code?: string;
+    code?: unknown;
   } | null;
-  const given = body?.code?.trim();
+  const given = typeof body?.code === "string" ? body.code.trim().slice(0, 200) : "";
   if (!given || !codesMatch(given, expected)) {
     return NextResponse.json(
       { error: "That code doesn't match. Check it and try again." },

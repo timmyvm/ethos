@@ -6,7 +6,7 @@ import type { BestParts } from "@/lib/round-live";
  * it is (Timothy, 6 Nov: "make your best stand out more, it is an
  * important milestone"). Sage because it was earned, the cup gold like
  * every earned glyph, the number set large on its own so the eye lands
- * on what there is to beat. Not a tap: no terracotta, no press.
+ * on what there is to beat. Not a tap: no fill of one, no press.
  *
  * A screen reader hears the one sentence (`label`, `bestLine`); the
  * split parts are for the eye only.

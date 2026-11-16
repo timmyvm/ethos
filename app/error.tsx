@@ -25,7 +25,7 @@ export default function Error({
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center px-5 text-center">
-      <h1 className="font-display text-title">That screen didn&apos;t load.</h1>
+      <h1 className="font-display text-title">That screen didn&apos;t load</h1>
       <p className="mt-2 max-w-[300px] text-body leading-relaxed text-stone-500">
         Your recordings are stored. Nothing was lost.
       </p>

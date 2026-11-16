@@ -55,7 +55,7 @@ function post(endpoint: string, auth = "Bearer t") {
   return POST(req as unknown as NextRequest);
 }
 /** A fresh endpoint per test: the once-a-minute guard is per endpoint. */
-const mine = () => `https://push.test/mine-${++n}`;
+const mine = () => `https://web.push.apple.com/mine-${++n}`;
 
 beforeEach(() => {
   rows = [];

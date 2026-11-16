@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { TAB_HREFS, tabIndexFor } from "./tabs";
+import { STORED_RECORDING, TAB_HREFS, tabIndexFor } from "./tabs";
 
 /**
  * One tab bar, two files, and the bug that was waiting (#275).
@@ -98,8 +98,28 @@ describe("the tab bar is one list", () => {
     expect(tabIndexFor("/")).toBe(0);
     expect(tabIndexFor("/history")).toBe(TAB_HREFS.indexOf("/history"));
     expect(tabIndexFor("/games")).toBe(TAB_HREFS.indexOf("/games"));
-    expect(tabIndexFor("/upload")).toBe(-1);
     const nav = readFileSync("components/Nav.tsx", "utf8");
     expect(nav.match(/tabIndexFor\(path\)/g)?.length, "Nav resolves the lit tab in one place").toBe(2);
+  });
+
+  /**
+   * #442: Your words and Upload drew the bar with no tab lit, and a
+   * stored recording drew no bar at all. The bar says where you are on
+   * every screen that shows it.
+   */
+  it("lights a tab on every screen that shows the bar", () => {
+    expect(tabIndexFor("/words")).toBe(TAB_HREFS.indexOf("/you"));
+    expect(tabIndexFor("/upload")).toBe(TAB_HREFS.indexOf("/games"));
+    expect(tabIndexFor("/rep/8b1f0c1e-22aa-4c11-9d6e-0a1b2c3d4e5f")).toBe(TAB_HREFS.indexOf("/history"));
+    expect(tabIndexFor("/rep/rep-22")).toBe(TAB_HREFS.indexOf("/history"));
+    // The recorder itself is a task: no tab, and no bar.
+    expect(tabIndexFor("/rep")).toBe(-1);
+    expect(STORED_RECORDING.test("/rep")).toBe(false);
+    expect(STORED_RECORDING.test("/rep/a/b")).toBe(false);
+  });
+
+  it("keeps the bar on a stored recording and off the recorder", () => {
+    const nav = readFileSync("components/Nav.tsx", "utf8");
+    expect(nav).toContain("&& !STORED_RECORDING.test(path)");
   });
 });

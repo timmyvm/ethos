@@ -33,7 +33,7 @@ const payloads: { url: string; body: string }[] = [];
 function subsQuery() {
   const now = new Date();
   const row = {
-    endpoint: "https://push.test/1",
+    endpoint: "https://web.push.apple.com/1",
     user_id: "u1",
     p256dh: "k",
     auth: "a",

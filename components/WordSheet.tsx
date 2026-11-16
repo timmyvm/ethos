@@ -306,7 +306,7 @@ function Body({
 
       {unit.mark === "filler" ? (
         <section className="mt-6">
-          <h3 className="detail-head">Pause instead.</h3>
+          <h3 className="detail-head">Pause instead</h3>
           <p className="mt-1.5 text-read text-stone-600">{fillerWhy(unit.filler ?? unit.key)}</p>
           {fillers.length > 0 && sameFiller > 0 && (
             <p className="mt-3 text-caption text-stone-500">
@@ -325,7 +325,7 @@ function Body({
               <Skeleton className="h-5 w-28" />
             </div>
           ) : answer?.verdict === "keep" ? (
-            <h3 className="detail-head">Keep it.</h3>
+            <h3 className="detail-head">Keep it</h3>
           ) : (
             <h3 className="detail-head">Try instead</h3>
           )}

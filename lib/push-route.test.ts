@@ -36,7 +36,7 @@ function post(body: unknown) {
 }
 
 const base = {
-  subscription: { endpoint: "https://push.test/a", keys: { p256dh: "k", auth: "a" } },
+  subscription: { endpoint: "https://web.push.apple.com/a", keys: { p256dh: "B" + "k".repeat(86), auth: "a".repeat(22) } },
   reminderHour: 18,
   tzOffset: 240,
 };
@@ -62,6 +62,24 @@ describe("POST /api/push and the device's zone", () => {
     hasTzColumn = false;
     expect((await post({ ...base, tz: "America/New_York" })).status).toBe(200);
     expect(upserts[0]).toMatchObject({ tz_offset: 240, reminder_hour: 18 });
+  });
+});
+
+/* Security audit, 11 Nov: the server sends to this address later, so it
+   is only ever a browser maker's push service. */
+describe("POST /api/push and whose address it is", () => {
+  it("refuses an endpoint that is not a push service's, and saves nothing", async () => {
+    for (const endpoint of ["https://a.attacker.tld/n", "http://web.push.apple.com/a", "https://169.254.169.254/x"]) {
+      const res = await post({ ...base, subscription: { ...base.subscription, endpoint } });
+      expect(res.status, endpoint).toBe(400);
+    }
+    expect(upserts).toEqual([]);
+  });
+
+  it("refuses keys that are not a subscription's", async () => {
+    const res = await post({ ...base, subscription: { ...base.subscription, keys: { p256dh: "k", auth: "a" } } });
+    expect(res.status).toBe(400);
+    expect(upserts).toEqual([]);
   });
 });
 

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { DemosFigure } from "@/components/DemosClip";
 import { IconBubble } from "@/components/Icon";
 import { useEffect, useState } from "react";
@@ -26,7 +27,11 @@ import { ScoringWave } from "@/components/ScoringWave";
  * never how much of it is.
  *
  * A retry (attempt > 0, the outbox resending) swaps the checks for the
- * one sentence that matters then: the recording is safe.
+ * one sentence that matters then: the recording is safe. And since it
+ * is, the wait gets its way off (#440): the screen held people on a
+ * send that might take a minute to give up, with no control on it at
+ * all. The take keeps sending after the screen is left and lands in the
+ * Log.
  *
  * A game round (proposal-feel F7) adds the one fact the phone already
  * knows at Stop under the length: when Demos cut in, or who stopped the
@@ -40,6 +45,7 @@ export function ScoringStage({
   attempt = 0,
   fact = null,
   cutIns = [],
+  leave = null,
 }: {
   levels: number[];
   /** The recording's length, measured on this device. */
@@ -50,6 +56,8 @@ export function ScoringStage({
   fact?: string | null;
   /** Seconds into the take Demos cut in, each a tick on the wave. */
   cutIns?: readonly number[];
+  /** Where a stalled send can be left for, named for where it goes. */
+  leave?: { href: string; label: string } | null;
 }) {
   const stages = boss ? BOSS_STAGES : STAGES;
   const [at, setAt] = useState(0);
@@ -117,9 +125,16 @@ export function ScoringStage({
       </section>
 
       {attempt > 0 ? (
-        <p className="arrive mt-6 max-w-[260px] text-center text-body font-semibold">
-          Still sending. The recording is safe on this device.
-        </p>
+        <div className="arrive mt-6 flex max-w-[260px] flex-col items-center text-center">
+          <p className="text-body font-semibold">
+            Still sending. The recording is safe on this device.
+          </p>
+          {leave && (
+            <Link href={leave.href} className="text-link mt-3 text-terracotta-700">
+              Back to {leave.label}
+            </Link>
+          )}
+        </div>
       ) : (
         <ol className="mt-6 w-full max-w-[220px] space-y-1.5" aria-label="Scoring">
           {stages.map((s, i) => (

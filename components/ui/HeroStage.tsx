@@ -9,7 +9,7 @@ import { TRAIT, type TraitId } from "@/content/traits";
  * of the pages match really": each tab had its own colour world (an
  * amber floor card, a deep sage score card, a grey identity card, a
  * wall of candy icons), and the one she liked was Practice, a sky stage
- * holding Demos over one terracotta tap with everything else neutral.
+ * holding Demos over one tap with everything else neutral.
  * So Practice's stage is the house grammar, and this is it, once:
  *
  *  - the material: the introduction's sky (`.intro-stage.tone-sky`), lit

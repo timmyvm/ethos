@@ -13,6 +13,7 @@
  */
 
 import { CONSENT_VERSION, TEST } from "@/content/tester";
+import { isSideKey } from "./client-key";
 
 /** Which way the score was off, if it was (0022). */
 export type MatchAnswer = "too_low" | "about_right" | "too_high";
@@ -105,7 +106,8 @@ const CLIENT_ID = /^[\w-]{1,200}$/;
  * whose results know the key the recording travelled under. A
  * non-tester, an unknown tester state (still loading, or a failed
  * read), a take too short to score and a recording with no key all see
- * nothing new.
+ * nothing new. Nor does an upload or a Hostile take: they carry a key
+ * since #436 so a resend stores once, and are asked nothing, as before.
  */
 export function showsMatchCheck({
   tester,
@@ -116,7 +118,13 @@ export function showsMatchCheck({
   scorable: boolean;
   clientId: string | null | undefined;
 }): boolean {
-  return isCurrentTester(tester) && scorable && typeof clientId === "string" && CLIENT_ID.test(clientId);
+  return (
+    isCurrentTester(tester) &&
+    scorable &&
+    typeof clientId === "string" &&
+    CLIENT_ID.test(clientId) &&
+    !isSideKey(clientId)
+  );
 }
 
 /** What the results screen hands over: AnalyzeResponse, structurally. */

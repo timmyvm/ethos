@@ -6,7 +6,7 @@ import type { ColdTopic } from "@/lib/cold-topics";
 /* Sentence-case pills (principle 4: capitals are for data). A claim
    that holds wears sage, because getting it right is earned; a wrong
    one wears rust, the colour that already means wrong direction, never
-   the tap's terracotta. */
+   the play marks' terracotta. */
 const VERDICT: Record<
   AccuracyResult["claims"][number]["verdict"],
   { label: string; className: string }

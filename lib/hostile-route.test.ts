@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { NextRequest } from "next/server";
 
-const week = vi.hoisted(() => ({ since: null as string | null, count: 0 }));
+const week = vi.hoisted(() => ({ since: null as string | null, count: 0, latest: null as string | null }));
 /* The verdict's one write: what was set, under which filters, and what the database answers. */
 const store = vi.hoisted(() => ({
   writes: [] as { set: Record<string, unknown>; filters: Record<string, unknown> }[],
@@ -19,9 +19,14 @@ vi.mock("@/lib/db", () => {
   const chain = {
     select: () => chain,
     eq: () => chain,
-    gte: async (_col: string, since: string) => {
+    gte: (_col: string, since: string) => {
       week.since = since;
-      return { count: week.count };
+      // The count, awaited; or the week's latest take, ordered (#464).
+      return Object.assign(Promise.resolve({ count: week.count }), {
+        order: () => ({
+          limit: async () => ({ data: week.latest ? [{ created_at: week.latest }] : [] }),
+        }),
+      });
     },
     update: (set: Record<string, unknown>) => {
       const filters: Record<string, unknown> = {};
@@ -93,6 +98,7 @@ beforeEach(() => {
   vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-1", anonymous: false });
   week.since = null;
   week.count = 0;
+  week.latest = null;
   store.writes = [];
   store.answer = { data: [{ id: "rep-1" }], error: null };
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -124,9 +130,59 @@ describe("Hostile's allowance", () => {
     expect(vi.mocked(consumeRateLimit).mock.calls.some(([s, t]) => /^guest:ip:/.test(s) && t === "guestip")).toBe(true);
 
     vi.mocked(getUserFromAuthHeader).mockResolvedValue(null);
+    vi.mocked(consumeRateLimit).mockClear();
     await answer();
-    expect(vi.mocked(consumeRateLimit).mock.lastCall?.[0]).toMatch(/^hostile:ip:/);
-    expect(vi.mocked(consumeRateLimit).mock.lastCall?.[1]).toBe("anon");
+    const visitor = vi.mocked(consumeRateLimit).mock.calls.find(([s]) => /^hostile:ip:/.test(s));
+    expect(visitor?.[1]).toBe("anon");
+  });
+
+  /* Security audit, 11 Nov: one ceiling for every guest and visitor, the
+     count a script with many addresses cannot get round. */
+  it("counts a guest and a visitor against the ceiling they all share, and never an account", async () => {
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "anon-1", anonymous: true });
+    await answer();
+    expect(consumeRateLimit).toHaveBeenCalledWith("guest:all", "guestall");
+
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue(null);
+    vi.mocked(consumeRateLimit).mockClear();
+    await answer();
+    expect(consumeRateLimit).toHaveBeenCalledWith("guest:all", "guestall");
+
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-1", anonymous: false });
+    vi.mocked(consumeRateLimit).mockClear();
+    await answer();
+    expect(vi.mocked(consumeRateLimit).mock.calls.some(([s]) => s === "guest:all")).toBe(false);
+  });
+
+  it("turns a guest away at the ceiling before anything paid runs, and gives every slot back", async () => {
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "anon-1", anonymous: true });
+    vi.mocked(consumeRateLimit).mockImplementation(async (subject: string) =>
+      subject === "guest:all"
+        ? { allowed: false, window: "hour", retryAfterS: 900 }
+        : { allowed: true, window: null, retryAfterS: 0 }
+    );
+    vi.mocked(transcribe).mockClear();
+    const res = await answer();
+    expect(res.status).toBe(429);
+    const body = await res.json();
+    expect(body.guestFull).toBe(true);
+    expect(body.error).toBe("Recording without an account is full for now. Create an account to keep going.");
+    expect(transcribe).not.toHaveBeenCalled();
+    expect(refundRateLimit).toHaveBeenCalledWith("hostile:u:anon-1");
+    expect(vi.mocked(refundRateLimit).mock.calls.some(([s]) => /^guest:ip:/.test(s))).toBe(true);
+    // The ceiling's own slot was never taken, so it is not given back.
+    expect(vi.mocked(refundRateLimit).mock.calls.some(([s]) => s === "guest:all")).toBe(false);
+    vi.mocked(consumeRateLimit).mockImplementation(async () => ({ allowed: true, window: null, retryAfterS: 0 }));
+  });
+
+  it("keeps the ceiling's slot once Whisper has run, and gives it back when Whisper was down", async () => {
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "anon-1", anonymous: true });
+    expect((await answer()).status).toBe(200);
+    expect(refundRateLimit).not.toHaveBeenCalled();
+
+    vi.mocked(transcribe).mockRejectedValue(new Error("Whisper API 500: boom"));
+    expect((await answer()).status).toBe(502);
+    expect(refundRateLimit).toHaveBeenCalledWith("guest:all");
   });
 
   it("keeps the slot of a question asked and a verdict given", async () => {
@@ -287,5 +343,72 @@ describe("the verdict, stored", () => {
     vi.mocked(hostileVerdict).mockResolvedValueOnce(VERDICT);
     store.answer = { data: [], error: null };
     expect(await (await judgeWith({ repId: "rep-2" })).json()).toMatchObject({ stored: false });
+  });
+});
+
+/* Security audit, 11 Nov: the context is the phone's copy of the session
+   and goes into the verdict's prompt, so its size is the server's to set. */
+describe("POST /api/hostile and the context's size", () => {
+  it("cuts a take, the answers and the round count to what speech can hold", async () => {
+    vi.mocked(hostileVerdict).mockClear();
+    await post(
+      {
+        phase: "verdict",
+        context: JSON.stringify({
+          take: "word ".repeat(900),
+          rounds: Array.from({ length: 3 }, () => ({ question: "q".repeat(500), answer: "a".repeat(3100) })),
+          roundNumbers: Array.from({ length: 5 }, () => ({ fillersPerMin: "many", midSentencePauses: 1e12 })),
+        }),
+      },
+      false
+    );
+    const [ctx, numbers] = vi.mocked(hostileVerdict).mock.calls[0];
+    expect(ctx.take.length).toBeLessThanOrEqual(4000);
+    expect(ctx.rounds.length).toBeLessThanOrEqual(2);
+    for (const r of ctx.rounds) {
+      expect(r.question.length).toBeLessThanOrEqual(400);
+      expect(r.answer.length).toBeLessThanOrEqual(3000);
+    }
+    expect(numbers.length).toBeLessThanOrEqual(2);
+    expect(numbers[0]).toEqual({ fillersPerMin: 0, midSentencePauses: 1000 });
+  });
+
+  it("reads a context too long to be a session as no context", async () => {
+    vi.mocked(hostileVerdict).mockClear();
+    await post({ phase: "verdict", context: JSON.stringify({ take: "x".repeat(60_000), rounds: [] }) }, false);
+    const ctx = vi.mocked(hostileVerdict).mock.calls[0]?.[0];
+    expect(ctx?.take ?? "").toBe("");
+  });
+});
+
+/*
+ * The free week, held on every call (#464). Whether a call was the take
+ * was the phone's word (a `take` in its context), and only the take was
+ * checked, so a free account could skip the lock by saying it had one.
+ */
+describe("the free week, on every call", () => {
+  it("lets the session's own rounds and verdict through while its take is under an hour old", async () => {
+    week.count = 1;
+    week.latest = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    expect((await answer()).status).toBe(200);
+    expect((await judge()).status).toBe(200);
+  });
+
+  it("lets a round through while the take is still being banked", async () => {
+    week.count = 0;
+    expect((await answer()).status).toBe(200);
+  });
+
+  it("refuses a round or a verdict hours after the week's take", async () => {
+    week.count = 1;
+    week.latest = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+    expect((await answer()).status).toBe(403);
+    expect((await judge()).status).toBe(403);
+    expect(transcribe).not.toHaveBeenCalled();
+  });
+
+  it("refuses a round once the week holds more than one take", async () => {
+    week.count = 2;
+    expect((await answer()).status).toBe(403);
   });
 });

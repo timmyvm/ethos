@@ -39,6 +39,8 @@ import { isPremium } from "@/lib/db";
 import { computeMetrics } from "@/lib/metrics";
 import { localDate } from "@/lib/metering";
 import {
+  GUEST_CEILING,
+  GUEST_FULL_COPY,
   analyzeTier,
   clientIp,
   consumeRateLimit,
@@ -64,13 +66,64 @@ interface RoundsPayload {
   repId?: string;
 }
 
+/**
+ * The context is the phone's copy of the session, and it goes into the
+ * verdict's prompt, so nothing in it is trusted for size or shape
+ * (security audit, 11 Nov): a take is a minute of speech and an answer
+ * 45 seconds, so each string is cut to a length real speech cannot
+ * reach, the rounds to the game's own count, and the numbers to finite
+ * ones. Without this one request could carry a book into three Opus
+ * calls.
+ */
+const CONTEXT_MAX_CHARS = 20_000;
+const TAKE_MAX_CHARS = 4_000;
+const ANSWER_MAX_CHARS = 3_000;
+const QUESTION_MAX_CHARS = 400;
+const QUOTED_MAX_CHARS = 200;
+
+const text = (v: unknown, max: number): string | undefined =>
+  typeof v === "string" ? v.replace(/\u0000/g, "").slice(0, max) : undefined;
+const finite = (v: unknown): number =>
+  typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.min(v, 1000)) : 0;
+
 function parseContext(raw: unknown): RoundsPayload | null {
-  if (typeof raw !== "string") return null;
+  if (typeof raw !== "string" || raw.length > CONTEXT_MAX_CHARS) return null;
+  let j: unknown;
   try {
-    return JSON.parse(raw) as RoundsPayload;
+    j = JSON.parse(raw);
   } catch {
     return null;
   }
+  if (!j || typeof j !== "object" || Array.isArray(j)) return null;
+  const o = j as Record<string, unknown>;
+  const rounds = Array.isArray(o.rounds)
+    ? o.rounds.slice(0, HOSTILE_ROUNDS).map((r) => {
+        const row = (r && typeof r === "object" ? r : {}) as Record<string, unknown>;
+        return {
+          question: text(row.question, QUESTION_MAX_CHARS) ?? "",
+          answer: text(row.answer, ANSWER_MAX_CHARS) ?? "",
+          quoted: text(row.quoted, QUOTED_MAX_CHARS),
+        };
+      })
+    : undefined;
+  const roundNumbers = Array.isArray(o.roundNumbers)
+    ? o.roundNumbers.slice(0, HOSTILE_ROUNDS).map((n) => {
+        const row = (n && typeof n === "object" ? n : {}) as Record<string, unknown>;
+        return {
+          fillersPerMin: finite(row.fillersPerMin),
+          midSentencePauses: finite(row.midSentencePauses),
+        };
+      })
+    : undefined;
+  return {
+    claim: text(o.claim, QUESTION_MAX_CHARS),
+    take: text(o.take, TAKE_MAX_CHARS),
+    rounds,
+    pendingQuestion: text(o.pendingQuestion, QUESTION_MAX_CHARS),
+    pendingQuoted: text(o.pendingQuoted, QUOTED_MAX_CHARS),
+    roundNumbers,
+    repId: text(o.repId, 64),
+  };
 }
 
 /**
@@ -86,6 +139,8 @@ interface Spend {
   subject: string | null;
   /** A guest's address-wide slot (#416), as /api/analyze takes. */
   guestIp?: string | null;
+  /** A guest's or visitor's slot under the shared ceiling (`guestall`). */
+  ceiling?: string | null;
   keep: boolean;
 }
 
@@ -96,6 +151,7 @@ export async function POST(req: NextRequest) {
   } finally {
     if (spend.subject && !spend.keep) await refundRateLimit(spend.subject);
     if (spend.guestIp && !spend.keep) await refundRateLimit(spend.guestIp);
+    if (spend.ceiling && !spend.keep) await refundRateLimit(spend.ceiling);
   }
 }
 
@@ -140,12 +196,45 @@ async function handle(req: NextRequest, spend: Spend) {
     spend.guestIp = guestIp;
   }
 
+  /* And every guest and visitor shares one ceiling, as on /api/analyze
+     (11 Nov): the count a script with many addresses cannot get round. */
+  if (!auth || auth.anonymous) {
+    const all = await consumeRateLimit(GUEST_CEILING, "guestall");
+    if (!all.allowed) {
+      return NextResponse.json(
+        { error: GUEST_FULL_COPY, guestFull: true, retryAfterS: all.retryAfterS },
+        { status: 429, headers: { "Retry-After": String(all.retryAfterS) } }
+      );
+    }
+    spend.ceiling = GUEST_CEILING;
+  }
+
   const phase = form.get("phase");
   const prompt = promptById((form.get("promptId") as string) ?? "");
   if (!prompt) {
     return NextResponse.json({ error: "Unknown prompt." }, { status: 400 });
   }
   const ctx = parseContext(form.get("context")) ?? {};
+  const isTake = !ctx.take;
+
+  /*
+   * Free gets one interrogation a week, premium runs them at will: the
+   * cold-topic pattern (#36) applied to this boss. Checked on every call
+   * (#464), not only the take: whether a call was the take was the
+   * phone's word (a `take` in its context), so a free account could skip
+   * the check by saying it had one. A take is refused once the week holds
+   * one; a round or a verdict is let through while this week's one take
+   * is under an hour old (a session mid-flight is never cut off) or still
+   * on its way to being banked. A stopgap: a caller that never banks is
+   * still never locked, which a week held on the server closes (STATE).
+   * Only when there's a database to ask: degrade open, like everything else.
+   */
+  if (await weekLocked(auth, isTake, numberOrNull(form.get("tzOffset")))) {
+    return NextResponse.json(
+      { locked: true, error: "You've faced Demos this week. Premium reopens him now; otherwise it's Monday." },
+      { status: 403 }
+    );
+  }
 
   if (phase === "verdict") {
     if (!ctx.take || (ctx.rounds?.length ?? 0) === 0) {
@@ -200,38 +289,6 @@ async function handle(req: NextRequest, spend: Spend) {
       { error: "Audio exceeds 25MB limit." },
       { status: 413 }
     );
-  }
-
-  const isTake = !ctx.take;
-
-  /*
-   * Free gets one interrogation a week, premium runs them at will —
-   * the cold-topic pattern (#36) applied to this boss. Checked only at
-   * the take (a session mid-flight is never cut off), and only when
-   * there's a database to ask: degrade open, like everything else.
-   */
-  if (isTake && auth) {
-    const premium = await isPremium(auth.id).catch(() => false);
-    if (!premium) {
-      const db = supabaseAdmin();
-      if (db) {
-        const { count } = await db
-          .from("reps")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", auth.id)
-          .eq("lesson_id", HOSTILE_TAKE_ID)
-          .gte(
-            "created_at",
-            weekStartFor(new Date(), numberOrNull(form.get("tzOffset"))).toISOString()
-          );
-        if ((count ?? 0) >= 1) {
-          return NextResponse.json(
-            { locked: true, error: "You've faced Demos this week. Premium reopens him now; otherwise it's Monday." },
-            { status: 403 }
-          );
-        }
-      }
-    }
   }
 
   let t;
@@ -349,4 +406,45 @@ function weekStartFor(now: Date, tzOffset: number | null): Date {
   const midnight = Date.UTC(wall.getUTCFullYear(), wall.getUTCMonth(), wall.getUTCDate());
   const sinceMonday = (wall.getUTCDay() + 6) % 7;
   return new Date(midnight - sinceMonday * 86_400_000 + (now.getTime() - wall.getTime()));
+}
+
+/** How long a round or a verdict may follow the week's take (#464). */
+const SESSION_WINDOW_MS = 60 * 60 * 1000;
+
+/** Whether this call is past a free account's one Hostile session a week (#464). */
+async function weekLocked(
+  auth: { id: string } | null,
+  isTake: boolean,
+  tzOffset: number | null
+): Promise<boolean> {
+  if (!auth) return false;
+  const premium = await isPremium(auth.id).catch(() => false);
+  if (premium) return false;
+  const db = supabaseAdmin();
+  if (!db) return false;
+  const since = weekStartFor(new Date(), tzOffset).toISOString();
+  try {
+    const { count } = await db
+      .from("reps")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", auth.id)
+      .eq("lesson_id", HOSTILE_TAKE_ID)
+      .gte("created_at", since);
+    const n = count ?? 0;
+    if (isTake) return n >= 1;
+    if (n === 0) return false; // the take is still on its way to being banked
+    if (n > 1) return true;
+    const { data } = await db
+      .from("reps")
+      .select("created_at")
+      .eq("user_id", auth.id)
+      .eq("lesson_id", HOSTILE_TAKE_ID)
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const at = Date.parse((data as { created_at?: string }[] | null)?.[0]?.created_at ?? "");
+    return Number.isFinite(at) && Date.now() - at > SESSION_WINDOW_MS;
+  } catch {
+    return false;
+  }
 }

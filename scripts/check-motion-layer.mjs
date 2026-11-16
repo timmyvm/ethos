@@ -49,7 +49,7 @@ await context.addInitScript(() => {
 const page = await context.newPage();
 page.on("pageerror", (e) => console.log("PAGEERROR", page.url(), e.message.slice(0, 100)));
 
-// ---- 1. Page changes push, and they push the right way -------------------
+// ---- 1. Going deeper pushes, the right way; tabs swap ---------------------
 await page.goto(`${BASE}/`);
 await page.waitForSelector("main");
 await sleep(700);
@@ -62,13 +62,16 @@ async function pushClass() {
   });
 }
 
+/* Tab to tab is a swap in place since #443 (Apple: no motion on what
+   people do constantly; an iPhone's tab bar does not slide its content).
+   The well's slide along the bar is the answer to the tap. */
 await page.click('nav a[href="/history"]');
 await page.waitForURL(/history/);
-ok("going right along the tab bar pushes from the right", (await pushClass()).includes("push-right"), await pushClass());
+ok("along the tab bar the page swaps in place, no push", !/push-(right|left)/.test(await pushClass()), await pushClass());
 
 await page.click('nav a[href="/"]');
 await page.waitForURL(/:\d+\/$/);
-ok("coming back along the tab bar pushes from the left", (await pushClass()).includes("push-left"), await pushClass());
+ok("and back along it the same", !/push-(right|left)/.test(await pushClass()), await pushClass());
 
 await page.goto(`${BASE}/you`);
 await page.waitForSelector("main");
@@ -102,7 +105,7 @@ ok(
 // On /rep, because the Record button is the app's clearest case of a
 // control that is both levelled and tappable.
 await page.goto(`${BASE}/rep?lesson=h4`);
-await page.waitForSelector('button[aria-label="Start recording"]');
+await page.waitForSelector('button[data-record="start"]');
 const pressed = await page.evaluate(async () => {
   const el = document.querySelector(".press.elev-3, .press.elev-2, .press.elev-1");
   if (!el) return null;
@@ -140,8 +143,8 @@ ok("the spring is a token", norm(spring) === "cubic-bezier(0.34,1.56,0.64,1)", s
 
 // ---- 4. The Record button waits ------------------------------------------
 await page.goto(`${BASE}/rep?lesson=h4`);
-await page.waitForSelector('button[aria-label="Start recording"]');
-const wait = await page.$eval('button[aria-label="Start recording"]', (el) => ({
+await page.waitForSelector('button[data-record="start"]');
+const wait = await page.$eval('button[data-record="start"]', (el) => ({
   name: getComputedStyle(el).animationName,
   dur: getComputedStyle(el).animationDuration,
   count: getComputedStyle(el).animationIterationCount,
@@ -214,8 +217,8 @@ const calm = await page.evaluate(() => {
 ok("reduced motion turns a stagger into one fade", calm.motion === "reduce" && calm.rowAnim === "fade-in" && calm.rowDelay === "0s", `${calm.rowAnim} ${calm.rowDelay}`);
 
 await page.goto(`${BASE}/rep?lesson=h4`);
-await page.waitForSelector('button[aria-label="Start recording"]');
-const calmRec = await page.$eval('button[aria-label="Start recording"]', (el) => getComputedStyle(el).animationName);
+await page.waitForSelector('button[data-record="start"]');
+const calmRec = await page.$eval('button[data-record="start"]', (el) => getComputedStyle(el).animationName);
 ok("reduced motion stops the Record button breathing", calmRec === "none", calmRec);
 await page.evaluate(() => localStorage.removeItem("ethos.prefs"));
 

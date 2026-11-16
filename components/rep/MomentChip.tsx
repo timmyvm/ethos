@@ -15,7 +15,7 @@ export interface ChipMoment {
 /**
  * One moment: plays its stretch of the take, or stops it while it plays.
  * Hear it back's chip grammar: surface, edge and ink, the glyph in the
- * tap's terracotta like the filler chips' and the play key's beside it.
+ * warm mark's terracotta like the filler chips' and the play key's beside it.
  * The Pause row's moments (#424) and the glance's one moment (#427) are
  * this chip; `marker` names which, for the cameras.
  */

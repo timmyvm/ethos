@@ -19,6 +19,14 @@ user-facing string.
   here (see placement rules).
 - Zero rhetorical fragments used as sentences ("No guessing." "Just practice.")
   outside of marketing pages, where at most one is allowed.
+- **No full stop on a title** (#454, held by `lib/title.test.ts` and
+  `scripts/check-type.mjs`). A heading, a card's title, an error's
+  title and a sheet's headline name what is under them: "Not scored",
+  "Keep it", "Your words didn't load", "See what the camera measured".
+  A title of two sentences keeps both stops ("22 days of numbers. Keep
+  all of them."). What Demos says is speech and keeps its stop wherever
+  he says it; a line that is both (the plan's headline) is written as
+  speech and cut with `asTitle` where it stands as a title.
 
 ## Vocabulary
 

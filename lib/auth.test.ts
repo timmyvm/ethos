@@ -58,8 +58,10 @@ import {
 import { EMAIL_ASKED_KEY, emailAskedFor } from "./account-gate";
 
 describe("password rules", () => {
-  it("asks for length and nothing else", () => {
-    expect(passwordProblem("a".repeat(MIN_PASSWORD))).toBeNull();
+  it("asks for length, and no composition rule", () => {
+    expect(passwordProblem("b9".repeat(MIN_PASSWORD / 2) + "k")).toBeNull();
+    // Eight of one letter is one of the passwords everyone tries (#455).
+    expect(passwordProblem("a".repeat(MIN_PASSWORD))).not.toBeNull();
     // No composition rule: a long simple passphrase is fine, which is
     // the point — "one symbol, one digit" pushes people to Password1!.
     expect(passwordProblem("correct horse battery staple")).toBeNull();

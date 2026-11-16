@@ -1,8 +1,34 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { IconBack } from "@/components/Icon";
+import { backRetraces, goBack } from "@/lib/back";
+
+/**
+ * Back retraces (#442, lib/back.ts). The chevron is a link to its
+ * parent, and stays one for a cold open, a new tab and a browser that
+ * cannot say what lies under this screen. When the screen under this one
+ * IS the parent, the tap goes back to it instead of opening it again:
+ * the parent comes back where it was left, and the phone's own back
+ * gesture and the chevron are one action.
+ */
+function retrace(e: MouseEvent<HTMLAnchorElement>, href: string): void {
+  if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  if (!backRetraces(href)) return;
+  e.preventDefault();
+  goBack();
+}
+
+/**
+ * The chevron's word. A back that could only say "Back" says it to a
+ * screen reader and draws the chevron alone (Apple: the standard symbol,
+ * never a text label that says Back); a back named for where it goes
+ * keeps its name.
+ */
+function BackWord({ label }: { label: string }) {
+  return <span className={label === "Back" ? "sr-only" : undefined}>{label}</span>;
+}
 
 /**
  * The top of every tab and every screen one step off it: a large title
@@ -143,9 +169,9 @@ export function ScreenHeader({
       >
         <div className="screen-bar-side">
           {back ? (
-            <Link href={back.href} className="screen-bar-back press">
+            <Link href={back.href} onClick={(e) => retrace(e, back.href)} className="screen-bar-back press">
               <IconBack size={22} />
-              <span>{back.label}</span>
+              <BackWord label={back.label} />
             </Link>
           ) : (
             leading
@@ -212,10 +238,11 @@ export function BackLink({
   return (
     <Link
       href={href}
+      onClick={(e) => retrace(e, href)}
       className={`screen-bar-back press -ml-3 inline-flex min-h-11 items-center ${className}`}
     >
       <IconBack size={22} />
-      <span>{label}</span>
+      <BackWord label={label} />
     </Link>
   );
 }

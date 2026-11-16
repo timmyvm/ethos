@@ -4,6 +4,7 @@
  * (the client page imports lib/hostile.ts instead).
  */
 
+import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { MAX_COACH_SENTENCES, splitSentences } from "./coach";
 import {

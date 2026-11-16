@@ -19,6 +19,7 @@ import {
   type AuthResult,
   type SessionState,
 } from "@/lib/auth";
+import { NewPasswordField, ShowPassword, useHidOnSubmit } from "@/components/NewPassword";
 import { useGoogleSignIn } from "@/lib/use-oauth-return";
 import { asksForPaywall, authHref, useNextPath } from "@/lib/use-paywall-return";
 
@@ -112,6 +113,7 @@ export function AuthForm({
   const [progress, setProgress] = useState({ recordings: 0, streak: 0 });
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
+  const [shownCurrent, setShownCurrent] = useHidOnSubmit(passwordRef);
   /*
    * Where a signed-in person goes next: a safe same-origin `next=` (the
    * paywall's account ask sends its page with paywall=1, so the sheet
@@ -264,7 +266,7 @@ export function AuthForm({
         // The password typed is not that account's: an empty field to try again in.
         if (result.error && result.field === "password") setPassword("");
       }
-      setError(result.error ?? (result.existing ? null : "That didn't work."));
+      setError(result.error ?? (result.existing ? null : "That didn't go through. Try again."));
       setErrorField(result.error ? (result.field ?? null) : null);
       return;
     }
@@ -480,36 +482,44 @@ export function AuthForm({
                     passwordAside
                   )}
                 </div>
-                <input
-                  ref={passwordRef}
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete={
-                    mode === "signup" && !signingIn ? "new-password" : "current-password"
-                  }
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  aria-invalid={passwordInvalid || undefined}
-                  aria-describedby={
-                    [
-                      mode === "signup" && !signingIn ? "password-help" : "",
-                      signingIn && !error ? "form-note" : "",
-                      passwordInvalid ? "form-error" : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ") || undefined
-                  }
-                  className={FIELD_CLASS}
-                />
-                {mode === "signup" && !signingIn && (
-                  <p
-                    id="password-help"
-                    className="mt-2 text-caption leading-relaxed text-stone-400"
-                  >
-                    {PASSWORD_HELP}
-                  </p>
+                {mode === "signup" && !signingIn ? (
+                  /* A new password (#462): the outline closes as it
+                     grows, and a password everyone tries is said at once. */
+                  <NewPasswordField
+                    inputRef={passwordRef}
+                    value={password}
+                    onChange={setPassword}
+                    email={email}
+                    invalid={passwordInvalid}
+                    errorId="form-error"
+                    help={PASSWORD_HELP}
+                    inputClassName={FIELD_BARE_CLASS}
+                  />
+                ) : (
+                  /* Show / Hide here too (#463): every password field. */
+                  <div className="relative mt-2">
+                  <input
+                    ref={passwordRef}
+                    id="password"
+                    name="password"
+                    type={shownCurrent ? "text" : "password"}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    aria-invalid={passwordInvalid || undefined}
+                    aria-describedby={
+                      [signingIn && !error ? "form-note" : "", passwordInvalid ? "form-error" : ""]
+                        .filter(Boolean)
+                        .join(" ") || undefined
+                    }
+                    className={`${FIELD_BARE_CLASS} pr-18`}
+                  />
+                  <ShowPassword shown={shownCurrent} onToggle={() => setShownCurrent(!shownCurrent)} />
+                  </div>
                 )}
               </>
             )}
@@ -683,6 +693,8 @@ export const LABEL_CLASS = "font-display block text-row text-ink";
  * same misread as the old bullets (auth-8).
  */
 export const FIELD_CLASS = `mt-2 h-12 ${INPUT_CLASS} placeholder:font-normal`;
+/** The same field with no top margin, for a field whose wrapper takes it (#462). */
+export const FIELD_BARE_CLASS = `h-12 ${INPUT_CLASS} placeholder:font-normal`;
 
 /**
  * What the form says that is not a failure (#426: the email has an

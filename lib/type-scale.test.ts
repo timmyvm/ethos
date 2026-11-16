@@ -48,13 +48,15 @@ function census() {
 
 /**
  * The copy scale itself (E08, DESIGN principle 3): 34 / 26 / 20 / 17 /
- * 16 / 15 / 14 / 13 / 10. Caption folded up to 13 beside link's 13 (its
+ * 16 / 15 / 14 / 13 / 11. The last step was 10 until #450: 11 is the
+ * smallest type an iPhone sets, and nothing a person reads sits under it
+ * (lib/type-floor.test.ts). Caption folded up to 13 beside link's 13 (its
  * weight carries the role) and lead up to 20 beside the section head's
  * 20, so no two steps sit half a pixel apart where nobody can see them.
  * Read from the tokens in app/globals.css, plus the two sizes that come
  * from their components (`.large-title` 34, `.section-head` 20).
  */
-const COPY_SCALE = [34, 26, 20, 17, 16, 15, 14, 13, 10];
+const COPY_SCALE = [34, 26, 20, 17, 16, 15, 14, 13, 11];
 const COPY_TOKENS = ["title", "lead", "body", "caption", "detail", "read", "row", "link", "suffix"];
 
 function tokenPx(css: string, name: string): number {
@@ -74,7 +76,7 @@ function classPx(css: string, selector: string): number {
 describe("the copy scale", () => {
   const css = readFileSync(path.join(ROOT, "app", "globals.css"), "utf8");
 
-  it("is 34 / 26 / 20 / 17 / 16 / 15 / 14 / 13 / 10 and nothing else", () => {
+  it("is 34 / 26 / 20 / 17 / 16 / 15 / 14 / 13 / 11 and nothing else", () => {
     const sizes = new Set([
       ...COPY_TOKENS.map((t) => tokenPx(css, t)),
       classPx(css, ".large-title"),

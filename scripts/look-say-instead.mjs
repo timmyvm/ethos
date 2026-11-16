@@ -91,9 +91,9 @@ async function shoot(state, theme) {
   }
 
   await page.goto(`${BASE}/rep?lesson=h4`);
-  await page.waitForSelector('button[aria-label="Start recording"]', { timeout: 30000 });
+  await page.waitForSelector('button[data-record="start"]', { timeout: 30000 });
   await sleep(800);
-  await page.click('button[aria-label="Start recording"]', { force: true });
+  await page.click('button[data-record="start"]', { force: true });
   await page.waitForSelector('button[aria-label="Stop and score this recording"]');
   await sleep(2600);
   await page.click('button[aria-label="Stop and score this recording"]', { force: true });

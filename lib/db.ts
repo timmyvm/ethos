@@ -5,6 +5,7 @@
  * #15): reps attribute to whatever session exists, signup comes later.
  */
 
+import "server-only";
 import { randomUUID } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { AccuracyResult } from "./accuracy";

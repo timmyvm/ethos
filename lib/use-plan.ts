@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { syncPlan } from "./billing-client";
-import { fetchBilling, type BillingRow, type ProfileRow } from "./client-data";
+import { fetchBilling, heldBilling, type BillingRow, type ProfileRow } from "./client-data";
+import { BILLING_KEY, hold } from "./held";
 import { withTimeout, READ_TIMEOUT_MS } from "./load";
 import { planView, type PlanView } from "./plan-view";
 import { markCheckoutSeen, takeDrop } from "./price-drop";
@@ -89,8 +90,12 @@ export function planProfile(profile: ProfileRead, premium: boolean | undefined):
 }
 
 export function usePlan(profile: ProfileRead = null): Plan {
-  const [today, setToday] = useState<Date | null>(null);
-  const [billing, setBilling] = useState<BillingRow | null | undefined>(undefined);
+  /* A row this visit already read draws in the first frame (#468), and
+     the read below still runs. Only ever on a move inside the app: a
+     cold load holds nothing, so the server's render and the first
+     client one agree (the React #418 guard on "today"). */
+  const [billing, setBilling] = useState<BillingRow | null | undefined>(() => heldBilling());
+  const [today, setToday] = useState<Date | null>(() => (heldBilling() === undefined ? null : new Date()));
   const [failed, setFailed] = useState(false);
   /** A billing route's word on Premium, and the profile read it overrides. */
   const [said, setSaid] = useState<{ premium: boolean; over: ProfileRead } | null>(null);
@@ -122,6 +127,7 @@ export function usePlan(profile: ProfileRead = null): Plan {
 
   const adopt = useCallback((row: BillingRow | null, premium?: boolean) => {
     seq.current += 1;
+    hold(BILLING_KEY, row);
     setBilling(row);
     setFailed(false);
     if (premium !== undefined) setSaid({ premium, over: profileRef.current });

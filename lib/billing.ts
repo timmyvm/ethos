@@ -40,6 +40,7 @@
  * paywall did not say.
  */
 
+import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";

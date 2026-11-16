@@ -29,13 +29,26 @@ export const TAB_HREFS = [
 export const TAB_CHILDREN: Readonly<Record<string, (typeof TAB_HREFS)[number]>> = {
   "/shop": "/you",
   "/settings": "/you",
+  /* #442: both drew the bar with nothing lit. Your words opens from
+     You's lexicon, Upload from Practice's tiles. */
+  "/words": "/you",
+  "/upload": "/games",
 };
+
+/**
+ * A stored recording, opened from the Log: a page to read, one step in
+ * from its tab (#442). It keeps the bar, with Log lit, as an iPhone keeps
+ * its tab bar on a screen pushed inside a tab; the recorder at `/rep`
+ * itself is a task and hides it.
+ */
+export const STORED_RECORDING = /^\/rep\/[\w-]+$/;
 
 /** Which tab a path lights: its index in TAB_HREFS, or -1 for none. */
 export function tabIndexFor(path: string): number {
   const under = (base: string) => path === base || path.startsWith(`${base}/`);
   const own = TAB_HREFS.findIndex((t) => (t === "/" ? path === "/" : path.startsWith(t)));
   if (own !== -1) return own;
+  if (STORED_RECORDING.test(path)) return TAB_HREFS.indexOf("/history");
   const parent = Object.entries(TAB_CHILDREN).find(([child]) => under(child))?.[1];
   return parent ? TAB_HREFS.indexOf(parent) : -1;
 }

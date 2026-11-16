@@ -517,7 +517,7 @@ function StopTesting() {
         <div ref={card} className="mt-3 scroll-mb-6 rounded-card bg-surface p-4">
           <p className="text-body text-stone-700">{JOINED_COPY.stopSure}</p>
           {error && (
-            <p role="alert" className="mt-2 text-caption text-terracotta-700">
+            <p role="alert" className="mt-2 text-caption text-rust">
               {error}
             </p>
           )}

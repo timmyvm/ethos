@@ -10,25 +10,50 @@
  */
 
 /**
- * The one tap (brand.md: exactly one terracotta per screen). A pill
+ * The one tap on a page (one per screen, brand.md). A pill
  * (`rounded-tap`, D11: Today's Start was the first, and one action wears
- * one shape on every screen), ink on terracotta, 48px tall, and no
- * shadow — the colour is the lift (DECISIONS #234).
+ * one shape on every screen), 48px tall, and no shadow.
  *
- * No hover step (M15, today-21, practice-tab-24, recording-2, auth-10).
- * It used to hover to terracotta-600, which is the rust hex #b2432c:
- * ink on it measures 2.9:1 and the one tap read as "wrong direction"
- * under a pointer. The `.press` veil answers every pointer instead.
- * The 200ms colour transition is how a waiting button (DISABLED_CLASS,
- * M25) lights up once it is valid: a crossfade, no scale. `.press`
- * reads the duration and curve these utilities set (globals.css).
+ * Its fill is ink since #459 (Timothy, 12 Nov: "the orange button is
+ * ugly ... a futuristic gradient 3D against a flat button", then "8 for
+ * home and 10 for feedback" from the ten directions in
+ * docs/look/buttons). A tap has no colour of its own now: on the page
+ * it is ink (`.tap`, globals.css), on a coloured card it is cut from
+ * the card (`.tap-tonal`). It was terracotta-500 with ink on it.
+ *
+ * No hover step (M15, today-21, practice-tab-24, recording-2, auth-10):
+ * the `.press` veil answers every pointer instead. The 200ms colour
+ * transition is how a waiting button (DISABLED_CLASS, M25) lights up
+ * once it is valid: a crossfade, no scale. `.press` reads the duration
+ * and curve these utilities set (globals.css).
  *
  * `leading-5` makes it a whole 48px (14 + 20 + 14): on the body's 1.5
  * line it came to 50.5, and a sticky shelf of a fractional height let a
  * device row of the content behind it show under its edge at 2x (B4).
  */
-export const ACTION_CLASS =
-  "press font-display block min-h-12 w-full rounded-tap bg-terracotta-500 px-6 py-3.5 text-center text-body leading-5 font-bold text-on-accent transition-colors duration-200 ease-out";
+const ACTION_SHAPE =
+  "press font-display block min-h-12 w-full rounded-tap px-6 py-3.5 text-center text-body leading-5 font-bold transition-colors duration-200 ease-out";
+
+export const ACTION_CLASS = `${ACTION_SHAPE} tap`;
+
+/**
+ * The same tap standing on a coloured card (the plum sheet): a pale
+ * tint of the card and the card's deep tone for its word, which the
+ * card names in `--tap-tint` and `--tap-tint-ink` (globals.css).
+ * Today's Start is the first of these and keeps its own class.
+ */
+export const ACTION_TONAL_CLASS = `${ACTION_SHAPE} tap-tonal`;
+
+/**
+ * The way on (#459, direction 10: "10 for feedback"). The tap that
+ * moves you to the next thing: its words start at the left and a round
+ * arrow stands at its right end, drawn by `<TapArrow />` as its last
+ * child. 48px like the others (6 + the 36px disc + 6); words that wrap
+ * grow it. The results' way on wears it, and since #460 the tap under
+ * Lessons' Up next ("Carry on"): the two that keep you going.
+ */
+export const ACTION_ARROW_CLASS =
+  "press font-display flex min-h-12 w-full items-center justify-between gap-3 rounded-tap py-1.5 pr-1.5 pl-5.5 text-left text-body leading-5 font-bold transition-colors duration-200 ease-out tap";
 
 /**
  * Disabled, one value everywhere (#234): the control keeps its shape and

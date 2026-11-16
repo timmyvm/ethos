@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState, type CSSProperties, type MouseEvent } from "react";
+import { TapTick } from "@/components/ui/TapTick";
 import { IconBack, IconShuffle, IconSliders } from "@/components/Icon";
 import { Reel, useReel } from "@/components/Reel";
 import { CARD_FROM_KEY, topicCardArrival, type CardFrom } from "@/components/rep/TopicCard";
@@ -57,8 +58,10 @@ export interface HeroRoulette {
  * result, a milestone).
  *
  * The card is the screen's one lifted thing (its own shadow in its
- * family's colour, `.home-hero`), and Start is the screen's one
- * terracotta, a pill like every tap (D11). Every slot holds its height
+ * family's colour, `.home-hero`), and Start is the screen's one tap,
+ * cut from the card's own colour since #459 (`.home-start`: a pale tint
+ * of the family, its deep tone for the word), a pill like every tap
+ * (D11). Every slot holds its height
  * while the read is in flight, on a neutral card, because the trait and
  * so the colour are not known yet; Start and the two glyphs stay live,
  * as they always have: an early tap goes to the recorder.
@@ -298,6 +301,7 @@ export function HomeHero({
                   className="home-glyph press"
                 >
                   <IconShuffle size={20} />
+                  <TapTick />
                 </button>
               )}
               {face.mods && (
@@ -321,6 +325,7 @@ export function HomeHero({
             {face.spin === "link" && (
               <button ref={spinRef} type="button" onClick={onSpin} className="home-another press">
                 Another topic
+                <TapTick />
               </button>
             )}
           </>
@@ -396,6 +401,8 @@ function RouletteBody({ topic, onSpin, onTake, headRef, back }: HeroRoulette) {
           className="home-glyph press disabled:opacity-60"
         >
           <IconShuffle size={20} />
+          {/* Not while it rolls: a control that does nothing must not tick. */}
+          {!reel.rolling && <TapTick />}
         </button>
       </div>
       {back && (

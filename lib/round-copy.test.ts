@@ -486,7 +486,8 @@ describe("the ask after the taste (plan 13)", () => {
     );
     expect(tasteHeadline(INTERVIEW, interview())).toBe("Interview, level 1. 1:14 inside the window.");
     expect(tasteHeadline(INTERVIEW, interview({ lastWord: 48, inWindow: false }))).toBe("Interview, level 1. Finished at 0:48.");
-    expect(tasteHeadline(RUSH, null)).toBe("Speed rush, level 1.");
+    // Alone it is one sentence, and a title of one sentence takes no full stop (#454).
+    expect(tasteHeadline(RUSH, null)).toBe("Speed rush, level 1");
     expect(TASTE_LINE).toBe("Play it any day.");
     expect(tasteKey("rush")).toBe("ethos.taste.rush");
   });

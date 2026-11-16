@@ -3,11 +3,12 @@
 import { Disclosure } from "@/components/ui/Disclosure";
 import { HeroStage, StageChip } from "@/components/ui/HeroStage";
 import { SegmentBar } from "@/components/ui/SegmentBar";
+import { TapArrow } from "@/components/ui/TapArrow";
 import Link from "next/link";
 import type { Lesson } from "@/content/lessons";
 import { nextPractice } from "@/lib/lesson-progress";
 import { repHref } from "@/lib/rep-config";
-import { ACTION_CLASS } from "@/lib/ui";
+import { ACTION_ARROW_CLASS } from "@/lib/ui";
 
 /**
  * A lesson, as a row you move through rather than a tile you buy.
@@ -152,19 +153,10 @@ function Progress({
   );
 }
 
-/**
- * The inset rule between rows: a hairline from the title's edge (20 gutter
- * + 44 art + 14 gap = 78px) to the row's end, the `.inset-group` icon-inset
- * grammar on the open ground. None above a section's first row.
- */
-const RULE =
-  "before:absolute before:left-[78px] before:right-0 before:top-0 before:h-px before:origin-top before:scale-y-50 before:bg-hairline";
-
 export function LessonRow({
   lesson,
   done,
   pending = true,
-  first = false,
   eager = false,
   cue = null,
 }: {
@@ -183,7 +175,6 @@ export function LessonRow({
    * on its picture.
    */
   pending?: boolean;
-  first?: boolean;
   /** Above the fold: load the thumbnail at once (lessons-21). */
   eager?: boolean;
   /** "Up next" or "Carry on" on the row the Up next card points at. */
@@ -197,14 +188,18 @@ export function LessonRow({
    * pulls away from the rows beside it (`.press-row`, lessons-4). The
    * focus ring is drawn inside, because outside it would sit on the
    * screen's edge (lessons-5).
+   *
+   * No rule between rows (#454). Each row already draws a line of its
+   * own, its three practices as segments, and an inset hairline 20px
+   * under that made two lines a row down a list of fifteen: the rules
+   * were the loudest thing in it. The art's 44px tile and the row's
+   * 68px keep the rows apart.
    */
   return (
     <Link
       href={`/lessons/${lesson.id}`}
       data-lesson={lesson.id}
-      className={`press-row relative -mx-5 flex items-center gap-3.5 px-5 py-3 focus-visible:-outline-offset-3! ${
-        first ? "" : RULE
-      }`}
+      className="press-row relative -mx-5 flex items-center gap-3.5 px-5 py-3 focus-visible:-outline-offset-3!"
     >
       <LessonArt lesson={lesson} size={44} eager={eager} />
       <span className="min-w-0 flex-1">
@@ -238,6 +233,11 @@ export function LessonRow({
  * the render's whole square, a tile of tone on the sky (the fix round). The tap says what it does: "Carry on" part way in,
  * "Start" before. One tap from the tab to recording is what "you just
  * start it" looks like.
+ *
+ * It wears the arrow (#460, Timothy: "go" to the same arrow on Lessons'
+ * "Carry on"): it is the tap that keeps you going, as the results' way
+ * on is, so the two look alike. Its word starts at the left and the
+ * round arrow stands at its right end.
  */
 export function UpNextCard({ lesson, done }: { lesson: Lesson; done: number }) {
   const total = lesson.practices.length;
@@ -279,9 +279,10 @@ export function UpNextCard({ lesson, done }: { lesson: Lesson; done: number }) {
         })}
         data-up-next={lesson.id}
         aria-label={`${verb} ${lesson.title}, practice ${next} of ${total}`}
-        className={`${ACTION_CLASS} mt-3`}
+        className={`${ACTION_ARROW_CLASS} mt-3`}
       >
-        {verb}
+        <span className="min-w-0">{verb}</span>
+        <TapArrow />
       </Link>
     </div>
   );

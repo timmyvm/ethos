@@ -144,7 +144,7 @@ export function AudioScrubber({
       </div>
       <div className="mt-4 flex items-center gap-3">
         {/* A key in the pills' own grammar: surface, hairline, the tap's
-            colour in the glyph. The screen's one terracotta FILL is its
+            warm mark in the glyph. The screen's one filled tap is its
             way forward, not this (principle 2). SVG glyphs, because iOS
             can draw the text ones as emoji (recording-19). */}
         <button

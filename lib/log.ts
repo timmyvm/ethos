@@ -129,7 +129,7 @@ export function rolling(series: number[], n: number): number[] {
 }
 
 /**
- * Day 1 vs now (ComparisonCard, ShareCard): the first and the latest
+ * Day 1 vs now (ComparisonCard): the first and the latest
  * recordings that measured something, by the rule What moved reads its
  * three measurements with. A take too short to score is stored with no
  * fillers and no pauses, and as "now" it printed fillers 9.3 to 0.0 in

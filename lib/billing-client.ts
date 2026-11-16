@@ -14,6 +14,7 @@
  * Client only. Never import lib/billing.ts (the server's) from a page.
  */
 import type { BillingRow } from "./client-data";
+import { forgetProfile } from "./held";
 import { supabaseBrowser } from "./supabase-browser";
 
 /** A request that has not answered by now is reported, not waited on. */
@@ -102,7 +103,11 @@ async function post(route: Route, body?: Record<string, unknown>): Promise<Answe
   }
   const parsed = (await res.json().catch(() => null)) as unknown;
   const json = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
-  if (res.ok) return { ok: true, status: res.status, body: json };
+  if (res.ok) {
+    // A sync, a cancel or a resume can move Premium: the plan is read again (lib/held.ts).
+    if (route !== "checkout" && route !== "portal") forgetProfile();
+    return { ok: true, status: res.status, body: json };
+  }
   const error = typeof json.error === "string" && json.error.trim() ? json.error.trim() : FALLBACK[route];
   return {
     ok: false,

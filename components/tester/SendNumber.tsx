@@ -24,7 +24,7 @@ export function keyClass(surface: "ground" | "tile") {
  * (lib/tester-client.ts markSent), and Today's tile moves on to the
  * day's ask.
  *
- * A grey key, never terracotta: the screen's one tap stays its own. On
+ * A grey key, never the tap's fill: the screen's one tap stays its own. On
  * Today's surface tile it stands on the raised fill, or it would vanish
  * into the tile. "Sent" and "Copied" are said by a status beside the
  * key, never inside it: a live region in a button takes its name.

@@ -1,6 +1,7 @@
 "use client";
 
-import { ACTION_CLASS as PRIMARY } from "@/lib/ui";
+import { setAudioSession } from "@/lib/audio-session";
+import { ACTION_ARROW_CLASS, ACTION_CLASS as PRIMARY } from "@/lib/ui";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -12,6 +13,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { TapTick } from "@/components/ui/TapTick";
 import { AudioScrubber } from "@/components/AudioScrubber";
 import { useTakeAudio } from "@/components/TakeAudio";
 import { BestPlaque } from "@/components/rep/BestPlaque";
@@ -55,6 +57,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { FooterShelf } from "@/components/ui/FooterShelf";
 import { SegmentBar } from "@/components/ui/SegmentBar";
+import { TapArrow } from "@/components/ui/TapArrow";
 import { BackLink } from "@/components/ui/ScreenHeader";
 import { practiceFamily, recordingObject } from "@/lib/practice-family";
 import { animateSpring, SPRING, springEasing, springMs } from "@/lib/spring";
@@ -98,7 +101,7 @@ import { liveTipAt, liveTipsFor, yieldsToCutIn } from "@/lib/live-tips";
 import {
   loadPose,
   onAppleMobile,
-  poseCapable,
+  videoOffered,
   samplePose,
   type PoseSampler,
 } from "@/lib/pose-client";
@@ -134,6 +137,7 @@ import {
   thinksFirst,
 } from "@/lib/rep-screen";
 import { playCelebration, unlockSfx } from "@/lib/sfx";
+import { holdAwake } from "@/lib/wake-lock";
 import { computeStreak } from "@/lib/streak";
 import { nextDrill } from "@/lib/drills";
 import {
@@ -172,7 +176,7 @@ import {
 } from "@/lib/glance";
 import { upNextLesson, traitForSaid } from "@/lib/lesson-up-next";
 import { DURATION } from "@/lib/motion";
-import { usePaywallReturn } from "@/lib/use-paywall-return";
+import { safeNextPath, usePaywallReturn } from "@/lib/use-paywall-return";
 import { bestFor, ladderState, roundsToday, type LadderRow } from "@/lib/ladder";
 import { INTERVIEW_WINDOW, type GameRound, type StoppedBy } from "@/lib/round";
 import {
@@ -366,9 +370,10 @@ type Phase =
  * target taken from a query string is the oldest hole there is.
  */
 function safeBack(raw: string | null): string | null {
-  if (!raw) return null;
-  if (!raw.startsWith("/") || raw.startsWith("//")) return null;
-  return raw;
+  // The one check every return path goes through: "/\\host" and a tab
+  // before a second slash both read as another site in a browser, and
+  // the two-line test that stood here let them by (security audit, 11 Nov).
+  return safeNextPath(raw);
 }
 
 /** One take while the mic is hot: its devices, recorders and readings. */
@@ -538,6 +543,13 @@ function RepScreen() {
   const art = recordingObject(config);
 
   const [phase, setPhase] = useState<Phase>("idle");
+
+  /* The screen stays awake while a take is spoken and scored (#440). An
+     iPhone locks after 30 seconds by default, a locked phone hides the
+     page, and a hidden page loses the mic: the take ended there with its
+     end missing. A recorder holds the screen for its take. */
+  const takeLive = phase === "recording" || phase === "analyzing";
+  useEffect(() => (takeLive ? holdAwake() : undefined), [takeLive]);
 
   /* The snapshot of the best (M4): retaken whenever the rows or the
      level change before the take is stored, held from Stop until the
@@ -754,7 +766,7 @@ function RepScreen() {
     const apple = onAppleMobile();
     setVideoOff(lite ? "lite" : apple ? "apple" : null);
     setInApp(inAppBrowser(navigator.userAgent));
-    setPoseReady(poseCapable() && !lite && !apple);
+    setPoseReady(videoOffered(lite));
   }, []);
 
   /* Video not offered here: the take is Voice on this screen, and the
@@ -1332,6 +1344,9 @@ function RepScreen() {
     const opened: { stream?: MediaStream; recorder?: MediaRecorder; videoRecorder?: MediaRecorder | null; ctx?: AudioContext } = {};
     try {
       let stream: MediaStream;
+      /* A take played a moment ago asked the phone for its speaker;
+         a session left that way has no microphone (lib/audio-session.ts). */
+      setAudioSession("auto");
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           audio: true,
@@ -2112,10 +2127,14 @@ function RepScreen() {
 
   return (
     <main
-      className={`relative isolate flex min-h-dvh flex-col px-5 pb-8 pt-[env(safe-area-inset-top)] ${
+      className={`relative isolate flex min-h-dvh flex-col px-5 pb-8 pt-[env(safe-area-inset-top)] max-[359px]:pb-5 ${
         /* A game's idle screen carries two more rows (the level, the
            best): on a phone under 700pt tall (375x667) the rhythm steps
-           in so Record stays on the first screen. */
+           in so Record stays on the first screen. Every practice takes
+           the same steps on a layout under 360 wide, which is what an
+           iPhone lays out once its text size is followed (#451: 390x844
+           two steps up is 320x692): the instruction and the tactics run
+           a line deeper each there, on a screen that is shorter too. */
         game ? "[@media(max-height:700px)]:pb-5" : ""
       }`}
     >
@@ -2153,7 +2172,7 @@ function RepScreen() {
       <div
         className={
           phase === "idle"
-            ? `flex flex-1 flex-col justify-center pb-8 ${game ? "[@media(max-height:700px)]:pb-4" : ""}`
+            ? `flex flex-1 flex-col justify-center pb-8 max-[359px]:pb-4 ${game ? "[@media(max-height:700px)]:pb-4" : ""}`
             : ""
         }
       >
@@ -2161,8 +2180,9 @@ function RepScreen() {
         /* Idle, the card takes the column's free height, 168 to 300, so a
            practice with more under it (the boss's tactic line) gets a
            shorter card rather than a screen that scrolls Record's caption
-           off the bottom. Under 600pt tall (320x568) it is as tall as its
-           words, so Record rises into view (F12). */
+           off the bottom. Under 600pt tall (320x568), and under 360 wide
+           (a followed text size, #451), it may be as short as its words,
+           so Record rises into view (F12). */
         <div
           ref={topicRef}
           /* A best's plaque below takes its room from this card's free
@@ -2179,7 +2199,7 @@ function RepScreen() {
                      review: at 440 with the recorder's 26px and a 112px
                      object it was 260px of blank colour). */
                   ready ? "max-h-[480px]" : "max-h-[300px]"
-                } min-h-[168px] flex-1 flex-col [@media(max-height:600px)]:min-h-0 ${game ? "[@media(max-height:700px)]:mt-2" : ""}`
+                } min-h-[168px] flex-1 flex-col max-[359px]:mt-2 max-[359px]:min-h-0 [@media(max-height:600px)]:min-h-0 ${game ? "[@media(max-height:700px)]:mt-2" : ""}`
               : "mt-4"
           }
         >
@@ -2202,7 +2222,7 @@ function RepScreen() {
       )}
 
       {phase === "idle" && (
-        <div className={`mt-6 ${game ? "[@media(max-height:700px)]:mt-4" : ""}`}>
+        <div className={`mt-6 max-[359px]:mt-4 ${game ? "[@media(max-height:700px)]:mt-4" : ""}`}>
           {/* recording-15: the instruction over the three tactics, a clear
               step above their 14px labels rather than a fourth label. */}
           {!ready && <h2 className="font-display text-lead font-bold">{doLine}</h2>}
@@ -2230,7 +2250,7 @@ function RepScreen() {
             <TipStrip
               tips={config.tips}
               label={null}
-              className={`mt-3 ${game ? "[@media(max-height:700px)]:mt-2" : ""}`}
+              className={`mt-3 max-[359px]:mt-2 ${game ? "[@media(max-height:700px)]:mt-2" : ""}`}
             />
           )}
         </div>
@@ -2311,6 +2331,10 @@ function RepScreen() {
             <TipStrip tips={config.tips} label={null} className="mt-3" />
 
             <textarea
+              /* Named for a screen reader and for dictation: the hint in
+                 it is gone at the first letter typed (#446). */
+              aria-label="Notes"
+              name="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
@@ -2325,9 +2349,12 @@ function RepScreen() {
 
         {phase === "recording" && (
           <div className="arrive flex w-full flex-col items-center gap-6 [@media(max-height:700px)]:gap-3">
+            {/* The last ten seconds warn in rust, the colour every warning
+                and error wears. Terracotta is the tap's (#448): a clock
+                in it borrowed the one colour that means "press this". */}
             <div
               className={`font-display text-num-hero tabular-nums transition-colors ${
-                config.maxSeconds - seconds <= 10 ? "text-terracotta-700" : ""
+                config.maxSeconds - seconds <= 10 ? "text-rust" : ""
               }`}
             >
               <span ref={clockRef} className="inline-block">
@@ -2387,6 +2414,7 @@ function RepScreen() {
             attempt={attempt}
             fact={scoringFact}
             cutIns={waitTicks({ gameId, cutIns: waitNow?.cutIns ?? [] })}
+            leave={{ href: backHref, label: backLabel(backHref) }}
           />
         )}
 
@@ -2466,8 +2494,11 @@ function RepScreen() {
           /* D51: he listens in the column, scaled to the room. Under
              600pt tall there is no room for him and Stop and Start over
              (#407) together, so he steps out there and the two taps
-             stay on the first screen (#412). */
-          <div className="w-[clamp(120px,18vh,160px)] [@media(max-height:600px)]:hidden">
+             stay on the first screen (#412). Under 360 wide (a followed
+             text size, #451) the topic over him runs a line deeper, so
+             he takes a smaller share of the height and Stop's ring
+             stays whole on the first screen. */
+          <div className="w-[clamp(120px,18vh,160px)] max-[359px]:w-[clamp(96px,14vh,160px)] [@media(max-height:600px)]:hidden">
             <DemosHears level={meterLevel} size={160} fluid speaking={cutIn} />
           </div>
         )}
@@ -2521,7 +2552,7 @@ function RepScreen() {
           ) : (
             <ErrorState
               className="w-full"
-              title="That recording didn't score."
+              title="That recording didn't score"
               body={error ?? "The scoring server didn't answer."}
               onRetry={
                 pendingRef.current
@@ -2586,21 +2617,26 @@ function RepScreen() {
                     ? () => setPaywall({ reason: game.name })
                     : () => begin()
               }
-              aria-label={
-                phase === "recording"
-                  ? "Stop and score this recording"
-                  : "Start recording"
-              }
+              /* Named by the word on it while it waits (#448): "Record"
+                 is what a person sees, so it is what a voice asks for
+                 ("Tap Record") and what a screen reader says. "Start
+                 recording" was a name nobody could see. Stop keeps its
+                 longer one, which starts with the word shown. */
+              aria-label={phase === "recording" ? "Stop and score this recording" : undefined}
+              /* The cameras' hook, so no gate depends on the wording. */
+              data-record={phase === "recording" ? "stop" : "start"}
               /* A locked game's Record opens the plum sheet, as a
                  Practice tile marks the same door (finding 16). */
               aria-haspopup={phase !== "recording" && locked && game ? "dialog" : undefined}
               className={`press font-display elev-3 relative h-24 w-24 rounded-full text-body font-bold transition-colors dur-base ${
                 phase === "recording"
                   ? "bg-terracotta-600 text-cream"
-                  : "rec-wait bg-terracotta-500 text-on-accent"
+                  : "rec-wait tap"
               }`}
             >
               {phase === "recording" ? "Stop" : "Record"}
+              {/* An iPhone's tick under the tap, start and stop (#449). */}
+              <TapTick />
             </button>
             {/* The way out of a take started by mistake (#407): quiet,
                 beside Stop so the screen's one tap stays Stop. Not under
@@ -2660,7 +2696,7 @@ function RepScreen() {
           <button
             onClick={() => void startRep()}
             /* The think time's one tap: Record is not on this screen, so
-               the start is the terracotta (PRINCIPLES 2). */
+               the start is the screen's one tap (PRINCIPLES 2). */
             className={PRIMARY}
           >
             I&apos;m ready
@@ -2840,6 +2876,23 @@ function Results({
    * the score carries it then (lib/tester.ts withPending).
    */
   const [askingFelt, setAskingFelt] = useState(() => match);
+  /*
+   * What a screen reader is told when the result lands (#448). Stop,
+   * the control that held the focus, is gone by then, and with no
+   * streak moment to hand the focus on (any take after the day's first)
+   * it fell to the page and the result arrived in silence. The focus
+   * goes to the results' name, and the name carries the number once the
+   * number is on screen: never while "How did that feel?" is still
+   * being asked, which comes before the score.
+   */
+  const head = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    head.current?.focus({ preventScroll: true });
+  }, []);
+  const heardScore =
+    !askingFelt && result.scorable !== false && result.ethosIndex !== null
+      ? `Your Ethos, ${result.ethosIndex} of 1000.`
+      : "";
   /* The door's sheet, "The whole recording", over the glance. */
   const [sheetOpen, setSheetOpen] = useState(false);
   const stopTake = take.pause;
@@ -3332,7 +3385,7 @@ function Results({
   const upgradeRead = () =>
     onUpgrade({
       reason: "The judged read · 1 a day free",
-      headline: "Keep the coaching coming.",
+      headline: "Keep the coaching coming",
     });
   const cappedNote = cappedLine ? (
     daysSpoken >= PRO_MOMENT_DAYS ? (
@@ -3414,7 +3467,7 @@ function Results({
           onUpgrade={() =>
             onUpgrade({
               reason: "Delivery readout · premium",
-              headline: "See what the camera measured.",
+              headline: "See what the camera measured",
             })
           }
         />
@@ -3437,12 +3490,19 @@ function Results({
    * The one way forward (M07, #273, #194, #220), live from the glance's
    * first frame, and the same tap at the sheet's foot. Buttons, not
    * Links: the exits go through exit(), which may route via a wall first.
+   *
+   * It wears the arrow (#459, Timothy: "10 for feedback"): this is the
+   * tap that moves you on, so its words start at the left and the
+   * arrow stands at its right end.
    */
   const primary = (where: "shelf" | "sheet") => {
     const mark = where === "shelf" ? { "data-step-action": "" } : {};
     return (
-      <button {...mark} onClick={retakeFirst ? onRetake : wayOn.go} className={PRIMARY}>
-        {primaryLabel}
+      <button {...mark} onClick={retakeFirst ? onRetake : wayOn.go} className={ACTION_ARROW_CLASS}>
+        {/* 4px over and under, for the two longest lesson names at 320,
+            which take two lines: one line is still the 48px pill. */}
+        <span className="min-w-0 py-1 text-balance">{primaryLabel}</span>
+        <TapArrow />
       </button>
     );
   };
@@ -3474,8 +3534,9 @@ function Results({
         {/* M07, recording-10: what was practised, the page's h1 for a
             screen reader, and the header's back for everyone (#427), at
             BackLink's geometry; the coin it earned on the right. */}
-        <h1 tabIndex={-1} data-results-head className="sr-only">
+        <h1 ref={head} tabIndex={-1} data-results-head className="sr-only">
           {practised}
+          {heardScore && `. ${heardScore}`}
         </h1>
         <div className="flex min-h-11 items-center justify-between gap-3">
           {askingFelt ? (
@@ -3584,7 +3645,7 @@ function Results({
 
         <FooterShelf className={askingFelt ? "" : "pt-3"}>
           {askingFelt ? (
-            /* Skippable: the score is one quiet tap away, never a terracotta
+            /* Skippable: the score is one quiet tap away, never a filled
                one (the question is the step, and it is grey). */
             <div className="flex min-h-12 items-center justify-center">
               <button

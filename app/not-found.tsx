@@ -13,7 +13,7 @@ export default function NotFound() {
         height={140}
         className="demos w-[140px]"
       />
-      <h1 className="font-display mt-5 text-title">Nothing here.</h1>
+      <h1 className="font-display mt-5 text-title">Nothing here</h1>
       <p className="mt-2 max-w-[280px] text-body leading-relaxed text-stone-500">
         Demos checked. Twice.
       </p>

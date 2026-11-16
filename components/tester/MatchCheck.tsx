@@ -28,7 +28,7 @@ type Status = "idle" | "saving" | "saved" | "failed";
  * screen never mounts this.
  *
  * It is the screen's quiet second thing, never its tap: the neutral
- * segmented control (no terracotta, no lift), one tap to answer, and the
+ * segmented control (no fill, no lift), one tap to answer, and the
  * answer can change. Too low and Too high open a note, optional, saved
  * with its own secondary button or when the field is left. Every save
  * upserts the recording's row on its outbox key, so the last answer

@@ -14,7 +14,7 @@
  *
  * Shots: LOOK_OUT (default docs/look/comeback-reminders/), as
  * <tag>-<scene>-<theme>.png at 390x844; LOOK_SIZES as in look-glance.mjs.
- * On the glance it asserts no scroll, exactly one terracotta fill, and the
+ * On the glance it asserts no scroll, exactly one filled tap (`.tap`), and the
  * ask's own words within GLANCE_WORDS_ASK (16).
  */
 import { createRequire } from "node:module";
@@ -150,7 +150,7 @@ const MEASURE = () => {
     askWords: ask ? words(seen) : 0,
     scrollH: document.scrollingElement.scrollHeight,
     innerH: innerHeight,
-    terracotta: [...document.querySelectorAll('main [class*="bg-terracotta-500"]')].filter(vis).length,
+    taps: [...document.querySelectorAll("main :is(.tap, .tap-tonal)")].filter(vis).length,
   };
 };
 
@@ -205,9 +205,9 @@ for (const [name, s] of Object.entries(SCENES)) {
       await page.waitForSelector("main .arrive", { timeout: 30000 });
       await sleep(800);
       await page.locator('main a[href^="/rep"], main button:has-text("Start")').first().click();
-      await page.waitForSelector('button[aria-label="Start recording"]', { timeout: 30000 });
+      await page.waitForSelector('button[data-record="start"]', { timeout: 30000 });
       await sleep(900);
-      await page.click('button[aria-label="Start recording"]', { force: true });
+      await page.click('button[data-record="start"]', { force: true });
       await page.waitForSelector('button[aria-label="Stop and score this recording"]', { timeout: 20000 });
       await sleep(3000);
       await page.click('button[aria-label="Stop and score this recording"]', { force: true });
@@ -231,10 +231,10 @@ for (const [name, s] of Object.entries(SCENES)) {
       }
       const m = await page.evaluate(MEASURE);
       await page.screenshot({ path: file });
-      console.log(`${name} ${size.name}: ${m.ask ? `"${m.ask}" (${m.askWords} words)` : "no ask"}, ${m.terracotta} terracotta, ${m.scrollH > m.innerH + 1 ? `SCROLLS ${m.scrollH}/${m.innerH}` : "no scroll"}`);
+      console.log(`${name} ${size.name}: ${m.ask ? `"${m.ask}" (${m.askWords} words)` : "no ask"}, ${m.taps} filled tap(s), ${m.scrollH > m.innerH + 1 ? `SCROLLS ${m.scrollH}/${m.innerH}` : "no scroll"}`);
       if (TAG !== "before") {
         if (m.scrollH > m.innerH + 1) fail(`${name} ${size.name}: the glance scrolls`);
-        if (m.terracotta !== 1) fail(`${name} ${size.name}: ${m.terracotta} terracotta fills`);
+        if (m.taps !== 1) fail(`${name} ${size.name}: ${m.taps} filled taps`);
         if (m.askWords > 16) fail(`${name} ${size.name}: the ask says ${m.askWords} words`);
         const want = {
           "glance-armed": false,
@@ -264,10 +264,11 @@ for (const [name, s] of Object.entries(SCENES)) {
         } else if (TAG !== "before") fail(`${name} ${size.name}: no Send a test row`);
       }
       if (name === "settings-failed") {
-        // A re-arm that fails: the hour changes, the server answers 502.
-        const h = page.getByRole("radio").nth(5);
+        // A re-arm that fails: the hour changes (the Time row's picker,
+        // #446), the server answers 502.
+        const h = page.locator("main select[data-reminder-hour]");
         if (await h.count()) {
-          await h.click();
+          await h.selectOption("21");
           await sleep(1500);
         }
       }

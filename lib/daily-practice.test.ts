@@ -93,7 +93,7 @@ describe("a spun topic", () => {
     for (const t of TOPICS) {
       const c = resolveRepConfig({ topic: t.id });
       const { heading } = recordingText(c);
-      expect(heading).toBe("Sixty to ninety seconds.");
+      expect(heading).toBe("Sixty to ninety seconds");
       expect(`${c.unit} ${c.title} ${c.prompt}`).not.toMatch(/didn.t pick/i);
       // The shape the roulette's chip named, and its tips.
       expect(c.unit).toMatch(/^Roulette · /);

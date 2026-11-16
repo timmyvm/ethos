@@ -336,10 +336,11 @@ export function TopicCard({
          376): the eyebrow at the top, the topic at the foot, and the
          idle screen's free height in the card rather than over it. The
          recording screen's column gives it that height, 168 to 300.
-         Under 600pt tall (320x568) it is as tall as its words, so
-         Record rises into view (F12). */
+         Under 600pt tall (320x568), and under 360 wide (a followed
+         text size, #451), it may be as short as its words, so Record
+         rises into view (F12). */
       className={`family-fill vt-shared flex flex-col p-5 ${
-        compact ? "" : "min-h-[168px] flex-1 justify-between pb-6 [@media(max-height:600px)]:min-h-0"
+        compact ? "" : "min-h-[168px] flex-1 justify-between pb-6 max-[359px]:min-h-0 [@media(max-height:600px)]:min-h-0"
       }`}
     >
       {art && (
@@ -405,7 +406,7 @@ export function TopicCard({
             ? "mt-1.5 text-lead font-bold leading-snug"
             : display
               ? "home-display mt-2"
-              : "mt-2 text-title font-extrabold leading-[1.18]"
+              : "topic-rest mt-2 text-title font-extrabold leading-[1.18]"
         }`}
       >
         <span

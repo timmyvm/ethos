@@ -1,7 +1,9 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { afterSplash, browserSplashEnv } from "@/lib/after-splash";
+import { countedBefore, rememberCounted } from "@/lib/counted";
 import { DURATION } from "@/lib/motion";
 import { prefersReducedMotion } from "@/lib/prefs";
 
@@ -17,6 +19,10 @@ import { prefersReducedMotion } from "@/lib/prefs";
  * On a cold open it holds at its start until the splash has left
  * (lib/after-splash.ts, E60), so the climb is seen rather than spent
  * under the splash.
+ * On a tab, a number counts once per visit (#467): coming back to the
+ * tab (a swipe, a tap on the bar) shows it where it landed, and only a
+ * number that changed since counts again. A recording's result is not a
+ * tab, so its score counts every time it is earned.
  * The default length is the celebration ceiling (DESIGN-RULES, motion):
  * the score landing is the rep-complete moment, and nothing else in
  * the product may take this long.
@@ -41,12 +47,16 @@ export function CountUp({
 }) {
   const [shown, setShown] = useState(value);
   const raf = useRef(0);
+  /* The tab and the number: React's ids are new on every client mount,
+     so a place on the page cannot be told apart from one mount to the next. */
+  const place = `${usePathname()}#${value}`;
 
   useEffect(() => {
-    if (prefersReducedMotion()) {
+    if (prefersReducedMotion() || countedBefore(place, value)) {
       setShown(value);
       return;
     }
+    rememberCounted(place, value);
     // Start low enough to feel like a climb without a silly long count.
     const from = Math.max(0, value * 0.82);
     let start = 0;
@@ -69,7 +79,7 @@ export function CountUp({
       cancel();
       cancelAnimationFrame(raf.current);
     };
-  }, [value, durationMs]);
+  }, [value, durationMs, place]);
 
   return <span className={className}>{format(shown)}</span>;
 }

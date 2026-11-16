@@ -4,6 +4,7 @@
  * alongside the recording so metrics can be recomputed as the engine tunes.
  */
 
+import "server-only";
 import type { Segment, Word } from "./metrics";
 
 /**

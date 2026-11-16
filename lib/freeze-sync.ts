@@ -16,6 +16,7 @@ import {
   purchasedFreezes,
   spendFreezes,
 } from "./client-data";
+import { FREEZES_KEY, held, heldMark, hold, once } from "./held";
 import { outboxAll, ownedBy } from "./rep-outbox";
 import { currentSession } from "./supabase-browser";
 import {
@@ -52,10 +53,23 @@ export interface FreezeSync {
   rescued: Date[];
 }
 
-export async function syncFreezes(
+/**
+ * The streak as the last sync left it this visit (lib/held.ts, #433), so
+ * a screen that shows it opens on the frozen-aware number rather than
+ * the bare count and a correction. A rescue is the news of the load
+ * that made it, so what is held never carries one.
+ */
+export const heldFreezes = (): FreezeSync | null => held<FreezeSync>(FREEZES_KEY) ?? null;
+
+export function syncFreezes(repDates: Date[], now = new Date()): Promise<FreezeSync> {
+  return once(FREEZES_KEY, () => runFreezeSync(repDates, now));
+}
+
+async function runFreezeSync(
   repDates: Date[],
-  now = new Date()
+  now: Date
 ): Promise<FreezeSync> {
+  const mark = heldMark();
   // A failed read rejects, before anything is written: missing rows must
   // not look like "nothing spent yet" (a rescue paid twice) or "none
   // bought" (a lower count), and the caller draws the failure (#147).
@@ -97,5 +111,6 @@ export async function syncFreezes(
     await grantFreezes(mirror).catch(() => 0);
   }
 
+  hold(FREEZES_KEY, { streak, frozenDays, equipped, rescued: [] }, mark);
   return { streak, frozenDays, equipped, rescued };
 }

@@ -31,6 +31,8 @@ import {
 import { neutralAudioName } from "@/lib/audio-name";
 import { localDate, meter } from "@/lib/metering";
 import {
+  GUEST_CEILING,
+  GUEST_FULL_COPY,
   clientIp,
   consumeRateLimit,
   limitMessage,
@@ -136,15 +138,49 @@ interface Spend {
   guestIp?: string | null;
   /** The slot stays spent. */
   keep: boolean;
+  /**
+   * Whisper answered, so the call cost money (security audit, 11 Nov).
+   * A paid call that ends with nothing stored still gets its slot back,
+   * as #409 asks, but only `refund` times an hour: without that ceiling
+   * a script could send takes built to be thrown away (sped-up speech,
+   * a save made to fail, one clientId sent twenty times at once) and
+   * transcribe without end.
+   */
+  paid?: boolean;
+  /**
+   * A guest's or a visitor's slot under the ceiling they all share
+   * (`guestall`, lib/rate-limit.ts). It comes back only when nothing
+   * paid ran: the ceiling is the one count a thousand addresses cannot
+   * get round, so a paid call stays counted whatever came of it.
+   */
+  ceiling?: string | null;
 }
+
+/** Give the slot back, unless this subject's paid give-backs are used up. */
+async function settle(spend: Spend) {
+  if (!spend.subject || spend.keep) return;
+  if (spend.paid) {
+    const room = await consumeRateLimit(`refund:${spend.subject}`, "refund");
+    if (!room.allowed) return;
+  } else if (spend.ceiling) {
+    await refundRateLimit(spend.ceiling);
+  }
+  await refundRateLimit(spend.subject);
+  if (spend.guestIp) await refundRateLimit(spend.guestIp);
+}
+
+/** A form field as text: a File sent under a text field's name is nothing. */
+const field = (form: FormData, name: string): string | null => {
+  const v = form.get(name);
+  return typeof v === "string" ? v : null;
+};
 
 export async function POST(req: NextRequest) {
   const spend: Spend = { subject: null, keep: false };
   try {
     return await handle(req, spend, Date.now());
   } finally {
-    if (spend.subject && !spend.keep) await refundRateLimit(spend.subject);
-    if (spend.guestIp && !spend.keep) await refundRateLimit(spend.guestIp);
+    await settle(spend);
   }
 }
 
@@ -251,6 +287,21 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
     spend.guestIp = guestIp;
   }
 
+  /* And every guest and visitor, wherever they come from, shares one
+     ceiling (11 Nov): an address is cheap to change, so the rooms above
+     put no end on what scripted guests could spend. Accounts never
+     count, and a full ceiling says how to go on. */
+  if (!auth || auth.anonymous) {
+    const all = await consumeRateLimit(GUEST_CEILING, "guestall");
+    if (!all.allowed) {
+      return NextResponse.json(
+        { error: GUEST_FULL_COPY, rateLimited: true, guestFull: true, retryAfterS: all.retryAfterS },
+        { status: 429, headers: { "Retry-After": String(all.retryAfterS) } }
+      );
+    }
+    spend.ceiling = GUEST_CEILING;
+  }
+
   // The client sends what it *ran*; the multiplier is recomputed here
   // from the mods this account is actually entitled to. A hand-edited
   // URL or a forged form field can change the difficulty of your rep,
@@ -259,9 +310,9 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
   // Premium game's round is not refused on it (below).
   const premiumRead = await isPremium(userId).catch(() => null);
   const premium = premiumRead === true;
-  const extras = parseMods(form.get("mods") as string | null, { premium });
+  const extras = parseMods(field(form, "mods"), { premium });
   const bossTopic =
-    COLD_TOPICS.find((t) => t.id === (form.get("bossTopicId") as string)) ??
+    COLD_TOPICS.find((t) => t.id === field(form, "bossTopicId")) ??
     null;
   const mode: "daily" | "boss" = bossTopic ? "boss" : "daily";
   /* The boss runs no mods (the games plan, item 16): the week's
@@ -269,7 +320,11 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
      multiplier waits for the words: only a scored take pays the boss's. */
   let mods = bossTopic ? [] : extras;
   let multiplier = xpMultiplier(mods);
-  const lessonId = (form.get("lessonId") as string) || undefined;
+  // Stored as it arrives, so it is held to an id's shape: a control
+  // character here made the save fail after Whisper had been paid for.
+  const rawLesson = field(form, "lessonId");
+  const lessonId =
+    rawLesson && /^[\w:./-]{1,120}$/.test(rawLesson) ? rawLesson : undefined;
   /*
    * A game round (the games plan, items 3 and 10). The phone says what it
    * ran (`round`: the level, when Demos cut in, who stopped it); the round
@@ -291,7 +346,7 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
   // nothing else: not the Ethos Index, not stars, not XP, not the
   // league. A forged Presence lies only to the person who forged it.
   const { delivery, deliveryMoments } = parseDelivery(
-    form.get("delivery") as string | null
+    field(form, "delivery")
   );
 
   let transcription;
@@ -299,6 +354,7 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
     transcription = await transcribe(audio, filename);
   } catch (e) {
     const message = e instanceof Error ? e.message : "Transcription failed.";
+    console.error("analyze transcription failed", message);
     const unconfigured = message.includes("OPENAI_API_KEY");
     // Whisper's own verdict on the FILE (it can't decode it, it's too
     // big, the type is wrong) is final: a resend gets the same answer,
@@ -312,7 +368,9 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
     // times, so keeping those locked every tester out for the hour.
     spend.keep = undecodable;
     return NextResponse.json(
-      { error: message },
+      // The upstream's own words stay in the log, never in the answer.
+      // Upload shows this line as it is (lib/upload.ts uploadFailure).
+      { error: undecodable ? "The audio couldn't be read." : "Transcription failed. Nothing was lost; try again." },
       { status: unconfigured ? 503 : undecodable ? 422 : 502 }
     );
   }
@@ -323,6 +381,7 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
    * speech over silence). Nothing is stored, the slot goes back, and the
    * phone says to check the mic. 422, so the outbox lets it go.
    */
+  spend.paid = true;
   if (unheard(transcription.durationS, transcription.words.length)) {
     return NextResponse.json({ error: UNHEARD_COPY, unheard: true }, { status: 422 });
   }
@@ -345,7 +404,7 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
   // (lib/envelope.ts). The pauses are judged only on one the phone
   // sampled on the take's clock (`pauseEnvelope`): an unmarked one,
   // refitted or not, judges none.
-  const sent = parseEnvelope(form.get("envelope") as string | null);
+  const sent = parseEnvelope(field(form, "envelope"));
   const envelope = fitEnvelopeRate(sent, transcription.durationS);
   const pauses = pauseReport({
     pauses: metrics.pauses,
@@ -491,7 +550,16 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
     : [null, null];
 
   let repId: string | null = null;
-  try {
+  /*
+   * A take sent with no session has no owner. No screen could show it
+   * again, no account removal could reach it, and the phone already
+   * counts it as never stored (lib/rep-outbox.ts, `settled`), so a voice
+   * kept here was kept for nobody: five from August were, the only ones
+   * ever (security audit, 11 Nov). It is scored, answered and let go,
+   * and its slot stays spent, since nothing will be stored to keep it.
+   */
+  if (!userId) spend.keep = true;
+  else try {
     const saved = await saveRep({
       audio,
       filename,
@@ -502,7 +570,7 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
       coach,
       ethosIndex: index,
       whisperRaw: transcription.raw,
-      userId: userId ?? undefined,
+      userId,
       lessonId,
       mode,
       mods: modIds(mods),
@@ -570,7 +638,11 @@ function parseDelivery(raw: string | null): {
   delivery: DeliveryMetrics | null;
   deliveryMoments: DeliveryMoment[];
 } {
-  if (!raw) return { delivery: null, deliveryMoments: [] };
+  // Five numbers and at most forty moments fit in far less than this, and
+  // a NUL (plain or escaped) would make the save fail after Whisper ran.
+  if (!raw || raw.length > 20_000 || raw.includes("\u0000") || raw.includes("\\u0000")) {
+    return { delivery: null, deliveryMoments: [] };
+  }
   try {
     const parsed = JSON.parse(raw) as {
       metrics?: Partial<DeliveryMetrics>;

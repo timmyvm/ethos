@@ -138,9 +138,9 @@ async function shootTheme(theme) {
   // ---- Walk to the transcript, behind the results' door --------------------
   savedWordsMode.rows = [];
   await page.goto(`${BASE}/rep?lesson=h4`);
-  await page.waitForSelector('button[aria-label="Start recording"]', { timeout: 30000 });
+  await page.waitForSelector('button[data-record="start"]', { timeout: 30000 });
   await sleep(800);
-  await page.click('button[aria-label="Start recording"]', { force: true });
+  await page.click('button[data-record="start"]', { force: true });
   await page.waitForSelector('button[aria-label="Stop and score this recording"]');
   await sleep(2600);
   await page.click('button[aria-label="Stop and score this recording"]', { force: true });
@@ -193,7 +193,7 @@ async function shootTheme(theme) {
   await sheet("sheet-keep", '.tw[data-word-key="dollar"]');
   await sheet("sheet-swap", '.tw[data-word-key="really"]');
   await sheet("sheet-word", '.tw[data-word-key="thing"]');
-  await sheet("sheet-loading", '.tw[data-word-key="corporations"]', { before: () => (api.mode = "slow"), settle: 300 });
+  await sheet("sheet-loading", '.tw[data-word-key="corporations"]', { before: () => (api.mode = "slow"), settle: 700 }); // past the skeleton's wait (#434)
 
   // ---- The answer landing, as a strip --------------------------------------
   const strip = (name, selector, nth = 0) =>

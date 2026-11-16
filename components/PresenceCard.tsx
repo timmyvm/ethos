@@ -5,6 +5,7 @@ import { CountUp } from "@/components/CountUp";
 import { PremiumMark } from "@/components/PremiumMark";
 import { Disclosure } from "@/components/ui/Disclosure";
 import type { DeliveryMetrics, DeliveryMoment } from "@/lib/presence";
+import { TrendMark } from "@/components/ui/TrendMark";
 
 /**
  * Presence on the results screen (decisions 11 Aug, §1–§2).
@@ -76,7 +77,7 @@ export function PresenceScore({
               delta > 0 ? "text-sage-700" : "text-stone-500"
             }`}
           >
-            {delta > 0 ? "▲" : "▼"} {Math.abs(delta)} since last video
+            <TrendMark up={delta > 0} /> {Math.abs(delta)} since last video
           </div>
         )}
       </div>

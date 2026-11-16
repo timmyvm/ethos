@@ -36,8 +36,8 @@ export const DRILLS: Drill[] = [
     prompt: "Introduce yourself and what you're building. Sixty seconds, no notes.",
     tips: [
       "Decide your first sentence before you start.",
-      "Most fillers land in the first five seconds.",
-      "One idea per sentence. Long ones run out of road.",
+      "Start slow. Most ums come in the first five seconds.",
+      "One idea per sentence. End it where you'd add \"and\".",
     ],
   },
   {
@@ -46,9 +46,9 @@ export const DRILLS: Drill[] = [
     title: "Kill ‘like’",
     prompt: "Explain your favorite app to someone who's never used a phone.",
     tips: [
-      "\"Like\" holds the place of a comparison you haven't found. Stop, find it, say it.",
-      "Feel one coming? Close your mouth. A closed mouth cannot say \"like\".",
-      "Explaining to a beginner forces concrete nouns, and concrete nouns need no filler.",
+      "Instead of \"it's, like, fast\", say \"it opens in a second\".",
+      "Feel a \"like\" coming? Close your mouth.",
+      "Name things they can picture: \"the blue button\", not \"the feature\".",
     ],
   },
   {
@@ -57,9 +57,9 @@ export const DRILLS: Drill[] = [
     title: "Silence beats ‘um’",
     prompt: "Describe your morning routine. Pause wherever you'd say a filler.",
     tips: [
-      "Silence INSTEAD of the \"um\", not either side of it.",
-      "A one-second gap feels like ten inside and like composure outside.",
-      "Caught mid-\"um\"? Finish it and keep going. Restarting costs more.",
+      "Where you'd say \"um\", stay silent instead.",
+      "Pause for one full second. It feels long, but it sounds calm.",
+      "Said \"um\" anyway? Keep going. Starting over costs more.",
     ],
   },
   {
@@ -68,9 +68,9 @@ export const DRILLS: Drill[] = [
     title: "The clean minute",
     prompt: "Describe the last thing you made. 60 seconds, zero fillers.",
     tips: [
-      "Slow the sentence down instead of filling it.",
-      "Fillers cluster at transitions. Know your next point before you finish this one.",
-      "Under 3 a minute is three stars.",
+      "Need a moment? Slow down instead of saying \"um\".",
+      "Know your next point before this one ends. Most ums come in between.",
+      "Keep ums and restarts under 3 a minute to get every star.",
     ],
   },
   {
@@ -79,9 +79,9 @@ export const DRILLS: Drill[] = [
     title: "The 140 zone",
     prompt: "Tell the story of how you learned to code, at a walking pace.",
     tips: [
-      "130 to 160 words a minute is the zone.",
-      "Pace comes from breathing. Full breath at every full stop.",
-      "Steady is not monotone. Speed through the setup, slow on the point.",
+      "Aim for 130 to 160 words a minute, the speed of a calm chat.",
+      "Take a full breath at the end of each sentence. It keeps you from rushing.",
+      "Go quicker through the background, slower on the part that matters.",
     ],
   },
   {
@@ -90,9 +90,9 @@ export const DRILLS: Drill[] = [
     title: "Slow is smooth",
     prompt: "Explain compound interest to a 10-year-old, slower than feels natural.",
     tips: [
-      "Say the hard number slower than the words around it.",
-      "Explaining to a child bans jargon, and jargon is where rushing starts.",
-      "Rushing? Finish the sentence before you correct.",
+      "Say every number slower than the words around it.",
+      "Use words a 10-year-old knows. Big words make you rush.",
+      "Tripped on a word? Finish the sentence, then fix it.",
     ],
   },
   {
@@ -101,9 +101,9 @@ export const DRILLS: Drill[] = [
     title: "Move the pace",
     prompt: "Describe a game that came down to the end. Rise with the action, land slow.",
     tips: [
-      "The score rewards pace that moves. Speed the build-up, brake for the moment.",
-      "Change pace at sentence joints. A swerve mid-sentence reads as a stumble.",
-      "End at walking pace. The last sentence sets the whole feel.",
+      "Speed up as the action builds. Slow right down for the big moment.",
+      "Change speed between sentences. Changing mid-sentence sounds like a stumble.",
+      "Say the last sentence slowly. It's the one people remember.",
     ],
   },
   {
@@ -112,9 +112,9 @@ export const DRILLS: Drill[] = [
     title: "The steady state",
     prompt: "Explain how something everyday works: a coffee machine, a traffic light. Hold 130 to 160 wpm.",
     tips: [
-      "130 to 160 is the zone the score pays.",
-      "Breathe at the full stops. Pace is air, not willpower.",
-      "Rushing? Finish, pause, resume. The pause scores better than the sprint.",
+      "Talk at calm chat speed, about 130 to 160 words a minute.",
+      "Breathe at the end of each sentence. The breath slows you down.",
+      "Too fast? Finish the sentence and pause, then carry on.",
     ],
   },
   {
@@ -123,9 +123,9 @@ export const DRILLS: Drill[] = [
     title: "Hold one second",
     prompt: "Argue for your most controversial food opinion. One full second before each new point.",
     tips: [
-      "The pause goes at the joint: after a point, before the next.",
-      "One to two seconds. Under one is a breath, past three and a half is lost.",
-      "Finish the point first. Half a thought has nothing to land.",
+      "Pause after you make a point, before you start the next.",
+      "Stay quiet for 1 to 2 seconds. Past 3.5 seconds you sound stuck.",
+      "Don't pause mid-sentence. It sounds like you're searching for a word.",
     ],
   },
   {
@@ -135,8 +135,8 @@ export const DRILLS: Drill[] = [
     prompt: "Pitch what you're building in 45 seconds. End on a sentence, then hold the silence.",
     tips: [
       "Know your last sentence before you start.",
-      "Stop on the full stop. The silence is the summary.",
-      "A held pause in the last fifth scores on its own.",
+      "After your last sentence, stop talking and let the silence sit.",
+      "Pause right before your last sentence. It earns its own points.",
     ],
   },
   {
@@ -145,9 +145,9 @@ export const DRILLS: Drill[] = [
     title: "Open with silence",
     prompt: "Hold one full second of silence, then answer: what's a rule you live by?",
     tips: [
-      "A pause before your first word scores as composure.",
-      "One second. Count it. From outside it reads as weighing your words.",
-      "Decide sentence one during the silence, then say it whole.",
+      "Pause before your first word. It sounds calm and it scores.",
+      "Count one second in your head. It sounds like you're choosing your words.",
+      "While you pause, pick your first sentence. Then say it in one go.",
     ],
   },
   {
@@ -156,9 +156,9 @@ export const DRILLS: Drill[] = [
     title: "Punctuate with silence",
     prompt: "Argue that one everyday habit is underrated. Full stop, one beat, next sentence.",
     tips: [
-      "The beat goes after the full stop, before the next idea.",
-      "One to two seconds reads as command. Past three and a half it costs.",
-      "Don't fill it. A pause with an \"um\" leaning on it earns nothing.",
+      "Pause at the end of each sentence, before the next idea.",
+      "Pause for 1 to 2 seconds. Going past 3.5 seconds costs points.",
+      "Don't say \"um\" right before or after a pause, or the pause won't score.",
     ],
   },
   {
@@ -167,9 +167,9 @@ export const DRILLS: Drill[] = [
     title: "Conclusion first",
     prompt: "Your best decision of the last year. Verdict in sentence one, then defend it.",
     tips: [
-      "Open with the claim, not the run-up.",
-      "Everything after sentence one is evidence. Cut what isn't.",
-      "Restate the claim in different words to land it.",
+      "Say your answer in the first sentence.",
+      "After your answer, only give reasons for it.",
+      "End by saying your answer again, in new words.",
     ],
   },
   {
@@ -179,7 +179,7 @@ export const DRILLS: Drill[] = [
     prompt: "Why does your favourite hobby deserve more respect? Three reasons, numbers out loud.",
     tips: [
       "\"First, second, third.\" The listener always knows where they are.",
-      "Three strongest, not three fastest. A weak third costs more than no third.",
+      "Use your three best reasons. If the third is weak, stop at two.",
       "Spend the last ten seconds on the best point, not a summary.",
     ],
   },
@@ -187,11 +187,11 @@ export const DRILLS: Drill[] = [
     id: "s3",
     unit: "Structure",
     title: "Signpost it",
-    prompt: "A decision you're weighing: the options, the trade-off, where you're leaning.",
+    prompt: "A decision you're weighing: the options, the catch, where you're leaning.",
     tips: [
-      "Say the map before you walk it: \"two options, one trade-off\".",
-      "\"Because\", \"but\", \"so\". Connectives are what make points ordered.",
-      "Land on the lean. \"I'm leaning X because Y\" beats \"I don't know\".",
+      "Start by saying what's coming: \"Two options, and one catch.\"",
+      "Link your points with \"because\", \"but\" and \"so\".",
+      "End by picking one: \"I'd take the bus, because it's cheaper.\"",
     ],
   },
   {
@@ -200,8 +200,8 @@ export const DRILLS: Drill[] = [
     title: "The story spine",
     prompt: "A time something went wrong and what you did next. Setup, turn, outcome.",
     tips: [
-      "One sentence of setup. Stories die in background detail.",
-      "Name the turn plainly. \"Then it broke\" beats ten sentences of drift.",
+      "Set the scene in one sentence, then get to what happened.",
+      "Say what went wrong in a few words: \"Then it broke.\"",
       "End on what changed, or what you'd do differently.",
     ],
   },
@@ -211,9 +211,9 @@ export const DRILLS: Drill[] = [
     title: "Defend the ending",
     prompt: "Defend an ending people argue about. Make your last sentence quotable.",
     tips: [
-      "Write the last sentence first. The talk is the road to it.",
-      "A held pause before the final sentence scores on its own.",
-      "Stop on the full stop. \"So yeah\" refunds the ending.",
+      "Plan your last sentence first. Everything else leads to it.",
+      "Pause right before your last sentence. That pause earns points.",
+      "Stop after your last sentence. Adding \"so yeah\" undoes it.",
     ],
   },
   {
@@ -222,9 +222,9 @@ export const DRILLS: Drill[] = [
     title: "Half the words",
     prompt: "Explain your job to a stranger in 45 seconds. Every sentence earns its place.",
     tips: [
-      "Decide the one thing they must remember. Everything else auditions.",
-      "Concrete is shorter: \"I ship the paywall\" beats \"I work on monetisation\".",
-      "Finish early if you're done. Padding reads as repetition.",
+      "Pick the one thing they should remember, and only talk about that.",
+      "Say what you actually do: \"I fix bikes\", not \"I'm in maintenance\".",
+      "Said it all early? Stop. Filling the time sounds like repeating yourself.",
     ],
   },
   {
@@ -233,8 +233,8 @@ export const DRILLS: Drill[] = [
     title: "Kill the crutch",
     prompt: "Review the last thing you watched, without \"really\", \"very\", \"good\" or \"thing\".",
     tips: [
-      "The range score counts crutch words. \"Very good\" is an empty slot.",
-      "Crutch coming? Stop and pick the precise word.",
+      "Your Variety score drops when you keep saying \"really\", \"very\" or \"good\".",
+      "About to say \"really good\"? Name what it was instead: \"tense\", \"funny\".",
       "Name specifics: a scene, a line, a number.",
     ],
   },
@@ -244,9 +244,9 @@ export const DRILLS: Drill[] = [
     title: "One idea per sentence",
     prompt: "Why a project of yours succeeded or failed. Short sentences, one idea each.",
     tips: [
-      "\"And, which, but\" is three sentences in a coat. Full stop, breathe, next.",
-      "Short sentences leave nowhere for fillers to hide.",
-      "Every full stop earns a beat of silence.",
+      "Where you'd say \"and\" or \"which\", end the sentence and start a new one.",
+      "Keep sentences short. Ums slip into long ones.",
+      "Pause briefly at the end of every sentence.",
     ],
   },
   {
@@ -256,8 +256,8 @@ export const DRILLS: Drill[] = [
     prompt: "A story you've told before, in half your usual time.",
     tips: [
       "Cut the second example. The first one worked.",
-      "Start inside the story, not at \"so basically\".",
-      "Keep the pause before the punchline. Compression cuts words, never silence.",
+      "Start at the moment something happens, not with \"so basically\".",
+      "Cut words, but keep the pause before the punchline.",
     ],
   },
   {
@@ -266,9 +266,9 @@ export const DRILLS: Drill[] = [
     title: "Define it",
     prompt: "Pin down a word everyone uses and nobody defines: \"authentic\", \"strategy\", \"talent\".",
     tips: [
-      "What it is, what it looks like, what it isn't. Three sentences.",
-      "The example carries it. Use one you saw, with a name or a number in it.",
-      "Watch the hedges. A definition that hedges isn't one.",
+      "Say what it means, give one example, then say what it doesn't mean.",
+      "Give one real example you've seen, with a name or a number.",
+      "Drop \"maybe\" and \"sort of\". Say what it is.",
     ],
   },
   {
@@ -278,7 +278,7 @@ export const DRILLS: Drill[] = [
     prompt: "Argue the other side of an opinion you hold, like you mean it.",
     tips: [
       "Find the other side's best point, not its dumbest.",
-      "No winking. \"Obviously I don't believe this\" is a restart in disguise.",
+      "Argue it like you mean it. Skip \"I don't really believe this\".",
       "Stalling? Describe who believes it and why.",
     ],
   },
@@ -288,9 +288,9 @@ export const DRILLS: Drill[] = [
     title: "No hedges",
     prompt: "What should more people be doing? No \"I guess\", \"maybe\", \"sort of\".",
     tips: [
-      "The engine counts hedges and the Steadiness score reads them.",
-      "Swap \"I think maybe X\" for \"X, because Y\".",
-      "A pause beats a hedge. Silence reads as weighing, hedging reads as retreat.",
+      "Your Steadiness score counts every \"maybe\", \"I guess\" and \"sort of\".",
+      "Say \"Walk more, because it clears your head\", not \"I guess maybe walk more\".",
+      "Unsure? Pause instead of saying \"maybe\". Silence sounds thoughtful.",
     ],
   },
   {
@@ -299,9 +299,9 @@ export const DRILLS: Drill[] = [
     title: "Cold open",
     prompt: "No think time. Your topic is the last object you touched. Go.",
     tips: [
-      "Sentence one: name it, claim one thing. Momentum beats brilliance.",
-      "Running dry? Zoom in: who made it, what it costs, what it replaced.",
-      "Finish the sentence you're in, then aim the next one.",
+      "Name it and give your opinion: \"This mug is too small.\"",
+      "Stuck? Say who made it, what it cost, or what it replaced.",
+      "Finish this sentence before you think about the next.",
     ],
   },
   {
@@ -310,9 +310,9 @@ export const DRILLS: Drill[] = [
     title: "Hold the unpopular corner",
     prompt: "Defend something mundane and unpopular: queues, ads, Mondays.",
     tips: [
-      "Commit early. \"Meetings are underrated\" beats \"meetings maybe aren't bad\".",
-      "One concrete benefit, fully built, beats four asserted ones.",
-      "Humour is allowed, retreat isn't.",
+      "Pick your side in the first sentence: \"Queues are good for us.\"",
+      "One good point, explained fully, beats four you only list.",
+      "Joke if you like, but don't back down.",
     ],
   },
   {
@@ -321,9 +321,9 @@ export const DRILLS: Drill[] = [
     title: "Finish every sentence",
     prompt: "What you'd change about your city. Every sentence you start, you finish.",
     tips: [
-      "A repair drops the thread. One a minute costs a third of that score.",
-      "Sentence going wrong? Land it plainly, correct in the next one.",
-      "Slower start, fewer rebuilds.",
+      "Starting over once a minute costs a third of your Follow-through score.",
+      "Sentence going wrong? Finish it anyway, then fix it in the next one.",
+      "Start a little slower and you'll start over less.",
     ],
   },
 ];

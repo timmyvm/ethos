@@ -70,7 +70,7 @@ const RECENT = [
 /** The last fourteen days, oldest first: true is a day spoken. */
 const DAYS = [true, true, true, false, true, true, true, false, true, true, true, true, true, true];
 
-const TACTIC = "One to two seconds reads as command. Past three and a half it costs you.";
+const TACTIC = "Pause long enough to count to two in your head.";
 
 function greetingFor(hour: number) {
   if (hour >= 5 && hour < 12) return "Morning";

@@ -35,16 +35,16 @@ export const TOPIC_SHAPES: Record<
   opinion: {
     label: "Take a side",
     tips: [
-      "Say your position in the first sentence. Don't warm up to it.",
+      "Say which side you're on in your first sentence.",
       "One reason, one example, then stop.",
-      "Name the strongest objection and answer it in a line.",
+      "Say the best point against you, then answer it in one sentence.",
     ],
   },
   story: {
     label: "Tell it straight",
     tips: [
       "Start in the middle of the action, not the background.",
-      "One scene. Resist covering the whole week.",
+      "Pick one moment and tell just that.",
       "End on what changed, not on 'so yeah'.",
     ],
   },
@@ -52,16 +52,16 @@ export const TOPIC_SHAPES: Record<
     label: "Make it land",
     tips: [
       "Open with what it IS in one sentence.",
-      "One comparison to something they already know.",
+      "Compare it to one thing they already know.",
       "Finish with why it matters to them.",
     ],
   },
   pitch: {
     label: "Sell it",
     tips: [
-      "Problem first, and make it someone's actual problem.",
-      "Your answer in one line a stranger could repeat.",
-      "Close on the single next step.",
+      "Start with the problem, and say who has it.",
+      "Sum up your idea in one line a stranger could repeat.",
+      "End by telling them the one thing to do next.",
     ],
   },
 };

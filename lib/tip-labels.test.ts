@@ -47,22 +47,46 @@ describe("tip faces", () => {
     }
   });
 
-  /* practice-detail-23: "inside" had nothing to be inside of. */
-  it("says whose silence feels longer", () => {
+  /* practice-detail-23: "inside" had nothing to be inside of. The
+     two-second test (#483): "Silence feels longer to you" was a fact,
+     and a reader still did not know what to do, so the face is the move. */
+  it("tells the unit intro's reader what to do with the silence", () => {
     expect(
-      tipFace("The silence always feels longer to you than it does to anyone listening.").label
-    ).toBe("Silence feels longer to you");
+      tipFace("Pause longer than feels right. It sounds shorter to everyone else.").label
+    ).toBe("Pause longer than feels right");
   });
 
   /* recording-15: a length of silence wears the stopwatch, so two
-     Pausing tiles side by side ("Pause after the full stop", "Hold one
-     to two seconds") no longer show one glyph twice, and never Pace's
+     Pausing tiles side by side ("Pause when a sentence ends", "Pause,
+     count to two") no longer show one glyph twice, and never Pace's
      gauge. */
   it("gives every hold-a-silence tactic the stopwatch, never the gauge", () => {
-    const holds = tips.filter((t) => /^(Hold one to two seconds|Count one second)$/.test(tipFace(t).label));
+    const holds = tips.filter((t) =>
+      /^(Pause, count to two|Pause 1 to 2 seconds|Pause one full second|Count one second)$/.test(tipFace(t).label)
+    );
     expect(holds.length).toBeGreaterThanOrEqual(4);
     for (const t of holds) expect(tipFace(t).glyph, t).toBe("hold");
     expect(tips.filter((t) => tipFace(t).glyph === "hold").every((t) => holds.includes(t))).toBe(true);
+  });
+
+  /* The two-second test (#483, Timothy on 16 Nov: "Concrete nouns" and
+     "A short concrete noun beats a long abstract one every time" could
+     not be understood in two seconds). A tactic is read by someone who
+     never studied grammar, so no grammar word reaches one: an example
+     says it instead ("two exams", not "stuff"). The headings over the
+     tactics (a lesson's title and blurb, a practice's angle) are held to
+     the same words. */
+  it("says every tactic without a grammar word", () => {
+    const GRAMMAR = /\b(nouns?|pronouns?|clauses?|abstract|concrete|connectives?|register|cadence|emphasis|fillers?|crutch)\b/i;
+    for (const t of tips) {
+      expect(t, t).not.toMatch(GRAMMAR);
+      expect(tipFace(t).label, t).not.toMatch(GRAMMAR);
+    }
+    for (const l of LESSONS) {
+      expect(l.title, l.id).not.toMatch(GRAMMAR);
+      expect(l.blurb, l.id).not.toMatch(GRAMMAR);
+    }
+    for (const p of PATH) expect(p.title, p.id).not.toMatch(GRAMMAR);
   });
 
   it("falls back to a short clause for an unlabelled sentence", () => {

@@ -55,9 +55,10 @@ describe("every practice has its object", () => {
     expect(TACTIC_OBJECT.repairs).toEqual(["finish-it", "or-rather", "know-the-landing"]);
     expect(TACTIC_OBJECT.range[0]).toBe("name-it-once");
     expect(TACTIC_OBJECT.range[2]).toBe("short-and-concrete");
-    // "Let the gap sit" is a shut mouth holding a silence: the zip, not
-    // the crutch-word magnifier it once took by its place in the list.
-    expect(TRAIT.fillers.howTo[2]).toMatch(/^Let the gap sit/);
+    // "Stay quiet instead of saying um" (once "Let the gap sit", #483) is
+    // a shut mouth holding a silence: the zip, not the overused-word
+    // magnifier it once took by its place in the list.
+    expect(TRAIT.fillers.howTo[2]).toMatch(/Stay quiet instead of saying "um"/);
     expect(TACTIC_OBJECT.fillers[2]).toBe("closed-mouth");
     expect(TACTIC_OBJECT.fillers).not.toContain("the-crutch");
   });
@@ -88,7 +89,7 @@ describe("every practice has its object", () => {
     expect(heroObject("pause", TRAIT.pause.howTo[1])).toBe("the-long-one");
     expect(heroObject("pause", TRAIT.pause.howTo[0])).toBe("inside-or-after");
     expect(heroObject("fillers", TRAIT.fillers.howTo[0])).toBe("closed-mouth");
-    expect(heroObject("pace", "Say your position in the first sentence.")).toBe(TRAIT_OBJECT.pace);
+    expect(heroObject("pace", "Say which side you're on in your first sentence.")).toBe(TRAIT_OBJECT.pace);
     expect(heroObject(null)).toBe(HOUSE_OBJECT);
   });
 

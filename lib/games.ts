@@ -219,9 +219,9 @@ export const GAMES: Game[] = [
       { id: "qa24", prompt: "Is it better to go deep on one thing or try everything?" },
     ],
     tips: [
-      "Stop when he cuts in. Hold a second, then answer him. Your result times that pause.",
-      "Answer the question asked, then walk back to your point.",
-      "Finish the sentence you started. A restart is scored as a repair.",
+      "When Demos cuts in, stop. Wait a second, then answer. That pause is timed.",
+      "Answer what Demos asked, then go back to your point.",
+      "Finish the sentence you started. Starting over costs points.",
     ],
   },
   {
@@ -235,7 +235,7 @@ export const GAMES: Game[] = [
     levels: RUSH_LEVELS,
     cutInLines: [],
     countsWhen:
-      "A round counts when you finish in the clock's second half, before it runs out, and keep two stars.",
+      "A round counts when you talk past halfway, stop before the clock runs out, and keep two stars.",
     questions: [
       { id: "ru1", prompt: "Explain what you do all day" },
       { id: "ru2", prompt: "Sell someone on your favorite app" },
@@ -263,9 +263,9 @@ export const GAMES: Game[] = [
       { id: "ru24", prompt: "Sell someone on your favorite place to eat" },
     ],
     tips: [
-      "Your first sentence is the point. The wind-up is what the clock eats.",
+      "Make your point in the first sentence, before the clock runs down.",
       "One point, one example, stop.",
-      "Finishing early beats getting cut off.",
+      "Talk for at least half the time, then stop before it runs out.",
     ],
   },
   {
@@ -309,8 +309,8 @@ export const GAMES: Game[] = [
     ],
     tips: [
       "Answer the question in your first sentence. The story comes second.",
-      "One specific beats three adjectives. Name the thing you did.",
-      "Land on the result, with a number if you have one.",
+      "Say what you did: \"I ran the bake sale\", not \"I'm organised\".",
+      "End on the result, with a number if you have one.",
     ],
   },
 ];

@@ -257,14 +257,14 @@ describe("levels (the games plan, item 2)", () => {
   it("says the rule a round counts by, once per game", () => {
     expect(GAMES.map((g) => g.countsWhen)).toEqual([
       "A round counts when you hold 0.8s after each cut-in and keep two stars.",
-      "A round counts when you finish in the clock's second half, before it runs out, and keep two stars.",
+      "A round counts when you talk past halfway, stop before the clock runs out, and keep two stars.",
       "A round counts when you finish between 1:00 and 1:30 and keep two stars.",
     ]);
   });
 
   it("makes Q&A's first tip the one the round measures (F2)", () => {
     expect(gameById("qa")!.tips[0]).toBe(
-      "Stop when he cuts in. Hold a second, then answer him. Your result times that pause."
+      "When Demos cuts in, stop. Wait a second, then answer. That pause is timed."
     );
   });
 });

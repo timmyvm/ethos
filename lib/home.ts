@@ -28,17 +28,17 @@ import { measured, readTraitsFromRow, type TraitReading } from "./trait-readings
  * The tactic a practice leads with is one of its trait's three `howTo`
  * lines (content/path.ts, `tipsFor`), and the card's object is the
  * object of the lesson that teaches that tactic, paired by what the two
- * say, not by their place in a list: the hourglass beside "Hold one to
- * two seconds", the pause marks and full stop beside "After the full
- * stop", the zip beside "Close your mouth". Indexed like `howTo`.
+ * say, not by their place in a list: the hourglass beside "Pause, count
+ * to two", the pause marks and full stop beside "Pause when a sentence
+ * ends", the zip beside "Close your mouth between sentences". Indexed
+ * like `howTo`.
  *
- * Two tactics have no lesson of their own in their trait. Fillers' "Let
- * the gap sit" is a shut mouth holding a silence, so it takes the zip
- * (the crutch magnifier it had is Fillers' crutch-word lesson, which
- * says nothing about a gap). Variety's "Your crutch word is the one you
- * cannot hear" is the repeated word, which is the second pass's subject
- * ("the second time you reach for an idea, reach somewhere else"), so
- * it keeps the boomerang.
+ * Two tactics have no lesson of their own in their trait. Fillers'
+ * "Quiet instead of um" is a shut mouth holding a silence, so it takes
+ * the zip (the magnifier it had is Fillers' overused-word lesson, which
+ * says nothing about a gap). Variety's "Skip "really" and "very"" is
+ * the repeated word, which is the second pass's subject ("Coming back
+ * to an idea? Say it in new words."), so it keeps the boomerang.
  */
 export const TACTIC_OBJECT: Record<TraitId, readonly [string, string, string]> = {
   pause: ["inside-or-after", "the-long-one", "the-landing"],

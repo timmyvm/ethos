@@ -44,6 +44,22 @@ vi.mock("@/lib/accuracy", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/accuracy")>()),
   judgeAccuracy: vi.fn(async () => null),
 }));
+/*
+ * The route judges its pauses with `MIC_FILLS_PAUSE`, off since #476. A
+ * test that sets `trace.micFills` judges them as if that one line were
+ * switched back on, so the gate in front of the trace (`pauseEnvelope`)
+ * stays proved through the route. Left undefined, the route's own
+ * default runs untouched.
+ */
+const trace = vi.hoisted(() => ({ micFills: undefined as boolean | undefined }));
+vi.mock("@/lib/pause-quality", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@/lib/pause-quality")>();
+  return {
+    ...real,
+    pauseReport: (params: Parameters<typeof real.pauseReport>[0]) =>
+      real.pauseReport(trace.micFills === undefined ? params : { ...params, micFills: trace.micFills }),
+  };
+});
 
 import { POST } from "@/app/api/analyze/route";
 import { judgeAccuracy } from "@/lib/accuracy";
@@ -1210,8 +1226,11 @@ describe("a game round", () => {
  * Since #476 a new take's trace fills no pause (`MIC_FILLS_PAUSE`): a
  * pause is filled by an um, uh or erm beside it, and a gap the trace
  * calls voiced keeps the verdict its words give. The envelope cases
- * below (unheard, refitted, unmarked) hold the gate that stays in front
- * of the trace for the day it is switched back on.
+ * below (heard, unheard, refitted, unmarked, the stars) judge with the
+ * trace switched back on (`traceOn`), so the gate in front of it and the
+ * Index's read of the verdicts it stores stay proved for the day it
+ * comes back: an um's filled pause scores the same from the words alone,
+ * so only a heard one can tell the two apart here.
  */
 describe("the Index scores the pauses the take stores", () => {
   const SENTENCES = [
@@ -1310,6 +1329,14 @@ describe("the Index scores the pauses the take stores", () => {
     return pauseScore(m.pauses, m.durationS, TAKE.words, m.fillers);
   })();
 
+  /** For this test, the route judges as if `MIC_FILLS_PAUSE` were switched back on. */
+  function traceOn() {
+    trace.micFills = true;
+    onTestFinished(() => {
+      trace.micFills = undefined;
+    });
+  }
+
   it("stores an Index that scores the two pauses it calls filled as filled", async () => {
     // An "um," straight after gaps 1 and 3.
     const sent = await send(null, takeWith([1, 3]));
@@ -1339,6 +1366,20 @@ describe("the Index scores the pauses the take stores", () => {
     expect(voiced.saved.tier1.pause).toBe(WORDS_ONLY);
   });
 
+  it("with the trace switched back on, stores the gaps it heard as filled and scores them so", async () => {
+    traceOn();
+    const sent = await send(clockEnvelope([1, 3]));
+    const report = consistent(sent);
+    expect(report.filled).toBe(2);
+    expect(sent.saved.metrics.pauses.filter((p) => p.verdict === "filled").map((p) => p.note)).toEqual([
+      expect.stringContaining("The mic heard it"),
+      expect.stringContaining("The mic heard it"),
+    ]);
+    expect(sent.body.pauseHeadline).toMatch(/^2 of your "pauses" had a sound in them/);
+    // Below the words' own score, which read both gaps as landings.
+    expect(sent.saved.tier1.pause).toBeLessThan(WORDS_ONLY);
+  });
+
   it("scores a take with no voiced gap exactly as before", async () => {
     const clean = await send(clockEnvelope([]));
     consistent(clean);
@@ -1351,6 +1392,7 @@ describe("the Index scores the pauses the take stores", () => {
   });
 
   it("gives a gap the phone never heard the verdict its words give", async () => {
+    traceOn();
     // Gaps 1 and 3 had a sound in them, but the page had no frames then.
     const unheard = await send(clockEnvelope([1, 3], [1, 3]));
     const report = consistent(unheard);
@@ -1359,6 +1401,7 @@ describe("the Index scores the pauses the take stores", () => {
   });
 
   it("judges no pause on a refitted envelope, an outbox replay from before the review", async () => {
+    traceOn();
     // About 17 samples a second under a label of 20, no clock mark.
     const truth = clockEnvelope([1, 3]);
     const levels: number[] = [];
@@ -1371,6 +1414,7 @@ describe("the Index scores the pauses the take stores", () => {
   });
 
   it("judges no pause on an unmarked envelope inside the 5% tolerance, so it scores as no envelope", async () => {
+    traceOn();
     // 19.2 samples a second under a label of 20, no clock mark: what an
     // older phone's frame-gated sampler sends, and not refitted. Read as
     // sent, the late gaps are judged on the next sentence's speech.
@@ -1388,8 +1432,10 @@ describe("the Index scores the pauses the take stores", () => {
   });
 
   it("moves no star and no other dimension", async () => {
+    traceOn();
     const none = await send(null);
     const filled = await send(clockEnvelope([0, 1, 3]));
+    expect(filled.saved.tier1.pause).toBeLessThan(none.saved.tier1.pause);
     expect(filled.saved.metrics.stars).toBe(none.saved.metrics.stars);
     expect({ ...filled.saved.tier1, pause: 0 }).toEqual({ ...none.saved.tier1, pause: 0 });
   });

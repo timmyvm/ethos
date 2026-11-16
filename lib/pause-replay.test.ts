@@ -581,7 +581,7 @@ describe("the replay's answer", () => {
  *    align), a word added to or dropped from the text, empty text, a
  *    segment repeated whole;
  *  - gaps of exactly 0.3, 0.8 and 3.5s and a hair either side, and an um
- *    exactly half a second from a pause.
+ *    exactly half a second from a pause and one a hair past it.
  * Postgres and the TypeScript must find the same sentence ends, word by
  * word, under both rules, and the same four scores. These run on the
  * columns the replay reads, without the migrations, so there can be many.
@@ -716,7 +716,40 @@ describe("the replay on Whisper's rougher shapes", () => {
     return { words, segments, durationS: 15, voiced: [] };
   }
 
-  const ROUGH = [...Array.from({ length: 120 }, (_, k) => rough(4760 + k)), rushed(), edges()];
+  /**
+   * And a hair past the um's line: an um that starts 0.52s after a pause
+   * ends and ends 0.52s before the next one starts, so it fills neither.
+   * With the trace off this line is the only way a pause is filled, so a
+   * replay that drew it anywhere from 0.52s to 1.2s must not agree.
+   */
+  function pastTheEdge(): Rough {
+    const at = (word: string, start: number, end: number): Word => ({ word, start, end });
+    const words = [
+      ..."We really stayed in the room together".split(" ").map((w, k) => at(w, 0.5 + k * 0.5, 0.75 + k * 0.5)),
+      at("So", 4.75, 5), // 1.0s after "together.": a landing
+      at("um", 5.27, 5.5), // starts 0.52s after that pause ends
+      at("it", 5.5, 5.77),
+      at("stopped", 5.77, 6.02), // ends 0.52s after the um does: 1.0s on, a pause after 4 words
+      at("Then", 7.02, 7.27),
+      at("the", 7.52, 7.77),
+      at("whole", 8.02, 8.27),
+      at("room", 8.52, 8.77),
+      at("went", 9.02, 9.27),
+      at("quiet", 9.52, 9.77),
+      at("And", 10.77, 11.02), // 1.0s on: a landing
+      at("it", 11.27, 11.52),
+      at("landed", 11.77, 12.02),
+    ];
+    const segments = [
+      { start: 0.46, end: 3.8, text: " We really stayed in the room together." },
+      { start: 4.71, end: 6.07, text: " So, um, it stopped." },
+      { start: 6.98, end: 9.82, text: " Then the whole room went quiet." },
+      { start: 10.73, end: 12.07, text: " And it landed." },
+    ];
+    return { words, segments, durationS: 13, voiced: [] };
+  }
+
+  const ROUGH = [...Array.from({ length: 120 }, (_, k) => rough(4760 + k)), rushed(), pastTheEdge(), edges()];
   const roughId = (k: number) => `00000000-0000-4000-9000-${String(k + 1).padStart(12, "0")}`;
   let pg: PGlite;
 
@@ -793,6 +826,16 @@ describe("the replay on Whisper's rougher shapes", () => {
       "3.75:filled", "6:filled", "12:landing",
     ]);
     expect(judged.landedTheEnding).toBe(true);
+    // A hair past the line, the um fills neither pause beside it.
+    const k = ROUGH.length - 2;
+    const past = pauseReport({
+      pauses: TS[k].m.pauses, words: ROUGH[k].words, fillers: TS[k].m.fillers,
+      durationS: 13, segments: ROUGH[k].segments,
+    });
+    expect(TS[k].m.fillers.map((f) => f.word)).toEqual(["um"]);
+    expect(past.pauses.filter((p) => p.verdict !== "beat").map((p) => `${p.t}:${p.verdict}`)).toEqual([
+      "3.75:landing", "6.02:hesitation", "9.77:landing",
+    ]);
     expect(TS.some((x) => x.scores.new !== x.scores.new_noenv)).toBe(true);
   });
 

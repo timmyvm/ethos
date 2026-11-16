@@ -383,6 +383,9 @@ describe("tier1Scores reads the take's own pause verdicts", () => {
     expect(held[1].note).toContain("filler leaning on it");
     const scored = tier1Scores(tk.metrics, tk.words, [], report.pauses);
     // The same number the take's own report gives, from the same verdicts.
+    // The words alone give it too, since the um is in them: the stored
+    // verdict the mic called filled, below, is what tells reading the
+    // verdicts from judging again.
     expect(scored.pause).toBe(report.score);
     expect(scored.pause).toBe(reportJudged(report.pauses, tk.durationS).score);
     // Lower than the same take said clean, where both gaps land.

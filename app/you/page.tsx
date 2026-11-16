@@ -59,7 +59,7 @@ import { heldFreezes, syncFreezes } from "@/lib/freeze-sync";
 import { held, hold } from "@/lib/held";
 import { useRevalidate } from "@/lib/use-revalidate";
 import { useStill, useWarm } from "@/lib/use-warm";
-import { barLabel, bestFlame, levelLine, reachLine, streakFlame, xpStanding, type Flame } from "@/lib/xp";
+import { barLabel, bestFlame, levelLine as xpLevelLine, reachLine, streakFlame, xpStanding, type Flame } from "@/lib/xp";
 import { readable, readFailure, withTimeout } from "@/lib/load";
 import { starsByLesson, totalStars } from "@/lib/path";
 import { cleanName, MAX_NAME, readOnboarding, type OnboardingState } from "@/lib/answers";
@@ -641,7 +641,7 @@ export default function YouPage() {
           ) : (
             <>
               <p data-look="level-line" className="font-display mt-2 text-row font-bold tabular-nums">
-                {levelLine(xp?.total ?? 0)}
+                {xpLevelLine(xp?.total ?? 0)}
               </p>
               {/* Which line it is ("Today's practice" or "One more
                   recording") rests on whether today is spoken, which only

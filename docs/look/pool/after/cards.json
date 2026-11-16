@@ -29,6 +29,20 @@
       "topic": "The worst job you've ever done",
       "start": "/rep?topic=t10&item=pause-1-10&trait=pause&ready=1",
       "menu": null
+    },
+    {
+      "person": "no-age",
+      "view": "390-light",
+      "topic": "Your first day somewhere new",
+      "start": "/rep?topic=t42&item=pause-1-10-school&trait=pause&ready=1",
+      "menu": "/rep?topic=t42&item=pause-1-10-school&trait=pause&ready=1"
+    },
+    {
+      "person": "no-age",
+      "view": "390-dark",
+      "topic": "Your first day somewhere new",
+      "start": "/rep?topic=t42&item=pause-1-10-school&trait=pause&ready=1",
+      "menu": null
     }
   ]
 }

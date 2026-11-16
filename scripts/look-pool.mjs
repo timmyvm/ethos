@@ -13,8 +13,9 @@
  * under 18 gets the stand-in from the same place in Fillers' walk, with
  * Pausing's angle and tactic; the grown-up's card is unchanged.
  *
- * Two people, one answer apart: the age band "u18" or "18_24" (the
- * fixtures' own answers are an old layout that reads as no age at all).
+ * Three people, one answer apart: the age band "u18", "18_24" or never
+ * given (the fixtures' own answers are an old layout that reads as no
+ * age at all, so every other camera's account is the third).
  * Shots at 390x844, light and dark, deviceScaleFactor 2, into
  * docs/look/pool/<phase>/; what each card and each Today door named into
  * cards.json there.
@@ -42,9 +43,12 @@ for (const r of ORIGINAL) if (Math.round((Date.parse(LOOK_TODAY) - Date.parse(me
 resetPlan("free");
 testerMode.tester = false;
 
+/* The third never gave an age: the school pool too (#489), so the job
+   prompt waits for an age band or for Work as the place. */
 const PEOPLE = [
   { tag: "under-18", ageBand: "u18" },
   { tag: "adult", ageBand: "18_24" },
+  { tag: "no-age", ageBand: null },
 ];
 const VIEWS = [
   { tag: "390-light", w: 390, h: 844, theme: "light" },

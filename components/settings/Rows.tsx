@@ -1,13 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useId } from "react";
-import { poseSrc } from "@/components/DemosArt";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { TapTick } from "@/components/ui/TapTick";
-import { POSE_STAGE, YOU_POSE, type StagePose } from "@/lib/shop";
 
 /**
  * Settings' parts (#479), shared by the index and every page under it:
@@ -239,31 +236,5 @@ export function CheckMark() {
     >
       <path d="M5 12.5l4.5 4.5L19 7.5" />
     </svg>
-  );
-}
-
-/**
- * Demos in the pose an account wears, as its picture: the Shop's still
- * (`poseSrc`, the same file the Shop sells and You's stage wears, #395),
- * standing on the floor of a round slot. Product art, not a Demos on
- * screen (DESIGN 9): small, still, never his clip.
- */
-export function PoseAvatar({ pose, size = 52 }: { pose: string | null; size?: number }) {
-  const stage: StagePose | typeof YOU_POSE = (pose && POSE_STAGE[pose]) || YOU_POSE;
-  return (
-    <span
-      aria-hidden
-      className="flex shrink-0 items-end justify-center overflow-hidden rounded-full border border-card-edge bg-ground"
-      style={{ width: size, height: size }}
-    >
-      <Image
-        src={poseSrc(stage, 128)}
-        alt=""
-        width={128}
-        height={128}
-        className="demos object-contain object-bottom"
-        style={{ width: size - 4, height: size - 4 }}
-      />
-    </span>
   );
 }

@@ -1,5 +1,8 @@
 /**
- * Wearing a pose, from this device to the account.
+ * Wearing a pose, from this device to the account. Since #488 the same
+ * path saves the person's picture, of which a pose is one kind
+ * (lib/picture.ts): the column and the pending mark carry "photo",
+ * "initial" and "hello" beside the Shop's pose ids.
  *
  * The account's `equipped_pose` is the truth, because it follows you to
  * a new phone (#175), and every screen that reads it lets it win over

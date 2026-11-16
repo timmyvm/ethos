@@ -35,6 +35,21 @@ export function reasonFor(item: ShopItem): string {
   return `shop:${item.id}`;
 }
 
+/**
+ * What the Shop says about a pose, now that a pose is a picture (#488):
+ * bought, it is worn as your picture, which every surface that shows a
+ * picture of you draws (lib/picture.ts). Its blurb, its button before
+ * and after it is worn, and the note when it is bought. It used to say
+ * "Wear it on You" and "It's yours, and it's on You." while nothing on
+ * You drew it (#485 took Demos off You's card).
+ */
+export const SHOP_PICTURE = {
+  blurb: "Wear it as your picture.",
+  wear: "Wear it as your picture",
+  worn: "Your picture",
+  bought: "It's yours, and it's your picture now.",
+} as const;
+
 export const SHOP: ShopItem[] = [
   {
     id: "streak_freeze",
@@ -49,7 +64,7 @@ export const SHOP: ShopItem[] = [
     name: "Demos, mid-sentence",
     price: 8,
     kind: "cosmetic",
-    blurb: "Puts the speaking pose on You.",
+    blurb: SHOP_PICTURE.blurb,
   },
   {
     /*
@@ -58,20 +73,21 @@ export const SHOP: ShopItem[] = [
      * routes keep "rep" (#164): nobody reads it aloud, and renaming it
      * would orphan every purchase. The art it points at is the part a
      * user sees: once a panda lifting a dumbbell (#249), then a stopwatch
-     * the stage never drew, and now the alarm-clock pose You wears.
+     * the stage never drew, and now the alarm-clock pose, worn as a
+     * picture since #488.
      */
     id: "pose_workout",
     name: "Demos, mid-practice",
     price: 8,
     kind: "cosmetic",
-    blurb: "Puts the alarm-clock pose on You.",
+    blurb: SHOP_PICTURE.blurb,
   },
   {
     id: "pose_celebrate",
     name: "Demos, celebrating",
     price: 12,
     kind: "cosmetic",
-    blurb: "Puts the arms-up pose on You.",
+    blurb: SHOP_PICTURE.blurb,
   },
 ];
 
@@ -80,12 +96,12 @@ export function itemById(id: string): ShopItem | undefined {
 }
 
 /**
- * The pose a bought cosmetic puts on You's stage, in DemosArt's set, and
- * the picture the Shop sells it with: the Shop's slot draws the same
- * still (`components/shop/ItemArt.tsx`, through DemosArt's `poseSrc`),
- * so what you buy is what you wear. It stood on Today's floor card until
- * #393 took Demos off the home; You's identity stage is where he stands
- * every day now, so that is where a bought pose shows.
+ * The pose a bought cosmetic is, in DemosArt's set. It stood on Today's
+ * floor card until #393, then on You's stage until #485 took Demos off
+ * You's card; since #488 it is worn as your picture, a bust of the pose
+ * in a coin (lib/picture.ts `bustSrc`), and the Shop's slot draws that
+ * same coin (`components/shop/ItemArt.tsx`), so what you buy is what
+ * you wear.
  */
 export type StagePose = "speaking" | "clock" | "celebrate";
 export const POSE_STAGE: Record<string, StagePose> = {
@@ -104,18 +120,6 @@ export const POSE_STAGE: Record<string, StagePose> = {
 export function stagePose(equipped: string | null, owned: Owned): StagePose | null {
   if (!equipped || !owned.ids.has(equipped)) return null;
   return POSE_STAGE[equipped] ?? null;
-}
-
-/** You's Demos when no pose is worn: his hello, since #391. */
-export const YOU_POSE = "hello";
-
-/**
- * The Demos You's stage draws: the worn pose when the ledger proves it
- * was bought at its price, and his hello otherwise (nothing worn, a pose
- * taken off, one never paid for, or an id the shop does not sell).
- */
-export function youPose(equipped: string | null, owned: Owned): StagePose | typeof YOU_POSE {
-  return stagePose(equipped, owned) ?? YOU_POSE;
 }
 
 export interface Owned {

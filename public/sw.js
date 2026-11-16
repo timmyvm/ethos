@@ -84,6 +84,13 @@ const SHELL = [
   "/icons/3d/freeze.webp",
   "/icons/3d/xp.webp",
   "/icons/3d/trophy.webp",
+  /* Demos's busts (#488): a picture worn as a pose is in Today's corner,
+     the first screen a returning phone opens. New paths, so no CACHE
+     bump; a re-cut keeps its path and moves CACHE. */
+  "/demos-bust/hello.webp",
+  "/demos-bust/speaking.webp",
+  "/demos-bust/clock.webp",
+  "/demos-bust/celebrate.webp",
 ];
 
 self.addEventListener("install", (e) => {

@@ -717,9 +717,9 @@ if (section(5)) {
     await sleep(900);
     ok("manage sheet, 320x568: a swipe down from its stair closes it", !(await isOpen(page)));
     await page.goto(`${BASE}/you`);
-    await page.waitForSelector('main button[aria-haspopup="dialog"]', { timeout: 60000 });
+    await page.waitForSelector('main button[aria-haspopup="dialog"]:not([data-look="avatar"])', { timeout: 60000 });
     await sleep(600);
-    await page.locator('main button[aria-haspopup="dialog"]').first().click();
+    await page.locator('main button[aria-haspopup="dialog"]:not([data-look="avatar"])').first().click();
     await page.waitForSelector('[role="dialog"]');
     await sleep(1000);
     const at = await page.evaluate(() => {

@@ -134,10 +134,13 @@ describe("XP's purple", () => {
   });
 });
 
+/* The photo's saving moved whole into the one picture's hook (#488),
+   components/picture/usePicture.tsx; its failed line into
+   components/picture/PictureChoices.tsx's PictureProblem. */
 describe("the photo's coin while it saves", () => {
   it("draws the square the phone made, never the camera's original", () => {
-    const coin = strip(readFileSync("components/you/Avatar.tsx", "utf8"));
-    const keep = coin.slice(coin.indexOf("async function keep("), coin.indexOf("async function drop("));
+    const hook = strip(readFileSync("components/picture/usePicture.tsx", "utf8"));
+    const keep = hook.slice(hook.indexOf("async function keep("), hook.indexOf("async function removePhoto("));
     expect(keep).toMatch(/picture = await makeAvatar\(file\)/);
     expect(keep).toMatch(/setLocal\(URL\.createObjectURL\(picture\.blob\)\)/);
     expect(keep).toMatch(/await uploadAvatar\(picture\)/);
@@ -147,11 +150,13 @@ describe("the photo's coin while it saves", () => {
   });
 
   it("puts under a failed line only the door avatarRetry names, its own words on it", () => {
-    const coin = strip(readFileSync("components/you/Avatar.tsx", "utf8"));
-    expect(coin).toMatch(/const retry = error \? avatarRetry\(error\) : null;/);
-    expect(coin).toMatch(/\{retry && again && \(/);
-    expect(coin).toMatch(/\{retry\.label\}/);
-    expect(coin).not.toMatch(/>\s*Try again\s*</);
+    const hook = strip(readFileSync("components/picture/usePicture.tsx", "utf8"));
+    const line = strip(readFileSync("components/picture/PictureChoices.tsx", "utf8"));
+    expect(hook).toMatch(/const door = error \? avatarRetry\(error\) : null;/);
+    expect(hook).toMatch(/const retry = door && run \? \{ label: door\.label, run \} : null;/);
+    expect(line).toMatch(/\{state\.retry && \(/);
+    expect(line).toMatch(/\{state\.retry\.label\}/);
+    expect(line).not.toMatch(/>\s*Try again\s*</);
   });
 });
 

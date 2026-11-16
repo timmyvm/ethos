@@ -261,11 +261,29 @@ describe("exitBeat and the streak's moment (#480): after the results, before Tod
     expect(exitBeat({ ...none, leaves: false, streakDue: true, tasteDue: true })).toBe("taste");
     expect(exitBeat({ ...none, leaves: false, streakDue: true, gate: true })).toBe("gate");
   });
-  it("after Continue, lets only the save wall stand in the same exit", () => {
+  it("after Continue, goes on through the asks in their order, at most one, and never replays the moment", () => {
     const after = { ...none, streakDue: true, afterStreak: true };
-    expect(exitBeat({ ...after, gate: true })).toBe("gate");
-    expect(exitBeat({ ...after, tasteDue: true })).toBeNull();
-    expect(exitBeat({ ...after, proDue: true })).toBeNull();
     expect(exitBeat(after)).toBeNull();
+    expect(exitBeat({ ...after, gate: true, tasteDue: true, proDue: true })).toBe("gate");
+    expect(exitBeat({ ...after, tasteDue: true, proDue: true })).toBe("taste");
+    expect(exitBeat({ ...after, proDue: true })).toBe("pro");
+  });
+  it("never starves Since day one for someone who speaks once a day (#480 review)", () => {
+    /* Day 3 onwards, one take a day: the day's first take owes the moment,
+       and its exit is the only exit that leaves that day. Walk a week of
+       such days with Since day one due from day 3 and see it shown. */
+    let proShown = false;
+    for (let day = 1; day <= 7 && !proShown; day++) {
+      const due = { ...none, streakDue: true, proDue: day >= 3 && !proShown };
+      expect(exitBeat(due)).toBe("streak");
+      if (exitBeat({ ...due, afterStreak: true }) === "pro") proShown = true;
+    }
+    expect(proShown).toBe(true);
+  });
+  it("lets a free account's taste follow the moment on the round that spent today's free play", () => {
+    // The taste is due once, on that round's own exit; there is no later one.
+    const due = { ...none, streakDue: true, tasteDue: true };
+    expect(exitBeat(due)).toBe("streak");
+    expect(exitBeat({ ...due, afterStreak: true })).toBe("taste");
   });
 });

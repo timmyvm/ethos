@@ -40,8 +40,9 @@
  * has its own inner bands reported as the stage's room; the ground
  * round it is measured as everywhere else.
  *
- * One scene is reported, never failed: the settled streak celebration
- * (E18), a centred 2.3s moment no judge gave a passing layout for.
+ * One scene is reported, never failed: the streak's moment (E18; since
+ * #480 a screen of its own on the results' way out), settled, a centred
+ * moment no judge gave a passing layout for.
  *
  * Screens: the five tabs, /boss, the lesson page, the trait page, the unit
  * intro, the Shop, Settings, the paywall, recording idle and live, the
@@ -396,9 +397,7 @@ for (const theme of ["light", "dark"]) {
       if (want("rep-live")) await check(page, "rep-live", theme);
       await page.click('button[aria-label="Stop and score this recording"]', { force: true });
       /* The streak's moment no longer rises over the results: since #480
-         it is a screen of its own on the way out, photographed and held
-         by scripts/look-streak.mjs. */
-      if (want("rep-celebration")) lines.push(`note  rep-celebration (${theme}): the streak's moment is on the exit since #480 (look-streak.mjs)`);
+         it is a screen of its own on the way out, measured last, below. */
       await page.waitForSelector("main .arrive-x", { timeout: 15000 });
       await sleep(2400);
       if (want("rep-results")) await check(page, "rep-results", theme);
@@ -409,6 +408,28 @@ for (const theme of ["light", "dark"]) {
         await page.waitForSelector('[role="dialog"][aria-label="Every number"]', { timeout: 4000 });
         await sleep(900);
         await check(page, "rep-sheet", theme, { scope: '[role="dialog"] [data-whole-recording]' });
+      }
+      /* The streak's moment on the way out (#480), settled: reported, never
+         failed (E18). Held for its one tap, its first screen and no scroll
+         by scripts/look-streak.mjs. */
+      if (want("rep-celebration")) {
+        const SHEET = '[role="dialog"][aria-label="Every number"]';
+        if (await page.locator(SHEET).count()) {
+          await page.keyboard.press("Escape");
+          await page.waitForSelector(SHEET, { state: "detached", timeout: 3000 }).catch(() => {});
+        }
+        await page.locator("main [data-results-back]").click();
+        const up = await page.waitForSelector("[data-streak-moment]", { timeout: 4000 }).catch(() => null);
+        if (up) {
+          await page.evaluate(() => {
+            for (const a of document.getAnimations()) {
+              try {
+                a.finish();
+              } catch {}
+            }
+          });
+          await check(page, "rep-celebration", theme, { report: "the streak's moment, a centred screen on the way out" });
+        } else lines.push(`note  rep-celebration (${theme}): no streak moment on the way out (today already spoken)`);
       }
     } catch (e) {
       failed += 1;

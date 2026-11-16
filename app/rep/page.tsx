@@ -3103,8 +3103,8 @@ function Results({
    * The ask after the taste (the games plan, item 13; research 5): a free
    * account finishing today's free round of a Premium game meets the plum
    * sheet once per game, on its way out, leading with that round's own
-   * number. Never over the celebration; the decline goes on to wherever
-   * was tapped. The plan is read here, so an unread plan is never taken
+   * number, after the streak's moment when that exit owes one (#480);
+   * the decline goes on to wherever was tapped. The plan is read here, so an unread plan is never taken
    * for free.
    */
   const [planFree, setPlanFree] = useState<boolean | null>(null);
@@ -3142,9 +3142,9 @@ function Results({
    * exitBeat's order (#427, #480): the streak's moment on the first exit
    * that leaves after the take that made today count, the save wall, the
    * taste, then, only on an exit that leaves the session, Since day one.
-   * The moment's Continue carries on with the same exit, where only the
-   * save wall may still stand. The reminder ask is on the glance itself
-   * (#430).
+   * The moment's Continue carries on with the same exit, through the
+   * asks in their order, still at most one. The reminder ask is on the
+   * glance itself (#430).
    */
   const [streakTo, setStreakTo] = useState<{ href: string; moment: StreakMomentView } | null>(null);
   const exit = (href: string, { leaves }: { leaves: boolean }, afterStreak = false) => {
@@ -3652,6 +3652,29 @@ function Results({
     );
   };
 
+  /* The taste's plum sheet (#419): over the glance, or over the streak's
+     moment when it is the ask that follows the moment's Continue (#480
+     review), so the glance never flashes back between the two. */
+  const tasteSheet =
+    tasteTo !== null && game ? (
+      <Paywall
+        reason="Game of the day"
+        headline={tasteHeadline(game, gameRound)}
+        taste={TASTE_LINE}
+        returnTo={result.repId ? `/rep/${result.repId}` : "/you"}
+        onClose={() => {
+          const to = tasteTo;
+          setTasteTo(null);
+          if (to) go(to);
+        }}
+        onUnlocked={() => {
+          const to = tasteTo;
+          setTasteTo(null);
+          if (to) go(to);
+        }}
+      />
+    ) : null;
+
   if (gateTo !== null && gate !== null) {
     return (
       <SaveGate
@@ -3675,18 +3698,22 @@ function Results({
 
   /* The streak's moment (#480), between the results and where the exit
      was going. It stays drawn until the page it hands on to arrives, so
-     the glance never flashes back in between; a save wall still due
-     takes its place first. */
+     the glance never flashes back in between. Its Continue goes on
+     through the exit's asks, at most one: the save wall and Since day one
+     take its place, the taste's sheet rises over it. */
   if (streakTo !== null) {
     return (
-      <StreakMoment
-        moment={streakTo.moment}
-        quiet={streakQuiet}
-        onContinue={() => {
-          onStreakShown();
-          exit(streakTo.href, { leaves: true }, true);
-        }}
-      />
+      <>
+        <StreakMoment
+          moment={streakTo.moment}
+          quiet={streakQuiet}
+          onContinue={() => {
+            onStreakShown();
+            exit(streakTo.href, { leaves: true }, true);
+          }}
+        />
+        {tasteSheet}
+      </>
     );
   }
 
@@ -3887,24 +3914,7 @@ function Results({
           />
         </WholeRecording>
       )}
-      {tasteTo !== null && game && (
-        <Paywall
-          reason="Game of the day"
-          headline={tasteHeadline(game, gameRound)}
-          taste={TASTE_LINE}
-          returnTo={result.repId ? `/rep/${result.repId}` : "/you"}
-          onClose={() => {
-            const to = tasteTo;
-            setTasteTo(null);
-            if (to) go(to);
-          }}
-          onUnlocked={() => {
-            const to = tasteTo;
-            setTasteTo(null);
-            if (to) go(to);
-          }}
-        />
-      )}
+      {tasteSheet}
     </>
   );
 }

@@ -18,6 +18,10 @@
  *   calm    roll under reduced motion: lit, and at 4, from the first frame.
  *   second  today already spoken at 09:12: no moment, the exit goes to Today.
  *   short   a take stopped inside 1.5s: nothing is stored, no results, no moment.
+ *   pro     roll on day 4 with Since day one never seen: Continue goes on to
+ *           Since day one, and its Not now to Today (the #480 review: the
+ *           asks follow the moment, or someone who speaks once a day never
+ *           meets them).
  *
  * Each scene that shows the moment is shot at its start, mid-roll and end
  * (the page's animations paused and sought, so a frame is its moment),
@@ -71,6 +75,7 @@ const SCENE = {
   first: { spoke: [], frozen: [], from: 0, to: 1, moment: true },
   calm: { spoke: [1, 2, 3], frozen: [], from: 3, to: 4, moment: true, calm: true },
   second: { spoke: [1, 2, 3], frozen: [], today: true, moment: false },
+  pro: { spoke: [1, 2, 3], frozen: [], from: 3, to: 4, moment: true, pro: true },
   short: { spoke: [1, 2, 3], frozen: [], short: true, moment: false },
   /* A lesson's first practice makes today count: "Practice 2 of 3" goes
      straight on (the moment waits, owed), and the way back from the next
@@ -147,12 +152,13 @@ for (const scene of SCENES) {
     });
     await context.route("**/api/push", (r) => r.fulfill(F.json({ ok: true })));
     await context.addInitScript(F.seed, { theme: size.theme, session: F.session, pose: F.POSE_PREF });
-    /* The reminder ask has had today's showing, and Since day one has been seen. */
-    await context.addInitScript(() => {
+    /* The reminder ask has had today's showing, and Since day one has been
+       seen, except where the scene is about it. */
+    await context.addInitScript((pro) => {
       const d = new Date();
       localStorage.setItem("ethos.reminder.asked", `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
-      localStorage.setItem("ethos.pro.day3", new Date().toISOString());
-    });
+      if (!pro && !localStorage.getItem("ethos.pro.day3")) localStorage.setItem("ethos.pro.day3", new Date().toISOString());
+    }, !!S.pro);
     await context.addInitScript(() => {
       const css = document.createElement("style");
       css.textContent = "nextjs-portal{display:none!important}";
@@ -263,6 +269,12 @@ for (const scene of SCENES) {
             continueBottom: r ? Math.round(r.bottom) : null,
             frozen: el.querySelectorAll("[data-day='frozen']").length,
             scrolls: document.scrollingElement.scrollHeight > innerHeight + 1,
+            /* Today's block at rest: no transform held on it, or its layer
+               snaps a pixel short of its slot and a sand seam shows. */
+            fillHeld: (() => {
+              const f = el.querySelector("[data-fill]");
+              return f ? getComputedStyle(f).transform !== "none" : false;
+            })(),
           };
         });
       if (S.calm) {
@@ -286,11 +298,27 @@ for (const scene of SCENES) {
       if (m.taps !== 1) fail(`${at}: ${m.taps} filled taps`);
       if (m.continueBottom === null || m.continueBottom > size.h) fail(`${at}: Continue is under the fold (${m.continueBottom} > ${size.h})`);
       if (m.scrolls) fail(`${at}: the moment scrolls`);
+      if (m.fillHeld) fail(`${at}: today's block still holds a transform at rest (a 1px seam at its edge)`);
       if (S.frozen.length && m.frozen !== S.frozen.length) fail(`${at}: ${m.frozen} frozen days drawn, wanted ${S.frozen.length}`);
       await page.evaluate(() => {
         for (const a of document.getAnimations()) a.play();
       });
       await page.locator("[data-streak-moment] [data-continue]").click();
+      if (S.pro) {
+        /* The ask that follows the moment in the same exit: Since day one. */
+        const pro = await page
+          .getByText("Since day one", { exact: true })
+          .waitFor({ timeout: 4000 })
+          .then(() => true)
+          .catch(() => false);
+        console.log(`${at}: Since day one after Continue ${pro}`);
+        if (!pro) fail(`${at}: Since day one did not follow the moment`);
+        else {
+          await sleep(600);
+          await page.screenshot({ path: shot("since") });
+          await page.getByRole("button", { name: "Not now", exact: true }).click();
+        }
+      }
     }
     const where = lessonBack ?? "/";
     await page

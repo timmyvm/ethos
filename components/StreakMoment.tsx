@@ -93,20 +93,25 @@ export function StreakMoment({
   }, []);
 
   /* The clock, laid on before the first paint so nothing shows its end
-     state for a frame. `fill: both` holds each part at its start until
-     its delay comes. */
+     state for a frame. Every part holds its start until its delay comes.
+     A part that ends where its CSS already stands (faded in, scale 1, at
+     centre) lets go when it ends (`fill: backwards`); held at its end, a
+     transform kept today's block on its own layer, snapped a pixel short
+     of its slot, and a 1px sand seam stood at its right edge (the #480
+     review). Only the unlit flame (faded out) and the digits (turned)
+     hold their end. */
   useLayoutEffect(() => {
     const el = root.current;
     if (calm || !el) return;
     const playing: Animation[] = [];
     const run = (selector: string, frames: Keyframe[], options: KeyframeAnimationOptions) => {
       el.querySelectorAll<HTMLElement | SVGElement>(selector).forEach((n) =>
-        playing.push(n.animate(frames, { fill: "both", ...options }))
+        playing.push(n.animate(frames, { fill: "backwards", ...options }))
       );
     };
     const ease = { duration: DURATION.base, easing: EASE_OUT };
     run("[data-arrive]", [{ opacity: 0 }, { opacity: 1 }], ease);
-    run("[data-flame='unlit']", [{ opacity: 1 }, { opacity: 0 }], { ...ease, delay: time.lightAt });
+    run("[data-flame='unlit']", [{ opacity: 1 }, { opacity: 0 }], { ...ease, delay: time.lightAt, fill: "both" });
     run(
       "[data-flame='lit']",
       [
@@ -116,6 +121,7 @@ export function StreakMoment({
       { delay: time.lightAt, duration: springMs(SPRING.thrown), easing: springEasing(SPRING.thrown) }
     );
     run("[data-turn]", [{ transform: "translateY(0)" }, { transform: "translateY(-50%)" }], {
+      fill: "both",
       delay: time.rollAt,
       duration: time.rollMs,
       easing: springEasing(SPRING.base),

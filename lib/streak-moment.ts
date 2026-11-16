@@ -100,7 +100,7 @@ export function streakMoment(p: {
     from,
     to,
     week: momentWeek(p.repDates, p.frozenDays, p.now),
-    bridged: from > 0 ? bridgedDays(p.frozenDays, p.now) : [],
+    bridged: from > 0 ? bridgedDays(p.frozenDays, p.now, p.repDates) : [],
     day,
     milestone: to === 7 || to === 14 || to === 30,
   };
@@ -119,14 +119,20 @@ export function momentWeek(repDates: Date[], frozenDays: Date[], now: Date): Mom
   });
 }
 
-/** The frozen days running back from yesterday, oldest first: the gap today's take crossed. */
-export function bridgedDays(frozenDays: Date[], now: Date): Date[] {
+/**
+ * The frozen days running back from yesterday, oldest first: the gap
+ * today's take crossed. A day with a recording on it was spoken, whatever
+ * freeze was also filed for it (the week row draws it spoken), so it is
+ * never named as a freeze and the gap ends there.
+ */
+export function bridgedDays(frozenDays: Date[], now: Date, repDates: Date[] = []): Date[] {
   const frozen = new Set(frozenDays.map(dayKey));
+  const spoken = new Set(repDates.map(dayKey));
   const out: Date[] = [];
   for (let n = 1; n <= 7; n++) {
-    const d = dayBefore(now, n);
-    if (!frozen.has(dayKey(d))) break;
-    out.unshift(d);
+    const k = dayKey(dayBefore(now, n));
+    if (!frozen.has(k) || spoken.has(k)) break;
+    out.unshift(dayBefore(now, n));
   }
   return out;
 }

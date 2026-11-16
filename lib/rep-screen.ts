@@ -173,11 +173,13 @@ export function thinksFirst(frameStep: boolean, thoughtAlready: boolean): boolea
  * for the next exit that leaves. The reminder ask left the exit for the
  * glance itself (#430): people glance and leave.
  *
- * After the moment's Continue the same exit goes on, and only the save
- * wall may still stand in it (`afterStreak`): it is the one beat an
- * account without a sign-in cannot be left without, and it asks to keep
- * the very streak the moment just counted. The taste and Since day one
- * wait for a later exit.
+ * The moment is a celebration, not an ask, so after its Continue the
+ * same exit goes on through the asks in their order, still at most one
+ * (`afterStreak`): the save wall, the taste, Since day one. They cannot
+ * wait for a later exit (the #480 review): the moment is owed by the
+ * day's first take, so for someone who speaks once a day every exit that
+ * leaves is the moment's, and Since day one (due from day 3) and the
+ * taste (once, on today's free round) would never come.
  */
 export type ExitBeat = "streak" | "gate" | "taste" | "pro" | null;
 
@@ -192,12 +194,11 @@ export function exitBeat(p: {
   leaves: boolean;
   /** The streak's moment is owed (lib/streak-moment.ts). */
   streakDue: boolean;
-  /** This exit has just played the streak's moment. */
+  /** This exit has just played the streak's moment: it never plays twice. */
   afterStreak?: boolean;
 }): ExitBeat {
   if (p.leaves && p.streakDue && !p.afterStreak) return "streak";
   if (p.gate) return "gate";
-  if (p.afterStreak) return null;
   if (p.tasteDue) return "taste";
   if (p.leaves && p.proDue) return "pro";
   return null;

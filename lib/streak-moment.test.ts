@@ -139,6 +139,27 @@ describe("the days a freeze carried to today", () => {
     expect(bridgedDays([ago(2, 0)], NOW)).toEqual([]);
   });
 
+  it("never name a day that was spoken, even where a freeze was also filed for it", () => {
+    // Wednesday was spoken and a freeze was filed for it too: no gap was crossed.
+    expect(bridgedDays([ago(1, 0)], NOW, [ago(1)])).toEqual([]);
+    // Tuesday frozen, Wednesday spoken: the gap ended before yesterday.
+    expect(bridgedDays([ago(2, 0), ago(1, 0)], NOW, [ago(1)])).toEqual([]);
+    // The moment agrees with its own week row: no "A freeze covered Wednesday." over a spoken Wednesday.
+    const repDates = [ago(3), ago(2), ago(1), TODAY];
+    const frozenDays = [ago(1, 0)];
+    const m = streakMoment({
+      streak: computeStreak(repDates, NOW, frozenDays),
+      before: { didToday: false },
+      repDates,
+      frozenDays,
+      now: NOW,
+      shownOn: null,
+    });
+    expect(m!.week[2].mark).toBe("spoken");
+    expect(m!.bridged).toEqual([]);
+    expect(freezeLine(m!.bridged)).toBeNull();
+  });
+
   it("name themselves in one line", () => {
     expect(freezeLine([])).toBeNull();
     expect(freezeLine([ago(2), ago(1)])).toBe("Freezes covered Tuesday and Wednesday.");

@@ -101,6 +101,12 @@ export interface GlanceView {
    * colour is never the whole message.
    */
   held?: boolean;
+  /**
+   * The first take under #476's pause rules beside one scored before
+   * them (#491): one plain line under the delta saying how much of the
+   * jump is the new scoring, traced to the Pause scores. Once per account.
+   */
+  rulesNote?: string | null;
 }
 
 /** The sheet's body (section "detail"): its sections in order, and those Results draws. */
@@ -1337,6 +1343,17 @@ function Glance({
                 <TrendMark up={view.earned.delta > 0} /> {Math.abs(view.earned.delta)}
               </span>
             ) : null}
+          </p>
+        )}
+        {/* The first take under #476 (#491): the jump is partly the
+            rule's, said once, plain, under what it qualifies, with the
+            Pause scores that moved. Grey, never sage: it is not earned. */}
+        {view.rulesNote && ethosIndex !== null && (
+          <p
+            data-rules-note
+            className={`mt-1.5 max-w-[300px] text-caption text-balance text-stone-500 ${counting ? "" : "invisible"}`}
+          >
+            {view.rulesNote}
           </p>
         )}
       </div>

@@ -92,6 +92,7 @@ import { ENVELOPE_RATE, serializeEnvelope, type Envelope } from "@/lib/envelope"
 import { ethosIndex, pauseScore, type Tier1Scores } from "@/lib/index-score";
 import { computeMetrics } from "@/lib/metrics";
 import { reportJudged, type JudgedPause } from "@/lib/pause-quality";
+import { PAUSE_RULES, rulesNote } from "@/lib/pause-rules";
 import { SHAPED_TAKE, whisperTake } from "@/lib/__fixtures__/whisper-take";
 
 function post(form: FormData | null): Promise<Response> {
@@ -1729,5 +1730,56 @@ describe("a take as Whisper returns it (#476)", () => {
     expect(body.tier1).toEqual(saved.tier1);
     expect(body.metrics.pauses).toEqual(saved.metrics.pauses);
     expect(saved.whisperRaw).toEqual(take.raw);
+  });
+
+  /*
+   * #491: the take says which rules scored it, on the row it stores and on
+   * its answer, and the first one beside a take scored before #476 says
+   * its jump is partly the rule's. The same reply stored under the old
+   * rules had Pause 26; under #476 it scores 73, +71 on the Index from the
+   * rule alone (1.5 Index points a Pause point).
+   */
+  it("stamps the pause rules on the save and the answer, and the first take's note traces the jump to the Pause scores", async () => {
+    vi.mocked(saveRep).mockClear();
+    vi.mocked(transcribe).mockResolvedValue(take);
+    vi.mocked(coachRep).mockResolvedValue({
+      focus: "Hold the gap.",
+      strength: "Six landed.",
+      supply: null,
+      coachLine: "Six pauses landed.",
+      dimensions: { structure: dim, credibility: dim, engagement: dim, confidence: dim },
+    });
+    const first = await (await post(audioForm())).json();
+    expect(vi.mocked(saveRep).mock.calls[0][0].pauseRules).toBe(PAUSE_RULES);
+    expect(first.pauseRules).toBe(PAUSE_RULES);
+
+    /* The same reply as it was stored before #476: Pause 26, the rest alike. */
+    const tier2 = { structure: 60, credibility: 60, engagement: 60, confidence: 60 };
+    const storedTier1 = { ...first.tier1, pause: 26 };
+    const storedIndex = ethosIndex(storedTier1, tier2) as number;
+    expect(storedIndex).toBeTypeOf("number");
+    vi.mocked(previousEthosIndex).mockResolvedValue(storedIndex);
+    const body = await (await post(audioForm())).json();
+    expect(body.previousIndex).toBe(storedIndex);
+    expect(body.ethosIndex - storedIndex).toBe(71);
+    const stored = { ethos_index: storedIndex, dimensions: { tier1: storedTier1, anchors: {}, tier2: null } };
+    const note = rulesNote({
+      now: { rules: body.pauseRules, index: body.ethosIndex, pause: body.tier1.pause },
+      previousIndex: body.previousIndex,
+      prior: [stored],
+    });
+    expect(note).toEqual({
+      kind: "delta",
+      text: "Part of this jump comes from new pause scoring: Pausing went 26 to 73.",
+    });
+    /* The second take under #476 compares with the first, stored with its mark: no note. */
+    const firstStored = { ethos_index: body.ethosIndex, dimensions: { tier1: body.tier1, pauseRules: body.pauseRules } };
+    expect(
+      rulesNote({
+        now: { rules: body.pauseRules, index: body.ethosIndex + 20, pause: 80 },
+        previousIndex: body.ethosIndex,
+        prior: [stored, firstStored],
+      })
+    ).toBeNull();
   });
 });

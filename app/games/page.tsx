@@ -52,6 +52,7 @@ import {
   tomorrowLine,
   type TileLadder,
 } from "@/lib/practice-tiles";
+import { GAMES_LOG_HREF, GAMES_LOG_LABEL } from "@/lib/log-view";
 import { repHref } from "@/lib/rep-config";
 import { ACTION_CLASS } from "@/lib/ui";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
@@ -317,6 +318,22 @@ export default function GamesPage() {
         >
           {startLabel}
         </Link>
+        {/* The door to every boss and round you have played (#491): the
+            Log's Games side (#486) had none. The quiet link under the
+            one tap, as Retake stands under the results' way on and
+            "Another topic" under Today's Start, so the boss keeps the
+            screen's one tap and the scores are one tap from where games
+            are chosen. Its 44pt box stands 12 into the section gap under
+            it, so Free keeps the house's 28 from what is drawn. */}
+        <div className="mt-1 -mb-3 flex justify-center">
+          <Link
+            href={GAMES_LOG_HREF}
+            data-games-log-door
+            className="press inline-flex min-h-11 items-center rounded-tap px-3 text-link text-stone-500"
+          >
+            {GAMES_LOG_LABEL}
+          </Link>
+        </div>
       </section>
 
       {/*

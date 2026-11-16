@@ -51,6 +51,20 @@ export function askBudget(budget: number, askWords: string): number {
   return budget + Math.min(GLANCE_WORDS_ASK, countWords(askWords));
 }
 
+/**
+ * The note under the delta on the first take scored under #476's pause
+ * rules (#491, lib/pause-rules.ts): once per account, so its words ride
+ * on the ceiling as the reminder ask's do, up to this many, and nothing
+ * the glance already says gives way to it. "Part of this jump comes from
+ * new pause scoring: Pausing went 26 to 73." is 13.
+ */
+export const GLANCE_WORDS_RULES = 16;
+
+/** The ceiling with the rules note's words on it. */
+export function rulesBudget(budget: number, note: string | null): number {
+  return budget + Math.min(GLANCE_WORDS_RULES, note ? countWords(note) : 0);
+}
+
 /** A filler's moment plays from a second before it to 1.5s after. */
 export const FILLER_LEAD_S = 1;
 export const FILLER_TAIL_S = 1.5;

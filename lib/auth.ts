@@ -110,6 +110,35 @@ export function resentLink(search: string | null | undefined): boolean {
   }
 }
 
+/** Settings' account page, where its round trips come back to (#479). */
+export const SETTINGS_ACCOUNT = "/settings/account";
+
+/**
+ * Where a Settings round trip lands on /auth/callback (#479): the link an
+ * email change sends carries `changed=email`, Google's return from
+ * linking carries `linked=google`. With the server's "Secure email
+ * change" on, both the old and the new address get a link, and the
+ * first one opened answers with a message naming the other: that is
+ * `half`, one more link to open. Null for every other callback.
+ */
+export type SettingsLanding = { kind: "email"; step: "half" | "done" } | { kind: "google" } | null;
+
+export function settingsLanding(href: string): SettingsLanding {
+  let url: URL;
+  try {
+    url = new URL(href);
+  } catch {
+    return null;
+  }
+  if (url.searchParams.get("changed") === "email") {
+    const hash = new URLSearchParams(url.hash.replace(/^#/, ""));
+    const message = hash.get("message") ?? url.searchParams.get("message") ?? "";
+    return { kind: "email", step: /other email/i.test(message) ? "half" : "done" };
+  }
+  if (url.searchParams.get("linked") === "google") return { kind: "google" };
+  return null;
+}
+
 const CAME_WITH_YOU = "Everything you've already recorded came with you.";
 
 /**
@@ -269,10 +298,10 @@ function resentToEarlier(
  * the dashboard's SMTP settings; this is the honest handling of the
  * failure until then, and the console line is what makes it visible.
  */
-const SLOW_EMAIL_NOTE =
+export const SLOW_EMAIL_NOTE =
   "The email server was slow, so the mail may take a few minutes. Nothing there after that? Send it again.";
 
-function emailTimedOut(message: string): boolean {
+export function emailTimedOut(message: string): boolean {
   const m = message.toLowerCase();
   return (
     m.includes("deadline") ||
@@ -942,10 +971,18 @@ export async function deleteAccount({ plan = false }: { plan?: boolean } = {}): 
 /**
  * Supabase's messages are written for developers. These are the ones a
  * user can actually hit, in the register the rest of the app uses:
- * short, specific, no apology, no blame.
+ * short, specific, no apology, no blame. Settings' account page reads
+ * it too (lib/account-settings.ts, #479).
  */
-function humanise(message: string): string {
+export function humanise(message: string): string {
   const m = message.toLowerCase();
+  if (m.includes("different from the old password")) {
+    return "That's the password you have now. Pick a new one.";
+  }
+  if (m.includes("reauthentication")) {
+    // Secure password change: the session is older than the server allows.
+    return "Sign out and back in, then change it.";
+  }
   if (m.includes("invalid login credentials")) {
     // "Forgot?" sits on the password row, above this line (auth-16).
     return "That email and password don't match. Try again or reset it.";

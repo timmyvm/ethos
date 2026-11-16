@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type RefObject } from "react";
 import { appliedTextZoom } from "./text-size";
 
 /**
@@ -38,6 +38,50 @@ export function keyboardUp(visual: Visual | null | undefined, layout: number | L
   const l: Layout = typeof layout === "number" ? { height: layout } : layout;
   const pinch = visual.width && l.width ? l.width / visual.width : (visual.scale ?? 1);
   return l.height - visual.height * pinch > KEYBOARD_MIN_PX / (l.zoom && l.zoom > 1 ? l.zoom : 1);
+}
+
+/**
+ * How far to scroll so a tap ending at `bottom` stands `gap` above the
+ * keys, whose top is `keysTop` (both in the layout viewport's pixels);
+ * 0 when it already does.
+ */
+export function clearOfKeys(bottom: number, keysTop: number, gap = 12): number {
+  const by = Math.ceil(bottom + gap - keysTop);
+  return by > 0 ? by : 0;
+}
+
+/**
+ * The keyboard never covers a form's tap (#441), for a form that stands
+ * on the page rather than on a shelf (Settings' account forms, #479):
+ * while the keyboard is up the page grows by the keys' height, so there
+ * is room to scroll, and scrolls just far enough to lift the tap above
+ * them. Returns the room to add at the page's foot, in pixels.
+ */
+export function useTapAboveKeys(tap: RefObject<HTMLElement | null>): number {
+  const up = useKeyboardUp();
+  const [room, setRoom] = useState(0);
+  useEffect(() => {
+    const visual = window.visualViewport;
+    if (!up || !visual) {
+      setRoom(0);
+      return;
+    }
+    const lift = () => {
+      const el = tap.current;
+      if (!el) return;
+      const by = clearOfKeys(el.getBoundingClientRect().bottom, visual.offsetTop + visual.height);
+      if (by > 0) window.scrollBy({ top: by, behavior: "auto" });
+    };
+    setRoom(Math.max(0, window.innerHeight - visual.height));
+    // After the room is laid out, so there is somewhere to scroll to.
+    const frame = requestAnimationFrame(lift);
+    visual.addEventListener("resize", lift);
+    return () => {
+      cancelAnimationFrame(frame);
+      visual.removeEventListener("resize", lift);
+    };
+  }, [up, tap]);
+  return room;
 }
 
 /** True while the keyboard covers part of the page; false on the server and where the browser cannot say. */

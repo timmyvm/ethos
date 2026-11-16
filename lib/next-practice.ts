@@ -70,9 +70,12 @@ export interface Chosen {
  * The weakest trait, then a practice for it.
  *
  * The tier is the lower one until that trait's standing clears the
- * halfway mark, and it is never named. Which of the twelve is
- * deterministic per day, so a refresh does not reshuffle the card and
- * two people on the same day are not doing the same thing.
+ * halfway mark, and it is never named. Which of the trait's practices
+ * is deterministic per day, so a refresh does not reshuffle the card,
+ * and the day walks them in order: past each trait's first twelve, the
+ * topic is the day's for every trait at a tier and the angle is the
+ * trait's (content/path.ts, #481), so a change of weakest trait brings
+ * no topic back early.
  */
 export function choosePractice(
   readings: TraitReading[],

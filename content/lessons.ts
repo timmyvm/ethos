@@ -2,7 +2,7 @@
  * Lessons (DECISIONS #269).
  *
  * A LESSON IS NOT A PATH ITEM, and keeping the two apart is the whole
- * design. `content/path.ts` is 120 practices that the daily card draws
+ * design. `content/path.ts` is 1,645 practices that the daily card draws
  * from: one recording, chosen by whichever trait is weakest, gone
  * tomorrow. A lesson is a thing you decide to do. It has a name, a
  * picture, three practices, and a last one that is harder than the two

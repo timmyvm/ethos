@@ -74,7 +74,7 @@ describe("every practice has its object", () => {
     expect(HOUSE_OBJECT).toBe("the-long-one");
   });
 
-  it("all 120 practices resolve to an object of their own trait, cut at both sizes", () => {
+  it("every practice on the path resolves to an object of its own trait, cut at both sizes", () => {
     for (const p of PATH) {
       const id = heroObject(p.trait, p.tips[0]);
       expect(lessonById(id)?.trait, p.id).toBe(p.trait);

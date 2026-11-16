@@ -15,15 +15,18 @@ const reading = (id: TraitId, raw: number, over: Partial<TraitReading> = {}): Tr
 });
 
 describe("the path", () => {
-  it("is 120", () => {
-    expect(PATH.length).toBe(120);
+  /* Five traits, each walking its own twelve of the first sixty and
+     then every topic since at its tier (#481): 165 at tier 1, 164 at
+     tier 2. */
+  it("is 1,645", () => {
+    expect(PATH.length).toBe(1645);
   });
 
-  it("gives every trait twelve at each tier", () => {
+  it("gives every trait 165 at tier 1 and 164 at tier 2", () => {
     for (const t of TRAITS) {
-      for (const tier of [1, 2] as const) {
+      for (const [tier, want] of [[1, 165], [2, 164]] as const) {
         const n = PATH.filter((p) => p.trait === t.id && p.tier === tier).length;
-        expect([t.id, tier, n]).toEqual([t.id, tier, 12]);
+        expect([t.id, tier, n]).toEqual([t.id, tier, want]);
       }
     }
   });
@@ -33,7 +36,7 @@ describe("the path", () => {
   });
 
   /*
-   * The guard that makes 120 affordable honest: nothing here is new
+   * The guard that makes the path affordable honest: nothing here is new
    * copy at the sentence level. Every prompt is a topic that already
    * shipped and was already reviewed.
    */
@@ -52,10 +55,19 @@ describe("the path", () => {
     }
   });
 
-  it("never repeats a title inside one trait", () => {
+  /* Twelve angles a trait, taken in turn: no angle twice inside twelve
+     days, and never the same angle on the same topic. */
+  it("never repeats a title inside twelve days of one trait", () => {
     for (const t of TRAITS) {
-      const titles = PATH.filter((p) => p.trait === t.id && p.tier === 1).map((p) => p.title);
-      expect([t.id, new Set(titles).size]).toEqual([t.id, titles.length]);
+      for (const tier of [1, 2] as const) {
+        const items = PATH.filter((p) => p.trait === t.id && p.tier === tier);
+        for (let i = 0; i + 12 <= items.length; i++) {
+          const titles = items.slice(i, i + 12).map((p) => p.title);
+          expect([t.id, tier, i, new Set(titles).size]).toEqual([t.id, tier, i, 12]);
+        }
+        const pairs = items.map((p) => `${p.title}|${p.topicId}`);
+        expect(new Set(pairs).size).toBe(items.length);
+      }
     }
   });
 
@@ -113,6 +125,23 @@ describe("choosePractice", () => {
       }
     } finally {
       process.env.TZ = tz;
+    }
+  });
+
+  /* "it kept cycling over the same ones" (#473, #481): the card used to
+     come round again after twelve days. A trait whose number holds now
+     meets a new topic every day for 165 days. */
+  it("gives a trait that stays weakest a new topic every day for its whole walk", () => {
+    for (const [rs, n] of [
+      [[reading("fillers", 20)], 165],
+      [[reading("pace", 148)], 164],
+    ] as const) {
+      const seen: string[] = [];
+      for (let d = 0; d < n + 1; d++) {
+        seen.push(choosePractice([...rs], new Date(2026, 10, 16 + d, 12))!.item.topicId);
+      }
+      expect(new Set(seen.slice(0, n)).size).toBe(n);
+      expect(seen[n]).toBe(seen[0]);
     }
   });
 

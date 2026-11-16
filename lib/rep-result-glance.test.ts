@@ -117,9 +117,10 @@ describe("the sheet's body, in order", () => {
     expect(order).toEqual(["coach", "records", "fillers", "dimensions", "words", "closing"]);
     expect(html.match(/AI-generated feedback/g)).toHaveLength(1);
     expect(html).toContain('<h2 class="section-head">Demos&#x27;s read</h2>');
-    expect(html).not.toContain("Kept:");
-    expect(html.indexOf("AI-generated feedback")).toBeLessThan(html.indexOf(">Kept<"));
-    expect(html.indexOf(">Kept<")).toBeLessThan(html.indexOf("Say this instead"));
+    /* "Kept" failed the two-second test (#484): what the take did well is headed in those words. */
+    expect(html).not.toContain("Kept");
+    expect(html.indexOf("AI-generated feedback")).toBeLessThan(html.indexOf(">What went well<"));
+    expect(html.indexOf(">What went well<")).toBeLessThan(html.indexOf("Say this instead"));
     expect(html).toContain('<h2 class="section-head">Every dimension</h2>');
     expect(html).toContain('<details open=""');
   });
@@ -139,9 +140,11 @@ describe("the sheet's body, in order", () => {
     expect(visible(rush)).toContain("Length 62s of 30s");
   });
 
-  it("puts #160's line in the row it leveled, never under the list's head", () => {
-    /* repTraitGain re-runs the substance gate on the transcript, so the
-       take needs one a gate would score. */
+  it("says no level-up anywhere in the sheet, not even in the row the take levels (#484)", () => {
+    /* A take a gate would score (repTraitGain re-runs the substance gate
+       on the transcript), with Pace at 96: it levels Pace twice on You.
+       "Leveled twice" stood in that row and failed the two-second test
+       on its own: no level is on this screen to read it against. */
     const strong = {
       ...result,
       transcript:
@@ -151,9 +154,8 @@ describe("the sheet's body, in order", () => {
     const html = renderToStaticMarkup(
       createElement(RepResult, { result: strong, section: "detail", sheet: { sections: ["dimensions"], open: "pace" } })
     );
-    const head = html.slice(0, html.indexOf("<details"));
-    expect(head).not.toMatch(/leveled/i);
-    expect(html).toMatch(/Leveled (twice|up)/);
+    expect(html).toContain('<details open=""');
+    expect(html).not.toMatch(/level/i);
   });
 
   it("a capped take says the read is back tomorrow and that it still counted", () => {
@@ -185,7 +187,7 @@ describe("a take with no upgrade", () => {
     const html = renderToStaticMarkup(createElement(RepResult, { result: none, section: "detail", sheet: { sections, open: "fillers" } }));
     expect(html).toContain('<h2 class="section-head">Demos&#x27;s read</h2>');
     expect(html.match(/AI-generated feedback/g)).toHaveLength(1);
-    expect(html).toContain(">Kept<");
+    expect(html).toContain(">What went well<");
     expect(visible(html)).toContain("Held the pause before ‘the mistake people make’.");
     expect(html).not.toContain("Say this instead");
     expect(html).not.toContain("line-through");
@@ -208,9 +210,10 @@ describe("a take with no upgrade", () => {
     expect(html).toContain('data-sheet-section="fillers"');
   });
 
-  it("on the Log's page, shows Kept and the dimensions and no Say this instead section", () => {
+  it("on the Log's page, shows what went well and the dimensions and no Say this instead section", () => {
     const all = renderToStaticMarkup(createElement(RepResult, { result: none, section: "all" }));
-    expect(all).toContain("Kept:");
+    expect(all).toContain("What went well:");
+    expect(all).not.toContain("Kept");
     expect(all).toContain("Every dimension");
     expect(all).not.toContain("Say this instead");
     const withIt = renderToStaticMarkup(createElement(RepResult, { result, section: "all" }));

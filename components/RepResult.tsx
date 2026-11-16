@@ -14,15 +14,19 @@ import { SpeechBubble } from "@/components/SpeechBubble";
 import { Stars } from "@/components/Stars";
 import type { TakeAudio } from "@/components/TakeAudio";
 import type { TraitId } from "@/content/traits";
-import { DIMENSION_NAME } from "@/lib/dimension-rows";
 import type { AccuracyResult } from "@/lib/accuracy";
 import type { CoachOutput } from "@/lib/coach";
 import type { ColdTopic } from "@/lib/cold-topics";
 import type { Tier1Scores, Tier2Anchors } from "@/lib/index-score";
 import type { GlanceMoment, GlancePart, SheetSection } from "@/lib/glance";
 import type { FillerHit, RepMetrics, Word } from "@/lib/metrics";
-import { scoreLine, splitTomorrow, takeLine } from "@/lib/coach-line";
-import { repTraitGain } from "@/lib/traits";
+import { scoreLine, splitTomorrow } from "@/lib/coach-line";
+
+/**
+ * The label over the coach's `strength`, what the take measurably did
+ * well (#484). It read "Kept", which a first-time reader cannot place.
+ */
+export const WENT_WELL = "What went well";
 
 export interface ResultView {
   transcript: string;
@@ -249,19 +253,11 @@ export function RepResult({
   const parts = splitTomorrow(line);
 
   /*
-   * The trait this rep leveled (DECISIONS #160) — this rep's best
-   * dimension, when it cleared the bar. One quiet line, never a second
-   * celebration (#34). Derived, so the log's copy of this rep says the
-   * same thing forever. A level is earned by a score, so it goes by the
-   * name the score rows and You's trait levels print (#471,
-   * lib/dimension-rows DIMENSION_NAME): "Filler control leveled up",
-   * never "Fillers leveled up".
+   * No "Filler control leveled twice" (#160's line) here any more, on the
+   * Log or live (#484, Timothy 16 Nov: underlined, remove). On its own the
+   * line names no level a first-time reader has met and no number on the
+   * page: a level lives on You, where its trait row counts it.
    */
-  const gain = repTraitGain({
-    transcript: result.transcript,
-    dimensions: { tier1, tier2: coach?.dimensions ?? null },
-  });
-  const gainName = gain ? DIMENSION_NAME[gain.key] : null;
 
   /*
    * The score step's clock (M07): the count, then the stars 120ms
@@ -408,15 +404,20 @@ export function RepResult({
           /* The coach's two under one head, the caption under the head so
              it covers both (M-2, the #427 review: "Kept:" was a headless
              line and the caption trailed under Say this instead alone):
-             the only text on the screen a model wrote. */
+             the only text on the screen a model wrote. What the take did
+             well is headed in those words (#484: "Kept" failed the
+             two-second test; it named what the coach kept, not what you
+             did), beside "Say this instead". */
           return coach && (coach.strength || coach.supply) ? (
             <section>
               <h2 className="section-head">Demos&apos;s read</h2>
               <p className="mt-1 text-caption text-stone-400">AI-generated feedback</p>
               {coach.strength && (
                 <div className="mt-3">
-                  <h3 className="detail-head">Kept</h3>
-                  <p className="mt-1 text-body text-stone-600 text-pretty">{coach.strength}</p>
+                  <h3 className="detail-head">{WENT_WELL}</h3>
+                  <p data-coach-strength className="mt-1 text-body text-stone-600 text-pretty">
+                    {coach.strength}
+                  </p>
                 </div>
               )}
               {coach.supply && (
@@ -470,8 +471,9 @@ export function RepResult({
             <section>
               <h2 className="section-head">{coach ? "Every dimension" : "The measured dimensions"}</h2>
               {/* The take's length against its target (the review: the
-                  three tiles went and took the length with them). #160's
-                  line is in its own row now, not here. */}
+                  three tiles went and took the length with them). It
+                  stays live (#484): one plain fact with its target, not
+                  the Log's line of three numbers Timothy struck. */}
               <p data-take-length className="mt-1 text-caption text-stone-500">
                 Length {Math.round(m.durationS)}s{lengthNote.startsWith("of ") ? " " : ", "}
                 {lengthNote}
@@ -482,7 +484,6 @@ export function RepResult({
                   anchors={anchors}
                   metrics={m}
                   coach={coach}
-                  index={ethosIndex}
                   scored={result.scorable !== false}
                   pauseDetail={result.pauseHeadline ?? undefined}
                   take={take}
@@ -490,7 +491,6 @@ export function RepResult({
                   open={view.open}
                   trend={view.trend}
                   brief
-                  gain={gain ? { key: gain.key, name: gain.name, text: `Leveled ${gain.levels === 2 ? "twice" : "up"}` } : null}
                 />
               </div>
             </section>
@@ -604,12 +604,6 @@ export function RepResult({
                 </p>
               </>
             )}
-            {/* A game round's own number takes this line's place (M5). */}
-            {gainName && gain && !round && (
-              <p className="mt-1.5 text-caption text-stone-500">
-                {gainName} leveled {gain.levels === 2 ? "twice" : "up"}
-              </p>
-            )}
           </div>
         ) : ethosIndex !== null ? (
           /* A stored recording (the Log) and an upload: the number at
@@ -648,12 +642,6 @@ export function RepResult({
             </span>
           </div>
         ))}
-
-      {show("score") && !debrief && gainName && gain && (
-        <p className="mt-2 text-caption font-semibold text-stone-500">
-          {gainName} leveled {gain.levels === 2 ? "twice" : "up"}
-        </p>
-      )}
 
       {show("score") && debrief && (
         /*
@@ -842,29 +830,18 @@ export function RepResult({
           <h2 className="section-head">
             {coach ? "Every dimension" : "The measured dimensions"}
           </h2>
-          {/* Length, pace and held pauses in one line of words (#458).
-              They were a pause map drawn as bars ("the recording lines.
-              get rid of it. not needed") over a card of three tiles
-              ("is there another way to communicate it"): both said
-              again what the Pausing and Pace rows under them score, at
-              the size of a headline. Hear it back still marks every
-              pause on its track, where it can be played. */}
-          <p data-take-line className="mt-1 text-caption text-stone-500">
-            {takeLine(m)}
-          </p>
-          {/* A game round's trait gain, said under the numbers it read (M5). */}
-          {round && gainName && gain && (
-            <p className="mt-1 text-caption font-semibold text-stone-500">
-              {gainName} leveled {gain.levels === 2 ? "twice" : "up"}
-            </p>
-          )}
+          {/* Nothing under the head but the rows' own headline (#484,
+              Timothy 16 Nov: "60 seconds at 115 words a minute, with 8
+              held pauses." underlined, remove). The line had stood in
+              for #458's pause map and three tiles, and said again what
+              the Pace and Pausing rows under it score; Hear it back
+              still marks every pause on its track. */}
           <div className="mt-3">
             <DimensionList
               tier1={tier1}
               anchors={anchors}
               metrics={m}
               coach={coach}
-              index={ethosIndex}
               scored={result.scorable !== false}
               pauseDetail={result.pauseHeadline ?? undefined}
               take={take}
@@ -898,10 +875,11 @@ export function RepResult({
       )}
 
       {/* What held, from the coach (M08): the words step opens on it,
-          since it is a claim about the words below. */}
+          since it is a claim about the words below. Labelled for what it
+          is (#484): "Kept:" failed the two-second test. */}
       {show("words") && coach?.strength && (
-        <p className="mt-7 text-body text-stone-600 text-pretty">
-          <span className="font-semibold text-ink">Kept:</span> {coach.strength}
+        <p data-coach-strength className="mt-7 text-body text-stone-600 text-pretty">
+          <span className="font-semibold text-ink">{WENT_WELL}:</span> {coach.strength}
         </p>
       )}
 

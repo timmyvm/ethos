@@ -13,7 +13,6 @@ import {
   plural,
   rowsHeadline,
   varietyWords,
-  weightLine,
   type Band,
   type DimensionRow,
 } from "@/lib/dimension-rows";
@@ -45,24 +44,26 @@ interface Detail {
  * Strong, because a Strong row is earned (it is the bar a trait levels
  * at), and a neutral where it is not. A trait named for its fault is
  * named for its skill here (Filler control, Follow-through), so a high
- * number reads as good on every row. The rows no longer add up to the
- * Index on the page; its foot says the Index and, in words built from
- * INDEX_WEIGHTS, how each row counts toward it. The Index itself is the
- * same number: nothing is rescored, and the points the rows give are
- * still rounded per row, so they sum to it (#101).
+ * number reads as good on every row. The Index itself is the same
+ * number: nothing is rescored.
+ *
+ * The rows end on their last row (#484, Timothy 16 Nov: the foot,
+ * "9 dimensions, added up 624/1000" and then #471's "Rows are out of
+ * 100. In the Index, ... count up to 150 each ...", underlined, remove).
+ * The Ethos number over the page already says the total, every row says
+ * its own "out of 100", and nothing on the card adds up to a different
+ * number, so there is nothing left for a foot to square.
  */
 export function DimensionList({
   tier1,
   anchors,
   metrics,
   coach,
-  index = null,
   pauseDetail,
   take = null,
   fill = false,
   open,
   brief = false,
-  gain = null,
   scored = true,
   trend = null,
 }: {
@@ -70,13 +71,6 @@ export function DimensionList({
   anchors: Tier2Anchors;
   metrics: RepMetrics;
   coach: CoachOutput | null;
-  /**
-   * The take's Ethos Index, as it was stored or scored, for the foot.
-   * It is the rows' points summed for every take scored on today's
-   * weights; a recording from before the split was weighed otherwise,
-   * and the foot says so rather than print a sum that is not its Index.
-   */
-  index?: number | null;
   /** The pause report's own line, when the results screen has one. */
   pauseDetail?: string;
   /**
@@ -104,11 +98,6 @@ export function DimensionList({
    * keeps the rule.
    */
   brief?: boolean;
-  /**
-   * #160's one quiet line ("Leveled twice"), in the row of the dimension
-   * it leveled, by its key.
-   */
-  gain?: { key: string; name: string; text: string } | null;
   /**
    * Whether the rows are a reading. A take too short to score measured
    * nothing (#55), so its rows claim nothing in words: no headline, no
@@ -207,9 +196,6 @@ export function DimensionList({
   };
 
   const rows = dimensionRows(tier1, coach?.dimensions ?? null);
-  // Same rounding the Index uses, so the rows' points add up to it.
-  const earned = rows.reduce((sum, r) => sum + r.points, 0);
-  const available = rows.reduce((sum, r) => sum + r.weight, 0);
   const said = scored ? rowsHeadline(rows) : "";
 
   return (
@@ -231,42 +217,9 @@ export function DimensionList({
             open={open !== undefined && row.key === open}
             scored={scored}
             fill={fill}
-            gain={gain && gain.key === row.key ? gain.text : null}
             trend={trend?.[row.key] ?? null}
           />
         ))}
-
-        {coach ? (
-          /* The Index, stated where the rows end, and how they make it:
-             every row is out of 100 and counts toward the 1000 by its
-             weight, said in words built from the weights themselves, so
-             a reader never sums the rows and finds a different number. */
-          <div data-dimension-foot className="border-t border-hairline py-3">
-            {/* The Index as the take holds it, never one worked out here:
-                a caller with no Index gets the weights alone. */}
-            {index !== null && (
-              <div className="mb-1 flex items-baseline gap-3">
-                <span className="font-display flex-1 pl-[11px] text-row">Ethos Index</span>
-                <span className="font-display text-body font-extrabold tabular-nums">
-                  {index}
-                  <span className="text-caption font-semibold text-stone-500">/1000</span>
-                </span>
-                <span aria-hidden className="w-3.5 shrink-0" />
-              </div>
-            )}
-            <p className="pl-[11px] text-caption leading-relaxed text-stone-500 text-pretty">
-              {weightLine(rows)}
-              {index !== null && index !== earned && " This recording was scored on earlier weights, so its Index is not their sum."}
-            </p>
-          </div>
-        ) : (
-          /* Counts the rows rather than claiming a number (#102): the
-             measured tier grew once already and this line didn't notice. */
-          <p data-dimension-foot className="border-t border-hairline py-3 pl-[11px] text-caption leading-relaxed text-stone-500">
-            The coach didn&apos;t run this time. These {rows.length} measured rows count for up to {available} of the
-            1000; without the judged four there is no Ethos Index.
-          </p>
-        )}
       </div>
     </>
   );
@@ -296,7 +249,6 @@ function RowDetails({
   open,
   scored,
   fill,
-  gain,
   trend,
 }: {
   row: DimensionRow;
@@ -305,7 +257,6 @@ function RowDetails({
   /** False on a take too short to score: the number alone, no word, no sage. */
   scored: boolean;
   fill: boolean;
-  gain: string | null;
   trend: string | null;
 }) {
   const trait = isTraitKey(row.key) ? row.key : undefined;
@@ -363,7 +314,6 @@ function RowDetails({
         <div className="reveal mt-2 pl-[11px] text-caption leading-relaxed text-stone-500">
           {detail.detail}
           {trend && <div data-trend className="mt-1 text-stone-600">{trend}</div>}
-          {gain && <div className="mt-1 font-semibold text-sage-700">{gain}</div>}
           {detail.moments}
           {detail.improve && <div className="mt-1 text-stone-600">↳ {detail.improve}</div>}
         </div>

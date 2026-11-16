@@ -235,34 +235,37 @@ for (const width of [320, 360, 375, 390, 430]) {
   await context.close();
 }
 
-// ---- 4. a recording's take line at 320 -----------------------------------------------
+// ---- 4. a recording's head at 320 -----------------------------------------------------
 /* Length, pace and held pauses were three tiles here, whose labels this
-   section kept inside their tiles at the 11px floor (#450). They are one
-   line of words since #458 ("is there another way to communicate it"),
-   so what is held now is that line: no tile left, every word of it on
-   the page's column, at the floor or over it. */
+   section kept inside their tiles at the 11px floor (#450), then one line
+   of words under "Every dimension" (#458). That line went too (#484,
+   Timothy 16 Nov: underlined, remove), so what is held now is the head
+   with the rows' headline straight under it: no tile, no take line, and
+   the headline on the page's column at the floor or over it. */
 {
   const { context, page } = await open(320);
   await page.goto(`${BASE}/rep/rep-22`);
   await settle(page);
   const line = await page.evaluate(() => {
     const tiles = [...document.querySelectorAll("main .label-micro")].some((l) => l.textContent.trim() === "Held pauses");
-    const el = document.querySelector("main [data-take-line]");
-    if (!el) return { tiles, found: false };
-    const column = el.parentElement.getBoundingClientRect();
+    const take = !!document.querySelector("main [data-take-line]");
+    const el = document.querySelector("main [data-dimension-headline]");
+    if (!el) return { tiles, take, found: false };
+    const column = el.closest("section").getBoundingClientRect();
     const range = document.createRange();
     range.selectNodeContents(el);
     const ink = range.getBoundingClientRect();
     return {
       tiles,
+      take,
       found: true,
       text: el.textContent.trim(),
       size: parseFloat(getComputedStyle(el).fontSize),
       past: Math.round(Math.max(ink.right - column.right, column.left - ink.left) * 10) / 10,
     };
   });
-  ok("a recording at 320: the three tiles are gone, and one line says them", !line.tiles && line.found && /\d+ seconds at \d+ words a minute/.test(line.text ?? ""), JSON.stringify(line.text ?? null));
-  ok("and it stays on the page's column, at 11px or over", line.found && line.past <= 0 && line.size >= 11, `${line.size}px, ${line.past} past the column`);
+  ok("a recording at 320: no tiles and no take line under the head", !line.tiles && !line.take, JSON.stringify(line));
+  ok("and the rows' headline stays on the page's column, at 11px or over", line.found && line.past <= 0 && line.size >= 11, `${line.size}px, ${line.past} past the column`);
   await context.close();
 }
 

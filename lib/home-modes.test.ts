@@ -114,4 +114,16 @@ describe("Today draws the two between the card and the trait tiles (#478)", () =
     expect(page).toMatch(/useState<Date \| null>\(\(\) => \(warm \? new Date\(\) : null\)\)/);
     expect(page).toContain("setClock(new Date());");
   });
+
+  /* #478 review: the clock moved only when the day turned, so a tile at
+     the cap said "Next in about 2 hours" for as long as Today stayed
+     open, and still said it after the round had opened. */
+  it("moves the clock on every check, a return or the minute's tick, not only when the day turns", () => {
+    const check = page.slice(page.indexOf("const check = () => {"), page.indexOf('addEventListener("visibilitychange", check)'));
+    expect(check.length).toBeGreaterThan(0);
+    const moved = check.indexOf("setClock(new Date());");
+    expect(moved).toBeGreaterThan(-1);
+    expect(moved).toBeLessThan(check.indexOf("if (!dayTurned("));
+    expect(page).toMatch(/window\.setInterval\(check, 60_000\)/);
+  });
 });

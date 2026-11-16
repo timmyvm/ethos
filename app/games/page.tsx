@@ -464,7 +464,7 @@ export default function GamesPage() {
  * One game, as a tile (M6): its glyph bare in ink at 28 (E11), its
  * name, and for a game its ladder under them: the level with a pip per
  * count it takes, then its best. `note` is the tile's allowance ("Free
- * today", "1 free this week") under the name. About 124 tall (a note
+ * today") under the name. About 124 tall (a note
  * adds its line), so nothing moves when the rounds arrive.
  */
 function GameTile({

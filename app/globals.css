@@ -6043,7 +6043,10 @@ summary::-webkit-details-marker {
 }
 /* What it is about now: the claim of the day, the week's topic, at the
    body size in the heavy face, four lines at most (the longest claim
-   takes four at 320). */
+   takes four at 320). It holds the lines the longest one takes at the
+   width, three, four under 360 (#478 review): the server's paint has no
+   clock, so the subject lands after it, and a tile that grew then moved
+   the switch and every tile under it down 12px at 320. */
 .home-mode-subject {
   display: -webkit-box;
   overflow: hidden;
@@ -6051,6 +6054,12 @@ summary::-webkit-details-marker {
   -webkit-line-clamp: 4;
   line-height: 1.25;
   text-wrap: pretty;
+  min-height: calc(3 * 1.25em);
+}
+@media (max-width: 359px) {
+  .home-mode-subject {
+    min-height: calc(4 * 1.25em);
+  }
 }
 .home-mode-line {
   color: var(--color-stone-500);

@@ -13,7 +13,11 @@
  *    /boss, both `?from=today`), says what it is about now and one line
  *    (rounds left, or when the next opens; days left, or Done this
  *    week); at 390 and 430 both stand on the first screen, clear of the
- *    nav. The boss's back names Today and returns there.
+ *    nav. The boss's back names Today and returns there. Nothing moves
+ *    when they land (#478 review): the server's paint, which has no
+ *    clock, stands them at the height they land at, and every claim and
+ *    every week's topic fits the lines they hold, unclipped, at 320, 349
+ *    and 390.
  * 3. The tactic in two lines. At 320 every tactic label the card can
  *    show (lib/tip-labels.ts) holds two lines in the card's words. The
  *    card shows the tactic once the day is spoken ("One more", #431),
@@ -215,6 +219,58 @@ for (const theme of ["light", "dark"]) {
     JSON.stringify({ back, home })
   );
   await context.close();
+}
+
+// 2b: the pair holds its height before the clock is read (#478 review).
+{
+  const subjects = {
+    hostile: [...readFileSync(new URL("../lib/hostile.ts", import.meta.url), "utf8").matchAll(/claim: "([^"]+)"/g)].map((m) => m[1]),
+    boss: [...readFileSync(new URL("../lib/cold-topics.ts", import.meta.url), "utf8").matchAll(/title: "([^"]+)"/g)].map((m) => m[1]),
+  };
+  const measure = () => ({
+    tiles: [...document.querySelectorAll("main a.home-mode")].map((a) => Math.round(a.getBoundingClientRect().height)),
+    seg: Math.round(document.querySelector(".home-seg")?.getBoundingClientRect().top ?? -1),
+  });
+  for (const width of [320, 349, 390]) {
+    const paint = await browser.newContext({
+      viewport: { width, height: 844 },
+      deviceScaleFactor: 1,
+      locale: "en-AU",
+      timezoneId: "Australia/Melbourne",
+      serviceWorkers: "block",
+      javaScriptEnabled: false,
+    });
+    const first = await paint.newPage();
+    await first.goto(`${BASE}/`);
+    await sleep(400);
+    const before = await first.evaluate(measure);
+    await paint.close();
+    const { context, page } = await open("light", width);
+    const after = await page.evaluate(measure);
+    const fits = await page.evaluate((subjects) => {
+      const out = [];
+      for (const a of document.querySelectorAll("main a.home-mode")) {
+        const el = a.querySelector(".home-mode-subject");
+        const held = Math.round(a.getBoundingClientRect().height);
+        const was = el.textContent;
+        for (const t of subjects[a.dataset.mode] ?? []) {
+          el.textContent = t;
+          const h = Math.round(a.getBoundingClientRect().height);
+          if (h !== held || el.scrollHeight > el.clientHeight + 1) out.push(`${a.dataset.mode}: "${t}" ${h}px`);
+        }
+        el.textContent = was;
+      }
+      return out;
+    }, subjects);
+    ok(
+      `${width}: the pair stands at the server's paint as it lands, and every claim and topic fits its lines`,
+      before.tiles.length === 2 && after.tiles.length === 2 &&
+        before.tiles.every((h, i) => Math.abs(h - after.tiles[i]) <= 1) &&
+        before.seg > 0 && Math.abs(before.seg - after.seg) <= 1 && fits.length === 0,
+      `paint ${JSON.stringify(before)}, landed ${JSON.stringify(after)}${fits.length ? `, moved by ${fits.slice(0, 3).join("; ")}` : ""}`
+    );
+    await context.close();
+  }
 }
 
 // 3: the tactic at 320, on a day already spoken ("One more", #431).

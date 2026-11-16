@@ -391,14 +391,17 @@ export default function Home() {
    * kept yesterday's date, a lit streak and "One more" while the card
    * moved to the new day under them. A return on a new local day reads
    * again, and the header remounts for its date; the minute's check
-   * covers a screen left open and visible through midnight.
+   * covers a screen left open and visible through midnight. The clock
+   * Hostile's tile counts from moves on every check too (#478 review),
+   * so "Next in about 2 hours" neither stands still on a screen left
+   * open nor outlives the round it waits for on a return.
    */
   useEffect(() => {
     const check = () => {
       if (document.visibilityState !== "visible") return;
+      setClock(new Date());
       if (!dayTurned(loadedAt.current, new Date())) return;
       setDayTurn((n) => n + 1);
-      setClock(new Date());
       // A new day is a new screen: yesterday's numbers do not stand in for it.
       drawn.current = false;
       void load();

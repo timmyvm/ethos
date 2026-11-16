@@ -74,6 +74,14 @@ export const LIMITS = {
    * a caller that never sends a take and so never claims a round.
    */
   hostileFree: { hour: 16, day: 16 },
+  /**
+   * Every Hostile call a Premium account makes (#478 review): the
+   * account's 30 a day, with the free plan's 16 an hour, so a paying
+   * account is never held sooner than a free one. On the account's 10 an
+   * hour, three rounds back to back stopped at the third round's third
+   * call, where the free plan's room let all three finish.
+   */
+  hostilePremium: { hour: 16, day: 30 },
 } as const;
 
 /** The one subject every guest's paid call counts against (`guestall`). */

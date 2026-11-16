@@ -125,7 +125,17 @@ describe("Hostile's allowance", () => {
     vi.mocked(isPremium).mockResolvedValue(true);
     vi.mocked(consumeRateLimit).mockClear();
     await answer();
-    expect(consumeRateLimit).toHaveBeenLastCalledWith("hostile:u:u-1", "user");
+    expect(consumeRateLimit).toHaveBeenLastCalledWith("hostile:u:u-1", "hostilePremium");
+  });
+
+  /* #478 review: on the account's 10 an hour a Premium account's third
+     round back to back stopped at its third call, where the free plan's
+     16 let all three finish. Paying never holds anyone sooner. */
+  it("never holds a Premium account sooner than a free one, in either window", () => {
+    expect(LIMITS.hostilePremium.hour).toBeGreaterThanOrEqual(LIMITS.hostileFree.hour);
+    expect(LIMITS.hostilePremium.day).toBeGreaterThanOrEqual(LIMITS.hostileFree.day);
+    // And no more than the account's own day: Premium buys no new spend.
+    expect(LIMITS.hostilePremium.day).toBeLessThanOrEqual(LIMITS.user.day);
   });
 
   it("gives a guest the free plan's room, and a visitor the visitor's", async () => {
@@ -210,14 +220,42 @@ describe("Hostile's allowance", () => {
     expect(refundRateLimit).not.toHaveBeenCalled();
   });
 
-  /* #416: once Whisper has run, the slot is spent. Giving it back for a
-     short answer made every such call free, and a script could loop
-     transcriptions without end. */
-  it("keeps the slot for an answer too short to read, since Whisper ran", async () => {
+  /* #416: once Whisper has run, the slot is spent; giving it back for
+     every short answer made such calls free, and a script could loop
+     transcriptions without end. #478 review: within `refund`'s room it
+     comes back, as /api/analyze gives back a take that stores nothing,
+     so two short answers do not spend the room a free account's third
+     round needs to reach its verdict. Past that room it stays spent. */
+  it("gives a short answer's slot back within the refund room, and keeps it past that room", async () => {
     vi.mocked(transcribe).mockResolvedValue({ ...HEARD, text: "I", words: [{ word: "I", start: 0, end: 0.2 }] });
     const body = await (await answer()).json();
     expect(body.tooShort).toBe(true);
+    expect(consumeRateLimit).toHaveBeenCalledWith("refund:hostile:u:u-1", "refund");
+    expect(refundRateLimit).toHaveBeenCalledWith("hostile:u:u-1");
+
+    vi.mocked(refundRateLimit).mockClear();
+    vi.mocked(consumeRateLimit).mockImplementation(async (subject: string) =>
+      subject.startsWith("refund:")
+        ? { allowed: false, window: "day", retryAfterS: 3600 }
+        : { allowed: true, window: null, retryAfterS: 0 }
+    );
+    expect((await (await answer()).json()).tooShort).toBe(true);
     expect(refundRateLimit).not.toHaveBeenCalledWith("hostile:u:u-1");
+    vi.mocked(consumeRateLimit).mockImplementation(async () => ({ allowed: true, window: null, retryAfterS: 0 }));
+  });
+
+  it("gives a visitor's short call nothing back: the visitor's room is all there is", async () => {
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue(null);
+    vi.mocked(transcribe).mockResolvedValue({ ...HEARD, text: "I", words: [{ word: "I", start: 0, end: 0.2 }] });
+    expect((await (await answer()).json()).tooShort).toBe(true);
+    expect(vi.mocked(consumeRateLimit).mock.calls.some(([s]) => s.startsWith("refund:"))).toBe(false);
+    expect(refundRateLimit).not.toHaveBeenCalled();
+  });
+
+  it("gives a long answer nothing back, and asks the refund room nothing", async () => {
+    expect((await answer()).status).toBe(200);
+    expect(vi.mocked(consumeRateLimit).mock.calls.some(([s]) => s.startsWith("refund:"))).toBe(false);
+    expect(refundRateLimit).not.toHaveBeenCalled();
   });
 
   it("keeps the slot when the verdict model was called and failed (#416)", async () => {
@@ -426,10 +464,29 @@ describe("the free plan's rounds", () => {
     expect((await judge()).status).toBe(200);
   });
 
-  it("gives the round back for a take too short to interrogate, and keeps the call's slot", async () => {
+  it("gives the round back for a take too short to interrogate, and the call's slot only within the refund room", async () => {
     vi.mocked(transcribe).mockResolvedValue({ ...HEARD, text: "I", words: [{ word: "I", start: 0, end: 0.2 }] });
     const body = await (await take()).json();
     expect(body.tooShort).toBe(true);
+    expect(refundRateLimit).toHaveBeenCalledWith("hostile:round:u:u-1");
+    expect(refundRateLimit).toHaveBeenCalledWith("hostile:u:u-1");
+
+    vi.mocked(refundRateLimit).mockClear();
+    vi.mocked(consumeRateLimit).mockImplementation(async (subject: string) =>
+      subject.startsWith("refund:")
+        ? { allowed: false, window: "hour", retryAfterS: 600 }
+        : { allowed: true, window: null, retryAfterS: 0 }
+    );
+    expect((await (await take()).json()).tooShort).toBe(true);
+    expect(refundRateLimit).toHaveBeenCalledWith("hostile:round:u:u-1");
+    expect(refundRateLimit).not.toHaveBeenCalledWith("hostile:u:u-1");
+  });
+
+  /* #478 review: the screen says "Nothing was lost; try again." A file
+     Whisper refuses keeps the call's slot (#416), but it started no round. */
+  it("gives the round back for a take whose file Whisper refused, and keeps the call's slot", async () => {
+    vi.mocked(transcribe).mockRejectedValue(new Error("Whisper API 400: Invalid file format"));
+    expect((await take()).status).toBe(502);
     expect(refundRateLimit).toHaveBeenCalledWith("hostile:round:u:u-1");
     expect(refundRateLimit).not.toHaveBeenCalledWith("hostile:u:u-1");
   });

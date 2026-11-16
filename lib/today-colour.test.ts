@@ -244,6 +244,39 @@ describe("Today's materials", () => {
     }
   });
 
+  /*
+   * #478 review: Hostile Q&A's and the boss's tiles are coloured by a
+   * pale ground, and check-colour's band under the card passes them only
+   * while that ground stays under its chroma line (24 of 255). Held here
+   * on purpose, so the pass is the rule and not the mix's luck: a
+   * stronger ground has to raise the pin knowingly. The glyph's ink is a
+   * graphic beside its name, 3:1 on that ground in both themes.
+   */
+  it("Hostile's and the boss's grounds stay a tint under the colour pin's line, their glyphs 3:1 on them", () => {
+    const pop = (name: string) => {
+      const all = [...css.matchAll(new RegExp(`--pop-${name}:\\s*(#[0-9a-f]{6})`, "gi"))].map((m) => m[1]);
+      expect(all.length, name).toBe(2);
+      return { light: all[0], dark: all[1] };
+    };
+    const pct = (sel: string) => {
+      const m = block(sel).match(/color-mix\(in srgb, var\(--tone-wash\) (\d+)%, var\(--color-surface\)\)/);
+      expect(m, sel).not.toBeNull();
+      return Number(m![1]) / 100;
+    };
+    const p = { light: pct("\n.home-mode"), dark: pct(':root[data-theme="dark"] .home-mode') };
+    const surface = { light: token(css, "surface"), dark: token(darkRoot, "surface") };
+    for (const tone of ["coral", "sky"]) {
+      const wash = pop(`${tone}-wash`);
+      const ink = pop(`${tone}-ink`);
+      for (const theme of ["light", "dark"] as const) {
+        const ground = mix(wash[theme], surface[theme], p[theme]);
+        const ch = rgb(ground);
+        expect(Math.max(...ch) - Math.min(...ch), `${tone} ${theme} ground ${ground}`).toBeLessThanOrEqual(24);
+        expect(ratio(ink[theme], ground), `${tone} ${theme} glyph`).toBeGreaterThanOrEqual(3);
+      }
+    }
+  });
+
   it("what is earned fills in the measured sage, 3:1 on sand in both themes", () => {
     // The clean run's bar; today's line is a tick on its trait's own bar
     // since D23, and clearing it is the sage check.

@@ -51,6 +51,12 @@ describe("the paywall's benefits (#403, E40)", () => {
     // of scroll and put 7.99 and 6.99 under the fade (regression review,
     // edges F4); scripts/check-sheet-touch.mjs measures the fold itself.
     expect(list.match(/\{ Glyph:/g)?.length).toBe(5);
-    expect(list).toContain("Speed rush, Interview and Hostile Q&amp;A");
+    expect(list).toContain("Speed rush, Interview, more Hostile Q&amp;A");
+  });
+
+  /* #478 review: Hostile Q&A is free (three rounds a day), so the sheet
+     never sells it as a game only Premium plays. */
+  it("never sells Hostile Q&A as Premium's alone, now that it is free", () => {
+    expect(list).not.toMatch(/(?:and|,) Hostile Q&amp;A/);
   });
 });

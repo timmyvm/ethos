@@ -23,8 +23,9 @@
  * Free for everyone since #478 (docs/plan-next.md section 4): the free
  * plan's once a week is gone, and a free account starts three rounds in
  * any 24 hours instead (`hostileRound`, claimed by the take), with every
- * call it makes under `hostileFree`. Premium is as it was: the
- * account's own room and no round count.
+ * call it makes under `hostileFree`. Premium claims no rounds, and its
+ * calls count under `hostilePremium`: the account's day with the free
+ * plan's hour, so it is never held sooner than a free account.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -52,6 +53,7 @@ import {
   consumeRateLimit,
   limitMessage,
   refundRateLimit,
+  type LimitTier,
 } from "@/lib/rate-limit";
 import { transcribe } from "@/lib/transcribe";
 
@@ -151,11 +153,21 @@ interface Spend {
   round?: string | null;
   /**
    * The round never started, though something paid ran: a take too
-   * short to interrogate. Its round comes back; the call's own slot
-   * stays spent under the rule above, so a loop of short takes is still
-   * bounded by `hostileFree`.
+   * short to interrogate, or a file Whisper refused (#478 review). Its
+   * round comes back; the call's own slot stays spent under the rule
+   * above, so a loop of them is still bounded by the call's room.
    */
   roundBack?: boolean;
+  /**
+   * Whisper heard under ten words (a take or an answer) from a caller
+   * with a session (#478 review). Its slot comes back at most `refund`
+   * times (6 an hour, 12 a day), as /api/analyze gives back a take that
+   * stores nothing: a muted mic or two short answers no longer spend
+   * the room a free account's third round needs to reach its verdict,
+   * and a loop of short audio still costs at most twelve Whisper calls
+   * a day more. Nothing past Whisper runs on one.
+   */
+  short?: boolean;
   keep: boolean;
 }
 
@@ -168,6 +180,13 @@ export async function POST(req: NextRequest) {
     if (spend.guestIp && !spend.keep) await refundRateLimit(spend.guestIp);
     if (spend.ceiling && !spend.keep) await refundRateLimit(spend.ceiling);
     if (spend.round && (!spend.keep || spend.roundBack)) await refundRateLimit(spend.round);
+    if (spend.subject && spend.keep && spend.short) {
+      const room = await consumeRateLimit(`refund:${spend.subject}`, "refund");
+      if (room.allowed) {
+        await refundRateLimit(spend.subject);
+        if (spend.guestIp) await refundRateLimit(spend.guestIp);
+      }
+    }
   }
 }
 
@@ -186,17 +205,18 @@ async function handle(req: NextRequest, spend: Spend) {
     req.headers.get("authorization")
   ).catch(() => null);
 
-  /* The plan, once (#478): Premium keeps the account's room and claims no
+  /* The plan, once (#478): Premium has its own room and claims no
      rounds; every other session, a guest's included, is the free plan.
      A read that fails is the free plan, which costs a paying account at
      most the cap for as long as the read is down. */
   const premium = auth ? await isPremium(auth.id).catch(() => false) : false;
 
-  // Its own subject, never the recording allowance, and a guest gets the
-  // account's room, as /api/analyze gives them (#408, #409); the free
-  // plan's calls count under its own room (#478).
+  // Its own subject, never the recording allowance (#408, #409): the
+  // free plan's calls, a guest's included, count under its own room, and
+  // Premium's under a room never smaller than it in any window (#478).
   const subject = `hostile:${auth ? `u:${auth.id}` : `ip:${clientIp(req.headers)}`}`;
-  const verdict = await consumeRateLimit(subject, auth && !premium ? "hostileFree" : analyzeTier(auth));
+  const tier: LimitTier = !auth ? analyzeTier(auth) : premium ? "hostilePremium" : "hostileFree";
+  const verdict = await consumeRateLimit(subject, tier);
   if (!verdict.allowed) {
     return NextResponse.json(
       { error: limitMessage(verdict), retryAfterS: verdict.retryAfterS },
@@ -323,18 +343,22 @@ async function handle(req: NextRequest, spend: Spend) {
     console.error("hostile transcription failed", e);
     const message = e instanceof Error ? e.message : "";
     spend.keep = /^Whisper API (400|413|415):/.test(message);
+    // A file Whisper refused starts no round: the screen says nothing was lost.
+    spend.roundBack = true;
     return NextResponse.json(
       { error: "Transcription failed. Nothing was lost; try again." },
       { status: 502 }
     );
   }
 
-  // Whisper ran: the slot is spent, a short answer included.
+  // Whisper ran: the slot is spent, a short answer included, and given
+  // back only within `refund`'s room (`short`, above).
   spend.keep = true;
   const metrics = computeMetrics(t.words, t.durationS, t.segments);
   if (metrics.wordCount < MIN_WORDS) {
     // Nothing to interrogate: a take this short starts no round (#478).
     spend.roundBack = true;
+    spend.short = !!auth;
     return NextResponse.json({
       tooShort: true,
       transcript: t.text,

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { SHAPED_TAKE, whisperTake } from "./__fixtures__/whisper-take";
 import type { RepRow } from "./client-data";
 import { dimensionPoints, ethosIndex, INDEX_WEIGHTS, pauseScore, type Tier1Scores } from "./index-score";
 import { movedRows, skillRows } from "./log";
@@ -172,5 +173,84 @@ describe("a recording stored before #422 keeps its numbers", () => {
 
   it("gives every path the same answer whatever its stored verdicts say", () => {
     expect(readAll(rejudged(ROWS))).toEqual(readAll(ROWS));
+  });
+});
+
+/*
+ * #476 changes how a NEW take finds its sentence ends and scores its
+ * pauses, and nothing stored (Timothy's standing rule from #422: "fix it
+ * but dont rescore"). A recording stored under the rules before it keeps
+ * the kinds, verdicts, Pause score and Index it was shown: the same
+ * Whisper reply judged today would score 73, and every path still reads
+ * the 26 it stored.
+ */
+describe("a recording stored before #476 keeps its numbers", () => {
+  const shaped = whisperTake(SHAPED_TAKE);
+  const now = (() => {
+    const m = computeMetrics(shaped.words, shaped.durationS, shaped.segments);
+    return pauseReport({
+      pauses: m.pauses,
+      words: shaped.words,
+      fillers: m.fillers,
+      durationS: m.durationS,
+      segments: shaped.segments,
+    });
+  })();
+  /* What the route stored for this reply before #476: a gap was "pre" only
+     where Whisper started a segment after it, and any filler within 1.2s
+     filled it (lib/pause-replay.test.ts holds the rules that made these). */
+  const KINDS = ["mid", "pre", "mid", "pre", "pre", "mid", "mid", "pre"] as const;
+  const VERDICTS = ["hesitation", "landing", "hesitation", "landing", "filled", "filled", "filled", "landing"] as const;
+  const storedPauses: JudgedPause[] = now.pauses.map((p, k) => ({
+    ...p,
+    kind: KINDS[k],
+    verdict: VERDICTS[k],
+    note: `${p.t} · as stored`,
+  }));
+
+  function row(id: string, createdAt: string): RepRow {
+    const base = storedBefore(id, createdAt);
+    const tier1: Tier1Scores = { ...base.dimensions!.tier1, pause: 26 };
+    return {
+      ...base,
+      duration_s: shaped.durationS,
+      transcript: shaped.text,
+      pauses: storedPauses,
+      ethos_index: ethosIndex(tier1, TIER2),
+      dimensions: { ...base.dimensions!, tier1 },
+      words: shaped.words,
+    };
+  }
+  const STORED = [row("d", "2026-11-12T08:00:00.000Z"), row("e", "2026-11-13T08:00:00.000Z"), row("f", "2026-11-14T08:00:00.000Z")];
+
+  it("is a row the new rules would score differently", () => {
+    expect(now.pauses).toHaveLength(8);
+    // Judged again it would read 73; even its stored verdicts, weighed
+    // with #476's weights, would read 43. It stored 26.
+    expect(now.score).toBe(73);
+    expect(reportJudged(storedPauses, shaped.durationS).score).toBe(43);
+    expect(now.pauses.filter((p) => p.kind === "pre")).toHaveLength(6);
+  });
+
+  it("reads its stored Pause score, Index and pause kinds on every path", () => {
+    const out = readAll(STORED);
+    expect(out.moved.find((m) => m.key === "index")!.series).toEqual(STORED.map((r) => r.ethos_index));
+    expect(out.skills.find((m) => m.key === "pause")!.series).toEqual(
+      STORED.map(() => dimensionPoints(26, INDEX_WEIGHTS.pause))
+    );
+    expect(out.schedule.find((s) => s.skill === "pause")!.score).toBe(26);
+    // The Pausing trait counts the kinds it stored, 4 before a sentence,
+    // not the 6 the same words would be given now.
+    const pausing = readTraitsFromRow(STORED[0]).find((t) => t.id === "pause")!;
+    expect(pausing.raw).toBeCloseTo((4 * 60) / shaped.durationS, 6);
+  });
+
+  it("gives every path the same answer as a row stored with the new verdicts in its list", () => {
+    // Only the verdicts differ; the kinds and every stored number are the row's own.
+    const relisted = STORED.map((r) => ({
+      ...r,
+      pauses: (r.pauses as JudgedPause[]).map((p, k) => ({ ...p, verdict: now.pauses[k].verdict })),
+    }));
+    expect(readAll(relisted)).toEqual(readAll(STORED));
   });
 });

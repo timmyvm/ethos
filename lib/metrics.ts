@@ -6,6 +6,8 @@
  * "measure, don't flatter"). Every metric traces to a timestamp.
  */
 
+import { sentenceEnds } from "./sentence-ends";
+
 /** One word from Whisper verbose_json `words[]`. */
 export interface Word {
   word: string;
@@ -182,7 +184,11 @@ export function normalizeWord(raw: string): string {
     .replace(/^'+|'+$/g, "");
 }
 
-/** Does this raw word end a sentence? (Whisper attaches punctuation.) */
+/**
+ * Does this raw word end a sentence? Whisper's word list carries no
+ * punctuation, so on a real take this never fires; the pauses read
+ * sentence ends from the segment text instead (`lib/sentence-ends.ts`).
+ */
 function endsSentence(raw: string): boolean {
   return /[.?!]["')\]]*\s*$/.test(raw);
 }
@@ -257,21 +263,16 @@ export function detectFillers(words: Word[]): {
  * Gaps between consecutive word timestamps, classified.
  * Held pauses (≥0.8s) split into pre-sentence vs mid-sentence — this
  * classification IS the pause-bar data (BUILD-PLAN).
+ *
+ * "Pre" means a sentence ended before the gap, read from the full stops
+ * in Whisper's segment text (`lib/sentence-ends.ts`, #476). Until then it
+ * meant only that Whisper started a new segment after the gap, because
+ * the word list carries no punctuation; a segment whose text cannot be
+ * lined up with its words still falls back to that rule.
  */
 export function detectPauses(words: Word[], segments?: Segment[]): Pause[] {
   const pauses: Pause[] = [];
-  const segStarts = new Set(
-    (segments ?? []).map((s) => Math.round(s.start * 100))
-  );
-
-  const startsSegment = (w: Word): boolean => {
-    if (segStarts.size === 0) return false;
-    // Whisper segment starts align with their first word within ~50ms.
-    for (let ms = -5; ms <= 5; ms++) {
-      if (segStarts.has(Math.round(w.start * 100) + ms)) return true;
-    }
-    return false;
-  };
+  const { stops } = sentenceEnds(words, segments);
 
   for (let i = 0; i < words.length - 1; i++) {
     const gap = words[i + 1].start - words[i].end;
@@ -282,8 +283,7 @@ export function detectPauses(words: Word[], segments?: Segment[]): Pause[] {
       pauses.push({ t, len, kind: "beat" });
       continue;
     }
-    const pre = endsSentence(words[i].word) || startsSegment(words[i + 1]);
-    pauses.push({ t, len, kind: pre ? "pre" : "mid" });
+    pauses.push({ t, len, kind: stops[i] ? "pre" : "mid" });
   }
   return pauses;
 }

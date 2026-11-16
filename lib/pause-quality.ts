@@ -35,10 +35,19 @@
  *   lost.
  *
  * Deterministic, no LLM, every verdict traceable to a timestamp.
+ *
+ * Since #476 (16 Nov), for new takes only: a sentence ends where
+ * Whisper's punctuated segment text says so (`lib/sentence-ends.ts`),
+ * not where Whisper happened to start a segment; "filled" means an um,
+ * uh or erm (the Fillers ring's own set) within half a second of the
+ * pause, or a sound the mic heard in it; the opening's unreachable bonus
+ * is placement's; and filled and dead air cost at most 15 together.
+ * Stored recordings keep the scores and verdicts they were given.
  */
 
 import { calibrate, classifyGap, type Envelope } from "./envelope";
-import type { FillerHit, Pause, Segment, Word } from "./metrics";
+import { FILLED_PAUSES, normalizeWord, type FillerHit, type Pause, type Segment, type Word } from "./metrics";
+import { sentenceEnds } from "./sentence-ends";
 
 export type PauseVerdict =
   | "landing" // held, at a boundary, after a real sentence — the good one
@@ -76,8 +85,20 @@ export interface PauseReport {
 export const LANDING_MIN_S = 0.8;
 /** Over this it stops reading as composure. */
 export const DEAD_AIR_S = 3.5;
-/** A filler this close to a silence means the silence was bought back. */
+/**
+ * A game round's cut-in: a filler (any of them) this close to either edge
+ * of the silence after Demos cut in means it was bought back
+ * (`lib/round.ts`). The Pause dimension used it too until #476.
+ */
 export const FILLER_ADJACENCY_S = 1.2;
+/**
+ * The Pause dimension's own: an um, uh or erm ending this close before a
+ * pause, or starting this close after it, is leaning on it (#476). Only
+ * the filled pauses the Fillers ring counts (`FILLED_PAUSES`): a "like" or
+ * a "you know" near a silence is its own thing, and the ring leaves it out
+ * for the same reason.
+ */
+export const FILLED_EDGE_S = 0.5;
 /** A sentence has to be worth landing before the pause after it counts. */
 export const SUBSTANTIAL_SENTENCE_WORDS = 6;
 /** Landing pauses per minute that read as paced rather than sparse/stalling. */
@@ -85,28 +106,65 @@ export const LANDING_ZONE: [number, number] = [2, 9];
 
 // --- weights ---------------------------------------------------------
 
-const PLACEMENT_MAX = 60;
+/*
+ * Placement took the opening's 7 (#476). The opening bonus paid for a
+ * pause before the first word, and that silence is never a gap between
+ * two words, so a take all but never earned it and its ceiling was 93.
+ * The "opening" verdict stays (a held pause right after a first word
+ * said that quickly still gets it) and counts as placement.
+ */
+const PLACEMENT_MAX = 67;
 const RATE_MAX = 25;
-const OPENING_BONUS = 7;
 const ENDING_BONUS = 8;
 const FILLED_PENALTY = 10;
 const DEAD_PENALTY = 12;
+/**
+ * Filled pauses and dead air cost this much at most, together (#476). The
+ * ratio already counts each one as a held pause that did not land; a cost
+ * past that, uncapped, made a longer take lose more for the same habit.
+ */
+export const PENALTY_CAP = 15;
 
 function clock(t: number): string {
   return `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
 }
 
-/** Words closed off by the sentence ending at or before `t`. */
-function wordsInSentenceEndingAt(words: Word[], t: number): number {
+/**
+ * Words closed off by the sentence ending at or before `t`: walk back to
+ * the previous sentence end. `stops[i]` says a sentence ends after word i
+ * (`lib/sentence-ends.ts`); before #476 this read the word's own
+ * punctuation, which Whisper's word list never has, so it found no full
+ * stop and counted up to 41.
+ */
+function wordsInSentenceEndingAt(words: Word[], stops: boolean[], t: number): number {
   let count = 0;
   for (let i = words.length - 1; i >= 0; i--) {
     if (words[i].end > t + 0.05) continue;
     count++;
-    // Walk back to the previous sentence end.
-    if (count > 1 && /[.?!]["')\]]*\s*$/.test(words[i].word)) return count - 1;
+    if (count > 1 && stops[i]) return count - 1;
     if (count > 40) break;
   }
   return count;
+}
+
+/**
+ * The filled pauses (um, uh, erm) as spans of the take: from where each
+ * was said to where its word ends, when the word list has it.
+ */
+function filledSpans(fillers: FillerHit[], words: Word[]): { from: number; to: number }[] {
+  return fillers
+    .filter((f) => FILLED_PAUSES.has(f.word))
+    .map((f) => {
+      const word = words.find(
+        (w) => Math.abs(w.start - f.t) < 0.006 && normalizeWord(w.word) === f.word
+      );
+      return { from: f.t, to: word ? Math.max(f.t, word.end) : f.t };
+    });
+}
+
+/** How far a span is from an instant: 0 when it covers it. */
+function distance(span: { from: number; to: number }, at: number): number {
+  return Math.max(0, span.from - at, at - span.to);
 }
 
 /**
@@ -125,17 +183,18 @@ export function judgePauses(params: {
   const firstWordAt = words[0]?.start ?? 0;
   // Calibrate once for the whole rep, not per gap.
   const floor = envelope ? calibrate(envelope) : undefined;
+  const { stops } = sentenceEnds(words, params.segments);
+  const ums = filledSpans(fillers, words);
 
   return pauses.map((p): JudgedPause => {
     if (p.kind === "beat") {
       return { ...p, verdict: "beat", note: `${clock(p.t)} · a beat.` };
     }
 
-    // A filler leaning on either side means the silence was bought back
-    // with an "um" rather than used instead of one.
-    const nearFiller = fillers.some(
-      (f) => Math.abs(f.t - p.t) <= FILLER_ADJACENCY_S ||
-        Math.abs(f.t - (p.t + p.len)) <= FILLER_ADJACENCY_S
+    // An um, uh or erm leaning on either side means the silence was
+    // bought back with it rather than used instead of it.
+    const nearFiller = ums.some(
+      (u) => distance(u, p.t) <= FILLED_EDGE_S || distance(u, p.t + p.len) <= FILLED_EDGE_S
     );
 
     /*
@@ -194,7 +253,7 @@ export function judgePauses(params: {
       };
     }
 
-    const closed = wordsInSentenceEndingAt(words, p.t);
+    const closed = wordsInSentenceEndingAt(words, stops, p.t);
     if (closed < SUBSTANTIAL_SENTENCE_WORDS) {
       return {
         ...p,
@@ -215,7 +274,8 @@ export function judgePauses(params: {
 }
 
 /**
- * Pause /100 = placement (60) + usage (40), minus what was bought back.
+ * Pause /100 = placement (67) + usage (25 for the rate, 8 for landing
+ * the ending), minus what was bought back (at most 15).
  *
  * Placement is a RATIO, not a count: five landings and five
  * hesitations is half marks, because half your silences were you
@@ -264,10 +324,8 @@ export function reportJudged(judged: JudgedPause[], durationS: number): PauseRep
     score =
       placement +
       rate +
-      (opening > 0 ? OPENING_BONUS : 0) +
       (landedTheEnding(judged, durationS) ? ENDING_BONUS : 0) -
-      filled * FILLED_PENALTY -
-      dead * DEAD_PENALTY;
+      Math.min(PENALTY_CAP, filled * FILLED_PENALTY + dead * DEAD_PENALTY);
   }
 
   return {

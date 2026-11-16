@@ -69,6 +69,7 @@ import { ENVELOPE_RATE, serializeEnvelope, type Envelope } from "@/lib/envelope"
 import { ethosIndex, pauseScore, type Tier1Scores } from "@/lib/index-score";
 import { computeMetrics } from "@/lib/metrics";
 import { reportJudged, type JudgedPause } from "@/lib/pause-quality";
+import { SHAPED_TAKE, whisperTake } from "@/lib/__fixtures__/whisper-take";
 
 function post(form: FormData | null): Promise<Response> {
   const req = new Request("http://test.local/api/analyze", {
@@ -1364,5 +1365,55 @@ describe("the Index scores the pauses the take stores", () => {
     const filled = await send(clockEnvelope([0, 1, 3]));
     expect(filled.saved.metrics.stars).toBe(none.saved.metrics.stars);
     expect({ ...filled.saved.tier1, pause: 0 }).toEqual({ ...none.saved.tier1, pause: 0 });
+  });
+});
+
+/*
+ * #476, end to end: Whisper's reply as it really comes (words with no
+ * punctuation, segments with it, "..." at a hesitation, a segment whose
+ * text says "Twenty" where the words say "20"), through the route, to
+ * what it stores. The pause list, the Pause score and the Index agree,
+ * and the raw reply is stored whole, so a replay can read it again.
+ */
+describe("a take as Whisper returns it (#476)", () => {
+  const take = whisperTake(SHAPED_TAKE);
+  const dim = { score: 60, citedMoment: '"most of us rush"', improve: "Land the first point." };
+
+  it("stores sentence ends from the segment text and scores them", async () => {
+    vi.mocked(saveRep).mockClear();
+    vi.mocked(transcribe).mockResolvedValue(take);
+    vi.mocked(coachRep).mockResolvedValue({
+      focus: "Hold the gap.",
+      strength: "Six landed.",
+      supply: { original: "um", upgrade: "(pause)", note: "Silence reads as thought." },
+      coachLine: "Six pauses landed.",
+      dimensions: { structure: dim, credibility: dim, engagement: dim, confidence: dim },
+    });
+    const body = await (await post(audioForm())).json();
+    const saved = vi.mocked(saveRep).mock.calls[0][0] as unknown as {
+      metrics: { pauses: JudgedPause[]; durationS: number };
+      tier1: Tier1Scores;
+      ethosIndex: number | null;
+      whisperRaw: unknown;
+    };
+    const held = saved.metrics.pauses.filter((p) => p.kind !== "beat");
+    expect(held.map((p) => `${p.kind}:${p.verdict}`)).toEqual([
+      "pre:landing", // talk.
+      "mid:hesitation", // say...
+      "pre:landing", // losing. (mid-segment)
+      "pre:landing", // left.
+      "pre:landing", // thing. (the "Twenty" segment: its segment-start rule)
+      "pre:landing", // them. (the um 1.1s on does not lean on it)
+      "mid:filled", // um,
+      "pre:landing", // lands. (the last fifth)
+    ]);
+    expect(saved.tier1.pause).toBe(73);
+    expect(saved.tier1.pause).toBe(reportJudged(saved.metrics.pauses, saved.metrics.durationS).score);
+    expect(saved.ethosIndex).toBe(
+      ethosIndex(saved.tier1, { structure: 60, credibility: 60, engagement: 60, confidence: 60 })
+    );
+    expect(body.tier1).toEqual(saved.tier1);
+    expect(body.metrics.pauses).toEqual(saved.metrics.pauses);
+    expect(saved.whisperRaw).toEqual(take.raw);
   });
 });

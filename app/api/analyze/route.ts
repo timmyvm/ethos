@@ -9,10 +9,28 @@
  * judged dimensions, citation-required) → Ethos Index /1000 → persist.
  * The numbers never depend on the LLM; if the coach layer fails, the
  * rep still returns real metrics and Tier-1 scores.
+ *
+ * #472, the wait after Stop. What does not wait on the words (the plan
+ * and meter reads, the delta's reads, a game's count, the audio going
+ * into the bucket) starts beside Whisper rather than before or after
+ * it, so after Demos's read only the rows are left to write. And a
+ * caller that asks (`Accept: application/x-ndjson`, the recorder) gets
+ * the answer in parts: a line per stage, the transcript and its counts
+ * the moment they exist, then the whole answer as its last line
+ * (lib/analyze-stream.ts). Nothing scored changes: the same calls, the
+ * same order of what feeds what, the same Index.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { judgeAccuracy, type AccuracyResult } from "@/lib/accuracy";
+import {
+  STREAM_TYPE,
+  earlyRead,
+  encodeLine,
+  wantsStream,
+  type AnalyzeEvent,
+  type AnalyzeLine,
+} from "@/lib/analyze-stream";
 import { coachRep, tier2Scores, type CoachOutput } from "@/lib/coach";
 import { COLD_TOPICS } from "@/lib/cold-topics";
 import { bossXpMultiplier, lastBossWeek, parseBossWeek } from "@/lib/boss";
@@ -25,7 +43,9 @@ import {
   previousEthosIndex,
   previousPresence,
   readMeterState,
+  removeRepAudio,
   saveRep,
+  uploadRepAudio,
   writeMeterState,
 } from "@/lib/db";
 import { neutralAudioName } from "@/lib/audio-name";
@@ -154,10 +174,30 @@ interface Spend {
    * get round, so a paid call stays counted whatever came of it.
    */
   ceiling?: string | null;
+  /**
+   * The take's audio, going into the bucket beside Whisper (#472): the
+   * path it went in at, or null when it did not.
+   */
+  audio?: Promise<string | null>;
+  /**
+   * The save took the audio over: stored with its row, taken back by
+   * the save itself (a race lost to an earlier send), or in a state
+   * nobody can know (the save threw). Anything else ends with the audio
+   * stored nowhere, so it is taken back out of the bucket.
+   */
+  audioOwned?: boolean;
 }
 
-/** Give the slot back, unless this subject's paid give-backs are used up. */
+/**
+ * Give the slot back, unless this subject's paid give-backs are used up,
+ * and take back audio that went into the bucket for a take stored
+ * nowhere.
+ */
 async function settle(spend: Spend) {
+  if (spend.audio && !spend.audioOwned) {
+    const path = await spend.audio;
+    if (path) await removeRepAudio(path).catch(() => {});
+  }
   if (!spend.subject || spend.keep) return;
   if (spend.paid) {
     const room = await consumeRateLimit(`refund:${spend.subject}`, "refund");
@@ -177,14 +217,7 @@ const field = (form: FormData, name: string): string | null => {
 
 export async function POST(req: NextRequest) {
   const spend: Spend = { subject: null, keep: false };
-  try {
-    return await handle(req, spend, Date.now());
-  } finally {
-    await settle(spend);
-  }
-}
-
-async function handle(req: NextRequest, spend: Spend, startedAt: number) {
+  const startedAt = Date.now();
   let form: FormData;
   try {
     form = await req.formData();
@@ -194,7 +227,88 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
       { status: 400 }
     );
   }
+  if (!wantsStream(req.headers.get("accept"))) {
+    try {
+      return await handle(form, req, spend, startedAt, () => {});
+    } finally {
+      await settle(spend);
+    }
+  }
+  return new Response(answerInParts(form, req, spend, startedAt), {
+    headers: {
+      "Content-Type": `${STREAM_TYPE}; charset=utf-8`,
+      // no-transform: nothing between here and the phone may hold the
+      // lines back to compress them whole.
+      "Cache-Control": "no-store, no-transform",
+      "X-Accel-Buffering": "no",
+    },
+  });
+}
 
+/**
+ * The same handling, its stages written as lines as they are reached
+ * (lib/analyze-stream.ts). The last line is the answer `handle` returns,
+ * its status and body unchanged, so a 429 or a 422 means what it always
+ * meant. The phone leaving mid-way stops the writing, never the work:
+ * the take is still scored and stored, and its resend gets the stored
+ * recording back by its key. The slot and the audio are settled before
+ * the stream closes, so nothing is left for after the function returns.
+ */
+function answerInParts(
+  form: FormData,
+  req: NextRequest,
+  spend: Spend,
+  startedAt: number
+): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder();
+  let open = true;
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      const write = (line: AnalyzeLine) => {
+        if (!open) return;
+        try {
+          controller.enqueue(encoder.encode(encodeLine(line)));
+        } catch {
+          open = false;
+        }
+      };
+      void (async () => {
+        write({ stage: "received" });
+        let status = 500;
+        let body: unknown = { error: "The scoring server didn't answer." };
+        try {
+          const res = await handle(form, req, spend, startedAt, write);
+          status = res.status;
+          body = await res.json().catch(() => null);
+        } catch (e) {
+          console.error("analyze failed", e instanceof Error ? e.message : e);
+        }
+        write({ stage: "done", status, body });
+        await settle(spend).catch(() => {});
+        if (open) {
+          open = false;
+          try {
+            controller.close();
+          } catch {
+            // Already gone with the phone.
+          }
+        }
+      })();
+    },
+    cancel() {
+      open = false;
+    },
+  });
+}
+
+async function handle(
+  form: FormData,
+  req: NextRequest,
+  spend: Spend,
+  startedAt: number,
+  /** Each stage as it is reached (#472); a no-op for a caller that asked for one body. */
+  emit: (event: AnalyzeEvent) => void
+) {
   const audio = form.get("audio");
   if (!(audio instanceof Blob) || audio.size === 0) {
     return NextResponse.json(
@@ -302,24 +416,10 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
     spend.ceiling = GUEST_CEILING;
   }
 
-  // The client sends what it *ran*; the multiplier is recomputed here
-  // from the mods this account is actually entitled to. A hand-edited
-  // URL or a forged form field can change the difficulty of your rep,
-  // never the XP it pays.
-  // A read that failed is unknown (null): extras pay as free, and a
-  // Premium game's round is not refused on it (below).
-  const premiumRead = await isPremium(userId).catch(() => null);
-  const premium = premiumRead === true;
-  const extras = parseMods(field(form, "mods"), { premium });
   const bossTopic =
     COLD_TOPICS.find((t) => t.id === field(form, "bossTopicId")) ??
     null;
   const mode: "daily" | "boss" = bossTopic ? "boss" : "daily";
-  /* The boss runs no mods (the games plan, item 16): the week's
-     benchmark keeps its conditions, whatever a form says it ran. Its
-     multiplier waits for the words: only a scored take pays the boss's. */
-  let mods = bossTopic ? [] : extras;
-  let multiplier = xpMultiplier(mods);
   // Stored as it arrives, so it is held to an id's shape: a control
   // character here made the save fail after Whisper had been paid for.
   const rawLesson = field(form, "lessonId");
@@ -348,7 +448,67 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
   const { delivery, deliveryMoments } = parseDelivery(
     field(form, "delivery")
   );
+  // When it was spoken, if the client says (the outbox's replay does).
+  const recordedAt = spokenAt(form.get("recordedAt"));
+  const tzOffset = numberOrNull(form.get("tzOffset"));
 
+  /*
+   * Everything the answer needs that does not wait on the words starts
+   * here, beside Whisper (#472), where it used to run one read at a time
+   * before it or after Demos's read. Each is the same call it was, read
+   * where it was read; only the waiting moved.
+   *
+   * The client sends what it *ran*; the multiplier is recomputed below
+   * from the mods this account is actually entitled to. A hand-edited
+   * URL or a forged form field can change the difficulty of your rep,
+   * never the XP it pays. A plan read that failed is unknown (null):
+   * extras pay as free, and a Premium game's round is not refused on it.
+   */
+  const premiumRead$ = isPremium(userId).catch(() => null);
+  const meterState$ = readMeterState(userId).catch(() => null);
+  /*
+   * The delta's other number. A boss compares like with like (the games
+   * plan, item 16): last week's first scored boss, the slot beside this
+   * one on the lobby's record, in the speaker's own week. No boss last
+   * week, no delta: never one against a daily take, or against a week
+   * the label would misname. The phone's own Mondays (`bossWeek`,
+   * lib/boss.ts), so the week is the lobby's across a clock change; the
+   * offset's week for a take without.
+   */
+  const lastWeek = bossTopic
+    ? (parseBossWeek(form.get("bossWeek"), recordedAt ?? new Date()) ??
+      lastBossWeek(recordedAt ?? new Date(), tzOffset))
+    : null;
+  const previous$: Promise<[number | null, number | null]> = userId
+    ? Promise.all([
+        (lastWeek
+          ? bossIndexBetween(userId, lastWeek.from, lastWeek.to)
+          : previousEthosIndex(userId)
+        ).catch(() => null),
+        previousPresence(userId).catch(() => null),
+      ])
+    : Promise.resolve([null, null]);
+  /*
+   * The game of the day's count (below), for a Premium game only, and
+   * only once the plan read says the account is not on Premium. A count
+   * that fails degrades open, as it did.
+   */
+  const day = game && needsPremium(game) ? gameDayWindow(recordedAt ?? new Date(), tzOffset) : null;
+  const storedToday$: Promise<number> =
+    game && day && userId
+      ? premiumRead$.then((p) =>
+          p === true ? 0 : gameRoundsBetween(userId, game.id, day.from, day.to).catch(() => 0)
+        )
+      : Promise.resolve(0);
+  /*
+   * The audio goes into the bucket now, for an owner only: a take sent
+   * with no session is never stored. A take that ends up stored nowhere
+   * (Whisper down, the mic barely heard, a failed save) has it taken
+   * back out when the slot is settled.
+   */
+  if (userId) spend.audio = uploadRepAudio(audio, filename).catch(() => null);
+
+  emit({ stage: "transcribing" });
   let transcription;
   try {
     transcription = await transcribe(audio, filename);
@@ -430,6 +590,15 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
   // isolation and the whole screen a lie. If there is no speech to
   // measure we say so instead of scoring the silence around it.
   const scorable = isScorable(metrics.substance);
+
+  const premiumRead = await premiumRead$;
+  const premium = premiumRead === true;
+  const extras = parseMods(field(form, "mods"), { premium });
+  /* The boss runs no mods (the games plan, item 16): the week's
+     benchmark keeps its conditions, whatever a form says it ran. Its
+     multiplier waits for the words: only a scored take pays the boss's. */
+  let mods = bossTopic ? [] : extras;
+  let multiplier = xpMultiplier(mods);
   // A boss take too short to score pays what an unscored take pays anywhere.
   if (bossTopic) multiplier = bossXpMultiplier(scorable);
 
@@ -443,9 +612,7 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
    * rep with nothing in it. A near-silent rep has nothing to judge, so
    * burning the day's one analysis on it would be theft.
    */
-  // When it was spoken, if the client says (the outbox's replay does).
-  const recordedAt = spokenAt(form.get("recordedAt"));
-  const meterState = await readMeterState(userId).catch(() => null);
+  const meterState = await meterState$;
   const decision =
     scorable && meterState
       ? meter({
@@ -453,11 +620,24 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
           // The judged read of the day it was spoken, on the user's own
           // calendar. accrue never grants for an earlier day, so a
           // backdated take can only cost that day's read, never mint one.
-          now: localDate(recordedAt ?? new Date(), numberOrNull(form.get("tzOffset"))),
+          now: localDate(recordedAt ?? new Date(), tzOffset),
           premium,
         })
       : null;
   const judgedAllowed = decision?.allowed ?? scorable;
+
+  /* The words are in and measured: the wait shows them while Demos reads
+     (#472). Only what the measured tier already holds; no score. */
+  emit({
+    stage: "measured",
+    early: earlyRead({
+      transcript: transcription.text,
+      words: transcription.words,
+      metrics,
+      scorable,
+      reads: scorable && judgedAllowed,
+    }),
+  });
 
   let coach: CoachOutput | null = null;
   let accuracy: AccuracyResult | null = null;
@@ -472,12 +652,15 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
     accuracy =
       accuracyResult.status === "fulfilled" ? accuracyResult.value : null;
   }
+  emit({ stage: "saving" });
 
   // Only commit the spend once the call has actually happened. An
-  // analysis the user never received must not cost them one.
-  if (userId && decision && !decision.unlimited && coach) {
-    await writeMeterState(userId, decision.state).catch(() => {});
-  }
+  // analysis the user never received must not cost them one. Written
+  // beside the save, and done before the answer goes, as before.
+  const meterWrite =
+    userId && decision && !decision.unlimited && coach
+      ? writeMeterState(userId, decision.state).catch(() => {})
+      : Promise.resolve();
 
   // No substance, no Index — not a partial score, no score.
   const index = scorable
@@ -494,11 +677,8 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
    * fails degrades open, like the plan read.
    */
   let roundOpen = true;
-  if (game && needsPremium(game) && premiumRead !== true) {
-    const day = gameDayWindow(recordedAt ?? new Date(), numberOrNull(form.get("tzOffset")));
-    const storedToday = userId
-      ? await gameRoundsBetween(userId, game.id, day.from, day.to).catch(() => 0)
-      : 0;
+  if (game && day && premiumRead !== true) {
+    const storedToday = await storedToday$;
     roundOpen = roundEntitled(game, { premium: premiumRead, dayKey: day.dayKey, storedToday });
   }
 
@@ -526,28 +706,7 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
     multiplier = gameXpMultiplier(game, level, fired, extras);
   }
 
-  /*
-   * The delta's other number. A boss compares like with like (the games
-   * plan, item 16): last week's first scored boss, the slot beside this
-   * one on the lobby's record, in the speaker's own week. No boss last
-   * week, no delta: never one against a daily take, or against a week
-   * the label would misname.
-   */
-  /* The phone's own Mondays (`bossWeek`, lib/boss.ts), so the week is the
-     lobby's across a clock change; the offset's week for a take without. */
-  const lastWeek = bossTopic
-    ? (parseBossWeek(form.get("bossWeek"), recordedAt ?? new Date()) ??
-      lastBossWeek(recordedAt ?? new Date(), numberOrNull(form.get("tzOffset"))))
-    : null;
-  const [previousIndex, prevPresence] = userId
-    ? await Promise.all([
-        (lastWeek
-          ? bossIndexBetween(userId, lastWeek.from, lastWeek.to)
-          : previousEthosIndex(userId)
-        ).catch(() => null),
-        previousPresence(userId).catch(() => null),
-      ])
-    : [null, null];
+  const [previousIndex, prevPresence] = await previous$;
 
   let repId: string | null = null;
   /*
@@ -560,9 +719,13 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
    */
   if (!userId) spend.keep = true;
   else try {
+    const audioPath = (await spend.audio) ?? null;
+    // From here the save answers for the audio (`Spend.audioOwned`).
+    spend.audioOwned = true;
     const saved = await saveRep({
       audio,
       filename,
+      audioPath,
       transcript: transcription.text,
       metrics,
       tier1,
@@ -584,7 +747,10 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
       clientId,
       round,
     });
+    // Nothing stored and nothing thrown: the audio is stored nowhere.
+    if (!saved) spend.audioOwned = false;
     if (saved?.duplicate) {
+      await meterWrite;
       return NextResponse.json({ repId: saved.id, duplicate: true });
     }
     repId = saved?.id ?? null;
@@ -592,6 +758,7 @@ async function handle(req: NextRequest, spend: Spend, startedAt: number) {
   } catch {
     repId = null;
   }
+  await meterWrite;
 
   const body: AnalyzeResponse = {
     transcript: transcription.text,

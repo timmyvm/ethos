@@ -10,6 +10,9 @@ vi.mock("@/lib/db", () => {
   const getUserFromAuthHeader = vi.fn(async (_h: string | null): Promise<unknown> => null);
   return {
   saveRep: vi.fn(async () => null),
+  // The audio's own trip into the bucket, beside Whisper (#472).
+  uploadRepAudio: vi.fn(async (): Promise<string | null> => null),
+  removeRepAudio: vi.fn(async () => {}),
   findRepByClientId: vi.fn(async () => null),
   getUserFromAuthHeader,
   // The route reads the four-way answer; tests that set a user through
@@ -56,10 +59,14 @@ import {
   resolveAuthHeader,
   isPremium,
   previousEthosIndex,
+  previousPresence,
   readMeterState,
+  removeRepAudio,
   saveRep,
+  uploadRepAudio,
   writeMeterState,
 } from "@/lib/db";
+import type { AnalyzeLine } from "@/lib/analyze-stream";
 import { bossWeekField } from "@/lib/boss";
 import { gameOfTheDay } from "@/lib/games";
 import { dateKey } from "@/lib/metering";
@@ -150,6 +157,9 @@ beforeEach(() => {
   vi.mocked(bossIndexBetween).mockResolvedValue(null);
   vi.mocked(gameRoundsBetween).mockReset();
   vi.mocked(gameRoundsBetween).mockResolvedValue(0);
+  vi.mocked(uploadRepAudio).mockReset();
+  vi.mocked(uploadRepAudio).mockResolvedValue(null);
+  vi.mocked(removeRepAudio).mockClear();
 });
 
 /** A rep good enough to be judged, with the coach layer stubbed out. */
@@ -1364,5 +1374,236 @@ describe("the Index scores the pauses the take stores", () => {
     const filled = await send(clockEnvelope([0, 1, 3]));
     expect(filled.saved.metrics.stars).toBe(none.saved.metrics.stars);
     expect({ ...filled.saved.tier1, pause: 0 }).toEqual({ ...none.saved.tier1, pause: 0 });
+  });
+});
+
+/*
+ * #472: the wait after Stop. The recorder asks for the answer in parts;
+ * the route writes each stage as it reaches it and its own answer last,
+ * and starts what does not wait on the words beside Whisper.
+ */
+function postInParts(form: FormData): Promise<Response> {
+  const req = new Request("http://test.local/api/analyze", {
+    method: "POST",
+    body: form,
+    headers: { Accept: "application/x-ndjson, application/json" },
+  });
+  return POST(req as unknown as NextRequest);
+}
+
+async function linesOf(res: Response): Promise<AnalyzeLine[]> {
+  return (await res.text())
+    .split("\n")
+    .filter(Boolean)
+    .map((l) => JSON.parse(l) as AnalyzeLine);
+}
+
+/** A promise held open until the test lets it go. */
+function held<T>() {
+  let release!: (v: T) => void;
+  const promise = new Promise<T>((ok) => {
+    release = ok;
+  });
+  return { promise, release };
+}
+
+const tick = () => new Promise((r) => setTimeout(r, 0));
+type Measured = Extract<AnalyzeLine, { stage: "measured" }>;
+type Done = Extract<AnalyzeLine, { stage: "done" }>;
+
+describe("the answer in parts (#472)", () => {
+  it("writes each stage in the order it is reached, then the very answer it sends whole", async () => {
+    coachedFixture();
+    const whole = await (await post(audioForm())).json();
+    coachedFixture();
+    const res = await postInParts(audioForm());
+    expect(res.headers.get("content-type")).toContain("application/x-ndjson");
+    expect(res.headers.get("cache-control")).toContain("no-transform");
+    const lines = await linesOf(res);
+    expect(lines.map((l) => l.stage)).toEqual(["received", "transcribing", "measured", "saving", "done"]);
+    const done = lines.at(-1) as Done;
+    expect(done.status).toBe(200);
+    expect(done.body).toEqual(whole);
+  });
+
+  it("answers one JSON body to a caller that did not ask", async () => {
+    coachedFixture();
+    const res = await post(audioForm());
+    expect(res.headers.get("content-type")).toContain("application/json");
+    expect((await res.json()).metrics.fillerCount).toBe(1);
+  });
+
+  it("shows the words and their counts before Demos has read them, and no score", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    const read = held<Awaited<ReturnType<typeof coachRep>>>();
+    vi.mocked(coachRep).mockReturnValue(read.promise);
+    const res = await postInParts(audioForm());
+    const reader = res.body!.getReader();
+    const dec = new TextDecoder();
+    let text = "";
+    while (!text.includes('"measured"')) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      text += dec.decode(value, { stream: true });
+    }
+    expect(coachRep).toHaveBeenCalledTimes(1);
+    const measured = text
+      .split("\n")
+      .filter(Boolean)
+      .map((l) => JSON.parse(l) as AnalyzeLine)
+      .find((l): l is Measured => l.stage === "measured");
+    expect(measured).toBeDefined();
+    expect(measured!.early).toMatchObject({ transcript: WORDS, fillerCount: 1, wpm: 27, scorable: true, reads: true });
+    expect(measured!.early.fillers[0].word).toBe("um");
+    expect(measured!.early.words).toHaveLength(FIXTURE.words.length);
+    expect(text).not.toContain("ethosIndex");
+    expect(text).not.toContain('"done"');
+    read.release(null);
+    let rest = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      rest += dec.decode(value, { stream: true });
+    }
+    expect(rest).toContain('"done"');
+  });
+
+  it("ends a read that failed in the same answer as before: the numbers, no coach, no Index", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(coachRep).mockRejectedValue(new Error("api down"));
+    const lines = await linesOf(await postInParts(audioForm()));
+    expect(lines.map((l) => l.stage)).toEqual(["received", "transcribing", "measured", "saving", "done"]);
+    const done = lines.at(-1) as Done;
+    const body = done.body as { coach: unknown; ethosIndex: unknown; metrics: { fillerCount: number } };
+    expect(done.status).toBe(200);
+    expect(body.coach).toBeNull();
+    expect(body.ethosIndex).toBeNull();
+    expect(body.metrics.fillerCount).toBe(1);
+  });
+
+  it("carries a failed transcription's own status, with no words before it", async () => {
+    vi.mocked(transcribe).mockRejectedValue(new Error("Whisper API 500: boom"));
+    const lines = await linesOf(await postInParts(audioForm()));
+    expect(lines.map((l) => l.stage)).toEqual(["received", "transcribing", "done"]);
+    expect((lines.at(-1) as Done).status).toBe(502);
+  });
+
+  it("turns a full hour away before Whisper, as its own 429", async () => {
+    vi.mocked(consumeRateLimit).mockResolvedValueOnce({ allowed: false, window: "hour", retryAfterS: 60 } as never);
+    const lines = await linesOf(await postInParts(audioForm()));
+    expect(lines.map((l) => l.stage)).toEqual(["received", "done"]);
+    expect(lines.at(-1)).toMatchObject({ status: 429, body: { rateLimited: true } });
+    expect(transcribe).not.toHaveBeenCalled();
+  });
+
+  it("says Demos will not read a take with nothing in it, and never calls him", async () => {
+    vi.mocked(transcribe).mockResolvedValue(EMPTY_FIXTURE);
+    const lines = await linesOf(await postInParts(audioForm()));
+    const measured = lines.find((l): l is Measured => l.stage === "measured")!;
+    expect(measured.early).toMatchObject({ scorable: false, reads: false });
+    expect(coachRep).not.toHaveBeenCalled();
+  });
+
+  it("says Demos will not read a take once the day's read is spent", async () => {
+    coachedFixture();
+    vi.mocked(readMeterState).mockResolvedValue({ balance: 0, accruedOn: "2999-01-01", usedAt: null });
+    const lines = await linesOf(await postInParts(audioForm()));
+    const measured = lines.find((l): l is Measured => l.stage === "measured")!;
+    const body = (lines.at(-1) as Done).body as { judged: { capped: boolean } };
+    expect(body.judged.capped).toBe(true);
+    expect(measured.early.reads).toBe(false);
+    expect(coachRep).not.toHaveBeenCalled();
+  });
+
+  it("ends a crash part way as a 500 the phone sends again, and gives the slot back", async () => {
+    vi.mocked(transcribe).mockResolvedValue({ ...FIXTURE, words: null as never });
+    vi.mocked(refundRateLimit).mockClear();
+    const lines = await linesOf(await postInParts(audioForm()));
+    expect(lines.at(-1)).toMatchObject({ stage: "done", status: 500 });
+    expect(refundRateLimit).toHaveBeenCalledWith("u:u-0");
+  });
+});
+
+describe("what does not wait on the words starts beside Whisper (#472)", () => {
+  it("reads the plan, the meter and the delta, and sends the audio to the bucket, while Whisper works", async () => {
+    coachedFixture();
+    const words = held<typeof FIXTURE>();
+    vi.mocked(transcribe).mockReturnValue(words.promise);
+    vi.mocked(isPremium).mockClear();
+    vi.mocked(readMeterState).mockClear();
+    vi.mocked(previousEthosIndex).mockClear();
+    vi.mocked(previousPresence).mockClear();
+    const answer = post(audioForm());
+    await vi.waitFor(() => expect(transcribe).toHaveBeenCalledTimes(1));
+    expect(isPremium).toHaveBeenCalledTimes(1);
+    expect(readMeterState).toHaveBeenCalledTimes(1);
+    expect(previousEthosIndex).toHaveBeenCalledTimes(1);
+    expect(previousPresence).toHaveBeenCalledTimes(1);
+    expect(uploadRepAudio).toHaveBeenCalledTimes(1);
+    expect(coachRep).not.toHaveBeenCalled();
+    words.release(FIXTURE);
+    expect((await answer).status).toBe(200);
+  });
+
+  it("stores the take with the audio already in the bucket, and leaves it there", async () => {
+    coachedFixture();
+    vi.mocked(uploadRepAudio).mockResolvedValue("reps/early.webm");
+    vi.mocked(saveRep).mockResolvedValueOnce({ id: "rep-1", audioPath: "reps/early.webm" });
+    const body = await (await post(audioForm())).json();
+    expect(body.repId).toBe("rep-1");
+    expect(vi.mocked(saveRep).mock.lastCall?.[0].audioPath).toBe("reps/early.webm");
+    expect(removeRepAudio).not.toHaveBeenCalled();
+  });
+
+  it("takes the audio back out of the bucket when nothing is stored", async () => {
+    vi.mocked(uploadRepAudio).mockResolvedValue("reps/early.webm");
+    // Whisper down.
+    vi.mocked(transcribe).mockRejectedValueOnce(new Error("Whisper API 500: boom"));
+    await post(audioForm());
+    expect(removeRepAudio).toHaveBeenLastCalledWith("reps/early.webm");
+    // The mic barely heard it.
+    vi.mocked(removeRepAudio).mockClear();
+    vi.mocked(transcribe).mockResolvedValueOnce({ ...FIXTURE, durationS: 1, words: FIXTURE.words.slice(0, 1) });
+    expect((await post(audioForm())).status).toBe(422);
+    expect(removeRepAudio).toHaveBeenLastCalledWith("reps/early.webm");
+    // The row would not go in.
+    vi.mocked(removeRepAudio).mockClear();
+    coachedFixture();
+    vi.mocked(saveRep).mockResolvedValueOnce(null);
+    await post(audioForm());
+    expect(removeRepAudio).toHaveBeenLastCalledWith("reps/early.webm");
+  });
+
+  it("leaves the audio to the save once the save has it: a lost race, or a save that threw", async () => {
+    coachedFixture();
+    vi.mocked(uploadRepAudio).mockResolvedValue("reps/early.webm");
+    vi.mocked(saveRep).mockResolvedValueOnce({ id: "rep-first", audioPath: null, duplicate: true });
+    expect(await (await post(audioForm())).json()).toEqual({ repId: "rep-first", duplicate: true });
+    vi.mocked(saveRep).mockRejectedValueOnce(new Error("network"));
+    await post(audioForm());
+    expect(removeRepAudio).not.toHaveBeenCalled();
+  });
+
+  it("never puts a sessionless take's audio anywhere", async () => {
+    coachedFixture();
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue(null);
+    await post(audioForm());
+    expect(uploadRepAudio).not.toHaveBeenCalled();
+  });
+
+  it("writes the spent read before the answer goes, beside the save", async () => {
+    coachedFixture();
+    const write = held<void>();
+    vi.mocked(writeMeterState).mockReturnValueOnce(write.promise);
+    let answered = false;
+    const answer = post(audioForm()).then((r) => {
+      answered = true;
+      return r;
+    });
+    await vi.waitFor(() => expect(writeMeterState).toHaveBeenCalled());
+    await tick();
+    expect(answered).toBe(false);
+    write.release();
+    expect((await answer).status).toBe(200);
   });
 });

@@ -387,6 +387,14 @@ describe("DELETE /api/account", () => {
     expect(db.state.tables.billing).toEqual([]);
   });
 
+  it("removes the audio of every recording, past the first page of a thousand (#479 review)", async () => {
+    db.state.maxRows = 1000;
+    for (let i = 0; i < 1500; i++) db.put("reps", { id: `r${String(i).padStart(4, "0")}`, user_id: USER, audio_path: `reps/${i}.webm` });
+    expect((await call(deleteAccount, { method: "DELETE" })).status).toBe(200);
+    expect(new Set(db.state.removedAudio).size).toBe(1500);
+    expect(db.state.deletedUsers).toEqual([USER]);
+  });
+
   it("closes an open Checkout, so paying it later starts no plan on a deleted account", async () => {
     expect((await call(checkout)).status).toBe(200);
     const [session] = stripe.state.sessions;

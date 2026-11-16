@@ -59,7 +59,12 @@ function Lead({ children }: { children: React.ReactNode }) {
  *    theirs; lib/auth.ts attaches either to the account, same user id
  *  - Google: lib/auth.ts signInWithGoogle asks Supabase's Google
  *    provider for nothing beyond its defaults (email and profile), and
- *    no screen reads the profile (no user_metadata anywhere in the app)
+ *    no screen reads the profile (the one user_metadata the app touches
+ *    is its own `password_set` flag, written by Settings when a Google
+ *    account sets a password, lib/account-settings.ts, #479)
+ *  - Settings' "What Ethos keeps" (app/settings/data/stored,
+ *    content/settings-help.ts STORED) repeats "What we store" as rows:
+ *    change one and the other together
  *  - reminders: supabase/migrations/0008_push_subscriptions.sql and
  *    0019 (the browser's push address and keys, the hour, the zone,
  *    quiet hours, the last day sent), written by app/api/push/route.ts;
@@ -88,7 +93,7 @@ export default function Privacy() {
       >
         <MarketingHeader title="Privacy" />
       </Suspense>
-      <p className="mt-2 text-caption text-stone-400">Last updated 11 November 2026</p>
+      <p className="mt-2 text-caption text-stone-400">Last updated 16 November 2026</p>
 
       <p className="mt-5 text-read text-stone-800">
         You record yourself, the recording gets measured, you get feedback.
@@ -287,8 +292,10 @@ export default function Privacy() {
 
       <h2 className={HEAD}>Keeping it, deleting it</h2>
       <p className={READ}>
-        We keep your data until you delete your account. Settings has a
-        delete-account control. It ends any plan at once, then removes
+        We keep your data until you delete it. Settings, under Privacy and
+        data, deletes every recording with its audio, transcript and scores
+        and keeps the account, or deletes the account.
+        Deleting the account ends any plan at once, then removes
         everything: recordings, transcripts, scores, progress, plan details,
         and the account itself. Your email and saved card are deleted at
         Stripe too. Stripe keeps its records of the payments already made,

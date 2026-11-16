@@ -358,7 +358,7 @@ async function shootTheme(theme) {
   });
   await step(async () => {
     if (!want("settings-manage")) return;
-    await go("/settings", "main .inset-group");
+    await go("/settings/plan", "main .inset-group");
     // The row lands with the billing read, after the page has settled.
     await page.waitForSelector('[data-look="manage-plan"]', { timeout: 6000 }).catch(() => {});
     if (!(await page.locator('[data-look="manage-plan"]').count())) {

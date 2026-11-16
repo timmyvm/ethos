@@ -101,7 +101,8 @@ describe("TapTick, as the server and the stylesheet see it (#449)", () => {
       "app/hostile/page.tsx",
       "app/shop/page.tsx",
       "app/boss/page.tsx",
-      "app/settings/page.tsx",
+      "components/settings/Rows.tsx",
+      "app/settings/profile/page.tsx",
       "components/home/HomeHero.tsx",
       "components/TopicRoulette.tsx",
     ];

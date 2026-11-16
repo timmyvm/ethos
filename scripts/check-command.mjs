@@ -189,13 +189,13 @@ const menu = (page) =>
   await sleep(600);
   ok("and Ctrl K stays shut there", (await menu(page)) === null);
 
-  await go(page, "/settings");
+  await go(page, "/settings/profile");
   const field = page.locator('main input[type="text"], main input:not([type])').first();
   if (await field.count()) {
     await field.focus();
     await page.keyboard.press("3");
     await sleep(400);
-    ok("a digit typed into a field is typed, not travelled", path(page) === "/settings");
+    ok("a digit typed into a field is typed, not travelled", path(page) === "/settings/profile");
   }
 
   // Never under a sheet.

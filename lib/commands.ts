@@ -50,7 +50,10 @@ const tabs: Command[] = TAB_HREFS.map((href, i) => ({
 export const COMMANDS: readonly Command[] = [
   { id: "today", title: "Start today's practice", group: "Start", today: true, also: "record speak" },
   ...tabs,
-  { id: "go:settings", title: "Settings", group: "Go to", href: "/settings", also: "reminder theme account preferences" },
+  { id: "go:settings", title: "Settings", group: "Go to", href: "/settings", also: "preferences privacy data help" },
+  /* Settings' two most-wanted pages, each its own door since #479. */
+  { id: "go:notifications", title: "Notifications", group: "Go to", href: "/settings/notifications", also: "reminder quiet hours" },
+  { id: "go:account", title: "Account", group: "Go to", href: "/settings/account", also: "email password google sign out" },
   { id: "go:shop", title: "Shop", group: "Go to", href: "/shop", also: "coins poses freeze" },
   { id: "go:words", title: "Your words", group: "Go to", href: "/words", also: "saved swaps thesaurus" },
   ...LESSONS.map(

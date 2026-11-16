@@ -51,6 +51,29 @@ for (const theme of ["light", "dark"]) for (const path of ["/signup", "/signin"]
   ok(`${theme} ${path}: sending the form puts the dots back`, (await page.locator("#password").getAttribute("type").catch(() => "password")) === "password");
   await context.close();
 }
+/* Settings' Password page (#479): the password now and the new one, each with Show. */
+{
+  const { seed, session } = await import("./look-fixtures.mjs");
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, serviceWorkers: "block" });
+  await context.route("http://supabase.local/**", supabaseRoute);
+  await context.addInitScript(seed, { theme: "light", session });
+  const page = await context.newPage();
+  await page.goto(BASE + "/settings/account/password");
+  for (const id of ["current-password", "password"]) {
+    const field = page.locator(`#${id}`);
+    await field.waitFor({ timeout: 30000 });
+    await field.fill("my red bike");
+    const btn = field.locator("xpath=following-sibling::button[@data-show-password]");
+    const b = await btn.boundingBox();
+    const f = await field.boundingBox();
+    ok(`/settings/account/password #${id}: Show sits inside the field, 44px tall`, !!b && b.height >= 44 && b.x + b.width <= f.x + f.width + 0.5, b ? `${Math.round(b.width)}x${Math.round(b.height)}` : "none");
+    await btn.tap();
+    await page.waitForTimeout(250);
+    ok(`/settings/account/password #${id}: a tap shows it`, (await field.getAttribute("type")) === "text" && (await btn.getAttribute("aria-label")) === "Hide password");
+    await btn.tap();
+  }
+  await context.close();
+}
 await browser.close();
 console.log(`${check.filter(Boolean).length}/${check.length} passed`);
 process.exit(check.every(Boolean) ? 0 : 1);

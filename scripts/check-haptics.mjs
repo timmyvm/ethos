@@ -209,10 +209,10 @@ const STOP = 'button[data-record="stop"]';
   await context.close();
 }
 
-// ---- 4 and 7. Settings, on an iPhone --------------------------------------------
+// ---- 4 and 7. Settings' Accessibility page (#479), on an iPhone ----------------
 {
   const { context, page, errors } = await open();
-  await page.goto(`${BASE}/settings`);
+  await page.goto(`${BASE}/settings/accessibility`);
   await settle(page);
   const rows = await page.evaluate(() =>
     [...document.querySelectorAll('main button[role="switch"]')].map((b) => ({
@@ -221,7 +221,7 @@ const STOP = 'button[data-record="stop"]';
     }))
   );
   ok("Settings offers Haptics on an iPhone that can tick", rows.some((r) => r.name === "Haptics"), rows.map((r) => r.name).join(", "));
-  ok("every switch carries one tick", rows.length >= 5 && rows.every((r) => r.ticks === 1), JSON.stringify(rows.filter((r) => r.ticks !== 1)));
+  ok("every switch carries one tick", rows.length >= 3 && rows.every((r) => r.ticks === 1), JSON.stringify(rows.filter((r) => r.ticks !== 1)));
   const soundRow = page.getByRole("switch", { name: /^Sound/ });
   const was = await soundRow.getAttribute("aria-checked");
   await soundRow.tap({ force: true });
@@ -246,7 +246,7 @@ const STOP = 'button[data-record="stop"]';
   ok("Haptics switched off takes every tick off the screen at once", (await haptics.getAttribute("aria-checked")) === "false" && (await ticks(page)) === 0, `${await ticks(page)} left`);
   await haptics.tap({ force: true });
   await sleep(300);
-  ok("and switched on puts them back", (await haptics.getAttribute("aria-checked")) === "true" && (await ticks(page)) >= 5, `${await ticks(page)} ticks`);
+  ok("and switched on puts them back", (await haptics.getAttribute("aria-checked")) === "true" && (await ticks(page)) >= 3, `${await ticks(page)} ticks`);
   ok("Settings threw nothing", errors.length === 0, errors.join(" | "));
   await context.close();
 }
@@ -284,7 +284,8 @@ const STOP = 'button[data-record="stop"]';
   const unsound = [];
   let seen = 0;
   const where = {};
-  for (const path of ["/", "/rep?lesson=h4", "/hostile", "/shop", "/boss", "/settings"]) {
+  /* Settings' switches live on its pages since #479: Accessibility's and Practice's are swept. */
+  for (const path of ["/", "/rep?lesson=h4", "/hostile", "/shop", "/boss", "/settings/accessibility", "/settings/practice"]) {
     await page.goto(`${BASE}${path}`);
     await settle(page);
     const found = await page.evaluate(() =>
@@ -320,7 +321,7 @@ const STOP = 'button[data-record="stop"]';
     }
   }
   ok("every tick sits in a 44pt button, never a link or a disabled control, fills it inside its border, and holds a native hidden switch", unsound.length === 0, unsound.slice(0, 3).join(" | "));
-  ok("ticks are drawn on Today, the recorder, Hostile, the Shop and Settings", where["/"] >= 1 && where["/rep?lesson=h4"] === 1 && where["/hostile"] >= 1 && where["/settings"] >= 5 && seen >= 10, JSON.stringify(where));
+  ok("ticks are drawn on Today, the recorder, Hostile, the Shop and Settings", where["/"] >= 1 && where["/rep?lesson=h4"] === 1 && where["/hostile"] >= 1 && where["/settings/accessibility"] >= 3 && where["/settings/practice"] >= 2 && seen >= 10, JSON.stringify(where));
   ok("the sweep threw nothing", errors.length === 0, errors.join(" | "));
   await context.close();
 }
@@ -338,7 +339,7 @@ for (const [name, opts, row] of [
   await page.waitForSelector(RECORD, { timeout: 20000 });
   await sleep(900);
   const onRecorder = await ticks(page);
-  await page.goto(`${BASE}/settings`);
+  await page.goto(`${BASE}/settings/accessibility`);
   await settle(page);
   const onSettings = await ticks(page);
   const offered = await page.evaluate(() => [...document.querySelectorAll('main button[role="switch"]')].some((b) => b.textContent.trim().startsWith("Haptics")));

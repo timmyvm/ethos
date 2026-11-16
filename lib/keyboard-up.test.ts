@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { KEYBOARD_MIN_PX, keyboardUp } from "./keyboard-up";
+import { KEYBOARD_MIN_PX, clearOfKeys, keyboardUp } from "./keyboard-up";
 
 /* Whether the on-screen keyboard is up, from the part of the page still in view (#441). */
 describe("the keyboard, from the visual viewport", () => {
@@ -60,3 +60,17 @@ describe("the keyboard, from the visual viewport", () => {
   });
 });
 
+
+/* Settings' account forms (#479): how far the page scrolls to lift a tap above the keys. */
+describe("a form's tap, clear of the keys", () => {
+  it("scrolls just far enough to stand the tap 12px above the keys", () => {
+    // 375x667 with a 260px keyboard: the keys start at 407; a tap ending at 452 needs 57.
+    expect(clearOfKeys(452, 407)).toBe(57);
+    expect(clearOfKeys(452.2, 407)).toBe(58);
+  });
+
+  it("does nothing when the tap already stands clear", () => {
+    expect(clearOfKeys(380, 407)).toBe(0);
+    expect(clearOfKeys(395, 407)).toBe(0);
+  });
+});

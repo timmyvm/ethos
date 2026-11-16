@@ -266,7 +266,7 @@ async function shootSize(size) {
   });
   // Rule 1: the theme's segmented control, the first thing in its group.
   await step("settings", async () => {
-    await go("/settings", "main .inset-group");
+    await go("/settings/appearance", "main .inset-group");
     await page.locator("main .inset-group .segmented").first().evaluate((e) => e.scrollIntoView({ block: "center" }));
     await shot("settings");
     await zoom("settings", "main .inset-group:has(.segmented)", 0);

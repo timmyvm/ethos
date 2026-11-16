@@ -202,7 +202,7 @@ const heard = (el) => {
 // ---- 7. Increase Contrast -------------------------------------------------------
 for (const theme of ["light", "dark"]) {
   const { context, page } = await open(theme);
-  await page.goto(`${BASE}/settings`);
+  await page.goto(`${BASE}/settings/data`);
   await settle(page);
   const read = () =>
     page.evaluate(() => {

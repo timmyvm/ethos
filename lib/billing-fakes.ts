@@ -751,6 +751,8 @@ export function fakeDb(users: string[]) {
     /** Fail the next `op` on `table` with this error. */
     fail: [] as { table: string; op: string; error: DbError }[],
     log: [] as { table: string; op: string }[],
+    /** PostgREST's max_rows: a select answers at most this many rows (Supabase's is 1000). */
+    maxRows: Infinity,
   };
 
   function rows(table: string): Row[] {
@@ -784,6 +786,8 @@ export function fakeDb(users: string[]) {
     private conflict = "id";
     private typeError: DbError | null = null;
     private counting: { head: boolean } | null = null;
+    private sort: { column: string; ascending: boolean } | null = null;
+    private window: { from: number; to: number } | null = null;
 
     constructor(private readonly table: string) {}
 
@@ -833,6 +837,14 @@ export function fakeDb(users: string[]) {
     }
     not(column: string, operator: string, value: unknown) {
       if (operator === "is" && value === null) this.filters.push((r) => r[column] != null);
+      return this;
+    }
+    order(column: string, opts?: { ascending?: boolean }) {
+      this.sort = { column, ascending: opts?.ascending !== false };
+      return this;
+    }
+    range(from: number, to: number) {
+      this.window = { from, to };
       return this;
     }
     like(column: string, pattern: string) {
@@ -888,9 +900,19 @@ export function fakeDb(users: string[]) {
       if (this.op === "select") {
         const cols =
           this.columns.trim() === "*" ? null : this.columns.split(",").map((c) => c.trim());
-        const out = table
-          .filter((r) => this.matches(r))
-          .map((r) => (cols ? Object.fromEntries(cols.map((c) => [c, r[c] ?? null])) : { ...r }));
+        let found = table.filter((r) => this.matches(r));
+        if (this.sort) {
+          const { column, ascending } = this.sort;
+          found = [...found].sort((a, b) => {
+            const x = String(a[column] ?? "");
+            const y = String(b[column] ?? "");
+            return (x < y ? -1 : x > y ? 1 : 0) * (ascending ? 1 : -1);
+          });
+        }
+        if (this.window) found = found.slice(this.window.from, this.window.to + 1);
+        // PostgREST never answers more than max_rows, whatever was asked.
+        found = found.slice(0, state.maxRows);
+        const out = found.map((r) => (cols ? Object.fromEntries(cols.map((c) => [c, r[c] ?? null])) : { ...r }));
         return { data: clone(out), error: null };
       }
 

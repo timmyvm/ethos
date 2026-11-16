@@ -13,8 +13,9 @@ import { authHref, useNextPath } from "@/lib/use-paywall-return";
  * reads, and also three rows in Settings (#283). A stranger's way on is
  * Sign in, and their way back from the legal pages is the landing page;
  * somebody inside the app came from Settings and wants to go back
- * there. Settings links in with `?from=settings`, and that is the only
- * thing these pages read.
+ * there. Settings links in with `?from=settings` (or the page under it
+ * that linked, `SETTINGS_ORIGINS`), and that is the only thing these
+ * pages read.
  *
  * The two account asks link to Privacy and Terms too (#446,
  * lib/legal-href.ts). Their back is the ask that was left
@@ -28,16 +29,32 @@ import { authHref, useNextPath } from "@/lib/use-paywall-return";
  * and somebody from Settings gets their back in the same slot once the
  * page hydrates, at the same height, so nothing below it moves.
  */
-const ORIGINS = ["settings", "signup", "welcome"] as const;
+const ORIGINS = ["settings", "settings-data", "settings-stored", "settings-help", "signup", "welcome"] as const;
 type Origin = (typeof ORIGINS)[number];
+
+/**
+ * The Settings pages that link here, each the back of the page it opens
+ * (#479 review): Privacy from Privacy and data and from What Ethos
+ * keeps, About from Help. Back
+ * retraces (#442), so the parent is the page left, not Settings' index.
+ */
+export const SETTINGS_ORIGINS = {
+  settings: { href: "/settings", label: "Settings" },
+  "settings-data": { href: "/settings/data", label: "Privacy and data" },
+  "settings-stored": { href: "/settings/data/stored", label: "What Ethos keeps" },
+  "settings-help": { href: "/settings/help", label: "Help" },
+} as const;
+type SettingsOrigin = keyof typeof SETTINGS_ORIGINS;
 
 function useOrigin(): Origin | null {
   const from = useSearchParams().get("from");
   return (ORIGINS as readonly string[]).includes(from ?? "") ? (from as Origin) : null;
 }
 
-function useFromSettings(): boolean {
-  return useOrigin() === "settings";
+/** The Settings page this one was opened from, or null. */
+function useFromSettings(): SettingsOrigin | null {
+  const origin = useOrigin();
+  return origin !== null && origin in SETTINGS_ORIGINS ? (origin as SettingsOrigin) : null;
 }
 
 /**
@@ -47,10 +64,11 @@ function useFromSettings(): boolean {
  * and Sign in).
  */
 export function MarketingBack({ stranger }: { stranger: ReactNode }) {
-  if (!useFromSettings()) return stranger;
+  const from = useFromSettings();
+  if (!from) return stranger;
   return (
     <div className="flex min-h-11 items-center">
-      <BackLink href="/settings" label="Settings" />
+      <BackLink href={SETTINGS_ORIGINS[from].href} label={SETTINGS_ORIGINS[from].label} />
     </div>
   );
 }
@@ -59,13 +77,14 @@ export function MarketingBack({ stranger }: { stranger: ReactNode }) {
     back to the landing page for everyone else. */
 export function MarketingHeader({ title }: { title: string }) {
   const origin = useOrigin();
+  const settings = useFromSettings();
   const next = useNextPath();
   return (
     <ScreenHeader
       title={title}
       back={
-        origin === "settings"
-          ? { href: "/settings", label: "Settings" }
+        settings
+          ? { ...SETTINGS_ORIGINS[settings] }
           : origin === "signup"
             ? { href: authHref("signup", next), label: "Back" }
             : origin === "welcome"
@@ -117,7 +136,7 @@ function KeepFrom({
 }) {
   const fromSettings = useFromSettings();
   return (
-    <Link href={fromSettings ? `${href}?from=settings` : href} className={className}>
+    <Link href={fromSettings ? `${href}?from=${fromSettings}` : href} className={className}>
       {children}
     </Link>
   );

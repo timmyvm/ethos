@@ -323,7 +323,7 @@ await page.locator("main [data-results-back]").click();
 await sleep(800);
 
 // 4. Reduced motion via the Settings switch reaches CSS at once.
-await page.goto(`${BASE}/settings`);
+await page.goto(`${BASE}/settings/accessibility`);
 await page.getByRole("switch", { name: /Reduced motion/ }).click();
 const reduced = await page.evaluate(() => document.documentElement.dataset.motion);
 ok("Settings switch flips data-motion", reduced === "reduce", reduced);

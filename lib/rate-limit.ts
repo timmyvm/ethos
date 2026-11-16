@@ -14,6 +14,7 @@
  */
 
 import { supabaseAdmin } from "./db";
+import { HOSTILE_FREE_ROUNDS } from "./hostile";
 
 export const LIMITS = {
   user: { hour: 10, day: 30 },
@@ -58,6 +59,21 @@ export const LIMITS = {
   guestall: { hour: 60, day: 300 },
   /** The same ceiling for guests' word lookups, which cost far less each. */
   guestwords: { hour: 600, day: 3000 },
+  /**
+   * Hostile Q&A's rounds on the free plan (#478): one slot a round,
+   * taken when its take is sent (/api/hostile), so three rounds in any
+   * 24 hours, all three in one hour if that is when someone plays.
+   * Premium takes none (lib/hostile.ts `HOSTILE_FREE_ROUNDS`).
+   */
+  hostileRound: { hour: HOSTILE_FREE_ROUNDS, day: HOSTILE_FREE_ROUNDS },
+  /**
+   * Every Hostile call a free account makes (#478), in place of the
+   * account's 10 an hour and 30 a day: a round is four calls (the take,
+   * two answers, the verdict), so three rounds are twelve, and four more
+   * cover an answer said again after "Not enough said". It is what bounds
+   * a caller that never sends a take and so never claims a round.
+   */
+  hostileFree: { hour: 16, day: 16 },
 } as const;
 
 /** The one subject every guest's paid call counts against (`guestall`). */

@@ -19,6 +19,12 @@
  * on Hostile's own subject: a session is four calls (the take, two
  * answers, the verdict), and on the recording allowance an account with
  * six recordings that hour lost the verdict after both answers.
+ *
+ * Free for everyone since #478 (docs/plan-next.md section 4): the free
+ * plan's once a week is gone, and a free account starts three rounds in
+ * any 24 hours instead (`hostileRound`, claimed by the take), with every
+ * call it makes under `hostileFree`. Premium is as it was: the
+ * account's own room and no round count.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -28,6 +34,7 @@ import {
   FALLBACK_QUESTIONS,
   HOSTILE_ROUNDS,
   HOSTILE_TAKE_ID,
+  hostileCapLine,
   hostileRecord,
   isRepId,
   promptById,
@@ -37,7 +44,6 @@ import {
 import { hostileQuestion, hostileVerdict } from "@/lib/hostile-server";
 import { isPremium } from "@/lib/db";
 import { computeMetrics } from "@/lib/metrics";
-import { localDate } from "@/lib/metering";
 import {
   GUEST_CEILING,
   GUEST_FULL_COPY,
@@ -141,6 +147,15 @@ interface Spend {
   guestIp?: string | null;
   /** A guest's or visitor's slot under the shared ceiling (`guestall`). */
   ceiling?: string | null;
+  /** A free account's round, claimed by its take (#478). */
+  round?: string | null;
+  /**
+   * The round never started, though something paid ran: a take too
+   * short to interrogate. Its round comes back; the call's own slot
+   * stays spent under the rule above, so a loop of short takes is still
+   * bounded by `hostileFree`.
+   */
+  roundBack?: boolean;
   keep: boolean;
 }
 
@@ -152,6 +167,7 @@ export async function POST(req: NextRequest) {
     if (spend.subject && !spend.keep) await refundRateLimit(spend.subject);
     if (spend.guestIp && !spend.keep) await refundRateLimit(spend.guestIp);
     if (spend.ceiling && !spend.keep) await refundRateLimit(spend.ceiling);
+    if (spend.round && (!spend.keep || spend.roundBack)) await refundRateLimit(spend.round);
   }
 }
 
@@ -170,10 +186,17 @@ async function handle(req: NextRequest, spend: Spend) {
     req.headers.get("authorization")
   ).catch(() => null);
 
+  /* The plan, once (#478): Premium keeps the account's room and claims no
+     rounds; every other session, a guest's included, is the free plan.
+     A read that fails is the free plan, which costs a paying account at
+     most the cap for as long as the read is down. */
+  const premium = auth ? await isPremium(auth.id).catch(() => false) : false;
+
   // Its own subject, never the recording allowance, and a guest gets the
-  // account's room, as /api/analyze gives them (#408, #409).
+  // account's room, as /api/analyze gives them (#408, #409); the free
+  // plan's calls count under its own room (#478).
   const subject = `hostile:${auth ? `u:${auth.id}` : `ip:${clientIp(req.headers)}`}`;
-  const verdict = await consumeRateLimit(subject, analyzeTier(auth));
+  const verdict = await consumeRateLimit(subject, auth && !premium ? "hostileFree" : analyzeTier(auth));
   if (!verdict.allowed) {
     return NextResponse.json(
       { error: limitMessage(verdict), retryAfterS: verdict.retryAfterS },
@@ -218,22 +241,24 @@ async function handle(req: NextRequest, spend: Spend) {
   const isTake = !ctx.take;
 
   /*
-   * Free gets one interrogation a week, premium runs them at will: the
-   * cold-topic pattern (#36) applied to this boss. Checked on every call
-   * (#464), not only the take: whether a call was the take was the
-   * phone's word (a `take` in its context), so a free account could skip
-   * the check by saying it had one. A take is refused once the week holds
-   * one; a round or a verdict is let through while this week's one take
-   * is under an hour old (a session mid-flight is never cut off) or still
-   * on its way to being banked. A stopgap: a caller that never banks is
-   * still never locked, which a week held on the server closes (STATE).
-   * Only when there's a database to ask: degrade open, like everything else.
+   * The free plan's rounds (#478), where the weekly lock was (#464): a
+   * take claims one of the account's three in any 24 hours, before
+   * Whisper, and a refusal says when the next opens. The answers and the
+   * verdict claim none, so a session under way is never cut off by it;
+   * a caller that says it is mid-session to dodge the claim is still
+   * held by `hostileFree`'s sixteen calls a day. A visitor with no
+   * session has the visitor's five calls a day, about one round.
    */
-  if (await weekLocked(auth, isTake, numberOrNull(form.get("tzOffset")))) {
-    return NextResponse.json(
-      { locked: true, error: "You've faced Demos this week. Premium reopens him now; otherwise it's Monday." },
-      { status: 403 }
-    );
+  if (phase !== "verdict" && isTake && auth && !premium) {
+    const round = `hostile:round:u:${auth.id}`;
+    const rounds = await consumeRateLimit(round, "hostileRound");
+    if (!rounds.allowed) {
+      return NextResponse.json(
+        { capped: true, error: hostileCapLine(rounds.retryAfterS), retryAfterS: rounds.retryAfterS },
+        { status: 429, headers: { "Retry-After": String(rounds.retryAfterS) } }
+      );
+    }
+    spend.round = round;
   }
 
   if (phase === "verdict") {
@@ -308,6 +333,8 @@ async function handle(req: NextRequest, spend: Spend) {
   spend.keep = true;
   const metrics = computeMetrics(t.words, t.durationS, t.segments);
   if (metrics.wordCount < MIN_WORDS) {
+    // Nothing to interrogate: a take this short starts no round (#478).
+    spend.roundBack = true;
     return NextResponse.json({
       tooShort: true,
       transcript: t.text,
@@ -383,68 +410,6 @@ async function storeVerdict(userId: string, repId: string, record: HostileRecord
     return (data?.length ?? 0) > 0;
   } catch (e) {
     console.error("hostile verdict not stored", e);
-    return false;
-  }
-}
-
-function numberOrNull(v: FormDataEntryValue | null): number | null {
-  const n = Number(v);
-  return typeof v === "string" && v !== "" && Number.isFinite(n) ? n : null;
-}
-
-/**
- * Monday 00:00 on the person's own calendar, from the offset the phone
- * sends (getTimezoneOffset minutes): the week the screen counts with
- * weekStart() on the phone. The server's clock is UTC, so its Monday
- * began up to 14 hours off the phone's: a Melbourne Monday morning still
- * held last Saturday's session, and the free one the screen offered was
- * locked after the take. With no offset the week is UTC's, as before.
- */
-function weekStartFor(now: Date, tzOffset: number | null): Date {
-  // Its UTC fields read the person's own clock (lib/metering.ts).
-  const wall = localDate(now, tzOffset);
-  const midnight = Date.UTC(wall.getUTCFullYear(), wall.getUTCMonth(), wall.getUTCDate());
-  const sinceMonday = (wall.getUTCDay() + 6) % 7;
-  return new Date(midnight - sinceMonday * 86_400_000 + (now.getTime() - wall.getTime()));
-}
-
-/** How long a round or a verdict may follow the week's take (#464). */
-const SESSION_WINDOW_MS = 60 * 60 * 1000;
-
-/** Whether this call is past a free account's one Hostile session a week (#464). */
-async function weekLocked(
-  auth: { id: string } | null,
-  isTake: boolean,
-  tzOffset: number | null
-): Promise<boolean> {
-  if (!auth) return false;
-  const premium = await isPremium(auth.id).catch(() => false);
-  if (premium) return false;
-  const db = supabaseAdmin();
-  if (!db) return false;
-  const since = weekStartFor(new Date(), tzOffset).toISOString();
-  try {
-    const { count } = await db
-      .from("reps")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", auth.id)
-      .eq("lesson_id", HOSTILE_TAKE_ID)
-      .gte("created_at", since);
-    const n = count ?? 0;
-    if (isTake) return n >= 1;
-    if (n === 0) return false; // the take is still on its way to being banked
-    if (n > 1) return true;
-    const { data } = await db
-      .from("reps")
-      .select("created_at")
-      .eq("user_id", auth.id)
-      .eq("lesson_id", HOSTILE_TAKE_ID)
-      .gte("created_at", since)
-      .order("created_at", { ascending: false })
-      .limit(1);
-    const at = Date.parse((data as { created_at?: string }[] | null)?.[0]?.created_at ?? "");
-    return Number.isFinite(at) && Date.now() - at > SESSION_WINDOW_MS;
-  } catch {
     return false;
   }
 }

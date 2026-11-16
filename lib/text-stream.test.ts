@@ -75,7 +75,7 @@ describe("the chunks", () => {
 });
 
 describe("the plan", () => {
-  it("lands a chunk every 50 to 90 ms, with longer beats at a comma and a full stop", () => {
+  it("lands a chunk every 120 to 180 ms, with longer beats at a comma and a full stop", () => {
     for (const seed of [3, 5, 8, 13]) {
       const plan = planStream("Yes, of course. Why would I need this pen?", { rng: seeded(seed) });
       for (let i = 1; i < plan.chunks.length; i++) {

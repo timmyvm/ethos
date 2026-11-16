@@ -28,10 +28,14 @@ export type RoomArtProps = {
   reduceMotion: boolean;
   /**
    * What he says, drawn by the flow. RoomArt only places it: inside his
-   * own layer, so it moves with him, its bottom-left corner just right of
-   * his head (draw its tail there, toward his mouth). The wrapper is
-   * `[data-room-bubble]`; it is as wide as its content up to
-   * `--room-bubble-max`, the room left to the screen's right edge.
+   * own layer, so it moves with him, its bottom-left corner just over his
+   * head (draw its tail there, pointing down at him). The wrapper is
+   * `[data-room-bubble]`, and it gives the flow two lengths:
+   * `--room-bubble-max`, the widest a bubble should be, and
+   * `--room-bubble-room`, how far it is from the anchor to the screen's
+   * right gutter, so a wider bubble can slide back left over his head
+   * with its tail still on the anchor. Both are at rest (no tilt), and
+   * both follow the anchor as it glides between poses.
    */
   bubble?: ReactNode;
 };
@@ -91,7 +95,7 @@ export default function RoomArt({ tilt, who, mood, reduceMotion, bubble }: RoomA
               className={s.bubble}
               data-room-bubble=""
               data-tail="bottom-left"
-              style={{ "--ax": BUBBLE_AT[m].x, "--ay": BUBBLE_AT[m].y } as CSSProperties}
+              style={{ "--room-ax": BUBBLE_AT[m].x, "--room-ay": BUBBLE_AT[m].y } as CSSProperties}
             >
               {bubble}
             </div>

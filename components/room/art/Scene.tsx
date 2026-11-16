@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { DESK_EDGE, FLOOR_LINE, HORIZON, VIEW_BOX } from "./geometry";
 
 /*
@@ -11,10 +12,12 @@ import { DESK_EDGE, FLOOR_LINE, HORIZON, VIEW_BOX } from "./geometry";
 const SUN = { x: 632, y: HORIZON - 6 };
 
 export function Sky() {
+  /* Ids of its own, so a second room on the page never shares (or, hidden, blanks) its gradients. */
+  const sky = `room-sky${useId()}`;
   return (
     <svg viewBox={VIEW_BOX} aria-hidden="true" focusable="false">
       <defs>
-        <linearGradient id="room-sky" x1="0" y1="40" x2="0" y2={HORIZON + 20} gradientUnits="userSpaceOnUse">
+        <linearGradient id={sky} x1="0" y1="40" x2="0" y2={HORIZON + 20} gradientUnits="userSpaceOnUse">
           <stop offset="0" stopColor="#1a1744" />
           <stop offset="0.3" stopColor="#33296b" />
           <stop offset="0.52" stopColor="#653c8a" />
@@ -24,7 +27,7 @@ export function Sky() {
           <stop offset="1" stopColor="#ffcf86" />
         </linearGradient>
       </defs>
-      <rect x="-80" y="-80" width="1060" height="1040" fill="url(#room-sky)" />
+      <rect x="-80" y="-80" width="1060" height="1040" fill={`url(#${sky})`} />
       {/* first stars */}
       <g fill="#fff4e0">
         <circle cx="540" cy="150" r="2.6" opacity="0.7" />
@@ -117,22 +120,25 @@ export function Office() {
 /* ---- the desk: dark, glossy, the sunset lying in it ---- */
 
 export function Desk() {
+  const id = useId();
+  const desk = `room-desk${id}`;
+  const glint = `room-glint${id}`;
   return (
     <svg viewBox={VIEW_BOX} aria-hidden="true" focusable="false">
       <defs>
-        <linearGradient id="room-desk" x1="0" y1={DESK_EDGE} x2="0" y2="1700" gradientUnits="userSpaceOnUse">
+        <linearGradient id={desk} x1="0" y1={DESK_EDGE} x2="0" y2="1700" gradientUnits="userSpaceOnUse">
           <stop offset="0" stopColor="#2e2850" />
           <stop offset="0.35" stopColor="#221d3f" />
           <stop offset="1" stopColor="#141127" />
         </linearGradient>
-        <linearGradient id="room-glint" x1="0" y1={DESK_EDGE} x2="0" y2="1500" gradientUnits="userSpaceOnUse">
+        <linearGradient id={glint} x1="0" y1={DESK_EDGE} x2="0" y2="1500" gradientUnits="userSpaceOnUse">
           <stop offset="0" stopColor="#ff9f7a" stopOpacity="0.32" />
           <stop offset="1" stopColor="#ff9f7a" stopOpacity="0" />
         </linearGradient>
       </defs>
-      <rect x="-160" y={DESK_EDGE} width="1220" height="760" fill="url(#room-desk)" />
+      <rect x="-160" y={DESK_EDGE} width="1220" height="760" fill={`url(#${desk})`} />
       {/* the sun's reflection, a long warm streak toward you */}
-      <path d={`M${SUN.x - 70} ${DESK_EDGE}h140l60 520h-260z`} fill="url(#room-glint)" />
+      <path d={`M${SUN.x - 70} ${DESK_EDGE}h140l60 520h-260z`} fill={`url(#${glint})`} />
       {/* the far edge catching the light */}
       <rect x="-160" y={DESK_EDGE - 2} width="1220" height="6" fill="#5c4d8e" />
       <rect x={SUN.x - 110} y={DESK_EDGE - 2} width="220" height="6" fill="#ffb487" opacity="0.8" />

@@ -265,7 +265,7 @@ if (want("speaking")) {
   ok("and nothing pops while the mic is open", r.pops.every((p) => !p.mic), `${r.pops.filter((p) => p.mic).length} over an open mic`);
   ok("the mic opened for the two turns and the ask, nothing more", r.opened === 3, String(r.opened));
   ok("the room shows no number", (await digits(page)) === "", await digits(page));
-  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
   await page.waitForFunction(() => /What do I call you\?/.test(document.querySelector("main h1")?.textContent ?? ""), null, { timeout: 5000 }).catch(() => {});
   ok("Next is the questions, the name first", /What do I call you\?/.test((await heading(page)) ?? ""), await heading(page));
   await page.getByRole("button", { name: "Back", exact: true }).click();
@@ -328,7 +328,7 @@ if (want("denied")) {
   ok("mic denied: Demos says it plainly", /No mic, no room\. Let's set you up instead\./.test(r.demos.at(-1) ?? ""), r.demos.at(-1));
   ok("mic denied: and no verdict is made up", (await room(page))?.verdict === undefined);
   ok("motion denied: nothing is said about it", !r.said.some((s) => /motion|tilt/i.test(s)));
-  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
   await page.waitForFunction(() => /What do I call you\?/.test(document.querySelector("main h1")?.textContent ?? ""), null, { timeout: 5000 }).catch(() => {});
   ok("mic denied: the questions follow", /What do I call you\?/.test((await heading(page)) ?? ""));
   ok("mic denied: no page errors", errors.length === 0, errors.join(" | "));

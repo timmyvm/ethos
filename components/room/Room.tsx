@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  type CSSProperties,
   type ReactNode,
 } from "react";
 import { preloadPose } from "@/components/DemosArt";
@@ -62,6 +63,8 @@ const NO_MIC_BEAT_MS = 900;
 const DEMOS_IN_MS = 700;
 /** The door's words fading once the room opens. */
 const DOOR_FADE_MS = 260;
+/** Demos's sheet rising over the whole room on Next, before the name. */
+const HAND_OFF_MS = 520;
 
 type Stage = "door" | "scene" | "ending";
 
@@ -193,18 +196,18 @@ function Chunks({ plan, shown }: { plan: StreamPlan; shown: number }) {
 }
 
 /**
- * A box that grows to its words: the words are laid out at their own
- * width (never the box's), and the box follows them on a short curve, so
- * a chunk landing grows the bubble smoothly and nothing already there
- * moves to another line.
+ * A box that grows to its words, a line at a time: the words are laid
+ * out at the box's width (which the whole line has already set), and its
+ * height follows them on a short curve, so a line wrapping grows the
+ * bubble smoothly and nothing already there moves.
  */
-function Grow({ children, fill = false, className = "" }: { children: ReactNode; fill?: boolean; className?: string }) {
+function Grow({ children }: { children: ReactNode }) {
   const inner = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+  const [height, setHeight] = useState<number | null>(null);
   useLayoutEffect(() => {
     const el = inner.current;
     if (!el) return;
-    const measure = () => setSize({ w: el.offsetWidth, h: el.offsetHeight });
+    const measure = () => setHeight(el.offsetHeight);
     measure();
     if (typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver(measure);
@@ -212,77 +215,44 @@ function Grow({ children, fill = false, className = "" }: { children: ReactNode;
     return () => ro.disconnect();
   }, []);
   return (
-    <div
-      className={`room-grow ${className}`}
-      style={size ? (fill ? { height: size.h } : { width: size.w, height: size.h }) : undefined}
-    >
-      <div ref={inner} className={fill ? "room-grow-fill" : "room-grow-fit"}>
-        {children}
-      </div>
+    <div className="room-grow" style={height === null ? undefined : { height }}>
+      <div ref={inner}>{children}</div>
     </div>
   );
 }
 
 /**
- * The bubble keeps this far inside the room's edges: 12px, plus most of
- * the 34px his layer travels at full tilt, so turning the phone toward
- * an edge never carries his words off it.
- */
-const BUBBLE_EDGE = 12 + 28;
-/** Where the tail stands in from the bubble's own edge. */
-const TAIL_IN = 18;
-
-/**
- * His speech: a white bubble the art places by his head. Seen, not read
- * (the live region reads it).
+ * His speech: a white bubble the art places over his head. Seen, not
+ * read (the live region reads it).
  *
- * The art says where his mouth is; the bubble makes sure it can be read
- * from there. Its tail stays on the art's anchor, and if the words would
- * carry it past the room's edge the bubble slides back inside it as it
- * grows, the tail sliding the other way along its foot so it still
- * points at him. It is never cut off, wherever the anchor is.
+ * It streams the way an AI chat does: the bubble opens at the width the
+ * whole line will take (a hidden copy of the line sets it, so it never
+ * slides or reflows while the words land), the words arrive a chunk at a
+ * time, and the bubble grows a line at a time upward as they wrap.
+ *
+ * Where it stands is CSS, from the art's two lengths: a bubble wider than
+ * the room right of the anchor slides back left over his head by the
+ * difference, its tail sliding the other way along its foot so it stays
+ * on the anchor (`.room-bubble`). The art glides the anchor between his
+ * poses and the slide glides with it. Its own width is measured once,
+ * here, because it is the one length the CSS cannot know.
  */
 function HisBubble({ line }: { line: Line }) {
-  const shell = useRef<HTMLDivElement>(null);
   const bubble = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
-    const el = shell.current;
     const b = bubble.current;
-    if (!el || !b) return;
-    const room = el.closest(".room");
-    const right = el.closest('[data-room-tail="right"]') !== null;
-    let shift = 0;
-    /* The shell stays on the anchor (the slide is the bubble's own
-       `translate`, which the shell's box never sees). The width fitted to
-       is the words' own, which lands with each chunk, not the box's,
-       which is still growing toward it: the slide and the growth then run
-       on one curve together and the far edge never passes the room's. */
-    const words = b.querySelector<HTMLElement>(".room-grow-fit") ?? b;
-    const fit = () => {
-      const box = room?.getBoundingClientRect();
-      const anchor = el.getBoundingClientRect();
-      const w = words.offsetWidth;
-      if (!box || w === 0) return;
-      const lo = box.left + BUBBLE_EDGE;
-      const hi = box.right - BUBBLE_EDGE;
-      const most = Math.max(0, w - 2 * TAIL_IN - 16);
-      const next = right
-        ? Math.min(Math.max(0, lo - (anchor.right - w)), most, Math.max(0, hi - anchor.right))
-        : Math.min(Math.max(0, anchor.left + w - hi), most, Math.max(0, anchor.left - lo));
-      if (Math.abs(next - shift) < 0.5) return;
-      shift = next;
-      b.style.setProperty("--room-bubble-shift", `${right ? shift : -shift}px`);
-      b.style.setProperty("--room-tail-shift", `${shift}px`);
-    };
-    fit();
+    if (!b) return;
+    const measure = () => b.style.setProperty("--room-bubble-w", `${b.offsetWidth}px`);
+    measure();
     if (typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(fit);
-    ro.observe(words);
+    const ro = new ResizeObserver(measure);
+    ro.observe(b);
     return () => ro.disconnect();
   }, []);
   return (
-    <div ref={shell} className="room-bubble-shell" aria-hidden>
+    <div className="room-bubble-shell" aria-hidden>
       <div ref={bubble} className="room-bubble" data-room-line={line.key}>
+        <p className="room-bubble-ghost">{line.plan.text}</p>
         <Grow>
           <p className="room-bubble-text">
             <Chunks plan={line.plan} shown={line.shown} />
@@ -429,7 +399,7 @@ function HoldToStep({ label, onComplete }: { label: string; onComplete: (keys: b
         if (e.detail === 0 || performance.now() - state.current.downAt > 1500) finish(true);
       }}
     >
-      <span className="room-hold-label">{label}</span>
+      <span className="room-hold-label room-hold-shine">{label}</span>
       <span aria-hidden className="room-hold-fill">
         <span className="room-hold-label">{label}</span>
       </span>
@@ -472,6 +442,8 @@ export function Room({
   const [demos, setDemos] = useState<Line[]>([]);
   const [demosLines, setDemosLines] = useState<string[]>([]);
   const [ready, setReady] = useState(false);
+  /* Next pressed: where the sheet's top stood, for the ground rising from it. */
+  const [handOff, setHandOff] = useState<number | null>(null);
   const [verdict, setVerdict] = useState<RoomVerdict | null>(null);
 
   const popper = useRef<Popper | null>(null);
@@ -480,6 +452,7 @@ export function Room({
   const meter = useRef<HTMLDivElement>(null);
   const doneBtn = useRef<HTMLButtonElement>(null);
   const nextBtn = useRef<HTMLButtonElement>(null);
+  const sheet = useRef<HTMLDivElement>(null);
   const keys = useRef(0);
 
   /* Demos's pose is fetched while the scene plays. */
@@ -710,6 +683,8 @@ export function Room({
     void direct(micAnswer, ctl.signal);
   };
 
+  const lastBeat = script.beats[script.beats.length - 1]?.id;
+
   /* Keyed by line: each line is a new bubble, with its own entrance. */
   const bubble = his ? <HisBubble key={his.key} line={his} /> : undefined;
 
@@ -757,8 +732,17 @@ export function Room({
       )}
 
       {stage === "scene" && !doorFading && (
-        <div className="room-top room-top-end">
-          <button type="button" className="room-link" onClick={() => leave(onSkip)}>
+        /* Skip steps back once his last line starts: there is nothing
+           left to skip, and on a short phone his longest line reaches up
+           into this row. */
+        <div className="room-top room-top-end" data-gone={beat === lastBeat ? "" : undefined}>
+          <button
+            type="button"
+            className="room-link"
+            tabIndex={beat === lastBeat ? -1 : undefined}
+            aria-hidden={beat === lastBeat ? true : undefined}
+            onClick={() => leave(onSkip)}
+          >
             {ROOM_COPY.skip}
           </button>
         </div>
@@ -788,6 +772,10 @@ export function Room({
         </div>
       )}
 
+      {handOff !== null && (
+        <div aria-hidden className="room-cover" style={{ "--room-cover-from": `${handOff}px` } as CSSProperties} />
+      )}
+
       {stage === "ending" && (
         /*
          * Demos steps in on a sheet of the app's own ground, in the grammar
@@ -795,7 +783,7 @@ export function Room({
          * the left, his bubble beside it. Short, so the room stays in view
          * above him, and the walk's next screen is the same shape.
          */
-        <div className="room-sheet rounded-t-sheet">
+        <div ref={sheet} className="room-sheet rounded-t-sheet" data-leaving={handOff === null ? undefined : ""}>
           <div className="flex items-start gap-3">
             <div className="relative size-[clamp(96px,14vh,128px)] shrink-0 [container-type:size]">
               <IntroDemos pose="speaking" size={128} fit pop halo={{ tone: "sky", kind: "coin" }} />
@@ -819,7 +807,7 @@ export function Room({
                    `relative`, which its tail is drawn against. */
                 <div className="absolute inset-x-0 top-0">
                   <SpeechBubble tail="left" voice="lead" className="room-demos-bubble">
-                    <Grow fill>
+                    <Grow>
                       <div aria-hidden>
                         {demos.map((l, k) => (
                           <p key={l.key} className={k > 0 ? "mt-1" : undefined}>
@@ -839,7 +827,17 @@ export function Room({
               type="button"
               className={`${ACTION_CLASS} ${ready ? "arrive" : "invisible"}`}
               disabled={!ready}
-              onClick={() => leave(onDone)}
+              onClick={() => {
+                if (handOff !== null) return;
+                /* The hand-off: the app's ground rises from the sheet's
+                   top over the room, Demos's words fade, and the name
+                   question comes up on the same ground, so the walk goes
+                   on from the room rather than cutting away from it. */
+                setHandOff(sheet.current?.offsetTop ?? 0);
+                window.setTimeout(() => {
+                  if (!abort.current?.signal.aborted) leave(onDone);
+                }, reduced ? 200 : HAND_OFF_MS);
+              }}
             >
               {ROOM_COPY.next}
             </button>

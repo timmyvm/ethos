@@ -1,9 +1,12 @@
 /**
  * A line arriving the way an AI chat streams it (#475, Timothy, 16 Nov:
  * "make it like streamline like AI text, and then every stream is like
- * pop, like that stream text sound"): a word or two at a time, every 50
- * to 90 ms with a little give, a longer beat at a comma and a longer one
- * at a full stop, and a pop on every chunk (lib/room-sound.ts).
+ * pop, like that stream text sound"): a word at a time, now and then
+ * two, every 120 to 180 ms with a little give, a longer beat at a comma
+ * and a longer one at a full stop, and a pop on every chunk
+ * (lib/room-sound.ts). Slow enough that each pop is heard as its own
+ * (faster, they ran together into a buzz and a short line landed whole),
+ * fast enough that it reads as streaming, not as typing.
  *
  * Pure: the plan is worked out from the text and a random source, and
  * played against a clock that is passed in, so a test can hold the
@@ -16,17 +19,17 @@
 export type Rng = () => number;
 
 export const STREAM = {
-  /** Between two chunks, before any beat: 50 to 90 ms. */
-  minGapMs: 50,
-  maxGapMs: 90,
+  /** Between two chunks, before any beat: 120 to 180 ms. */
+  minGapMs: 120,
+  maxGapMs: 180,
   /** Added after a chunk that ends on a comma, a colon or a semicolon. */
-  commaBeatMs: 170,
+  commaBeatMs: 200,
   /** Added after a chunk that ends a sentence, when more follows. */
-  stopBeatMs: 320,
+  stopBeatMs: 340,
   /** Two short words travel together, up to this many letters between them. */
   pairLetters: 9,
   /** How often two short words go as one chunk. */
-  pairChance: 0.55,
+  pairChance: 0.35,
   /** Reading time once the line is whole. */
   holdPerWordMs: 300,
   holdMinMs: 1400,

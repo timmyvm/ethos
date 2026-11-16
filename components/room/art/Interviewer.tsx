@@ -106,13 +106,29 @@ const POSES: Record<Mood, Pose> = {
   },
 };
 
-/** Where the bubble's bottom-left corner sits, as stage fractions, per pose. */
-export const BUBBLE_AT: Record<Mood, { x: number; y: number }> = {
-  idle: { x: (500 + OFFSET_X) / 900, y: 496 / 1600 },
-  listening: { x: (486 + OFFSET_X) / 900, y: 490 / 1600 },
-  unimpressed: { x: (498 + OFFSET_X) / 900, y: 496 / 1600 },
-  verdict: { x: (504 + OFFSET_X) / 900, y: 466 / 1600 },
+/*
+ * The crown of his head per pose, in his own drawing (before OFFSET_X):
+ * the hair's top at (404, 392) carried through the pose's head tilt about
+ * (400, 640) and, for the verdict, the body's lift about (400, 1000).
+ */
+const CROWN: Record<Mood, { x: number; y: number }> = {
+  idle: { x: 426, y: 393 },
+  listening: { x: 370, y: 394 },
+  unimpressed: { x: 404, y: 392 },
+  verdict: { x: 404, y: 352 },
 };
+
+/**
+ * Where the bubble's bottom-left corner sits, as stage fractions, per
+ * pose: just over his head, 55 units left of its crown, so the tail (26px
+ * in from that corner) points down at him and the bubble has the sky
+ * over his chair to grow into, wide enough for two lines rather than
+ * five (#475 integration: beside his head it had about 180px at 390
+ * wide and 140 at 320).
+ */
+export const BUBBLE_AT: Record<Mood, { x: number; y: number }> = Object.fromEntries(
+  (Object.keys(CROWN) as Mood[]).map((m) => [m, { x: (CROWN[m].x + OFFSET_X - 55) / 900, y: (CROWN[m].y - 22) / 1600 }])
+) as Record<Mood, { x: number; y: number }>;
 
 const box: CSSProperties = { transformBox: "fill-box", transformOrigin: "center" };
 

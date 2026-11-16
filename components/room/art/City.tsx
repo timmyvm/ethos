@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { HORIZON, VIEW_BOX, r1, rects, seeded } from "./geometry";
 
 /*
@@ -84,16 +85,17 @@ const FAR: Tower[] = [
 ];
 
 export function FarCity() {
+  const haze = `room-far-haze${useId()}`;
   return (
     <svg viewBox={VIEW_BOX} aria-hidden="true" focusable="false">
       <defs>
-        <linearGradient id="room-far-haze" x1="0" y1={HORIZON} x2="0" y2="820" gradientUnits="userSpaceOnUse">
+        <linearGradient id={haze} x1="0" y1={HORIZON} x2="0" y2="820" gradientUnits="userSpaceOnUse">
           <stop offset="0" stopColor="#f6a37f" stopOpacity="0" />
           <stop offset="1" stopColor="#f6a37f" stopOpacity="0.85" />
         </linearGradient>
       </defs>
       <path d={FAR.map(towerPath).join("")} fill="#cf7489" />
-      <rect x="-150" y={HORIZON} width="1200" height={BOTTOM - HORIZON} fill="url(#room-far-haze)" />
+      <rect x="-150" y={HORIZON} width="1200" height={BOTTOM - HORIZON} fill={`url(#${haze})`} />
     </svg>
   );
 }
@@ -124,10 +126,11 @@ const TALL_WINDOWS = rects([
 ]);
 
 export function MidCity() {
+  const haze = `room-mid-haze${useId()}`;
   return (
     <svg viewBox={VIEW_BOX} aria-hidden="true" focusable="false">
       <defs>
-        <linearGradient id="room-mid-haze" x1="0" y1="760" x2="0" y2="900" gradientUnits="userSpaceOnUse">
+        <linearGradient id={haze} x1="0" y1="760" x2="0" y2="900" gradientUnits="userSpaceOnUse">
           <stop offset="0" stopColor="#c76c8c" stopOpacity="0" />
           <stop offset="1" stopColor="#c76c8c" stopOpacity="0.9" />
         </linearGradient>
@@ -138,7 +141,7 @@ export function MidCity() {
       <path d={TALL_WINDOWS} fill="#ffd690" />
       <path d={MID.map(towerPath).join("")} fill="#8a5291" />
       <path d={MID_WINDOWS.lit} fill="#ffd690" opacity="0.9" />
-      <rect x="-150" y="760" width="1200" height={BOTTOM - 760} fill="url(#room-mid-haze)" />
+      <rect x="-150" y="760" width="1200" height={BOTTOM - 760} fill={`url(#${haze})`} />
     </svg>
   );
 }

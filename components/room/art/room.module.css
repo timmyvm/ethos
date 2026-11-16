@@ -54,26 +54,32 @@
 }
 
 /*
- * The bubble's anchor. Its bottom-left corner sits just right of his
- * mouth, so the flow's bubble grows up and to the right with its tail at
- * its bottom-left, toward him. `--room-bubble-max` is the width left
- * between the anchor and the screen's right edge, less 32px: a 16px
- * gutter and half the layer's travel, so at full tilt the bubble still
- * meets the edge rather than leaving the screen. It moves with his pose (sitting up for the verdict).
+ * The bubble's anchor. Its bottom-left corner sits just over his head,
+ * so the flow's bubble grows up from it with its tail at its bottom-left,
+ * pointing down at him, into the sky over his chair.
+ *
+ *   --room-bubble-max    the widest a bubble is: 300px, or the screen
+ *                        less a 44px gutter each side (12px, plus most of
+ *                        the 34px his layer travels at full tilt)
+ *   --room-bubble-room   from the anchor to the right gutter, at rest; a
+ *                        bubble wider than this slides left over his head
+ *                        by the difference (the flow does the sliding)
+ *
+ * The anchor (`--room-ax`, `--room-ay`, registered in globals.css so they
+ * can be animated) glides with his pose, and both lengths glide with it.
  */
 .bubble {
   position: absolute;
-  left: calc(var(--ax) * 100%);
-  bottom: calc(100% - var(--ay) * 100%);
+  left: calc(var(--room-ax) * 100%);
+  bottom: calc(100% - var(--room-ay) * 100%);
   width: max-content;
-  --room-bubble-max: calc(
-    50cqw + max(100cqw, 56.25cqh) * (0.5 - var(--ax)) - 32px
-  );
+  --room-bubble-max: min(300px, 100cqw - 88px);
+  --room-bubble-room: calc(50cqw + max(100cqw, 56.25cqh) * (0.5 - var(--room-ax)) - 44px);
   max-width: var(--room-bubble-max);
   pointer-events: auto;
   transition:
-    left var(--spring-sheet-duration) var(--spring-sheet),
-    bottom var(--spring-sheet-duration) var(--spring-sheet);
+    --room-ax var(--spring-sheet-duration) var(--spring-sheet),
+    --room-ay var(--spring-sheet-duration) var(--spring-sheet);
 }
 
 /* ---- his parts: poses fade, moves glide ---- */

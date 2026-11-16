@@ -147,7 +147,7 @@ async function walk([width, height]) {
   );
   await sleep(500);
   await shot("15-demos");
-  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
   await page.waitForFunction(() => /What do I call you\?/.test(document.querySelector("main h1")?.textContent ?? ""));
   await sleep(700);
   await shot("16-the-name");

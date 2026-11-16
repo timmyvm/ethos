@@ -183,9 +183,22 @@ function notesQuery() {
   };
 }
 
+/* The introduction's row the reminder reads its pool from (#489): none here. */
+function onboardingQuery() {
+  const q = { select: () => q, eq: () => q, maybeSingle: async () => ({ data: null, error: null }) };
+  return q;
+}
+
 vi.mock("@/lib/db", () => ({
   supabaseAdmin: () => ({
-    from: (t: string) => (t === "push_subscriptions" ? subsQuery() : t === "rate_limits" ? notesQuery() : repsQuery()),
+    from: (t: string) =>
+      t === "push_subscriptions"
+        ? subsQuery()
+        : t === "rate_limits"
+          ? notesQuery()
+          : t === "onboarding"
+            ? onboardingQuery()
+            : repsQuery(),
     rpc: async (fn: string, args: { token: string }) => {
       if (fn !== "push_tick_ok") return { data: null, error: { message: "no such function" } };
       asked.push(args.token);

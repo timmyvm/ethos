@@ -1,0 +1,34 @@
+{
+  "phase": "before",
+  "day": "2026-12-12",
+  "cards": [
+    {
+      "person": "under-18",
+      "view": "390-light",
+      "topic": "The worst job you've ever done",
+      "start": "/rep?topic=t10&item=pause-1-10&trait=pause&ready=1",
+      "menu": "/rep?topic=t10&item=pause-1-10&trait=pause&ready=1"
+    },
+    {
+      "person": "under-18",
+      "view": "390-dark",
+      "topic": "The worst job you've ever done",
+      "start": "/rep?topic=t10&item=pause-1-10&trait=pause&ready=1",
+      "menu": null
+    },
+    {
+      "person": "adult",
+      "view": "390-light",
+      "topic": "The worst job you've ever done",
+      "start": "/rep?topic=t10&item=pause-1-10&trait=pause&ready=1",
+      "menu": "/rep?topic=t10&item=pause-1-10&trait=pause&ready=1"
+    },
+    {
+      "person": "adult",
+      "view": "390-dark",
+      "topic": "The worst job you've ever done",
+      "start": "/rep?topic=t10&item=pause-1-10&trait=pause&ready=1",
+      "menu": null
+    }
+  ]
+}

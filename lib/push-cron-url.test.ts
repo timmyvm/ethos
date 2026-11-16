@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { NextRequest } from "next/server";
 import type { RepRow } from "./client-data";
 
@@ -92,9 +92,23 @@ function repsQuery() {
   return q;
 }
 
+/* The account's introduction row (#489): what the reminder reads the pool from. */
+let answers: { data: { age_band: string | null; context: string | null } | null; error: { message: string } | null } = {
+  data: { age_band: "18_24", context: null },
+  error: null,
+};
+function onboardingQuery() {
+  const q = {
+    select: () => q,
+    eq: () => q,
+    maybeSingle: async () => answers,
+  };
+  return q;
+}
+
 vi.mock("@/lib/db", () => ({
   supabaseAdmin: () => ({
-    from: (t: string) => (t === "push_subscriptions" ? subsQuery() : repsQuery()),
+    from: (t: string) => (t === "push_subscriptions" ? subsQuery() : t === "onboarding" ? onboardingQuery() : repsQuery()),
   }),
 }));
 
@@ -122,12 +136,86 @@ function tick() {
   return GET(req as unknown as NextRequest);
 }
 
+const { todayHref } = await import("@/lib/home");
+const { poolFor } = await import("@/lib/pool");
+const { EMPTY_ANSWERS } = await import("@/lib/answers");
+
 const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000);
 
 beforeEach(() => {
   history = [];
   historyError = null;
   payloads.length = 0;
+  answers = { data: { age_band: "18_24", context: null }, error: null };
+});
+
+/*
+ * The reminder in the person's pool (#489). It chose in the "all" pool for
+ * everyone, so on the few days a walk held a prompt about a job it sent an
+ * under-18 to one. The tick below lands on such a day: the newest takes
+ * are three days before it, and the day is the first from 20 Nov 2026
+ * whose "all" practice is a job prompt.
+ */
+describe("the reminder's pool", () => {
+  const JOB = ["t10", "t11", "t18"];
+  const DAY = 86_400_000;
+  const topicOf = (url: string) => new URL(url, "http://ethos.local").searchParams.get("topic");
+  const takesBefore = (at: number) => [stored(new Date(at - 3 * DAY)), stored(new Date(at - 2 * DAY)), stored(new Date(at - DAY))];
+  let jobDay = 0;
+  for (let d = 0; d < 400 && jobDay === 0; d++) {
+    const at = Date.UTC(2026, 10, 20 + d, 12);
+    if (JOB.includes(topicOf(todayHrefOn(takesBefore(at) as RepRow[], new Date(at), 0, "all"))!)) jobDay = at;
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(jobDay);
+    history = takesBefore(jobDay);
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it("finds a day whose practice was a job prompt", () => {
+    expect(jobDay).toBeGreaterThan(0);
+  });
+
+  it("never sends an under-18 to a job prompt, and opens the topic their card shows", async () => {
+    answers = { data: { age_band: "u18", context: null }, error: null };
+    await tick();
+    const url = payloads[0].url;
+    expect(JOB).not.toContain(topicOf(url));
+    expect(new URL(url, "http://ethos.local").searchParams.get("item")).toMatch(/-school$/);
+    expect(url).toBe(todayHrefOn(history as RepRow[], new Date(jobDay), 0, "school"));
+    // Today's card on their phone, reading the same answers through the same rule.
+    const phone = todayHref(history as RepRow[], new Date(jobDay), poolFor({ ...EMPTY_ANSWERS, ageBand: "u18" }));
+    expect(url).toBe(phone);
+  });
+
+  it("reads Class as school too", async () => {
+    answers = { data: { age_band: "25_34", context: "class" }, error: null };
+    await tick();
+    expect(JOB).not.toContain(topicOf(payloads[0].url));
+  });
+
+  it("sends a grown-up what it always sent", async () => {
+    await tick();
+    expect(JOB).toContain(topicOf(payloads[0].url));
+    expect(payloads[0].url).toBe(todayHrefOn(history as RepRow[], new Date(jobDay), 0, "all"));
+  });
+
+  it("treats no answers, and a read that failed, as an age never given: school", async () => {
+    for (const a of [
+      { data: null, error: null },
+      { data: { age_band: null, context: null }, error: null },
+      { data: null, error: { message: "boom" } },
+    ]) {
+      payloads.length = 0;
+      answers = a;
+      await tick();
+      expect(payloads[0].url).toBe(todayHrefOn(history as RepRow[], new Date(jobDay), 0, "school"));
+      // The phone with no answers agrees.
+      expect(payloads[0].url).toBe(todayHref(history as RepRow[], new Date(jobDay), poolFor(EMPTY_ANSWERS)));
+    }
+  });
 });
 
 describe("the reminder's address", () => {
@@ -141,7 +229,7 @@ describe("the reminder's address", () => {
     expect(url.searchParams.get("item")).toBeTruthy();
     expect(url.searchParams.get("ready")).toBe("1");
     // The same function Today's Start reads, on the subscriber's calendar.
-    expect(payloads[0].url).toBe(todayHrefOn(history as RepRow[], new Date(), 0));
+    expect(payloads[0].url).toBe(todayHrefOn(history as RepRow[], new Date(), 0, "all"));
   });
 
   it("opens Today for someone with no recording yet, and when the read fails", async () => {

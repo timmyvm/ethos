@@ -497,6 +497,12 @@ export function topicById(id: string | null | undefined): Topic | null {
   return TOPICS.find((t) => t.id === id) ?? null;
 }
 
+/** A topic fits a pool unless it names that pool in `not` (the roulette's
+ *  `topicsFor`, Today's card and the reminder all ask this, #489). */
+export function fitsPool(topic: Topic, pool: Pool): boolean {
+  return !topic.not?.includes(pool);
+}
+
 export function tipsFor(shape: TopicShape): string[] {
   return TOPIC_SHAPES[shape].tips;
 }

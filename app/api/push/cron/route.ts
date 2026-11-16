@@ -41,6 +41,8 @@ import {
 } from "@/lib/push";
 import { lastTake, reminderCopy } from "@/lib/reminder-copy";
 import { todayHrefOn, type PracticeRow } from "@/lib/home";
+import { poolForRow } from "@/lib/pool";
+import type { Pool } from "@/content/portfolio";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -257,11 +259,11 @@ export async function GET(req: NextRequest) {
 /**
  * Where the reminder opens (#431): the address Today's Start opens on a
  * day not yet spoken, the same topic on the same day, ready to record
- * (lib/home.ts `todayHref`, read on the subscriber's calendar). It used
- * to be bare /rep, the demoted road's rotation, so every reminder opened
- * a different topic from Today's. The practice is chosen from the newest
- * measured recording, so the newest thirty are read; a read that fails
- * opens Today, which chooses for itself.
+ * (lib/home.ts `todayHref`, read on the subscriber's calendar and in
+ * their pool). It used to be bare /rep, the demoted road's rotation, so
+ * every reminder opened a different topic from Today's. The practice is
+ * chosen from the newest measured recording, so the newest thirty are
+ * read; a read that fails opens Today, which chooses for itself.
  */
 async function practiceUrl(
   db: NonNullable<ReturnType<typeof supabaseAdmin>>,
@@ -269,21 +271,48 @@ async function practiceUrl(
   now: Date,
   tzOffset: number
 ): Promise<string> {
-  const { data, error } = await db
-    .from("reps")
-    .select("created_at, duration_s, transcript, wpm, filler_count, fillers, pauses, dimensions")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(30);
+  const [{ data, error }, pool] = await Promise.all([
+    db
+      .from("reps")
+      .select("created_at, duration_s, transcript, wpm, filler_count, fillers, pauses, dimensions")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(30),
+    poolOf(db, userId),
+  ]);
   if (error || !data) return "/";
   const rows = (data as PracticeRow[]).slice().reverse();
   // The day is already claimed (#430): an address that cannot be worked
   // out opens Today rather than costing the person their reminder.
   try {
-    return todayHrefOn(rows, now, tzOffset);
+    return todayHrefOn(rows, now, tzOffset, pool);
   } catch (e) {
     console.error("push cron: practice address failed", (e as Error).message);
     return "/";
+  }
+}
+
+/**
+ * The person's topic pool (#489), from the introduction's answers on the
+ * account (`onboarding`, 0009): the age band and the place, read through
+ * the rule the phone reads its own copy through (lib/pool.ts), so the
+ * reminder opens the topic Today's card shows. No row, an age never
+ * given, or a read that failed is an unknown age, which is the school
+ * pool unless the place is Work: a prompt about a job is never sent to
+ * someone who may be under 18.
+ */
+async function poolOf(db: NonNullable<ReturnType<typeof supabaseAdmin>>, userId: string): Promise<Pool> {
+  try {
+    const { data, error } = await db
+      .from("onboarding")
+      .select("age_band, context")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) console.error("push cron: answers read failed", error.message);
+    return poolForRow(error ? null : (data as { age_band: unknown; context: unknown } | null));
+  } catch (e) {
+    console.error("push cron: answers read failed", (e as Error).message);
+    return poolForRow(null);
   }
 }
 

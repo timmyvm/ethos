@@ -465,3 +465,42 @@ describe("0030 bounded writes", () => {
     expect(sql).toMatch(/alter default privileges for role postgres in schema public\s+revoke execute on functions from anon, authenticated;/);
   });
 });
+
+/**
+ * The carried cue (0033, #477): one nullable column on profiles, the
+ * browser's own to write under the policies and grants profiles already
+ * has, held to a size so a session cannot fill the table with it.
+ */
+describe("0033 carried cue", () => {
+  const sql = code("0033_carried_cue.sql");
+
+  it("adds one nullable jsonb column, and nothing else to the table", () => {
+    expect(sql).toMatch(/alter table public\.profiles add column if not exists carried_cue jsonb;/);
+    expect(sql).not.toMatch(/\bgrant\b|create policy|not null/i);
+  });
+
+  it("holds it to 2,000 bytes, added once behind a look in pg_constraint", () => {
+    expect(sql).toMatch(/check \(carried_cue is null or octet_length\(carried_cue::text\) <= 2000\)/);
+    expect(sql).toMatch(/if not exists \(\s+select 1 from pg_constraint\s+where conname = 'profiles_carried_cue_size'/);
+  });
+
+  it("is several times what the app writes", async () => {
+    const { PAUSE_MARK } = await import("./carried-cue");
+    const longest = {
+      v: 1,
+      cue: {
+        kind: "repeat",
+        word: "x".repeat(40),
+        from: 9999,
+        last: 9999,
+        givenOn: "2026-11-16",
+        answeredOn: "2026-11-17",
+        tries: 2,
+        line: { text: `${"w".repeat(110)} ${PAUSE_MARK} ${"w".repeat(110)}`, at: 9999.99 },
+      },
+      aside: { key: `filler:${"x".repeat(40)}`, until: "2026-11-23" },
+      at: new Date().toISOString(),
+    };
+    expect(new TextEncoder().encode(JSON.stringify(longest)).length).toBeLessThan(2000 / 2);
+  });
+});

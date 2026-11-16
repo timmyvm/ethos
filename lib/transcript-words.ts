@@ -68,7 +68,7 @@ const TOKEN = /[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*(?:-[\p{L}\p{N}]+(?:['’][\
 const letters = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
 
 /** Plural and singular as one: "habits" and "habit", "stories" and "story". */
-function stem(key: string): string {
+export function stem(key: string): string {
   const k = key.replace(/'s$/, "").replace(/'/g, "");
   if (k.length > 4 && k.endsWith("ies")) return `${k.slice(0, -3)}y`;
   if (k.length > 3 && k.endsWith("s") && !/(ss|us|is)$/.test(k)) return k.slice(0, -1);

@@ -86,8 +86,12 @@ export interface GlanceMoment {
   label: string;
 }
 
-/** The sentence in pieces: text, and at most one chip where the moment stands. */
-export type GlancePart = { kind: "text"; text: string } | { kind: "moment" };
+/**
+ * The sentence in pieces: text, and at most one chip where the moment
+ * stands. A text piece marked `earned` is drawn in sage: the count of a
+ * carried cue that held (#477), the one earned thing in the sentence.
+ */
+export type GlancePart = { kind: "text"; text: string; earned?: boolean } | { kind: "moment" };
 
 export interface GlanceLine {
   parts: GlancePart[];
@@ -132,7 +136,7 @@ export function cueLead(p: {
  * chip ends takes no full stop (the #427 review: "first at (▶ 0:02) ."
  * left the stop floating outside the pill).
  */
-function withMoment(before: string, moment: GlanceMoment, after: string): Pick<GlanceLine, "parts" | "sentence" | "moment"> {
+export function withMoment(before: string, moment: GlanceMoment, after: string): Pick<GlanceLine, "parts" | "sentence" | "moment"> {
   const parts: GlancePart[] = [];
   if (before) parts.push({ kind: "text", text: before });
   parts.push({ kind: "moment" });
@@ -140,11 +144,11 @@ function withMoment(before: string, moment: GlanceMoment, after: string): Pick<G
   return { parts, sentence: `${before}${moment.clock}${after}`, moment };
 }
 
-function plain(sentence: string): Pick<GlanceLine, "parts" | "sentence" | "moment"> {
+export function plain(sentence: string): Pick<GlanceLine, "parts" | "sentence" | "moment"> {
   return { parts: [{ kind: "text", text: sentence }], sentence, moment: null };
 }
 
-function windowAt(t: number, lead: number, until: number, label: string): GlanceMoment {
+export function windowAt(t: number, lead: number, until: number, label: string): GlanceMoment {
   const at = clock(t);
   return { t, clock: at, from: Math.max(0, t - lead), until, label: label.replace("%", at) };
 }
@@ -518,18 +522,45 @@ export function playsOnAfterSheet(
  * `budget`. Over it, the cue goes first, then the earned line's tail
  * after its comma ("Best yet" stays). The score, the line, the door and
  * the tap are in `fixed` and never go.
+ *
+ * A carried cue (#477) is what the glance ends on, so where the line and
+ * the cue come with shorter forms they are tried before anything goes:
+ * the short line (its number, no chip), then the short cue (no
+ * "Tomorrow:"), then both, each with the earned line whole and then with
+ * its tail cut. Only then the cue goes, as before. `short` says the
+ * line's short form was used.
  */
 export function fitGlance(
-  p: { fixed: string[]; line: string; cue: string | null; earned: EarnedLine | null },
+  p: {
+    fixed: string[];
+    line: string;
+    cue: string | null;
+    earned: EarnedLine | null;
+    lineShort?: string | null;
+    cueShort?: string | null;
+  },
   budget: number = GLANCE_WORDS
-): { cue: string | null; earned: string | null; words: number } {
-  const total = (cue: string | null, earned: string | null) =>
-    countWords([...p.fixed, p.line, cue ?? "", earned ?? "", p.earned?.delta ? `▲ ${Math.abs(p.earned.delta)}` : ""].join(" "));
+): { cue: string | null; earned: string | null; words: number; short: boolean } {
+  const total = (line: string, cue: string | null, earned: string | null) =>
+    countWords([...p.fixed, line, cue ?? "", earned ?? "", p.earned?.delta ? `▲ ${Math.abs(p.earned.delta)}` : ""].join(" "));
+  if (p.lineShort || p.cueShort) {
+    const forms: [string, string | null, boolean][] = [[p.line, p.cue, false]];
+    if (p.lineShort) forms.push([p.lineShort, p.cue, true]);
+    if (p.cueShort) forms.push([p.line, p.cueShort, false]);
+    if (p.lineShort && p.cueShort) forms.push([p.lineShort, p.cueShort, true]);
+    const earnedForms = [p.earned?.text ?? null, ...(p.earned?.short ? [p.earned.short] : [])];
+    for (const earned of earnedForms) {
+      for (const [line, cue, short] of forms) {
+        const words = total(line, cue, earned);
+        if (words <= budget) return { cue, earned, words, short };
+      }
+    }
+  }
   let cue = p.cue;
   let earned = p.earned?.text ?? null;
-  if (total(cue, earned) > budget) cue = null;
-  if (total(cue, earned) > budget && p.earned?.short) earned = p.earned.short;
-  return { cue, earned, words: total(cue, earned) };
+  if (total(p.line, cue, earned) > budget) cue = null;
+  if (total(p.line, cue, earned) > budget && p.earned?.short) earned = p.earned.short;
+  return { cue, earned, words: total(p.line, cue, earned), short: false };
 }
 
 /**

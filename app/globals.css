@@ -7015,3 +7015,62 @@ html[data-test-tile] .test-tile-slot {
 :root[data-graphics="lite"] .icon-swap > [data-off] {
   filter: none;
 }
+
+/* ===================== the carried cue (#477) =====================
+ * components/rep/CueWarmup.tsx: on the ready recorder, the warm-up on
+ * yesterday's cue stands in the tactic's slot. Skip closes its slot and
+ * opens the tactic's on the base spring at once, so the room between
+ * them changes by the difference and the topic card above glides to it
+ * rather than jumping; each slot's words fade as it closes. Reduced
+ * motion and lite take the final heights at once.
+ */
+.cue-slot {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows var(--spring-base-duration) var(--spring-base);
+}
+.cue-slot[data-open="false"] {
+  grid-template-rows: 0fr;
+}
+.cue-slot > * {
+  min-height: 0;
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+/* Clipped only while closed or moving: open, a focus ring and Skip's
+   44px reach stand past the slot's edge as they do anywhere else. */
+.cue-slot[data-open="false"] > *,
+.cue-slot[data-moving] > * {
+  overflow: hidden;
+}
+.cue-slot[data-open="false"] > * {
+  opacity: 0;
+}
+:root[data-motion="reduce"] .cue-slot,
+:root[data-graphics="lite"] .cue-slot {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cue-slot {
+    transition: none;
+  }
+}
+/* Where the pause goes in a warm-up sentence: a gap the width of a short
+   word, two bars in Pausing's tone at the text's x-height, so the eye
+   reads a held beat and the line still reads as one sentence. */
+.pause-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 22px;
+  height: 1em;
+  margin: 0 3px;
+  vertical-align: -0.12em;
+}
+.pause-mark > i {
+  display: block;
+  width: 3px;
+  height: 0.72em;
+  border-radius: 1.5px;
+  background: var(--tone);
+}

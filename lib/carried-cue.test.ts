@@ -328,7 +328,8 @@ describe("the next day's answer, first on the glance", () => {
     const held = carryCue({ before: state(cue()), take: take({ fillers: ums(2) }), today: TODAY, at: AT });
     const g = cueGlance(held, take({ fillers: ums(2) }))!;
     expect(g.line.sentence).toBe("“um” 2 times, down from 5.");
-    expect(g.cue).toBe("Tomorrow: pause instead of restarting.");
+    expect(g.cue).toBe("Tomorrow: pause, then finish.");
+    expect(g.cueShort).toBe("Pause, then finish.");
     expect(g.held).toBe(true);
     const kept = carryCue({ before: state(cue({ from: 2, last: 2 })), take: take(), today: TODAY, at: AT });
     const k = cueGlance(kept, take())!;
@@ -361,12 +362,16 @@ describe("the next day's answer, first on the glance", () => {
       [state(cue({ kind: "fast", word: null, from: 178, last: 178, line: null })), { wpm: 152 }],
       [state(cue({ kind: "filled", word: null, from: 3, last: 3, line: null })), {}],
     ];
+    const kept: string[] = [];
     for (const [before, over] of cases) {
       const t = take(over);
       const g = cueGlance(carryCue({ before, take: t, today: TODAY, at: AT }), t)!;
       const fit = fitGlance({ fixed, line: g.line.sentence, lineShort: g.lineShort.sentence, cue: g.cue, cueShort: g.cueShort, earned: null });
       expect([g.line.sentence, fit.words <= GLANCE_WORDS, fit.cue !== null]).toEqual([g.line.sentence, true, true]);
+      kept.push(fit.cue ?? "");
     }
+    /* The look fixture's three glances keep "Tomorrow:": set, held, carried. */
+    expect(kept.slice(0, 3)).toEqual(["Tomorrow: a pause instead.", "Tomorrow: pause, then finish.", "Tomorrow: a pause instead."]);
   });
 });
 

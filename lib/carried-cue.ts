@@ -360,9 +360,9 @@ export function cueTitle(cue: Pick<Cue, "kind" | "word">): string {
     case "filled":
       return "Keep each pause silent";
     case "unheld":
-      return "Pause after a point";
+      return "Land one pause after a point";
     case "restarts":
-      return "Pause instead of restarting";
+      return "Pause, then finish the sentence";
     case "fast":
       return "Pause at every full stop";
     case "slow":
@@ -371,6 +371,19 @@ export function cueTitle(cue: Pick<Cue, "kind" | "word">): string {
       return `Find another word for ${q(cue.word)}`;
   }
 }
+
+/**
+ * The glance's own words for a cue, where they are shorter than the
+ * title's: the glance holds 25 words (#427), and "Tomorrow:" is the
+ * last thing it should have to give up.
+ */
+const SAID: Partial<Record<CueKind, string>> = {
+  filled: "keep pauses silent",
+  unheld: "land one pause",
+  restarts: "pause, then finish",
+  fast: "pause at full stops",
+  slow: "keep sentences moving",
+};
 
 /** The shorter instruction where the line before it already names the thing. */
 const NAMED: Partial<Record<CueKind, string>> = {
@@ -385,13 +398,14 @@ const NAMED: Partial<Record<CueKind, string>> = {
  * what goes in its place: "Tomorrow: a pause instead."
  */
 export function cueSentence(cue: Pick<Cue, "kind" | "word">, named = false): string {
-  const say = (named && NAMED[cue.kind]) || lowerFirst(cueTitle(cue));
+  const say = (named && NAMED[cue.kind]) || SAID[cue.kind] || lowerFirst(cueTitle(cue));
   return `Tomorrow: ${say}.`;
 }
 
 /** The cue with no "Tomorrow:", for a glance with no room: "Pause where “like” was." */
 export function cueShortSentence(cue: Pick<Cue, "kind" | "word">): string {
-  return `${cueTitle(cue)}.`;
+  const say = SAID[cue.kind] ?? cueTitle(cue);
+  return `${say.charAt(0).toUpperCase()}${say.slice(1)}.`;
 }
 
 type Said = Pick<GlanceLine, "parts" | "sentence" | "moment">;
@@ -568,12 +582,12 @@ export function warmupLead(cue: Pick<Cue, "kind" | "word" | "last">): string {
 /** A sentence to say with the cue applied, where the take gave none of its own. */
 const FIXED_LINE: Record<CueKind, string> = {
   filler: `The best part ${PAUSE_MARK} was the people.`,
-  searching: `I'd take the train. ${PAUSE_MARK} I can think on the way.`,
+  searching: `I'd take the bus. ${PAUSE_MARK} I can think on the way.`,
   filled: `Here is my point. ${PAUSE_MARK} It saves an hour.`,
   unheld: `That's my answer. ${PAUSE_MARK} Here's why.`,
   restarts: `What I'd change ${PAUSE_MARK} is the first ten minutes.`,
   fast: `One point. ${PAUSE_MARK} Then the next one.`,
-  slow: `I'd pick the train because I can read on the way. ${PAUSE_MARK}`,
+  slow: `I'd pick the bus because I can read on the way. ${PAUSE_MARK}`,
   repeat: `That part was ${PAUSE_MARK} the hardest.`,
 };
 

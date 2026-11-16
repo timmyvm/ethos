@@ -389,6 +389,8 @@ describe("a trait's tone is only ever one of its forms", () => {
     // tick, and the number the take measured.
     '.closing-note[data-ink="trait"] .closing-note-mark': "mark",
     '.closing-note[data-ink="trait"] .closing-note-value': "measure",
+    // The warm-up's pause mark (#477): where the pause goes in the sentence, in Pausing's tone.
+    ".pause-mark > i": "mark",
   };
   const FILES: Record<string, Form> = {
     "app/lessons/[id]/page.tsx": "ground",

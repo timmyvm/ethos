@@ -13,11 +13,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { newerCue, parseCueState, type CueState } from "./carried-cue";
 import { currentSession, supabaseBrowser } from "./supabase-browser";
+import { CUE_KEY, WARMUP_SKIPPED_KEY } from "./cue-keys";
 
-/** This phone's copy: `{ uid, state }`. */
-export const CUE_KEY = "ethos.cue";
-/** The day the warm-up was skipped on this phone: it stays away until tomorrow. */
-export const WARMUP_SKIPPED_KEY = "ethos.cue.skipped";
+export { CUE_KEY, WARMUP_SKIPPED_KEY, forgetCarriedCue } from "./cue-keys";
 
 /** PostgREST's and Postgres's answers for the column before 0033. */
 export function missingCueColumn(error: { code?: string; message?: string } | null): boolean {
@@ -71,7 +69,40 @@ export async function fetchCarriedCue(): Promise<CueState | null> {
   const server = parseCueState((data as { carried_cue?: unknown } | null)?.carried_cue ?? null);
   const best = newerCue(local, server);
   if (best && best !== local) writeLocal(session.userId, best);
+  /* This phone holds a newer copy than the account (a save that failed,
+     or one made before 0033): the account takes it now, so the next
+     device does not answer a cue this one already answered (the #477
+     review). Best effort; the next read tries again. */
+  if (local && accountBehind(local, server)) {
+    void db
+      .from("profiles")
+      .upsert({ user_id: session.userId, carried_cue: local }, { onConflict: "user_id" })
+      .then(
+        () => {},
+        () => {}
+      );
+  }
   return best;
+}
+
+/** This phone's copy was written after the account's (or the account has none): the account takes it. */
+export function accountBehind(local: CueState | null, server: CueState | null): boolean {
+  if (!local) return false;
+  return !server || Date.parse(local.at) > Date.parse(server.at);
+}
+
+/**
+ * What a screen may keep drawing from this phone's copy once the session
+ * is known (the #477 review): the copy this account wrote, or unknown. A
+ * copy another account wrote (a shared phone, a sign-in over a guest) is
+ * never drawn, answered or written on: it holds that person's own words.
+ */
+export function ownCopy(
+  local: { uid: string | null; state: CueState | null } | null,
+  uid: string | null
+): CueState | null | undefined {
+  if (!local) return undefined;
+  return local.uid === uid ? local.state : undefined;
 }
 
 /**
@@ -93,8 +124,11 @@ export async function saveCarriedCue(state: CueState): Promise<boolean> {
 /**
  * The carried cue for a screen: this phone's copy in the first frame
  * (undefined where it has none: not known yet), then the account's once
- * it is read. A failed read leaves what was drawn; with nothing drawn it
- * stays unknown, so no take answers or overwrites a cue it never saw.
+ * it is read. A failed read leaves what was drawn when this account wrote
+ * it; with nothing drawn it stays unknown, so no take answers or
+ * overwrites a cue it never saw. The session is asked first, and a copy
+ * another account wrote is dropped then, before any read can fail. A read
+ * that lands after a save never puts the older state back.
  */
 export function useCarriedCue(): { state: CueState | null | undefined; save: (next: CueState) => void } {
   const [state, setState] = useState<CueState | null | undefined>(() => {
@@ -104,11 +138,16 @@ export function useCarriedCue(): { state: CueState | null | undefined; save: (ne
   });
   useEffect(() => {
     let live = true;
-    fetchCarriedCue()
-      .then((s) => {
-        if (live) setState(s);
-      })
-      .catch(() => {});
+    void (async () => {
+      const session = await currentSession();
+      if (!live) return;
+      const mine = ownCopy(readLocal(), session?.userId ?? null);
+      setState((drawn) => (drawn === undefined ? drawn : mine));
+      try {
+        const read = await fetchCarriedCue();
+        if (live) setState((drawn) => (drawn ? newerCue(drawn, read) : read));
+      } catch {}
+    })();
     return () => {
       live = false;
     };

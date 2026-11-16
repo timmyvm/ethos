@@ -484,8 +484,8 @@ describe("0033 carried cue", () => {
     expect(sql).toMatch(/if not exists \(\s+select 1 from pg_constraint\s+where conname = 'profiles_carried_cue_size'/);
   });
 
-  it("is several times what the app writes", async () => {
-    const { PAUSE_MARK } = await import("./carried-cue");
+  it("holds the most the app can write, every aside slot full (the #477 review)", async () => {
+    const { PAUSE_MARK, ASIDE_MAX } = await import("./carried-cue");
     const longest = {
       v: 1,
       cue: {
@@ -496,11 +496,13 @@ describe("0033 carried cue", () => {
         givenOn: "2026-11-16",
         answeredOn: "2026-11-17",
         tries: 2,
-        line: { text: `${"w".repeat(110)} ${PAUSE_MARK} ${"w".repeat(110)}`, at: 9999.99 },
+        line: { text: `${"w".repeat(118)} ${PAUSE_MARK} ${"w".repeat(119)}`, at: 9999.99 },
       },
-      aside: { key: `filler:${"x".repeat(40)}`, until: "2026-11-23" },
+      aside: Array.from({ length: ASIDE_MAX }, () => ({ key: `filler:${"x".repeat(40)}`, until: "2026-11-23" })),
       at: new Date().toISOString(),
     };
-    expect(new TextEncoder().encode(JSON.stringify(longest)).length).toBeLessThan(2000 / 2);
+    expect(longest.cue.line.text.length).toBe(240);
+    /* Postgres measures jsonb's text form, which spaces each key from its value: a quarter's room for that. */
+    expect(new TextEncoder().encode(JSON.stringify(longest)).length).toBeLessThan(2000 * 0.75);
   });
 });

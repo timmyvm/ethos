@@ -72,7 +72,7 @@ const LINE = { text: "So the thing about habits is ‖ they compound.", at: 2.68
 const cueOf = (from) => ({
   v: 1,
   cue: { kind: "filler", word: "um", from, last: from, givenOn: dayKey(1), answeredOn: null, tries: 0, line: LINE },
-  aside: null,
+  aside: [],
   at: new Date(Date.now() - 86_400_000).toISOString(),
 });
 const CUES = { answer: cueOf(5), kept: cueOf(2) };

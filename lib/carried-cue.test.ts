@@ -3,6 +3,7 @@ import {
   addDays,
   answerLine,
   ASIDE_DAYS,
+  ASIDE_MAX,
   CARRY_DAYS,
   carryCue,
   chooseCue,
@@ -100,7 +101,7 @@ const cue = (over: Partial<Cue> = {}): Cue => ({
   line: { text: `So the thing about habits is ${PAUSE_MARK} they compound.`, at: 2.68 },
   ...over,
 });
-const state = (c: Cue | null, over: Partial<CueState> = {}): CueState => ({ v: 1, cue: c, aside: null, at: "2026-11-15T09:00:00.000Z", ...over });
+const state = (c: Cue | null, over: Partial<CueState> = {}): CueState => ({ v: 1, cue: c, aside: [], at: "2026-11-15T09:00:00.000Z", ...over });
 const AT = new Date("2026-11-16T08:30:00.000Z");
 
 describe("the cue a take carries: its weakest measurable thing", () => {
@@ -160,9 +161,34 @@ describe("the cue a take carries: its weakest measurable thing", () => {
   });
 
   it("skips a cue set aside until its day", () => {
-    const aside = { key: "filler:um", until: addDays(TODAY, 3) };
+    const aside = [{ key: "filler:um", until: addDays(TODAY, 3) }];
     expect(chooseCue(take(), { today: TODAY, aside })?.kind).toBe("restarts");
     expect(chooseCue(take(), { today: addDays(TODAY, 3), aside })?.kind).toBe("filler");
+  });
+
+  it("never writes what the store cannot read back: an over-long word or sentence (the #477 review)", () => {
+    const w = (c: string) => c.repeat(31);
+    const said = `${w("a")} ${w("b")} ${w("c")}, um, ${w("d")} ${w("e")} ${w("f")} ${w("g")} ${w("h")}. ${"q".repeat(41)} ${"q".repeat(41)} ${"q".repeat(41)} ${"q".repeat(41)}.`;
+    const words = (said.match(/[A-Za-z0-9']+/g) ?? []).map((x, i) => ({ word: x, start: i * 0.5, end: i * 0.5 + 0.4 }));
+    const t: CueTake = {
+      metrics: { durationS: 60, wpm: 140, fillerCount: 1, fillers: [{ word: "um", t: 1.5 }], fillerCounts: { um: 1 }, repairCount: 0, pauses: PAUSES },
+      tier1: { fillers: 40, range: 10 },
+      transcript: said,
+      words,
+    };
+    /* Variety scored lowest, but its word is longer than the store keeps: the filler is carried. */
+    const s = carryCue({ before: null, take: t, today: TODAY, at: AT });
+    expect(s.cue).toMatchObject({ kind: "filler", word: "um", line: null });
+    expect(parseCueState(JSON.parse(JSON.stringify(s.next)))?.cue).toEqual(s.cue);
+  });
+
+  it("skips every cue set aside, not only the newest", () => {
+    const aside = [
+      { key: "filler:um", until: addDays(TODAY, 5) },
+      { key: "restarts:", until: addDays(TODAY, 6) },
+    ];
+    /* Fillers lowest, then restarts and variety at 66: both of the first two are away. */
+    expect(chooseCue(take(), { today: TODAY, aside })?.kind).toBe("repeat");
   });
 });
 
@@ -233,7 +259,7 @@ describe("carry and retire", () => {
     expect(s.answer).toBeNull();
     expect(s.fresh).toBe(true);
     expect(s.cue).toMatchObject({ kind: "filler", word: "um", from: 2, givenOn: TODAY });
-    expect(s.next).toEqual({ v: 1, cue: s.cue, aside: null, at: AT.toISOString() });
+    expect(s.next).toEqual({ v: 1, cue: s.cue, aside: [], at: AT.toISOString() });
   });
 
   it("a later take the same day keeps it as it is and writes nothing", () => {
@@ -249,7 +275,32 @@ describe("carry and retire", () => {
     expect(s.answer).toEqual({ kind: "filler", word: "um", now: 2, before: 5, held: true, rested: false });
     expect(s.cue?.kind).toBe("restarts");
     expect(s.fresh).toBe(true);
-    expect(s.next?.aside).toEqual({ key: "filler:um", until: addDays(TODAY, ASIDE_DAYS) });
+    expect(s.next?.aside).toEqual([{ key: "filler:um", until: addDays(TODAY, ASIDE_DAYS) }]);
+  });
+
+  it("a cue that held stays aside its seven days when the next one retires inside them (the #477 review)", () => {
+    /* Monday's "um" holds on Tuesday; Tuesday sets restarts. */
+    const tue = carryCue({ before: state(cue({ from: 5, last: 5 })), take: take({ fillers: ums(2) }), today: TODAY, at: AT });
+    expect(tue.cue?.kind).toBe("restarts");
+    /* Wednesday's take holds restarts and still says "um" twice, its lowest
+       trait: "um" held a day ago, so it is not handed back. */
+    const wed = addDays(TODAY, 1);
+    const w = carryCue({ before: tue.next, take: take({ fillers: ums(2), repairCount: 0 }), today: wed, at: AT });
+    expect(w.answer).toMatchObject({ kind: "restarts", held: true });
+    expect(w.cue?.kind).not.toBe("filler");
+    expect(w.next?.aside.map((a) => a.key)).toEqual(["filler:um", "restarts:"]);
+    /* A week after it held, "um" can come back. */
+    const back = carryCue({ before: { ...w.next!, cue: null }, take: take(), today: addDays(TODAY, ASIDE_DAYS), at: AT });
+    expect(back.cue?.kind).toBe("filler");
+    expect(back.next?.aside.map((a) => a.key)).toEqual(["restarts:"]);
+  });
+
+  it(`keeps at most ${ASIDE_MAX} aside, the oldest let go first`, () => {
+    const many = Array.from({ length: ASIDE_MAX }, (_, i) => ({ key: `repeat:w${i}`, until: addDays(TODAY, 5) }));
+    const s = carryCue({ before: state(cue(), { aside: many }), take: take({ fillers: ums(1) }), today: TODAY, at: AT });
+    expect(s.next?.aside).toHaveLength(ASIDE_MAX);
+    expect(s.next?.aside[0].key).toBe("repeat:w1");
+    expect(s.next?.aside.at(-1)?.key).toBe("filler:um");
   });
 
   it("not held, it is carried with today's number, its first answer counted", () => {
@@ -266,7 +317,7 @@ describe("carry and retire", () => {
     const s = carryCue({ before: state(cue({ from: 2, last: 2, tries: CARRY_DAYS - 1, answeredOn: YESTERDAY })), take: take(), today: TODAY, at: AT });
     expect(s.answer).toMatchObject({ now: 2, before: 2, held: false, rested: true });
     expect(s.cue?.kind).not.toBe("filler");
-    expect(s.next?.aside?.key).toBe(cueKey({ kind: "filler", word: "um" }));
+    expect(s.next?.aside.map((a) => a.key)).toEqual([cueKey({ kind: "filler", word: "um" })]);
   });
 
   it("days away still answer it on the day they come back", () => {
@@ -318,6 +369,22 @@ describe("the next day's answer, first on the glance", () => {
     expect(a(2, 0, true, "unheld", null).line.sentence).toBe("2 pauses landed, up from none.");
     expect(a(0, 0, false, "unheld", null).line.sentence).toBe("No pauses landed again.");
     expect(a(2, 5, true, "restarts", null).line.sentence).toBe("2 restarts, down from 5.");
+  });
+  it("a short form is still a sentence: a searching pause keeps its noun (the #477 review)", () => {
+    expect(a(1, 3, true, "searching", null).short.sentence).toBe("1 searching pause, down from 3.");
+    expect(a(0, 3, true, "searching", null).short.sentence).toBe("No searching pauses, down from 3.");
+    /* With no shorter line, a full glance gives up "Tomorrow:" and keeps the cue. */
+    const fixed = ["Today's practice", "665", "/1000", "▲ 3 since last time", "Every number", "Next lesson: The steady state", "Retake"];
+    const line = a(1, 3, true, "searching", null);
+    const fit = fitGlance({
+      fixed,
+      line: line.line.sentence,
+      lineShort: line.short.sentence,
+      cue: cueSentence({ kind: "searching", word: null }),
+      cueShort: cueShortSentence({ kind: "searching", word: null }),
+      earned: null,
+    });
+    expect([fit.cue, fit.words <= GLANCE_WORDS]).toEqual(["Pause between sentences.", true]);
   });
   it("held, the count is the earned part; not held, nothing is", () => {
     expect(a(3, 9, true).line.parts[0]).toEqual({ kind: "text", text: "“like” 3 times", earned: true });
@@ -377,9 +444,19 @@ describe("the next day's answer, first on the glance", () => {
 
 describe("the store's shape", () => {
   it("reads back what it wrote", () => {
-    const s = state(cue(), { aside: { key: "fast:", until: "2026-11-20" } });
+    const s = state(cue(), { aside: [{ key: "fast:", until: "2026-11-20" }, { key: "filler:um", until: "2026-11-21" }] });
     expect(parseCueState(JSON.parse(JSON.stringify(s)))).toEqual(s);
     expect(parseCueState({ ...s, cue: null })).toEqual({ ...s, cue: null });
+  });
+  it("reads the aside as a list: none, one on its own, the bad ones dropped, at most the cap", () => {
+    const s = state(cue());
+    expect(parseCueState({ ...s, aside: null })?.aside).toEqual([]);
+    expect(parseCueState({ ...s, aside: { key: "fast:", until: "2026-11-20" } })?.aside).toEqual([{ key: "fast:", until: "2026-11-20" }]);
+    expect(parseCueState({ ...s, aside: [{ key: "fast:", until: "soon" }, 3, null, { key: "slow:", until: "2026-11-20" }] })?.aside).toEqual([
+      { key: "slow:", until: "2026-11-20" },
+    ]);
+    const lots = Array.from({ length: ASIDE_MAX + 3 }, (_, i) => ({ key: `repeat:w${i}`, until: "2026-11-20" }));
+    expect(parseCueState({ ...s, aside: lots })?.aside.map((a) => a.key)).toEqual(lots.slice(-ASIDE_MAX).map((a) => a.key));
   });
   it("reads anything else as nothing", () => {
     for (const bad of [null, "x", 3, {}, { v: 2, cue: null, aside: null, at: "2026-11-15T00:00:00Z" }, { v: 1, cue: null, aside: null }]) {

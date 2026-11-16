@@ -1,12 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { CUE_KEY, localCue, missingCueColumn, skipWarmup, warmupSkipped } from "./cue-store";
+import {
+  accountBehind,
+  CUE_KEY,
+  forgetCarriedCue,
+  localCue,
+  missingCueColumn,
+  ownCopy,
+  skipWarmup,
+  WARMUP_SKIPPED_KEY,
+  warmupSkipped,
+} from "./cue-store";
 import { PAUSE_MARK, type CueState } from "./carried-cue";
 
 /* The carried cue's store (#477): the account's copy, this phone's, and the column before 0033. */
 const STATE: CueState = {
   v: 1,
   cue: { kind: "filler", word: "um", from: 5, last: 5, givenOn: "2026-11-15", answeredOn: null, tries: 0, line: { text: `So ${PAUSE_MARK} they compound.`, at: 2 } },
-  aside: null,
+  aside: [],
   at: "2026-11-15T09:00:00.000Z",
 };
 
@@ -65,5 +75,39 @@ describe("this phone's copy", () => {
     expect(localCue()).toBeNull();
     expect(warmupSkipped("2026-11-16")).toBe(false);
     expect(() => skipWarmup("2026-11-16")).not.toThrow();
+    expect(() => forgetCarriedCue()).not.toThrow();
+  });
+  it("is forgotten on sign-out, the skip with it, and nothing else (the #477 review)", () => {
+    g.localStorage!.setItem(CUE_KEY, JSON.stringify({ uid: "u1", state: STATE }));
+    skipWarmup("2026-11-16");
+    g.localStorage!.setItem("ethos.theme", "dark");
+    forgetCarriedCue();
+    expect(g.localStorage!.getItem(CUE_KEY)).toBeNull();
+    expect(g.localStorage!.getItem(WARMUP_SKIPPED_KEY)).toBeNull();
+    expect(g.localStorage!.getItem("ethos.theme")).toBe("dark");
+  });
+});
+
+describe("another account's copy (the #477 review)", () => {
+  it("is drawn only for the account that wrote it; anyone else's is unknown, never none", () => {
+    const local = { uid: "u1", state: STATE };
+    expect(ownCopy(local, "u1")).toEqual(STATE);
+    expect(ownCopy(local, "u2")).toBeUndefined();
+    expect(ownCopy(local, null)).toBeUndefined();
+    expect(ownCopy({ uid: null, state: STATE }, null)).toEqual(STATE);
+    expect(ownCopy({ uid: "u1", state: null }, "u1")).toBeNull();
+    expect(ownCopy(null, "u1")).toBeUndefined();
+  });
+});
+
+describe("a phone copy newer than the account's", () => {
+  const at = (iso: string): CueState => ({ ...STATE, at: iso });
+  it("goes up to the account; an equal or older one does not", () => {
+    expect(accountBehind(at("2026-11-16T09:00:00.000Z"), at("2026-11-15T09:00:00.000Z"))).toBe(true);
+    expect(accountBehind(at("2026-11-16T09:00:00.000Z"), null)).toBe(true);
+    /* The usual read after a save that landed: the same state on both. */
+    expect(accountBehind(STATE, { ...STATE })).toBe(false);
+    expect(accountBehind(at("2026-11-14T09:00:00.000Z"), STATE)).toBe(false);
+    expect(accountBehind(null, STATE)).toBe(false);
   });
 });

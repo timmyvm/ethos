@@ -58,6 +58,16 @@ export const PAUSE_MARK = "‖";
 export const CARRY_DAYS = 3;
 /** Days a cue that held or rested is not chosen again. */
 export const ASIDE_DAYS = 7;
+/**
+ * Cues kept aside at once (the #477 review). One slot let a cue that held
+ * come straight back when the next one retired inside its seven days:
+ * "um" held on Tuesday, restarts on Wednesday, and Wednesday's take was
+ * free to hand "um" back. Eight is more than a week of daily answers.
+ */
+export const ASIDE_MAX = 8;
+/** The longest word and warm-up sentence the store keeps; a take never writes what it cannot read back. */
+export const WORD_MAX = 40;
+export const LINE_MAX = 240;
 
 /** The cue being carried. */
 export interface Cue {
@@ -88,7 +98,8 @@ export interface Aside {
 export interface CueState {
   v: 1;
   cue: Cue | null;
-  aside: Aside | null;
+  /** Every cue set aside and not yet back, oldest first, at most `ASIDE_MAX`. */
+  aside: Aside[];
   /** When it was written, ISO: the newer of the account's copy and this phone's wins. */
   at: string;
 }
@@ -237,7 +248,8 @@ function candidates(take: CueTake): Found[] {
   if (wpm > PACE_ZONE[1]) out.push({ kind: "fast", word: null, n: wpm });
   else if (wpm > 0 && wpm < PACE_ZONE[0]) out.push({ kind: "slow", word: null, n: wpm });
 
-  const repeats = units(take).filter((u) => u.mark === "repeat");
+  /* A word the store could not read back (over WORD_MAX) is never carried (the #477 review). */
+  const repeats = units(take).filter((u) => u.mark === "repeat" && u.key.length > 0 && u.key.length <= WORD_MAX);
   if (repeats.length > 0) {
     const most = repeats.reduce((a, b) => ((b.times ?? 0) > (a.times ?? 0) ? b : a));
     out.push({ kind: "repeat", word: most.key, n: most.times ?? 3 });
@@ -249,14 +261,14 @@ function candidates(take: CueTake): Found[] {
  * The take's weakest measurable thing (#477): of the things it has a
  * number for, the one whose trait scored lowest out of 100; a tie goes to
  * the practice's own trait, then fillers, pauses, restarts, pace and
- * variety. A cue set aside is skipped until its day.
+ * variety. Every cue set aside is skipped until its day.
  */
 export function chooseCue(
   take: CueTake,
-  opts: { today: string; practice?: TraitId | null; aside?: Aside | null }
+  opts: { today: string; practice?: TraitId | null; aside?: readonly Aside[] | null }
 ): Cue | null {
-  const aside = opts.aside && opts.today < opts.aside.until ? opts.aside.key : null;
-  const found = candidates(take).filter((f) => cueKey(f) !== aside);
+  const away = new Set(stillAside(opts.aside ?? [], opts.today).map((a) => a.key));
+  const found = candidates(take).filter((f) => !away.has(cueKey(f)));
   if (found.length === 0) return null;
   const score = (f: Found) => take.tier1[CUE_TRAIT[f.kind]] ?? 100;
   const own = (f: Found) => (CUE_TRAIT[f.kind] === opts.practice ? 0 : 1);
@@ -299,6 +311,11 @@ export interface CueStep {
   next: CueState | null;
 }
 
+/** The cues still set aside today, oldest first: the rest are back. */
+export function stillAside(list: readonly Aside[], today: string): Aside[] {
+  return list.filter((a) => today < a.until);
+}
+
 /** Whether a take today answers this cue: set on an earlier day, not answered today. */
 export function answerable(cue: Cue, today: string): boolean {
   return cue.givenOn < today && (cue.answeredOn === null || cue.answeredOn < today);
@@ -320,7 +337,7 @@ export function carryCue(p: {
 }): CueStep {
   const at = (p.at ?? new Date()).toISOString();
   const was = p.before?.cue ?? null;
-  const aside = p.before?.aside ?? null;
+  const aside = stillAside(p.before?.aside ?? [], p.today);
   if (was && answerable(was, p.today)) {
     const now = measure(was, p.take);
     const held = holds(was, now);
@@ -328,9 +345,10 @@ export function carryCue(p: {
     const rested = !held && tries >= CARRY_DAYS;
     const answer: CueAnswer = { kind: was.kind, word: was.word, now, before: was.last, held, rested };
     if (held || rested) {
-      const setAside: Aside = { key: cueKey(was), until: addDays(p.today, ASIDE_DAYS) };
-      const cue = chooseCue(p.take, { today: p.today, practice: p.practice, aside: setAside });
-      return { answer, cue, fresh: !!cue, next: { v: 1, cue, aside: setAside, at } };
+      const key = cueKey(was);
+      const away = [...aside.filter((a) => a.key !== key), { key, until: addDays(p.today, ASIDE_DAYS) }].slice(-ASIDE_MAX);
+      const cue = chooseCue(p.take, { today: p.today, practice: p.practice, aside: away });
+      return { answer, cue, fresh: !!cue, next: { v: 1, cue, aside: away, at } };
     }
     const cue: Cue = { ...was, last: now, answeredOn: p.today, tries };
     return { answer, cue, fresh: false, next: { v: 1, cue, aside, at } };
@@ -484,10 +502,12 @@ function answerHead(a: CueAnswer): { long: string; short: string } {
       if (n === 0) return { long: `No ${q(a.word)}`, short: `No ${q(a.word)}` };
       return { long: `${q(a.word)} ${times(n)}`, short: n === 1 ? `${q(a.word)} once` : `${q(a.word)} ${n}` };
     }
-    case "searching":
-      return n === 0
-        ? { long: "No searching pauses", short: "No searching pauses" }
-        : { long: `${n} ${plural(n, "searching pause", "searching pauses")}`, short: `${n} searching` };
+    case "searching": {
+      /* No short form (the #477 review): "1 searching, down from 3." is
+         not a sentence, so a glance short of room gives up "Tomorrow:". */
+      const head = n === 0 ? "No searching pauses" : `${n} ${plural(n, "searching pause", "searching pauses")}`;
+      return { long: head, short: head };
+    }
     case "filled":
       return n === 0
         ? { long: "No pause had a sound", short: "No sounds" }
@@ -657,6 +677,8 @@ function warmupFrom(f: Found, take: CueTake): Cue["line"] {
     text = `${from > 0 ? "…" : ""}${tokens.slice(from, to).join(" ")}${to < tokens.length ? "…" : ""}`;
   }
   if (!text.includes(PAUSE_MARK) || text.replace(PAUSE_MARK, "").trim().split(/\s+/).length < 3) return null;
+  /* Longer than the store reads back: the fixed sentence instead (the #477 review). */
+  if (text.length > LINE_MAX) return null;
   return { text, at: u.start };
 }
 
@@ -674,23 +696,28 @@ export function parseCueState(raw: unknown): CueState | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
   if (r.v !== 1 || typeof r.at !== "string" || Number.isNaN(Date.parse(r.at))) return null;
-  const aside =
-    r.aside && typeof r.aside === "object" &&
-    typeof (r.aside as Aside).key === "string" && (r.aside as Aside).key.length <= 80 &&
-    typeof (r.aside as Aside).until === "string" && DAY.test((r.aside as Aside).until)
-      ? { key: (r.aside as Aside).key, until: (r.aside as Aside).until }
-      : null;
+  /* A list since the #477 review; one entry on its own reads as a list of one. */
+  const listed: unknown[] = Array.isArray(r.aside) ? r.aside : r.aside ? [r.aside] : [];
+  const aside: Aside[] = listed
+    .filter(
+      (a): a is Aside =>
+        !!a && typeof a === "object" &&
+        typeof (a as Aside).key === "string" && (a as Aside).key.length <= 80 &&
+        typeof (a as Aside).until === "string" && DAY.test((a as Aside).until)
+    )
+    .map((a) => ({ key: a.key, until: a.until }))
+    .slice(-ASIDE_MAX);
   let cue: Cue | null = null;
   if (r.cue && typeof r.cue === "object") {
     const c = r.cue as Record<string, unknown>;
     const line = c.line as Cue["line"] | undefined;
     const lineOk =
       line === null || line === undefined ||
-      (typeof line === "object" && typeof line.text === "string" && line.text.length <= 240 && line.text.includes(PAUSE_MARK) &&
+      (typeof line === "object" && typeof line.text === "string" && line.text.length <= LINE_MAX && line.text.includes(PAUSE_MARK) &&
         (line.at === null || count(line.at)));
     if (
       KINDS.has(c.kind as CueKind) &&
-      (c.word === null || (typeof c.word === "string" && c.word.length > 0 && c.word.length <= 40)) &&
+      (c.word === null || (typeof c.word === "string" && c.word.length > 0 && c.word.length <= WORD_MAX)) &&
       count(c.from) && count(c.last) && count(c.tries) &&
       typeof c.givenOn === "string" && DAY.test(c.givenOn) &&
       (c.answeredOn === null || (typeof c.answeredOn === "string" && DAY.test(c.answeredOn))) &&

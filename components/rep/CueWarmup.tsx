@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, type ReactNode } from "react";
+import { Fragment, useId, type ReactNode } from "react";
 import { cueClock, cueTitle, warmupLead, warmupPieces, warmupSentence, type Cue } from "@/lib/carried-cue";
 
 /**
@@ -15,6 +15,7 @@ import { cueClock, cueTitle, warmupLead, warmupPieces, warmupSentence, type Cue 
 export function CueWarmup({ cue, onSkip, className = "" }: { cue: Cue; onSkip: () => void; className?: string }) {
   const pieces = warmupPieces(warmupSentence(cue));
   const at = cue.line?.at;
+  const titleId = useId();
   /* The mark never ends a line on its own: it is held to the word after
      it ("‖ they compound."), so a wrap reads as the pause leading in. */
   const said: ReactNode[] = [];
@@ -42,14 +43,16 @@ export function CueWarmup({ cue, onSkip, className = "" }: { cue: Cue; onSkip: (
     );
   });
   return (
-    <section data-warmup aria-label="Warm up" className={className}>
+    /* Named by what to do (the #477 review), not "Warm up": the region a
+       screen reader lands on says the cue itself. */
+    <section data-warmup aria-labelledby={titleId} className={className}>
       <div className="flex items-center justify-between gap-3">
         <p className="eyebrow min-w-0">{warmupLead(cue)}</p>
         <button type="button" onClick={onSkip} className="text-link -my-3 shrink-0 py-3">
           Skip
         </button>
       </div>
-      <h2 className="detail-head mt-0.5 text-balance">{cueTitle(cue)}</h2>
+      <h2 id={titleId} className="detail-head mt-0.5 text-balance">{cueTitle(cue)}</h2>
       <p data-warmup-line className="mt-1.5 text-body leading-snug text-balance text-ink">
         “{said}”
       </p>

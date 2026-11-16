@@ -25,6 +25,7 @@
  */
 
 import { rememberEmailAsked } from "./account-gate";
+import { forgetCarriedCue } from "./cue-keys";
 import { supabaseBrowser } from "./supabase-browser";
 import { carryTesting, keepCarryForLink, stashTesterCarry, testerCarryToken } from "./tester-client";
 import { safeNextPath } from "./use-paywall-return";
@@ -889,6 +890,8 @@ const PLAN_MAY_HAVE_ENDED = "Your account is still here, but your plan may have 
 
 export async function signOut(): Promise<void> {
   await supabaseBrowser()?.auth.signOut();
+  /* The carried cue's copy holds a sentence of this person's own words (#477 review). */
+  forgetCarriedCue();
 }
 
 /**

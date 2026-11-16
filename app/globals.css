@@ -4488,11 +4488,13 @@ summary::-webkit-details-marker {
   /* summary: Help's questions (#479) open in place inside a row. */
   outline-offset: -3px;
 }
-.inset-group > :first-child:focus-visible {
+.inset-group > :first-child:focus-visible,
+.inset-group > details:first-child > summary:focus-visible {
   border-top-left-radius: var(--radius-card);
   border-top-right-radius: var(--radius-card);
 }
-.inset-group > :last-child:focus-visible {
+.inset-group > :last-child:focus-visible,
+.inset-group > details:last-child:not([open]) > summary:focus-visible {
   border-bottom-left-radius: var(--radius-card);
   border-bottom-right-radius: var(--radius-card);
 }

@@ -89,16 +89,37 @@ describe("tip faces", () => {
     for (const p of PATH) expect(p.title, p.id).not.toMatch(GRAMMAR);
   });
 
-  /* A practice's tiles open on two of its trait's tactics side by side
-     (content/path.ts and content/lessons.ts take howTo[i] and
-     howTo[i + 1]), so a trait whose three faces share a glyph shows one
-     mark twice in a row: Restarts' three flags after the two-second
-     rewrite, Variety's three speech bubbles before it (#483 review, the
-     recording-15 rule for Pausing, held for every trait). */
+  /* A practice's three tiles are two of its trait's tactics side by
+     side (howTo[i], howTo[i + 1]) and then its shape's (shape tip i,
+     content/path.ts and content/lessons.ts), so a trait whose faces
+     share a glyph shows one mark twice in a row: Restarts' three flags
+     after the two-second rewrite, Variety's three speech bubbles before
+     it. The recording-15 rule for Pausing, held for every trait (#483
+     review). The shapes open on the start mark, keep the target second
+     and mostly close on the flag, so a trait's second tactic is never
+     the start, its third never the target, and its first never the
+     speech bubble. Of 165 practices 55 showed a mark twice in a row
+     before the rewrite and 77 after it; the one repeat left is Restarts'
+     "Finish every sentence" beside a shape's closing flag, which is
+     the same promise twice. */
   it("gives each of a trait's three tactics its own glyph", () => {
     for (const t of Object.values(TRAIT)) {
       const glyphs = t.howTo.map((x) => tipFace(x).glyph);
       expect(new Set(glyphs).size, `${t.id}: ${glyphs.join(", ")}`).toBe(t.howTo.length);
+    }
+  });
+
+  it("never sets one mark twice in a row on a practice, but the closing flag", () => {
+    const practices = [
+      ...PATH.map((p) => [p.id, p.tips] as const),
+      ...LESSONS.flatMap((l) => l.practices.map((p, i) => [`${l.id}:${i + 1}`, p.tips] as const)),
+    ];
+    expect(practices.length).toBeGreaterThan(150);
+    for (const [id, tips] of practices) {
+      const g = tips.map((t) => tipFace(t).glyph);
+      for (let i = 1; i < g.length; i++) {
+        if (g[i] === g[i - 1]) expect(g[i], `${id}: ${tips[i - 1]} / ${tips[i]}`).toBe("end");
+      }
     }
   });
 

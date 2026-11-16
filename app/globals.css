@@ -6897,3 +6897,380 @@ html[data-test-tile] .test-tile-slot {
     transition: stroke var(--duration-fast) var(--ease-out);
   }
 }
+
+/*
+ * The room (#475, components/room/Room.tsx). The first minute: a scene
+ * behind frosted glass, a hold that clears it, his lines streaming into
+ * a white bubble by his head, your turn on a frosted bar with a live
+ * level, and Demos rising in on a sheet of the app's own ground.
+ *
+ * The room is a picture, so what stands on it is cut from it: white
+ * pills with the scene's deep tone for their words (DESIGN.md, the tap
+ * on a coloured card), white words on the glass. The sheet Demos
+ * stands on is the app again, in the app's own tokens and theme.
+ */
+.room {
+  --room-deep: #191a36;
+  position: relative;
+  height: 100dvh;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--room-deep);
+  color: #ffffff;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.room button {
+  -webkit-tap-highlight-color: transparent;
+}
+/* The scene. Behind frosted glass on the door; the hold clears it. */
+.room-art {
+  position: absolute;
+  inset: 0;
+  transition:
+    filter 700ms var(--ease-out),
+    transform 900ms var(--ease-out);
+}
+.room[data-stage="door"] .room-art {
+  filter: blur(9px) saturate(0.85) brightness(0.82);
+  transform: scale(1.06);
+}
+.room-dim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: rgb(10 10 28 / 0.26);
+  transition: opacity 700ms var(--ease-out);
+}
+.room[data-stage="scene"] .room-dim {
+  opacity: 0;
+}
+.room[data-stage="ending"] .room-dim {
+  background: rgb(10 10 28 / 0.42);
+}
+/* The door's words stand on a little dark at the foot. */
+.room-shade {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 42%;
+  pointer-events: none;
+  background: linear-gradient(to top, rgb(10 10 28 / 0.62), rgb(10 10 28 / 0));
+  transition: opacity 500ms var(--ease-out);
+}
+.room:not([data-stage="door"]) .room-shade {
+  opacity: 0;
+}
+
+/* The top row: Sign in and the tester's door on the door, Skip in the scene. */
+.room-top {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: env(safe-area-inset-top) 20px 0;
+}
+.room-top-end {
+  justify-content: flex-end;
+}
+.room-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgb(255 255 255 / 0.82);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+.room-link:active {
+  color: #ffffff;
+}
+.room-link:focus-visible,
+.room-hold:focus-visible,
+.room-tap:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 3px;
+  border-radius: 9999px;
+}
+
+.room-foot {
+  position: absolute;
+  inset: auto 0 0 0;
+  z-index: 2;
+  padding: 0 20px max(16px, env(safe-area-inset-bottom));
+}
+.room-door {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.room-not-now {
+  margin-top: 4px;
+  font-size: 15px;
+}
+
+/*
+ * Hold to step in. A white pill with the deep tone for its word; held,
+ * the deep tone sweeps across it left to right and the word turns white
+ * exactly where it has passed (a second copy of the word, clipped to
+ * the fill), so it reads as filling and stays legible all the way.
+ */
+.room-hold {
+  --hold: 0;
+  position: relative;
+  display: grid;
+  width: 100%;
+  min-height: 56px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 9999px;
+  padding: 0 24px;
+  background: #ffffff;
+  color: var(--room-deep);
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  box-shadow: 0 16px 32px -14px rgb(6 6 20 / 0.75);
+  transition: transform var(--spring-snappy-duration) var(--spring-snappy);
+}
+.room-hold[data-pressing] {
+  transform: scale(0.97);
+}
+.room-hold[data-full] {
+  transform: scale(1.02);
+}
+.room-hold-label {
+  position: relative;
+  grid-area: 1 / 1;
+  pointer-events: none;
+}
+.room-hold-fill {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--room-deep);
+  color: #ffffff;
+  pointer-events: none;
+  clip-path: inset(0 calc((1 - var(--hold)) * 100%) 0 0);
+}
+
+/* Your turn: a frosted bar with the level, the cue and Done. */
+.room-turn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 9999px;
+  padding: 6px 6px 6px 18px;
+  background: rgb(16 17 40 / 0.62);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  backdrop-filter: blur(16px) saturate(1.3);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.12),
+    0 16px 32px -16px rgb(0 0 0 / 0.6);
+  animation: room-rise var(--spring-sheet-in-duration) var(--spring-sheet-in) backwards;
+}
+@keyframes room-rise {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+}
+.room-meter {
+  display: flex;
+  height: 24px;
+  flex: none;
+  align-items: center;
+  gap: 3px;
+}
+.room-meter > span {
+  width: 4px;
+  height: 24px;
+  border-radius: 2px;
+  background: #ffffff;
+  transform: scaleY(calc(0.16 + var(--l, 0) * 0.84));
+  transition: transform 70ms linear;
+}
+.room-turn-label {
+  min-width: 0;
+  flex: 1;
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.012em;
+}
+.room-tap {
+  position: relative;
+  min-height: 48px;
+  flex: none;
+  border-radius: 9999px;
+  padding: 0 22px;
+  background: #ffffff;
+  color: var(--room-deep);
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  --press-veil: rgb(23 24 47 / 0.07);
+}
+
+/*
+ * His bubble, placed by the art beside his head (RoomArt's `bubble`).
+ * Large words, white paper, a tail at its foot toward his mouth: at the
+ * left by default, at the right where the art says `data-room-tail="right"`
+ * on the anchor. It grows as the words stream (`.room-grow` follows the
+ * words, which are laid out at their own width), so a chunk landing
+ * never moves a word already there.
+ */
+.room-bubble-shell {
+  position: relative;
+  width: max-content;
+}
+.room-bubble {
+  position: relative;
+  width: max-content;
+  translate: var(--room-bubble-shift, 0px) 0;
+  transition: translate var(--duration-base) var(--ease-out);
+  border-radius: 22px;
+  background: #ffffff;
+  color: #16172e;
+  font-family: var(--font-body);
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 26px;
+  box-shadow:
+    0 14px 30px -14px rgb(8 8 24 / 0.6),
+    0 2px 6px rgb(8 8 24 / 0.16);
+  transform-origin: calc(26px + var(--room-tail-shift, 0px)) 100%;
+  animation: room-bubble-in var(--spring-snappy-duration) var(--spring-snappy) backwards;
+}
+/* The tail stays on the art's anchor: when the bubble slides back inside
+   the room (HisBubble), the tail slides the other way along its foot. */
+.room-bubble::after {
+  content: "";
+  position: absolute;
+  left: calc(18px + var(--room-tail-shift, 0px));
+  bottom: -6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  background: #ffffff;
+  transform: rotate(45deg);
+  transition: left var(--duration-base) var(--ease-out);
+}
+[data-room-tail="right"] .room-bubble {
+  transform-origin: calc(100% - 26px - var(--room-tail-shift, 0px)) 100%;
+}
+[data-room-tail="right"] .room-bubble::after {
+  left: auto;
+  right: calc(18px + var(--room-tail-shift, 0px));
+  transition: right var(--duration-base) var(--ease-out);
+}
+@keyframes room-bubble-in {
+  from {
+    opacity: 0;
+    transform: scale(0.55);
+  }
+}
+.room-bubble-text {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: 12px 17px 13px;
+}
+.room-grow {
+  overflow: hidden;
+  transition:
+    width var(--duration-base) var(--ease-out),
+    height var(--duration-base) var(--ease-out);
+}
+.room-grow-fit {
+  width: max-content;
+  max-width: var(--room-bubble-max, min(272px, calc(100vw - 88px)));
+}
+.room-grow-fill {
+  width: 100%;
+}
+/* Each chunk pops in as it lands. */
+.room-chunk {
+  display: inline-block;
+  animation: room-chunk-in 180ms var(--ease-out) backwards;
+}
+@keyframes room-chunk-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.24em) scale(0.9);
+  }
+}
+
+/* Demos, on a sheet of the app's ground rising over the room. It takes
+   the lower part of the screen and no more (402px, room for his bubble,
+   him at 160 and Next), so the interviewer stays in view above it on
+   every phone tall enough to have the room. */
+.room-sheet {
+  position: absolute;
+  inset: min(45%, calc(100% - 402px)) 0 0 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px 0;
+  background: var(--color-ground);
+  color: var(--color-ink);
+  box-shadow: 0 -18px 40px -20px rgb(0 0 0 / 0.5);
+  animation: room-sheet-up var(--spring-sheet-duration) var(--spring-sheet) backwards;
+}
+@keyframes room-sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+.room-sheet-foot {
+  padding: 16px 0 max(16px, env(safe-area-inset-bottom));
+}
+.room-demos-bubble {
+  transform-origin: 50% 100%;
+  animation: room-bubble-in var(--spring-snappy-duration) var(--spring-snappy) backwards;
+}
+
+/* Reduced motion: no tilt (the flow sends none), lines whole, fades only. */
+:root[data-motion="reduce"] .room-art,
+:root[data-motion="reduce"] .room[data-stage="door"] .room-art {
+  transform: none;
+  transition: filter var(--duration-base) var(--ease-out);
+}
+:root[data-motion="reduce"] :is(.room-chunk, .room-bubble, .room-demos-bubble) {
+  animation: none;
+}
+:root[data-motion="reduce"] :is(.room-turn, .room-sheet) {
+  animation: room-fade var(--duration-base) var(--ease-out) backwards;
+}
+@keyframes room-fade {
+  from {
+    opacity: 0;
+  }
+}
+:root[data-motion="reduce"] :is(.room-grow, .room-bubble),
+:root[data-motion="reduce"] .room-bubble::after {
+  transition: none;
+}
+:root[data-motion="reduce"] :is(.room-hold, .room-hold[data-pressing], .room-hold[data-full]) {
+  transform: none;
+  transition: none;
+}
+
+/* PLACEHOLDER art's one motion (components/room/RoomArt.tsx): his mouth
+   while he speaks. Goes with the placeholder. */
+.room-ph-mouth {
+  animation: room-ph-talk 160ms steps(2) infinite alternate;
+}
+@keyframes room-ph-talk {
+  to {
+    transform: scaleY(0.35);
+  }
+}

@@ -93,11 +93,14 @@ export function securityHeaders(env: HeaderEnv): { key: string; value: string }[
     { key: "X-Frame-Options", value: "DENY" },
     { key: "X-Content-Type-Options", value: "nosniff" },
     { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-    // The mic and the camera are the product; nothing else is asked for.
+    // The mic and the camera are the product. The room (#475) tilts with
+    // the phone, and a browser that honours this header reads
+    // DeviceOrientation through the gyroscope and the accelerometer, so
+    // those two are this origin's too; nothing else is asked for.
     {
       key: "Permissions-Policy",
       value:
-        "camera=(self), microphone=(self), geolocation=(), payment=(), usb=(), midi=(), magnetometer=(), gyroscope=(), accelerometer=(), browsing-topics=()",
+        "camera=(self), microphone=(self), gyroscope=(self), accelerometer=(self), geolocation=(), payment=(), usb=(), midi=(), magnetometer=(), browsing-topics=()",
     },
     // Two years, subdomains included. Vercel sends its own without them.
     { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },

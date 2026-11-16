@@ -58,12 +58,13 @@ import {
   NAME_FIELD,
   PLAN_COPY,
   QUESTIONS,
+  roomDue,
+  storageKeys,
   WELCOME_BEAT,
-  WELCOME_STEPS,
   type QuestionId,
 } from "@/lib/onboarding";
 import { introDue, introHref, nextLesson, UNITS } from "@/lib/path";
-import { DOOR_COPY } from "@/content/tester";
+import { Room } from "@/components/room/Room";
 import { buildPortfolio } from "@/lib/portfolio";
 import { readPrefs, writePrefs } from "@/lib/prefs";
 import { dayOneFamily } from "@/lib/practice-family";
@@ -75,11 +76,14 @@ import { INPUT_ANSWER_CLASS } from "@/lib/ui";
 import { useRovingRadio } from "@/lib/use-roving-radio";
 
 /**
- * The walk (DECISIONS #133, #232, #249): three screens that say the
- * thing, seven questions, and the plan built from the answers. Eleven
- * screens, a way back on every one, Skip on every question, no account,
- * no quiz wall (#11): the mic is never more than a tap away, and a
- * refresh lands where it left off.
+ * The walk (DECISIONS #133, #232, #249, #475): the room (a scripted
+ * interview, components/room/Room.tsx) for a first run, seven
+ * questions, and the plan built from the answers. A way back on every
+ * question, Skip on every one, no account, no quiz wall (#11): the mic
+ * is never more than a tap away, and a refresh lands where it left off.
+ *
+ * The three screens that said the thing ("Hey. I know why you're
+ * here.") went with #475: the room puts you in the thing instead.
  *
  * What #249 added, and why it is not decoration:
  *
@@ -94,14 +98,18 @@ import { useRovingRadio } from "@/lib/use-roving-radio";
  *    at a time rather than arriving as a paragraph.
  */
 type Step =
-  | { kind: "intro"; index: number }
+  | { kind: "room" }
   | { kind: "question"; id: QuestionId }
   | { kind: "beat" }
   | { kind: "plan" }
   | { kind: "account" };
 
 const STEPS: Step[] = [
-  ...WELCOME_STEPS.map((_, index): Step => ({ kind: "intro", index })),
+  /*
+   * The room (#475): the first run opens here and nobody else sees it
+   * (`roomDue`). Not now, Skip and Demos's Next all go on to the name.
+   */
+  { kind: "room" },
   /*
    * The beat sits before the hour (#288): six questions, then Demos
    * alone with one line, then the seventh. It is not a question, so
@@ -123,25 +131,23 @@ const STEPS: Step[] = [
   { kind: "account" },
 ];
 const LAST = STEPS.length - 1;
+/* The name: where the walk starts for anyone the room is not for. */
+const FIRST_QUESTION = 1;
 /* The walk's resting place. A finished walk opens here, not on the
    account screen behind it. */
 const PLAN = STEPS.findIndex((s) => s.kind === "plan");
 
-/** Which pose asks which question (#233, #249). */
-const INTRO_POSES: Pose[] = ["wave", "speaking", "celebrate"];
 /** The beat's pose: he is telling you something, arcs and all. */
 const BEAT_POSE: Pose = "speaking";
 /*
- * The colour of each screen (the swipe-and-pop round). The three intro
- * screens and the beat each stand him on a stage in their own tone, so
- * a swipe is a change of room as well as of line; the questions give
- * his head a coin in a tone and the answers' glyphs their tiles. The
- * speaking pose never stands on sun, because his arcs are amber, and
- * he never stands on coral, which is his own fur colour (the review of
- * this round: in dark, coral was rust brown and he vanished into it).
- * Coral stays on the small things, the glyph tiles and the plan steps.
+ * The colour of each screen (the swipe-and-pop round). The beat stands
+ * him on a stage in its own tone; the questions give his head a coin in
+ * a tone and the answers' glyphs their tiles. The speaking pose never
+ * stands on sun, because his arcs are amber, and he never stands on
+ * coral, which is his own fur colour (the review of this round: in
+ * dark, coral was rust brown and he vanished into it). Coral stays on
+ * the small things, the glyph tiles and the plan steps.
  */
-const INTRO_TONES: Tone[] = ["sun", "sky", "mint"];
 const BEAT_TONE: Tone = "mint";
 const QUESTION_TONES: Record<QuestionId, Tone> = {
   name: "sun",
@@ -260,6 +266,12 @@ function Walk() {
    * plan takes them straight to the floor.
    */
   const [needsAccount, setNeedsAccount] = useState<boolean | null>(null);
+  /*
+   * Whether this walk has the room in it (#475): decided once, on mount,
+   * for a first run only. A walk without it starts on the name, and the
+   * name has no way back to a room it never showed.
+   */
+  const [roomOn, setRoomOn] = useState(false);
 
   /*
    * Seen once is seen (#133): set on mount, so neither finishing nor
@@ -288,7 +300,19 @@ function Walk() {
       asked === null &&
       saved.done &&
       (attemptStartedOn(readOAuthAttempt(), "/welcome") || saved.step === LAST);
-    setI(resumeAccount ? LAST : deep >= 0 ? deep : saved.done ? PLAN : Math.min(saved.step, PLAN));
+    const room = roomDue({ asked, done: saved.done, step: saved.step, keys: storageKeys() });
+    setRoomOn(room);
+    setI(
+      resumeAccount
+        ? LAST
+        : deep >= 0
+          ? deep
+          : saved.done
+            ? PLAN
+            : room
+              ? 0
+              : Math.min(Math.max(saved.step, FIRST_QUESTION), PLAN)
+    );
     setFloor(firstRep(readPrefs().skipIntros));
     setReady(true);
     sessionState()
@@ -307,8 +331,8 @@ function Walk() {
     const after = STEPS[i + 1];
     if (!after) return;
     const pose =
-      after.kind === "intro"
-        ? INTRO_POSES[after.index]
+      after.kind === "room"
+        ? "speaking"
         : after.kind === "question"
           ? QUESTION_POSES[after.id]
           : after.kind === "beat"
@@ -365,72 +389,9 @@ function Walk() {
     }
   };
 
-  if (step.kind === "intro") {
-    const s = WELCOME_STEPS[step.index];
-    return (
-      <LessonScreen
-        center
-        speech="above"
-        stage={INTRO_TONES[step.index]}
-        stepKey={i}
-        travel={travel}
-        swipe={{ next: () => go(i + 1), back: i > 0 ? () => go(i - 1) : undefined }}
-        onBack={i > 0 ? () => go(i - 1) : undefined}
-        title={s.title}
-        line={s.line}
-        art={
-          <IntroDemos
-            pose={INTRO_POSES[step.index]}
-            size={320}
-            fit
-            pop
-            grounded
-            halo={{ tone: INTRO_TONES[step.index], kind: "stage" }}
-            greetAfterMs={SAID_AFTER_MS}
-          />
-        }
-        aside={
-          <Dots
-            count={WELCOME_STEPS.length}
-            at={step.index}
-            onPick={(n) => go(STEPS.findIndex((x) => x.kind === "intro" && x.index === n))}
-          />
-        }
-        /* The tester's door (docs/testers.md): the quietest thing on the
-           first screen, in the top row the carousel keeps empty there
-           (Back stands in it from screen 2), so the account door below
-           stays centred and alone, and Next keeps its y. */
-        header={
-          step.index === 0 ? (
-            <div className="flex justify-end">
-              <Link href="/tester?from=welcome" className={TOP_DOOR}>
-                {DOOR_COPY.welcome}
-              </Link>
-            </div>
-          ) : undefined
-        }
-        action={{ label: "Next", onPress: () => go(i + 1) }}
-        footer={
-          /*
-           * Screen 1 carries the returning-user door (Duolingo's splash
-           * pattern, DECISIONS #133): a new device belonging to an
-           * existing account should sign in BEFORE recording anonymously.
-           * Later screens keep Skip, which skips the questions too.
-           */
-          step.index === 0 ? (
-            <Link href="/signin" className={FOOT_LINK}>
-              I already have an account
-            </Link>
-          ) : (
-            /* intro-a-21: it leaves the whole introduction, questions
-               and all, so it says so; a question's Skip passes one. */
-            <Link href="/" className={FOOT_LINK}>
-              Skip intro
-            </Link>
-          )
-        }
-      />
-    );
+  if (step.kind === "room") {
+    /* Not now, Skip and Demos's Next all go on to the name. */
+    return <Room onDone={() => go(i + 1)} onSkip={() => go(i + 1)} />;
   }
 
   if (step.kind === "beat") {
@@ -470,6 +431,8 @@ function Walk() {
        the beat sits between the sixth and the seventh. */
     const n = QUESTIONS.findIndex((x) => x.id === step.id) + 1;
     const picked = has(answers, step.id);
+    /* The name goes back to the room only where the room was (#475). */
+    const back = i > FIRST_QUESTION || roomOn ? () => go(i - 1) : undefined;
     return (
       <LessonScreen
         speech="beside"
@@ -477,8 +440,8 @@ function Walk() {
         travel={travel}
         /* Forward by swipe follows Next's own rule: no answer, no
            advance. The screen rubber-bands and Skip stays the way past. */
-        swipe={{ next: picked ? () => go(i + 1) : undefined, back: () => go(i - 1) }}
-        onBack={() => go(i - 1)}
+        swipe={{ next: picked ? () => go(i + 1) : undefined, back }}
+        onBack={back}
         header={
           <WalkBar n={n} of={QUESTIONS.length} onSkip={() => go(i + 1)} />
         }
@@ -798,47 +761,6 @@ function nodKey(a: Answers, id: QuestionId, heardName: string | null): string {
 }
 
 /**
- * The intro's pager (#133, the swipe-and-pop round). Reads as a pager
- * because it behaves as one: the active dot is a pill that stretches
- * along the row as the page changes, and each dot is a door to its
- * page. The dots live outside the sliding content, so they persist
- * from page to page and the stretch animates.
- */
-function Dots({
-  count,
-  at,
-  onPick,
-}: {
-  count: number;
-  at: number;
-  onPick: (n: number) => void;
-}) {
-  return (
-    /* Each door is 44px tall and at least 24px wide (WCAG 2.5.8), not
-       44 square: three 44px cells spread the dots into three separate
-       marks and the row stops reading as one pager. */
-    <div
-      role="group"
-      aria-label={`Page ${at + 1} of ${count}`}
-      className="flex items-center justify-center"
-    >
-      {Array.from({ length: count }, (_, n) => (
-        <button
-          key={n}
-          type="button"
-          aria-label={`Page ${n + 1}`}
-          aria-current={n === at ? "step" : undefined}
-          onClick={() => onPick(n)}
-          className="flex h-11 min-w-6 items-center justify-center px-2"
-        >
-          <span data-on={n === at ? "" : undefined} className="intro-dot block" />
-        </button>
-      ))}
-    </div>
-  );
-}
-
-/**
  * Where you are in the questions (#288): one bar that fills, no count.
  *
  * Seven segments and "2 of 7" told you the walk was seven long before
@@ -888,12 +810,6 @@ function WalkBar({ n, of, onSkip }: { n: number; of: number; onSkip?: () => void
     </div>
   );
 }
-
-/** The door under an intro screen's Next: a text link at full width. */
-const FOOT_LINK = "text-link mt-3 flex min-h-11 items-center justify-center";
-/** The tester's door in screen 1's top row: caption size, muted, its
-    words on the column's right edge and a 44px hit area around them. */
-const TOP_DOOR = "text-link inline-flex min-h-11 items-center text-caption text-stone-400";
 
 /**
  * An answer, chosen (D47): drawn in ink, a 2px ink edge with its lip in

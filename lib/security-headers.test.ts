@@ -76,5 +76,12 @@ describe("securityHeaders", () => {
     expect(h["Permissions-Policy"]).toContain("microphone=(self)");
     expect(h["Permissions-Policy"]).toContain("camera=(self)");
     expect(h["Permissions-Policy"]).toContain("geolocation=()");
+    expect(h["Permissions-Policy"]).toContain("magnetometer=()");
+  });
+
+  it("lets the room read the phone's tilt, and only this origin (#475)", () => {
+    expect(h["Permissions-Policy"]).toContain("gyroscope=(self)");
+    expect(h["Permissions-Policy"]).toContain("accelerometer=(self)");
+    expect(h["Permissions-Policy"]).not.toMatch(/gyroscope=\(\)|accelerometer=\(\)|=\*/);
   });
 });

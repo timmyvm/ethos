@@ -34,3 +34,15 @@ describe("setAudioSession", () => {
     expect(setAudioSession("playback", throwing)).toBe(false);
   });
 });
+
+/* The room (#475): its pops follow the silent switch, and the mic gets
+   the browser's own session back before it opens. */
+describe("the room's session", () => {
+  it("asks for ambient, then for the browser's own choice", () => {
+    const nav = { audioSession: { type: "auto" } };
+    expect(setAudioSession("ambient", nav)).toBe(true);
+    expect(nav.audioSession.type).toBe("ambient");
+    expect(setAudioSession("auto", nav)).toBe(true);
+    expect(nav.audioSession.type).toBe("auto");
+  });
+});

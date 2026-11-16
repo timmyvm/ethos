@@ -2,7 +2,8 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { DRILLS } from "./drills";
-import { QUESTIONS, WELCOME_BEAT, WELCOME_STEPS } from "./onboarding";
+import { QUESTIONS, WELCOME_BEAT } from "./onboarding";
+import { INTERVIEW, ROOM_COPY } from "./room-script";
 import { AGE_BANDS, CONTEXTS, GOALS, LEVELS, PAINS } from "@/content/portfolio";
 import { UNITS } from "./path";
 import { SHOP } from "./shop";
@@ -259,12 +260,15 @@ describe("the two headlines", () => {
    * still holds the acquisition surfaces.
    *
    * What replaces the assertion is the thing worth protecting: the
-   * approved opening, verbatim from docs/voice.md.
+   * approved opening. Since #475 that is the room, Timothy's words
+   * verbatim: one hold, and the interviewer's first line.
    */
-  it("opens onboarding on the approved line", () => {
-    expect(WELCOME_STEPS[0].title).toBe("Hey. I know why you're here.");
+  it("opens onboarding on the room, in Timothy's words", () => {
+    expect(ROOM_COPY.hold).toBe("Hold to step in");
+    expect(INTERVIEW.beats[0]).toMatchObject({ kind: "line", text: "Sell me this pen." });
     const welcome = readFileSync("app/welcome/page.tsx", "utf8");
     expect(welcome).not.toContain("Earn the room.");
+    expect(welcome).toMatch(/<Room\b/);
   });
 
   /**
@@ -306,10 +310,14 @@ describe("the screen template", () => {
   it("keeps every approved string inside the word budget", () => {
     const over: string[] = [];
 
-    for (const step of [...WELCOME_STEPS, WELCOME_BEAT]) {
-      for (const s of [step.title, step.line]) {
-        if (count(s) > WORDS) over.push(s);
-      }
+    for (const s of [WELCOME_BEAT.title, WELCOME_BEAT.line]) {
+      if (count(s) > WORDS) over.push(s);
+    }
+
+    // The room's lines (#475): every one said in a bubble, and short.
+    for (const b of INTERVIEW.beats) if (b.kind === "line" && count(b.text) > WORDS) over.push(b.text);
+    for (const s of [...Object.values(INTERVIEW.verdict), ...INTERVIEW.after, INTERVIEW.noMic, ...Object.values(ROOM_COPY)]) {
+      if (count(s) > WORDS) over.push(s);
     }
 
     // The questions and every tappable answer (#232) walk the same template.

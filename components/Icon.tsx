@@ -9,6 +9,11 @@
  * generic set: Today is a sun over the floor line, because taking the
  * floor is what the tab is for.
  *
+ * Where an icon stands beside words, `app/globals.css` draws its line at
+ * their stem instead (#474): the back chevron, the tap's arrow, Today's
+ * line. One `stroke-width` rule where the two meet, held by
+ * `lib/icon-polish.test.ts`; the weight here is the default under it.
+ *
  * They are decoration in the strict sense — every one of them sits next
  * to its own label — so they are `aria-hidden` without exception. An
  * icon that ever has to stand alone needs an `aria-label` on its button,

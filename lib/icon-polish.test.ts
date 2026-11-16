@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -46,14 +46,54 @@ describe("an icon beside words draws their stem (#474)", () => {
     });
   }
 
-  it("every back chevron wears the class that sets it", () => {
-    for (const file of ["components/ui/ScreenHeader.tsx", "components/LessonScreen.tsx", "app/page.tsx", "app/rep/page.tsx"]) {
+  /* The sizes above are the ones drawn: an icon resized or a word
+     restyled in its component would leave the weights right on paper
+     and wrong on the screen (#474 review). */
+  it("measures the icons and words the screens draw", () => {
+    expect(read("components/ui/TapArrow.tsx")).toContain("<IconOnward size={16} />");
+    const tiles = read("components/home/HomeTiles.tsx");
+    expect(tiles).toMatch(/<span className="home-flag">\s*<IconFlag size=\{12\} \/>/);
+    expect(tiles).toMatch(/<span className="home-check">\s*<IconCheck size=\{13\} \/>/);
+    expect(tiles).toContain('<span className="eyebrow">Today&apos;s line</span>');
+
+    const back = block(".screen-bar-back");
+    expect(back).toContain("font-size: 16px;");
+    expect(back).toContain("font-weight: 600;");
+    expect(back, "the back's word is the body's Figtree").not.toContain("font-family");
+    expect(block("\nbody")).toContain("font-family: var(--font-figtree)");
+
+    const eyebrow = block("  .eyebrow");
+    expect(eyebrow).toContain("font-family: var(--font-display-face)");
+    expect(eyebrow).toContain("font-size: 0.8125rem;");
+    expect(eyebrow).toContain("font-weight: 600;");
+
+    const ui = read("lib/ui.ts");
+    const arrow = ui.slice(ui.indexOf("export const ACTION_ARROW_CLASS"), ui.indexOf(";", ui.indexOf("export const ACTION_ARROW_CLASS")));
+    for (const c of ["font-display", "text-body", "font-bold"]) expect(arrow).toContain(c);
+    expect(css).toContain("--text-body: 0.9375rem;");
+  });
+
+  /* Every 22px back in the app, wherever it is drawn, is the first child
+     of the element that wears `.screen-bar-back`, so the `> svg` rule
+     reaches it. A back wrapped in a span, or a new back without the
+     class, would keep the set's 2.75 beside a 1.79px word. */
+  it("every back chevron is the direct child of the class that sets it", () => {
+    const walk = (dir: string): string[] =>
+      readdirSync(path.join(root, dir), { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory() ? walk(path.join(dir, e.name)) : /\.tsx$/.test(e.name) && !/\.test\./.test(e.name) ? [path.join(dir, e.name)] : [],
+      );
+    let backs = 0;
+    for (const file of [...walk("app"), ...walk("components")]) {
       const src = read(file);
       for (const m of src.matchAll(/<IconBack size=\{22\} \/>/g)) {
-        const before = src.slice(Math.max(0, (m.index ?? 0) - 400), m.index);
-        expect(before, file).toContain("screen-bar-back");
+        backs++;
+        const before = src.slice(0, m.index);
+        expect(before, `${file}: the chevron is the element's first child`).toMatch(/>\s*$/);
+        expect(before.slice(before.lastIndexOf("<")), `${file}: its element wears screen-bar-back`).toContain("screen-bar-back");
       }
     }
+    // ScreenHeader's bar and BackLink, LessonScreen's two, Today's, the recorder's.
+    expect(backs).toBeGreaterThanOrEqual(6);
   });
 });
 

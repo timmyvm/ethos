@@ -18,10 +18,12 @@
  *      deleted, and is safe to retry: a customer already gone counts as
  *      done. A cancel can't be undone: once a plan is cancelled, every
  *      later failure says so, and a retry finishes the rest.
- *   2. Audio files. They're the only thing a cascade can't reach
- *      (storage objects aren't rows), so they go while the reps rows
- *      still hold their paths. Any failure here aborts with every other
- *      row untouched, and the route is safe to retry.
+ *   2. Files. The profile photo (#485, the `avatars` bucket, under the
+ *      account's id) and then the audio. They're the only thing a
+ *      cascade can't reach (storage objects aren't rows), so they go
+ *      while the reps rows still hold their paths. Any failure here
+ *      aborts with every other row untouched, and the route is safe to
+ *      retry. A bucket whose migration is not applied holds no photo.
  *   3. Rate-limit rows, which key on a subject string, not a foreign key:
  *      `u:<id>` and every route's `<route>:u:<id>`.
  *   3b. A tester who signed in from an anonymous session that was testing
@@ -44,6 +46,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { removeAvatars } from "@/lib/avatar-server";
 import { deleteCustomer, endEveryPlan, hasEnded, voidEndedInvoices } from "@/lib/billing";
 import { getUserFromAuthHeader, supabaseAdmin } from "@/lib/db";
 import { stripeClient, stripeLivemode } from "@/lib/stripe";
@@ -155,6 +158,20 @@ export async function DELETE(req: NextRequest) {
     }
   }
 
+  const photo = await removeAvatars(db, auth.id);
+  if ("failed" in photo) {
+    console.error("account delete: photo removal failed", photo.failed);
+    return NextResponse.json(
+      {
+        error:
+          cancelled > 0
+            ? "Your plan is cancelled, but your photo didn't delete. Nothing else was touched; try again."
+            : "Couldn't delete your photo. Nothing else was touched; try again.",
+      },
+      { status: 502 }
+    );
+  }
+
   const paths = (rows ?? [])
     .map((r) => r.audio_path as string)
     .filter(Boolean);
@@ -211,7 +228,7 @@ export async function DELETE(req: NextRequest) {
 
 /**
  * The anonymous sessions a tester carried into this account (step 3b),
- * removed as the account is: their audio, their rate-limit rows, then
+ * removed as the account is: their audio, their photo, their rate-limit rows, then
  * the auth user, whose cascade takes the rest. Only ids the auth service
  * says are still anonymous: a real account is never removed by another's
  * request. True when one could not be removed (the route stops there).
@@ -242,6 +259,11 @@ async function removeCarried(db: NonNullable<ReturnType<typeof supabaseAdmin>>, 
         console.error("account delete: carried session's audio removal failed", error.message);
         return true;
       }
+    }
+    const photo = await removeAvatars(db, id);
+    if ("failed" in photo) {
+      console.error("account delete: carried session's photo removal failed", photo.failed);
+      return true;
     }
     await db.from("rate_limits").delete().like("subject", `%u:${id}`);
     const gone = await db.auth.admin.deleteUser(id);

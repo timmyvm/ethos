@@ -3,6 +3,7 @@ import type { BillingRow, ProfileRow } from "./client-data";
 import { FIRST_PRICE_CENTS, formatAud } from "./pricing";
 import {
   CHECKOUT_COPY,
+  CODE_EXPLORE,
   CODE_LINE,
   DELETE_ANY_PLAN,
   MANAGE_COPY,
@@ -416,7 +417,9 @@ describe("You, the manage sheet and Settings, per state", () => {
       expect(cardWords(v, TODAY)).toBeNull();
       expect(settingsLine(v, TODAY)).toBeNull();
     }
-    expect(CODE_LINE).toBe("Premium is on this account.");
+    // Timothy's words, 16 Nov, emoji included (#485).
+    expect(CODE_LINE).toBe("Yay! You've got Premium 🎉");
+    expect(CODE_EXPLORE).toBe("Explore");
   });
 
   it("a null period end still says something true", () => {
@@ -572,6 +575,7 @@ describe("every string", () => {
     ...Object.values(MANAGE_COPY),
     ...Object.values(CHECKOUT_COPY),
     CODE_LINE,
+    CODE_EXPLORE,
     DELETE_ANY_PLAN,
     ladderSentence(),
     ...[1, 2, 3, 4, 5, 6, 7].flatMap((n) => Object.values(paywallStep(n, TODAY)).filter((s): s is string => typeof s === "string")),

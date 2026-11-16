@@ -182,10 +182,10 @@ describe("two poses worn back to back", () => {
 describe("the screens that read the account", () => {
   const strip = (path: string) => readFileSync(path, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
 
-  it("let a pending save stand on You and in the Shop", () => {
+  it("let a pending save stand in the Shop, and You writes no pose (#485: Demos left its card)", () => {
     const you = strip("app/you/page.tsx");
     const shop = strip("app/shop/page.tsx");
-    expect(you).toMatch(/setWorn\(adoptAccountPose\(p\.equipped_pose\)\)/);
+    expect(you).not.toMatch(/adoptAccountPose/);
     expect(shop).toMatch(/setPose\(adoptAccountPose\(p\.equipped_pose\)\)/);
     // Neither writes the account's pose over the device's copy by itself.
     expect(you).not.toMatch(/writePrefs\(\{ pose: p\.equipped_pose/);

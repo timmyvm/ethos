@@ -484,8 +484,15 @@ export interface CardWords {
   ghostAfter: boolean;
 }
 
-/** The invite-code line, unchanged. */
-export const CODE_LINE = "Premium is on this account.";
+/**
+ * Premium by invite code, said the way Timothy asked for it (16 Nov:
+ * "premium is on this account shld be 'yay! Youve got premium 🎉'
+ * Explore ->"). A celebration, so it keeps its emoji; the door after it
+ * (CODE_EXPLORE) opens what Premium gives.
+ */
+export const CODE_LINE = "Yay! You've got Premium 🎉";
+/** The door beside it, to the list of what Premium gives. */
+export const CODE_EXPLORE = "Explore";
 
 /** The checkout return's status while sync runs. */
 export const SWITCHING_ON = "Switching Premium on…";

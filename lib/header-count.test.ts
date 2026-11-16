@@ -90,10 +90,11 @@ describe("the gold and the sage", () => {
     expect(ratio(hex("earned-rim"), hex("color-surface"))).toBeGreaterThanOrEqual(3);
   });
 
-  it("You's streak flame follows Today's chip: unlit until today's recording lands", () => {
+  it("You's streak flame is grey until today's recording lands, then lit (#485)", () => {
     const you = readFileSync(path.resolve(__dirname, "../app/you/page.tsx"), "utf8");
-    expect(you).toMatch(/lit=\{!streak\.atRisk\}/);
-    expect(you).toMatch(/lit \? "earned-lit" : "text-stone-400"/);
+    expect(you).toMatch(/flame=\{streakFlame\(streak\.current, streak\.didToday\)\}/);
+    expect(you).toMatch(/flame=\{bestFlame\(streak\.longest\)\}/);
+    expect(you).toMatch(/flame === "lit" \? "streak-lit" : "text-stone-400"/);
   });
 
   it("no component draws a star or a fill on sand in sage-500, which is 2.9:1 there", () => {

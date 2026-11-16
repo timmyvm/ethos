@@ -72,6 +72,10 @@ const SCENE = {
   calm: { spoke: [1, 2, 3], frozen: [], from: 3, to: 4, moment: true, calm: true },
   second: { spoke: [1, 2, 3], frozen: [], today: true, moment: false },
   short: { spoke: [1, 2, 3], frozen: [], short: true, moment: false },
+  /* A lesson's first practice makes today count: "Practice 2 of 3" goes
+     straight on (the moment waits, owed), and the way back from the next
+     practice's idle screen plays it. */
+  lesson: { spoke: [1, 2, 3], frozen: [], from: 3, to: 4, moment: true, lesson: "know-the-landing" },
 };
 
 const browser = await chromium.launch({
@@ -158,10 +162,15 @@ for (const scene of SCENES) {
     page.on("pageerror", (e) => console.log("PAGEERROR", e.message.slice(0, 160)));
     const shot = (beat) => `${OUT}${TAG}-${scene}-${beat}-${size.name}.png`;
 
-    await page.goto(`${BASE}/`);
-    await page.waitForSelector("main .arrive", { timeout: 30000 });
-    await sleep(800);
-    await page.locator('main a[href^="/rep"], main button:has-text("Start")').first().click();
+    const lessonBack = S.lesson ? `/lessons/${S.lesson}` : null;
+    if (S.lesson) {
+      await page.goto(`${BASE}/rep?lesson=${S.lesson}&q=1&back=${encodeURIComponent(lessonBack)}`);
+    } else {
+      await page.goto(`${BASE}/`);
+      await page.waitForSelector("main .arrive", { timeout: 30000 });
+      await sleep(800);
+      await page.locator('main a[href^="/rep"], main button:has-text("Start")').first().click();
+    }
     await page.waitForSelector('button[data-record="start"]', { timeout: 30000 });
     await sleep(1200);
     await page.click('button[data-record="start"]', { force: true });
@@ -198,7 +207,20 @@ for (const scene of SCENES) {
     await sleep(2600);
     await page.screenshot({ path: shot("glance") });
 
-    await page.locator("main [data-results-back]").click();
+    if (S.lesson) {
+      /* "Practice 2 of 3" stays in the lesson: nothing stands in it. */
+      await page.locator("main [data-step-action]").click();
+      await page.waitForSelector('button[data-record="start"]', { timeout: 20000 });
+      const between = await page.locator("[data-streak-moment]").count();
+      console.log(`${at}: moment between practices ${between > 0}`);
+      if (between) fail(`${at}: the moment stood between a lesson's practices`);
+      await sleep(800);
+      await page.screenshot({ path: shot("practice2") });
+      /* The way back from the idle recorder leaves, so the owed moment plays. */
+      await page.locator("a.screen-bar-back").first().click();
+    } else {
+      await page.locator("main [data-results-back]").click();
+    }
     const moment = await page
       .waitForSelector("[data-streak-moment]", { timeout: 4000 })
       .then(() => true)
@@ -270,10 +292,13 @@ for (const scene of SCENES) {
       });
       await page.locator("[data-streak-moment] [data-continue]").click();
     }
-    await page.waitForURL((u) => new URL(u).pathname === "/", { timeout: 10000 }).catch(() => fail(`${at}: the exit did not reach Today`));
+    const where = lessonBack ?? "/";
+    await page
+      .waitForURL((u) => new URL(u).pathname === where, { timeout: 10000 })
+      .catch(() => fail(`${at}: the exit did not reach ${where} (at ${new URL(page.url()).pathname})`));
     await page.waitForSelector("main .arrive", { timeout: 30000 }).catch(() => {});
     await sleep(1200);
-    await page.screenshot({ path: shot("today") });
+    await page.screenshot({ path: shot(S.lesson ? "lesson" : "today") });
     await context.close();
   }
 }

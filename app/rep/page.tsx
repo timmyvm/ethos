@@ -645,6 +645,8 @@ function RepScreen() {
    * `exitBeat`). Cleared once it has played.
    */
   const [owedMoment, setOwedMoment] = useState<StreakMomentView | null>(null);
+  /** Where the idle screen's back was going when it stopped for an owed moment. */
+  const [idleExit, setIdleExit] = useState<string | null>(null);
   /* This take's reveal played the round's one sound (F5): the streak's
      moment on the way out shows quiet (games review, finding 6). */
   const [roundChimed, setRoundChimed] = useState(false);
@@ -2132,6 +2134,21 @@ function RepScreen() {
    */
   const backTo = safeBack(searchParams.get("back"));
   const backHref = backTo ?? defaultBack(config);
+
+  /* A moment still owed when the recorder is left from its idle screen
+     (Practice 2 of 3 or Retake, then the way back without a take): it
+     plays here too, on the way out (#480), and the back goes on. */
+  if (idleExit !== null && owedMoment) {
+    return (
+      <StreakMoment
+        moment={owedMoment}
+        quiet={!streakChimes({ roundChimed })}
+        /* It stays drawn until the page it hands on to arrives (shown is
+           already marked), so the recorder never flashes back between. */
+        onContinue={() => router.push(idleExit)}
+      />
+    );
+  }
   /*
    * recording-3: while the mic is hot (and while its take is being
    * scored) Stop is the only control. Leaving would unmount the
@@ -2187,6 +2204,14 @@ function RepScreen() {
         }`}
         aria-hidden={micHot || undefined}
         inert={micHot || undefined}
+        /* A streak's moment still owed (#480) stops the way back for its
+           screen first; Continue then goes where the back was going. */
+        onClickCapture={(e) => {
+          if (!owedMoment) return;
+          e.preventDefault();
+          e.stopPropagation();
+          setIdleExit(backHref);
+        }}
       >
         <BackLink href={backHref} label={backLabel(backHref)} className="" />
       </div>

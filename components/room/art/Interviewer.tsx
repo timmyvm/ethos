@@ -145,16 +145,16 @@ function ArmsLean() {
 function ArmsCrossed() {
   return (
     <>
-      <path d="M268 702L250 880" {...SLEEVE} strokeWidth="70" />
+      <path d="M268 702L252 840" {...SLEEVE} strokeWidth="70" />
       {/* the lower forearm, its hand tucked under the far arm */}
-      <path d="M250 884L520 846" {...SLEEVE} stroke={C.suitShade} strokeWidth="60" />
-      <path d="M532 702L550 880" {...SLEEVE} strokeWidth="70" />
+      <path d="M252 844L520 806" {...SLEEVE} stroke={C.suitShade} strokeWidth="60" />
+      <path d="M532 702L548 840" {...SLEEVE} strokeWidth="70" />
       {/* the upper forearm, its hand gripping the near arm */}
-      <path d="M550 884L318 836" {...SLEEVE} stroke={C.suitLight} strokeWidth="60" />
-      <path d="M548 900L330 856" {...SLEEVE} stroke={C.suit} strokeWidth="22" />
-      <rect x="300" y="808" width="14" height="50" rx="6" fill={C.shirt} transform="rotate(12 307 833)" />
-      <path d="M302 812C282 806 260 814 258 832C256 852 276 862 298 858Z" fill={C.skin} />
-      <path d="M266 826h22v6h-22zM264 840h24v6h-24z" fill={C.skinShade} />
+      <path d="M548 844L318 796" {...SLEEVE} stroke={C.suitLight} strokeWidth="60" />
+      <path d="M546 860L330 816" {...SLEEVE} stroke={C.suit} strokeWidth="22" />
+      <rect x="300" y="768" width="14" height="50" rx="6" fill={C.shirt} transform="rotate(12 307 793)" />
+      <path d="M302 772C282 766 260 774 258 792C256 812 276 822 298 818Z" fill={C.skin} />
+      <path d="M266 786h22v6h-22zM264 800h24v6h-24z" fill={C.skinShade} />
     </>
   );
 }
@@ -203,6 +203,7 @@ export function Interviewer({ mood, talking }: { mood: Mood; talking: boolean })
             {/* jacket */}
             <path d="M252 704C254 660 280 642 314 640H486C520 642 546 660 548 704L538 800C530 850 524 880 526 920L532 1100H268L274 920C276 880 270 850 262 800Z" fill={C.suit} />
             <path d="M470 640H486C520 642 546 660 548 704L538 800C530 850 524 880 526 920L532 1100H500C496 960 492 820 470 640Z" fill={C.suitShade} />
+            <path d="M314 640H486C510 641 530 650 540 666C520 656 500 652 486 652H314C300 652 280 656 260 666C270 650 290 641 314 640Z" fill={C.suitLight} />
             {/* shirt and tie */}
             <path d="M362 630H438L400 838Z" fill={C.shirt} />
             <path d="M386 640H414L409 664H391Z" fill={C.tieShade} />

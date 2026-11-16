@@ -27,12 +27,12 @@ export const DRILLS: Drill[] = [
     id: "f1",
     unit: "Filler Elimination",
     title: "The baseline",
-    /* docs/voice.md Part 3, verbatim (DECISIONS #209). The old first
-       tip was two sentences in one bullet; voice.md splits it, which is
-       what makes the pair readable in the second nobody spends on it.
-       The third is this drill's own retired tip, put back so the hero
-       block runs three lines like every other lesson (#212): it is
-       existing approved copy, not a sentence written to fill a slot. */
+    /* The first tip is docs/voice.md Part 3, verbatim (DECISIONS
+       #209). The second was its partner there and the third this
+       drill's own retired tip (#212), both rewritten for the two-second
+       test (#483): "Most fillers land in the first five seconds" was a
+       fact with no move in it, and "run out of road" asked for a
+       picture. */
     prompt: "Introduce yourself and what you're building. Sixty seconds, no notes.",
     tips: [
       "Decide your first sentence before you start.",
@@ -55,7 +55,7 @@ export const DRILLS: Drill[] = [
     id: "f3",
     unit: "Filler Elimination",
     title: "Silence beats ‘um’",
-    prompt: "Describe your morning routine. Pause wherever you'd say a filler.",
+    prompt: "Describe your morning routine. Pause wherever you'd say \"um\".",
     tips: [
       "Where you'd say \"um\", stay silent instead.",
       "Pause for one full second. It feels long, but it sounds calm.",
@@ -66,11 +66,14 @@ export const DRILLS: Drill[] = [
     id: "f4",
     unit: "Filler Elimination",
     title: "The clean minute",
-    prompt: "Describe the last thing you made. 60 seconds, zero fillers.",
+    prompt: "Describe the last thing you made. 60 seconds, no \"um\" or \"like\".",
     tips: [
       "Need a moment? Slow down instead of saying \"um\".",
       "Know your next point before this one ends. Most ums come in between.",
-      "Keep ums and restarts under 3 a minute to get every star.",
+      /* The stars read every "um", "like", "basically" and restart
+         together (lib/metrics.ts, starsForDisfluencyRate), so a line
+         naming only ums and restarts promised a star a "like" takes. */
+      "Every star needs under 3 slip-ups a minute: an \"um\", a \"like\" or a restart.",
     ],
   },
   {
@@ -110,7 +113,7 @@ export const DRILLS: Drill[] = [
     id: "p4",
     unit: "Pace Control",
     title: "The steady state",
-    prompt: "Explain how something everyday works: a coffee machine, a traffic light. Hold 130 to 160 wpm.",
+    prompt: "Explain how something everyday works: a coffee machine, a traffic light. Hold 130 to 160 words a minute.",
     tips: [
       "Talk at calm chat speed, about 130 to 160 words a minute.",
       "Breathe at the end of each sentence. The breath slows you down.",

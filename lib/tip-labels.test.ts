@@ -62,9 +62,9 @@ describe("tip faces", () => {
      gauge. */
   it("gives every hold-a-silence tactic the stopwatch, never the gauge", () => {
     const holds = tips.filter((t) =>
-      /^(Pause, count to two|Pause 1 to 2 seconds|Pause one full second|Count one second)$/.test(tipFace(t).label)
+      /^(Pause, count to two|Pause 1 to 2 seconds|Pause one full second|Count one second|Pause a bit longer)$/.test(tipFace(t).label)
     );
-    expect(holds.length).toBeGreaterThanOrEqual(4);
+    expect(holds.length).toBeGreaterThanOrEqual(5);
     for (const t of holds) expect(tipFace(t).glyph, t).toBe("hold");
     expect(tips.filter((t) => tipFace(t).glyph === "hold").every((t) => holds.includes(t))).toBe(true);
   });
@@ -87,6 +87,19 @@ describe("tip faces", () => {
       expect(l.blurb, l.id).not.toMatch(GRAMMAR);
     }
     for (const p of PATH) expect(p.title, p.id).not.toMatch(GRAMMAR);
+  });
+
+  /* A practice's tiles open on two of its trait's tactics side by side
+     (content/path.ts and content/lessons.ts take howTo[i] and
+     howTo[i + 1]), so a trait whose three faces share a glyph shows one
+     mark twice in a row: Restarts' three flags after the two-second
+     rewrite, Variety's three speech bubbles before it (#483 review, the
+     recording-15 rule for Pausing, held for every trait). */
+  it("gives each of a trait's three tactics its own glyph", () => {
+    for (const t of Object.values(TRAIT)) {
+      const glyphs = t.howTo.map((x) => tipFace(x).glyph);
+      expect(new Set(glyphs).size, `${t.id}: ${glyphs.join(", ")}`).toBe(t.howTo.length);
+    }
   });
 
   it("falls back to a short clause for an unlabelled sentence", () => {

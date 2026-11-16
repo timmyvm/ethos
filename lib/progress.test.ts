@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Achievement } from "./achievements";
+import { achievements, type Achievement } from "./achievements";
 import type { RepRow } from "./client-data";
 import {
   journeySteps,
@@ -140,6 +140,20 @@ describe("nextMilestones", () => {
       expect(line({ achievements: [badge({ name: "Seven straight", progress: 0.86 })] }, "badge")).toBe(
         "Seven straight badge: 7-day streak"
       );
+    });
+
+    /* A badge's line is its requirement, and any badge can be the
+       closest milestone, so every one of them is read under Record.
+       "Comfortable silence badge: 5 composed pauses in one recording"
+       asked a newcomer what a composed pause was (#483 review). */
+    it("says every real badge in words a newcomer has", () => {
+      for (const a of achievements([])) {
+        const l = nextMilestones(input({ achievements: [{ ...a, earned: false, progress: 0.5 }] })).find(
+          (m) => m.kind === "badge"
+        )?.line;
+        expect(l, a.id).toBe(`${a.name} badge: ${a.requirement.charAt(0).toLowerCase()}${a.requirement.slice(1)}`);
+        expect(l, a.id).not.toMatch(/\b(composed|held pauses?|fillers?|wpm)\b/i);
+      }
     });
 
     it("never leaves a gap to work out", () => {

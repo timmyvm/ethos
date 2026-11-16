@@ -60,7 +60,12 @@ export function achievements(reps: RepRow[]): Achievement[] {
   const streak = computeStreak(reps.map((r) => new Date(r.created_at)));
   /* Recording counts and the streak count every take; a badge that names
      a number reads only takes that measured one. A two-word take at 0
-     fillers a minute earned "Under 3 fillers a minute". */
+     fillers a minute earned Clean run.
+
+     Each requirement passes the two-second test (#483): it is also the
+     line under Record when its badge is the closest milestone
+     (lib/progress.ts), so "composed pauses", "held pauses" and
+     "fillers" are said as what somebody hears. */
   const kept = reps.filter(measured);
   const best = (fn: (r: RepRow) => number) =>
     kept.length ? Math.max(...kept.map(fn)) : 0;
@@ -86,7 +91,7 @@ export function achievements(reps: RepRow[]): Achievement[] {
     {
       id: "clean",
       name: "Clean run",
-      requirement: "Under 3 fillers a minute",
+      requirement: 'Say "um" or "like" under 3 times a minute',
       earned: cleanest < 3,
       progress:
         cleanest === Infinity ? 0 : Math.min(1, 3 / Math.max(cleanest, 0.01)),
@@ -96,7 +101,7 @@ export function achievements(reps: RepRow[]): Achievement[] {
     {
       id: "silence",
       name: "Comfortable silence",
-      requirement: "5 composed pauses in one recording",
+      requirement: "5 pauses between sentences in one recording",
       earned: best(composed) >= 5,
       progress: Math.min(1, best(composed) / 5),
       href: "/rep?lesson=h1",
@@ -123,7 +128,7 @@ export function achievements(reps: RepRow[]): Achievement[] {
     {
       id: "held",
       name: "Held the room",
-      requirement: "8 held pauses in one recording",
+      requirement: "8 one-second pauses in one recording",
       earned: best(heldPauses) >= 8,
       progress: Math.min(1, best(heldPauses) / 8),
       href: "/rep?lesson=h4",

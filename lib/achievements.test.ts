@@ -83,7 +83,7 @@ describe("achievements", () => {
     expect(byId(reps, "eight").earned).toBe(false);
   });
 
-  /* A two-word take at 0 fillers a minute earned "Under 3 fillers a minute". */
+  /* A two-word take at 0 fillers a minute earned Clean run. */
   it("earns no number off a take too short to score, and still counts it", () => {
     const short = rep({ transcript: "Okay then.", duration_s: 5, filler_count: 0, wpm: 145 });
     const reps = [rep({ filler_count: 5 }), short];

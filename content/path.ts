@@ -107,7 +107,7 @@ const ANGLES: Record<TraitId, string[]> = {
   ],
   range: [
     "Name it once",
-    "Then just say \"it\"",
+    "Use \"it\" the second time",
     "Name real things",
     "Drop the repeat",
     "A second word for it",

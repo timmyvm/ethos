@@ -96,6 +96,77 @@ describe("StatIcon", () => {
     const block = css.slice(at, css.indexOf("\n}\n", at));
     expect(block.match(/--stat-unlit:/g)?.length).toBe(2);
   });
+
+  /*
+   * With the hue gone, lightness is the only thing that tells an open
+   * day's flame from a spoken day's, and it has to survive the phone's
+   * Greyscale filter (#453: colour is never the only sign; the chip's
+   * "today's open" is for a screen reader only). The review found the
+   * first grey at 162 of 255 against the lit flame's 146 on the light
+   * chip: the same flame in Greyscale. This applies each theme's filter
+   * the way Chrome does (sRGB, left to right; it reproduces the browser's
+   * own readings to the unit), over the chip's ground, and reads the
+   * mean lightness of the flame's body.
+   */
+  it("an open day's flame stays apart from a lit one in Greyscale, in both themes and under Increase Contrast", async () => {
+    const sharp = (await import("sharp")).default;
+    const { data } = await sharp(pub(STAT_ICON_SRC.streak))
+      .resize(96, 96)
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const css = read("app/globals.css");
+    const rgb = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+    const [chipLight, chipDark] = [...css.matchAll(/--color-sage-100:\s*(#[0-9a-f]{6});/gi)].map((m) => rgb(m[1]));
+    const clamp = (v: number) => Math.min(1, Math.max(0, v));
+    /** Mean Greyscale lightness (0 to 255) of the flame's body through `filter`, over `ground`. */
+    const lightness = (filter: string, ground: number[]) => {
+      let sum = 0;
+      let n = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i + 3] < 250) continue;
+        let [r, g, b] = [data[i], data[i + 1], data[i + 2]].map((v) => v / 255);
+        let a = data[i + 3] / 255;
+        for (const [, fn, arg] of filter.matchAll(/([a-z-]+)\(([\d.]+)\)/g)) {
+          const x = Number(arg);
+          if (fn === "grayscale") {
+            const y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+            [r, g, b] = [r, g, b].map((v) => y * x + v * (1 - x));
+          } else if (fn === "brightness") [r, g, b] = [r, g, b].map((v) => clamp(v * x));
+          else if (fn === "contrast") [r, g, b] = [r, g, b].map((v) => clamp((v - 0.5) * x + 0.5));
+          else if (fn === "opacity") a *= x;
+          else throw new Error(`no model for ${fn}`);
+        }
+        const [cr, cg, cb] = [r, g, b].map((v, k) => v * a + ground[k] * (1 - a));
+        sum += 255 * (0.2126 * cr + 0.7152 * cg + 0.0722 * cb);
+        n++;
+      }
+      return sum / n;
+    };
+    const values = [...css.matchAll(/--stat-unlit: ([^;]+);/g)].map((m) => m[1]);
+    const at = css.indexOf("@media (prefers-contrast: more) {");
+    const more = [...css.slice(at).matchAll(/--stat-unlit: ([^;]+);/g)].map((m) => m[1]);
+    const [light, dark, darkOs] = values;
+    expect(darkOs).toBe(dark);
+    const cases: [string, string, number[]][] = [
+      ["light", light, chipLight],
+      ["dark", dark, chipDark],
+      ["light, more contrast", more[0], chipLight],
+      ["dark, more contrast", more[1], chipDark],
+    ];
+    for (const [name, filter, ground] of cases) {
+      const lit = lightness("", ground);
+      const unlit = lightness(filter, ground);
+      expect(Math.abs(unlit - lit), `${name}: lit ${lit.toFixed(0)}, unlit ${unlit.toFixed(0)}`).toBeGreaterThanOrEqual(30);
+    }
+    // Light: darker than lit, as the chip's stone ink is; firmer still under more contrast.
+    expect(lightness(light, chipLight)).toBeLessThan(lightness("", chipLight));
+    expect(lightness(more[0], chipLight)).toBeLessThan(lightness(light, chipLight));
+    // Dark: dimmer than lit, so it never reads lit beside the white number;
+    // under more contrast it moves the way the stone ink does there, brighter.
+    expect(lightness(dark, chipDark)).toBeLessThan(lightness("", chipDark));
+    expect(lightness(more[1], chipDark)).toBeGreaterThan(lightness("", chipDark));
+  });
 });
 
 describe("the streak chip's flame", () => {

@@ -3394,20 +3394,23 @@ summary::-webkit-details-marker {
    style"): a count's mark is a 3D object, `components/StatIcon.tsx`, so
    it carries its own colour and the gold above no longer reaches it. An
    unlit streak is the same file through a grey filter, never a second
-   render, so lit and unlit are one shape. Light: a solid mid grey that
-   reads as a flame waiting (the chip's stone-400 role). Dark: dimmer,
-   so it never reads lit beside the white number. Increase Contrast: the
-   same grey, firmer, restated in #448's block with the neutrals; no hue
-   anywhere. */
+   render, so lit and unlit are one shape. With no hue left, lightness is
+   what tells them apart, so it has to hold with the phone in Greyscale
+   too (#453): the lit flame averages 146 of 255 there, and the unlit one
+   sits well off it. Light: darker, 109 on the chip (4.2:1), the chip's
+   stone-400 role. Dark: dimmer, 108 on the chip, so it never reads lit
+   beside the white number. Increase Contrast restates it in #448's block
+   with the neutrals, the way their ink moves: darker in light, brighter
+   in dark (lib/stat-icons.test.ts holds the gaps). */
 :root {
-  --stat-unlit: grayscale(1) contrast(0.7) brightness(1.15);
+  --stat-unlit: grayscale(1) brightness(0.72) contrast(0.85);
 }
 :root[data-theme="dark"] {
-  --stat-unlit: grayscale(1) brightness(1.2) contrast(0.7) opacity(0.7);
+  --stat-unlit: grayscale(1) brightness(0.9) contrast(0.8) opacity(0.7);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --stat-unlit: grayscale(1) brightness(1.2) contrast(0.7) opacity(0.7);
+    --stat-unlit: grayscale(1) brightness(0.9) contrast(0.8) opacity(0.7);
   }
 }
 .stat-icon {
@@ -4382,7 +4385,7 @@ summary::-webkit-details-marker {
     --color-stone-600: rgba(32, 30, 29, 0.9);
     --color-bar-plain: rgba(32, 30, 29, 0.42);
     /* The unlit streak (#487): a darker, firmer grey. */
-    --stat-unlit: grayscale(1) contrast(0.9) brightness(0.85);
+    --stat-unlit: grayscale(1) brightness(0.62) contrast(0.9);
   }
   :root[data-theme="dark"] {
     --color-hairline: rgba(242, 242, 242, 0.3);
@@ -4394,7 +4397,8 @@ summary::-webkit-details-marker {
     --color-stone-500: rgba(242, 242, 242, 0.86);
     --color-stone-600: rgba(242, 242, 242, 0.9);
     --color-bar-plain: rgba(242, 242, 242, 0.42);
-    --stat-unlit: grayscale(1) brightness(1.1) contrast(0.85);
+    /* Brighter than the lit flame, as the stone ink is here. */
+    --stat-unlit: grayscale(1) contrast(0.6) brightness(1.4);
   }
   .screen-bar[data-edge]::before {
     background: var(--color-ground);

@@ -39,6 +39,9 @@
  * Output: public/icons/3d/<name>.webp, a few KB each, and a line per
  * icon with its fill and bytes. Run after replacing a source; the output
  * is committed, and lib/stat-icons.test.ts holds each under its ceiling.
+ * A re-cut file keeps its path, and the service worker serves a .webp
+ * cache-first from its precache, so an installed phone keeps the old
+ * file until CACHE in public/sw.js moves: bump it in the same commit.
  */
 import { mkdirSync, statSync } from "node:fs";
 import sharp from "sharp";

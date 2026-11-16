@@ -13,6 +13,8 @@
  *     PLAYWRIGHT_MODULE=/opt/node22/lib/node_modules/playwright/index.mjs \
  *     node scripts/look-stat-icons.mjs before            # or after
  *   node scripts/look-stat-icons.mjs after today shop  # a subset
+ *   npx vite-node --config vitest.config.ts scripts/moment-fixture.ts > /tmp/moment.html
+ *     (then MOMENT_HTML=/tmp/moment.html adds Best round yet, "moment")
  *
  * Shots: LOOK_OUT, default docs/look/stat-icons/, as
  * <tag>-<scene>-<size>-<theme>.png and <tag>-<scene>-<size>-<theme>-crop.png.
@@ -32,6 +34,7 @@ const SIZES = (process.env.LOOK_SIZES ?? "390x844-light,390x844-dark,320x568-lig
   return { w, h, theme, name: wh };
 });
 const ACTIVE_VIEW = process.env.ACTIVE_VIEW ?? "/tmp/active-view.json";
+const MOMENT_HTML = process.env.MOMENT_HTML ?? "/tmp/moment.html";
 mkdirSync(OUT, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const browser = await chromium.launch({ args: ["--font-render-hinting=none"] });
@@ -42,7 +45,7 @@ const browser = await chromium.launch({ args: ["--font-render-hinting=none"] });
  * and the crop around `crop` (one selector, or several whose boxes are
  * joined), padded.
  */
-async function scene(name, size, { path, plan = "free", games = false, today = false, crop, pad = 12, before }) {
+async function scene(name, size, { path, plan = "free", games = false, today = false, crop, pad = 12, before, inject }) {
   if (!want(name)) return;
   F.resetPlan(plan);
   F.gamesMode.on = games;
@@ -72,15 +75,35 @@ async function scene(name, size, { path, plan = "free", games = false, today = f
   await page
     .waitForFunction(() => document.querySelectorAll(".skeleton").length === 0, null, { timeout: 12000 })
     .catch(() => console.log("SKELETONS-REMAIN", name));
+  /* A moment no fixture walks to (Best round yet needs a whole round):
+     the component's own markup, rendered by scripts/moment-fixture.ts,
+     laid over the live page so it wears the build's CSS and fonts. */
+  if (inject) {
+    await page.evaluate((html) => {
+      const el = document.createElement("div");
+      el.id = "look-inject";
+      el.style.cssText = "position:fixed;inset:0;z-index:60;background:var(--color-ground);padding:72px 16px 0";
+      el.innerHTML = html;
+      document.body.appendChild(el);
+    }, inject);
+  }
   await page.waitForFunction(() => [...document.images].every((i) => i.complete), null, { timeout: 8000 }).catch(() => {});
   await sleep(1400);
   const file = `${OUT}${TAG}-${name}-${size.name}-${size.theme}`;
   await page.screenshot({ path: `${file}.png` });
   const sels = [crop].flat().filter(Boolean);
   const boxes = [];
-  /* Scroll the first into view once, then measure every box in that
-     same scroll position: the clip is in viewport coordinates. */
-  if (sels.length) await page.locator(sels[0]).first().scrollIntoViewIfNeeded().catch(() => {});
+  /* Scroll the first to the middle once, then measure every box in that
+     same scroll position: the clip is in viewport coordinates. The
+     middle, not just into view: at 320x568 "in view" left Practice's
+     tile best under the floating tab bar (the review of #487). */
+  if (sels.length)
+    await page
+      .locator(sels[0])
+      .first()
+      .evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }))
+      .catch(() => {});
+  await sleep(150);
   for (const sel of sels) {
     const loc = page.locator(sel).first();
     if ((await loc.count()) === 0) continue;
@@ -105,9 +128,10 @@ async function scene(name, size, { path, plan = "free", games = false, today = f
  * and unlit, on #121212 and on white, at 3x, drawn with the app's own
  * `.stat-icon` rules (lifted from app/globals.css) and files (from the
  * server; Increase Contrast's grey from #448's block). `sheet` writes
- * sheet-dark.png and sheet-light.png and, with
- * Increase Contrast, sheet-contrast-{dark,light}.png; the look loop joins
- * each pair side by side.
+ * sheet-dark.png and sheet-light.png, with Increase Contrast
+ * sheet-contrast-{dark,light}.png, and in Greyscale
+ * sheet-greyscale-{dark,light}.png; the look loop joins each pair side
+ * by side.
  *   node scripts/look-stat-icons.mjs sheet
  */
 if (TAG === "sheet") {
@@ -130,7 +154,10 @@ if (TAG === "sheet") {
     ["A game's best", "trophy", true],
   ];
   const sizes = [16, 20, 24, 32, 64];
-  for (const contrast of ["no-preference", "more"]) {
+  /* Three passes: as drawn, under Increase Contrast, and with the phone
+     in Greyscale (Accessibility, Colour Filters), where only lightness
+     tells the open day's flame from a lit one (#453). */
+  for (const [contrast, grey] of [["no-preference", false], ["more", false], ["no-preference", true]]) {
     for (const theme of ["dark", "light"]) {
       const ctx = await browser.newContext({ viewport: { width: 520, height: 600 }, deviceScaleFactor: 3, colorScheme: theme, contrast });
       const page = await ctx.newPage();
@@ -143,13 +170,14 @@ if (TAG === "sheet") {
       await page.setContent(
         `<!doctype html><html data-theme="${theme}"><head><style>${block}
         body{margin:0;background:${theme === "dark" ? "#121212" : "#ffffff"};color:${theme === "dark" ? "#f2f2f2" : "#201e1d"};font:600 13px system-ui}
+        ${grey ? "html{filter:grayscale(1)}" : ""}
         .g{display:grid;grid-template-columns:150px repeat(${sizes.length},auto);align-items:center;gap:14px 18px;padding:20px}
         .h{font:700 11px system-ui;letter-spacing:.08em;opacity:.6}.c{display:flex;justify-content:center}</style></head>
-        <body><div class="g"><div class="h">${theme.toUpperCase()}${contrast === "more" ? ", MORE CONTRAST" : ""}</div>${sizes.map((s) => `<div class="h" style="text-align:center">${s}</div>`).join("")}${cells}</div></body></html>`,
+        <body><div class="g"><div class="h">${theme.toUpperCase()}${contrast === "more" ? ", MORE CONTRAST" : ""}${grey ? ", GREYSCALE" : ""}</div>${sizes.map((s) => `<div class="h" style="text-align:center">${s}</div>`).join("")}${cells}</div></body></html>`,
         { waitUntil: "load" }
       );
       await page.waitForFunction(() => [...document.images].every((i) => i.complete && i.naturalWidth > 0));
-      const name = contrast === "more" ? `sheet-contrast-${theme}` : `sheet-${theme}`;
+      const name = grey ? `sheet-greyscale-${theme}` : contrast === "more" ? `sheet-contrast-${theme}` : `sheet-${theme}`;
       await page.locator(".g").screenshot({ path: `${OUT}${name}.png` });
       console.log("shot", name);
       await ctx.close();
@@ -192,6 +220,11 @@ for (const size of SIZES) {
     crop: ".best-plaque",
     pad: 16,
   });
+  /* Best round yet on the results walk (Moment.tsx), from its own
+     markup: MOMENT_HTML, printed by scripts/moment-fixture.ts. */
+  if (existsSync(MOMENT_HTML)) {
+    await scene("moment", size, { path: "/games", plan: "code", games: true, inject: readFileSync(MOMENT_HTML, "utf8"), crop: "#look-inject .card", pad: 16 });
+  }
   /* The founder's who-is-active rows: a streak per tester. */
   await scene("active", size, {
     path: "/active",

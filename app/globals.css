@@ -4483,7 +4483,9 @@ summary::-webkit-details-marker {
    on the end rows. Inside a group the ring draws inside the row, and
    the end rows take the group's corners so the ring follows them. */
 .inset-group > :focus-visible,
-.group-row:focus-visible {
+.group-row:focus-visible,
+.inset-group summary:focus-visible {
+  /* summary: Help's questions (#479) open in place inside a row. */
   outline-offset: -3px;
 }
 .inset-group > :first-child:focus-visible {

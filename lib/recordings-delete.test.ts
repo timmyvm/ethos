@@ -3,10 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 /* The phone's half of "Delete my recordings" (#479): the route is asked
    with the session's token, and only a yes empties what the visit held. */
 
+type Take = { id: string; owner?: string | null };
 const h = vi.hoisted(() => ({
-  session: { access_token: "tok" } as null | { access_token: string },
+  session: { access_token: "tok", user: { id: "me" } } as null | { access_token: string; user?: { id: string } },
   forgot: 0,
   hint: "unset" as string | null,
+  outbox: [] as Take[],
 }));
 
 vi.mock("./supabase-browser", () => ({
@@ -14,6 +16,11 @@ vi.mock("./supabase-browser", () => ({
 }));
 vi.mock("./held", () => ({ forgetRecordings: () => void h.forgot++ }));
 vi.mock("./spoke-hint", () => ({ writeSpokeHint: (d: string | null) => void (h.hint = d) }));
+vi.mock("./rep-outbox", async (importOriginal) => ({
+  ownedBy: (await importOriginal<typeof import("./rep-outbox")>()).ownedBy,
+  outboxAll: async () => [...h.outbox],
+  outboxDelete: async (id: string) => void (h.outbox = h.outbox.filter((t) => t.id !== id)),
+}));
 
 import { deleteAllRecordings } from "./recordings-delete";
 
@@ -21,9 +28,10 @@ const answer = (status: number, body: unknown) =>
   vi.fn(async () => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } }));
 
 beforeEach(() => {
-  h.session = { access_token: "tok" };
+  h.session = { access_token: "tok", user: { id: "me" } };
   h.forgot = 0;
   h.hint = "unset";
+  h.outbox = [];
 });
 afterEach(() => vi.unstubAllGlobals());
 
@@ -35,6 +43,20 @@ describe("deleting every recording from the phone", () => {
     expect(fetch).toHaveBeenCalledWith("/api/recordings", { method: "DELETE", headers: { Authorization: "Bearer tok" } });
     expect(h.forgot).toBe(1);
     expect(h.hint).toBeNull();
+  });
+
+  it("drops this account's takes still waiting to send, and keeps another account's (review)", async () => {
+    h.outbox = [{ id: "a", owner: "me" }, { id: "b", owner: null }, { id: "c", owner: "someone-else" }];
+    vi.stubGlobal("fetch", answer(200, { ok: true, deleted: 3 }));
+    expect((await deleteAllRecordings()).ok).toBe(true);
+    expect(h.outbox.map((t) => t.id)).toEqual(["c"]);
+  });
+
+  it("keeps every waiting take when the server did not delete", async () => {
+    h.outbox = [{ id: "a", owner: "me" }];
+    vi.stubGlobal("fetch", answer(502, { error: "Couldn't list your recordings. Nothing was deleted." }));
+    expect((await deleteAllRecordings()).ok).toBe(false);
+    expect(h.outbox.map((t) => t.id)).toEqual(["a"]);
   });
 
   it("says the server's own sentence and keeps what is held when it fails", async () => {

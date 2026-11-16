@@ -22,6 +22,7 @@ import {
   type OAuthAttempt,
   type SettingsLanding,
 } from "@/lib/auth";
+import { readAccount } from "@/lib/account-settings";
 
 /**
  * Where an email-confirmation link and a Google round trip land.
@@ -89,7 +90,16 @@ export default function CallbackPage() {
     waitForAccount(expecting ? 5000 : 0)
       .then((s) => {
         if (!live) return;
-        if (s.signedIn && !s.anonymous) {
+        if (s.signedIn && !s.anonymous && fromSettings?.kind === "google") {
+          // Linking from Settings (#479 review): this account was signed
+          // in before Google opened, so a session is no proof. "Google is
+          // linked" only once the account has Google among its ways in.
+          forgetOAuthAttempt();
+          void readAccount().then((view) => {
+            if (!live) return;
+            setState(view && !view.google ? { at: "google" } : { at: "ok", email: s.email });
+          });
+        } else if (s.signedIn && !s.anonymous) {
           forgetOAuthAttempt();
           // Testing joined on the session this sign-in replaced: Google's
           // waits in this tab, a resent link's on this device (lib/auth.ts).
@@ -144,7 +154,19 @@ export default function CallbackPage() {
         </>
       )}
 
-      {state.at === "google" && (
+      {state.at === "google" && landing?.kind === "google" && (
+        /* Linking from Settings that did not finish (#479 review): this
+           account is still signed in and unchanged, so the way is back. */
+        <>
+          <GoogleTile />
+          <h1 className="font-display mt-5 text-title">Google didn&apos;t link</h1>
+          <p className="mt-3 max-w-[300px] text-body leading-relaxed text-stone-500">Nothing changed on this account.</p>
+          <Link href={SETTINGS_ACCOUNT} className={`${ACTION_CLASS} mt-7 max-w-[320px]`}>
+            Back to Account
+          </Link>
+        </>
+      )}
+      {state.at === "google" && landing?.kind !== "google" && (
         <>
           <GoogleTile />
           <h1 className="font-display mt-5 text-title">

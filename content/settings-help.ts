@@ -47,7 +47,8 @@ export const WHATS_NEW: readonly { date: string; line: string }[] = [
   { date: "16 Nov", line: "Settings has a page for each thing: your account, notifications, practice, privacy and help." },
   { date: "16 Nov", line: "Every score is out of 100, with a word for how it went." },
   { date: "16 Nov", line: "While a recording is scored, your words show up the moment they exist." },
-  { date: "16 Nov", line: "Sixty topics, and Another topic shows every one before any comes back." },
+  // No count: the topics grow in this same run (365, #481), and a number here would go stale with them.
+  { date: "16 Nov", line: "Another topic shows you every topic before any comes back." },
   { date: "12 Nov", line: "Swipe between tabs, and every password field has Show." },
 ];
 

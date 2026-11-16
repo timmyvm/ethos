@@ -10,7 +10,7 @@
  */
 
 import type { Theme } from "./prefs";
-import type { PlanKind } from "./plan-view";
+import { DECLINED, PENDING, type PlanKind } from "./plan-view";
 import type { PainId } from "./answers";
 import { MAX_PAINS } from "./answers";
 import { GOALS, PAINS } from "@/content/portfolio";
@@ -42,10 +42,19 @@ export function reminderValue(hour: number | null, label: (h: number) => string)
   return hour === null ? "Off" : label(hour);
 }
 
-/** The plan's row: Premium or Free, or nothing while it is unknown (a dash is drawn, never Free). */
-export function planWord(kind: PlanKind | null): "Premium" | "Free" | null {
+/**
+ * The plan's row: Premium or Free, or nothing while it is unknown (a
+ * skeleton is drawn, never Free). A plan with something to fix says
+ * what its own row on the Plan page says (#479 review): a declined
+ * card (Premium may be off, as it is once the retries run out) and a
+ * first payment still pending (Premium is not on yet) never read as
+ * "Premium".
+ */
+export function planWord(kind: PlanKind | null): "Premium" | "Free" | typeof DECLINED | typeof PENDING | null {
   if (kind === null || kind === "unknown") return null;
   if (kind === "free" || kind === "ended") return "Free";
+  if (kind === "pastDue" || kind === "unpaid") return DECLINED;
+  if (kind === "incomplete") return PENDING;
   return "Premium";
 }
 

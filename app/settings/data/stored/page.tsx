@@ -31,7 +31,7 @@ export default function StoredPage() {
       </Section>
 
       <p className="mt-5 text-center">
-        <Link href="/privacy?from=settings" className="press inline-flex min-h-11 items-center px-3 text-caption font-semibold text-stone-500">
+        <Link href="/privacy?from=settings-stored" className="press inline-flex min-h-11 items-center px-3 text-caption font-semibold text-stone-500">
           Read the privacy policy
         </Link>
       </p>

@@ -79,7 +79,17 @@ export default function PlanPage() {
             label={restoring ? "Restoring…" : "Restore purchases"}
             onClick={() => {
               setRestoring(true);
-              // The native shell restores through the App Store and answers on the same channel.
+              // The native shell restores through the App Store and answers
+              // with ethos:restore-purchases-done; a shell that never answers
+              // never leaves the row held (#479 review).
+              const done = () => {
+                window.clearTimeout(timer);
+                window.removeEventListener("ethos:restore-purchases-done", done);
+                setRestoring(false);
+                plan.retry();
+              };
+              const timer = window.setTimeout(done, 20_000);
+              window.addEventListener("ethos:restore-purchases-done", done);
               window.dispatchEvent(new CustomEvent("ethos:restore-purchases"));
             }}
             disabled={restoring}

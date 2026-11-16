@@ -179,7 +179,7 @@ export default function DataPage() {
 
       <Section title="Privacy" className="mt-5">
         <LinkRow href="/settings/data/stored" label="What Ethos keeps" />
-        <LinkRow href="/privacy?from=settings" label="Privacy policy" />
+        <LinkRow href="/privacy?from=settings-data" label="Privacy policy" />
       </Section>
 
       <Section title="Your data" footer="Every recording, transcript, score and lexicon entry, as one file.">

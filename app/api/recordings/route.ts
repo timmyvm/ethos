@@ -5,8 +5,10 @@
  * The same order as DELETE /api/account, for the same reason: a partial
  * failure never strands a file nobody can reach.
  *
- *   1. The recordings' audio paths are read; a failed read changes
- *      nothing and says so.
+ *   1. The recordings' audio paths are read, a page at a time
+ *      (lib/recordings-read.ts: one select answers at most 1000 rows,
+ *      and the rows all go in step 3); a failed read changes nothing
+ *      and says so.
  *   2. The audio files go, a hundred at a time, while the rows still
  *      hold their paths. Storage objects are not rows and no cascade
  *      reaches them. A failure stops here with every row in place, and
@@ -25,6 +27,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromAuthHeader, supabaseAdmin } from "@/lib/db";
+import { readAccountRecordings } from "@/lib/recordings-read";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -39,23 +42,25 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Recordings aren't configured on this server." }, { status: 503 });
   }
 
-  const { data: rows, error: readError } = await db
-    .from("reps")
-    .select("id, audio_path")
-    .eq("user_id", auth.id);
-  if (readError) {
-    console.error("recordings delete: read failed", readError.message);
+  const read = await readAccountRecordings(db, auth.id);
+  if (!read.ok) {
+    console.error("recordings delete: read failed", read.error);
     return NextResponse.json({ error: "Couldn't list your recordings. Nothing was deleted." }, { status: 502 });
   }
-  const all = (rows ?? []) as { id: string; audio_path: string | null }[];
-  const paths = all.map((r) => r.audio_path).filter((p): p is string => typeof p === "string" && p.length > 0);
+  const { paths } = read;
 
   for (let i = 0; i < paths.length; i += 100) {
     const { error } = await db.storage.from("audio").remove(paths.slice(i, i + 100));
     if (error) {
       console.error("recordings delete: audio removal failed", error.message);
+      // Every row is still here either way, so a second try finds every path.
       return NextResponse.json(
-        { error: "Your audio didn't delete, so your recordings are all still here. Try again." },
+        {
+          error:
+            i === 0
+              ? "Your audio didn't delete, so your recordings are all still here. Try again."
+              : "Part of your audio deleted and the rest didn't, so your recordings are still listed. Try again.",
+        },
         { status: 502 }
       );
     }
@@ -74,5 +79,5 @@ export async function DELETE(req: NextRequest) {
     );
   }
 
-  return NextResponse.json({ ok: true, deleted: all.length });
+  return NextResponse.json({ ok: true, deleted: read.count });
 }

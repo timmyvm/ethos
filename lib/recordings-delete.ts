@@ -3,9 +3,15 @@
  * deletes every recording and its audio (app/api/recordings), then this
  * phone forgets what it held of them, so no screen draws a recording
  * that is gone. The account, its XP, coins and saved words stay.
+ *
+ * A take of this account still waiting in the outbox (sent offline, or
+ * never confirmed) goes too (#479 review): it was recorded before the
+ * delete, and sent later it would put a recording back on an account
+ * that was just told it has none. Another account's held takes stay.
  */
 
 import { forgetRecordings } from "./held";
+import { outboxAll, outboxDelete, ownedBy } from "./rep-outbox";
 import { writeSpokeHint } from "./spoke-hint";
 import { supabaseBrowser } from "./supabase-browser";
 
@@ -22,6 +28,7 @@ export async function deleteAllRecordings(): Promise<DeleteRecordingsResult> {
   if (!db) return { ok: false, error: "Recordings aren't configured yet." };
   const { data } = await db.auth.getSession();
   const token = data.session?.access_token;
+  const me = data.session?.user?.id ?? null;
   if (!token) return { ok: false, error: "There's no signed-in session, so nothing was deleted." };
   let res: Response;
   try {
@@ -34,5 +41,9 @@ export async function deleteAllRecordings(): Promise<DeleteRecordingsResult> {
   if (!res.ok) return { ok: false, error: body?.error ?? "That didn't go through. Try again." };
   forgetRecordings();
   writeSpokeHint(null);
+  if (me) {
+    const waiting = ownedBy(await outboxAll().catch(() => []), me);
+    for (const take of waiting) await outboxDelete(take.id).catch(() => {});
+  }
   return { ok: true, deleted: typeof body?.deleted === "number" ? body.deleted : undefined };
 }

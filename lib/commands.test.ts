@@ -71,6 +71,12 @@ describe("what a few letters find", () => {
     expect(findCommands("the closed")[0].title).toBe("The closed mouth");
   });
 
+  it("finds Settings' own pages by what they hold (#479)", () => {
+    expect(findCommands("reminder")[0].href).toBe("/settings/notifications");
+    expect(findCommands("password")[0].href).toBe("/settings/account");
+    expect(findCommands("acc")[0].title).toBe("Account");
+  });
+
   it("answers to other names, case and accents aside", () => {
     expect(titles(findCommands("history"))).toContain("Log");
     expect(titles(findCommands("DARK"))).toEqual(["Theme: Dark"]);

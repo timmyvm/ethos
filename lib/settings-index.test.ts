@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   SETTINGS_PAGES,
@@ -28,8 +28,12 @@ describe("what the index's rows say", () => {
   it("names the plan as Premium or Free, and never guesses an unknown one", () => {
     expect(planWord("active")).toBe("Premium");
     expect(planWord("code")).toBe("Premium");
-    expect(planWord("pastDue")).toBe("Premium");
     expect(planWord("ending")).toBe("Premium");
+    expect(planWord("floor")).toBe("Premium");
+    // A plan with something to fix says what its row says, never Premium (review).
+    expect(planWord("pastDue")).toBe("Card declined");
+    expect(planWord("unpaid")).toBe("Card declined");
+    expect(planWord("incomplete")).toBe("Payment pending");
     expect(planWord("free")).toBe("Free");
     expect(planWord("ended")).toBe("Free");
     expect(planWord("unknown")).toBeNull();
@@ -119,4 +123,26 @@ describe("Help's words", () => {
     expect(href.startsWith("mailto:hello@speakethos.com?subject=")).toBe(true);
     expect(decodeURIComponent(href)).toContain("What happened:");
   });
+});
+
+/* #479 review: a legal or About page opened from a Settings page goes
+   back to that page, not to Settings' index (back retraces, #442). */
+describe("the marketing pages opened from Settings", () => {
+  const back = readFileSync("components/MarketingBack.tsx", "utf8");
+  const pages = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? pages(`${dir}/${e.name}`) : e.name === "page.tsx" ? [`${dir}/${e.name}`] : []
+    );
+
+  for (const file of pages("app/settings")) {
+    const route = file.replace(/^app/, "").replace(/\/page\.tsx$/, "");
+    const froms = [...readFileSync(file, "utf8").matchAll(/\/(?:privacy|terms|about)\?from=([\w-]+)/g)].map((m) => m[1]);
+    for (const from of new Set(froms)) {
+      it(`${route} links in as "${from}", whose back is ${route}`, () => {
+        const key = from === "settings" ? "settings" : `"${from}"`;
+        expect(back).toContain(`${key}: { href: "${route}"`);
+        expect(back).toMatch(new RegExp(`ORIGINS = \\[[^\\]]*"${from}"`));
+      });
+    }
+  }
 });

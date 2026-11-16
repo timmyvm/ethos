@@ -3,8 +3,9 @@
  *
  * Ordered so a partial failure can never strand data or a charge:
  *
- *   0. The recordings' audio paths are read first; it changes nothing,
- *      so a failure here really does leave everything as it was.
+ *   0. The recordings' audio paths are read first, every page of them
+ *      (lib/recordings-read.ts); it changes nothing, so a failure here
+ *      really does leave everything as it was.
  *   1. The plan, before anything is deleted. Every Checkout still open
  *      for the account's Stripe customer is closed, then every
  *      subscription that has not ended is cancelled now (lib/billing.ts
@@ -46,6 +47,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { deleteCustomer, endEveryPlan, hasEnded, voidEndedInvoices } from "@/lib/billing";
 import { getUserFromAuthHeader, supabaseAdmin } from "@/lib/db";
+import { readAccountRecordings } from "@/lib/recordings-read";
 import { stripeClient, stripeLivemode } from "@/lib/stripe";
 
 export const runtime = "nodejs";
@@ -73,12 +75,10 @@ export async function DELETE(req: NextRequest) {
     );
   }
 
-  const { data: rows, error: readError } = await db
-    .from("reps")
-    .select("audio_path")
-    .eq("user_id", auth.id)
-    .not("audio_path", "is", null);
-  if (readError) {
+  // Every page of them (lib/recordings-read.ts): the cascade takes every
+  // row, so a path left unread is audio nobody can reach again.
+  const read = await readAccountRecordings(db, auth.id);
+  if (!read.ok) {
     return NextResponse.json(
       { error: "Couldn't list your recordings. Nothing was deleted." },
       { status: 502 }
@@ -155,9 +155,7 @@ export async function DELETE(req: NextRequest) {
     }
   }
 
-  const paths = (rows ?? [])
-    .map((r) => r.audio_path as string)
-    .filter(Boolean);
+  const paths = read.paths;
   for (let i = 0; i < paths.length; i += 100) {
     const { error } = await db.storage
       .from("audio")

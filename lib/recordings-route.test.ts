@@ -119,6 +119,47 @@ describe("deleting every recording", () => {
     expect(repsOf(OWNER)).toEqual([]);
   });
 
+  it("reads every page of a long history, so no audio outlives its row (review)", async () => {
+    // PostgREST answers 1000 rows a select; the rows all go in one delete.
+    db.state.maxRows = 1000;
+    db.state.tables.reps = [];
+    for (let i = 0; i < 2345; i++) {
+      db.put("reps", { id: `r${String(i).padStart(5, "0")}`, user_id: OWNER, audio_path: i % 7 === 0 ? null : `reps/${i}-rep.webm` });
+    }
+    db.put("reps", { id: "x1", user_id: OTHER, audio_path: "reps/other.webm" });
+    const res = await del("tok_owner");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, deleted: 2345 });
+    const want = 2345 - Math.ceil(2345 / 7);
+    expect(new Set(db.state.removedAudio).size).toBe(want);
+    expect(db.state.removedAudio).not.toContain("reps/other.webm");
+    expect(repsOf(OWNER)).toEqual([]);
+    expect(repsOf(OTHER)).toEqual(["x1"]);
+  });
+
+  it("says so when the audio stops part way, and a retry finishes", async () => {
+    db.state.tables.reps = [];
+    for (let i = 0; i < 250; i++) db.put("reps", { id: `r${i}`, user_id: OWNER, audio_path: `reps/${i}-rep.webm` });
+    // The first hundred go; the second batch fails.
+    let calls = 0;
+    const storage = db.asClient().storage;
+    const from = storage.from.bind(storage);
+    (storage as { from: typeof from }).from = (bucket: string) => {
+      const b = from(bucket);
+      return {
+        ...b,
+        remove: async (paths: string[]) => (++calls === 2 ? { data: null, error: { message: "storage down" } } : b.remove(paths)),
+      } as ReturnType<typeof from>;
+    };
+    const res = await del("tok_owner");
+    expect(res.status).toBe(502);
+    expect((await res.json()).error).toMatch(/^Part of your audio deleted/);
+    expect(repsOf(OWNER).length).toBe(250);
+    (storage as { from: typeof from }).from = from;
+    expect((await del("tok_owner")).status).toBe(200);
+    expect(repsOf(OWNER)).toEqual([]);
+  });
+
   it("answers 503 on a server with no database", async () => {
     h.db = null;
     expect((await del("tok_owner")).status).toBe(503);

@@ -45,7 +45,7 @@ export default function HelpPage() {
       </Section>
 
       <Section title="About">
-        <LinkRow href="/about?from=settings" label="What Ethos is" />
+        <LinkRow href="/about?from=settings-help" label="What Ethos is" />
       </Section>
     </main>
   );

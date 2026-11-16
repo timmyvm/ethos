@@ -30,8 +30,10 @@ export const TOPIC_WALK_KEY = "ethos.topics.seen";
 
 /**
  * Never one of the last this many shown, even where one walk turns into
- * the next. A third of the pool: a walk never runs dry before it is
- * done while every pool is at least twice this (the school pool is 57).
+ * the next. A walk never runs dry before it is done while every pool is
+ * at least twice this (the school pool is 362 since #481). Kept at 20
+ * rather than grown with the pool: it only guards the turn between
+ * walks, and a walk of 365 is a long way from one.
  */
 export const RECENT_TOPICS = 20;
 
@@ -74,10 +76,12 @@ export function drawTopic(
 
 /**
  * The memory once `id` has been on screen. A walk that already holds
- * every topic in `pool` is done, and `id` opens the next one.
+ * every topic in `pool` is done, and `id` opens the next one. A set, so
+ * a spin stays one pass over the pool at 365 rather than one per topic.
  */
 export function shown(memory: TopicWalk, id: string, pool: readonly Topic[]): TopicWalk {
-  const done = pool.length > 0 && pool.every((t) => memory.walk.includes(t.id));
+  const walked = new Set(memory.walk);
+  const done = pool.length > 0 && pool.every((t) => walked.has(t.id));
   return {
     walk: done ? [id] : [id, ...memory.walk.filter((x) => x !== id)],
     recent: [id, ...memory.recent.filter((x) => x !== id)].slice(0, RECENT_TOPICS),
@@ -89,12 +93,12 @@ const KNOWN = new Set(TOPICS.map((t) => t.id));
 /** Ids of topics that exist, each once, in the order given, at most `max`. */
 function ids(v: unknown, max: number): string[] {
   if (!Array.isArray(v)) return [];
-  const out: string[] = [];
+  const out = new Set<string>();
   for (const x of v) {
-    if (typeof x === "string" && KNOWN.has(x) && !out.includes(x)) out.push(x);
-    if (out.length === max) break;
+    if (typeof x === "string" && KNOWN.has(x)) out.add(x);
+    if (out.size === max) break;
   }
-  return out;
+  return [...out];
 }
 
 /** A stored memory, or nothing: anything malformed reads as a fresh walk. */

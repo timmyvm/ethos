@@ -63,13 +63,15 @@ describe("the reroll's walk", () => {
       }
     });
 
+    /* Three walks, so two turns: at 365 a walk is long, and the turn
+       is the only place the recent guard is needed. */
     it(`never shows one of the last ${RECENT_TOPICS} in the ${name} pool, across walks`, () => {
-      for (let seed = 1; seed <= 25; seed++) {
-        const seq = walkOf(pool, pool.length * 6, seeded(seed));
+      for (let seed = 1; seed <= 10; seed++) {
+        const seq = walkOf(pool, pool.length * 3, seeded(seed));
         expect(minGap(seq)).toBeGreaterThan(RECENT_TOPICS);
         /* And each walk of the pool is whole: every block of a pool's
            length, from the start, is the pool once. */
-        for (let w = 0; w < 6; w++) {
+        for (let w = 0; w < 3; w++) {
           expect(new Set(seq.slice(w * pool.length, (w + 1) * pool.length)).size).toBe(pool.length);
         }
       }
@@ -134,17 +136,22 @@ describe("the reroll's walk", () => {
   });
 
   /* The old roulette, for the record: `spin`, random but for the one on
-     screen, brought a topic back inside 20 spins in most seeds even
-     from sixty; the walk never does (above). */
+     screen, brought a topic back inside 20 spins in most seeds from
+     sixty, and even from 365 brings one back inside 40 in most seeds
+     and inside a pool's length in every one; the walk never does
+     (above). */
   it("is not what the old spin did", () => {
-    let repeatsSoon = 0;
+    let inside40 = 0;
+    let insidePool = 0;
     for (let seed = 1; seed <= 25; seed++) {
       const rand = seeded(seed);
       const seq: string[] = [];
-      for (let i = 0; i < 20; i++) seq.push(spin(seq.at(-1) ?? null, rand).id);
-      if (new Set(seq).size < seq.length) repeatsSoon++;
+      for (let i = 0; i < TOPICS.length; i++) seq.push(spin(seq.at(-1) ?? null, rand).id);
+      if (new Set(seq.slice(0, 40)).size < 40) inside40++;
+      if (new Set(seq).size < seq.length) insidePool++;
     }
-    expect(repeatsSoon).toBeGreaterThan(15);
+    expect(inside40).toBeGreaterThan(15);
+    expect(insidePool).toBe(25);
   });
 });
 
@@ -228,6 +235,27 @@ describe("the memory on the device", () => {
     for (let i = 1; i < TOPICS.length; i++) second.push(nextTopic(TOPICS, second[i - 1], rand).id);
     expect(new Set(second).size).toBe(TOPICS.length);
     expect(minGap([...seen, ...second])).toBeGreaterThan(RECENT_TOPICS);
+  });
+
+  /* 365 topics (#481): the memory is at its largest one spin before a
+     walk turns, every id of the pool in it once. It stays a few
+     kilobytes of localStorage, and a whole walk read and written from
+     storage spin by spin is quick. */
+  it("stays small and quick at 365: a whole walk, from storage", () => {
+    expect(TOPICS.length).toBe(365);
+    const rand = seeded(13);
+    let on = nextTopic(TOPICS, null, rand).id;
+    let largest = 0;
+    const started = performance.now();
+    for (let i = 1; i < TOPICS.length; i++) {
+      on = nextTopic(TOPICS, on, rand).id;
+      largest = Math.max(largest, localStorage.getItem(TOPIC_WALK_KEY)!.length);
+    }
+    const ms = performance.now() - started;
+    expect(readWalk().walk.length).toBe(TOPICS.length);
+    expect(largest).toBeLessThan(3 * 1024);
+    /* Generous for a slow machine: measured at a few milliseconds. */
+    expect(ms).toBeLessThan(1500);
   });
 
   it("remembers the card's topic when the roulette opens", () => {

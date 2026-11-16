@@ -7247,8 +7247,7 @@ html[data-test-tile] .test-tile-slot {
   }
 }
 
-/* ======================= an icon swap (#474) ================}
-
+/* ======================= an icon swap (#474) =======================
  * components/ui/IconSwap.tsx: two marks in one grid cell, Hear it back's
  * Play and Pause, a word's Save and Saved. The mark leaving blurs as it
  * fades and shrinks a little; the one arriving sharpens out of the same
@@ -7283,7 +7282,8 @@ html[data-test-tile] .test-tile-slot {
 /* Lite graphics drops the blur, as it drops every decorative one (#412). */
 :root[data-graphics="lite"] .icon-swap > [data-off] {
   filter: none;
-=======
+}
+
 /*
  * The room (#475, components/room/Room.tsx). The first minute: a scene
  * behind frosted glass, a hold that clears it, his lines streaming into

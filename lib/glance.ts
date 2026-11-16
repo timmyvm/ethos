@@ -19,9 +19,9 @@
 import type { TraitId } from "@/content/traits";
 import { recordingTrait } from "./log";
 import type { Pause, RepMetrics, Word } from "./metrics";
-import { filledWords, heldPauseMarks, landedPause, PAUSE_WHY_WORDS, pauseWhy, sharedMiss, type PauseWhy } from "./pause-mark";
+import { filledWords, heldPauseMarks, landedPause, PAUSE_KEY_WORDS, PAUSE_WHY_WORDS, pauseWhy, sharedMiss } from "./pause-mark";
 import { filledMoments, MOMENT_LEAD_S, MOMENT_TAIL_S } from "./pause-quality";
-import type { RewardMoment } from "./rewards";
+import { MOST_PAUSES, type RewardMoment } from "./rewards";
 import type { GameRound } from "./round";
 import { clockTenth, decidingCutIn, secs as tenths, type RoundReveal } from "./round-copy";
 import { transcriptPieces, type TranscriptUnit } from "./transcript-words";
@@ -175,17 +175,6 @@ export function unscoredReason(m: Pick<RepMetrics, "substance">): string {
  * take's hero is its filler count, so its line follows the hero: the
  * same trait, never a second one under it (the #427 review).
  */
-/**
- * A pause that did not count, in the glance's few words (#490): the Pause
- * row says it whole ("after only a few words", "over 3.5 seconds"). A
- * filled pause has its own line, so it is never one of these.
- */
-const GLANCE_MISS: Partial<Record<PauseWhy, string>> = {
-  mid: "mid-sentence",
-  short: "misplaced",
-  long: "too long",
-};
-
 export function glanceLine(p: {
   trait: TraitId;
   metrics: RepMetrics;
@@ -233,8 +222,11 @@ export function glanceLine(p: {
          ("1 of 4 pauses mid-sentence"); a mix, or a pause after a sentence
          too short to be a point, is "misplaced",
          and the chip's own name says what the first one was. */
+      /* A pause that did not count, in the key's few words (#490): the
+         Pause row says it whole ("after only a few words", "over 3.5
+         seconds"). A filled pause has its own line, so it is never one. */
       const why = sharedMiss(missed);
-      const what = (why && GLANCE_MISS[why]) || "misplaced";
+      const what = why ? PAUSE_KEY_WORDS[why] : "misplaced";
       const n = missed.length;
       const said =
         n === marks.held
@@ -244,7 +236,9 @@ export function glanceLine(p: {
           : n === 1
             ? withMoment(`1 of ${marks.held} pauses ${what}, at `, moment, "")
             : withMoment(`${n} of ${marks.held} pauses ${what}, first `, moment, "");
-      return { ...said, cue: cue(marks.held === 1 ? "1 pause between sentences." : `all ${marks.held} between sentences.`) };
+      /* "all 4 between sentences" left a reader to carry "pauses" over
+         from the line before (the review of #490); seven words still. */
+      return { ...said, cue: cue(marks.held === 1 ? "1 pause between sentences." : `all ${marks.held} pauses between sentences.`) };
     }
     if (marks.landed > 0) {
       const longest = held.filter(landedPause).reduce((a, b) => (b.len > a.len ? b : a));
@@ -407,7 +401,7 @@ export interface EarnedLine {
 
 const TRAIT_RECORD: Partial<Record<TraitId, string>> = {
   fillers: "Cleanest recording yet",
-  pause: "Most silence you've held",
+  pause: MOST_PAUSES,
 };
 
 /**

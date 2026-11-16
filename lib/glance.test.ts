@@ -31,7 +31,7 @@ import type { GameRound, QaRound } from "./round";
 import { ladderView, roundReveal } from "./round-copy";
 import { computeMetrics, substance, type RepMetrics, type Word } from "./metrics";
 import { heldPauseMarks } from "./pause-mark";
-import { endNote, type RewardMoment } from "./rewards";
+import { endNote, MOST_PAUSES, type RewardMoment } from "./rewards";
 import type { StreakState } from "./streak";
 
 /*
@@ -120,7 +120,7 @@ describe("the fixture's two glances", () => {
     const g = line("pause");
     /* The #427 review: "3 landed, 1 searching" never said pauses; #490: nor in plain words. */
     expect(g.sentence).toBe("1 of 4 pauses mid-sentence, at 0:20");
-    expect(g.cue).toBe("Next time: all 4 between sentences.");
+    expect(g.cue).toBe("Next time: all 4 pauses between sentences.");
     expect(g.moment).toMatchObject({ t: 20, from: 19, until: 21.9, label: "Play 0:20, a pause mid-sentence" });
   });
 });
@@ -168,7 +168,7 @@ describe("glanceLine, every row of the tables", () => {
     const two = line("pause", {
       pauses: [...PAUSES, { t: 30, len: 1, kind: "mid", verdict: "hesitation" }] as unknown as RepMetrics["pauses"],
     });
-    expect([two.sentence, two.cue]).toEqual(["2 of 5 pauses mid-sentence, first 0:20", "Next time: all 5 between sentences."]);
+    expect([two.sentence, two.cue]).toEqual(["2 of 5 pauses mid-sentence, first 0:20", "Next time: all 5 pauses between sentences."]);
     const all = line("pause", {
       pauses: [
         { t: 2.1, len: 1.2, kind: "pre", verdict: "opening" },
@@ -380,13 +380,13 @@ describe("earnedLine", () => {
   const ladder: RewardMoment = { headline: "Level 3 is open", detail: "x", tone: "earned" };
   const index: RewardMoment = { headline: "Best Ethos yet", detail: "849, past your 690", tone: "earned" };
   const clean: RewardMoment = { headline: "Cleanest recording yet", detail: "1.2/min, under your 2", tone: "earned" };
-  const held: RewardMoment = { headline: "Most silence you've held", detail: "5 held pauses, past 4", tone: "earned" };
+  const held: RewardMoment = { headline: MOST_PAUSES, detail: "5 one-second pauses, past your 4", tone: "earned" };
   const round: RewardMoment = { headline: "Best round yet", detail: "22s", tone: "earned" };
   it("takes the ladder over the Index over the trait's record over the best round", () => {
     expect(earnedLine({ bests: [index, clean, round], ladderMoment: ladder, trait: "fillers" })?.text).toBe("Level 3 is open");
     expect(earnedLine({ bests: [round, clean, index], trait: "fillers" })?.text).toBe("Best yet, past your 690");
     expect(earnedLine({ bests: [round, clean], trait: "fillers" })?.text).toBe("Cleanest recording yet");
-    expect(earnedLine({ bests: [round, held], trait: "pause" })?.text).toBe("Most silence you've held");
+    expect(earnedLine({ bests: [round, held], trait: "pause" })?.text).toBe("Most pauses yet");
     expect(earnedLine({ bests: [round, held], trait: "fillers" })?.text).toBe("Best round yet");
   });
   it("is empty when nothing was earned, and ink for a second score", () => {

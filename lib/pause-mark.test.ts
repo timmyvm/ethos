@@ -12,6 +12,7 @@ import {
   LANDED_MIN_PX,
   landedPause,
   otherKey,
+  PAUSE_KEY_WORDS,
   PAUSE_MARK_WORDS,
   pauseMark,
   pauseWhy,
@@ -40,8 +41,13 @@ describe("a pause in plain words (#490)", () => {
   });
 
   it("keys the quiet mark by the one kind every miss shares, else 'other pause'", () => {
-    expect(otherKey([{ kind: "pre", verdict: "landing" }, { kind: "mid", verdict: "hesitation" }])).toBe("pause mid-sentence");
-    expect(otherKey([{ kind: "pre", verdict: "hesitation" }])).toBe("pause after only a few words");
+    expect(otherKey([{ kind: "pre", verdict: "landing" }, { kind: "mid", verdict: "hesitation" }])).toBe("mid-sentence");
+    /* The key's few words, which hold one line at 320 (the review of #490). */
+    expect(otherKey([{ kind: "pre", verdict: "hesitation" }])).toBe("misplaced");
+    expect(otherKey([{ kind: "pre", verdict: "dead" }])).toBe("too long");
+    expect(otherKey([{ kind: "pre", verdict: "filled" }])).toBe("next to an um");
+    expect(otherKey([{ kind: "pre", verdict: "filled", note: MIC }])).toBe("with a sound");
+    for (const w of Object.values(PAUSE_KEY_WORDS)) expect(w.length, w).toBeLessThanOrEqual(PAUSE_KEY_WORDS.between.length);
     expect(otherKey([{ kind: "mid", verdict: "hesitation" }, { kind: "pre", verdict: "dead" }])).toBe("other pause");
     expect(sharedMiss([{ kind: "pre", verdict: "landing" }, { kind: "beat", verdict: "beat" }])).toBeNull();
   });
@@ -150,7 +156,9 @@ describe("Hear it back's track marks pauses as the pause map does", () => {
   });
 
   it("names its marks in the pause map's words", () => {
-    expect(legend(scrubber(TWO_FILLED))).toEqual(["um or like", "pause between sentences", "other pause"]);
+    /* "filler", as the transcript's key under it says: every kind is
+       marked ("you know", "basically"), not only "um" or "like". */
+    expect(legend(scrubber(TWO_FILLED))).toEqual(["filler", "between sentences", "other pause"]);
     const map = renderToStaticMarkup(createElement(PauseBar, { pauses: TWO_FILLED, durationS: 62 }));
     expect(map).toContain(`>${PAUSE_MARK_WORDS.landed}</span>`);
     expect(map).toContain(`>${PAUSE_MARK_WORDS.searching}</span>`);
@@ -159,9 +167,9 @@ describe("Hear it back's track marks pauses as the pause map does", () => {
 
   it("keys only the marks the take has", () => {
     const allLanded = [p(2.1, "pre", "opening"), p(30, "pre", "landing")];
-    expect(legend(scrubber(allLanded))).toEqual(["um or like", "pause between sentences"]);
+    expect(legend(scrubber(allLanded))).toEqual(["filler", "between sentences"]);
     const noneLanded = [p(12, "pre", "filled"), p(30, "mid", "hesitation")];
-    expect(legend(scrubber(noneLanded))).toEqual(["um or like", "other pause"]);
+    expect(legend(scrubber(noneLanded))).toEqual(["filler", "other pause"]);
   });
 
   it("draws a clean take as it always did", () => {
@@ -186,6 +194,21 @@ describe("Hear it back's track marks pauses as the pause map does", () => {
     const bar = map.slice(map.indexOf('role="img"'), map.indexOf("</div>", map.indexOf('role="img"')));
     const mapMarks = [...bar.matchAll(/<span[^>]*class="([^"]*min-w-\[8px\][^"]*)"/g)].map(([, c]) => (c.includes(LANDED_MARK) ? "landed" : "searching"));
     expect(mapMarks).toEqual(bands(scrubber(TWO_FILLED)).map(([, mark]) => mark));
+  });
+
+  /* The review of #490: the plain keys in one wrapping group took the
+     head from two lines to four at 320. The thin marks share the
+     eyebrow's row; the pause bands have the row under it, and only when
+     the take has a held pause. */
+  it("keys the thin marks beside the eyebrow and the pause bands on a row of their own", () => {
+    const html = scrubber(TWO_FILLED, [{ t: 24.2, label: "Says who?" }]);
+    const head = html.slice(0, html.indexOf('type="range"'));
+    const at = head.indexOf("data-pause-key");
+    expect(at).toBeGreaterThan(head.indexOf("Hear it back"));
+    expect(legend(head.slice(0, at))).toEqual(["Demos cut in", "filler"]);
+    expect(legend(head.slice(at))).toEqual(["between sentences", "other pause"]);
+    expect(scrubber([p(9, "beat", "beat", 0.4)])).not.toContain("data-pause-key");
+    expect(legend(scrubber([p(20, "mid", "hesitation")]))).toEqual(["filler", "mid-sentence"]);
   });
 
   it("keeps the round's cut-in on the track and in its chips", () => {

@@ -370,6 +370,15 @@ describe("the next day's answer, first on the glance", () => {
     expect(a(0, 0, false, "unheld", null).line.sentence).toBe("No pauses between sentences again.");
     expect(a(2, 5, true, "restarts", null).line.sentence).toBe("2 restarts, down from 5.");
   });
+  /* The review of #490: "Pauses silent, down from 3." left the 3 with no
+     unit; the short form counts the ums, still five words at most. */
+  it("a filled pause's short form counts ums, so its number has a unit", () => {
+    expect(a(0, 3, true, "filled", null).short.sentence).toBe("No ums, down from 3.");
+    expect(a(1, 3, true, "filled", null).short.sentence).toBe("1 um, down from 3.");
+    expect(a(2, 2, false, "filled", null).short.sentence).toBe("2 ums again.");
+    expect(a(0, 3, true, "filled", null).line.sentence).toBe("No pause had an um, down from 3.");
+  });
+
   it("a short form is still a sentence: a misplaced pause keeps its noun (the #477 review)", () => {
     expect(a(1, 3, true, "searching", null).short.sentence).toBe("1 misplaced pause, down from 3.");
     expect(a(0, 3, true, "searching", null).short.sentence).toBe("No misplaced pauses, down from 3.");

@@ -23,12 +23,14 @@ export type MarkedPause = { kind?: Pause["kind"]; verdict?: PauseVerdict };
  * The legends' words, one per mark, so both steps say the same thing
  * (#490, the two-second test: "landed a point" and "searching" were the
  * app's own words). A sage mark is always a pause before a sentence, so
- * it is "pause between sentences"; the quiet mark is "other pause" unless
- * every one on the take is the same kind (`otherKey`), and then it says
- * which: "pause mid-sentence".
+ * it is "between sentences"; the quiet mark is "other pause" unless every
+ * one on the take is the same kind (`otherKey`), and then it says which:
+ * "mid-sentence". The swatch is a pause's band, so the key does not say
+ * "pause" again: "pause between sentences" and "pause mid-sentence" took
+ * Hear it back's key from one line to three at 320 (the review of #490).
  */
 export const PAUSE_MARK_WORDS: Record<PauseMark, string> = {
-  landed: "pause between sentences",
+  landed: "between sentences",
   searching: "other pause",
 };
 
@@ -68,10 +70,27 @@ export function sharedMiss(pauses: readonly (MarkedPause & { note?: string })[])
   return whys.size === 1 ? [...whys][0] : null;
 }
 
-/** The quiet mark's key: "pause mid-sentence" where every one is, else "other pause". */
+/**
+ * Each reason as a key's or the glance's few words, where a line has no
+ * room for the whole one: Hear it back's pause keys hold one line in a
+ * 320 card ("after only a few words", "over 3.5 seconds" and "with a
+ * sound in it" each took it to a third, measured by
+ * scripts/look-plain-words.mjs), and the glance holds seven words. The
+ * Pause row says the whole reason under them.
+ */
+export const PAUSE_KEY_WORDS: Record<PauseWhy, string> = {
+  between: "between sentences",
+  mid: "mid-sentence",
+  short: "misplaced",
+  long: "too long",
+  um: "next to an um",
+  sound: "with a sound",
+};
+
+/** The quiet mark's key: "mid-sentence" where every one is, else "other pause". */
 export function otherKey(pauses: readonly (MarkedPause & { note?: string })[]): string {
   const why = sharedMiss(pauses);
-  return why ? `pause ${PAUSE_WHY_WORDS[why]}` : PAUSE_MARK_WORDS.searching;
+  return why ? PAUSE_KEY_WORDS[why] : PAUSE_MARK_WORDS.searching;
 }
 
 /**

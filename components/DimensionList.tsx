@@ -18,7 +18,7 @@ import {
 } from "@/lib/dimension-rows";
 import type { Tier1Scores, Tier2Anchors } from "@/lib/index-score";
 import { ALL_FILLERS_PER_MIN } from "@/lib/metric-labels";
-import type { RepMetrics } from "@/lib/metrics";
+import { UNVOICED_MAX_S, UNVOICED_MIN_S, type RepMetrics } from "@/lib/metrics";
 import { filledMoments, saysFilled, type FilledMoments, type MomentsPart } from "@/lib/pause-quality";
 import type { TraitKey } from "@/lib/traits";
 
@@ -125,15 +125,18 @@ export function DimensionList({
   const details: Record<TraitKey, Detail | null> = {
     pause: {
       /* In the house's plain words (#490): a pause is between sentences
-         or mid-sentence, and a gap under the second a pause needs is a
-         shorter stop ("under the held-pause bar: quiet hesitation" was
-         the app talking to itself). */
+         or mid-sentence ("under the held-pause bar: quiet hesitation" was
+         the app talking to itself). The short gaps are said as what
+         metrics.ts countUnvoicedHesitations counts, 0.3 to 1.2 seconds
+         and not before a sentence, with no claim of where they fell (a
+         gap under 0.8s is never told a sentence end) or that they were
+         under a second (the review of #490). */
       detail: `${
         pauseDetail ??
         `${plural(metrics.composedPauses, "pause")} between sentences, ${metrics.midSentencePauses} mid-sentence.`
       }${
         (metrics.unvoicedHesitations ?? 0) >= 3
-          ? ` Plus ${metrics.unvoicedHesitations} shorter stops mid-sentence, under a second each.`
+          ? ` Plus ${metrics.unvoicedHesitations} short gaps of ${UNVOICED_MIN_S} to ${UNVOICED_MAX_S} seconds.`
           : ""
       }`,
       moments: moments ? <PauseMoments moments={moments} take={take?.playable ? take : null} /> : undefined,
@@ -197,7 +200,8 @@ export function DimensionList({
     /* The two counts beside Demos's quote, said as what was said (#490:
        "hedges" and "counted rather than judged" were the app's words).
        A hedge is "maybe", "I guess", "sort of" or "I feel like"
-       (index-score.ts countHedges). */
+       (index-score.ts countHedges), so the line gives two as examples
+       and never says the count was only those two. */
     confidence: coach
       ? {
           detail: `${coach.dimensions.confidence.citedMoment} (${hedgeWords(anchors.hedgeCount)}, ${plural(
@@ -244,11 +248,16 @@ function tail(s: string | null): string {
   return s ? `, ${s}` : "";
 }
 
-/** "“maybe” or “I guess” twice", "no “maybe” or “I guess”". */
+/**
+ * "2 phrases like “maybe” or “I guess”", "no phrases like …". The count
+ * is every hedge countHedges finds, “sort of” and “I feel like”
+ * included: "“maybe” or “I guess” twice" told someone who said “sort
+ * of” twice that they had said “maybe” (the review of #490).
+ */
 export function hedgeWords(n: number): string {
-  const said = "“maybe” or “I guess”";
-  if (!(n > 0)) return `no ${said}`;
-  return `${said} ${n === 1 ? "once" : n === 2 ? "twice" : `${n} times`}`;
+  const like = "like “maybe” or “I guess”";
+  if (!(n > 0)) return `no phrases ${like}`;
+  return `${n} ${n === 1 ? "phrase" : "phrases"} ${like}`;
 }
 
 /** The band's word, in the colour it means: sage where earned, ink where it asks for work. */

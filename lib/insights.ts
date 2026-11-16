@@ -173,10 +173,16 @@ export function insights(all: RepRow[]): Insight[] {
     const m = mean(rates);
     const sd = Math.sqrt(mean(rates.map((r) => (r - m) ** 2)));
     if (sd < 1 && m < 4) {
+      /* The lowest and highest rate, which "every recording" is true of:
+         "stays within 0.4 of 1.8 in every recording" was a standard
+         deviation said as a bound, false of any take past it, and a sum
+         to do (the review of #490). */
+      const lo = Math.min(...rates).toFixed(1);
+      const hi = Math.max(...rates).toFixed(1);
       out.push({
         id: "consistent",
         headline: "Your fillers hold steady",
-        detail: `${ALL_FILLERS_PER_MIN} stays within ${sd.toFixed(1)} of ${m.toFixed(1)} in every recording.`,
+        detail: `${ALL_FILLERS_PER_MIN}: ${lo === hi ? lo : `${lo} to ${hi}`} in every recording.`,
       });
     }
   }

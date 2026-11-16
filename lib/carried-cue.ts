@@ -509,9 +509,12 @@ function answerHead(a: CueAnswer): { long: string; short: string } {
       return { long: head, short: head };
     }
     case "filled":
+      /* The short form is the glance's when the cue needs the room (25
+         words): "Pauses silent, down from 3." left "3" without a unit
+         (the review of #490), so it counts the ums, five words at most. */
       return n === 0
-        ? { long: "No pause had an um", short: "Pauses silent" }
-        : { long: `${n} ${plural(n, "pause", "pauses")} had an um`, short: `${n} ${plural(n, "um", "ums")} at pauses` };
+        ? { long: "No pause had an um", short: "No ums" }
+        : { long: `${n} ${plural(n, "pause", "pauses")} had an um`, short: `${n} ${plural(n, "um", "ums")}` };
     case "unheld":
       return n === 0
         ? { long: "No pauses between sentences", short: "No pauses between sentences" }

@@ -15,7 +15,10 @@
  *                  lib/pause-quality.ts through jiti, so before and after
  *                  each show what their code says)
  *   rows-head      the rows' headline over the card
- *   hear           Hear it back's card and its key
+ *   hear           Hear it back's card and its key, and in report.json
+ *                  "hear-key": the head's lines (two, as before #490)
+ *                  and whether each quiet key word holds the pause row
+ *                  to one line
  *   closing        the closing note at the sheet's end
  *   filled         the same take with one pause next to an um: the glance
  *   filled-row     and its Pause row with the moment
@@ -198,6 +201,37 @@ async function results(v, kind) {
   if (kind === "mid") {
     await sheetTo(page, () => [...document.querySelectorAll("[role=dialog] .eyebrow")].find((e) => e.textContent.trim() === "Hear it back")?.closest(".card"));
     await shoot(page, "hear", v, '[role="dialog"]');
+    /* The key's head in lines (the review of #490: it was two at 320, and
+       the plain words in one wrapping group made it four), and whether
+       the pause row holds one line with each word the quiet key can say. */
+    const key = await page.evaluate(() => {
+      const card = [...document.querySelectorAll("[role=dialog] .eyebrow")].find((e) => e.textContent.trim() === "Hear it back")?.closest(".card");
+      const row = card?.querySelector("[data-pause-key]");
+      if (!card || !row) return null;
+      const head = card.querySelector(".eyebrow").parentElement;
+      const items = [head.querySelector(".eyebrow"), ...head.querySelectorAll("span.whitespace-nowrap"), ...row.children];
+      /* A line is a run of items whose boxes overlap: the eyebrow and a key
+         beside it are centred on each other, not top-aligned. */
+      let lines = 0;
+      let bottom = -Infinity;
+      for (const r of items.map((e) => e.getBoundingClientRect()).sort((a, b) => a.top - b.top)) {
+        if (r.top >= bottom - 1) lines += 1;
+        bottom = Math.max(r.top >= bottom - 1 ? r.bottom : bottom, r.bottom);
+      }
+      const quiet = row.lastElementChild;
+      const oneLine = {};
+      /* lib/pause-mark.ts PAUSE_KEY_WORDS, the quiet key's every word. */
+      for (const word of ["mid-sentence", "other pause", "misplaced", "too long", "next to an um", "with a sound"]) {
+        const probe = quiet.cloneNode(true);
+        probe.lastChild.textContent = word;
+        quiet.replaceWith(probe);
+        oneLine[word] = new Set([...row.children].map((e) => Math.round(e.getBoundingClientRect().top))).size === 1;
+        probe.replaceWith(quiet);
+      }
+      return { lines, width: Math.round(row.getBoundingClientRect().width), oneLine };
+    });
+    report[`hear-key ${v.tag}`] = key;
+    console.log(`hear-key ${v.tag}`, JSON.stringify(key));
     await page.evaluate(() => {
       const s = document.querySelector("[data-sheet-scroll]");
       if (s) s.scrollTop = s.scrollHeight;

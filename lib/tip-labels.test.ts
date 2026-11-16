@@ -174,7 +174,7 @@ describe("tip faces", () => {
      the plan names no count of stars (#486). */
   it("says the pause surfaces in plain words (#490)", () => {
     const APP_WORDS =
-      /\b(landed|landing|land(s)? (a|the|your) points?|let your points land|searching|composed|held pauses?|hold 1|crutch|wpm|hedges?|counted rather than judged|dead air|none scores|earns a bonus|cold open|gear|distinct words?|follow-through|reads as)\b/i;
+      /\b(landed|landing|land(s)? (a|the|your) points?|let your points land|searching|composed|held pauses?|hold 1|silence you've held|crutch|wpm|hedges?|counted rather than judged|dead air|none scores|earns a bonus|cold open|gear|distinct words?|follow-through|reads as)\b/i;
     const lines = plainSweepLines();
     expect(lines.length).toBeGreaterThan(150);
     for (const s of lines) expect(s, s).not.toMatch(APP_WORDS);

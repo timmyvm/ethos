@@ -265,6 +265,9 @@ export function celebrates(prior: RepRow[], stars: number, index: number | null)
   return best > 0 && index > best;
 }
 
+/** The pause record's headline, which the glance's earned line matches on. */
+export const MOST_PAUSES = "Most pauses yet";
+
 export function personalBests(
   all: RepRow[],
   current: RepMetrics,
@@ -301,10 +304,14 @@ export function personalBests(
   const bestHeld = Math.max(
     ...prior.map((r) => (r.pauses ?? []).filter((p) => p.kind !== "beat").length)
   );
+  /* A count of pauses of 0.8 seconds or more, the house's one-second
+     pauses (lib/achievements.ts's badge says it so), never an amount of
+     silence: "Most silence you've held" named a total nothing adds up
+     (the review of #490). */
   if (current.heldPauses > bestHeld) {
     out.push({
-      headline: "Most silence you've held",
-      detail: `${current.heldPauses} pauses, past your ${bestHeld}`,
+      headline: MOST_PAUSES,
+      detail: `${current.heldPauses} one-second pauses, past your ${bestHeld}`,
       tone: "earned",
     });
   }

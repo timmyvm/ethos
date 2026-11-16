@@ -1,8 +1,8 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { DimensionList } from "@/components/DimensionList";
-import { computeMetrics, type RepMetrics } from "./metrics";
+import { DimensionList, hedgeWords } from "@/components/DimensionList";
+import { computeMetrics, UNVOICED_MAX_S, UNVOICED_MIN_S, type RepMetrics } from "./metrics";
 
 /* "The whole recording" opens the practice's own trait row (#427). */
 const metrics: RepMetrics = { ...computeMetrics([], 62), fillerCount: 4, fillersPerMin: 3.9, topFiller: "um", wpm: 145 };
@@ -26,5 +26,47 @@ describe("DimensionList open", () => {
   });
   it("opens nothing without it, as the Log draws it", () => {
     expect(openRows(render())).toHaveLength(0);
+  });
+});
+
+/*
+ * The review of #490: each opened row's words say what its count counts,
+ * no more. Steadiness's count is every hedge countHedges finds ("sort
+ * of" and "I feel like" too), so two of them are examples, never the
+ * list; the Pause row's short gaps are metrics.ts's 0.3 to 1.2 seconds,
+ * not "under a second", and not placed mid-sentence.
+ */
+describe("the opened rows say what the counts count (the review of #490)", () => {
+  const coach = {
+    dimensions: Object.fromEntries(
+      (["structure", "credibility", "engagement", "confidence"] as const).map((k) => [
+        k,
+        { score: 60, citedMoment: "“I guess it sort of works”", improve: "Say it once." },
+      ])
+    ),
+  } as never;
+  const steadiness = (hedgeCount: number) => {
+    const html = renderToStaticMarkup(
+      createElement(DimensionList, { tier1, anchors: { hedgeCount, restartCount: 1 }, metrics, coach })
+    );
+    return html.slice(html.indexOf("Steadiness")).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  };
+
+  it("gives the hedges as examples, so “sort of” twice is never called “maybe”", () => {
+    expect(hedgeWords(0)).toBe("no phrases like “maybe” or “I guess”");
+    expect(hedgeWords(1)).toBe("1 phrase like “maybe” or “I guess”");
+    expect(hedgeWords(2)).toBe("2 phrases like “maybe” or “I guess”");
+    expect(steadiness(2)).toContain("(2 phrases like “maybe” or “I guess”, 1 restart.)");
+    expect(steadiness(2)).not.toMatch(/“I guess” (once|twice|\d+ times)/);
+  });
+
+  it("says the short gaps' own range, not under a second, and not where they fell", () => {
+    const gaps = { ...metrics, unvoicedHesitations: 4 };
+    const html = renderToStaticMarkup(
+      createElement(DimensionList, { tier1, anchors: { hedgeCount: 0, restartCount: 0 }, metrics: gaps, coach: null, open: "pause" })
+    );
+    expect(html).toContain("Plus 4 short gaps of 0.3 to 1.2 seconds.");
+    expect(html).not.toMatch(/under a second|shorter stops mid-sentence/);
+    expect([UNVOICED_MIN_S, UNVOICED_MAX_S]).toEqual([0.3, 1.2]);
   });
 });

@@ -12,6 +12,7 @@ import {
   nearMisses,
   openLoop,
   personalBests,
+  MOST_PAUSES,
 } from "./rewards";
 import type { StreakState } from "./streak";
 
@@ -310,6 +311,19 @@ describe("personalBests", () => {
     expect(out.map((b) => b.detail)).toContain("1 filler a minute, under your 3");
     // Nothing measured before it: nothing to beat, and no "past -Infinity".
     expect(personalBests([rep({ transcript: "Hi." })], metrics({ heldPauses: 4 }), null)).toEqual([]);
+  });
+
+  /* The review of #490: the record is a count of one-second pauses, so it
+     says a count, never an amount of silence ("Most silence you've held"). */
+  it("calls the pause record a count of one-second pauses", () => {
+    const out = personalBests(
+      [rep({ pauses: [{ t: 2, len: 1.1, kind: "pre" }, { t: 9, len: 0.9, kind: "mid" }, { t: 14, len: 0.4, kind: "beat" }] })],
+      metrics({ heldPauses: 5 }),
+      null
+    );
+    const pause = out.find((b) => b.headline === MOST_PAUSES);
+    expect(pause).toEqual({ headline: "Most pauses yet", detail: "5 one-second pauses, past your 2", tone: "earned" });
+    expect(out.map((b) => b.headline)).not.toContain("Most silence you've held");
   });
 
   it("names the number it beat, every time", () => {

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AvatarCoin } from "@/components/home/AvatarCoin";
 import { HomeHero } from "@/components/home/HomeHero";
+import { ModeTiles } from "@/components/home/ModeTiles";
 import { TilesSkeleton, TodayTiles } from "@/components/home/HomeTiles";
 import { WeekSkeleton, WeekTiles } from "@/components/home/WeekTiles";
 import { ModPicker } from "@/components/ModPicker";
@@ -70,6 +71,7 @@ import {
   usedModsLately,
   weekView,
 } from "@/lib/home";
+import { bossTile, hostileTile } from "@/lib/home-modes";
 import { readSpokeHint, writeSpokeHint } from "@/lib/spoke-hint";
 import { dayOneFamily } from "@/lib/practice-family";
 
@@ -97,9 +99,12 @@ const FALLBACK_TOPIC = topicById(FALLBACK_TOPIC_ID)!;
  *    with the glass object of the lesson that teaches its tactic
  *    breaking out of the corner, the topic huge, Start, spin and
  *    difficulty (DECISIONS #9's floor, #268's one selector);
+ *  - under it, Hostile Q&A and this week's boss as two equal flat tiles
+ *    (#478, "the bike in the room"): each one tap away, neither glowing;
  *  - a Today / This week switch over a bento: today's line (#281) and
- *    the clean run (#254, #267), then the five traits, the weakest wide;
- *    or the week: the Index, the days spoken, the recordings.
+ *    the clean run (#254, #267), then the five traits, the weakest wide,
+ *    flat since #478; or the week: the Index, the days spoken, the
+ *    recordings.
  *
  * Demos is not on the card: he stood on it every day, which is
  * furniture. He arrives for moments, and the month's price drop is one,
@@ -133,6 +138,13 @@ export default function Home() {
   const [paywall, setPaywall] = useState<string | null>(null);
   /** Today or This week, under the card. */
   const [view, setView] = useState<"today" | "week">("today");
+  /*
+   * The device's clock for Hostile's claim of the day and the week's
+   * boss (#478): read after mount, never in render, so the server's
+   * prerendered first paint and the phone's agree; a warm return along
+   * the tab bar reads it in its first frame. A new day reads it again.
+   */
+  const [clock, setClock] = useState<Date | null>(() => (warm ? new Date() : null));
   /* The month the price steps down: a sheet over Today, never a card in
      its flow, held back while the paywall is up. Its Demos is the
      screen's only one: the card carries none (#393). */
@@ -340,6 +352,7 @@ export default function Home() {
       return;
     }
     markWelcomed();
+    setClock(new Date());
 
     sessionState()
       .then((s) => setAnon(s.signedIn && s.anonymous))
@@ -374,11 +387,15 @@ export default function Home() {
    * kept yesterday's date, a lit streak and "One more" while the card
    * moved to the new day under them. A return on a new local day reads
    * again, and the header remounts for its date; the minute's check
-   * covers a screen left open and visible through midnight.
+   * covers a screen left open and visible through midnight. The clock
+   * Hostile's tile counts from moves on every check too (#478 review),
+   * so "Next in about 2 hours" neither stands still on a screen left
+   * open nor outlives the round it waits for on a return.
    */
   useEffect(() => {
     const check = () => {
       if (document.visibilityState !== "visible") return;
+      setClock(new Date());
       if (!dayTurned(loadedAt.current, new Date())) return;
       setDayTurn((n) => n + 1);
       // A new day is a new screen: yesterday's numbers do not stand in for it.
@@ -601,6 +618,19 @@ export default function Home() {
           </div>
         )
       )}
+
+      {/* The other two things (#478, docs/plan-next.md section 10):
+          Hostile Q&A and this week's boss, side by side under the card,
+          each one tap away. Flat, so the card stays the one thing that
+          glows; they stand out by their place, their picture tone and one
+          line worth coming back for. The rows are every recording's date
+          and kind (the spine), unread until the history lands. */}
+      <ModeTiles
+        tiles={[
+          hostileTile({ now: clock, premium, rows: reps === null ? null : spine }),
+          bossTile({ now: clock, rows: reps === null ? null : spine }),
+        ]}
+      />
 
       {/* The test, for a tester (#402): above the freeze card, so that
           card landing late never moves it. It draws a failed history as

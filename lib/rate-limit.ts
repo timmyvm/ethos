@@ -14,6 +14,7 @@
  */
 
 import { supabaseAdmin } from "./db";
+import { HOSTILE_FREE_ROUNDS } from "./hostile";
 
 export const LIMITS = {
   user: { hour: 10, day: 30 },
@@ -64,6 +65,29 @@ export const LIMITS = {
    * it is a script filling the bucket.
    */
   avatar: { hour: 20, day: 60 },
+  /**
+   * Hostile Q&A's rounds on the free plan (#478): one slot a round,
+   * taken when its take is sent (/api/hostile), so three rounds in any
+   * 24 hours, all three in one hour if that is when someone plays.
+   * Premium takes none (lib/hostile.ts `HOSTILE_FREE_ROUNDS`).
+   */
+  hostileRound: { hour: HOSTILE_FREE_ROUNDS, day: HOSTILE_FREE_ROUNDS },
+  /**
+   * Every Hostile call a free account makes (#478), in place of the
+   * account's 10 an hour and 30 a day: a round is four calls (the take,
+   * two answers, the verdict), so three rounds are twelve, and four more
+   * cover an answer said again after "Not enough said". It is what bounds
+   * a caller that never sends a take and so never claims a round.
+   */
+  hostileFree: { hour: 16, day: 16 },
+  /**
+   * Every Hostile call a Premium account makes (#478 review): the
+   * account's 30 a day, with the free plan's 16 an hour, so a paying
+   * account is never held sooner than a free one. On the account's 10 an
+   * hour, three rounds back to back stopped at the third round's third
+   * call, where the free plan's room let all three finish.
+   */
+  hostilePremium: { hour: 16, day: 30 },
 } as const;
 
 /** The one subject every guest's paid call counts against (`guestall`). */

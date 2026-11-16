@@ -9,9 +9,13 @@
  * trait sheet). The door that opens one passes `?from=`, the way the
  * Settings doors pass `?from=settings`, and the screen reads it here.
  * With no param, each screen falls back to the tab that owns it.
+ *
+ * Hostile Q&A and the weekly boss joined them with #478: Today opens
+ * both (`?from=today`), and Practice, which owns them, opens them bare.
  */
 export const FROM = {
   today: { href: "/", label: "Today" },
+  games: { href: "/games", label: "Practice" },
   lessons: { href: "/lessons", label: "Lessons" },
   log: { href: "/history", label: "Log" },
   you: { href: "/you", label: "You" },

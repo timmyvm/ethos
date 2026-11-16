@@ -6,7 +6,6 @@ import {
   bestLine,
   dayState,
   freeAgainLine,
-  hostileUsedThisWeek,
   lessonIdsNewestFirst,
   nextFreeDay,
   PREMIUM_DEPTH,
@@ -149,16 +148,6 @@ describe("the game of the day on Practice (plan 12)", () => {
 
   it("a game that is not today's is never open to a free account", () => {
     expect(dayState(game("rush"), { dayKey: dayKey(NOW), rows: [], now: NOW })).toBe("spent");
-  });
-});
-
-describe("Hostile Q&A's free week (plan 15)", () => {
-  const take = (d: number) => ({ lesson_id: "hostile-take", created_at: on(d).toISOString() });
-  it("is used by a take since Monday on this calendar, and unknown when unread", () => {
-    expect(hostileUsedThisWeek([take(2)], NOW)).toBe(true); // Monday 2 Nov
-    expect(hostileUsedThisWeek([take(1)], NOW)).toBe(false); // the Sunday before
-    expect(hostileUsedThisWeek([{ lesson_id: "game:qa:qa1", created_at: on(5).toISOString() }], NOW)).toBe(false);
-    expect(hostileUsedThisWeek(null, NOW)).toBeNull();
   });
 });
 

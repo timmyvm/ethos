@@ -75,18 +75,11 @@ export function heroObject(trait: TraitId | null, tip?: string | null): string {
   return i >= 0 ? TACTIC_OBJECT[trait][i] : TRAIT_OBJECT[trait];
 }
 
-/**
- * A trait tile's object: the trait's emblem, always the same one (D22):
- * Pausing the hourglass, Fillers the door, Restarts the flag, Pace the
- * road, Variety the tag. It used to swap to the trait's next object
- * whenever the card above stood the first, so the same tile showed the
- * bowl one morning and the hourglass the next. The wide tile, the
- * card's own trait, draws none: the card above already stands the
- * lesson's object.
+/*
+ * The trait tiles stood each trait's emblem (`TRAIT_OBJECT`, D22) until
+ * #478 took every glass object off them: only the card stands one now,
+ * and a tile's mark is its flat glyph (components/TraitGlyph.tsx).
  */
-export function tileObject(trait: TraitId): string {
-  return TRAIT_OBJECT[trait];
-}
 
 /**
  * The file. The 560 cut (`public/lessons/large/`, scripts/cut-lesson-art.mjs)

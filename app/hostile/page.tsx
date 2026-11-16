@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Fragment, useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { TapTick } from "@/components/ui/TapTick";
 import { DemosFigure } from "@/components/DemosClip";
-import { Paywall } from "@/components/Paywall";
 import { PremiumMark } from "@/components/PremiumMark";
 import { RollNumber } from "@/components/premium/RollNumber";
 import { Says } from "@/components/Says";
@@ -16,11 +15,12 @@ import { FooterShelf } from "@/components/ui/FooterShelf";
 import { BackLink } from "@/components/ui/ScreenHeader";
 import { setAudioSession } from "@/lib/audio-session";
 import { fetchProfile, fetchReps } from "@/lib/client-data";
-import { weekStart } from "@/lib/level";
+import { dayKey } from "@/lib/challenge";
 import { hostileKey } from "@/lib/client-key";
 import { sendWithRetry } from "@/lib/rep-outbox";
 import { ensureSession, sessionToken } from "@/lib/supabase-browser";
-import { ACTION_CLASS } from "@/lib/ui";
+import { ACTION_CLASS, DISABLED_CLASS } from "@/lib/ui";
+import { useBackFrom } from "@/lib/use-back-from";
 import {
   ANSWER_SECONDS,
   HOSTILE_LINE,
@@ -28,6 +28,10 @@ import {
   HOSTILE_ROUNDS,
   HOSTILE_TAKE_ID,
   TAKE_SECONDS,
+  claimOfTheDay,
+  hostileAllowance,
+  hostileCapLine,
+  hostileLeftLine,
   type HostilePrompt,
 } from "@/lib/hostile";
 import { ALL_FILLERS } from "@/lib/metric-labels";
@@ -36,7 +40,6 @@ import { PermissionHelp } from "@/components/PermissionHelp";
 import { buzz, prefersReducedMotion } from "@/lib/prefs";
 import { holdAwake } from "@/lib/wake-lock";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
-import { usePaywallReturn } from "@/lib/use-paywall-return";
 
 /**
  * Hostile Q&A, the interrogation (DECISIONS #183). Sixty seconds on a
@@ -55,7 +58,13 @@ import { usePaywallReturn } from "@/lib/use-paywall-return";
  * frame. The verdict's three rows land one at a time, 300ms apart, each
  * number rolling, then Demos's line. Nothing chimes: they are a model's
  * read, and the screen labels them so. The end offers another claim
- * when a take is left, and goes back to Practice, never to Today.
+ * when a round is left, and goes back where you came from: Today since
+ * #478 opens it as well as Practice (`?from=today`).
+ *
+ * Free for everyone since #478: a free account has three rounds in any
+ * 24 hours, said on the claim card before the take ("2 free today"), and
+ * at the cap Record stands disabled under one plain line saying when the
+ * next opens. The server holds the count (app/api/hostile).
  */
 
 /** When "You said" starts landing, after the screen arrives. */
@@ -105,36 +114,60 @@ export default function HostilePage() {
      claim no longer flashes and swaps. */
   const [ready, setReady] = useState(false);
   /*
-   * modes-6, #280: the allowance is said BEFORE the take. A free account
-   * past its one a week used to speak for a minute into a refusal. The
-   * same query the route runs (route.ts, lesson_id "hostile-take" since
-   * this week's Monday), read on mount. Unknown stays unknown: if
-   * either read fails nothing is locked here and the server decides,
-   * which is the route's own degrade-open rule.
+   * modes-6, #280: the allowance is said BEFORE the take, so nobody
+   * speaks for a minute into a refusal. Since #478 it is the free plan's
+   * three rounds in any 24 hours, counted from the takes banked in that
+   * window (`hostileAllowance`, as the limiter counts them) plus the
+   * rounds started on this visit, read on mount. Unknown stays unknown:
+   * if either read fails nothing is held here and the server decides,
+   * the route's own degrade-open rule; its refusal is said in its place.
    */
   const [premium, setPremium] = useState<boolean | null>(null);
-  const [usedThisWeek, setUsedThisWeek] = useState<boolean | null>(null);
+  const [banks, setBanks] = useState<{ lesson_id: string | null; created_at: string }[] | null>(null);
+  /** Rounds this visit started (a take the server took): counted with the banked ones. */
+  const [started, setStarted] = useState<string[]>([]);
+  /** When the server, turning a take away at the cap, said the next round opens. */
+  const [serverNext, setServerNext] = useState<number | null>(null);
+  /** Re-read the clock each minute at the cap, so the round reopens on screen. */
+  const [, setTick] = useState(0);
+  const parent = useBackFrom("games");
   useEffect(() => {
-    setPrompt(
-      HOSTILE_PROMPTS[Math.floor(Math.random() * HOSTILE_PROMPTS.length)]
-    );
+    /* Today's claim of the day first (#478), the one its tile shows; the
+       shuffle and Another claim walk the rest. */
+    setPrompt(claimOfTheDay(dayKey(new Date())));
     setReady(true);
     fetchProfile()
       .then((p) => setPremium(p?.premium ?? false))
       .catch(() => setPremium(null));
     fetchReps()
-      .then((reps) => {
-        const since = weekStart();
-        setUsedThisWeek(
-          reps.some(
-            (r) =>
-              r.lesson_id === HOSTILE_TAKE_ID && new Date(r.created_at) >= since
-          )
-        );
-      })
-      .catch(() => setUsedThisWeek(null));
+      .then(setBanks)
+      .catch(() => setBanks(null));
   }, []);
-  const locked = premium === false && usedThisWeek === true;
+  const nowMs = banks !== null || serverNext !== null ? Date.now() : 0;
+  const allowance =
+    banks === null
+      ? null
+      : hostileAllowance(
+          [...banks, ...started.map((at) => ({ lesson_id: HOSTILE_TAKE_ID, created_at: at }))],
+          new Date(nowMs)
+        );
+  const serverHeld = serverNext !== null && serverNext > nowMs;
+  /** The free plan at its cap: Record stands disabled under the plain line. */
+  const capped = premium !== true && (serverHeld || (premium === false && allowance?.left === 0));
+  /** Seconds until the next round opens, at the cap. */
+  const waitS = capped
+    ? Math.max(
+        60,
+        Math.round(
+          (Math.max(serverHeld ? serverNext! : 0, allowance?.nextAt?.getTime() ?? 0) - nowMs) / 1000
+        )
+      )
+    : 0;
+  useEffect(() => {
+    if (!capped) return;
+    const t = window.setInterval(() => setTick((n) => n + 1), 60_000);
+    return () => window.clearInterval(t);
+  }, [capped]);
   const [phase, setPhase] = useState<Phase>("intro");
   /* The screen stays awake from the take to the verdict (#440): the
      session is spoken and listened to, not touched. */
@@ -144,10 +177,6 @@ export default function HostilePage() {
   const [micBlocked, setMicBlocked] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [paywall, setPaywall] = useState<string | null>(null);
-  // Back from the paywall's account doors or Checkout's back arrow
-  // (paywall=1): the sheet opens again where it was.
-  usePaywallReturn(() => setPaywall("Hostile Q&A · once a week free"));
   const [pending, setPending] = useState<{
     question: string;
     quoted: string;
@@ -225,7 +254,6 @@ export default function HostilePage() {
         );
         if (out.ok) {
           setBanked(true);
-          setUsedThisWeek(true);
           const data = out.data as AnalyzeResponse | null;
           if (data?.metrics) setTakeResult(data);
           return data?.repId ?? null;
@@ -249,8 +277,6 @@ export default function HostilePage() {
         form.append("phase", "question");
         form.append("promptId", prompt.id);
         form.append("audio", blob, "hostile.webm");
-        // The server counts the free week on this phone's calendar, as the screen does.
-        form.append("tzOffset", String(new Date().getTimezoneOffset()));
         form.append(
           "context",
           JSON.stringify({
@@ -270,7 +296,8 @@ export default function HostilePage() {
         });
         const data = (await res.json().catch(() => null)) as {
           error?: string;
-          locked?: boolean;
+          capped?: boolean;
+          retryAfterS?: number;
           tooShort?: boolean;
           transcript?: string;
           fillersPerMin?: number;
@@ -280,8 +307,11 @@ export default function HostilePage() {
         } | null;
 
         if (!res.ok || !data) {
-          if (data?.locked) {
-            setPaywall("Hostile Q&A · once a week free");
+          /* The free plan's cap, from the server's own count (#478): a
+             take this screen counted as allowed (one banked elsewhere, or
+             a bank that failed). Its line stands over a disabled Record. */
+          if (data?.capped) {
+            setServerNext(Date.now() + Math.max(60, data.retryAfterS ?? 0) * 1000);
             setPhase("intro");
             return;
           }
@@ -299,6 +329,8 @@ export default function HostilePage() {
         const wasTake = take.current === null;
         if (wasTake) {
           take.current = data.transcript ?? "";
+          // A round started: the allowance counts it from here (#478).
+          setStarted((s) => [...s, new Date().toISOString()]);
           bankTake(blob);
         } else {
           rounds.current = [
@@ -385,11 +417,8 @@ export default function HostilePage() {
   async function startRecording() {
     setError(null);
     setMicBlocked(false);
-    // The take is the gated part; an answer mid-session never is.
-    if (take.current === null && locked) {
-      setPaywall("Hostile Q&A · once a week free");
-      return;
-    }
+    // The take is the counted part; an answer mid-session never is.
+    if (take.current === null && capped) return;
     try {
       // The browser's own audio session, which has a microphone (lib/audio-session.ts).
       setAudioSession("auto");
@@ -493,10 +522,10 @@ export default function HostilePage() {
     return () => timers.forEach(clearTimeout);
   }, [phase, verdict]);
 
-  /* Another claim is offered while a take is left this week: always on
-     Premium, and on a free account until its one is banked. Unknown
-     offers it, and the server decides, its own degrade-open rule. */
-  const takeLeft = !(premium === false && usedThisWeek === true);
+  /* Another claim is offered while a round is left: always on Premium,
+     and on the free plan until its three in 24 hours are spent (#478).
+     Unknown offers it, and the server decides, its own degrade-open rule. */
+  const takeLeft = !capped;
 
   /** A fresh claim, the session cleared, back to the intro. */
   function anotherClaim() {
@@ -538,9 +567,9 @@ export default function HostilePage() {
         phase === "intro" ? "" : "pb-safe"
       }`}
     >
-      {/* Practice is where this door lives (modes-1): back never lands
-          on /boss for someone who came in from the Premium grid. */}
-      <BackLink href="/games" label="Practice" />
+      {/* Practice owns this door (modes-1) and Today opens it too since
+          #478 (`?from=today`): back returns to whichever it was. */}
+      <BackLink href={parent.href} label={parent.label} />
 
       {phase === "intro" && (
         <>
@@ -612,10 +641,9 @@ export default function HostilePage() {
                 in words, said before the take (modes-6). */}
             <div className="mt-2 flex min-h-6 items-center justify-between gap-3">
               <p className="text-caption text-stone-500">Argue either side.</p>
-              {premium === false && (
+              {premium === false && allowance && (
                 <p className="arrive flex shrink-0 items-center gap-2 text-caption tabular-nums text-stone-500">
-                  {usedThisWeek === false && "1 free this week"}
-                  {usedThisWeek === true && "Free again Monday"}
+                  {hostileLeftLine(capped ? 0 : allowance.left)}
                   <PremiumMark variant="chip" />
                 </p>
               )}
@@ -647,14 +675,21 @@ export default function HostilePage() {
               offer): the shelf holds it at one y whatever the claim's
               length, and it clears the home indicator itself. */}
           <FooterShelf hairline={false}>
+            {/* The free plan's cap (#478): one plain line over the tap,
+                which stands disabled until the next round opens. */}
+            {capped && (
+              <p role="status" className="arrive mb-3 text-center text-caption text-balance text-stone-500">
+                {hostileCapLine(waitS)}
+              </p>
+            )}
             <button
               type="button"
               onClick={() => void startRecording()}
-              aria-haspopup={locked ? "dialog" : undefined}
-              className={ACTION_CLASS}
+              disabled={capped}
+              className={`${ACTION_CLASS} ${DISABLED_CLASS}`}
             >
               Record my take
-              <TapTick />
+              {!capped && <TapTick />}
             </button>
           </FooterShelf>
         </>
@@ -917,9 +952,10 @@ export default function HostilePage() {
           </p>
 
           <div className="flex-1" />
-          {/* The end (F8): another claim while a take is left, with
-              Practice as the quiet way out; with none left, Practice is
-              the tap. Never Today: you came from Practice. */}
+          {/* The end (F8): another claim while a round is left, with the
+              way back as the quiet way out; with none left, the way back
+              is the tap. Back is where you came from: Practice, or Today
+              since #478. */}
           {takeLeft ? (
             <>
               <button
@@ -930,15 +966,15 @@ export default function HostilePage() {
                 Another claim
               </button>
               <Link
-                href="/games"
+                href={parent.href}
                 className="text-link press mx-auto mt-1 inline-flex min-h-11 items-center"
               >
-                Back to Practice
+                Back to {parent.label}
               </Link>
             </>
           ) : (
-            <Link href="/games" className={`${ACTION_CLASS} mt-7`}>
-              Back to Practice
+            <Link href={parent.href} className={`${ACTION_CLASS} mt-7`}>
+              Back to {parent.label}
             </Link>
           )}
         </>
@@ -962,7 +998,6 @@ export default function HostilePage() {
         </div>
       )}
 
-      {paywall && <Paywall reason={paywall} onClose={() => setPaywall(null)} />}
     </main>
   );
 }

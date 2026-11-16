@@ -5,20 +5,11 @@ import type { CSSProperties, ReactNode } from "react";
 import { CountUp } from "@/components/CountUp";
 import { IconCheck, IconFlag } from "@/components/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { TraitGlyph } from "@/components/TraitGlyph";
 import { TRAIT, type TraitId } from "@/content/traits";
 import type { Challenge } from "@/lib/challenge";
 import type { RepRow } from "@/lib/client-data";
-import {
-  SHORT_UNIT,
-  UNIT_EM,
-  artBox,
-  cleanRunTile,
-  numEm,
-  objectSrc,
-  tileObject,
-  traitOrder,
-  wideLine,
-} from "@/lib/home";
+import { SHORT_UNIT, UNIT_EM, cleanRunTile, numEm, traitOrder, wideLine } from "@/lib/home";
 import { DURATION } from "@/lib/motion";
 import { fmtRaw, measured, ordinal, readTraitsFromRow, type TraitReading } from "@/lib/trait-readings";
 
@@ -29,14 +20,16 @@ import { fmtRaw, measured, ordinal, readTraitsFromRow, type TraitReading } from 
  * number big and its percentile under a bar.
  *
  * Every tile is the surface step at the tile radius, with no shadow:
- * the card above is the one lifted thing. A trait's colour is its 8px
- * mark, its bar's fill and the light behind its object, which is part
- * of the picture and never the tile's ground. What is earned (clearing
- * your line, a clean stretch) fills in sage.
+ * the card above is the one lifted thing. Flat since #478 (Timothy, 16
+ * Nov: "the glow in today traits is bad so lets remove that. fucks w
+ * visual hierarchy"): no glass object, no light behind one. A trait's
+ * colour is its flat glyph before its name (`TraitGlyph`, the app's
+ * line set in the trait's tone) and its bar's fill, never the tile's
+ * ground. What is earned (clearing your line, a clean stretch) fills in
+ * sage.
  *
- * Each object shows once: the card stands the lesson's object, the wide
- * tile (the card's trait) stands none, and each of the other four its
- * trait's fixed emblem. Today's line shows once too: it lives in the
+ * Only the card stands an object (docs/plan-next.md section 1: only the
+ * thing to do today glows). Today's line shows once: it lives in the
  * wide tile, where the trait's number already is, as a tick on its bar.
  *
  * Unknown is never zero: with no recording a trait prints a dash and an
@@ -259,10 +252,7 @@ function WideTile({
     >
       <span className="home-wide">
         <span className="flex min-w-0 flex-col">
-          <span aria-hidden className="font-display flex min-h-[22px] items-center gap-1.5 text-row">
-            <span className="trait-dot" />
-            {t.name}
-          </span>
+          <TraitName id={id} />
           <span className="mt-auto" />
           {raw !== null ? <NumLine shown={raw} unit={SHORT_UNIT[id]} /> : <DashLine />}
           {reading ? (
@@ -321,38 +311,37 @@ function WideTile({
 }
 
 /**
- * One of the other four: its emblem at the top right in its own light,
- * its name and mark, the measurement big with its short unit on its
- * line, the percentile as a bar in its tone with the ordinal beside it.
- * A door to the trait's own page, where the direction and the target
- * live.
+ * A trait's name with its flat glyph before it, in the trait's tone
+ * (#478): the tile's one coloured mark, where the 8px dot was.
+ */
+function TraitName({ id }: { id: TraitId }) {
+  return (
+    <span aria-hidden className="font-display flex min-h-[22px] items-center gap-1.5 text-row">
+      <span className="home-trait-glyph">
+        <TraitGlyph id={id} size={18} />
+      </span>
+      {TRAIT[id].name}
+    </span>
+  );
+}
+
+/**
+ * One of the other four, flat (#478): its glyph and name, the
+ * measurement big with its short unit on its line, the percentile as a
+ * bar in its tone with the ordinal beside it. A door to the trait's own
+ * page, where the direction and the target live.
  */
 function TraitTile({ id, reading }: { id: TraitId; reading: TraitReading | null }) {
-  const t = TRAIT[id];
   const raw = reading ? fmtRaw(reading.raw) : null;
-  const object = tileObject(id);
   return (
     <Link
       href={`/practice/${id}`}
       data-trait={id}
+      data-four
       aria-label={traitLabel(id, reading)}
       className="home-tile today-trait press"
-      style={artBox(object) as CSSProperties}
     >
-      <span aria-hidden className="home-tile-glow" />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={objectSrc(object)}
-        alt=""
-        width={140}
-        height={140}
-        className="home-tile-art"
-        draggable={false}
-      />
-      <span aria-hidden className="font-display flex items-center gap-1.5 text-row">
-        <span className="trait-dot" />
-        {t.name}
-      </span>
+      <TraitName id={id} />
       <span className="mt-auto" />
       {raw !== null ? <NumLine shown={raw} unit={SHORT_UNIT[id]} /> : <DashLine />}
       {reading ? (
@@ -420,7 +409,7 @@ export function TilesSkeleton() {
         </span>
       </div>
       {[0, 1, 2, 3].map((i) => (
-        <div key={i} className="home-tile">
+        <div key={i} data-four className="home-tile">
           <Skeleton className="h-3 w-20" />
           <span className="mt-auto" />
           <span className="home-num-line flex items-center">

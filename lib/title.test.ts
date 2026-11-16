@@ -102,9 +102,11 @@ describe("no title in the app ends in a full stop", () => {
     expect(you).not.toMatch(/\{plan\.headline\}/);
   });
 
-  it("Hostile's line is a title on its own screen and a sentence in its row", () => {
+  /* Its row on /boss's Premium card, where it was a sentence, left with
+     the Premium label when Hostile went free (#478). */
+  it("Hostile's line is a title on its own screen, and no Premium row says it any more", () => {
     expect(readFileSync("lib/hostile.ts", "utf8")).toContain('HOSTILE_LINE = "Hold a claim while Demos comes at it"');
     expect(readFileSync("app/hostile/page.tsx", "utf8")).toContain('<h1 className="font-display mt-1.5 text-title">{HOSTILE_LINE}</h1>');
-    expect(readFileSync("app/boss/page.tsx", "utf8")).toContain("{HOSTILE_LINE}.</span>");
+    expect(readFileSync("app/boss/page.tsx", "utf8")).not.toContain("HOSTILE_LINE");
   });
 });

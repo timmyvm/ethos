@@ -8,7 +8,8 @@
  * - The game of the day (lib/games.ts `gameOfTheDay`): a free account
  *   plays one Premium game a day, in rotation. Its tile says so, then
  *   says when it is free again once today's round is taken.
- * - Hostile Q&A's weekly free take is a door from Practice.
+ * - Hostile Q&A is free since #478 (lib/hostile.ts holds its daily
+ *   allowance), so it has no allowance here.
  *
  * Days are the device's own (`dayKey`, lib/challenge.ts), read after
  * mount, never in render (a server's UTC day is not the phone's).
@@ -16,9 +17,7 @@
 
 import { dayKey } from "./challenge";
 import { DAY_ROTATION, gameById, gameOfTheDay, gameOpen, type Game, type LevelN } from "./games";
-import { HOSTILE_TAKE_ID } from "./hostile";
 import { ladderState, roundsToday, type LadderRow } from "./ladder";
-import { weekStart } from "./level";
 import { secondsLabel } from "./round-live";
 
 /** A game's tile, as its ladder draws it. */
@@ -147,18 +146,4 @@ export function dayState(
   if (opts.rows === null) return "unknown";
   const played = opts.rows === "failed" ? 0 : roundsToday(opts.rows, game.id, opts.now ?? new Date());
   return gameOpen(game, { premium: false, dayKey: opts.dayKey, roundsTodayOfGame: played }) ? "open" : "spent";
-}
-
-/**
- * Has this account taken its free Hostile Q&A this week? Its take is
- * banked as `hostile-take` (app/api/hostile/route.ts counts the same
- * rows from Monday on the phone's calendar). Null when unknown.
- */
-export function hostileUsedThisWeek(
-  rows: readonly { lesson_id: string | null; created_at: string }[] | null,
-  now: Date = new Date()
-): boolean | null {
-  if (!rows) return null;
-  const since = weekStart(now).getTime();
-  return rows.some((r) => r.lesson_id === HOSTILE_TAKE_ID && new Date(r.created_at).getTime() >= since);
 }

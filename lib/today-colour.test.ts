@@ -207,21 +207,74 @@ describe("Today's materials", () => {
   const week = src("components/home/WeekTiles.tsx");
   const hero = src("components/home/HomeHero.tsx");
 
-  it("the traits are tiles on the surface: the trait's mark, its bar on sand, its name in ink", () => {
+  it("the traits are tiles on the surface: the trait's glyph, its bar on sand, its name in ink", () => {
     expect(tiles).toMatch(/className="home-tile today-trait press/);
     expect(tiles).not.toMatch(/tone-wash|tone-ink|tone-fill|className=\{`card|className="card/);
-    expect(tiles).toContain('className="trait-dot"');
+    expect(tiles).toContain('<span className="home-trait-glyph">');
+    expect(tiles).toContain("<TraitGlyph id={id} size={18} />");
+    expect(block(".home-trait-glyph")).toContain("color: var(--tone);");
     expect(block(".home-bar")).toContain("background: var(--color-sand);");
     // The fill is the trait's tone (held on sand above).
     expect(block(".home-bar > i")).toContain("background: var(--tone);");
   });
 
-  it("the light behind an object is the tone at 22% at most, never the tile's ground", () => {
-    for (const glow of home.matchAll(/\.home-tile-glow \{([^}]*)\}/g)) {
-      const pct = [...glow[1].matchAll(/var\(--tone\) (\d+)%/g)].map((m) => Number(m[1]));
-      for (const p of pct) expect(p).toBeLessThanOrEqual(22);
-    }
+  /* #478, Timothy 16 Nov: "the glow in today traits is bad so lets remove
+     that. fucks w visual hierarchy". Only the card stands an object. */
+  it("the tiles stand no object and no light: only the card glows", () => {
+    expect(tiles).not.toMatch(/<img|objectSrc|tileObject|artBox|home-tile-glow|home-tile-art/);
+    const rules = home.replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(rules).not.toMatch(/\.home-tile-glow|\.home-tile-art/);
+    expect(rules).not.toMatch(/\.home-tile[^{}]*\{[^}]*(?:drop-shadow|radial-gradient)/);
     expect(block("\n.home-tile")).not.toMatch(/--tone/);
+    // And the two beside the card are flat too: no shadow, no gradient, no object.
+    const modes = src("components/home/ModeTiles.tsx");
+    expect(modes).not.toMatch(/<img|elev-|shadow|glow/);
+    expect(block(".home-mode")).not.toMatch(/shadow|gradient|filter/);
+  });
+
+  /* The glyph is a graphic beside its name: 3:1 on the tile it stands on,
+     the surface step in light and the dark tile's lit top (#212121). */
+  it("each trait's glyph holds 3:1 on its tile in both themes", () => {
+    const tile = { light: token(css, "surface"), dark: "#212121" };
+    for (const [trait, t] of Object.entries(tones(false))) {
+      expect(ratio(t.tone, tile.light), `${trait} light`).toBeGreaterThanOrEqual(3);
+    }
+    for (const [trait, t] of Object.entries(tones(true))) {
+      expect(ratio(t.tone, tile.dark), `${trait} dark`).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  /*
+   * #478 review: Hostile Q&A's and the boss's tiles are coloured by a
+   * pale ground, and check-colour's band under the card passes them only
+   * while that ground stays under its chroma line (24 of 255). Held here
+   * on purpose, so the pass is the rule and not the mix's luck: a
+   * stronger ground has to raise the pin knowingly. The glyph's ink is a
+   * graphic beside its name, 3:1 on that ground in both themes.
+   */
+  it("Hostile's and the boss's grounds stay a tint under the colour pin's line, their glyphs 3:1 on them", () => {
+    const pop = (name: string) => {
+      const all = [...css.matchAll(new RegExp(`--pop-${name}:\\s*(#[0-9a-f]{6})`, "gi"))].map((m) => m[1]);
+      expect(all.length, name).toBe(2);
+      return { light: all[0], dark: all[1] };
+    };
+    const pct = (sel: string) => {
+      const m = block(sel).match(/color-mix\(in srgb, var\(--tone-wash\) (\d+)%, var\(--color-surface\)\)/);
+      expect(m, sel).not.toBeNull();
+      return Number(m![1]) / 100;
+    };
+    const p = { light: pct("\n.home-mode"), dark: pct(':root[data-theme="dark"] .home-mode') };
+    const surface = { light: token(css, "surface"), dark: token(darkRoot, "surface") };
+    for (const tone of ["coral", "sky"]) {
+      const wash = pop(`${tone}-wash`);
+      const ink = pop(`${tone}-ink`);
+      for (const theme of ["light", "dark"] as const) {
+        const ground = mix(wash[theme], surface[theme], p[theme]);
+        const ch = rgb(ground);
+        expect(Math.max(...ch) - Math.min(...ch), `${tone} ${theme} ground ${ground}`).toBeLessThanOrEqual(24);
+        expect(ratio(ink[theme], ground), `${tone} ${theme} glyph`).toBeGreaterThanOrEqual(3);
+      }
+    }
   });
 
   it("what is earned fills in the measured sage, 3:1 on sand in both themes", () => {
@@ -345,12 +398,11 @@ describe("Start stands on the card's foot", () => {
  */
 describe("a trait's tone is only ever one of its forms", () => {
   const FORMS = {
-    mark: "an 8px square or dot beside a trait's name, a 3px tick on a track, or the underline under a word the transcript counted",
+    mark: "an 8px square or dot beside a trait's name, a trait's flat glyph before its name on Today's tiles (#478), a 3px tick on a track, or the underline under a word the transcript counted",
     measure: "a ring's arc, a bar on sand, the live waveform's stroke, or the closing note's number (#423)",
     sparkline: "a sparkline",
     chip: "TraitChip",
     ground: "a named ground: Today's card, the lesson stage, the trait stage, the recording's topic card",
-    glow: "the light behind a tile's object, 22% at most (held above)",
     pop: "the introduction's pop tones, never a trait",
   } as const;
   type Form = keyof typeof FORMS;
@@ -369,8 +421,7 @@ describe("a trait's tone is only ever one of its forms", () => {
     // A waiting row's tile keeps its 3px trait tick (#394); a logged
     // recording's date is a bare column and the insight has no rule (D33).
     ".log-date[data-trait]::after": "mark",
-    ".home-tile-glow": "glow",
-    ':root[data-theme="dark"] .home-tile-glow': "glow",
+    ".home-trait-glyph": "mark",
     ".home-bar > i": "measure",
     // The recording screen's live waveform (S08, D51).
     ".rec-wave": "measure",

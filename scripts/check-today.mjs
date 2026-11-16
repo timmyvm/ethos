@@ -1,12 +1,23 @@
 /**
- * Today, checked in a real browser (S14: D14, D22, D24).
+ * Today, checked in a real browser (S14: D14, D22, D24; #478).
  *
- * 1. Each object once. The wide tile (the card's trait) draws no
- *    object; the other four draw their trait's fixed emblem.
- * 2. No crop at the top. Every tile's emblem has its visible top 12px
- *    or more inside its tile (Variety's tag cord may reach the edge),
- *    runs off the right by a fifth of its visible width at most and off
- *    the foot by 15% at most, at 320, 390 and 430, in both themes.
+ * 1. Only the card glows (#478, docs/plan-next.md section 1). No tile
+ *    under it stands an object or a light: no image, no drop shadow, no
+ *    radial light, no box shadow on a tile, and nothing outside the card
+ *    draws a drop shadow. Each of the five trait tiles carries one flat
+ *    glyph before its name, in its own tone, every glyph its own
+ *    drawing; at 320, 390 and 430, in both themes.
+ * 2. The three things (#478, section 10). Hostile Q&A and this week's
+ *    boss stand side by side straight under the card, equal in width
+ *    and height, over the switch; each is one link (to /hostile and
+ *    /boss, both `?from=today`), says what it is about now and one line
+ *    (rounds left, or when the next opens; days left, or Done this
+ *    week); at 390 and 430 both stand on the first screen, clear of the
+ *    nav. The boss's back names Today and returns there. Nothing moves
+ *    when they land (#478 review): the server's paint, which has no
+ *    clock, stands them at the height they land at, and every claim and
+ *    every week's topic fits the lines they hold, unclipped, at 320, 349
+ *    and 390.
  * 3. The tactic in two lines. At 320 every tactic label the card can
  *    show (lib/tip-labels.ts) holds two lines in the card's words. The
  *    card shows the tactic once the day is spoken ("One more", #431),
@@ -43,14 +54,6 @@ const labels = [
     /:\s*\[(?:"([^"]+)"|'([^']+)'),\s*"\w+"\]/g
   ),
 ].map((m) => m[1] ?? m[2]);
-const EMBLEM = {
-  pause: "the-long-one",
-  fillers: "the-cold-open",
-  repairs: "finish-it",
-  pace: "room-to-land",
-  range: "name-it-once",
-};
-
 const browser = await chromium.launch({ args: ["--font-render-hinting=none"] });
 async function open(theme, width) {
   const context = await browser.newContext({
@@ -76,47 +79,197 @@ async function open(theme, width) {
 for (const theme of ["light", "dark"]) {
   for (const width of [320, 390, 430]) {
     const { context, page } = await open(theme, width);
-    const tiles = await page.evaluate(() =>
-      [...document.querySelectorAll(".home-tile[data-trait]")].map((tile) => {
-        const img = tile.querySelector("img.home-tile-art");
-        const t = tile.getBoundingClientRect();
-        if (!img) return { trait: tile.dataset.trait, wide: tile.hasAttribute("data-wide"), img: null };
-        const i = img.getBoundingClientRect();
-        const s = getComputedStyle(tile);
-        const f = (n) => Number(s.getPropertyValue(n));
-        const box = {
-          left: i.left + f("--art-l") * i.width,
-          top: i.top + f("--art-t") * i.height,
-          width: f("--art-w") * i.width,
-          height: f("--art-h") * i.height,
-        };
+    const flat = await page.evaluate(() => {
+      const main = document.querySelector("main");
+      const tiles = [...main.querySelectorAll(".home-tile, .home-mode")];
+      /* A light is a drop shadow, a radial glow, or an outer shadow with
+         a blur; the dark tile's inset 1px rim is its edge, not a light. */
+      const cast = (shadow) =>
+        shadow !== "none" &&
+        shadow.split(/,(?![^(]*\))/).some((s) => {
+          if (/inset/.test(s)) return false;
+          const px = [...s.replace(/rgba?\([^)]*\)/g, "").matchAll(/(-?[\d.]+)px/g)].map((m) => Number(m[1]));
+          return (px[2] ?? 0) > 0;
+        });
+      const lit = (el) => {
+        const cs = getComputedStyle(el);
+        return /drop-shadow/.test(cs.filter) || /radial-gradient/.test(cs.backgroundImage) || cast(cs.boxShadow);
+      };
+      const glowing = [...main.querySelectorAll("*")]
+        .filter((el) => !el.closest(".home-hero") && /drop-shadow/.test(getComputedStyle(el).filter))
+        .map((el) => el.className.toString().split(" ")[0] || el.tagName);
+      const traits = [...main.querySelectorAll(".home-tile[data-trait]")].map((tile) => {
+        const glyphs = tile.querySelectorAll(".home-trait-glyph > svg");
         return {
           trait: tile.dataset.trait,
-          wide: tile.hasAttribute("data-wide"),
-          img: img.getAttribute("src"),
-          top: box.top - t.top,
-          right: box.left + box.width - t.right,
-          foot: box.top + box.height - t.bottom,
-          w: box.width,
-          h: box.height,
+          glyphs: glyphs.length,
+          drawing: glyphs[0]?.innerHTML ?? "",
         };
+      });
+      return {
+        images: tiles.reduce((n, t) => n + t.querySelectorAll("img, picture, video").length, 0),
+        litTiles: tiles.filter((t) => lit(t) || [...t.querySelectorAll("*")].some(lit)).length,
+        glowing,
+        traits,
+      };
+    });
+    ok(
+      `${theme} ${width}: no tile under the card stands an object or a light, and nothing outside the card glows`,
+      flat.images === 0 && flat.litTiles === 0 && flat.glowing.length === 0,
+      JSON.stringify({ images: flat.images, litTiles: flat.litTiles, glowing: flat.glowing })
+    );
+    /* The tone as the tile resolves it, against the glyph's drawn colour. */
+    const toned = await page.evaluate(() =>
+      [...document.querySelectorAll("main .home-tile[data-trait] .home-trait-glyph")].map((g) => {
+        const probe = document.createElement("span");
+        probe.style.color = "var(--tone)";
+        g.parentElement.appendChild(probe);
+        const want = getComputedStyle(probe).color;
+        probe.remove();
+        return getComputedStyle(g).color === want;
       })
     );
-    const wide = tiles.filter((t) => t.wide);
-    const four = tiles.filter((t) => !t.wide);
     ok(
-      `${theme} ${width}: the wide tile draws no object, the four their emblems`,
-      wide.length === 1 && wide[0].img === null && four.length === 4 &&
-        four.every((t) => t.img?.includes(`/${EMBLEM[t.trait]}.webp`)),
-      JSON.stringify(tiles.map((t) => `${t.trait}:${t.img ? t.img.split("/").pop() : "none"}`))
+      `${theme} ${width}: five trait tiles, each one flat glyph in its own tone, five different drawings`,
+      flat.traits.length === 5 &&
+        flat.traits.every((t) => t.glyphs === 1) &&
+        new Set(flat.traits.map((t) => t.drawing)).size === 5 &&
+        toned.length === 5 && toned.every(Boolean),
+      flat.traits.map((t) => `${t.trait}:${t.glyphs}`).join(", ") + ` toned ${JSON.stringify(toned)}`
     );
-    const bad = four.filter(
-      (t) => t.top < (t.trait === "range" ? 0 : 12) - 0.5 || t.right > 0.2 * t.w + 0.5 || t.foot > 0.15 * t.h + 0.5
+
+    const modes = await page.evaluate(() => {
+      const card = document.querySelector(".home-hero").getBoundingClientRect();
+      const seg = document.querySelector(".home-seg")?.getBoundingClientRect();
+      const nav = document.querySelector('nav[aria-label="Sections"] .nav-glass')?.getBoundingClientRect();
+      return {
+        card: { bottom: card.bottom },
+        seg: seg ? { top: seg.top } : null,
+        nav: nav ? { top: nav.top } : null,
+        tiles: [...document.querySelectorAll("main a.home-mode")].map((a) => {
+          const r = a.getBoundingClientRect();
+          return {
+            id: a.dataset.mode,
+            href: a.getAttribute("href"),
+            top: r.top,
+            bottom: r.bottom,
+            left: r.left,
+            width: r.width,
+            height: r.height,
+            subject: a.querySelector(".home-mode-subject")?.textContent.trim() ?? "",
+            line: a.querySelector(".home-mode-line")?.textContent.trim() ?? "",
+            label: a.getAttribute("aria-label") ?? "",
+            links: a.querySelectorAll("a, button").length,
+          };
+        }),
+      };
+    });
+    const [h, b] = modes.tiles;
+    const pair =
+      modes.tiles.length === 2 &&
+      h.id === "hostile" && h.href === "/hostile?from=today" &&
+      b.id === "boss" && b.href === "/boss?from=today" &&
+      Math.abs(h.top - b.top) < 1 && Math.abs(h.width - b.width) < 1 && Math.abs(h.height - b.height) < 1 &&
+      b.left > h.left &&
+      h.top - modes.card.bottom >= 8 && h.top - modes.card.bottom <= 16 &&
+      modes.seg !== null && h.bottom < modes.seg.top &&
+      h.links === 0 && b.links === 0;
+    ok(
+      `${theme} ${width}: Hostile Q&A and the weekly boss, side by side and equal, straight under the card and over the switch, one link each`,
+      pair,
+      JSON.stringify(modes.tiles.map((t) => ({ id: t.id, href: t.href, top: Math.round(t.top), w: Math.round(t.width), h: Math.round(t.height) }))) +
+        ` card foot ${Math.round(modes.card.bottom)}`
     );
     ok(
-      `${theme} ${width}: every emblem inside its tile's top, cut at the right or foot only`,
-      bad.length === 0,
-      four.map((t) => `${t.trait} top ${t.top.toFixed(1)} right ${t.right.toFixed(1)}/${(0.2 * t.w).toFixed(1)}`).join(", ")
+      `${theme} ${width}: each says what it is about now and one line worth coming back for`,
+      modes.tiles.length === 2 &&
+        h.subject.length > 4 && b.subject.length > 4 &&
+        /^(\d free today|Next in .+)$/.test(h.line) &&
+        /^(\d days left|Last day|Done this week)$/.test(b.line) &&
+        h.label.startsWith("Hostile Q&A.") && h.label.includes(h.subject) &&
+        b.label.startsWith("Weekly boss.") && b.label.includes(b.subject),
+      `"${h?.subject}" / "${h?.line}"; "${b?.subject}" / "${b?.line}"`
+    );
+    if (width >= 390) {
+      ok(
+        `${theme} ${width}: both stand on the first screen, clear of the nav`,
+        modes.nav !== null && h.bottom <= modes.nav.top && b.bottom <= modes.nav.top,
+        `tiles end ${Math.round(Math.max(h.bottom, b.bottom))}, nav at ${Math.round(modes.nav?.top ?? 0)}`
+      );
+    }
+    await context.close();
+  }
+}
+
+// The boss's tile: one tap away, and its back names Today and returns there.
+{
+  const { context, page } = await open("light", 390);
+  await page.click("main a.home-mode[data-mode='boss']");
+  await page.waitForURL(/\/boss\?from=today/, { timeout: 15000 }).catch(() => {});
+  await page.waitForSelector("main h1", { timeout: 20000 }).catch(() => {});
+  await sleep(600);
+  const back = await page.evaluate(() => {
+    const a = document.querySelector("main .screen-bar-back");
+    return { text: a?.textContent.trim() ?? "", href: a?.getAttribute("href") ?? "" };
+  });
+  await page.click("main .screen-bar-back");
+  await page.waitForURL((u) => new URL(u).pathname === "/", { timeout: 15000 }).catch(() => {});
+  const home = new URL(page.url()).pathname;
+  ok(
+    "390: the boss's tile opens /boss, whose back says Today and returns to Today",
+    back.text === "Today" && back.href === "/" && home === "/",
+    JSON.stringify({ back, home })
+  );
+  await context.close();
+}
+
+// 2b: the pair holds its height before the clock is read (#478 review).
+{
+  const subjects = {
+    hostile: [...readFileSync(new URL("../lib/hostile.ts", import.meta.url), "utf8").matchAll(/claim: "([^"]+)"/g)].map((m) => m[1]),
+    boss: [...readFileSync(new URL("../lib/cold-topics.ts", import.meta.url), "utf8").matchAll(/title: "([^"]+)"/g)].map((m) => m[1]),
+  };
+  const measure = () => ({
+    tiles: [...document.querySelectorAll("main a.home-mode")].map((a) => Math.round(a.getBoundingClientRect().height)),
+    seg: Math.round(document.querySelector(".home-seg")?.getBoundingClientRect().top ?? -1),
+  });
+  for (const width of [320, 349, 390]) {
+    const paint = await browser.newContext({
+      viewport: { width, height: 844 },
+      deviceScaleFactor: 1,
+      locale: "en-AU",
+      timezoneId: "Australia/Melbourne",
+      serviceWorkers: "block",
+      javaScriptEnabled: false,
+    });
+    const first = await paint.newPage();
+    await first.goto(`${BASE}/`);
+    await sleep(400);
+    const before = await first.evaluate(measure);
+    await paint.close();
+    const { context, page } = await open("light", width);
+    const after = await page.evaluate(measure);
+    const fits = await page.evaluate((subjects) => {
+      const out = [];
+      for (const a of document.querySelectorAll("main a.home-mode")) {
+        const el = a.querySelector(".home-mode-subject");
+        const held = Math.round(a.getBoundingClientRect().height);
+        const was = el.textContent;
+        for (const t of subjects[a.dataset.mode] ?? []) {
+          el.textContent = t;
+          const h = Math.round(a.getBoundingClientRect().height);
+          if (h !== held || el.scrollHeight > el.clientHeight + 1) out.push(`${a.dataset.mode}: "${t}" ${h}px`);
+        }
+        el.textContent = was;
+      }
+      return out;
+    }, subjects);
+    ok(
+      `${width}: the pair stands at the server's paint as it lands, and every claim and topic fits its lines`,
+      before.tiles.length === 2 && after.tiles.length === 2 &&
+        before.tiles.every((h, i) => Math.abs(h - after.tiles[i]) <= 1) &&
+        before.seg > 0 && Math.abs(before.seg - after.seg) <= 1 && fits.length === 0,
+      `paint ${JSON.stringify(before)}, landed ${JSON.stringify(after)}${fits.length ? `, moved by ${fits.slice(0, 3).join("; ")}` : ""}`
     );
     await context.close();
   }

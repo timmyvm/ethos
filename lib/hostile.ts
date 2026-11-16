@@ -51,6 +51,93 @@ export const HOSTILE_LINE = "Hold a claim while Demos comes at it";
 /** The lesson id a Hostile take is banked under (/api/analyze), and counted by. */
 export const HOSTILE_TAKE_ID = "hostile-take";
 
+/* ------------------------------------------------------------------ */
+/* The free plan's rounds (#478)                                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Hostile Q&A is free (#478, docs/plan-next.md section 4), and every
+ * round pays for model calls: the take and two answers are three Whisper
+ * calls, two of them each followed by a question from the model, then a
+ * verdict from the model (/api/hostile), and the take banks through
+ * /api/analyze as a recording. So a free account starts at most this
+ * many rounds in any 24 hours, held on the server by the limiter
+ * (`hostileRound` in lib/rate-limit.ts, claimed when a round's take is
+ * sent). Premium is not capped.
+ */
+export const HOSTILE_FREE_ROUNDS = 3;
+
+/** The window the cap counts in: the limiter's day, the last 24 hours. */
+export const HOSTILE_DAY_MS = 86_400_000;
+
+/** What a free account has left, as the screen says it before the take. */
+export interface HostileAllowance {
+  /** Rounds left in the window, 0 at the cap. */
+  left: number;
+  /** When the next round opens; null while one is left. */
+  nextAt: Date | null;
+}
+
+/**
+ * A free account's rounds left, counted as the limiter counts them: the
+ * takes it banked (`HOSTILE_TAKE_ID`) in the 24 hours before `now`. At
+ * the cap the next round opens when the take that put it there turns 24
+ * hours old. The server holds the real count; this is the phone saying
+ * it before the take, from the rows it already read.
+ */
+export function hostileAllowance(
+  rows: readonly { lesson_id: string | null; created_at: string }[],
+  now: Date = new Date(),
+  cap: number = HOSTILE_FREE_ROUNDS
+): HostileAllowance {
+  const since = now.getTime() - HOSTILE_DAY_MS;
+  const times = rows
+    .filter((r) => r.lesson_id === HOSTILE_TAKE_ID)
+    .map((r) => Date.parse(r.created_at))
+    .filter((t) => Number.isFinite(t) && t > since)
+    .sort((a, b) => a - b);
+  const left = Math.max(0, cap - times.length);
+  return {
+    left,
+    nextAt: left > 0 ? null : new Date(times[times.length - cap] + HOSTILE_DAY_MS),
+  };
+}
+
+/** A wait in words, as the limiter's own lines say one: "about 5 hours", "about 20 minutes". */
+export function aboutWait(seconds: number): string {
+  const mins = Math.max(1, Math.ceil(seconds / 60));
+  if (mins >= 90) return `about ${Math.ceil(mins / 60)} hours`;
+  return mins > 1 ? `about ${mins} minutes` : "a minute";
+}
+
+/** Before the take, on the claim card and Today's tile: "3 free today". */
+export function hostileLeftLine(left: number): string {
+  return `${left} free today`;
+}
+
+/** At the cap, where the count stood: "Next in about 5 hours". */
+export function hostileNextLine(seconds: number): string {
+  return `Next in ${aboutWait(seconds)}`;
+}
+
+/** The cap, said whole: by the server's refusal, and over the screen's disabled Record. */
+export function hostileCapLine(seconds: number, cap: number = HOSTILE_FREE_ROUNDS): string {
+  return `That's today's ${cap} rounds. Next in ${aboutWait(seconds)}.`;
+}
+
+/**
+ * The claim of the day, Today's reason to come back to Hostile (#478,
+ * section 10): one of `HOSTILE_PROMPTS` per local day, every claim once
+ * before any comes round again. `dayKey` is the device's YYYY-MM-DD
+ * (lib/challenge.ts `dayKey`), so the tile and the screen it opens agree.
+ */
+export function claimOfTheDay(dayKey: string): HostilePrompt {
+  const [y, m, d] = dayKey.split("-").map(Number);
+  const n = Math.floor(Date.UTC(y, (m || 1) - 1, d || 1) / 86_400_000);
+  const i = ((Number.isFinite(n) ? n : 0) % HOSTILE_PROMPTS.length + HOSTILE_PROMPTS.length) % HOSTILE_PROMPTS.length;
+  return HOSTILE_PROMPTS[i];
+}
+
 /** Questions Demos asks after the take. Two rounds is the boss. */
 export const HOSTILE_ROUNDS = 2;
 export const TAKE_SECONDS = 60;

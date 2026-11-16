@@ -43,7 +43,7 @@ vi.mock("@/lib/db", () => {
   };
   return {
     getUserFromAuthHeader: vi.fn(async (): Promise<unknown> => null),
-    isPremium: vi.fn(async () => false),
+    isPremium: vi.fn(async (): Promise<boolean> => false),
     supabaseAdmin: vi.fn(() => ({ from: () => chain })),
   };
 });
@@ -54,9 +54,9 @@ vi.mock("@/lib/rate-limit", async (importOriginal) => ({
 }));
 
 import { POST } from "@/app/api/hostile/route";
-import { getUserFromAuthHeader } from "@/lib/db";
+import { getUserFromAuthHeader, isPremium } from "@/lib/db";
 import { hostileVerdict } from "@/lib/hostile-server";
-import { consumeRateLimit, refundRateLimit } from "@/lib/rate-limit";
+import { LIMITS, consumeRateLimit, refundRateLimit } from "@/lib/rate-limit";
 import { transcribe } from "@/lib/transcribe";
 
 const SAID =
@@ -96,6 +96,7 @@ beforeEach(() => {
   vi.mocked(consumeRateLimit).mockClear();
   vi.mocked(refundRateLimit).mockClear();
   vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-1", anonymous: false });
+  vi.mocked(isPremium).mockResolvedValue(false);
   week.since = null;
   week.count = 0;
   week.latest = null;
@@ -117,15 +118,30 @@ afterEach(() => {
  * took four recordings out of the day's room.
  */
 describe("Hostile's allowance", () => {
-  it("is its own, never the recording allowance", async () => {
-    await take();
-    expect(consumeRateLimit).toHaveBeenLastCalledWith("hostile:u:u-1", "user");
+  it("is its own, never the recording allowance: the free plan's room, or a Premium account's own", async () => {
+    await answer();
+    expect(consumeRateLimit).toHaveBeenLastCalledWith("hostile:u:u-1", "hostileFree");
+
+    vi.mocked(isPremium).mockResolvedValue(true);
+    vi.mocked(consumeRateLimit).mockClear();
+    await answer();
+    expect(consumeRateLimit).toHaveBeenLastCalledWith("hostile:u:u-1", "hostilePremium");
   });
 
-  it("gives a guest the account's room, as recording does, and a visitor the visitor's", async () => {
+  /* #478 review: on the account's 10 an hour a Premium account's third
+     round back to back stopped at its third call, where the free plan's
+     16 let all three finish. Paying never holds anyone sooner. */
+  it("never holds a Premium account sooner than a free one, in either window", () => {
+    expect(LIMITS.hostilePremium.hour).toBeGreaterThanOrEqual(LIMITS.hostileFree.hour);
+    expect(LIMITS.hostilePremium.day).toBeGreaterThanOrEqual(LIMITS.hostileFree.day);
+    // And no more than the account's own day: Premium buys no new spend.
+    expect(LIMITS.hostilePremium.day).toBeLessThanOrEqual(LIMITS.user.day);
+  });
+
+  it("gives a guest the free plan's room, and a visitor the visitor's", async () => {
     vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "anon-1", anonymous: true });
     await answer();
-    expect(consumeRateLimit).toHaveBeenCalledWith("hostile:u:anon-1", "user");
+    expect(consumeRateLimit).toHaveBeenCalledWith("hostile:u:anon-1", "hostileFree");
     // And every guest on the address shares one room (#416).
     expect(vi.mocked(consumeRateLimit).mock.calls.some(([s, t]) => /^guest:ip:/.test(s) && t === "guestip")).toBe(true);
 
@@ -204,14 +220,42 @@ describe("Hostile's allowance", () => {
     expect(refundRateLimit).not.toHaveBeenCalled();
   });
 
-  /* #416: once Whisper has run, the slot is spent. Giving it back for a
-     short answer made every such call free, and a script could loop
-     transcriptions without end. */
-  it("keeps the slot for an answer too short to read, since Whisper ran", async () => {
+  /* #416: once Whisper has run, the slot is spent; giving it back for
+     every short answer made such calls free, and a script could loop
+     transcriptions without end. #478 review: within `refund`'s room it
+     comes back, as /api/analyze gives back a take that stores nothing,
+     so two short answers do not spend the room a free account's third
+     round needs to reach its verdict. Past that room it stays spent. */
+  it("gives a short answer's slot back within the refund room, and keeps it past that room", async () => {
     vi.mocked(transcribe).mockResolvedValue({ ...HEARD, text: "I", words: [{ word: "I", start: 0, end: 0.2 }] });
     const body = await (await answer()).json();
     expect(body.tooShort).toBe(true);
+    expect(consumeRateLimit).toHaveBeenCalledWith("refund:hostile:u:u-1", "refund");
+    expect(refundRateLimit).toHaveBeenCalledWith("hostile:u:u-1");
+
+    vi.mocked(refundRateLimit).mockClear();
+    vi.mocked(consumeRateLimit).mockImplementation(async (subject: string) =>
+      subject.startsWith("refund:")
+        ? { allowed: false, window: "day", retryAfterS: 3600 }
+        : { allowed: true, window: null, retryAfterS: 0 }
+    );
+    expect((await (await answer()).json()).tooShort).toBe(true);
     expect(refundRateLimit).not.toHaveBeenCalledWith("hostile:u:u-1");
+    vi.mocked(consumeRateLimit).mockImplementation(async () => ({ allowed: true, window: null, retryAfterS: 0 }));
+  });
+
+  it("gives a visitor's short call nothing back: the visitor's room is all there is", async () => {
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue(null);
+    vi.mocked(transcribe).mockResolvedValue({ ...HEARD, text: "I", words: [{ word: "I", start: 0, end: 0.2 }] });
+    expect((await (await answer()).json()).tooShort).toBe(true);
+    expect(vi.mocked(consumeRateLimit).mock.calls.some(([s]) => s.startsWith("refund:"))).toBe(false);
+    expect(refundRateLimit).not.toHaveBeenCalled();
+  });
+
+  it("gives a long answer nothing back, and asks the refund room nothing", async () => {
+    expect((await answer()).status).toBe(200);
+    expect(vi.mocked(consumeRateLimit).mock.calls.some(([s]) => s.startsWith("refund:"))).toBe(false);
+    expect(refundRateLimit).not.toHaveBeenCalled();
   });
 
   it("keeps the slot when the verdict model was called and failed (#416)", async () => {
@@ -228,42 +272,6 @@ describe("Hostile's allowance", () => {
     expect((await judge()).status).toBe(502);
     expect(refundRateLimit).toHaveBeenCalledWith("hostile:u:u-1");
     vi.unstubAllEnvs();
-  });
-
-  it("gives the slot back for a week already used", async () => {
-    week.count = 1;
-    expect((await take()).status).toBe(403);
-    expect(refundRateLimit).toHaveBeenCalledWith("hostile:u:u-1");
-    expect(transcribe).not.toHaveBeenCalled();
-  });
-});
-
-/*
- * The screen counts the free week from Monday 00:00 on the phone; the
- * server's clock is UTC. Monday 08:00 in Melbourne is Sunday 21:00 UTC,
- * so the server's week still held last Saturday's session and locked
- * the free one the screen offered, after the 60-second take.
- */
-describe("the free week", () => {
-  it("is counted on the person's own calendar", async () => {
-    vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-11-08T21:00:00.000Z")); // Mon 9 Nov, 08:00 in Melbourne
-    await take({ tzOffset: "-660" });
-    expect(week.since).toBe("2026-11-08T13:00:00.000Z"); // Mon 9 Nov, 00:00 in Melbourne
-  });
-
-  it("is counted west of Greenwich too", async () => {
-    vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-11-09T03:00:00.000Z")); // Sun 8 Nov, 19:00 in Los Angeles
-    await take({ tzOffset: "480" });
-    expect(week.since).toBe("2026-11-02T08:00:00.000Z"); // Mon 2 Nov, 00:00 in Los Angeles
-  });
-
-  it("is UTC's week when the phone does not say", async () => {
-    vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-11-08T21:00:00.000Z"));
-    await take();
-    expect(week.since).toBe("2026-11-02T00:00:00.000Z");
   });
 });
 
@@ -382,33 +390,129 @@ describe("POST /api/hostile and the context's size", () => {
 });
 
 /*
- * The free week, held on every call (#464). Whether a call was the take
- * was the phone's word (a `take` in its context), and only the take was
- * checked, so a free account could skip the lock by saying it had one.
+ * Free for everyone (#478, docs/plan-next.md section 4): the free plan's
+ * once a week is gone, and a free account starts three rounds in any 24
+ * hours, held by the limiter. A round is claimed by its take; the
+ * answers and the verdict claim none, so a session under way is never
+ * cut off by the cap.
  */
-describe("the free week, on every call", () => {
-  it("lets the session's own rounds and verdict through while its take is under an hour old", async () => {
-    week.count = 1;
-    week.latest = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+describe("the free plan's rounds", () => {
+  const roundCalls = () => vi.mocked(consumeRateLimit).mock.calls.filter(([s]) => s.startsWith("hostile:round:"));
+  const capAt = (retryAfterS: number) =>
+    vi.mocked(consumeRateLimit).mockImplementation(async (subject: string) =>
+      subject.startsWith("hostile:round:")
+        ? { allowed: false, window: "day", retryAfterS }
+        : { allowed: true, window: null, retryAfterS: 0 }
+    );
+  afterEach(() => {
+    vi.mocked(consumeRateLimit).mockImplementation(async () => ({ allowed: true, window: null, retryAfterS: 0 }));
+  });
+
+  it("are three in any 24 hours, every call of three rounds fits in one hour, and the room is bounded", () => {
+    expect(LIMITS.hostileRound).toEqual({ hour: 3, day: 3 });
+    // Four calls a round: three rounds back to back are twelve.
+    expect(LIMITS.hostileFree.hour).toBeGreaterThanOrEqual(12);
+    expect(LIMITS.hostileFree.day).toBeGreaterThanOrEqual(LIMITS.hostileFree.hour);
+    // Never more than the account's own room: free is the smaller one.
+    expect(LIMITS.hostileFree.day).toBeLessThanOrEqual(LIMITS.user.day);
+  });
+
+  it("claims one round with the take, and none with the answers or the verdict", async () => {
+    expect((await take()).status).toBe(200);
+    expect(roundCalls()).toEqual([["hostile:round:u:u-1", "hostileRound"]]);
+    vi.mocked(consumeRateLimit).mockClear();
+    expect((await answer()).status).toBe(200);
+    expect((await judge()).status).toBe(200);
+    expect(roundCalls()).toEqual([]);
+  });
+
+  it("counts a guest's rounds too, and a visitor's calls by the visitor's room alone", async () => {
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "anon-1", anonymous: true });
+    await take();
+    expect(roundCalls()).toEqual([["hostile:round:u:anon-1", "hostileRound"]]);
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue(null);
+    vi.mocked(consumeRateLimit).mockClear();
+    await take();
+    expect(roundCalls()).toEqual([]);
+  });
+
+  it("never counts a Premium account's rounds", async () => {
+    vi.mocked(isPremium).mockResolvedValue(true);
+    capAt(3600);
+    expect((await take()).status).toBe(200);
+    expect(roundCalls()).toEqual([]);
+  });
+
+  it("turns the fourth take away before Whisper, says when the next opens, and gives the call's slot back", async () => {
+    capAt(5 * 3600 - 120);
+    const res = await take();
+    expect(res.status).toBe(429);
+    expect(res.headers.get("Retry-After")).toBe(String(5 * 3600 - 120));
+    expect(await res.json()).toMatchObject({
+      capped: true,
+      error: "That's today's 3 rounds. Next in about 5 hours.",
+    });
+    expect(transcribe).not.toHaveBeenCalled();
+    expect(refundRateLimit).toHaveBeenCalledWith("hostile:u:u-1");
+    // The round's own slot was never taken, so it is not given back.
+    expect(vi.mocked(refundRateLimit).mock.calls.some(([s]) => s.startsWith("hostile:round:"))).toBe(false);
+  });
+
+  it("lets a session under way finish at the cap: its answers and verdict claim no round", async () => {
+    capAt(3600);
     expect((await answer()).status).toBe(200);
     expect((await judge()).status).toBe(200);
   });
 
-  it("lets a round through while the take is still being banked", async () => {
-    week.count = 0;
-    expect((await answer()).status).toBe(200);
+  it("gives the round back for a take too short to interrogate, and the call's slot only within the refund room", async () => {
+    vi.mocked(transcribe).mockResolvedValue({ ...HEARD, text: "I", words: [{ word: "I", start: 0, end: 0.2 }] });
+    const body = await (await take()).json();
+    expect(body.tooShort).toBe(true);
+    expect(refundRateLimit).toHaveBeenCalledWith("hostile:round:u:u-1");
+    expect(refundRateLimit).toHaveBeenCalledWith("hostile:u:u-1");
+
+    vi.mocked(refundRateLimit).mockClear();
+    vi.mocked(consumeRateLimit).mockImplementation(async (subject: string) =>
+      subject.startsWith("refund:")
+        ? { allowed: false, window: "hour", retryAfterS: 600 }
+        : { allowed: true, window: null, retryAfterS: 0 }
+    );
+    expect((await (await take()).json()).tooShort).toBe(true);
+    expect(refundRateLimit).toHaveBeenCalledWith("hostile:round:u:u-1");
+    expect(refundRateLimit).not.toHaveBeenCalledWith("hostile:u:u-1");
   });
 
-  it("refuses a round or a verdict hours after the week's take", async () => {
-    week.count = 1;
+  /* #478 review: the screen says "Nothing was lost; try again." A file
+     Whisper refuses keeps the call's slot (#416), but it started no round. */
+  it("gives the round back for a take whose file Whisper refused, and keeps the call's slot", async () => {
+    vi.mocked(transcribe).mockRejectedValue(new Error("Whisper API 400: Invalid file format"));
+    expect((await take()).status).toBe(502);
+    expect(refundRateLimit).toHaveBeenCalledWith("hostile:round:u:u-1");
+    expect(refundRateLimit).not.toHaveBeenCalledWith("hostile:u:u-1");
+  });
+
+  it("gives the round and the call back when Whisper is down, and keeps both once a question is asked", async () => {
+    vi.mocked(transcribe).mockRejectedValue(new Error("Whisper API 500: boom"));
+    expect((await take()).status).toBe(502);
+    expect(refundRateLimit).toHaveBeenCalledWith("hostile:round:u:u-1");
+    expect(refundRateLimit).toHaveBeenCalledWith("hostile:u:u-1");
+
+    vi.mocked(transcribe).mockResolvedValue(HEARD);
+    vi.mocked(refundRateLimit).mockClear();
+    expect((await take()).status).toBe(200);
+    expect(refundRateLimit).not.toHaveBeenCalled();
+  });
+
+  it("claims no round for a verdict sent with no take", async () => {
+    expect((await post({ phase: "verdict", context: JSON.stringify({ rounds: [] }) }, false)).status).toBe(400);
+    expect(roundCalls()).toEqual([]);
+  });
+
+  it("no longer counts the week: a week already played lets the next take through", async () => {
+    week.count = 5;
     week.latest = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
-    expect((await answer()).status).toBe(403);
-    expect((await judge()).status).toBe(403);
-    expect(transcribe).not.toHaveBeenCalled();
-  });
-
-  it("refuses a round once the week holds more than one take", async () => {
-    week.count = 2;
-    expect((await answer()).status).toBe(403);
+    expect((await take()).status).toBe(200);
+    expect((await answer()).status).toBe(200);
+    expect((await judge()).status).toBe(200);
   });
 });

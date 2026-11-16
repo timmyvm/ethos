@@ -90,15 +90,17 @@ export const BENEFITS = [
   { Glyph: IconSpark, text: "Every word you've earned, kept" },
   /* The games in one row (#403, Timothy's pick): a sixth row put the
      Stair's last prices under the fold at 375x667 (regression review,
-     edges F4). Their levels are said on Practice's tiles. */
-  { Glyph: IconBoss, text: <>Speed rush, Interview and Hostile Q&amp;A</> },
+     edges F4). Their levels are said on Practice's tiles. Hostile Q&A
+     is free since #478, three rounds a day; Premium is more of it, and
+     the row says so in the one line it holds at 375. */
+  { Glyph: IconBoss, text: <>Speed rush, Interview, more Hostile Q&amp;A</> },
 ];
 
 /**
  * The line under the mark: what was tapped, without saying "premium" a
  * second time and without a ' · ' compound (PRINCIPLES 4). The surfaces
  * pass strings like "Full history · premium", "Tight timer · premium
- * mod", "Premium games" and "Hostile Q&A · once a week free".
+ * mod" and "Premium games".
  */
 export function reasonLine(reason: string): string {
   const parts = reason

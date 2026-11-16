@@ -22,6 +22,9 @@
  *           strip, 0 to 400ms).
  *   pre0033 a database before migration 0033: the column answers 42703 and
  *           PGRST204, and yesterday's cue is answered from this phone's copy.
+ *   other   this phone's copy was written by another account (a shared
+ *           phone) and the account's read fails: no warm-up, never that
+ *           person's words (the #477 review). Fails if one is drawn.
  *
  * Sizes: LOOK_SIZES, default 390x844-light,390x844-dark,375x667-light,320x568-light.
  * Shots: LOOK_OUT, default docs/look/sticks/, as <tag>-<scene>-<size>.png.
@@ -151,10 +154,18 @@ for (const scene of SCENES) {
     if (missing) {
       await context.addInitScript((state) => localStorage.setItem("ethos.cue", JSON.stringify({ uid: "u1", state })), CUES.answer);
     }
+    /* other: a copy another account wrote, with that person's own sentence,
+       and an account read that fails, so nothing but the copy could draw. */
+    const otherAccount = scene === "other";
+    if (otherAccount) {
+      const theirs = { ...CUES.answer, cue: { ...CUES.answer.cue, word: "like", line: { text: "Someone else's ‖ own words here.", at: 3 } } };
+      await context.addInitScript((state) => localStorage.setItem("ethos.cue", JSON.stringify({ uid: "someone-else", state })), theirs);
+    }
     await context.route("http://supabase.local/rest/v1/profiles**", async (route) => {
       const req = route.request();
       const url = new URL(req.url());
       const asksCue = (url.searchParams.get("select") ?? "").includes("carried_cue") || (req.postData() ?? "").includes("carried_cue");
+      if (otherAccount && asksCue) return route.fulfill(F.json({ message: "down" }, 500));
       if (missing && asksCue) {
         return route.fulfill(
           req.method() === "GET"
@@ -202,10 +213,12 @@ for (const scene of SCENES) {
     await page.waitForSelector('button[data-record="start"]', { timeout: 30000 });
     await sleep(1400);
 
-    if (scene.startsWith("ready") || scene === "skip") {
+    if (scene.startsWith("ready") || scene === "skip" || otherAccount) {
       const m = await page.evaluate(MEASURE);
       await page.screenshot({ path: shot(scene === "skip" ? "before-tap" : "") });
       console.log(`${at}: warm-up ${JSON.stringify(m.warmup)}; Record ${JSON.stringify(m.record)}; scrolls ${m.scrolls}; ${m.taps} filled tap(s)`);
+      if (otherAccount && m.warmup) fail(`${at}: another account's cue is drawn`);
+      if (!otherAccount && !m.warmup) fail(`${at}: no warm-up on a carried cue`);
       if (m.record && m.record.bottom > size.h) fail(`${at}: Record is under the fold (${m.record.bottom} > ${size.h})`);
       if (m.taps !== 1) fail(`${at}: ${m.taps} filled taps`);
       if (scene === "skip") {

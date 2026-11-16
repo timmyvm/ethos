@@ -5,8 +5,8 @@
  * The roulette drew at random and excluded only the topic on screen, so
  * with twenty topics a few spins brought the same ones round again. The
  * test said so in three voices ("it kept cycling over the same ones",
- * "I always get the same few when rerolling"), and Spin again was
- * tapped 15 times by three people on one day.
+ * "I always get the same few when rerolling", "it needed more
+ * prompts").
  *
  * This is the games' `drawFresh` (lib/games.ts) applied to what was
  * SHOWN rather than what was answered: a topic the person has not been

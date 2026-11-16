@@ -158,7 +158,9 @@ function build(): PathItem[] {
            and every topic serves two traits. The same prompt under a
            different angle is still a different practice, which is what
            makes 120 affordable. The tier 2 offset is the one the path
-           always had, so Pausing keeps the pairs it shipped with. */
+           always had, so Pausing's first ten at tier 1 and first seven
+           at tier 2 keep the topics they shipped with; the rest of the
+           path pairs anew. */
         const topic = pool[(t * ANGLES[trait].length + i + (tier === 2 ? 3 : 0)) % pool.length];
         out.push({
           id: `${trait}-${tier}-${i + 1}`,

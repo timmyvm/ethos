@@ -168,7 +168,10 @@ describe("every trait, covered", () => {
     for (const t of TOPICS) expect([t.id, uses.get(t.id)?.size]).toEqual([t.id, 2]);
   });
 
-  it("keeps Pausing's first ten at each tier where they shipped", () => {
+  /* Only these: the ten-topic tier wrapped, so Pausing's last two at
+     tier 1 and last five at tier 2 drew topics that now sit further up
+     a thirty-topic tier, and those now meet new ones. */
+  it("keeps Pausing's first ten at tier 1 and first seven at tier 2 where they shipped", () => {
     const tier1 = ["t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9", "t10"];
     const tier2 = ["t14", "t15", "t16", "t17", "t18", "t19", "t20"];
     tier1.forEach((id, i) => expect(PATH.find((p) => p.id === `pause-1-${i + 1}`)?.topicId).toBe(id));

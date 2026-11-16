@@ -78,6 +78,11 @@ describe("heavy type is tracked in no further than its letters allow (#454)", ()
       expect(rule!.weight).toBe(800);
       expect(rule!.em, selector).toBeGreaterThanOrEqual(UNDER_34);
     }
+    /* The display topic past 60 characters drops to 28px (#473), so it
+       leaves the card's -0.015em for the line under 34. */
+    const longer = of(".home-display[data-longer]");
+    expect(longer, ".home-display[data-longer]").toBeDefined();
+    expect(longer!.em).toBe(UNDER_34);
     const title = tokens().find((t) => t.name === "title");
     expect(title?.rem).toBe(1.625);
     expect(title?.em).toBeGreaterThanOrEqual(UNDER_34);

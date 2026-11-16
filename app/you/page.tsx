@@ -40,7 +40,16 @@ import {
   heldSpine,
   heldXp,
 } from "@/lib/client-data";
-import { LEVEL_AT, DOUBLE_AT, rankedTraits, traitLevels, type TraitLevel } from "@/lib/traits";
+import {
+  LEVEL_AT,
+  DOUBLE_AT,
+  closestLine,
+  levelLine,
+  rankedTraits,
+  traitLevels,
+  type TraitLevel,
+} from "@/lib/traits";
+import { LevelMeter } from "@/components/ui/LevelMeter";
 import { practiseHref, sheetReading } from "@/lib/trait-sheet";
 import { DIMENSION_NAME } from "@/lib/dimension-rows";
 import { lessonProgress } from "@/lib/lesson-progress";
@@ -886,22 +895,25 @@ export default function YouPage() {
                  still counts them; Premium shows all nine. */
               const ranked = premium === true ? all : all.filter((t) => TONED.has(t.key));
               const folded = all.length - ranked.length;
-              const top = Math.max(1, ranked[0]?.level ?? 0);
               const rows = ranked.map((t) => {
                 const toned = TONED.has(t.key);
+                const name = DIMENSION_NAME[t.key];
                 return (
                   /* A trait the lessons teach wears its lesson tone on
                      its mark, so blue means pausing here as on /lessons
-                     and Today; the name is ink. The bar is a level you
-                     earned, so it fills in sage on sand, as every earned
-                     bar off the stage does (the fix round: it was stone,
-                     and the app drew progress in four colours). The four
-                     the Index only reads take a stone mark. */
+                     and Today; the name is ink. Its value is the level
+                     in words with a small sage bar beside it, how far
+                     into that level (#482, Timothy 16 Nov: "trait levels
+                     as bars is bad"); the long bar scaled to the leader
+                     is gone. The four the Index only reads take a stone
+                     mark. The row's name says all of it, since a
+                     button's inside is not read. */
                   <button
                     type="button"
                     key={t.key}
                     onClick={() => setOpenTrait(t)}
                     aria-haspopup="dialog"
+                    aria-label={`${name}, ${levelLine(t).said}`}
                     data-trait={toned ? t.key : undefined}
                     className={`press -mx-2 flex min-h-11 w-[calc(100%+16px)] items-center gap-3 rounded-control px-2 py-2 text-left ${toned ? "you-trait" : ""}`}
                   >
@@ -914,27 +926,18 @@ export default function YouPage() {
                     {/* 600, not 700: nine equally bold lines read as nine
                         headings and the section loses its leader (#234). */}
                     <span
-                      className={`font-display -ml-1 w-[124px] shrink-0 text-row font-semibold ${
+                      className={`font-display -ml-1 min-w-0 flex-1 truncate text-row font-semibold ${
                         t.level > 0 ? "" : "text-stone-400"
                       }`}
                     >
-                      {DIMENSION_NAME[t.key]}
+                      {name}
                     </span>
-                    <span className="h-1.5 flex-1 overflow-hidden bg-sand">
-                      {t.level > 0 && (
-                        <span
-                          className="fill block h-full bg-sage-600"
-                          style={{ width: `${(t.level / top) * 100}%` }}
-                        />
-                      )}
-                    </span>
-                    <span
-                      className={`font-display w-6 shrink-0 text-right text-row font-extrabold tabular-nums ${
-                        t.level > 0 ? "" : "text-stone-400"
-                      }`}
-                    >
-                      <CountUp value={t.level} durationMs={DURATION.max} />
-                    </span>
+                    <LevelMeter
+                      name={name}
+                      level={t.level}
+                      percent={t.percent}
+                      count={<CountUp value={t.level} durationMs={DURATION.max} />}
+                    />
                   </button>
                 );
               });
@@ -1400,6 +1403,7 @@ function TraitSheet({
   const what = toned ? TRAIT[trait.key as TraitId].what : WHAT[trait.key];
   const reading = sheetReading(trait.key, reps);
   const practise = practiseHref(trait.key, done);
+  const closest = closestLine(trait, (key) => DIMENSION_NAME[key]);
   return (
     <Overlay label={name} onClose={onClose}>
       <div
@@ -1445,15 +1449,19 @@ function TraitSheet({
           </p>
         )}
         <p className="mt-4 text-read text-stone-800 text-pretty">{what}</p>
-        {/* The level and the rule that moves it, side by side. The rule
-            is the results' own word (#471): a row that reads Strong is a
-            row that can level its trait. */}
-        <div className="mt-4 flex items-center gap-4">
-          <div className="flex size-16 shrink-0 flex-col items-center justify-center rounded-card bg-surface">
-            <span className="font-display text-num-m tabular-nums">{trait.level}</span>
-            <span className="label-micro mt-1">Level</span>
-          </div>
-          <p className="text-caption leading-relaxed text-stone-500">
+        {/* The level as the row printed it, "Level 6" and its bar (#482),
+            then the try the bar is drawn from, so it traces to a number,
+            then the rule that moves it. The rule is the results' own word
+            (#471): a row that reads Strong is a row that can level its
+            trait. */}
+        <div className="mt-4">
+          <LevelMeter name={name} level={trait.level} percent={trait.percent} size="sheet" />
+          {closest && (
+            <p data-closest className="font-display mt-1 text-link tabular-nums text-stone-500">
+              {closest}
+            </p>
+          )}
+          <p className="mt-2 text-caption leading-relaxed text-stone-500 text-pretty">
             A recording levels it when this is its best row and reads Strong, {LEVEL_AT} or more. From {DOUBLE_AT} it
             counts twice.
           </p>

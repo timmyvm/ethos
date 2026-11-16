@@ -366,6 +366,63 @@ export const savedWordsMode = { rows: [], fail: false, delay: 0 };
  */
 export const extraReps = [];
 
+/**
+ * Rows a camera puts in the reps table's place (scripts/look-levels.mjs:
+ * a mix of trait levels and progress the three weeks never reach). Null,
+ * the default, keeps the three weeks.
+ */
+export const repsMode = { rows: null };
+
+/*
+ * #482: eight recordings that put You's trait levels in every state a
+ * level can be in (repsMode.rows = LEVEL_MIX). Oldest first, each a
+ * scorable take whose best row levels its trait (lib/traits.ts: 70 or
+ * more, 90 counts twice):
+ *
+ *   8 days ago  Filler control 92          Filler control +2
+ *   7           Pace 80                    Pace +1
+ *   6           Filler control 85          Filler control +1
+ *   5           Filler control 93          Filler control +2
+ *   4           Pace 82                    Pace +1 (its last)
+ *   3           Filler control 80, Pace 76, Follow-through 50
+ *                                          Filler control +1 (its last)
+ *   2           every row under 70, Filler control 28: nothing levels
+ *   yesterday   Pausing 74                 Pausing +1
+ *
+ * So Filler control is level 6, its closest since 28 of 70 (40%); Pace
+ * level 2, its closest 76 of the 80 Filler control set (95%); Pausing
+ * level 1 on the newest take, nothing since (0%); Follow-through and
+ * Variety level 0 at 62% and 50%. The coach read three of its four:
+ * Engagement is never read, so on Premium its row says "Not yet".
+ * lib/traits.test.ts holds the same eight to the same numbers.
+ */
+const LEVEL_TIER2 = {
+  structure: { score: 60, citedMoment: TIER2.structure.citedMoment, improve: TIER2.structure.improve },
+  credibility: { score: 55, citedMoment: TIER2.credibility.citedMoment, improve: TIER2.credibility.improve },
+  confidence: { score: 58, citedMoment: TIER2.confidence.citedMoment, improve: TIER2.confidence.improve },
+};
+const LEVEL_TAKES = [
+  [8, { pause: 50, fillers: 92, repairs: 30, pace: 60, range: 40 }],
+  [7, { pause: 50, fillers: 60, repairs: 30, pace: 80, range: 40 }],
+  [6, { pause: 50, fillers: 85, repairs: 30, pace: 60, range: 40 }],
+  [5, { pause: 50, fillers: 93, repairs: 30, pace: 60, range: 40 }],
+  [4, { pause: 50, fillers: 60, repairs: 30, pace: 82, range: 40 }],
+  [3, { pause: 50, fillers: 80, repairs: 50, pace: 76, range: 40 }],
+  [2, { pause: 55, fillers: 28, repairs: 30, pace: 60, range: 35 }],
+  [1, { pause: 74, fillers: 20, repairs: 30, pace: 60, range: 35 }],
+];
+export const LEVEL_MIX = LEVEL_TAKES.map(([n, tier1], i) => {
+  const all = { ...tier1, ...Object.fromEntries(Object.entries(LEVEL_TIER2).map(([k, v]) => [k, v.score])) };
+  return {
+    ...reps[reps.length - 1],
+    id: `lv-${i + 1}`,
+    client_id: `look-lv-${i + 1}`,
+    created_at: iso(n),
+    ethos_index: Object.entries(WEIGHTS).reduce((sum, [k, w]) => sum + (k in all ? points(all[k], w) : 0), 0),
+    dimensions: { tier1, anchors: { hedgeCount: 2, restartCount: 1 }, tier2: LEVEL_TIER2 },
+  };
+});
+
 /** Today's recording for `testerMode.today`: the newest fixture's, made at 09:12 today, its Index 665. */
 export const TODAY_REP = {
   ...reps[reps.length - 1],
@@ -528,7 +585,7 @@ async function supabase(route) {
   const table = url.pathname.replace("/rest/v1/", "").split("/")[0];
   if (req.method() !== "GET") return route.fulfill(json([]));
   if (table === "reps" && testerMode.repsFail) return route.fulfill(json({ code: "XX000", message: "look: history refused" }, 500));
-  let rows = TABLES[table] ?? [];
+  let rows = table === "reps" && repsMode.rows ? repsMode.rows : TABLES[table] ?? [];
   if (table === "reps" && testerMode.today && !FRESH) rows = [...rows, TODAY_REP];
   if (table === "reps" && extraReps.length > 0 && !FRESH) rows = [...rows, ...extraReps];
   if (table === "reps" && gamesMode.on && !FRESH) {

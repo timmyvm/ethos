@@ -201,10 +201,15 @@ describe("sendWithRetry reading the answer in parts", () => {
     reads: true,
   };
   function inParts(lines: unknown[], { cut = false } = {}): Response {
+    /* One line a pull, then the end: a cut errors only on the pull after
+       the last line, so the lines before it really reach the reader (an
+       error raised beside queued lines drops them unread). */
+    const queue = lines.map((l) => enc.encode(JSON.stringify(l) + "\n"));
     const body = new ReadableStream<Uint8Array>({
-      start(c) {
-        for (const l of lines) c.enqueue(enc.encode(JSON.stringify(l) + "\n"));
-        if (cut) c.error(new Error("reset"));
+      pull(c) {
+        const next = queue.shift();
+        if (next) c.enqueue(next);
+        else if (cut) c.error(new Error("reset"));
         else c.close();
       },
     });
@@ -246,11 +251,18 @@ describe("sendWithRetry reading the answer in parts", () => {
       .mockResolvedValueOnce(inParts([{ stage: "received" }, { stage: "measured", early }], { cut: true }))
       .mockResolvedValueOnce(inParts([{ stage: "done", status: 200, body: { repId: "r1", duplicate: true } }]));
     vi.stubGlobal("fetch", fetchMock);
-    const attempts: number[] = [];
-    const out = sendWithRetry(replayForm(rep()), "token", (n) => attempts.push(n), undefined, () => {});
+    const seen: string[] = [];
+    const out = sendWithRetry(
+      replayForm(rep()),
+      "token",
+      (n) => seen.push(`try ${n}`),
+      undefined,
+      (e) => seen.push(e.stage)
+    );
     await vi.runAllTimersAsync();
     expect((await out).data).toEqual({ repId: "r1", duplicate: true });
-    expect(attempts).toEqual([0, 1]);
+    // The words reached the wait before the line went, and the resend followed.
+    expect(seen).toEqual(["try 0", "received", "measured", "try 1"]);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 

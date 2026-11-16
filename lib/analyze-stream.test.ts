@@ -32,10 +32,15 @@ const EARLY = earlyRead({
 /** A response the way the route streams it, cut into `chunks` wherever they fall. */
 function streamed(chunks: string[], { close = true } = {}): Response {
   const enc = new TextEncoder();
+  /* A chunk a pull: a reset errors only after the chunks before it were
+     read, as a connection dropping mid-way does (an error raised beside
+     queued chunks drops them unread). */
+  const queue = chunks.map((ch) => enc.encode(ch));
   const body = new ReadableStream<Uint8Array>({
-    start(c) {
-      for (const ch of chunks) c.enqueue(enc.encode(ch));
-      if (close) c.close();
+    pull(c) {
+      const next = queue.shift();
+      if (next) c.enqueue(next);
+      else if (close) c.close();
       else c.error(new Error("connection reset"));
     },
   });
@@ -145,7 +150,12 @@ describe("readAnalyze", () => {
   });
 
   it("throws StreamCut when the connection drops mid-way", async () => {
-    await expect(readAnalyze(streamed([lines({ stage: "received" })], { close: false }))).rejects.toBeInstanceOf(StreamCut);
+    const onEvent = vi.fn();
+    await expect(readAnalyze(streamed([lines({ stage: "received" })], { close: false }), onEvent)).rejects.toBeInstanceOf(
+      StreamCut
+    );
+    // The line before the drop was read and handed on.
+    expect(onEvent).toHaveBeenCalledWith({ stage: "received" });
   });
 
   it("reads one JSON body as it always was, a stand-in's included", async () => {

@@ -73,11 +73,15 @@ export function useTapAboveKeys(tap: RefObject<HTMLElement | null>): number {
       if (by > 0) window.scrollBy({ top: by, behavior: "auto" });
     };
     setRoom(Math.max(0, window.innerHeight - visual.height));
-    // After the room is laid out, so there is somewhere to scroll to.
+    // After the room is laid out, so there is somewhere to scroll to;
+    // and once more when the large title has handed over to the bar,
+    // which moves the page under the tap as it scrolls.
     const frame = requestAnimationFrame(lift);
+    const again = window.setTimeout(lift, 400);
     visual.addEventListener("resize", lift);
     return () => {
       cancelAnimationFrame(frame);
+      window.clearTimeout(again);
       visual.removeEventListener("resize", lift);
     };
   }, [up, tap]);

@@ -4461,8 +4461,22 @@ summary::-webkit-details-marker {
   transform-origin: top;
 }
 /* Rows that lead with a 40px tile start their hairline at the text. */
-.inset-group[data-inset="icon"] > .group-row + .group-row::before {
+.inset-group[data-inset="icon"] > .group-row + .group-row::before,
+.inset-group [data-inset="icon"] > .group-row + .group-row::before {
   left: 70px;
+}
+/* A radio group of rows inside a list (Settings' pickers, #479) keeps
+   the list's hairline to the row after it. */
+.inset-group > [role="radiogroup"] + .group-row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 0;
+  height: 1px;
+  background: var(--color-hairline);
+  transform: scaleY(0.5);
+  transform-origin: top;
 }
 /* you-2: the group clips (overflow: hidden) and every row is as wide as
    it, so the global ring at +2px lost its sides, and its top and bottom

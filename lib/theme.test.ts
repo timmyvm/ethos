@@ -141,8 +141,8 @@ describe("the boot script, which decides it before React exists", () => {
 });
 
 describe("the screens that carry the decision", () => {
-  it("offers three choices in Settings", () => {
-    expect(readFileSync("app/settings/page.tsx", "utf8")).toContain(
+  it("offers three choices in Settings, on Appearance (#479)", () => {
+    expect(readFileSync("app/settings/appearance/page.tsx", "utf8")).toContain(
       // A segmented control since the apple-design pass (#321).
       '["system", "light", "dark"] as const satisfies readonly Theme[]'
     );

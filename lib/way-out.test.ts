@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -138,4 +138,27 @@ describe("no screen is a dead end", () => {
       ).toBe(false);
     }
   });
+});
+
+/**
+ * Settings, done properly (#479): every page under /settings, however
+ * deep, names its way back, so a page opened from a link (an email
+ * change's landing, a reminder) is never a dead end.
+ */
+describe("every Settings page has a way back", () => {
+  const pages = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? pages(`${dir}/${e.name}`) : e.name === "page.tsx" ? [`${dir}/${e.name}`] : []
+    );
+  const files = pages("app/settings");
+
+  it("finds the pages", () => {
+    expect(files.length).toBeGreaterThanOrEqual(14);
+  });
+
+  for (const file of files) {
+    it(`gives ${file} a way back`, () => {
+      expect(hasWayOut(readFileSync(file, "utf8")), `${file} has no way out`).toBe(true);
+    });
+  }
 });

@@ -245,7 +245,7 @@ export default function CalibratePage() {
           back link. */}
       <ScreenHeader
         title="Calibrate the camera"
-        back={{ href: "/settings", label: "Settings" }}
+        back={{ href: "/settings/practice", label: "Practice" }}
       />
       <p className="mt-3 text-read text-stone-800 text-pretty">
         {TAKES.length} takes of {TAKE_SECONDS} seconds through the real

@@ -6,11 +6,13 @@ import { notFound, useParams, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { IconCheck } from "@/components/Icon";
 import { TraitChip } from "@/components/TraitChip";
-import { lessonById } from "@/content/lessons";
+import { lessonById, lessonFor, settledPrompt } from "@/content/lessons";
+import type { Pool } from "@/content/portfolio";
 import { backFrom } from "@/lib/back-from";
 import { TRAIT } from "@/content/traits";
 import { fetchRepSpine, fetchReps, heldReps, heldSpine } from "@/lib/client-data";
 import { objectSrc } from "@/lib/home";
+import { poolHere } from "@/lib/pool";
 import { useStill, useWarm } from "@/lib/use-warm";
 import { readable } from "@/lib/load";
 import { lessonProgress, nextPractice } from "@/lib/lesson-progress";
@@ -60,6 +62,18 @@ export default function LessonPage() {
    * against is never one from before a take made on this phone.
    */
   const warm = useWarm();
+  /*
+   * The topic pool (#492): a practice whose topic the person's pool
+   * drops shows the lesson's stand-in (content/lessons.ts `lessonFor`).
+   * Opened from inside the app, the phone's answers are read in the
+   * first frame. The server's page knows nobody's, so a practice the
+   * pools name differently holds its line until the answers are read
+   * (`settledPrompt`), rather than guess a topic.
+   */
+  const [pool, setPool] = useState<Pool | null>(() => (warm ? poolHere() : null));
+  useEffect(() => {
+    setPool(poolHere());
+  }, []);
   const [done, setDone] = useState<number | null>(() => {
     const all = warm ? heldSpine() : null;
     return all && heldReps(200) ? (lessonProgress(all)[id] ?? 0) : null;
@@ -105,6 +119,7 @@ export default function LessonPage() {
   if (!lesson) notFound();
 
   const total = lesson.practices.length;
+  const asShown = pool ? lessonFor(lesson, pool) : null;
   const known = done !== null;
   const next = nextPractice(lesson, done ?? 0);
   const complete = known && done >= total;
@@ -235,6 +250,7 @@ export default function LessonPage() {
           /* The one the button starts is the ink square. */
           const here = known && !complete && n === next;
           const mod = p.mods?.[0] ? modById(p.mods[0]) : null;
+          const prompt = asShown ? asShown.practices[i].prompt : settledPrompt(lesson, i);
           return (
             <li
               key={n}
@@ -261,7 +277,13 @@ export default function LessonPage() {
                 <p
                   className={`text-read text-pretty ${did ? "text-stone-500" : "text-stone-800"}`}
                 >
-                  {p.prompt}
+                  {prompt ?? (
+                    /* Held at a line's height until the pool is read. */
+                    <span className="relative block">
+                      <span className="invisible">Ag</span>
+                      <Skeleton className="absolute inset-y-[18%] left-0 w-3/4" rounded="rounded-none" />
+                    </span>
+                  )}
                 </p>
                 {/*
                  * The mod is named, never the tier. What makes the last

@@ -53,6 +53,7 @@ import { liteGraphics } from "@/lib/graphics";
 import { inAppBrowser, inAppLine } from "@/lib/in-app";
 import { readOnboarding } from "@/lib/answers";
 import { buildPortfolio } from "@/lib/portfolio";
+import { poolHere } from "@/lib/pool";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { FooterShelf } from "@/components/ui/FooterShelf";
@@ -459,6 +460,11 @@ function RepScreen() {
       .catch(() => {});
   }, []);
 
+  /* The topic pool (#492): a lesson practice whose topic it drops speaks
+     on the lesson's stand-in. This screen draws only in the browser (its
+     search params wait on Suspense), so the phone's answers are read in
+     the first frame, once, and the topic holds still through the take. */
+  const [pool] = useState(poolHere);
   // The path can request a lesson, the boss screen a topic, and either
   // can stack stress mods. One resolver answers all of it.
   const config = useMemo(
@@ -473,8 +479,9 @@ function RepScreen() {
         level: searchParams.get("level"),
         mods: searchParams.get("mods"),
         premium,
+        pool,
       }),
-    [searchParams, premium]
+    [searchParams, premium, pool]
   );
   /**
    * The game this take is a round of, and its level (the games plan,

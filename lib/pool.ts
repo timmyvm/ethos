@@ -6,12 +6,13 @@
  *
  * Only "school" drops anything today (lib/topics.ts `not`: the three
  * prompts that need a job). The roulette (`topicsFor`), Today's card,
- * the command menu's Today and the reminder all read the pool from
- * here, so one person meets one pool everywhere.
+ * the command menu's Today, the reminder and the lessons (#492: the
+ * lesson page and the recorder, content/lessons.ts `lessonFor`) all
+ * read the pool from here, so one person meets one pool everywhere.
  */
 
 import { AGE_BANDS, CONTEXTS, type Pool } from "@/content/portfolio";
-import { type Answers, cleanAnswers, readOnboarding } from "./answers";
+import { type Answers, cleanAnswers, EMPTY_ANSWERS, readOnboarding } from "./answers";
 
 /**
  * Where the answer says school (by age or by place), the pool is school.
@@ -46,3 +47,11 @@ export function poolForRow(row: { age_band?: unknown; context?: unknown } | null
 export function poolHere(): Pool {
   return poolFor(readOnboarding().answers);
 }
+
+/**
+ * The pool of someone whose answers have not been read (#492): no age
+ * and no place, which `poolFor` reads as school. A resolver asked for a
+ * topic without a pool answers for this one, so a caller that forgets
+ * the pool hands nobody a prompt about a job.
+ */
+export const UNKNOWN_POOL: Pool = poolFor(EMPTY_ANSWERS);

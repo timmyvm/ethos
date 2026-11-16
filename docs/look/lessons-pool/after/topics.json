@@ -1,0 +1,138 @@
+{
+  "phase": "after",
+  "lessons": [
+    {
+      "person": "under-18",
+      "lesson": "closed-mouth",
+      "practice": 3,
+      "listed": "A deadline you only just made",
+      "recorder": "A deadline you only just made",
+      "ssrJob": false
+    },
+    {
+      "person": "under-18",
+      "lesson": "finish-it",
+      "practice": 2,
+      "listed": "Explain a slang word to someone twice your age",
+      "recorder": "Explain a slang word to someone twice your age",
+      "ssrJob": false
+    },
+    {
+      "person": "under-18",
+      "lesson": "or-rather",
+      "practice": 2,
+      "listed": "Pitch yourself as class captain",
+      "recorder": "Pitch yourself as class captain",
+      "ssrJob": false
+    },
+    {
+      "person": "under-18",
+      "lesson": "change-gear",
+      "practice": 2,
+      "listed": "A day that didn't go to plan",
+      "recorder": "A day that didn't go to plan",
+      "ssrJob": false
+    },
+    {
+      "person": "under-18",
+      "lesson": "short-and-concrete",
+      "practice": 1,
+      "listed": "Explain how you'd pack for a week away",
+      "recorder": "Explain how you'd pack for a week away",
+      "ssrJob": false
+    },
+    {
+      "person": "under-18",
+      "lesson": "second-pass",
+      "practice": 1,
+      "listed": "Pitch your goal for this year to a sceptic",
+      "recorder": "Pitch your goal for this year to a sceptic",
+      "ssrJob": false
+    },
+    {
+      "person": "adult",
+      "lesson": "closed-mouth",
+      "practice": 3,
+      "listed": "The worst job you've ever done",
+      "recorder": "The worst job you've ever done",
+      "ssrJob": false
+    },
+    {
+      "person": "adult",
+      "lesson": "finish-it",
+      "practice": 2,
+      "listed": "Explain your work to a ten-year-old",
+      "recorder": "Explain your work to a ten-year-old",
+      "ssrJob": false
+    },
+    {
+      "person": "adult",
+      "lesson": "or-rather",
+      "practice": 2,
+      "listed": "Pitch yourself for a job you're not qualified for",
+      "recorder": "Pitch yourself for a job you're not qualified for",
+      "ssrJob": false
+    },
+    {
+      "person": "adult",
+      "lesson": "change-gear",
+      "practice": 2,
+      "listed": "The worst job you've ever done",
+      "recorder": "The worst job you've ever done",
+      "ssrJob": false
+    },
+    {
+      "person": "adult",
+      "lesson": "short-and-concrete",
+      "practice": 1,
+      "listed": "Explain your work to a ten-year-old",
+      "recorder": "Explain your work to a ten-year-old",
+      "ssrJob": false
+    },
+    {
+      "person": "adult",
+      "lesson": "second-pass",
+      "practice": 1,
+      "listed": "Pitch yourself for a job you're not qualified for",
+      "recorder": "Pitch yourself for a job you're not qualified for",
+      "ssrJob": false
+    },
+    {
+      "person": "server",
+      "lesson": "closed-mouth",
+      "practice": 3,
+      "listed": null
+    },
+    {
+      "person": "server",
+      "lesson": "finish-it",
+      "practice": 2,
+      "listed": null
+    },
+    {
+      "person": "server",
+      "lesson": "or-rather",
+      "practice": 2,
+      "listed": null
+    },
+    {
+      "person": "server",
+      "lesson": "change-gear",
+      "practice": 2,
+      "listed": null
+    },
+    {
+      "person": "server",
+      "lesson": "short-and-concrete",
+      "practice": 1,
+      "listed": null
+    },
+    {
+      "person": "server",
+      "lesson": "second-pass",
+      "practice": 1,
+      "listed": null
+    }
+  ],
+  "jobsToMinor": 0
+}

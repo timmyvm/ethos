@@ -11,8 +11,10 @@
 
 import { COLD_TOPICS, weeklyTopic, type ColdTopic } from "./cold-topics";
 import { DRILLS, todaysDrill } from "./drills";
-import { lessonById } from "@/content/lessons";
+import { lessonById, lessonFor } from "@/content/lessons";
 import { pathItemById, type PathItem } from "@/content/path";
+import type { Pool } from "@/content/portfolio";
+import { UNKNOWN_POOL } from "./pool";
 import {
   clampLevel,
   dailyQuestion,
@@ -94,6 +96,13 @@ export interface RepConfigInput {
   level?: string | number | null;
   mods?: string | null;
   premium?: boolean;
+  /**
+   * The person's topic pool (lib/pool.ts, the recorder passes
+   * `poolHere()`): a lesson practice whose topic the pool drops speaks
+   * on the lesson's stand-in (#492, content/lessons.ts `lessonFor`).
+   * Left out, it is `UNKNOWN_POOL`, an age never given, which is school.
+   */
+  pool?: Pool;
 }
 
 /**
@@ -306,7 +315,10 @@ export function resolveRepConfig(
    * there is no progress table, and a counter that can drift from the
    * recordings would.
    */
-  const lesson = lessonById(input.lesson);
+  /* The lesson as this person is shown it (#492): the same practices,
+     ids and mod, a stand-in topic where their pool drops its own. */
+  const found = lessonById(input.lesson);
+  const lesson = found ? lessonFor(found, input.pool ?? UNKNOWN_POOL) : null;
   if (lesson) {
     const n = Math.min(
       Math.max(1, Number(input.q) || 1),

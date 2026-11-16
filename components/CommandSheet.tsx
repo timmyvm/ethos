@@ -8,6 +8,7 @@ import { Overlay, useOverlayClose } from "@/components/ui/Overlay";
 import { heldReps } from "@/lib/client-data";
 import { findCommands, groupCommands, type Command } from "@/lib/commands";
 import { todayHref } from "@/lib/home";
+import { poolHere } from "@/lib/pool";
 import { writePrefs } from "@/lib/prefs";
 
 /**
@@ -75,7 +76,8 @@ function Menu({ onClose, closeRef }: { onClose: () => void; closeRef?: React.Ref
       writePrefs({ theme: c.theme });
       applyTheme(c.theme);
     } else {
-      const href = c.today ? todayHref(heldReps() ?? []) : c.href;
+      /* Today's own practice in this phone's pool, the card's (#489). */
+      const href = c.today ? todayHref(heldReps() ?? [], new Date(), poolHere()) : c.href;
       if (href) router.push(href);
     }
     close();

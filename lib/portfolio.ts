@@ -10,9 +10,7 @@
  */
 
 import {
-  AGE_BANDS,
   BOSSES,
-  CONTEXTS,
   GOALS,
   LEVELS,
   OPENING,
@@ -24,9 +22,10 @@ import {
   type PlanStep,
   type Pool,
 } from "@/content/portfolio";
-import { type Answers, type PainId, readOnboarding } from "./answers";
+import { type Answers, type PainId } from "./answers";
 import { UNITS, type Unit } from "./path";
-import { spin, TOPICS, type Topic } from "./topics";
+import { poolFor, poolHere } from "./pool";
+import { fitsPool, spin, TOPICS, type Topic } from "./topics";
 import { nextTopic } from "./topic-walk";
 
 export interface Portfolio {
@@ -136,23 +135,20 @@ export function buildPortfolio(a: Answers, units: Unit[] = UNITS): Portfolio {
   };
 }
 
-/** Where the answer says school (by age or by place), the pool is school. */
-export function poolFor(a: Answers): Pool {
-  const byAge = AGE_BANDS.find((b) => b.id === a.ageBand)?.pool ?? "all";
-  const byPlace = CONTEXTS.find((c) => c.id === a.context)?.pool ?? "all";
-  if (byAge === "school" || byPlace === "school") return "school";
-  return byPlace !== "all" ? byPlace : byAge;
-}
+/* The pool's rule lives in lib/pool.ts (#489), which the reminder and the
+   command menu read without the plan's tables; kept here by name. */
+export { poolFor, poolHere };
 
 /** A prompt lists the pools it doesn't fit; the pool drops those. */
 export function topicsFor(pool: Pool, topics: Topic[] = TOPICS): Topic[] {
-  const kept = topics.filter((t) => !t.not?.includes(pool));
+  const kept = topics.filter((t) => fitsPool(t, pool));
   return kept.length > 0 && kept.length < topics.length ? kept : topics;
 }
 
-/** This device's pool, from its introduction's answers. */
-function poolHere(): Topic[] {
-  return topicsFor(poolFor(readOnboarding().answers));
+/** This device's topics: the roulette draws from the pool Today's card,
+ *  the command menu's Today and the reminder walk (#489). */
+function topicsHere(): Topic[] {
+  return topicsFor(poolHere());
 }
 
 /**
@@ -161,7 +157,7 @@ function poolHere(): Topic[] {
  * this walk of the pool (#473, lib/topic-walk.ts), remembered as shown.
  */
 export function spinForAnswers(onScreen: string | null): Topic {
-  return nextTopic(poolHere(), onScreen);
+  return nextTopic(topicsHere(), onScreen);
 }
 
 /**
@@ -169,7 +165,7 @@ export function spinForAnswers(onScreen: string | null): Topic {
  * `exclude`, and nothing remembered, because nobody reads it.
  */
 export function passingForAnswers(exclude: string | null): Topic {
-  return spin(exclude, Math.random, poolHere());
+  return spin(exclude, Math.random, topicsHere());
 }
 
 /** The floor's day-one line, in their words: "fillers, rushing". */

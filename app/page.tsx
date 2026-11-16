@@ -49,11 +49,11 @@ import { readPrefs } from "@/lib/prefs";
 import { readOnboarding } from "@/lib/answers";
 import { syncOnboarding } from "@/lib/answers-sync";
 import { spinForAnswers } from "@/lib/portfolio";
+import { poolFor, poolHere } from "@/lib/pool";
+import type { Pool } from "@/content/portfolio";
 import { repHref } from "@/lib/rep-config";
 import { armReminder } from "@/lib/reminders";
-import { choosePractice } from "@/lib/next-practice";
-import { buildChallenge, practiceRow } from "@/lib/challenge";
-import { readTraitsFromRow } from "@/lib/trait-readings";
+import { buildChallenge } from "@/lib/challenge";
 import { computeStreak, type StreakState } from "@/lib/streak";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
 import {
@@ -68,6 +68,7 @@ import {
   heroObject,
   lastSpokeOn,
   practiceHref,
+  todaysPractice,
   usedModsLately,
   weekView,
 } from "@/lib/home";
@@ -152,6 +153,10 @@ export default function Home() {
   const drop = usePriceDrop(plan.view, paywall === null);
   const dropOpen = drop.open && !!plan.today;
   const [topic, setTopic] = useState<Topic | null>(null);
+  /* The topic pool (#489): this phone's introduction answers, then the
+     account's once they sync. Read in the first render, so a tab return
+     drawn from what the visit holds names the same topic it lands on. */
+  const [pool, setPool] = useState<Pool>(poolHere);
   /*
    * Focus across the swap. Opening the roulette unmounts the spin glyph
    * that held focus and closing it unmounts the way back, and both times
@@ -373,8 +378,10 @@ export default function Home() {
         setName((was) => greetingName(p?.display_name) ?? (p === undefined ? was : null) ?? local);
         setNameKnown(true);
         // The introduction's answers follow the account (#232): a
-        // finished walk goes up, or the account's answers come down.
-        return syncOnboarding();
+        // finished walk goes up, or the account's answers come down, and
+        // the pool follows them, so the card names the topic the
+        // reminder, which reads the account's, names (#489).
+        return syncOnboarding().then((s) => setPool(poolFor(s.answers)));
       })
       .catch(() => {});
 
@@ -425,12 +432,11 @@ export default function Home() {
    * stands its object, today's line works on the same trait (it reads
    * the same `choosePractice` off the same row), and the wide tile is
    * handed the same trait, whatever today's recordings did to the
-   * newest numbers under it.
+   * newest numbers under it. In the person's pool (#489), the one the
+   * command menu's Today and the reminder pass, so all three name one
+   * topic.
    */
-  const lastBeforeToday = practiceRow(history);
-  const chosen = lastBeforeToday
-    ? choosePractice(readTraitsFromRow(lastBeforeToday))
-    : null;
+  const chosen = todaysPractice(history, new Date(), pool);
 
   /* The same reading, the same trait, one line to clear (#281). */
   const challenge = buildChallenge(history);

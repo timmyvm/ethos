@@ -14,6 +14,7 @@ import { EMPTY_ANSWERS, type Answers } from "./answers";
 import { QUESTIONS } from "./onboarding";
 import { UNITS } from "./path";
 import { buildPortfolio, dayOneNote, poolFor, topicsFor } from "./portfolio";
+import { poolForRow } from "./pool";
 import { TOPICS } from "./topics";
 
 const words = (s: string) => s.trim().split(/\s+/).filter(Boolean).length;
@@ -287,7 +288,35 @@ describe("the prompt pool", () => {
     expect(poolFor({ ...EMPTY_ANSWERS, ageBand: "u18" })).toBe("school");
     expect(poolFor({ ...EMPTY_ANSWERS, context: "class" })).toBe("school");
     expect(poolFor({ ...EMPTY_ANSWERS, ageBand: "25_34", context: "work" })).toBe("work");
-    expect(poolFor(EMPTY_ANSWERS)).toBe("all");
+    expect(poolFor({ ...EMPTY_ANSWERS, ageBand: "18_24" })).toBe("all");
+    expect(poolFor({ ...EMPTY_ANSWERS, ageBand: "25_34", context: "social" })).toBe("social");
+    expect(poolFor({ ...EMPTY_ANSWERS, ageBand: "18_24", context: "class" })).toBe("school");
+  });
+
+  /* #489: the job prompts wait for an age, or for Work as the place. */
+  it("is school when the age was never given, unless the place is Work", () => {
+    expect(poolFor(EMPTY_ANSWERS)).toBe("school");
+    expect(poolFor({ ...EMPTY_ANSWERS, context: "social" })).toBe("school");
+    expect(poolFor({ ...EMPTY_ANSWERS, context: "online" })).toBe("school");
+    expect(poolFor({ ...EMPTY_ANSWERS, context: "work" })).toBe("work");
+  });
+
+  /* The reminder reads the account's row through the same rule. */
+  it("reads the account's row the way the phone reads its answers", () => {
+    expect(poolForRow(null)).toBe("school");
+    expect(poolForRow(undefined)).toBe("school");
+    expect(poolForRow({ age_band: null, context: null })).toBe("school");
+    expect(poolForRow({ age_band: "u18", context: "work" })).toBe("school");
+    expect(poolForRow({ age_band: "18_24", context: null })).toBe("all");
+    expect(poolForRow({ age_band: "25_34", context: "online" })).toBe("online");
+    expect(poolForRow({ age_band: null, context: "work" })).toBe("work");
+    // A value the table never held is an answer never given.
+    expect(poolForRow({ age_band: "19-22", context: "meetings" })).toBe("school");
+    for (const ageBand of [null, "u18", "18_24", "25_34", "35_plus"] as const) {
+      for (const context of [null, "class", "work", "social", "online"] as const) {
+        expect(poolForRow({ age_band: ageBand, context })).toBe(poolFor({ ...EMPTY_ANSWERS, ageBand, context }));
+      }
+    }
   });
 
   it("drops the job prompts for school and nothing else", () => {

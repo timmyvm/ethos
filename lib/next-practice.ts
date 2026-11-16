@@ -23,11 +23,11 @@
  * comparison, not a score, and it is never shown.
  */
 
-import { PATH, type PathItem } from "@/content/path";
+import { walkFor, type PathItem } from "@/content/path";
+import type { Pool } from "@/content/portfolio";
 import type { TraitId } from "@/content/traits";
 import { NORMS } from "@/content/norms";
 import { ordinal, withUnit, type TraitReading } from "./trait-readings";
-import type { Topic } from "./topics";
 
 /**
  * Where a trait's raw value sits, 0 worst to 1 best, for comparison
@@ -76,11 +76,19 @@ export interface Chosen {
  * topic is the day's for every trait at a tier and the angle is the
  * trait's (content/path.ts, #481), so a change of weakest trait brings
  * no topic back early.
+ *
+ * `pool` is the person's topic pool (lib/pool.ts `poolFor`, #489):
+ * Today's card, the command menu's Today and the reminder all pass the
+ * same one, so the three name one topic. A school pool walks the same
+ * walk at the same place, with a stand-in where the walk held a topic
+ * the pool drops (`walkFor`); "all" walks exactly the walk it always
+ * did. The trait does not depend on the pool, so a caller that reads
+ * only the trait (lib/challenge.ts) may leave it out.
  */
 export function choosePractice(
   readings: TraitReading[],
   now: Date = new Date(),
-  allowed?: (t: Topic) => boolean
+  pool: Pool = "all"
 ): Chosen | null {
   if (readings.length === 0) return null;
 
@@ -90,19 +98,15 @@ export function choosePractice(
   const weakest = ranked[0];
 
   const tier: 1 | 2 = weakest.s < 0.5 ? 1 : 2;
-  let pool = PATH.filter((p) => p.trait === weakest.r.id && p.tier === tier);
-  if (allowed) {
-    const kept = pool.filter((p) => allowed({ id: p.topicId } as Topic));
-    if (kept.length > 0) pool = kept;
-  }
-  if (pool.length === 0) return null;
+  const walk = walkFor(weakest.r.id, tier, pool);
+  if (walk.length === 0) return null;
 
   // The person's own calendar day (#77), the boundary todaysDrill uses:
   // a UTC day turned the card over at 11:00 in Sydney and 20:00 in New York.
   const day = Math.floor(
     Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86400000
   );
-  const item = pool[Math.abs(day) % pool.length];
+  const item = walk[Math.abs(day) % walk.length];
 
   return {
     item,

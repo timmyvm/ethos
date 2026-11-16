@@ -9,6 +9,7 @@
 
 import { lessonById } from "@/content/lessons";
 import { NORMS } from "@/content/norms";
+import type { Pool } from "@/content/portfolio";
 import { TRAIT, TRAITS, type TraitId } from "@/content/traits";
 import { cleanName } from "./answers";
 import { bandClose, practiceRow, type Challenge } from "./challenge";
@@ -470,11 +471,13 @@ export type PracticeRow = Pick<
 /**
  * Today's practice: the one selector (#268) on the newest measured
  * recording before today, so the card, today's line, the wide tile and
- * now the reminder name one topic.
+ * now the reminder name one topic. The pool is the person's (#489):
+ * this phone's answers on Today and in the command menu, the account's
+ * in the reminder, the same answers once synced.
  */
-export function todaysPractice(history: PracticeRow[], now: Date = new Date()): Chosen | null {
+export function todaysPractice(history: PracticeRow[], now: Date, pool: Pool): Chosen | null {
   const row = practiceRow(history, now);
-  return row ? choosePractice(readTraitsFromRow(row), now) : null;
+  return row ? choosePractice(readTraitsFromRow(row), now, pool) : null;
 }
 
 /**
@@ -536,10 +539,10 @@ export function dayOf(lastDay: string | null, now: Date = new Date()): "none" | 
  * from Today's and filed the take against the road's. With no
  * recording yet it is Today, which knows day one's lesson.
  */
-export function todayHref(history: PracticeRow[], now: Date = new Date()): string {
+export function todayHref(history: PracticeRow[], now: Date, pool: Pool): string {
   if (history.length === 0) return "/";
   const spoken = dayOf(lastSpokeOn(history), now) === "spoken";
-  return practiceHref(todaysPractice(history, now), { ready: !spoken });
+  return practiceHref(todaysPractice(history, now, pool), { ready: !spoken });
 }
 
 /**
@@ -562,13 +565,13 @@ export function onWall(at: Date, tzOffset: number): Date {
   );
 }
 
-/** `todayHref` on a subscriber's calendar, for the server's reminder. */
-export function todayHrefOn(history: PracticeRow[], now: Date, tzOffset: number): string {
+/** `todayHref` on a subscriber's calendar and in their pool, for the server's reminder. */
+export function todayHrefOn(history: PracticeRow[], now: Date, tzOffset: number, pool: Pool): string {
   const wall = history.map((r) => ({
     ...r,
     created_at: onWall(new Date(r.created_at), tzOffset).toISOString(),
   }));
-  return todayHref(wall, onWall(now, tzOffset));
+  return todayHref(wall, onWall(now, tzOffset), pool);
 }
 
 /**

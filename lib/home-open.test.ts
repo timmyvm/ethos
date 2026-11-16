@@ -202,7 +202,7 @@ describe("Start's address and the reminder's are one", () => {
   const history = [take(nov(5)), take(nov(6)), take(nov(8))];
 
   it("is Today's own practice, the one selector's (#268)", () => {
-    const chosen = todaysPractice(history, NOW)!;
+    const chosen = todaysPractice(history, NOW, "all")!;
     expect(chosen).not.toBeNull();
     expect(chosen).toEqual(choosePractice(readTraitsFromRow(history[2]), NOW));
     // The card, today's line and the reminder name one trait.
@@ -215,22 +215,22 @@ describe("Start's address and the reminder's are one", () => {
   });
 
   it("opens ready on a day not yet spoken, and as it was on a day already spoken", () => {
-    const open = todayHref(history, NOW);
-    expect(open).toBe(practiceHref(todaysPractice(history, NOW), { ready: true }));
+    const open = todayHref(history, NOW, "all");
+    expect(open).toBe(practiceHref(todaysPractice(history, NOW, "all"), { ready: true }));
     const spoken = [...history, take(nov(9, 7))];
-    const again = todayHref(spoken, NOW);
+    const again = todayHref(spoken, NOW, "all");
     expect(params(again).get("ready")).toBeNull();
     // A take earlier today does not move today's practice (#268).
     expect(params(again).get("item")).toBe(params(open).get("item"));
   });
 
   it("opens Today with no recording yet, which knows day one's lesson", () => {
-    expect(todayHref([], NOW)).toBe("/");
+    expect(todayHref([], NOW, "all")).toBe("/");
   });
 
   it("falls back to the fallback topic when nothing measured", () => {
     const short = [take(nov(8), { transcript: "Okay.", duration_s: 4 })];
-    const q = params(todayHref(short, NOW));
+    const q = params(todayHref(short, NOW, "all"));
     expect(q.get("topic")).toBe(FALLBACK_TOPIC_ID);
     expect(q.get("item")).toBeNull();
     expect(q.get("trait")).toBe("pause");
@@ -238,9 +238,9 @@ describe("Start's address and the reminder's are one", () => {
   });
 
   it("files the take as Today's topic, never the road's rotation", () => {
-    const q = params(todayHref(history, NOW));
+    const q = params(todayHref(history, NOW, "all"));
     const c = resolveRepConfig({ topic: q.get("topic"), item: q.get("item") });
-    const chosen = todaysPractice(history, NOW)!;
+    const chosen = todaysPractice(history, NOW, "all")!;
     expect(c.unit).toBe("Today's practice");
     expect(c.lessonId).toBe(`topic:${chosen.item.topicId}`);
     expect(recordingText(c).topic).toBe(chosen.item.prompt);
@@ -249,7 +249,7 @@ describe("Start's address and the reminder's are one", () => {
   });
 
   it("does not make ready part of the take: the same recording either way", () => {
-    const item = todaysPractice(history, NOW)!.item;
+    const item = todaysPractice(history, NOW, "all")!.item;
     const plain = params(repHref({ topic: item.topicId, item: item.id }));
     const ready = params(repHref({ topic: item.topicId, item: item.id, ready: true }));
     expect(repKey(ready)).toBe(repKey(plain));
@@ -276,13 +276,13 @@ describe("the reminder on the subscriber's calendar", () => {
     const mel = (d: number, h: number, m = 12) => new Date(Date.UTC(2026, 10, d, h - 11, m));
     const stored = [5, 6, 8].map((d) => take(mel(d, 18)));
     const tick = mel(9, 8, 30);
-    const href = todayHrefOn(stored, tick, MEL);
+    const href = todayHrefOn(stored, tick, MEL, "all");
     // The phone in Melbourne, reading the same rows on its own clock.
     const onPhone = stored.map((r) => ({ ...r, created_at: onWall(new Date(r.created_at), MEL).toISOString() }));
-    expect(href).toBe(todayHref(onPhone, onWall(tick, MEL)));
+    expect(href).toBe(todayHref(onPhone, onWall(tick, MEL), "all"));
     expect(params(href).get("ready")).toBe("1");
     // And once they have spoken that morning, it is not ready, on any server clock.
     const spoke = [...stored, take(mel(9, 7))];
-    expect(params(todayHrefOn(spoke, tick, MEL)).get("ready")).toBeNull();
+    expect(params(todayHrefOn(spoke, tick, MEL, "all")).get("ready")).toBeNull();
   });
 });

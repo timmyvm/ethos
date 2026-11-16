@@ -114,7 +114,7 @@ export function achievements(reps: RepRow[]): Achievement[] {
     {
       id: "zone",
       name: "In the zone",
-      requirement: "5 recordings at 130 to 160 wpm",
+      requirement: "5 recordings at 130 to 160 words a minute",
       earned: inZone >= 5,
       progress: Math.min(1, inZone / 5),
       href: "/rep?lesson=p1",

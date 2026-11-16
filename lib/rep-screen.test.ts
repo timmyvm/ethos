@@ -87,7 +87,8 @@ describe("recordCue", () => {
       xp: 0,
     });
     expect(cue?.headline ?? "").not.toMatch(/streak alive/);
-    expect(cue?.headline).toMatch(/·/);
+    // The closest milestone, in its two-second line (#483).
+    expect(cue?.headline).toBe("Your best score is 600. Next: 700.");
   });
 });
 

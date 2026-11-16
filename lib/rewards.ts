@@ -65,18 +65,18 @@ export function anticipation(
   if (!streak.didToday && streak.current > 0) {
     return {
       headline: `This one keeps a ${streak.current}-day streak alive`,
-      // Two clauses, not one forced sentence: milestone labels are
-      // nouns of every shape ("Ethos 700", "3★ on Kill 'like'") and
-      // splicing them mid-sentence reads as broken copy.
-      detail: closest
-        ? `Closest after that: ${closest.label}, ${closest.remainingLabel}.`
-        : "Five minutes, in and out.",
+      // The next milestone's own line, whole: splicing a label into a
+      // sentence of ours ("Ethos 700", "3★ on Kill 'like'") read as
+      // broken copy.
+      detail: closest ? closest.line : "Five minutes, in and out.",
       tone: "earned",
     };
   }
   if (!closest) return null;
+  /* Its line, which passes the two-second test (#483): "Your best score
+     is 704. Next: 800.", never "Ethos 800 · 96 to go". */
   return {
-    headline: `${closest.label} · ${closest.remainingLabel}`,
+    headline: closest.line,
     detail: closest.detail,
     tone: "earned",
   };

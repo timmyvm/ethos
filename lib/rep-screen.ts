@@ -125,27 +125,24 @@ export function takeRewards(p: {
 /**
  * The round's one sound (F5, #34, #140): the daily chime and the landing
  * buzz when the reveal lands the game's one thing (Q&A held, Speed rush
- * or Interview landed). Never on a miss, never twice in a round, and
- * never when the streak celebration already played this round, since
- * that was the round's one sound. The mic is torn down by the results,
- * so it can never reach a recording.
+ * or Interview landed). Never on a miss and never twice in a round. The
+ * streak's moment comes after the results since #480, on the way out, so
+ * the reveal no longer waits for it or gives way to it. The mic is torn
+ * down by the results, so it can never reach a recording.
  */
 export function roundChimes(p: {
   /** The reveal landed a win (`roundWon`). */
   win: boolean;
-  /** The streak celebration played, or is up, for this round. */
-  streakCelebrated: boolean;
   /** This round's reveal already chimed (a step back to the score). */
   played: boolean;
 }): boolean {
-  return p.win && !p.streakCelebrated && !p.played;
+  return p.win && !p.played;
 }
 
 /**
- * The other side of the round's one sound: the streak celebration chimes
- * unless the round's reveal already did. The reveal stops waiting for the
- * rewards after 2.5s, so on a slow connection a held round can chime
- * before the day's first streak roll lands; the roll then shows quiet.
+ * The other side of the take's one sound: the streak's moment on the way
+ * out (#480) chimes unless the round on screen already did, so one take
+ * never has two.
  */
 export function streakChimes(p: { roundChimed: boolean }): boolean {
   return !p.roundChimed;
@@ -163,15 +160,26 @@ export function thinksFirst(frameStep: boolean, thoughtAlready: boolean): boolea
 
 /**
  * What stands between a tapped exit and where it goes (DECISIONS #427):
- * at most one beat per exit, in this order. The save wall (#134) and a
- * free account's taste of a Premium game (#419) on any exit, as before;
- * Since day one (#11, #198 a) only on an exit that leaves the session
- * (the header's back, Back to the lesson, Next lesson, Go again), never
- * between a lesson's practices, on Another round or on Retake. A beat not
- * shown stays due for the next exit that leaves. The reminder ask left
- * the exit for the glance itself (#430): people glance and leave.
+ * at most one beat per exit, in this order. The streak's moment (#480)
+ * first, on the first exit that leaves after the take that made today
+ * count: after the results and before Today, never between a lesson's
+ * practices, on Another round or on Retake, where it waits, owed, for the
+ * exit that leaves. Then the save wall (#134) and a free account's taste
+ * of a Premium game (#419) on any exit, as before; Since day one (#11,
+ * #198 a) only on an exit that leaves the session (the header's back,
+ * Back to the lesson, Next lesson, Go again). A beat not shown stays due
+ * for the next exit that leaves. The reminder ask left the exit for the
+ * glance itself (#430): people glance and leave.
+ *
+ * The moment is a celebration, not an ask, so after its Continue the
+ * same exit goes on through the asks in their order, still at most one
+ * (`afterStreak`): the save wall, the taste, Since day one. They cannot
+ * wait for a later exit (the #480 review): the moment is owed by the
+ * day's first take, so for someone who speaks once a day every exit that
+ * leaves is the moment's, and Since day one (due from day 3) and the
+ * taste (once, on today's free round) would never come.
  */
-export type ExitBeat = "gate" | "taste" | "pro" | null;
+export type ExitBeat = "streak" | "gate" | "taste" | "pro" | null;
 
 export function exitBeat(p: {
   /** The save wall is due (gateMoment). */
@@ -182,11 +190,14 @@ export function exitBeat(p: {
   proDue: boolean;
   /** The exit leaves the session. */
   leaves: boolean;
-  /** The streak celebration is up: the taste never plays over it. */
-  streakUp: boolean;
+  /** The streak's moment is owed (lib/streak-moment.ts). */
+  streakDue: boolean;
+  /** This exit has just played the streak's moment: it never plays twice. */
+  afterStreak?: boolean;
 }): ExitBeat {
+  if (p.leaves && p.streakDue && !p.afterStreak) return "streak";
   if (p.gate) return "gate";
-  if (p.tasteDue && !p.streakUp) return "taste";
+  if (p.tasteDue) return "taste";
   if (p.leaves && p.proDue) return "pro";
   return null;
 }

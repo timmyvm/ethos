@@ -72,7 +72,7 @@ export function hostileTile(opts: {
 }
 
 /** What the weekly boss asks, on Today's tile before the week is taken. */
-export const BOSS_ASK_LINE = "Read it, then explain it";
+export const BOSS_ASK_LINE = "Read it, explain it";
 
 export function bossTile(opts: { now: Date | null; rows: readonly BossTakeRow[] | null }): ModeTile {
   const { now, rows } = opts;

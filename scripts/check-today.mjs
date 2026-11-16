@@ -185,7 +185,7 @@ for (const theme of ["light", "dark"]) {
       modes.tiles.length === 2 &&
         h.subject.length > 4 && b.subject.length > 4 &&
         /^(\d free today|Next in .+)$/.test(h.line) &&
-        /^(\d days left|Last day|Done this week)$/.test(b.line) &&
+        /^(Read it, explain it|Done this week)$/.test(b.line) &&
         h.label.startsWith("Hostile Q&A.") && h.label.includes(h.subject) &&
         b.label.startsWith("Weekly boss.") && b.label.includes(b.subject),
       `"${h?.subject}" / "${h?.line}"; "${b?.subject}" / "${b?.line}"`

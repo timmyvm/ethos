@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { TapTick } from "@/components/ui/TapTick";
 import { DemosArt } from "@/components/DemosArt";
-import { IconBoss, IconGlobe } from "@/components/Icon";
+import { IconGlobe } from "@/components/Icon";
 import { Paywall } from "@/components/Paywall";
 import { PremiumMark } from "@/components/PremiumMark";
 import { Reel, useReel } from "@/components/Reel";
@@ -28,7 +28,6 @@ import {
 } from "@/lib/boss";
 import { fetchProfile, fetchRepSpine, fetchReps } from "@/lib/client-data";
 import { COLD_TOPICS, weeklyTopic, type ColdTopic } from "@/lib/cold-topics";
-import { HOSTILE_LINE } from "@/lib/hostile";
 import { weekStart } from "@/lib/level";
 import { prefersReducedMotion } from "@/lib/prefs";
 import { holdAwake } from "@/lib/wake-lock";
@@ -36,6 +35,7 @@ import { repHref } from "@/lib/rep-config";
 import { SPRING, springEasing, springMs } from "@/lib/spring";
 import { ACTION_CLASS, DISABLED_CLASS, INPUT_CLASS } from "@/lib/ui";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
+import { useBackFrom } from "@/lib/use-back-from";
 
 /** Free tier: the headliner plus two re-rolls a week (DECISIONS #181). */
 const FREE_SPINS = 2;
@@ -114,6 +114,8 @@ export default function BossPage() {
   const [weekRead, setWeekRead] = useState<"no" | "yes" | "failed">("no");
   const [daysLeft, setDaysLeft] = useState<number | null>(null);
   const leaving = useRef(false);
+  /* Practice owns the boss; Today opens it too since #478 (`?from=today`). */
+  const parent = useBackFrom("games");
 
   useEffect(() => {
     const w = weeklyTopic();
@@ -239,8 +241,9 @@ export default function BossPage() {
         phase === "lobby" ? "" : "pb-safe"
       }`}
     >
-      {/* Practice is where both bosses' doors live (modes-1). */}
-      <BackLink href="/games" label="Practice" />
+      {/* Practice is where both bosses' doors live (modes-1), and Today
+          opens this one too (#478): back returns to whichever it was. */}
+      <BackLink href={parent.href} label={parent.label} />
 
       {phase === "lobby" && (
         <>
@@ -332,9 +335,9 @@ export default function BossPage() {
               with its one mark, over one plain card of rows, each a bare
               ink glyph, the name, one line and the chevron. No
               filled tap: the room's one tap is the take. Pick a topic
-              opens the library on a plan and the paywall without one;
-              Hostile Q&A goes to its own screen, which says a free
-              account's one a week before the take. */}
+              opens the library on a plan and the paywall without one.
+              Hostile Q&A left this card when it went free (#478): Today
+              and Practice's Free open it. */}
           <div className="mt-7 flex items-center justify-between gap-3">
             <h2 className="section-head">Premium</h2>
             <PremiumMark variant="chip" />
@@ -362,21 +365,6 @@ export default function BossPage() {
               </span>
               <Disclosure className={library ? "rotate-90" : ""} />
             </button>
-            <Link
-              href="/hostile"
-              className="press-row flex min-h-14 items-center gap-3 border-t border-hairline py-2"
-            >
-              <span aria-hidden className="shrink-0 text-ink">
-                <IconBoss size={24} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="font-display block text-detail font-semibold text-ink">
-                  Hostile Q&amp;A
-                </span>
-                <span className="block text-link font-medium text-stone-500">{HOSTILE_LINE}.</span>
-              </span>
-              <Disclosure />
-            </Link>
           </div>
           {library && paid && (
             <div className="reveal mt-3">

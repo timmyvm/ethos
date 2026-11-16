@@ -46,7 +46,6 @@ import { weekStart } from "@/lib/level";
 import {
   dayState,
   freeAgainLine,
-  hostileUsedThisWeek,
   lessonIdsNewestFirst,
   PREMIUM_DEPTH,
   tileLadder,
@@ -76,8 +75,9 @@ import { usePaywallReturn } from "@/lib/use-paywall-return";
  *  - A free account plays one Premium game a day (item 12): today's is
  *    a real tile, "Free today", and after its round it says when it is
  *    free again and opens the paywall. The card names tomorrow's game
- *    and what the levels are (item 14). Its weekly Hostile Q&A is a
- *    door here too (item 15).
+ *    and what the levels are (item 14).
+ *  - Hostile Q&A is free since #478 and stands in Free beside Q&A, for
+ *    every plan; Today opens it too. Upload is the section's wide door.
  *  - Nothing moves on load and nothing is guessed (practice-tab-2,
  *    -14): the week and the day are read on the device after mount, the
  *    plan slot holds a skeleton until the profile lands, and a failed
@@ -143,12 +143,6 @@ export default function GamesPage() {
   const [bossDone, setBossDone] = useState<boolean | null>(() =>
     heldRows ? bossTaken(heldRows, weekStart()) : null
   );
-  /* This week's free Hostile Q&A, from the same rows: null while in
-     flight or failed, and an unknown week opens the door (the route
-     decides, its own degrade-open rule). */
-  const [hostileUsed, setHostileUsed] = useState<boolean | null>(() =>
-    heldRows ? hostileUsedThisWeek(heldRows) : null
-  );
   /* Days left in the week, from the DEVICE's own week. Read after
      mount, never in render (practice-tab-2): the server's week is UTC
      and the phone's is local, so on a Sunday morning in Melbourne the
@@ -183,7 +177,6 @@ export default function GamesPage() {
     fetchReps()
       .then((rows) => {
         setBossDone(bossTaken(rows, week));
-        setHostileUsed(hostileUsedThisWeek(rows));
       })
       // A failed first read lands on "days left", true either way; a
       // failed later one leaves what the screen says.
@@ -347,7 +340,12 @@ export default function GamesPage() {
               onPress={() => play(g)}
             />
           ))}
-          <GameTile glyph={<IconUpload size={28} />} name="Upload a recording" href="/upload" />
+          {/* Free for every plan since #478, three rounds a day on the
+              free plan, said on its own screen before the take. It has
+              no ladder: its numbers are a model's read, never a rung. */}
+          <GameTile glyph={GLYPH.hostile(28)} name="Hostile Q&A" href="/hostile" />
+          {/* An input, not a game: the grid's one wide door. */}
+          <WideTile glyph={<IconUpload size={28} />} name="Upload a recording" href="/upload" />
         </div>
 
         {/* The tier's head, its name and its mark (D31, D04): the mark
@@ -383,17 +381,12 @@ export default function GamesPage() {
                 onPress={() => play(g)}
               />
             ))}
-            {/* Hostile has no ladder (its numbers are a model's read,
-                never a rung), so it is the grid's one wide row: a door,
-                its chevron at the end. */}
-            <WideTile glyph={GLYPH.hostile(28)} name="Hostile Q&A" href="/hostile" />
           </div>
         ) : (
           <div className="arrive mt-3">
             {/* What a free account can open today: the day's Premium
-                game and the week's Hostile Q&A, each a real door that
-                says why. Spent, each says when it is free again and
-                opens the paywall. */}
+                game, a real door that says why. Spent, it says when it
+                is free again and opens the paywall. */}
             <div className="grid grid-cols-2 gap-3">
               {dayGame && (
                 <GameTile
@@ -409,22 +402,9 @@ export default function GamesPage() {
                   ladder={ladderOf(dayGame)}
                   paywall={dayGameState === "spent"}
                   onPress={() => play(dayGame)}
-                />
-              )}
-              {hostileUsed === true ? (
-                <GameTile
-                  glyph={GLYPH.hostile(28)}
-                  name="Hostile Q&A"
-                  note="Free again Monday"
-                  paywall
-                  onPress={() => setPaywall("Hostile Q&A · once a week free")}
-                />
-              ) : (
-                <GameTile
-                  glyph={GLYPH.hostile(28)}
-                  name="Hostile Q&A"
-                  note={hostileUsed === false ? "1 free this week" : undefined}
-                  href="/hostile"
+                  /* Alone in its row since Hostile left for Free (#478):
+                     the grid's width, so no empty cell stands beside it. */
+                  wide
                 />
               )}
             </div>
@@ -495,6 +475,7 @@ function GameTile({
   note,
   ladder,
   paywall = false,
+  wide = false,
 }: {
   glyph: ReactNode;
   name: string;
@@ -506,6 +487,8 @@ function GameTile({
   ladder?: TileLadder | "loading" | null;
   /** The tap opens the paywall. */
   paywall?: boolean;
+  /** The grid's whole width: a tile alone in its row (#478). */
+  wide?: boolean;
 }) {
   const lad = ladder && ladder !== "loading" ? ladder : null;
   const inner = (
@@ -533,7 +516,7 @@ function GameTile({
       {lad && <LadderLines ladder={lad} />}
     </>
   );
-  const cls = "game-card card flex min-h-[124px] flex-col p-3 text-left";
+  const cls = `game-card card flex min-h-[124px] flex-col p-3 text-left${wide ? " col-span-2" : ""}`;
   return href ? (
     <Link href={href} className={`press ${cls}`}>
       {inner}
@@ -604,8 +587,9 @@ function LadderLines({ ladder }: { ladder: TileLadder }) {
 }
 
 /**
- * A door the width of the grid, for the one mode with no ladder: its
- * glyph, its name, the row's chevron.
+ * A door the width of the grid, for the one input that is not a game
+ * (Upload, since #478; Hostile Q&A was this row on a Premium account):
+ * its glyph, its name, the row's chevron.
  */
 function WideTile({ glyph, name, href }: { glyph: ReactNode; name: string; href: string }) {
   return (

@@ -25,7 +25,6 @@ import {
   lineTile,
   objectSrc,
   signed,
-  tileObject,
   traitOrder,
   weekView,
   wideLine,
@@ -92,18 +91,15 @@ describe("every practice has its object", () => {
     expect(heroObject(null)).toBe(HOUSE_OBJECT);
   });
 
-  it("each tile stands its trait's one emblem, whatever the card stands (D22)", () => {
-    expect(TRAITS.map((t) => tileObject(t.id))).toEqual([
-      "the-long-one", // Pausing, the hourglass
-      "the-cold-open", // Fillers, the door
-      "finish-it", // Restarts, the flag
-      "room-to-land", // Pace, the road
-      "name-it-once", // Variety, the tag
-    ]);
-    for (const t of TRAITS) {
-      expect(tileObject(t.id)).toBe(TRAIT_OBJECT[t.id]);
-      expect(lessonById(tileObject(t.id))?.trait).toBe(t.id);
-    }
+  /* #478: the tiles under the card stand no object. The emblems were each
+     trait's first lesson object (D22); the card keeps its own. */
+  it("only the card stands an object: the tiles draw a flat glyph each, every one its own", () => {
+    const tiles = readFileSync(path.join(root, "components", "home", "HomeTiles.tsx"), "utf8");
+    expect(tiles).not.toMatch(/<img|objectSrc|tileObject|artBox/);
+    const glyphs = readFileSync(path.join(root, "components", "TraitGlyph.tsx"), "utf8");
+    const icons = TRAITS.map((t) => glyphs.match(new RegExp(`\\n  ${t.id}: \\(s\\) => <(Icon\\w+) size=\\{s\\} />`))?.[1]);
+    expect(icons.every(Boolean), JSON.stringify(icons)).toBe(true);
+    expect(new Set(icons).size).toBe(TRAITS.length);
   });
 
   it("the large cut carries transparency like the thumbnails", () => {
@@ -193,48 +189,6 @@ describe("every object stands in the card's zone, by its visible box", () => {
         expect(left + s * box["--art-w"], `${id} inside the card`).toBeLessThanOrEqual(card - 8);
         expect(t + s * box["--art-h"] - 1e-6, `${id} above the topic`).toBeLessThanOrEqual(topic - 6);
         if (small) expect(s * box["--art-h"], `${id} at 120px at most`).toBeLessThanOrEqual(120.01);
-      }
-    });
-  }
-
-  /*
-   * The tiles' emblems (D24): an object's visible top sits 12px or more
-   * inside its tile (only Variety's tag cord may reach the edge); it may
-   * run off the right by a fifth of its visible width and off the bottom
-   * by 15% of its height, never off the top; and it keeps clear of the
-   * name beside it and the number under it. Every trait can stand in
-   * the 2x2, so all five, at 320, 390 and 430.
-   */
-  const tileBlock = home.slice(home.indexOf("\n.home-tile[data-trait] {"), home.indexOf("}", home.indexOf("\n.home-tile[data-trait] {")));
-  const tileZone = (name: string) => {
-    const m = tileBlock.match(new RegExp(`--zone-${name}:\\s*([^;]+);`));
-    if (!m) throw new Error(`no tile --zone-${name}`);
-    return m[1];
-  };
-  const nameW = (id: TraitId) =>
-    Number(home.match(new RegExp(`\\.home-tile\\[data-trait="${id}"\\] \\{\\s*--name-w: (\\d+)px`))?.[1]);
-  for (const width of [320, 390, 430]) {
-    it(`at ${width}: every emblem stands inside its tile, cut at the right or foot only`, () => {
-      const W = (width - 40 - 12) / 2; // two tiles and their 12px gap in the column
-      const H = 172;
-      const content = W - 32;
-      const numTop = H - 16 - 4 - 10 - (content <= 120 ? 30 : 36);
-      for (const t of TRAITS) {
-        const box = artBox(tileObject(t.id));
-        const nw = nameW(t.id);
-        expect(nw, `${t.id} name width`).toBeGreaterThan(0);
-        const vars = { "name-w": nw };
-        const [l, r, top, b] = ["l", "r", "t", "b"].map((n) => at(tileZone(n), content, vars));
-        const s = Math.min((b - top) / box["--art-h"], (r - l) / box["--art-w"]);
-        const w = s * box["--art-w"];
-        const h = s * box["--art-h"];
-        const left = (l + r) / 2 - w / 2;
-        expect(top, `${t.id} top inside`).toBeGreaterThanOrEqual(t.id === "range" ? 0 : 12);
-        expect(left + w - W, `${t.id} off the right`).toBeLessThanOrEqual(0.2 * w);
-        expect(top + h - H, `${t.id} off the foot`).toBeLessThanOrEqual(0.15 * h);
-        expect(left, `${t.id} clear of its name`).toBeGreaterThanOrEqual(16 + nw + 8);
-        expect(top + h, `${t.id} clear of its number`).toBeLessThanOrEqual(numTop - 8);
-        expect(h, `${t.id} big enough to read`).toBeGreaterThanOrEqual(48);
       }
     });
   }

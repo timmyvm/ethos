@@ -29,8 +29,11 @@ function paywallTags(source: string): string[] {
 describe("the pages that open the paywall", () => {
   const hosts = pages("app").filter((f) => paywallTags(readFileSync(f, "utf8")).length > 0);
 
+  /* Seven since #478: Hostile Q&A went free and its screen opens no
+     sheet. The floor moves with it, so a bad glob still fails. */
   it("are found (so a bad glob can't pass silently)", () => {
-    expect(hosts.length).toBeGreaterThanOrEqual(8);
+    expect(hosts.length).toBeGreaterThanOrEqual(7);
+    expect(hosts.some((f) => f.includes("hostile"))).toBe(false);
   });
 
   for (const file of hosts) {

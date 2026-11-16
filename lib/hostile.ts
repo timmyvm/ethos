@@ -122,7 +122,7 @@ export function hostileNextLine(seconds: number): string {
 
 /** The cap, said whole: by the server's refusal, and over the screen's disabled Record. */
 export function hostileCapLine(seconds: number, cap: number = HOSTILE_FREE_ROUNDS): string {
-  return `That's today's ${cap} rounds. The next one opens in ${aboutWait(seconds)}.`;
+  return `That's today's ${cap} rounds. Next in ${aboutWait(seconds)}.`;
 }
 
 /**

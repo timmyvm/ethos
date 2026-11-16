@@ -329,6 +329,47 @@ export function IconPause({ size }: { size?: number }) {
   );
 }
 
+/**
+ * Restarts: the arrow that goes back round to the start, a sentence
+ * begun again (#478, Today's flat tiles).
+ */
+export function IconRestart({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="M3.75 12a8.25 8.25 0 1 0 8.25-8.25 8.9 8.9 0 0 0-6.2 2.5L3.75 8.2" />
+      <path d="M3.75 3.75V8.2H8.2" />
+    </Glyph>
+  );
+}
+
+/**
+ * Variety: three different shapes, the same thing never said the same
+ * way twice (#478, Today's flat tiles).
+ */
+export function IconVariety({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <path d="M12 3.6 16.1 10H7.9z" />
+      <rect x="3.6" y="13.5" width="7" height="7" rx="1.5" />
+      <circle cx="16.9" cy="17" r="3.5" />
+    </Glyph>
+  );
+}
+
+/**
+ * The weekly boss on Today (#478): a stopwatch, because the boss is
+ * timed (90 seconds to read, 90 to speak), as Demos's clock says on its
+ * stage. The shield (`IconBoss`) is Hostile Q&A's.
+ */
+export function IconStopwatch({ size }: { size?: number }) {
+  return (
+    <Glyph size={size}>
+      <circle cx="12" cy="13.6" r="7.15" />
+      <path d="M12 13.6V9.8M10 3.5h4M12 3.5v2.9M17.6 7.9l1.4-1.4" />
+    </Glyph>
+  );
+}
+
 /** Pace. */
 export function IconGauge({ size }: { size?: number }) {
   return (

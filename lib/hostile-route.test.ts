@@ -412,7 +412,7 @@ describe("the free plan's rounds", () => {
     expect(res.headers.get("Retry-After")).toBe(String(5 * 3600 - 120));
     expect(await res.json()).toMatchObject({
       capped: true,
-      error: "That's today's 3 rounds. The next one opens in about 5 hours.",
+      error: "That's today's 3 rounds. Next in about 5 hours.",
     });
     expect(transcribe).not.toHaveBeenCalled();
     expect(refundRateLimit).toHaveBeenCalledWith("hostile:u:u-1");

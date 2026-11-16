@@ -210,7 +210,7 @@ describe("the free plan's allowance, said before the take", () => {
     expect(hostileNextLine(5 * 3600 - 60)).toBe("Next in about 5 hours");
     expect(hostileNextLine(40 * 60)).toBe("Next in about 40 minutes");
     expect(hostileNextLine(20)).toBe("Next in a minute");
-    expect(hostileCapLine(15 * 3600)).toBe("That's today's 3 rounds. The next one opens in about 15 hours.");
+    expect(hostileCapLine(15 * 3600)).toBe("That's today's 3 rounds. Next in about 15 hours.");
     expect(aboutWait(89 * 60)).toBe("about 89 minutes");
     expect(aboutWait(90 * 60)).toBe("about 2 hours");
   });

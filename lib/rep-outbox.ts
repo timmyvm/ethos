@@ -15,6 +15,7 @@
  * product's floor is the old behavior, never a crash.
  */
 
+import { STREAM_TYPE, readAnalyze, type AnalyzeEvent } from "./analyze-stream";
 import { forgetRecordings } from "./held";
 
 export interface OutboxRep {
@@ -185,12 +186,27 @@ export function isInFlight(id: string): boolean {
   return inFlight.has(id);
 }
 
-function post(form: FormData, token: string | null): Promise<Response> {
-  return fetch("/api/analyze", {
+/**
+ * One send, read to its answer. A caller that watches the stages
+ * (`onEvent`, the recorder) asks for the answer in parts (#472) and is
+ * handed each as it lands; the status and body are the answer's either
+ * way (lib/analyze-stream.ts `readAnalyze`).
+ */
+async function post(
+  form: FormData,
+  token: string | null,
+  onEvent?: (event: AnalyzeEvent) => void
+): Promise<{ status: number; ok: boolean; data: unknown }> {
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (onEvent) headers.Accept = `${STREAM_TYPE}, application/json`;
+  const res = await fetch("/api/analyze", {
     method: "POST",
     body: form,
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    headers: Object.keys(headers).length ? headers : undefined,
   });
+  const { status, data } = await readAnalyze(res, onEvent);
+  return { status, ok: status >= 200 && status < 300, data };
 }
 
 export interface SendOutcome {
@@ -222,7 +238,9 @@ export async function sendWithRetry(
   onAttempt?: (attempt: number) => void,
   /** How many sends at most. The background flush sends once: the next
    *  app open or return to the network is its retry. */
-  tries: number = RETRY_DELAYS_MS.length + 1
+  tries: number = RETRY_DELAYS_MS.length + 1,
+  /** Each stage the route reaches, as it reaches it (#472): the recorder's wait. */
+  onEvent?: (event: AnalyzeEvent) => void
 ): Promise<SendOutcome> {
   const attempts = Math.max(1, tries);
   const source: TokenSource =
@@ -233,7 +251,7 @@ export async function sendWithRetry(
     onAttempt?.(i);
     try {
       let sent = await source();
-      let res = await post(form, sent);
+      let res = await post(form, sent, onEvent);
       // The sign-in lapsed between the token and the server (a long
       // ladder, a queue of flushes): refresh once and send again.
       if (res.status === 401 && !refreshed && typeof token === "function") {
@@ -241,10 +259,10 @@ export async function sendWithRetry(
         const fresh = await source(true);
         if (fresh) {
           sent = fresh;
-          res = await post(form, sent);
+          res = await post(form, sent, onEvent);
         }
       }
-      const data = await res.json().catch(() => null);
+      const data = res.data;
       if (res.ok && data) {
         // A recording landed: no tab opens on the numbers from before it.
         forgetRecordings();

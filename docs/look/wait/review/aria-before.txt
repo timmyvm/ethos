@@ -1,0 +1,12 @@
+- main:
+  - status:
+    - text: Recorded 0:08
+    - paragraph: "You said: So the thing about habits is, um, they compound. You do the small version every day and, like, it builds on its own. Um, the mistake people make is waiting to feel ready. You know, ready is a feeling that shows up after you start. I used to think discipline was the whole answer, and I would plan a week nobody could really do, then miss a day and quit the plan instead of the day. What changed was making the habit small enough that missing it felt stupid. Five minutes. Not an hour, just five minutes I can do standing in a kitchen. And the five minutes usually turns into more, but only because it was allowed to be five."
+    - list "Scoring":
+      - listitem: Sent
+      - listitem: Transcribed 121 words
+      - listitem: Fillers 4, first at 0:02
+      - listitem: Pace 145 words a minute
+      - listitem: Demos reads it
+      - listitem: Saving
+  - status

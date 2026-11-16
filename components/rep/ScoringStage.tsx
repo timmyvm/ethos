@@ -1,47 +1,53 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
 import { DemosFigure } from "@/components/DemosClip";
-import { IconBubble } from "@/components/Icon";
-import { useEffect, useState } from "react";
+import { IconBubble, IconCheck } from "@/components/Icon";
 import { ScoringWave } from "@/components/ScoringWave";
+import { Skeleton } from "@/components/ui/Skeleton";
+import type { EarlyRead } from "@/lib/analyze-stream";
+import { transcriptPieces } from "@/lib/transcript-words";
+import { WAIT_START, waitRows, type WaitRow, type WaitState } from "@/lib/wait";
 
 /**
  * The scoring wait (feedback round, 25 Sep: "scoring loading page is
- * boring").
+ * boring"; #472, the cohort's median of 76 seconds from Stop, and the
+ * people who left in the first 30).
  *
- * It was a grey bar wave, a scan line, "Scoring…" and two grey
- * sentences. Now it is three things that are all true:
+ * Three things, every one of them true when it is drawn:
  *
- *   Demos, working     the full-body 3D listening pose, standing on
- *                      the recording in a warm panel
- *   your recording     its own envelope, lit amber as the scan passes
- *   what is measured   the length, which the phone already knows, shown
- *                      at once (DESIGN.md: measured numbers render
- *                      instantly), then the checks the server runs
+ *   your recording   the warm panel: the length the phone measured, at
+ *                    once, and the take's own envelope with the scan
+ *                    passing over it; Demos standing on it, listening
+ *   your words       the opening of what you said, the moment Whisper
+ *                    has it, each filler under the transcript's own bar
+ *   the stages       a row for each thing the route does, in its order,
+ *                    ticked only when the route says it is done
+ *                    (lib/wait.ts), and the numbers the words give as
+ *                    soon as they exist: how many, the fillers and the
+ *                    first one's time, the pace
  *
- * The checks step on a clock and then HOLD on the last one. They are
- * the real stages of `/api/analyze` in its real order, but the client
- * cannot see which one the server is on, so nothing is ever ticked off
- * and nothing counts a percentage: the list says what is being done,
- * never how much of it is.
+ * It used to step five labels on a 1.5 second clock and hold on the
+ * last; now nothing moves that the route did not move, nothing counts a
+ * percentage, and the score itself only ever arrives with the results.
  *
- * A retry (attempt > 0, the outbox resending) swaps the checks for the
+ * A retry (attempt > 0, the outbox resending) swaps the stages for the
  * one sentence that matters then: the recording is safe. And since it
- * is, the wait gets its way off (#440): the screen held people on a
- * send that might take a minute to give up, with no control on it at
- * all. The take keeps sending after the screen is left and lands in the
- * Log.
+ * is, the wait gets its way off (#440). The take keeps sending after the
+ * screen is left and lands in the Log. The words, once in, stay: a
+ * resend is the same audio.
  *
  * A game round (proposal-feel F7) adds the one fact the phone already
  * knows at Stop under the length: when Demos cut in, or who stopped the
- * clock. The reveal answers the question it opens ("did I hold?"), and
- * the cut-in stands on the wave as a 2px ink tick at its second.
+ * clock, and the cut-in stands on the wave as a 2px ink tick at its
+ * second.
  */
 export function ScoringStage({
   levels,
   seconds,
   boss = false,
+  wait = WAIT_START,
   attempt = 0,
   fact = null,
   cutIns = [],
@@ -51,6 +57,8 @@ export function ScoringStage({
   /** The recording's length, measured on this device. */
   seconds: number;
   boss?: boolean;
+  /** Where the route is with the take, and its words once in (lib/wait.ts). */
+  wait?: WaitState;
   attempt?: number;
   /** A game round's one line ("Demos cut in at 0:17."); null for anything else. */
   fact?: string | null;
@@ -59,22 +67,20 @@ export function ScoringStage({
   /** Where a stalled send can be left for, named for where it goes. */
   leave?: { href: string; label: string } | null;
 }) {
-  const stages = boss ? BOSS_STAGES : STAGES;
-  const [at, setAt] = useState(0);
-
-  useEffect(() => {
-    if (at >= stages.length - 1) return;
-    const t = setTimeout(() => setAt((n) => n + 1), STEP_MS);
-    return () => clearTimeout(t);
-  }, [at, stages.length]);
+  const rows = waitRows(wait, { boss });
 
   return (
-    <div className="arrive flex w-full flex-col items-center" role="status">
+    /* The column's whole height: the panel at the top, the stages at the
+       foot, and the words taking what is left between them, so the room
+       goes to what was said rather than to ground (#368). Only the stages
+       are a live region: the words are read where they stand, never
+       announced whole when they land (#472 review). */
+    <div data-scoring-wait className="arrive flex w-full flex-1 flex-col items-center">
       {/* One warm panel, the topic card's ground (review, 25 Sep: the
           card's colour stopped at this screen): the length on the left,
           Demos standing on the recording itself, which runs along the
           panel's floor. */}
-      <section className="topic-card scoring-panel relative w-full overflow-hidden rounded-sheet px-5 pt-5">
+      <section className="topic-card scoring-panel relative w-full shrink-0 overflow-hidden rounded-sheet px-5 pt-5">
         <div className="relative flex items-end justify-between">
           <div className="pb-5">
             <div className="label-data topic-eyebrow">Recorded</div>
@@ -124,55 +130,107 @@ export function ScoringStage({
         })()}
       </section>
 
-      {attempt > 0 ? (
-        <div className="arrive mt-6 flex max-w-[260px] flex-col items-center text-center">
-          <p className="text-body font-semibold">
-            Still sending. The recording is safe on this device.
-          </p>
-          {leave && (
-            <Link href={leave.href} className="text-link mt-3 text-terracotta-700">
-              Back to {leave.label}
-            </Link>
-          )}
-        </div>
-      ) : (
-        <ol className="mt-6 w-full max-w-[220px] space-y-1.5" aria-label="Scoring">
-          {stages.map((s, i) => (
-            <li
-              key={s}
-              data-state={i < at ? "past" : i === at ? "now" : "next"}
-              className="scoring-step flex items-center gap-2.5 text-body"
-            >
-              <span aria-hidden className="scoring-dot h-2 w-2 shrink-0 rounded-full" />
-              {s}
-            </li>
-          ))}
-        </ol>
-      )}
+      <Words early={wait.early} />
+
+      <div role="status" className="mt-5 flex w-full shrink-0 flex-col items-center">
+        {attempt > 0 ? (
+          <div className="arrive flex max-w-[260px] flex-col items-center text-center">
+            <p className="text-body font-semibold">
+              Still sending. The recording is safe on this device.
+            </p>
+            {leave && (
+              <Link href={leave.href} className="text-link mt-3 text-terracotta-700">
+                Back to {leave.label}
+              </Link>
+            )}
+          </div>
+        ) : (
+          <ol className="w-full" aria-label="Scoring">
+            {rows.map((r) => (
+              <Row key={r.key} row={r} />
+            ))}
+          </ol>
+        )}
+      </div>
     </div>
   );
 }
 
-const STEP_MS = 1500;
+/**
+ * What was said, in the transcript's own face, each filler under the
+ * transcript's bar in the Fillers tone. It takes the height between the
+ * panel and the stages from Stop, so nothing moves when the words land,
+ * and fades out at its foot where a long take runs past it; until the
+ * words are in it is bones (after the skeleton's 300ms, #434).
+ */
+function Words({ early }: { early: EarlyRead | null }) {
+  const pieces = useMemo(
+    () => (early ? transcriptPieces(early.transcript.trim(), early.words, early.fillers) : []),
+    [early]
+  );
+  return (
+    /* The room is the column's leftover height (its words are laid over
+       it, so a long take never pushes the stages off the screen). Outside
+       the stages' live region: read where it stands, never announced
+       whole; the stages' rows are the wait's live news. */
+    <div className="wait-words relative mt-5 w-full flex-1">
+      <div className="wait-words-in absolute inset-0">
+      {pieces.length > 0 ? (
+        <p className="wait-words-text arrive">
+          <span className="sr-only">You said: </span>
+          {pieces.map((p, i) =>
+            p.kind === "word" && p.mark === "filler" ? (
+              <span key={i} className="wait-filler" data-trait="fillers">
+                {p.text}
+              </span>
+            ) : (
+              <span key={i}>{p.text}</span>
+            )
+          )}
+        </p>
+      ) : early ? (
+        /* Whisper heard no words: nothing to show, and the rows say so. */
+        null
+      ) : (
+        /* Bones down the whole room, a line's height and gap apiece,
+           fading with it at the foot: the words will stand here, and
+           the room is never an empty band while they come. */
+        <div aria-hidden className="flex flex-col gap-[0.75em] pt-[0.375em]">
+          {BONES.map((w, i) => (
+            <Skeleton key={i} className={`h-[0.75em] shrink-0 ${w}`} rounded="rounded-[4px]" />
+          ))}
+        </div>
+      )}
+      </div>
+    </div>
+  );
+}
 
-/* The engine's order (app/api/analyze): Whisper, then the counts off the
-   word timestamps, then the coach's read, which is the slow one and the
-   right one to hold on. */
-const STAGES = [
-  "Transcribing",
-  "Finding fillers",
-  "Timing pauses",
-  "Measuring pace",
-  "Demos reads it",
+/** The bones' widths, a ragged right edge as a paragraph has; the room clips what it cannot hold. */
+const BONES = [
+  "w-full", "w-[93%]", "w-[97%]", "w-[86%]", "w-full", "w-[90%]", "w-[95%]", "w-[78%]",
+  "w-[99%]", "w-[88%]", "w-[94%]", "w-[70%]", "w-full", "w-[91%]", "w-[83%]", "w-[60%]",
 ];
 
-const BOSS_STAGES = [
-  "Transcribing",
-  "Finding fillers",
-  "Timing pauses",
-  "Checking your claims",
-  "Demos reads it",
-];
+function Row({ row }: { row: WaitRow }) {
+  return (
+    <li data-state={row.state} className="scoring-step flex min-h-[30px] items-center gap-3 text-body">
+      <span aria-hidden className="wait-mark flex h-4 w-4 shrink-0 items-center justify-center">
+        {row.state === "past" ? (
+          <IconCheck size={16} />
+        ) : row.state === "skip" ? (
+          <span className="h-[2px] w-2 rounded-full bg-current" />
+        ) : (
+          <span className="scoring-dot h-2 w-2 rounded-full" />
+        )}
+      </span>
+      <span className="min-w-0 flex-1">{row.label}</span>
+      {row.value !== null && (
+        <span className="wait-value arrive font-display font-semibold tabular-nums">{row.value}</span>
+      )}
+    </li>
+  );
+}
 
 /**
  * The wait's one fact, beside Demos in a column about 160 wide: when it

@@ -182,6 +182,116 @@ describe("sendWithRetry with one try", () => {
   });
 });
 
+/*
+ * #472: the recorder reads the answer in parts. The stages reach the
+ * wait as they land; the status and body the ladder decides on are the
+ * route's own, carried in the last line.
+ */
+describe("sendWithRetry reading the answer in parts", () => {
+  const enc = new TextEncoder();
+  const early = {
+    durationS: 60,
+    transcript: "So, um, hello",
+    words: [],
+    wordCount: 3,
+    wpm: 3,
+    fillerCount: 1,
+    fillers: [{ word: "um", t: 0.4 }],
+    scorable: true,
+    reads: true,
+  };
+  function inParts(lines: unknown[], { cut = false } = {}): Response {
+    /* One line a pull, then the end: a cut errors only on the pull after
+       the last line, so the lines before it really reach the reader (an
+       error raised beside queued lines drops them unread). */
+    const queue = lines.map((l) => enc.encode(JSON.stringify(l) + "\n"));
+    const body = new ReadableStream<Uint8Array>({
+      pull(c) {
+        const next = queue.shift();
+        if (next) c.enqueue(next);
+        else if (cut) c.error(new Error("reset"));
+        else c.close();
+      },
+    });
+    return new Response(body, { status: 200, headers: { "Content-Type": "application/x-ndjson" } });
+  }
+
+  it("asks for the parts only when someone is watching them", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, { repId: "r1" }));
+    vi.stubGlobal("fetch", fetchMock);
+    await sendWithRetry(replayForm(rep()), "token");
+    expect((fetchMock.mock.calls[0][1].headers as Record<string, string>).Accept).toBeUndefined();
+    await sendWithRetry(replayForm(rep()), "token", undefined, undefined, () => {});
+    expect((fetchMock.mock.calls[1][1].headers as Record<string, string>).Accept).toContain("application/x-ndjson");
+  });
+
+  it("hands the stages over in order and settles on the last line's answer", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        inParts([
+          { stage: "received" },
+          { stage: "transcribing" },
+          { stage: "measured", early },
+          { stage: "saving" },
+          { stage: "done", status: 200, body: { repId: "r1", ethosIndex: 612 } },
+        ])
+      )
+    );
+    const seen: string[] = [];
+    const out = await sendWithRetry(replayForm(rep()), "token", undefined, undefined, (e) => seen.push(e.stage));
+    expect(seen).toEqual(["received", "transcribing", "measured", "saving"]);
+    expect(out).toMatchObject({ ok: true, status: 200, settled: true, data: { repId: "r1", ethosIndex: 612 } });
+  });
+
+  it("sends again when the words came and the answer did not", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(inParts([{ stage: "received" }, { stage: "measured", early }], { cut: true }))
+      .mockResolvedValueOnce(inParts([{ stage: "done", status: 200, body: { repId: "r1", duplicate: true } }]));
+    vi.stubGlobal("fetch", fetchMock);
+    const seen: string[] = [];
+    const out = sendWithRetry(
+      replayForm(rep()),
+      "token",
+      (n) => seen.push(`try ${n}`),
+      undefined,
+      (e) => seen.push(e.stage)
+    );
+    await vi.runAllTimersAsync();
+    expect((await out).data).toEqual({ repId: "r1", duplicate: true });
+    // The words reached the wait before the line went, and the resend followed.
+    expect(seen).toEqual(["try 0", "received", "measured", "try 1"]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("reads a 5xx in the last line as weather, and a 422 as a verdict", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(inParts([{ stage: "received" }, { stage: "done", status: 502, body: { error: "x" } }]))
+      .mockResolvedValueOnce(inParts([{ stage: "received" }, { stage: "done", status: 422, body: { unheard: true } }]));
+    vi.stubGlobal("fetch", fetchMock);
+    const out = sendWithRetry(replayForm(rep()), "token", undefined, undefined, () => {});
+    await vi.runAllTimersAsync();
+    expect(await out).toMatchObject({ ok: false, status: 422, data: { unheard: true } });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("refreshes a lapsed sign-in said in the last line", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(inParts([{ stage: "received" }, { stage: "done", status: 401, body: { authExpired: true } }]))
+      .mockResolvedValueOnce(inParts([{ stage: "done", status: 200, body: { repId: "r1" } }]));
+    vi.stubGlobal("fetch", fetchMock);
+    const out = await sendWithRetry(replayForm(rep()), async (force) => (force ? "fresh" : "stale"), undefined, undefined, () => {});
+    expect(out.settled).toBe(true);
+    const auth = fetchMock.mock.calls.map((c) => (c[1].headers as Record<string, string>).Authorization);
+    expect(auth).toEqual(["Bearer stale", "Bearer fresh"]);
+  });
+});
+
 describe("sendWithRetry and a lapsed sign-in", () => {
   it("asks for a token on every try, so a long ladder never sends a stale one", async () => {
     const fetchMock = vi

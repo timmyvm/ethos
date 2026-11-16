@@ -281,9 +281,39 @@ export async function findRepByClientId(
   return (data?.id as string | undefined) ?? null;
 }
 
+/**
+ * A take's audio into the private bucket under a fresh path (#472). The
+ * route starts this beside Whisper, so the save after Demos's read waits
+ * on its rows alone. Null when it did not go in, which stores the take
+ * with no audio, as a failed upload always has.
+ */
+export async function uploadRepAudio(audio: Blob, filename: string): Promise<string | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+  // Never the name the file was picked with (review P3); a random part
+  // so two recordings in one millisecond never share a path.
+  const path = `reps/${Date.now()}-${randomUUID().slice(0, 8)}-${neutralAudioName(filename)}`;
+  const upload = await db.storage.from("audio").upload(path, audio, {
+    contentType: audio.type || "audio/webm",
+  });
+  return upload.error ? null : path;
+}
+
+/** Takes back the audio of a take that ended up stored nowhere. */
+export async function removeRepAudio(path: string): Promise<void> {
+  const db = supabaseAdmin();
+  if (!db) return;
+  await db.storage.from("audio").remove([path]);
+}
+
 export async function saveRep(params: {
   audio: Blob;
   filename: string;
+  /**
+   * Where `uploadRepAudio` already put the audio (null: it did not go
+   * in). Absent, the audio is uploaded here first, as it always was.
+   */
+  audioPath?: string | null;
   transcript: string;
   metrics: RepMetrics;
   tier1: Tier1Scores;
@@ -316,14 +346,8 @@ export async function saveRep(params: {
   const { audio, filename, transcript, metrics, tier1, anchors, coach } =
     params;
 
-  let audioPath: string | null = null;
-  // Never the name the file was picked with (review P3); a random part
-  // so two recordings in one millisecond never share a path.
-  const path = `reps/${Date.now()}-${randomUUID().slice(0, 8)}-${neutralAudioName(filename)}`;
-  const upload = await db.storage.from("audio").upload(path, audio, {
-    contentType: audio.type || "audio/webm",
-  });
-  if (!upload.error) audioPath = path;
+  const audioPath =
+    params.audioPath !== undefined ? params.audioPath : await uploadRepAudio(audio, filename);
 
   const row = {
     user_id: params.userId ?? null,
@@ -392,35 +416,43 @@ export async function saveRep(params: {
   }
   if (error || !data) return null;
 
+  // The lexicon row and the XP each hang off the stored row and not off
+  // each other, so they are written side by side (#472).
+  const writes: PromiseLike<unknown>[] = [];
   if (coach?.supply) {
     // Supply accumulates into the personal lexicon (DECISIONS.md #12).
     // No upgrade, no lexicon row: the coach may say none (#429).
-    await db.from("lexicon").insert({
-      user_id: params.userId ?? null,
-      original: coach.supply.original,
-      upgrade: coach.supply.upgrade,
-      rep_id: data.id,
-    });
+    writes.push(
+      db.from("lexicon").insert({
+        user_id: params.userId ?? null,
+        original: coach.supply.original,
+        upgrade: coach.supply.upgrade,
+        rep_id: data.id,
+      })
+    );
   }
 
   if (params.userId) {
     // Difficulty multiplies EFFORT credit only. Stars and the Index are
     // untouched by mods (DECISIONS #10, #16).
     const multiplier = params.xpMultiplier ?? 1;
-    await db.from("xp_events").insert({
-      user_id: params.userId,
-      amount: Math.max(1, Math.round(XP_PER_REP * multiplier)),
-      source:
-        params.mode === "boss"
-          ? "boss"
-          : (params.mods?.length ?? 0) > 0
-            ? "mod"
-            : "rep",
-      rep_id: data.id,
-      // The week's XP lands in the week it was spoken, with the recording.
-      ...(params.createdAt ? { created_at: params.createdAt } : {}),
-    });
+    writes.push(
+      db.from("xp_events").insert({
+        user_id: params.userId,
+        amount: Math.max(1, Math.round(XP_PER_REP * multiplier)),
+        source:
+          params.mode === "boss"
+            ? "boss"
+            : (params.mods?.length ?? 0) > 0
+              ? "mod"
+              : "rep",
+        rep_id: data.id,
+        // The week's XP lands in the week it was spoken, with the recording.
+        ...(params.createdAt ? { created_at: params.createdAt } : {}),
+      })
+    );
   }
+  await Promise.all(writes);
 
   return { id: data.id, audioPath };
 }

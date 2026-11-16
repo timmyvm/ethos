@@ -1,134 +1,113 @@
-import type { CSSProperties, ReactNode } from "react";
+"use client";
+
+import { memo, type CSSProperties, type ReactNode } from "react";
+import { FarCity, MidCity, NearCity } from "./art/City";
+import { DEPTH, PEN_ROLL } from "./art/geometry";
+import { BUBBLE_AT, Front, Interviewer, type Mood } from "./art/Interviewer";
+import { Desk, Office, Pen, Sky } from "./art/Scene";
+import s from "./art/room.module.css";
 
 /**
- * PLACEHOLDER for the room's art (#475). Flat rectangles in the layers
- * the real scene has, honouring every prop, so the flow
- * (components/room/Room.tsx) can be built and photographed. The drawn
- * high-rise office (Kurzgesagt-spirited, our own) replaces this file
- * whole at merge; nothing outside it depends on what is inside it.
+ * The room (#475): a high-rise office at dusk, first person, an
+ * interviewer across the desk. The flow owns everything that happens in
+ * it; this draws it, and nothing else: no text, no controls.
  *
- * The seam, which both sides build to exactly:
- *  - It fills its parent (absolute, inset 0) and draws no text and no
- *    controls of its own.
- *  - `tilt` (-1 to 1 each way, smoothed by the flow every frame) moves
- *    each layer by tilt times its depth, the opposite way to the tilt:
- *    8 px sky, 16 far towers, 26 near towers, 34 the interviewer and his
- *    chair, 48 the desk, 64 the pen, plus up to 1.5 degrees of roll on
- *    the foreground. Every layer is drawn oversize, so no edge shows.
- *    Transform only. Under `reduceMotion` every offset is 0.
- *  - `who` is who is speaking: his mouth moves while it is "interviewer".
- *  - `mood` is his pose.
- *  - `bubble` is drawn by the flow and placed here, in his own layer,
- *    just beside his head with its tail toward his mouth, so it moves
- *    with him.
+ * It fills its parent (absolute, inset 0) and crops rather than squashes.
+ * It is a window into a real room: each layer moves against the tilt by
+ * its own depth, the far city least and the pen most, so the phone seems
+ * to look past the glass. Transform only, so it runs on the compositor.
  */
 export type RoomArtProps = {
+  /** Each -1 to 1, already smoothed by the flow every frame. */
   tilt: { x: number; y: number };
+  /** Who is speaking; his mouth moves while it is "interviewer". */
   who: "interviewer" | "you" | null;
+  /** His pose. */
   mood: "idle" | "listening" | "unimpressed" | "verdict";
+  /** Holds every layer still and stops every loop. */
   reduceMotion: boolean;
+  /**
+   * What he says, drawn by the flow. RoomArt only places it: inside his
+   * own layer, so it moves with him, its bottom-left corner just right of
+   * his head (draw its tail there, toward his mouth). The wrapper is
+   * `[data-room-bubble]`; it is as wide as its content up to
+   * `--room-bubble-max`, the room left to the screen's right edge.
+   */
   bubble?: ReactNode;
 };
 
-/** px at full tilt, far to near. */
-const DEPTH = { sky: 8, far: 16, near: 26, him: 34, desk: 48, pen: 64 } as const;
+/* The still layers are drawn once per page, never per frame. */
+const SkyLayer = memo(Sky);
+const FarLayer = memo(FarCity);
+const MidLayer = memo(MidCity);
+const NearLayer = memo(NearCity);
+const OfficeLayer = memo(Office);
+const DeskLayer = memo(Desk);
+const PenLayer = memo(Pen);
+const InterviewerLayer = memo(Interviewer);
+const FrontLayer = memo(Front);
 
-function layer(depth: number, tilt: { x: number; y: number }, still: boolean, roll = 0): CSSProperties {
-  const x = still ? 0 : -tilt.x * depth;
-  const y = still ? 0 : -tilt.y * depth;
-  const r = still ? 0 : tilt.x * roll;
-  return {
-    position: "absolute",
-    inset: -depth - 8,
-    transform: `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) rotate(${r.toFixed(3)}deg)`,
-    willChange: "transform",
-  };
+function clamp(n: number): number {
+  if (!Number.isFinite(n)) return 0;
+  return n < -1 ? -1 : n > 1 ? 1 : n;
 }
 
 export default function RoomArt({ tilt, who, mood, reduceMotion, bubble }: RoomArtProps) {
-  const still = reduceMotion;
-  const lean = mood === "unimpressed" ? -4 : mood === "verdict" ? 3 : mood === "listening" ? -1 : 0;
+  const x = reduceMotion ? 0 : clamp(tilt.x);
+  const y = reduceMotion ? 0 : clamp(tilt.y);
+
+  /* Against the tilt, by depth: looking past the glass. */
+  const shift = (depth: number) => ({
+    transform: `translate3d(${(-x * depth).toFixed(2)}px, ${(-y * depth).toFixed(2)}px, 0)`,
+  });
+  const roll = {
+    transform: `translate3d(${(-x * DEPTH.pen).toFixed(2)}px, ${(-y * DEPTH.pen).toFixed(2)}px, 0) rotate(${(-x * PEN_ROLL).toFixed(3)}deg)`,
+  };
+
+  const m: Mood = mood;
+
   return (
-    <div
-      data-room-art="placeholder"
-      data-mood={mood}
-      data-who={who ?? "none"}
-      style={{ position: "absolute", inset: 0, overflow: "hidden", background: "#2a2b57" }}
-    >
-      {/* The sky at dusk. */}
-      <div style={layer(DEPTH.sky, tilt, still)}>
-        <div style={{ position: "absolute", inset: 0, background: "#3b3f86" }} />
-        <div style={{ position: "absolute", left: 0, right: 0, top: "34%", height: "22%", background: "#e0806d" }} />
-        <div style={{ position: "absolute", left: 0, right: 0, top: "48%", height: "14%", background: "#f2b36b" }} />
-      </div>
-      {/* The far towers. */}
-      <div style={layer(DEPTH.far, tilt, still)}>
-        {[8, 21, 33, 52, 66, 80].map((l, i) => (
-          <div
-            key={l}
-            style={{ position: "absolute", left: `${l}%`, width: "11%", bottom: "38%", height: `${18 + (i % 3) * 7}%`, background: "#5c5aa0" }}
-          />
-        ))}
-      </div>
-      {/* The near towers. */}
-      <div style={layer(DEPTH.near, tilt, still)}>
-        {[2, 27, 61, 86].map((l, i) => (
-          <div
-            key={l}
-            style={{ position: "absolute", left: `${l}%`, width: "16%", bottom: "36%", height: `${26 + (i % 2) * 10}%`, background: "#3c3a78" }}
-          />
-        ))}
-        {/* The glass: floor to ceiling, two mullions. */}
-        <div style={{ position: "absolute", left: "33%", width: "1.2%", top: 0, bottom: "34%", background: "#25264d" }} />
-        <div style={{ position: "absolute", left: "67%", width: "1.2%", top: 0, bottom: "34%", background: "#25264d" }} />
-        <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "36%", background: "#2c2d58" }} />
-      </div>
-      {/* The interviewer and his chair, and the bubble in his layer. */}
-      <div style={layer(DEPTH.him, tilt, still)}>
-        <div
-          style={{
-            position: "absolute",
-            left: "50%",
-            bottom: "30%",
-            width: 0,
-            height: 0,
-            transform: `rotate(${lean}deg)`,
-            transformOrigin: "50% 100%",
-          }}
-        >
-          <div style={{ position: "absolute", left: -78, bottom: -10, width: 156, height: 200, borderRadius: 28, background: "#1d1e3a" }} />
-          <div style={{ position: "absolute", left: -58, bottom: 0, width: 116, height: 150, borderRadius: "40px 40px 6px 6px", background: "#262a4f" }} />
-          <div style={{ position: "absolute", left: -10, bottom: 92, width: 20, height: 58, background: "#f0f0f6" }} />
-          <div style={{ position: "absolute", left: -6, bottom: 96, width: 12, height: 48, background: "#c4413e" }} />
-          <div style={{ position: "absolute", left: -32, bottom: 150, width: 64, height: 72, borderRadius: 30, background: "#d99a74" }} />
-          <div style={{ position: "absolute", left: -34, bottom: 198, width: 68, height: 26, borderRadius: "30px 30px 8px 8px", background: "#2a1c18" }} />
-          <div
-            className={who === "interviewer" && !still ? "room-ph-mouth" : undefined}
-            style={{ position: "absolute", left: -10, bottom: 166, width: 20, height: who === "interviewer" ? 7 : 3, borderRadius: 4, background: "#5a2a24" }}
-          />
+    <div className={reduceMotion ? `${s.root} ${s.still}` : s.root} aria-hidden={bubble ? undefined : true} data-room-art="">
+      <div className={s.stage}>
+        <div className={s.layer} style={shift(DEPTH.sky)}>
+          <SkyLayer />
         </div>
-        {bubble && (
-          /* Just above his head, its tail down to his mouth; in his layer
-             but not in his lean, so it never tilts. */
-          <div
-            data-room-bubble-anchor=""
-            style={{ position: "absolute", left: "calc(50% - 6px)", bottom: "calc(30% + 232px)", width: 0, height: 0 }}
-          >
-            <div style={{ position: "absolute", left: 0, bottom: 0 }}>{bubble}</div>
-          </div>
-        )}
+        <div className={s.layer} style={shift(DEPTH.far)}>
+          <FarLayer />
+        </div>
+        <div className={s.layer} style={shift(DEPTH.mid)}>
+          <MidLayer />
+        </div>
+        <div className={s.layer} style={shift(DEPTH.near)}>
+          <NearLayer />
+        </div>
+        <div className={s.layer} style={shift(DEPTH.office)}>
+          <OfficeLayer />
+        </div>
+        <div className={s.layer} style={shift(DEPTH.interviewer)}>
+          <InterviewerLayer mood={m} talking={who === "interviewer" && !reduceMotion} />
+          {bubble ? (
+            <div
+              className={s.bubble}
+              data-room-bubble=""
+              data-tail="bottom-left"
+              style={{ "--ax": BUBBLE_AT[m].x, "--ay": BUBBLE_AT[m].y } as CSSProperties}
+            >
+              {bubble}
+            </div>
+          ) : null}
+        </div>
+        <div className={s.layer} style={shift(DEPTH.desk)}>
+          <DeskLayer />
+        </div>
+        <div className={s.layer} style={shift(DEPTH.front)}>
+          <FrontLayer mood={m} />
+        </div>
+        <div className={`${s.layer} ${s.roll}`} style={roll}>
+          <PenLayer />
+        </div>
       </div>
-      {/* The desk, his feet on it. */}
-      <div style={layer(DEPTH.desk, tilt, still)}>
-        <div style={{ position: "absolute", left: "-4%", right: "-4%", bottom: 0, height: "34%", background: "#7a4c3e" }} />
-        <div style={{ position: "absolute", left: "-4%", right: "-4%", bottom: "32%", height: "3%", background: "#9a6452" }} />
-        <div style={{ position: "absolute", left: "54%", bottom: "33%", width: 74, height: 22, borderRadius: 11, background: "#14152a" }} />
-        <div style={{ position: "absolute", left: "36%", bottom: "33%", width: 70, height: 22, borderRadius: 11, background: "#14152a" }} />
-      </div>
-      {/* The pen, nearest of all. */}
-      <div style={layer(DEPTH.pen, tilt, still, 1.5)}>
-        <div style={{ position: "absolute", left: "30%", bottom: "14%", width: "46%", height: 14, borderRadius: 7, background: "#f2c14e", transform: "rotate(-9deg)" }} />
-      </div>
+      <div className={s.vignette} />
     </div>
   );
 }

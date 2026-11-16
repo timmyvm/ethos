@@ -7271,14 +7271,3 @@ html[data-test-tile] .test-tile-slot {
   transform: none;
   transition: none;
 }
-
-/* PLACEHOLDER art's one motion (components/room/RoomArt.tsx): his mouth
-   while he speaks. Goes with the placeholder. */
-.room-ph-mouth {
-  animation: room-ph-talk 160ms steps(2) infinite alternate;
-}
-@keyframes room-ph-talk {
-  to {
-    transform: scaleY(0.35);
-  }
-}

@@ -60,6 +60,8 @@ const AFTER_TURN_MS = 650;
 const NO_MIC_BEAT_MS = 900;
 /** The sheet rising and Demos arriving on it, before he speaks. */
 const DEMOS_IN_MS = 700;
+/** The door's words fading once the room opens. */
+const DOOR_FADE_MS = 260;
 
 type Stage = "door" | "scene" | "ending";
 
@@ -221,8 +223,12 @@ function Grow({ children, fill = false, className = "" }: { children: ReactNode;
   );
 }
 
-/** The bubble keeps this far inside the room's edges. */
-const BUBBLE_EDGE = 12;
+/**
+ * The bubble keeps this far inside the room's edges: 12px, plus most of
+ * the 34px his layer travels at full tilt, so turning the phone toward
+ * an edge never carries his words off it.
+ */
+const BUBBLE_EDGE = 12 + 28;
 /** Where the tail stands in from the bubble's own edge. */
 const TAIL_IN = 18;
 
@@ -247,12 +253,15 @@ function HisBubble({ line }: { line: Line }) {
     const right = el.closest('[data-room-tail="right"]') !== null;
     let shift = 0;
     /* The shell stays on the anchor (the slide is the bubble's own
-       `translate`, which the shell's box never sees); the bubble's
-       width is its layout width, whatever its entrance is doing. */
+       `translate`, which the shell's box never sees). The width fitted to
+       is the words' own, which lands with each chunk, not the box's,
+       which is still growing toward it: the slide and the growth then run
+       on one curve together and the far edge never passes the room's. */
+    const words = b.querySelector<HTMLElement>(".room-grow-fit") ?? b;
     const fit = () => {
       const box = room?.getBoundingClientRect();
       const anchor = el.getBoundingClientRect();
-      const w = b.offsetWidth;
+      const w = words.offsetWidth;
       if (!box || w === 0) return;
       const lo = box.left + BUBBLE_EDGE;
       const hi = box.right - BUBBLE_EDGE;
@@ -268,7 +277,7 @@ function HisBubble({ line }: { line: Line }) {
     fit();
     if (typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver(fit);
-    ro.observe(b);
+    ro.observe(words);
     return () => ro.disconnect();
   }, []);
   return (
@@ -299,7 +308,7 @@ function HisBubble({ line }: { line: Line }) {
  * On an iPhone the tick (TapTick) comes at the lift, the one moment a
  * page can have one; with a Vibration API, a short buzz when it fills.
  */
-function HoldToStep({ label, onComplete }: { label: string; onComplete: () => void }) {
+function HoldToStep({ label, onComplete }: { label: string; onComplete: (keys: boolean) => void }) {
   const btn = useRef<HTMLButtonElement>(null);
   const state = useRef<{ start: number; raf: number; full: boolean; pressed: boolean; done: boolean; downAt: number }>({
     start: 0,
@@ -318,11 +327,12 @@ function HoldToStep({ label, onComplete }: { label: string; onComplete: () => vo
 
   const paint = (p: number) => btn.current?.style.setProperty("--hold", p.toFixed(4));
 
-  const finish = () => {
+  /** `keys`: pressed from a keyboard or by assistive tech, not held. */
+  const finish = (keys = false) => {
     const s = state.current;
     if (s.done) return;
     s.done = true;
-    complete.current();
+    complete.current(keys);
   };
 
   /* Empties from wherever it was let go. */
@@ -416,7 +426,7 @@ function HoldToStep({ label, onComplete }: { label: string; onComplete: () => vo
         /* A keyboard's or an assistive press: no pointer went down on it
            just now, so there is no hold to ask for. A finger's or a
            mouse's click was already decided at the lift. */
-        if (e.detail === 0 || performance.now() - state.current.downAt > 1500) finish();
+        if (e.detail === 0 || performance.now() - state.current.downAt > 1500) finish(true);
       }}
     >
       <span className="room-hold-label">{label}</span>
@@ -451,6 +461,7 @@ export function Room({
   const recentre = useRoomTilt(store, host, reduced);
 
   const [stage, setStage] = useState<Stage>("door");
+  const [doorFading, setDoorFading] = useState(false);
   const [who, setWho] = useState<RoomArtProps["who"]>(null);
   const [mood, setMood] = useState<RoomMood>("idle");
   const [his, setHis] = useState<Line | null>(null);
@@ -473,7 +484,7 @@ export function Room({
 
   /* Demos's pose is fetched while the scene plays. */
   useEffect(() => {
-    preloadPose("speaking", 240);
+    preloadPose("speaking", 128);
   }, []);
 
   /* Leaving, by any door: every timer, the mic and the sound let go. */
@@ -495,11 +506,15 @@ export function Room({
     return () => document.removeEventListener("visibilitychange", onHide);
   }, []);
 
+  /* Someone who came in from the keyboard is handed the one control as
+     it comes: Done for each turn, then Next. A finger is not: a ring
+     drawn round a button nobody reached for reads as a fault. */
+  const fromKeys = useRef(false);
   useEffect(() => {
-    if (turn) doneBtn.current?.focus({ preventScroll: true });
+    if (turn && fromKeys.current) doneBtn.current?.focus({ preventScroll: true });
   }, [turn]);
   useEffect(() => {
-    if (ready) nextBtn.current?.focus({ preventScroll: true });
+    if (ready && fromKeys.current) nextBtn.current?.focus({ preventScroll: true });
   }, [ready]);
 
   const leave = (to: () => void) => {
@@ -675,7 +690,8 @@ export function Room({
   };
 
   /** Inside the lift: the sound, the mic and motion asked, then the scene. */
-  const enter = () => {
+  const enter = (viaKeys: boolean) => {
+    fromKeys.current = viaKeys;
     popper.current = createPopper();
     const micAnswer = askMic();
     void askMotion();
@@ -686,10 +702,16 @@ export function Room({
     recentre();
     setStage("scene");
     setBeat("enter");
+    /* The door stays a moment, fading, after the lift: an iPhone delivers
+       the tap's click (and with it TapTick's tick) after the touchend
+       that opened the room, and a button already gone cannot tick. */
+    setDoorFading(true);
+    window.setTimeout(() => setDoorFading(false), DOOR_FADE_MS);
     void direct(micAnswer, ctl.signal);
   };
 
-  const bubble = his ? <HisBubble line={his} /> : undefined;
+  /* Keyed by line: each line is a new bubble, with its own entrance. */
+  const bubble = his ? <HisBubble key={his.key} line={his} /> : undefined;
 
   return (
     <main
@@ -713,8 +735,8 @@ export function Room({
         {said}
       </p>
 
-      {stage === "door" && (
-        <>
+      {(stage === "door" || doorFading) && (
+        <div className="room-door-layer" data-fading={doorFading ? "" : undefined}>
           <div className="room-top">
             <Link href="/signin" className="room-link">
               {ROOM_COPY.signIn}
@@ -731,10 +753,10 @@ export function Room({
               {ROOM_COPY.notNow}
             </button>
           </div>
-        </>
+        </div>
       )}
 
-      {stage === "scene" && (
+      {stage === "scene" && !doorFading && (
         <div className="room-top room-top-end">
           <button type="button" className="room-link" onClick={() => leave(onSkip)}>
             {ROOM_COPY.skip}
@@ -767,14 +789,23 @@ export function Room({
       )}
 
       {stage === "ending" && (
+        /*
+         * Demos steps in on a sheet of the app's own ground, in the grammar
+         * of the screen that follows him (the name question): his coin at
+         * the left, his bubble beside it. Short, so the room stays in view
+         * above him, and the walk's next screen is the same shape.
+         */
         <div className="room-sheet rounded-t-sheet">
-          <div className="intro-stage tone-sky flex min-h-0 flex-1 flex-col items-center justify-center px-4 pt-5 pb-5">
+          <div className="flex items-start gap-3">
+            <div className="relative size-[clamp(96px,14vh,128px)] shrink-0 [container-type:size]">
+              <IntroDemos pose="speaking" size={128} fit pop halo={{ tone: "sky", kind: "coin" }} />
+            </div>
             {/* His bubble's room, held at its full size from the first
                 frame by the whole of what he will say, drawn invisibly; the
-                bubble he speaks from grows inside it from the tail up, so
-                neither he nor anything else moves as his words land. */}
-            <div className="relative w-full max-w-[320px] shrink-0" data-room-demos="">
-              <SpeechBubble tail="down" voice="lead" className="invisible w-full text-center">
+                bubble he speaks from grows inside it from the tail down, so
+                nothing moves as his words land. */}
+            <div className="relative min-w-0 flex-1" data-room-demos="">
+              <SpeechBubble tail="left" voice="lead" className="invisible">
                 <div aria-hidden>
                   {demosLines.map((t, k) => (
                     <p key={k} className={k > 0 ? "mt-1" : undefined}>
@@ -784,34 +815,22 @@ export function Room({
                 </div>
               </SpeechBubble>
               {demos.length > 0 && (
-                <SpeechBubble
-                  tail="down"
-                  voice="lead"
-                  className="room-demos-bubble absolute inset-x-0 bottom-0 text-center"
-                >
-                  <Grow fill>
-                    <div aria-hidden>
-                      {demos.map((l, k) => (
-                        <p key={l.key} className={k > 0 ? "mt-1" : undefined}>
-                          <Chunks plan={l.plan} shown={l.shown} />
-                        </p>
-                      ))}
-                    </div>
-                  </Grow>
-                </SpeechBubble>
+                /* The layer is what is placed: the bubble keeps its own
+                   `relative`, which its tail is drawn against. */
+                <div className="absolute inset-x-0 top-0">
+                  <SpeechBubble tail="left" voice="lead" className="room-demos-bubble">
+                    <Grow fill>
+                      <div aria-hidden>
+                        {demos.map((l, k) => (
+                          <p key={l.key} className={k > 0 ? "mt-1" : undefined}>
+                            <Chunks plan={l.plan} shown={l.shown} />
+                          </p>
+                        ))}
+                      </div>
+                    </Grow>
+                  </SpeechBubble>
+                </div>
               )}
-            </div>
-            <div className="demos-fit mt-4 w-full flex-1">
-              <div className="demos-fit-room">
-                <IntroDemos
-                  pose="speaking"
-                  size={240}
-                  fit
-                  pop
-                  grounded
-                  halo={{ tone: "sky", kind: "stage" }}
-                />
-              </div>
             </div>
           </div>
           <div className="room-sheet-foot">

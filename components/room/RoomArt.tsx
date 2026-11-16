@@ -106,13 +106,17 @@ export default function RoomArt({ tilt, who, mood, reduceMotion, bubble }: RoomA
             className={who === "interviewer" && !still ? "room-ph-mouth" : undefined}
             style={{ position: "absolute", left: -10, bottom: 166, width: 20, height: who === "interviewer" ? 7 : 3, borderRadius: 4, background: "#5a2a24" }}
           />
-          {bubble && (
-            /* Just above and right of his head, its tail down to his mouth. */
-            <div data-room-bubble-anchor="" style={{ position: "absolute", left: -6, bottom: 232, width: 0, height: 0 }}>
-              <div style={{ position: "absolute", left: 0, bottom: 0 }}>{bubble}</div>
-            </div>
-          )}
         </div>
+        {bubble && (
+          /* Just above his head, its tail down to his mouth; in his layer
+             but not in his lean, so it never tilts. */
+          <div
+            data-room-bubble-anchor=""
+            style={{ position: "absolute", left: "calc(50% - 6px)", bottom: "calc(30% + 232px)", width: 0, height: 0 }}
+          >
+            <div style={{ position: "absolute", left: 0, bottom: 0 }}>{bubble}</div>
+          </div>
+        )}
       </div>
       {/* The desk, his feet on it. */}
       <div style={layer(DEPTH.desk, tilt, still)}>

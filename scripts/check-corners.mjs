@@ -136,6 +136,17 @@ for (const theme of ["light", "dark"]) {
   await context.route("http://supabase.local/**", supabaseRoute);
   const page = await context.newPage();
   await page.goto(`${BASE}/welcome`);
+  await page.waitForSelector("[data-room-hold]", { timeout: 20000 }).catch(() => {});
+  await sleep(1200);
+  const door = await page.evaluate(audit);
+  ok("the room's door: no round corner meets a continuous one", door.clashes.length === 0, door.clashes.slice(0, 3).join(" | "));
+  ok("the room's door: its hold is still round", door.pills.length === 0, door.pills.slice(0, 4).join(" | "));
+  /* The beat (step 7: the room, six questions, then the beat) stands
+     Demos on the walk's stage. */
+  await page.evaluate(() =>
+    localStorage.setItem("ethos.onboarding", JSON.stringify({ answers: { name: "Tim", pains: [] }, step: 7, done: false, synced: false }))
+  );
+  await page.reload();
   await page.waitForSelector("main .intro-stage", { timeout: 20000 }).catch(() => {});
   await sleep(1200);
   const res = await page.evaluate(audit);

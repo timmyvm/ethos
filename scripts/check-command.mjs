@@ -222,7 +222,7 @@ const menu = (page) =>
 }
 {
   const { context, page } = await open({ fresh: true });
-  await go(page, "/welcome", "main .intro-stage");
+  await go(page, "/welcome", "[data-room-hold]");
   await page.keyboard.press("Control+k");
   await sleep(700);
   ok("the introduction keeps the keyboard: no menu, no hint", (await menu(page)) === null && (await page.locator(".command-hint").count()) === 0);

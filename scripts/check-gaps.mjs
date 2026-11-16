@@ -450,10 +450,10 @@ async function walk(theme) {
   try {
     await page.goto(`${BASE}/welcome`);
     await page.waitForSelector("main h1", { timeout: 20000 });
-    for (let n = 1; n <= 3; n++) {
-      await check(page, `welcome-intro-${n}`, theme);
-      await next();
-    }
+    /* The walk opens on the room (#475): a full-bleed scene with no
+       bands to measure. Not now is the way to the questions. */
+    await page.getByRole("button", { name: "Not now", exact: true }).click();
+    await sleep(500);
     let k = 0;
     for (const q of ANSWERS) {
       if (q.type === "beat") {
@@ -495,10 +495,8 @@ async function walk(theme) {
   try {
     await kb.page.goto(`${BASE}/welcome`);
     await kb.page.waitForSelector("main h1", { timeout: 20000 });
-    for (let n = 1; n <= 3; n++) {
-      await kb.page.getByRole("button", { name: "Next", exact: true }).click();
-      await sleep(500);
-    }
+    await kb.page.getByRole("button", { name: "Not now", exact: true }).click();
+    await sleep(500);
     await kb.page.getByLabel("Your name").waitFor();
     await sleep(400);
     const focused = await kb.page.evaluate(() => document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.id ?? "");

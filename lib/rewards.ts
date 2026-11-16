@@ -25,7 +25,7 @@ import type { TraitId } from "@/content/traits";
 import type { RepRow } from "./client-data";
 import { isScorable, type RepMetrics } from "./metrics";
 import { heldPauseMarks } from "./pause-mark";
-import type { Milestone, RepGain } from "./progress";
+import type { Milestone } from "./progress";
 import type { StreakState } from "./streak";
 import { measured } from "./trait-readings";
 
@@ -188,7 +188,6 @@ export function landedHeard(m: Pick<RepMetrics, "pauses" | "composedPauses">): n
  * fallback is the fact that the rep exists, which is itself true.
  */
 export function endNote(params: {
-  gains: RepGain[];
   metrics: RepMetrics;
   streak: StreakState;
   repCount: number;

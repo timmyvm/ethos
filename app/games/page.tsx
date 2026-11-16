@@ -19,7 +19,7 @@ import { Disclosure } from "@/components/ui/Disclosure";
 import { ErrorLine } from "@/components/ui/ErrorState";
 import { HeroStage } from "@/components/ui/HeroStage";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { bossAnswerLine, bossReadLine, bossWeekLine, daysLeftInWeek } from "@/lib/boss";
+import { BOSS_DONE_LINE } from "@/lib/boss";
 import { dayKey } from "@/lib/challenge";
 import {
   fetchGameRounds,
@@ -98,6 +98,9 @@ const GLYPH: Record<string, (size: number) => ReactNode> = {
   hostile: (s) => <IconBoss size={s} />,
 };
 
+/** Demos on the boss stage, px: the stage's art at the house size. */
+const BOSS_ART = 132;
+
 /** The week (its start) the boss stage last welcomed Demos in. */
 const SEEN_KEY = "ethos.practice.bossSeen";
 
@@ -137,9 +140,8 @@ export default function GamesPage() {
   // (paywall=1): the sheet opens again where it was.
   usePaywallReturn(() => setPaywall("Premium games"));
   /* Whether this week's boss has a recording behind it yet. Read once,
-     from the same rows the log shows. Null while in flight (the label
-     holds its line); a failed read lands on false and the card says
-     "days left", which is true either way. */
+     from the same rows the log shows. Null while in flight; a failed
+     read lands on false, and the card says nothing it cannot know. */
   const [bossDone, setBossDone] = useState<boolean | null>(() =>
     heldRows ? bossTaken(heldRows, weekStart()) : null
   );
@@ -149,11 +151,6 @@ export default function GamesPage() {
   const [hostileUsed, setHostileUsed] = useState<boolean | null>(() =>
     heldRows ? hostileUsedThisWeek(heldRows) : null
   );
-  /* Days left in the week, from the DEVICE's own week. Read after
-     mount, never in render (practice-tab-2): the server's week is UTC
-     and the phone's is local, so on a Sunday morning in Melbourne the
-     two disagreed by a day and React threw #418. */
-  const [daysLeft, setDaysLeft] = useState<number | null>(() => (warm ? daysLeftInWeek(weekStart()) : null));
   /* Today on the device, for the game of the day; null until mounted. */
   const [now, setNow] = useState<Date | null>(() => (warm ? new Date() : null));
   /* Every game round the ladder reads (lib/client-data.ts). */
@@ -185,8 +182,8 @@ export default function GamesPage() {
         setBossDone(bossTaken(rows, week));
         setHostileUsed(hostileUsedThisWeek(rows));
       })
-      // A failed first read lands on "days left", true either way; a
-      // failed later one leaves what the screen says.
+      // A failed first read lands on an open week; a failed later one
+      // leaves what the screen says.
       .catch(() => setBossDone((was) => was ?? false));
     fetchGameRounds()
       .then(setRounds)
@@ -208,17 +205,12 @@ export default function GamesPage() {
       /* No storage: treat every visit as the first. */
     }
     setArrive(first);
-    setDaysLeft(daysLeftInWeek(week));
     setNow(new Date());
 
     readPlan();
     readWeek(week);
   }, []);
 
-  /* A non-breaking space while either read is out, so the line keeps
-     its height and nothing under it moves when the words land; /boss's
-     stage says the same from the same helper (E30). */
-  const weekState = bossWeekLine(bossDone, daysLeft);
   const startLabel = bossDone ? "Again" : "Start";
 
   const free = GAMES.filter((g) => !needsPremium(g));
@@ -283,9 +275,12 @@ export default function GamesPage() {
 
       {/* The weekly headliner. The sky stage is the card itself, the
           screen's one lifted thing, with Demos standing in it holding
-          his clock (the boss is timed), the name and the week's state
-          on the left. Nothing on the stage is a tap; Start sits on the
-          ground under it, edge to edge with it. */}
+          his clock, the eyebrow and the name on the left. No time frame
+          and no countdown (#486, Timothy: "they don't need to know any
+          time frame"): the reading's clock runs on the reading. A week
+          already taken says so in sage under the name, the one state
+          that is earned. Nothing on the stage is a tap; Start sits on
+          the ground under it. */}
       <section aria-labelledby="boss-title" className="mt-5">
         {/* The house stage (components/ui/HeroStage.tsx): every tab's
             hero is this one, since the cohesion pass. */}
@@ -293,33 +288,35 @@ export default function GamesPage() {
           eyebrow="This week's boss"
           title="Cold Topic"
           titleId="boss-title"
+          center
+          /* The line's slot is always there, under the name in the
+             centred group, so the eyebrow and the name hold one y from
+             the first frame to the week's read: it stood at the foot
+             with mt-auto, and a taken week pulled them 33px up the
+             stage as the read landed (#486 review). Empty while the
+             week is open or unknown, a no-break space at its height. */
           line={
             <p
-              className="practice-week font-display mt-auto pt-3 text-link font-bold"
+              className={`practice-week font-display mt-1 text-link font-bold ${bossDone ? "arrive" : ""}`}
               data-done={bossDone || undefined}
+              aria-hidden={bossDone ? undefined : true}
             >
-              {weekState}
+              {bossDone ? BOSS_DONE_LINE : "\u00a0"}
             </p>
           }
+          artSize={BOSS_ART}
           art={
             arrive !== null && (
               <DemosArt
                 pose="clock"
-                size={132}
+                size={BOSS_ART}
                 pop={arrive}
                 grounded
                 halo={{ tone: "sky", kind: "stage" }}
               />
             )
           }
-        >
-          {/* What the boss asks (D30), from its own two clocks, a
-              sentence a line so neither breaks mid-way at 390. */}
-          <p className="stage-ink font-display mt-1 text-body font-semibold">
-            <span className="block">{bossReadLine()}</span>
-            <span className="block">{bossAnswerLine()}</span>
-          </p>
-        </HeroStage>
+        />
         <Link
           href="/boss"
           aria-label={`${startLabel}: Cold Topic`}

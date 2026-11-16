@@ -61,7 +61,6 @@ import { useRevalidate } from "@/lib/use-revalidate";
 import { useStill, useWarm } from "@/lib/use-warm";
 import { barLabel, bestFlame, levelLine, reachLine, streakFlame, xpStanding, type Flame } from "@/lib/xp";
 import { readable, readFailure, withTimeout } from "@/lib/load";
-import { starsByLesson, totalStars } from "@/lib/path";
 import { cleanName, MAX_NAME, readOnboarding, type OnboardingState } from "@/lib/answers";
 import { syncOnboarding } from "@/lib/answers-sync";
 import { buildPortfolio } from "@/lib/portfolio";
@@ -828,10 +827,10 @@ export default function YouPage() {
         </Link>
       </section>
 
-      {/* The road (#232, D36): its headline, the unit for what was
-          noticed, and how far its gate is, as its own card door, because
-          an answer is allowed to change. "Plan" is left to Premium. Its
-          three lines are reserved while the device is read. */}
+      {/* The road (#232, D36): its headline and the unit for what was
+          noticed, as its own card door, because an answer is allowed to
+          change. "Plan" is left to Premium. Its three lines are reserved
+          while the device is read. */}
       {onboarding === undefined ? (
         <div aria-hidden className="card mt-7 p-4 text-left">
           <Line className="eyebrow" bar="w-16" align="left" />
@@ -839,7 +838,7 @@ export default function YouPage() {
           <Line className="mt-0.5 text-caption" bar="w-32" align="left" />
         </div>
       ) : (
-        <RoadCard state={onboarding} stars={reps ? totalStars(starsByLesson(lifetime)) : null} />
+        <RoadCard state={onboarding} />
       )}
 
       {/*
@@ -1313,23 +1312,21 @@ function Swap({ original, upgrade }: { original: string; upgrade: string }) {
   );
 }
 
-/** The gate caption under the plan's headline (#232; check-onboarding reads it). */
-function gateLine(unitName: string, toGo: number | null): string {
-  if (toGo === null) return unitName;
-  if (toGo === 0) return `${unitName} is open`;
-  return `${unitName} opens in ${toGo} star${toGo === 1 ? "" : "s"}`;
-}
-
 /** The road's card: its own door, under the lexicon since #458 (D36). */
 const ROAD_CARD = "card press mt-7 flex min-h-11 items-center gap-3 p-4 text-left";
 
 /**
- * The road (#232, D36): the portfolio's headline, the unit for what was
- * noticed, and how far its gate is. Opens the plan to change an answer;
- * a walk never taken opens the first question. Its eyebrow is "The
- * road": "Your plan" echoed the paid plan's card further down.
+ * The road (#232, D36): the portfolio's headline and the unit for what
+ * was noticed. Opens the plan to change an answer; a walk never taken
+ * opens the first question. Its eyebrow is "The road": "Your plan"
+ * echoed the paid plan's card further down. Its caption counted the
+ * stars to the unit's gate ("Pace Control opens in 4 stars") until #486,
+ * which took the total of every lesson's stars off every screen
+ * (Timothy, 16 Nov: "Total stars is a useless feature"): a count to a
+ * gate is that total by another name. The caption names the unit
+ * (check-onboarding reads it).
  */
-function RoadCard({ state, stars }: { state: OnboardingState; stars: number | null }) {
+function RoadCard({ state }: { state: OnboardingState }) {
   if (!state.done) {
     return (
       <Link href="/welcome?step=ageBand" className={ROAD_CARD}>
@@ -1344,8 +1341,6 @@ function RoadCard({ state, stars }: { state: OnboardingState; stars: number | nu
     );
   }
   const plan = buildPortfolio(state.answers);
-  const toGo =
-    plan.focus && stars !== null ? Math.max(0, plan.focus.unlocksAt - stars) : null;
   return (
     <Link href="/welcome?step=plan" className={ROAD_CARD}>
       <span className="min-w-0 flex-1">
@@ -1356,7 +1351,7 @@ function RoadCard({ state, stars }: { state: OnboardingState; stars: number | nu
           {asTitle(plan.headline)}
         </span>
         <span className="mt-0.5 block truncate text-caption tabular-nums text-stone-500">
-          {plan.focus ? gateLine(plan.focus.unitName, toGo) : "The road, one unit at a time"}
+          {plan.focus ? plan.focus.unitName : "The road, one unit at a time"}
         </span>
       </span>
       <Disclosure />

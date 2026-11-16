@@ -147,9 +147,6 @@ export const UNITS: Unit[] = [
   },
 ];
 
-export const TOTAL_LESSONS = UNITS.flatMap((u) => u.lessons).length;
-export const MAX_STARS = TOTAL_LESSONS * 3;
-
 /** Best star earned per lesson id, from rep history. */
 export function starsByLesson(
   reps: { lesson_id: string | null; stars: number }[]
@@ -162,18 +159,21 @@ export function starsByLesson(
   return best;
 }
 
-export function totalStars(starMap: Record<string, number>): number {
-  return Object.values(starMap).reduce((a, b) => a + b, 0);
-}
-
 export interface UnitState extends Unit {
   earned: number;
   possible: number;
   locked: boolean;
 }
 
+/**
+ * Each unit's stars and whether it is open. A unit still opens on the
+ * stars earned across the road (`unlocksAt`), which orders the next
+ * lesson (`nextLesson`); since #486 that sum is read here and nowhere
+ * else, and no screen prints it (Timothy, 16 Nov: "Total stars is a
+ * useless feature remove it").
+ */
 export function unitStates(starMap: Record<string, number>): UnitState[] {
-  const total = totalStars(starMap);
+  const total = Object.values(starMap).reduce((a, b) => a + b, 0);
   return UNITS.map((u) => ({
     ...u,
     earned: u.lessons.reduce((a, l) => a + (starMap[l.id] ?? 0), 0),

@@ -495,6 +495,41 @@ function gameRows() {
     rows.push(row(0, 9, "game-today", `game:${g}:${g === "rush" ? "ru20" : "iv14"}`, 2, 668, round));
   }
   if (gamesMode.hostileUsed) rows.push(row(0, 9, "hostile-today", "hostile-take", 2, 641, null));
+  /* The Log's Games side (#486): three weeks of the weekly boss, the
+     middle one taken twice (its first scored take counts), and a Hostile
+     Q&A take with its stored verdict. Each at least eight days back, so
+     no camera's "this week" changes: Practice's Start, /boss's lock and
+     Hostile's free week read as they always did. */
+  const bossTake = (ago, h, id, topic, index, accuracy) => ({
+    ...row(ago, h, id, `boss:${topic}`, 2, index, null),
+    mode: "boss", boss_topic_id: topic, duration_s: 84,
+    /* As /api/analyze stores it (lib/accuracy.ts AccuracyResult): the
+       stored recording's AccuracyCard counts `covered`, and a row
+       without it threw on /rep/[id] (#486 review). */
+    accuracy:
+      accuracy === null
+        ? null
+        : { score: accuracy, coverage: accuracy / 100, covered: [0, 1, 2], missed: [], confidentlyWrong: 0, claims: [] },
+  });
+  rows.push(
+    bossTake(8, 19, "boss-1", "dunning-kruger", 648, 82),
+    bossTake(15, 9, "boss-2", "great-vowel-shift", null, null),
+    bossTake(15, 19, "boss-3", "great-vowel-shift", 621, 74),
+    bossTake(29, 19, "boss-4", "placebo-effect", 590, 61),
+    {
+      ...row(9, 20, "hostile-1", "hostile-take", 2, 641, null),
+      round: {
+        v: 1, game: "hostile", claimId: "zoos",
+        verdict: {
+          held: { score: 72, citedMoment: "kept the claim", improve: "Name the cost." },
+          answered: { score: 64, citedMoment: "answered it", improve: "Shorter." },
+          composed: { score: 70, citedMoment: "steady", improve: "Slow down." },
+          coachLine: "You held it.",
+        },
+        questions: [],
+      },
+    }
+  );
   return rows;
 }
 

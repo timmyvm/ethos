@@ -14,19 +14,8 @@ import { Disclosure } from "@/components/ui/Disclosure";
 import { FooterShelf } from "@/components/ui/FooterShelf";
 import { HeroStage } from "@/components/ui/HeroStage";
 import { BackLink } from "@/components/ui/ScreenHeader";
-import { Skeleton } from "@/components/ui/Skeleton";
-import {
-  BOSS_RESEARCH_SECONDS,
-  BOSS_WEEKS,
-  bossAnswerLine,
-  bossReadLine,
-  bossWeekLine,
-  bossWeeks,
-  daysLeftInWeek,
-  takeThisWeek,
-  type BossWeek,
-} from "@/lib/boss";
-import { fetchProfile, fetchRepSpine, fetchReps } from "@/lib/client-data";
+import { BOSS_DONE_LINE, BOSS_RESEARCH_SECONDS, takeThisWeek } from "@/lib/boss";
+import { fetchProfile, fetchReps } from "@/lib/client-data";
 import { COLD_TOPICS, weeklyTopic, type ColdTopic } from "@/lib/cold-topics";
 import { HOSTILE_LINE } from "@/lib/hostile";
 import { weekStart } from "@/lib/level";
@@ -40,6 +29,11 @@ import { usePaywallReturn } from "@/lib/use-paywall-return";
 /** Free tier: the headliner plus two re-rolls a week (DECISIONS #181). */
 const FREE_SPINS = 2;
 const SPINS_KEY = "ethos.boss.spins";
+
+/** The most the lobby's Demos grows to when the stage takes the free height, px. */
+const BOSS_ART_MAX = 232;
+/** What the lobby's stage keeps clear above him: its eyebrow, its title and the padding. */
+const BOSS_ART_RESERVE = 96;
 
 type Phase = "lobby" | "research";
 
@@ -68,8 +62,11 @@ function writeSpins(week: string, used: number): void {
  *
  * The week's benchmark (the games plan, item 16): the same 90 seconds
  * every week, no mods, so its number is the honest test of whether the
- * practice transferred. The lobby keeps the last six weeks, each week's
- * first boss Index, and the score step compares with last week's.
+ * practice transferred. The weeks taken are kept in the Log's Games side
+ * since #486 (lib/games-log.ts), each week's first boss Index, and the
+ * score step compares with last week's. The lobby says neither clock and
+ * no countdown (Timothy, 16 Nov: "they don't need to know any time
+ * frame"), and not what the take earns: the results show both.
  *
  * Access (#181, amends #36): everyone starts on the week's headliner;
  * free re-rolls the wheel twice a week and takes what lands, premium
@@ -103,16 +100,14 @@ export default function BossPage() {
   /** Unknown until the profile read lands: the spins counter waits for
       it, so a paying account never flashes a free allowance. */
   const [premium, setPremium] = useState<boolean | null>(null);
-  /** The last six weeks, Mondays known on mount; their takes once read. */
-  const [weeks, setWeeks] = useState<BossWeek[] | null>(null);
   /** This week's take, which a spent free week opens. */
   const [takeId, setTakeId] = useState<string | null>(null);
   const [library, setLibrary] = useState(false);
   const [query, setQuery] = useState("");
   const [spinsUsed, setSpinsUsed] = useState<number | null>(null);
-  /* The stage's week line and the record wait for the read, as Practice's does. */
-  const [weekRead, setWeekRead] = useState<"no" | "yes" | "failed">("no");
-  const [daysLeft, setDaysLeft] = useState<number | null>(null);
+  /* Whether this week's boss is taken: null until the read lands, and
+     on a failed read, which never locks a week. */
+  const [taken, setTaken] = useState<boolean | null>(null);
   const leaving = useRef(false);
 
   useEffect(() => {
@@ -121,28 +116,23 @@ export default function BossPage() {
     const now = new Date();
     const thisWeek = weekStart(now).toISOString().slice(0, 10);
     setWeek(thisWeek);
-    setDaysLeft(daysLeftInWeek(weekStart(now)));
     setSpinsUsed(readSpins(thisWeek));
-    setWeeks(bossWeeks([], now));
     fetchProfile()
       .then((p) => setPremium(p?.premium ?? false))
       // Unknown, not free: a failed read never locks a paying account.
       .catch(() => setPremium(null));
-    /* The record reads every recording's date and Index (a heavy week
-       of practice would push six weeks of bosses past the newest 90);
-       the newest 90 whole rows hold this week's take and its id. */
-    Promise.all([fetchRepSpine(), fetchReps()])
-      .then(([spine, reps]) => {
-        setWeeks(bossWeeks(spine, now));
-        setTakeId(takeThisWeek(reps, now)?.id ?? null);
-        setWeekRead("yes");
+    /* The newest 90 whole rows hold this week's take and its id. */
+    fetchReps()
+      .then((reps) => {
+        const take = takeThisWeek(reps, now);
+        setTakeId(take?.id ?? null);
+        setTaken(take !== null);
       })
-      /* A failed read lands on "days left", which is true either way,
-         and a record of dashes: unknown, never a missed week. */
-      .catch(() => setWeekRead("failed"));
+      // Unknown, not taken: a failed read never locks the week.
+      .catch(() => setTaken(null));
   }, []);
 
-  const takenThisWeek = weekRead === "yes" && (weeks?.at(-1)?.taken ?? false);
+  const takenThisWeek = taken === true;
   const paid = premium === true;
   const locked = takenThisWeek && premium === false;
   const spinsLeft = Math.max(0, FREE_SPINS - (spinsUsed ?? 0));
@@ -246,40 +236,36 @@ export default function BossPage() {
         <>
           {/* Practice's stage, the same one (E30): sky, the sheet
               radius, p-5, the screen's one elev-2, the week's boss named
-              as Practice names it, what it asks in its two clocks, the
-              week's state from the same helper, and the clock Demos
-              standing on its floor at the right, without his spring: his
-              arrival stays Practice's weekly moment (#313). The title is
-              the page's h1. Nothing on the stage is a tap. On a pushed
-              screen with room to spare it takes the free height and he
-              grows with it (132 to 184), so the card you tapped on
-              Practice opens up here and no band of bare ground is left
-              over the shelf (R2F-09: 136pt at 390x844). */}
+              as Practice names it, a taken week's sage line as Practice
+              draws it, and the clock Demos standing on its floor at the
+              right, without his spring: his arrival stays Practice's
+              weekly moment (#313). No clocks and no countdown (#486).
+              The title is the page's h1. Nothing on the stage is a tap.
+              On a pushed screen with room to spare it takes the free
+              height and he grows with it (132 to BOSS_ART_MAX), so the
+              card you tapped on Practice opens up here and no band of
+              bare ground is left over the shelf (R2F-09). */}
           <HeroStage
             data-look="boss-stage"
             className="mt-4 flex-1"
-            artGrow={184}
+            artGrow={BOSS_ART_MAX}
+            artReserve={BOSS_ART_RESERVE}
             eyebrow="This week's boss"
             line={
-              <p
-                className="practice-week font-display mt-auto pt-3 text-link font-bold"
-                data-done={takenThisWeek || undefined}
-              >
-                {bossWeekLine(weekRead === "no" ? null : takenThisWeek, daysLeft)}
-              </p>
+              takenThisWeek ? (
+                <p className="practice-week arrive font-display mt-auto pt-3 text-link font-bold" data-done>
+                  {BOSS_DONE_LINE}
+                </p>
+              ) : undefined
             }
-            art={<DemosArt pose="clock" size={184} fit grounded halo={{ tone: "sky", kind: "stage" }} />}
+            art={<DemosArt pose="clock" size={BOSS_ART_MAX} fit grounded halo={{ tone: "sky", kind: "stage" }} />}
           >
             <h1 className="font-display mt-1.5 text-title font-extrabold">Cold Topic</h1>
-            <p className="stage-ink font-display mt-1 text-body font-semibold">
-              <span className="block">{bossReadLine()}</span>
-              <span className="block">{bossAnswerLine()}</span>
-            </p>
           </HeroStage>
 
-          {/* The topic on the ground, at the title's 26/800, and what
-              the take earns under it. Topic title only: the study sheet
-              waits for the clock (#182). */}
+          {/* The topic on the ground, at the title's 26/800. Topic title
+              only: the study sheet waits for the clock (#182), and what
+              the take earns is the results' to say (#486). */}
           <Reel
             state={reel}
             current={shown}
@@ -290,11 +276,6 @@ export default function BossPage() {
               <span className="flex h-full items-center text-balance">{t.title}</span>
             )}
           />
-          <p className="mt-1 text-link font-medium text-stone-500">
-            You get a delivery score and a fact-check.
-          </p>
-
-          <BossRecord weeks={weeks} read={weekRead} />
 
           {/* The wheel, or why there is none. Spin is the secondary pill
               with the allowance beside it: allotted, not earned, so never
@@ -521,85 +502,5 @@ export default function BossPage() {
         <Paywall reason={paywall} onClose={() => setPaywall(null)} />
       )}
     </main>
-  );
-}
-
-/**
- * The last six weeks (the games plan, item 16): one slot a week, this
- * week last. A slot holds the week's first boss Index at num-s; a missed
- * week stays an empty outlined slot, never a zero; a week whose take was
- * too short to score holds a dash. This week's slot is ringed in ink,
- * an outline and never a fill: the screen's one tap is the take. Each Monday's date
- * sits under its slot. Until the read lands the slots shimmer at their
- * landed size; a failed read shows dashes, unknown rather than missed.
- */
-function BossRecord({
-  weeks,
-  read,
-}: {
-  weeks: BossWeek[] | null;
-  read: "no" | "yes" | "failed";
-}) {
-  const slots = weeks ?? Array.from({ length: BOSS_WEEKS }, () => null);
-  return (
-    <section aria-labelledby="boss-record" className="mt-5">
-      <h2 id="boss-record" className="eyebrow">
-        Last six weeks
-      </h2>
-      <ol className="mt-2 grid grid-cols-6 gap-2 [@media(max-width:359px)]:gap-1" aria-busy={read === "no" || undefined}>
-        {slots.map((w, i) => {
-          const known = read === "yes" && w !== null;
-          const said = !w
-            ? ""
-            : read !== "yes"
-              ? `Week of ${w.label}`
-              : `Week of ${w.label}${w.current ? ", this week" : ""}: ${
-                  w.index !== null
-                    ? w.index
-                    : w.taken
-                      ? "taken, not scored"
-                      : w.current
-                        ? "not taken yet"
-                        : "missed"
-                }`;
-          const filled = known && w.taken;
-          return (
-            <li key={w ? w.label : i} className="flex min-w-0 flex-col items-center">
-              <span className="sr-only">{said.replace(/ /g, " ")}</span>
-              {read === "no" ? (
-                <Skeleton className="h-11 w-full" />
-              ) : (
-                <span
-                  aria-hidden
-                  className={`flex h-11 w-full items-center justify-center rounded-control ${
-                    filled || read === "failed" ? "bg-surface" : ""
-                  } ${
-                    w?.current
-                      ? "border-2 border-ink"
-                      : filled || read === "failed"
-                        ? ""
-                        : "border border-edge"
-                  } ${known ? "arrive" : ""}`}
-                >
-                  {known && w.index !== null ? (
-                    <span className="font-display text-num-s tabular-nums text-ink">{w.index}</span>
-                  ) : filled || read === "failed" ? (
-                    <span className="font-display text-num-s text-stone-400">–</span>
-                  ) : null}
-                </span>
-              )}
-              <span
-                aria-hidden
-                className={`mt-1.5 text-caption tabular-nums ${
-                  w?.current ? "font-semibold text-ink" : "text-stone-500"
-                }`}
-              >
-                {w ? w.label : " "}
-              </span>
-            </li>
-          );
-        })}
-      </ol>
-    </section>
   );
 }

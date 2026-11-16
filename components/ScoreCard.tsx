@@ -10,7 +10,10 @@ import { TrendMark } from "@/components/ui/TrendMark";
  *
  * The log and About draw the same card, because a person should learn
  * this shape once. The Index is the 56px hero with its change right
- * under it (log-15), and the counts are the stage's foot line.
+ * under it (log-15), and the count of recordings is the stage's foot
+ * line. It said "22 recordings, 35 stars" until #486: the total of every
+ * lesson's stars went (Timothy, 16 Nov: "Total stars is a useless
+ * feature remove it"); a lesson's own stars stay on the lesson.
  *
  * THE MATERIAL (the cohesion pass, 26 Oct). It was the deep sage card
  * (#165), its own colour world: a first-time tester read the tabs as
@@ -39,7 +42,6 @@ export function ScoreCard({
   index,
   delta,
   recordings,
-  stars,
   foot,
   series,
   span,
@@ -50,7 +52,6 @@ export function ScoreCard({
   /** Against the first scored recording. Null until there are two. */
   delta: number | null;
   recordings: number;
-  stars: number;
   /** One quiet line under the counts (About's "a sample"). */
   foot?: ReactNode;
   /** The Index over time, oldest first, for the hill. */
@@ -98,8 +99,7 @@ export function ScoreCard({
               "Your first recording sets it."
             ) : (
               <>
-                {recordings} {recordings === 1 ? "recording" : "recordings"}, {stars}{" "}
-                {stars === 1 ? "star" : "stars"}
+                {recordings} {recordings === 1 ? "recording" : "recordings"}
               </>
             )}
           </p>

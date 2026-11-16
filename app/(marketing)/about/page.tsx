@@ -135,7 +135,6 @@ export default function About() {
           index={612}
           delta={48}
           recordings={21}
-          stars={14}
           series={SAMPLE_SERIES}
           foot="A sample, three weeks in."
         />

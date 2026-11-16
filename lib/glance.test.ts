@@ -295,13 +295,13 @@ describe("every number Demos says traces to the take", () => {
     const m = take();
     expect(heldPauseMarks(m.pauses).landed).toBe(3);
     expect(line("pause").sentence.startsWith("3 pauses landed")).toBe(true);
-    expect(endNote({ gains: [], metrics: m, streak: streak(), repCount: 4 }).headline).toBe("3 landed pauses");
+    expect(endNote({ metrics: m, streak: streak(), repCount: 4 }).headline).toBe("3 landed pauses");
     /* A pause before a sentence judged dead counts in neither. */
     const dead = take({
       pauses: [...PAUSES, { t: 50, len: 3.9, kind: "pre", verdict: "dead" }] as unknown as RepMetrics["pauses"],
     });
     expect(heldPauseMarks(dead.pauses).landed).toBe(3);
-    expect(endNote({ gains: [], metrics: dead, streak: streak(), repCount: 4 }).headline).toBe("3 landed pauses");
+    expect(endNote({ metrics: dead, streak: streak(), repCount: 4 }).headline).toBe("3 landed pauses");
   });
 
   it("a chip window never starts before the take", () => {

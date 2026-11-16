@@ -169,7 +169,7 @@ describe("freshStart", () => {
 });
 
 describe("endNote", () => {
-  const base = { gains: [], repCount: 4 };
+  const base = { repCount: 4 };
 
   it("prefers a landed pause, the hardest thing to do (#427: one word, landed)", () => {
     const e = endNote({

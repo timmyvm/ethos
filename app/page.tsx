@@ -4,17 +4,14 @@ import Link from "next/link";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { CountUp } from "@/components/CountUp";
-import { DURATION } from "@/lib/motion";
 import { AvatarCoin } from "@/components/home/AvatarCoin";
 import { HomeHero } from "@/components/home/HomeHero";
 import { TilesSkeleton, TodayTiles } from "@/components/home/HomeTiles";
 import { WeekSkeleton, WeekTiles } from "@/components/home/WeekTiles";
 import { ModPicker } from "@/components/ModPicker";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { HeaderCount } from "@/components/ui/HeaderCount";
 import { Segmented } from "@/components/ui/Segmented";
-import { IconBack, IconFlask, IconStar } from "@/components/Icon";
+import { IconBack, IconFlask } from "@/components/Icon";
 import { Paywall } from "@/components/Paywall";
 import { PriceDropSheet } from "@/components/premium/Moments";
 import { usePlan, usePriceDrop } from "@/lib/use-plan";
@@ -46,7 +43,6 @@ import {
   introHref,
   nextLesson,
   starsByLesson,
-  totalStars,
 } from "@/lib/path";
 import { readPrefs } from "@/lib/prefs";
 import { readOnboarding } from "@/lib/answers";
@@ -515,18 +511,13 @@ export default function Home() {
         barTrailing={
           <span className="mr-3 flex h-9 items-center gap-2">
             {reps !== null && (
-              /* Earned stars, beside the streak: the two standing scores
-                 (#176), sage chips with a gold mark, never a tap. They
-                 land with the read, in one fade. At zero both read as
-                 unlit zeros (D25) until the first recording lights them. */
+              /* The streak, the one standing score in the header (#176),
+                 a sage chip with a gold mark, never a tap. It lands with
+                 the read; at zero it reads as an unlit zero (D25) until
+                 the first recording lights it. The total of every
+                 lesson's stars stood beside it until #486 (Timothy, 16
+                 Nov: "Total stars is a useless feature remove it"). */
               <span className="arrive flex items-center gap-2">
-                <HeaderCount
-                  variant="chip"
-                  empty={totalStars(starMap) === 0}
-                  glyph={<IconStar />}
-                  value={<CountUp value={totalStars(starMap)} durationMs={DURATION.max} />}
-                  label={`${totalStars(starMap)} stars`}
-                />
                 <StreakBadge streak={streak} />
               </span>
             )}

@@ -26,7 +26,7 @@
 import type { Achievement } from "./achievements";
 import type { RepRow } from "./client-data";
 import { levelFromXp, xpForLevel } from "./level";
-import { MAX_STARS, UNITS, totalStars, unitStates } from "./path";
+import { unitStates } from "./path";
 import { MAX_EQUIPPED_FREEZES, type StreakState } from "./streak";
 
 /** Duolingo's published streak thresholds — where loss aversion bites. */
@@ -240,150 +240,12 @@ export function nextMilestones(input: ProgressInput): Milestone[] {
   return [...byLabel.values()].sort((a, b) => b.progress - a.progress);
 }
 
-export interface JourneyStep {
-  id: string;
-  label: string;
-  /** 0–3 for lessons; endowed steps are simply done or not. */
-  stars: number;
-  maxStars: number;
-  done: boolean;
-  locked: boolean;
-  unitName: string;
-  /** True for the leading "you showed up" node (endowed progress). */
-  endowed: boolean;
-  /** Boss lessons live on /boss, not /rep?lesson=. */
-  boss: boolean;
-  lessonId: string | null;
-}
-
-/**
- * The rail: one node per lesson, led by a node for something the user
- * actually did. Nunes & Drèze's head start was visible and free and
- * still worked — what moves people is the task reading as *underway*.
- * So this node is labelled honestly and carries no stars.
+/*
+ * The rail (`journeySteps`), its summary (`journeySummary`, "N of 87
+ * stars") and the results' gains (`repGains`, "+1★ / 35 of 87 stars")
+ * went in #486. Nothing drew the first two, and the gains reached the
+ * closing line, which never read them. Each summed every lesson's stars
+ * into a total, and the total left every screen (Timothy, 16 Nov:
+ * "Total stars is a useless feature remove it"). A lesson's own stars
+ * stay: the next one on a lesson is still a milestone above.
  */
-export function journeySteps(
-  starMap: Record<string, number>,
-  hasAnyRep: boolean
-): JourneyStep[] {
-  const steps: JourneyStep[] = [
-    {
-      id: "start",
-      label: "Showed up",
-      stars: 0,
-      maxStars: 0,
-      done: true,
-      locked: false,
-      unitName: "Start",
-      endowed: true,
-      boss: false,
-      lessonId: null,
-    },
-  ];
-
-  for (const unit of unitStates(starMap)) {
-    for (const lesson of unit.lessons) {
-      const stars = starMap[lesson.id] ?? 0;
-      steps.push({
-        id: lesson.id,
-        label: lesson.title,
-        stars,
-        maxStars: 3,
-        done: stars > 0,
-        locked: unit.locked,
-        unitName: unit.name,
-        endowed: false,
-        boss: unit.boss ?? false,
-        lessonId: lesson.id,
-      });
-    }
-  }
-
-  // Before the first rep the second node reads as "in progress", so the
-  // rail is never an empty row of grey.
-  if (!hasAnyRep && steps[1]) steps[1].done = false;
-  return steps;
-}
-
-export interface JourneySummary {
-  stars: number;
-  maxStars: number;
-  /** Share of all available stars, 0–1. */
-  pct: number;
-  lessonsStarted: number;
-  lessonsMastered: number;
-  totalLessons: number;
-  unitsOpen: number;
-  totalUnits: number;
-}
-
-export function journeySummary(
-  starMap: Record<string, number>
-): JourneySummary {
-  const states = unitStates(starMap);
-  const lessons = UNITS.flatMap((u) => u.lessons);
-  const stars = totalStars(starMap);
-  return {
-    stars,
-    maxStars: MAX_STARS,
-    pct: MAX_STARS > 0 ? stars / MAX_STARS : 0,
-    lessonsStarted: lessons.filter((l) => (starMap[l.id] ?? 0) > 0).length,
-    lessonsMastered: lessons.filter((l) => (starMap[l.id] ?? 0) === 3).length,
-    totalLessons: lessons.length,
-    unitsOpen: states.filter((u) => !u.locked).length,
-    totalUnits: states.length,
-  };
-}
-
-/**
- * What this rep changed, in numbers. Shown once, on the results screen.
- * Task-level feedback (Hattie & Timperley) — never "great job".
- */
-export interface RepGain {
-  label: string;
-  detail: string;
-  /** False when the number moved the wrong way (#195): the chip wears
-   *  terracotta instead of sage. Absent = a gain. */
-  good?: boolean;
-}
-
-export function repGains(params: {
-  starsBefore: number;
-  starsAfter: number;
-  indexBefore: number | null;
-  indexAfter: number | null;
-  streakAfter: number;
-  unlockedUnit: string | null;
-}): RepGain[] {
-  const gains: RepGain[] = [];
-  const starDelta = params.starsAfter - params.starsBefore;
-  if (starDelta > 0) {
-    gains.push({
-      label: `+${starDelta}★`,
-      detail: `${params.starsAfter} of ${MAX_STARS} stars`,
-    });
-  }
-  if (params.indexAfter !== null && params.indexBefore !== null) {
-    const d = params.indexAfter - params.indexBefore;
-    if (d !== 0) {
-      gains.push({
-        label: `${d > 0 ? "+" : ""}${d} Ethos`,
-        detail: `${params.indexBefore} → ${params.indexAfter}`,
-        ...(d < 0 ? { good: false } : {}),
-      });
-    }
-  }
-  if (params.streakAfter > 0) {
-    gains.push({
-      label: `${params.streakAfter}-day streak`,
-      detail: params.streakAfter === 1 ? "day one" : "kept alive",
-    });
-  }
-  if (params.unlockedUnit) {
-    gains.push({
-      label: `${params.unlockedUnit} unlocked`,
-      detail: "new unit open on the path",
-    });
-  }
-  return gains;
-}

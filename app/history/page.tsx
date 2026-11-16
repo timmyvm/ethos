@@ -47,10 +47,11 @@ import {
   skillRows,
   type MovedRow,
 } from "@/lib/log";
-import { starsByLesson, totalStars } from "@/lib/path";
 import { readPrefs } from "@/lib/prefs";
 import type { TraitId } from "@/content/traits";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
+import { GamesLog } from "@/components/log/GamesLog";
+import { LogSwitch, useLogView } from "@/components/log/LogSwitch";
 
 const FREE_DAYS = 7; // mechanics.md: free tier sees the last 7 days
 const DASH = "—";
@@ -176,6 +177,9 @@ export default function HistoryPage() {
   /** The plan's read failed: unknown for good, drawn unlocked, never as a teaser. */
   const [planFailed, setPlanFailed] = useState(false);
   const [showFillers, setShowFillers] = useState(false);
+  /* Daily or Games (#486): Daily is everything below, unchanged; Games is
+     components/log/GamesLog.tsx. */
+  const [view, setView] = useLogView(warm);
 
   const load = useCallback(async () => {
     setFailed(false);
@@ -227,10 +231,21 @@ export default function HistoryPage() {
    * over a sleeping Demos, which tells someone with sixty recordings
    * that they have none.
    */
+  if (view === "games") {
+    return (
+      <main className="px-5 pb-[var(--nav-clear)] pt-7">
+        <ScreenHeader title="Log" />
+        <LogSwitch view={view} onChange={setView} />
+        <GamesLog />
+      </main>
+    );
+  }
+
   if (failed) {
     return (
       <main className="px-5 pb-[var(--nav-clear)] pt-7">
         <ScreenHeader title="Log" />
+        <LogSwitch view={view} onChange={setView} />
         <ErrorState
           className="mt-5"
           {...readFailure("The log")}
@@ -244,6 +259,7 @@ export default function HistoryPage() {
     return (
       <main className="px-5 pb-[var(--nav-clear)] pt-7">
         <ScreenHeader title="Log" />
+        <LogSwitch view={view} onChange={setView} />
         <SkeletonRegion label="Loading your log">
           {/* The score card carries no outer margin any more (#234), so
               the placeholder holds the same 20 the real card sits on
@@ -300,7 +316,6 @@ export default function HistoryPage() {
   }
 
   const empty = reps.length === 0;
-  const starMap = starsByLesson(spine);
   const scored = spine.filter((r) => r.ethos_index !== null);
   const firstIndex = scored[0]?.ethos_index ?? null;
   const lastIndex = scored[scored.length - 1]?.ethos_index ?? null;
@@ -350,6 +365,7 @@ export default function HistoryPage() {
           exact h1, so fading it in with the read would take a title
           that is already on the screen down to nothing and back. */}
       <ScreenHeader title="Log" />
+      <LogSwitch view={view} onChange={setView} />
       <div className="arrive">
 
         {/*
@@ -368,7 +384,6 @@ export default function HistoryPage() {
             index={lastIndex}
             delta={indexDelta}
             recordings={spine.length}
-            stars={totalStars(starMap)}
             series={scored.map((r) => r.ethos_index as number)}
             span={
               scored.length > 1

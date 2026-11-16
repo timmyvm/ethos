@@ -205,6 +205,68 @@ async function readGameRounds(): Promise<GameRoundRow[]> {
   );
 }
 
+/** A boss or Hostile Q&A take, as the Log's Games side reads it (lib/games-log.ts). */
+export interface PracticeTakeRow {
+  id: string;
+  lesson_id: string | null;
+  created_at: string;
+  stars: number;
+  ethos_index: number | null;
+  /** The boss's fact-check; null on a Hostile take. */
+  accuracy: { score: number } | null;
+  /** Hostile's stored verdict (0026); null on a boss take and before 0026. */
+  round: unknown;
+}
+
+const PRACTICE_KEY = "practiceTakes";
+/** lib/hostile.ts `HOSTILE_TAKE_ID`, spelt here so every page's reads do not pull in the verdict's schema. */
+export const HOSTILE_TAKE_LESSON = "hostile-take";
+export const heldPracticeTakes = (): PracticeTakeRow[] | null => held<PracticeTakeRow[]>(PRACTICE_KEY) ?? null;
+
+/** The newest this many of each, boss and Hostile: years of weeks. */
+export const PRACTICE_TAKES_LIMIT = 200;
+
+/**
+ * Every boss take (`boss:*`) and Hostile Q&A take (`hostile-take`) the
+ * Log's Games side lists (#486), a few columns each, newest
+ * `PRACTICE_TAKES_LIMIT` of each, handed back oldest first. The game
+ * rounds come from `fetchGameRounds`. Throws on a failed read (#147); a
+ * database without migration 0026 reads them with `round` null.
+ */
+export function fetchPracticeTakes(): Promise<PracticeTakeRow[]> {
+  return once(PRACTICE_KEY, readPracticeTakes);
+}
+
+async function readPracticeTakes(): Promise<PracticeTakeRow[]> {
+  const db = supabaseBrowser();
+  if (!db) return [];
+  const mark = heldMark();
+  const { data: session } = await db.auth.getSession();
+  if (!session.session) return [];
+  const read = async (columns: string) => {
+    const base = () => db.from("reps").select(columns).order("created_at", { ascending: false }).limit(PRACTICE_TAKES_LIMIT);
+    const [boss, hostile] = await Promise.all([
+      base().like("lesson_id", "boss:%"),
+      base().eq("lesson_id", HOSTILE_TAKE_LESSON),
+    ]);
+    return { data: [...((boss.data as unknown[]) ?? []), ...((hostile.data as unknown[]) ?? [])], error: boss.error ?? hostile.error };
+  };
+  let { data, error } = await read("id, lesson_id, created_at, stars, ethos_index, accuracy, round");
+  if (missingRoundColumn(error)) ({ data, error } = await read("id, lesson_id, created_at, stars, ethos_index, accuracy"));
+  if (error) throw error;
+  const seen = new Set<string>();
+  return hold(
+    PRACTICE_KEY,
+    (data as PracticeTakeRow[])
+      // The filters again, on the client: the look loop's mock answers every row.
+      .filter((r) => (r.lesson_id ?? "").startsWith("boss:") || r.lesson_id === HOSTILE_TAKE_LESSON)
+      .filter((r) => (seen.has(r.id) ? false : (seen.add(r.id), true)))
+      .map((r) => ({ ...r, accuracy: r.accuracy ?? null, round: r.round ?? null }))
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+    mark
+  );
+}
+
 /**
  * Every recording the account holds, a few columns each: what the
  * lifetime numbers are counted from (the streak and the longest run, the

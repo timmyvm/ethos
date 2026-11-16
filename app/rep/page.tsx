@@ -96,7 +96,7 @@ import {
   proMomentDue,
   proMomentShown,
 } from "@/lib/pro-moment";
-import { nextLesson, starsByLesson, totalStars, unitStates } from "@/lib/path";
+import { nextLesson, starsByLesson } from "@/lib/path";
 import { liveTipAt, liveTipsFor, yieldsToCutIn } from "@/lib/live-tips";
 import {
   loadPose,
@@ -123,7 +123,6 @@ import {
 } from "@/lib/prefs";
 import { armReminder } from "@/lib/reminders";
 import { writeSpokeHint } from "@/lib/spoke-hint";
-import { repGains } from "@/lib/progress";
 import { celebrates, type RewardMoment } from "@/lib/rewards";
 import {
   backLabel,
@@ -732,8 +731,6 @@ function RepScreen() {
    * "what changed" is the only reward worth showing (DECISIONS #46).
    */
   const baselineRef = useRef<{
-    stars: number;
-    unitsOpen: string[];
     reps: RepRow[];
     /** Today already had a recording before this one. */
     didToday: boolean;
@@ -822,10 +819,6 @@ function RepScreen() {
         const map = starsByLesson(all);
         const streak = computeStreak(all.map((r) => new Date(r.created_at)));
         baselineRef.current = {
-          stars: totalStars(map),
-          unitsOpen: unitStates(map)
-            .filter((u) => !u.locked)
-            .map((u) => u.name),
           reps: rows,
           didToday: streak.didToday,
           count: all.length,
@@ -1047,19 +1040,6 @@ function RepScreen() {
 
           const before = baselineRef.current;
           if (before) {
-            const map = starsByLesson(all);
-            const openNow = unitStates(map)
-              .filter((u) => !u.locked)
-              .map((u) => u.name);
-            const nextGains = repGains({
-              starsBefore: before.stars,
-              starsAfter: totalStars(map),
-              indexBefore: analyzed.previousIndex,
-              indexAfter: analyzed.ethosIndex,
-              streakAfter: streak.current,
-              unlockedUnit:
-                openNow.find((n) => !before.unitsOpen.includes(n)) ?? null,
-            });
             /* D52: the celebrate pose is for a new best Index or three
                stars. A star or a held streak is said elsewhere (the
                bests, the streak's own moment), not by spending it. */
@@ -1083,7 +1063,6 @@ function RepScreen() {
               prior: before.reps,
               metrics: analyzed.metrics,
               ethosIndex: analyzed.ethosIndex,
-              gains: nextGains,
               streak,
               repCount: all.length,
               // M4: the level's best before this take against with it.
@@ -1110,10 +1089,6 @@ function RepScreen() {
           // celebration and the stars are claimed once.
           const mapNow = starsByLesson(all);
           baselineRef.current = {
-            stars: totalStars(mapNow),
-            unitsOpen: unitStates(mapNow)
-              .filter((u) => !u.locked)
-              .map((u) => u.name),
             reps,
             // Spoken today, whether or not the row was stored.
             didToday: true,

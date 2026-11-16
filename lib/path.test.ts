@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  MAX_STARS,
-  nextLesson,
-  starsByLesson,
-  totalStars,
-  unitStates,
-} from "./path";
+import { nextLesson, starsByLesson, unitStates } from "./path";
+import * as path from "./path";
 
 describe("starsByLesson", () => {
   it("keeps the best star ever earned per lesson", () => {
@@ -52,7 +47,6 @@ describe("unit gating", () => {
   it("opens a unit once the star threshold is crossed", () => {
     const map = { f1: 3, f2: 3 }; // 6 stars
     const states = unitStates(map);
-    expect(totalStars(map)).toBe(6);
     expect(states[1].locked).toBe(false); // Pace open at 4
     expect(states[2].locked).toBe(true); // Pause needs 8
   });
@@ -108,8 +102,12 @@ describe("nextLesson", () => {
   });
 });
 
-describe("MAX_STARS", () => {
-  it("counts every lesson including boss content", () => {
-    expect(MAX_STARS).toBe(87); // 27 daily lessons + 2 boss, three stars each
+/* #486: the road still opens on the stars earned across it, read inside
+   unitStates, and nothing exports a total for a screen to print. */
+describe("no total of stars", () => {
+  it("exports no sum of every lesson's stars", () => {
+    for (const gone of ["totalStars", "MAX_STARS", "TOTAL_LESSONS"]) {
+      expect(gone in path, gone).toBe(false);
+    }
   });
 });

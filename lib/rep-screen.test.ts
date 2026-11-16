@@ -104,7 +104,7 @@ describe("takeRewards", () => {
     heldPauses: 0,
     midSentencePauses: 0,
   });
-  const base = { prior, metrics: twoWords, ethosIndex: null, gains: [], repCount: 9 };
+  const base = { prior, metrics: twoWords, ethosIndex: null, repCount: 9 };
 
   it("breaks no record on a take too short to score", () => {
     const r = takeRewards({ ...base, scorable: false, streak: streak({ current: 1, didToday: true }) });
@@ -134,7 +134,7 @@ describe("takeRewards", () => {
     const r = takeRewards({ ...base, prior: measuredPrior, metrics: m, ethosIndex: 640, scorable: true, streak: s });
     expect(r.bests).toEqual(personalBests(measuredPrior, m, 640));
     expect(r.bests.length).toBeGreaterThan(0);
-    expect(r.closing).toEqual(endNote({ gains: [], metrics: m, streak: s, repCount: 9 }));
+    expect(r.closing).toEqual(endNote({ metrics: m, streak: s, repCount: 9 }));
   });
 });
 
@@ -146,7 +146,6 @@ describe("takeRewards, a game round's best (M4)", () => {
     prior: [],
     metrics: m,
     ethosIndex: 640,
-    gains: [],
     repCount: 9,
     streak: streak({ current: 3, didToday: true }),
   };

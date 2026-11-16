@@ -41,7 +41,7 @@ const metrics = (over: Partial<RepMetrics> = {}): RepMetrics => ({
   stars: 2,
   ...over,
 });
-const base = { gains: [], repCount: 22 };
+const base = { repCount: 22 };
 const QA = gameById("qa") as Game;
 const ladder = (over: Partial<LadderState> = {}): LadderState => ({
   open: 1,
@@ -89,7 +89,7 @@ describe("closingLook, every closing the walk ends on", () => {
 
   it("closes an unscored take on its streak or its count, never in a trait's tone", () => {
     const twoWords = metrics({ durationS: 5, wordCount: 2, wpm: 24, fillerCount: 0, composedPauses: 1 });
-    const p = { prior: [], metrics: twoWords, ethosIndex: null, gains: [], repCount: 9, scorable: false };
+    const p = { prior: [], metrics: twoWords, ethosIndex: null, repCount: 9, scorable: false };
     const run = closingLook(takeRewards({ ...p, streak: streak({ current: 7, didToday: true }) }).closing);
     expect([run.value, run.ink, run.trait]).toEqual(["7", "earned", null]);
     const count = closingLook(takeRewards({ ...p, streak: streak({ current: 1, didToday: true }) }).closing);

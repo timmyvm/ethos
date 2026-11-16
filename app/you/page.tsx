@@ -5,7 +5,8 @@ import { Disclosure } from "@/components/ui/Disclosure";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AchievementMark, IconFlame, IconGear, IconOnward, IconPencil, IconXp } from "@/components/Icon";
+import { AchievementMark, IconGear, IconOnward, IconPencil } from "@/components/Icon";
+import { StatIcon } from "@/components/StatIcon";
 import { Overlay } from "@/components/ui/Overlay";
 import { SheetHead } from "@/components/ui/SheetHead";
 import { useYouAvatar } from "@/components/you/Avatar";
@@ -665,17 +666,17 @@ export default function YouPage() {
           <Stat
             label="Streak"
             value={loading ? undefined : streak.current}
-            mark={<IconFlame size={20} />}
+            mark={<StatIcon kind="streak" lit={streakFlame(streak.current, streak.didToday) === "lit"} size={22} />}
             flame={streakFlame(streak.current, streak.didToday)}
             said={streak.didToday ? "spoken today" : "not spoken today yet"}
           />
           <Stat
             label="Best streak"
             value={loading ? undefined : streak.longest}
-            mark={<IconFlame size={20} />}
+            mark={<StatIcon kind="best" lit={bestFlame(streak.longest) === "lit"} size={22} />}
             flame={bestFlame(streak.longest)}
           />
-          <Stat label="XP today" value={xpFailed ? null : xp?.today} mark={<IconXp size={20} />} />
+          <Stat label="XP today" value={xpFailed ? null : xp?.today} mark={<StatIcon kind="xp" size={22} />} />
         </div>
       </section>
       {nameFailed && (
@@ -1231,10 +1232,11 @@ function Line({
  * when it lands, which is the measurement arriving, never a re-run over
  * a figure that was already on the screen.
  *
- * A flame is lit (--streak, its core filled) or grey (stone-400, a line
- * only), so the two differ in shape as well as colour (#453's rule); a
- * mark with no flame is XP's, in --xp. `said` is what the mark means,
- * for a screen reader.
+ * The marks are #487's 3D icons (`StatIcon`): a flame lit, or the same
+ * flame greyed by `--stat-unlit`, which differ in lightness as well as
+ * colour and stay apart in Greyscale (lib/stat-icons.test.ts, #453's
+ * rule); the best streak's crowned flame; XP's bolt. `said` is what the
+ * mark means, for a screen reader.
  */
 function Stat({
   label,

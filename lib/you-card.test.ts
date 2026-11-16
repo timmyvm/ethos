@@ -60,9 +60,11 @@ describe("the one card", () => {
   });
 
   it("marks each number: the flames by today, XP with its own glyph", () => {
-    expect(you).toMatch(/label="Streak"[\s\S]{0,200}mark=\{<IconFlame size=\{20\} \/>\}/);
-    expect(you).toMatch(/label="Best streak"[\s\S]{0,200}mark=\{<IconFlame size=\{20\} \/>\}/);
-    expect(you).toMatch(/label="XP today" value=\{xpFailed \? null : xp\?\.today\} mark=\{<IconXp size=\{20\} \/>\}/);
+    // The marks are #487's 3D icons: the streak's flame unlit until today
+    // is spoken, the best streak's crowned flame, the XP bolt.
+    expect(you).toMatch(/label="Streak"[\s\S]{0,200}mark=\{<StatIcon kind="streak" lit=\{streakFlame\(streak\.current, streak\.didToday\) === "lit"\} size=\{22\} \/>\}/);
+    expect(you).toMatch(/label="Best streak"[\s\S]{0,200}mark=\{<StatIcon kind="best" lit=\{bestFlame\(streak\.longest\) === "lit"\} size=\{22\} \/>\}/);
+    expect(you).toMatch(/label="XP today" value=\{xpFailed \? null : xp\?\.today\} mark=\{<StatIcon kind="xp" size=\{22\} \/>\}/);
     // Grey and lit differ in shape too: only the lit flame fills its core.
     expect(css).toMatch(/\.streak-lit svg\[fill="none"\] > path:not\(\[fill\]\):last-child \{\s*fill: var\(--streak\);/);
   });

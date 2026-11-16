@@ -11,7 +11,7 @@
  * So each row is now:
  *  - its score out of 100, the one scale every row shares (the Index's
  *    own per-dimension score; nothing is rescored, and the Index is the
- *    same number, its weights said in words under the rows);
+ *    same number, said once at the top of the page since #484);
  *  - one word for how it went, from the row's share of its max (`band`);
  *  - named for the skill where the trait is named for the fault
  *    (content/traits.ts `skill`: Filler control, Follow-through).
@@ -135,47 +135,19 @@ export function dimensionRows(
   return out;
 }
 
-const NUMBER_WORD = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
-const numberWord = (n: number) => NUMBER_WORD[n] ?? String(n);
-
 /** "A, B and C". */
 export function listWords(names: string[]): string {
   if (names.length <= 1) return names[0] ?? "";
   return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
-/**
- * How the 1000 is made, in words, under rows that no longer add up to it
- * on the page (#471): every row is out of 100 and the Index weighs them.
- * Built from the rows' own weights (INDEX_WEIGHTS), so it cannot drift
- * from the arithmetic: the commonest weight is "the other N", the rest
- * are named, heaviest first.
- *
- *   "Rows are out of 100. In the Index, Pausing, Structure and
- *    Credibility count up to 150 each, Follow-through 50, the other
- *    five 100."
+/*
+ * #471's `weightLine` ("Rows are out of 100. In the Index, Pausing,
+ * Structure and Credibility count up to 150 each, ...") is gone with the
+ * rows' foot (#484, Timothy 16 Nov: underlined, remove). The weights it
+ * said are still the Index's own (INDEX_WEIGHTS), and each row's `weight`
+ * and `points` still sum to the stored Index.
  */
-export function weightLine(rows: Pick<DimensionRow, "name" | "weight">[]): string {
-  if (rows.length === 0) return "";
-  const groups = new Map<number, string[]>();
-  for (const r of rows) groups.set(r.weight, [...(groups.get(r.weight) ?? []), r.name]);
-  if (groups.size === 1) {
-    const [[w]] = [...groups];
-    return `Rows are out of 100. In the Index, each counts up to ${w}.`;
-  }
-  /* The commonest weight is said last as "the other N"; a tie goes to the lighter. */
-  const common = [...groups].sort((a, b) => b[1].length - a[1].length || a[0] - b[0])[0][0];
-  const named = [...groups].filter(([w]) => w !== common).sort((a, b) => b[0] - a[0]);
-  /* The first group carries the verb and "up to"; the rest follow it. */
-  const parts = named.map(([w, names], i) =>
-    i === 0
-      ? `${listWords(names)} ${names.length > 1 ? "count" : "counts"} up to ${w}${names.length > 1 ? " each" : ""}`
-      : `${listWords(names)} ${w}`
-  );
-  const others = groups.get(common)!.length;
-  parts.push(`the other ${numberWord(others)} ${common}`);
-  return `Rows are out of 100. In the Index, ${parts.join(", ")}.`;
-}
 
 /**
  * What a Strong row says the take did, after "You": the plan's "one

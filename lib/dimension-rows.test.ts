@@ -14,9 +14,9 @@ import {
   STRONG_AT,
   STRONG_PHRASE,
   varietyWords,
-  weightLine,
   type DimensionRow,
 } from "./dimension-rows";
+import * as dimensionRowsModule from "./dimension-rows";
 import { ethosIndex, INDEX_WEIGHTS } from "./index-score";
 import { LEVEL_AT } from "./traits";
 import { placeHold, placeLine, placeSource, placeWords } from "./trait-readings";
@@ -119,24 +119,14 @@ describe("a fault is named for its skill where its number is a score (#471)", ()
   });
 });
 
-describe("how the 1000 is made, said where the rows no longer add up to it (#471)", () => {
-  it("names every weight from the Index's own, heaviest first, the commonest as the rest", () => {
-    expect(weightLine(dimensionRows(tier1, tier2))).toBe(
-      "Rows are out of 100. In the Index, Pausing, Structure and Credibility count up to 150 each, Follow-through 50, the other five 100."
-    );
+describe("no foot under the rows (#484): the Index is said once, at the top", () => {
+  it("no longer words the weights: #471's line is gone with the foot", () => {
+    expect("weightLine" in dimensionRowsModule).toBe(false);
   });
 
-  it("says the measured five alone the same way", () => {
-    expect(weightLine(dimensionRows(tier1, null))).toBe(
-      "Rows are out of 100. In the Index, Pausing counts up to 150, Follow-through 50, the other three 100."
-    );
-  });
-
-  it("adds up: the weights it names are the weights the Index uses", () => {
+  it("and the weights the rows carry are still the Index's own, summing to 1000", () => {
     const rows = dimensionRows(tier1, tier2);
     expect(rows.reduce((s, r) => s + r.weight, 0)).toBe(1000);
-    const line = weightLine(rows);
-    for (const w of new Set(rows.map((r) => r.weight))) expect(line).toMatch(new RegExp(`\\b${w}\\b`));
   });
 });
 
@@ -186,7 +176,7 @@ describe("one headline in words, the numbers under it (#471, plan §7)", () => {
   });
 
   it("follows the copy rules: no dash, no full stop missing", () => {
-    for (const line of [rowsHeadline(dimensionRows(tier1, tier2)), weightLine(dimensionRows(tier1, tier2))]) {
+    for (const line of [rowsHeadline(dimensionRows(tier1, tier2)), rowsHeadline(dimensionRows(tier1, null))]) {
       expect(line).not.toMatch(/—|–/);
       expect(line.endsWith(".")).toBe(true);
     }

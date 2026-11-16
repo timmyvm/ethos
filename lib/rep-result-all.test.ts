@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { RepResult, type ResultView } from "@/components/RepResult";
+import { NO_INDEX_LINE, RepResult, type ResultView } from "@/components/RepResult";
 import type { RepMetrics, Word } from "./metrics";
 
 /*
@@ -19,6 +19,12 @@ import type { RepMetrics, Word } from "./metrics";
  * good in it or bad in it"): every dimension row is out of 100 with its
  * band's word, named for the skill, a headline in words over the rows
  * and the Index with its weights under them. The last tests say that.
+ *
+ * And again (#484, Timothy 16 Nov, two marked shots of this page): the
+ * level-up line under the Ethos number, the line under "Every dimension"
+ * and the rows' foot are gone, the coach's strength is headed "What
+ * went well", not "Kept", and the rows' head is "Your scores" (the
+ * #484 review: "dimension" is a word a first-time reader stops on).
  */
 const TRANSCRIPT =
   "So the thing about habits is, um, they compound. You do the small version every day and, like, it builds on its own. Um, the mistake people make is waiting to feel ready. You know, ready is a feeling that shows up after you start.";
@@ -91,7 +97,7 @@ const view: ResultView = {
 };
 
 describe("RepResult section=\"all\", the Log's page (#427)", () => {
-  it("renders exactly as it did at #471", () => {
+  it("renders exactly as it did at #484", () => {
     expect(renderToStaticMarkup(createElement(RepResult, { result: view, section: "all" }))).toMatchSnapshot();
   });
   it("and a stored recording that could not be scored, likewise", () => {
@@ -119,13 +125,23 @@ describe("RepResult section=\"all\", the Log's page (#427)", () => {
     expect(text(h).split("Three silences landed a point; one was searching.").length - 1).toBe(1);
   });
 
-  it("says length, pace and held pauses once, as a line, where three tiles stood", () => {
+  it("draws no tiles, and since #484 no line under the rows' head either", () => {
     const h = html(view);
     expect(h).not.toContain("label-micro whitespace-nowrap");
     expect(h).not.toContain(">WPM<");
     expect(h).not.toContain(">Held pauses<");
-    const line = /<p data-take-line="true"[^>]*>([^<]+)<\/p>/.exec(h)?.[1];
-    expect(line).toBe(`${Math.round(metrics.durationS)} seconds at ${Math.round(metrics.wpm)} words a minute, with ${metrics.heldPauses} held pause${metrics.heldPauses === 1 ? "" : "s"}.`);
+    // Timothy, 16 Nov: "60 seconds at 115 words a minute, with 8 held pauses." underlined, remove.
+    expect(h).not.toContain("data-take-line");
+    expect(text(h)).not.toMatch(/words a minute, with \d+ held pause/);
+    expect(text(h)).not.toMatch(/held pause/i);
+    // The head is followed straight by the rows' headline.
+    expect(h).toMatch(/<h2 class="section-head">Your scores<\/h2><div class="mt-3"><p data-dimension-headline/);
+  });
+
+  /* Timothy, 16 Nov (#484): underlined, remove. */
+  it("says no level-up under the Ethos number (\"Fillers leveled twice\")", () => {
+    // The fixture's Pace at 93 levels Pace twice on You; the page no longer says so.
+    expect(text(html(view))).not.toMatch(/level/i);
   });
 
   it("draws a stored line's tomorrow as its own statement, under its own label", () => {
@@ -158,10 +174,8 @@ describe("the Log's dimension rows read at a glance (#471)", () => {
   it("prints every row out of 100, never a weighted max", () => {
     expect(html).not.toMatch(/\/(150|50)\b/);
     expect(text).not.toContain("added up");
-    // Pausing 72 with its band beside it; the Index stays 665.
     expect(text).toMatch(/Pausing Strong 72 out of 100/);
     expect(text).toMatch(/Filler control Okay 55 out of 100/);
-    expect(text).toMatch(/Ethos Index 665 \/1000/);
   });
 
   it("names a fault's row for its skill", () => {
@@ -179,11 +193,36 @@ describe("the Log's dimension rows read at a glance (#471)", () => {
     }
   });
 
-  it("leads with one headline in words and ends on how the 1000 is made", () => {
+  it("leads with one headline in words and ends on its last row: no foot (#484)", () => {
     expect(text).toContain("You spoke at a good pace and let your points land. Filler control has the most room to grow.");
-    expect(text).toContain(
-      "Rows are out of 100. In the Index, Pausing, Structure and Credibility count up to 150 each, Follow-through 50, the other five 100."
+    // Timothy, 16 Nov: the foot underlined, remove. The Ethos number over
+    // the page says the total once; the rows say nothing more about it.
+    expect(html).not.toContain("data-dimension-foot");
+    expect(text).not.toContain("Rows are out of 100");
+    expect(text).not.toContain("count up to");
+    expect(text).not.toContain("Ethos Index");
+    expect(text.split("665").length - 1).toBe(1);
+    const card = html.slice(html.indexOf('<div class="card px-4 py-1">'));
+    expect(card.slice(card.lastIndexOf("</details>") + "</details>".length)).toMatch(/^<\/div>/);
+  });
+
+  it("and a recording the coach never read has no foot either, one line under its head saying why there is no Ethos number", () => {
+    const measured: ResultView = { ...view, coach: null, ethosIndex: null };
+    const h = renderToStaticMarkup(createElement(RepResult, { result: measured, section: "all" }));
+    expect(h).not.toContain("data-dimension-foot");
+    expect(h).not.toContain("The coach didn");
+    // The #484 review: with the old foot gone, nothing said why the top
+    // shows "4 fillers" where 616 stands on every other recording.
+    expect(h).toContain(
+      `<h2 class="section-head">Your scores</h2><p data-no-index="true" class="mt-1 text-caption text-stone-500">${NO_INDEX_LINE.replace("'", "&#x27;")}</p>`
     );
+    expect(h).not.toMatch(/dimension<\/h2>/i);
+  });
+
+  it("and only there: a coached recording and a take too short to score say nothing of it", () => {
+    expect(html).not.toContain("data-no-index");
+    const unscored: ResultView = { ...view, ethosIndex: null, coach: null, scorable: false };
+    expect(renderToStaticMarkup(createElement(RepResult, { result: unscored, section: "all" }))).not.toContain("data-no-index");
   });
 
   it("claims nothing in words for a take too short to score", () => {

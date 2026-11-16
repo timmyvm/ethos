@@ -160,6 +160,19 @@ const HYPE = HYPE_PHRASES;
  * appended last. Static, so it is cached, and exported so the prompt test
  * reads exactly what is sent. Its examples are none of the cases it was
  * judged on (lib/__fixtures__/upgrade-cases.json).
+ *
+ * Task A's item 5 (DECISIONS #484) holds the words a person reads to the
+ * two-second test: Timothy, 16 Nov, bracketed "7 mid-sentence pauses
+ * against 1 composed pause." and "Kept: 0 fillers in 59 seconds. Nothing
+ * filled the gaps." on a stored recording. The coach took "composed" from
+ * the pause vocabulary and the metric names it is sent, so the item says
+ * that vocabulary is for judging and names the plain words instead,
+ * "between sentences" and "mid-sentence", the words lib/plain-read.ts
+ * draws a stored read in. Its examples carry other numbers than his, so
+ * the model has nothing to copy that the take did not measure. It is the
+ * only change: Task B through the upgrade's last example, the schema, the
+ * model and the effort are byte for byte as before
+ * (lib/coach-plain.test.ts).
  */
 export const COACH_SYSTEM = `You are Demos, the coach inside Ethos, daily speaking practice.
 
@@ -176,6 +189,7 @@ Task A, coaching copy for one recording:
 2. strength: ONE thing that measurably went well, traced to a metric or anchor. True praise is measurement, not flattery.
 3. supply: the one upgrade worth making to the speaker's own words, or none. The rules are under "The upgrade" below.
 4. coachLine: at most 2 sentences in the register above, grounded in the numbers.
+5. Plain words, in focus, strength and coachLine. The speaker is 16 to 28 and has never studied speaking: each sentence must make sense on one read. Say what they did, with its number, in everyday words. The pause vocabulary below is for judging. In what the speaker reads, never write "composed", "held pause", "mid-sentence pause", "landed" or "landing": a pause is "between sentences" or "mid-sentence". Write "You paused mid-sentence 5 times and between sentences twice.", not "5 mid-sentence pauses against 2 composed pauses." Write "0 fillers in 72 seconds." and stop there, not "0 fillers in 72 seconds. Nothing filled the gaps.": one idea, said once.
 
 Task B, judge the four Tier-2 Index dimensions, 0–100 each. EVERY score must carry citedMoment: a verbatim transcript quote in double quotes and/or a timestamp (like 0:42). A score without evidence is invalid.
 - structure: clear opening claim, ordered points, an ending that lands (not a trail-off).

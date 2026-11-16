@@ -74,11 +74,12 @@ async function shoot(state, theme) {
     await page.goto(`${BASE}/rep/${LOG_ID}`);
     await page.waitForSelector("main h2.section-head", { timeout: 30000 });
     await shot("top", 1200);
-    const kept = page.locator("main p:has-text('Kept:')");
+    /* What went well (it read "Kept:" until #484). */
+    const kept = page.locator("main p[data-coach-strength]");
     const found = {
       kept: await kept.count(),
       say: await page.locator("main h2:has-text('Say this instead')").count(),
-      dims: await page.locator("main h2:has-text('Every dimension')").count(),
+      dims: await page.locator("main h2:has-text('Your scores')").count(),
     };
     console.log(`log   ${theme} ${JSON.stringify(found)}`);
     if (found.kept) {

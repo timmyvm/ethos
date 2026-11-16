@@ -26,6 +26,7 @@ import { readable, readFailure } from "@/lib/load";
 import { recordingName, recordingTrait } from "@/lib/log";
 import { computeMetrics, substance } from "@/lib/metrics";
 import { fromRow } from "@/lib/presence";
+import { plainRead, tracedStrength } from "@/lib/plain-read";
 import { topicFromLessonId } from "@/lib/rep-config";
 import { shownSupply } from "@/lib/upgrade";
 import { modById } from "@/lib/stress-mods";
@@ -228,12 +229,18 @@ export default function RepDetail({
     /* The coach no longer needs an upgrade (#429): one that said none
        keeps its Kept and its judged dimensions. A stored pair shows only
        while it still passes the checks any pair must, so an old
-       "um" to "(pause)" stops showing. */
+       "um" to "(pause)" stops showing. A stored read keeps its text and
+       is drawn with the app's own pause labels in plain words (#484,
+       lib/plain-read.ts): "7 mid-sentence pauses against 1 composed
+       pause." reads "You paused mid-sentence 7 times and between
+       sentences once.", and what went well shows only its sentences
+       that trace to a number or a quote ("0 fillers in 59 seconds.
+       Nothing filled the gaps." reads "0 fillers in 59 seconds."). */
     coach:
       rep.focus && dims?.tier2
         ? {
-            focus: rep.focus,
-            strength: rep.strength ?? "",
+            focus: plainRead(rep.focus),
+            strength: tracedStrength(plainRead(rep.strength ?? "")),
             supply: shownSupply(rep.supply, rep.transcript),
             coachLine: "",
             dimensions: dims.tier2,
@@ -419,8 +426,9 @@ export default function RepDetail({
  * The stored recording while its row is in flight, shaped to what
  * replaces it (PRINCIPLES 8): the trait chip, the 56px hero with its
  * label and stars, Demos at 112 beside his bubble, then the dimensions
- * head, the take's line, the rows' headline and the rows' card, the way
- * RepResult draws them now (#458, #471).
+ * head, the rows' headline and the rows' card, the way RepResult draws
+ * them now (#458, #471, #484: no level-up line under the hero, no line
+ * under the head, no foot under the rows).
  */
 function RecordingSkeleton() {
   return (
@@ -431,23 +439,20 @@ function RecordingSkeleton() {
         <Skeleton className="h-4 w-28" />
         <Skeleton className="ml-auto h-5 w-[74px]" />
       </div>
-      <Line className="mt-2 text-caption" width="w-32" />
       <div className="mt-7 flex items-start gap-3">
         <Skeleton className="size-28 shrink-0" rounded="rounded-full" />
         <Skeleton className="h-20 flex-1" rounded="rounded-card" />
       </div>
-      {/* "Every dimension", the take's line under it (#458: the pause
-          map and the three stat tiles that stood here are gone), the
+      {/* "Your scores" (#484: no caption under it any more), the
           rows' headline in two lines of body, then the nine rows out of
-          100 and the Index under them, at DimensionList's height (#471,
-          690 at 390 with no row open). */}
+          100 with no foot, at DimensionList's height (576 at 390, 375
+          and 320 with no row open). */}
       <Line className="section-head mt-7" width="w-44" />
-      <Line className="mt-1 text-caption" width="w-64" />
       <div className="mt-3">
         <Line className="text-body" width="w-full" />
         <Line className="text-body" width="w-48" />
       </div>
-      <Skeleton className="mt-3 h-[690px] w-full" rounded="rounded-card" />
+      <Skeleton className="mt-3 h-[576px] w-full" rounded="rounded-card" />
     </SkeletonRegion>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { IconBubble, IconPauseSm, IconPlay } from "@/components/Icon";
+import { IconSwap } from "@/components/ui/IconSwap";
 import { LANDED_MARK } from "@/components/PauseBar";
 import type { TakeAudio } from "@/components/TakeAudio";
 import type { FillerHit, Pause } from "@/lib/metrics";
@@ -152,7 +153,8 @@ export function AudioScrubber({
           className="press flex h-11 w-11 shrink-0 items-center justify-center rounded-control border border-edge bg-surface text-terracotta-500"
           aria-label={playing ? "Pause" : "Play"}
         >
-          {playing ? <IconPauseSm size={16} /> : <IconPlay size={16} />}
+          {/* #474: the mark leaving blurs out as the next one sharpens. */}
+          <IconSwap swapped={playing} from={<IconPlay size={16} />} to={<IconPauseSm size={16} />} />
         </button>
 
         {/* The range is invisible over the track, so the track draws its

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { IconCheck, IconPlay, IconPlus } from "@/components/Icon";
+import { IconSwap } from "@/components/ui/IconSwap";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { Overlay, useOverlayClose } from "@/components/ui/Overlay";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -382,7 +383,7 @@ function Body({
                               s ? "border-transparent bg-surface text-ink" : "border-edge bg-raised text-ink"
                             }`}
                           >
-                            {s ? <IconCheck size={15} /> : <IconPlus size={15} />}
+                            <IconSwap swapped={!!s} from={<IconPlus size={15} />} to={<IconCheck size={15} />} />
                             {s ? "Saved" : "Save"}
                           </button>
                         </li>

@@ -18,7 +18,7 @@ import { TapTick } from "@/components/ui/TapTick";
 import { DOOR_COPY } from "@/content/tester";
 import { setAudioSession } from "@/lib/audio-session";
 import { buzz } from "@/lib/prefs";
-import { askMic, askMotion, openMic, type Ask } from "@/lib/room-media";
+import { askMic, askMotion, openMic, whenVisible, type Ask } from "@/lib/room-media";
 import {
   INTERVIEW,
   ROOM_COPY,
@@ -65,10 +65,19 @@ const DEMOS_IN_MS = 700;
 const DOOR_FADE_MS = 260;
 /** Demos's sheet rising over the whole room on Next, before the name. */
 const HAND_OFF_MS = 520;
+/**
+ * Where the tilt counts as landed, on the -1 to 1 scale: 0.04 of a degree,
+ * a tenth of a pixel on the pen, the deepest layer. Closer than this the
+ * frame loop stops rather than redraw a room nobody can see move.
+ */
+const TILT_REST = 0.002;
 
 type Stage = "door" | "scene" | "ending";
 
 type Line = { key: number; plan: StreamPlan; shown: number };
+
+/** A turn heard. `cut`: the page was put away before it ended. */
+type Heard = { trace: TurnTrace; cut: boolean };
 
 /* ------------------------------------------------------------------ */
 /* The tilt: read, smoothed, and handed to the art every frame.        */
@@ -115,6 +124,12 @@ function screenAngle(): number {
  * moves the smoothed value a critically damped step toward it. The art
  * subscribes to the store, so only the art redraws each frame; the
  * values also land on the host as `--room-tilt-x` and `--room-tilt-y`.
+ *
+ * The frame loop runs only while the room is moving: once the spring has
+ * landed on where the phone points it stops, and the next reading that
+ * moves the room wakes it. A hidden page stops it outright; back in
+ * front, the centre is how the phone is held then. Leaving the room
+ * (Next, Skip, Not now) stops it with everything else.
  */
 function useRoomTilt(store: TiltStore, host: React.RefObject<HTMLElement | null>, reduced: boolean) {
   const tracker = useRef(new TiltTracker());
@@ -125,46 +140,80 @@ function useRoomTilt(store: TiltStore, host: React.RefObject<HTMLElement | null>
     }
     let target: Tilt = ZERO;
     let motion = false;
-    const onOrient = (e: DeviceOrientationEvent) => {
-      if (typeof e.beta !== "number" || typeof e.gamma !== "number") return;
-      motion = true;
-      target = tracker.current.update(inScreen({ beta: e.beta, gamma: e.gamma }, screenAngle()), performance.now());
-    };
-    const onMove = (e: PointerEvent) => {
-      if (motion || e.pointerType !== "mouse") return;
-      const r = host.current?.getBoundingClientRect();
-      if (!r) return;
-      target = pointerTilt(e.clientX - r.left, e.clientY - r.top, r.width, r.height);
-    };
-    const onLeave = () => {
-      if (!motion) target = ZERO;
-    };
-    window.addEventListener("deviceorientation", onOrient);
-    window.addEventListener("pointermove", onMove);
-    document.documentElement.addEventListener("pointerleave", onLeave);
     let sx: Axis = { p: 0, v: 0 };
     let sy: Axis = { p: 0, v: 0 };
-    let last = performance.now();
+    let last = 0;
     let raf = 0;
-    const tick = (now: number) => {
-      const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
-      last = now;
-      sx = springStep(sx, target.x, dt);
-      sy = springStep(sy, target.y, dt);
+    const hidden = () => document.visibilityState === "hidden";
+    const settled = () =>
+      Math.abs(sx.p - target.x) < TILT_REST &&
+      Math.abs(sy.p - target.y) < TILT_REST &&
+      Math.abs(sx.v) < TILT_REST * 10 &&
+      Math.abs(sy.v) < TILT_REST * 10;
+    const draw = () => {
       store.set({ x: sx.p, y: sy.p });
       const el = host.current;
       if (el) {
         el.style.setProperty("--room-tilt-x", sx.p.toFixed(4));
         el.style.setProperty("--room-tilt-y", sy.p.toFixed(4));
       }
+    };
+    const tick = (now: number) => {
+      raf = 0;
+      const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
+      last = now;
+      sx = springStep(sx, target.x, dt);
+      sy = springStep(sy, target.y, dt);
+      const rest = settled();
+      if (rest) {
+        sx = { p: target.x, v: 0 };
+        sy = { p: target.y, v: 0 };
+      }
+      draw();
+      if (!rest && !hidden()) raf = requestAnimationFrame(tick);
+    };
+    /* A new place to go: the loop runs again, if it had stopped. */
+    const aim = (t: Tilt) => {
+      target = t;
+      if (raf || hidden() || settled()) return;
+      last = performance.now();
       raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
+    const onOrient = (e: DeviceOrientationEvent) => {
+      if (typeof e.beta !== "number" || typeof e.gamma !== "number") return;
+      motion = true;
+      aim(tracker.current.update(inScreen({ beta: e.beta, gamma: e.gamma }, screenAngle()), performance.now()));
+    };
+    const onMove = (e: PointerEvent) => {
+      if (motion || e.pointerType !== "mouse") return;
+      const r = host.current?.getBoundingClientRect();
+      if (!r) return;
+      aim(pointerTilt(e.clientX - r.left, e.clientY - r.top, r.width, r.height));
+    };
+    const onLeave = () => {
+      if (!motion) aim(ZERO);
+    };
+    const onShow = () => {
+      if (hidden()) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+        return;
+      }
+      /* Back in front: the centre is how the phone is held now. */
+      tracker.current.reset();
+      aim(ZERO);
+    };
+    window.addEventListener("deviceorientation", onOrient);
+    window.addEventListener("pointermove", onMove);
+    document.documentElement.addEventListener("pointerleave", onLeave);
+    document.addEventListener("visibilitychange", onShow);
     return () => {
       cancelAnimationFrame(raf);
+      raf = 0;
       window.removeEventListener("deviceorientation", onOrient);
       window.removeEventListener("pointermove", onMove);
       document.documentElement.removeEventListener("pointerleave", onLeave);
+      document.removeEventListener("visibilitychange", onShow);
     };
   }, [store, host, reduced]);
   /* The centre is how the phone is held when the scene begins. */
@@ -280,13 +329,23 @@ function HisBubble({ line }: { line: Line }) {
  */
 function HoldToStep({ label, onComplete }: { label: string; onComplete: (keys: boolean) => void }) {
   const btn = useRef<HTMLButtonElement>(null);
-  const state = useRef<{ start: number; raf: number; full: boolean; pressed: boolean; done: boolean; downAt: number }>({
+  const state = useRef<{
+    start: number;
+    raf: number;
+    full: boolean;
+    pressed: boolean;
+    done: boolean;
+    downAt: number;
+    /** The pointer that last went down on it: "touch" is a finger. */
+    downType: string;
+  }>({
     start: 0,
     raf: 0,
     full: false,
     pressed: false,
     done: false,
     downAt: -Infinity,
+    downType: "",
   });
   const [pressing, setPressing] = useState(false);
   const [full, setFull] = useState(false);
@@ -329,6 +388,7 @@ function HoldToStep({ label, onComplete }: { label: string; onComplete: (keys: b
     cancelAnimationFrame(s.raf);
     s.pressed = true;
     s.downAt = performance.now();
+    s.downType = e.pointerType;
     s.full = false;
     setFull(false);
     setPressing(true);
@@ -393,10 +453,13 @@ function HoldToStep({ label, onComplete }: { label: string; onComplete: (keys: b
       }}
       onContextMenu={(e) => e.preventDefault()}
       onClick={(e) => {
-        /* A keyboard's or an assistive press: no pointer went down on it
-           just now, so there is no hold to ask for. A finger's or a
-           mouse's click was already decided at the lift. */
-        if (e.detail === 0 || performance.now() - state.current.downAt > 1500) finish(true);
+        /* Only a finger is asked to hold: its tap or hold was decided at
+           the lift. Anything else that presses it is let in on its click:
+           a keyboard, VoiceOver or TalkBack (whose double tap can arrive
+           as a quick pointer press of its own, never a held one), and a
+           mouse, whose click is as much a gesture as its hold. */
+        const s = state.current;
+        if (e.detail === 0 || s.downType !== "touch" || performance.now() - s.downAt > 1500) finish(true);
       }}
     >
       <span className="room-hold-label room-hold-shine">{label}</span>
@@ -448,7 +511,8 @@ export function Room({
 
   const popper = useRef<Popper | null>(null);
   const abort = useRef<AbortController | null>(null);
-  const endTurn = useRef<(() => void) | null>(null);
+  /* Ends the turn now: Done, leaving, or the page put away ("hidden"). */
+  const endTurn = useRef<((why?: "hidden") => void) | null>(null);
   const meter = useRef<HTMLDivElement>(null);
   const doneBtn = useRef<HTMLButtonElement>(null);
   const nextBtn = useRef<HTMLButtonElement>(null);
@@ -470,13 +534,20 @@ export function Room({
     []
   );
 
-  /* A hidden page ends a turn rather than listening to a pocket. */
+  /* A hidden page ends a turn rather than listening to a pocket, and the
+     mic with it; the scene waits for the page to come back (`direct`),
+     and the turn cut short is asked again then. */
   useEffect(() => {
     const onHide = () => {
-      if (document.visibilityState === "hidden") endTurn.current?.();
+      if (document.visibilityState === "hidden") endTurn.current?.("hidden");
     };
+    const onPageHide = () => endTurn.current?.("hidden");
     document.addEventListener("visibilitychange", onHide);
-    return () => document.removeEventListener("visibilitychange", onHide);
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      document.removeEventListener("visibilitychange", onHide);
+      window.removeEventListener("pagehide", onPageHide);
+    };
   }, []);
 
   /* Someone who came in from the keyboard is handed the one control as
@@ -534,14 +605,25 @@ export function Room({
       );
     });
 
-  /** One turn: the mic open, its level read every frame, until the turn ends. */
-  const listen = (b: Extract<RoomBeat, { kind: "turn" }>, signal: AbortSignal): Promise<TurnTrace | null> =>
+  /**
+   * One turn: the mic open, its level read every frame, until the turn
+   * ends. `cut` when the page was put away mid-turn: what was heard is
+   * dropped and the turn is asked again once the page is back.
+   */
+  const listen = (b: Extract<RoomBeat, { kind: "turn" }>, signal: AbortSignal): Promise<Heard | null> =>
     openMic(popper.current?.context ?? null).then(
       (m) =>
-        new Promise<TurnTrace | null>((resolve) => {
+        new Promise<Heard | null>((resolve) => {
           if (signal.aborted) {
             m.close();
             resolve(null);
+            return;
+          }
+          /* Put away while the phone was opening the mic: let it go again
+             before a frame is heard, and ask for the turn once back. */
+          if (document.visibilityState === "hidden") {
+            m.close();
+            resolve({ trace: { samples: [] }, cut: true });
             return;
           }
           const gate = createVoiceGate(ruleOf(b));
@@ -550,17 +632,17 @@ export function Room({
           let raf = 0;
           let over = false;
           const bars = () => meter.current?.querySelectorAll<HTMLElement>("span") ?? [];
-          const finish = () => {
+          const finish = (why?: "hidden") => {
             if (over) return;
             over = true;
             cancelAnimationFrame(raf);
             m.close();
             endTurn.current = null;
             setTurn(null);
-            resolve({ samples });
+            resolve({ trace: { samples }, cut: why === "hidden" });
           };
           endTurn.current = finish;
-          signal.addEventListener("abort", finish, { once: true });
+          signal.addEventListener("abort", () => finish(), { once: true });
           setTurn(b.id);
           setSaid(ROOM_COPY.yourTurn);
           const tick = () => {
@@ -601,6 +683,8 @@ export function Room({
       setAudioSession("ambient");
     });
     for (const b of script.beats) {
+      /* A phone put away waits here: nothing streams to a pocket. */
+      await whenVisible(document, signal);
       if (signal.aborted) return;
       setBeat(b.id);
       if (b.kind === "line") {
@@ -622,17 +706,25 @@ export function Room({
         continue;
       }
       setWho("you");
-      const trace = await listen(b, signal);
+      let got = await listen(b, signal);
+      /* Put away mid-turn: the mic closed with the page, and the turn is
+         asked again, whole, once the page is back. */
+      while (got?.cut && !signal.aborted) {
+        await whenVisible(document, signal);
+        if (signal.aborted) return;
+        got = await listen(b, signal);
+      }
       setWho(null);
       if (signal.aborted) return;
-      if (!trace) {
+      if (!got) {
         heard = false;
         setMic("unavailable");
       } else {
-        traces.push(trace);
+        traces.push(got.trace);
       }
       await sleep(AFTER_TURN_MS, signal);
     }
+    await whenVisible(document, signal);
     if (signal.aborted) return;
 
     /* Demos steps in, in words only. What he will say is known before
@@ -647,6 +739,7 @@ export function Room({
     setHis(null);
     await sleep(reduced ? 200 : DEMOS_IN_MS, signal);
     for (let k = 0; k < lines.length; k++) {
+      await whenVisible(document, signal);
       if (signal.aborted) return;
       const index = k;
       const plan = await stream(

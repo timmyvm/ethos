@@ -67,6 +67,34 @@ export function askMotion(): Promise<Ask> {
   }
 }
 
+/** What `whenVisible` needs of a document: its visibility and its event. */
+export type Visibility = Pick<Document, "visibilityState" | "addEventListener" | "removeEventListener">;
+
+/**
+ * Resolves once the page is in front (at once if it already is), or once
+ * the scene is left. The scene waits here before every beat, so a line
+ * never streams to a pocket and the mic is never opened on a hidden page:
+ * a phone put away mid-scene picks up where it was when it comes back.
+ */
+export function whenVisible(doc: Visibility, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal.aborted || doc.visibilityState !== "hidden") {
+      resolve();
+      return;
+    }
+    const done = () => {
+      doc.removeEventListener("visibilitychange", onChange);
+      signal.removeEventListener("abort", done);
+      resolve();
+    };
+    const onChange = () => {
+      if (doc.visibilityState !== "hidden") done();
+    };
+    doc.addEventListener("visibilitychange", onChange);
+    signal.addEventListener("abort", done, { once: true });
+  });
+}
+
 /** The RMS of a frame of samples, 0 to 1. */
 export function rms(buf: ArrayLike<number>): number {
   if (buf.length === 0) return 0;

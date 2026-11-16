@@ -15,6 +15,13 @@
  *              Next is the name; motion denied says nothing
  *   reduced    each line arrives whole with one pop; the tilt holds still
  *   returning  a browser holding a session never sees the room
+ *   hidden     the phone put away mid-turn: the mic closes, the scene
+ *              waits, and the turn is asked again once it is back
+ *   skip       Skip mid-turn: the name, and the mic let go
+ *   quiet      Sound off in Settings: not one pop
+ *   click      a press that is not a finger's (a screen reader's double
+ *              tap, a mouse) opens the room on its click
+ *   frames     no frame loop runs while nothing moves
  *
  * Against a production build (the room's timings are real: the walk
  * takes about two and a half minutes):
@@ -57,7 +64,13 @@ const LINES = [
  * showed.
  */
 function instrument() {
-  const r = (window.__room = { pops: [], live: 0, opened: 0, said: [], bubble: [], demos: [] });
+  const r = (window.__room = { pops: [], live: 0, opened: 0, said: [], bubble: [], demos: [], frames: 0 });
+  /* Every frame callback asked for, to see a loop left running. */
+  const raf = window.requestAnimationFrame.bind(window);
+  window.requestAnimationFrame = (cb) => {
+    r.frames += 1;
+    return raf(cb);
+  };
   const AC = window.AudioContext;
   if (AC) {
     const make = AC.prototype.createOscillator;
@@ -247,6 +260,7 @@ if (want("speaking")) {
   await page.getByRole("button", { name: "Done" }).click();
   await sleep(300);
   ok("Done ends the turn at once", (await room(page))?.turn === undefined);
+  ok("and lets the mic go: no track left live", (await log(page)).live === 0);
   ok("his verdict", await beat(page, "verdict"));
   ok("Demos steps in", await beat(page, "demos"));
   await page.waitForFunction(() => !document.querySelector("main.room button.invisible") && [...document.querySelectorAll("main.room button")].some((b) => b.textContent === "Next" && !b.disabled), null, { timeout: 15_000 }).catch(() => {});
@@ -265,6 +279,11 @@ if (want("speaking")) {
   ok("and nothing pops while the mic is open", r.pops.every((p) => !p.mic), `${r.pops.filter((p) => p.mic).length} over an open mic`);
   ok("the mic opened for the two turns and the ask, nothing more", r.opened === 3, String(r.opened));
   ok("the room shows no number", (await digits(page)) === "", await digits(page));
+  ok("the scene over, no mic track is live", r.live === 0, String(r.live));
+  const f0 = (await log(page)).frames;
+  await sleep(1500);
+  const idle = (await log(page)).frames - f0;
+  ok("Demos waiting on Next runs no frame loop", idle <= 3, `${idle} frames in 1.5 s`);
   await page.getByRole("button", { name: "Next", exact: true }).click();
   await page.waitForFunction(() => /What do I call you\?/.test(document.querySelector("main h1")?.textContent ?? ""), null, { timeout: 5000 }).catch(() => {});
   ok("Next is the questions, the name first", /What do I call you\?/.test((await heading(page)) ?? ""), await heading(page));
@@ -325,7 +344,7 @@ if (want("denied")) {
   await page.waitForFunction(() => [...document.querySelectorAll("main.room button")].some((b) => b.textContent === "Next" && !b.disabled), null, { timeout: 15_000 }).catch(() => {});
   const r = await log(page);
   ok("mic denied: no turn ever opened", r.opened === 0 && !r.said.includes("Your turn"), JSON.stringify(r.said));
-  ok("mic denied: Demos says it plainly", /No mic, no room\. Let's set you up instead\./.test(r.demos.at(-1) ?? ""), r.demos.at(-1));
+  ok("mic denied: Demos says it plainly", /I couldn't hear you, so let's get you set up\./.test(r.demos.at(-1) ?? ""), r.demos.at(-1));
   ok("mic denied: and no verdict is made up", (await room(page))?.verdict === undefined);
   ok("motion denied: nothing is said about it", !r.said.some((s) => /motion|tilt/i.test(s)));
   await page.getByRole("button", { name: "Next", exact: true }).click();
@@ -373,6 +392,119 @@ if (want("returning")) {
   await sleep(800);
   ok("returning: a signed-in browser never sees the room", (await room(page)) === null && /What do I call you\?/.test((await heading(page)) ?? ""), await heading(page));
   ok("returning: and the name has no way back to it", (await page.getByRole("button", { name: "Back", exact: true }).count()) === 0);
+  await browser.close();
+}
+
+/* ------------------------------------------------------------------ */
+/* The page put away and brought back, as a phone's app switcher does. */
+const showPage = (page, state) =>
+  page.evaluate((s) => {
+    Object.defineProperty(document, "visibilityState", { configurable: true, get: () => s });
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => s === "hidden" });
+    document.dispatchEvent(new Event("visibilitychange"));
+  }, state);
+
+if (want("hidden")) {
+  const { browser, page, cdp, errors } = await open();
+  await page.goto(`${BASE}/welcome`);
+  await page.waitForSelector("[data-room-hold]");
+  await hold(page, cdp, 950);
+  ok("hidden: the room opens to your turn", await beat(page, "pitch"));
+  await page.waitForSelector("[data-room-turn]", { timeout: 8000 }).catch(() => {});
+  await sleep(600);
+  const before = await log(page);
+  ok("hidden: the mic is open for the turn", before.live === 1, String(before.live));
+  await showPage(page, "hidden");
+  await sleep(300);
+  ok("hidden: put away mid-turn, the mic closes at once", (await log(page)).live === 0);
+  await sleep(5000);
+  const away = await log(page);
+  ok(
+    "hidden: the scene waits: no line, no mic, while it is away",
+    (await room(page))?.beat === "pitch" && away.opened === before.opened && away.live === 0,
+    `${(await room(page))?.beat}, opened ${away.opened - before.opened} more`
+  );
+  await showPage(page, "visible");
+  await page.waitForSelector("[data-room-turn]", { timeout: 8000 }).catch(() => {});
+  await sleep(400);
+  const back = await log(page);
+  ok("hidden: back in front, the turn is asked again", back.opened === before.opened + 1 && back.live === 1, `opened ${back.opened - before.opened} more, ${back.live} live`);
+  ok("hidden: and the scene goes on", await beat(page, "push", 30_000));
+  ok("hidden: no page errors", errors.length === 0, errors.join(" | "));
+  await browser.close();
+}
+
+/* ------------------------------------------------------------------ */
+if (want("skip")) {
+  const { browser, page, cdp, errors } = await open();
+  await page.goto(`${BASE}/welcome`);
+  await page.waitForSelector("[data-room-hold]");
+  await hold(page, cdp, 950);
+  await beat(page, "pitch");
+  await page.waitForSelector("[data-room-turn]", { timeout: 8000 }).catch(() => {});
+  await sleep(600);
+  ok("skip: mid-turn, the mic is open", (await log(page)).live === 1);
+  await page.getByRole("button", { name: "Skip", exact: true }).click();
+  await page.waitForFunction(() => /What do I call you\?/.test(document.querySelector("main h1")?.textContent ?? ""), null, { timeout: 5000 }).catch(() => {});
+  ok("skip: Skip is the name", /What do I call you\?/.test((await heading(page)) ?? ""), await heading(page));
+  await sleep(300);
+  ok("skip: and every mic track is stopped", (await log(page)).live === 0, String((await log(page)).live));
+  ok("skip: no page errors", errors.length === 0, errors.join(" | "));
+  await browser.close();
+}
+
+/* ------------------------------------------------------------------ */
+if (want("quiet")) {
+  const { browser, context, page, cdp } = await open({ reduced: false });
+  await context.addInitScript(() => localStorage.setItem("ethos.prefs", JSON.stringify({ sound: false })));
+  await page.goto(`${BASE}/welcome`);
+  await page.waitForSelector("[data-room-hold]");
+  await hold(page, cdp, 950);
+  ok("quiet: the room opens", await beat(page, "pitch"));
+  const r = await log(page);
+  ok("quiet: his line streamed", r.bubble.includes(LINES[0]), JSON.stringify(r.bubble));
+  ok("quiet: with Sound off, not one pop", r.pops.length === 0, `${r.pops.length} pops`);
+  await browser.close();
+}
+
+/* ------------------------------------------------------------------ */
+if (want("click")) {
+  const { browser, page, errors } = await open();
+  await page.goto(`${BASE}/welcome`);
+  await page.waitForSelector("[data-room-hold]");
+  await page.locator("[data-room-hold]").click();
+  await sleep(400);
+  ok("click: a press that is not a finger's opens the room on its click", (await room(page))?.stage === "scene");
+  await page.waitForFunction(() => document.querySelector("main.room")?.dataset.mic === "granted", null, { timeout: 5000 }).catch(() => {});
+  ok("click: and the mic was asked in it", (await room(page))?.mic === "granted");
+  ok("click: no page errors", errors.length === 0, errors.join(" | "));
+  await browser.close();
+}
+
+/* ------------------------------------------------------------------ */
+if (want("frames")) {
+  const { browser, page } = await open();
+  await page.goto(`${BASE}/welcome`);
+  await page.waitForSelector("[data-room-hold]");
+  await sleep(1500);
+  const f0 = (await log(page)).frames;
+  await sleep(1500);
+  const door = (await log(page)).frames - f0;
+  ok("frames: the door, untouched, runs no frame loop", door <= 3, `${door} frames in 1.5 s`);
+  const f1 = (await log(page)).frames;
+  for (let k = 0; k < 10; k++) {
+    await tiltTo(page, 50, k < 2 ? 0 : 15);
+    await sleep(30);
+  }
+  await sleep(150);
+  const moving = (await log(page)).frames - f1;
+  ok("frames: a tilt wakes it", moving >= 5, `${moving} frames while it moved`);
+  await sleep(1500);
+  const f2 = (await log(page)).frames;
+  await sleep(1500);
+  const still = (await log(page)).frames - f2;
+  ok("frames: once the room has landed it stops again", still <= 3, `${still} frames in 1.5 s`);
+  ok("frames: where the phone points", (await tiltX(page)) > 0.7, String(await tiltX(page)));
   await browser.close();
 }
 

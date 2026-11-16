@@ -56,26 +56,32 @@ export interface Milestone {
   progress: number;
   remaining: number;
   /**
-   * The gap in words. Countable milestones say "3 to go"; a badge whose
-   * progress is only a proportion says "86% there" instead of inventing
-   * a unit. Every row still carries a number — it just has to be a
-   * number that means something.
+   * The milestone as the line under Record says it, to someone who has
+   * never seen the app (#483, the two-second test). It was "Ethos 800 ·
+   * 96 to go", and Timothy could not say what it meant in two seconds:
+   * "Ethos" named the score without saying it was one, and "96 to go"
+   * left him to work out 96 of what, towards what. So the line says
+   * where you are and what is next, each number with its unit, and
+   * never a gap to work out: "Your best score is 704. Next: 800." One
+   * sentence carries no full stop, as a caption; two keep both.
    */
-  remainingLabel: string;
+  line: string;
 }
 
-function milestone(
-  m: Omit<Milestone, "progress" | "remaining" | "remainingLabel">
-): Milestone | null {
+function milestone(m: Omit<Milestone, "progress" | "remaining">): Milestone | null {
   const remaining = m.target - m.current;
   if (remaining <= 0) return null;
   return {
     ...m,
     remaining,
-    remainingLabel: `${Math.round(remaining)} to go`,
     progress: m.target > 0 ? Math.min(1, Math.max(0, m.current / m.target)) : 0,
   };
 }
+
+const days = (n: number) => `${n} day${n === 1 ? "" : "s"}`;
+
+/** "Score 700 or higher" as it reads after a colon. */
+const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 
 function nextIn(list: number[], current: number): number | null {
   return list.find((n) => n > current) ?? null;
@@ -130,6 +136,7 @@ export function nextMilestones(input: ProgressInput): Milestone[] {
             : `${have} of 3 earned`,
         current: have,
         target: have + 1,
+        line: `Next: star ${have + 1} of 3 on ${lesson.title}`,
       })
     );
     break;
@@ -145,6 +152,10 @@ export function nextMilestones(input: ProgressInput): Milestone[] {
         detail: `${streak.current} days now`,
         current: streak.current,
         target: nextStreak,
+        line:
+          streak.current > 0
+            ? `Your streak is ${days(streak.current)}. Next: ${nextStreak} days.`
+            : `Next: a ${nextStreak}-day streak`,
       })
     );
   }
@@ -158,6 +169,7 @@ export function nextMilestones(input: ProgressInput): Milestone[] {
       detail: `${xp} of ${xpForLevel(level.level + 1)} XP`,
       current: level.intoLevel,
       target: level.forNext,
+      line: `${level.forNext - level.intoLevel} XP to Level ${level.level + 1}`,
     })
   );
 
@@ -172,6 +184,7 @@ export function nextMilestones(input: ProgressInput): Milestone[] {
         detail: `${nextFreezeAt}-day streak, best is ${streak.longest}`,
         current: streak.longest,
         target: nextFreezeAt,
+        line: `A ${nextFreezeAt}-day streak earns a streak freeze`,
       })
     );
   }
@@ -187,6 +200,7 @@ export function nextMilestones(input: ProgressInput): Milestone[] {
         detail: `best is ${bestIndex}`,
         current: bestIndex,
         target: nextBand,
+        line: `Your best score is ${bestIndex}. Next: ${nextBand}.`,
       })
     );
   }
@@ -206,7 +220,10 @@ export function nextMilestones(input: ProgressInput): Milestone[] {
       target: 100,
       progress: badge.progress,
       remaining: Math.max(1, Math.round((1 - badge.progress) * 100)),
-      remainingLabel: `${Math.round(badge.progress * 100)}% there`,
+      /* What it takes, which always carries its number ("Seven straight
+         badge: 7-day streak"). A share of the way ("86% there") was a
+         number the reader could not act on. */
+      line: `${badge.name} badge: ${lowerFirst(badge.requirement)}`,
     });
   }
 

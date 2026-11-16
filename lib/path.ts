@@ -87,7 +87,7 @@ export const UNITS: Unit[] = [
       howTo: [
         "Know your first sentence before you hit record.",
         'When you feel an "um" coming, just close your mouth.',
-        "The silence always feels longer to you than it does to anyone listening.",
+        "Pause longer than feels right. It sounds shorter to everyone else.",
       ],
     },
   },

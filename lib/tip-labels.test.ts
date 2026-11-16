@@ -47,22 +47,80 @@ describe("tip faces", () => {
     }
   });
 
-  /* practice-detail-23: "inside" had nothing to be inside of. */
-  it("says whose silence feels longer", () => {
+  /* practice-detail-23: "inside" had nothing to be inside of. The
+     two-second test (#483): "Silence feels longer to you" was a fact,
+     and a reader still did not know what to do, so the face is the move. */
+  it("tells the unit intro's reader what to do with the silence", () => {
     expect(
-      tipFace("The silence always feels longer to you than it does to anyone listening.").label
-    ).toBe("Silence feels longer to you");
+      tipFace("Pause longer than feels right. It sounds shorter to everyone else.").label
+    ).toBe("Pause a bit longer");
   });
 
   /* recording-15: a length of silence wears the stopwatch, so two
-     Pausing tiles side by side ("Pause after the full stop", "Hold one
-     to two seconds") no longer show one glyph twice, and never Pace's
+     Pausing tiles side by side ("Pause when a sentence ends", "Pause,
+     count to two") no longer show one glyph twice, and never Pace's
      gauge. */
   it("gives every hold-a-silence tactic the stopwatch, never the gauge", () => {
-    const holds = tips.filter((t) => /^(Hold one to two seconds|Count one second)$/.test(tipFace(t).label));
-    expect(holds.length).toBeGreaterThanOrEqual(4);
+    const holds = tips.filter((t) =>
+      /^(Pause, count to two|Pause 1 to 2 seconds|Pause one full second|Count one second|Pause a bit longer)$/.test(tipFace(t).label)
+    );
+    expect(holds.length).toBeGreaterThanOrEqual(5);
     for (const t of holds) expect(tipFace(t).glyph, t).toBe("hold");
     expect(tips.filter((t) => tipFace(t).glyph === "hold").every((t) => holds.includes(t))).toBe(true);
+  });
+
+  /* The two-second test (#483, Timothy on 16 Nov: "Concrete nouns" and
+     "A short concrete noun beats a long abstract one every time" could
+     not be understood in two seconds). A tactic is read by someone who
+     never studied grammar, so no grammar word reaches one: an example
+     says it instead ("exams", not "stuff"). The headings over the
+     tactics (a lesson's title and blurb, a practice's angle) are held to
+     the same words. */
+  it("says every tactic without a grammar word", () => {
+    const GRAMMAR = /\b(nouns?|pronouns?|clauses?|abstract|concrete|connectives?|register|cadence|emphasis|fillers?|crutch)\b/i;
+    for (const t of tips) {
+      expect(t, t).not.toMatch(GRAMMAR);
+      expect(tipFace(t).label, t).not.toMatch(GRAMMAR);
+    }
+    for (const l of LESSONS) {
+      expect(l.title, l.id).not.toMatch(GRAMMAR);
+      expect(l.blurb, l.id).not.toMatch(GRAMMAR);
+    }
+    for (const p of PATH) expect(p.title, p.id).not.toMatch(GRAMMAR);
+  });
+
+  /* A practice's three tiles are two of its trait's tactics side by
+     side (howTo[i], howTo[i + 1]) and then its shape's (shape tip i,
+     content/path.ts and content/lessons.ts), so a trait whose faces
+     share a glyph shows one mark twice in a row: Restarts' three flags
+     after the two-second rewrite, Variety's three speech bubbles before
+     it. The recording-15 rule for Pausing, held for every trait (#483
+     review). The shapes open on the start mark, keep the target second
+     and mostly close on the flag, so a trait's second tactic is never
+     the start, its third never the target, and its first never the
+     speech bubble. Of 165 practices 55 showed a mark twice in a row
+     before the rewrite and 77 after it; the one repeat left is Restarts'
+     "Finish every sentence" beside a shape's closing flag, which is
+     the same promise twice. */
+  it("gives each of a trait's three tactics its own glyph", () => {
+    for (const t of Object.values(TRAIT)) {
+      const glyphs = t.howTo.map((x) => tipFace(x).glyph);
+      expect(new Set(glyphs).size, `${t.id}: ${glyphs.join(", ")}`).toBe(t.howTo.length);
+    }
+  });
+
+  it("never sets one mark twice in a row on a practice, but the closing flag", () => {
+    const practices = [
+      ...PATH.map((p) => [p.id, p.tips] as const),
+      ...LESSONS.flatMap((l) => l.practices.map((p, i) => [`${l.id}:${i + 1}`, p.tips] as const)),
+    ];
+    expect(practices.length).toBeGreaterThan(150);
+    for (const [id, tips] of practices) {
+      const g = tips.map((t) => tipFace(t).glyph);
+      for (let i = 1; i < g.length; i++) {
+        if (g[i] === g[i - 1]) expect(g[i], `${id}: ${tips[i - 1]} / ${tips[i]}`).toBe("end");
+      }
+    }
   });
 
   it("falls back to a short clause for an unlabelled sentence", () => {

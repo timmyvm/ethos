@@ -97,9 +97,9 @@ export const TRAITS: TraitDef[] = [
     distinction:
       "A pause to think and a pause for effect sound identical. Only the placement differs.",
     howTo: [
-      "The beat goes after the full stop, before the next idea. Inside a sentence it reads as searching.",
-      "One to two seconds reads as command. Past three and a half it costs you.",
-      "Do not fill it. A pause with an \"um\" leaning on it earns nothing.",
+      "Pause when a sentence ends, never halfway through it.",
+      "Pause long enough to count to two in your head.",
+      "Don't say \"um\" right before or after a pause.",
     ],
     walkthrough: {
       /*
@@ -136,9 +136,9 @@ export const TRAITS: TraitDef[] = [
     distinction:
       "Fillers are not a speaking problem. They are what happens when a thought arrives late.",
     howTo: [
-      "Close your mouth at the end of a clause. Most fillers happen with it already open.",
-      "Slow the run-up, not the words. Fillers cluster where the sentence starts.",
-      "Let the gap sit. One second of silence costs nothing and buys the next sentence.",
+      "Close your mouth between sentences. You can't say \"um\" with it shut.",
+      "Take a breath before each sentence. That's where \"um\" sneaks in.",
+      "Need a second to think? Stay quiet instead of saying \"um\".",
     ],
     move: (n, up) => `${n} ${up ? "more" : "fewer"} per hundred words.`,
   },
@@ -156,9 +156,9 @@ export const TRAITS: TraitDef[] = [
     distinction:
       "A restart is not an error to fix mid-flight. Finishing the weaker sentence beats abandoning it.",
     howTo: [
-      "Finish the sentence you started, even when you can hear a better one.",
-      "Say the correction as a new sentence: \"Or rather,\" then the better version.",
-      "Decide the ending before the beginning. Most restarts are a sentence with nowhere to land.",
+      "Finish the sentence you started, even if a better one comes to mind.",
+      "Said it wrong? Finish the sentence, then say the right version as a new one.",
+      "Know how a sentence ends before you start saying it.",
     ],
     move: (n, up) => `${n} ${up ? "more" : "fewer"} per hundred words.`,
   },
@@ -173,9 +173,9 @@ export const TRAITS: TraitDef[] = [
     distinction:
       "Pace is not one speed. A talk at one steady rate reads as recited, however good the rate is.",
     howTo: [
-      "Slow the sentence that carries the point, and only that one.",
-      "Speed is a tool for the middle of a list and a liability at the end of an argument.",
-      "If you are rushing, you are usually afraid of the silence. Take the silence.",
+      "Say your most important sentence slower than the rest.",
+      "Slow down for your last sentence.",
+      "Catch yourself rushing? Pause for a second, then keep going.",
     ],
     move: (n, up) => `${s(n, "word")} a minute ${up ? "faster" : "slower"}.`,
   },
@@ -190,9 +190,9 @@ export const TRAITS: TraitDef[] = [
     distinction:
       "Variety is not a bigger vocabulary. It is not reaching for the same word twice in ten seconds.",
     howTo: [
-      "Name the thing once properly, then use a pronoun. Repeating the full phrase is what reads as padding.",
-      "Your crutch word is the one you cannot hear. The recording can.",
-      "A short concrete noun beats a long abstract one every time.",
+      "Name a thing in full once, like \"my new phone\". Then just say \"it\".",
+      "Skip \"really\" and \"very\". Say the exact word instead.",
+      "Say exactly what it is: \"exams\", not \"stuff\".",
     ],
     move: (n, up) =>
       `${s(n, "distinct word")} per hundred ${up ? "more" : "fewer"}.`,

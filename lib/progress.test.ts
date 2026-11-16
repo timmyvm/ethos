@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Achievement } from "./achievements";
+import { achievements, type Achievement } from "./achievements";
 import type { RepRow } from "./client-data";
 import {
   journeySteps,
@@ -74,7 +74,7 @@ describe("nextMilestones", () => {
     expect(ms.length).toBeGreaterThan(3);
     for (const m of ms) {
       expect(m.detail).toMatch(/\d/);
-      expect(m.remainingLabel).toMatch(/\d/);
+      expect(m.line).toMatch(/\d/);
       expect(m.remaining).toBeGreaterThan(0);
       expect(m.progress).toBeGreaterThanOrEqual(0);
       expect(m.progress).toBeLessThanOrEqual(1);
@@ -95,17 +95,82 @@ describe("nextMilestones", () => {
     expect(new Set(labels).size).toBe(labels.length);
   });
 
-  it("states a badge's gap as a percentage, not a fake count", () => {
-    const ms = nextMilestones(
-      input({ achievements: [badge({ name: "Seven straight", progress: 0.86 })] })
-    );
-    const b = ms.find((m) => m.kind === "badge");
-    expect(b?.remainingLabel).toBe("86% there");
-  });
+  /*
+   * The two-second test (#483). "Ethos 800 · 96 to go" left Timothy to
+   * work out 96 of what, towards what. Every kind now says where you are
+   * and what is next, each number with its unit, and no line is a bare
+   * gap ("N to go") or a share of the way ("86% there").
+   */
+  describe("the line under Record", () => {
+    const line = (over: Partial<ProgressInput>, kind: string) =>
+      nextMilestones(input(over)).find((m) => m.kind === kind)?.line;
 
-  it("states a countable gap as a count", () => {
-    const ms = nextMilestones(input({ starMap: { f1: 3 } }));
-    expect(ms.find((m) => m.kind === "star")?.remainingLabel).toBe("1 to go");
+    it("names the best score and the next one", () => {
+      expect(line({ reps: [{ ethos_index: 704 } as RepRow] }, "index")).toBe(
+        "Your best score is 704. Next: 800."
+      );
+    });
+
+    it("names the next star by its place among three, on its lesson", () => {
+      expect(line({ starMap: { f1: 2 } }, "star")).toBe("Next: star 3 of 3 on The baseline");
+      expect(line({}, "star")).toBe("Next: star 1 of 3 on The baseline");
+    });
+
+    it("names the streak in days", () => {
+      expect(line({ streak: streak({ current: 5, longest: 5 }) }, "streak")).toBe(
+        "Your streak is 5 days. Next: 7 days."
+      );
+      expect(line({ streak: streak({ current: 1, longest: 1 }) }, "streak")).toBe(
+        "Your streak is 1 day. Next: 3 days."
+      );
+      expect(line({}, "streak")).toBe("Next: a 3-day streak");
+    });
+
+    it("names the XP to the next level", () => {
+      expect(line({ xp: 0 }, "level")).toMatch(/^\d+ XP to Level 2$/);
+    });
+
+    it("names the streak a freeze takes", () => {
+      expect(line({ streak: streak({ current: 2, longest: 9 }) }, "freeze")).toBe(
+        "A 14-day streak earns a streak freeze"
+      );
+    });
+
+    it("names a badge by what it takes, never a share of the way", () => {
+      expect(line({ achievements: [badge({ name: "Seven straight", progress: 0.86 })] }, "badge")).toBe(
+        "Seven straight badge: 7-day streak"
+      );
+    });
+
+    /* A badge's line is its requirement, and any badge can be the
+       closest milestone, so every one of them is read under Record.
+       "Comfortable silence badge: 5 composed pauses in one recording"
+       asked a newcomer what a composed pause was (#483 review). */
+    it("says every real badge in words a newcomer has", () => {
+      for (const a of achievements([])) {
+        const l = nextMilestones(input({ achievements: [{ ...a, earned: false, progress: 0.5 }] })).find(
+          (m) => m.kind === "badge"
+        )?.line;
+        expect(l, a.id).toBe(`${a.name} badge: ${a.requirement.charAt(0).toLowerCase()}${a.requirement.slice(1)}`);
+        expect(l, a.id).not.toMatch(/\b(composed|held pauses?|fillers?|wpm)\b/i);
+      }
+    });
+
+    it("never leaves a gap to work out", () => {
+      const ms = nextMilestones(
+        input({
+          starMap: { f1: 1 },
+          streak: streak({ current: 2, longest: 9 }),
+          xp: 120,
+          achievements: [badge()],
+          reps: [{ ethos_index: 640 } as RepRow],
+        })
+      );
+      for (const m of ms) {
+        expect(m.line, m.id).not.toMatch(/to go|% there|·/);
+        expect(m.line, m.id).not.toMatch(/—|–/);
+      }
+    });
   });
 
   /**

@@ -12,6 +12,8 @@
  *    card shows the tactic once the day is spoken ("One more", #431),
  *    so this runs on a day with a recording in it; an open day's card
  *    shows no tactic at all, which is checked too.
+ * 3b. Three across, too. At 390 every label holds two lines in a
+ *    recording screen tile, the promise TipStrip's recipe makes (#483).
  * 4. Start never waits on a spin. Mid-roll, "Take this one" is live; a
  *    tap lands the reel on the topic it drew, on the snappy spring, and
  *    goes to that topic's recording, once. From both doors: "Another
@@ -157,6 +159,45 @@ for (const theme of ["light", "dark"]) {
   );
   await context.close();
   testerMode.today = false;
+}
+
+/* 3b: the same labels three across (#483). TipStrip's recipe promises
+   every face two lines in a tile at 390 (components/rep/TipStrip.tsx),
+   and nothing held it: the two-second rewrite's first faces ran 25 of
+   them to three. Read on the recording screen's own strip. */
+{
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 2,
+    locale: "en-AU",
+    timezoneId: "Australia/Melbourne",
+    colorScheme: "light",
+    serviceWorkers: "block",
+  });
+  await context.route("http://supabase.local/**", supabaseRoute);
+  await context.addInitScript(seed, { theme: "light", session });
+  const page = await context.newPage();
+  await page.goto(`${BASE}/rep?topic=t41&item=range-1-3&trait=range`, { waitUntil: "networkidle" }).catch(() => {});
+  const strip = await page.waitForSelector(".tip-tile", { timeout: 20000 }).then(() => true, () => false);
+  await sleep(500);
+  const tiles = strip
+    ? await page.evaluate((labels) => {
+        const span = document.querySelector(".tip-tile > span:last-child");
+        const lh = parseFloat(getComputedStyle(span).lineHeight);
+        return labels.map((label) => {
+          /* TipStrip's `unbroken`: a hyphenated word never ends a line. */
+          span.textContent = label.replace(/-/g, "⁠-⁠");
+          return [label, Math.round(span.getBoundingClientRect().height / lh)];
+        });
+      }, labels)
+    : null;
+  const over = (tiles ?? []).filter(([, n]) => n > 2);
+  ok(
+    `390: all ${labels.length} tactic labels hold two lines in a tile three across`,
+    tiles !== null && over.length === 0,
+    over.length ? JSON.stringify(over) : `${labels.length} labels`
+  );
+  await context.close();
 }
 
 // 4: a tap mid-roll, from an open day's link and from One more's glyph.

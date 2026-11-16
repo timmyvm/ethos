@@ -64,7 +64,7 @@ const LINE = { trait: "pause" as TraitId, today: 1.8, line: 1, over: 6, of: 6 };
 const TODAY = {
   trait: "pause" as TraitId,
   topic: "t5",
-  tip: "One to two seconds reads as command. Past three and a half it costs you.",
+  tip: "Pause long enough to count to two in your head.",
 };
 
 /** The five, weakest first. Each tile wears its trait's first lesson. */

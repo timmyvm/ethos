@@ -36,7 +36,7 @@ const ms = (over: Partial<Milestone> = {}): Milestone => ({
   target: 3,
   progress: 0.66,
   remaining: 1,
-  remainingLabel: "1 to go",
+  line: "Next: star 3 of 3 on The baseline",
   ...over,
 });
 
@@ -74,23 +74,31 @@ describe("anticipation", () => {
   it("leads with the streak when one is on the line", () => {
     const a = anticipation([ms()], streak({ current: 5 }));
     expect(a?.headline).toContain("5-day streak");
-    expect(a?.detail).toContain("1 to go");
+    expect(a?.detail).toBe("Next: star 3 of 3 on The baseline");
   });
 
-  it("falls back to the closest milestone", () => {
+  it("falls back to the closest milestone, in its own line", () => {
     const a = anticipation([ms()], streak({ current: 0 }));
-    expect(a?.headline).toBe("3★ on The baseline · 1 to go");
+    expect(a?.headline).toBe("Next: star 3 of 3 on The baseline");
     expect(a?.detail).toBe("best so far is 2★");
   });
 
-  it("keeps milestone labels intact rather than splicing them", () => {
-    // "Ethos 700" must not be lowercased or jammed mid-sentence.
+  /* The two-second test (#483): Timothy read "Ethos 800 · 96 to go" under
+     Record on 16 Nov and could not say what it meant. The line names the
+     score as a score, and the target, with nothing to work out. */
+  it("says the Index milestone as a best score and a next one, never a gap", () => {
     const a = anticipation(
-      [ms({ label: "Ethos 700", detail: "best is 689", remainingLabel: "11 to go" })],
-      streak({ current: 4 })
+      [ms({ kind: "index", label: "Ethos 800", detail: "best is 704", line: "Your best score is 704. Next: 800." })],
+      streak({ current: 0 })
     );
-    expect(a?.detail).toContain("Ethos 700");
-    expect(a?.detail).not.toContain("ethos 700");
+    expect(a?.headline).toBe("Your best score is 704. Next: 800.");
+    expect(a?.headline).not.toMatch(/to go|·/);
+  });
+
+  it("keeps the next milestone's line whole rather than splicing it", () => {
+    const line = "Your best score is 689. Next: 700.";
+    const a = anticipation([ms({ label: "Ethos 700", detail: "best is 689", line })], streak({ current: 4 }));
+    expect(a?.detail).toBe(line);
     expect(a?.detail).not.toMatch(/puts you .* on/);
   });
 

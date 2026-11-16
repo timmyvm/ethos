@@ -24,7 +24,8 @@
  * unscored (12 words), game (a Q&A round), capped (a free account's
  * second take today), tester, best (LOOK_BEST=1), first (LOOK_FRESH=1),
  * video (a Premium Voice + Video take, with Presence 72 since 68), boss,
- * upload.
+ * upload, rules (#491: the first take under #476's pause rules against
+ * a stored take scored before them, its note under the delta).
  *
  * The #427 review added: every glance's bands (no gap over 64 between
  * the header's back and the shelf at 390x844, reported elsewhere), the
@@ -64,6 +65,22 @@ const fail = (msg) => {
 /* ---- the take each variant scores ------------------------------------- */
 const A = F.analyzeBody;
 const UNSCORED_WORDS = F.LIVE_WORDS.slice(0, 12);
+/*
+ * rules (#491): the first take scored under #476's pause rules, against
+ * a newest stored take scored before them. Its Pause is the fixture's
+ * real-shaped reply's (26 stored, 73 now) and its Index sits 71 over the
+ * stored one, as #476's replay found; the answer says it was scored
+ * under #476 (`pauseRules`).
+ */
+const RULES_LAST = F.reps[F.reps.length - 1];
+let RULES_PREV = RULES_LAST.ethos_index;
+if (VARIANT === "rules") {
+  const pts = (s) => Math.round((Math.max(0, Math.min(100, s)) / 100) * 150);
+  const was = RULES_LAST.dimensions.tier1.pause;
+  RULES_PREV = RULES_LAST.ethos_index - pts(was) + pts(26);
+  RULES_LAST.ethos_index = RULES_PREV;
+  RULES_LAST.dimensions = { ...RULES_LAST.dimensions, tier1: { ...RULES_LAST.dimensions.tier1, pause: 26 } };
+}
 const bodies = {
   lesson: () => A,
   lesson3: () => ({ ...A, previousIndex: 662, ethosIndex: 689 }),
@@ -100,6 +117,7 @@ const bodies = {
     accuracy: { score: 72, coverage: 0.75, covered: ["a", "b", "c"], missed: ["The fourth point"], confidentlyWrong: 0, claims: [] },
   }),
   upload: () => A,
+  rules: () => ({ ...A, pauseRules: 476, tier1: { ...A.tier1, pause: 73 }, previousIndex: RULES_PREV, ethosIndex: RULES_PREV + 71 }),
 };
 if (!bodies[VARIANT]) throw new Error(`unknown variant ${VARIANT}`);
 const premium = ["game", "video"].includes(VARIANT) || process.env.LOOK_PLAN === "code";
@@ -345,6 +363,13 @@ for (const size of SIZES) {
         return a ? a.innerText.split(/\s+/).filter((w) => /[A-Za-z0-9]/.test(w)).length : 0;
       });
       ceiling += Math.min(16, askWords);
+      /* The first take's note under the delta rides on it too, up to 16 (#491, GLANCE_WORDS_RULES). */
+      const noteWords = await page.evaluate(() => {
+        const a = document.querySelector("main [data-rules-note]");
+        return a ? a.innerText.split(/\s+/).filter((w) => /[A-Za-z0-9]/.test(w)).length : 0;
+      });
+      ceiling += Math.min(16, noteWords);
+      if (VARIANT === "rules" && TAG !== "before" && noteWords === 0) fail(`${at} ${name}: no note under the delta on the first take under #476`);
       const counted = VARIANT === "game" ? m.wordsNoRound : m.words;
       if (counted > ceiling) fail(`${at} ${name}: ${counted} words over the ceiling of ${ceiling}`);
       if (m.scrollH > m.innerH + 1) fail(`${at} ${name}: scrolls (${m.scrollH} over ${m.innerH})`);
@@ -365,7 +390,7 @@ for (const size of SIZES) {
     await page.goto(`${BASE}/rep?boss=week`);
   } else if (VARIANT === "lesson3") {
     await page.goto(`${BASE}/rep?lesson=the-cold-open&q=3&mods=no-notes&back=${encodeURIComponent("/lessons/the-cold-open")}`);
-  } else if (["daily", "capped", "video"].includes(VARIANT)) {
+  } else if (["daily", "capped", "video", "rules"].includes(VARIANT)) {
     await page.goto(`${BASE}/`);
     await page.waitForSelector("main .arrive", { timeout: 30000 });
     await sleep(800);

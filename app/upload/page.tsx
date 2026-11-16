@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AudioScrubber } from "@/components/AudioScrubber";
 import { useTakeAudio } from "@/components/TakeAudio";
 import { IconUpload } from "@/components/Icon";
@@ -10,6 +10,8 @@ import { RepResult } from "@/components/RepResult";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { uploadKey } from "@/lib/client-key";
+import { fetchReps, type RepRow } from "@/lib/client-data";
+import { markRulesNoteTold, rulesNoteForAnswer, rulesNoteShown, rulesNoteTold } from "@/lib/pause-rules";
 import { sendWithRetry } from "@/lib/rep-outbox";
 import { ensureSession, sessionToken } from "@/lib/supabase-browser";
 import { ACTION_CLASS } from "@/lib/ui";
@@ -77,6 +79,31 @@ export default function UploadPage() {
   /* The file's one audio element (#424): Hear it back and the Pause
      row's moments play through it. No file kept, nothing to play. */
   const take = useTakeAudio(audioUrl, result?.metrics.durationS ?? 0);
+  /*
+   * The first take under #476's pause rules (#491): an upload is a take,
+   * stored with the mark, so when it is the account's first its delta
+   * reads high from the rule and says so here, under the delta, as the
+   * recorder's glance does; after it, no later take says it. The history
+   * is read while a file is picked, so the note is there with the result.
+   * No "Best yet" stands on this screen, so only the delta's note shows.
+   */
+  const priorRef = useRef<RepRow[] | null>(null);
+  const [rulesText, setRulesText] = useState<string | null>(null);
+  useEffect(() => {
+    if (phase !== "pick") return;
+    let live = true;
+    fetchReps()
+      .then((rows) => {
+        if (live) priorRef.current = rows;
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [phase]);
+  useEffect(() => {
+    if (rulesText) markRulesNoteTold();
+  }, [rulesText]);
 
   async function analyze(file: File) {
     setError(null);
@@ -122,6 +149,12 @@ export default function UploadPage() {
         return;
       }
       setResult(data);
+      setRulesText(
+        rulesNoteShown(rulesNoteForAnswer(data, priorRef.current, rulesNoteTold()), {
+          scorable: data.scorable !== false,
+          earned: null,
+        })
+      );
       setAudioUrl(URL.createObjectURL(file));
       setPhase("done");
     } catch (e) {
@@ -240,6 +273,7 @@ export default function UploadPage() {
               ) : undefined
             }
             take={take}
+            rulesNote={rulesText}
           />
           <div className="mt-7 flex gap-3">
             <button
@@ -247,6 +281,7 @@ export default function UploadPage() {
               onClick={() => {
                 setPhase("pick");
                 setResult(null);
+                setRulesText(null);
                 if (audioUrl) URL.revokeObjectURL(audioUrl);
                 setAudioUrl(null);
               }}

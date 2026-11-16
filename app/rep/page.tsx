@@ -124,6 +124,8 @@ import {
 import { armReminder } from "@/lib/reminders";
 import { writeSpokeHint } from "@/lib/spoke-hint";
 import { celebrates, type RewardMoment } from "@/lib/rewards";
+import { markRulesNoteTold, rulesNoteForAnswer, rulesNoteShown, rulesNoteTold, type RulesNote } from "@/lib/pause-rules";
+import { GAMES_LOG_HREF, GAMES_LOG_LABEL } from "@/lib/log-view";
 import {
   backLabel,
   defaultBack,
@@ -159,6 +161,7 @@ import {
   earnedLine,
   fitGlance,
   askBudget,
+  rulesBudget,
   GLANCE_WORDS,
   GLANCE_WORDS_FIRST,
   GLANCE_WORDS_LESSON_DONE,
@@ -654,6 +657,13 @@ function RepScreen() {
   const [anticipate, setAnticipate] = useState<RewardMoment | null>(null);
   const [closing, setClosing] = useState<RewardMoment | null>(null);
   const [bests, setBests] = useState<RewardMoment[]>([]);
+  /**
+   * The first take under #476's pause rules, set beside one scored
+   * before them (#491): one line under the delta saying the jump is
+   * partly the rule's. Read off the history captured before the take,
+   * so it is there from the glance's first frame.
+   */
+  const [rulesNoteNow, setRulesNoteNow] = useState<RulesNote | null>(null);
   const [notes, setNotes] = useState("");
   const [coined, setCoined] = useState(false);
   /**
@@ -974,6 +984,10 @@ function RepScreen() {
         return;
       }
       setResult(data as AnalyzeResponse);
+      /* The first take under #476 beside one scored before it (#491),
+         read off the history from before this take, in the same frame
+         as the result, so nothing on the glance moves when it lands. */
+      setRulesNoteNow(rulesNoteForAnswer(data as AnalyzeResponse, baselineRef.current?.reps, rulesNoteTold()));
       const key = form.get("clientId");
       setResultKey(typeof key === "string" ? key : null);
       setWalkRows(null);
@@ -1716,6 +1730,7 @@ function RepScreen() {
     setRepCount((n) => baselineRef.current?.count ?? n);
     setResult(null);
     setBests([]);
+    setRulesNoteNow(null);
     setClosing(null);
     // A streak's moment still owed stays owed (#480): the retake's exit plays it.
     setEarnedNow(false);
@@ -1789,6 +1804,7 @@ function RepScreen() {
     setResult(null);
     setPresence(null);
     setBests([]);
+    setRulesNoteNow(null);
     setClosing(null);
     setEarnedNow(false);
     setWalkRows(null);
@@ -1976,6 +1992,7 @@ function RepScreen() {
           result={result}
           config={config}
           bests={bests}
+          rulesNote={rulesNoteNow}
           closing={closing}
           earned={earnedNow}
           presence={presence}
@@ -2827,6 +2844,7 @@ function Results({
   result,
   config,
   bests,
+  rulesNote: rulesNoteFor,
   closing,
   earned,
   presence,
@@ -2857,6 +2875,8 @@ function Results({
   result: AnalyzeResponse;
   config: RepConfig;
   bests: RewardMoment[];
+  /** The first take under #476 beside one scored before it (#491): its line under the delta. */
+  rulesNote: RulesNote | null;
   closing: RewardMoment | null;
   /** A new best Index or three stars: Demos celebrates (D52). */
   earned: boolean;
@@ -2922,7 +2942,10 @@ function Results({
     firstToday,
     startedAt,
     compact: asksMatch,
-    hold: asksMatch && !matchAnswered,
+    /* One thing at a time (#491): the glance that says the jump is partly
+       the new pause scoring asks nothing else. The ask is held, unspent,
+       for the next day's first take. */
+    hold: (asksMatch && !matchAnswered) || rulesNoteFor !== null,
   });
   /*
    * The match check (migration 0020): a tester's one question about the
@@ -3386,6 +3409,13 @@ function Results({
         accuracy: result.accuracy?.score ?? null,
       }))
     : null;
+  /* The first take under #476 (#491): under the delta, once. A note on
+     the best it passed is said only where the glance says "Best yet", so
+     its number is on screen. */
+  const rulesNoteText = rulesNoteShown(rulesNoteFor, { scorable, earned: earnedNow?.text });
+  useEffect(() => {
+    if (rulesNoteText) markRulesNoteTold();
+  }, [rulesNoteText]);
   const cappedLine = capped
     ? daysSpoken >= PRO_MOMENT_DAYS
       ? "Premium reads every recording"
@@ -3459,6 +3489,7 @@ function Results({
         comeBack ?? "",
         testerWords,
         reminder.words,
+        rulesNoteText ?? "",
       ],
       line: said.sentence,
       /* The reminder ask takes the cue's slot (#430). */
@@ -3469,15 +3500,18 @@ function Results({
       lineShort: cueSaid ? cueSaid.lineShort.sentence : null,
       cueShort: cueSaid && !reminder.node ? cueSaid.cueShort : null,
     },
-    askBudget(
-      testerWords
-        ? GLANCE_WORDS_TESTER
-        : lessonLine
-          ? GLANCE_WORDS_LESSON_DONE
-          : delta === null && baseline
-            ? GLANCE_WORDS_FIRST
-            : GLANCE_WORDS,
-      reminder.words
+    rulesBudget(
+      askBudget(
+        testerWords
+          ? GLANCE_WORDS_TESTER
+          : lessonLine
+            ? GLANCE_WORDS_LESSON_DONE
+            : delta === null && baseline
+              ? GLANCE_WORDS_FIRST
+              : GLANCE_WORDS,
+        reminder.words
+      ),
+      rulesNoteText
     )
   );
   const shown = fit.short && cueSaid ? cueSaid.lineShort : said;
@@ -3487,6 +3521,7 @@ function Results({
     cue: fit.cue,
     earned: earnedNow && fit.earned ? { text: fit.earned, tone: earnedNow.tone, delta: earnedNow.delta } : null,
     held: cueSaid?.held ?? false,
+    rulesNote: rulesNoteText,
   };
   const upgradeRead = () =>
     onUpgrade({
@@ -3564,7 +3599,24 @@ function Results({
         </div>
       </section>
     ),
-    round: roundCard,
+    /* The round, then the door to every round played (#491): the Log's
+       Games side, one tap from the round just finished. Through exit(),
+       as the way on is, so a streak's moment still owed plays first.
+       Retake's pill (rounded-tap, px-3) so its press veil is a pill, not
+       a square, pulled 12px left so the words stay on the card's edge. */
+    round: roundCard ? (
+      <div>
+        {roundCard}
+        <button
+          type="button"
+          data-games-log-door
+          onClick={() => exit(GAMES_LOG_HREF, { leaves: true })}
+          className="press -ml-3 mt-1 -mb-3 flex min-h-11 w-fit items-center rounded-tap px-3 text-link text-stone-500"
+        >
+          {GAMES_LOG_LABEL}
+        </button>
+      </div>
+    ) : null,
     /* Presence's number heads its section, so it is always behind the
        door (the review: the glance's earned line shows it only when
        nothing else was earned, and the sheet drew the video and the

@@ -38,6 +38,13 @@ export function logViewSearch(search: string, view: LogView): string {
 /** The Log's Games side, for a link from elsewhere (Practice). */
 export const GAMES_LOG_HREF = "/history?view=games";
 
+/**
+ * The door's words wherever a game is finished or browsed (#491):
+ * Practice, under the boss's Start, and the round card in a game's
+ * results. One name for one place, the Log's own "Games" in it.
+ */
+export const GAMES_LOG_LABEL = "Your game scores";
+
 /** The phone's memory, read safely: storage can be missing or refuse. */
 export function storedLogView(): string | null {
   try {

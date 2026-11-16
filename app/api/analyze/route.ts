@@ -79,6 +79,7 @@ import {
   roundEntitled,
 } from "@/lib/games";
 import { pauseReport } from "@/lib/pause-quality";
+import { PAUSE_RULES } from "@/lib/pause-rules";
 import {
   cutInFired,
   measureRound,
@@ -133,6 +134,12 @@ export interface AnalyzeResponse {
    * reply kept on the phone from before it has none.
    */
   round?: GameRound | null;
+  /**
+   * The pause rules that scored this take (#491, lib/pause-rules.ts), so
+   * the glance can tell when its delta stands beside a take scored before
+   * #476. Optional because a reply kept on the phone from before has none.
+   */
+  pauseRules?: number;
   /** What the judged tier did, and what's left of it (§3). */
   judged: {
     ran: boolean;
@@ -748,6 +755,7 @@ async function handle(
       createdAt: recordedAt?.toISOString(),
       clientId,
       round,
+      pauseRules: PAUSE_RULES,
     });
     // Nothing stored and nothing thrown: the audio is stored nowhere.
     if (!saved) spend.audioOwned = false;
@@ -783,6 +791,7 @@ async function handle(
     deliveryMoments,
     previousPresence: prevPresence,
     round,
+    pauseRules: PAUSE_RULES,
     judged: {
       ran: coach !== null,
       unlimited: decision?.unlimited ?? false,

@@ -337,6 +337,14 @@ export async function saveRep(params: {
   clientId?: string | null;
   /** A game round, measured (lib/round.ts, migration 0026). */
   round?: GameRound | null;
+  /**
+   * The pause rules that scored it (#491, lib/pause-rules.ts
+   * PAUSE_RULES), kept as `dimensions.pauseRules`: a stored take without
+   * it was scored before #476, so the first take after it can say its
+   * jump is partly the rule's. Only ever written with a new row; nothing
+   * stored is touched (#422).
+   */
+  pauseRules?: number;
 }): Promise<SavedRep | null> {
   const db = supabaseAdmin();
   if (!db) return null;
@@ -365,6 +373,7 @@ export async function saveRep(params: {
       tier1,
       anchors,
       tier2: coach?.dimensions ?? null,
+      ...(params.pauseRules ? { pauseRules: params.pauseRules } : {}),
     },
     audio_path: audioPath,
     whisper_raw: params.whisperRaw ?? null,

@@ -101,6 +101,12 @@ export interface GlanceView {
    * colour is never the whole message.
    */
   held?: boolean;
+  /**
+   * The first take under #476's pause rules beside one scored before
+   * them (#491): one plain line under the delta saying how much of the
+   * jump is the new scoring, traced to the Pause scores. Once per account.
+   */
+  rulesNote?: string | null;
 }
 
 /** The sheet's body (section "detail"): its sections in order, and those Results draws. */
@@ -148,6 +154,7 @@ export function RepResult({
   under = null,
   sheet = null,
   moment = false,
+  rulesNote = null,
 }: {
   result: ResultView;
   topic?: ColdTopic | null;
@@ -248,6 +255,13 @@ export function RepResult({
    * first. On an ordinary practice the bands take theirs (#427 review).
    */
   moment?: boolean;
+  /**
+   * Upload's results (#491): the first take under #476's pause rules,
+   * the line under the delta saying how much of the jump is the new
+   * scoring. The glance carries its own in `glance.rulesNote`; a stored
+   * recording never sets this.
+   */
+  rulesNote?: string | null;
 }) {
   const show = (s: ResultSection) => section === "all" || section === s;
   const debrief = section === "score";
@@ -638,20 +652,29 @@ export function RepResult({
         ) : ethosIndex !== null ? (
           /* A stored recording (the Log) and an upload: the number at
              the hero size, its label beside it, the stars at the end. */
-          <div className="mt-5 flex items-baseline gap-3.5">
-            <span data-score className="font-display text-num-hero tabular-nums">
-              <CountUp value={ethosIndex} />
-            </span>
-            <div className="min-w-0">
-              <div className="text-body font-semibold">
-                your Ethos <span className="font-normal text-stone-500">/1000</span>
+          <>
+            <div className="mt-5 flex items-baseline gap-3.5">
+              <span data-score className="font-display text-num-hero tabular-nums">
+                <CountUp value={ethosIndex} />
+              </span>
+              <div className="min-w-0">
+                <div className="text-body font-semibold">
+                  your Ethos <span className="font-normal text-stone-500">/1000</span>
+                </div>
+                <Delta delta={delta} baseline={baseline} boss={topic !== null} small />
               </div>
-              <Delta delta={delta} baseline={baseline} boss={topic !== null} small />
+              <span className="ml-auto self-center">
+                <Stars n={m.stars} size={22} land={live} landAfterMs={COUNT_MS} />
+              </span>
             </div>
-            <span className="ml-auto self-center">
-              <Stars n={m.stars} size={22} land={live} landAfterMs={COUNT_MS} />
-            </span>
-          </div>
+            {/* An upload that is the first take under #476 (#491): the
+                glance's line, under the number and its delta, once. */}
+            {rulesNote && delta !== null && (
+              <p data-rules-note className="mt-2 text-caption text-balance text-stone-500">
+                {rulesNote}
+              </p>
+            )}
+          </>
         ) : result.scorable === false ? (
           <NotScored metrics={m} />
         ) : (
@@ -1354,6 +1377,17 @@ function Glance({
                 <TrendMark up={view.earned.delta > 0} /> {Math.abs(view.earned.delta)}
               </span>
             ) : null}
+          </p>
+        )}
+        {/* The first take under #476 (#491): the jump is partly the
+            rule's, said once, plain, under what it qualifies, with the
+            Pause scores that moved. Grey, never sage: it is not earned. */}
+        {view.rulesNote && ethosIndex !== null && (
+          <p
+            data-rules-note
+            className={`mt-1.5 max-w-[300px] text-caption text-balance text-stone-500 ${counting ? "" : "invisible"}`}
+          >
+            {view.rulesNote}
           </p>
         )}
       </div>

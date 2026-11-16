@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   GAMES_LOG_HREF,
+  GAMES_LOG_LABEL,
   LOG_VIEW_KEY,
   logViewSearch,
   readLogView,
@@ -114,5 +115,53 @@ describe("the switch on the Log", () => {
     expect(page).toContain("<GamesLog />");
     expect(page).toContain("Every recording");
     expect(page).toContain("What moved");
+  });
+});
+
+/*
+ * #491: the Games side had no door. One now stands where games are chosen
+ * (Practice, the quiet link under the boss's Start) and where a round is
+ * finished (under the round card in its results), each one tap to the
+ * Games side, under one name.
+ */
+describe("the doors to the Log's Games side (#491)", () => {
+  const practice = readFileSync("app/games/page.tsx", "utf8");
+  const rep = readFileSync("app/rep/page.tsx", "utf8");
+
+  it("opens the Games side in one tap", () => {
+    expect(GAMES_LOG_HREF.startsWith("/history?")).toBe(true);
+    expect(readLogView(GAMES_LOG_HREF.slice(GAMES_LOG_HREF.indexOf("?")), "daily")).toBe("games");
+  });
+
+  it("is named in a few plain words", () => {
+    expect(GAMES_LOG_LABEL).toBe("Your game scores");
+    expect(GAMES_LOG_LABEL.split(" ").length).toBeLessThanOrEqual(5);
+    expect(GAMES_LOG_LABEL).not.toMatch(/—|[←→]|\.$/);
+  });
+
+  it("stands on Practice as the quiet link under the boss's Start, never a second filled tap", () => {
+    const at = practice.indexOf("data-games-log-door");
+    expect(at).toBeGreaterThan(practice.indexOf('href="/boss"'));
+    const door = practice.slice(practice.lastIndexOf("<Link", at), practice.indexOf("</Link>", at));
+    expect(door).toContain("href={GAMES_LOG_HREF}");
+    expect(door).toContain("{GAMES_LOG_LABEL}");
+    expect(door).toContain("text-link");
+    expect(door).toContain("min-h-11");
+    /* No fill: not the house tap (`.tap`, ACTION_CLASS) nor an ink ground. */
+    expect(door).not.toMatch(/ACTION_CLASS|bg-ink|["\s]tap["\s]/);
+  });
+
+  it("stands under the round card in a game's results, and leaves through exit() so an owed moment still plays", () => {
+    const at = rep.indexOf("data-games-log-door");
+    expect(at).toBeGreaterThan(rep.indexOf("{roundCard}"));
+    const door = rep.slice(rep.lastIndexOf("<button", at), rep.indexOf("</button>", at));
+    expect(door).toContain("exit(GAMES_LOG_HREF, { leaves: true })");
+    expect(door).toContain("{GAMES_LOG_LABEL}");
+    expect(door).toContain("min-h-11");
+    /* The review: Retake's pill, so the press veil is a pill and not a
+       square, with the words kept on the card's edge. */
+    expect(door).toMatch(/rounded-tap/);
+    expect(door).toMatch(/\bpx-3\b/);
+    expect(door).toMatch(/-ml-3/);
   });
 });

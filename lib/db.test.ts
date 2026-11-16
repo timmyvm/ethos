@@ -132,6 +132,25 @@ describe("saveRep", () => {
     const rep = inserts.find((i) => i.table === "reps")!.row;
     expect("created_at" in rep).toBe(false);
   });
+
+  /*
+   * #491: a take stored from here on says which pause rules scored it, so
+   * the first take after #476 can tell a stored take scored before them.
+   * The mark goes beside the scores it describes, in the jsonb the row
+   * already has: no migration, and nothing stored is touched.
+   */
+  it("keeps the pause rules that scored the take beside its scores", async () => {
+    const { PAUSE_RULES, pauseRulesOf } = await import("./pause-rules");
+    await saveRep(params({ pauseRules: PAUSE_RULES }));
+    const dims = inserts.find((i) => i.table === "reps")!.row.dimensions as Record<string, unknown>;
+    expect(dims.pauseRules).toBe(476);
+    expect(pauseRulesOf(dims)).toBe(PAUSE_RULES);
+    expect(Object.keys(dims)).toEqual(["tier1", "anchors", "tier2", "pauseRules"]);
+    inserts = [];
+    await saveRep(params());
+    const bare = inserts.find((i) => i.table === "reps")!.row.dimensions as Record<string, unknown>;
+    expect("pauseRules" in bare).toBe(false);
+  });
 });
 
 /*

@@ -39,9 +39,12 @@ export function LevelMeter({
   const line = levelLine({ level, percent });
   const cls = (...names: string[]) => names.filter(Boolean).join(" ");
   if (line.percent === null) {
+    /* On the sheet nothing names this for a screen reader, so it says
+       the row's sentence; in You's rows the button's name already does. */
     return (
       <span data-level="none" data-size={size} className={cls("level-value text-stone-400", className)}>
         {line.value}
+        {line.said.startsWith(line.value) && <span className="sr-only">{line.said.slice(line.value.length)}</span>}
       </span>
     );
   }

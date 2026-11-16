@@ -11,6 +11,7 @@ import {
   TRAITS,
   traitGain,
   traitLevels,
+  type TraitKey,
   type TraitRep,
 } from "./traits";
 
@@ -150,6 +151,28 @@ describe("needToLevel", () => {
     expect(needToLevel("pace", { pace: 76, fillers: 80, pause: 50 })).toBe(80);
   });
 
+  it("is met or passed on every take that levels the trait, and passed on none that does not", () => {
+    // Met but not passed is a tie lost to an earlier trait (traitGain):
+    // the bar stops at 99 and the sheet names the tie (closestLine).
+    const takes: Partial<Record<TraitKey, number>>[] = [
+      { pause: 80, fillers: 80 },
+      { pause: 79, fillers: 80 },
+      { fillers: 100, repairs: 100, pace: 95 },
+      { fillers: 70, range: 70, structure: 69 },
+      { pace: 69, range: 50 },
+      { structure: 91, confidence: 91, engagement: 90 },
+    ];
+    for (const scores of takes) {
+      const gain = traitGain(scores);
+      for (const [key, score] of Object.entries(scores) as [TraitKey, number][]) {
+        const need = needToLevel(key, scores);
+        const said = `${key} on ${JSON.stringify(scores)}`;
+        if (gain?.key === key) expect(score >= need, said).toBe(true);
+        else expect(score > need, said).toBe(false);
+      }
+    }
+  });
+
   it("never counts the trait's own score, and skips rows the take does not have", () => {
     expect(needToLevel("fillers", { fillers: 95 })).toBe(LEVEL_AT);
     expect(needToLevel("range", { range: 30, structure: Number.NaN })).toBe(LEVEL_AT);
@@ -203,10 +226,10 @@ describe("traitLevels: how far into the level", () => {
   });
 
   it("is the closest try since the level, against what that try needed", () => {
-    expect(byKey.fillers.closest).toEqual({ score: 28, need: 70 });
+    expect(byKey.fillers.closest).toEqual({ score: 28, need: 70, leveled: null });
     expect(byKey.fillers.percent).toBe(40);
     // 76 on the take Filler control's 80 leveled: Pace had to beat 80.
-    expect(byKey.pace.closest).toEqual({ score: 76, need: 80 });
+    expect(byKey.pace.closest).toEqual({ score: 76, need: 80, leveled: "fillers" });
     expect(byKey.pace.percent).toBe(95);
     expect(byKey.repairs.percent).toBe(62);
     expect(byKey.range.percent).toBe(50);
@@ -226,21 +249,33 @@ describe("traitLevels: how far into the level", () => {
 
   it("holds the closest try: a weaker one after it does not lower the bar", () => {
     const t = one([rep({ pause: 66 }), rep({ pause: 40 })], "pause");
-    expect(t.closest).toEqual({ score: 66, need: 70 });
+    expect(t.closest).toEqual({ score: 66, need: 70, leveled: null });
     expect(t.percent).toBe(94);
   });
 
   it("starts again after each level, so a try before it no longer counts", () => {
     const t = one([rep({ pace: 69 }), rep({ pace: 72 }), rep({ pace: 35 })], "pace");
     expect(t.level).toBe(1);
-    expect(t.closest).toEqual({ score: 35, need: 70 });
+    expect(t.closest).toEqual({ score: 35, need: 70, leveled: null });
     expect(t.percent).toBe(50);
   });
 
-  it("never fills on a tie the earlier trait took", () => {
+  it("never fills on a tie the earlier trait took, and names the tie", () => {
     const pace = one([rep({ fillers: 80, pace: 80 })], "pace");
     expect(pace.level).toBe(0);
+    expect(pace.closest).toEqual({ score: 80, need: 80, leveled: "fillers" });
     expect(pace.percent).toBe(99);
+    expect(closestLine(pace)).toBe("Closest yet: 80, tied with Fillers, which leveled instead.");
+  });
+
+  it("fills to 99 and no further, then empties on the take that levels it", () => {
+    const near = [rep({ pace: 99, fillers: 100 })];
+    expect(one(near, "pace")).toMatchObject({ level: 0, percent: 99 });
+    expect(closestLine(one(near, "pace"))).toBe("Closest yet: 99 of the 100 it needed.");
+    const leveled = one([...near, rep({ pace: 72 })], "pace");
+    expect(leveled).toMatchObject({ level: 1, percent: 0, closest: null });
+    expect(levelLine(leveled).said).toBe("Level 1, 0% of the way to level 2");
+    expect(closestLine(leveled)).toBe("Closest since level 1: none yet.");
   });
 
   it("counts no try from a recording that was not enough to score", () => {
@@ -290,13 +325,24 @@ describe("levelLine", () => {
 
 describe("closestLine", () => {
   it("names the closest try and what it needed", () => {
-    expect(closestLine({ level: 6, closest: { score: 28, need: 70 } })).toBe(
+    expect(closestLine({ level: 6, closest: { score: 28, need: 70, leveled: null } })).toBe(
       "Closest since level 6: 28 of the 70 it needed."
     );
-    expect(closestLine({ level: 2, closest: { score: 76, need: 80 } })).toBe(
+    expect(closestLine({ level: 2, closest: { score: 76, need: 80, leveled: "fillers" } })).toBe(
       "Closest since level 2: 76 of the 80 it needed."
     );
-    expect(closestLine({ level: 0, closest: { score: 50, need: 80 } })).toBe("Closest yet: 50 of the 80 it needed.");
+    expect(closestLine({ level: 0, closest: { score: 50, need: 80, leveled: "fillers" } })).toBe("Closest yet: 50 of the 80 it needed.");
+  });
+
+  it("names a tie lost in the screen's own name, never '100 of the 100 it needed'", () => {
+    const tie = { level: 3, closest: { score: 100, need: 100, leveled: "fillers" as const } };
+    expect(closestLine(tie, (k) => (k === "fillers" ? "Filler control" : k))).toBe(
+      "Closest since level 3: 100, tied with Filler control, which leveled instead."
+    );
+    // No ums and no restarts on one take: Filler control 100 levels, Follow-through ties it.
+    const repairs = traitLevels([rep({ fillers: 100, repairs: 100, pace: 80 })]).find((t) => t.key === "repairs")!;
+    expect(repairs).toMatchObject({ level: 0, percent: 99 });
+    expect(closestLine(repairs)).toBe("Closest yet: 100, tied with Fillers, which leveled instead.");
   });
 
   it("says why a bar is empty after a level, and nothing where Not yet has said it", () => {

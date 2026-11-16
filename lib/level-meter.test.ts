@@ -39,7 +39,7 @@ describe("LevelMeter", () => {
 
   it("says Not yet, quiet and with no bar, at level 0 with nothing toward 1", () => {
     const html = draw(0, 0);
-    expect(html).toContain(">Not yet</span>");
+    expect(html).toContain('>Not yet<span class="sr-only"> at level 1</span></span>');
     expect(html).toContain("text-stone-400");
     expect(html).not.toContain("level-track");
     expect(html).not.toContain('role="progressbar"');

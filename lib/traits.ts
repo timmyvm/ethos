@@ -114,6 +114,12 @@ export function repTraitGain(rep: TraitRep): TraitGain | null {
 export interface ClosestTry {
   score: number;
   need: number;
+  /**
+   * The trait that recording leveled, if one did. On a tie lost (the
+   * score met `need`, and an earlier trait took the level, traitGain)
+   * the sheet names it, so "80 of the 80 it needed" is never said.
+   */
+  leveled: TraitKey | null;
 }
 
 export interface TraitLevel {
@@ -135,7 +141,7 @@ export interface TraitLevel {
  * The score `key` had to reach on a take with these scores to level:
  * LEVEL_AT, or the best other row when that is higher. A tie with an
  * earlier trait keeps the level there (traitGain), which `levelPercent`
- * answers by never reaching 100.
+ * answers by never reaching 100 and `closestLine` by naming the tie.
  */
 export function needToLevel(key: TraitKey, scores: Partial<Record<TraitKey, number>>): number {
   let need = LEVEL_AT;
@@ -152,7 +158,7 @@ export function needToLevel(key: TraitKey, scores: Partial<Record<TraitKey, numb
  * it never says more than the try did, and at most 99, because a try
  * that reached what it needed leveled the trait and emptied the bar.
  */
-export function levelPercent(closest: ClosestTry | null): number {
+export function levelPercent(closest: Pick<ClosestTry, "score" | "need"> | null): number {
   if (!closest || !(closest.need > 0) || !(closest.score > 0)) return 0;
   return Math.min(99, Math.floor((100 * closest.score) / closest.need + 1e-9));
 }
@@ -183,7 +189,9 @@ export function traitLevels(reps: TraitRep[]): TraitLevel[] {
       }
       const need = needToLevel(t.key, scores);
       const best = closest.get(t.key) ?? null;
-      if (!best || score / need > best.score / best.need) closest.set(t.key, { score, need });
+      if (!best || score / need > best.score / best.need) {
+        closest.set(t.key, { score, need, leveled: gain?.key ?? null });
+      }
     }
   }
   return TRAITS.map((t) => {
@@ -227,10 +235,21 @@ export function levelLine(t: Pick<TraitLevel, "level" | "percent">): LevelLine {
  * traces to a number: "Closest since level 6: 28 of the 70 it needed."
  * An empty bar after a level says why ("Closest since level 1: none
  * yet."); null where nothing has read the trait at all, which "Not yet"
- * has said.
+ * has said. A tie lost says so ("Closest yet: 100, tied with Filler
+ * control, which leveled instead."): its bar stops at 99, and "100 of
+ * the 100 it needed" would say it had what it needed and did not level.
+ * That is common, not a corner: no ums is Filler control 100, and no
+ * restart that same take is Follow-through 100. `nameOf` is the name
+ * the screen prints (You passes DIMENSION_NAME).
  */
-export function closestLine(t: Pick<TraitLevel, "level" | "closest">): string | null {
+export function closestLine(
+  t: Pick<TraitLevel, "level" | "closest">,
+  nameOf: (key: TraitKey) => string = (key) => TRAITS.find((x) => x.key === key)?.name ?? key
+): string | null {
   const since = t.level > 0 ? `Closest since level ${t.level}` : "Closest yet";
-  if (!t.closest) return t.level > 0 ? `${since}: none yet.` : null;
-  return `${since}: ${Math.round(t.closest.score)} of the ${Math.round(t.closest.need)} it needed.`;
+  const c = t.closest;
+  if (!c) return t.level > 0 ? `${since}: none yet.` : null;
+  const score = Math.round(c.score);
+  if (c.score >= c.need && c.leveled) return `${since}: ${score}, tied with ${nameOf(c.leveled)}, which leveled instead.`;
+  return `${since}: ${score} of the ${Math.round(c.need)} it needed.`;
 }

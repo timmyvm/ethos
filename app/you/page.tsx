@@ -1403,7 +1403,7 @@ function TraitSheet({
   const what = toned ? TRAIT[trait.key as TraitId].what : WHAT[trait.key];
   const reading = sheetReading(trait.key, reps);
   const practise = practiseHref(trait.key, done);
-  const closest = closestLine(trait);
+  const closest = closestLine(trait, (key) => DIMENSION_NAME[key]);
   return (
     <Overlay label={name} onClose={onClose}>
       <div

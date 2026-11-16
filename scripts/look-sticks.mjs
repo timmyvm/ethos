@@ -18,7 +18,10 @@
  *   kept    yesterday's cue ("um" twice) answered by a take that says it
  *           twice again: it did not hold, and it is carried.
  *   ready-pace  the warm-up on a pace cue, with its fixed sentence.
- *   skip    the warm-up's Skip, before and after the tap.
+ *   skip    the warm-up's Skip, before and after the tap (LOOK_STRIP=1: as a
+ *           strip, 0 to 400ms).
+ *   pre0033 a database before migration 0033: the column answers 42703 and
+ *           PGRST204, and yesterday's cue is answered from this phone's copy.
  *
  * Sizes: LOOK_SIZES, default 390x844-light,390x844-dark,375x667-light,320x568-light.
  * Shots: LOOK_OUT, default docs/look/sticks/, as <tag>-<scene>-<size>.png.
@@ -142,9 +145,23 @@ for (const scene of SCENES) {
        read of that column; every other profile read as the fixtures do. */
     const cue = CUES[scene] ?? null;
     const written = [];
+    /* pre0033: a database without the column. The read answers Postgres's
+       42703 and the write PostgREST's PGRST204; the cue is this phone's copy. */
+    const missing = scene === "pre0033";
+    if (missing) {
+      await context.addInitScript((state) => localStorage.setItem("ethos.cue", JSON.stringify({ uid: "u1", state })), CUES.answer);
+    }
     await context.route("http://supabase.local/rest/v1/profiles**", async (route) => {
       const req = route.request();
       const url = new URL(req.url());
+      const asksCue = (url.searchParams.get("select") ?? "").includes("carried_cue") || (req.postData() ?? "").includes("carried_cue");
+      if (missing && asksCue) {
+        return route.fulfill(
+          req.method() === "GET"
+            ? F.json({ code: "42703", message: "column profiles.carried_cue does not exist" }, 400)
+            : F.json({ code: "PGRST204", message: "Could not find the 'carried_cue' column of 'profiles' in the schema cache" }, 400)
+        );
+      }
       if (req.method() === "GET" && (url.searchParams.get("select") ?? "").includes("carried_cue")) {
         const single = /vnd\.pgrst\.object/.test(req.headers()["accept"] ?? "");
         const row = { carried_cue: cue };
@@ -245,6 +262,13 @@ for (const scene of SCENES) {
     await page.screenshot({ path: shot("") });
     console.log(`${at}: line ${JSON.stringify(m.line)} cue ${JSON.stringify(m.cue)}; ${m.words} words, ${m.taps} filled tap(s), scrolls ${m.scrolls}`);
     console.log(`${at}: stored ${JSON.stringify(written.at(-1) ?? null)}`);
+    if (missing) {
+      /* Before 0033 the answer still comes, from this phone's copy, and the next cue stays on it. */
+      const kept = await page.evaluate(() => JSON.parse(localStorage.getItem("ethos.cue") ?? "null"));
+      console.log(`${at}: this phone keeps ${JSON.stringify(kept?.state?.cue ?? null)}`);
+      if (!/down from 5/.test(m.line ?? "")) fail(`${at}: before 0033 the answer did not come from this phone's copy`);
+      if (!kept?.state?.cue || kept.state.cue.givenOn === CUES.answer.cue.givenOn) fail(`${at}: before 0033 the next cue was not kept on the phone`);
+    }
     if (m.words > 25) fail(`${at}: ${m.words} words over the glance's 25`);
     if (m.taps !== 1) fail(`${at}: ${m.taps} filled taps`);
     if (m.scrolls) fail(`${at}: the glance scrolls`);

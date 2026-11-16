@@ -21,10 +21,15 @@ import {
   nextLine,
   nextTrait,
   ordinal,
+  placeSource,
+  placeWords,
   readTraitsFromRow,
   withUnit,
   type TraitReading,
 } from "@/lib/trait-readings";
+
+/** "Against ..." as the second half of a sentence. */
+const lowerFirst = (s: string) => (s ? s[0].toLowerCase() + s.slice(1) : s);
 
 /**
  * A lesson (DECISIONS #258). One trait, start to finish.
@@ -254,9 +259,13 @@ function Lesson() {
               ? undefined
               : !now
                 ? "Record once to place this trait."
-                : lowest
-                  ? "Your lowest trait, from your last recording."
-                  : "From your last recording."
+                : /* The ring's percentile in words, which way is better
+                     in them ("93rd" beside Fillers read as more fillers
+                     than most), and what it is against (#471: "what is
+                     it based off of and is it on a leaderboard"):
+                     published research, never other users, an estimate
+                     while the scale is provisional. */
+                  `${lowest ? "Your lowest trait. " : ""}${placeWords(now)}, ${lowerFirst(placeSource(NORMS[id].quality))}`
         }
         action={{ label: "Why it matters", onPress: () => go(i + 1) }}
       />

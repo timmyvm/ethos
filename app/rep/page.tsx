@@ -174,6 +174,7 @@ import {
   roundGlance,
   sheetSections,
 } from "@/lib/glance";
+import { fillerTrend } from "@/lib/dimension-rows";
 import { upNextLesson, traitForSaid } from "@/lib/lesson-up-next";
 import { DURATION } from "@/lib/motion";
 import { safeNextPath, usePaywallReturn } from "@/lib/use-paywall-return";
@@ -3433,6 +3434,16 @@ function Results({
     closing: !!closingNow,
     ladder: !!ladder,
   });
+  /* The trend in words on the Filler control row (#471, plan §7): this
+     take's fillers a minute against the first week's, only where the
+     read reaches back to the first recording (fetchReps holds the newest
+     90; the spine counts every one). */
+  const fillersTrend = fillerTrend({
+    reps: repsNow,
+    complete: repsNow.length > 0 && spineNow.length <= repsNow.length,
+    now: { fillerCount: result.metrics.fillerCount, durationS: result.metrics.durationS },
+    at: new Date(),
+  });
   const sheetSlots = {
     records: (
       <section>
@@ -3701,7 +3712,7 @@ function Results({
             result={result}
             topic={config.topic}
             section="detail"
-            sheet={{ sections, open: trait, slots: sheetSlots }}
+            sheet={{ sections, open: trait, slots: sheetSlots, trend: fillersTrend ? { fillers: fillersTrend } : null }}
             /* The length line under the dimensions' head reads its own
                game's clock (M5): Speed rush's cap, else the daily target. */
             lengthNote={game?.id === "rush" ? `of ${gameRound?.cap ?? levelCapS(game, level)}s` : "target 60 to 90s"}

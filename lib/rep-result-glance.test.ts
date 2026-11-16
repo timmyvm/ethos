@@ -129,7 +129,8 @@ describe("the sheet's body, in order", () => {
       createElement(RepResult, { result, section: "detail", sheet: { sections: ["dimensions"], open: "fillers" } })
     );
     expect(visible(html)).toContain("Length 62s, target 60 to 90s");
-    expect(visible(html)).toContain("4 in all, most were “um”.");
+    // How often, as people feel it (#471), then the filler said most.
+    expect(visible(html)).toContain("4 in 62 seconds, about one every 15 seconds. Most were “um”.");
     expect(html).toContain("↳ Replace it with silence");
     expect(html).not.toContain("scores 100");
     const rush = renderToStaticMarkup(

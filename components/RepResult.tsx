@@ -13,7 +13,8 @@ import { Says, SAID_AFTER_MS } from "@/components/Says";
 import { SpeechBubble } from "@/components/SpeechBubble";
 import { Stars } from "@/components/Stars";
 import type { TakeAudio } from "@/components/TakeAudio";
-import { TRAIT, type TraitId } from "@/content/traits";
+import type { TraitId } from "@/content/traits";
+import { DIMENSION_NAME } from "@/lib/dimension-rows";
 import type { AccuracyResult } from "@/lib/accuracy";
 import type { CoachOutput } from "@/lib/coach";
 import type { ColdTopic } from "@/lib/cold-topics";
@@ -80,6 +81,8 @@ export interface SheetView {
   sections: SheetSection[];
   /** The practice's trait, whose dimension row starts open. */
   open?: TraitId;
+  /** A row's trend in words against the first week (#471), by its key. */
+  trend?: Partial<Record<TraitId, string>> | null;
   slots?: Partial<Record<SheetSection, ReactNode>>;
 }
 
@@ -249,18 +252,16 @@ export function RepResult({
    * The trait this rep leveled (DECISIONS #160) — this rep's best
    * dimension, when it cleared the bar. One quiet line, never a second
    * celebration (#34). Derived, so the log's copy of this rep says the
-   * same thing forever. A measured trait goes by its content/traits.ts
-   * name, the one Today, Lessons and the Log use.
+   * same thing forever. A level is earned by a score, so it goes by the
+   * name the score rows and You's trait levels print (#471,
+   * lib/dimension-rows DIMENSION_NAME): "Filler control leveled up",
+   * never "Fillers leveled up".
    */
   const gain = repTraitGain({
     transcript: result.transcript,
     dimensions: { tier1, tier2: coach?.dimensions ?? null },
   });
-  const gainName = gain
-    ? gain.key in TRAIT
-      ? TRAIT[gain.key as TraitId].name
-      : gain.name
-    : null;
+  const gainName = gain ? DIMENSION_NAME[gain.key] : null;
 
   /*
    * The score step's clock (M07): the count, then the stars 120ms
@@ -481,10 +482,12 @@ export function RepResult({
                   anchors={anchors}
                   metrics={m}
                   coach={coach}
+                  index={ethosIndex}
                   pauseDetail={result.pauseHeadline ?? undefined}
                   take={take}
                   fill={live}
                   open={view.open}
+                  trend={view.trend}
                   brief
                   gain={gain ? { key: gain.key, name: gain.name, text: `Leveled ${gain.levels === 2 ? "twice" : "up"}` } : null}
                 />
@@ -860,6 +863,7 @@ export function RepResult({
               anchors={anchors}
               metrics={m}
               coach={coach}
+              index={ethosIndex}
               pauseDetail={result.pauseHeadline ?? undefined}
               take={take}
               fill={live}

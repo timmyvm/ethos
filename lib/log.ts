@@ -15,7 +15,7 @@ import { DRILLS } from "./drills";
 import { gameOfLessonId } from "./games";
 import { HOSTILE_TAKE_ID } from "./hostile";
 import { parsePracticeId } from "./lesson-progress";
-import { dimensionPoints, INDEX_WEIGHTS } from "./index-score";
+import { DIMENSION_NAME } from "./dimension-rows";
 import { measured } from "./trait-readings";
 import { topicById } from "./topics";
 import { TRAITS, type TraitKey } from "./traits";
@@ -169,9 +169,13 @@ export function presenceRow(reps: RepRow[]): MovedRow | null {
 }
 
 /**
- * One row per Index dimension (#200), in the weighted points the
- * debrief speaks (#101), skipping recordings that never carried it, and
- * takes too short to score, whose stored dimensions made no Index.
+ * One row per Index dimension (#200), out of 100, the one scale the
+ * results' and a stored recording's rows speak since #471 (it was the
+ * weighted points, 99/150 beside 33/50), under the skill's name the
+ * rows print (DIMENSION_NAME: "Filler control", never "Fillers", whose
+ * rising number read as more fillers). Skips recordings that never
+ * carried it, and takes too short to score, whose stored dimensions made
+ * no Index.
  */
 export function skillRows(reps: RepRow[]): MovedRow[] {
   return TRAITS.map((t) => {
@@ -182,11 +186,11 @@ export function skillRows(reps: RepRow[]): MovedRow[] {
       const tier1 = d.tier1 as Partial<Record<TraitKey, number>>;
       const tier2 = d.tier2 as Partial<Record<TraitKey, { score: number }>> | null;
       const raw = tier1[t.key] ?? tier2?.[t.key]?.score;
-      if (typeof raw === "number") {
-        series.push(dimensionPoints(raw, INDEX_WEIGHTS[t.key]));
+      if (typeof raw === "number" && Number.isFinite(raw)) {
+        series.push(Math.max(0, Math.min(100, Math.round(raw))));
       }
     }
-    return endpoints(t.key, t.name, series);
+    return endpoints(t.key, DIMENSION_NAME[t.key], series);
   }).filter((row) => row.series.length >= 2);
 }
 

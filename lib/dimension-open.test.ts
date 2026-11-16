@@ -18,7 +18,7 @@ describe("DimensionList open", () => {
     const rows = openRows(render("fillers"));
     expect(rows).toHaveLength(1);
     expect(rows[0]).toContain('data-trait="fillers"');
-    expect(rows[0]).toContain("3.9 (4 in all)");
+    expect(rows[0]).toContain("3.9 (4 in all, about one every 15 seconds)");
   });
   it("opens the Pause row for Pausing, the Pace row for Pace", () => {
     expect(openRows(render("pause"))[0]).toContain('data-trait="pause"');

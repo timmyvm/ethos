@@ -2,24 +2,29 @@ import { Fragment, type ReactNode } from "react";
 import { IconChevron } from "@/components/Icon";
 import { MomentChip } from "@/components/rep/MomentChip";
 import type { TakeAudio } from "@/components/TakeAudio";
-import { TRAIT, type TraitId } from "@/content/traits";
+import { type TraitId } from "@/content/traits";
 import type { CoachOutput } from "@/lib/coach";
-import { dimensionPoints, type Tier1Scores, type Tier2Anchors } from "@/lib/index-score";
+import {
+  BAND_WORD,
+  dimensionRows,
+  everyLine,
+  isTraitKey,
+  paceWords,
+  plural,
+  rowsHeadline,
+  varietyWords,
+  weightLine,
+  type Band,
+  type DimensionRow,
+} from "@/lib/dimension-rows";
+import type { Tier1Scores, Tier2Anchors } from "@/lib/index-score";
 import { ALL_FILLERS_PER_MIN } from "@/lib/metric-labels";
 import type { RepMetrics } from "@/lib/metrics";
 import { filledMoments, saysFilled, type FilledMoments, type MomentsPart } from "@/lib/pause-quality";
+import type { TraitKey } from "@/lib/traits";
 
-interface Row {
-  name: string;
-  /**
-   * The trait a measured row IS (log-6, recording-8, system-9): its
-   * name comes from content/traits.ts and its swatch wears the trait's
-   * tone, so one colour never has two names between the Log and here.
-   * The four judged rows have none and stay neutral.
-   */
-  trait?: TraitId;
-  score: number;
-  weight: number;
+/** What a row says when it opens: what the take did, then how to move it. */
+interface Detail {
   detail: string;
   /** The Pause row's moments (#424), under its detail. */
   moments?: ReactNode;
@@ -32,31 +37,46 @@ interface Row {
  * carry the cited moment; measured rows carry the numbers behind them.
  * Explainability = trust.
  *
- * Each row shows its WEIGHTED contribution against its own denominator
- * — 132/150, not 88/100 — because the dimensions aren't worth the same
- * and pretending they are made the /1000 total look like it didn't add
- * up. Now it visibly does: the eight numbers on this list sum to the
- * Ethos Index above it. The bar fills to the same fraction, so half a
- * bar means half the points. The bars stay sage on every row, measured
- * or judged, because points are earned; a measured row carries its
- * trait in the swatch beside its name instead.
+ * Readable at a glance since #471 (the 14-day test: "did it mean i was
+ * good in it or bad in it"). Every row is out of 100, the one scale the
+ * rows share, with the word for how it went beside its number
+ * (lib/dimension-rows.ts `band`: Strong from 70, Okay from 50, Work on
+ * this under that) and a bar that shows the band: sage where it is
+ * Strong, because a Strong row is earned (it is the bar a trait levels
+ * at), and a neutral where it is not. A trait named for its fault is
+ * named for its skill here (Filler control, Follow-through), so a high
+ * number reads as good on every row. The rows no longer add up to the
+ * Index on the page; its foot says the Index and, in words built from
+ * INDEX_WEIGHTS, how each row counts toward it. The Index itself is the
+ * same number: nothing is rescored, and the points the rows give are
+ * still rounded per row, so they sum to it (#101).
  */
 export function DimensionList({
   tier1,
   anchors,
   metrics,
   coach,
+  index = null,
   pauseDetail,
   take = null,
   fill = false,
   open,
   brief = false,
   gain = null,
+  headline = true,
+  trend = null,
 }: {
   tier1: Tier1Scores;
   anchors: Tier2Anchors;
   metrics: RepMetrics;
   coach: CoachOutput | null;
+  /**
+   * The take's Ethos Index, as it was stored or scored, for the foot.
+   * It is the rows' points summed for every take scored on today's
+   * weights; a recording from before the split was weighed otherwise,
+   * and the foot says so rather than print a sum that is not its Index.
+   */
+  index?: number | null;
   /** The pause report's own line, when the results screen has one. */
   pauseDetail?: string;
   /**
@@ -71,9 +91,10 @@ export function DimensionList({
    */
   fill?: boolean;
   /**
-   * The trait whose row starts open (DECISIONS #427): in "The whole
-   * recording", the practice's own trait, so its numbers are one scroll
-   * in. Pausing opens the Pause row, Fillers the Fillers row, and so on.
+   * The trait whose row starts open (DECISIONS #427): in "Every
+   * number", the practice's own trait, so its numbers are one scroll
+   * in. Pausing opens the Pause row, Fillers the Filler control row, and
+   * so on.
    */
   open?: TraitId;
   /**
@@ -85,23 +106,29 @@ export function DimensionList({
   brief?: boolean;
   /**
    * #160's one quiet line ("Leveled twice"), in the row of the dimension
-   * it leveled: a measured row by its trait, a judged row by its name
-   * (lib/traits.ts names Steadiness as this list does).
+   * it leveled, by its key.
    */
   gain?: { key: string; name: string; text: string } | null;
+  /** The rows' headline in words over the card (plan §7); off where the caller draws it. */
+  headline?: boolean;
+  /**
+   * The trend in words for a row, by its key (plan §7, lib/dimension-rows
+   * `fillerTrend`): "About half your first week's fillers a minute: 3.9,
+   * from 7.6.", under what the take did. Where history was read.
+   */
+  trend?: Partial<Record<TraitKey, string>> | null;
 }) {
   /* The filled pauses' moments, read off the verdicts the take stored
      (#422): nothing is judged again or rescored here. Where the detail
      is the filled headline, which already says how many had a sound in
      them, the moments say only where. */
   const moments = filledMoments(metrics.pauses, { counted: saysFilled(pauseDetail) });
+  const secs = Math.round(metrics.durationS);
+  const fillers = metrics.fillerCount;
+  const repairs = metrics.repairCount ?? 0;
 
-  const measured: Row[] = [
-    {
-      name: TRAIT.pause.name,
-      trait: "pause",
-      score: tier1.pause,
-      weight: 150,
+  const details: Record<TraitKey, Detail | null> = {
+    pause: {
       detail: `${
         pauseDetail ??
         `${metrics.composedPauses} before a sentence, ${metrics.midSentencePauses} mid-sentence.`
@@ -110,197 +137,224 @@ export function DimensionList({
           ? ` Plus ${metrics.unvoicedHesitations} short mid-sentence gaps, under the held-pause bar: quiet hesitation.`
           : ""
       }`,
-      moments: moments ? (
-        <PauseMoments moments={moments} take={take?.playable ? take : null} />
-      ) : undefined,
+      moments: moments ? <PauseMoments moments={moments} take={take?.playable ? take : null} /> : undefined,
     },
-    {
-      name: TRAIT.fillers.name,
-      trait: "fillers",
-      score: tier1.fillers,
-      weight: 100,
+    fillers: {
       // The score runs on every filler a minute, so the rate wears its
-      // one label (E32): the row's own name is the trait's. Its scale
-      // keeps "a minute" on the 8, in the Restarts row's grammar: a bare
-      // "8 scores 0" read as 8 fillers.
+      // one label (E32): the row's own name is the skill's. How often, as
+      // people feel it (§7: "about one 'um' every 20 seconds"), beside the
+      // count; the Log keeps the rate and the scale, in the Restarts
+      // row's grammar: a bare "8 scores 0" read as 8 fillers.
       detail: brief
-        ? metrics.fillerCount === 0
-          ? "None."
-          : `${metrics.fillerCount} in all${metrics.topFiller ? `, most were “${metrics.topFiller}”` : ""}.`
-        : `${ALL_FILLERS_PER_MIN}: ${metrics.fillersPerMin} (${metrics.fillerCount} in all). None scores 100; 8 a minute scores 0.${
+        ? fillers === 0
+          ? `None in ${secs} seconds.`
+          : `${fillers} in ${secs} seconds${tail(everyLine(fillers, metrics.durationS))}.${
+              metrics.topFiller ? ` Most were “${metrics.topFiller}”.` : ""
+            }`
+        : `${ALL_FILLERS_PER_MIN}: ${metrics.fillersPerMin} (${fillers} in all${tail(everyLine(fillers, metrics.durationS))}). None scores 100; 8 a minute scores 0.${
             metrics.topFiller ? ` Most of them were “${metrics.topFiller}”.` : ""
           }`,
-      improve:
-        metrics.fillerCount > 0
-          ? "Replace it with silence, not a different word."
-          : undefined,
+      improve: fillers > 0 ? "Replace it with silence, not a different word." : undefined,
     },
     // Scored separately from fillers because they're separate problems
     // with separate fixes. Reps recorded before the split have no
     // repairs score, and get no row rather than an invented one.
-    ...(typeof tier1.repairs === "number"
-      ? [
-          {
-            name: TRAIT.repairs.name,
-            trait: "repairs" as const,
-            score: tier1.repairs,
-            weight: 50,
-            detail: `${metrics.repairCount ?? 0} restarted phrase${(metrics.repairCount ?? 0) === 1 ? "" : "s"}, ${metrics.repairsPerMin ?? 0} a minute.${
-              brief ? "" : " None scores 100; 3 a minute scores 0."
-            }`,
-            improve:
-              (metrics.repairCount ?? 0) > 0
-                ? "Finish the sentence, then say the better one. A restart makes the listener re-follow you."
-                : undefined,
-          },
-        ]
-      : []),
-    {
-      name: TRAIT.pace.name,
-      trait: "pace",
-      score: tier1.pace,
-      weight: 100,
-      detail: brief
-        ? `${metrics.wpm} words a minute, against the 130 to 160 zone.`
-        : `${metrics.wpm} words a minute against the 130 to 160 zone, plus a bonus when pace moves.`,
+    repairs: {
+      detail: `${plural(repairs, "restarted phrase")} in ${secs} seconds${tail(everyLine(repairs, metrics.durationS))}.${
+        brief ? "" : ` ${metrics.repairsPerMin ?? 0} a minute. None scores 100; 3 a minute scores 0.`
+      }`,
+      improve:
+        repairs > 0
+          ? "Finish the sentence, then say the better one. A restart makes the listener re-follow you."
+          : undefined,
     },
-    {
-      name: TRAIT.range.name,
-      trait: "range",
-      score: tier1.range,
-      weight: 100,
-      detail: "Distinct words against repeats and crutch words (“really”, “very”, “thing”).",
+    pace: {
+      detail: `${paceWords(metrics.wpm)}${brief ? "" : " A pace that moves earns a bonus."}`,
     },
-  ];
-
-  const judged: Row[] = coach
-    ? [
-        {
-          name: "Structure",
-          score: coach.dimensions.structure.score,
-          weight: 150,
-          detail: coach.dimensions.structure.citedMoment,
-          improve: coach.dimensions.structure.improve,
-        },
-        {
-          name: "Credibility",
-          score: coach.dimensions.credibility.score,
-          weight: 150,
-          detail: coach.dimensions.credibility.citedMoment,
-          improve: coach.dimensions.credibility.improve,
-        },
-        {
-          name: "Engagement",
-          score: coach.dimensions.engagement.score,
-          weight: 100,
-          detail: coach.dimensions.engagement.citedMoment,
-          improve: coach.dimensions.engagement.improve,
-        },
-        {
-          // The dimension's key stays `confidence` in the schema, the
-          // prompt and every stored row — this is a LABEL change, so no
-          // migration and no re-scoring. §8 bans the word from copy, and
-          // "Steadiness" is closer to what the anchors actually count
-          // (hedges and restarts) than the word it replaces.
-          name: "Steadiness",
-          score: coach.dimensions.confidence.score,
-          weight: 100,
-          detail: `${coach.dimensions.confidence.citedMoment} (${anchors.hedgeCount} hedges and ${anchors.restartCount} restarts, counted rather than judged.)`,
-          improve: coach.dimensions.confidence.improve,
-        },
+    range: {
+      detail: [
+        varietyWords(metrics.substance?.distinctRatio),
+        brief ? null : "Repeats and crutch words (“really”, “very”, “thing”) cost points.",
       ]
-    : [];
+        .filter(Boolean)
+        .join(" ") || "Distinct words against repeats and crutch words (“really”, “very”, “thing”).",
+    },
+    structure: coach
+      ? { detail: coach.dimensions.structure.citedMoment, improve: coach.dimensions.structure.improve }
+      : null,
+    credibility: coach
+      ? { detail: coach.dimensions.credibility.citedMoment, improve: coach.dimensions.credibility.improve }
+      : null,
+    engagement: coach
+      ? { detail: coach.dimensions.engagement.citedMoment, improve: coach.dimensions.engagement.improve }
+      : null,
+    // The dimension's key stays `confidence` in the schema, the prompt
+    // and every stored row: Steadiness is a LABEL (lib/dimension-rows
+    // DIMENSION_NAME), so no migration and no re-scoring.
+    confidence: coach
+      ? {
+          detail: `${coach.dimensions.confidence.citedMoment} (${plural(anchors.hedgeCount, "hedge")} and ${plural(
+            anchors.restartCount,
+            "restart"
+          )}, counted rather than judged.)`,
+          improve: coach.dimensions.confidence.improve,
+        }
+      : null,
+  };
 
-  const rows = [...measured, ...judged];
-  // Same rounding the Index uses, so the list adds up to the number
-  // printed above it rather than to something a point or two off.
-  const earned = rows.reduce(
-    (sum, r) => sum + dimensionPoints(r.score, r.weight),
-    0
-  );
+  const rows = dimensionRows(tier1, coach?.dimensions ?? null);
+  // Same rounding the Index uses, so the rows' points add up to it.
+  const earned = rows.reduce((sum, r) => sum + r.points, 0);
   const available = rows.reduce((sum, r) => sum + r.weight, 0);
+  const said = headline ? rowsHeadline(rows) : "";
 
   return (
-    <div className="card px-4 py-1">
-      {rows.map((row) => {
-        const points = dimensionPoints(row.score, row.weight);
-        return (
-          /* No `group` here (log-1): Tailwind's marker class matched the
-             grouped list's old `.group` rule and drew a grey capsule
-             round every row. Nothing on the row reads a group variant. */
-          <details
-            key={row.name}
-            open={(open !== undefined && row.trait === open) || undefined}
-            className="border-b border-hairline py-3 last:border-b-0"
-          >
-            <summary
-              data-trait={row.trait}
-              /* The row is 24 tall to the eye and 44 to the thumb (#439):
-                 its reach runs 10px past it into the row's own padding,
-                 above and below, so no row's reach meets the next. */
-              className="relative flex min-h-6 cursor-pointer select-none list-none items-center gap-3 after:absolute after:inset-x-0 after:-inset-y-2.5 after:content-[''] [&::-webkit-details-marker]:hidden"
-            >
-              {/* A 3px slot on every row, the tone swatch on the five
-                  measured ones, so the nine names share one left edge. */}
-              <span className="flex w-[104px] shrink-0 items-center gap-2">
-                <span
-                  aria-hidden
-                  className={`h-3.5 w-[3px] shrink-0 ${row.trait ? "tone-fill" : ""}`}
-                />
-                <span className="font-display min-w-0 truncate text-row font-bold">
-                  {row.name}
-                </span>
-              </span>
-              <span className="h-1.5 flex-1 overflow-hidden bg-sand">
-                <span
-                  className={`block h-full bg-sage-600 ${fill ? "fill" : ""}`}
-                  style={{ width: `${(points / row.weight) * 100}%` }}
-                />
-              </span>
-              <Score points={points} of={row.weight} />
-              {/* The row says it opens (log-5, recording-12); the chevron
-                  turns over on open (globals.css, details[open]). */}
-              <span aria-hidden className="disclosure-mark shrink-0 text-stone-400">
-                <IconChevron size={14} />
-              </span>
-            </summary>
-            {/* The why drops out of the row that opened it (#227); a
-                closed <details> doesn't render it, so it plays on every
-                open and never on the page's load. */}
-            <div className="reveal mt-2 pl-[11px] text-caption leading-relaxed text-stone-500">
-              {row.detail}
-              {gain && (row.trait ? row.trait === gain.key : row.name === gain.name) && <div className="mt-1 font-semibold text-sage-700">{gain.text}</div>}
-              {row.moments}
-              {row.improve && (
-                <div className="mt-1 text-stone-600">↳ {row.improve}</div>
-              )}
-            </div>
-          </details>
-        );
-      })}
-
-      {/* The sum, stated. Every number above adds to this one, and this
-          one is the Ethos Index — so the score is checkable by hand
-          rather than taken on trust. The total sits in the same column
-          as the rows' scores, over the chevron's slot. */}
-      <div className="flex items-center gap-3 border-t border-hairline py-3">
-        <span className="flex-1 pl-[11px] text-caption font-semibold text-stone-500">
-          {rows.length} dimension{rows.length === 1 ? "" : "s"}, added up
-        </span>
-        <Score points={earned} of={available} />
-        <span aria-hidden className="w-3.5 shrink-0" />
-      </div>
-
-      {/* Counts the rows rather than claiming a number (#102): the
-          measured tier grew once already and this line didn't notice. */}
-      {!coach && (
-        <p className="border-t border-hairline py-3 text-caption leading-relaxed text-stone-500">
-          The coach didn&apos;t run this time. These {rows.length} measured
-          dimensions cover {available} of the 1000; without the judged ones
-          there is no Ethos Index.
+    <>
+      {said && (
+        /* One headline in words, the numbers under it (plan §7): the
+           strongest rows as what you did, then the one to work on. Every
+           clause is a row on the card below. */
+        <p data-dimension-headline className="mb-3 text-body text-ink text-balance">
+          {said}
         </p>
       )}
-    </div>
+      <div className="card px-4 py-1">
+        {rows.map((row) => (
+          <RowDetails
+            key={row.key}
+            row={row}
+            detail={details[row.key]}
+            open={open !== undefined && row.key === open}
+            fill={fill}
+            gain={gain && gain.key === row.key ? gain.text : null}
+            trend={trend?.[row.key] ?? null}
+          />
+        ))}
+
+        {coach ? (
+          /* The Index, stated where the rows end, and how they make it:
+             every row is out of 100 and counts toward the 1000 by its
+             weight, said in words built from the weights themselves, so
+             a reader never sums the rows and finds a different number. */
+          <div data-dimension-foot className="border-t border-hairline py-3">
+            <div className="flex items-baseline gap-3">
+              <span className="font-display flex-1 pl-[11px] text-row">Ethos Index</span>
+              <span className="font-display text-body font-extrabold tabular-nums">
+                {index ?? earned}
+                <span className="text-caption font-semibold text-stone-500">/1000</span>
+              </span>
+              <span aria-hidden className="w-3.5 shrink-0" />
+            </div>
+            <p className="mt-1 pl-[11px] text-caption leading-relaxed text-stone-500 text-pretty">
+              {weightLine(rows)}
+              {index !== null && index !== earned && " This recording was scored on earlier weights, so its Index is not their sum."}
+            </p>
+          </div>
+        ) : (
+          /* Counts the rows rather than claiming a number (#102): the
+             measured tier grew once already and this line didn't notice. */
+          <p data-dimension-foot className="border-t border-hairline py-3 pl-[11px] text-caption leading-relaxed text-stone-500">
+            The coach didn&apos;t run this time. These {rows.length} measured rows count for up to {available} of the
+            1000; without the judged four there is no Ethos Index.
+          </p>
+        )}
+      </div>
+    </>
+  );
+}
+
+/** ", about one every 15 seconds", or nothing. */
+function tail(s: string | null): string {
+  return s ? `, ${s}` : "";
+}
+
+/** The band's word, in the colour it means: sage where earned, ink where it asks for work. */
+const BAND_TEXT: Record<Band, string> = {
+  strong: "text-sage-700",
+  okay: "text-stone-500",
+  work: "text-ink",
+};
+
+/**
+ * One row: the swatch and the skill's name, the band's word and the
+ * score out of 100 on its right, and its bar under them across the row,
+ * sage where it is Strong and a neutral where it is not. Two lines tall
+ * to the eye and the thumb, so the bar can be read the width of the row.
+ */
+function RowDetails({
+  row,
+  detail,
+  open,
+  fill,
+  gain,
+  trend,
+}: {
+  row: DimensionRow;
+  detail: Detail | null;
+  open: boolean;
+  fill: boolean;
+  gain: string | null;
+  trend: string | null;
+}) {
+  const trait = isTraitKey(row.key) ? row.key : undefined;
+  const strong = row.band === "strong";
+  return (
+    /* No `group` here (log-1): Tailwind's marker class matched the
+       grouped list's old `.group` rule and drew a grey capsule round
+       every row. Nothing on the row reads a group variant. */
+    <details
+      open={open || undefined}
+      data-band={row.band}
+      className="border-b border-hairline py-3 last-of-type:border-b-0"
+    >
+      <summary
+        data-trait={trait}
+        className="relative block cursor-pointer select-none list-none after:absolute after:inset-x-0 after:-inset-y-1 after:content-[''] [&::-webkit-details-marker]:hidden"
+      >
+        <span className="flex min-h-6 items-baseline gap-3">
+          {/* A 3px slot on every row, the tone swatch on the five
+              measured ones, so the nine names share one left edge. */}
+          <span className="flex min-w-0 flex-1 items-baseline gap-2">
+            <span aria-hidden className={`h-3.5 w-[3px] shrink-0 self-center ${trait ? "tone-fill" : ""}`} />
+            <span className="font-display min-w-0 truncate text-row font-bold">{row.name}</span>
+          </span>
+          <span data-band-word className={`shrink-0 text-caption font-semibold ${BAND_TEXT[row.band]}`}>
+            {BAND_WORD[row.band]}
+          </span>
+          <span className="font-display w-8 shrink-0 text-right text-body font-extrabold tabular-nums">
+            {row.score}
+            <span className="sr-only"> out of 100</span>
+          </span>
+          {/* The row says it opens (log-5, recording-12); the chevron
+              turns over on open (globals.css, details[open]). */}
+          <span aria-hidden className="disclosure-mark shrink-0 self-center text-stone-400">
+            <IconChevron size={14} />
+          </span>
+        </span>
+        {/* The bar, the row's width from its name to its number: sage
+            where the row is Strong (earned), the plain neutral where it
+            is not. Never terracotta: that is the screen's one tap. */}
+        <span aria-hidden className="mt-2 ml-[11px] mr-[26px] block h-1.5 overflow-hidden bg-sand">
+          <span
+            data-bar
+            className={`block h-full ${strong ? "bg-sage-600" : "bg-bar-plain"} ${fill ? "fill" : ""}`}
+            style={{ width: `${row.score}%` }}
+          />
+        </span>
+      </summary>
+      {/* The why drops out of the row that opened it (#227); a closed
+          <details> doesn't render it, so it plays on every open and
+          never on the page's load. */}
+      {detail && (
+        <div className="reveal mt-2 pl-[11px] text-caption leading-relaxed text-stone-500">
+          {detail.detail}
+          {trend && <div data-trend className="mt-1 text-stone-600">{trend}</div>}
+          {gain && <div className="mt-1 font-semibold text-sage-700">{gain}</div>}
+          {detail.moments}
+          {detail.improve && <div className="mt-1 text-stone-600">↳ {detail.improve}</div>}
+        </div>
+      )}
+    </details>
   );
 }
 
@@ -353,23 +407,5 @@ function PauseMoments({
       </span>
       {parts.slice(last + 1).map((p, i) => draw(p, last + 1 + i))}
     </p>
-  );
-}
-
-/**
- * Points over a denominator on one fixed edge (log-11): the numerator
- * right-aligned in its own column and the denominator left-aligned in
- * a 34px one, both tabular Outfit, so '33/50' ends where '99/150' does.
- */
-function Score({ points, of }: { points: number; of: number }) {
-  return (
-    <span className="grid w-[66px] shrink-0 grid-cols-[1fr_34px] items-baseline">
-      <span className="font-display text-right text-body font-extrabold tabular-nums">
-        {points}
-      </span>
-      <span className="font-display text-left text-caption font-semibold tabular-nums text-stone-500">
-        /{of}
-      </span>
-    </span>
   );
 }

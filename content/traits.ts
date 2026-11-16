@@ -22,6 +22,17 @@ export interface TraitDef {
   id: TraitId;
   /** What the card calls it. A behaviour, not a metric name. */
   name: string;
+  /**
+   * What it is called where its number is a SCORE out of 100, higher
+   * better (#471): the results' and the Log's dimension rows, You's
+   * trait levels and sheet. "Fillers 88" read as 88 fillers to the
+   * testers (FT: "did it mean i was good in it or bad in it"), so a trait
+   * named for the fault is named for the skill there. Where the number
+   * is a count of the thing itself (Today's tile, a lesson's "Your
+   * number", "4 fillers" on the glance) the name stays the fault's,
+   * which reads right. The same as `name` where that is already a skill.
+   */
+  skill: string;
   /** The raw unit, for the number under the ring. */
   unit: string;
   /** The same unit at one. "1 restarts a minute" is a tell. */
@@ -73,6 +84,7 @@ export const TRAITS: TraitDef[] = [
   {
     id: "pause",
     name: "Pausing",
+    skill: "Pausing",
     unit: "held pauses a minute",
     unitOne: "held pause a minute",
     what: "Silences long enough to land, and where you put them.",
@@ -108,6 +120,7 @@ export const TRAITS: TraitDef[] = [
   {
     id: "fillers",
     name: "Fillers",
+    skill: "Filler control",
     /*
      * Per hundred WORDS, and um and uh only. The unit is not a
      * presentation choice: per minute moves when you change pace, and
@@ -132,6 +145,7 @@ export const TRAITS: TraitDef[] = [
   {
     id: "repairs",
     name: "Restarts",
+    skill: "Follow-through",
     /* Per hundred words, like fillers and for the same reason: the
        published rate (Bortfeld's 1.94) is reported that way, and a
        per-minute count drops when somebody simply speeds up. */
@@ -151,6 +165,7 @@ export const TRAITS: TraitDef[] = [
   {
     id: "pace",
     name: "Pace",
+    skill: "Pace",
     unit: "words a minute",
     unitOne: "word a minute",
     what: "How fast you talk, and how much that speed moves.",
@@ -167,6 +182,7 @@ export const TRAITS: TraitDef[] = [
   {
     id: "range",
     name: "Variety",
+    skill: "Variety",
     unit: "distinct words per hundred",
     unitOne: "distinct word per hundred",
     what: "How much of your vocabulary you actually reach for.",

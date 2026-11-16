@@ -14,6 +14,11 @@ import type { RepMetrics, Word } from "./metrics";
  * map and the three stat tiles went, their numbers became one line under
  * "Every dimension", and a stored line that names a tomorrow is drawn in
  * two parts. The tests under the snapshots say those three in words.
+ *
+ * It moved again on purpose (#471, the 14-day test: "did it mean i was
+ * good in it or bad in it"): every dimension row is out of 100 with its
+ * band's word, named for the skill, a headline in words over the rows
+ * and the Index with its weights under them. The last tests say that.
  */
 const TRANSCRIPT =
   "So the thing about habits is, um, they compound. You do the small version every day and, like, it builds on its own. Um, the mistake people make is waiting to feel ready. You know, ready is a feeling that shows up after you start.";
@@ -86,7 +91,7 @@ const view: ResultView = {
 };
 
 describe("RepResult section=\"all\", the Log's page (#427)", () => {
-  it("renders exactly as it did at #458", () => {
+  it("renders exactly as it did at #471", () => {
     expect(renderToStaticMarkup(createElement(RepResult, { result: view, section: "all" }))).toMatchSnapshot();
   });
   it("and a stored recording that could not be scored, likewise", () => {
@@ -143,5 +148,41 @@ describe("RepResult section=\"all\", the Log's page (#427)", () => {
     const h = html(view);
     expect(h).not.toContain(">Tomorrow<");
     expect(text(h)).toContain("Kill ‘um’. 2 of your 4 fillers.");
+  });
+});
+
+describe("the Log's dimension rows read at a glance (#471)", () => {
+  const html = renderToStaticMarkup(createElement(RepResult, { result: view, section: "all" }));
+  const text = html.replace(/<[^>]+>/g, " ").replace(/&#x27;|&apos;/g, "'").replace(/\s+/g, " ");
+
+  it("prints every row out of 100, never a weighted max", () => {
+    expect(html).not.toMatch(/\/(150|50)\b/);
+    expect(text).not.toContain("added up");
+    // Pausing 72 with its band beside it; the Index stays 665.
+    expect(text).toMatch(/Pausing Strong 72 out of 100/);
+    expect(text).toMatch(/Filler control Okay 55 out of 100/);
+    expect(text).toMatch(/Ethos Index 665 \/1000/);
+  });
+
+  it("names a fault's row for its skill", () => {
+    expect(text).toContain("Filler control");
+    expect(text).toContain("Follow-through");
+    expect(text).not.toMatch(/\bRestarts\b/);
+  });
+
+  it("fills a Strong row's bar in sage and every other in the plain neutral, never terracotta", () => {
+    const bars = [...html.matchAll(/<details[^>]*data-band="(\w+)"[\s\S]*?data-bar="true" class="([^"]+)"/g)].map((m) => [m[1], m[2]]);
+    expect(bars).toHaveLength(9);
+    for (const [band, cls] of bars) {
+      expect(cls).toContain(band === "strong" ? "bg-sage-600" : "bg-bar-plain");
+      expect(cls).not.toContain("terracotta");
+    }
+  });
+
+  it("leads with one headline in words and ends on how the 1000 is made", () => {
+    expect(text).toContain("You spoke at a good pace and let your points land. Filler control has the most room to grow.");
+    expect(text).toContain(
+      "Rows are out of 100. In the Index, Pausing, Structure and Credibility count up to 150 each, Follow-through 50, the other five 100."
+    );
   });
 });

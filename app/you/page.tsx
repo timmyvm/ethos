@@ -42,6 +42,7 @@ import {
 } from "@/lib/client-data";
 import { LEVEL_AT, DOUBLE_AT, rankedTraits, traitLevels, type TraitLevel } from "@/lib/traits";
 import { practiseHref, sheetReading } from "@/lib/trait-sheet";
+import { DIMENSION_NAME } from "@/lib/dimension-rows";
 import { lessonProgress } from "@/lib/lesson-progress";
 import { TRAIT, type TraitId } from "@/content/traits";
 import { heldFreezes, syncFreezes } from "@/lib/freeze-sync";
@@ -917,7 +918,7 @@ export default function YouPage() {
                         t.level > 0 ? "" : "text-stone-400"
                       }`}
                     >
-                      {toned && isToned(t.key) ? TRAIT[t.key].name : t.name}
+                      {DIMENSION_NAME[t.key]}
                     </span>
                     <span className="h-1.5 flex-1 overflow-hidden bg-sand">
                       {t.level > 0 && (
@@ -1394,7 +1395,8 @@ function TraitSheet({
   onClose: () => void;
 }) {
   const toned = isToned(trait.key);
-  const name = toned ? TRAIT[trait.key as TraitId].name : trait.name;
+  /* The skill's name, as the row that opened it prints it (#471). */
+  const name = DIMENSION_NAME[trait.key];
   const what = toned ? TRAIT[trait.key as TraitId].what : WHAT[trait.key];
   const reading = sheetReading(trait.key, reps);
   const practise = practiseHref(trait.key, done);
@@ -1416,19 +1418,44 @@ function TraitSheet({
           <span className="font-display text-num-l tabular-nums">{reading ? reading.value : "–"}</span>
           {reading && <span className="font-display text-body font-semibold text-stone-500">{reading.unit}</span>}
         </p>
+        {/* Where it places you, in words that carry which way is better
+            (#471: "93rd percentile" beside Fillers read as more fillers
+            than nearly everyone), then what that is measured against,
+            once, here where a percentile is reached for. A judged trait
+            has no percentile: its band, in the band's own colour. */}
         {reading?.placement && (
-          <p className="font-display text-link text-stone-500">{reading.placement}</p>
+          <p
+            data-place
+            className={`font-display text-link ${
+              reading.source
+                ? "text-stone-500"
+                : reading.placement === "Strong"
+                  ? "text-sage-700"
+                  : reading.placement === "Okay"
+                    ? "text-stone-500"
+                    : "text-ink"
+            }`}
+          >
+            {reading.placement}
+          </p>
+        )}
+        {reading?.source && (
+          <p data-place-source className="mt-1 text-caption text-stone-400 text-pretty">
+            {reading.source}
+          </p>
         )}
         <p className="mt-4 text-read text-stone-800 text-pretty">{what}</p>
-        {/* The level and the rule that moves it, side by side. */}
+        {/* The level and the rule that moves it, side by side. The rule
+            is the results' own word (#471): a row that reads Strong is a
+            row that can level its trait. */}
         <div className="mt-4 flex items-center gap-4">
           <div className="flex size-16 shrink-0 flex-col items-center justify-center rounded-card bg-surface">
             <span className="font-display text-num-m tabular-nums">{trait.level}</span>
             <span className="label-micro mt-1">Level</span>
           </div>
           <p className="text-caption leading-relaxed text-stone-500">
-            A recording levels it when this is its best score and clears{" "}
-            {LEVEL_AT}. Over {DOUBLE_AT} counts twice.
+            A recording levels it when this is its best row and reads Strong, {LEVEL_AT} or more. From {DOUBLE_AT} it
+            counts twice.
           </p>
         </div>
         {practise && (

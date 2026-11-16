@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RepRow } from "./client-data";
-import { dimensionPoints, ethosIndex, INDEX_WEIGHTS, pauseScore, type Tier1Scores } from "./index-score";
+import { ethosIndex, pauseScore, type Tier1Scores } from "./index-score";
 import { movedRows, skillRows } from "./log";
 import { computeMetrics, type Word } from "./metrics";
 import { pauseReport, reportJudged, type JudgedPause } from "./pause-quality";
@@ -162,7 +162,8 @@ describe("a recording stored before #422 keeps its numbers", () => {
     const stored = row.dimensions!.tier1.pause;
     expect(out.moved.find((m) => m.key === "index")!.series).toEqual(ROWS.map((r) => r.ethos_index));
     expect(out.skills.find((m) => m.key === "pause")!.series).toEqual(
-      ROWS.map(() => dimensionPoints(stored, INDEX_WEIGHTS.pause))
+      // Out of 100 since #471: the stored score itself, never rejudged.
+      ROWS.map(() => Math.round(stored))
     );
     expect(out.schedule.find((s) => s.skill === "pause")!.score).toBe(stored);
     expect(out.bests.find((b) => b.headline === "Best Ethos yet")?.detail).toBe(`900, past your ${row.ethos_index}`);

@@ -150,7 +150,10 @@ describe("skillRows", () => {
     expect(skillRows([withPause(50)])).toEqual([]);
     const rows = skillRows([withPause(50), withPause(80)]);
     expect(rows).toHaveLength(1);
-    expect(rows[0].label).toBe("Pause");
+    expect(rows[0].label).toBe("Pausing");
+    // Out of 100, the scale the rows on the results speak (#471).
+    expect(rows[0].then).toBe("50");
+    expect(rows[0].now).toBe("80");
     expect(rows[0].direction).toBe("up");
     // A take too short to score made no Index, so its dimensions are no reading.
     expect(skillRows([withPause(50), { ...withPause(10), transcript: "Hi there." }])).toEqual([]);

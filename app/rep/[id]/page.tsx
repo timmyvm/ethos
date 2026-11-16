@@ -418,9 +418,9 @@ export default function RepDetail({
 /**
  * The stored recording while its row is in flight, shaped to what
  * replaces it (PRINCIPLES 8): the trait chip, the 56px hero with its
- * label and stars, Demos at 112 beside his bubble, the pause card, the
- * dimensions head and card, and the three stats as ONE card in three
- * columns (log-7), the way RepResult draws them now.
+ * label and stars, Demos at 112 beside his bubble, then the dimensions
+ * head, the take's line, the rows' headline and the rows' card, the way
+ * RepResult draws them now (#458, #471).
  */
 function RecordingSkeleton() {
   return (
@@ -436,19 +436,18 @@ function RecordingSkeleton() {
         <Skeleton className="size-28 shrink-0" rounded="rounded-full" />
         <Skeleton className="h-20 flex-1" rounded="rounded-card" />
       </div>
-      <Skeleton className="mt-7 h-36 w-full" rounded="rounded-card" />
+      {/* "Every dimension", the take's line under it (#458: the pause
+          map and the three stat tiles that stood here are gone), the
+          rows' headline in two lines of body, then the nine rows out of
+          100 and the Index under them, at DimensionList's height (#471,
+          690 at 390 with no row open). */}
       <Line className="section-head mt-7" width="w-44" />
-      {/* Nine measured rows and the sum, at DimensionList's height. */}
-      <Skeleton className="mt-3 h-[499px] w-full" rounded="rounded-card" />
-      <div className="card mt-3 grid grid-cols-3 divide-x divide-hairline">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="px-3 py-4">
-            <Line className="label-micro" width="w-12" />
-            <Line className="font-display mt-1.5 text-num-m" width="w-10" />
-            <Line className="mt-1 text-caption" width="w-16" />
-          </div>
-        ))}
+      <Line className="mt-1 text-caption" width="w-64" />
+      <div className="mt-3">
+        <Line className="text-body" width="w-full" />
+        <Line className="text-body" width="w-48" />
       </div>
+      <Skeleton className="mt-3 h-[690px] w-full" rounded="rounded-card" />
     </SkeletonRegion>
   );
 }

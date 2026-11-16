@@ -120,6 +120,12 @@
    * the white ground; the dashed trough below stays firmer, as it
    * must. Neutral since #289. */
   --color-sand: #e4e4e4;
+  /* A score's bar that is not earned (#471): the dimension rows fill in
+     sage where a row reads Strong and in this where it does not. Ink at
+     24% on the trough (#b5b5b5 on #e4e4e4), lighter than sage-600 in
+     both themes, so an earned bar is always the heavier one and seven
+     plain bars do not turn the card grey. Never terracotta. */
+  --color-bar-plain: rgba(32, 30, 29, 0.24);
   /* The segmented control's trough (D01): one step under the white
      thumb, so the thumb reads at a glance (Today's surface trough was
      1.1:1 against it). Ink at 8.5% rather than the opaque #ececec it
@@ -494,6 +500,8 @@ body {
   /* 1.57:1 on the dark ground, 1.29:1 on a dark card; was 1.16 on the
      card, where the dimension bars' troughs vanished (#287). */
   --color-sand: #333333;
+  /* The plain bar (#471): the same 24% of the ink, #616161 on #333. */
+  --color-bar-plain: rgba(242, 242, 242, 0.24);
   /* Lifted further here than in light. On the dark card the solid
      trough is already close to the surface it sits on, and the dashed
      one at the same value disappeared entirely. */
@@ -4305,6 +4313,7 @@ summary::-webkit-details-marker {
     --color-stone-400: rgba(32, 30, 29, 0.8);
     --color-stone-500: rgba(32, 30, 29, 0.86);
     --color-stone-600: rgba(32, 30, 29, 0.9);
+    --color-bar-plain: rgba(32, 30, 29, 0.42);
   }
   :root[data-theme="dark"] {
     --color-hairline: rgba(242, 242, 242, 0.3);
@@ -4315,6 +4324,7 @@ summary::-webkit-details-marker {
     --color-stone-400: rgba(242, 242, 242, 0.8);
     --color-stone-500: rgba(242, 242, 242, 0.86);
     --color-stone-600: rgba(242, 242, 242, 0.9);
+    --color-bar-plain: rgba(242, 242, 242, 0.42);
   }
   .screen-bar[data-edge]::before {
     background: var(--color-ground);

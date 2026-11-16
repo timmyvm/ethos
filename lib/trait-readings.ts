@@ -208,6 +208,48 @@ export function move(
 }
 
 /**
+ * Where a reading sits, in words (#471, docs/plan-next.md §7: "where you
+ * sit: the percentiles exist; say them in words"). A tester read "93rd
+ * percentile" beside Fillers and asked what it was based on and whether
+ * it was a leaderboard (hny); worse, on a trait where fewer is better,
+ * "93rd" beside "Fillers" reads as more fillers than nearly everyone.
+ * The words carry the direction: the percentile is the share of speakers
+ * this reading does better than, said as "than 93 in 100 speakers".
+ * Clamped to 1 to 99, so it never claims everyone or no one.
+ */
+export function placeWords(r: Pick<TraitReading, "id" | "percentile">): string {
+  const p = Math.max(1, Math.min(99, Math.round(r.percentile)));
+  const than = `than ${p} in 100 speakers`;
+  switch (r.id) {
+    case "pause":
+      return `More landed pauses ${than}`;
+    case "fillers":
+      return `Fewer ums and uhs ${than}`;
+    case "repairs":
+      return `Fewer restarts ${than}`;
+    case "pace": {
+      const band = NORMS.pace.band;
+      return band ? `Nearer the middle of ${band.lo} to ${band.hi} ${than}` : `Nearer the middle ${than}`;
+    }
+    case "range":
+      return `More varied words ${than}`;
+  }
+}
+
+/**
+ * What a percentile is measured against, said once where one stands
+ * (#471): published research on how people speak (content/norms.ts, its
+ * citations), never other Ethos users, so there is no leaderboard to be
+ * on. A provisional scale says it is an estimate, which every scale is
+ * today (docs/percentiles.md), in words and not only in the ring's
+ * dashed trough.
+ */
+export function placeSource(quality: NormQuality): string {
+  const base = "Against published speech research, not other Ethos users.";
+  return quality === "provisional" ? `${base} An estimate for now.` : base;
+}
+
+/**
  * The one line that has to appear beside every percentile, always.
  *
  * The hardest finding in `docs/closure.md` is the boomerang: a bare

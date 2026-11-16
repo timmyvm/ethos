@@ -49,7 +49,7 @@ import {
 } from "@/lib/log";
 import { starsByLesson, totalStars } from "@/lib/path";
 import { readPrefs } from "@/lib/prefs";
-import { TRAIT, type TraitId } from "@/content/traits";
+import type { TraitId } from "@/content/traits";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
 
 const FREE_DAYS = 7; // mechanics.md: free tier sees the last 7 days
@@ -455,13 +455,11 @@ export default function HistoryPage() {
             <PlanRowSkeleton />
           ) : premium !== false ? (
             skills.map((row) => (
-              /* A taught trait's row takes the name Today and Lessons
-                 print beside the same colour ("Restarts", not
-                 "Self-corrections"), so one colour never has two names. */
-              <MetricRow
-                key={row.key}
-                row={{ ...row, label: TRAIT[row.key as TraitId]?.name ?? row.label }}
-              />
+              /* A score out of 100 under the skill's name, as a stored
+                 recording's rows print it (#471, skillRows): "Filler
+                 control 72 → 80", where "Fillers 72 → 80" read as more
+                 fillers. The swatch keeps the trait's colour. */
+              <MetricRow key={row.key} row={row} />
             ))
           ) : (
             <TeaserRow

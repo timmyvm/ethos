@@ -23,7 +23,20 @@ describe("the trait sheet shows how you speak it (D37)", () => {
     expect(r).not.toBeNull();
     expect(r!.value).toBe("155");
     expect(r!.unit).toMatch(/wpm|words/);
-    expect(r!.placement).toMatch(/^\d+(st|nd|rd|th) percentile$/);
+    // Where it places you in words, never the ordinal (#471), and what
+    // that is measured against under it, honest that it is an estimate.
+    expect(r!.placement).toMatch(/^Nearer the middle of 130 to 160 than \d+ in 100 speakers$/);
+    expect(r!.placement).not.toMatch(/percentile|\d+(st|nd|rd|th)\b/);
+    expect(r!.source).toBe(
+      "Against published speech research, not other Ethos users. An estimate for now."
+    );
+  });
+
+  it("says a fewer-is-better trait's place the right way up (#471)", () => {
+    // 3 fillers in about 70 words: the words say fewer, so a high place
+    // can never read as more fillers than most.
+    const r = sheetReading("fillers", [rep()]);
+    expect(r!.placement).toMatch(/^Fewer ums and uhs than \d+ in 100 speakers$/);
   });
 
   it("reads the newest recording", () => {
@@ -35,11 +48,11 @@ describe("the trait sheet shows how you speak it (D37)", () => {
     expect(sheetReading("structure", [rep()])).toBeNull();
   });
 
-  it("reads an Index trait as its last judged score out of 100, with no percentile", () => {
+  it("reads an Index trait as its last judged score out of 100 and its band, with no percentile", () => {
     const judged = rep({
       dimensions: { tier1: {}, anchors: {}, tier2: { structure: { score: 71.6 } } } as unknown as RepRow["dimensions"],
     });
-    expect(sheetReading("structure", [judged, rep()])).toEqual({ value: "72", unit: "/ 100", placement: null });
+    expect(sheetReading("structure", [judged, rep()])).toEqual({ value: "72", unit: "/ 100", placement: "Strong", source: null });
   });
 
   it("lets you practise only the five the lessons teach, from You", () => {

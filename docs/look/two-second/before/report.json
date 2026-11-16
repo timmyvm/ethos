@@ -1,0 +1,242 @@
+{
+  "ready 390-light": {
+    "closed": {
+      "tactic": "Concrete nouns",
+      "sentence": "",
+      "underRecord": [
+        {
+          "text": "Ethos 700 · 10 to go",
+          "h": 19
+        }
+      ],
+      "heading": "A trend you hope disappears"
+    },
+    "open": {
+      "tactic": "Concrete nouns",
+      "sentence": "A short concrete noun beats a long abstract one every time.",
+      "underRecord": [
+        {
+          "text": "Ethos 700 · 10 to go",
+          "h": 19
+        }
+      ],
+      "heading": "A trend you hope disappears"
+    }
+  },
+  "ready-800 390-light": {
+    "closed": {
+      "tactic": "Concrete nouns",
+      "sentence": "",
+      "underRecord": [
+        {
+          "text": "Ethos 800 · 96 to go",
+          "h": 19
+        }
+      ],
+      "heading": "A trend you hope disappears"
+    },
+    "open": {
+      "tactic": "Concrete nouns",
+      "sentence": "A short concrete noun beats a long abstract one every time.",
+      "underRecord": [
+        {
+          "text": "Ethos 800 · 96 to go",
+          "h": 19
+        }
+      ],
+      "heading": "A trend you hope disappears"
+    }
+  },
+  "alive 390-light": {
+    "closed": {
+      "tactic": "Concrete nouns",
+      "sentence": "",
+      "underRecord": [
+        {
+          "text": "This one keeps a 6-day streak alive",
+          "h": 19
+        }
+      ],
+      "heading": "A trend you hope disappears"
+    },
+    "open": {
+      "tactic": "Concrete nouns",
+      "sentence": "A short concrete noun beats a long abstract one every time.",
+      "underRecord": [
+        {
+          "text": "This one keeps a 6-day streak alive",
+          "h": 19
+        }
+      ],
+      "heading": "A trend you hope disappears"
+    }
+  },
+  "today-open 390-light": {
+    "lead": "Welcome back"
+  },
+  "today-spoken 390-light": {
+    "lead": "One more",
+    "tactic": "Leave the silence empty",
+    "sentence": "Do not fill it. A pause with an \"um\" leaning on it earns nothing."
+  },
+  "ready 390-dark": {
+    "closed": {
+      "tactic": "Concrete nouns",
+      "sentence": "",
+      "underRecord": [
+        {
+          "text": "Ethos 700 · 10 to go",
+          "h": 19
+        }
+      ],
+      "heading": "A trend you hope disappears"
+    },
+    "open": {
+      "tactic": "Concrete nouns",
+      "sentence": "A short concrete noun beats a long abstract one every time.",
+      "underRecord": [
+        {
+          "text": "Ethos 700 · 10 to go",
+          "h": 19
+        }
+      ],
+      "heading": "A trend you hope disappears"
+    }
+  },
+  "ready-800 390-dark": {
+    "closed": {
+      "tactic": "Concrete nouns",
+      "sentence": "",
+      "underRecord": [
+        {
+          "text": "Ethos 800 · 96 to go",
+          "h": 19
+        }
+      ],
+      "heading": "A trend you hope disappears"
+    },
+    "open": {
+      "tactic": "Concrete nouns",
+      "sentence": "A short concrete noun beats a long abstract one every time.",
+      "underRecord": [
+        {
+          "text": "Ethos 800 · 96 to go",
+          "h": 19
+        }
+      ],
+      "heading": "A trend you hope disappears"
+    }
+  },
+  "alive 390-dark": {
+    "closed": {
+      "tactic": "Concrete nouns",
+      "sentence": "",
+      "underRecord": [
+        {
+          "text": "This one keeps a 6-day streak alive",
+          "h": 19
+        }
+      ],
+      "heading": "A trend you hope disappears"
+    },
+    "open": {
+      "tactic": "Concrete nouns",
+      "sentence": "A short concrete noun beats a long abstract one every time.",
+      "underRecord": [
+        {
+          "text": "This one keeps a 6-day streak alive",
+          "h": 19
+        }
+      ],
+      "heading": "A trend you hope disappears"
+    }
+  },
+  "today-open 390-dark": {
+    "lead": "Welcome back"
+  },
+  "today-spoken 390-dark": {
+    "lead": "One more",
+    "tactic": "Leave the silence empty",
+    "sentence": "Do not fill it. A pause with an \"um\" leaning on it earns nothing."
+  },
+  "ready 375-light": {
+    "closed": {
+      "tactic": "Concrete nouns",
+      "sentence": "",
+      "underRecord": [
+        {
+          "text": "Ethos 700 · 10 to go",
+          "h": 19
+        }
+      ],
+      "heading": "A trend you hope disappears"
+    },
+    "open": {
+      "tactic": "Concrete nouns",
+      "sentence": "A short concrete noun beats a long abstract one every time.",
+      "underRecord": [
+        {
+          "text": "Ethos 700 · 10 to go",
+          "h": 19
+        }
+      ],
+      "heading": "A trend you hope disappears"
+    }
+  },
+  "ready-800 375-light": {
+    "closed": {
+      "tactic": "Concrete nouns",
+      "sentence": "",
+      "underRecord": [
+        {
+          "text": "Ethos 800 · 96 to go",
+          "h": 19
+        }
+      ],
+      "heading": "A trend you hope disappears"
+    },
+    "open": {
+      "tactic": "Concrete nouns",
+      "sentence": "A short concrete noun beats a long abstract one every time.",
+      "underRecord": [
+        {
+          "text": "Ethos 800 · 96 to go",
+          "h": 19
+        }
+      ],
+      "heading": "A trend you hope disappears"
+    }
+  },
+  "alive 375-light": {
+    "closed": {
+      "tactic": "Concrete nouns",
+      "sentence": "",
+      "underRecord": [
+        {
+          "text": "This one keeps a 6-day streak alive",
+          "h": 19
+        }
+      ],
+      "heading": "A trend you hope disappears"
+    },
+    "open": {
+      "tactic": "Concrete nouns",
+      "sentence": "A short concrete noun beats a long abstract one every time.",
+      "underRecord": [
+        {
+          "text": "This one keeps a 6-day streak alive",
+          "h": 19
+        }
+      ],
+      "heading": "A trend you hope disappears"
+    }
+  },
+  "today-open 375-light": {
+    "lead": "Welcome back"
+  },
+  "today-spoken 375-light": {
+    "lead": "One more",
+    "tactic": "Leave the silence empty",
+    "sentence": "Do not fill it. A pause with an \"um\" leaning on it earns nothing."
+  }
+}

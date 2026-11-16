@@ -237,15 +237,19 @@ export function DimensionList({
              weight, said in words built from the weights themselves, so
              a reader never sums the rows and finds a different number. */
           <div data-dimension-foot className="border-t border-hairline py-3">
-            <div className="flex items-baseline gap-3">
-              <span className="font-display flex-1 pl-[11px] text-row">Ethos Index</span>
-              <span className="font-display text-body font-extrabold tabular-nums">
-                {index ?? earned}
-                <span className="text-caption font-semibold text-stone-500">/1000</span>
-              </span>
-              <span aria-hidden className="w-3.5 shrink-0" />
-            </div>
-            <p className="mt-1 pl-[11px] text-caption leading-relaxed text-stone-500 text-pretty">
+            {/* The Index as the take holds it, never one worked out here:
+                a caller with no Index gets the weights alone. */}
+            {index !== null && (
+              <div className="mb-1 flex items-baseline gap-3">
+                <span className="font-display flex-1 pl-[11px] text-row">Ethos Index</span>
+                <span className="font-display text-body font-extrabold tabular-nums">
+                  {index}
+                  <span className="text-caption font-semibold text-stone-500">/1000</span>
+                </span>
+                <span aria-hidden className="w-3.5 shrink-0" />
+              </div>
+            )}
+            <p className="pl-[11px] text-caption leading-relaxed text-stone-500 text-pretty">
               {weightLine(rows)}
               {index !== null && index !== earned && " This recording was scored on earlier weights, so its Index is not their sum."}
             </p>

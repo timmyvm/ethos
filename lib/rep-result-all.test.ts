@@ -185,4 +185,11 @@ describe("the Log's dimension rows read at a glance (#471)", () => {
       "Rows are out of 100. In the Index, Pausing, Structure and Credibility count up to 150 each, Follow-through 50, the other five 100."
     );
   });
+
+  it("claims nothing in words for a take too short to score", () => {
+    const unscored: ResultView = { ...view, ethosIndex: null, coach: null, scorable: false };
+    const h = renderToStaticMarkup(createElement(RepResult, { result: unscored, section: "all" }));
+    expect(h).not.toContain("data-dimension-headline");
+    expect(h).not.toContain("You spoke at a good pace");
+  });
 });
